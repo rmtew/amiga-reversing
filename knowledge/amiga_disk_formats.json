@@ -1,0 +1,331 @@
+{
+  "meta": {
+    "description": "Amiga disk image formats and filesystem structures for reverse engineering",
+    "sources": [
+      "Laurent Clevy ADF FAQ (lclevy.free.fr/adflib/adf_info.html)",
+      "AmigaOS Wiki (wiki.amigaos.net)",
+      "OSDev Wiki FFS article",
+      "Amiga Developer CD Appendix C",
+      "keirf/Disk-Utilities GitHub"
+    ]
+  },
+
+  "adf_format": {
+    "description": "ADF (Amiga Disk File) - raw sector dump of an Amiga floppy disk",
+    "file_extension": ".adf",
+    "byte_order": "big-endian",
+    "variants": {
+      "DD": {
+        "size_bytes": 901120,
+        "sectors_per_track": 11,
+        "cylinders": 80,
+        "heads": 2,
+        "total_tracks": 160,
+        "total_sectors": 1760,
+        "bytes_per_sector": 512
+      },
+      "HD": {
+        "size_bytes": 1802240,
+        "sectors_per_track": 22,
+        "cylinders": 80,
+        "heads": 2,
+        "total_tracks": 160,
+        "total_sectors": 3520,
+        "bytes_per_sector": 512
+      }
+    },
+    "sector_mapping": {
+      "description": "Block N maps to physical location",
+      "cylinder": "N / (heads * sectors_per_track)",
+      "head": "(N / sectors_per_track) % heads",
+      "sector": "N % sectors_per_track"
+    },
+    "notes": "Pure sector dump with NO header. File starts directly with cylinder 0, head 0, sector 0."
+  },
+
+  "mfm_encoding": {
+    "description": "Modified Frequency Modulation - physical encoding on Amiga disks",
+    "rules": {
+      "bit_1": "encoded as 01",
+      "bit_0_after_0": "encoded as 10",
+      "bit_0_after_1": "encoded as 00"
+    },
+    "amiga_specific": {
+      "description": "Amiga splits data into odd/even bits before MFM encoding (for blitter-based decoding)",
+      "decode_formula": "decoded = ((odd_mfm & 0x55555555) << 1) | (even_mfm & 0x55555555)",
+      "mask": "0x55555555"
+    },
+    "sync_word": {
+      "value": "0x4489",
+      "description": "MFM encoding of $A1 with missing clock bit - cannot occur in normal data",
+      "usage": "Two consecutive $4489 words mark start of each sector"
+    },
+    "sector_structure": [
+      {"field": "gap", "decoded_size": 2, "notes": "null bytes ($AAAA MFM)"},
+      {"field": "sync", "decoded_size": 2, "notes": "$4489 $4489"},
+      {"field": "info", "decoded_size": 4, "notes": "format($FF), track(0-159), sector(0-10), sectors_until_gap"},
+      {"field": "os_recovery", "decoded_size": 16, "notes": "label area, block-encoded odd/even"},
+      {"field": "header_checksum", "decoded_size": 4, "notes": "XOR of header MFM longs"},
+      {"field": "data_checksum", "decoded_size": 4, "notes": "XOR of data MFM longs"},
+      {"field": "data", "decoded_size": 512, "notes": "block-encoded odd/even, 1024 bytes MFM"}
+    ],
+    "raw_track_size_bytes": 12800
+  },
+
+  "boot_block": {
+    "description": "First 2 sectors (1024 bytes) of disk",
+    "location": "blocks 0-1",
+    "fields": [
+      {"offset": "0x00", "size": 3, "name": "magic", "value": "0x444F53 ('DOS')", "description": "Disk type identifier"},
+      {"offset": "0x03", "size": 1, "name": "flags", "description": "Filesystem type flags"},
+      {"offset": "0x04", "size": 4, "name": "checksum", "description": "Boot block checksum"},
+      {"offset": "0x08", "size": 4, "name": "rootblock", "description": "Root block number (880 for DD, 1760 for HD)"},
+      {"offset": "0x0C", "size": 1012, "name": "bootcode", "description": "Executable boot code"}
+    ],
+    "flags_byte": {
+      "bit_0": "FFS (0=OFS, 1=FFS)",
+      "bit_1": "International mode",
+      "bit_2": "Directory cache",
+      "combinations": {
+        "0x00": "DOS\\0 - OFS",
+        "0x01": "DOS\\1 - FFS",
+        "0x02": "DOS\\2 - OFS International",
+        "0x03": "DOS\\3 - FFS International",
+        "0x04": "DOS\\4 - OFS DirCache+Intl",
+        "0x05": "DOS\\5 - FFS DirCache+Intl",
+        "0x06": "DOS\\6 - LNFS OFS",
+        "0x07": "DOS\\7 - LNFS FFS"
+      }
+    },
+    "checksum_algorithm": "Sum all 256 longwords (1024 bytes) with carry wraparound; checksum field set so total = 0",
+    "validation_note": "DOS magic alone does NOT guarantee a valid filesystem. Some custom-format disks have DOS bootblocks (for bootstrap code) but no valid root block. Always verify root block type=T_HEADER(2) and sec_type=ST_ROOT(1) before parsing filesystem.",
+    "boot_entry": {
+      "registers": {
+        "A6": "ExecBase",
+        "A1": "IOStdReq (open trackdisk.device)"
+      },
+      "entry_point": "offset 0x0C",
+      "return": "D0=0 success (A0=jump address), non-zero=failure"
+    }
+  },
+
+  "amigados_filesystem": {
+    "description": "AmigaDOS filesystem structures (OFS and FFS)",
+    "block_size": 512,
+    "date_format": {
+      "days": "days since January 1, 1978",
+      "mins": "minutes past midnight",
+      "ticks": "1/50 second ticks"
+    },
+    "checksum_algorithm": "Sum all 128 longwords; checksum field set so total = 0",
+    "hash_function": {
+      "description": "Maps filenames to hash table slots",
+      "algorithm": "For each char: hash = ((hash * 13) + toupper(char)) & 0x7FF; return hash % 72",
+      "table_size": 72,
+      "note": "International mode extends toupper() to handle chars 192-254"
+    },
+
+    "block_types": {
+      "T_HEADER": 2,
+      "T_DATA": 8,
+      "T_LIST": 16,
+      "ST_ROOT": 1,
+      "ST_USERDIR": 2,
+      "ST_FILE": -3,
+      "ST_SOFTLINK": 3,
+      "ST_LINKDIR": 4
+    },
+
+    "root_block": {
+      "description": "Central filesystem block - at sector 880 (DD) or 1760 (HD)",
+      "fields": [
+        {"offset": "0x000", "size": 4, "name": "type", "value": "T_HEADER (2)"},
+        {"offset": "0x004", "size": 4, "name": "header_key", "value": "0 (unused)"},
+        {"offset": "0x008", "size": 4, "name": "high_seq", "value": "0 (unused)"},
+        {"offset": "0x00C", "size": 4, "name": "ht_size", "value": "72 (hash table entries)"},
+        {"offset": "0x014", "size": 4, "name": "checksum", "description": "Block checksum"},
+        {"offset": "0x018", "size": 288, "name": "hash_table[72]", "description": "Pointers to first block of each hash chain"},
+        {"offset": "BSIZE-200", "size": 4, "name": "bm_flag", "value": "0xFFFFFFFF (-1) = valid bitmap"},
+        {"offset": "BSIZE-196", "size": 100, "name": "bm_pages[25]", "description": "Bitmap block pointers"},
+        {"offset": "BSIZE-96", "size": 4, "name": "bm_ext", "description": "Bitmap extension block"},
+        {"offset": "BSIZE-92", "size": 12, "name": "r_date", "description": "Root alteration date (days/mins/ticks)"},
+        {"offset": "BSIZE-80", "size": 1, "name": "name_len", "description": "Volume name length"},
+        {"offset": "BSIZE-79", "size": 30, "name": "diskname", "description": "Volume name (BCPL string)"},
+        {"offset": "BSIZE-40", "size": 12, "name": "v_date", "description": "Volume alteration date"},
+        {"offset": "BSIZE-28", "size": 12, "name": "c_date", "description": "Filesystem creation date"},
+        {"offset": "BSIZE-4", "size": 4, "name": "sec_type", "value": "ST_ROOT (1)"}
+      ]
+    },
+
+    "dir_header_block": {
+      "description": "Metadata block for a subdirectory (same layout as file header but sec_type=ST_USERDIR and hash_table replaces data_blocks)",
+      "notes": "Same offsets as file_header_block. high_seq=0, the 72-longword area at 0x018 is a hash_table (same as root block), byte_size=0, extension=0. sec_type=ST_USERDIR (2)."
+    },
+
+    "file_header_block": {
+      "description": "Metadata block for a file",
+      "fields": [
+        {"offset": "0x000", "size": 4, "name": "type", "value": "T_HEADER (2)"},
+        {"offset": "0x004", "size": 4, "name": "header_key", "description": "This block's own block number"},
+        {"offset": "0x008", "size": 4, "name": "high_seq", "description": "Number of data block pointers stored"},
+        {"offset": "0x010", "size": 4, "name": "first_data", "description": "OFS: first data block number"},
+        {"offset": "0x014", "size": 4, "name": "checksum", "description": "Block checksum"},
+        {"offset": "0x018", "size": 288, "name": "data_blocks[72]", "description": "Data block pointers, filled from END of array upward: index 71=first block, 70=second, etc. First valid entry at index (72 - high_seq)"},
+        {"offset": "BSIZE-192", "size": 4, "name": "protect", "description": "Protection bits (HSPARWED)"},
+        {"offset": "BSIZE-188", "size": 4, "name": "byte_size", "description": "File size in bytes"},
+        {"offset": "BSIZE-184", "size": 1, "name": "comm_len", "description": "Comment length"},
+        {"offset": "BSIZE-183", "size": 79, "name": "comment", "description": "File comment (BCPL string)"},
+        {"offset": "BSIZE-92", "size": 12, "name": "date", "description": "Last modification date"},
+        {"offset": "BSIZE-80", "size": 1, "name": "name_len", "description": "Filename length"},
+        {"offset": "BSIZE-79", "size": 30, "name": "filename", "description": "Filename (BCPL string, max 30 chars)"},
+        {"offset": "BSIZE-16", "size": 4, "name": "hash_chain", "description": "Next entry in same hash bucket"},
+        {"offset": "BSIZE-12", "size": 4, "name": "parent", "description": "Parent directory block number"},
+        {"offset": "BSIZE-8", "size": 4, "name": "extension", "description": "First file extension block (0 if none)"},
+        {"offset": "BSIZE-4", "size": 4, "name": "sec_type", "value": "ST_FILE (-3)"}
+      ]
+    },
+
+    "data_block_ofs": {
+      "description": "OFS data block - has 24-byte header, 488 bytes usable data",
+      "fields": [
+        {"offset": "0x00", "size": 4, "name": "type", "value": "T_DATA (8)"},
+        {"offset": "0x04", "size": 4, "name": "header_key", "description": "File header block number"},
+        {"offset": "0x08", "size": 4, "name": "seq_num", "description": "Sequence number (1-based)"},
+        {"offset": "0x0C", "size": 4, "name": "data_size", "description": "Bytes of valid data (max 488)"},
+        {"offset": "0x10", "size": 4, "name": "next_data", "description": "Next data block (0 if last)"},
+        {"offset": "0x14", "size": 4, "name": "checksum", "description": "Block checksum"},
+        {"offset": "0x18", "size": 488, "name": "data", "description": "File data"}
+      ]
+    },
+
+    "data_block_ffs": {
+      "description": "FFS data block - pure 512 bytes of data, no overhead"
+    },
+
+    "file_extension_block": {
+      "description": "Additional data block pointers when file exceeds 72 blocks",
+      "fields": [
+        {"offset": "0x00", "size": 4, "name": "type", "value": "T_LIST (16)"},
+        {"offset": "0x04", "size": 4, "name": "header_key", "description": "Own block number"},
+        {"offset": "0x08", "size": 4, "name": "high_seq", "description": "Number of data block pointers"},
+        {"offset": "0x14", "size": 4, "name": "checksum"},
+        {"offset": "0x18", "size": 288, "name": "data_blocks[72]", "description": "More data block pointers, filled from END of array upward (same layout as file header)"},
+        {"offset": "BSIZE-12", "size": 4, "name": "parent", "description": "File header block number"},
+        {"offset": "BSIZE-8", "size": 4, "name": "extension", "description": "Next extension block (0 if last)"},
+        {"offset": "BSIZE-4", "size": 4, "name": "sec_type", "value": "ST_FILE (-3)"}
+      ]
+    },
+
+    "bitmap_block": {
+      "description": "Tracks allocated/free blocks",
+      "location": "Typically block 881 on DD disk",
+      "fields": [
+        {"offset": "0x00", "size": 4, "name": "checksum"},
+        {"offset": "0x04", "size": 508, "name": "map", "description": "Bit array, 1 bit per block. 1=free, 0=allocated"}
+      ]
+    },
+
+    "ofs_vs_ffs": {
+      "OFS": {
+        "data_per_block": 488,
+        "block_has_header": true,
+        "block_has_checksum": true,
+        "block_has_linked_list": true,
+        "reliability": "higher (per-block checksums)"
+      },
+      "FFS": {
+        "data_per_block": 512,
+        "block_has_header": false,
+        "block_has_checksum": false,
+        "block_has_linked_list": false,
+        "reliability": "lower but faster"
+      }
+    }
+  },
+
+  "non_dos_formats": {
+    "description": "Custom disk formats used by games and demos, bypassing AmigaDOS",
+
+    "custom_bootblocks": {
+      "description": "Games with custom boot code that loads their own track-based loader",
+      "detection": "Boot block may have DOS magic but loads custom code, or may have non-DOS magic",
+      "common_patterns": [
+        "Direct CIA/custom chip programming for disk access",
+        "Raw track reads instead of filesystem operations",
+        "Custom MFM decoders using the blitter",
+        "Custom sync words different from $4489"
+      ]
+    },
+
+    "trackdisk_commands": {
+      "CMD_READ": "Read sectors (standard)",
+      "CMD_WRITE": "Write sectors (standard)",
+      "TD_RAWREAD": "Read raw MFM track data",
+      "TD_RAWWRITE": "Write raw MFM track data",
+      "TD_MOTOR": "Motor control (io_Length: 1=on, 0=off)",
+      "TD_SEEK": "Move heads (no read)",
+      "TD_FORMAT": "Initialize/format tracks",
+      "TD_CHANGESTATE": "Detect disk presence (0=present)",
+      "TD_PROTSTATUS": "Check write-protect",
+      "TD_GETNUMTRACKS": "Get track count",
+      "constants": {
+        "NUMSECS": 11,
+        "TD_SECTOR": 512,
+        "TD_LABELSIZE": 16,
+        "unit_0": "internal drive",
+        "units_1_3": "external drives"
+      }
+    },
+
+    "protection_schemes": {
+      "long_tracks": {
+        "description": "Tracks with more data than standard (~105,500+ bits vs ~100,000)",
+        "mechanism": "Can be read but not written by consumer drives"
+      },
+      "fuzzy_bits": {
+        "description": "Magnetic flux at ambiguous timings - different results on each read",
+        "usage": "Protection code reads same area multiple times, expects variation"
+      },
+      "extra_sectors": {
+        "description": "More than 11 sectors per track (12-13+)",
+        "example": "diskspare.device used 12 sectors"
+      },
+      "custom_sync_words": {
+        "description": "Non-$4489 sync patterns that AmigaDOS won't recognize"
+      },
+      "rob_northen_copylock": {
+        "description": "Most widely used Amiga copy protection (~500 games, 1988-1996)",
+        "mechanism": [
+          "Disk contains 'Copylock Serial Track' - a long track with unique serial key",
+          "Encrypted loader reads and decodes the serial track",
+          "Uses M68K trace mode (trace vector fires before each instruction)",
+          "Just-in-time decryption: code decrypted one instruction at a time",
+          "Only 1-2 instructions exist unencrypted in memory at any time"
+        ],
+        "series_1": "Passes serial key through D0, stores at address $24",
+        "series_2": "Enhanced, writes game-specific values into registers/memory",
+        "track_format": "518 decoded bytes per sector (non-standard)"
+      }
+    },
+
+    "known_custom_formats": {
+      "description": "Notable publisher/game-specific formats (from keirf/Disk-Utilities)",
+      "formats": [
+        "copylock - Rob Northen Copylock",
+        "pdos / pdos_old - RNC Protected DOS",
+        "speedlock - Speedlock protection",
+        "psygnosis_a/b/c - Psygnosis custom formats",
+        "factor5 - Factor 5 (Turrican etc.)",
+        "thalion - Thalion format",
+        "sensible - Sensible Software",
+        "rainbird - Rainbird protection",
+        "alienbreed_protection - Team17",
+        "dungeon_master - FTL's Dungeon Master",
+        "elite - Elite custom format",
+        "smartdos - SmartDOS",
+        "cyberdos - CyberDOS"
+      ],
+      "reference": "https://github.com/keirf/Disk-Utilities/tree/master/libdisk/format/amiga"
+    }
+  }
+}

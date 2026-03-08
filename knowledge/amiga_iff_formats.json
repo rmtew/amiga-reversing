@@ -1,0 +1,1296 @@
+{
+  "meta": {
+    "description": "IFF interchange format specifications for Amiga",
+    "sources": [
+      "EA IFF 85 specification (Electronic Arts, 1985)",
+      "ILBM specification (Jerry Morrison, EA, 1986)",
+      "8SVX specification (Steve Hayes & Jerry Morrison, EA, 1985)",
+      "ANIM specification (SPARTA Inc. & Aegis Development, 1988)",
+      "ADCD 2.1: D:/EXTRAS/IFF/IFF_FORMS/ and D:/EXTRAS/IFF/OLD_IFF_PACKAGES/",
+      "Third-party chunk specifications from IFF_FORMS directory"
+    ],
+    "type_sizes": {
+      "UBYTE": 1,
+      "BYTE": 1,
+      "CHAR": 1,
+      "UWORD": 2,
+      "WORD": 2,
+      "ULONG": 4,
+      "LONG": 4,
+      "Fixed": 4
+    },
+    "type_descriptions": {
+      "Fixed": "16.16 fixed-point: 16 bits integer + 16 bits fraction. Unity = 0x10000 = 1.0"
+    }
+  },
+  "iff_container": {
+    "description": "EA IFF 85 interchange format — all IFF files use this container",
+    "byte_order": "big-endian (Motorola)",
+    "chunk_header": {
+      "fields": [
+        {
+          "name": "ckID",
+          "type": "CHAR[4]",
+          "description": "4-byte ASCII chunk identifier"
+        },
+        {
+          "name": "ckSize",
+          "type": "ULONG",
+          "description": "byte count of chunk data (excludes header and pad)"
+        }
+      ],
+      "size": 8,
+      "notes": "Every chunk is padded to even length; pad byte not included in ckSize"
+    },
+    "group_types": {
+      "FORM": "typed data container — FORM type follows immediately after ckSize",
+      "LIST": "ordered collection of FORMs, may contain PROP for shared properties",
+      "CAT ": "unordered concatenation of FORMs",
+      "PROP": "shared properties for all FORMs in a LIST"
+    },
+    "generic_chunks": {
+      "ANNO": {
+        "name": "Annotation",
+        "description": "Free-text annotation string"
+      },
+      "AUTH": {
+        "name": "Author",
+        "description": "Author/creator name string"
+      },
+      "NAME": {
+        "name": "Name",
+        "description": "Name of art, music, etc."
+      },
+      "TEXT": {
+        "name": "Text",
+        "description": "Unformatted ASCII text"
+      },
+      "(c) ": {
+        "name": "Copyright",
+        "description": "Copyright notice string"
+      },
+      "FVER": {
+        "name": "File Version",
+        "description": "AmigaOS 2.0+ $VER: version string"
+      },
+      "JUNK": {
+        "name": "Junk",
+        "description": "Always ignore this chunk (padding/alignment)"
+      }
+    }
+  },
+  "forms": {
+    "ILBM": {
+      "form_id": "ILBM",
+      "name": "Interleaved Bitmap",
+      "source": "EA IFF 85",
+      "description": "Raster bitmap image with color map, optional mask, and Amiga viewport modes. The standard Amiga image format used by DPaint, PPaint, and virtually all graphics software.",
+      "grammar": "FORM ILBM { BMHD [CMAP] [GRAB] [DEST] [SPRT] [CAMG] [CRNG*] [CCRT*] [BODY] }",
+      "chunks": {
+        "BMHD": {
+          "name": "Bitmap Header",
+          "required": true,
+          "struct_name": "BitMapHeader",
+          "struct_size": 20,
+          "fields": [
+            {
+              "name": "w",
+              "type": "UWORD",
+              "offset": 0,
+              "description": "raster width in pixels"
+            },
+            {
+              "name": "h",
+              "type": "UWORD",
+              "offset": 2,
+              "description": "raster height in pixels"
+            },
+            {
+              "name": "x",
+              "type": "WORD",
+              "offset": 4,
+              "description": "image position X (pixels)"
+            },
+            {
+              "name": "y",
+              "type": "WORD",
+              "offset": 6,
+              "description": "image position Y (pixels)"
+            },
+            {
+              "name": "nPlanes",
+              "type": "UBYTE",
+              "offset": 8,
+              "description": "number of source bitplanes (depth)"
+            },
+            {
+              "name": "masking",
+              "type": "UBYTE",
+              "offset": 9,
+              "description": "0=none, 1=hasMask, 2=hasTransparentColor, 3=lasso"
+            },
+            {
+              "name": "compression",
+              "type": "UBYTE",
+              "offset": 10,
+              "description": "0=none, 1=byteRun1"
+            },
+            {
+              "name": "pad1",
+              "type": "UBYTE",
+              "offset": 11,
+              "description": "unused, set to 0"
+            },
+            {
+              "name": "transparentColor",
+              "type": "UWORD",
+              "offset": 12,
+              "description": "transparent color number (for masking 2 or 3)"
+            },
+            {
+              "name": "xAspect",
+              "type": "UBYTE",
+              "offset": 14,
+              "description": "pixel aspect ratio width (10 for 320x200)"
+            },
+            {
+              "name": "yAspect",
+              "type": "UBYTE",
+              "offset": 15,
+              "description": "pixel aspect ratio height (11 for 320x200)"
+            },
+            {
+              "name": "pageWidth",
+              "type": "WORD",
+              "offset": 16,
+              "description": "source page width in pixels"
+            },
+            {
+              "name": "pageHeight",
+              "type": "WORD",
+              "offset": 18,
+              "description": "source page height in pixels"
+            }
+          ]
+        },
+        "CMAP": {
+          "name": "Color Map",
+          "required": false,
+          "description": "Color register values as RGB triplets. Count = ckSize / 3.",
+          "struct_name": "ColorRegister",
+          "struct_size": 3,
+          "fields": [
+            {
+              "name": "red",
+              "type": "UBYTE",
+              "offset": 0,
+              "description": "red intensity 0-255"
+            },
+            {
+              "name": "green",
+              "type": "UBYTE",
+              "offset": 1,
+              "description": "green intensity 0-255"
+            },
+            {
+              "name": "blue",
+              "type": "UBYTE",
+              "offset": 2,
+              "description": "blue intensity 0-255"
+            }
+          ],
+          "notes": "Amiga OCS/ECS has 4-bit DACs — use high nibble only. AGA has 8-bit. n_colors = ckSize / 3, normally 2^nPlanes."
+        },
+        "GRAB": {
+          "name": "Hotspot",
+          "required": false,
+          "struct_name": "Point2D",
+          "struct_size": 4,
+          "fields": [
+            {
+              "name": "x",
+              "type": "WORD",
+              "offset": 0,
+              "description": "hotspot X relative to upper-left"
+            },
+            {
+              "name": "y",
+              "type": "WORD",
+              "offset": 2,
+              "description": "hotspot Y relative to upper-left"
+            }
+          ]
+        },
+        "DEST": {
+          "name": "Destination Merge",
+          "required": false,
+          "struct_name": "DestMerge",
+          "struct_size": 8,
+          "fields": [
+            {
+              "name": "depth",
+              "type": "UBYTE",
+              "offset": 0,
+              "description": "bitplanes in original source"
+            },
+            {
+              "name": "pad1",
+              "type": "UBYTE",
+              "offset": 1
+            },
+            {
+              "name": "planePick",
+              "type": "UWORD",
+              "offset": 2,
+              "description": "scatter source planes into dest (bit per plane)"
+            },
+            {
+              "name": "planeOnOff",
+              "type": "UWORD",
+              "offset": 4,
+              "description": "default data for non-picked planes"
+            },
+            {
+              "name": "planeMask",
+              "type": "UWORD",
+              "offset": 6,
+              "description": "gate: 1=write to this dest plane, 0=leave alone"
+            }
+          ]
+        },
+        "SPRT": {
+          "name": "Sprite",
+          "required": false,
+          "struct_size": 2,
+          "fields": [
+            {
+              "name": "precedence",
+              "type": "UWORD",
+              "offset": 0,
+              "description": "sprite precedence (0=foremost)"
+            }
+          ]
+        },
+        "CAMG": {
+          "name": "Amiga Viewport Mode",
+          "required": false,
+          "struct_size": 4,
+          "fields": [
+            {
+              "name": "viewModes",
+              "type": "ULONG",
+              "offset": 0,
+              "description": "Amiga viewport mode flags"
+            }
+          ],
+          "constants": {
+            "HAM": {
+              "value": "0x0800",
+              "description": "Hold-And-Modify mode"
+            },
+            "EHB": {
+              "value": "0x0080",
+              "description": "Extra-Half-Brite mode"
+            },
+            "LACE": {
+              "value": "0x0004",
+              "description": "Interlace mode"
+            },
+            "HIRES": {
+              "value": "0x8000",
+              "description": "High resolution (640 px wide)"
+            },
+            "HAM8": {
+              "value": "0x0800",
+              "description": "HAM8 (AGA, 8 planes)"
+            },
+            "SUPERHIRES": {
+              "value": "0x0020",
+              "description": "Super high resolution (1280 px wide)"
+            },
+            "DUALPF": {
+              "value": "0x0400",
+              "description": "Dual playfield mode"
+            }
+          }
+        },
+        "CRNG": {
+          "name": "Color Range",
+          "required": false,
+          "description": "DPaint color cycling range. Can appear multiple times.",
+          "struct_name": "CRange",
+          "struct_size": 8,
+          "fields": [
+            {
+              "name": "pad1",
+              "type": "WORD",
+              "offset": 0,
+              "description": "reserved, set to 0"
+            },
+            {
+              "name": "rate",
+              "type": "WORD",
+              "offset": 2,
+              "description": "color cycle rate (16384 = 60 steps/sec)"
+            },
+            {
+              "name": "active",
+              "type": "WORD",
+              "offset": 4,
+              "description": "nonzero = cycling enabled"
+            },
+            {
+              "name": "low",
+              "type": "UBYTE",
+              "offset": 6,
+              "description": "lower color register"
+            },
+            {
+              "name": "high",
+              "type": "UBYTE",
+              "offset": 7,
+              "description": "upper color register"
+            }
+          ]
+        },
+        "CCRT": {
+          "name": "Color Cycling Range and Timing",
+          "required": false,
+          "description": "Graphicraft color cycling. Alternative to CRNG.",
+          "struct_name": "CycleInfo",
+          "struct_size": 14,
+          "fields": [
+            {
+              "name": "direction",
+              "type": "WORD",
+              "offset": 0,
+              "description": "0=don't cycle, 1=forward, -1=backward"
+            },
+            {
+              "name": "start",
+              "type": "UBYTE",
+              "offset": 2,
+              "description": "lower color register"
+            },
+            {
+              "name": "end",
+              "type": "UBYTE",
+              "offset": 3,
+              "description": "upper color register"
+            },
+            {
+              "name": "seconds",
+              "type": "LONG",
+              "offset": 4,
+              "description": "seconds between color changes"
+            },
+            {
+              "name": "microseconds",
+              "type": "LONG",
+              "offset": 8,
+              "description": "microseconds between color changes"
+            },
+            {
+              "name": "pad",
+              "type": "WORD",
+              "offset": 12,
+              "description": "reserved, set to 0"
+            }
+          ]
+        },
+        "BODY": {
+          "name": "Image Body",
+          "required": true,
+          "description": "Interleaved bitplane data. Each scan line = nPlanes rows (+ mask row if masking=1), each row = ceil(w/16) words. Rows may be ByteRun1 compressed."
+        }
+      },
+      "compression": {
+        "byteRun1": {
+          "id": 1,
+          "description": "PackBits-style run-length encoding, applied per row",
+          "algorithm": [
+            "Read next signed byte n",
+            "If 0 <= n <= 127: copy next n+1 bytes literally",
+            "If -127 <= n <= -1: replicate next byte (-n+1) times",
+            "If n == -128: no-op (skip)",
+            "Repeat until row complete"
+          ]
+        }
+      },
+      "raster_layout": {
+        "description": "Bitplanes interleaved by row. Plane 0 = low-order bit of color index.",
+        "row_width_bytes": "ceil(w / 16) * 2",
+        "scan_line_order": "plane 0 row, plane 1 row, ..., plane N-1 row, [mask row]",
+        "pixel_order": "left to right, MSB first within each byte"
+      }
+    },
+    "8SVX": {
+      "form_id": "8SVX",
+      "name": "8-Bit Sampled Voice",
+      "source": "EA IFF 85",
+      "description": "8-bit audio sample, either one-shot sound or multi-octave musical instrument with optional envelope.",
+      "grammar": "FORM 8SVX { VHDR [NAME] [(c) ] [AUTH] [ANNO*] [ATAK] [RLSE] BODY }",
+      "chunks": {
+        "VHDR": {
+          "name": "Voice Header",
+          "required": true,
+          "struct_name": "Voice8Header",
+          "struct_size": 20,
+          "fields": [
+            {
+              "name": "oneShotHiSamples",
+              "type": "ULONG",
+              "offset": 0,
+              "description": "samples in high octave one-shot part"
+            },
+            {
+              "name": "repeatHiSamples",
+              "type": "ULONG",
+              "offset": 4,
+              "description": "samples in high octave repeat part"
+            },
+            {
+              "name": "samplesPerHiCycle",
+              "type": "ULONG",
+              "offset": 8,
+              "description": "samples/cycle in high octave (0=unknown)"
+            },
+            {
+              "name": "samplesPerSec",
+              "type": "UWORD",
+              "offset": 12,
+              "description": "sampling rate in Hz"
+            },
+            {
+              "name": "ctOctave",
+              "type": "UBYTE",
+              "offset": 14,
+              "description": "number of octaves of waveform data"
+            },
+            {
+              "name": "sCompression",
+              "type": "UBYTE",
+              "offset": 15,
+              "description": "0=none, 1=fibDelta"
+            },
+            {
+              "name": "volume",
+              "type": "Fixed",
+              "offset": 16,
+              "description": "playback volume, Fixed 16.16 (0x10000=full)"
+            }
+          ]
+        },
+        "BODY": {
+          "name": "Sample Data",
+          "required": true,
+          "description": "Signed 8-bit samples (-128..127). Highest octave first, each successive octave has 2x samples. Total = (2^0 + ... + 2^(ctOctave-1)) * (oneShotHiSamples + repeatHiSamples)."
+        },
+        "ATAK": {
+          "name": "Attack Envelope",
+          "required": false,
+          "description": "Piecewise-linear attack contour. Array of EGPoint, count = ckSize / 6.",
+          "struct_name": "EGPoint",
+          "struct_size": 6,
+          "fields": [
+            {
+              "name": "duration",
+              "type": "UWORD",
+              "offset": 0,
+              "description": "segment duration in milliseconds"
+            },
+            {
+              "name": "dest",
+              "type": "Fixed",
+              "offset": 2,
+              "description": "destination volume factor (Fixed 16.16)"
+            }
+          ]
+        },
+        "RLSE": {
+          "name": "Release Envelope",
+          "required": false,
+          "description": "Piecewise-linear release contour. Same format as ATAK.",
+          "struct_name": "EGPoint",
+          "struct_size": 6,
+          "fields": [
+            {
+              "name": "duration",
+              "type": "UWORD",
+              "offset": 0,
+              "description": "segment duration in milliseconds"
+            },
+            {
+              "name": "dest",
+              "type": "Fixed",
+              "offset": 2,
+              "description": "destination volume factor (Fixed 16.16)"
+            }
+          ]
+        },
+        "CHAN": {
+          "name": "Channel Assignment",
+          "required": false,
+          "struct_size": 4,
+          "fields": [
+            {
+              "name": "sampletype",
+              "type": "LONG",
+              "offset": 0,
+              "description": "2=LEFT, 4=RIGHT, 6=STEREO"
+            }
+          ],
+          "notes": "Stereo: BODY contains LEFT then RIGHT data, equal length."
+        },
+        "PAN": {
+          "name": "Stereo Panning",
+          "required": false,
+          "struct_size": 4,
+          "fields": [
+            {
+              "name": "sposition",
+              "type": "Fixed",
+              "offset": 0,
+              "description": "stereo position: 0=right, Unity(0x10000)=left, Unity/2=center"
+            }
+          ]
+        }
+      },
+      "compression": {
+        "fibDelta": {
+          "id": 1,
+          "description": "Fibonacci-delta encoding — 4 bits per sample, halves data size",
+          "delta_table": [
+            -34,
+            -21,
+            -13,
+            -8,
+            -5,
+            -3,
+            -2,
+            -1,
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            13,
+            21
+          ],
+          "algorithm": [
+            "First 2 bytes: pad byte + initial 8-bit value",
+            "Remaining bytes: each byte holds 2 nybbles (high first)",
+            "Each nybble indexes delta_table, delta added to running value",
+            "Output: 2*(n-2) samples from n input bytes"
+          ]
+        }
+      }
+    },
+    "ANIM": {
+      "form_id": "ANIM",
+      "name": "Cel Animation",
+      "source": "SPARTA Inc. / Aegis Development",
+      "description": "Animated sequence of ILBM frames. First frame is full ILBM, subsequent frames are delta-compressed differences. Uses double-buffering playback (each delta modifies frame 2 back).",
+      "grammar": "FORM ANIM { FORM ILBM(frame1) [FORM ILBM(frame2..N)]* }",
+      "structure": [
+        "Frame 1: Full FORM ILBM with BMHD, CMAP, BODY (+ optional ANHD for timing)",
+        "Frame 2: FORM ILBM with ANHD + DLTA (delta from frame 1)",
+        "Frame 3+: FORM ILBM with ANHD + DLTA (delta from 2 frames back)",
+        "Looping: last 2 frames duplicate first 2 frames"
+      ],
+      "chunks": {
+        "ANHD": {
+          "name": "Animation Header",
+          "required": true,
+          "description": "Per-frame animation parameters. Replaces BMHD in delta frames.",
+          "struct_size": 24,
+          "fields": [
+            {
+              "name": "operation",
+              "type": "UBYTE",
+              "offset": 0,
+              "description": "compression method: 0=direct, 1=XOR, 2=longDelta, 3=shortDelta, 4=generalDelta, 5=byteVertical, 6=stereo5, 74('J')=reserved(Eric Graham)"
+            },
+            {
+              "name": "mask",
+              "type": "UBYTE",
+              "offset": 1,
+              "description": "XOR mode: plane mask (bit set = has data)"
+            },
+            {
+              "name": "w",
+              "type": "UWORD",
+              "offset": 2,
+              "description": "XOR mode: width of delta area"
+            },
+            {
+              "name": "h",
+              "type": "UWORD",
+              "offset": 4,
+              "description": "XOR mode: height of delta area"
+            },
+            {
+              "name": "x",
+              "type": "WORD",
+              "offset": 6,
+              "description": "XOR mode: X position of delta area"
+            },
+            {
+              "name": "y",
+              "type": "WORD",
+              "offset": 8,
+              "description": "XOR mode: Y position of delta area"
+            },
+            {
+              "name": "abstime",
+              "type": "ULONG",
+              "offset": 10,
+              "description": "absolute time from first frame (1/60 sec jiffies)"
+            },
+            {
+              "name": "reltime",
+              "type": "ULONG",
+              "offset": 14,
+              "description": "time since previous frame (1/60 sec jiffies)"
+            },
+            {
+              "name": "interleave",
+              "type": "UBYTE",
+              "offset": 18,
+              "description": "frames back to modify (0=default=2 for double-buffering)"
+            },
+            {
+              "name": "pad0",
+              "type": "UBYTE",
+              "offset": 19
+            },
+            {
+              "name": "bits",
+              "type": "ULONG",
+              "offset": 20,
+              "description": "option bits for methods 4&5"
+            }
+          ],
+          "option_bits": {
+            "0": "0=short data, 1=long data",
+            "1": "0=set, 1=XOR",
+            "2": "0=separate info per plane, 1=one info list for all planes",
+            "3": "0=not RLC, 1=run-length coded",
+            "4": "0=horizontal, 1=vertical",
+            "5": "0=short info offsets, 1=long info offsets"
+          }
+        },
+        "DLTA": {
+          "name": "Delta Data",
+          "required": true,
+          "description": "Frame difference data. Format depends on ANHD.operation.",
+          "methods": {
+            "1": {
+              "name": "XOR",
+              "description": "XOR between current and 2-frames-back, stored as ByteRun1 in BODY chunk"
+            },
+            "2": {
+              "name": "Long Delta",
+              "description": "Changed longwords with offsets. 8 LONG pointers to per-plane data. Positive offset = skip + 1 longword. Negative offset = -(offset+2) then count + N contiguous longwords. Terminates with 0xFFFF."
+            },
+            "3": {
+              "name": "Short Delta",
+              "description": "Same as method 2 but with WORD-sized data instead of LONG."
+            },
+            "4": {
+              "name": "General Delta",
+              "description": "16 LONG pointers: 8 data + 8 offset/count lists. Supports short/long, horizontal/vertical, set/XOR, RLC options via ANHD.bits."
+            },
+            "5": {
+              "name": "Byte Vertical (Jim Kent)",
+              "description": "16 LONG pointers (first 8 used). Per-plane, per-column compression. Each column: op-count byte, then ops: skip (0x01-0x7F), uniq (0x80|count + literal bytes), same (0x00 + count + fill byte). Dest advances by bytes_per_row.",
+              "ops": [
+                {
+                  "name": "skip",
+                  "byte_range": "0x01-0x7F",
+                  "description": "skip N rows (advance dest by N * bytesPerRow)"
+                },
+                {
+                  "name": "uniq",
+                  "byte_range": "0x80-0xFF",
+                  "description": "copy (byte & 0x7F) literal bytes"
+                },
+                {
+                  "name": "same",
+                  "byte_range": "0x00",
+                  "description": "next byte = count, then byte = fill value, repeat count times"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "playback": {
+        "buffers": 2,
+        "method": "Double-buffered: display A, modify B with delta, flip. Delta for frame N modifies frame N-2.",
+        "timing": "ANHD.reltime in jiffies (1/60 sec). Use VBlank interrupt for timing."
+      }
+    },
+    "ACBM": {
+      "form_id": "ACBM",
+      "name": "Amiga Contiguous Bitmap",
+      "source": "Carolyn Scheppner, CBM",
+      "description": "Like ILBM but with contiguous (non-interleaved) bitplane data. Faster loading from AmigaBasic. Uses ABIT chunk instead of BODY.",
+      "grammar": "FORM ACBM { BMHD [CMAP] ABIT }",
+      "chunks": {
+        "BMHD": {
+          "name": "Bitmap Header",
+          "description": "Same as ILBM BMHD"
+        },
+        "CMAP": {
+          "name": "Color Map",
+          "description": "Same as ILBM CMAP"
+        },
+        "ABIT": {
+          "name": "Amiga Bitplanes",
+          "required": true,
+          "description": "Contiguous bitplane data: all of plane 0, then all of plane 1, etc. Each plane = h * ceil(w/16) * 2 bytes."
+        }
+      }
+    }
+  },
+  "registry": {
+    "(any).ANNO": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 Generic Annotation chunk"
+    },
+    "(any).AUTH": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 Generic Author chunk"
+    },
+    "(any).CHRS": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 Generic character string chunk"
+    },
+    "(any).CSET.doc": {
+      "source": "IFF_TP",
+      "description": "chunk for specifying character set"
+    },
+    "(any).FRED": {
+      "source": "----",
+      "description": "Private ASDG global chunk."
+    },
+    "(any).FVER.doc": {
+      "source": "IFF_TP",
+      "description": "chunk for 2.0 VERSION string of an IFF file"
+    },
+    "(any).HLID.doc": {
+      "source": "IFF_TP",
+      "description": "HotLink IDentification (Soft-Logik)"
+    },
+    "(any).INFO.proposa": {
+      "source": "propos",
+      "description": "This chunk contains data usually found in a file's .info file."
+    },
+    "(any).JUNK.doc": {
+      "source": "IFF_TP",
+      "description": "Always ignore this chunk."
+    },
+    "(any).NAME": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 Generic Name of art, music, etc. chunk"
+    },
+    "(any).TEXT": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 Generic unformatted ASCII text chunk"
+    },
+    "(any).(c)": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 Generic Copyright text chunk"
+    },
+    "8SVX": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 8-bit sound sample form"
+    },
+    "8SVX.CHAN.PAN.doc": {
+      "source": "IFF_TP",
+      "description": "Stereo chunks for 8SVX form"
+    },
+    "8SVX.SEQN.FADE.doc": {
+      "source": "IFF_TP",
+      "description": "Looping chunks for 8SVX form"
+    },
+    "ACBM.doc": {
+      "source": "IFF_TP",
+      "description": "Amiga Contiguous Bitmap form"
+    },
+    "AHAM": {
+      "source": "----",
+      "description": "unregistered (???)"
+    },
+    "AIFF.doc": {
+      "source": "IFF_TP",
+      "description": "Audio 1-32 bit samples (Mac,AppleII,Synthia Pro)"
+    },
+    "ANBM.doc": {
+      "source": "IFF_TP",
+      "description": "Animated bitmap form (Framer, Deluxe Video)"
+    },
+    "ANIM.brush.doc": {
+      "source": "IFF_TP",
+      "description": "ANIM brush format"
+    },
+    "ANIM.doc": {
+      "source": "IFF_TP",
+      "description": "Cel animation form"
+    },
+    "ANIM.op6.doc": {
+      "source": "IFF_TP",
+      "description": "Stereo (3D) Animations"
+    },
+    "ANIM.op7": {
+      "source": "----",
+      "description": "unregistered (???)"
+    },
+    "ANIM.op8.doc": {
+      "source": "IFF_TP",
+      "description": ""
+    },
+    "ARC.proposal": {
+      "source": "propos",
+      "description": "archive format proposal"
+    },
+    "ARES": {
+      "source": "----",
+      "description": "unregistered (???)"
+    },
+    "ATXT": {
+      "source": "----",
+      "description": "temporarily reserved"
+    },
+    "BANK": {
+      "source": "----",
+      "description": "Soundquest Editor/Librarian MIDI Sysex dump"
+    },
+    "BBSD": {
+      "source": "----",
+      "description": "BBS Database, F.Patnaude,Jr., Phalanx Software"
+    },
+    "C100": {
+      "source": "----",
+      "description": "Cloanto Italia private format"
+    },
+    "CAT": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 group identifier"
+    },
+    "CELP.proposal": {
+      "source": "propos",
+      "description": "For storage of compressed ZyXEL voice data (reserved)"
+    },
+    "CHBM": {
+      "source": "----",
+      "description": "Chunky bitmap (name reserved by Eric Lavitsky)"
+    },
+    "CLIP": {
+      "source": "----",
+      "description": "CAT CLIP to hold various formats in clipboard"
+    },
+    "CMUS.proposal": {
+      "source": "propos",
+      "description": "Common MUsical Score"
+    },
+    "CPFM": {
+      "source": "----",
+      "description": "Cloanto Personal FontMaker (doc in their manual)"
+    },
+    "DCCL": {
+      "source": "----",
+      "description": "DCCL - DCTV paint clip"
+    },
+    "DCPA": {
+      "source": "----",
+      "description": "DCPA - DCTV paint palette"
+    },
+    "DCTV": {
+      "source": "----",
+      "description": "DCTV - DCTV raw picture file"
+    },
+    "DECK": {
+      "source": "----",
+      "description": "private format for Inovatronics CanDo"
+    },
+    "DEEP.doc": {
+      "source": "IFF_TP",
+      "description": "Chunky pixel image files (Used in TV Paint)"
+    },
+    "DR2D.doc": {
+      "source": "IFF_TP",
+      "description": "2-D Object standard format"
+    },
+    "DRAW": {
+      "source": "----",
+      "description": "reserved by Jim Bayless, 12/90"
+    },
+    "DTYP.doc": {
+      "source": "IFF_TP",
+      "description": "DataTypes Identification"
+    },
+    "EXEC.proposal": {
+      "source": "propos",
+      "description": "Proposed FORM for executable (loadseg-able) code."
+    },
+    "FANT.doc": {
+      "source": "IFF_TP",
+      "description": "Fantavision movie format"
+    },
+    "FAX3": {
+      "source": "----",
+      "description": "private GPSoftware FAX format, no longer used."
+    },
+    "FAXX.GPHD.doc": {
+      "source": "IFF_TP",
+      "description": "Additional header info for FAXX FORMs"
+    },
+    "FAXX.doc": {
+      "source": "IFF_TP",
+      "description": "FAXX (Facsimile image FORM)"
+    },
+    "FIGR": {
+      "source": "----",
+      "description": "Deluxe Video - reserved"
+    },
+    "FILM": {
+      "source": "----",
+      "description": "LIST FILM - For storing ILBMs with interleaved 8SVX audio"
+    },
+    "FNTR": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved for raster font"
+    },
+    "FNTV": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved for vector font"
+    },
+    "FORM": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 group identifier"
+    },
+    "FTXT": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 formatted text form"
+    },
+    "GRYP.proposal": {
+      "source": "propos",
+      "description": "byteplane storage proposal (copyrighted)"
+    },
+    "GSCR": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved gen. music score"
+    },
+    "GUI.proposal": {
+      "source": "propos",
+      "description": "user interface storage proposal (private)"
+    },
+    "HEAD.doc": {
+      "source": "IFF_TP",
+      "description": "Flow -  New Horizons Software"
+    },
+    "ILBM": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 raster bitmap form"
+    },
+    "ILBM.3DCM": {
+      "source": "----",
+      "description": "reserved by Haitex"
+    },
+    "ILBM.3DPA": {
+      "source": "----",
+      "description": "reserved by Haitex"
+    },
+    "ILBM.ASDG": {
+      "source": "----",
+      "description": "private ASDG application chunk"
+    },
+    "ILBM.BHBA": {
+      "source": "----",
+      "description": "private Photon Paint chunk (brushes)"
+    },
+    "ILBM.BHCP": {
+      "source": "----",
+      "description": "private Photon Paint chunk (screens)"
+    },
+    "ILBM.BHSM": {
+      "source": "----",
+      "description": "private Photon Paint chunk"
+    },
+    "ILBM.CLUT.doc": {
+      "source": "IFF_TP",
+      "description": "Color Lookup Table chunk"
+    },
+    "ILBM.CMYK.doc": {
+      "source": "IFF_TP",
+      "description": "Cyan, Magenta, Yellow, & Black color map (Soft-Logik)"
+    },
+    "ILBM.CNAM.doc": {
+      "source": "IFF_TP",
+      "description": "Color naming chunk (Soft-Logik)"
+    },
+    "ILBM.CTBL.DYCP.doc": {
+      "source": "IFF_TP",
+      "description": "Newtek Dynamic Ham color chunks"
+    },
+    "ILBM.DCTV": {
+      "source": "----",
+      "description": "reserved"
+    },
+    "ILBM.DGVW": {
+      "source": "----",
+      "description": "private Newtek DigiView chunk"
+    },
+    "ILBM.DPI.doc": {
+      "source": "IFF_TP",
+      "description": "Dots per inch chunk"
+    },
+    "ILBM.DPPV.doc": {
+      "source": "IFF_TP",
+      "description": "DPaint perspective chunk (EA)"
+    },
+    "ILBM.DRNG.doc": {
+      "source": "IFF_TP",
+      "description": "DPaint IV enhanced color cycle chunk (EA)"
+    },
+    "ILBM.EPSF.doc": {
+      "source": "IFF_TP",
+      "description": "Encapsulated Postscript chunk"
+    },
+    "ILBM.PCHG.doc": {
+      "source": "IFF_TP",
+      "description": "Line by line palette control information (Sebastiano Vigna)"
+    },
+    "ILBM.PRVW.proposal": {
+      "source": "propos",
+      "description": "A mini duplicate ILBM used for preview (Gary Bonham)"
+    },
+    "ILBM.TMAP": {
+      "source": "----",
+      "description": "Transparency map (temporarily reserved)"
+    },
+    "ILBM.VTAG.proposal": {
+      "source": "propos",
+      "description": "Viewmode tags chunk suggestion"
+    },
+    "ILBM.XBMI.doc": {
+      "source": "IFF_TP",
+      "description": "eXtended BitMap Information (Soft-Logik)"
+    },
+    "ILBM.XSSL.doc": {
+      "source": "IFF_TP",
+      "description": "Identifier chunk for 3d X-Specs image. (Haitex)"
+    },
+    "IOBJ": {
+      "source": "----",
+      "description": "reserved by Seven Seas Software"
+    },
+    "IODK": {
+      "source": "----",
+      "description": "reserved for Jean-Marc Porchet at Merging Technologies"
+    },
+    "ITRF": {
+      "source": "----",
+      "description": "reserved"
+    },
+    "JMOV": {
+      "source": "----",
+      "description": "Reserved for Merging Technologies"
+    },
+    "LIST": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 group identifier"
+    },
+    "MFAX": {
+      "source": "----",
+      "description": "Reserved for TKR GmbH & Co."
+    },
+    "MIDI": {
+      "source": "----",
+      "description": "Circum Design"
+    },
+    "MOVI": {
+      "source": "----",
+      "description": "LIST MOVI - private format"
+    },
+    "MSCX": {
+      "source": "----",
+      "description": "private Music-X format"
+    },
+    "MSMP": {
+      "source": "----",
+      "description": "temporarily reserved"
+    },
+    "MTRX.doc": {
+      "source": "IFF_TP",
+      "description": "Numerical data storage (MathVision - Seven Seas)"
+    },
+    "NSEQ": {
+      "source": "----",
+      "description": "Numerical sequence (Stockhausen GmbH)"
+    },
+    "OB3D.proposal": {
+      "source": "propos",
+      "description": "Proposal for a stadard 3D object format"
+    },
+    "OCMP": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved computer prop"
+    },
+    "OCPU": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved processor prop"
+    },
+    "OPGM": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved program prop"
+    },
+    "OSN": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved serial num prop"
+    },
+    "PGTB.doc": {
+      "source": "IFF_TP",
+      "description": "Program traceback (SAS Institute)"
+    },
+    "PICS": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved Macintosh picture"
+    },
+    "PLBM": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved obsolete name"
+    },
+    "PMBC.proposal": {
+      "source": "propos",
+      "description": "Reserved for Black Belt Systems 91.12.01"
+    },
+    "PREF": {
+      "source": "----",
+      "description": "Reserved by Commodore for user preferences data, currently private."
+    },
+    "PROP": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 group identifier"
+    },
+    "PRSP.doc": {
+      "source": "IFF_TP",
+      "description": "DPaint IV perspective move form (EA)"
+    },
+    "PTCH": {
+      "source": "----",
+      "description": "Patch file format (SAS Institute)"
+    },
+    "PTXT": {
+      "source": "----",
+      "description": "temporarily reserved"
+    },
+    "RGB4": {
+      "source": "----",
+      "description": "4-bit RGB (format not available)"
+    },
+    "RGBN-RGB8.doc": {
+      "source": "IFF_TP",
+      "description": "RGB image forms, Turbo Silver (Impulse)"
+    },
+    "RGBX": {
+      "source": "----",
+      "description": "temporarily reserved"
+    },
+    "ROXN": {
+      "source": "----",
+      "description": "private animation form"
+    },
+    "SAMP.doc": {
+      "source": "IFF_TP",
+      "description": "Sampled sound format"
+    },
+    "SC3D": {
+      "source": "----",
+      "description": "private scene format (Sculpt-3D)"
+    },
+    "SHAK": {
+      "source": "----",
+      "description": "private Shakespeare format"
+    },
+    "SHO1": {
+      "source": "----",
+      "description": "Reserved by Gary Bonham (private)"
+    },
+    "SHOW": {
+      "source": "----",
+      "description": "Reserved by Gary Bonham (private)"
+    },
+    "SMUS": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 simple music score form"
+    },
+    "SPLT.doc": {
+      "source": "IFF_TP",
+      "description": "ASDG's File SPLiTting system"
+    },
+    "SSRE": {
+      "source": "----",
+      "description": "Reserved for Merging Technologies 92.05.04"
+    },
+    "SWRT": {
+      "source": "----",
+      "description": "unregistered (???)"
+    },
+    "SYTH": {
+      "source": "----",
+      "description": "SoundQuest Master Librarian MIDI System driver"
+    },
+    "TCDE": {
+      "source": "----",
+      "description": "reserved by Merging Technologies"
+    },
+    "TDDD.doc": {
+      "source": "IFF_TP",
+      "description": "3-D rendering data, Turbo Silver (Impulse)"
+    },
+    "TERM": {
+      "source": "----",
+      "description": "unregistered (???)"
+    },
+    "TMUI.doc": {
+      "source": "IFF_TP",
+      "description": "Toolmaker IFF project file format (ToolMaker V1.19)"
+    },
+    "TREE.doc": {
+      "source": "IFF_TP",
+      "description": "Storage of arbitrary data structures as trees (or nested lists)."
+    },
+    "TRKR.proposal": {
+      "source": "propos",
+      "description": "TRacKeR style music module format proposal"
+    },
+    "UNAM": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved user name prop"
+    },
+    "USCR": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved Uhuru score"
+    },
+    "UVOX": {
+      "source": "EA_IFF",
+      "description": "EA IFF 85 reserved Uhuru Mac voice"
+    },
+    "VDEO": {
+      "source": "----",
+      "description": "private Deluxe Video format"
+    },
+    "WORD.doc": {
+      "source": "IFF_TP",
+      "description": "ProWrite document format (New Horizons)"
+    },
+    "YUVN.doc": {
+      "source": "IFF_TP",
+      "description": "For storage of Y:U:V image data (MacroSystem)"
+    }
+  }
+}

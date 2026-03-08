@@ -1,0 +1,15 @@
+# Claude Code local settings
+.claude/settings.local.json
+
+# Temporary/transient files
+tmp/*
+!tmp/.gitkeep
+
+# Build artifacts
+bin/rebuilt/
+ext/vasm.tar.gz
+*.o
+*.obj
+*.exe
+*.pyc
+__pycache__/
