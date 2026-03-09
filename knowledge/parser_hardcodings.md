@@ -12,18 +12,16 @@ and reasoning.
 
 ## parse_m68k_instructions.py
 
-### Coprocessor encoding fixes (lines ~575-660)
+### Multi-word encoding fixes
 - **Designation**: PDF-GAP
 - **Reason**: Multi-word encoding tables confuse the single-word bit field parser.
-  The coprocessor instructions have 2+ word encodings where our parser conflates
-  extension word fields into word 1. Fixed with known-correct values from manual.
-- **Affected**: cpBcc, cpDBcc, cpGEN, cpScc, cpTRAPcc, cpRESTORE, cpSAVE
-
-### MOVEM/ADDI/SUBI/CMPI encoding overrides (lines ~649-660)
-- **Designation**: PDF-GAP
-- **Reason**: Extension word data (immediate value, register mask) bleeds into
-  the main opcode word extraction. Parser can't distinguish word 1 from word 2.
-- **Affected**: MOVEM, ADDI, SUBI, CMPI
+  Instructions with 2+ word encodings have extension word fields conflated into
+  word 1. Fixed with known-correct values from the manual.
+- **Affected**:
+  - Coprocessor: cpBcc, cpDBcc, cpGEN, cpScc, cpTRAPcc, cpRESTORE, cpSAVE
+  - PMMU (68851): PDBcc, PScc, PTRAPcc, PFLUSH PFLUSHA, PFLUSHR
+  - Extension word leak: MOVEM, ADDI, SUBI, CMPI
+  - 68040: MOVE16
 
 ### Section page ranges (SECTIONS dict)
 - **Designation**: FORMAT-CONVENTION
@@ -68,6 +66,12 @@ and reasoning.
 - **Designation**: None (architectural)
 - **Reason**: Standard M68K condition code encoding defined by Motorola.
   Same as MODE_MAP — hardware-defined, not a parser decision.
+
+### ARGUMENT COUNT immediate range (CALLM)
+- **Designation**: PDF-GAP
+- **Reason**: CALLM's argument count is 8 bits in extension word, but the parser
+  extracted width=4 due to multi-word conflation. The constraint parser hardcodes
+  the ARGUMENT COUNT field to 8 bits / 0-255 range.
 
 ## test_m68k_roundtrip.py
 

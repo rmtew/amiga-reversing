@@ -24,6 +24,7 @@ from pathlib import Path
 PROJ_ROOT = Path(__file__).resolve().parent.parent
 VASM = PROJ_ROOT / "tools" / "vasmm68k_mot.exe"
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
+VASM_COMPAT = PROJ_ROOT / "knowledge" / "vasm_compat.json"
 
 sys.path.insert(0, str(PROJ_ROOT / "scripts"))
 from hunk_parser import parse_file
@@ -173,7 +174,9 @@ def generate_tests(inst):
         op_types = [o["type"] for o in operands]
 
         if not op_types:
-            tests.append((m_lower, ""))
+            # Use form syntax if available (handles PFLUSHA vs PFLUSH)
+            form_mn = form.get("syntax", "").split(None, 1)[0].lower() or m_lower
+            tests.append((form_mn, ""))
             continue
 
         # Label instructions
@@ -347,10 +350,10 @@ def generate_tests(inst):
 
             elif op_types == ["imm"]:
                 if imm_range:
-                    tests.append((f"{m_lower} #{imm_range['min']}", "min"))
-                    tests.append((f"{m_lower} #{imm_range['max']}", "max"))
+                    tests.append((f"{m_lower}{sfx} #{imm_range['min']}", "min"))
+                    tests.append((f"{m_lower}{sfx} #{imm_range['max']}", "max"))
                 else:
-                    tests.append((f"{m_lower} {imm}", ""))
+                    tests.append((f"{m_lower}{sfx} {imm}", ""))
 
             else:
                 pass
@@ -469,19 +472,18 @@ def _gen_movem_tests(m_lower, sz, modes, movem_dir):
 
 # ── Assembly / round-trip infrastructure ───────────────────────────────────
 
-# Map processor_min to vasm -m flag
-VASM_CPU_FLAGS = {
-    "68000": "-m68000",
-    "68010": "-m68010",
-    "68020": "-m68020",
-    "68030": "-m68030",
-    "68040": "-m68040",
-    "cpu32": "-mcpu32",
-}
+# Load vasm compatibility data
+with open(VASM_COMPAT, encoding="utf-8") as _f:
+    _vasm_data = json.load(_f)
+VASM_CPU_FLAG_MAP = _vasm_data["_meta"]["default_cpu_flag_map"]
+VASM_INST_COMPAT = _vasm_data["instructions"]
 
 
-def assemble(source, tmpdir, proc_min="68000"):
-    """Assemble source with vasm, return code hunk data or None on failure."""
+def assemble(source, tmpdir, cpu_flag="-m68000"):
+    """Assemble source with vasm, return code hunk data or None on failure.
+
+    cpu_flag: vasm -m flag (e.g. "-m68000", "-m68851")
+    """
     src_path = os.path.join(tmpdir, "test.s")
     obj_path = os.path.join(tmpdir, "test.o")
 
@@ -496,7 +498,6 @@ def assemble(source, tmpdir, proc_min="68000"):
     with open(src_path, "w") as f:
         f.write(full_source)
 
-    cpu_flag = VASM_CPU_FLAGS.get(proc_min, "-m68020")
     result = subprocess.run(
         [str(VASM), "-Fhunk", "-no-opt", "-quiet", "-x", cpu_flag,
          "-o", obj_path, src_path],
@@ -535,6 +536,17 @@ def run_tests(filter_mnemonic=None, verbose=False):
             if filter_mnemonic and filter_mnemonic.upper() not in mnemonic.upper():
                 continue
 
+            # Check vasm compatibility data
+            vasm_info = VASM_INST_COMPAT.get(mnemonic, {})
+            if vasm_info.get("supported") is False:
+                if verbose:
+                    print(f"  SKIP {mnemonic} ({vasm_info.get('reason', 'vasm unsupported')})")
+                skipped_mnemonics += 1
+                continue
+
+            # Use vasm-specific CPU flag if provided, else default from processor_min
+            cpu_flag_override = vasm_info.get("cpu_flag")
+
             cases = generate_tests(inst)
             if not cases:
                 if verbose:
@@ -547,7 +559,8 @@ def run_tests(filter_mnemonic=None, verbose=False):
                 test_name = f"{mnemonic}: {desc}" if desc else mnemonic
 
                 # Step 1: Assemble
-                orig_data = assemble(asm_line, tmpdir, proc_min)
+                cpu_flag = cpu_flag_override or VASM_CPU_FLAG_MAP[proc_min]
+                orig_data = assemble(asm_line, tmpdir, cpu_flag)
                 if orig_data is None:
                     failures.append((test_name, asm_line, "ASSEMBLE FAILED"))
                     failed += 1
@@ -566,11 +579,27 @@ def run_tests(filter_mnemonic=None, verbose=False):
 
                 # Step 3: Reassemble
                 disasm_text = first_inst.text
+
+                # If disassembler couldn't decode (dc.w fallback), that's a
+                # disassembler gap — report as failure
+                if disasm_text.startswith("dc.w"):
+                    failures.append((test_name, asm_line,
+                                     f"DISASM NOT DECODED: '{disasm_text.strip()}'"))
+                    failed += 1
+                    continue
+
                 # Detect label instructions using KB uses_label field
                 is_branch = mnemonic in label_mnemonics and "$" in disasm_text
                 if is_branch:
                     parts = disasm_text.rsplit("$", 1)
-                    target_addr = int(parts[1].split("(")[0], 16)
+                    hex_str = parts[1].split("(")[0].split()[0]
+                    try:
+                        target_addr = int(hex_str, 16)
+                    except ValueError:
+                        failures.append((test_name, asm_line,
+                                         f"DISASM UNPARSEABLE: '{disasm_text}'"))
+                        failed += 1
+                        continue
                     filler_size = target_addr - first_size
                     nops = max(0, filler_size // 2)
                     nop_lines = "\nnop" * nops
@@ -578,7 +607,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
                 else:
                     reasm_source = disasm_text
 
-                reasm_data = assemble(reasm_source, tmpdir, proc_min)
+                reasm_data = assemble(reasm_source, tmpdir, cpu_flag)
                 if reasm_data is None:
                     failures.append((test_name, asm_line,
                                      f"REASSEMBLE FAILED: '{reasm_source}'"))

@@ -71,7 +71,7 @@ def extract_immediate_range(inst):
         return None
 
     # Search for immediate-type fields in encoding
-    for target in ("DATA", "VECTOR"):
+    for target in ("DATA", "VECTOR", "ARGUMENT COUNT"):
         result = _find_encoding_field(encodings, target)
         if result is None:
             continue
@@ -107,6 +107,17 @@ def extract_immediate_range(inst):
                 "max": (1 << bit_width) - 1,
                 "field": field_name,
                 "bits": bit_width,
+            }
+
+        if target == "ARGUMENT COUNT":
+            # CALLM argument count is 8-bit unsigned in extension word.
+            # Parser may extract wrong width due to extension word conflation,
+            # so use 8 bits (the actual M68K encoding).
+            return {
+                "min": 0,
+                "max": 255,
+                "field": field_name,
+                "bits": 8,
             }
 
         if target == "DATA" and bit_width <= 8:

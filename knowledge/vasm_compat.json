@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "description": "vasm M68K assembler compatibility data",
+    "assembler": "vasmm68k_mot",
+    "version": "2.0e",
+    "cpu_flags": ["-m68000", "-m68010", "-m68020", "-m68030", "-m68040", "-m68060", "-m68020up", "-m68881", "-m68882", "-m68851", "-mcpu32"],
+    "default_cpu_flag_map": {
+      "68000": "-m68000",
+      "68010": "-m68010",
+      "68020": "-m68020",
+      "68030": "-m68030",
+      "68040": "-m68040",
+      "cpu32": "-mcpu32"
+    }
+  },
+  "instructions": {
+    "cpBcc": {
+      "supported": false,
+      "reason": "Generic coprocessor interface not implemented — vasm only knows specific coprocessors (FPU/MMU)"
+    },
+    "cpDBcc": {
+      "supported": false,
+      "reason": "Generic coprocessor interface not implemented"
+    },
+    "cpGEN": {
+      "supported": false,
+      "reason": "Generic coprocessor interface not implemented"
+    },
+    "cpScc": {
+      "supported": false,
+      "reason": "Generic coprocessor interface not implemented"
+    },
+    "cpTRAPcc": {
+      "supported": false,
+      "reason": "Generic coprocessor interface not implemented"
+    },
+    "cpRESTORE": {
+      "supported": false,
+      "reason": "Generic coprocessor interface not implemented"
+    },
+    "cpSAVE": {
+      "supported": false,
+      "reason": "Generic coprocessor interface not implemented"
+    },
+    "PBcc": {
+      "cpu_flag": "-m68851",
+      "notes": "PMMU instruction, requires -m68851 not -m68020"
+    },
+    "PDBcc": {
+      "cpu_flag": "-m68851",
+      "notes": "PMMU instruction, requires -m68851"
+    },
+    "PFLUSH": {
+      "cpu_flag": "-m68851",
+      "notes": "68030 PFLUSH works with -m68030 too, but -m68851 covers all forms"
+    },
+    "PFLUSH PFLUSHA": {
+      "cpu_flag": "-m68851",
+      "notes": "68851 PFLUSH/PFLUSHA forms"
+    },
+    "PFLUSHR": {
+      "cpu_flag": "-m68851",
+      "notes": "PMMU instruction"
+    },
+    "PLOAD": {
+      "cpu_flag": "-m68851",
+      "notes": "68030 PLOAD works with -m68030 too"
+    },
+    "PMOVE": {
+      "cpu_flag": "-m68851",
+      "notes": "68030 PMOVE works with -m68030 for subset of registers"
+    },
+    "PRESTORE": {
+      "cpu_flag": "-m68851",
+      "notes": "PMMU instruction"
+    },
+    "PSAVE": {
+      "cpu_flag": "-m68851",
+      "notes": "PMMU instruction"
+    },
+    "PScc": {
+      "cpu_flag": "-m68851",
+      "notes": "PMMU instruction"
+    },
+    "PTEST": {
+      "cpu_flag": "-m68851",
+      "notes": "68030 PTEST works with -m68030 too"
+    },
+    "PTRAPcc": {
+      "cpu_flag": "-m68851",
+      "notes": "PMMU instruction"
+    },
+    "PVALID": {
+      "cpu_flag": "-m68851",
+      "notes": "PMMU instruction"
+    },
+    "TRAPcc": {
+      "notes": "Size suffix (.w/.l) required on immediate forms per M68K convention"
+    }
+  }
+}

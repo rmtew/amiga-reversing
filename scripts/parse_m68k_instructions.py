@@ -648,6 +648,48 @@ def _fix_coprocessor_encodings(instructions):
         ],
     }
 
+    # MC68851 PMMU instructions — same multi-word conflation issue.
+    # Word 1 is always 1111 000 (CPID=000 for MMU) + type bits + EA or register.
+    # Parser extracts word 2 fields into word 1 positions.
+    PMMU_FIXES = {
+        # PDBcc: word1 = 1111 0000 0100 1 REG(3)
+        "PDBcc": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
+                  _f("0",11), _f("0",10), _f("0",9),
+                  _f("0",8), _f("0",7), _f("1",6), _f("0",5),
+                  _f("0",4), _f("1",3), _mf("REGISTER",2,0)],
+        # PScc: word1 = 1111 0000 01 MODE(3) REG(3)
+        "PScc": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
+                 _f("0",11), _f("0",10), _f("0",9),
+                 _f("0",8), _f("0",7), _f("1",6),
+                 _mf("MODE",5,3), _mf("REGISTER",2,0)],
+        # PTRAPcc: word1 = 1111 0000 0111 1 OPMODE(3)
+        "PTRAPcc": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
+                    _f("0",11), _f("0",10), _f("0",9),
+                    _f("0",8), _f("0",7), _f("1",6), _f("1",5),
+                    _f("1",4), _f("1",3), _mf("OPMODE",2,0)],
+        # PFLUSH PFLUSHA: word1 = 1111 0000 00 MODE(3) REG(3)
+        "PFLUSH PFLUSHA": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
+                           _f("0",11), _f("0",10), _f("0",9),
+                           _f("0",8), _f("0",7), _f("0",6),
+                           _mf("MODE",5,3), _mf("REGISTER",2,0)],
+        # PFLUSHR: word1 = 1111 0000 00 MODE(3) REG(3)
+        "PFLUSHR": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
+                    _f("0",11), _f("0",10), _f("0",9),
+                    _f("0",8), _f("0",7), _f("0",6),
+                    _mf("MODE",5,3), _mf("REGISTER",2,0)],
+    }
+
+    # MOVE16: MC68040 instruction, two encoding families:
+    #   Postincrement: 1111 0110 0010 0 AX(3)
+    #   Abs long:      1111 0110 000 OPMODE(2) AN(3)
+    # Shared prefix: 1111 0110 00 (bits 15-6), rest varies
+    MOVE16_FIX = {
+        "MOVE16": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
+                   _f("0",11), _f("1",10), _f("1",9), _f("0",8),
+                   _f("0",7), _f("0",6), _mf("OPMODE",5,3),
+                   _mf("REGISTER",2,0)],
+    }
+
     # Also fix instructions where extension word data leaked into word 1
     OTHER_FIXES = {
         "cpRESTORE": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
@@ -670,7 +712,7 @@ def _fix_coprocessor_encodings(instructions):
                  _mf("SIZE",7,6), _mf("MODE",5,3), _mf("REGISTER",2,0)],
     }
 
-    all_fixes = {**COPROC_FIXES, **OTHER_FIXES}
+    all_fixes = {**COPROC_FIXES, **PMMU_FIXES, **MOVE16_FIX, **OTHER_FIXES}
     for inst in instructions:
         if inst.mnemonic in all_fixes:
             inst.encodings = [{"fields": all_fixes[inst.mnemonic]}]

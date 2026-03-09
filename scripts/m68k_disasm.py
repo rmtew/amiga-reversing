@@ -253,7 +253,7 @@ def _decode_opcode(d: _Decoder, op: int, group: int, pc: int) -> str:
     elif group == 0xE:
         return _decode_shift(d, op, pc)
     elif group == 0xF:
-        return f"dc.w    ${op:04x}    ; line-F"
+        return _decode_line_f(d, op, pc)
 
     raise DecodeError(f"unhandled group {group}")
 
@@ -303,6 +303,23 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> str:
             sz = SIZE_LONG if mode == 0 else SIZE_BYTE
             ea = _ea_str(d, mode, ea_reg, sz, pc)
             return f"{names[bit_op]}    #{bit_num},{ea}"
+
+        # CALLM / RTM (68020): top_bits=3, size_bits=3
+        if top_bits == 3 and size_bits == 3:
+            mode = (op >> 3) & 7
+            ea_reg = op & 7
+            if mode == 0:
+                # RTM Dn
+                return f"rtm     d{ea_reg}"
+            elif mode == 1:
+                # RTM An
+                return f"rtm     a{ea_reg}"
+            else:
+                # CALLM #<data>,<ea>
+                ext = d.read_u16()
+                arg_count = ext & 0xFF
+                ea = _ea_str(d, mode, ea_reg, SIZE_LONG, pc)
+                return f"callm   #{arg_count},{ea}"
 
         # Immediate operations
         imm_names = {0: "ori", 1: "andi", 2: "subi", 3: "addi",
@@ -378,6 +395,9 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
         return f"stop    #${imm:04x}"
     if op == 0x4E73:
         return "rte"
+    if op == 0x4E74:
+        disp = d.read_i16()
+        return f"rtd     #{disp}"
     if op == 0x4E75:
         return "rts"
     if op == 0x4E76:
@@ -432,6 +452,11 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
         return f"lea     {ea},{_reg_name(areg, True)}"
+
+    # BKPT (68010+)
+    if (op & 0xFFF8) == 0x4848:
+        vec = op & 7
+        return f"bkpt    #{vec}"
 
     # SWAP (must be before PEA — both match $4840 but SWAP has mode=0)
     if (op & 0xFFF8) == 0x4840:
@@ -542,7 +567,7 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> str:
     size_bits = (op >> 6) & 3
 
     if size_bits == 3:
-        # Scc or DBcc
+        # Scc, DBcc, or TRAPcc
         condition = (op >> 8) & 0xF
         mode = (op >> 3) & 7
         reg = op & 7
@@ -553,6 +578,17 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> str:
             target = _branch_target(pc, disp)
             cc = _cc_name(condition)
             return f"db{cc}    d{reg},{target}"
+        elif mode == 7 and reg in (2, 3, 4):
+            # TRAPcc (68020+)
+            cc = _cc_name(condition)
+            if reg == 2:
+                imm = d.read_u16()
+                return f"trap{cc}.w #${imm:04x}"
+            elif reg == 3:
+                imm = d.read_u32()
+                return f"trap{cc}.l #${imm:08x}"
+            else:  # reg == 4
+                return f"trap{cc}"
         else:
             # Scc
             ea = _ea_str(d, mode, reg, SIZE_BYTE, pc)
@@ -835,6 +871,137 @@ def _decode_shift(d: _Decoder, op: int, pc: int) -> str:
         # Shift by immediate
         count = count_or_reg if count_or_reg != 0 else 8
         return f"{names[shift_type]}{direction}{sfx}  #{count},d{dreg}"
+
+
+
+# --- Line-F (coprocessor / 68040) ---
+
+# MC68851 PMMU condition codes (from PDF Table 10-1)
+PMMU_CC = [
+    "bs", "bc", "ls", "lc", "ss", "sc", "as", "ac",
+    "ws", "wc", "is", "ic", "gs", "gc", "cs", "cc",
+]
+
+
+def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
+    """Line-F: coprocessor (FPU/MMU), MOVE16, etc."""
+    cpid = (op >> 9) & 7
+
+    # MOVE16 (68040): 1111 0110 0...
+    if (op & 0xFE00) == 0xF600:
+        if op & 0x0020:
+            # Postincrement: 1111 0110 0010 0 AX(3)
+            ax = op & 7
+            ext = d.read_u16()
+            ay = (ext >> 12) & 7
+            return f"move16  (a{ax})+,(a{ay})+"
+        else:
+            # Absolute long forms: 1111 0110 000 OPMODE(2) AN(3)
+            opmode = (op >> 3) & 3
+            an = op & 7
+            addr = d.read_u32()
+            if opmode == 0:
+                return f"move16  (a{an})+,${addr:08x}.l"
+            elif opmode == 1:
+                return f"move16  ${addr:08x}.l,(a{an})+"
+            elif opmode == 2:
+                return f"move16  (a{an}),${addr:08x}.l"
+            elif opmode == 3:
+                return f"move16  ${addr:08x}.l,(a{an})"
+
+    # MMU (cpid=0): PRESTORE/PSAVE/PBcc/PDBcc/PScc/PTRAPcc/PFLUSH/PFLUSHR
+    if cpid == 0:
+        type_bits = (op >> 6) & 7
+        mode = (op >> 3) & 7
+        reg = op & 7
+
+        if type_bits == 5:
+            # PRESTORE: 1111 000 101 MODE(3) REG(3)
+            ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
+            return f"prestore {ea}"
+
+        if type_bits == 4:
+            # PSAVE: 1111 000 100 MODE(3) REG(3)
+            ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
+            return f"psave   {ea}"
+
+        if type_bits in (2, 3):
+            # PBcc: 1111 000 01 SIZE(1) COND(6)
+            # type_bits bit 0 = SIZE (0=word, 1=long)
+            cond = op & 0x3F
+            cc = PMMU_CC[cond] if cond < 16 else f"#{cond}"
+            if type_bits == 2:
+                disp = d.read_i16()
+                target = _branch_target(pc, disp)
+                return f"pb{cc}.w  {target}"
+            else:
+                disp = d.read_i32()
+                target = _branch_target(pc, disp)
+                return f"pb{cc}.l  {target}"
+
+        if type_bits == 1:
+            # PScc/PDBcc/PTRAPcc: 1111 0000 01 MODE(3) REG(3)
+            ext = d.read_u16()
+            cond = ext & 0x3F
+            cc = PMMU_CC[cond] if cond < 16 else f"#{cond}"
+            if mode == 1:
+                # PDBcc: 1111 0000 0100 1 REG(3)
+                disp = d.read_i16()
+                target = _branch_target(pc, disp)
+                return f"pdb{cc}   d{reg},{target}"
+            elif mode == 7 and reg in (2, 3, 4):
+                # PTRAPcc
+                if reg == 2:
+                    imm = d.read_u16()
+                    return f"ptrap{cc}.w #{imm}"
+                elif reg == 3:
+                    imm = d.read_u32()
+                    return f"ptrap{cc}.l #{imm}"
+                else:
+                    return f"ptrap{cc}"
+            else:
+                ea = _ea_str(d, mode, reg, SIZE_BYTE, pc)
+                return f"ps{cc}    {ea}"
+
+        if type_bits == 0:
+            # PFLUSH/PFLUSHA/PFLUSHR or PMMU general
+            ext = d.read_u16()
+            if (ext & 0xE000) == 0x2000:
+                # PFLUSH: ext = 001 MODE(2) 0 MASK(3) FC(4)
+                pflush_mode = (ext >> 10) & 3
+                mask = (ext >> 5) & 7
+                fc = ext & 0x1F
+                if pflush_mode == 1:
+                    return "pflusha"
+                ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
+                return f"pflush  #{fc},#{mask},{ea}"
+            elif ext == 0xA000:
+                # PFLUSHR
+                ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
+                return f"pflushr {ea}"
+            # Other PMMU general commands (PMOVE, PLOAD, PTEST, PVALID)
+            return f"dc.w    ${op:04x},${ext:04x}    ; pmmu"
+
+    # FPU (cpid=1): FRESTORE/FSAVE
+    if cpid == 1:
+        type_bits = (op >> 6) & 7
+        mode = (op >> 3) & 7
+        reg = op & 7
+
+        if type_bits == 5:
+            # FRESTORE
+            ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
+            return f"frestore {ea}"
+
+        if type_bits == 4:
+            # FSAVE
+            ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
+            return f"fsave   {ea}"
+
+        # Other FPU instructions (cpGEN etc.) — not yet decoded
+        return f"dc.w    ${op:04x}    ; fpu"
+
+    return f"dc.w    ${op:04x}    ; line-F"
 
 
 # --- Public API ---

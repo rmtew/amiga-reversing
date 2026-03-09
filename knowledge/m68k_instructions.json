@@ -4441,7 +4441,15 @@
     },
     "processor_min": "68020",
     "sizes": [],
-    "uses_label": false
+    "uses_label": false,
+    "constraints": {
+      "immediate_range": {
+        "min": 0,
+        "max": 255,
+        "field": "ARGUMENT COUNT",
+        "bits": 8
+      }
+    }
   },
   {
     "mnemonic": "CAS CAS2",
@@ -9736,13 +9744,13 @@
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 10,
             "bit_lo": 10,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 9,
             "bit_lo": 9,
             "width": 1
@@ -9766,40 +9774,16 @@
             "width": 1
           },
           {
-            "name": "0",
+            "name": "OPMODE",
             "bit_hi": 5,
-            "bit_lo": 5,
-            "width": 1
-          },
-          {
-            "name": "0",
-            "bit_hi": 4,
-            "bit_lo": 4,
-            "width": 1
-          },
-          {
-            "name": "0",
-            "bit_hi": 3,
             "bit_lo": 3,
-            "width": 1
+            "width": 3
           },
           {
-            "name": "0",
+            "name": "REGISTER",
             "bit_hi": 2,
-            "bit_lo": 2,
-            "width": 1
-          },
-          {
-            "name": "0",
-            "bit_hi": 1,
-            "bit_lo": 1,
-            "width": 1
-          },
-          {
-            "name": "0",
-            "bit_hi": 0,
             "bit_lo": 0,
-            "width": 1
+            "width": 3
           }
         ]
       }
@@ -17727,25 +17711,25 @@
       {
         "fields": [
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 15,
             "bit_lo": 15,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 14,
             "bit_lo": 14,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 13,
             "bit_lo": 13,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 12,
             "bit_lo": 12,
             "width": 1
@@ -17781,7 +17765,7 @@
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 6,
             "bit_lo": 6,
             "width": 1
@@ -17805,16 +17789,10 @@
             "width": 1
           },
           {
-            "name": "MC68851 CONDITION",
+            "name": "REGISTER",
             "bit_hi": 2,
-            "bit_lo": 1,
-            "width": 2
-          },
-          {
-            "name": "COUNT REGISTER",
-            "bit_hi": 0,
             "bit_lo": 0,
-            "width": 1
+            "width": 3
           }
         ]
       }
@@ -18226,13 +18204,13 @@
       {
         "fields": [
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 15,
             "bit_lo": 15,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 14,
             "bit_lo": 14,
             "width": 1
@@ -18292,16 +18270,10 @@
             "width": 3
           },
           {
-            "name": "FC",
-            "bit_hi": 2,
-            "bit_lo": 1,
-            "width": 2
-          },
-          {
             "name": "REGISTER",
-            "bit_hi": 0,
+            "bit_hi": 2,
             "bit_lo": 0,
-            "width": 1
+            "width": 3
           }
         ]
       }
@@ -18401,7 +18373,7 @@
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 14,
             "bit_lo": 14,
             "width": 1
@@ -18413,7 +18385,7 @@
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 12,
             "bit_lo": 12,
             "width": 1
@@ -18455,40 +18427,16 @@
             "width": 1
           },
           {
-            "name": "0",
+            "name": "MODE",
             "bit_hi": 5,
-            "bit_lo": 5,
-            "width": 1
-          },
-          {
-            "name": "0",
-            "bit_hi": 4,
-            "bit_lo": 4,
-            "width": 1
-          },
-          {
-            "name": "0",
-            "bit_hi": 3,
             "bit_lo": 3,
-            "width": 1
+            "width": 3
           },
           {
-            "name": "0",
+            "name": "REGISTER",
             "bit_hi": 2,
-            "bit_lo": 2,
-            "width": 1
-          },
-          {
-            "name": "0",
-            "bit_hi": 1,
-            "bit_lo": 1,
-            "width": 1
-          },
-          {
-            "name": "0",
-            "bit_hi": 0,
             "bit_lo": 0,
-            "width": 1
+            "width": 3
           }
         ]
       }
@@ -19871,25 +19819,25 @@
       {
         "fields": [
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 15,
             "bit_lo": 15,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 14,
             "bit_lo": 14,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 13,
             "bit_lo": 13,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 12,
             "bit_lo": 12,
             "width": 1
@@ -19925,7 +19873,7 @@
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 6,
             "bit_lo": 6,
             "width": 1
@@ -19933,20 +19881,14 @@
           {
             "name": "MODE",
             "bit_hi": 5,
-            "bit_lo": 5,
-            "width": 1
-          },
-          {
-            "name": "MC68851 CONDITION",
-            "bit_hi": 4,
-            "bit_lo": 1,
-            "width": 4
+            "bit_lo": 3,
+            "width": 3
           },
           {
             "name": "REGISTER",
-            "bit_hi": 0,
+            "bit_hi": 2,
             "bit_lo": 0,
-            "width": 1
+            "width": 3
           }
         ]
       }
@@ -20526,25 +20468,25 @@
       {
         "fields": [
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 15,
             "bit_lo": 15,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 14,
             "bit_lo": 14,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 13,
             "bit_lo": 13,
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 12,
             "bit_lo": 12,
             "width": 1
@@ -20580,7 +20522,7 @@
             "width": 1
           },
           {
-            "name": "0",
+            "name": "1",
             "bit_hi": 6,
             "bit_lo": 6,
             "width": 1
@@ -20604,16 +20546,10 @@
             "width": 1
           },
           {
-            "name": "MC68851 CONDITION",
-            "bit_hi": 2,
-            "bit_lo": 1,
-            "width": 2
-          },
-          {
             "name": "OPMODE",
-            "bit_hi": 0,
+            "bit_hi": 2,
             "bit_lo": 0,
-            "width": 1
+            "width": 3
           }
         ]
       }
