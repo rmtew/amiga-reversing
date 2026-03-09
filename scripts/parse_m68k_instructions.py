@@ -360,11 +360,12 @@ def is_instruction_start(rows):
     - Comma-separated: ASL, ASR / DIVS, DIVSL
     - Multi-line: MOVE + "to CCR" / CAS + "CAS2"
     """
-    # Build lines from left side only (x < 400) to avoid right-side mnemonic echo
+    # Build lines from left side only (x < 370) to avoid right-side mnemonic echo
+    # Right-side echo minimum x is 394 (ROXL,ROXR); left content max x is 350.
     lines = []
     row_by_line = []  # track which y_key each line comes from
     for y_key in sorted(rows.keys()):
-        parts = [text for x, x2, text, font, size in rows[y_key] if x < 400]
+        parts = [text for x, x2, text, font, size in rows[y_key] if x < 370]
         if parts:
             lines.append(" ".join(parts))
             row_by_line.append(y_key)
@@ -430,7 +431,16 @@ def parse_text_sections(text):
         operation = m.group(1).strip().split("\n")[0].strip()
 
     syntax = []
-    m = re.search(r"(?:Syntax:|Assembler\s+Syntax:)\s*(.+?)(?:Attributes:|$)", text, re.DOTALL)
+    # First try to capture syntax from the "Assembler" line (first form often appears there)
+    m_asm = re.search(r"Assembler\s+(.+?)(?:\n|$)", text)
+    if m_asm:
+        asm_line = m_asm.group(1).strip()
+        # The Assembler line may have the first syntax form before "Syntax:" appears
+        # Skip if it just says "Syntax:" (some pages format as "Assembler Syntax:")
+        if not asm_line.startswith("Syntax"):
+            syntax.append(asm_line)
+    # Then capture remaining syntax lines between Syntax: and Attributes:
+    m = re.search(r"Syntax:\s*(.+?)(?:Attributes:|$)", text, re.DOTALL)
     if m:
         for line in m.group(1).strip().split("\n"):
             line = line.strip()

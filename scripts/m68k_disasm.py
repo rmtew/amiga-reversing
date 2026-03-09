@@ -107,9 +107,7 @@ def _ea_str(d: _Decoder, mode: int, reg: int, size: int, pc_offset: int) -> str:
             return f"${addr:08x}"
         elif reg == 2:  # d16(PC)
             disp = d.read_i16()
-            # We emit as label-relative; caller can resolve
-            target = pc_offset + 2 + disp  # PC = instruction + 2 at ext word
-            return f"${target:x}(pc)"
+            return f"{disp}(pc)"
         elif reg == 3:  # d8(PC,Xn)
             ext = d.read_u16()
             xreg = (ext >> 12) & 7
@@ -118,8 +116,7 @@ def _ea_str(d: _Decoder, mode: int, reg: int, size: int, pc_offset: int) -> str:
             disp = ext & 0xFF
             if disp & 0x80:
                 disp -= 256
-            target = pc_offset + 2 + disp
-            return f"${target:x}(pc,{xtype}{xreg}{xsize})"
+            return f"{disp}(pc,{xtype}{xreg}{xsize})"
         elif reg == 4:  # #imm
             if size == SIZE_BYTE or size == SIZE_WORD:
                 imm = d.read_u16()

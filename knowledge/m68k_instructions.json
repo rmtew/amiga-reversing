@@ -5,6 +5,7 @@
     "processors": "M68000 Family",
     "operation": "Source10 + Destination10 + X → Destination",
     "syntax": [
+      "ABCD Dy,Dx",
       "ABCD – (Ay), – (Ax)"
     ],
     "attributes": "Size = (Byte)",
@@ -103,7 +104,66 @@
     "pages": [
       106,
       107
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [
+      {
+        "asm": "abcd d0,d1",
+        "desc": "register"
+      },
+      {
+        "asm": "abcd -(a0),-(a1)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ABCD Dy,Dx",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ABCD -(Ay),-(Ax)",
+        "operands": [
+          {
+            "type": "predec"
+          },
+          {
+            "type": "predec"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "C"
+      ]
+    },
+    "constraints": {
+      "operand_modes": {
+        "field": "R/M",
+        "values": {
+          "0": "dn,dn",
+          "1": "predec,predec"
+        }
+      }
+    }
   },
   {
     "mnemonic": "ADD",
@@ -111,6 +171,7 @@
     "processors": "M68000 Family",
     "operation": "Source + Destination → Destination",
     "syntax": [
+      "ADD < ea > ,Dn",
       "ADD Dn, < ea >"
     ],
     "attributes": "Size = (Byte, Word, Long)",
@@ -185,7 +246,111 @@
       108,
       109,
       110
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ],
+      "dst": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "ea_modes_020": {
+      "src": [
+        "an"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "add.b d0,d1",
+        "desc": "byte reg-reg"
+      },
+      {
+        "asm": "add.w d0,d1",
+        "desc": "word reg-reg"
+      },
+      {
+        "asm": "add.l d0,d1",
+        "desc": "long reg-reg"
+      },
+      {
+        "asm": "add.w (a0),d1",
+        "desc": "memory to reg"
+      },
+      {
+        "asm": "add.l d0,(a0)",
+        "desc": "reg to memory"
+      },
+      {
+        "asm": "add.w #$1234,d0",
+        "desc": "immediate"
+      },
+      {
+        "asm": "add.l #$12345678,d0",
+        "desc": "long immediate"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ADD <ea>,Dn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ADD Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "ADDA",
@@ -267,7 +432,63 @@
     "pages": [
       111,
       112
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "adda.w d0,a0",
+        "desc": "word"
+      },
+      {
+        "asm": "adda.l d0,a0",
+        "desc": "long"
+      },
+      {
+        "asm": "adda.l #$1000,a0",
+        "desc": "immediate"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ADDA <ea>,An",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "an"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "ADDI",
@@ -367,7 +588,70 @@
     "pages": [
       113,
       114
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "addi.b #$12,d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "addi.w #$1234,d0",
+        "desc": "word"
+      },
+      {
+        "asm": "addi.l #$12345678,d0",
+        "desc": "long"
+      },
+      {
+        "asm": "addi.w #$10,(a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ADDI # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "ADDQ",
@@ -455,7 +739,80 @@
     "pages": [
       115,
       116
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "addq.b #1,d0",
+        "desc": "byte min"
+      },
+      {
+        "asm": "addq.l #8,d0",
+        "desc": "long max"
+      },
+      {
+        "asm": "addq.w #3,(a0)",
+        "desc": "memory"
+      },
+      {
+        "asm": "addq.l #1,a0",
+        "desc": "address reg"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ADDQ # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": 1,
+        "max": 8,
+        "field": "DATA",
+        "bits": 3,
+        "zero_means": 8
+      }
+    }
   },
   {
     "mnemonic": "ADDX",
@@ -463,6 +820,7 @@
     "processors": "M68000 Family",
     "operation": "Source + Destination + X → Destination",
     "syntax": [
+      "ADDX Dy,Dx",
       "ADDX – (Ay), – (Ax)"
     ],
     "attributes": "Size = (Byte, Word, Long)",
@@ -556,7 +914,78 @@
     "pages": [
       117,
       118
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "addx.b d0,d1",
+        "desc": "byte reg"
+      },
+      {
+        "asm": "addx.w d0,d1",
+        "desc": "word reg"
+      },
+      {
+        "asm": "addx.l d0,d1",
+        "desc": "long reg"
+      },
+      {
+        "asm": "addx.l -(a0),-(a1)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ADDX Dy,Dx",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ADDX -(Ay),-(Ax)",
+        "operands": [
+          {
+            "type": "predec"
+          },
+          {
+            "type": "predec"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "operand_modes": {
+        "field": "R/M",
+        "values": {
+          "0": "dn,dn",
+          "1": "predec,predec"
+        }
+      }
+    }
   },
   {
     "mnemonic": "AND",
@@ -564,6 +993,7 @@
     "processors": "M68000 Family",
     "operation": "Source L Destination → Destination",
     "syntax": [
+      "AND < ea > ,Dn",
       "AND Dn, < ea >"
     ],
     "attributes": "Size = (Byte, Word, Long)",
@@ -638,7 +1068,96 @@
       119,
       120,
       121
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ],
+      "dst": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "and.b d0,d1",
+        "desc": "byte"
+      },
+      {
+        "asm": "and.w d0,d1",
+        "desc": "word"
+      },
+      {
+        "asm": "and.l d0,d1",
+        "desc": "long"
+      },
+      {
+        "asm": "and.w (a0),d1",
+        "desc": "memory to reg"
+      },
+      {
+        "asm": "and.l d0,(a0)",
+        "desc": "reg to memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "AND <ea>,Dn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "AND Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "ANDI",
@@ -744,7 +1263,65 @@
     "pages": [
       122,
       123
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "andi.b #$ff,d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "andi.w #$ff00,d0",
+        "desc": "word"
+      },
+      {
+        "asm": "andi.l #$ff00ff00,d0",
+        "desc": "long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ANDI # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "ANDI to CCR",
@@ -869,7 +1446,39 @@
     "page": 124,
     "pages": [
       124
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [
+      {
+        "asm": "andi.b #$1f,ccr",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ANDI # <data>,CCR",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ccr"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "ASL, ASR",
@@ -877,6 +1486,7 @@
     "processors": "M68000 Family",
     "operation": "Destination Shifted By Count → Destination",
     "syntax": [
+      "ASd Dx,Dy",
       "ASd # < data > ,Dy",
       "ASd < ea >",
       "where d is direction, L or R"
@@ -1051,7 +1661,130 @@
       126,
       127,
       128
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "asl.b #1,d0",
+        "desc": "byte imm"
+      },
+      {
+        "asm": "asl.w #4,d0",
+        "desc": "word imm"
+      },
+      {
+        "asm": "asl.l #8,d0",
+        "desc": "long imm"
+      },
+      {
+        "asm": "asl.l d1,d0",
+        "desc": "register count"
+      },
+      {
+        "asm": "asr.b #1,d0",
+        "desc": "right byte"
+      },
+      {
+        "asm": "asr.w #4,d0",
+        "desc": "right word"
+      },
+      {
+        "asm": "asr.l d1,d0",
+        "desc": "right reg count"
+      },
+      {
+        "asm": "asl.w (a0)",
+        "desc": "memory left"
+      },
+      {
+        "asm": "asr.w (a0)",
+        "desc": "memory right"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ASd Dx,Dy",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ASd # <data>,Dy",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ASd <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": 1,
+        "max": 8,
+        "field": "Count/Register",
+        "bits": 3,
+        "zero_means": 8
+      },
+      "direction_variants": {
+        "field": "dr",
+        "values": {
+          "0": "r",
+          "1": "l"
+        },
+        "base": "as",
+        "variants": [
+          "asl",
+          "asr"
+        ]
+      },
+      "memory_size_only": "w"
+    }
   },
   {
     "mnemonic": "Bcc",
@@ -1122,7 +1855,108 @@
     "pages": [
       129,
       130
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "beq.s .t\nnop\n.t:",
+        "desc": "equal short"
+      },
+      {
+        "asm": "bne.s .t\nnop\n.t:",
+        "desc": "not equal short"
+      },
+      {
+        "asm": "bgt.s .t\nnop\n.t:",
+        "desc": "greater short"
+      },
+      {
+        "asm": "bge.s .t\nnop\n.t:",
+        "desc": "greater/equal short"
+      },
+      {
+        "asm": "blt.s .t\nnop\n.t:",
+        "desc": "less short"
+      },
+      {
+        "asm": "ble.s .t\nnop\n.t:",
+        "desc": "less/equal short"
+      },
+      {
+        "asm": "bhi.s .t\nnop\n.t:",
+        "desc": "higher short"
+      },
+      {
+        "asm": "bls.s .t\nnop\n.t:",
+        "desc": "lower/same short"
+      },
+      {
+        "asm": "bcc.s .t\nnop\n.t:",
+        "desc": "carry clear short"
+      },
+      {
+        "asm": "bcs.s .t\nnop\n.t:",
+        "desc": "carry set short"
+      },
+      {
+        "asm": "bpl.s .t\nnop\n.t:",
+        "desc": "plus short"
+      },
+      {
+        "asm": "bmi.s .t\nnop\n.t:",
+        "desc": "minus short"
+      },
+      {
+        "asm": "bvc.s .t\nnop\n.t:",
+        "desc": "overflow clear short"
+      },
+      {
+        "asm": "bvs.s .t\nnop\n.t:",
+        "desc": "overflow set short"
+      },
+      {
+        "asm": "beq.w .t\n.t:",
+        "desc": "equal word"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "Bcc <label>",
+        "operands": [
+          {
+            "type": "label"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "cc_parameterized": {
+        "prefix": "b",
+        "field_bits": 4,
+        "excluded": [
+          "t",
+          "f"
+        ]
+      },
+      "sizes_68000": [
+        "b",
+        "w"
+      ]
+    }
   },
   {
     "mnemonic": "BCHG",
@@ -1130,6 +1964,7 @@
     "processors": "M68000 Family",
     "operation": "TEST ( < number > of Destination) → Z;",
     "syntax": [
+      "BCHG Dn, < ea >",
       "BCHG # < data > , < ea >"
     ],
     "attributes": "Size = (Byte, Long)",
@@ -1299,7 +2134,88 @@
       131,
       132,
       133
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "ea_modes_020": {
+      "dst": [
+        "dn"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "bchg d0,d1",
+        "desc": "dynamic reg"
+      },
+      {
+        "asm": "bchg #7,d0",
+        "desc": "static reg"
+      },
+      {
+        "asm": "bchg d0,(a0)",
+        "desc": "dynamic mem"
+      },
+      {
+        "asm": "bchg #3,(a0)",
+        "desc": "static mem"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "BCHG Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "BCHG # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "Z",
+        "C"
+      ]
+    },
+    "constraints": {
+      "bit_op_sizes": {
+        "dn": "l",
+        "memory": "b"
+      }
+    }
   },
   {
     "mnemonic": "BCLR",
@@ -1307,6 +2223,7 @@
     "processors": "M68000 Family",
     "operation": "TEST ( < bit number > of Destination) → Z; 0 → < bit number > of Des-",
     "syntax": [
+      "BCLR Dn, < ea >",
       "BCLR # < data > , < ea >"
     ],
     "attributes": "Size = (Byte, Long)",
@@ -1476,7 +2393,88 @@
       134,
       135,
       136
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "ea_modes_020": {
+      "dst": [
+        "dn"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "bclr d0,d1",
+        "desc": "dynamic reg"
+      },
+      {
+        "asm": "bclr #31,d0",
+        "desc": "static reg"
+      },
+      {
+        "asm": "bclr d0,(a0)",
+        "desc": "dynamic mem"
+      },
+      {
+        "asm": "bclr #7,(a0)",
+        "desc": "static mem"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "BCLR Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "BCLR # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "Z",
+        "C"
+      ]
+    },
+    "constraints": {
+      "bit_op_sizes": {
+        "dn": "l",
+        "memory": "b"
+      }
+    }
   },
   {
     "mnemonic": "BFCHG",
@@ -1590,7 +2588,44 @@
     "pages": [
       137,
       138
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BFCHG <ea> {offset:width}",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "<ea> {offset:width}"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "BFCLR",
@@ -1704,7 +2739,44 @@
     "pages": [
       139,
       140
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BFCLR <ea> {offset:width}",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "<ea> {offset:width}"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "BFEXTS",
@@ -1820,7 +2892,49 @@
       141,
       142,
       143
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BFEXTS <ea> {offset:width},Dn",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "<ea> {offset:width}"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "BFEXTU",
@@ -1936,7 +3050,49 @@
       144,
       145,
       146
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BFEXTU <ea> {offset:width},Dn",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "<ea> {offset:width}"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "BFFFO",
@@ -2052,7 +3208,49 @@
       147,
       148,
       149
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BFFFO <ea> {offset:width},Dn",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "<ea> {offset:width}"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "BFINS",
@@ -2168,7 +3366,47 @@
       150,
       151,
       152
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BFINS Dn,<ea> {offset:width}",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "unknown",
+            "raw": "<ea> {offset:width}"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "BFSET",
@@ -2282,7 +3520,44 @@
     "pages": [
       153,
       154
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BFSET <ea> {offset:width}",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "<ea> {offset:width}"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "BFTST",
@@ -2396,7 +3671,46 @@
     "pages": [
       155,
       156
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BFTST <ea> {offset:width}",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "<ea> {offset:width}"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "BKPT",
@@ -2510,7 +3824,37 @@
     "pages": [
       157,
       158
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68010",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "BKPT # <data>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": 0,
+        "max": 7,
+        "field": "VECTOR",
+        "bits": 3
+      }
+    }
   },
   {
     "mnemonic": "BRA",
@@ -2597,7 +3941,48 @@
     "page": 159,
     "pages": [
       159
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "bra.s .t\nnop\n.t:",
+        "desc": "short"
+      },
+      {
+        "asm": "bra.w .t\n.t:",
+        "desc": "word"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "BRA <label>",
+        "operands": [
+          {
+            "type": "label"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": true,
+      "writes_pc": true,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "sizes_68000": [
+        "b",
+        "w"
+      ]
+    }
   },
   {
     "mnemonic": "BSET",
@@ -2605,6 +3990,7 @@
     "processors": "M68000 Family",
     "operation": "TEST ( < bit number > of Destination) → Z; 1 → < bit number > of Des-",
     "syntax": [
+      "BSET Dn, < ea >",
       "BSET # < data > , < ea >"
     ],
     "attributes": "Size = (Byte, Long)",
@@ -2768,7 +4154,88 @@
       160,
       161,
       162
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "ea_modes_020": {
+      "dst": [
+        "dn"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "bset d0,d1",
+        "desc": "dynamic reg"
+      },
+      {
+        "asm": "bset #0,d0",
+        "desc": "static reg"
+      },
+      {
+        "asm": "bset d0,(a0)",
+        "desc": "dynamic mem"
+      },
+      {
+        "asm": "bset #0,(a0)",
+        "desc": "static mem"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "BSET Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "BSET # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "Z",
+        "C"
+      ]
+    },
+    "constraints": {
+      "bit_op_sizes": {
+        "dn": "l",
+        "memory": "b"
+      }
+    }
   },
   {
     "mnemonic": "BSR",
@@ -2856,7 +4323,48 @@
     "pages": [
       163,
       164
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "bsr.s .t\nnop\n.t:",
+        "desc": "short"
+      },
+      {
+        "asm": "bsr.w .t\n.t:",
+        "desc": "word"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "BSR <label>",
+        "operands": [
+          {
+            "type": "label"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": true,
+      "writes_pc": true,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "sizes_68000": [
+        "b",
+        "w"
+      ]
+    }
   },
   {
     "mnemonic": "BTST",
@@ -2864,6 +4372,7 @@
     "processors": "M68000 Family",
     "operation": "TEST ( < bit number > of Destination) → Z",
     "syntax": [
+      "BTST Dn, < ea >",
       "BTST # < data > , < ea >"
     ],
     "attributes": "Size = (Byte, Long)",
@@ -3033,7 +4542,91 @@
       165,
       166,
       167
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "ea_modes_020": {
+      "dst": [
+        "dn"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "btst d0,d1",
+        "desc": "dynamic reg"
+      },
+      {
+        "asm": "btst #7,d0",
+        "desc": "static reg"
+      },
+      {
+        "asm": "btst d0,(a0)",
+        "desc": "dynamic mem"
+      },
+      {
+        "asm": "btst #7,(a0)",
+        "desc": "static mem"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "BTST Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "BTST # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "Z",
+        "C"
+      ]
+    },
+    "constraints": {
+      "bit_op_sizes": {
+        "dn": "l",
+        "memory": "b"
+      }
+    }
   },
   {
     "mnemonic": "CALLM",
@@ -3138,7 +4731,42 @@
     "pages": [
       168,
       169
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "CALLM # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "CAS CAS2",
@@ -3146,6 +4774,7 @@
     "processors": "MC68020, MC68030, MC68040",
     "operation": "CAS Destination – Compare Operand → cc;",
     "syntax": [
+      "CAS Dc,Du, < ea >",
       "CAS2 Dc1:Dc2,Du1:Du2,(Rn1):(Rn2)",
       "*"
     ],
@@ -3365,7 +4994,71 @@
       170,
       171,
       172
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "CAS Dc,Du,<ea>",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "Dc"
+          },
+          {
+            "type": "unknown",
+            "raw": "Du"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "CAS2 Dc1:Dc2,Du1:Du2,(Rn1):(Rn2)",
+        "operands": [
+          {
+            "type": "dn_pair"
+          },
+          {
+            "type": "dn_pair"
+          },
+          {
+            "type": "unknown",
+            "raw": "(Rn1):(Rn2)"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "CHK",
@@ -3453,7 +5146,66 @@
     "pages": [
       173,
       174
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "chk d0,d1",
+        "desc": "register"
+      },
+      {
+        "asm": "chk (a0),d1",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "CHK <ea>,Dn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "C"
+      ]
+    },
+    "constraints": {
+      "sizes_68000": [
+        "w"
+      ]
+    }
   },
   {
     "mnemonic": "CHK2",
@@ -3584,7 +5336,50 @@
     "pages": [
       175,
       176
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "CHK2 <ea>,Rn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "unknown",
+            "raw": "Rn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "Z",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "CLR",
@@ -3683,7 +5478,66 @@
     "pages": [
       177,
       178
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "clr.b d0",
+        "desc": "byte reg"
+      },
+      {
+        "asm": "clr.w d0",
+        "desc": "word reg"
+      },
+      {
+        "asm": "clr.l d0",
+        "desc": "long reg"
+      },
+      {
+        "asm": "clr.w (a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "CLR <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "CMP",
@@ -3764,7 +5618,82 @@
     "pages": [
       179,
       180
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "ea_modes_020": {
+      "src": [
+        "an"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "cmp.b d0,d1",
+        "desc": "byte"
+      },
+      {
+        "asm": "cmp.w d0,d1",
+        "desc": "word"
+      },
+      {
+        "asm": "cmp.l d0,d1",
+        "desc": "long"
+      },
+      {
+        "asm": "cmp.w (a0),d1",
+        "desc": "memory"
+      },
+      {
+        "asm": "cmp.l #$1234,d0",
+        "desc": "immediate"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "CMP <ea>,Dn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "CMPA",
@@ -3846,7 +5775,68 @@
     "pages": [
       181,
       182
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "cmpa.w d0,a0",
+        "desc": "word"
+      },
+      {
+        "asm": "cmpa.l d0,a0",
+        "desc": "long"
+      },
+      {
+        "asm": "cmpa.l #$1000,a0",
+        "desc": "immediate"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "CMPA <ea>,An",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "an"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "CMPI",
@@ -3946,7 +5936,73 @@
     "pages": [
       183,
       184
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "ea_modes_020": {
+      "dst": [
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "cmpi.b #$12,d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "cmpi.w #$1234,d0",
+        "desc": "word"
+      },
+      {
+        "asm": "cmpi.l #$12345678,d0",
+        "desc": "long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "CMPI # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "CMPM",
@@ -4045,7 +6101,54 @@
     "page": 185,
     "pages": [
       185
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "cmpm.b (a0)+,(a1)+",
+        "desc": "byte"
+      },
+      {
+        "asm": "cmpm.w (a0)+,(a1)+",
+        "desc": "word"
+      },
+      {
+        "asm": "cmpm.l (a0)+,(a1)+",
+        "desc": "long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "CMPM (Ay)+,(Ax)+",
+        "operands": [
+          {
+            "type": "postinc"
+          },
+          {
+            "type": "postinc"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "CMP2",
@@ -4176,7 +6279,50 @@
     "pages": [
       186,
       187
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "CMP2 <ea>,Rn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "unknown",
+            "raw": "Rn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "Z",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "cpBcc",
@@ -4265,7 +6411,32 @@
     "page": 188,
     "pages": [
       188
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68020",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "cpBcc <label>",
+        "operands": [
+          {
+            "type": "label"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "cpDBcc",
@@ -4371,7 +6542,34 @@
     "page": 189,
     "pages": [
       189
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68020",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "cpDBcc Dn,<label>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "label"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "cpGEN",
@@ -4464,7 +6662,30 @@
     "page": 190,
     "pages": [
       190
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "cpGEN < parameters as defined by coprocessor >",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "< parameters as defined by coprocessor >"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "cpScc",
@@ -4558,7 +6779,42 @@
     "pages": [
       191,
       192
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "cpScc <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "cpTRAPcc",
@@ -4566,6 +6822,7 @@
     "processors": "MC68020, MC68030",
     "operation": "If cpcc True",
     "syntax": [
+      "cpTRAPcc",
       "cpTRAPcc # < data >"
     ],
     "attributes": "Unsized or Size = (Word, Long)",
@@ -4663,7 +6920,36 @@
     "page": 193,
     "pages": [
       193
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68020",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "cpTRAPcc",
+        "operands": []
+      },
+      {
+        "syntax": "cpTRAPcc # <data>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "DBcc",
@@ -4769,7 +7055,58 @@
     "pages": [
       194,
       195
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "dbf d0,.t\n.t:",
+        "desc": "false (= dbra)"
+      },
+      {
+        "asm": "dbeq d0,.t\n.t:",
+        "desc": "equal"
+      },
+      {
+        "asm": "dbne d0,.t\n.t:",
+        "desc": "not equal"
+      },
+      {
+        "asm": "dbhi d0,.t\n.t:",
+        "desc": "higher"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "DBcc Dn,<label>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "label"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "cc_parameterized": {
+        "prefix": "db",
+        "field_bits": 2,
+        "excluded": []
+      }
+    }
   },
   {
     "mnemonic": "DIVS, DIVSL",
@@ -4777,6 +7114,7 @@
     "processors": "M68000 Family",
     "operation": "Destination ÷ Source → Destination",
     "syntax": [
+      "DIVS.W < ea > ,Dn32/16 16r – 16q",
       "*DIVS.L < ea > ,Dq 32/32 → 32q",
       "*DIVS.L < ea > ,Dr:Dq 64/32 → 32r – 32q",
       "*DIVSL.L < ea > ,Dr:Dq 32/32 32r – 32q",
@@ -4959,7 +7297,99 @@
       197,
       198,
       199
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "divs.w d1,d0",
+        "desc": "register"
+      },
+      {
+        "asm": "divs.w (a0),d0",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "DIVS.W <ea>,Dn32/16 16r – 16q",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "DIVS.L <ea>,Dq 32/32 → 32q",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ],
+        "processor_020": true
+      },
+      {
+        "syntax": "DIVS.L <ea>,Dr:Dq 64/32 → 32r – 32q",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn_pair"
+          }
+        ],
+        "processor_020": true
+      },
+      {
+        "syntax": "DIVSL.L <ea>,Dr:Dq 32/32 32r – 32q",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn_pair"
+          }
+        ],
+        "processor_020": true
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "DIVU, DIVUL",
@@ -4967,6 +7397,7 @@
     "processors": "M68000 Family",
     "operation": "Destination ÷ Source → Destination",
     "syntax": [
+      "DIVU.W < ea > ,Dn32/16 16r – 16q",
       "*DIVU.L < ea > ,Dq 32/32 → 32q",
       "*DIVU.L < ea > ,Dr:Dq 64/32 → 32r – 32q",
       "*DIVUL.L < ea > ,Dr:Dq 32/32 32r – 32q",
@@ -5149,7 +7580,105 @@
       201,
       202,
       203
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "ea_modes_020": {
+      "src": [
+        "index",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "divu.w d1,d0",
+        "desc": "register"
+      },
+      {
+        "asm": "divu.w (a0),d0",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "DIVU.W <ea>,Dn32/16 16r – 16q",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "DIVU.L <ea>,Dq 32/32 → 32q",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ],
+        "processor_020": true
+      },
+      {
+        "syntax": "DIVU.L <ea>,Dr:Dq 64/32 → 32r – 32q",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn_pair"
+          }
+        ],
+        "processor_020": true
+      },
+      {
+        "syntax": "DIVUL.L <ea>,Dr:Dq 32/32 32r – 32q",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn_pair"
+          }
+        ],
+        "processor_020": true
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "EOR",
@@ -5230,7 +7759,69 @@
     "pages": [
       204,
       205
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "eor.b d0,d1",
+        "desc": "byte"
+      },
+      {
+        "asm": "eor.w d0,d1",
+        "desc": "word"
+      },
+      {
+        "asm": "eor.l d0,d1",
+        "desc": "long"
+      },
+      {
+        "asm": "eor.l d0,(a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "EOR Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "EORI",
@@ -5330,7 +7921,65 @@
     "pages": [
       206,
       207
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "eori.b #$ff,d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "eori.w #$ffff,d0",
+        "desc": "word"
+      },
+      {
+        "asm": "eori.l #$ffffffff,d0",
+        "desc": "long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "EORI # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "EORI to CCR",
@@ -5455,7 +8104,39 @@
     "page": 208,
     "pages": [
       208
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [
+      {
+        "asm": "eori.b #$1f,ccr",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "EORI # <data>,CCR",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ccr"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "EXG",
@@ -5463,6 +8144,7 @@
     "processors": "M68000 Family",
     "operation": "Rx ←→ Ry",
     "syntax": [
+      "EXG Dx,Dy",
       "EXG Ax,Ay EXG Dx,Ay"
     ],
     "attributes": "Size = (Long)",
@@ -5536,7 +8218,69 @@
     "page": 209,
     "pages": [
       209
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "exg d0,d1",
+        "desc": "data-data"
+      },
+      {
+        "asm": "exg a0,a1",
+        "desc": "addr-addr"
+      },
+      {
+        "asm": "exg d0,a0",
+        "desc": "data-addr"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "EXG Dx,Dy",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "EXG Ax,Ay",
+        "operands": [
+          {
+            "type": "an"
+          },
+          {
+            "type": "an"
+          }
+        ]
+      },
+      {
+        "syntax": "EXG Dx,Ay",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "an"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "EXT, EXTB",
@@ -5544,6 +8288,7 @@
     "processors": "M68000 Family",
     "operation": "Destination Sign-Extended → Destination",
     "syntax": [
+      "EXT.W Dnextend byte to word",
       "EXT.L Dnextend word to long word",
       "EXTB.L Dnextend byte to long word (MC68020, MC68030",
       "MC68040, CPU32)"
@@ -5642,7 +8387,62 @@
     "page": 210,
     "pages": [
       210
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "ext.w d0",
+        "desc": "byte to word"
+      },
+      {
+        "asm": "ext.l d0",
+        "desc": "word to long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "EXT.W Dnextend byte to word",
+        "operands": [
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "EXT.L Dnextend word to long word",
+        "operands": [
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "EXTB.L Dnextend byte to long word (MC68020,MC68030",
+        "operands": [
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "ILLEGAL",
@@ -5767,7 +8567,30 @@
     "page": 211,
     "pages": [
       211
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "illegal",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ILLEGAL",
+        "operands": []
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "JMP",
@@ -5868,7 +8691,48 @@
     "page": 212,
     "pages": [
       212
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "jmp (a0)",
+        "desc": "indirect"
+      },
+      {
+        "asm": "jmp 4(a0)",
+        "desc": "displacement"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "JMP <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": true,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "JSR",
@@ -5969,7 +8833,48 @@
     "page": 213,
     "pages": [
       213
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "jsr (a0)",
+        "desc": "indirect"
+      },
+      {
+        "asm": "jsr -198(a6)",
+        "desc": "LVO call"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "JSR <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": true,
+      "writes_pc": true,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "LEA",
@@ -6061,7 +8966,57 @@
     "page": 214,
     "pages": [
       214
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "lea (a0),a1",
+        "desc": "indirect"
+      },
+      {
+        "asm": "lea 4(a0),a1",
+        "desc": "displacement"
+      },
+      {
+        "asm": "lea 0(a0,d0.w),a1",
+        "desc": "index"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "LEA <ea>,An",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "an"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "LINK",
@@ -6266,7 +9221,49 @@
     "pages": [
       215,
       216
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "link a6,#-100",
+        "desc": "negative"
+      },
+      {
+        "asm": "link a5,#0",
+        "desc": "zero"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "LINK An,# <displacement>",
+        "operands": [
+          {
+            "type": "an"
+          },
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "sizes_68000": [
+        "w"
+      ]
+    }
   },
   {
     "mnemonic": "LSL, LSR",
@@ -6274,6 +9271,7 @@
     "processors": "M68000 Family",
     "operation": "Destination Shifted By Count → Destination",
     "syntax": [
+      "LSd Dx,Dy",
       "LSd # < data > ,Dy",
       "LSd < ea >",
       "where d is direction, L or R"
@@ -6446,7 +9444,126 @@
       217,
       218,
       219
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "lsl.b #1,d0",
+        "desc": "byte imm"
+      },
+      {
+        "asm": "lsl.w #4,d0",
+        "desc": "word imm"
+      },
+      {
+        "asm": "lsl.l #8,d0",
+        "desc": "long imm"
+      },
+      {
+        "asm": "lsl.l d1,d0",
+        "desc": "register count"
+      },
+      {
+        "asm": "lsr.b #1,d0",
+        "desc": "right byte"
+      },
+      {
+        "asm": "lsr.l d1,d0",
+        "desc": "right reg count"
+      },
+      {
+        "asm": "lsl.w (a0)",
+        "desc": "memory left"
+      },
+      {
+        "asm": "lsr.w (a0)",
+        "desc": "memory right"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "LSd Dx,Dy",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "LSd # <data>,Dy",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "LSd <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": 1,
+        "max": 8,
+        "field": "Count/Register",
+        "bits": 3,
+        "zero_means": 8
+      },
+      "direction_variants": {
+        "field": "dr",
+        "values": {
+          "0": "r",
+          "1": "l"
+        },
+        "base": "ls",
+        "variants": [
+          "lsl",
+          "lsr"
+        ]
+      },
+      "memory_size_only": "w"
+    }
   },
   {
     "mnemonic": "MOVE",
@@ -6523,7 +9640,115 @@
       220,
       221,
       222
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ],
+      "src": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "move.b d0,d1",
+        "desc": "byte reg-reg"
+      },
+      {
+        "asm": "move.w d0,d1",
+        "desc": "word reg-reg"
+      },
+      {
+        "asm": "move.l d0,d1",
+        "desc": "long reg-reg"
+      },
+      {
+        "asm": "move.l (a0),d0",
+        "desc": "mem to reg"
+      },
+      {
+        "asm": "move.l d0,(a0)",
+        "desc": "reg to mem"
+      },
+      {
+        "asm": "move.w (a0)+,d0",
+        "desc": "postinc"
+      },
+      {
+        "asm": "move.l -(a0),d0",
+        "desc": "predec"
+      },
+      {
+        "asm": "move.w 4(a0),d0",
+        "desc": "displacement"
+      },
+      {
+        "asm": "move.l 0(a0,d0.w),d1",
+        "desc": "index"
+      },
+      {
+        "asm": "move.w $4.w,d0",
+        "desc": "abs short"
+      },
+      {
+        "asm": "move.l $00fc0000,d0",
+        "desc": "abs long"
+      },
+      {
+        "asm": "move.l #$12345678,d0",
+        "desc": "immediate"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVE <ea>,<ea>",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "MOVEA",
@@ -6611,7 +9836,63 @@
     "pages": [
       223,
       224
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "movea.w d0,a0",
+        "desc": "word"
+      },
+      {
+        "asm": "movea.l d0,a0",
+        "desc": "long"
+      },
+      {
+        "asm": "movea.l (a0),a1",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVEA <ea>,An",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "an"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVE from CCR",
@@ -6713,7 +9994,45 @@
     "pages": [
       225,
       226
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68010",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "MOVE CCR,<ea>",
+        "operands": [
+          {
+            "type": "ccr"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVE to CCR",
@@ -6815,7 +10134,59 @@
     "pages": [
       227,
       228
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "move.w d0,ccr",
+        "desc": "from reg"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVE <ea>,CCR",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "ccr"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "MOVE from SR",
@@ -6918,7 +10289,54 @@
     "page": 229,
     "pages": [
       229
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "move.w sr,d0",
+        "desc": "to reg"
+      },
+      {
+        "asm": "move.w sr,(a0)",
+        "desc": "to memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVE SR,<ea>",
+        "operands": [
+          {
+            "type": "sr"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVE16",
@@ -6926,6 +10344,7 @@
     "processors": "MC68040",
     "operation": "Source Block → Destination Block",
     "syntax": [
+      "MOVE16 (Ax) + ,(Ay) +",
       "MOVE16 (xxx).L,(An)",
       "MOVE16 (xxx).L,(An) +",
       "MOVE16 (An),(xxx).L",
@@ -7050,7 +10469,86 @@
     "pages": [
       230,
       231
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68040",
+    "sizes": [
+      "line"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "MOVE16 (Ax)+,(Ay)+",
+        "operands": [
+          {
+            "type": "postinc"
+          },
+          {
+            "type": "postinc"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVE16 (xxx).L,(An)",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "(xxx).L"
+          },
+          {
+            "type": "unknown",
+            "raw": "(An)"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVE16 (xxx).L,(An)+",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "(xxx).L"
+          },
+          {
+            "type": "unknown",
+            "raw": "(An)+"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVE16 (An),(xxx).L",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "(An)"
+          },
+          {
+            "type": "unknown",
+            "raw": "(xxx).L"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVE16 (An)+,(xxx).L",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "(An)+"
+          },
+          {
+            "type": "unknown",
+            "raw": "(xxx).L"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVEM",
@@ -7058,6 +10556,7 @@
     "processors": "M68000 Family",
     "operation": "Registers → Destination; Source → Registers",
     "syntax": [
+      "MOVEM < list > , < ea >",
       "MOVEM < ea > , < list >"
     ],
     "attributes": "Size = (Word, Long)",
@@ -7158,7 +10657,92 @@
       232,
       233,
       234
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "movem.l d0-d7/a0-a6,-(sp)",
+        "desc": "save all"
+      },
+      {
+        "asm": "movem.l (sp)+,d0-d7/a0-a6",
+        "desc": "restore all"
+      },
+      {
+        "asm": "movem.w d0-d3,-(sp)",
+        "desc": "save partial word"
+      },
+      {
+        "asm": "movem.w (sp)+,d0-d3",
+        "desc": "restore partial word"
+      },
+      {
+        "asm": "movem.l d0/d2/a0/a3,-(sp)",
+        "desc": "save sparse"
+      },
+      {
+        "asm": "movem.l (sp)+,d0/d2/a0/a3",
+        "desc": "restore sparse"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVEM <list>,<ea>",
+        "operands": [
+          {
+            "type": "reglist"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVEM <ea>,<list>",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "reglist"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "movem_direction": {
+        "field": "dr",
+        "values": {
+          "0": "reg-to-mem",
+          "1": "mem-to-reg"
+        }
+      }
+    }
   },
   {
     "mnemonic": "MOVEP",
@@ -7166,6 +10750,7 @@
     "processors": "M68000 Family",
     "operation": "Source → Destination",
     "syntax": [
+      "MOVEP Dx,(d16,Ay)",
       "MOVEP (d16,Ay),Dx"
     ],
     "attributes": "Size = (Word, Long)",
@@ -7254,7 +10839,63 @@
       235,
       236,
       237
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "movep.w 0(a0),d0",
+        "desc": "word mem to reg"
+      },
+      {
+        "asm": "movep.l 0(a0),d0",
+        "desc": "long mem to reg"
+      },
+      {
+        "asm": "movep.w d0,0(a0)",
+        "desc": "word reg to mem"
+      },
+      {
+        "asm": "movep.l d0,0(a0)",
+        "desc": "long reg to mem"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVEP Dx,(d16,Ay)",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "disp"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVEP (d16,Ay),Dx",
+        "operands": [
+          {
+            "type": "disp"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVEQ",
@@ -7328,7 +10969,65 @@
     "page": 238,
     "pages": [
       238
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "moveq #0,d0",
+        "desc": "zero"
+      },
+      {
+        "asm": "moveq #127,d0",
+        "desc": "max positive"
+      },
+      {
+        "asm": "moveq #-128,d0",
+        "desc": "max negative"
+      },
+      {
+        "asm": "moveq #-1,d0",
+        "desc": "minus one"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVEQ # <data>,Dn",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": -128,
+        "max": 127,
+        "field": "DATA",
+        "bits": 8,
+        "signed": true
+      }
+    }
   },
   {
     "mnemonic": "MULS",
@@ -7336,6 +11035,7 @@
     "processors": "M68000 Family",
     "operation": "Source x Destination → Destination",
     "syntax": [
+      "MULS.W < ea > ,Dn16 x 16 32",
       "*MULS.L < ea > ,Dl 32 x 32 → 32",
       "*MULS.L < ea > ,Dh – Dl 32 x 32 → 64",
       "*Applies to MC68020, MC68030, MC68040, CPU32"
@@ -7515,7 +11215,87 @@
       239,
       240,
       241
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "muls.w d0,d1",
+        "desc": "register"
+      },
+      {
+        "asm": "muls.w (a0),d1",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MULS.W <ea>,Dn16 x 16 32",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "MULS.L <ea>,Dl 32 x 32 → 32",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ],
+        "processor_020": true
+      },
+      {
+        "syntax": "MULS.L <ea>,Dh – Dl 32 x 32 → 64",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn_pair"
+          }
+        ],
+        "processor_020": true
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "MULU",
@@ -7523,6 +11303,7 @@
     "processors": "M68000 Family",
     "operation": "Source x Destination → Destination",
     "syntax": [
+      "MULU.W < ea > ,Dn16 x 16 32",
       "*MULU.L < ea > ,Dl 32 x 32 → 32",
       "*MULU.L < ea > ,Dh – Dl 32 x 32 → 64",
       "*Applies to MC68020, MC68030, MC68040, CPU32 only"
@@ -7702,7 +11483,87 @@
       242,
       243,
       244
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "mulu.w d0,d1",
+        "desc": "register"
+      },
+      {
+        "asm": "mulu.w (a0),d1",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MULU.W <ea>,Dn16 x 16 32",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "MULU.L <ea>,Dl 32 x 32 → 32",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ],
+        "processor_020": true
+      },
+      {
+        "syntax": "MULU.L <ea>,Dh – Dl 32 x 32 → 64",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn_pair"
+          }
+        ],
+        "processor_020": true
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "NBCD",
@@ -7806,7 +11667,54 @@
     "pages": [
       245,
       246
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [
+      {
+        "asm": "nbcd d0",
+        "desc": "register"
+      },
+      {
+        "asm": "nbcd (a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "NBCD <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "NEG",
@@ -7905,7 +11813,67 @@
     "pages": [
       247,
       248
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "neg.b d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "neg.w d0",
+        "desc": "word"
+      },
+      {
+        "asm": "neg.l d0",
+        "desc": "long"
+      },
+      {
+        "asm": "neg.w (a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "NEG <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "NEGX",
@@ -8004,7 +11972,62 @@
     "pages": [
       249,
       250
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "negx.b d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "negx.w d0",
+        "desc": "word"
+      },
+      {
+        "asm": "negx.l d0",
+        "desc": "long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "NEGX <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "NOP",
@@ -8129,7 +12152,30 @@
     "page": 251,
     "pages": [
       251
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "nop",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "NOP",
+        "operands": []
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "NOT",
@@ -8228,7 +12274,66 @@
     "pages": [
       252,
       253
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "not.b d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "not.w d0",
+        "desc": "word"
+      },
+      {
+        "asm": "not.l d0",
+        "desc": "long"
+      },
+      {
+        "asm": "not.w (a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "NOT <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "OR",
@@ -8236,6 +12341,7 @@
     "processors": "M68000 Family",
     "operation": "Source V Destination → Destination",
     "syntax": [
+      "OR < ea > ,Dn",
       "OR Dn, < ea >"
     ],
     "attributes": "Size = (Byte, Word, Long)",
@@ -8310,7 +12416,96 @@
       254,
       255,
       256
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ],
+      "dst": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "or.b d0,d1",
+        "desc": "byte"
+      },
+      {
+        "asm": "or.w d0,d1",
+        "desc": "word"
+      },
+      {
+        "asm": "or.l d0,d1",
+        "desc": "long"
+      },
+      {
+        "asm": "or.w (a0),d1",
+        "desc": "memory to reg"
+      },
+      {
+        "asm": "or.l d0,(a0)",
+        "desc": "reg to memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "OR <ea>,Dn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "OR Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "ORI",
@@ -8410,7 +12605,65 @@
     "pages": [
       257,
       258
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "ori.b #$ff,d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "ori.w #$ff00,d0",
+        "desc": "word"
+      },
+      {
+        "asm": "ori.l #$ff00ff00,d0",
+        "desc": "long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ORI # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "ORI to CCR",
@@ -8535,7 +12788,39 @@
     "page": 259,
     "pages": [
       259
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [
+      {
+        "asm": "ori.b #$1f,ccr",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ORI # <data>,CCR",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ccr"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PACK",
@@ -8543,6 +12828,7 @@
     "processors": "MC68020, MC68030, MC68040",
     "operation": "Source (Unpacked BCD) + Adjustment → Destination (Packed BCD)",
     "syntax": [
+      "PACK – (Ax), – (Ay),# < adjustment >",
       "PACK Dx,Dy,# < adjustment >"
     ],
     "attributes": "Unsized",
@@ -8649,7 +12935,58 @@
       260,
       261,
       262
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PACK -(Ax),-(Ay),# <adjustment>",
+        "operands": [
+          {
+            "type": "predec"
+          },
+          {
+            "type": "predec"
+          },
+          {
+            "type": "imm"
+          }
+        ]
+      },
+      {
+        "syntax": "PACK Dx,Dy,# <adjustment>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          },
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "operand_modes": {
+        "field": "R/M",
+        "values": {
+          "0": "dn,dn",
+          "1": "predec,predec"
+        }
+      }
+    }
   },
   {
     "mnemonic": "PEA",
@@ -8750,7 +13087,50 @@
     "page": 263,
     "pages": [
       263
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "pea (a0)",
+        "desc": "indirect"
+      },
+      {
+        "asm": "pea 4(a0)",
+        "desc": "displacement"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "PEA <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "ROL, ROR",
@@ -8758,6 +13138,7 @@
     "processors": "M68000 Family",
     "operation": "Destination Rotated By < count > → Destination",
     "syntax": [
+      "ROd Dx,Dy",
       "ROd # < data > ,Dy ROd < ea > where d is direction, L or R"
     ],
     "attributes": "Size = (Byte, Word, Long)",
@@ -8915,7 +13296,155 @@
             "width": 3
           }
         ]
+      }
+    ],
+    "field_descriptions": {
+      "dr": "Specifies the direction of the rotate. 0 — Rotate right 1 — Rotate left",
+      "Size": "Specifies the size of the operation.",
+      "i/r": "Specifies the rotate count location. If i/r = 0, immediate rotate count. If i/r = 1, register rotate count.",
+      "Register": "Specifies a data register to be rotated. 1 1 1 0 0 1 1 dr 1 1",
+      "Effective Address": "Specifies the operand to be rotated. Only memory alterable"
+    },
+    "page": 264,
+    "pages": [
+      264,
+      265,
+      266
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "rol.b #1,d0",
+        "desc": "byte imm"
       },
+      {
+        "asm": "rol.w #4,d0",
+        "desc": "word imm"
+      },
+      {
+        "asm": "rol.l d1,d0",
+        "desc": "register count"
+      },
+      {
+        "asm": "ror.b #1,d0",
+        "desc": "right byte"
+      },
+      {
+        "asm": "ror.l d1,d0",
+        "desc": "right reg count"
+      },
+      {
+        "asm": "rol.w (a0)",
+        "desc": "memory left"
+      },
+      {
+        "asm": "ror.w (a0)",
+        "desc": "memory right"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ROd Dx,Dy",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ROd # <data>,Dy",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ROd <ea> where d is direction,L or R",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": 1,
+        "max": 8,
+        "field": "Count/Register",
+        "bits": 3,
+        "zero_means": 8
+      },
+      "direction_variants": {
+        "field": "dr",
+        "values": {
+          "0": "r",
+          "1": "l"
+        },
+        "base": "ro",
+        "variants": [
+          "rol",
+          "ror"
+        ]
+      },
+      "memory_size_only": "w"
+    }
+  },
+  {
+    "mnemonic": "ROXL, ROXR",
+    "title": "Rotate with Extend",
+    "processors": "M68000 Family",
+    "operation": "Destination Rotated With X By Count → Destination",
+    "syntax": [
+      "ROXd Dx,Dy",
+      "ROXd # < data > ,Dy",
+      "ROXd < ea >",
+      "where d is direction, L or R"
+    ],
+    "attributes": "Size = (Byte, Word, Long)",
+    "description": "Rotates the bits of the operand in the direction specified (L or R). The extend bit is included in the rotation. The rotate count for the rotation of a register is specified in either of two ways: 1. Immediate—The rotate count (1 – 8) is specified in the instruction. 2. Register—The rotate count is the value in the data register specified in the in- struction, modulo 64. The size of the operation for register destinations is specified as byte, word, or long. The contents of memory, < ea > , can be rotated one bit only, and operand size is restricted to a word. The ROXL instruction rotates the bits of the operand to the left; the rotate count determines the number of bit positions rotated. Bits rotated out of the high- order bit go to the carry bit and the extend bit; the previous value of the extend bit rotates into the low-order bit. . ROXL: C OPERAND X The ROXR instruction rotates the bits of the operand to the right; the rotate count deter- mines the number of bit positions rotated. Bits rotated out of the low-order bit go to the carry bit and the extend bit; the previous value of the extend bit rotates into the high- order bit. . ROXR: X OPERAND C MOTOROLA M68000 FAMILY PROGRAMMER’S REFERENCE MANUAL 4-163 Integer Instructions ROXL, ROXR ROXL, ROXR Rotate with Extend (M68000 Family)",
+    "condition_codes": {
+      "X": "Set to the value of the last bit rotated out of the operand; unaffected when the",
+      "N": "Set if the most significant bit of the result is set; cleared otherwise",
+      "Z": "Set if the result is zero; cleared otherwise",
+      "V": "Always cleared",
+      "C": "Set according to the last bit rotated out of the operand; when the rotate count is"
+    },
+    "encodings": [
       {
         "fields": [
           {
@@ -9070,15 +13599,127 @@
       "Register": "Specifies a data register to be rotated. 1 1 1 0 0 1 0 dr 1 1",
       "Effective Address": "Specifies the operand to be rotated. Only memory alterable"
     },
-    "page": 264,
+    "page": 267,
     "pages": [
-      264,
-      265,
-      266,
       267,
       268,
       269
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "roxl.b #1,d0",
+        "desc": "byte imm"
+      },
+      {
+        "asm": "roxl.w #4,d0",
+        "desc": "word imm"
+      },
+      {
+        "asm": "roxl.l d1,d0",
+        "desc": "register count"
+      },
+      {
+        "asm": "roxr.b #1,d0",
+        "desc": "right byte"
+      },
+      {
+        "asm": "roxr.l d1,d0",
+        "desc": "right reg count"
+      },
+      {
+        "asm": "roxl.w (a0)",
+        "desc": "memory left"
+      },
+      {
+        "asm": "roxr.w (a0)",
+        "desc": "memory right"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ROXd Dx,Dy",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ROXd # <data>,Dy",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "ROXd <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": 1,
+        "max": 8,
+        "field": "Count/Register",
+        "bits": 3,
+        "zero_means": 8
+      },
+      "direction_variants": {
+        "field": "dr",
+        "values": {
+          "0": "r",
+          "1": "l"
+        },
+        "base": "rox",
+        "variants": [
+          "roxl",
+          "roxr"
+        ]
+      },
+      "memory_size_only": "w"
+    }
   },
   {
     "mnemonic": "RTD",
@@ -9203,7 +13844,29 @@
     "page": 270,
     "pages": [
       270
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68010",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "RTD # <displacement>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": true,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "RTM",
@@ -9319,7 +13982,30 @@
     "page": 271,
     "pages": [
       271
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "RTM Rn",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "Rn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "RTR",
@@ -9444,7 +14130,30 @@
     "page": 272,
     "pages": [
       272
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "rtr",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "RTR",
+        "operands": []
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": true,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "RTS",
@@ -9569,7 +14278,30 @@
     "page": 273,
     "pages": [
       273
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "rts",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "RTS",
+        "operands": []
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": true,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "SBCD",
@@ -9577,6 +14309,7 @@
     "processors": "M68000 Family",
     "operation": "Destination10 – Source10 – X → Destination",
     "syntax": [
+      "SBCD Dx,Dy",
       "SBCD – (Ax), – (Ay)"
     ],
     "attributes": "Size = (Byte)",
@@ -9675,7 +14408,66 @@
     "pages": [
       274,
       275
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [
+      {
+        "asm": "sbcd d0,d1",
+        "desc": "register"
+      },
+      {
+        "asm": "sbcd -(a0),-(a1)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "SBCD Dx,Dy",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "SBCD -(Ax),-(Ay)",
+        "operands": [
+          {
+            "type": "predec"
+          },
+          {
+            "type": "predec"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "C"
+      ]
+    },
+    "constraints": {
+      "operand_modes": {
+        "field": "R/M",
+        "values": {
+          "0": "dn,dn",
+          "1": "predec,predec"
+        }
+      }
+    }
   },
   {
     "mnemonic": "Scc",
@@ -9762,7 +14554,86 @@
     "pages": [
       276,
       277
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [
+      {
+        "asm": "st d0",
+        "desc": "true"
+      },
+      {
+        "asm": "sf d0",
+        "desc": "false"
+      },
+      {
+        "asm": "seq d0",
+        "desc": "equal"
+      },
+      {
+        "asm": "sne d0",
+        "desc": "not equal"
+      },
+      {
+        "asm": "sgt d0",
+        "desc": "greater"
+      },
+      {
+        "asm": "slt d0",
+        "desc": "less"
+      },
+      {
+        "asm": "shi d0",
+        "desc": "higher"
+      },
+      {
+        "asm": "scc d0",
+        "desc": "carry clear"
+      },
+      {
+        "asm": "scs d0",
+        "desc": "carry set"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "Scc <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "cc_parameterized": {
+        "prefix": "s",
+        "field_bits": 4,
+        "excluded": []
+      }
+    }
   },
   {
     "mnemonic": "SUB",
@@ -9770,6 +14641,7 @@
     "processors": "M68000 Family",
     "operation": "Destination – Source → Destination",
     "syntax": [
+      "SUB < ea > ,Dn",
       "SUB Dn, < ea >"
     ],
     "attributes": "Size = (Byte, Word, Long)",
@@ -9844,7 +14716,103 @@
       278,
       279,
       280
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ],
+      "dst": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "ea_modes_020": {
+      "src": [
+        "an"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "sub.b d0,d1",
+        "desc": "byte"
+      },
+      {
+        "asm": "sub.w d0,d1",
+        "desc": "word"
+      },
+      {
+        "asm": "sub.l d0,d1",
+        "desc": "long"
+      },
+      {
+        "asm": "sub.w (a0),d1",
+        "desc": "memory to reg"
+      },
+      {
+        "asm": "sub.l d0,(a0)",
+        "desc": "reg to memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "SUB <ea>,Dn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "SUB Dn,<ea>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "SUBA",
@@ -9926,7 +14894,59 @@
     "pages": [
       281,
       282
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "suba.w d0,a0",
+        "desc": "word"
+      },
+      {
+        "asm": "suba.l d0,a0",
+        "desc": "long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "SUBA <ea>,An",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "an"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "SUBI",
@@ -10026,7 +15046,66 @@
     "pages": [
       283,
       284
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "subi.b #$12,d0",
+        "desc": "byte"
+      },
+      {
+        "asm": "subi.w #$1234,d0",
+        "desc": "word"
+      },
+      {
+        "asm": "subi.l #$12345678,d0",
+        "desc": "long"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "SUBI # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "SUBQ",
@@ -10114,7 +15193,81 @@
     "pages": [
       285,
       286
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "ea_modes_020": {
+      "dst": [
+        "an"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "subq.b #1,d0",
+        "desc": "byte min"
+      },
+      {
+        "asm": "subq.l #8,d0",
+        "desc": "long max"
+      },
+      {
+        "asm": "subq.w #3,(a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "SUBQ # <data>,<ea>",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": 1,
+        "max": 8,
+        "field": "DATA",
+        "bits": 3,
+        "zero_means": 8
+      }
+    }
   },
   {
     "mnemonic": "SUBX",
@@ -10122,6 +15275,7 @@
     "processors": "M68000 Family",
     "operation": "Destination – Source – X → Destination",
     "syntax": [
+      "SUBX Dx,Dy",
       "SUBX – (Ax), – (Ay)"
     ],
     "attributes": "Size = (Byte, Word, Long)",
@@ -10215,7 +15369,78 @@
     "pages": [
       287,
       288
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "subx.b d0,d1",
+        "desc": "byte reg"
+      },
+      {
+        "asm": "subx.w d0,d1",
+        "desc": "word reg"
+      },
+      {
+        "asm": "subx.l d0,d1",
+        "desc": "long reg"
+      },
+      {
+        "asm": "subx.l -(a0),-(a1)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "SUBX Dx,Dy",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          }
+        ]
+      },
+      {
+        "syntax": "SUBX -(Ax),-(Ay)",
+        "operands": [
+          {
+            "type": "predec"
+          },
+          {
+            "type": "predec"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "X",
+        "N",
+        "V",
+        "C"
+      ]
+    },
+    "constraints": {
+      "operand_modes": {
+        "field": "R/M",
+        "values": {
+          "0": "dn,dn",
+          "1": "predec,predec"
+        }
+      }
+    }
   },
   {
     "mnemonic": "SWAP",
@@ -10328,7 +15553,45 @@
     "page": 289,
     "pages": [
       289
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "swap d0",
+        "desc": ""
+      },
+      {
+        "asm": "swap d7",
+        "desc": "d7"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "SWAP Dn",
+        "operands": [
+          {
+            "type": "dn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "TAS",
@@ -10432,7 +15695,56 @@
     "pages": [
       290,
       291
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [
+      {
+        "asm": "tas d0",
+        "desc": "register"
+      },
+      {
+        "asm": "tas (a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "TAS <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "TRAP",
@@ -10541,7 +15853,46 @@
     "page": 292,
     "pages": [
       292
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "trap #0",
+        "desc": "min"
+      },
+      {
+        "asm": "trap #15",
+        "desc": "max"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "TRAP # <vector>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    },
+    "constraints": {
+      "immediate_range": {
+        "min": 0,
+        "max": 15,
+        "field": "VECTOR",
+        "bits": 4
+      }
+    }
   },
   {
     "mnemonic": "TRAPcc",
@@ -10549,6 +15900,7 @@
     "processors": "MC68020, MC68030, MC68040, CPU32",
     "operation": "If cc",
     "syntax": [
+      "TRAPcc",
       "TRAPcc.W # < data >",
       "TRAPcc.L # < data >"
     ],
@@ -10647,7 +15999,51 @@
     "pages": [
       293,
       294
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68020",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "TRAPcc",
+        "operands": []
+      },
+      {
+        "syntax": "TRAPcc.W # <data>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      },
+      {
+        "syntax": "TRAPcc.L # <data>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "cc_parameterized": {
+        "prefix": "trap",
+        "field_bits": 2,
+        "excluded": []
+      }
+    }
   },
   {
     "mnemonic": "TRAPV",
@@ -10772,7 +16168,30 @@
     "page": 295,
     "pages": [
       295
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "trapv",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "TRAPV",
+        "operands": []
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "TST",
@@ -10871,7 +16290,78 @@
     "pages": [
       296,
       297
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "ea_modes_020": {
+      "dst": [
+        "an",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "tst.b d0",
+        "desc": "byte reg"
+      },
+      {
+        "asm": "tst.w d0",
+        "desc": "word reg"
+      },
+      {
+        "asm": "tst.l d0",
+        "desc": "long reg"
+      },
+      {
+        "asm": "tst.w (a0)",
+        "desc": "memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "TST <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": [
+        "N",
+        "Z",
+        "V",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "UNLK",
@@ -10984,7 +16474,38 @@
     "page": 298,
     "pages": [
       298
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "unlk a6",
+        "desc": ""
+      },
+      {
+        "asm": "unlk a5",
+        "desc": "a5"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "UNLK An",
+        "operands": [
+          {
+            "type": "an"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": true,
+      "writes_sp": true,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "UNPK",
@@ -10992,6 +16513,7 @@
     "processors": "MC68020, MC68030, MC68040",
     "operation": "Source (Packed BCD) + Adjustment → Destination (Unpacked BCD)",
     "syntax": [
+      "UNPACK – (Ax), – (Ay),# < adjustment >",
       "UNPK Dx,Dy,# < adjustment >"
     ],
     "attributes": "Unsized",
@@ -11100,7 +16622,44 @@
       301,
       302,
       455
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "UNPK Dx,Dy,# <adjustment>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "dn"
+          },
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    },
+    "constraints": {
+      "operand_modes": {
+        "field": "R/M",
+        "values": {
+          "0": "dn,dn",
+          "1": "predec,predec"
+        }
+      }
+    }
   },
   {
     "mnemonic": "ANDI to SR",
@@ -11225,7 +16784,39 @@
     "page": 456,
     "pages": [
       456
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "andi.w #$f8ff,sr",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ANDI # <data>,SR",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "sr"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "CINV",
@@ -11335,7 +16926,20 @@
     "pages": [
       457,
       458
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68040",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "cpRESTORE",
@@ -11428,7 +17032,41 @@
     "pages": [
       459,
       460
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "cpRESTORE <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "cpSAVE",
@@ -11520,7 +17158,38 @@
     "page": 461,
     "pages": [
       461
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "cpSAVE <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "CPUSH",
@@ -11528,6 +17197,7 @@
     "processors": "MC68040, MC68LC040",
     "operation": "If Supervisor State",
     "syntax": [
+      "CPUSHL < caches > ,(An)",
       "CPUSHP < caches > ,(An)",
       "CPUSHA < caches >",
       "Where < caches > specifies the instruction cache, data cache,",
@@ -11629,7 +17299,20 @@
     "pages": [
       462,
       463
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68040",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "EORI to SR",
@@ -11754,7 +17437,39 @@
     "page": 464,
     "pages": [
       464
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "eori.w #$0700,sr",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "EORI # <data>,SR",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "sr"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "FRESTORE",
@@ -11851,7 +17566,40 @@
       465,
       466,
       467
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68040",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "FRESTORE <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "FSAVE",
@@ -11948,7 +17696,38 @@
       468,
       469,
       470
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68040",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "FSAVE <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVE from SR",
@@ -12050,7 +17829,54 @@
     "pages": [
       471,
       472
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "move.w sr,d0",
+        "desc": "to reg"
+      },
+      {
+        "asm": "move.w sr,(a0)",
+        "desc": "to memory"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVE SR,<ea>",
+        "operands": [
+          {
+            "type": "sr"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVE to SR",
@@ -12152,7 +17978,53 @@
     "pages": [
       473,
       474
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "move.w d0,sr",
+        "desc": "from reg"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVE <ea>,SR",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "sr"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVE USP",
@@ -12160,6 +18032,7 @@
     "processors": "M68000 Family",
     "operation": "If Supervisor State",
     "syntax": [
+      "MOVE USP,An",
       "MOVE An,USP"
     ],
     "attributes": "Size = (Long)",
@@ -12268,7 +18141,54 @@
     "page": 475,
     "pages": [
       475
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "test_cases": [
+      {
+        "asm": "move.l a0,usp",
+        "desc": "to usp"
+      },
+      {
+        "asm": "move.l usp,a0",
+        "desc": "from usp"
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "MOVE USP,An",
+        "operands": [
+          {
+            "type": "usp"
+          },
+          {
+            "type": "an"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVE An,USP",
+        "operands": [
+          {
+            "type": "an"
+          },
+          {
+            "type": "usp"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVEC",
@@ -12276,6 +18196,7 @@
     "processors": "MC68010, MC68020, MC68030, MC68040, CPU32",
     "operation": "If Supervisor State",
     "syntax": [
+      "MOVEC Rc,Rn",
       "MOVEC Rn,Rc"
     ],
     "attributes": "Size = (Long)",
@@ -12399,7 +18320,49 @@
     "pages": [
       476,
       477
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68010",
+    "sizes": [
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "MOVEC Rc,Rn",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "Rc"
+          },
+          {
+            "type": "unknown",
+            "raw": "Rn"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVEC Rn,Rc",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "Rn"
+          },
+          {
+            "type": "unknown",
+            "raw": "Rc"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "MOVES",
@@ -12407,6 +18370,7 @@
     "processors": "MC68010, MC68020, MC68030, MC68040, CPU32",
     "operation": "If Supervisor State",
     "syntax": [
+      "MOVES Rn, < ea >",
       "MOVES < ea > ,Rn"
     ],
     "attributes": "Size = (Byte, Word, Long)",
@@ -12532,7 +18496,59 @@
       478,
       479,
       480
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68010",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "MOVES Rn,<ea>",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "Rn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "MOVES <ea>,Rn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "unknown",
+            "raw": "Rn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "ORI to SR",
@@ -12657,7 +18673,39 @@
     "page": 481,
     "pages": [
       481
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [
+      {
+        "asm": "ori.w #$0700,sr",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "ORI # <data>,SR",
+        "operands": [
+          {
+            "type": "imm"
+          },
+          {
+            "type": "sr"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PBcc",
@@ -12758,7 +18806,33 @@
     "pages": [
       482,
       483
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68851",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PBcc. <size> <label>",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "<size> <label>"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PDBcc",
@@ -12882,7 +18956,34 @@
     "pages": [
       484,
       485
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68851",
+    "sizes": [
+      "w"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PDBcc Dn,<label>",
+        "operands": [
+          {
+            "type": "dn"
+          },
+          {
+            "type": "label"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PFLUSH",
@@ -12890,6 +18991,7 @@
     "processors": "MC68030 only",
     "operation": "If Supervisor State",
     "syntax": [
+      "PFLUSHA",
       "PFLUSH FC,MASK",
       "PFLUSH FC,MASK, < ea >"
     ],
@@ -13172,7 +19274,60 @@
       489,
       490,
       491
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68030",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PFLUSH FC,MASK",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "FC"
+          },
+          {
+            "type": "unknown",
+            "raw": "MASK"
+          }
+        ]
+      },
+      {
+        "syntax": "PFLUSH FC,MASK,<ea>",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "FC"
+          },
+          {
+            "type": "unknown",
+            "raw": "MASK"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": [
+        "X"
+      ]
+    }
   },
   {
     "mnemonic": "PFLUSH PFLUSHA",
@@ -13180,6 +19335,7 @@
     "processors": "MC68851",
     "operation": "If Supervisor State",
     "syntax": [
+      "PFLUSHA",
       "PFLUSH FC,MASK",
       "PFLUSHS FC,MASK",
       "PFLUSH FC,MASK, < ea >",
@@ -13289,7 +19445,62 @@
       492,
       493,
       494
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68851",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PFLUSHA",
+        "operands": []
+      },
+      {
+        "syntax": "PFLUSH FC,MASK",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "FC"
+          },
+          {
+            "type": "unknown",
+            "raw": "MASK"
+          }
+        ]
+      },
+      {
+        "syntax": "PFLUSH FC,MASK,<ea>",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "FC"
+          },
+          {
+            "type": "unknown",
+            "raw": "MASK"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PFLUSHR",
@@ -13415,7 +19626,42 @@
     "pages": [
       495,
       496
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "processor_min": "68851",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PFLUSHR <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PLOAD",
@@ -13423,6 +19669,7 @@
     "processors": "MC68030 only, MC68851",
     "operation": "If Supervisor State",
     "syntax": [
+      "PLOADR FC, < ea >",
       "PLOADW FC, < ea >"
     ],
     "attributes": "Unsized",
@@ -13534,7 +19781,30 @@
       498,
       499,
       500
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68030",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": [
+        "X"
+      ]
+    }
   },
   {
     "mnemonic": "PMOVE",
@@ -13542,6 +19812,7 @@
     "processors": "MC68030 only",
     "operation": "If Supervisor State",
     "syntax": [
+      "PMOVE MRn, < ea >",
       "PMOVE < ea > ,MRn",
       "PMOVEFD < ea > ,MRn"
     ],
@@ -14371,7 +20642,70 @@
       508,
       509,
       510
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "dn",
+        "an",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex",
+        "imm"
+      ]
+    },
+    "ea_modes_020": {
+      "ea": [
+        "dn",
+        "an"
+      ]
+    },
+    "processor_min": "68030",
+    "sizes": [
+      "w",
+      "l",
+      "q"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PMOVE MRn,<ea>",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "MRn"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "PMOVE <ea>,MRn",
+        "operands": [
+          {
+            "type": "ea"
+          },
+          {
+            "type": "unknown",
+            "raw": "MRn"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PRESTORE",
@@ -14475,7 +20809,40 @@
     "pages": [
       511,
       512
-    ]
+    ],
+    "ea_modes": {
+      "src": [
+        "ind",
+        "postinc",
+        "disp",
+        "index",
+        "absw",
+        "absl",
+        "pcdisp",
+        "pcindex"
+      ]
+    },
+    "processor_min": "68851",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PRESTORE <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PSAVE",
@@ -14579,7 +20946,38 @@
     "pages": [
       513,
       514
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "ind",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68851",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PSAVE <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PScc",
@@ -14690,7 +21088,42 @@
     "pages": [
       515,
       516
-    ]
+    ],
+    "ea_modes": {
+      "dst": [
+        "dn",
+        "ind",
+        "postinc",
+        "predec",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68851",
+    "sizes": [
+      "b"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PScc <ea>",
+        "operands": [
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PTEST",
@@ -14698,6 +21131,7 @@
     "processors": "MC68030 only",
     "operation": "If Supervisor State",
     "syntax": [
+      "PTESTR FC, < ea > ,# < level >",
       "PTESTR FC, < ea > ,# < level > ,An",
       "PTESTW FC, < ea > ,# < level >",
       "PTESTW FC, < ea > ,# < level > ,An"
@@ -15173,7 +21607,31 @@
       529,
       530,
       531
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68030",
+    "sizes": [],
+    "test_cases": [],
+    "forms": [],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": [
+        "X",
+        "C"
+      ]
+    }
   },
   {
     "mnemonic": "PTRAPcc",
@@ -15181,6 +21639,7 @@
     "processors": "M68851",
     "operation": "If Supervisor State",
     "syntax": [
+      "PTRAPcc",
       "PTRAPcc.W # < data > PTRAPcc.L # < data >"
     ],
     "attributes": "Unsized or Size = (Word, Long)",
@@ -15296,7 +21755,44 @@
     "pages": [
       532,
       533
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68851",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PTRAPcc",
+        "operands": []
+      },
+      {
+        "syntax": "PTRAPcc.W # <data>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      },
+      {
+        "syntax": "PTRAPcc.L # <data>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "PVALID",
@@ -15304,6 +21800,7 @@
     "processors": "MC68851",
     "operation": "If (Source AL Bits) → (Destination AL Bits)",
     "syntax": [
+      "PVALID VAL, < ea >",
       "PVALID An, < ea >"
     ],
     "attributes": "Size = (Long)",
@@ -15514,7 +22011,54 @@
       534,
       535,
       536
-    ]
+    ],
+    "ea_modes": {
+      "ea": [
+        "ind",
+        "disp",
+        "index",
+        "absw",
+        "absl"
+      ]
+    },
+    "processor_min": "68851",
+    "sizes": [
+      "l"
+    ],
+    "test_cases": [],
+    "forms": [
+      {
+        "syntax": "PVALID VAL,<ea>",
+        "operands": [
+          {
+            "type": "unknown",
+            "raw": "VAL"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      },
+      {
+        "syntax": "PVALID An,<ea>",
+        "operands": [
+          {
+            "type": "an"
+          },
+          {
+            "type": "ea"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": false,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "RESET",
@@ -15639,7 +22183,30 @@
     "page": 537,
     "pages": [
       537
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "reset",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "RESET",
+        "operands": []
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "RTE",
@@ -15764,7 +22331,30 @@
     "page": 538,
     "pages": [
       538
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "rte",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "RTE",
+        "operands": []
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   },
   {
     "mnemonic": "STOP",
@@ -15892,6 +22482,33 @@
     "pages": [
       539,
       540
-    ]
+    ],
+    "ea_modes": {},
+    "processor_min": "68000",
+    "sizes": [],
+    "test_cases": [
+      {
+        "asm": "stop #$2000",
+        "desc": ""
+      }
+    ],
+    "forms": [
+      {
+        "syntax": "STOP # <data>",
+        "operands": [
+          {
+            "type": "imm"
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "reads_pc": false,
+      "writes_pc": false,
+      "reads_sp": false,
+      "writes_sp": false,
+      "privileged": true,
+      "cc_write": []
+    }
   }
 ]
