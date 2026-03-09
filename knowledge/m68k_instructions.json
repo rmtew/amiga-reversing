@@ -106,20 +106,6 @@
       107
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [
-      {
-        "asm": "abcd d0,d1",
-        "desc": "register"
-      },
-      {
-        "asm": "abcd -(a0),-(a1)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "ABCD Dy,Dx",
@@ -155,6 +141,11 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false,
     "constraints": {
       "operand_modes": {
         "field": "R/M",
@@ -277,42 +268,6 @@
         "an"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "add.b d0,d1",
-        "desc": "byte reg-reg"
-      },
-      {
-        "asm": "add.w d0,d1",
-        "desc": "word reg-reg"
-      },
-      {
-        "asm": "add.l d0,d1",
-        "desc": "long reg-reg"
-      },
-      {
-        "asm": "add.w (a0),d1",
-        "desc": "memory to reg"
-      },
-      {
-        "asm": "add.l d0,(a0)",
-        "desc": "reg to memory"
-      },
-      {
-        "asm": "add.w #$1234,d0",
-        "desc": "immediate"
-      },
-      {
-        "asm": "add.l #$12345678,d0",
-        "desc": "long immediate"
-      }
-    ],
     "forms": [
       {
         "syntax": "ADD <ea>,Dn",
@@ -350,7 +305,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ADDA",
@@ -449,25 +411,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "adda.w d0,a0",
-        "desc": "word"
-      },
-      {
-        "asm": "adda.l d0,a0",
-        "desc": "long"
-      },
-      {
-        "asm": "adda.l #$1000,a0",
-        "desc": "immediate"
-      }
-    ],
     "forms": [
       {
         "syntax": "ADDA <ea>,An",
@@ -488,7 +431,13 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ADDI",
@@ -601,30 +550,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "addi.b #$12,d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "addi.w #$1234,d0",
-        "desc": "word"
-      },
-      {
-        "asm": "addi.l #$12345678,d0",
-        "desc": "long"
-      },
-      {
-        "asm": "addi.w #$10,(a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "ADDI # <data>,<ea>",
@@ -651,7 +576,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ADDQ",
@@ -753,30 +685,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "addq.b #1,d0",
-        "desc": "byte min"
-      },
-      {
-        "asm": "addq.l #8,d0",
-        "desc": "long max"
-      },
-      {
-        "asm": "addq.w #3,(a0)",
-        "desc": "memory"
-      },
-      {
-        "asm": "addq.l #1,a0",
-        "desc": "address reg"
-      }
-    ],
     "forms": [
       {
         "syntax": "ADDQ # <data>,<ea>",
@@ -804,6 +712,13 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": 1,
@@ -916,30 +831,6 @@
       118
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "addx.b d0,d1",
-        "desc": "byte reg"
-      },
-      {
-        "asm": "addx.w d0,d1",
-        "desc": "word reg"
-      },
-      {
-        "asm": "addx.l d0,d1",
-        "desc": "long reg"
-      },
-      {
-        "asm": "addx.l -(a0),-(a1)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "ADDX Dy,Dx",
@@ -977,6 +868,13 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "operand_modes": {
         "field": "R/M",
@@ -1093,34 +991,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "and.b d0,d1",
-        "desc": "byte"
-      },
-      {
-        "asm": "and.w d0,d1",
-        "desc": "word"
-      },
-      {
-        "asm": "and.l d0,d1",
-        "desc": "long"
-      },
-      {
-        "asm": "and.w (a0),d1",
-        "desc": "memory to reg"
-      },
-      {
-        "asm": "and.l d0,(a0)",
-        "desc": "reg to memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "AND <ea>,Dn",
@@ -1157,7 +1027,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ANDI",
@@ -1276,26 +1153,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "andi.b #$ff,d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "andi.w #$ff00,d0",
-        "desc": "word"
-      },
-      {
-        "asm": "andi.l #$ff00ff00,d0",
-        "desc": "long"
-      }
-    ],
     "forms": [
       {
         "syntax": "ANDI # <data>,<ea>",
@@ -1321,7 +1178,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ANDI to CCR",
@@ -1448,16 +1312,6 @@
       124
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [
-      {
-        "asm": "andi.b #$1f,ccr",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "ANDI # <data>,CCR",
@@ -1478,7 +1332,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ASL, ASR",
@@ -1673,50 +1532,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "asl.b #1,d0",
-        "desc": "byte imm"
-      },
-      {
-        "asm": "asl.w #4,d0",
-        "desc": "word imm"
-      },
-      {
-        "asm": "asl.l #8,d0",
-        "desc": "long imm"
-      },
-      {
-        "asm": "asl.l d1,d0",
-        "desc": "register count"
-      },
-      {
-        "asm": "asr.b #1,d0",
-        "desc": "right byte"
-      },
-      {
-        "asm": "asr.w #4,d0",
-        "desc": "right word"
-      },
-      {
-        "asm": "asr.l d1,d0",
-        "desc": "right reg count"
-      },
-      {
-        "asm": "asl.w (a0)",
-        "desc": "memory left"
-      },
-      {
-        "asm": "asr.w (a0)",
-        "desc": "memory right"
-      }
-    ],
     "forms": [
       {
         "syntax": "ASd Dx,Dy",
@@ -1763,6 +1578,13 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": 1,
@@ -1857,74 +1679,6 @@
       130
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "beq.s .t\nnop\n.t:",
-        "desc": "equal short"
-      },
-      {
-        "asm": "bne.s .t\nnop\n.t:",
-        "desc": "not equal short"
-      },
-      {
-        "asm": "bgt.s .t\nnop\n.t:",
-        "desc": "greater short"
-      },
-      {
-        "asm": "bge.s .t\nnop\n.t:",
-        "desc": "greater/equal short"
-      },
-      {
-        "asm": "blt.s .t\nnop\n.t:",
-        "desc": "less short"
-      },
-      {
-        "asm": "ble.s .t\nnop\n.t:",
-        "desc": "less/equal short"
-      },
-      {
-        "asm": "bhi.s .t\nnop\n.t:",
-        "desc": "higher short"
-      },
-      {
-        "asm": "bls.s .t\nnop\n.t:",
-        "desc": "lower/same short"
-      },
-      {
-        "asm": "bcc.s .t\nnop\n.t:",
-        "desc": "carry clear short"
-      },
-      {
-        "asm": "bcs.s .t\nnop\n.t:",
-        "desc": "carry set short"
-      },
-      {
-        "asm": "bpl.s .t\nnop\n.t:",
-        "desc": "plus short"
-      },
-      {
-        "asm": "bmi.s .t\nnop\n.t:",
-        "desc": "minus short"
-      },
-      {
-        "asm": "bvc.s .t\nnop\n.t:",
-        "desc": "overflow clear short"
-      },
-      {
-        "asm": "bvs.s .t\nnop\n.t:",
-        "desc": "overflow set short"
-      },
-      {
-        "asm": "beq.w .t\n.t:",
-        "desc": "equal word"
-      }
-    ],
     "forms": [
       {
         "syntax": "Bcc <label>",
@@ -1943,6 +1697,13 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": true,
     "constraints": {
       "cc_parameterized": {
         "prefix": "b",
@@ -2152,29 +1913,6 @@
         "dn"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "bchg d0,d1",
-        "desc": "dynamic reg"
-      },
-      {
-        "asm": "bchg #7,d0",
-        "desc": "static reg"
-      },
-      {
-        "asm": "bchg d0,(a0)",
-        "desc": "dynamic mem"
-      },
-      {
-        "asm": "bchg #3,(a0)",
-        "desc": "static mem"
-      }
-    ],
     "forms": [
       {
         "syntax": "BCHG Dn,<ea>",
@@ -2210,6 +1948,12 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "bit_op_sizes": {
         "dn": "l",
@@ -2411,29 +2155,6 @@
         "dn"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "bclr d0,d1",
-        "desc": "dynamic reg"
-      },
-      {
-        "asm": "bclr #31,d0",
-        "desc": "static reg"
-      },
-      {
-        "asm": "bclr d0,(a0)",
-        "desc": "dynamic mem"
-      },
-      {
-        "asm": "bclr #7,(a0)",
-        "desc": "static mem"
-      }
-    ],
     "forms": [
       {
         "syntax": "BCLR Dn,<ea>",
@@ -2469,6 +2190,12 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "bit_op_sizes": {
         "dn": "l",
@@ -2599,9 +2326,6 @@
         "absl"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BFCHG <ea> {offset:width}",
@@ -2625,7 +2349,10 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "BFCLR",
@@ -2750,9 +2477,6 @@
         "absl"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BFCLR <ea> {offset:width}",
@@ -2776,7 +2500,10 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "BFEXTS",
@@ -2905,9 +2632,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BFEXTS <ea> {offset:width},Dn",
@@ -2934,7 +2658,10 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "BFEXTU",
@@ -3063,9 +2790,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BFEXTU <ea> {offset:width},Dn",
@@ -3092,7 +2816,10 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "BFFFO",
@@ -3221,9 +2948,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BFFFO <ea> {offset:width},Dn",
@@ -3250,7 +2974,10 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "BFINS",
@@ -3377,9 +3104,6 @@
         "absl"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BFINS Dn,<ea> {offset:width}",
@@ -3406,7 +3130,10 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "BFSET",
@@ -3531,9 +3258,6 @@
         "absl"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BFSET <ea> {offset:width}",
@@ -3557,7 +3281,10 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "BFTST",
@@ -3684,9 +3411,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BFTST <ea> {offset:width}",
@@ -3710,7 +3434,10 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "BKPT",
@@ -3826,9 +3553,6 @@
       158
     ],
     "ea_modes": {},
-    "processor_min": "68010",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "BKPT # <data>",
@@ -3847,6 +3571,9 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68010",
+    "sizes": [],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": 0,
@@ -3943,22 +3670,6 @@
       159
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "bra.s .t\nnop\n.t:",
-        "desc": "short"
-      },
-      {
-        "asm": "bra.w .t\n.t:",
-        "desc": "word"
-      }
-    ],
     "forms": [
       {
         "syntax": "BRA <label>",
@@ -3977,6 +3688,13 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": true,
     "constraints": {
       "sizes_68000": [
         "b",
@@ -4172,29 +3890,6 @@
         "dn"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "bset d0,d1",
-        "desc": "dynamic reg"
-      },
-      {
-        "asm": "bset #0,d0",
-        "desc": "static reg"
-      },
-      {
-        "asm": "bset d0,(a0)",
-        "desc": "dynamic mem"
-      },
-      {
-        "asm": "bset #0,(a0)",
-        "desc": "static mem"
-      }
-    ],
     "forms": [
       {
         "syntax": "BSET Dn,<ea>",
@@ -4230,6 +3925,12 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "bit_op_sizes": {
         "dn": "l",
@@ -4325,22 +4026,6 @@
       164
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "bsr.s .t\nnop\n.t:",
-        "desc": "short"
-      },
-      {
-        "asm": "bsr.w .t\n.t:",
-        "desc": "word"
-      }
-    ],
     "forms": [
       {
         "syntax": "BSR <label>",
@@ -4359,6 +4044,13 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": true,
     "constraints": {
       "sizes_68000": [
         "b",
@@ -4563,29 +4255,6 @@
         "dn"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "btst d0,d1",
-        "desc": "dynamic reg"
-      },
-      {
-        "asm": "btst #7,d0",
-        "desc": "static reg"
-      },
-      {
-        "asm": "btst d0,(a0)",
-        "desc": "dynamic mem"
-      },
-      {
-        "asm": "btst #7,(a0)",
-        "desc": "static mem"
-      }
-    ],
     "forms": [
       {
         "syntax": "BTST Dn,<ea>",
@@ -4621,6 +4290,12 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "bit_op_sizes": {
         "dn": "l",
@@ -4743,9 +4418,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "CALLM # <data>,<ea>",
@@ -4766,7 +4438,10 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "CAS CAS2",
@@ -5006,13 +4681,6 @@
         "absl"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "CAS Dc,Du,<ea>",
@@ -5058,7 +4726,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "CHK",
@@ -5162,21 +4837,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "chk d0,d1",
-        "desc": "register"
-      },
-      {
-        "asm": "chk (a0),d1",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "CHK <ea>,Dn",
@@ -5201,6 +4861,12 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "sizes_68000": [
         "w"
@@ -5348,13 +5014,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "CHK2 <ea>,Rn",
@@ -5379,7 +5038,14 @@
         "Z",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "CLR",
@@ -5491,30 +5157,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "clr.b d0",
-        "desc": "byte reg"
-      },
-      {
-        "asm": "clr.w d0",
-        "desc": "word reg"
-      },
-      {
-        "asm": "clr.l d0",
-        "desc": "long reg"
-      },
-      {
-        "asm": "clr.w (a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "CLR <ea>",
@@ -5537,7 +5179,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "CMP",
@@ -5640,34 +5289,6 @@
         "an"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "cmp.b d0,d1",
-        "desc": "byte"
-      },
-      {
-        "asm": "cmp.w d0,d1",
-        "desc": "word"
-      },
-      {
-        "asm": "cmp.l d0,d1",
-        "desc": "long"
-      },
-      {
-        "asm": "cmp.w (a0),d1",
-        "desc": "memory"
-      },
-      {
-        "asm": "cmp.l #$1234,d0",
-        "desc": "immediate"
-      }
-    ],
     "forms": [
       {
         "syntax": "CMP <ea>,Dn",
@@ -5693,7 +5314,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "CMPA",
@@ -5792,25 +5420,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "cmpa.w d0,a0",
-        "desc": "word"
-      },
-      {
-        "asm": "cmpa.l d0,a0",
-        "desc": "long"
-      },
-      {
-        "asm": "cmpa.l #$1000,a0",
-        "desc": "immediate"
-      }
-    ],
     "forms": [
       {
         "syntax": "CMPA <ea>,An",
@@ -5836,7 +5445,13 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "CMPI",
@@ -5957,26 +5572,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "cmpi.b #$12,d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "cmpi.w #$1234,d0",
-        "desc": "word"
-      },
-      {
-        "asm": "cmpi.l #$12345678,d0",
-        "desc": "long"
-      }
-    ],
     "forms": [
       {
         "syntax": "CMPI # <data>,<ea>",
@@ -6002,7 +5597,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "CMPM",
@@ -6103,26 +5705,6 @@
       185
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "cmpm.b (a0)+,(a1)+",
-        "desc": "byte"
-      },
-      {
-        "asm": "cmpm.w (a0)+,(a1)+",
-        "desc": "word"
-      },
-      {
-        "asm": "cmpm.l (a0)+,(a1)+",
-        "desc": "long"
-      }
-    ],
     "forms": [
       {
         "syntax": "CMPM (Ay)+,(Ax)+",
@@ -6148,7 +5730,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "CMP2",
@@ -6291,13 +5880,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "CMP2 <ea>,Rn",
@@ -6322,7 +5904,14 @@
         "Z",
         "C"
       ]
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "cpBcc",
@@ -6413,12 +6002,6 @@
       188
     ],
     "ea_modes": {},
-    "processor_min": "68020",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "cpBcc <label>",
@@ -6436,7 +6019,13 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": true
   },
   {
     "mnemonic": "cpDBcc",
@@ -6544,11 +6133,6 @@
       189
     ],
     "ea_modes": {},
-    "processor_min": "68020",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "cpDBcc Dn,<label>",
@@ -6569,7 +6153,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": true
   },
   {
     "mnemonic": "cpGEN",
@@ -6664,9 +6253,6 @@
       190
     ],
     "ea_modes": {},
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "cpGEN < parameters as defined by coprocessor >",
@@ -6685,7 +6271,10 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "cpScc",
@@ -6792,11 +6381,6 @@
         "absl"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "cpScc <ea>",
@@ -6814,7 +6398,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "cpTRAPcc",
@@ -6922,12 +6511,6 @@
       193
     ],
     "ea_modes": {},
-    "processor_min": "68020",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "cpTRAPcc",
@@ -6949,7 +6532,13 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "DBcc",
@@ -7057,28 +6646,6 @@
       195
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "dbf d0,.t\n.t:",
-        "desc": "false (= dbra)"
-      },
-      {
-        "asm": "dbeq d0,.t\n.t:",
-        "desc": "equal"
-      },
-      {
-        "asm": "dbne d0,.t\n.t:",
-        "desc": "not equal"
-      },
-      {
-        "asm": "dbhi d0,.t\n.t:",
-        "desc": "higher"
-      }
-    ],
     "forms": [
       {
         "syntax": "DBcc Dn,<label>",
@@ -7100,6 +6667,11 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": true,
     "constraints": {
       "cc_parameterized": {
         "prefix": "db",
@@ -7313,21 +6885,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "divs.w d1,d0",
-        "desc": "register"
-      },
-      {
-        "asm": "divs.w (a0),d0",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "DIVS.W <ea>,Dn32/16 16r – 16q",
@@ -7389,7 +6946,13 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "DIVU, DIVUL",
@@ -7602,21 +7165,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "divu.w d1,d0",
-        "desc": "register"
-      },
-      {
-        "asm": "divu.w (a0),d0",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "DIVU.W <ea>,Dn32/16 16r – 16q",
@@ -7678,7 +7226,13 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "EOR",
@@ -7772,30 +7326,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "eor.b d0,d1",
-        "desc": "byte"
-      },
-      {
-        "asm": "eor.w d0,d1",
-        "desc": "word"
-      },
-      {
-        "asm": "eor.l d0,d1",
-        "desc": "long"
-      },
-      {
-        "asm": "eor.l d0,(a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "EOR Dn,<ea>",
@@ -7821,7 +7351,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "EORI",
@@ -7934,26 +7471,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "eori.b #$ff,d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "eori.w #$ffff,d0",
-        "desc": "word"
-      },
-      {
-        "asm": "eori.l #$ffffffff,d0",
-        "desc": "long"
-      }
-    ],
     "forms": [
       {
         "syntax": "EORI # <data>,<ea>",
@@ -7979,7 +7496,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "EORI to CCR",
@@ -8106,16 +7630,6 @@
       208
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [
-      {
-        "asm": "eori.b #$1f,ccr",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "EORI # <data>,CCR",
@@ -8136,7 +7650,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "EXG",
@@ -8220,24 +7739,6 @@
       209
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "exg d0,d1",
-        "desc": "data-data"
-      },
-      {
-        "asm": "exg a0,a1",
-        "desc": "addr-addr"
-      },
-      {
-        "asm": "exg d0,a0",
-        "desc": "data-addr"
-      }
-    ],
     "forms": [
       {
         "syntax": "EXG Dx,Dy",
@@ -8280,7 +7781,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "EXT, EXTB",
@@ -8389,21 +7895,6 @@
       210
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "ext.w d0",
-        "desc": "byte to word"
-      },
-      {
-        "asm": "ext.l d0",
-        "desc": "word to long"
-      }
-    ],
     "forms": [
       {
         "syntax": "EXT.W Dnextend byte to word",
@@ -8442,7 +7933,13 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ILLEGAL",
@@ -8569,14 +8066,6 @@
       211
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "illegal",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "ILLEGAL",
@@ -8590,7 +8079,10 @@
       "writes_sp": true,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "JMP",
@@ -8703,18 +8195,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "jmp (a0)",
-        "desc": "indirect"
-      },
-      {
-        "asm": "jmp 4(a0)",
-        "desc": "displacement"
-      }
-    ],
     "forms": [
       {
         "syntax": "JMP <ea>",
@@ -8732,7 +8212,10 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "JSR",
@@ -8845,18 +8328,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "jsr (a0)",
-        "desc": "indirect"
-      },
-      {
-        "asm": "jsr -198(a6)",
-        "desc": "LVO call"
-      }
-    ],
     "forms": [
       {
         "syntax": "JSR <ea>",
@@ -8874,7 +8345,10 @@
       "writes_sp": true,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "LEA",
@@ -8978,24 +8452,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "lea (a0),a1",
-        "desc": "indirect"
-      },
-      {
-        "asm": "lea 4(a0),a1",
-        "desc": "displacement"
-      },
-      {
-        "asm": "lea 0(a0,d0.w),a1",
-        "desc": "index"
-      }
-    ],
     "forms": [
       {
         "syntax": "LEA <ea>,An",
@@ -9016,7 +8472,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "LINK",
@@ -9223,21 +8684,6 @@
       216
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "link a6,#-100",
-        "desc": "negative"
-      },
-      {
-        "asm": "link a5,#0",
-        "desc": "zero"
-      }
-    ],
     "forms": [
       {
         "syntax": "LINK An,# <displacement>",
@@ -9259,6 +8705,12 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "sizes_68000": [
         "w"
@@ -9456,46 +8908,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "lsl.b #1,d0",
-        "desc": "byte imm"
-      },
-      {
-        "asm": "lsl.w #4,d0",
-        "desc": "word imm"
-      },
-      {
-        "asm": "lsl.l #8,d0",
-        "desc": "long imm"
-      },
-      {
-        "asm": "lsl.l d1,d0",
-        "desc": "register count"
-      },
-      {
-        "asm": "lsr.b #1,d0",
-        "desc": "right byte"
-      },
-      {
-        "asm": "lsr.l d1,d0",
-        "desc": "right reg count"
-      },
-      {
-        "asm": "lsl.w (a0)",
-        "desc": "memory left"
-      },
-      {
-        "asm": "lsr.w (a0)",
-        "desc": "memory right"
-      }
-    ],
     "forms": [
       {
         "syntax": "LSd Dx,Dy",
@@ -9542,6 +8954,13 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": 1,
@@ -9667,62 +9086,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "move.b d0,d1",
-        "desc": "byte reg-reg"
-      },
-      {
-        "asm": "move.w d0,d1",
-        "desc": "word reg-reg"
-      },
-      {
-        "asm": "move.l d0,d1",
-        "desc": "long reg-reg"
-      },
-      {
-        "asm": "move.l (a0),d0",
-        "desc": "mem to reg"
-      },
-      {
-        "asm": "move.l d0,(a0)",
-        "desc": "reg to mem"
-      },
-      {
-        "asm": "move.w (a0)+,d0",
-        "desc": "postinc"
-      },
-      {
-        "asm": "move.l -(a0),d0",
-        "desc": "predec"
-      },
-      {
-        "asm": "move.w 4(a0),d0",
-        "desc": "displacement"
-      },
-      {
-        "asm": "move.l 0(a0,d0.w),d1",
-        "desc": "index"
-      },
-      {
-        "asm": "move.w $4.w,d0",
-        "desc": "abs short"
-      },
-      {
-        "asm": "move.l $00fc0000,d0",
-        "desc": "abs long"
-      },
-      {
-        "asm": "move.l #$12345678,d0",
-        "desc": "immediate"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVE <ea>,<ea>",
@@ -9748,7 +9111,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVEA",
@@ -9853,25 +9223,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "movea.w d0,a0",
-        "desc": "word"
-      },
-      {
-        "asm": "movea.l d0,a0",
-        "desc": "long"
-      },
-      {
-        "asm": "movea.l (a0),a1",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVEA <ea>,An",
@@ -9892,7 +9243,13 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVE from CCR",
@@ -10007,11 +9364,6 @@
         "absl"
       ]
     },
-    "processor_min": "68010",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "MOVE CCR,<ea>",
@@ -10032,7 +9384,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68010",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVE to CCR",
@@ -10150,16 +9507,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "move.w d0,ccr",
-        "desc": "from reg"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVE <ea>,CCR",
@@ -10186,7 +9533,12 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVE from SR",
@@ -10302,20 +9654,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "move.w sr,d0",
-        "desc": "to reg"
-      },
-      {
-        "asm": "move.w sr,(a0)",
-        "desc": "to memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVE SR,<ea>",
@@ -10336,7 +9674,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVE16",
@@ -10471,11 +9814,6 @@
       231
     ],
     "ea_modes": {},
-    "processor_min": "68040",
-    "sizes": [
-      "line"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "MOVE16 (Ax)+,(Ay)+",
@@ -10548,7 +9886,10 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68040",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVEM",
@@ -10671,37 +10012,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "movem.l d0-d7/a0-a6,-(sp)",
-        "desc": "save all"
-      },
-      {
-        "asm": "movem.l (sp)+,d0-d7/a0-a6",
-        "desc": "restore all"
-      },
-      {
-        "asm": "movem.w d0-d3,-(sp)",
-        "desc": "save partial word"
-      },
-      {
-        "asm": "movem.w (sp)+,d0-d3",
-        "desc": "restore partial word"
-      },
-      {
-        "asm": "movem.l d0/d2/a0/a3,-(sp)",
-        "desc": "save sparse"
-      },
-      {
-        "asm": "movem.l (sp)+,d0/d2/a0/a3",
-        "desc": "restore sparse"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVEM <list>,<ea>",
@@ -10734,6 +10044,12 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "movem_direction": {
         "field": "dr",
@@ -10841,29 +10157,6 @@
       237
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "movep.w 0(a0),d0",
-        "desc": "word mem to reg"
-      },
-      {
-        "asm": "movep.l 0(a0),d0",
-        "desc": "long mem to reg"
-      },
-      {
-        "asm": "movep.w d0,0(a0)",
-        "desc": "word reg to mem"
-      },
-      {
-        "asm": "movep.l d0,0(a0)",
-        "desc": "long reg to mem"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVEP Dx,(d16,Ay)",
@@ -10895,7 +10188,13 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVEQ",
@@ -10971,28 +10270,6 @@
       238
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "moveq #0,d0",
-        "desc": "zero"
-      },
-      {
-        "asm": "moveq #127,d0",
-        "desc": "max positive"
-      },
-      {
-        "asm": "moveq #-128,d0",
-        "desc": "max negative"
-      },
-      {
-        "asm": "moveq #-1,d0",
-        "desc": "minus one"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVEQ # <data>,Dn",
@@ -11019,6 +10296,11 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": -128,
@@ -11231,21 +10513,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "muls.w d0,d1",
-        "desc": "register"
-      },
-      {
-        "asm": "muls.w (a0),d1",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "MULS.W <ea>,Dn16 x 16 32",
@@ -11295,7 +10562,13 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MULU",
@@ -11499,21 +10772,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "mulu.w d0,d1",
-        "desc": "register"
-      },
-      {
-        "asm": "mulu.w (a0),d1",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "MULU.W <ea>,Dn16 x 16 32",
@@ -11563,7 +10821,13 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "NBCD",
@@ -11680,20 +10944,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [
-      {
-        "asm": "nbcd d0",
-        "desc": "register"
-      },
-      {
-        "asm": "nbcd (a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "NBCD <ea>",
@@ -11714,7 +10964,12 @@
         "X",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "NEG",
@@ -11826,30 +11081,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "neg.b d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "neg.w d0",
-        "desc": "word"
-      },
-      {
-        "asm": "neg.l d0",
-        "desc": "long"
-      },
-      {
-        "asm": "neg.w (a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "NEG <ea>",
@@ -11873,7 +11104,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "NEGX",
@@ -11985,26 +11223,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "negx.b d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "negx.w d0",
-        "desc": "word"
-      },
-      {
-        "asm": "negx.l d0",
-        "desc": "long"
-      }
-    ],
     "forms": [
       {
         "syntax": "NEGX <ea>",
@@ -12027,7 +11245,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "NOP",
@@ -12154,14 +11379,6 @@
       251
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "nop",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "NOP",
@@ -12175,7 +11392,10 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "NOT",
@@ -12287,30 +11507,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "not.b d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "not.w d0",
-        "desc": "word"
-      },
-      {
-        "asm": "not.l d0",
-        "desc": "long"
-      },
-      {
-        "asm": "not.w (a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "NOT <ea>",
@@ -12333,7 +11529,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "OR",
@@ -12441,34 +11644,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "or.b d0,d1",
-        "desc": "byte"
-      },
-      {
-        "asm": "or.w d0,d1",
-        "desc": "word"
-      },
-      {
-        "asm": "or.l d0,d1",
-        "desc": "long"
-      },
-      {
-        "asm": "or.w (a0),d1",
-        "desc": "memory to reg"
-      },
-      {
-        "asm": "or.l d0,(a0)",
-        "desc": "reg to memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "OR <ea>,Dn",
@@ -12505,7 +11680,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ORI",
@@ -12618,26 +11800,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "ori.b #$ff,d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "ori.w #$ff00,d0",
-        "desc": "word"
-      },
-      {
-        "asm": "ori.l #$ff00ff00,d0",
-        "desc": "long"
-      }
-    ],
     "forms": [
       {
         "syntax": "ORI # <data>,<ea>",
@@ -12663,7 +11825,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ORI to CCR",
@@ -12790,16 +11959,6 @@
       259
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [
-      {
-        "asm": "ori.b #$1f,ccr",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "ORI # <data>,CCR",
@@ -12820,7 +11979,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "PACK",
@@ -12937,9 +12101,6 @@
       262
     ],
     "ea_modes": {},
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PACK -(Ax),-(Ay),# <adjustment>",
@@ -12978,6 +12139,9 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false,
     "constraints": {
       "operand_modes": {
         "field": "R/M",
@@ -13099,20 +12263,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "pea (a0)",
-        "desc": "indirect"
-      },
-      {
-        "asm": "pea 4(a0)",
-        "desc": "displacement"
-      }
-    ],
     "forms": [
       {
         "syntax": "PEA <ea>",
@@ -13130,7 +12280,12 @@
       "writes_sp": true,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ROL, ROR",
@@ -13320,42 +12475,6 @@
         "index"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "rol.b #1,d0",
-        "desc": "byte imm"
-      },
-      {
-        "asm": "rol.w #4,d0",
-        "desc": "word imm"
-      },
-      {
-        "asm": "rol.l d1,d0",
-        "desc": "register count"
-      },
-      {
-        "asm": "ror.b #1,d0",
-        "desc": "right byte"
-      },
-      {
-        "asm": "ror.l d1,d0",
-        "desc": "right reg count"
-      },
-      {
-        "asm": "rol.w (a0)",
-        "desc": "memory left"
-      },
-      {
-        "asm": "ror.w (a0)",
-        "desc": "memory right"
-      }
-    ],
     "forms": [
       {
         "syntax": "ROd Dx,Dy",
@@ -13401,6 +12520,13 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": 1,
@@ -13616,42 +12742,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "roxl.b #1,d0",
-        "desc": "byte imm"
-      },
-      {
-        "asm": "roxl.w #4,d0",
-        "desc": "word imm"
-      },
-      {
-        "asm": "roxl.l d1,d0",
-        "desc": "register count"
-      },
-      {
-        "asm": "roxr.b #1,d0",
-        "desc": "right byte"
-      },
-      {
-        "asm": "roxr.l d1,d0",
-        "desc": "right reg count"
-      },
-      {
-        "asm": "roxl.w (a0)",
-        "desc": "memory left"
-      },
-      {
-        "asm": "roxr.w (a0)",
-        "desc": "memory right"
-      }
-    ],
     "forms": [
       {
         "syntax": "ROXd Dx,Dy",
@@ -13698,6 +12788,13 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": 1,
@@ -13846,9 +12943,6 @@
       270
     ],
     "ea_modes": {},
-    "processor_min": "68010",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "RTD # <displacement>",
@@ -13866,7 +12960,10 @@
       "writes_sp": true,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68010",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "RTM",
@@ -13984,9 +13081,6 @@
       271
     ],
     "ea_modes": {},
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "RTM Rn",
@@ -14005,7 +13099,10 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "RTR",
@@ -14132,14 +13229,6 @@
       272
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "rtr",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "RTR",
@@ -14153,7 +13242,10 @@
       "writes_sp": true,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "RTS",
@@ -14280,14 +13372,6 @@
       273
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "rts",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "RTS",
@@ -14301,7 +13385,10 @@
       "writes_sp": true,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "SBCD",
@@ -14410,20 +13497,6 @@
       275
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [
-      {
-        "asm": "sbcd d0,d1",
-        "desc": "register"
-      },
-      {
-        "asm": "sbcd -(a0),-(a1)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "SBCD Dx,Dy",
@@ -14459,6 +13532,11 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false,
     "constraints": {
       "operand_modes": {
         "field": "R/M",
@@ -14567,48 +13645,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [
-      {
-        "asm": "st d0",
-        "desc": "true"
-      },
-      {
-        "asm": "sf d0",
-        "desc": "false"
-      },
-      {
-        "asm": "seq d0",
-        "desc": "equal"
-      },
-      {
-        "asm": "sne d0",
-        "desc": "not equal"
-      },
-      {
-        "asm": "sgt d0",
-        "desc": "greater"
-      },
-      {
-        "asm": "slt d0",
-        "desc": "less"
-      },
-      {
-        "asm": "shi d0",
-        "desc": "higher"
-      },
-      {
-        "asm": "scc d0",
-        "desc": "carry clear"
-      },
-      {
-        "asm": "scs d0",
-        "desc": "carry set"
-      }
-    ],
     "forms": [
       {
         "syntax": "Scc <ea>",
@@ -14627,6 +13663,11 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false,
     "constraints": {
       "cc_parameterized": {
         "prefix": "s",
@@ -14747,34 +13788,6 @@
         "an"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "sub.b d0,d1",
-        "desc": "byte"
-      },
-      {
-        "asm": "sub.w d0,d1",
-        "desc": "word"
-      },
-      {
-        "asm": "sub.l d0,d1",
-        "desc": "long"
-      },
-      {
-        "asm": "sub.w (a0),d1",
-        "desc": "memory to reg"
-      },
-      {
-        "asm": "sub.l d0,(a0)",
-        "desc": "reg to memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "SUB <ea>,Dn",
@@ -14812,7 +13825,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "SUBA",
@@ -14911,21 +13931,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "suba.w d0,a0",
-        "desc": "word"
-      },
-      {
-        "asm": "suba.l d0,a0",
-        "desc": "long"
-      }
-    ],
     "forms": [
       {
         "syntax": "SUBA <ea>,An",
@@ -14946,7 +13951,13 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "SUBI",
@@ -15059,26 +14070,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "subi.b #$12,d0",
-        "desc": "byte"
-      },
-      {
-        "asm": "subi.w #$1234,d0",
-        "desc": "word"
-      },
-      {
-        "asm": "subi.l #$12345678,d0",
-        "desc": "long"
-      }
-    ],
     "forms": [
       {
         "syntax": "SUBI # <data>,<ea>",
@@ -15105,7 +14096,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "SUBQ",
@@ -15212,26 +14210,6 @@
         "an"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "subq.b #1,d0",
-        "desc": "byte min"
-      },
-      {
-        "asm": "subq.l #8,d0",
-        "desc": "long max"
-      },
-      {
-        "asm": "subq.w #3,(a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "SUBQ # <data>,<ea>",
@@ -15259,6 +14237,13 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": 1,
@@ -15371,30 +14356,6 @@
       288
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "subx.b d0,d1",
-        "desc": "byte reg"
-      },
-      {
-        "asm": "subx.w d0,d1",
-        "desc": "word reg"
-      },
-      {
-        "asm": "subx.l d0,d1",
-        "desc": "long reg"
-      },
-      {
-        "asm": "subx.l -(a0),-(a1)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "SUBX Dx,Dy",
@@ -15432,6 +14393,13 @@
         "C"
       ]
     },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "operand_modes": {
         "field": "R/M",
@@ -15555,20 +14523,6 @@
       289
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "swap d0",
-        "desc": ""
-      },
-      {
-        "asm": "swap d7",
-        "desc": "d7"
-      }
-    ],
     "forms": [
       {
         "syntax": "SWAP Dn",
@@ -15591,7 +14545,12 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "TAS",
@@ -15708,20 +14667,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [
-      {
-        "asm": "tas d0",
-        "desc": "register"
-      },
-      {
-        "asm": "tas (a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "TAS <ea>",
@@ -15744,7 +14689,12 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "TRAP",
@@ -15855,18 +14805,6 @@
       292
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "trap #0",
-        "desc": "min"
-      },
-      {
-        "asm": "trap #15",
-        "desc": "max"
-      }
-    ],
     "forms": [
       {
         "syntax": "TRAP # <vector>",
@@ -15885,6 +14823,9 @@
       "privileged": true,
       "cc_write": []
     },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false,
     "constraints": {
       "immediate_range": {
         "min": 0,
@@ -16001,12 +14942,6 @@
       294
     ],
     "ea_modes": {},
-    "processor_min": "68020",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "TRAPcc",
@@ -16037,6 +14972,12 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68020",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false,
     "constraints": {
       "cc_parameterized": {
         "prefix": "trap",
@@ -16170,14 +15111,6 @@
       295
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "trapv",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "TRAPV",
@@ -16191,7 +15124,10 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "TST",
@@ -16315,30 +15251,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "tst.b d0",
-        "desc": "byte reg"
-      },
-      {
-        "asm": "tst.w d0",
-        "desc": "word reg"
-      },
-      {
-        "asm": "tst.l d0",
-        "desc": "long reg"
-      },
-      {
-        "asm": "tst.w (a0)",
-        "desc": "memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "TST <ea>",
@@ -16361,7 +15273,14 @@
         "V",
         "C"
       ]
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "UNLK",
@@ -16476,18 +15395,6 @@
       298
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "unlk a6",
-        "desc": ""
-      },
-      {
-        "asm": "unlk a5",
-        "desc": "a5"
-      }
-    ],
     "forms": [
       {
         "syntax": "UNLK An",
@@ -16505,7 +15412,10 @@
       "writes_sp": true,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "UNPK",
@@ -16624,9 +15534,6 @@
       455
     ],
     "ea_modes": {},
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "UNPK Dx,Dy,# <adjustment>",
@@ -16651,6 +15558,9 @@
       "privileged": false,
       "cc_write": []
     },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false,
     "constraints": {
       "operand_modes": {
         "field": "R/M",
@@ -16786,16 +15696,6 @@
       456
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "andi.w #$f8ff,sr",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "ANDI # <data>,SR",
@@ -16816,7 +15716,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "CINV",
@@ -16928,9 +15833,6 @@
       458
     ],
     "ea_modes": {},
-    "processor_min": "68040",
-    "sizes": [],
-    "test_cases": [],
     "forms": [],
     "effects": {
       "reads_pc": false,
@@ -16939,7 +15841,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68040",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "cpRESTORE",
@@ -17046,9 +15951,6 @@
         "imm"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "cpRESTORE <ea>",
@@ -17066,7 +15968,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "cpSAVE",
@@ -17169,9 +16074,6 @@
         "absl"
       ]
     },
-    "processor_min": "68020",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "cpSAVE <ea>",
@@ -17189,7 +16091,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "CPUSH",
@@ -17301,9 +16206,6 @@
       463
     ],
     "ea_modes": {},
-    "processor_min": "68040",
-    "sizes": [],
-    "test_cases": [],
     "forms": [],
     "effects": {
       "reads_pc": false,
@@ -17312,7 +16214,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68040",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "EORI to SR",
@@ -17439,16 +16344,6 @@
       464
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "eori.w #$0700,sr",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "EORI # <data>,SR",
@@ -17469,7 +16364,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "FRESTORE",
@@ -17579,9 +16479,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68040",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "FRESTORE <ea>",
@@ -17599,7 +16496,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68040",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "FSAVE",
@@ -17707,9 +16607,6 @@
         "absl"
       ]
     },
-    "processor_min": "68040",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "FSAVE <ea>",
@@ -17727,7 +16624,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68040",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVE from SR",
@@ -17842,20 +16742,6 @@
         "absl"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "move.w sr,d0",
-        "desc": "to reg"
-      },
-      {
-        "asm": "move.w sr,(a0)",
-        "desc": "to memory"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVE SR,<ea>",
@@ -17876,7 +16762,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVE to SR",
@@ -17994,16 +16885,6 @@
         "imm"
       ]
     },
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "move.w d0,sr",
-        "desc": "from reg"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVE <ea>,SR",
@@ -18024,7 +16905,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVE USP",
@@ -18143,20 +17029,6 @@
       475
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "l"
-    ],
-    "test_cases": [
-      {
-        "asm": "move.l a0,usp",
-        "desc": "to usp"
-      },
-      {
-        "asm": "move.l usp,a0",
-        "desc": "from usp"
-      }
-    ],
     "forms": [
       {
         "syntax": "MOVE USP,An",
@@ -18188,7 +17060,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVEC",
@@ -18322,11 +17199,6 @@
       477
     ],
     "ea_modes": {},
-    "processor_min": "68010",
-    "sizes": [
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "MOVEC Rc,Rn",
@@ -18362,7 +17234,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68010",
+    "sizes": [
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "MOVES",
@@ -18508,13 +17385,6 @@
         "absl"
       ]
     },
-    "processor_min": "68010",
-    "sizes": [
-      "b",
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "MOVES Rn,<ea>",
@@ -18548,7 +17418,14 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68010",
+    "sizes": [
+      "b",
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "ORI to SR",
@@ -18675,16 +17552,6 @@
       481
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [
-      {
-        "asm": "ori.w #$0700,sr",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "ORI # <data>,SR",
@@ -18705,7 +17572,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "PBcc",
@@ -18808,12 +17680,6 @@
       483
     ],
     "ea_modes": {},
-    "processor_min": "68851",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PBcc. <size> <label>",
@@ -18832,7 +17698,13 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": true
   },
   {
     "mnemonic": "PDBcc",
@@ -18958,11 +17830,6 @@
       485
     ],
     "ea_modes": {},
-    "processor_min": "68851",
-    "sizes": [
-      "w"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PDBcc Dn,<label>",
@@ -18983,7 +17850,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "w"
+    ],
+    "uses_label": true
   },
   {
     "mnemonic": "PFLUSH",
@@ -19284,9 +18156,6 @@
         "absl"
       ]
     },
-    "processor_min": "68030",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PFLUSH FC,MASK",
@@ -19327,7 +18196,10 @@
       "cc_write": [
         "X"
       ]
-    }
+    },
+    "processor_min": "68030",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "PFLUSH PFLUSHA",
@@ -19455,9 +18327,6 @@
         "absl"
       ]
     },
-    "processor_min": "68851",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PFLUSHA",
@@ -19500,7 +18369,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "PFLUSHR",
@@ -19641,9 +18513,6 @@
         "imm"
       ]
     },
-    "processor_min": "68851",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PFLUSHR <ea>",
@@ -19661,7 +18530,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "PLOAD",
@@ -19791,9 +18663,6 @@
         "absl"
       ]
     },
-    "processor_min": "68030",
-    "sizes": [],
-    "test_cases": [],
     "forms": [],
     "effects": {
       "reads_pc": false,
@@ -19804,7 +18673,10 @@
       "cc_write": [
         "X"
       ]
-    }
+    },
+    "processor_min": "68030",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "PMOVE",
@@ -20665,13 +19537,6 @@
         "an"
       ]
     },
-    "processor_min": "68030",
-    "sizes": [
-      "w",
-      "l",
-      "q"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PMOVE MRn,<ea>",
@@ -20705,7 +19570,13 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68030",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "PRESTORE",
@@ -20822,9 +19693,6 @@
         "pcindex"
       ]
     },
-    "processor_min": "68851",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PRESTORE <ea>",
@@ -20842,7 +19710,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "PSAVE",
@@ -20957,9 +19828,6 @@
         "absl"
       ]
     },
-    "processor_min": "68851",
-    "sizes": [],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PSAVE <ea>",
@@ -20977,7 +19845,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "PScc",
@@ -21101,11 +19972,6 @@
         "absl"
       ]
     },
-    "processor_min": "68851",
-    "sizes": [
-      "b"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PScc <ea>",
@@ -21123,7 +19989,12 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "b"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "PTEST",
@@ -21617,9 +20488,6 @@
         "absl"
       ]
     },
-    "processor_min": "68030",
-    "sizes": [],
-    "test_cases": [],
     "forms": [],
     "effects": {
       "reads_pc": false,
@@ -21631,7 +20499,10 @@
         "X",
         "C"
       ]
-    }
+    },
+    "processor_min": "68030",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "PTRAPcc",
@@ -21757,12 +20628,6 @@
       533
     ],
     "ea_modes": {},
-    "processor_min": "68851",
-    "sizes": [
-      "w",
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PTRAPcc",
@@ -21792,7 +20657,13 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "w",
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "PVALID",
@@ -22021,11 +20892,6 @@
         "absl"
       ]
     },
-    "processor_min": "68851",
-    "sizes": [
-      "l"
-    ],
-    "test_cases": [],
     "forms": [
       {
         "syntax": "PVALID VAL,<ea>",
@@ -22058,7 +20924,12 @@
       "writes_sp": false,
       "privileged": false,
       "cc_write": []
-    }
+    },
+    "processor_min": "68020",
+    "sizes": [
+      "l"
+    ],
+    "uses_label": false
   },
   {
     "mnemonic": "RESET",
@@ -22185,14 +21056,6 @@
       537
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "reset",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "RESET",
@@ -22206,7 +21069,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "RTE",
@@ -22333,14 +21199,6 @@
       538
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "rte",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "RTE",
@@ -22354,7 +21212,10 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   },
   {
     "mnemonic": "STOP",
@@ -22484,14 +21345,6 @@
       540
     ],
     "ea_modes": {},
-    "processor_min": "68000",
-    "sizes": [],
-    "test_cases": [
-      {
-        "asm": "stop #$2000",
-        "desc": ""
-      }
-    ],
     "forms": [
       {
         "syntax": "STOP # <data>",
@@ -22509,6 +21362,9 @@
       "writes_sp": false,
       "privileged": true,
       "cc_write": []
-    }
+    },
+    "processor_min": "68000",
+    "sizes": [],
+    "uses_label": false
   }
 ]

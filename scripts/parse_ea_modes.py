@@ -42,6 +42,12 @@ MODE_MAP = {
 EA_ALL = ["dn", "an", "ind", "postinc", "predec", "disp", "index",
           "absw", "absl", "pcdisp", "pcindex", "imm"]
 
+EA_ORDER = {m: i for i, m in enumerate(EA_ALL)}
+
+
+def _ea_sort_key(m):
+    return EA_ORDER.get(m, 99)
+
 
 def parse_3bit(text):
     """Parse a 3-digit binary string to int, or return None."""
@@ -180,9 +186,9 @@ def find_ea_tables_on_page(rows):
 
         if valid_modes:
             sorted_modes = sorted(valid_modes,
-                                  key=lambda m: EA_ALL.index(m) if m in EA_ALL else 99)
+                                  key=_ea_sort_key)
             sorted_020 = sorted(modes_020,
-                                key=lambda m: EA_ALL.index(m) if m in EA_ALL else 99)
+                                key=_ea_sort_key)
             tables.append((label, sorted_modes, sorted_020))
 
     return tables
@@ -222,10 +228,10 @@ def merge_ea_tables(tables_by_page, pages):
     result = {}
     result_020 = {}
     for key, modes in by_label.items():
-        result[key] = sorted(modes, key=lambda m: EA_ALL.index(m) if m in EA_ALL else 99)
+        result[key] = sorted(modes, key=_ea_sort_key)
     for key, modes in by_label_020.items():
         if modes:
-            result_020[key] = sorted(modes, key=lambda m: EA_ALL.index(m) if m in EA_ALL else 99)
+            result_020[key] = sorted(modes, key=_ea_sort_key)
 
     return result, result_020
 

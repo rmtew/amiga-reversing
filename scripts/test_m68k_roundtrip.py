@@ -63,26 +63,6 @@ def ea_syntax(mode, size=None, imm_val=None):
     }[mode]
 
 
-def ea_syntax_alt(mode, size=None, imm_val=None):
-    """Alternate registers to avoid collisions in two-operand instructions."""
-    if mode == "imm":
-        if imm_val is not None:
-            return f"#{imm_val}"
-        return _imm_for_size(size)
-    return {
-        "dn":      "d1",
-        "an":      "a1",
-        "ind":     "(a1)",
-        "postinc": "(a1)+",
-        "predec":  "-(a1)",
-        "disp":    "4(a1)",
-        "index":   "0(a1,d0.w)",
-        "absw":    "$4.w",
-        "absl":    "$10000",
-        "pcdisp":  "4(pc)",
-        "pcindex": "0(pc,d0.w)",
-    }[mode]
-
 
 def _imm_for_size(size):
     if size == "b":
@@ -138,8 +118,6 @@ def _imm_for_constraint(constraint, size=None):
     val = (mn + mx) // 2
     if val == 0 and mn >= 0:
         val = mn  # avoid 0 for ranges starting at 0
-    if constraint.get("signed"):
-        return f"#{val}"
     return f"#{val}"
 
 
@@ -159,13 +137,11 @@ def generate_tests(inst):
     constraints = inst.get("constraints", {})
     m_lower = mnemonic.split(",")[0].split()[0].lower()  # "ASL, ASR" -> "asl"
 
-    if proc_min != "68000":
-        return []
-
     tests = []
 
-    # Get all EA mode lists, filtering out 020+ only modes
-    ea_020 = inst.get("ea_modes_020", {})
+    # For 68000 instructions, filter out 020+ only EA modes;
+    # for 020+ instructions, use all EA modes
+    ea_020 = inst.get("ea_modes_020", {}) if proc_min == "68000" else {}
     def _filter_020(modes, role):
         """Remove modes that are 020+ only from a mode list."""
         exclude = set(ea_020.get(role, []))
@@ -395,12 +371,6 @@ def generate_tests(inst):
         prefix = cc_param["prefix"]
         excluded = set(cc_param.get("excluded", []))
         codes = [c for c in CC_ALL if c not in excluded]
-        cc_tests = []
-        for cc in codes:
-            for asm, desc in tests:
-                cc_tests.append((asm.replace(prefix, prefix.replace(prefix, f"{prefix[:-len(prefix)]}{cc}" if len(prefix) > 0 else cc, 1), 1),
-                                 f"{prefix}{cc} {desc}"))
-        # Simpler approach: replace the base mnemonic with each CC variant
         if prefix and tests:
             cc_tests = []
             for cc in codes:
@@ -499,7 +469,18 @@ def _gen_movem_tests(m_lower, sz, modes, movem_dir):
 
 # ── Assembly / round-trip infrastructure ───────────────────────────────────
 
-def assemble(source, tmpdir):
+# Map processor_min to vasm -m flag
+VASM_CPU_FLAGS = {
+    "68000": "-m68000",
+    "68010": "-m68010",
+    "68020": "-m68020",
+    "68030": "-m68030",
+    "68040": "-m68040",
+    "cpu32": "-mcpu32",
+}
+
+
+def assemble(source, tmpdir, proc_min="68000"):
     """Assemble source with vasm, return code hunk data or None on failure."""
     src_path = os.path.join(tmpdir, "test.s")
     obj_path = os.path.join(tmpdir, "test.o")
@@ -515,8 +496,10 @@ def assemble(source, tmpdir):
     with open(src_path, "w") as f:
         f.write(full_source)
 
+    cpu_flag = VASM_CPU_FLAGS.get(proc_min, "-m68020")
     result = subprocess.run(
-        [str(VASM), "-Fhunk", "-no-opt", "-quiet", "-x", "-o", obj_path, src_path],
+        [str(VASM), "-Fhunk", "-no-opt", "-quiet", "-x", cpu_flag,
+         "-o", obj_path, src_path],
         capture_output=True, text=True
     )
     if result.returncode != 0:
@@ -552,10 +535,6 @@ def run_tests(filter_mnemonic=None, verbose=False):
             if filter_mnemonic and filter_mnemonic.upper() not in mnemonic.upper():
                 continue
 
-            if proc_min != "68000":
-                skipped_mnemonics += 1
-                continue
-
             cases = generate_tests(inst)
             if not cases:
                 if verbose:
@@ -568,7 +547,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
                 test_name = f"{mnemonic}: {desc}" if desc else mnemonic
 
                 # Step 1: Assemble
-                orig_data = assemble(asm_line, tmpdir)
+                orig_data = assemble(asm_line, tmpdir, proc_min)
                 if orig_data is None:
                     failures.append((test_name, asm_line, "ASSEMBLE FAILED"))
                     failed += 1
@@ -599,7 +578,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
                 else:
                     reasm_source = disasm_text
 
-                reasm_data = assemble(reasm_source, tmpdir)
+                reasm_data = assemble(reasm_source, tmpdir, proc_min)
                 if reasm_data is None:
                     failures.append((test_name, asm_line,
                                      f"REASSEMBLE FAILED: '{reasm_source}'"))
@@ -636,18 +615,14 @@ def run_tests(filter_mnemonic=None, verbose=False):
         print()
 
     # Coverage
-    kb_68000 = set()
-    for inst in kb_instructions:
-        if inst.get("processor_min", "68000") == "68000":
-            kb_68000.add(inst["mnemonic"])
-
-    untested = kb_68000 - tested_mnemonics
+    all_mnemonics = {inst["mnemonic"] for inst in kb_instructions}
+    untested = all_mnemonics - tested_mnemonics
     print(f"--- Coverage ---")
-    print(f"68000 mnemonics in KB:  {len(kb_68000)}")
+    print(f"Mnemonics in KB:        {len(all_mnemonics)}")
     print(f"Tested:                 {len(tested_mnemonics)}")
     print(f"Generated test cases:   {total}")
     if untested:
-        print(f"\nUntested 68000 mnemonics ({len(untested)}):")
+        print(f"\nUntested mnemonics ({len(untested)}):")
         for m in sorted(untested):
             print(f"  {m}")
 

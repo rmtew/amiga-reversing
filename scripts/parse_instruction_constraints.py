@@ -444,29 +444,17 @@ def extract_bit_op_size_restriction(inst):
     return None
 
 
-def fix_processor_min(inst):
+def derive_processor_min(processors):
     """Derive processor_min from the processors field.
 
     The processors field from the PDF lists which chips support the instruction.
-    If the original MC68000 is not listed, the instruction is not 68000-compatible.
-
-    Returns corrected processor_min or None if no change needed.
+    Returns the minimum processor level string.
     """
-    processors = inst.get("processors", "")
-    current = inst.get("processor_min", "68000")
-
-    if current != "68000":
-        return None  # already non-68000, no fix needed
-
-    # "M68000 Family" means all processors including original 68000
-    if "M68000 Family" in processors or not processors:
-        return None
-
-    # If processors mentions specific chips, check if MC68000 is among them
-    if "MC68000" in processors:
-        return None  # explicitly listed as supporting MC68000
-
-    # Not available on original 68000 — determine minimum processor
+    if not processors or "M68000 Family" in processors:
+        return "68000"
+    # MC68EC000 contains "MC68000" as substring — must check with word boundary
+    if re.search(r"\bMC68000\b", processors) or "MC68008" in processors:
+        return "68000"
     if "MC68EC000" in processors or "MC68010" in processors:
         return "68010"
     if "MC68020" in processors:
@@ -478,11 +466,35 @@ def fix_processor_min(inst):
     # FPU coprocessor (MC68881/MC68882) requires 68020+
     if "MC68881" in processors or "MC68882" in processors:
         return "68020"
-    # MMU coprocessor (MC68851) requires 68020+
-    if "MC68851" in processors:
+    # MMU coprocessor (MC68851 or M68851) requires 68020+
+    if "68851" in processors:
         return "68020"
+    if "CPU32" in processors:
+        return "cpu32"
+    return "68000"
 
-    return None
+
+def parse_sizes(attrs_str):
+    """Extract structured size list from attributes string.
+
+    "Size = (Byte, Word, Long)" -> ["b", "w", "l"]
+    "Unsized" -> []
+    """
+    if not attrs_str:
+        return []
+    m = re.search(r"Size\s*=\s*\(([^)]+)\)", attrs_str, re.IGNORECASE)
+    if not m:
+        return []
+    sizes = []
+    for part in m.group(1).split(","):
+        part = part.strip().rstrip("*").strip().lower()
+        if part == "byte":
+            sizes.append("b")
+        elif part == "word":
+            sizes.append("w")
+        elif part == "long":
+            sizes.append("l")
+    return sizes
 
 
 def main():
@@ -506,10 +518,16 @@ def main():
         "sizes_68000": 0,
         "memory_size_restriction": 0,
         "bit_op_size": 0,
-        "processor_fix": 0,
     }
 
     for inst in kb_data:
+        # Derive base fields from PDF data first (constraints depend on sizes)
+        inst["processor_min"] = derive_processor_min(inst.get("processors", ""))
+        inst["sizes"] = parse_sizes(inst.get("attributes", ""))
+        syntax = inst.get("syntax", [])
+        inst["uses_label"] = any("<label>" in s.lower() or "< label >" in s.lower()
+                                 for s in syntax)
+
         constraints = inst.get("constraints", {})
 
         # Immediate range
@@ -568,14 +586,6 @@ def main():
 
         if constraints:
             inst["constraints"] = constraints
-
-        # Fix processor_min where the PDF data proves it's wrong
-        pfx = fix_processor_min(inst)
-        if pfx:
-            old = inst.get("processor_min", "68000")
-            inst["processor_min"] = pfx
-            stats["processor_fix"] += 1
-            print(f"  FIX: {inst['mnemonic']} processor_min {old} -> {pfx}")
 
     # Report
     print("=== Constraint Extraction Results ===")
