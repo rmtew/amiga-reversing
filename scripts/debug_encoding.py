@@ -3,7 +3,7 @@
 
 import fitz, sys
 sys.path.insert(0, "scripts")
-from parse_m68k_instructions import extract_page_spans, spans_to_rows, BitField
+from parse_m68k import extract_page_spans, spans_to_rows, BitField
 
 sys.stdout.reconfigure(encoding="utf-8")
 doc = fitz.open("tmp/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf")

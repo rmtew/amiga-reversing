@@ -10,7 +10,7 @@ and reasoning.
 - **FORMAT-CONVENTION**: A formatting choice for output, not a data issue
 - **VASM-COMPAT**: Required for vasm assembler compatibility
 
-## parse_m68k_instructions.py
+## parse_m68k.py — Phase 1 (instruction extraction)
 
 ### Multi-word encoding fixes
 - **Designation**: PDF-GAP
@@ -30,7 +30,7 @@ and reasoning.
   but not worth the complexity.
 - **Values**: Section 4 (Integer): pages 105-302, Section 6 (Supervisor): pages 455-540
 
-## parse_ea_modes.py
+## parse_m68k.py — Phase 2 (EA modes)
 
 ### No hardcodings
 - EA mode tables are extracted entirely from PDF positioned text.
@@ -39,7 +39,7 @@ and reasoning.
 - 020+ EA modes detected via footnote markers (`*`, `**`) on addressing mode
   names in the PDF tables. Tracked in `ea_modes_020` field.
 
-## parse_syntax_patterns.py
+## parse_m68k.py — Phase 3 (syntax patterns)
 
 ### Syntax normalization (normalize_syntax)
 - **Designation**: PDF-AMBIGUOUS
@@ -60,7 +60,7 @@ and reasoning.
   (e.g., `"Dn32/16 16r – 16q"`, `"Dnextend byte to word"`). Cleanup regexes
   strip trailing descriptions. Not instruction-specific — pattern-based.
 
-## parse_instruction_constraints.py
+## parse_m68k.py — Phase 4 (constraints)
 
 ### CC_TABLE (condition code encoding)
 - **Designation**: None (architectural)
