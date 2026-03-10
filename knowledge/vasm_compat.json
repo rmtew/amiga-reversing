@@ -94,6 +94,10 @@
       "cpu_flag": "-m68851",
       "notes": "PMMU instruction"
     },
+    "EXT, EXTB": {
+      "skip_forms": ["extb"],
+      "notes": "vasm syntax does not accept EXTB in tested form"
+    },
     "TRAPcc": {
       "notes": "Size suffix (.w/.l) required on immediate forms per M68K convention"
     }

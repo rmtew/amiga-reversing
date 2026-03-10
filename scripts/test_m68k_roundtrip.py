@@ -168,7 +168,7 @@ def _imm_for_constraint(constraint, size=None):
 
 # ── Data-driven test generator ─────────────────────────────────────────────
 
-def generate_tests(inst):
+def generate_tests(inst, compat=None):
     """Generate all test cases for one instruction from its KB data.
 
     Uses forms, ea_modes, sizes, uses_label, and constraints to enumerate
@@ -208,6 +208,9 @@ def generate_tests(inst):
     bit_op_sizes = constraints.get("bit_op_sizes")
     sizes_68000 = constraints.get("sizes_68000")
 
+    compat = compat or {}
+    skip_form_prefixes = [p.lower() for p in compat.get("skip_forms", [])]
+
     # Use 68000-filtered sizes if available (removes 020+ starred sizes)
     effective_sizes = sizes_68000 if sizes_68000 is not None else sizes
 
@@ -224,6 +227,11 @@ def generate_tests(inst):
         # Skip 020+ forms (marked with * in PDF syntax)
         if form.get("processor_020"):
             continue
+
+        raw_form = form.get("syntax", "").split(None, 1)[0].lower()
+        if raw_form and any(raw_form.startswith(prefix) for prefix in skip_form_prefixes):
+            continue
+
         operands = form.get("operands", [])
         op_types = [o["type"] for o in operands]
         form_syntax = form.get("syntax", "")
@@ -606,7 +614,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
             # Use vasm-specific CPU flag if provided, else default from processor_min
             cpu_flag_override = vasm_info.get("cpu_flag")
 
-            cases = generate_tests(inst)
+            cases = generate_tests(inst, vasm_info)
             if not cases:
                 if verbose:
                     print(f"  SKIP {mnemonic} (no tests generated)")
