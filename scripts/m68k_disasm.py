@@ -4,6 +4,7 @@ Decodes 68000 instructions from raw bytes and emits assembly text.
 """
 
 import json
+import re
 import struct
 from dataclasses import dataclass
 from functools import lru_cache
@@ -29,6 +30,11 @@ SIZE_LONG = 2
 
 SIZE_SUFFIX = {SIZE_BYTE: ".b", SIZE_WORD: ".w", SIZE_LONG: ".l"}
 SIZE_NAMES = {SIZE_BYTE: "byte", SIZE_WORD: "word", SIZE_LONG: "long"}
+CC_CODE_NAMES = [
+    "t", "f", "hi", "ls", "cc", "cs", "ne", "eq",
+    "vc", "vs", "pl", "mi", "ge", "lt", "gt", "le",
+]
+CC_CONDITION_TABLE = re.compile(r"\b([A-Za-z]{2})\s+[A-Za-z]\s+(?:set|clear)\b")
 
 CPU_ORDER = {
     "68000": 0,
@@ -76,10 +82,79 @@ def _load_kb_processor_mins() -> dict[str, str]:
     return mins
 
 
-CC_CODES = {
-    "t", "f", "hi", "ls", "cc", "cs", "ne", "eq",
-    "vc", "vs", "pl", "mi", "ge", "lt", "gt", "le",
-}
+@lru_cache(maxsize=1)
+def _load_disasm_meta() -> dict:
+    path = Path(__file__).resolve().parent.parent / "knowledge" / "m68k_instructions.json"
+    if not path.exists():
+        return {
+            "condition_codes": CC_CODE_NAMES,
+            "condition_families": [],
+        }
+
+    with open(path, "r", encoding="utf-8") as f:
+        kb = json.load(f)
+
+    families = {}
+    for inst in kb:
+        constraints = inst.get("constraints", {})
+        cc_param = constraints.get("cc_parameterized")
+
+        for raw_name in inst.get("mnemonic", "").split(","):
+            name = raw_name.strip().lower().replace(" ", "")
+            if not name or not name.endswith("cc"):
+                continue
+
+            prefix = name[:-2]
+            if not prefix:
+                continue
+
+            entry = families.get(name)
+            if entry is None:
+                entry = {
+                    "prefix": prefix,
+                    "canonical": name,
+                    "codes": CC_CODE_NAMES[:],
+                    "excluded": set(),
+                }
+                families[name] = entry
+
+            if cc_param:
+                if cc_param.get("excluded"):
+                    entry["excluded"].update(
+                        code.lower() for code in cc_param.get("excluded", [])
+                    )
+                continue
+
+            description = inst.get("description", "")
+            parsed_codes = [
+                code.lower()
+                for code in CC_CONDITION_TABLE.findall(description)
+            ]
+            if parsed_codes:
+                entry["codes"] = parsed_codes
+
+    canonical_families = []
+    for entry in families.values():
+        codes = entry.get("codes", [])
+        if not codes:
+            continue
+        canonical_families.append({
+            "prefix": entry["prefix"],
+            "canonical": entry["canonical"],
+            "codes": codes,
+            "exclude_from_family": sorted(entry["excluded"]),
+        })
+
+    # Ensure deterministic ordering.
+    canonical_families = sorted(
+        canonical_families,
+        key=lambda item: item["canonical"]
+    )
+
+    return {
+        "condition_codes": CC_CODE_NAMES,
+        "condition_families": canonical_families,
+    }
 
 
 def _canonical_mnemonic(decoded: str) -> str:
@@ -88,24 +163,21 @@ def _canonical_mnemonic(decoded: str) -> str:
     if tok in ("", "#"):
         return tok
 
-    for cc in CC_CODES:
-        if tok == f"db{cc}":
-            return "dbcc"
-        if tok == f"trap{cc}":
-            return "trapcc"
-        if tok == f"pb{cc}":
-            return "pbcc"
-        if tok == f"pdb{cc}":
-            return "pdbcc"
-        if tok == f"ps{cc}":
-            return "pscc"
-        if tok == f"ptrap{cc}":
-            return "ptrapcc"
-        if tok == f"s{cc}" and tok != "src":
-            return "scc"
+    meta = _load_disasm_meta()
+    families = meta.get("condition_families", [])
 
-        if tok == f"b{cc}" and not tok.startswith("bsr") and not tok.startswith("bra"):
-            return "bcc"
+    for fam in families:
+        prefix = fam.get("prefix", "")
+        if not prefix:
+            continue
+        if not tok.startswith(prefix):
+            continue
+        suffix = tok[len(prefix):]
+        if suffix not in fam.get("codes", []):
+            continue
+        if tok in fam.get("exclude_from_family", []):
+            continue
+        return fam["canonical"]
 
     return tok
 
@@ -710,8 +782,7 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> str:
         return f"{name}{sfx} #{data},{ea}"
 
 
-CC_NAMES = ["t", "f", "hi", "ls", "cc", "cs", "ne", "eq",
-            "vc", "vs", "pl", "mi", "ge", "lt", "gt", "le"]
+CC_NAMES = _load_disasm_meta().get("condition_codes", CC_CODE_NAMES)
 
 def _cc_name(cc: int) -> str:
     return CC_NAMES[cc]

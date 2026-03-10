@@ -14,6 +14,7 @@
 
 - [x] Build M68K disassembler — test-driven, using knowledge base (instructions, hardware registers, OS calls)
 - [x] Build test oracle — assemble known source → binary → disassemble → reassemble → binary diff; drives error detection in data, tools, and references simultaneously
+- [x] Derive M68K condition-family canonicalisation from KB data (including PMMU condition tables from structured fields where available)
 - [ ] Round-trip validation tooling per CLAUDE.md: reassemble with vasm, binary-diff against original
 
 ## Compiler Fingerprinting
