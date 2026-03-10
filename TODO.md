@@ -8,6 +8,7 @@
 - [ ] Use vasm as the assembler backend for test oracle
 - [ ] Identify limits/bugs as we push on edge cases (FPU, coprocessor, addressing modes)
 - [ ] Document any patches we apply
+- [ ] Derive assembler rule metadata from vasm by running vasm in discovery mode and emit a canonical `knowledge/vasm.json` assembler capability schema, then add a generated `knowledge/vasm_roundtrip_rules.json` that maps KB syntax to roundtrip-safe forms (size/pattern filters, skip-form lists, and canonical replacements) so roundtrip tests consume assembler intent from data only
 
 ## Disassembler & Verification
 
