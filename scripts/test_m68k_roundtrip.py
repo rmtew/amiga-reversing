@@ -172,10 +172,11 @@ def generate_tests(inst):
             continue
         operands = form.get("operands", [])
         op_types = [o["type"] for o in operands]
+        form_syntax = form.get("syntax", "")
+        form_mn = form_syntax.split(None, 1)[0].lower() or m_lower
 
         if not op_types:
             # Use form syntax if available (handles PFLUSHA vs PFLUSH)
-            form_mn = form.get("syntax", "").split(None, 1)[0].lower() or m_lower
             tests.append((form_mn, ""))
             continue
 
@@ -186,7 +187,6 @@ def generate_tests(inst):
 
         # Determine which sizes to iterate.
         # If the form syntax specifies a size (e.g., "DIVS.W"), restrict to that size
-        form_syntax = form.get("syntax", "")
         form_size = None
         form_inst = form_syntax.split(None, 1)[0] if form_syntax else ""
         if "." in form_inst:
@@ -294,32 +294,34 @@ def generate_tests(inst):
             elif op_types == ["sr", "ea"]:
                 for mode in (dst_modes or all_ea_modes):
                     dst = ea_syntax(mode, sz)
-                    tests.append((f"move.w sr,{dst}", f"dst={mode}"))
+                    tests.append((f"{form_mn}{sfx} sr,{dst}", f"dst={mode}"))
                 break
 
             elif op_types == ["ea", "sr"]:
                 for mode in (src_modes or all_ea_modes):
                     src = ea_syntax(mode, sz)
-                    tests.append((f"move.w {src},sr", f"src={mode}"))
+                    tests.append((f"{form_mn}{sfx} {src},sr", f"src={mode}"))
                 break
 
             elif op_types == ["ea", "ccr"]:
                 for mode in (src_modes or all_ea_modes):
                     src = ea_syntax(mode, sz)
-                    tests.append((f"move.w {src},ccr", f"src={mode}"))
+                    tests.append((f"{form_mn}{sfx} {src},ccr", f"src={mode}"))
                 break
 
             elif op_types == ["imm", "ccr"]:
-                tests.append((f"{m_lower}.b #$1f,ccr", ""))
+                imm_size = sfx or ".b"
+                tests.append((f"{form_mn}{imm_size} #$1f,ccr", ""))
                 break
 
             elif op_types == ["imm", "sr"]:
-                tests.append((f"{m_lower}.w #$0700,sr", ""))
+                imm_size = sfx or ".w"
+                tests.append((f"{form_mn}{imm_size} #$0700,sr", ""))
                 break
 
             elif op_types == ["an", "usp"]:
-                tests.append(("move.l a0,usp", "to usp"))
-                tests.append(("move.l usp,a0", "from usp"))
+                tests.append((f"{form_mn} a0,usp", "to usp"))
+                tests.append((f"{form_mn} usp,a0", "from usp"))
                 break
 
             elif op_types == ["an", "imm"]:
