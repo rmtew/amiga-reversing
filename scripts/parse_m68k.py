@@ -66,6 +66,20 @@ CC_TABLE = {
 }
 
 
+def _kb_condition_codes() -> list[str]:
+    """Ordered architectural condition-code mnemonics."""
+    return [CC_TABLE[i] for i in sorted(CC_TABLE.keys())]
+
+
+def _as_kb_payload(kb_data: list[dict]) -> dict:
+    return {
+        "_meta": {
+            "condition_codes": _kb_condition_codes(),
+        },
+        "instructions": kb_data,
+    }
+
+
 def normalize_text(text):
     """Replace PDF ligatures with ASCII equivalents."""
     for lig, repl in LIGATURES.items():
@@ -1684,7 +1698,7 @@ def main():
             if outpath.exists():
                 outpath.unlink()
             with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(kb_data, f, indent=2, ensure_ascii=False)
+                json.dump(_as_kb_payload(kb_data), f, indent=2, ensure_ascii=False)
             print(f"\nWrote {len(kb_data)} instructions to {outpath}")
         else:
             print(f"\n(dry run, {len(kb_data)} instructions would be written)")

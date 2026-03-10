@@ -11,7 +11,7 @@ from parse_hw_manual import parse_full_manual, parse_register_detail
 import os
 from parse_hw_manual import parse_address_order_summary
 
-guide_dir = "tmp/Hardware_Manual_guide"
+guide_dir = "resources/Hardware_Manual_guide"
 registers = parse_address_order_summary(guide_dir)
 
 # Show first 20 registers with their detail pages

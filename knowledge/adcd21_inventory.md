@@ -47,7 +47,7 @@ Mounted at: `D:/`
 | `REFERENCE/ROM_KERNEL_MANUALS/REFERENCES/` | Additional references | Not explored |
 | `REFERENCE/ROM_KERNEL_MANUALS/LIB_EXAMPLES/` | Library programming examples | Low priority |
 | `REFERENCE/ROM_KERNEL_MANUALS/HARD_EXAMPLES/` | Hardware programming examples | Low priority |
-| `REFERENCE/HTML/HARDWARE_MANUAL.HTML` | HTML version of HW manual | **Source for our parser** (`tmp/Hardware_Manual.html`) |
+| `REFERENCE/HTML/HARDWARE_MANUAL.HTML` | HTML version of HW manual | **Source for our parser** (`resources/Hardware_Manual.html`) |
 | `REFERENCE/HTML/LIBRARIES_MANUAL.HTML` | HTML version of Libraries manual | Not explored |
 | `REFERENCE/HTML/DEVICES_MANUAL.HTML` | HTML version of Devices manual | Not explored |
 | `REFERENCE/HTML/I_AND_A_3.5.HTML` | Includes & Autodocs 3.5 (HTML) | Not explored — could supplement NDK 3.5 |

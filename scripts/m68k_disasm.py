@@ -59,14 +59,29 @@ def _normalize_cpu(cpu_name: str | None) -> str:
     return cpu_name
 
 
-@lru_cache(maxsize=1)
-def _load_kb_processor_mins() -> dict[str, str]:
+def _load_kb_payload() -> tuple[list[dict], dict]:
     path = Path(__file__).resolve().parent.parent / "knowledge" / "m68k_instructions.json"
     if not path.exists():
-        return {}
+        return [], {}
 
     with open(path, "r", encoding="utf-8") as f:
-        kb = json.load(f)
+        data = json.load(f)
+
+    if isinstance(data, dict):
+        instructions = data.get("instructions", [])
+        if not isinstance(instructions, list):
+            instructions = []
+        return instructions, data.get("_meta", {})
+
+    if isinstance(data, list):
+        return data, {}
+
+    return [], {}
+
+
+@lru_cache(maxsize=1)
+def _load_kb_processor_mins() -> dict[str, str]:
+    kb, _ = _load_kb_payload()
 
     mins: dict[str, str] = {}
     for inst in kb:
@@ -84,15 +99,11 @@ def _load_kb_processor_mins() -> dict[str, str]:
 
 @lru_cache(maxsize=1)
 def _load_disasm_meta() -> dict:
-    path = Path(__file__).resolve().parent.parent / "knowledge" / "m68k_instructions.json"
-    if not path.exists():
-        return {
-            "condition_codes": CC_CODE_NAMES,
-            "condition_families": [],
-        }
-
-    with open(path, "r", encoding="utf-8") as f:
-        kb = json.load(f)
+    kb, kb_meta = _load_kb_payload()
+    condition_codes = list(kb_meta.get("condition_codes", []))
+    if not condition_codes:
+        # Backward compatibility with legacy list-only KB files.
+        condition_codes = CC_CODE_NAMES
 
     families = {}
     for inst in kb:
@@ -113,7 +124,7 @@ def _load_disasm_meta() -> dict:
                 entry = {
                     "prefix": prefix,
                     "canonical": name,
-                    "codes": CC_CODE_NAMES[:],
+                    "codes": condition_codes[:],
                     "excluded": set(),
                 }
                 families[name] = entry
@@ -152,7 +163,7 @@ def _load_disasm_meta() -> dict:
     )
 
     return {
-        "condition_codes": CC_CODE_NAMES,
+        "condition_codes": condition_codes,
         "condition_families": canonical_families,
     }
 

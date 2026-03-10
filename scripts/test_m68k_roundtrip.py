@@ -31,13 +31,21 @@ sys.path.insert(0, str(PROJ_ROOT / "scripts"))
 from hunk_parser import parse_file
 from m68k_disasm import DecodeError, disassemble
 
-# Standard M68K condition code encoding (architectural, like MODE_MAP in parse_ea_modes.py)
-# Defined by the M68K architecture, encoded in 4 bits of conditional instructions.
-CC_TABLE = {
-    0: "t", 1: "f", 2: "hi", 3: "ls", 4: "cc", 5: "cs", 6: "ne", 7: "eq",
-    8: "vc", 9: "vs", 10: "pl", 11: "mi", 12: "ge", 13: "lt", 14: "gt", 15: "le",
-}
-CC_ALL = list(CC_TABLE.values())
+
+def _load_kb_payload():
+    with open(KNOWLEDGE, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict):
+        return data.get("instructions", []), data.get("_meta", {})
+    return data, {}
+
+
+KB_INSTRUCTIONS, KB_META = _load_kb_payload()
+CC_ALL = list(KB_META.get("condition_codes", [
+    "t", "f", "hi", "ls", "cc", "cs", "ne", "eq",
+    "vc", "vs", "pl", "mi", "ge", "lt", "gt", "le",
+]))
+
 
 
 # ── EA mode to assembly syntax ─────────────────────────────────────────────
@@ -546,7 +554,7 @@ VASM_CPU_FLAG_MAP = _vasm_data["_meta"]["default_cpu_flag_map"]
 VASM_INST_COMPAT = _vasm_data["instructions"]
 
 
-def assemble(source, tmpdir, cpu_flag="-m68000"):
+def assemble(source, tmpdir, cpu_flag="-m68000", debug=False):
     """Assemble source with vasm, return code hunk data or None on failure.
 
     cpu_flag: vasm -m flag (e.g. "-m68000", "-m68851")
@@ -571,6 +579,10 @@ def assemble(source, tmpdir, cpu_flag="-m68000"):
         capture_output=True, text=True
     )
     if result.returncode != 0:
+        if debug:
+            print(f"    [vasm src]\n{full_source}")
+            print(f"    [vasm stdout] {result.stdout.strip()}")
+            print(f"    [vasm stderr] {result.stderr.strip()}")
         return None
 
     hf = parse_file(obj_path)
@@ -579,10 +591,9 @@ def assemble(source, tmpdir, cpu_flag="-m68000"):
     return hf.hunks[0].data
 
 
-def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None):
+def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None, debug_asm=False):
     """Run all data-driven round-trip tests."""
-    with open(KNOWLEDGE, encoding="utf-8") as f:
-        kb_instructions = json.load(f)
+    kb_instructions = KB_INSTRUCTIONS
 
     # Build set of label-using mnemonics from KB
     label_mnemonics = {inst["mnemonic"] for inst in kb_instructions
@@ -595,7 +606,9 @@ def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None):
     tested_mnemonics = set()
     failures = []
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    tmpdir_path = PROJ_ROOT / "tmp" / "_roundtrip_test"
+    tmpdir_path.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=tmpdir_path) as tmpdir:
         for inst in kb_instructions:
             mnemonic = inst["mnemonic"]
             proc_min = inst.get("processor_min", "68000")
@@ -627,7 +640,7 @@ def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None):
 
                 # Step 1: Assemble
                 cpu_flag = cpu_flag_override or VASM_CPU_FLAG_MAP[proc_min]
-                orig_data = assemble(asm_line, tmpdir, cpu_flag)
+                orig_data = assemble(asm_line, tmpdir, cpu_flag, debug=debug_asm)
                 if orig_data is None:
                     failures.append((test_name, asm_line, "ASSEMBLE FAILED"))
                     failed += 1
@@ -672,7 +685,7 @@ def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None):
                 else:
                     reasm_source = disasm_text
 
-                reasm_data = assemble(reasm_source, tmpdir, cpu_flag)
+                reasm_data = assemble(reasm_source, tmpdir, cpu_flag, debug=debug_asm)
                 if reasm_data is None:
                     failures.append((test_name, asm_line,
                                      f"REASSEMBLE FAILED: '{reasm_source}'"))
@@ -736,7 +749,8 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--filter", "-f", help="Test only mnemonics matching this")
     parser.add_argument("--max-cpu", help="Maximum CPU to permit in disassembler checks")
+    parser.add_argument("--debug-asm", action="store_true", help="Print vasm output on assemble failure")
     args = parser.parse_args()
 
-    success = run_tests(filter_mnemonic=args.filter, verbose=args.verbose, max_cpu=args.max_cpu)
+    success = run_tests(filter_mnemonic=args.filter, verbose=args.verbose, max_cpu=args.max_cpu, debug_asm=args.debug_asm)
     sys.exit(0 if success else 1)

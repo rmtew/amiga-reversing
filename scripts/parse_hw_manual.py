@@ -7,9 +7,9 @@ Extracts:
 3. Chapter/topic index for the full manual
 
 Usage:
-    python scripts/parse_hw_manual.py tmp/Hardware_Manual.html
-    python scripts/parse_hw_manual.py tmp/Hardware_Manual.html --output json --outfile knowledge/amiga_hw_registers.json
-    python scripts/parse_hw_manual.py tmp/Hardware_Manual.html --output md --outfile knowledge/amiga_hw_reference.md
+    python scripts/parse_hw_manual.py resources/Hardware_Manual.html
+    python scripts/parse_hw_manual.py resources/Hardware_Manual.html --output json --outfile knowledge/amiga_hw_registers.json
+    python scripts/parse_hw_manual.py resources/Hardware_Manual.html --output md --outfile knowledge/amiga_hw_reference.md
 """
 
 import argparse

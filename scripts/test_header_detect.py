@@ -6,7 +6,7 @@ sys.path.insert(0, "scripts")
 from parse_m68k import extract_page_spans, spans_to_rows, is_instruction_start, rows_to_plain_text
 
 sys.stdout.reconfigure(encoding="utf-8")
-doc = fitz.open("tmp/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf")
+doc = fitz.open("resources/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf")
 
 for pn in [106, 107, 108, 109, 110, 220]:
     page = doc[pn - 1]

@@ -4,7 +4,7 @@
 Usage:
     python debug_pdf.py [pdf_path] [page_num]
     python debug_pdf.py                          # defaults: M68K manual, page 107
-    python debug_pdf.py tmp/foo.pdf 42
+    python debug_pdf.py resources/foo.pdf 42
 """
 
 import fitz
@@ -65,7 +65,7 @@ def dump_page_rawdict(doc, page_num):
 
 
 def main():
-    pdf_path = sys.argv[1] if len(sys.argv) > 1 else "tmp/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf"
+    pdf_path = sys.argv[1] if len(sys.argv) > 1 else "resources/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf"
     page_num = int(sys.argv[2]) if len(sys.argv) > 2 else 107
 
     sys.stdout.reconfigure(encoding="utf-8")
