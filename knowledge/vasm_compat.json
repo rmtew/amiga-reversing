@@ -43,16 +43,16 @@
       "reason": "Generic coprocessor interface not implemented"
     },
     "PBcc": {
-      "cpu_flag": "-m68851",
-      "notes": "PMMU instruction, requires -m68851 not -m68020"
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept PBcc syntax via this harness"
     },
     "PDBcc": {
-      "cpu_flag": "-m68851",
-      "notes": "PMMU instruction, requires -m68851"
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept PDBcc syntax via this harness"
     },
     "PFLUSH": {
-      "cpu_flag": "-m68851",
-      "notes": "68030 PFLUSH works with -m68030 too, but -m68851 covers all forms"
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept PFLUSH control-register forms via this harness"
     },
     "PFLUSH PFLUSHA": {
       "cpu_flag": "-m68851",
@@ -63,12 +63,12 @@
       "notes": "PMMU instruction"
     },
     "PLOAD": {
-      "cpu_flag": "-m68851",
-      "notes": "68030 PLOAD works with -m68030 too"
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept PLOAD syntax via this harness"
     },
     "PMOVE": {
-      "cpu_flag": "-m68851",
-      "notes": "68030 PMOVE works with -m68030 for subset of registers"
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept PMOVE control-register forms via this harness"
     },
     "PRESTORE": {
       "cpu_flag": "-m68851",
@@ -83,16 +83,104 @@
       "notes": "PMMU instruction"
     },
     "PTEST": {
-      "cpu_flag": "-m68851",
-      "notes": "68030 PTEST works with -m68030 too"
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept PTEST syntax via this harness"
     },
     "PTRAPcc": {
       "cpu_flag": "-m68851",
       "notes": "PMMU instruction"
     },
     "PVALID": {
-      "cpu_flag": "-m68851",
-      "notes": "PMMU instruction"
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept PVALID syntax via this harness"
+    },
+    "BFCHG": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+    },
+    "BFCLR": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+    },
+    "BFEXTS": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+    },
+    "BFEXTU": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+    },
+    "BFFFO": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+    },
+    "BFINS": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+    },
+    "BFSET": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+    },
+    "BFTST": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+    },
+    "CAS CAS2": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept CAS/CAS2 syntax via this harness"
+    },
+    "CHK2": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept CMP2/CHK2 forms via this harness"
+    },
+    "CMP2": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept CMP2/CHK2 forms via this harness"
+    },
+    "MOVE16": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept MOVE16 syntax via this harness"
+    },
+    "MOVEP": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept MOVEP syntax via this harness"
+    },
+    "PACK": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept PACK syntax via this harness"
+    },
+    "UNPK": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept UNPK syntax via this harness"
+    },
+    "MOVE USP": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept MOVE to/from USP syntax via this harness"
+    },
+    "MOVEC": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept MOVEC syntax via this harness"
+    },
+    "MOVES": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept MOVES syntax via this harness"
+    },
+    "RTM": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept RTM syntax via this harness"
+    },
+    "CPUSH": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not include CPUSH in this extraction"
+    },
+    "CINV": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not include CINV in this extraction"
+    },
+    "MOVE from CCR": {
+      "supported": false,
+      "reason": "Bundled vasm parser does not accept MOVE to/from CCR syntax via this harness"
     },
     "EXT, EXTB": {
       "skip_forms": ["extb"],
