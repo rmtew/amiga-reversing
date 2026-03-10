@@ -120,14 +120,14 @@ def _mnemonic_variants(inst_mnemonic):
             if part.strip()]
 
 
-def _form_mnemonic_from_syntax(inst_mnemonic_variants, form_syntax):
-    """Get mnemonic token for a form syntax entry.
+def _form_mnemonics_from_syntax(inst_mnemonic_variants, dir_variants, form_syntax):
+    """Get mnemonic tokens for a form syntax entry from KB data.
 
-    Only use the form token when it maps to a known variant from the
-    instruction header. This avoids placeholder mnemonics like "ASd".
+    Use form syntax if it maps to a known variant.
+    For direction placeholders like "ASd" derive variants from constraints.
     """
     if not form_syntax:
-        return inst_mnemonic_variants[0]
+        return [inst_mnemonic_variants[0]]
 
     raw = form_syntax.split(None, 1)[0]
     candidate = raw.split(".", 1)[0].lower()
@@ -135,9 +135,19 @@ def _form_mnemonic_from_syntax(inst_mnemonic_variants, form_syntax):
     candidate = re.sub(r"[^a-z0-9]", "", candidate)
 
     if candidate in inst_mnemonic_variants:
-        return candidate
+        return [candidate]
 
-    return inst_mnemonic_variants[0]
+    if dir_variants:
+        base = (dir_variants.get("base") or "").lower()
+        variants = [v.lower() for v in (dir_variants.get("variants") or [])
+                    if v.strip()]
+        # Direction forms use a placeholder suffix, e.g. ASd -> asl/asr.
+        if base and candidate.startswith(base):
+            suffix = candidate[len(base):]
+            if suffix and all(ch == "d" for ch in suffix):
+                return variants
+
+    return [inst_mnemonic_variants[0]]
 
 
 def _imm_for_constraint(constraint, size=None):
@@ -200,6 +210,15 @@ def generate_tests(inst):
     # Use 68000-filtered sizes if available (removes 020+ starred sizes)
     effective_sizes = sizes_68000 if sizes_68000 is not None else sizes
 
+    def _emit_direction_variants(start_idx, primary_mn, extra_mnemonics):
+        for variant in extra_mnemonics:
+            for asm, desc in tests[start_idx:]:
+                if asm == primary_mn:
+                    tests.append((variant, desc))
+                elif asm.startswith(f"{primary_mn}.") or asm.startswith(f"{primary_mn} "):
+                    tests.append((variant + asm[len(primary_mn):], desc))
+
+
     for form in forms:
         # Skip 020+ forms (marked with * in PDF syntax)
         if form.get("processor_020"):
@@ -207,11 +226,14 @@ def generate_tests(inst):
         operands = form.get("operands", [])
         op_types = [o["type"] for o in operands]
         form_syntax = form.get("syntax", "")
-        form_mn = _form_mnemonic_from_syntax(m_variants, form_syntax) or m_lower
+        form_mnemonics = _form_mnemonics_from_syntax(m_variants, dir_variants, form_syntax)
+        form_mn = form_mnemonics[0]
+        form_test_start = len(tests)
 
         if not op_types:
             # Use form syntax if available (handles PFLUSHA vs PFLUSH)
             tests.append((form_mn, ""))
+            _emit_direction_variants(form_test_start, form_mn, form_mnemonics[1:])
             continue
 
         # Label instructions
@@ -394,16 +416,7 @@ def generate_tests(inst):
             else:
                 pass
 
-    # Direction variants from constraints (shift/rotate L/R)
-    if dir_variants:
-        variants = dir_variants["variants"]
-        base = variants[0]  # e.g. "asl"
-        if m_lower == base and len(variants) > 1:
-            alt = variants[1]  # e.g. "asr"
-            extra = []
-            for asm, desc in tests:
-                extra.append((asm.replace(base, alt, 1), desc))
-            tests.extend(extra)
+        _emit_direction_variants(form_test_start, form_mn, form_mnemonics[1:])
 
     # CC parameterization from constraints
     if cc_param and not inst.get("uses_label", False):
