@@ -233,8 +233,10 @@ def generate_tests(inst):
             form_syntax,
         )
         if form_mnemonics is None:
-            print(f"  SKIP {mnemonic}: unresolved form syntax '{form_syntax}'")
-            continue
+            raise RuntimeError(
+                f"Unresolved form syntax for {mnemonic}: '{form_syntax}'. "
+                f"No valid mnemonic variant from header or direction_variants."
+            )
         form_mn = form_mnemonics[0]
         form_test_start = len(tests)
 
