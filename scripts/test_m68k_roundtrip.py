@@ -29,7 +29,7 @@ VASM_COMPAT = PROJ_ROOT / "knowledge" / "vasm_compat.json"
 
 sys.path.insert(0, str(PROJ_ROOT / "scripts"))
 from hunk_parser import parse_file
-from m68k_disasm import disassemble
+from m68k_disasm import DecodeError, disassemble
 
 # Standard M68K condition code encoding (architectural, like MODE_MAP in parse_ea_modes.py)
 # Defined by the M68K architecture, encoded in 4 bits of conditional instructions.
@@ -579,7 +579,7 @@ def assemble(source, tmpdir, cpu_flag="-m68000"):
     return hf.hunks[0].data
 
 
-def run_tests(filter_mnemonic=None, verbose=False):
+def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None):
     """Run all data-driven round-trip tests."""
     with open(KNOWLEDGE, encoding="utf-8") as f:
         kb_instructions = json.load(f)
@@ -634,7 +634,13 @@ def run_tests(filter_mnemonic=None, verbose=False):
                     continue
 
                 # Step 2: Disassemble
-                instructions = disassemble(orig_data)
+                disasm_max_cpu = max_cpu or proc_min
+                try:
+                    instructions = disassemble(orig_data, max_cpu=disasm_max_cpu)
+                except DecodeError as e:
+                    failures.append((test_name, asm_line, f"DISASM FAILED: {e}"))
+                    failed += 1
+                    continue
                 if not instructions:
                     failures.append((test_name, asm_line, "DISASSEMBLE EMPTY"))
                     failed += 1
@@ -646,14 +652,6 @@ def run_tests(filter_mnemonic=None, verbose=False):
 
                 # Step 3: Reassemble
                 disasm_text = first_inst.text
-
-                # If disassembler couldn't decode (dc.w fallback), that's a
-                # disassembler gap — report as failure
-                if disasm_text.startswith("dc.w"):
-                    failures.append((test_name, asm_line,
-                                     f"DISASM NOT DECODED: '{disasm_text.strip()}'"))
-                    failed += 1
-                    continue
 
                 # Detect label instructions using KB uses_label field
                 is_branch = mnemonic in label_mnemonics and "$" in disasm_text
@@ -678,6 +676,13 @@ def run_tests(filter_mnemonic=None, verbose=False):
                 if reasm_data is None:
                     failures.append((test_name, asm_line,
                                      f"REASSEMBLE FAILED: '{reasm_source}'"))
+                    failed += 1
+                    continue
+
+                try:
+                    disassemble(reasm_data, max_cpu=disasm_max_cpu)
+                except DecodeError as e:
+                    failures.append((test_name, asm_line, f"REDISASM FAILED: {e}"))
                     failed += 1
                     continue
 
@@ -730,7 +735,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--filter", "-f", help="Test only mnemonics matching this")
+    parser.add_argument("--max-cpu", help="Maximum CPU to permit in disassembler checks")
     args = parser.parse_args()
 
-    success = run_tests(filter_mnemonic=args.filter, verbose=args.verbose)
+    success = run_tests(filter_mnemonic=args.filter, verbose=args.verbose, max_cpu=args.max_cpu)
     sys.exit(0 if success else 1)

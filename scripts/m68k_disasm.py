@@ -3,8 +3,11 @@
 Decodes 68000 instructions from raw bytes and emits assembly text.
 """
 
+import json
 import struct
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 
 @dataclass
@@ -26,6 +29,105 @@ SIZE_LONG = 2
 
 SIZE_SUFFIX = {SIZE_BYTE: ".b", SIZE_WORD: ".w", SIZE_LONG: ".l"}
 SIZE_NAMES = {SIZE_BYTE: "byte", SIZE_WORD: "word", SIZE_LONG: "long"}
+
+CPU_ORDER = {
+    "68000": 0,
+    "68010": 1,
+    "68020": 2,
+    "68030": 3,
+    "68040": 4,
+    "68060": 5,
+    "cpu32": 2,
+}
+
+
+def _normalize_cpu(cpu_name: str | None) -> str:
+    if not cpu_name:
+        return "68000"
+    if cpu_name.startswith("-m"):
+        cpu_name = cpu_name[2:]
+    if cpu_name == "68020up":
+        return "68020"
+    if cpu_name in ("cf", "cfpu"):
+        return "68060"
+    return cpu_name
+
+
+@lru_cache(maxsize=1)
+def _load_kb_processor_mins() -> dict[str, str]:
+    path = Path(__file__).resolve().parent.parent / "knowledge" / "m68k_instructions.json"
+    if not path.exists():
+        return {}
+
+    with open(path, "r", encoding="utf-8") as f:
+        kb = json.load(f)
+
+    mins: dict[str, str] = {}
+    for inst in kb:
+        min_cpu = _normalize_cpu(inst.get("processor_min", "68000"))
+        mnemonic = inst.get("mnemonic", "")
+        for part in mnemonic.split(","):
+            tokens = part.strip().split()
+            if not tokens:
+                continue
+            # Keep full token and individual alias tokens like "ASL" and "ASR".
+            for token in tokens:
+                mins[token.lower()] = min_cpu
+    return mins
+
+
+CC_CODES = {
+    "t", "f", "hi", "ls", "cc", "cs", "ne", "eq",
+    "vc", "vs", "pl", "mi", "ge", "lt", "gt", "le",
+}
+
+
+def _canonical_mnemonic(decoded: str) -> str:
+    """Normalize a decoded token to a KB mnemonic key."""
+    tok = decoded.split(".", 1)[0].lower()
+    if tok in ("", "#"):
+        return tok
+
+    for cc in CC_CODES:
+        if tok == f"db{cc}":
+            return "dbcc"
+        if tok == f"trap{cc}":
+            return "trapcc"
+        if tok == f"pb{cc}":
+            return "pbcc"
+        if tok == f"pdb{cc}":
+            return "pdbcc"
+        if tok == f"ps{cc}":
+            return "pscc"
+        if tok == f"ptrap{cc}":
+            return "ptrapcc"
+        if tok == f"s{cc}" and tok != "src":
+            return "scc"
+
+        if tok == f"b{cc}" and not tok.startswith("bsr") and not tok.startswith("bra"):
+            return "bcc"
+
+    return tok
+
+
+def _ensure_cpu_supported(decoded_text: str, max_cpu: str | None) -> None:
+    if not max_cpu:
+        return
+
+    max_cpu = _normalize_cpu(max_cpu)
+    if max_cpu not in CPU_ORDER:
+        return
+
+    canonical = _canonical_mnemonic(decoded_text)
+    required_cpu = _load_kb_processor_mins().get(canonical)
+    if required_cpu is None:
+        return
+
+    if CPU_ORDER.get(required_cpu, 0) > CPU_ORDER[max_cpu]:
+        raise DecodeError(
+            f"unsupported instruction '{canonical}' for max_cpu={max_cpu}; "
+            f"requires {required_cpu}"
+        )
 
 
 class _Decoder:
@@ -197,7 +299,7 @@ def _branch_target(offset: int, disp: int) -> str:
     return f"${target:x}"
 
 
-def _decode_one(d: _Decoder) -> Instruction:
+def _decode_one(d: _Decoder, max_cpu: str | None) -> Instruction:
     """Decode a single instruction at current position."""
     start = d.pos
     pc_offset = d.base + start
@@ -205,13 +307,13 @@ def _decode_one(d: _Decoder) -> Instruction:
 
     # Decode based on upper nibble and bit patterns
     group = (opcode >> 12) & 0xF
-
     try:
         text = _decode_opcode(d, opcode, group, pc_offset)
-    except (DecodeError, struct.error):
-        # Failed to decode — emit as dc.w
-        d.pos = start + 2
-        text = f"dc.w    ${opcode:04x}"
+    except struct.error as e:
+        raise DecodeError(
+            f"truncated instruction at offset=${pc_offset:06x} opcode=${opcode:04x}"
+        ) from e
+    _ensure_cpu_supported(text, max_cpu)
 
     size = d.pos - start
     raw = d.data[start:d.pos]
@@ -243,7 +345,7 @@ def _decode_opcode(d: _Decoder, op: int, group: int, pc: int) -> str:
     elif group == 9:
         return _decode_sub(d, op, pc)
     elif group == 0xA:
-        return f"dc.w    ${op:04x}    ; line-A"
+        raise DecodeError(f"unsupported line-A op=${op:04x}")
     elif group == 0xB:
         return _decode_cmp_eor(d, op, pc)
     elif group == 0xC:
@@ -980,7 +1082,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
                 ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
                 return f"pflushr {ea}"
             # Other PMMU general commands (PMOVE, PLOAD, PTEST, PVALID)
-            return f"dc.w    ${op:04x},${ext:04x}    ; pmmu"
+            raise DecodeError(f"unsupported PMMU command: op=${op:04x} ext=${ext:04x}")
 
     # FPU (cpid=1): FRESTORE/FSAVE
     if cpid == 1:
@@ -999,19 +1101,19 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
             return f"fsave   {ea}"
 
         # Other FPU instructions (cpGEN etc.) — not yet decoded
-        return f"dc.w    ${op:04x}    ; fpu"
+        raise DecodeError(f"unsupported FPU command: op=${op:04x}")
 
-    return f"dc.w    ${op:04x}    ; line-F"
+    raise DecodeError(f"unsupported line-F op=${op:04x}")
 
 
 # --- Public API ---
 
-def disassemble(data: bytes, base_offset: int = 0) -> list[Instruction]:
+def disassemble(data: bytes, base_offset: int = 0, max_cpu: str | None = None) -> list[Instruction]:
     """Disassemble M68K code from raw bytes."""
     d = _Decoder(data, base_offset)
     instructions = []
     while d.remaining() >= 2:
-        inst = _decode_one(d)
+        inst = _decode_one(d, max_cpu)
         instructions.append(inst)
     return instructions
 
