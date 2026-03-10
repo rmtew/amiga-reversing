@@ -16,6 +16,7 @@ Usage:
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -107,6 +108,38 @@ def _filter_modes_for_size(modes, sz, mem_size_only=None, bit_op_sizes=None):
     return result
 
 
+def _mnemonic_variants(inst_mnemonic):
+    """Return base mnemonic aliases for this instruction.
+
+    Examples:
+      "MOVE" -> ["move"]
+      "ASL, ASR" -> ["asl", "asr"]
+      "PFLUSH PFLUSHA" -> ["pflush", "pfusha"]
+    """
+    return [part.strip().lower() for part in re.split(r"[ ,]+", inst_mnemonic)
+            if part.strip()]
+
+
+def _form_mnemonic_from_syntax(inst_mnemonic_variants, form_syntax):
+    """Get mnemonic token for a form syntax entry.
+
+    Only use the form token when it maps to a known variant from the
+    instruction header. This avoids placeholder mnemonics like "ASd".
+    """
+    if not form_syntax:
+        return inst_mnemonic_variants[0]
+
+    raw = form_syntax.split(None, 1)[0]
+    candidate = raw.split(".", 1)[0].lower()
+    # Strip non-alphanumeric syntax adornments if parser captured any.
+    candidate = re.sub(r"[^a-z0-9]", "", candidate)
+
+    if candidate in inst_mnemonic_variants:
+        return candidate
+
+    return inst_mnemonic_variants[0]
+
+
 def _imm_for_constraint(constraint, size=None):
     """Generate an immediate value that satisfies the constraint.
 
@@ -136,7 +169,8 @@ def generate_tests(inst):
     ea = inst.get("ea_modes", {})
     forms = inst.get("forms", [])
     constraints = inst.get("constraints", {})
-    m_lower = mnemonic.split(",")[0].split()[0].lower()  # "ASL, ASR" -> "asl"
+    m_variants = _mnemonic_variants(mnemonic)
+    m_lower = m_variants[0]
 
     tests = []
 
@@ -173,7 +207,7 @@ def generate_tests(inst):
         operands = form.get("operands", [])
         op_types = [o["type"] for o in operands]
         form_syntax = form.get("syntax", "")
-        form_mn = form_syntax.split(None, 1)[0].lower() or m_lower
+        form_mn = _form_mnemonic_from_syntax(m_variants, form_syntax) or m_lower
 
         if not op_types:
             # Use form syntax if available (handles PFLUSHA vs PFLUSH)
@@ -207,7 +241,7 @@ def generate_tests(inst):
                 fmodes = _filter_modes_for_size(all_ea_modes, sz, mem_size_only, bit_op_sizes)
                 for mode in fmodes:
                     operand = ea_syntax(mode, sz)
-                    tests.append((f"{m_lower}{sfx} {operand}",
+                    tests.append((f"{form_mn}{sfx} {operand}",
                                   f"ea={mode} sz={sz}"))
 
             elif op_types == ["ea", "ea"] and src_modes and dst_modes:
@@ -215,13 +249,13 @@ def generate_tests(inst):
                 fdst = _filter_modes_for_size(dst_modes, sz, mem_size_only, bit_op_sizes)
                 for mode in fsrc:
                     src = ea_syntax(mode, sz)
-                    tests.append((f"{m_lower}{sfx} {src},d1",
+                    tests.append((f"{form_mn}{sfx} {src},d1",
                                   f"src={mode} sz={sz}"))
                 for mode in fdst:
                     if mode == "dn":
                         continue
                     dst = ea_syntax(mode, sz)
-                    tests.append((f"{m_lower}{sfx} d0,{dst}",
+                    tests.append((f"{form_mn}{sfx} d0,{dst}",
                                   f"dst={mode} sz={sz}"))
 
             elif op_types == ["dn", "ea"] and all_ea_modes:
@@ -229,26 +263,26 @@ def generate_tests(inst):
                     fsrc = _filter_modes_for_size(src_modes, sz, mem_size_only, bit_op_sizes)
                     for mode in fsrc:
                         src = ea_syntax(mode, sz)
-                        tests.append((f"{m_lower}{sfx} {src},d1",
+                        tests.append((f"{form_mn}{sfx} {src},d1",
                                       f"src={mode} sz={sz}"))
                 fdst = _filter_modes_for_size(dst_modes or all_ea_modes, sz, mem_size_only, bit_op_sizes)
                 for mode in fdst:
                     dst = ea_syntax(mode, sz)
-                    tests.append((f"{m_lower}{sfx} d0,{dst}",
+                    tests.append((f"{form_mn}{sfx} d0,{dst}",
                                   f"dst={mode} sz={sz}"))
 
             elif op_types == ["ea", "dn"]:
                 fsrc = _filter_modes_for_size(src_modes or all_ea_modes, sz, mem_size_only, bit_op_sizes)
                 for mode in fsrc:
                     src = ea_syntax(mode, sz)
-                    tests.append((f"{m_lower}{sfx} {src},d1",
+                    tests.append((f"{form_mn}{sfx} {src},d1",
                                   f"src={mode} sz={sz}"))
 
             elif op_types == ["ea", "an"]:
                 fsrc = _filter_modes_for_size(src_modes or all_ea_modes, sz, mem_size_only, bit_op_sizes)
                 for mode in fsrc:
                     src = ea_syntax(mode, sz)
-                    tests.append((f"{m_lower}{sfx} {src},a1",
+                    tests.append((f"{form_mn}{sfx} {src},a1",
                                   f"src={mode} sz={sz}"))
 
             elif op_types == ["imm", "ea"] and all_ea_modes:
@@ -263,11 +297,11 @@ def generate_tests(inst):
                     this_imm = imm
                 for mode in fdst:
                     dst = ea_syntax(mode, sz)
-                    tests.append((f"{m_lower}{sfx} {this_imm},{dst}",
+                    tests.append((f"{form_mn}{sfx} {this_imm},{dst}",
                                   f"dst={mode} sz={sz}"))
 
             elif op_types == ["imm", "dn"]:
-                tests.append((f"{m_lower}{sfx} {imm},d0",
+                tests.append((f"{form_mn}{sfx} {imm},d0",
                               f"imm sz={sz}"))
 
             elif op_types == ["ea", "reglist"]:
@@ -278,17 +312,17 @@ def generate_tests(inst):
                 if op_modes:
                     for bit_val, mode_type in op_modes["values"].items():
                         if mode_type == "predec,predec":
-                            tests.append((f"{m_lower}{sfx} -(a0),-(a1)",
+                            tests.append((f"{form_mn}{sfx} -(a0),-(a1)",
                                           f"predec sz={sz}"))
                         elif mode_type == "dn,dn":
-                            tests.append((f"{m_lower}{sfx} d0,d1",
+                            tests.append((f"{form_mn}{sfx} d0,d1",
                                           f"reg sz={sz}"))
                 else:
-                    tests.append((f"{m_lower}{sfx} -(a0),-(a1)",
+                    tests.append((f"{form_mn}{sfx} -(a0),-(a1)",
                                   f"predec sz={sz}"))
 
             elif op_types == ["postinc", "postinc"]:
-                tests.append((f"{m_lower}{sfx} (a0)+,(a1)+",
+                tests.append((f"{form_mn}{sfx} (a0)+,(a1)+",
                               f"postinc sz={sz}"))
 
             elif op_types == ["sr", "ea"]:
@@ -325,37 +359,37 @@ def generate_tests(inst):
                 break
 
             elif op_types == ["an", "imm"]:
-                tests.append((f"{m_lower} a6,#-100", "negative"))
-                tests.append((f"{m_lower} a5,#0", "zero"))
+                tests.append((f"{form_mn} a6,#-100", "negative"))
+                tests.append((f"{form_mn} a5,#0", "zero"))
                 break
 
             elif op_types == ["an"]:
-                tests.append((f"{m_lower} a6", "a6"))
-                tests.append((f"{m_lower} a5", "a5"))
+                tests.append((f"{form_mn} a6", "a6"))
+                tests.append((f"{form_mn} a5", "a5"))
 
             elif op_types == ["dn"]:
-                tests.append((f"{m_lower}{sfx} d0", f"d0 sz={sz}"))
-                tests.append((f"{m_lower}{sfx} d7", f"d7 sz={sz}"))
+                tests.append((f"{form_mn}{sfx} d0", f"d0 sz={sz}"))
+                tests.append((f"{form_mn}{sfx} d7", f"d7 sz={sz}"))
 
             elif op_types == ["disp", "dn"]:
-                tests.append((f"{m_lower}{sfx} 0(a0),d0", f"mem-to-reg sz={sz}"))
-                tests.append((f"{m_lower}{sfx} d0,0(a0)", f"reg-to-mem sz={sz}"))
+                tests.append((f"{form_mn}{sfx} 0(a0),d0", f"mem-to-reg sz={sz}"))
+                tests.append((f"{form_mn}{sfx} d0,0(a0)", f"reg-to-mem sz={sz}"))
 
             elif op_types == ["dn", "dn"]:
-                tests.append((f"{m_lower}{sfx} d1,d0", f"reg-reg sz={sz}"))
+                tests.append((f"{form_mn}{sfx} d1,d0", f"reg-reg sz={sz}"))
 
             elif op_types == ["an", "an"]:
-                tests.append((f"{m_lower} a0,a1", "addr-addr"))
+                tests.append((f"{form_mn} a0,a1", "addr-addr"))
 
             elif op_types == ["dn", "an"]:
-                tests.append((f"{m_lower} d0,a0", "data-addr"))
+                tests.append((f"{form_mn} d0,a0", "data-addr"))
 
             elif op_types == ["imm"]:
                 if imm_range:
-                    tests.append((f"{m_lower}{sfx} #{imm_range['min']}", "min"))
-                    tests.append((f"{m_lower}{sfx} #{imm_range['max']}", "max"))
+                    tests.append((f"{form_mn}{sfx} #{imm_range['min']}", "min"))
+                    tests.append((f"{form_mn}{sfx} #{imm_range['max']}", "max"))
                 else:
-                    tests.append((f"{m_lower}{sfx} {imm}", ""))
+                    tests.append((f"{form_mn}{sfx} {imm}", ""))
 
             else:
                 pass
