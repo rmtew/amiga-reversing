@@ -125,6 +125,7 @@ def _form_mnemonics_from_syntax(inst_mnemonic_variants, dir_variants, form_synta
 
     Use form syntax if it maps to a known variant.
     For direction placeholders like "ASd" derive variants from constraints.
+    Return None when the form cannot be resolved.
     """
     if not form_syntax:
         return [inst_mnemonic_variants[0]]
@@ -147,7 +148,7 @@ def _form_mnemonics_from_syntax(inst_mnemonic_variants, dir_variants, form_synta
             if suffix and all(ch == "d" for ch in suffix):
                 return variants
 
-    return [inst_mnemonic_variants[0]]
+    return None
 
 
 def _imm_for_constraint(constraint, size=None):
@@ -226,7 +227,14 @@ def generate_tests(inst):
         operands = form.get("operands", [])
         op_types = [o["type"] for o in operands]
         form_syntax = form.get("syntax", "")
-        form_mnemonics = _form_mnemonics_from_syntax(m_variants, dir_variants, form_syntax)
+        form_mnemonics = _form_mnemonics_from_syntax(
+            m_variants,
+            dir_variants,
+            form_syntax,
+        )
+        if form_mnemonics is None:
+            print(f"  SKIP {mnemonic}: unresolved form syntax '{form_syntax}'")
+            continue
         form_mn = form_mnemonics[0]
         form_test_start = len(tests)
 
