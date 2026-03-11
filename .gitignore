@@ -18,5 +18,9 @@ __pycache__/
 resources/amitools/
 resources/machine68k/
 
+# Hardware manual (large, not project-generated)
+resources/Hardware_Manual.html
+resources/Hardware_Manual_guide/
+
 # Transient test output
 resources/_roundtrip_test/
