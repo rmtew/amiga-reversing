@@ -150,6 +150,12 @@ def _load_kb_ext_field_map() -> dict[str, dict[str, tuple[int, int, int]]]:
     return _kb_field_map(1)
 
 
+@lru_cache(maxsize=1)
+def _load_kb_ext2_field_map() -> dict[str, dict[str, tuple[int, int, int]]]:
+    """Return {mnemonic: {field_name: (bit_hi, bit_lo, width)}} for encoding[2]."""
+    return _kb_field_map(2)
+
+
 @lru_cache(maxsize=4)
 def _load_kb_raw_fields(enc_idx: int) -> dict[str, list[tuple[str, int, int, int]]]:
     """Return {mnemonic: [(name, bit_hi, bit_lo, width), ...]} preserving duplicate field names.
@@ -1101,6 +1107,73 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
         areg = _xf(op, _fields["LINK"]["REGISTER"])
         disp = d.read_i32()
         return f"link.l  {_reg_name(areg, True)},#{disp}"
+
+    # MULU.L/MULS.L (68020+) — enc[1] opword, enc[2] ext word
+    _enc1 = _load_kb_encoding_masks_idx(1)
+    _enc2 = _load_kb_encoding_masks_idx(2)
+    _ef1 = _load_kb_ext_field_map()
+    _ef2 = _load_kb_ext2_field_map()
+
+    _m1_mul, _v1_mul = _enc1["MULS"]  # MULS/MULU share enc[1] opword
+    if (op & _m1_mul) == _v1_mul:
+        _mul_f1 = _ef1["MULS"]
+        mode = _xf(op, _mul_f1["MODE"])
+        ea_reg = _xf(op, _mul_f1["REGISTER"])
+        ext = d.read_u16()
+        for _mn in ("MULS", "MULU"):
+            _m2e, _v2e = _enc2[_mn]
+            if (ext & _m2e) == _v2e:
+                ef = _ef2[_mn]
+                reg_fields = sorted(
+                    [(k, v) for k, v in ef.items() if k.startswith("REGISTER")],
+                    key=lambda x: x[1][0], reverse=True,
+                )
+                dl_f = reg_fields[0][1]  # higher bit pos (14:12) = Dl/DI
+                dh_f = reg_fields[1][1]  # lower bit pos (2:0) = Dh
+                sz_f = ef["SIZE"]
+                dl = _xf(ext, dl_f)
+                dh = _xf(ext, dh_f)
+                size_bit = _xf(ext, sz_f)
+                ea = _ea_str(d, mode, ea_reg, SIZE_LONG, pc)
+                name = _mn.lower()
+                if size_bit:
+                    return f"{name}.l  {ea},d{dh}:d{dl}"
+                else:
+                    return f"{name}.l  {ea},d{dl}"
+        raise DecodeError(f"MUL.L ext word ${ext:04x} matches neither MULS nor MULU")
+
+    # DIVU.L/DIVS.L/DIVUL.L/DIVSL.L (68020+)
+    _m1_div, _v1_div = _enc1["DIVS, DIVSL"]  # DIVS/DIVU share enc[1] opword
+    if (op & _m1_div) == _v1_div:
+        _div_f1 = _ef1["DIVS, DIVSL"]
+        mode = _xf(op, _div_f1["MODE"])
+        ea_reg = _xf(op, _div_f1["REGISTER"])
+        ext = d.read_u16()
+        for _mn, _name_s, _name_l in (
+            ("DIVS, DIVSL", "divs", "divsl"),
+            ("DIVU, DIVUL", "divu", "divul"),
+        ):
+            _m2e, _v2e = _enc2[_mn]
+            if (ext & _m2e) == _v2e:
+                ef = _ef2[_mn]
+                reg_fields = sorted(
+                    [(k, v) for k, v in ef.items() if k.startswith("REGISTER")],
+                    key=lambda x: x[1][0], reverse=True,
+                )
+                dq_f = reg_fields[0][1]  # higher bit pos (14:12) = Dq
+                dr_f = reg_fields[1][1]  # lower bit pos (2:0) = Dr
+                sz_f = ef["SIZE"]
+                dq = _xf(ext, dq_f)
+                dr = _xf(ext, dr_f)
+                size_bit = _xf(ext, sz_f)
+                ea = _ea_str(d, mode, ea_reg, SIZE_LONG, pc)
+                if size_bit:
+                    return f"{_name_s}.l  {ea},d{dr}:d{dq}"
+                elif dq != dr:
+                    return f"{_name_l}.l  {ea},d{dr}:d{dq}"
+                else:
+                    return f"{_name_s}.l  {ea},d{dq}"
+        raise DecodeError(f"DIV.L ext word ${ext:04x} matches neither DIVS nor DIVU")
 
     # LINK.W
     _m, _v = _masks["LINK"]

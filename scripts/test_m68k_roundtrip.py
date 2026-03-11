@@ -563,6 +563,10 @@ def generate_tests(inst, compat=None):
                                      f"{full_mn} {desc}"))
             tests = cc_tests
 
+    # Long MUL/DIV (68020+): add long-form tests alongside existing word-form tests
+    if mnemonic in ("MULS", "MULU", "DIVS, DIVSL", "DIVU, DIVUL"):
+        tests.extend(_gen_long_mul_div_tests(mnemonic))
+
     return tests
 
 
@@ -642,6 +646,46 @@ def _gen_movem_tests(m_lower, sz, modes, movem_dir):
                 ea_str = "(a7)+"
             tests.append((f"{m_lower}{sfx} {ea_str},d0-d3/a0-a1",
                           f"mem-to-reg ea={mode} sz={sz}"))
+
+    return tests
+
+
+def _gen_long_mul_div_tests(mnemonic):
+    """Generate test cases for 68020+ long MUL/DIV forms.
+
+    These instructions use a separate opword (group 4) and extension word,
+    distinct from the 68000 word-size forms in groups 8/C.
+    """
+    cpu = "-m68020"
+    tests = []
+    m = mnemonic.upper()
+
+    if m in ("MULS", "MULU"):
+        name = m.lower()
+        # 32x32→32 (SIZE=0, single register)
+        tests.append((f"{name}.l d0,d1", f"{name}.l 32-bit", cpu))
+        # 32x32→64 (SIZE=1, register pair)
+        tests.append((f"{name}.l d0,d2:d1", f"{name}.l 64-bit", cpu))
+        # Control mode EA
+        tests.append((f"{name}.l (a0),d3", f"{name}.l ind", cpu))
+        # Immediate EA
+        tests.append((f"{name}.l #$1234,d4", f"{name}.l imm", cpu))
+
+    elif m == "DIVS, DIVSL":
+        # divs.l: SIZE=0+Dq==Dr or SIZE=1
+        tests.append(("divs.l d0,d1", "divs.l 32q", cpu))
+        # divsl.l: SIZE=0+Dq!=Dr
+        tests.append(("divsl.l d0,d2:d1", "divsl.l 32r:32q", cpu))
+        # divs.l with pair: SIZE=1
+        tests.append(("divs.l d0,d2:d1", "divs.l 64/32", cpu))
+        # Control mode EA
+        tests.append(("divs.l (a0),d3", "divs.l ind", cpu))
+
+    elif m == "DIVU, DIVUL":
+        tests.append(("divu.l d0,d1", "divu.l 32q", cpu))
+        tests.append(("divul.l d0,d2:d1", "divul.l 32r:32q", cpu))
+        tests.append(("divu.l d0,d2:d1", "divu.l 64/32", cpu))
+        tests.append(("divu.l #$1234,d4", "divu.l imm", cpu))
 
     return tests
 
