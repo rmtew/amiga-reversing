@@ -2801,6 +2801,191 @@ def apply_pc_effects(kb_data):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Phase 11: Operation type classification
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _classify_operation_type(operation):
+    """Classify an Operation string into a structured operation type.
+
+    The operation string comes from the PDF and uses notation like:
+        Source + Destination → Destination  (add)
+        Destination – Source → Destination  (sub)
+        Source Λ Destination → Destination  (and)
+    Returns a string operation type, or None if not classifiable.
+    """
+    if not operation:
+        return None
+
+    op = operation
+
+    # BCD operations (Source10/Destination10 = decimal)
+    if "10" in op and "+" in op:
+        return "add_decimal"
+    if "10" in op and "–" in op:
+        return "sub_decimal"
+
+    # Shift/rotate (must check before general arithmetic)
+    if "Shifted By" in op:
+        return "shift"
+    if "Rotated With X" in op or "Rotated with X" in op:
+        return "rotate_extend"
+    if "Rotated By" in op:
+        return "rotate"
+
+    # Bitfield operations (check BEFORE bit_test — "bit field" contains "bit")
+    if "bit field" in op.lower() or "bit offset" in op.lower():
+        return "bitfield"
+
+    # Bit test/set operations: TEST (<...> of Destination)
+    if "TEST" in op and ("bit" in op.lower() or "number" in op.lower()):
+        return "bit_test"
+
+    # Division
+    if "÷" in op:
+        return "divide"
+
+    # Multiplication
+    if " x " in op:
+        return "multiply"
+
+    # Sign extension
+    if "Sign-Extended" in op:
+        return "sign_extend"
+
+    # Swap halves
+    if "←→" in op:
+        return "swap"
+
+    # Test (TST, TAS)
+    if "Tested" in op:
+        return "test"
+
+    # Compare and swap (CAS)
+    if "CAS" in op:
+        return "compare_swap"
+
+    # Bounds check (CHK, CHK2, CMP2)
+    if "< 0" in op or "LB" in op or "> UB" in op:
+        return "bounds_check"
+
+    # CCR/SR direct operations
+    if "CCR" in op:
+        return "ccr_op"
+    if "Supervisor" in op:
+        return "sr_op"
+
+    # Arithmetic: check for en-dash (–) used in PDF for minus
+    if "–" in op:
+        parts_before_arrow = op.split("→")[0] if "→" in op else op
+        dashes = parts_before_arrow.count("–")
+        # NEGX/NBCD: "0 – Destination – X → Destination" (2 dashes, starts with 0)
+        if dashes >= 2 and "0" in parts_before_arrow.split("–")[0].strip():
+            return "negx"
+        # NEG: "0 – Destination → Destination"
+        if "0" in op.split("–")[0].strip() and "estination" in op:
+            return "neg"
+        # SUBX: "Destination – Source – X → Destination" (2 dashes)
+        if dashes >= 2:
+            return "subx"
+        # CMP: "→ cc" means compare (no store to destination register)
+        if "→ cc" in op:
+            return "compare"
+        return "sub"
+
+    # Addition
+    if "+" in op:
+        # ADDX: "Source + Destination + X → Destination"
+        before_arrow = op.split("→")[0] if "→" in op else op
+        if "+ X" in before_arrow or "+X" in before_arrow.replace(" ", ""):
+            return "addx"
+        return "add"
+
+    # XOR
+    if "⊕" in op:
+        return "xor"
+
+    # Logical AND (L or Λ in PDF notation)
+    if " L " in op or "Λ" in op:
+        return "and"
+
+    # Logical OR (V in PDF notation)
+    if " V " in op:
+        return "or"
+
+    # Complement
+    if "~" in op:
+        return "not"
+
+    # Clear: "0 → Destination"
+    if re.match(r"0\s*→", op):
+        return "clear"
+
+    # Move/transfer: "Source → Destination" or similar
+    if "→" in op:
+        return "move"
+
+    return None
+
+
+def _extract_shift_properties(inst):
+    """Extract shift/rotate properties from PDF-sourced description and operation.
+
+    - shift_count_modulus: extracted from "modulo N" in description text.
+    - rotate_extra_bits: set to 1 when operation says "With X" (rotate through X).
+    """
+    description = inst.get("description", "")
+    operation = inst.get("operation", "")
+
+    # Extract count modulus from description ("modulo 64")
+    match = re.search(r'modulo\s+(\d+)', description, re.IGNORECASE)
+    if match:
+        inst["shift_count_modulus"] = int(match.group(1))
+
+    # Extract rotate-through-X from operation ("Rotated With X" or "Rotated with X")
+    if re.search(r'Rotated\s+[Ww]ith\s+X', operation):
+        inst["rotate_extra_bits"] = 1
+
+
+def apply_operation_types(kb_data):
+    """Phase 11: Classify instruction operation types from Operation field.
+
+    Adds fields:
+    - 'operation_type': ALU behavior class (add, sub, shift, rotate, etc.)
+    - 'shift_count_modulus': count modulus for shift/rotate (from PDF description)
+    - 'rotate_extra_bits': extra bits in rotation width (from PDF operation, e.g. X bit)
+
+    These are used by downstream tools (effect predictor, execution verifier)
+    to determine instruction behavior for CC flag computation.
+    """
+    classified = 0
+    shift_props = 0
+    unclassified = []
+
+    for inst in kb_data:
+        operation = inst.get("operation", "")
+        op_type = _classify_operation_type(operation)
+        if op_type:
+            inst["operation_type"] = op_type
+            classified += 1
+            # Extract shift/rotate-specific properties
+            if op_type in ("shift", "rotate", "rotate_extend"):
+                _extract_shift_properties(inst)
+                if "shift_count_modulus" in inst:
+                    shift_props += 1
+        elif operation:
+            unclassified.append((inst["mnemonic"], operation))
+
+    if shift_props:
+        print(f"  Shift/rotate properties extracted: {shift_props}")
+    if unclassified:
+        print(f"  WARNING: {len(unclassified)} unclassified operations:")
+        for mnemonic, operation in unclassified:
+            print(f"    {mnemonic}: {operation!r}")
+
+    return classified
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Output
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -3033,6 +3218,11 @@ def main():
     print("Phase 10: Extracting PC effects...")
     flow_count = apply_pc_effects(kb_data)
     print(f"  Control flow instructions: {flow_count}")
+
+    # Phase 11: Classify operation types
+    print("Phase 11: Classifying operation types...")
+    op_classified = apply_operation_types(kb_data)
+    print(f"  Classified: {op_classified}/{len(kb_data)} instructions")
 
     # Output
     outfile = args.outfile or str(KB_PATH)

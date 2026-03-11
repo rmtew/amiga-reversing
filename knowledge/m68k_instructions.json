@@ -303,7 +303,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add_decimal"
     },
     {
       "mnemonic": "ADD",
@@ -520,7 +521,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "ADDA",
@@ -684,7 +686,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "ADDI",
@@ -855,7 +858,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "ADDQ",
@@ -1024,7 +1028,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "ADDX",
@@ -1205,7 +1210,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "addx"
     },
     {
       "mnemonic": "AND",
@@ -1415,7 +1421,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "and"
     },
     {
       "mnemonic": "ANDI",
@@ -1585,7 +1592,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "and"
     },
     {
       "mnemonic": "ANDI to CCR",
@@ -1767,7 +1775,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "ccr_op"
     },
     {
       "mnemonic": "ASL, ASR",
@@ -2062,7 +2071,9 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "shift",
+      "shift_count_modulus": 64
     },
     {
       "mnemonic": "Bcc",
@@ -2529,7 +2540,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bit_test"
     },
     {
       "mnemonic": "BCLR",
@@ -2852,7 +2864,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bit_test"
     },
     {
       "mnemonic": "BFCHG",
@@ -3073,7 +3086,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bitfield"
     },
     {
       "mnemonic": "BFCLR",
@@ -3294,7 +3308,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bitfield"
     },
     {
       "mnemonic": "BFEXTS",
@@ -3510,7 +3525,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bitfield"
     },
     {
       "mnemonic": "BFEXTU",
@@ -3726,7 +3742,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bitfield"
     },
     {
       "mnemonic": "BFFFO",
@@ -3942,7 +3959,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bitfield"
     },
     {
       "mnemonic": "BFINS",
@@ -4156,7 +4174,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bitfield"
     },
     {
       "mnemonic": "BFSET",
@@ -4377,7 +4396,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bitfield"
     },
     {
       "mnemonic": "BFTST",
@@ -4600,7 +4620,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bitfield"
     },
     {
       "mnemonic": "BKPT",
@@ -4921,7 +4942,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "BSET",
@@ -5238,7 +5260,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bit_test"
     },
     {
       "mnemonic": "BSR",
@@ -5397,7 +5420,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "BTST",
@@ -5723,7 +5747,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bit_test"
     },
     {
       "mnemonic": "CALLM",
@@ -6443,7 +6468,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "compare_swap"
     },
     {
       "mnemonic": "CHK",
@@ -6605,7 +6631,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bounds_check"
     },
     {
       "mnemonic": "CHK2",
@@ -6861,7 +6888,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bounds_check"
     },
     {
       "mnemonic": "CLR",
@@ -7027,7 +7055,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "clear"
     },
     {
       "mnemonic": "CMP",
@@ -7206,7 +7235,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "compare"
     },
     {
       "mnemonic": "CMPA",
@@ -7375,7 +7405,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "compare"
     },
     {
       "mnemonic": "CMPI",
@@ -7553,7 +7584,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "compare"
     },
     {
       "mnemonic": "CMPM",
@@ -7711,7 +7743,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "compare"
     },
     {
       "mnemonic": "CMP2",
@@ -7967,7 +8000,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "bounds_check"
     },
     {
       "mnemonic": "cpBcc",
@@ -9252,7 +9286,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "divide"
     },
     {
       "mnemonic": "DIVU, DIVUL",
@@ -9618,7 +9653,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "divide"
     },
     {
       "mnemonic": "EOR",
@@ -9788,7 +9824,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "xor"
     },
     {
       "mnemonic": "EORI",
@@ -9958,7 +9995,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "xor"
     },
     {
       "mnemonic": "EORI to CCR",
@@ -10140,7 +10178,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "ccr_op"
     },
     {
       "mnemonic": "EXG",
@@ -10315,7 +10354,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "swap"
     },
     {
       "mnemonic": "EXT, EXTB",
@@ -10512,7 +10552,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sign_extend"
     },
     {
       "mnemonic": "ILLEGAL",
@@ -10686,7 +10727,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "JMP",
@@ -10844,7 +10886,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "JSR",
@@ -11009,7 +11052,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "LEA",
@@ -11163,7 +11207,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "LINK",
@@ -11493,7 +11538,8 @@
             ]
           }
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "LSL, LSR",
@@ -11786,7 +11832,9 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "shift",
+      "shift_count_modulus": 64
     },
     {
       "mnemonic": "MOVE",
@@ -11947,7 +11995,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "MOVEA",
@@ -12103,7 +12152,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "MOVE from CCR",
@@ -12268,7 +12318,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "ccr_op"
     },
     {
       "mnemonic": "MOVE to CCR",
@@ -12447,7 +12498,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "ccr_op"
     },
     {
       "mnemonic": "MOVE from SR",
@@ -12613,7 +12665,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "MOVE16",
@@ -13075,7 +13128,8 @@
             ]
           }
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "MOVEM",
@@ -13289,7 +13343,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "MOVEP",
@@ -13492,7 +13547,8 @@
             ]
           }
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "MOVEQ",
@@ -13632,7 +13688,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "MULS",
@@ -13977,7 +14034,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "multiply"
     },
     {
       "mnemonic": "MULU",
@@ -14322,7 +14380,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "multiply"
     },
     {
       "mnemonic": "NBCD",
@@ -14495,7 +14554,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "negx"
     },
     {
       "mnemonic": "NEG",
@@ -14662,7 +14722,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "neg"
     },
     {
       "mnemonic": "NEGX",
@@ -14828,7 +14889,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "negx"
     },
     {
       "mnemonic": "NOP",
@@ -15162,7 +15224,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "not"
     },
     {
       "mnemonic": "OR",
@@ -15372,7 +15435,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "or"
     },
     {
       "mnemonic": "ORI",
@@ -15542,7 +15606,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "or"
     },
     {
       "mnemonic": "ORI to CCR",
@@ -15724,7 +15789,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "ccr_op"
     },
     {
       "mnemonic": "PACK",
@@ -15909,7 +15975,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "PEA",
@@ -16075,7 +16142,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "ROL, ROR",
@@ -16363,7 +16431,9 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "rotate",
+      "shift_count_modulus": 64
     },
     {
       "mnemonic": "ROXL, ROXR",
@@ -16657,7 +16727,10 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "rotate_extend",
+      "shift_count_modulus": 64,
+      "rotate_extra_bits": 1
     },
     {
       "mnemonic": "RTD",
@@ -16865,7 +16938,8 @@
             ]
           }
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "RTM",
@@ -17206,7 +17280,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "ccr_op"
     },
     {
       "mnemonic": "RTS",
@@ -17380,7 +17455,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "SBCD",
@@ -17566,7 +17642,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub_decimal"
     },
     {
       "mnemonic": "Scc",
@@ -17937,7 +18014,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "SUBA",
@@ -18101,7 +18179,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "SUBI",
@@ -18272,7 +18351,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "SUBQ",
@@ -18446,7 +18526,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sub"
     },
     {
       "mnemonic": "SUBX",
@@ -18627,7 +18708,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "subx"
     },
     {
       "mnemonic": "SWAP",
@@ -18794,7 +18876,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "swap"
     },
     {
       "mnemonic": "TAS",
@@ -18963,7 +19046,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "test"
     },
     {
       "mnemonic": "TRAP",
@@ -19127,7 +19211,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "TRAPcc",
@@ -19686,7 +19771,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "test"
     },
     {
       "mnemonic": "UNLK",
@@ -19856,7 +19942,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "UNPK",
@@ -20029,7 +20116,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "add"
     },
     {
       "mnemonic": "ANDI to SR",
@@ -20211,7 +20299,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "CINV",
@@ -20359,7 +20448,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "cpRESTORE",
@@ -20511,7 +20601,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "cpSAVE",
@@ -20659,7 +20750,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "CPUSH",
@@ -20807,7 +20899,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "EORI to SR",
@@ -20989,7 +21082,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "FRESTORE",
@@ -21138,7 +21232,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "FSAVE",
@@ -21285,7 +21380,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "MOVE from SR",
@@ -21450,7 +21546,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "MOVE to SR",
@@ -21618,7 +21715,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "MOVE USP",
@@ -21798,7 +21896,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "MOVEC",
@@ -22139,7 +22238,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "MOVES",
@@ -22406,7 +22506,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "ORI to SR",
@@ -22588,7 +22689,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PBcc",
@@ -22741,7 +22843,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PDBcc",
@@ -23005,7 +23108,8 @@
             ]
           }
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PFLUSH",
@@ -23410,7 +23514,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PFLUSH PFLUSHA",
@@ -23648,7 +23753,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PFLUSHR",
@@ -23910,7 +24016,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PLOAD",
@@ -24140,7 +24247,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PMOVE",
@@ -25592,7 +25700,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PRESTORE",
@@ -25754,7 +25863,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PSAVE",
@@ -25914,7 +26024,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PScc",
@@ -26149,7 +26260,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PTEST",
@@ -26810,7 +26922,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PTRAPcc",
@@ -27080,7 +27193,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "PVALID",
@@ -27523,7 +27637,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "move"
     },
     {
       "mnemonic": "RESET",
@@ -27691,7 +27806,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "RTE",
@@ -27859,7 +27975,8 @@
         "base_sizes": [
           2
         ]
-      }
+      },
+      "operation_type": "sr_op"
     },
     {
       "mnemonic": "STOP",
@@ -28060,7 +28177,8 @@
             ]
           }
         ]
-      }
+      },
+      "operation_type": "sr_op"
     }
   ]
 }

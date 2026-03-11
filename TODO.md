@@ -11,20 +11,20 @@ Extract all instruction metadata from the PDF into `m68k_instructions.json`.
 - [x] Syntax forms and operand type patterns
 - [x] Constraints (immediate ranges, CC parameterization, direction variants, etc.)
 
-### Condition Code Semantics (new)
-- [ ] Parse CC description text from each instruction's "Condition Codes" section
-- [ ] Classify each flag effect into semantic rules (result-based, operand-based, operation-specific)
-- [ ] Emit structured CC rules per instruction in JSON (not just `*`/`—`/`0`/`1`/`U` markers)
+### Condition Code Semantics (done)
+- [x] Parse CC description text from each instruction's "Condition Codes" section
+- [x] Classify each flag effect into semantic rules (result-based, operand-based, operation-specific)
+- [x] Emit structured `cc_semantics` per instruction in JSON (127/127 classified, hard-fail on unrecognized)
 
-### SP Effects (new)
-- [ ] Parse Operation field into structured SP delta expressions
-- [ ] Classify: push N, pop N, displacement-adjust, compound (LINK/UNLK), none
-- [ ] Emit per-instruction SP effect in JSON
+### SP Effects (done)
+- [x] Parse Operation field into structured SP delta expressions
+- [x] Classify: decrement N, increment N, displacement-adjust, load/save reg, compound (LINK/UNLK)
+- [x] Emit per-instruction `sp_effects` in JSON (9 instructions, hard-fail on unmatched SP clauses)
 
-### PC Effects (new)
-- [ ] Derive instruction size from encoding structure (opword + extension words)
-- [ ] Flag control-flow instructions (branch, jump, return, trap) with target semantics
-- [ ] Emit per-instruction PC effect in JSON (advance-by-size, branch, jump, etc.)
+### PC Effects (done)
+- [x] Derive base instruction size from encoding structure (opword + extension words)
+- [x] Flag control-flow instructions (branch, jump, call, return, trap) with conditional flag
+- [x] Emit per-instruction `pc_effects` in JSON (22 control flow, no hardcoded mnemonic names)
 
 ## Phase 2: Data-Driven Assembler
 
@@ -36,23 +36,43 @@ Reverse of the disassembler, driven from the same JSON.
 - [ ] Size suffix → size field encoding
 - [ ] Verify against vasm: assemble with both, binary-diff every instruction × operand × size
 
-## Phase 3: Data-Driven Effect Predictor
+## Phase 3: Data-Driven Effect Predictor (done)
 
 Given an instruction + initial state, predict SP delta and CC result from KB rules.
 
-- [ ] SP predictor: consume JSON SP effects, compute stack pointer delta
-- [ ] CC predictor: consume JSON CC semantic rules, compute flag values from operands/result
-- [ ] PC predictor: next-PC calculation (sequential, branch-taken, branch-not-taken)
-- [ ] Verify against machine68k: execute one instruction, compare predicted vs actual SP/CC/PC
+- [x] SP predictor: consume JSON SP effects, compute stack pointer delta (including `load_from_reg` via `reg_state`)
+- [x] CC predictor: consume JSON CC semantic rules, compute flag values from operands/result
+- [x] PC predictor: next-PC calculation (sequential size from disassembler, branch targets)
+- [x] Operation type classifier: Phase 11 in parser — classifies PDF `operation` text into structured types
+- [x] Shift/rotate properties: `shift_count_modulus` and `rotate_extra_bits` extracted from PDF description/operation
 
-## Phase 4: Verification Harness
+## Phase 4: Verification Harness (in progress)
 
 machine68k (Musashi) as independent oracle for execution semantics.
+`scripts/test_m68k_execution.py` — 2817 tests, 28 mnemonics, 0 failures.
 
-- [ ] Test generator: for each KB instruction, produce (initial state, binary) pairs
-- [ ] Runner: load binary into machine68k, set initial state, execute, capture final state
-- [ ] Comparator: check assembler output, disassembler output, and effect predictions against machine68k
-- [ ] Coverage tracker: which instructions × sizes × EA modes have been oracle-verified
+- [x] Test generator: KB-driven discovery of testable instructions, deterministic test values
+- [x] Runner: instruction hook captures post-execution state without sentinel interference
+- [x] Comparator: predicted CC/SP/PC vs machine68k actual, per-flag reporting
+
+### CC verification (22 mnemonics)
+- [x] ALU register-register: ADD, ADDX, SUB, SUBX, CMP, AND, OR, EOR, MOVE, NEG, NEGX, NOT, CLR, TST (14 mnemonics, 1512 tests)
+- [x] Shift/rotate: ASL, ASR, LSL, LSR, ROL, ROR, ROXL, ROXR (8 mnemonics, 1296 tests)
+- [ ] Multiply: MULS, MULU — need `multiply` compute handler
+- [ ] Divide: DIVS/DIVSL, DIVU/DIVUL — need `divide` compute handler + division-specific CC rules
+- [ ] Bit test: BTST, BCHG, BCLR, BSET — need `bit_zero` rule + `#imm,Dn` form setup
+- [ ] Misc: SWAP, EXT/EXTB already tested; TAS needs `msb_operand` rule
+- [ ] BCD: ABCD, SBCD, NBCD — need `decimal_carry`/`decimal_borrow` rules
+- [ ] EA mode expansion: ADDI, ADDQ, SUBI, SUBQ, ANDI, ORI, EORI, CMPI, CMPM (need `#imm,Dn` form)
+
+### SP verification (6 mnemonics)
+- [x] PEA, JSR, BSR, RTS, LINK, UNLK (9 tests)
+- [ ] MOVEM (push/pop multiple registers)
+- [ ] RTR (return + restore CCR)
+
+### Audits
+- [x] Three audits passed — no hardcoded M68K knowledge, no silent fallbacks
+- [x] All KB fields consumed: cc_semantics, operation_type, sp_effects, pc_effects, shift_count_modulus, rotate_extra_bits
 
 ## Existing Infrastructure
 
