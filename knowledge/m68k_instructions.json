@@ -51,6 +51,71 @@
         "cfpu": "68060",
         "cpu32": "68020"
       }
+    },
+    "ea_brief_ext_word": [
+      {
+        "name": "D/A",
+        "bit_hi": 15,
+        "bit_lo": 15
+      },
+      {
+        "name": "REGISTER",
+        "bit_hi": 14,
+        "bit_lo": 12
+      },
+      {
+        "name": "W/L",
+        "bit_hi": 11,
+        "bit_lo": 11
+      },
+      {
+        "name": "SCALE",
+        "bit_hi": 10,
+        "bit_lo": 9
+      },
+      {
+        "name": "DISPLACEMENT",
+        "bit_hi": 7,
+        "bit_lo": 0
+      }
+    ],
+    "movem_reg_masks": {
+      "normal": [
+        "d0",
+        "d1",
+        "d2",
+        "d3",
+        "d4",
+        "d5",
+        "d6",
+        "d7",
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7"
+      ],
+      "predecrement": [
+        "a7",
+        "a6",
+        "a5",
+        "a4",
+        "a3",
+        "a2",
+        "a1",
+        "a0",
+        "d7",
+        "d6",
+        "d5",
+        "d4",
+        "d3",
+        "d2",
+        "d1",
+        "d0"
+      ]
     }
   },
   "instructions": [

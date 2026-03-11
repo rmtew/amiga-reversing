@@ -76,13 +76,121 @@ def _kb_condition_codes() -> list[str]:
     return [CC_TABLE[i] for i in sorted(CC_TABLE.keys())]
 
 
-def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str]) -> dict:
+def extract_ea_extension_formats(doc) -> list[dict]:
+    """Extract Brief Extension Word field layout from PDF page 43.
+
+    Page 43 has three encoding tables: single EA operation word, Brief Extension
+    Word, and Full Extension Word.  We extract the second one (Brief) and return
+    its named variable fields as [{name, bit_hi, bit_lo}, ...].
+    """
+    page = doc[42]  # page 43 (0-indexed)
+    spans = extract_page_spans(page)
+    rows = spans_to_rows(spans)
+    encs = find_encoding_tables(rows, summary_mode=True)
+
+    if len(encs) < 2:
+        raise RuntimeError(
+            f"Expected >=2 encoding tables on page 43, found {len(encs)}"
+        )
+
+    brief_fields = encs[1]  # second table = Brief Extension Word
+    result = []
+    for f in brief_fields:
+        if f.name not in ("0", "1"):  # skip fixed bits
+            result.append({
+                "name": f.name,
+                "bit_hi": f.bit_hi,
+                "bit_lo": f.bit_lo,
+            })
+    return result
+
+
+def extract_movem_regmask_tables(doc) -> dict[str, list[str]]:
+    """Extract MOVEM register-to-bit-position mappings from PDF page 234.
+
+    Page 234 has two 16-column tables mapping bit positions (15..0) to register
+    names.  The first (normal) table is for postincrement/control modes, the
+    second (predecrement) table has reversed bit order.
+
+    Returns {"normal": [16 reg names], "predecrement": [16 reg names]} where
+    index = bit position, value = lowercase register name.
+    """
+    page = doc[233]  # page 234 (0-indexed)
+    spans = extract_page_spans(page)
+    rows = spans_to_rows(spans)
+
+    # Find rows that are bit number headers (contain "15" and "0" with 16 entries)
+    bit_header_ys = []
+    for y_key in sorted(rows.keys()):
+        texts = [item[2] for item in rows[y_key]]
+        if "15" in texts and "0" in texts and len(texts) == 16:
+            bit_header_ys.append(y_key)
+
+    if len(bit_header_ys) != 2:
+        raise RuntimeError(
+            f"Expected 2 bit header rows on page 234, found {len(bit_header_ys)}"
+        )
+
+    # Determine which is normal vs predecrement by checking preceding text
+    # "postincrement" appears before the first table, "predecrement" before the second
+    # We rely on ordering: first header = normal, second = predecrement
+    tables = {}
+    labels = ["normal", "predecrement"]
+
+    for idx, header_y in enumerate(bit_header_ys):
+        # Build x -> bit_number mapping from header row
+        header_items = rows[header_y]
+        x_to_bit = {}
+        for x, x2, text, font, size in header_items:
+            mid_x = (x + x2) / 2
+            x_to_bit[mid_x] = int(text)
+
+        # Find the next row after this header (register names)
+        next_y = None
+        for y_key in sorted(rows.keys()):
+            if y_key > header_y:
+                next_y = y_key
+                break
+
+        if next_y is None:
+            raise RuntimeError(f"No register row found after bit header at y={header_y}")
+
+        reg_items = rows[next_y]
+        if len(reg_items) != 16:
+            raise RuntimeError(
+                f"Expected 16 register entries at y={next_y}, found {len(reg_items)}"
+            )
+
+        # Map each register to its bit position by x-coordinate proximity
+        bit_to_reg = {}
+        header_xs = sorted(x_to_bit.keys())
+        for x, x2, text, font, size in reg_items:
+            mid_x = (x + x2) / 2
+            # Find closest header x
+            closest_x = min(header_xs, key=lambda hx: abs(hx - mid_x))
+            bit_pos = x_to_bit[closest_x]
+            bit_to_reg[bit_pos] = text.lower()
+
+        # Build list indexed by bit position (0..15)
+        tables[labels[idx]] = [bit_to_reg[i] for i in range(16)]
+
+    return tables
+
+
+def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
+                   ea_brief_ext_word: list[dict] | None = None,
+                   movem_reg_masks: dict[str, list[str]] | None = None) -> dict:
+    meta = {
+        "condition_codes": _kb_condition_codes(),
+        "pmmu_condition_codes": pmmu_cc,
+        "cpu_hierarchy": CPU_HIERARCHY,
+    }
+    if ea_brief_ext_word is not None:
+        meta["ea_brief_ext_word"] = ea_brief_ext_word
+    if movem_reg_masks is not None:
+        meta["movem_reg_masks"] = movem_reg_masks
     return {
-        "_meta": {
-            "condition_codes": _kb_condition_codes(),
-            "pmmu_condition_codes": pmmu_cc,
-            "cpu_hierarchy": CPU_HIERARCHY,
-        },
+        "_meta": meta,
         "instructions": kb_data,
     }
 
@@ -2489,6 +2597,17 @@ def main():
         )
     print(f"  PMMU condition codes: {pmmu_cc}")
 
+    # Phase 6: Extract EA extension word formats
+    print("Phase 6: Extracting EA extension word formats...")
+    ea_brief = extract_ea_extension_formats(doc)
+    print(f"  Brief extension word fields: {[f['name'] for f in ea_brief]}")
+
+    # Phase 7: Extract MOVEM register mask tables
+    print("Phase 7: Extracting MOVEM register mask tables...")
+    movem_masks = extract_movem_regmask_tables(doc)
+    print(f"  Normal: {movem_masks['normal']}")
+    print(f"  Predecrement: {movem_masks['predecrement']}")
+
     # Output
     outfile = args.outfile or str(KB_PATH)
 
@@ -2504,7 +2623,7 @@ def main():
             if outpath.exists():
                 outpath.unlink()
             with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(_as_kb_payload(kb_data, pmmu_cc), f, indent=2, ensure_ascii=False)
+                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, movem_masks), f, indent=2, ensure_ascii=False)
             print(f"\nWrote {len(kb_data)} instructions to {outpath}")
         else:
             print(f"\n(dry run, {len(kb_data)} instructions would be written)")

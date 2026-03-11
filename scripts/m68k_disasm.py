@@ -173,6 +173,24 @@ def _load_kb_raw_fields(enc_idx: int) -> dict[str, list[tuple[str, int, int, int
     return result
 
 
+@lru_cache(maxsize=1)
+def _load_kb_ea_brief_fields() -> dict[str, tuple[int, int, int]]:
+    """Return {field_name: (bit_hi, bit_lo, width)} for Brief Extension Word fields."""
+    _, meta = _load_kb_payload()
+    result: dict[str, tuple[int, int, int]] = {}
+    for f in meta["ea_brief_ext_word"]:
+        width = f["bit_hi"] - f["bit_lo"] + 1
+        result[f["name"]] = (f["bit_hi"], f["bit_lo"], width)
+    return result
+
+
+@lru_cache(maxsize=1)
+def _load_kb_movem_reg_masks() -> dict[str, list[str]]:
+    """Return {"normal": [...], "predecrement": [...]} register mask tables from KB."""
+    _, meta = _load_kb_payload()
+    return meta["movem_reg_masks"]
+
+
 def _derive_varying_bits(mask_val_pairs: list[tuple[int, int]]) -> tuple[int, int]:
     """XOR encoding vals to find the contiguous bit range that distinguishes related instructions.
 
@@ -634,12 +652,14 @@ def _ea_str(d: _Decoder, mode: int, reg: int, size: int, pc_offset: int) -> str:
         return f"{disp}({_reg_name(reg, True)})"
     elif mode == 6:  # d8(An,Xn)
         ext = d.read_u16()
-        xreg = (ext >> 12) & 7
-        xtype = "a" if ext & 0x8000 else "d"
-        xsize = ".l" if ext & 0x0800 else ".w"
-        disp = ext & 0xFF
-        if disp & 0x80:
-            disp -= 256
+        bf = _load_kb_ea_brief_fields()
+        xreg = _xf(ext, bf["REGISTER"])
+        xtype = "a" if _xf(ext, bf["D/A"]) == 1 else "d"
+        xsize = ".l" if _xf(ext, bf["W/L"]) == 1 else ".w"
+        disp = _xf(ext, bf["DISPLACEMENT"])
+        disp_width = bf["DISPLACEMENT"][2]
+        if disp & (1 << (disp_width - 1)):
+            disp -= (1 << disp_width)
         return f"{disp}({_reg_name(reg, True)},{xtype}{xreg}{xsize})"
     elif mode == 7:
         if reg == 0:  # abs.w
@@ -655,12 +675,14 @@ def _ea_str(d: _Decoder, mode: int, reg: int, size: int, pc_offset: int) -> str:
             return f"{disp}(pc)"
         elif reg == 3:  # d8(PC,Xn)
             ext = d.read_u16()
-            xreg = (ext >> 12) & 7
-            xtype = "a" if ext & 0x8000 else "d"
-            xsize = ".l" if ext & 0x0800 else ".w"
-            disp = ext & 0xFF
-            if disp & 0x80:
-                disp -= 256
+            bf = _load_kb_ea_brief_fields()
+            xreg = _xf(ext, bf["REGISTER"])
+            xtype = "a" if _xf(ext, bf["D/A"]) == 1 else "d"
+            xsize = ".l" if _xf(ext, bf["W/L"]) == 1 else ".w"
+            disp = _xf(ext, bf["DISPLACEMENT"])
+            disp_width = bf["DISPLACEMENT"][2]
+            if disp & (1 << (disp_width - 1)):
+                disp -= (1 << disp_width)
             return f"{disp}(pc,{xtype}{xreg}{xsize})"
         elif reg == 4:  # #imm
             if size == SIZE_BYTE or size == SIZE_WORD:
@@ -680,26 +702,9 @@ def _movem_reglist(mask: int, direction: int) -> str:
     direction: 0 = register-to-memory (reversed bit order for predecrement)
                1 = memory-to-register (normal bit order)
     """
-    if direction == 0:
-        # Predecrement: bit 0 = A7, bit 15 = D0
-        regs = []
-        for i in range(16):
-            if mask & (1 << i):
-                if i < 8:
-                    regs.append(f"a{7 - i}")
-                else:
-                    regs.append(f"d{15 - i}")
-    else:
-        # Normal: bit 0 = D0, bit 15 = A7
-        regs = []
-        for i in range(16):
-            if mask & (1 << i):
-                if i < 8:
-                    regs.append(f"d{i}")
-                else:
-                    regs.append(f"a{i - 8}")
-
-    # Compress into ranges
+    masks = _load_kb_movem_reg_masks()
+    table = masks["predecrement"] if direction == 0 else masks["normal"]
+    regs = [table[i] for i in range(16) if mask & (1 << i)]
     return _compress_reglist(regs)
 
 
