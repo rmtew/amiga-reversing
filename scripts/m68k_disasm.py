@@ -45,22 +45,9 @@ def _normalize_cpu(cpu_name: str | None) -> str:
 
 def _load_kb_payload() -> tuple[list[dict], dict]:
     path = Path(__file__).resolve().parent.parent / "knowledge" / "m68k_instructions.json"
-    if not path.exists():
-        return [], {}
-
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-
-    if isinstance(data, dict):
-        instructions = data.get("instructions", [])
-        if not isinstance(instructions, list):
-            instructions = []
-        return instructions, data.get("_meta", {})
-
-    if isinstance(data, list):
-        return data, {}
-
-    return [], {}
+    return data["instructions"], data["_meta"]
 
 
 def _kb_encoding_masks(enc_idx: int) -> dict[str, tuple[int, int]]:
@@ -68,10 +55,10 @@ def _kb_encoding_masks(enc_idx: int) -> dict[str, tuple[int, int]]:
     kb, _ = _load_kb_payload()
     result: dict[str, tuple[int, int]] = {}
     for inst in kb:
-        encs = inst.get("encodings", [])
+        encs = inst["encodings"]
         if len(encs) <= enc_idx:
             continue
-        fields = encs[enc_idx].get("fields", [])
+        fields = encs[enc_idx]["fields"]
         mask = val = 0
         for f in fields:
             if f["name"] in ("0", "1"):
@@ -119,11 +106,11 @@ def _load_kb_ext_field_names() -> dict[str, frozenset[str]]:
     kb, _ = _load_kb_payload()
     result: dict[str, frozenset[str]] = {}
     for inst in kb:
-        encs = inst.get("encodings", [])
+        encs = inst["encodings"]
         if len(encs) < 2:
             continue
         names = frozenset(
-            f["name"] for f in encs[1].get("fields", [])
+            f["name"] for f in encs[1]["fields"]
             if f["name"] not in ("0", "1")
         )
         if names:
@@ -139,11 +126,11 @@ def _kb_field_map(enc_idx: int) -> dict[str, dict[str, tuple[int, int, int]]]:
     kb, _ = _load_kb_payload()
     result: dict[str, dict[str, tuple[int, int, int]]] = {}
     for inst in kb:
-        encs = inst.get("encodings", [])
+        encs = inst["encodings"]
         if len(encs) <= enc_idx:
             continue
         fields = {}
-        for f in encs[enc_idx].get("fields", []):
+        for f in encs[enc_idx]["fields"]:
             if f["name"] not in ("0", "1"):
                 fields[f["name"]] = (f["bit_hi"], f["bit_lo"], f["width"])
         if fields:
@@ -174,11 +161,11 @@ def _load_kb_raw_fields(enc_idx: int) -> dict[str, list[tuple[str, int, int, int
     kb, _ = _load_kb_payload()
     result: dict[str, list[tuple[str, int, int, int]]] = {}
     for inst in kb:
-        encs = inst.get("encodings", [])
+        encs = inst["encodings"]
         if len(encs) <= enc_idx:
             continue
         fields = []
-        for f in encs[enc_idx].get("fields", []):
+        for f in encs[enc_idx]["fields"]:
             if f["name"] not in ("0", "1"):
                 fields.append((f["name"], f["bit_hi"], f["bit_lo"], f["width"]))
         if fields:
@@ -362,9 +349,7 @@ def _load_kb_rm_field() -> dict[str, tuple[int, dict[int, str]]]:
         if not rm_field:
             continue
         values = {int(k): v for k, v in om["values"].items()}
-        # R/M is a 1-bit field; parser orphan expansion may inflate width,
-        # so use bit_hi (always correct) instead of bit_lo.
-        result[inst["mnemonic"]] = (rm_field[0], values)  # (bit_hi, value_map)
+        result[inst["mnemonic"]] = (rm_field[0], values)  # (bit_pos, value_map)
     return result
 
 
@@ -405,7 +390,7 @@ def _load_kb_size_encodings() -> dict[str, dict[int, int]]:
     kb, _ = _load_kb_payload()
     result: dict[str, dict[int, int]] = {}
     for inst in kb:
-        fd = inst.get("field_descriptions", {})
+        fd = inst["field_descriptions"]
         size_desc = fd.get("Size", "")
         if not size_desc:
             continue
@@ -425,7 +410,7 @@ def _load_kb_processor_mins() -> dict[str, str]:
     mins: dict[str, str] = {}
     for inst in kb:
         min_cpu = _normalize_cpu(inst["processor_min"])
-        mnemonic = inst.get("mnemonic", "")
+        mnemonic = inst["mnemonic"]
         for part in mnemonic.split(","):
             tokens = part.strip().split()
             if not tokens:
@@ -456,30 +441,16 @@ def _load_kb_opmode_tables() -> dict[str, dict[int, dict]]:
 def _load_disasm_meta() -> dict:
     kb, kb_meta = _load_kb_payload()
 
-    condition_codes = list(kb_meta.get("condition_codes", []))
-    if not condition_codes:
-        raise RuntimeError(
-            "KB _meta missing 'condition_codes' — regenerate m68k_instructions.json"
-        )
-
-    cpu_hierarchy = kb_meta.get("cpu_hierarchy")
-    if not cpu_hierarchy:
-        raise RuntimeError(
-            "KB _meta missing 'cpu_hierarchy' — regenerate m68k_instructions.json"
-        )
-
-    pmmu_condition_codes = kb_meta.get("pmmu_condition_codes", [])
-    if not pmmu_condition_codes:
-        raise RuntimeError(
-            "KB _meta missing 'pmmu_condition_codes' — regenerate m68k_instructions.json"
-        )
+    condition_codes = list(kb_meta["condition_codes"])
+    cpu_hierarchy = kb_meta["cpu_hierarchy"]
+    pmmu_condition_codes = kb_meta["pmmu_condition_codes"]
 
     families = {}
     for inst in kb:
         constraints = inst.get("constraints", {})
         cc_param = constraints.get("cc_parameterized")
 
-        for raw_name in inst.get("mnemonic", "").split(","):
+        for raw_name in inst["mnemonic"].split(","):
             name = raw_name.strip().lower().replace(" ", "")
             if not name or not name.endswith("cc"):
                 continue
@@ -505,7 +476,7 @@ def _load_disasm_meta() -> dict:
                     )
                 continue
 
-            description = inst.get("description", "")
+            description = inst["description"]
             parsed_codes = [
                 code.lower()
                 for code in CC_CONDITION_TABLE.findall(description)
@@ -515,7 +486,7 @@ def _load_disasm_meta() -> dict:
 
     canonical_families = []
     for entry in families.values():
-        codes = entry.get("codes", [])
+        codes = entry["codes"]
         if not codes:
             continue
         canonical_families.append({
@@ -546,18 +517,18 @@ def _canonical_mnemonic(decoded: str) -> str:
         return tok
 
     meta = _load_disasm_meta()
-    families = meta.get("condition_families", [])
+    families = meta["condition_families"]
 
     for fam in families:
-        prefix = fam.get("prefix", "")
+        prefix = fam["prefix"]
         if not prefix:
             continue
         if not tok.startswith(prefix):
             continue
         suffix = tok[len(prefix):]
-        if suffix not in fam.get("codes", []):
+        if suffix not in fam["codes"]:
             continue
-        if tok in fam.get("exclude_from_family", []):
+        if tok in fam["exclude_from_family"]:
             continue
         return fam["canonical"]
 
@@ -571,7 +542,7 @@ def _ensure_cpu_supported(decoded_text: str, max_cpu: str | None) -> None:
     max_cpu = _normalize_cpu(max_cpu)
     cpu_hier = _load_disasm_meta()["cpu_hierarchy"]
     cpu_order = cpu_hier["order"]
-    cpu_aliases = cpu_hier.get("aliases", {})
+    cpu_aliases = cpu_hier["aliases"]
 
     max_cpu = cpu_aliases.get(max_cpu, max_cpu)
     if max_cpu not in cpu_order:
@@ -1225,8 +1196,7 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
         sz_bits = _extract_size_bits(op, _of["SIZE"], sz_enc)
         sz = sz_enc[sz_bits]
         sfx = SIZE_SUFFIX[sz]
-        # MOVEM KB MODE field width is 2 (squeezed by SIZE orphan); use 3-bit extraction
-        mode = (op >> 3) & 7
+        mode = _xf(op, _of["MODE"])
         reg = _xf(op, _of["REGISTER"])
         mask = d.read_u16()
 
@@ -1393,7 +1363,7 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> str:
             if reg in _trapcc_opm:
                 cc = _cc_name(condition)
                 entry = _trapcc_opm[reg]
-                sz = entry.get("size")
+                sz = entry["size"]
                 if sz == "w":
                     imm = d.read_u16()
                     return f"trap{cc}.w #${imm:04x}"
@@ -1499,8 +1469,7 @@ def _decode_group8(d: _Decoder, op: int, pc: int) -> str:
     _m, _v = _masks["SBCD"]
     if (op & _m) == _v:
         _sbcd_f = _fields["SBCD"]
-        # Source reg at bits 2:0 (KB width squeezed by R/M orphan; extract 3 bits)
-        ry = op & 7
+        ry = _xf(op, _sbcd_f["REGISTER Dx/Ax"])
         rx = _xf(op, _sbcd_f["REGISTER Dy/Ay"])
         _rm_lo, _rm_vals = _load_kb_rm_field()["SBCD"]
         rm = (op >> _rm_lo) & 1
@@ -1516,15 +1485,9 @@ def _decode_group8(d: _Decoder, op: int, pc: int) -> str:
     for _mn_upper, _m, _v in (("PACK", _m_pack, _v_pack), ("UNPK", _m_unpk, _v_unpk)):
         if (op & _m) == _v:
             _of = _opfields[_mn_upper]
-            # Dest register from "REGISTER Dy/Ay" field
-            _dy_hi, _dy_lo, _dy_w = _of["REGISTER Dy/Ay"]
-            dx = (op >> _dy_lo) & ((1 << _dy_w) - 1)
-            # R/M flag at R/M.bit_hi; src register spans R/M.bit_lo..Dx/Ax.bit_lo
-            _rm_hi = _of["R/M"][0]
-            _dx_lo = _of["REGISTER Dx/Ax"][1]
-            _dx_span = _of["R/M"][1] - _dx_lo + 1
-            rm = (op >> _rm_hi) & 1
-            dy = (op >> _dx_lo) & ((1 << _dx_span) - 1)
+            dx = _xf(op, _of["REGISTER Dy/Ay"])
+            rm = _xf(op, _of["R/M"])
+            dy = _xf(op, _of["REGISTER Dx/Ax"])
             adj = d.read_u16()
             _mn = _mn_upper.lower()
             if rm:
@@ -1567,8 +1530,7 @@ def _decode_sub(d: _Decoder, op: int, pc: int) -> str:
     _m, _v = _masks["SUBX"]
     if (op & _m) == _v and (mode == 0 or mode == 1):
         _subx_f = _fields["SUBX"]
-        # Source reg at bits 2:0 (KB width squeezed by R/M orphan; extract 3 bits)
-        ry = op & 7
+        ry = _xf(op, _subx_f["REGISTER Dx/Ax"])
         rx = _xf(op, _subx_f["REGISTER Dy/Ay"])
         sz = _xf(op, _subx_f["SIZE"])
         sfx = SIZE_SUFFIX[sz]
@@ -1659,8 +1621,7 @@ def _decode_group_c(d: _Decoder, op: int, pc: int) -> str:
     _m, _v = _masks["ABCD"]
     if (op & _m) == _v:
         _abcd_f = _fields["ABCD"]
-        # Source reg at bits 2:0 (KB width squeezed by R/M orphan; extract 3 bits)
-        ry = op & 7
+        ry = _xf(op, _abcd_f["REGISTER Ry"])
         rx = _xf(op, _abcd_f["REGISTER Rx"])
         _rm_lo, _rm_vals = _load_kb_rm_field()["ABCD"]
         rm = (op >> _rm_lo) & 1
@@ -1729,8 +1690,7 @@ def _decode_add(d: _Decoder, op: int, pc: int) -> str:
     _m, _v = _masks["ADDX"]
     if (op & _m) == _v and (mode == 0 or mode == 1):
         _addx_f = _fields["ADDX"]
-        # Source reg at bits 2:0 (KB width squeezed by R/M orphan; extract 3 bits)
-        ry = op & 7
+        ry = _xf(op, _addx_f["REGISTER Ry"])
         rx = _xf(op, _addx_f["REGISTER Rx"])
         sz = _xf(op, _addx_f["SIZE"])
         sfx = SIZE_SUFFIX[sz]
@@ -1801,8 +1761,8 @@ def _decode_bfxxx(d: _Decoder, op: int, pc: int, mn: str, ext_names: frozenset[s
     # Operand order from KB forms: BFINS has Dn before <ea>, others have <ea> before Dn
     kb, _ = _load_kb_payload()
     bf_inst = next(i for i in kb if i["mnemonic"] == mn)
-    bf_ops = bf_inst.get("forms", [{}])[0].get("operands", [])
-    dn_first = bf_ops and bf_ops[0].get("type") == "dn"
+    bf_ops = bf_inst["forms"][0]["operands"]
+    dn_first = bf_ops and bf_ops[0]["type"] == "dn"
     if dn_first:
         return f"{mn.lower()}{pad} d{dn},{ea}{bf}"
     return f"{mn.lower()}{pad} {ea}{bf},d{dn}"
@@ -1821,7 +1781,7 @@ def _decode_shift(d: _Decoder, op: int, pc: int) -> str:
         for mn in _load_kb_bf_mnemonics():
             _m, _v = _masks[mn]
             if (op & _m) == _v:
-                return _decode_bfxxx(d, op, pc, mn, _ext_names.get(mn, frozenset()))
+                return _decode_bfxxx(d, op, pc, mn, _ext_names[mn])
 
         # Memory shift (word only, shift by 1)
         # Field positions from KB — memory shift uses encoding[1]
@@ -1938,9 +1898,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
             _pbcc_f = _opf["PBcc"]
             cond = _xf(op, _pbcc_f["MC68851 CONDITION"])
             cc = pmmu_cc[cond] if cond < len(pmmu_cc) else f"#{cond}"
-            # SIZE field: use bit_hi only (parser inflates width; actual size is 1 bit)
-            sz_hi = _pbcc_f["SIZE"][0]
-            sz_val = (op >> sz_hi) & 1
+            sz_val = _xf(op, _pbcc_f["SIZE"])
             if sz_val == 0:
                 disp = d.read_i16()
                 target = _branch_target(pc, disp)
@@ -1975,7 +1933,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
                 cond = _xf(ext, _ptrap_ef["MC68851 CONDITION"])
                 cc = pmmu_cc[cond] if cond < len(pmmu_cc) else f"#{cond}"
                 entry = _ptrap_opm[opmode]
-                sz = entry.get("size")
+                sz = entry["size"]
                 if sz == "w":
                     imm = d.read_u16()
                     return f"ptrap{cc}.w #{imm}"

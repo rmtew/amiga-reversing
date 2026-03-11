@@ -475,7 +475,12 @@ def _map_values_to_bits(x_to_bit, value_row):
                 fields.append(BitField(name=vtext, bit_hi=best_bit, bit_lo=best_bit, width=1))
                 used_bits.add(best_bit)
         else:
-            tolerance = half_col * 1.5
+            # Narrow labels (e.g. "R/M", "SIZE") use tighter tolerance
+            # to avoid overclaiming adjacent bit columns
+            if text_width < avg_spacing * 0.7:
+                tolerance = half_col
+            else:
+                tolerance = half_col * 1.5
             matching_bits = []
             for bit_num, col_x in bit_x.items():
                 if bit_num not in used_bits:
@@ -515,7 +520,7 @@ def _map_values_to_bits(x_to_bit, value_row):
                 if len(candidates) == 1:
                     best = candidates[0]
                 elif len(candidates) > 1:
-                    best = max(candidates, key=lambda f: f.bbox_width)
+                    best = max(candidates, key=lambda f: (f.width, f.bbox_width))
                 else:
                     continue
                 best.bit_hi = max(best.bit_hi, orphan)

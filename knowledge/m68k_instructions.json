@@ -138,14 +138,14 @@
             {
               "name": "R/M",
               "bit_hi": 3,
-              "bit_lo": 2,
-              "width": 2
+              "bit_lo": 3,
+              "width": 1
             },
             {
               "name": "REGISTER Ry",
-              "bit_hi": 1,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 2
+              "width": 3
             }
           ]
         }
@@ -914,14 +914,14 @@
             {
               "name": "R/M",
               "bit_hi": 3,
-              "bit_lo": 2,
-              "width": 2
+              "bit_lo": 3,
+              "width": 1
             },
             {
               "name": "REGISTER Ry",
-              "bit_hi": 1,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 2
+              "width": 3
             }
           ]
         }
@@ -2580,26 +2580,26 @@
             {
               "name": "Do",
               "bit_hi": 11,
-              "bit_lo": 10,
-              "width": 2
+              "bit_lo": 11,
+              "width": 1
             },
             {
               "name": "OFFSET",
-              "bit_hi": 9,
+              "bit_hi": 10,
               "bit_lo": 6,
-              "width": 4
+              "width": 5
             },
             {
               "name": "Dw",
               "bit_hi": 5,
-              "bit_lo": 4,
-              "width": 2
+              "bit_lo": 5,
+              "width": 1
             },
             {
               "name": "WIDTH",
-              "bit_hi": 3,
+              "bit_hi": 4,
               "bit_lo": 0,
-              "width": 4
+              "width": 5
             }
           ]
         }
@@ -2776,26 +2776,26 @@
             {
               "name": "Do",
               "bit_hi": 11,
-              "bit_lo": 10,
-              "width": 2
+              "bit_lo": 11,
+              "width": 1
             },
             {
               "name": "OFFSET",
-              "bit_hi": 9,
+              "bit_hi": 10,
               "bit_lo": 6,
-              "width": 4
+              "width": 5
             },
             {
               "name": "Dw",
               "bit_hi": 5,
-              "bit_lo": 4,
-              "width": 2
+              "bit_lo": 5,
+              "width": 1
             },
             {
               "name": "WIDTH",
-              "bit_hi": 3,
+              "bit_hi": 4,
               "bit_lo": 0,
-              "width": 4
+              "width": 5
             }
           ]
         }
@@ -2960,26 +2960,26 @@
             {
               "name": "Do",
               "bit_hi": 11,
-              "bit_lo": 10,
-              "width": 2
+              "bit_lo": 11,
+              "width": 1
             },
             {
               "name": "OFFSET",
-              "bit_hi": 9,
+              "bit_hi": 10,
               "bit_lo": 6,
-              "width": 4
+              "width": 5
             },
             {
               "name": "Dw",
               "bit_hi": 5,
-              "bit_lo": 4,
-              "width": 2
+              "bit_lo": 5,
+              "width": 1
             },
             {
               "name": "WIDTH",
-              "bit_hi": 3,
+              "bit_hi": 4,
               "bit_lo": 0,
-              "width": 4
+              "width": 5
             }
           ]
         }
@@ -3151,26 +3151,26 @@
             {
               "name": "Do",
               "bit_hi": 11,
-              "bit_lo": 10,
-              "width": 2
+              "bit_lo": 11,
+              "width": 1
             },
             {
               "name": "OFFSET",
-              "bit_hi": 9,
+              "bit_hi": 10,
               "bit_lo": 6,
-              "width": 4
+              "width": 5
             },
             {
               "name": "Dw",
               "bit_hi": 5,
-              "bit_lo": 4,
-              "width": 2
+              "bit_lo": 5,
+              "width": 1
             },
             {
               "name": "WIDTH",
-              "bit_hi": 3,
+              "bit_hi": 4,
               "bit_lo": 0,
-              "width": 4
+              "width": 5
             }
           ]
         }
@@ -3342,26 +3342,26 @@
             {
               "name": "Do",
               "bit_hi": 11,
-              "bit_lo": 10,
-              "width": 2
+              "bit_lo": 11,
+              "width": 1
             },
             {
               "name": "OFFSET",
-              "bit_hi": 9,
+              "bit_hi": 10,
               "bit_lo": 6,
-              "width": 4
+              "width": 5
             },
             {
               "name": "Dw",
               "bit_hi": 5,
-              "bit_lo": 4,
-              "width": 2
+              "bit_lo": 5,
+              "width": 1
             },
             {
               "name": "WIDTH",
-              "bit_hi": 3,
+              "bit_hi": 4,
               "bit_lo": 0,
-              "width": 4
+              "width": 5
             }
           ]
         }
@@ -3533,26 +3533,26 @@
             {
               "name": "Do",
               "bit_hi": 11,
-              "bit_lo": 10,
-              "width": 2
+              "bit_lo": 11,
+              "width": 1
             },
             {
               "name": "OFFSET",
-              "bit_hi": 9,
+              "bit_hi": 10,
               "bit_lo": 6,
-              "width": 4
+              "width": 5
             },
             {
               "name": "Dw",
               "bit_hi": 5,
-              "bit_lo": 4,
-              "width": 2
+              "bit_lo": 5,
+              "width": 1
             },
             {
               "name": "WIDTH",
-              "bit_hi": 3,
+              "bit_hi": 4,
               "bit_lo": 0,
-              "width": 4
+              "width": 5
             }
           ]
         }
@@ -3734,26 +3734,26 @@
             {
               "name": "Do",
               "bit_hi": 11,
-              "bit_lo": 10,
-              "width": 2
+              "bit_lo": 11,
+              "width": 1
             },
             {
               "name": "OFFSET",
-              "bit_hi": 9,
+              "bit_hi": 10,
               "bit_lo": 6,
-              "width": 4
+              "width": 5
             },
             {
               "name": "Dw",
               "bit_hi": 5,
-              "bit_lo": 4,
-              "width": 2
+              "bit_lo": 5,
+              "width": 1
             },
             {
               "name": "WIDTH",
-              "bit_hi": 3,
+              "bit_hi": 4,
               "bit_lo": 0,
-              "width": 4
+              "width": 5
             }
           ]
         }
@@ -3930,26 +3930,26 @@
             {
               "name": "Do",
               "bit_hi": 11,
-              "bit_lo": 10,
-              "width": 2
+              "bit_lo": 11,
+              "width": 1
             },
             {
               "name": "OFFSET",
-              "bit_hi": 9,
+              "bit_hi": 10,
               "bit_lo": 6,
-              "width": 4
+              "width": 5
             },
             {
               "name": "Dw",
               "bit_hi": 5,
-              "bit_lo": 4,
-              "width": 2
+              "bit_lo": 5,
+              "width": 1
             },
             {
               "name": "WIDTH",
-              "bit_hi": 3,
+              "bit_hi": 4,
               "bit_lo": 0,
-              "width": 4
+              "width": 5
             }
           ]
         }
@@ -5476,14 +5476,14 @@
             {
               "name": "D/A1",
               "bit_hi": 15,
-              "bit_lo": 14,
-              "width": 2
+              "bit_lo": 15,
+              "width": 1
             },
             {
               "name": "Rn1",
-              "bit_hi": 13,
+              "bit_hi": 14,
               "bit_lo": 12,
-              "width": 2
+              "width": 3
             },
             {
               "name": "0",
@@ -5540,14 +5540,14 @@
             {
               "name": "D/A2",
               "bit_hi": 15,
-              "bit_lo": 14,
-              "width": 2
+              "bit_lo": 15,
+              "width": 1
             },
             {
               "name": "Rn2",
-              "bit_hi": 13,
+              "bit_hi": 14,
               "bit_lo": 12,
-              "width": 2
+              "width": 3
             },
             {
               "name": "0",
@@ -5906,14 +5906,14 @@
             {
               "name": "D/A",
               "bit_hi": 15,
-              "bit_lo": 14,
-              "width": 2
+              "bit_lo": 15,
+              "width": 1
             },
             {
               "name": "REGISTER",
-              "bit_hi": 13,
+              "bit_hi": 14,
               "bit_lo": 12,
-              "width": 2
+              "width": 3
             },
             {
               "name": "1",
@@ -6862,14 +6862,14 @@
             {
               "name": "D/A",
               "bit_hi": 15,
-              "bit_lo": 14,
-              "width": 2
+              "bit_lo": 15,
+              "width": 1
             },
             {
               "name": "REGISTER",
-              "bit_hi": 13,
+              "bit_hi": 14,
               "bit_lo": 12,
-              "width": 2
+              "width": 3
             },
             {
               "name": "0",
@@ -7065,14 +7065,14 @@
             {
               "name": "SIZE",
               "bit_hi": 6,
-              "bit_lo": 5,
-              "width": 2
+              "bit_lo": 6,
+              "width": 1
             },
             {
               "name": "COPROCESSOR CONDITION",
-              "bit_hi": 4,
+              "bit_hi": 5,
               "bit_lo": 0,
-              "width": 5
+              "width": 6
             }
           ]
         }
@@ -11670,14 +11670,14 @@
             {
               "name": "SIZE",
               "bit_hi": 6,
-              "bit_lo": 5,
-              "width": 2
+              "bit_lo": 6,
+              "width": 1
             },
             {
               "name": "MODE",
-              "bit_hi": 4,
+              "bit_hi": 5,
               "bit_lo": 3,
-              "width": 2
+              "width": 3
             },
             {
               "name": "REGISTER",
@@ -13977,14 +13977,14 @@
             {
               "name": "R/M",
               "bit_hi": 3,
-              "bit_lo": 2,
-              "width": 2
+              "bit_lo": 3,
+              "width": 1
             },
             {
               "name": "REGISTER Dx/Ax",
-              "bit_hi": 1,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 2
+              "width": 3
             }
           ]
         }
@@ -14979,14 +14979,14 @@
             {
               "name": "D/A",
               "bit_hi": 3,
-              "bit_lo": 2,
-              "width": 2
+              "bit_lo": 3,
+              "width": 1
             },
             {
               "name": "REGISTER",
-              "bit_hi": 1,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 2
+              "width": 3
             }
           ]
         }
@@ -15392,14 +15392,14 @@
             {
               "name": "R/M",
               "bit_hi": 3,
-              "bit_lo": 2,
-              "width": 2
+              "bit_lo": 3,
+              "width": 1
             },
             {
               "name": "REGISTER Dx/Ax",
-              "bit_hi": 1,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 2
+              "width": 3
             }
           ]
         }
@@ -16302,14 +16302,14 @@
             {
               "name": "R/M",
               "bit_hi": 3,
-              "bit_lo": 2,
-              "width": 2
+              "bit_lo": 3,
+              "width": 1
             },
             {
               "name": "REGISTER Dx/Ax",
-              "bit_hi": 1,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 2
+              "width": 3
             }
           ]
         }
@@ -17502,14 +17502,14 @@
             {
               "name": "R/M",
               "bit_hi": 3,
-              "bit_lo": 2,
-              "width": 2
+              "bit_lo": 3,
+              "width": 1
             },
             {
               "name": "REGISTER Dx/Ax",
-              "bit_hi": 1,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 2
+              "width": 3
             }
           ]
         }
@@ -19194,14 +19194,14 @@
             {
               "name": "A/D",
               "bit_hi": 15,
-              "bit_lo": 14,
-              "width": 2
+              "bit_lo": 15,
+              "width": 1
             },
             {
               "name": "REGISTER",
-              "bit_hi": 13,
+              "bit_hi": 14,
               "bit_lo": 12,
-              "width": 2
+              "width": 3
             },
             {
               "name": "CONTROL REGISTER",
@@ -19480,14 +19480,14 @@
             {
               "name": "A/D",
               "bit_hi": 15,
-              "bit_lo": 14,
-              "width": 2
+              "bit_lo": 15,
+              "width": 1
             },
             {
               "name": "REGISTER",
-              "bit_hi": 13,
+              "bit_hi": 14,
               "bit_lo": 12,
-              "width": 2
+              "width": 3
             },
             {
               "name": "dr",
@@ -19857,14 +19857,14 @@
             {
               "name": "SIZE",
               "bit_hi": 6,
-              "bit_lo": 5,
-              "width": 2
+              "bit_lo": 6,
+              "width": 1
             },
             {
               "name": "MC68851 CONDITION",
-              "bit_hi": 4,
+              "bit_hi": 5,
               "bit_lo": 0,
-              "width": 5
+              "width": 6
             }
           ]
         }
@@ -20637,14 +20637,14 @@
             {
               "name": "MASK",
               "bit_hi": 8,
-              "bit_lo": 5,
-              "width": 4
+              "bit_lo": 6,
+              "width": 3
             },
             {
               "name": "FC",
-              "bit_hi": 4,
+              "bit_hi": 5,
               "bit_lo": 0,
-              "width": 5
+              "width": 6
             }
           ]
         }
@@ -23640,20 +23640,20 @@
             {
               "name": "R/ W",
               "bit_hi": 9,
-              "bit_lo": 8,
-              "width": 2
+              "bit_lo": 9,
+              "width": 1
             },
             {
               "name": "A-REGISTER",
-              "bit_hi": 7,
-              "bit_lo": 5,
+              "bit_hi": 8,
+              "bit_lo": 6,
               "width": 3
             },
             {
               "name": "FC",
-              "bit_hi": 4,
+              "bit_hi": 5,
               "bit_lo": 0,
-              "width": 5
+              "width": 6
             }
           ]
         }
