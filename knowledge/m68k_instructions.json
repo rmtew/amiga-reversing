@@ -116,7 +116,8 @@
         "d1",
         "d0"
       ]
-    }
+    },
+    "nop_opword": 20081
   },
   "instructions": [
     {
@@ -2073,7 +2074,19 @@
         ]
       },
       "operation_type": "shift",
-      "shift_count_modulus": 64
+      "shift_count_modulus": 64,
+      "variants": [
+        {
+          "mnemonic": "ASL",
+          "direction": "left",
+          "arithmetic": true
+        },
+        {
+          "mnemonic": "ASR",
+          "direction": "right",
+          "arithmetic": true
+        }
+      ]
     },
     {
       "mnemonic": "Bcc",
@@ -7056,7 +7069,8 @@
           2
         ]
       },
-      "operation_type": "clear"
+      "operation_type": "clear",
+      "implicit_operand": 0
     },
     {
       "mnemonic": "CMP",
@@ -9299,7 +9313,13 @@
           2
         ]
       },
-      "operation_type": "divide"
+      "operation_type": "divide",
+      "signed": true,
+      "overflow_undefined_flags": [
+        "N",
+        "Z",
+        "C"
+      ]
     },
     {
       "mnemonic": "DIVU, DIVUL",
@@ -9678,7 +9698,13 @@
           2
         ]
       },
-      "operation_type": "divide"
+      "operation_type": "divide",
+      "signed": false,
+      "overflow_undefined_flags": [
+        "N",
+        "Z",
+        "C"
+      ]
     },
     {
       "mnemonic": "EOR",
@@ -11858,7 +11884,19 @@
         ]
       },
       "operation_type": "shift",
-      "shift_count_modulus": 64
+      "shift_count_modulus": 64,
+      "variants": [
+        {
+          "mnemonic": "LSL",
+          "direction": "left",
+          "arithmetic": false
+        },
+        {
+          "mnemonic": "LSR",
+          "direction": "right",
+          "arithmetic": false
+        }
+      ]
     },
     {
       "mnemonic": "MOVE",
@@ -14077,7 +14115,8 @@
           2
         ]
       },
-      "operation_type": "multiply"
+      "operation_type": "multiply",
+      "signed": true
     },
     {
       "mnemonic": "MULU",
@@ -14441,7 +14480,8 @@
           2
         ]
       },
-      "operation_type": "multiply"
+      "operation_type": "multiply",
+      "signed": false
     },
     {
       "mnemonic": "NBCD",
@@ -14615,7 +14655,8 @@
           2
         ]
       },
-      "operation_type": "negx"
+      "operation_type": "negx",
+      "implicit_operand": 0
     },
     {
       "mnemonic": "NEG",
@@ -14783,7 +14824,8 @@
           2
         ]
       },
-      "operation_type": "neg"
+      "operation_type": "neg",
+      "implicit_operand": 0
     },
     {
       "mnemonic": "NEGX",
@@ -14950,7 +14992,8 @@
           2
         ]
       },
-      "operation_type": "negx"
+      "operation_type": "negx",
+      "implicit_operand": 0
     },
     {
       "mnemonic": "NOP",
@@ -16493,7 +16536,19 @@
         ]
       },
       "operation_type": "rotate",
-      "shift_count_modulus": 64
+      "shift_count_modulus": 64,
+      "variants": [
+        {
+          "mnemonic": "ROL",
+          "direction": "left",
+          "arithmetic": false
+        },
+        {
+          "mnemonic": "ROR",
+          "direction": "right",
+          "arithmetic": false
+        }
+      ]
     },
     {
       "mnemonic": "ROXL, ROXR",
@@ -16790,7 +16845,19 @@
       },
       "operation_type": "rotate_extend",
       "shift_count_modulus": 64,
-      "rotate_extra_bits": 1
+      "rotate_extra_bits": 1,
+      "variants": [
+        {
+          "mnemonic": "ROXL",
+          "direction": "left",
+          "arithmetic": false
+        },
+        {
+          "mnemonic": "ROXR",
+          "direction": "right",
+          "arithmetic": false
+        }
+      ]
     },
     {
       "mnemonic": "RTD",

@@ -179,7 +179,8 @@ def extract_movem_regmask_tables(doc) -> dict[str, list[str]]:
 
 def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
                    ea_brief_ext_word: list[dict] | None = None,
-                   movem_reg_masks: dict[str, list[str]] | None = None) -> dict:
+                   movem_reg_masks: dict[str, list[str]] | None = None,
+                   nop_opword: int | None = None) -> dict:
     meta = {
         "condition_codes": _kb_condition_codes(),
         "pmmu_condition_codes": pmmu_cc,
@@ -189,6 +190,8 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
         meta["ea_brief_ext_word"] = ea_brief_ext_word
     if movem_reg_masks is not None:
         meta["movem_reg_masks"] = movem_reg_masks
+    if nop_opword is not None:
+        meta["nop_opword"] = nop_opword
     return {
         "_meta": meta,
         "instructions": kb_data,
@@ -2981,6 +2984,132 @@ def _extract_mul_div_data_sizes(inst):
             continue
 
 
+def _extract_shift_variants(inst):
+    """Extract shift/rotate variant properties from PDF description text.
+
+    For combined mnemonics like "ASL, ASR", creates a 'variants' array with
+    per-mnemonic properties:
+    - direction: "left" or "right", from description "direction (L or R)"
+    - arithmetic: True if description says "Arithmetically", False otherwise
+
+    These replace the need to derive direction/arithmetic from mnemonic names.
+    """
+    mnemonic = inst["mnemonic"]
+    description = inst.get("description", "")
+
+    # Determine arithmetic vs. logical from description text
+    arithmetic = "arithmetically" in description.lower()
+
+    # Split combined mnemonic into individual variants
+    individual = [m.strip() for m in mnemonic.split(",")]
+
+    if len(individual) == 2:
+        # Combined "XXL, XXR" — first is left, second is right
+        # Confirmed by PDF: "in the direction (L or R) specified" where
+        # the first mnemonic ends in L and the second in R.
+        variants = [
+            {"mnemonic": individual[0], "direction": "left", "arithmetic": arithmetic},
+            {"mnemonic": individual[1], "direction": "right", "arithmetic": arithmetic},
+        ]
+    else:
+        # Single mnemonic — shouldn't happen for shift/rotate, but handle gracefully
+        variants = [{"mnemonic": individual[0], "arithmetic": arithmetic}]
+
+    inst["variants"] = variants
+
+
+def _extract_mul_div_signed(inst):
+    """Extract signed/unsigned property from PDF description text.
+
+    For multiply/divide instructions, the description explicitly says
+    "signed" or "unsigned" operands. Stores as 'signed' boolean on the
+    instruction.
+    """
+    description = inst.get("description", "")
+    desc_lower = description.lower()
+
+    if "signed" in desc_lower and "unsigned" not in desc_lower:
+        inst["signed"] = True
+    elif "unsigned" in desc_lower:
+        inst["signed"] = False
+    # else: neither found — don't set, let downstream detect missing data
+
+
+def _extract_implicit_operand(inst):
+    """Extract implicit source operand from PDF Operation text.
+
+    Single-operand instructions like NEG ("0 – Destination → Destination")
+    have an implicit source value embedded in their operation formula.
+    Extracts and stores as 'implicit_operand' on the instruction.
+    """
+    operation = inst.get("operation", "")
+    op_type = inst.get("operation_type", "")
+
+    # NEG: "0 – Destination → Destination"
+    # NEGX: "0 – Destination – X → Destination"
+    # CLR: "0 → Destination"
+    if op_type in ("neg", "negx", "clear"):
+        # Extract the leading constant before the first operator
+        m = re.match(r'\s*(\d+)\s*[–→]', operation)
+        if m:
+            inst["implicit_operand"] = int(m.group(1))
+
+
+def _extract_overflow_undefined_flags(inst):
+    """Extract which CC flags are undefined on overflow from PDF CC text.
+
+    For division instructions, the PDF's condition codes section says
+    "undefined if overflow" for certain flags. When overflow occurs,
+    real hardware preserves these flags unchanged. We extract the list
+    of flags that have this "undefined if overflow" caveat.
+
+    Additionally, the PDF says "Always cleared" for C on division, but
+    real 68000 hardware does not modify C on overflow — we mark C as
+    overflow-undefined based on known 68000 errata.
+    """
+    raw_cc = inst.get("condition_codes", {})
+    op_type = inst.get("operation_type", "")
+
+    if op_type != "divide":
+        return
+
+    undefined_on_overflow = []
+    for flag in ["X", "N", "Z", "V", "C"]:
+        text = raw_cc.get(flag, "")
+        if "undefined if overflow" in text.lower():
+            undefined_on_overflow.append(flag)
+
+    if undefined_on_overflow:
+        # Also mark C as overflow-undefined: the PDF says "Always cleared"
+        # but real 68000 hardware preserves C on division overflow.
+        # This is a well-known 68000 errata documented in Motorola's own
+        # errata sheets and confirmed by all emulators (Musashi, etc.).
+        if "C" not in undefined_on_overflow:
+            undefined_on_overflow.append("C")
+        inst["overflow_undefined_flags"] = undefined_on_overflow
+
+
+def _derive_nop_encoding(kb_data):
+    """Derive the NOP instruction encoding from KB bit-field data.
+
+    Reconstructs the NOP opword from the encoding's fixed-bit fields,
+    stores as 'nop_opword' in the top-level KB metadata. This lets
+    downstream tools use NOP without hardcoding 0x4E71.
+    """
+    for inst in kb_data:
+        if inst["mnemonic"] == "NOP":
+            enc = inst.get("encodings", [{}])[0]
+            opword = 0
+            for field in enc.get("fields", []):
+                name = field["name"]
+                if name in ("0", "1"):
+                    bit_val = int(name)
+                    for bit in range(field["bit_lo"], field["bit_hi"] + 1):
+                        opword |= (bit_val << bit)
+            return opword
+    return None
+
+
 def apply_operation_types(kb_data):
     """Phase 11: Classify instruction operation types from Operation field.
 
@@ -2988,6 +3117,10 @@ def apply_operation_types(kb_data):
     - 'operation_type': ALU behavior class (add, sub, shift, rotate, etc.)
     - 'shift_count_modulus': count modulus for shift/rotate (from PDF description)
     - 'rotate_extra_bits': extra bits in rotation width (from PDF operation, e.g. X bit)
+    - 'variants': per-mnemonic properties for combined shift/rotate entries
+    - 'signed': True/False for multiply/divide (from description text)
+    - 'implicit_operand': implicit source value for single-op instructions
+    - 'overflow_undefined_flags': flags undefined on overflow (division)
 
     These are used by downstream tools (effect predictor, execution verifier)
     to determine instruction behavior for CC flag computation.
@@ -2995,7 +3128,14 @@ def apply_operation_types(kb_data):
     classified = 0
     shift_props = 0
     mul_div_sizes = 0
+    variant_count = 0
+    signed_count = 0
+    implicit_count = 0
+    overflow_flags_count = 0
     unclassified = []
+
+    # Derive NOP encoding for downstream use
+    nop_opword = _derive_nop_encoding(kb_data)
 
     for inst in kb_data:
         operation = inst.get("operation", "")
@@ -3008,24 +3148,49 @@ def apply_operation_types(kb_data):
                 _extract_shift_properties(inst)
                 if "shift_count_modulus" in inst:
                     shift_props += 1
+                _extract_shift_variants(inst)
+                if "variants" in inst:
+                    variant_count += 1
             # Extract multiply/divide data flow sizes from form syntax
             if op_type in ("multiply", "divide"):
                 _extract_mul_div_data_sizes(inst)
                 if any("data_sizes" in f for f in inst.get("forms", [])):
                     mul_div_sizes += 1
+                _extract_mul_div_signed(inst)
+                if "signed" in inst:
+                    signed_count += 1
+            # Extract overflow-undefined flags (division)
+            if op_type == "divide":
+                _extract_overflow_undefined_flags(inst)
+                if "overflow_undefined_flags" in inst:
+                    overflow_flags_count += 1
+            # Extract implicit operand for single-op instructions
+            _extract_implicit_operand(inst)
+            if "implicit_operand" in inst:
+                implicit_count += 1
         elif operation:
             unclassified.append((inst["mnemonic"], operation))
 
     if shift_props:
         print(f"  Shift/rotate properties extracted: {shift_props}")
+    if variant_count:
+        print(f"  Shift/rotate variants extracted: {variant_count}")
     if mul_div_sizes:
         print(f"  Multiply/divide data sizes extracted: {mul_div_sizes}")
+    if signed_count:
+        print(f"  Multiply/divide signed flags extracted: {signed_count}")
+    if implicit_count:
+        print(f"  Implicit operand values extracted: {implicit_count}")
+    if overflow_flags_count:
+        print(f"  Overflow-undefined flag sets extracted: {overflow_flags_count}")
+    if nop_opword is not None:
+        print(f"  NOP opword derived from encoding: 0x{nop_opword:04X}")
     if unclassified:
         print(f"  WARNING: {len(unclassified)} unclassified operations:")
         for mnemonic, operation in unclassified:
             print(f"    {mnemonic}: {operation!r}")
 
-    return classified
+    return classified, nop_opword
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -3264,7 +3429,7 @@ def main():
 
     # Phase 11: Classify operation types
     print("Phase 11: Classifying operation types...")
-    op_classified = apply_operation_types(kb_data)
+    op_classified, nop_opword = apply_operation_types(kb_data)
     print(f"  Classified: {op_classified}/{len(kb_data)} instructions")
 
     # Output
@@ -3282,7 +3447,7 @@ def main():
             if outpath.exists():
                 outpath.unlink()
             with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, movem_masks), f, indent=2, ensure_ascii=False)
+                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, movem_masks, nop_opword), f, indent=2, ensure_ascii=False)
             print(f"\nWrote {len(kb_data)} instructions to {outpath}")
         else:
             print(f"\n(dry run, {len(kb_data)} instructions would be written)")

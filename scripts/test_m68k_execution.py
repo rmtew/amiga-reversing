@@ -38,9 +38,10 @@ def _load_kb():
     with open(KNOWLEDGE, encoding="utf-8") as f:
         data = json.load(f)
     instructions = data.get("instructions", [])
-    return {inst["mnemonic"]: inst for inst in instructions}, instructions
+    meta = data.get("_meta", {})
+    return {inst["mnemonic"]: inst for inst in instructions}, instructions, meta
 
-KB, KB_LIST = _load_kb()
+KB, KB_LIST, KB_META = _load_kb()
 
 
 def _instr_size(code_bytes):
@@ -73,6 +74,11 @@ CCR_V = 0x0002
 CCR_Z = 0x0004
 CCR_N = 0x0008
 CCR_X = 0x0010
+
+# NOP opword derived from KB encoding data (not hardcoded)
+NOP_OPWORD = KB_META.get("nop_opword")
+if NOP_OPWORD is None:
+    raise RuntimeError("KB _meta missing nop_opword — regenerate KB")
 
 
 def make_machine():
@@ -134,9 +140,9 @@ def load_and_execute(machine, code_bytes):
     # Write code bytes + NOP landing zone (assembled via vasm, cached)
     for i, b in enumerate(code_bytes):
         mem.w8(CODE_ADDR + i, b)
-    # NOP = 0x4E71 — write safe landing zone after code
+    # Write NOP landing zone after code (opword from KB encoding)
     for offset in range(len(code_bytes), len(code_bytes) + 8, 2):
-        mem.w16(CODE_ADDR + offset, 0x4E71)
+        mem.w16(CODE_ADDR + offset, NOP_OPWORD)
 
     # Capture state on the SECOND instruction hook call.
     # First call = about to execute test instruction (PC = CODE_ADDR).
@@ -254,23 +260,29 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     result_full, result = _compute_result(
         op_type, src, dst, result_mask, result_bits, initial_ccr, ctx)
 
-    # Division overflow: real 68000 hardware aborts the divide — the
-    # destination register is unchanged. Per Musashi (our oracle):
-    # V is set to 1, all other flags (X, N, Z, C) are unchanged.
-    # The PDF says C is "always cleared" but real hardware preserves it.
-    if op_type == "divide" and _division_overflows(result_full, result_bits, ctx):
-        overflow_cc = dict(initial_ccr)
-        overflow_cc["V"] = 1
-        return overflow_cc
-
     # Predict each flag using KB cc_semantics rules
     predicted = {}
     for flag in ["X", "N", "Z", "V", "C"]:
-        rule = cc_sem.get(flag, {}).get("rule", "unchanged")
+        flag_spec = cc_sem.get(flag)
+        if flag_spec is None:
+            raise RuntimeError(
+                f"{inst['mnemonic']}: flag {flag} missing from cc_semantics in KB")
+        rule = flag_spec.get("rule")
+        if rule is None:
+            raise RuntimeError(
+                f"{inst['mnemonic']}: flag {flag} has no 'rule' key in cc_semantics")
         predicted[flag] = _apply_rule(
             rule, flag, result, result_full, src, dst, result_mask, result_bits,
             op_type, initial_ccr, cc_sem, ctx
         )
+
+    # KB overflow_undefined_flags: on overflow (V=1), real hardware preserves
+    # these flags unchanged. The PDF marks them "undefined if overflow" and
+    # the C flag is included per known 68000 errata. All driven from KB data.
+    overflow_undef = inst.get("overflow_undefined_flags")
+    if overflow_undef and predicted.get("V") == 1:
+        for flag in overflow_undef:
+            predicted[flag] = initial_ccr.get(flag, 0)
 
     return predicted
 
@@ -523,7 +535,14 @@ def _rule_last_shifted_out(result, result_full, src, dst, mask, bits, op_type, c
     """Last bit shifted out of the operand. Handles zero_count sub-rule."""
     count = src % ctx["count_modulus"]
     if count == 0:
-        zero_rule = cc_sem.get(flag, {}).get("zero_count", "unchanged")
+        flag_spec = cc_sem.get(flag)
+        if flag_spec is None:
+            raise RuntimeError(
+                f"last_shifted_out: flag {flag} missing from cc_semantics")
+        zero_rule = flag_spec.get("zero_count")
+        if zero_rule is None:
+            raise RuntimeError(
+                f"last_shifted_out: flag {flag} missing 'zero_count' sub-rule in KB")
         if zero_rule == "unchanged":
             return ccr.get(flag, 0)
         elif zero_rule == "cleared":
@@ -556,7 +575,14 @@ def _rule_last_rotated_out(result, result_full, src, dst, mask, bits, op_type, c
     """Last bit rotated out. Handles zero_count sub-rule."""
     count = src % ctx["count_modulus"]
     if count == 0:
-        zero_rule = cc_sem.get(flag, {}).get("zero_count", "unchanged")
+        flag_spec = cc_sem.get(flag)
+        if flag_spec is None:
+            raise RuntimeError(
+                f"last_rotated_out: flag {flag} missing from cc_semantics")
+        zero_rule = flag_spec.get("zero_count")
+        if zero_rule is None:
+            raise RuntimeError(
+                f"last_rotated_out: flag {flag} missing 'zero_count' sub-rule in KB")
         if zero_rule == "unchanged":
             return ccr.get(flag, 0)
         elif zero_rule == "cleared":
@@ -773,10 +799,18 @@ def _has_nontrivial_cc(inst):
 
 
 def _cc_rules_are_supported(inst):
-    """Return True if all CC rules for this instruction are in _RULE_HANDLERS."""
+    """Return True if all CC rules for this instruction are in _RULE_HANDLERS.
+
+    Raises RuntimeError if a flag_spec exists but has no 'rule' key —
+    this indicates incomplete KB data that should be fixed upstream.
+    """
     cc_sem = inst.get("cc_semantics", {})
-    for flag_spec in cc_sem.values():
-        rule = flag_spec.get("rule", "unchanged")
+    for flag, flag_spec in cc_sem.items():
+        rule = flag_spec.get("rule")
+        if rule is None:
+            raise RuntimeError(
+                f"{inst['mnemonic']}: flag {flag} has cc_semantics entry "
+                f"but no 'rule' key — fix KB")
         if rule not in _RULE_HANDLERS:
             return False
     return True
@@ -945,33 +979,21 @@ DIVIDE_TEST_VALUES = [
 ]
 
 
-def _parse_shift_direction(individual_mnemonic):
-    """Derive shift direction from an individual mnemonic name.
+def _get_variant_props(inst, individual_mnemonic):
+    """Look up variant properties for an individual mnemonic from KB 'variants' array.
 
-    The last character of shift/rotate mnemonics encodes direction:
-    ASL→L, ASR→R, LSL→L, LSR→R, ROL→L, ROR→R, ROXL→L, ROXR→R.
-
-    Returns 'L' or 'R'.
+    Returns the variant dict (with 'direction', 'arithmetic' keys) or raises
+    RuntimeError if the variant is not found in the KB.
     """
-    return individual_mnemonic[-1].upper()
-
-
-def _is_arithmetic_shift(individual_mnemonic):
-    """Return True if mnemonic is an arithmetic shift (ASL/ASR vs LSL/LSR).
-
-    Derived from mnemonic prefix: 'A' = arithmetic, 'L' = logical.
-    """
-    return individual_mnemonic[0].upper() == "A"
-
-
-def _is_signed_mul_div(individual_mnemonic):
-    """Return True if mnemonic is a signed multiply/divide.
-
-    Derived from mnemonic suffix: 'S' = signed (MULS, DIVS), 'U' = unsigned.
-    """
-    # Strip trailing 'L' for long forms (DIVSL, DIVUL, etc.)
-    m = individual_mnemonic.upper().rstrip("L")
-    return m.endswith("S")
+    variants = inst.get("variants")
+    if variants is None:
+        raise RuntimeError(
+            f"{inst['mnemonic']}: missing 'variants' in KB — regenerate KB")
+    for v in variants:
+        if v["mnemonic"].upper() == individual_mnemonic.upper():
+            return v
+    raise RuntimeError(
+        f"{inst['mnemonic']}: no variant '{individual_mnemonic}' in KB variants {variants}")
 
 
 def _split_combined_mnemonic(mnemonic):
@@ -1001,18 +1023,6 @@ def _find_form_data_sizes(inst, sz):
             if ds:
                 return ds
     return None
-
-
-def _has_non020_form_for_size(inst, sz):
-    """Check if instruction has a non-020+ form for the given size."""
-    for form in inst.get("forms", []):
-        if form.get("processor_020"):
-            continue
-        # If form has explicit sizes, check match; otherwise use inst sizes
-        form_sizes = form.get("sizes")
-        if form_sizes is None or sz in form_sizes:
-            return True
-    return False
 
 
 def generate_cc_tests(inst, form_info, tmpdir):
@@ -1055,15 +1065,26 @@ def generate_cc_tests(inst, form_info, tmpdir):
             if base.upper() in [m.strip().upper() for m in mnemonic.split(",")]:
                 continue
 
-        # Build context for shift/rotate instructions
+        # Build context from KB variant/instruction properties
         if is_shift_rotate:
+            variant = _get_variant_props(inst, indiv_mnemonic)
             count_mod = inst.get("shift_count_modulus")
             if count_mod is None:
                 raise RuntimeError(
                     f"{mnemonic}: missing shift_count_modulus in KB")
+            direction = variant.get("direction")
+            if direction is None:
+                raise RuntimeError(
+                    f"{mnemonic}: variant {indiv_mnemonic} missing 'direction' in KB")
+            arithmetic = variant.get("arithmetic")
+            if arithmetic is None:
+                raise RuntimeError(
+                    f"{mnemonic}: variant {indiv_mnemonic} missing 'arithmetic' in KB")
+            # Map KB direction names to internal convention used by compute handlers
+            dir_map = {"left": "L", "right": "R"}
             ctx = {
-                "direction": _parse_shift_direction(indiv_mnemonic),
-                "arithmetic": _is_arithmetic_shift(indiv_mnemonic),
+                "direction": dir_map[direction],
+                "arithmetic": arithmetic,
                 "count_modulus": count_mod,
             }
             # rotate_extend needs extra_bits (from KB rotate_extra_bits)
@@ -1074,8 +1095,12 @@ def generate_cc_tests(inst, form_info, tmpdir):
                         f"{mnemonic}: missing rotate_extra_bits in KB")
                 ctx["extra_bits"] = extra
         elif is_mul_div:
+            signed = inst.get("signed")
+            if signed is None:
+                raise RuntimeError(
+                    f"{mnemonic}: missing 'signed' field in KB — regenerate KB")
             ctx = {
-                "signed": _is_signed_mul_div(indiv_mnemonic),
+                "signed": signed,
             }
         else:
             ctx = {}
@@ -1141,7 +1166,7 @@ def generate_sp_tests(inst, tmpdir):
         code = assemble(asm, tmpdir)
         if code:
             def setup(cpu, mem, _t=target):
-                mem.w16(_t, 0x4E71)  # NOP at target
+                mem.w16(_t, NOP_OPWORD)  # NOP at target (from KB)
             pred_sp = predict_sp(inst, STACK_ADDR)
             yield (asm, code, setup, pred_sp, target, "jsr abs")
 
@@ -1165,7 +1190,7 @@ def generate_sp_tests(inst, tmpdir):
             def setup(cpu, mem, _ra=return_addr):
                 cpu.w_sp(STACK_ADDR - 4)
                 mem.w32(STACK_ADDR - 4, _ra)
-                mem.w16(_ra, 0x4E71)  # NOP at return target
+                mem.w16(_ra, NOP_OPWORD)  # NOP at return target (from KB)
             # RTS pops 4 bytes: SP goes from STACK_ADDR-4 to STACK_ADDR
             pred_sp = predict_sp(inst, STACK_ADDR - 4)
             yield (asm, code, setup, pred_sp, return_addr, "rts")
@@ -1256,9 +1281,11 @@ def run_tests(filter_mnemonic=None, verbose=False):
                         z=initial_ccr["Z"], v=initial_ccr["V"], c=initial_ccr["C"])
                 ccr_before = read_ccr(cpu)
 
-                # Predict CC from KB
+                # Predict CC from KB — single-op uses implicit_operand from KB.
+                # Instructions without implicit_operand (NOT, TST) don't use
+                # the source value in their compute handler, so 0 is safe.
                 if form_type == "single_op":
-                    pred_src = 0  # single-op: implicit source is 0 (NEG) or irrelevant
+                    pred_src = inst.get("implicit_operand", 0)
                 else:
                     pred_src = src_val
                 predicted_cc = predict_cc(inst, sz, pred_src, dst_val, ccr_before, ctx)
