@@ -1905,10 +1905,11 @@
       "uses_label": true,
       "constraints": {
         "immediate_range": {
-          "min": 0,
-          "max": 255,
+          "min": -128,
+          "max": 127,
           "field": "8-BIT DISPLACEMENT",
-          "bits": 8
+          "bits": 8,
+          "signed": true
         },
         "cc_parameterized": {
           "prefix": "b",
@@ -4338,10 +4339,11 @@
       "uses_label": true,
       "constraints": {
         "immediate_range": {
-          "min": 0,
-          "max": 255,
+          "min": -128,
+          "max": 127,
           "field": "8-BIT DISPLACEMENT",
-          "bits": 8
+          "bits": 8,
+          "signed": true
         },
         "sizes_68000": [
           "b",
@@ -4757,10 +4759,11 @@
       "uses_label": true,
       "constraints": {
         "immediate_range": {
-          "min": 0,
-          "max": 255,
+          "min": -128,
+          "max": 127,
           "field": "8-BIT DISPLACEMENT",
-          "bits": 8
+          "bits": 8,
+          "signed": true
         },
         "sizes_68000": [
           "b",
@@ -7086,58 +7089,10 @@
         {
           "fields": [
             {
-              "name": "1",
-              "bit_hi": 15,
-              "bit_lo": 15,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 14,
-              "bit_lo": 14,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 13,
-              "bit_lo": 13,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 12,
-              "bit_lo": 12,
-              "width": 1
-            },
-            {
               "name": "ID",
-              "bit_hi": 11,
-              "bit_lo": 9,
-              "width": 3
-            },
-            {
-              "name": "0",
-              "bit_hi": 8,
-              "bit_lo": 8,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 7,
-              "bit_lo": 7,
-              "width": 1
-            },
-            {
-              "name": "SIZE",
-              "bit_hi": 6,
-              "bit_lo": 6,
-              "width": 1
-            },
-            {
-              "name": "COPROCESSOR CONDITION",
-              "bit_hi": 5,
+              "bit_hi": 15,
               "bit_lo": 0,
-              "width": 6
+              "width": 16
             }
           ]
         }
@@ -7200,76 +7155,10 @@
         {
           "fields": [
             {
-              "name": "1",
-              "bit_hi": 15,
-              "bit_lo": 15,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 14,
-              "bit_lo": 14,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 13,
-              "bit_lo": 13,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 12,
-              "bit_lo": 12,
-              "width": 1
-            },
-            {
               "name": "ID",
-              "bit_hi": 11,
-              "bit_lo": 9,
-              "width": 3
-            },
-            {
-              "name": "0",
-              "bit_hi": 8,
-              "bit_lo": 8,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 7,
-              "bit_lo": 7,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 6,
-              "bit_lo": 6,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 5,
-              "bit_lo": 5,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 4,
-              "bit_lo": 4,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 3,
-              "bit_lo": 3,
-              "width": 1
-            },
-            {
-              "name": "REGISTER",
-              "bit_hi": 2,
+              "bit_hi": 15,
               "bit_lo": 0,
-              "width": 3
+              "width": 16
             }
           ]
         },
@@ -7403,58 +7292,20 @@
         {
           "fields": [
             {
-              "name": "1",
-              "bit_hi": 15,
-              "bit_lo": 15,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 14,
-              "bit_lo": 14,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 13,
-              "bit_lo": 13,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 12,
-              "bit_lo": 12,
-              "width": 1
-            },
-            {
               "name": "ID",
-              "bit_hi": 11,
-              "bit_lo": 9,
-              "width": 3
-            },
-            {
-              "name": "0",
-              "bit_hi": 8,
-              "bit_lo": 8,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 7,
-              "bit_lo": 7,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 6,
-              "bit_lo": 6,
-              "width": 1
-            },
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
+        },
+        {
+          "fields": [
             {
               "name": "MODE",
-              "bit_hi": 5,
+              "bit_hi": 15,
               "bit_lo": 3,
-              "width": 3
+              "width": 13
             },
             {
               "name": "REGISTER",
@@ -7719,76 +7570,10 @@
         {
           "fields": [
             {
-              "name": "1",
-              "bit_hi": 15,
-              "bit_lo": 15,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 14,
-              "bit_lo": 14,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 13,
-              "bit_lo": 13,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 12,
-              "bit_lo": 12,
-              "width": 1
-            },
-            {
               "name": "ID",
-              "bit_hi": 11,
-              "bit_lo": 9,
-              "width": 3
-            },
-            {
-              "name": "0",
-              "bit_hi": 8,
-              "bit_lo": 8,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 7,
-              "bit_lo": 7,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 6,
-              "bit_lo": 6,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 5,
-              "bit_lo": 5,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 4,
-              "bit_lo": 4,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 3,
-              "bit_lo": 3,
-              "width": 1
-            },
-            {
-              "name": "OPMODE",
-              "bit_hi": 2,
+              "bit_hi": 15,
               "bit_lo": 0,
-              "width": 3
+              "width": 16
             }
           ]
         },
@@ -7900,26 +7685,7 @@
         "w",
         "l"
       ],
-      "uses_label": false,
-      "constraints": {
-        "opmode_table": [
-          {
-            "opmode": 2,
-            "size": "w",
-            "description": "Instruction is followed by one operand word"
-          },
-          {
-            "opmode": 3,
-            "size": "l",
-            "description": "Instruction is followed by two operand words"
-          },
-          {
-            "opmode": 4,
-            "size": null,
-            "description": "Instruction has no following operand words"
-          }
-        ]
-      }
+      "uses_label": false
     },
     {
       "mnemonic": "DBcc",
@@ -8008,6 +7774,16 @@
               "width": 3
             }
           ]
+        },
+        {
+          "fields": [
+            {
+              "name": "16-BIT DISPLACEMENT",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
         }
       ],
       "field_descriptions": {
@@ -8048,6 +7824,12 @@
       ],
       "uses_label": true,
       "constraints": {
+        "immediate_range": {
+          "min": 0,
+          "max": 65535,
+          "field": "16-BIT DISPLACEMENT",
+          "bits": 16
+        },
         "cc_parameterized": {
           "prefix": "db",
           "field_bits": 4,
@@ -10162,7 +9944,7 @@
         {
           "fields": [
             {
-              "name": "Instruction Format:",
+              "name": "WORD DISPLACEMENT",
               "bit_hi": 15,
               "bit_lo": 0,
               "width": 16
@@ -10256,6 +10038,26 @@
               "width": 3
             }
           ]
+        },
+        {
+          "fields": [
+            {
+              "name": "HIGH-ORDER DISPLACEMENT",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
+        },
+        {
+          "fields": [
+            {
+              "name": "LOW-ORDER DISPLACEMENT",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
         }
       ],
       "field_descriptions": {
@@ -10296,6 +10098,13 @@
       ],
       "uses_label": false,
       "constraints": {
+        "immediate_range": {
+          "min": -32768,
+          "max": 32767,
+          "field": "WORD DISPLACEMENT",
+          "bits": 16,
+          "signed": true
+        },
         "sizes_68000": [
           "w"
         ]
@@ -11543,6 +11352,26 @@
               "width": 3
             }
           ]
+        },
+        {
+          "fields": [
+            {
+              "name": "HIGH-ORDER ADDRESS",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
+        },
+        {
+          "fields": [
+            {
+              "name": "LOW-ORDER ADDRESS",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
         }
       ],
       "field_descriptions": {},
@@ -11629,6 +11458,12 @@
       "sizes": [],
       "uses_label": false,
       "constraints": {
+        "immediate_range": {
+          "min": 0,
+          "max": 65535,
+          "field": "HIGH-ORDER ADDRESS",
+          "bits": 16
+        },
         "opmode_table": [
           {
             "opmode": 0,
@@ -11926,6 +11761,16 @@
               "bit_hi": 2,
               "bit_lo": 0,
               "width": 3
+            }
+          ]
+        },
+        {
+          "fields": [
+            {
+              "name": "16-BIT DISPLACEMENT",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
             }
           ]
         }
@@ -14913,6 +14758,16 @@
         {
           "fields": [
             {
+              "name": "16-BIT DISPLACEMENT",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
+        },
+        {
+          "fields": [
+            {
               "name": "Instruction Field:",
               "bit_hi": 15,
               "bit_lo": 0,
@@ -14947,7 +14802,15 @@
       },
       "processor_min": "68010",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "constraints": {
+        "immediate_range": {
+          "min": 0,
+          "max": 65535,
+          "field": "16-BIT DISPLACEMENT",
+          "bits": 16
+        }
+      }
     },
     {
       "mnemonic": "RTM",
@@ -16969,6 +16832,16 @@
               "width": 3
             }
           ]
+        },
+        {
+          "fields": [
+            {
+              "name": "OPTIONAL WORD",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
         }
       ],
       "field_descriptions": {
@@ -17018,6 +16891,12 @@
       ],
       "uses_label": false,
       "constraints": {
+        "immediate_range": {
+          "min": 0,
+          "max": 65535,
+          "field": "OPTIONAL WORD",
+          "bits": 16
+        },
         "cc_parameterized": {
           "prefix": "trap",
           "field_bits": 4,
@@ -20145,6 +20024,16 @@
               "bit_hi": 5,
               "bit_lo": 0,
               "width": 6
+            }
+          ]
+        },
+        {
+          "fields": [
+            {
+              "name": "16-BIT DISPLACEMENT",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
             }
           ]
         }
@@ -24839,6 +24728,16 @@
               "width": 1
             }
           ]
+        },
+        {
+          "fields": [
+            {
+              "name": "IMMEDIATE DATA",
+              "bit_hi": 15,
+              "bit_lo": 0,
+              "width": 16
+            }
+          ]
         }
       ],
       "field_descriptions": {
@@ -24870,7 +24769,15 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "constraints": {
+        "immediate_range": {
+          "min": 0,
+          "max": 65535,
+          "field": "IMMEDIATE DATA",
+          "bits": 16
+        }
+      }
     }
   ]
 }

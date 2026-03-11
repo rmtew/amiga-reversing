@@ -487,11 +487,8 @@ def find_encoding_tables(rows, summary_mode=False) -> list[list[BitField]]:
         header_y = y_key
 
         col_xs = sorted(x_to_bit.keys())
-        bit_15_x = None
-        for cx, bn in x_to_bit.items():
-            if bn == 15:
-                bit_15_x = cx
-                break
+        bit_x = {bn: cx for cx, bn in x_to_bit.items()}
+        bit_15_x = bit_x.get(15)
         half_col = ((col_xs[-1] - col_xs[0]) / (len(col_xs) - 1) / 2
                     if len(col_xs) >= 2 else 15.0)
 
@@ -533,6 +530,26 @@ def find_encoding_tables(rows, summary_mode=False) -> list[list[BitField]]:
                 current_cluster = []
                 first_cluster_started = True
 
+            # Detect extension word label rows: a single centered label spanning
+            # most of the encoding width (e.g. "WORD DISPLACEMENT", "16-BIT
+            # DISPLACEMENT").  These are full 16-bit extension word fields that
+            # don't align with bit-15 because the text is centered.
+            non_bit_items = [e for e in enc_items if e[2] not in ("0", "1")]
+            if (first_cluster_started and len(non_bit_items) == len(enc_items)
+                    and 1 <= len(non_bit_items) <= 2
+                    and not starts_new_word):
+                label = " ".join(e[2] for e in sorted(non_bit_items, key=lambda e: e[0]))
+                if label.upper() not in ("MODE", "REGISTER", "MODE REGISTER"):
+                    # Flush current cluster and emit extension word as its own cluster
+                    if current_cluster:
+                        all_clusters.append(current_cluster)
+                        current_cluster = []
+                    all_clusters.append([
+                        (bit_x[15], bit_x[0], label, non_bit_items[0][3],
+                         non_bit_items[0][4], non_bit_items[0][5])
+                    ])
+                    continue
+
             if first_cluster_started:
                 current_cluster.extend(enc_items)
 
@@ -544,6 +561,10 @@ def find_encoding_tables(rows, summary_mode=False) -> list[list[BitField]]:
                 key=lambda e: (0 if e[2] in ("0", "1") else 1, e[5], e[1] - e[0]))
             fields = _map_values_to_bits(x_to_bit, sorted_cluster)
             if fields and sum(f.width for f in fields) >= 15:
+                # Skip spurious single-field entries from "Instruction Format:" labels
+                if (len(fields) == 1
+                        and fields[0].name.startswith("Instruction Format")):
+                    continue
                 encodings.append(fields)
 
     return encodings
@@ -1569,13 +1590,24 @@ def _find_encoding_field(encodings, target_name):
 
 
 def _find_field_description(fd, field_name):
-    """Find a field description by name, case-insensitive."""
+    """Find a field description by name, case-insensitive.
+
+    Also matches extension word field names like "WORD DISPLACEMENT" or
+    "16-BIT DISPLACEMENT" to a base description key like "Displacement".
+    """
     fn_lower = field_name.lower()
     for fd_key, fd_val in fd.items():
         if fd_key.lower() == fn_lower:
             return fd_val
         if fd_key.lower().replace(" ", "").replace("/", "") == fn_lower.replace(" ", "").replace("/", ""):
             return fd_val
+    # Fallback: check if the last word of the field name matches an fd_key
+    # (handles "WORD DISPLACEMENT" → "Displacement", "16-BIT DISPLACEMENT" → "Displacement")
+    last_word = fn_lower.rsplit(None, 1)[-1] if fn_lower else ""
+    if last_word:
+        for fd_key, fd_val in fd.items():
+            if fd_key.lower() == last_word:
+                return fd_val
     return ""
 
 
@@ -1621,7 +1653,8 @@ def _extract_immediate_range(inst):
                 }
             dl = desc.lower()
 
-            if "sign-extended" in dl or "sign extended" in dl:
+            if ("sign-extended" in dl or "sign extended" in dl
+                    or "twos complement" in dl or "two\u2019s complement" in dl):
                 return {
                     "min": -(1 << (bit_width - 1)),
                     "max": (1 << (bit_width - 1)) - 1,

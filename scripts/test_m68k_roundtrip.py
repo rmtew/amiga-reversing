@@ -420,8 +420,10 @@ def generate_tests(inst, compat=None):
                 break
 
             elif op_types == ["an", "imm"]:
-                tests.append((f"{form_mn} a6,#-100", "negative"))
-                tests.append((f"{form_mn} a5,#0", "zero"))
+                an_imm = _imm_for_constraint(imm_range, sz)
+                tests.append((f"{form_mn} a6,{an_imm}", f"imm={an_imm}"))
+                if imm_range and imm_range.get("signed"):
+                    tests.append((f"{form_mn} a5,#{imm_range['min']}", "min"))
                 break
 
             elif op_types == ["an"]:
