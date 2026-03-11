@@ -363,6 +363,10 @@ def generate_tests(inst, compat=None):
             elif op_types == ["ea", "reglist"]:
                 tests.extend(_gen_movem_tests(m_lower, sz, all_ea_modes, movem_dir))
 
+            elif op_types == ["reglist", "ea"]:
+                # Handled by ("ea","reglist") — _gen_movem_tests covers both directions
+                pass
+
             elif op_types == ["predec", "predec"]:
                 # From constraints.operand_modes (R/M field from PDF)
                 if op_modes:
@@ -409,6 +413,9 @@ def generate_tests(inst, compat=None):
 
             elif op_types == ["an", "usp"]:
                 tests.append((f"{form_mn} a0,usp", "to usp"))
+                break
+
+            elif op_types == ["usp", "an"]:
                 tests.append((f"{form_mn} usp,a0", "from usp"))
                 break
 
@@ -427,6 +434,8 @@ def generate_tests(inst, compat=None):
 
             elif op_types == ["disp", "dn"]:
                 tests.append((f"{form_mn}{sfx} 0(a0),d0", f"mem-to-reg sz={sz}"))
+
+            elif op_types == ["dn", "disp"]:
                 tests.append((f"{form_mn}{sfx} d0,0(a0)", f"reg-to-mem sz={sz}"))
 
             elif op_types == ["dn", "dn"]:
@@ -474,7 +483,9 @@ def generate_tests(inst, compat=None):
 
             elif op_types == ["ctrl_reg", "rn"]:
                 # MOVEC Rc,Rn — from control register to general register
-                ctrl_regs = inst.get("constraints", {}).get("control_registers", [])
+                ctrl_regs = inst.get("constraints", {}).get("control_registers")
+                if not ctrl_regs:
+                    raise RuntimeError(f"{mnemonic}: KB missing control_registers")
                 seen_abbrevs = set()
                 for cr in ctrl_regs:
                     abbrev = cr["abbrev"]
@@ -483,13 +494,13 @@ def generate_tests(inst, compat=None):
                         cpu = VASM_CPU_FLAG_MAP.get(cr.get("processor_min", "68010"))
                         tests.append((f"{form_mn} {abbrev},d0",
                                       f"{abbrev}-to-d0", cpu))
-                if not ctrl_regs:
-                    tests.append((f"{form_mn} vbr,d0", "vbr-to-d0"))
                 break
 
             elif op_types == ["rn", "ctrl_reg"]:
                 # MOVEC Rn,Rc — from general register to control register
-                ctrl_regs = inst.get("constraints", {}).get("control_registers", [])
+                ctrl_regs = inst.get("constraints", {}).get("control_registers")
+                if not ctrl_regs:
+                    raise RuntimeError(f"{mnemonic}: KB missing control_registers")
                 seen_abbrevs = set()
                 for cr in ctrl_regs:
                     abbrev = cr["abbrev"]
@@ -498,8 +509,6 @@ def generate_tests(inst, compat=None):
                         cpu = VASM_CPU_FLAG_MAP.get(cr.get("processor_min", "68010"))
                         tests.append((f"{form_mn} d0,{abbrev}",
                                       f"d0-to-{abbrev}", cpu))
-                if not ctrl_regs:
-                    tests.append((f"{form_mn} d0,vbr", "d0-to-vbr"))
                 break
 
             elif op_types == ["bf_ea"]:
@@ -521,8 +530,12 @@ def generate_tests(inst, compat=None):
                     tests.append((f"{form_mn} d0,{ea_syntax(mode)}{{2:8}}", f"ea={mode}"))
 
             elif op_types == ["dn", "dn", "imm"]:
-                # PACK Dx,Dy,#adj or UNPK Dx,Dy,#adj
+                # PACK Dx,Dy,#adj or UNPK Dx,Dy,#adj (register form)
                 tests.append((f"{form_mn} d0,d1,#0", "reg-reg"))
+
+            elif op_types == ["predec", "predec", "imm"]:
+                # PACK -(Ax),-(Ay),#adj or UNPK -(Ax),-(Ay),#adj (memory form)
+                tests.append((f"{form_mn} -(a0),-(a1),#0", "mem-mem"))
 
             elif op_types == ["dn", "dn", "ea"]:
                 # CAS Dc,Du,<ea>
@@ -583,7 +596,7 @@ def _gen_label_tests(m_lower, op_types, cc_param, sizes):
             branch_sizes.append((sfx, entry.get("needs_nop_filler", False)))
 
     if not branch_sizes:
-        branch_sizes = [("w", False)]
+        raise RuntimeError(f"{m_lower}: no valid branch sizes from KB/vasm_compat")
 
     has_dn = "dn" in op_types
 
@@ -609,9 +622,13 @@ def _gen_movem_tests(m_lower, sz, modes, movem_dir):
 
     # Get per-direction EA mode sets from KB (parsed from separate PDF tables)
     inst_data = _find_inst(m_lower)
-    dir_modes = inst_data.get("ea_modes_by_direction", {}) if inst_data else {}
-    r2m_modes = set(dir_modes.get("reg-to-mem", modes))
-    m2r_modes = set(dir_modes.get("mem-to-reg", modes))
+    if not inst_data:
+        raise RuntimeError(f"{m_lower}: not found in KB")
+    dir_modes = inst_data.get("ea_modes_by_direction")
+    if not dir_modes:
+        raise RuntimeError(f"{m_lower}: KB missing ea_modes_by_direction")
+    r2m_modes = set(dir_modes["reg-to-mem"])
+    m2r_modes = set(dir_modes["mem-to-reg"])
 
     for mode in modes:
         ea_str = ea_syntax(mode)
