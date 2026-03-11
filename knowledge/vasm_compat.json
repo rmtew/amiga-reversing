@@ -95,80 +95,81 @@
       "reason": "Bundled vasm parser does not accept PVALID syntax via this harness"
     },
     "BFCHG": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "Bit-field instructions require 68020+"
     },
     "BFCLR": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "Bit-field instructions require 68020+"
     },
     "BFEXTS": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "Bit-field instructions require 68020+"
     },
     "BFEXTU": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "Bit-field instructions require 68020+"
     },
     "BFFFO": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "Bit-field instructions require 68020+"
     },
     "BFINS": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "Bit-field instructions require 68020+"
     },
     "BFSET": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "Bit-field instructions require 68020+"
     },
     "BFTST": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept BFxxx mnemonic/operand syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "Bit-field instructions require 68020+"
     },
     "CAS CAS2": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept CAS/CAS2 syntax via this harness"
+      "cpu_flag": "-m68020",
+      "skip_forms": ["cas2"],
+      "notes": "CAS works; CAS2 uses (Rn1):(Rn2) syntax not yet supported in test generator"
     },
     "CHK2": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept CMP2/CHK2 forms via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "CHK2/CMP2 require 68020+"
     },
     "CMP2": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept CMP2/CHK2 forms via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "CHK2/CMP2 require 68020+"
     },
     "MOVE16": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept MOVE16 syntax via this harness"
+      "cpu_flag": "-m68040",
+      "skip_forms": ["move16 (xxx).l"],
+      "notes": "Postinc form works; absolute address forms have no test generator support yet"
     },
     "MOVEP": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept MOVEP syntax via this harness"
+      "notes": "Works with default -m68000"
     },
     "PACK": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept PACK syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "68020+ BCD pack instruction"
     },
     "UNPK": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept UNPK syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "68020+ BCD unpack instruction"
     },
     "MOVE USP": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept MOVE to/from USP syntax via this harness"
+      "cpu_flag": "-m68010",
+      "notes": "Privileged instruction; requires supervisor mode — vasm assembles it"
     },
     "MOVEC": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept MOVEC syntax via this harness"
+      "cpu_flag": "-m68010",
+      "notes": "68010+ control register move"
     },
     "MOVES": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept MOVES syntax via this harness"
+      "cpu_flag": "-m68010",
+      "notes": "68010+ alternate address space move"
     },
     "RTM": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept RTM syntax via this harness"
+      "cpu_flag": "-m68020",
+      "notes": "68020 return from module"
     },
     "CPUSH": {
       "supported": false,
@@ -179,8 +180,8 @@
       "reason": "Bundled vasm parser does not include CINV in this extraction"
     },
     "MOVE from CCR": {
-      "supported": false,
-      "reason": "Bundled vasm parser does not accept MOVE to/from CCR syntax via this harness"
+      "cpu_flag": "-m68010",
+      "notes": "MOVE CCR,<ea> is a 68010+ instruction"
     },
     "EXT, EXTB": {
       "skip_forms": ["extb"],
@@ -189,5 +190,11 @@
     "TRAPcc": {
       "notes": "Size suffix (.w/.l) required on immediate forms per M68K convention"
     }
+  },
+  "branch_size_map": {
+    "_comment": "Maps KB encoding size letters to vasm branch suffixes and test constraints",
+    "b": {"suffix": ".s", "needs_nop_filler": true},
+    "w": {"suffix": ".w", "needs_nop_filler": false},
+    "l": {"suffix": ".l", "needs_nop_filler": false, "skip_for_68000": true}
   }
 }

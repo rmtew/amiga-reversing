@@ -30,32 +30,16 @@ SIZE_LONG = 2
 
 SIZE_SUFFIX = {SIZE_BYTE: ".b", SIZE_WORD: ".w", SIZE_LONG: ".l"}
 SIZE_NAMES = {SIZE_BYTE: "byte", SIZE_WORD: "word", SIZE_LONG: "long"}
-CC_CODE_NAMES = [
-    "t", "f", "hi", "ls", "cc", "cs", "ne", "eq",
-    "vc", "vs", "pl", "mi", "ge", "lt", "gt", "le",
-]
+_SIZE_LETTER_TO_INT = {"b": SIZE_BYTE, "w": SIZE_WORD, "l": SIZE_LONG}
 CC_CONDITION_TABLE = re.compile(r"\b([A-Za-z]{2})\s+[A-Za-z]\s+(?:set|clear)\b")
-
-CPU_ORDER = {
-    "68000": 0,
-    "68010": 1,
-    "68020": 2,
-    "68030": 3,
-    "68040": 4,
-    "68060": 5,
-    "cpu32": 2,
-}
 
 
 def _normalize_cpu(cpu_name: str | None) -> str:
+    """Strip vasm -m prefix from cpu flag strings (e.g. '-m68000' -> '68000')."""
     if not cpu_name:
         return "68000"
     if cpu_name.startswith("-m"):
         cpu_name = cpu_name[2:]
-    if cpu_name == "68020up":
-        return "68020"
-    if cpu_name in ("cf", "cfpu"):
-        return "68060"
     return cpu_name
 
 
@@ -79,6 +63,232 @@ def _load_kb_payload() -> tuple[list[dict], dict]:
     return [], {}
 
 
+def _kb_encoding_masks(enc_idx: int) -> dict[str, tuple[int, int]]:
+    """Return {mnemonic: (mask, val)} computed from KB encoding[enc_idx] fixed fields."""
+    kb, _ = _load_kb_payload()
+    result: dict[str, tuple[int, int]] = {}
+    for inst in kb:
+        encs = inst.get("encodings", [])
+        if len(encs) <= enc_idx:
+            continue
+        fields = encs[enc_idx].get("fields", [])
+        mask = val = 0
+        for f in fields:
+            if f["name"] in ("0", "1"):
+                bit = 1 if f["name"] == "1" else 0
+                for b in range(f["bit_lo"], f["bit_hi"] + 1):
+                    mask |= (1 << b)
+                    val |= (bit << b)
+        if mask:
+            result[inst["mnemonic"]] = (mask, val)
+    return result
+
+
+@lru_cache(maxsize=1)
+def _load_kb_encoding_masks() -> dict[str, tuple[int, int]]:
+    """Return {mnemonic: (mask, val)} from opword (encoding[0]) fixed fields."""
+    return _kb_encoding_masks(0)
+
+
+@lru_cache(maxsize=1)
+def _load_kb_ext_encoding_masks() -> dict[str, tuple[int, int]]:
+    """Return {mnemonic: (mask, val)} from extension word (encoding[1]) fixed fields."""
+    return _kb_encoding_masks(1)
+
+
+@lru_cache(maxsize=4)
+def _load_kb_encoding_masks_idx(enc_idx: int) -> dict[str, tuple[int, int]]:
+    """Return {mnemonic: (mask, val)} from encoding[enc_idx] fixed fields."""
+    return _kb_encoding_masks(enc_idx)
+
+
+@lru_cache(maxsize=1)
+def _load_kb_fixed_opcodes() -> dict[int, str]:
+    """Return {opcode_value: mnemonic} for all instructions where mask=0xFFFF.
+
+    These are zero-operand or fixed-format instructions (NOP, RESET, RTE, RTS, etc.)
+    """
+    masks = _load_kb_encoding_masks()
+    return {val: mn for mn, (mask, val) in masks.items() if mask == 0xFFFF}
+
+
+@lru_cache(maxsize=1)
+def _load_kb_ext_field_names() -> dict[str, frozenset[str]]:
+    """Return {mnemonic: frozenset(ext_word_field_names)} for instructions with
+    extension words.  Uses encoding[1] field names (excluding fixed 0/1 bits)."""
+    kb, _ = _load_kb_payload()
+    result: dict[str, frozenset[str]] = {}
+    for inst in kb:
+        encs = inst.get("encodings", [])
+        if len(encs) < 2:
+            continue
+        names = frozenset(
+            f["name"] for f in encs[1].get("fields", [])
+            if f["name"] not in ("0", "1")
+        )
+        if names:
+            result[inst["mnemonic"]] = names
+    return result
+
+
+def _kb_field_map(enc_idx: int) -> dict[str, dict[str, tuple[int, int, int]]]:
+    """Return {mnemonic: {field_name: (bit_hi, bit_lo, width)}} for a given encoding index.
+
+    Extracts named fields (excluding fixed 0/1 bits) from encoding[enc_idx].
+    """
+    kb, _ = _load_kb_payload()
+    result: dict[str, dict[str, tuple[int, int, int]]] = {}
+    for inst in kb:
+        encs = inst.get("encodings", [])
+        if len(encs) <= enc_idx:
+            continue
+        fields = {}
+        for f in encs[enc_idx].get("fields", []):
+            if f["name"] not in ("0", "1"):
+                fields[f["name"]] = (f["bit_hi"], f["bit_lo"], f["width"])
+        if fields:
+            result[inst["mnemonic"]] = fields
+    return result
+
+
+@lru_cache(maxsize=1)
+def _load_kb_opword_field_map() -> dict[str, dict[str, tuple[int, int, int]]]:
+    """Return {mnemonic: {field_name: (bit_hi, bit_lo, width)}} for opwords (encoding[0])."""
+    return _kb_field_map(0)
+
+
+@lru_cache(maxsize=1)
+def _load_kb_ext_field_map() -> dict[str, dict[str, tuple[int, int, int]]]:
+    """Return {mnemonic: {field_name: (bit_hi, bit_lo, width)}} for extension words (encoding[1])."""
+    return _kb_field_map(1)
+
+
+@lru_cache(maxsize=1)
+def _load_kb_bf_mnemonics() -> list[str]:
+    """Return BFxxx mnemonics from KB (group E, size_bits=3 instructions)."""
+    masks = _load_kb_encoding_masks()
+    return [mn for mn in masks if mn.startswith("BF")]
+
+
+@lru_cache(maxsize=1)
+def _load_kb_bitop_names() -> dict[int, str]:
+    """Derive bit-op name table from KB: {bit_index: mnemonic}.
+
+    BTST/BCHG/BCLR/BSET are distinguished by bits 7:6 of the opword.
+    """
+    masks = _load_kb_encoding_masks()
+    result: dict[int, str] = {}
+    for mn in ("BTST", "BCHG", "BCLR", "BSET"):
+        _, val = masks[mn]
+        idx = (val >> 6) & 3
+        result[idx] = mn.lower()
+    return result
+
+
+@lru_cache(maxsize=1)
+def _load_kb_imm_names() -> dict[int, str]:
+    """Derive immediate-op name table from KB: {top_bits: mnemonic}.
+
+    ORI/ANDI/SUBI/ADDI/EORI/CMPI are distinguished by bits 11:9 of the opword.
+    """
+    masks = _load_kb_encoding_masks()
+    result: dict[int, str] = {}
+    for mn in ("ORI", "ANDI", "SUBI", "ADDI", "EORI", "CMPI"):
+        _, val = masks[mn]
+        idx = (val >> 9) & 7
+        result[idx] = mn.lower()
+    return result
+
+
+@lru_cache(maxsize=1)
+def _load_kb_shift_names() -> dict[int, str]:
+    """Derive shift/rotate name table from KB: {type_index: prefix}.
+
+    ASL/ASR, LSL/LSR, ROXL/ROXR, ROL/ROR are distinguished by bits 4:3
+    in register shift mode.  Extract type index from KB encoding[0] val.
+    """
+    masks = _load_kb_encoding_masks()
+    result: dict[int, str] = {}
+    for mn, prefix in (("ASL, ASR", "as"), ("LSL, LSR", "ls"),
+                       ("ROXL, ROXR", "rox"), ("ROL, ROR", "ro")):
+        _, val = masks[mn]
+        idx = (val >> 3) & 3
+        result[idx] = prefix
+    return result
+
+
+@lru_cache(maxsize=1)
+def _load_kb_shift_fields() -> dict:
+    """Load shift/rotate field positions and rules from KB.
+
+    Returns dict with:
+      dr_bit:     bit position of direction field
+      dr_values:  {0: "r", 1: "l"} direction mapping
+      ir_bit:     bit position of i/r (immediate vs register) field
+      zero_means: value to substitute when count field is 0 (e.g. 8)
+    """
+    kb, _ = _load_kb_payload()
+    for inst in kb:
+        if inst["mnemonic"].startswith("ASL"):
+            # All shift/rotate instructions share the same field layout
+            enc0 = inst["encodings"][0]
+            dr_field = next(f for f in enc0["fields"] if f["name"] == "dr")
+            ir_field = next(f for f in enc0["fields"] if f["name"] == "i/r")
+            dv = inst.get("constraints", {}).get("direction_variants", {})
+            dr_values = {int(k): v for k, v in dv.get("values", {}).items()}
+            imm_range = inst.get("constraints", {}).get("immediate_range", {})
+            return {
+                "dr_bit": dr_field["bit_lo"],
+                "dr_values": dr_values,
+                "ir_bit": ir_field["bit_lo"],
+                "zero_means": imm_range.get("zero_means", 8),
+            }
+    raise RuntimeError("KB missing ASL/ASR — regenerate m68k_instructions.json")
+
+
+_SIZE_NAME_MAP = {"byte": SIZE_BYTE, "word": SIZE_WORD, "long": SIZE_LONG}
+
+
+@lru_cache(maxsize=1)
+def _load_kb_control_registers() -> dict[int, str]:
+    """Load MOVEC control register names from KB: {hex_code: abbreviation}."""
+    kb, _ = _load_kb_payload()
+    for inst in kb:
+        if inst["mnemonic"] == "MOVEC":
+            ctrl_regs = inst.get("constraints", {}).get("control_registers", [])
+            result: dict[int, str] = {}
+            for cr in ctrl_regs:
+                hex_val = int(cr["hex"], 16)
+                # First occurrence wins (avoids EC040 aliases overwriting)
+                if hex_val not in result:
+                    result[hex_val] = cr["abbrev"]
+            return result
+    return {}
+
+
+@lru_cache(maxsize=1)
+def _load_kb_size_encodings() -> dict[str, dict[int, int]]:
+    """Parse size encoding mappings from KB field_descriptions.
+
+    Returns {mnemonic: {binary_val: SIZE_xxx}} derived from the Size field
+    description text, e.g. "01 — Byte operation 10 — Word operation 11 — Long".
+    """
+    kb, _ = _load_kb_payload()
+    result: dict[str, dict[int, int]] = {}
+    for inst in kb:
+        fd = inst.get("field_descriptions", {})
+        size_desc = fd.get("Size", "")
+        if not size_desc:
+            continue
+        mapping: dict[int, int] = {}
+        for m in re.finditer(r"([01]{1,2})\s*[\u2014\u2013\-]\s*(Byte|Word|Long)", size_desc, re.IGNORECASE):
+            bits = int(m.group(1), 2)
+            mapping[bits] = _SIZE_NAME_MAP[m.group(2).lower()]
+        if mapping:
+            result[inst["mnemonic"]] = mapping
+    return result
+
+
 @lru_cache(maxsize=1)
 def _load_kb_processor_mins() -> dict[str, str]:
     kb, _ = _load_kb_payload()
@@ -98,12 +308,42 @@ def _load_kb_processor_mins() -> dict[str, str]:
 
 
 @lru_cache(maxsize=1)
+def _load_kb_opmode_tables() -> dict[str, dict[int, dict]]:
+    """Return {mnemonic: {opmode_int: {size, operation/description}}} from KB."""
+    kb, _ = _load_kb_payload()
+    result: dict[str, dict[int, dict]] = {}
+    for inst in kb:
+        opm = inst.get("constraints", {}).get("opmode_table")
+        if not opm:
+            continue
+        table: dict[int, dict] = {}
+        for entry in opm:
+            table[entry["opmode"]] = entry
+        result[inst["mnemonic"]] = table
+    return result
+
+
+@lru_cache(maxsize=1)
 def _load_disasm_meta() -> dict:
     kb, kb_meta = _load_kb_payload()
+
     condition_codes = list(kb_meta.get("condition_codes", []))
     if not condition_codes:
-        # Backward compatibility with legacy list-only KB files.
-        condition_codes = CC_CODE_NAMES
+        raise RuntimeError(
+            "KB _meta missing 'condition_codes' — regenerate m68k_instructions.json"
+        )
+
+    cpu_hierarchy = kb_meta.get("cpu_hierarchy")
+    if not cpu_hierarchy:
+        raise RuntimeError(
+            "KB _meta missing 'cpu_hierarchy' — regenerate m68k_instructions.json"
+        )
+
+    pmmu_condition_codes = kb_meta.get("pmmu_condition_codes", [])
+    if not pmmu_condition_codes:
+        raise RuntimeError(
+            "KB _meta missing 'pmmu_condition_codes' — regenerate m68k_instructions.json"
+        )
 
     families = {}
     for inst in kb:
@@ -165,6 +405,8 @@ def _load_disasm_meta() -> dict:
     return {
         "condition_codes": condition_codes,
         "condition_families": canonical_families,
+        "cpu_hierarchy": cpu_hierarchy,
+        "pmmu_condition_codes": pmmu_condition_codes,
     }
 
 
@@ -198,7 +440,12 @@ def _ensure_cpu_supported(decoded_text: str, max_cpu: str | None) -> None:
         return
 
     max_cpu = _normalize_cpu(max_cpu)
-    if max_cpu not in CPU_ORDER:
+    cpu_hier = _load_disasm_meta()["cpu_hierarchy"]
+    cpu_order = cpu_hier["order"]
+    cpu_aliases = cpu_hier.get("aliases", {})
+
+    max_cpu = cpu_aliases.get(max_cpu, max_cpu)
+    if max_cpu not in cpu_order:
         return
 
     canonical = _canonical_mnemonic(decoded_text)
@@ -206,7 +453,8 @@ def _ensure_cpu_supported(decoded_text: str, max_cpu: str | None) -> None:
     if required_cpu is None:
         return
 
-    if CPU_ORDER.get(required_cpu, 0) > CPU_ORDER[max_cpu]:
+    required_cpu = cpu_aliases.get(required_cpu, required_cpu)
+    if cpu_order.index(required_cpu) > cpu_order.index(max_cpu):
         raise DecodeError(
             f"unsupported instruction '{canonical}' for max_cpu={max_cpu}; "
             f"requires {required_cpu}"
@@ -246,6 +494,18 @@ class _Decoder:
         val = struct.unpack_from(">i", self.data, self.pos)[0]
         self.pos += 4
         return val
+
+
+def _extract_size_bits(op: int, size_field: tuple, sz_enc: dict[int, int]) -> int:
+    """Extract size bits from opword using KB field position and encoding values.
+
+    The KB field width may be inflated by orphan expansion (e.g., 2 bits when only
+    1 is needed).  Derive the effective width from the encoding's max value.
+    """
+    bit_hi = size_field[0]
+    max_val = max(sz_enc.keys()) if sz_enc else 0
+    eff_w = max(max_val.bit_length(), 1)
+    return (op >> (bit_hi - eff_w + 1)) & ((1 << eff_w) - 1)
 
 
 def _reg_name(reg: int, is_addr: bool = False) -> str:
@@ -443,36 +703,55 @@ def _decode_opcode(d: _Decoder, op: int, group: int, pc: int) -> str:
     raise DecodeError(f"unhandled group {group}")
 
 
+def _opmode_ea_to_dn(entry: dict) -> bool:
+    """Return True if opmode table entry indicates ea→Dn direction, False for Dn→ea."""
+    op_text = entry.get("operation", "")
+    # Multi-column format: "< ea > OP Dn → Dn" vs "Dn OP < ea > → < ea >"
+    if "→" in op_text:
+        dest = op_text.split("→")[-1].strip()
+        return "Dn" in dest and "ea" not in dest.lower()
+    # Arrow may be missing from PDF extraction; determine from operand order
+    if op_text:
+        return op_text.lstrip().startswith("<")
+    # Value-description format: "memory to register" vs "register to memory"
+    desc = entry.get("description", "").lower()
+    return "to register" in desc
+
+
 # --- Group decoders ---
 
 def _decode_group0(d: _Decoder, op: int, pc: int) -> str:
     """Bit operations and immediate ops (ORI, ANDI, SUBI, ADDI, EORI, CMPI, BTST, etc.)"""
+    _masks = _load_kb_encoding_masks()
+
+    # Derive bit-op name table from KB: extract bits 7:6 from each instruction's val
+    _bitop_names = _load_kb_bitop_names()
+
     if op & 0x0100:
         # Dynamic bit operations: BTST/BCHG/BCLR/BSET Dn,<ea>
         reg = (op >> 9) & 7
         mode = (op >> 3) & 7
         ea_reg = op & 7
         bit_op = (op >> 6) & 3
-        names = ["btst", "bchg", "bclr", "bset"]
 
         if mode == 1:
-            # MOVEP
+            # MOVEP — opmode-to-size/direction from KB opmode_table
+            _opm = _load_kb_opmode_tables()["MOVEP"]
             dreg = (op >> 9) & 7
             areg = op & 7
             disp = d.read_i16()
             opmode = (op >> 6) & 7
-            if opmode == 4:
-                return f"movep.w {disp}(a{areg}),d{dreg}"
-            elif opmode == 5:
-                return f"movep.l {disp}(a{areg}),d{dreg}"
-            elif opmode == 6:
-                return f"movep.w d{dreg},{disp}(a{areg})"
-            elif opmode == 7:
-                return f"movep.l d{dreg},{disp}(a{areg})"
+            entry = _opm[opmode]  # hard-fail if unknown opmode
+            sfx = f".{entry['size']}"
+            desc = entry.get("description", "").lower()
+            if "memory to register" in desc:
+                return f"movep{sfx} {disp}(a{areg}),d{dreg}"
+            else:
+                return f"movep{sfx} d{dreg},{disp}(a{areg})"
 
         sz = SIZE_LONG if mode == 0 else SIZE_BYTE
         ea = _ea_str(d, mode, ea_reg, sz, pc)
-        return f"{names[bit_op]}    d{reg},{ea}"
+        return f"{_bitop_names[bit_op]}    d{reg},{ea}"
     else:
         # Static bit ops or immediate ops
         top_bits = (op >> 9) & 7
@@ -483,11 +762,91 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> str:
             mode = (op >> 3) & 7
             ea_reg = op & 7
             bit_op = size_bits
-            names = ["btst", "bchg", "bclr", "bset"]
             bit_num = d.read_u16() & 0xFF
             sz = SIZE_LONG if mode == 0 else SIZE_BYTE
             ea = _ea_str(d, mode, ea_reg, sz, pc)
-            return f"{names[bit_op]}    #{bit_num},{ea}"
+            return f"{_bitop_names[bit_op]}    #{bit_num},{ea}"
+
+        # CMP2/CHK2/CAS (68020+): size_bits==3 distinguishes from immediate ops
+        # Note: CAS.L also has top_bits==7, so CAS must be checked before MOVES.
+        if size_bits == 3:
+            _masks = _load_kb_encoding_masks()
+            _m_cmp, _v_cmp = _masks["CMP2"]    # KeyError → regenerate KB JSON
+            _m_cas, _v_cas = _masks["CAS CAS2"]
+            if (op & _m_cmp) == _v_cmp:
+                # CMP2/CHK2: standard size encoding at bits 10-9 (valid: 0,1,2 only)
+                # ss==3 means this is RTM, not CMP2 — fall through
+                ss = (op >> 9) & 3
+                if ss <= 2:
+                    sfx = SIZE_SUFFIX[ss]
+                    mode = (op >> 3) & 7
+                    reg = op & 7
+                    ext = d.read_u16()
+                    # Extension word fields from KB (D/A + REGISTER combined span)
+                    _ef = _load_kb_ext_field_map().get("CMP2", {})
+                    ad_hi = _ef["D/A"][0]
+                    reg_lo = _ef["REGISTER"][1]
+                    reg_span = _ef["D/A"][1] - reg_lo + 1
+                    is_an = (ext >> ad_hi) & 1
+                    gpreg = (ext >> reg_lo) & ((1 << reg_span) - 1)
+                    # CHK2 vs CMP2: compute ext mask/val from fixed bits in
+                    # CHK2's encoding[1] to find the distinguishing bit
+                    chk2_ext_mask, chk2_ext_val = _load_kb_ext_encoding_masks().get("CHK2", (0, 0))
+                    chk2 = (ext & chk2_ext_mask) == chk2_ext_val
+                    name = "chk2" if chk2 else "cmp2"
+                    gp_name = f"{'a' if is_an else 'd'}{gpreg}"
+                    ea = _ea_str(d, mode, reg, ss, pc)
+                    return f"{name}{sfx}  {ea},{gp_name}"
+            if (op & _m_cas) == _v_cas:
+                # Size encoding parsed from KB field description
+                cas_sz = _load_kb_size_encodings().get("CAS CAS2", {})
+                ss_raw = (op >> 9) & 3
+                if ss_raw not in cas_sz:
+                    raise DecodeError(f"unknown CAS size={ss_raw}")
+                sz = cas_sz[ss_raw]
+                sfx = SIZE_SUFFIX[sz]
+                mode = (op >> 3) & 7
+                reg = op & 7
+                ext = d.read_u16()
+                # Extension word field positions from KB
+                _cas_ef = _load_kb_ext_field_map()["CAS CAS2"]
+                du_lo = _cas_ef["Du"][1]
+                du_w = _cas_ef["Du"][2]
+                dc_lo = _cas_ef["Dc"][1]
+                dc_w = _cas_ef["Dc"][2]
+                dc = (ext >> dc_lo) & ((1 << dc_w) - 1)
+                du = (ext >> du_lo) & ((1 << du_w) - 1)
+                ea = _ea_str(d, mode, reg, sz, pc)
+                return f"cas{sfx}   d{dc},d{du},{ea}"
+
+        # MOVES (68010+): top_bits=7, size_bits in 0-2 (CAS.L already caught above)
+        if top_bits == 7:
+            _masks = _load_kb_encoding_masks()
+            _m, _v = _masks["MOVES"]  # KeyError → regenerate m68k_instructions.json
+            if (op & _m) == _v:
+                sz = size_bits
+                if sz > 2:
+                    raise DecodeError(f"unknown group0 moves sz={sz}")
+                sfx = SIZE_SUFFIX[sz]
+                mode = (op >> 3) & 7
+                reg = op & 7
+                ext = d.read_u16()
+                _ef = _load_kb_ext_field_map().get("MOVES", {})
+                # A/D flag at A/D.bit_hi; register spans A/D.bit_lo..REGISTER.bit_lo
+                _ad_hi = _ef["A/D"][0]
+                _reg_lo = _ef["REGISTER"][1]
+                _reg_span = _ef["A/D"][1] - _reg_lo + 1
+                _dr_hi = _ef["dr"][0]
+                is_an = (ext >> _ad_hi) & 1
+                gpreg = (ext >> _reg_lo) & ((1 << _reg_span) - 1)
+                rw = (ext >> _dr_hi) & 1   # 1 = Rn→EA (write), 0 = EA→Rn (read)
+                gp_name = f"{'a' if is_an else 'd'}{gpreg}"
+                ea = _ea_str(d, mode, reg, sz, pc)
+                if rw:
+                    return f"moves{sfx} {gp_name},{ea}"
+                else:
+                    return f"moves{sfx} {ea},{gp_name}"
+            raise DecodeError(f"unknown group0 top={top_bits}")
 
         # CALLM / RTM (68020): top_bits=3, size_bits=3
         if top_bits == 3 and size_bits == 3:
@@ -506,9 +865,8 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> str:
                 ea = _ea_str(d, mode, ea_reg, SIZE_LONG, pc)
                 return f"callm   #{arg_count},{ea}"
 
-        # Immediate operations
-        imm_names = {0: "ori", 1: "andi", 2: "subi", 3: "addi",
-                     5: "eori", 6: "cmpi"}
+        # Immediate operations — name table derived from KB encoding vals
+        imm_names = _load_kb_imm_names()
         if top_bits not in imm_names:
             raise DecodeError(f"unknown group0 top={top_bits}")
 
@@ -571,45 +929,51 @@ def _decode_move_word(d: _Decoder, op: int, pc: int) -> str:
 
 def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
     """Miscellaneous: LEA, PEA, CLR, NEG, NOT, TST, MOVEM, JMP, JSR, etc."""
-    if op == 0x4E70:
-        return "reset"
-    if op == 0x4E71:
-        return "nop"
-    if op == 0x4E72:
-        imm = d.read_u16()
-        return f"stop    #${imm:04x}"
-    if op == 0x4E73:
-        return "rte"
-    if op == 0x4E74:
-        disp = d.read_i16()
-        return f"rtd     #{disp}"
-    if op == 0x4E75:
-        return "rts"
-    if op == 0x4E76:
-        return "trapv"
-    if op == 0x4E77:
-        return "rtr"
-    if op == 0x4AFC:
-        return "illegal"
+    _masks = _load_kb_encoding_masks()
+
+    # --- Fixed-opword instructions (mask=0xFFFF in KB) ---
+    # Build lookup from all KB instructions whose mask covers all 16 bits
+    _fixed = _load_kb_fixed_opcodes()
+    if op in _fixed:
+        mn = _fixed[op]
+        mn_l = mn.lower()
+        if mn in ("STOP",):
+            imm = d.read_u16()
+            return f"{mn_l}    #${imm:04x}"
+        if mn in ("RTD",):
+            disp = d.read_i16()
+            return f"{mn_l}     #{disp}"
+        return f"{mn_l:8s}".rstrip()
 
     # TRAP
-    if (op & 0xFFF0) == 0x4E40:
+    _m, _v = _masks["TRAP"]
+    if (op & _m) == _v:
         vec = op & 0xF
         return f"trap    #{vec}"
 
-    # LINK
-    if (op & 0xFFF8) == 0x4E50:
+    # LINK.L (68020+) — encoding[2] in KB; must check before LINK.W
+    _m2, _v2 = _load_kb_encoding_masks_idx(2).get("LINK", (0, 0))
+    if _m2 and (op & _m2) == _v2:
+        areg = op & 7
+        disp = d.read_i32()
+        return f"link.l  {_reg_name(areg, True)},#{disp}"
+
+    # LINK.W
+    _m, _v = _masks["LINK"]
+    if (op & _m) == _v:
         areg = op & 7
         disp = d.read_i16()
         return f"link    {_reg_name(areg, True)},#{disp}"
 
     # UNLK
-    if (op & 0xFFF8) == 0x4E58:
+    _m, _v = _masks["UNLK"]
+    if (op & _m) == _v:
         areg = op & 7
         return f"unlk    {_reg_name(areg, True)}"
 
     # MOVE USP
-    if (op & 0xFFF0) == 0x4E60:
+    _m, _v = _masks["MOVE USP"]
+    if (op & _m) == _v:
         areg = op & 7
         if op & 8:
             return f"move.l  usp,{_reg_name(areg, True)}"
@@ -617,21 +981,24 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
             return f"move.l  {_reg_name(areg, True)},usp"
 
     # JSR
-    if (op & 0xFFC0) == 0x4E80:
+    _m, _v = _masks["JSR"]
+    if (op & _m) == _v:
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
         return f"jsr     {ea}"
 
     # JMP
-    if (op & 0xFFC0) == 0x4EC0:
+    _m, _v = _masks["JMP"]
+    if (op & _m) == _v:
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
         return f"jmp     {ea}"
 
     # LEA
-    if (op & 0xF1C0) == 0x41C0:
+    _m, _v = _masks["LEA"]
+    if (op & _m) == _v:
         areg = (op >> 9) & 7
         mode = (op >> 3) & 7
         reg = op & 7
@@ -639,39 +1006,44 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
         return f"lea     {ea},{_reg_name(areg, True)}"
 
     # BKPT (68010+)
-    if (op & 0xFFF8) == 0x4848:
+    _m, _v = _masks["BKPT"]
+    if (op & _m) == _v:
         vec = op & 7
         return f"bkpt    #{vec}"
 
-    # SWAP (must be before PEA — both match $4840 but SWAP has mode=0)
-    if (op & 0xFFF8) == 0x4840:
+    # SWAP (must be before PEA — both match similar patterns but SWAP has mode=0)
+    _m, _v = _masks["SWAP"]
+    if (op & _m) == _v:
         return f"swap    d{op & 7}"
 
-    # EXT (must be before MOVEM — both match $4880/$48C0 but EXT has mode=0)
-    if (op & 0xFFF8) == 0x4880:
-        return f"ext.w   d{op & 7}"
-    if (op & 0xFFF8) == 0x48C0:
-        return f"ext.l   d{op & 7}"
+    # EXT, EXTB (must be before MOVEM — EXT has mode=0)
+    _m, _v = _masks["EXT, EXTB"]
+    if (op & _m) == _v:
+        opmode = (op >> 6) & 7
+        if opmode == 2:
+            return f"ext.w   d{op & 7}"
+        elif opmode == 3:
+            return f"ext.l   d{op & 7}"
+        elif opmode == 7:
+            return f"extb.l  d{op & 7}"
 
     # PEA
-    if (op & 0xFFC0) == 0x4840:
+    _m, _v = _masks["PEA"]
+    if (op & _m) == _v:
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
         return f"pea     {ea}"
 
-    # CHK
-    if (op & 0xF1C0) == 0x4180:
-        dreg = (op >> 9) & 7
-        mode = (op >> 3) & 7
-        reg = op & 7
-        ea = _ea_str(d, mode, reg, SIZE_WORD, pc)
-        return f"chk     {ea},d{dreg}"
-
     # MOVEM (mode >= 2 guaranteed now since EXT caught mode=0)
-    if (op & 0xFB80) == 0x4880:
-        direction = (op >> 10) & 1  # 0=reg-to-mem, 1=mem-to-reg
-        sz = SIZE_LONG if op & 0x0040 else SIZE_WORD
+    _m, _v = _masks["MOVEM"]
+    if (op & _m) == _v:
+        _of = _load_kb_opword_field_map()["MOVEM"]
+        dr_hi = _of["dr"][0]
+        direction = (op >> dr_hi) & 1  # 0=reg-to-mem, 1=mem-to-reg
+        sz_enc = _load_kb_size_encodings().get("MOVEM", {})
+        sz_bits = _extract_size_bits(op, _of["SIZE"], sz_enc)
+        sz = sz_enc[sz_bits]
         sfx = SIZE_SUFFIX[sz]
         mode = (op >> 3) & 7
         reg = op & 7
@@ -686,10 +1058,10 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
         else:
             return f"movem{sfx} {ea},{reglist}"
 
-    # CLR, NEG, NEGX, NOT
-    for pattern, name in [(0x4200, "clr"), (0x4400, "neg"),
-                           (0x4000, "negx"), (0x4600, "not")]:
-        if (op & 0xFF00) == pattern:
+    # CLR, NEG, NEGX, NOT — mask/val from KB
+    for _mn in ("CLR", "NEG", "NEGX", "NOT"):
+        _m, _v = _masks[_mn]
+        if (op & _m) == _v:
             sz = (op >> 6) & 3
             if sz == 3:
                 continue  # not this instruction
@@ -697,10 +1069,11 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
             mode = (op >> 3) & 7
             reg = op & 7
             ea = _ea_str(d, mode, reg, sz, pc)
-            return f"{name}{sfx}  {ea}"
+            return f"{_mn.lower()}{sfx}  {ea}"
 
     # TST
-    if (op & 0xFF00) == 0x4A00:
+    _m, _v = _masks["TST"]
+    if (op & _m) == _v:
         sz = (op >> 6) & 3
         if sz < 3:
             sfx = SIZE_SUFFIX[sz]
@@ -710,39 +1083,91 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> str:
             return f"tst{sfx}   {ea}"
 
     # TAS
-    if (op & 0xFFC0) == 0x4AC0:
+    _m, _v = _masks["TAS"]
+    if (op & _m) == _v:
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_BYTE, pc)
         return f"tas     {ea}"
 
     # NBCD
-    if (op & 0xFFC0) == 0x4800:
+    _m, _v = _masks["NBCD"]
+    if (op & _m) == _v:
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_BYTE, pc)
         return f"nbcd    {ea}"
 
     # MOVE from SR
-    if (op & 0xFFC0) == 0x40C0:
+    _m, _v = _masks["MOVE from SR"]
+    if (op & _m) == _v:
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_WORD, pc)
         return f"move.w  sr,{ea}"
 
+    # MOVE from CCR (68010+)
+    _m, _v = _masks["MOVE from CCR"]
+    if (op & _m) == _v:
+        mode = (op >> 3) & 7
+        reg = op & 7
+        ea = _ea_str(d, mode, reg, SIZE_WORD, pc)
+        return f"move.w  ccr,{ea}"
+
     # MOVE to CCR
-    if (op & 0xFFC0) == 0x44C0:
+    _m, _v = _masks["MOVE to CCR"]
+    if (op & _m) == _v:
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_WORD, pc)
         return f"move.w  {ea},ccr"
 
     # MOVE to SR
-    if (op & 0xFFC0) == 0x46C0:
+    _m, _v = _masks["MOVE to SR"]
+    if (op & _m) == _v:
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_WORD, pc)
         return f"move.w  {ea},sr"
+
+    # CHK (word and long) — broad mask, must be checked after specific instructions
+    _m, _v = _masks["CHK"]
+    if (op & _m) == _v:
+        dreg = (op >> 9) & 7
+        mode = (op >> 3) & 7
+        reg = op & 7
+        _of = _load_kb_opword_field_map()["CHK"]
+        sz_lo = _of["SIZE"][1]
+        sz_w = _of["SIZE"][2]
+        sz_bits = (op >> sz_lo) & ((1 << sz_w) - 1)
+        chk_sz = _load_kb_size_encodings().get("CHK", {})
+        if sz_bits in chk_sz:
+            sz = chk_sz[sz_bits]
+            sfx = SIZE_SUFFIX[sz]
+            ea = _ea_str(d, mode, reg, sz, pc)
+            return f"chk{sfx}   {ea},d{dreg}"
+
+    # MOVEC (68010+) — extension word fields from KB
+    _m, _v = _masks["MOVEC"]
+    if (op & _m) == _v:
+        ext = d.read_u16()
+        dr = op & 1          # 0 = Rc→Rn, 1 = Rn→Rc (from opword 'dr' field)
+        _ef = _load_kb_ext_field_map().get("MOVEC", {})
+        # A/D flag at A/D.bit_hi; register spans A/D.bit_lo..REGISTER.bit_lo
+        ad_hi = _ef["A/D"][0]
+        reg_lo = _ef["REGISTER"][1]
+        reg_span = _ef["A/D"][1] - reg_lo + 1
+        ctrl_lo = _ef["CONTROL REGISTER"][1]
+        ctrl_w = _ef["CONTROL REGISTER"][2]
+        is_an = (ext >> ad_hi) & 1
+        gpreg = (ext >> reg_lo) & ((1 << reg_span) - 1)
+        ctrl = (ext >> ctrl_lo) & ((1 << ctrl_w) - 1)
+        ctrl_name = _load_kb_control_registers().get(ctrl, f"cr${ctrl:03x}")
+        gp_name = f"{'a' if is_an else 'd'}{gpreg}"
+        if dr == 0:
+            return f"movec   {ctrl_name},{gp_name}"
+        else:
+            return f"movec   {gp_name},{ctrl_name}"
 
     raise DecodeError(f"unknown group4 op=${op:04x}")
 
@@ -763,22 +1188,27 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> str:
             target = _branch_target(pc, disp)
             cc = _cc_name(condition)
             return f"db{cc}    d{reg},{target}"
-        elif mode == 7 and reg in (2, 3, 4):
-            # TRAPcc (68020+)
-            cc = _cc_name(condition)
-            if reg == 2:
-                imm = d.read_u16()
-                return f"trap{cc}.w #${imm:04x}"
-            elif reg == 3:
-                imm = d.read_u32()
-                return f"trap{cc}.l #${imm:08x}"
-            else:  # reg == 4
-                return f"trap{cc}"
-        else:
-            # Scc
-            ea = _ea_str(d, mode, reg, SIZE_BYTE, pc)
-            cc = _cc_name(condition)
-            return f"s{cc}     {ea}"
+
+        # TRAPcc (68020+) — mode=7, reg from KB opmode_table
+        if mode == 7:
+            _trapcc_opm = _load_kb_opmode_tables().get("TRAPcc", {})
+            if reg in _trapcc_opm:
+                cc = _cc_name(condition)
+                entry = _trapcc_opm[reg]
+                sz = entry.get("size")
+                if sz == "w":
+                    imm = d.read_u16()
+                    return f"trap{cc}.w #${imm:04x}"
+                elif sz == "l":
+                    imm = d.read_u32()
+                    return f"trap{cc}.l #${imm:08x}"
+                else:
+                    return f"trap{cc}"
+
+        # Scc (all other mode/reg combos including mode=7 absolute addressing)
+        ea = _ea_str(d, mode, reg, SIZE_BYTE, pc)
+        cc = _cc_name(condition)
+        return f"s{cc}     {ea}"
     else:
         # ADDQ / SUBQ
         data = (op >> 9) & 7
@@ -793,7 +1223,7 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> str:
         return f"{name}{sfx} #{data},{ea}"
 
 
-CC_NAMES = _load_disasm_meta().get("condition_codes", CC_CODE_NAMES)
+CC_NAMES = _load_disasm_meta()["condition_codes"]
 
 def _cc_name(cc: int) -> str:
     return CC_NAMES[cc]
@@ -828,7 +1258,8 @@ def _decode_group6(d: _Decoder, op: int, pc: int) -> str:
 
 def _decode_moveq(d: _Decoder, op: int, pc: int) -> str:
     """MOVEQ"""
-    if op & 0x0100:
+    _m, _v = _load_kb_encoding_masks()["MOVEQ"]
+    if (op & _m) != _v:
         raise DecodeError(f"invalid moveq ${op:04x}")
     reg = (op >> 9) & 7
     data = op & 0xFF
@@ -839,37 +1270,59 @@ def _decode_moveq(d: _Decoder, op: int, pc: int) -> str:
 
 def _decode_group8(d: _Decoder, op: int, pc: int) -> str:
     """OR, DIV, SBCD"""
+    _masks = _load_kb_encoding_masks()
     reg = (op >> 9) & 7
     opmode = (op >> 6) & 7
     mode = (op >> 3) & 7
     ea_reg = op & 7
 
-    if opmode == 3:
-        # DIVU
-        ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
-        return f"divu.w  {ea},d{reg}"
-    elif opmode == 7:
-        # DIVS
-        ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
-        return f"divs.w  {ea},d{reg}"
-
-    if opmode == 0 and mode == 0 and not (op & 0x01F0):
-        # Could be SBCD Dy,Dx
-        pass
+    # DIVU.W / DIVS.W — detect via KB masks
+    for _divmn in ("DIVU, DIVUL", "DIVS, DIVSL"):
+        _dm, _dv = _masks[_divmn]
+        if (op & _dm) == _dv:
+            ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
+            name = _divmn.split(",")[0].lower()
+            return f"{name}.w  {ea},d{reg}"
 
     # SBCD
-    if (op & 0xF1F0) == 0x8100:
+    _m, _v = _masks["SBCD"]
+    if (op & _m) == _v:
         ry = op & 7
         rx = (op >> 9) & 7
         if op & 8:
             return f"sbcd    -(a{ry}),-(a{rx})"
         return f"sbcd    d{ry},d{rx}"
 
-    # OR
-    sz = opmode if opmode < 3 else opmode - 4
+    # PACK / UNPK (68020+): identified by KB mask/val, field positions from KB
+    _masks = _load_kb_encoding_masks()
+    _m_pack, _v_pack = _masks["PACK"]   # KeyError → regenerate KB JSON
+    _m_unpk, _v_unpk = _masks["UNPK"]
+    _opfields = _load_kb_opword_field_map()
+    for _mn_upper, _m, _v in (("PACK", _m_pack, _v_pack), ("UNPK", _m_unpk, _v_unpk)):
+        if (op & _m) == _v:
+            _of = _opfields[_mn_upper]
+            # Dest register from "REGISTER Dy/Ay" field
+            _dy_hi, _dy_lo, _dy_w = _of["REGISTER Dy/Ay"]
+            dx = (op >> _dy_lo) & ((1 << _dy_w) - 1)
+            # R/M flag at R/M.bit_hi; src register spans R/M.bit_lo..Dx/Ax.bit_lo
+            _rm_hi = _of["R/M"][0]
+            _dx_lo = _of["REGISTER Dx/Ax"][1]
+            _dx_span = _of["R/M"][1] - _dx_lo + 1
+            rm = (op >> _rm_hi) & 1
+            dy = (op >> _dx_lo) & ((1 << _dx_span) - 1)
+            adj = d.read_u16()
+            _mn = _mn_upper.lower()
+            if rm:
+                return f"{_mn}    -(a{dy}),-(a{dx}),#${adj:x}"
+            return f"{_mn}    d{dy},d{dx},#${adj:x}"
+
+    # OR — size/direction from KB opmode_table
+    _or_opm = _load_kb_opmode_tables()["OR"]
+    entry = _or_opm[opmode]
+    sz = _SIZE_LETTER_TO_INT[entry["size"]]
     sfx = SIZE_SUFFIX[sz]
     ea = _ea_str(d, mode, ea_reg, sz, pc)
-    if opmode < 3:
+    if _opmode_ea_to_dn(entry):
         return f"or{sfx}    {ea},d{reg}"
     else:
         return f"or{sfx}    d{reg},{ea}"
@@ -877,21 +1330,24 @@ def _decode_group8(d: _Decoder, op: int, pc: int) -> str:
 
 def _decode_sub(d: _Decoder, op: int, pc: int) -> str:
     """SUB, SUBA, SUBX"""
+    _masks = _load_kb_encoding_masks()
+    _opm_tables = _load_kb_opmode_tables()
     reg = (op >> 9) & 7
     opmode = (op >> 6) & 7
     mode = (op >> 3) & 7
     ea_reg = op & 7
 
-    # SUBA
-    if opmode == 3:
-        ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
-        return f"suba.w  {ea},a{reg}"
-    if opmode == 7:
-        ea = _ea_str(d, mode, ea_reg, SIZE_LONG, pc)
-        return f"suba.l  {ea},a{reg}"
+    # SUBA — opmode 3/7 from KB opmode_table
+    _suba_opm = _opm_tables["SUBA"]
+    if opmode in _suba_opm:
+        sz = _SIZE_LETTER_TO_INT[_suba_opm[opmode]["size"]]
+        ea = _ea_str(d, mode, ea_reg, sz, pc)
+        sfx = SIZE_SUFFIX[sz]
+        return f"suba{sfx} {ea},a{reg}"
 
     # SUBX
-    if (op & 0xF130) == 0x9100 and (mode == 0 or mode == 1):
+    _m, _v = _masks["SUBX"]
+    if (op & _m) == _v and (mode == 0 or mode == 1):
         ry = op & 7
         rx = (op >> 9) & 7
         sz = (op >> 6) & 3
@@ -900,11 +1356,13 @@ def _decode_sub(d: _Decoder, op: int, pc: int) -> str:
             return f"subx{sfx} -(a{ry}),-(a{rx})"
         return f"subx{sfx} d{ry},d{rx}"
 
-    # SUB
-    sz = opmode if opmode < 3 else opmode - 4
+    # SUB — size/direction from KB opmode_table
+    _sub_opm = _opm_tables["SUB"]
+    entry = _sub_opm[opmode]
+    sz = _SIZE_LETTER_TO_INT[entry["size"]]
     sfx = SIZE_SUFFIX[sz]
     ea = _ea_str(d, mode, ea_reg, sz, pc)
-    if opmode < 3:
+    if _opmode_ea_to_dn(entry):
         return f"sub{sfx}   {ea},d{reg}"
     else:
         return f"sub{sfx}   d{reg},{ea}"
@@ -912,34 +1370,41 @@ def _decode_sub(d: _Decoder, op: int, pc: int) -> str:
 
 def _decode_cmp_eor(d: _Decoder, op: int, pc: int) -> str:
     """CMP, CMPA, CMPM, EOR"""
+    _masks = _load_kb_encoding_masks()
+    _opm_tables = _load_kb_opmode_tables()
     reg = (op >> 9) & 7
     opmode = (op >> 6) & 7
     mode = (op >> 3) & 7
     ea_reg = op & 7
 
-    # CMPA
-    if opmode == 3:
-        ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
-        return f"cmpa.w  {ea},a{reg}"
-    if opmode == 7:
-        ea = _ea_str(d, mode, ea_reg, SIZE_LONG, pc)
-        return f"cmpa.l  {ea},a{reg}"
+    # CMPA — opmode 3/7 from KB opmode_table
+    _cmpa_opm = _opm_tables["CMPA"]
+    if opmode in _cmpa_opm:
+        sz = _SIZE_LETTER_TO_INT[_cmpa_opm[opmode]["size"]]
+        ea = _ea_str(d, mode, ea_reg, sz, pc)
+        sfx = SIZE_SUFFIX[sz]
+        return f"cmpa{sfx} {ea},a{reg}"
 
     # CMPM
-    if opmode in (4, 5, 6) and mode == 1:
+    _m, _v = _masks["CMPM"]
+    if (op & _m) == _v:
         sz = opmode - 4
         sfx = SIZE_SUFFIX[sz]
         return f"cmpm{sfx} (a{ea_reg})+,(a{reg})+"
 
-    # EOR (direction bit set, not CMPA)
-    if opmode >= 4:
-        sz = opmode - 4
+    # EOR — opmode 4/5/6 from KB opmode_table
+    _eor_opm = _opm_tables["EOR"]
+    if opmode in _eor_opm:
+        entry = _eor_opm[opmode]
+        sz = _SIZE_LETTER_TO_INT[entry["size"]]
         sfx = SIZE_SUFFIX[sz]
         ea = _ea_str(d, mode, ea_reg, sz, pc)
         return f"eor{sfx}   d{reg},{ea}"
 
-    # CMP
-    sz = opmode
+    # CMP — opmode 0/1/2 from KB opmode_table
+    _cmp_opm = _opm_tables["CMP"]
+    entry = _cmp_opm[opmode]
+    sz = _SIZE_LETTER_TO_INT[entry["size"]]
     sfx = SIZE_SUFFIX[sz]
     ea = _ea_str(d, mode, ea_reg, sz, pc)
     return f"cmp{sfx}   {ea},d{reg}"
@@ -947,45 +1412,61 @@ def _decode_cmp_eor(d: _Decoder, op: int, pc: int) -> str:
 
 def _decode_group_c(d: _Decoder, op: int, pc: int) -> str:
     """AND, MUL, ABCD, EXG"""
+    _masks = _load_kb_encoding_masks()
+    _opm_tables = _load_kb_opmode_tables()
     reg = (op >> 9) & 7
     opmode = (op >> 6) & 7
     mode = (op >> 3) & 7
     ea_reg = op & 7
 
-    # MULU
-    if opmode == 3:
-        ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
-        return f"mulu.w  {ea},d{reg}"
-    # MULS
-    if opmode == 7:
-        ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
-        return f"muls.w  {ea},d{reg}"
+    # MULU.W / MULS.W — detect via KB masks
+    for _mulmn in ("MULU", "MULS"):
+        _mm, _mv = _masks[_mulmn]
+        if (op & _mm) == _mv:
+            ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
+            return f"{_mulmn.lower()}.w  {ea},d{reg}"
 
     # ABCD
-    if (op & 0xF1F0) == 0xC100:
+    _m, _v = _masks["ABCD"]
+    if (op & _m) == _v:
         ry = op & 7
         rx = (op >> 9) & 7
         if op & 8:
             return f"abcd    -(a{ry}),-(a{rx})"
         return f"abcd    d{ry},d{rx}"
 
-    # EXG
-    if (op & 0xF100) == 0xC100:
-        exg_mode = (op >> 3) & 0x1F
-        ry = op & 7
-        rx = (op >> 9) & 7
-        if exg_mode == 0x08:  # Dx,Dy
-            return f"exg     d{rx},d{ry}"
-        elif exg_mode == 0x09:  # Ax,Ay
-            return f"exg     a{rx},a{ry}"
-        elif exg_mode == 0x11:  # Dx,Ay
-            return f"exg     d{rx},a{ry}"
+    # EXG — check KB encoding mask first, then opmode table
+    _exg_m, _exg_v = _masks["EXG"]
+    if (op & _exg_m) == _exg_v:
+        _exg_opm = _opm_tables["EXG"]
+        # Derive extraction width from KB opmode table values
+        _opfields = _load_kb_opword_field_map()["EXG"]
+        opm_hi = _opfields["OPMODE"][0]
+        max_opm_val = max(_exg_opm.keys())
+        opm_bits = max_opm_val.bit_length()
+        opm_lo = opm_hi - opm_bits + 1
+        exg_mode = (op >> opm_lo) & ((1 << opm_bits) - 1)
+        if exg_mode in _exg_opm:
+            rx_hi, rx_lo, rx_w = _opfields["REGISTER Rx"]
+            rx = (op >> rx_lo) & ((1 << rx_w) - 1)
+            # Ry occupies bits below the corrected OPMODE boundary
+            ry = op & ((1 << opm_lo) - 1)
+            entry = _exg_opm[exg_mode]
+            desc = entry.get("description", "").lower()
+            if "data register" in desc and "address register" in desc:
+                return f"exg     d{rx},a{ry}"
+            elif "address" in desc:
+                return f"exg     a{rx},a{ry}"
+            else:
+                return f"exg     d{rx},d{ry}"
 
-    # AND
-    sz = opmode if opmode < 3 else opmode - 4
+    # AND — size/direction from KB opmode_table
+    _and_opm = _opm_tables["AND"]
+    entry = _and_opm[opmode]
+    sz = _SIZE_LETTER_TO_INT[entry["size"]]
     sfx = SIZE_SUFFIX[sz]
     ea = _ea_str(d, mode, ea_reg, sz, pc)
-    if opmode < 3:
+    if _opmode_ea_to_dn(entry):
         return f"and{sfx}   {ea},d{reg}"
     else:
         return f"and{sfx}   d{reg},{ea}"
@@ -993,21 +1474,24 @@ def _decode_group_c(d: _Decoder, op: int, pc: int) -> str:
 
 def _decode_add(d: _Decoder, op: int, pc: int) -> str:
     """ADD, ADDA, ADDX"""
+    _masks = _load_kb_encoding_masks()
+    _opm_tables = _load_kb_opmode_tables()
     reg = (op >> 9) & 7
     opmode = (op >> 6) & 7
     mode = (op >> 3) & 7
     ea_reg = op & 7
 
-    # ADDA
-    if opmode == 3:
-        ea = _ea_str(d, mode, ea_reg, SIZE_WORD, pc)
-        return f"adda.w  {ea},a{reg}"
-    if opmode == 7:
-        ea = _ea_str(d, mode, ea_reg, SIZE_LONG, pc)
-        return f"adda.l  {ea},a{reg}"
+    # ADDA — opmode 3/7 from KB opmode_table
+    _adda_opm = _opm_tables["ADDA"]
+    if opmode in _adda_opm:
+        sz = _SIZE_LETTER_TO_INT[_adda_opm[opmode]["size"]]
+        ea = _ea_str(d, mode, ea_reg, sz, pc)
+        sfx = SIZE_SUFFIX[sz]
+        return f"adda{sfx} {ea},a{reg}"
 
     # ADDX
-    if (op & 0xF130) == 0xD100 and (mode == 0 or mode == 1):
+    _m, _v = _masks["ADDX"]
+    if (op & _m) == _v and (mode == 0 or mode == 1):
         ry = op & 7
         rx = (op >> 9) & 7
         sz = (op >> 6) & 3
@@ -1016,104 +1500,196 @@ def _decode_add(d: _Decoder, op: int, pc: int) -> str:
             return f"addx{sfx} -(a{ry}),-(a{rx})"
         return f"addx{sfx} d{ry},d{rx}"
 
-    # ADD
-    sz = opmode if opmode < 3 else opmode - 4
+    # ADD — size/direction from KB opmode_table
+    _add_opm = _opm_tables["ADD"]
+    entry = _add_opm[opmode]
+    sz = _SIZE_LETTER_TO_INT[entry["size"]]
     sfx = SIZE_SUFFIX[sz]
     ea = _ea_str(d, mode, ea_reg, sz, pc)
-    if opmode < 3:
+    if _opmode_ea_to_dn(entry):
         return f"add{sfx}   {ea},d{reg}"
     else:
         return f"add{sfx}   d{reg},{ea}"
 
 
+def _decode_bfxxx(d: _Decoder, op: int, pc: int, mn: str, ext_names: frozenset[str]) -> str:
+    """Decode a BFxxx bit-field instruction.
+
+    Field positions are derived from KB extension word (encoding[1]):
+      Do:       flag bit at Do.bit_hi; offset spans Do.bit_lo..OFFSET.bit_lo
+      Dw:       flag bit at Dw.bit_hi; width spans Dw.bit_lo..WIDTH.bit_lo
+      REGISTER: destination/source Dn (only present in BFEXTU/BFEXTS/BFFFO/BFINS)
+    """
+    ext_fields = _load_kb_ext_field_map()[mn]  # hard-fail if missing
+
+    # Do flag and offset field (from KB positions)
+    do_hi, do_lo, _ = ext_fields["Do"]
+    off_hi, off_lo, _ = ext_fields["OFFSET"]
+    off_total_lo = off_lo  # lowest bit of the combined offset field
+    off_total_hi = do_lo   # Do.bit_lo is the top bit of the offset value
+
+    # Dw flag and width field (from KB positions)
+    dw_hi, dw_lo, _ = ext_fields["Dw"]
+    w_hi, w_lo, _ = ext_fields["WIDTH"]
+    w_total_lo = w_lo
+    w_total_hi = dw_lo
+
+    ext = d.read_u16()
+
+    do = (ext >> do_hi) & 1
+    off_bits = off_total_hi - off_total_lo + 1
+    off_val = (ext >> off_total_lo) & ((1 << off_bits) - 1)
+    off_str = f"d{off_val & 7}" if do else str(off_val)
+
+    dw = (ext >> dw_hi) & 1
+    w_bits = w_total_hi - w_total_lo + 1
+    w_val = (ext >> w_total_lo) & ((1 << w_bits) - 1)
+    w_str = f"d{w_val & 7}" if dw else ("32" if w_val == 0 else str(w_val))
+
+    mode = (op >> 3) & 7
+    reg = op & 7
+    ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
+    bf = f"{{{off_str}:{w_str}}}"
+    pad = "  " if len(mn) >= 6 else "   "
+
+    # REGISTER field (Dn) — only present in BFEXTU/BFEXTS/BFFFO/BFINS
+    if "REGISTER" not in ext_fields:
+        return f"{mn.lower()}{pad} {ea}{bf}"
+    reg_hi, reg_lo, reg_w = ext_fields["REGISTER"]
+    dn = (ext >> reg_lo) & ((1 << reg_w) - 1)
+    # Operand order from KB forms: BFINS has Dn before <ea>, others have <ea> before Dn
+    kb, _ = _load_kb_payload()
+    bf_inst = next(i for i in kb if i["mnemonic"] == mn)
+    bf_ops = bf_inst.get("forms", [{}])[0].get("operands", [])
+    dn_first = bf_ops and bf_ops[0].get("type") == "dn"
+    if dn_first:
+        return f"{mn.lower()}{pad} d{dn},{ea}{bf}"
+    return f"{mn.lower()}{pad} {ea}{bf},d{dn}"
+
+
 def _decode_shift(d: _Decoder, op: int, pc: int) -> str:
-    """ASd, LSd, ROd, ROXd"""
+    """ASd, LSd, ROd, ROXd, BFxxx"""
     size_bits = (op >> 6) & 3
 
     if size_bits == 3:
+        # BFxxx instructions (68020+) live in group E with size_bits=3.
+        # Mnemonic list and mask/val derived from KB.
+        _masks = _load_kb_encoding_masks()
+        _ext_names = _load_kb_ext_field_names()
+        for mn in _load_kb_bf_mnemonics():
+            _m, _v = _masks[mn]
+            if (op & _m) == _v:
+                return _decode_bfxxx(d, op, pc, mn, _ext_names.get(mn, frozenset()))
+
         # Memory shift (word only, shift by 1)
-        direction = "l" if op & 0x0100 else "r"
+        # Field positions from KB
+        _sf = _load_kb_shift_fields()
+        dr_val = (op >> _sf["dr_bit"]) & 1
+        direction = _sf["dr_values"][dr_val]
         shift_type = (op >> 9) & 3
-        names = ["as", "ls", "rox", "ro"]
+        _shift_names = _load_kb_shift_names()
         mode = (op >> 3) & 7
         reg = op & 7
         ea = _ea_str(d, mode, reg, SIZE_WORD, pc)
-        return f"{names[shift_type]}{direction}.w  {ea}"
+        return f"{_shift_names[shift_type]}{direction}.w  {ea}"
 
-    # Register shift
-    direction = "l" if op & 0x0100 else "r"
+    # Register shift — field positions from KB
+    _sf = _load_kb_shift_fields()
+    dr_val = (op >> _sf["dr_bit"]) & 1
+    direction = _sf["dr_values"][dr_val]
     shift_type = (op >> 3) & 3
-    names = ["as", "ls", "rox", "ro"]
+    _shift_names = _load_kb_shift_names()
     sfx = SIZE_SUFFIX[size_bits]
     dreg = op & 7
     count_or_reg = (op >> 9) & 7
 
-    if op & 0x0020:
-        # Shift by register
-        return f"{names[shift_type]}{direction}{sfx}  d{count_or_reg},d{dreg}"
+    ir_val = (op >> _sf["ir_bit"]) & 1
+    if ir_val:
+        # Shift by register (i/r = 1)
+        return f"{_shift_names[shift_type]}{direction}{sfx}  d{count_or_reg},d{dreg}"
     else:
-        # Shift by immediate
-        count = count_or_reg if count_or_reg != 0 else 8
-        return f"{names[shift_type]}{direction}{sfx}  #{count},d{dreg}"
+        # Shift by immediate (i/r = 0); count 0 → zero_means from KB
+        count = count_or_reg if count_or_reg != 0 else _sf["zero_means"]
+        return f"{_shift_names[shift_type]}{direction}{sfx}  #{count},d{dreg}"
 
 
 
 # --- Line-F (coprocessor / 68040) ---
 
-# MC68851 PMMU condition codes (from PDF Table 10-1)
-PMMU_CC = [
-    "bs", "bc", "ls", "lc", "ss", "sc", "as", "ac",
-    "ws", "wc", "is", "ic", "gs", "gc", "cs", "cc",
-]
+@lru_cache(maxsize=1)
+def _load_kb_cpid_field() -> tuple[int, int]:
+    """Derive coprocessor ID field position from KB FPU instruction encoding."""
+    kb, _ = _load_kb_payload()
+    inst = next(i for i in kb if i["mnemonic"] == "FRESTORE")
+    id_field = next(f for f in inst["encodings"][0]["fields"] if f["name"] == "ID")
+    return id_field["bit_lo"], id_field["width"]
 
 
 def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
     """Line-F: coprocessor (FPU/MMU), MOVE16, etc."""
-    cpid = (op >> 9) & 7
+    _masks = _load_kb_encoding_masks()
+    _cpid_lo, _cpid_w = _load_kb_cpid_field()
+    cpid = (op >> _cpid_lo) & ((1 << _cpid_w) - 1)
 
-    # MOVE16 (68040): 1111 0110 0...
-    if (op & 0xFE00) == 0xF600:
-        if op & 0x0020:
-            # Postincrement: 1111 0110 0010 0 AX(3)
-            ax = op & 7
-            ext = d.read_u16()
-            ay = (ext >> 12) & 7
-            return f"move16  (a{ax})+,(a{ay})+"
-        else:
-            # Absolute long forms: 1111 0110 000 OPMODE(2) AN(3)
-            opmode = (op >> 3) & 3
-            an = op & 7
+    # MOVE16 (68040) — separate encoding masks for postincrement vs absolute forms
+    _m16_pi_m, _m16_pi_v = _load_kb_encoding_masks_idx(0)["MOVE16"]  # enc[0] postincrement
+    if (op & _m16_pi_m) == _m16_pi_v:
+        _m16f0 = _kb_field_map(0)["MOVE16"]
+        ax_lo, ax_w = _m16f0["REGISTER Ax"][1], _m16f0["REGISTER Ax"][2]
+        ax = (op >> ax_lo) & ((1 << ax_w) - 1)
+        ext = d.read_u16()
+        _m16f1 = _kb_field_map(1)["MOVE16"]
+        ay_lo, ay_w = _m16f1["REGISTER Ay"][1], _m16f1["REGISTER Ay"][2]
+        ay = (ext >> ay_lo) & ((1 << ay_w) - 1)
+        return f"move16  (a{ax})+,(a{ay})+"
+    _m16_abs_masks = _load_kb_encoding_masks_idx(2)
+    if "MOVE16" in _m16_abs_masks:
+        _m16a_m, _m16a_v = _m16_abs_masks["MOVE16"]
+        if (op & _m16a_m) == _m16a_v:
+            # OPMODE and REGISTER from KB encoding[2]
+            _fmap = _kb_field_map(2)["MOVE16"]
+            opm_hi, opm_lo, opm_w = _fmap["OPMODE"]
+            opmode = (op >> opm_lo) & ((1 << opm_w) - 1)
+            an_lo, an_w = _fmap["REGISTER Ay"][1], _fmap["REGISTER Ay"][2]
+            an = (op >> an_lo) & ((1 << an_w) - 1)
             addr = d.read_u32()
-            if opmode == 0:
-                return f"move16  (a{an})+,${addr:08x}.l"
-            elif opmode == 1:
-                return f"move16  ${addr:08x}.l,(a{an})+"
-            elif opmode == 2:
-                return f"move16  (a{an}),${addr:08x}.l"
-            elif opmode == 3:
-                return f"move16  ${addr:08x}.l,(a{an})"
+            # Operand order from KB opmode_table
+            _m16_opm = _load_kb_opmode_tables()["MOVE16"]
+            entry = _m16_opm[opmode]
+            # Source field tells us which operand is first
+            src = entry["source"]
+            postinc = "+" in src
+            abs_first = "(xxx)" in src
+            if abs_first:
+                reg_postinc = "+" in entry["destination"]
+                return f"move16  ${addr:08x}.l,(a{an}){'+'if reg_postinc else ''}"
+            else:
+                return f"move16  (a{an}){'+'if postinc else ''},${addr:08x}.l"
 
     # MMU (cpid=0): PRESTORE/PSAVE/PBcc/PDBcc/PScc/PTRAPcc/PFLUSH/PFLUSHR
     if cpid == 0:
-        type_bits = (op >> 6) & 7
         mode = (op >> 3) & 7
         reg = op & 7
+        pmmu_cc = _load_disasm_meta()["pmmu_condition_codes"]
 
-        if type_bits == 5:
-            # PRESTORE: 1111 000 101 MODE(3) REG(3)
+        # PRESTORE
+        _m, _v = _masks["PRESTORE"]
+        if (op & _m) == _v:
             ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
             return f"prestore {ea}"
 
-        if type_bits == 4:
-            # PSAVE: 1111 000 100 MODE(3) REG(3)
+        # PSAVE
+        _m, _v = _masks["PSAVE"]
+        if (op & _m) == _v:
             ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
             return f"psave   {ea}"
 
+        type_bits = (op >> 6) & 7
         if type_bits in (2, 3):
             # PBcc: 1111 000 01 SIZE(1) COND(6)
             # type_bits bit 0 = SIZE (0=word, 1=long)
             cond = op & 0x3F
-            cc = PMMU_CC[cond] if cond < 16 else f"#{cond}"
+            cc = pmmu_cc[cond] if cond < 16 else f"#{cond}"
             if type_bits == 2:
                 disp = d.read_i16()
                 target = _branch_target(pc, disp)
@@ -1127,7 +1703,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
             # PScc/PDBcc/PTRAPcc: 1111 0000 01 MODE(3) REG(3)
             ext = d.read_u16()
             cond = ext & 0x3F
-            cc = PMMU_CC[cond] if cond < 16 else f"#{cond}"
+            cc = pmmu_cc[cond] if cond < 16 else f"#{cond}"
             if mode == 1:
                 # PDBcc: 1111 0000 0100 1 REG(3)
                 disp = d.read_i16()
@@ -1150,17 +1726,22 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
         if type_bits == 0:
             # PFLUSH/PFLUSHA/PFLUSHR or PMMU general
             ext = d.read_u16()
-            if (ext & 0xE000) == 0x2000:
-                # PFLUSH: ext = 001 MODE(2) 0 MASK(3) FC(4)
-                pflush_mode = (ext >> 10) & 3
-                mask = (ext >> 5) & 7
-                fc = ext & 0x1F
+            _ext_masks = _load_kb_ext_encoding_masks()
+            _pf_m, _pf_v = _ext_masks["PFLUSH"]
+            if (ext & _pf_m) == _pf_v:
+                _ext_fields = _load_kb_ext_field_map()["PFLUSH"]
+                m_hi, m_lo, m_w = _ext_fields["MODE"]
+                pflush_mode = (ext >> m_lo) & ((1 << m_w) - 1)
+                mk_hi, mk_lo, mk_w = _ext_fields["MASK"]
+                pflush_mask = (ext >> mk_lo) & ((1 << mk_w) - 1)
+                fc_hi, fc_lo, fc_w = _ext_fields["FC"]
+                fc = (ext >> fc_lo) & ((1 << fc_w) - 1)
                 if pflush_mode == 1:
                     return "pflusha"
                 ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
-                return f"pflush  #{fc},#{mask},{ea}"
-            elif ext == 0xA000:
-                # PFLUSHR
+                return f"pflush  #{fc},#{pflush_mask},{ea}"
+            _pfr_m, _pfr_v = _ext_masks["PFLUSHR"]
+            if (ext & _pfr_m) == _pfr_v:
                 ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
                 return f"pflushr {ea}"
             # Other PMMU general commands (PMOVE, PLOAD, PTEST, PVALID)
@@ -1168,17 +1749,16 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> str:
 
     # FPU (cpid=1): FRESTORE/FSAVE
     if cpid == 1:
-        type_bits = (op >> 6) & 7
         mode = (op >> 3) & 7
         reg = op & 7
 
-        if type_bits == 5:
-            # FRESTORE
+        _m, _v = _masks.get("FRESTORE", (0, 0))
+        if _m and (op & _m) == _v:
             ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
             return f"frestore {ea}"
 
-        if type_bits == 4:
-            # FSAVE
+        _m, _v = _masks.get("FSAVE", (0, 0))
+        if _m and (op & _m) == _v:
             ea = _ea_str(d, mode, reg, SIZE_LONG, pc)
             return f"fsave   {ea}"
 

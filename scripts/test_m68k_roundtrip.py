@@ -41,11 +41,19 @@ def _load_kb_payload():
 
 
 KB_INSTRUCTIONS, KB_META = _load_kb_payload()
-CC_ALL = list(KB_META.get("condition_codes", [
-    "t", "f", "hi", "ls", "cc", "cs", "ne", "eq",
-    "vc", "vs", "pl", "mi", "ge", "lt", "gt", "le",
-]))
+if "condition_codes" not in KB_META:
+    raise RuntimeError(
+        "KB _meta missing 'condition_codes' — regenerate m68k_instructions.json"
+    )
+CC_ALL = list(KB_META["condition_codes"])
 
+# Index KB instructions by lowercase mnemonic for quick lookup
+_KB_BY_MNEMONIC = {inst["mnemonic"].lower(): inst for inst in KB_INSTRUCTIONS}
+
+
+def _find_inst(m_lower):
+    """Find a KB instruction by lowercase mnemonic."""
+    return _KB_BY_MNEMONIC.get(m_lower)
 
 
 # ── EA mode to assembly syntax ─────────────────────────────────────────────
@@ -392,13 +400,11 @@ def generate_tests(inst, compat=None):
                 break
 
             elif op_types == ["imm", "ccr"]:
-                imm_size = sfx or ".b"
-                tests.append((f"{form_mn}{imm_size} #$1f,ccr", ""))
+                tests.append((f"{form_mn}{sfx} #$1f,ccr", ""))
                 break
 
             elif op_types == ["imm", "sr"]:
-                imm_size = sfx or ".w"
-                tests.append((f"{form_mn}{imm_size} #$0700,sr", ""))
+                tests.append((f"{form_mn}{sfx} #$0700,sr", ""))
                 break
 
             elif op_types == ["an", "usp"]:
@@ -439,6 +445,92 @@ def generate_tests(inst, compat=None):
                 else:
                     tests.append((f"{form_mn}{sfx} {imm}", ""))
 
+            elif op_types == ["ccr", "ea"]:
+                # MOVE from CCR: MOVE CCR,<ea> — no size suffix needed
+                fdst = _filter_modes_for_size(dst_modes or all_ea_modes, sz)
+                for mode in fdst:
+                    dst = ea_syntax(mode, sz)
+                    tests.append((f"{form_mn} ccr,{dst}", f"dst={mode}"))
+                break
+
+            elif op_types == ["rn"]:
+                # RTM Rn: generic register (dn or an), no sizes
+                tests.append((f"{form_mn} d0", "dn"))
+                tests.append((f"{form_mn} a0", "an"))
+
+            elif op_types == ["rn", "ea"]:
+                # MOVES Rn,<ea>: register to memory EA
+                fmodes = _filter_modes_for_size(all_ea_modes, sz)
+                for mode in fmodes:
+                    dst = ea_syntax(mode, sz)
+                    tests.append((f"{form_mn}{sfx} d0,{dst}", f"rn-to={mode}"))
+
+            elif op_types == ["ea", "rn"]:
+                # MOVES <ea>,Rn or CMP2/CHK2 <ea>,Rn
+                fmodes = _filter_modes_for_size(all_ea_modes, sz)
+                for mode in fmodes:
+                    src = ea_syntax(mode, sz)
+                    tests.append((f"{form_mn}{sfx} {src},d0", f"ea-to-rn={mode}"))
+
+            elif op_types == ["ctrl_reg", "rn"]:
+                # MOVEC Rc,Rn — from control register to general register
+                ctrl_regs = inst.get("constraints", {}).get("control_registers", [])
+                seen_abbrevs = set()
+                for cr in ctrl_regs:
+                    abbrev = cr["abbrev"]
+                    if abbrev not in seen_abbrevs:
+                        seen_abbrevs.add(abbrev)
+                        cpu = VASM_CPU_FLAG_MAP.get(cr.get("processor_min", "68010"))
+                        tests.append((f"{form_mn} {abbrev},d0",
+                                      f"{abbrev}-to-d0", cpu))
+                if not ctrl_regs:
+                    tests.append((f"{form_mn} vbr,d0", "vbr-to-d0"))
+                break
+
+            elif op_types == ["rn", "ctrl_reg"]:
+                # MOVEC Rn,Rc — from general register to control register
+                ctrl_regs = inst.get("constraints", {}).get("control_registers", [])
+                seen_abbrevs = set()
+                for cr in ctrl_regs:
+                    abbrev = cr["abbrev"]
+                    if abbrev not in seen_abbrevs:
+                        seen_abbrevs.add(abbrev)
+                        cpu = VASM_CPU_FLAG_MAP.get(cr.get("processor_min", "68010"))
+                        tests.append((f"{form_mn} d0,{abbrev}",
+                                      f"d0-to-{abbrev}", cpu))
+                if not ctrl_regs:
+                    tests.append((f"{form_mn} d0,vbr", "d0-to-vbr"))
+                break
+
+            elif op_types == ["bf_ea"]:
+                # BFTST/BFCHG/BFCLR/BFSET <ea>{offset:width}
+                fmodes = _filter_modes_for_size(all_ea_modes, sz)
+                for mode in fmodes:
+                    tests.append((f"{form_mn} {ea_syntax(mode)}{{2:8}}", f"ea={mode}"))
+
+            elif op_types == ["bf_ea", "dn"]:
+                # BFEXTS/BFEXTU/BFFFO <ea>{offset:width},Dn
+                fmodes = _filter_modes_for_size(all_ea_modes, sz)
+                for mode in fmodes:
+                    tests.append((f"{form_mn} {ea_syntax(mode)}{{2:8}},d1", f"ea={mode}"))
+
+            elif op_types == ["dn", "bf_ea"]:
+                # BFINS Dn,<ea>{offset:width}
+                fmodes = _filter_modes_for_size(all_ea_modes, sz)
+                for mode in fmodes:
+                    tests.append((f"{form_mn} d0,{ea_syntax(mode)}{{2:8}}", f"ea={mode}"))
+
+            elif op_types == ["dn", "dn", "imm"]:
+                # PACK Dx,Dy,#adj or UNPK Dx,Dy,#adj
+                tests.append((f"{form_mn} d0,d1,#0", "reg-reg"))
+
+            elif op_types == ["dn", "dn", "ea"]:
+                # CAS Dc,Du,<ea>
+                fmodes = _filter_modes_for_size(all_ea_modes, sz)
+                for mode in fmodes:
+                    tests.append((f"{form_mn}{sfx} d0,d1,{ea_syntax(mode, sz)}",
+                                  f"ea={mode}"))
+
             else:
                 pass
 
@@ -478,18 +570,17 @@ def _gen_label_tests(m_lower, op_types, cc_param, sizes):
     else:
         mnemonics = [m_lower]
 
-    # Determine size variants from KB sizes
-    # Branch sizes: "b" = .s (8-bit), "w" = .w (16-bit), "l" = .l (32-bit, 020+)
+    # Determine size variants from KB sizes via vasm_compat branch_size_map
     branch_sizes = []
     for sz in (sizes or [None]):
-        if sz == "b":
-            branch_sizes.append(("s", True))   # .s needs nop filler for min displacement
-        elif sz == "w":
+        if sz is None:
             branch_sizes.append(("w", False))
-        elif sz == "l":
-            pass  # Skip .l for 68000 tests (020+)
-        elif sz is None:
-            branch_sizes.append(("w", False))
+        elif sz in VASM_BRANCH_SIZE_MAP:
+            entry = VASM_BRANCH_SIZE_MAP[sz]
+            if entry.get("skip_for_68000"):
+                continue
+            sfx = entry["suffix"].lstrip(".")
+            branch_sizes.append((sfx, entry.get("needs_nop_filler", False)))
 
     if not branch_sizes:
         branch_sizes = [("w", False)]
@@ -512,34 +603,27 @@ def _gen_label_tests(m_lower, op_types, cc_param, sizes):
 
 
 def _gen_movem_tests(m_lower, sz, modes, movem_dir):
-    """Generate MOVEM tests using direction constraint from KB.
-
-    movem_dir from constraints tells us which EA modes are valid
-    for each direction (reg-to-mem vs mem-to-reg).
-    """
+    """Generate MOVEM tests using direction constraint and per-direction EA modes from KB."""
     sfx = f".{sz}" if sz else ""
     tests = []
 
+    # Get per-direction EA mode sets from KB (parsed from separate PDF tables)
+    inst_data = _find_inst(m_lower)
+    dir_modes = inst_data.get("ea_modes_by_direction", {}) if inst_data else {}
+    r2m_modes = set(dir_modes.get("reg-to-mem", modes))
+    m2r_modes = set(dir_modes.get("mem-to-reg", modes))
+
     for mode in modes:
         ea_str = ea_syntax(mode)
-
-        if mode == "predec":
-            # Predecrement only valid for reg-to-mem (from PDF dr field)
-            tests.append((f"movem{sfx} d0-d3/a0-a1,-(a7)",
-                          f"reg-to-mem predec sz={sz}"))
-        elif mode == "postinc":
-            # Postincrement only valid for mem-to-reg
-            tests.append((f"movem{sfx} (a7)+,d0-d3/a0-a1",
-                          f"mem-to-reg postinc sz={sz}"))
-        elif mode in ("pcdisp", "pcindex"):
-            # PC-relative only valid for mem-to-reg
-            tests.append((f"movem{sfx} {ea_str},d0-d3/a0-a1",
-                          f"mem-to-reg ea={mode} sz={sz}"))
-        else:
-            # Other modes valid for both directions
-            tests.append((f"movem{sfx} d0-d3/a0-a1,{ea_str}",
+        if mode in r2m_modes:
+            if mode == "predec":
+                ea_str = "-(a7)"
+            tests.append((f"{m_lower}{sfx} d0-d3/a0-a1,{ea_str}",
                           f"reg-to-mem ea={mode} sz={sz}"))
-            tests.append((f"movem{sfx} {ea_str},d0-d3/a0-a1",
+        if mode in m2r_modes:
+            if mode == "postinc":
+                ea_str = "(a7)+"
+            tests.append((f"{m_lower}{sfx} {ea_str},d0-d3/a0-a1",
                           f"mem-to-reg ea={mode} sz={sz}"))
 
     return tests
@@ -552,6 +636,7 @@ with open(VASM_COMPAT, encoding="utf-8") as _f:
     _vasm_data = json.load(_f)
 VASM_CPU_FLAG_MAP = _vasm_data["_meta"]["default_cpu_flag_map"]
 VASM_INST_COMPAT = _vasm_data["instructions"]
+VASM_BRANCH_SIZE_MAP = _vasm_data["branch_size_map"]
 
 
 def assemble(source, tmpdir, cpu_flag="-m68000", debug=False):
@@ -606,9 +691,7 @@ def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None, debug_asm=False
     tested_mnemonics = set()
     failures = []
 
-    tmpdir_path = PROJ_ROOT / "tmp" / "_roundtrip_test"
-    tmpdir_path.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=tmpdir_path) as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
         for inst in kb_instructions:
             mnemonic = inst["mnemonic"]
             proc_min = inst.get("processor_min", "68000")
@@ -634,12 +717,18 @@ def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None, debug_asm=False
                 skipped_mnemonics += 1
                 continue
 
-            for asm_line, desc in cases:
+            for case in cases:
+                # Cases can be 2-tuple (asm, desc) or 3-tuple (asm, desc, cpu_flag)
+                if len(case) == 3:
+                    asm_line, desc, case_cpu_flag = case
+                else:
+                    asm_line, desc = case
+                    case_cpu_flag = None
                 total += 1
                 test_name = f"{mnemonic}: {desc}" if desc else mnemonic
 
                 # Step 1: Assemble
-                cpu_flag = cpu_flag_override or VASM_CPU_FLAG_MAP[proc_min]
+                cpu_flag = case_cpu_flag or cpu_flag_override or VASM_CPU_FLAG_MAP[proc_min]
                 orig_data = assemble(asm_line, tmpdir, cpu_flag, debug=debug_asm)
                 if orig_data is None:
                     failures.append((test_name, asm_line, "ASSEMBLE FAILED"))
@@ -647,7 +736,13 @@ def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None, debug_asm=False
                     continue
 
                 # Step 2: Disassemble
-                disasm_max_cpu = max_cpu or proc_min
+                # Derive disasm CPU from case-level flag if present
+                if case_cpu_flag:
+                    # Convert vasm flag "-m68020" to "68020"
+                    case_cpu = case_cpu_flag.lstrip("-m")
+                    disasm_max_cpu = max_cpu or case_cpu
+                else:
+                    disasm_max_cpu = max_cpu or proc_min
                 try:
                     instructions = disassemble(orig_data, max_cpu=disasm_max_cpu)
                 except DecodeError as e:
@@ -736,9 +831,7 @@ def run_tests(filter_mnemonic=None, verbose=False, max_cpu=None, debug_asm=False
     print(f"Tested:                 {len(tested_mnemonics)}")
     print(f"Generated test cases:   {total}")
     if untested:
-        print(f"\nUntested mnemonics ({len(untested)}):")
-        for m in sorted(untested):
-            print(f"  {m}")
+        print(f"\nUntested mnemonics ({len(untested)}): {', '.join(sorted(untested))}")
 
     return failed == 0
 

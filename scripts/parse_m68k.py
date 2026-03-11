@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Parse M68000 Programmer's Reference Manual PDF into structured instruction JSON.
 
 Single pipeline that extracts all instruction data from the PDF:
@@ -53,16 +53,21 @@ MODE_MAP = {
     (7, 4): "imm",
 }
 
-EA_ALL = ["dn", "an", "ind", "postinc", "predec", "disp", "index",
-          "absw", "absl", "pcdisp", "pcindex", "imm"]
+EA_ALL = list(dict.fromkeys(MODE_MAP[k] for k in sorted(MODE_MAP.keys())))
 EA_ORDER = {m: i for i, m in enumerate(EA_ALL)}
 
-# Standard M68K condition code encoding (architectural)
-CC_TABLE = {
-    0:  "t",   1:  "f",   2:  "hi",  3:  "ls",
-    4:  "cc",  5:  "cs",  6:  "ne",  7:  "eq",
-    8:  "vc",  9:  "vs",  10: "pl",  11: "mi",
-    12: "ge",  13: "lt",  14: "gt",  15: "le",
+# Populated at runtime by extract_standard_cc_table() from PDF Table 3-19
+CC_TABLE: dict[int, str] = {}
+
+# Processor family hierarchy (ordered by capability, ascending)
+CPU_HIERARCHY = {
+    "order": ["68000", "68010", "68020", "68030", "68040", "68060"],
+    "aliases": {
+        "68020up": "68020",
+        "cf":      "68060",
+        "cfpu":    "68060",
+        "cpu32":   "68020",
+    },
 }
 
 
@@ -71,13 +76,152 @@ def _kb_condition_codes() -> list[str]:
     return [CC_TABLE[i] for i in sorted(CC_TABLE.keys())]
 
 
-def _as_kb_payload(kb_data: list[dict]) -> dict:
+def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str]) -> dict:
     return {
         "_meta": {
             "condition_codes": _kb_condition_codes(),
+            "pmmu_condition_codes": pmmu_cc,
+            "cpu_hierarchy": CPU_HIERARCHY,
         },
         "instructions": kb_data,
     }
+
+
+def extract_pmmu_cc_table(doc, page_ranges) -> list[str]:
+    """Extract MC68851 PMMU condition codes from the PBcc instruction page.
+
+    The table appears in a two-column layout with 6-bit binary field values
+    (e.g. '000000') mapped to 2-letter specifiers (e.g. 'BS').
+    Returns an ordered list of 16 lowercase mnemonics indexed by field value.
+    """
+    for start_page, end_page in page_ranges:
+        for pn in range(start_page, end_page + 1):
+            page = doc[pn - 1]
+            spans = extract_page_spans(page)
+            rows = spans_to_rows(spans)
+            result = _parse_pmmu_cc_table(rows)
+            if result:
+                return result
+    return []
+
+
+def _parse_pmmu_cc_table(rows) -> list[str]:
+    """Find and parse the PMMU CC table on a page.
+
+    Identifies the table by its header ('Specifier' + 'Condition Field'),
+    then extracts (field_value, mnemonic) pairs from data rows containing
+    6-digit binary strings.
+    """
+    sorted_ys = sorted(rows.keys())
+
+    for idx, y_key in enumerate(sorted_ys):
+        row_texts = " ".join(t for _, _, t, _, _ in rows[y_key])
+        if "Specifier" not in row_texts or "Condition Field" not in row_texts:
+            continue
+
+        # Found the table header — parse subsequent data rows
+        codes: dict[int, str] = {}
+
+        for next_idx in range(idx + 1, min(idx + 25, len(sorted_ys))):
+            next_y = sorted_ys[next_idx]
+            next_row = rows[next_y]
+
+            # Find all 6-digit binary strings in this row
+            binary_entries = [
+                (x, int(text, 2))
+                for x, _, text, _, _ in next_row
+                if len(text) == 6 and all(c in "01" for c in text)
+            ]
+
+            if not binary_entries:
+                if codes:
+                    break  # end of table
+                continue
+
+            # For each binary entry find the nearest 2-letter uppercase
+            # specifier to its left (specifier precedes its field value)
+            for bin_x, field_val in binary_entries:
+                best_spec = None
+                best_dist = float("inf")
+                for x, _, text, _, _ in next_row:
+                    if (len(text) == 2 and text.isupper() and text.isalpha()
+                            and x < bin_x):
+                        dist = bin_x - x
+                        if dist < best_dist:
+                            best_dist = dist
+                            best_spec = text
+                if best_spec and best_dist < 250:
+                    codes[field_val] = best_spec.lower()
+
+        if len(codes) >= 16:
+            return [codes[i] for i in range(16)]
+
+    return []
+
+
+def extract_standard_cc_table(doc) -> dict[int, str]:
+    """Extract standard M68K condition codes from PDF Table 3-19.
+
+    Searches pages near the instruction set summary for 'Conditional Tests'
+    table header, then parses rows with 4-bit binary encodings and mnemonic
+    specifiers.  Returns {encoding_int: mnemonic_lowercase} for all 16 CCs.
+    """
+    # Table 3-19 is in Section 3 (Instruction Set Summary), typically page ~90
+    for pn in range(70, 120):
+        page = doc[pn]
+        text = page.get_text()
+        if "Conditional Tests" not in text:
+            continue
+
+        spans = extract_page_spans(page)
+        rows = spans_to_rows(spans)
+        sorted_ys = sorted(rows.keys())
+
+        for idx, y_key in enumerate(sorted_ys):
+            row_texts = " ".join(t for _, _, t, _, _ in rows[y_key])
+            if "Mnemonic" not in row_texts or "Encoding" not in row_texts:
+                continue
+
+            # Found the table header — parse subsequent data rows
+            codes: dict[int, str] = {}
+            for next_idx in range(idx + 1, min(idx + 25, len(sorted_ys))):
+                next_y = sorted_ys[next_idx]
+                next_row = rows[next_y]
+
+                # Find 4-digit binary encoding in this row
+                binary_entries = [
+                    (x, int(text, 2))
+                    for x, _, text, _, _ in next_row
+                    if len(text) == 4 and all(c in "01" for c in text)
+                ]
+                if not binary_entries:
+                    # Stray formula symbols (Λ) can create rows without
+                    # binary entries.  Only break when all 16 codes found,
+                    # or when we encounter a long text row (next table/notes).
+                    row_text = " ".join(t for _, _, t, _, _ in next_row)
+                    if len(codes) >= 16 or (codes and len(row_text) > 40):
+                        break
+                    continue
+
+                # Find the mnemonic — leftmost text in the row, stripping
+                # asterisk markers and parenthetical aliases like "CC(HI)"
+                mnemonic = None
+                for _, _, text, _, _ in next_row:
+                    if len(text) == 4 and all(c in "01" for c in text):
+                        continue  # skip encoding
+                    stripped = text.rstrip("*").split("(")[0].strip()
+                    if stripped and stripped[0].isalpha():
+                        mnemonic = stripped.lower()
+                        break
+
+                if mnemonic and binary_entries:
+                    enc_val = binary_entries[0][1]
+                    codes[enc_val] = mnemonic
+
+            if len(codes) == 16:
+                return codes
+
+    return {}
 
 
 def normalize_text(text):
@@ -143,12 +287,15 @@ class BitField:
     bbox_width: float = 0.0  # original text bbox width for tie-breaking
 
 
-def find_encoding_tables(rows) -> list[list[BitField]]:
+def find_encoding_tables(rows, summary_mode=False) -> list[list[BitField]]:
     """Find bit encoding tables using positioned text rows.
 
     Only accepts encoding tables preceded by "Instruction Format:" or a
     sub-format label (e.g. "Register Rotate:"), filtering out false positives
     from addressing mode tables and explanatory diagrams.
+
+    In summary_mode, the "Instruction Format:" filter is bypassed — the summary
+    section (Section 8) uses bare instruction names before encoding tables.
     """
     encodings = []
     sorted_ys = sorted(rows.keys())
@@ -180,22 +327,27 @@ def find_encoding_tables(rows) -> list[list[BitField]]:
             continue
 
         # === False-positive filter ===
-        is_real_encoding = False
-        for prev_idx in range(idx - 1, max(idx - 8, -1), -1):
-            prev_y = sorted_ys[prev_idx]
-            if y_key - prev_y > 60:
-                break
-            prev_texts = " ".join(t for _, _, t, _, _ in rows[prev_y])
-            if "Instruction Format" in prev_texts:
-                is_real_encoding = True
-                break
-            if re.search(r"^(Register|Memory)\s+\w+:?$", prev_texts.strip()):
-                is_real_encoding = True
-                break
-            if any(kw in prev_texts for kw in
-                   ("Source:", "Destination:", "Resulting", "Concatenated",
-                    "Add Adjustment", "Addressing Mode", "Effective Address field")):
-                break
+        if summary_mode:
+            # Summary section only has encoding tables — no EA tables or
+            # explanatory diagrams, so skip the filter entirely.
+            is_real_encoding = True
+        else:
+            is_real_encoding = False
+            for prev_idx in range(idx - 1, max(idx - 8, -1), -1):
+                prev_y = sorted_ys[prev_idx]
+                if y_key - prev_y > 80:
+                    break
+                prev_texts = " ".join(t for _, _, t, _, _ in rows[prev_y])
+                if "Instruction Format" in prev_texts:
+                    is_real_encoding = True
+                    break
+                if re.search(r"^(Register|Memory)\s+\w+:?$", prev_texts.strip()):
+                    is_real_encoding = True
+                    break
+                if any(kw in prev_texts for kw in
+                       ("Source:", "Destination:", "Resulting", "Concatenated",
+                        "Add Adjustment", "Addressing Mode", "Effective Address field")):
+                    break
 
         if not is_real_encoding:
             continue
@@ -219,11 +371,26 @@ def find_encoding_tables(rows) -> list[list[BitField]]:
             if leftmost_5_x == min_x:
                 x_to_bit[leftmost_5_x] = 15
 
-        # Collect ALL value rows below the header first, then process.
+        # Collect value rows below the header, splitting each 16-bit word into its
+        # own cluster.  A new cluster begins whenever a row places a "0" or "1"
+        # near the bit-15 column — that signals the start of a fresh encoding word
+        # (opword, extension word, etc.).
         min_col_x = min(x_to_bit.keys()) - 15
         header_y = y_key
 
-        merged_row = []  # (x, x2, text, font, size, y)
+        col_xs = sorted(x_to_bit.keys())
+        bit_15_x = None
+        for cx, bn in x_to_bit.items():
+            if bn == 15:
+                bit_15_x = cx
+                break
+        half_col = ((col_xs[-1] - col_xs[0]) / (len(col_xs) - 1) / 2
+                    if len(col_xs) >= 2 else 15.0)
+
+        current_cluster: list = []
+        all_clusters: list[list] = []
+        first_cluster_started = False
+
         for next_idx in range(idx + 1, min(idx + 6, len(sorted_ys))):
             next_y = sorted_ys[next_idx]
             if next_y - header_y > 45:
@@ -237,14 +404,37 @@ def find_encoding_tables(rows) -> list[list[BitField]]:
             enc_items = [(x, x2, t, f, s, next_y) for x, x2, t, f, s in row_items
                         if x >= min_col_x]
             enc_items = [e for e in enc_items
-                        if e[2] in ("0", "1") or len(e[2].split()) <= 4]
-            if enc_items:
-                merged_row.extend(enc_items)
+                        if e[2] in ("0", "1") or len(e[2].split()) <= 2]
+            if not enc_items:
+                continue
 
-        if merged_row:
-            sorted_merged = sorted(merged_row,
-                key=lambda e: (0 if e[2] in ("0", "1") else 1, -e[5], e[1] - e[0]))
-            fields = _map_values_to_bits(x_to_bit, sorted_merged)
+            # Start a new cluster when the leftmost item in the row is near the
+            # bit-15 column.  This detects both opword rows (fixed 0/1 at bit 15)
+            # and extension word rows that start with a named field at bit 15 (e.g.
+            # MOVES: A/D at bit 15, CAS: 0 at bit 15).
+            # Label-only rows (e.g. "MODE  REGISTER") have their leftmost item far
+            # to the right and are therefore excluded.
+            min_item_x = min(e[0] for e in enc_items)
+            starts_new_word = (
+                bit_15_x is not None
+                and min_item_x < bit_15_x + half_col * 2.0
+            )
+            if starts_new_word:
+                if first_cluster_started and current_cluster:
+                    all_clusters.append(current_cluster)
+                current_cluster = []
+                first_cluster_started = True
+
+            if first_cluster_started:
+                current_cluster.extend(enc_items)
+
+        if current_cluster:
+            all_clusters.append(current_cluster)
+
+        for cluster in all_clusters:
+            sorted_cluster = sorted(cluster,
+                key=lambda e: (0 if e[2] in ("0", "1") else 1, e[5], e[1] - e[0]))
+            fields = _map_values_to_bits(x_to_bit, sorted_cluster)
             if fields and sum(f.width for f in fields) >= 15:
                 encodings.append(fields)
 
@@ -463,18 +653,27 @@ def parse_text_sections(text):
     field_descs = {}
     field_section = re.search(r"Instruction Fields:\s*\n(.+?)(?:\n\s*\n\s*\n|$)", text, re.DOTALL)
     if field_section:
+        content = field_section.group(1)
+        # Truncate at any subsequent Instruction Fields/Format boundary
+        # (e.g. CAS page has both CAS and CAS2 Instruction Fields sections)
+        for boundary in ("Instruction Fields:", "Instruction Format:"):
+            idx = content.find(boundary)
+            if idx >= 0:
+                content = content[:idx]
         current_name = None
         current_desc = []
-        for line in field_section.group(1).split("\n"):
+        for line in content.split("\n"):
             line = line.strip()
-            fm = re.match(r"^(.+?)\s*[Ff]ield\s*[\u2014\u2013\-]\s*(.+)", line)
+            fm = re.match(r"^(.+?)\s*[Ff]ields?\s*[\u2014\u2013\-]\s*(.+)", line)
             if fm:
                 if current_name:
                     field_descs[current_name] = " ".join(current_desc)
                 current_name = fm.group(1).strip()
                 current_desc = [fm.group(2).strip()]
             elif current_name and line:
-                if line.startswith("If ") or line.startswith("0 ") or line.startswith("1 "):
+                # Capture value descriptions: "0 —", "1 —", "01 —", "10 —", "11 —", etc.
+                if (line.startswith("If ") or
+                    re.match(r"^[01]{1,2}\s*[\u2014\u2013\-]", line)):
                     current_desc.append(line)
         if current_name:
             field_descs[current_name] = " ".join(current_desc)
@@ -549,105 +748,199 @@ def parse_all_instructions(doc, page_ranges):
             pages=page_nums,
         ))
 
-    _fix_coprocessor_encodings(parsed)
+    _cross_check_with_summary(parsed, doc)
     return parsed
 
 
-# --- Coprocessor encoding fixes (PDF-GAP: multi-word conflation) ---
+# --- Cross-check detail encodings against Section 8 summary ---
 
-def _f(val, bit):
-    """Helper: single fixed bit field."""
-    return {"name": val, "bit_hi": bit, "bit_lo": bit, "width": 1}
+# Page range for Section 8: Instruction Format Summary
+SUMMARY_PAGES = (561, 596)
 
-def _mf(name, hi, lo):
-    """Helper: multi-bit named field."""
-    return {"name": name, "bit_hi": hi, "bit_lo": lo, "width": hi - lo + 1}
 
-def _fix_coprocessor_encodings(instructions):
-    """Replace mis-parsed coprocessor encodings with known correct formats."""
-    COPROC_FIXES = {
-        "cpBcc": [
-            _f("1",15), _f("1",14), _f("1",13), _f("1",12),
-            _mf("COPROCESSOR ID",11,9), _f("0",8), _f("1",7),
-            _mf("SIZE",6,6), _mf("COPROCESSOR CONDITION",5,0),
-        ],
-        "cpDBcc": [
-            _f("1",15), _f("1",14), _f("1",13), _f("1",12),
-            _mf("COPROCESSOR ID",11,9), _f("0",8), _f("0",7), _f("1",6),
-            _f("0",5), _f("0",4), _f("1",3), _mf("REGISTER",2,0),
-        ],
-        "cpGEN": [
-            _f("1",15), _f("1",14), _f("1",13), _f("1",12),
-            _mf("COPROCESSOR ID",11,9), _f("0",8), _f("0",7), _f("0",6),
-            _mf("MODE",5,3), _mf("REGISTER",2,0),
-        ],
-        "cpScc": [
-            _f("1",15), _f("1",14), _f("1",13), _f("1",12),
-            _mf("COPROCESSOR ID",11,9), _f("0",8), _f("0",7), _f("1",6),
-            _mf("MODE",5,3), _mf("REGISTER",2,0),
-        ],
-        "cpTRAPcc": [
-            _f("1",15), _f("1",14), _f("1",13), _f("1",12),
-            _mf("COPROCESSOR ID",11,9), _f("0",8), _f("0",7), _f("1",6),
-            _f("1",5), _f("1",4), _f("1",3), _mf("OPMODE",2,0),
-        ],
-    }
+def _encoding_mask_val(enc_fields):
+    """Compute (mask, val) from encoding fields — only fixed 0/1 bits contribute."""
+    mask = 0
+    val = 0
+    for f in enc_fields:
+        name = f["name"] if isinstance(f, dict) else f.name
+        bit_hi = f["bit_hi"] if isinstance(f, dict) else f.bit_hi
+        bit_lo = f["bit_lo"] if isinstance(f, dict) else f.bit_lo
+        if name in ("0", "1"):
+            for b in range(bit_lo, bit_hi + 1):
+                mask |= (1 << b)
+                if name == "1":
+                    val |= (1 << b)
+    return mask, val
 
-    PMMU_FIXES = {
-        "PDBcc": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
-                  _f("0",11), _f("0",10), _f("0",9),
-                  _f("0",8), _f("0",7), _f("1",6), _f("0",5),
-                  _f("0",4), _f("1",3), _mf("REGISTER",2,0)],
-        "PScc": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
-                 _f("0",11), _f("0",10), _f("0",9),
-                 _f("0",8), _f("0",7), _f("1",6),
-                 _mf("MODE",5,3), _mf("REGISTER",2,0)],
-        "PTRAPcc": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
-                    _f("0",11), _f("0",10), _f("0",9),
-                    _f("0",8), _f("0",7), _f("1",6), _f("1",5),
-                    _f("1",4), _f("1",3), _mf("OPMODE",2,0)],
-        "PFLUSH PFLUSHA": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
-                           _f("0",11), _f("0",10), _f("0",9),
-                           _f("0",8), _f("0",7), _f("0",6),
-                           _mf("MODE",5,3), _mf("REGISTER",2,0)],
-        "PFLUSHR": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
-                    _f("0",11), _f("0",10), _f("0",9),
-                    _f("0",8), _f("0",7), _f("0",6),
-                    _mf("MODE",5,3), _mf("REGISTER",2,0)],
-    }
 
-    MOVE16_FIX = {
-        "MOVE16": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
-                   _f("0",11), _f("1",10), _f("1",9), _f("0",8),
-                   _f("0",7), _f("0",6), _mf("OPMODE",5,3),
-                   _mf("REGISTER",2,0)],
-    }
+def parse_summary_encodings(doc):
+    """Parse opword encodings from Section 8 (Instruction Format Summary).
 
-    OTHER_FIXES = {
-        "cpRESTORE": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
-                      _mf("COPROCESSOR ID",11,9), _f("1",8), _f("0",7), _f("1",6),
-                      _mf("MODE",5,3), _mf("REGISTER",2,0)],
-        "cpSAVE": [_f("1",15), _f("1",14), _f("1",13), _f("1",12),
-                   _mf("COPROCESSOR ID",11,9), _f("1",8), _f("0",7), _f("0",6),
-                   _mf("MODE",5,3), _mf("REGISTER",2,0)],
-        "MOVEM": [_f("0",15), _f("1",14), _f("0",13), _f("0",12),
-                  _f("1",11), _mf("dr",10,10), _f("0",9), _f("0",8), _f("1",7),
-                  _mf("SIZE",6,6), _mf("MODE",5,3), _mf("REGISTER",2,0)],
-        "ADDI": [_f("0",15), _f("0",14), _f("0",13), _f("0",12),
-                 _f("0",11), _f("1",10), _f("1",9), _f("0",8),
-                 _mf("SIZE",7,6), _mf("MODE",5,3), _mf("REGISTER",2,0)],
-        "SUBI": [_f("0",15), _f("0",14), _f("0",13), _f("0",12),
-                 _f("0",11), _f("1",10), _f("0",9), _f("0",8),
-                 _mf("SIZE",7,6), _mf("MODE",5,3), _mf("REGISTER",2,0)],
-        "CMPI": [_f("0",15), _f("0",14), _f("0",13), _f("0",12),
-                 _f("1",11), _f("1",10), _f("0",9), _f("0",8),
-                 _mf("SIZE",7,6), _mf("MODE",5,3), _mf("REGISTER",2,0)],
-    }
+    Returns dict mapping instruction_name -> list of (mask, val, fields).
+    Each instruction may have multiple encoding forms in the summary.
+    """
+    summary: dict[str, list] = {}
+    start, end = SUMMARY_PAGES
 
-    all_fixes = {**COPROC_FIXES, **PMMU_FIXES, **MOVE16_FIX, **OTHER_FIXES}
+    for pn in range(start, end + 1):
+        page = doc[pn - 1]
+        spans = extract_page_spans(page)
+        rows = spans_to_rows(spans)
+        sorted_ys = sorted(rows.keys())
+
+        # Find all bit header positions
+        bit_headers = []  # list of (idx, y_key)
+        for idx, y_key in enumerate(sorted_ys):
+            row = rows[y_key]
+            texts = [t for _, _, t, _, _ in row]
+            bit_numbers = set()
+            for t in texts:
+                try:
+                    n = int(t)
+                    if 0 <= n <= 15:
+                        bit_numbers.add(n)
+                except ValueError:
+                    pass
+            if 15 in bit_numbers and 0 in bit_numbers and len(bit_numbers) >= 14:
+                bit_headers.append((idx, y_key))
+
+        # For each bit header, extract just the rows belonging to it and parse
+        for hdr_pos, (h_idx, h_y) in enumerate(bit_headers):
+            # Find instruction name by scanning backwards from the header
+            name = None
+            for prev_idx in range(h_idx - 1, max(h_idx - 5, -1), -1):
+                prev_y = sorted_ys[prev_idx]
+                prev_texts = " ".join(t for _, _, t, _, _ in rows[prev_y])
+                prev_texts = prev_texts.strip()
+                if not prev_texts or "MOTOROLA" in prev_texts or \
+                   "REFERENCE MANUAL" in prev_texts or \
+                   re.match(r"^\d+-\d+$", prev_texts) or \
+                   prev_texts == "Instruction Format Summary":
+                    continue
+                if len(prev_texts) > 30:
+                    continue
+                name = prev_texts
+                break
+
+            if not name:
+                continue
+
+            # Determine y-range: from header to next header (or end of page)
+            next_hdr_y = (bit_headers[hdr_pos + 1][1]
+                          if hdr_pos + 1 < len(bit_headers) else 9999)
+
+            # Extract just the rows for this header's region
+            region_rows = {y: rows[y] for y in sorted_ys
+                          if y >= h_y and y < next_hdr_y}
+
+            # Parse the encoding table for this region
+            encs = find_encoding_tables(region_rows, summary_mode=True)
+            if not encs:
+                continue
+
+            # First encoding is the opword
+            opword_fields = encs[0]
+            enc_mask, enc_val = _encoding_mask_val(opword_fields)
+            summary.setdefault(name, []).append((enc_mask, enc_val, opword_fields))
+
+    return summary
+
+
+def _cross_check_with_summary(instructions, doc):
+    """Cross-check detail page opword encodings against the Section 8 summary.
+
+    When detail and summary disagree on a fixed bit, resolve using collision
+    detection: the correct encoding must be unique — it must not collide with
+    any other instruction's opword.  If one source creates a collision and the
+    other doesn't, the non-colliding one is preferred.
+
+    This catches typos in either the detail pages (e.g. BFFFO bit 10) or the
+    summary (e.g. ANDI bit 9) without hardcoding which source is correct.
+    """
+    summary = parse_summary_encodings(doc)
+    if not summary:
+        return
+
+    # Build lookup of all detail opword (mask, val) by mnemonic for collision checks
+    all_opwords = {}  # mnemonic -> (mask, val)
     for inst in instructions:
-        if inst.mnemonic in all_fixes:
-            inst.encodings = [{"fields": all_fixes[inst.mnemonic]}]
+        if inst.encodings:
+            m, v = _encoding_mask_val(inst.encodings[0]["fields"])
+            all_opwords[inst.mnemonic] = (m, v)
+
+    fixes = 0
+    for inst in instructions:
+        if not inst.encodings:
+            continue
+
+        mnemonic = inst.mnemonic
+        entries = summary.get(mnemonic)
+        if not entries:
+            continue
+
+        opword = inst.encodings[0]
+        detail_mask, detail_val = _encoding_mask_val(opword["fields"])
+
+        for smask, sval, sfields in entries:
+            if smask != detail_mask:
+                continue
+            if sval == detail_val:
+                continue  # no discrepancy
+
+            diff_bits = detail_val ^ sval
+            diff_positions = [b for b in range(16) if diff_bits & (1 << b)]
+
+            # Collision check: does either value create an exact collision with
+            # another instruction that has the same mask?  An exact collision
+            # means two instructions are truly indistinguishable by their
+            # opword fixed bits.
+            detail_collides = False
+            summary_collides = False
+            for other_mn, (om, ov) in all_opwords.items():
+                if other_mn == mnemonic:
+                    continue
+                # Only check instructions with the same mask (same field layout)
+                if om != detail_mask:
+                    continue
+                if ov == detail_val:
+                    detail_collides = True
+                if ov == sval:
+                    summary_collides = True
+
+            if detail_collides and not summary_collides:
+                # Detail collides, summary doesn't — use summary
+                print(f"  SUMMARY FIX: {mnemonic} bits {diff_positions} "
+                      f"(detail=0x{detail_val:04X} collides, "
+                      f"summary=0x{sval:04X} unique) — using summary")
+
+                fields_out = []
+                for f in sfields:
+                    if isinstance(f, BitField):
+                        d = {"name": f.name, "bit_hi": f.bit_hi, "bit_lo": f.bit_lo,
+                             "width": f.width}
+                    else:
+                        d = dict(f)
+                        d.pop("bbox_width", None)
+                    fields_out.append(d)
+                inst.encodings[0] = {"fields": fields_out}
+                # Update the lookup so subsequent checks see the corrected value
+                all_opwords[mnemonic] = (smask, sval)
+                fixes += 1
+            elif not detail_collides and summary_collides:
+                # Summary collides — detail is correct, keep it
+                print(f"  SUMMARY WARN: {mnemonic} bits {diff_positions} "
+                      f"(detail=0x{detail_val:04X} unique, "
+                      f"summary=0x{sval:04X} collides) — keeping detail")
+            else:
+                # Both collide or neither collides — flag but don't auto-fix
+                print(f"  SUMMARY WARN: {mnemonic} bits {diff_positions} "
+                      f"(detail=0x{detail_val:04X}, summary=0x{sval:04X}) "
+                      f"— ambiguous, keeping detail")
+            break
+
+    if fixes:
+        print(f"  Applied {fixes} summary cross-check fix(es)")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -837,10 +1130,51 @@ def apply_ea_modes(kb_data, doc, page_ranges):
             inst["ea_modes_020"] = ea_modes_020
         elif "ea_modes_020" in inst:
             del inst["ea_modes_020"]
+        # Stash raw per-page tables for post-processing after constraints
+        inst["_ea_tables_by_page"] = {
+            pg: tables_by_page[pg] for pg in pages if pg in tables_by_page
+        }
 
     with_ea = sum(1 for inst in kb_data if inst.get("ea_modes"))
     with_020 = sum(1 for inst in kb_data if inst.get("ea_modes_020"))
     print(f"  EA modes: {with_ea}/{len(kb_data)} instructions, {with_020} with 020+ modes")
+
+
+def apply_ea_direction_split(kb_data):
+    """Post-process: for instructions with movem_direction, split EA modes by direction.
+
+    Uses stashed per-page EA tables from Phase 2 plus direction constraints from Phase 4.
+    The PDF lists separate EA tables for each direction (e.g. MOVEM has one table for
+    reg-to-mem and another for mem-to-reg on consecutive pages).
+    """
+    count = 0
+    for inst in kb_data:
+        movem_dir = inst.get("constraints", {}).get("movem_direction")
+        raw_tables = inst.pop("_ea_tables_by_page", {})
+
+        if not movem_dir or not raw_tables:
+            continue
+
+        dir_values = movem_dir.get("values", {})
+        if len(dir_values) != 2:
+            continue
+
+        # Direction order matches page order in the PDF
+        dir_labels = list(dir_values.values())  # e.g. ["reg-to-mem", "mem-to-reg"]
+        ea_per_dir = {}
+        dir_idx = 0
+        for pg in sorted(raw_tables.keys()):
+            for label, modes, modes_020 in raw_tables[pg]:
+                if dir_idx < len(dir_labels):
+                    ea_per_dir[dir_labels[dir_idx]] = modes
+                    dir_idx += 1
+
+        if ea_per_dir:
+            inst["ea_modes_by_direction"] = ea_per_dir
+            count += 1
+
+    if count:
+        print(f"  EA direction splits: {count} instructions")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -893,6 +1227,22 @@ def _parse_operand(token):
         return {"type": "reglist"}
     if re.match(r"^[Dd]\w+:[Dd]\w+$", t):
         return {"type": "dn_pair"}
+
+    # CAS: Dc/Du data register operands (e.g. Dc, Du, Dc1, Dc2, Du1, Du2)
+    if re.match(r"^[Dd][cu]\d*$", t, re.IGNORECASE):
+        return {"type": "dn"}
+
+    # Control register operand (MOVEC Rc)
+    if re.match(r"^[Rr]c$", t):
+        return {"type": "ctrl_reg"}
+
+    # Generic register Rn (MOVEC Rn, MOVES Rn, RTM Rn, CMP2/CHK2 Rn)
+    if re.match(r"^[Rr]n\d*$", t):
+        return {"type": "rn"}
+
+    # Bit-field EA: "<ea> {offset:width}" forms (BFTST, BFCHG, BFINS, etc.)
+    if re.match(r"^<ea>\s*\{", t):
+        return {"type": "bf_ea"}
 
     return {"type": "unknown", "raw": t}
 
@@ -1116,6 +1466,16 @@ def _find_field_description(fd, field_name):
     return ""
 
 
+    # Field names that represent structural parts of the encoding, not immediate data
+_STRUCTURAL_FIELD_RE = re.compile(
+    r"^(REGISTER|MODE|OPMODE|CONDITION|SIZE|CACHE|SCOPE|ID|FC|MASK|"
+    r"LEVEL|NUM|OFFSET|WIDTH|A/D|D/A|R/?W|R/M|dr|i/r|D[couwqrhl]|"
+    r"Rn\d|Instruction|FD|A$|COPROCESSOR|MC68851)"
+    r"|REGISTER\b"  # also match fields containing REGISTER
+    , re.IGNORECASE
+)
+
+
 def _extract_immediate_range(inst):
     """Extract immediate value range from encoding field width and field_descriptions."""
     fd = inst.get("field_descriptions", {})
@@ -1124,62 +1484,69 @@ def _extract_immediate_range(inst):
     if not encodings:
         return None
 
-    for target in ("DATA", "VECTOR", "ARGUMENT COUNT"):
-        result = _find_encoding_field(encodings, target)
-        if result is None:
-            continue
+    # Iterate over all named encoding fields; let descriptions drive extraction
+    for enc in encodings:
+        for f in enc.get("fields", []):
+            field_name = f["name"]
+            if field_name in ("0", "1"):
+                continue
+            if _STRUCTURAL_FIELD_RE.search(field_name):
+                continue
 
-        field_name, bit_width = result
-        desc = _find_field_description(fd, field_name)
+            bit_width = f["width"]
+            desc = _find_field_description(fd, field_name)
+            # Non-structural fields without a description — assume unsigned immediate
+            if not desc:
+                return {
+                    "min": 0,
+                    "max": (1 << bit_width) - 1,
+                    "field": field_name,
+                    "bits": bit_width,
+                }
+            dl = desc.lower()
 
-        if "sign-extended" in desc.lower() or "sign extended" in desc.lower():
-            return {
-                "min": -(1 << (bit_width - 1)),
-                "max": (1 << (bit_width - 1)) - 1,
-                "field": field_name,
-                "bits": bit_width,
-                "signed": True,
-            }
+            if "sign-extended" in dl or "sign extended" in dl:
+                return {
+                    "min": -(1 << (bit_width - 1)),
+                    "max": (1 << (bit_width - 1)) - 1,
+                    "field": field_name,
+                    "bits": bit_width,
+                    "signed": True,
+                }
 
-        if "represent" in desc.lower():
-            return {
-                "min": 1,
-                "max": (1 << bit_width),
-                "field": field_name,
-                "bits": bit_width,
-                "zero_means": (1 << bit_width),
-            }
+            if "represent" in dl:
+                return {
+                    "min": 1,
+                    "max": (1 << bit_width),
+                    "field": field_name,
+                    "bits": bit_width,
+                    "zero_means": (1 << bit_width),
+                }
 
-        if target == "VECTOR":
-            return {
-                "min": 0,
-                "max": (1 << bit_width) - 1,
-                "field": field_name,
-                "bits": bit_width,
-            }
+            # Fields with explicit numeric ranges in description
+            if bit_width <= 8:
+                range_match = re.search(r"(\d+)\s*-\s*(\d+)", desc)
+                if range_match:
+                    lo, hi = int(range_match.group(1)), int(range_match.group(2))
+                    if lo == 0 and "represent" in dl:
+                        return {
+                            "min": 1,
+                            "max": hi + 1,
+                            "field": field_name,
+                            "bits": bit_width,
+                            "zero_means": hi + 1,
+                        }
 
-        if target == "ARGUMENT COUNT":
-            # CALLM argument count is 8-bit unsigned in extension word.
-            # Parser may extract wrong width due to extension word conflation.
-            return {
-                "min": 0,
-                "max": 255,
-                "field": field_name,
-                "bits": 8,
-            }
-
-        if target == "DATA" and bit_width <= 8:
-            range_match = re.search(r"(\d+)\s*-\s*(\d+)", desc)
-            if range_match:
-                lo, hi = int(range_match.group(1)), int(range_match.group(2))
-                if lo == 0 and "represent" in desc.lower():
-                    return {
-                        "min": 1,
-                        "max": hi + 1,
-                        "field": field_name,
-                        "bits": bit_width,
-                        "zero_means": hi + 1,
-                    }
+            # Non-DATA immediate fields (vector, count, etc.) — unsigned range
+            fn_upper = field_name.upper()
+            if fn_upper != "DATA" and ("immediate" in dl or "vector" in dl
+                                       or "count" in dl or "number" in dl):
+                return {
+                    "min": 0,
+                    "max": (1 << bit_width) - 1,
+                    "field": field_name,
+                    "bits": bit_width,
+                }
 
     return None
 
@@ -1203,14 +1570,13 @@ def _extract_cc_parameterization(inst):
 
     prefix = mnemonic.lower().replace("cc", "")
 
-    excluded = []
-    if mnemonic == "Bcc":
-        excluded = ["t", "f"]
-
+    # Derive excluded CCs: if a cc value (e.g. "t","f") forms a separately-parsed
+    # instruction (e.g. Bcc with cc=t → BRA, Bcc with cc=f → BSR), exclude it.
+    # This is checked by the caller after all instructions are parsed.
     return {
         "prefix": prefix,
         "field_bits": condition_bits,
-        "excluded": excluded,
+        "excluded": [],  # populated by _derive_cc_exclusions()
     }
 
 
@@ -1284,10 +1650,7 @@ def _extract_operand_modes(inst):
 
 
 def _extract_movem_direction(inst):
-    """Extract MOVEM direction semantics from dr field."""
-    if inst["mnemonic"] != "MOVEM":
-        return None
-
+    """Extract register-to-memory/memory-to-register direction from dr field description."""
     fd = inst.get("field_descriptions", {})
     dr_desc = fd.get("dr", "")
     if not dr_desc:
@@ -1315,29 +1678,37 @@ def _extract_shift_count_range(inst):
 
     cr_desc = _find_field_description(fd, "Count/Register")
     if cr_desc:
-        range_match = re.search(r"values?\s+(\d+)\s*-\s*(\d+)", cr_desc)
+        range_match = re.search(r"values?\s+(\d+)\s*[-\u2013\u2014]\s*(\d+)", cr_desc)
+        zero_match = re.search(r"(?:value of|value\s+)(?:zero|0)\s+represents\s+(?:a\s+)?(?:count of\s+)?(\d+)", cr_desc, re.IGNORECASE)
         if range_match:
+            lo = int(range_match.group(1))
+            hi = int(range_match.group(2))
+            zero_means = int(zero_match.group(1)) if zero_match else hi + 1
+            # Bit width from the encoding field
+            cr_field = _find_encoding_field(encodings, "Count/Register")
+            bits = cr_field[2] if cr_field else (hi.bit_length())
             return {
-                "min": 1, "max": 8,
-                "field": "Count/Register", "bits": 3,
-                "zero_means": 8,
+                "min": lo, "max": zero_means if zero_means > hi else hi,
+                "field": "Count/Register", "bits": bits,
+                "zero_means": zero_means,
             }
 
     has_dr = _find_encoding_field(encodings, "dr") is not None
     if not has_dr:
         return None
 
+    # Fallback: detect shift/rotate structure from encoding fields
     for enc in encodings:
         fields = enc.get("fields", [])
         has_ir = any(f["name"] == "i/r" for f in fields)
-        has_count = any(f["name"] == "REGISTER" and f["bit_hi"] == 11
-                        and f["bit_lo"] == 9 and f["width"] == 3
-                        for f in fields)
-        if has_ir and has_count:
+        count_field = next((f for f in fields if f["name"] == "REGISTER"
+                           and f["width"] == 3 and f["bit_hi"] >= 9), None)
+        if has_ir and count_field:
+            bits = count_field["width"]
             return {
-                "min": 1, "max": 8,
-                "field": "Count/Register", "bits": 3,
-                "zero_means": 8,
+                "min": 1, "max": 1 << bits,
+                "field": "Count/Register", "bits": bits,
+                "zero_means": 1 << bits,
             }
 
     return None
@@ -1364,7 +1735,11 @@ def _extract_sizes_68000(inst):
 
 
 def _extract_memory_size_restriction(inst):
-    """Detect if memory EA form has a fixed size (shift/rotate memory = word only)."""
+    """Detect if memory EA form has a fixed size (shift/rotate memory = word only).
+
+    Derives size field position from the register-form encoding's SIZE field,
+    then checks if those bits are all-fixed in the memory-form encoding.
+    """
     encodings = inst.get("encodings", [])
     if len(encodings) < 2:
         return None
@@ -1373,6 +1748,23 @@ def _extract_memory_size_restriction(inst):
     if not has_dr:
         return None
 
+    # Find SIZE field position from register-form encoding (has i/r field)
+    size_hi = size_lo = None
+    for enc in encodings:
+        fields = enc.get("fields", [])
+        if any(f["name"] == "i/r" for f in fields):
+            for f in fields:
+                if f["name"] == "SIZE":
+                    size_hi, size_lo = f["bit_hi"], f["bit_lo"]
+                    break
+            if size_hi is not None:
+                break
+    if size_hi is None:
+        return None
+
+    SIZE_MAP = {0: "b", 1: "w", 2: "l"}
+
+    # Check memory-form encoding (has MODE but not i/r)
     for enc in encodings:
         fields = enc.get("fields", [])
         has_mode = any(f["name"] == "MODE" for f in fields)
@@ -1380,10 +1772,25 @@ def _extract_memory_size_restriction(inst):
         has_dr_field = any(f["name"] == "dr" for f in fields)
 
         if has_mode and not has_ir and has_dr_field:
-            bit7 = next((f for f in fields if f["bit_hi"] == 7 and f["bit_lo"] == 7), None)
-            bit6 = next((f for f in fields if f["bit_hi"] == 6 and f["bit_lo"] == 6), None)
-            if bit7 and bit6 and bit7["name"] == "1" and bit6["name"] == "1":
-                return "w"
+            # Check if all bits at the SIZE field position are fixed
+            fixed_val = 0
+            all_fixed = True
+            for bit in range(size_lo, size_hi + 1):
+                bf = next((f for f in fields if f["bit_hi"] == bit and f["bit_lo"] == bit), None)
+                if bf and bf["name"] in ("0", "1"):
+                    fixed_val |= int(bf["name"]) << (bit - size_lo)
+                else:
+                    all_fixed = False
+                    break
+            if all_fixed:
+                if fixed_val in SIZE_MAP:
+                    return SIZE_MAP[fixed_val]
+                # Non-standard SIZE value — memory-form discriminator;
+                # derive actual size from instruction attributes
+                attrs = inst.get("attributes", "").lower()
+                for sz_name, sz_letter in [("word", "w"), ("byte", "b"), ("long", "l")]:
+                    if sz_name in attrs:
+                        return sz_letter
 
     return None
 
@@ -1391,11 +1798,6 @@ def _extract_memory_size_restriction(inst):
 def _extract_bit_op_size_restriction(inst):
     """Detect bit operation size behavior from description."""
     desc = inst.get("description", "")
-    mnemonic = inst["mnemonic"]
-
-    if mnemonic not in ("BTST", "BCHG", "BCLR", "BSET"):
-        return None
-
     has_reg_32 = "modulo 32" in desc
     has_mem_byte = "byte operation" in desc.lower() or "modulo 8" in desc
 
@@ -1405,26 +1807,374 @@ def _extract_bit_op_size_restriction(inst):
 
 
 def _derive_processor_min(processors):
-    """Derive processor_min from the processors field."""
+    """Derive processor_min from the processors field using CPU_HIERARCHY."""
     if not processors or "M68000 Family" in processors:
         return "68000"
-    if re.search(r"\bMC68000\b", processors) or "MC68008" in processors:
-        return "68000"
-    if "MC68EC000" in processors or "MC68010" in processors:
-        return "68010"
-    if "MC68020" in processors:
-        return "68020"
-    if "MC68030" in processors:
-        return "68030"
-    if "MC68040" in processors:
-        return "68040"
-    if "MC68881" in processors or "MC68882" in processors:
-        return "68020"
-    if "68851" in processors:
-        return "68020"
-    if "CPU32" in processors:
-        return "cpu32"
-    return "68000"
+
+    order = CPU_HIERARCHY["order"]
+    # Map processor model patterns to hierarchy entries.
+    # Coprocessors (FPU 68881/68882, MMU 68851) imply 68020 as the minimum CPU.
+    _COPROCESSOR_IMPLIES = "68020"
+    best_idx = -1
+
+    for proc_token in re.findall(r"MC?68\w+|CPU32", processors):
+        token = proc_token.lstrip("MC")  # "MC68020" -> "68020"
+        # Strip EC/LC variants: "68EC030" -> "68030", "68LC040" -> "68040"
+        core = re.sub(r"^68[A-Z]{1,2}(\d)", r"68\1", token)
+
+        if core in ("68881", "68882", "68851"):
+            # Coprocessor — implies 68020
+            idx = order.index(_COPROCESSOR_IMPLIES) if _COPROCESSOR_IMPLIES in order else -1
+        elif core == "CPU32":
+            return "cpu32"
+        elif core in order:
+            idx = order.index(core)
+        else:
+            # Try prefix match (68008 -> 68000)
+            idx = next((order.index(o) for o in order if core.startswith(o[:4])), -1)
+
+        if idx > best_idx:
+            best_idx = idx
+
+    return order[best_idx] if best_idx >= 0 else "68000"
+
+
+def _extract_opmode_table(doc, inst):
+    """Extract OPMODE value table from PDF instruction pages.
+
+    Handles three formats found in the M68000 reference:
+    1. Multi-column: "Byte Word Long Operation" header with binary columns
+       (used by ADD, OR, SUB, AND, CMP, EOR)
+    2. Value-description: "binary—Description" lines under Opmode field heading
+       (used by MOVEP, EXG, ADDA, SUBA, CMPA)
+    3. Source/Destination: "Opmode Source Destination Assembler Syntax" header
+       with space-separated binary digits (used by MOVE16)
+
+    Returns list of dicts with {opmode, size, operation} entries, or None.
+    """
+    pages = inst.get("pages", [inst.get("page", 0)])
+    if not pages:
+        return None
+
+    # Check if this instruction has an OPMODE encoding field
+    has_opmode = False
+    for enc in inst.get("encodings", []):
+        for f in enc.get("fields", []):
+            if f["name"].upper() == "OPMODE":
+                has_opmode = True
+                break
+    if not has_opmode:
+        return None
+
+    SIZE_NAMES = {"b": "byte", "w": "word", "l": "long"}
+    SIZE_MAP = {"byte": "b", "word": "w", "long": "l"}
+    entries = []
+
+    for pg in pages:
+        page = doc[pg - 1]
+        spans = extract_page_spans(page)
+        rows = spans_to_rows(spans)
+        sorted_ys = sorted(rows.keys())
+
+        in_opmode = False
+        header_cols = {}  # "Byte"->x, "Word"->x, "Long"->x, "Operation"->x
+        src_dst_cols = {}  # "source"->x, "destination"->x, "syntax"->x (Format 3)
+
+        for idx, y_key in enumerate(sorted_ys):
+            row_items = rows[y_key]
+            row_text = " ".join(t for _, _, t, _, _ in row_items)
+
+            # Detect Opmode field section start
+            if re.search(r"Opmode\s+\S*eld\b", row_text, re.IGNORECASE):
+                in_opmode = True
+                continue
+
+            if not in_opmode:
+                continue
+
+            # Stop at next field description or encoding diagram
+            if re.match(r"^.+\s+\S*eld[s—\u2014\u2013\-]", row_text) and "opmode" not in row_text.lower():
+                in_opmode = False
+                continue
+            if re.match(r"^Effective Address", row_text):
+                in_opmode = False
+                continue
+            # Stop at encoding bit numbers (15 14 13 12 ...)
+            if re.match(r"^15\s+14\s+13", row_text):
+                in_opmode = False
+                continue
+
+            # Detect Byte/Word/Long/Operation header (Format 1)
+            texts = {t.lower(): x for x, _, t, _, _ in row_items}
+            if "Byte" in [t for _, _, t, _, _ in row_items] or "byte" in texts:
+                if "word" in texts or "Word" in [t for _, _, t, _, _ in row_items]:
+                    for x, _, t, _, _ in row_items:
+                        tl = t.lower()
+                        if tl in ("byte", "word", "long", "operation"):
+                            header_cols[tl] = x
+                    continue
+
+            # Detect Source/Destination header (Format 3: MOVE16-style)
+            raw_texts = [t for _, _, t, _, _ in row_items]
+            if "Source" in raw_texts and any("Destinati" in t or "Destination" in t for t in raw_texts):
+                for x, _, t, _, _ in row_items:
+                    tl = t.lower().replace(" ", "")
+                    if tl == "source":
+                        src_dst_cols["source"] = x
+                    elif tl.startswith("destinati"):
+                        src_dst_cols["destination"] = x
+                    elif "assembler" in tl or "syntax" in tl:
+                        src_dst_cols["syntax"] = x
+                continue
+
+            # Format 1: Multi-column (Byte/Word/Long rows)
+            if header_cols:
+                # Collect binary spans from this row
+                bin_spans = [(x, t) for x, _, t, _, _ in row_items
+                             if re.match(r"^[01]{3}$", t)]
+                op_spans = [(x, t) for x, _, t, _, _ in row_items
+                            if not re.match(r"^[01]{3}$", t) and x > 200]
+                # Check adjacent rows for orphaned "→" (Symbol font baseline offset)
+                has_arrow = any(t == "→" for _, t in op_spans)
+                if op_spans and not has_arrow:
+                    op_x_lo = min(x for x, _ in op_spans)
+                    op_x_hi = max(x for x, _ in op_spans) + 50
+                    for adj_y in sorted_ys[max(0, idx-1):idx+2]:
+                        if adj_y == y_key:
+                            continue
+                        for ax, _, at, _, _ in rows[adj_y]:
+                            if at == "→" and op_x_lo <= ax <= op_x_hi:
+                                op_spans.append((ax, at))
+                if len(bin_spans) >= 2:
+                    operation = " ".join(t for _, t in sorted(op_spans))
+                    # Map each binary span to size based on x-position proximity
+                    for bx, bval in sorted(bin_spans):
+                        opmode_val = int(bval, 2)
+                        # Find closest header column
+                        best_size = None
+                        best_dist = 999
+                        for sz_name, hx in header_cols.items():
+                            if sz_name == "operation":
+                                continue
+                            dist = abs(bx - hx)
+                            if dist < best_dist:
+                                best_dist = dist
+                                best_size = sz_name
+                        if best_size:
+                            entries.append({
+                                "opmode": opmode_val,
+                                "size": SIZE_MAP.get(best_size, best_size),
+                                "operation": operation,
+                            })
+
+            # Format 2: Value-description (e.g. "100—Transfer word from memory")
+            vd_match = re.match(r"^([01]{3,5})\s*[—\u2013\-]\s*(.+)", row_text)
+            if vd_match and not header_cols:
+                bval = vd_match.group(1)
+                desc = vd_match.group(2).strip().rstrip(".")
+                opmode_val = int(bval, 2)
+                # Derive size from first size keyword in description
+                sz = None
+                dl = desc.lower()
+                if "no " in dl and "operand" in dl:
+                    sz = None  # no extension word (e.g. TRAPcc with no operand)
+                elif "two operand word" in dl or "long-word" in dl:
+                    sz = "l"  # two words = 32-bit long
+                else:
+                    # Use the first occurring size keyword
+                    first_pos = {}
+                    for kw, letter in [("byte", "b"), ("word", "w"), ("long", "l")]:
+                        pos = dl.find(kw)
+                        if pos >= 0:
+                            first_pos[pos] = letter
+                    if first_pos:
+                        sz = first_pos[min(first_pos)]
+                entries.append({
+                    "opmode": opmode_val,
+                    "size": sz,
+                    "description": desc,
+                })
+
+            # Format 3: Source/Destination table (e.g. MOVE16)
+            # Rows have space-separated binary digits: "0 0", "0 1", "1 0", "1 1"
+            if src_dst_cols and not header_cols:
+                sd_match = re.match(r"^([01](?:\s+[01])+)\s", row_text)
+                if sd_match:
+                    bin_str = sd_match.group(1).replace(" ", "")
+                    opmode_val = int(bin_str, 2)
+                    # Extract source and destination by x-position proximity
+                    non_bin = [(x, t) for x, _, t, _, _ in row_items
+                               if not re.match(r"^[01]$", t)]
+                    source = ""
+                    dest = ""
+                    syntax = ""
+                    src_x = src_dst_cols.get("source", 0)
+                    dst_x = src_dst_cols.get("destination", 0)
+                    syn_x = src_dst_cols.get("syntax", 0)
+                    for x, t in non_bin:
+                        if syn_x and abs(x - syn_x) < 30:
+                            syntax = t
+                        elif abs(x - src_x) < abs(x - dst_x):
+                            source = t
+                        else:
+                            dest = t
+                    entry = {"opmode": opmode_val, "source": source, "destination": dest}
+                    if syntax:
+                        entry["syntax"] = syntax
+                    entries.append(entry)
+
+    return entries if entries else None
+
+
+def _extract_control_registers(doc, inst):
+    """Extract MOVEC control register table from PDF.
+
+    Parses the hex-code → name(abbreviation) table on the MOVEC page,
+    tracking CPU section headers to assign processor_min per register.
+    Returns list of {hex, name, abbrev, processor_min} dicts, or None.
+    """
+    pages = inst.get("pages", [inst.get("page", 0)])
+    if not pages:
+        return None
+
+    def _is_hex3(t):
+        return len(t) == 3 and all(c in "0123456789ABCDEFabcdef" for c in t)
+
+    def _find_desc(row_items):
+        """Find description text with parenthesized abbreviation."""
+        for x, _, t, _, _ in row_items:
+            if x > 220 and t[0].isupper() and "(" in t:
+                return t
+        return ""
+
+    def _cpu_from_header(text):
+        """Derive processor_min from a CPU section header like 'MC68020/MC68030/MC68040'."""
+        cpus = re.findall(r"MC?68(\d{3})", text)
+        if cpus:
+            # Minimum CPU in the header
+            min_cpu = min(int(c) for c in cpus)
+            return f"68{min_cpu:03d}"
+        if "CPU32" in text:
+            return "cpu32"
+        return None
+
+    regs = []
+    seen_hex = set()
+    for pg in pages:
+        page = doc[pg - 1]
+        spans = extract_page_spans(page)
+        rows = spans_to_rows(spans)
+        sorted_ys = sorted(rows.keys())
+
+        current_cpu = "68010"  # Default for MOVEC
+        for idx, y_key in enumerate(sorted_ys):
+            row_items = rows[y_key]
+            row_text = " ".join(t for _, _, t, _, _ in row_items)
+
+            # Check for CPU section header (e.g. "MC68020/MC68030/MC68040")
+            if "MC68" in row_text or "CPU32" in row_text:
+                cpu = _cpu_from_header(row_text)
+                if cpu and not _is_hex3(row_text.split()[0] if row_text.split() else ""):
+                    current_cpu = cpu
+                    continue
+
+            hex_entries = [
+                t for x, _, t, _, _ in row_items
+                if _is_hex3(t) and 180 < x < 210
+            ]
+            if not hex_entries:
+                continue
+
+            hex_code = hex_entries[0]
+            # Find description on same row, previous row, or next row
+            desc_text = _find_desc(row_items)
+
+            if not desc_text and idx > 0:
+                prev_row = rows[sorted_ys[idx - 1]]
+                if not any(_is_hex3(t) for _, _, t, _, _ in prev_row):
+                    desc_text = _find_desc(prev_row)
+
+            if not desc_text and idx + 1 < len(sorted_ys):
+                next_row = rows[sorted_ys[idx + 1]]
+                if not any(_is_hex3(t) for _, _, t, _, _ in next_row):
+                    desc_text = _find_desc(next_row)
+
+            if desc_text:
+                abbrev_match = re.search(r"\(([A-Z][A-Za-z0-9]+)\)\s*$", desc_text)
+                abbrev = abbrev_match.group(1).lower() if abbrev_match else None
+                if abbrev and (hex_code, abbrev) not in seen_hex:
+                    seen_hex.add((hex_code, abbrev))
+                    regs.append({
+                        "hex": hex_code,
+                        "name": desc_text.split("(")[0].strip(),
+                        "abbrev": abbrev,
+                        "processor_min": current_cpu,
+                    })
+
+    return regs if regs else None
+
+
+def _derive_cc_exclusions(kb_data):
+    """Derive excluded CC values for cc-parameterized instructions.
+
+    If Bcc with cc=0 ("t") produces the same first-word encoding as standalone BRA,
+    then "t" should be excluded.  Detect by building mask/val for each standalone
+    instruction's first encoding word and checking for collisions when substituting
+    each CC value into the CONDITION field.
+    """
+    def _enc_mask_val(enc):
+        """Build (mask, val) from an encoding's first word fixed bits."""
+        mask = 0
+        val = 0
+        for f in enc["fields"]:
+            if f["bit_lo"] < 0:  # extension word field
+                break
+            try:
+                fv = int(f["name"])
+                for b in range(f["bit_lo"], f["bit_hi"] + 1):
+                    mask |= (1 << b)
+                    val |= (fv << b)
+            except ValueError:
+                pass  # variable field — skip
+        return mask, val
+
+    # Build set of (mask, val) for all standalone (non-cc) instructions
+    standalone_encs = set()
+    for inst in kb_data:
+        if "cc" in inst["mnemonic"].lower():
+            continue
+        for enc in inst.get("encodings", []):
+            standalone_encs.add(_enc_mask_val(enc))
+
+    for inst in kb_data:
+        cc_param = inst.get("constraints", {}).get("cc_parameterized")
+        if not cc_param:
+            continue
+        for enc in inst.get("encodings", []):
+            # Find the CONDITION field
+            cc_field = None
+            for f in enc["fields"]:
+                if f["name"].upper() == "CONDITION":
+                    cc_field = f
+                    break
+            if not cc_field:
+                continue
+            # Build base mask/val (without condition bits)
+            base_mask, base_val = _enc_mask_val(enc)
+            # Add condition field bits to mask
+            cc_mask = 0
+            for b in range(cc_field["bit_lo"], cc_field["bit_hi"] + 1):
+                cc_mask |= (1 << b)
+            full_mask = base_mask | cc_mask
+            # Check each CC value
+            for cc_val, cc_name in CC_TABLE.items():
+                test_val = base_val | (cc_val << cc_field["bit_lo"])
+                # Does this match any standalone instruction?
+                for s_mask, s_val in standalone_encs:
+                    # Check if the standalone's fixed bits match our test value
+                    if (test_val & s_mask) == s_val and (s_val & full_mask) == test_val:
+                        cc_param["excluded"].append(cc_name)
+                        break
 
 
 def _parse_sizes(attrs_str):
@@ -1446,7 +2196,7 @@ def _parse_sizes(attrs_str):
     return sizes
 
 
-def apply_constraints(kb_data):
+def apply_constraints(kb_data, doc=None):
     """Phase 4: Extract constraints from instruction data."""
     for inst in kb_data:
         inst["processor_min"] = _derive_processor_min(inst.get("processors", ""))
@@ -1493,8 +2243,25 @@ def apply_constraints(kb_data):
         if bos:
             constraints["bit_op_sizes"] = bos
 
+        # Extract opmode table from PDF (for ADD, OR, SUB, AND, CMP, EOR, MOVEP, EXG, etc.)
+        if doc:
+            opm = _extract_opmode_table(doc, inst)
+            if opm:
+                constraints["opmode_table"] = opm
+
+        # Extract control register table for MOVEC-like instructions
+        if doc and any(f.get("operands") and
+                       any(op.get("type") == "ctrl_reg" for op in f["operands"])
+                       for f in inst.get("forms", [])):
+            ctrl_regs = _extract_control_registers(doc, inst)
+            if ctrl_regs:
+                constraints["control_registers"] = ctrl_regs
+
         if constraints:
             inst["constraints"] = constraints
+
+    # Derive CC exclusions: if Bcc cc=t → BRA (separately parsed), exclude "t"
+    _derive_cc_exclusions(kb_data)
 
     with_constraints = sum(1 for i in kb_data if i.get("constraints"))
     print(f"  Constraints: {with_constraints}/{len(kb_data)} instructions")
@@ -1659,6 +2426,16 @@ def main():
         dump_page(doc, args.dump_page)
         return
 
+    # Phase 0: Extract standard condition codes from PDF Table 3-19
+    global CC_TABLE
+    print("Phase 0: Extracting standard condition codes...")
+    CC_TABLE = extract_standard_cc_table(doc)
+    if len(CC_TABLE) != 16:
+        raise RuntimeError(
+            f"Failed to extract standard condition codes from PDF (got {len(CC_TABLE)}, expected 16)"
+        )
+    print(f"  Standard condition codes: {[CC_TABLE[i] for i in range(16)]}")
+
     section_nums = [int(s) for s in args.sections.split(",")]
     page_ranges = [SECTIONS[s] for s in section_nums if s in SECTIONS]
 
@@ -1681,7 +2458,22 @@ def main():
 
     # Phase 4: Derive constraints
     print("Phase 4: Deriving constraints...")
-    apply_constraints(kb_data)
+    apply_constraints(kb_data, doc)
+
+    # Phase 4b: Split EA modes by direction (needs constraints from Phase 4)
+    apply_ea_direction_split(kb_data)
+    # Clean up stashed raw EA tables
+    for inst in kb_data:
+        inst.pop("_ea_tables_by_page", None)
+
+    # Phase 5: Extract PMMU condition codes
+    print("Phase 5: Extracting PMMU condition codes...")
+    pmmu_cc = extract_pmmu_cc_table(doc, page_ranges)
+    if len(pmmu_cc) != 16:
+        raise RuntimeError(
+            f"Failed to extract PMMU condition codes from PDF (got {len(pmmu_cc)}, expected 16)"
+        )
+    print(f"  PMMU condition codes: {pmmu_cc}")
 
     # Output
     outfile = args.outfile or str(KB_PATH)
@@ -1698,7 +2490,7 @@ def main():
             if outpath.exists():
                 outpath.unlink()
             with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(_as_kb_payload(kb_data), f, indent=2, ensure_ascii=False)
+                json.dump(_as_kb_payload(kb_data, pmmu_cc), f, indent=2, ensure_ascii=False)
             print(f"\nWrote {len(kb_data)} instructions to {outpath}")
         else:
             print(f"\n(dry run, {len(kb_data)} instructions would be written)")
