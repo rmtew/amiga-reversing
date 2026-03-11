@@ -2946,6 +2946,41 @@ def _extract_shift_properties(inst):
         inst["rotate_extra_bits"] = 1
 
 
+def _extract_mul_div_data_sizes(inst):
+    """Extract operand/result sizes from multiply/divide form syntax annotations.
+
+    PDF syntax includes numeric annotations describing data flow:
+    - Multiply: "16 x 16 32" → src 16-bit, dst 16-bit, result 32-bit
+    - Divide: "32/16 16r – 16q" → dividend 32-bit, divisor 16-bit, quotient 16-bit
+
+    Adds a 'data_sizes' field to each form that has parseable annotations.
+    """
+    for form in inst.get("forms", []):
+        syntax = form.get("syntax", "")
+
+        # Multiply: "NxN → N" or "NxN N" pattern
+        m = re.search(r'(\d+)\s*x\s*(\d+)\s*(?:\u2192\s*)?(\d+)', syntax)
+        if m:
+            form["data_sizes"] = {
+                "type": "multiply",
+                "src_bits": int(m.group(1)),
+                "dst_bits": int(m.group(2)),
+                "result_bits": int(m.group(3)),
+            }
+            continue
+
+        # Divide: "N/N Nr – Nq" pattern (remainder–quotient)
+        m = re.search(r'(\d+)\s*/\s*(\d+)\s+(\d+)r\s*[\u2013\-]\s*(\d+)q', syntax)
+        if m:
+            form["data_sizes"] = {
+                "type": "divide",
+                "dividend_bits": int(m.group(1)),
+                "divisor_bits": int(m.group(2)),
+                "quotient_bits": int(m.group(4)),
+            }
+            continue
+
+
 def apply_operation_types(kb_data):
     """Phase 11: Classify instruction operation types from Operation field.
 
@@ -2959,6 +2994,7 @@ def apply_operation_types(kb_data):
     """
     classified = 0
     shift_props = 0
+    mul_div_sizes = 0
     unclassified = []
 
     for inst in kb_data:
@@ -2972,11 +3008,18 @@ def apply_operation_types(kb_data):
                 _extract_shift_properties(inst)
                 if "shift_count_modulus" in inst:
                     shift_props += 1
+            # Extract multiply/divide data flow sizes from form syntax
+            if op_type in ("multiply", "divide"):
+                _extract_mul_div_data_sizes(inst)
+                if any("data_sizes" in f for f in inst.get("forms", [])):
+                    mul_div_sizes += 1
         elif operation:
             unclassified.append((inst["mnemonic"], operation))
 
     if shift_props:
         print(f"  Shift/rotate properties extracted: {shift_props}")
+    if mul_div_sizes:
+        print(f"  Multiply/divide data sizes extracted: {mul_div_sizes}")
     if unclassified:
         print(f"  WARNING: {len(unclassified)} unclassified operations:")
         for mnemonic, operation in unclassified:

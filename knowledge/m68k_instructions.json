@@ -9204,7 +9204,13 @@
             {
               "type": "dn"
             }
-          ]
+          ],
+          "data_sizes": {
+            "type": "divide",
+            "dividend_bits": 32,
+            "divisor_bits": 16,
+            "quotient_bits": 16
+          }
         },
         {
           "syntax": "DIVS.L <ea>,Dq 32/32 → 32q",
@@ -9240,7 +9246,13 @@
               "type": "dn_pair"
             }
           ],
-          "processor_020": true
+          "processor_020": true,
+          "data_sizes": {
+            "type": "divide",
+            "dividend_bits": 32,
+            "divisor_bits": 32,
+            "quotient_bits": 32
+          }
         }
       ],
       "effects": {
@@ -9571,7 +9583,13 @@
             {
               "type": "dn"
             }
-          ]
+          ],
+          "data_sizes": {
+            "type": "divide",
+            "dividend_bits": 32,
+            "divisor_bits": 16,
+            "quotient_bits": 16
+          }
         },
         {
           "syntax": "DIVU.L <ea>,Dq 32/32 → 32q",
@@ -9607,7 +9625,13 @@
               "type": "dn_pair"
             }
           ],
-          "processor_020": true
+          "processor_020": true,
+          "data_sizes": {
+            "type": "divide",
+            "dividend_bits": 32,
+            "divisor_bits": 32,
+            "quotient_bits": 32
+          }
         }
       ],
       "effects": {
@@ -13964,7 +13988,13 @@
             {
               "type": "dn"
             }
-          ]
+          ],
+          "data_sizes": {
+            "type": "multiply",
+            "src_bits": 16,
+            "dst_bits": 16,
+            "result_bits": 32
+          }
         },
         {
           "syntax": "MULS.L <ea>,Dl 32 x 32 → 32",
@@ -13976,7 +14006,13 @@
               "type": "dn"
             }
           ],
-          "processor_020": true
+          "processor_020": true,
+          "data_sizes": {
+            "type": "multiply",
+            "src_bits": 32,
+            "dst_bits": 32,
+            "result_bits": 32
+          }
         },
         {
           "syntax": "MULS.L <ea>,Dh – Dl 32 x 32 → 64",
@@ -13988,7 +14024,13 @@
               "type": "dn_pair"
             }
           ],
-          "processor_020": true
+          "processor_020": true,
+          "data_sizes": {
+            "type": "multiply",
+            "src_bits": 32,
+            "dst_bits": 32,
+            "result_bits": 64
+          }
         }
       ],
       "effects": {
@@ -14310,7 +14352,13 @@
             {
               "type": "dn"
             }
-          ]
+          ],
+          "data_sizes": {
+            "type": "multiply",
+            "src_bits": 16,
+            "dst_bits": 16,
+            "result_bits": 32
+          }
         },
         {
           "syntax": "MULU.L <ea>,Dl 32 x 32 → 32",
@@ -14322,7 +14370,13 @@
               "type": "dn"
             }
           ],
-          "processor_020": true
+          "processor_020": true,
+          "data_sizes": {
+            "type": "multiply",
+            "src_bits": 32,
+            "dst_bits": 32,
+            "result_bits": 32
+          }
         },
         {
           "syntax": "MULU.L <ea>,Dh – Dl 32 x 32 → 64",
@@ -14334,7 +14388,13 @@
               "type": "dn_pair"
             }
           ],
-          "processor_020": true
+          "processor_020": true,
+          "data_sizes": {
+            "type": "multiply",
+            "src_bits": 32,
+            "dst_bits": 32,
+            "result_bits": 64
+          }
         }
       ],
       "effects": {

@@ -156,7 +156,7 @@ def load_and_execute(machine, code_bytes):
 
     cpu.set_instr_hook_callback(on_instr)
     cpu.w_pc(CODE_ADDR)
-    cpu.execute(100)
+    cpu.execute(300)  # enough for slowest 68000 instructions (DIVS ≤ 158 cycles)
     cpu.set_instr_hook_callback(None)
 
     if not captured:
@@ -223,18 +223,52 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
         ctx = {}
 
     mask, bits = _size_mask(sz)
-    src = src_val & mask
-    dst = dst_val & mask
+
+    # Allow KB data_sizes to override default operand/result widths.
+    # Multiply: operands may be narrower than result (16x16→32).
+    # Divide: dividend may be wider than divisor/quotient (32÷16→16).
+    data_sizes = ctx.get("data_sizes")
+    if data_sizes:
+        ds_type = data_sizes.get("type")
+        if ds_type == "multiply":
+            src_bits = data_sizes["src_bits"]
+            dst_bits = data_sizes["dst_bits"]
+            result_bits = data_sizes["result_bits"]
+        elif ds_type == "divide":
+            src_bits = data_sizes["divisor_bits"]
+            dst_bits = data_sizes["dividend_bits"]
+            result_bits = data_sizes["quotient_bits"]
+        else:
+            src_bits = dst_bits = result_bits = bits
+        src_mask = (1 << src_bits) - 1
+        dst_mask = (1 << dst_bits) - 1
+        result_mask = (1 << result_bits) - 1
+    else:
+        src_bits = dst_bits = result_bits = bits
+        src_mask = dst_mask = result_mask = mask
+
+    src = src_val & src_mask
+    dst = dst_val & dst_mask
 
     # Compute result based on KB operation_type
-    result_full, result = _compute_result(op_type, src, dst, mask, bits, initial_ccr, ctx)
+    result_full, result = _compute_result(
+        op_type, src, dst, result_mask, result_bits, initial_ccr, ctx)
+
+    # Division overflow: real 68000 hardware aborts the divide — the
+    # destination register is unchanged. Per Musashi (our oracle):
+    # V is set to 1, all other flags (X, N, Z, C) are unchanged.
+    # The PDF says C is "always cleared" but real hardware preserves it.
+    if op_type == "divide" and _division_overflows(result_full, result_bits, ctx):
+        overflow_cc = dict(initial_ccr)
+        overflow_cc["V"] = 1
+        return overflow_cc
 
     # Predict each flag using KB cc_semantics rules
     predicted = {}
     for flag in ["X", "N", "Z", "V", "C"]:
         rule = cc_sem.get(flag, {}).get("rule", "unchanged")
         predicted[flag] = _apply_rule(
-            rule, flag, result, result_full, src, dst, mask, bits,
+            rule, flag, result, result_full, src, dst, result_mask, result_bits,
             op_type, initial_ccr, cc_sem, ctx
         )
 
@@ -304,6 +338,39 @@ def _compute_rotate_extend(s, d, m, b, ccr, ctx):
     return rotated & m  # lower b bits are the result
 
 
+def _compute_multiply(s, d, m, b, ccr, ctx):
+    """Multiply result. ctx must have 'signed' and 'data_sizes'."""
+    ds = ctx["data_sizes"]
+    src_bits = ds["src_bits"]
+    dst_bits = ds["dst_bits"]
+    if ctx.get("signed", False):
+        s_signed = s if s < (1 << (src_bits - 1)) else s - (1 << src_bits)
+        d_signed = d if d < (1 << (dst_bits - 1)) else d - (1 << dst_bits)
+        return s_signed * d_signed  # Python bigint, may be negative
+    else:
+        return s * d
+
+
+def _compute_divide(s, d, m, b, ccr, ctx):
+    """Divide result (quotient). ctx must have 'signed' and 'data_sizes'.
+    Returns mathematical quotient even if it overflows quotient_bits.
+    Raises RuntimeError on divide-by-zero (should not appear in test values).
+    """
+    if s == 0:
+        raise RuntimeError("Division by zero in test — fix test values")
+    ds = ctx["data_sizes"]
+    divisor_bits = ds["divisor_bits"]
+    dividend_bits = ds["dividend_bits"]
+    if ctx.get("signed", False):
+        s_signed = s if s < (1 << (divisor_bits - 1)) else s - (1 << divisor_bits)
+        d_signed = d if d < (1 << (dividend_bits - 1)) else d - (1 << dividend_bits)
+        # Truncation toward zero (like C's / operator, and M68K behavior)
+        quotient = int(d_signed / s_signed)
+        return quotient  # may be negative, may overflow quotient_bits
+    else:
+        return d // s
+
+
 _COMPUTE_HANDLERS = {
     "add":            lambda s, d, m, b, ccr, ctx: s + d,
     "addx":           lambda s, d, m, b, ccr, ctx: s + d + ccr.get("X", 0),
@@ -324,6 +391,8 @@ _COMPUTE_HANDLERS = {
     "shift":          lambda s, d, m, b, ccr, ctx: _compute_shift(s, d, m, b, ccr, ctx),
     "rotate":         lambda s, d, m, b, ccr, ctx: _compute_rotate(s, d, m, b, ccr, ctx),
     "rotate_extend":  lambda s, d, m, b, ccr, ctx: _compute_rotate_extend(s, d, m, b, ccr, ctx),
+    "multiply":       lambda s, d, m, b, ccr, ctx: _compute_multiply(s, d, m, b, ccr, ctx),
+    "divide":         lambda s, d, m, b, ccr, ctx: _compute_divide(s, d, m, b, ccr, ctx),
 }
 
 
@@ -401,6 +470,14 @@ def _rule_overflow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_s
     elif op_type == "negx":
         msb_val = 1 << (bits - 1)
         return 1 if dst == msb_val and ccr.get("X", 0) == 0 else 0
+    elif op_type == "multiply":
+        # Overflow: product doesn't fit in result_bits (signed or unsigned)
+        if ctx.get("signed", False):
+            max_pos = (1 << (bits - 1)) - 1
+            min_neg = -(1 << (bits - 1))
+            return 1 if result_full < min_neg or result_full > max_pos else 0
+        else:
+            return 1 if result_full < 0 or result_full >= (1 << bits) else 0
     else:
         raise RuntimeError(f"overflow: unsupported operation_type '{op_type}'")
 
@@ -411,6 +488,35 @@ def _rule_z_cleared_if_nonzero(result, result_full, src, dst, mask, bits, op_typ
 
 def _rule_undefined(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     return None
+
+
+def _division_overflows(result_full, bits, ctx):
+    """Check if the mathematical quotient overflows the quotient bit width."""
+    if ctx.get("signed", False):
+        max_pos = (1 << (bits - 1)) - 1
+        min_neg = -(1 << (bits - 1))
+        return result_full < min_neg or result_full > max_pos
+    else:
+        return result_full < 0 or result_full >= (1 << bits)
+
+
+def _rule_division_overflow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """V flag for divide: set if quotient doesn't fit in quotient_bits."""
+    return 1 if _division_overflows(result_full, bits, ctx) else 0
+
+
+def _rule_quotient_negative(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """N flag for divide: MSB of quotient. Undefined if overflow or div-by-zero."""
+    if _division_overflows(result_full, bits, ctx):
+        return None  # undefined per spec
+    return (result >> (bits - 1)) & 1
+
+
+def _rule_quotient_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """Z flag for divide: set if quotient is zero. Undefined if overflow or div-by-zero."""
+    if _division_overflows(result_full, bits, ctx):
+        return None  # undefined per spec
+    return 1 if result == 0 else 0
 
 
 def _rule_last_shifted_out(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
@@ -543,6 +649,9 @@ _RULE_HANDLERS = {
     "last_shifted_out":         _rule_last_shifted_out,
     "last_rotated_out":         _rule_last_rotated_out,
     "msb_changed_during_shift": _rule_msb_changed_during_shift,
+    "division_overflow":        _rule_division_overflow,
+    "quotient_negative":        _rule_quotient_negative,
+    "quotient_zero":            _rule_quotient_zero,
 }
 
 
@@ -798,6 +907,44 @@ SHIFT_TEST_VALUES = [
 ]
 
 
+# Test values for multiply: (src, dst, description).
+# src = multiplier (16-bit), dst = multiplicand (16-bit for .w).
+MULTIPLY_TEST_VALUES = [
+    (0, 0, "0*0"),
+    (1, 1, "1*1"),
+    (0, 5, "0*5"),
+    (3, 7, "3*7=21"),
+    (0x00FF, 0x00FF, "255*255"),
+    (0x7FFF, 0x0002, "maxpos*2"),
+    (0xFFFF, 0x0001, "-1*1 signed"),
+    (0xFFFF, 0xFFFF, "-1*-1 signed"),
+    (0x8000, 0x0002, "-32768*2 signed"),
+    (0x8000, 0x8000, "-32768*-32768 signed"),
+    (0x7FFF, 0x7FFF, "maxpos*maxpos"),
+    (0xFFFF, 0xFFFF, "maxunsigned*maxunsigned"),
+]
+
+# Test values for divide: (src=divisor, dst=dividend, description).
+# src's low 16 bits = divisor. dst = full 32-bit dividend.
+# MUST avoid src=0 (divide by zero would trap).
+DIVIDE_TEST_VALUES = [
+    (1, 0, "0/1=0"),
+    (1, 1, "1/1=1"),
+    (3, 6, "6/3=2"),
+    (7, 100, "100/7=14r2"),
+    (2, 0x0000FFFE, "65534/2=32767"),
+    (1, 0x0000FFFF, "65535/1=max16 (DIVU boundary)"),
+    (1, 0x00010000, "65536/1 (DIVU overflow)"),
+    (2, 0x0001FFFE, "131070/2=65535 (DIVU boundary)"),
+    (2, 0x00020000, "131072/2=65536 (DIVU overflow)"),
+    (1, 0x7FFFFFFF, "maxpos/1 (overflow)"),
+    (0xFFFF, 0xFFFFFFFF, "-1/-1=1 DIVS"),
+    (3, 0xFFFFFFF4, "-12/3=-4 DIVS"),
+    (0xFFFF, 0x00000001, "1/-1=-1 DIVS"),
+    (5, 0x00000003, "3/5=0r3"),
+]
+
+
 def _parse_shift_direction(individual_mnemonic):
     """Derive shift direction from an individual mnemonic name.
 
@@ -817,6 +964,16 @@ def _is_arithmetic_shift(individual_mnemonic):
     return individual_mnemonic[0].upper() == "A"
 
 
+def _is_signed_mul_div(individual_mnemonic):
+    """Return True if mnemonic is a signed multiply/divide.
+
+    Derived from mnemonic suffix: 'S' = signed (MULS, DIVS), 'U' = unsigned.
+    """
+    # Strip trailing 'L' for long forms (DIVSL, DIVUL, etc.)
+    m = individual_mnemonic.upper().rstrip("L")
+    return m.endswith("S")
+
+
 def _split_combined_mnemonic(mnemonic):
     """Split KB combined mnemonics like 'ASL, ASR' into individual mnemonics.
 
@@ -830,12 +987,42 @@ def _split_combined_mnemonic(mnemonic):
 
 # ── CC test case generation ───────────────────────────────────────────────
 
+def _find_form_data_sizes(inst, sz):
+    """Find data_sizes from KB form matching the given size, skipping 020+ forms.
+
+    Returns the data_sizes dict from the matching form, or None if not found.
+    """
+    for form in inst.get("forms", []):
+        if form.get("processor_020"):
+            continue
+        form_sizes = form.get("sizes", inst.get("sizes", []))
+        if sz in form_sizes or not form_sizes:
+            ds = form.get("data_sizes")
+            if ds:
+                return ds
+    return None
+
+
+def _has_non020_form_for_size(inst, sz):
+    """Check if instruction has a non-020+ form for the given size."""
+    for form in inst.get("forms", []):
+        if form.get("processor_020"):
+            continue
+        # If form has explicit sizes, check match; otherwise use inst sizes
+        form_sizes = form.get("sizes")
+        if form_sizes is None or sz in form_sizes:
+            return True
+    return False
+
+
 def generate_cc_tests(inst, form_info, tmpdir):
     """Generate CC verification test cases for one instruction from KB data.
 
     For combined mnemonics (e.g. 'ASL, ASR'), generates tests for each
     individual mnemonic. For shift/rotate instructions, uses SHIFT_TEST_VALUES
     and provides direction/arithmetic context for CC prediction.
+    For multiply/divide instructions, uses MULTIPLY/DIVIDE_TEST_VALUES
+    and provides signed/data_sizes context.
 
     Yields (asm_text, code_bytes, sz, src_val, dst_val,
             src_reg, dst_reg, initial_ccr, desc, ctx) tuples.
@@ -846,10 +1033,28 @@ def generate_cc_tests(inst, form_info, tmpdir):
     form_type, src_reg, dst_reg = form_info
 
     is_shift_rotate = op_type in ("shift", "rotate", "rotate_extend")
+    is_mul_div = op_type in ("multiply", "divide")
     individual_mnemonics = _split_combined_mnemonic(mnemonic)
-    values = SHIFT_TEST_VALUES if is_shift_rotate else TEST_VALUES
+
+    # Select test values based on operation type
+    if is_shift_rotate:
+        values = SHIFT_TEST_VALUES
+    elif op_type == "multiply":
+        values = MULTIPLY_TEST_VALUES
+    elif op_type == "divide":
+        values = DIVIDE_TEST_VALUES
+    else:
+        values = TEST_VALUES
 
     for indiv_mnemonic in individual_mnemonics:
+        # Skip 020+ individual mnemonics from combined entries (e.g. DIVSL from "DIVS, DIVSL")
+        if indiv_mnemonic.upper().endswith("L") and len(indiv_mnemonic) > 3:
+            # Check if the non-L base exists in the combined mnemonic —
+            # if so, this is a long variant (020+), skip it
+            base = indiv_mnemonic.rstrip("Ll")
+            if base.upper() in [m.strip().upper() for m in mnemonic.split(",")]:
+                continue
+
         # Build context for shift/rotate instructions
         if is_shift_rotate:
             count_mod = inst.get("shift_count_modulus")
@@ -868,10 +1073,23 @@ def generate_cc_tests(inst, form_info, tmpdir):
                     raise RuntimeError(
                         f"{mnemonic}: missing rotate_extra_bits in KB")
                 ctx["extra_bits"] = extra
+        elif is_mul_div:
+            ctx = {
+                "signed": _is_signed_mul_div(indiv_mnemonic),
+            }
         else:
             ctx = {}
 
         for sz in sizes:
+            # For multiply/divide, find data_sizes from the matching KB form.
+            # If no non-020 form has data_sizes for this size, skip it
+            # (the .l forms are 020+ only).
+            if is_mul_div:
+                ds = _find_form_data_sizes(inst, sz)
+                if ds is None:
+                    continue
+                ctx["data_sizes"] = ds
+
             for src_val, dst_val, val_desc in values:
                 for ccr_state in INITIAL_CCR_STATES:
                     ccr_desc = ccr_state["desc"]
