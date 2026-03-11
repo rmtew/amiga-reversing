@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Parse IFF format specifications from ADCD 2.1 into structured JSON.
 
 Reads the EA IFF 85 specs and third-party chunk docs from the disc,

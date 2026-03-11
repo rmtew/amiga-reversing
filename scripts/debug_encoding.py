@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Debug encoding extraction on a specific page."""
 
 import fitz, sys

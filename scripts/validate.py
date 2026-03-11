@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """
 Validation suite for Amiga game disassembly.
 

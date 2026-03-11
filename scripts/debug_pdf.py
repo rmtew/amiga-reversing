@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Debug PDF text extraction - show positioned text elements per page.
 
 Usage:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Test instruction header detection on specific pages."""
 
 import fitz, sys

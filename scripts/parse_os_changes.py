@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Parse OS_CHANGES files from ADCD 2.1 to build a function→version map.
 
 Input: OS_CHANGES directory with files like "1.3_TO_2.04", "2.04_TO_2.1", etc.

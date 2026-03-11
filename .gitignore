@@ -13,3 +13,10 @@ ext/vasm.tar.gz
 *.exe
 *.pyc
 __pycache__/
+
+# Third-party reference packages
+resources/amitools/
+resources/machine68k/
+
+# Transient test output
+resources/_roundtrip_test/

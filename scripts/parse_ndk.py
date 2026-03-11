@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Parse Amiga NDK 1.3 to extract OS library/device function references.
 
 Parses:

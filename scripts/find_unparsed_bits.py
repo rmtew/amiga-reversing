@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Find register detail pages that have bit tables we're not parsing."""
 
 import os

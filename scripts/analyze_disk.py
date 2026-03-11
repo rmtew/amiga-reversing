@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Analyze Amiga disk images (ADF files).
 
 Handles both AmigaDOS (OFS/FFS) and non-DOS (custom format) disks.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env py.exe
 """Parse Amiga Hardware Reference Manual HTML files into structured data.
 
 Extracts:
