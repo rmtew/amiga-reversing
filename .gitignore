@@ -5,6 +5,9 @@
 tmp/*
 !tmp/.gitkeep
 
+# Python venv
+.venv/
+
 # Build artifacts
 bin/rebuilt/
 ext/vasm.tar.gz
