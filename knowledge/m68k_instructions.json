@@ -278,6 +278,31 @@
           "dn": "l",
           "memory": "b"
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "undefined"
+        },
+        "Z": {
+          "rule": "z_cleared_if_nonzero"
+        },
+        "V": {
+          "rule": "undefined"
+        },
+        "C": {
+          "rule": "decimal_carry"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -470,6 +495,31 @@
             "operation": "Dn + < ea > → < ea >"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "carry"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -608,6 +658,31 @@
             "size": "l",
             "description": "Long operation"
           }
+        ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
         ]
       }
     },
@@ -755,7 +830,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "carry"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "ADDQ",
@@ -899,6 +999,31 @@
           "bits": 3,
           "zero_means": 8
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "carry"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -913,7 +1038,7 @@
       "attributes": "Size = (Byte, Word, Long)",
       "description": "Adds the source operand and the extend bit to the destination operand and stores the result in the destination location. The operands can be addressed in two different ways: 1. Data register to data register—The data registers specified in the instruction contain the operands. 2. Memory to memory—The address registers specified in the instruction address the operands using the predecrement addressing mode. The size of the operation can be specified as byte, word, or long.",
       "condition_codes": {
-        "X": "(Ay), – (Ax)",
+        "X": "Set the same as the carry bit",
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Cleared if the result is nonzero; unchanged otherwise",
         "V": "Set if an overflow occurs; cleared otherwise",
@@ -1055,6 +1180,31 @@
             "1": "predec,predec"
           }
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "z_cleared_if_nonzero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "carry"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -1073,7 +1223,7 @@
         "N": "Set if the most significant bit of the result is set; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -1240,6 +1390,31 @@
             "operation": "Dn Λ < ea > → < ea >"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -1257,7 +1432,7 @@
         "N": "Set if the most significant bit of the result is set; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -1385,7 +1560,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "ANDI to CCR",
@@ -1537,7 +1737,37 @@
       "sizes": [
         "b"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "imm_bit_cleared",
+          "bit": 4
+        },
+        "N": {
+          "rule": "imm_bit_cleared",
+          "bit": 3
+        },
+        "Z": {
+          "rule": "imm_bit_cleared",
+          "bit": 2
+        },
+        "V": {
+          "rule": "imm_bit_cleared",
+          "bit": 1
+        },
+        "C": {
+          "rule": "imm_bit_cleared",
+          "bit": 0
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "ASL, ASR",
@@ -1805,6 +2035,33 @@
           ]
         },
         "memory_size_only": "w"
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "last_shifted_out",
+          "zero_count": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "msb_changed_during_shift"
+        },
+        "C": {
+          "rule": "last_shifted_out",
+          "zero_count": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -1923,6 +2180,32 @@
           "b",
           "w"
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "branch",
+          "conditional": true
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -1941,7 +2224,7 @@
         "N": "Not affected",
         "Z": "Set if the bit tested is zero; cleared otherwise",
         "V": "Not affected",
-        "C": "— — —"
+        "C": "Not affected"
       },
       "encodings": [
         {
@@ -2201,8 +2484,7 @@
         "writes_sp": false,
         "privileged": false,
         "cc_write": [
-          "Z",
-          "C"
+          "Z"
         ]
       },
       "processor_min": "68000",
@@ -2222,6 +2504,31 @@
           "dn": "l",
           "memory": "b"
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "bit_zero"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -2240,7 +2547,7 @@
         "N": "Not affected",
         "Z": "Set if the bit tested is zero; cleared otherwise",
         "V": "Not affected",
-        "C": "— — —"
+        "C": "Not affected"
       },
       "encodings": [
         {
@@ -2500,8 +2807,7 @@
         "writes_sp": false,
         "privileged": false,
         "cc_write": [
-          "Z",
-          "C"
+          "Z"
         ]
       },
       "processor_min": "68000",
@@ -2521,6 +2827,31 @@
           "dn": "l",
           "memory": "b"
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "bit_zero"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -2538,7 +2869,7 @@
         "N": "Set if the most significant bit of the field is set; cleared otherwise",
         "Z": "Set if all bits of the field are zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -2717,7 +3048,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_field"
+        },
+        "Z": {
+          "rule": "field_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "BFCLR",
@@ -2734,7 +3090,7 @@
         "N": "Set if the most significant bit of the field is set; cleared otherwise",
         "Z": "Set if all bits of the field are zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -2913,7 +3269,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_field"
+        },
+        "Z": {
+          "rule": "field_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "BFEXTS",
@@ -2930,7 +3311,7 @@
         "N": "Set if the most significant bit of the field is set; cleared otherwise",
         "Z": "Set if all bits of the field are zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -3104,7 +3485,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_field"
+        },
+        "Z": {
+          "rule": "field_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "BFEXTU",
@@ -3121,7 +3527,7 @@
         "N": "Set if the most significant bit of the source field is set; cleared otherwise",
         "Z": "Set if all bits of the field are zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -3295,7 +3701,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_source_field"
+        },
+        "Z": {
+          "rule": "field_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "BFFFO",
@@ -3312,7 +3743,7 @@
         "N": "Set if the most significant bit of the field is set; cleared otherwise",
         "Z": "Set if all bits of the field are zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -3486,7 +3917,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_field"
+        },
+        "Z": {
+          "rule": "field_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "BFINS",
@@ -3503,7 +3959,7 @@
         "N": "Set if the most significant bit of the field is set; cleared otherwise",
         "Z": "Set if all bits of the field are zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -3675,7 +4131,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_field"
+        },
+        "Z": {
+          "rule": "field_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "BFSET",
@@ -3692,7 +4173,7 @@
         "N": "Set if the most significant bit of the field is set; cleared otherwise",
         "Z": "Set if all bits of the field are zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -3871,7 +4352,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_field"
+        },
+        "Z": {
+          "rule": "field_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "BFTST",
@@ -3888,7 +4394,7 @@
         "N": "Set if the most significant bit of the field is set; cleared otherwise",
         "Z": "Set if all bits of the field are zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -4069,7 +4575,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_field"
+        },
+        "Z": {
+          "rule": "field_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "BKPT",
@@ -4176,16 +4707,6 @@
               "width": 3
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -4223,6 +4744,31 @@
           "field": "VECTOR",
           "bits": 3
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "trap"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -4349,6 +4895,32 @@
           "b",
           "w"
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "branch",
+          "conditional": false
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -4367,7 +4939,7 @@
         "N": "Not affected",
         "Z": "Set if the bit tested is zero; cleared otherwise",
         "V": "Not affected",
-        "C": "— — —"
+        "C": "Not affected"
       },
       "encodings": [
         {
@@ -4621,8 +5193,7 @@
         "writes_sp": false,
         "privileged": false,
         "cc_write": [
-          "Z",
-          "C"
+          "Z"
         ]
       },
       "processor_min": "68000",
@@ -4642,6 +5213,31 @@
           "dn": "l",
           "memory": "b"
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "bit_zero"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -4769,6 +5365,38 @@
           "b",
           "w"
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "decrement",
+          "bytes": 4
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "call",
+          "conditional": false
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -4787,7 +5415,7 @@
         "N": "Not affected",
         "Z": "Set if the bit tested is zero; cleared otherwise",
         "V": "Not affected",
-        "C": "— ∗ — —"
+        "C": "Not affected"
       },
       "encodings": [
         {
@@ -5050,8 +5678,7 @@
         "writes_sp": false,
         "privileged": false,
         "cc_write": [
-          "Z",
-          "C"
+          "Z"
         ]
       },
       "processor_min": "68000",
@@ -5071,6 +5698,31 @@
           "dn": "l",
           "memory": "b"
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "bit_zero"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -5277,6 +5929,31 @@
           "field": "ARGUMENT COUNT",
           "bits": 8
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -5296,7 +5973,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Set if an overflow is generated; cleared otherwise",
-        "C": "∗ ∗ ∗ ∗"
+        "C": "Set if a borrow is generated; cleared otherwise"
       },
       "encodings": [
         {
@@ -5741,7 +6418,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "CHK",
@@ -5758,7 +6460,7 @@
         "N": "Set if Dn < 0; cleared if Dn > effective address operand; undefined otherwise",
         "Z": "Undefined",
         "V": "Undefined",
-        "C": "∗ U U U"
+        "C": "Undefined"
       },
       "encodings": [
         {
@@ -5865,8 +6567,7 @@
         "writes_sp": false,
         "privileged": false,
         "cc_write": [
-          "N",
-          "C"
+          "N"
         ]
       },
       "processor_min": "68000",
@@ -5878,6 +6579,31 @@
       "constraints": {
         "sizes_68000": [
           "w"
+        ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "chk_undefined"
+        },
+        "Z": {
+          "rule": "undefined"
+        },
+        "V": {
+          "rule": "undefined"
+        },
+        "C": {
+          "rule": "undefined"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
         ]
       }
     },
@@ -5896,7 +6622,7 @@
         "N": "Undefined",
         "Z": "Set if Rn is equal to either bound; cleared otherwise",
         "V": "Undefined",
-        "C": "U ∗ U ∗"
+        "C": "Set if Rn is out of bounds; cleared otherwise"
       },
       "encodings": [
         {
@@ -6110,7 +6836,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "undefined"
+        },
+        "Z": {
+          "rule": "bounds_equal"
+        },
+        "V": {
+          "rule": "undefined"
+        },
+        "C": {
+          "rule": "bounds_exceeded"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "CLR",
@@ -6127,7 +6878,7 @@
         "N": "Always cleared",
         "Z": "Always set",
         "V": "Always cleared",
-        "C": "0 1 0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -6251,7 +7002,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "cleared"
+        },
+        "Z": {
+          "rule": "set"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "CMP",
@@ -6268,7 +7044,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Set if an overflow occurs; cleared otherwise",
-        "C": "∗ ∗ ∗ ∗"
+        "C": "Set if a borrow occurs; cleared otherwise"
       },
       "encodings": [
         {
@@ -6405,6 +7181,31 @@
             "operation": "Dn – < ea >"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -6422,7 +7223,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Set if an overflow is generated; cleared otherwise",
-        "C": "∗ ∗ ∗ ∗"
+        "C": "Set if a borrow is generated; cleared otherwise"
       },
       "encodings": [
         {
@@ -6549,6 +7350,31 @@
             "description": "Long operation"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -6566,7 +7392,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Set if an overflow occurs; cleared otherwise",
-        "C": "∗ ∗ ∗ ∗"
+        "C": "Set if a borrow occurs; cleared otherwise"
       },
       "encodings": [
         {
@@ -6702,7 +7528,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "CMPM",
@@ -6719,7 +7570,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Set if an overflow is generated; cleared otherwise",
-        "C": "∗ ∗ ∗ ∗"
+        "C": "Set if a borrow is generated; cleared otherwise"
       },
       "encodings": [
         {
@@ -6835,7 +7686,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "CMP2",
@@ -6852,7 +7728,7 @@
         "N": "Undefined",
         "Z": "Set if Rn is equal to either bound; cleared otherwise",
         "V": "Undefined",
-        "C": "U ∗ U ∗"
+        "C": "Set if Rn is out of bounds; cleared otherwise"
       },
       "encodings": [
         {
@@ -7066,7 +7942,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "undefined"
+        },
+        "Z": {
+          "rule": "bounds_equal"
+        },
+        "V": {
+          "rule": "undefined"
+        },
+        "C": {
+          "rule": "bounds_exceeded"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "cpBcc",
@@ -7132,7 +8033,30 @@
         "w",
         "l"
       ],
-      "uses_label": true
+      "uses_label": true,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "branch",
+          "conditional": true
+        }
+      }
     },
     {
       "mnemonic": "cpDBcc",
@@ -7269,7 +8193,33 @@
       "sizes": [
         "w"
       ],
-      "uses_label": true
+      "uses_label": true,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "branch",
+          "conditional": true
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "cpGEN",
@@ -7347,7 +8297,29 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        }
+      }
     },
     {
       "mnemonic": "cpScc",
@@ -7546,7 +8518,32 @@
       "sizes": [
         "b"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "cpTRAPcc",
@@ -7685,7 +8682,33 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "trap",
+          "conditional": true
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "DBcc",
@@ -7835,6 +8858,40 @@
           "field_bits": 4,
           "excluded": []
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "branch",
+          "conditional": true
+        },
+        "base_sizes": [
+          4
+        ],
+        "encoding_variants": [
+          {
+            "base_bytes": 4,
+            "extensions": [
+              "16-BIT DISPLACEMENT"
+            ]
+          }
+        ]
       }
     },
     {
@@ -7857,7 +8914,7 @@
         "N": "Set if the quotient is negative; cleared otherwise; undefined if overflow or divide",
         "Z": "Set if the quotient is zero; cleared otherwise; undefined if overflow or divide by",
         "V": "Set if division overflow occurs; undefined if divide by zero occurs; cleared oth-",
-        "C": "0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -8170,7 +9227,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "quotient_negative"
+        },
+        "Z": {
+          "rule": "quotient_zero"
+        },
+        "V": {
+          "rule": "division_overflow"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "DIVU, DIVUL",
@@ -8192,7 +9274,7 @@
         "N": "Set if the quotient is negative; cleared otherwise; undefined if overflow or divide",
         "Z": "Set if the quotient is zero; cleared otherwise; undefined if overflow or divide by",
         "V": "Set if division overflow occurs; cleared otherwise; undefined if divide by zero",
-        "C": "0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -8511,7 +9593,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "quotient_negative"
+        },
+        "Z": {
+          "rule": "quotient_zero"
+        },
+        "V": {
+          "rule": "division_overflow"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "EOR",
@@ -8528,7 +9635,7 @@
         "N": "Set if the most significant bit of the result is set; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -8656,6 +9763,31 @@
             "operation": "< ea > ⊕ Dn → < ea >"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -8673,7 +9805,7 @@
         "N": "Set if the most significant bit of the result is set; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -8801,7 +9933,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "EORI to CCR",
@@ -8953,7 +10110,37 @@
       "sizes": [
         "b"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "imm_bit_changed",
+          "bit": 4
+        },
+        "N": {
+          "rule": "imm_bit_changed",
+          "bit": 3
+        },
+        "Z": {
+          "rule": "imm_bit_changed",
+          "bit": 2
+        },
+        "V": {
+          "rule": "imm_bit_changed",
+          "bit": 1
+        },
+        "C": {
+          "rule": "imm_bit_changed",
+          "bit": 0
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "EXG",
@@ -9103,6 +10290,31 @@
             "description": "Data register and address register"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -9123,7 +10335,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "∗ ∗ 0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -9275,6 +10487,31 @@
             "description": "Sign-extend low-order byte of data register to long"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -9418,7 +10655,38 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "decrement",
+          "bytes": 2
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "trap"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "JMP",
@@ -9513,16 +10781,6 @@
               "width": 3
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -9561,7 +10819,32 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "jump"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "JSR",
@@ -9656,16 +10939,6 @@
               "width": 3
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -9704,7 +10977,39 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "decrement",
+          "bytes": 4
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "call",
+          "conditional": false
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "LEA",
@@ -9833,7 +11138,32 @@
       "sizes": [
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "LINK",
@@ -10108,6 +11438,61 @@
         "sizes_68000": [
           "w"
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "decrement",
+          "bytes": 4
+        },
+        {
+          "action": "save_to_reg",
+          "reg": "An"
+        },
+        {
+          "action": "adjust",
+          "operand": "d"
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          4,
+          6
+        ],
+        "encoding_variants": [
+          {
+            "base_bytes": 4,
+            "extensions": [
+              "WORD DISPLACEMENT"
+            ]
+          },
+          {
+            "base_bytes": 6,
+            "extensions": [
+              "HIGH-ORDER DISPLACEMENT",
+              "LOW-ORDER DISPLACEMENT"
+            ]
+          }
+        ]
       }
     },
     {
@@ -10374,6 +11759,33 @@
           ]
         },
         "memory_size_only": "w"
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "last_shifted_out",
+          "zero_count": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "last_shifted_out",
+          "zero_count": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -10391,7 +11803,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "∗ ∗ 0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -10510,7 +11922,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVEA",
@@ -10641,7 +12078,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVE from CCR",
@@ -10781,7 +12243,32 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVE to CCR",
@@ -10930,7 +12417,37 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "source_bit",
+          "bit": 4
+        },
+        "N": {
+          "rule": "source_bit",
+          "bit": 3
+        },
+        "Z": {
+          "rule": "source_bit",
+          "bit": 2
+        },
+        "V": {
+          "rule": "source_bit",
+          "bit": 1
+        },
+        "C": {
+          "rule": "source_bit",
+          "bit": 0
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVE from SR",
@@ -11071,7 +12588,32 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVE16",
@@ -11490,6 +13032,49 @@
             "syntax": "MOVE16 (xxx).L,(Ay)"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2,
+          6
+        ],
+        "encoding_variants": [
+          {
+            "base_bytes": 2,
+            "extensions": []
+          },
+          {
+            "base_bytes": 2,
+            "extensions": []
+          },
+          {
+            "base_bytes": 6,
+            "extensions": [
+              "HIGH-ORDER ADDRESS",
+              "LOW-ORDER ADDRESS"
+            ]
+          }
+        ]
       }
     },
     {
@@ -11679,6 +13264,31 @@
           "pcdisp",
           "pcindex"
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -11849,6 +13459,39 @@
             "description": "Transfer long from register to memory"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          4
+        ],
+        "encoding_variants": [
+          {
+            "base_bytes": 4,
+            "extensions": [
+              "16-BIT DISPLACEMENT"
+            ]
+          }
+        ]
       }
     },
     {
@@ -11866,7 +13509,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "∗ ∗ 0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -11964,6 +13607,31 @@
           "bits": 8,
           "signed": true
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -11984,7 +13652,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Set if overflow; cleared otherwise",
-        "C": "∗ ∗ ∗ 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -12284,7 +13952,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MULU",
@@ -12304,7 +13997,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Set if overflow; cleared otherwise",
-        "C": "∗ ∗ ∗ 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -12604,7 +14297,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "NBCD",
@@ -12752,6 +14470,31 @@
           "dn": "l",
           "memory": "b"
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "undefined"
+        },
+        "Z": {
+          "rule": "z_cleared_if_nonzero"
+        },
+        "V": {
+          "rule": "undefined"
+        },
+        "C": {
+          "rule": "decimal_borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -12894,7 +14637,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "result_nonzero"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "NEGX",
@@ -13035,7 +14803,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "z_cleared_if_nonzero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "NOP",
@@ -13178,7 +14971,32 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "NOT",
@@ -13195,7 +15013,7 @@
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "∗ ∗ 0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -13319,7 +15137,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "OR",
@@ -13337,7 +15180,7 @@
         "N": "Set if the most significant bit of the result is set; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -13504,6 +15347,31 @@
             "operation": "Dn V < ea > → < ea >"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -13521,7 +15389,7 @@
         "N": "Set if the most significant bit of the result is set; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -13649,7 +15517,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "ORI to CCR",
@@ -13801,7 +15694,37 @@
       "sizes": [
         "b"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "imm_bit_set",
+          "bit": 4
+        },
+        "N": {
+          "rule": "imm_bit_set",
+          "bit": 3
+        },
+        "Z": {
+          "rule": "imm_bit_set",
+          "bit": 2
+        },
+        "V": {
+          "rule": "imm_bit_set",
+          "bit": 1
+        },
+        "C": {
+          "rule": "imm_bit_set",
+          "bit": 0
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PACK",
@@ -13961,6 +15884,31 @@
             "1": "predec,predec"
           }
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -14056,16 +16004,6 @@
               "width": 3
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -14106,7 +16044,38 @@
       "sizes": [
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "decrement",
+          "bytes": 4
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "ROL, ROR",
@@ -14124,7 +16093,7 @@
         "N": "Set if the most significant bit of the result is set; cleared otherwise",
         "Z": "Set if the result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "∗ ∗ 0 ∗"
+        "C": "Set according to the last bit rotated out of the operand; cleared when the rotate"
       },
       "encodings": [
         {
@@ -14368,6 +16337,32 @@
           ]
         },
         "memory_size_only": "w"
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "last_rotated_out",
+          "zero_count": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -14635,6 +16630,33 @@
           ]
         },
         "memory_size_only": "w"
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "last_rotated_out",
+          "zero_count": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "last_rotated_out",
+          "zero_count": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -14764,16 +16786,6 @@
               "width": 16
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -14810,6 +16822,49 @@
           "field": "16-BIT DISPLACEMENT",
           "bits": 16
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "increment",
+          "bytes": 4
+        },
+        {
+          "action": "adjust",
+          "operand": "d"
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "return"
+        },
+        "base_sizes": [
+          4
+        ],
+        "encoding_variants": [
+          {
+            "base_bytes": 4,
+            "extensions": [
+              "16-BIT DISPLACEMENT"
+            ]
+          }
+        ]
       }
     },
     {
@@ -14948,7 +17003,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "RTR",
@@ -15091,7 +17171,42 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "increment",
+          "bytes": 2
+        },
+        {
+          "action": "increment",
+          "bytes": 4
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "return"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "RTS",
@@ -15234,7 +17349,38 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "increment",
+          "bytes": 4
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "return"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "SBCD",
@@ -15395,6 +17541,31 @@
           "dn": "l",
           "memory": "b"
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "undefined"
+        },
+        "Z": {
+          "rule": "z_cleared_if_nonzero"
+        },
+        "V": {
+          "rule": "undefined"
+        },
+        "C": {
+          "rule": "decimal_borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -15524,6 +17695,31 @@
           "field_bits": 4,
           "excluded": []
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -15716,6 +17912,31 @@
             "operation": "< ea > – Dn → < ea >"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -15854,6 +18075,31 @@
             "size": "l",
             "description": "Long operation"
           }
+        ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
         ]
       }
     },
@@ -16001,7 +18247,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "SUBQ",
@@ -16150,6 +18421,31 @@
           "bits": 3,
           "zero_means": 8
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -16164,7 +18460,7 @@
       "attributes": "Size = (Byte, Word, Long)",
       "description": "Subtracts the source operand and the extend bit from the destination operand and stores the result in the destination location. The instruction has two modes: 1. Data register to data register—the data registers specified in the instruction con- tain the operands. 2. Memory to memory—the address registers specified in the instruction access the operands from memory using the predecrement addressing mode. The size of the operand is specified as byte, word, or long.",
       "condition_codes": {
-        "X": "(Ax), – (Ay)",
+        "X": "Set to the value of the carry bit",
         "N": "Set if the result is negative; cleared otherwise",
         "Z": "Cleared if the result is nonzero; unchanged otherwise",
         "V": "Set if an overflow occurs; cleared otherwise",
@@ -16306,6 +18602,31 @@
             "1": "predec,predec"
           }
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "same_as_carry"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "z_cleared_if_nonzero"
+        },
+        "V": {
+          "rule": "overflow"
+        },
+        "C": {
+          "rule": "borrow"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -16323,7 +18644,7 @@
         "N": "Set if the most significant bit of the 32-bit result is set; cleared otherwise",
         "Z": "Set if the 32-bit result is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -16413,16 +18734,6 @@
               "width": 3
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -16458,7 +18769,32 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_result"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "TAS",
@@ -16475,7 +18811,7 @@
         "N": "Set if the most significant bit of the operand is currently set; cleared otherwise",
         "Z": "Set if the operand was zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "∗ ∗ 0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -16602,7 +18938,32 @@
       "sizes": [
         "b"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "msb_operand"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "TRAP",
@@ -16741,6 +19102,31 @@
           "field": "VECTOR",
           "bits": 4
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "trap"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -16919,6 +19305,40 @@
             "description": "Instruction has no operand"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "trap",
+          "conditional": true
+        },
+        "base_sizes": [
+          4
+        ],
+        "encoding_variants": [
+          {
+            "base_bytes": 4,
+            "extensions": [
+              "OPTIONAL WORD"
+            ]
+          }
+        ]
       }
     },
     {
@@ -17062,7 +19482,33 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "trap",
+          "conditional": true
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "TST",
@@ -17079,7 +19525,7 @@
         "N": "Set if the operand is negative; cleared otherwise",
         "Z": "Set if the operand is zero; cleared otherwise",
         "V": "Always cleared",
-        "C": "∗ ∗ 0 0"
+        "C": "Always cleared"
       },
       "encodings": [
         {
@@ -17215,7 +19661,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "result_negative"
+        },
+        "Z": {
+          "rule": "result_zero"
+        },
+        "V": {
+          "rule": "cleared"
+        },
+        "C": {
+          "rule": "cleared"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "UNLK",
@@ -17322,16 +19793,6 @@
               "width": 3
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -17360,7 +19821,42 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "sp_effects": [
+        {
+          "action": "load_from_reg",
+          "reg": "An"
+        },
+        {
+          "action": "increment",
+          "bytes": 4
+        }
+      ],
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "UNPK",
@@ -17508,6 +20004,31 @@
             "1": "predec,predec"
           }
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -17660,7 +20181,37 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "imm_bit_cleared",
+          "bit": 4
+        },
+        "N": {
+          "rule": "imm_bit_cleared",
+          "bit": 3
+        },
+        "Z": {
+          "rule": "imm_bit_cleared",
+          "bit": 2
+        },
+        "V": {
+          "rule": "imm_bit_cleared",
+          "bit": 1
+        },
+        "C": {
+          "rule": "imm_bit_cleared",
+          "bit": 0
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "CINV",
@@ -17783,7 +20334,32 @@
       },
       "processor_min": "68040",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "cpRESTORE",
@@ -17910,7 +20486,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "cpSAVE",
@@ -18033,7 +20634,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "CPUSH",
@@ -18156,7 +20782,32 @@
       },
       "processor_min": "68040",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "EORI to SR",
@@ -18308,7 +20959,37 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "imm_bit_changed",
+          "bit": 4
+        },
+        "N": {
+          "rule": "imm_bit_changed",
+          "bit": 3
+        },
+        "Z": {
+          "rule": "imm_bit_changed",
+          "bit": 2
+        },
+        "V": {
+          "rule": "imm_bit_changed",
+          "bit": 1
+        },
+        "C": {
+          "rule": "imm_bit_changed",
+          "bit": 0
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "FRESTORE",
@@ -18391,16 +21072,6 @@
               "width": 3
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -18442,7 +21113,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "FSAVE",
@@ -18525,16 +21221,6 @@
               "width": 3
             }
           ]
-        },
-        {
-          "fields": [
-            {
-              "name": "Instruction Field:",
-              "bit_hi": 15,
-              "bit_lo": 0,
-              "width": 16
-            }
-          ]
         }
       ],
       "field_descriptions": {},
@@ -18574,7 +21260,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVE from SR",
@@ -18714,7 +21425,32 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVE to SR",
@@ -18857,7 +21593,32 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVE USP",
@@ -19012,7 +21773,32 @@
       "sizes": [
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "MOVEC",
@@ -19328,6 +22114,31 @@
             "processor_min": "68040"
           }
         ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
       }
     },
     {
@@ -19570,7 +22381,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "ORI to SR",
@@ -19722,7 +22558,37 @@
       "sizes": [
         "w"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "imm_bit_set",
+          "bit": 4
+        },
+        "N": {
+          "rule": "imm_bit_set",
+          "bit": 3
+        },
+        "Z": {
+          "rule": "imm_bit_set",
+          "bit": 2
+        },
+        "V": {
+          "rule": "imm_bit_set",
+          "bit": 1
+        },
+        "C": {
+          "rule": "imm_bit_set",
+          "bit": 0
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PBcc",
@@ -19849,7 +22715,33 @@
         "w",
         "l"
       ],
-      "uses_label": true
+      "uses_label": true,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "branch",
+          "conditional": true
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PDBcc",
@@ -20074,7 +22966,46 @@
       "sizes": [
         "w"
       ],
-      "uses_label": true
+      "uses_label": true,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "branch",
+          "conditional": true
+        },
+        "base_sizes": [
+          2,
+          4
+        ],
+        "encoding_variants": [
+          {
+            "base_bytes": 2,
+            "extensions": []
+          },
+          {
+            "base_bytes": 4,
+            "extensions": [
+              "16-BIT DISPLACEMENT"
+            ]
+          }
+        ]
+      }
     },
     {
       "mnemonic": "PFLUSH",
@@ -20089,7 +23020,7 @@
       "attributes": "Unsized",
       "description": "PFLUSH invalidates address translation cache entries. The instruction has three forms. The PFLUSHA instruction invalidates all entries. When the instruction specifies a function code and mask, the instruction invalidates all entries for a selected function code(s). When the instruction also specifies an < ea > , the instruction invalidates the page descriptor for that effective address entry in each selected function code. The mask operand contains three bits that correspond to the three function code bits. Each bit in the mask that is set to one indicates that the corresponding bit of the FC operand applies to the operation. Each bit in the mask that is zero indicates a bit of FC and of the ignored function code. For example, a mask operand of 100 causes the instruction to consider only the most significant bit of the FC operand. If the FC operand is 001, function codes 000, 001, 010, and 011 are selected. The FC operand is specified in one of the following ways: 1. Immediate—Three bits in the command word. 2. Data Register—The three least significant bits of the data register specified in the instruction. 3. Source Function Code (SFC) Register 4. Destination Function Code (DFC) Register",
       "condition_codes": {
-        "X": "Function code is specified as bits XXX",
+        "X": "—",
         "N": "—",
         "Z": "—",
         "V": "—",
@@ -20450,13 +23381,36 @@
         "reads_sp": false,
         "writes_sp": false,
         "privileged": true,
-        "cc_write": [
-          "X"
-        ]
+        "cc_write": []
       },
       "processor_min": "68030",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PFLUSH PFLUSHA",
@@ -20669,7 +23623,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PFLUSHR",
@@ -20906,7 +23885,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PLOAD",
@@ -20920,7 +23924,7 @@
       "attributes": "Unsized",
       "description": "For the MC68851, PLOAD searches the translation table for a translation of the specified effective address. If one is found, it is flushed from the address translation cache, and an entry is made as if a bus master had run a bus cycle. Used and modified bits in the table are updated as part of the table search. The MC68851 ignores the logical bus arbitration signals during the flush and load phases at the end of this instruction. This prevents the possibility of an entry temporarily disappearing from the address translation cache and causing a false table search. This instruction will cause a paged memory management unit illegal operation excep- tion (vector $39) if the E-bit of the translation control register is clear. The function code for this operation may be specified to be: 1. Immediate—The function code is specified as four bits in the command word. 2. Data Register—The function code is contained in the lower four bits in the MC68020 data register specified in the instruction. 3. Source Function Code (SFC) Register—The function code is in the CPU SFC register. Since the SFC of the MC68020 has only three implemented bits, only function codes $0D$7 can be specified in this manner. 4. Destination Function Code (DFC) Register—The function code is in the CPU DFC register. Since the DFC of the MC68020 has only three implemented bits, only function codes $0D$7 can be specified in this manner. MOTOROLA M68000 FAMILY PROGRAMMER’S REFERENCE MANUAL 6-43 Supervisor (Privileged) Instructions PLOAD PLOAD Load an Entry into the ATC (MC68030 only, MC68851) For the MC68030, PLOAD searches the address translation cache for the specified effective address. It also searches the translation table for the descriptor corresponding to the specified effective address. It creates a new entry as if the MC68030 had attempted to access that address. Sets the used and modified bits appropriately as part of the search. The instruction executes despite the value of the E-bit in the translation control register or the state of the MMUDIS signal. The < function code > operand is specified in one of the following ways: 1. Immediate—Three bits in the command word. 2. Data Register—The three least significant bits of the data register specified in the instruction. 3. Source Function Code (SFC) Register 4. Destination Function Code (DFC) Register The effective address field specifies the logical address whose translation is to be loaded. PLOADR causes U bits in the translation tables to be updated as if a read access had occurred. PLOADW causes U and M bits in the translation tables to be updated as if a write access had occurred. PMMU Status Register: Not affected.",
       "condition_codes": {
-        "X": "Function code is specified as bits XXX",
+        "X": "—",
         "N": "—",
         "Z": "—",
         "V": "—",
@@ -21107,13 +24111,36 @@
         "reads_sp": false,
         "writes_sp": false,
         "privileged": true,
-        "cc_write": [
-          "X"
-        ]
+        "cc_write": []
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PMOVE",
@@ -22540,7 +25567,32 @@
         "w",
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PRESTORE",
@@ -22677,7 +25729,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PSAVE",
@@ -22812,7 +25889,32 @@
       },
       "processor_min": "68020",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PScc",
@@ -23022,7 +26124,32 @@
       "sizes": [
         "b"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PTEST",
@@ -23038,11 +26165,11 @@
       "attributes": "Unsized",
       "description": "This instruction searches the address translation cache or the translation tables to a specified level. Searching for the translation descriptor corresponding to the < ea > field, it sets the bits of the MMU status register according to the status of the descriptor. Optionally, PTEST stores the physical address of the last table entry accessed during the search in the specified address register. The PTEST instruction searches the address translation cache or the translation tables to obtain status information, but alters neither the used or modified bits of the translation tables nor the address translation cache. When the level operand is zero, only the transparent translation of either read or write accesses causes the operations of the PTESTR and PTESTW to return different results. The < function code > operand is specified as one of the following: 1. Immediate—Three bits in the command word. 2. Data Register—The three least significant bits of the data register specified in the instruction. 3. Source Function Code (SFC) Register 4. Destination Function Code (DFC) Register The effective address is the address to test. The < level > operand specifies the level of the search. Level 0 specifies searching the addrass translation cache only. Levels 1–7 specify searching the translation tables only. The search ends at the specified level. A level 0 test does not return the same MMU status register values as a test at a nonzero level number. Execution of the instruction continues to the requested level or until detecting one of the following conditions: • Invalid Descriptor • Limit Violation • Bus Error Assertion (Physical Bus Error) MOTOROLA M68000 FAMILY PROGRAMMER’S REFERENCE MANUAL 6-63 Supervisor (Privileged) Instructions PTEST PTEST Test a Logical Address (MC68030 only) The instruction accumulates status as it accesses successive table entries. When the instruction specifies an address translation cache search with an address register operand, the MC68030 takes an F-line unimplemented instruction exception. If there is a parameter specification for a translation table search, the physical address of the last descriptor successfully fetched loads into the address register. A success- fully fetched descriptor occurs only if all portions of the descriptor can be read by the MC68030 without abnormal termination of the bus cycle. If the root pointer’s DT field indicates page descriptor, the returned address is $0. For a long descriptor, the address of the first long word is returned. The size of the descriptor (short or long) is not returned and must be determined from a knowledge of the translation table.",
       "condition_codes": {
-        "X": "Function code is specified as bits XXX",
+        "X": "—",
         "N": "—",
         "Z": "—",
         "V": "—",
-        "C": "bit is set if a match occurs in either (or both) of the access control registers"
+        "C": "—"
       },
       "encodings": [
         {
@@ -23654,14 +26781,36 @@
         "reads_sp": false,
         "writes_sp": false,
         "privileged": true,
-        "cc_write": [
-          "X",
-          "C"
-        ]
+        "cc_write": []
       },
       "processor_min": "68030",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "PTRAPcc",
@@ -23904,6 +27053,32 @@
             "size": null,
             "description": "Instruction has no following operand words"
           }
+        ]
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "trap",
+          "conditional": true
+        },
+        "base_sizes": [
+          2
         ]
       }
     },
@@ -24323,7 +27498,32 @@
       "sizes": [
         "l"
       ],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "RESET",
@@ -24466,7 +27666,32 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "sequential"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "RTE",
@@ -24609,7 +27834,32 @@
       },
       "processor_min": "68000",
       "sizes": [],
-      "uses_label": false
+      "uses_label": false,
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "return"
+        },
+        "base_sizes": [
+          2
+        ]
+      }
     },
     {
       "mnemonic": "STOP",
@@ -24777,6 +28027,39 @@
           "field": "IMMEDIATE DATA",
           "bits": 16
         }
+      },
+      "cc_semantics": {
+        "X": {
+          "rule": "unchanged"
+        },
+        "N": {
+          "rule": "unchanged"
+        },
+        "Z": {
+          "rule": "unchanged"
+        },
+        "V": {
+          "rule": "unchanged"
+        },
+        "C": {
+          "rule": "unchanged"
+        }
+      },
+      "pc_effects": {
+        "flow": {
+          "type": "trap"
+        },
+        "base_sizes": [
+          4
+        ],
+        "encoding_variants": [
+          {
+            "base_bytes": 4,
+            "extensions": [
+              "IMMEDIATE DATA"
+            ]
+          }
+        ]
       }
     }
   ]

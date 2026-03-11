@@ -5,6 +5,40 @@ LLM-assisted reverse engineering of Amiga game binaries. The goal is a fully
 reassemblable, documented disassembly with named symbols, typed data, and
 cross-references.
 
+## Spec-Driven Development
+
+All M68K tooling (disassembler, assembler, simulator, effect predictor) is
+generated from structured data extracted from the Motorola 68000 Programmer's
+Reference Manual PDF. Nothing is hardcoded from human memory of the spec.
+
+### The Pipeline
+
+```
+PDF  →  parser  →  JSON (knowledge base)  →  generated tools
+                                                  ↕
+                                          independent oracles
+```
+
+1. **PDF → JSON**: Parsers extract structured data from the PDF into
+   `knowledge/m68k_instructions.json`. Encodings, EA modes, forms, constraints,
+   condition code effects, SP effects — all derived mechanically.
+2. **JSON → Tools**: Disassembler, assembler, effect predictor, and any future
+   tools are driven from the JSON. No tool encodes M68K knowledge independently.
+3. **Oracles verify tools**: External implementations we did not write (vasm for
+   assembly, machine68k/Musashi for execution) serve as ground truth. They exist
+   only to verify our generated code — they are not components in the tool chain.
+
+### Rules
+
+- **Never hardcode M68K knowledge.** If a tool needs a fact about an instruction,
+  that fact must be in the JSON, extracted from the PDF by a parser.
+- **Fix upstream, not downstream.** If generated code is wrong, fix the parser or
+  the extraction — don't patch the generated tool.
+- **If the JSON can't express it, extend the JSON.** Add new fields to the schema,
+  add a new parser phase, re-extract from the PDF.
+- **Oracles are black boxes.** We don't modify vasm or Musashi. We only ask them
+  questions and compare answers.
+
 ## Key Conventions
 
 ### Entity Tracking

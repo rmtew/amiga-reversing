@@ -561,9 +561,9 @@ def find_encoding_tables(rows, summary_mode=False) -> list[list[BitField]]:
                 key=lambda e: (0 if e[2] in ("0", "1") else 1, e[5], e[1] - e[0]))
             fields = _map_values_to_bits(x_to_bit, sorted_cluster)
             if fields and sum(f.width for f in fields) >= 15:
-                # Skip spurious single-field entries from "Instruction Format:" labels
+                # Skip spurious single-field entries from PDF section labels
                 if (len(fields) == 1
-                        and fields[0].name.startswith("Instruction Format")):
+                        and fields[0].name.startswith("Instruction F")):
                     continue
                 encodings.append(fields)
 
@@ -777,8 +777,9 @@ def parse_text_sections(text):
 
     cc = {"X": "\u2014", "N": "\u2014", "Z": "\u2014", "V": "\u2014", "C": "\u2014"}
     for flag in cc:
-        pattern = rf"{flag}\s*[\u2014\-\u2013]\s*(.+?)(?:\n|$)"
-        fm = re.search(pattern, text)
+        # Match "X — description" at start of line; [^\S\n]* avoids crossing newlines
+        pattern = rf"^{flag}[^\S\n]*[\u2014\-\u2013][^\S\n]*(.+?)$"
+        fm = re.search(pattern, text, re.MULTILINE)
         if fm:
             val = fm.group(1).strip().rstrip(".")
             if val and val != flag:
@@ -2423,6 +2424,383 @@ def apply_constraints(kb_data, doc=None):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Phase 8: CC semantic classification
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Pattern → semantic rule mapping.  Patterns are tested in order; first match wins.
+# Each pattern is (regex, rule_dict_factory).
+# rule_dict_factory receives the regex match and returns a dict.
+
+_CC_SEMANTIC_PATTERNS = [
+    # Unchanged / not affected
+    (r"^[\u2014—]$", lambda m: {"rule": "unchanged"}),
+    (r"^Not affected", lambda m: {"rule": "unchanged"}),
+    (r"^Undefined", lambda m: {"rule": "undefined"}),
+    (r"^Always cleared", lambda m: {"rule": "cleared"}),
+    (r"^Always set", lambda m: {"rule": "set"}),
+
+    # Standard result-based
+    (r"^Set if the result is negative", lambda m: {"rule": "result_negative"}),
+    (r"^Set if the result is zero", lambda m: {"rule": "result_zero"}),
+    (r"^Set if the operand is negative", lambda m: {"rule": "result_negative"}),
+    (r"^Set if the operand is zero", lambda m: {"rule": "result_zero"}),
+    (r"^Set if the operand was zero", lambda m: {"rule": "result_zero"}),
+
+    # MSB variants (all test the MSB of some value)
+    (r"^Set if the most significant bit of the 32-bit result", lambda m: {"rule": "msb_result"}),
+    (r"^Set if the most significant bit of the result", lambda m: {"rule": "msb_result"}),
+    (r"^Set if the most significant bit of the field", lambda m: {"rule": "msb_field"}),
+    (r"^Set if the most significant bit of the source field", lambda m: {"rule": "msb_source_field"}),
+    (r"^Set if the most significant bit of the operand", lambda m: {"rule": "msb_operand"}),
+    (r"^Set if the 32-bit result is zero", lambda m: {"rule": "result_zero"}),
+    (r"^Set if all bits of the field are zero", lambda m: {"rule": "field_zero"}),
+    (r"^Cleared if the result is nonzero; unchanged", lambda m: {"rule": "z_cleared_if_nonzero"}),
+    (r"^Cleared if the result is zero; set otherwise", lambda m: {"rule": "result_nonzero"}),
+
+    # Overflow / carry / borrow
+    (r"^Set if an overflow (?:is generated|occurs)", lambda m: {"rule": "overflow"}),
+    (r"^Set if overflow", lambda m: {"rule": "overflow"}),
+    (r"^Set if a carry (?:is generated|occurs)", lambda m: {"rule": "carry"}),
+    (r"^Set if a borrow (?:is generated|occurs)", lambda m: {"rule": "borrow"}),
+    (r"^Set the same as the carry bit", lambda m: {"rule": "same_as_carry"}),
+    (r"^Set to the value of the carry bit", lambda m: {"rule": "same_as_carry"}),
+
+    # Decimal (BCD)
+    (r"^Set if a decimal carry", lambda m: {"rule": "decimal_carry"}),
+    (r"^Set if a (?:decimal )?borrow \(decimal\)", lambda m: {"rule": "decimal_borrow"}),
+    (r"^Set if a decimal borrow", lambda m: {"rule": "decimal_borrow"}),
+
+    # Bit test
+    (r"^Set if the bit tested is zero", lambda m: {"rule": "bit_zero"}),
+
+    # Shift / rotate
+    (r"^Set according to the last bit shifted out.*?unaffected", lambda m: {"rule": "last_shifted_out", "zero_count": "unchanged"}),
+    (r"^Set according to the last bit shifted out.*?cleared", lambda m: {"rule": "last_shifted_out", "zero_count": "cleared"}),
+    (r"^Set if the most significant bit is changed at any time during the shift",
+     lambda m: {"rule": "msb_changed_during_shift"}),
+    (r"^Set according to the last bit rotated out.*?cleared", lambda m: {"rule": "last_rotated_out", "zero_count": "cleared"}),
+    (r"^Set according to the last bit rotated out.*?(?:count is|rotate count)",
+     lambda m: {"rule": "last_rotated_out", "zero_count": "unchanged"}),
+    (r"^Set to the value of the last bit rotated out.*?unaffected",
+     lambda m: {"rule": "last_rotated_out", "zero_count": "unchanged"}),
+
+    # Division
+    (r"^Set if division overflow", lambda m: {"rule": "division_overflow"}),
+    (r"^Set if the quotient is negative", lambda m: {"rule": "quotient_negative"}),
+    (r"^Set if the quotient is zero", lambda m: {"rule": "quotient_zero"}),
+
+    # CHK / CMP2
+    (r"^Set if Dn < 0", lambda m: {"rule": "chk_undefined"}),
+    (r"^Set if Rn is equal to either bound", lambda m: {"rule": "bounds_equal"}),
+    (r"^Set if Rn is out of bounds", lambda m: {"rule": "bounds_exceeded"}),
+
+    # Immediate bit operations (ANDI/ORI/EORI to CCR/SR, MOVE to CCR/SR)
+    (r"^Set if bit (\d) of immediate operand is one", lambda m: {"rule": "imm_bit_set", "bit": int(m.group(1))}),
+    (r"^Changed if bit (\d) of immediate operand is one", lambda m: {"rule": "imm_bit_changed", "bit": int(m.group(1))}),
+    (r"^Cleared if bit (\d) of immediate operand is zero", lambda m: {"rule": "imm_bit_cleared", "bit": int(m.group(1))}),
+    (r"^Set to the value of bit (\d) of the source operand", lambda m: {"rule": "source_bit", "bit": int(m.group(1))}),
+]
+
+
+def _classify_cc_description(desc):
+    """Classify a CC description string into a semantic rule dict."""
+    for pattern, factory in _CC_SEMANTIC_PATTERNS:
+        m = re.match(pattern, desc)
+        if m:
+            return factory(m)
+    return None
+
+
+def apply_cc_semantics(kb_data):
+    """Phase 8: Classify CC descriptions into semantic rules."""
+    classified = 0
+    unclassified = []
+
+    for inst in kb_data:
+        cc = inst.get("condition_codes", {})
+        semantics = {}
+        for flag, desc in cc.items():
+            rule = _classify_cc_description(desc)
+            if rule:
+                semantics[flag] = rule
+            else:
+                unclassified.append((inst["mnemonic"], flag, desc))
+        if semantics:
+            inst["cc_semantics"] = semantics
+            classified += 1
+
+    if unclassified:
+        msgs = [f"{mn}.{fl}: {d}" for mn, fl, d in unclassified]
+        raise RuntimeError(
+            f"Unclassified CC descriptions — add patterns to "
+            f"_CC_SEMANTIC_PATTERNS:\n  " + "\n  ".join(msgs)
+        )
+
+    return classified
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 9: SP effect extraction from Operation field
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _parse_sp_effects(operation, mnemonic):
+    """Parse an Operation string into a list of structured SP effects.
+
+    Returns a list of effect dicts, e.g.:
+      [{"action": "push", "bytes": 4}, {"action": "adjust", "expr": "d"}]
+    Returns empty list if no SP effects.
+    Raises RuntimeError if a clause references SP but no pattern matched.
+    """
+    if not operation or ("SP" not in operation and "SSP" not in operation):
+        return []
+
+    effects = []
+    unmatched_sp_clauses = []
+    # Split on semicolons — each clause is one step
+    clauses = [c.strip() for c in operation.split(";")]
+
+    for clause in clauses:
+        # SP – N → SP  (decrement SP by N)
+        m = re.match(r"\*?S?SP\s*[\u2013\u2014–-]\s*(\d+)\s*→\s*\*?S?[Ss][Pp]", clause)
+        if m:
+            effects.append({"action": "decrement", "bytes": int(m.group(1))})
+            continue
+
+        # SP + N → SP  (increment SP by N)
+        m = re.match(r"S?SP\s*\+\s*(\d+)\s*→\s*S?[Ss][Pp]", clause)
+        if m:
+            effects.append({"action": "increment", "bytes": int(m.group(1))})
+            continue
+
+        # SP + d → SP  (displacement adjust, e.g. LINK)
+        m = re.match(r"S?SP\s*\+\s*([a-z_]\w*)\s*→\s*S?[Ss][Pp]", clause)
+        if m:
+            effects.append({"action": "adjust", "operand": m.group(1)})
+            continue
+
+        # SP + N + d → SP  (e.g. RTD: "SP + 4 + d → SP")
+        m = re.match(r"S?SP\s*\+\s*(\d+)\s*\+\s*([a-z_]\w*)\s*→\s*S?[Ss][Pp]", clause)
+        if m:
+            effects.append({"action": "increment", "bytes": int(m.group(1))})
+            effects.append({"action": "adjust", "operand": m.group(2)})
+            continue
+
+        # An → SP  (load SP from register, e.g. UNLK)
+        m = re.match(r"An\s*→\s*SP", clause)
+        if m:
+            effects.append({"action": "load_from_reg", "reg": "An"})
+            continue
+
+        # SP → An  (save SP to register, e.g. LINK)
+        m = re.match(r"SP\s*→\s*An", clause)
+        if m:
+            effects.append({"action": "save_to_reg", "reg": "An"})
+            continue
+
+        # Clauses that read/write through SP but don't change it (e.g. "PC → (SP)",
+        # "(SP) → PC", "Vector Offset → (SSP)") — not SP effects, skip
+        if re.search(r"→\s*\(S?SP\)|\(S?SP\)\s*→", clause):
+            continue
+
+        # If clause mentions SP/SSP and we didn't match, that's an error
+        if "SP" in clause:
+            unmatched_sp_clauses.append(clause)
+
+    if unmatched_sp_clauses:
+        raise RuntimeError(
+            f"{mnemonic}: SP clause(s) not matched — add patterns to "
+            f"_parse_sp_effects:\n  " + "\n  ".join(unmatched_sp_clauses)
+        )
+
+    return effects
+
+
+def apply_sp_effects(kb_data):
+    """Phase 9: Extract structured SP effects from Operation field."""
+    with_effects = 0
+    for inst in kb_data:
+        operation = inst.get("operation", "")
+        sp_effects = _parse_sp_effects(operation, inst["mnemonic"])
+        if sp_effects:
+            inst["sp_effects"] = sp_effects
+            with_effects += 1
+    return with_effects
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 10: PC effect extraction
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _is_real_extension_word(enc):
+    """Return True if this encoding entry is a real extension word, not a label."""
+    fields = enc.get("fields", [])
+    if len(fields) != 1:
+        return False
+    name = fields[0]["name"]
+    # Filter out spurious PDF labels that got captured as encodings
+    if name.startswith("Instruction F"):
+        return False
+    return True
+
+
+def _compute_encoding_variants(encodings):
+    """Group encodings into instruction variants, each starting with an opword.
+
+    Returns list of variants, each a dict with:
+      - opword_index: index into encodings list
+      - base_words: total 16-bit words (opword + fixed extension words)
+      - extension_fields: list of extension word field names
+    """
+    variants = []
+    current = None
+
+    for i, enc in enumerate(encodings):
+        fields = enc.get("fields", [])
+        has_fixed_bits = any(f["name"] in ("0", "1") for f in fields)
+
+        if has_fixed_bits:
+            # New opword — start new variant
+            if current is not None:
+                variants.append(current)
+            current = {
+                "opword_index": i,
+                "base_words": 1,
+                "extension_fields": [],
+            }
+        elif current is not None and _is_real_extension_word(enc):
+            current["base_words"] += 1
+            current["extension_fields"].append(fields[0]["name"])
+
+    if current is not None:
+        variants.append(current)
+
+    return variants
+
+
+def _classify_flow_type(inst):
+    """Classify an instruction's control flow type from KB data.
+
+    Uses only KB-derived fields (operation, effects, uses_label, sp_effects,
+    description) — no hardcoded mnemonic names.
+
+    Returns a dict with:
+      - type: "sequential" | "branch" | "jump" | "call" | "return" | "trap"
+      - conditional: bool (for branches/traps that may fall through)
+    """
+    operation = inst.get("operation", "")
+    description = inst.get("description", "").lower()
+    effects = inst.get("effects", {})
+    uses_label = inst.get("uses_label", False)
+    writes_pc = effects.get("writes_pc", False)
+    sp_effects = inst.get("sp_effects", [])
+    has_push = any(e.get("action") == "decrement" for e in sp_effects)
+
+    # Returns: pop PC from stack (RTS, RTR, RTD, RTE)
+    if "(SP) → PC" in operation:
+        return {"type": "return"}
+
+    # Supervisor returns: RTE — operation says "If Supervisor State" but
+    # description loads processor state from exception stack frame
+    if "exception stack frame" in description and "loads" in description:
+        return {"type": "return"}
+
+    # Calls: push PC + change PC (BSR, JSR)
+    if writes_pc and has_push and "PC → (SP)" in operation:
+        return {"type": "call", "conditional": False}
+
+    # Unconditional branches: label + writes_pc (e.g. BRA)
+    if uses_label and writes_pc:
+        return {"type": "branch", "conditional": False}
+
+    # Conditional branches: label but doesn't always write PC (Bcc, DBcc, etc.)
+    if uses_label:
+        return {"type": "branch", "conditional": True}
+
+    # Unconditional jumps: writes PC from EA (JMP)
+    if writes_pc and "Destination Address → PC" in operation:
+        return {"type": "jump"}
+
+    # Traps: operation is specifically to generate a trap/exception, not
+    # instructions that may incidentally trap on error (like DIV or CHK).
+    # Detected by: operation triggers a trap vector, or description says the
+    # primary purpose is to generate an exception/trap/breakpoint.
+    op_is_trap = ("TRAP" in operation or "Vector" in operation
+                  or "Breakpoint" in operation)
+    # Primary-purpose trap descriptions: "causes a TRAPx exception",
+    # "initiates ... exception", "forces an exception", etc.
+    # Excludes incidental traps like "division by zero causes a trap"
+    desc_is_trap = any(
+        phrase in description
+        for phrase in ("initiates exception processing",
+                       "forces an exception",
+                       "trap as illegal instruction",
+                       "breakpoint acknowledge",
+                       "stops the fetching and executing")
+    )
+    # "initiates a ... exception" (cpTRAPcc pattern)
+    if re.search(r"initiates a \w+ exception", description):
+        desc_is_trap = True
+    # "causes a trap/exception" only when near start (primary action),
+    # not buried in description as a side-effect (e.g. "division by zero causes a trap")
+    trap_idx = description.find("causes a trap")
+    if trap_idx >= 0 and trap_idx < 120:
+        desc_is_trap = True
+    # Exclude coprocessor/FPU/MMU save/restore — they save/restore coprocessor
+    # state, not CPU control flow
+    if "saves" in description and ("internal state" in description
+                                    or "state frame" in description):
+        op_is_trap = False
+        desc_is_trap = False
+    if "loaded from" in description and ("state frame" in description
+                                          or "internal state" in description):
+        op_is_trap = False
+        desc_is_trap = False
+    if op_is_trap or desc_is_trap:
+        # Conditional traps: operation has "If cc" / "If cpcc" / "If V",
+        # or description says "if ... condition is true"
+        is_conditional = (
+            (operation.startswith("If ") and "Supervisor" not in operation)
+            or "condition is true" in description
+        )
+        if is_conditional:
+            return {"type": "trap", "conditional": True}
+        return {"type": "trap"}
+
+    # Everything else is sequential
+    return {"type": "sequential"}
+
+
+def apply_pc_effects(kb_data):
+    """Phase 10: Extract PC effects — flow type and base instruction size."""
+    count = 0
+    for inst in kb_data:
+        pc_effects = {}
+
+        # Flow type
+        flow = _classify_flow_type(inst)
+        pc_effects["flow"] = flow
+
+        # Base instruction size from encoding variants
+        encodings = inst.get("encodings", [])
+        variants = _compute_encoding_variants(encodings)
+        if variants:
+            sizes = [v["base_words"] * 2 for v in variants]
+            pc_effects["base_sizes"] = sorted(set(sizes))
+            if any(v["extension_fields"] for v in variants):
+                pc_effects["encoding_variants"] = [
+                    {"base_bytes": v["base_words"] * 2,
+                     "extensions": v["extension_fields"]}
+                    for v in variants
+                ]
+
+        inst["pc_effects"] = pc_effects
+        if flow["type"] != "sequential":
+            count += 1
+
+    return count
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Output
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2640,6 +3018,21 @@ def main():
     movem_masks = extract_movem_regmask_tables(doc)
     print(f"  Normal: {movem_masks['normal']}")
     print(f"  Predecrement: {movem_masks['predecrement']}")
+
+    # Phase 8: Classify CC descriptions into semantic rules
+    print("Phase 8: Classifying CC semantics...")
+    cc_classified = apply_cc_semantics(kb_data)
+    print(f"  Classified: {cc_classified}/{len(kb_data)} instructions")
+
+    # Phase 9: Extract SP effects from Operation field
+    print("Phase 9: Extracting SP effects...")
+    sp_count = apply_sp_effects(kb_data)
+    print(f"  Instructions with SP effects: {sp_count}")
+
+    # Phase 10: Extract PC effects (flow type + base instruction size)
+    print("Phase 10: Extracting PC effects...")
+    flow_count = apply_pc_effects(kb_data)
+    print(f"  Control flow instructions: {flow_count}")
 
     # Output
     outfile = args.outfile or str(KB_PATH)
