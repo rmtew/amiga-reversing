@@ -28,8 +28,8 @@ the infrastructure is proven, it just needs extending to cover all instructions.
 - [x] Add LINK.L decoding (KB has encoding[2] mask=0xFFF8/val=0x4808)
 - [x] Add EXTB.L decoding (KB OPMODE=7 via mask=0xFE38)
 - [x] Add CHK.L decoding (KB Size field says "10 — Long")
-- [ ] Add DIVU.L/DIVS.L decoding (KB has DIVUL/DIVSL entries with ext word)
-- [ ] Add MULU.L/MULS.L decoding (KB has MULU/MULS entries with ext word)
+- [x] Add DIVU.L/DIVS.L decoding (KB has DIVUL/DIVSL entries with ext word)
+- [x] Add MULU.L/MULS.L decoding (KB has MULU/MULS entries with ext word)
 
 ### High — Hardcoded mask/val pairs (use `_load_kb_encoding_masks()`)
 
@@ -49,6 +49,7 @@ the infrastructure is proven, it just needs extending to cover all instructions.
 - [x] EXT.W/EXT.L masks — from KB
 - [x] PEA mask — from KB
 - [x] MOVEM mask + direction/size bit positions — from KB with `_extract_size_bits()`
+- [x] MOVEM register mask tables — `_load_kb_movem_reg_masks()` from PDF page 234 (normal + predecrement)
 - [x] CLR/NEG/NEGX/NOT four hardcoded mask/val pairs — from KB
 - [x] TST mask — from KB
 - [x] TAS mask — from KB
