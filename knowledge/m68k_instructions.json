@@ -2649,7 +2649,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -2845,7 +2845,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -3036,7 +3036,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -3227,7 +3227,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -3418,7 +3418,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -3607,7 +3607,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -3803,7 +3803,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -4001,7 +4001,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -4147,7 +4147,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68000",
       "sizes": [],
       "uses_label": false,
       "constraints": {
@@ -5667,7 +5667,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [
         "b",
         "w",
@@ -6036,7 +6036,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [
         "b",
         "w",
@@ -6992,7 +6992,7 @@
           "C"
         ]
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [
         "b",
         "w",
@@ -7107,7 +7107,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68030",
+      "processor_min": "68020",
       "sizes": [
         "w",
         "l"
@@ -7311,7 +7311,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68030",
+      "processor_min": "68020",
       "sizes": [
         "w"
       ],
@@ -7429,7 +7429,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68030",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -7626,7 +7626,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68030",
+      "processor_min": "68020",
       "sizes": [
         "b"
       ],
@@ -7830,7 +7830,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68030",
+      "processor_min": "68020",
       "sizes": [
         "w",
         "l"
@@ -10903,7 +10903,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68010",
       "sizes": [
         "w"
       ],
@@ -14040,7 +14040,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false,
       "constraints": {
@@ -14880,7 +14880,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68010",
       "sizes": [],
       "uses_label": false
     },
@@ -16946,7 +16946,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [
         "w",
         "l"
@@ -17553,7 +17553,7 @@
         "privileged": false,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false,
       "constraints": {
@@ -17964,7 +17964,7 @@
         "privileged": true,
         "cc_write": []
       },
-      "processor_min": "68030",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -18087,7 +18087,7 @@
         "privileged": true,
         "cc_write": []
       },
-      "processor_min": "68030",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -18496,7 +18496,7 @@
         "privileged": true,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -18628,7 +18628,7 @@
         "privileged": true,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -19256,7 +19256,7 @@
         "privileged": true,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68010",
       "sizes": [
         "l"
       ],
@@ -19620,7 +19620,7 @@
         "privileged": true,
         "cc_write": []
       },
-      "processor_min": "68040",
+      "processor_min": "68010",
       "sizes": [
         "b",
         "w",
@@ -21157,7 +21157,7 @@
           "X"
         ]
       },
-      "processor_min": "68030",
+      "processor_min": "68020",
       "sizes": [],
       "uses_label": false
     },
@@ -23927,7 +23927,7 @@
         "privileged": true,
         "cc_write": []
       },
-      "processor_min": "68020",
+      "processor_min": "68000",
       "sizes": [
         "w",
         "l"

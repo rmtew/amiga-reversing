@@ -94,6 +94,10 @@
       "supported": false,
       "reason": "Bundled vasm parser does not accept PVALID syntax via this harness"
     },
+    "BKPT": {
+      "cpu_flag": "-m68010",
+      "notes": "MC68EC000/68010+ instruction; base 68000 does not support BKPT"
+    },
     "BFCHG": {
       "cpu_flag": "-m68020",
       "notes": "Bit-field instructions require 68020+"
@@ -186,6 +190,14 @@
     "EXT, EXTB": {
       "skip_forms": ["extb"],
       "notes": "vasm syntax does not accept EXTB in tested form"
+    },
+    "FRESTORE": {
+      "cpu_flag": "-m68881",
+      "notes": "FPU coprocessor instruction; needs FPU flag, not just 68020"
+    },
+    "FSAVE": {
+      "cpu_flag": "-m68881",
+      "notes": "FPU coprocessor instruction; needs FPU flag, not just 68020"
     },
     "TRAPcc": {
       "notes": "Size suffix (.w/.l) required on immediate forms per M68K convention"

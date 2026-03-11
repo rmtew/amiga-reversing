@@ -1469,7 +1469,7 @@ def _find_field_description(fd, field_name):
     # Field names that represent structural parts of the encoding, not immediate data
 _STRUCTURAL_FIELD_RE = re.compile(
     r"^(REGISTER|MODE|OPMODE|CONDITION|SIZE|CACHE|SCOPE|ID|FC|MASK|"
-    r"LEVEL|NUM|OFFSET|WIDTH|A/D|D/A|R/?W|R/M|dr|i/r|D[couwqrhl]|"
+    r"LEVEL|NUM|OFFSET|WIDTH|A/D|D/A|R/?\s*W|R/M|dr|i/r|D[couwqrhl]|"
     r"Rn\d|Instruction|FD|A$|COPROCESSOR|MC68851)"
     r"|REGISTER\b"  # also match fields containing REGISTER
     , re.IGNORECASE
@@ -1497,6 +1497,9 @@ def _extract_immediate_range(inst):
             desc = _find_field_description(fd, field_name)
             # Non-structural fields without a description — assume unsigned immediate
             if not desc:
+                print(f"WARNING: {inst.get('mnemonic','?')}: field '{field_name}' "
+                      f"has no description — assuming unsigned {bit_width}-bit immediate",
+                      file=sys.stderr)
                 return {
                     "min": 0,
                     "max": (1 << bit_width) - 1,
@@ -1812,31 +1815,37 @@ def _derive_processor_min(processors):
         return "68000"
 
     order = CPU_HIERARCHY["order"]
-    # Map processor model patterns to hierarchy entries.
+    aliases = CPU_HIERARCHY["aliases"]
     # Coprocessors (FPU 68881/68882, MMU 68851) imply 68020 as the minimum CPU.
     _COPROCESSOR_IMPLIES = "68020"
-    best_idx = -1
+    min_idx = len(order)
+    has_cpu32 = False
 
     for proc_token in re.findall(r"MC?68\w+|CPU32", processors):
-        token = proc_token.lstrip("MC")  # "MC68020" -> "68020"
+        if proc_token == "CPU32":
+            has_cpu32 = True
+            continue
+        token = proc_token.removeprefix("MC")  # "MC68020" -> "68020"
         # Strip EC/LC variants: "68EC030" -> "68030", "68LC040" -> "68040"
         core = re.sub(r"^68[A-Z]{1,2}(\d)", r"68\1", token)
 
         if core in ("68881", "68882", "68851"):
             # Coprocessor — implies 68020
-            idx = order.index(_COPROCESSOR_IMPLIES) if _COPROCESSOR_IMPLIES in order else -1
-        elif core == "CPU32":
-            return "cpu32"
+            idx = order.index(_COPROCESSOR_IMPLIES) if _COPROCESSOR_IMPLIES in order else len(order)
         elif core in order:
             idx = order.index(core)
         else:
             # Try prefix match (68008 -> 68000)
-            idx = next((order.index(o) for o in order if core.startswith(o[:4])), -1)
+            idx = next((order.index(o) for o in order if core.startswith(o[:4])), len(order))
 
-        if idx > best_idx:
-            best_idx = idx
+        if idx < min_idx:
+            min_idx = idx
 
-    return order[best_idx] if best_idx >= 0 else "68000"
+    if min_idx < len(order):
+        return order[min_idx]
+    if has_cpu32:
+        return "cpu32"
+    return "68000"
 
 
 def _extract_opmode_table(doc, inst):
@@ -2066,7 +2075,7 @@ def _extract_control_registers(doc, inst):
         rows = spans_to_rows(spans)
         sorted_ys = sorted(rows.keys())
 
-        current_cpu = "68010"  # Default for MOVEC
+        current_cpu = _derive_processor_min(inst.get("processors", ""))
         for idx, y_key in enumerate(sorted_ys):
             row_items = rows[y_key]
             row_text = " ".join(t for _, _, t, _, _ in row_items)
