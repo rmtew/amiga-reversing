@@ -253,6 +253,13 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
         src_bits = dst_bits = result_bits = bits
         src_mask = dst_mask = result_mask = mask
 
+    # KB cc_result_bits overrides operand/result width for compute + CC evaluation
+    # (e.g. SWAP: Size=Word but PDF CC says "32-bit result" — operation is 32-bit)
+    cc_override = ctx.get("cc_result_bits")
+    if cc_override is not None:
+        src_bits = dst_bits = result_bits = cc_override
+        src_mask = dst_mask = result_mask = (1 << cc_override) - 1
+
     src = src_val & src_mask
     dst = dst_val & dst_mask
 
@@ -345,6 +352,26 @@ def _compute_exchange(dst, formula):
     hi_val = (dst & hi_mask) >> hi_bot
     lo_val = (dst & lo_mask) >> lo_bot
     return (lo_val << hi_bot) | (hi_val << lo_bot)
+
+
+def _compute_sign_extend(dst, mask, bits, ctx, formula):
+    """Sign-extend from a narrower source width to the operation size.
+
+    The KB formula has 'source_bits_by_size' mapping size→source width,
+    extracted from PDF description text (e.g. "extends a byte to a word").
+    The ctx must have 'sign_extend_source_bits' set by the test generator.
+    """
+    source_bits = ctx.get("sign_extend_source_bits")
+    if source_bits is None:
+        raise RuntimeError(
+            "compute sign_extend: missing 'sign_extend_source_bits' in ctx "
+            "— must come from KB source_bits_by_size")
+    source_mask = (1 << source_bits) - 1
+    val = dst & source_mask
+    # Sign-extend: if MSB of source is set, fill upper bits with 1s
+    if val & (1 << (source_bits - 1)):
+        val |= mask & ~source_mask
+    return val & mask
 
 
 def _compute_shift(src, dst, mask, bits, ccr, ctx):
@@ -462,6 +489,8 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
     # Complex operations — parameterized by KB data
     if op == "exchange":
         return _compute_exchange(dst, formula)
+    if op == "sign_extend":
+        return _compute_sign_extend(dst, mask, bits, ctx, formula)
     if op == "shift":
         return _compute_shift(src, dst, mask, bits, ccr, ctx)
     if op == "rotate":
@@ -964,6 +993,9 @@ def _derive_form_type(inst):
             dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
             if "dn" in dst_modes:
                 return ("imm_dn", None, 1)
+        if ops == ["dn"]:
+            # Explicit single Dn operand (SWAP, EXT/EXTB)
+            return ("single_op", None, 1)
         if ops == ["ea"]:
             # Single EA operand — check if Dn is valid
             all_modes = ea_modes.get("ea", ea_modes.get("dst", ea_modes.get("src", [])))
@@ -1185,6 +1217,7 @@ def generate_cc_tests(inst, form_info, tmpdir):
     individual_mnemonics = _split_combined_mnemonic(mnemonic)
 
     is_bit_test = op_type == "bit_test"
+    is_sign_extend = op_type == "sign_extend"
 
     # For bit test, get bit_modulus from KB (register modulus for Dn tests)
     if is_bit_test:
@@ -1276,6 +1309,11 @@ def generate_cc_tests(inst, form_info, tmpdir):
         else:
             valid_sizes = sizes
 
+        # CC result width override from KB (e.g. SWAP: Size=Word but CC uses 32-bit)
+        cc_result_bits = inst.get("cc_result_bits")
+        if cc_result_bits is not None:
+            ctx["cc_result_bits"] = cc_result_bits
+
         for sz in valid_sizes:
             # For multiply/divide, find data_sizes from the matching KB form.
             # If no non-020 form has data_sizes for this size, skip it
@@ -1285,6 +1323,19 @@ def generate_cc_tests(inst, form_info, tmpdir):
                 if ds is None:
                     continue
                 ctx["data_sizes"] = ds
+
+            # For sign_extend, look up source width from KB formula
+            if is_sign_extend:
+                formula = inst.get("compute_formula", {})
+                sbbs = formula.get("source_bits_by_size", {})
+                # Check variant-specific key first (e.g. "extb_l"), then generic
+                variant_key = f"{indiv_mnemonic.lower()}_{sz}"
+                src_bits = sbbs.get(variant_key, sbbs.get(sz))
+                if src_bits is None:
+                    raise RuntimeError(
+                        f"{indiv_mnemonic}.{sz}: missing source_bits_by_size "
+                        f"entry in KB compute_formula — regenerate KB")
+                ctx["sign_extend_source_bits"] = src_bits
 
             for src_val, dst_val, val_desc in values:
                 for ccr_state in INITIAL_CCR_STATES:

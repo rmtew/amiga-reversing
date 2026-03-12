@@ -1416,7 +1416,10 @@ def _split_concatenated_forms(syntax_list, mnemonic):
     base = mnemonic.split(",")[0].split()[0]
 
     for raw_s in syntax_list:
-        is_020 = raw_s.strip().startswith("*")
+        # Track A: PDF marks 020+ forms with "*" prefix, or embeds
+        # "(MC68020..." in syntax text (e.g. EXTB.L on PDF p209)
+        is_020 = (raw_s.strip().startswith("*") or
+                  "MC68020" in raw_s or "68020" in raw_s)
         s = _normalize_syntax(raw_s)
         if s.lower().startswith("where ") or s.lower().startswith("applies to"):
             continue
@@ -3015,9 +3018,25 @@ def _extract_compute_formula(inst):
             "op": "assign", "terms": ["source"]
         }
     elif op_type == "sign_extend":
-        # PDF: "Destination Sign-Extended → Destination"
+        # PDF p209: "Destination Sign-Extended → Destination"
+        # EXT.W: byte→word (source_bits=8), EXT.L: word→long (source_bits=16),
+        # EXTB.L: byte→long (source_bits=8).
+        # Extract per-form source widths from PDF description text:
+        # "extends a byte...to a word" → source_bits=8 for size=w
+        # "extends a word...to a long word" → source_bits=16 for size=l
+        # "EXTB form copies bit 7...to bits 31–8" → source_bits=8 for size=l (EXTB)
+        desc = inst.get("description", "").lower()
+        source_bits_by_size = {}
+        if re.search(r'extends?\s+a\s+byte.*?to\s+a\s+word', desc):
+            source_bits_by_size["w"] = 8
+        if re.search(r'extends?\s+a\s+word.*?to\s+a\s+long', desc):
+            source_bits_by_size["l"] = 16
+        # EXTB: "copies bit 7...to bits 31–8" means byte→long
+        if re.search(r'extb\s+form\s+copies\s+bit\s+7', desc):
+            source_bits_by_size["extb_l"] = 8
         inst["compute_formula"] = {
-            "op": "assign", "terms": ["source"]
+            "op": "sign_extend", "terms": ["destination"],
+            "source_bits_by_size": source_bits_by_size,
         }
     elif op_type == "test":
         # PDF: "Destination Tested → Condition Codes"
@@ -3145,6 +3164,29 @@ def _extract_size_by_ea_category(inst):
         desc_lower))
     if has_reg_32 and has_mem_byte:
         inst["size_by_ea_category"] = {"register": "l", "memory": "b"}
+
+
+def _extract_cc_result_bits(inst):
+    """Extract explicit CC result width from PDF CC description text.
+
+    Track A: PDF p288 SWAP CC says "32-bit result" despite Size=(Word).
+    When the CC description explicitly qualifies the result with a bit width
+    different from the instruction's declared sizes, store it so the predictor
+    can override the default size-derived width.
+    """
+    cc = inst.get("condition_codes", {})
+    sizes = inst.get("sizes", [])
+    # Check N and Z descriptions for explicit "NN-bit result" qualifiers
+    for flag in ("N", "Z"):
+        desc = cc.get(flag, "")
+        m = re.search(r'(\d+)-bit\s+result', desc)
+        if m:
+            explicit_bits = int(m.group(1))
+            size_bits = {"b": 8, "w": 16, "l": 32}
+            declared_bits = [size_bits.get(s, 0) for s in sizes]
+            if explicit_bits not in declared_bits:
+                inst["cc_result_bits"] = explicit_bits
+                return
 
 
 def _extract_shift_fill(inst):
@@ -3602,6 +3644,8 @@ def apply_operation_types(kb_data):
             if op_type == "bit_test":
                 _extract_bit_modulus(inst)
                 _extract_size_by_ea_category(inst)
+            # Extract CC result width override from CC descriptions (Track A)
+            _extract_cc_result_bits(inst)
             # Tag 020+ variants for combined mnemonics from form data
             _create_combined_variants(inst)
             # Specialize generic CC rules with operation-specific semantics

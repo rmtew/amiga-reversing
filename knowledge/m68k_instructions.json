@@ -10764,7 +10764,8 @@
             {
               "type": "dn"
             }
-          ]
+          ],
+          "processor_020": true
         }
       ],
       "effects": {
@@ -10832,10 +10833,15 @@
       },
       "operation_type": "sign_extend",
       "compute_formula": {
-        "op": "assign",
+        "op": "sign_extend",
         "terms": [
-          "source"
-        ]
+          "destination"
+        ],
+        "source_bits_by_size": {
+          "w": 8,
+          "l": 16,
+          "extb_l": 8
+        }
       },
       "variants": [
         {
@@ -10844,7 +10850,7 @@
         },
         {
           "mnemonic": "EXTB",
-          "processor_020": false
+          "processor_020": true
         }
       ]
     },
@@ -19485,7 +19491,8 @@
           15,
           0
         ]
-      }
+      },
+      "cc_result_bits": 32
     },
     {
       "mnemonic": "TAS",
