@@ -59,6 +59,11 @@
       "N": 3,
       "X": 4
     },
+    "size_byte_count": {
+      "b": 1,
+      "w": 2,
+      "l": 4
+    },
     "ea_brief_ext_word": [
       {
         "name": "D/A",

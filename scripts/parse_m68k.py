@@ -199,11 +199,17 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
     ccr_bit_positions = {
         "C": 0, "V": 1, "Z": 2, "N": 3, "X": 4,
     }
+    # Track B parser-assertion: Size suffix → byte count from PDF p29, Table 2-3
+    # "Operand Data Format Summary". The table shows Byte=8 bits, Word=16 bits,
+    # Long=32 bits. Byte counts (8/8=1, 16/8=2, 32/8=4) are arithmetic fact.
+    # Cannot be reliably parsed from the PDF table, so asserted here.
+    size_byte_count = {"b": 1, "w": 2, "l": 4}
     meta = {
         "condition_codes": _kb_condition_codes(),
         "pmmu_condition_codes": pmmu_cc,
         "cpu_hierarchy": CPU_HIERARCHY,
         "ccr_bit_positions": ccr_bit_positions,
+        "size_byte_count": size_byte_count,
     }
     if ea_brief_ext_word is not None:
         meta["ea_brief_ext_word"] = ea_brief_ext_word

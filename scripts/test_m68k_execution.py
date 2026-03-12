@@ -83,6 +83,11 @@ NOP_OPWORD = KB_META.get("nop_opword")
 if NOP_OPWORD is None:
     raise RuntimeError("KB _meta missing nop_opword — regenerate KB")
 
+# Size suffix → byte count from KB (parser-asserted, PDF p29 Table 2-3)
+_size_byte_count = KB_META.get("size_byte_count")
+if _size_byte_count is None:
+    raise RuntimeError("KB _meta missing size_byte_count — regenerate KB")
+
 
 def _mem_write(mem, addr, value, size_bytes):
     """Write a value to memory at the given size (1/2/4 bytes)."""
@@ -1401,7 +1406,7 @@ def generate_cc_tests(inst, form_info, tmpdir):
                     # that writes values to memory and sets address registers
                     test_ctx = dict(ctx)  # copy so per-test setup doesn't leak
                     if form_type == "postinc_postinc":
-                        sz_bytes = {"b": 1, "w": 2, "l": 4}[sz]
+                        sz_bytes = _size_byte_count[sz]
                         def _setup_postinc(cpu, mem, _sv=src_val, _dv=dst_val,
                                            _szb=sz_bytes, _sr=src_reg, _dr=dst_reg):
                             addr_src = SCRATCH_ADDR
@@ -1430,7 +1435,9 @@ def generate_cc_tests(inst, form_info, tmpdir):
 def generate_sp_tests(inst, tmpdir):
     """Generate SP verification test cases for one instruction from KB data.
 
-    Uses predict_sp() for expected SP values — no hardcoded predictions.
+    Uses predict_sp() for expected SP values where KB sp_effects exist.
+    MOVEM has no fixed sp_effects (delta depends on register list count × size),
+    so its SP prediction is computed directly from test parameters.
 
     Yields (asm_text, code_bytes, setup_fn, predicted_sp, predicted_pc, desc,
             predicted_ccr) tuples. predicted_ccr is None except for instructions
@@ -1515,7 +1522,7 @@ def generate_sp_tests(inst, tmpdir):
         # MOVEM push: reg-to-mem with -(A7) — SP decreases by N × size
         # MOVEM pop: mem-to-reg with (A7)+ — SP increases by N × size
         for sz in inst.get("sizes", []):
-            sz_bytes = {"w": 2, "l": 4}[sz]
+            sz_bytes = _size_byte_count[sz]
             # Push 3 registers: D0-D2
             push_asm = f"movem.{sz} d0-d2,-(a7)"
             push_code = assemble(push_asm, tmpdir)
@@ -1554,15 +1561,15 @@ def generate_sp_tests(inst, tmpdir):
             return_addr = SCRATCH_ADDR
             # Push a known CCR value (X=1, N=0, Z=1, V=0, C=1 = 0x15)
             test_ccr_word = _CCR_MASK & 0x0015  # X=1, Z=1, C=1
-            rtr_base = STACK_ADDR - 6  # 2 (CCR) + 4 (PC)
+            # KB sp_effects: [increment 2, increment 4] — total 6 bytes
+            rtr_base = STACK_ADDR - predict_sp(inst, 0)  # how much RTR pops
             def setup_rtr(cpu, mem, _ra=return_addr, _ccr=test_ccr_word,
                           _base=rtr_base):
                 cpu.w_sp(_base)
                 mem.w16(_base, _ccr)           # CCR word
                 mem.w32(_base + 2, _ra)        # return address
                 mem.w16(_ra, NOP_OPWORD)       # NOP at return target
-            # SP after: base + 6
-            pred_sp = rtr_base + 6
+            pred_sp = predict_sp(inst, rtr_base)
             # Predict CCR from the stacked value using KB ccr_bit_positions
             pred_ccr = {
                 "X": 1 if test_ccr_word & CCR_X else 0,
