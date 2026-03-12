@@ -472,14 +472,19 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
         return _compute_multiply(src, dst, mask, bits, ccr, ctx)
     if op == "divide":
         return _compute_divide(src, dst, mask, bits, ccr, ctx)
-    if op == "bit_test":
-        return dst  # test only, destination unchanged
-    if op == "bit_change":
-        return dst ^ (1 << (src % bits))
-    if op == "bit_clear":
-        return dst & ~(1 << (src % bits))
-    if op == "bit_set":
-        return dst | (1 << (src % bits))
+    if op in ("bit_test", "bit_change", "bit_clear", "bit_set"):
+        bit_mod = ctx.get("bit_modulus")
+        if bit_mod is None:
+            raise RuntimeError(
+                f"compute {op}: missing 'bit_modulus' in ctx — must come from KB")
+        bit_num = src % bit_mod
+        if op == "bit_test":
+            return dst  # test only, destination unchanged
+        if op == "bit_change":
+            return dst ^ (1 << bit_num)
+        if op == "bit_clear":
+            return dst & ~(1 << bit_num)
+        return dst | (1 << bit_num)  # bit_set
 
     raise RuntimeError(f"Unknown compute_formula op: {op!r}")
 
@@ -581,8 +586,12 @@ def _rule_overflow_multiply(result, result_full, src, dst, mask, bits, op_type, 
 
 def _rule_bit_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     """Z flag for bit test: set if the tested bit of destination is zero.
-    Bit number is src modulo operand size in bits."""
-    bit_num = src % bits
+    Bit modulus from KB bit_modulus field (parsed from PDF description)."""
+    bit_mod = ctx.get("bit_modulus")
+    if bit_mod is None:
+        raise RuntimeError(
+            "bit_zero: missing 'bit_modulus' in ctx — must come from KB")
+    bit_num = src % bit_mod
     return 1 if (dst >> bit_num) & 1 == 0 else 0
 
 def _rule_z_cleared_if_nonzero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
@@ -1177,6 +1186,13 @@ def generate_cc_tests(inst, form_info, tmpdir):
 
     is_bit_test = op_type == "bit_test"
 
+    # For bit test, get bit_modulus from KB (register modulus for Dn tests)
+    if is_bit_test:
+        bit_mod_data = inst.get("bit_modulus")
+        if bit_mod_data is None:
+            raise RuntimeError(
+                f"{mnemonic}: missing 'bit_modulus' in KB — regenerate KB")
+
     # Select test values based on operation type
     if is_shift_rotate:
         values = SHIFT_TEST_VALUES
@@ -1241,6 +1257,9 @@ def generate_cc_tests(inst, form_info, tmpdir):
             ctx = {
                 "signed": signed,
             }
+        elif is_bit_test:
+            # Use register modulus for Dn-destination tests (from KB bit_modulus)
+            ctx = {"bit_modulus": bit_mod_data["register"]}
         else:
             ctx = {}
 

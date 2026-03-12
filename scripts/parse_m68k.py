@@ -3045,8 +3045,11 @@ def _extract_compute_formula(inst):
         inst_desc = inst.get("description", "").lower()
         if re.search(r'~\s*\(', operation) or 'inverts' in inst_desc:
             # BCHG: complement the tested bit
-            # PDF p132 Operation: "~ (<bit number> of Destination) → <bit number>..."
-            # (Operation text may be truncated; description says "inverts the specified bit")
+            # Track B: PDF p132 Operation line 2 shows complement arrow but the ~
+            # (NOT) symbol is not present in the PDF text layer (PyMuPDF extracts
+            # "TEST (...) → ..." without the tilde). The description text on the
+            # same page says "inverts the specified bit" which is parseable.
+            # Cited: PDF p132 BCHG Description: "inverts the specified bit".
             inst["compute_formula"] = {
                 "op": "bit_change", "terms": ["source", "destination"]
             }
@@ -3092,6 +3095,28 @@ def _extract_compute_formula(inst):
             "op": "divide", "terms": ["destination", "source"],
             "truncation": "toward_zero",
         }
+
+
+def _extract_bit_modulus(inst):
+    """Extract bit number modulus from PDF description text for bit test instructions.
+
+    Track A: PDF p146 BTST, p132 BCHG, p134 BCLR, p144 BSET all state:
+    - "any of the 32 bits can be specified by a modulo 32-bit number" (register dest)
+    - "the bit number is modulo 8" (memory dest)
+
+    Stores as 'bit_modulus' dict with 'register' and 'memory' keys on the instruction.
+    """
+    description = inst.get("description", "")
+    # Extract all "modulo N" values from description
+    mods = re.findall(r'modulo\s+(\d+)', description)
+    if len(mods) >= 2:
+        # PDF consistently lists register modulus first (32), memory second (8)
+        inst["bit_modulus"] = {
+            "register": int(mods[0]),
+            "memory": int(mods[1]),
+        }
+    elif len(mods) == 1:
+        inst["bit_modulus"] = {"register": int(mods[0]), "memory": int(mods[0])}
 
 
 def _extract_shift_fill(inst):
@@ -3545,6 +3570,9 @@ def apply_operation_types(kb_data):
             # Extract shift fill behavior from Description (Track A)
             if op_type in ("shift", "rotate", "rotate_extend"):
                 _extract_shift_fill(inst)
+            # Extract bit modulus from Description (Track A)
+            if op_type == "bit_test":
+                _extract_bit_modulus(inst)
             # Tag 020+ variants for combined mnemonics from form data
             _create_combined_variants(inst)
             # Specialize generic CC rules with operation-specific semantics

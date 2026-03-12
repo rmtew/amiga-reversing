@@ -2625,6 +2625,10 @@
           "source",
           "destination"
         ]
+      },
+      "bit_modulus": {
+        "register": 32,
+        "memory": 8
       }
     },
     {
@@ -2956,6 +2960,10 @@
           "source",
           "destination"
         ]
+      },
+      "bit_modulus": {
+        "register": 32,
+        "memory": 8
       }
     },
     {
@@ -5366,6 +5374,10 @@
           "source",
           "destination"
         ]
+      },
+      "bit_modulus": {
+        "register": 32,
+        "memory": 8
       }
     },
     {
@@ -5867,6 +5879,10 @@
           "source",
           "destination"
         ]
+      },
+      "bit_modulus": {
+        "register": 32,
+        "memory": 8
       }
     },
     {
