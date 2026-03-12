@@ -317,7 +317,15 @@
           2
         ]
       },
-      "operation_type": "add_decimal"
+      "operation_type": "add_decimal",
+      "compute_formula": {
+        "op": "add_decimal",
+        "terms": [
+          "source",
+          "destination",
+          "X"
+        ]
+      }
     },
     {
       "mnemonic": "ADD",
@@ -15021,7 +15029,7 @@
       "operation_type": "negx",
       "implicit_operand": 0,
       "compute_formula": {
-        "op": "subtract",
+        "op": "subtract_decimal",
         "terms": [
           "implicit",
           "destination",
@@ -18222,7 +18230,15 @@
           2
         ]
       },
-      "operation_type": "sub_decimal"
+      "operation_type": "sub_decimal",
+      "compute_formula": {
+        "op": "subtract_decimal",
+        "terms": [
+          "destination",
+          "source",
+          "X"
+        ]
+      }
     },
     {
       "mnemonic": "Scc",

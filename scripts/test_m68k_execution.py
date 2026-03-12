@@ -489,6 +489,44 @@ def _compute_divide(src, dst, mask, bits, ccr, ctx):
         return dst // src
 
 
+def _bcd_add(a, b, x):
+    """Packed BCD addition: a + b + x → (result, carry).
+
+    Standard packed BCD algorithm — correct each nibble by adding 6 when
+    the nibble exceeds 9 or produces a binary carry. Returns (result_byte, carry).
+    """
+    low = (a & 0xF) + (b & 0xF) + x
+    low_carry = 0
+    if low > 9:
+        low += 6
+        low_carry = 1
+    high = (a >> 4) + (b >> 4) + low_carry
+    carry = 0
+    if high > 9:
+        high += 6
+        carry = 1
+    return ((high & 0xF) << 4) | (low & 0xF), carry
+
+
+def _bcd_subtract(a, b, x):
+    """Packed BCD subtraction: a - b - x → (result, borrow).
+
+    Standard packed BCD subtraction — correct each nibble by subtracting 6
+    when borrow occurs. Returns (result_byte, borrow).
+    """
+    low = (a & 0xF) - (b & 0xF) - x
+    low_borrow = 0
+    if low < 0:
+        low += 10
+        low_borrow = 1
+    high = (a >> 4) - (b >> 4) - low_borrow
+    borrow = 0
+    if high < 0:
+        high += 10
+        borrow = 1
+    return ((high & 0xF) << 4) | (low & 0xF), borrow
+
+
 def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
     """Evaluate a KB compute_formula to produce the operation result.
 
@@ -498,6 +536,20 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
     op = formula["op"]
     terms = formula.get("terms", [])
     implicit = ctx.get("implicit_operand")
+
+    # BCD arithmetic — packed decimal, byte only
+    if op == "add_decimal":
+        resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
+        a, b, x = resolved
+        result, carry = _bcd_add(a & 0xFF, b & 0xFF, x)
+        ctx["_decimal_carry"] = carry
+        return result
+    if op == "subtract_decimal":
+        resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
+        a, b, x = resolved
+        result, borrow = _bcd_subtract(a & 0xFF, b & 0xFF, x)
+        ctx["_decimal_borrow"] = borrow
+        return result
 
     # Simple two-operand or single-operand formulas
     if op in _FORMULA_OPS:
@@ -662,6 +714,20 @@ def _rule_z_cleared_if_nonzero(result, result_full, src, dst, mask, bits, op_typ
     if result != 0:
         return 0
     return ccr.get("Z", 0)
+
+def _rule_decimal_carry(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """C flag for BCD addition: set if decimal carry was generated."""
+    carry = ctx.get("_decimal_carry")
+    if carry is None:
+        raise RuntimeError("decimal_carry rule: missing _decimal_carry in ctx — BCD compute needed")
+    return carry
+
+def _rule_decimal_borrow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """C flag for BCD subtraction: set if decimal borrow was generated."""
+    borrow = ctx.get("_decimal_borrow")
+    if borrow is None:
+        raise RuntimeError("decimal_borrow rule: missing _decimal_borrow in ctx — BCD compute needed")
+    return borrow
 
 def _rule_undefined(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     return None
@@ -846,6 +912,8 @@ _RULE_HANDLERS = {
     "overflow_multiply":        _rule_overflow_multiply,
     "bit_zero":                 _rule_bit_zero,
     "z_cleared_if_nonzero":     _rule_z_cleared_if_nonzero,
+    "decimal_carry":            _rule_decimal_carry,
+    "decimal_borrow":           _rule_decimal_borrow,
     "undefined":                _rule_undefined,
     "last_shifted_out":         _rule_last_shifted_out,
     "last_rotated_out":         _rule_last_rotated_out,
@@ -952,6 +1020,23 @@ TEST_VALUES = [
     (0x80000000, 0x00000001, "neg + pos"),
     (0x00000055, 0x000000AA, "bit pattern .b"),
     (0x0000FFFF, 0x00000001, "word overflow"),
+]
+
+# BCD test values: valid packed BCD bytes (each nibble 0-9).
+# These are arbitrary test inputs (not M68K knowledge).
+BCD_TEST_VALUES = [
+    (0x00, 0x00, "bcd 00+00"),
+    (0x01, 0x02, "bcd 01+02"),
+    (0x09, 0x01, "bcd low carry"),
+    (0x99, 0x01, "bcd max+1 (carry)"),
+    (0x50, 0x50, "bcd high carry"),
+    (0x99, 0x99, "bcd max+max"),
+    (0x00, 0x01, "bcd 00+01"),
+    (0x01, 0x00, "bcd 01+00"),
+    (0x45, 0x67, "bcd mid values"),
+    (0x99, 0x00, "bcd max+00"),
+    (0x10, 0x90, "bcd high nibble carry"),
+    (0x05, 0x05, "bcd 05+05"),
 ]
 
 # Initial CCR states to test (exercises X-dependent and Z-dependent paths).
@@ -1264,6 +1349,9 @@ def generate_cc_tests(inst, form_info, tmpdir):
 
     is_bit_test = op_type == "bit_test"
     is_sign_extend = op_type == "sign_extend"
+    is_bcd = op_type in ("add_decimal", "sub_decimal") or (
+        op_type == "negx" and inst.get("compute_formula", {}).get("op") == "subtract_decimal"
+    )
 
     # For bit test, get bit_modulus from KB (register modulus for Dn tests)
     if is_bit_test:
@@ -1281,6 +1369,8 @@ def generate_cc_tests(inst, form_info, tmpdir):
         values = DIVIDE_TEST_VALUES
     elif is_bit_test:
         values = BIT_TEST_VALUES
+    elif is_bcd:
+        values = BCD_TEST_VALUES
     else:
         values = TEST_VALUES
 

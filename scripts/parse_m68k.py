@@ -2990,7 +2990,19 @@ def _extract_compute_formula(inst):
     # Map operation_type to structured formula based on PDF Operation text.
     # Each formula captures the operator and operand order FROM the PDF.
 
-    if op_type == "add":
+    if op_type == "add_decimal":
+        # PDF p115 ABCD: "Source10 + Destination10 + X → Destination"
+        # BCD addition with extend — same term order as addx but decimal arithmetic
+        inst["compute_formula"] = {
+            "op": "add_decimal", "terms": ["source", "destination", "X"]
+        }
+    elif op_type == "sub_decimal":
+        # PDF p271 SBCD: "Destination10 – Source10 – X → Destination"
+        # BCD subtraction with extend — same term order as subx but decimal arithmetic
+        inst["compute_formula"] = {
+            "op": "subtract_decimal", "terms": ["destination", "source", "X"]
+        }
+    elif op_type == "add":
         # PDF: "Source + Destination → Destination"
         inst["compute_formula"] = {
             "op": "add", "terms": ["source", "destination"]
@@ -3154,6 +3166,21 @@ def _extract_compute_formula(inst):
             "op": "divide", "terms": ["destination", "source"],
             "truncation": "toward_zero",
         }
+
+    # Track A: If CC semantics specify decimal_carry or decimal_borrow, the
+    # operation is BCD arithmetic even when the Operation text omits the "10"
+    # subscript (e.g. NBCD: "0 – Destination – X" but Description says
+    # "binary-coded decimal arithmetic", PDF p226). Upgrade the formula op
+    # to its decimal variant so downstream computes BCD results.
+    if "compute_formula" in inst:
+        cc_sem = inst.get("cc_semantics", {})
+        cc_rules = {v.get("rule") for v in cc_sem.values()}
+        if "decimal_carry" in cc_rules or "decimal_borrow" in cc_rules:
+            op = inst["compute_formula"]["op"]
+            if op == "add":
+                inst["compute_formula"]["op"] = "add_decimal"
+            elif op == "subtract":
+                inst["compute_formula"]["op"] = "subtract_decimal"
 
 
 def _extract_bit_modulus(inst):
