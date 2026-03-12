@@ -51,6 +51,7 @@ Given an instruction + initial state, predict SP delta and CC result from KB rul
 - [x] Shift fill behavior: `fill` field on variants from PDF description (sign/zero/rotate)
 - [x] Combined mnemonic variants: `processor_020` flag derived from form data
 - [x] Implicit operands: `implicit_operand` extracted from PDF Operation text
+- [x] Size-by-EA-category: `size_by_ea_category` extracted from PDF description (register=long, memory=byte)
 
 ## Phase 4: Verification Harness (in progress)
 

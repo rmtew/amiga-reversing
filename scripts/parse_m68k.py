@@ -3119,6 +3119,34 @@ def _extract_bit_modulus(inst):
         inst["bit_modulus"] = {"register": int(mods[0]), "memory": int(mods[0])}
 
 
+def _extract_size_by_ea_category(inst):
+    """Extract per-EA-category size constraints from PDF description text.
+
+    Track A: PDF p164 BTST, p130 BCHG, p133 BCLR, p159 BSET all state:
+    - "When a data register is the destination, any of the 32 bits..."
+    - "When a memory location is the destination, the operation is a byte operation"
+
+    This means the instruction's listed sizes (Byte, Long) are not freely
+    combinable — Long applies to register destinations, Byte to memory.
+    Stores as 'size_by_ea_category' dict mapping 'register' and 'memory' to size letters.
+    """
+    description = inst.get("description", "")
+    if not description:
+        return
+    desc_lower = description.lower()
+    # Pattern: register destination → 32 bits, memory destination → byte
+    # PDF uses both "a data register is the destination" and
+    # "the destination is a data register" across different instructions
+    has_reg_32 = bool(re.search(
+        r'(?:(?:data\s+)?register\s+is\s+the\s+destination|destination\s+is\s+a\s+data\s+register).*?32\s+bits',
+        desc_lower))
+    has_mem_byte = bool(re.search(
+        r'(?:memory\s+(?:location\s+)?is\s+the\s+destination|destination\s+is\s+a\s+memory\s+(?:location)?).*?byte\s+operation',
+        desc_lower))
+    if has_reg_32 and has_mem_byte:
+        inst["size_by_ea_category"] = {"register": "l", "memory": "b"}
+
+
 def _extract_shift_fill(inst):
     """Extract shift fill behavior from PDF Description text.
 
@@ -3570,9 +3598,10 @@ def apply_operation_types(kb_data):
             # Extract shift fill behavior from Description (Track A)
             if op_type in ("shift", "rotate", "rotate_extend"):
                 _extract_shift_fill(inst)
-            # Extract bit modulus from Description (Track A)
+            # Extract bit modulus and size-by-EA-category from Description (Track A)
             if op_type == "bit_test":
                 _extract_bit_modulus(inst)
+                _extract_size_by_ea_category(inst)
             # Tag 020+ variants for combined mnemonics from form data
             _create_combined_variants(inst)
             # Specialize generic CC rules with operation-specific semantics

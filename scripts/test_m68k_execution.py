@@ -1263,7 +1263,20 @@ def generate_cc_tests(inst, form_info, tmpdir):
         else:
             ctx = {}
 
-        for sz in sizes:
+        # For bit test with size_by_ea_category, filter sizes to match
+        # the EA category being tested (register Dn → only the register size).
+        # KB field extracted from PDF description text.
+        if is_bit_test:
+            size_by_ea = inst.get("size_by_ea_category")
+            if size_by_ea is None:
+                raise RuntimeError(
+                    f"{mnemonic}: missing 'size_by_ea_category' in KB — regenerate KB")
+            # Register-destination tests use only the register size
+            valid_sizes = [sz for sz in sizes if sz == size_by_ea["register"]]
+        else:
+            valid_sizes = sizes
+
+        for sz in valid_sizes:
             # For multiply/divide, find data_sizes from the matching KB form.
             # If no non-020 form has data_sizes for this size, skip it
             # (the .l forms are 020+ only).

@@ -2629,6 +2629,10 @@
       "bit_modulus": {
         "register": 32,
         "memory": 8
+      },
+      "size_by_ea_category": {
+        "register": "l",
+        "memory": "b"
       }
     },
     {
@@ -2964,6 +2968,10 @@
       "bit_modulus": {
         "register": 32,
         "memory": 8
+      },
+      "size_by_ea_category": {
+        "register": "l",
+        "memory": "b"
       }
     },
     {
@@ -5378,6 +5386,10 @@
       "bit_modulus": {
         "register": 32,
         "memory": 8
+      },
+      "size_by_ea_category": {
+        "register": "l",
+        "memory": "b"
       }
     },
     {
@@ -5883,6 +5895,10 @@
       "bit_modulus": {
         "register": 32,
         "memory": 8
+      },
+      "size_by_ea_category": {
+        "register": "l",
+        "memory": "b"
       }
     },
     {
