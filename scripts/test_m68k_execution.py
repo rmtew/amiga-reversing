@@ -68,12 +68,15 @@ DATA_REGS = [Register.D0, Register.D1, Register.D2, Register.D3,
 ADDR_REGS = [Register.A0, Register.A1, Register.A2, Register.A3,
              Register.A4, Register.A5, Register.A6]
 
-# CCR flag bit positions in SR (machine68k API layout)
-CCR_C = 0x0001
-CCR_V = 0x0002
-CCR_Z = 0x0004
-CCR_N = 0x0008
-CCR_X = 0x0010
+# CCR flag bit positions from KB (parser-asserted from PDF p21, Figure 1-8)
+_ccr_bits = KB_META.get("ccr_bit_positions")
+if _ccr_bits is None:
+    raise RuntimeError("KB _meta missing ccr_bit_positions — regenerate KB")
+CCR_C = 1 << _ccr_bits["C"]
+CCR_V = 1 << _ccr_bits["V"]
+CCR_Z = 1 << _ccr_bits["Z"]
+CCR_N = 1 << _ccr_bits["N"]
+CCR_X = 1 << _ccr_bits["X"]
 
 # NOP opword derived from KB encoding data (not hardcoded)
 NOP_OPWORD = KB_META.get("nop_opword")
@@ -92,10 +95,14 @@ def make_machine():
     return m
 
 
+# Mask to clear all CCR bits from SR, derived from KB bit positions
+_CCR_MASK = CCR_C | CCR_V | CCR_Z | CCR_N | CCR_X
+
+
 def set_ccr(cpu, x=0, n=0, z=0, v=0, c=0):
     """Set CCR flags in SR (preserve supervisor bits)."""
     sr = cpu.r_sr()
-    sr &= 0xFFE0  # clear CCR bits
+    sr &= ~_CCR_MASK & 0xFFFF  # clear CCR bits
     if x: sr |= CCR_X
     if n: sr |= CCR_N
     if z: sr |= CCR_Z
@@ -1505,11 +1512,20 @@ def run_tests(filter_mnemonic=None, verbose=False):
                         z=initial_ccr["Z"], v=initial_ccr["V"], c=initial_ccr["C"])
                 ccr_before = read_ccr(cpu)
 
-                # Predict CC from KB — single-op uses implicit_operand from KB.
-                # Instructions without implicit_operand (NOT, TST) don't use
-                # the source value in their compute handler, so 0 is safe.
+                # Predict CC from KB — single-op uses implicit_operand from KB
+                # when the formula references it. If the formula doesn't
+                # reference "source" or "implicit", pred_src is unused.
                 if form_type == "single_op":
-                    pred_src = inst.get("implicit_operand", 0)
+                    formula = inst.get("compute_formula", {})
+                    terms = formula.get("terms", [])
+                    if "implicit" in terms or "source" in terms:
+                        pred_src = inst.get("implicit_operand")
+                        if pred_src is None:
+                            raise RuntimeError(
+                                f"{mnemonic}: formula uses 'implicit'/'source' "
+                                f"but no implicit_operand in KB")
+                    else:
+                        pred_src = 0  # formula doesn't use source value
                 else:
                     pred_src = src_val
                 predicted_cc = predict_cc(inst, sz, pred_src, dst_val, ccr_before, ctx)

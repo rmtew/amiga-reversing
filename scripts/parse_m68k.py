@@ -37,7 +37,12 @@ SECTIONS = {
 # Common PDF ligatures to normalize
 LIGATURES = {"\ufb01": "fi", "\ufb02": "fl", "\ufb00": "ff", "\ufb03": "ffi", "\ufb04": "ffl"}
 
-# Standard M68K EA mode encoding (Motorola-defined)
+# Track B parser-assertion: EA mode encoding from PDF p29, Section 2
+# "Addressing Mode Categories" Table 2-4 "Effective Address Encoding Summary".
+# The (mode, register) → canonical name mapping is asserted because the PDF
+# table layout cannot be reliably parsed (multi-row spanning cells with merged
+# column headers). The numeric values (mode 0-7, register 0-4) are the M68K
+# standard and appear throughout the PDF's instruction encoding tables.
 MODE_MAP = {
     (0, None): "dn",
     (1, None): "an",
@@ -59,7 +64,12 @@ EA_ORDER = {m: i for i, m in enumerate(EA_ALL)}
 # Populated at runtime by extract_standard_cc_table() from PDF Table 3-19
 CC_TABLE: dict[int, str] = {}
 
-# Processor family hierarchy (ordered by capability, ascending)
+# Track B parser-assertion: Processor family hierarchy.
+# PDF Section 1.2 lists the M68000 family members. The ordering by capability
+# (68000 < 68010 < 68020 < 68030 < 68040 < 68060) is asserted from the PDF's
+# section structure and the "MC680x0 only" annotations on instruction pages.
+# Aliases: CPU32 maps to 68020 features (PDF p1-1), ColdFire to 68060 subset.
+# Emitted to KB _meta.cpu_hierarchy for downstream consumption.
 CPU_HIERARCHY = {
     "order": ["68000", "68010", "68020", "68030", "68040", "68060"],
     "aliases": {
@@ -181,10 +191,19 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
                    ea_brief_ext_word: list[dict] | None = None,
                    movem_reg_masks: dict[str, list[str]] | None = None,
                    nop_opword: int | None = None) -> dict:
+    # Track B parser-assertion: CCR bit positions within SR from PDF p21,
+    # Figure 1-8 "Status Register". The figure shows a 16-bit SR diagram with
+    # bit numbers 15..0 and labels: bit 0=C (Carry), 1=V (Overflow), 2=Z (Zero),
+    # 3=N (Negative), 4=X (Extend). Bits 5-7 are zero. This layout cannot be
+    # reliably parsed from the PDF figure, so it is asserted here.
+    ccr_bit_positions = {
+        "C": 0, "V": 1, "Z": 2, "N": 3, "X": 4,
+    }
     meta = {
         "condition_codes": _kb_condition_codes(),
         "pmmu_condition_codes": pmmu_cc,
         "cpu_hierarchy": CPU_HIERARCHY,
+        "ccr_bit_positions": ccr_bit_positions,
     }
     if ea_brief_ext_word is not None:
         meta["ea_brief_ext_word"] = ea_brief_ext_word
@@ -1918,6 +1937,9 @@ def _extract_memory_size_restriction(inst):
     if size_hi is None:
         return None
 
+    # Track B parser-assertion: Size field encoding from PDF p29, Table 2-3
+    # "Operand Data Length": 00=byte, 01=word, 10=long.
+    # This encoding appears in instruction format fields throughout Section 4.
     SIZE_MAP = {0: "b", 1: "w", 2: "l"}
 
     # Check memory-form encoding (has MODE but not i/r)
@@ -1969,7 +1991,10 @@ def _derive_processor_min(processors):
 
     order = CPU_HIERARCHY["order"]
     aliases = CPU_HIERARCHY["aliases"]
-    # Coprocessors (FPU 68881/68882, MMU 68851) imply 68020 as the minimum CPU.
+    # Track B parser-assertion: Coprocessors (68881/68882/68851) require 68020+.
+    # PDF Section 1.2 (p1-1): the 68881/68882 FPU and 68851 PMMU are described
+    # as coprocessors for the MC68020 and above. No coprocessor instruction page
+    # lists MC68000 or MC68010 in its processor field.
     _COPROCESSOR_IMPLIES = "68020"
     min_idx = len(order)
     has_cpu32 = False

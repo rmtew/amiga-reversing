@@ -52,6 +52,13 @@
         "cpu32": "68020"
       }
     },
+    "ccr_bit_positions": {
+      "C": 0,
+      "V": 1,
+      "Z": 2,
+      "N": 3,
+      "X": 4
+    },
     "ea_brief_ext_word": [
       {
         "name": "D/A",
