@@ -3031,9 +3031,10 @@ def _extract_compute_formula(inst):
             source_bits_by_size["w"] = 8
         if re.search(r'extends?\s+a\s+word.*?to\s+a\s+long', desc):
             source_bits_by_size["l"] = 16
-        # EXTB: "copies bit 7...to bits 31–8" means byte→long
-        if re.search(r'extb\s+form\s+copies\s+bit\s+7', desc):
-            source_bits_by_size["extb_l"] = 8
+        # EXTB: "copies bit N...to bits M–N+1" — source width = N+1
+        m_extb = re.search(r'extb\s+form\s+copies\s+bit\s+(\d+)', desc)
+        if m_extb:
+            source_bits_by_size["extb_l"] = int(m_extb.group(1)) + 1
         inst["compute_formula"] = {
             "op": "sign_extend", "terms": ["destination"],
             "source_bits_by_size": source_bits_by_size,
@@ -3176,8 +3177,8 @@ def _extract_cc_result_bits(inst):
     """
     cc = inst.get("condition_codes", {})
     sizes = inst.get("sizes", [])
-    # Check N and Z descriptions for explicit "NN-bit result" qualifiers
-    for flag in ("N", "Z"):
+    # Check all CC flag descriptions for explicit "NN-bit result" qualifiers
+    for flag in ("X", "N", "Z", "V", "C"):
         desc = cc.get(flag, "")
         m = re.search(r'(\d+)-bit\s+result', desc)
         if m:

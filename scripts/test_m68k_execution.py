@@ -994,7 +994,7 @@ def _derive_form_type(inst):
             if "dn" in dst_modes:
                 return ("imm_dn", None, 1)
         if ops == ["dn"]:
-            # Explicit single Dn operand (SWAP, EXT/EXTB)
+            # Explicit single Dn operand
             return ("single_op", None, 1)
         if ops == ["ea"]:
             # Single EA operand — check if Dn is valid
