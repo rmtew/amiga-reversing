@@ -2549,6 +2549,14 @@ def apply_cc_semantics(kb_data):
 
     for inst in kb_data:
         cc = inst.get("condition_codes", {})
+        # Track A: PDF p271 RTR has blanket "Set to the condition codes from
+        # the stack" instead of per-flag entries. Detect from Description text.
+        description = inst.get("description", "").lower()
+        if re.search(r'(?:pulls?|loads?|restores?)\s+(?:the\s+)?condition\s+code', description):
+            inst["cc_semantics"] = {f: {"rule": "loaded_from_stack"}
+                                    for f in ("X", "N", "Z", "V", "C")}
+            classified += 1
+            continue
         semantics = {}
         for flag, desc in cc.items():
             rule = _classify_cc_description(desc)
@@ -3192,6 +3200,34 @@ def _extract_size_by_ea_category(inst):
         inst["size_by_ea_category"] = {"register": "l", "memory": "b"}
 
 
+def _extract_source_sign_extend(inst):
+    """Extract source sign-extension + 32-bit operation from PDF description text.
+
+    Track A: PDF p181 CMPA, p117 ADDA, p283 SUBA all state:
+    - "Word-length source operands are sign-extended to 32 bits for comparison/operation"
+    - Opmode description: "the operation is performed on the address register using all 32 bits"
+
+    This means the instruction always operates at 32 bits regardless of size suffix.
+    The word size only affects how the source operand is read (and sign-extended).
+    Stores 'source_sign_extend' and 'cc_result_bits' on the instruction.
+    """
+    description = inst.get("description", "")
+    if not description:
+        return
+    desc_lower = description.lower()
+    # Only match when sign-extension is for source operand comparison/operation
+    # (CMPA, ADDA, SUBA), not for general register loading (MOVEM)
+    forms = inst.get("forms", [])
+    has_an_dest = any("an" in [o["type"] for o in f.get("operands", [])]
+                      for f in forms)
+    if has_an_dest and re.search(
+            r'source\s+operands?\s+(?:is|are)\s+sign[\s-]*extended\s+to\s+32[\s-]*bit',
+            desc_lower):
+        inst["source_sign_extend"] = True
+        # The operation is always 32-bit regardless of size suffix
+        inst["cc_result_bits"] = 32
+
+
 def _extract_cc_result_bits(inst):
     """Extract explicit CC result width from PDF CC description text.
 
@@ -3670,6 +3706,8 @@ def apply_operation_types(kb_data):
             if op_type == "bit_test":
                 _extract_bit_modulus(inst)
                 _extract_size_by_ea_category(inst)
+            # Extract source sign-extension from Description (Track A)
+            _extract_source_sign_extend(inst)
             # Extract CC result width override from CC descriptions (Track A)
             _extract_cc_result_bits(inst)
             # Tag 020+ variants for combined mnemonics from form data

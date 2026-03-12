@@ -45,24 +45,27 @@ Given an instruction + initial state, predict SP delta and CC result from KB rul
 - [x] PC predictor: next-PC calculation (sequential size from disassembler, branch targets)
 - [x] Operation type classifier: Phase 11 in parser — classifies PDF `operation` text into structured types
 - [x] Shift/rotate properties: `shift_count_modulus` and `rotate_extra_bits` extracted from PDF description/operation
-- [x] Compute formulas: `compute_formula` extracted from PDF Operation text (59 instructions)
+- [x] Compute formulas: `compute_formula` extracted from PDF Operation text (63 instructions)
 - [x] Specialized overflow rules: `overflow_add/sub/neg/negx/multiply` (parser-asserted, Track B)
 - [x] Carry/borrow detection, shift carry/MSB semantics (parser-asserted, Track B)
 - [x] Shift fill behavior: `fill` field on variants from PDF description (sign/zero/rotate)
 - [x] Combined mnemonic variants: `processor_020` flag derived from form data
 - [x] Implicit operands: `implicit_operand` extracted from PDF Operation text
 - [x] Size-by-EA-category: `size_by_ea_category` extracted from PDF description (register=long, memory=byte)
+- [x] CC result width override: `cc_result_bits` extracted from PDF CC descriptions (SWAP: 32-bit despite Size=Word)
+- [x] Sign-extend formula: `sign_extend` with `source_bits_by_size` from PDF description text
+- [x] CCR bit positions: `ccr_bit_positions` in KB `_meta` (parser-asserted, PDF p21 Figure 1-8)
 
 ## Phase 4: Verification Harness (in progress)
 
 machine68k (Musashi) as independent oracle for execution semantics.
-`scripts/test_m68k_execution.py` — 3813 tests, 46 mnemonics, 0 failures.
+`scripts/test_m68k_execution.py` — 3998 tests, 50 mnemonics, 0 failures.
 
 - [x] Test generator: KB-driven discovery of testable instructions, deterministic test values
 - [x] Runner: instruction hook captures post-execution state without sentinel interference
 - [x] Comparator: predicted CC/SP/PC vs machine68k actual, per-flag reporting
 
-### CC verification (40 mnemonics)
+### CC verification (42 mnemonics)
 - [x] ALU register-register: ADD, ADDX, SUB, SUBX, CMP, AND, OR, EOR, MOVE, NEG, NEGX, NOT, CLR, TST (14 mnemonics, 1512 tests)
 - [x] Shift/rotate: ASL, ASR, LSL, LSR, ROL, ROR, ROXL, ROXR (8 mnemonics, 1296 tests)
 - [x] Multiply: MULS, MULU (2 mnemonics, 72 tests) — KB `compute_formula` + `overflow_multiply` rule
@@ -70,21 +73,25 @@ machine68k (Musashi) as independent oracle for execution semantics.
 - [x] Bit test: BTST, BCHG, BCLR, BSET (4 mnemonics, 192 tests) — KB `compute_formula` (bit_test/change/clear/set) + `bit_zero` rule
 - [x] EA mode `#imm,Dn`: ADDI, ADDQ, ANDI, CMPI, EORI, ORI, SUBI, SUBQ (8 mnemonics, 540 tests) — `imm_dn` form type
 - [x] Direct Dn form: SWAP, EXT (3 mnemonics, 108 tests) — KB `sign_extend` + `exchange` formulas, `cc_result_bits`, `["dn"]` form type
+- [x] Memory compare: CMPM (1 mnemonic, 108 tests) — `postinc_postinc` form type with memory test infrastructure
+- [x] Address register compare: CMPA (1 mnemonic, 72 tests) — `dn_an` form type, KB `source_sign_extend` + `cc_result_bits`
 - [ ] TAS — needs `msb_operand` CC rule
 - [ ] BCD: ABCD, SBCD, NBCD — need `decimal_carry`/`decimal_borrow` rules
-- [ ] CMPM — needs `(An)+,(An)+` form setup, CMPA needs `<ea>,An` form
 
-### SP verification (6 mnemonics)
+### SP verification (9 mnemonics)
 - [x] PEA, JSR, BSR, RTS, LINK, UNLK (9 tests)
-- [ ] MOVEM (push/pop multiple registers)
-- [ ] RTR (return + restore CCR)
+- [x] MOVEM (4 tests) — push/pop via `-(A7)`/`(A7)+`, SP delta = register_count × size
+- [x] RTR (1 test) — return + restore CCR from stack, KB `loaded_from_stack` CC rule
 
 ### Audits
 - [x] Three audits passed — no hardcoded M68K knowledge, no silent fallbacks
-- [x] All KB fields consumed: cc_semantics, operation_type, sp_effects, pc_effects, shift_count_modulus, rotate_extra_bits
+- [x] All KB fields consumed: cc_semantics, operation_type, sp_effects, pc_effects, shift_count_modulus, rotate_extra_bits, compute_formula, bit_modulus, size_by_ea_category, cc_result_bits, ccr_bit_positions
 - [x] Tier 5 audit: compute semantics moved from hardcoded handlers to KB `compute_formula`
 - [x] Tier 5 audit: overflow rules specialized, fill/implicit defaults replaced with hard errors
 - [x] Tier 5 audit: 020+ variant skip moved from string heuristic to KB `processor_020` flag
+- [x] Tier 6 audit: CCR bit positions from KB, implicit_operand hard error, Track B citations on MODE_MAP/CPU_HIERARCHY/SIZE_MAP/coprocessor
+- [x] Tier 6 audit: size_by_ea_category eliminates silent .b assembly-failure skip for bit tests
+- [x] Tier 6 audit: EXTB source_bits derived from PDF bit number, cc_result_bits checks all 5 flags
 
 ## Existing Infrastructure
 

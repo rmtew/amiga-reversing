@@ -84,6 +84,16 @@ if NOP_OPWORD is None:
     raise RuntimeError("KB _meta missing nop_opword — regenerate KB")
 
 
+def _mem_write(mem, addr, value, size_bytes):
+    """Write a value to memory at the given size (1/2/4 bytes)."""
+    if size_bytes == 1:
+        mem.w8(addr, value & 0xFF)
+    elif size_bytes == 2:
+        mem.w16(addr, value & 0xFFFF)
+    else:
+        mem.w32(addr, value & 0xFFFFFFFF)
+
+
 def make_machine():
     """Create a fresh machine68k instance with 64KiB RAM."""
     m = Machine(CPUType.M68000, 64)
@@ -264,6 +274,15 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     # (e.g. SWAP: Size=Word but PDF CC says "32-bit result" — operation is 32-bit)
     cc_override = ctx.get("cc_result_bits")
     if cc_override is not None:
+        # KB source_sign_extend: sign-extend source from declared size to
+        # override size (e.g. CMPA.W: 16-bit source → 32-bit for comparison)
+        if ctx.get("source_sign_extend"):
+            src_val_masked = src_val & src_mask
+            if src_val_masked & (1 << (src_bits - 1)):
+                # Sign bit set — extend with 1s
+                src_val = src_val_masked | (~src_mask & ((1 << cc_override) - 1))
+            else:
+                src_val = src_val_masked
         src_bits = dst_bits = result_bits = cc_override
         src_mask = dst_mask = result_mask = (1 << cc_override) - 1
 
@@ -966,9 +985,13 @@ def _cc_rules_are_supported(inst):
 def _derive_form_type(inst):
     """Derive test form type from KB instruction forms and ea_modes.
 
-    Returns ("two_op", src_reg, dst_reg) or ("single_op", None, dst_reg) or None.
-    Two-op means we can use Dn,Dn register form.
-    Single-op means single Dn operand.
+    Returns (form_type, src_reg, dst_reg) or None.
+    Form types:
+      "two_op"           — Dn,Dn register form
+      "single_op"        — single Dn operand
+      "imm_dn"           — #imm,Dn
+      "postinc_postinc"  — (An)+,(An)+ memory compare (CMPM)
+      "dn_an"            — Dn,An (source=data reg, dest=addr reg)
     """
     ea_modes = inst.get("ea_modes", {})
     for form in inst.get("forms", []):
@@ -977,34 +1000,35 @@ def _derive_form_type(inst):
         ops = [o["type"] for o in form.get("operands", [])]
 
         if ops == ["dn", "dn"]:
-            # Explicit Dn,Dn form (ADDX, SUBX)
             return ("two_op", 0, 1)
+        if ops == ["postinc", "postinc"]:
+            # Memory-to-memory compare with postincrement
+            return ("postinc_postinc", 0, 1)
+        if ops == ["ea", "an"]:
+            # Source from EA, dest is address register
+            src_modes = ea_modes.get("src", ea_modes.get("ea", []))
+            if "dn" in src_modes:
+                return ("dn_an", 0, 1)
         if ops == ["ea", "dn"]:
-            # Source from EA (includes Dn), dest is data register
             src_modes = ea_modes.get("src", ea_modes.get("ea", []))
             if "dn" in src_modes:
                 return ("two_op", 0, 1)
         if ops == ["dn", "ea"]:
-            # Source is Dn, dest from EA (includes Dn)
             dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
             if "dn" in dst_modes:
                 return ("two_op", 0, 1)
         if ops == ["ea", "ea"]:
-            # Both from EA — check if both support Dn (MOVE)
             src_modes = ea_modes.get("src", ea_modes.get("ea", []))
             dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
             if "dn" in src_modes and "dn" in dst_modes:
                 return ("two_op", 0, 1)
         if ops == ["imm", "ea"]:
-            # Immediate source, EA destination — check if Dn is valid dest
             dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
             if "dn" in dst_modes:
                 return ("imm_dn", None, 1)
         if ops == ["dn"]:
-            # Explicit single Dn operand
             return ("single_op", None, 1)
         if ops == ["ea"]:
-            # Single EA operand — check if Dn is valid
             all_modes = ea_modes.get("ea", ea_modes.get("dst", ea_modes.get("src", [])))
             if "dn" in all_modes:
                 return ("single_op", None, 1)
@@ -1061,7 +1085,12 @@ def discover_sp_testable_instructions():
         if proc != "68000":
             continue
         sp_effects = inst.get("sp_effects", [])
-        if not sp_effects:
+        # Also include MOVEM-type instructions: no fixed sp_effects but
+        # ea_modes include predec/postinc, which affect SP when used with A7.
+        # Detected by reglist operand type in forms.
+        has_reglist = any("reglist" in [o["type"] for o in f.get("operands", [])]
+                         for f in inst.get("forms", []))
+        if not sp_effects and not has_reglist:
             continue
         if inst.get("effects", {}).get("privileged"):
             continue  # skip supervisor-mode instructions
@@ -1320,6 +1349,9 @@ def generate_cc_tests(inst, form_info, tmpdir):
         cc_result_bits = inst.get("cc_result_bits")
         if cc_result_bits is not None:
             ctx["cc_result_bits"] = cc_result_bits
+        # Source sign-extension from KB (e.g. CMPA.W: 16-bit source → 32-bit)
+        if inst.get("source_sign_extend"):
+            ctx["source_sign_extend"] = True
 
         for sz in valid_sizes:
             # For multiply/divide, find data_sizes from the matching KB form.
@@ -1354,6 +1386,10 @@ def generate_cc_tests(inst, form_info, tmpdir):
                         asm_text = f"{indiv_mnemonic.lower()}.{sz} d{dst_reg}"
                     elif form_type == "imm_dn":
                         asm_text = f"{indiv_mnemonic.lower()}.{sz} #{src_val},d{dst_reg}"
+                    elif form_type == "postinc_postinc":
+                        asm_text = f"{indiv_mnemonic.lower()}.{sz} (a{src_reg})+,(a{dst_reg})+"
+                    elif form_type == "dn_an":
+                        asm_text = f"{indiv_mnemonic.lower()}.{sz} d{src_reg},a{dst_reg}"
                     else:
                         continue
 
@@ -1361,11 +1397,32 @@ def generate_cc_tests(inst, form_info, tmpdir):
                     if code_bytes is None:
                         continue
 
+                    # For memory-operand forms, provide a setup function in ctx
+                    # that writes values to memory and sets address registers
+                    test_ctx = dict(ctx)  # copy so per-test setup doesn't leak
+                    if form_type == "postinc_postinc":
+                        sz_bytes = {"b": 1, "w": 2, "l": 4}[sz]
+                        def _setup_postinc(cpu, mem, _sv=src_val, _dv=dst_val,
+                                           _szb=sz_bytes, _sr=src_reg, _dr=dst_reg):
+                            addr_src = SCRATCH_ADDR
+                            addr_dst = SCRATCH_ADDR + _szb
+                            _mem_write(mem, addr_src, _sv, _szb)
+                            _mem_write(mem, addr_dst, _dv, _szb)
+                            cpu.w_reg(ADDR_REGS[_sr], addr_src)
+                            cpu.w_reg(ADDR_REGS[_dr], addr_dst)
+                        test_ctx["setup"] = _setup_postinc
+                    elif form_type == "dn_an":
+                        def _setup_dn_an(cpu, mem, _sv=src_val, _dv=dst_val,
+                                         _sr=src_reg, _dr=dst_reg):
+                            cpu.w_reg(DATA_REGS[_sr], _sv & 0xFFFFFFFF)
+                            cpu.w_reg(ADDR_REGS[_dr], _dv & 0xFFFFFFFF)
+                        test_ctx["setup"] = _setup_dn_an
+
                     desc = f"{indiv_mnemonic}.{sz} {val_desc} ccr={ccr_desc}"
                     initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
 
                     yield (asm_text, code_bytes, sz, src_val, dst_val,
-                           src_reg, dst_reg, initial_ccr, desc, ctx)
+                           src_reg, dst_reg, initial_ccr, desc, test_ctx)
 
 
 # ── SP test case generation ───────────────────────────────────────────────
@@ -1375,7 +1432,9 @@ def generate_sp_tests(inst, tmpdir):
 
     Uses predict_sp() for expected SP values — no hardcoded predictions.
 
-    Yields (asm_text, code_bytes, setup_fn, predicted_sp, predicted_pc, desc)
+    Yields (asm_text, code_bytes, setup_fn, predicted_sp, predicted_pc, desc,
+            predicted_ccr) tuples. predicted_ccr is None except for instructions
+    that load CCR from memory (RTR).
     """
     mnemonic = inst["mnemonic"]
     pc_effects = inst.get("pc_effects", {})
@@ -1389,7 +1448,7 @@ def generate_sp_tests(inst, tmpdir):
                     cpu.w_reg(Register.A0, _a)
                 pred_sp = predict_sp(inst, STACK_ADDR)
                 yield (asm, code, setup, pred_sp,
-                       CODE_ADDR + _instr_size(code), f"pea {desc_suffix}")
+                       CODE_ADDR + _instr_size(code), f"pea {desc_suffix}", None)
 
     elif mnemonic == "JSR":
         target = SCRATCH_ADDR
@@ -1399,7 +1458,7 @@ def generate_sp_tests(inst, tmpdir):
             def setup(cpu, mem, _t=target):
                 mem.w16(_t, NOP_OPWORD)  # NOP at target (from KB)
             pred_sp = predict_sp(inst, STACK_ADDR)
-            yield (asm, code, setup, pred_sp, target, "jsr abs")
+            yield (asm, code, setup, pred_sp, target, "jsr abs", None)
 
     elif mnemonic == "BSR":
         asm = "bsr.w .t\nnop\n.t:"
@@ -1411,7 +1470,7 @@ def generate_sp_tests(inst, tmpdir):
             target = CODE_ADDR + instrs[0].size + instrs[1].size
             pred_sp = predict_sp(inst, STACK_ADDR)
             yield (asm, code, lambda cpu, mem: None, pred_sp, target,
-                   "bsr.w forward")
+                   "bsr.w forward", None)
 
     elif mnemonic == "RTS":
         asm = "rts"
@@ -1424,7 +1483,7 @@ def generate_sp_tests(inst, tmpdir):
                 mem.w16(_ra, NOP_OPWORD)  # NOP at return target (from KB)
             # RTS pops 4 bytes: SP goes from STACK_ADDR-4 to STACK_ADDR
             pred_sp = predict_sp(inst, STACK_ADDR - 4)
-            yield (asm, code, setup, pred_sp, return_addr, "rts")
+            yield (asm, code, setup, pred_sp, return_addr, "rts", None)
 
     elif mnemonic == "LINK":
         for displacement, desc in [(-8, "link a6,#-8"), (-256, "link a6,#-256"),
@@ -1434,7 +1493,7 @@ def generate_sp_tests(inst, tmpdir):
             if code:
                 pred_sp = predict_sp(inst, STACK_ADDR, displacement=displacement)
                 yield (asm, code, lambda cpu, mem: None, pred_sp,
-                       CODE_ADDR + _instr_size(code), desc)
+                       CODE_ADDR + _instr_size(code), desc, None)
 
     elif mnemonic == "UNLK":
         asm = "unlk a6"
@@ -1450,11 +1509,69 @@ def generate_sp_tests(inst, tmpdir):
             pred_sp = predict_sp(inst, STACK_ADDR,
                                  reg_state={"A6": frame_ptr})
             yield (asm, code, setup, pred_sp,
-                   CODE_ADDR + _instr_size(code), "unlk a6")
+                   CODE_ADDR + _instr_size(code), "unlk a6", None)
 
-    # For other SP-affecting instructions not yet covered, we can add cases
-    # as we expand coverage. No silent fallback — uncovered instructions
-    # simply aren't tested until their test setup is added.
+    elif mnemonic == "MOVEM":
+        # MOVEM push: reg-to-mem with -(A7) — SP decreases by N × size
+        # MOVEM pop: mem-to-reg with (A7)+ — SP increases by N × size
+        for sz in inst.get("sizes", []):
+            sz_bytes = {"w": 2, "l": 4}[sz]
+            # Push 3 registers: D0-D2
+            push_asm = f"movem.{sz} d0-d2,-(a7)"
+            push_code = assemble(push_asm, tmpdir)
+            if push_code:
+                n_regs = 3
+                def setup_push(cpu, mem):
+                    cpu.w_reg(Register.D0, 0x11111111)
+                    cpu.w_reg(Register.D1, 0x22222222)
+                    cpu.w_reg(Register.D2, 0x33333333)
+                pred_sp = STACK_ADDR - n_regs * sz_bytes
+                yield (push_asm, push_code, setup_push, pred_sp,
+                       CODE_ADDR + _instr_size(push_code),
+                       f"movem.{sz} push d0-d2", None)
+
+            # Pop 3 registers: D3-D5 (from pre-pushed data)
+            pop_asm = f"movem.{sz} (a7)+,d3-d5"
+            pop_code = assemble(pop_asm, tmpdir)
+            if pop_code:
+                n_regs = 3
+                pop_base = STACK_ADDR - n_regs * sz_bytes
+                def setup_pop(cpu, mem, _base=pop_base, _szb=sz_bytes):
+                    # Write 3 values below stack for popping
+                    for i in range(3):
+                        _mem_write(mem, _base + i * _szb, 0xAA + i, _szb)
+                    cpu.w_sp(_base)
+                pred_sp = pop_base + n_regs * sz_bytes
+                yield (pop_asm, pop_code, setup_pop, pred_sp,
+                       CODE_ADDR + _instr_size(pop_code),
+                       f"movem.{sz} pop d3-d5", None)
+
+    elif mnemonic == "RTR":
+        # RTR pops CCR (2 bytes) then PC (4 bytes) from stack
+        asm = "rtr"
+        code = assemble(asm, tmpdir)
+        if code:
+            return_addr = SCRATCH_ADDR
+            # Push a known CCR value (X=1, N=0, Z=1, V=0, C=1 = 0x15)
+            test_ccr_word = _CCR_MASK & 0x0015  # X=1, Z=1, C=1
+            rtr_base = STACK_ADDR - 6  # 2 (CCR) + 4 (PC)
+            def setup_rtr(cpu, mem, _ra=return_addr, _ccr=test_ccr_word,
+                          _base=rtr_base):
+                cpu.w_sp(_base)
+                mem.w16(_base, _ccr)           # CCR word
+                mem.w32(_base + 2, _ra)        # return address
+                mem.w16(_ra, NOP_OPWORD)       # NOP at return target
+            # SP after: base + 6
+            pred_sp = rtr_base + 6
+            # Predict CCR from the stacked value using KB ccr_bit_positions
+            pred_ccr = {
+                "X": 1 if test_ccr_word & CCR_X else 0,
+                "N": 1 if test_ccr_word & CCR_N else 0,
+                "Z": 1 if test_ccr_word & CCR_Z else 0,
+                "V": 1 if test_ccr_word & CCR_V else 0,
+                "C": 1 if test_ccr_word & CCR_C else 0,
+            }
+            yield (asm, code, setup_rtr, pred_sp, return_addr, "rtr", pred_ccr)
 
 
 # ── Main test runner ──────────────────────────────────────────────────────
@@ -1503,10 +1620,14 @@ def run_tests(filter_mnemonic=None, verbose=False):
                 cpu = machine.cpu
                 _reset_cpu(machine)
 
-                # Set operand registers
-                if _src_reg is not None:
-                    cpu.w_reg(DATA_REGS[_src_reg], src_val & 0xFFFFFFFF)
-                cpu.w_reg(DATA_REGS[_dst_reg], dst_val & 0xFFFFFFFF)
+                # Set up operands — ctx may override default register setup
+                setup_fn = ctx.get("setup")
+                if setup_fn:
+                    setup_fn(cpu, machine.mem)
+                else:
+                    if _src_reg is not None:
+                        cpu.w_reg(DATA_REGS[_src_reg], src_val & 0xFFFFFFFF)
+                    cpu.w_reg(DATA_REGS[_dst_reg], dst_val & 0xFFFFFFFF)
 
                 set_ccr(cpu, x=initial_ccr["X"], n=initial_ccr["N"],
                         z=initial_ccr["Z"], v=initial_ccr["V"], c=initial_ccr["C"])
@@ -1571,7 +1692,8 @@ def run_tests(filter_mnemonic=None, verbose=False):
                 continue
 
             for (asm_text, code_bytes, setup_fn,
-                 predicted_sp, predicted_pc, desc) in generate_sp_tests(inst, tmpdir):
+                 predicted_sp, predicted_pc, desc,
+                 predicted_ccr) in generate_sp_tests(inst, tmpdir):
 
                 total += 1
                 counts = sp_by_mnemonic.setdefault(mnemonic, [0, 0])
@@ -1601,6 +1723,15 @@ def run_tests(filter_mnemonic=None, verbose=False):
                     ok = False
                     details.append(f"PC: pred=0x{predicted_pc:x} actual=0x{after['pc']:x}")
                     pc_mismatches += 1
+
+                if predicted_ccr is not None:
+                    for flag in ("X", "N", "Z", "V", "C"):
+                        if after["ccr"][flag] != predicted_ccr[flag]:
+                            ok = False
+                            details.append(
+                                f"CCR.{flag}: pred={predicted_ccr[flag]} "
+                                f"actual={after['ccr'][flag]}")
+                            cc_mismatches += 1
 
                 if ok:
                     passed += 1

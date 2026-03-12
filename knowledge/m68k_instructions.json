@@ -7588,7 +7588,9 @@
           "destination",
           "source"
         ]
-      }
+      },
+      "source_sign_extend": true,
+      "cc_result_bits": 32
     },
     {
       "mnemonic": "CMPI",
@@ -12525,7 +12527,9 @@
         "terms": [
           "source"
         ]
-      }
+      },
+      "source_sign_extend": true,
+      "cc_result_bits": 32
     },
     {
       "mnemonic": "MOVE from CCR",
@@ -17811,19 +17815,19 @@
       "uses_label": false,
       "cc_semantics": {
         "X": {
-          "rule": "unchanged"
+          "rule": "loaded_from_stack"
         },
         "N": {
-          "rule": "unchanged"
+          "rule": "loaded_from_stack"
         },
         "Z": {
-          "rule": "unchanged"
+          "rule": "loaded_from_stack"
         },
         "V": {
-          "rule": "unchanged"
+          "rule": "loaded_from_stack"
         },
         "C": {
-          "rule": "unchanged"
+          "rule": "loaded_from_stack"
         }
       },
       "sp_effects": [
@@ -18765,7 +18769,9 @@
           "destination",
           "source"
         ]
-      }
+      },
+      "source_sign_extend": true,
+      "cc_result_bits": 32
     },
     {
       "mnemonic": "SUBI",
