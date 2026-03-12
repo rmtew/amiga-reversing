@@ -55,21 +55,23 @@ Given an instruction + initial state, predict SP delta and CC result from KB rul
 ## Phase 4: Verification Harness (in progress)
 
 machine68k (Musashi) as independent oracle for execution semantics.
-`scripts/test_m68k_execution.py` — 2973 tests, 32 mnemonics, 0 failures.
+`scripts/test_m68k_execution.py` — 3705 tests, 44 mnemonics, 0 failures.
 
 - [x] Test generator: KB-driven discovery of testable instructions, deterministic test values
 - [x] Runner: instruction hook captures post-execution state without sentinel interference
 - [x] Comparator: predicted CC/SP/PC vs machine68k actual, per-flag reporting
 
-### CC verification (26 mnemonics)
+### CC verification (38 mnemonics)
 - [x] ALU register-register: ADD, ADDX, SUB, SUBX, CMP, AND, OR, EOR, MOVE, NEG, NEGX, NOT, CLR, TST (14 mnemonics, 1512 tests)
 - [x] Shift/rotate: ASL, ASR, LSL, LSR, ROL, ROR, ROXL, ROXR (8 mnemonics, 1296 tests)
 - [x] Multiply: MULS, MULU (2 mnemonics, 72 tests) — KB `compute_formula` + `overflow_multiply` rule
 - [x] Divide: DIVS, DIVU (2 mnemonics, 84 tests) — KB `compute_formula` + `division_overflow`/quotient CC rules
-- [ ] Bit test: BTST, BCHG, BCLR, BSET — need `bit_zero` rule + `#imm,Dn` form setup
-- [ ] Misc: SWAP, EXT/EXTB already tested; TAS needs `msb_operand` rule
+- [x] Bit test: BTST, BCHG, BCLR, BSET (4 mnemonics, 192 tests) — KB `compute_formula` (bit_test/change/clear/set) + `bit_zero` rule
+- [x] EA mode `#imm,Dn`: ADDI, ADDQ, ANDI, CMPI, EORI, ORI, SUBI, SUBQ (8 mnemonics, 540 tests) — `imm_dn` form type
+- [ ] Direct Dn form: SWAP, EXT/EXTB — have `compute_formula` + CC rules but `_derive_form_type` doesn't match `["dn"]` operand
+- [ ] TAS — needs `msb_operand` CC rule
 - [ ] BCD: ABCD, SBCD, NBCD — need `decimal_carry`/`decimal_borrow` rules
-- [ ] EA mode expansion: ADDI, ADDQ, SUBI, SUBQ, ANDI, ORI, EORI, CMPI, CMPM (need `#imm,Dn` form)
+- [ ] CMPM — needs `(An)+,(An)+` form setup, CMPA needs `<ea>,An` form
 
 ### SP verification (6 mnemonics)
 - [x] PEA, JSR, BSR, RTS, LINK, UNLK (9 tests)

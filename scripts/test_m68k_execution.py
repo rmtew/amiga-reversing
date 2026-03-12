@@ -472,6 +472,14 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
         return _compute_multiply(src, dst, mask, bits, ccr, ctx)
     if op == "divide":
         return _compute_divide(src, dst, mask, bits, ccr, ctx)
+    if op == "bit_test":
+        return dst  # test only, destination unchanged
+    if op == "bit_change":
+        return dst ^ (1 << (src % bits))
+    if op == "bit_clear":
+        return dst & ~(1 << (src % bits))
+    if op == "bit_set":
+        return dst | (1 << (src % bits))
 
     raise RuntimeError(f"Unknown compute_formula op: {op!r}")
 
@@ -570,6 +578,12 @@ def _rule_overflow_multiply(result, result_full, src, dst, mask, bits, op_type, 
         return 1 if result_full < min_neg or result_full > max_pos else 0
     else:
         return 1 if result_full < 0 or result_full >= (1 << bits) else 0
+
+def _rule_bit_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """Z flag for bit test: set if the tested bit of destination is zero.
+    Bit number is src modulo operand size in bits."""
+    bit_num = src % bits
+    return 1 if (dst >> bit_num) & 1 == 0 else 0
 
 def _rule_z_cleared_if_nonzero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     if result != 0:
@@ -756,6 +770,7 @@ _RULE_HANDLERS = {
     "overflow_neg":             _rule_overflow_neg,
     "overflow_negx":            _rule_overflow_negx,
     "overflow_multiply":        _rule_overflow_multiply,
+    "bit_zero":                 _rule_bit_zero,
     "z_cleared_if_nonzero":     _rule_z_cleared_if_nonzero,
     "undefined":                _rule_undefined,
     "last_shifted_out":         _rule_last_shifted_out,
@@ -935,6 +950,11 @@ def _derive_form_type(inst):
             dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
             if "dn" in src_modes and "dn" in dst_modes:
                 return ("two_op", 0, 1)
+        if ops == ["imm", "ea"]:
+            # Immediate source, EA destination — check if Dn is valid dest
+            dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
+            if "dn" in dst_modes:
+                return ("imm_dn", None, 1)
         if ops == ["ea"]:
             # Single EA operand — check if Dn is valid
             all_modes = ea_modes.get("ea", ea_modes.get("dst", ea_modes.get("src", [])))
@@ -1066,6 +1086,28 @@ DIVIDE_TEST_VALUES = [
 ]
 
 
+# Test values for bit test: (bit_number_in_src, destination, description).
+# Bit number is in D0; destination is in D1. Bit modulo 32 for Dn dest.
+BIT_TEST_VALUES = [
+    (0, 0x00000000, "bit0 of 0"),
+    (0, 0x00000001, "bit0 of 1"),
+    (0, 0xFFFFFFFE, "bit0 of ~1"),
+    (1, 0x00000002, "bit1 set"),
+    (1, 0xFFFFFFFD, "bit1 clear"),
+    (7, 0x00000080, "bit7 set"),
+    (7, 0x0000007F, "bit7 clear"),
+    (15, 0x00008000, "bit15 set"),
+    (16, 0x00010000, "bit16 set"),
+    (31, 0x80000000, "bit31 set"),
+    (31, 0x7FFFFFFF, "bit31 clear"),
+    (31, 0x00000000, "bit31 of 0"),
+    (0, 0xFFFFFFFF, "bit0 all-set"),
+    (32, 0x00000001, "bit32 mod32=bit0"),
+    (33, 0x00000002, "bit33 mod32=bit1"),
+    (63, 0x80000000, "bit63 mod32=bit31"),
+]
+
+
 def _get_variant_props(inst, individual_mnemonic):
     """Look up variant properties for an individual mnemonic from KB 'variants' array.
 
@@ -1133,6 +1175,8 @@ def generate_cc_tests(inst, form_info, tmpdir):
     is_mul_div = op_type in ("multiply", "divide")
     individual_mnemonics = _split_combined_mnemonic(mnemonic)
 
+    is_bit_test = op_type == "bit_test"
+
     # Select test values based on operation type
     if is_shift_rotate:
         values = SHIFT_TEST_VALUES
@@ -1140,6 +1184,8 @@ def generate_cc_tests(inst, form_info, tmpdir):
         values = MULTIPLY_TEST_VALUES
     elif op_type == "divide":
         values = DIVIDE_TEST_VALUES
+    elif is_bit_test:
+        values = BIT_TEST_VALUES
     else:
         values = TEST_VALUES
 
@@ -1216,6 +1262,8 @@ def generate_cc_tests(inst, form_info, tmpdir):
                         asm_text = f"{indiv_mnemonic.lower()}.{sz} d{src_reg},d{dst_reg}"
                     elif form_type == "single_op":
                         asm_text = f"{indiv_mnemonic.lower()}.{sz} d{dst_reg}"
+                    elif form_type == "imm_dn":
+                        asm_text = f"{indiv_mnemonic.lower()}.{sz} #{src_val},d{dst_reg}"
                     else:
                         continue
 

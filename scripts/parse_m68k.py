@@ -3035,6 +3035,36 @@ def _extract_compute_formula(inst):
                 "range_a": [int(m.group(1)), int(m.group(2))],
                 "range_b": [int(m.group(3)), int(m.group(4))],
             }
+    elif op_type == "bit_test":
+        # PDF BTST p146: "TEST (<bit number> of Destination) → Z"
+        # PDF BCHG p132: "TEST (...) → Z; ~ (<bit number> of Destination) → ..."
+        # PDF BCLR p134: "TEST (...) → Z; 0 → <bit number> of Destination"
+        # PDF BSET p144: "TEST (...) → Z; 1 → <bit number> of Destination"
+        # All four test a specific bit first, then optionally modify it.
+        # The modification type is derived from the operation text.
+        inst_desc = inst.get("description", "").lower()
+        if re.search(r'~\s*\(', operation) or 'inverts' in inst_desc:
+            # BCHG: complement the tested bit
+            # PDF p132 Operation: "~ (<bit number> of Destination) → <bit number>..."
+            # (Operation text may be truncated; description says "inverts the specified bit")
+            inst["compute_formula"] = {
+                "op": "bit_change", "terms": ["source", "destination"]
+            }
+        elif '0 →' in operation or '0 \u2192' in operation:
+            # BCLR: clear the tested bit
+            inst["compute_formula"] = {
+                "op": "bit_clear", "terms": ["source", "destination"]
+            }
+        elif '1 →' in operation or '1 \u2192' in operation:
+            # BSET: set the tested bit
+            inst["compute_formula"] = {
+                "op": "bit_set", "terms": ["source", "destination"]
+            }
+        else:
+            # BTST: test only, no modification
+            inst["compute_formula"] = {
+                "op": "bit_test", "terms": ["source", "destination"]
+            }
     elif op_type == "shift":
         # PDF: "Destination Shifted By Count → Destination"
         # Direction and arithmetic come from KB variants (already extracted).
