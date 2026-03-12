@@ -36,6 +36,12 @@ PDF  →  parser  →  JSON (knowledge base)  →  generated tools
   the extraction — don't patch the generated tool.
 - **If the JSON can't express it, extend the JSON.** Add new fields to the schema,
   add a new parser phase, re-extract from the PDF.
+- **Parser-asserted KB entries are allowed** when the PDF implies but does not
+  explicitly state a fact (e.g. "carry is generated" without defining carry).
+  The parser inserts the interpretation into the JSON with a code comment that:
+  (1) cites the PDF page/section, (2) explains why it cannot be parsed directly,
+  and (3) states the universal or standard definition being asserted.
+  Downstream tools read these entries identically to parsed ones — no special cases.
 - **Oracles are black boxes.** We don't modify vasm or Musashi. We only ask them
   questions and compare answers.
 

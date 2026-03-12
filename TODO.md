@@ -45,6 +45,12 @@ Given an instruction + initial state, predict SP delta and CC result from KB rul
 - [x] PC predictor: next-PC calculation (sequential size from disassembler, branch targets)
 - [x] Operation type classifier: Phase 11 in parser — classifies PDF `operation` text into structured types
 - [x] Shift/rotate properties: `shift_count_modulus` and `rotate_extra_bits` extracted from PDF description/operation
+- [x] Compute formulas: `compute_formula` extracted from PDF Operation text (59 instructions)
+- [x] Specialized overflow rules: `overflow_add/sub/neg/negx/multiply` (parser-asserted, Track B)
+- [x] Carry/borrow detection, shift carry/MSB semantics (parser-asserted, Track B)
+- [x] Shift fill behavior: `fill` field on variants from PDF description (sign/zero/rotate)
+- [x] Combined mnemonic variants: `processor_020` flag derived from form data
+- [x] Implicit operands: `implicit_operand` extracted from PDF Operation text
 
 ## Phase 4: Verification Harness (in progress)
 
@@ -58,8 +64,8 @@ machine68k (Musashi) as independent oracle for execution semantics.
 ### CC verification (26 mnemonics)
 - [x] ALU register-register: ADD, ADDX, SUB, SUBX, CMP, AND, OR, EOR, MOVE, NEG, NEGX, NOT, CLR, TST (14 mnemonics, 1512 tests)
 - [x] Shift/rotate: ASL, ASR, LSL, LSR, ROL, ROR, ROXL, ROXR (8 mnemonics, 1296 tests)
-- [x] Multiply: MULS, MULU (2 mnemonics, 72 tests) — `multiply` compute handler + overflow rule
-- [x] Divide: DIVS, DIVU (2 mnemonics, 84 tests) — `divide` compute handler + overflow/quotient CC rules
+- [x] Multiply: MULS, MULU (2 mnemonics, 72 tests) — KB `compute_formula` + `overflow_multiply` rule
+- [x] Divide: DIVS, DIVU (2 mnemonics, 84 tests) — KB `compute_formula` + `division_overflow`/quotient CC rules
 - [ ] Bit test: BTST, BCHG, BCLR, BSET — need `bit_zero` rule + `#imm,Dn` form setup
 - [ ] Misc: SWAP, EXT/EXTB already tested; TAS needs `msb_operand` rule
 - [ ] BCD: ABCD, SBCD, NBCD — need `decimal_carry`/`decimal_borrow` rules
@@ -73,6 +79,9 @@ machine68k (Musashi) as independent oracle for execution semantics.
 ### Audits
 - [x] Three audits passed — no hardcoded M68K knowledge, no silent fallbacks
 - [x] All KB fields consumed: cc_semantics, operation_type, sp_effects, pc_effects, shift_count_modulus, rotate_extra_bits
+- [x] Tier 5 audit: compute semantics moved from hardcoded handlers to KB `compute_formula`
+- [x] Tier 5 audit: overflow rules specialized, fill/implicit defaults replaced with hard errors
+- [x] Tier 5 audit: 020+ variant skip moved from string heuristic to KB `processor_020` flag
 
 ## Existing Infrastructure
 

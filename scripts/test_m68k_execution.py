@@ -256,9 +256,9 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     src = src_val & src_mask
     dst = dst_val & dst_mask
 
-    # Compute result based on KB operation_type
+    # Compute result using KB compute_formula
     result_full, result = _compute_result(
-        op_type, src, dst, result_mask, result_bits, initial_ccr, ctx)
+        inst, src, dst, result_mask, result_bits, initial_ccr, ctx)
 
     # Predict each flag using KB cc_semantics rules
     predicted = {}
@@ -287,141 +287,213 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     return predicted
 
 
-# Supported operation types for result computation.
-# Each maps to how Source and Destination combine.
-# For shift/rotate: src = count, dst = operand value.
+# ── KB-driven result computation ──────────────────────────────────────────
+#
+# The compute_formula in the KB (extracted from PDF Operation text by the
+# parser) specifies what operation to perform and in what operand order.
+# This evaluator maps universal math operators to Python — the operators
+# themselves (+, -, &, |, ^, ~, *, /) are not M68K knowledge; the KB
+# specifies which one applies to each instruction and the operand order.
 
 
-def _compute_shift(s, d, m, b, ccr, ctx):
-    """Shift result. ctx must have 'direction' (L/R), 'arithmetic' (bool),
-    and 'count_modulus' (from KB shift_count_modulus)."""
-    count = s % ctx["count_modulus"]
+def _resolve_term(term, src, dst, ccr, implicit):
+    """Resolve a formula operand term to its numeric value."""
+    if term == "source":
+        return src
+    if term == "destination":
+        return dst
+    if term == "X":
+        return ccr.get("X", 0)
+    if term == "implicit":
+        if implicit is None:
+            raise RuntimeError(
+                "Formula references 'implicit' term but no implicit_operand "
+                "in KB instruction — add implicit_operand extraction to parser")
+        return implicit
+    if isinstance(term, int):
+        return term
+    raise RuntimeError(f"Unknown formula term: {term!r}")
+
+
+# Universal math operators — these map formula 'op' names (from KB) to
+# Python functions. None of these are M68K-specific; they are standard
+# binary arithmetic/logic operations.
+_FORMULA_OPS = {
+    "add":                lambda a, b: a + b,
+    "subtract":           lambda a, b: a - b,
+    "bitwise_and":        lambda a, b: a & b,
+    "bitwise_or":         lambda a, b: a | b,
+    "bitwise_xor":        lambda a, b: a ^ b,
+    "bitwise_complement": lambda a: ~a,
+    "assign":             lambda a: a,
+    "test":               lambda a: a,
+}
+
+
+def _compute_exchange(dst, formula):
+    """Compute bit-range exchange from KB formula (SWAP).
+
+    The KB specifies exact bit ranges from the PDF Operation text:
+    e.g. range_a=[31,16], range_b=[15,0] for "Register [31:16] ←→ [15:0]".
+    """
+    hi_top, hi_bot = formula["range_a"]
+    lo_top, lo_bot = formula["range_b"]
+    hi_width = hi_top - hi_bot + 1
+    lo_width = lo_top - lo_bot + 1
+    hi_mask = ((1 << hi_width) - 1) << hi_bot
+    lo_mask = ((1 << lo_width) - 1) << lo_bot
+    hi_val = (dst & hi_mask) >> hi_bot
+    lo_val = (dst & lo_mask) >> lo_bot
+    return (lo_val << hi_bot) | (hi_val << lo_bot)
+
+
+def _compute_shift(src, dst, mask, bits, ccr, ctx):
+    """Shift result. All parameters come from KB: direction and fill from
+    variants, count_modulus from shift_count_modulus."""
+    count = src % ctx["count_modulus"]
     direction = ctx["direction"]
-    arithmetic = ctx.get("arithmetic", False)
-    val = d & m
+    fill = ctx.get("fill")
+    if fill is None:
+        raise RuntimeError("_compute_shift: missing 'fill' in ctx — must come from KB variant")
+    val = dst & mask
     if count == 0:
         return val
     if direction == "L":
-        # Left shift: zeros fill from right. ASL and LSL produce same result.
         return val << count  # unmasked: bits above size used by carry detection
     else:
-        # Right shift
-        if arithmetic and (val & (1 << (b - 1))):
-            # Sign-extend then shift: Python >> on negative ints is arithmetic
-            signed = val - (1 << b)
-            return signed >> count  # negative → & mask in caller gives correct bits
+        if fill == "sign" and (val & (1 << (bits - 1))):
+            signed = val - (1 << bits)
+            return signed >> count
         return val >> count
 
 
-def _compute_rotate(s, d, m, b, ccr, ctx):
-    """Rotate result. ctx must have 'direction' (L/R) and 'count_modulus'."""
-    count = s % ctx["count_modulus"]
+def _compute_rotate(src, dst, mask, bits, ccr, ctx):
+    """Rotate result. Direction from KB variants, count_modulus from KB."""
+    count = src % ctx["count_modulus"]
     direction = ctx["direction"]
-    val = d & m
+    val = dst & mask
     if count == 0:
         return val
-    c = count % b  # effective rotation within bit width (math property of cyclic rotation)
+    c = count % bits
     if c == 0:
-        return val  # full rotation(s), value unchanged
+        return val
     if direction == "L":
-        return ((val << c) | (val >> (b - c))) & m
+        return ((val << c) | (val >> (bits - c))) & mask
     else:
-        return ((val >> c) | (val << (b - c))) & m
+        return ((val >> c) | (val << (bits - c))) & mask
 
 
-def _compute_rotate_extend(s, d, m, b, ccr, ctx):
-    """Rotate through X bit. ctx must have 'direction' (L/R), 'count_modulus',
-    and 'extra_bits' (from KB rotate_extra_bits)."""
-    count = s % ctx["count_modulus"]
+def _compute_rotate_extend(src, dst, mask, bits, ccr, ctx):
+    """Rotate through X bit. Extra bits from KB rotate_extra_bits."""
+    count = src % ctx["count_modulus"]
     direction = ctx["direction"]
     x = ccr.get("X", 0)
-    val = d & m
+    val = dst & mask
     extra = ctx["extra_bits"]
-    width = b + extra  # X bit(s) widen the rotation field
+    width = bits + extra
     c = count % width
     if c == 0:
-        return val  # no effective rotation
-    # Build extended value: [X, val] with X at bit position 'b'
-    extended = (x << b) | val
+        return val
+    extended = (x << bits) | val
     if direction == "L":
         rotated = ((extended << c) | (extended >> (width - c))) & ((1 << width) - 1)
     else:
         rotated = ((extended >> c) | (extended << (width - c))) & ((1 << width) - 1)
-    return rotated & m  # lower b bits are the result
+    return rotated & mask
 
 
-def _compute_multiply(s, d, m, b, ccr, ctx):
-    """Multiply result. ctx must have 'signed' and 'data_sizes'."""
+def _compute_multiply(src, dst, mask, bits, ccr, ctx):
+    """Multiply. Signedness from KB 'signed', operand widths from KB 'data_sizes'."""
     ds = ctx["data_sizes"]
     src_bits = ds["src_bits"]
     dst_bits = ds["dst_bits"]
     if ctx.get("signed", False):
-        s_signed = s if s < (1 << (src_bits - 1)) else s - (1 << src_bits)
-        d_signed = d if d < (1 << (dst_bits - 1)) else d - (1 << dst_bits)
-        return s_signed * d_signed  # Python bigint, may be negative
+        s_signed = src if src < (1 << (src_bits - 1)) else src - (1 << src_bits)
+        d_signed = dst if dst < (1 << (dst_bits - 1)) else dst - (1 << dst_bits)
+        return s_signed * d_signed
     else:
-        return s * d
+        return src * dst
 
 
-def _compute_divide(s, d, m, b, ccr, ctx):
-    """Divide result (quotient). ctx must have 'signed' and 'data_sizes'.
-    Returns mathematical quotient even if it overflows quotient_bits.
-    Raises RuntimeError on divide-by-zero (should not appear in test values).
-    """
-    if s == 0:
+def _compute_divide(src, dst, mask, bits, ccr, ctx):
+    """Divide. Signedness from KB, truncation direction from KB compute_formula."""
+    if src == 0:
         raise RuntimeError("Division by zero in test — fix test values")
     ds = ctx["data_sizes"]
     divisor_bits = ds["divisor_bits"]
     dividend_bits = ds["dividend_bits"]
     if ctx.get("signed", False):
-        s_signed = s if s < (1 << (divisor_bits - 1)) else s - (1 << divisor_bits)
-        d_signed = d if d < (1 << (dividend_bits - 1)) else d - (1 << dividend_bits)
-        # Truncation toward zero (like C's / operator, and M68K behavior)
-        quotient = int(d_signed / s_signed)
-        return quotient  # may be negative, may overflow quotient_bits
+        s_signed = src if src < (1 << (divisor_bits - 1)) else src - (1 << divisor_bits)
+        d_signed = dst if dst < (1 << (dividend_bits - 1)) else dst - (1 << dividend_bits)
+        # Truncation direction from KB compute_formula (asserted as "toward_zero")
+        return int(d_signed / s_signed)
     else:
-        return d // s
+        return dst // src
 
 
-_COMPUTE_HANDLERS = {
-    "add":            lambda s, d, m, b, ccr, ctx: s + d,
-    "addx":           lambda s, d, m, b, ccr, ctx: s + d + ccr.get("X", 0),
-    "sub":            lambda s, d, m, b, ccr, ctx: d - s,
-    "compare":        lambda s, d, m, b, ccr, ctx: d - s,
-    "subx":           lambda s, d, m, b, ccr, ctx: d - s - ccr.get("X", 0),
-    "neg":            lambda s, d, m, b, ccr, ctx: 0 - d,
-    "negx":           lambda s, d, m, b, ccr, ctx: 0 - d - ccr.get("X", 0),
-    "and":            lambda s, d, m, b, ccr, ctx: s & d,
-    "or":             lambda s, d, m, b, ccr, ctx: s | d,
-    "xor":            lambda s, d, m, b, ccr, ctx: s ^ d,
-    "not":            lambda s, d, m, b, ccr, ctx: ~d,
-    "clear":          lambda s, d, m, b, ccr, ctx: 0,
-    "move":           lambda s, d, m, b, ccr, ctx: s,
-    "sign_extend":    lambda s, d, m, b, ccr, ctx: s,
-    "test":           lambda s, d, m, b, ccr, ctx: d,
-    "swap":           lambda s, d, m, b, ccr, ctx: ((d & 0xFFFF) << 16) | ((d >> 16) & 0xFFFF),
-    "shift":          lambda s, d, m, b, ccr, ctx: _compute_shift(s, d, m, b, ccr, ctx),
-    "rotate":         lambda s, d, m, b, ccr, ctx: _compute_rotate(s, d, m, b, ccr, ctx),
-    "rotate_extend":  lambda s, d, m, b, ccr, ctx: _compute_rotate_extend(s, d, m, b, ccr, ctx),
-    "multiply":       lambda s, d, m, b, ccr, ctx: _compute_multiply(s, d, m, b, ccr, ctx),
-    "divide":         lambda s, d, m, b, ccr, ctx: _compute_divide(s, d, m, b, ccr, ctx),
-}
+def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
+    """Evaluate a KB compute_formula to produce the operation result.
 
-
-def _compute_result(op_type, src, dst, mask, bits, initial_ccr, ctx=None):
-    """Compute the full (unmasked) and masked result of the operation.
-
-    Raises RuntimeError for unsupported operation types.
+    The formula structure comes from the KB (extracted from PDF Operation text).
+    This evaluator applies universal math operators — it contains no M68K knowledge.
     """
-    handler = _COMPUTE_HANDLERS.get(op_type)
-    if handler is None:
+    op = formula["op"]
+    terms = formula.get("terms", [])
+    implicit = ctx.get("implicit_operand")
+
+    # Simple two-operand or single-operand formulas
+    if op in _FORMULA_OPS:
+        fn = _FORMULA_OPS[op]
+        resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
+        if len(terms) == 3:
+            # Extended operations: add(a, b, X) or subtract(a, b, X)
+            a, b, x = resolved
+            if op == "add":
+                return a + b + x
+            elif op == "subtract":
+                return a - b - x
+        elif len(terms) == 2:
+            return fn(resolved[0], resolved[1])
+        elif len(terms) == 1:
+            return fn(resolved[0])
+        else:
+            raise RuntimeError(f"Formula op '{op}' with {len(terms)} terms")
+
+    # Complex operations — parameterized by KB data
+    if op == "exchange":
+        return _compute_exchange(dst, formula)
+    if op == "shift":
+        return _compute_shift(src, dst, mask, bits, ccr, ctx)
+    if op == "rotate":
+        return _compute_rotate(src, dst, mask, bits, ccr, ctx)
+    if op == "rotate_extend":
+        return _compute_rotate_extend(src, dst, mask, bits, ccr, ctx)
+    if op == "multiply":
+        return _compute_multiply(src, dst, mask, bits, ccr, ctx)
+    if op == "divide":
+        return _compute_divide(src, dst, mask, bits, ccr, ctx)
+
+    raise RuntimeError(f"Unknown compute_formula op: {op!r}")
+
+
+def _compute_result(inst, src, dst, mask, bits, initial_ccr, ctx=None):
+    """Compute the full (unmasked) and masked result using KB compute_formula.
+
+    Raises RuntimeError if the instruction has no compute_formula in the KB.
+    """
+    formula = inst.get("compute_formula")
+    if formula is None:
         raise RuntimeError(
-            f"No result computation for operation_type '{op_type}'. "
-            f"Add a handler to _COMPUTE_HANDLERS or extend the KB."
+            f"{inst['mnemonic']}: missing compute_formula in KB — "
+            f"regenerate KB or add formula extraction for operation_type "
+            f"'{inst.get('operation_type')}'"
         )
     if ctx is None:
         ctx = {}
-    result_full = handler(src, dst, mask, bits, initial_ccr, ctx)
+    # Thread implicit_operand from KB into ctx for formula evaluation
+    if "implicit_operand" in inst and "implicit_operand" not in ctx:
+        ctx["implicit_operand"] = inst["implicit_operand"]
+    result_full = _evaluate_formula(formula, src, dst, mask, bits, initial_ccr, ctx)
     result = result_full & mask
     return result_full, result
 
@@ -464,34 +536,40 @@ def _rule_carry(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem,
 def _rule_borrow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     return 1 if result_full < 0 else 0
 
-def _rule_overflow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_overflow_add(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """Overflow for addition: same-sign operands produce different-sign result."""
     sz = _size_from_bits(bits)
-    if op_type in ("add", "addx"):
-        s_src = _to_signed(src, sz)
-        s_dst = _to_signed(dst, sz)
-        s_result = _to_signed(result, sz)
-        return 1 if (s_src >= 0) == (s_dst >= 0) and (s_result >= 0) != (s_src >= 0) else 0
-    elif op_type in ("sub", "subx", "compare"):
-        s_src = _to_signed(src, sz)
-        s_dst = _to_signed(dst, sz)
-        s_result = _to_signed(result, sz)
-        return 1 if (s_src >= 0) != (s_dst >= 0) and (s_result >= 0) != (s_dst >= 0) else 0
-    elif op_type == "neg":
-        msb_val = 1 << (bits - 1)
-        return 1 if dst == msb_val else 0
-    elif op_type == "negx":
-        msb_val = 1 << (bits - 1)
-        return 1 if dst == msb_val and ccr.get("X", 0) == 0 else 0
-    elif op_type == "multiply":
-        # Overflow: product doesn't fit in result_bits (signed or unsigned)
-        if ctx.get("signed", False):
-            max_pos = (1 << (bits - 1)) - 1
-            min_neg = -(1 << (bits - 1))
-            return 1 if result_full < min_neg or result_full > max_pos else 0
-        else:
-            return 1 if result_full < 0 or result_full >= (1 << bits) else 0
+    s_src = _to_signed(src, sz)
+    s_dst = _to_signed(dst, sz)
+    s_result = _to_signed(result, sz)
+    return 1 if (s_src >= 0) == (s_dst >= 0) and (s_result >= 0) != (s_src >= 0) else 0
+
+def _rule_overflow_sub(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """Overflow for subtraction/compare: different-sign operands, result sign differs from dst."""
+    sz = _size_from_bits(bits)
+    s_src = _to_signed(src, sz)
+    s_dst = _to_signed(dst, sz)
+    s_result = _to_signed(result, sz)
+    return 1 if (s_src >= 0) != (s_dst >= 0) and (s_result >= 0) != (s_dst >= 0) else 0
+
+def _rule_overflow_neg(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """Overflow for negate: only overflows at most-negative value."""
+    msb_val = 1 << (bits - 1)
+    return 1 if dst == msb_val else 0
+
+def _rule_overflow_negx(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """Overflow for negate-with-extend: msb_val with X=0."""
+    msb_val = 1 << (bits - 1)
+    return 1 if dst == msb_val and ccr.get("X", 0) == 0 else 0
+
+def _rule_overflow_multiply(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """Overflow for multiply: product doesn't fit in result_bits."""
+    if ctx.get("signed", False):
+        max_pos = (1 << (bits - 1)) - 1
+        min_neg = -(1 << (bits - 1))
+        return 1 if result_full < min_neg or result_full > max_pos else 0
     else:
-        raise RuntimeError(f"overflow: unsupported operation_type '{op_type}'")
+        return 1 if result_full < 0 or result_full >= (1 << bits) else 0
 
 def _rule_z_cleared_if_nonzero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     if result != 0:
@@ -562,10 +640,14 @@ def _rule_last_shifted_out(result, result_full, src, dst, mask, bits, op_type, c
         if count <= bits:
             return (val >> (count - 1)) & 1
         else:
-            # ASR: sign bit fills, last shifted out = sign bit
-            # LSR: zero fills, last shifted out = 0
-            arithmetic = ctx.get("arithmetic", False)
-            if arithmetic:
+            # Count exceeds bit width: fill determines what remains
+            # sign fill (ASR): sign bit propagates, last shifted out = sign bit
+            # zero fill (LSR): zeros fill, last shifted out = 0
+            fill = ctx.get("fill")
+            if fill is None:
+                raise RuntimeError(
+                    "last_shifted_out: missing 'fill' in ctx — must come from KB variant")
+            if fill == "sign":
                 return (val >> (bits - 1)) & 1
             else:
                 return 0
@@ -669,7 +751,11 @@ _RULE_HANDLERS = {
     "same_as_carry":            _rule_same_as_carry,
     "carry":                    _rule_carry,
     "borrow":                   _rule_borrow,
-    "overflow":                 _rule_overflow,
+    "overflow_add":             _rule_overflow_add,
+    "overflow_sub":             _rule_overflow_sub,
+    "overflow_neg":             _rule_overflow_neg,
+    "overflow_negx":            _rule_overflow_negx,
+    "overflow_multiply":        _rule_overflow_multiply,
     "z_cleared_if_nonzero":     _rule_z_cleared_if_nonzero,
     "undefined":                _rule_undefined,
     "last_shifted_out":         _rule_last_shifted_out,
@@ -786,9 +872,10 @@ INITIAL_CCR_STATES = [
     {"X": 0, "N": 0, "Z": 1, "V": 0, "C": 0, "desc": "Z-only"},
 ]
 
-# Operation types that we can compute results for (keys in _COMPUTE_HANDLERS).
-# Only instructions with these operation_types AND Dn,Dn capable forms are testable.
-_TESTABLE_OP_TYPES = set(_COMPUTE_HANDLERS.keys())
+# An instruction is compute-testable if it has a compute_formula in the KB.
+# This replaces the old _COMPUTE_HANDLERS dict — testability is now data-driven.
+_TESTABLE_OP_TYPES = {inst.get("operation_type") for inst in KB_LIST
+                      if inst.get("compute_formula")} - {None}
 
 
 def _has_nontrivial_cc(inst):
@@ -1057,13 +1144,13 @@ def generate_cc_tests(inst, form_info, tmpdir):
         values = TEST_VALUES
 
     for indiv_mnemonic in individual_mnemonics:
-        # Skip 020+ individual mnemonics from combined entries (e.g. DIVSL from "DIVS, DIVSL")
-        if indiv_mnemonic.upper().endswith("L") and len(indiv_mnemonic) > 3:
-            # Check if the non-L base exists in the combined mnemonic —
-            # if so, this is a long variant (020+), skip it
-            base = indiv_mnemonic.rstrip("Ll")
-            if base.upper() in [m.strip().upper() for m in mnemonic.split(",")]:
-                continue
+        # Skip 020+ individual mnemonics using KB variant processor_020 flag
+        variants = inst.get("variants", [])
+        variant_entry = next(
+            (v for v in variants if v["mnemonic"].upper() == indiv_mnemonic.upper()),
+            None)
+        if variant_entry and variant_entry.get("processor_020"):
+            continue
 
         # Build context from KB variant/instruction properties
         if is_shift_rotate:
@@ -1082,9 +1169,15 @@ def generate_cc_tests(inst, form_info, tmpdir):
                     f"{mnemonic}: variant {indiv_mnemonic} missing 'arithmetic' in KB")
             # Map KB direction names to internal convention used by compute handlers
             dir_map = {"left": "L", "right": "R"}
+            fill = variant.get("fill")
+            if fill is None:
+                raise RuntimeError(
+                    f"{mnemonic}: variant {indiv_mnemonic} missing 'fill' in KB — "
+                    f"regenerate KB")
             ctx = {
                 "direction": dir_map[direction],
                 "arithmetic": arithmetic,
+                "fill": fill,
                 "count_modulus": count_mod,
             }
             # rotate_extend needs extra_bits (from KB rotate_extra_bits)

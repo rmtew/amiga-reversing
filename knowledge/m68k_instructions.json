@@ -509,10 +509,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_add"
         },
         "C": {
-          "rule": "carry"
+          "rule": "carry",
+          "detection": "unsigned_exceeds_max"
         }
       },
       "pc_effects": {
@@ -523,7 +524,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ADDA",
@@ -688,7 +696,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ADDI",
@@ -846,10 +861,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_add"
         },
         "C": {
-          "rule": "carry"
+          "rule": "carry",
+          "detection": "unsigned_exceeds_max"
         }
       },
       "pc_effects": {
@@ -860,7 +876,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ADDQ",
@@ -1016,10 +1039,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_add"
         },
         "C": {
-          "rule": "carry"
+          "rule": "carry",
+          "detection": "unsigned_exceeds_max"
         }
       },
       "pc_effects": {
@@ -1030,7 +1054,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ADDX",
@@ -1198,10 +1229,11 @@
           "rule": "z_cleared_if_nonzero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_add"
         },
         "C": {
-          "rule": "carry"
+          "rule": "carry",
+          "detection": "unsigned_exceeds_max"
         }
       },
       "pc_effects": {
@@ -1212,7 +1244,15 @@
           2
         ]
       },
-      "operation_type": "addx"
+      "operation_type": "addx",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination",
+          "X"
+        ]
+      }
     },
     {
       "mnemonic": "AND",
@@ -1423,7 +1463,14 @@
           2
         ]
       },
-      "operation_type": "and"
+      "operation_type": "and",
+      "compute_formula": {
+        "op": "bitwise_and",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ANDI",
@@ -1594,7 +1641,14 @@
           2
         ]
       },
-      "operation_type": "and"
+      "operation_type": "and",
+      "compute_formula": {
+        "op": "bitwise_and",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ANDI to CCR",
@@ -2049,7 +2103,8 @@
       "cc_semantics": {
         "X": {
           "rule": "last_shifted_out",
-          "zero_count": "unchanged"
+          "zero_count": "unchanged",
+          "carry_semantics": "shift_last_out"
         },
         "N": {
           "rule": "msb_result"
@@ -2058,11 +2113,13 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "msb_changed_during_shift"
+          "rule": "msb_changed_during_shift",
+          "msb_change_semantics": "check_msb_stability"
         },
         "C": {
           "rule": "last_shifted_out",
-          "zero_count": "cleared"
+          "zero_count": "cleared",
+          "carry_semantics": "shift_last_out"
         }
       },
       "pc_effects": {
@@ -2079,14 +2136,21 @@
         {
           "mnemonic": "ASL",
           "direction": "left",
-          "arithmetic": true
+          "arithmetic": true,
+          "fill": "zero",
+          "processor_020": false
         },
         {
           "mnemonic": "ASR",
           "direction": "right",
-          "arithmetic": true
+          "arithmetic": true,
+          "fill": "sign",
+          "processor_020": false
         }
-      ]
+      ],
+      "compute_formula": {
+        "op": "shift"
+      }
     },
     {
       "mnemonic": "Bcc",
@@ -4956,7 +5020,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "BSET",
@@ -5434,7 +5505,14 @@
           2
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "BTST",
@@ -6471,7 +6549,8 @@
           "rule": "overflow"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -7070,7 +7149,13 @@
         ]
       },
       "operation_type": "clear",
-      "implicit_operand": 0
+      "implicit_operand": 0,
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "implicit"
+        ]
+      }
     },
     {
       "mnemonic": "CMP",
@@ -7236,10 +7321,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_sub"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -7250,7 +7336,14 @@
           2
         ]
       },
-      "operation_type": "compare"
+      "operation_type": "compare",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "CMPA",
@@ -7406,10 +7499,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_sub"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -7420,7 +7514,14 @@
           2
         ]
       },
-      "operation_type": "compare"
+      "operation_type": "compare",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "CMPI",
@@ -7585,10 +7686,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_sub"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -7599,7 +7701,14 @@
           2
         ]
       },
-      "operation_type": "compare"
+      "operation_type": "compare",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "CMPM",
@@ -7744,10 +7853,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_sub"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -7758,7 +7868,14 @@
           2
         ]
       },
-      "operation_type": "compare"
+      "operation_type": "compare",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "CMP2",
@@ -9319,6 +9436,24 @@
         "N",
         "Z",
         "C"
+      ],
+      "compute_formula": {
+        "op": "divide",
+        "terms": [
+          "destination",
+          "source"
+        ],
+        "truncation": "toward_zero"
+      },
+      "variants": [
+        {
+          "mnemonic": "DIVS",
+          "processor_020": false
+        },
+        {
+          "mnemonic": "DIVSL",
+          "processor_020": true
+        }
       ]
     },
     {
@@ -9704,6 +9839,24 @@
         "N",
         "Z",
         "C"
+      ],
+      "compute_formula": {
+        "op": "divide",
+        "terms": [
+          "destination",
+          "source"
+        ],
+        "truncation": "toward_zero"
+      },
+      "variants": [
+        {
+          "mnemonic": "DIVU",
+          "processor_020": false
+        },
+        {
+          "mnemonic": "DIVUL",
+          "processor_020": true
+        }
       ]
     },
     {
@@ -9875,7 +10028,14 @@
           2
         ]
       },
-      "operation_type": "xor"
+      "operation_type": "xor",
+      "compute_formula": {
+        "op": "bitwise_xor",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "EORI",
@@ -10046,7 +10206,14 @@
           2
         ]
       },
-      "operation_type": "xor"
+      "operation_type": "xor",
+      "compute_formula": {
+        "op": "bitwise_xor",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "EORI to CCR",
@@ -10603,7 +10770,23 @@
           2
         ]
       },
-      "operation_type": "sign_extend"
+      "operation_type": "sign_extend",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      },
+      "variants": [
+        {
+          "mnemonic": "EXT",
+          "processor_020": false
+        },
+        {
+          "mnemonic": "EXTB",
+          "processor_020": false
+        }
+      ]
     },
     {
       "mnemonic": "ILLEGAL",
@@ -10778,7 +10961,14 @@
           2
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "JMP",
@@ -10937,7 +11127,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "JSR",
@@ -11103,7 +11299,14 @@
           2
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "LEA",
@@ -11258,7 +11461,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "LINK",
@@ -11589,7 +11798,14 @@
           }
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "LSL, LSR",
@@ -11859,7 +12075,8 @@
       "cc_semantics": {
         "X": {
           "rule": "last_shifted_out",
-          "zero_count": "unchanged"
+          "zero_count": "unchanged",
+          "carry_semantics": "shift_last_out"
         },
         "N": {
           "rule": "result_negative"
@@ -11872,7 +12089,8 @@
         },
         "C": {
           "rule": "last_shifted_out",
-          "zero_count": "cleared"
+          "zero_count": "cleared",
+          "carry_semantics": "shift_last_out"
         }
       },
       "pc_effects": {
@@ -11889,14 +12107,21 @@
         {
           "mnemonic": "LSL",
           "direction": "left",
-          "arithmetic": false
+          "arithmetic": false,
+          "fill": "zero",
+          "processor_020": false
         },
         {
           "mnemonic": "LSR",
           "direction": "right",
-          "arithmetic": false
+          "arithmetic": false,
+          "fill": "zero",
+          "processor_020": false
         }
-      ]
+      ],
+      "compute_formula": {
+        "op": "shift"
+      }
     },
     {
       "mnemonic": "MOVE",
@@ -12058,7 +12283,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "MOVEA",
@@ -12215,7 +12446,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "MOVE from CCR",
@@ -12728,7 +12965,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "MOVE16",
@@ -13191,7 +13434,13 @@
           }
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "MOVEM",
@@ -13406,7 +13655,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "MOVEP",
@@ -13610,7 +13865,13 @@
           }
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "MOVEQ",
@@ -13751,7 +14012,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "MULS",
@@ -14101,7 +14368,7 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_multiply"
         },
         "C": {
           "rule": "cleared"
@@ -14116,7 +14383,14 @@
         ]
       },
       "operation_type": "multiply",
-      "signed": true
+      "signed": true,
+      "compute_formula": {
+        "op": "multiply",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "MULU",
@@ -14466,7 +14740,7 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_multiply"
         },
         "C": {
           "rule": "cleared"
@@ -14481,7 +14755,14 @@
         ]
       },
       "operation_type": "multiply",
-      "signed": false
+      "signed": false,
+      "compute_formula": {
+        "op": "multiply",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "NBCD",
@@ -14656,7 +14937,15 @@
         ]
       },
       "operation_type": "negx",
-      "implicit_operand": 0
+      "implicit_operand": 0,
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "implicit",
+          "destination",
+          "X"
+        ]
+      }
     },
     {
       "mnemonic": "NEG",
@@ -14810,7 +15099,7 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_neg"
         },
         "C": {
           "rule": "result_nonzero"
@@ -14825,7 +15114,14 @@
         ]
       },
       "operation_type": "neg",
-      "implicit_operand": 0
+      "implicit_operand": 0,
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "implicit",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "NEGX",
@@ -14978,10 +15274,11 @@
           "rule": "z_cleared_if_nonzero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_negx"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -14993,7 +15290,15 @@
         ]
       },
       "operation_type": "negx",
-      "implicit_operand": 0
+      "implicit_operand": 0,
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "implicit",
+          "destination",
+          "X"
+        ]
+      }
     },
     {
       "mnemonic": "NOP",
@@ -15328,7 +15633,13 @@
           2
         ]
       },
-      "operation_type": "not"
+      "operation_type": "not",
+      "compute_formula": {
+        "op": "bitwise_complement",
+        "terms": [
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "OR",
@@ -15539,7 +15850,14 @@
           2
         ]
       },
-      "operation_type": "or"
+      "operation_type": "or",
+      "compute_formula": {
+        "op": "bitwise_or",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ORI",
@@ -15710,7 +16028,14 @@
           2
         ]
       },
-      "operation_type": "or"
+      "operation_type": "or",
+      "compute_formula": {
+        "op": "bitwise_or",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ORI to CCR",
@@ -16079,7 +16404,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "PEA",
@@ -16246,7 +16578,14 @@
           2
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "ROL, ROR",
@@ -16524,7 +16863,8 @@
         },
         "C": {
           "rule": "last_rotated_out",
-          "zero_count": "cleared"
+          "zero_count": "cleared",
+          "carry_semantics": "rotate_last_out"
         }
       },
       "pc_effects": {
@@ -16541,14 +16881,21 @@
         {
           "mnemonic": "ROL",
           "direction": "left",
-          "arithmetic": false
+          "arithmetic": false,
+          "fill": "rotate",
+          "processor_020": false
         },
         {
           "mnemonic": "ROR",
           "direction": "right",
-          "arithmetic": false
+          "arithmetic": false,
+          "fill": "rotate",
+          "processor_020": false
         }
-      ]
+      ],
+      "compute_formula": {
+        "op": "rotate"
+      }
     },
     {
       "mnemonic": "ROXL, ROXR",
@@ -16819,7 +17166,8 @@
       "cc_semantics": {
         "X": {
           "rule": "last_rotated_out",
-          "zero_count": "unchanged"
+          "zero_count": "unchanged",
+          "carry_semantics": "rotate_last_out"
         },
         "N": {
           "rule": "msb_result"
@@ -16832,7 +17180,8 @@
         },
         "C": {
           "rule": "last_rotated_out",
-          "zero_count": "unchanged"
+          "zero_count": "unchanged",
+          "carry_semantics": "rotate_last_out"
         }
       },
       "pc_effects": {
@@ -16850,14 +17199,21 @@
         {
           "mnemonic": "ROXL",
           "direction": "left",
-          "arithmetic": false
+          "arithmetic": false,
+          "fill": "rotate",
+          "processor_020": false
         },
         {
           "mnemonic": "ROXR",
           "direction": "right",
-          "arithmetic": false
+          "arithmetic": false,
+          "fill": "rotate",
+          "processor_020": false
         }
-      ]
+      ],
+      "compute_formula": {
+        "op": "rotate_extend"
+      }
     },
     {
       "mnemonic": "RTD",
@@ -17066,7 +17422,14 @@
           }
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "RTM",
@@ -17583,7 +17946,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "SBCD",
@@ -18128,10 +18498,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_sub"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -18142,7 +18513,14 @@
           2
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "SUBA",
@@ -18307,7 +18685,14 @@
           2
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "SUBI",
@@ -18465,10 +18850,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_sub"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -18479,7 +18865,14 @@
           2
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "SUBQ",
@@ -18640,10 +19033,11 @@
           "rule": "result_zero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_sub"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -18654,7 +19048,14 @@
           2
         ]
       },
-      "operation_type": "sub"
+      "operation_type": "sub",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "SUBX",
@@ -18822,10 +19223,11 @@
           "rule": "z_cleared_if_nonzero"
         },
         "V": {
-          "rule": "overflow"
+          "rule": "overflow_sub"
         },
         "C": {
-          "rule": "borrow"
+          "rule": "borrow",
+          "detection": "unsigned_below_zero"
         }
       },
       "pc_effects": {
@@ -18836,7 +19238,15 @@
           2
         ]
       },
-      "operation_type": "subx"
+      "operation_type": "subx",
+      "compute_formula": {
+        "op": "subtract",
+        "terms": [
+          "destination",
+          "source",
+          "X"
+        ]
+      }
     },
     {
       "mnemonic": "SWAP",
@@ -19004,7 +19414,18 @@
           2
         ]
       },
-      "operation_type": "swap"
+      "operation_type": "swap",
+      "compute_formula": {
+        "op": "exchange",
+        "range_a": [
+          31,
+          16
+        ],
+        "range_b": [
+          15,
+          0
+        ]
+      }
     },
     {
       "mnemonic": "TAS",
@@ -19174,7 +19595,13 @@
           2
         ]
       },
-      "operation_type": "test"
+      "operation_type": "test",
+      "compute_formula": {
+        "op": "test",
+        "terms": [
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "TRAP",
@@ -19339,7 +19766,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "TRAPcc",
@@ -19899,7 +20332,13 @@
           2
         ]
       },
-      "operation_type": "test"
+      "operation_type": "test",
+      "compute_formula": {
+        "op": "test",
+        "terms": [
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "UNLK",
@@ -20070,7 +20509,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "UNPK",
@@ -20244,7 +20690,14 @@
           2
         ]
       },
-      "operation_type": "add"
+      "operation_type": "add",
+      "compute_formula": {
+        "op": "add",
+        "terms": [
+          "source",
+          "destination"
+        ]
+      }
     },
     {
       "mnemonic": "ANDI to SR",
@@ -27765,7 +28218,13 @@
           2
         ]
       },
-      "operation_type": "move"
+      "operation_type": "move",
+      "compute_formula": {
+        "op": "assign",
+        "terms": [
+          "source"
+        ]
+      }
     },
     {
       "mnemonic": "RESET",
