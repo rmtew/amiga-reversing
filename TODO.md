@@ -59,13 +59,13 @@ Given an instruction + initial state, predict SP delta and CC result from KB rul
 ## Phase 4: Verification Harness (in progress)
 
 machine68k (Musashi) as independent oracle for execution semantics.
-`scripts/test_m68k_execution.py` — 3998 tests, 50 mnemonics, 0 failures.
+`scripts/test_m68k_execution.py` — 4034 tests, 51 mnemonics, 0 failures.
 
 - [x] Test generator: KB-driven discovery of testable instructions, deterministic test values
 - [x] Runner: instruction hook captures post-execution state without sentinel interference
 - [x] Comparator: predicted CC/SP/PC vs machine68k actual, per-flag reporting
 
-### CC verification (42 mnemonics)
+### CC verification (43 mnemonics)
 - [x] ALU register-register: ADD, ADDX, SUB, SUBX, CMP, AND, OR, EOR, MOVE, NEG, NEGX, NOT, CLR, TST (14 mnemonics, 1512 tests)
 - [x] Shift/rotate: ASL, ASR, LSL, LSR, ROL, ROR, ROXL, ROXR (8 mnemonics, 1296 tests)
 - [x] Multiply: MULS, MULU (2 mnemonics, 72 tests) — KB `compute_formula` + `overflow_multiply` rule
@@ -75,7 +75,7 @@ machine68k (Musashi) as independent oracle for execution semantics.
 - [x] Direct Dn form: SWAP, EXT (3 mnemonics, 108 tests) — KB `sign_extend` + `exchange` formulas, `cc_result_bits`, `["dn"]` form type
 - [x] Memory compare: CMPM (1 mnemonic, 108 tests) — `postinc_postinc` form type with memory test infrastructure
 - [x] Address register compare: CMPA (1 mnemonic, 72 tests) — `dn_an` form type, KB `source_sign_extend` + `cc_result_bits`
-- [ ] TAS — needs `msb_operand` CC rule
+- [x] TAS (1 mnemonic, 36 tests) — KB `msb_operand` CC rule, `test` compute formula, `single_op` form type
 - [ ] BCD: ABCD, SBCD, NBCD — need `decimal_carry`/`decimal_borrow` rules
 
 ### SP verification (9 mnemonics)

@@ -588,6 +588,10 @@ def _rule_set(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, f
 def _rule_result_negative(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     return (result >> (bits - 1)) & 1
 
+def _rule_msb_operand(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+    """MSB of operand before the operation (TAS: N reflects pre-set value)."""
+    return (dst >> (bits - 1)) & 1
+
 def _rule_result_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     return 1 if result == 0 else 0
 
@@ -829,6 +833,7 @@ _RULE_HANDLERS = {
     "set":                      _rule_set,
     "result_negative":          _rule_result_negative,
     "msb_result":               _rule_result_negative,
+    "msb_operand":              _rule_msb_operand,
     "result_zero":              _rule_result_zero,
     "result_nonzero":           _rule_result_nonzero,
     "same_as_carry":            _rule_same_as_carry,
