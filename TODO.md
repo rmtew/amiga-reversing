@@ -26,15 +26,19 @@ Extract all instruction metadata from the PDF into `m68k_instructions.json`.
 - [x] Flag control-flow instructions (branch, jump, call, return, trap) with conditional flag
 - [x] Emit per-instruction `pc_effects` in JSON (22 control flow, no hardcoded mnemonic names)
 
-## Phase 2: Data-Driven Assembler
+## Phase 2: Data-Driven Assembler (in progress)
 
 Reverse of the disassembler, driven from the same JSON.
+`scripts/m68k_asm.py` — 1237 tests, 66 mnemonics, 0 failures.
 
-- [ ] Operand syntax → EA mode bits (parse register names, addressing modes, immediates)
-- [ ] Opword construction from encoding bit patterns + operand fields
-- [ ] Extension word generation (displacements, immediate data, bit fields)
-- [ ] Size suffix → size field encoding
-- [ ] Verify against vasm: assemble with both, binary-diff every instruction × operand × size
+- [x] Operand syntax → EA mode bits (parse register names, addressing modes, immediates)
+- [x] Opword construction from encoding bit patterns + operand fields
+- [x] Extension word generation (displacements, immediate data, bit fields)
+- [x] Size suffix → size field encoding
+- [x] Verify against vasm: assemble with both, binary-diff every instruction × operand × size
+- [ ] Branch/label support with PC-relative displacement calculation
+- [ ] SR/CCR/USP operand support (separate KB instructions)
+- [ ] Auto-routing aliases (ADD #imm,<ea> → ADDI, DBRA → DBF)
 
 ## Phase 3: Data-Driven Effect Predictor (done)
 
