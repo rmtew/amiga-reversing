@@ -204,12 +204,18 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
     # Long=32 bits. Byte counts (8/8=1, 16/8=2, 32/8=4) are arithmetic fact.
     # Cannot be reliably parsed from the PDF table, so asserted here.
     size_byte_count = {"b": 1, "w": 2, "l": 4}
+    # Track B parser-assertion: EA mode name → (mode, register) encoding from
+    # PDF p29, Table 2-4 "Effective Address Encoding Summary". Reverse of
+    # MODE_MAP above. For modes 0-6, register is None (determined by operand).
+    # For mode 7, register sub-selects the addressing mode.
+    ea_mode_encoding = {v: list(k) for k, v in MODE_MAP.items()}
     meta = {
         "condition_codes": _kb_condition_codes(),
         "pmmu_condition_codes": pmmu_cc,
         "cpu_hierarchy": CPU_HIERARCHY,
         "ccr_bit_positions": ccr_bit_positions,
         "size_byte_count": size_byte_count,
+        "ea_mode_encoding": ea_mode_encoding,
     }
     if ea_brief_ext_word is not None:
         meta["ea_brief_ext_word"] = ea_brief_ext_word
@@ -4015,6 +4021,23 @@ def main():
     print("Phase 11: Classifying operation types...")
     op_classified, nop_opword = apply_operation_types(kb_data)
     print(f"  Classified: {op_classified}/{len(kb_data)} instructions")
+
+    # Track B parser-assertion: EXG encoding field boundaries.
+    # PDF p128 Figure shows OPMODE as bits 7:3 (5 bits) and REGISTER Ry as
+    # bits 2:0 (3 bits). The PDF text extraction misparses these as 7:4 and
+    # 3:0 because the table column alignment is ambiguous. The opmode values
+    # (8=01000, 9=01001, 17=10001) require 5 bits — they cannot fit in 4.
+    for inst in kb_data:
+        if inst["mnemonic"] == "EXG":
+            enc = inst["encodings"][0]
+            for f in enc["fields"]:
+                if f["name"] == "OPMODE" and f["bit_lo"] == 4:
+                    f["bit_lo"] = 3
+                    f["width"] = f["bit_hi"] - f["bit_lo"] + 1
+                elif f["name"].startswith("REGISTER") and f["bit_hi"] == 3:
+                    f["bit_hi"] = 2
+                    f["width"] = f["bit_hi"] - f["bit_lo"] + 1
+            break
 
     # Output
     outfile = args.outfile or str(KB_PATH)

@@ -64,6 +64,56 @@
       "w": 2,
       "l": 4
     },
+    "ea_mode_encoding": {
+      "dn": [
+        0,
+        null
+      ],
+      "an": [
+        1,
+        null
+      ],
+      "ind": [
+        2,
+        null
+      ],
+      "postinc": [
+        3,
+        null
+      ],
+      "predec": [
+        4,
+        null
+      ],
+      "disp": [
+        5,
+        null
+      ],
+      "index": [
+        6,
+        null
+      ],
+      "absw": [
+        7,
+        0
+      ],
+      "absl": [
+        7,
+        1
+      ],
+      "pcdisp": [
+        7,
+        2
+      ],
+      "pcindex": [
+        7,
+        3
+      ],
+      "imm": [
+        7,
+        4
+      ]
+    },
     "ea_brief_ext_word": [
       {
         "name": "D/A",
@@ -10540,14 +10590,14 @@
             {
               "name": "OPMODE",
               "bit_hi": 7,
-              "bit_lo": 4,
-              "width": 4
+              "bit_lo": 3,
+              "width": 5
             },
             {
               "name": "REGISTER Ry",
-              "bit_hi": 3,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 4
+              "width": 3
             }
           ]
         }
