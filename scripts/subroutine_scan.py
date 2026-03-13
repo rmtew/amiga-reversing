@@ -48,20 +48,16 @@ def _uncovered_ranges(blocks: dict[int, BasicBlock],
         else:
             merged.append((start, end))
 
-    # Compute gaps
+    # Compute gaps. Block ends are always word-aligned (M68K instructions
+    # are word-aligned), so gap starts are already even.
     gaps = []
     prev_end = 0
     for start, end in merged:
         if start > prev_end:
-            # Word-align the gap start
-            gap_start = (prev_end + 1) & ~1
-            if gap_start < start:
-                gaps.append((gap_start, start))
+            gaps.append((prev_end, start))
         prev_end = max(prev_end, end)
     if prev_end < code_size:
-        gap_start = (prev_end + 1) & ~1
-        if gap_start < code_size:
-            gaps.append((gap_start, code_size))
+        gaps.append((prev_end, code_size))
 
     return gaps
 
@@ -93,15 +89,20 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
         if next_pos > end:
             return None  # would overlap known code
 
-        ft = _get_flow_type(inst, kb_by_name, cc_defs, cc_aliases)
+        mn = _extract_mnemonic(inst.text)
+        ikb = _find_kb_entry(kb_by_name, mn, cc_defs, cc_aliases)
+        if ikb is None:
+            return None  # unrecognized instruction — not valid code
+        flow = ikb.get("pc_effects", {}).get("flow", {})
+        ft = flow.get("type")
+        conditional = flow.get("conditional", False)
 
         if ft in ("call", "branch"):
             has_flow = True
 
         if ft == "return":
-            # Valid subroutine end
             if instrs < 2:
-                return None  # too short (bare RTS)
+                return None  # too short (bare return)
             return {
                 "addr": start,
                 "end": next_pos,
@@ -109,9 +110,8 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
                 "has_flow": has_flow,
             }
 
-        if ft == "jump":
+        if ft == "jump" and not conditional:
             # Unconditional jump — could be tail call
-            # Only accept if we had some real content
             if instrs >= 3 and has_flow:
                 return {
                     "addr": start,
@@ -148,9 +148,8 @@ def scan_candidates(blocks: dict[int, BasicBlock],
                 code, pos, gap_end, kb_by_name, cc_defs, cc_aliases)
             if cand:
                 candidates.append(cand)
+                # Candidate end is always word-aligned (return instruction end)
                 pos = cand["end"]
-                # Word-align for next candidate
-                pos = (pos + 1) & ~1
             else:
                 pos += opword_bytes  # advance one opword
 
@@ -170,9 +169,6 @@ def score_candidates(candidates: list[dict],
     cc_defs = meta.get("cc_test_definitions", {})
     cc_aliases = meta.get("cc_aliases", {})
     opword_bytes = meta["opword_bytes"]
-
-    # Build set of all known block start addresses
-    known_addrs = set(blocks.keys())
 
     scored = []
     for cand in candidates:
