@@ -44,7 +44,7 @@ ORACLE_MAP = {
 def _load_kb():
     with open(KNOWLEDGE, encoding="utf-8") as f:
         data = json.load(f)
-    return data.get("instructions", []), data.get("_meta", {})
+    return data["instructions"], data["_meta"]
 
 
 KB_INSTRUCTIONS, KB_META = _load_kb()
@@ -168,10 +168,10 @@ def generate_tests(inst):
     Skips forms that our assembler can't handle yet.
     """
     mnemonic = inst["mnemonic"]
-    proc_min = inst.get("processor_min", "68000")
-    sizes = inst.get("sizes", [])
+    proc_min = inst["processor_min"]
+    sizes = inst["sizes"]
     ea = inst.get("ea_modes", {})
-    forms = inst.get("forms", [])
+    forms = inst["forms"]
     constraints = inst.get("constraints", {})
     m_variants = _mnemonic_variants(mnemonic)
 
@@ -486,15 +486,15 @@ def _generate_branch_tests():
     for inst in KB_INSTRUCTIONS:
         if not inst.get("uses_label"):
             continue
-        if inst.get("processor_min", "68000") != "68000":
+        if inst["processor_min"] != "68000":
             continue
 
         mnemonic = inst["mnemonic"]
         constraints = inst.get("constraints", {})
         cc_param = constraints.get("cc_parameterized")
         sizes_68000 = constraints.get("sizes_68000")
-        sizes = sizes_68000 if sizes_68000 is not None else inst.get("sizes", [])
-        forms = inst.get("forms", [])
+        sizes = sizes_68000 if sizes_68000 is not None else inst["sizes"]
+        forms = inst["forms"]
 
         # Determine form type: Bcc-style (1 label) or DBcc-style (dn + label)
         form_ops = []
@@ -598,14 +598,45 @@ def _generate_branch_tests():
 
 # ── Divergence checks ────────────────────────────────────────────────────
 
-def _check_known_divergence(mnemonic, asm, our_bytes, oracle_bytes):
+def _build_imm_divergence_set(oracle_cfg):
+    """Extract the set of mnemonics where this oracle diverges on imm routing.
+
+    Reads encoding_behaviors from the oracle JSON.  Our assembler always
+    routes #imm to the dedicated immediate instruction (ADDI, CMPI, etc.).
+    Oracles may differ:
+
+    - "no_route" oracles (e.g. vasm -no-opt) keep the general-purpose
+      encoding → affected_mnemonics diverge from us.
+    - "auto_route" oracles (e.g. DevPac) route to immediate like us →
+      affected_mnemonics agree with us, not_affected diverge.
+    """
+    divergent = set()
+    for behavior in oracle_cfg.get("encoding_behaviors", []):
+        bid = behavior.get("id", "")
+        if "imm" not in bid:
+            continue
+        affected = set(behavior.get("affected_mnemonics", []))
+        not_affected = set(behavior.get("not_affected", []))
+        if "no_route" in bid:
+            # Oracle keeps general encoding for these → diverges from us
+            divergent.update(mn for mn in affected if mn in IMM_ROUTING)
+        elif "auto_route" in bid:
+            # Oracle routes same as us for affected → not_affected diverge
+            divergent.update(mn for mn in not_affected if mn in IMM_ROUTING)
+    return divergent
+
+
+def _check_known_divergence(mnemonic, asm, our_bytes, oracle_bytes,
+                            imm_divergence_set):
     """Check if mismatch is a known acceptable divergence.
 
     Returns a reason string if it's a known divergence, None otherwise.
-    Both checks are applied regardless of oracle — the assembler's
-    behavior is the same, only the oracle's encoding choice differs.
+    imm_divergence_set: mnemonics where this oracle encodes imm differently,
+    built from oracle JSON encoding_behaviors.
     """
-    if _is_imm_routing_divergence(mnemonic, asm, our_bytes, oracle_bytes):
+    if (mnemonic in imm_divergence_set
+            and _is_imm_routing_divergence(mnemonic, asm, our_bytes,
+                                           oracle_bytes)):
         return f"imm routing: {mnemonic}\u2192{IMM_ROUTING[mnemonic]}"
     if _is_commutative_match(mnemonic, our_bytes, oracle_bytes):
         return "commutative"
@@ -1006,14 +1037,15 @@ def main(argv=None):
     try:
         if not driver.smoke_test():
             return 1
-        return _run_tests(driver, args)
+        return _run_tests(driver, oracle_cfg, args)
     finally:
         driver.teardown()
 
 
-def _run_tests(driver, args):
+def _run_tests(driver, oracle_cfg, args):
     """Generate tests, run against oracle, report results."""
     t0 = time.time()
+    imm_divergent = _build_imm_divergence_set(oracle_cfg)
 
     results = {
         "passed": 0,
@@ -1023,6 +1055,7 @@ def _run_tests(driver, args):
         "known_divergences": 0,
         "failures": [],
         "tested_mnemonics": set(),
+        "imm_divergent": imm_divergent,
     }
 
     # ── Collect all tests ─────────────────────────────────────────────
@@ -1155,8 +1188,11 @@ def _compare_one(mnemonic, our_bytes, asm, desc, oracle_bytes, results, args):
         results["oracle_errors"] += 1
         return
 
-    # Compare (trim oracle output to our length for hunk padding)
-    oracle_code = oracle_bytes[:len(our_bytes)]
+    # Trim oracle output for hunk long-word padding (at most 2 bytes)
+    oracle_code = oracle_bytes
+    padding = len(oracle_bytes) - len(our_bytes)
+    if 0 < padding <= 2 and oracle_bytes[len(our_bytes):] == b'\x00' * padding:
+        oracle_code = oracle_bytes[:len(our_bytes)]
 
     if our_bytes == oracle_code:
         results["passed"] += 1
@@ -1164,7 +1200,8 @@ def _compare_one(mnemonic, our_bytes, asm, desc, oracle_bytes, results, args):
         if args.verbose:
             print(f"  OK: {asm}")
     else:
-        reason = _check_known_divergence(mnemonic, asm, our_bytes, oracle_code)
+        reason = _check_known_divergence(mnemonic, asm, our_bytes, oracle_code,
+                                                results["imm_divergent"])
         if reason:
             results["known_divergences"] += 1
             results["tested_mnemonics"].add(mnemonic)

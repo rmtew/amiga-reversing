@@ -77,6 +77,10 @@
     "oracle_errors": 5,
     "mnemonics_tested": 90,
     "mismatch_categories": {},
+    "known_divergence_categories": {
+      "cmp_imm_routing": 3,
+      "exg_commutative": 1
+    },
     "oracle_error_categories": {
       "020_plus_instructions": 5
     }
