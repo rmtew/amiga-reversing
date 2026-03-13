@@ -43,7 +43,7 @@ KB_INSTRUCTIONS, KB_META = _load_kb()
 CC_ALL = list(KB_META["condition_codes"])
 # Immediate routing: base mnemonic → immediate mnemonic (e.g. ADD → ADDI)
 # Our assembler routes through these; vasm -no-opt does not.
-IMM_ROUTING = KB_META.get("immediate_routing", {})
+IMM_ROUTING = KB_META["immediate_routing"]
 
 
 # ── EA mode to assembly syntax ────────────────────────────────────────────
@@ -415,6 +415,16 @@ def generate_tests(inst):
             for asm, desc in tests:
                 cc_tests.append((asm.replace(m_lower, full_mn, 1),
                                  f"{full_mn} {desc}"))
+        # Also add CC alias variants (e.g. slo for scs)
+        cc_aliases = KB_META["cc_aliases"]
+        for alias_suffix, canonical_suffix in cc_aliases.items():
+            if canonical_suffix in excluded:
+                continue
+            alias_mn = f"{prefix}{alias_suffix}"
+            # Use first base test as template
+            asm0, desc0 = tests[0]
+            cc_tests.append((asm0.replace(m_lower, alias_mn, 1),
+                             f"{alias_mn} alias {desc0}"))
         tests = cc_tests
 
     return tests
@@ -555,7 +565,7 @@ def _generate_branch_tests():
                                       f"{full_mn} fwd .w disp=500", pc))
 
     # CC alias tests — driven by KB _meta.cc_aliases
-    cc_aliases = KB_META.get("cc_aliases", {})
+    cc_aliases = KB_META["cc_aliases"]
     for alias_suffix, canonical_suffix in cc_aliases.items():
         # Test alias with each cc-parameterized family (Bcc, DBcc, Scc)
         for inst in KB_INSTRUCTIONS:
@@ -636,6 +646,34 @@ def _vasm_assemble_at(text, org=0x1000):
                 pass
 
 
+def _is_imm_routing_divergence(mnemonic, asm, our_bytes, vasm_bytes):
+    """Check if a mismatch is a known immediate routing divergence.
+
+    We route ADD #imm → ADDI (DevPac-style), vasm -no-opt keeps the
+    general-purpose encoding.  Both are valid M68K.
+
+    Validates structurally: mnemonic must be in IMM_ROUTING, asm must have
+    #imm as first operand, and both encodings must have the same length
+    and identical extension words (only the opword differs).
+    """
+    if mnemonic not in IMM_ROUTING:
+        return False
+    # First operand must be immediate
+    parts = asm.split(None, 1)
+    if len(parts) < 2:
+        return False
+    operands = parts[1].split(",")
+    if not operands[0].strip().startswith("#"):
+        return False
+    # Both encodings must have same length (both valid, just different opword)
+    if len(our_bytes) != len(vasm_bytes):
+        return False
+    # Extension words must be identical (only opword differs)
+    if our_bytes[2:] != vasm_bytes[2:]:
+        return False
+    return True
+
+
 # ── Main test runner ──────────────────────────────────────────────────────
 
 def main():
@@ -695,7 +733,7 @@ def main():
             tested_mnemonics.add(mnemonic)
             if args.verbose:
                 print(f"  OK: {asm}")
-        elif mnemonic in IMM_ROUTING and "#" in asm:
+        elif _is_imm_routing_divergence(mnemonic, asm, our_bytes, vasm_bytes):
             # Known divergence: we route ADD #imm → ADDI (DevPac-style),
             # vasm -no-opt keeps the general encoding.  Both are valid.
             known_divergences += 1

@@ -394,7 +394,7 @@ def _resolve_cc_mnemonic(mnemonic_lower):
     """
     families = _kb_cc_families()
     cc_idx = _kb_cc_index()
-    cc_aliases = _kb_meta().get("cc_aliases", {})
+    cc_aliases = _kb_meta()["cc_aliases"]
 
     for prefix, (kb_mnemonic, cc_param) in families.items():
         if mnemonic_lower.startswith(prefix) and len(mnemonic_lower) > len(prefix):
@@ -1832,7 +1832,7 @@ def assemble_instruction(text, pc=0):
     # mnemonics to their immediate-specific variants.
     if (len(operands) == 2 and operands[0].strip().startswith("#")
             and inst.get("constraints", {}).get("opmode_table")):
-        imm_routing = _kb_meta().get("immediate_routing", {})
+        imm_routing = _kb_meta()["immediate_routing"]
         imm_mnemonic = imm_routing.get(mnemonic)
         if imm_mnemonic and imm_mnemonic in _kb():
             imm_inst = _kb()[imm_mnemonic]
