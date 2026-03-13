@@ -114,6 +114,67 @@
         4
       ]
     },
+    "ea_mode_sizes": {
+      "dn": [
+        "b",
+        "w",
+        "l"
+      ],
+      "an": [
+        "w",
+        "l"
+      ],
+      "ind": [
+        "b",
+        "w",
+        "l"
+      ],
+      "postinc": [
+        "b",
+        "w",
+        "l"
+      ],
+      "predec": [
+        "b",
+        "w",
+        "l"
+      ],
+      "disp": [
+        "b",
+        "w",
+        "l"
+      ],
+      "index": [
+        "b",
+        "w",
+        "l"
+      ],
+      "absw": [
+        "b",
+        "w",
+        "l"
+      ],
+      "absl": [
+        "b",
+        "w",
+        "l"
+      ],
+      "pcdisp": [
+        "b",
+        "w",
+        "l"
+      ],
+      "pcindex": [
+        "b",
+        "w",
+        "l"
+      ],
+      "imm": [
+        "b",
+        "w",
+        "l"
+      ]
+    },
     "ea_brief_ext_word": [
       {
         "name": "D/A",

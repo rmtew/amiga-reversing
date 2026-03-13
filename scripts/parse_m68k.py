@@ -212,6 +212,17 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
     # MODE_MAP above. For modes 0-6, register is None (determined by operand).
     # For mode 7, register sub-selects the addressing mode.
     ea_mode_encoding = {v: list(k) for k, v in MODE_MAP.items()}
+    # Track B parser-assertion: Valid sizes per EA mode from PDF Section 2
+    # (pp 29-38), EA mode descriptions. All EA modes support byte, word, and
+    # long EXCEPT address register direct (An, mode=1) which only supports
+    # word and long. The PDF states this per-instruction (e.g. ADDA "word or
+    # long", MOVEA "word or long") and no instruction's EA table ever shows An
+    # with byte size. This is an architectural property of mode 1: the 68000
+    # has no byte-width operation on address registers. Cannot be parsed as a
+    # single statement from the PDF, so asserted from the universal pattern.
+    all_sizes = ["b", "w", "l"]
+    ea_mode_sizes = {mode: all_sizes for mode in ea_mode_encoding}
+    ea_mode_sizes["an"] = ["w", "l"]
     meta = {
         "condition_codes": _kb_condition_codes(),
         "pmmu_condition_codes": pmmu_cc,
@@ -219,6 +230,7 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
         "ccr_bit_positions": ccr_bit_positions,
         "size_byte_count": size_byte_count,
         "ea_mode_encoding": ea_mode_encoding,
+        "ea_mode_sizes": ea_mode_sizes,
     }
     if ea_brief_ext_word is not None:
         meta["ea_brief_ext_word"] = ea_brief_ext_word

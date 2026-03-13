@@ -51,6 +51,7 @@ KB_INSTRUCTIONS, KB_META = _load_kb()
 KB_BY_MNEMONIC = {inst["mnemonic"]: inst for inst in KB_INSTRUCTIONS}
 CC_ALL = list(KB_META["condition_codes"])
 IMM_ROUTING = KB_META["immediate_routing"]
+EA_MODE_SIZES = KB_META["ea_mode_sizes"]
 
 
 # ── EA mode to assembly syntax ────────────────────────────────────────────
@@ -114,10 +115,10 @@ def _filter_supported(modes):
 
 
 def _filter_for_size(modes, sz, mem_size_only=None, bit_op_sizes=None):
-    """Filter EA modes by size constraints (An excluded for .b, etc.)."""
+    """Filter EA modes by size constraints from KB ea_mode_sizes."""
     result = []
     for mode in modes:
-        if mode == "an" and sz == "b":
+        if sz and sz not in EA_MODE_SIZES[mode]:
             continue
         if mem_size_only and mode not in ("dn", "an") and sz != mem_size_only:
             continue
