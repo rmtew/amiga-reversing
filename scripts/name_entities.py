@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from m68k_executor import (BasicBlock, _extract_mnemonic, _load_kb,
                             _find_kb_entry)
+from os_calls import load_os_kb
 
 
 def find_string_refs(blocks: dict[int, BasicBlock],
@@ -122,20 +123,20 @@ def find_string_refs(blocks: dict[int, BasicBlock],
     return refs_by_block
 
 
-def _string_to_name(s: str) -> str:
+def _string_to_name(s: str, os_lib_names: set[str] | None = None) -> str:
     """Convert a string reference to a subroutine name suggestion.
 
-    Sanitizes for use as an identifier: lowercase, underscores for spaces,
-    strip non-alphanumeric, truncate.
+    If the string matches a known OS library/device/resource name
+    (from the OS KB), prefix with 'open_'. Otherwise sanitize as
+    a generic identifier.
     """
-    # Strip common suffixes/prefixes
     s = s.strip()
-    if s.endswith(".library"):
-        return "open_" + s.replace(".library", "").replace(".", "_")
-    if s.endswith(".device"):
-        return "open_" + s.replace(".device", "").replace(".", "_")
-    if s.endswith(".resource"):
-        return "open_" + s.replace(".resource", "").replace(".", "_")
+
+    # Check against known OS library names from KB
+    if os_lib_names and s in os_lib_names:
+        # Strip the suffix (everything after the last dot)
+        base = s.rsplit(".", 1)[0]
+        return "open_" + re.sub(r'[^a-z0-9]+', '_', base.lower()).strip('_')
 
     # Convert to identifier
     name = s.lower()
@@ -200,6 +201,10 @@ def name_subroutines(entities: list[dict],
     2. String references (most distinctive string)
     3. Entry point / call graph position
     """
+    # Known OS library/device/resource names from KB
+    os_kb = load_os_kb()
+    os_lib_names = set(os_kb["libraries"].keys())
+
     # Build block→subroutine mapping
     entity_by_addr = {}
     for ent in entities:
@@ -247,8 +252,8 @@ def name_subroutines(entities: list[dict],
         if sub_addr is not None:
             if sub_addr not in sub_os_calls:
                 sub_os_calls[sub_addr] = []
-            lib = call.get("library", "unknown")
-            func = call.get("function", "unknown")
+            lib = call["library"]
+            func = call["function"]
             sub_os_calls[sub_addr].append(f"{lib}/{func}")
 
     named = 0
@@ -278,7 +283,7 @@ def name_subroutines(entities: list[dict],
                         or s[0].isupper())]
             if good:
                 best = max(good, key=len)
-                name = _string_to_name(best)
+                name = _string_to_name(best, os_lib_names)
 
         # Priority 3: entry point
         if name is None and addr == 0:
