@@ -23,6 +23,12 @@
     "quiet": "QUIET",
     "output_file": "-o <filename>"
   },
+  "driver": {
+    "type": "vamos",
+    "executable_path": "resources/Amiga_Devpac_3_18/GenAm",
+    "batch_size": 50,
+    "sentinel_word": "0xA5A5"
+  },
   "platform_notes": {
     "return_codes": {
       "0": "OK",
@@ -65,14 +71,12 @@
   ],
   "tested": {
     "total_tests": 1301,
-    "passed": 1298,
-    "mismatches": 3,
-    "known_divergences": 0,
+    "passed": 1297,
+    "mismatches": 0,
+    "known_divergences": 4,
     "oracle_errors": 5,
     "mnemonics_tested": 90,
-    "mismatch_categories": {
-      "cmp_imm_no_route": 3
-    },
+    "mismatch_categories": {},
     "oracle_error_categories": {
       "020_plus_instructions": 5
     }

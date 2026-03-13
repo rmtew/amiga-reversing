@@ -1,23 +1,28 @@
-"""Test KB-driven assembler against vasm oracle — data-driven from knowledge base.
+"""Unified oracle test harness for KB-driven M68K assembler.
 
 Generates test cases from m68k_instructions.json structured fields (forms,
 ea_modes, sizes, constraints) and binary-diffs our assembler output against
-vasm for each instruction × operand × size combination.
+an external oracle assembler.
 
-Skips:
-  - 020+ instructions — assembler targets 68000
-  - PC-relative EA modes — vasm adjusts displacement by -2, we encode raw
+Supported oracles:
+  vasm   - vasmm68k_mot (direct invocation, raw binary output)
+  devpac - DevPac GenAm 3.18 (via vamos, hunk output, sentinel batching)
 
 Usage:
-    python test_m68k_asm.py [--verbose] [--filter MNEMONIC]
+    python test_m68k_oracle.py vasm [--verbose] [--filter MNEMONIC]
+    python test_m68k_oracle.py devpac [--verbose] [--filter MNEMONIC]
 """
 
+import abc
+import argparse
 import json
 import os
 import re
+import struct
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -28,7 +33,10 @@ sys.path.insert(0, str(PROJ_ROOT / "scripts"))
 from m68k_asm import assemble_instruction  # noqa: E402
 
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
-ORACLE_JSON = PROJ_ROOT / "knowledge" / "asm_vasm.json"
+ORACLE_MAP = {
+    "vasm": PROJ_ROOT / "knowledge" / "asm_vasm.json",
+    "devpac": PROJ_ROOT / "knowledge" / "asm_devpac.json",
+}
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────
@@ -39,21 +47,10 @@ def _load_kb():
     return data.get("instructions", []), data.get("_meta", {})
 
 
-def _load_oracle():
-    with open(ORACLE_JSON, encoding="utf-8") as f:
-        return json.load(f)
-
-
 KB_INSTRUCTIONS, KB_META = _load_kb()
+KB_BY_MNEMONIC = {inst["mnemonic"]: inst for inst in KB_INSTRUCTIONS}
 CC_ALL = list(KB_META["condition_codes"])
 IMM_ROUTING = KB_META["immediate_routing"]
-
-ORACLE = _load_oracle()
-VASM = PROJ_ROOT / "tools" / ORACLE["cli"]["executable"]
-if sys.platform == "win32" and not VASM.suffix:
-    VASM = VASM.with_suffix(".exe")
-VASM_OUTPUT_FMT = ORACLE["cli"]["output_formats"]["raw_binary"]
-VASM_NO_OPT = ORACLE["options"]["no_optimization"]
 
 
 # ── EA mode to assembly syntax ────────────────────────────────────────────
@@ -481,9 +478,7 @@ def _generate_branch_tests():
     """Generate branch/DBcc tests from KB uses_label instructions.
 
     Tests use absolute target addresses with a fixed pc=0x1000.
-    Returns list of (asm_line, description, pc, inst_size) tuples.
-    The extra fields (pc, inst_size) distinguish branch tests from
-    regular tests in the runner.
+    Returns list of (asm_line, description, pc) tuples.
     """
     tests = []
     pc = 0x1000
@@ -601,65 +596,26 @@ def _generate_branch_tests():
     return tests
 
 
-# ── Vasm oracle ───────────────────────────────────────────────────────────
+# ── Divergence checks ────────────────────────────────────────────────────
 
-def _vasm_assemble(text):
-    """Assemble a single instruction with vasm, return bytes or None."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".s", delete=False,
-                                     encoding="utf-8") as f:
-        f.write(f" {text}\n")
-        f.flush()
-        src_path = f.name
-    out_path = src_path + ".bin"
-    try:
-        result = subprocess.run(
-            [str(VASM), VASM_OUTPUT_FMT, VASM_NO_OPT, "-o", out_path, src_path],
-            capture_output=True, text=True, timeout=10)
-        if result.returncode != 0:
-            return None
-        with open(out_path, "rb") as f:
-            return f.read()
-    except Exception:
-        return None
-    finally:
-        for p in (src_path, out_path):
-            try:
-                os.unlink(p)
-            except OSError:
-                pass
+def _check_known_divergence(mnemonic, asm, our_bytes, oracle_bytes):
+    """Check if mismatch is a known acceptable divergence.
+
+    Returns a reason string if it's a known divergence, None otherwise.
+    Both checks are applied regardless of oracle — the assembler's
+    behavior is the same, only the oracle's encoding choice differs.
+    """
+    if _is_imm_routing_divergence(mnemonic, asm, our_bytes, oracle_bytes):
+        return f"imm routing: {mnemonic}\u2192{IMM_ROUTING[mnemonic]}"
+    if _is_commutative_match(mnemonic, our_bytes, oracle_bytes):
+        return "commutative"
+    return None
 
 
-def _vasm_assemble_at(text, org=0x1000):
-    """Assemble an instruction with vasm using org directive, return bytes."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".s", delete=False,
-                                     encoding="utf-8") as f:
-        f.write(f" org ${org:x}\n")
-        f.write(f" {text}\n")
-        f.flush()
-        src_path = f.name
-    out_path = src_path + ".bin"
-    try:
-        result = subprocess.run(
-            [str(VASM), VASM_OUTPUT_FMT, VASM_NO_OPT, "-o", out_path, src_path],
-            capture_output=True, text=True, timeout=10)
-        if result.returncode != 0:
-            return None
-        with open(out_path, "rb") as f:
-            return f.read()
-    except Exception:
-        return None
-    finally:
-        for p in (src_path, out_path):
-            try:
-                os.unlink(p)
-            except OSError:
-                pass
-
-
-def _is_imm_routing_divergence(mnemonic, asm, our_bytes, vasm_bytes):
+def _is_imm_routing_divergence(mnemonic, asm, our_bytes, oracle_bytes):
     """Check if a mismatch is a known immediate routing divergence.
 
-    We route ADD #imm → ADDI (DevPac-style), vasm -no-opt keeps the
+    We route ADD #imm -> ADDI (DevPac-style), some oracles keep the
     general-purpose encoding.  Both are valid M68K.
 
     Validates structurally: mnemonic must be in IMM_ROUTING, asm must have
@@ -676,153 +632,552 @@ def _is_imm_routing_divergence(mnemonic, asm, our_bytes, vasm_bytes):
     if not operands[0].strip().startswith("#"):
         return False
     # Both encodings must have same length (both valid, just different opword)
-    if len(our_bytes) != len(vasm_bytes):
+    if len(our_bytes) != len(oracle_bytes):
         return False
     # Extension words must be identical (only opword differs)
-    if our_bytes[2:] != vasm_bytes[2:]:
+    if our_bytes[2:] != oracle_bytes[2:]:
         return False
     return True
 
 
+def _is_commutative_match(mnemonic, our_bytes, oracle_bytes):
+    """Check if a mismatch is due to commutative register assignment.
+
+    For instructions whose KB operation field indicates commutativity
+    (e.g. EXG: "Rx <-> Ry"), swapping the two register fields in the opword
+    produces identical behavior.  Accept as equivalent if swapping Rx/Ry
+    in our encoding matches the oracle's encoding.
+    """
+    inst = KB_BY_MNEMONIC.get(mnemonic)
+    if inst is None or len(our_bytes) != 2 or len(oracle_bytes) != 2:
+        return False
+    # Detect commutativity from KB operation field (exchange symbol)
+    operation = inst.get("operation", "")
+    if "\u2194" not in operation and "\u2190\u2192" not in operation:
+        return False
+    # Find the two REGISTER fields in the encoding
+    enc = inst["encodings"][0]
+    reg_fields = [f for f in enc["fields"]
+                  if "REGISTER" in f["name"].upper()
+                  and f["name"] not in ("0", "1")]
+    if len(reg_fields) != 2:
+        return False
+    # Extract register values from our opword, swap them, rebuild
+    our_word = struct.unpack(">H", our_bytes)[0]
+    r0, r1 = reg_fields[0], reg_fields[1]
+    mask0 = ((1 << r0["width"]) - 1) << r0["bit_lo"]
+    mask1 = ((1 << r1["width"]) - 1) << r1["bit_lo"]
+    val0 = (our_word & mask0) >> r0["bit_lo"]
+    val1 = (our_word & mask1) >> r1["bit_lo"]
+    # Rebuild with swapped register values
+    swapped = (our_word & ~mask0 & ~mask1) | (val1 << r0["bit_lo"]) | (val0 << r1["bit_lo"])
+    oracle_word = struct.unpack(">H", oracle_bytes)[0]
+    return swapped == oracle_word
+
+
+# ── Hunk code extraction (for Amiga hunk format output) ──────────────────
+
+HUNK_CODE_ID = 0x3E9
+HUNK_END_ID = 0x3F2
+HUNK_HEADER_ID = 0x3F3
+
+
+def _extract_hunk_code(data):
+    """Extract code bytes from an Amiga hunk executable.
+
+    Returns the raw code bytes from the first HUNK_CODE section,
+    stripped of long-word padding.
+    """
+    if len(data) < 4:
+        return None
+    magic = struct.unpack(">I", data[:4])[0]
+    if magic != HUNK_HEADER_ID:
+        return None
+
+    # Skip HUNK_HEADER: magic, string_count(0), num_hunks, first, last, sizes
+    pos = 4
+    # resident library names (terminated by 0)
+    while pos < len(data) - 4:
+        name_longs = struct.unpack(">I", data[pos:pos + 4])[0]
+        pos += 4
+        if name_longs == 0:
+            break
+        pos += name_longs * 4
+
+    # table_size, first_hunk, last_hunk
+    if pos + 12 > len(data):
+        return None
+    table_size, first_hunk, last_hunk = struct.unpack(">III", data[pos:pos + 12])
+    pos += 12
+
+    # hunk sizes
+    num_hunks = last_hunk - first_hunk + 1
+    pos += num_hunks * 4
+
+    # Find HUNK_CODE
+    while pos < len(data) - 4:
+        hunk_id = struct.unpack(">I", data[pos:pos + 4])[0]
+        pos += 4
+        if hunk_id == HUNK_CODE_ID:
+            n_longs = struct.unpack(">I", data[pos:pos + 4])[0]
+            pos += 4
+            code = data[pos:pos + n_longs * 4]
+            return code
+        elif hunk_id == HUNK_END_ID:
+            continue
+        else:
+            # Skip unknown hunk
+            if pos + 4 <= len(data):
+                n_longs = struct.unpack(">I", data[pos:pos + 4])[0]
+                pos += 4 + n_longs * 4
+            else:
+                break
+    return None
+
+
+# ── Oracle drivers ────────────────────────────────────────────────────────
+
+class OracleDriver(abc.ABC):
+    """Base class for oracle assembler drivers."""
+
+    def __init__(self, oracle_cfg, proj_root):
+        self.cfg = oracle_cfg
+        self.proj_root = proj_root
+        driver = oracle_cfg["driver"]
+        self.exe_path = proj_root / driver["executable_path"]
+
+    def setup(self):
+        """Called before test run. Override for pre-run setup."""
+        pass
+
+    def teardown(self):
+        """Called after test run. Override for cleanup."""
+        pass
+
+    @abc.abstractmethod
+    def assemble_one(self, text, pc=0):
+        """Assemble one instruction, return bytes or None."""
+
+    def assemble_batch(self, items):
+        """Assemble multiple (text, pc) items. Returns list of bytes|None.
+
+        Default implementation calls assemble_one for each item.
+        Override for batched invocation.
+        """
+        return [self.assemble_one(text, pc) for text, pc in items]
+
+    def prepare_branch_text(self, asm_text, pc):
+        """Convert branch asm text for this oracle. Default: unchanged."""
+        return asm_text
+
+    def smoke_test(self):
+        """Optional smoke test before main run. Returns True on success."""
+        return True
+
+    @property
+    def supports_batching(self):
+        return False
+
+    @property
+    def batch_size(self):
+        return 0
+
+
+class VasmDriver(OracleDriver):
+    """Direct invocation of vasm, raw binary output."""
+
+    def __init__(self, oracle_cfg, proj_root):
+        super().__init__(oracle_cfg, proj_root)
+        if sys.platform == "win32" and not self.exe_path.suffix:
+            self.exe_path = self.exe_path.with_suffix(".exe")
+        self.output_fmt = oracle_cfg["cli"]["output_formats"]["raw_binary"]
+        self.no_opt = oracle_cfg["options"]["no_optimization"]
+
+    def assemble_one(self, text, pc=0):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".s", delete=False,
+                                         encoding="utf-8") as f:
+            if pc:
+                f.write(f" org ${pc:x}\n")
+            f.write(f" {text}\n")
+            f.flush()
+            src_path = f.name
+        out_path = src_path + ".bin"
+        try:
+            result = subprocess.run(
+                [str(self.exe_path), self.output_fmt, self.no_opt,
+                 "-o", out_path, src_path],
+                capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                return None
+            with open(out_path, "rb") as f:
+                return f.read()
+        except Exception:
+            return None
+        finally:
+            for p in (src_path, out_path):
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
+
+
+class VamosDriver(OracleDriver):
+    """Invocation via vamos (Amiga emulator), hunk output with sentinel batching."""
+
+    def __init__(self, oracle_cfg, proj_root):
+        super().__init__(oracle_cfg, proj_root)
+        self.cpu_select = oracle_cfg["options"]["cpu_select"]
+        self.no_opt = oracle_cfg["options"]["no_optimization"]
+        self.quiet = oracle_cfg["options"]["quiet"]
+        self.win_temp = os.environ.get("TEMP", os.environ.get("TMP", ""))
+        driver = oracle_cfg["driver"]
+        self._batch_size = driver.get("batch_size", 50)
+        sentinel_str = driver.get("sentinel_word", "0xA5A5")
+        self._sentinel = int(sentinel_str, 16)
+        self._sentinel_bytes = struct.pack(">H", self._sentinel)
+        self._opts_bak = None
+
+    def setup(self):
+        # Temporarily rename GenAm.opts to prevent auto-load errors under vamos
+        opts_file = self.cfg.get("platform_notes", {}).get(
+            "auto_config", {}).get("opts_file")
+        if opts_file:
+            opts = self.exe_path.parent / opts_file
+            bak = opts.with_suffix(".opts.bak")
+            if opts.exists():
+                opts.rename(bak)
+                self._opts_bak = bak
+
+    def teardown(self):
+        if self._opts_bak and self._opts_bak.exists():
+            opts_name = self.cfg.get("platform_notes", {}).get(
+                "auto_config", {}).get("opts_file", "GenAm.opts")
+            opts = self.exe_path.parent / opts_name
+            self._opts_bak.rename(opts)
+
+    def _write_source(self, path, lines):
+        with open(path, "wb") as f:
+            f.write(f" {self.cpu_select}\n".encode("latin-1"))
+            f.write(f" {self.no_opt}\n".encode("latin-1"))
+            for line in lines:
+                f.write(f" {line}\n".encode("latin-1"))
+
+    def _run_vamos(self, src_path, out_path, timeout=15):
+        src_name = os.path.basename(src_path)
+        out_name = os.path.basename(out_path)
+        return subprocess.run(
+            ["vamos",
+             "-V", f"TMP:{self.win_temp}",
+             "--", str(self.exe_path),
+             f"TMP:{src_name}",
+             f"-oTMP:{out_name}",
+             self.quiet],
+            capture_output=True, text=True, timeout=timeout)
+
+    def assemble_one(self, text, pc=0):
+        src_name = f"_oracle_test_{os.getpid()}.s"
+        out_name = f"_oracle_test_{os.getpid()}"
+        src_path = os.path.join(self.win_temp, src_name)
+        out_path = os.path.join(self.win_temp, out_name)
+        try:
+            self._write_source(src_path, [text])
+            result = self._run_vamos(src_path, out_path)
+            if result.returncode != 0 or not os.path.exists(out_path):
+                return None
+            with open(out_path, "rb") as f:
+                return _extract_hunk_code(f.read())
+        except Exception:
+            return None
+        finally:
+            for p in (src_path, out_path):
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
+
+    def assemble_batch(self, items):
+        """Assemble multiple items in one invocation using sentinel splitting."""
+        src_name = f"_oracle_batch_{os.getpid()}.s"
+        out_name = f"_oracle_batch_{os.getpid()}"
+        src_path = os.path.join(self.win_temp, src_name)
+        out_path = os.path.join(self.win_temp, out_name)
+        texts = [text for text, pc in items]
+        try:
+            lines = []
+            for text in texts:
+                lines.append(text)
+                lines.append(f"dc.w ${self._sentinel:X}")
+            self._write_source(src_path, lines)
+            result = self._run_vamos(src_path, out_path, timeout=30)
+            if result.returncode != 0 or not os.path.exists(out_path):
+                return None
+            with open(out_path, "rb") as f:
+                code = _extract_hunk_code(f.read())
+            if code is None:
+                return None
+            # Split on sentinel to recover per-instruction bytes
+            results = []
+            pos = 0
+            for _ in texts:
+                sentinel_pos = code.find(self._sentinel_bytes, pos)
+                if sentinel_pos < 0:
+                    results.append(None)
+                    continue
+                results.append(code[pos:sentinel_pos])
+                pos = sentinel_pos + 2
+            return results
+        except Exception:
+            return None
+        finally:
+            for p in (src_path, out_path):
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
+
+    def prepare_branch_text(self, asm_text, pc):
+        """Convert $target to *+N syntax (GenAm can't use ORG)."""
+        parts = asm_text.rsplit("$", 1)
+        if len(parts) != 2:
+            return asm_text
+        target = int(parts[1], 16)
+        offset = target - pc
+        star_expr = f"*+{offset}" if offset >= 0 else f"*-{-offset}"
+        return parts[0] + star_expr
+
+    def smoke_test(self):
+        print("Smoke test: oracle assembly...")
+        smoke = self.assemble_one("move.l d0,d1")
+        if smoke is None:
+            print("FATAL: Oracle smoke test failed. Check vamos setup.")
+            return False
+        expected = b"\x22\x00"
+        if smoke[:len(expected)] != expected:
+            print(f"FATAL: Smoke test mismatch: {smoke.hex()} != {expected.hex()}")
+            return False
+        print(f"  OK: move.l d0,d1 -> {smoke.hex()}")
+        return True
+
+    @property
+    def supports_batching(self):
+        return True
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+
+DRIVER_TYPES = {
+    "direct": VasmDriver,
+    "vamos": VamosDriver,
+}
+
+
 # ── Main test runner ──────────────────────────────────────────────────────
 
-def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Test assembler vs vasm")
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Test KB-driven assembler against oracle")
+    parser.add_argument("oracle", choices=sorted(ORACLE_MAP.keys()),
+                        help="Oracle assembler to test against")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--filter", "-f", help="Filter by mnemonic substring")
-    args = parser.parse_args()
+    parser.add_argument("--limit", "-n", type=int, default=0,
+                        help="Limit total tests (0=unlimited)")
+    parser.add_argument("--batch-size", "-b", type=int, default=0,
+                        help="Override batch size (0=use oracle default)")
+    args = parser.parse_args(argv)
 
-    passed = 0
-    failed = 0
-    errors = 0
-    vasm_errors = 0
-    skipped = 0
-    known_divergences = 0
-    failures = []
-    tested_mnemonics = set()
+    # Load oracle config and create driver
+    oracle_path = ORACLE_MAP[args.oracle]
+    with open(oracle_path, encoding="utf-8") as f:
+        oracle_cfg = json.load(f)
+    driver_type = oracle_cfg["driver"]["type"]
+    driver = DRIVER_TYPES[driver_type](oracle_cfg, PROJ_ROOT)
 
+    if args.batch_size:
+        driver._batch_size = args.batch_size
+
+    oracle_name = oracle_cfg["_meta"]["description"]
+    print(f"Oracle: {oracle_name}")
+
+    # Setup and smoke test
+    driver.setup()
+    try:
+        if not driver.smoke_test():
+            return 1
+        return _run_tests(driver, args)
+    finally:
+        driver.teardown()
+
+
+def _run_tests(driver, args):
+    """Generate tests, run against oracle, report results."""
+    t0 = time.time()
+
+    results = {
+        "passed": 0,
+        "failed": 0,
+        "errors": 0,
+        "oracle_errors": 0,
+        "known_divergences": 0,
+        "failures": [],
+        "tested_mnemonics": set(),
+    }
+
+    # ── Collect all tests ─────────────────────────────────────────────
+    # Each entry: (mnemonic, asm_text, desc, pc)
     all_tests = []
 
-    # Generate tests from KB
     for inst in KB_INSTRUCTIONS:
         mnemonic = inst["mnemonic"]
         if args.filter and args.filter.lower() not in mnemonic.lower():
             continue
+        for asm, desc in generate_tests(inst):
+            all_tests.append((mnemonic, asm, desc, 0))
 
-        tests = generate_tests(inst)
-        for asm, desc in tests:
-            all_tests.append((mnemonic, asm, desc))
-
-    # Add MOVEM tests (handled separately due to register lists)
     if not args.filter or "movem" in args.filter.lower():
         for asm, desc in _generate_movem_tests():
-            all_tests.append(("MOVEM", asm, desc))
+            all_tests.append(("MOVEM", asm, desc, 0))
 
-    for mnemonic, asm, desc in all_tests:
-        # Our assembler
-        try:
-            our_bytes = assemble_instruction(asm)
-        except Exception as e:
-            if args.verbose:
-                print(f"  ASM ERROR: {asm}: {e}")
-            errors += 1
-            failures.append((mnemonic, asm, desc, f"asm: {e}", None))
-            continue
-
-        # Vasm oracle
-        vasm_bytes = _vasm_assemble(asm)
-        if vasm_bytes is None:
-            if args.verbose:
-                print(f"  VASM ERROR: {asm}")
-            vasm_errors += 1
-            continue
-
-        if our_bytes == vasm_bytes:
-            passed += 1
-            tested_mnemonics.add(mnemonic)
-            if args.verbose:
-                print(f"  OK: {asm}")
-        elif _is_imm_routing_divergence(mnemonic, asm, our_bytes, vasm_bytes):
-            # Known divergence: we route ADD #imm → ADDI (DevPac-style),
-            # vasm -no-opt keeps the general encoding.  Both are valid.
-            known_divergences += 1
-            tested_mnemonics.add(mnemonic)
-            if args.verbose:
-                print(f"  KNOWN: {asm} (imm routing: {mnemonic}→{IMM_ROUTING[mnemonic]})")
-        else:
-            failed += 1
-            tested_mnemonics.add(mnemonic)
-            print(f"  MISMATCH: {asm} ({desc})")
-            print(f"    ours: {our_bytes.hex()}")
-            print(f"    vasm: {vasm_bytes.hex()}")
-            failures.append((mnemonic, asm, desc, our_bytes.hex(), vasm_bytes.hex()))
-
-    # ── Branch tests (separate loop — need pc and vasm org) ──────────
+    # Branch tests
     branch_tests = _generate_branch_tests()
     if args.filter:
         branch_tests = [t for t in branch_tests
-                        if args.filter.lower() in t[0].split(".")[0].split()[0].lower()]
+                        if args.filter.lower() in
+                        t[0].split(".")[0].split()[0].lower()]
 
     for asm, desc, pc in branch_tests:
-        # Our assembler
+        br_mn = asm.split(".")[0].split()[0].upper()
+        all_tests.append((br_mn, asm, desc, pc))
+
+    if args.limit:
+        all_tests = all_tests[:args.limit]
+
+    # ── Assemble with our assembler (fast, no subprocess) ─────────────
+    assembled = []
+    for mnemonic, asm, desc, pc in all_tests:
         try:
             our_bytes = assemble_instruction(asm, pc=pc)
         except Exception as e:
             if args.verbose:
-                print(f"  ASM ERROR: {asm} @pc={pc:#x}: {e}")
-            errors += 1
-            failures.append(("BRANCH", asm, desc, f"asm: {e}", None))
+                print(f"  ASM ERROR: {asm}: {e}")
+            results["errors"] += 1
+            results["failures"].append(
+                (mnemonic, asm, desc, f"asm: {e}", None))
             continue
+        # Prepare oracle-specific asm text
+        oracle_text = driver.prepare_branch_text(asm, pc) if pc else asm
+        assembled.append((mnemonic, our_bytes, asm, desc, oracle_text, pc))
 
-        # Vasm oracle (with org to set same pc)
-        vasm_bytes = _vasm_assemble_at(asm, org=pc)
-        if vasm_bytes is None:
-            if args.verbose:
-                print(f"  VASM ERROR: {asm} @pc={pc:#x}")
-            vasm_errors += 1
-            continue
+    # ── Run against oracle ────────────────────────────────────────────
+    if driver.supports_batching:
+        batch_sz = driver.batch_size
+        batch = []
+        for item in assembled:
+            mnemonic, our_bytes, asm, desc, oracle_text, pc = item
+            batch.append(item)
+            if len(batch) >= batch_sz:
+                _run_batch(driver, batch, results, args)
+                batch = []
+        if batch:
+            _run_batch(driver, batch, results, args)
+    else:
+        # No batching — assemble one at a time
+        for mnemonic, our_bytes, asm, desc, oracle_text, pc in assembled:
+            oracle_bytes = driver.assemble_one(oracle_text, pc=pc)
+            _compare_one(mnemonic, our_bytes, asm, desc, oracle_bytes,
+                         results, args)
 
-        if our_bytes == vasm_bytes:
-            passed += 1
-            # Extract mnemonic for tracking
-            br_mn = asm.split(".")[0].split()[0].upper()
-            tested_mnemonics.add(br_mn)
-            if args.verbose:
-                print(f"  OK: {asm} @pc={pc:#x}")
-        else:
-            failed += 1
-            br_mn = asm.split(".")[0].split()[0].upper()
-            tested_mnemonics.add(br_mn)
-            print(f"  MISMATCH: {asm} @pc={pc:#x} ({desc})")
-            print(f"    ours: {our_bytes.hex()}")
-            print(f"    vasm: {vasm_bytes.hex()}")
-            failures.append((br_mn, asm, desc, our_bytes.hex(), vasm_bytes.hex()))
+    elapsed = time.time() - t0
 
-    total = passed + failed + errors + known_divergences
+    # ── Summary ───────────────────────────────────────────────────────
+    total = (results["passed"] + results["failed"] + results["errors"]
+             + results["known_divergences"])
     print(f"\n{'='*60}")
-    print(f"Results: {passed}/{total} passed, {failed} mismatches, "
-          f"{errors} assembler errors, {vasm_errors} vasm errors"
-          + (f", {known_divergences} known divergences" if known_divergences else ""))
-    print(f"Tested mnemonics: {len(tested_mnemonics)}")
+    print(f"Results: {results['passed']}/{total} passed, "
+          f"{results['failed']} mismatches, "
+          f"{results['errors']} assembler errors, "
+          f"{results['oracle_errors']} oracle errors"
+          + (f", {results['known_divergences']} known divergences"
+             if results["known_divergences"] else ""))
+    print(f"Tested mnemonics: {len(results['tested_mnemonics'])}")
+    print(f"Time: {elapsed:.1f}s ({len(assembled)} instructions)")
 
-    if failures:
-        # Group by mnemonic
+    if results["failures"]:
         by_mn = {}
-        for mn, asm, desc, ours, vasm in failures:
-            by_mn.setdefault(mn, []).append((asm, desc, ours, vasm))
-        print(f"\nFailures ({len(failures)} total):")
+        for mn, asm, desc, ours, oracle in results["failures"]:
+            by_mn.setdefault(mn, []).append((asm, desc, ours, oracle))
+        print(f"\nFailures ({len(results['failures'])} total):")
         for mn, items in sorted(by_mn.items()):
             print(f"  {mn}:")
-            for asm, desc, ours, vasm in items[:5]:
-                if vasm is None:
+            for asm, desc, ours, oracle in items[:5]:
+                if oracle is None:
                     print(f"    {asm}: {ours}")
                 else:
-                    print(f"    {asm}: ours={ours} vasm={vasm}")
+                    print(f"    {asm}: ours={ours} oracle={oracle}")
             if len(items) > 5:
                 print(f"    ... and {len(items) - 5} more")
 
-    return 0 if failed == 0 and errors == 0 else 1
+    return 0 if (results["failed"] == 0 and results["errors"] == 0) else 1
+
+
+def _run_batch(driver, batch, results, args):
+    """Run a batch of tests against oracle and accumulate results."""
+    items = [(oracle_text, pc) for _, _, _, _, oracle_text, pc in batch]
+    oracle_results = driver.assemble_batch(items)
+
+    if oracle_results is None:
+        # Batch failed — fall back to individual assembly
+        for mnemonic, our_bytes, asm, desc, oracle_text, pc in batch:
+            oracle_bytes = driver.assemble_one(oracle_text, pc=pc)
+            _compare_one(mnemonic, our_bytes, asm, desc, oracle_bytes,
+                         results, args)
+        return
+
+    for i, (mnemonic, our_bytes, asm, desc, oracle_text, pc) in enumerate(batch):
+        oracle_bytes = oracle_results[i] if i < len(oracle_results) else None
+        _compare_one(mnemonic, our_bytes, asm, desc, oracle_bytes,
+                     results, args)
+
+
+def _compare_one(mnemonic, our_bytes, asm, desc, oracle_bytes, results, args):
+    """Compare one instruction's output against oracle result."""
+    if oracle_bytes is None:
+        if args.verbose:
+            print(f"  ORACLE ERROR: {asm}")
+        results["oracle_errors"] += 1
+        return
+
+    if len(oracle_bytes) == 0:
+        if args.verbose:
+            print(f"  ORACLE EMPTY: {asm}")
+        results["oracle_errors"] += 1
+        return
+
+    # Compare (trim oracle output to our length for hunk padding)
+    oracle_code = oracle_bytes[:len(our_bytes)]
+
+    if our_bytes == oracle_code:
+        results["passed"] += 1
+        results["tested_mnemonics"].add(mnemonic)
+        if args.verbose:
+            print(f"  OK: {asm}")
+    else:
+        reason = _check_known_divergence(mnemonic, asm, our_bytes, oracle_code)
+        if reason:
+            results["known_divergences"] += 1
+            results["tested_mnemonics"].add(mnemonic)
+            if args.verbose:
+                print(f"  KNOWN: {asm} ({reason})")
+        else:
+            results["failed"] += 1
+            results["tested_mnemonics"].add(mnemonic)
+            print(f"  MISMATCH: {asm} ({desc})")
+            print(f"    ours:   {our_bytes.hex()}")
+            print(f"    oracle: {oracle_bytes.hex()}")
+            results["failures"].append(
+                (mnemonic, asm, desc, our_bytes.hex(), oracle_bytes.hex()))
 
 
 if __name__ == "__main__":

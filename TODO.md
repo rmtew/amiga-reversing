@@ -35,8 +35,9 @@ Reverse of the disassembler, driven from the same JSON.
 - [x] Opword construction from encoding bit patterns + operand fields
 - [x] Extension word generation (displacements, immediate data, bit fields)
 - [x] Size suffix → size field encoding
-- [x] Verify against vasm: assemble with both, binary-diff every instruction × operand × size
-- [x] Verify against DevPac GenAm 3.18: 1296/1300 passed, 4 divergences (3 CMP imm + 1 EXG order)
+- [x] Verify against vasm: 1273/1300 passed, 27 known divergences, 0 mismatches
+- [x] Verify against DevPac GenAm 3.18: 1297/1301 passed, 4 known divergences, 0 mismatches
+- [x] Unified oracle test harness: `scripts/test_m68k_oracle.py` (vasm | devpac)
 - [x] Per-assembler behavior JSON: `knowledge/asm_vasm.json`, `knowledge/asm_devpac.json`
 - [x] Branch/label support with PC-relative displacement calculation
 - [x] SR/CCR/USP operand support (separate KB instructions)

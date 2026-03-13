@@ -27,6 +27,10 @@
     "case_insensitive": "-nocase",
     "include_path": "-I<path>"
   },
+  "driver": {
+    "type": "direct",
+    "executable_path": "tools/vasmm68k_mot"
+  },
   "platform_notes": {},
   "encoding_behaviors": [
     {
