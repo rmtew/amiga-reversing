@@ -1,22 +1,70 @@
 #!/usr/bin/env py.exe
-"""Parse Amiga NDK 1.3 to extract OS library/device function references.
+"""Parse Amiga NDK 3.1 + OS_CHANGES into structured JSON knowledge base.
 
 Parses:
-- FD files: function names, register args, LVO offsets
+- FD files: function names, register args, LVO offsets, private flags
 - Autodocs: full function documentation (synopsis, description, inputs, results)
-- Include files: struct definitions, constants, flag values
+- Include files (.I): struct definitions with computed offsets, constants with evaluation
+- TYPES.I: type size macros (parsed, not hardcoded)
+- OS_CHANGES: version tagging (1.3 -> 2.04 -> 2.1 -> 3.0 -> 3.1 transitions)
 
-Outputs structured JSON for the knowledge base.
+Outputs: knowledge/amiga_os_reference.json
 """
 
 import os
 import re
 import json
 import sys
+import argparse
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-NDK_ROOT = None  # Set from command line
+
+# =============================================================================
+# TYPES.I parser — extract type sizes from macro definitions
+# =============================================================================
+
+def parse_types_i(path: str) -> dict:
+    """Parse EXEC/TYPES.I to extract type sizes from macro definitions.
+
+    Each type macro (UBYTE, WORD, APTR, etc.) contains:
+        SOFFSET SET SOFFSET+N
+    where N is the byte size. LABEL has no SOFFSET line (size 0).
+    STRUCT is special: size comes from macro arg \2.
+    """
+    type_sizes = {}
+    current_macro = None
+
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.rstrip()
+
+            # Macro start: TYPE_NAME MACRO
+            m = re.match(r'^(\w+)\s+MACRO', line)
+            if m:
+                name = m.group(1)
+                # Only track type macros (the ones used in STRUCTURE definitions)
+                if name in ("STRUCTURE", "ENUM", "EITEM", "BITDEF", "BITDEF0",
+                            "EXTERN_LIB"):
+                    current_macro = None
+                else:
+                    current_macro = name
+                continue
+
+            # Inside a macro, look for SOFFSET SET SOFFSET+N
+            if current_macro:
+                sm = re.match(r'^SOFFSET\s+SET\s+SOFFSET\+(\d+)', line)
+                if sm:
+                    type_sizes[current_macro] = int(sm.group(1))
+                    current_macro = None
+                    continue
+                # End of macro without SOFFSET line -> size 0 (e.g. LABEL)
+                if re.match(r'\s+ENDM', line):
+                    if current_macro not in type_sizes:
+                        type_sizes[current_macro] = 0
+                    current_macro = None
+
+    return type_sizes
 
 
 # =============================================================================
@@ -24,21 +72,12 @@ NDK_ROOT = None  # Set from command line
 # =============================================================================
 
 def parse_fd_file(path: str) -> dict:
-    """Parse a .FD file to extract function definitions with LVO offsets.
-
-    FD format:
-        ##base _SysBase
-        ##bias 30
-        ##private
-        FuncName(arg1,arg2)(D0/D1)
-        ##public
-        FuncName2(arg1)(A0)
-    """
-    functions = []
+    """Parse a .FD file to extract function definitions with LVO offsets."""
+    functions = {}
     base_name = ""
     bias = 0
     public = True
-    since_version = None  # tracks "Added for release X.Y" markers
+    since_version = None
 
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -55,7 +94,6 @@ def parse_fd_file(path: str) -> dict:
                 )
                 if vm:
                     since_version = vm.group(1)
-                # Also match "1.2 new semaphore support" style
                 vm2 = re.match(r'\*[-\s]*(\d\.\d)\s+[Nn]ew\b', line)
                 if vm2:
                     since_version = vm2.group(1)
@@ -76,42 +114,23 @@ def parse_fd_file(path: str) -> dict:
             if line.startswith("##end"):
                 break
 
-            # Parse function: Name(args)(regs)
+            # Parse function: Name(args)(regs) or Name()()
             m = re.match(r"(\w+)\(([^)]*)\)\(([^)]*)\)", line)
             if m:
                 name = m.group(1)
                 args = [a.strip() for a in m.group(2).split(",") if a.strip()]
-                regs = [r.strip() for r in m.group(3).replace("/", ",").split(",") if r.strip()]
+                regs = [r.strip().upper() for r in m.group(3).replace("/", ",").split(",") if r.strip()]
                 entry = {
-                    "name": name,
                     "lvo": -bias,
-                    "bias": bias,
                     "args": args,
                     "regs": regs,
-                    "public": public,
                 }
+                if not public:
+                    entry["private"] = True
                 if since_version:
                     entry["since"] = since_version
-                functions.append(entry)
+                functions[name] = entry
                 bias += 6
-                continue
-
-            # Function with no args: Name()()
-            m = re.match(r"(\w+)\(\)\(\)", line)
-            if m:
-                entry = {
-                    "name": m.group(1),
-                    "lvo": -bias,
-                    "bias": bias,
-                    "args": [],
-                    "regs": [],
-                    "public": public,
-                }
-                if since_version:
-                    entry["since"] = since_version
-                functions.append(entry)
-                bias += 6
-                continue
 
     return {"base": base_name, "functions": functions}
 
@@ -123,42 +142,40 @@ def parse_fd_file(path: str) -> dict:
 def parse_autodoc(path: str) -> dict:
     """Parse an autodoc file to extract function documentation.
 
-    Format: each function starts with 'library/FuncName' at column 0,
-    followed by sections: NAME, SYNOPSIS, FUNCTION, INPUTS, RESULTS, BUGS, SEE ALSO
+    Format: entries separated by form feed (0x0C), each starting with
+    library.type/FuncName header.
     """
     with open(path, encoding="utf-8", errors="replace") as f:
         content = f.read()
 
     entries = {}
-
-    # Entries are separated by form feed characters (0x0C)
     parts = content.split('\x0c')
 
     for part in parts:
-        # Get function name from header
         part = part.strip()
-        # Try double-name format first: "exec.library/AllocMem\t\t\texec.library/AllocMem"
-        header_m = re.match(r'(\w+\.\w+/)(\w+)\s+\1\2', part)
+        if not part:
+            continue
+
+        # Try double-name format: "exec.library/AllocMem\t\t\texec.library/AllocMem"
+        header_m = re.match(r'(\w[\w.]+/)(\w+)\s+\1\2', part)
         if not header_m:
-            # Try single-name format: "dos.library/Close"
-            header_m = re.match(r'(\w+\.\w+/)(\w+)\s*$', part, re.MULTILINE)
+            # Single-name format: "dos.library/Close"
+            header_m = re.match(r'(\w[\w.]+/)(\w+)\s*$', part, re.MULTILINE)
         if not header_m:
             continue
 
+        lib_prefix = header_m.group(1).rstrip("/")
         func_name = header_m.group(2)
-        doc = {"name": func_name}
+        doc = {}
 
-        # Extract sections - headers are like "   NAME" or "    NAME" (3-4 spaces)
+        # Extract sections
         sections = re.split(r'\n\s{2,4}([A-Z][A-Z ]+)\n', part)
-        # sections[0] = header, then alternating: section_name, section_content
         for i in range(1, len(sections) - 1, 2):
             section_name = sections[i].strip()
             section_body = sections[i + 1].rstrip()
-            # Clean up indentation
             lines = section_body.split("\n")
             cleaned = []
             for line in lines:
-                # Remove leading tab
                 if line.startswith("\t"):
                     line = line[1:]
                 cleaned.append(line.rstrip())
@@ -171,10 +188,10 @@ def parse_autodoc(path: str) -> dict:
             elif section_name == "FUNCTION":
                 doc["description"] = body
             elif section_name == "INPUTS":
-                doc["inputs"] = body
+                doc["inputs_text"] = body
             elif section_name in ("RESULTS", "RESULT"):
-                doc["results"] = body
-            elif section_name == "NOTE" or section_name == "NOTES":
+                doc["results_text"] = body
+            elif section_name in ("NOTE", "NOTES"):
                 doc["notes"] = body
             elif section_name == "BUGS":
                 doc["bugs"] = body
@@ -183,25 +200,18 @@ def parse_autodoc(path: str) -> dict:
             elif section_name == "WARNING":
                 doc["warning"] = body
 
+        doc["_lib_prefix"] = lib_prefix
         entries[func_name] = doc
 
     return entries
 
 
 # =============================================================================
-# Synopsis parser — extract structured inputs/outputs from autodoc synopsis
+# Synopsis parser — structured inputs/outputs from autodoc synopsis
 # =============================================================================
 
 def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
-    """Parse autodoc SYNOPSIS text into structured input/output data.
-
-    Synopsis format (most common):
-        Line 1: returnName = FuncName(arg1, arg2)    [or just FuncName(args)]
-        Line 2: D0                    D0    D1       [register assignments]
-        Line 3+: C prototype with types
-
-    Returns dict with keys: inputs (list), output (dict or None).
-    """
+    """Parse autodoc SYNOPSIS text into structured input/output data."""
     result = {"inputs": [], "output": None}
     if not synopsis:
         return result
@@ -210,35 +220,28 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
     if not lines:
         return result
 
-    # --- Parse line 1: return name ---
+    # Parse line 1: return name
     line1 = lines[0].strip()
     ret_match = re.match(r'(\w+)\s*=\s*\w+\s*\(', line1)
     ret_name = ret_match.group(1) if ret_match else None
 
-    # --- Parse line 2: register assignments (includes return reg and possibly A6) ---
+    # Parse line 2: register assignments
     ret_reg = None
     if len(lines) >= 2:
         reg_line = lines[1]
-        # Extract all register tokens with their column positions
         reg_tokens = [(m.start(), m.group().upper()) for m in re.finditer(r'[DdAa]\d', reg_line)]
-        # First token on line 2 is typically the return register (aligned under returnName)
         if ret_name and reg_tokens:
             ret_reg = reg_tokens[0][1]
 
-    # --- Parse C prototype for types ---
-    # Look for lines like: void *AllocMem(ULONG, ULONG);
-    # or: struct FileHandle *file;  char *name;  LONG accessMode;
+    # Parse C prototype for types
     c_proto = None
     c_type_decls = []
     for line in lines:
         line_s = line.strip()
-        # Full C prototype: RetType *FuncName(ArgType1, ArgType2);
         proto_m = re.match(r'(.+?)\s+\*?\s*\w+\s*\((.+)\)\s*;', line_s)
         if proto_m:
             c_proto = line_s
             continue
-        # Individual type declaration: ULONG byteSize; or struct Task *task;
-        # Match: "ULONG foo;", "char *name;", "struct Task *task;", "void *ptr;"
         decl_m = re.match(r'((?:struct\s+|unsigned\s+)?\w+)\s*(\*?)\s*(\w+)\s*;', line_s)
         if decl_m:
             typ = decl_m.group(1).strip()
@@ -248,18 +251,14 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
                 typ += " *"
             c_type_decls.append((name, typ))
 
-    # Build type map from declarations
     type_map = {name: typ for name, typ in c_type_decls}
 
     # Extract arg types from C prototype
-    # Formats: "void *AllocMem(ULONG, ULONG);" or "struct Library *OpenLibrary(char *,ULONG);"
     arg_types_from_proto = []
     if c_proto:
-        # Split at the function name + open paren
         proto_m = re.match(r'(.+?)\b(\w+)\s*\((.+)\)\s*;', c_proto)
         if proto_m:
             ret_type_str = proto_m.group(1).strip()
-            # Clean up: "void *" stays, "struct Library *" stays
             if ret_type_str.endswith('*'):
                 ret_type_str = ret_type_str.rstrip('*').strip() + " *"
             arg_str = proto_m.group(3)
@@ -273,19 +272,16 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
         elif ret_name:
             result["output"] = {"name": ret_name, "reg": ret_reg}
     elif ret_name:
-        # No C prototype, but we have return name/reg
         ret_type = type_map.get(ret_name)
         result["output"] = {"name": ret_name, "reg": ret_reg}
         if ret_type:
             result["output"]["type"] = ret_type
 
-    # --- Build structured inputs ---
+    # Build structured inputs
     for i, (aname, areg) in enumerate(zip(arg_names, arg_regs)):
         inp = {"name": aname, "reg": areg.upper()}
-        # Try to get type from C prototype args
         if i < len(arg_types_from_proto):
             inp["type"] = arg_types_from_proto[i]
-        # Or from individual declarations
         elif aname in type_map:
             inp["type"] = type_map[aname]
         result["inputs"].append(inp)
@@ -294,435 +290,875 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
 
 
 # =============================================================================
-# Include file parser (structs and constants)
+# No-return detection
 # =============================================================================
 
-def parse_asm_include(path: str) -> dict:
-    """Parse .I (asm) include file for struct definitions and constants."""
+def check_no_return(doc: dict) -> bool:
+    """Check if autodoc text indicates the function never returns.
+
+    Looks in FUNCTION and NOTES sections for definitive statements that
+    THIS function does not return. Must avoid:
+    - "does not return until..." (conditional wait)
+    - "does not return correct values" (returns wrong thing)
+    - "may never return" (conditional)
+    - "programs may never return" (about callers, not this function)
+    """
+    # Patterns that definitively indicate no-return, anchored to
+    # "this function" or sentence-final position
+    definitive_patterns = [
+        # "This function never returns." or "This function never returns"
+        re.compile(
+            r'\b(?:this\s+(?:function|routine|call))\s+never\s+returns?\s*[.\n]',
+            re.IGNORECASE,
+        ),
+        # "This function does not return." (sentence-final)
+        re.compile(
+            r'\b(?:this\s+(?:function|routine|call))\s+does\s+not\s+return\s*[.\n]',
+            re.IGNORECASE,
+        ),
+        # Standalone "never returns." at end of sentence (common brief form)
+        re.compile(r'^\s*\w+\(?\)?\s+never\s+returns?\s*\.', re.IGNORECASE | re.MULTILINE),
+    ]
+
+    for key in ("description", "notes"):
+        text = doc.get(key, "")
+        if not text:
+            continue
+        for pat in definitive_patterns:
+            if pat.search(text):
+                return True
+    return False
+
+
+# =============================================================================
+# Include file parser (structs and constants) — with offset computation
+# =============================================================================
+
+def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
+    """Parse .I (asm) include file for struct definitions and constants.
+
+    Computes byte offsets for struct fields using type_sizes from TYPES.I.
+    """
     structs = {}
     constants = {}
     current_struct = None
     current_fields = []
+    current_offset = 0
+
+    # Track the source subpath (e.g. "exec/NODES.I")
+    rel_parts = path.replace("\\", "/").split("/")
+    # Find INCLUDE_I in path
+    try:
+        idx = [p.upper() for p in rel_parts].index("INCLUDE_I")
+        source = "/".join(rel_parts[idx + 1:])
+    except ValueError:
+        source = os.path.basename(path)
+
+    def finish_struct():
+        nonlocal current_struct, current_fields, current_offset
+        if current_struct and current_fields:
+            structs[current_struct] = {
+                "source": source,
+                "size": current_offset,
+                "fields": current_fields,
+            }
+        current_struct = None
+        current_fields = []
+        current_offset = 0
 
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.rstrip()
 
-            # STRUCTURE definition start
-            m = re.match(r'\s+STRUCTURE\s+(\w+),(\d+)', line)
+            # STRUCTURE definition start: STRUCTURE Name,InitialOffset
+            m = re.match(r'\s+STRUCTURE\s+(\w+),(\w+)', line)
             if m:
-                if current_struct:
-                    structs[current_struct] = current_fields
+                finish_struct()
                 current_struct = m.group(1)
+                init_offset_str = m.group(2)
+                # Initial offset can be a constant name (e.g. LIB_SIZE)
+                # or a number
+                try:
+                    current_offset = int(init_offset_str)
+                except ValueError:
+                    # Try to resolve from known constants
+                    resolved = resolve_constant_value(init_offset_str, all_constants)
+                    current_offset = resolved if resolved is not None else 0
                 current_fields = []
                 continue
 
-            # Struct field: UBYTE, UWORD, ULONG, APTR, BPTR, STRUCT, LABEL
-            if current_struct:
+            # Struct field types
+            if current_struct is not None:
+                # Standard type fields: UBYTE name, WORD name, APTR name, etc.
                 fm = re.match(
-                    r'\s+(UBYTE|BYTE|UWORD|WORD|ULONG|LONG|APTR|BPTR|STRUCT|LABEL)\s+(\w+)',
+                    r'\s+(UBYTE|BYTE|UWORD|WORD|ULONG|LONG|APTR|BPTR|CPTR|FPTR|'
+                    r'BOOL|FLOAT|DOUBLE|RPTR|SHORT|USHORT)\s+(\w+)',
                     line
                 )
                 if fm:
+                    ftype = fm.group(1)
+                    fname = fm.group(2)
+                    fsize = type_sizes.get(ftype, 0)
                     current_fields.append({
-                        "type": fm.group(1),
-                        "name": fm.group(2),
+                        "name": fname,
+                        "type": ftype,
+                        "offset": current_offset,
+                        "size": fsize,
+                    })
+                    current_offset += fsize
+                    continue
+
+                # STRUCT name,size — embedded sub-structure
+                sm = re.match(r'\s+STRUCT\s+(\w+),(\w+)', line)
+                if sm:
+                    fname = sm.group(1)
+                    size_str = sm.group(2)
+                    try:
+                        fsize = int(size_str)
+                    except ValueError:
+                        resolved = resolve_constant_value(size_str, all_constants)
+                        fsize = resolved if resolved is not None else 0
+                    current_fields.append({
+                        "name": fname,
+                        "type": "STRUCT",
+                        "offset": current_offset,
+                        "size": fsize,
+                    })
+                    current_offset += fsize
+                    continue
+
+                # LABEL name — zero-size marker
+                lm = re.match(r'\s+LABEL\s+(\w+)', line)
+                if lm:
+                    fname = lm.group(1)
+                    current_fields.append({
+                        "name": fname,
+                        "type": "LABEL",
+                        "offset": current_offset,
+                        "size": 0,
                     })
                     continue
-                # End of struct (next STRUCTURE or blank/comment section)
-                if line.strip() and not line.startswith("*") and not line.startswith(";"):
-                    if not re.match(r'\s+(DS|ALIGNWORD|ALIGNLONG)', line):
-                        if current_struct and current_fields:
-                            structs[current_struct] = current_fields
-                        current_struct = None
-                        current_fields = []
+
+                # ALIGNWORD
+                if re.match(r'\s+ALIGNWORD\b', line):
+                    current_offset = (current_offset + 1) & ~1
+                    continue
+
+                # ALIGNLONG
+                if re.match(r'\s+ALIGNLONG\b', line):
+                    current_offset = (current_offset + 3) & ~3
+                    continue
+
+                # DS.B / DS.W / DS.L — data storage (rare in structs but possible)
+                dm = re.match(r'\s+DS\.\w\s+', line)
+                if dm:
+                    continue
+
+                # End of struct detection: non-empty, non-comment line that's
+                # not a recognized struct directive -> end the struct
+                stripped = line.strip()
+                if stripped and not stripped.startswith("*") and not stripped.startswith(";"):
+                    # But allow blank lines and comments within structs
+                    # Check if this line could be part of struct (EQU inside struct, etc.)
+                    if not re.match(r'\s+(DS|CNOP)', line):
+                        finish_struct()
 
             # EQU constants
-            cm = re.match(r'^(\w+)\s+EQU\s+(.+?)(?:\s*;.*)?$', line)
+            cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
             if cm:
                 name = cm.group(1)
                 value = cm.group(2).strip()
                 constants[name] = value
                 continue
 
-            # SET constants
-            cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*;.*)?$', line)
+            # SET constants (skip include guards ending in _I)
+            cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
             if cm:
                 name = cm.group(1)
                 value = cm.group(2).strip()
-                # Skip include guards
-                if not name.endswith("_I"):
+                if not name.endswith("_I") and name != "SOFFSET" and name != "EOFFSET":
                     constants[name] = value
 
-    if current_struct and current_fields:
-        structs[current_struct] = current_fields
-
+    finish_struct()
     return {"structs": structs, "constants": constants}
 
 
-def parse_c_include(path: str) -> dict:
-    """Parse .H (C) include file for struct definitions and constants."""
-    structs = {}
-    constants = {}
+# =============================================================================
+# Constant evaluation
+# =============================================================================
+
+def resolve_constant_value(expr: str, all_constants: dict, depth: int = 0) -> int | None:
+    """Resolve a constant expression to an integer value.
+
+    Handles:
+    - Decimal literals
+    - Hex ($xxxx or 0x...)
+    - Binary (%xxxx)
+    - Simple arithmetic: +, -, *, <<, >>, |, &, ~
+    - References to other constants
+    - Parenthesized expressions
+    """
+    if depth > 20:
+        return None
+
+    expr = expr.strip()
+    if not expr:
+        return None
+
+    # Direct integer literal
+    try:
+        return int(expr)
+    except ValueError:
+        pass
+
+    # Hex: $xxxx
+    m = re.match(r'^\$([0-9a-fA-F]+)$', expr)
+    if m:
+        return int(m.group(1), 16)
+
+    # Hex: 0x...
+    m = re.match(r'^0x([0-9a-fA-F]+)$', expr, re.IGNORECASE)
+    if m:
+        return int(m.group(1), 16)
+
+    # Binary: %xxxx
+    m = re.match(r'^%([01]+)$', expr)
+    if m:
+        return int(m.group(1), 2)
+
+    # Bitwise NOT: ~expr
+    m = re.match(r'^~(.+)$', expr)
+    if m:
+        val = resolve_constant_value(m.group(1), all_constants, depth + 1)
+        if val is not None:
+            return ~val & 0xFFFFFFFF
+        return None
+
+    # Strip outer parens
+    if expr.startswith('(') and expr.endswith(')'):
+        inner = expr[1:-1]
+        # Check balanced
+        depth_count = 0
+        balanced = True
+        for ch in inner:
+            if ch == '(':
+                depth_count += 1
+            elif ch == ')':
+                depth_count -= 1
+                if depth_count < 0:
+                    balanced = False
+                    break
+        if balanced and depth_count == 0:
+            val = resolve_constant_value(inner, all_constants, depth + 1)
+            if val is not None:
+                return val
+
+    # Binary operators (lowest precedence first): |, &, <<, >>, +, -, *
+    # Split on operators respecting parentheses
+    for ops in [('|',), ('&',), ('<<', '>>'), ('+', '-'), ('*',)]:
+        pos = find_operator(expr, ops)
+        if pos is not None:
+            op_str, op_pos, op_len = pos
+            left = expr[:op_pos].strip()
+            right = expr[op_pos + op_len:].strip()
+            lval = resolve_constant_value(left, all_constants, depth + 1)
+            rval = resolve_constant_value(right, all_constants, depth + 1)
+            if lval is not None and rval is not None:
+                if op_str == '|':
+                    return lval | rval
+                elif op_str == '&':
+                    return lval & rval
+                elif op_str == '<<':
+                    return (lval << rval) & 0xFFFFFFFF
+                elif op_str == '>>':
+                    return lval >> rval
+                elif op_str == '+':
+                    return lval + rval
+                elif op_str == '-':
+                    return lval - rval
+                elif op_str == '*':
+                    return lval * rval
+            return None
+
+    # Single identifier — look up in constants
+    m = re.match(r'^[A-Za-z_]\w*$', expr)
+    if m:
+        if expr in all_constants:
+            raw = all_constants[expr]
+            if isinstance(raw, dict):
+                return raw.get("value")
+            return resolve_constant_value(str(raw), all_constants, depth + 1)
+        return None
+
+    return None
+
+
+def find_operator(expr: str, ops: tuple) -> tuple | None:
+    """Find the rightmost occurrence of any operator in ops, outside parens.
+
+    Returns (op_str, position, op_length) or None.
+    For left-to-right evaluation, we want the rightmost split point
+    (lowest precedence = split last).
+    """
+    depth = 0
+    best = None
+    i = 0
+    while i < len(expr):
+        ch = expr[i]
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        elif depth == 0:
+            for op in ops:
+                if expr[i:i + len(op)] == op:
+                    # For - and +, don't match if it's the first char (unary)
+                    if op in ('+', '-') and i == 0:
+                        continue
+                    # Don't match << when we're looking for < alone, etc.
+                    best = (op, i, len(op))
+        i += 1
+    return best
+
+
+def evaluate_all_constants(raw_constants: dict) -> dict:
+    """Resolve all constants to integer values where possible.
+
+    Returns dict of {name: {"raw": expr_str, "value": int_or_null}}.
+    """
+    result = {}
+    for name, raw_expr in raw_constants.items():
+        result[name] = {"raw": str(raw_expr), "value": None}
+
+    # Multiple passes to resolve dependencies
+    for _ in range(10):
+        changed = False
+        for name, entry in result.items():
+            if entry["value"] is not None:
+                continue
+            val = resolve_constant_value(entry["raw"], result)
+            if val is not None:
+                entry["value"] = val
+                changed = True
+        if not changed:
+            break
+
+    return result
+
+
+# =============================================================================
+# OS_CHANGES parser (integrated)
+# =============================================================================
+
+def parse_change_file(path: str) -> dict:
+    """Parse a single OS_CHANGES file."""
+    result = {"added": {}, "new": {}, "removed": {}}
 
     with open(path, encoding="utf-8", errors="replace") as f:
         content = f.read()
 
-    # #define constants
-    for m in re.finditer(r'#define\s+(\w+)\s+(.+?)(?:\s*/\*.*)?$', content, re.MULTILINE):
-        name = m.group(1)
-        value = m.group(2).strip()
-        if not name.startswith("_") and not name.endswith("_H"):
-            constants[name] = value
+    sections = re.split(r'\n(?=(?:Added|Removed|New functions) in )', content)
 
-    # Simple struct extraction
-    for m in re.finditer(
-        r'struct\s+(\w+)\s*\{([^}]+)\}', content, re.DOTALL
-    ):
-        struct_name = m.group(1)
-        body = m.group(2)
-        fields = []
-        for fm in re.finditer(r'(\w[\w\s*]+?)\s+(\w+)(?:\[(\w+)\])?\s*;', body):
-            ftype = fm.group(1).strip()
-            fname = fm.group(2)
-            farray = fm.group(3)
-            entry = {"type": ftype, "name": fname}
-            if farray:
-                entry["array"] = farray
-            fields.append(entry)
-        if fields:
-            structs[struct_name] = fields
+    for section in sections:
+        section = section.strip()
+        if not section:
+            continue
 
-    return {"structs": structs, "constants": constants}
+        header_m = re.match(r'(Added|Removed|New functions) in ([\d.]+):', section)
+        if not header_m:
+            continue
+
+        section_type = header_m.group(1).lower()
+        if section_type == "added":
+            target = result["added"]
+        elif section_type == "removed":
+            target = result["removed"]
+        else:
+            target = result["new"]
+
+        current_lib = None
+        for line in section.split('\n')[1:]:
+            if not line.strip():
+                continue
+            tabs = len(line) - len(line.lstrip('\t'))
+            stripped = line.strip()
+
+            if tabs == 1 and not stripped.endswith('()') and '.' in stripped:
+                lib_name = re.match(r'(\S+)', stripped).group(1)
+                current_lib = lib_name
+                if current_lib not in target:
+                    target[current_lib] = []
+                continue
+
+            if tabs >= 2 and stripped.endswith('()') and current_lib:
+                func_name = stripped.rstrip('()')
+                target[current_lib].append(func_name)
+
+    return result
 
 
-# =============================================================================
-# LVO offset parser
-# =============================================================================
+def build_version_map(os_changes_dir: str) -> dict:
+    """Build function->version mapping from all change files."""
+    change_files = [
+        ("1.3_TO_2.04", "2.04"),
+        ("2.04_TO_2.1", "2.1"),
+        ("2.1_TO_3.0", "3.0"),
+        ("3.0_TO_3.1", "3.1"),
+    ]
 
-def parse_lvo_offs(path: str) -> dict:
-    """Parse LVO.OFFS for complete offset table across all libraries."""
     libraries = {}
-    current_lib = None
-    since_version = None
+    removed = {}
 
-    with open(path, encoding="utf-8", errors="replace") as f:
-        for line in f:
-            line = line.rstrip()
+    for filename, version in change_files:
+        path = os.path.join(os_changes_dir, filename)
+        if not os.path.exists(path):
+            print(f"  Warning: {path} not found, skipping")
+            continue
 
-            # Library header: "*** library.name ***"
-            m = re.match(r'\*+\s+(\S+)\s+\*+', line)
-            if m:
-                current_lib = m.group(1)
-                libraries[current_lib] = []
-                since_version = None
-                continue
+        changes = parse_change_file(path)
 
-            # Version markers: "*--- Added as of version 34 ..."
-            if line.startswith("*"):
-                vm = re.search(
-                    r'(?:[Nn]ew|[Aa]dded)\s+(?:functions?\s+)?(?:for|as of)\s+'
-                    r'(?:[Rr]elease\s+|[Vv]ersion\s+|[Vv])(\d[\d.]*)',
-                    line
-                )
-                if vm:
-                    since_version = vm.group(1)
-                vm2 = re.match(r'\*[-\s]*(\d\.\d)\s+[Nn]ew\b', line)
-                if vm2:
-                    since_version = vm2.group(1)
-                continue
+        for lib_name, funcs in changes["added"].items():
+            if lib_name not in libraries:
+                libraries[lib_name] = {"added_in": version, "functions": {}}
+            else:
+                libraries[lib_name]["added_in"] = version
+            for func in funcs:
+                libraries[lib_name]["functions"][func] = version
 
-            if line.startswith("##"):
-                continue
+        for lib_name, funcs in changes["new"].items():
+            if lib_name not in libraries:
+                libraries[lib_name] = {"added_in": "pre-existing", "functions": {}}
+            for func in funcs:
+                libraries[lib_name]["functions"][func] = version
 
-            if current_lib and line.strip():
-                # Format: "  30 $ffe2 -$001e FuncName(args)(regs)"
-                m = re.match(
-                    r'\s*(\d+)\s+\$[0-9a-f]+\s+-\$([0-9a-f]+)\s+(\w+)\(([^)]*)\)\(([^)]*)\)',
-                    line
-                )
-                if m:
-                    bias = int(m.group(1))
-                    name = m.group(3)
-                    args = [a.strip() for a in m.group(4).split(",") if a.strip()]
-                    regs = [r.strip() for r in m.group(5).replace("/", ",").split(",") if r.strip()]
-                    entry = {
-                        "name": name,
-                        "lvo": -bias,
-                        "bias": bias,
-                        "args": args,
-                        "regs": regs,
-                    }
-                    if since_version:
-                        entry["since"] = since_version
-                    libraries[current_lib].append(entry)
+        for lib_name, funcs in changes["removed"].items():
+            if lib_name not in removed:
+                removed[lib_name] = {"removed_in": version, "functions": funcs}
+            else:
+                removed[lib_name]["functions"].extend(funcs)
 
-    return libraries
+    return {"libraries": libraries, "removed": removed}
+
+
+# =============================================================================
+# FD name -> library name mapping
+# =============================================================================
+
+# FD filename stem -> canonical library base name
+FD_NAME_MAP = {
+    "wb": "workbench",
+    "cardres": "card",
+}
+
+# Library base name -> suffix override (when not .library)
+SUFFIX_MAP = {
+    "battclock": ".resource",
+    "battmem": ".resource",
+    "card": ".resource",
+    "cia": ".resource",
+    "disk": ".resource",
+    "misc": ".resource",
+    "potgo": ".resource",
+    "console": ".device",
+    "input": ".device",
+    "timer": ".device",
+    "ramdrive": ".device",
+    "colorwheel": ".gadget",
+    "gradientslider": ".gadget",
+}
+
+
+def fd_stem_to_lib_name(fd_stem: str) -> str:
+    """Convert FD filename stem (e.g. 'exec') to full library name (e.g. 'exec.library')."""
+    base = FD_NAME_MAP.get(fd_stem, fd_stem)
+    suffix = SUFFIX_MAP.get(base, ".library")
+    return base + suffix
+
+
+# =============================================================================
+# Autodoc -> library matching
+# =============================================================================
+
+def match_autodoc_to_lib(doc_filename: str, lib_names: set) -> str | None:
+    """Match an autodoc filename (e.g. 'EXEC.DOC') to a library name.
+
+    Strategy:
+    1. Direct match: exec -> exec.library
+    2. With suffix variations: .library, .device, .resource
+    3. Special cases for gadget classes, datatypes
+    4. FD name mapping (wb -> workbench, cardres -> card)
+    """
+    stem = doc_filename.replace(".DOC", "").lower()
+
+    # Strip common suffixes from doc names
+    stem = stem.replace("_gc", "")  # COLORWHEEL_GC.DOC -> colorwheel
+    stem = stem.replace("_dtc", "")  # 8SVX_DTC.DOC -> 8svx
+    stem = stem.replace("_lib", "")  # DEBUG_LIB.DOC -> debug
+
+    # Apply FD name map (same aliases used for FD files)
+    stem = FD_NAME_MAP.get(stem, stem)
+
+    for suffix in (".library", ".device", ".resource", ".gadget", ".datatype"):
+        candidate = stem + suffix
+        if candidate in lib_names:
+            return candidate
+
+    # Try without suffix — some docs match library names directly
+    for lib in lib_names:
+        lib_base = lib.rsplit(".", 1)[0]
+        if lib_base == stem:
+            return lib
+
+    return None
 
 
 # =============================================================================
 # Main: combine all sources
 # =============================================================================
 
-def find_ndk_paths(ndk_root: str) -> dict:
-    """Auto-detect NDK directory structure (works with 1.3 and 3.1 layouts)."""
-    paths = {}
-
-    # FD files
-    for candidate in [
-        os.path.join(ndk_root, "INCLUDES&LIBS", "FD"),       # NDK 3.1
-        os.path.join(ndk_root, "INCLUDE-STRIP1.3", "FD1.3"), # NDK 1.3
-    ]:
-        if os.path.isdir(candidate):
-            paths["fd_dir"] = candidate
-            break
-
-    # Autodocs
-    autodoc_dirs = []
-    for candidate in [
-        os.path.join(ndk_root, "DOCS", "DOC"),                  # NDK 3.1 (single dir)
-        os.path.join(ndk_root, "AUTODOCS1.3", "LIBRARIESA-K"),  # NDK 1.3
-    ]:
-        if os.path.isdir(candidate):
-            if "DOC" in os.path.basename(candidate):
-                autodoc_dirs = [candidate]  # 3.1: single flat dir
-            else:
-                # 1.3: multiple subdirs
-                base = os.path.dirname(candidate)
-                for sub in ["LIBRARIESA-K", "LIBRARIESL-Z", "DEVICESA-K",
-                            "DEVICESL-Z", "RESOURCES"]:
-                    d = os.path.join(base, sub)
-                    if os.path.isdir(d):
-                        autodoc_dirs.append(d)
-            break
-    paths["autodoc_dirs"] = autodoc_dirs
-
-    # Include files (asm)
-    for candidate in [
-        os.path.join(ndk_root, "INCLUDES&LIBS", "INCLUDE_I"),  # NDK 3.1
-        os.path.join(ndk_root, "INCLUDES1.3", "INCLUDE.I"),    # NDK 1.3
-    ]:
-        if os.path.isdir(candidate):
-            paths["include_asm_dir"] = candidate
-            break
-
-    # LVO.OFFS (1.3 only — 3.1 uses FD files as source of truth)
-    lvo_path = os.path.join(ndk_root, "INCLUDE-STRIP1.3", "OFFS1.3", "LVO.OFFS")
-    if os.path.exists(lvo_path):
-        paths["lvo_path"] = lvo_path
-
-    return paths
+VERSION_MAP = {
+    "30": "1.0", "33": "1.2", "34": "1.3",
+    "36": "2.0", "37": "2.04", "39": "3.0", "40": "3.1", "44": "3.5",
+}
 
 
 def main():
-    global NDK_ROOT
-
-    import argparse
-    parser = argparse.ArgumentParser(description="Parse Amiga NDK into structured JSON")
-    parser.add_argument("ndk_root", nargs="?",
-                        default=r"C:\Users\richa\Downloads\Emulation\amiga-misc\NDK_1.3",
-                        help="Path to NDK root directory")
+    parser = argparse.ArgumentParser(
+        description="Parse Amiga NDK 3.1 + OS_CHANGES into structured JSON"
+    )
+    parser.add_argument("ndk_root", help="Path to NDK root directory")
+    parser.add_argument("--os-changes", help="Path to OS_CHANGES directory")
     parser.add_argument("--outfile", default="knowledge/amiga_os_reference.json")
-    parser.add_argument("--summary", action="store_true")
-    parser.add_argument("--ndk-version", help="Override NDK version label (e.g. 3.1)")
     args = parser.parse_args()
 
-    NDK_ROOT = args.ndk_root
-    ndk_paths = find_ndk_paths(NDK_ROOT)
+    ndk_root = args.ndk_root
+    fd_dir = os.path.join(ndk_root, "INCLUDES&LIBS", "FD")
+    autodoc_dir = os.path.join(ndk_root, "DOCS", "DOC")
+    include_dir = os.path.join(ndk_root, "INCLUDES&LIBS", "INCLUDE_I")
 
-    # Detect NDK version from path
-    ndk_version = args.ndk_version
-    if not ndk_version:
-        for v in ["3.5", "3.1", "3.0", "2.0", "1.3"]:
-            if v.replace(".", "") in NDK_ROOT or f"_{v}" in NDK_ROOT:
-                ndk_version = v
-                break
-        if not ndk_version:
-            ndk_version = "unknown"
+    print(f"NDK 3.1 at {ndk_root}")
 
-    # Version mapping
-    version_info = {
-        "1.3": {"kickstart": 34, "os": "1.3"},
-        "2.0": {"kickstart": 36, "os": "2.0"},
-        "3.0": {"kickstart": 39, "os": "3.0"},
-        "3.1": {"kickstart": 40, "os": "3.1"},
-        "3.5": {"kickstart": 44, "os": "3.5"},
-    }.get(ndk_version, {"kickstart": None, "os": ndk_version})
+    # ========================================================================
+    # 1. Parse TYPES.I for type sizes
+    # ========================================================================
+    types_path = os.path.join(include_dir, "EXEC", "TYPES.I")
+    print(f"Parsing {types_path}...")
+    type_sizes = parse_types_i(types_path)
+    print(f"  {len(type_sizes)} type macros: {dict(sorted(type_sizes.items()))}")
 
-    print(f"NDK {ndk_version} at {NDK_ROOT}")
-    for k, v in ndk_paths.items():
-        if isinstance(v, list):
-            print(f"  {k}: {len(v)} dirs")
-        else:
-            print(f"  {k}: {v}")
+    # ========================================================================
+    # 2. Parse all .I include files (ALL subdirectories)
+    # ========================================================================
+    print("Parsing include files...")
+    raw_constants = {}  # name -> raw expression string
+    raw_structs = {}    # name -> struct dict
 
-    fd_dir = ndk_paths.get("fd_dir")
-    autodoc_dirs = ndk_paths.get("autodoc_dirs", [])
-    include_asm_dir = ndk_paths.get("include_asm_dir")
-    lvo_path = ndk_paths.get("lvo_path")
+    include_subdirs = sorted([
+        d for d in os.listdir(include_dir)
+        if os.path.isdir(os.path.join(include_dir, d))
+    ])
+    print(f"  Subdirectories: {', '.join(include_subdirs)}")
 
-    # ---- Parse LVO offsets (if available — NDK 1.3 only) ----
-    lvo_data = {}
-    if lvo_path:
-        print("Parsing LVO offsets...")
-        lvo_data = parse_lvo_offs(lvo_path)
-        total_funcs = sum(len(v) for v in lvo_data.values())
-        print(f"  {len(lvo_data)} libraries/devices/resources, {total_funcs} functions")
+    # First pass: collect all constants (needed for struct offset resolution).
+    # This also simulates STRUCTURE macros to extract field-name constants
+    # (e.g. LN_SUCC EQU 0, LN_SIZE EQU 14) which are generated at assembly
+    # time by the macros in TYPES.I.
+    # We run two iterations because struct initial offsets may reference
+    # constants from other files (e.g. EXECBASE.I uses LIB_SIZE from
+    # LIBRARIES.I, but is alphabetically first).
+    for _pass_num in range(2):
+      for subdir in include_subdirs:
+        subdir_path = os.path.join(include_dir, subdir)
+        for fname in sorted(os.listdir(subdir_path)):
+            if fname.upper().endswith(".I"):
+                fpath = os.path.join(subdir_path, fname)
+                eoffset = 0
+                soffset = 0  # simulates SOFFSET for struct field constants
+                in_struct = False
+                with open(fpath, encoding="utf-8", errors="replace") as f:
+                    for line in f:
+                        line = line.rstrip()
 
-    # ---- Parse FD files (primary source for NDK 3.1+) ----
+                        # EQU constants
+                        cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
+                        if cm:
+                            raw_constants[cm.group(1)] = cm.group(2).strip()
+                            continue
+
+                        # SET constants
+                        cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
+                        if cm and not cm.group(1).endswith("_I") and cm.group(1) not in ("SOFFSET", "EOFFSET"):
+                            raw_constants[cm.group(1)] = cm.group(2).strip()
+                            continue
+
+                        # BITDEF prefix,name,bitnum
+                        bm = re.match(r'\s+BITDEF\s+(\w+),(\w+),(\d+)', line)
+                        if bm:
+                            prefix = bm.group(1)
+                            name = bm.group(2)
+                            bitnum = bm.group(3)
+                            raw_constants[f"{prefix}B_{name}"] = bitnum
+                            raw_constants[f"{prefix}F_{name}"] = f"(1<<{bitnum})"
+                            continue
+
+                        # ENUM [base]
+                        enm = re.match(r'\s+ENUM\s*(?:(\S+))?\s*$', line)
+                        if enm:
+                            base_str = enm.group(1)
+                            if base_str:
+                                try:
+                                    eoffset = int(base_str)
+                                except ValueError:
+                                    hm = re.match(r'^\$([0-9a-fA-F]+)$', base_str)
+                                    if hm:
+                                        eoffset = int(hm.group(1), 16)
+                                    else:
+                                        eoffset = 0
+                            else:
+                                eoffset = 0
+                            continue
+
+                        # EITEM label
+                        em = re.match(r'\s+EITEM\s+(\w+)', line)
+                        if em:
+                            raw_constants[em.group(1)] = str(eoffset)
+                            eoffset += 1
+                            continue
+
+                        # --- Struct macro simulation ---
+                        # STRUCTURE Name,InitOffset -> sets SOFFSET, emits Name EQU 0
+                        sm = re.match(r'\s+STRUCTURE\s+(\w+),(\w+)', line)
+                        if sm:
+                            struct_name = sm.group(1)
+                            init_str = sm.group(2)
+                            raw_constants[struct_name] = "0"
+                            try:
+                                soffset = int(init_str)
+                            except ValueError:
+                                # Try resolving from already-collected constants
+                                if init_str in raw_constants:
+                                    try:
+                                        soffset = int(raw_constants[init_str])
+                                    except (ValueError, TypeError):
+                                        soffset = None
+                                else:
+                                    soffset = None
+                            in_struct = True
+                            continue
+
+                        if in_struct and soffset is not None:
+                            # Type macros: NAME EQU SOFFSET; SOFFSET += size
+                            tm = re.match(
+                                r'\s+(UBYTE|BYTE|UWORD|WORD|ULONG|LONG|APTR|BPTR|'
+                                r'CPTR|FPTR|BOOL|FLOAT|DOUBLE|RPTR|SHORT|USHORT)\s+(\w+)',
+                                line
+                            )
+                            if tm:
+                                raw_constants[tm.group(2)] = str(soffset)
+                                soffset += type_sizes.get(tm.group(1), 0)
+                                continue
+
+                            # STRUCT name,size
+                            ssm = re.match(r'\s+STRUCT\s+(\w+),(\w+)', line)
+                            if ssm:
+                                raw_constants[ssm.group(1)] = str(soffset)
+                                size_str = ssm.group(2)
+                                try:
+                                    soffset += int(size_str)
+                                except ValueError:
+                                    # Try resolving from already-collected constants
+                                    if size_str in raw_constants:
+                                        try:
+                                            soffset += int(raw_constants[size_str])
+                                        except (ValueError, TypeError):
+                                            in_struct = False
+                                    else:
+                                        in_struct = False
+                                continue
+
+                            # LABEL name
+                            lm = re.match(r'\s+LABEL\s+(\w+)', line)
+                            if lm:
+                                raw_constants[lm.group(1)] = str(soffset)
+                                continue
+
+                            # ALIGNWORD
+                            if re.match(r'\s+ALIGNWORD\b', line):
+                                soffset = (soffset + 1) & ~1
+                                continue
+
+                            # ALIGNLONG
+                            if re.match(r'\s+ALIGNLONG\b', line):
+                                soffset = (soffset + 3) & ~3
+                                continue
+
+    print(f"  Raw constants collected: {len(raw_constants)}")
+
+    # Evaluate constants
+    evaluated_constants = evaluate_all_constants(raw_constants)
+    resolved_count = sum(1 for v in evaluated_constants.values() if v["value"] is not None)
+    print(f"  Constants resolved: {resolved_count}/{len(evaluated_constants)}")
+
+    # Build a lookup for struct offset resolution (constant name -> int value)
+    const_lookup = {}
+    for name, entry in evaluated_constants.items():
+        if entry["value"] is not None:
+            const_lookup[name] = entry["value"]
+
+    # Second pass: parse structs with offset computation
+    for subdir in include_subdirs:
+        subdir_path = os.path.join(include_dir, subdir)
+        for fname in sorted(os.listdir(subdir_path)):
+            if fname.upper().endswith(".I"):
+                fpath = os.path.join(subdir_path, fname)
+                result = parse_asm_include(fpath, type_sizes, const_lookup)
+                for sname, sdata in result["structs"].items():
+                    raw_structs[sname] = sdata
+
+    print(f"  Structs: {len(raw_structs)}")
+
+    # ========================================================================
+    # 3. Parse FD files
+    # ========================================================================
     print("Parsing FD files...")
-    fd_data = {}
-    if fd_dir:
-        # Map FD filenames to library names
-        # EXEC_LIB.FD -> exec, WB_LIB.FD -> wb, CARDRES_LIB.FD -> cardres
-        fd_name_map = {
-            "wb": "workbench",      # WB_LIB.FD -> workbench.library
-            "cardres": "card",      # CARDRES_LIB.FD -> card.resource (runtime name)
-        }
+    fd_data = {}  # lib_name -> {base, functions}
+    if os.path.isdir(fd_dir):
         for fname in sorted(os.listdir(fd_dir)):
             if fname.endswith(".FD"):
                 result = parse_fd_file(os.path.join(fd_dir, fname))
                 raw_name = fname.replace("_LIB.FD", "").lower()
-                lib_name = fd_name_map.get(raw_name, raw_name)
+                lib_name = fd_stem_to_lib_name(raw_name)
                 fd_data[lib_name] = result
-    print(f"  {len(fd_data)} FD files")
+    print(f"  {len(fd_data)} FD files parsed")
 
-    # If no LVO.OFFS, build lvo_data from FD files
-    if not lvo_data and fd_data:
-        print("Building LVO data from FD files...")
-        for fd_name, fd_info in fd_data.items():
-            # Determine full library name
-            base = fd_info["base"]
-            # Guess library type from base name or FD content
-            if "resource" in fd_name or fd_name in ("cia", "battclock", "battmem",
-                                                     "card", "misc", "potgo",
-                                                     "disk"):
-                suffix = ".resource"
-            elif fd_name in ("console", "input", "timer", "ramdrive"):
-                suffix = ".device"
-            elif fd_name in ("colorwheel", "gradientslider"):
-                suffix = ".gadget"
-            else:
-                suffix = ".library"
-            lib_key = fd_name + suffix
-
-            lvo_data[lib_key] = [
-                {
-                    "name": f["name"],
-                    "lvo": f["lvo"],
-                    "bias": f["bias"],
-                    "args": f["args"],
-                    "regs": f["regs"],
-                }
-                for f in fd_info["functions"]
-            ]
-        total_funcs = sum(len(v) for v in lvo_data.values())
-        print(f"  {len(lvo_data)} libraries, {total_funcs} functions")
-
-    # ---- Parse Autodocs ----
+    # ========================================================================
+    # 4. Parse autodocs
+    # ========================================================================
     print("Parsing autodocs...")
-    autodoc_data = {}
-    for doc_dir in autodoc_dirs:
-        if not os.path.isdir(doc_dir):
-            continue
-        for fname in sorted(os.listdir(doc_dir)):
+    autodoc_data = {}  # lib_name -> {func_name: doc}
+    autodoc_unmatched = {}
+    lib_names_set = set(fd_data.keys())
+
+    if os.path.isdir(autodoc_dir):
+        for fname in sorted(os.listdir(autodoc_dir)):
             if fname.endswith(".DOC"):
-                entries = parse_autodoc(os.path.join(doc_dir, fname))
-                lib_name = fname.replace(".DOC", "").lower()
-                autodoc_data[lib_name] = entries
-                print(f"  {lib_name}: {len(entries)} functions documented")
+                entries = parse_autodoc(os.path.join(autodoc_dir, fname))
+                if not entries:
+                    continue
 
-    # ---- Parse key include files ----
-    print("Parsing include files...")
-    includes = {}
+                # Match to library
+                lib_match = match_autodoc_to_lib(fname, lib_names_set)
+                if lib_match:
+                    if lib_match not in autodoc_data:
+                        autodoc_data[lib_match] = {}
+                    autodoc_data[lib_match].update(entries)
+                else:
+                    # Try matching via the _lib_prefix in the entries
+                    for func_name, doc in entries.items():
+                        prefix = doc.get("_lib_prefix", "")
+                        if prefix:
+                            prefix_lower = prefix.lower()
+                            for ln in lib_names_set:
+                                if prefix_lower == ln:
+                                    if ln not in autodoc_data:
+                                        autodoc_data[ln] = {}
+                                    autodoc_data[ln][func_name] = doc
+                                    break
+                            else:
+                                autodoc_unmatched[func_name] = doc
+                        else:
+                            autodoc_unmatched[func_name] = doc
 
-    # Key include subdirectories to parse
-    key_includes_asm = {
-        "exec": ["EXEC.I", "EXECBASE.I", "MEMORY.I", "IO.I", "TASKS.I",
-                  "INTERRUPTS.I", "LIBRARIES.I", "PORTS.I", "NODES.I",
-                  "LISTS.I", "DEVICES.I", "RESIDENT.I", "ALERTS.I", "ERRORS.I"],
-        "hardware": ["CUSTOM.I", "DMABITS.I", "INTBITS.I", "ADKBITS.I",
-                      "BLIT.I", "CIA.I"],
-        "graphics": [],  # will glob
-        "intuition": [],
-        "devices": [],
-        "libraries": [],
-    }
+    matched_funcs = sum(len(v) for v in autodoc_data.values())
+    print(f"  {len(autodoc_data)} libraries matched, {matched_funcs} functions documented")
+    if autodoc_unmatched:
+        print(f"  {len(autodoc_unmatched)} unmatched autodoc entries")
 
-    for subdir in ["EXEC", "HARDWARE", "GRAPHICS", "INTUITION", "DEVICES", "LIBRARIES", "RESOURCES"]:
-        asm_path = os.path.join(include_asm_dir, subdir)
-        if not os.path.isdir(asm_path):
-            continue
-        for fname in sorted(os.listdir(asm_path)):
-            if fname.endswith(".I"):
-                result = parse_asm_include(os.path.join(asm_path, fname))
-                key = f"{subdir.lower()}/{fname}"
-                if result["structs"] or result["constants"]:
-                    includes[key] = result
+    # ========================================================================
+    # 5. Parse OS_CHANGES (if provided)
+    # ========================================================================
+    os_version_map = None
+    if args.os_changes and os.path.isdir(args.os_changes):
+        print(f"Parsing OS_CHANGES at {args.os_changes}...")
+        os_version_map = build_version_map(args.os_changes)
+        total_versioned = sum(len(v["functions"]) for v in os_version_map["libraries"].values())
+        print(f"  {len(os_version_map['libraries'])} libraries, {total_versioned} versioned functions")
 
-    print(f"  {len(includes)} include files with structs/constants")
+    # ========================================================================
+    # 6. Build output
+    # ========================================================================
+    print("Building output...")
 
-    # Count totals
-    total_structs = sum(len(v.get("structs", {})) for v in includes.values())
-    total_constants = sum(len(v.get("constants", {})) for v in includes.values())
-    print(f"  {total_structs} structs, {total_constants} constants")
-
-    # ---- Build combined output ----
     output = {
-        "meta": {
-            "source": f"Amiga NDK {ndk_version} (Native Developer Kit)",
-            "ndk_version": ndk_version,
-            "kickstart_version": version_info["kickstart"],
-            "os_version": version_info["os"],
-            "description": "AmigaOS library/device function references with LVO offsets, register args, and documentation",
-            "version_notes": "Kickstart version mapping: V30=1.0, V33=1.2, V34=1.3, V36=2.0, V37=2.04, V39=3.0, V40=3.1, V44=3.5",
+        "_meta": {
+            "source": "NDK 3.1 + OS_CHANGES",
+            "ndk_path": ndk_root,
+            "type_sizes": dict(sorted(type_sizes.items())),
+            "calling_convention": {
+                "scratch_regs": ["D0", "D1", "A0", "A1"],
+                "preserved_regs": ["D2", "D3", "D4", "D5", "D6", "D7",
+                                   "A2", "A3", "A4", "A5", "A6"],
+                "base_reg": "A6",
+                "return_reg": "D0",
+                "note": (
+                    "Parser-asserted: Amiga library calling convention from "
+                    "ROM Kernel Reference Manual, Libraries 3rd Ed, Ch7. "
+                    "D0-D1/A0-A1 are scratch (caller-saved). "
+                    "D2-D7/A2-A5 are preserved (callee-saved). "
+                    "A6 holds library base on entry, must be preserved. "
+                    "A7(SP) is stack pointer."
+                ),
+            },
+            "exec_base_addr": {
+                "address": 4,
+                "note": (
+                    "Parser-asserted: ExecBase pointer stored at absolute "
+                    "address $4. ROM Kernel Reference Manual, Exec chapter. "
+                    "All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6."
+                ),
+            },
+            "version_map": VERSION_MAP,
         },
         "libraries": {},
+        "structs": {},
+        "constants": {},
     }
 
-    # Merge LVO data with FD and autodoc data
-    for lib_key, funcs in lvo_data.items():
-        # Normalize library name for matching
-        lib_lower = lib_key.lower().replace(".", "").replace(" ", "")
-
-        # Find matching autodoc
-        autodoc_name = None
-        for ad_name in autodoc_data:
-            if ad_name.replace(".", "").replace(" ", "") == lib_lower or ad_name in lib_lower:
-                autodoc_name = ad_name
-                break
-
-        # Find matching FD
-        fd_name = None
-        for fd_key in fd_data:
-            if fd_key in lib_lower or lib_lower.startswith(fd_key):
-                fd_name = fd_key
-                break
-
-        base_name = fd_data[fd_name]["base"] if fd_name else ""
-
-        # All Amiga library/device/resource calls use A6 as base register
+    # --- Build libraries ---
+    for lib_name, fd_info in sorted(fd_data.items()):
         lib_entry = {
-            "name": lib_key,
-            "base": base_name,
-            "base_reg": "A6",
-            "functions": [],
+            "base": fd_info["base"],
+            "functions": {},
+            "lvo_index": {},
         }
 
-        for func in funcs:
+        # Get OS_CHANGES version info for this library
+        oc_lib = None
+        if os_version_map:
+            oc_lib = os_version_map["libraries"].get(lib_name)
+
+        autodocs = autodoc_data.get(lib_name, {})
+
+        for func_name, fd_func in fd_info["functions"].items():
             entry = {
-                "name": func["name"],
-                "lvo": func["lvo"],
+                "lvo": fd_func["lvo"],
             }
 
-            # Add autodoc info if available
-            if autodoc_name and func["name"] in autodoc_data[autodoc_name]:
-                doc = autodoc_data[autodoc_name][func["name"]]
+            # Build inputs from FD args/regs
+            if fd_func["args"]:
+                entry["inputs"] = [
+                    {"name": a, "reg": r}
+                    for a, r in zip(fd_func["args"], fd_func["regs"])
+                ]
 
-                # Parse synopsis into structured inputs/outputs
-                if "synopsis" in doc:
+            # Enrich from autodoc
+            if func_name in autodocs:
+                doc = autodocs[func_name]
+
+                # Parse synopsis for typed inputs/outputs
+                if "synopsis" in doc and fd_func["args"]:
                     parsed = parse_synopsis(
-                        doc["synopsis"], func["args"], func["regs"]
+                        doc["synopsis"], fd_func["args"], fd_func["regs"]
                     )
                     if parsed["inputs"]:
                         entry["inputs"] = parsed["inputs"]
@@ -730,82 +1166,103 @@ def main():
                         entry["output"] = parsed["output"]
 
                 if "description" in doc:
-                    desc = doc["description"]
-                    if len(desc) > 500:
-                        desc = desc[:500] + "..."
-                    entry["description"] = desc
-                if "notes" in doc:
-                    entry["notes"] = doc["notes"]
+                    entry["description"] = doc["description"]
 
-            # If no autodoc parsed inputs, build from FD args/regs
-            if "inputs" not in entry and func["args"]:
-                entry["inputs"] = [
-                    {"name": a, "reg": r.upper()}
-                    for a, r in zip(func["args"], func["regs"])
-                ]
+                # No-return detection
+                if check_no_return(doc):
+                    entry["no_return"] = True
 
-            # Add private flag and since version from FD
-            if fd_name:
-                for fd_func in fd_data[fd_name]["functions"]:
-                    if fd_func["name"] == func["name"]:
-                        if not fd_func["public"]:
-                            entry["private"] = True
-                        if "since" in fd_func and "since" not in entry:
-                            entry["since"] = fd_func["since"]
-                        break
+            # Version info
+            since = fd_func.get("since")
 
-            # Also check LVO data for since version
-            if "since" in func and "since" not in entry:
-                entry["since"] = func["since"]
+            # OS_CHANGES overrides FD version markers
+            if oc_lib and func_name in oc_lib["functions"]:
+                since = oc_lib["functions"][func_name]
 
-            # Normalize version numbers: V30=1.0, V33=1.2, V34=1.3
-            version_map = {"30": "1.0", "33": "1.2", "34": "1.3",
-                           "36": "2.0", "37": "2.04", "39": "3.0", "40": "3.1"}
-            if "since" in entry:
-                entry["since"] = version_map.get(entry["since"], entry["since"])
+            # Normalize version numbers
+            if since:
+                since = VERSION_MAP.get(since, since)
+            else:
+                # Default: if not in OS_CHANGES, it existed from the start
+                since = "1.0"
 
-            lib_entry["functions"].append(entry)
+            entry["since"] = since
 
-        output["libraries"][lib_key] = lib_entry
+            # Private flag (only if true)
+            if fd_func.get("private"):
+                entry["private"] = True
 
-    # ---- Add key structs and constants ----
-    output["structs"] = {}
-    output["constants"] = {}
+            lib_entry["functions"][func_name] = entry
+            lib_entry["lvo_index"][str(fd_func["lvo"])] = func_name
 
-    for inc_key, inc_data in includes.items():
-        for sname, sfields in inc_data.get("structs", {}).items():
-            output["structs"][sname] = {
-                "source": inc_key,
-                "fields": sfields,
-            }
-        for cname, cvalue in inc_data.get("constants", {}).items():
-            output["constants"][cname] = cvalue
+        output["libraries"][lib_name] = lib_entry
 
-    # ---- Summary ----
-    total_lib_funcs = sum(len(v["functions"]) for v in output["libraries"].values())
+    # Add functions from OS_CHANGES that are in libraries we have but not in our FD
+    if os_version_map:
+        for oc_lib_name, oc_lib_info in os_version_map["libraries"].items():
+            if oc_lib_name in output["libraries"]:
+                lib = output["libraries"][oc_lib_name]
+                for func_name, ver in oc_lib_info["functions"].items():
+                    if func_name not in lib["functions"]:
+                        lib["functions"][func_name] = {
+                            "lvo": None,
+                            "since": ver,
+                        }
+
+    # --- Build structs ---
+    output["structs"] = raw_structs
+
+    # --- Build constants ---
+    output["constants"] = evaluated_constants
+
+    # ========================================================================
+    # 7. Summary
+    # ========================================================================
+    total_funcs = sum(len(v["functions"]) for v in output["libraries"].values())
     documented = sum(
         1 for lib in output["libraries"].values()
-        for f in lib["functions"]
+        for f in lib["functions"].values()
         if "description" in f
     )
-    print(f"\n{'='*50}")
-    print(f"Libraries/devices/resources: {len(output['libraries'])}")
-    print(f"Total functions: {total_lib_funcs}")
-    print(f"With documentation: {documented}")
-    print(f"Structs: {len(output['structs'])}")
-    print(f"Constants: {len(output['constants'])}")
+    no_return_count = sum(
+        1 for lib in output["libraries"].values()
+        for f in lib["functions"].values()
+        if f.get("no_return")
+    )
+    with_types = sum(
+        1 for lib in output["libraries"].values()
+        for f in lib["functions"].values()
+        if any("type" in inp for inp in f.get("inputs", []))
+    )
+    structs_with_offsets = sum(
+        1 for s in output["structs"].values()
+        if s.get("fields") and any("offset" in field for field in s["fields"])
+    )
+    constants_resolved = sum(1 for v in output["constants"].values() if v["value"] is not None)
 
-    # ---- Write output ----
-    if args.summary:
-        for lib_name, lib_data in sorted(output["libraries"].items()):
-            n = len(lib_data["functions"])
-            doc = sum(1 for f in lib_data["functions"] if "description" in f)
-            print(f"  {lib_name}: {n} functions ({doc} documented)")
-        return
+    print(f"\n{'=' * 60}")
+    print(f"Libraries/devices/resources: {len(output['libraries'])}")
+    print(f"Total functions:             {total_funcs}")
+    print(f"  With documentation:        {documented}")
+    print(f"  With typed inputs:         {with_types}")
+    print(f"  No-return functions:       {no_return_count}")
+    print(f"Structs:                     {len(output['structs'])}")
+    print(f"  With computed offsets:      {structs_with_offsets}")
+    print(f"Constants:                   {len(output['constants'])}")
+    print(f"  Resolved to values:        {constants_resolved}")
+
+    # ========================================================================
+    # 8. Write output
+    # ========================================================================
+    outdir = os.path.dirname(args.outfile)
+    if outdir and not os.path.isdir(outdir):
+        os.makedirs(outdir, exist_ok=True)
 
     with open(args.outfile, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"Wrote {args.outfile}")
+
+    fsize = os.path.getsize(args.outfile)
+    print(f"\nWrote {args.outfile} ({fsize:,} bytes)")
 
 
 if __name__ == "__main__":
