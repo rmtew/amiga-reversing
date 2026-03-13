@@ -416,8 +416,7 @@ def build_entities(binary_path: str, output_path: str = None):
 
         # Identify OS library calls
         os_kb = load_os_kb()
-        lib_calls = identify_library_calls(blocks, code, os_kb,
-                                           result.get("exit_states"))
+        lib_calls = identify_library_calls(blocks, code, os_kb)
         if lib_calls:
             identified = sum(1 for c in lib_calls
                              if c.get("library") != "unknown")

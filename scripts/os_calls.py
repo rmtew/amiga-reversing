@@ -22,9 +22,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from m68k_executor import (BasicBlock, _extract_mnemonic, _load_kb,
                             _find_kb_entry, _extract_branch_target)
+from jump_tables import _build_ea_field_spec, _xf
 
 
 _OS_KB_CACHE = None
+
+
+def _build_dst_reg_field(inst_kb: dict) -> tuple | None:
+    """Extract the destination REGISTER field from KB encoding (bits 11-9 for MOVEA).
+
+    For instructions with two REGISTER fields (like MOVEA), the destination
+    is the one at higher bit positions (bits 11-9), distinct from the source
+    EA REGISTER at bits 2-0.
+
+    Returns (bit_hi, bit_lo, width) or None.
+    """
+    encodings = inst_kb.get("encodings", [])
+    if not encodings:
+        return None
+    fields = encodings[0].get("fields", [])
+    # Find REGISTER fields; the destination is the one with higher bit_lo
+    reg_fields = [f for f in fields if f["name"] == "REGISTER"]
+    if len(reg_fields) < 2:
+        return None  # single REGISTER field — not a src+dst instruction
+    # Sort by bit position descending; highest = destination
+    reg_fields.sort(key=lambda f: f["bit_lo"], reverse=True)
+    dst = reg_fields[0]
+    return (dst["bit_hi"], dst["bit_lo"], dst["bit_hi"] - dst["bit_lo"] + 1)
 
 
 def load_os_kb() -> dict:
@@ -96,7 +120,6 @@ def _build_lvo_lookup(os_kb: dict) -> dict:
 def identify_library_calls(blocks: dict[int, BasicBlock],
                            code: bytes,
                            os_kb: dict | None = None,
-                           exit_states: dict | None = None,
                            ) -> list[dict]:
     """Identify OS library calls in analyzed code.
 
@@ -104,8 +127,8 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
         MOVEA.L ($0004).W,A6    ; load ExecBase
         JSR     -offset(A6)     ; call library function via LVO
 
-    For exec.library calls (A6 loaded from ExecBase), resolves the
-    function name from the LVO index.
+    EA field positions read from KB instruction encodings (not hardcoded).
+    ExecBase address and library base register from OS KB.
 
     Returns list of dicts:
         {"addr": int, "block": int, "library": str, "function": str,
@@ -122,22 +145,43 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
 
     os_meta = os_kb["_meta"]
     exec_base_addr = os_meta["exec_base_addr"]["address"]
+    exec_lib_name = os_meta["exec_base_addr"].get("library", "exec.library")
     base_reg_name = os_meta["calling_convention"]["base_reg"]
-    # Parse "A6" -> register number
     if not base_reg_name.upper().startswith("A"):
-        raise ValueError(f"calling_convention.base_reg must be An, got {base_reg_name}")
+        raise ValueError(
+            f"calling_convention.base_reg must be An, got {base_reg_name}")
     base_reg_num = int(base_reg_name[1])
 
     lvo_lookup = _build_lvo_lookup(os_kb)
 
-    # EA mode encodings we need
-    absw_enc = ea_enc.get("absw")  # [7, 0] for ($xxxx).W
-    disp_enc = ea_enc.get("disp")  # [5, None] for d(An)
-
+    # EA mode encodings from KB
+    absw_enc = ea_enc.get("absw")
+    disp_enc = ea_enc.get("disp")
     if absw_enc is None:
         raise KeyError("ea_mode_encoding.absw missing from M68K KB")
     if disp_enc is None:
         raise KeyError("ea_mode_encoding.disp missing from M68K KB")
+
+    # Pre-resolve KB entries and encoding field specs for MOVEA and JSR
+    movea_kb = _find_kb_entry(m68k_kb, "movea", cc_defs, cc_aliases)
+    jsr_kb = _find_kb_entry(m68k_kb, "jsr", cc_defs, cc_aliases)
+    if movea_kb is None:
+        raise KeyError("MOVEA not found in M68K KB")
+    if jsr_kb is None:
+        raise KeyError("JSR not found in M68K KB")
+
+    movea_ea_spec = _build_ea_field_spec(movea_kb)
+    movea_dst_spec = _build_dst_reg_field(movea_kb)
+    jsr_ea_spec = _build_ea_field_spec(jsr_kb)
+    if movea_ea_spec is None:
+        raise KeyError("MOVEA encoding lacks MODE/REGISTER EA fields")
+    if movea_dst_spec is None:
+        raise KeyError("MOVEA encoding lacks destination REGISTER field")
+    if jsr_ea_spec is None:
+        raise KeyError("JSR encoding lacks MODE/REGISTER EA fields")
+
+    movea_mode_f, movea_reg_f = movea_ea_spec
+    jsr_mode_f, jsr_reg_f = jsr_ea_spec
 
     results = []
 
@@ -146,105 +190,90 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
         if not block.instructions:
             continue
 
-        # Track whether A6 was loaded from ExecBase within this block
+        # Track whether base_reg was loaded from ExecBase within this block
         a6_is_exec = False
 
         for inst in block.instructions:
-            text = inst.text.strip()
-            mn = _extract_mnemonic(text)
+            mn = _extract_mnemonic(inst.text)
             ikb = _find_kb_entry(m68k_kb, mn, cc_defs, cc_aliases)
             if ikb is None:
                 continue
 
-            # Detect ExecBase load: MOVEA.L ($0004).W,A6
-            # This is operation_type=="move" with source=absw addressing
-            # and destination=A6, where the absolute address == exec_base_addr
             flow = ikb.get("pc_effects", {}).get("flow", {})
-            if ikb.get("operation_type") == "move" and len(inst.raw) >= 4:
-                # Check if source EA is absolute word [absw]
+
+            # Detect ExecBase load: MOVEA.L ($0004).W,A6
+            # Must be specifically MOVEA (source_sign_extend distinguishes
+            # MOVEA from MOVE in the KB).
+            if (ikb.get("operation_type") == "move"
+                    and ikb.get("source_sign_extend")
+                    and len(inst.raw) >= opword_bytes + 2):
                 opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-                # For MOVEA, the source EA is in bits 5-3 (mode) and 2-0 (reg)
-                src_mode = (opcode >> 3) & 7
-                src_reg = opcode & 7
+                src_mode = _xf(opcode, movea_mode_f)
+                src_reg = _xf(opcode, movea_reg_f)
 
                 if src_mode == absw_enc[0] and src_reg == absw_enc[1]:
-                    # Read the absolute address from extension word
-                    if len(inst.raw) >= opword_bytes + 2:
-                        addr_val = struct.unpack_from(
-                            ">h", inst.raw, opword_bytes)[0]
-                        addr_val &= 0xFFFFFFFF
+                    addr_val = struct.unpack_from(
+                        ">h", inst.raw, opword_bytes)[0]
+                    addr_val &= 0xFFFFFFFF
 
-                        # Check destination is A6 (base_reg)
-                        # For MOVEA, dest reg is in bits 11-9
-                        dst_reg = (opcode >> 9) & 7
-                        # MOVEA to An: the instruction targets address registers
-                        if addr_val == exec_base_addr:
-                            # Check it's targeting the base register
-                            if dst_reg == base_reg_num:
-                                a6_is_exec = True
+                    dst_reg = _xf(opcode, movea_dst_spec)
+                    if addr_val == exec_base_addr and dst_reg == base_reg_num:
+                        a6_is_exec = True
 
-            # Detect library call: JSR d(A6)
+            # Detect library call: JSR d(An) where An == base_reg
             if flow.get("type") == "call":
                 target = _extract_branch_target(inst, inst.offset)
                 if target is not None:
                     continue  # resolved — not a library call
 
-                # Check if it's d(An) addressing with An == base_reg
-                if len(inst.raw) >= 4:
-                    opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-                    ea_mode = (opcode >> 3) & 7
-                    ea_reg = opcode & 7
+                if len(inst.raw) < opword_bytes + 2:
+                    continue
+                opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+                ea_mode = _xf(opcode, jsr_mode_f)
+                ea_reg = _xf(opcode, jsr_reg_f)
 
-                    if ea_mode == disp_enc[0] and ea_reg == base_reg_num:
-                        # Read the displacement (LVO offset)
-                        disp = struct.unpack_from(
-                            ">h", inst.raw, opword_bytes)[0]
+                if ea_mode != disp_enc[0] or ea_reg != base_reg_num:
+                    continue  # not d(A6)
 
-                        call_info = {
-                            "addr": inst.offset,
-                            "block": block_addr,
-                            "lvo": disp,
-                        }
+                disp = struct.unpack_from(
+                    ">h", inst.raw, opword_bytes)[0]
 
-                        if a6_is_exec:
-                            # Look up in exec.library
-                            key = ("exec.library", disp)
-                            if key in lvo_lookup["by_lib_lvo"]:
-                                match = lvo_lookup["by_lib_lvo"][key]
-                                call_info["library"] = match["library"]
-                                call_info["function"] = match["function"]
-                                if match.get("no_return"):
-                                    call_info["no_return"] = True
-                            else:
-                                call_info["library"] = "exec.library"
-                                call_info["function"] = f"LVO_{-disp}"
-                        else:
-                            # A6 is some other library base — check all
-                            # libraries for this LVO offset
-                            candidates = lvo_lookup["by_lvo"].get(disp, [])
-                            if len(candidates) == 1:
-                                lib_name, func_name, func = candidates[0]
-                                call_info["library"] = lib_name
-                                call_info["function"] = func_name
-                                if func.get("no_return"):
-                                    call_info["no_return"] = True
-                            elif candidates:
-                                # Ambiguous — multiple libraries share this LVO
-                                call_info["library"] = "unknown"
-                                call_info["function"] = f"LVO_{-disp}"
-                                call_info["candidates"] = [
-                                    f"{ln}/{fn}" for ln, fn, _ in candidates
-                                ]
-                            else:
-                                call_info["library"] = "unknown"
-                                call_info["function"] = f"LVO_{-disp}"
+                call_info = {
+                    "addr": inst.offset,
+                    "block": block_addr,
+                    "lvo": disp,
+                }
 
-                        results.append(call_info)
+                if a6_is_exec:
+                    key = (exec_lib_name, disp)
+                    if key in lvo_lookup["by_lib_lvo"]:
+                        match = lvo_lookup["by_lib_lvo"][key]
+                        call_info["library"] = match["library"]
+                        call_info["function"] = match["function"]
+                        if match.get("no_return"):
+                            call_info["no_return"] = True
+                    else:
+                        call_info["library"] = exec_lib_name
+                        call_info["function"] = f"LVO_{-disp}"
+                else:
+                    candidates = lvo_lookup["by_lvo"].get(disp, [])
+                    if len(candidates) == 1:
+                        lib_name, func_name, func = candidates[0]
+                        call_info["library"] = lib_name
+                        call_info["function"] = func_name
+                        if func.get("no_return"):
+                            call_info["no_return"] = True
+                    elif candidates:
+                        call_info["library"] = "unknown"
+                        call_info["function"] = f"LVO_{-disp}"
+                        call_info["candidates"] = [
+                            f"{ln}/{fn}" for ln, fn, _ in candidates
+                        ]
+                    else:
+                        call_info["library"] = "unknown"
+                        call_info["function"] = f"LVO_{-disp}"
 
-                    # After any library call pattern, A6 might have been
-                    # restored from the stack (convention says A6 is preserved,
-                    # but some code pushes/pops A6 around OpenLibrary calls).
-                    # We conservatively keep the current a6_is_exec state.
+                results.append(call_info)
 
         # A6 state doesn't propagate across blocks (conservative)
 

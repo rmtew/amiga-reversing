@@ -1235,13 +1235,14 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                     if src_val and src_val.is_known:
                         disp = _to_signed(src_val.concrete & 0xFFFF, "w")
                         cpu.sp = _concrete(cpu.sp.concrete + disp)
-        # After call instructions (SP decrement = push return address),
-        # invalidate scratch registers per platform calling convention.
-        # The called function may modify D0-D1/A0-A1 (Amiga convention).
+        # After call instructions, invalidate scratch registers per
+        # platform calling convention.  Detect calls by KB pc_effects
+        # flow type, not by SP decrement (PEA also decrements SP but
+        # isn't a call).
         if platform and platform.get("scratch_regs"):
-            has_call_push = any(
-                e.get("action") == "decrement" for e in sp_effects)
-            if has_call_push:
+            flow_type = inst_kb.get("pc_effects", {}).get(
+                "flow", {}).get("type")
+            if flow_type == "call":
                 for reg_mode, reg_num in platform["scratch_regs"]:
                     cpu.set_reg(reg_mode, reg_num, _unknown())
 

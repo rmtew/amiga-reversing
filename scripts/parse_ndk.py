@@ -1196,10 +1196,12 @@ def main():
             },
             "exec_base_addr": {
                 "address": 4,
+                "library": "exec.library",
                 "note": (
                     "Parser-asserted: ExecBase pointer stored at absolute "
                     "address $4. ROM Kernel Reference Manual, Exec chapter. "
-                    "All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6."
+                    "All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6. "
+                    "The pointer is to the exec.library base structure."
                 ),
             },
             "version_map": VERSION_MAP,
