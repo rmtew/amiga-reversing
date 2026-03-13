@@ -362,69 +362,63 @@ def build_entities(binary_path: str, output_path: str = None):
 
         all_entry_points = {0} | reloc_targets
 
-        def _stats(result):
-            blks = result["blocks"]
+        def _stats(r):
+            blks = r["blocks"]
             covered = sum(b.end - b.start for b in blks.values())
             n = sum(len(b.instructions) for b in blks.values())
-            return f"{len(blks)} blocks, {n} instructions, " \
-                   f"{covered}/{code_size} ({100*covered/code_size:.1f}%)"
+            return (f"{len(blks)} blocks, {n} instructions, "
+                    f"{covered}/{code_size} ({100*covered/code_size:.1f}%)")
 
-        # Step 1: control flow from entry points (fast, no propagation)
-        result = analyze(code, base_addr=0,
-                         entry_points=sorted(all_entry_points))
-        print(f"  Flow: {_stats(result)}")
+        def _run(propagate=True):
+            return analyze(code, base_addr=0,
+                           entry_points=sorted(all_entry_points),
+                           propagate=propagate,
+                           platform=platform_config if propagate else None)
 
-        # Step 2: jump tables + indirect resolution (with propagation).
-        # Iterate until no new targets — each round's new blocks may
-        # contain more jump tables or resolvable indirect calls.
-        prev_count = len(all_entry_points)
-        for _ in range(10):
-            result = analyze(code, base_addr=0,
-                             entry_points=sorted(all_entry_points),
-                             propagate=True, platform=platform_config)
+        def _expand_tables_indirect(result):
+            """Add jump table + indirect targets to all_entry_points.
+            Returns number of new entries added."""
+            before = len(all_entry_points)
             for t in detect_jump_tables(result["blocks"], code, base_addr=0):
                 all_entry_points.update(t["targets"])
-            if result.get("exit_states"):
-                for r in resolve_indirect_targets(
-                        result["blocks"], result["exit_states"], code_size):
-                    all_entry_points.add(r["target"])
-            if len(all_entry_points) == prev_count:
+            for r in resolve_indirect_targets(
+                    result["blocks"], result["exit_states"], code_size):
+                all_entry_points.add(r["target"])
+            return len(all_entry_points) - before
+
+        def _expand_scan(result):
+            """Add subroutine scan candidates to all_entry_points.
+            Returns number of new entries added."""
+            before = len(all_entry_points)
+            candidates = scan_and_score(
+                result["blocks"], code, reloc_targets,
+                result["call_targets"])
+            targets = {c["addr"] for c in candidates}
+            targets -= set(result["blocks"].keys())
+            targets -= all_entry_points
+            if targets:
+                high = sum(1 for c in candidates if c["score"] >= 3.0)
+                print(f"  Scan: {len(candidates)} accepted "
+                      f"({high} high-confidence), "
+                      f"{len(targets)} new entries")
+                all_entry_points.update(targets)
+            return len(all_entry_points) - before
+
+        # Step 1: control flow + jump tables + indirect resolution.
+        # Iterate until no new targets from tables/indirect.
+        for _ in range(10):
+            result = _run()
+            if not _expand_tables_indirect(result):
                 break
-            prev_count = len(all_entry_points)
-        print(f"  Tables+indirect: {_stats(result)}")
+        print(f"  Control flow: {_stats(result)}")
 
-        # Step 3: subroutine scan (one shot against full call target set)
-        scan_results = scan_and_score(
-            result["blocks"], code, reloc_targets,
-            result.get("call_targets", set()))
-        scan_targets = {c["addr"] for c in scan_results}
-        scan_targets -= set(result["blocks"].keys())
-        scan_targets -= all_entry_points
-        if scan_targets:
-            high = sum(1 for c in scan_results if c["score"] >= 3.0)
-            print(f"  Scan: {len(scan_results)} accepted "
-                  f"({high} high-confidence), "
-                  f"{len(scan_targets)} new entries")
-            all_entry_points |= scan_targets
-
-        # Step 4: final analysis with everything
-        result = analyze(code, base_addr=0,
-                         entry_points=sorted(all_entry_points),
-                         propagate=True, platform=platform_config)
-        # One more scan — the step 3 candidates may call into
-        # regions that now score high enough
-        more = scan_and_score(
-            result["blocks"], code, reloc_targets,
-            result.get("call_targets", set()))
-        more_targets = {c["addr"] for c in more}
-        more_targets -= set(result["blocks"].keys())
-        more_targets -= all_entry_points
-        if more_targets:
-            print(f"  Scan cascade: {len(more_targets)} more entries")
-            all_entry_points |= more_targets
-            result = analyze(code, base_addr=0,
-                             entry_points=sorted(all_entry_points),
-                             propagate=True, platform=platform_config)
+        # Step 2: heuristic subroutine scan + cascade.
+        # Scan once, re-analyze, scan again for cascading call targets.
+        if _expand_scan(result):
+            result = _run()
+            _expand_tables_indirect(result)  # new code may have tables
+            _expand_scan(result)             # cascade
+            result = _run()
         print(f"  Final: {_stats(result)}")
 
         blocks = result["blocks"]
