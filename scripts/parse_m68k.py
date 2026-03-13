@@ -114,33 +114,43 @@ CC_TEST_DEFINITIONS = {
 }
 
 
-def extract_ea_extension_formats(doc) -> list[dict]:
-    """Extract Brief Extension Word field layout from PDF page 43.
+def extract_ea_extension_formats(doc) -> tuple[list[dict], list[dict]]:
+    """Extract Brief and Full Extension Word field layouts from PDF page 43.
 
-    Page 43 has three encoding tables: single EA operation word, Brief Extension
-    Word, and Full Extension Word.  We extract the second one (Brief) and return
-    its named variable fields as [{name, bit_hi, bit_lo}, ...].
+    Page 43 has three encoding tables:
+      [0] Single effective address operation word
+      [1] Brief Extension Word (bit 8 = 0)
+      [2] Full Extension Word (bit 8 = 1, 020+)
+
+    Returns (brief_fields, full_fields) where each is a list of
+    [{name, bit_hi, bit_lo}, ...] including fixed bits (0/1) so
+    downstream can derive the brief/full discriminator from the gap.
     """
     page = doc[42]  # page 43 (0-indexed)
     spans = extract_page_spans(page)
     rows = spans_to_rows(spans)
     encs = find_encoding_tables(rows, summary_mode=True)
 
-    if len(encs) < 2:
+    if len(encs) < 3:
         raise RuntimeError(
-            f"Expected >=2 encoding tables on page 43, found {len(encs)}"
+            f"Expected 3 encoding tables on page 43, found {len(encs)}"
         )
 
-    brief_fields = encs[1]  # second table = Brief Extension Word
-    result = []
-    for f in brief_fields:
-        if f.name not in ("0", "1"):  # skip fixed bits
-            result.append({
-                "name": f.name,
-                "bit_hi": f.bit_hi,
-                "bit_lo": f.bit_lo,
-            })
-    return result
+    def _extract_fields(enc_fields):
+        return [
+            {"name": f.name, "bit_hi": f.bit_hi, "bit_lo": f.bit_lo}
+            for f in enc_fields
+        ]
+
+    brief_all = _extract_fields(encs[1])
+    full_all = _extract_fields(encs[2])
+
+    # Return only variable fields (not fixed 0/1 bits) for downstream use,
+    # but the fixed bits are still present in the KB for discriminator derivation
+    brief_var = [f for f in brief_all if f["name"] not in ("0", "1")]
+    full_var = [f for f in full_all if f["name"] not in ("0", "1")]
+
+    return brief_var, full_var
 
 
 def extract_movem_regmask_tables(doc) -> dict[str, list[str]]:
@@ -217,6 +227,7 @@ def extract_movem_regmask_tables(doc) -> dict[str, list[str]]:
 
 def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
                    ea_brief_ext_word: list[dict] | None = None,
+                   ea_full_ext_word: list[dict] | None = None,
                    movem_reg_masks: dict[str, list[str]] | None = None,
                    nop_opword: int | None = None,
                    asm_syntax_index: dict[str, str] | None = None,
@@ -278,6 +289,8 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
     }
     if ea_brief_ext_word is not None:
         meta["ea_brief_ext_word"] = ea_brief_ext_word
+    if ea_full_ext_word is not None:
+        meta["ea_full_ext_word"] = ea_full_ext_word
     if movem_reg_masks is not None:
         meta["movem_reg_masks"] = movem_reg_masks
     if nop_opword is not None:
@@ -4489,10 +4502,11 @@ def main():
         )
     print(f"  PMMU condition codes: {pmmu_cc}")
 
-    # Phase 6: Extract EA extension word formats
+    # Phase 6: Extract EA extension word formats (Brief + Full from PDF page 43)
     print("Phase 6: Extracting EA extension word formats...")
-    ea_brief = extract_ea_extension_formats(doc)
+    ea_brief, ea_full = extract_ea_extension_formats(doc)
     print(f"  Brief extension word fields: {[f['name'] for f in ea_brief]}")
+    print(f"  Full extension word fields: {[f['name'] for f in ea_full]}")
 
     # Phase 7: Extract MOVEM register mask tables
     print("Phase 7: Extracting MOVEM register mask tables...")
@@ -4590,7 +4604,7 @@ def main():
             if outpath.exists():
                 outpath.unlink()
             with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, movem_masks, nop_opword, asm_syntax_index, cc_aliases, immediate_routing), f, indent=2, ensure_ascii=False)
+                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, ea_full, movem_masks, nop_opword, asm_syntax_index, cc_aliases, immediate_routing), f, indent=2, ensure_ascii=False)
             print(f"\nWrote {len(kb_data)} instructions to {outpath}")
         else:
             print(f"\n(dry run, {len(kb_data)} instructions would be written)")

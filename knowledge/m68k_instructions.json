@@ -269,6 +269,48 @@
         "bit_lo": 0
       }
     ],
+    "ea_full_ext_word": [
+      {
+        "name": "D/A",
+        "bit_hi": 15,
+        "bit_lo": 15
+      },
+      {
+        "name": "REGISTER",
+        "bit_hi": 14,
+        "bit_lo": 12
+      },
+      {
+        "name": "W/L",
+        "bit_hi": 11,
+        "bit_lo": 11
+      },
+      {
+        "name": "SCALE",
+        "bit_hi": 10,
+        "bit_lo": 9
+      },
+      {
+        "name": "BS",
+        "bit_hi": 7,
+        "bit_lo": 7
+      },
+      {
+        "name": "IS",
+        "bit_hi": 6,
+        "bit_lo": 6
+      },
+      {
+        "name": "BD SIZE",
+        "bit_hi": 5,
+        "bit_lo": 4
+      },
+      {
+        "name": "I/IS",
+        "bit_hi": 2,
+        "bit_lo": 0
+      }
+    ],
     "movem_reg_masks": {
       "normal": [
         "d0",

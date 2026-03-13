@@ -103,11 +103,74 @@ def _parse_brief_ext_word(ext: int, meta: dict) -> dict | None:
     }
 
 
+def _parse_full_ext_word(ext: int, raw: bytes, meta: dict) -> dict | None:
+    """Parse a 020+ full extension word using KB ea_full_ext_word fields.
+
+    The full format (bit 8 = 1) has a variable-size base displacement
+    after the extension word.  BD SIZE field determines the displacement
+    width: 01=null(0), 10=word(2 bytes), 11=long(4 bytes).
+
+    Returns dict with: index_is_addr, index_reg, displacement,
+    index_suppressed, base_suppressed, or None if not full format.
+    """
+    few_fields = meta.get("ea_full_ext_word")
+    if not few_fields:
+        return None
+
+    # Verify this IS a full extension word: the uncovered bit(s) must be 1
+    covered = set()
+    for f in few_fields:
+        for b in range(f["bit_lo"], f["bit_hi"] + 1):
+            covered.add(b)
+    for bit in set(range(16)) - covered:
+        if not (ext & (1 << bit)):
+            return None  # discriminator bit is 0 = brief, not full
+
+    # Extract fields by name
+    fields = {}
+    for f in few_fields:
+        width = f["bit_hi"] - f["bit_lo"] + 1
+        val = (ext >> f["bit_lo"]) & ((1 << width) - 1)
+        fields[f["name"]] = val
+
+    bs = fields.get("BS", 0)   # base suppress
+    is_ = fields.get("IS", 0)  # index suppress
+    bd_size = fields.get("BD SIZE", 0)
+
+    # Read base displacement from bytes after the extension word
+    # BD SIZE: 00=reserved, 01=null, 10=word, 11=long
+    displacement = 0
+    if bd_size == 0:
+        return None  # reserved
+    elif bd_size == 1:
+        displacement = 0  # null displacement
+    elif bd_size == 2:
+        # Word displacement at offset 4 (after opword + ext word)
+        if len(raw) >= 6:
+            displacement = struct.unpack_from(">h", raw, 4)[0]
+        else:
+            return None
+    elif bd_size == 3:
+        # Long displacement at offset 4
+        if len(raw) >= 8:
+            displacement = struct.unpack_from(">i", raw, 4)[0]
+        else:
+            return None
+
+    return {
+        "index_is_addr": bool(fields.get("D/A", 0)),
+        "index_reg": fields.get("REGISTER", 0),
+        "displacement": displacement,
+        "index_suppressed": bool(is_),
+        "base_suppressed": bool(bs),
+    }
+
+
 def _is_indexed_ea(raw: bytes, inst_kb: dict = None) -> dict | None:
     """Check if instruction uses indexed EA (An+Xn or PC+Xn).
 
     EA mode/reg extracted from KB encoding fields (not hardcoded bit positions).
-    Brief extension word parsed from KB ea_brief_ext_word fields.
+    Brief and full extension words parsed from KB fields.
 
     Returns dict with base_mode ('an' or 'pc'), base_reg, index_reg,
     index_is_data, displacement, or None.
@@ -121,10 +184,13 @@ def _is_indexed_ea(raw: bytes, inst_kb: dict = None) -> dict | None:
     opcode = struct.unpack_from(">H", raw, 0)[0]
     ext = struct.unpack_from(">H", raw, 2)[0]
 
-    # Parse brief extension word from KB fields
+    # Try brief extension word first, then full
     bew = _parse_brief_ext_word(ext, meta)
     if bew is None:
-        return None  # full extension word — not handled
+        # Try full extension word (020+)
+        bew = _parse_full_ext_word(ext, raw, meta)
+    if bew is None:
+        return None
 
     # Extract EA mode/reg from KB encoding fields if inst_kb provided,
     # otherwise fall back to the standard EA position (bits 5-3, 2-0)
