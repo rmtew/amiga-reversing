@@ -27,8 +27,8 @@ sys.path.insert(0, str(PROJ_ROOT / "scripts"))
 
 from m68k_asm import assemble_instruction  # noqa: E402
 
-VASM = PROJ_ROOT / "tools" / "vasmm68k_mot.exe"
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
+ORACLE_JSON = PROJ_ROOT / "knowledge" / "asm_vasm.json"
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────
@@ -39,11 +39,21 @@ def _load_kb():
     return data.get("instructions", []), data.get("_meta", {})
 
 
+def _load_oracle():
+    with open(ORACLE_JSON, encoding="utf-8") as f:
+        return json.load(f)
+
+
 KB_INSTRUCTIONS, KB_META = _load_kb()
 CC_ALL = list(KB_META["condition_codes"])
-# Immediate routing: base mnemonic → immediate mnemonic (e.g. ADD → ADDI)
-# Our assembler routes through these; vasm -no-opt does not.
 IMM_ROUTING = KB_META["immediate_routing"]
+
+ORACLE = _load_oracle()
+VASM = PROJ_ROOT / "tools" / ORACLE["cli"]["executable"]
+if sys.platform == "win32" and not VASM.suffix:
+    VASM = VASM.with_suffix(".exe")
+VASM_OUTPUT_FMT = ORACLE["cli"]["output_formats"]["raw_binary"]
+VASM_NO_OPT = ORACLE["options"]["no_optimization"]
 
 
 # ── EA mode to assembly syntax ────────────────────────────────────────────
@@ -603,7 +613,7 @@ def _vasm_assemble(text):
     out_path = src_path + ".bin"
     try:
         result = subprocess.run(
-            [str(VASM), "-Fbin", "-no-opt", "-o", out_path, src_path],
+            [str(VASM), VASM_OUTPUT_FMT, VASM_NO_OPT, "-o", out_path, src_path],
             capture_output=True, text=True, timeout=10)
         if result.returncode != 0:
             return None
@@ -630,7 +640,7 @@ def _vasm_assemble_at(text, org=0x1000):
     out_path = src_path + ".bin"
     try:
         result = subprocess.run(
-            [str(VASM), "-Fbin", "-no-opt", "-o", out_path, src_path],
+            [str(VASM), VASM_OUTPUT_FMT, VASM_NO_OPT, "-o", out_path, src_path],
             capture_output=True, text=True, timeout=10)
         if result.returncode != 0:
             return None

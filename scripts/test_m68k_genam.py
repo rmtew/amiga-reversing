@@ -25,8 +25,15 @@ sys.path.insert(0, str(PROJ_ROOT / "scripts"))
 
 from m68k_asm import assemble_instruction  # noqa: E402
 
-GENAM = PROJ_ROOT / "resources" / "Amiga_Devpac_3_18" / "GenAm"
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
+ORACLE_JSON = PROJ_ROOT / "knowledge" / "asm_devpac.json"
+
+def _load_oracle():
+    with open(ORACLE_JSON, encoding="utf-8") as f:
+        return json.load(f)
+
+ORACLE = _load_oracle()
+GENAM = PROJ_ROOT / "resources" / "Amiga_Devpac_3_18" / ORACLE["cli"]["executable"]
 
 # Windows temp directory for vamos volume mapping
 WIN_TEMP = os.environ.get("TEMP", os.environ.get("TMP", ""))
@@ -132,8 +139,8 @@ def genam_assemble(text):
 
     try:
         with open(src_path, "wb") as f:
-            f.write(b" opt P=68000\n")
-            f.write(b" opt O-\n")
+            f.write(f" {ORACLE['options']['cpu_select']}\n".encode("latin-1"))
+            f.write(f" {ORACLE['options']['no_optimization']}\n".encode("latin-1"))
             f.write(f" {text}\n".encode("latin-1"))
 
         result = subprocess.run(
@@ -142,7 +149,7 @@ def genam_assemble(text):
              "--", str(GENAM),
              f"TMP:{src_name}",
              f"-oTMP:{out_name}",
-             "QUIET"],
+             ORACLE["options"]["quiet"]],
             capture_output=True, text=True, timeout=15)
 
         if result.returncode != 0:
@@ -187,8 +194,8 @@ def genam_assemble_batch(texts):
 
     try:
         with open(src_path, "wb") as f:
-            f.write(b" opt P=68000\n")
-            f.write(b" opt O-\n")
+            f.write(f" {ORACLE['options']['cpu_select']}\n".encode("latin-1"))
+            f.write(f" {ORACLE['options']['no_optimization']}\n".encode("latin-1"))
             for text in texts:
                 f.write(f" {text}\n".encode("latin-1"))
                 f.write(b" dc.w $A5A5\n")
@@ -199,7 +206,7 @@ def genam_assemble_batch(texts):
              "--", str(GENAM),
              f"TMP:{src_name}",
              f"-oTMP:{out_name}",
-             "QUIET"],
+             ORACLE["options"]["quiet"]],
             capture_output=True, text=True, timeout=30)
 
         if result.returncode != 0:
