@@ -158,10 +158,24 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - Bidirectional xrefs (calls/called_by) from executor XRefs
   - Reloc-derived data references for uncovered regions
   - Gap filling for 100% address coverage
-  - GenAm: 292 entities (197 code, 95 unknown), 277 call pairs, 25.7% code coverage
   - `validate.py` PASS: 0 errors, 0 warnings, 0 unresolved xrefs
-- [ ] Coverage improvement: jump table detection, indirect call resolution, RTS-bounded block scanning
-- [ ] State propagation feedback: propagated register values → new entry points (JSR (An) with known An)
+- [x] Jump table detection: 3 M68K dispatch patterns (word-offset, self-relative, PC-inline)
+  - EA mode detection from KB `ea_mode_encoding` (pcindex, index, ind, pcdisp)
+  - BRA opcode pattern from KB encoding fields + `displacement_encoding`
+  - Brief + full extension word formats from KB `ea_brief_ext_word`/`ea_full_ext_word`
+- [x] State propagation feedback: resolve indirect JSR/JMP (An) via propagated register values
+- [x] Heuristic subroutine scan: RTS-bounded sequences scored against relocs/call targets
+- [x] Scratch register invalidation after calls (KB `pc_effects.flow.type == "call"`)
+- [x] OS library call identification: ExecBase load + LVO dispatch → function names
+  - ExecBase addr from OS KB `exec_base_addr`, library names from `lvo_index`
+  - MOVEA/JSR encoding fields from KB (not hardcoded bit positions)
+  - Library base tagging: OpenLibrary return tagged via KB `returns_base` field
+  - Tags propagate through registers, memory round-trips, state joins
+- [x] Subroutine naming: OS call patterns, PC-relative string references, call graph
+- [x] Shared KB utilities: `kb_util.py` (KB class, xf, find_containing_sub)
+- GenAm results: 59.2% coverage, 336 subroutines, 477 entities, 13 named, 454 call pairs
+- [ ] Improve coverage beyond 59% (app base register tracking, more string-based naming)
+- [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
 
 ## Existing Infrastructure
 
@@ -199,8 +213,11 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [ ] Refine OS version tagging — differentiate 570 "1.3" functions into 1.0/1.1/1.2/1.3
 - [ ] Complete hardware register bit definitions (104/245 done)
 
-### Disassembly
+### Disassembly — GenAm
 - [x] Target binary: GenAm (DevPac 3.18 assembler), 64920-byte CODE hunk
-- [ ] Improve code coverage beyond 25.7% (jump tables, indirect calls)
+- [x] Code coverage: 59.2% (5270 blocks, 12618 instructions)
+- [x] 336 subroutines, 13 named, 477 entities with 100% address coverage
+- [x] OS call identification: 16 calls found, 13 resolved (exec.library)
 - [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
-- [ ] Name subroutines from OS call patterns, string refs, propagated state
+- [ ] App base register tracking (A6 as data pointer for GenAm's work area)
+- [ ] Name more subroutines (call graph analysis, data flow, hardware register access patterns)
