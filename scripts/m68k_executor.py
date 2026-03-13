@@ -15,8 +15,6 @@ import struct
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
-
 from m68k_compute import (predict_cc, predict_sp, evaluate_cc_test,
                           _compute_result, _size_mask, _to_signed)
 from m68k_disasm import disassemble, Instruction, DecodeError, _Decoder, _decode_one
@@ -698,12 +696,10 @@ def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
     kb_by_name, _, meta = _load_kb()
     opword_bytes = meta["opword_bytes"]
     ea_enc = meta["ea_mode_encoding"]
-    cc_families = meta["_cc_families"]
 
     text = inst.text.strip()
     raw = inst.raw
     mnemonic = _extract_mnemonic(text)
-    mn_upper = mnemonic.upper()
 
     # Look up KB entry to get flow type and displacement_encoding
     cc_test_defs = meta.get("cc_test_definitions", {})
@@ -978,6 +974,9 @@ def _extract_size(text: str) -> str:
     for sz in meta["size_byte_count"]:
         if mn_part.endswith("." + sz):
             return sz
+    # No explicit size suffix — "w" is the default operand size for M68K.
+    # This is correct for unsized instructions (NOP, RTS, etc.) and
+    # instructions with implicit sizes (MOVEQ is always .l but has no suffix).
     return "w"
 
 
@@ -1026,28 +1025,85 @@ def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
     return None
 
 
+def _resolve_ea_address(src_text: str, cpu, inst: Instruction,
+                        meta: dict) -> "AbstractValue | None":
+    """Resolve an EA text operand to its effective address (not the value at it).
+
+    Used by LEA — computes the address that the EA refers to.
+    """
+    src = src_text.strip()
+    # d(An) or d(pc) — displacement from register/PC
+    if '(' in src and src.endswith(')'):
+        paren_idx = src.index('(')
+        disp_str = src[:paren_idx].strip()
+        inner = src[paren_idx + 1:-1].strip().lower()
+        if inner == 'pc':
+            opword_bytes = meta["opword_bytes"]
+            try:
+                if disp_str.startswith('$'):
+                    disp = int(disp_str[1:], 16)
+                else:
+                    disp = int(disp_str)
+            except ValueError:
+                return None
+            return _concrete(inst.offset + opword_bytes + disp)
+        # (An) without displacement
+        if not disp_str:
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                return cpu.get_reg(reg_info[0], reg_info[1])
+            return None
+        # d(An)
+        reg_info = _parse_reg_from_text(inner)
+        if reg_info:
+            base = cpu.get_reg(reg_info[0], reg_info[1])
+            if base.is_known:
+                try:
+                    if disp_str.startswith('-$'):
+                        disp = -int(disp_str[2:], 16)
+                    elif disp_str.startswith('$'):
+                        disp = int(disp_str[1:], 16)
+                    else:
+                        disp = int(disp_str)
+                except ValueError:
+                    return None
+                return _concrete(base.concrete + disp)
+        return None
+    # Absolute address
+    if src.startswith('($') or src.startswith('$'):
+        try:
+            clean = src.strip('()').lstrip('$')
+            if clean.endswith('.w') or clean.endswith('.l'):
+                clean = clean[:-2]
+            return _concrete(int(clean, 16))
+        except ValueError:
+            return None
+    return None
+
+
 def _apply_instruction(inst: Instruction, inst_kb: dict,
                        cpu: "CPUState_inner", mem: AbstractMemory,
                        code: bytes, base_addr: int):
     """Apply one instruction's effects to the abstract state.
 
-    Handles the most common patterns for state propagation:
-    - MOVE/MOVEA/MOVEQ: propagate values
-    - LEA: compute effective address
-    - ADD/SUB/AND/OR/EOR to registers: compute if both operands known
-    - ADDA/SUBA: compute if both operands known
-    - CLR: set destination to 0
-    - LINK/UNLK: SP adjustments
-    - PEA/JSR/BSR: SP decrement
-    - RTS/RTR: SP increment
+    Dispatches on KB compute_formula.op and operation_type — not mnemonics.
+    Sign-extension widths, bit ranges, and implicit operands all come from KB.
+    LEA is the one exception: it resolves the EA address (not value) and has
+    no KB field to distinguish this from MOVE, so it is detected by its unique
+    operation text signature.
     """
     _, _, meta = _load_kb()
     text = inst.text.strip()
     mnemonic = _extract_mnemonic(text)
-    mn_upper = mnemonic.upper()
     size = _extract_size(text)
     size_bytes = meta["size_byte_count"].get(size, 2)
     mask = (1 << (size_bytes * 8)) - 1
+
+    # KB fields that drive dispatch
+    formula = inst_kb.get("compute_formula")
+    op = formula.get("op") if formula else None
+    op_type = inst_kb.get("operation_type")
+    src_sign_ext = inst_kb.get("source_sign_extend", False)
 
     src_text, dst_text = _parse_operand_text(text)
 
@@ -1152,112 +1208,99 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                               value, size)
 
     # --- Apply per-instruction effects ---
+    # Dispatch on KB compute_formula.op and operation_type.
+    # No mnemonic-string dispatch — all semantics from KB fields.
 
-    # MOVEQ: sign-extended 8-bit immediate to Dn
-    if mn_upper == "MOVEQ":
-        src_val = _resolve_text_operand(src_text)
-        if src_val is not None and src_val.is_known:
-            # MOVEQ sign-extends byte to long
-            val = src_val.concrete & 0xFF
-            if val >= 0x80:
-                val |= 0xFFFFFF00
-            val &= 0xFFFFFFFF
-            _write_dst(dst_text, _concrete(val))
-        else:
-            _write_dst(dst_text, _unknown())
-        return
+    # SP-modifying instructions: track stack pointer (check first, these
+    # are orthogonal to compute effects and may return early)
+    sp_effects = inst_kb.get("sp_effects", [])
+    if sp_effects:
+        for effect in sp_effects:
+            action = effect.get("action")
+            if "bytes" not in effect and action in ("decrement", "increment"):
+                raise KeyError(
+                    f"sp_effects.bytes missing for {mnemonic} action={action}")
+            if action == "decrement" and cpu.sp.is_known:
+                cpu.sp = _concrete(cpu.sp.concrete - effect["bytes"])
+            elif action == "increment" and cpu.sp.is_known:
+                cpu.sp = _concrete(cpu.sp.concrete + effect["bytes"])
+            elif action == "displacement_adjust":
+                # LINK-style: SP += displacement (negative = allocate)
+                if cpu.sp.is_known and src_text:
+                    src_val = _resolve_text_operand(src_text)
+                    if src_val and src_val.is_known:
+                        disp = _to_signed(src_val.concrete & 0xFFFF, "w")
+                        cpu.sp = _concrete(cpu.sp.concrete + disp)
+        # SP-only instructions (no compute_formula) stop here
+        if op is None:
+            return
 
-    # LEA: compute EA and store in An
-    if mn_upper == "LEA":
+    # LEA: loads the effective address itself (not the value at the address).
+    # Detected by KB operation text signature — the KB compute_formula is
+    # "assign" (same as MOVE), but the semantics are fundamentally different:
+    # LEA computes &source, MOVE reads *source.  No KB field distinguishes
+    # this, so we check the operation text from the KB.
+    if inst_kb.get("operation") == "< ea > \u2192 An" and op == "assign":
         if dst_text:
             dst_reg = _parse_reg_from_text(dst_text)
             if dst_reg and src_text:
-                # Parse the EA from source text
-                src = src_text.strip()
-                addr_val = None
-                # d(An) or d(pc)
-                if '(' in src and src.endswith(')'):
-                    paren_idx = src.index('(')
-                    disp_str = src[:paren_idx].strip()
-                    inner = src[paren_idx + 1:-1].strip().lower()
-                    if inner == 'pc':
-                        # PC-relative: address = instruction_addr + opword + disp
-                        opword_bytes = meta["opword_bytes"]
-                        try:
-                            if disp_str.startswith('$'):
-                                disp = int(disp_str[1:], 16)
-                            else:
-                                disp = int(disp_str)
-                        except ValueError:
-                            disp = None
-                        if disp is not None:
-                            addr_val = _concrete(inst.offset + opword_bytes + disp)
-                    else:
-                        reg_info = _parse_reg_from_text(inner)
-                        if reg_info:
-                            base = cpu.get_reg(reg_info[0], reg_info[1])
-                            if base.is_known:
-                                try:
-                                    if disp_str.startswith('$'):
-                                        disp = int(disp_str[1:], 16)
-                                    elif disp_str.startswith('-$'):
-                                        disp = -int(disp_str[2:], 16)
-                                    elif disp_str.startswith('-'):
-                                        disp = int(disp_str)
-                                    else:
-                                        disp = int(disp_str)
-                                except ValueError:
-                                    disp = None
-                                if disp is not None:
-                                    addr_val = _concrete(base.concrete + disp)
-                elif src.startswith('(') and src.endswith(')'):
-                    # (An) - effective address is register value
-                    inner = src[1:-1]
-                    reg_info = _parse_reg_from_text(inner)
-                    if reg_info:
-                        base = cpu.get_reg(reg_info[0], reg_info[1])
-                        addr_val = base
-                elif src.startswith('($') or src.startswith('$'):
-                    # Absolute address
-                    try:
-                        clean = src.strip('()').lstrip('$')
-                        if clean.endswith('.w') or clean.endswith('.l'):
-                            clean = clean[:-2]
-                        addr_val = _concrete(int(clean, 16))
-                    except ValueError:
-                        pass
+                addr_val = _resolve_ea_address(src_text, cpu, inst, meta)
                 if addr_val is not None:
                     cpu.set_reg(dst_reg[0], dst_reg[1], addr_val)
                 else:
                     cpu.set_reg(dst_reg[0], dst_reg[1], _unknown())
         return
 
-    # MOVE/MOVEA: propagate value
-    if mn_upper in ("MOVE", "MOVEA"):
+    # --- Formula-driven dispatch ---
+
+    if op == "assign":
+        # MOVE/MOVEA/MOVEQ/CLR family — all have compute_formula.op == "assign"
+        terms = formula.get("terms", [])
+
+        if "implicit" in terms:
+            # CLR: assign implicit_operand (0) to destination
+            implicit_val = inst_kb.get("implicit_operand")
+            if implicit_val is None:
+                raise KeyError(f"implicit_operand missing for {mnemonic}")
+            _write_dst(dst_text or src_text, _concrete(implicit_val))
+            return
+
+        # Source-assign: MOVE, MOVEA, MOVEQ
         src_val = _resolve_text_operand(src_text)
+
+        # Sign-extend immediate from KB constraints.immediate_range
+        imm_range = inst_kb.get("constraints", {}).get("immediate_range")
+        if imm_range and imm_range.get("signed") and src_val and src_val.is_known:
+            bits = imm_range["bits"]
+            val = src_val.concrete & ((1 << bits) - 1)
+            if val >= (1 << (bits - 1)):
+                val |= ~((1 << bits) - 1)
+            val &= 0xFFFFFFFF
+            src_val = _concrete(val)
+
+        # Source sign-extension from KB source_sign_extend (MOVEA.W, ADDA.W etc.)
+        if src_sign_ext and size == "w" and src_val and src_val.is_known:
+            val = src_val.concrete & 0xFFFF
+            if val >= 0x8000:
+                val |= 0xFFFF0000
+            val &= 0xFFFFFFFF
+            src_val = _concrete(val)
+
         if src_val is not None:
-            if mn_upper == "MOVEA" and size == "w" and src_val.is_known:
-                # MOVEA.W sign-extends to 32 bits
-                val = src_val.concrete & 0xFFFF
-                if val >= 0x8000:
-                    val |= 0xFFFF0000
-                val &= 0xFFFFFFFF
-                _write_dst(dst_text, _concrete(val))
-            else:
-                _write_dst(dst_text, src_val)
+            _write_dst(dst_text, src_val)
         else:
             _write_dst(dst_text, _unknown())
         return
 
-    # CLR: set destination to 0
-    if mn_upper == "CLR":
-        _write_dst(dst_text or src_text, _concrete(0))
-        return
-
-    # ADD/SUB/ADDA/SUBA: compute if both known
-    if mn_upper in ("ADD", "ADDA", "ADDI", "ADDQ"):
+    if op == "add":
         src_val = _resolve_text_operand(src_text)
         dst_val = _resolve_text_operand(dst_text)
+        # Apply source_sign_extend if present (ADDA.W)
+        if src_sign_ext and size == "w" and src_val and src_val.is_known:
+            val = src_val.concrete & 0xFFFF
+            if val >= 0x8000:
+                val |= 0xFFFF0000
+            src_val = _concrete(val & 0xFFFFFFFF)
         if src_val and dst_val and src_val.is_known and dst_val.is_known:
             result = (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF
             _write_dst(dst_text, _concrete(result))
@@ -1265,9 +1308,31 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             _write_dst(dst_text, _unknown())
         return
 
-    if mn_upper in ("SUB", "SUBA", "SUBI", "SUBQ"):
+    if op == "subtract":
+        terms = formula.get("terms", [])
+        # NEG: terms=["implicit", "destination"] — implicit(0) - destination
+        if "implicit" in terms:
+            implicit_val = inst_kb.get("implicit_operand", 0)
+            dst_val = _resolve_text_operand(dst_text or src_text)
+            if dst_val and dst_val.is_known:
+                result = (implicit_val - dst_val.concrete) & mask
+                # Preserve upper bits for sub-long sizes
+                if size != "l" and dst_val.is_known:
+                    upper = dst_val.concrete & ~mask
+                    result = upper | result
+                _write_dst(dst_text or src_text, _concrete(result & 0xFFFFFFFF))
+            else:
+                _write_dst(dst_text or src_text, _unknown())
+            return
+        # SUB family: terms=["destination", "source"] or ["source", "destination"]
         src_val = _resolve_text_operand(src_text)
         dst_val = _resolve_text_operand(dst_text)
+        # Apply source_sign_extend if present (SUBA.W)
+        if src_sign_ext and size == "w" and src_val and src_val.is_known:
+            val = src_val.concrete & 0xFFFF
+            if val >= 0x8000:
+                val |= 0xFFFF0000
+            src_val = _concrete(val & 0xFFFFFFFF)
         if src_val and dst_val and src_val.is_known and dst_val.is_known:
             result = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
             _write_dst(dst_text, _concrete(result))
@@ -1275,8 +1340,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             _write_dst(dst_text, _unknown())
         return
 
-    # AND/OR/EOR: compute if both known
-    if mn_upper in ("AND", "ANDI"):
+    if op == "bitwise_and":
         src_val = _resolve_text_operand(src_text)
         dst_val = _resolve_text_operand(dst_text)
         if src_val and dst_val and src_val.is_known and dst_val.is_known:
@@ -1285,7 +1349,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             _write_dst(dst_text, _unknown())
         return
 
-    if mn_upper in ("OR", "ORI"):
+    if op == "bitwise_or":
         src_val = _resolve_text_operand(src_text)
         dst_val = _resolve_text_operand(dst_text)
         if src_val and dst_val and src_val.is_known and dst_val.is_known:
@@ -1294,7 +1358,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             _write_dst(dst_text, _unknown())
         return
 
-    if mn_upper in ("EOR", "EORI"):
+    if op == "bitwise_xor":
         src_val = _resolve_text_operand(src_text)
         dst_val = _resolve_text_operand(dst_text)
         if src_val and dst_val and src_val.is_known and dst_val.is_known:
@@ -1303,8 +1367,93 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             _write_dst(dst_text, _unknown())
         return
 
-    # EXG: swap two registers
-    if mn_upper == "EXG":
+    if op == "bitwise_complement":
+        # NOT: ~destination
+        dst_val = _resolve_text_operand(dst_text or src_text)
+        if dst_val and dst_val.is_known:
+            result = dst_val.concrete ^ mask  # complement within operation size
+            # Preserve upper bits for sub-long sizes
+            if size != "l":
+                upper = dst_val.concrete & ~mask
+                result = upper | result
+            _write_dst(dst_text or src_text, _concrete(result & 0xFFFFFFFF))
+        else:
+            _write_dst(dst_text or src_text, _unknown())
+        return
+
+    if op == "exchange":
+        # SWAP: exchange bit ranges within a register
+        # KB provides range_a and range_b (e.g. [31,16] and [15,0])
+        range_a = formula.get("range_a")
+        range_b = formula.get("range_b")
+        if range_a and range_b:
+            reg_info = _parse_reg_from_text(src_text or dst_text or "")
+            if reg_info and reg_info[0] == "dn":
+                val = cpu.get_reg("dn", reg_info[1])
+                if val.is_known:
+                    v = val.concrete
+                    a_hi, a_lo = range_a
+                    b_hi, b_lo = range_b
+                    a_width = a_hi - a_lo + 1
+                    b_width = b_hi - b_lo + 1
+                    a_mask = ((1 << a_width) - 1) << a_lo
+                    b_mask = ((1 << b_width) - 1) << b_lo
+                    a_bits = (v & a_mask) >> a_lo
+                    b_bits = (v & b_mask) >> b_lo
+                    # Swap: put a_bits in b_range, b_bits in a_range
+                    v = (v & ~(a_mask | b_mask)) | (b_bits << a_lo) | (a_bits << b_lo)
+                    cpu.set_reg("dn", reg_info[1], _concrete(v & 0xFFFFFFFF))
+                else:
+                    cpu.set_reg("dn", reg_info[1], _unknown())
+            return
+
+    if op == "sign_extend":
+        # EXT/EXTB: sign-extend from source_bits_by_size in KB compute_formula
+        src_bits_by_size = formula.get("source_bits_by_size")
+        if src_bits_by_size is None:
+            raise KeyError(f"source_bits_by_size missing for {mnemonic}")
+        reg_info = _parse_reg_from_text(src_text or dst_text or "")
+        if reg_info and reg_info[0] == "dn":
+            val = cpu.get_reg("dn", reg_info[1])
+            if val.is_known:
+                v = val.concrete
+                # Determine source bits: check for mnemonic-specific key first
+                # (e.g. "extb_l" for EXTB.L), then fall back to size key
+                mnemonic_key = mnemonic.lower() + "_" + size
+                src_bits = src_bits_by_size.get(mnemonic_key,
+                                                src_bits_by_size.get(size))
+                if src_bits is None:
+                    raise KeyError(
+                        f"No source_bits for size={size} in {mnemonic}")
+                src_mask = (1 << src_bits) - 1
+                src_val = v & src_mask
+                if src_val >= (1 << (src_bits - 1)):
+                    # Sign-extend: fill upper bits
+                    if size == "w":
+                        # Extend within word, preserve upper 16 bits
+                        extended = src_val | (~src_mask & 0xFFFF)
+                        v = (v & 0xFFFF0000) | (extended & 0xFFFF)
+                    else:
+                        # Extend to full long
+                        v = src_val | ~src_mask
+                else:
+                    if size == "w":
+                        v = (v & 0xFFFF0000) | (src_val & 0xFFFF)
+                    else:
+                        v = src_val
+                cpu.set_reg("dn", reg_info[1], _concrete(v & 0xFFFFFFFF))
+            else:
+                cpu.set_reg("dn", reg_info[1], _unknown())
+        return
+
+    if op == "test":
+        # TST: reads destination but doesn't write (only sets CC flags).
+        # No state change needed for abstract propagation.
+        return
+
+    # EXG: KB operation_type == "swap" with no compute_formula.
+    # Swaps two registers.
+    if op_type == "swap" and op is None:
         src_reg = _parse_reg_from_text(src_text) if src_text else None
         dst_reg = _parse_reg_from_text(dst_text) if dst_text else None
         if src_reg and dst_reg:
@@ -1314,72 +1463,11 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             cpu.set_reg(dst_reg[0], dst_reg[1], sv)
         return
 
-    # SWAP: swap halves of Dn
-    if mn_upper == "SWAP":
-        reg_info = _parse_reg_from_text(src_text or dst_text or "")
-        if reg_info and reg_info[0] == "dn":
-            val = cpu.get_reg("dn", reg_info[1])
-            if val.is_known:
-                v = val.concrete
-                swapped = ((v & 0xFFFF) << 16) | ((v >> 16) & 0xFFFF)
-                cpu.set_reg("dn", reg_info[1], _concrete(swapped))
-            else:
-                cpu.set_reg("dn", reg_info[1], _unknown())
-        return
-
-    # EXT: sign-extend
-    if mn_upper == "EXT" or mn_upper == "EXTB":
-        reg_info = _parse_reg_from_text(src_text or dst_text or "")
-        if reg_info and reg_info[0] == "dn":
-            val = cpu.get_reg("dn", reg_info[1])
-            if val.is_known:
-                v = val.concrete
-                if size == "w":
-                    # byte -> word
-                    v = v & 0xFF
-                    if v >= 0x80:
-                        v |= 0xFF00
-                    v = (cpu.get_reg("dn", reg_info[1]).concrete & 0xFFFF0000) | (v & 0xFFFF)
-                elif size == "l":
-                    if mn_upper == "EXTB":
-                        # byte -> long
-                        v = v & 0xFF
-                        if v >= 0x80:
-                            v |= 0xFFFFFF00
-                    else:
-                        # word -> long
-                        v = v & 0xFFFF
-                        if v >= 0x8000:
-                            v |= 0xFFFF0000
-                cpu.set_reg("dn", reg_info[1], _concrete(v & 0xFFFFFFFF))
-            else:
-                cpu.set_reg("dn", reg_info[1], _unknown())
-        return
-
-    # SP-modifying instructions: track stack pointer
-    sp_effects = inst_kb.get("sp_effects", [])
-    if sp_effects:
-        for effect in sp_effects:
-            action = effect.get("action")
-            if action == "decrement" and cpu.sp.is_known:
-                cpu.sp = _concrete(cpu.sp.concrete - effect.get("bytes", 4))
-            elif action == "increment" and cpu.sp.is_known:
-                cpu.sp = _concrete(cpu.sp.concrete + effect.get("bytes", 4))
-            elif action in ("displacement_adjust",):
-                # LINK: SP -= displacement (negative = allocate)
-                if cpu.sp.is_known and src_text:
-                    src_val = _resolve_text_operand(src_text)
-                    if src_val and src_val.is_known:
-                        disp = _to_signed(src_val.concrete & 0xFFFF, "w")
-                        cpu.sp = _concrete(cpu.sp.concrete + disp)
-        return
-
-    # Instructions that write to destination but we can't compute:
-    # invalidate the destination register
+    # Unhandled compute formulas (multiply, divide, shift, rotate, etc.):
+    # invalidate the destination register since we can't compute the result.
     if dst_text:
         dst_reg = _parse_reg_from_text(dst_text)
         if dst_reg:
-            # Unknown result — invalidate
             cpu.set_reg(dst_reg[0], dst_reg[1], _unknown())
 
 
