@@ -1,0 +1,67 @@
+{
+  "_meta": {
+    "description": "vasm M68K assembler behavior documentation",
+    "source": "Empirical testing and vasm documentation",
+    "version": "1.9+",
+    "test_date": "2026-03-13"
+  },
+  "syntax_family": "motorola",
+  "cli": {
+    "executable": "vasmm68k_mot",
+    "usage": "vasmm68k_mot [options] <source>",
+    "output_formats": {
+      "amiga_hunk": "-Fhunk",
+      "raw_binary": "-Fbin",
+      "elf": "-Felf",
+      "test_output": "-Ftest",
+      "vobj": "-Fvobj"
+    },
+    "notes": "Supports multiple output formats including raw binary (-Fbin) for testing"
+  },
+  "options": {
+    "cpu_select": "-m68000",
+    "no_optimization": "-no-opt",
+    "case_insensitive": "-nocase",
+    "quiet": "-quiet",
+    "output_file": "-o <filename>",
+    "include_path": "-I<path>"
+  },
+  "encoding_behaviors": [
+    {
+      "id": "imm_dn_no_route",
+      "description": "With -no-opt, preserves ADD/AND/OR/SUB #imm,Dn as general-purpose encoding",
+      "affected_mnemonics": ["ADD", "AND", "OR", "SUB", "CMP", "EOR"],
+      "behavior": "When assembling <OP> #imm,Dn with -no-opt, vasm uses the general-purpose instruction encoding with immediate EA mode (#imm = mode 111, reg 100), NOT the dedicated immediate instruction",
+      "example": {
+        "input": "add.b #$12,d1",
+        "vasm_encoding": "d23c0012",
+        "vasm_mnemonic": "ADD with #imm EA",
+        "addi_encoding": "06010012",
+        "addi_mnemonic": "ADDI"
+      },
+      "both_valid": true,
+      "note": "With optimizations enabled, vasm may route to ADDI like GenAm does"
+    },
+    {
+      "id": "exg_operand_order",
+      "description": "EXG preserves syntactic operand order in Rx/Ry fields",
+      "affected_mnemonics": ["EXG"],
+      "behavior": "First operand → Rx field, second operand → Ry field",
+      "example": {
+        "input": "exg a0,a1",
+        "vasm_encoding": "c149",
+        "interpretation": "Rx=A0, Ry=A1"
+      }
+    }
+  ],
+  "tested": {
+    "total_tests": 1269,
+    "passed": 1269,
+    "mismatches": 0,
+    "vasm_errors": 5,
+    "mnemonics_tested": 76,
+    "vasm_error_categories": {
+      "020_plus_instructions": 5
+    }
+  }
+}

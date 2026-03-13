@@ -762,51 +762,107 @@ def _assemble_moveq(inst, resolution, imm_str, dst_str):
     return _to_bytes_16(word)
 
 
-def _assemble_branch(inst, resolution, target_str):
+def _assemble_branch(inst, resolution, target_str, pc=0):
     """Assemble branch instructions (Bcc, BRA, BSR).
 
-    target_str is treated as a displacement value (not a label).
+    target_str is a target address (absolute or label).
+    Displacement is computed as target - (pc + 2), per M68K semantics:
+    the PC used for displacement calculation points to the extension word
+    (or the byte after the opword for .b branches), i.e. pc_of_opword + 2.
+
+    Displacement encoding rules (reserved values, extension sizes) are read
+    from KB constraints.displacement_encoding.
+    When no size specified: auto-select .b if displacement fits, else .w.
     """
     size_char = resolution["size"]
     cc_index = resolution["cc_index"]
+    ir = inst.get("constraints", {}).get("immediate_range", {})
+    disp_enc = inst.get("constraints", {}).get("displacement_encoding", {})
 
-    # Parse displacement
-    disp = _parse_imm_value(target_str)
+    # KB-driven displacement field name, reserved values, and extension sizes
+    disp_field = disp_enc.get("field", ir.get("field", "8-BIT DISPLACEMENT"))
+    word_signal = disp_enc.get("word_signal")
+    long_signal = disp_enc.get("long_signal")
+    word_bits = disp_enc.get("word_bits", 16)
+    long_bits = disp_enc.get("long_bits", 32)
+
+    # KB-driven byte displacement range
+    byte_min = ir.get("min", -128)
+    byte_max = ir.get("max", 127)
+
+    target = _parse_imm_value(target_str)
+    disp = target - (pc + 2)
 
     fields = {}
     if cc_index is not None:
         fields["CONDITION"] = cc_index
 
+    # Reserved values in the byte displacement field (signal word/long extension)
+    reserved = set()
+    if word_signal is not None:
+        reserved.add(word_signal)            # 0x00 → word extension
+    if long_signal is not None:
+        reserved.add(long_signal - 256)      # 0xFF as signed → -1
+
+    # Auto-select size if none specified
+    if size_char is None:
+        if byte_min <= disp <= byte_max and (disp & 0xFF) not in {
+                v & 0xFF for v in reserved | {word_signal or 0,
+                                              long_signal or 255}}:
+            size_char = "b"
+        else:
+            size_char = "w"
+
     if size_char == "s" or size_char == "b":
-        # Short branch: 8-bit displacement in opword
-        fields["8-BIT DISPLACEMENT"] = disp & 0xFF
+        disp_unsigned = disp & 0xFF
+        if not (byte_min <= disp <= byte_max) or disp_unsigned in {
+                word_signal, long_signal}:
+            raise ValueError(
+                f"Branch displacement {disp} out of .b range "
+                f"({byte_min}..{byte_max}, "
+                f"excluding reserved values {sorted(reserved)})")
+        fields[disp_field] = disp_unsigned
         word = _build_opword(inst, fields)
         return _to_bytes_16(word)
-    elif size_char == "w" or size_char is None:
-        # Word branch: 0x00 in displacement, 16-bit extension
-        fields["8-BIT DISPLACEMENT"] = 0x00
+    elif size_char == "w":
+        word_max = (1 << (word_bits - 1)) - 1
+        word_min = -(1 << (word_bits - 1))
+        if not (word_min <= disp <= word_max):
+            raise ValueError(
+                f"Branch displacement {disp} out of .w range "
+                f"({word_min}..{word_max})")
+        fields[disp_field] = word_signal if word_signal is not None else 0x00
         word = _build_opword(inst, fields)
-        return _to_bytes_16(word) + _to_bytes_16(disp)
+        return _to_bytes_16(word) + _to_bytes_16(disp & 0xFFFF)
     else:
-        # Long branch (020+): 0xFF in displacement, 32-bit extension
-        fields["8-BIT DISPLACEMENT"] = 0xFF
+        # Long branch (020+)
+        fields[disp_field] = long_signal if long_signal is not None else 0xFF
         word = _build_opword(inst, fields)
-        return _to_bytes_16(word) + _to_bytes_32(disp)
+        return _to_bytes_16(word) + _to_bytes_32(disp & 0xFFFFFFFF)
 
 
-def _assemble_dbcc(inst, resolution, reg_str, target_str):
-    """Assemble DBcc — decrement and branch."""
+def _assemble_dbcc(inst, resolution, reg_str, target_str, pc=0):
+    """Assemble DBcc — decrement and branch.
+
+    Displacement is computed as target - (pc + 2), same as Bcc.
+    DBcc always uses 16-bit displacement.
+    """
     cc_index = resolution["cc_index"]
     m = _RE_DN.match(reg_str.strip())
     if not m:
         raise ValueError(f"DBcc register must be Dn, got {reg_str!r}")
     dreg = int(m.group(1))
 
-    disp = _parse_imm_value(target_str)
+    target = _parse_imm_value(target_str)
+    disp = target - (pc + 2)
 
-    fields = {"CONDITION": cc_index, "REGISTER": dreg, "MODE": 1}
+    if not (-32768 <= disp <= 32767):
+        raise ValueError(
+            f"DBcc displacement {disp} out of range (-32768..+32767)")
+
+    fields = {"CONDITION": cc_index, "REGISTER": dreg}
     word = _build_opword(inst, fields)
-    return _to_bytes_16(word) + _to_bytes_16(disp)
+    return _to_bytes_16(word) + _to_bytes_16(disp & 0xFFFF)
 
 
 def _assemble_shift_reg(inst, resolution, operands):
@@ -1158,10 +1214,24 @@ def _assemble_ext(inst, resolution, reg_str):
     return _to_bytes_16(word)
 
 
-def _assemble_trap(inst, resolution, vector_str):
-    """Assemble TRAP #vector."""
-    vec = _parse_imm_value(vector_str.strip().lstrip("#"))
-    fields = {"VECTOR": vec}
+def _assemble_opword_immediate(inst, resolution, imm_str):
+    """Assemble instructions where immediate goes into an opword field.
+
+    Used for TRAP, BKPT, and any instruction whose immediate_range.field
+    names an encoding field in the opword (e.g. VECTOR, DATA).
+    """
+    ir = inst.get("constraints", {}).get("immediate_range", {})
+    field_name = ir.get("field")
+    if not field_name:
+        raise ValueError(f"{inst['mnemonic']}: no immediate_range.field in KB")
+    imm_val = _parse_imm_value(imm_str.strip().lstrip("#"))
+    ir_min = ir.get("min", 0)
+    ir_max = ir.get("max", (1 << ir.get("bits", 16)) - 1)
+    if not (ir_min <= imm_val <= ir_max):
+        raise ValueError(
+            f"{inst['mnemonic']}: immediate {imm_val} out of range "
+            f"[{ir_min}..{ir_max}]")
+    fields = {field_name: imm_val}
     word = _build_opword(inst, fields)
     return _to_bytes_16(word)
 
@@ -1382,6 +1452,202 @@ def _assemble_adda_suba_cmpa(inst, resolution, src_str, dst_str):
     return _to_bytes_16(word) + src_ext
 
 
+# ── KB-driven operand type classification ────────────────────────────────
+
+@lru_cache(maxsize=1)
+def _special_operand_types():
+    """Derive special register operand types from KB asm_syntax_index.
+
+    Returns the set of operand types that appear in the syntax index but are
+    not standard EA modes. These require special resolution because they map
+    to separate KB instructions (e.g. 'ccr' in 'andi:imm,ccr' → 'ANDI to CCR').
+    """
+    ea_modes = set(_ea_mode_encoding().keys())  # dn, an, ind, postinc, etc.
+    # Types that are parameters, not named registers
+    generic_types = ea_modes | {"ea", "imm", "label", "reglist", "ctrl_reg",
+                                "rn", "bf_ea", "unknown", "dn_pair",
+                                "disp", "postinc", "predec"}
+    all_types = set()
+    for key in _kb_meta()["asm_syntax_index"]:
+        parts = key.split(":", 1)
+        if len(parts) > 1 and parts[1]:
+            for t in parts[1].split(","):
+                all_types.add(t)
+    return all_types - generic_types
+
+
+@lru_cache(maxsize=1)
+def _asm_syntax_index():
+    """Return {(asm_mnemonic, op_type_tuple): kb_mnemonic} from KB _meta."""
+    raw = _kb_meta()["asm_syntax_index"]
+    result = {}
+    for key, kb_mnemonic in raw.items():
+        parts = key.split(":", 1)
+        asm_mn = parts[0]
+        op_types = tuple(parts[1].split(",")) if len(parts) > 1 and parts[1] else ()
+        result[(asm_mn, op_types)] = kb_mnemonic
+    return result
+
+
+def _classify_asm_operand(text):
+    """Classify an assembly operand text into a KB operand type string.
+
+    Returns one of: 'imm', 'dn', 'an', 'sr', 'ccr', 'usp', 'ea', etc.
+    Uses the same type categories as the KB forms parser (_parse_operand in
+    parse_m68k.py) so that lookups into asm_syntax_index match.
+    """
+    t = text.strip().lower()
+    if t.startswith("#"):
+        return "imm"
+    if t == "sr":
+        return "sr"
+    if t == "ccr":
+        return "ccr"
+    if t == "usp":
+        return "usp"
+    if _RE_AN.match(t) or _RE_SP.match(t):
+        return "an"
+    if _RE_DN.match(t):
+        return "dn"
+    # Default: 'ea' covers all other addressing modes
+    return "ea"
+
+
+def _resolve_by_syntax_index(mnemonic_lower, operands):
+    """Resolve (mnemonic, operand types) to KB instruction via asm_syntax_index.
+
+    Tries exact operand type match first, then promotes specific register types
+    (dn, an) to 'ea' since the KB forms use 'ea' for operands that accept any
+    effective addressing mode.
+
+    Returns (kb_inst, matched_form_index) or None.
+    """
+    op_types = tuple(_classify_asm_operand(op) for op in operands)
+    index = _asm_syntax_index()
+
+    # Try exact match first
+    key = (mnemonic_lower, op_types)
+    kb_mnemonic = index.get(key)
+
+    # If no exact match, try promoting dn/an to ea (they're EA subsets)
+    if kb_mnemonic is None:
+        ea_promotable = {"dn", "an"}
+        promoted = tuple("ea" if t in ea_promotable else t for t in op_types)
+        if promoted != op_types:
+            key = (mnemonic_lower, promoted)
+            kb_mnemonic = index.get(key)
+
+    if kb_mnemonic is None:
+        return None
+    inst = _kb().get(kb_mnemonic)
+    if inst is None:
+        raise ValueError(
+            f"asm_syntax_index maps {key} to {kb_mnemonic!r} "
+            f"but that instruction is not in the KB")
+    # Find matching form index by operand types (try exact then promoted)
+    for form_idx, form in enumerate(inst.get("forms", [])):
+        form_ops = tuple(o["type"] for o in form.get("operands", []))
+        if form_ops == op_types or form_ops == key[1]:
+            return inst, form_idx
+    return inst, 0
+
+
+# ── SR/CCR/USP instruction handlers ──────────────────────────────────────
+
+def _inst_size_bytes(inst):
+    """Get operand size in bytes from the instruction's KB sizes field."""
+    sizes = inst.get("sizes", [])
+    if not sizes:
+        raise ValueError(f"{inst['mnemonic']}: no sizes in KB")
+    sbc = _size_byte_count()
+    return sbc[sizes[0]]
+
+
+def _assemble_imm_to_sr_ccr(inst, imm_str):
+    """Assemble ANDI/EORI/ORI to CCR/SR — all-fixed opword + immediate extension.
+
+    Extension word size derived from KB sizes field via size_byte_count.
+    """
+    sz_bytes = _inst_size_bytes(inst)
+    imm_val = _parse_imm_value(imm_str.strip().lstrip("#"))
+    word = _build_opword(inst, {})
+    if sz_bytes >= 4:
+        imm_bytes = _to_bytes_32(imm_val)
+    else:
+        imm_bytes = _to_bytes_16(imm_val)
+    return _to_bytes_16(word) + imm_bytes
+
+
+def _assemble_ea_to_sr_ccr(inst, src_str):
+    """Assemble MOVE <ea>,CCR or MOVE <ea>,SR — source EA in encoding.
+
+    Operand size derived from KB sizes field.
+    """
+    sz_bytes = _inst_size_bytes(inst)
+    mode, reg, ext = parse_ea(src_str, sz_bytes)
+    fields = {"MODE": mode, "REGISTER": reg}
+    word = _build_opword(inst, fields)
+    return _to_bytes_16(word) + ext
+
+
+def _assemble_sr_ccr_to_ea(inst, dst_str):
+    """Assemble MOVE SR,<ea> or MOVE CCR,<ea> — destination EA in encoding.
+
+    Operand size derived from KB sizes field.
+    """
+    sz_bytes = _inst_size_bytes(inst)
+    mode, reg, ext = parse_ea(dst_str, sz_bytes)
+    fields = {"MODE": mode, "REGISTER": reg}
+    word = _build_opword(inst, fields)
+    return _to_bytes_16(word) + ext
+
+
+def _assemble_direction_field(inst, form_idx, operands):
+    """Assemble instruction with direction field (MOVE USP, MOVEM, MOVEC).
+
+    Uses KB direction_field_values to determine the dr bit value from form index.
+    """
+    dfv = inst.get("direction_field_values")
+    if dfv is None:
+        raise ValueError(
+            f"{inst['mnemonic']}: no direction_field_values in KB")
+
+    field_name = dfv["field"]
+    # JSON serializes int keys as strings
+    dr_value = dfv["form_field_value"].get(str(form_idx))
+    if dr_value is None:
+        raise ValueError(
+            f"{inst['mnemonic']}: form index {form_idx} not in "
+            f"direction_field_values.form_field_value")
+
+    # Determine which operand is the An register
+    forms = inst.get("forms", [])
+    form_ops = [o["type"] for o in forms[form_idx].get("operands", [])]
+
+    # Find the non-special operand (the An register)
+    an_str = None
+    for i, op_type in enumerate(form_ops):
+        if op_type == "an":
+            an_str = operands[i]
+            break
+    if an_str is None:
+        raise ValueError(
+            f"{inst['mnemonic']}: no 'an' operand in form {form_idx}")
+
+    m = _RE_AN.match(an_str.strip())
+    if m:
+        an_reg = int(m.group(1))
+    elif _RE_SP.match(an_str.strip()):
+        an_reg = 7
+    else:
+        raise ValueError(
+            f"{inst['mnemonic']}: operand must be An, got {an_str!r}")
+
+    fields = {field_name: dr_value, "REGISTER": an_reg}
+    word = _build_opword(inst, fields)
+    return _to_bytes_16(word)
+
+
 # ── Main assembler entry point ───────────────────────────────────────────
 
 def _split_operands(operand_str):
@@ -1430,6 +1696,32 @@ def assemble_instruction(text, pc=0):
 
     operands = _split_operands(operand_part) if operand_part else []
 
+    # Check for special operands (SR/CCR/USP) — resolve via KB asm_syntax_index
+    if operands:
+        op_types = tuple(_classify_asm_operand(op) for op in operands)
+        if any(t in _special_operand_types() for t in op_types):
+            resolved = _resolve_by_syntax_index(mnemonic_str.lower(), operands)
+            if resolved is None:
+                raise ValueError(
+                    f"No KB instruction for {mnemonic_str} with operand types {op_types}")
+            sr_inst, form_idx = resolved
+            form_ops = tuple(
+                o["type"] for o in sr_inst["forms"][form_idx].get("operands", []))
+
+            # Route by form operand pattern
+            if form_ops in (("imm", "ccr"), ("imm", "sr")):
+                return _assemble_imm_to_sr_ccr(sr_inst, operands[0])
+            elif form_ops in (("ea", "ccr"), ("ea", "sr")):
+                return _assemble_ea_to_sr_ccr(sr_inst, operands[0])
+            elif form_ops in (("sr", "ea"), ("ccr", "ea")):
+                return _assemble_sr_ccr_to_ea(sr_inst, operands[1])
+            elif form_ops in (("usp", "an"), ("an", "usp")):
+                return _assemble_direction_field(sr_inst, form_idx, operands)
+            else:
+                raise ValueError(
+                    f"Unhandled special operand form: {form_ops} "
+                    f"for {sr_inst['mnemonic']}")
+
     # Route to specific assembler based on instruction characteristics
     forms = inst.get("forms", [])
     op_types = [tuple(o["type"] for o in f.get("operands", [])) for f in forms]
@@ -1469,8 +1761,14 @@ def assemble_instruction(text, pc=0):
     if mnemonic in ("EXT", "EXT, EXTB"):
         return _assemble_ext(inst, resolution, operands[0])
 
-    if mnemonic == "TRAP":
-        return _assemble_trap(inst, resolution, operands[0])
+    # Instructions with immediate embedded in opword field (TRAP, BKPT, etc.)
+    # Detected by: single #imm operand, immediate_range.field names an opword field
+    if len(operands) == 1 and operands[0].strip().startswith("#"):
+        ir = inst.get("constraints", {}).get("immediate_range", {})
+        ir_field = ir.get("field", "")
+        enc_fields = {f["name"] for f in inst["encodings"][0]["fields"]}
+        if ir_field and ir_field in enc_fields:
+            return _assemble_opword_immediate(inst, resolution, operands[0])
 
     if mnemonic in ("ABCD", "SBCD"):
         return _assemble_bcd(inst, resolution, operands[0], operands[1])
@@ -1491,8 +1789,8 @@ def assemble_instruction(text, pc=0):
     # Branch instructions
     if inst.get("uses_label"):
         if len(operands) == 2 and _RE_DN.match(operands[0].strip()):
-            return _assemble_dbcc(inst, resolution, operands[0], operands[1])
-        return _assemble_branch(inst, resolution, operands[0])
+            return _assemble_dbcc(inst, resolution, operands[0], operands[1], pc)
+        return _assemble_branch(inst, resolution, operands[0], pc)
 
     # Shift/rotate: register form (2 operands) or memory form (1 operand)
     if resolution["direction"] is not None:
@@ -1553,14 +1851,16 @@ def assemble_instruction(text, pc=0):
 if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding="utf-8")
-    if len(sys.argv) < 2:
-        print("Usage: m68k_asm.py <instruction>")
-        print("Example: m68k_asm.py 'move.l d0,(a1)'")
-        sys.exit(1)
+    import argparse
+    ap = argparse.ArgumentParser(description="M68K assembler")
+    ap.add_argument("instruction", nargs="+", help="Instruction text")
+    ap.add_argument("--pc", type=lambda x: int(x, 0), default=0,
+                    help="PC value (default 0)")
+    cli_args = ap.parse_args()
 
-    text = " ".join(sys.argv[1:])
+    text = " ".join(cli_args.instruction)
     try:
-        result = assemble_instruction(text)
+        result = assemble_instruction(text, pc=cli_args.pc)
         print(f"  {text}")
         print(f"  -> {result.hex()}")
         print(f"  -> {' '.join(f'{b:02x}' for b in result)}")

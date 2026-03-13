@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "description": "DevPac GenAm 3.18 assembler behavior documentation",
+    "source": "Empirical testing via vamos against 1270 instruction variants",
+    "version": "3.18",
+    "test_date": "2026-03-13"
+  },
+  "syntax_family": "motorola",
+  "cli": {
+    "executable": "GenAm",
+    "usage": "GenAm FROM/A TO/K WITH/K INCDIR/K/M HEADER/K/M QUIET/S",
+    "output_format": "amiga_hunk",
+    "output_formats_available": {
+      "amiga_executable": "default",
+      "alink_object": "-L3",
+      "srec": "-L6"
+    },
+    "no_raw_binary": true,
+    "notes": "GenAm always wraps output in Amiga hunk format; no -Fbin equivalent"
+  },
+  "options": {
+    "cpu_select": "OPT P=68000",
+    "optimizations_off": "OPT O-",
+    "quiet": "QUIET",
+    "suppress_binary": "-b",
+    "output_file": "-o <filename>",
+    "notes": "Each OPT must be on its own line; comma-separated OPTs on one line cause errors"
+  },
+  "return_codes": {
+    "0": "OK",
+    "5": "warnings",
+    "10": "errors",
+    "20": "fatal",
+    "100+": "initialization failure"
+  },
+  "auto_config": {
+    "opts_file": "GenAm.opts",
+    "behavior": "Auto-loaded from GenAm's directory if present",
+    "vamos_issue": "incdir paths in shipped opts file don't exist under vamos, causing errors"
+  },
+  "directives": {
+    "org": {
+      "syntax": "ORG <expression>",
+      "description": "Sets program counter to absolute value; generates position-dependent code",
+      "restriction": "Not allowed for linkable code (default Amiga executable mode)",
+      "notes": "Normal AmigaDOS programs do not need ORG. More than one ORG allowed but no padding is done.",
+      "source": "DevPac 3.00 manual"
+    },
+    "pc_relative_star": {
+      "syntax": "*+N or *-N",
+      "description": "Current PC reference; works in all output modes including linkable code",
+      "notes": "Used for branch targets in testing since ORG is forbidden in default executable mode"
+    }
+  },
+  "encoding_behaviors": [
+    {
+      "id": "imm_dn_auto_route",
+      "description": "Routes ADD/AND/OR/SUB/CMP/EOR #imm,Dn to dedicated immediate instruction (ADDI/ANDI/ORI/SUBI/CMPI/EORI)",
+      "affected_mnemonics": ["ADD", "AND", "OR", "SUB", "CMP", "EOR"],
+      "behavior": "When assembling <OP> #imm,Dn, GenAm always emits the ADDI/ANDI/etc. encoding rather than the general-purpose <OP> with immediate EA mode",
+      "example": {
+        "input": "add.b #$12,d1",
+        "genam_encoding": "06010012",
+        "genam_mnemonic": "ADDI",
+        "general_encoding": "d23c0012",
+        "general_mnemonic": "ADD with #imm EA"
+      },
+      "both_valid": true,
+      "note": "Both encodings produce identical results; ADDI is shorter for .l size (4 bytes vs 6 bytes for ADD #imm,Dn)"
+    },
+    {
+      "id": "exg_operand_order",
+      "description": "EXG may swap Rx/Ry register assignment",
+      "affected_mnemonics": ["EXG"],
+      "behavior": "For same-type exchanges (Ax,Ay or Dx,Dy), GenAm may assign operands to Rx/Ry in reversed order compared to syntactic order",
+      "example": {
+        "input": "exg a0,a1",
+        "genam_encoding": "c348",
+        "genam_interpretation": "Rx=A1, Ry=A0",
+        "standard_encoding": "c149",
+        "standard_interpretation": "Rx=A0, Ry=A1"
+      },
+      "both_valid": true,
+      "note": "EXG is commutative; swapping Rx/Ry produces identical behavior"
+    }
+  ],
+  "tested": {
+    "total_tests": 1296,
+    "passed": 1271,
+    "mismatches": 25,
+    "genam_errors": 4,
+    "mnemonics_tested": 88,
+    "mismatch_categories": {
+      "imm_dn_auto_route": 24,
+      "exg_operand_order": 1
+    },
+    "genam_error_categories": {
+      "020_plus_instructions": 4
+    }
+  }
+}

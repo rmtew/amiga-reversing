@@ -190,7 +190,8 @@ def extract_movem_regmask_tables(doc) -> dict[str, list[str]]:
 def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
                    ea_brief_ext_word: list[dict] | None = None,
                    movem_reg_masks: dict[str, list[str]] | None = None,
-                   nop_opword: int | None = None) -> dict:
+                   nop_opword: int | None = None,
+                   asm_syntax_index: dict[str, str] | None = None) -> dict:
     # Track B parser-assertion: CCR bit positions within SR from PDF p21,
     # Figure 1-8 "Status Register". The figure shows a 16-bit SR diagram with
     # bit numbers 15..0 and labels: bit 0=C (Carry), 1=V (Overflow), 2=Z (Zero),
@@ -223,6 +224,8 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
         meta["movem_reg_masks"] = movem_reg_masks
     if nop_opword is not None:
         meta["nop_opword"] = nop_opword
+    if asm_syntax_index is not None:
+        meta["asm_syntax_index"] = asm_syntax_index
     return {
         "_meta": meta,
         "instructions": kb_data,
@@ -916,6 +919,22 @@ def parse_all_instructions(doc, page_ranges):
             page=page_nums[0],
             pages=page_nums,
         ))
+
+    # Deduplicate instructions that appear in multiple PDF sections
+    # (e.g. MOVE from SR appears in both Integer Instructions §4 and
+    # Supervisor Instructions §6 — same encoding, different privilege context).
+    # Keep the first occurrence; merge pages from duplicates.
+    seen = {}
+    deduped = []
+    for inst in parsed:
+        if inst.mnemonic in seen:
+            # Merge page numbers from the duplicate
+            first = seen[inst.mnemonic]
+            first.pages.extend(inst.pages)
+        else:
+            seen[inst.mnemonic] = inst
+            deduped.append(inst)
+    parsed = deduped
 
     _cross_check_with_summary(parsed, doc)
     return parsed
@@ -3919,6 +3938,218 @@ def dump_page(doc, page_num):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Phase 12: Assembly syntax index
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _build_asm_syntax_index(kb_data):
+    """Build (asm_mnemonic, operand_types) → KB mnemonic lookup from forms.
+
+    For each KB instruction, extract the assembly mnemonic (first word of
+    the form syntax) and the operand type tuple. This allows resolving
+    'andi #x,ccr' → KB instruction "ANDI to CCR" without hardcoding.
+
+    Returns dict mapping "asm_mnemonic:type1,type2" → KB mnemonic.
+    """
+    index = {}
+    for inst in kb_data:
+        mnemonic = inst["mnemonic"]
+        for form in inst.get("forms", []):
+            syntax = form.get("syntax", "")
+            if not syntax:
+                continue
+            # Assembly mnemonic = first word of syntax, lowered, size suffix stripped
+            asm_word = syntax.split()[0].lower()
+            if "." in asm_word:
+                asm_word = asm_word.split(".")[0]
+            ops = tuple(o["type"] for o in form.get("operands", []))
+            key = f"{asm_word}:{','.join(ops)}"
+            # First entry wins (avoids duplicate forms overwriting)
+            if key not in index:
+                index[key] = mnemonic
+    return index
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 14: Displacement encoding extraction
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _extract_displacement_encoding(kb_data):
+    """Extract displacement encoding rules from instruction description text.
+
+    For branch instructions (Bcc, BRA, BSR), the PDF description explicitly
+    states which values in the 8-bit displacement field signal word or long
+    extension words:
+      - "If the 8-bit displacement field... is zero, a 16-bit displacement
+        (the word immediately following the instruction) is used."
+      - "If the 8-bit displacement field... is all ones ($FF), the 32-bit
+        displacement (long word immediately following the instruction) is used."
+
+    Emits 'displacement_encoding' in constraints:
+        {
+            "field": "8-BIT DISPLACEMENT",
+            "word_signal": 0,        # value that signals 16-bit extension
+            "long_signal": 255,      # value that signals 32-bit extension
+            "word_bits": 16,
+            "long_bits": 32
+        }
+
+    Parser-asserted: PDF p129 (Bcc), p159 (BRA), p163 (BSR).
+    The text is parseable but uses two different phrasings:
+      "is zero" and "is all ones ($FF)".
+    We match both patterns from the description field.
+    """
+    import re
+
+    count = 0
+    for inst in kb_data:
+        if not inst.get("uses_label"):
+            continue
+
+        desc = inst.get("description", "")
+
+        # Look for the word-signal pattern: "displacement field... is zero"
+        # and long-signal pattern: "displacement field... is all ones ($FF)"
+        has_word = bool(re.search(
+            r"8-bit displacement field.*?is zero.*?16-bit displacement", desc,
+            re.IGNORECASE))
+        has_long = bool(re.search(
+            r"8-bit displacement field.*?all ones.*?\$FF.*?32-bit displacement",
+            desc, re.IGNORECASE))
+
+        if not has_word and not has_long:
+            continue
+
+        # Find the displacement field in the encoding
+        enc = inst["encodings"][0]
+        disp_field = None
+        for f in enc["fields"]:
+            if "displacement" in f["name"].lower():
+                disp_field = f["name"]
+                break
+
+        if disp_field is None:
+            continue
+
+        disp_enc = {"field": disp_field}
+        if has_word:
+            disp_enc["word_signal"] = 0
+            disp_enc["word_bits"] = 16
+        if has_long:
+            disp_enc["long_signal"] = 255
+            disp_enc["long_bits"] = 32
+
+        inst.setdefault("constraints", {})["displacement_encoding"] = disp_enc
+        count += 1
+
+    return count
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 13: Direction field value extraction
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _apply_direction_field_values(kb_data):
+    """Parse direction field descriptions into structured form-to-field-value mapping.
+
+    For instructions with a 'dr' encoding field and corresponding text in
+    field_descriptions, parse the description to extract the numeric value
+    associated with each transfer direction, and map it to the form index.
+
+    Emits 'direction_field_values' on the instruction:
+        {"field": "dr", "form_field_value": {0: <int>, 1: <int>}}
+    where form_field_value maps form index → dr bit value for that form.
+    """
+    count = 0
+    for inst in kb_data:
+        enc = inst.get("encodings", [])
+        if not enc:
+            continue
+        # Skip instructions where dr is a shift/rotate direction — these use
+        # direction_variants constraint instead of transfer direction semantics
+        constraints = inst.get("constraints", {})
+        if constraints.get("direction_variants"):
+            continue
+        # Find 'dr' or similar direction fields in encoding
+        dr_field = None
+        for f in enc[0].get("fields", []):
+            if f["name"] == "dr":
+                dr_field = f
+                break
+        if dr_field is None:
+            continue
+
+        fd = inst.get("field_descriptions", {})
+        dr_desc = fd.get("dr", "")
+        if not dr_desc:
+            continue
+
+        forms = inst.get("forms", [])
+        if len(forms) < 2:
+            continue
+
+        # Parse "0 — <text>" / "1 — <text>" patterns from field description
+        # The description text uses em-dash or en-dash separators
+        val_descs = {}
+        for m in re.finditer(r"(\d)\s*[\u2014\u2013\-]\s*([^.]+)", dr_desc):
+            val_descs[int(m.group(1))] = m.group(2).strip().lower()
+
+        if not val_descs:
+            continue
+
+        # Map form operand types to direction values by matching description
+        # text against form operand patterns.
+        # Strategy: each dr value description says "<source> to <destination>".
+        # Match the source/destination keywords against form operand types.
+        type_keywords = {
+            "an": ["address register", "general register"],
+            "dn": ["data register", "general register"],
+            "usp": ["user stack pointer"],
+            "sr": ["status register"],
+            "ccr": ["condition code register"],
+            "ea": ["memory", "effective address"],
+            "reglist": ["register"],
+            "ctrl_reg": ["control register"],
+            "rn": ["general register"],
+        }
+        form_field_value = {}
+        for val, desc in val_descs.items():
+            if "to" not in desc:
+                continue
+            src_part = desc.split("to", 1)[0].strip()
+            dst_part = desc.split("to", 1)[1].strip()
+            # Find the form where first operand matches src and second matches dst
+            for form_idx, form in enumerate(forms):
+                if form_idx in form_field_value:
+                    continue
+                ops = [o["type"] for o in form.get("operands", [])]
+                if len(ops) < 2:
+                    continue
+                src_kws = type_keywords.get(ops[0], [])
+                dst_kws = type_keywords.get(ops[1], [])
+                src_match = any(kw in src_part for kw in src_kws)
+                dst_match = any(kw in dst_part for kw in dst_kws)
+                if src_match and dst_match:
+                    form_field_value[form_idx] = val
+
+        if len(form_field_value) == len(forms):
+            inst["direction_field_values"] = {
+                "field": "dr",
+                "form_field_value": form_field_value,
+            }
+            count += 1
+        else:
+            # Hard error: if we found a dr field with description but couldn't
+            # map all forms, something is wrong with our parsing
+            raise RuntimeError(
+                f"{inst['mnemonic']}: found dr field with description but could "
+                f"only map {len(form_field_value)}/{len(forms)} forms. "
+                f"val_descs={val_descs}, forms={[f.get('operands') for f in forms]}"
+            )
+
+    return count
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Main
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -4022,6 +4253,34 @@ def main():
     op_classified, nop_opword = apply_operation_types(kb_data)
     print(f"  Classified: {op_classified}/{len(kb_data)} instructions")
 
+    # Phase 12: Build assembly syntax index for multi-word mnemonic resolution
+    # When the PDF defines an instruction with a multi-word KB mnemonic
+    # (e.g. "ANDI to CCR", "MOVE from SR", "MOVE USP"), the assembly text
+    # uses only the first word ("andi", "move") with operand types ("ccr",
+    # "sr", "usp") determining which KB instruction is meant.  This index
+    # lets downstream tools resolve (asm_mnemonic, operand_type_tuple) to
+    # the correct KB instruction without hardcoding mnemonic names.
+    print("Phase 12: Building assembly syntax index...")
+    asm_syntax_index = _build_asm_syntax_index(kb_data)
+    print(f"  Indexed {len(asm_syntax_index)} syntax entries")
+
+    # Phase 13: Parse direction field descriptions into structured values
+    # Instructions like MOVE USP have a 'dr' field whose meaning is described
+    # in natural language in field_descriptions. Parse "0 — Transfer the
+    # address register to the user stack pointer" into {0: "an_to_usp",
+    # 1: "usp_to_an"} so downstream tools don't need to parse English text.
+    print("Phase 13: Extracting direction field values...")
+    dir_count = _apply_direction_field_values(kb_data)
+    print(f"  Instructions with direction field values: {dir_count}")
+
+    # Phase 14: Extract displacement encoding from description text
+    # PDF descriptions for Bcc/BRA/BSR explicitly state the reserved values
+    # in the 8-bit displacement field that signal word/long extension.
+    # Parse these into structured data so downstream tools don't hardcode them.
+    print("Phase 14: Extracting displacement encoding...")
+    disp_count = _extract_displacement_encoding(kb_data)
+    print(f"  Instructions with displacement_encoding: {disp_count}")
+
     # Track B parser-assertion: EXG encoding field boundaries.
     # PDF p128 Figure shows OPMODE as bits 7:3 (5 bits) and REGISTER Ry as
     # bits 2:0 (3 bits). The PDF text extraction misparses these as 7:4 and
@@ -4054,7 +4313,7 @@ def main():
             if outpath.exists():
                 outpath.unlink()
             with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, movem_masks, nop_opword), f, indent=2, ensure_ascii=False)
+                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, movem_masks, nop_opword, asm_syntax_index), f, indent=2, ensure_ascii=False)
             print(f"\nWrote {len(kb_data)} instructions to {outpath}")
         else:
             print(f"\n(dry run, {len(kb_data)} instructions would be written)")

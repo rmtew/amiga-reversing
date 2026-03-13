@@ -29,15 +29,17 @@ Extract all instruction metadata from the PDF into `m68k_instructions.json`.
 ## Phase 2: Data-Driven Assembler (in progress)
 
 Reverse of the disassembler, driven from the same JSON.
-`scripts/m68k_asm.py` — 1237 tests, 66 mnemonics, 0 failures.
+`scripts/m68k_asm.py` — 1295 tests, 88 mnemonics, 0 failures.
 
 - [x] Operand syntax → EA mode bits (parse register names, addressing modes, immediates)
 - [x] Opword construction from encoding bit patterns + operand fields
 - [x] Extension word generation (displacements, immediate data, bit fields)
 - [x] Size suffix → size field encoding
 - [x] Verify against vasm: assemble with both, binary-diff every instruction × operand × size
-- [ ] Branch/label support with PC-relative displacement calculation
-- [ ] SR/CCR/USP operand support (separate KB instructions)
+- [x] Verify against DevPac GenAm 3.18: 1245/1270 passed, 25 divergences (all valid alternate encodings)
+- [x] Per-assembler behavior JSON: `knowledge/asm_vasm.json`, `knowledge/asm_devpac.json`
+- [x] Branch/label support with PC-relative displacement calculation
+- [x] SR/CCR/USP operand support (separate KB instructions)
 - [ ] Auto-routing aliases (ADD #imm,<ea> → ADDI, DBRA → DBF)
 
 ## Phase 3: Data-Driven Effect Predictor (done)

@@ -5,8 +5,6 @@ ea_modes, sizes, constraints) and binary-diffs our assembler output against
 vasm for each instruction × operand × size combination.
 
 Skips:
-  - Label-using instructions (branches, DBcc) — displacement semantics differ
-  - SR/CCR/USP operands — separate KB instructions, not yet in EA parser
   - 020+ instructions — assembler targets 68000
   - PC-relative EA modes — vasm adjusts displacement by -2, we encode raw
 
@@ -92,8 +90,7 @@ SUPPORTED_EA_MODES = {"dn", "an", "ind", "postinc", "predec", "disp",
                       "index", "absw", "absl", "imm"}
 
 # Operand types our assembler can't handle yet
-UNSUPPORTED_OP_TYPES = {"sr", "ccr", "usp", "label", "reglist",
-                        "ctrl_reg", "rn", "bf_ea"}
+UNSUPPORTED_OP_TYPES = {"reglist", "ctrl_reg", "rn", "bf_ea"}
 
 
 def _filter_020(modes, ea_020_set):
@@ -356,6 +353,44 @@ def generate_tests(inst):
                 else:
                     tests.append((f"{form_mn}{sfx} {imm}", ""))
 
+            elif op_types == ["imm", "ccr"]:
+                tests.append((f"{form_mn} #$12,ccr", "imm-to-ccr"))
+
+            elif op_types == ["imm", "sr"]:
+                tests.append((f"{form_mn} #$1234,sr", "imm-to-sr"))
+
+            elif op_types == ["ea", "ccr"]:
+                fsrc = _filter_for_size(src_modes or all_ea, "w")
+                for mode in fsrc:
+                    if mode == "imm":
+                        continue
+                    src = _ea_syntax(mode, "w")
+                    tests.append((f"{form_mn} {src},ccr", f"ea={mode}-to-ccr"))
+
+            elif op_types == ["ea", "sr"]:
+                fsrc = _filter_for_size(src_modes or all_ea, "w")
+                for mode in fsrc:
+                    if mode == "imm":
+                        continue
+                    src = _ea_syntax(mode, "w")
+                    tests.append((f"{form_mn} {src},sr", f"ea={mode}-to-sr"))
+
+            elif op_types == ["sr", "ea"] or op_types == ["ccr", "ea"]:
+                fdst = _filter_for_size(dst_modes or all_ea, "w")
+                reg_name = "sr" if "sr" in op_types else "ccr"
+                for mode in fdst:
+                    if mode in ("an", "imm"):
+                        continue
+                    dst = _ea_syntax(mode, "w")
+                    tests.append((f"{form_mn} {reg_name},{dst}",
+                                  f"{reg_name}-to-ea={mode}"))
+
+            elif op_types == ["usp", "an"]:
+                tests.append((f"{form_mn} usp,a0", "usp-to-an"))
+
+            elif op_types == ["an", "usp"]:
+                tests.append((f"{form_mn} a0,usp", "an-to-usp"))
+
             elif op_types == ["disp", "dn"]:
                 tests.append((f"{form_mn}{sfx} 0(a0),d0", f"mem-to-reg sz={sz}"))
 
@@ -417,12 +452,141 @@ def _generate_movem_tests():
     return tests
 
 
+# ── Branch test generator ────────────────────────────────────────────────
+
+def _generate_branch_tests():
+    """Generate branch/DBcc tests from KB uses_label instructions.
+
+    Tests use absolute target addresses with a fixed pc=0x1000.
+    Returns list of (asm_line, description, pc, inst_size) tuples.
+    The extra fields (pc, inst_size) distinguish branch tests from
+    regular tests in the runner.
+    """
+    tests = []
+    pc = 0x1000
+
+    for inst in KB_INSTRUCTIONS:
+        if not inst.get("uses_label"):
+            continue
+        if inst.get("processor_min", "68000") != "68000":
+            continue
+
+        mnemonic = inst["mnemonic"]
+        constraints = inst.get("constraints", {})
+        cc_param = constraints.get("cc_parameterized")
+        sizes_68000 = constraints.get("sizes_68000")
+        sizes = sizes_68000 if sizes_68000 is not None else inst.get("sizes", [])
+        forms = inst.get("forms", [])
+
+        # Determine form type: Bcc-style (1 label) or DBcc-style (dn + label)
+        form_ops = []
+        if forms:
+            form_ops = [o["type"] for o in forms[0].get("operands", [])]
+
+        is_dbcc = form_ops == ["dn", "label"]
+
+        # Pick one CC variant for base test (use base mnemonic)
+        base_mn = _mnemonic_variants(mnemonic)[0]
+
+        # Forward .b: target = pc + 2 + 10 = pc + 12
+        if "b" in sizes:
+            target_b_fwd = pc + 12
+            if is_dbcc:
+                tests.append((f"{base_mn} d0,${target_b_fwd:x}",
+                              f"fwd .b disp=10", pc))
+            else:
+                tests.append((f"{base_mn}.s ${target_b_fwd:x}",
+                              f"fwd .b disp=10", pc))
+
+        # Backward .b: target = pc + 2 - 10 = pc - 8
+        if "b" in sizes:
+            target_b_bwd = pc - 8
+            if is_dbcc:
+                tests.append((f"{base_mn} d0,${target_b_bwd:x}",
+                              f"bwd .b disp=-10", pc))
+            else:
+                tests.append((f"{base_mn}.s ${target_b_bwd:x}",
+                              f"bwd .b disp=-10", pc))
+
+        # Forward .w: target = pc + 2 + 200 = pc + 202
+        if "w" in sizes:
+            target_w_fwd = pc + 202
+            if is_dbcc:
+                tests.append((f"{base_mn} d0,${target_w_fwd:x}",
+                              f"fwd .w disp=200", pc))
+            else:
+                tests.append((f"{base_mn}.w ${target_w_fwd:x}",
+                              f"fwd .w disp=200", pc))
+
+        # Backward .w: target = pc + 2 - 200 = pc - 198
+        if "w" in sizes:
+            target_w_bwd = pc - 198
+            if is_dbcc:
+                tests.append((f"{base_mn} d0,${target_w_bwd:x}",
+                              f"bwd .w disp=-200", pc))
+            else:
+                tests.append((f"{base_mn}.w ${target_w_bwd:x}",
+                              f"bwd .w disp=-200", pc))
+
+        # CC variants: test a representative subset from KB condition_codes
+        if cc_param:
+            prefix = cc_param["prefix"]
+            excluded = set(cc_param.get("excluded", []))
+            available = [c for c in CC_ALL if c not in excluded]
+            # Sample up to 4 evenly spaced conditions from KB
+            step = max(1, len(available) // 4)
+            cc_sample = available[::step][:4]
+            for cc in cc_sample:
+                full_mn = f"{prefix}{cc}"
+                target = pc + 20
+                if is_dbcc:
+                    tests.append((f"{full_mn} d0,${target:x}",
+                                  f"{full_mn} fwd .w disp=18", pc))
+                else:
+                    if "b" in sizes:
+                        tests.append((f"{full_mn}.s ${target:x}",
+                                      f"{full_mn} fwd .b disp=18", pc))
+                    if "w" in sizes:
+                        target_w = pc + 502
+                        tests.append((f"{full_mn}.w ${target_w:x}",
+                                      f"{full_mn} fwd .w disp=500", pc))
+
+    return tests
+
+
 # ── Vasm oracle ───────────────────────────────────────────────────────────
 
 def _vasm_assemble(text):
     """Assemble a single instruction with vasm, return bytes or None."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".s", delete=False,
                                      encoding="utf-8") as f:
+        f.write(f" {text}\n")
+        f.flush()
+        src_path = f.name
+    out_path = src_path + ".bin"
+    try:
+        result = subprocess.run(
+            [str(VASM), "-Fbin", "-no-opt", "-o", out_path, src_path],
+            capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            return None
+        with open(out_path, "rb") as f:
+            return f.read()
+    except Exception:
+        return None
+    finally:
+        for p in (src_path, out_path):
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
+
+
+def _vasm_assemble_at(text, org=0x1000):
+    """Assemble an instruction with vasm using org directive, return bytes."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".s", delete=False,
+                                     encoding="utf-8") as f:
+        f.write(f" org ${org:x}\n")
         f.write(f" {text}\n")
         f.flush()
         src_path = f.name
@@ -510,6 +674,47 @@ def main():
             print(f"    ours: {our_bytes.hex()}")
             print(f"    vasm: {vasm_bytes.hex()}")
             failures.append((mnemonic, asm, desc, our_bytes.hex(), vasm_bytes.hex()))
+
+    # ── Branch tests (separate loop — need pc and vasm org) ──────────
+    branch_tests = _generate_branch_tests()
+    if args.filter:
+        branch_tests = [t for t in branch_tests
+                        if args.filter.lower() in t[0].split(".")[0].split()[0].lower()]
+
+    for asm, desc, pc in branch_tests:
+        # Our assembler
+        try:
+            our_bytes = assemble_instruction(asm, pc=pc)
+        except Exception as e:
+            if args.verbose:
+                print(f"  ASM ERROR: {asm} @pc={pc:#x}: {e}")
+            errors += 1
+            failures.append(("BRANCH", asm, desc, f"asm: {e}", None))
+            continue
+
+        # Vasm oracle (with org to set same pc)
+        vasm_bytes = _vasm_assemble_at(asm, org=pc)
+        if vasm_bytes is None:
+            if args.verbose:
+                print(f"  VASM ERROR: {asm} @pc={pc:#x}")
+            vasm_errors += 1
+            continue
+
+        if our_bytes == vasm_bytes:
+            passed += 1
+            # Extract mnemonic for tracking
+            br_mn = asm.split(".")[0].split()[0].upper()
+            tested_mnemonics.add(br_mn)
+            if args.verbose:
+                print(f"  OK: {asm} @pc={pc:#x}")
+        else:
+            failed += 1
+            br_mn = asm.split(".")[0].split()[0].upper()
+            tested_mnemonics.add(br_mn)
+            print(f"  MISMATCH: {asm} @pc={pc:#x} ({desc})")
+            print(f"    ours: {our_bytes.hex()}")
+            print(f"    vasm: {vasm_bytes.hex()}")
+            failures.append((br_mn, asm, desc, our_bytes.hex(), vasm_bytes.hex()))
 
     total = passed + failed + errors
     print(f"\n{'='*60}")

@@ -179,7 +179,174 @@
         "d0"
       ]
     },
-    "nop_opword": 20081
+    "nop_opword": 20081,
+    "asm_syntax_index": {
+      "abcd:dn,dn": "ABCD",
+      "abcd:predec,predec": "ABCD",
+      "add:ea,dn": "ADD",
+      "add:dn,ea": "ADD",
+      "adda:ea,an": "ADDA",
+      "addi:imm,ea": "ADDI",
+      "addq:imm,ea": "ADDQ",
+      "addx:dn,dn": "ADDX",
+      "addx:predec,predec": "ADDX",
+      "and:ea,dn": "AND",
+      "and:dn,ea": "AND",
+      "andi:imm,ea": "ANDI",
+      "andi:imm,ccr": "ANDI to CCR",
+      "asd:dn,dn": "ASL, ASR",
+      "asd:imm,dn": "ASL, ASR",
+      "asd:ea": "ASL, ASR",
+      "bcc:label": "Bcc",
+      "bchg:dn,ea": "BCHG",
+      "bchg:imm,ea": "BCHG",
+      "bclr:dn,ea": "BCLR",
+      "bclr:imm,ea": "BCLR",
+      "bfchg:bf_ea": "BFCHG",
+      "bfclr:bf_ea": "BFCLR",
+      "bfexts:bf_ea,dn": "BFEXTS",
+      "bfextu:bf_ea,dn": "BFEXTU",
+      "bfffo:bf_ea,dn": "BFFFO",
+      "bfins:dn,bf_ea": "BFINS",
+      "bfset:bf_ea": "BFSET",
+      "bftst:bf_ea": "BFTST",
+      "bkpt:imm": "BKPT",
+      "bra:label": "BRA",
+      "bset:dn,ea": "BSET",
+      "bset:imm,ea": "BSET",
+      "bsr:label": "BSR",
+      "btst:dn,ea": "BTST",
+      "btst:imm,ea": "BTST",
+      "callm:imm,ea": "CALLM",
+      "cas:dn,dn,ea": "CAS CAS2",
+      "cas2:dn_pair,dn_pair,unknown": "CAS CAS2",
+      "chk:ea,dn": "CHK",
+      "chk2:ea,rn": "CHK2",
+      "clr:ea": "CLR",
+      "cmp:ea,dn": "CMP",
+      "cmpa:ea,an": "CMPA",
+      "cmpi:imm,ea": "CMPI",
+      "cmpm:postinc,postinc": "CMPM",
+      "cmp2:ea,rn": "CMP2",
+      "cpbcc:label": "cpBcc",
+      "cpdbcc:dn,label": "cpDBcc",
+      "cpgen:unknown": "cpGEN",
+      "cpscc:ea": "cpScc",
+      "cptrapcc:": "cpTRAPcc",
+      "cptrapcc:imm": "cpTRAPcc",
+      "dbcc:dn,label": "DBcc",
+      "divs:ea,dn": "DIVS, DIVSL",
+      "divs:ea,dn_pair": "DIVS, DIVSL",
+      "divsl:ea,dn_pair": "DIVS, DIVSL",
+      "divu:ea,dn": "DIVU, DIVUL",
+      "divu:ea,dn_pair": "DIVU, DIVUL",
+      "divul:ea,dn_pair": "DIVU, DIVUL",
+      "eor:dn,ea": "EOR",
+      "eori:imm,ea": "EORI",
+      "eori:imm,ccr": "EORI to CCR",
+      "exg:dn,dn": "EXG",
+      "exg:an,an": "EXG",
+      "exg:dn,an": "EXG",
+      "ext:dn": "EXT, EXTB",
+      "extb:dn": "EXT, EXTB",
+      "illegal:": "ILLEGAL",
+      "jmp:ea": "JMP",
+      "jsr:ea": "JSR",
+      "lea:ea,an": "LEA",
+      "link:an,imm": "LINK",
+      "lsd:dn,dn": "LSL, LSR",
+      "lsd:imm,dn": "LSL, LSR",
+      "lsd:ea": "LSL, LSR",
+      "move:ea,ea": "MOVE",
+      "movea:ea,an": "MOVEA",
+      "move:ccr,ea": "MOVE from CCR",
+      "move:ea,ccr": "MOVE to CCR",
+      "move:sr,ea": "MOVE from SR",
+      "move16:postinc,postinc": "MOVE16",
+      "move16:unknown,unknown": "MOVE16",
+      "movem:reglist,ea": "MOVEM",
+      "movem:ea,reglist": "MOVEM",
+      "movep:dn,disp": "MOVEP",
+      "movep:disp,dn": "MOVEP",
+      "moveq:imm,dn": "MOVEQ",
+      "muls:ea,dn": "MULS",
+      "muls:ea,dn_pair": "MULS",
+      "mulu:ea,dn": "MULU",
+      "mulu:ea,dn_pair": "MULU",
+      "nbcd:ea": "NBCD",
+      "neg:ea": "NEG",
+      "negx:ea": "NEGX",
+      "nop:": "NOP",
+      "not:ea": "NOT",
+      "or:ea,dn": "OR",
+      "or:dn,ea": "OR",
+      "ori:imm,ea": "ORI",
+      "ori:imm,ccr": "ORI to CCR",
+      "pack:predec,predec,imm": "PACK",
+      "pack:dn,dn,imm": "PACK",
+      "pea:ea": "PEA",
+      "rod:dn,dn": "ROL, ROR",
+      "rod:imm,dn": "ROL, ROR",
+      "rod:ea": "ROL, ROR",
+      "roxd:dn,dn": "ROXL, ROXR",
+      "roxd:imm,dn": "ROXL, ROXR",
+      "roxd:ea": "ROXL, ROXR",
+      "rtd:imm": "RTD",
+      "rtm:rn": "RTM",
+      "rtr:": "RTR",
+      "rts:": "RTS",
+      "sbcd:dn,dn": "SBCD",
+      "sbcd:predec,predec": "SBCD",
+      "scc:ea": "Scc",
+      "sub:ea,dn": "SUB",
+      "sub:dn,ea": "SUB",
+      "suba:ea,an": "SUBA",
+      "subi:imm,ea": "SUBI",
+      "subq:imm,ea": "SUBQ",
+      "subx:dn,dn": "SUBX",
+      "subx:predec,predec": "SUBX",
+      "swap:dn": "SWAP",
+      "tas:ea": "TAS",
+      "trap:imm": "TRAP",
+      "trapcc:": "TRAPcc",
+      "trapcc:imm": "TRAPcc",
+      "trapv:": "TRAPV",
+      "tst:ea": "TST",
+      "unlk:an": "UNLK",
+      "unpk:dn,dn,imm": "UNPK",
+      "andi:imm,sr": "ANDI to SR",
+      "cprestore:ea": "cpRESTORE",
+      "cpsave:ea": "cpSAVE",
+      "eori:imm,sr": "EORI to SR",
+      "frestore:ea": "FRESTORE",
+      "fsave:ea": "FSAVE",
+      "move:ea,sr": "MOVE to SR",
+      "move:usp,an": "MOVE USP",
+      "move:an,usp": "MOVE USP",
+      "movec:ctrl_reg,rn": "MOVEC",
+      "movec:rn,ctrl_reg": "MOVEC",
+      "moves:rn,ea": "MOVES",
+      "moves:ea,rn": "MOVES",
+      "ori:imm,sr": "ORI to SR",
+      "pbcc:unknown": "PBcc",
+      "pdbcc:dn,label": "PDBcc",
+      "pflush:unknown,unknown": "PFLUSH",
+      "pflush:unknown,unknown,ea": "PFLUSH",
+      "pflusha:": "PFLUSH PFLUSHA",
+      "pflushr:ea": "PFLUSHR",
+      "pmove:unknown,ea": "PMOVE",
+      "pmove:ea,unknown": "PMOVE",
+      "prestore:ea": "PRESTORE",
+      "psave:ea": "PSAVE",
+      "pscc:ea": "PScc",
+      "ptrapcc:": "PTRAPcc",
+      "ptrapcc:imm": "PTRAPcc",
+      "pvalid:unknown,ea": "PVALID",
+      "pvalid:an,ea": "PVALID",
+      "reset:": "RESET",
+      "rte:": "RTE",
+      "stop:imm": "STOP"
+    }
   },
   "instructions": [
     {
@@ -2337,7 +2504,14 @@
         "sizes_68000": [
           "b",
           "w"
-        ]
+        ],
+        "displacement_encoding": {
+          "field": "8-BIT DISPLACEMENT",
+          "word_signal": 0,
+          "word_bits": 16,
+          "long_signal": 255,
+          "long_bits": 32
+        }
       },
       "cc_semantics": {
         "X": {
@@ -5092,7 +5266,14 @@
         "sizes_68000": [
           "b",
           "w"
-        ]
+        ],
+        "displacement_encoding": {
+          "field": "8-BIT DISPLACEMENT",
+          "word_signal": 0,
+          "word_bits": 16,
+          "long_signal": 255,
+          "long_bits": 32
+        }
       },
       "cc_semantics": {
         "X": {
@@ -5586,7 +5767,14 @@
         "sizes_68000": [
           "b",
           "w"
-        ]
+        ],
+        "displacement_encoding": {
+          "field": "8-BIT DISPLACEMENT",
+          "word_signal": 0,
+          "word_bits": 16,
+          "long_signal": 255,
+          "long_bits": 32
+        }
       },
       "cc_semantics": {
         "X": {
@@ -13040,7 +13228,9 @@
       },
       "page": 229,
       "pages": [
-        229
+        229,
+        471,
+        472
       ],
       "ea_modes": {
         "dst": [
@@ -13801,6 +13991,13 @@
         "terms": [
           "source"
         ]
+      },
+      "direction_field_values": {
+        "field": "dr",
+        "form_field_value": {
+          "0": 0,
+          "1": 1
+        }
       }
     },
     {
@@ -22115,172 +22312,6 @@
       "operation_type": "sr_op"
     },
     {
-      "mnemonic": "MOVE from SR",
-      "title": "Move from the Status Register",
-      "processors": "M68000 Family",
-      "operation": "If Supervisor State",
-      "syntax": [
-        "MOVE SR, < ea >"
-      ],
-      "attributes": "Size = (Word)",
-      "description": "Moves the data in the status register to the destination location. The destination is word length. Unimplemented bits are read as zeros.",
-      "condition_codes": {
-        "X": "—",
-        "N": "—",
-        "Z": "—",
-        "V": "—",
-        "C": "—"
-      },
-      "encodings": [
-        {
-          "fields": [
-            {
-              "name": "0",
-              "bit_hi": 15,
-              "bit_lo": 15,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 14,
-              "bit_lo": 14,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 13,
-              "bit_lo": 13,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 12,
-              "bit_lo": 12,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 11,
-              "bit_lo": 11,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 10,
-              "bit_lo": 10,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 9,
-              "bit_lo": 9,
-              "width": 1
-            },
-            {
-              "name": "0",
-              "bit_hi": 8,
-              "bit_lo": 8,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 7,
-              "bit_lo": 7,
-              "width": 1
-            },
-            {
-              "name": "1",
-              "bit_hi": 6,
-              "bit_lo": 6,
-              "width": 1
-            },
-            {
-              "name": "MODE",
-              "bit_hi": 5,
-              "bit_lo": 3,
-              "width": 3
-            },
-            {
-              "name": "REGISTER",
-              "bit_hi": 2,
-              "bit_lo": 0,
-              "width": 3
-            }
-          ]
-        }
-      ],
-      "field_descriptions": {},
-      "page": 471,
-      "pages": [
-        471,
-        472
-      ],
-      "ea_modes": {
-        "dst": [
-          "dn",
-          "ind",
-          "postinc",
-          "predec",
-          "disp",
-          "index",
-          "absw",
-          "absl"
-        ]
-      },
-      "forms": [
-        {
-          "syntax": "MOVE SR,<ea>",
-          "operands": [
-            {
-              "type": "sr"
-            },
-            {
-              "type": "ea"
-            }
-          ]
-        }
-      ],
-      "effects": {
-        "reads_pc": false,
-        "writes_pc": false,
-        "reads_sp": false,
-        "writes_sp": false,
-        "privileged": true,
-        "cc_write": []
-      },
-      "processor_min": "68000",
-      "sizes": [
-        "w"
-      ],
-      "uses_label": false,
-      "cc_semantics": {
-        "X": {
-          "rule": "unchanged"
-        },
-        "N": {
-          "rule": "unchanged"
-        },
-        "Z": {
-          "rule": "unchanged"
-        },
-        "V": {
-          "rule": "unchanged"
-        },
-        "C": {
-          "rule": "unchanged"
-        }
-      },
-      "pc_effects": {
-        "flow": {
-          "type": "sequential"
-        },
-        "base_sizes": [
-          2
-        ]
-      },
-      "operation_type": "sr_op"
-    },
-    {
       "mnemonic": "MOVE to SR",
       "title": "Move to the Status Register",
       "processors": "M68000 Family",
@@ -22628,7 +22659,14 @@
           2
         ]
       },
-      "operation_type": "sr_op"
+      "operation_type": "sr_op",
+      "direction_field_values": {
+        "field": "dr",
+        "form_field_value": {
+          "1": 0,
+          "0": 1
+        }
+      }
     },
     {
       "mnemonic": "MOVEC",
@@ -22970,7 +23008,14 @@
           2
         ]
       },
-      "operation_type": "sr_op"
+      "operation_type": "sr_op",
+      "direction_field_values": {
+        "field": "dr",
+        "form_field_value": {
+          "0": 0,
+          "1": 1
+        }
+      }
     },
     {
       "mnemonic": "MOVES",
