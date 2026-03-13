@@ -251,12 +251,20 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
     all_sizes = ["b", "w", "l"]
     ea_mode_sizes = {mode: all_sizes for mode in ea_mode_encoding}
     ea_mode_sizes["an"] = ["w", "l"]
+    # Track B parser-assertion: Opword size from PDF encoding tables. Every
+    # instruction encoding's first word spans bits 15-0 = 16 bits = 2 bytes.
+    # This is visible in every instruction's encoding table throughout Section 4
+    # (pp 105-302) and Section 6 (pp 455-540). The PC advances by this amount
+    # before displacement is applied (PDF p129: "the program counter contains
+    # the address of the instruction word...plus two").
+    opword_bytes = 2
     meta = {
         "condition_codes": _kb_condition_codes(),
         "pmmu_condition_codes": pmmu_cc,
         "cpu_hierarchy": CPU_HIERARCHY,
         "ccr_bit_positions": ccr_bit_positions,
         "size_byte_count": size_byte_count,
+        "opword_bytes": opword_bytes,
         "ea_mode_encoding": ea_mode_encoding,
         "ea_mode_sizes": ea_mode_sizes,
         # Track C parser-assertion: Condition code test definitions from PDF

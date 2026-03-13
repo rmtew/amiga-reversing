@@ -64,6 +64,7 @@
       "w": 2,
       "l": 4
     },
+    "opword_bytes": 2,
     "ea_mode_encoding": {
       "dn": [
         0,

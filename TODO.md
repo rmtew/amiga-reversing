@@ -131,17 +131,24 @@ machine68k (Musashi) as independent oracle for execution semantics.
 - [x] Tier 7 audit: sign-extension from KB `source_sign_extend`, MOVEP from KB `transfer_layout`, CHK from KB `trap_condition`
 - [x] Tier 7 audit: dead code removed (MOVEP reg→mem), assembly failure warnings added (Scc/Bcc/DBcc)
 
-## Phase 5: Symbolic Executor (next)
+## Phase 5: Symbolic Executor (in progress)
 
 KB-driven abstract interpretation engine for static analysis of disassembled code.
+`scripts/m68k_executor.py` — block discovery, demand-driven disassembly, structured EA decoding.
 Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests).
 
-- [ ] `predict_pc()`: combine `pc_effects` + `evaluate_cc_test` for branch resolution
-- [ ] EA resolver: translate addressing modes to memory addresses from abstract state
-- [ ] Abstract state model: register file + memory map with symbolic/concrete values
-- [ ] Basic block discovery: follow sequential flow, split at branches/jumps/labels
-- [ ] Cross-reference tracking: data reads/writes, call graph, jump targets
+- [x] `predict_pc()`: KB `pc_effects` + `opword_bytes` for branch target resolution
+- [x] EA decoder: structured `Operand` from opcode bits via KB `ea_mode_encoding` + `ea_brief_ext_word`
+- [x] EA resolver: translate Operand to effective address from abstract state
+- [x] Abstract state model: `CPUState` — register file + CCR, layout from KB `movem_reg_masks` + `ccr_bit_positions`
+- [x] Basic block discovery: two-pass flow-following with demand-driven disassembly (handles mixed code/data)
+- [x] Cross-reference tracking: branch, jump, call, fallthrough xrefs with conditional flag
+- [x] Branch target extraction: KB `displacement_encoding` (word/long signals), KB encoding fields for JMP/JSR EA
+- [x] CC family resolution: KB `cc_parameterized` prefix lookup (Bcc, Scc, DBcc, PTRAPcc)
+- [x] Audit: no hardcoded M68K knowledge — opword size, register counts, flag names, CC families, displacement signals all from KB
 - [ ] Integration with entity system: feed discovered xrefs into `entities.jsonl`
+- [ ] Memory model: abstract memory map for tracking data reads/writes through EA
+- [ ] State propagation: carry abstract register values across blocks (join at merge points)
 
 ## Existing Infrastructure
 
