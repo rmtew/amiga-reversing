@@ -683,8 +683,6 @@ def _find_kb_entry(kb_by_name: dict, mnemonic: str,
         if kb_mn.startswith(mn_upper + " ") or kb_mn.startswith(mn_upper + ","):
             return kb_by_name[kb_mn]
 
-    print(f"WARNING: _find_kb_entry: no KB entry for '{mnemonic}'",
-          file=sys.stderr)
     return None
 
 

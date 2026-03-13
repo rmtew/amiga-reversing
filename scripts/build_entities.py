@@ -25,6 +25,7 @@ from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze, BasicBlock, _load_kb
 from jump_tables import detect_jump_tables, resolve_indirect_targets
 from os_calls import load_os_kb, get_platform_config, identify_library_calls
+from subroutine_scan import scan_and_score
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -359,12 +360,15 @@ def build_entities(binary_path: str, output_path: str = None):
         print(f"\nRunning executor on hunk #{hunk.index} "
               f"({code_size} bytes, {len(reloc_targets)} reloc targets)...")
 
-        # Iterative analysis: discover blocks, detect jump tables,
-        # resolve indirect targets via propagation, repeat until stable.
+        # Iterative analysis:
+        #   Phase 1-3: discover blocks, jump tables, indirect resolution
+        #   Phase 4: heuristic subroutine scan (once, after phases 1-3 stabilize)
+        #   Then re-run phases 1-3 on expanded entry set
         all_entry_points = {0} | reloc_targets
-        max_passes = 8
+        did_subroutine_scan = False
+        max_passes = 12
         for pass_num in range(1, max_passes + 1):
-            use_propagate = pass_num >= 2  # propagation from pass 2 onward
+            use_propagate = pass_num >= 2
             result = analyze(code, base_addr=0,
                              entry_points=sorted(all_entry_points),
                              propagate=use_propagate,
@@ -388,25 +392,44 @@ def build_entities(binary_path: str, output_path: str = None):
             new_targets -= set(blocks.keys())
             new_targets -= all_entry_points
 
-            if pass_num == 1 or new_targets:
-                covered = sum(b.end - b.start for b in blocks.values())
-                total_instr = sum(len(b.instructions)
-                                  for b in blocks.values())
-                extras = []
-                if tables:
-                    extras.append(f"{len(tables)} jump tables")
-                if resolved:
-                    extras.append(f"{len(resolved)} indirect resolved")
-                extra_msg = ", " + ", ".join(extras) if extras else ""
-                print(f"  Pass {pass_num}: {len(blocks)} blocks, "
-                      f"{total_instr} instructions, "
-                      f"{covered}/{code_size} bytes "
-                      f"({100 * covered / code_size:.1f}%)"
-                      f"{extra_msg}")
+            # Print pass stats
+            covered = sum(b.end - b.start for b in blocks.values())
+            total_instr = sum(len(b.instructions)
+                              for b in blocks.values())
+            extras = []
+            if tables:
+                extras.append(f"{len(tables)} tables")
+            if resolved:
+                extras.append(f"{len(resolved)} indirect")
+            extra_msg = ", " + ", ".join(extras) if extras else ""
+            print(f"  Pass {pass_num}: {len(blocks)} blocks, "
+                  f"{total_instr} instructions, "
+                  f"{covered}/{code_size} bytes "
+                  f"({100 * covered / code_size:.1f}%)"
+                  f"{extra_msg}")
 
-            if not new_targets:
-                break
-            all_entry_points |= new_targets
+            if new_targets:
+                all_entry_points |= new_targets
+                continue
+
+            # Phases 1-3 stabilized. Try subroutine scan once.
+            if not did_subroutine_scan:
+                did_subroutine_scan = True
+                scan_results = scan_and_score(
+                    blocks, code, reloc_targets,
+                    result.get("call_targets", set()))
+                scan_targets = {c["addr"] for c in scan_results}
+                scan_targets -= set(blocks.keys())
+                scan_targets -= all_entry_points
+                if scan_targets:
+                    high = sum(1 for c in scan_results if c["score"] >= 3.0)
+                    print(f"  Subroutine scan: {len(scan_results)} candidates "
+                          f"({high} high-confidence), "
+                          f"{len(scan_targets)} new entry points")
+                    all_entry_points |= scan_targets
+                    continue
+
+            break
 
         xrefs = result["xrefs"]
         call_targets = result["call_targets"]
