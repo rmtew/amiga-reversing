@@ -26,6 +26,7 @@ from m68k_executor import analyze, BasicBlock, _load_kb
 from jump_tables import detect_jump_tables, resolve_indirect_targets
 from os_calls import load_os_kb, get_platform_config, identify_library_calls
 from subroutine_scan import scan_and_score
+from name_entities import name_subroutines
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -515,6 +516,11 @@ def build_entities(binary_path: str, output_path: str = None):
              if e.get("hunk") == hunk.index],
             code_size, hunk.index)
         all_entities.extend(gap_ents)
+
+        # Name subroutines from OS calls, string references, call graph
+        named = name_subroutines(all_entities, blocks, code, lib_calls)
+        if named:
+            print(f"  Named {named} subroutines")
 
     # Sort by address
     def _addr_int(e):
