@@ -396,6 +396,75 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
     return tables
 
 
+def resolve_indirect_targets(blocks: dict[int, BasicBlock],
+                             exit_states: dict, code_size: int,
+                             ) -> list[dict]:
+    """Resolve indirect JMP/JSR (An) targets using propagated register values.
+
+    For each block ending with an unresolved indirect call/jump via (An),
+    checks if An has a concrete value in the exit state. If so, and the
+    value is a valid code address, returns it as a resolved target.
+
+    Returns list of dicts:
+        {"dispatch_block": int, "register": str, "target": int}
+    """
+    import re as _re
+
+    _, _, meta = _load_kb()
+    ea_enc = meta["ea_mode_encoding"]
+    ind_enc = ea_enc.get("ind")  # [2, None] for (An)
+
+    kb_by_name, _, meta = _load_kb()
+    cc_defs = meta.get("cc_test_definitions", {})
+    cc_aliases = meta.get("cc_aliases", {})
+
+    resolved = []
+    for addr in sorted(blocks):
+        block = blocks[addr]
+        if not block.instructions:
+            continue
+
+        last = block.instructions[-1]
+        mn = _extract_mnemonic(last.text)
+        kb = _find_kb_entry(kb_by_name, mn, cc_defs, cc_aliases)
+        if not kb:
+            continue
+
+        flow = kb.get("pc_effects", {}).get("flow", {})
+        if flow.get("type") not in ("call", "jump"):
+            continue
+
+        # Only interested in unresolved targets
+        target = _extract_branch_target(last, last.offset)
+        if target is not None:
+            continue
+
+        # Check for (An) addressing mode via opcode bits
+        if ind_enc is None or len(last.raw) < 2:
+            continue
+        opcode = struct.unpack_from(">H", last.raw, 0)[0]
+        mode = (opcode >> 3) & 7
+        reg = opcode & 7
+        if mode != ind_enc[0]:
+            continue  # not register indirect
+
+        # Check propagated state
+        if addr not in exit_states:
+            continue
+        cpu, _mem = exit_states[addr]
+        reg_val = cpu.a[reg]
+        if reg_val.is_known and 0 <= reg_val.concrete < code_size:
+            # Valid code address
+            if not (reg_val.concrete & 1):  # must be word-aligned
+                resolved.append({
+                    "dispatch_block": addr,
+                    "register": f"A{reg}",
+                    "target": reg_val.concrete,
+                })
+
+    return resolved
+
+
 def detect_and_report(blocks: dict[int, BasicBlock],
                       code: bytes, base_addr: int = 0) -> set[int]:
     """Detect jump tables and print a report. Returns set of new entry points."""

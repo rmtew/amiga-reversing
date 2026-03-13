@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze, BasicBlock, _load_kb
-from jump_tables import detect_jump_tables
+from jump_tables import detect_jump_tables, resolve_indirect_targets
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -356,32 +356,48 @@ def build_entities(binary_path: str, output_path: str = None):
               f"({code_size} bytes, {len(reloc_targets)} reloc targets)...")
 
         # Iterative analysis: discover blocks, detect jump tables,
-        # add table targets as new entry points, repeat until stable.
+        # resolve indirect targets via propagation, repeat until stable.
         all_entry_points = {0} | reloc_targets
-        max_passes = 5
+        max_passes = 8
         for pass_num in range(1, max_passes + 1):
+            use_propagate = pass_num >= 2  # propagation from pass 2 onward
             result = analyze(code, base_addr=0,
-                             entry_points=sorted(all_entry_points))
+                             entry_points=sorted(all_entry_points),
+                             propagate=use_propagate)
             blocks = result["blocks"]
 
+            # Jump table detection
             tables = detect_jump_tables(blocks, code, base_addr=0)
             new_targets = set()
             for t in tables:
                 new_targets.update(t["targets"])
+
+            # Indirect target resolution via propagated state
+            resolved = []
+            if use_propagate and result.get("exit_states"):
+                resolved = resolve_indirect_targets(
+                    blocks, result["exit_states"], code_size)
+                for r in resolved:
+                    new_targets.add(r["target"])
+
             new_targets -= set(blocks.keys())
             new_targets -= all_entry_points
 
-            if pass_num == 1 or new_targets:
+            if True:  # always print pass stats
                 covered = sum(b.end - b.start for b in blocks.values())
                 total_instr = sum(len(b.instructions)
                                   for b in blocks.values())
-                jt_msg = (f", {len(tables)} jump tables"
-                          if tables else "")
+                extras = []
+                if tables:
+                    extras.append(f"{len(tables)} jump tables")
+                if resolved:
+                    extras.append(f"{len(resolved)} indirect resolved")
+                extra_msg = ", " + ", ".join(extras) if extras else ""
                 print(f"  Pass {pass_num}: {len(blocks)} blocks, "
                       f"{total_instr} instructions, "
                       f"{covered}/{code_size} bytes "
                       f"({100 * covered / code_size:.1f}%)"
-                      f"{jt_msg}")
+                      f"{extra_msg}")
 
             if not new_targets:
                 break
