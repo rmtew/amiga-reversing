@@ -365,8 +365,7 @@ def build_entities(binary_path: str, output_path: str = None):
         #   Phase 4: heuristic subroutine scan (once, after phases 1-3 stabilize)
         #   Then re-run phases 1-3 on expanded entry set
         all_entry_points = {0} | reloc_targets
-        did_subroutine_scan = False
-        max_passes = 12
+        max_passes = 16
         for pass_num in range(1, max_passes + 1):
             use_propagate = pass_num >= 2
             result = analyze(code, base_addr=0,
@@ -412,22 +411,22 @@ def build_entities(binary_path: str, output_path: str = None):
                 all_entry_points |= new_targets
                 continue
 
-            # Phases 1-3 stabilized. Try subroutine scan once.
-            if not did_subroutine_scan:
-                did_subroutine_scan = True
-                scan_results = scan_and_score(
-                    blocks, code, reloc_targets,
-                    result.get("call_targets", set()))
-                scan_targets = {c["addr"] for c in scan_results}
-                scan_targets -= set(blocks.keys())
-                scan_targets -= all_entry_points
-                if scan_targets:
-                    high = sum(1 for c in scan_results if c["score"] >= 3.0)
-                    print(f"  Subroutine scan: {len(scan_results)} candidates "
-                          f"({high} high-confidence), "
-                          f"{len(scan_targets)} new entry points")
-                    all_entry_points |= scan_targets
-                    continue
+            # Phases 1-3 stabilized. Try subroutine scan.
+            # Each scan may discover code that calls into still-unknown
+            # regions, making those regions score higher on the next scan.
+            scan_results = scan_and_score(
+                blocks, code, reloc_targets,
+                result.get("call_targets", set()))
+            scan_targets = {c["addr"] for c in scan_results}
+            scan_targets -= set(blocks.keys())
+            scan_targets -= all_entry_points
+            if scan_targets:
+                high = sum(1 for c in scan_results if c["score"] >= 3.0)
+                print(f"  Subroutine scan: {len(scan_results)} candidates "
+                      f"({high} high-confidence), "
+                      f"{len(scan_targets)} new entry points")
+                all_entry_points |= scan_targets
+                continue
 
             break
 
