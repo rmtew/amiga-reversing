@@ -148,8 +148,11 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Audit: no hardcoded M68K knowledge — opword size, register counts, flag names, CC families, displacement signals all from KB
 - [x] Memory model: `AbstractMemory` — sparse byte-granularity map, big-endian read/write at b/w/l sizes
 - [x] State propagation: `propagate_states()` — BFS walk, per-instruction abstract execution, conservative join at merge points
-- [x] Instruction effects: MOVE/MOVEA/MOVEQ, LEA, ADD/SUB/AND/OR/EOR, CLR, EXG, SWAP, EXT, SP effects
+- [x] Instruction effects: MOVE/MOVEA/MOVEQ, LEA, ADD/SUB/AND/OR/EOR, CLR, EXG, SWAP, EXT, NEG, NOT, TST, SP effects
 - [x] Verification: 8 tests (memory r/w, copy, join, MOVEQ+LEA through memory, ADD, CLR, merge, EXG)
+- [x] Audit: `_apply_instruction` dispatch via KB `compute_formula.op`/`operation_type` — no mnemonic-string dispatch
+- [x] Audit: sign-extension from KB fields (`immediate_range.bits`, `source_sign_extend`, `source_bits_by_size`, `range_a/range_b`)
+- [x] Audit: `sp_effects.bytes` hard error on missing, unused imports/variables removed
 - [ ] Integration with entity system: feed discovered xrefs into `entities.jsonl`
 
 ## Existing Infrastructure
