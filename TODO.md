@@ -146,9 +146,11 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Branch target extraction: KB `displacement_encoding` (word/long signals), KB encoding fields for JMP/JSR EA
 - [x] CC family resolution: KB `cc_parameterized` prefix lookup (Bcc, Scc, DBcc, PTRAPcc)
 - [x] Audit: no hardcoded M68K knowledge — opword size, register counts, flag names, CC families, displacement signals all from KB
+- [x] Memory model: `AbstractMemory` — sparse byte-granularity map, big-endian read/write at b/w/l sizes
+- [x] State propagation: `propagate_states()` — BFS walk, per-instruction abstract execution, conservative join at merge points
+- [x] Instruction effects: MOVE/MOVEA/MOVEQ, LEA, ADD/SUB/AND/OR/EOR, CLR, EXG, SWAP, EXT, SP effects
+- [x] Verification: 8 tests (memory r/w, copy, join, MOVEQ+LEA through memory, ADD, CLR, merge, EXG)
 - [ ] Integration with entity system: feed discovered xrefs into `entities.jsonl`
-- [ ] Memory model: abstract memory map for tracking data reads/writes through EA
-- [ ] State propagation: carry abstract register values across blocks (join at merge points)
 
 ## Existing Infrastructure
 

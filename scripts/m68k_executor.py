@@ -819,17 +819,681 @@ def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
     return None
 
 
+# ── Abstract memory ──────────────────────────────────────────────────────
+
+class AbstractMemory:
+    """Sparse memory map tracking concrete and symbolic values.
+
+    Stores values at byte granularity. Reads/writes at byte, word, and long
+    sizes. Returns unknown for uninitialized addresses. Byte order is big-endian
+    (M68K native).
+    """
+
+    def __init__(self):
+        self._bytes: dict[int, AbstractValue] = {}  # addr -> byte value
+
+    def write(self, addr: int, value: AbstractValue, size: str):
+        """Write a value at the given address with the given size."""
+        _, _, meta = _load_kb()
+        nbytes = meta["size_byte_count"].get(size, 2)
+        if value.is_known:
+            val = value.concrete
+            for i in range(nbytes):
+                shift = (nbytes - 1 - i) * 8  # big-endian
+                byte_val = (val >> shift) & 0xFF
+                self._bytes[addr + i] = _concrete(byte_val)
+        else:
+            # Unknown value: mark all bytes as unknown
+            for i in range(nbytes):
+                self._bytes[addr + i] = _unknown(
+                    f"{value.label or '?'}[{i}]" if value.label else "")
+
+    def read(self, addr: int, size: str) -> AbstractValue:
+        """Read a value from the given address with the given size.
+
+        Returns concrete value only if ALL bytes in the range are known.
+        """
+        _, _, meta = _load_kb()
+        nbytes = meta["size_byte_count"].get(size, 2)
+        result = 0
+        for i in range(nbytes):
+            bv = self._bytes.get(addr + i)
+            if bv is None or not bv.is_known:
+                return _unknown(f"mem[${addr:x}]")
+            result = (result << 8) | (bv.concrete & 0xFF)
+        return _concrete(result)
+
+    def copy(self) -> "AbstractMemory":
+        """Create an independent copy."""
+        m = AbstractMemory()
+        m._bytes = dict(self._bytes)
+        return m
+
+    def known_ranges(self) -> list[tuple[int, int]]:
+        """Return sorted list of (start, end) ranges with known bytes."""
+        if not self._bytes:
+            return []
+        addrs = sorted(self._bytes)
+        ranges = []
+        start = addrs[0]
+        prev = start
+        for a in addrs[1:]:
+            if a != prev + 1:
+                ranges.append((start, prev + 1))
+                start = a
+            prev = a
+        ranges.append((start, prev + 1))
+        return ranges
+
+
+# ── State propagation ────────────────────────────────────────────────────
+
+def _join_values(a: AbstractValue, b: AbstractValue) -> AbstractValue:
+    """Join two abstract values at a merge point.
+
+    If both are concrete and equal, keep the value.
+    Otherwise, the result is unknown.
+    """
+    if a.is_known and b.is_known and a.concrete == b.concrete:
+        return a
+    return _unknown()
+
+
+def _join_states(states: list) -> tuple:
+    """Join multiple CPU states at a block merge point.
+
+    Returns (joined_cpu_state, joined_memory).
+    For each register/flag/memory cell: if all incoming states agree on
+    a concrete value, keep it; otherwise mark unknown.
+    """
+    if not states:
+        return CPUState(), AbstractMemory()
+    if len(states) == 1:
+        cpu, mem = states[0]
+        return cpu.copy(), mem.copy()
+
+    _, _, meta = _load_kb()
+    result_cpu = CPUState()
+
+    # Join data registers
+    for i in range(len(result_cpu.d)):
+        vals = [s[0].d[i] for s in states]
+        result_cpu.d[i] = vals[0]
+        for v in vals[1:]:
+            result_cpu.d[i] = _join_values(result_cpu.d[i], v)
+
+    # Join address registers
+    for i in range(len(result_cpu.a)):
+        vals = [s[0].a[i] for s in states]
+        result_cpu.a[i] = vals[0]
+        for v in vals[1:]:
+            result_cpu.a[i] = _join_values(result_cpu.a[i], v)
+
+    # Join SP
+    sp_vals = [s[0].sp for s in states]
+    result_cpu.sp = sp_vals[0]
+    for v in sp_vals[1:]:
+        result_cpu.sp = _join_values(result_cpu.sp, v)
+
+    # Join CCR flags
+    for flag in result_cpu.ccr:
+        flag_vals = [s[0].ccr.get(flag) for s in states]
+        if all(v is not None for v in flag_vals) and len(set(flag_vals)) == 1:
+            result_cpu.ccr[flag] = flag_vals[0]
+        else:
+            result_cpu.ccr[flag] = None
+
+    # Join memory: only keep bytes that all states agree on
+    result_mem = AbstractMemory()
+    all_addrs = set()
+    for _, mem in states:
+        all_addrs.update(mem._bytes.keys())
+    for addr in all_addrs:
+        vals = []
+        for _, mem in states:
+            v = mem._bytes.get(addr)
+            if v is None:
+                break
+            vals.append(v)
+        else:
+            joined = vals[0]
+            for v in vals[1:]:
+                joined = _join_values(joined, v)
+            if joined.is_known:
+                result_mem._bytes[addr] = joined
+
+    return result_cpu, result_mem
+
+
+def _extract_size(text: str) -> str:
+    """Extract size suffix from disassembled instruction text.
+
+    Returns 'b', 'w', 'l', or 'w' as default.
+    """
+    _, _, meta = _load_kb()
+    parts = text.strip().split(None, 1)
+    if not parts:
+        return "w"
+    mn_part = parts[0]
+    for sz in meta["size_byte_count"]:
+        if mn_part.endswith("." + sz):
+            return sz
+    return "w"
+
+
+def _parse_operand_text(text: str) -> tuple[str | None, str | None]:
+    """Extract source and destination operand strings from instruction text.
+
+    Returns (src_text, dst_text). Either may be None.
+    Handles: 'move.l d0,d1' -> ('d0', 'd1')
+             'clr.l d0' -> (None, 'd0')
+             'rts' -> (None, None)
+    """
+    parts = text.strip().split(None, 1)
+    if len(parts) < 2:
+        return None, None
+    operand_str = parts[1].strip()
+    # Split on comma, but not inside parentheses
+    depth = 0
+    split_pos = -1
+    for i, ch in enumerate(operand_str):
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        elif ch == ',' and depth == 0:
+            split_pos = i
+            break
+    if split_pos >= 0:
+        return operand_str[:split_pos].strip(), operand_str[split_pos + 1:].strip()
+    return operand_str, None
+
+
+def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
+    """Parse a register name into (mode, reg_num).
+
+    Returns ('dn', N) or ('an', N) or None.
+    """
+    _, _, meta = _load_kb()
+    sp_reg = meta["_sp_reg_num"]
+    reg_text = reg_text.strip().lower()
+    if reg_text == "sp":
+        return ("an", sp_reg)
+    if len(reg_text) == 2 and reg_text[0] in ('d', 'a') and reg_text[1].isdigit():
+        num = int(reg_text[1])
+        mode = "dn" if reg_text[0] == 'd' else "an"
+        return (mode, num)
+    return None
+
+
+def _apply_instruction(inst: Instruction, inst_kb: dict,
+                       cpu: "CPUState_inner", mem: AbstractMemory,
+                       code: bytes, base_addr: int):
+    """Apply one instruction's effects to the abstract state.
+
+    Handles the most common patterns for state propagation:
+    - MOVE/MOVEA/MOVEQ: propagate values
+    - LEA: compute effective address
+    - ADD/SUB/AND/OR/EOR to registers: compute if both operands known
+    - ADDA/SUBA: compute if both operands known
+    - CLR: set destination to 0
+    - LINK/UNLK: SP adjustments
+    - PEA/JSR/BSR: SP decrement
+    - RTS/RTR: SP increment
+    """
+    _, _, meta = _load_kb()
+    text = inst.text.strip()
+    mnemonic = _extract_mnemonic(text)
+    mn_upper = mnemonic.upper()
+    size = _extract_size(text)
+    size_bytes = meta["size_byte_count"].get(size, 2)
+    mask = (1 << (size_bytes * 8)) - 1
+
+    src_text, dst_text = _parse_operand_text(text)
+
+    # Helper: resolve a text operand to an AbstractValue
+    def _resolve_text_operand(op_text: str) -> AbstractValue | None:
+        if op_text is None:
+            return None
+        op_text = op_text.strip()
+        # Immediate
+        if op_text.startswith('#'):
+            imm_str = op_text[1:].strip()
+            try:
+                if imm_str.startswith('$'):
+                    return _concrete(int(imm_str[1:], 16))
+                elif imm_str.startswith('%'):
+                    return _concrete(int(imm_str[1:], 2))
+                else:
+                    return _concrete(int(imm_str))
+            except ValueError:
+                return None
+        # Register direct
+        reg_info = _parse_reg_from_text(op_text)
+        if reg_info:
+            mode, num = reg_info
+            return cpu.get_reg(mode, num)
+        # (An) indirect
+        if op_text.startswith('(') and op_text.endswith(')'):
+            inner = op_text[1:-1]
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                mode, num = reg_info
+                addr_val = cpu.get_reg(mode, num)
+                if addr_val.is_known:
+                    return mem.read(addr_val.concrete, size)
+                return None
+        # d(An) displacement
+        if '(' in op_text and op_text.endswith(')'):
+            paren_idx = op_text.index('(')
+            disp_str = op_text[:paren_idx].strip()
+            inner = op_text[paren_idx + 1:-1]
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                mode, num = reg_info
+                addr_val = cpu.get_reg(mode, num)
+                if addr_val.is_known:
+                    try:
+                        if disp_str.startswith('$'):
+                            disp = int(disp_str[1:], 16)
+                        else:
+                            disp = int(disp_str)
+                    except ValueError:
+                        return None
+                    return mem.read((addr_val.concrete + disp) & 0xFFFFFFFF, size)
+                return None
+        # Absolute address
+        if op_text.startswith('$') or op_text.startswith('('):
+            return None  # can't resolve without more context
+        return None
+
+    # Helper: write to a destination
+    def _write_dst(op_text: str, value: AbstractValue):
+        if op_text is None:
+            return
+        op_text = op_text.strip()
+        reg_info = _parse_reg_from_text(op_text)
+        if reg_info:
+            mode, num = reg_info
+            if mode == "an":
+                # Address register writes are always 32-bit
+                cpu.set_reg(mode, num, value)
+            else:
+                cpu.set_reg(mode, num, value)
+            return
+        # (An) indirect write
+        if op_text.startswith('(') and op_text.endswith(')'):
+            inner = op_text[1:-1]
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                mode, num = reg_info
+                addr_val = cpu.get_reg(mode, num)
+                if addr_val.is_known:
+                    mem.write(addr_val.concrete, value, size)
+            return
+        # d(An) displacement write
+        if '(' in op_text and op_text.endswith(')'):
+            paren_idx = op_text.index('(')
+            disp_str = op_text[:paren_idx].strip()
+            inner = op_text[paren_idx + 1:-1]
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                mode, num = reg_info
+                addr_val = cpu.get_reg(mode, num)
+                if addr_val.is_known:
+                    try:
+                        if disp_str.startswith('$'):
+                            disp = int(disp_str[1:], 16)
+                        else:
+                            disp = int(disp_str)
+                    except ValueError:
+                        return
+                    mem.write((addr_val.concrete + disp) & 0xFFFFFFFF,
+                              value, size)
+
+    # --- Apply per-instruction effects ---
+
+    # MOVEQ: sign-extended 8-bit immediate to Dn
+    if mn_upper == "MOVEQ":
+        src_val = _resolve_text_operand(src_text)
+        if src_val is not None and src_val.is_known:
+            # MOVEQ sign-extends byte to long
+            val = src_val.concrete & 0xFF
+            if val >= 0x80:
+                val |= 0xFFFFFF00
+            val &= 0xFFFFFFFF
+            _write_dst(dst_text, _concrete(val))
+        else:
+            _write_dst(dst_text, _unknown())
+        return
+
+    # LEA: compute EA and store in An
+    if mn_upper == "LEA":
+        if dst_text:
+            dst_reg = _parse_reg_from_text(dst_text)
+            if dst_reg and src_text:
+                # Parse the EA from source text
+                src = src_text.strip()
+                addr_val = None
+                # d(An) or d(pc)
+                if '(' in src and src.endswith(')'):
+                    paren_idx = src.index('(')
+                    disp_str = src[:paren_idx].strip()
+                    inner = src[paren_idx + 1:-1].strip().lower()
+                    if inner == 'pc':
+                        # PC-relative: address = instruction_addr + opword + disp
+                        opword_bytes = meta["opword_bytes"]
+                        try:
+                            if disp_str.startswith('$'):
+                                disp = int(disp_str[1:], 16)
+                            else:
+                                disp = int(disp_str)
+                        except ValueError:
+                            disp = None
+                        if disp is not None:
+                            addr_val = _concrete(inst.offset + opword_bytes + disp)
+                    else:
+                        reg_info = _parse_reg_from_text(inner)
+                        if reg_info:
+                            base = cpu.get_reg(reg_info[0], reg_info[1])
+                            if base.is_known:
+                                try:
+                                    if disp_str.startswith('$'):
+                                        disp = int(disp_str[1:], 16)
+                                    elif disp_str.startswith('-$'):
+                                        disp = -int(disp_str[2:], 16)
+                                    elif disp_str.startswith('-'):
+                                        disp = int(disp_str)
+                                    else:
+                                        disp = int(disp_str)
+                                except ValueError:
+                                    disp = None
+                                if disp is not None:
+                                    addr_val = _concrete(base.concrete + disp)
+                elif src.startswith('(') and src.endswith(')'):
+                    # (An) - effective address is register value
+                    inner = src[1:-1]
+                    reg_info = _parse_reg_from_text(inner)
+                    if reg_info:
+                        base = cpu.get_reg(reg_info[0], reg_info[1])
+                        addr_val = base
+                elif src.startswith('($') or src.startswith('$'):
+                    # Absolute address
+                    try:
+                        clean = src.strip('()').lstrip('$')
+                        if clean.endswith('.w') or clean.endswith('.l'):
+                            clean = clean[:-2]
+                        addr_val = _concrete(int(clean, 16))
+                    except ValueError:
+                        pass
+                if addr_val is not None:
+                    cpu.set_reg(dst_reg[0], dst_reg[1], addr_val)
+                else:
+                    cpu.set_reg(dst_reg[0], dst_reg[1], _unknown())
+        return
+
+    # MOVE/MOVEA: propagate value
+    if mn_upper in ("MOVE", "MOVEA"):
+        src_val = _resolve_text_operand(src_text)
+        if src_val is not None:
+            if mn_upper == "MOVEA" and size == "w" and src_val.is_known:
+                # MOVEA.W sign-extends to 32 bits
+                val = src_val.concrete & 0xFFFF
+                if val >= 0x8000:
+                    val |= 0xFFFF0000
+                val &= 0xFFFFFFFF
+                _write_dst(dst_text, _concrete(val))
+            else:
+                _write_dst(dst_text, src_val)
+        else:
+            _write_dst(dst_text, _unknown())
+        return
+
+    # CLR: set destination to 0
+    if mn_upper == "CLR":
+        _write_dst(dst_text or src_text, _concrete(0))
+        return
+
+    # ADD/SUB/ADDA/SUBA: compute if both known
+    if mn_upper in ("ADD", "ADDA", "ADDI", "ADDQ"):
+        src_val = _resolve_text_operand(src_text)
+        dst_val = _resolve_text_operand(dst_text)
+        if src_val and dst_val and src_val.is_known and dst_val.is_known:
+            result = (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF
+            _write_dst(dst_text, _concrete(result))
+        else:
+            _write_dst(dst_text, _unknown())
+        return
+
+    if mn_upper in ("SUB", "SUBA", "SUBI", "SUBQ"):
+        src_val = _resolve_text_operand(src_text)
+        dst_val = _resolve_text_operand(dst_text)
+        if src_val and dst_val and src_val.is_known and dst_val.is_known:
+            result = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
+            _write_dst(dst_text, _concrete(result))
+        else:
+            _write_dst(dst_text, _unknown())
+        return
+
+    # AND/OR/EOR: compute if both known
+    if mn_upper in ("AND", "ANDI"):
+        src_val = _resolve_text_operand(src_text)
+        dst_val = _resolve_text_operand(dst_text)
+        if src_val and dst_val and src_val.is_known and dst_val.is_known:
+            _write_dst(dst_text, _concrete(dst_val.concrete & src_val.concrete))
+        else:
+            _write_dst(dst_text, _unknown())
+        return
+
+    if mn_upper in ("OR", "ORI"):
+        src_val = _resolve_text_operand(src_text)
+        dst_val = _resolve_text_operand(dst_text)
+        if src_val and dst_val and src_val.is_known and dst_val.is_known:
+            _write_dst(dst_text, _concrete(dst_val.concrete | src_val.concrete))
+        else:
+            _write_dst(dst_text, _unknown())
+        return
+
+    if mn_upper in ("EOR", "EORI"):
+        src_val = _resolve_text_operand(src_text)
+        dst_val = _resolve_text_operand(dst_text)
+        if src_val and dst_val and src_val.is_known and dst_val.is_known:
+            _write_dst(dst_text, _concrete(dst_val.concrete ^ src_val.concrete))
+        else:
+            _write_dst(dst_text, _unknown())
+        return
+
+    # EXG: swap two registers
+    if mn_upper == "EXG":
+        src_reg = _parse_reg_from_text(src_text) if src_text else None
+        dst_reg = _parse_reg_from_text(dst_text) if dst_text else None
+        if src_reg and dst_reg:
+            sv = cpu.get_reg(src_reg[0], src_reg[1])
+            dv = cpu.get_reg(dst_reg[0], dst_reg[1])
+            cpu.set_reg(src_reg[0], src_reg[1], dv)
+            cpu.set_reg(dst_reg[0], dst_reg[1], sv)
+        return
+
+    # SWAP: swap halves of Dn
+    if mn_upper == "SWAP":
+        reg_info = _parse_reg_from_text(src_text or dst_text or "")
+        if reg_info and reg_info[0] == "dn":
+            val = cpu.get_reg("dn", reg_info[1])
+            if val.is_known:
+                v = val.concrete
+                swapped = ((v & 0xFFFF) << 16) | ((v >> 16) & 0xFFFF)
+                cpu.set_reg("dn", reg_info[1], _concrete(swapped))
+            else:
+                cpu.set_reg("dn", reg_info[1], _unknown())
+        return
+
+    # EXT: sign-extend
+    if mn_upper == "EXT" or mn_upper == "EXTB":
+        reg_info = _parse_reg_from_text(src_text or dst_text or "")
+        if reg_info and reg_info[0] == "dn":
+            val = cpu.get_reg("dn", reg_info[1])
+            if val.is_known:
+                v = val.concrete
+                if size == "w":
+                    # byte -> word
+                    v = v & 0xFF
+                    if v >= 0x80:
+                        v |= 0xFF00
+                    v = (cpu.get_reg("dn", reg_info[1]).concrete & 0xFFFF0000) | (v & 0xFFFF)
+                elif size == "l":
+                    if mn_upper == "EXTB":
+                        # byte -> long
+                        v = v & 0xFF
+                        if v >= 0x80:
+                            v |= 0xFFFFFF00
+                    else:
+                        # word -> long
+                        v = v & 0xFFFF
+                        if v >= 0x8000:
+                            v |= 0xFFFF0000
+                cpu.set_reg("dn", reg_info[1], _concrete(v & 0xFFFFFFFF))
+            else:
+                cpu.set_reg("dn", reg_info[1], _unknown())
+        return
+
+    # SP-modifying instructions: track stack pointer
+    sp_effects = inst_kb.get("sp_effects", [])
+    if sp_effects:
+        for effect in sp_effects:
+            action = effect.get("action")
+            if action == "decrement" and cpu.sp.is_known:
+                cpu.sp = _concrete(cpu.sp.concrete - effect.get("bytes", 4))
+            elif action == "increment" and cpu.sp.is_known:
+                cpu.sp = _concrete(cpu.sp.concrete + effect.get("bytes", 4))
+            elif action in ("displacement_adjust",):
+                # LINK: SP -= displacement (negative = allocate)
+                if cpu.sp.is_known and src_text:
+                    src_val = _resolve_text_operand(src_text)
+                    if src_val and src_val.is_known:
+                        disp = _to_signed(src_val.concrete & 0xFFFF, "w")
+                        cpu.sp = _concrete(cpu.sp.concrete + disp)
+        return
+
+    # Instructions that write to destination but we can't compute:
+    # invalidate the destination register
+    if dst_text:
+        dst_reg = _parse_reg_from_text(dst_text)
+        if dst_reg:
+            # Unknown result — invalidate
+            cpu.set_reg(dst_reg[0], dst_reg[1], _unknown())
+
+
+def propagate_states(blocks: dict[int, BasicBlock],
+                     code: bytes, base_addr: int = 0,
+                     initial_state: "CPUState_inner | None" = None,
+                     initial_mem: AbstractMemory | None = None,
+                     ) -> dict[int, tuple]:
+    """Propagate abstract state through basic blocks.
+
+    Walks blocks in topological order (BFS from entries), applying instruction
+    effects to propagate register and memory values. At merge points, joins
+    states conservatively.
+
+    Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
+    """
+    kb_by_name, _, meta = _load_kb()
+    cc_test_defs = meta.get("cc_test_definitions", {})
+    cc_aliases = meta.get("cc_aliases", {})
+
+    if initial_state is None:
+        initial_state = CPUState()
+    if initial_mem is None:
+        initial_mem = AbstractMemory()
+
+    # Map block_start -> list of (cpu_state, memory) from predecessors
+    incoming: dict[int, list[tuple]] = {}
+    # Map block_start -> (exit_cpu_state, exit_memory) after execution
+    exit_states: dict[int, tuple] = {}
+
+    # Topological BFS from entry blocks
+    entry_blocks = [addr for addr, b in blocks.items() if b.is_entry]
+    for entry in entry_blocks:
+        incoming[entry] = [(initial_state.copy(), initial_mem.copy())]
+
+    work = list(entry_blocks)
+    visited = set()
+    iterations = 0
+    max_iterations = len(blocks) * 3  # convergence guard
+
+    while work and iterations < max_iterations:
+        iterations += 1
+        addr = work.pop(0)
+        if addr not in blocks:
+            continue
+
+        block = blocks[addr]
+        pred_states = incoming.get(addr, [])
+        if not pred_states:
+            continue
+
+        # Join incoming states
+        cpu, mem = _join_states(pred_states)
+        cpu.pc = addr
+
+        # Check if state changed from last visit (for fixpoint)
+        if addr in visited and addr in exit_states:
+            prev_cpu, prev_mem = exit_states[addr]
+            # Simple convergence check: if registers haven't changed, skip
+            changed = False
+            for i in range(len(cpu.d)):
+                if cpu.d[i].concrete != prev_cpu.d[i].concrete:
+                    changed = True
+                    break
+            if not changed:
+                for i in range(len(cpu.a)):
+                    if cpu.a[i].concrete != prev_cpu.a[i].concrete:
+                        changed = True
+                        break
+            if not changed and cpu.sp.concrete == prev_cpu.sp.concrete:
+                continue  # converged, no need to re-process
+
+        visited.add(addr)
+
+        # Execute all instructions in the block
+        for inst in block.instructions:
+            mn = _extract_mnemonic(inst.text)
+            ikb = _find_kb_entry(kb_by_name, mn, cc_test_defs, cc_aliases)
+            if ikb:
+                _apply_instruction(inst, ikb, cpu, mem, code, base_addr)
+            cpu.pc = inst.offset + inst.size
+
+        exit_states[addr] = (cpu.copy(), mem.copy())
+
+        # Propagate to successors
+        for succ in block.successors:
+            if succ not in incoming:
+                incoming[succ] = []
+            incoming[succ].append((cpu.copy(), mem.copy()))
+            work.append(succ)
+
+    return exit_states
+
+
 # ── Public API ────────────────────────────────────────────────────────────
 
 def analyze(code: bytes, base_addr: int = 0,
-            entry_points: list[int] | None = None) -> dict:
+            entry_points: list[int] | None = None,
+            propagate: bool = False) -> dict:
     """Analyze code and return structured results.
 
+    Args:
+        code: raw code bytes
+        base_addr: base address of the code section
+        entry_points: list of entry point addresses (default: [base_addr])
+        propagate: if True, run state propagation to track register values
+
     Returns dict with:
-        blocks: dict[int, BasicBlock] — basic blocks keyed by start address
-        xrefs: list[XRef] — all cross-references
-        call_targets: set[int] — addresses that are call targets (subroutines)
-        branch_targets: set[int] — addresses that are branch targets
+        blocks: dict[int, BasicBlock] -- basic blocks keyed by start address
+        xrefs: list[XRef] -- all cross-references
+        call_targets: set[int] -- addresses that are call targets (subroutines)
+        branch_targets: set[int] -- addresses that are branch targets
+        exit_states: dict[int, (CPUState, AbstractMemory)] -- per-block exit
+            states (only if propagate=True)
     """
     blocks = discover_blocks(code, base_addr, entry_points)
 
@@ -845,12 +1509,17 @@ def analyze(code: bytes, base_addr: int = 0,
             elif xref.type in ("branch", "jump"):
                 branch_targets.add(xref.dst)
 
-    return {
+    result = {
         "blocks": blocks,
         "xrefs": all_xrefs,
         "call_targets": call_targets,
         "branch_targets": branch_targets,
     }
+
+    if propagate:
+        result["exit_states"] = propagate_states(blocks, code, base_addr)
+
+    return result
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────
@@ -860,17 +1529,21 @@ if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from hunk_parser import parse_file, HunkType as HT
 
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <hunk_file>")
+    do_propagate = "--propagate" in sys.argv
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+
+    if len(args) < 1:
+        print(f"Usage: {sys.argv[0]} [--propagate] <hunk_file>")
         sys.exit(1)
 
-    hf = parse_file(sys.argv[1])
+    hf = parse_file(args[0])
     for hunk in hf.hunks:
         if hunk.hunk_type != HT.HUNK_CODE:
             continue
         print(f"; === Hunk #{hunk.index} CODE ({len(hunk.data)} bytes) ===")
-        result = analyze(hunk.data)
+        result = analyze(hunk.data, propagate=do_propagate)
         blocks = result["blocks"]
+        exit_states = result.get("exit_states", {})
 
         print(f"; {len(blocks)} basic blocks, "
               f"{len(result['call_targets'])} call targets, "
@@ -894,4 +1567,20 @@ if __name__ == "__main__":
             for xref in block.xrefs:
                 cond = " (cond)" if xref.conditional else ""
                 print(f"  ; xref: {xref.type}{cond} -> ${xref.dst:06x}")
+            if addr in exit_states:
+                cpu, mem = exit_states[addr]
+                known_regs = []
+                for i, v in enumerate(cpu.d):
+                    if v.is_known:
+                        known_regs.append(f"D{i}=${v.concrete:08x}")
+                for i, v in enumerate(cpu.a):
+                    if v.is_known:
+                        known_regs.append(f"A{i}=${v.concrete:08x}")
+                if cpu.sp.is_known:
+                    known_regs.append(f"SP=${cpu.sp.concrete:08x}")
+                if known_regs:
+                    print(f"  ; state: {', '.join(known_regs)}")
+                mem_ranges = mem.known_ranges()
+                if mem_ranges:
+                    print(f"  ; mem: {len(mem_ranges)} known ranges")
             print()
