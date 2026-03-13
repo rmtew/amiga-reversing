@@ -21,9 +21,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from m68k_executor import (BasicBlock, _extract_mnemonic, _load_kb,
-                            _find_kb_entry)
+from m68k_executor import BasicBlock, _extract_mnemonic
 from os_calls import load_os_kb
+from kb_util import KB, xf, find_containing_sub
 
 
 def find_string_refs(blocks: dict[int, BasicBlock],
@@ -35,42 +35,16 @@ def find_string_refs(blocks: dict[int, BasicBlock],
 
     Returns {block_addr: [(string_addr, string_text), ...]}.
     """
-    kb_by_name, _, meta = _load_kb()
-    opword_bytes = meta["opword_bytes"]
-    ea_enc = meta["ea_mode_encoding"]
-    cc_defs = meta.get("cc_test_definitions", {})
-    cc_aliases = meta.get("cc_aliases", {})
+    kb = KB()
+    pcdisp = kb.ea_enc["pcdisp"]
 
-    pcdisp = ea_enc.get("pcdisp")
-    if pcdisp is None:
-        raise KeyError("ea_mode_encoding.pcdisp missing from M68K KB")
-
-    # Get LEA's encoding to extract EA field positions
-    lea_kb = _find_kb_entry(kb_by_name, "lea", cc_defs, cc_aliases)
+    lea_kb = kb.find("lea")
     if lea_kb is None:
         raise KeyError("LEA not found in M68K KB")
-
-    # LEA source EA: MODE at bits 5-3, REGISTER at bits 2-0
-    encodings = lea_kb.get("encodings", [])
-    if not encodings:
-        raise KeyError("LEA has no encodings in KB")
-    fields = encodings[0].get("fields", [])
-    mode_field = reg_field = None
-    for f in fields:
-        if f["name"] == "MODE":
-            mode_field = f
-        elif f["name"] == "REGISTER" and f["bit_hi"] <= 5:
-            reg_field = f
-    if mode_field is None or reg_field is None:
+    ea_spec = kb.ea_field_spec(lea_kb)
+    if ea_spec is None:
         raise KeyError("LEA encoding lacks MODE/REGISTER fields")
-
-    mode_spec = (mode_field["bit_hi"], mode_field["bit_lo"],
-                 mode_field["bit_hi"] - mode_field["bit_lo"] + 1)
-    reg_spec = (reg_field["bit_hi"], reg_field["bit_lo"],
-                reg_field["bit_hi"] - reg_field["bit_lo"] + 1)
-
-    def _xf(opcode, spec):
-        return (opcode >> spec[1]) & ((1 << spec[2]) - 1)
+    mode_spec, reg_spec = ea_spec
 
     refs_by_block = {}
 
@@ -78,25 +52,23 @@ def find_string_refs(blocks: dict[int, BasicBlock],
         block = blocks[block_addr]
         refs = []
         for inst in block.instructions:
-            mn = _extract_mnemonic(inst.text)
-            ikb = _find_kb_entry(kb_by_name, mn, cc_defs, cc_aliases)
+            ikb = kb.find(_extract_mnemonic(inst.text))
             if ikb is None:
                 continue
-            # Check this is LEA by KB operation text (same detection as executor)
             if ikb.get("operation") != "< ea > \u2192 An":
                 continue
-            if len(inst.raw) < opword_bytes + 2:
+            if len(inst.raw) < kb.opword_bytes + 2:
                 continue
 
             opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-            src_mode = _xf(opcode, mode_spec)
-            src_reg = _xf(opcode, reg_spec)
+            src_mode = xf(opcode, mode_spec)
+            src_reg = xf(opcode, reg_spec)
 
             if src_mode != pcdisp[0] or src_reg != pcdisp[1]:
                 continue
 
-            disp = struct.unpack_from(">h", inst.raw, opword_bytes)[0]
-            str_addr = inst.offset + opword_bytes + disp
+            disp = struct.unpack_from(">h", inst.raw, kb.opword_bytes)[0]
+            str_addr = inst.offset + kb.opword_bytes + disp
             if str_addr < 0 or str_addr >= len(code):
                 continue
 
@@ -216,29 +188,16 @@ def name_subroutines(entities: list[dict],
     # Collect string refs per subroutine
     string_refs = find_string_refs(blocks, code)
 
-    # Map block addresses to their containing subroutine
-    sorted_subs = sorted(entity_by_addr.keys())
-
-    def _find_sub(block_addr):
-        """Find containing subroutine for a block address."""
-        lo, hi = 0, len(sorted_subs) - 1
-        while lo <= hi:
-            mid = (lo + hi) // 2
-            s = sorted_subs[mid]
-            ent = entity_by_addr[s]
-            end = int(ent["end"], 16)
-            if block_addr < s:
-                hi = mid - 1
-            elif block_addr >= end:
-                lo = mid + 1
-            else:
-                return s
-        return None
+    # Build sorted sub list for binary search (with int keys)
+    sorted_sub_list = sorted(
+        [{"addr": k, "end": int(entity_by_addr[k]["end"], 16)}
+         for k in entity_by_addr],
+        key=lambda s: s["addr"])
 
     # Aggregate string refs by subroutine
     sub_strings: dict[int, list[str]] = {}
     for block_addr, refs in string_refs.items():
-        sub_addr = _find_sub(block_addr)
+        sub_addr = find_containing_sub(block_addr, sorted_sub_list)
         if sub_addr is not None:
             if sub_addr not in sub_strings:
                 sub_strings[sub_addr] = []
@@ -248,7 +207,7 @@ def name_subroutines(entities: list[dict],
     # Aggregate OS calls by subroutine (from lib_calls)
     sub_os_calls: dict[int, list[str]] = {}
     for call in lib_calls:
-        sub_addr = _find_sub(call["addr"])
+        sub_addr = find_containing_sub(call["addr"], sorted_sub_list)
         if sub_addr is not None:
             if sub_addr not in sub_os_calls:
                 sub_os_calls[sub_addr] = []
@@ -259,7 +218,7 @@ def name_subroutines(entities: list[dict],
     named = 0
     used_names = set()
 
-    for addr in sorted_subs:
+    for addr in sorted(entity_by_addr.keys()):
         ent = entity_by_addr[addr]
         if ent.get("name"):
             used_names.add(ent["name"])

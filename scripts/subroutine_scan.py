@@ -19,17 +19,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from m68k_disasm import _Decoder, _decode_one, DecodeError
-from m68k_executor import (BasicBlock, _extract_mnemonic, _load_kb,
-                            _find_kb_entry)
-
-
-def _get_flow_type(inst, kb_by_name, cc_defs, cc_aliases) -> str | None:
-    """Get KB flow type for a decoded instruction."""
-    mn = _extract_mnemonic(inst.text)
-    kb = _find_kb_entry(kb_by_name, mn, cc_defs, cc_aliases)
-    if kb is None:
-        return None
-    return kb.get("pc_effects", {}).get("flow", {}).get("type")
+from m68k_executor import BasicBlock, _extract_mnemonic
+from kb_util import KB
 
 
 def _uncovered_ranges(blocks: dict[int, BasicBlock],
@@ -63,8 +54,7 @@ def _uncovered_ranges(blocks: dict[int, BasicBlock],
 
 
 def _try_decode_subroutine(code: bytes, start: int, end: int,
-                           kb_by_name, cc_defs, cc_aliases,
-                           ) -> dict | None:
+                           kb: KB) -> dict | None:
     """Try to decode a subroutine starting at `start` within [start, end).
 
     Returns candidate dict or None. Stops at return/unconditional-jump
@@ -89,10 +79,9 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
         if next_pos > end:
             return None  # would overlap known code
 
-        mn = _extract_mnemonic(inst.text)
-        ikb = _find_kb_entry(kb_by_name, mn, cc_defs, cc_aliases)
+        ikb = kb.find(_extract_mnemonic(inst.text))
         if ikb is None:
-            return None  # unrecognized instruction — not valid code
+            return None  # unrecognized instruction
         flow = ikb.get("pc_effects", {}).get("flow", {})
         ft = flow.get("type")
         conditional = flow.get("conditional", False)
@@ -133,25 +122,20 @@ def scan_candidates(blocks: dict[int, BasicBlock],
     Returns list of candidate dicts with keys:
         addr, end, instr_count, has_flow
     """
-    kb_by_name, _, meta = _load_kb()
-    cc_defs = meta.get("cc_test_definitions", {})
-    cc_aliases = meta.get("cc_aliases", {})
-    opword_bytes = meta["opword_bytes"]
-
+    kb = KB()
     gaps = _uncovered_ranges(blocks, len(code))
     candidates = []
 
     for gap_start, gap_end in gaps:
         pos = gap_start
-        while pos + opword_bytes <= gap_end:
-            cand = _try_decode_subroutine(
-                code, pos, gap_end, kb_by_name, cc_defs, cc_aliases)
+        while pos + kb.opword_bytes <= gap_end:
+            cand = _try_decode_subroutine(code, pos, gap_end, kb)
             if cand:
                 candidates.append(cand)
                 # Candidate end is always word-aligned (return instruction end)
                 pos = cand["end"]
             else:
-                pos += opword_bytes  # advance one opword
+                pos += kb.opword_bytes
 
     return candidates
 
@@ -165,10 +149,7 @@ def score_candidates(candidates: list[dict],
 
     Returns only candidates with score >= 1.0, sorted by score descending.
     """
-    kb_by_name, _, meta = _load_kb()
-    cc_defs = meta.get("cc_test_definitions", {})
-    cc_aliases = meta.get("cc_aliases", {})
-    opword_bytes = meta["opword_bytes"]
+    kb = KB()
 
     scored = []
     for cand in candidates:
@@ -194,14 +175,13 @@ def score_candidates(candidates: list[dict],
             score += 0.5
 
         # Preceded by a return instruction (end of previous subroutine)
-        if addr >= opword_bytes:
+        if addr >= kb.opword_bytes:
             try:
                 d = _Decoder(code, 0)
-                d.pos = addr - opword_bytes
+                d.pos = addr - kb.opword_bytes
                 prev_inst = _decode_one(d, None)
-                if prev_inst and prev_inst.size == opword_bytes:
-                    ft = _get_flow_type(
-                        prev_inst, kb_by_name, cc_defs, cc_aliases)
+                if prev_inst and prev_inst.size == kb.opword_bytes:
+                    ft, _ = kb.flow_type(prev_inst)
                     if ft == "return":
                         score += 1.0
             except (DecodeError, struct.error):

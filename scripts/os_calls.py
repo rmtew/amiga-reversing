@@ -20,35 +20,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from m68k_executor import (BasicBlock, _extract_mnemonic, _load_kb,
-                            _find_kb_entry, _extract_branch_target)
-from jump_tables import _build_ea_field_spec, _xf
+from m68k_executor import BasicBlock, _extract_mnemonic, _extract_branch_target
+from kb_util import KB, xf
 
 
 _OS_KB_CACHE = None
 
-
-def _build_dst_reg_field(inst_kb: dict) -> tuple | None:
-    """Extract the destination REGISTER field from KB encoding (bits 11-9 for MOVEA).
-
-    For instructions with two REGISTER fields (like MOVEA), the destination
-    is the one at higher bit positions (bits 11-9), distinct from the source
-    EA REGISTER at bits 2-0.
-
-    Returns (bit_hi, bit_lo, width) or None.
-    """
-    encodings = inst_kb.get("encodings", [])
-    if not encodings:
-        return None
-    fields = encodings[0].get("fields", [])
-    # Find REGISTER fields; the destination is the one with higher bit_lo
-    reg_fields = [f for f in fields if f["name"] == "REGISTER"]
-    if len(reg_fields) < 2:
-        return None  # single REGISTER field — not a src+dst instruction
-    # Sort by bit position descending; highest = destination
-    reg_fields.sort(key=lambda f: f["bit_lo"], reverse=True)
-    dst = reg_fields[0]
-    return (dst["bit_hi"], dst["bit_lo"], dst["bit_hi"] - dst["bit_lo"] + 1)
 
 
 def load_os_kb() -> dict:
@@ -241,15 +218,10 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
     if os_kb is None:
         os_kb = load_os_kb()
 
-    m68k_kb, _, m68k_meta = _load_kb()
-    ea_enc = m68k_meta["ea_mode_encoding"]
-    opword_bytes = m68k_meta["opword_bytes"]
-    cc_defs = m68k_meta.get("cc_test_definitions", {})
-    cc_aliases = m68k_meta.get("cc_aliases", {})
-
+    kb = KB()
     os_meta = os_kb["_meta"]
     exec_base_addr = os_meta["exec_base_addr"]["address"]
-    exec_lib_name = os_meta["exec_base_addr"].get("library", "exec.library")
+    exec_lib_name = os_meta["exec_base_addr"]["library"]
     base_reg_name = os_meta["calling_convention"]["base_reg"]
     if not base_reg_name.upper().startswith("A"):
         raise ValueError(
@@ -258,25 +230,19 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
 
     lvo_lookup = _build_lvo_lookup(os_kb)
 
-    # EA mode encodings from KB
-    absw_enc = ea_enc.get("absw")
-    disp_enc = ea_enc.get("disp")
-    if absw_enc is None:
-        raise KeyError("ea_mode_encoding.absw missing from M68K KB")
-    if disp_enc is None:
-        raise KeyError("ea_mode_encoding.disp missing from M68K KB")
+    absw_enc = kb.ea_enc["absw"]
+    disp_enc = kb.ea_enc["disp"]
 
-    # Pre-resolve KB entries and encoding field specs for MOVEA and JSR
-    movea_kb = _find_kb_entry(m68k_kb, "movea", cc_defs, cc_aliases)
-    jsr_kb = _find_kb_entry(m68k_kb, "jsr", cc_defs, cc_aliases)
+    movea_kb = kb.find("movea")
+    jsr_kb = kb.find("jsr")
     if movea_kb is None:
         raise KeyError("MOVEA not found in M68K KB")
     if jsr_kb is None:
         raise KeyError("JSR not found in M68K KB")
 
-    movea_ea_spec = _build_ea_field_spec(movea_kb)
-    movea_dst_spec = _build_dst_reg_field(movea_kb)
-    jsr_ea_spec = _build_ea_field_spec(jsr_kb)
+    movea_ea_spec = kb.ea_field_spec(movea_kb)
+    movea_dst_spec = kb.dst_reg_field(movea_kb)
+    jsr_ea_spec = kb.ea_field_spec(jsr_kb)
     if movea_ea_spec is None:
         raise KeyError("MOVEA encoding lacks MODE/REGISTER EA fields")
     if movea_dst_spec is None:
@@ -307,7 +273,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
 
         for inst in block.instructions:
             mn = _extract_mnemonic(inst.text)
-            ikb = _find_kb_entry(m68k_kb, mn, cc_defs, cc_aliases)
+            ikb = kb.find(mn)
             if ikb is None:
                 continue
 
@@ -318,17 +284,17 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
             # MOVEA from MOVE in the KB).
             if (ikb.get("operation_type") == "move"
                     and ikb.get("source_sign_extend")
-                    and len(inst.raw) >= opword_bytes + 2):
+                    and len(inst.raw) >= kb.opword_bytes + 2):
                 opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-                src_mode = _xf(opcode, movea_mode_f)
-                src_reg = _xf(opcode, movea_reg_f)
+                src_mode = xf(opcode, movea_mode_f)
+                src_reg = xf(opcode, movea_reg_f)
 
                 if src_mode == absw_enc[0] and src_reg == absw_enc[1]:
                     addr_val = struct.unpack_from(
-                        ">h", inst.raw, opword_bytes)[0]
+                        ">h", inst.raw, kb.opword_bytes)[0]
                     addr_val &= 0xFFFFFFFF
 
-                    dst_reg = _xf(opcode, movea_dst_spec)
+                    dst_reg = xf(opcode, movea_dst_spec)
                     if addr_val == exec_base_addr and dst_reg == base_reg_num:
                         a6_lib = exec_lib_name
 
@@ -338,17 +304,17 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                 if target is not None:
                     continue  # resolved — not a library call
 
-                if len(inst.raw) < opword_bytes + 2:
+                if len(inst.raw) < kb.opword_bytes + 2:
                     continue
                 opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-                ea_mode = _xf(opcode, jsr_mode_f)
-                ea_reg = _xf(opcode, jsr_reg_f)
+                ea_mode = xf(opcode, jsr_mode_f)
+                ea_reg = xf(opcode, jsr_reg_f)
 
                 if ea_mode != disp_enc[0] or ea_reg != base_reg_num:
                     continue  # not d(A6)
 
                 disp = struct.unpack_from(
-                    ">h", inst.raw, opword_bytes)[0]
+                    ">h", inst.raw, kb.opword_bytes)[0]
 
                 call_info = {
                     "addr": inst.offset,
