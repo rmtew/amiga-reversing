@@ -41,17 +41,6 @@
       },
       "both_valid": true,
       "note": "With optimizations enabled, vasm may route to ADDI like GenAm does"
-    },
-    {
-      "id": "exg_operand_order",
-      "description": "EXG preserves syntactic operand order in Rx/Ry fields",
-      "affected_mnemonics": ["EXG"],
-      "behavior": "First operand → Rx field, second operand → Ry field",
-      "example": {
-        "input": "exg a0,a1",
-        "vasm_encoding": "c149",
-        "interpretation": "Rx=A0, Ry=A1"
-      }
     }
   ],
   "tested": {

@@ -68,35 +68,19 @@
       },
       "both_valid": true,
       "note": "Both encodings produce identical results; ADDI is shorter for .l size (4 bytes vs 6 bytes for ADD #imm,Dn)"
-    },
-    {
-      "id": "exg_operand_order",
-      "description": "EXG may swap Rx/Ry register assignment",
-      "affected_mnemonics": ["EXG"],
-      "behavior": "For same-type exchanges (Ax,Ay or Dx,Dy), GenAm may assign operands to Rx/Ry in reversed order compared to syntactic order",
-      "example": {
-        "input": "exg a0,a1",
-        "genam_encoding": "c348",
-        "genam_interpretation": "Rx=A1, Ry=A0",
-        "standard_encoding": "c149",
-        "standard_interpretation": "Rx=A0, Ry=A1"
-      },
-      "both_valid": true,
-      "note": "EXG is commutative; swapping Rx/Ry produces identical behavior"
     }
   ],
   "tested": {
-    "total_tests": 1296,
-    "passed": 1292,
-    "mismatches": 4,
-    "genam_errors": 4,
-    "mnemonics_tested": 87,
+    "total_tests": 1301,
+    "passed": 1298,
+    "mismatches": 3,
+    "genam_errors": 5,
+    "mnemonics_tested": 90,
     "mismatch_categories": {
-      "cmp_imm_no_route": 3,
-      "exg_operand_order": 1
+      "cmp_imm_no_route": 3
     },
     "genam_error_categories": {
-      "020_plus_instructions": 4
+      "020_plus_instructions": 5
     }
   }
 }
