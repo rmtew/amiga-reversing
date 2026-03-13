@@ -153,7 +153,15 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Audit: `_apply_instruction` dispatch via KB `compute_formula.op`/`operation_type` — no mnemonic-string dispatch
 - [x] Audit: sign-extension from KB fields (`immediate_range.bits`, `source_sign_extend`, `source_bits_by_size`, `range_a/range_b`)
 - [x] Audit: `sp_effects.bytes` hard error on missing, unused imports/variables removed
-- [ ] Integration with entity system: feed discovered xrefs into `entities.jsonl`
+- [x] Entity integration: `scripts/build_entities.py` — hunk parse + executor → entities.jsonl
+  - Subroutine-level entities from call targets + block reachability
+  - Bidirectional xrefs (calls/called_by) from executor XRefs
+  - Reloc-derived data references for uncovered regions
+  - Gap filling for 100% address coverage
+  - GenAm: 292 entities (197 code, 95 unknown), 277 call pairs, 25.7% code coverage
+  - `validate.py` PASS: 0 errors, 0 warnings, 0 unresolved xrefs
+- [ ] Coverage improvement: jump table detection, indirect call resolution, RTS-bounded block scanning
+- [ ] State propagation feedback: propagated register values → new entry points (JSR (An) with known An)
 
 ## Existing Infrastructure
 
@@ -192,4 +200,7 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [ ] Complete hardware register bit definitions (104/245 done)
 
 ### Disassembly
-- [ ] Select a game binary to begin actual disassembly
+- [x] Target binary: GenAm (DevPac 3.18 assembler), 64920-byte CODE hunk
+- [ ] Improve code coverage beyond 25.7% (jump tables, indirect calls)
+- [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
+- [ ] Name subroutines from OS call patterns, string refs, propagated state
