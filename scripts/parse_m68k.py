@@ -86,6 +86,34 @@ def _kb_condition_codes() -> list[str]:
     return [CC_TABLE[i] for i in sorted(CC_TABLE.keys())]
 
 
+# Track C parser-assertion: Condition code test definitions from PDF Table 3-19
+# (pp 90-91, "Conditional Tests"). Each condition mnemonic maps to the Boolean
+# expression over CCR flags that determines whether the condition is true.
+# The PDF gives these as equations like "C̄·Z̄" (meaning NOT C AND NOT Z).
+# We encode as {"test": <expression>} using flag names and logical operators.
+# The encoding field gives the 4-bit condition code value from the table.
+# These are architectural definitions, not per-instruction — they apply
+# uniformly to Bcc, DBcc, Scc, and TRAPcc.
+CC_TEST_DEFINITIONS = {
+    "t":  {"encoding": 0,  "test": "true"},
+    "f":  {"encoding": 1,  "test": "false"},
+    "hi": {"encoding": 2,  "test": "!C & !Z"},
+    "ls": {"encoding": 3,  "test": "C | Z"},
+    "cc": {"encoding": 4,  "test": "!C"},
+    "cs": {"encoding": 5,  "test": "C"},
+    "ne": {"encoding": 6,  "test": "!Z"},
+    "eq": {"encoding": 7,  "test": "Z"},
+    "vc": {"encoding": 8,  "test": "!V"},
+    "vs": {"encoding": 9,  "test": "V"},
+    "pl": {"encoding": 10, "test": "!N"},
+    "mi": {"encoding": 11, "test": "N"},
+    "ge": {"encoding": 12, "test": "(N & V) | (!N & !V)"},
+    "lt": {"encoding": 13, "test": "(N & !V) | (!N & V)"},
+    "gt": {"encoding": 14, "test": "(N & V & !Z) | (!N & !V & !Z)"},
+    "le": {"encoding": 15, "test": "Z | (N & !V) | (!N & V)"},
+}
+
+
 def extract_ea_extension_formats(doc) -> list[dict]:
     """Extract Brief Extension Word field layout from PDF page 43.
 
@@ -231,6 +259,14 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
         "size_byte_count": size_byte_count,
         "ea_mode_encoding": ea_mode_encoding,
         "ea_mode_sizes": ea_mode_sizes,
+        # Track C parser-assertion: Condition code test definitions from PDF
+        # pp 90-91, Table 3-19 "Conditional Tests". The table maps each condition
+        # mnemonic (T, F, HI, LS, CC, CS, NE, EQ, VC, VS, PL, MI, GE, LT, GT, LE)
+        # to its 4-bit encoding and Boolean flag expression. These tests drive
+        # Scc, Bcc, and DBcc instructions. The table is a simple enumeration but
+        # the Boolean expressions cannot be reliably parsed from the PDF layout,
+        # so they are asserted here from the manual's text.
+        "cc_test_definitions": CC_TEST_DEFINITIONS,
     }
     if ea_brief_ext_word is not None:
         meta["ea_brief_ext_word"] = ea_brief_ext_word
@@ -3296,12 +3332,86 @@ def _extract_source_sign_extend(inst):
     forms = inst.get("forms", [])
     has_an_dest = any("an" in [o["type"] for o in f.get("operands", [])]
                       for f in forms)
-    if has_an_dest and re.search(
+    if not has_an_dest:
+        return
+    if re.search(
             r'source\s+operands?\s+(?:is|are)\s+sign[\s-]*extended\s+to\s+32[\s-]*bit',
             desc_lower):
         inst["source_sign_extend"] = True
-        # The operation is always 32-bit regardless of size suffix
         inst["cc_result_bits"] = 32
+        return
+    # Track A fallback: PDF p111-112 ADDA — the description says "entire destination
+    # address register is used regardless of the operation size" but does not explicitly
+    # say "sign-extended". However, the opmode_table for the word (.w) entry states
+    # "the source operand is sign-extended to a long operand". Check opmode_table.
+    opmode_table = inst.get("constraints", {}).get("opmode_table", [])
+    for entry in opmode_table:
+        entry_desc = entry.get("description", "").lower()
+        if re.search(r'source\s+operand\s+is\s+sign[\s-]*extended', entry_desc):
+            inst["source_sign_extend"] = True
+            inst["cc_result_bits"] = 32
+            return
+
+
+def _extract_transfer_layout(inst):
+    """Extract byte-striped transfer layout for MOVEP from PDF description.
+
+    Track A: PDF pp 235-237 MOVEP description states:
+    - "alternate bytes within the address space...incrementing by two"
+      → stride = 2
+    - "high-order byte of the data register is transferred first"
+      → byte_order = "big_endian" (MSB at lowest address)
+    - Byte diagrams show register bytes mapped to every other memory address
+
+    Stores 'transfer_layout' on the instruction with stride and byte_order fields.
+    """
+    description = inst.get("description", "")
+    if not description:
+        return
+    desc_lower = description.lower()
+    # Match "alternate bytes" + "incrementing by two" pattern
+    has_alternate = re.search(r'alternate\s+bytes', desc_lower)
+    m_stride = re.search(r'increment(?:ing)?\s+by\s+(\w+)', desc_lower)
+    has_high_first = re.search(r'high[\s-]*order\s+byte.*?transferred\s+first', desc_lower)
+    if has_alternate and m_stride:
+        stride_word = m_stride.group(1)
+        stride_map = {"two": 2, "2": 2, "four": 4, "4": 4}
+        stride = stride_map.get(stride_word)
+        if stride is None:
+            return
+        byte_order = "big_endian" if has_high_first else "unknown"
+        inst["transfer_layout"] = {
+            "stride": stride,
+            "byte_order": byte_order,
+        }
+
+
+def _extract_bounds_check(inst):
+    """Extract bounds-check trap condition from PDF operation text.
+
+    Track A: PDF p173 CHK operation says:
+      "If Dn < 0 or Dn > Source"
+    And the description states:
+      "Compares the value in the data register...to zero and to the upper bound"
+      "If the register value is less than zero or greater than the upper bound,
+       a CHK instruction exception...occurs"
+
+    This means: trap if destination < 0 (signed) or destination > source (signed).
+    The non-trapping path: 0 ≤ destination ≤ source (signed comparison).
+    """
+    op_type = inst.get("operation_type")
+    if op_type != "bounds_check":
+        return
+    operation = inst.get("operation", "")
+    # Match "If Dn < 0 or Dn > Source" pattern
+    m = re.search(r'If\s+Dn\s*<\s*0\s+or\s+Dn\s*>\s*Source', operation)
+    if m:
+        inst["trap_condition"] = {
+            "test": "destination < 0 || destination > source",
+            "comparison": "signed",
+            "lower_bound": 0,
+            "upper_bound": "source",
+        }
 
 
 def _extract_cc_result_bits(inst):
@@ -3784,6 +3894,10 @@ def apply_operation_types(kb_data):
                 _extract_size_by_ea_category(inst)
             # Extract source sign-extension from Description (Track A)
             _extract_source_sign_extend(inst)
+            # Extract byte-striped transfer layout from Description (Track A)
+            _extract_transfer_layout(inst)
+            # Extract bounds-check trap condition from Operation text (Track A)
+            _extract_bounds_check(inst)
             # Extract CC result width override from CC descriptions (Track A)
             _extract_cc_result_bits(inst)
             # Tag 020+ variants for combined mnemonics from form data

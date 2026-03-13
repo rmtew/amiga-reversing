@@ -30,6 +30,9 @@ KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
 sys.path.insert(0, str(PROJ_ROOT / "scripts"))
 from test_m68k_roundtrip import assemble
 from m68k_disasm import disassemble as disasm_bytes
+from m68k_compute import (predict_cc, predict_sp, _size_mask, _to_signed,
+                          _size_from_bits, _RULE_HANDLERS, _compute_result,
+                          evaluate_cc_test)
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────
@@ -195,812 +198,8 @@ def load_and_execute(machine, code_bytes):
     return captured
 
 
-# ── CC prediction from KB rules ──────────────────────────────────────────
-
-def _size_mask(sz):
-    """Return bit mask and bit count for operation size."""
-    if sz == "b":
-        return 0xFF, 8
-    elif sz == "w":
-        return 0xFFFF, 16
-    else:  # "l"
-        return 0xFFFFFFFF, 32
-
-
-def _to_signed(value, sz):
-    """Convert unsigned value to signed at given size."""
-    mask, bits = _size_mask(sz)
-    value &= mask
-    if value >= (1 << (bits - 1)):
-        value -= (1 << bits)
-    return value
-
-
-def _size_from_bits(bits):
-    return {8: "b", 16: "w", 32: "l"}[bits]
-
-
-def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
-    """Predict CC flags after instruction execution.
-
-    Args:
-        inst: KB instruction dict (must have cc_semantics and operation_type)
-        sz: operation size ("b", "w", "l")
-        src_val: source operand value (unsigned)
-        dst_val: destination operand value (unsigned, pre-execution)
-        initial_ccr: dict of initial CC flags {"X":0/1, ...}
-        ctx: optional dict with extra context (e.g. direction, arithmetic
-             for shift/rotate instructions)
-
-    Returns:
-        dict of predicted CC flags {"X":0/1, "N":0/1, ...}
-
-    Raises:
-        RuntimeError if cc_semantics or operation_type is missing,
-        or if a CC rule is unhandled.
-    """
-    cc_sem = inst.get("cc_semantics")
-    if not cc_sem:
-        raise RuntimeError(f"{inst['mnemonic']}: missing cc_semantics in KB")
-
-    op_type = inst.get("operation_type")
-    if not op_type:
-        raise RuntimeError(f"{inst['mnemonic']}: missing operation_type in KB")
-
-    if ctx is None:
-        ctx = {}
-
-    mask, bits = _size_mask(sz)
-
-    # Allow KB data_sizes to override default operand/result widths.
-    # Multiply: operands may be narrower than result (16x16→32).
-    # Divide: dividend may be wider than divisor/quotient (32÷16→16).
-    data_sizes = ctx.get("data_sizes")
-    if data_sizes:
-        ds_type = data_sizes.get("type")
-        if ds_type == "multiply":
-            src_bits = data_sizes["src_bits"]
-            dst_bits = data_sizes["dst_bits"]
-            result_bits = data_sizes["result_bits"]
-        elif ds_type == "divide":
-            src_bits = data_sizes["divisor_bits"]
-            dst_bits = data_sizes["dividend_bits"]
-            result_bits = data_sizes["quotient_bits"]
-        else:
-            src_bits = dst_bits = result_bits = bits
-        src_mask = (1 << src_bits) - 1
-        dst_mask = (1 << dst_bits) - 1
-        result_mask = (1 << result_bits) - 1
-    else:
-        src_bits = dst_bits = result_bits = bits
-        src_mask = dst_mask = result_mask = mask
-
-    # KB cc_result_bits overrides operand/result width for compute + CC evaluation
-    # (e.g. SWAP: Size=Word but PDF CC says "32-bit result" — operation is 32-bit)
-    cc_override = ctx.get("cc_result_bits")
-    if cc_override is not None:
-        # KB source_sign_extend: sign-extend source from declared size to
-        # override size (e.g. CMPA.W: 16-bit source → 32-bit for comparison)
-        if ctx.get("source_sign_extend"):
-            src_val_masked = src_val & src_mask
-            if src_val_masked & (1 << (src_bits - 1)):
-                # Sign bit set — extend with 1s
-                src_val = src_val_masked | (~src_mask & ((1 << cc_override) - 1))
-            else:
-                src_val = src_val_masked
-        src_bits = dst_bits = result_bits = cc_override
-        src_mask = dst_mask = result_mask = (1 << cc_override) - 1
-
-    src = src_val & src_mask
-    dst = dst_val & dst_mask
-
-    # Compute result using KB compute_formula
-    result_full, result = _compute_result(
-        inst, src, dst, result_mask, result_bits, initial_ccr, ctx)
-
-    # Predict each flag using KB cc_semantics rules
-    predicted = {}
-    for flag in ["X", "N", "Z", "V", "C"]:
-        flag_spec = cc_sem.get(flag)
-        if flag_spec is None:
-            raise RuntimeError(
-                f"{inst['mnemonic']}: flag {flag} missing from cc_semantics in KB")
-        rule = flag_spec.get("rule")
-        if rule is None:
-            raise RuntimeError(
-                f"{inst['mnemonic']}: flag {flag} has no 'rule' key in cc_semantics")
-        predicted[flag] = _apply_rule(
-            rule, flag, result, result_full, src, dst, result_mask, result_bits,
-            op_type, initial_ccr, cc_sem, ctx
-        )
-
-    # KB overflow_undefined_flags: on overflow (V=1), real hardware preserves
-    # these flags unchanged. The PDF marks them "undefined if overflow" and
-    # the C flag is included per known 68000 errata. All driven from KB data.
-    overflow_undef = inst.get("overflow_undefined_flags")
-    if overflow_undef and predicted.get("V") == 1:
-        for flag in overflow_undef:
-            predicted[flag] = initial_ccr.get(flag, 0)
-
-    return predicted
-
-
-# ── KB-driven result computation ──────────────────────────────────────────
-#
-# The compute_formula in the KB (extracted from PDF Operation text by the
-# parser) specifies what operation to perform and in what operand order.
-# This evaluator maps universal math operators to Python — the operators
-# themselves (+, -, &, |, ^, ~, *, /) are not M68K knowledge; the KB
-# specifies which one applies to each instruction and the operand order.
-
-
-def _resolve_term(term, src, dst, ccr, implicit):
-    """Resolve a formula operand term to its numeric value."""
-    if term == "source":
-        return src
-    if term == "destination":
-        return dst
-    if term == "X":
-        return ccr.get("X", 0)
-    if term == "implicit":
-        if implicit is None:
-            raise RuntimeError(
-                "Formula references 'implicit' term but no implicit_operand "
-                "in KB instruction — add implicit_operand extraction to parser")
-        return implicit
-    if isinstance(term, int):
-        return term
-    raise RuntimeError(f"Unknown formula term: {term!r}")
-
-
-# Universal math operators — these map formula 'op' names (from KB) to
-# Python functions. None of these are M68K-specific; they are standard
-# binary arithmetic/logic operations.
-_FORMULA_OPS = {
-    "add":                lambda a, b: a + b,
-    "subtract":           lambda a, b: a - b,
-    "bitwise_and":        lambda a, b: a & b,
-    "bitwise_or":         lambda a, b: a | b,
-    "bitwise_xor":        lambda a, b: a ^ b,
-    "bitwise_complement": lambda a: ~a,
-    "assign":             lambda a: a,
-    "test":               lambda a: a,
-}
-
-
-def _compute_exchange(dst, formula):
-    """Compute bit-range exchange from KB formula (SWAP).
-
-    The KB specifies exact bit ranges from the PDF Operation text:
-    e.g. range_a=[31,16], range_b=[15,0] for "Register [31:16] ←→ [15:0]".
-    """
-    hi_top, hi_bot = formula["range_a"]
-    lo_top, lo_bot = formula["range_b"]
-    hi_width = hi_top - hi_bot + 1
-    lo_width = lo_top - lo_bot + 1
-    hi_mask = ((1 << hi_width) - 1) << hi_bot
-    lo_mask = ((1 << lo_width) - 1) << lo_bot
-    hi_val = (dst & hi_mask) >> hi_bot
-    lo_val = (dst & lo_mask) >> lo_bot
-    return (lo_val << hi_bot) | (hi_val << lo_bot)
-
-
-def _compute_sign_extend(dst, mask, bits, ctx, formula):
-    """Sign-extend from a narrower source width to the operation size.
-
-    The KB formula has 'source_bits_by_size' mapping size→source width,
-    extracted from PDF description text (e.g. "extends a byte to a word").
-    The ctx must have 'sign_extend_source_bits' set by the test generator.
-    """
-    source_bits = ctx.get("sign_extend_source_bits")
-    if source_bits is None:
-        raise RuntimeError(
-            "compute sign_extend: missing 'sign_extend_source_bits' in ctx "
-            "— must come from KB source_bits_by_size")
-    source_mask = (1 << source_bits) - 1
-    val = dst & source_mask
-    # Sign-extend: if MSB of source is set, fill upper bits with 1s
-    if val & (1 << (source_bits - 1)):
-        val |= mask & ~source_mask
-    return val & mask
-
-
-def _compute_shift(src, dst, mask, bits, ccr, ctx):
-    """Shift result. All parameters come from KB: direction and fill from
-    variants, count_modulus from shift_count_modulus."""
-    count = src % ctx["count_modulus"]
-    direction = ctx["direction"]
-    fill = ctx.get("fill")
-    if fill is None:
-        raise RuntimeError("_compute_shift: missing 'fill' in ctx — must come from KB variant")
-    val = dst & mask
-    if count == 0:
-        return val
-    if direction == "L":
-        return val << count  # unmasked: bits above size used by carry detection
-    else:
-        if fill == "sign" and (val & (1 << (bits - 1))):
-            signed = val - (1 << bits)
-            return signed >> count
-        return val >> count
-
-
-def _compute_rotate(src, dst, mask, bits, ccr, ctx):
-    """Rotate result. Direction from KB variants, count_modulus from KB."""
-    count = src % ctx["count_modulus"]
-    direction = ctx["direction"]
-    val = dst & mask
-    if count == 0:
-        return val
-    c = count % bits
-    if c == 0:
-        return val
-    if direction == "L":
-        return ((val << c) | (val >> (bits - c))) & mask
-    else:
-        return ((val >> c) | (val << (bits - c))) & mask
-
-
-def _compute_rotate_extend(src, dst, mask, bits, ccr, ctx):
-    """Rotate through X bit. Extra bits from KB rotate_extra_bits."""
-    count = src % ctx["count_modulus"]
-    direction = ctx["direction"]
-    x = ccr.get("X", 0)
-    val = dst & mask
-    extra = ctx["extra_bits"]
-    width = bits + extra
-    c = count % width
-    if c == 0:
-        return val
-    extended = (x << bits) | val
-    if direction == "L":
-        rotated = ((extended << c) | (extended >> (width - c))) & ((1 << width) - 1)
-    else:
-        rotated = ((extended >> c) | (extended << (width - c))) & ((1 << width) - 1)
-    return rotated & mask
-
-
-def _compute_multiply(src, dst, mask, bits, ccr, ctx):
-    """Multiply. Signedness from KB 'signed', operand widths from KB 'data_sizes'."""
-    ds = ctx["data_sizes"]
-    src_bits = ds["src_bits"]
-    dst_bits = ds["dst_bits"]
-    if ctx.get("signed", False):
-        s_signed = src if src < (1 << (src_bits - 1)) else src - (1 << src_bits)
-        d_signed = dst if dst < (1 << (dst_bits - 1)) else dst - (1 << dst_bits)
-        return s_signed * d_signed
-    else:
-        return src * dst
-
-
-def _compute_divide(src, dst, mask, bits, ccr, ctx):
-    """Divide. Signedness from KB, truncation direction from KB compute_formula."""
-    if src == 0:
-        raise RuntimeError("Division by zero in test — fix test values")
-    ds = ctx["data_sizes"]
-    divisor_bits = ds["divisor_bits"]
-    dividend_bits = ds["dividend_bits"]
-    if ctx.get("signed", False):
-        s_signed = src if src < (1 << (divisor_bits - 1)) else src - (1 << divisor_bits)
-        d_signed = dst if dst < (1 << (dividend_bits - 1)) else dst - (1 << dividend_bits)
-        # Truncation direction from KB compute_formula (asserted as "toward_zero")
-        return int(d_signed / s_signed)
-    else:
-        return dst // src
-
-
-def _bcd_add(a, b, x):
-    """Packed BCD addition: a + b + x → (result, carry).
-
-    Standard packed BCD algorithm — correct each nibble by adding 6 when
-    the nibble exceeds 9 or produces a binary carry. Returns (result_byte, carry).
-    """
-    low = (a & 0xF) + (b & 0xF) + x
-    low_carry = 0
-    if low > 9:
-        low += 6
-        low_carry = 1
-    high = (a >> 4) + (b >> 4) + low_carry
-    carry = 0
-    if high > 9:
-        high += 6
-        carry = 1
-    return ((high & 0xF) << 4) | (low & 0xF), carry
-
-
-def _bcd_subtract(a, b, x):
-    """Packed BCD subtraction: a - b - x → (result, borrow).
-
-    Standard packed BCD subtraction — correct each nibble by subtracting 6
-    when borrow occurs. Returns (result_byte, borrow).
-    """
-    low = (a & 0xF) - (b & 0xF) - x
-    low_borrow = 0
-    if low < 0:
-        low += 10
-        low_borrow = 1
-    high = (a >> 4) - (b >> 4) - low_borrow
-    borrow = 0
-    if high < 0:
-        high += 10
-        borrow = 1
-    return ((high & 0xF) << 4) | (low & 0xF), borrow
-
-
-def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
-    """Evaluate a KB compute_formula to produce the operation result.
-
-    The formula structure comes from the KB (extracted from PDF Operation text).
-    This evaluator applies universal math operators — it contains no M68K knowledge.
-    """
-    op = formula["op"]
-    terms = formula.get("terms", [])
-    implicit = ctx.get("implicit_operand")
-
-    # BCD arithmetic — packed decimal, byte only
-    if op == "add_decimal":
-        resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
-        a, b, x = resolved
-        result, carry = _bcd_add(a & 0xFF, b & 0xFF, x)
-        ctx["_decimal_carry"] = carry
-        return result
-    if op == "subtract_decimal":
-        resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
-        a, b, x = resolved
-        result, borrow = _bcd_subtract(a & 0xFF, b & 0xFF, x)
-        ctx["_decimal_borrow"] = borrow
-        return result
-
-    # Simple two-operand or single-operand formulas
-    if op in _FORMULA_OPS:
-        fn = _FORMULA_OPS[op]
-        resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
-        if len(terms) == 3:
-            # Extended operations: add(a, b, X) or subtract(a, b, X)
-            a, b, x = resolved
-            if op == "add":
-                return a + b + x
-            elif op == "subtract":
-                return a - b - x
-        elif len(terms) == 2:
-            return fn(resolved[0], resolved[1])
-        elif len(terms) == 1:
-            return fn(resolved[0])
-        else:
-            raise RuntimeError(f"Formula op '{op}' with {len(terms)} terms")
-
-    # Complex operations — parameterized by KB data
-    if op == "exchange":
-        return _compute_exchange(dst, formula)
-    if op == "sign_extend":
-        return _compute_sign_extend(dst, mask, bits, ctx, formula)
-    if op == "shift":
-        return _compute_shift(src, dst, mask, bits, ccr, ctx)
-    if op == "rotate":
-        return _compute_rotate(src, dst, mask, bits, ccr, ctx)
-    if op == "rotate_extend":
-        return _compute_rotate_extend(src, dst, mask, bits, ccr, ctx)
-    if op == "multiply":
-        return _compute_multiply(src, dst, mask, bits, ccr, ctx)
-    if op == "divide":
-        return _compute_divide(src, dst, mask, bits, ccr, ctx)
-    if op in ("bit_test", "bit_change", "bit_clear", "bit_set"):
-        bit_mod = ctx.get("bit_modulus")
-        if bit_mod is None:
-            raise RuntimeError(
-                f"compute {op}: missing 'bit_modulus' in ctx — must come from KB")
-        bit_num = src % bit_mod
-        if op == "bit_test":
-            return dst  # test only, destination unchanged
-        if op == "bit_change":
-            return dst ^ (1 << bit_num)
-        if op == "bit_clear":
-            return dst & ~(1 << bit_num)
-        return dst | (1 << bit_num)  # bit_set
-
-    raise RuntimeError(f"Unknown compute_formula op: {op!r}")
-
-
-def _compute_result(inst, src, dst, mask, bits, initial_ccr, ctx=None):
-    """Compute the full (unmasked) and masked result using KB compute_formula.
-
-    Raises RuntimeError if the instruction has no compute_formula in the KB.
-    """
-    formula = inst.get("compute_formula")
-    if formula is None:
-        raise RuntimeError(
-            f"{inst['mnemonic']}: missing compute_formula in KB — "
-            f"regenerate KB or add formula extraction for operation_type "
-            f"'{inst.get('operation_type')}'"
-        )
-    if ctx is None:
-        ctx = {}
-    # Thread implicit_operand from KB into ctx for formula evaluation
-    if "implicit_operand" in inst and "implicit_operand" not in ctx:
-        ctx["implicit_operand"] = inst["implicit_operand"]
-    result_full = _evaluate_formula(formula, src, dst, mask, bits, initial_ccr, ctx)
-    result = result_full & mask
-    return result_full, result
-
-
-# Supported CC semantic rules. Maps rule name to a callable that
-# returns the predicted flag value, or None for "skip comparison".
-# Each callable receives: (result, result_full, src, dst, mask, bits,
-#                          op_type, initial_ccr, cc_sem, flag, ctx)
-
-def _rule_unchanged(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return ccr.get(flag, 0)
-
-def _rule_cleared(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return 0
-
-def _rule_set(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return 1
-
-def _rule_result_negative(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return (result >> (bits - 1)) & 1
-
-def _rule_msb_operand(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """MSB of operand before the operation (TAS: N reflects pre-set value)."""
-    return (dst >> (bits - 1)) & 1
-
-def _rule_result_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return 1 if result == 0 else 0
-
-def _rule_result_nonzero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return 1 if result != 0 else 0
-
-def _rule_same_as_carry(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    c_rule = cc_sem.get("C", {}).get("rule")
-    if c_rule is None:
-        raise RuntimeError(f"same_as_carry: no C rule in cc_semantics")
-    if c_rule == "same_as_carry":
-        raise RuntimeError(f"same_as_carry: C rule is also same_as_carry (circular)")
-    return _apply_rule(c_rule, "C", result, result_full, src, dst, mask, bits,
-                       op_type, ccr, cc_sem, ctx)
-
-def _rule_carry(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return 1 if result_full > mask else 0
-
-def _rule_borrow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return 1 if result_full < 0 else 0
-
-def _rule_overflow_add(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Overflow for addition: same-sign operands produce different-sign result."""
-    sz = _size_from_bits(bits)
-    s_src = _to_signed(src, sz)
-    s_dst = _to_signed(dst, sz)
-    s_result = _to_signed(result, sz)
-    return 1 if (s_src >= 0) == (s_dst >= 0) and (s_result >= 0) != (s_src >= 0) else 0
-
-def _rule_overflow_sub(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Overflow for subtraction/compare: different-sign operands, result sign differs from dst."""
-    sz = _size_from_bits(bits)
-    s_src = _to_signed(src, sz)
-    s_dst = _to_signed(dst, sz)
-    s_result = _to_signed(result, sz)
-    return 1 if (s_src >= 0) != (s_dst >= 0) and (s_result >= 0) != (s_dst >= 0) else 0
-
-def _rule_overflow_neg(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Overflow for negate: only overflows at most-negative value."""
-    msb_val = 1 << (bits - 1)
-    return 1 if dst == msb_val else 0
-
-def _rule_overflow_negx(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Overflow for negate-with-extend: msb_val with X=0."""
-    msb_val = 1 << (bits - 1)
-    return 1 if dst == msb_val and ccr.get("X", 0) == 0 else 0
-
-def _rule_overflow_multiply(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Overflow for multiply: product doesn't fit in result_bits."""
-    if ctx.get("signed", False):
-        max_pos = (1 << (bits - 1)) - 1
-        min_neg = -(1 << (bits - 1))
-        return 1 if result_full < min_neg or result_full > max_pos else 0
-    else:
-        return 1 if result_full < 0 or result_full >= (1 << bits) else 0
-
-def _rule_bit_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Z flag for bit test: set if the tested bit of destination is zero.
-    Bit modulus from KB bit_modulus field (parsed from PDF description)."""
-    bit_mod = ctx.get("bit_modulus")
-    if bit_mod is None:
-        raise RuntimeError(
-            "bit_zero: missing 'bit_modulus' in ctx — must come from KB")
-    bit_num = src % bit_mod
-    return 1 if (dst >> bit_num) & 1 == 0 else 0
-
-def _rule_z_cleared_if_nonzero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    if result != 0:
-        return 0
-    return ccr.get("Z", 0)
-
-def _rule_decimal_carry(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """C flag for BCD addition: set if decimal carry was generated."""
-    carry = ctx.get("_decimal_carry")
-    if carry is None:
-        raise RuntimeError("decimal_carry rule: missing _decimal_carry in ctx — BCD compute needed")
-    return carry
-
-def _rule_decimal_borrow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """C flag for BCD subtraction: set if decimal borrow was generated."""
-    borrow = ctx.get("_decimal_borrow")
-    if borrow is None:
-        raise RuntimeError("decimal_borrow rule: missing _decimal_borrow in ctx — BCD compute needed")
-    return borrow
-
-def _rule_undefined(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    return None
-
-
-def _division_overflows(result_full, bits, ctx):
-    """Check if the mathematical quotient overflows the quotient bit width."""
-    if ctx.get("signed", False):
-        max_pos = (1 << (bits - 1)) - 1
-        min_neg = -(1 << (bits - 1))
-        return result_full < min_neg or result_full > max_pos
-    else:
-        return result_full < 0 or result_full >= (1 << bits)
-
-
-def _rule_division_overflow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """V flag for divide: set if quotient doesn't fit in quotient_bits."""
-    return 1 if _division_overflows(result_full, bits, ctx) else 0
-
-
-def _rule_quotient_negative(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """N flag for divide: MSB of quotient. Undefined if overflow or div-by-zero."""
-    if _division_overflows(result_full, bits, ctx):
-        return None  # undefined per spec
-    return (result >> (bits - 1)) & 1
-
-
-def _rule_quotient_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Z flag for divide: set if quotient is zero. Undefined if overflow or div-by-zero."""
-    if _division_overflows(result_full, bits, ctx):
-        return None  # undefined per spec
-    return 1 if result == 0 else 0
-
-
-def _rule_last_shifted_out(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Last bit shifted out of the operand. Handles zero_count sub-rule."""
-    count = src % ctx["count_modulus"]
-    if count == 0:
-        flag_spec = cc_sem.get(flag)
-        if flag_spec is None:
-            raise RuntimeError(
-                f"last_shifted_out: flag {flag} missing from cc_semantics")
-        zero_rule = flag_spec.get("zero_count")
-        if zero_rule is None:
-            raise RuntimeError(
-                f"last_shifted_out: flag {flag} missing 'zero_count' sub-rule in KB")
-        if zero_rule == "unchanged":
-            return ccr.get(flag, 0)
-        elif zero_rule == "cleared":
-            return 0
-        else:
-            raise RuntimeError(f"last_shifted_out: unknown zero_count rule '{zero_rule}'")
-    direction = ctx["direction"]
-    val = dst & mask
-    if direction == "L":
-        # Left shift by count: last bit out = bit (bits - count)
-        if count <= bits:
-            return (val >> (bits - count)) & 1
-        else:
-            return 0  # all bits shifted out, last was zero-fill
-    else:
-        # Right shift by count: last bit out = bit (count - 1)
-        if count <= bits:
-            return (val >> (count - 1)) & 1
-        else:
-            # Count exceeds bit width: fill determines what remains
-            # sign fill (ASR): sign bit propagates, last shifted out = sign bit
-            # zero fill (LSR): zeros fill, last shifted out = 0
-            fill = ctx.get("fill")
-            if fill is None:
-                raise RuntimeError(
-                    "last_shifted_out: missing 'fill' in ctx — must come from KB variant")
-            if fill == "sign":
-                return (val >> (bits - 1)) & 1
-            else:
-                return 0
-
-
-def _rule_last_rotated_out(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """Last bit rotated out. Handles zero_count sub-rule."""
-    count = src % ctx["count_modulus"]
-    if count == 0:
-        flag_spec = cc_sem.get(flag)
-        if flag_spec is None:
-            raise RuntimeError(
-                f"last_rotated_out: flag {flag} missing from cc_semantics")
-        zero_rule = flag_spec.get("zero_count")
-        if zero_rule is None:
-            raise RuntimeError(
-                f"last_rotated_out: flag {flag} missing 'zero_count' sub-rule in KB")
-        if zero_rule == "unchanged":
-            return ccr.get(flag, 0)
-        elif zero_rule == "cleared":
-            return 0
-        else:
-            raise RuntimeError(f"last_rotated_out: unknown zero_count rule '{zero_rule}'")
-    direction = ctx["direction"]
-    val = dst & mask
-    if op_type == "rotate":
-        # ROL/ROR: rotate within bit width
-        if direction == "L":
-            # ROL by c: C = original bit (bits - c).
-            # c=0 means count is a multiple of bits: C = bit 0.
-            c = count % bits
-            if c == 0:
-                return val & 1
-            return (val >> (bits - c)) & 1
-        else:
-            # ROR by c: last bit out = bit ((c-1) % bits) of original
-            c = count % bits
-            if c == 0:
-                return (val >> (bits - 1)) & 1  # bit (bits-1) = MSB
-            return (val >> (c - 1)) & 1
-    elif op_type == "rotate_extend":
-        # ROXL/ROXR: rotate through X in a wider field (KB rotate_extra_bits)
-        x = ccr.get("X", 0)
-        extra = ctx["extra_bits"]
-        width = bits + extra
-        c = count % width
-        if c == 0:
-            return x  # no effective rotation, X unchanged
-        extended = (x << bits) | val
-        if direction == "L":
-            rotated = ((extended << c) | (extended >> (width - c))) & ((1 << width) - 1)
-        else:
-            rotated = ((extended >> c) | (extended << (width - c))) & ((1 << width) - 1)
-        # New X = bit at position 'bits' of rotated value
-        return (rotated >> bits) & 1
-    else:
-        raise RuntimeError(f"last_rotated_out: unexpected op_type '{op_type}'")
-
-
-def _rule_msb_changed_during_shift(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
-    """ASL V flag: set if MSB changed at any point during left shift.
-    For right shifts (ASR), MSB is preserved at every step → always 0.
-    """
-    direction = ctx["direction"]
-    if direction == "R":
-        # Arithmetic right shift preserves sign bit at every step
-        return 0
-    count = src % ctx["count_modulus"]
-    if count == 0:
-        return 0  # no shift occurred
-    val = dst & mask
-    if count >= bits:
-        # All original bits shift through MSB, then zeros fill in.
-        # MSB changes unless original value is all-0 (MSB stays 0 throughout)
-        # or... actually even all-1s: after bit 0 shifts out, zero fills MSB.
-        # V=1 if val != 0 (some 1-bit was in MSB, then zero-fill changed it)
-        # Also V=1 if MSB was 0 but some lower bit was 1 (MSB changes to 1 then back to 0)
-        # Simplification: V=0 only if val == 0 (nothing to change)
-        return 0 if val == 0 else 1
-    # count < bits: check bit positions (bits-1) down to (bits-1-count).
-    # These are the original bits that occupy MSB at each step (including initial).
-    # V=1 if not all the same.
-    low = bits - 1 - count
-    high = bits - 1
-    num_bits = high - low + 1
-    check_mask = ((1 << num_bits) - 1) << low
-    checked = val & check_mask
-    if checked == 0 or checked == check_mask:
-        return 0  # all same
-    return 1
-
-
-_RULE_HANDLERS = {
-    "unchanged":                _rule_unchanged,
-    "cleared":                  _rule_cleared,
-    "set":                      _rule_set,
-    "result_negative":          _rule_result_negative,
-    "msb_result":               _rule_result_negative,
-    "msb_operand":              _rule_msb_operand,
-    "result_zero":              _rule_result_zero,
-    "result_nonzero":           _rule_result_nonzero,
-    "same_as_carry":            _rule_same_as_carry,
-    "carry":                    _rule_carry,
-    "borrow":                   _rule_borrow,
-    "overflow_add":             _rule_overflow_add,
-    "overflow_sub":             _rule_overflow_sub,
-    "overflow_neg":             _rule_overflow_neg,
-    "overflow_negx":            _rule_overflow_negx,
-    "overflow_multiply":        _rule_overflow_multiply,
-    "bit_zero":                 _rule_bit_zero,
-    "z_cleared_if_nonzero":     _rule_z_cleared_if_nonzero,
-    "decimal_carry":            _rule_decimal_carry,
-    "decimal_borrow":           _rule_decimal_borrow,
-    "undefined":                _rule_undefined,
-    "last_shifted_out":         _rule_last_shifted_out,
-    "last_rotated_out":         _rule_last_rotated_out,
-    "msb_changed_during_shift": _rule_msb_changed_during_shift,
-    "division_overflow":        _rule_division_overflow,
-    "quotient_negative":        _rule_quotient_negative,
-    "quotient_zero":            _rule_quotient_zero,
-}
-
-
-def _apply_rule(rule, flag, result, result_full, src, dst, mask, bits,
-                op_type, initial_ccr, cc_sem, ctx=None):
-    """Apply a CC semantic rule to predict a flag value.
-
-    Raises RuntimeError for unhandled rules (no silent skip).
-    """
-    handler = _RULE_HANDLERS.get(rule)
-    if handler is None:
-        raise RuntimeError(
-            f"Unhandled CC rule '{rule}' for flag {flag}. "
-            f"Add a handler to _RULE_HANDLERS."
-        )
-    if ctx is None:
-        ctx = {}
-    return handler(result, result_full, src, dst, mask, bits, op_type,
-                   initial_ccr, cc_sem, flag, ctx)
-
-
-# ── SP effect prediction ──────────────────────────────────────────────────
-
-def predict_sp(inst, sp_before, displacement=0, reg_state=None):
-    """Predict SP after instruction execution from KB sp_effects.
-
-    Args:
-        inst: KB instruction dict
-        sp_before: SP value before execution
-        displacement: displacement value for adjust-type effects (e.g. LINK)
-        reg_state: optional dict mapping register names (e.g. "A6") to values,
-                   needed for load_from_reg effects (e.g. UNLK sets SP from An)
-
-    Returns:
-        predicted SP value
-
-    Raises:
-        RuntimeError if load_from_reg is encountered without reg_state providing
-        the required register value, or if an unknown action is encountered.
-    """
-    sp_effects = inst.get("sp_effects", [])
-    if not sp_effects:
-        return sp_before
-
-    sp = sp_before
-    for effect in sp_effects:
-        action = effect["action"]
-        if action == "decrement":
-            sp -= effect["bytes"]
-        elif action == "increment":
-            sp += effect["bytes"]
-        elif action == "adjust":
-            sp += displacement
-        elif action == "save_to_reg":
-            pass  # copies SP to register, no SP change
-        elif action == "load_from_reg":
-            reg = effect.get("reg")
-            if reg_state is None:
-                raise RuntimeError(
-                    f"{inst['mnemonic']}: load_from_reg requires reg_state "
-                    f"(need value of '{reg}')"
-                )
-            # Map KB generic register name (e.g. "An") to actual register
-            # in reg_state (e.g. "A6")
-            resolved = None
-            for name, val in reg_state.items():
-                if name.upper().startswith(reg[0].upper()):
-                    resolved = val
-                    break
-            if resolved is None:
-                raise RuntimeError(
-                    f"{inst['mnemonic']}: load_from_reg needs '{reg}' but "
-                    f"reg_state has {list(reg_state.keys())}"
-                )
-            sp = resolved
-        else:
-            raise RuntimeError(
-                f"{inst['mnemonic']}: unknown SP effect action '{action}'"
-            )
-    return sp & 0xFFFFFFFF
+# CC prediction, result computation, SP prediction, and all rule handlers
+# are in m68k_compute.py (imported above).
 
 
 # ── KB-driven test discovery ──────────────────────────────────────────────
@@ -1117,6 +316,8 @@ def _derive_form_type(inst):
             dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
             if "dn" in src_modes and "dn" in dst_modes:
                 return ("two_op", 0, 1)
+        if ops == ["imm", "dn"]:
+            return ("imm_dn", None, 1)
         if ops == ["imm", "ea"]:
             dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
             if "dn" in dst_modes:
@@ -1191,6 +392,841 @@ def discover_sp_testable_instructions():
             continue  # skip supervisor-mode instructions
         testable.append((mnemonic, inst))
     return testable
+
+
+def discover_ccr_op_testable_instructions():
+    """Scan KB for CCR/SR manipulation instructions testable for CC verification.
+
+    These have operation_type 'ccr_op' or 'sr_op' and directly manipulate
+    CCR flags via immediate or source operand bits.
+    """
+    testable = []
+    for inst in KB_LIST:
+        mnemonic = inst["mnemonic"]
+        proc = inst.get("processor_min", "68000")
+        if proc != "68000":
+            continue
+        op_type = inst.get("operation_type")
+        if op_type not in ("ccr_op", "sr_op"):
+            continue
+        if not _has_nontrivial_cc(inst):
+            continue
+        if not _cc_rules_are_supported(inst):
+            continue
+        testable.append((mnemonic, inst))
+    return testable
+
+
+# Test immediates for CCR/SR ops: cover all 5-bit XNZVC combinations.
+CCR_OP_IMM_VALUES = [
+    0x00,   # no flags affected
+    0x1F,   # all flags affected
+    0x10,   # X only
+    0x08,   # N only
+    0x04,   # Z only
+    0x02,   # V only
+    0x01,   # C only
+    0x15,   # X, Z, C
+    0x0A,   # N, V
+]
+
+
+def generate_ccr_op_tests(inst, tmpdir):
+    """Generate CC tests for CCR/SR manipulation instructions.
+
+    These instructions take an immediate (or EA source for MOVE to CCR)
+    and directly modify CCR flags. No Dn-to-Dn computation.
+
+    Yields (asm_text, code_bytes, src_val, initial_ccr, desc) tuples.
+    """
+    mnemonic = inst["mnemonic"]
+    op_type = inst.get("operation_type")
+
+    for form in inst.get("forms", []):
+        if form.get("processor_020"):
+            continue
+        ops = [o["type"] for o in form.get("operands", [])]
+
+        if ops == ["imm", "ccr"]:
+            # ANDI/ORI/EORI to CCR: e.g. "andi #$1F,ccr"
+            asm_base = mnemonic.split(" to ")[0].lower()
+            for imm_val in CCR_OP_IMM_VALUES:
+                for ccr_state in INITIAL_CCR_STATES:
+                    asm_text = f"{asm_base} #{imm_val},ccr"
+                    code_bytes = assemble(asm_text, tmpdir)
+                    if code_bytes is None:
+                        continue
+                    initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+                    desc = f"{mnemonic} #${imm_val:02x} ccr={ccr_state['desc']}"
+                    yield (asm_text, code_bytes, imm_val, initial_ccr, desc)
+
+        elif ops == ["imm", "sr"]:
+            # ANDI/ORI/EORI to SR (privileged — machine68k runs supervisor)
+            asm_base = mnemonic.split(" to ")[0].lower()
+            for imm_val in CCR_OP_IMM_VALUES:
+                # For ANDI to SR, must preserve supervisor bit (bit 13)
+                if "ANDI" in mnemonic:
+                    sr_imm = imm_val | 0x2000
+                else:
+                    sr_imm = imm_val
+                for ccr_state in INITIAL_CCR_STATES:
+                    asm_text = f"{asm_base} #{sr_imm},sr"
+                    code_bytes = assemble(asm_text, tmpdir)
+                    if code_bytes is None:
+                        continue
+                    initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+                    desc = f"{mnemonic} #${sr_imm:04x} ccr={ccr_state['desc']}"
+                    # Pass imm_val (not sr_imm) as src — rule handlers only
+                    # check CCR bit positions (0-4), same in both
+                    yield (asm_text, code_bytes, imm_val, initial_ccr, desc)
+
+        elif ops == ["ea", "ccr"]:
+            # MOVE to CCR: source from EA — use Dn
+            ea_modes = inst.get("ea_modes", {})
+            src_modes = ea_modes.get("src", ea_modes.get("ea", []))
+            if "dn" not in src_modes:
+                continue
+            for imm_val in CCR_OP_IMM_VALUES:
+                for ccr_state in INITIAL_CCR_STATES:
+                    asm_text = "move d0,ccr"
+                    code_bytes = assemble(asm_text, tmpdir)
+                    if code_bytes is None:
+                        continue
+                    initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+                    desc = f"MOVE to CCR #${imm_val:02x} ccr={ccr_state['desc']}"
+                    yield (asm_text, code_bytes, imm_val, initial_ccr, desc)
+
+
+# ── Phase 4: register/flow verification for non-CC instructions ───────────
+
+# Test values for An-destination ops (ADDA.L, SUBA.L, MOVEA.L).
+# (src_val in Dn, dst_val in An, description).
+AN_DEST_TEST_VALUES = [
+    (0x00000000, 0x00002000, "src=0"),
+    (0x00000001, 0x00002000, "src=1"),
+    (0x00001000, 0x00002000, "src=$1000"),
+    (0xFFFFFFFF, 0x00002000, "src=-1"),
+    (0x80000000, 0x00002000, "src=msb"),
+    (0x00002000, 0x00000000, "dst=0"),
+    (0x12345678, 0x87654321, "mixed"),
+]
+
+# Test values for EXG: (val_a, val_b, description).
+EXG_TEST_VALUES = [
+    (0x11111111, 0x22222222, "distinct"),
+    (0x00000000, 0xFFFFFFFF, "zero/max"),
+    (0xAAAAAAAA, 0x55555555, "bit patterns"),
+    (0x12345678, 0x12345678, "same value"),
+]
+
+
+def discover_register_testable_instructions():
+    """Scan KB for instructions where register/PC results can be verified.
+
+    Returns list of (mnemonic, inst, test_category) tuples.
+    Categories:
+      "an_dest"      — Dn→An result via compute_formula (ADDA, SUBA, MOVEA)
+      "exg"          — register exchange (EXG)
+      "lea"          — load effective address to An (LEA)
+      "move_from_sr" — SR→Dn (MOVE from SR)
+      "nop"          — PC-only (NOP)
+      "branch"       — unconditional flow (BRA, JMP)
+      "movep"        — byte-striped register↔memory (MOVEP)
+      "chk"          — bounds check, non-trapping path (CHK)
+    """
+    testable = []
+    for inst in KB_LIST:
+        mnemonic = inst["mnemonic"]
+        proc = inst.get("processor_min", "68000")
+        if proc != "68000":
+            continue
+        op_type = inst.get("operation_type", "")
+        has_formula = inst.get("compute_formula") is not None
+        cc_sem = inst.get("cc_semantics", {})
+        rules = {v.get("rule") for v in cc_sem.values()}
+        has_cc = bool(rules - {"unchanged", "undefined"})
+        priv = inst.get("effects", {}).get("privileged", False)
+        if priv:
+            continue
+        forms = []
+        for f in inst.get("forms", []):
+            if not f.get("processor_020"):
+                forms.append([o["type"] for o in f.get("operands", [])])
+        ea_modes = inst.get("ea_modes", {})
+
+        # An-destination: formula + [ea,an] + no CC + dn in src
+        if has_formula and not has_cc and ["ea", "an"] in forms:
+            src_modes = ea_modes.get("src", ea_modes.get("ea", []))
+            if "dn" in src_modes and mnemonic in ("ADDA", "SUBA", "MOVEA"):
+                testable.append((mnemonic, inst, "an_dest"))
+                continue
+
+        # EXG: operation_type=swap, no CC, has [dn,dn] form
+        if op_type == "swap" and not has_cc and not has_formula:
+            if ["dn", "dn"] in forms:
+                testable.append((mnemonic, inst, "exg"))
+                continue
+
+        # LEA: formula + [ea,an] + no CC, no dn in src
+        if mnemonic == "LEA" and has_formula and not has_cc:
+            testable.append((mnemonic, inst, "lea"))
+            continue
+
+        # MOVE from SR: formula + [sr,ea]
+        if mnemonic == "MOVE from SR" and has_formula:
+            testable.append((mnemonic, inst, "move_from_sr"))
+            continue
+
+        # NOP: no formula, no CC, no operands
+        if mnemonic == "NOP" and not has_formula and forms == [[]]:
+            testable.append((mnemonic, inst, "nop"))
+            continue
+
+        # BRA/JMP: unconditional flow
+        pc_effects = inst.get("pc_effects", {})
+        flow = pc_effects.get("flow", {})
+        if mnemonic == "BRA" and flow.get("type") == "branch" and not flow.get("conditional"):
+            testable.append((mnemonic, inst, "branch"))
+            continue
+        if mnemonic == "JMP" and flow.get("type") == "jump":
+            testable.append((mnemonic, inst, "branch"))
+            continue
+
+        # MOVEP: byte-striped register↔memory transfer
+        if mnemonic == "MOVEP" and op_type == "move":
+            testable.append((mnemonic, inst, "movep"))
+            continue
+
+        # CHK: bounds check — test non-trapping path only
+        if mnemonic == "CHK" and op_type == "bounds_check":
+            testable.append((mnemonic, inst, "chk"))
+            continue
+
+    return testable
+
+
+def generate_register_tests(mnemonic, inst, category, tmpdir):
+    """Generate register/flow verification tests for non-CC instructions.
+
+    Yields (desc, code_bytes, setup_fn, verify_fn) tuples.
+    setup_fn(cpu, mem): sets up registers/memory before execution.
+    verify_fn(captured): returns (ok, details_list).
+    """
+    if category == "an_dest":
+        yield from _gen_an_dest_tests(mnemonic, inst, tmpdir)
+    elif category == "exg":
+        yield from _gen_exg_tests(inst, tmpdir)
+    elif category == "lea":
+        yield from _gen_lea_tests(inst, tmpdir)
+    elif category == "move_from_sr":
+        yield from _gen_move_from_sr_tests(inst, tmpdir)
+    elif category == "nop":
+        yield from _gen_nop_tests(inst, tmpdir)
+    elif category == "branch":
+        yield from _gen_branch_tests(mnemonic, inst, tmpdir)
+    elif category == "movep":
+        yield from _gen_movep_tests(inst, tmpdir)
+    elif category == "chk":
+        yield from _gen_chk_tests(inst, tmpdir)
+
+
+def _gen_an_dest_tests(mnemonic, inst, tmpdir):
+    """ADDA/SUBA/MOVEA Dn,An — verify An result via compute_formula.
+
+    KB field 'source_sign_extend' (from PDF description) indicates .W source
+    is sign-extended to 32 bits before the operation. Both sizes produce a
+    32-bit An result (KB field 'cc_result_bits' = 32).
+    """
+    mn_lower = mnemonic.lower()
+    sign_ext = inst.get("source_sign_extend", False)
+    result_bits = inst.get("cc_result_bits", None)
+    for sz in inst.get("sizes", []):
+        mask, bits = _size_mask(sz)
+        for src_val, dst_val, val_desc in AN_DEST_TEST_VALUES:
+            asm_text = f"{mn_lower}.{sz} d0,a1"
+            code_bytes = assemble(asm_text, tmpdir)
+            if code_bytes is None:
+                continue
+
+            # If KB says source is sign-extended and result is always 32-bit,
+            # sign-extend the source to the result width before computing.
+            if sign_ext and result_bits and bits < result_bits:
+                src_masked = src_val & mask
+                src_ext = _to_signed(src_masked, sz)
+                src_ext &= (1 << result_bits) - 1
+                _, predicted = _compute_result(
+                    inst, src_ext, dst_val & 0xFFFFFFFF,
+                    (1 << result_bits) - 1, result_bits, {})
+            else:
+                _, predicted = _compute_result(
+                    inst, src_val & mask, dst_val & mask, mask, bits, {})
+            desc = f"{mnemonic}.{sz} {val_desc}"
+
+            def setup(cpu, mem, _sv=src_val, _dv=dst_val):
+                cpu.w_reg(DATA_REGS[0], _sv & 0xFFFFFFFF)
+                cpu.w_reg(ADDR_REGS[1], _dv & 0xFFFFFFFF)
+
+            def verify(cap, _pred=predicted):
+                a1 = cap["a"][1]
+                if a1 != _pred:
+                    return False, [f"A1: pred=0x{_pred:08x} actual=0x{a1:08x}"]
+                return True, []
+
+            yield (desc, code_bytes, setup, verify)
+
+
+def _gen_exg_tests(inst, tmpdir):
+    """EXG — verify registers are swapped (KB operation_type=swap)."""
+    for val_a, val_b, val_desc in EXG_TEST_VALUES:
+        # EXG Dx,Dy
+        code = assemble("exg d0,d1", tmpdir)
+        if code:
+            def setup_dd(cpu, mem, _a=val_a, _b=val_b):
+                cpu.w_reg(DATA_REGS[0], _a)
+                cpu.w_reg(DATA_REGS[1], _b)
+            def verify_dd(cap, _a=val_a, _b=val_b):
+                ok, details = True, []
+                if cap["d"][0] != _b:
+                    ok = False
+                    details.append(f"D0: expected=0x{_b:08x} actual=0x{cap['d'][0]:08x}")
+                if cap["d"][1] != _a:
+                    ok = False
+                    details.append(f"D1: expected=0x{_a:08x} actual=0x{cap['d'][1]:08x}")
+                return ok, details
+            yield (f"EXG D0,D1 {val_desc}", code, setup_dd, verify_dd)
+
+        # EXG Ax,Ay
+        code = assemble("exg a0,a1", tmpdir)
+        if code:
+            def setup_aa(cpu, mem, _a=val_a, _b=val_b):
+                cpu.w_reg(ADDR_REGS[0], _a)
+                cpu.w_reg(ADDR_REGS[1], _b)
+            def verify_aa(cap, _a=val_a, _b=val_b):
+                ok, details = True, []
+                if cap["a"][0] != _b:
+                    ok = False
+                    details.append(f"A0: expected=0x{_b:08x} actual=0x{cap['a'][0]:08x}")
+                if cap["a"][1] != _a:
+                    ok = False
+                    details.append(f"A1: expected=0x{_a:08x} actual=0x{cap['a'][1]:08x}")
+                return ok, details
+            yield (f"EXG A0,A1 {val_desc}", code, setup_aa, verify_aa)
+
+        # EXG Dx,Ay
+        code = assemble("exg d0,a0", tmpdir)
+        if code:
+            def setup_da(cpu, mem, _a=val_a, _b=val_b):
+                cpu.w_reg(DATA_REGS[0], _a)
+                cpu.w_reg(ADDR_REGS[0], _b)
+            def verify_da(cap, _a=val_a, _b=val_b):
+                ok, details = True, []
+                if cap["d"][0] != _b:
+                    ok = False
+                    details.append(f"D0: expected=0x{_b:08x} actual=0x{cap['d'][0]:08x}")
+                if cap["a"][0] != _a:
+                    ok = False
+                    details.append(f"A0: expected=0x{_a:08x} actual=0x{cap['a'][0]:08x}")
+                return ok, details
+            yield (f"EXG D0,A0 {val_desc}", code, setup_da, verify_da)
+
+
+def _gen_lea_tests(inst, tmpdir):
+    """LEA ea,An — verify An = effective address."""
+    # LEA (A0),A1 — A1 gets value of A0
+    code = assemble("lea (a0),a1", tmpdir)
+    if code:
+        def setup(cpu, mem):
+            cpu.w_reg(ADDR_REGS[0], SCRATCH_ADDR)
+        def verify(cap):
+            if cap["a"][1] != SCRATCH_ADDR:
+                return False, [f"A1: expected=0x{SCRATCH_ADDR:08x} actual=0x{cap['a'][1]:08x}"]
+            return True, []
+        yield ("LEA (A0),A1", code, setup, verify)
+
+    # LEA d(A0),A1 — A1 gets A0+d
+    for disp, desc in [(4, "disp=4"), (100, "disp=100"), (-8, "disp=-8")]:
+        asm = f"lea {disp}(a0),a1"
+        code = assemble(asm, tmpdir)
+        if code:
+            expected = (SCRATCH_ADDR + disp) & 0xFFFFFFFF
+            def setup_d(cpu, mem, _a=SCRATCH_ADDR):
+                cpu.w_reg(ADDR_REGS[0], _a)
+            def verify_d(cap, _exp=expected):
+                if cap["a"][1] != _exp:
+                    return False, [f"A1: expected=0x{_exp:08x} actual=0x{cap['a'][1]:08x}"]
+                return True, []
+            yield (f"LEA {desc}(A0),A1", code, setup_d, verify_d)
+
+    # LEA $addr.L,A1 — absolute address
+    code = assemble(f"lea ${SCRATCH_ADDR:x}.l,a1", tmpdir)
+    if code:
+        def setup_abs(cpu, mem):
+            pass
+        def verify_abs(cap, _exp=SCRATCH_ADDR):
+            if cap["a"][1] != _exp:
+                return False, [f"A1: expected=0x{_exp:08x} actual=0x{cap['a'][1]:08x}"]
+            return True, []
+        yield ("LEA abs.L,A1", code, setup_abs, verify_abs)
+
+
+def _gen_move_from_sr_tests(inst, tmpdir):
+    """MOVE from SR — verify Dn gets SR value."""
+    code = assemble("move sr,d0", tmpdir)
+    if not code:
+        return
+    # Test with different CCR states
+    for ccr_state in INITIAL_CCR_STATES:
+        initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+
+        def setup(cpu, mem, _ccr=initial_ccr):
+            set_ccr(cpu, x=_ccr["X"], n=_ccr["N"], z=_ccr["Z"],
+                    v=_ccr["V"], c=_ccr["C"])
+
+        def verify(cap, _ccr=initial_ccr):
+            sr = cap["d"][0] & 0xFFFF
+            # Check CCR bits in the SR value match what we set
+            actual_ccr = {
+                "X": 1 if sr & CCR_X else 0,
+                "N": 1 if sr & CCR_N else 0,
+                "Z": 1 if sr & CCR_Z else 0,
+                "V": 1 if sr & CCR_V else 0,
+                "C": 1 if sr & CCR_C else 0,
+            }
+            details = []
+            ok = True
+            for flag in ("X", "N", "Z", "V", "C"):
+                if actual_ccr[flag] != _ccr[flag]:
+                    ok = False
+                    details.append(f"{flag}: expected={_ccr[flag]} actual={actual_ccr[flag]}")
+            return ok, details
+
+        yield (f"MOVE SR,D0 ccr={ccr_state['desc']}", code, setup, verify)
+
+
+def _gen_nop_tests(inst, tmpdir):
+    """NOP — verify PC advances by instruction size."""
+    code = assemble("nop", tmpdir)
+    if not code:
+        return
+    instr_sz = _instr_size(code)
+    expected_pc = CODE_ADDR + instr_sz
+
+    def setup(cpu, mem):
+        pass
+
+    def verify(cap, _exp=expected_pc):
+        if cap["pc"] != _exp:
+            return False, [f"PC: expected=0x{_exp:08x} actual=0x{cap['pc']:08x}"]
+        return True, []
+
+    yield ("NOP", code, setup, verify)
+
+
+def _gen_branch_tests(mnemonic, inst, tmpdir):
+    """BRA/JMP — verify PC goes to target."""
+    if mnemonic == "BRA":
+        # BRA forward: use .w to get a fixed-size encoding
+        asm = "bra.w .t\nnop\n.t:"
+        code = assemble(asm, tmpdir)
+        if code:
+            instrs = disasm_bytes(code)
+            # Target is after BRA + NOP
+            target = CODE_ADDR + instrs[0].size + instrs[1].size
+
+            def setup(cpu, mem):
+                pass
+            def verify(cap, _t=target):
+                if cap["pc"] != _t:
+                    return False, [f"PC: expected=0x{_t:08x} actual=0x{cap['pc']:08x}"]
+                return True, []
+            yield ("BRA.W forward", code, setup, verify)
+
+    elif mnemonic == "JMP":
+        # JMP (An) — jump to address in A0
+        target = SCRATCH_ADDR
+        code = assemble(f"jmp (a0)", tmpdir)
+        if code:
+            def setup(cpu, mem, _t=target):
+                cpu.w_reg(ADDR_REGS[0], _t)
+                mem.w16(_t, NOP_OPWORD)  # NOP at target
+            def verify(cap, _t=target):
+                if cap["pc"] != _t:
+                    return False, [f"PC: expected=0x{_t:08x} actual=0x{cap['pc']:08x}"]
+                return True, []
+            yield ("JMP (A0)", code, setup, verify)
+
+        # JMP abs.L
+        code = assemble(f"jmp ${target:x}.l", tmpdir)
+        if code:
+            def setup_abs(cpu, mem, _t=target):
+                mem.w16(_t, NOP_OPWORD)
+            def verify_abs(cap, _t=target):
+                if cap["pc"] != _t:
+                    return False, [f"PC: expected=0x{_t:08x} actual=0x{cap['pc']:08x}"]
+                return True, []
+            yield ("JMP abs.L", code, setup_abs, verify_abs)
+
+
+def _gen_movep_tests(inst, tmpdir):
+    """MOVEP — byte-striped register↔memory transfer.
+
+    Uses KB 'transfer_layout' (stride, byte_order) to derive byte positions.
+    Tests memory→register direction (pre-fill striped memory, read into Dn).
+    Register→memory cannot be verified: load_and_execute captures registers
+    only, not memory state.
+    """
+    layout = inst.get("transfer_layout")
+    if not layout:
+        raise RuntimeError("MOVEP missing transfer_layout in KB — regenerate KB")
+    stride = layout["stride"]
+    byte_order = layout["byte_order"]
+
+    disp = 0
+    base = SCRATCH_ADDR
+    size_bytes = _size_byte_count  # from KB _meta
+
+    for sz in inst.get("sizes", []):
+        asm_from_mem = f"movep.{sz} {disp}(a0),d1"
+        code = assemble(asm_from_mem, tmpdir)
+        if not code:
+            continue
+
+        n_bytes = size_bytes[sz]  # 2 for .w, 4 for .l
+        bits = n_bytes * 8
+
+        # Build test cases from KB layout parameters:
+        # byte_order=big_endian → MSB at offset 0, next at +stride, etc.
+        test_values = [0x12345678, 0x00000000, 0xFFFFFFFF, 0xABCD1234]
+        for val in test_values:
+            val_masked = val & ((1 << bits) - 1)
+
+            # Derive byte positions from KB stride and byte_order
+            if byte_order == "big_endian":
+                # MSB first: byte 0 of register (highest) at lowest address
+                mem_bytes = []
+                for i in range(n_bytes):
+                    shift = (n_bytes - 1 - i) * 8
+                    byte_val = (val_masked >> shift) & 0xFF
+                    mem_bytes.append((i * stride, byte_val))
+            else:
+                raise RuntimeError(
+                    f"MOVEP: unsupported byte_order '{byte_order}' in KB")
+
+            def setup(cpu, mem, _bytes=mem_bytes):
+                cpu.w_reg(ADDR_REGS[0], base)
+                cpu.w_reg(DATA_REGS[1], 0)
+                for off in range(n_bytes * stride):
+                    mem.w8(base + off, 0)
+                for off, b in _bytes:
+                    mem.w8(base + off, b)
+
+            def verify(cap, _exp=val_masked, _bits=bits):
+                mask = (1 << _bits) - 1
+                actual = cap["d"][1] & mask
+                if actual != _exp:
+                    return False, [f"D1: expected=0x{_exp:0{_bits//4}x} "
+                                   f"actual=0x{actual:0{_bits//4}x}"]
+                return True, []
+
+            desc = f"MOVEP.{sz.upper()} mem→reg val=0x{val_masked:0{bits//4}x}"
+            yield (desc, code, setup, verify)
+
+
+def _gen_chk_tests(inst, tmpdir):
+    """CHK <ea>,Dn — non-trapping path only.
+
+    Uses KB 'trap_condition' to determine which test values will NOT trap.
+    KB says: trap if "destination < 0 || destination > source" (signed).
+    Non-trapping: lower_bound ≤ destination ≤ source (signed).
+    """
+    trap_cond = inst.get("trap_condition")
+    if not trap_cond:
+        raise RuntimeError("CHK missing trap_condition in KB — regenerate KB")
+
+    comparison = trap_cond["comparison"]
+    lower_bound = trap_cond["lower_bound"]  # 0 per KB
+
+    # CHK.W only on 68000 (KB constraints.sizes_68000 = ["w"])
+    sizes_68k = inst.get("constraints", {}).get("sizes_68000")
+    sizes = sizes_68k if sizes_68k else inst.get("sizes", [])
+
+    for sz in sizes:
+        code = assemble(f"chk.{sz} d0,d1", tmpdir)
+        if not code:
+            continue
+        instr_sz = _instr_size(code)
+        expected_pc = CODE_ADDR + instr_sz
+        mask, bits = _size_mask(sz)
+
+        # Generate non-trapping test cases based on KB trap_condition:
+        # comparison=signed, lower_bound=0, upper_bound=source
+        # Non-trapping when: 0 ≤ destination ≤ source (signed)
+        max_pos = (1 << (bits - 1)) - 1  # max positive signed value at this size
+        test_cases = [
+            (100, 0, "val=0 bound=100"),
+            (100, 50, "val=50 bound=100"),
+            (100, 100, "val=bound=100"),
+            (max_pos, 0, f"val=0 bound={max_pos}"),
+            (max_pos, max_pos, f"val=bound={max_pos}"),
+            (1, 0, "val=0 bound=1"),
+            (1, 1, "val=1 bound=1"),
+            (10, 5, "val=5 bound=10"),
+        ]
+
+        for bound, val, desc_str in test_cases:
+            def setup(cpu, mem, _bound=bound, _val=val, _mask=mask):
+                cpu.w_reg(DATA_REGS[0], _bound & _mask)
+                cpu.w_reg(DATA_REGS[1], _val & _mask)
+
+            def verify(cap, _exp_pc=expected_pc):
+                if cap["pc"] != _exp_pc:
+                    return False, [f"PC: expected=0x{_exp_pc:08x} actual=0x{cap['pc']:08x}"]
+                return True, []
+
+            yield (f"CHK.{sz.upper()} {desc_str}", code, setup, verify)
+
+
+# ── Phase 5: Scc/Bcc/DBcc condition test verification ────────────────────
+
+# All 16 CCR states covering all 5-bit combinations of XNZVC that matter
+# for condition testing. We test a representative subset (not all 32).
+CC_TEST_CCR_STATES = [
+    {"X": 0, "N": 0, "Z": 0, "V": 0, "C": 0, "desc": "all_clear"},
+    {"X": 0, "N": 0, "Z": 0, "V": 0, "C": 1, "desc": "C"},
+    {"X": 0, "N": 0, "Z": 1, "V": 0, "C": 0, "desc": "Z"},
+    {"X": 0, "N": 0, "Z": 1, "V": 0, "C": 1, "desc": "ZC"},
+    {"X": 0, "N": 1, "Z": 0, "V": 0, "C": 0, "desc": "N"},
+    {"X": 0, "N": 1, "Z": 0, "V": 1, "C": 0, "desc": "NV"},
+    {"X": 0, "N": 0, "Z": 0, "V": 1, "C": 0, "desc": "V"},
+    {"X": 0, "N": 1, "Z": 1, "V": 0, "C": 0, "desc": "NZ"},
+    {"X": 0, "N": 0, "Z": 0, "V": 1, "C": 1, "desc": "VC"},
+    {"X": 0, "N": 1, "Z": 0, "V": 1, "C": 1, "desc": "NVC"},
+    {"X": 1, "N": 0, "Z": 0, "V": 0, "C": 0, "desc": "X"},
+    {"X": 1, "N": 1, "Z": 1, "V": 1, "C": 1, "desc": "all_set"},
+]
+
+
+def discover_condition_testable_instructions():
+    """Scan KB for Scc, Bcc, DBcc instructions.
+
+    Returns list of (mnemonic, inst, category) tuples.
+    Categories: "scc", "bcc", "dbcc"
+    """
+    cc_test_defs = KB_META.get("cc_test_definitions")
+    if not cc_test_defs:
+        return []
+
+    testable = []
+    for inst in KB_LIST:
+        mn = inst["mnemonic"]
+        proc = inst.get("processor_min", "68000")
+        if proc != "68000":
+            continue
+        if mn == "Scc":
+            testable.append((mn, inst, "scc"))
+        elif mn == "Bcc":
+            testable.append((mn, inst, "bcc"))
+        elif mn == "DBcc":
+            testable.append((mn, inst, "dbcc"))
+    return testable
+
+
+def generate_condition_tests(mnemonic, inst, category, tmpdir):
+    """Generate condition code test verification tests.
+
+    Yields (desc, code_bytes, setup_fn, verify_fn, indiv_mnemonic) tuples.
+    """
+    if category == "scc":
+        yield from _gen_scc_tests(inst, tmpdir)
+    elif category == "bcc":
+        yield from _gen_bcc_tests(inst, tmpdir)
+    elif category == "dbcc":
+        yield from _gen_dbcc_tests(inst, tmpdir)
+
+
+def _gen_scc_tests(inst, tmpdir):
+    """Scc Dn — if condition true, Dn.b=$FF; else Dn.b=$00."""
+    cc_test_defs = KB_META["cc_test_definitions"]
+    cc_aliases = KB_META.get("cc_aliases", {})
+
+    for cc_name, cc_def in cc_test_defs.items():
+        test_expr = cc_def["test"]
+        # Skip "t" (always true) and "f" (always false) — fewer interesting states needed
+        # But include them with just 2 states each
+        states = CC_TEST_CCR_STATES if cc_name not in ("t", "f") else CC_TEST_CCR_STATES[:2]
+
+        asm_mnemonic = f"s{cc_name}"
+        # Check if assembler uses an alias (e.g. shs for scc)
+        asm_text = f"{asm_mnemonic} d0"
+        code = assemble(asm_text, tmpdir)
+        if code is None:
+            # Try with known aliases
+            for alias, target in cc_aliases.items():
+                if target == cc_name:
+                    asm_text = f"s{alias} d0"
+                    code = assemble(asm_text, tmpdir)
+                    if code is not None:
+                        break
+        if code is None:
+            print(f"  WARNING: S{cc_name.upper()} could not be assembled", file=sys.stderr)
+            continue
+
+        indiv = f"S{cc_name.upper()}"
+        for ccr_state in states:
+            initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+            cond_met = evaluate_cc_test(test_expr, initial_ccr)
+            expected_d0 = 0x000000FF if cond_met else 0x00000000
+
+            def setup(cpu, mem, _ccr=initial_ccr):
+                cpu.w_reg(DATA_REGS[0], 0x12345678)  # pre-fill to verify byte write
+                set_ccr(cpu, x=_ccr["X"], n=_ccr["N"], z=_ccr["Z"],
+                        v=_ccr["V"], c=_ccr["C"])
+
+            def verify(cap, _exp=expected_d0):
+                # Scc only affects low byte, upper bytes unchanged
+                actual_lo = cap["d"][0] & 0xFF
+                exp_lo = _exp & 0xFF
+                if actual_lo != exp_lo:
+                    return False, [f"D0.b: expected=0x{exp_lo:02x} actual=0x{actual_lo:02x}"]
+                return True, []
+
+            desc_flag = ccr_state["desc"]
+            yield (f"{indiv} {desc_flag} -> {'$FF' if cond_met else '$00'}",
+                   code, setup, verify, indiv)
+
+
+def _gen_bcc_tests(inst, tmpdir):
+    """Bcc — if condition true, PC = target; else PC = next instruction."""
+    cc_test_defs = KB_META["cc_test_definitions"]
+    cc_aliases = KB_META.get("cc_aliases", {})
+
+    for cc_name, cc_def in cc_test_defs.items():
+        test_expr = cc_def["test"]
+        # Skip always-true/false for Bcc (BRA already tested, BF doesn't exist as Bcc)
+        if cc_name in ("t", "f"):
+            continue
+
+        states = CC_TEST_CCR_STATES
+
+        asm_mnemonic = f"b{cc_name}"
+        # Assemble: bcc.w .target; nop; .target: nop
+        asm_text = f"{asm_mnemonic}.w .t\nnop\n.t:"
+        code = assemble(asm_text, tmpdir)
+        if code is None:
+            for alias, target in cc_aliases.items():
+                if target == cc_name:
+                    asm_text = f"b{alias}.w .t\nnop\n.t:"
+                    code = assemble(asm_text, tmpdir)
+                    if code is not None:
+                        break
+        if code is None:
+            print(f"  WARNING: B{cc_name.upper()} could not be assembled", file=sys.stderr)
+            continue
+
+        # Disassemble to find instruction sizes
+        instrs = disasm_bytes(code)
+        bcc_size = instrs[0].size   # Bcc instruction
+        nop_size = instrs[1].size   # NOP after Bcc
+        target_pc = CODE_ADDR + bcc_size + nop_size  # branch target
+        fallthrough_pc = CODE_ADDR + bcc_size         # next after Bcc
+
+        indiv = f"B{cc_name.upper()}"
+        for ccr_state in states:
+            initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+            cond_met = evaluate_cc_test(test_expr, initial_ccr)
+            expected_pc = target_pc if cond_met else fallthrough_pc
+
+            def setup(cpu, mem, _ccr=initial_ccr):
+                set_ccr(cpu, x=_ccr["X"], n=_ccr["N"], z=_ccr["Z"],
+                        v=_ccr["V"], c=_ccr["C"])
+
+            def verify(cap, _exp=expected_pc):
+                if cap["pc"] != _exp:
+                    return False, [f"PC: expected=0x{_exp:08x} actual=0x{cap['pc']:08x}"]
+                return True, []
+
+            desc_flag = ccr_state["desc"]
+            taken = "taken" if cond_met else "not-taken"
+            yield (f"{indiv}.W {desc_flag} {taken}",
+                   code, setup, verify, indiv)
+
+
+def _gen_dbcc_tests(inst, tmpdir):
+    """DBcc Dn,<label> — if cc false AND Dn-1 != -1, branch; else fall through.
+
+    DBcc behavior:
+      1. If condition TRUE → fall through (no decrement)
+      2. If condition FALSE → Dn.w -= 1
+         a. If Dn.w == -1 → fall through (loop exhausted)
+         b. If Dn.w != -1 → branch to target
+    """
+    cc_test_defs = KB_META["cc_test_definitions"]
+    cc_aliases = KB_META.get("cc_aliases", {})
+
+    for cc_name, cc_def in cc_test_defs.items():
+        test_expr = cc_def["test"]
+
+        asm_mnemonic = f"db{cc_name}"
+        # DBcc D1,.target; nop; .target: nop
+        asm_text = f"{asm_mnemonic} d1,.t\nnop\n.t:"
+        code = assemble(asm_text, tmpdir)
+        if code is None:
+            for alias, target in cc_aliases.items():
+                if target == cc_name:
+                    asm_text = f"db{alias} d1,.t\nnop\n.t:"
+                    code = assemble(asm_text, tmpdir)
+                    if code is not None:
+                        break
+        if code is None:
+            print(f"  WARNING: DB{cc_name.upper()} could not be assembled", file=sys.stderr)
+            continue
+
+        instrs = disasm_bytes(code)
+        dbcc_size = instrs[0].size
+        nop_size = instrs[1].size
+        target_pc = CODE_ADDR + dbcc_size + nop_size
+        fallthrough_pc = CODE_ADDR + dbcc_size
+
+        indiv = f"DB{cc_name.upper()}"
+
+        # Test scenarios for each condition:
+        # 1. Condition TRUE, Dn=5 → fall through, Dn unchanged
+        # 2. Condition FALSE, Dn=5 → branch, Dn.w=4
+        # 3. Condition FALSE, Dn=0 → branch, Dn.w=-1... wait, Dn=0→Dn.w=0xFFFF=-1→fall through
+        test_cases = []
+        for ccr_state in CC_TEST_CCR_STATES[:4]:  # subset for each cc
+            initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+            cond_met = evaluate_cc_test(test_expr, initial_ccr)
+
+            if cond_met:
+                # Condition TRUE → fall through, Dn unchanged
+                test_cases.append((initial_ccr, 5, fallthrough_pc, 5, ccr_state["desc"], "cc-true"))
+            else:
+                # Condition FALSE, Dn=5 → decrement, branch
+                test_cases.append((initial_ccr, 5, target_pc, 4, ccr_state["desc"], "loop"))
+                # Condition FALSE, Dn=0 → decrement to -1, fall through
+                test_cases.append((initial_ccr, 0, fallthrough_pc, 0xFFFF, ccr_state["desc"], "exhaust"))
+
+        for initial_ccr, dn_val, expected_pc, expected_dn_w, desc_flag, scenario in test_cases:
+
+            def setup(cpu, mem, _ccr=initial_ccr, _dn=dn_val):
+                cpu.w_reg(DATA_REGS[1], _dn & 0xFFFFFFFF)
+                set_ccr(cpu, x=_ccr["X"], n=_ccr["N"], z=_ccr["Z"],
+                        v=_ccr["V"], c=_ccr["C"])
+
+            def verify(cap, _exp_pc=expected_pc, _exp_dn=expected_dn_w):
+                ok, details = True, []
+                if cap["pc"] != _exp_pc:
+                    ok = False
+                    details.append(f"PC: expected=0x{_exp_pc:08x} actual=0x{cap['pc']:08x}")
+                actual_dn_w = cap["d"][1] & 0xFFFF
+                if actual_dn_w != _exp_dn:
+                    ok = False
+                    details.append(f"D1.w: expected=0x{_exp_dn:04x} actual=0x{actual_dn_w:04x}")
+                return ok, details
+
+            yield (f"{indiv} {desc_flag} Dn={dn_val} {scenario}",
+                   code, setup, verify, indiv)
 
 
 # ── Shift/rotate mnemonic helpers ─────────────────────────────────────────
@@ -1280,6 +1316,19 @@ BIT_TEST_VALUES = [
 ]
 
 
+# Test values for instructions with limited immediate range (e.g. MOVEQ: -128..127).
+# (src=immediate, dst=ignored, description). Covers sign-extension edge cases.
+IMM_BYTE_TEST_VALUES = [
+    (0, 0, "imm=0"),
+    (1, 0, "imm=1"),
+    (127, 0, "imm=127 (max pos)"),
+    (-1, 0, "imm=-1 (extends to $FFFFFFFF)"),
+    (-128, 0, "imm=-128 (min neg)"),
+    (0x55, 0, "imm=$55"),
+    (-86, 0, "imm=-86 ($AA extends)"),
+]
+
+
 def _get_variant_props(inst, individual_mnemonic):
     """Look up variant properties for an individual mnemonic from KB 'variants' array.
 
@@ -1360,6 +1409,9 @@ def generate_cc_tests(inst, form_info, tmpdir):
             raise RuntimeError(
                 f"{mnemonic}: missing 'bit_modulus' in KB — regenerate KB")
 
+    # Check for KB immediate range constraint (e.g. MOVEQ: -128..127)
+    imm_range = inst.get("constraints", {}).get("immediate_range")
+
     # Select test values based on operation type
     if is_shift_rotate:
         values = SHIFT_TEST_VALUES
@@ -1371,6 +1423,8 @@ def generate_cc_tests(inst, form_info, tmpdir):
         values = BIT_TEST_VALUES
     elif is_bcd:
         values = BCD_TEST_VALUES
+    elif imm_range and imm_range.get("signed") and form_type == "imm_dn":
+        values = IMM_BYTE_TEST_VALUES
     else:
         values = TEST_VALUES
 
@@ -1851,6 +1905,162 @@ def run_tests(filter_mnemonic=None, verbose=False):
             if not verbose:
                 status = "OK" if pass_count == count else "FAIL"
                 print(f"  {status:4s} {mnemonic}: {pass_count}/{count}")
+
+        # ── Phase 3: CCR/SR manipulation verification ──
+        ccr_op_testable = discover_ccr_op_testable_instructions()
+        if verbose:
+            print(f"CCR/SR-op-testable instructions: {len(ccr_op_testable)}")
+
+        for mnemonic, inst in ccr_op_testable:
+            if filter_mnemonic and filter_mnemonic.upper() != mnemonic.upper():
+                continue
+
+            sub_count = [0, 0]
+            for (asm_text, code_bytes, src_val,
+                 initial_ccr, desc) in generate_ccr_op_tests(inst, tmpdir):
+
+                total += 1
+                sub_count[0] += 1
+
+                cpu = machine.cpu
+                _reset_cpu(machine)
+
+                # For MOVE to CCR with Dn source, set D0 to the source value
+                if "MOVE" in mnemonic:
+                    cpu.w_reg(DATA_REGS[0], src_val & 0xFFFF)
+
+                set_ccr(cpu, x=initial_ccr["X"], n=initial_ccr["N"],
+                        z=initial_ccr["Z"], v=initial_ccr["V"], c=initial_ccr["C"])
+                ccr_before = read_ccr(cpu)
+
+                # Predict CC: src_val is the immediate/source, dst unused
+                predicted_cc = predict_cc(inst, "b", src_val, 0, ccr_before)
+
+                after = load_and_execute(machine, code_bytes)
+
+                ok = True
+                details = []
+                for flag in ["X", "N", "Z", "V", "C"]:
+                    pred = predicted_cc[flag]
+                    actual = after["ccr"][flag]
+                    if pred is None:
+                        continue
+                    if pred != actual:
+                        ok = False
+                        details.append(f"{flag}: pred={pred} actual={actual}")
+
+                if ok:
+                    passed += 1
+                    sub_count[1] += 1
+                    if verbose:
+                        print(f"  OK   {desc}")
+                else:
+                    failed += 1
+                    cc_mismatches += 1
+                    failures.append((desc, asm_text, "; ".join(details)))
+                    if verbose:
+                        print(f"  FAIL {desc}: {'; '.join(details)}")
+
+            tested_mnemonics.add(mnemonic)
+            if not verbose:
+                status = "OK" if sub_count[1] == sub_count[0] else "FAIL"
+                print(f"  {status:4s} {mnemonic}: {sub_count[1]}/{sub_count[0]}")
+
+        # ── Phase 4: Register/flow verification for non-CC instructions ──
+        reg_testable = discover_register_testable_instructions()
+        if verbose:
+            print(f"Register/flow-testable instructions: {len(reg_testable)}")
+
+        reg_by_mnemonic = {}
+        for mnemonic, inst, category in reg_testable:
+            if filter_mnemonic and filter_mnemonic.upper() != mnemonic.upper():
+                continue
+
+            for (desc, code_bytes, setup_fn,
+                 verify_fn) in generate_register_tests(mnemonic, inst, category, tmpdir):
+
+                total += 1
+                counts = reg_by_mnemonic.setdefault(mnemonic, [0, 0])
+                counts[0] += 1
+
+                _reset_cpu(machine)
+                cpu = machine.cpu
+                mem = machine.mem
+                setup_fn(cpu, mem)
+
+                after = load_and_execute(machine, code_bytes)
+
+                ok, details = verify_fn(after)
+                if ok:
+                    passed += 1
+                    counts[1] += 1
+                    if verbose:
+                        print(f"  OK   {desc}")
+                else:
+                    failed += 1
+                    failures.append((desc, "", "; ".join(details)))
+                    if verbose:
+                        print(f"  FAIL {desc}: {'; '.join(details)}")
+
+        for mnemonic, (count, pass_count) in sorted(reg_by_mnemonic.items()):
+            tested_mnemonics.add(mnemonic)
+            if not verbose:
+                status = "OK" if pass_count == count else "FAIL"
+                print(f"  {status:4s} {mnemonic}: {pass_count}/{count}")
+
+        # ── Phase 5: Condition test verification (Scc/Bcc/DBcc) ──
+        cond_testable = discover_condition_testable_instructions()
+        if verbose:
+            print(f"Condition-testable instructions: {len(cond_testable)}")
+
+        cond_by_mnemonic = {}
+        for mnemonic, inst, category in cond_testable:
+            if filter_mnemonic:
+                filter_up = filter_mnemonic.upper()
+                if filter_up not in (mnemonic.upper(), "SCC", "BCC", "DBCC"):
+                    # Also allow filtering by individual condition (e.g. BEQ, SNE)
+                    if not any(filter_up == f"{p}{cc.upper()}"
+                               for cc in KB_META.get("cc_test_definitions", {})
+                               for p in ("S", "B", "DB")):
+                        continue
+
+            for (desc, code_bytes, setup_fn,
+                 verify_fn, indiv) in generate_condition_tests(mnemonic, inst, category, tmpdir):
+
+                # If filtering by individual condition mnemonic, skip non-matches
+                if filter_mnemonic:
+                    filter_up = filter_mnemonic.upper()
+                    if filter_up != mnemonic.upper() and filter_up != indiv:
+                        continue
+
+                total += 1
+                counts = cond_by_mnemonic.setdefault(indiv, [0, 0])
+                counts[0] += 1
+
+                _reset_cpu(machine)
+                cpu = machine.cpu
+                mem = machine.mem
+                setup_fn(cpu, mem)
+
+                after = load_and_execute(machine, code_bytes)
+
+                ok, details = verify_fn(after)
+                if ok:
+                    passed += 1
+                    counts[1] += 1
+                    if verbose:
+                        print(f"  OK   {desc}")
+                else:
+                    failed += 1
+                    failures.append((desc, "", "; ".join(details)))
+                    if verbose:
+                        print(f"  FAIL {desc}: {'; '.join(details)}")
+
+        for indiv, (count, pass_count) in sorted(cond_by_mnemonic.items()):
+            tested_mnemonics.add(indiv)
+            if not verbose:
+                status = "OK" if pass_count == count else "FAIL"
+                print(f"  {status:4s} {indiv}: {pass_count}/{count}")
 
     machine.cleanup()
 

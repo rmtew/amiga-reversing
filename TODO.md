@@ -62,17 +62,23 @@ Given an instruction + initial state, predict SP delta and CC result from KB rul
 - [x] CC result width override: `cc_result_bits` extracted from PDF CC descriptions (SWAP: 32-bit despite Size=Word)
 - [x] Sign-extend formula: `sign_extend` with `source_bits_by_size` from PDF description text
 - [x] CCR bit positions: `ccr_bit_positions` in KB `_meta` (parser-asserted, PDF p21 Figure 1-8)
+- [x] Condition test definitions: `cc_test_definitions` in KB `_meta` (parser-asserted, PDF pp 90-91 Table 3-19)
+- [x] Source sign-extension: `source_sign_extend` from PDF description + opmode_table (ADDA, SUBA, MOVEA, CMPA)
+- [x] Transfer layout: `transfer_layout` from PDF description (MOVEP: stride=2, byte_order=big_endian)
+- [x] Bounds-check trap condition: `trap_condition` from PDF operation text (CHK: signed, 0 ≤ Dn ≤ Source)
 
-## Phase 4: Verification Harness (in progress)
+## Phase 4: Verification Harness (done)
 
 machine68k (Musashi) as independent oracle for execution semantics.
-`scripts/test_m68k_execution.py` — 4142 tests, 54 mnemonics, 0 failures.
+`scripts/test_m68k_execution.py` — 4870 tests, 119 mnemonics, 0 failures.
+`scripts/m68k_compute.py` — KB-driven compute engine (CC/SP/result prediction, condition evaluator).
 
 - [x] Test generator: KB-driven discovery of testable instructions, deterministic test values
 - [x] Runner: instruction hook captures post-execution state without sentinel interference
 - [x] Comparator: predicted CC/SP/PC vs machine68k actual, per-flag reporting
+- [x] Compute module extracted: `m68k_compute.py` — pure functions, no machine68k dependency
 
-### CC verification (46 mnemonics)
+### CC verification (54 mnemonics)
 - [x] ALU register-register: ADD, ADDX, SUB, SUBX, CMP, AND, OR, EOR, MOVE, NEG, NEGX, NOT, CLR, TST (14 mnemonics, 1512 tests)
 - [x] Shift/rotate: ASL, ASR, LSL, LSR, ROL, ROR, ROXL, ROXR (8 mnemonics, 1296 tests)
 - [x] Multiply: MULS, MULU (2 mnemonics, 72 tests) — KB `compute_formula` + `overflow_multiply` rule
@@ -84,11 +90,34 @@ machine68k (Musashi) as independent oracle for execution semantics.
 - [x] Address register compare: CMPA (1 mnemonic, 72 tests) — `dn_an` form type, KB `source_sign_extend` + `cc_result_bits`
 - [x] TAS (1 mnemonic, 36 tests) — KB `msb_operand` CC rule, `test` compute formula, `single_op` form type
 - [x] BCD: ABCD, SBCD, NBCD (3 mnemonics, 108 tests) — KB `add_decimal`/`subtract_decimal` compute formulas, `decimal_carry`/`decimal_borrow` CC rules
+- [x] CCR/SR manipulation: ANDI/ORI/EORI/MOVE to CCR, ANDI/ORI/EORI to SR (7 mnemonics) — KB `ccr_op`/`sr_op` bypass, `imm_bit_*`/`source_bit` rules
+- [x] MOVEQ (1 mnemonic) — KB `imm_dn` form type with signed byte immediate range
 
 ### SP verification (9 mnemonics)
 - [x] PEA, JSR, BSR, RTS, LINK, UNLK (9 tests)
 - [x] MOVEM (4 tests) — push/pop via `-(A7)`/`(A7)+`, SP delta = register_count × size
 - [x] RTR (1 test) — return + restore CCR from stack, KB `loaded_from_stack` CC rule
+
+### Register/flow verification (10 mnemonics)
+- [x] An-destination: ADDA, SUBA, MOVEA (.W + .L) — KB `source_sign_extend` + `cc_result_bits` for .W sign-extension
+- [x] EXG: 3 forms (Dx/Dy, Ax/Ay, Dx/Ay) — KB `operation_type=swap`
+- [x] LEA: indirect, displaced, absolute — KB `compute_formula`
+- [x] MOVE from SR — verify CCR bits in result
+- [x] NOP, BRA, JMP — PC advancement / unconditional flow
+
+### Condition test verification (46 mnemonics)
+- [x] Scc: 16 conditions × 12 CCR states — KB `cc_test_definitions` + `evaluate_cc_test()`
+- [x] Bcc: 14 conditions × 12 CCR states (taken/not-taken PC) — KB `cc_test_definitions`
+- [x] DBcc: 16 conditions × scenarios (cc-true/loop/exhaust) — KB `cc_test_definitions`
+
+### Peripheral/bounds verification (2 mnemonics)
+- [x] MOVEP: memory→register byte-striped read — KB `transfer_layout` (stride, byte_order)
+- [x] CHK: non-trapping bounds check — KB `trap_condition` (signed comparison, lower/upper bounds)
+
+### Untestable (12 KB entries)
+- 6 privileged: MOVE USP, MOVE to SR, RESET, RTE, STOP, PTRAPcc
+- 4 exception-generating: TRAP, TRAPV, ILLEGAL, BKPT
+- 2 partially tested: CHK (trapping path needs exception handler), MOVEP (reg→mem needs memory capture)
 
 ### Audits
 - [x] Three audits passed — no hardcoded M68K knowledge, no silent fallbacks
@@ -99,6 +128,20 @@ machine68k (Musashi) as independent oracle for execution semantics.
 - [x] Tier 6 audit: CCR bit positions from KB, implicit_operand hard error, Track B citations on MODE_MAP/CPU_HIERARCHY/SIZE_MAP/coprocessor
 - [x] Tier 6 audit: size_by_ea_category eliminates silent .b assembly-failure skip for bit tests
 - [x] Tier 6 audit: EXTB source_bits derived from PDF bit number, cc_result_bits checks all 5 flags
+- [x] Tier 7 audit: sign-extension from KB `source_sign_extend`, MOVEP from KB `transfer_layout`, CHK from KB `trap_condition`
+- [x] Tier 7 audit: dead code removed (MOVEP reg→mem), assembly failure warnings added (Scc/Bcc/DBcc)
+
+## Phase 5: Symbolic Executor (next)
+
+KB-driven abstract interpretation engine for static analysis of disassembled code.
+Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests).
+
+- [ ] `predict_pc()`: combine `pc_effects` + `evaluate_cc_test` for branch resolution
+- [ ] EA resolver: translate addressing modes to memory addresses from abstract state
+- [ ] Abstract state model: register file + memory map with symbolic/concrete values
+- [ ] Basic block discovery: follow sequential flow, split at branches/jumps/labels
+- [ ] Cross-reference tracking: data reads/writes, call graph, jump targets
+- [ ] Integration with entity system: feed discovered xrefs into `entities.jsonl`
 
 ## Existing Infrastructure
 

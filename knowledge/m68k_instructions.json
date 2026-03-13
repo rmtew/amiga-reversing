@@ -175,6 +175,72 @@
         "l"
       ]
     },
+    "cc_test_definitions": {
+      "t": {
+        "encoding": 0,
+        "test": "true"
+      },
+      "f": {
+        "encoding": 1,
+        "test": "false"
+      },
+      "hi": {
+        "encoding": 2,
+        "test": "!C & !Z"
+      },
+      "ls": {
+        "encoding": 3,
+        "test": "C | Z"
+      },
+      "cc": {
+        "encoding": 4,
+        "test": "!C"
+      },
+      "cs": {
+        "encoding": 5,
+        "test": "C"
+      },
+      "ne": {
+        "encoding": 6,
+        "test": "!Z"
+      },
+      "eq": {
+        "encoding": 7,
+        "test": "Z"
+      },
+      "vc": {
+        "encoding": 8,
+        "test": "!V"
+      },
+      "vs": {
+        "encoding": 9,
+        "test": "V"
+      },
+      "pl": {
+        "encoding": 10,
+        "test": "!N"
+      },
+      "mi": {
+        "encoding": 11,
+        "test": "N"
+      },
+      "ge": {
+        "encoding": 12,
+        "test": "(N & V) | (!N & !V)"
+      },
+      "lt": {
+        "encoding": 13,
+        "test": "(N & !V) | (!N & V)"
+      },
+      "gt": {
+        "encoding": 14,
+        "test": "(N & V & !Z) | (!N & !V & !Z)"
+      },
+      "le": {
+        "encoding": 15,
+        "test": "Z | (N & !V) | (!N & V)"
+      }
+    },
     "ea_brief_ext_word": [
       {
         "name": "D/A",
@@ -1013,7 +1079,9 @@
           "source",
           "destination"
         ]
-      }
+      },
+      "source_sign_extend": true,
+      "cc_result_bits": 32
     },
     {
       "mnemonic": "ADDI",
@@ -7115,7 +7183,13 @@
           2
         ]
       },
-      "operation_type": "bounds_check"
+      "operation_type": "bounds_check",
+      "trap_condition": {
+        "test": "destination < 0 || destination > source",
+        "comparison": "signed",
+        "lower_bound": 0,
+        "upper_bound": "source"
+      }
     },
     {
       "mnemonic": "CHK2",
@@ -14281,6 +14355,10 @@
         "terms": [
           "source"
         ]
+      },
+      "transfer_layout": {
+        "stride": 2,
+        "byte_order": "big_endian"
       }
     },
     {
