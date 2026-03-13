@@ -374,19 +374,23 @@ def build_entities(binary_path: str, output_path: str = None):
                          entry_points=sorted(all_entry_points))
         print(f"  Flow: {_stats(result)}")
 
-        # Step 2: jump tables + indirect resolution (with propagation)
-        # Collect all new targets in one pass
-        for t in detect_jump_tables(result["blocks"], code, base_addr=0):
-            all_entry_points.update(t["targets"])
-        result = analyze(code, base_addr=0,
-                         entry_points=sorted(all_entry_points),
-                         propagate=True, platform=platform_config)
-        for t in detect_jump_tables(result["blocks"], code, base_addr=0):
-            all_entry_points.update(t["targets"])
-        if result.get("exit_states"):
-            for r in resolve_indirect_targets(
-                    result["blocks"], result["exit_states"], code_size):
-                all_entry_points.add(r["target"])
+        # Step 2: jump tables + indirect resolution (with propagation).
+        # Iterate until no new targets — each round's new blocks may
+        # contain more jump tables or resolvable indirect calls.
+        prev_count = len(all_entry_points)
+        for _ in range(10):
+            result = analyze(code, base_addr=0,
+                             entry_points=sorted(all_entry_points),
+                             propagate=True, platform=platform_config)
+            for t in detect_jump_tables(result["blocks"], code, base_addr=0):
+                all_entry_points.update(t["targets"])
+            if result.get("exit_states"):
+                for r in resolve_indirect_targets(
+                        result["blocks"], result["exit_states"], code_size):
+                    all_entry_points.add(r["target"])
+            if len(all_entry_points) == prev_count:
+                break
+            prev_count = len(all_entry_points)
         print(f"  Tables+indirect: {_stats(result)}")
 
         # Step 3: subroutine scan (one shot against full call target set)
