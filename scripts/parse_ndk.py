@@ -24,45 +24,95 @@ sys.stdout.reconfigure(encoding="utf-8")
 # TYPES.I parser — extract type sizes from macro definitions
 # =============================================================================
 
-def parse_types_i(path: str) -> dict:
-    """Parse EXEC/TYPES.I to extract type sizes from macro definitions.
+def scan_type_macros(include_dir: str) -> dict:
+    """Scan all .I files for structure-building type macros.
 
-    Each type macro (UBYTE, WORD, APTR, etc.) contains:
-        SOFFSET SET SOFFSET+N
-    where N is the byte size. LABEL has no SOFFSET line (size 0).
-    STRUCT is special: size comes from macro arg \2.
+    A type macro is any macro whose body contains `SOFFSET SET SOFFSET+N`
+    (direct size) or delegates to another known type macro (e.g. BPTR
+    expands to `LONG \\1`).
+
+    Two passes: first collects direct sizes and delegation targets,
+    second resolves delegated types.
     """
-    type_sizes = {}
-    current_macro = None
+    # Non-type macros that happen to appear in the same files
+    skip_macros = {"STRUCTURE", "ENUM", "EITEM", "BITDEF", "BITDEF0",
+                   "EXTERN_LIB", "DOSNAME", "IFND", "IFD"}
 
-    with open(path, encoding="utf-8", errors="replace") as f:
-        for line in f:
-            line = line.rstrip()
+    # Pass 1: scan all .I files for macro definitions
+    # Collect: direct_sizes {name: int} and delegates {name: delegate_target}
+    direct_sizes = {}
+    delegates = {}
 
-            # Macro start: TYPE_NAME MACRO
-            m = re.match(r'^(\w+)\s+MACRO', line)
-            if m:
-                name = m.group(1)
-                # Only track type macros (the ones used in STRUCTURE definitions)
-                if name in ("STRUCTURE", "ENUM", "EITEM", "BITDEF", "BITDEF0",
-                            "EXTERN_LIB"):
-                    current_macro = None
-                else:
-                    current_macro = name
+    for dirpath, _dirnames, filenames in os.walk(include_dir):
+        for fname in sorted(filenames):
+            if not fname.upper().endswith(".I"):
                 continue
+            fpath = os.path.join(dirpath, fname)
+            current_macro = None
+            macro_body = []
 
-            # Inside a macro, look for SOFFSET SET SOFFSET+N
-            if current_macro:
-                sm = re.match(r'^SOFFSET\s+SET\s+SOFFSET\+(\d+)', line)
-                if sm:
-                    type_sizes[current_macro] = int(sm.group(1))
-                    current_macro = None
-                    continue
-                # End of macro without SOFFSET line -> size 0 (e.g. LABEL)
-                if re.match(r'\s+ENDM', line):
-                    if current_macro not in type_sizes:
-                        type_sizes[current_macro] = 0
-                    current_macro = None
+            with open(fpath, encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    line = line.rstrip()
+
+                    # Macro start: TYPE_NAME MACRO
+                    m = re.match(r'^(\w+)\s+MACRO', line)
+                    if m:
+                        name = m.group(1)
+                        if name in skip_macros:
+                            current_macro = None
+                        else:
+                            current_macro = name
+                            macro_body = []
+                        continue
+
+                    if current_macro is None:
+                        continue
+
+                    # End of macro
+                    if re.match(r'\s+ENDM', line):
+                        # Analyze collected body
+                        found_soffset = False
+                        delegate_target = None
+                        for bline in macro_body:
+                            sm = re.match(
+                                r'^SOFFSET\s+SET\s+SOFFSET\+(\d+)', bline)
+                            if sm:
+                                direct_sizes[current_macro] = int(sm.group(1))
+                                found_soffset = True
+                                break
+                            # Delegation: line is just `TYPE_NAME \1` or
+                            # `TYPE_NAME  \1` (invoke another type macro)
+                            dm = re.match(r'\s+(\w+)\s+\\1\s*$', bline)
+                            if dm:
+                                delegate_target = dm.group(1)
+                        if not found_soffset and delegate_target:
+                            delegates[current_macro] = delegate_target
+                        elif not found_soffset:
+                            # No SOFFSET and no delegation -> size 0 (LABEL)
+                            direct_sizes[current_macro] = 0
+                        current_macro = None
+                        continue
+
+                    macro_body.append(line)
+
+    # Pass 2: resolve delegated types
+    type_sizes = dict(direct_sizes)
+    for _ in range(10):  # convergence guard
+        changed = False
+        for name, target in delegates.items():
+            if name not in type_sizes and target in type_sizes:
+                type_sizes[name] = type_sizes[target]
+                changed = True
+        if not changed:
+            break
+
+    # Any remaining unresolved delegates
+    for name, target in delegates.items():
+        if name not in type_sizes:
+            print(f"  WARNING: type macro {name} delegates to {target} "
+                  f"which has unknown size", file=sys.stderr)
+            type_sizes[name] = 0
 
     return type_sizes
 
@@ -70,6 +120,11 @@ def parse_types_i(path: str) -> dict:
 # =============================================================================
 # FD file parser
 # =============================================================================
+
+LVO_SLOT_SIZE = 6  # Each library vector slot is a JMP.L instruction (6 bytes).
+# Parser-asserted: ROM Kernel Reference Manual, Libraries 3rd Ed, Ch28
+# "Library Vectors". Each vector entry is JMP absolute.long = 2 opword + 4 addr.
+
 
 def parse_fd_file(path: str) -> dict:
     """Parse a .FD file to extract function definitions with LVO offsets."""
@@ -130,7 +185,7 @@ def parse_fd_file(path: str) -> dict:
                 if since_version:
                     entry["since"] = since_version
                 functions[name] = entry
-                bias += 6
+                bias += LVO_SLOT_SIZE
 
     return {"base": base_name, "functions": functions}
 
@@ -337,13 +392,26 @@ def check_no_return(doc: dict) -> bool:
 def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
     """Parse .I (asm) include file for struct definitions and constants.
 
-    Computes byte offsets for struct fields using type_sizes from TYPES.I.
+    Computes byte offsets for struct fields using type_sizes from scan_type_macros.
     """
     structs = {}
     constants = {}
     current_struct = None
     current_fields = []
     current_offset = 0
+
+    # Build regex matching any known type macro with size > 0
+    # (excludes STRUCT, LABEL, ALIGNWORD, ALIGNLONG which are handled separately)
+    sized_types = sorted(
+        (t for t, s in type_sizes.items()
+         if s > 0 and t not in ("STRUCT", "ALIGNWORD", "ALIGNLONG")),
+        key=len, reverse=True,  # longest first to avoid prefix ambiguity
+    )
+    if sized_types:
+        type_alt = "|".join(re.escape(t) for t in sized_types)
+        type_field_re = re.compile(rf'\s+({type_alt})\s+(\w+)')
+    else:
+        type_field_re = re.compile(r'(?!)')  # never matches
 
     # Track the source subpath (e.g. "exec/NODES.I")
     rel_parts = path.replace("\\", "/").split("/")
@@ -381,24 +449,27 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                 try:
                     current_offset = int(init_offset_str)
                 except ValueError:
-                    # Try to resolve from known constants
                     resolved = resolve_constant_value(init_offset_str, all_constants)
-                    current_offset = resolved if resolved is not None else 0
+                    if resolved is not None:
+                        current_offset = resolved
+                    else:
+                        print(f"  WARNING: struct {current_struct} initial offset "
+                              f"'{init_offset_str}' unresolved, skipping struct",
+                              file=sys.stderr)
+                        current_struct = None
+                        continue
                 current_fields = []
                 continue
 
             # Struct field types
             if current_struct is not None:
-                # Standard type fields: UBYTE name, WORD name, APTR name, etc.
-                fm = re.match(
-                    r'\s+(UBYTE|BYTE|UWORD|WORD|ULONG|LONG|APTR|BPTR|CPTR|FPTR|'
-                    r'BOOL|FLOAT|DOUBLE|RPTR|SHORT|USHORT)\s+(\w+)',
-                    line
-                )
+                # Match any known type macro (from scan_type_macros)
+                # that isn't STRUCT/LABEL/ALIGNWORD/ALIGNLONG (handled below)
+                fm = type_field_re.match(line)
                 if fm:
                     ftype = fm.group(1)
                     fname = fm.group(2)
-                    fsize = type_sizes.get(ftype, 0)
+                    fsize = type_sizes[ftype]
                     current_fields.append({
                         "name": fname,
                         "type": ftype,
@@ -417,7 +488,13 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                         fsize = int(size_str)
                     except ValueError:
                         resolved = resolve_constant_value(size_str, all_constants)
-                        fsize = resolved if resolved is not None else 0
+                        if resolved is not None:
+                            fsize = resolved
+                        else:
+                            print(f"  WARNING: struct {current_struct} field "
+                                  f"{fname} STRUCT size '{size_str}' unresolved",
+                                  file=sys.stderr)
+                            fsize = 0
                     current_fields.append({
                         "name": fname,
                         "type": "STRUCT",
@@ -816,6 +893,10 @@ def match_autodoc_to_lib(doc_filename: str, lib_names: set) -> str | None:
 # Main: combine all sources
 # =============================================================================
 
+# Parser-asserted: Kickstart version to OS version mapping.
+# ROM Kernel Reference Manual, Libraries 3rd Ed, Introduction.
+# Kickstart internal version numbers correspond to marketed OS versions.
+# V30=1.0, V33=1.2 derived from NDK 1.3 FD file version markers.
 VERSION_MAP = {
     "30": "1.0", "33": "1.2", "34": "1.3",
     "36": "2.0", "37": "2.04", "39": "3.0", "40": "3.1", "44": "3.5",
@@ -841,9 +922,8 @@ def main():
     # ========================================================================
     # 1. Parse TYPES.I for type sizes
     # ========================================================================
-    types_path = os.path.join(include_dir, "EXEC", "TYPES.I")
-    print(f"Parsing {types_path}...")
-    type_sizes = parse_types_i(types_path)
+    print("Scanning all .I files for type macros...")
+    type_sizes = scan_type_macros(include_dir)
     print(f"  {len(type_sizes)} type macros: {dict(sorted(type_sizes.items()))}")
 
     # ========================================================================
@@ -858,6 +938,15 @@ def main():
         if os.path.isdir(os.path.join(include_dir, d))
     ])
     print(f"  Subdirectories: {', '.join(include_subdirs)}")
+
+    # Build regex for struct field type matching from discovered type macros
+    _sized_types = sorted(
+        (t for t, s in type_sizes.items()
+         if s > 0 and t not in ("STRUCT", "ALIGNWORD", "ALIGNLONG")),
+        key=len, reverse=True,
+    )
+    _type_alt = "|".join(re.escape(t) for t in _sized_types)
+    sim_type_re = re.compile(rf'\s+({_type_alt})\s+(\w+)') if _sized_types else None
 
     # First pass: collect all constants (needed for struct offset resolution).
     # This also simulates STRUCTURE macros to extract field-name constants
@@ -946,16 +1035,12 @@ def main():
                             in_struct = True
                             continue
 
-                        if in_struct and soffset is not None:
+                        if in_struct and soffset is not None and sim_type_re:
                             # Type macros: NAME EQU SOFFSET; SOFFSET += size
-                            tm = re.match(
-                                r'\s+(UBYTE|BYTE|UWORD|WORD|ULONG|LONG|APTR|BPTR|'
-                                r'CPTR|FPTR|BOOL|FLOAT|DOUBLE|RPTR|SHORT|USHORT)\s+(\w+)',
-                                line
-                            )
+                            tm = sim_type_re.match(line)
                             if tm:
                                 raw_constants[tm.group(2)] = str(soffset)
-                                soffset += type_sizes.get(tm.group(1), 0)
+                                soffset += type_sizes[tm.group(1)]
                                 continue
 
                             # STRUCT name,size
@@ -1118,6 +1203,12 @@ def main():
                 ),
             },
             "version_map": VERSION_MAP,
+            "lvo_slot_size": LVO_SLOT_SIZE,
+            "since_default_note": (
+                "Functions without version markers default to since='1.0'. "
+                "NDK 1.3 FD files lack pre-1.3 version granularity (1.0/1.1/1.2), "
+                "so all pre-existing functions are tagged 1.0 as a lower bound."
+            ),
         },
         "libraries": {},
         "structs": {},
@@ -1167,6 +1258,12 @@ def main():
 
                 if "description" in doc:
                     entry["description"] = doc["description"]
+                if "notes" in doc:
+                    entry["notes"] = doc["notes"]
+                if "bugs" in doc:
+                    entry["bugs"] = doc["bugs"]
+                if "warning" in doc:
+                    entry["warning"] = doc["warning"]
 
                 # No-return detection
                 if check_no_return(doc):
