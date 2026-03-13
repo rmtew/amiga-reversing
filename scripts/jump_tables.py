@@ -29,20 +29,85 @@ from m68k_executor import (BasicBlock, _extract_mnemonic, _load_kb,
 from m68k_disasm import _Decoder, _decode_one, DecodeError
 
 
-def _get_flow_type(inst_text: str) -> str | None:
-    """Get flow type from KB for an instruction's mnemonic."""
-    kb_by_name, _, meta = _load_kb()
-    cc_defs = meta.get("cc_test_definitions", {})
-    cc_aliases = meta.get("cc_aliases", {})
-    mn = _extract_mnemonic(inst_text)
-    kb = _find_kb_entry(kb_by_name, mn, cc_defs, cc_aliases)
-    if kb is None:
+def _xf(opcode: int, field: tuple) -> int:
+    """Extract a bit field from an opcode word. field = (bit_hi, bit_lo, width)."""
+    return (opcode >> field[1]) & ((1 << field[2]) - 1)
+
+
+def _build_ea_field_spec(inst_kb: dict) -> tuple | None:
+    """Extract (mode_field, reg_field) from KB encoding for EA-using instructions.
+
+    Returns ((hi, lo, width), (hi, lo, width)) for MODE and REGISTER fields,
+    or None if the encoding doesn't have them.
+    """
+    encodings = inst_kb.get("encodings", [])
+    if not encodings:
         return None
-    return kb.get("pc_effects", {}).get("flow", {}).get("type")
+    fields = encodings[0].get("fields", [])
+    mode_f = reg_f = None
+    for f in fields:
+        if f["name"] == "MODE":
+            mode_f = (f["bit_hi"], f["bit_lo"], f["bit_hi"] - f["bit_lo"] + 1)
+        elif f["name"] == "REGISTER" and f["bit_hi"] <= 5:
+            # EA REGISTER is in the low bits (distinguish from dest REGISTER
+            # in bits 11-9 for LEA)
+            reg_f = (f["bit_hi"], f["bit_lo"], f["bit_hi"] - f["bit_lo"] + 1)
+    if mode_f and reg_f:
+        return mode_f, reg_f
+    return None
 
 
-def _is_indexed_ea(raw: bytes) -> dict | None:
-    """Check if instruction uses indexed EA (mode 110+Xn or PC-relative+Xn).
+def _parse_brief_ext_word(ext: int, meta: dict) -> dict | None:
+    """Parse a brief extension word using KB ea_brief_ext_word fields.
+
+    The brief/full discriminator is the one bit not covered by the KB
+    field definitions (bit 8). If that bit is set, this is a full
+    extension word and we return None.
+
+    Returns dict with: index_is_addr, index_reg, displacement, or None.
+    """
+    bew_fields = meta.get("ea_brief_ext_word")
+    if not bew_fields:
+        return None
+
+    # Find the uncovered bit (brief/full discriminator)
+    covered = set()
+    for f in bew_fields:
+        for b in range(f["bit_lo"], f["bit_hi"] + 1):
+            covered.add(b)
+    brief_full_bits = set(range(16)) - covered
+    # The brief/full bit must be 0 for brief format
+    for bit in brief_full_bits:
+        if ext & (1 << bit):
+            return None  # full extension word
+
+    # Extract fields by name from KB
+    fields = {}
+    for f in bew_fields:
+        width = f["bit_hi"] - f["bit_lo"] + 1
+        val = (ext >> f["bit_lo"]) & ((1 << width) - 1)
+        fields[f["name"]] = val
+
+    displacement = fields.get("DISPLACEMENT", 0)
+    # Sign-extend displacement from its field width
+    disp_field = next((f for f in bew_fields if f["name"] == "DISPLACEMENT"), None)
+    if disp_field:
+        disp_width = disp_field["bit_hi"] - disp_field["bit_lo"] + 1
+        if displacement >= (1 << (disp_width - 1)):
+            displacement -= (1 << disp_width)
+
+    return {
+        "index_is_addr": bool(fields.get("D/A", 0)),
+        "index_reg": fields.get("REGISTER", 0),
+        "displacement": displacement,
+    }
+
+
+def _is_indexed_ea(raw: bytes, inst_kb: dict = None) -> dict | None:
+    """Check if instruction uses indexed EA (An+Xn or PC+Xn).
+
+    EA mode/reg extracted from KB encoding fields (not hardcoded bit positions).
+    Brief extension word parsed from KB ea_brief_ext_word fields.
 
     Returns dict with base_mode ('an' or 'pc'), base_reg, index_reg,
     index_is_data, displacement, or None.
@@ -50,53 +115,62 @@ def _is_indexed_ea(raw: bytes) -> dict | None:
     if len(raw) < 4:
         return None
 
-    _, _, meta = _load_kb()
+    kb_by_name, _, meta = _load_kb()
     ea_enc = meta["ea_mode_encoding"]
 
     opcode = struct.unpack_from(">H", raw, 0)[0]
     ext = struct.unpack_from(">H", raw, 2)[0]
 
-    # Brief extension word format (bit 8 = 0):
-    # bits 15: D/A (0=Dn, 1=An)
-    # bits 14-12: index register number
-    # bit 11: W/L (0=sign-extended word, 1=long)
-    # bit 8: 0 for brief
-    # bits 7-0: signed displacement
-    if ext & 0x0100:
-        return None  # full extension word — not handled yet
+    # Parse brief extension word from KB fields
+    bew = _parse_brief_ext_word(ext, meta)
+    if bew is None:
+        return None  # full extension word — not handled
 
-    index_is_addr = bool(ext & 0x8000)
-    index_reg = (ext >> 12) & 7
-    displacement = ext & 0xFF
-    if displacement >= 0x80:
-        displacement -= 0x100  # sign extend
+    # Extract EA mode/reg from KB encoding fields if inst_kb provided,
+    # otherwise fall back to the standard EA position (bits 5-3, 2-0)
+    # which is where MODE/REGISTER appear in JMP, JSR, LEA encodings.
+    if inst_kb:
+        ea_spec = _build_ea_field_spec(inst_kb)
+        if ea_spec:
+            mode_f, reg_f = ea_spec
+            mode = _xf(opcode, mode_f)
+            reg = _xf(opcode, reg_f)
+        else:
+            return None
+    else:
+        # No inst_kb — use standard EA field position from JMP/JSR/LEA.
+        # These all have MODE at bits 5-3 and REGISTER at bits 2-0.
+        jmp_kb = kb_by_name.get("JMP")
+        if jmp_kb:
+            ea_spec = _build_ea_field_spec(jmp_kb)
+            if ea_spec:
+                mode_f, reg_f = ea_spec
+                mode = _xf(opcode, mode_f)
+                reg = _xf(opcode, reg_f)
+            else:
+                return None
+        else:
+            return None
 
-    # Find the EA mode/reg fields — check common positions.
-    # For JMP/JSR: bits 5-3 = mode, bits 2-0 = reg
-    # For LEA: bits 5-3 = mode, bits 2-0 = reg (source EA)
-    mode = (opcode >> 3) & 7
-    reg = opcode & 7
-
-    # Check against KB ea_mode_encoding.
-    # KB keys: "pcindex" for PC-relative indexed, "index" for An-indexed.
-    pcindex_enc = ea_enc.get("pcindex")  # [7, 3]
-    index_enc = ea_enc.get("index")      # [6, None]
+    # Check against KB ea_mode_encoding
+    pcindex_enc = ea_enc.get("pcindex")
+    index_enc = ea_enc.get("index")
 
     if pcindex_enc and mode == pcindex_enc[0] and reg == pcindex_enc[1]:
         return {
             "base_mode": "pc",
             "base_reg": None,
-            "index_reg": index_reg,
-            "index_is_data": not index_is_addr,
-            "displacement": displacement,
+            "index_reg": bew["index_reg"],
+            "index_is_data": not bew["index_is_addr"],
+            "displacement": bew["displacement"],
         }
     if index_enc and mode == index_enc[0]:
         return {
             "base_mode": "an",
             "base_reg": reg,
-            "index_reg": index_reg,
-            "index_is_data": not index_is_addr,
-            "displacement": displacement,
+            "index_reg": bew["index_reg"],
+            "index_is_data": not bew["index_is_addr"],
+            "displacement": bew["displacement"],
         }
     return None
 
@@ -151,7 +225,44 @@ def _scan_inline_dispatch(code: bytes, base_addr: int,
     For JMP disp(PC,Dn.w) tables, the entries at base+0, base+2, base+4...
     are typically short branch instructions (BRA.S) to actual handlers.
     Also handles direct code (non-branch entries stop the scan).
+
+    BRA opcode pattern and displacement encoding derived from KB.
     """
+    kb_by_name, _, meta = _load_kb()
+    opword_bytes = meta["opword_bytes"]
+    cc_defs = meta.get("cc_test_definitions", {})
+    cc_aliases = meta.get("cc_aliases", {})
+
+    # Build BRA opcode pattern from KB encoding
+    bra_kb = kb_by_name.get("BRA")
+    if not bra_kb:
+        return []
+    bra_enc = bra_kb["encodings"][0]
+    bra_fixed = 0
+    bra_mask = 0
+    for f in bra_enc["fields"]:
+        if f["name"] in ("0", "1"):
+            for b in range(f["bit_lo"], f["bit_hi"] + 1):
+                bra_mask |= (1 << b)
+                if f["name"] == "1":
+                    bra_fixed |= (1 << b)
+
+    # Displacement field and encoding from KB
+    disp_enc = bra_kb.get("constraints", {}).get("displacement_encoding")
+    disp_field = None
+    for f in bra_enc["fields"]:
+        if "DISPLACEMENT" in f["name"].upper():
+            disp_field = f
+            break
+    if not disp_enc or not disp_field:
+        return []
+
+    word_signal = disp_enc["word_signal"]
+    long_signal = disp_enc["long_signal"]
+    disp_width = disp_field["bit_hi"] - disp_field["bit_lo"] + 1
+    disp_lo = disp_field["bit_lo"]
+    disp_mask = ((1 << disp_width) - 1) << disp_lo
+
     targets = []
     pos = base_addr
     for _ in range(max_entries):
@@ -159,25 +270,32 @@ def _scan_inline_dispatch(code: bytes, base_addr: int,
             break
         word = struct.unpack_from(">H", code, pos)[0]
 
-        # BRA.S: $60xx where xx != 0x00 and xx != 0xFF
-        if (word >> 8) == 0x60 and (word & 0xFF) not in (0x00, 0xFF):
-            disp8 = word & 0xFF
-            if disp8 >= 0x80:
-                disp8 -= 256
-            target = pos + 2 + disp8
-            if 0 <= target < code_size and not (target & 1):
-                targets.append(target)
-            pos += 2
-            continue
-
-        # BRA.W: $6000 + 16-bit displacement
-        if word == 0x6000 and pos + 4 <= code_size:
-            disp16 = struct.unpack_from(">h", code, pos + 2)[0]
-            target = pos + 2 + disp16
-            if 0 <= target < code_size and not (target & 1):
-                targets.append(target)
-            pos += 4
-            continue
+        # Check if this word matches BRA opcode pattern
+        if (word & bra_mask) == bra_fixed:
+            disp8 = (word & disp_mask) >> disp_lo
+            if disp8 == word_signal:
+                # BRA.W: word displacement in extension
+                if pos + opword_bytes + 2 <= code_size:
+                    disp16 = struct.unpack_from(
+                        ">h", code, pos + opword_bytes)[0]
+                    target = pos + opword_bytes + disp16
+                    if 0 <= target < code_size and not (target & 1):
+                        targets.append(target)
+                    pos += opword_bytes + 2
+                    continue
+                break
+            elif disp8 == long_signal:
+                # BRA.L (020+): skip
+                break
+            else:
+                # BRA.S: 8-bit displacement
+                if disp8 >= (1 << (disp_width - 1)):
+                    disp8 -= (1 << disp_width)
+                target = pos + opword_bytes + disp8
+                if 0 <= target < code_size and not (target & 1):
+                    targets.append(target)
+                pos += opword_bytes
+                continue
 
         # Try decoding as a regular instruction
         try:
@@ -187,11 +305,14 @@ def _scan_inline_dispatch(code: bytes, base_addr: int,
             if inst is None:
                 break
             # If it's a flow instruction, extract its target
-            ft = _get_flow_type(inst.text)
-            if ft in ("jump", "branch"):
-                target = _extract_branch_target(inst, inst.offset)
-                if target is not None:
-                    targets.append(target)
+            mn = _extract_mnemonic(inst.text)
+            kb = _find_kb_entry(kb_by_name, mn, cc_defs, cc_aliases)
+            if kb:
+                ft = kb.get("pc_effects", {}).get("flow", {}).get("type")
+                if ft in ("jump", "branch"):
+                    target = _extract_branch_target(inst, inst.offset)
+                    if target is not None:
+                        targets.append(target)
             pos += inst.size
         except (DecodeError, struct.error):
             break
@@ -208,12 +329,12 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
         {"addr": table_address, "pattern": str, "targets": [int, ...],
          "dispatch_block": int}
     """
-    _, _, meta = _load_kb()
+    kb_by_name, _, meta = _load_kb()
     opword_bytes = meta["opword_bytes"]
+    ea_enc = meta["ea_mode_encoding"]
     code_size = len(code)
     tables = []
 
-    kb_by_name, _, meta = _load_kb()
     cc_defs = meta.get("cc_test_definitions", {})
     cc_aliases = meta.get("cc_aliases", {})
 
@@ -239,22 +360,24 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
         if target is not None:
             continue  # already resolved
 
-        ea_info = _is_indexed_ea(last.raw)
+        ea_info = _is_indexed_ea(last.raw, kb)
 
         # Pattern B: JMP/JSR (An) with preceding LEA disp(PC,Dn),An + ADDA.W (An),An
         # The JMP itself uses simple indirect (mode 2), not indexed.
         # The indexed access is in the LEA that sets up the register.
         if ea_info is None and len(block.instructions) >= 3:
-            ea_enc = meta["ea_mode_encoding"]
-            ind_enc = ea_enc.get("ind")  # [2, None] for (An)
-            if ind_enc:
+            ind_enc = ea_enc.get("ind")
+            ea_spec = _build_ea_field_spec(kb)
+            if ind_enc and ea_spec and len(last.raw) >= 2:
+                mode_f, reg_f = ea_spec
                 opcode = struct.unpack_from(">H", last.raw, 0)[0]
-                jmp_mode = (opcode >> 3) & 7
-                jmp_reg = opcode & 7
+                jmp_mode = _xf(opcode, mode_f)
+                jmp_reg = _xf(opcode, reg_f)
                 if jmp_mode == ind_enc[0]:
                     # JMP (An) — look for ADDA.W (An),An + LEA indexed(PC,Dn),An
                     has_adda = False
                     lea_info = None
+                    table_base = None
                     for inst in reversed(block.instructions[:-1]):
                         it = inst.text.strip().lower()
                         if it.startswith("adda") and f"(a{jmp_reg})" in it \
@@ -265,10 +388,28 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             if len(parts) >= 2:
                                 dst = parts[1].split(",")[-1].strip().lower()
                                 if dst == f"a{jmp_reg}":
-                                    lea_info = _is_indexed_ea(inst.raw)
+                                    lea_kb = _find_kb_entry(
+                                        kb_by_name, "lea", cc_defs, cc_aliases)
+                                    lea_info = _is_indexed_ea(
+                                        inst.raw, lea_kb)
                                     if lea_info and lea_info["base_mode"] == "pc":
                                         pc_val = inst.offset + opword_bytes
                                         table_base = pc_val + lea_info["displacement"]
+                                    else:
+                                        # Check for simple PC-relative LEA
+                                        # via KB EA mode encoding (pcdisp)
+                                        pcdisp_enc = ea_enc.get("pcdisp")
+                                        if pcdisp_enc and lea_kb and len(inst.raw) >= 4:
+                                            lea_spec = _build_ea_field_spec(lea_kb)
+                                            if lea_spec:
+                                                lop = struct.unpack_from(">H", inst.raw, 0)[0]
+                                                lm = _xf(lop, lea_spec[0])
+                                                lr = _xf(lop, lea_spec[1])
+                                                if lm == pcdisp_enc[0] and lr == pcdisp_enc[1]:
+                                                    disp = struct.unpack_from(
+                                                        ">h", inst.raw, 2)[0]
+                                                    pc_val = inst.offset + opword_bytes
+                                                    table_base = pc_val + disp
                             break
 
                     if has_adda and lea_info and table_base is not None:
@@ -342,21 +483,27 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             dst = operands[last_comma + 1:].strip().lower()
                             if dst == f"a{base_reg}":
                                 # Found the LEA — extract its EA
-                                lea_ea = _is_indexed_ea(inst.raw)
+                                lea_kb = _find_kb_entry(
+                                    kb_by_name, "lea", cc_defs, cc_aliases)
+                                lea_ea = _is_indexed_ea(inst.raw, lea_kb)
                                 if lea_ea and lea_ea["base_mode"] == "pc":
-                                    # LEA disp(PC,Dn.w),An — self-relative
+                                    # LEA disp(PC,Dn.w),An
                                     pc_val = inst.offset + opword_bytes
-                                    lea_base = pc_val + lea_ea["displacement"]
-                                    lea_addr = lea_base
-                                elif inst.text.strip().lower().find("(pc)") >= 0 or \
-                                     "pc" in inst.text.lower():
-                                    # LEA disp(PC),An — simple PC-relative
-                                    # Parse displacement from extension word
-                                    if len(inst.raw) >= 4:
-                                        disp = struct.unpack_from(
-                                            ">h", inst.raw, 2)[0]
-                                        pc_val = inst.offset + opword_bytes
-                                        lea_addr = pc_val + disp
+                                    lea_addr = pc_val + lea_ea["displacement"]
+                                else:
+                                    # Check for LEA disp(PC),An via KB pcdisp
+                                    pcdisp_enc = ea_enc.get("pcdisp")
+                                    if pcdisp_enc and lea_kb and len(inst.raw) >= 4:
+                                        lea_spec = _build_ea_field_spec(lea_kb)
+                                        if lea_spec:
+                                            lop = struct.unpack_from(">H", inst.raw, 0)[0]
+                                            lm = _xf(lop, lea_spec[0])
+                                            lr = _xf(lop, lea_spec[1])
+                                            if lm == pcdisp_enc[0] and lr == pcdisp_enc[1]:
+                                                disp = struct.unpack_from(
+                                                    ">h", inst.raw, 2)[0]
+                                                pc_val = inst.offset + opword_bytes
+                                                lea_addr = pc_val + disp
                                 break
 
             if lea_addr is not None:
@@ -405,16 +552,14 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
     checks if An has a concrete value in the exit state. If so, and the
     value is a valid code address, returns it as a resolved target.
 
+    EA mode/reg extracted from KB encoding fields (not hardcoded bit positions).
+
     Returns list of dicts:
         {"dispatch_block": int, "register": str, "target": int}
     """
-    import re as _re
-
-    _, _, meta = _load_kb()
-    ea_enc = meta["ea_mode_encoding"]
-    ind_enc = ea_enc.get("ind")  # [2, None] for (An)
-
     kb_by_name, _, meta = _load_kb()
+    ea_enc = meta["ea_mode_encoding"]
+    ind_enc = ea_enc.get("ind")  # [mode, None] for (An)
     cc_defs = meta.get("cc_test_definitions", {})
     cc_aliases = meta.get("cc_aliases", {})
 
@@ -439,12 +584,14 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
         if target is not None:
             continue
 
-        # Check for (An) addressing mode via opcode bits
-        if ind_enc is None or len(last.raw) < 2:
+        # Extract EA mode/reg from KB encoding fields
+        ea_spec = _build_ea_field_spec(kb)
+        if ea_spec is None or ind_enc is None or len(last.raw) < 2:
             continue
+        mode_f, reg_f = ea_spec
         opcode = struct.unpack_from(">H", last.raw, 0)[0]
-        mode = (opcode >> 3) & 7
-        reg = opcode & 7
+        mode = _xf(opcode, mode_f)
+        reg = _xf(opcode, reg_f)
         if mode != ind_enc[0]:
             continue  # not register indirect
 
@@ -454,7 +601,6 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
         cpu, _mem = exit_states[addr]
         reg_val = cpu.a[reg]
         if reg_val.is_known and 0 <= reg_val.concrete < code_size:
-            # Valid code address
             if not (reg_val.concrete & 1):  # must be word-aligned
                 resolved.append({
                     "dispatch_block": addr,

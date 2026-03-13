@@ -383,7 +383,7 @@ def build_entities(binary_path: str, output_path: str = None):
             new_targets -= set(blocks.keys())
             new_targets -= all_entry_points
 
-            if True:  # always print pass stats
+            if pass_num == 1 or new_targets:
                 covered = sum(b.end - b.start for b in blocks.values())
                 total_instr = sum(len(b.instructions)
                                   for b in blocks.values())
