@@ -1083,7 +1083,8 @@ def _resolve_ea_address(src_text: str, cpu, inst: Instruction,
 
 def _apply_instruction(inst: Instruction, inst_kb: dict,
                        cpu: "CPUState_inner", mem: AbstractMemory,
-                       code: bytes, base_addr: int):
+                       code: bytes, base_addr: int,
+                       platform: dict | None = None):
     """Apply one instruction's effects to the abstract state.
 
     Dispatches on KB compute_formula.op and operation_type — not mnemonics.
@@ -1091,6 +1092,9 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     LEA is the one exception: it resolves the EA address (not value) and has
     no KB field to distinguish this from MOVE, so it is detected by its unique
     operation text signature.
+
+    If platform is provided (from OS KB calling_convention), scratch registers
+    are invalidated after call instructions.
     """
     _, _, meta = _load_kb()
     text = inst.text.strip()
@@ -1231,6 +1235,16 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                     if src_val and src_val.is_known:
                         disp = _to_signed(src_val.concrete & 0xFFFF, "w")
                         cpu.sp = _concrete(cpu.sp.concrete + disp)
+        # After call instructions (SP decrement = push return address),
+        # invalidate scratch registers per platform calling convention.
+        # The called function may modify D0-D1/A0-A1 (Amiga convention).
+        if platform and platform.get("scratch_regs"):
+            has_call_push = any(
+                e.get("action") == "decrement" for e in sp_effects)
+            if has_call_push:
+                for reg_mode, reg_num in platform["scratch_regs"]:
+                    cpu.set_reg(reg_mode, reg_num, _unknown())
+
         # SP-only instructions (no compute_formula) stop here
         if op is None:
             return
@@ -1475,12 +1489,16 @@ def propagate_states(blocks: dict[int, BasicBlock],
                      code: bytes, base_addr: int = 0,
                      initial_state: "CPUState_inner | None" = None,
                      initial_mem: AbstractMemory | None = None,
+                     platform: dict | None = None,
                      ) -> dict[int, tuple]:
     """Propagate abstract state through basic blocks.
 
     Walks blocks in topological order (BFS from entries), applying instruction
     effects to propagate register and memory values. At merge points, joins
     states conservatively.
+
+    If platform is provided (from OS KB), scratch registers are invalidated
+    after call instructions during propagation.
 
     Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
     """
@@ -1547,7 +1565,8 @@ def propagate_states(blocks: dict[int, BasicBlock],
             mn = _extract_mnemonic(inst.text)
             ikb = _find_kb_entry(kb_by_name, mn, cc_test_defs, cc_aliases)
             if ikb:
-                _apply_instruction(inst, ikb, cpu, mem, code, base_addr)
+                _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
+                                   platform)
             cpu.pc = inst.offset + inst.size
 
         exit_states[addr] = (cpu.copy(), mem.copy())
@@ -1566,7 +1585,8 @@ def propagate_states(blocks: dict[int, BasicBlock],
 
 def analyze(code: bytes, base_addr: int = 0,
             entry_points: list[int] | None = None,
-            propagate: bool = False) -> dict:
+            propagate: bool = False,
+            platform: dict | None = None) -> dict:
     """Analyze code and return structured results.
 
     Args:
@@ -1574,6 +1594,7 @@ def analyze(code: bytes, base_addr: int = 0,
         base_addr: base address of the code section
         entry_points: list of entry point addresses (default: [base_addr])
         propagate: if True, run state propagation to track register values
+        platform: optional platform config from OS KB (calling convention)
 
     Returns dict with:
         blocks: dict[int, BasicBlock] -- basic blocks keyed by start address
@@ -1605,7 +1626,8 @@ def analyze(code: bytes, base_addr: int = 0,
     }
 
     if propagate:
-        result["exit_states"] = propagate_states(blocks, code, base_addr)
+        result["exit_states"] = propagate_states(blocks, code, base_addr,
+                                                    platform=platform)
 
     return result
 

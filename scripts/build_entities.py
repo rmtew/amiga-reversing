@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze, BasicBlock, _load_kb
 from jump_tables import detect_jump_tables, resolve_indirect_targets
+from os_calls import load_os_kb, get_platform_config, identify_library_calls
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -352,6 +353,9 @@ def build_entities(binary_path: str, output_path: str = None):
                 if target is not None and 0 <= target < code_size:
                     reloc_targets.add(target)
 
+        # Load platform config from OS KB for calling convention
+        platform_config = get_platform_config()
+
         print(f"\nRunning executor on hunk #{hunk.index} "
               f"({code_size} bytes, {len(reloc_targets)} reloc targets)...")
 
@@ -363,7 +367,8 @@ def build_entities(binary_path: str, output_path: str = None):
             use_propagate = pass_num >= 2  # propagation from pass 2 onward
             result = analyze(code, base_addr=0,
                              entry_points=sorted(all_entry_points),
-                             propagate=use_propagate)
+                             propagate=use_propagate,
+                             platform=platform_config if use_propagate else None)
             blocks = result["blocks"]
 
             # Jump table detection
@@ -409,6 +414,19 @@ def build_entities(binary_path: str, output_path: str = None):
               f"{len(call_targets)} call targets, "
               f"{len(result['branch_targets'])} branch targets")
 
+        # Identify OS library calls
+        os_kb = load_os_kb()
+        lib_calls = identify_library_calls(blocks, code, os_kb,
+                                           result.get("exit_states"))
+        if lib_calls:
+            identified = sum(1 for c in lib_calls
+                             if c.get("library") != "unknown")
+            libs_seen = set(c["library"] for c in lib_calls
+                            if c.get("library") != "unknown")
+            print(f"  {len(lib_calls)} library calls identified "
+                  f"({identified} resolved, "
+                  f"libraries: {', '.join(sorted(libs_seen))})")
+
         # Build subroutine map
         subroutines = build_subroutine_map(blocks, call_targets, 0)
         stubs = sum(1 for s in subroutines if not s.get("reached", True))
@@ -416,6 +434,18 @@ def build_entities(binary_path: str, output_path: str = None):
 
         # Assign cross-references (reports dropped xrefs)
         fwd_xrefs, rev_xrefs = assign_xrefs(subroutines, xrefs)
+
+        # Build library call map: subroutine addr -> list of OS calls made
+        lib_call_map = defaultdict(list)
+        if lib_calls:
+            sorted_subs = sorted(subroutines, key=lambda s: s["addr"])
+            for call in lib_calls:
+                # Find containing subroutine
+                for sub in sorted_subs:
+                    if sub["addr"] <= call["addr"] < sub["end"]:
+                        lib_call_map[sub["addr"]].append(
+                            f"{call['library']}/{call['function']}")
+                        break
 
         # Build subroutine entities
         stub_count = 0
@@ -442,6 +472,9 @@ def build_entities(binary_path: str, output_path: str = None):
             if addr in rev_xrefs:
                 for field, sources in rev_xrefs[addr].items():
                     ent[field] = sorted(fmt_addr(s) for s in sources)
+            # Add OS library calls made by this subroutine
+            if addr in lib_call_map:
+                ent["os_calls"] = sorted(set(lib_call_map[addr]))
             all_entities.append(ent)
 
         # Build reloc-derived data references for uncovered regions
