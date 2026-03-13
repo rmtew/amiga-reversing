@@ -84,11 +84,110 @@ def get_platform_config() -> dict:
         else:
             raise ValueError(f"Unknown register in calling_convention.scratch_regs: {reg_name}")
 
+    base_reg_name = cc["base_reg"].upper()
+    if not base_reg_name.startswith("A"):
+        raise ValueError(f"calling_convention.base_reg must be An, got {base_reg_name}")
+    base_reg_num = int(base_reg_name[1])
+
+    exec_lib = meta["exec_base_addr"].get("library")
+    if exec_lib is None:
+        raise KeyError("exec_base_addr.library missing from OS KB")
+
     return {
         "scratch_regs": scratch,
         "exec_base_addr": meta["exec_base_addr"]["address"],
+        "exec_base_library": exec_lib,
+        "exec_base_tag": {"library_base": exec_lib},
         "base_reg": cc["base_reg"],
         "return_reg": cc["return_reg"],
+        "_base_reg_num": base_reg_num,
+        "_os_call_resolver": lambda offset, lvo, lib, cpu, code:
+            resolve_call_effects(offset, lvo, lib, cpu, code),
+    }
+
+
+def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
+                         cpu_state, code: bytes,
+                         os_kb: dict | None = None) -> dict | None:
+    """Determine the effects of a library call on register state.
+
+    If the called function has `returns_base` in the KB (e.g. OpenLibrary),
+    and the name-string input register has a concrete value pointing to
+    a readable string in the code, returns a tag for the output register.
+
+    Args:
+        inst_offset: address of the JSR instruction
+        lvo: the LVO displacement (negative)
+        a6_lib: library name currently in A6, or None if unknown
+        cpu_state: current CPU state (to read input register values)
+        code: raw code bytes (to read name strings)
+        os_kb: OS knowledge base
+
+    Returns dict with:
+        {"base_reg": "D0", "tag": {"library_base": "dos.library"}}
+    or None if no special effect.
+    """
+    if os_kb is None:
+        os_kb = load_os_kb()
+
+    if a6_lib is None:
+        return None
+
+    lib_data = os_kb["libraries"].get(a6_lib)
+    if lib_data is None:
+        return None
+
+    lvo_index = lib_data.get("lvo_index", {})
+    func_name = lvo_index.get(str(lvo))
+    if func_name is None:
+        return None
+
+    func = lib_data["functions"].get(func_name, {})
+    rb = func.get("returns_base")
+    if rb is None:
+        return None
+
+    # This function returns a library/resource base.
+    # Read the name string from the register specified in returns_base.name_reg
+    name_reg = rb["name_reg"].upper()
+    base_reg = rb["base_reg"].upper()
+
+    # Parse register name -> (mode, num)
+    if name_reg[0] == "D":
+        reg_val = cpu_state.d[int(name_reg[1])]
+    elif name_reg[0] == "A":
+        reg_val = cpu_state.a[int(name_reg[1])]
+    else:
+        return None
+
+    if not reg_val.is_known:
+        return None
+
+    # Read null-terminated string from code at the register's concrete address
+    addr = reg_val.concrete
+    if addr >= len(code):
+        return None
+
+    name_bytes = []
+    for i in range(64):  # max library name length
+        if addr + i >= len(code):
+            break
+        b = code[addr + i]
+        if b == 0:
+            break
+        name_bytes.append(b)
+
+    if not name_bytes:
+        return None
+
+    try:
+        lib_name = bytes(name_bytes).decode("ascii")
+    except UnicodeDecodeError:
+        return None
+
+    return {
+        "base_reg": base_reg,
+        "tag": {"library_base": lib_name},
     }
 
 
@@ -120,12 +219,17 @@ def _build_lvo_lookup(os_kb: dict) -> dict:
 def identify_library_calls(blocks: dict[int, BasicBlock],
                            code: bytes,
                            os_kb: dict | None = None,
+                           exit_states: dict | None = None,
                            ) -> list[dict]:
     """Identify OS library calls in analyzed code.
 
     Scans for the Amiga library call pattern:
         MOVEA.L ($0004).W,A6    ; load ExecBase
         JSR     -offset(A6)     ; call library function via LVO
+
+    If exit_states is provided (from propagation with platform config),
+    uses library_base tags on A6 to resolve calls through non-exec
+    library bases (e.g. after OpenLibrary stores a dos.library base).
 
     EA field positions read from KB instruction encodings (not hardcoded).
     ExecBase address and library base register from OS KB.
@@ -190,8 +294,16 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
         if not block.instructions:
             continue
 
-        # Track whether base_reg was loaded from ExecBase within this block
-        a6_is_exec = False
+        # Determine library identity for A6 in this block.
+        # Priority: propagated tag (cross-block) > intra-block ExecBase detection.
+        a6_lib = None
+
+        # Check propagated state for A6's library_base tag
+        if exit_states and block_addr in exit_states:
+            cpu, _mem = exit_states[block_addr]
+            a6_val = cpu.a[base_reg_num]
+            if a6_val.tag and "library_base" in a6_val.tag:
+                a6_lib = a6_val.tag["library_base"]
 
         for inst in block.instructions:
             mn = _extract_mnemonic(inst.text)
@@ -218,7 +330,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
 
                     dst_reg = _xf(opcode, movea_dst_spec)
                     if addr_val == exec_base_addr and dst_reg == base_reg_num:
-                        a6_is_exec = True
+                        a6_lib = exec_lib_name
 
             # Detect library call: JSR d(An) where An == base_reg
             if flow.get("type") == "call":
@@ -244,8 +356,9 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                     "lvo": disp,
                 }
 
-                if a6_is_exec:
-                    key = (exec_lib_name, disp)
+                if a6_lib:
+                    # Known library — look up in that library's LVO index
+                    key = (a6_lib, disp)
                     if key in lvo_lookup["by_lib_lvo"]:
                         match = lvo_lookup["by_lib_lvo"][key]
                         call_info["library"] = match["library"]
@@ -253,15 +366,16 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                         if match.get("no_return"):
                             call_info["no_return"] = True
                     else:
-                        call_info["library"] = exec_lib_name
+                        call_info["library"] = a6_lib
                         call_info["function"] = f"LVO_{-disp}"
                 else:
+                    # Unknown library — try ambiguous resolution
                     candidates = lvo_lookup["by_lvo"].get(disp, [])
                     if len(candidates) == 1:
-                        lib_name, func_name, func = candidates[0]
-                        call_info["library"] = lib_name
-                        call_info["function"] = func_name
-                        if func.get("no_return"):
+                        clib, cfunc, cdata = candidates[0]
+                        call_info["library"] = clib
+                        call_info["function"] = cfunc
+                        if cdata.get("no_return"):
                             call_info["no_return"] = True
                     elif candidates:
                         call_info["library"] = "unknown"
@@ -274,7 +388,5 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                         call_info["function"] = f"LVO_{-disp}"
 
                 results.append(call_info)
-
-        # A6 state doesn't propagate across blocks (conservative)
 
     return results

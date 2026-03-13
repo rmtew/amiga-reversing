@@ -1271,6 +1271,37 @@ def main():
                 if check_no_return(doc):
                     entry["no_return"] = True
 
+            # Detect functions that return a library/device/resource base.
+            # Criteria (from autodoc-parsed output type + input signature):
+            # - Output type contains "Library *" and output name suggests base
+            # - OR output name is "resource" (OpenResource returns APTR)
+            # - AND there's a name-string input (STRPTR or APTR with "name"
+            #   in the parameter name)
+            # Parser-asserted: ROM Kernel Reference Manual, Exec chapter.
+            # OpenLibrary/OldOpenLibrary return library base in D0,
+            # OpenResource returns resource base in D0. The name string
+            # input tells us which library/resource is being opened.
+            func_output = entry.get("output", {})
+            out_type = func_output.get("type", "")
+            out_name = func_output.get("name", "")
+            out_reg = func_output.get("reg")
+            if out_reg and (
+                "Library *" in out_type
+                or (out_name == "resource" and out_type in ("APTR", "void *"))
+            ):
+                # Find the name-string input register
+                name_inputs = [
+                    inp for inp in entry.get("inputs", [])
+                    if "name" in inp.get("name", "").lower()
+                    and inp.get("type") in ("STRPTR", "APTR", "char *",
+                                            "UBYTE *", "void *")
+                ]
+                if name_inputs:
+                    entry["returns_base"] = {
+                        "name_reg": name_inputs[0]["reg"],
+                        "base_reg": out_reg,
+                    }
+
             # Version info
             since = fd_func.get("since")
 

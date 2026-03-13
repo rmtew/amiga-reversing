@@ -6666,6 +6666,10 @@
             "type": "struct Library *"
           },
           "description": "The 1.0 release of the Amiga system had an incorrect version of\nOpenLibrary that did not check the version number during the\nlibrary open.  This obsolete function is provided so that object\ncode compiled using a 1.0 system will still run.\n\nThis exactly the same as \"OpenLibrary(libName,0L);\"",
+          "returns_base": {
+            "name_reg": "A1",
+            "base_reg": "D0"
+          },
           "since": "1.0"
         },
         "CloseLibrary": {
@@ -6910,6 +6914,10 @@
             "type": "APTR"
           },
           "description": "This function returns a pointer to a resource that was previously\ninstalled into the system.\n\nThere is no CloseResource() function.",
+          "returns_base": {
+            "name_reg": "A1",
+            "base_reg": "D0"
+          },
           "since": "1.0"
         },
         "execPrivate7": {
@@ -7041,6 +7049,10 @@
           "description": "This function returns a pointer to a library that was previously\ninstalled into the system.  If the requested library is exists, and\nif the library version is greater than or equal to the requested\nversion, then the open will succeed.\n\nThe library may exist in memory, or on disk; this is transparent to\nthe OpenLibrary caller.  Only Processes are allowed to call\nOpenLibrary (since OpenLibrary may in turn call dos.library).\n\nA full path name for the library name is legitimate.  For example\n\"wp:libs/wp.library\".  This allows the use of custom libraries\nwithout requiring the user to copy the library into the system's\nLIBS: directory.",
           "notes": "All calls to OpenLibrary should have matching calls to CloseLibrary!\n\nLibraries on disk cannot be opened until after DOS has been\nstarted.\n\nAs of V36 tasks can safely call OpenLibrary, though DOS may open\nsystem requesters (e.g., asking the user to insert the Workbench\ndisk if LIBS: is not online).  You must call this function from a\nDOS Process if you want to turn off DOS requesters.",
           "bugs": "AmigaDOS file names are not case sensitive, but Exec lists are. If\nthe library name is specified in a different case than it exists on\ndisk, unexpected results may occur.\n\nPrior to V36, tasks could not make OpenLibrary calls requiring disk\naccess (since tasks are not allowed to make dos.library calls).\nNow OpenLibrary is protected from tasks.\n\nThe version number of the resident tag in disk based library must\nmatch the version number of the library, or V36 may fail to load it.",
+          "returns_base": {
+            "name_reg": "A1",
+            "base_reg": "D0"
+          },
           "since": "1.0"
         },
         "InitSemaphore": {

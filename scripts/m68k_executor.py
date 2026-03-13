@@ -213,9 +213,14 @@ def _xf(word: int, field_spec: tuple) -> int:
 
 @dataclass
 class AbstractValue:
-    """A value that may be concrete or symbolic."""
+    """A value that may be concrete or symbolic.
+
+    The optional tag dict carries semantic metadata (e.g., library base
+    identity) that propagates when the value is copied between registers.
+    """
     concrete: int | None = None     # known concrete value, or None if unknown
     label: str | None = None        # symbolic label (e.g., "A0_init", "mem[0x1234]")
+    tag: dict | None = None         # semantic tag (e.g., {"library_base": "dos.library"})
 
     @property
     def is_known(self) -> bool:
@@ -227,12 +232,12 @@ class AbstractValue:
         return f"?{self.label or ''}"
 
 
-def _concrete(val: int) -> AbstractValue:
-    return AbstractValue(concrete=val & 0xFFFFFFFF)
+def _concrete(val: int, tag: dict | None = None) -> AbstractValue:
+    return AbstractValue(concrete=val & 0xFFFFFFFF, tag=tag)
 
 
-def _unknown(label: str = "") -> AbstractValue:
-    return AbstractValue(label=label)
+def _unknown(label: str = "", tag: dict | None = None) -> AbstractValue:
+    return AbstractValue(label=label, tag=tag)
 
 
 def _make_cpu_state_class():
@@ -827,9 +832,14 @@ class AbstractMemory:
 
     def __init__(self):
         self._bytes: dict[int, AbstractValue] = {}  # addr -> byte value
+        self._tags: dict[tuple, dict] = {}  # (addr, nbytes) -> tag dict
 
     def write(self, addr: int, value: AbstractValue, size: str):
-        """Write a value at the given address with the given size."""
+        """Write a value at the given address with the given size.
+
+        If the value has a tag, it is stored separately and recovered
+        on reads from the same address and size.
+        """
         _, _, meta = _load_kb()
         nbytes = meta["size_byte_count"].get(size, 2)
         if value.is_known:
@@ -839,15 +849,20 @@ class AbstractMemory:
                 byte_val = (val >> shift) & 0xFF
                 self._bytes[addr + i] = _concrete(byte_val)
         else:
-            # Unknown value: mark all bytes as unknown
             for i in range(nbytes):
                 self._bytes[addr + i] = _unknown(
                     f"{value.label or '?'}[{i}]" if value.label else "")
+        # Preserve tags through memory round-trips
+        if value.tag:
+            self._tags[(addr, nbytes)] = value.tag
+        elif (addr, nbytes) in self._tags:
+            del self._tags[(addr, nbytes)]
 
     def read(self, addr: int, size: str) -> AbstractValue:
         """Read a value from the given address with the given size.
 
         Returns concrete value only if ALL bytes in the range are known.
+        Restores tags from prior writes at the same address/size.
         """
         _, _, meta = _load_kb()
         nbytes = meta["size_byte_count"].get(size, 2)
@@ -855,14 +870,17 @@ class AbstractMemory:
         for i in range(nbytes):
             bv = self._bytes.get(addr + i)
             if bv is None or not bv.is_known:
-                return _unknown(f"mem[${addr:x}]")
+                tag = self._tags.get((addr, nbytes))
+                return _unknown(f"mem[${addr:x}]", tag=tag)
             result = (result << 8) | (bv.concrete & 0xFF)
-        return _concrete(result)
+        tag = self._tags.get((addr, nbytes))
+        return _concrete(result, tag=tag)
 
     def copy(self) -> "AbstractMemory":
         """Create an independent copy."""
         m = AbstractMemory()
         m._bytes = dict(self._bytes)
+        m._tags = dict(self._tags)
         return m
 
     def known_ranges(self) -> list[tuple[int, int]]:
@@ -887,12 +905,16 @@ class AbstractMemory:
 def _join_values(a: AbstractValue, b: AbstractValue) -> AbstractValue:
     """Join two abstract values at a merge point.
 
-    If both are concrete and equal, keep the value.
-    Otherwise, the result is unknown.
+    If both are concrete and equal, keep the value and tag (if tags agree).
+    Otherwise, the result is unknown (tag preserved if both agree).
     """
     if a.is_known and b.is_known and a.concrete == b.concrete:
-        return a
-    return _unknown()
+        # Concrete values agree — keep tag if both have the same tag
+        tag = a.tag if a.tag == b.tag else None
+        return AbstractValue(concrete=a.concrete, tag=tag)
+    # Values disagree — unknown, but keep tag if both agree
+    tag = a.tag if a.tag is not None and a.tag == b.tag else None
+    return _unknown(tag=tag)
 
 
 def _join_states(states: list) -> tuple:
@@ -1243,8 +1265,46 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             flow_type = inst_kb.get("pc_effects", {}).get(
                 "flow", {}).get("type")
             if flow_type == "call":
+                # Check for library base tagging before invalidation.
+                # If A6 has a library_base tag and this is a d(A6) call,
+                # resolve the call effects (e.g. OpenLibrary returns a
+                # tagged library base in D0).
+                call_effect_tag = None
+                if platform.get("_os_call_resolver"):
+                    a6_tag = cpu.a[platform.get("_base_reg_num", 6)].tag
+                    a6_lib = a6_tag.get("library_base") if a6_tag else None
+                    # Extract LVO displacement from instruction operand
+                    if src_text and "(" in src_text:
+                        paren = src_text.index("(")
+                        disp_str = src_text[:paren].strip()
+                        try:
+                            if disp_str.startswith("-$"):
+                                lvo = -int(disp_str[2:], 16)
+                            elif disp_str.startswith("$"):
+                                lvo = int(disp_str[1:], 16)
+                            elif disp_str.startswith("-"):
+                                lvo = int(disp_str)
+                            else:
+                                lvo = int(disp_str)
+                        except ValueError:
+                            lvo = None
+                        if lvo is not None and a6_lib:
+                            call_effect_tag = platform["_os_call_resolver"](
+                                inst.offset, lvo, a6_lib, cpu, code)
+
                 for reg_mode, reg_num in platform["scratch_regs"]:
                     cpu.set_reg(reg_mode, reg_num, _unknown())
+
+                # Apply call effect tag (e.g. tag D0 as library base)
+                if call_effect_tag:
+                    base_reg = call_effect_tag["base_reg"].upper()
+                    tag = call_effect_tag["tag"]
+                    if base_reg[0] == "D":
+                        cpu.set_reg("dn", int(base_reg[1]),
+                                    _unknown(tag=tag))
+                    elif base_reg[0] == "A":
+                        cpu.set_reg("an", int(base_reg[1]),
+                                    _unknown(tag=tag))
 
         # SP-only instructions (no compute_formula) stop here
         if op is None:
@@ -1300,6 +1360,28 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                 val |= 0xFFFF0000
             val &= 0xFFFFFFFF
             src_val = _concrete(val)
+
+        # Detect ExecBase load: MOVEA.L ($N).W,An where $N matches
+        # platform exec_base_addr.  The absolute address can't be read
+        # from abstract memory, but we know from the OS KB what it points
+        # to — tag the result as the exec library base.
+        if src_val is None and platform and src_text:
+            src_stripped = src_text.strip()
+            # Match ($xxxx).w pattern
+            if src_stripped.startswith("(") and src_stripped.endswith(").w"):
+                inner = src_stripped[1:-3].strip()
+                try:
+                    if inner.startswith("$"):
+                        abs_addr = int(inner[1:], 16)
+                    else:
+                        abs_addr = int(inner)
+                except ValueError:
+                    abs_addr = None
+                if abs_addr is not None:
+                    exec_addr = platform.get("exec_base_addr")
+                    if abs_addr == exec_addr:
+                        src_val = _unknown(
+                            tag=platform.get("exec_base_tag"))
 
         if src_val is not None:
             _write_dst(dst_text, src_val)
