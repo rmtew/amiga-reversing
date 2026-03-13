@@ -27,18 +27,59 @@ from m68k_executor import analyze, BasicBlock, _load_kb
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
-# Relocation pointer sizes by hunk reloc type (from Amiga hunk format spec)
-_RELOC_SIZES = {
-    HunkType.HUNK_RELOC32: 4,
-    HunkType.HUNK_RELOC32SHORT: 4,
-    HunkType.HUNK_DREL32: 4,
-    HunkType.HUNK_RELRELOC32: 4,
-    HunkType.HUNK_RELOC16: 2,
-    HunkType.HUNK_DREL16: 2,
-    HunkType.HUNK_ABSRELOC16: 2,
-    HunkType.HUNK_RELOC8: 2,
-    HunkType.HUNK_DREL8: 1,
+# Relocation type metadata (from Amiga hunk format spec):
+# - bytes: width of the stored value at the reloc offset
+# - mode: how the stored value relates to the target address
+#   "absolute"     — stored value = target offset (loader adds hunk base)
+#   "pc_relative"  — stored value = target - offset (PC-relative displacement)
+#   "data_relative"— stored value = target - data_section_base
+_RELOC_INFO = {
+    HunkType.HUNK_RELOC32:      {"bytes": 4, "mode": "absolute"},
+    HunkType.HUNK_RELOC32SHORT: {"bytes": 4, "mode": "absolute"},
+    HunkType.HUNK_ABSRELOC16:   {"bytes": 2, "mode": "absolute"},
+    HunkType.HUNK_RELOC16:      {"bytes": 2, "mode": "pc_relative"},
+    HunkType.HUNK_RELOC8:       {"bytes": 1, "mode": "pc_relative"},
+    HunkType.HUNK_RELRELOC32:   {"bytes": 4, "mode": "pc_relative"},
+    HunkType.HUNK_DREL32:       {"bytes": 4, "mode": "data_relative"},
+    HunkType.HUNK_DREL16:       {"bytes": 2, "mode": "data_relative"},
+    HunkType.HUNK_DREL8:        {"bytes": 1, "mode": "data_relative"},
 }
+
+# struct format strings by byte width (big-endian, signed for relative)
+_RELOC_ABS_FMT = {4: ">I", 2: ">H"}
+_RELOC_REL_FMT = {4: ">i", 2: ">h", 1: ">b"}
+
+
+def _resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
+    """Resolve a relocation offset to its target address.
+
+    Returns the absolute target offset within the hunk, or None if the
+    reloc type requires context we don't have (data-relative).
+    """
+    info = _RELOC_INFO.get(reloc.reloc_type)
+    if info is None:
+        return None
+    nbytes = info["bytes"]
+    mode = info["mode"]
+    if offset + nbytes > len(data):
+        return None
+
+    if mode == "absolute":
+        fmt = _RELOC_ABS_FMT.get(nbytes)
+        if fmt is None:
+            return None
+        return struct.unpack_from(fmt, data, offset)[0]
+
+    if mode == "pc_relative":
+        fmt = _RELOC_REL_FMT.get(nbytes)
+        if fmt is None:
+            return None
+        disp = struct.unpack_from(fmt, data, offset)[0]
+        return offset + disp
+
+    # data_relative: would need to know data hunk base, which depends on
+    # loader placement — can't resolve statically without more context
+    return None
 
 
 def fmt_addr(addr: int) -> str:
@@ -146,20 +187,18 @@ def build_reloc_references(hunks, code_size: int,
         if hunk.hunk_type != HunkType.HUNK_CODE:
             continue
         for reloc in hunk.relocs:
-            ptr_size = _RELOC_SIZES.get(reloc.reloc_type)
-            if ptr_size is None:
-                continue  # unknown reloc type — skip
-            if ptr_size < 4:
-                continue  # 16/8-bit relocs are displacements, not abs pointers
+            info = _RELOC_INFO.get(reloc.reloc_type)
+            if info is None:
+                continue
             for offset in reloc.offsets:
-                if offset + ptr_size <= len(hunk.data):
-                    target = struct.unpack_from(">I", hunk.data, offset)[0]
-                    if 0 <= target < code_size and not in_known_sub(target):
+                target = _resolve_reloc_target(reloc, offset, hunk.data)
+                if target is not None and 0 <= target < code_size:
+                    if not in_known_sub(target):
                         data_refs.append({
                             "addr": target,
                             "offset": offset,
                             "hunk": hunk.index,
-                            "reloc_type": reloc.reloc_type,
+                            "ptr_size": info["bytes"],
                         })
 
     # Deduplicate by target address
@@ -304,17 +343,13 @@ def build_entities(binary_path: str, output_path: str = None):
         code = hunk.data
         code_size = len(code)
 
-        # Collect extra entry points from 32-bit relocations
+        # Collect extra entry points from relocations
         reloc_targets = set()
         for reloc in hunk.relocs:
-            ptr_size = _RELOC_SIZES.get(reloc.reloc_type)
-            if ptr_size is None or ptr_size < 4:
-                continue  # only 32-bit relocs give absolute addresses
             for offset in reloc.offsets:
-                if offset + ptr_size <= code_size:
-                    target = struct.unpack_from(">I", code, offset)[0]
-                    if 0 <= target < code_size:
-                        reloc_targets.add(target)
+                target = _resolve_reloc_target(reloc, offset, code)
+                if target is not None and 0 <= target < code_size:
+                    reloc_targets.add(target)
 
         print(f"\nRunning executor on hunk #{hunk.index} "
               f"({code_size} bytes, {len(reloc_targets)} reloc targets)...")
@@ -374,9 +409,7 @@ def build_entities(binary_path: str, output_path: str = None):
         data_refs = build_reloc_references(
             [hunk], code_size, subroutines)
         for ref in data_refs:
-            ptr_size = _RELOC_SIZES.get(ref.get("reloc_type",
-                                                  HunkType.HUNK_RELOC32), 4)
-            ref_end = ref["addr"] + ptr_size
+            ref_end = ref["addr"] + ref["ptr_size"]
             all_entities.append({
                 "addr": fmt_addr(ref["addr"]),
                 "end": fmt_addr(ref_end),
