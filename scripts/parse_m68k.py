@@ -191,7 +191,9 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
                    ea_brief_ext_word: list[dict] | None = None,
                    movem_reg_masks: dict[str, list[str]] | None = None,
                    nop_opword: int | None = None,
-                   asm_syntax_index: dict[str, str] | None = None) -> dict:
+                   asm_syntax_index: dict[str, str] | None = None,
+                   cc_aliases: dict[str, str] | None = None,
+                   immediate_routing: dict[str, str] | None = None) -> dict:
     # Track B parser-assertion: CCR bit positions within SR from PDF p21,
     # Figure 1-8 "Status Register". The figure shows a 16-bit SR diagram with
     # bit numbers 15..0 and labels: bit 0=C (Carry), 1=V (Overflow), 2=Z (Zero),
@@ -226,6 +228,10 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
         meta["nop_opword"] = nop_opword
     if asm_syntax_index is not None:
         meta["asm_syntax_index"] = asm_syntax_index
+    if cc_aliases is not None:
+        meta["cc_aliases"] = cc_aliases
+    if immediate_routing is not None:
+        meta["immediate_routing"] = immediate_routing
     return {
         "_meta": meta,
         "instructions": kb_data,
@@ -4045,6 +4051,133 @@ def _extract_displacement_encoding(kb_data):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Phase 15: Mnemonic alias extraction
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _extract_cc_aliases(doc):
+    """Extract condition code aliases from PDF Table 3-19 parenthetical notation.
+
+    The PDF's Table 3-19 "Conditional Tests" lists some condition codes with
+    parenthetical alternate names: CC(HS) and CS(LO).  Phase 0 strips these
+    to get the primary mnemonic; here we re-scan the same table to capture the
+    alias mappings.
+
+    Also asserts DBRA → DBF: PDF p189 (DBcc) describes condition code F (False,
+    encoding 0001) which "always decrements the counter and branches".  The
+    mnemonic DBRA ("Decrement and Branch Always") is the universally-used alias
+    for DBF in all M68K assemblers, but the PDF does not explicitly state this
+    equivalence.  Asserted because: (1) every M68K assembler recognises DBRA,
+    (2) the Motorola M68K Family reference card lists DBRA as a synonym for DBF,
+    (3) DBRA has no other possible interpretation.
+
+    Returns dict mapping alias_suffix → canonical_suffix, e.g. {"hs": "cc", ...}
+    """
+    aliases = {}
+    pending_aliases = []
+    # Primary CC mnemonics from Phase 0 (already extracted into global CC_TABLE)
+    primary_ccs = set(CC_TABLE.values())
+
+    # Scan PDF Table 3-19 for parenthetical alternate names
+    for pn in range(70, 120):
+        page = doc[pn]
+        text = page.get_text()
+        if "Conditional Tests" not in text:
+            continue
+
+        spans = extract_page_spans(page)
+        rows = spans_to_rows(spans)
+        sorted_ys = sorted(rows.keys())
+
+        for idx, y_key in enumerate(sorted_ys):
+            row_texts = " ".join(t for _, _, t, _, _ in rows[y_key])
+            if "Mnemonic" not in row_texts or "Encoding" not in row_texts:
+                continue
+
+            # Found the table header — parse subsequent data rows
+            for next_idx in range(idx + 1, min(idx + 25, len(sorted_ys))):
+                next_y = sorted_ys[next_idx]
+                next_row = rows[next_y]
+
+                # Find mnemonic text with parenthetical alias
+                for _, _, text_span, _, _ in next_row:
+                    if len(text_span) == 4 and all(c in "01" for c in text_span):
+                        continue  # skip encoding
+                    # Match patterns like "CC(HI)" or "CS(LO)"
+                    alias_match = re.match(
+                        r"([A-Za-z]+)\(([A-Za-z]+)\)", text_span.rstrip("*"))
+                    if alias_match:
+                        primary = alias_match.group(1).lower()
+                        alt = alias_match.group(2).lower()
+                        pending_aliases.append((alt, primary))
+
+            break  # only process first matching page
+
+    # Filter: only keep aliases that don't conflict with primary CC names.
+    # PDF shows "CC(HI)" but HI is already code 2 ("High"), so that
+    # parenthetical is descriptive, not an assembler alias.  Only "LO"
+    # (not a primary CC) is a genuine assembler alias for CS.
+    for alt, primary in pending_aliases:
+        if alt not in primary_ccs:
+            aliases[alt] = primary
+
+    # Parser-asserted: DBRA → DBF.  See docstring for justification.
+    # PDF p189 Section 4, DBcc instruction.
+    aliases["ra"] = "f"
+
+    return aliases
+
+
+def _extract_immediate_routing(kb_data):
+    """Build immediate routing map from KB instruction data.
+
+    When the PDF defines both a general instruction (ADD) and an immediate-
+    specific variant (ADDI), they are functionally equivalent for #imm source
+    operands.  This map lets assemblers route ADD #imm,Dn through ADDI for
+    shorter/canonical encoding.
+
+    Detection: instruction mnemonic ends with "I", the base instruction
+    (mnemonic without trailing "I") exists in the KB, AND either:
+      (a) title contains "Immediate", or
+      (b) the immediate instruction has a form with first operand type "imm"
+          and the base instruction has an opmode_table (general-purpose ALU)
+
+    Returns dict mapping base_mnemonic → immediate_mnemonic, e.g. {"ADD": "ADDI"}.
+    """
+    by_mnemonic = {inst["mnemonic"]: inst for inst in kb_data}
+    routing = {}
+
+    for inst in kb_data:
+        mn = inst["mnemonic"]
+        # Must end with "I" and not contain spaces (skip "ORI to CCR" etc.)
+        if not mn.endswith("I") or " " in mn:
+            continue
+
+        base = mn[:-1]
+        base_inst = by_mnemonic.get(base)
+        if base_inst is None:
+            continue
+
+        title = inst.get("title", "")
+        # Check title contains "Immediate"
+        if "Immediate" in title:
+            routing[base] = mn
+            continue
+
+        # Fallback: check structural match — immediate inst has #imm form,
+        # base inst has opmode_table (general-purpose ALU instruction)
+        has_imm_form = any(
+            f.get("operands", [{}])[0].get("type") == "imm"
+            for f in inst.get("forms", [])
+            if f.get("operands")
+        )
+        has_opmode = bool(base_inst.get("constraints", {}).get("opmode_table"))
+        if has_imm_form and has_opmode:
+            routing[base] = mn
+
+    return routing
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Phase 13: Direction field value extraction
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -4281,6 +4414,16 @@ def main():
     disp_count = _extract_displacement_encoding(kb_data)
     print(f"  Instructions with displacement_encoding: {disp_count}")
 
+    # Phase 15: Extract mnemonic aliases and immediate routing
+    # CC aliases from PDF Table 3-19 parenthetical notation (e.g. CC(HS) → hs=cc)
+    # plus parser-asserted DBRA → DBF. Immediate routing from title pattern matching
+    # (ADDI title "Add Immediate" → ADD routes to ADDI for #imm operands).
+    print("Phase 15: Extracting mnemonic aliases...")
+    cc_aliases = _extract_cc_aliases(doc)
+    immediate_routing = _extract_immediate_routing(kb_data)
+    print(f"  CC aliases: {cc_aliases}")
+    print(f"  Immediate routing: {immediate_routing}")
+
     # Track B parser-assertion: EXG encoding field boundaries.
     # PDF p128 Figure shows OPMODE as bits 7:3 (5 bits) and REGISTER Ry as
     # bits 2:0 (3 bits). The PDF text extraction misparses these as 7:4 and
@@ -4313,7 +4456,7 @@ def main():
             if outpath.exists():
                 outpath.unlink()
             with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, movem_masks, nop_opword, asm_syntax_index), f, indent=2, ensure_ascii=False)
+                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, movem_masks, nop_opword, asm_syntax_index, cc_aliases, immediate_routing), f, indent=2, ensure_ascii=False)
             print(f"\nWrote {len(kb_data)} instructions to {outpath}")
         else:
             print(f"\n(dry run, {len(kb_data)} instructions would be written)")

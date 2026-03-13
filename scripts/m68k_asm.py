@@ -387,17 +387,29 @@ def _parse_mnemonic_size(text):
 def _resolve_cc_mnemonic(mnemonic_lower):
     """Check if mnemonic is a cc-parameterized variant (e.g. 'beq' → Bcc, cc=1).
 
+    Also handles CC aliases from KB _meta.cc_aliases (e.g. 'dbra' → DBcc with
+    cc=F, 'blo' → Bcc with cc=CS).
+
     Returns (kb_inst, cc_index) or None.
     """
     families = _kb_cc_families()
+    cc_idx = _kb_cc_index()
+    cc_aliases = _kb_meta().get("cc_aliases", {})
+
     for prefix, (kb_mnemonic, cc_param) in families.items():
         if mnemonic_lower.startswith(prefix) and len(mnemonic_lower) > len(prefix):
             cc_suffix = mnemonic_lower[len(prefix):]
-            cc_idx = _kb_cc_index()
+            # Direct CC match
             if cc_suffix in cc_idx:
                 excluded = set(cc_param.get("excluded", []))
                 if cc_suffix not in excluded:
                     return _kb()[kb_mnemonic], cc_idx[cc_suffix]
+            # Alias CC match (e.g. "ra" → "f", "lo" → "cs")
+            canonical = cc_aliases.get(cc_suffix)
+            if canonical and canonical in cc_idx:
+                excluded = set(cc_param.get("excluded", []))
+                if canonical not in excluded:
+                    return _kb()[kb_mnemonic], cc_idx[canonical]
     return None
 
 
@@ -1814,6 +1826,19 @@ def assemble_instruction(text, pc=0):
         mode_count = sum(1 for f in enc["fields"] if f["name"] == "MODE")
         if mode_count >= 2:
             return _assemble_two_ea(inst, resolution, operands[0], operands[1])
+
+    # Immediate routing: ADD #imm,<ea> → ADDI #imm,<ea> (canonical encoding)
+    # Driven by KB _meta.immediate_routing, which maps general-purpose
+    # mnemonics to their immediate-specific variants.
+    if (len(operands) == 2 and operands[0].strip().startswith("#")
+            and inst.get("constraints", {}).get("opmode_table")):
+        imm_routing = _kb_meta().get("immediate_routing", {})
+        imm_mnemonic = imm_routing.get(mnemonic)
+        if imm_mnemonic and imm_mnemonic in _kb():
+            imm_inst = _kb()[imm_mnemonic]
+            imm_resolution = {**resolution, "inst": imm_inst}
+            return _assemble_immediate(imm_inst, imm_resolution,
+                                       operands[0], operands[1])
 
     # Instructions with opmode table (ADD, SUB, AND, OR, CMP)
     if inst.get("constraints", {}).get("opmode_table") and len(operands) == 2:

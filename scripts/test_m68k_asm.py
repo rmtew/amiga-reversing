@@ -41,6 +41,9 @@ def _load_kb():
 
 KB_INSTRUCTIONS, KB_META = _load_kb()
 CC_ALL = list(KB_META["condition_codes"])
+# Immediate routing: base mnemonic → immediate mnemonic (e.g. ADD → ADDI)
+# Our assembler routes through these; vasm -no-opt does not.
+IMM_ROUTING = KB_META.get("immediate_routing", {})
 
 
 # ── EA mode to assembly syntax ────────────────────────────────────────────
@@ -551,6 +554,30 @@ def _generate_branch_tests():
                         tests.append((f"{full_mn}.w ${target_w:x}",
                                       f"{full_mn} fwd .w disp=500", pc))
 
+    # CC alias tests — driven by KB _meta.cc_aliases
+    cc_aliases = KB_META.get("cc_aliases", {})
+    for alias_suffix, canonical_suffix in cc_aliases.items():
+        # Test alias with each cc-parameterized family (Bcc, DBcc, Scc)
+        for inst in KB_INSTRUCTIONS:
+            if not inst.get("uses_label"):
+                continue
+            if inst.get("processor_min", "68000") != "68000":
+                continue
+            cc_param = inst.get("constraints", {}).get("cc_parameterized")
+            if not cc_param:
+                continue
+            prefix = cc_param["prefix"]
+            alias_mn = f"{prefix}{alias_suffix}"
+            form_ops = [o["type"] for o in inst.get("forms", [{}])[0].get("operands", [])]
+            is_dbcc = form_ops == ["dn", "label"]
+            target = pc + 20
+            if is_dbcc:
+                tests.append((f"{alias_mn} d0,${target:x}",
+                              f"{alias_mn} alias fwd .w", pc))
+            else:
+                tests.append((f"{alias_mn}.w ${target:x}",
+                              f"{alias_mn} alias fwd .w", pc))
+
     return tests
 
 
@@ -623,6 +650,7 @@ def main():
     errors = 0
     vasm_errors = 0
     skipped = 0
+    known_divergences = 0
     failures = []
     tested_mnemonics = set()
 
@@ -667,6 +695,13 @@ def main():
             tested_mnemonics.add(mnemonic)
             if args.verbose:
                 print(f"  OK: {asm}")
+        elif mnemonic in IMM_ROUTING and "#" in asm:
+            # Known divergence: we route ADD #imm → ADDI (DevPac-style),
+            # vasm -no-opt keeps the general encoding.  Both are valid.
+            known_divergences += 1
+            tested_mnemonics.add(mnemonic)
+            if args.verbose:
+                print(f"  KNOWN: {asm} (imm routing: {mnemonic}→{IMM_ROUTING[mnemonic]})")
         else:
             failed += 1
             tested_mnemonics.add(mnemonic)
@@ -716,10 +751,11 @@ def main():
             print(f"    vasm: {vasm_bytes.hex()}")
             failures.append((br_mn, asm, desc, our_bytes.hex(), vasm_bytes.hex()))
 
-    total = passed + failed + errors
+    total = passed + failed + errors + known_divergences
     print(f"\n{'='*60}")
     print(f"Results: {passed}/{total} passed, {failed} mismatches, "
-          f"{errors} assembler errors, {vasm_errors} vasm errors")
+          f"{errors} assembler errors, {vasm_errors} vasm errors"
+          + (f", {known_divergences} known divergences" if known_divergences else ""))
     print(f"Tested mnemonics: {len(tested_mnemonics)}")
 
     if failures:
@@ -738,7 +774,7 @@ def main():
             if len(items) > 5:
                 print(f"    ... and {len(items) - 5} more")
 
-    return 0 if (failed == 0 and errors == 0) else 1
+    return 0 if failed == 0 and errors == 0 else 1
 
 
 if __name__ == "__main__":

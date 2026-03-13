@@ -346,6 +346,18 @@
       "reset:": "RESET",
       "rte:": "RTE",
       "stop:imm": "STOP"
+    },
+    "cc_aliases": {
+      "lo": "cs",
+      "ra": "f"
+    },
+    "immediate_routing": {
+      "ADD": "ADDI",
+      "AND": "ANDI",
+      "CMP": "CMPI",
+      "EOR": "EORI",
+      "OR": "ORI",
+      "SUB": "SUBI"
     }
   },
   "instructions": [

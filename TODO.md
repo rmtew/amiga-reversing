@@ -26,21 +26,21 @@ Extract all instruction metadata from the PDF into `m68k_instructions.json`.
 - [x] Flag control-flow instructions (branch, jump, call, return, trap) with conditional flag
 - [x] Emit per-instruction `pc_effects` in JSON (22 control flow, no hardcoded mnemonic names)
 
-## Phase 2: Data-Driven Assembler (in progress)
+## Phase 2: Data-Driven Assembler (done)
 
 Reverse of the disassembler, driven from the same JSON.
-`scripts/m68k_asm.py` — 1295 tests, 88 mnemonics, 0 failures.
+`scripts/m68k_asm.py` — 1299 tests, 90 mnemonics, 0 failures, 27 known divergences (imm routing).
 
 - [x] Operand syntax → EA mode bits (parse register names, addressing modes, immediates)
 - [x] Opword construction from encoding bit patterns + operand fields
 - [x] Extension word generation (displacements, immediate data, bit fields)
 - [x] Size suffix → size field encoding
 - [x] Verify against vasm: assemble with both, binary-diff every instruction × operand × size
-- [x] Verify against DevPac GenAm 3.18: 1245/1270 passed, 25 divergences (all valid alternate encodings)
+- [x] Verify against DevPac GenAm 3.18: 1296/1300 passed, 4 divergences (3 CMP imm + 1 EXG order)
 - [x] Per-assembler behavior JSON: `knowledge/asm_vasm.json`, `knowledge/asm_devpac.json`
 - [x] Branch/label support with PC-relative displacement calculation
 - [x] SR/CCR/USP operand support (separate KB instructions)
-- [ ] Auto-routing aliases (ADD #imm,<ea> → ADDI, DBRA → DBF)
+- [x] Auto-routing aliases (ADD #imm → ADDI, DBRA → DBF, BLO → BCS)
 
 ## Phase 3: Data-Driven Effect Predictor (done)
 

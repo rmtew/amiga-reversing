@@ -55,9 +55,10 @@
   "encoding_behaviors": [
     {
       "id": "imm_dn_auto_route",
-      "description": "Routes ADD/AND/OR/SUB/CMP/EOR #imm,Dn to dedicated immediate instruction (ADDI/ANDI/ORI/SUBI/CMPI/EORI)",
-      "affected_mnemonics": ["ADD", "AND", "OR", "SUB", "CMP", "EOR"],
-      "behavior": "When assembling <OP> #imm,Dn, GenAm always emits the ADDI/ANDI/etc. encoding rather than the general-purpose <OP> with immediate EA mode",
+      "description": "Routes ADD/AND/OR/SUB/EOR #imm,Dn to dedicated immediate instruction (ADDI/ANDI/ORI/SUBI/EORI), but NOT CMP→CMPI",
+      "affected_mnemonics": ["ADD", "AND", "OR", "SUB", "EOR"],
+      "not_affected": ["CMP"],
+      "behavior": "When assembling <OP> #imm,Dn, GenAm emits the ADDI/ANDI/etc. encoding rather than the general-purpose <OP> with immediate EA mode. Exception: CMP #imm,Dn keeps the general CMP encoding (does not route to CMPI)",
       "example": {
         "input": "add.b #$12,d1",
         "genam_encoding": "06010012",
@@ -86,12 +87,12 @@
   ],
   "tested": {
     "total_tests": 1296,
-    "passed": 1271,
-    "mismatches": 25,
+    "passed": 1292,
+    "mismatches": 4,
     "genam_errors": 4,
-    "mnemonics_tested": 88,
+    "mnemonics_tested": 87,
     "mismatch_categories": {
-      "imm_dn_auto_route": 24,
+      "cmp_imm_no_route": 3,
       "exg_operand_order": 1
     },
     "genam_error_categories": {

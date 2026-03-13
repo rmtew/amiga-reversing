@@ -55,13 +55,18 @@
     }
   ],
   "tested": {
-    "total_tests": 1269,
-    "passed": 1269,
+    "total_tests": 1295,
+    "passed": 1268,
     "mismatches": 0,
+    "known_divergences": 27,
     "vasm_errors": 5,
-    "mnemonics_tested": 76,
+    "mnemonics_tested": 87,
+    "divergence_categories": {
+      "imm_routing": 27
+    },
     "vasm_error_categories": {
       "020_plus_instructions": 5
-    }
+    },
+    "notes": "27 known divergences: our assembler routes ADD/AND/OR/SUB/CMP/EOR #imm to ADDI/etc (DevPac-style), vasm -no-opt keeps general encoding. Both valid."
   }
 }
