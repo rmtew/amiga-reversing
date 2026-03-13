@@ -1,7 +1,8 @@
 {
   "_meta": {
+    "schema": "asm_oracle_v1",
     "description": "DevPac GenAm 3.18 assembler behavior documentation",
-    "source": "Empirical testing via vamos against 1270 instruction variants",
+    "source": "Empirical testing via vamos against instruction variants",
     "version": "3.18",
     "test_date": "2026-03-13"
   },
@@ -9,77 +10,70 @@
   "cli": {
     "executable": "GenAm",
     "usage": "GenAm FROM/A TO/K WITH/K INCDIR/K/M HEADER/K/M QUIET/S",
-    "output_format": "amiga_hunk",
-    "output_formats_available": {
+    "output_formats": {
       "amiga_executable": "default",
       "alink_object": "-L3",
       "srec": "-L6"
     },
-    "no_raw_binary": true,
-    "notes": "GenAm always wraps output in Amiga hunk format; no -Fbin equivalent"
+    "notes": "GenAm always wraps output in Amiga hunk format; no raw binary equivalent"
   },
   "options": {
     "cpu_select": "OPT P=68000",
-    "optimizations_off": "OPT O-",
+    "no_optimization": "OPT O-",
     "quiet": "QUIET",
-    "suppress_binary": "-b",
-    "output_file": "-o <filename>",
-    "notes": "Each OPT must be on its own line; comma-separated OPTs on one line cause errors"
+    "output_file": "-o <filename>"
   },
-  "return_codes": {
-    "0": "OK",
-    "5": "warnings",
-    "10": "errors",
-    "20": "fatal",
-    "100+": "initialization failure"
-  },
-  "auto_config": {
-    "opts_file": "GenAm.opts",
-    "behavior": "Auto-loaded from GenAm's directory if present",
-    "vamos_issue": "incdir paths in shipped opts file don't exist under vamos, causing errors"
-  },
-  "directives": {
-    "org": {
-      "syntax": "ORG <expression>",
-      "description": "Sets program counter to absolute value; generates position-dependent code",
-      "restriction": "Not allowed for linkable code (default Amiga executable mode)",
-      "notes": "Normal AmigaDOS programs do not need ORG. More than one ORG allowed but no padding is done.",
-      "source": "DevPac 3.00 manual"
+  "platform_notes": {
+    "return_codes": {
+      "0": "OK",
+      "5": "warnings",
+      "10": "errors",
+      "20": "fatal",
+      "100+": "initialization failure"
     },
-    "pc_relative_star": {
-      "syntax": "*+N or *-N",
-      "description": "Current PC reference; works in all output modes including linkable code",
-      "notes": "Used for branch targets in testing since ORG is forbidden in default executable mode"
-    }
+    "auto_config": {
+      "opts_file": "GenAm.opts",
+      "behavior": "Auto-loaded from GenAm's directory if present",
+      "vamos_issue": "incdir paths in shipped opts file don't exist under vamos, causing errors"
+    },
+    "directives": {
+      "org": {
+        "syntax": "ORG <expression>",
+        "restriction": "Not allowed for linkable code (default Amiga executable mode)",
+        "source": "DevPac 3.00 manual"
+      },
+      "pc_relative_star": {
+        "syntax": "*+N or *-N",
+        "notes": "Used for branch targets in testing since ORG is forbidden in default executable mode"
+      }
+    },
+    "option_notes": "Each OPT must be on its own line; comma-separated OPTs on one line cause errors"
   },
   "encoding_behaviors": [
     {
       "id": "imm_dn_auto_route",
-      "description": "Routes ADD/AND/OR/SUB/EOR #imm,Dn to dedicated immediate instruction (ADDI/ANDI/ORI/SUBI/EORI), but NOT CMP→CMPI",
+      "description": "Routes ADD/AND/OR/SUB/EOR #imm,Dn to dedicated immediate instruction, but NOT CMP",
       "affected_mnemonics": ["ADD", "AND", "OR", "SUB", "EOR"],
       "not_affected": ["CMP"],
-      "behavior": "When assembling <OP> #imm,Dn, GenAm emits the ADDI/ANDI/etc. encoding rather than the general-purpose <OP> with immediate EA mode. Exception: CMP #imm,Dn keeps the general CMP encoding (does not route to CMPI)",
+      "both_valid": true,
       "example": {
         "input": "add.b #$12,d1",
-        "genam_encoding": "06010012",
-        "genam_mnemonic": "ADDI",
-        "general_encoding": "d23c0012",
-        "general_mnemonic": "ADD with #imm EA"
-      },
-      "both_valid": true,
-      "note": "Both encodings produce identical results; ADDI is shorter for .l size (4 bytes vs 6 bytes for ADD #imm,Dn)"
+        "this_encoding": "06010012",
+        "other_encoding": "d23c0012"
+      }
     }
   ],
   "tested": {
     "total_tests": 1301,
     "passed": 1298,
     "mismatches": 3,
-    "genam_errors": 5,
+    "known_divergences": 0,
+    "oracle_errors": 5,
     "mnemonics_tested": 90,
     "mismatch_categories": {
       "cmp_imm_no_route": 3
     },
-    "genam_error_categories": {
+    "oracle_error_categories": {
       "020_plus_instructions": 5
     }
   }
