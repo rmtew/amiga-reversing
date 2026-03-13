@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze, BasicBlock, _load_kb
+from jump_tables import detect_jump_tables
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -354,21 +355,43 @@ def build_entities(binary_path: str, output_path: str = None):
         print(f"\nRunning executor on hunk #{hunk.index} "
               f"({code_size} bytes, {len(reloc_targets)} reloc targets)...")
 
-        result = analyze(code, base_addr=0,
-                         entry_points=[0] + sorted(reloc_targets))
+        # Iterative analysis: discover blocks, detect jump tables,
+        # add table targets as new entry points, repeat until stable.
+        all_entry_points = {0} | reloc_targets
+        max_passes = 5
+        for pass_num in range(1, max_passes + 1):
+            result = analyze(code, base_addr=0,
+                             entry_points=sorted(all_entry_points))
+            blocks = result["blocks"]
 
-        blocks = result["blocks"]
+            tables = detect_jump_tables(blocks, code, base_addr=0)
+            new_targets = set()
+            for t in tables:
+                new_targets.update(t["targets"])
+            new_targets -= set(blocks.keys())
+            new_targets -= all_entry_points
+
+            if pass_num == 1 or new_targets:
+                covered = sum(b.end - b.start for b in blocks.values())
+                total_instr = sum(len(b.instructions)
+                                  for b in blocks.values())
+                jt_msg = (f", {len(tables)} jump tables"
+                          if tables else "")
+                print(f"  Pass {pass_num}: {len(blocks)} blocks, "
+                      f"{total_instr} instructions, "
+                      f"{covered}/{code_size} bytes "
+                      f"({100 * covered / code_size:.1f}%)"
+                      f"{jt_msg}")
+
+            if not new_targets:
+                break
+            all_entry_points |= new_targets
+
         xrefs = result["xrefs"]
         call_targets = result["call_targets"]
-
-        total_instr = sum(len(b.instructions) for b in blocks.values())
-        covered = sum(b.end - b.start for b in blocks.values())
-        print(f"  {len(blocks)} blocks, {total_instr} instructions, "
-              f"{len(xrefs)} xrefs")
-        print(f"  {len(call_targets)} call targets, "
+        print(f"  {len(xrefs)} xrefs, "
+              f"{len(call_targets)} call targets, "
               f"{len(result['branch_targets'])} branch targets")
-        print(f"  Coverage: {covered}/{code_size} bytes "
-              f"({100 * covered / code_size:.1f}%)")
 
         # Build subroutine map
         subroutines = build_subroutine_map(blocks, call_targets, 0)
