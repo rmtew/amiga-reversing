@@ -621,12 +621,9 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             # Look up source .i files from KB struct definitions
             includes = set()
             for struct_name in sorted(used_structs):
-                struct_def = os_kb["structs"].get(struct_name)
-                if struct_def and struct_def.get("source"):
-                    # source is like "EXEC/INTERRUPTS.I" — normalize to
-                    # lower case relative path for INCLUDE directive
-                    inc_path = struct_def["source"].lower()
-                    includes.add(inc_path)
+                struct_def = os_kb["structs"][struct_name]
+                inc_path = struct_def["source"].lower()
+                includes.add(inc_path)
 
             if includes:
                 with open(output_path, "r") as f:

@@ -174,8 +174,8 @@ def _build_struct_field_map(struct_def: dict) -> dict[int, str]:
     """Build offset -> field_name map from KB struct definition."""
     return {
         f["offset"]: f["name"]
-        for f in struct_def.get("fields", [])
-        if f.get("type") != "LABEL"
+        for f in struct_def["fields"]
+        if f["type"] != "LABEL"
     }
 
 
@@ -188,6 +188,11 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
     set.  All instructions between the setter and the call that use
     d(An) on the typed register get struct field annotations.
 
+    Register write detection uses text heuristic (destination is the
+    last comma-separated operand).  This covers MOVE/MOVEA/LEA/CLR
+    but not all M68K instructions.  A KB-driven approach would require
+    per-instruction destination field extraction from encodings.
+
     Returns: {inst_offset: {reg: {"struct": "IS", "fields": {14: "IS_DATA", ...}}}}
     """
     structs = os_kb["structs"]
@@ -195,67 +200,50 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
 
     for call in lib_calls:
         # Collect struct-typed input registers
-        typed_inputs = {}  # reg_name_lower -> struct_def
+        typed_inputs = {}  # reg_name_lower -> i_struct name
         for inp in call.get("inputs", []):
             i_struct = inp.get("i_struct")
             if i_struct and i_struct in structs:
-                reg = inp["reg"].lower()
-                typed_inputs[reg] = i_struct
+                typed_inputs[inp["reg"].lower()] = i_struct
 
         if not typed_inputs:
             continue
 
-        # Find the containing block
-        block_addr = call.get("block")
-        if block_addr is None or block_addr not in blocks:
-            continue
-        block = blocks[block_addr]
-        instrs = block.instructions
-        if not instrs:
+        block = blocks.get(call["block"])
+        if not block or not block.instructions:
             continue
 
         # Find the call instruction index
-        call_addr = call["addr"]
         call_idx = None
-        for i, inst in enumerate(instrs):
-            if inst.offset == call_addr:
+        for i, inst in enumerate(block.instructions):
+            if inst.offset == call["addr"]:
                 call_idx = i
                 break
         if call_idx is None:
             continue
 
-        # For each typed register, walk backward to find where it was set.
-        # Then annotate all instructions from setter to call.
+        # For each typed register, walk backward to find where it was
+        # set, then annotate all instructions from setter to call.
         for reg, struct_name in typed_inputs.items():
             field_map = _build_struct_field_map(structs[struct_name])
 
-            # Walk backward from the instruction before the call
-            setter_idx = None
+            # Walk backward: find last instruction that writes to reg.
+            # Heuristic: destination is the last comma-separated operand.
+            setter_idx = 0
             for j in range(call_idx - 1, -1, -1):
-                text = instrs[j].text.strip().lower()
-                # Check if this instruction writes to the register.
-                # Simple heuristic: the register appears after a comma
-                # (destination) or is the sole operand target.
-                parts = text.split(None, 1)
+                parts = block.instructions[j].text.strip().lower().split(
+                    None, 1)
                 if len(parts) < 2:
                     continue
-                operands = parts[1]
-                dst = operands.split(",")[-1].strip()
+                dst = parts[1].split(",")[-1].strip()
                 if dst == reg:
                     setter_idx = j
                     break
 
-            if setter_idx is None:
-                # Register set before the block — annotate from block start
-                setter_idx = 0
-
-            # Annotate all instructions in [setter_idx, call_idx] that
-            # access d(reg)
+            # Annotate all instructions in [setter_idx, call_idx]
             for j in range(setter_idx, call_idx + 1):
-                inst_off = instrs[j].offset
-                if inst_off not in result:
-                    result[inst_off] = {}
-                result[inst_off][reg] = {
+                off = block.instructions[j].offset
+                result.setdefault(off, {})[reg] = {
                     "struct": struct_name,
                     "fields": field_map,
                 }
