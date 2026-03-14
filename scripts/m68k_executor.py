@@ -1786,8 +1786,10 @@ def propagate_states(blocks: dict[int, BasicBlock],
         else:
             initial_mem = AbstractMemory()
 
-    # Map block_start -> list of (cpu_state, memory) from predecessors
-    incoming: dict[int, list[tuple]] = {}
+    # Map block_start -> {source_key: (cpu_state, memory)}
+    # Keyed by source so each predecessor overwrites its previous
+    # contribution instead of accumulating across fixpoint iterations.
+    incoming: dict[int, dict] = {}
     # Map block_start -> (exit_cpu_state, exit_memory) after execution
     exit_states: dict[int, tuple] = {}
 
@@ -1797,7 +1799,8 @@ def propagate_states(blocks: dict[int, BasicBlock],
     entry_blocks = [addr for addr, b in blocks.items() if b.is_entry]
     for entry in entry_blocks:
         if not blocks[entry].predecessors:
-            incoming[entry] = [(initial_state.copy(), initial_mem.copy())]
+            incoming[entry] = {"_init": (initial_state.copy(),
+                                        initial_mem.copy())}
 
     work = deque(entry_blocks)
     visited = set()
@@ -1811,9 +1814,10 @@ def propagate_states(blocks: dict[int, BasicBlock],
             continue
 
         block = blocks[addr]
-        pred_states = incoming.get(addr, [])
-        if not pred_states:
+        pred_dict = incoming.get(addr)
+        if not pred_dict:
             continue
+        pred_states = list(pred_dict.values())
 
         # Join incoming states
         cpu, mem = _join_states(pred_states)
@@ -1881,15 +1885,15 @@ def propagate_states(blocks: dict[int, BasicBlock],
                         if caller_val.tag:
                             ft_cpu.set_reg(reg_mode, reg_num,
                                            _unknown(tag=caller_val.tag))
-                incoming.setdefault(ft_dst, []).append(
-                    (ft_cpu, exit_mem))
+                incoming.setdefault(ft_dst, {})[addr] = \
+                    (ft_cpu, exit_mem)
                 work.append(ft_dst)
             else:
                 # No summary — propagate into callee (for exit state
                 # discovery) and SP-adjusted to fallthrough.
                 if call_dst:
-                    incoming.setdefault(call_dst, []).append(
-                        (exit_cpu, exit_mem))
+                    incoming.setdefault(call_dst, {})[addr] = \
+                        (exit_cpu, exit_mem)
                     work.append(call_dst)
                 adj_cpu = exit_cpu.copy()
                 if exit_cpu.sp.is_known:
@@ -1898,17 +1902,17 @@ def propagate_states(blocks: dict[int, BasicBlock],
                         & 0xFFFFFFFF)
                 elif exit_cpu.sp.is_symbolic:
                     adj_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
-                incoming.setdefault(ft_dst, []).append(
-                    (adj_cpu, exit_mem))
+                incoming.setdefault(ft_dst, {})[addr] = \
+                    (adj_cpu, exit_mem)
                 work.append(ft_dst)
         elif ft_dst:
-            incoming.setdefault(ft_dst, []).append(
-                (exit_cpu, exit_mem))
+            incoming.setdefault(ft_dst, {})[addr] = \
+                (exit_cpu, exit_mem)
             work.append(ft_dst)
 
         for xref in other_xrefs:
-            incoming.setdefault(xref.dst, []).append(
-                (exit_cpu, exit_mem))
+            incoming.setdefault(xref.dst, {})[addr] = \
+                (exit_cpu, exit_mem)
             work.append(xref.dst)
 
     return exit_states
