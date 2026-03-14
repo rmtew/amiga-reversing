@@ -43,11 +43,17 @@ def _normalize_cpu(cpu_name: str | None) -> str:
     return cpu_name
 
 
+_KB_PAYLOAD_CACHE = None
+
 def _load_kb_payload() -> tuple[list[dict], dict]:
+    global _KB_PAYLOAD_CACHE
+    if _KB_PAYLOAD_CACHE is not None:
+        return _KB_PAYLOAD_CACHE
     path = Path(__file__).resolve().parent.parent / "knowledge" / "m68k_instructions.json"
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return data["instructions"], data["_meta"]
+    _KB_PAYLOAD_CACHE = (data["instructions"], data["_meta"])
+    return _KB_PAYLOAD_CACHE
 
 
 def _kb_encoding_masks(enc_idx: int) -> dict[str, tuple[int, int]]:
