@@ -533,16 +533,14 @@ def build_entities(binary_path: str, output_path: str = None):
         # Assign cross-references (reports dropped xrefs)
         fwd_xrefs, rev_xrefs = assign_xrefs(subroutines, xrefs)
 
-        # Build library call map: subroutine addr -> list of OS calls made
+        # Build library call map: subroutine addr -> list of OS calls
         lib_call_map = defaultdict(list)
         if lib_calls:
             sorted_subs = sorted(subroutines, key=lambda s: s["addr"])
             for call in lib_calls:
-                # Find containing subroutine
                 for sub in sorted_subs:
                     if sub["addr"] <= call["addr"] < sub["end"]:
-                        lib_call_map[sub["addr"]].append(
-                            f"{call['library']}/{call['function']}")
+                        lib_call_map[sub["addr"]].append(call)
                         break
 
         # Build subroutine entities
@@ -572,7 +570,27 @@ def build_entities(binary_path: str, output_path: str = None):
                     ent[field] = sorted(fmt_addr(s) for s in sources)
             # Add OS library calls made by this subroutine
             if addr in lib_call_map:
-                ent["os_calls"] = sorted(set(lib_call_map[addr]))
+                calls = lib_call_map[addr]
+                ent["os_calls"] = sorted(set(
+                    f"{c['library']}/{c['function']}" for c in calls))
+                # Collect typed register annotations from KB
+                typed_calls = []
+                for c in calls:
+                    entry = {"call": f"{c['library']}/{c['function']}"}
+                    if c.get("inputs"):
+                        entry["inputs"] = {
+                            inp["reg"]: inp["type"]
+                            for inp in c["inputs"]
+                            if inp.get("reg") and inp.get("type")
+                        }
+                    if c.get("output") and c["output"].get("type"):
+                        entry["output"] = {
+                            c["output"]["reg"]: c["output"]["type"]
+                        }
+                    if "inputs" in entry or "output" in entry:
+                        typed_calls.append(entry)
+                if typed_calls:
+                    ent["os_call_types"] = typed_calls
             all_entities.append(ent)
 
         # Build reloc-derived data references for uncovered regions

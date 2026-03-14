@@ -213,7 +213,8 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
 
     Returns list of dicts:
         {"addr": int, "block": int, "library": str, "function": str,
-         "lvo": int, "no_return": bool}
+         "lvo": int, "no_return": bool,
+         "inputs": [...], "output": {...}}  (when KB has type info)
     """
     if os_kb is None:
         os_kb = load_os_kb()
@@ -332,6 +333,10 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                         call_info["function"] = match["function"]
                         if match.get("no_return"):
                             call_info["no_return"] = True
+                        if match.get("inputs"):
+                            call_info["inputs"] = match["inputs"]
+                        if match.get("output"):
+                            call_info["output"] = match["output"]
                     else:
                         call_info["library"] = a6_lib
                         call_info["function"] = f"LVO_{-disp}"
@@ -344,6 +349,10 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                         call_info["function"] = cfunc
                         if cdata.get("no_return"):
                             call_info["no_return"] = True
+                        if cdata.get("inputs"):
+                            call_info["inputs"] = cdata["inputs"]
+                        if cdata.get("output"):
+                            call_info["output"] = cdata["output"]
                     elif candidates:
                         call_info["library"] = "unknown"
                         call_info["function"] = f"LVO_{-disp}"
