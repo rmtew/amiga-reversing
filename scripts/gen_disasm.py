@@ -273,21 +273,72 @@ def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
     return text
 
 
+def _is_printable_ascii(b: int) -> bool:
+    """Check if a byte is printable ASCII (space through tilde)."""
+    return 0x20 <= b <= 0x7E
+
+
+def _try_read_string(code: bytes, pos: int, end: int) -> str | None:
+    """Try to read a null-terminated ASCII string at pos.
+
+    Returns the string if valid (>=4 printable chars + null terminator),
+    or None.  Allows tab ($09) and newline ($0A) within strings.
+    """
+    chars = []
+    i = pos
+    while i < end:
+        b = code[i]
+        if b == 0:
+            # Null terminator — valid string if long enough
+            if len(chars) >= 4:
+                return "".join(chars)
+            return None
+        if _is_printable_ascii(b) or b in (0x09, 0x0A):
+            chars.append(chr(b))
+        else:
+            return None
+        i += 1
+    return None
+
+
+def _emit_string(f, s: str, indent: str):
+    """Emit a null-terminated string as dc.b with vasm quoting."""
+    # vasm Motorola syntax: dc.b "text",0
+    # Escape special chars: split on non-printable, emit as mixed
+    parts = []
+    current = []
+    for ch in s:
+        if _is_printable_ascii(ord(ch)) and ch != '"':
+            current.append(ch)
+        else:
+            if current:
+                parts.append('"' + "".join(current) + '"')
+                current = []
+            parts.append(f"${ord(ch):02x}")
+    if current:
+        parts.append('"' + "".join(current) + '"')
+    parts.append("0")  # null terminator
+    f.write(f"{indent}dc.b    {','.join(parts)}\n")
+
+
 def emit_data_region(f, code: bytes, start: int, end: int,
                      labels: dict[int, str], reloc_map: dict[int, int],
-                     indent: str = "    "):
-    """Emit a data/unknown region as dc.b/dc.l directives.
+                     string_addrs: set[int], indent: str = "    "):
+    """Emit a data/unknown region as structured directives.
 
-    At reloc offsets, emits dc.l with label reference.
-    Otherwise emits dc.b with hex bytes (16 per line).
+    Classification priority at each position:
+    1. Relocated longword → dc.l label
+    2. Verified string (at a labeled PC-relative target) → dc.b "text",0
+    3. Zero padding (4+ consecutive zero bytes) → dcb.b N,0
+    4. Raw bytes → dc.b hex dump
     """
     pos = start
     while pos < end:
-        # Check for label at this position
+        # Emit label
         if pos != start and pos in labels:
             f.write(f"{labels[pos]}:\n")
 
-        # Check for reloc at this position
+        # 1. Relocated longword
         if pos in reloc_map and pos + 4 <= end:
             target = reloc_map[pos]
             if target in labels:
@@ -298,17 +349,43 @@ def emit_data_region(f, code: bytes, start: int, end: int,
             pos += 4
             continue
 
-        # Find how many bytes until next label or reloc or end
-        chunk_end = end
-        for a in range(pos + 1, end):
-            if a in labels or a in reloc_map:
-                chunk_end = a
-                break
+        # 2. Verified string at a known PC-relative target
+        if pos in string_addrs:
+            s = _try_read_string(code, pos, end)
+            if s:
+                _emit_string(f, s, indent)
+                pos += len(s) + 1  # string + null
+                continue
 
-        # Emit dc.b in rows of 16
+        # 3. Zero padding (4+ consecutive zero bytes)
+        if code[pos] == 0:
+            zero_end = pos + 1
+            while zero_end < end and code[zero_end] == 0:
+                # Stop at labels and relocs
+                if zero_end in labels or zero_end in reloc_map:
+                    break
+                zero_end += 1
+            count = zero_end - pos
+            if count >= 4:
+                f.write(f"{indent}dcb.b   {count},0\n")
+                pos = zero_end
+                continue
+
+        # 4. Raw bytes until next boundary
+        chunk_end = pos + 1
+        while chunk_end < end:
+            if (chunk_end in labels or chunk_end in reloc_map
+                    or chunk_end in string_addrs):
+                break
+            # Stop before zero runs of 4+
+            if (code[chunk_end] == 0 and chunk_end + 3 < end
+                    and all(code[chunk_end + i] == 0 for i in range(4))):
+                break
+            chunk_end += 1
+
         chunk = code[pos:chunk_end]
         for i in range(0, len(chunk), 16):
-            row = chunk[i:i+16]
+            row = chunk[i:i + 16]
             hex_vals = ",".join(f"${b:02x}" for b in row)
             f.write(f"{indent}dc.b    {hex_vals}\n")
         pos = chunk_end
@@ -408,7 +485,11 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
 
         # Discover PC-relative targets (strings, data tables)
         pc_targets = discover_pc_relative_targets(blocks, code, kb)
-        print(f"  {len(pc_targets)} PC-relative targets")
+        # String addresses: only PC-relative-verified targets
+        string_addrs = {addr for addr, name in pc_targets.items()
+                        if name.startswith("str_")}
+        print(f"  {len(pc_targets)} PC-relative targets "
+              f"({len(string_addrs)} verified strings)")
 
         # Build label map
         labels = build_label_map(
@@ -450,7 +531,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                             # Invalid decode — emit as raw bytes
                             emit_data_region(f, code, inst.offset,
                                              inst.offset + inst.size,
-                                             labels, reloc_map)
+                                             labels, reloc_map,
+                                             string_addrs)
                             data_bytes += inst.size
                         else:
                             text = replace_targets_in_text(
@@ -471,7 +553,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                            and data_end not in labels):
                         data_end += 1
                     emit_data_region(f, code, pos, data_end,
-                                     labels, reloc_map)
+                                     labels, reloc_map, string_addrs)
                     data_bytes += data_end - pos
                     pos = data_end
 
