@@ -93,24 +93,17 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
                          platform: dict | None = None) -> dict | None:
     """Determine the effects of a library call on register state.
 
-    Handles two KB fields:
+    Handles three KB fields, in priority order:
     - `returns_base` (OpenLibrary etc.): tags result register as library base
     - `returns_memory` (AllocMem etc.): assigns sentinel concrete value to
       result register, enabling base-relative memory tracking
+    - `output` (all typed functions): tags result register with OS type
 
-    Args:
-        inst_offset: address of the JSR instruction
-        lvo: the LVO displacement (negative)
-        a6_lib: library name currently in A6, or None if unknown
-        cpu_state: current CPU state (to read input register values)
-        code: raw code bytes (to read name strings)
-        os_kb: OS knowledge base
-        platform: platform config (for sentinel allocation)
-
-    Returns dict with:
+    Returns dict with one of:
         {"base_reg": "D0", "tag": {"library_base": "dos.library"}}
-        or {"result_reg": "D0", "concrete": 0x80000000}  (for returns_memory)
-    or None if no special effect.
+        {"result_reg": "D0", "concrete": 0x80000000}
+        {"output_reg": "D0", "output_type": {"os_type": "void *", ...}}
+    or None if no effect can be determined.
     """
     if os_kb is None:
         os_kb = load_os_kb()
@@ -137,9 +130,13 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
         if reg_val.is_known:
             lib_name = read_string_at(code, reg_val.concrete)
             if lib_name:
+                output = func.get("output", {})
+                tag = {"library_base": lib_name}
+                if output.get("type"):
+                    tag["os_type"] = output["type"]
                 return {
                     "base_reg": rb["base_reg"],
-                    "tag": {"library_base": lib_name},
+                    "tag": tag,
                 }
 
     # Check returns_memory (AllocMem, AllocVec, etc.)
@@ -154,6 +151,19 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
                 "result_reg": rm["result_reg"],
                 "concrete": sentinel,
             }
+
+    # Generic output type tag from KB
+    output = func.get("output")
+    if output and output.get("reg") and output.get("type"):
+        return {
+            "output_reg": output["reg"],
+            "output_type": {
+                "os_type": output["type"],
+                "os_result": output.get("name"),
+                "call": func_name,
+                "library": a6_lib,
+            },
+        }
 
     return None
 

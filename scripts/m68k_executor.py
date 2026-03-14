@@ -1343,6 +1343,12 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                             call_effect["result_reg"])
                         cpu.set_reg(mode, num, _concrete(
                             call_effect["concrete"]))
+                    elif "output_type" in call_effect:
+                        # OS call output type tag
+                        mode, num = _parse_reg_from_text(
+                            call_effect["output_reg"])
+                        cpu.set_reg(mode, num,
+                                    _unknown(tag=call_effect["output_type"]))
 
         # SP-only instructions (no compute_formula) stop here
         if op is None:
