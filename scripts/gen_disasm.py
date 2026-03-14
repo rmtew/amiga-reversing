@@ -46,65 +46,51 @@ def discover_pc_relative_targets(blocks: dict, code: bytes,
                                  kb: KB) -> dict[int, str]:
     """Discover PC-relative operand targets in flow-verified blocks.
 
-    Scans for non-indexed d(PC) operands, computes target addresses,
-    and names them based on content (string → str_XXXX, else pcref_XXXX).
-    Indexed d(PC,Xn) operands are skipped (not statically resolvable).
+    Handles both EA modes from KB ea_mode_encoding:
+    - pcdisp d(PC): target = PC + opword_bytes + d (fully resolved)
+    - pcindex d(PC,Xn): base = PC + opword_bytes + d (index unknown,
+      but the base address IS statically known and should be labeled
+      for readability — e.g. jump table base)
 
+    Names targets based on content: string → str_XXXX, else pcref_XXXX.
     Target computation uses KB opword_bytes for PC offset.
     """
-    pc_re = re.compile(r'(-?\d+)\(pc\)\s*$', re.IGNORECASE)
-    # Match d(pc) but NOT d(pc,Xn) — the regex requires end-of-operand
-    # or comma-then-register after (pc), excluding indexed forms.
+    # Match both d(pc) and d(pc,Xn) — extract displacement from either
+    pc_re = re.compile(r'(-?\d+)\(pc[),]', re.IGNORECASE)
+
+    # Build set of all instruction byte ranges to exclude targets
+    # that fall inside instructions (e.g. jmp 0(pc,d0.w) where the
+    # base address IS the extension word location).
+    instr_ranges = set()
+    for blk in blocks.values():
+        for inst in blk.instructions:
+            for a in range(inst.offset, inst.offset + inst.size):
+                instr_ranges.add(a)
 
     targets = {}  # addr → name
     for blk in blocks.values():
         for inst in blk.instructions:
-            # Check each operand for d(pc) — split on comma outside parens
             text = inst.text.strip()
             parts = text.split(None, 1)
             if len(parts) < 2:
                 continue
-            operands = parts[1]
-            # Check both source and destination operands
-            for operand in _split_operands(operands):
-                m = pc_re.search(operand)
-                if not m:
-                    continue
-                disp = int(m.group(1))
-                target = inst.offset + kb.opword_bytes + disp
-                if target < 0 or target >= len(code):
-                    continue
-                if target in targets:
-                    continue
-                # Name based on content
-                s = read_string_at(code, target)
-                if s and len(s) >= 3:
-                    # Sanitize string to identifier
-                    clean = re.sub(r'[^a-zA-Z0-9_]', '_', s[:24]).strip('_')
-                    clean = clean.lower()
-                    if clean and clean[0].isdigit():
-                        clean = "s_" + clean
-                    targets[target] = f"str_{target:04x}"
-                else:
-                    targets[target] = f"pcref_{target:04x}"
+            m = pc_re.search(parts[1])
+            if not m:
+                continue
+            disp = int(m.group(1))
+            target = inst.offset + kb.opword_bytes + disp
+            if target < 0 or target >= len(code) or target in targets:
+                continue
+            # Skip targets inside instruction bytes (encoding artifacts)
+            if target in instr_ranges:
+                continue
+            # Name based on content at target
+            s = read_string_at(code, target)
+            if s and len(s) >= 3:
+                targets[target] = f"str_{target:04x}"
+            else:
+                targets[target] = f"pcref_{target:04x}"
     return targets
-
-
-def _split_operands(operands: str) -> list[str]:
-    """Split operand string on comma, respecting parentheses."""
-    result = []
-    depth = 0
-    start = 0
-    for i, ch in enumerate(operands):
-        if ch == '(':
-            depth += 1
-        elif ch == ')':
-            depth -= 1
-        elif ch == ',' and depth == 0:
-            result.append(operands[start:i].strip())
-            start = i + 1
-    result.append(operands[start:].strip())
-    return result
 
 
 def build_label_map(entities: list[dict], blocks: dict,
@@ -172,11 +158,16 @@ def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
                 continue
             if rtype not in abs_types:
                 continue
-            # Get byte width from KB
-            nbytes = reloc_sem.get(rtype.name, {}).get("bytes", 4)
+            # Get byte width from KB — error if missing
+            sem = reloc_sem.get(rtype.name)
+            if sem is None:
+                raise KeyError(
+                    f"relocation_semantics missing for {rtype.name}")
+            nbytes = sem["bytes"]
             fmt = {4: ">I", 2: ">H"}.get(nbytes)
             if fmt is None:
-                continue
+                raise ValueError(
+                    f"Unsupported reloc byte width {nbytes} for {rtype.name}")
             for offset in reloc.offsets:
                 if offset + nbytes <= len(hunk.data):
                     target = struct.unpack_from(fmt, hunk.data, offset)[0]
@@ -223,7 +214,7 @@ def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
     # Check all extension word offsets for relocations.
     # Handles both immediates (#$XXXX) and absolute addresses ($XXXXXXXX).
     for ext_off in range(inst_offset + opword_bytes,
-                         inst_offset + inst_size - 3):
+                         inst_offset + inst_size):
         if ext_off not in reloc_map:
             continue
         target = reloc_map[ext_off]
@@ -247,18 +238,19 @@ def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
                               operands, count=1, flags=re.IGNORECASE)
             return f"{mnemonic} {operands}"
 
-    # PC-relative: NNN(pc) → label(pc).
-    # Only non-indexed: \(pc\) matches the closing paren right after "pc",
-    # which excludes indexed forms like NNN(pc,Dn.w) where the paren
-    # doesn't close until after the index register.
-    pc_match = re.search(r'(-?\d+)\(pc\)', operands, re.IGNORECASE)
+    # PC-relative: NNN(pc) → label(pc) or NNN(pc,Xn) → label(pc,Xn).
+    # For both pcdisp and pcindex modes, the base address PC + d is known.
+    # The index register (if present) is preserved in the output.
+    pc_match = re.search(r'(-?\d+)\(pc([),])', operands, re.IGNORECASE)
     if pc_match:
         disp = int(pc_match.group(1))
         target = inst_offset + opword_bytes + disp
         if target in labels:
-            operands = operands[:pc_match.start()] + \
-                f"{labels[target]}(pc)" + \
-                operands[pc_match.end():]
+            delim = pc_match.group(2)  # ')' for pcdisp, ',' for pcindex
+            # Replace displacement with label, keep delimiter and rest
+            operands = (operands[:pc_match.start()] +
+                        f"{labels[target]}(pc{delim}" +
+                        operands[pc_match.end():])
             return f"{mnemonic} {operands}"
 
     # Branch/jump targets: $XXXX at end of operand string
@@ -377,8 +369,9 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         all_blocks = result["blocks"]
 
         # Filter to flow-verified blocks: reachable from address 0
-        # through control flow edges.  Reloc-target entry blocks with
-        # no predecessors may be data pointers, not code.
+        # through control flow edges (successors) AND call xrefs.
+        # Reloc-target entry blocks with no predecessors may be data
+        # pointers, not code — they're excluded unless reachable.
         verified = set()
         work = [0]
         while work:
@@ -386,22 +379,12 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             if addr in verified or addr not in all_blocks:
                 continue
             verified.add(addr)
-            for succ in all_blocks[addr].successors:
-                work.append(succ)
-        # Also include reloc-target blocks that ARE reachable (called
-        # from verified code)
-        for addr in list(verified):
             blk = all_blocks[addr]
+            for succ in blk.successors:
+                work.append(succ)
             for xref in blk.xrefs:
-                if xref.type == "call" and xref.dst in all_blocks:
-                    w2 = [xref.dst]
-                    while w2:
-                        a = w2.pop()
-                        if a in verified or a not in all_blocks:
-                            continue
-                        verified.add(a)
-                        for s in all_blocks[a].successors:
-                            w2.append(s)
+                if xref.type == "call":
+                    work.append(xref.dst)
 
         blocks = {a: all_blocks[a] for a in verified}
         code_addrs = set()
