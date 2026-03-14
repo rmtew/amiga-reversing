@@ -2,38 +2,56 @@
 
 Parses both executable (HUNK_HEADER) and object (HUNK_UNIT) files.
 All data is big-endian (Motorola byte order).
+
+Type IDs and format metadata loaded from amiga_hunk_format.json (KB),
+generated from NDK 3.1 DOSHUNKS.H by parse_hunk_format.py.
 """
 
+import json
 import struct
 from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
 
 
-class HunkType(IntEnum):
-    HUNK_UNIT = 0x3E7
-    HUNK_NAME = 0x3E8
-    HUNK_CODE = 0x3E9
-    HUNK_DATA = 0x3EA
-    HUNK_BSS = 0x3EB
-    HUNK_RELOC32 = 0x3EC
-    HUNK_RELOC16 = 0x3ED
-    HUNK_RELOC8 = 0x3EE
-    HUNK_EXT = 0x3EF
-    HUNK_SYMBOL = 0x3F0
-    HUNK_DEBUG = 0x3F1
-    HUNK_END = 0x3F2
-    HUNK_HEADER = 0x3F3
-    HUNK_OVERLAY = 0x3F5
-    HUNK_BREAK = 0x3F6
-    HUNK_DREL32 = 0x3F7
-    HUNK_DREL16 = 0x3F8
-    HUNK_DREL8 = 0x3F9
-    HUNK_LIB = 0x3FA
-    HUNK_INDEX = 0x3FB
-    HUNK_RELOC32SHORT = 0x3FC
-    HUNK_RELRELOC32 = 0x3FD
-    HUNK_ABSRELOC16 = 0x3FE
+# ── KB-driven type definitions ────────────────────────────────────────────
+
+def _load_hunk_kb():
+    """Load hunk format KB. Returns the parsed JSON dict."""
+    path = Path(__file__).resolve().parent.parent / "knowledge" / "amiga_hunk_format.json"
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+def _build_enum(name, kb_section, base_class=IntEnum):
+    """Build an IntEnum from a KB section {name: {id: N, ...}}."""
+    members = {}
+    for entry_name, entry in kb_section.items():
+        if "id" in entry:
+            members[entry_name] = entry["id"]
+    return base_class(name, members)
+
+_HUNK_KB = _load_hunk_kb()
+
+HunkType = _build_enum("HunkType", _HUNK_KB["hunk_types"])
+ExtType = _build_enum("ExtType", _HUNK_KB["ext_types"])
+
+# Memory flags from KB (bit positions)
+_mem_flags = _HUNK_KB.get("memory_flags", {})
+_CHIP_BIT = _mem_flags.get("HUNKB_CHIP", {}).get("bit", 30)
+_FAST_BIT = _mem_flags.get("HUNKB_FAST", {}).get("bit", 31)
+
+# Reloc format metadata: which types use short (16-bit) format
+_short_reloc_types = set()
+for fmt in _HUNK_KB.get("reloc_formats", {}).values():
+    if any(f.get("type") == "UWORD" for f in fmt.get("fields", [])
+           if f.get("name") == "count"):
+        for name in fmt.get("applies_to", []):
+            if name in HunkType.__members__:
+                _short_reloc_types.add(HunkType[name])
+
+# V37 compatibility: HUNK_DREL32 (1015) means RELOC32SHORT in load files.
+# From DOSHUNKS.H: "V37 LoadSeg uses 1015 (HUNK_DREL32) by mistake."
+_DREL32_AS_SHORT_IN_LOADFILES = True  # from compatibility_notes
 
 
 class MemType(IntEnum):
@@ -41,24 +59,6 @@ class MemType(IntEnum):
     CHIP = 1
     FAST = 2
     EXTENDED = 3
-
-
-class ExtType(IntEnum):
-    EXT_SYMB = 0
-    EXT_DEF = 1
-    EXT_ABS = 2
-    EXT_RES = 3
-    EXT_REF32 = 129
-    EXT_COMMON = 130
-    EXT_REF16 = 131
-    EXT_REF8 = 132
-    EXT_DEXT32 = 133
-    EXT_DEXT16 = 134
-    EXT_DEXT8 = 135
-    EXT_RELREF32 = 136
-    EXT_RELCOMMON = 137
-    EXT_ABSREF16 = 138
-    EXT_ABSREF8 = 139
 
 
 @dataclass
@@ -327,7 +327,8 @@ def _parse_executable(r: _Reader, hf: HunkFile):
     # Read hunk contents
     for i in range(num_hunks):
         alloc_size, mem = hunk_allocs[i]
-        hunk = _parse_hunk_block(r, i + first_hunk, alloc_size, mem)
+        hunk = _parse_hunk_block(r, i + first_hunk, alloc_size, mem,
+                                is_executable=True)
         hf.hunks.append(hunk)
 
 
@@ -363,7 +364,8 @@ def _parse_object(r: _Reader, hf: HunkFile):
             break
 
 
-def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int) -> Hunk:
+def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
+                      is_executable: bool = False) -> Hunk:
     """Parse a single hunk block (CODE/DATA/BSS) and its associated sub-blocks."""
     raw_type = r.read_u32()
     hunk_id = _parse_hunk_id(raw_type)
@@ -408,19 +410,12 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int) -> Hunk
             r.read_u32()  # consume type
             hunk.relocs.extend(_parse_reloc(r, sub_id))
         elif sub_id == HunkType.HUNK_DREL32:
-            # 0x3F7: ambiguous — officially HUNK_DREL32 (32-bit format)
-            # but vasm uses it for short relocs (16-bit format).
-            # Detect by checking if the first 32-bit word is a plausible
-            # count (small) or looks like two 16-bit values.
+            # DOSHUNKS.H: "V37 LoadSeg uses 1015 (HUNK_DREL32) by
+            # mistake... HUNK_DREL32 is illegal in load files anyways."
+            # In executables: 1015 = short relocs (16-bit format).
+            # In object files: 1015 = data-relative relocs (32-bit).
             r.read_u32()  # consume type
-            saved = r.pos
-            first_u32 = r.read_u32()
-            r.pos = saved
-            first_u16 = (first_u32 >> 16) & 0xFFFF
-            if first_u32 == 0 or (first_u16 > 0 and first_u16 < 0x8000
-                                  and first_u32 > hunk.alloc_size):
-                # First 32-bit word is too large for a count but the
-                # upper 16 bits are a plausible count → short format
+            if is_executable:
                 hunk.relocs.extend(_parse_reloc32short(r))
             else:
                 hunk.relocs.extend(_parse_reloc(r, sub_id))
