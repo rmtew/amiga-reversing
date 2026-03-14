@@ -276,12 +276,15 @@ def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
 
 
 def replace_struct_fields(text: str, inst_offset: int,
-                          struct_map: dict[int, dict]) -> str:
+                          struct_map: dict[int, dict],
+                          used_structs: set[str]) -> str:
     """Replace d(An) displacements with struct field names.
 
     When a register at this instruction offset is known to hold a struct
     pointer, numeric displacements that match field offsets are replaced
     with the field name: 18(a1) -> IS_CODE(a1).
+
+    Adds used struct names to used_structs for INCLUDE generation.
 
     struct_map: {inst_offset: {reg: {"struct": name, "fields": {off: name}}}}
     """
@@ -296,13 +299,13 @@ def replace_struct_fields(text: str, inst_offset: int,
         if reg in reg_types:
             field_name = reg_types[reg]["fields"].get(disp)
             if field_name:
+                used_structs.add(reg_types[reg]["struct"])
                 return f"{field_name}({m.group(2)}{rest}"
         return m.group(0)
 
     parts = text.split(None, 1)
     if len(parts) < 2:
         return text
-    # Match: number(aX) or number(aX,...)
     new_ops = re.sub(r'(-?\d+)\((a\d)([),])', _replace_disp, parts[1])
     if new_ops != parts[1]:
         return f"{parts[0]} {new_ops}"
@@ -546,8 +549,11 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
 
         # Generate output
         print(f"Writing {output_path}...")
+        used_structs = set()  # struct names used in field substitutions
         with open(output_path, "w") as f:
-            f.write("; Generated disassembly — vasm Motorola syntax\n")
+            # Header placeholder — INCLUDEs inserted after emission
+            header_pos = f.tell()
+            f.write("; Generated disassembly -- vasm Motorola syntax\n")
             f.write("; Source: " + str(binary_path) + "\n")
             f.write(f"; {code_size} bytes, "
                     f"{len(hunk_entities)} entities, "
@@ -584,7 +590,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                                 inst.text, inst.offset, inst.size,
                                 labels, reloc_map, kb.opword_bytes)
                             text = replace_struct_fields(
-                                text, inst.offset, struct_map)
+                                text, inst.offset, struct_map,
+                                used_structs)
                             f.write(f"    {text}\n")
                             instr_count += 1
                     pos = blk.end
@@ -606,6 +613,36 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
 
             print(f"  {instr_count} instructions, "
                   f"{data_bytes} data bytes emitted")
+
+        # Insert INCLUDE directives for used struct definitions.
+        # The .I files define the field offset constants (e.g., IS_CODE EQU 18)
+        # that the struct field substitution uses.
+        if used_structs:
+            # Look up source .i files from KB struct definitions
+            includes = set()
+            for struct_name in sorted(used_structs):
+                struct_def = os_kb["structs"].get(struct_name)
+                if struct_def and struct_def.get("source"):
+                    # source is like "EXEC/INTERRUPTS.I" — normalize to
+                    # lower case relative path for INCLUDE directive
+                    inc_path = struct_def["source"].lower()
+                    includes.add(inc_path)
+
+            if includes:
+                with open(output_path, "r") as f:
+                    content = f.read()
+                # Insert after the header comments, before section directive
+                insert_point = content.index("    section code,code")
+                include_block = ""
+                for inc in sorted(includes):
+                    include_block += f'    INCLUDE "{inc}"\n'
+                include_block += "\n"
+                content = (content[:insert_point] + include_block
+                           + content[insert_point:])
+                with open(output_path, "w") as f:
+                    f.write(content)
+                print(f"  {len(includes)} INCLUDE directives for "
+                      f"{len(used_structs)} struct types")
 
     print(f"\nDone: {output_path}")
 
