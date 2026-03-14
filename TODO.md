@@ -193,7 +193,17 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Audit: _RELOC_INFO loaded from KB `relocation_semantics`, not hardcoded dict
 - [x] Audit: build_reloc_map handles all absolute reloc types from KB
 - GenAm results: 59.2% coverage, 336 subroutines, 477 entities, 13 named, 454 call pairs
-- [ ] Improve coverage beyond 59% (function pointers in d(A6) slots, more pattern recognition)
+- [ ] Improve coverage beyond 59%:
+  - [ ] Add dispatch pattern D to `jump_tables.py`: LEA d(PC),An; MOVE.W d(An,Dn),Dn; JSR d(An,Dn)
+    - Self-relative word-offset table at $0E9A, 19 entries, targets $1050-$2CA2
+    - Same semantic as pattern B but uses JSR and separate MOVE.W for table read
+  - [ ] Trace function pointer stores: init code writes handler addresses to d(A6), later code
+    loads from d(A6) and calls indirectly — executor needs to connect the store->load->call chain
+    - Largest gap: addressing mode parser at $16E0-$1D14 (2KB, unreachable via call graph)
+    - Called through d(A6) function pointer, not direct BSR/JSR
+  - [x] Coverage gap diagnostic: `scripts/coverage_gaps.py` identifies root causes
+    - 16 orphan relocs (JSR/JMP in undecoded code), 446 trailing returns, 128 string table entries
+    - All trace back to: indirect dispatch through d(A6) function pointers
 - [x] Disassembly generator: `scripts/gen_disasm.py` → `disasm/genam.s`
   - Flow-verified blocks only (reloc-target entries filtered to reachable-from-entry-0)
   - Label replacement: branch targets, relocated absolutes, PC-relative, immediates
