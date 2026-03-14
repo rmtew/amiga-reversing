@@ -1302,6 +1302,37 @@ def main():
                         "base_reg": out_reg,
                     }
 
+            # Detect functions that return allocated memory.
+            # Criteria (from NDK autodocs): output type is a pointer
+            # (void *, APTR) and output name contains "memory" or "block"
+            # or function name starts with "Alloc" and returns a pointer.
+            # Parser-asserted: ROM Kernel Manual, Memory Allocation chapter.
+            # AllocMem returns memory block in D0, AllocVec likewise.
+            # The size input register carries the allocation size.
+            if out_reg and not entry.get("returns_base"):
+                is_alloc_return = False
+                if func_name.startswith("Alloc") and out_type in (
+                        "void *", "APTR", "UBYTE *", "BYTE *",
+                        "struct MemList *"):
+                    is_alloc_return = True
+                elif ("memory" in out_name.lower()
+                      or "block" in out_name.lower()) and out_type in (
+                        "void *", "APTR"):
+                    is_alloc_return = True
+                if is_alloc_return:
+                    # Find the size input register (byteSize, memSize, etc.)
+                    size_inputs = [
+                        inp for inp in entry.get("inputs", [])
+                        if "size" in inp.get("name", "").lower()
+                        or "bytesize" in inp.get("name", "").lower()
+                    ]
+                    entry["returns_memory"] = {
+                        "result_reg": out_reg,
+                    }
+                    if size_inputs:
+                        entry["returns_memory"]["size_reg"] = \
+                            size_inputs[0]["reg"]
+
             # Version info
             since = fd_func.get("since")
 

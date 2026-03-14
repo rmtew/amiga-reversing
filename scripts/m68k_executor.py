@@ -15,8 +15,7 @@ import struct
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from m68k_compute import (predict_cc, predict_sp, evaluate_cc_test,
-                          _compute_result, _size_mask, _to_signed)
+from m68k_compute import _to_signed
 from m68k_disasm import disassemble, Instruction, DecodeError, _Decoder, _decode_one
 
 
@@ -53,10 +52,9 @@ def _load_kb():
     meta["_num_data_regs"] = len(data_regs)
     meta["_num_addr_regs"] = len(addr_regs)
     # SP register number: highest address register (a7 -> 7)
-    if addr_regs:
-        meta["_sp_reg_num"] = int(addr_regs[-1][1:])
-    else:
-        meta["_sp_reg_num"] = 7  # fallback
+    if not addr_regs:
+        raise KeyError("KB movem_reg_masks has no address registers")
+    meta["_sp_reg_num"] = int(addr_regs[-1][1:])
 
     _KB_CACHE["by_name"] = by_name
     _KB_CACHE["list"] = instructions
@@ -797,9 +795,9 @@ def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
                            reg_field["bit_hi"] - reg_field["bit_lo"] + 1))
 
         # Use EA mode encoding from KB to determine addressing mode
-        absw_enc = ea_enc.get("absw", [7, 0])
-        absl_enc = ea_enc.get("absl", [7, 1])
-        pcdisp_enc = ea_enc.get("pcdisp", [7, 2])
+        absw_enc = ea_enc["absw"]
+        absl_enc = ea_enc["absl"]
+        pcdisp_enc = ea_enc["pcdisp"]
 
         if mode == absw_enc[0] and reg == absw_enc[1]:
             if len(raw) >= opword_bytes + 2:
@@ -1045,6 +1043,19 @@ def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
     return None
 
 
+def _parse_disp(s: str) -> int | None:
+    """Parse a displacement string: -$hex, $hex, or decimal."""
+    s = s.strip()
+    try:
+        if s.startswith('-$'):
+            return -int(s[2:], 16)
+        if s.startswith('$'):
+            return int(s[1:], 16)
+        return int(s)
+    except ValueError:
+        return None
+
+
 def _resolve_ea_address(src_text: str, cpu, inst: Instruction,
                         meta: dict) -> "AbstractValue | None":
     """Resolve an EA text operand to its effective address (not the value at it).
@@ -1078,14 +1089,8 @@ def _resolve_ea_address(src_text: str, cpu, inst: Instruction,
         if reg_info:
             base = cpu.get_reg(reg_info[0], reg_info[1])
             if base.is_known:
-                try:
-                    if disp_str.startswith('-$'):
-                        disp = -int(disp_str[2:], 16)
-                    elif disp_str.startswith('$'):
-                        disp = int(disp_str[1:], 16)
-                    else:
-                        disp = int(disp_str)
-                except ValueError:
+                disp = _parse_disp(disp_str)
+                if disp is None:
                     return None
                 return _concrete(base.concrete + disp)
         return None
@@ -1131,7 +1136,8 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
 
     src_text, dst_text = _parse_operand_text(text)
 
-    # Helper: resolve a text operand to an AbstractValue
+    # Helper: resolve a text operand to an AbstractValue.
+    # For postincrement/predecrement modes, also adjusts the register.
     def _resolve_text_operand(op_text: str) -> AbstractValue | None:
         if op_text is None:
             return None
@@ -1151,15 +1157,38 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         # Register direct
         reg_info = _parse_reg_from_text(op_text)
         if reg_info:
-            mode, num = reg_info
-            return cpu.get_reg(mode, num)
+            return cpu.get_reg(reg_info[0], reg_info[1])
+        # Postincrement: (An)+ — read from An, then An += size_bytes
+        if op_text.startswith('(') and op_text.endswith(')+'):
+            inner = op_text[1:-2]
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                mode, num = reg_info
+                addr_val = cpu.get_reg(mode, num)
+                if addr_val.is_known:
+                    val = mem.read(addr_val.concrete, size)
+                    cpu.set_reg(mode, num, _concrete(
+                        (addr_val.concrete + size_bytes) & 0xFFFFFFFF))
+                    return val
+                return None
+        # Predecrement: -(An) — An -= size_bytes, then read from new An
+        if op_text.startswith('-(') and op_text.endswith(')'):
+            inner = op_text[2:-1]
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                mode, num = reg_info
+                addr_val = cpu.get_reg(mode, num)
+                if addr_val.is_known:
+                    new_addr = (addr_val.concrete - size_bytes) & 0xFFFFFFFF
+                    cpu.set_reg(mode, num, _concrete(new_addr))
+                    return mem.read(new_addr, size)
+                return None
         # (An) indirect
         if op_text.startswith('(') and op_text.endswith(')'):
             inner = op_text[1:-1]
             reg_info = _parse_reg_from_text(inner)
             if reg_info:
-                mode, num = reg_info
-                addr_val = cpu.get_reg(mode, num)
+                addr_val = cpu.get_reg(reg_info[0], reg_info[1])
                 if addr_val.is_known:
                     return mem.read(addr_val.concrete, size)
                 return None
@@ -1170,15 +1199,10 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             inner = op_text[paren_idx + 1:-1]
             reg_info = _parse_reg_from_text(inner)
             if reg_info:
-                mode, num = reg_info
-                addr_val = cpu.get_reg(mode, num)
+                addr_val = cpu.get_reg(reg_info[0], reg_info[1])
                 if addr_val.is_known:
-                    try:
-                        if disp_str.startswith('$'):
-                            disp = int(disp_str[1:], 16)
-                        else:
-                            disp = int(disp_str)
-                    except ValueError:
+                    disp = _parse_disp(disp_str)
+                    if disp is None:
                         return None
                     return mem.read((addr_val.concrete + disp) & 0xFFFFFFFF, size)
                 return None
@@ -1187,27 +1211,47 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             return None  # can't resolve without more context
         return None
 
-    # Helper: write to a destination
+    # Helper: write to a destination.
+    # For predecrement/postincrement modes, also adjusts the register.
     def _write_dst(op_text: str, value: AbstractValue):
         if op_text is None:
             return
         op_text = op_text.strip()
+        # Register direct
         reg_info = _parse_reg_from_text(op_text)
         if reg_info:
-            mode, num = reg_info
-            if mode == "an":
-                # Address register writes are always 32-bit
-                cpu.set_reg(mode, num, value)
-            else:
-                cpu.set_reg(mode, num, value)
+            cpu.set_reg(reg_info[0], reg_info[1], value)
+            return
+        # Predecrement: -(An) — An -= size_bytes, then write to new An
+        if op_text.startswith('-(') and op_text.endswith(')'):
+            inner = op_text[2:-1]
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                mode, num = reg_info
+                addr_val = cpu.get_reg(mode, num)
+                if addr_val.is_known:
+                    new_addr = (addr_val.concrete - size_bytes) & 0xFFFFFFFF
+                    cpu.set_reg(mode, num, _concrete(new_addr))
+                    mem.write(new_addr, value, size)
+            return
+        # Postincrement: (An)+ — write to An, then An += size_bytes
+        if op_text.startswith('(') and op_text.endswith(')+'):
+            inner = op_text[1:-2]
+            reg_info = _parse_reg_from_text(inner)
+            if reg_info:
+                mode, num = reg_info
+                addr_val = cpu.get_reg(mode, num)
+                if addr_val.is_known:
+                    mem.write(addr_val.concrete, value, size)
+                    cpu.set_reg(mode, num, _concrete(
+                        (addr_val.concrete + size_bytes) & 0xFFFFFFFF))
             return
         # (An) indirect write
         if op_text.startswith('(') and op_text.endswith(')'):
             inner = op_text[1:-1]
             reg_info = _parse_reg_from_text(inner)
             if reg_info:
-                mode, num = reg_info
-                addr_val = cpu.get_reg(mode, num)
+                addr_val = cpu.get_reg(reg_info[0], reg_info[1])
                 if addr_val.is_known:
                     mem.write(addr_val.concrete, value, size)
             return
@@ -1218,18 +1262,12 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             inner = op_text[paren_idx + 1:-1]
             reg_info = _parse_reg_from_text(inner)
             if reg_info:
-                mode, num = reg_info
-                addr_val = cpu.get_reg(mode, num)
+                addr_val = cpu.get_reg(reg_info[0], reg_info[1])
                 if addr_val.is_known:
-                    try:
-                        if disp_str.startswith('$'):
-                            disp = int(disp_str[1:], 16)
-                        else:
-                            disp = int(disp_str)
-                    except ValueError:
-                        return
-                    mem.write((addr_val.concrete + disp) & 0xFFFFFFFF,
-                              value, size)
+                    disp = _parse_disp(disp_str)
+                    if disp is not None:
+                        mem.write((addr_val.concrete + disp) & 0xFFFFFFFF,
+                                  value, size)
 
     # --- Apply per-instruction effects ---
     # Dispatch on KB compute_formula.op and operation_type.
@@ -1255,6 +1293,16 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                     if src_val and src_val.is_known:
                         disp = _to_signed(src_val.concrete & 0xFFFF, "w")
                         cpu.sp = _concrete(cpu.sp.concrete + disp)
+        # For call instructions (JSR/BSR), write the return address to
+        # the stack.  The return address is the instruction immediately
+        # after the call.  This enables RTS resolution and push/pop
+        # patterns to work through abstract memory.
+        if cpu.sp.is_known:
+            flow = inst_kb.get("pc_effects", {}).get("flow", {})
+            if flow.get("type") == "call":
+                return_addr = inst.offset + inst.size
+                mem.write(cpu.sp.concrete, _concrete(return_addr), "l")
+
         # After call instructions, invalidate scratch registers per
         # platform calling convention.  Detect calls by KB pc_effects
         # flow type, not by SP decrement (PEA also decrements SP but
@@ -1263,46 +1311,38 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             flow_type = inst_kb.get("pc_effects", {}).get(
                 "flow", {}).get("type")
             if flow_type == "call":
-                # Check for library base tagging before invalidation.
-                # If A6 has a library_base tag and this is a d(A6) call,
-                # resolve the call effects (e.g. OpenLibrary returns a
-                # tagged library base in D0).
-                call_effect_tag = None
-                if platform.get("_os_call_resolver"):
-                    a6_tag = cpu.a[platform.get("_base_reg_num", 6)].tag
+                # Resolve call effects before invalidation (needs pre-call
+                # register state for input registers like A1 name string).
+                call_effect = None
+                resolver = platform.get("_os_call_resolver")
+                if resolver and src_text and "(" in src_text:
+                    paren = src_text.index("(")
+                    lvo = _parse_disp(src_text[:paren].strip())
+                    base_reg_num = platform.get("_base_reg_num", 6)
+                    a6_tag = cpu.a[base_reg_num].tag
                     a6_lib = a6_tag.get("library_base") if a6_tag else None
-                    # Extract LVO displacement from instruction operand
-                    if src_text and "(" in src_text:
-                        paren = src_text.index("(")
-                        disp_str = src_text[:paren].strip()
-                        try:
-                            if disp_str.startswith("-$"):
-                                lvo = -int(disp_str[2:], 16)
-                            elif disp_str.startswith("$"):
-                                lvo = int(disp_str[1:], 16)
-                            elif disp_str.startswith("-"):
-                                lvo = int(disp_str)
-                            else:
-                                lvo = int(disp_str)
-                        except ValueError:
-                            lvo = None
-                        if lvo is not None and a6_lib:
-                            call_effect_tag = platform["_os_call_resolver"](
-                                inst.offset, lvo, a6_lib, cpu, code)
+                    if lvo is not None and a6_lib:
+                        call_effect = resolver(
+                            inst.offset, lvo, a6_lib, cpu, code,
+                            platform=platform)
 
+                # Invalidate scratch registers
                 for reg_mode, reg_num in platform["scratch_regs"]:
                     cpu.set_reg(reg_mode, reg_num, _unknown())
 
-                # Apply call effect tag (e.g. tag D0 as library base)
-                if call_effect_tag:
-                    base_reg = call_effect_tag["base_reg"].upper()
-                    tag = call_effect_tag["tag"]
-                    if base_reg[0] == "D":
-                        cpu.set_reg("dn", int(base_reg[1]),
-                                    _unknown(tag=tag))
-                    elif base_reg[0] == "A":
-                        cpu.set_reg("an", int(base_reg[1]),
-                                    _unknown(tag=tag))
+                # Apply call effects to post-invalidation state
+                if call_effect:
+                    if "tag" in call_effect:
+                        # returns_base: tag result register (e.g. library base)
+                        mode, num = _parse_reg_from_text(
+                            call_effect["base_reg"])
+                        cpu.set_reg(mode, num, _unknown(tag=call_effect["tag"]))
+                    elif "concrete" in call_effect:
+                        # returns_memory: assign sentinel concrete value
+                        mode, num = _parse_reg_from_text(
+                            call_effect["result_reg"])
+                        cpu.set_reg(mode, num, _concrete(
+                            call_effect["concrete"]))
 
         # SP-only instructions (no compute_formula) stop here
         if op is None:
@@ -1407,7 +1447,9 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         terms = formula.get("terms", [])
         # NEG: terms=["implicit", "destination"] — implicit(0) - destination
         if "implicit" in terms:
-            implicit_val = inst_kb.get("implicit_operand", 0)
+            implicit_val = inst_kb.get("implicit_operand")
+            if implicit_val is None:
+                raise KeyError(f"implicit_operand missing for {mnemonic}")
             dst_val = _resolve_text_operand(dst_text or src_text)
             if dst_val and dst_val.is_known:
                 result = (implicit_val - dst_val.concrete) & mask
@@ -1589,8 +1631,23 @@ def propagate_states(blocks: dict[int, BasicBlock],
 
     if initial_state is None:
         initial_state = CPUState()
+        if platform:
+            # Set initial SP from platform config (sentinel for abstract stack)
+            if "initial_sp" in platform:
+                initial_state.sp = _concrete(platform["initial_sp"])
+            # Set initial base register if discovered from prior pass
+            base_info = platform.get("initial_base_reg")
+            if base_info:
+                reg_num, concrete_val = base_info
+                initial_state.set_reg("an", reg_num,
+                                      _concrete(concrete_val))
     if initial_mem is None:
-        initial_mem = AbstractMemory()
+        # Use init-discovered memory if available (base-region contents
+        # from the init routine, e.g. library bases stored at d(An))
+        if platform and "_initial_mem" in platform:
+            initial_mem = platform["_initial_mem"].copy()
+        else:
+            initial_mem = AbstractMemory()
 
     # Map block_start -> list of (cpu_state, memory) from predecessors
     incoming: dict[int, list[tuple]] = {}
@@ -1622,21 +1679,25 @@ def propagate_states(blocks: dict[int, BasicBlock],
         cpu, mem = _join_states(pred_states)
         cpu.pc = addr
 
-        # Check if state changed from last visit (for fixpoint)
+        # Check if state changed from last visit (for fixpoint).
+        # Compare concrete values AND tags — tag changes (e.g. library_base
+        # identity propagated through push/pop) must also trigger re-processing.
         if addr in visited and addr in exit_states:
             prev_cpu, prev_mem = exit_states[addr]
-            # Simple convergence check: if registers haven't changed, skip
             changed = False
             for i in range(len(cpu.d)):
-                if cpu.d[i].concrete != prev_cpu.d[i].concrete:
+                if (cpu.d[i].concrete != prev_cpu.d[i].concrete
+                        or cpu.d[i].tag != prev_cpu.d[i].tag):
                     changed = True
                     break
             if not changed:
                 for i in range(len(cpu.a)):
-                    if cpu.a[i].concrete != prev_cpu.a[i].concrete:
+                    if (cpu.a[i].concrete != prev_cpu.a[i].concrete
+                            or cpu.a[i].tag != prev_cpu.a[i].tag):
                         changed = True
                         break
-            if not changed and cpu.sp.concrete == prev_cpu.sp.concrete:
+            if not changed and (cpu.sp.concrete == prev_cpu.sp.concrete
+                                and cpu.sp.tag == prev_cpu.sp.tag):
                 continue  # converged, no need to re-process
 
         visited.add(addr)
@@ -1652,11 +1713,37 @@ def propagate_states(blocks: dict[int, BasicBlock],
 
         exit_states[addr] = (cpu.copy(), mem.copy())
 
-        # Propagate to successors
-        for succ in block.successors:
-            if succ not in incoming:
-                incoming[succ] = []
-            incoming[succ].append((cpu.copy(), mem.copy()))
+        # Propagate to successors.
+        # For call fallthroughs, adjust SP to account for the callee's
+        # return popping the return address that JSR/BSR pushed.
+        call_sp_push = 0
+        if block.instructions:
+            last = block.instructions[-1]
+            last_mn = _extract_mnemonic(last.text)
+            last_ikb = _find_kb_entry(kb_by_name, last_mn,
+                                      cc_test_defs, cc_aliases)
+            if last_ikb:
+                flow = last_ikb.get("pc_effects", {}).get("flow", {})
+                if flow.get("type") == "call":
+                    for eff in last_ikb.get("sp_effects", []):
+                        if eff.get("action") == "decrement":
+                            call_sp_push += eff["bytes"]
+
+        for xref in block.xrefs:
+            succ = xref.dst
+            if (xref.type == "fallthrough" and call_sp_push
+                    and cpu.sp.is_known):
+                # Call fallthrough: callee's return restores SP
+                adj_cpu = cpu.copy()
+                adj_cpu.sp = _concrete(
+                    (cpu.sp.concrete + call_sp_push) & 0xFFFFFFFF)
+                if succ not in incoming:
+                    incoming[succ] = []
+                incoming[succ].append((adj_cpu, mem.copy()))
+            else:
+                if succ not in incoming:
+                    incoming[succ] = []
+                incoming[succ].append((cpu.copy(), mem.copy()))
             work.append(succ)
 
     return exit_states

@@ -88,6 +88,42 @@ def xf(opcode: int, field: tuple) -> int:
     return (opcode >> field[1]) & ((1 << field[2]) - 1)
 
 
+def parse_reg_name(name: str) -> tuple[str, int]:
+    """Parse a register name like "D0"/"A1" to ("dn", 0)/("an", 1).
+
+    Raises ValueError on unrecognized format.
+    """
+    name = name.strip().upper()
+    if len(name) == 2 and name[1].isdigit():
+        if name[0] == "D":
+            return ("dn", int(name[1]))
+        if name[0] == "A":
+            return ("an", int(name[1]))
+    raise ValueError(f"Cannot parse register name: {name}")
+
+
+def read_string_at(data: bytes, addr: int, max_len: int = 64) -> str | None:
+    """Read a null-terminated ASCII string from data bytes.
+
+    Returns None if addr is out of range or string is empty/non-ASCII.
+    """
+    if addr >= len(data):
+        return None
+    end = min(addr + max_len, len(data))
+    result = []
+    for i in range(addr, end):
+        b = data[i]
+        if b == 0:
+            break
+        result.append(b)
+    if not result:
+        return None
+    try:
+        return bytes(result).decode("ascii")
+    except UnicodeDecodeError:
+        return None
+
+
 def find_containing_sub(addr: int, sorted_subs: list[dict]) -> int | None:
     """Binary search for the subroutine containing addr.
 

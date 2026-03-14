@@ -24,7 +24,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze, BasicBlock, _load_kb
 from jump_tables import detect_jump_tables, resolve_indirect_targets
-from os_calls import load_os_kb, get_platform_config, identify_library_calls
+from os_calls import (load_os_kb, get_platform_config, identify_library_calls,
+                      _SENTINEL_ALLOC_BASE)
 from subroutine_scan import scan_and_score
 from name_entities import name_subroutines
 
@@ -404,6 +405,54 @@ def build_entities(binary_path: str, output_path: str = None):
                       f"{len(targets)} new entries")
                 all_entry_points.update(targets)
             return len(all_entry_points) - before
+
+        # Step 0: base register discovery.
+        # Run a focused analysis from the main entry point only to
+        # discover the init pattern: AllocMem → movea.l D0,An → An
+        # becomes the app base register.  The init subroutine may be
+        # a reloc target too, causing joins that destroy the sentinel
+        # when all entry points are analyzed together.  Analyzing from
+        # entry point 0 alone avoids this interference.
+        #
+        # Also captures the init's memory state: values the init routine
+        # stores in d(An) slots (e.g. OpenLibrary results, config data)
+        # are carried forward as initial memory for subsequent passes.
+        base_reg_num = platform_config.get("_base_reg_num", 6)
+        init_result = analyze(code, base_addr=0, entry_points=[0],
+                              propagate=True, platform=platform_config)
+        alloc_base = _SENTINEL_ALLOC_BASE
+        alloc_limit = platform_config.get("_next_alloc_sentinel",
+                                          alloc_base)
+        discovered_base = None
+        init_mem = None
+        if init_result.get("exit_states"):
+            # Find the exit state with the most developed base-region
+            # memory — this is the state closest to the init's return.
+            best_addr = None
+            best_slots = 0
+            for addr, (cpu, mem) in init_result["exit_states"].items():
+                val = cpu.a[base_reg_num]
+                if (val.is_known
+                        and alloc_base <= val.concrete < alloc_limit):
+                    if discovered_base is None:
+                        discovered_base = val.concrete
+                    # Count known memory bytes in the base region
+                    slots = sum(1 for a in mem._bytes
+                                if alloc_base <= a < alloc_limit)
+                    if slots > best_slots:
+                        best_slots = slots
+                        best_addr = addr
+            if best_addr is not None:
+                _, init_mem = init_result["exit_states"][best_addr]
+        if discovered_base is not None:
+            print(f"  Base register A{base_reg_num} "
+                  f"= ${discovered_base:08X} (from init"
+                  f", {best_slots} memory bytes)")
+            platform_config["initial_base_reg"] = (
+                base_reg_num, discovered_base)
+            # Carry init memory into subsequent analysis
+            if init_mem:
+                platform_config["_initial_mem"] = init_mem
 
         # Step 1: control flow + jump tables + indirect resolution.
         # Iterate until no new targets from tables/indirect.

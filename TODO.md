@@ -173,8 +173,25 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - Tags propagate through registers, memory round-trips, state joins
 - [x] Subroutine naming: OS call patterns, PC-relative string references, call graph
 - [x] Shared KB utilities: `kb_util.py` (KB class, xf, find_containing_sub)
+- [x] Predecrement/postincrement EA support: `-(An)` and `(An)+` in operand resolution + writes
+- [x] Stack tracking: sentinel SP enables push/pop through abstract memory
+  - JSR/BSR write return address to stack (enables RTS resolution)
+  - Call fallthrough adjusts SP for callee's return (convention-based)
+  - Displacement parsing consolidated via `_parse_disp()` helper
+- [x] Memory allocation tracking: OS KB `returns_memory` field (AllocMem, AllocVec, etc.)
+  - Parser-asserted from NDK autodocs in `parse_ndk.py`
+  - Sentinel concrete addresses assigned to allocation results
+  - Base register discovered from init pass (single-entry analysis)
+- [x] App base register tracking: AllocMem → movea.l D0,An detected
+  - Two-pass analysis: init pass discovers base reg + memory state
+  - Init memory carried forward (library base tags in d(An) slots)
+  - Convergence check includes tag comparison (not just concrete values)
+  - 63% of blocks now have concrete A6 (enables d(A6) memory ops)
+- [x] RTS return resolution: reads return address from stack via propagated SP + memory
 - GenAm results: 59.2% coverage, 336 subroutines, 477 entities, 13 named, 454 call pairs
-- [ ] Improve coverage beyond 59% (app base register tracking, more string-based naming)
+- [ ] Improve coverage beyond 59% (function pointers in d(A6) slots, more pattern recognition)
+- [ ] Disassembly generator: entities.jsonl + binary → vasm-compatible .s file
+- [ ] vasm round-trip: disassemble → reassemble with vasm → binary-diff against original
 - [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
 
 ## Existing Infrastructure
@@ -219,5 +236,5 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] 336 subroutines, 13 named, 477 entities with 100% address coverage
 - [x] OS call identification: 16 calls found, 13 resolved (exec.library)
 - [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
-- [ ] App base register tracking (A6 as data pointer for GenAm's work area)
+- [x] App base register tracking (A6 as data pointer for GenAm's work area)
 - [ ] Name more subroutines (call graph analysis, data flow, hardware register access patterns)

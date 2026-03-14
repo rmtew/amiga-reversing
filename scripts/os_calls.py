@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from m68k_executor import BasicBlock, _extract_mnemonic, _extract_branch_target
-from kb_util import KB, xf
+from kb_util import KB, xf, parse_reg_name, read_string_at
 
 
 _OS_KB_CACHE = None
@@ -39,27 +39,28 @@ def load_os_kb() -> dict:
     return _OS_KB_CACHE
 
 
+# Sentinel addresses for abstract memory regions.
+# These must not overlap with real hunk addresses (code is 0..64K range).
+# SP sentinel: top of a virtual stack region.
+# Memory allocation sentinels: auto-incrementing base addresses.
+_SENTINEL_SP = 0x7F000000
+_SENTINEL_ALLOC_BASE = 0x80000000
+_SENTINEL_ALLOC_STEP = 0x00100000  # 1MB per allocation
+
+
 def get_platform_config() -> dict:
     """Build platform config dict from OS KB for the executor.
 
     Returns dict with:
         scratch_regs: list of (mode, num) tuples to invalidate after calls
         exec_base_addr: int (absolute address of ExecBase pointer)
+        initial_sp: int (sentinel SP for abstract stack tracking)
     """
     os_kb = load_os_kb()
     meta = os_kb["_meta"]
     cc = meta["calling_convention"]
 
-    # Parse register names like "D0" -> ("dn", 0), "A1" -> ("an", 1)
-    scratch = []
-    for reg_name in cc["scratch_regs"]:
-        reg_name = reg_name.upper()
-        if reg_name[0] == "D":
-            scratch.append(("dn", int(reg_name[1])))
-        elif reg_name[0] == "A":
-            scratch.append(("an", int(reg_name[1])))
-        else:
-            raise ValueError(f"Unknown register in calling_convention.scratch_regs: {reg_name}")
+    scratch = [parse_reg_name(r) for r in cc["scratch_regs"]]
 
     base_reg_name = cc["base_reg"].upper()
     if not base_reg_name.startswith("A"):
@@ -77,20 +78,25 @@ def get_platform_config() -> dict:
         "exec_base_tag": {"library_base": exec_lib},
         "base_reg": cc["base_reg"],
         "return_reg": cc["return_reg"],
+        "initial_sp": _SENTINEL_SP,
         "_base_reg_num": base_reg_num,
-        "_os_call_resolver": lambda offset, lvo, lib, cpu, code:
-            resolve_call_effects(offset, lvo, lib, cpu, code),
+        "_next_alloc_sentinel": _SENTINEL_ALLOC_BASE,
+        "_os_call_resolver": lambda offset, lvo, lib, cpu, code, platform=None:
+            resolve_call_effects(offset, lvo, lib, cpu, code,
+                                 platform=platform),
     }
 
 
 def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
                          cpu_state, code: bytes,
-                         os_kb: dict | None = None) -> dict | None:
+                         os_kb: dict | None = None,
+                         platform: dict | None = None) -> dict | None:
     """Determine the effects of a library call on register state.
 
-    If the called function has `returns_base` in the KB (e.g. OpenLibrary),
-    and the name-string input register has a concrete value pointing to
-    a readable string in the code, returns a tag for the output register.
+    Handles two KB fields:
+    - `returns_base` (OpenLibrary etc.): tags result register as library base
+    - `returns_memory` (AllocMem etc.): assigns sentinel concrete value to
+      result register, enabling base-relative memory tracking
 
     Args:
         inst_offset: address of the JSR instruction
@@ -99,9 +105,11 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
         cpu_state: current CPU state (to read input register values)
         code: raw code bytes (to read name strings)
         os_kb: OS knowledge base
+        platform: platform config (for sentinel allocation)
 
     Returns dict with:
         {"base_reg": "D0", "tag": {"library_base": "dos.library"}}
+        or {"result_reg": "D0", "concrete": 0x80000000}  (for returns_memory)
     or None if no special effect.
     """
     if os_kb is None:
@@ -120,52 +128,34 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
         return None
 
     func = lib_data["functions"].get(func_name, {})
+
+    # Check returns_base first (OpenLibrary, OpenResource)
     rb = func.get("returns_base")
-    if rb is None:
-        return None
+    if rb:
+        mode, num = parse_reg_name(rb["name_reg"])
+        reg_val = cpu_state.get_reg(mode, num)
+        if reg_val.is_known:
+            lib_name = read_string_at(code, reg_val.concrete)
+            if lib_name:
+                return {
+                    "base_reg": rb["base_reg"],
+                    "tag": {"library_base": lib_name},
+                }
 
-    # This function returns a library/resource base.
-    # Read the name string from the register specified in returns_base.name_reg
-    name_reg = rb["name_reg"].upper()
-    base_reg = rb["base_reg"].upper()
+    # Check returns_memory (AllocMem, AllocVec, etc.)
+    rm = func.get("returns_memory")
+    if rm and platform:
+        sentinel = platform.get("_next_alloc_sentinel")
+        if sentinel is not None:
+            # Advance sentinel for next allocation
+            platform["_next_alloc_sentinel"] = \
+                sentinel + _SENTINEL_ALLOC_STEP
+            return {
+                "result_reg": rm["result_reg"],
+                "concrete": sentinel,
+            }
 
-    # Parse register name -> (mode, num)
-    if name_reg[0] == "D":
-        reg_val = cpu_state.d[int(name_reg[1])]
-    elif name_reg[0] == "A":
-        reg_val = cpu_state.a[int(name_reg[1])]
-    else:
-        return None
-
-    if not reg_val.is_known:
-        return None
-
-    # Read null-terminated string from code at the register's concrete address
-    addr = reg_val.concrete
-    if addr >= len(code):
-        return None
-
-    name_bytes = []
-    for i in range(64):  # max library name length
-        if addr + i >= len(code):
-            break
-        b = code[addr + i]
-        if b == 0:
-            break
-        name_bytes.append(b)
-
-    if not name_bytes:
-        return None
-
-    try:
-        lib_name = bytes(name_bytes).decode("ascii")
-    except UnicodeDecodeError:
-        return None
-
-    return {
-        "base_reg": base_reg,
-        "tag": {"library_base": lib_name},
-    }
+    return None
 
 
 def _build_lvo_lookup(os_kb: dict) -> dict:
@@ -222,16 +212,17 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
     os_meta = os_kb["_meta"]
     exec_base_addr = os_meta["exec_base_addr"]["address"]
     exec_lib_name = os_meta["exec_base_addr"]["library"]
-    base_reg_name = os_meta["calling_convention"]["base_reg"]
-    if not base_reg_name.upper().startswith("A"):
+    base_mode, base_reg_num = parse_reg_name(
+        os_meta["calling_convention"]["base_reg"])
+    if base_mode != "an":
         raise ValueError(
-            f"calling_convention.base_reg must be An, got {base_reg_name}")
-    base_reg_num = int(base_reg_name[1])
+            f"calling_convention.base_reg must be An, got {base_mode}")
 
     lvo_lookup = _build_lvo_lookup(os_kb)
 
     absw_enc = kb.ea_enc["absw"]
     disp_enc = kb.ea_enc["disp"]
+    addr_mask = (1 << (kb.meta["size_byte_count"]["l"] * 8)) - 1
 
     movea_kb = kb.find("movea")
     jsr_kb = kb.find("jsr")
@@ -292,7 +283,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                 if src_mode == absw_enc[0] and src_reg == absw_enc[1]:
                     addr_val = struct.unpack_from(
                         ">h", inst.raw, kb.opword_bytes)[0]
-                    addr_val &= 0xFFFFFFFF
+                    addr_val &= addr_mask
 
                     dst_reg = xf(opcode, movea_dst_spec)
                     if addr_val == exec_base_addr and dst_reg == base_reg_num:

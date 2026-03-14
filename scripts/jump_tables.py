@@ -390,11 +390,20 @@ def ikb_is_lea(inst, kb: KB) -> bool:
 
 def resolve_indirect_targets(blocks: dict[int, BasicBlock],
                              exit_states: dict, code_size: int) -> list[dict]:
-    """Resolve indirect JMP/JSR (An) via propagated register values."""
+    """Resolve indirect JMP/JSR (An) and RTS via propagated state.
+
+    For JMP/JSR (An): reads the target from the propagated register value.
+    For RTS: reads the return address from the stack via propagated SP + memory.
+    """
     kb = KB()
     ind_enc = kb.ea_enc.get("ind")
     if ind_enc is None:
         return []
+    # Instruction alignment from KB opword_bytes (2 → must be even)
+    align_mask = kb.opword_bytes - 1
+
+    def _valid_target(addr):
+        return 0 <= addr < code_size and not (addr & align_mask)
 
     resolved = []
     for addr in sorted(blocks):
@@ -408,13 +417,27 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
             continue
 
         ft, _ = kb.flow_type(last)
+
+        # RTS: read return address from stack
+        if ft == "return" and addr in exit_states:
+            cpu, mem = exit_states[addr]
+            if cpu.sp.is_known:
+                ret_val = mem.read(cpu.sp.concrete, "l")
+                if ret_val.is_known and _valid_target(ret_val.concrete):
+                    resolved.append({
+                        "dispatch_block": addr,
+                        "register": "SP",
+                        "target": ret_val.concrete,
+                    })
+            continue
+
         if ft not in ("call", "jump"):
             continue
         if _extract_branch_target(last, last.offset) is not None:
             continue
 
         ea_spec = kb.ea_field_spec(ikb)
-        if ea_spec is None or len(last.raw) < 2:
+        if ea_spec is None or len(last.raw) < kb.opword_bytes:
             continue
         opcode = struct.unpack_from(">H", last.raw, 0)[0]
         if xf(opcode, ea_spec[0]) != ind_enc[0]:
@@ -425,7 +448,7 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
             continue
         cpu, _ = exit_states[addr]
         val = cpu.a[reg]
-        if val.is_known and 0 <= val.concrete < code_size and not (val.concrete & 1):
+        if val.is_known and _valid_target(val.concrete):
             resolved.append({"dispatch_block": addr, "register": f"A{reg}",
                              "target": val.concrete})
 
