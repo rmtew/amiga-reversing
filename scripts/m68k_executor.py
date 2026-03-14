@@ -211,27 +211,57 @@ def _xf(word: int, field_spec: tuple) -> int:
 
 @dataclass
 class AbstractValue:
-    """A value that may be concrete or symbolic.
+    """A value that may be concrete, symbolic (base+offset), or unknown.
+
+    Concrete: known 32-bit value (e.g., $7F000000).
+    Symbolic: base name + integer offset (e.g., SP_entry-4).
+      Enables tracking through push/pop without knowing the actual SP.
+      Joins of identical symbolic values succeed; different offsets → unknown.
+    Unknown: neither concrete nor symbolic.
 
     The optional tag dict carries semantic metadata (e.g., library base
     identity) that propagates when the value is copied between registers.
     """
-    concrete: int | None = None     # known concrete value, or None if unknown
-    label: str | None = None        # symbolic label (e.g., "A0_init", "mem[0x1234]")
-    tag: dict | None = None         # semantic tag (e.g., {"library_base": "dos.library"})
+    concrete: int | None = None     # known concrete value, or None
+    sym_base: str | None = None     # symbolic base name (e.g., "SP_entry")
+    sym_offset: int | None = None   # offset from symbolic base
+    label: str | None = None        # human label (e.g., "A0_init")
+    tag: dict | None = None         # semantic tag (e.g., {"library_base": "..."})
 
     @property
     def is_known(self) -> bool:
         return self.concrete is not None
 
+    @property
+    def is_symbolic(self) -> bool:
+        return self.sym_base is not None
+
+    def sym_add(self, delta: int) -> "AbstractValue":
+        """Return a new symbolic value with adjusted offset."""
+        if not self.is_symbolic:
+            raise ValueError("sym_add on non-symbolic value")
+        return AbstractValue(sym_base=self.sym_base,
+                             sym_offset=self.sym_offset + delta,
+                             tag=self.tag)
+
     def __repr__(self):
         if self.concrete is not None:
             return f"${self.concrete:08x}"
+        if self.sym_base is not None:
+            off = self.sym_offset
+            if off == 0:
+                return self.sym_base
+            return f"{self.sym_base}{off:+d}"
         return f"?{self.label or ''}"
 
 
 def _concrete(val: int, tag: dict | None = None) -> AbstractValue:
     return AbstractValue(concrete=val & 0xFFFFFFFF, tag=tag)
+
+
+def _symbolic(base: str, offset: int = 0,
+              tag: dict | None = None) -> AbstractValue:
+    return AbstractValue(sym_base=base, sym_offset=offset, tag=tag)
 
 
 def _unknown(label: str = "", tag: dict | None = None) -> AbstractValue:
@@ -821,53 +851,69 @@ def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
 class AbstractMemory:
     """Sparse memory map tracking concrete and symbolic values.
 
-    Stores values at byte granularity. Reads/writes at byte, word, and long
-    sizes. Returns unknown for uninitialized addresses. Byte order is big-endian
-    (M68K native).
+    Two stores: concrete (addr: int → byte values) and symbolic
+    (base+offset keys → full values).  Concrete store handles normal
+    memory; symbolic store handles SP-relative push/pop where the
+    actual address is unknown but the base+offset is tracked.
+
+    Reads/writes at byte, word, and long sizes.  Byte order is
+    big-endian (M68K native).
     """
 
     def __init__(self):
-        self._bytes: dict[int, AbstractValue] = {}  # addr -> byte value
+        self._bytes: dict[int, AbstractValue] = {}  # concrete addr -> byte
         self._tags: dict[tuple, dict] = {}  # (addr, nbytes) -> tag dict
+        # Symbolic store: (base_name, offset, nbytes) -> AbstractValue
+        self._sym: dict[tuple, AbstractValue] = {}
 
-    def write(self, addr: int, value: AbstractValue, size: str):
-        """Write a value at the given address with the given size.
-
-        If the value has a tag, it is stored separately and recovered
-        on reads from the same address and size.
-        """
+    def write(self, addr, value: AbstractValue, size: str):
+        """Write a value.  addr is int (concrete) or AbstractValue (symbolic)."""
         _, _, meta = _load_kb()
-        nbytes = meta["size_byte_count"].get(size, 2)
+        nbytes = meta["size_byte_count"][size]
+
+        if isinstance(addr, AbstractValue):
+            if addr.is_symbolic:
+                key = (addr.sym_base, addr.sym_offset, nbytes)
+                self._sym[key] = value
+                return
+            if addr.is_known:
+                addr = addr.concrete
+            else:
+                return  # unknown address — can't store
+
         if value.is_known:
             val = value.concrete
             for i in range(nbytes):
-                shift = (nbytes - 1 - i) * 8  # big-endian
-                byte_val = (val >> shift) & 0xFF
-                self._bytes[addr + i] = _concrete(byte_val)
+                shift = (nbytes - 1 - i) * 8
+                self._bytes[addr + i] = _concrete((val >> shift) & 0xFF)
         else:
             for i in range(nbytes):
-                self._bytes[addr + i] = _unknown(
-                    f"{value.label or '?'}[{i}]" if value.label else "")
-        # Preserve tags through memory round-trips
+                self._bytes[addr + i] = _unknown()
         if value.tag:
             self._tags[(addr, nbytes)] = value.tag
         elif (addr, nbytes) in self._tags:
             del self._tags[(addr, nbytes)]
 
-    def read(self, addr: int, size: str) -> AbstractValue:
-        """Read a value from the given address with the given size.
-
-        Returns concrete value only if ALL bytes in the range are known.
-        Restores tags from prior writes at the same address/size.
-        """
+    def read(self, addr, size: str) -> AbstractValue:
+        """Read a value.  addr is int (concrete) or AbstractValue (symbolic)."""
         _, _, meta = _load_kb()
-        nbytes = meta["size_byte_count"].get(size, 2)
+        nbytes = meta["size_byte_count"][size]
+
+        if isinstance(addr, AbstractValue):
+            if addr.is_symbolic:
+                key = (addr.sym_base, addr.sym_offset, nbytes)
+                return self._sym.get(key, _unknown())
+            if addr.is_known:
+                addr = addr.concrete
+            else:
+                return _unknown()
+
         result = 0
         for i in range(nbytes):
             bv = self._bytes.get(addr + i)
             if bv is None or not bv.is_known:
                 tag = self._tags.get((addr, nbytes))
-                return _unknown(f"mem[${addr:x}]", tag=tag)
+                return _unknown(tag=tag)
             result = (result << 8) | (bv.concrete & 0xFF)
         tag = self._tags.get((addr, nbytes))
         return _concrete(result, tag=tag)
@@ -877,6 +923,7 @@ class AbstractMemory:
         m = AbstractMemory()
         m._bytes = dict(self._bytes)
         m._tags = dict(self._tags)
+        m._sym = dict(self._sym)
         return m
 
     def known_ranges(self) -> list[tuple[int, int]]:
@@ -901,15 +948,18 @@ class AbstractMemory:
 def _join_values(a: AbstractValue, b: AbstractValue) -> AbstractValue:
     """Join two abstract values at a merge point.
 
-    If both are concrete and equal, keep the value and tag (if tags agree).
-    Otherwise, the result is unknown (tag preserved if both agree).
+    Concrete: both concrete and equal → keep.
+    Symbolic: both symbolic with same base and offset → keep.
+    Otherwise: unknown.  Tag preserved if both agree.
     """
-    if a.is_known and b.is_known and a.concrete == b.concrete:
-        # Concrete values agree — keep tag if both have the same tag
-        tag = a.tag if a.tag == b.tag else None
-        return AbstractValue(concrete=a.concrete, tag=tag)
-    # Values disagree — unknown, but keep tag if both agree
     tag = a.tag if a.tag is not None and a.tag == b.tag else None
+    if a.is_known and b.is_known and a.concrete == b.concrete:
+        return AbstractValue(concrete=a.concrete, tag=tag)
+    if (a.is_symbolic and b.is_symbolic
+            and a.sym_base == b.sym_base
+            and a.sym_offset == b.sym_offset):
+        return AbstractValue(sym_base=a.sym_base,
+                             sym_offset=a.sym_offset, tag=tag)
     return _unknown(tag=tag)
 
 
@@ -957,8 +1007,10 @@ def _join_states(states: list) -> tuple:
         else:
             result_cpu.ccr[flag] = None
 
-    # Join memory: only keep bytes that all states agree on
+    # Join memory: only keep values that all states agree on
     result_mem = AbstractMemory()
+
+    # Concrete bytes
     all_addrs = set()
     for _, mem in states:
         all_addrs.update(mem._bytes.keys())
@@ -975,6 +1027,40 @@ def _join_states(states: list) -> tuple:
                 joined = _join_values(joined, v)
             if joined.is_known:
                 result_mem._bytes[addr] = joined
+
+    # Concrete memory tags: keep tags that all states agree on
+    all_tag_keys = set()
+    for _, mem in states:
+        all_tag_keys.update(mem._tags.keys())
+    for key in all_tag_keys:
+        tags = []
+        for _, mem in states:
+            t = mem._tags.get(key)
+            if t is None:
+                break
+            tags.append(t)
+        else:
+            if len(set(id(t) for t in tags)) == 1 or all(
+                    t == tags[0] for t in tags[1:]):
+                result_mem._tags[key] = tags[0]
+
+    # Symbolic slots
+    all_sym_keys = set()
+    for _, mem in states:
+        all_sym_keys.update(mem._sym.keys())
+    for key in all_sym_keys:
+        vals = []
+        for _, mem in states:
+            v = mem._sym.get(key)
+            if v is None:
+                break
+            vals.append(v)
+        else:
+            joined = vals[0]
+            for v in vals[1:]:
+                joined = _join_values(joined, v)
+            if joined.is_known or joined.is_symbolic or joined.tag:
+                result_mem._sym[key] = joined
 
     return result_cpu, result_mem
 
@@ -1170,6 +1256,10 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                     cpu.set_reg(mode, num, _concrete(
                         (addr_val.concrete + size_bytes) & 0xFFFFFFFF))
                     return val
+                if addr_val.is_symbolic:
+                    val = mem.read(addr_val, size)
+                    cpu.set_reg(mode, num, addr_val.sym_add(size_bytes))
+                    return val
                 return None
         # Predecrement: -(An) — An -= size_bytes, then read from new An
         if op_text.startswith('-(') and op_text.endswith(')'):
@@ -1182,6 +1272,10 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                     new_addr = (addr_val.concrete - size_bytes) & 0xFFFFFFFF
                     cpu.set_reg(mode, num, _concrete(new_addr))
                     return mem.read(new_addr, size)
+                if addr_val.is_symbolic:
+                    new_val = addr_val.sym_add(-size_bytes)
+                    cpu.set_reg(mode, num, new_val)
+                    return mem.read(new_val, size)
                 return None
         # (An) indirect
         if op_text.startswith('(') and op_text.endswith(')'):
@@ -1191,6 +1285,8 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                 addr_val = cpu.get_reg(reg_info[0], reg_info[1])
                 if addr_val.is_known:
                     return mem.read(addr_val.concrete, size)
+                if addr_val.is_symbolic:
+                    return mem.read(addr_val, size)
                 return None
         # d(An) displacement
         if '(' in op_text and op_text.endswith(')'):
@@ -1200,11 +1296,14 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             reg_info = _parse_reg_from_text(inner)
             if reg_info:
                 addr_val = cpu.get_reg(reg_info[0], reg_info[1])
+                disp = _parse_disp(disp_str)
+                if disp is None:
+                    return None
                 if addr_val.is_known:
-                    disp = _parse_disp(disp_str)
-                    if disp is None:
-                        return None
-                    return mem.read((addr_val.concrete + disp) & 0xFFFFFFFF, size)
+                    return mem.read(
+                        (addr_val.concrete + disp) & 0xFFFFFFFF, size)
+                if addr_val.is_symbolic:
+                    return mem.read(addr_val.sym_add(disp), size)
                 return None
         # Absolute address
         if op_text.startswith('$') or op_text.startswith('('):
@@ -1233,6 +1332,10 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                     new_addr = (addr_val.concrete - size_bytes) & 0xFFFFFFFF
                     cpu.set_reg(mode, num, _concrete(new_addr))
                     mem.write(new_addr, value, size)
+                elif addr_val.is_symbolic:
+                    new_val = addr_val.sym_add(-size_bytes)
+                    cpu.set_reg(mode, num, new_val)
+                    mem.write(new_val, value, size)
             return
         # Postincrement: (An)+ — write to An, then An += size_bytes
         if op_text.startswith('(') and op_text.endswith(')+'):
@@ -1245,6 +1348,10 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                     mem.write(addr_val.concrete, value, size)
                     cpu.set_reg(mode, num, _concrete(
                         (addr_val.concrete + size_bytes) & 0xFFFFFFFF))
+                elif addr_val.is_symbolic:
+                    mem.write(addr_val, value, size)
+                    cpu.set_reg(mode, num,
+                                addr_val.sym_add(size_bytes))
             return
         # (An) indirect write
         if op_text.startswith('(') and op_text.endswith(')'):
@@ -1254,6 +1361,8 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                 addr_val = cpu.get_reg(reg_info[0], reg_info[1])
                 if addr_val.is_known:
                     mem.write(addr_val.concrete, value, size)
+                elif addr_val.is_symbolic:
+                    mem.write(addr_val, value, size)
             return
         # d(An) displacement write
         if '(' in op_text and op_text.endswith(')'):
@@ -1263,11 +1372,13 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             reg_info = _parse_reg_from_text(inner)
             if reg_info:
                 addr_val = cpu.get_reg(reg_info[0], reg_info[1])
-                if addr_val.is_known:
-                    disp = _parse_disp(disp_str)
-                    if disp is not None:
+                disp = _parse_disp(disp_str)
+                if disp is not None:
+                    if addr_val.is_known:
                         mem.write((addr_val.concrete + disp) & 0xFFFFFFFF,
                                   value, size)
+                    elif addr_val.is_symbolic:
+                        mem.write(addr_val.sym_add(disp), value, size)
 
     # --- Apply per-instruction effects ---
     # Dispatch on KB compute_formula.op and operation_type.
@@ -1282,26 +1393,35 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             if "bytes" not in effect and action in ("decrement", "increment"):
                 raise KeyError(
                     f"sp_effects.bytes missing for {mnemonic} action={action}")
-            if action == "decrement" and cpu.sp.is_known:
-                cpu.sp = _concrete(cpu.sp.concrete - effect["bytes"])
-            elif action == "increment" and cpu.sp.is_known:
-                cpu.sp = _concrete(cpu.sp.concrete + effect["bytes"])
+            if action == "decrement":
+                if cpu.sp.is_known:
+                    cpu.sp = _concrete(cpu.sp.concrete - effect["bytes"])
+                elif cpu.sp.is_symbolic:
+                    cpu.sp = cpu.sp.sym_add(-effect["bytes"])
+            elif action == "increment":
+                if cpu.sp.is_known:
+                    cpu.sp = _concrete(cpu.sp.concrete + effect["bytes"])
+                elif cpu.sp.is_symbolic:
+                    cpu.sp = cpu.sp.sym_add(effect["bytes"])
             elif action == "displacement_adjust":
                 # LINK-style: SP += displacement (negative = allocate)
-                if cpu.sp.is_known and src_text:
+                if src_text:
                     src_val = _resolve_text_operand(src_text)
                     if src_val and src_val.is_known:
                         disp = _to_signed(src_val.concrete & 0xFFFF, "w")
-                        cpu.sp = _concrete(cpu.sp.concrete + disp)
+                        if cpu.sp.is_known:
+                            cpu.sp = _concrete(cpu.sp.concrete + disp)
+                        elif cpu.sp.is_symbolic:
+                            cpu.sp = cpu.sp.sym_add(disp)
         # For call instructions (JSR/BSR), write the return address to
         # the stack.  The return address is the instruction immediately
         # after the call.  This enables RTS resolution and push/pop
         # patterns to work through abstract memory.
-        if cpu.sp.is_known:
+        if cpu.sp.is_known or cpu.sp.is_symbolic:
             flow = inst_kb.get("pc_effects", {}).get("flow", {})
             if flow.get("type") == "call":
                 return_addr = inst.offset + inst.size
-                mem.write(cpu.sp.concrete, _concrete(return_addr), "l")
+                mem.write(cpu.sp, _concrete(return_addr), "l")
 
         # After call instructions, invalidate scratch registers per
         # platform calling convention.  Detect calls by KB pc_effects
@@ -1638,9 +1758,10 @@ def propagate_states(blocks: dict[int, BasicBlock],
     if initial_state is None:
         initial_state = CPUState()
         if platform:
-            # Set initial SP from platform config (sentinel for abstract stack)
-            if "initial_sp" in platform:
-                initial_state.sp = _concrete(platform["initial_sp"])
+            # Set initial SP as symbolic base for abstract stack tracking.
+            # SP_entry+0 at entry; push gives SP_entry-4, pop gives SP_entry+0.
+            # Symbolic SP survives joins (same base+offset → keep).
+            initial_state.sp = _symbolic("SP_entry", 0)
             # Set initial base register if discovered from prior pass
             base_info = platform.get("initial_base_reg")
             if base_info:
@@ -1660,10 +1781,13 @@ def propagate_states(blocks: dict[int, BasicBlock],
     # Map block_start -> (exit_cpu_state, exit_memory) after execution
     exit_states: dict[int, tuple] = {}
 
-    # Topological BFS from entry blocks
+    # Topological BFS from entry blocks.
+    # Only the true program entry (no predecessors) gets initial state.
+    # All other blocks derive state from control flow predecessors.
     entry_blocks = [addr for addr, b in blocks.items() if b.is_entry]
     for entry in entry_blocks:
-        incoming[entry] = [(initial_state.copy(), initial_mem.copy())]
+        if not blocks[entry].predecessors:
+            incoming[entry] = [(initial_state.copy(), initial_mem.copy())]
 
     work = list(entry_blocks)
     visited = set()
@@ -1686,25 +1810,27 @@ def propagate_states(blocks: dict[int, BasicBlock],
         cpu.pc = addr
 
         # Check if state changed from last visit (for fixpoint).
-        # Compare concrete values AND tags — tag changes (e.g. library_base
-        # identity propagated through push/pop) must also trigger re-processing.
+        # Compare all AbstractValue fields — concrete, symbolic, and tags.
+        def _vals_equal(a, b):
+            return (a.concrete == b.concrete
+                    and a.sym_base == b.sym_base
+                    and a.sym_offset == b.sym_offset
+                    and a.tag == b.tag)
+
         if addr in visited and addr in exit_states:
             prev_cpu, prev_mem = exit_states[addr]
             changed = False
             for i in range(len(cpu.d)):
-                if (cpu.d[i].concrete != prev_cpu.d[i].concrete
-                        or cpu.d[i].tag != prev_cpu.d[i].tag):
+                if not _vals_equal(cpu.d[i], prev_cpu.d[i]):
                     changed = True
                     break
             if not changed:
                 for i in range(len(cpu.a)):
-                    if (cpu.a[i].concrete != prev_cpu.a[i].concrete
-                            or cpu.a[i].tag != prev_cpu.a[i].tag):
+                    if not _vals_equal(cpu.a[i], prev_cpu.a[i]):
                         changed = True
                         break
-            if not changed and (cpu.sp.concrete == prev_cpu.sp.concrete
-                                and cpu.sp.tag == prev_cpu.sp.tag):
-                continue  # converged, no need to re-process
+            if not changed and _vals_equal(cpu.sp, prev_cpu.sp):
+                continue  # converged
 
         visited.add(addr)
 
@@ -1738,11 +1864,14 @@ def propagate_states(blocks: dict[int, BasicBlock],
         for xref in block.xrefs:
             succ = xref.dst
             if (xref.type == "fallthrough" and call_sp_push
-                    and cpu.sp.is_known):
+                    and (cpu.sp.is_known or cpu.sp.is_symbolic)):
                 # Call fallthrough: callee's return restores SP
                 adj_cpu = cpu.copy()
-                adj_cpu.sp = _concrete(
-                    (cpu.sp.concrete + call_sp_push) & 0xFFFFFFFF)
+                if cpu.sp.is_known:
+                    adj_cpu.sp = _concrete(
+                        (cpu.sp.concrete + call_sp_push) & 0xFFFFFFFF)
+                else:
+                    adj_cpu.sp = cpu.sp.sym_add(call_sp_push)
                 if succ not in incoming:
                     incoming[succ] = []
                 incoming[succ].append((adj_cpu, mem.copy()))

@@ -468,11 +468,11 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
 
         ft, _ = kb.flow_type(last)
 
-        # RTS: read return address from stack
+        # RTS: read return address from stack (concrete or symbolic SP)
         if ft == "return" and addr in exit_states:
             cpu, mem = exit_states[addr]
-            if cpu.sp.is_known:
-                ret_val = mem.read(cpu.sp.concrete, "l")
+            if cpu.sp.is_known or cpu.sp.is_symbolic:
+                ret_val = mem.read(cpu.sp, "l")
                 if ret_val.is_known and _valid_target(ret_val.concrete):
                     resolved.append({
                         "dispatch_block": addr,
