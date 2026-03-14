@@ -159,7 +159,7 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - Reloc-derived data references for uncovered regions
   - Gap filling for 100% address coverage
   - `validate.py` PASS: 0 errors, 0 warnings, 0 unresolved xrefs
-- [x] Jump table detection: 5 dispatch patterns (A-E)
+- [x] Jump table detection: 4 dispatch patterns (A-D)
   - EA mode detection from KB `ea_mode_encoding` (pcindex, index, ind, pcdisp)
   - BRA opcode pattern from KB encoding fields + `displacement_encoding`
   - Brief + full extension word formats from KB `ea_brief_ext_word`/`ea_full_ext_word`
@@ -198,10 +198,11 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
     - Word-offset table at $0E9A, 29 entries (base-relative to A1=$0EA2)
     - Separate MOVE.W reads offset from table; JSR dispatches via same base register
     - JSR dispatch targets injected into call_targets for subroutine map (+38 subroutines)
-  - [x] Demand-driven memory dispatch (pattern E): scan raw binary for MOVEA.L d(An),Am + JMP/JSR (Am)
-    paired with LEA d(PC) + MOVE.L store sites; cross-reference by slot to resolve function pointers
-    - d(378)(A6) at $7612: targets $2D2E, $9884 from 4 store sites across 3 caller contexts
-    - Per-caller target accumulation avoids join pollution
+  - [ ] Memory dispatch via d(A6) function pointers: executor needs to resolve
+    MOVEA.L d(An),Am + JMP/JSR (Am) where stored values come from LEA d(PC)
+    - Diagnostic hint: d(378)(A6) at $7612 has targets $2D2E, $9884 from 4 store sites
+    - Requires executor to propagate d(A6) stores through call graph, not raw binary scan
+    - Per-caller context accumulation (not join) needed for polymorphic dispatch slots
   - [ ] Computed PEA+RTS dispatch at $7550: addresses $16E0-$1D14 (2.6KB addressing mode handlers)
     - LEA $1D14(PC) + ADDA.W D3 + push + RTS — D3 from instruction encoding table at runtime
     - Handlers are valid code but entry points depend on runtime table data

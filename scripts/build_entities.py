@@ -23,8 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze, BasicBlock, _load_kb
-from jump_tables import (detect_jump_tables, resolve_indirect_targets,
-                         resolve_memory_dispatches)
+from jump_tables import detect_jump_tables, resolve_indirect_targets
 from os_calls import (load_os_kb, get_platform_config, identify_library_calls,
                       _SENTINEL_ALLOC_BASE)
 from subroutine_scan import scan_and_score
@@ -393,13 +392,6 @@ def build_entities(binary_path: str, output_path: str = None):
             for r in resolve_indirect_targets(
                     result["blocks"], result["exit_states"], code_size):
                 all_entry_points.add(r["target"])
-            # Demand-driven: resolve memory dispatches (d(An) function
-            # pointers) by scanning for stores with known values.
-            for r in resolve_memory_dispatches(
-                    result["blocks"], code, code_size):
-                all_entry_points.add(r["target"])
-                if r["flow_type"] == "call":
-                    jt_call_targets.add(r["target"])
             return len(all_entry_points) - before
 
         def _expand_scan(result):
