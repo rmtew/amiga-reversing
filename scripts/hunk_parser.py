@@ -402,11 +402,28 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int) -> Hunk
             r.read_u32()  # consume
             break
         elif sub_id in (HunkType.HUNK_RELOC32, HunkType.HUNK_RELOC16,
-                        HunkType.HUNK_RELOC8, HunkType.HUNK_DREL32,
+                        HunkType.HUNK_RELOC8,
                         HunkType.HUNK_DREL16, HunkType.HUNK_DREL8,
                         HunkType.HUNK_RELRELOC32, HunkType.HUNK_ABSRELOC16):
             r.read_u32()  # consume type
             hunk.relocs.extend(_parse_reloc(r, sub_id))
+        elif sub_id == HunkType.HUNK_DREL32:
+            # 0x3F7: ambiguous — officially HUNK_DREL32 (32-bit format)
+            # but vasm uses it for short relocs (16-bit format).
+            # Detect by checking if the first 32-bit word is a plausible
+            # count (small) or looks like two 16-bit values.
+            r.read_u32()  # consume type
+            saved = r.pos
+            first_u32 = r.read_u32()
+            r.pos = saved
+            first_u16 = (first_u32 >> 16) & 0xFFFF
+            if first_u32 == 0 or (first_u16 > 0 and first_u16 < 0x8000
+                                  and first_u32 > hunk.alloc_size):
+                # First 32-bit word is too large for a count but the
+                # upper 16 bits are a plausible count → short format
+                hunk.relocs.extend(_parse_reloc32short(r))
+            else:
+                hunk.relocs.extend(_parse_reloc(r, sub_id))
         elif sub_id == HunkType.HUNK_RELOC32SHORT:
             r.read_u32()  # consume type
             hunk.relocs.extend(_parse_reloc32short(r))
