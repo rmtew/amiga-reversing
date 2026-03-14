@@ -23,7 +23,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze
-from os_calls import get_platform_config, _SENTINEL_ALLOC_BASE
+from os_calls import (get_platform_config, _SENTINEL_ALLOC_BASE,
+                      load_os_kb, identify_library_calls,
+                      propagate_input_types)
 from build_entities import _resolve_reloc_target
 from kb_util import KB, read_string_at
 
@@ -273,6 +275,40 @@ def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
     return text
 
 
+def replace_struct_fields(text: str, inst_offset: int,
+                          struct_map: dict[int, dict]) -> str:
+    """Replace d(An) displacements with struct field names.
+
+    When a register at this instruction offset is known to hold a struct
+    pointer, numeric displacements that match field offsets are replaced
+    with the field name: 18(a1) -> IS_CODE(a1).
+
+    struct_map: {inst_offset: {reg: {"struct": name, "fields": {off: name}}}}
+    """
+    if inst_offset not in struct_map:
+        return text
+    reg_types = struct_map[inst_offset]
+
+    def _replace_disp(m):
+        disp = int(m.group(1))
+        reg = m.group(2).lower()
+        rest = m.group(3)  # ')' or ',Xn...'
+        if reg in reg_types:
+            field_name = reg_types[reg]["fields"].get(disp)
+            if field_name:
+                return f"{field_name}({m.group(2)}{rest}"
+        return m.group(0)
+
+    parts = text.split(None, 1)
+    if len(parts) < 2:
+        return text
+    # Match: number(aX) or number(aX,...)
+    new_ops = re.sub(r'(-?\d+)\((a\d)([),])', _replace_disp, parts[1])
+    if new_ops != parts[1]:
+        return f"{parts[0]} {new_ops}"
+    return text
+
+
 def _is_printable_ascii(b: int) -> bool:
     """Check if a byte is printable ASCII (space through tilde)."""
     return 0x20 <= b <= 0x7E
@@ -499,6 +535,15 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             pc_targets)
         print(f"  {len(labels)} labels")
 
+        # Build struct type map for displacement substitution.
+        # Run library call identification on verified blocks, then
+        # backward-propagate struct types from call inputs.
+        os_kb = load_os_kb()
+        lib_calls = identify_library_calls(blocks, code, os_kb)
+        struct_map = propagate_input_types(blocks, lib_calls, os_kb)
+        if struct_map:
+            print(f"  {len(struct_map)} instructions with struct type info")
+
         # Generate output
         print(f"Writing {output_path}...")
         with open(output_path, "w") as f:
@@ -538,6 +583,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                             text = replace_targets_in_text(
                                 inst.text, inst.offset, inst.size,
                                 labels, reloc_map, kb.opword_bytes)
+                            text = replace_struct_fields(
+                                text, inst.offset, struct_map)
                             f.write(f"    {text}\n")
                             instr_count += 1
                     pos = blk.end
