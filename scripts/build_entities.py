@@ -578,15 +578,21 @@ def build_entities(binary_path: str, output_path: str = None):
                 for c in calls:
                     entry = {"call": f"{c['library']}/{c['function']}"}
                     if c.get("inputs"):
-                        entry["inputs"] = {
-                            inp["reg"]: inp["type"]
-                            for inp in c["inputs"]
-                            if inp.get("reg") and inp.get("type")
-                        }
-                    if c.get("output") and c["output"].get("type"):
-                        entry["output"] = {
-                            c["output"]["reg"]: c["output"]["type"]
-                        }
+                        inputs = {}
+                        for inp in c["inputs"]:
+                            if inp.get("reg") and inp.get("type"):
+                                info = {"type": inp["type"]}
+                                if inp.get("i_struct"):
+                                    info["i_struct"] = inp["i_struct"]
+                                inputs[inp["reg"]] = info
+                        if inputs:
+                            entry["inputs"] = inputs
+                    out = c.get("output")
+                    if out and out.get("type"):
+                        info = {"type": out["type"]}
+                        if out.get("i_struct"):
+                            info["i_struct"] = out["i_struct"]
+                        entry["output"] = {out["reg"]: info}
                     if "inputs" in entry or "output" in entry:
                         typed_calls.append(entry)
                 if typed_calls:

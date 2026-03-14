@@ -348,6 +348,35 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
 # No-return detection
 # =============================================================================
 
+def _resolve_struct_ref(type_str: str, c_to_i: dict,
+                        i_names: set) -> str | None:
+    """Extract .I struct name from a C type string like 'struct Foo *'.
+
+    Tries the c_to_i mapping first, then direct/case-insensitive match
+    against known .I struct names.
+    """
+    if "struct " not in type_str:
+        return None
+    # Extract C struct name: "struct Foo *" -> "Foo"
+    c_name = type_str.replace("*", "").strip()
+    if c_name.startswith("struct "):
+        c_name = c_name[7:].strip()
+    c_name = c_name.split()[0] if " " in c_name else c_name
+    if not c_name:
+        return None
+    # Try c_to_i mapping
+    if c_name in c_to_i:
+        return c_to_i[c_name]
+    # Try direct match
+    if c_name in i_names:
+        return c_name
+    # Try case-insensitive
+    upper_map = {k.upper(): k for k in i_names}
+    if c_name.upper() in upper_map:
+        return upper_map[c_name.upper()]
+    return None
+
+
 def check_no_return(doc: dict) -> bool:
     """Check if autodoc text indicates the function never returns.
 
@@ -1375,6 +1404,84 @@ def main():
 
     # --- Build constants ---
     output["constants"] = evaluated_constants
+
+    # ========================================================================
+    # 6b. Build C-to-I struct name mapping
+    # ========================================================================
+    # Source: NDK STRUCTURE.OFFSETS file lists C struct names with C field
+    # names.  Amiga convention: C field names share a lowercase prefix
+    # (e.g., is_Code, is_Data) whose uppercase form is the .I struct name
+    # (IS).  We parse the file, derive prefixes, and verify against the
+    # KB structs extracted from .I files.
+    struct_offsets_path = os.path.join(
+        ndk_root, "INCLUDES&LIBS", "STRUCTOFFSETS", "STRUCTURE.OFFSETS")
+    c_to_i_map = {}  # C struct name -> I struct name
+    if os.path.isfile(struct_offsets_path):
+        print("Building C-to-I struct name mapping...")
+        # Parse STRUCTURE.OFFSETS
+        c_structs_so = {}  # C name -> list of field names
+        current_c = None
+        with open(struct_offsets_path, encoding="utf-8",
+                  errors="replace") as f:
+            for line in f:
+                line = line.rstrip()
+                if not line:
+                    continue
+                if line[0] != " " and line.endswith(":"):
+                    current_c = line[:-1]
+                    c_structs_so[current_c] = []
+                elif current_c and line.startswith("  "):
+                    parts = line.split()
+                    if len(parts) >= 4 and "sizeof" not in line:
+                        c_structs_so[current_c].append(parts[3])
+
+        i_names = set(raw_structs.keys())
+        i_names_upper = {k.upper(): k for k in i_names}
+
+        for c_name, c_fields in c_structs_so.items():
+            # Strategy 1: direct match (case-sensitive)
+            if c_name in i_names:
+                c_to_i_map[c_name] = c_name
+                continue
+            # Strategy 2: case-insensitive match
+            if c_name.upper() in i_names_upper:
+                c_to_i_map[c_name] = i_names_upper[c_name.upper()]
+                continue
+            # Strategy 3: derive from field name prefix
+            # C field "is_Code" -> prefix "IS" -> I struct name
+            prefixes = set()
+            for fname in c_fields:
+                if "_" in fname:
+                    prefixes.add(fname.split("_")[0].upper())
+            for prefix in sorted(prefixes, key=len, reverse=True):
+                if prefix in i_names:
+                    c_to_i_map[c_name] = prefix
+                    break
+
+        print(f"  {len(c_to_i_map)}/{len(c_structs_so)} C structs mapped")
+
+        # Enrich function signature types with i_struct references.
+        # When a function input/output type is "struct Foo *", add
+        # "i_struct": "BAR" if Foo -> BAR is in the mapping.
+        enriched = 0
+        for lib in output["libraries"].values():
+            for func in lib["functions"].values():
+                for inp in func.get("inputs", []):
+                    i_ref = _resolve_struct_ref(
+                        inp.get("type", ""), c_to_i_map, i_names)
+                    if i_ref:
+                        inp["i_struct"] = i_ref
+                        enriched += 1
+                out = func.get("output")
+                if out:
+                    i_ref = _resolve_struct_ref(
+                        out.get("type", ""), c_to_i_map, i_names)
+                    if i_ref:
+                        out["i_struct"] = i_ref
+                        enriched += 1
+        print(f"  {enriched} function signature types enriched with i_struct")
+
+    output["_meta"]["struct_name_map"] = c_to_i_map
 
     # ========================================================================
     # 7. Summary
