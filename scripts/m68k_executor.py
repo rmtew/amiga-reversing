@@ -1971,41 +1971,28 @@ def _compute_summary(entry: int, owned: set[int],
         entry_cpu.a[i] = _symbolic(f"A{i}_entry", 0)
     entry_cpu.sp = _symbolic("SP_entry", 0)
 
-    incoming = {entry: [(entry_cpu.copy(), AbstractMemory())]}
+    incoming = {entry: {"_init": (entry_cpu.copy(), AbstractMemory())}}
     exit_states = {}
-    work = [entry]
+    work = deque([entry])
     visited = set()
 
     for _ in range(len(owned) * 3):
         if not work:
             break
-        addr = work.pop(0)
+        addr = work.popleft()
         if addr not in owned or addr not in blocks:
             continue
-        pred_states = incoming.get(addr, [])
-        if not pred_states:
+        pred_dict = incoming.get(addr)
+        if not pred_dict:
             continue
 
-        cpu, mem = _join_states(pred_states)
+        cpu, mem = _join_states(list(pred_dict.values()))
         cpu.pc = addr
 
-        # Fixpoint
         if addr in visited and addr in exit_states:
             prev_cpu, _ = exit_states[addr]
-            changed = any(
-                not (cpu.d[i].sym_base == prev_cpu.d[i].sym_base
-                     and cpu.d[i].sym_offset == prev_cpu.d[i].sym_offset
-                     and cpu.d[i].concrete == prev_cpu.d[i].concrete)
-                for i in range(len(cpu.d)))
-            if not changed:
-                changed = any(
-                    not (cpu.a[i].sym_base == prev_cpu.a[i].sym_base
-                         and cpu.a[i].sym_offset == prev_cpu.a[i].sym_offset
-                         and cpu.a[i].concrete == prev_cpu.a[i].concrete)
-                    for i in range(len(cpu.a)))
-            if not changed and (cpu.sp.sym_base == prev_cpu.sp.sym_base
-                                and cpu.sp.sym_offset == prev_cpu.sp.sym_offset
-                                and cpu.sp.concrete == prev_cpu.sp.concrete):
+            if (cpu.d == prev_cpu.d and cpu.a == prev_cpu.a
+                    and cpu.sp == prev_cpu.sp):
                 continue
         visited.add(addr)
 
@@ -2017,7 +2004,9 @@ def _compute_summary(entry: int, owned: set[int],
                 _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
                                    None)  # no platform
             cpu.pc = inst.offset + inst.size
-        exit_states[addr] = (cpu.copy(), mem.copy())
+        exit_cpu = cpu.copy()
+        exit_mem = mem.copy()
+        exit_states[addr] = (exit_cpu, exit_mem)
         if global_exit_states is not None:
             global_exit_states[addr] = exit_states[addr]
 
@@ -2035,7 +2024,6 @@ def _compute_summary(entry: int, owned: set[int],
                         if eff.get("action") == "decrement":
                             call_sp_push += eff["bytes"]
 
-        # Classify xrefs
         call_dst = ft_dst = None
         other_xrefs = []
         for xref in block.xrefs:
@@ -2047,32 +2035,31 @@ def _compute_summary(entry: int, owned: set[int],
                 other_xrefs.append(xref)
 
         if call_sp_push and ft_dst and ft_dst in owned:
-            # Internal or external call — apply nested summary if
-            # available, otherwise SP-adjusted fallthrough.
             nested = summaries.get(call_dst)
             if nested:
-                ft_cpu = _apply_summary(cpu, nested)
-                incoming.setdefault(ft_dst, []).append(
-                    (ft_cpu, mem.copy()))
+                ft_cpu = _apply_summary(exit_cpu, nested)
+                incoming.setdefault(ft_dst, {})[addr] = \
+                    (ft_cpu, exit_mem)
             else:
-                adj_cpu = cpu.copy()
-                if cpu.sp.is_symbolic:
-                    adj_cpu.sp = cpu.sp.sym_add(call_sp_push)
-                elif cpu.sp.is_known:
+                adj_cpu = exit_cpu.copy()
+                if exit_cpu.sp.is_symbolic:
+                    adj_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
+                elif exit_cpu.sp.is_known:
                     adj_cpu.sp = _concrete(
-                        (cpu.sp.concrete + call_sp_push) & 0xFFFFFFFF)
-                incoming.setdefault(ft_dst, []).append(
-                    (adj_cpu, mem.copy()))
+                        (exit_cpu.sp.concrete + call_sp_push)
+                        & 0xFFFFFFFF)
+                incoming.setdefault(ft_dst, {})[addr] = \
+                    (adj_cpu, exit_mem)
             work.append(ft_dst)
         elif ft_dst and ft_dst in owned:
-            incoming.setdefault(ft_dst, []).append(
-                (cpu.copy(), mem.copy()))
+            incoming.setdefault(ft_dst, {})[addr] = \
+                (exit_cpu, exit_mem)
             work.append(ft_dst)
 
         for xref in other_xrefs:
             if xref.dst in owned:
-                incoming.setdefault(xref.dst, []).append(
-                    (cpu.copy(), mem.copy()))
+                incoming.setdefault(xref.dst, {})[addr] = \
+                    (exit_cpu, exit_mem)
                 work.append(xref.dst)
 
     # Collect RTS exit states
