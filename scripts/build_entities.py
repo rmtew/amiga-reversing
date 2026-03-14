@@ -27,6 +27,7 @@ from jump_tables import detect_jump_tables, resolve_indirect_targets
 from os_calls import (load_os_kb, get_platform_config, identify_library_calls,
                       _SENTINEL_ALLOC_BASE)
 from subroutine_scan import scan_and_score
+from kb_util import KB
 from name_entities import name_subroutines
 
 
@@ -370,12 +371,24 @@ def build_entities(binary_path: str, output_path: str = None):
                            propagate=propagate,
                            platform=platform_config if propagate else None)
 
+        # Jump table targets from call-type dispatches (JSR, not JMP).
+        # These are subroutine entry points that need to be in call_targets
+        # for subroutine map construction.
+        jt_call_targets = set()
+
         def _expand_tables_indirect(result):
             """Add jump table + indirect targets to all_entry_points.
             Returns number of new entries added."""
             before = len(all_entry_points)
+            kb = KB()
             for t in detect_jump_tables(result["blocks"], code, base_addr=0):
                 all_entry_points.update(t["targets"])
+                # Check if dispatch instruction is a call (JSR)
+                dblk = result["blocks"].get(t["dispatch_block"])
+                if dblk and dblk.instructions:
+                    ft, _ = kb.flow_type(dblk.instructions[-1])
+                    if ft == "call":
+                        jt_call_targets.update(t["targets"])
             for r in resolve_indirect_targets(
                     result["blocks"], result["exit_states"], code_size):
                 all_entry_points.add(r["target"])
@@ -494,7 +507,7 @@ def build_entities(binary_path: str, output_path: str = None):
 
         blocks = result["blocks"]
         xrefs = result["xrefs"]
-        call_targets = result["call_targets"]
+        call_targets = result["call_targets"] | jt_call_targets
         print(f"  {len(xrefs)} xrefs, "
               f"{len(call_targets)} call targets, "
               f"{len(result['branch_targets'])} branch targets")

@@ -4,6 +4,7 @@ All M68K knowledge from KB. Supported patterns:
   A. Word-offset dispatch: LEA base,An; JMP/JSR disp(An,Dn.w)
   B. Self-relative dispatch: LEA d(PC,Dn),An; ADDA.W (An),An; JMP (An)
   C. PC-relative inline: JMP/JSR disp(PC,Dn.w) with BRA.S entries
+  D. Indirect table read: LEA d(PC),An; MOVE.W d1(An,Dn),Dn; JSR d2(An,Dn)
 """
 
 import struct
@@ -349,7 +350,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                "targets": targets, "dispatch_block": addr})
             continue
 
-        # Pattern A: register-indexed with LEA base
+        # Patterns A/D: register-indexed with LEA base
         if ea_info["base_mode"] == "an":
             base_reg = ea_info["base_reg"]
             lea_addr = None
@@ -360,6 +361,40 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     break
 
             if lea_addr is not None:
+                # Pattern D: preceding indexed read into JSR's index reg.
+                # MOVE.W d1(An,Dn),Dn reads offset from table; JSR d2(An,Dn)
+                # dispatches.  table = lea + d1, target = lea + d2 + entry.
+                move_disp = None
+                for inst in reversed(block.instructions[:-1]):
+                    if ikb_is_lea(inst, kb):
+                        break
+                    mi = kb.find(_extract_mnemonic(inst.text))
+                    if mi is None:
+                        continue
+                    m_ea = _is_indexed_ea(inst.raw, kb, mi)
+                    if (m_ea and m_ea["base_mode"] == "an"
+                            and m_ea["base_reg"] == base_reg):
+                        m_dst = kb.dst_reg_field(mi)
+                        if m_dst:
+                            m_op = struct.unpack_from(">H", inst.raw, 0)[0]
+                            if xf(m_op, m_dst) == ea_info["index_reg"]:
+                                move_disp = m_ea["displacement"]
+                        break
+
+                if move_disp is not None:
+                    table_start = lea_addr + move_disp
+                    target_base = lea_addr + ea_info["displacement"]
+                    targets = _scan_word_offset_table(
+                        code, table_start, target_base, code_size)
+                    if len(targets) >= 2:
+                        tables.append({
+                            "addr": table_start,
+                            "pattern": "indirect_table_read",
+                            "targets": targets,
+                            "dispatch_block": addr,
+                        })
+                    continue
+
                 has_adda = any(
                     inst.text.strip().lower().startswith("adda")
                     and f"(a{base_reg})" in inst.text.lower()

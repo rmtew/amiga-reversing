@@ -192,11 +192,12 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Audit: _is_valid_68000 uses KB `processor_020` flag, not hardcoded mnemonics
 - [x] Audit: _RELOC_INFO loaded from KB `relocation_semantics`, not hardcoded dict
 - [x] Audit: build_reloc_map handles all absolute reloc types from KB
-- GenAm results: 59.2% coverage, 336 subroutines, 477 entities, 13 named, 454 call pairs
+- GenAm results: 59.3% coverage, 374 subroutines, 524 entities, 13 named, 495 call pairs
 - [ ] Improve coverage beyond 59%:
-  - [ ] Add dispatch pattern D to `jump_tables.py`: LEA d(PC),An; MOVE.W d(An,Dn),Dn; JSR d(An,Dn)
-    - Self-relative word-offset table at $0E9A, 19 entries, targets $1050-$2CA2
-    - Same semantic as pattern B but uses JSR and separate MOVE.W for table read
+  - [x] Add dispatch pattern D to `jump_tables.py`: LEA d(PC),An; MOVE.W d(An,Dn),Dn; JSR d(An,Dn)
+    - Word-offset table at $0E9A, 29 entries (base-relative to A1=$0EA2)
+    - Separate MOVE.W reads offset from table; JSR dispatches via same base register
+    - JSR dispatch targets injected into call_targets for subroutine map (+38 subroutines)
   - [ ] Trace function pointer stores: init code writes handler addresses to d(A6), later code
     loads from d(A6) and calls indirectly — executor needs to connect the store->load->call chain
     - Largest gap: addressing mode parser at $16E0-$1D14 (2KB, unreachable via call graph)
@@ -260,8 +261,8 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 
 ### Disassembly — GenAm
 - [x] Target binary: GenAm (DevPac 3.18 assembler), 64920-byte CODE hunk
-- [x] Code coverage: 59.2% (5270 blocks, 12618 instructions)
-- [x] 336 subroutines, 13 named, 477 entities with 100% address coverage
+- [x] Code coverage: 59.3% (5280 blocks, 12640 instructions)
+- [x] 374 subroutines, 13 named, 524 entities with 100% address coverage
 - [x] OS call identification: 16 calls found, 13 resolved (exec.library)
 - [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
 - [x] App base register tracking (A6 as data pointer for GenAm's work area)
