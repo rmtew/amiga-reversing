@@ -75,9 +75,14 @@ def _parse_ext_word(ext: int, raw: bytes, meta: dict) -> dict | None:
                 if displacement >= (1 << (w - 1)):
                     displacement -= (1 << w)
 
+        if "D/A" not in fields:
+            raise KeyError("ea_brief/full_ext_word missing D/A field")
+        if "REGISTER" not in fields:
+            raise KeyError("ea_brief/full_ext_word missing REGISTER field")
+
         return {
-            "index_is_addr": bool(fields.get("D/A", 0)),
-            "index_reg": fields.get("REGISTER", 0),
+            "index_is_addr": bool(fields["D/A"]),
+            "index_reg": fields["REGISTER"],
             "displacement": displacement,
         }
 
@@ -86,7 +91,7 @@ def _parse_ext_word(ext: int, raw: bytes, meta: dict) -> dict | None:
 
 # ── EA analysis helpers ──────────────────────────────────────────────────
 
-def _is_indexed_ea(raw: bytes, kb: KB, inst_kb: dict = None) -> dict | None:
+def _is_indexed_ea(raw: bytes, kb: KB, inst_kb: dict) -> dict | None:
     """Check if instruction uses indexed EA (An+Xn or PC+Xn)."""
     if len(raw) < 4:
         return None
@@ -96,10 +101,7 @@ def _is_indexed_ea(raw: bytes, kb: KB, inst_kb: dict = None) -> dict | None:
     if ext_info is None:
         return None
 
-    target_kb = inst_kb or kb.by_name.get("JMP")
-    if target_kb is None:
-        return None
-    ea_spec = kb.ea_field_spec(target_kb)
+    ea_spec = kb.ea_field_spec(inst_kb)
     if ea_spec is None:
         return None
 
@@ -199,9 +201,7 @@ def _scan_self_relative_table(code, table_addr, code_size, max_entries=256):
 def _scan_inline_dispatch(code, base_addr, code_size, kb: KB,
                           max_entries=64):
     """Decode inline BRA.S/BRA.W entries at base_addr. KB-driven."""
-    bra_kb = kb.by_name.get("BRA")
-    if not bra_kb:
-        return []
+    bra_kb = kb.by_name["BRA"]
 
     # Build BRA opcode pattern from KB encoding
     enc = bra_kb["encodings"][0]
@@ -213,11 +213,9 @@ def _scan_inline_dispatch(code, base_addr, code_size, kb: KB,
                 if f["name"] == "1":
                     fixed |= 1 << b
 
-    disp_enc = bra_kb.get("constraints", {}).get("displacement_encoding")
-    disp_f = next((f for f in enc["fields"]
-                   if "DISPLACEMENT" in f["name"].upper()), None)
-    if not disp_enc or not disp_f:
-        return []
+    disp_enc = bra_kb["constraints"]["displacement_encoding"]
+    disp_f = next(f for f in enc["fields"]
+                  if "DISPLACEMENT" in f["name"].upper())
 
     w_sig = disp_enc["word_signal"]
     l_sig = disp_enc["long_signal"]
@@ -312,9 +310,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     has_adda = False
                     table_base = None
                     for inst in reversed(block.instructions[:-1]):
-                        it = inst.text.strip().lower()
-                        if (it.startswith("adda") and f"(a{jmp_reg})" in it
-                                and f"a{jmp_reg}" in it.split(",")[-1]):
+                        if _is_adda_ind(inst, kb, jmp_reg):
                             has_adda = True
                         elif ikb_is_lea(inst, kb):
                             if _get_lea_dst_reg(inst, kb) == jmp_reg:
@@ -396,8 +392,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     continue
 
                 has_adda = any(
-                    inst.text.strip().lower().startswith("adda")
-                    and f"(a{base_reg})" in inst.text.lower()
+                    _is_adda_ind(inst, kb, base_reg)
                     for inst in block.instructions[-3:])
                 if has_adda:
                     targets = _scan_self_relative_table(
@@ -421,6 +416,29 @@ def ikb_is_lea(inst, kb: KB) -> bool:
     return ikb is not None and ikb.get("operation") == "< ea > \u2192 An"
 
 
+def _is_adda_ind(inst, kb: KB, target_reg: int) -> bool:
+    """Check if instruction is ADDA with indirect (An) source to target_reg.
+
+    Uses KB encoding fields: source EA mode == ind, source register ==
+    target_reg, destination register == target_reg.
+    """
+    mi = kb.find(_extract_mnemonic(inst.text))
+    if mi is None or mi.get("mnemonic") != "ADDA":
+        return False
+    ea_spec = kb.ea_field_spec(mi)
+    if ea_spec is None or len(inst.raw) < 2:
+        return False
+    opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+    if xf(opcode, ea_spec[0]) != kb.ea_enc["ind"][0]:
+        return False
+    if xf(opcode, ea_spec[1]) != target_reg:
+        return False
+    dst = kb.dst_reg_field(mi)
+    if dst is None or xf(opcode, dst) != target_reg:
+        return False
+    return True
+
+
 # ── Indirect target resolution ───────────────────────────────────────────
 
 def resolve_indirect_targets(blocks: dict[int, BasicBlock],
@@ -431,10 +449,7 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
     For RTS: reads the return address from the stack via propagated SP + memory.
     """
     kb = KB()
-    ind_enc = kb.ea_enc.get("ind")
-    if ind_enc is None:
-        return []
-    # Instruction alignment from KB opword_bytes (2 → must be even)
+    ind_enc = kb.ea_enc["ind"]
     align_mask = kb.opword_bytes - 1
 
     def _valid_target(addr):
