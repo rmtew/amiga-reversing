@@ -22,7 +22,6 @@ from collections import defaultdict
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from hunk_parser import parse_file, HunkType
-from m68k_disasm import _Decoder, _decode_one, DecodeError
 from m68k_executor import analyze
 from os_calls import get_platform_config, _SENTINEL_ALLOC_BASE
 from build_entities import _resolve_reloc_target
@@ -77,51 +76,58 @@ def build_label_map(entities: list[dict], blocks: dict,
 
 
 def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
-    """Build offset→target map from RELOC32 entries for a hunk."""
+    """Build offset→target map from absolute reloc entries for a hunk.
+
+    Uses relocation_semantics from hunk format KB to determine which
+    reloc types are absolute (need label references in disassembly).
+    """
+    from hunk_parser import _HUNK_KB
+    reloc_sem = _HUNK_KB.get("relocation_semantics", {})
+    # Build set of absolute reloc type IDs from KB
+    abs_types = set()
+    for name, sem in reloc_sem.items():
+        if sem.get("mode") == "absolute" and name in HunkType.__members__:
+            abs_types.add(HunkType[name])
+
     reloc_map = {}
     for hunk in hunks:
         if hunk.index != hunk_idx:
             continue
         for reloc in hunk.relocs:
-            if reloc.reloc_type != HunkType.HUNK_RELOC32:
+            try:
+                rtype = HunkType(reloc.reloc_type)
+            except ValueError:
+                continue
+            if rtype not in abs_types:
+                continue
+            # Get byte width from KB
+            nbytes = reloc_sem.get(rtype.name, {}).get("bytes", 4)
+            fmt = {4: ">I", 2: ">H"}.get(nbytes)
+            if fmt is None:
                 continue
             for offset in reloc.offsets:
-                if offset + 4 <= len(hunk.data):
-                    target = struct.unpack_from(">I", hunk.data, offset)[0]
+                if offset + nbytes <= len(hunk.data):
+                    target = struct.unpack_from(fmt, hunk.data, offset)[0]
                     reloc_map[offset] = target
     return reloc_map
 
 
-def _is_valid_68000(text: str) -> bool:
+def _is_valid_68000(text: str, kb: KB) -> bool:
     """Check if a disassembled instruction is valid for 68000.
 
-    Returns False for 020+ instructions or invalid EA mode combinations
-    that indicate data bytes were incorrectly decoded as instructions.
+    Uses KB processor_020 flag to reject 020+ instructions that indicate
+    data bytes were incorrectly decoded as code.
     """
     parts = text.split()
     if not parts:
         return True
     mn = parts[0].split('.')[0].lower()
-    # CMP2/CHK2 are 68020+ only
-    if mn in ("cmp2", "chk2"):
+    ikb = kb.find(mn)
+    if ikb is None:
+        return True
+    # KB processor_020 flag: instruction requires 68020+
+    if ikb.get("processor_020"):
         return False
-    # OR/AND/EOR with An source are not valid on 68000
-    if mn in ("or", "and", "eor") and len(parts) >= 2:
-        operands = parts[1]
-        src = operands.split(',')[0].strip().lower()
-        if src in ("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "sp"):
-            return False
-    # ANDI/ORI to An are not valid
-    if mn in ("andi", "ori") and len(parts) >= 2:
-        operands = parts[1]
-        dst = operands.split(',')[-1].strip().lower()
-        if dst in ("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "sp"):
-            return False
-    # BSET with immediate destination is not valid
-    if mn == "bset" and len(parts) >= 2:
-        dst = parts[1].split(',')[-1].strip()
-        if dst.startswith('#'):
-            return False
     return True
 
 
@@ -377,7 +383,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                         # Internal label
                         if inst.offset != pos and inst.offset in labels:
                             f.write(f"{labels[inst.offset]}:\n")
-                        if not _is_valid_68000(inst.text):
+                        if not _is_valid_68000(inst.text, kb):
                             # Invalid decode — emit as raw bytes
                             emit_data_region(f, code, inst.offset,
                                              inst.offset + inst.size,

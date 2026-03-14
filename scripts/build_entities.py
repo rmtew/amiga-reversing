@@ -32,23 +32,16 @@ from name_entities import name_subroutines
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
-# Relocation type metadata (from Amiga hunk format spec):
-# - bytes: width of the stored value at the reloc offset
-# - mode: how the stored value relates to the target address
-#   "absolute"     — stored value = target offset (loader adds hunk base)
-#   "pc_relative"  — stored value = target - offset (PC-relative displacement)
-#   "data_relative"— stored value = target - data_section_base
-_RELOC_INFO = {
-    HunkType.HUNK_RELOC32:      {"bytes": 4, "mode": "absolute"},
-    HunkType.HUNK_RELOC32SHORT: {"bytes": 4, "mode": "absolute"},
-    HunkType.HUNK_ABSRELOC16:   {"bytes": 2, "mode": "absolute"},
-    HunkType.HUNK_RELOC16:      {"bytes": 2, "mode": "pc_relative"},
-    HunkType.HUNK_RELOC8:       {"bytes": 1, "mode": "pc_relative"},
-    HunkType.HUNK_RELRELOC32:   {"bytes": 4, "mode": "pc_relative"},
-    HunkType.HUNK_DREL32:       {"bytes": 4, "mode": "data_relative"},
-    HunkType.HUNK_DREL16:       {"bytes": 2, "mode": "data_relative"},
-    HunkType.HUNK_DREL8:        {"bytes": 1, "mode": "data_relative"},
-}
+# Relocation semantics loaded from hunk format KB.
+# Maps HunkType int → {"bytes": N, "mode": "absolute"|"pc_relative"|...}
+from hunk_parser import _HUNK_KB
+_RELOC_INFO = {}
+for _name, _sem in _HUNK_KB.get("relocation_semantics", {}).items():
+    if _name in HunkType.__members__:
+        _RELOC_INFO[HunkType[_name]] = {
+            "bytes": _sem["bytes"],
+            "mode": _sem["mode"],
+        }
 
 # struct format strings by byte width (big-endian, signed for relative)
 _RELOC_ABS_FMT = {4: ">I", 2: ">H"}

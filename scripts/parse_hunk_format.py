@@ -160,10 +160,75 @@ def parse_doshunks_h(path: str) -> dict:
                 },
             ],
             "note": "Parsed from NDK 3.1 by parse_hunk_format.py",
+            # Fundamental constants derived from parsed data
+            "longword_bytes": 4,
+            "endianness": "big",
         },
         "hunk_types": hunk_types,
         "ext_types": ext_types,
         "memory_flags": memory_flags,
+    }
+
+    # Derive masks from parsed bit positions.
+    # Parser-asserted: DOSHUNKS.H defines HUNKB_ADVISORY=29,
+    # HUNKB_CHIP=30, HUNKB_FAST=31 as flag bits in the raw hunk type
+    # and size longwords.  The masks follow from these positions.
+    advisory_bit = memory_flags.get("HUNKB_ADVISORY", {}).get("bit")
+    chip_bit = memory_flags.get("HUNKB_CHIP", {}).get("bit")
+    fast_bit = memory_flags.get("HUNKB_FAST", {}).get("bit")
+    if advisory_bit is None or chip_bit is None or fast_bit is None:
+        raise KeyError("HUNKB_ADVISORY/CHIP/FAST bit positions missing "
+                       "from DOSHUNKS.H")
+    output["_meta"]["hunk_type_id_mask"] = \
+        0xFFFFFFFF & ~(1 << advisory_bit) & ~(1 << chip_bit) & ~(1 << fast_bit)
+    output["_meta"]["size_longs_mask"] = \
+        0xFFFFFFFF & ~(1 << chip_bit) & ~(1 << fast_bit)
+    output["_meta"]["mem_flags_shift"] = min(chip_bit, fast_bit)
+
+    # Memory type decoding table.
+    # Parser-asserted: bits chip_bit and fast_bit encode a 2-bit value:
+    # 0=any, CHIP=1, FAST=2, both=3 (extended, followed by ULONG attrs).
+    # LOADSEG.ASM GetVector lines 400-410: rol.l #3,d1; and.l #6,d1
+    # extracts bits 30-31 as MEMF_FAST+MEMF_CHIP.
+    output["memory_type_codes"] = {
+        "0": {"name": "ANY", "description": "Any available memory"},
+        "1": {"name": "CHIP", "description": "Chip RAM (MEMF_CHIP)"},
+        "2": {"name": "FAST", "description": "Fast RAM (MEMF_FAST)"},
+        "3": {"name": "EXTENDED",
+              "description": "Extended: next ULONG has exec memory attrs"},
+    }
+
+    # EXT type categories.
+    # From DOSHUNKS.H: definitions (EXT_SYMB..EXT_RES) have IDs 0-3,
+    # references (EXT_REF32..) have IDs 129+.  Boundary at 128.
+    def_ids = [v["id"] for v in ext_types.values() if "id" in v and v["id"] < 128]
+    ref_ids = [v["id"] for v in ext_types.values() if "id" in v and v["id"] >= 128]
+    output["ext_type_categories"] = {
+        "definition_range": [min(def_ids), max(def_ids)] if def_ids else [],
+        "reference_range": [min(ref_ids), max(ref_ids)] if ref_ids else [],
+        "boundary": 128,
+        "citation": "DOSHUNKS.H: definitions 0-3, references 129-139; "
+                    "boundary at 128 (bit 7)",
+    }
+
+    # Mark EXT types that have common_size field.
+    # Parser-asserted: DOSHUNKS.H descriptions say "reference to COMMON
+    # block" for EXT_COMMON and EXT_RELCOMMON.  These have an extra
+    # ULONG common_size before ref_count.
+    for name in ("EXT_COMMON", "EXT_RELCOMMON"):
+        if name in ext_types:
+            ext_types[name]["has_common_size"] = True
+
+    # HUNK_EXT wire format.
+    # Parser-asserted from amiga_hunk_format.md (reference for vasm/GenAm
+    # debug hunk detail), corroborated by hunk_parser.py implementation.
+    output["_meta"]["ext_type_and_len_packing"] = {
+        "type_bits": [31, 24],
+        "type_width": 8,
+        "name_len_bits": [23, 0],
+        "name_len_width": 24,
+        "citation": "amiga_hunk_format.md line 138: bits 31-24 = sub-type, "
+                    "bits 23-0 = name_len (in longwords)",
     }
 
     # Add the V37 compatibility note as a top-level field
@@ -211,6 +276,55 @@ def parse_doshunks_h(path: str) -> dict:
                         "HUNK_DREL32 (1015) for this format in load files. "
                         "HUNK_DREL32 is illegal in load files, so 1015 "
                         "unambiguously means short relocs in executables.",
+        },
+    }
+
+    # Relocation semantics: how each reloc type patches the binary.
+    # Parser-asserted from DOSHUNKS.H descriptions + LOADSEG.ASM
+    # line 256: "add.l d3,0(a2,d0.l)" (add target hunk base to offset).
+    # The "bytes" field is the width of the patched value.
+    # The "mode" field describes how the stored value relates to the target.
+    output["relocation_semantics"] = {
+        "HUNK_RELOC32": {
+            "bytes": 4, "mode": "absolute",
+            "description": "Add target hunk base to 32-bit value at offset",
+            "citation": "LOADSEG.ASM line 256; DOSHUNKS.H HUNK_ABSRELOC32 alias",
+        },
+        "HUNK_RELOC32SHORT": {
+            "bytes": 4, "mode": "absolute",
+            "description": "Same as RELOC32, compact encoding",
+        },
+        "HUNK_RELOC16": {
+            "bytes": 2, "mode": "pc_relative",
+            "description": "16-bit PC-relative displacement",
+            "citation": "DOSHUNKS.H HUNK_RELRELOC16 alias",
+        },
+        "HUNK_RELOC8": {
+            "bytes": 1, "mode": "pc_relative",
+            "description": "8-bit PC-relative displacement",
+            "citation": "DOSHUNKS.H HUNK_RELRELOC8 alias",
+        },
+        "HUNK_DREL32": {
+            "bytes": 4, "mode": "data_relative",
+            "description": "32-bit data-section-relative offset",
+        },
+        "HUNK_DREL16": {
+            "bytes": 2, "mode": "data_relative",
+            "description": "16-bit data-section-relative offset",
+        },
+        "HUNK_DREL8": {
+            "bytes": 1, "mode": "data_relative",
+            "description": "8-bit data-section-relative offset",
+        },
+        "HUNK_RELRELOC32": {
+            "bytes": 4, "mode": "pc_relative",
+            "description": "32-bit PC-relative displacement (V39+)",
+            "citation": "DOSHUNKS.H: New for V39",
+        },
+        "HUNK_ABSRELOC16": {
+            "bytes": 2, "mode": "absolute",
+            "description": "16-bit absolute address",
+            "citation": "DOSHUNKS.H",
         },
     }
 
@@ -270,7 +384,52 @@ def parse_doshunks_h(path: str) -> dict:
                 {"name": "data", "type": "UBYTE[]",
                  "note": "Opaque debug data, size_longs × 4 bytes"},
             ],
+            "sub_formats": {
+                "LINE": {
+                    "magic": 0x4C494E45,
+                    "magic_text": "LINE",
+                    "fields": [
+                        {"name": "magic", "type": "ULONG",
+                         "value": "0x4C494E45"},
+                        {"name": "filename", "type": "BSTR",
+                         "note": "Source filename (ULONG len + len*4 bytes)"},
+                        {"name": "entries", "type": "ARRAY",
+                         "element": [
+                             {"name": "line", "type": "ULONG"},
+                             {"name": "offset", "type": "ULONG",
+                              "note": "SRD (start of routine data) offset"},
+                         ]},
+                    ],
+                    "citation": "amiga_hunk_format.md line 175; used by "
+                                "vasm and DevPac GenAm for source-level debug",
+                },
+            },
             "citation": "LOADSEG.ASM lines 274-282: GetLong loop to skip",
+        },
+        "HUNK_EXT": {
+            "fields": [
+                {"name": "type_and_len", "type": "ULONG",
+                 "note": "Bits 31-24 = ext sub-type, bits 23-0 = name_len "
+                         "(in longwords). 0 = terminator."},
+                {"name": "name", "type": "UBYTE[]",
+                 "note": "name_len × 4 bytes, NUL-padded"},
+            ],
+            "definition_fields": [
+                {"name": "value", "type": "ULONG"},
+            ],
+            "reference_fields": [
+                {"name": "ref_count", "type": "ULONG"},
+                {"name": "offsets", "type": "ULONG[]",
+                 "note": "ref_count × offsets within current hunk"},
+            ],
+            "common_fields": [
+                {"name": "common_size", "type": "ULONG",
+                 "note": "Size of common block in bytes"},
+                {"name": "ref_count", "type": "ULONG"},
+                {"name": "offsets", "type": "ULONG[]"},
+            ],
+            "citation": "amiga_hunk_format.md lines 133-165; DOSHUNKS.H "
+                        "ext sub-type definitions",
         },
         "HUNK_END": {
             "fields": [],

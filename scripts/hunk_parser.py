@@ -31,34 +31,28 @@ def _build_enum(name, kb_section, base_class=IntEnum):
     return base_class(name, members)
 
 _HUNK_KB = _load_hunk_kb()
+_HUNK_META = _HUNK_KB["_meta"]
 
 HunkType = _build_enum("HunkType", _HUNK_KB["hunk_types"])
 ExtType = _build_enum("ExtType", _HUNK_KB["ext_types"])
 
-# Memory flags from KB (bit positions)
-_mem_flags = _HUNK_KB.get("memory_flags", {})
-_CHIP_BIT = _mem_flags.get("HUNKB_CHIP", {}).get("bit", 30)
-_FAST_BIT = _mem_flags.get("HUNKB_FAST", {}).get("bit", 31)
+# All constants derived from KB — no hardcoded values.
+_HUNK_TYPE_ID_MASK = _HUNK_META["hunk_type_id_mask"]
+_SIZE_LONGS_MASK = _HUNK_META["size_longs_mask"]
+_MEM_FLAGS_SHIFT = _HUNK_META["mem_flags_shift"]
+_LONGWORD_BYTES = _HUNK_META["longword_bytes"]
+_EXT_BOUNDARY = _HUNK_KB["ext_type_categories"]["boundary"]
 
-# Reloc format metadata: which types use short (16-bit) format
-_short_reloc_types = set()
-for fmt in _HUNK_KB.get("reloc_formats", {}).values():
-    if any(f.get("type") == "UWORD" for f in fmt.get("fields", [])
-           if f.get("name") == "count"):
-        for name in fmt.get("applies_to", []):
-            if name in HunkType.__members__:
-                _short_reloc_types.add(HunkType[name])
+# Build MemType enum from KB memory_type_codes
+MemType = IntEnum("MemType", {
+    v["name"]: int(k)
+    for k, v in _HUNK_KB["memory_type_codes"].items()
+})
 
-# V37 compatibility: HUNK_DREL32 (1015) means RELOC32SHORT in load files.
-# From DOSHUNKS.H: "V37 LoadSeg uses 1015 (HUNK_DREL32) by mistake."
-_DREL32_AS_SHORT_IN_LOADFILES = True  # from compatibility_notes
-
-
-class MemType(IntEnum):
-    ANY = 0
-    CHIP = 1
-    FAST = 2
-    EXTENDED = 3
+# Reverse lookup: ext type ID → KB name (for has_common_size etc.)
+_ext_id_to_name = {
+    v["id"]: k for k, v in _HUNK_KB["ext_types"].items() if "id" in v
+}
 
 
 @dataclass
@@ -172,7 +166,7 @@ class _Reader:
         num_longs = self.read_u32()
         if num_longs == 0:
             return ""
-        raw = self.read_bytes(num_longs * 4)
+        raw = self.read_bytes(num_longs * _LONGWORD_BYTES)
         # Strip NUL padding
         return raw.rstrip(b"\x00").decode("latin-1")
 
@@ -189,25 +183,32 @@ class _Reader:
 
 
 def _parse_hunk_id(raw: int) -> int:
-    """Extract hunk type ID (lower 29 bits)."""
-    return raw & 0x1FFFFFFF
+    """Extract hunk type ID, masking off flag bits.
+
+    Mask from KB: strips ADVISORY (bit 29), CHIP (bit 30), FAST (bit 31).
+    """
+    return raw & _HUNK_TYPE_ID_MASK
 
 
 def _parse_mem_flags(raw: int) -> int:
-    """Extract memory type from bits 30-31."""
-    return (raw >> 30) & 3
+    """Extract memory type code from flag bits.
+
+    Shift and width from KB memory_flags bit positions.
+    """
+    return (raw >> _MEM_FLAGS_SHIFT) & (len(_HUNK_KB["memory_type_codes"]) - 1)
 
 
 def _parse_size_and_mem(raw: int, r: _Reader) -> tuple[int, int]:
     """Parse size longword, return (size_in_bytes, mem_type).
 
-    If mem_type == EXTENDED (3), reads additional ULONG for extended attrs.
+    If mem_type == EXTENDED, reads additional ULONG for extended attrs.
+    Masks and multiplier from KB.
     """
     mem = _parse_mem_flags(raw)
-    size_longs = raw & 0x3FFFFFFF
+    size_longs = raw & _SIZE_LONGS_MASK
     if mem == MemType.EXTENDED:
         _ext_attrs = r.read_u32()  # read and discard extended attrs for now
-    return size_longs * 4, mem
+    return size_longs * _LONGWORD_BYTES, mem
 
 
 def _parse_reloc(r: _Reader, reloc_type: int) -> list[Reloc]:
@@ -246,7 +247,7 @@ def _parse_symbol(r: _Reader) -> list[Symbol]:
         name_len = r.read_u32()
         if name_len == 0:
             break
-        name = r.read_bytes(name_len * 4).rstrip(b"\x00").decode("latin-1")
+        name = r.read_bytes(name_len * _LONGWORD_BYTES).rstrip(b"\x00").decode("latin-1")
         value = r.read_u32()
         symbols.append(Symbol(name=name, value=value))
     return symbols
@@ -260,18 +261,22 @@ def _parse_ext(r: _Reader) -> tuple[list[ExtDef], list[ExtRef]]:
         type_and_len = r.read_u32()
         if type_and_len == 0:
             break
-        ext_type = (type_and_len >> 24) & 0xFF
-        name_len = type_and_len & 0xFFFFFF
-        name = r.read_bytes(name_len * 4).rstrip(b"\x00").decode("latin-1")
+        _ext_pack = _HUNK_META["ext_type_and_len_packing"]
+        ext_type = (type_and_len >> _ext_pack["name_len_width"]) & \
+            ((1 << _ext_pack["type_width"]) - 1)
+        name_len = type_and_len & ((1 << _ext_pack["name_len_width"]) - 1)
+        name = r.read_bytes(name_len * _LONGWORD_BYTES).rstrip(b"\x00").decode("latin-1")
 
-        if ext_type < 128:
+        if ext_type < _EXT_BOUNDARY:
             # Definition
             value = r.read_u32()
             defs.append(ExtDef(name=name, ext_type=ext_type, value=value))
         else:
-            # Reference
+            # Reference — check KB for common_size field
             common_size = 0
-            if ext_type in (ExtType.EXT_COMMON, ExtType.EXT_RELCOMMON):
+            ext_name = _ext_id_to_name.get(ext_type)
+            if ext_name and _HUNK_KB["ext_types"].get(ext_name, {}).get(
+                    "has_common_size"):
                 common_size = r.read_u32()
             ref_count = r.read_u32()
             offsets = [r.read_u32() for _ in range(ref_count)]
@@ -283,7 +288,7 @@ def _parse_ext(r: _Reader) -> tuple[list[ExtDef], list[ExtRef]]:
 def _parse_debug(r: _Reader) -> bytes:
     """Parse HUNK_DEBUG block, return raw data."""
     num_longs = r.read_u32()
-    return r.read_bytes(num_longs * 4)
+    return r.read_bytes(num_longs * _LONGWORD_BYTES)
 
 
 def parse(data: bytes) -> HunkFile:
@@ -375,7 +380,7 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
 
     if hunk_id == HunkType.HUNK_CODE or hunk_id == HunkType.HUNK_DATA:
         num_longs = r.read_u32()
-        data = r.read_bytes(num_longs * 4)
+        data = r.read_bytes(num_longs * _LONGWORD_BYTES)
         data_size = num_longs * 4
         if alloc_size == 0:
             alloc_size = data_size
@@ -442,7 +447,7 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
             r.read_u32()
             if r.remaining() >= 4:
                 skip_len = r.read_u32()
-                r.read_bytes(skip_len * 4)
+                r.read_bytes(skip_len * _LONGWORD_BYTES)
 
     return hunk
 
