@@ -25,7 +25,7 @@ from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze
 from os_calls import get_platform_config, _SENTINEL_ALLOC_BASE
 from build_entities import _resolve_reloc_target
-from kb_util import KB
+from kb_util import KB, read_string_at
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -42,15 +42,82 @@ def load_entities(path: str) -> list[dict]:
     return entities
 
 
-def build_label_map(entities: list[dict], blocks: dict,
-                    reloc_targets: set[int]) -> dict[int, str]:
-    """Build addr→name label map from entities, blocks, and reloc targets.
+def discover_pc_relative_targets(blocks: dict, code: bytes,
+                                 kb: KB) -> dict[int, str]:
+    """Discover PC-relative operand targets in flow-verified blocks.
 
-    Label naming:
-    - Named entities: use their name
-    - Unnamed code entities: sub_XXXX
-    - Data/unknown entities at reloc targets: dat_XXXX
-    - Other addresses: loc_XXXX (internal branch/call targets)
+    Scans for non-indexed d(PC) operands, computes target addresses,
+    and names them based on content (string → str_XXXX, else pcref_XXXX).
+    Indexed d(PC,Xn) operands are skipped (not statically resolvable).
+
+    Target computation uses KB opword_bytes for PC offset.
+    """
+    pc_re = re.compile(r'(-?\d+)\(pc\)\s*$', re.IGNORECASE)
+    # Match d(pc) but NOT d(pc,Xn) — the regex requires end-of-operand
+    # or comma-then-register after (pc), excluding indexed forms.
+
+    targets = {}  # addr → name
+    for blk in blocks.values():
+        for inst in blk.instructions:
+            # Check each operand for d(pc) — split on comma outside parens
+            text = inst.text.strip()
+            parts = text.split(None, 1)
+            if len(parts) < 2:
+                continue
+            operands = parts[1]
+            # Check both source and destination operands
+            for operand in _split_operands(operands):
+                m = pc_re.search(operand)
+                if not m:
+                    continue
+                disp = int(m.group(1))
+                target = inst.offset + kb.opword_bytes + disp
+                if target < 0 or target >= len(code):
+                    continue
+                if target in targets:
+                    continue
+                # Name based on content
+                s = read_string_at(code, target)
+                if s and len(s) >= 3:
+                    # Sanitize string to identifier
+                    clean = re.sub(r'[^a-zA-Z0-9_]', '_', s[:24]).strip('_')
+                    clean = clean.lower()
+                    if clean and clean[0].isdigit():
+                        clean = "s_" + clean
+                    targets[target] = f"str_{target:04x}"
+                else:
+                    targets[target] = f"pcref_{target:04x}"
+    return targets
+
+
+def _split_operands(operands: str) -> list[str]:
+    """Split operand string on comma, respecting parentheses."""
+    result = []
+    depth = 0
+    start = 0
+    for i, ch in enumerate(operands):
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        elif ch == ',' and depth == 0:
+            result.append(operands[start:i].strip())
+            start = i + 1
+    result.append(operands[start:].strip())
+    return result
+
+
+def build_label_map(entities: list[dict], blocks: dict,
+                    reloc_targets: set[int],
+                    pc_targets: dict[int, str]) -> dict[int, str]:
+    """Build addr→name label map from all sources.
+
+    Label naming priority:
+    1. Named entities: use their name
+    2. Unnamed code entities: sub_XXXX
+    3. Internal block targets: loc_XXXX
+    4. Reloc targets: dat_XXXX
+    5. PC-relative targets: str_XXXX or pcref_XXXX
     """
     labels = {}
 
@@ -71,6 +138,11 @@ def build_label_map(entities: list[dict], blocks: dict,
     for addr in sorted(reloc_targets):
         if addr not in labels:
             labels[addr] = f"dat_{addr:04x}"
+
+    # PC-relative targets (strings, data tables referenced via d(PC))
+    for addr, name in sorted(pc_targets.items()):
+        if addr not in labels:
+            labels[addr] = name
 
     return labels
 
@@ -175,7 +247,10 @@ def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
                               operands, count=1, flags=re.IGNORECASE)
             return f"{mnemonic} {operands}"
 
-    # PC-relative LEA: lea NNN(pc),An → lea label(pc),An
+    # PC-relative: NNN(pc) → label(pc).
+    # Only non-indexed: \(pc\) matches the closing paren right after "pc",
+    # which excludes indexed forms like NNN(pc,Dn.w) where the paren
+    # doesn't close until after the index register.
     pc_match = re.search(r'(-?\d+)\(pc\)', operands, re.IGNORECASE)
     if pc_match:
         disp = int(pc_match.group(1))
@@ -348,11 +423,16 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             for succ in blk.successors:
                 internal_targets.add(succ)
 
+        # Discover PC-relative targets (strings, data tables)
+        pc_targets = discover_pc_relative_targets(blocks, code, kb)
+        print(f"  {len(pc_targets)} PC-relative targets")
+
         # Build label map
         labels = build_label_map(
             hunk_entities,
             {t: None for t in internal_targets},
-            reloc_target_set)
+            reloc_target_set,
+            pc_targets)
         print(f"  {len(labels)} labels")
 
         # Generate output
