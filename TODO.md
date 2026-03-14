@@ -188,16 +188,21 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - Convergence check includes tag comparison (not just concrete values)
   - 63% of blocks now have concrete A6 (enables d(A6) memory ops)
 - [x] RTS return resolution: reads return address from stack via propagated SP + memory
+- [x] Audit: hunk parser fully KB-driven — type IDs, masks, multipliers, ext packing, MemType all from JSON
+- [x] Audit: _is_valid_68000 uses KB `processor_020` flag, not hardcoded mnemonics
+- [x] Audit: _RELOC_INFO loaded from KB `relocation_semantics`, not hardcoded dict
+- [x] Audit: build_reloc_map handles all absolute reloc types from KB
 - GenAm results: 59.2% coverage, 336 subroutines, 477 entities, 13 named, 454 call pairs
 - [ ] Improve coverage beyond 59% (function pointers in d(A6) slots, more pattern recognition)
 - [x] Disassembly generator: `scripts/gen_disasm.py` → `disasm/genam.s`
   - Flow-verified blocks only (reloc-target entries filtered to reachable-from-entry-0)
   - Label replacement: branch targets, relocated absolutes, PC-relative, immediates
   - Data regions as dc.b with dc.l at reloc offsets
-  - Invalid-for-68000 instructions emitted as dc.b
-- [x] vasm round-trip: 0/64920 byte differences (perfect match)
+  - 020+ instructions (KB `processor_020`) emitted as dc.b
+- [x] vasm round-trip: 0/64920 byte differences, 0/117 reloc differences (perfect match)
   - `vasmm68k_mot -Fhunkexe -no-opt -m68020` — zero errors, warnings only
   - 5188 instructions disassembled, 49032 data bytes, 2156 flow-verified blocks
+  - Comparison via `parse_file()` on both sides (not raw byte scan)
 - [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
 
 ## Existing Infrastructure
@@ -215,7 +220,7 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Build M68K disassembler — test-driven, using knowledge base
 - [x] Build test oracle — assemble → disassemble → reassemble → binary diff (1804 tests, 110/126 mnemonics)
 - [x] Derive M68K condition-family canonicalisation from KB data (including PMMU condition tables)
-- [ ] Round-trip validation tooling per CLAUDE.md: reassemble with vasm, binary-diff against original
+- [x] Round-trip validation: GenAm → disasm → vasm → binary-diff = 0 bytes, 0 relocs different
 
 ### Data-Driven Audit — Round-Trip Tests
 - [x] Bit-number immediate `#4` arbitrary — acceptable test value, not derivable from KB
@@ -235,6 +240,13 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 ### Knowledge Base — Amiga Platform
 - [ ] Refine OS version tagging — differentiate 570 "1.3" functions into 1.0/1.1/1.2/1.3
 - [ ] Complete hardware register bit definitions (104/245 done)
+- [x] Hunk format KB: `amiga_hunk_format.json` from NDK DOSHUNKS.H + LOADSEG.ASM
+  - 26 hunk types, 19 ext types, memory flags, relocation semantics
+  - Wire formats parser-asserted from LOADSEG.ASM with line citations
+  - V37 compatibility note (HUNK_DREL32 = RELOC32SHORT in executables)
+  - HUNK_DEBUG LINE sub-format (vasm/GenAm debug info)
+- [ ] Verify HUNK_OVERLAY format against ADCD primary source (currently from .md)
+- [ ] Investigate HUNK_LIB/HUNK_INDEX format (no NDK documentation found)
 
 ### Disassembly — GenAm
 - [x] Target binary: GenAm (DevPac 3.18 assembler), 64920-byte CODE hunk
