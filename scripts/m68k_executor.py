@@ -13,6 +13,7 @@ Usage:
 import json
 import struct
 import sys
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from m68k_compute import _to_signed
@@ -209,24 +210,24 @@ def _xf(word: int, field_spec: tuple) -> int:
 
 # ── Abstract state ────────────────────────────────────────────────────────
 
-@dataclass
 class AbstractValue:
     """A value that may be concrete, symbolic (base+offset), or unknown.
 
-    Concrete: known 32-bit value (e.g., $7F000000).
+    Concrete: known 32-bit value.
     Symbolic: base name + integer offset (e.g., SP_entry-4).
-      Enables tracking through push/pop without knowing the actual SP.
-      Joins of identical symbolic values succeed; different offsets → unknown.
     Unknown: neither concrete nor symbolic.
 
-    The optional tag dict carries semantic metadata (e.g., library base
-    identity) that propagates when the value is copied between registers.
+    Uses __slots__ for performance (millions of instances).
     """
-    concrete: int | None = None     # known concrete value, or None
-    sym_base: str | None = None     # symbolic base name (e.g., "SP_entry")
-    sym_offset: int | None = None   # offset from symbolic base
-    label: str | None = None        # human label (e.g., "A0_init")
-    tag: dict | None = None         # semantic tag (e.g., {"library_base": "..."})
+    __slots__ = ("concrete", "sym_base", "sym_offset", "label", "tag")
+
+    def __init__(self, concrete=None, sym_base=None, sym_offset=None,
+                 label=None, tag=None):
+        self.concrete = concrete
+        self.sym_base = sym_base
+        self.sym_offset = sym_offset
+        self.label = label
+        self.tag = tag
 
     @property
     def is_known(self) -> bool:
@@ -238,8 +239,6 @@ class AbstractValue:
 
     def sym_add(self, delta: int) -> "AbstractValue":
         """Return a new symbolic value with adjusted offset."""
-        if not self.is_symbolic:
-            raise ValueError("sym_add on non-symbolic value")
         return AbstractValue(sym_base=self.sym_base,
                              sym_offset=self.sym_offset + delta,
                              tag=self.tag)
@@ -254,6 +253,21 @@ class AbstractValue:
             return f"{self.sym_base}{off:+d}"
         return f"?{self.label or ''}"
 
+    def __eq__(self, other):
+        if not isinstance(other, AbstractValue):
+            return NotImplemented
+        return (self.concrete == other.concrete
+                and self.sym_base == other.sym_base
+                and self.sym_offset == other.sym_offset
+                and self.tag == other.tag)
+
+    def __hash__(self):
+        return hash((self.concrete, self.sym_base, self.sym_offset))
+
+
+# Pre-allocated singleton for the common case
+_UNKNOWN = AbstractValue()
+
 
 def _concrete(val: int, tag: dict | None = None) -> AbstractValue:
     return AbstractValue(concrete=val & 0xFFFFFFFF, tag=tag)
@@ -265,6 +279,8 @@ def _symbolic(base: str, offset: int = 0,
 
 
 def _unknown(label: str = "", tag: dict | None = None) -> AbstractValue:
+    if not label and tag is None:
+        return _UNKNOWN
     return AbstractValue(label=label, tag=tag)
 
 
@@ -276,33 +292,33 @@ def _make_cpu_state_class():
     sp_reg = meta["_sp_reg_num"]
     ccr_flags = list(meta["ccr_bit_positions"].keys())
 
-    @dataclass
+    _default_d = [_UNKNOWN] * num_d
+    _default_a = [_UNKNOWN] * num_a
+    _default_ccr = {f: None for f in ccr_flags}
+
     class CPUState:
         """Abstract CPU state for symbolic execution.
 
         Register layout derived from KB movem_reg_masks and ccr_bit_positions.
+        Uses __slots__ for performance (thousands of instances).
         """
-        d: list[AbstractValue] = field(
-            default_factory=lambda: [_unknown(f"D{i}") for i in range(num_d)])
-        a: list[AbstractValue] = field(
-            default_factory=lambda: [_unknown(f"A{i}") for i in range(num_a)])
-        sp: AbstractValue = field(default_factory=lambda: _unknown("SP"))
-        pc: int = 0
-        ccr: dict[str, int | None] = field(
-            default_factory=lambda: {f: None for f in ccr_flags})
+        __slots__ = ("d", "a", "sp", "pc", "ccr")
+
+        def __init__(self):
+            self.d = list(_default_d)
+            self.a = list(_default_a)
+            self.sp = _UNKNOWN
+            self.pc = 0
+            self.ccr = dict(_default_ccr)
 
         def get_reg(self, mode: str, reg: int) -> AbstractValue:
-            """Read a register by EA mode name and register number."""
             if mode == "dn":
                 return self.d[reg]
-            elif mode == "an":
-                if reg == sp_reg:
-                    return self.sp
-                return self.a[reg]
+            if mode == "an":
+                return self.sp if reg == sp_reg else self.a[reg]
             raise ValueError(f"get_reg: unsupported mode '{mode}'")
 
         def set_reg(self, mode: str, reg: int, val: AbstractValue):
-            """Write a register by EA mode name and register number."""
             if mode == "dn":
                 self.d[reg] = val
             elif mode == "an":
@@ -314,8 +330,7 @@ def _make_cpu_state_class():
                 raise ValueError(f"set_reg: unsupported mode '{mode}'")
 
         def copy(self) -> "CPUState":
-            """Create an independent copy of this state."""
-            s = CPUState()
+            s = CPUState.__new__(CPUState)
             s.d = list(self.d)
             s.a = list(self.a)
             s.sp = self.sp
@@ -952,14 +967,22 @@ def _join_values(a: AbstractValue, b: AbstractValue) -> AbstractValue:
     Symbolic: both symbolic with same base and offset → keep.
     Otherwise: unknown.  Tag preserved if both agree.
     """
+    # Fast path: identical objects (common when sharing references)
+    if a is b:
+        return a
     tag = a.tag if a.tag is not None and a.tag == b.tag else None
-    if a.is_known and b.is_known and a.concrete == b.concrete:
+    if a.concrete is not None and a.concrete == b.concrete:
+        if tag is a.tag:
+            return a
         return AbstractValue(concrete=a.concrete, tag=tag)
-    if (a.is_symbolic and b.is_symbolic
-            and a.sym_base == b.sym_base
+    if (a.sym_base is not None and a.sym_base == b.sym_base
             and a.sym_offset == b.sym_offset):
+        if tag is a.tag:
+            return a
         return AbstractValue(sym_base=a.sym_base,
                              sym_offset=a.sym_offset, tag=tag)
+    if tag is None:
+        return _UNKNOWN
     return _unknown(tag=tag)
 
 
@@ -976,91 +999,77 @@ def _join_states(states: list) -> tuple:
         cpu, mem = states[0]
         return cpu.copy(), mem.copy()
 
-    _, _, meta = _load_kb()
     result_cpu = CPUState()
+    first_cpu = states[0][0]
+    n_d = len(result_cpu.d)
+    n_a = len(result_cpu.a)
+    _jv = _join_values  # local ref for speed
 
     # Join data registers
-    for i in range(len(result_cpu.d)):
-        vals = [s[0].d[i] for s in states]
-        result_cpu.d[i] = vals[0]
-        for v in vals[1:]:
-            result_cpu.d[i] = _join_values(result_cpu.d[i], v)
+    for i in range(n_d):
+        r = first_cpu.d[i]
+        for s in states[1:]:
+            r = _jv(r, s[0].d[i])
+        result_cpu.d[i] = r
 
     # Join address registers
-    for i in range(len(result_cpu.a)):
-        vals = [s[0].a[i] for s in states]
-        result_cpu.a[i] = vals[0]
-        for v in vals[1:]:
-            result_cpu.a[i] = _join_values(result_cpu.a[i], v)
+    for i in range(n_a):
+        r = first_cpu.a[i]
+        for s in states[1:]:
+            r = _jv(r, s[0].a[i])
+        result_cpu.a[i] = r
 
     # Join SP
-    sp_vals = [s[0].sp for s in states]
-    result_cpu.sp = sp_vals[0]
-    for v in sp_vals[1:]:
-        result_cpu.sp = _join_values(result_cpu.sp, v)
+    r = first_cpu.sp
+    for s in states[1:]:
+        r = _jv(r, s[0].sp)
+    result_cpu.sp = r
 
     # Join CCR flags
     for flag in result_cpu.ccr:
-        flag_vals = [s[0].ccr.get(flag) for s in states]
-        if all(v is not None for v in flag_vals) and len(set(flag_vals)) == 1:
-            result_cpu.ccr[flag] = flag_vals[0]
+        v0 = first_cpu.ccr.get(flag)
+        if v0 is not None and all(
+                s[0].ccr.get(flag) == v0 for s in states[1:]):
+            result_cpu.ccr[flag] = v0
         else:
             result_cpu.ccr[flag] = None
 
-    # Join memory: only keep values that all states agree on
-    result_mem = AbstractMemory()
+    # Join memory: skip if all states share the same memory object
+    first_mem = states[0][1]
+    if all(s[1] is first_mem for s in states[1:]):
+        result_mem = first_mem.copy()
+    else:
+        result_mem = AbstractMemory()
+        # Concrete bytes — intersect keys (only addresses in ALL states)
+        common_addrs = set(states[0][1]._bytes.keys())
+        for _, mem in states[1:]:
+            common_addrs &= mem._bytes.keys()
+        for addr in common_addrs:
+            r = states[0][1]._bytes[addr]
+            for _, mem in states[1:]:
+                r = _jv(r, mem._bytes[addr])
+            if r.concrete is not None:
+                result_mem._bytes[addr] = r
 
-    # Concrete bytes
-    all_addrs = set()
-    for _, mem in states:
-        all_addrs.update(mem._bytes.keys())
-    for addr in all_addrs:
-        vals = []
-        for _, mem in states:
-            v = mem._bytes.get(addr)
-            if v is None:
-                break
-            vals.append(v)
-        else:
-            joined = vals[0]
-            for v in vals[1:]:
-                joined = _join_values(joined, v)
-            if joined.is_known:
-                result_mem._bytes[addr] = joined
+        # Concrete memory tags — intersect
+        common_tags = set(states[0][1]._tags.keys())
+        for _, mem in states[1:]:
+            common_tags &= mem._tags.keys()
+        for key in common_tags:
+            t0 = states[0][1]._tags[key]
+            if all(s[1]._tags[key] == t0 for s in states[1:]):
+                result_mem._tags[key] = t0
 
-    # Concrete memory tags: keep tags that all states agree on
-    all_tag_keys = set()
-    for _, mem in states:
-        all_tag_keys.update(mem._tags.keys())
-    for key in all_tag_keys:
-        tags = []
-        for _, mem in states:
-            t = mem._tags.get(key)
-            if t is None:
-                break
-            tags.append(t)
-        else:
-            if len(set(id(t) for t in tags)) == 1 or all(
-                    t == tags[0] for t in tags[1:]):
-                result_mem._tags[key] = tags[0]
-
-    # Symbolic slots
-    all_sym_keys = set()
-    for _, mem in states:
-        all_sym_keys.update(mem._sym.keys())
-    for key in all_sym_keys:
-        vals = []
-        for _, mem in states:
-            v = mem._sym.get(key)
-            if v is None:
-                break
-            vals.append(v)
-        else:
-            joined = vals[0]
-            for v in vals[1:]:
-                joined = _join_values(joined, v)
-            if joined.is_known or joined.is_symbolic or joined.tag:
-                result_mem._sym[key] = joined
+        # Symbolic slots — intersect
+        common_sym = set(states[0][1]._sym.keys())
+        for _, mem in states[1:]:
+            common_sym &= mem._sym.keys()
+        for key in common_sym:
+            r = states[0][1]._sym[key]
+            for _, mem in states[1:]:
+                r = _jv(r, mem._sym[key])
+            if r.concrete is not None or r.sym_base is not None or r.tag:
+                result_mem._sym[key] = r
 
     return result_cpu, result_mem
 
@@ -1739,6 +1748,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
                      initial_state: "CPUState_inner | None" = None,
                      initial_mem: AbstractMemory | None = None,
                      platform: dict | None = None,
+                     summaries: dict[int, dict | None] | None = None,
                      ) -> dict[int, tuple]:
     """Propagate abstract state through basic blocks.
 
@@ -1789,14 +1799,14 @@ def propagate_states(blocks: dict[int, BasicBlock],
         if not blocks[entry].predecessors:
             incoming[entry] = [(initial_state.copy(), initial_mem.copy())]
 
-    work = list(entry_blocks)
+    work = deque(entry_blocks)
     visited = set()
     iterations = 0
     max_iterations = len(blocks) * 3  # convergence guard
 
     while work and iterations < max_iterations:
         iterations += 1
-        addr = work.pop(0)
+        addr = work.popleft()
         if addr not in blocks:
             continue
 
@@ -1809,28 +1819,12 @@ def propagate_states(blocks: dict[int, BasicBlock],
         cpu, mem = _join_states(pred_states)
         cpu.pc = addr
 
-        # Check if state changed from last visit (for fixpoint).
-        # Compare all AbstractValue fields — concrete, symbolic, and tags.
-        def _vals_equal(a, b):
-            return (a.concrete == b.concrete
-                    and a.sym_base == b.sym_base
-                    and a.sym_offset == b.sym_offset
-                    and a.tag == b.tag)
-
+        # Fixpoint check: skip if state unchanged from last visit.
         if addr in visited and addr in exit_states:
-            prev_cpu, prev_mem = exit_states[addr]
-            changed = False
-            for i in range(len(cpu.d)):
-                if not _vals_equal(cpu.d[i], prev_cpu.d[i]):
-                    changed = True
-                    break
-            if not changed:
-                for i in range(len(cpu.a)):
-                    if not _vals_equal(cpu.a[i], prev_cpu.a[i]):
-                        changed = True
-                        break
-            if not changed and _vals_equal(cpu.sp, prev_cpu.sp):
-                continue  # converged
+            prev_cpu, _ = exit_states[addr]
+            if (cpu.d == prev_cpu.d and cpu.a == prev_cpu.a
+                    and cpu.sp == prev_cpu.sp):
+                continue
 
         visited.add(addr)
 
@@ -1843,7 +1837,9 @@ def propagate_states(blocks: dict[int, BasicBlock],
                                    platform)
             cpu.pc = inst.offset + inst.size
 
-        exit_states[addr] = (cpu.copy(), mem.copy())
+        exit_cpu = cpu.copy()
+        exit_mem = mem.copy()
+        exit_states[addr] = (exit_cpu, exit_mem)
 
         # Propagate to successors.
         # For call fallthroughs, adjust SP to account for the callee's
@@ -1861,27 +1857,351 @@ def propagate_states(blocks: dict[int, BasicBlock],
                         if eff.get("action") == "decrement":
                             call_sp_push += eff["bytes"]
 
+        # Classify xrefs
+        call_dst = ft_dst = None
+        other_xrefs = []
         for xref in block.xrefs:
-            succ = xref.dst
-            if (xref.type == "fallthrough" and call_sp_push
-                    and (cpu.sp.is_known or cpu.sp.is_symbolic)):
-                # Call fallthrough: callee's return restores SP
-                adj_cpu = cpu.copy()
-                if cpu.sp.is_known:
-                    adj_cpu.sp = _concrete(
-                        (cpu.sp.concrete + call_sp_push) & 0xFFFFFFFF)
-                else:
-                    adj_cpu.sp = cpu.sp.sym_add(call_sp_push)
-                if succ not in incoming:
-                    incoming[succ] = []
-                incoming[succ].append((adj_cpu, mem.copy()))
+            if xref.type == "call":
+                call_dst = xref.dst
+            elif xref.type == "fallthrough":
+                ft_dst = xref.dst
             else:
-                if succ not in incoming:
-                    incoming[succ] = []
-                incoming[succ].append((cpu.copy(), mem.copy()))
-            work.append(succ)
+                other_xrefs.append(xref)
+
+        if call_sp_push and ft_dst:
+            # Call with fallthrough.  Apply summary if available,
+            # otherwise SP-adjusted fallthrough + propagate into callee.
+            summary = summaries.get(call_dst) if summaries else None
+            if summary:
+                ft_cpu = _apply_summary(exit_cpu, summary)
+                # Restore call-effect tags from _apply_instruction
+                if platform and platform.get("scratch_regs"):
+                    for reg_mode, reg_num in platform["scratch_regs"]:
+                        caller_val = exit_cpu.get_reg(reg_mode, reg_num)
+                        if caller_val.tag:
+                            ft_cpu.set_reg(reg_mode, reg_num,
+                                           _unknown(tag=caller_val.tag))
+                incoming.setdefault(ft_dst, []).append(
+                    (ft_cpu, exit_mem))
+                work.append(ft_dst)
+            else:
+                # No summary — propagate into callee (for exit state
+                # discovery) and SP-adjusted to fallthrough.
+                if call_dst:
+                    incoming.setdefault(call_dst, []).append(
+                        (exit_cpu, exit_mem))
+                    work.append(call_dst)
+                adj_cpu = exit_cpu.copy()
+                if exit_cpu.sp.is_known:
+                    adj_cpu.sp = _concrete(
+                        (exit_cpu.sp.concrete + call_sp_push)
+                        & 0xFFFFFFFF)
+                elif exit_cpu.sp.is_symbolic:
+                    adj_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
+                incoming.setdefault(ft_dst, []).append(
+                    (adj_cpu, exit_mem))
+                work.append(ft_dst)
+        elif ft_dst:
+            incoming.setdefault(ft_dst, []).append(
+                (exit_cpu, exit_mem))
+            work.append(ft_dst)
+
+        for xref in other_xrefs:
+            incoming.setdefault(xref.dst, []).append(
+                (exit_cpu, exit_mem))
+            work.append(xref.dst)
 
     return exit_states
+
+
+# ── Subroutine summaries ─────────────────────────────────────────────────
+
+def _compute_sub_blocks(blocks: dict[int, BasicBlock],
+                        call_targets: set[int]) -> dict[int, set[int]]:
+    """Map each subroutine entry to the set of block addresses it owns.
+
+    A block belongs to a subroutine if reachable from its entry via
+    successors without crossing another subroutine's entry.
+    """
+    result = {}
+    for entry in call_targets:
+        if entry not in blocks:
+            continue
+        owned = set()
+        work = [entry]
+        while work:
+            a = work.pop()
+            if a in owned or a not in blocks:
+                continue
+            if a != entry and a in call_targets:
+                continue
+            owned.add(a)
+            for s in blocks[a].successors:
+                work.append(s)
+        result[entry] = owned
+    return result
+
+
+def _compute_summary(entry: int, owned: set[int],
+                     blocks: dict[int, BasicBlock],
+                     summaries: dict[int, dict | None],
+                     code: bytes, base_addr: int,
+                     kb_by_name: dict, cc_test_defs: dict,
+                     cc_aliases: dict,
+                     global_exit_states: dict | None = None,
+                     ) -> dict | None:
+    """Compute a subroutine summary by analyzing with symbolic inputs.
+
+    Each register gets a unique symbolic value (D0_entry, A0_entry,
+    SP_entry).  At RTS, registers whose symbolic value survived are
+    preserved; others are clobbered.  No platform config — summaries
+    track register preservation, not concrete OS call effects.
+
+    Returns {"preserved_d": set, "preserved_a": set, "sp_delta": int}
+    or None.
+    """
+    entry_cpu = CPUState()
+    for i in range(len(entry_cpu.d)):
+        entry_cpu.d[i] = _symbolic(f"D{i}_entry", 0)
+    for i in range(len(entry_cpu.a)):
+        entry_cpu.a[i] = _symbolic(f"A{i}_entry", 0)
+    entry_cpu.sp = _symbolic("SP_entry", 0)
+
+    incoming = {entry: [(entry_cpu.copy(), AbstractMemory())]}
+    exit_states = {}
+    work = [entry]
+    visited = set()
+
+    for _ in range(len(owned) * 3):
+        if not work:
+            break
+        addr = work.pop(0)
+        if addr not in owned or addr not in blocks:
+            continue
+        pred_states = incoming.get(addr, [])
+        if not pred_states:
+            continue
+
+        cpu, mem = _join_states(pred_states)
+        cpu.pc = addr
+
+        # Fixpoint
+        if addr in visited and addr in exit_states:
+            prev_cpu, _ = exit_states[addr]
+            changed = any(
+                not (cpu.d[i].sym_base == prev_cpu.d[i].sym_base
+                     and cpu.d[i].sym_offset == prev_cpu.d[i].sym_offset
+                     and cpu.d[i].concrete == prev_cpu.d[i].concrete)
+                for i in range(len(cpu.d)))
+            if not changed:
+                changed = any(
+                    not (cpu.a[i].sym_base == prev_cpu.a[i].sym_base
+                         and cpu.a[i].sym_offset == prev_cpu.a[i].sym_offset
+                         and cpu.a[i].concrete == prev_cpu.a[i].concrete)
+                    for i in range(len(cpu.a)))
+            if not changed and (cpu.sp.sym_base == prev_cpu.sp.sym_base
+                                and cpu.sp.sym_offset == prev_cpu.sp.sym_offset
+                                and cpu.sp.concrete == prev_cpu.sp.concrete):
+                continue
+        visited.add(addr)
+
+        block = blocks[addr]
+        for inst in block.instructions:
+            mn = _extract_mnemonic(inst.text)
+            ikb = _find_kb_entry(kb_by_name, mn, cc_test_defs, cc_aliases)
+            if ikb:
+                _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
+                                   None)  # no platform
+            cpu.pc = inst.offset + inst.size
+        exit_states[addr] = (cpu.copy(), mem.copy())
+        if global_exit_states is not None:
+            global_exit_states[addr] = exit_states[addr]
+
+        # Propagate to successors within the subroutine
+        call_sp_push = 0
+        if block.instructions:
+            last = block.instructions[-1]
+            last_mn = _extract_mnemonic(last.text)
+            last_ikb = _find_kb_entry(kb_by_name, last_mn,
+                                      cc_test_defs, cc_aliases)
+            if last_ikb:
+                flow = last_ikb.get("pc_effects", {}).get("flow", {})
+                if flow.get("type") == "call":
+                    for eff in last_ikb.get("sp_effects", []):
+                        if eff.get("action") == "decrement":
+                            call_sp_push += eff["bytes"]
+
+        # Classify xrefs
+        call_dst = ft_dst = None
+        other_xrefs = []
+        for xref in block.xrefs:
+            if xref.type == "call":
+                call_dst = xref.dst
+            elif xref.type == "fallthrough":
+                ft_dst = xref.dst
+            else:
+                other_xrefs.append(xref)
+
+        if call_sp_push and ft_dst and ft_dst in owned:
+            # Internal or external call — apply nested summary if
+            # available, otherwise SP-adjusted fallthrough.
+            nested = summaries.get(call_dst)
+            if nested:
+                ft_cpu = _apply_summary(cpu, nested)
+                incoming.setdefault(ft_dst, []).append(
+                    (ft_cpu, mem.copy()))
+            else:
+                adj_cpu = cpu.copy()
+                if cpu.sp.is_symbolic:
+                    adj_cpu.sp = cpu.sp.sym_add(call_sp_push)
+                elif cpu.sp.is_known:
+                    adj_cpu.sp = _concrete(
+                        (cpu.sp.concrete + call_sp_push) & 0xFFFFFFFF)
+                incoming.setdefault(ft_dst, []).append(
+                    (adj_cpu, mem.copy()))
+            work.append(ft_dst)
+        elif ft_dst and ft_dst in owned:
+            incoming.setdefault(ft_dst, []).append(
+                (cpu.copy(), mem.copy()))
+            work.append(ft_dst)
+
+        for xref in other_xrefs:
+            if xref.dst in owned:
+                incoming.setdefault(xref.dst, []).append(
+                    (cpu.copy(), mem.copy()))
+                work.append(xref.dst)
+
+    # Collect RTS exit states
+    rts_states = []
+    for addr in owned:
+        blk = blocks.get(addr)
+        if not blk or not blk.instructions:
+            continue
+        last = blk.instructions[-1]
+        mn = _extract_mnemonic(last.text)
+        ikb = _find_kb_entry(kb_by_name, mn, cc_test_defs, cc_aliases)
+        if ikb:
+            flow = ikb.get("pc_effects", {}).get("flow", {})
+            if flow.get("type") == "return" and addr in exit_states:
+                rts_states.append(exit_states[addr])
+
+    if not rts_states:
+        return None
+
+    rts_cpu, _ = _join_states(rts_states)
+
+    preserved_d = {i for i in range(len(rts_cpu.d))
+                   if rts_cpu.d[i].sym_base == f"D{i}_entry"
+                   and rts_cpu.d[i].sym_offset == 0}
+    preserved_a = {i for i in range(len(rts_cpu.a))
+                   if rts_cpu.a[i].sym_base == f"A{i}_entry"
+                   and rts_cpu.a[i].sym_offset == 0}
+    sp_delta = 0
+    if rts_cpu.sp.is_symbolic and rts_cpu.sp.sym_base == "SP_entry":
+        sp_delta = rts_cpu.sp.sym_offset
+
+    return {"preserved_d": preserved_d, "preserved_a": preserved_a,
+            "sp_delta": sp_delta}
+
+
+def _apply_summary(caller_cpu: "CPUState",
+                   summary: dict) -> "CPUState":
+    """Apply a subroutine summary to a caller's state.
+
+    Preserved registers keep the caller's value.
+    Clobbered registers become unknown.  SP adjusted by delta.
+    """
+    result = CPUState()
+    for i in range(len(result.d)):
+        result.d[i] = (caller_cpu.d[i] if i in summary["preserved_d"]
+                       else _unknown())
+    for i in range(len(result.a)):
+        result.a[i] = (caller_cpu.a[i] if i in summary["preserved_a"]
+                       else _unknown())
+    delta = summary["sp_delta"]
+    if caller_cpu.sp.is_symbolic:
+        result.sp = caller_cpu.sp.sym_add(delta)
+    elif caller_cpu.sp.is_known:
+        result.sp = _concrete(
+            (caller_cpu.sp.concrete + delta) & 0xFFFFFFFF)
+    return result
+
+
+def compute_all_summaries(blocks: dict[int, BasicBlock],
+                          code: bytes, base_addr: int,
+                          kb_by_name: dict, cc_test_defs: dict,
+                          cc_aliases: dict,
+                          existing: dict[int, dict | None] | None = None,
+                          global_exit_states: dict | None = None,
+                          ) -> dict[int, dict | None]:
+    """Pre-compute summaries for all subroutines in topological order.
+
+    Leaf subroutines (no calls) are computed first, then their callers
+    can use the leaf summaries for nested call handling.
+
+    If existing cache is provided, only computes summaries for entries
+    not already in the cache.
+    """
+    call_targets = set()
+    for blk in blocks.values():
+        for xref in blk.xrefs:
+            if xref.type == "call":
+                call_targets.add(xref.dst)
+
+    sub_map = _compute_sub_blocks(blocks, call_targets)
+    summaries = dict(existing) if existing else {}
+
+    # Skip entries already cached
+    needed = {e for e in sub_map if e not in summaries}
+    if not needed:
+        return summaries
+
+    # Build call graph for topological ordering (only needed entries)
+    callees: dict[int, set[int]] = {}
+    for entry in needed:
+        calls = set()
+        for addr in sub_map[entry]:
+            blk = blocks.get(addr)
+            if blk:
+                for xref in blk.xrefs:
+                    if xref.type == "call" and xref.dst in sub_map:
+                        calls.add(xref.dst)
+        callees[entry] = calls
+
+    # Topological sort — count only UN-summarized callees
+    in_degree = {}
+    callers: dict[int, set[int]] = {e: set() for e in needed}
+    for entry in needed:
+        deg = sum(1 for c in callees[entry]
+                  if c in needed and c not in summaries)
+        in_degree[entry] = deg
+        for c in callees[entry]:
+            if c in callers:
+                callers[c].add(entry)
+
+    ready = [e for e, d in in_degree.items() if d == 0]
+
+    while ready:
+        entry = ready.pop()
+        summaries[entry] = _compute_summary(
+            entry, sub_map[entry], blocks, summaries, code,
+            base_addr, kb_by_name, cc_test_defs, cc_aliases,
+            global_exit_states)
+        for caller in callers.get(entry, set()):
+            if caller in in_degree:
+                in_degree[caller] -= 1
+                if in_degree[caller] == 0:
+                    ready.append(caller)
+
+    # Cycles: compute with partial summaries
+    for entry in needed:
+        if entry not in summaries:
+            summaries[entry] = _compute_summary(
+                entry, sub_map[entry], blocks, summaries, code,
+                base_addr, kb_by_name, cc_test_defs, cc_aliases,
+                global_exit_states)
+
+    return summaries
 
 
 # ── Public API ────────────────────────────────────────────────────────────
@@ -1929,8 +2249,34 @@ def analyze(code: bytes, base_addr: int = 0,
     }
 
     if propagate:
-        result["exit_states"] = propagate_states(blocks, code, base_addr,
-                                                    platform=platform)
+        # Pre-compute subroutine summaries for calls, but only after
+        # the init pass (initial_base_reg set).  The init pass needs
+        # concrete side effects that summaries can't capture.
+        sums = None
+        if platform and platform.get("initial_base_reg"):
+            kb_by_name, _, meta = _load_kb()
+            cc_test_defs = meta["cc_test_definitions"]
+            cc_aliases = meta["cc_aliases"]
+            # Pre-compute summaries.  Export callee exit states so
+            # downstream consumers (library call identification) can
+            # see them even though the main propagation skips callees.
+            summary_exit_states: dict = {}
+            existing = platform.get("_summary_cache")
+            platform["_summary_cache"] = compute_all_summaries(
+                blocks, code, base_addr,
+                kb_by_name, cc_test_defs, cc_aliases,
+                existing=existing,
+                global_exit_states=summary_exit_states)
+            sums = platform["_summary_cache"]
+        else:
+            summary_exit_states = {}
+        prop_states = propagate_states(
+            blocks, code, base_addr, platform=platform,
+            summaries=sums)
+        # Merge: propagation states take priority, summary states fill gaps
+        merged = dict(summary_exit_states)
+        merged.update(prop_states)
+        result["exit_states"] = merged
 
     return result
 
