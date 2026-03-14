@@ -462,6 +462,12 @@ def build_entities(binary_path: str, output_path: str = None):
                 break
         print(f"  Control flow: {_stats(result)}")
 
+        # Record flow-verified entry points (before heuristic scan).
+        # These are entry points discovered through control flow, jump
+        # tables, and indirect target resolution — reliable for
+        # disassembly.  Scan-added entries are hints that may be data.
+        flow_verified_entries = set(all_entry_points)
+
         # Step 2: heuristic subroutine scan + cascade.
         # Scan once, re-analyze, scan again for cascading call targets.
         if _expand_scan(result):
@@ -470,6 +476,28 @@ def build_entities(binary_path: str, output_path: str = None):
             _expand_scan(result)             # cascade
             result = _run()
         print(f"  Final: {_stats(result)}")
+
+        # Determine which blocks are flow-verified vs scan-hinted.
+        # A block is flow-verified if its start address was an entry
+        # point before the heuristic scan, OR if it's reachable from
+        # a flow-verified entry through control flow edges.
+        flow_verified_blocks = set()
+        for addr, blk in result["blocks"].items():
+            if addr in flow_verified_entries:
+                flow_verified_blocks.add(addr)
+            elif any(p in flow_verified_blocks
+                     for p in blk.predecessors):
+                flow_verified_blocks.add(addr)
+        # BFS to propagate: blocks reachable from verified blocks
+        work = list(flow_verified_blocks)
+        while work:
+            addr = work.pop()
+            if addr not in result["blocks"]:
+                continue
+            for succ in result["blocks"][addr].successors:
+                if succ not in flow_verified_blocks and succ in result["blocks"]:
+                    flow_verified_blocks.add(succ)
+                    work.append(succ)
 
         blocks = result["blocks"]
         xrefs = result["xrefs"]

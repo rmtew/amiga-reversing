@@ -190,8 +190,14 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] RTS return resolution: reads return address from stack via propagated SP + memory
 - GenAm results: 59.2% coverage, 336 subroutines, 477 entities, 13 named, 454 call pairs
 - [ ] Improve coverage beyond 59% (function pointers in d(A6) slots, more pattern recognition)
-- [ ] Disassembly generator: entities.jsonl + binary → vasm-compatible .s file
-- [ ] vasm round-trip: disassemble → reassemble with vasm → binary-diff against original
+- [x] Disassembly generator: `scripts/gen_disasm.py` → `disasm/genam.s`
+  - Flow-verified blocks only (reloc-target entries filtered to reachable-from-entry-0)
+  - Label replacement: branch targets, relocated absolutes, PC-relative, immediates
+  - Data regions as dc.b with dc.l at reloc offsets
+  - Invalid-for-68000 instructions emitted as dc.b
+- [x] vasm round-trip: 0/64920 byte differences (perfect match)
+  - `vasmm68k_mot -Fhunkexe -no-opt -m68020` — zero errors, warnings only
+  - 5188 instructions disassembled, 49032 data bytes, 2156 flow-verified blocks
 - [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
 
 ## Existing Infrastructure
