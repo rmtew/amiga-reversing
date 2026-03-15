@@ -356,73 +356,15 @@ def build_entities(binary_path: str, output_path: str = None):
         print(f"\nAnalyzing hunk #{hunk.index} "
               f"({code_size} bytes, {len(reloc_targets)} reloc targets)...")
 
-        all_entry_points = {0} | reloc_targets
-
-        def _stats(r):
-            blks = r["blocks"]
+        def _stats(blks):
             covered = sum(b.end - b.start for b in blks.values())
             n = sum(len(b.instructions) for b in blks.values())
             return (f"{len(blks)} blocks, {n} instructions, "
                     f"{covered}/{code_size} ({100*covered/code_size:.1f}%)")
 
-        def _run(propagate=True):
-            return analyze(code, base_addr=0,
-                           entry_points=sorted(all_entry_points),
-                           propagate=propagate,
-                           platform=platform_config if propagate else None)
-
-        # Jump table targets from call-type dispatches (JSR, not JMP).
-        # These are subroutine entry points that need to be in call_targets
-        # for subroutine map construction.
-        jt_call_targets = set()
-
-        def _expand_tables_indirect(result):
-            """Add jump table + indirect targets to all_entry_points.
-            Returns number of new entries added."""
-            before = len(all_entry_points)
-            kb = KB()
-            for t in detect_jump_tables(result["blocks"], code, base_addr=0):
-                all_entry_points.update(t["targets"])
-                # Check if dispatch instruction is a call (JSR)
-                dblk = result["blocks"].get(t["dispatch_block"])
-                if dblk and dblk.instructions:
-                    ft, _ = kb.flow_type(dblk.instructions[-1])
-                    if ft == "call":
-                        jt_call_targets.update(t["targets"])
-            for r in resolve_indirect_targets(
-                    result["blocks"], result["exit_states"], code_size):
-                all_entry_points.add(r["target"])
-            return len(all_entry_points) - before
-
-        def _expand_scan(result):
-            """Add subroutine scan candidates to all_entry_points.
-            Returns number of new entries added."""
-            before = len(all_entry_points)
-            candidates = scan_and_score(
-                result["blocks"], code, reloc_targets,
-                result["call_targets"])
-            targets = {c["addr"] for c in candidates}
-            targets -= set(result["blocks"].keys())
-            targets -= all_entry_points
-            if targets:
-                high = sum(1 for c in candidates if c["score"] >= 3.0)
-                print(f"  Scan: {len(candidates)} accepted "
-                      f"({high} high-confidence), "
-                      f"{len(targets)} new entries")
-                all_entry_points.update(targets)
-            return len(all_entry_points) - before
-
-        # Step 0: base register discovery.
-        # Run a focused analysis from the main entry point only to
-        # discover the init pattern: AllocMem → movea.l D0,An → An
-        # becomes the app base register.  The init subroutine may be
-        # a reloc target too, causing joins that destroy the sentinel
-        # when all entry points are analyzed together.  Analyzing from
-        # entry point 0 alone avoids this interference.
-        #
-        # Also captures the init's memory state: values the init routine
-        # stores in d(An) slots (e.g. OpenLibrary results, config data)
-        # are carried forward as initial memory for subsequent passes.
+        # ── Phase 0: Init discovery ──────────────────────────────────
+        # Entry point 0 only. Discovers base register (AllocMem
+        # pattern) and captures init memory (library base tags).
         base_reg_num = platform_config.get("_base_reg_num", 6)
         init_result = analyze(code, base_addr=0, entry_points=[0],
                               propagate=True, platform=platform_config)
@@ -430,84 +372,102 @@ def build_entities(binary_path: str, output_path: str = None):
         alloc_limit = platform_config.get("_next_alloc_sentinel",
                                           alloc_base)
         discovered_base = None
-        init_mem = None
-        if init_result.get("exit_states"):
-            # Find the exit state with the most developed base-region
-            # memory — this is the state closest to the init's return.
-            best_addr = None
-            best_slots = 0
-            for addr, (cpu, mem) in init_result["exit_states"].items():
-                val = cpu.a[base_reg_num]
-                if (val.is_known
-                        and alloc_base <= val.concrete < alloc_limit):
-                    if discovered_base is None:
-                        discovered_base = val.concrete
-                    # Count known memory bytes in the base region
-                    slots = sum(1 for a in mem._bytes
-                                if alloc_base <= a < alloc_limit)
-                    if slots > best_slots:
-                        best_slots = slots
-                        best_addr = addr
-            if best_addr is not None:
-                _, init_mem = init_result["exit_states"][best_addr]
+        best_addr = None
+        best_slots = 0
+        for addr, (cpu, mem) in init_result.get(
+                "exit_states", {}).items():
+            val = cpu.a[base_reg_num]
+            if (val.is_known
+                    and alloc_base <= val.concrete < alloc_limit):
+                if discovered_base is None:
+                    discovered_base = val.concrete
+                slots = sum(1 for a in mem._bytes
+                            if alloc_base <= a < alloc_limit)
+                if slots > best_slots:
+                    best_slots = slots
+                    best_addr = addr
         if discovered_base is not None:
             print(f"  Base register A{base_reg_num} "
                   f"= ${discovered_base:08X} (from init"
                   f", {best_slots} memory bytes)")
             platform_config["initial_base_reg"] = (
                 base_reg_num, discovered_base)
-            # Carry init memory into subsequent analysis
-            if init_mem:
+            if best_addr is not None:
+                _, init_mem = init_result["exit_states"][best_addr]
                 platform_config["_initial_mem"] = init_mem
 
-        # Step 1: control flow + jump tables + indirect resolution.
-        # Iterate until no new targets from tables/indirect.
+        # ── Phase 1: Core analysis ───────────────────────────────────
+        # Entry point 0 only.  Jump table and indirect targets are
+        # flow-verified and feed back into the core.  Propagation
+        # gives concrete state to all reachable blocks.  No reloc
+        # or scan entries — those are hints (Phase 2).
+        core_entries = {0}
+        jt_call_targets = set()
+        kb = KB()
+
         for _ in range(10):
-            result = _run()
-            if not _expand_tables_indirect(result):
+            result = analyze(code, base_addr=0,
+                             entry_points=sorted(core_entries),
+                             propagate=True, platform=platform_config)
+            # Expand with jump table and indirect targets
+            added = 0
+            for t in detect_jump_tables(
+                    result["blocks"], code, base_addr=0):
+                for tgt in t["targets"]:
+                    if tgt not in core_entries:
+                        core_entries.add(tgt)
+                        added += 1
+                dblk = result["blocks"].get(t["dispatch_block"])
+                if dblk and dblk.instructions:
+                    ft, _ = kb.flow_type(dblk.instructions[-1])
+                    if ft == "call":
+                        jt_call_targets.update(t["targets"])
+            for r in resolve_indirect_targets(
+                    result["blocks"], result.get("exit_states", {}),
+                    code_size):
+                if r["target"] not in core_entries:
+                    core_entries.add(r["target"])
+                    added += 1
+            if not added:
                 break
-        print(f"  Control flow: {_stats(result)}")
-
-        # Record flow-verified entry points (before heuristic scan).
-        # These are entry points discovered through control flow, jump
-        # tables, and indirect target resolution — reliable for
-        # disassembly.  Scan-added entries are hints that may be data.
-        flow_verified_entries = set(all_entry_points)
-
-        # Step 2: heuristic subroutine scan + cascade.
-        # Scan once, re-analyze, scan again for cascading call targets.
-        if _expand_scan(result):
-            result = _run()
-            _expand_tables_indirect(result)  # new code may have tables
-            _expand_scan(result)             # cascade
-            result = _run()
-        print(f"  Final: {_stats(result)}")
-
-        # Determine which blocks are flow-verified vs scan-hinted.
-        # A block is flow-verified if its start address was an entry
-        # point before the heuristic scan, OR if it's reachable from
-        # a flow-verified entry through control flow edges.
-        flow_verified_blocks = set()
-        for addr, blk in result["blocks"].items():
-            if addr in flow_verified_entries:
-                flow_verified_blocks.add(addr)
-            elif any(p in flow_verified_blocks
-                     for p in blk.predecessors):
-                flow_verified_blocks.add(addr)
-        # BFS to propagate: blocks reachable from verified blocks
-        work = list(flow_verified_blocks)
-        while work:
-            addr = work.pop()
-            if addr not in result["blocks"]:
-                continue
-            for succ in result["blocks"][addr].successors:
-                if succ not in flow_verified_blocks and succ in result["blocks"]:
-                    flow_verified_blocks.add(succ)
-                    work.append(succ)
 
         blocks = result["blocks"]
         xrefs = result["xrefs"]
         call_targets = result["call_targets"] | jt_call_targets
+        exit_states = result.get("exit_states", {})
+        core_covered = sum(b.end - b.start for b in blocks.values())
+        print(f"  Core: {_stats(blocks)}")
+
+        # ── Phase 2: Hint discovery ──────────────────────────────────
+        # Reloc targets and heuristic scan produce additional blocks.
+        # These are NOT part of the core — no propagation, no state.
+        # They tell us where code exists that the core can't reach.
+        hint_entries = reloc_targets - set(blocks.keys())
+        hint_result = analyze(code, base_addr=0,
+                              entry_points=sorted(hint_entries),
+                              propagate=False)
+        hint_blocks = {a: b for a, b in hint_result["blocks"].items()
+                       if a not in blocks}
+
+        # Heuristic scan on uncovered regions
+        scan_candidates = scan_and_score(
+            blocks, code, reloc_targets, call_targets)
+        scan_entries = {c["addr"] for c in scan_candidates
+                        if c["addr"] not in blocks
+                        and c["addr"] not in hint_blocks}
+        if scan_entries:
+            scan_result = analyze(code, base_addr=0,
+                                  entry_points=sorted(scan_entries),
+                                  propagate=False)
+            for a, b in scan_result["blocks"].items():
+                if a not in blocks and a not in hint_blocks:
+                    hint_blocks[a] = b
+
+        if hint_blocks:
+            hint_covered = sum(b.end - b.start
+                               for b in hint_blocks.values())
+            print(f"  Hints: {_stats(hint_blocks)}")
+
         print(f"  {len(xrefs)} xrefs, "
               f"{len(call_targets)} call targets, "
               f"{len(result['branch_targets'])} branch targets")

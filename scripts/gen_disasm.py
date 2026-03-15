@@ -491,35 +491,17 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             _, init_mem = init_result["exit_states"][best_addr]
             platform["_initial_mem"] = init_mem
 
-        all_ep = sorted({0} | reloc_targets)
-        result = analyze(code, base_addr=0, entry_points=all_ep,
+        # Core analysis: entry 0 only (no reloc/scan mixing).
+        # Propagation seeds from entry 0; callee propagation reaches
+        # all subroutines through verified control flow.
+        result = analyze(code, base_addr=0, entry_points=[0],
                          propagate=True, platform=platform)
-        all_blocks = result["blocks"]
-
-        # Filter to flow-verified blocks: reachable from address 0
-        # through control flow edges (successors) AND call xrefs.
-        # Reloc-target entry blocks with no predecessors may be data
-        # pointers, not code — they're excluded unless reachable.
-        verified = set()
-        work = [0]
-        while work:
-            addr = work.pop()
-            if addr in verified or addr not in all_blocks:
-                continue
-            verified.add(addr)
-            blk = all_blocks[addr]
-            for succ in blk.successors:
-                work.append(succ)
-            for xref in blk.xrefs:
-                if xref.type == "call":
-                    work.append(xref.dst)
-
-        blocks = {a: all_blocks[a] for a in verified}
+        blocks = result["blocks"]
         code_addrs = set()
         for blk in blocks.values():
             for a in range(blk.start, blk.end):
                 code_addrs.add(a)
-        print(f"  {len(blocks)}/{len(all_blocks)} flow-verified blocks, "
+        print(f"  {len(blocks)} blocks, "
               f"{len(code_addrs)}/{code_size} code bytes")
 
         # Build reloc map
