@@ -25,11 +25,14 @@ def _parse_ext_word(ext: int, raw: bytes, meta: dict) -> dict | None:
 
     Returns dict with index_is_addr, index_reg, displacement, or None.
     """
-    # Try brief first
+    # Try brief first (mandatory), then full (68020+, optional)
     for key, full in [("ea_brief_ext_word", False), ("ea_full_ext_word", True)]:
-        fields_def = meta.get(key)
-        if not fields_def:
-            continue
+        if full:
+            fields_def = meta.get(key)
+            if not fields_def:
+                continue
+        else:
+            fields_def = meta[key]
 
         # Check discriminator bits (uncovered bits in the field definition)
         covered = set()
@@ -49,7 +52,7 @@ def _parse_ext_word(ext: int, raw: bytes, meta: dict) -> dict | None:
             width = f["bit_hi"] - f["bit_lo"] + 1
             fields[f["name"]] = (ext >> f["bit_lo"]) & ((1 << width) - 1)
 
-        displacement = fields.get("DISPLACEMENT", 0)
+        displacement = fields.get("DISPLACEMENT", 0)  # 0 if full ext word (displacement in subsequent bytes)
 
         if full:
             # Full ext word: displacement from subsequent bytes.

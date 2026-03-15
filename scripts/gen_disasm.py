@@ -658,7 +658,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         # constants for that function.
         arg_equs: dict[str, int] = {}  # constant_name -> value
         arg_substitutions: dict[int, tuple[str, str]] = {}
-        const_domains = os_kb["_meta"].get("constant_domains", {})
+        const_domains = os_kb["_meta"]["constant_domains"]
         all_consts = os_kb.get("constants", {})
         # Build per-function value->name map from domains
         func_const_map: dict[str, dict[int, str]] = {}

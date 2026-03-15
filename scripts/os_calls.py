@@ -260,9 +260,9 @@ def _build_lvo_lookup(os_kb: dict) -> dict:
     by_lib_lvo = {}
     by_lvo = {}
     for lib_name, lib_data in os_kb["libraries"].items():
-        for lvo_str, func_name in lib_data.get("lvo_index", {}).items():
+        for lvo_str, func_name in lib_data["lvo_index"].items():
             lvo = int(lvo_str)
-            func = lib_data["functions"].get(func_name, {})
+            func = lib_data["functions"][func_name]
             by_lib_lvo[(lib_name, lvo)] = {
                 "library": lib_name,
                 "function": func_name,

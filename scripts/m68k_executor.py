@@ -627,8 +627,8 @@ def discover_blocks(code: bytes, base_addr: int = 0,
     Uses KB pc_effects to determine control flow at block boundaries.
     """
     kb_by_name, _, meta = _load_kb()
-    cc_test_defs = meta.get("cc_test_definitions", {})
-    cc_aliases = meta.get("cc_aliases", {})
+    cc_test_defs = meta["cc_test_definitions"]
+    cc_aliases = meta["cc_aliases"]
 
     if entry_points is None:
         entry_points = [base_addr]
@@ -865,8 +865,8 @@ def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
     mnemonic = _extract_mnemonic(text)
 
     # Look up KB entry to get flow type and displacement_encoding
-    cc_test_defs = meta.get("cc_test_definitions", {})
-    cc_aliases = meta.get("cc_aliases", {})
+    cc_test_defs = meta["cc_test_definitions"]
+    cc_aliases = meta["cc_aliases"]
     inst_kb = _find_kb_entry(kb_by_name, mnemonic, cc_test_defs, cc_aliases)
     if inst_kb is None:
         return None
@@ -1359,7 +1359,8 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             # Pattern 2: extension word immediate (ADDI etc.).
             # The immediate is the first extension word(s), followed
             # by the EA extension words.  Size from the instruction.
-            imm_bytes = meta["size_byte_count"].get(size, 2)
+            imm_bytes = meta["size_byte_count"].get(
+                size, meta["size_byte_count"]["w"])
             pos = meta["opword_bytes"]
             if pos + imm_bytes <= len(inst.raw):
                 if imm_bytes <= 2:
@@ -2088,8 +2089,8 @@ def propagate_states(blocks: dict[int, BasicBlock],
     Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
     """
     kb_by_name, _, meta = _load_kb()
-    cc_test_defs = meta.get("cc_test_definitions", {})
-    cc_aliases = meta.get("cc_aliases", {})
+    cc_test_defs = meta["cc_test_definitions"]
+    cc_aliases = meta["cc_aliases"]
 
     if initial_state is None:
         initial_state = CPUState()
@@ -2625,7 +2626,6 @@ def analyze(code: bytes, base_addr: int = 0,
 # ── CLI ───────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from hunk_parser import parse_file, HunkType as HT
 
