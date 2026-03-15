@@ -1355,6 +1355,37 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
 
     src_text, dst_text = _parse_operand_text(text)
 
+    # Decode structured operands from opcode bytes (KB-driven).
+    # These are used alongside text operands during the transition
+    # from text-based to structured EA resolution.
+    src_op = dst_op = None
+    if len(inst.raw) >= meta["opword_bytes"]:
+        opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+        enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
+        # Source EA: MODE + low REGISTER fields
+        src_mode_f = src_reg_f = None
+        dst_reg_f = None
+        for f in enc_fields:
+            if f["name"] == "MODE":
+                src_mode_f = (f["bit_hi"], f["bit_lo"],
+                              f["bit_hi"] - f["bit_lo"] + 1)
+            elif f["name"] == "REGISTER":
+                if f["bit_hi"] <= 5:
+                    src_reg_f = (f["bit_hi"], f["bit_lo"],
+                                 f["bit_hi"] - f["bit_lo"] + 1)
+                else:
+                    dst_reg_f = (f["bit_hi"], f["bit_lo"],
+                                 f["bit_hi"] - f["bit_lo"] + 1)
+        if src_mode_f and src_reg_f:
+            ea_mode = _xf(opcode, src_mode_f)
+            ea_reg = _xf(opcode, src_reg_f)
+            try:
+                src_op, _ = _decode_ea(
+                    inst.raw, meta["opword_bytes"],
+                    ea_mode, ea_reg, size, inst.offset)
+            except ValueError:
+                src_op = None
+
     # Helper: resolve a text operand to an AbstractValue.
     # For postincrement/predecrement modes, also adjusts the register.
     def _resolve_text_operand(op_text: str) -> AbstractValue | None:
@@ -1756,20 +1787,45 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                         cpu.set_reg(reg_info[0], reg_info[1], _unknown())
         return
 
-    # LEA: loads the effective address itself (not the value at the address).
-    # Detected by KB operation text signature — the KB compute_formula is
-    # "assign" (same as MOVE), but the semantics are fundamentally different:
-    # LEA computes &source, MOVE reads *source.  No KB field distinguishes
-    # this, so we check the operation text from the KB.
+    # LEA: loads the effective address itself (not the value at EA).
+    # Detected by KB operation_class. Resolves the source EA to its
+    # address (not the value at the address), then writes to the
+    # destination An register decoded from the opcode.
     if inst_kb.get("operation_class") == "load_effective_address" and op == "assign":
-        if dst_text:
-            dst_reg = _parse_reg_from_text(dst_text)
-            if dst_reg and src_text:
-                addr_val = _resolve_ea_address(src_text, cpu, inst, meta)
-                if addr_val is not None:
-                    cpu.set_reg(dst_reg[0], dst_reg[1], addr_val)
-                else:
-                    cpu.set_reg(dst_reg[0], dst_reg[1], _unknown())
+        addr_val = None
+        if src_op:
+            # Compute the EA address from the decoded operand
+            if src_op.mode == "pcdisp":
+                addr_val = _concrete(src_op.value)
+            elif src_op.mode == "pcindex":
+                base_addr_val = src_op.value
+                idx_mode = "an" if src_op.index_is_addr else "dn"
+                idx_val = cpu.get_reg(idx_mode, src_op.index_reg)
+                if idx_val.is_known:
+                    nbits = meta["size_byte_count"][
+                        src_op.index_size] * 8
+                    mask = (1 << nbits) - 1
+                    iv = idx_val.concrete & mask
+                    if iv >= (1 << (nbits - 1)):
+                        iv -= (1 << nbits)
+                    addr_val = _concrete(
+                        (base_addr_val + iv) & 0xFFFFFFFF)
+            elif src_op.mode == "disp":
+                base = cpu.a[src_op.reg]
+                if base.is_known:
+                    addr_val = _concrete(
+                        (base.concrete + src_op.value) & 0xFFFFFFFF)
+                elif base.is_symbolic:
+                    addr_val = base.sym_add(src_op.value)
+            elif src_op.mode == "ind":
+                addr_val = cpu.get_reg("an", src_op.reg)
+            elif src_op.mode in ("absw", "absl"):
+                addr_val = _concrete(src_op.value)
+        # Write to destination An (from KB encoding)
+        if dst_reg_f:
+            dn = _xf(opcode, dst_reg_f)
+            cpu.set_reg("an", dn,
+                        addr_val if addr_val else _unknown())
         return
 
     # --- Formula-driven dispatch ---
