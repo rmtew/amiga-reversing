@@ -185,12 +185,19 @@ def _get_lea_dst_reg(inst, kb: KB) -> int | None:
 # ── Table scanning ───────────────────────────────────────────────────────
 
 def _scan_word_offset_table(code, table_addr, base_addr, code_size,
-                            kb: KB, max_entries=256):
-    """Read word-offset table. target = base_addr + entry."""
+                            kb: KB, max_entries=256,
+                            field_offset: int = 0, stride: int = 0):
+    """Read word-offset table. target = base_addr + entry.
+
+    field_offset: byte offset of the word field within each entry.
+    stride: byte distance between entries (default = word size).
+    """
     word_size = kb.size_bytes["w"]
+    if stride == 0:
+        stride = word_size
     targets = []
     for i in range(max_entries):
-        ea = table_addr + i * word_size
+        ea = table_addr + field_offset + i * stride
         if ea + word_size > code_size:
             break
         offset = struct.unpack_from(">h", code, ea)[0]
@@ -316,21 +323,54 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
             continue
 
         ft, _ = kb.flow_type(last)
-        if ft not in ("jump", "call"):
+
+        # Detect MOVE.L An,-(SP); RTS as equivalent to JMP (An).
+        # The MOVE pushes a computed address, RTS pops and jumps to it.
+        # For pattern detection, treat the push register as the dispatch
+        # register and the combined pair as a virtual JMP (An).
+        virtual_jmp_reg = None
+        if ft == "return" and len(block.instructions) >= 2:
+            prev = block.instructions[-2]
+            prev_kb = kb.find(_extract_mnemonic(prev.text))
+            if prev_kb and prev_kb.get("operation_type") == "move":
+                from kb_util import decode_instruction_operands
+                decoded = decode_instruction_operands(
+                    prev.raw, prev_kb, kb.meta, "l", prev.offset)
+                ea_op = decoded.get("ea_op")
+                dst_op = decoded.get("dst_op")
+                # Source must be An, destination must be predec SP
+                if (ea_op and ea_op.mode == "an"
+                        and dst_op and dst_op.mode == "predec"
+                        and dst_op.reg == kb.meta["_sp_reg_num"]):
+                    virtual_jmp_reg = ea_op.reg
+
+        if ft not in ("jump", "call") and virtual_jmp_reg is None:
             continue
-        if _extract_branch_target(last, last.offset) is not None:
-            continue  # already resolved
+        if ft in ("jump", "call"):
+            if _extract_branch_target(last, last.offset) is not None:
+                continue  # already resolved
 
-        ea_info = _is_indexed_ea(last.raw, kb, ikb)
+        ea_info = _is_indexed_ea(last.raw, kb, ikb) if ft != "return" else None
 
-        # Pattern B: JMP (An) with preceding LEA+ADDA self-relative
+        # Pattern B / E: (An) dispatch with preceding ADDA
+        # For real JMP (An): extract register from EA.
+        # For virtual JMP (PUSH+RTS): use the push source register.
         if ea_info is None and len(block.instructions) >= 3:
             ind_enc = kb.ea_enc["ind"]
-            ea_spec = kb.ea_field_spec(ikb)
-            if ind_enc and ea_spec and len(last.raw) >= 2:
-                opcode = struct.unpack_from(">H", last.raw, 0)[0]
-                if xf(opcode, ea_spec[0]) == ind_enc[0]:
-                    jmp_reg = xf(opcode, ea_spec[1])
+            if virtual_jmp_reg is not None:
+                jmp_reg = virtual_jmp_reg
+            else:
+                ea_spec = kb.ea_field_spec(ikb)
+                if not (ind_enc and ea_spec and len(last.raw) >= 2):
+                    jmp_reg = None
+                else:
+                    opcode = struct.unpack_from(">H", last.raw, 0)[0]
+                    if xf(opcode, ea_spec[0]) != ind_enc[0]:
+                        jmp_reg = None
+                    else:
+                        jmp_reg = xf(opcode, ea_spec[1])
+            if jmp_reg is not None:
+                    # Pattern B: self-relative ADDA (indirect source)
                     has_adda = False
                     table_base = None
                     for inst in reversed(block.instructions[:-1]):
@@ -354,6 +394,55 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                 "table_end": table_base + len(targets) * kb.size_bytes["w"],
                             })
                         continue
+
+                    # Pattern E: ADDA.W Dn,An where Dn
+                    # comes from a code-section table.
+                    # LEA table,Ax; MOVE.W (Ax),Dy; LEA base,An;
+                    # ADDA.W Dy,An; JMP (An)
+                    adda_src = None
+                    for inst in reversed(block.instructions[:-1]):
+                        res = _is_adda_reg_src(inst, kb, jmp_reg)
+                        if res:
+                            adda_src = res
+                            break
+                        if ikb_is_lea(inst, kb):
+                            break  # hit a LEA before finding ADDA
+
+                    if adda_src is not None:
+                        idx_mode, idx_reg = adda_src
+                        # Find LEA that sets handler base (jmp_reg)
+                        handler_base = None
+                        for inst in reversed(block.instructions[:-1]):
+                            if ikb_is_lea(inst, kb):
+                                if _get_lea_dst_reg(inst, kb) == jmp_reg:
+                                    handler_base = _resolve_lea_pc(inst, kb)
+                                break
+
+                        if handler_base is not None:
+                            # Find where index_reg was loaded from
+                            tbl_info = _find_table_source(
+                                block.instructions, kb,
+                                idx_mode, idx_reg,
+                                block.instructions[-1].offset)
+
+                            if tbl_info is not None:
+                                targets = _scan_word_offset_table(
+                                    code, tbl_info["table_addr"],
+                                    handler_base, code_size, kb,
+                                    field_offset=tbl_info["field_offset"],
+                                    stride=tbl_info["stride"])
+                                if len(targets) >= 2:
+                                    tables.append({
+                                        "addr": tbl_info["table_addr"],
+                                        "pattern": "adda_dispatch",
+                                        "targets": targets,
+                                        "dispatch_block": addr,
+                                        "base_addr": handler_base,
+                                        "table_end": (tbl_info["table_addr"]
+                                            + len(targets)
+                                            * tbl_info["stride"]),
+                                    })
+                                continue
 
         if ea_info is None:
             continue
@@ -453,6 +542,126 @@ def ikb_is_lea(inst, kb: KB) -> bool:
     """Check if instruction is LEA via KB operation text."""
     ikb = kb.find(_extract_mnemonic(inst.text))
     return ikb is not None and ikb.get("operation_class") == "load_effective_address"
+
+
+def _find_table_source(instructions, kb: KB, index_mode: str,
+                       index_reg: int, stop_before: int) -> dict | None:
+    """Scan backward to find where index_reg was loaded from code-section memory.
+
+    Looks for MOVE.W source,Dn where source is resolvable to a concrete
+    code-section address (via PC-relative, or indirect/disp from an An
+    set by LEA PC-relative).
+
+    Returns {"table_addr": int, "field_offset": int, "stride": int} or None.
+    field_offset: byte offset of the index field within each table entry.
+    stride: entry size in bytes (detected from postincrement count).
+    """
+    from kb_util import decode_instruction_operands, decode_destination
+
+    for inst in reversed(instructions):
+        if inst.offset >= stop_before:
+            continue
+        mi = kb.find(_extract_mnemonic(inst.text))
+        if mi is None:
+            continue
+
+        # Check if this instruction writes to the index register
+        dst = decode_destination(inst.raw, mi, kb.meta, "w", inst.offset)
+        if not dst or dst != (index_mode, index_reg):
+            continue
+
+        # Found the write -- decode source EA
+        decoded = decode_instruction_operands(
+            inst.raw, mi, kb.meta, "w", inst.offset)
+        ea_op = decoded.get("ea_op")
+        if ea_op is None:
+            return None
+
+        word_size = kb.size_bytes["w"]
+
+        if ea_op.mode == "pcdisp":
+            return {"table_addr": ea_op.value,
+                    "field_offset": 0, "stride": word_size}
+
+        if ea_op.mode in ("ind", "disp", "postinc"):
+            # Source is (An) or d(An) or (An)+ -- resolve An via LEA.
+            # Count postincrement MOVE.W instructions from the same
+            # source register to determine stride and field offset.
+            src_reg = ea_op.reg
+            postinc_count = 0
+            field_index = -1
+
+            if ea_op.mode == "postinc":
+                # Count consecutive postinc reads from same register
+                # to determine total entry size and which field we use
+                for scan_inst in instructions:
+                    if scan_inst.offset >= stop_before:
+                        break
+                    scan_mi = kb.find(_extract_mnemonic(scan_inst.text))
+                    if scan_mi is None:
+                        continue
+                    scan_decoded = decode_instruction_operands(
+                        scan_inst.raw, scan_mi, kb.meta, "w",
+                        scan_inst.offset)
+                    scan_ea = scan_decoded.get("ea_op")
+                    if (scan_ea and scan_ea.mode == "postinc"
+                            and scan_ea.reg == src_reg):
+                        if scan_inst.offset == inst.offset:
+                            field_index = postinc_count
+                        postinc_count += 1
+
+            # Resolve base register via LEA
+            for inst2 in reversed(instructions):
+                if inst2.offset >= inst.offset:
+                    continue
+                if ikb_is_lea(inst2, kb):
+                    if _get_lea_dst_reg(inst2, kb) == src_reg:
+                        lea_addr = _resolve_lea_pc(inst2, kb)
+                        if lea_addr is not None:
+                            disp = ea_op.value if ea_op.mode == "disp" else 0
+                            stride = (postinc_count * word_size
+                                      if postinc_count > 1 else word_size)
+                            field_off = (field_index * word_size
+                                         if field_index >= 0 else disp)
+                            return {"table_addr": lea_addr,
+                                    "field_offset": field_off,
+                                    "stride": stride}
+                    break
+            return None
+
+        return None  # unresolvable source mode
+
+    return None
+
+
+def _is_adda_reg_src(inst, kb: KB, target_reg: int) -> tuple | None:
+    """Check if instruction is ADDA with register source to target_reg.
+
+    Returns (src_mode, src_reg) e.g. ("dn", 3) for ADDA.W D3,An,
+    or None if not a matching ADDA.
+    Uses KB source_sign_extend to identify ADDA (vs ADD).
+    """
+    mi = kb.find(_extract_mnemonic(inst.text))
+    if mi is None:
+        return None
+    if mi.get("operation_type") != "add" or not mi.get("source_sign_extend"):
+        return None
+    ea_spec = kb.ea_field_spec(mi)
+    if ea_spec is None or len(inst.raw) < 2:
+        return None
+    opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+    dst = kb.dst_reg_field(mi)
+    if dst is None or xf(opcode, dst) != target_reg:
+        return None
+    src_mode_val = xf(opcode, ea_spec[0])
+    src_reg_val = xf(opcode, ea_spec[1])
+    dn_enc = kb.ea_enc["dn"]
+    an_enc = kb.ea_enc["an"]
+    if src_mode_val == dn_enc[0]:
+        return ("dn", src_reg_val)
+    if src_mode_val == an_enc[0]:
+        return ("an", src_reg_val)
+    return None
 
 
 def _is_adda_ind(inst, kb: KB, target_reg: int) -> bool:

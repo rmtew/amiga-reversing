@@ -22,7 +22,8 @@ sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent))
 
 from m68k_executor import (analyze, CPUState, AbstractMemory,
                             _concrete, _unknown)
-from jump_tables import resolve_indirect_targets, resolve_per_caller
+from jump_tables import (resolve_indirect_targets, resolve_per_caller,
+                         detect_jump_tables)
 
 
 # ---- Helpers ----------------------------------------------------------------
@@ -33,14 +34,18 @@ _MINIMAL_PLATFORM = {"scratch_regs": []}
 
 
 def _analyze_and_resolve(code, entry_points=None, platform=None):
-    """Run full analysis pipeline: propagation, direct resolution, per-caller."""
+    """Run full analysis pipeline: jump tables, direct resolution, per-caller."""
     if platform is None:
         platform = dict(_MINIMAL_PLATFORM)
     result = analyze(code, propagate=True, entry_points=entry_points,
                      platform=platform)
     blocks = result["blocks"]
     exit_states = result.get("exit_states", {})
-    resolved = resolve_indirect_targets(blocks, exit_states, len(code))
+    resolved = []
+    for t in detect_jump_tables(blocks, code):
+        for tgt in t["targets"]:
+            resolved.append({"target": tgt})
+    resolved += resolve_indirect_targets(blocks, exit_states, len(code))
     resolved += resolve_per_caller(
         blocks, exit_states, code, len(code), platform=platform)
     return blocks, exit_states, resolved
