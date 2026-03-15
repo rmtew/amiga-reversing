@@ -126,7 +126,7 @@ def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
             raise ValueError("Truncated index extension word")
         ext = struct.unpack_from(">H", data, pos)[0]
         # Brief extension word layout from KB ea_brief_ext_word
-        brief = meta.get("ea_brief_ext_word", [])
+        brief = meta["ea_brief_ext_word"]
         bf = {f["name"]: (f["bit_hi"], f["bit_lo"], f["bit_hi"] - f["bit_lo"] + 1)
               for f in brief}
         xreg = _xf(ext, bf["REGISTER"])
@@ -165,7 +165,7 @@ def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
         if pos + 2 > len(data):
             raise ValueError("Truncated PC index extension word")
         ext = struct.unpack_from(">H", data, pos)[0]
-        brief = meta.get("ea_brief_ext_word", [])
+        brief = meta["ea_brief_ext_word"]
         bf = {f["name"]: (f["bit_hi"], f["bit_lo"], f["bit_hi"] - f["bit_lo"] + 1)
               for f in brief}
         xreg = _xf(ext, bf["REGISTER"])
@@ -1220,7 +1220,12 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     text = inst.text.strip()
     mnemonic = _extract_mnemonic(text)
     size = _extract_size(text)
-    size_bytes = meta["size_byte_count"].get(size, 2)
+    if size not in meta["size_byte_count"]:
+        # Unsized instructions (e.g. JMP, LEA) default to word
+        # for extension word parsing — not an error.
+        size_bytes = meta["size_byte_count"]["w"]
+    else:
+        size_bytes = meta["size_byte_count"][size]
     mask = (1 << (size_bytes * 8)) - 1
 
     # KB fields that drive dispatch
@@ -1447,7 +1452,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                 resolver = platform.get("_os_call_resolver")
                 if resolver and len(inst.raw) >= meta["opword_bytes"]:
                     lvo = None
-                    base_reg_num = platform.get("_base_reg_num", 6)
+                    base_reg_num = platform["_base_reg_num"]
                     opcode = struct.unpack_from(">H", inst.raw, 0)[0]
                     # Extract EA fields from KB encoding
                     enc_fields = inst_kb.get("encodings", [{}])[0].get(

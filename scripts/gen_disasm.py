@@ -470,9 +470,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         # Discover base register + init memory from init pass
         init_result = analyze(code, base_addr=0, entry_points=[0],
                               propagate=True, platform=platform)
-        alloc_limit = platform.get("_next_alloc_sentinel",
-                                   _SENTINEL_ALLOC_BASE)
-        base_reg_num = platform.get("_base_reg_num", 6)
+        alloc_limit = platform["_next_alloc_sentinel"]
+        base_reg_num = platform["_base_reg_num"]
         best_addr = None
         best_slots = 0
         for addr, (cpu, mem) in init_result["exit_states"].items():

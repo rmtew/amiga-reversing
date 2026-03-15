@@ -115,12 +115,12 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
     if lib_data is None:
         return None
 
-    lvo_index = lib_data.get("lvo_index", {})
+    lvo_index = lib_data["lvo_index"]
     func_name = lvo_index.get(str(lvo))
     if func_name is None:
         return None
 
-    func = lib_data["functions"].get(func_name, {})
+    func = lib_data["functions"][func_name]
 
     # Check returns_base first (OpenLibrary, OpenResource)
     rb = func.get("returns_base")
@@ -495,13 +495,12 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                     idx_val = cpu.get_reg(idx_mode, idx_reg)
                     if idx_val.is_known:
                         v = idx_val.concrete
-                        if idx_wl == 0:  # word
-                            v = v & 0xFFFF
-                            if v >= 0x8000:
-                                v -= 0x10000
-                        else:  # long
-                            if v >= 0x80000000:
-                                v -= 0x100000000
+                        idx_size = "l" if idx_wl == 1 else "w"
+                        nbits = kb.meta["size_byte_count"][idx_size] * 8
+                        mask = (1 << nbits) - 1
+                        v = v & mask
+                        if v >= (1 << (nbits - 1)):
+                            v -= (1 << nbits)
                         lvo = disp_raw + v
                         call_info = {"addr": inst.offset,
                                      "block": block_addr, "lvo": lvo}
@@ -536,13 +535,12 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
             if not idx_val.is_known:
                 continue
             v = idx_val.concrete
-            if idx_wl == 0:  # word
-                v = v & 0xFFFF
-                if v >= 0x8000:
-                    v -= 0x10000
-            else:
-                if v >= 0x80000000:
-                    v -= 0x100000000
+            idx_size = "l" if idx_wl == 1 else "w"
+            nbits = kb.meta["size_byte_count"][idx_size] * 8
+            mask = (1 << nbits) - 1
+            v = v & mask
+            if v >= (1 << (nbits - 1)):
+                v -= (1 << nbits)
             lvo = base_disp + v
 
             # Resolve library from caller's A6 if callee didn't have it

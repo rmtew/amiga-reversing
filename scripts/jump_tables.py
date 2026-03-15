@@ -423,7 +423,11 @@ def _is_adda_ind(inst, kb: KB, target_reg: int) -> bool:
     target_reg, destination register == target_reg.
     """
     mi = kb.find(_extract_mnemonic(inst.text))
-    if mi is None or mi.get("mnemonic") != "ADDA":
+    if mi is None:
+        return False
+    # ADDA: operation_type == "add" with source_sign_extend (KB-driven)
+    if (mi.get("operation_type") != "add"
+            or not mi.get("source_sign_extend")):
         return False
     ea_spec = kb.ea_field_spec(mi)
     if ea_spec is None or len(inst.raw) < 2:

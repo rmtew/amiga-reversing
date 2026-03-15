@@ -365,12 +365,11 @@ def build_entities(binary_path: str, output_path: str = None):
         # ── Phase 0: Init discovery ──────────────────────────────────
         # Entry point 0 only. Discovers base register (AllocMem
         # pattern) and captures init memory (library base tags).
-        base_reg_num = platform_config.get("_base_reg_num", 6)
+        base_reg_num = platform_config["_base_reg_num"]
         init_result = analyze(code, base_addr=0, entry_points=[0],
                               propagate=True, platform=platform_config)
         alloc_base = _SENTINEL_ALLOC_BASE
-        alloc_limit = platform_config.get("_next_alloc_sentinel",
-                                          alloc_base)
+        alloc_limit = platform_config["_next_alloc_sentinel"]
         discovered_base = None
         best_addr = None
         best_slots = 0

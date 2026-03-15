@@ -14,6 +14,7 @@ Usage:
     name_subroutines(entities, blocks, code, os_calls, result)
 """
 
+import json
 import struct
 import sys
 import re
@@ -119,10 +120,28 @@ def _string_to_name(s: str, os_lib_names: set[str] | None = None) -> str:
     return name
 
 
+_NAMING_RULES = None
+
+def _load_naming_rules() -> dict:
+    """Load naming rules from KB. Cached after first call."""
+    global _NAMING_RULES
+    if _NAMING_RULES is not None:
+        return _NAMING_RULES
+    path = Path(__file__).resolve().parent.parent / "knowledge" / "naming_rules.json"
+    with open(path, encoding="utf-8") as f:
+        _NAMING_RULES = json.load(f)
+    return _NAMING_RULES
+
+
 def _os_calls_to_name(os_calls: list[str]) -> str | None:
-    """Suggest a name from a subroutine's OS call list."""
+    """Suggest a name from a subroutine's OS call list.
+
+    Naming rules loaded from knowledge/naming_rules.json.
+    """
     if not os_calls:
         return None
+
+    rules = _load_naming_rules()
 
     # Extract just function names (strip library prefix)
     funcs = set()
@@ -131,31 +150,25 @@ def _os_calls_to_name(os_calls: list[str]) -> str | None:
         if len(parts) == 2:
             funcs.add(parts[1])
 
-    # Common patterns
-    if "OpenLibrary" in funcs and "AllocMem" in funcs:
-        return "init_app"
-    if "CloseLibrary" in funcs and "FreeMem" in funcs:
-        return "cleanup_app"
-    if funcs == {"AllocMem"}:
-        return "alloc_memory"
-    if funcs == {"FreeMem"}:
-        return "free_memory"
-    if funcs == {"AllocMem", "FreeMem"}:
-        return "manage_memory"
-    if funcs == {"SetSignal"}:
-        return "check_signals"
-    if funcs == {"AvailMem"}:
-        return "check_memory"
-    if "OpenDevice" in funcs:
-        return "open_device"
+    # Match against patterns from KB
+    for pattern in rules["patterns"]:
+        required = set(pattern["functions"])
+        if pattern.get("partial"):
+            # At least one required function must be present
+            if required & funcs:
+                return pattern["name"]
+        else:
+            # Exact match or superset
+            if required <= funcs and (len(required) > 1 or funcs == required):
+                return pattern["name"]
 
     # Generic: use the most distinctive function name
-    # Prefer non-trivial functions
-    trivial = {"AllocMem", "FreeMem", "SetSignal"}
+    trivial = set(rules["trivial_functions"])
+    prefix = rules["generic_prefix"]
     distinctive = funcs - trivial
     if distinctive:
         func = sorted(distinctive)[0]
-        return "call_" + re.sub(r'[^a-z0-9]+', '_', func.lower()).strip('_')
+        return prefix + re.sub(r'[^a-z0-9]+', '_', func.lower()).strip('_')
 
     return None
 
