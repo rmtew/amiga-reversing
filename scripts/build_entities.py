@@ -442,12 +442,36 @@ def build_entities(binary_path: str, output_path: str = None):
         # Reloc targets and heuristic scan produce additional blocks.
         # These are NOT part of the core — no propagation, no state.
         # They tell us where code exists that the core can't reach.
+        # Each hint is annotated with its source and why the core
+        # can't reach it — these drive engine improvements.
+
+        # Build reloc reference map: target -> [referencing offsets]
+        reloc_refs: dict[int, list[int]] = {}
+        for reloc in hunk.relocs:
+            for offset in reloc.offsets:
+                target = _resolve_reloc_target(reloc, offset, code)
+                if target is not None and 0 <= target < code_size:
+                    reloc_refs.setdefault(target, []).append(offset)
+
+        # Core address set for classifying references
+        core_addrs = set()
+        for blk in blocks.values():
+            for a in range(blk.start, blk.end):
+                core_addrs.add(a)
+
+        # Discover hint blocks from reloc targets
         hint_entries = reloc_targets - set(blocks.keys())
-        hint_result = analyze(code, base_addr=0,
-                              entry_points=sorted(hint_entries),
-                              propagate=False)
-        hint_blocks = {a: b for a, b in hint_result["blocks"].items()
-                       if a not in blocks}
+        hint_blocks: dict[int, BasicBlock] = {}
+        hint_source: dict[int, str] = {}  # entry -> "reloc"|"scan"
+        if hint_entries:
+            hint_result = analyze(code, base_addr=0,
+                                  entry_points=sorted(hint_entries),
+                                  propagate=False)
+            for a, b in hint_result["blocks"].items():
+                if a not in blocks:
+                    hint_blocks[a] = b
+            for e in hint_entries:
+                hint_source[e] = "reloc"
 
         # Heuristic scan on uncovered regions
         scan_candidates = scan_and_score(
@@ -462,11 +486,39 @@ def build_entities(binary_path: str, output_path: str = None):
             for a, b in scan_result["blocks"].items():
                 if a not in blocks and a not in hint_blocks:
                     hint_blocks[a] = b
+            for e in scan_entries:
+                hint_source[e] = "scan"
+
+        # Classify each hint entry: why can't the core reach it?
+        # - "reloc_from_core": referenced by a reloc in core code
+        #   (function pointer loaded but not called directly)
+        # - "reloc_from_hint": referenced by a reloc in non-core code
+        # - "scan": found by heuristic scan (no reloc reference)
+        hint_reasons: dict[int, dict] = {}
+        for entry in sorted(set(hint_entries) | scan_entries):
+            reason = {"source": hint_source.get(entry, "scan")}
+            if entry in reloc_refs:
+                refs = reloc_refs[entry]
+                core_refs = [r for r in refs if r in core_addrs]
+                if core_refs:
+                    reason["source"] = "reloc_from_core"
+                    reason["referenced_from"] = core_refs
+                else:
+                    reason["source"] = "reloc_from_hint"
+                    reason["referenced_from"] = refs
+            hint_reasons[entry] = reason
 
         if hint_blocks:
             hint_covered = sum(b.end - b.start
                                for b in hint_blocks.values())
-            print(f"  Hints: {_stats(hint_blocks)}")
+            # Summarize by reason
+            by_reason = defaultdict(int)
+            for r in hint_reasons.values():
+                by_reason[r["source"]] += 1
+            reason_str = ", ".join(f"{c} {s}"
+                                   for s, c in sorted(by_reason.items()))
+            print(f"  Hints: {_stats(hint_blocks)} "
+                  f"({reason_str})")
 
         print(f"  {len(xrefs)} xrefs, "
               f"{len(call_targets)} call targets, "
@@ -560,6 +612,58 @@ def build_entities(binary_path: str, output_path: str = None):
                     ent["os_call_types"] = typed_calls
             all_entities.append(ent)
 
+        # ── Hint entities ────────────────────────────────────────────
+        # Build hint subroutines from hint blocks, annotated with
+        # source and reachability info.  These are NOT verified —
+        # they drive engine improvements.
+        if hint_blocks:
+            # Build hint entities from contiguous block regions.
+            # Each contiguous group of blocks becomes one hint entity.
+            sorted_hints = sorted(hint_blocks.values(),
+                                  key=lambda b: b.start)
+            regions = []
+            for blk in sorted_hints:
+                if (regions and blk.start <= regions[-1]["end"]):
+                    # Extend current region
+                    r = regions[-1]
+                    r["end"] = max(r["end"], blk.end)
+                    r["block_count"] += 1
+                    r["instr_count"] += len(blk.instructions)
+                else:
+                    regions.append({
+                        "addr": blk.start, "end": blk.end,
+                        "block_count": 1,
+                        "instr_count": len(blk.instructions),
+                    })
+            for region in regions:
+                ent = {
+                    "addr": fmt_addr(region["addr"]),
+                    "end": fmt_addr(region["end"]),
+                    "type": "code",
+                    "status": "unmapped",
+                    "confidence": "hint",
+                    "hunk": hunk.index,
+                    "block_count": region["block_count"],
+                    "instr_count": region["instr_count"],
+                }
+                # Find the best-matching hint reason: any hint entry
+                # that falls within this region's address range.
+                best_reason = None
+                for entry, reason in hint_reasons.items():
+                    if region["addr"] <= entry < region["end"]:
+                        if (best_reason is None
+                                or reason["source"] == "reloc_from_core"):
+                            best_reason = reason
+                if best_reason:
+                    ent["hint_source"] = best_reason["source"]
+                    if "referenced_from" in best_reason:
+                        ent["hint_refs"] = sorted(
+                            fmt_addr(r)
+                            for r in best_reason["referenced_from"])
+                else:
+                    ent["hint_source"] = "scan"
+                all_entities.append(ent)
+
         # Build reloc-derived data references for uncovered regions
         data_refs = build_reloc_references(
             [hunk], code_size, subroutines)
@@ -604,23 +708,31 @@ def build_entities(binary_path: str, output_path: str = None):
     print(f"\nWrote {len(all_entities)} entities to {output_path}")
 
     # Summary
-    type_counts = defaultdict(int)
-    status_counts = defaultdict(int)
-    for ent in all_entities:
-        type_counts[ent["type"]] += 1
-        status_counts[ent.get("status", "unmapped")] += 1
+    core_ents = [e for e in all_entities
+                 if e.get("confidence") not in ("hint",)]
+    hint_ents = [e for e in all_entities
+                 if e.get("confidence") == "hint"]
+    core_code = [e for e in core_ents if e["type"] == "code"]
+    hint_code = [e for e in hint_ents if e["type"] == "code"]
 
     print("\nSummary:")
-    for t, c in sorted(type_counts.items()):
-        print(f"  {t}: {c}")
-    print()
-    for s, c in sorted(status_counts.items()):
-        print(f"  {s}: {c}")
+    print(f"  Core: {len(core_code)} subroutines, "
+          f"{sum(1 for e in core_code if e.get('name'))} named")
+    if hint_code:
+        by_src = defaultdict(int)
+        for e in hint_code:
+            by_src[e.get("hint_source", "?")] += 1
+        src_str = ", ".join(f"{c} {s}"
+                            for s, c in sorted(by_src.items()))
+        print(f"  Hints: {len(hint_code)} regions ({src_str})")
+    gap_count = sum(1 for e in all_entities
+                    if e.get("status") == "unmapped"
+                    and e.get("confidence") != "hint")
+    print(f"  Gaps: {gap_count} unmapped regions")
 
-    # Count xrefs
     total_calls = sum(len(e.get("calls", [])) for e in all_entities)
     total_called_by = sum(len(e.get("called_by", [])) for e in all_entities)
-    print(f"\n  call xrefs: {total_calls} forward, {total_called_by} reverse")
+    print(f"  Xrefs: {total_calls} calls")
 
     return 0
 
