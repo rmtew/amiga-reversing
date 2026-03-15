@@ -401,35 +401,89 @@ def build_entities(binary_path: str, output_path: str = None):
         # flow-verified and feed back into the core.  Propagation
         # gives concrete state to all reachable blocks.  No reloc
         # or scan entries — those are hints (Phase 2).
+        #
+        # Multi-pass: after convergence, scan exit states for concrete
+        # stores to app memory (function pointers, library bases set
+        # after init).  Merge into init memory and re-run.  Each pass
+        # discovers more stores, enabling more indirect resolution.
         core_entries = {0}
         jt_call_targets = set()
         kb = KB()
 
-        for _ in range(10):
-            result = analyze(code, base_addr=0,
-                             entry_points=sorted(core_entries),
-                             propagate=True, platform=platform_config)
-            # Expand with jump table and indirect targets
-            added = 0
-            for t in detect_jump_tables(
-                    result["blocks"], code, base_addr=0):
-                for tgt in t["targets"]:
-                    if tgt not in core_entries:
-                        core_entries.add(tgt)
+        for store_pass in range(5):
+            # Inner loop: expand with tables/indirect until stable
+            for _ in range(10):
+                result = analyze(code, base_addr=0,
+                                 entry_points=sorted(core_entries),
+                                 propagate=True,
+                                 platform=platform_config)
+                added = 0
+                for t in detect_jump_tables(
+                        result["blocks"], code, base_addr=0):
+                    for tgt in t["targets"]:
+                        if tgt not in core_entries:
+                            core_entries.add(tgt)
+                            added += 1
+                    dblk = result["blocks"].get(t["dispatch_block"])
+                    if dblk and dblk.instructions:
+                        ft, _ = kb.flow_type(dblk.instructions[-1])
+                        if ft == "call":
+                            jt_call_targets.update(t["targets"])
+                for r in resolve_indirect_targets(
+                        result["blocks"],
+                        result.get("exit_states", {}),
+                        code_size):
+                    if r["target"] not in core_entries:
+                        core_entries.add(r["target"])
                         added += 1
-                dblk = result["blocks"].get(t["dispatch_block"])
-                if dblk and dblk.instructions:
-                    ft, _ = kb.flow_type(dblk.instructions[-1])
-                    if ft == "call":
-                        jt_call_targets.update(t["targets"])
-            for r in resolve_indirect_targets(
-                    result["blocks"], result.get("exit_states", {}),
-                    code_size):
-                if r["target"] not in core_entries:
-                    core_entries.add(r["target"])
-                    added += 1
-            if not added:
+                if not added:
+                    break
+
+            # Scan exit states for concrete stores to app memory.
+            # When a block's exit memory has concrete values in the
+            # base-register region that the init memory lacks, those
+            # are stores made during the main flow (function pointer
+            # setup, library base caching).  Merge them into init
+            # memory for the next pass.
+            if not platform_config.get("initial_base_reg"):
                 break
+            breg_num, breg_val = platform_config["initial_base_reg"]
+            init_mem = platform_config.get("_initial_mem")
+            if init_mem is None:
+                break
+
+            new_stores = 0
+            for addr, (cpu, mem) in result.get(
+                    "exit_states", {}).items():
+                for mem_addr, val in mem._bytes.items():
+                    if not (alloc_base <= mem_addr < alloc_limit):
+                        continue
+                    if mem_addr in init_mem._bytes:
+                        continue  # already known
+                    if val.concrete is None:
+                        continue
+                    # Only capture values that are valid code
+                    # addresses (within the hunk)
+                    if not (0 <= val.concrete < code_size):
+                        continue
+                    init_mem._bytes[mem_addr] = val
+                    new_stores += 1
+                # Also merge tags
+                for key, tag in mem._tags.items():
+                    if key not in init_mem._tags:
+                        init_mem._tags[key] = tag
+
+            if new_stores == 0:
+                break
+            disp_example = ""
+            for mem_addr in sorted(init_mem._bytes):
+                if (alloc_base <= mem_addr < alloc_limit
+                        and init_mem._bytes[mem_addr].concrete is not None
+                        and 0 <= init_mem._bytes[mem_addr].concrete < code_size):
+                    disp_example = f" (e.g. d({mem_addr - breg_val}))"
+                    break
+            print(f"  Store pass {store_pass + 1}: "
+                  f"{new_stores} new memory values{disp_example}")
 
         blocks = result["blocks"]
         xrefs = result["xrefs"]
