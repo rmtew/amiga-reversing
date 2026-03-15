@@ -27,7 +27,8 @@ from os_calls import (get_platform_config, _SENTINEL_ALLOC_BASE,
                       load_os_kb, identify_library_calls,
                       propagate_input_types)
 from build_entities import _resolve_reloc_target
-from kb_util import KB, read_string_at
+from m68k_executor import _extract_branch_target
+from kb_util import KB, read_string_at, find_containing_sub
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -560,18 +561,78 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         if struct_map:
             print(f"  {len(struct_map)} instructions with struct type info")
 
+        # Build dispatch call comments: map instruction offset to
+        # "; library/function" for calls through dispatch subroutines.
+        dispatch_comments: dict[int, str] = {}
+        for call in lib_calls:
+            disp_addr = call.get("dispatch")
+            if disp_addr is None:
+                continue
+            # The caller block is call["addr"]. Find the BSR/JSR
+            # instruction in that block that targets the dispatch sub.
+            caller_blk = blocks.get(call["addr"])
+            if not caller_blk:
+                continue
+            # Find the dispatch subroutine entry
+            disp_sub = find_containing_sub(
+                disp_addr,
+                sorted([{"addr": int(e["addr"], 16),
+                         "end": int(e["end"], 16)}
+                        for e in hunk_entities
+                        if e["type"] == "code"],
+                       key=lambda s: s["addr"]))
+            if disp_sub is None:
+                continue
+            # Find the call instruction targeting the dispatch sub
+            for inst in caller_blk.instructions:
+                target = _extract_branch_target(inst, inst.offset)
+                if target == disp_sub:
+                    lib = call.get("library", "?")
+                    func = call.get("function", "?")
+                    dispatch_comments[inst.offset] = (
+                        f" ; {lib}/{func}")
+                    break
+        if dispatch_comments:
+            print(f"  {len(dispatch_comments)} dispatch call comments")
+
+        # Build app memory offset EQUs from init memory tags.
+        app_offsets: dict[int, str] = {}
+        base_info = platform.get("initial_base_reg")
+        init_mem = platform.get("_initial_mem")
+        if base_info and init_mem:
+            base_concrete = base_info[1]
+            base_reg_num = base_info[0]
+            for (addr, _nbytes), tag in init_mem._tags.items():
+                if not tag or "library_base" not in tag:
+                    continue
+                offset = addr - base_concrete
+                lib_name = tag["library_base"]
+                base_name = lib_name.rsplit(".", 1)[0]
+                sym = re.sub(r'[^a-z0-9]+', '_', base_name.lower())
+                app_offsets[offset] = f"app_{sym}_base"
+        if app_offsets:
+            print(f"  {len(app_offsets)} app memory offset symbols")
+
         # Generate output
         print(f"Writing {output_path}...")
         used_structs = set()  # struct names used in field substitutions
         with open(output_path, "w") as f:
-            # Header placeholder — INCLUDEs inserted after emission
-            header_pos = f.tell()
+            # Header
             f.write("; Generated disassembly -- vasm Motorola syntax\n")
             f.write("; Source: " + str(binary_path) + "\n")
             f.write(f"; {code_size} bytes, "
                     f"{len(hunk_entities)} entities, "
                     f"{len(blocks)} blocks\n")
             f.write("\n")
+
+            # App memory offset EQUs
+            if app_offsets:
+                f.write("; App memory offsets (base register "
+                        f"A{base_info[0]})\n")
+                for off in sorted(app_offsets):
+                    f.write(f"{app_offsets[off]}\tEQU\t{off}\n")
+                f.write("\n")
+
             f.write("    section code,code\n\n")
 
             instr_count = 0
@@ -605,7 +666,16 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                             text = replace_struct_fields(
                                 text, inst.offset, struct_map,
                                 used_structs)
-                            f.write(f"    {text}\n")
+                            # Substitute app memory offsets
+                            if app_offsets and base_info:
+                                brn = base_info[0]
+                                for off, sym in app_offsets.items():
+                                    text = text.replace(
+                                        f"{off}(a{brn})",
+                                        f"{sym}(a{brn})")
+                            comment = dispatch_comments.get(
+                                inst.offset, "")
+                            f.write(f"    {text}{comment}\n")
                             instr_count += 1
                     pos = blk.end
                 elif pos in code_addrs:

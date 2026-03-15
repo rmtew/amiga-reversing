@@ -215,6 +215,21 @@ def name_subroutines(entities: list[dict],
             func = call["function"]
             sub_os_calls[sub_addr].append(f"{lib}/{func}")
 
+    # Detect dispatch subroutines: subs containing per-caller dispatch
+    # instructions (identified by the "dispatch" field in lib_calls).
+    dispatch_libs: dict[int, set] = {}
+    for call in lib_calls:
+        disp_addr = call.get("dispatch")
+        if disp_addr is None:
+            continue
+        sub_addr = find_containing_sub(disp_addr, sorted_sub_list)
+        if sub_addr is not None:
+            if sub_addr not in dispatch_libs:
+                dispatch_libs[sub_addr] = set()
+            lib = call.get("library")
+            if lib and lib != "unknown":
+                dispatch_libs[sub_addr].add(lib)
+
     named = 0
     used_names = set()
 
@@ -230,6 +245,15 @@ def name_subroutines(entities: list[dict],
         os_calls = sub_os_calls.get(addr)
         if os_calls:
             name = _os_calls_to_name(os_calls)
+
+        # Priority 1.5: dispatch subroutine
+        if name is None and addr in dispatch_libs:
+            libs = dispatch_libs[addr]
+            if len(libs) == 1:
+                base = next(iter(libs)).rsplit(".", 1)[0]
+                name = re.sub(r'[^a-z0-9]+', '_', base.lower()) + "_dispatch"
+            elif libs:
+                name = "lib_dispatch"
 
         # Priority 2: string reference
         if name is None and addr in sub_strings:
