@@ -29,7 +29,7 @@ Extract all instruction metadata from the PDF into `m68k_instructions.json`.
 ## Phase 2: Data-Driven Assembler (done)
 
 Reverse of the disassembler, driven from the same JSON.
-`scripts/m68k_asm.py` — 1299 tests, 90 mnemonics, 0 failures, 27 known divergences (imm routing).
+`m68k/m68k_asm.py` -- 1299 tests, 90 mnemonics, 0 failures, 27 known divergences (imm routing).
 
 - [x] Operand syntax → EA mode bits (parse register names, addressing modes, immediates)
 - [x] Opword construction from encoding bit patterns + operand fields
@@ -70,8 +70,8 @@ Given an instruction + initial state, predict SP delta and CC result from KB rul
 ## Phase 4: Verification Harness (done)
 
 machine68k (Musashi) as independent oracle for execution semantics.
-`scripts/test_m68k_execution.py` — 4870 tests, 119 mnemonics, 0 failures.
-`scripts/m68k_compute.py` — KB-driven compute engine (CC/SP/result prediction, condition evaluator).
+`scripts/test_m68k_execution.py` -- 4870 tests, 119 mnemonics, 0 failures.
+`m68k/m68k_compute.py` -- KB-driven compute engine (CC/SP/result prediction, condition evaluator).
 
 - [x] Test generator: KB-driven discovery of testable instructions, deterministic test values
 - [x] Runner: instruction hook captures post-execution state without sentinel interference
@@ -134,8 +134,8 @@ machine68k (Musashi) as independent oracle for execution semantics.
 ## Phase 5: Symbolic Executor (in progress)
 
 KB-driven abstract interpretation engine for static analysis of disassembled code.
-`scripts/m68k_executor.py` — block discovery, demand-driven disassembly, structured EA decoding.
-Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests).
+`m68k/m68k_executor.py` — block discovery, demand-driven disassembly, structured EA decoding.
+Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
 
 - [x] `predict_pc()`: KB `pc_effects` + `opword_bytes` for branch target resolution
 - [x] EA decoder: structured `Operand` from opcode bits via KB `ea_mode_encoding` + `ea_brief_ext_word`
@@ -149,11 +149,11 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Memory model: `AbstractMemory` — sparse byte-granularity map, big-endian read/write at b/w/l sizes
 - [x] State propagation: `propagate_states()` — BFS walk, per-instruction abstract execution, conservative join at merge points
 - [x] Instruction effects: MOVE/MOVEA/MOVEQ, LEA, ADD/SUB/AND/OR/EOR, CLR, EXG, SWAP, EXT, NEG, NOT, TST, SP effects
-- [x] Verification: 8 tests (memory r/w, copy, join, MOVEQ+LEA through memory, ADD, CLR, merge, EXG)
+- [x] Verification: 8 tests in `tests/test_executor_propagation.py` (memory r/w, copy, join, MOVEQ+LEA through memory, ADD, CLR, merge, EXG)
 - [x] Audit: `_apply_instruction` dispatch via KB `compute_formula.op`/`operation_type` — no mnemonic-string dispatch
 - [x] Audit: sign-extension from KB fields (`immediate_range.bits`, `source_sign_extend`, `source_bits_by_size`, `range_a/range_b`)
 - [x] Audit: `sp_effects.bytes` hard error on missing, unused imports/variables removed
-- [x] Entity integration: `scripts/build_entities.py` — hunk parse + executor → entities.jsonl
+- [x] Entity integration: `scripts/build_entities.py` — hunk parse + executor -> entities.jsonl
   - Subroutine-level entities from call targets + block reachability
   - Bidirectional xrefs (calls/called_by) from executor XRefs
   - Reloc-derived data references for uncovered regions
@@ -174,7 +174,7 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - Re-analyzes shared subroutines per call site when merged state loses caller info
   - Handles trampolines (pop return addr + jmp d(An)) and dispatch routines (jsr d(An,Xn))
   - Base register restored from platform config for callers where it was clobbered
-  - 16 TDD tests: EA mechanics, trampoline (basic/addq.l/per-caller), dispatch (single/per-caller), struct field, edge cases
+  - 37 tests in `tests/test_indirect_resolution.py`: EA mechanics, trampoline, dispatch, struct field, PEA+RTS, table enumeration, register survival, backward slice, jump table patterns A-D, edge cases
 - [x] Heuristic subroutine scan: RTS-bounded sequences scored against relocs/call targets
 - [x] Scratch register invalidation after calls (KB `pc_effects.flow.type == "call"`)
 - [x] OS library call identification: ExecBase load + LVO dispatch → function names
@@ -183,7 +183,7 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - Library base tagging: OpenLibrary return tagged via KB `returns_base` field
   - Tags propagate through registers, memory round-trips, state joins
 - [x] Subroutine naming: OS call patterns, PC-relative string references, call graph
-- [x] Shared KB utilities: `kb_util.py` (KB class, xf, find_containing_sub)
+- [x] Shared KB utilities: `m68k/kb_util.py` (KB class, xf, find_containing_sub)
 - [x] Predecrement/postincrement EA support: `-(An)` and `(An)+` in operand resolution + writes
 - [x] Stack tracking: sentinel SP enables push/pop through abstract memory
   - JSR/BSR write return address to stack (enables RTS resolution)
@@ -234,7 +234,15 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - `rx_mode`/`ry_mode` for EXG from description text
   - `operation_class` from instruction title (LEA, MOVEM)
   - 8 `_meta` fields added (size_suffixes, default_operand_size, register_aliases, ea_full_ext_bd_size)
-- [x] pytest suite: `uv run pytest tests/` — 3 tests for code section reads
+- [x] pytest suite: `py -m pytest tests/` -- 1844 tests in ~2s
+  - `test_m68k_roundtrip.py`: 1796 KB-driven roundtrip tests, batch-assembled (12 vasm calls)
+  - `test_indirect_resolution.py`: 37 tests (dispatch patterns, backward slice, per-caller)
+  - `test_executor_propagation.py`: 8 tests (memory, joins, instruction effects)
+  - `test_code_section_reads.py`: 3 tests (pointer resolution through code data)
+- [x] PEA EA mode validation: guard against invalid modes via KB `ea_modes.ea`
+- [x] Backward slice: skip call predecessors to prevent false-positive RTS resolutions
+- [x] `_scan_inline_dispatch`: diagnostic stderr on decode errors
+- [x] Jump table patterns A-D: dedicated regression tests
 - [ ] Improve coverage beyond 34%:
   - [x] Add dispatch pattern D to `jump_tables.py`: LEA d(PC),An; MOVE.W d(An,Dn),Dn; JSR d(An,Dn)
     - Word-offset table at $0E9A, 29 entries (base-relative to A1=$0EA2)
@@ -255,7 +263,7 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - [x] Coverage gap diagnostic: `scripts/coverage_gaps.py` identifies root causes
     - 16 orphan relocs (JSR/JMP in undecoded code), 446 trailing returns, 128 string table entries
     - All trace back to: indirect dispatch through d(A6) function pointers
-- [x] Disassembly generator: `scripts/gen_disasm.py` → `disasm/genam.s`
+- [x] Disassembly generator: `scripts/gen_disasm.py` -> `disasm/genam.s`
   - Core analysis with jump table + indirect target discovery loop
   - Hint blocks with block-level validation (flow, zero opword, EA, arch, alignment)
   - Label replacement: branch targets, relocated absolutes, PC-relative, immediates
@@ -279,7 +287,7 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 
 ### Disassembler & Round-Trip
 - [x] Build M68K disassembler — test-driven, using knowledge base
-- [x] Build test oracle — assemble → disassemble → reassemble → binary diff (1804 tests, 110/126 mnemonics)
+- [x] Build test oracle -- assemble -> disassemble -> reassemble -> binary diff (1796 tests, 110/126 mnemonics, batch-assembled)
 - [x] Derive M68K condition-family canonicalisation from KB data (including PMMU condition tables)
 - [x] Round-trip validation: GenAm → disasm → vasm → binary-diff = 0 bytes, 0 relocs different
 

@@ -10,7 +10,28 @@
       "68020": "-m68020",
       "68030": "-m68030",
       "68040": "-m68040",
+      "68060": "-m68060",
       "cpu32": "-mcpu32"
+    },
+    "ea_mode_syntax": {
+      "_comment": "Assembly syntax for each EA mode (vasm Motorola syntax, arbitrary valid operands for testing)",
+      "dn": "d0",
+      "an": "a0",
+      "ind": "(a0)",
+      "postinc": "(a0)+",
+      "predec": "-(a0)",
+      "disp": "4(a0)",
+      "index": "0(a0,d0.w)",
+      "absw": "$4.w",
+      "absl": "$10000",
+      "pcdisp": "4(pc)",
+      "pcindex": "0(pc,d0.w)"
+    },
+    "test_immediate_values": {
+      "_comment": "Default immediate values per size for round-trip testing",
+      "b": "#$12",
+      "w": "#$1234",
+      "l": "#$12345678"
     }
   },
   "instructions": {

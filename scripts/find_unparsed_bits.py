@@ -10,7 +10,6 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 guide_dir = "resources/Hardware_Manual_guide"
 
-sys.path.insert(0, "scripts")
 from parse_hw_manual import parse_register_detail, extract_body, strip_html
 
 # Check ALL HTML files for bit-table-like patterns

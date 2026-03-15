@@ -19,14 +19,11 @@ Per-caller resolution (resolve_per_caller):
 
 import struct
 import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from m68k_executor import (BasicBlock, _extract_mnemonic, _extract_branch_target,
-                          _decode_ea, resolve_ea, propagate_states, _concrete)
-from m68k_disasm import _Decoder, _decode_one, DecodeError
-from kb_util import KB, xf
+from .m68k_executor import (BasicBlock, _extract_mnemonic, _extract_branch_target,
+                           _decode_ea, resolve_ea, propagate_states, _concrete)
+from .m68k_disasm import _Decoder, _decode_one, DecodeError
+from .kb_util import KB, xf
 
 
 # ── Extension word parsing (from KB field definitions) ───────────────────
@@ -297,7 +294,10 @@ def _scan_inline_dispatch(code, base_addr, code_size, kb: KB,
                 if target is not None:
                     targets.append(target)
             pos += inst.size
-        except (DecodeError, struct.error):
+        except (DecodeError, struct.error) as exc:
+            print(f"_scan_inline_dispatch: decode error at ${pos:04x}: "
+                  f"{exc} -- ending scan with {len(targets)} entries",
+                  file=sys.stderr)
             break
 
     return targets, pos
@@ -333,7 +333,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
             prev = block.instructions[-2]
             prev_kb = kb.find(_extract_mnemonic(prev.text))
             if prev_kb and prev_kb.get("operation_type") == "move":
-                from kb_util import decode_instruction_operands
+                from .kb_util import decode_instruction_operands
                 decoded = decode_instruction_operands(
                     prev.raw, prev_kb, kb.meta, "l", prev.offset)
                 ea_op = decoded.get("ea_op")
@@ -556,7 +556,7 @@ def _find_table_source(instructions, kb: KB, index_mode: str,
     field_offset: byte offset of the index field within each table entry.
     stride: entry size in bytes (detected from postincrement count).
     """
-    from kb_util import decode_instruction_operands, decode_destination
+    from .kb_util import decode_instruction_operands, decode_destination
 
     for inst in reversed(instructions):
         if inst.offset >= stop_before:
@@ -990,14 +990,30 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
     resolved = []
     seen_targets = set()
 
+    # Identify blocks ending with call instructions (BSR/JSR).
+    # Call predecessors are handled by resolve_per_caller, not backward
+    # slice.  Using a call block's exit state would propagate the pushed
+    # return address, causing false positive RTS resolutions.
+    call_blocks = set()
+    for addr, block in blocks.items():
+        if block.instructions:
+            last = block.instructions[-1]
+            ikb = kb.find(_extract_mnemonic(last.text))
+            if ikb:
+                ft = ikb.get("pc_effects", {}).get("flow", {}).get("type")
+                if ft == "call":
+                    call_blocks.add(addr)
+
     for unres_addr, unres_type in unresolved:
         # Walk predecessor chains backward, collecting paths.
         # At each level, try to propagate.  If the predecessor's exit
         # state resolves the target, we're done.  Otherwise, go deeper.
         # Work queue: (predecessor_addr, path_from_pred_to_unres)
+        # Skip call predecessors -- their exit states have SP decremented
+        # and return addresses on the stack that cause false positives.
         work = []
         for pred in blocks[unres_addr].predecessors:
-            if pred in exit_states:
+            if pred in exit_states and pred not in call_blocks:
                 work.append((pred, [pred, unres_addr]))
 
         visited = {unres_addr}
@@ -1034,9 +1050,11 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
                     seen_targets.add(target)
                 else:
                     # Go one level deeper: add pred's predecessors
+                    # (skip call blocks to avoid false positives)
                     if pred_addr in blocks:
                         for pp in blocks[pred_addr].predecessors:
-                            if pp not in visited and pp in exit_states:
+                            if (pp not in visited and pp in exit_states
+                                    and pp not in call_blocks):
                                 next_work.append(
                                     (pp, [pp] + path))
             work = next_work

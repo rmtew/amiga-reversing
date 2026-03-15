@@ -2,7 +2,6 @@
 """Test instruction header detection on specific pages."""
 
 import fitz, sys
-sys.path.insert(0, "scripts")
 from parse_m68k import extract_page_spans, spans_to_rows, is_instruction_start, rows_to_plain_text
 
 sys.stdout.reconfigure(encoding="utf-8")

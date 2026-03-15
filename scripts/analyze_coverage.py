@@ -10,11 +10,10 @@ import struct
 import sys
 from pathlib import Path
 
-# Add scripts/ to sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from hunk_parser import parse_file, HunkType as HT
-from m68k_executor import analyze, _extract_mnemonic, _load_kb
+from m68k.hunk_parser import parse_file, HunkType as HT
+from m68k.m68k_executor import analyze, _extract_mnemonic, _load_kb
 
 
 def main():
@@ -62,7 +61,7 @@ def main():
     cc_test_defs = meta.get("cc_test_definitions", {})
     cc_aliases = meta.get("cc_aliases", {})
 
-    from m68k_executor import _find_kb_entry, _extract_branch_target
+    from m68k.m68k_executor import _find_kb_entry, _extract_branch_target
 
     indirect_blocks = []
     for addr in sorted(blocks):
@@ -272,7 +271,7 @@ def main():
         s = (rng_start + 1) & ~1
         # Try decoding from the start of each uncovered range
         # If it decodes successfully for a few instructions, it's likely code
-        from m68k_disasm import _Decoder, _decode_one, DecodeError
+        from m68k.m68k_disasm import _Decoder, _decode_one, DecodeError
         pos = s
         streak = 0
         entry = pos

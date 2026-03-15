@@ -18,14 +18,14 @@ import sys
 import argparse
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from hunk_parser import parse_file, HunkType
-from m68k_executor import analyze
-from m68k_disasm import _Decoder, _decode_one, DecodeError
-from os_calls import get_platform_config, _SENTINEL_ALLOC_BASE
+from m68k.hunk_parser import parse_file, HunkType
+from m68k.m68k_executor import analyze
+from m68k.m68k_disasm import _Decoder, _decode_one, DecodeError
+from m68k.os_calls import get_platform_config, _SENTINEL_ALLOC_BASE
 from build_entities import _resolve_reloc_target
-from kb_util import KB, read_string_at
+from m68k.kb_util import KB, read_string_at
 
 
 PROJECT_ROOT = Path(__file__).parent.parent

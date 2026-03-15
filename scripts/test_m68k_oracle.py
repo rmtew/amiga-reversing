@@ -28,9 +28,8 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJ_ROOT / "scripts"))
-
-from m68k_asm import assemble_instruction  # noqa: E402
+sys.path.insert(0, str(PROJ_ROOT))
+from m68k.m68k_asm import assemble_instruction  # noqa: E402
 
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
 ORACLE_MAP = {

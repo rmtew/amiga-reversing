@@ -20,11 +20,9 @@ import sys
 import re
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from m68k_executor import BasicBlock, _extract_mnemonic
-from os_calls import load_os_kb
-from kb_util import KB, xf, find_containing_sub
+from .m68k_executor import BasicBlock, _extract_mnemonic
+from .os_calls import load_os_kb
+from .kb_util import KB, xf, find_containing_sub
 
 
 def find_string_refs(blocks: dict[int, BasicBlock],

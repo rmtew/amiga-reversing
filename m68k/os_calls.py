@@ -18,12 +18,10 @@ import struct
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from m68k_executor import BasicBlock, _extract_mnemonic, _extract_branch_target
-from kb_util import (KB, xf, parse_reg_name, read_string_at,
-                     decode_destination)
-from m68k_executor import _extract_size
+from .m68k_executor import BasicBlock, _extract_mnemonic, _extract_branch_target
+from .kb_util import (KB, xf, parse_reg_name, read_string_at,
+                      decode_destination)
+from .m68k_executor import _extract_size
 
 
 _OS_KB_CACHE = None

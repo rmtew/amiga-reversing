@@ -13,14 +13,10 @@ Usage:
 """
 
 import struct
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from m68k_disasm import _Decoder, _decode_one, DecodeError
-from m68k_executor import BasicBlock, _extract_mnemonic
-from kb_util import KB
+from .m68k_disasm import _Decoder, _decode_one, DecodeError
+from .m68k_executor import BasicBlock, _extract_mnemonic
+from .kb_util import KB
 
 
 def _uncovered_ranges(blocks: dict[int, BasicBlock],

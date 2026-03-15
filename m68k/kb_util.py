@@ -6,13 +6,9 @@ patterns and encoding field extraction.
 """
 
 import struct
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from m68k_executor import (_load_kb, _find_kb_entry, _extract_mnemonic,
-                          _decode_ea, _extract_size, Operand, _xf)
+from .m68k_executor import (_load_kb, _find_kb_entry, _extract_mnemonic,
+                           _decode_ea, _extract_size, Operand, _xf)
 
 
 class KB:

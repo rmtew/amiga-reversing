@@ -16,8 +16,8 @@ import sys
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from m68k_compute import _to_signed
-from m68k_disasm import disassemble, Instruction, DecodeError, _Decoder, _decode_one
+from .m68k_compute import _to_signed
+from .m68k_disasm import disassemble, Instruction, DecodeError, _Decoder, _decode_one
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────
@@ -1535,6 +1535,12 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     # Write the EA address to memory at the new SP.
     # The write size is derived from the KB sp_effects decrement bytes.
     if inst_kb.get("sp_effects") and op_type == "sub" and ea_op:
+        # Validate EA mode against KB-allowed modes (catches internal bugs)
+        pea_ea_modes = inst_kb.get("ea_modes", {}).get("ea", [])
+        if pea_ea_modes and ea_op.mode not in pea_ea_modes:
+            raise ValueError(
+                f"PEA: EA mode {ea_op.mode!r} not in allowed modes "
+                f"{pea_ea_modes} (internal bug)")
         # Compute the effective address (not the value at it)
         addr_val = resolve_ea(ea_op, cpu, "l")
         if addr_val is not None and (cpu.sp.is_known or cpu.sp.is_symbolic):
@@ -2653,8 +2659,7 @@ def analyze(code: bytes, base_addr: int = 0,
 # ── CLI ───────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from hunk_parser import parse_file, HunkType as HT
+    from .hunk_parser import parse_file, HunkType as HT
 
     do_propagate = "--propagate" in sys.argv
     args = [a for a in sys.argv[1:] if not a.startswith("--")]

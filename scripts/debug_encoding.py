@@ -2,7 +2,6 @@
 """Debug encoding extraction on a specific page."""
 
 import fitz, sys
-sys.path.insert(0, "scripts")
 from parse_m68k import extract_page_spans, spans_to_rows, BitField
 
 sys.stdout.reconfigure(encoding="utf-8")

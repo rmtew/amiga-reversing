@@ -23,13 +23,13 @@ import tempfile
 from pathlib import Path
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJ_ROOT))
 VASM = PROJ_ROOT / "tools" / "vasmm68k_mot.exe"
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
 VASM_COMPAT = PROJ_ROOT / "knowledge" / "vasm_compat.json"
 
-sys.path.insert(0, str(PROJ_ROOT / "scripts"))
-from hunk_parser import parse_file
-from m68k_disasm import DecodeError, disassemble
+from m68k.hunk_parser import parse_file
+from m68k.m68k_disasm import DecodeError, disassemble
 
 
 def _load_kb_payload():

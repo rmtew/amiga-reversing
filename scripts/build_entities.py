@@ -19,24 +19,24 @@ import argparse
 from pathlib import Path
 from collections import defaultdict
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from hunk_parser import parse_file, HunkType
-from m68k_executor import analyze, BasicBlock, _load_kb
-from jump_tables import (detect_jump_tables, resolve_indirect_targets,
-                         resolve_per_caller, resolve_backward_slice)
-from os_calls import (load_os_kb, get_platform_config, identify_library_calls,
-                      _SENTINEL_ALLOC_BASE)
-from subroutine_scan import scan_and_score
-from kb_util import KB
-from name_entities import name_subroutines
+from m68k.hunk_parser import parse_file, HunkType
+from m68k.m68k_executor import analyze, BasicBlock, _load_kb
+from m68k.jump_tables import (detect_jump_tables, resolve_indirect_targets,
+                               resolve_per_caller, resolve_backward_slice)
+from m68k.os_calls import (load_os_kb, get_platform_config, identify_library_calls,
+                            _SENTINEL_ALLOC_BASE)
+from m68k.subroutine_scan import scan_and_score
+from m68k.kb_util import KB
+from m68k.name_entities import name_subroutines
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
 # Relocation semantics loaded from hunk format KB.
 # Maps HunkType int → {"bytes": N, "mode": "absolute"|"pc_relative"|...}
-from hunk_parser import _HUNK_KB
+from m68k.hunk_parser import _HUNK_KB
 _RELOC_INFO = {}
 for _name, _sem in _HUNK_KB.get("relocation_semantics", {}).items():
     if _name in HunkType.__members__:

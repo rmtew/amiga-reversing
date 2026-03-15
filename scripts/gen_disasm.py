@@ -19,21 +19,21 @@ import argparse
 from pathlib import Path
 from collections import defaultdict
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from hunk_parser import parse_file, HunkType
-from m68k_executor import analyze
-from os_calls import (get_platform_config, _SENTINEL_ALLOC_BASE,
-                      load_os_kb, identify_library_calls,
-                      propagate_input_types)
+from m68k.hunk_parser import parse_file, HunkType
+from m68k.m68k_executor import analyze
+from m68k.os_calls import (get_platform_config, _SENTINEL_ALLOC_BASE,
+                            load_os_kb, identify_library_calls,
+                            propagate_input_types)
 from build_entities import _resolve_reloc_target
-from m68k_executor import (_extract_branch_target, _extract_mnemonic,
-                          _extract_size)
-from kb_util import (KB, read_string_at, find_containing_sub,
-                     decode_instruction_operands, decode_destination,
-                     parse_reg_name)
-from jump_tables import (detect_jump_tables, resolve_indirect_targets,
-                         resolve_per_caller, resolve_backward_slice)
+from m68k.m68k_executor import (_extract_branch_target, _extract_mnemonic,
+                                _extract_size)
+from m68k.kb_util import (KB, read_string_at, find_containing_sub,
+                           decode_instruction_operands, decode_destination,
+                           parse_reg_name)
+from m68k.jump_tables import (detect_jump_tables, resolve_indirect_targets,
+                               resolve_per_caller, resolve_backward_slice)
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -146,7 +146,7 @@ def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
     Uses relocation_semantics from hunk format KB to determine which
     reloc types are absolute (need label references in disassembly).
     """
-    from hunk_parser import _HUNK_KB
+    from m68k.hunk_parser import _HUNK_KB
     reloc_sem = _HUNK_KB.get("relocation_semantics", {})
     # Build set of absolute reloc type IDs from KB
     abs_types = set()
@@ -642,7 +642,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
 
         # Hint blocks: reloc targets + scan, separate discovery.
         # Emitted as unverified disassembly (readable but not trusted).
-        from subroutine_scan import scan_and_score
+        from m68k.subroutine_scan import scan_and_score
         hint_entries = reloc_targets - set(blocks.keys())
         hint_blocks: dict = {}
         if hint_entries:
@@ -1205,7 +1205,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                     jt = jt_regions[pos]
                     if jt["pattern"] == "pc_inline_dispatch":
                         # Decode and emit BRA instructions inline
-                        from m68k_disasm import _Decoder, _decode_one
+                        from m68k.m68k_disasm import _Decoder, _decode_one
                         dec = _Decoder(code, 0)
                         dec.pos = pos
                         while dec.pos < jt["table_end"]:

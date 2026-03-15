@@ -25,14 +25,14 @@ from pathlib import Path
 from machine68k import CPUType, Machine, Register
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJ_ROOT))
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
 
-sys.path.insert(0, str(PROJ_ROOT / "scripts"))
 from test_m68k_roundtrip import assemble
-from m68k_disasm import disassemble as disasm_bytes
-from m68k_compute import (predict_cc, predict_sp, _size_mask, _to_signed,
-                          _size_from_bits, _RULE_HANDLERS, _compute_result,
-                          evaluate_cc_test)
+from m68k.m68k_disasm import disassemble as disasm_bytes
+from m68k.m68k_compute import (predict_cc, predict_sp, _size_mask, _to_signed,
+                               _size_from_bits, _RULE_HANDLERS, _compute_result,
+                               evaluate_cc_test)
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────

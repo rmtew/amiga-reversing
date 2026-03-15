@@ -1,4 +1,3 @@
-#!/usr/bin/env py.exe
 """Tests for indirect jump/call resolution through register tracing.
 
 Tests drive development of:
@@ -16,14 +15,12 @@ GenAm patterns modelled:
 - dos_dispatch: movea.l app_dos_base(a6),a6; jsr 0(a6,d0.w)
 """
 
-import sys
 import struct
-sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent))
 
-from m68k_executor import (analyze, CPUState, AbstractMemory,
-                            _concrete, _unknown)
-from jump_tables import (resolve_indirect_targets, resolve_per_caller,
-                         detect_jump_tables, resolve_backward_slice)
+from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
+                                _concrete, _unknown)
+from m68k.jump_tables import (resolve_indirect_targets, resolve_per_caller,
+                              detect_jump_tables, resolve_backward_slice)
 
 
 # ---- Helpers ----------------------------------------------------------------
@@ -1204,61 +1201,227 @@ def test_rts_resolution_preserved():
     print("  rts_resolution_preserved: OK")
 
 
-# ---- Run all ----------------------------------------------------------------
+# ---- 11. Jump table pattern detection (Patterns A-D) -----------------------
 
-if __name__ == "__main__":
-    print("Testing indirect jump/call resolution...")
+def test_pattern_a_word_offset():
+    """Pattern A: LEA base(PC),An; JMP disp(An,Dn.w) with word-offset table.
 
-    print("\n1. Displacement indirect (EA mechanics):")
-    test_disp_indirect_jmp()
-    test_disp_indirect_jsr()
+    The table contains signed word offsets from base. Each target =
+    base + entry_value.
+    """
+    code = b''
+    # lea table(pc),a0  -> a0 = $00+2+$08 = $0a (table start)
+    code += struct.pack('>HH', 0x41FA, 0x0008)          # [0x00] lea $08(pc),a0
+    # moveq #0,d0  (index = 0, just to have something in d0)
+    code += struct.pack('>H', 0x7000)                    # [0x04] moveq #0,d0
+    # jmp 0(a0,d0.w)
+    # JMP index(A0): 0100 1110 11 110 000 = $4EF0
+    # ext word: D/A=0, REG=000(d0), W/L=0, disp=0 -> $0000
+    code += struct.pack('>HH', 0x4EF0, 0x0000)          # [0x06] jmp 0(a0,d0.w)
+    # Table at $0a: word offsets from base ($0a)
+    # Targets: $0a+0=$0a, $0a+4=$0e, $0a+10=$14
+    code += struct.pack('>hhh', 0, 4, 10)                # [0x0a] dc.w 0, 4, 10
+    # Handlers
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x10] nop; rts
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x14] nop; rts
 
-    print("\n2. Indexed indirect (EA mechanics):")
-    test_indexed_indirect_jsr()
-    test_indexed_indirect_with_displacement()
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x0a in t["targets"], f"Expected $000a in targets, got {t['targets']}"
+    assert 0x0e in t["targets"], f"Expected $000e in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    print("  pattern_a_word_offset: OK")
 
-    print("\n3. Trampoline (GenAm sub_16e0 pattern):")
-    test_trampoline_basic()
-    test_trampoline_modified_return_addr()
-    test_trampoline_per_caller()
 
-    print("\n4. Library dispatch (GenAm dos_dispatch pattern):")
-    test_indexed_dispatch_single()
-    test_dispatch_per_caller()
+def test_pattern_b_self_relative():
+    """Pattern B: LEA d(PC,Dn),An; ADDA.W (An),An; JMP (An).
 
-    print("\n5. Structure field access:")
-    test_struct_field_code_pointer()
-    test_struct_field_disp_indirect()
+    Table entries are self-relative: target = &entry + entry_value.
+    """
+    code = b''
+    # moveq #0,d0
+    code += struct.pack('>H', 0x7000)                    # [0x00] moveq #0,d0
+    # lea $06(pc,d0.w),a0  -> a0 = $02+2+$06+d0 = $0a (table[d0])
+    # LEA pcindex(A0): 0100 0001 11 111 011 = $41FB
+    # ext word: D/A=0, REG=000(d0), W/L=0, disp=$06 -> $0006
+    code += struct.pack('>HH', 0x41FB, 0x0006)          # [0x02] lea $06(pc,d0.w),a0
+    # adda.w (a0),a0
+    # ADDA.W (A0),A0: 1101 000 011 010 000 = $D0D0
+    code += struct.pack('>H', 0xD0D0)                    # [0x06] adda.w (a0),a0
+    # jmp (a0)
+    code += struct.pack('>H', 0x4ED0)                    # [0x08] jmp (a0)
+    # Table at $0a: self-relative word entries
+    # Entry 0 at $0a: target = $0a + 8 = $12
+    # Entry 1 at $0c: target = $0c + 10 = $16
+    # Entry 2 at $0e: target = $0e + 8 = $16 (same target, that's ok)
+    code += struct.pack('>hhh', 8, 10, 8)                # [0x0a] dc.w 8, 10, 8
+    # Padding
+    code += struct.pack('>H', 0x4E71)                    # [0x10] nop
+    # Handlers
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x12] handler 0
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x16] handler 1
 
-    print("\n6. PEA+RTS dispatch:")
-    test_pea_rts_simple()
-    test_pea_rts_computed()
-    test_pea_rts_per_caller()
-    test_pea_rts_with_interleaved_call()
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "self_relative_word", (
+        f"Expected pattern 'self_relative_word', got {t['pattern']!r}")
+    assert 0x12 in t["targets"], f"Expected $0012 in targets, got {t['targets']}"
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    print("  pattern_b_self_relative: OK")
 
-    print("\n7. Data table enumeration:")
-    test_table_single_entry_resolves()
-    test_table_all_entries_enumerated()
-    test_table_enumeration_pea_rts()
-    test_table_enumeration_stops_at_invalid()
-    test_table_stride_multi_field()
 
-    print("\n8. Register survival across conditional calls:")
-    test_register_survives_conditional_call()
-    test_register_clobbered_both_paths()
+def test_pattern_c_pc_inline_dispatch():
+    """Pattern C: JMP disp(PC,Dn.w) with inline BRA.S entries.
 
-    print("\n9. Backward slice across merges:")
-    test_backward_slice_one_level()
-    test_backward_slice_two_levels()
-    test_backward_slice_many_predecessors()
-    test_backward_slice_all_paths_clobbered()
-    test_backward_slice_through_non_sub_blocks()
+    The dispatch table is a series of BRA.S instructions immediately
+    after the JMP. Each BRA.S branches to its handler.
+    """
+    code = b''
+    # moveq #0,d0
+    code += struct.pack('>H', 0x7000)                    # [0x00] moveq #0,d0
+    # jmp 0(pc,d0.w)
+    # JMP pcindex: 0100 1110 11 111 011 = $4EFB
+    # ext word: D/A=0, REG=000(d0), W/L=0, disp=$00 -> $0000
+    code += struct.pack('>HH', 0x4EFB, 0x0000)          # [0x02] jmp 0(pc,d0.w)
+    # Inline BRA.S entries starting at $06
+    # BRA.S $0e: disp = $0e - ($06+2) = 6 -> $6006
+    code += struct.pack('>H', 0x6006)                    # [0x06] bra.s $0e
+    # BRA.S $12: disp = $12 - ($08+2) = 8 -> $6008
+    code += struct.pack('>H', 0x6008)                    # [0x08] bra.s $12
+    # BRA.S $16: disp = $16 - ($0a+2) = 10 -> $600a
+    code += struct.pack('>H', 0x600A)                    # [0x0a] bra.s $16
+    # Non-BRA terminates scan
+    code += struct.pack('>H', 0x4E71)                    # [0x0c] nop
+    # Handlers
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x0e] handler 0
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x12] handler 1
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x16] handler 2
 
-    print("\n10. Edge cases:")
-    test_disp_indirect_unknown_register()
-    test_indexed_indirect_unknown_index()
-    test_disp_indirect_target_out_of_range()
-    test_odd_target_not_resolved()
-    test_rts_resolution_preserved()
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "pc_inline_dispatch", (
+        f"Expected pattern 'pc_inline_dispatch', got {t['pattern']!r}")
+    assert 0x0e in t["targets"], f"Expected $000e in targets, got {t['targets']}"
+    assert 0x12 in t["targets"], f"Expected $0012 in targets, got {t['targets']}"
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    print("  pattern_c_pc_inline_dispatch: OK")
 
-    print(f"\nAll tests passed.")
+
+def test_pattern_d_indirect_table_read():
+    """Pattern D: LEA d(PC),An; MOVE.W d1(An,Dn),Dn; JSR d2(An,Dn).
+
+    The MOVE reads an offset from a table (at lea+d1), then the JSR
+    dispatches using the loaded offset (at lea+d2+entry_value).
+    """
+    code = b''
+    # moveq #0,d0  (table index)
+    code += struct.pack('>H', 0x7000)                    # [0x00] moveq #0,d0
+    # lea $08(pc),a0 -> a0 = $02+2+$08 = $0c (base)
+    code += struct.pack('>HH', 0x41FA, 0x0008)          # [0x02] lea $08(pc),a0
+    # move.w 0(a0,d0.w),d0  -- reads table at base+0
+    # MOVE.W index(A0) to D0:
+    # 0011 000 000 110 000 = $3030
+    # ext word: D/A=0, REG=000(d0), W/L=0, disp=0 -> $0000
+    code += struct.pack('>HH', 0x3030, 0x0000)          # [0x06] move.w 0(a0,d0.w),d0
+    # jsr 6(a0,d0.w)  -- dispatches using loaded d0
+    # JSR index(A0): 0100 1110 10 110 000 = $4EB0
+    # ext word: D/A=0, REG=000(d0), W/L=0, disp=6 -> $0006
+    code += struct.pack('>HH', 0x4EB0, 0x0006)          # [0x0a] jsr 6(a0,d0.w)
+    # rts after call returns
+    code += struct.pack('>H', 0x4E75)                    # [0x0e] rts
+    # Padding (base=$0c, but table is at base+0=$0c for MOVE, dispatch at base+6=$12)
+    # Wait: base = $0c, table at base+0 = $0c, dispatch_base = base+6 = $12
+    # Hmm, table entries are at $0c but our code is there too...
+    # Let me adjust: put the LEA displacement higher.
+
+    code = b''
+    # moveq #0,d0
+    code += struct.pack('>H', 0x7000)                    # [0x00] moveq #0,d0
+    # lea $0c(pc),a0 -> a0 = $02+2+$0c = $10 (base)
+    code += struct.pack('>HH', 0x41FA, 0x000C)          # [0x02] lea $0c(pc),a0
+    # move.w 0(a0,d0.w),d0  -- table at base+0 = $10
+    code += struct.pack('>HH', 0x3030, 0x0000)          # [0x06] move.w 0(a0,d0.w),d0
+    # jsr 6(a0,d0.w)  -- dispatch_base = base+6 = $16
+    code += struct.pack('>HH', 0x4EB0, 0x0006)          # [0x0a] jsr 6(a0,d0.w)
+    # rts
+    code += struct.pack('>H', 0x4E75)                    # [0x0e] rts
+    # Table at $10: word offsets from dispatch_base ($16)
+    # Entry 0: target = $16 + 0 = $16
+    # Entry 1: target = $16 + 4 = $1a
+    code += struct.pack('>hh', 0, 4)                     # [0x10] dc.w 0, 4
+    # Padding
+    code += struct.pack('>H', 0x4E71)                    # [0x14] nop
+    # Handlers at dispatch_base $16
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x16] handler 0
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x1a] handler 1
+    code += struct.pack('>H', 0x4E71)                    # [0x1e] pad
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_table_read", (
+        f"Expected pattern 'indirect_table_read', got {t['pattern']!r}")
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    assert 0x1a in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_d_indirect_table_read: OK")
+
+
+# ---- 12. Backward slice skips call predecessors ----------------------------
+
+def test_backward_slice_skips_call_predecessor():
+    """Backward slice must NOT use BSR predecessor's exit state for RTS.
+
+    When a BSR block is a predecessor of an RTS block (via call
+    fallthrough), the BSR's exit state has the return address on the
+    stack. If the backward slice uses this state, re-propagation
+    through the BSR block pushes another return address, and the RTS
+    reads it -- producing a false positive.
+
+    Layout:
+        $00: BSR.W $0A   -> calls sub, fallthrough to $04
+        $04: NOP
+        $06: RTS         -> should NOT resolve (no outer caller)
+        $0A: NOP; RTS    -> sub returns to $04
+
+    Without the fix, backward slice resolves RTS at $04 to $04 itself
+    (the BSR's pushed return address). With the fix, call predecessors
+    are skipped and the RTS stays unresolved.
+    """
+    code = b''
+    # Block 0: BSR to sub at $0A
+    # BSR.W: PC=$02, disp=$08, target=$02+$08=$0A
+    code += struct.pack('>HH', 0x6100, 0x0008)          # [0x00] bsr.w $0A
+    # Block $04: fallthrough, NOP + RTS
+    code += struct.pack('>H', 0x4E71)                    # [0x04] nop
+    code += struct.pack('>H', 0x4E75)                    # [0x06] rts
+    # Padding
+    code += struct.pack('>H', 0x4E71)                    # [0x08] nop
+    # Sub at $0A
+    code += struct.pack('>H', 0x4E71)                    # [0x0a] nop
+    code += struct.pack('>H', 0x4E75)                    # [0x0c] rts
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # Per-caller resolves sub's RTS -> $04 (correct).
+    # Backward slice must NOT produce $04 again from the BSR predecessor.
+    # Count how many times $04 appears in resolved results.
+    count_04 = sum(1 for r in resolved if r["target"] == 0x04)
+    assert count_04 <= 1, (
+        f"Target $0004 resolved {count_04} times -- backward slice "
+        f"should not duplicate via call predecessor")
+    print("  backward_slice_skips_call_predecessor: OK")
+
+

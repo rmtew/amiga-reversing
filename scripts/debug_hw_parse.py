@@ -2,7 +2,6 @@
 """Debug hardware manual bit field parsing."""
 
 import sys
-sys.path.insert(0, "scripts")
 sys.stdout.reconfigure(encoding="utf-8")
 
 from parse_hw_manual import parse_full_manual, parse_register_detail

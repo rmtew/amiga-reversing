@@ -15,10 +15,6 @@ Examples:
     jsr 0(a0,d0.w)      ; resolved: a0 + d0 = handler addr
 """
 import struct
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 
 def _assemble(*words):
@@ -28,8 +24,8 @@ def _assemble(*words):
 
 def test_resolve_jsr_through_longword_pointer():
     """jsr (a0) where a0 was loaded from a longword in the code section."""
-    from m68k_executor import analyze
-    from jump_tables import resolve_indirect_targets
+    from m68k.m68k_executor import analyze
+    from m68k.jump_tables import resolve_indirect_targets
 
     code = bytearray(0x60)
 
@@ -62,8 +58,8 @@ def test_resolve_jsr_through_longword_pointer():
 
 def test_resolve_jsr_through_pointer_table():
     """jsr (a1) where a1 loaded from a table of longword pointers."""
-    from m68k_executor import analyze
-    from jump_tables import resolve_indirect_targets
+    from m68k.m68k_executor import analyze
+    from m68k.jump_tables import resolve_indirect_targets
 
     code = bytearray(0x80)
 
@@ -105,8 +101,8 @@ def test_resolve_jsr_through_pointer_table():
 
 def test_handler_becomes_block():
     """Resolved handler should become a block when fed back as entry point."""
-    from m68k_executor import analyze
-    from jump_tables import resolve_indirect_targets
+    from m68k.m68k_executor import analyze
+    from m68k.jump_tables import resolve_indirect_targets
 
     code = bytearray(0x60)
 
