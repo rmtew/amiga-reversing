@@ -553,7 +553,310 @@ def test_pea_rts_with_interleaved_call():
     print("  pea_rts_with_interleaved_call: OK")
 
 
-# ---- 7. Edge cases ----------------------------------------------------------
+# ---- 7. Data table enumeration ----------------------------------------------
+
+def test_table_single_entry_resolves():
+    """Dispatch through a value read from a code-section table (baseline).
+
+    LEA table,A0; MOVE.W (A0),D0; LEA base,A1; ADDA.W D0,A1; JMP (A1)
+    The executor reads the first table entry and resolves the target.
+    This should already work through code-section memory reads + ADDA.
+    """
+    code = b''
+    # lea $0c(pc),a0  -> a0 = $00+2+$0c = $0e (table)
+    code += struct.pack('>HH', 0x41FA, 0x000C)          # [0x00] lea table(pc),a0
+    # move.w (a0),d0  -> d0 = word at $0e = 0
+    code += struct.pack('>H', 0x3010)                    # [0x04] move.w (a0),d0
+    # lea $0c(pc),a1  -> a1 = $06+2+$0c = $14 (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x000C)          # [0x06] lea base(pc),a1
+    # adda.w d0,a1  -> a1 = $14 + d0
+    code += struct.pack('>H', 0xD2C0)                    # [0x0a] adda.w d0,a1
+    # jmp (a1)
+    code += struct.pack('>H', 0x4ED1)                    # [0x0c] jmp (a1)
+    # Table at $0e: 3 word entries (offsets from base)
+    code += struct.pack('>HHH', 0, 4, 8)                 # [0x0e] dc.w 0, 4, 8
+    # Handler base at $14
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x14] nop; rts (handler 0)
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x18] nop; rts (handler 1)
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x1c] nop; rts (handler 2)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # At minimum, the first entry (target=$14) should resolve
+    assert 0x14 in targets, (
+        f"Expected $0014 (handler 0: base+0), got {targets}")
+    print("  table_single_entry_resolves: OK")
+
+
+def test_table_all_entries_enumerated():
+    """All word-offset table entries should produce dispatch targets.
+
+    Same layout as test_table_single_entry_resolves, but the test
+    asserts that ALL three handler addresses are discovered, not just
+    the one that the single execution path reads.
+
+    This requires recognising that the dispatch value came from a
+    table in the code section and scanning consecutive entries.
+    """
+    code = b''
+    # lea $0c(pc),a0  -> a0 = $0e (table)
+    code += struct.pack('>HH', 0x41FA, 0x000C)          # [0x00] lea table(pc),a0
+    # move.w (a0),d0
+    code += struct.pack('>H', 0x3010)                    # [0x04] move.w (a0),d0
+    # lea $0c(pc),a1  -> a1 = $14 (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x000C)          # [0x06] lea base(pc),a1
+    # adda.w d0,a1
+    code += struct.pack('>H', 0xD2C0)                    # [0x0a] adda.w d0,a1
+    # jmp (a1)
+    code += struct.pack('>H', 0x4ED1)                    # [0x0c] jmp (a1)
+    # Table at $0e: 3 word entries
+    code += struct.pack('>HHH', 0, 4, 8)                 # [0x0e] dc.w 0, 4, 8
+    # Handler base at $14
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x14] handler 0
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x18] handler 1
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x1c] handler 2
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x14 in targets, (
+        f"Expected $0014 (handler 0), got {targets}")
+    assert 0x18 in targets, (
+        f"Expected $0018 (handler 1), got {targets}")
+    assert 0x1c in targets, (
+        f"Expected $001c (handler 2), got {targets}")
+    print("  table_all_entries_enumerated: OK")
+
+
+def test_table_enumeration_pea_rts():
+    """Table enumeration through PEA+RTS dispatch (GenAm $7550 pattern).
+
+    move.w (a0)+,d3; lea base(pc),a1; adda.w d3,a1; move.l a1,-(sp); rts
+
+    The table is read via postincrement, but the scan should enumerate
+    all word entries from the table start address.
+    """
+    code = b''
+    # Caller sets a0 to table start
+    # lea $18(pc),a0  -> a0 = $00+2+$18 = $1a (table)
+    code += struct.pack('>HH', 0x41FA, 0x0018)          # [0x00] lea table(pc),a0
+    # move.w (a0)+,d3  -> d3 = first entry, a0 advances
+    code += struct.pack('>H', 0x3618)                    # [0x04] move.w (a0)+,d3
+    # lea $18(pc),a1  -> a1 = $06+2+$18 = $20 (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x0018)          # [0x06] lea base(pc),a1
+    # adda.w d3,a1  -> a1 = base + d3
+    code += struct.pack('>H', 0xD2C3)                    # [0x0a] adda.w d3,a1
+    # move.l a1,-(sp)  -> push handler
+    code += struct.pack('>H', 0x2F09)                    # [0x0c] move.l a1,-(sp)
+    # rts  -> dispatch
+    code += struct.pack('>H', 0x4E75)                    # [0x0e] rts
+    # Padding
+    code += b'\x4e\x71' * 5                              # [0x10..$19] nop
+    # Table at $1a: 3 word entries
+    code += struct.pack('>HHH', 0, 6, 12)               # [0x1a] dc.w 0, 6, 12
+    # Handler base at $20
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x20] handler 0 (base+0)
+    code += struct.pack('>H', 0x4E71)                    # [0x24] nop
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x26] handler 1 (base+6)
+    code += struct.pack('>H', 0x4E71)                    # [0x2a] nop
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x2c] handler 2 (base+12)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x20 in targets, (
+        f"Expected $0020 (handler 0), got {targets}")
+    assert 0x26 in targets, (
+        f"Expected $0026 (handler 1), got {targets}")
+    assert 0x2c in targets, (
+        f"Expected $002c (handler 2), got {targets}")
+    print("  table_enumeration_pea_rts: OK")
+
+
+def test_table_enumeration_stops_at_invalid():
+    """Table scan stops when an entry produces an invalid target.
+
+    The table has 3 valid entries followed by a value that would
+    produce an out-of-range or odd target. Only the valid entries
+    should be resolved.
+    """
+    code = b''
+    # lea $0c(pc),a0  -> a0 = $0e (table)
+    code += struct.pack('>HH', 0x41FA, 0x000C)          # [0x00] lea table(pc),a0
+    # move.w (a0),d0
+    code += struct.pack('>H', 0x3010)                    # [0x04] move.w (a0),d0
+    # lea $0c(pc),a1  -> a1 = $14 (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x000C)          # [0x06] lea base(pc),a1
+    # adda.w d0,a1
+    code += struct.pack('>H', 0xD2C0)                    # [0x0a] adda.w d0,a1
+    # jmp (a1)
+    code += struct.pack('>H', 0x4ED1)                    # [0x0c] jmp (a1)
+    # Table at $0e: 2 valid + 1 invalid (odd target)
+    code += struct.pack('>HHH', 0, 4, 3)                 # [0x0e] dc.w 0, 4, 3
+    # Handler base at $14
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x14] handler 0
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x18] handler 1
+    code += b'\x4e\x71' * 4                              # pad
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x14 in targets, (
+        f"Expected $0014 (handler 0), got {targets}")
+    assert 0x18 in targets, (
+        f"Expected $0018 (handler 1), got {targets}")
+    # $14 + 3 = $17 (odd) should NOT appear
+    assert 0x17 not in targets, (
+        f"Should not resolve odd target $0017, got {targets}")
+    print("  table_enumeration_stops_at_invalid: OK")
+
+
+def test_table_stride_multi_field():
+    """Table with multi-word entries (stride > 2).
+
+    Each entry has 3 words: [flags, handler_offset, extra].
+    Only the handler_offset (second word) is used for dispatch.
+    The scan must use the correct stride (6 bytes) and field offset (2).
+
+    Models GenAm: move.w (a0)+,d6; move.w (a0)+,d3; move.w (a0)+,d2
+    where d3 is the handler offset.
+    """
+    code = b''
+    # Setup: a0 points to first table entry
+    # lea $18(pc),a0  -> a0 = $1a (table)
+    code += struct.pack('>HH', 0x41FA, 0x0018)          # [0x00] lea table(pc),a0
+    # Read entry: move.w (a0)+,d6 (flags); move.w (a0)+,d3 (offset); move.w (a0)+,d2 (extra)
+    code += struct.pack('>H', 0x3C18)                    # [0x04] move.w (a0)+,d6
+    code += struct.pack('>H', 0x3618)                    # [0x06] move.w (a0)+,d3
+    code += struct.pack('>H', 0x3418)                    # [0x08] move.w (a0)+,d2
+    # Dispatch: lea base(pc),a1; adda.w d3,a1; jmp (a1)
+    # lea $14(pc),a1  -> a1 = $0a+2+$14 = $20 (handler base)... wait
+    # Let me recalculate. lea at $0a: a1 = $0a+2+disp. Need a1=$2c (base after table).
+    # Table at $1a has 3 entries * 6 bytes = 18 bytes, ends at $1a+18=$2c.
+    # disp = $2c - ($0a+2) = $2c - $0c = $20
+    code += struct.pack('>HH', 0x43FA, 0x0020)          # [0x0a] lea base(pc),a1
+    code += struct.pack('>H', 0xD2C3)                    # [0x0e] adda.w d3,a1
+    code += struct.pack('>H', 0x4ED1)                    # [0x10] jmp (a1)
+    # Padding to table
+    code += b'\x4e\x71' * 4                              # [0x12..$19] nop
+    # Table at $1a: 3 entries, each 6 bytes [flags, offset, extra]
+    code += struct.pack('>HHH', 0xFFFF, 0, 0x1234)      # entry 0: offset=0
+    code += struct.pack('>HHH', 0xFFFF, 8, 0x5678)      # entry 1: offset=8
+    code += struct.pack('>HHH', 0xFFFF, 16, 0x9ABC)     # entry 2: offset=16
+    # Handler base at $2c
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x2c] handler 0 (base+0)
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x30] pad
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x34] handler 1 (base+8)
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x38] pad
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x3c] handler 2 (base+16)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x2c in targets, (
+        f"Expected $002c (handler 0: base+0), got {targets}")
+    assert 0x34 in targets, (
+        f"Expected $0034 (handler 1: base+8), got {targets}")
+    assert 0x3c in targets, (
+        f"Expected $003c (handler 2: base+16), got {targets}")
+    print("  table_stride_multi_field: OK")
+
+
+# ---- 8. Register survival across conditional calls -------------------------
+
+def test_register_survives_conditional_call():
+    """Register set before conditional BSR, used in dispatch after merge.
+
+    Models GenAm $748a pattern:
+        lea data(pc),a0        ; a0 = concrete address
+        tst.b d(a6)            ; test condition
+        beq.s skip             ; skip the call if zero
+        bsr.w sub              ; clobbers a0 (scratch)
+    skip:
+        move.w 2(a0),d3        ; read field from a0
+        lea base(pc),a1
+        adda.w d3,a1
+        jmp (a1)               ; dispatch
+
+    A0 survives on the beq path (call skipped) but is clobbered on
+    the call path. After merge, A0 is unknown. Per-caller analysis
+    of the dispatch block should recover A0 from the skip-path
+    predecessor.
+    """
+    code = b''
+    # lea $24(pc),a0  -> a0 = $00+2+$24 = $26 (data record)
+    code += struct.pack('>HH', 0x41FA, 0x0024)          # [0x00] lea data(pc),a0
+    # tst.b d0 (just to set CC for branch)
+    code += struct.pack('>H', 0x4A00)                    # [0x04] tst.b d0
+    # beq.s $0C  (skip BSR) disp = $0C - ($06+2) = 4
+    code += struct.pack('>H', 0x6704)                    # [0x06] beq.s $0C
+    # bsr.w $1E  (sub that clobbers a0) disp = $1E - ($08+2) = $14
+    code += struct.pack('>HH', 0x6100, 0x0014)          # [0x08] bsr.w $1E
+    # skip: (merge point $0C)
+    # move.w 2(a0),d3  -> d3 = word at a0+2
+    code += struct.pack('>HH', 0x3628, 0x0002)          # [0x0c] move.w 2(a0),d3
+    # lea $1c(pc),a1  -> a1 = $10+2+$1c = $2e (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x001C)          # [0x10] lea base(pc),a1
+    # adda.w d3,a1
+    code += struct.pack('>H', 0xD2C3)                    # [0x14] adda.w d3,a1
+    # jmp (a1)
+    code += struct.pack('>H', 0x4ED1)                    # [0x16] jmp (a1)
+    # Padding
+    code += b'\x4e\x71' * 3                              # [0x18..$1d] nop
+    # Sub at $1E that clobbers a0
+    code += struct.pack('>HH', 0x41FA, 0x0000)          # [0x1e] lea 0(pc),a0 (clobber)
+    code += struct.pack('>H', 0x4E75)                    # [0x22] rts
+    # Padding
+    code += struct.pack('>H', 0x4E71)                    # [0x24] nop
+    # Data record at $26: [word0=don't_care, word1=handler_offset, word2=don't_care]
+    # handler_offset = 4 -> target = $2e + 4 = $32
+    code += struct.pack('>HHH', 0x0000, 0x0004, 0x0000) # [0x26] data record
+    # Padding to handler base
+    code += struct.pack('>H', 0x4E71)                    # [0x2c] nop
+    # Handler base at $2e
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x2e] nop; rts
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x32] handler (target)
+    code += struct.pack('>H', 0x4E71)                    # [0x36] pad
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # On the skip path (beq taken): a0=$26, d3=word at $28=4, target=$2e+4=$32
+    assert 0x32 in targets, (
+        f"Expected $0032 (handler via surviving a0), got {targets}")
+    print("  register_survives_conditional_call: OK")
+
+
+def test_register_clobbered_both_paths():
+    """When a register is clobbered on ALL paths, dispatch should NOT resolve.
+
+    Both paths of a conditional branch overwrite A0 with different values.
+    After the merge, A0 is unknown, and the dispatch cannot resolve.
+    """
+    code = b''
+    # tst.b d0
+    code += struct.pack('>H', 0x4A00)                    # [0x00] tst.b d0
+    # beq.s $08
+    code += struct.pack('>H', 0x6704)                    # [0x02] beq.s $08
+    # Path A: lea $20(pc),a0  -> a0 = $04+2+$20 = $26
+    code += struct.pack('>HH', 0x41FA, 0x0020)          # [0x04] lea $20(pc),a0
+    # Path B: lea $24(pc),a0  -> a0 = $08+2+$24 = $2e (DIFFERENT value)
+    code += struct.pack('>HH', 0x41FA, 0x0024)          # [0x08] lea $24(pc),a0
+    # Merge at $0C: a0 is unknown ($26 vs $2e)
+    # move.w 2(a0),d3  -> a0 unknown, d3 unknown
+    code += struct.pack('>HH', 0x3628, 0x0002)          # [0x0c] move.w 2(a0),d3
+    # lea $14(pc),a1  -> a1 = $10+2+$14 = $26
+    code += struct.pack('>HH', 0x43FA, 0x0014)          # [0x10] lea base(pc),a1
+    # adda.w d3,a1
+    code += struct.pack('>H', 0xD2C3)                    # [0x14] adda.w d3,a1
+    # jmp (a1)
+    code += struct.pack('>H', 0x4ED1)                    # [0x16] jmp (a1)
+    # Padding + data
+    code += b'\x4e\x71' * 12                             # pad to $2e+
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert len(targets) == 0, (
+        f"Should not resolve when a0 differs on all paths, got {targets}")
+    print("  register_clobbered_both_paths: OK")
+
+
+# ---- 9. Edge cases ----------------------------------------------------------
 
 def test_disp_indirect_unknown_register():
     """JMP d(An) where An is unknown should NOT resolve."""
@@ -670,7 +973,18 @@ if __name__ == "__main__":
     test_pea_rts_per_caller()
     test_pea_rts_with_interleaved_call()
 
-    print("\n7. Edge cases:")
+    print("\n7. Data table enumeration:")
+    test_table_single_entry_resolves()
+    test_table_all_entries_enumerated()
+    test_table_enumeration_pea_rts()
+    test_table_enumeration_stops_at_invalid()
+    test_table_stride_multi_field()
+
+    print("\n8. Register survival across conditional calls:")
+    test_register_survives_conditional_call()
+    test_register_clobbered_both_paths()
+
+    print("\n9. Edge cases:")
     test_disp_indirect_unknown_register()
     test_indexed_indirect_unknown_index()
     test_disp_indirect_target_out_of_range()

@@ -1161,12 +1161,20 @@ def _join_states(states: list) -> tuple:
         else:
             result_cpu.ccr[flag] = None
 
-    # Join memory: skip if all states share the same memory object
+    # Join memory: skip if all states share the same memory object.
+    # Preserve _code_section from incoming states (all share the same
+    # code bytes, so any non-None value is correct).
     first_mem = states[0][1]
+    code_sec = first_mem._code_section
+    if code_sec is None:
+        for _, mem in states[1:]:
+            if mem._code_section is not None:
+                code_sec = mem._code_section
+                break
     if all(s[1] is first_mem for s in states[1:]):
         result_mem = first_mem.copy()
     else:
-        result_mem = AbstractMemory()
+        result_mem = AbstractMemory(code_sec)
         # Concrete bytes — intersect keys (only addresses in ALL states)
         common_addrs = set(states[0][1]._bytes.keys())
         for _, mem in states[1:]:
