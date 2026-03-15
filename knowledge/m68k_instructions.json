@@ -908,32 +908,38 @@
           {
             "opmode": 0,
             "size": "b",
-            "operation": "< ea > + Dn → Dn"
+            "operation": "< ea > + Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 1,
             "size": "w",
-            "operation": "< ea > + Dn → Dn"
+            "operation": "< ea > + Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 2,
             "size": "l",
-            "operation": "< ea > + Dn → Dn"
+            "operation": "< ea > + Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 4,
             "size": "b",
-            "operation": "Dn + < ea > → < ea >"
+            "operation": "Dn + < ea > → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 5,
             "size": "w",
-            "operation": "Dn + < ea > → < ea >"
+            "operation": "Dn + < ea > → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 6,
             "size": "l",
-            "operation": "Dn + < ea > → < ea >"
+            "operation": "Dn + < ea > → < ea >",
+            "ea_is_source": false
           }
         ]
       },
@@ -1850,32 +1856,38 @@
           {
             "opmode": 0,
             "size": "b",
-            "operation": "< ea > Dn → Dn"
+            "operation": "< ea > Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 1,
             "size": "w",
-            "operation": "< ea > Dn → Dn"
+            "operation": "< ea > Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 2,
             "size": "l",
-            "operation": "< ea > Dn → Dn"
+            "operation": "< ea > Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 4,
             "size": "b",
-            "operation": "Dn Λ < ea > → < ea >"
+            "operation": "Dn Λ < ea > → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 5,
             "size": "w",
-            "operation": "Dn Λ < ea > → < ea >"
+            "operation": "Dn Λ < ea > → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 6,
             "size": "l",
-            "operation": "Dn Λ < ea > → < ea >"
+            "operation": "Dn Λ < ea > → < ea >",
+            "ea_is_source": false
           }
         ]
       },
@@ -10519,17 +10531,20 @@
           {
             "opmode": 4,
             "size": "b",
-            "operation": "< ea > ⊕ Dn → < ea >"
+            "operation": "< ea > ⊕ Dn → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 5,
             "size": "w",
-            "operation": "< ea > ⊕ Dn → < ea >"
+            "operation": "< ea > ⊕ Dn → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 6,
             "size": "l",
-            "operation": "< ea > ⊕ Dn → < ea >"
+            "operation": "< ea > ⊕ Dn → < ea >",
+            "ea_is_source": false
           }
         ]
       },
@@ -16349,32 +16364,38 @@
           {
             "opmode": 0,
             "size": "b",
-            "operation": "< ea > V Dn → Dn"
+            "operation": "< ea > V Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 1,
             "size": "w",
-            "operation": "< ea > V Dn → Dn"
+            "operation": "< ea > V Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 2,
             "size": "l",
-            "operation": "< ea > V Dn → Dn"
+            "operation": "< ea > V Dn → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 4,
             "size": "b",
-            "operation": "Dn V < ea > → < ea >"
+            "operation": "Dn V < ea > → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 5,
             "size": "w",
-            "operation": "Dn V < ea > → < ea >"
+            "operation": "Dn V < ea > → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 6,
             "size": "l",
-            "operation": "Dn V < ea > → < ea >"
+            "operation": "Dn V < ea > → < ea >",
+            "ea_is_source": false
           }
         ]
       },
@@ -19019,32 +19040,38 @@
           {
             "opmode": 0,
             "size": "b",
-            "operation": "Dn – < ea > → Dn"
+            "operation": "Dn – < ea > → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 1,
             "size": "w",
-            "operation": "Dn – < ea > → Dn"
+            "operation": "Dn – < ea > → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 2,
             "size": "l",
-            "operation": "Dn – < ea > → Dn"
+            "operation": "Dn – < ea > → Dn",
+            "ea_is_source": true
           },
           {
             "opmode": 4,
             "size": "b",
-            "operation": "< ea > – Dn → < ea >"
+            "operation": "< ea > – Dn → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 5,
             "size": "w",
-            "operation": "< ea > – Dn → < ea >"
+            "operation": "< ea > – Dn → < ea >",
+            "ea_is_source": false
           },
           {
             "opmode": 6,
             "size": "l",
-            "operation": "< ea > – Dn → < ea >"
+            "operation": "< ea > – Dn → < ea >",
+            "ea_is_source": false
           }
         ]
       },

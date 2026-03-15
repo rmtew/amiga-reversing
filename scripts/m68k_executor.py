@@ -1352,52 +1352,49 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     src_text, dst_text = _parse_operand_text(text)
 
     # Decode structured operands from opcode bytes (KB-driven).
-    src_op = dst_op = None
+    # ea_op: the EA operand from MODE/REGISTER in bits 5-0
+    # dst_op: the destination EA from upper MODE/REGISTER (MOVE only)
+    # reg_num: the register number from REGISTER in bits 11-9
+    # For OPMODE instructions: ea_is_source from KB opmode_table
+    ea_op = dst_op = None
     opcode = 0
-    dst_reg_f = None
+    reg_num = None  # register from upper REGISTER field
+    ea_is_source = None  # from OPMODE: True=EA is src, False=EA is dst
     if len(inst.raw) >= meta["opword_bytes"]:
         opcode = struct.unpack_from(">H", inst.raw, 0)[0]
         enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
-        # Collect MODE and REGISTER fields.  Source EA uses the
-        # lower fields (bits 5-0), destination uses the upper.
-        mode_fields = []
-        reg_fields = []
-        for f in enc_fields:
-            if f["name"] == "MODE":
-                mode_fields.append(f)
-            elif f["name"] == "REGISTER":
-                reg_fields.append(f)
-        mode_fields.sort(key=lambda f: f["bit_lo"])
-        reg_fields.sort(key=lambda f: f["bit_lo"])
 
-        # Source EA: lowest MODE + lowest REGISTER
+        mode_fields = sorted(
+            [f for f in enc_fields if f["name"] == "MODE"],
+            key=lambda f: f["bit_lo"])
+        reg_fields = sorted(
+            [f for f in enc_fields if f["name"] == "REGISTER"],
+            key=lambda f: f["bit_lo"])
+
+        # Decode EA from lowest MODE + lowest REGISTER
         if mode_fields and reg_fields:
-            src_mf = mode_fields[0]
-            src_rf = reg_fields[0]
-            src_mode_f = (src_mf["bit_hi"], src_mf["bit_lo"],
-                          src_mf["bit_hi"] - src_mf["bit_lo"] + 1)
-            src_reg_f = (src_rf["bit_hi"], src_rf["bit_lo"],
-                         src_rf["bit_hi"] - src_rf["bit_lo"] + 1)
-            ea_mode = _xf(opcode, src_mode_f)
-            ea_reg = _xf(opcode, src_reg_f)
+            mf = mode_fields[0]
+            rf = reg_fields[0]
+            ea_mode = _xf(opcode, (mf["bit_hi"], mf["bit_lo"],
+                                   mf["bit_hi"] - mf["bit_lo"] + 1))
+            ea_reg = _xf(opcode, (rf["bit_hi"], rf["bit_lo"],
+                                  rf["bit_hi"] - rf["bit_lo"] + 1))
             try:
-                src_op, ext_pos = _decode_ea(
+                ea_op, ext_pos = _decode_ea(
                     inst.raw, meta["opword_bytes"],
                     ea_mode, ea_reg, size, inst.offset)
             except ValueError:
-                src_op = None
+                ea_op = None
                 ext_pos = meta["opword_bytes"]
 
-            # Destination EA: upper MODE + upper REGISTER (MOVE)
+            # Destination EA from upper MODE + upper REGISTER (MOVE)
             if len(mode_fields) >= 2 and len(reg_fields) >= 2:
-                dst_mf = mode_fields[1]
-                dst_rf = reg_fields[1]
-                dst_mode_f = (dst_mf["bit_hi"], dst_mf["bit_lo"],
-                              dst_mf["bit_hi"] - dst_mf["bit_lo"] + 1)
-                dst_reg_f_ea = (dst_rf["bit_hi"], dst_rf["bit_lo"],
-                                dst_rf["bit_hi"] - dst_rf["bit_lo"] + 1)
-                d_mode = _xf(opcode, dst_mode_f)
-                d_reg = _xf(opcode, dst_reg_f_ea)
+                dmf = mode_fields[1]
+                drf = reg_fields[1]
+                d_mode = _xf(opcode, (dmf["bit_hi"], dmf["bit_lo"],
+                                      dmf["bit_hi"] - dmf["bit_lo"] + 1))
+                d_reg = _xf(opcode, (drf["bit_hi"], drf["bit_lo"],
+                                     drf["bit_hi"] - drf["bit_lo"] + 1))
                 try:
                     dst_op, _ = _decode_ea(
                         inst.raw, ext_pos,
@@ -1405,11 +1402,28 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                 except ValueError:
                     dst_op = None
 
-        # Destination register field (for non-MOVE instructions)
+        # Upper register number (bits 11-9 typically)
         if len(reg_fields) >= 2:
             rf = reg_fields[-1]
-            dst_reg_f = (rf["bit_hi"], rf["bit_lo"],
-                         rf["bit_hi"] - rf["bit_lo"] + 1)
+            reg_num = _xf(opcode, (rf["bit_hi"], rf["bit_lo"],
+                                   rf["bit_hi"] - rf["bit_lo"] + 1))
+
+        # OPMODE direction from KB opmode_table
+        opmode_table = inst_kb.get("constraints", {}).get("opmode_table")
+        if opmode_table:
+            opmode_f = next(
+                (f for f in enc_fields if f["name"] == "OPMODE"), None)
+            if opmode_f:
+                opmode_val = _xf(opcode, (
+                    opmode_f["bit_hi"], opmode_f["bit_lo"],
+                    opmode_f["bit_hi"] - opmode_f["bit_lo"] + 1))
+                for entry in opmode_table:
+                    if entry["opmode"] == opmode_val:
+                        ea_is_source = entry.get("ea_is_source")
+                        break
+
+    # Convenience aliases for backward compatibility
+    src_op = ea_op  # for instructions where EA is the source
 
     # Helper: resolve a text operand to an AbstractValue.
     # For postincrement/predecrement modes, also adjusts the register.
@@ -1847,9 +1861,8 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             elif src_op.mode in ("absw", "absl"):
                 addr_val = _concrete(src_op.value)
         # Write to destination An (from KB encoding)
-        if dst_reg_f:
-            dn = _xf(opcode, dst_reg_f)
-            cpu.set_reg("an", dn,
+        if reg_num is not None:
+            cpu.set_reg("an", reg_num,
                         addr_val if addr_val else _unknown())
         return
 
@@ -1907,12 +1920,11 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         result = src_val if src_val is not None else _unknown()
         if dst_op:
             _write_operand(dst_op, cpu, mem, result, size, size_bytes)
-        elif dst_reg_f:
-            dn = _xf(opcode, dst_reg_f)
+        elif reg_num is not None:
             if src_sign_ext:
-                cpu.set_reg("an", dn, result)
+                cpu.set_reg("an", reg_num, result)
             else:
-                cpu.set_reg("dn", dn, result)
+                cpu.set_reg("dn", reg_num, result)
         else:
             # Fallback: text-based write for instructions whose
             # destination encoding isn't a standard EA (MOVEQ,
@@ -1932,13 +1944,34 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         return val
 
     if op == "add":
-        src_val = _sign_ext_src(_resolve_text_operand(src_text))
-        dst_val = _resolve_text_operand(dst_text)
-        if src_val and dst_val and src_val.is_known and dst_val.is_known:
-            result = (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF
-            _write_dst(dst_text, _concrete(result))
+        if ea_is_source is not None and ea_op and reg_num is not None:
+            # OPMODE-directed: ADD <ea>,Dn or ADD Dn,<ea>
+            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
+            dn_val = cpu.get_reg("dn", reg_num)
+            src_val = _sign_ext_src(ea_val if ea_is_source else dn_val)
+            dst_val = dn_val if ea_is_source else ea_val
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                result = (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _concrete(result))
+                else:
+                    _write_operand(ea_op, cpu, mem, _concrete(result),
+                                   size, size_bytes)
+            else:
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _unknown())
+                else:
+                    _write_operand(ea_op, cpu, mem, _unknown(),
+                                   size, size_bytes)
         else:
-            _write_dst(dst_text, _unknown())
+            # ADDQ/ADDI/ADDA: text-based (immediate source not in EA)
+            src_val = _sign_ext_src(_resolve_text_operand(src_text))
+            dst_val = _resolve_text_operand(dst_text)
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                _write_dst(dst_text, _concrete(
+                    (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF))
+            else:
+                _write_dst(dst_text, _unknown())
         return
 
     if op == "subtract":
@@ -1959,40 +1992,116 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             else:
                 _write_dst(dst_text or src_text, _unknown())
             return
-        src_val = _sign_ext_src(_resolve_text_operand(src_text))
-        dst_val = _resolve_text_operand(dst_text)
-        if src_val and dst_val and src_val.is_known and dst_val.is_known:
-            result = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
-            _write_dst(dst_text, _concrete(result))
+        if ea_is_source is not None and ea_op and reg_num is not None:
+            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
+            dn_val = cpu.get_reg("dn", reg_num)
+            src_val = _sign_ext_src(ea_val if ea_is_source else dn_val)
+            dst_val = dn_val if ea_is_source else ea_val
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                result = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _concrete(result))
+                else:
+                    _write_operand(ea_op, cpu, mem, _concrete(result),
+                                   size, size_bytes)
+            else:
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _unknown())
+                else:
+                    _write_operand(ea_op, cpu, mem, _unknown(),
+                                   size, size_bytes)
         else:
-            _write_dst(dst_text, _unknown())
+            src_val = _sign_ext_src(_resolve_text_operand(src_text))
+            dst_val = _resolve_text_operand(dst_text)
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                _write_dst(dst_text, _concrete(
+                    (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF))
+            else:
+                _write_dst(dst_text, _unknown())
         return
 
     if op == "bitwise_and":
-        src_val = _resolve_text_operand(src_text)
-        dst_val = _resolve_text_operand(dst_text)
-        if src_val and dst_val and src_val.is_known and dst_val.is_known:
-            _write_dst(dst_text, _concrete(dst_val.concrete & src_val.concrete))
+        if ea_is_source is not None and ea_op and reg_num is not None:
+            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
+            dn_val = cpu.get_reg("dn", reg_num)
+            s, d = (ea_val, dn_val) if ea_is_source else (dn_val, ea_val)
+            if s and d and s.is_known and d.is_known:
+                r = d.concrete & s.concrete
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _concrete(r))
+                else:
+                    _write_operand(ea_op, cpu, mem, _concrete(r),
+                                   size, size_bytes)
+            else:
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _unknown())
+                else:
+                    _write_operand(ea_op, cpu, mem, _unknown(),
+                                   size, size_bytes)
         else:
-            _write_dst(dst_text, _unknown())
+            src_val = _resolve_text_operand(src_text)
+            dst_val = _resolve_text_operand(dst_text)
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                _write_dst(dst_text, _concrete(
+                    dst_val.concrete & src_val.concrete))
+            else:
+                _write_dst(dst_text, _unknown())
         return
 
     if op == "bitwise_or":
-        src_val = _resolve_text_operand(src_text)
-        dst_val = _resolve_text_operand(dst_text)
-        if src_val and dst_val and src_val.is_known and dst_val.is_known:
-            _write_dst(dst_text, _concrete(dst_val.concrete | src_val.concrete))
+        if ea_is_source is not None and ea_op and reg_num is not None:
+            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
+            dn_val = cpu.get_reg("dn", reg_num)
+            s, d = (ea_val, dn_val) if ea_is_source else (dn_val, ea_val)
+            if s and d and s.is_known and d.is_known:
+                r = d.concrete | s.concrete
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _concrete(r))
+                else:
+                    _write_operand(ea_op, cpu, mem, _concrete(r),
+                                   size, size_bytes)
+            else:
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _unknown())
+                else:
+                    _write_operand(ea_op, cpu, mem, _unknown(),
+                                   size, size_bytes)
         else:
-            _write_dst(dst_text, _unknown())
+            src_val = _resolve_text_operand(src_text)
+            dst_val = _resolve_text_operand(dst_text)
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                _write_dst(dst_text, _concrete(
+                    dst_val.concrete | src_val.concrete))
+            else:
+                _write_dst(dst_text, _unknown())
         return
 
     if op == "bitwise_xor":
-        src_val = _resolve_text_operand(src_text)
-        dst_val = _resolve_text_operand(dst_text)
-        if src_val and dst_val and src_val.is_known and dst_val.is_known:
-            _write_dst(dst_text, _concrete(dst_val.concrete ^ src_val.concrete))
+        if ea_is_source is not None and ea_op and reg_num is not None:
+            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
+            dn_val = cpu.get_reg("dn", reg_num)
+            s, d = (ea_val, dn_val) if ea_is_source else (dn_val, ea_val)
+            if s and d and s.is_known and d.is_known:
+                r = d.concrete ^ s.concrete
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _concrete(r))
+                else:
+                    _write_operand(ea_op, cpu, mem, _concrete(r),
+                                   size, size_bytes)
+            else:
+                if ea_is_source:
+                    cpu.set_reg("dn", reg_num, _unknown())
+                else:
+                    _write_operand(ea_op, cpu, mem, _unknown(),
+                                   size, size_bytes)
         else:
-            _write_dst(dst_text, _unknown())
+            src_val = _resolve_text_operand(src_text)
+            dst_val = _resolve_text_operand(dst_text)
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                _write_dst(dst_text, _concrete(
+                    dst_val.concrete ^ src_val.concrete))
+            else:
+                _write_dst(dst_text, _unknown())
         return
 
     if op == "bitwise_complement":
