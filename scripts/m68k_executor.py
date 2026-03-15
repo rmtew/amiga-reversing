@@ -1533,24 +1533,19 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         return
     # PEA: pushes EA address to stack.  SP decrement already handled.
     # Write the EA address to memory at the new SP.
+    # The write size is derived from the KB sp_effects decrement bytes.
     if inst_kb.get("sp_effects") and op_type == "sub" and ea_op:
-        if ea_op.mode in ("pcdisp", "pcindex", "disp", "ind",
-                          "absw", "absl"):
-            # Compute the address (not the value at it)
-            addr_val = None
-            if ea_op.mode == "pcdisp":
-                addr_val = _concrete(ea_op.value)
-            elif ea_op.mode == "disp":
-                base = cpu.get_reg("an", ea_op.reg)
-                if base.is_known:
-                    addr_val = _concrete(
-                        (base.concrete + ea_op.value) & 0xFFFFFFFF)
-            elif ea_op.mode == "ind":
-                addr_val = cpu.get_reg("an", ea_op.reg)
-            elif ea_op.mode in ("absw", "absl"):
-                addr_val = _concrete(ea_op.value)
-            if addr_val and (cpu.sp.is_known or cpu.sp.is_symbolic):
-                mem.write(cpu.sp, addr_val, "l")
+        # Compute the effective address (not the value at it)
+        addr_val = resolve_ea(ea_op, cpu, "l")
+        if addr_val is not None and (cpu.sp.is_known or cpu.sp.is_symbolic):
+            # Write size from KB sp_effects decrement
+            push_bytes = sum(
+                e["bytes"] for e in inst_kb["sp_effects"]
+                if e.get("action") == "decrement")
+            write_size = next(
+                k for k, v in meta["size_byte_count"].items()
+                if v == push_bytes)
+            mem.write(cpu.sp, addr_val, write_size)
         return
 
     # MOVEM: Move Multiple Registers.  Transfers a set of registers

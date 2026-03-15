@@ -37,6 +37,23 @@ class KB:
             if reg_val is None  # uses register field from EA
             and name not in _direct
             and name not in _automod)
+        # Address size derived from RTS sp_effects: the number of bytes
+        # popped by RTS defines the address width.
+        rts = self.find("RTS")
+        if rts is None:
+            raise KeyError("KB missing RTS instruction")
+        self.rts_sp_inc = sum(
+            e["bytes"] for e in rts.get("sp_effects", [])
+            if e.get("action") == "increment")
+        if not self.rts_sp_inc:
+            raise ValueError("KB RTS has no sp_effects increment")
+        self.addr_size = next(
+            (k for k, v in self.size_bytes.items()
+             if v == self.rts_sp_inc), None)
+        if self.addr_size is None:
+            raise ValueError(
+                f"KB size_byte_count has no entry for "
+                f"{self.rts_sp_inc} bytes (RTS pop size)")
 
     def find(self, mnemonic: str) -> dict | None:
         """Look up KB entry for a mnemonic (handles CC families)."""

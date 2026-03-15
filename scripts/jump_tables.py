@@ -583,7 +583,7 @@ def _find_table_source(instructions, kb: KB, index_mode: str,
             return {"table_addr": ea_op.value,
                     "field_offset": 0, "stride": word_size}
 
-        if ea_op.mode in ("ind", "disp", "postinc"):
+        if ea_op.mode in kb.reg_indirect_modes | {"postinc"}:
             # Source is (An) or d(An) or (An)+ -- resolve An via LEA.
             # Count postincrement MOVE.W instructions from the same
             # source register to determine stride and field offset.
@@ -731,6 +731,114 @@ def _decode_jump_ea(last, kb):
     return operand, ikb
 
 
+def _restore_base_reg(cpu, platform: dict | None):
+    """Restore the base register from platform config if clobbered.
+
+    The main analysis restores it on call fallthroughs, but the
+    caller's exit state (pre-fallthrough) may have it unknown.
+    Modifies cpu in place and returns it.
+    """
+    if platform:
+        base_info = platform.get("initial_base_reg")
+        if base_info:
+            breg_num, breg_val = base_info
+            if not cpu.a[breg_num].is_known:
+                cpu.set_reg("an", breg_num, _concrete(breg_val))
+    return cpu
+
+
+def _is_valid_target(addr: int, code_size: int, align_mask: int) -> bool:
+    """Check if addr is a valid code target (in range, aligned)."""
+    return 0 <= addr < code_size and not (addr & align_mask)
+
+
+def _read_rts_target(cpu, mem, kb: KB) -> int | None:
+    """Read the return address from the stack at a RTS block's exit state.
+
+    The exit state has the POST-increment SP. Adjusts back by the
+    KB-derived RTS pop size to read from the pre-pop address.
+    Returns the concrete target address, or None.
+    """
+    if cpu.sp.is_known:
+        pre_sp = (cpu.sp.concrete - kb.rts_sp_inc) & 0xFFFFFFFF
+    elif cpu.sp.is_symbolic:
+        pre_sp = cpu.sp.sym_add(-kb.rts_sp_inc)
+    else:
+        return None
+    ret_val = mem.read(pre_sp, kb.addr_size)
+    if ret_val.is_known:
+        return ret_val.concrete
+    return None
+
+
+def _find_unresolved(blocks: dict[int, BasicBlock],
+                     exit_states: dict, kb: KB,
+                     code_size: int) -> list[tuple]:
+    """Find blocks with unresolved indirect jumps or RTS.
+
+    Returns list of (block_addr, "jump"|"return") for blocks where
+    the merged exit state doesn't produce a concrete target.
+    """
+    unresolved = []
+    for addr in sorted(blocks):
+        block = blocks[addr]
+        if not block.instructions:
+            continue
+        last = block.instructions[-1]
+        ikb = kb.find(_extract_mnemonic(last.text))
+        if ikb is None:
+            continue
+        ft, _ = kb.flow_type(last)
+
+        if ft == "return":
+            if addr in exit_states:
+                cpu, mem = exit_states[addr]
+                target = _read_rts_target(cpu, mem, kb)
+                if target is not None:
+                    continue  # already resolved
+            unresolved.append((addr, "return"))
+            continue
+
+        operand, _ = _decode_jump_ea(last, kb)
+        if operand is None:
+            continue
+        if operand.mode not in kb.reg_indirect_modes:
+            continue
+        if addr in exit_states:
+            cpu, _ = exit_states[addr]
+            ea_val = resolve_ea(operand, cpu, kb.addr_size)
+            if ea_val is not None and ea_val.is_known:
+                continue
+        unresolved.append((addr, "jump"))
+
+    return unresolved
+
+
+def _try_resolve_block(unres_addr: int, unres_type: str,
+                       blocks: dict, cpu, mem,
+                       kb: KB, code_size: int) -> int | None:
+    """Try to resolve an indirect target from a specific CPU/memory state.
+
+    Returns the concrete target address, or None.
+    """
+    if unres_type == "return":
+        target = _read_rts_target(cpu, mem, kb)
+        if target is not None and _is_valid_target(
+                target, code_size, kb.align_mask):
+            return target
+        return None
+
+    last = blocks[unres_addr].instructions[-1]
+    operand, _ = _decode_jump_ea(last, kb)
+    if operand is None:
+        return None
+    ea_val = resolve_ea(operand, cpu, kb.addr_size)
+    if ea_val is not None and ea_val.is_known:
+        if _is_valid_target(ea_val.concrete, code_size, kb.align_mask):
+            return ea_val.concrete
+    return None
+
+
 def resolve_indirect_targets(blocks: dict[int, BasicBlock],
                              exit_states: dict, code_size: int) -> list[dict]:
     """Resolve indirect JMP/JSR and RTS via propagated state.
@@ -742,73 +850,32 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
     For RTS: reads the return address from the stack.
     """
     kb = KB()
-    # Address size for stack reads: derived from RTS sp_effects bytes.
-    # JMP/JSR EA resolution size doesn't affect address computation
-    # (resolve_ea computes addresses from register values, not from
-    # size-dependent memory reads), so we pass the address size for
-    # consistency but it only matters for the immediate mode (unused here).
-    rts_kb = kb.find("RTS")
-    if rts_kb is None:
-        raise KeyError("KB missing RTS instruction")
-    rts_sp_inc = sum(e["bytes"] for e in rts_kb.get("sp_effects", [])
-                     if e.get("action") == "increment")
-    if not rts_sp_inc:
-        raise ValueError("KB RTS has no sp_effects increment")
-    # Map sp_effects bytes to size key for mem.read
-    addr_size = next(
-        (k for k, v in kb.size_bytes.items() if v == rts_sp_inc), None)
-    if addr_size is None:
-        raise ValueError(
-            f"KB size_byte_count has no entry for {rts_sp_inc} bytes")
-
-    def _valid_target(addr):
-        return 0 <= addr < code_size and not (addr & kb.align_mask)
-
     resolved = []
     for addr in sorted(blocks):
         block = blocks[addr]
-        if not block.instructions:
+        if not block.instructions or addr not in exit_states:
             continue
-
         last = block.instructions[-1]
         ikb = kb.find(_extract_mnemonic(last.text))
         if ikb is None:
             continue
-
         ft, _ = kb.flow_type(last)
 
-        # RTS: read return address from stack.
-        # The exit state has the POST-increment SP (RTS pops then jumps).
-        # Adjust back by the KB-defined sp_effects to read from the
-        # pre-pop address where the return address was stored.
-        if ft == "return" and addr in exit_states:
-            cpu, mem = exit_states[addr]
-            if cpu.sp.is_known:
-                pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
-            elif cpu.sp.is_symbolic:
-                pre_sp = cpu.sp.sym_add(-rts_sp_inc)
-            else:
+        # Determine unresolved type
+        if ft == "return":
+            unres_type = "return"
+        elif ft in ("call", "jump"):
+            if _extract_branch_target(last, last.offset) is not None:
                 continue
-            ret_val = mem.read(pre_sp, addr_size)
-            if ret_val.is_known and _valid_target(ret_val.concrete):
-                resolved.append({"target": ret_val.concrete})
+            unres_type = "jump"
+        else:
             continue
 
-        # Decode the EA from the JMP/JSR instruction
-        operand, _ = _decode_jump_ea(last, kb)
-        if operand is None:
-            continue
-
-        if addr not in exit_states:
-            continue
-        cpu, _ = exit_states[addr]
-
-        # resolve_ea computes the effective address for all modes:
-        # ind -> An, disp -> An+d, index -> An+Xn+d
-        ea_val = resolve_ea(operand, cpu, addr_size)
-        if ea_val is not None and ea_val.is_known:
-            if _valid_target(ea_val.concrete):
-                resolved.append({"target": ea_val.concrete})
+        cpu, mem = exit_states[addr]
+        target = _try_resolve_block(
+            addr, unres_type, blocks, cpu, mem, kb, code_size)
+        if target is not None:
+            resolved.append({"target": target})
 
     return resolved
 
@@ -828,70 +895,11 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
     - A dispatch sub uses a register (e.g. D0) set by each caller
     """
     kb = KB()
-    # Derive address size from KB (same as resolve_indirect_targets)
-    rts_kb = kb.find("RTS")
-    if rts_kb is None:
-        raise KeyError("KB missing RTS instruction")
-    rts_sp_inc = sum(e["bytes"] for e in rts_kb.get("sp_effects", [])
-                     if e.get("action") == "increment")
-    addr_size = next(
-        (k for k, v in kb.size_bytes.items() if v == rts_sp_inc), None)
-    if addr_size is None:
-        raise ValueError(
-            f"KB size_byte_count has no entry for {rts_sp_inc} bytes")
-
-    def _valid_target(addr):
-        return 0 <= addr < code_size and not (addr & kb.align_mask)
-
-    # Find blocks ending with unresolved indirect jumps OR unresolved RTS.
-    # An "unresolved" block is one where the merged exit state doesn't
-    # produce a concrete target, but per-caller re-analysis might.
-    unresolved = []  # (addr, "jump"|"return")
-    for addr in sorted(blocks):
-        block = blocks[addr]
-        if not block.instructions:
-            continue
-        last = block.instructions[-1]
-        ikb = kb.find(_extract_mnemonic(last.text))
-        if ikb is None:
-            continue
-        ft, _ = kb.flow_type(last)
-
-        if ft == "return":
-            # Check if RTS target is unresolved in merged state
-            if addr in exit_states:
-                cpu, mem = exit_states[addr]
-                if cpu.sp.is_known:
-                    pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
-                elif cpu.sp.is_symbolic:
-                    pre_sp = cpu.sp.sym_add(-rts_sp_inc)
-                else:
-                    continue
-                ret_val = mem.read(pre_sp, addr_size)
-                if ret_val.is_known:
-                    continue  # already resolved
-            unresolved.append((addr, "return"))
-            continue
-
-        # JMP/JSR indirect
-        operand, _ = _decode_jump_ea(last, kb)
-        if operand is None:
-            continue
-        if operand.mode not in kb.reg_indirect_modes:
-            continue
-        if addr in exit_states:
-            cpu, _ = exit_states[addr]
-            ea_val = resolve_ea(operand, cpu, addr_size)
-            if ea_val is not None and ea_val.is_known:
-                continue
-        unresolved.append((addr, "jump"))
-
+    unresolved = _find_unresolved(blocks, exit_states, kb, code_size)
     if not unresolved:
         return []
 
     # Find call-site predecessors for each unresolved block's subroutine.
-    # Walk backward from the unresolved block to find the subroutine entry
-    # (a block that has a call-site predecessor).
     call_targets = set()
     for block in blocks.values():
         for xref in block.xrefs:
@@ -916,7 +924,6 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 work.append(s)
         sub_blocks[entry] = owned
 
-    # Find which subroutine each unresolved block belongs to
     resolved = []
     for unres_addr, unres_type in unresolved:
         # Find the containing subroutine
@@ -928,19 +935,10 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         if sub_entry is None:
             continue
 
-        # Find all callers of this subroutine
         callers = blocks[sub_entry].predecessors if sub_entry in blocks else []
         if not callers:
             continue
 
-        # Pre-decode the JMP/JSR operand (only for "jump" type)
-        operand = None
-        if unres_type == "jump":
-            last = blocks[unres_addr].instructions[-1]
-            operand, _ = _decode_jump_ea(last, kb)
-
-        # For each caller, re-propagate through the subroutine with
-        # the caller's specific exit state
         sub_block_dict = {a: blocks[a] for a in sub_blocks[sub_entry]
                           if a in blocks}
 
@@ -948,17 +946,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             if caller_addr not in exit_states:
                 continue
             caller_cpu, caller_mem = exit_states[caller_addr]
-            init_cpu = caller_cpu.copy()
-
-            # Restore the base register from platform config if it was
-            # clobbered in the caller's state.
-            if platform:
-                base_info = platform.get("initial_base_reg")
-                if base_info:
-                    breg_num, breg_val = base_info
-                    if not init_cpu.a[breg_num].is_known:
-                        init_cpu.set_reg("an", breg_num,
-                                         _concrete(breg_val))
+            init_cpu = _restore_base_reg(caller_cpu.copy(), platform)
 
             per_caller_exits = propagate_states(
                 sub_block_dict, code, sub_entry,
@@ -968,26 +956,11 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
 
             if unres_addr not in per_caller_exits:
                 continue
-
             cpu, mem = per_caller_exits[unres_addr]
-
-            if unres_type == "return":
-                # RTS: read return address from pre-pop SP
-                if cpu.sp.is_known:
-                    pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
-                elif cpu.sp.is_symbolic:
-                    pre_sp = cpu.sp.sym_add(-rts_sp_inc)
-                else:
-                    continue
-                ret_val = mem.read(pre_sp, addr_size)
-                if ret_val.is_known and _valid_target(ret_val.concrete):
-                    resolved.append({"target": ret_val.concrete})
-            elif operand is not None:
-                # JMP/JSR: resolve EA from per-caller register state
-                ea_val = resolve_ea(operand, cpu, addr_size)
-                if ea_val is not None and ea_val.is_known:
-                    if _valid_target(ea_val.concrete):
-                        resolved.append({"target": ea_val.concrete})
+            target = _try_resolve_block(
+                unres_addr, unres_type, blocks, cpu, mem, kb, code_size)
+            if target is not None:
+                resolved.append({"target": target})
 
     return resolved
 
@@ -1010,106 +983,14 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
     chains up to max_depth levels.
     """
     kb = KB()
-    rts_kb = kb.find("RTS")
-    if rts_kb is None:
-        raise KeyError("KB missing RTS instruction")
-    rts_sp_inc = sum(e["bytes"] for e in rts_kb.get("sp_effects", [])
-                     if e.get("action") == "increment")
-    addr_size = next(
-        (k for k, v in kb.size_bytes.items() if v == rts_sp_inc), None)
-    if addr_size is None:
-        raise ValueError(
-            f"KB size_byte_count has no entry for {rts_sp_inc} bytes")
-
-    def _valid_target(addr):
-        return 0 <= addr < code_size and not (addr & kb.align_mask)
-
-    # Find unresolved indirect blocks (same criteria as resolve_per_caller
-    # but not limited to subroutine entries)
-    unresolved = []
-    for addr in sorted(blocks):
-        block = blocks[addr]
-        if not block.instructions:
-            continue
-        last = block.instructions[-1]
-        ikb = kb.find(_extract_mnemonic(last.text))
-        if ikb is None:
-            continue
-        ft, _ = kb.flow_type(last)
-
-        if ft == "return":
-            if addr in exit_states:
-                cpu, mem = exit_states[addr]
-                if cpu.sp.is_known:
-                    pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
-                elif cpu.sp.is_symbolic:
-                    pre_sp = cpu.sp.sym_add(-rts_sp_inc)
-                else:
-                    continue
-                ret_val = mem.read(pre_sp, addr_size)
-                if ret_val.is_known:
-                    continue
-            unresolved.append((addr, "return"))
-            continue
-
-        operand, _ = _decode_jump_ea(last, kb)
-        if operand is None:
-            continue
-        if operand.mode not in kb.reg_indirect_modes:
-            continue
-        if addr in exit_states:
-            cpu, _ = exit_states[addr]
-            ea_val = resolve_ea(operand, cpu, addr_size)
-            if ea_val is not None and ea_val.is_known:
-                continue
-        unresolved.append((addr, "jump"))
-
+    unresolved = _find_unresolved(blocks, exit_states, kb, code_size)
     if not unresolved:
         return []
 
-    # For each unresolved block, search backward through predecessors
-    # for paths where the state produces a concrete target.
     resolved = []
-    seen_targets = set()  # avoid duplicates
+    seen_targets = set()
 
     for unres_addr, unres_type in unresolved:
-        operand = None
-        if unres_type == "jump":
-            last = blocks[unres_addr].instructions[-1]
-            operand, _ = _decode_jump_ea(last, kb)
-
-        # Collect blocks on the path from a concrete-value predecessor
-        # to the unresolved block.  BFS backward, then propagate forward.
-        def _try_resolve_from(start_addr, start_cpu, start_mem, path):
-            """Propagate start state through path blocks to unres_addr."""
-            path_blocks = {a: blocks[a] for a in path if a in blocks}
-            if not path_blocks or start_addr not in path_blocks:
-                return None
-            per_path_exits = propagate_states(
-                path_blocks, code, start_addr,
-                initial_state=start_cpu,
-                initial_mem=start_mem,
-                platform=platform)
-            if unres_addr not in per_path_exits:
-                return None
-            cpu, mem = per_path_exits[unres_addr]
-            if unres_type == "return":
-                if cpu.sp.is_known:
-                    pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
-                elif cpu.sp.is_symbolic:
-                    pre_sp = cpu.sp.sym_add(-rts_sp_inc)
-                else:
-                    return None
-                ret_val = mem.read(pre_sp, addr_size)
-                if ret_val.is_known and _valid_target(ret_val.concrete):
-                    return ret_val.concrete
-            elif operand is not None:
-                ea_val = resolve_ea(operand, cpu, addr_size)
-                if ea_val is not None and ea_val.is_known:
-                    if _valid_target(ea_val.concrete):
-                        return ea_val.concrete
-            return None
-
         # Walk predecessor chains backward, collecting paths.
         # At each level, try to propagate.  If the predecessor's exit
         # state resolves the target, we're done.  Otherwise, go deeper.
@@ -1130,19 +1011,24 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
                 if pred_addr not in exit_states:
                     continue
                 pred_cpu, pred_mem = exit_states[pred_addr]
-                init_cpu = pred_cpu.copy()
+                init_cpu = _restore_base_reg(pred_cpu.copy(), platform)
 
-                # Restore base register from platform if needed
-                if platform:
-                    base_info = platform.get("initial_base_reg")
-                    if base_info:
-                        breg_num, breg_val = base_info
-                        if not init_cpu.a[breg_num].is_known:
-                            init_cpu.set_reg("an", breg_num,
-                                             _concrete(breg_val))
-
-                target = _try_resolve_from(
-                    pred_addr, init_cpu, pred_mem.copy(), path)
+                # Propagate through path blocks to unresolved block
+                path_blocks = {a: blocks[a] for a in path
+                               if a in blocks}
+                if not path_blocks or pred_addr not in path_blocks:
+                    continue
+                per_path_exits = propagate_states(
+                    path_blocks, code, pred_addr,
+                    initial_state=init_cpu,
+                    initial_mem=pred_mem.copy(),
+                    platform=platform)
+                if unres_addr not in per_path_exits:
+                    continue
+                p_cpu, p_mem = per_path_exits[unres_addr]
+                target = _try_resolve_block(
+                    unres_addr, unres_type, blocks,
+                    p_cpu, p_mem, kb, code_size)
                 if target is not None and target not in seen_targets:
                     resolved.append({"target": target})
                     seen_targets.add(target)
