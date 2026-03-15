@@ -380,7 +380,180 @@ def test_struct_field_disp_indirect():
     print("  struct_field_disp_indirect: OK")
 
 
-# ---- 6. Edge cases ----------------------------------------------------------
+# ---- 6. PEA+RTS dispatch (models GenAm $7550 addressing mode handlers) ------
+
+def test_pea_rts_simple():
+    """PEA target(PC); RTS dispatches to the PEA'd address.
+
+    Simplest case: PEA pushes a PC-relative address onto the stack,
+    RTS pops and jumps to it.  This is a common pattern for pushing
+    a continuation address before calling a subroutine, but also
+    used as a computed goto when the PEA'd address is the target.
+    """
+    code = b''
+    # pea $0a(pc)  -> pushes $00 + 2 + $0a = $0c
+    # PEA pcdisp: 0100 1000 01 111 010 = $487A
+    code += struct.pack('>HH', 0x487A, 0x000A)          # [0x00] pea $0a(pc)
+    code += struct.pack('>H', 0x4E71)                    # [0x04] nop
+    code += struct.pack('>H', 0x4E75)                    # [0x06] rts -> $0c
+    code += struct.pack('>H', 0x4E71)                    # [0x08] nop
+    code += struct.pack('>H', 0x4E71)                    # [0x0a] nop
+    # Target at $0c
+    code += struct.pack('>H', 0x4E75)                    # [0x0c] rts (target)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x0c in targets, (
+        f"Expected $000c (PEA'd address), got {targets}")
+    print("  pea_rts_simple: OK")
+
+
+def test_pea_rts_computed():
+    """PEA return_point; LEA base; ADDA.W Dn; MOVE.L An,-(SP); RTS.
+
+    Models GenAm $7550: two addresses pushed, RTS dispatches to the
+    top one (the computed handler). The handler's own RTS returns to
+    the PEA'd continuation point below it on the stack.
+
+    Stack layout before RTS:
+        SP   -> handler_addr     (from MOVE.L A0,-(SP))
+        SP+4 -> return_point     (from PEA)
+
+    RTS pops handler_addr and jumps to it.
+    """
+    code = b''
+    # moveq #10,d3  -> d3 = 10 (handler offset)
+    code += struct.pack('>H', 0x760A)                    # [0x00] moveq #10,d3
+    # pea $24(pc)  -> pushes $02 + 2 + $24 = $28 (return point)
+    code += struct.pack('>HH', 0x487A, 0x0024)          # [0x02] pea $28(pc)
+    # lea $18(pc),a0  -> a0 = $06 + 2 + $18 = $20 (handler base)
+    code += struct.pack('>HH', 0x41FA, 0x0018)          # [0x06] lea $18(pc),a0
+    # adda.w d3,a0  -> a0 = $20 + 10 = $2a (handler)
+    code += struct.pack('>H', 0xD0C3)                    # [0x0a] adda.w d3,a0
+    # move.l a0,-(sp)  -> push handler addr $2a
+    code += struct.pack('>H', 0x2F08)                    # [0x0c] move.l a0,-(sp)
+    # rts  -> pops $2a, jumps to handler
+    code += struct.pack('>H', 0x4E75)                    # [0x0e] rts
+    # Padding
+    code += b'\x4e\x71' * 8                              # [0x10..$1f] nop
+    # Handler base at $20, handler at $2a
+    code += b'\x4e\x71' * 5                              # [0x20..$29] nop
+    code += struct.pack('>H', 0x4E75)                    # [0x2a] rts (handler)
+    code += b'\x4e\x71' * 2                              # pad
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # RTS should resolve to $2a (handler) AND $28 (return point via handler RTS)
+    assert 0x2a in targets, (
+        f"Expected $002a (computed handler), got {targets}")
+    print("  pea_rts_computed: OK")
+
+
+def test_pea_rts_per_caller():
+    """PEA+RTS dispatch with varying offset per caller.
+
+    Two callers each set D3 to a different handler offset before
+    reaching the shared dispatch code. Per-caller analysis resolves
+    each to a different handler address.
+
+    Models GenAm: D3 loaded from a per-instruction data table entry,
+    then LEA base + ADDA.W D3 + MOVE.L A0,-(SP) + RTS dispatches.
+    """
+    code = b''
+    # Caller A: moveq #4,d3; bsr.w dispatch
+    code += struct.pack('>H', 0x7604)                    # [0x00] moveq #4,d3
+    # bsr.w $0C  (disp = $0C - $04 = $08)
+    code += struct.pack('>HH', 0x6100, 0x0008)          # [0x02] bsr.w $0C
+    # Caller B: moveq #10,d3; bsr.w dispatch (reachable via fallthrough)
+    code += struct.pack('>H', 0x760A)                    # [0x06] moveq #10,d3
+    # bsr.w $0C  (disp = $0C - $0A = $02)
+    code += struct.pack('>HH', 0x6100, 0x0002)          # [0x08] bsr.w $0C
+    code += struct.pack('>H', 0x4E75)                    # [0x0c] rts (end)
+    # Dispatch sub at $0E -- but wait, $0C is where we want dispatch.
+    # Let me recalculate. BSR at $02 to dispatch. dispatch should be
+    # after both callers.
+
+    # Recalculate layout:
+    code = b''
+    # Caller A at $00: moveq #4,d3; bsr.w dispatch($10)
+    code += struct.pack('>H', 0x7604)                    # [0x00] moveq #4,d3
+    # bsr.w $10  (disp = $10 - $04 = $0C)
+    code += struct.pack('>HH', 0x6100, 0x000C)          # [0x02] bsr.w $10
+    # Caller B at $06: moveq #10,d3; bsr.w dispatch($10)
+    code += struct.pack('>H', 0x760A)                    # [0x06] moveq #10,d3
+    # bsr.w $10  (disp = $10 - $0A = $06)
+    code += struct.pack('>HH', 0x6100, 0x0006)          # [0x08] bsr.w $10
+    code += struct.pack('>H', 0x4E75)                    # [0x0c] rts (end)
+    code += struct.pack('>H', 0x4E71)                    # [0x0e] nop
+    # Dispatch sub at $10
+    # lea $20(pc),a0  -> a0 = $10 + 2 + $20 = $32 (handler base)
+    code += struct.pack('>HH', 0x41FA, 0x0020)          # [0x10] lea $20(pc),a0
+    # adda.w d3,a0  -> a0 = $32 + d3
+    code += struct.pack('>H', 0xD0C3)                    # [0x14] adda.w d3,a0
+    # move.l a0,-(sp)  -> push handler address
+    code += struct.pack('>H', 0x2F08)                    # [0x16] move.l a0,-(sp)
+    # rts  -> dispatch to handler (pops handler, return addr below it)
+    code += struct.pack('>H', 0x4E75)                    # [0x18] rts
+    # Padding to handler base
+    code += b'\x4e\x71' * 12                             # [0x1a..$31] nop
+    # Handler base at $32
+    # Caller A: $32 + 4 = $36
+    # Caller B: $32 + 10 = $3c
+    code += b'\x4e\x71' * 6                              # [0x32..$3d] nop
+    # Ensure targets are within range
+    code += b'\x4e\x71' * 2                              # pad
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # Caller A: d3=4,  handler = $32 + 4  = $36
+    # Caller B: d3=10, handler = $32 + 10 = $3c
+    assert 0x36 in targets, (
+        f"Expected $0036 (caller A handler: base+4), got {targets}")
+    assert 0x3c in targets, (
+        f"Expected $003c (caller B handler: base+10), got {targets}")
+    print("  pea_rts_per_caller: OK")
+
+
+def test_pea_rts_with_interleaved_call():
+    """PEA continuation; BSR processing; RTS dispatches.
+
+    Models GenAm pattern where PEA pushes a return point, then a BSR
+    calls a processing subroutine, then RTS pops the PEA'd address
+    (not the BSR return address, which was already consumed by the
+    subroutine's own RTS).
+
+    Stack evolution:
+        PEA target       SP -> target
+        BSR sub           SP -> return_addr, target
+        (sub's RTS)       SP -> target
+        RTS               jumps to target
+    """
+    code = b''
+    # pea $12(pc)  -> pushes $00 + 2 + $12 = $14 (continuation)
+    code += struct.pack('>HH', 0x487A, 0x0012)          # [0x00] pea $12(pc)
+    # bsr.w $0C  (disp = $0C - $06 = $06)
+    code += struct.pack('>HH', 0x6100, 0x0006)          # [0x04] bsr.w $0C
+    # nop (fallthrough after bsr returns)
+    code += struct.pack('>H', 0x4E71)                    # [0x08] nop
+    # rts -> pops PEA'd address $14
+    code += struct.pack('>H', 0x4E75)                    # [0x0a] rts -> $14
+    # Subroutine at $0C
+    code += struct.pack('>H', 0x4E71)                    # [0x0c] nop
+    code += struct.pack('>H', 0x4E75)                    # [0x0e] rts (returns to $08)
+    # Padding
+    code += struct.pack('>H', 0x4E71)                    # [0x10] nop
+    code += struct.pack('>H', 0x4E71)                    # [0x12] nop
+    # Continuation target at $14
+    code += struct.pack('>H', 0x4E75)                    # [0x14] rts (target)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x14 in targets, (
+        f"Expected $0014 (PEA'd continuation after BSR cycle), got {targets}")
+    print("  pea_rts_with_interleaved_call: OK")
+
+
+# ---- 7. Edge cases ----------------------------------------------------------
 
 def test_disp_indirect_unknown_register():
     """JMP d(An) where An is unknown should NOT resolve."""
@@ -491,7 +664,13 @@ if __name__ == "__main__":
     test_struct_field_code_pointer()
     test_struct_field_disp_indirect()
 
-    print("\n6. Edge cases:")
+    print("\n6. PEA+RTS dispatch:")
+    test_pea_rts_simple()
+    test_pea_rts_computed()
+    test_pea_rts_per_caller()
+    test_pea_rts_with_interleaved_call()
+
+    print("\n7. Edge cases:")
     test_disp_indirect_unknown_register()
     test_indexed_indirect_unknown_index()
     test_disp_indirect_target_out_of_range()

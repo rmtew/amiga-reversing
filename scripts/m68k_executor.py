@@ -1800,21 +1800,24 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
 
     if op == "add":
         if ea_is_source is not None and ea_op and reg_num is not None:
-            # OPMODE-directed: ADD <ea>,Dn or ADD Dn,<ea>
+            # OPMODE-directed: ADD <ea>,Dn or ADDA <ea>,An or ADD Dn,<ea>
+            # KB source_sign_extend distinguishes ADDA (destination An)
+            # from ADD (destination Dn).
+            dst_mode = "an" if inst_kb.get("source_sign_extend") else "dn"
             ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            dn_val = cpu.get_reg("dn", reg_num)
-            src_val = _sign_ext_src(ea_val if ea_is_source else dn_val)
-            dst_val = dn_val if ea_is_source else ea_val
+            reg_val = cpu.get_reg(dst_mode, reg_num)
+            src_val = _sign_ext_src(ea_val if ea_is_source else reg_val)
+            dst_val = reg_val if ea_is_source else ea_val
             if src_val and dst_val and src_val.is_known and dst_val.is_known:
                 result = (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF
                 if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _concrete(result))
+                    cpu.set_reg(dst_mode, reg_num, _concrete(result))
                 else:
                     _write_operand(ea_op, cpu, mem, _concrete(result),
                                    size, size_bytes)
             else:
                 if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _unknown())
+                    cpu.set_reg(dst_mode, reg_num, _unknown())
                 else:
                     _write_operand(ea_op, cpu, mem, _unknown(),
                                    size, size_bytes)
@@ -1860,22 +1863,25 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         is_compare = (op_type == "compare")
         if ea_is_source is not None and ea_op and reg_num is not None:
             if not is_compare:
+                # SUBA: destination An (source_sign_extend).
+                # SUB: destination Dn or EA.
+                dst_mode = "an" if inst_kb.get("source_sign_extend") else "dn"
                 ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-                dn_val = cpu.get_reg("dn", reg_num)
+                reg_val = cpu.get_reg(dst_mode, reg_num)
                 src_val = _sign_ext_src(
-                    ea_val if ea_is_source else dn_val)
-                dst_val = dn_val if ea_is_source else ea_val
+                    ea_val if ea_is_source else reg_val)
+                dst_val = reg_val if ea_is_source else ea_val
                 if (src_val and dst_val
                         and src_val.is_known and dst_val.is_known):
                     r = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
                     if ea_is_source:
-                        cpu.set_reg("dn", reg_num, _concrete(r))
+                        cpu.set_reg(dst_mode, reg_num, _concrete(r))
                     else:
                         _write_operand(ea_op, cpu, mem, _concrete(r),
                                        size, size_bytes)
                 else:
                     if ea_is_source:
-                        cpu.set_reg("dn", reg_num, _unknown())
+                        cpu.set_reg(dst_mode, reg_num, _unknown())
                     else:
                         _write_operand(ea_op, cpu, mem, _unknown(),
                                        size, size_bytes)

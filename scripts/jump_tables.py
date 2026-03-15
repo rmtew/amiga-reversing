@@ -634,25 +634,48 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
     def _valid_target(addr):
         return 0 <= addr < code_size and not (addr & kb.align_mask)
 
-    # Find blocks ending with unresolved indirect jumps
-    unresolved = []
+    # Find blocks ending with unresolved indirect jumps OR unresolved RTS.
+    # An "unresolved" block is one where the merged exit state doesn't
+    # produce a concrete target, but per-caller re-analysis might.
+    unresolved = []  # (addr, "jump"|"return")
     for addr in sorted(blocks):
         block = blocks[addr]
         if not block.instructions:
             continue
         last = block.instructions[-1]
+        ikb = kb.find(_extract_mnemonic(last.text))
+        if ikb is None:
+            continue
+        ft, _ = kb.flow_type(last)
+
+        if ft == "return":
+            # Check if RTS target is unresolved in merged state
+            if addr in exit_states:
+                cpu, mem = exit_states[addr]
+                if cpu.sp.is_known:
+                    pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
+                elif cpu.sp.is_symbolic:
+                    pre_sp = cpu.sp.sym_add(-rts_sp_inc)
+                else:
+                    continue
+                ret_val = mem.read(pre_sp, addr_size)
+                if ret_val.is_known:
+                    continue  # already resolved
+            unresolved.append((addr, "return"))
+            continue
+
+        # JMP/JSR indirect
         operand, _ = _decode_jump_ea(last, kb)
         if operand is None:
             continue
         if operand.mode not in kb.reg_indirect_modes:
             continue
-        # Only consider blocks where the merged state failed to resolve
         if addr in exit_states:
             cpu, _ = exit_states[addr]
             ea_val = resolve_ea(operand, cpu, addr_size)
             if ea_val is not None and ea_val.is_known:
-                continue  # already resolved by main pass
-        unresolved.append((addr, operand))
+                continue
+        unresolved.append((addr, "jump"))
 
     if not unresolved:
         return []
@@ -686,7 +709,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
 
     # Find which subroutine each unresolved block belongs to
     resolved = []
-    for unres_addr, operand in unresolved:
+    for unres_addr, unres_type in unresolved:
         # Find the containing subroutine
         sub_entry = None
         for entry, owned in sub_blocks.items():
@@ -701,6 +724,12 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         if not callers:
             continue
 
+        # Pre-decode the JMP/JSR operand (only for "jump" type)
+        operand = None
+        if unres_type == "jump":
+            last = blocks[unres_addr].instructions[-1]
+            operand, _ = _decode_jump_ea(last, kb)
+
         # For each caller, re-propagate through the subroutine with
         # the caller's specific exit state
         sub_block_dict = {a: blocks[a] for a in sub_blocks[sub_entry]
@@ -713,9 +742,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             init_cpu = caller_cpu.copy()
 
             # Restore the base register from platform config if it was
-            # clobbered in the caller's state.  The main analysis restores
-            # it on call fallthroughs, but the caller's exit state (which
-            # is the pre-fallthrough state) may have it unknown.
+            # clobbered in the caller's state.
             if platform:
                 base_info = platform.get("initial_base_reg")
                 if base_info:
@@ -733,10 +760,24 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             if unres_addr not in per_caller_exits:
                 continue
 
-            cpu, _ = per_caller_exits[unres_addr]
-            ea_val = resolve_ea(operand, cpu, addr_size)
-            if ea_val is not None and ea_val.is_known:
-                if _valid_target(ea_val.concrete):
-                    resolved.append({"target": ea_val.concrete})
+            cpu, mem = per_caller_exits[unres_addr]
+
+            if unres_type == "return":
+                # RTS: read return address from pre-pop SP
+                if cpu.sp.is_known:
+                    pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
+                elif cpu.sp.is_symbolic:
+                    pre_sp = cpu.sp.sym_add(-rts_sp_inc)
+                else:
+                    continue
+                ret_val = mem.read(pre_sp, addr_size)
+                if ret_val.is_known and _valid_target(ret_val.concrete):
+                    resolved.append({"target": ret_val.concrete})
+            elif operand is not None:
+                # JMP/JSR: resolve EA from per-caller register state
+                ea_val = resolve_ea(operand, cpu, addr_size)
+                if ea_val is not None and ea_val.is_known:
+                    if _valid_target(ea_val.concrete):
+                        resolved.append({"target": ea_val.concrete})
 
     return resolved
