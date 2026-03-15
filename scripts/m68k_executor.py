@@ -1360,6 +1360,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     opcode = 0
     reg_num = None  # register from upper REGISTER field
     ea_is_source = None  # from OPMODE: True=EA is src, False=EA is dst
+    imm_val = None  # immediate from DATA field or extension words
     if len(inst.raw) >= meta["opword_bytes"]:
         opcode = struct.unpack_from(">H", inst.raw, 0)[0]
         enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
@@ -1422,8 +1423,60 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                         ea_is_source = entry.get("ea_is_source")
                         break
 
-    # Convenience aliases for backward compatibility
-    src_op = ea_op  # for instructions where EA is the source
+        # Decode immediate value from opcode (KB-driven).
+        # Pattern 1: DATA field in opcode (ADDQ/SUBQ/MOVEQ) —
+        #   immediate_range.field tells us which encoding field.
+        # Pattern 2: extension word immediate (ADDI/SUBI/etc.) —
+        #   no DATA field, immediate follows opword before EA.
+        imm_range = inst_kb.get("constraints", {}).get("immediate_range")
+        data_field_name = imm_range.get("field") if imm_range else None
+        if data_field_name:
+            # Pattern 1: immediate from named encoding field
+            df = next((f for f in enc_fields
+                       if f["name"] == data_field_name), None)
+            if df:
+                raw_val = _xf(opcode, (df["bit_hi"], df["bit_lo"],
+                                       df["bit_hi"] - df["bit_lo"] + 1))
+                # Apply constraints
+                if imm_range.get("zero_means") and raw_val == 0:
+                    raw_val = imm_range["zero_means"]
+                if imm_range.get("signed"):
+                    bits = imm_range["bits"]
+                    if raw_val >= (1 << (bits - 1)):
+                        raw_val -= (1 << bits)
+                    raw_val &= 0xFFFFFFFF
+                imm_val = raw_val
+
+        elif (not opmode_table and not data_field_name
+              and mode_fields and not imm_range):
+            # Pattern 2: extension word immediate (ADDI etc.).
+            # The immediate is the first extension word(s), followed
+            # by the EA extension words.  Size from the instruction.
+            imm_bytes = meta["size_byte_count"].get(size, 2)
+            pos = meta["opword_bytes"]
+            if pos + imm_bytes <= len(inst.raw):
+                if imm_bytes <= 2:
+                    imm_val = struct.unpack_from(">H", inst.raw, pos)[0]
+                    if size == "b":
+                        imm_val &= 0xFF
+                else:
+                    imm_val = struct.unpack_from(">I", inst.raw, pos)[0]
+                # Re-decode EA after the immediate
+                if mode_fields and reg_fields:
+                    mf = mode_fields[0]
+                    rf = reg_fields[0]
+                    ea_m = _xf(opcode, (mf["bit_hi"], mf["bit_lo"],
+                                        mf["bit_hi"] - mf["bit_lo"] + 1))
+                    ea_r = _xf(opcode, (rf["bit_hi"], rf["bit_lo"],
+                                        rf["bit_hi"] - rf["bit_lo"] + 1))
+                    try:
+                        ea_op, _ = _decode_ea(
+                            inst.raw, pos + max(imm_bytes, 2),
+                            ea_m, ea_r, size, inst.offset)
+                    except ValueError:
+                        pass
+
+    src_op = ea_op  # for assign handler
 
     # Helper: resolve a text operand to an AbstractValue.
     # For postincrement/predecrement modes, also adjusts the register.
@@ -1699,9 +1752,35 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                 if call_effect:
                     platform["_pending_call_effect"] = call_effect
 
-        # SP-only instructions (no compute_formula) stop here
-        if op is None:
-            return
+    # Flow-control and SP-only instructions stop here.
+    # Branch/jump/return/call have their effects handled above.
+    # Instructions whose compute_formula describes SP operations
+    # (PEA, LINK) also stop here — their SP effects are already applied.
+    flow_check = inst_kb.get("pc_effects", {}).get("flow", {})
+    if op is None or flow_check.get("type") in (
+            "branch", "jump", "return", "call"):
+        return
+    # PEA: pushes EA address to stack.  SP decrement already handled.
+    # Write the EA address to memory at the new SP.
+    if inst_kb.get("sp_effects") and op_type == "sub" and ea_op:
+        if ea_op.mode in ("pcdisp", "pcindex", "disp", "ind",
+                          "absw", "absl"):
+            # Compute the address (not the value at it)
+            addr_val = None
+            if ea_op.mode == "pcdisp":
+                addr_val = _concrete(ea_op.value)
+            elif ea_op.mode == "disp":
+                base = cpu.get_reg("an", ea_op.reg)
+                if base.is_known:
+                    addr_val = _concrete(
+                        (base.concrete + ea_op.value) & 0xFFFFFFFF)
+            elif ea_op.mode == "ind":
+                addr_val = cpu.get_reg("an", ea_op.reg)
+            elif ea_op.mode in ("absw", "absl"):
+                addr_val = _concrete(ea_op.value)
+            if addr_val and (cpu.sp.is_known or cpu.sp.is_symbolic):
+                mem.write(cpu.sp, addr_val, "l")
+        return
 
     # MOVEM: Move Multiple Registers.  Transfers a set of registers
     # to/from memory via a 16-bit mask in the extension word.
@@ -1963,70 +2042,100 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                 else:
                     _write_operand(ea_op, cpu, mem, _unknown(),
                                    size, size_bytes)
-        else:
-            # ADDQ/ADDI/ADDA: text-based (immediate source not in EA)
-            src_val = _sign_ext_src(_resolve_text_operand(src_text))
-            dst_val = _resolve_text_operand(dst_text)
+        elif imm_val is not None and ea_op:
+            # ADDQ/ADDI: immediate + EA destination
+            src_val = _sign_ext_src(_concrete(imm_val))
+            dst_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
             if src_val and dst_val and src_val.is_known and dst_val.is_known:
-                _write_dst(dst_text, _concrete(
-                    (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF))
+                _write_operand(ea_op, cpu, mem, _concrete(
+                    (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF),
+                    size, size_bytes)
             else:
-                _write_dst(dst_text, _unknown())
+                _write_operand(ea_op, cpu, mem, _unknown(),
+                               size, size_bytes)
+        else:
+            raise ValueError(
+                f"add: no structured decode for {mnemonic} at "
+                f"${inst.offset:04X}")
         return
 
     if op == "subtract":
         terms = formula.get("terms", [])
         if "implicit" in terms:
-            # NEG: implicit(0) - destination
+            # NEG: implicit(0) - destination (single operand = ea_op)
             implicit_val = inst_kb.get("implicit_operand")
             if implicit_val is None:
                 raise KeyError(f"implicit_operand missing for {mnemonic}")
-            dst_val = _resolve_text_operand(dst_text or src_text)
+            if ea_op is None:
+                raise ValueError(
+                    f"subtract/implicit: no EA for {mnemonic}")
+            dst_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
             if dst_val and dst_val.is_known:
                 result = (implicit_val - dst_val.concrete) & mask
                 if size != "l":
-                    upper = dst_val.concrete & ~mask
-                    result = upper | result
-                _write_dst(dst_text or src_text,
-                           _concrete(result & 0xFFFFFFFF))
+                    result = (dst_val.concrete & ~mask) | result
+                _write_operand(ea_op, cpu, mem,
+                               _concrete(result & 0xFFFFFFFF),
+                               size, size_bytes)
             else:
-                _write_dst(dst_text or src_text, _unknown())
+                _write_operand(ea_op, cpu, mem, _unknown(),
+                               size, size_bytes)
             return
+        is_compare = (op_type == "compare")
         if ea_is_source is not None and ea_op and reg_num is not None:
-            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            dn_val = cpu.get_reg("dn", reg_num)
-            src_val = _sign_ext_src(ea_val if ea_is_source else dn_val)
-            dst_val = dn_val if ea_is_source else ea_val
-            if src_val and dst_val and src_val.is_known and dst_val.is_known:
-                result = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
-                if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _concrete(result))
+            if not is_compare:
+                ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
+                dn_val = cpu.get_reg("dn", reg_num)
+                src_val = _sign_ext_src(
+                    ea_val if ea_is_source else dn_val)
+                dst_val = dn_val if ea_is_source else ea_val
+                if (src_val and dst_val
+                        and src_val.is_known and dst_val.is_known):
+                    r = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
+                    if ea_is_source:
+                        cpu.set_reg("dn", reg_num, _concrete(r))
+                    else:
+                        _write_operand(ea_op, cpu, mem, _concrete(r),
+                                       size, size_bytes)
                 else:
-                    _write_operand(ea_op, cpu, mem, _concrete(result),
-                                   size, size_bytes)
-            else:
-                if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _unknown())
+                    if ea_is_source:
+                        cpu.set_reg("dn", reg_num, _unknown())
+                    else:
+                        _write_operand(ea_op, cpu, mem, _unknown(),
+                                       size, size_bytes)
+            # CMP/CMPA: no register/memory write (CC flags only)
+        elif imm_val is not None and ea_op:
+            if not is_compare:
+                dst_val = _resolve_operand(
+                    ea_op, cpu, mem, size, size_bytes)
+                src_val = _sign_ext_src(_concrete(imm_val))
+                if (src_val and dst_val
+                        and src_val.is_known and dst_val.is_known):
+                    _write_operand(ea_op, cpu, mem, _concrete(
+                        (dst_val.concrete - src_val.concrete)
+                        & 0xFFFFFFFF), size, size_bytes)
                 else:
                     _write_operand(ea_op, cpu, mem, _unknown(),
                                    size, size_bytes)
+            # CMPI: no write
+        elif is_compare:
+            pass  # compare: no register/memory write (CC flags only)
         else:
-            src_val = _sign_ext_src(_resolve_text_operand(src_text))
-            dst_val = _resolve_text_operand(dst_text)
-            if src_val and dst_val and src_val.is_known and dst_val.is_known:
-                _write_dst(dst_text, _concrete(
-                    (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF))
-            else:
-                _write_dst(dst_text, _unknown())
+            raise ValueError(
+                f"subtract: no structured decode for {mnemonic} at "
+                f"${inst.offset:04X}")
         return
 
-    if op == "bitwise_and":
+    if op in ("bitwise_and", "bitwise_or", "bitwise_xor"):
+        py_op = {"bitwise_and": "__and__", "bitwise_or": "__or__",
+                 "bitwise_xor": "__xor__"}[op]
         if ea_is_source is not None and ea_op and reg_num is not None:
+            # OPMODE-directed: AND/OR/EOR <ea>,Dn or Dn,<ea>
             ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
             dn_val = cpu.get_reg("dn", reg_num)
             s, d = (ea_val, dn_val) if ea_is_source else (dn_val, ea_val)
             if s and d and s.is_known and d.is_known:
-                r = d.concrete & s.concrete
+                r = getattr(d.concrete, py_op)(s.concrete)
                 if ea_is_source:
                     cpu.set_reg("dn", reg_num, _concrete(r))
                 else:
@@ -2038,83 +2147,38 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                 else:
                     _write_operand(ea_op, cpu, mem, _unknown(),
                                    size, size_bytes)
+        elif imm_val is not None and ea_op:
+            # ANDI/ORI/EORI: immediate + EA destination
+            dst_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
+            if dst_val and dst_val.is_known:
+                r = getattr(dst_val.concrete, py_op)(imm_val)
+                _write_operand(ea_op, cpu, mem, _concrete(r),
+                               size, size_bytes)
+            else:
+                _write_operand(ea_op, cpu, mem, _unknown(),
+                               size, size_bytes)
         else:
-            src_val = _resolve_text_operand(src_text)
-            dst_val = _resolve_text_operand(dst_text)
-            if src_val and dst_val and src_val.is_known and dst_val.is_known:
-                _write_dst(dst_text, _concrete(
-                    dst_val.concrete & src_val.concrete))
-            else:
-                _write_dst(dst_text, _unknown())
-        return
-
-    if op == "bitwise_or":
-        if ea_is_source is not None and ea_op and reg_num is not None:
-            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            dn_val = cpu.get_reg("dn", reg_num)
-            s, d = (ea_val, dn_val) if ea_is_source else (dn_val, ea_val)
-            if s and d and s.is_known and d.is_known:
-                r = d.concrete | s.concrete
-                if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _concrete(r))
-                else:
-                    _write_operand(ea_op, cpu, mem, _concrete(r),
-                                   size, size_bytes)
-            else:
-                if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _unknown())
-                else:
-                    _write_operand(ea_op, cpu, mem, _unknown(),
-                                   size, size_bytes)
-        else:
-            src_val = _resolve_text_operand(src_text)
-            dst_val = _resolve_text_operand(dst_text)
-            if src_val and dst_val and src_val.is_known and dst_val.is_known:
-                _write_dst(dst_text, _concrete(
-                    dst_val.concrete | src_val.concrete))
-            else:
-                _write_dst(dst_text, _unknown())
-        return
-
-    if op == "bitwise_xor":
-        if ea_is_source is not None and ea_op and reg_num is not None:
-            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            dn_val = cpu.get_reg("dn", reg_num)
-            s, d = (ea_val, dn_val) if ea_is_source else (dn_val, ea_val)
-            if s and d and s.is_known and d.is_known:
-                r = d.concrete ^ s.concrete
-                if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _concrete(r))
-                else:
-                    _write_operand(ea_op, cpu, mem, _concrete(r),
-                                   size, size_bytes)
-            else:
-                if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _unknown())
-                else:
-                    _write_operand(ea_op, cpu, mem, _unknown(),
-                                   size, size_bytes)
-        else:
-            src_val = _resolve_text_operand(src_text)
-            dst_val = _resolve_text_operand(dst_text)
-            if src_val and dst_val and src_val.is_known and dst_val.is_known:
-                _write_dst(dst_text, _concrete(
-                    dst_val.concrete ^ src_val.concrete))
-            else:
-                _write_dst(dst_text, _unknown())
+            raise ValueError(
+                f"{op}: no structured decode for {mnemonic} at "
+                f"${inst.offset:04X}")
         return
 
     if op == "bitwise_complement":
-        # NOT: ~destination (single operand)
-        dst_val = _resolve_text_operand(dst_text or src_text)
+        # NOT: ~destination (single operand = ea_op)
+        if ea_op is None:
+            raise ValueError(
+                f"bitwise_complement: no EA for {mnemonic}")
+        dst_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
         if dst_val and dst_val.is_known:
             result = dst_val.concrete ^ mask
             if size != "l":
-                upper = dst_val.concrete & ~mask
-                result = upper | result
-            _write_dst(dst_text or src_text, _concrete(result & 0xFFFFFFFF))
+                result = (dst_val.concrete & ~mask) | result
+            _write_operand(ea_op, cpu, mem,
+                           _concrete(result & 0xFFFFFFFF),
+                           size, size_bytes)
         else:
-            _write_dst(dst_text or src_text, _unknown())
+            _write_operand(ea_op, cpu, mem, _unknown(),
+                           size, size_bytes)
         return
 
     if op == "exchange":

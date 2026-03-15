@@ -1107,12 +1107,14 @@
           {
             "opmode": 3,
             "size": "w",
-            "description": "Word operation; the source operand is sign-extended to a long operand and"
+            "description": "Word operation; the source operand is sign-extended to a long operand and",
+            "ea_is_source": true
           },
           {
             "opmode": 7,
             "size": "l",
-            "description": "Long operation"
+            "description": "Long operation",
+            "ea_is_source": true
           }
         ]
       },
@@ -7836,17 +7838,20 @@
           {
             "opmode": 0,
             "size": "b",
-            "operation": "Dn – < ea >"
+            "operation": "Dn – < ea >",
+            "ea_is_source": true
           },
           {
             "opmode": 1,
             "size": "w",
-            "operation": "Dn – < ea >"
+            "operation": "Dn – < ea >",
+            "ea_is_source": true
           },
           {
             "opmode": 2,
             "size": "l",
-            "operation": "Dn – < ea >"
+            "operation": "Dn – < ea >",
+            "ea_is_source": true
           }
         ]
       },
@@ -8019,12 +8024,14 @@
           {
             "opmode": 3,
             "size": "w",
-            "description": "Word operation; the source operand is sign-extended to a long operand, and"
+            "description": "Word operation; the source operand is sign-extended to a long operand, and",
+            "ea_is_source": true
           },
           {
             "opmode": 7,
             "size": "l",
-            "description": "Long operation"
+            "description": "Long operation",
+            "ea_is_source": true
           }
         ]
       },
@@ -19239,12 +19246,14 @@
           {
             "opmode": 3,
             "size": "w",
-            "description": "Word operation. The source operand is sign-extended to a long operand and"
+            "description": "Word operation. The source operand is sign-extended to a long operand and",
+            "ea_is_source": true
           },
           {
             "opmode": 7,
             "size": "l",
-            "description": "Long operation"
+            "description": "Long operation",
+            "ea_is_source": true
           }
         ]
       },
