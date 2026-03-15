@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from hunk_parser import parse_file, HunkType
 from m68k_executor import analyze, BasicBlock, _load_kb
-from jump_tables import detect_jump_tables, resolve_indirect_targets
+from jump_tables import detect_jump_tables, resolve_indirect_targets, resolve_per_caller
 from os_calls import (load_os_kb, get_platform_config, identify_library_calls,
                       _SENTINEL_ALLOC_BASE)
 from subroutine_scan import scan_and_score
@@ -432,6 +432,14 @@ def build_entities(binary_path: str, output_path: str = None):
                         result["blocks"],
                         result.get("exit_states", {}),
                         code_size):
+                    if r["target"] not in core_entries:
+                        core_entries.add(r["target"])
+                        added += 1
+                for r in resolve_per_caller(
+                        result["blocks"],
+                        result.get("exit_states", {}),
+                        code, code_size,
+                        platform=platform_config):
                     if r["target"] not in core_entries:
                         core_entries.add(r["target"])
                         added += 1

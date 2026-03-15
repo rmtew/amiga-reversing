@@ -1,10 +1,20 @@
 """Jump table detection and indirect target resolution for M68K code.
 
 All M68K knowledge from KB. Supported patterns:
+
+Jump tables (detect_jump_tables):
   A. Word-offset dispatch: LEA base,An; JMP/JSR disp(An,Dn.w)
   B. Self-relative dispatch: LEA d(PC,Dn),An; ADDA.W (An),An; JMP (An)
   C. PC-relative inline: JMP/JSR disp(PC,Dn.w) with BRA.S entries
   D. Indirect table read: LEA d(PC),An; MOVE.W d1(An,Dn),Dn; JSR d2(An,Dn)
+
+Indirect resolution (resolve_indirect_targets):
+  All register-indirect EA modes: (An), d(An), d(An,Xn)
+  RTS return address via stack tracking
+
+Per-caller resolution (resolve_per_caller):
+  Re-analyzes shared subroutines per call site when merged state is too
+  imprecise. Handles trampolines and dispatch routines.
 """
 
 import struct
@@ -13,7 +23,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from m68k_executor import BasicBlock, _extract_mnemonic, _extract_branch_target
+from m68k_executor import (BasicBlock, _extract_mnemonic, _extract_branch_target,
+                          _decode_ea, resolve_ea, propagate_states, _concrete)
 from m68k_disasm import _Decoder, _decode_one, DecodeError
 from kb_util import KB, xf
 
@@ -174,31 +185,34 @@ def _get_lea_dst_reg(inst, kb: KB) -> int | None:
 # ── Table scanning ───────────────────────────────────────────────────────
 
 def _scan_word_offset_table(code, table_addr, base_addr, code_size,
-                            max_entries=256):
+                            kb: KB, max_entries=256):
     """Read word-offset table. target = base_addr + entry."""
+    word_size = kb.size_bytes["w"]
     targets = []
     for i in range(max_entries):
-        ea = table_addr + i * 2
-        if ea + 2 > code_size:
+        ea = table_addr + i * word_size
+        if ea + word_size > code_size:
             break
         offset = struct.unpack_from(">h", code, ea)[0]
         target = (base_addr + offset) & 0xFFFFFFFF
-        if target >= code_size or target & 1:
+        if target >= code_size or target & kb.align_mask:
             break
         targets.append(target)
     return targets
 
 
-def _scan_self_relative_table(code, table_addr, code_size, max_entries=256):
+def _scan_self_relative_table(code, table_addr, code_size, kb: KB,
+                              max_entries=256):
     """Read self-relative word table. target = &entry + entry."""
+    word_size = kb.size_bytes["w"]
     targets = []
     for i in range(max_entries):
-        ea = table_addr + i * 2
-        if ea + 2 > code_size:
+        ea = table_addr + i * word_size
+        if ea + word_size > code_size:
             break
         offset = struct.unpack_from(">h", code, ea)[0]
         target = ea + offset
-        if target < 0 or target >= code_size or target & 1:
+        if target < 0 or target >= code_size or target & kb.align_mask:
             break
         targets.append(target)
     return targets
@@ -329,7 +343,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
 
                     if has_adda and table_base is not None:
                         targets = _scan_self_relative_table(
-                            code, table_base, code_size)
+                            code, table_base, code_size, kb)
                         if len(targets) >= 2:
                             tables.append({
                                 "addr": table_base,
@@ -337,7 +351,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                 "targets": targets,
                                 "dispatch_block": addr,
                                 "base_addr": None,
-                                "table_end": table_base + len(targets) * 2,
+                                "table_end": table_base + len(targets) * kb.size_bytes["w"],
                             })
                         continue
 
@@ -358,12 +372,12 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                "targets": targets, "dispatch_block": addr,
                                "table_end": dispatch_end})
                 continue
-            targets = _scan_word_offset_table(code, base, base, code_size)
+            targets = _scan_word_offset_table(code, base, base, code_size, kb)
             if len(targets) >= 2:
                 tables.append({"addr": base, "pattern": "pc_word_offset",
                                "targets": targets, "dispatch_block": addr,
                                "base_addr": base,
-                               "table_end": base + len(targets) * 2})
+                               "table_end": base + len(targets) * kb.size_bytes["w"]})
             continue
 
         # Patterns A/D: register-indexed with LEA base
@@ -401,7 +415,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     table_start = lea_addr + move_disp
                     target_base = lea_addr + ea_info["displacement"]
                     targets = _scan_word_offset_table(
-                        code, table_start, target_base, code_size)
+                        code, table_start, target_base, code_size, kb)
                     if len(targets) >= 2:
                         tables.append({
                             "addr": table_start,
@@ -409,7 +423,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             "targets": targets,
                             "dispatch_block": addr,
                             "base_addr": target_base,
-                            "table_end": table_start + len(targets) * 2,
+                            "table_end": table_start + len(targets) * kb.size_bytes["w"],
                         })
                     continue
 
@@ -418,11 +432,11 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     for inst in block.instructions[-3:])
                 if has_adda:
                     targets = _scan_self_relative_table(
-                        code, lea_addr, code_size)
+                        code, lea_addr, code_size, kb)
                 else:
                     table_start = lea_addr + ea_info["displacement"]
                     targets = _scan_word_offset_table(
-                        code, table_start, lea_addr, code_size)
+                        code, table_start, lea_addr, code_size, kb)
                 if len(targets) >= 2:
                     pattern = "self_relative_word" if has_adda else "word_offset"
                     tbl_addr = lea_addr if has_adda else table_start
@@ -430,7 +444,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                    "pattern": pattern, "targets": targets,
                                    "dispatch_block": addr,
                                    "base_addr": None if has_adda else lea_addr,
-                                   "table_end": tbl_addr + len(targets) * 2})
+                                   "table_end": tbl_addr + len(targets) * kb.size_bytes["w"]})
 
     return tables
 
@@ -470,19 +484,76 @@ def _is_adda_ind(inst, kb: KB, target_reg: int) -> bool:
 
 # ── Indirect target resolution ───────────────────────────────────────────
 
+def _decode_jump_ea(last, kb):
+    """Decode the EA operand from a JMP/JSR instruction.
+
+    Returns (Operand, inst_kb) or (None, None) if the instruction's EA
+    can't be decoded or the target is already resolved (absolute/PC-relative).
+    """
+    ikb = kb.find(_extract_mnemonic(last.text))
+    if ikb is None:
+        return None, None
+
+    ft, _ = kb.flow_type(last)
+    if ft not in ("call", "jump"):
+        return None, None
+
+    # Skip instructions whose target is already known
+    if _extract_branch_target(last, last.offset) is not None:
+        return None, None
+
+    ea_spec = kb.ea_field_spec(ikb)
+    if ea_spec is None or len(last.raw) < kb.opword_bytes:
+        return None, None
+
+    opcode = struct.unpack_from(">H", last.raw, 0)[0]
+    mode = xf(opcode, ea_spec[0])
+    reg = xf(opcode, ea_spec[1])
+
+    # Operand size only affects immediate mode decoding (unused for
+    # JMP/JSR which never use immediate EA).  Pass KB default size.
+    try:
+        operand, _ = _decode_ea(
+            last.raw, kb.opword_bytes, mode, reg,
+            kb.meta["default_operand_size"], last.offset)
+    except (ValueError, struct.error):
+        return None, None
+
+    return operand, ikb
+
+
 def resolve_indirect_targets(blocks: dict[int, BasicBlock],
                              exit_states: dict, code_size: int) -> list[dict]:
-    """Resolve indirect JMP/JSR (An) and RTS via propagated state.
+    """Resolve indirect JMP/JSR and RTS via propagated state.
 
-    For JMP/JSR (An): reads the target from the propagated register value.
-    For RTS: reads the return address from the stack via propagated SP + memory.
+    Uses KB-driven EA decoding to handle all addressing modes uniformly:
+    ind (An), disp d(An), and index d(An,Xn). The decoded operand is
+    resolved against the propagated register state to compute the target.
+
+    For RTS: reads the return address from the stack.
     """
     kb = KB()
-    ind_enc = kb.ea_enc["ind"]
-    align_mask = kb.opword_bytes - 1
+    # Address size for stack reads: derived from RTS sp_effects bytes.
+    # JMP/JSR EA resolution size doesn't affect address computation
+    # (resolve_ea computes addresses from register values, not from
+    # size-dependent memory reads), so we pass the address size for
+    # consistency but it only matters for the immediate mode (unused here).
+    rts_kb = kb.find("RTS")
+    if rts_kb is None:
+        raise KeyError("KB missing RTS instruction")
+    rts_sp_inc = sum(e["bytes"] for e in rts_kb.get("sp_effects", [])
+                     if e.get("action") == "increment")
+    if not rts_sp_inc:
+        raise ValueError("KB RTS has no sp_effects increment")
+    # Map sp_effects bytes to size key for mem.read
+    addr_size = next(
+        (k for k, v in kb.size_bytes.items() if v == rts_sp_inc), None)
+    if addr_size is None:
+        raise ValueError(
+            f"KB size_byte_count has no entry for {rts_sp_inc} bytes")
 
     def _valid_target(addr):
-        return 0 <= addr < code_size and not (addr & align_mask)
+        return 0 <= addr < code_size and not (addr & kb.align_mask)
 
     resolved = []
     for addr in sorted(blocks):
@@ -497,38 +568,175 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
 
         ft, _ = kb.flow_type(last)
 
-        # RTS: read return address from stack (concrete or symbolic SP)
+        # RTS: read return address from stack.
+        # The exit state has the POST-increment SP (RTS pops then jumps).
+        # Adjust back by the KB-defined sp_effects to read from the
+        # pre-pop address where the return address was stored.
         if ft == "return" and addr in exit_states:
             cpu, mem = exit_states[addr]
-            if cpu.sp.is_known or cpu.sp.is_symbolic:
-                ret_val = mem.read(cpu.sp, "l")
-                if ret_val.is_known and _valid_target(ret_val.concrete):
-                    resolved.append({
-                        "dispatch_block": addr,
-                        "register": "SP",
-                        "target": ret_val.concrete,
-                    })
+            if cpu.sp.is_known:
+                pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
+            elif cpu.sp.is_symbolic:
+                pre_sp = cpu.sp.sym_add(-rts_sp_inc)
+            else:
+                continue
+            ret_val = mem.read(pre_sp, addr_size)
+            if ret_val.is_known and _valid_target(ret_val.concrete):
+                resolved.append({"target": ret_val.concrete})
             continue
 
-        if ft not in ("call", "jump"):
-            continue
-        if _extract_branch_target(last, last.offset) is not None:
-            continue
-
-        ea_spec = kb.ea_field_spec(ikb)
-        if ea_spec is None or len(last.raw) < kb.opword_bytes:
-            continue
-        opcode = struct.unpack_from(">H", last.raw, 0)[0]
-        if xf(opcode, ea_spec[0]) != ind_enc[0]:
+        # Decode the EA from the JMP/JSR instruction
+        operand, _ = _decode_jump_ea(last, kb)
+        if operand is None:
             continue
 
-        reg = xf(opcode, ea_spec[1])
         if addr not in exit_states:
             continue
         cpu, _ = exit_states[addr]
-        val = cpu.a[reg]
-        if val.is_known and _valid_target(val.concrete):
-            resolved.append({"dispatch_block": addr, "register": f"A{reg}",
-                             "target": val.concrete})
+
+        # resolve_ea computes the effective address for all modes:
+        # ind -> An, disp -> An+d, index -> An+Xn+d
+        ea_val = resolve_ea(operand, cpu, addr_size)
+        if ea_val is not None and ea_val.is_known:
+            if _valid_target(ea_val.concrete):
+                resolved.append({"target": ea_val.concrete})
+
+    return resolved
+
+
+def resolve_per_caller(blocks: dict[int, BasicBlock],
+                       exit_states: dict, code: bytes,
+                       code_size: int,
+                       platform: dict | None = None) -> list[dict]:
+    """Resolve indirect targets that require per-caller analysis.
+
+    When a subroutine's indirect jump can't be resolved because the
+    merged state lost caller-specific information, re-analyze the
+    subroutine with each caller's state independently.
+
+    This handles patterns where:
+    - A trampoline pops the caller's return address and jumps through it
+    - A dispatch sub uses a register (e.g. D0) set by each caller
+    """
+    kb = KB()
+    # Derive address size from KB (same as resolve_indirect_targets)
+    rts_kb = kb.find("RTS")
+    if rts_kb is None:
+        raise KeyError("KB missing RTS instruction")
+    rts_sp_inc = sum(e["bytes"] for e in rts_kb.get("sp_effects", [])
+                     if e.get("action") == "increment")
+    addr_size = next(
+        (k for k, v in kb.size_bytes.items() if v == rts_sp_inc), None)
+    if addr_size is None:
+        raise ValueError(
+            f"KB size_byte_count has no entry for {rts_sp_inc} bytes")
+
+    def _valid_target(addr):
+        return 0 <= addr < code_size and not (addr & kb.align_mask)
+
+    # Find blocks ending with unresolved indirect jumps
+    unresolved = []
+    for addr in sorted(blocks):
+        block = blocks[addr]
+        if not block.instructions:
+            continue
+        last = block.instructions[-1]
+        operand, _ = _decode_jump_ea(last, kb)
+        if operand is None:
+            continue
+        if operand.mode not in kb.reg_indirect_modes:
+            continue
+        # Only consider blocks where the merged state failed to resolve
+        if addr in exit_states:
+            cpu, _ = exit_states[addr]
+            ea_val = resolve_ea(operand, cpu, addr_size)
+            if ea_val is not None and ea_val.is_known:
+                continue  # already resolved by main pass
+        unresolved.append((addr, operand))
+
+    if not unresolved:
+        return []
+
+    # Find call-site predecessors for each unresolved block's subroutine.
+    # Walk backward from the unresolved block to find the subroutine entry
+    # (a block that has a call-site predecessor).
+    call_targets = set()
+    for block in blocks.values():
+        for xref in block.xrefs:
+            if xref.type == "call":
+                call_targets.add(xref.dst)
+
+    # Map subroutine entries to their blocks
+    sub_blocks = {}
+    for entry in call_targets:
+        if entry not in blocks:
+            continue
+        owned = set()
+        work = [entry]
+        while work:
+            a = work.pop()
+            if a in owned or a not in blocks:
+                continue
+            if a != entry and a in call_targets:
+                continue
+            owned.add(a)
+            for s in blocks[a].successors:
+                work.append(s)
+        sub_blocks[entry] = owned
+
+    # Find which subroutine each unresolved block belongs to
+    resolved = []
+    for unres_addr, operand in unresolved:
+        # Find the containing subroutine
+        sub_entry = None
+        for entry, owned in sub_blocks.items():
+            if unres_addr in owned:
+                sub_entry = entry
+                break
+        if sub_entry is None:
+            continue
+
+        # Find all callers of this subroutine
+        callers = blocks[sub_entry].predecessors if sub_entry in blocks else []
+        if not callers:
+            continue
+
+        # For each caller, re-propagate through the subroutine with
+        # the caller's specific exit state
+        sub_block_dict = {a: blocks[a] for a in sub_blocks[sub_entry]
+                          if a in blocks}
+
+        for caller_addr in callers:
+            if caller_addr not in exit_states:
+                continue
+            caller_cpu, caller_mem = exit_states[caller_addr]
+            init_cpu = caller_cpu.copy()
+
+            # Restore the base register from platform config if it was
+            # clobbered in the caller's state.  The main analysis restores
+            # it on call fallthroughs, but the caller's exit state (which
+            # is the pre-fallthrough state) may have it unknown.
+            if platform:
+                base_info = platform.get("initial_base_reg")
+                if base_info:
+                    breg_num, breg_val = base_info
+                    if not init_cpu.a[breg_num].is_known:
+                        init_cpu.set_reg("an", breg_num,
+                                         _concrete(breg_val))
+
+            per_caller_exits = propagate_states(
+                sub_block_dict, code, sub_entry,
+                initial_state=init_cpu,
+                initial_mem=caller_mem.copy(),
+                platform=platform)
+
+            if unres_addr not in per_caller_exits:
+                continue
+
+            cpu, _ = per_caller_exits[unres_addr]
+            ea_val = resolve_ea(operand, cpu, addr_size)
+            if ea_val is not None and ea_val.is_known:
+                if _valid_target(ea_val.concrete):
+                    resolved.append({"target": ea_val.concrete})
 
     return resolved

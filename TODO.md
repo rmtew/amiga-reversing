@@ -163,7 +163,18 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
   - EA mode detection from KB `ea_mode_encoding` (pcindex, index, ind, pcdisp)
   - BRA opcode pattern from KB encoding fields + `displacement_encoding`
   - Brief + full extension word formats from KB `ea_brief_ext_word`/`ea_full_ext_word`
-- [x] State propagation feedback: resolve indirect JSR/JMP (An) via propagated register values
+- [x] Indirect target resolution: all register-indirect EA modes via KB-driven decode
+  - `_decode_ea` + `resolve_ea` replaces hardcoded (An)-only check
+  - Handles ind (An), disp d(An), index d(An,Xn) uniformly
+  - RTS reads from pre-pop SP (KB `sp_effects.bytes` adjusts post-increment exit state)
+  - Address size derived from KB RTS sp_effects -> size_byte_count (not hardcoded "l")
+  - Alignment mask from KB `opword_bytes`, mode set from KB `ea_mode_encoding`
+  - Table scan stride/bounds from KB `size_byte_count["w"]` (not hardcoded 2)
+- [x] Per-caller context-sensitive analysis: `resolve_per_caller()`
+  - Re-analyzes shared subroutines per call site when merged state loses caller info
+  - Handles trampolines (pop return addr + jmp d(An)) and dispatch routines (jsr d(An,Xn))
+  - Base register restored from platform config for callers where it was clobbered
+  - 16 TDD tests: EA mechanics, trampoline (basic/addq.l/per-caller), dispatch (single/per-caller), struct field, edge cases
 - [x] Heuristic subroutine scan: RTS-bounded sequences scored against relocs/call targets
 - [x] Scratch register invalidation after calls (KB `pc_effects.flow.type == "call"`)
 - [x] OS library call identification: ExecBase load + LVO dispatch → function names
@@ -192,7 +203,7 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Audit: _is_valid_68000 uses KB `processor_020` flag, not hardcoded mnemonics
 - [x] Audit: _RELOC_INFO loaded from KB `relocation_semantics`, not hardcoded dict
 - [x] Audit: build_reloc_map handles all absolute reloc types from KB
-- GenAm results: 34% core code, 21% hint code (3064 core blocks, 11118 instructions)
+- GenAm results: 34% core code, 21% hint code (3069 core blocks, 7309 instructions)
 - [x] Jump table structured emission: word-offset and self-relative tables as `dc.w target-base`
   - base_addr and table_end added to jump_tables.py return dicts
   - pc_inline_dispatch tables emitted as decoded BRA instructions

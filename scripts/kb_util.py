@@ -24,6 +24,19 @@ class KB:
         self.cc_aliases = self.meta["cc_aliases"]
         self.opword_bytes = self.meta["opword_bytes"]
         self.ea_enc = self.meta["ea_mode_encoding"]
+        self.size_bytes = self.meta["size_byte_count"]
+        self.align_mask = self.opword_bytes - 1
+        # EA modes that use an address register as base for memory access
+        # without side effects.  Derived from ea_mode_encoding: modes that
+        # encode a register in the EA field (mode < 7) and are not register-
+        # direct (dn/an) or auto-modify (postinc/predec).
+        _direct = {"dn", "an"}
+        _automod = {"postinc", "predec"}
+        self.reg_indirect_modes = frozenset(
+            name for name, (mode_val, reg_val) in self.ea_enc.items()
+            if reg_val is None  # uses register field from EA
+            and name not in _direct
+            and name not in _automod)
 
     def find(self, mnemonic: str) -> dict | None:
         """Look up KB entry for a mnemonic (handles CC families)."""
