@@ -213,6 +213,7 @@ def _resolve_operand(operand: Operand, cpu, mem, size: str,
     """Read the value at a decoded EA operand.
 
     For postincrement/predecrement, also adjusts the register.
+    Uses get_reg/set_reg for proper SP aliasing.
     Returns None if the operand can't be resolved.
     """
     if operand.mode == "dn":
@@ -222,14 +223,14 @@ def _resolve_operand(operand: Operand, cpu, mem, size: str,
     if operand.mode == "imm":
         return _concrete(operand.value)
     if operand.mode == "ind":
-        addr = cpu.a[operand.reg]
+        addr = cpu.get_reg("an", operand.reg)
         if addr.is_known:
             return mem.read(addr.concrete, size)
         if addr.is_symbolic:
             return mem.read(addr, size)
         return None
     if operand.mode == "postinc":
-        addr = cpu.a[operand.reg]
+        addr = cpu.get_reg("an", operand.reg)
         if addr.is_known:
             val = mem.read(addr.concrete, size)
             cpu.set_reg("an", operand.reg, _concrete(
@@ -241,7 +242,7 @@ def _resolve_operand(operand: Operand, cpu, mem, size: str,
             return val
         return None
     if operand.mode == "predec":
-        addr = cpu.a[operand.reg]
+        addr = cpu.get_reg("an", operand.reg)
         if addr.is_known:
             new_addr = (addr.concrete - size_bytes) & 0xFFFFFFFF
             cpu.set_reg("an", operand.reg, _concrete(new_addr))
@@ -252,19 +253,17 @@ def _resolve_operand(operand: Operand, cpu, mem, size: str,
             return mem.read(new_val, size)
         return None
     if operand.mode == "disp":
-        addr = cpu.a[operand.reg]
+        addr = cpu.get_reg("an", operand.reg)
         if addr.is_known:
             return mem.read(
                 (addr.concrete + operand.value) & 0xFFFFFFFF, size)
         if addr.is_symbolic:
             return mem.read(addr.sym_add(operand.value), size)
         return None
-    if operand.mode in ("absw", "absl"):
-        return None  # can't resolve without knowing memory contents
-    if operand.mode == "pcdisp":
-        return _concrete(operand.value)  # LEA-like: the target address
+    if operand.mode in ("absw", "absl", "pcdisp"):
+        return None  # can't resolve without memory map
     if operand.mode == "index":
-        base = cpu.a[operand.reg]
+        base = cpu.get_reg("an", operand.reg)
         if not base.is_known:
             return None
         idx_mode = "an" if operand.index_is_addr else "dn"
@@ -272,11 +271,9 @@ def _resolve_operand(operand: Operand, cpu, mem, size: str,
         if not idx_val.is_known:
             return None
         _, _, meta = _load_kb()
-        idx_size = operand.index_size
-        idx_v = idx_val.concrete
-        nbits = meta["size_byte_count"][idx_size] * 8
+        nbits = meta["size_byte_count"][operand.index_size] * 8
         mask = (1 << nbits) - 1
-        idx_v = idx_v & mask
+        idx_v = idx_val.concrete & mask
         if idx_v >= (1 << (nbits - 1)):
             idx_v -= (1 << nbits)
         ea = (base.concrete + operand.value + idx_v) & 0xFFFFFFFF
@@ -289,19 +286,20 @@ def _write_operand(operand: Operand, cpu, mem, value,
     """Write a value to a decoded EA operand.
 
     For predecrement/postincrement, also adjusts the register.
+    Uses get_reg/set_reg for proper SP aliasing.
     """
     if operand.mode == "dn":
         cpu.set_reg("dn", operand.reg, value)
     elif operand.mode == "an":
         cpu.set_reg("an", operand.reg, value)
     elif operand.mode == "ind":
-        addr = cpu.a[operand.reg]
+        addr = cpu.get_reg("an", operand.reg)
         if addr.is_known:
             mem.write(addr.concrete, value, size)
         elif addr.is_symbolic:
             mem.write(addr, value, size)
     elif operand.mode == "predec":
-        addr = cpu.a[operand.reg]
+        addr = cpu.get_reg("an", operand.reg)
         if addr.is_known:
             new_addr = (addr.concrete - size_bytes) & 0xFFFFFFFF
             cpu.set_reg("an", operand.reg, _concrete(new_addr))
@@ -311,7 +309,7 @@ def _write_operand(operand: Operand, cpu, mem, value,
             cpu.set_reg("an", operand.reg, new_val)
             mem.write(new_val, value, size)
     elif operand.mode == "postinc":
-        addr = cpu.a[operand.reg]
+        addr = cpu.get_reg("an", operand.reg)
         if addr.is_known:
             mem.write(addr.concrete, value, size)
             cpu.set_reg("an", operand.reg, _concrete(
@@ -320,7 +318,7 @@ def _write_operand(operand: Operand, cpu, mem, value,
             mem.write(addr, value, size)
             cpu.set_reg("an", operand.reg, addr.sym_add(size_bytes))
     elif operand.mode == "disp":
-        addr = cpu.a[operand.reg]
+        addr = cpu.get_reg("an", operand.reg)
         if addr.is_known:
             mem.write(
                 (addr.concrete + operand.value) & 0xFFFFFFFF,
@@ -793,10 +791,8 @@ def _extract_mnemonic(text: str) -> str:
     Size suffixes derived from KB size_byte_count keys + short branch "s".
     """
     _, _, meta = _load_kb()
-    # Build size suffixes from KB: ".b", ".w", ".l" from size_byte_count,
-    # plus ".s" which is the short branch form (displacement_encoding uses
-    # the 8-bit field for byte-sized branches)
-    size_suffixes = ["." + s for s in meta["size_byte_count"]] + [".s"]
+    # Size suffixes from KB (includes short branch ".s")
+    size_suffixes = ["." + s for s in meta["size_suffixes"]]
     # Split on first space to get mnemonic+suffix
     parts = text.strip().split(None, 1)
     if not parts:
@@ -1356,35 +1352,64 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     src_text, dst_text = _parse_operand_text(text)
 
     # Decode structured operands from opcode bytes (KB-driven).
-    # These are used alongside text operands during the transition
-    # from text-based to structured EA resolution.
     src_op = dst_op = None
+    opcode = 0
+    dst_reg_f = None
     if len(inst.raw) >= meta["opword_bytes"]:
         opcode = struct.unpack_from(">H", inst.raw, 0)[0]
         enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
-        # Source EA: MODE + low REGISTER fields
-        src_mode_f = src_reg_f = None
-        dst_reg_f = None
+        # Collect MODE and REGISTER fields.  Source EA uses the
+        # lower fields (bits 5-0), destination uses the upper.
+        mode_fields = []
+        reg_fields = []
         for f in enc_fields:
             if f["name"] == "MODE":
-                src_mode_f = (f["bit_hi"], f["bit_lo"],
-                              f["bit_hi"] - f["bit_lo"] + 1)
+                mode_fields.append(f)
             elif f["name"] == "REGISTER":
-                if f["bit_hi"] <= 5:
-                    src_reg_f = (f["bit_hi"], f["bit_lo"],
-                                 f["bit_hi"] - f["bit_lo"] + 1)
-                else:
-                    dst_reg_f = (f["bit_hi"], f["bit_lo"],
-                                 f["bit_hi"] - f["bit_lo"] + 1)
-        if src_mode_f and src_reg_f:
+                reg_fields.append(f)
+        mode_fields.sort(key=lambda f: f["bit_lo"])
+        reg_fields.sort(key=lambda f: f["bit_lo"])
+
+        # Source EA: lowest MODE + lowest REGISTER
+        if mode_fields and reg_fields:
+            src_mf = mode_fields[0]
+            src_rf = reg_fields[0]
+            src_mode_f = (src_mf["bit_hi"], src_mf["bit_lo"],
+                          src_mf["bit_hi"] - src_mf["bit_lo"] + 1)
+            src_reg_f = (src_rf["bit_hi"], src_rf["bit_lo"],
+                         src_rf["bit_hi"] - src_rf["bit_lo"] + 1)
             ea_mode = _xf(opcode, src_mode_f)
             ea_reg = _xf(opcode, src_reg_f)
             try:
-                src_op, _ = _decode_ea(
+                src_op, ext_pos = _decode_ea(
                     inst.raw, meta["opword_bytes"],
                     ea_mode, ea_reg, size, inst.offset)
             except ValueError:
                 src_op = None
+                ext_pos = meta["opword_bytes"]
+
+            # Destination EA: upper MODE + upper REGISTER (MOVE)
+            if len(mode_fields) >= 2 and len(reg_fields) >= 2:
+                dst_mf = mode_fields[1]
+                dst_rf = reg_fields[1]
+                dst_mode_f = (dst_mf["bit_hi"], dst_mf["bit_lo"],
+                              dst_mf["bit_hi"] - dst_mf["bit_lo"] + 1)
+                dst_reg_f_ea = (dst_rf["bit_hi"], dst_rf["bit_lo"],
+                                dst_rf["bit_hi"] - dst_rf["bit_lo"] + 1)
+                d_mode = _xf(opcode, dst_mode_f)
+                d_reg = _xf(opcode, dst_reg_f_ea)
+                try:
+                    dst_op, _ = _decode_ea(
+                        inst.raw, ext_pos,
+                        d_mode, d_reg, size, inst.offset)
+                except ValueError:
+                    dst_op = None
+
+        # Destination register field (for non-MOVE instructions)
+        if len(reg_fields) >= 2:
+            rf = reg_fields[-1]
+            dst_reg_f = (rf["bit_hi"], rf["bit_lo"],
+                         rf["bit_hi"] - rf["bit_lo"] + 1)
 
     # Helper: resolve a text operand to an AbstractValue.
     # For postincrement/predecrement modes, also adjusts the register.
@@ -1831,19 +1856,26 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     # --- Formula-driven dispatch ---
 
     if op == "assign":
-        # MOVE/MOVEA/MOVEQ/CLR family — all have compute_formula.op == "assign"
+        # MOVE/MOVEA/MOVEQ/CLR family.
         terms = formula.get("terms", [])
 
         if "implicit" in terms:
-            # CLR: assign implicit_operand (0) to destination
+            # CLR: assign implicit_operand (0) to destination.
             implicit_val = inst_kb.get("implicit_operand")
             if implicit_val is None:
                 raise KeyError(f"implicit_operand missing for {mnemonic}")
-            _write_dst(dst_text or src_text, _concrete(implicit_val))
+            write_op = dst_op if dst_op else src_op
+            if write_op:
+                _write_operand(write_op, cpu, mem,
+                               _concrete(implicit_val), size, size_bytes)
             return
 
-        # Source-assign: MOVE, MOVEA, MOVEQ
-        src_val = _resolve_text_operand(src_text)
+        # Source-assign: MOVE, MOVEA, MOVEQ.
+        # Read source from structured operand, falling back to text
+        # for instructions without EA fields (e.g. MOVEQ has the
+        # immediate in a DATA field, not in a MODE/REGISTER EA).
+        src_val = (_resolve_operand(src_op, cpu, mem, size, size_bytes)
+                   if src_op else _resolve_text_operand(src_text))
 
         # Sign-extend immediate from KB constraints.immediate_range
         imm_range = inst_kb.get("constraints", {}).get("immediate_range")
@@ -1855,56 +1887,53 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             val &= 0xFFFFFFFF
             src_val = _concrete(val)
 
-        # Source sign-extension from KB source_sign_extend (MOVEA.W, ADDA.W etc.)
+        # Source sign-extension from KB source_sign_extend
         if src_sign_ext and size == "w" and src_val and src_val.is_known:
-            val = src_val.concrete & 0xFFFF
-            if val >= 0x8000:
-                val |= 0xFFFF0000
-            val &= 0xFFFFFFFF
-            src_val = _concrete(val)
+            w_bits = meta["size_byte_count"]["w"] * 8
+            w_mask = (1 << w_bits) - 1
+            val = src_val.concrete & w_mask
+            if val >= (1 << (w_bits - 1)):
+                val |= ~w_mask
+            src_val = _concrete(val & 0xFFFFFFFF)
 
-        # Detect ExecBase load: MOVEA.L ($N).W,An where $N matches
-        # platform exec_base_addr.  Decoded from opcode EA bits (KB-driven).
-        if src_val is None and platform and len(inst.raw) >= meta["opword_bytes"]:
-            opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-            enc_fields = inst_kb.get("encodings", [{}])[0].get(
-                "fields", [])
-            ea_mode_f = ea_reg_f = None
-            for f in enc_fields:
-                if f["name"] == "MODE":
-                    ea_mode_f = (f["bit_hi"], f["bit_lo"],
-                                 f["bit_hi"] - f["bit_lo"] + 1)
-                elif f["name"] == "REGISTER" and f["bit_hi"] <= 5:
-                    ea_reg_f = (f["bit_hi"], f["bit_lo"],
-                                f["bit_hi"] - f["bit_lo"] + 1)
-            if ea_mode_f and ea_reg_f:
-                ea_mode = _xf(opcode, ea_mode_f)
-                ea_reg = _xf(opcode, ea_reg_f)
-                try:
-                    operand, _ = _decode_ea(
-                        inst.raw, meta["opword_bytes"],
-                        ea_mode, ea_reg, "l", inst.offset)
-                except ValueError:
-                    operand = None
-                if (operand and operand.mode == "absw"
-                        and operand.value == platform.get("exec_base_addr")):
-                    src_val = _unknown(tag=platform.get("exec_base_tag"))
+        # ExecBase load: MOVEA.L ($N).W,An — source is absw
+        # matching platform exec_base_addr.
+        if (src_val is None and platform and src_op
+                and src_op.mode == "absw"
+                and src_op.value == platform.get("exec_base_addr")):
+            src_val = _unknown(tag=platform.get("exec_base_tag"))
 
-        if src_val is not None:
-            _write_dst(dst_text, src_val)
+        # Write to destination.
+        result = src_val if src_val is not None else _unknown()
+        if dst_op:
+            _write_operand(dst_op, cpu, mem, result, size, size_bytes)
+        elif dst_reg_f:
+            dn = _xf(opcode, dst_reg_f)
+            if src_sign_ext:
+                cpu.set_reg("an", dn, result)
+            else:
+                cpu.set_reg("dn", dn, result)
         else:
-            _write_dst(dst_text, _unknown())
+            # Fallback: text-based write for instructions whose
+            # destination encoding isn't a standard EA (MOVEQ,
+            # single-operand, etc.)
+            _write_dst(dst_text or src_text, result)
         return
 
+    # Helper: sign-extend source value per KB source_sign_extend
+    def _sign_ext_src(val):
+        if src_sign_ext and size == "w" and val and val.is_known:
+            w_bits = meta["size_byte_count"]["w"] * 8
+            w_mask = (1 << w_bits) - 1
+            v = val.concrete & w_mask
+            if v >= (1 << (w_bits - 1)):
+                v |= ~w_mask
+            return _concrete(v & 0xFFFFFFFF)
+        return val
+
     if op == "add":
-        src_val = _resolve_text_operand(src_text)
+        src_val = _sign_ext_src(_resolve_text_operand(src_text))
         dst_val = _resolve_text_operand(dst_text)
-        # Apply source_sign_extend if present (ADDA.W)
-        if src_sign_ext and size == "w" and src_val and src_val.is_known:
-            val = src_val.concrete & 0xFFFF
-            if val >= 0x8000:
-                val |= 0xFFFF0000
-            src_val = _concrete(val & 0xFFFFFFFF)
         if src_val and dst_val and src_val.is_known and dst_val.is_known:
             result = (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF
             _write_dst(dst_text, _concrete(result))
@@ -1914,31 +1943,24 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
 
     if op == "subtract":
         terms = formula.get("terms", [])
-        # NEG: terms=["implicit", "destination"] — implicit(0) - destination
         if "implicit" in terms:
+            # NEG: implicit(0) - destination
             implicit_val = inst_kb.get("implicit_operand")
             if implicit_val is None:
                 raise KeyError(f"implicit_operand missing for {mnemonic}")
             dst_val = _resolve_text_operand(dst_text or src_text)
             if dst_val and dst_val.is_known:
                 result = (implicit_val - dst_val.concrete) & mask
-                # Preserve upper bits for sub-long sizes
-                if size != "l" and dst_val.is_known:
+                if size != "l":
                     upper = dst_val.concrete & ~mask
                     result = upper | result
-                _write_dst(dst_text or src_text, _concrete(result & 0xFFFFFFFF))
+                _write_dst(dst_text or src_text,
+                           _concrete(result & 0xFFFFFFFF))
             else:
                 _write_dst(dst_text or src_text, _unknown())
             return
-        # SUB family: terms=["destination", "source"] or ["source", "destination"]
-        src_val = _resolve_text_operand(src_text)
+        src_val = _sign_ext_src(_resolve_text_operand(src_text))
         dst_val = _resolve_text_operand(dst_text)
-        # Apply source_sign_extend if present (SUBA.W)
-        if src_sign_ext and size == "w" and src_val and src_val.is_known:
-            val = src_val.concrete & 0xFFFF
-            if val >= 0x8000:
-                val |= 0xFFFF0000
-            src_val = _concrete(val & 0xFFFFFFFF)
         if src_val and dst_val and src_val.is_known and dst_val.is_known:
             result = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
             _write_dst(dst_text, _concrete(result))
@@ -1974,11 +1996,10 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         return
 
     if op == "bitwise_complement":
-        # NOT: ~destination
+        # NOT: ~destination (single operand)
         dst_val = _resolve_text_operand(dst_text or src_text)
         if dst_val and dst_val.is_known:
-            result = dst_val.concrete ^ mask  # complement within operation size
-            # Preserve upper bits for sub-long sizes
+            result = dst_val.concrete ^ mask
             if size != "l":
                 upper = dst_val.concrete & ~mask
                 result = upper | result
@@ -1988,33 +2009,30 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         return
 
     if op == "exchange":
-        # SWAP: exchange bit ranges within a register
-        # KB provides range_a and range_b (e.g. [31,16] and [15,0])
+        # SWAP: exchange bit ranges within register
         range_a = formula.get("range_a")
         range_b = formula.get("range_b")
-        if range_a and range_b:
-            reg_info = _parse_reg_from_text(src_text or dst_text or "")
-            if reg_info and reg_info[0] == "dn":
-                val = cpu.get_reg("dn", reg_info[1])
-                if val.is_known:
-                    v = val.concrete
-                    a_hi, a_lo = range_a
-                    b_hi, b_lo = range_b
-                    a_width = a_hi - a_lo + 1
-                    b_width = b_hi - b_lo + 1
-                    a_mask = ((1 << a_width) - 1) << a_lo
-                    b_mask = ((1 << b_width) - 1) << b_lo
-                    a_bits = (v & a_mask) >> a_lo
-                    b_bits = (v & b_mask) >> b_lo
-                    # Swap: put a_bits in b_range, b_bits in a_range
-                    v = (v & ~(a_mask | b_mask)) | (b_bits << a_lo) | (a_bits << b_lo)
-                    cpu.set_reg("dn", reg_info[1], _concrete(v & 0xFFFFFFFF))
-                else:
-                    cpu.set_reg("dn", reg_info[1], _unknown())
+        reg_info = _parse_reg_from_text(src_text or dst_text or "")
+        if range_a and range_b and reg_info and reg_info[0] == "dn":
+            val = cpu.get_reg("dn", reg_info[1])
+            if val.is_known:
+                v = val.concrete
+                a_hi, a_lo = range_a
+                b_hi, b_lo = range_b
+                a_width = a_hi - a_lo + 1
+                b_width = b_hi - b_lo + 1
+                a_mask = ((1 << a_width) - 1) << a_lo
+                b_mask = ((1 << b_width) - 1) << b_lo
+                a_bits = (v & a_mask) >> a_lo
+                b_bits = (v & b_mask) >> b_lo
+                v = (v & ~(a_mask | b_mask)) | (b_bits << a_lo) | (a_bits << b_lo)
+                cpu.set_reg("dn", reg_info[1], _concrete(v & 0xFFFFFFFF))
+            else:
+                cpu.set_reg("dn", reg_info[1], _unknown())
             return
 
     if op == "sign_extend":
-        # EXT/EXTB: sign-extend from source_bits_by_size in KB compute_formula
+        # EXT/EXTB: sign-extend from source_bits_by_size
         src_bits_by_size = formula.get("source_bits_by_size")
         if src_bits_by_size is None:
             raise KeyError(f"source_bits_by_size missing for {mnemonic}")
@@ -2058,7 +2076,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         return
 
     # EXG: KB operation_type == "swap" with no compute_formula.
-    # Swaps two registers.
+    # Swaps two registers.  Operand types from text (Dn/An).
     if op_type == "swap" and op is None:
         src_reg = _parse_reg_from_text(src_text) if src_text else None
         dst_reg = _parse_reg_from_text(dst_text) if dst_text else None
@@ -2070,7 +2088,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         return
 
     # Unhandled compute formulas (multiply, divide, shift, rotate, etc.):
-    # invalidate the destination register since we can't compute the result.
+    # invalidate the destination register.
     if dst_text:
         dst_reg = _parse_reg_from_text(dst_text)
         if dst_reg:
