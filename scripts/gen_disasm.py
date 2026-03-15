@@ -27,7 +27,7 @@ from os_calls import (get_platform_config, _SENTINEL_ALLOC_BASE,
                       load_os_kb, identify_library_calls,
                       propagate_input_types)
 from build_entities import _resolve_reloc_target
-from m68k_executor import _extract_branch_target
+from m68k_executor import _extract_branch_target, _extract_mnemonic
 from kb_util import KB, read_string_at, find_containing_sub
 
 
@@ -501,8 +501,41 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         for blk in blocks.values():
             for a in range(blk.start, blk.end):
                 code_addrs.add(a)
-        print(f"  {len(blocks)} blocks, "
+        print(f"  {len(blocks)} core blocks, "
               f"{len(code_addrs)}/{code_size} code bytes")
+
+        # Hint blocks: reloc targets + scan, separate discovery.
+        # Emitted as unverified disassembly (readable but not trusted).
+        from subroutine_scan import scan_and_score
+        hint_entries = reloc_targets - set(blocks.keys())
+        hint_blocks: dict = {}
+        if hint_entries:
+            hint_r = analyze(code, base_addr=0,
+                             entry_points=sorted(hint_entries),
+                             propagate=False)
+            hint_blocks = {a: b for a, b in hint_r["blocks"].items()
+                           if a not in blocks}
+        scan_cands = scan_and_score(
+            blocks, code, reloc_targets,
+            result.get("call_targets", set()))
+        scan_entries = {c["addr"] for c in scan_cands
+                        if c["addr"] not in blocks
+                        and c["addr"] not in hint_blocks}
+        if scan_entries:
+            scan_r = analyze(code, base_addr=0,
+                             entry_points=sorted(scan_entries),
+                             propagate=False)
+            for a, b in scan_r["blocks"].items():
+                if a not in blocks and a not in hint_blocks:
+                    hint_blocks[a] = b
+
+        hint_addrs = set()
+        for blk in hint_blocks.values():
+            for a in range(blk.start, blk.end):
+                hint_addrs.add(a)
+        if hint_blocks:
+            print(f"  {len(hint_blocks)} hint blocks, "
+                  f"{len(hint_addrs)} hint bytes")
 
         # Build reloc map
         reloc_map = build_reloc_map(hf.hunks, hunk.index)
@@ -530,6 +563,15 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             {t: None for t in internal_targets},
             reloc_target_set,
             pc_targets)
+        # Add hint block labels (don't override existing labels)
+        for addr in sorted(hint_blocks):
+            if addr not in labels:
+                labels[addr] = f"hint_{addr:04x}"
+            # Also add internal labels for hint blocks
+            blk = hint_blocks[addr]
+            for succ in blk.successors:
+                if succ not in labels and succ in hint_blocks:
+                    labels[succ] = f"hint_{succ:04x}"
         print(f"  {len(labels)} labels")
 
         # Build struct type map for displacement substitution.
@@ -807,14 +849,73 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                             instr_count += 1
                     pos = blk.end
                 elif pos in code_addrs:
-                    # Inside a block but not at the start — shouldn't
-                    # happen since we walk in order, skip
+                    # Inside a block but not at the start — skip
+                    pos += 1
+                elif pos in hint_blocks:
+                    # Hint block: emit as unverified disassembly IF
+                    # the block ends with a flow-terminating instruction
+                    # (RTS, BRA, JMP, etc.).  Otherwise it's data that
+                    # coincidentally decodes as instructions.
+                    blk = hint_blocks[pos]
+                    valid_hint = False
+                    if blk.instructions:
+                        last = blk.instructions[-1]
+                        last_kb = kb.find(
+                            _extract_mnemonic(last.text))
+                        if last_kb:
+                            flow = last_kb.get("pc_effects", {}).get(
+                                "flow", {})
+                            ftype = flow.get("type")
+                            if ftype in ("return", "jump", "branch"):
+                                valid_hint = True
+                            elif (ftype == "call"
+                                  and not flow.get("conditional")):
+                                valid_hint = True  # tail call
+                    if not valid_hint:
+                        # Not valid code — emit as data
+                        emit_data_region(f, code, pos, blk.end,
+                                         labels, reloc_map,
+                                         string_addrs)
+                        data_bytes += blk.end - pos
+                        pos = blk.end
+                        continue
+                    f.write("; --- unverified ---\n")
+                    hint_instr = 0
+                    for inst in blk.instructions:
+                        if inst.offset != pos and inst.offset in labels:
+                            f.write(f"{labels[inst.offset]}:\n")
+                        if not _is_valid_68000(inst.text, kb):
+                            emit_data_region(f, code, inst.offset,
+                                             inst.offset + inst.size,
+                                             labels, reloc_map,
+                                             string_addrs)
+                            data_bytes += inst.size
+                        else:
+                            text = replace_targets_in_text(
+                                inst.text, inst.offset, inst.size,
+                                labels, reloc_map, kb.opword_bytes)
+                            if app_offsets and base_info:
+                                brn = base_info[0]
+                                for off, sym in app_offsets.items():
+                                    text = text.replace(
+                                        f"{off}(a{brn})",
+                                        f"{sym}(a{brn})")
+                            sub = lvo_substitutions.get(inst.offset)
+                            if sub:
+                                text = text.replace(sub[0], sub[1])
+                            f.write(f"    {text}\n")
+                            hint_instr += 1
+                    instr_count += hint_instr
+                    pos = blk.end
+                elif pos in hint_addrs:
+                    # Inside a hint block but not at start — skip
                     pos += 1
                 else:
-                    # Not in a block — emit as data until next block/label
+                    # Not in any block — emit as data
                     data_end = pos + 1
                     while (data_end < code_size
                            and data_end not in blocks
+                           and data_end not in hint_blocks
                            and data_end not in labels):
                         data_end += 1
                     emit_data_region(f, code, pos, data_end,
