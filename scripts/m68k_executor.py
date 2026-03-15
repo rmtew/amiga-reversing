@@ -1442,46 +1442,197 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             if flow_type == "call":
                 # Resolve call effects before invalidation (needs pre-call
                 # register state for input registers like A1 name string).
+                # Decode EA from opcode bits (KB-driven, not text parsing).
                 call_effect = None
                 resolver = platform.get("_os_call_resolver")
-                if resolver and src_text and "(" in src_text:
-                    paren = src_text.index("(")
-                    lvo = _parse_disp(src_text[:paren].strip())
+                if resolver and len(inst.raw) >= meta["opword_bytes"]:
+                    lvo = None
                     base_reg_num = platform.get("_base_reg_num", 6)
+                    opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+                    # Extract EA fields from KB encoding
+                    enc_fields = inst_kb.get("encodings", [{}])[0].get(
+                        "fields", [])
+                    ea_mode_f = ea_reg_f = None
+                    for f in enc_fields:
+                        if f["name"] == "MODE":
+                            ea_mode_f = (f["bit_hi"], f["bit_lo"],
+                                         f["bit_hi"] - f["bit_lo"] + 1)
+                        elif (f["name"] == "REGISTER"
+                              and f["bit_hi"] <= 5):
+                            ea_reg_f = (f["bit_hi"], f["bit_lo"],
+                                        f["bit_hi"] - f["bit_lo"] + 1)
+                    if ea_mode_f and ea_reg_f:
+                        ea_mode = _xf(opcode, ea_mode_f)
+                        ea_reg = _xf(opcode, ea_reg_f)
+                        try:
+                            operand, _ = _decode_ea(
+                                inst.raw, meta["opword_bytes"],
+                                ea_mode, ea_reg, "l", inst.offset)
+                        except ValueError:
+                            operand = None
+                        if operand:
+                            if (operand.mode == "disp"
+                                    and operand.reg == base_reg_num):
+                                lvo = operand.value
+                            elif (operand.mode == "index"
+                                  and operand.reg == base_reg_num):
+                                # LVO = displacement + index reg value
+                                idx_mode = ("an" if operand.index_is_addr
+                                            else "dn")
+                                idx_val = cpu.get_reg(
+                                    idx_mode, operand.index_reg)
+                                if idx_val.is_known:
+                                    idx_v = idx_val.concrete
+                                    if operand.index_size == "w":
+                                        idx_v = _to_signed(
+                                            idx_v & 0xFFFF, "w")
+                                    else:
+                                        idx_v = _to_signed(
+                                            idx_v & 0xFFFFFFFF, "l")
+                                    lvo = operand.value + idx_v
                     a6_tag = cpu.a[base_reg_num].tag
-                    a6_lib = a6_tag.get("library_base") if a6_tag else None
+                    a6_lib = (a6_tag.get("library_base")
+                              if a6_tag else None)
                     if lvo is not None and a6_lib:
                         call_effect = resolver(
                             inst.offset, lvo, a6_lib, cpu, code,
                             platform=platform)
 
-                # Invalidate scratch registers
-                for reg_mode, reg_num in platform["scratch_regs"]:
-                    cpu.set_reg(reg_mode, reg_num, _unknown())
-
-                # Apply call effects to post-invalidation state
+                # Store call effect for propagate_states to apply
+                # after scratch reg invalidation on the fallthrough.
+                # Don't invalidate here — the callee needs the
+                # pre-call register state (e.g. D0 = LVO offset).
                 if call_effect:
-                    if "tag" in call_effect:
-                        # returns_base: tag result register (e.g. library base)
-                        mode, num = _parse_reg_from_text(
-                            call_effect["base_reg"])
-                        cpu.set_reg(mode, num, _unknown(tag=call_effect["tag"]))
-                    elif "concrete" in call_effect:
-                        # returns_memory: assign sentinel concrete value
-                        mode, num = _parse_reg_from_text(
-                            call_effect["result_reg"])
-                        cpu.set_reg(mode, num, _concrete(
-                            call_effect["concrete"]))
-                    elif "output_type" in call_effect:
-                        # OS call output type tag
-                        mode, num = _parse_reg_from_text(
-                            call_effect["output_reg"])
-                        cpu.set_reg(mode, num,
-                                    _unknown(tag=call_effect["output_type"]))
+                    platform["_pending_call_effect"] = call_effect
 
         # SP-only instructions (no compute_formula) stop here
         if op is None:
             return
+
+    # MOVEM: Move Multiple Registers.  Transfers a set of registers
+    # to/from memory via a 16-bit mask in the extension word.
+    # Detected by KB form syntax containing "<list>" (unique to MOVEM).
+    # Register order from KB movem_reg_masks (normal vs predecrement).
+    if (op == "assign"
+            and any("<list>" in f.get("syntax", "")
+                    for f in inst_kb.get("forms", []))):
+        opword_bytes = meta["opword_bytes"]
+        if len(inst.raw) < opword_bytes + 2:
+            return  # truncated
+        opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+        reg_mask = struct.unpack_from(">H", inst.raw, opword_bytes)[0]
+
+        # Direction from KB encoding "dr" field
+        dr_field = None
+        for f in inst_kb["encodings"][0]["fields"]:
+            if f["name"] == "dr":
+                dr_field = (f["bit_hi"], f["bit_lo"],
+                            f["bit_hi"] - f["bit_lo"] + 1)
+                break
+        if dr_field is None:
+            raise KeyError("MOVEM encoding lacks 'dr' field")
+        direction = _xf(opcode, dr_field)  # 0=reg-to-mem, 1=mem-to-reg
+
+        # EA mode from encoding
+        ea_mode_f = ea_reg_f = None
+        for f in inst_kb["encodings"][0]["fields"]:
+            if f["name"] == "MODE":
+                ea_mode_f = (f["bit_hi"], f["bit_lo"],
+                             f["bit_hi"] - f["bit_lo"] + 1)
+            elif f["name"] == "REGISTER" and f["bit_hi"] <= 5:
+                ea_reg_f = (f["bit_hi"], f["bit_lo"],
+                            f["bit_hi"] - f["bit_lo"] + 1)
+        if ea_mode_f is None or ea_reg_f is None:
+            raise KeyError("MOVEM encoding lacks MODE/REGISTER fields")
+        ea_mode = _xf(opcode, ea_mode_f)
+        ea_reg = _xf(opcode, ea_reg_f)
+
+        # EA mode name from KB
+        ea_enc = meta["ea_mode_encoding"]
+        predec_enc = ea_enc["predec"]
+        postinc_enc = ea_enc["postinc"]
+        is_predec = (ea_mode == predec_enc[0])
+        is_postinc = (ea_mode == postinc_enc[0])
+
+        # Register order from KB movem_reg_masks
+        masks = meta["movem_reg_masks"]
+        reg_order = masks["predecrement"] if is_predec else masks["normal"]
+
+        # Collect registers to transfer (bit N set → reg_order[N])
+        regs = []
+        for bit in range(16):
+            if reg_mask & (1 << bit):
+                regs.append(reg_order[bit])
+
+        if not regs:
+            return
+
+        # Size from KB encoding "SIZE" field
+        size_field = None
+        for f in inst_kb["encodings"][0]["fields"]:
+            if f["name"] == "SIZE":
+                size_field = (f["bit_hi"], f["bit_lo"],
+                              f["bit_hi"] - f["bit_lo"] + 1)
+                break
+        if size_field is None:
+            raise KeyError("MOVEM encoding lacks 'SIZE' field")
+        size_bit = _xf(opcode, size_field)
+        xfer_size = "l" if size_bit == 1 else "w"
+        xfer_bytes = meta["size_byte_count"][xfer_size]
+
+        sp_reg = meta["_sp_reg_num"]
+
+        if direction == 0 and is_predec and ea_reg == sp_reg:
+            # Register-to-memory via -(SP): push registers onto stack.
+            # SP decrements BEFORE each transfer (predecrement mode).
+            total_bytes = len(regs) * xfer_bytes
+            for reg_name in regs:
+                reg_info = _parse_reg_from_text(reg_name)
+                if reg_info is None:
+                    continue
+                # Decrement SP
+                if cpu.sp.is_known:
+                    cpu.sp = _concrete(
+                        (cpu.sp.concrete - xfer_bytes) & 0xFFFFFFFF)
+                elif cpu.sp.is_symbolic:
+                    cpu.sp = cpu.sp.sym_add(-xfer_bytes)
+                else:
+                    break
+                # Write register value to memory at new SP
+                val = cpu.get_reg(reg_info[0], reg_info[1])
+                mem.write(cpu.sp, val, xfer_size)
+
+        elif direction == 1 and is_postinc and ea_reg == sp_reg:
+            # Memory-to-register via (SP)+: pop registers from stack.
+            # SP increments AFTER each transfer (postincrement mode).
+            for reg_name in regs:
+                reg_info = _parse_reg_from_text(reg_name)
+                if reg_info is None:
+                    continue
+                # Read from current SP
+                if cpu.sp.is_known:
+                    val = mem.read(cpu.sp.concrete, xfer_size)
+                elif cpu.sp.is_symbolic:
+                    val = mem.read(cpu.sp, xfer_size)
+                else:
+                    val = _unknown()
+                cpu.set_reg(reg_info[0], reg_info[1], val)
+                # Increment SP
+                if cpu.sp.is_known:
+                    cpu.sp = _concrete(
+                        (cpu.sp.concrete + xfer_bytes) & 0xFFFFFFFF)
+                elif cpu.sp.is_symbolic:
+                    cpu.sp = cpu.sp.sym_add(xfer_bytes)
+
+        else:
+            # Non-stack MOVEM (e.g. to/from absolute address):
+            # no SP effect, registers become unknown for loads.
+            if direction == 1:
+                for reg_name in regs:
+                    reg_info = _parse_reg_from_text(reg_name)
+                    if reg_info:
+                        cpu.set_reg(reg_info[0], reg_info[1], _unknown())
+        return
 
     # LEA: loads the effective address itself (not the value at the address).
     # Detected by KB operation text signature — the KB compute_formula is
@@ -1535,26 +1686,31 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
             src_val = _concrete(val)
 
         # Detect ExecBase load: MOVEA.L ($N).W,An where $N matches
-        # platform exec_base_addr.  The absolute address can't be read
-        # from abstract memory, but we know from the OS KB what it points
-        # to — tag the result as the exec library base.
-        if src_val is None and platform and src_text:
-            src_stripped = src_text.strip()
-            # Match ($xxxx).w pattern
-            if src_stripped.startswith("(") and src_stripped.endswith(").w"):
-                inner = src_stripped[1:-3].strip()
+        # platform exec_base_addr.  Decoded from opcode EA bits (KB-driven).
+        if src_val is None and platform and len(inst.raw) >= meta["opword_bytes"]:
+            opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+            enc_fields = inst_kb.get("encodings", [{}])[0].get(
+                "fields", [])
+            ea_mode_f = ea_reg_f = None
+            for f in enc_fields:
+                if f["name"] == "MODE":
+                    ea_mode_f = (f["bit_hi"], f["bit_lo"],
+                                 f["bit_hi"] - f["bit_lo"] + 1)
+                elif f["name"] == "REGISTER" and f["bit_hi"] <= 5:
+                    ea_reg_f = (f["bit_hi"], f["bit_lo"],
+                                f["bit_hi"] - f["bit_lo"] + 1)
+            if ea_mode_f and ea_reg_f:
+                ea_mode = _xf(opcode, ea_mode_f)
+                ea_reg = _xf(opcode, ea_reg_f)
                 try:
-                    if inner.startswith("$"):
-                        abs_addr = int(inner[1:], 16)
-                    else:
-                        abs_addr = int(inner)
+                    operand, _ = _decode_ea(
+                        inst.raw, meta["opword_bytes"],
+                        ea_mode, ea_reg, "l", inst.offset)
                 except ValueError:
-                    abs_addr = None
-                if abs_addr is not None:
-                    exec_addr = platform.get("exec_base_addr")
-                    if abs_addr == exec_addr:
-                        src_val = _unknown(
-                            tag=platform.get("exec_base_tag"))
+                    operand = None
+                if (operand and operand.mode == "absw"
+                        and operand.value == platform.get("exec_base_addr")):
+                    src_val = _unknown(tag=platform.get("exec_base_tag"))
 
         if src_val is not None:
             _write_dst(dst_text, src_val)
@@ -1750,14 +1906,21 @@ def propagate_states(blocks: dict[int, BasicBlock],
                      platform: dict | None = None,
                      summaries: dict[int, dict | None] | None = None,
                      ) -> dict[int, tuple]:
-    """Propagate abstract state through basic blocks.
+    """Propagate abstract state through basic blocks from the program entry.
 
-    Walks blocks in topological order (BFS from entries), applying instruction
-    effects to propagate register and memory values. At merge points, joins
-    states conservatively.
+    Seeds the block at base_addr with initial state, then walks forward
+    via BFS.  At merge points, joins states conservatively.
 
-    If platform is provided (from OS KB), scratch registers are invalidated
-    after call instructions during propagation.
+    Call fallthroughs use subroutine summaries (SP delta + register
+    preservation) when available.  Caller state is also propagated into
+    callees for concrete execution (resolves memory reads like library
+    base loads).  If a summary clobbers the app base register and the
+    platform has a discovered base value, the base register is restored
+    (the init routine sets it — its summary reports it as clobbered).
+
+    Only blocks reachable from base_addr through control flow have exit
+    states.  Blocks discovered from other entry points (reloc targets,
+    heuristic scan) are not analyzed — they are discovery hints.
 
     Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
     """
@@ -1793,19 +1956,19 @@ def propagate_states(blocks: dict[int, BasicBlock],
     # Map block_start -> (exit_cpu_state, exit_memory) after execution
     exit_states: dict[int, tuple] = {}
 
-    # Topological BFS from entry blocks.
-    # Only the true program entry (no predecessors) gets initial state.
-    # All other blocks derive state from control flow predecessors.
-    entry_blocks = [addr for addr, b in blocks.items() if b.is_entry]
-    for entry in entry_blocks:
-        if not blocks[entry].predecessors:
-            incoming[entry] = {"_init": (initial_state.copy(),
-                                        initial_mem.copy())}
+    # Seed ONLY the program entry point (base_addr) with initial state.
+    # All other blocks derive state through control flow: callee
+    # propagation enters subroutines with the caller's concrete state.
+    # Blocks not reachable from the program entry have no exit states
+    # — they are discovery hints, not concrete analysis targets.
+    if base_addr in blocks:
+        incoming[base_addr] = {"_init": (initial_state.copy(),
+                                         initial_mem.copy())}
 
-    work = deque(entry_blocks)
+    work = deque([base_addr] if base_addr in blocks else [])
     visited = set()
     iterations = 0
-    max_iterations = len(blocks) * 3  # convergence guard
+    max_iterations = len(blocks) * 10  # convergence guard
 
     while work and iterations < max_iterations:
         iterations += 1
@@ -1873,38 +2036,73 @@ def propagate_states(blocks: dict[int, BasicBlock],
                 other_xrefs.append(xref)
 
         if call_sp_push and ft_dst:
-            # Call with fallthrough.  Apply summary if available,
-            # otherwise SP-adjusted fallthrough + propagate into callee.
+            # Call with fallthrough.  Apply summary to fallthrough
+            # (SP delta + register preservation).  Also propagate
+            # caller state into callee for concrete execution.
+            # Build fallthrough state: summary provides SP delta +
+            # register preservation.  Then apply scratch reg
+            # invalidation + call effects (OS call return tags).
             summary = summaries.get(call_dst) if summaries else None
             if summary:
                 ft_cpu = _apply_summary(exit_cpu, summary)
-                # Restore call-effect tags from _apply_instruction
-                if platform and platform.get("scratch_regs"):
-                    for reg_mode, reg_num in platform["scratch_regs"]:
-                        caller_val = exit_cpu.get_reg(reg_mode, reg_num)
-                        if caller_val.tag:
-                            ft_cpu.set_reg(reg_mode, reg_num,
-                                           _unknown(tag=caller_val.tag))
-                incoming.setdefault(ft_dst, {})[addr] = \
-                    (ft_cpu, exit_mem)
-                work.append(ft_dst)
+                # If the summary clobbered the app base register,
+                # restore it.  Only the init routine does this —
+                # its summary reports A6 as clobbered since
+                # output != input, but we know the actual value.
+                base_info = (platform.get("initial_base_reg")
+                             if platform else None)
+                if base_info:
+                    breg_num, breg_val = base_info
+                    if not ft_cpu.a[breg_num].is_known:
+                        ft_cpu.set_reg("an", breg_num,
+                                       _concrete(breg_val))
             else:
-                # No summary — propagate into callee (for exit state
-                # discovery) and SP-adjusted to fallthrough.
-                if call_dst:
-                    incoming.setdefault(call_dst, {})[addr] = \
-                        (exit_cpu, exit_mem)
-                    work.append(call_dst)
-                adj_cpu = exit_cpu.copy()
+                ft_cpu = exit_cpu.copy()
                 if exit_cpu.sp.is_known:
-                    adj_cpu.sp = _concrete(
+                    ft_cpu.sp = _concrete(
                         (exit_cpu.sp.concrete + call_sp_push)
                         & 0xFFFFFFFF)
                 elif exit_cpu.sp.is_symbolic:
-                    adj_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
-                incoming.setdefault(ft_dst, {})[addr] = \
-                    (adj_cpu, exit_mem)
-                work.append(ft_dst)
+                    ft_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
+
+            # Scratch reg invalidation on fallthrough (not on
+            # callee — the callee receives pre-call register
+            # state as input, e.g. D0 = LVO offset).
+            if platform and platform.get("scratch_regs"):
+                for reg_mode, reg_num in platform["scratch_regs"]:
+                    ft_cpu.set_reg(reg_mode, reg_num, _unknown())
+
+            # Apply pending call effect (from _apply_instruction's
+            # OS call resolver) to post-invalidation state.
+            if platform:
+                call_effect = platform.pop("_pending_call_effect",
+                                           None)
+                if call_effect:
+                    if "tag" in call_effect:
+                        mode, num = _parse_reg_from_text(
+                            call_effect["base_reg"])
+                        ft_cpu.set_reg(mode, num,
+                                       _unknown(tag=call_effect["tag"]))
+                    elif "concrete" in call_effect:
+                        mode, num = _parse_reg_from_text(
+                            call_effect["result_reg"])
+                        ft_cpu.set_reg(mode, num,
+                                       _concrete(call_effect["concrete"]))
+                    elif "output_type" in call_effect:
+                        mode, num = _parse_reg_from_text(
+                            call_effect["output_reg"])
+                        ft_cpu.set_reg(mode, num,
+                                       _unknown(tag=call_effect["output_type"]))
+
+            incoming.setdefault(ft_dst, {})[addr] = \
+                (ft_cpu, exit_mem)
+            work.append(ft_dst)
+            # Propagate into callee with pre-call state (callee
+            # receives the caller's registers as input).
+            if call_dst:
+                incoming.setdefault(call_dst, {})[addr] = \
+                    (exit_cpu, exit_mem)
+                work.append(call_dst)
         elif ft_dst:
             incoming.setdefault(ft_dst, {})[addr] = \
                 (exit_cpu, exit_mem)
@@ -2240,34 +2438,23 @@ def analyze(code: bytes, base_addr: int = 0,
     }
 
     if propagate:
-        # Pre-compute subroutine summaries for calls, but only after
-        # the init pass (initial_base_reg set).  The init pass needs
-        # concrete side effects that summaries can't capture.
+        # Pre-compute subroutine summaries for SP delta + register
+        # preservation on call fallthroughs.
         sums = None
         if platform and platform.get("initial_base_reg"):
             kb_by_name, _, meta = _load_kb()
             cc_test_defs = meta["cc_test_definitions"]
             cc_aliases = meta["cc_aliases"]
-            # Pre-compute summaries.  Export callee exit states so
-            # downstream consumers (library call identification) can
-            # see them even though the main propagation skips callees.
-            summary_exit_states: dict = {}
             existing = platform.get("_summary_cache")
             platform["_summary_cache"] = compute_all_summaries(
                 blocks, code, base_addr,
                 kb_by_name, cc_test_defs, cc_aliases,
-                existing=existing,
-                global_exit_states=summary_exit_states)
+                existing=existing)
             sums = platform["_summary_cache"]
-        else:
-            summary_exit_states = {}
         prop_states = propagate_states(
             blocks, code, base_addr, platform=platform,
             summaries=sums)
-        # Merge: propagation states take priority, summary states fill gaps
-        merged = dict(summary_exit_states)
-        merged.update(prop_states)
-        result["exit_states"] = merged
+        result["exit_states"] = prop_states
 
     return result
 

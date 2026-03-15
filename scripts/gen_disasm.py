@@ -466,22 +466,33 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                     reloc_targets.add(target)
 
         platform = get_platform_config()
-        # Discover base register from init pass (same as build_entities)
+        # Discover base register + init memory from init pass
         init_result = analyze(code, base_addr=0, entry_points=[0],
                               propagate=True, platform=platform)
         alloc_limit = platform.get("_next_alloc_sentinel",
                                    _SENTINEL_ALLOC_BASE)
         base_reg_num = platform.get("_base_reg_num", 6)
+        best_addr = None
+        best_slots = 0
         for addr, (cpu, mem) in init_result["exit_states"].items():
             val = cpu.a[base_reg_num]
             if (val.is_known
                     and _SENTINEL_ALLOC_BASE <= val.concrete < alloc_limit):
-                platform["initial_base_reg"] = (base_reg_num, val.concrete)
-                break
+                if best_addr is None:
+                    platform["initial_base_reg"] = (
+                        base_reg_num, val.concrete)
+                slots = sum(1 for a in mem._bytes
+                            if _SENTINEL_ALLOC_BASE <= a < alloc_limit)
+                if slots > best_slots:
+                    best_slots = slots
+                    best_addr = addr
+        if best_addr is not None:
+            _, init_mem = init_result["exit_states"][best_addr]
+            platform["_initial_mem"] = init_mem
 
         all_ep = sorted({0} | reloc_targets)
         result = analyze(code, base_addr=0, entry_points=all_ep,
-                         propagate=False, platform=platform)
+                         propagate=True, platform=platform)
         all_blocks = result["blocks"]
 
         # Filter to flow-verified blocks: reachable from address 0
@@ -542,7 +553,9 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         # Run library call identification on verified blocks, then
         # backward-propagate struct types from call inputs.
         os_kb = load_os_kb()
-        lib_calls = identify_library_calls(blocks, code, os_kb)
+        lib_calls = identify_library_calls(
+            blocks, code, os_kb, result.get("exit_states", {}),
+            result.get("call_targets", set()), platform)
         struct_map = propagate_input_types(blocks, lib_calls, os_kb)
         if struct_map:
             print(f"  {len(struct_map)} instructions with struct type info")

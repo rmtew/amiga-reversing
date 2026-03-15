@@ -276,32 +276,66 @@ def _build_lvo_lookup(os_kb: dict) -> dict:
     return {"by_lib_lvo": by_lib_lvo, "by_lvo": by_lvo}
 
 
+def _resolve_lvo(lvo: int, library: str, lvo_lookup: dict) -> dict:
+    """Resolve an LVO offset to a function in a known library."""
+    key = (library, lvo)
+    match = lvo_lookup["by_lib_lvo"].get(key)
+    if match:
+        info = {"library": match["library"], "function": match["function"]}
+        if match.get("no_return"):
+            info["no_return"] = True
+        if match.get("inputs"):
+            info["inputs"] = match["inputs"]
+        if match.get("output"):
+            info["output"] = match["output"]
+        return info
+    return {"library": library, "function": f"LVO_{-lvo}"}
+
+
+def _find_sub_entry(block_addr: int, blocks: dict,
+                    call_targets: set[int]) -> int | None:
+    """Walk predecessors to find the containing subroutine entry."""
+    visited = set()
+    work = [block_addr]
+    while work:
+        addr = work.pop()
+        if addr in visited:
+            continue
+        visited.add(addr)
+        if addr in call_targets:
+            return addr
+        blk = blocks.get(addr)
+        if blk:
+            work.extend(blk.predecessors)
+    return None
+
+
 def identify_library_calls(blocks: dict[int, BasicBlock],
                            code: bytes,
-                           os_kb: dict | None = None,
-                           exit_states: dict | None = None,
+                           os_kb: dict,
+                           exit_states: dict[int, tuple],
+                           call_targets: set[int],
+                           platform: dict,
                            ) -> list[dict]:
     """Identify OS library calls in analyzed code.
 
-    Scans for the Amiga library call pattern:
-        MOVEA.L ($0004).W,A6    ; load ExecBase
-        JSR     -offset(A6)     ; call library function via LVO
+    Detects two patterns through the library base register (OS KB):
+    1. Displacement EA: JSR d(A6) -- LVO is the displacement
+    2. Indexed EA: JSR 0(A6,Dn.w) -- LVO is in the index register,
+       resolved per-caller from exit states
 
-    If exit_states is provided (from propagation with platform config),
-    uses library_base tags on A6 to resolve calls through non-exec
-    library bases (e.g. after OpenLibrary stores a dos.library base).
+    Library identity comes from:
+    - Propagated library_base tags on A6 (from exit states)
+    - Intra-block ExecBase load detection (MOVEA.L ($N).W,A6)
 
-    EA field positions read from KB instruction encodings (not hardcoded).
-    ExecBase address and library base register from OS KB.
+    EA field positions from M68K KB encodings.  ExecBase address and
+    library base register from OS KB.
 
     Returns list of dicts:
         {"addr": int, "block": int, "library": str, "function": str,
          "lvo": int, "no_return": bool,
-         "inputs": [...], "output": {...}}  (when KB has type info)
+         "inputs": [...], "output": {...}}
     """
-    if os_kb is None:
-        os_kb = load_os_kb()
-
     kb = KB()
     os_meta = os_kb["_meta"]
     exec_base_addr = os_meta["exec_base_addr"]["address"]
@@ -314,9 +348,17 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
 
     lvo_lookup = _build_lvo_lookup(os_kb)
 
+    # App base register concrete value (from init discovery)
+    base_info = platform.get("initial_base_reg")
+    app_base = base_info[1] if base_info else None
+
     absw_enc = kb.ea_enc["absw"]
     disp_enc = kb.ea_enc["disp"]
+    index_enc = kb.ea_enc["index"]
     addr_mask = (1 << (kb.meta["size_byte_count"]["l"] * 8)) - 1
+    brief_ext = {f["name"]: (f["bit_hi"], f["bit_lo"],
+                             f["bit_hi"] - f["bit_lo"] + 1)
+                 for f in kb.meta["ea_brief_ext_word"]}
 
     movea_kb = kb.find("movea")
     jsr_kb = kb.find("jsr")
@@ -338,19 +380,29 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
     movea_mode_f, movea_reg_f = movea_ea_spec
     jsr_mode_f, jsr_reg_f = jsr_ea_spec
 
+    # Build caller map: subroutine_entry -> [caller_block_addrs]
+    caller_map: dict[int, list[int]] = {}
+    for addr, blk in blocks.items():
+        for x in blk.xrefs:
+            if x.type == "call" and x.dst in call_targets:
+                caller_map.setdefault(x.dst, []).append(addr)
+
     results = []
+    # Deferred: indexed EA calls needing per-caller resolution.
+    # List of (block_addr, inst_offset, library, index_reg_mode,
+    #          index_reg_num, base_displacement)
+    deferred = []
 
     for block_addr in sorted(blocks):
         block = blocks[block_addr]
         if not block.instructions:
             continue
 
-        # Determine library identity for A6 in this block.
-        # Priority: propagated tag (cross-block) > intra-block ExecBase detection.
+        # Library identity for A6 in this block.
         a6_lib = None
 
         # Check propagated state for A6's library_base tag
-        if exit_states and block_addr in exit_states:
+        if block_addr in exit_states:
             cpu, _mem = exit_states[block_addr]
             a6_val = cpu.a[base_reg_num]
             if a6_val.tag and "library_base" in a6_val.tag:
@@ -364,88 +416,147 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
 
             flow = ikb.get("pc_effects", {}).get("flow", {})
 
-            # Detect ExecBase load: MOVEA.L ($0004).W,A6
-            # Must be specifically MOVEA (source_sign_extend distinguishes
-            # MOVEA from MOVE in the KB).
+            # Detect library base load into the base register.
+            # 1. MOVEA.L ($N).W,A6 — ExecBase from absolute address
+            # 2. MOVEA.L d(An),A6 — library base from tagged memory
             if (ikb.get("operation_type") == "move"
                     and ikb.get("source_sign_extend")
                     and len(inst.raw) >= kb.opword_bytes + 2):
                 opcode = struct.unpack_from(">H", inst.raw, 0)[0]
                 src_mode = xf(opcode, movea_mode_f)
                 src_reg = xf(opcode, movea_reg_f)
+                dst_reg = xf(opcode, movea_dst_spec)
 
-                if src_mode == absw_enc[0] and src_reg == absw_enc[1]:
-                    addr_val = struct.unpack_from(
-                        ">h", inst.raw, kb.opword_bytes)[0]
-                    addr_val &= addr_mask
+                if dst_reg == base_reg_num:
+                    if (src_mode == absw_enc[0]
+                            and src_reg == absw_enc[1]):
+                        addr_val = struct.unpack_from(
+                            ">h", inst.raw, kb.opword_bytes)[0]
+                        addr_val &= addr_mask
+                        if addr_val == exec_base_addr:
+                            a6_lib = exec_lib_name
+                    elif (src_mode == disp_enc[0]
+                            and block_addr in exit_states
+                            and app_base is not None):
+                        disp_val = struct.unpack_from(
+                            ">h", inst.raw, kb.opword_bytes)[0]
+                        _, blk_mem = exit_states[block_addr]
+                        mem_addr = (app_base + disp_val) & addr_mask
+                        tag_val = blk_mem.read(mem_addr, "l")
+                        if (tag_val.tag
+                                and "library_base" in tag_val.tag):
+                            a6_lib = tag_val.tag["library_base"]
 
-                    dst_reg = xf(opcode, movea_dst_spec)
-                    if addr_val == exec_base_addr and dst_reg == base_reg_num:
-                        a6_lib = exec_lib_name
+            # Detect library call: JSR through base_reg
+            if flow.get("type") != "call":
+                continue
+            target = _extract_branch_target(inst, inst.offset)
+            if target is not None:
+                continue  # resolved — not a library call
+            if len(inst.raw) < kb.opword_bytes + 2:
+                continue
 
-            # Detect library call: JSR d(An) where An == base_reg
-            if flow.get("type") == "call":
-                target = _extract_branch_target(inst, inst.offset)
-                if target is not None:
-                    continue  # resolved — not a library call
+            opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+            ea_mode = xf(opcode, jsr_mode_f)
+            ea_reg = xf(opcode, jsr_reg_f)
 
-                if len(inst.raw) < kb.opword_bytes + 2:
-                    continue
-                opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-                ea_mode = xf(opcode, jsr_mode_f)
-                ea_reg = xf(opcode, jsr_reg_f)
-
-                if ea_mode != disp_enc[0] or ea_reg != base_reg_num:
-                    continue  # not d(A6)
-
+            # Pattern 1: JSR d(A6) — displacement EA, LVO is disp
+            if ea_mode == disp_enc[0] and ea_reg == base_reg_num:
                 disp = struct.unpack_from(
                     ">h", inst.raw, kb.opword_bytes)[0]
-
-                call_info = {
-                    "addr": inst.offset,
-                    "block": block_addr,
-                    "lvo": disp,
-                }
-
+                call_info = {"addr": inst.offset, "block": block_addr,
+                             "lvo": disp}
                 if a6_lib:
-                    # Known library — look up in that library's LVO index
-                    key = (a6_lib, disp)
-                    if key in lvo_lookup["by_lib_lvo"]:
-                        match = lvo_lookup["by_lib_lvo"][key]
-                        call_info["library"] = match["library"]
-                        call_info["function"] = match["function"]
-                        if match.get("no_return"):
-                            call_info["no_return"] = True
-                        if match.get("inputs"):
-                            call_info["inputs"] = match["inputs"]
-                        if match.get("output"):
-                            call_info["output"] = match["output"]
-                    else:
-                        call_info["library"] = a6_lib
-                        call_info["function"] = f"LVO_{-disp}"
+                    call_info.update(_resolve_lvo(disp, a6_lib,
+                                                 lvo_lookup))
                 else:
-                    # Unknown library — try ambiguous resolution
-                    candidates = lvo_lookup["by_lvo"].get(disp, [])
-                    if len(candidates) == 1:
-                        clib, cfunc, cdata = candidates[0]
-                        call_info["library"] = clib
-                        call_info["function"] = cfunc
-                        if cdata.get("no_return"):
-                            call_info["no_return"] = True
-                        if cdata.get("inputs"):
-                            call_info["inputs"] = cdata["inputs"]
-                        if cdata.get("output"):
-                            call_info["output"] = cdata["output"]
-                    elif candidates:
-                        call_info["library"] = "unknown"
-                        call_info["function"] = f"LVO_{-disp}"
-                        call_info["candidates"] = [
-                            f"{ln}/{fn}" for ln, fn, _ in candidates
-                        ]
-                    else:
-                        call_info["library"] = "unknown"
-                        call_info["function"] = f"LVO_{-disp}"
-
+                    call_info["library"] = "unknown"
+                    call_info["function"] = f"LVO_{-disp}"
                 results.append(call_info)
+                continue
+
+            # Pattern 2: JSR 0(A6,Dn.w) — indexed EA, LVO in index reg
+            if ea_mode == index_enc[0] and ea_reg == base_reg_num:
+                ext = struct.unpack_from(
+                    ">H", inst.raw, kb.opword_bytes)[0]
+                idx_da = xf(ext, brief_ext["D/A"])
+                idx_reg = xf(ext, brief_ext["REGISTER"])
+                idx_wl = xf(ext, brief_ext["W/L"])
+                disp_raw = xf(ext, brief_ext["DISPLACEMENT"])
+                disp_w = brief_ext["DISPLACEMENT"][2]
+                if disp_raw & (1 << (disp_w - 1)):
+                    disp_raw -= (1 << disp_w)
+
+                idx_mode = "an" if idx_da == 1 else "dn"
+
+                # Try resolving from this block's exit state
+                if block_addr in exit_states:
+                    cpu, _ = exit_states[block_addr]
+                    idx_val = cpu.get_reg(idx_mode, idx_reg)
+                    if idx_val.is_known:
+                        v = idx_val.concrete
+                        if idx_wl == 0:  # word
+                            v = v & 0xFFFF
+                            if v >= 0x8000:
+                                v -= 0x10000
+                        else:  # long
+                            if v >= 0x80000000:
+                                v -= 0x100000000
+                        lvo = disp_raw + v
+                        call_info = {"addr": inst.offset,
+                                     "block": block_addr, "lvo": lvo}
+                        if a6_lib:
+                            call_info.update(_resolve_lvo(
+                                lvo, a6_lib, lvo_lookup))
+                        else:
+                            call_info["library"] = "unknown"
+                            call_info["function"] = f"LVO_{-lvo}"
+                        results.append(call_info)
+                        continue
+
+                # Defer for per-caller resolution
+                deferred.append((block_addr, inst.offset, a6_lib,
+                                 idx_mode, idx_reg, idx_wl, disp_raw))
+
+    # Per-caller resolution for deferred indexed-EA calls.
+    # The callee block's index register is unknown (joined from
+    # multiple callers), but each caller's exit state has the
+    # concrete value.
+    for (blk_addr, inst_addr, lib, idx_mode, idx_reg,
+         idx_wl, base_disp) in deferred:
+        sub_entry = _find_sub_entry(blk_addr, blocks, call_targets)
+        if sub_entry is None:
+            continue
+        callers = caller_map.get(sub_entry, [])
+        for caller_addr in callers:
+            if caller_addr not in exit_states:
+                continue
+            caller_cpu, _ = exit_states[caller_addr]
+            idx_val = caller_cpu.get_reg(idx_mode, idx_reg)
+            if not idx_val.is_known:
+                continue
+            v = idx_val.concrete
+            if idx_wl == 0:  # word
+                v = v & 0xFFFF
+                if v >= 0x8000:
+                    v -= 0x10000
+            else:
+                if v >= 0x80000000:
+                    v -= 0x100000000
+            lvo = base_disp + v
+
+            # Resolve library from caller's A6 if callee didn't have it
+            call_lib = lib
+            if call_lib is None:
+                a6_val = caller_cpu.a[base_reg_num]
+                if a6_val.tag and "library_base" in a6_val.tag:
+                    call_lib = a6_val.tag["library_base"]
+            if call_lib is None:
+                continue
+
+            call_info = {"addr": caller_addr, "block": caller_addr,
+                         "lvo": lvo, "dispatch": inst_addr}
+            call_info.update(_resolve_lvo(lvo, call_lib, lvo_lookup))
+            results.append(call_info)
 
     return results
