@@ -184,10 +184,9 @@ def _is_valid_68000(text: str, kb: KB) -> bool:
     Uses KB processor_020 flag to reject 020+ instructions that indicate
     data bytes were incorrectly decoded as code.
     """
-    parts = text.split()
-    if not parts:
+    mn = _extract_mnemonic(text)
+    if not mn:
         return True
-    mn = parts[0].split('.')[0].lower()
     ikb = kb.find(mn)
     if ikb is None:
         return True

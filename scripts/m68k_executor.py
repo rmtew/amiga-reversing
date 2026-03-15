@@ -208,6 +208,127 @@ def _xf(word: int, field_spec: tuple) -> int:
     return (word >> bit_lo) & ((1 << width) - 1)
 
 
+def _resolve_operand(operand: Operand, cpu, mem, size: str,
+                     size_bytes: int) -> "AbstractValue | None":
+    """Read the value at a decoded EA operand.
+
+    For postincrement/predecrement, also adjusts the register.
+    Returns None if the operand can't be resolved.
+    """
+    if operand.mode == "dn":
+        return cpu.get_reg("dn", operand.reg)
+    if operand.mode == "an":
+        return cpu.get_reg("an", operand.reg)
+    if operand.mode == "imm":
+        return _concrete(operand.value)
+    if operand.mode == "ind":
+        addr = cpu.a[operand.reg]
+        if addr.is_known:
+            return mem.read(addr.concrete, size)
+        if addr.is_symbolic:
+            return mem.read(addr, size)
+        return None
+    if operand.mode == "postinc":
+        addr = cpu.a[operand.reg]
+        if addr.is_known:
+            val = mem.read(addr.concrete, size)
+            cpu.set_reg("an", operand.reg, _concrete(
+                (addr.concrete + size_bytes) & 0xFFFFFFFF))
+            return val
+        if addr.is_symbolic:
+            val = mem.read(addr, size)
+            cpu.set_reg("an", operand.reg, addr.sym_add(size_bytes))
+            return val
+        return None
+    if operand.mode == "predec":
+        addr = cpu.a[operand.reg]
+        if addr.is_known:
+            new_addr = (addr.concrete - size_bytes) & 0xFFFFFFFF
+            cpu.set_reg("an", operand.reg, _concrete(new_addr))
+            return mem.read(new_addr, size)
+        if addr.is_symbolic:
+            new_val = addr.sym_add(-size_bytes)
+            cpu.set_reg("an", operand.reg, new_val)
+            return mem.read(new_val, size)
+        return None
+    if operand.mode == "disp":
+        addr = cpu.a[operand.reg]
+        if addr.is_known:
+            return mem.read(
+                (addr.concrete + operand.value) & 0xFFFFFFFF, size)
+        if addr.is_symbolic:
+            return mem.read(addr.sym_add(operand.value), size)
+        return None
+    if operand.mode in ("absw", "absl"):
+        return None  # can't resolve without knowing memory contents
+    if operand.mode == "pcdisp":
+        return _concrete(operand.value)  # LEA-like: the target address
+    if operand.mode == "index":
+        base = cpu.a[operand.reg]
+        if not base.is_known:
+            return None
+        idx_mode = "an" if operand.index_is_addr else "dn"
+        idx_val = cpu.get_reg(idx_mode, operand.index_reg)
+        if not idx_val.is_known:
+            return None
+        _, _, meta = _load_kb()
+        idx_size = operand.index_size
+        idx_v = idx_val.concrete
+        nbits = meta["size_byte_count"][idx_size] * 8
+        mask = (1 << nbits) - 1
+        idx_v = idx_v & mask
+        if idx_v >= (1 << (nbits - 1)):
+            idx_v -= (1 << nbits)
+        ea = (base.concrete + operand.value + idx_v) & 0xFFFFFFFF
+        return mem.read(ea, size)
+    return None
+
+
+def _write_operand(operand: Operand, cpu, mem, value,
+                   size: str, size_bytes: int):
+    """Write a value to a decoded EA operand.
+
+    For predecrement/postincrement, also adjusts the register.
+    """
+    if operand.mode == "dn":
+        cpu.set_reg("dn", operand.reg, value)
+    elif operand.mode == "an":
+        cpu.set_reg("an", operand.reg, value)
+    elif operand.mode == "ind":
+        addr = cpu.a[operand.reg]
+        if addr.is_known:
+            mem.write(addr.concrete, value, size)
+        elif addr.is_symbolic:
+            mem.write(addr, value, size)
+    elif operand.mode == "predec":
+        addr = cpu.a[operand.reg]
+        if addr.is_known:
+            new_addr = (addr.concrete - size_bytes) & 0xFFFFFFFF
+            cpu.set_reg("an", operand.reg, _concrete(new_addr))
+            mem.write(new_addr, value, size)
+        elif addr.is_symbolic:
+            new_val = addr.sym_add(-size_bytes)
+            cpu.set_reg("an", operand.reg, new_val)
+            mem.write(new_val, value, size)
+    elif operand.mode == "postinc":
+        addr = cpu.a[operand.reg]
+        if addr.is_known:
+            mem.write(addr.concrete, value, size)
+            cpu.set_reg("an", operand.reg, _concrete(
+                (addr.concrete + size_bytes) & 0xFFFFFFFF))
+        elif addr.is_symbolic:
+            mem.write(addr, value, size)
+            cpu.set_reg("an", operand.reg, addr.sym_add(size_bytes))
+    elif operand.mode == "disp":
+        addr = cpu.a[operand.reg]
+        if addr.is_known:
+            mem.write(
+                (addr.concrete + operand.value) & 0xFFFFFFFF,
+                value, size)
+        elif addr.is_symbolic:
+            mem.write(addr.sym_add(operand.value), value, size)
+
+
 # ── Abstract state ────────────────────────────────────────────────────────
 
 class AbstractValue:
@@ -1077,20 +1198,17 @@ def _join_states(states: list) -> tuple:
 def _extract_size(text: str) -> str:
     """Extract size suffix from disassembled instruction text.
 
-    Returns 'b', 'w', 'l', or 'w' as default.
+    Returns the size letter, or the KB default_operand_size if unsized.
     """
     _, _, meta = _load_kb()
     parts = text.strip().split(None, 1)
     if not parts:
-        return "w"
+        return meta["default_operand_size"]
     mn_part = parts[0]
-    for sz in meta["size_byte_count"]:
+    for sz in meta["size_suffixes"]:
         if mn_part.endswith("." + sz):
             return sz
-    # No explicit size suffix — "w" is the default operand size for M68K.
-    # This is correct for unsized instructions (NOP, RTS, etc.) and
-    # instructions with implicit sizes (MOVEQ is always .l but has no suffix).
-    return "w"
+    return meta["default_operand_size"]
 
 
 def _parse_operand_text(text: str) -> tuple[str | None, str | None]:
@@ -1127,10 +1245,11 @@ def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
     Returns ('dn', N) or ('an', N) or None.
     """
     _, _, meta = _load_kb()
-    sp_reg = meta["_sp_reg_num"]
     reg_text = reg_text.strip().lower()
-    if reg_text == "sp":
-        return ("an", sp_reg)
+    # Check register aliases from KB (e.g. "sp" -> "a7")
+    aliases = meta.get("register_aliases", {})
+    if reg_text in aliases:
+        reg_text = aliases[reg_text]
     if len(reg_text) == 2 and reg_text[0] in ('d', 'a') and reg_text[1].isdigit():
         num = int(reg_text[1])
         mode = "dn" if reg_text[0] == 'd' else "an"
@@ -1516,11 +1635,9 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
 
     # MOVEM: Move Multiple Registers.  Transfers a set of registers
     # to/from memory via a 16-bit mask in the extension word.
-    # Detected by KB form syntax containing "<list>" (unique to MOVEM).
+    # Detected by KB operation_class (set by parser from form syntax).
     # Register order from KB movem_reg_masks (normal vs predecrement).
-    if (op == "assign"
-            and any("<list>" in f.get("syntax", "")
-                    for f in inst_kb.get("forms", []))):
+    if inst_kb.get("operation_class") == "multi_register_transfer":
         opword_bytes = meta["opword_bytes"]
         if len(inst.raw) < opword_bytes + 2:
             return  # truncated
@@ -1644,7 +1761,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     # "assign" (same as MOVE), but the semantics are fundamentally different:
     # LEA computes &source, MOVE reads *source.  No KB field distinguishes
     # this, so we check the operation text from the KB.
-    if inst_kb.get("operation") == "< ea > \u2192 An" and op == "assign":
+    if inst_kb.get("operation_class") == "load_effective_address" and op == "assign":
         if dst_text:
             dst_reg = _parse_reg_from_text(dst_text)
             if dst_reg and src_text:

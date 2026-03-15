@@ -52,17 +52,20 @@ def _parse_ext_word(ext: int, raw: bytes, meta: dict) -> dict | None:
         displacement = fields.get("DISPLACEMENT", 0)
 
         if full:
-            # Full ext word: displacement comes from subsequent bytes
+            # Full ext word: displacement from subsequent bytes.
+            # BD SIZE values from KB ea_full_ext_bd_size.
             bd_size = fields.get("BD SIZE", 0)
-            if bd_size == 0:
-                return None  # reserved
-            elif bd_size == 1:
+            bd_map = meta["ea_full_ext_bd_size"]
+            bd_type = bd_map.get(str(bd_size), "reserved")
+            if bd_type == "reserved":
+                return None
+            elif bd_type == "null":
                 displacement = 0
-            elif bd_size == 2:
+            elif bd_type == "word":
                 if len(raw) < 6:
                     return None
                 displacement = struct.unpack_from(">h", raw, 4)[0]
-            elif bd_size == 3:
+            elif bd_type == "long":
                 if len(raw) < 8:
                     return None
                 displacement = struct.unpack_from(">i", raw, 4)[0]
@@ -109,8 +112,8 @@ def _is_indexed_ea(raw: bytes, kb: KB, inst_kb: dict) -> dict | None:
     mode = xf(opcode, ea_spec[0])
     reg = xf(opcode, ea_spec[1])
 
-    pcindex = kb.ea_enc.get("pcindex")
-    index = kb.ea_enc.get("index")
+    pcindex = kb.ea_enc["pcindex"]
+    index = kb.ea_enc["index"]
 
     if pcindex and mode == pcindex[0] and reg == pcindex[1]:
         return {"base_mode": "pc", "base_reg": None, **ext_info}
@@ -138,14 +141,14 @@ def _resolve_lea_pc(inst, kb: KB) -> int | None:
     reg = xf(opcode, ea_spec[1])
 
     # PC-indexed (pcindex): LEA d(PC,Dn),An
-    pcindex = kb.ea_enc.get("pcindex")
+    pcindex = kb.ea_enc["pcindex"]
     if pcindex and mode == pcindex[0] and reg == pcindex[1]:
         ei = _is_indexed_ea(inst.raw, kb, lea_kb)
         if ei and ei["base_mode"] == "pc":
             return inst.offset + kb.opword_bytes + ei["displacement"]
 
     # PC-displacement (pcdisp): LEA d(PC),An
-    pcdisp = kb.ea_enc.get("pcdisp")
+    pcdisp = kb.ea_enc["pcdisp"]
     if pcdisp and mode == pcdisp[0] and reg == pcdisp[1]:
         disp = struct.unpack_from(">h", inst.raw, kb.opword_bytes)[0]
         return inst.offset + kb.opword_bytes + disp
@@ -301,7 +304,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
 
         # Pattern B: JMP (An) with preceding LEA+ADDA self-relative
         if ea_info is None and len(block.instructions) >= 3:
-            ind_enc = kb.ea_enc.get("ind")
+            ind_enc = kb.ea_enc["ind"]
             ea_spec = kb.ea_field_spec(ikb)
             if ind_enc and ea_spec and len(last.raw) >= 2:
                 opcode = struct.unpack_from(">H", last.raw, 0)[0]
@@ -413,7 +416,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
 def ikb_is_lea(inst, kb: KB) -> bool:
     """Check if instruction is LEA via KB operation text."""
     ikb = kb.find(_extract_mnemonic(inst.text))
-    return ikb is not None and ikb.get("operation") == "< ea > \u2192 An"
+    return ikb is not None and ikb.get("operation_class") == "load_effective_address"
 
 
 def _is_adda_ind(inst, kb: KB, target_reg: int) -> bool:

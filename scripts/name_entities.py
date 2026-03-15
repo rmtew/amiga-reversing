@@ -56,7 +56,7 @@ def find_string_refs(blocks: dict[int, BasicBlock],
             ikb = kb.find(_extract_mnemonic(inst.text))
             if ikb is None:
                 continue
-            if ikb.get("operation") != "< ea > \u2192 An":
+            if ikb.get("operation_class") != "load_effective_address":
                 continue
             if len(inst.raw) < kb.opword_bytes + 2:
                 continue

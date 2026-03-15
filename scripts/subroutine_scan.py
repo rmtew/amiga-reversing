@@ -82,9 +82,14 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
         ikb = kb.find(_extract_mnemonic(inst.text))
         if ikb is None:
             return None  # unrecognized instruction
-        flow = ikb.get("pc_effects", {}).get("flow", {})
-        ft = flow.get("type")
-        conditional = flow.get("conditional", False)
+        pc_effects = ikb.get("pc_effects")
+        if pc_effects is None:
+            ft = None
+            conditional = False
+        else:
+            flow = pc_effects["flow"]
+            ft = flow["type"]
+            conditional = flow.get("conditional", False)
 
         if ft in ("call", "branch"):
             has_flow = True

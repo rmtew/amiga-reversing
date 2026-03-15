@@ -39,8 +39,11 @@ class KB:
         ikb = self.find(mn)
         if ikb is None:
             return None, False
-        flow = ikb.get("pc_effects", {}).get("flow", {})
-        return flow.get("type"), flow.get("conditional", False)
+        pc_effects = ikb.get("pc_effects")
+        if pc_effects is None:
+            return None, False
+        flow = pc_effects["flow"]
+        return flow["type"], flow.get("conditional", False)
 
     def ea_field_spec(self, inst_kb: dict) -> tuple | None:
         """Extract (mode_field, reg_field) from KB encoding for EA instructions.
