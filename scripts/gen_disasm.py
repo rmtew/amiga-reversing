@@ -27,8 +27,12 @@ from os_calls import (get_platform_config, _SENTINEL_ALLOC_BASE,
                       load_os_kb, identify_library_calls,
                       propagate_input_types)
 from build_entities import _resolve_reloc_target
-from m68k_executor import _extract_branch_target, _extract_mnemonic
-from kb_util import KB, read_string_at, find_containing_sub
+from m68k_executor import (_extract_branch_target, _extract_mnemonic,
+                          _extract_size)
+from kb_util import (KB, read_string_at, find_containing_sub,
+                     decode_instruction_operands, decode_destination,
+                     parse_reg_name)
+from jump_tables import detect_jump_tables, resolve_indirect_targets
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -49,18 +53,12 @@ def discover_pc_relative_targets(blocks: dict, code: bytes,
                                  kb: KB) -> dict[int, str]:
     """Discover PC-relative operand targets in flow-verified blocks.
 
-    Handles both EA modes from KB ea_mode_encoding:
-    - pcdisp d(PC): target = PC + opword_bytes + d (fully resolved)
-    - pcindex d(PC,Xn): base = PC + opword_bytes + d (index unknown,
-      but the base address IS statically known and should be labeled
-      for readability — e.g. jump table base)
+    Decodes each instruction's EA from raw opcode bytes using KB encoding
+    fields.  If the EA mode is pcdisp or pcindex, the Operand.value is
+    the statically-known target address (PC + opword_bytes + displacement).
 
-    Names targets based on content: string → str_XXXX, else pcref_XXXX.
-    Target computation uses KB opword_bytes for PC offset.
+    Names targets based on content: string -> str_XXXX, else pcref_XXXX.
     """
-    # Match both d(pc) and d(pc,Xn) — extract displacement from either
-    pc_re = re.compile(r'(-?\d+)\(pc[),]', re.IGNORECASE)
-
     # Build set of all instruction byte ranges to exclude targets
     # that fall inside instructions (e.g. jmp 0(pc,d0.w) where the
     # base address IS the extension word location).
@@ -70,29 +68,34 @@ def discover_pc_relative_targets(blocks: dict, code: bytes,
             for a in range(inst.offset, inst.offset + inst.size):
                 instr_ranges.add(a)
 
-    targets = {}  # addr → name
+    targets = {}  # addr -> name
     for blk in blocks.values():
         for inst in blk.instructions:
-            text = inst.text.strip()
-            parts = text.split(None, 1)
-            if len(parts) < 2:
+            mn = _extract_mnemonic(inst.text)
+            inst_kb = kb.find(mn)
+            if inst_kb is None:
                 continue
-            m = pc_re.search(parts[1])
-            if not m:
-                continue
-            disp = int(m.group(1))
-            target = inst.offset + kb.opword_bytes + disp
-            if target < 0 or target >= len(code) or target in targets:
-                continue
-            # Skip targets inside instruction bytes (encoding artifacts)
-            if target in instr_ranges:
-                continue
-            # Name based on content at target
-            s = read_string_at(code, target)
-            if s and len(s) >= 3:
-                targets[target] = f"str_{target:04x}"
-            else:
-                targets[target] = f"pcref_{target:04x}"
+            sz = _extract_size(inst.text)
+            decoded = decode_instruction_operands(
+                inst.raw, inst_kb, kb.meta, sz, inst.offset)
+            # Check both ea_op and dst_op for PC-relative modes
+            for op in (decoded["ea_op"], decoded["dst_op"]):
+                if op is None:
+                    continue
+                if op.mode not in ("pcdisp", "pcindex"):
+                    continue
+                target = op.value
+                if target is None:
+                    continue
+                if target < 0 or target >= len(code) or target in targets:
+                    continue
+                if target in instr_ranges:
+                    continue
+                s = read_string_at(code, target)
+                if s and len(s) >= 3:
+                    targets[target] = f"str_{target:04x}"
+                else:
+                    targets[target] = f"pcref_{target:04x}"
     return targets
 
 
@@ -178,11 +181,17 @@ def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
     return reloc_map
 
 
-def _is_valid_68000(text: str, kb: KB) -> bool:
-    """Check if a disassembled instruction is valid for 68000.
+def _is_valid_encoding(text: str, raw: bytes, offset: int, kb: KB) -> bool:
+    """Check if instruction's EA mode and size are valid per KB constraints.
 
-    Uses KB processor_020 flag to reject 020+ instructions that indicate
-    data bytes were incorrectly decoded as code.
+    Validates:
+    - EA mode is in the instruction's allowed ea_modes (ea/src/dst)
+    - An with an_sizes constraint rejects invalid sizes
+    - An as source rejects byte size (architectural: no byte ops on An)
+
+    KB ea_modes has three possible keys:
+    - "ea": single EA operand (JSR, LEA, CLR, etc.)
+    - "src"/"dst": separate source and destination modes (MOVE)
     """
     mn = _extract_mnemonic(text)
     if not mn:
@@ -190,10 +199,102 @@ def _is_valid_68000(text: str, kb: KB) -> bool:
     ikb = kb.find(mn)
     if ikb is None:
         return True
-    # KB processor_020 flag: instruction requires 68020+
-    if ikb.get("processor_020"):
-        return False
+    ea_modes = ikb.get("ea_modes", {})
+    if not ea_modes:
+        return True
+    sz = _extract_size(text)
+    decoded = decode_instruction_operands(raw, ikb, kb.meta, sz, offset)
+    ea_op = decoded["ea_op"]
+    dst_op = decoded["dst_op"]
+
+    # Check ea_op against allowed modes
+    if ea_op and ea_op.mode:
+        if "ea" in ea_modes:
+            if ea_op.mode not in ea_modes["ea"]:
+                return False
+        elif "src" in ea_modes:
+            if ea_op.mode not in ea_modes["src"]:
+                return False
+        elif "dst" in ea_modes:
+            if ea_op.mode not in ea_modes["dst"]:
+                return False
+
+    # Check dst_op against allowed dst modes
+    if dst_op and dst_op.mode and "dst" in ea_modes:
+        if dst_op.mode not in ea_modes["dst"]:
+            return False
+
+    # An size restriction from KB constraint (ADDQ/SUBQ: no byte to An)
+    an_sizes = ikb.get("constraints", {}).get("an_sizes")
+    if an_sizes and sz:
+        for op in (ea_op, dst_op):
+            if op and op.mode == "an" and sz not in an_sizes:
+                return False
+
+    # Architectural: no byte-size operations on address registers.
+    # From KB ea_mode_sizes: An only supports word and long.
+    if sz == "b":
+        ea_mode_sizes = kb.meta.get("ea_mode_sizes", {})
+        an_valid = ea_mode_sizes.get("an", ["w", "l"])
+        for op in (ea_op, dst_op):
+            if op and op.mode == "an" and "b" not in an_valid:
+                return False
+
     return True
+
+
+def _has_valid_branch_target(inst, kb: KB) -> bool:
+    """Check if branch/jump target is word-aligned.
+
+    Odd branch targets indicate data bytes mis-decoded as branch
+    instructions. Alignment requirement from KB opword_bytes.
+    Only checks instructions whose KB flow type is branch, jump, or
+    call — other instructions are not branches and always pass.
+    """
+    mn = _extract_mnemonic(inst.text)
+    if mn:
+        ikb = kb.find(mn)
+        if ikb:
+            flow = ikb.get("pc_effects", {}).get("flow", {})
+            ftype = flow.get("type")
+            if ftype not in ("branch", "jump", "call"):
+                return True  # not a branch instruction
+    try:
+        target = _extract_branch_target(inst, inst.offset)
+    except (struct.error, IndexError):
+        return False  # can't decode = invalid
+    if target is None:
+        return True  # indirect target, can't validate statically
+    return target % kb.opword_bytes == 0
+
+
+def _get_processor_min(text: str, kb: KB) -> str:
+    """Get minimum processor for instruction from KB.
+
+    Returns "68000" for base 68000 instructions, or the minimum
+    processor (e.g. "68010", "68020", "68040") for later architectures.
+
+    Uses two KB fields:
+    - processor_min (instruction level): for entirely non-68000 instructions
+    - processor_020 (variant level): for mixed instructions where only some
+      variants (e.g. DIVSL, EXTB) require 68020+
+    """
+    mn = _extract_mnemonic(text)
+    if not mn:
+        return "68000"
+    ikb = kb.find(mn)
+    if ikb is None:
+        return "68000"
+    # Instruction-level processor_min (e.g. BFINS -> 68020)
+    pmin = ikb.get("processor_min", "68000")
+    if pmin != "68000":
+        return pmin
+    # Variant-level processor_020 (e.g. DIVSL is 020+ but parent DIVS is 68000)
+    mn_upper = mn.upper()
+    for v in ikb.get("variants", []):
+        if v["mnemonic"].upper() == mn_upper and v.get("processor_020"):
+            return "68020"
+    return "68000"
 
 
 def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
@@ -430,6 +531,7 @@ def emit_data_region(f, code: bytes, start: int, end: int,
         pos = chunk_end
 
 
+
 def gen_disasm(binary_path: str, entities_path: str, output_path: str):
     """Main: generate vasm-compatible .s file from binary + entities.
 
@@ -489,11 +591,32 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             _, init_mem = init_result["exit_states"][best_addr]
             platform["_initial_mem"] = init_mem
 
-        # Core analysis: entry 0 only (no reloc/scan mixing).
-        # Propagation seeds from entry 0; callee propagation reaches
-        # all subroutines through verified control flow.
-        result = analyze(code, base_addr=0, entry_points=[0],
-                         propagate=True, platform=platform)
+        # Core analysis with jump table discovery loop.
+        # Iteratively adds jump table targets and indirect targets
+        # as entry points until no new targets are found.
+        core_entries = {0}
+        jt_list = []
+        for _ in range(10):
+            result = analyze(code, base_addr=0,
+                             entry_points=sorted(core_entries),
+                             propagate=True, platform=platform)
+            added = 0
+            jt_list = detect_jump_tables(result["blocks"], code,
+                                         base_addr=0)
+            for t in jt_list:
+                for tgt in t["targets"]:
+                    if tgt not in core_entries:
+                        core_entries.add(tgt)
+                        added += 1
+            for r in resolve_indirect_targets(
+                    result["blocks"],
+                    result.get("exit_states", {}),
+                    code_size):
+                if r["target"] not in core_entries:
+                    core_entries.add(r["target"])
+                    added += 1
+            if not added:
+                break
         blocks = result["blocks"]
         code_addrs = set()
         for blk in blocks.values():
@@ -512,7 +635,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                              entry_points=sorted(hint_entries),
                              propagate=False)
             hint_blocks = {a: b for a, b in hint_r["blocks"].items()
-                           if a not in blocks}
+                           if a not in blocks and a not in code_addrs}
         scan_cands = scan_and_score(
             blocks, code, reloc_targets,
             result.get("call_targets", set()))
@@ -524,7 +647,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                              entry_points=sorted(scan_entries),
                              propagate=False)
             for a, b in scan_r["blocks"].items():
-                if a not in blocks and a not in hint_blocks:
+                if (a not in blocks and a not in code_addrs
+                        and a not in hint_blocks):
                     hint_blocks[a] = b
 
         hint_addrs = set()
@@ -540,20 +664,62 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         reloc_target_set = set(reloc_map.values())
         print(f"  {len(reloc_map)} relocations")
 
-        # Discover internal targets from blocks
-        internal_targets = set()
+        # Discover internal branch targets from blocks.
+        # A label is needed only at addresses that are branched or
+        # jumped to — not at block splits caused by fallthrough.
+        # Collect all non-fallthrough successors (branch targets),
+        # then label block starts only if something branches to them.
+        branch_targets = set()
         for blk in blocks.values():
-            internal_targets.add(blk.start)
             for succ in blk.successors:
-                internal_targets.add(succ)
+                if succ != blk.end:
+                    branch_targets.add(succ)
+        internal_targets = branch_targets | core_entries
 
         # Discover PC-relative targets (strings, data tables)
         pc_targets = discover_pc_relative_targets(blocks, code, kb)
+        # Also discover from hint blocks so their d(PC) references
+        # get labels and assemble without absolute displacement warnings.
+        hint_pc = discover_pc_relative_targets(hint_blocks, code, kb)
+        for addr, name in hint_pc.items():
+            if addr not in pc_targets:
+                pc_targets[addr] = name
         # String addresses: only PC-relative-verified targets
         string_addrs = {addr for addr, name in pc_targets.items()
                         if name.startswith("str_")}
         print(f"  {len(pc_targets)} PC-relative targets "
               f"({len(string_addrs)} verified strings)")
+
+        # Build jump table metadata for structured emission.
+        # Uses jt_list captured from the discovery loop (final
+        # iteration's tables match the final blocks).
+        jt_regions = {}  # table_addr -> {base_addr, entries, pattern}
+        jt_target_sources = defaultdict(list)  # target -> [base_label]
+        for t in jt_list:
+            tbl_addr = t["addr"]
+            if t["pattern"] == "pc_inline_dispatch":
+                # BRA instruction entries — emitted as disassembled code.
+                # The dispatch block ends after the JMP instruction;
+                # use that as the region start so the walk loop finds it.
+                dispatch_blk = blocks.get(t["dispatch_block"])
+                if dispatch_blk is None:
+                    continue
+                region_start = dispatch_blk.end
+                jt_regions[region_start] = {
+                    "pattern": "pc_inline_dispatch",
+                    "table_end": t["table_end"],
+                    "targets": t["targets"],
+                }
+            else:
+                jt_regions[tbl_addr] = {
+                    "base_addr": t["base_addr"],
+                    "entries": [(tbl_addr + i * 2, tgt)
+                                for i, tgt in enumerate(t["targets"])],
+                    "pattern": t["pattern"],
+                    "table_end": t["table_end"],
+                }
+        if jt_regions:
+            print(f"  {len(jt_regions)} jump tables for structured emission")
 
         # Build label map
         labels = build_label_map(
@@ -561,15 +727,48 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             {t: None for t in internal_targets},
             reloc_target_set,
             pc_targets)
+        # Ensure jump table targets and base addresses have labels
+        for tbl_addr, jt in jt_regions.items():
+            if jt["pattern"] == "pc_inline_dispatch":
+                # Inline BRA targets just need target labels
+                for tgt in jt["targets"]:
+                    if tgt not in labels:
+                        labels[tgt] = f"loc_{tgt:04x}"
+                continue
+            if tbl_addr not in labels:
+                labels[tbl_addr] = f"jt_{tbl_addr:04x}"
+            base = jt["base_addr"]
+            if base is not None and base not in labels:
+                labels[base] = f"loc_{base:04x}"
+            for _entry_addr, tgt in jt["entries"]:
+                if tgt not in labels:
+                    labels[tgt] = f"loc_{tgt:04x}"
+        # Populate jt_target_sources now that labels exist
+        for tbl_addr, jt in jt_regions.items():
+            if jt["pattern"] == "pc_inline_dispatch":
+                continue
+            base = jt["base_addr"]
+            base_label = labels[base] if base is not None else None
+            jt["base_label"] = base_label
+            source = base_label or labels[tbl_addr]
+            for _entry_addr, tgt in jt["entries"]:
+                if source not in jt_target_sources[tgt]:
+                    jt_target_sources[tgt].append(source)
+
         # Add hint block labels (don't override existing labels)
         for addr in sorted(hint_blocks):
             if addr not in labels:
                 labels[addr] = f"hint_{addr:04x}"
-            # Also add internal labels for hint blocks
+            # Also add labels for hint block successors
             blk = hint_blocks[addr]
             for succ in blk.successors:
-                if succ not in labels and succ in hint_blocks:
-                    labels[succ] = f"hint_{succ:04x}"
+                if succ == blk.end:
+                    continue  # fallthrough, no label needed
+                if succ not in labels:
+                    if succ in hint_blocks:
+                        labels[succ] = f"hint_{succ:04x}"
+                    elif succ in code_addrs:
+                        labels[succ] = f"loc_{succ:04x}"
         print(f"  {len(labels)} labels")
 
         # Build struct type map for displacement substitution.
@@ -628,19 +827,32 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                     # Scan backward for moveq/move #lvo,d0
                     for j in range(i - 1, -1, -1):
                         prev = caller_blk.instructions[j]
-                        # Match #-NN or #$FF.. forms of the LVO value
-                        if f"#{lvo}," in prev.text or \
-                           f"#-{-lvo}," in prev.text:
-                            lvo_substitutions[prev.offset] = (
-                                f"#{lvo}", f"#{sym}")
-                            break
-                        elif lvo < 0:
-                            # moveq uses signed byte: check hex form
-                            byte_val = lvo & 0xFF
-                            if f"#${byte_val:02x}," in prev.text.lower():
+                        prev_mn = _extract_mnemonic(prev.text)
+                        prev_kb = kb.find(prev_mn)
+                        if prev_kb is None:
+                            continue
+                        prev_sz = _extract_size(prev.text)
+                        prev_dec = decode_instruction_operands(
+                            prev.raw, prev_kb, kb.meta,
+                            prev_sz, prev.offset)
+                        if prev_dec["imm_val"] is None:
+                            continue
+                        # Check if the immediate matches the LVO
+                        # (compare as signed 32-bit)
+                        pv = prev_dec["imm_val"]
+                        if pv >= 0x80000000:
+                            pv_signed = pv - 0x100000000
+                        else:
+                            pv_signed = pv
+                        if pv_signed == lvo:
+                            # Extract literal #value text for
+                            # replacement. Detection was KB-driven.
+                            imm_m = re.search(r'#(\$?-?[0-9a-fA-F]+)',
+                                              prev.text)
+                            if imm_m:
                                 lvo_substitutions[prev.offset] = (
-                                    f"#{lvo}", f"#{sym}")
-                                break
+                                    f"#{imm_m.group(1)}", f"#{sym}")
+                            break
                     break
             else:
                 # Direct call: jsr lvo(a6)
@@ -713,29 +925,53 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             # For each input register, scan backward for immediate set
             for inp in inputs:
                 reg = inp["reg"].lower()
+                reg_mode, reg_n = parse_reg_name(reg)
                 # Scan backward from call for #imm,reg
                 for j in range(call_idx - 1, -1, -1):
                     prev = blk.instructions[j]
-                    text = prev.text.strip().lower()
-                    # Match: moveq #N,reg or move.l #N,reg etc.
-                    m = re.match(
-                        r'\w+(?:\.\w)?\s+#([^,]+),\s*' + re.escape(reg),
-                        text)
-                    if not m:
+                    prev_mn = _extract_mnemonic(prev.text)
+                    prev_kb = kb.find(prev_mn)
+                    if prev_kb is None:
                         continue
-                    imm_str = m.group(1).strip()
-                    try:
-                        if imm_str.startswith("$"):
-                            imm_val = int(imm_str[1:], 16)
-                        else:
-                            imm_val = int(imm_str)
-                    except ValueError:
-                        break
+                    prev_sz = _extract_size(prev.text)
+                    prev_dec = decode_instruction_operands(
+                        prev.raw, prev_kb, kb.meta,
+                        prev_sz, prev.offset)
+                    if prev_dec["imm_val"] is None:
+                        continue
+                    # Determine destination register from decoded operands
+                    dst = decode_destination(
+                        prev.raw, prev_kb, kb.meta,
+                        prev_sz, prev.offset)
+                    if dst is None:
+                        continue
+                    dst_mode, dst_num = dst
+                    if dst_mode != reg_mode or dst_num != reg_n:
+                        continue
+                    imm_val = prev_dec["imm_val"]
+                    # Try both unsigned and signed forms for lookup,
+                    # since KB constants may use signed values (-2)
+                    # while decoded immediates are unsigned 32-bit.
                     const_name = vmap.get(imm_val)
+                    if const_name is None and imm_val >= 0x80000000:
+                        const_name = vmap.get(
+                            imm_val - 0x100000000)
                     if const_name:
-                        arg_equs[const_name] = imm_val
-                        arg_substitutions[prev.offset] = (
-                            f"#{imm_str}", f"#{const_name}")
+                        # Store signed value for EQU output
+                        equ_val = imm_val
+                        if equ_val >= 0x80000000:
+                            equ_val = imm_val - 0x100000000
+                        arg_equs[const_name] = equ_val
+                        # Extract the literal #value text from the
+                        # instruction for text replacement.  The
+                        # detection was KB-driven; this extracts the
+                        # display form for substitution only.
+                        imm_m = re.search(r'#(\$?-?[0-9a-fA-F]+)',
+                                          prev.text)
+                        if imm_m:
+                            arg_substitutions[prev.offset] = (
+                                f"#{imm_m.group(1)}",
+                                f"#{const_name}")
                     break  # stop scanning for this register
 
         if arg_substitutions:
@@ -800,12 +1036,22 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             instr_count = 0
             data_bytes = 0
 
+            def _emit_label(addr):
+                """Emit a label, with jt comment if it's a jump table target."""
+                lbl = labels[addr]
+                sources = jt_target_sources.get(addr)
+                if sources:
+                    comment = ", ".join(sources)
+                    f.write(f"{lbl}: ; jt: {comment}\n")
+                else:
+                    f.write(f"{lbl}:\n")
+
             # Walk ALL bytes in order, emitting code or data
             pos = 0
             while pos < code_size:
                 # Emit label if present
                 if pos in labels:
-                    f.write(f"{labels[pos]}:\n")
+                    _emit_label(pos)
 
                 if pos in blocks:
                     # This is a basic block — disassemble instructions
@@ -813,47 +1059,61 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                     for inst in blk.instructions:
                         # Internal label
                         if inst.offset != pos and inst.offset in labels:
-                            f.write(f"{labels[inst.offset]}:\n")
-                        if not _is_valid_68000(inst.text, kb):
-                            # Invalid decode — emit as raw bytes
+                            _emit_label(inst.offset)
+                        if (not _is_valid_encoding(inst.text, inst.raw,
+                                                   inst.offset, kb)
+                                or not _has_valid_branch_target(inst, kb)):
                             emit_data_region(f, code, inst.offset,
                                              inst.offset + inst.size,
                                              labels, reloc_map,
                                              string_addrs)
                             data_bytes += inst.size
-                        else:
-                            text = replace_targets_in_text(
+                            continue
+                        text = replace_targets_in_text(
                                 inst.text, inst.offset, inst.size,
                                 labels, reloc_map, kb.opword_bytes)
-                            text = replace_struct_fields(
+                        text = replace_struct_fields(
                                 text, inst.offset, struct_map,
                                 used_structs)
-                            # Substitute app memory offsets
-                            if app_offsets and base_info:
-                                brn = base_info[0]
-                                for off, sym in app_offsets.items():
-                                    text = text.replace(
-                                        f"{off}(a{brn})",
-                                        f"{sym}(a{brn})")
-                            # Substitute LVO constants
-                            sub = lvo_substitutions.get(inst.offset)
-                            if sub:
-                                text = text.replace(sub[0], sub[1])
-                            # Substitute argument constants
-                            sub = arg_substitutions.get(inst.offset)
-                            if sub:
-                                text = text.replace(sub[0], sub[1])
+                        # Substitute app memory offsets
+                        if app_offsets and base_info:
+                            brn = base_info[0]
+                            for off, sym in app_offsets.items():
+                                text = text.replace(
+                                    f"{off}(a{brn})",
+                                    f"{sym}(a{brn})")
+                        # Substitute LVO constants
+                        sub = lvo_substitutions.get(inst.offset)
+                        if sub:
+                            text = text.replace(sub[0], sub[1])
+                        # Substitute argument constants
+                        sub = arg_substitutions.get(inst.offset)
+                        if sub:
+                            text = text.replace(sub[0], sub[1])
+                        pmin = _get_processor_min(inst.text, kb)
+                        if pmin != "68000":
+                            f.write(f"    {text} ; {pmin}+\n")
+                        else:
                             f.write(f"    {text}\n")
-                            instr_count += 1
+                        instr_count += 1
                     pos = blk.end
                 elif pos in code_addrs:
                     # Inside a block but not at the start — skip
                     pos += 1
                 elif pos in hint_blocks:
-                    # Hint block: emit as unverified disassembly IF
-                    # the block ends with a flow-terminating instruction
-                    # (RTS, BRA, JMP, etc.).  Otherwise it's data that
-                    # coincidentally decodes as instructions.
+                    # Hint block: emit as unverified disassembly only if
+                    # ALL validation checks pass.  Unlike core blocks
+                    # (which have verified control flow), hint blocks
+                    # have no trust — one bad instruction rejects the
+                    # entire block as data.
+                    #
+                    # Checks (all KB-driven):
+                    # 1. Last instruction is flow-terminating
+                    # 2. No zero opwords ($0000 = null bytes as code)
+                    # 3. All instructions have valid EA modes/sizes
+                    # 4. All branch targets are word-aligned
+                    # 5. No 68020+ instructions (unverified mixed-arch
+                    #    blocks are almost certainly false decodes)
                     blk = hint_blocks[pos]
                     valid_hint = False
                     if blk.instructions:
@@ -869,6 +1129,27 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                             elif (ftype == "call"
                                   and not flow.get("conditional")):
                                 valid_hint = True  # tail call
+                    if valid_hint:
+                        for inst in blk.instructions:
+                            # Zero opword
+                            if (len(inst.raw) >= kb.opword_bytes
+                                    and struct.unpack_from(">H",
+                                        inst.raw, 0)[0] == 0):
+                                valid_hint = False
+                                break
+                            # Invalid EA mode/size
+                            if not _is_valid_encoding(inst.text,
+                                    inst.raw, inst.offset, kb):
+                                valid_hint = False
+                                break
+                            # Odd branch target
+                            if not _has_valid_branch_target(inst, kb):
+                                valid_hint = False
+                                break
+                            # 68020+ in unverified block
+                            if _get_processor_min(inst.text, kb) != "68000":
+                                valid_hint = False
+                                break
                     if not valid_hint:
                         # Not valid code — emit as data
                         emit_data_region(f, code, pos, blk.end,
@@ -881,33 +1162,64 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                     hint_instr = 0
                     for inst in blk.instructions:
                         if inst.offset != pos and inst.offset in labels:
-                            f.write(f"{labels[inst.offset]}:\n")
-                        if not _is_valid_68000(inst.text, kb):
-                            emit_data_region(f, code, inst.offset,
-                                             inst.offset + inst.size,
-                                             labels, reloc_map,
-                                             string_addrs)
-                            data_bytes += inst.size
-                        else:
-                            text = replace_targets_in_text(
+                            _emit_label(inst.offset)
+                        text = replace_targets_in_text(
                                 inst.text, inst.offset, inst.size,
                                 labels, reloc_map, kb.opword_bytes)
-                            if app_offsets and base_info:
-                                brn = base_info[0]
-                                for off, sym in app_offsets.items():
-                                    text = text.replace(
-                                        f"{off}(a{brn})",
-                                        f"{sym}(a{brn})")
-                            sub = lvo_substitutions.get(inst.offset)
-                            if sub:
-                                text = text.replace(sub[0], sub[1])
+                        if app_offsets and base_info:
+                            brn = base_info[0]
+                            for off, sym in app_offsets.items():
+                                text = text.replace(
+                                    f"{off}(a{brn})",
+                                    f"{sym}(a{brn})")
+                        sub = lvo_substitutions.get(inst.offset)
+                        if sub:
+                            text = text.replace(sub[0], sub[1])
+                        pmin = _get_processor_min(inst.text, kb)
+                        if pmin != "68000":
+                            f.write(f"    {text} ; {pmin}+\n")
+                        else:
                             f.write(f"    {text}\n")
-                            hint_instr += 1
+                        hint_instr += 1
                     instr_count += hint_instr
                     pos = blk.end
                 elif pos in hint_addrs:
                     # Inside a hint block but not at start — skip
                     pos += 1
+                elif pos in jt_regions:
+                    jt = jt_regions[pos]
+                    if jt["pattern"] == "pc_inline_dispatch":
+                        # Decode and emit BRA instructions inline
+                        from m68k_disasm import _Decoder, _decode_one
+                        dec = _Decoder(code, 0)
+                        dec.pos = pos
+                        while dec.pos < jt["table_end"]:
+                            if dec.pos in labels and dec.pos != pos:
+                                _emit_label(dec.pos)
+                            inst = _decode_one(dec, None)
+                            if inst is None:
+                                break
+                            text = replace_targets_in_text(
+                                inst.text, inst.offset, inst.size,
+                                labels, reloc_map, kb.opword_bytes)
+                            f.write(f"    {text}\n")
+                            instr_count += 1
+                        pos = jt["table_end"]
+                    else:
+                        # Data tables — emit structured dc.w entries
+                        for entry_addr, tgt in jt["entries"]:
+                            if entry_addr in labels and entry_addr != pos:
+                                _emit_label(entry_addr)
+                            tgt_label = labels[tgt]
+                            if jt["base_addr"] is None:
+                                f.write(
+                                    f"    dc.w    {tgt_label}-*\n")
+                            else:
+                                f.write(
+                                    f"    dc.w    "
+                                    f"{tgt_label}-{jt['base_label']}\n")
+                        data_bytes += jt["table_end"] - pos
+                        pos = jt["table_end"]
                 else:
                     # Not in any block — emit as data
                     data_end = pos + 1

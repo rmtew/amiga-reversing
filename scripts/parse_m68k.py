@@ -269,6 +269,27 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
     # before displacement is applied (PDF p129: "the program counter contains
     # the address of the instruction word...plus two").
     opword_bytes = 2
+    # Parser-assertion: Size suffixes from PDF Section 4 instruction encoding
+    # tables. Every sized instruction uses .b, .w, .l suffixes. The .s suffix
+    # is used for short branch displacements (BRA.S, Bcc.S). These appear
+    # throughout Section 4 (pp 105-302) in syntax lines. Cannot be parsed as
+    # a single list from any one page.
+    size_suffixes = ["b", "w", "l", "s"]
+    # Parser-assertion: Default operand size from PDF p29, Section 2.2.
+    # "If the size is not specified, the assembler defaults to word." This is
+    # stated in the context of MOVE instruction syntax but applies as the
+    # standard Motorola assembler convention for all sized instructions.
+    default_operand_size = "w"
+    # Parser-assertion: Register aliases from PDF p2-2: "The stack pointer
+    # is address register 7 (A7). SP is an alternate register name for A7."
+    register_aliases = {"sp": "a7"}
+    # Parser-assertion: Full extension word BD SIZE field from PDF p2-6,
+    # Figure 2-3 "Full Format Extension Word". The BD SIZE field (bits 5-4)
+    # encodes: 00=reserved, 01=null displacement, 10=word displacement,
+    # 11=long word displacement. This is a 2-bit encoding that cannot be
+    # reliably parsed from the PDF figure layout.
+    ea_full_ext_bd_size = {"0": "reserved", "1": "null", "2": "word", "3": "long"}
+
     meta = {
         "condition_codes": _kb_condition_codes(),
         "pmmu_condition_codes": pmmu_cc,
@@ -278,6 +299,14 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
         "opword_bytes": opword_bytes,
         "ea_mode_encoding": ea_mode_encoding,
         "ea_mode_sizes": ea_mode_sizes,
+        "size_suffixes": size_suffixes,
+        "size_suffixes_source": "M68K PRM: .b/.w/.l operand sizes, .s short branch displacement",
+        "default_operand_size": default_operand_size,
+        "default_operand_size_source": "M68K PRM: word is the default operand size when no suffix is specified",
+        "register_aliases": register_aliases,
+        "register_aliases_source": "M68K PRM p.2-2: SP is an alternate name for A7",
+        "ea_full_ext_bd_size": ea_full_ext_bd_size,
+        "ea_full_ext_bd_size_source": "M68K PRM: Full Extension Word BD SIZE field",
         # Track C parser-assertion: Condition code test definitions from PDF
         # pp 90-91, Table 3-19 "Conditional Tests". The table maps each condition
         # mnemonic (T, F, HI, LS, CC, CS, NE, EQ, VC, VS, PL, MI, GE, LT, GT, LE)
@@ -2090,6 +2119,38 @@ def _extract_bit_op_size_restriction(inst):
     return None
 
 
+def _extract_an_size_restriction(inst):
+    """Detect address register size restriction from description.
+
+    Parser-asserted KB entry: ADDQ and SUBQ descriptions state that only
+    word and long operations are allowed on address registers. The PDF
+    lists byte in the overall sizes but restricts An destinations to
+    word/long. This is a standard M68K constraint: byte-size operations
+    on address registers are architecturally invalid.
+
+    Cited from PDF pages 4-11 (ADDQ) and 4-173 (SUBQ):
+      ADDQ: "Word and long operations are also allowed on the address registers."
+      SUBQ: "Only word and long operations can be used with address registers"
+
+    Cannot be parsed from the encoding alone because the SIZE field allows
+    byte, but the combination of SIZE=byte + MODE=An is reserved.
+    """
+    desc = inst.get("description", "")
+    ea = inst.get("ea_modes", {})
+    sizes = inst.get("sizes", [])
+    if "an" not in ea.get("dst", []):
+        return None
+    if "b" not in sizes:
+        return None
+    # Match both ADDQ and SUBQ description patterns
+    desc_lower = desc.lower()
+    if ("word and long" in desc_lower and "address register" in desc_lower):
+        return ["w", "l"]
+    if ("only word" in desc_lower and "address register" in desc_lower):
+        return ["w", "l"]
+    return None
+
+
 def _derive_processor_min(processors):
     """Derive processor_min from the processors field using CPU_HIERARCHY."""
     if not processors or "M68000 Family" in processors:
@@ -2254,11 +2315,28 @@ def _extract_opmode_table(doc, inst):
                                 best_dist = dist
                                 best_size = sz_name
                         if best_size:
-                            entries.append({
+                            entry = {
                                 "opmode": opmode_val,
                                 "size": SIZE_MAP.get(best_size, best_size),
                                 "operation": operation,
-                            })
+                            }
+                            # Derive ea_is_source from operation text.
+                            # Parser-asserted from PDF Section 4 opmode tables.
+                            # Format 1 operations use Unicode arrow U+2192.
+                            # "< ea > OP Dn -> Dn" means EA is source,
+                            # "Dn OP < ea > -> < ea >" means EA is destination.
+                            # CMP has no arrow (no writeback): "Dn - < ea >",
+                            # always ea_is_source=True.
+                            if "\u2192" in operation:
+                                result = operation.split("\u2192")[-1].lower()
+                                if "dn" in result:
+                                    entry["ea_is_source"] = True
+                                elif "ea" in result:
+                                    entry["ea_is_source"] = False
+                            elif "ea" in operation.lower():
+                                # No arrow = no writeback (CMP): ea is source
+                                entry["ea_is_source"] = True
+                            entries.append(entry)
 
             # Format 2: Value-description (e.g. "100—Transfer word from memory")
             vd_match = re.match(r"^([01]{3,5})\s*[—\u2013\-]\s*(.+)", row_text)
@@ -2282,11 +2360,38 @@ def _extract_opmode_table(doc, inst):
                             first_pos[pos] = letter
                     if first_pos:
                         sz = first_pos[min(first_pos)]
-                entries.append({
+                entry = {
                     "opmode": opmode_val,
                     "size": sz,
                     "description": desc,
-                })
+                }
+                # Derive ea_is_source for instructions with EA operand.
+                # Parser-asserted: ADDA, CMPA, SUBA syntax is "<ea> , An"
+                # — the EA is always the source operand (PDF pp 4-7, 4-34,
+                # 4-174). Match with spaces normalized.
+                inst_syntax = inst.get("syntax", [])
+                for s in inst_syntax:
+                    sn = s.replace(" ", "").lower()
+                    if "<ea>" in sn and (",a" in sn or ",d" in sn):
+                        entry["ea_is_source"] = True
+                        break
+                # Derive rx_mode/ry_mode for EXG from description text.
+                # Parser-asserted from PDF p4-105, EXG Instruction Fields:
+                #   01000 = "Data registers"
+                #   01001 = "Address registers"
+                #   10001 = "Data register and address register"
+                # Only applies to EXG (not other Format 2 instructions).
+                if "EXG" in inst.get("mnemonic", ""):
+                    if "data register" in dl and "address register" in dl:
+                        entry["rx_mode"] = "dn"
+                        entry["ry_mode"] = "an"
+                    elif "data register" in dl:
+                        entry["rx_mode"] = "dn"
+                        entry["ry_mode"] = "dn"
+                    elif "address register" in dl:
+                        entry["rx_mode"] = "an"
+                        entry["ry_mode"] = "an"
+                entries.append(entry)
 
             # Format 3: Source/Destination table (e.g. MOVE16)
             # Rows have space-separated binary digits: "0 0", "0 1", "1 0", "1 1"
@@ -2497,6 +2602,19 @@ def apply_constraints(kb_data, doc=None):
         syntax = inst.get("syntax", [])
         inst["uses_label"] = any("<label>" in s.lower() or "< label >" in s.lower()
                                  for s in syntax)
+        # Derive operation_class from title text.
+        # Parser-asserted: the instruction title uniquely identifies certain
+        # classes needed by downstream tools. "Load Effective Address" (LEA,
+        # PDF p4-110) and "Move Multiple Registers" (MOVEM, p4-128) have
+        # special semantics that cannot be inferred from other KB fields.
+        _TITLE_TO_CLASS = {
+            "Load Effective Address": "load_effective_address",
+            "Move Multiple Registers": "multi_register_transfer",
+        }
+        title = inst.get("title", "")
+        op_class = _TITLE_TO_CLASS.get(title)
+        if op_class:
+            inst["operation_class"] = op_class
 
         constraints = {}
 
@@ -2535,6 +2653,10 @@ def apply_constraints(kb_data, doc=None):
         bos = _extract_bit_op_size_restriction(inst)
         if bos:
             constraints["bit_op_sizes"] = bos
+
+        asr = _extract_an_size_restriction(inst)
+        if asr:
+            constraints["an_sizes"] = asr
 
         # Extract opmode table from PDF (for ADD, OR, SUB, AND, CMP, EOR, MOVEP, EXG, etc.)
         if doc:

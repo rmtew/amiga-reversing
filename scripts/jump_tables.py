@@ -206,7 +206,11 @@ def _scan_self_relative_table(code, table_addr, code_size, max_entries=256):
 
 def _scan_inline_dispatch(code, base_addr, code_size, kb: KB,
                           max_entries=64):
-    """Decode inline BRA.S/BRA.W entries at base_addr. KB-driven."""
+    """Decode inline BRA.S/BRA.W entries at base_addr. KB-driven.
+
+    Returns (targets, end_pos) where end_pos is the address after
+    the last decoded entry.
+    """
     bra_kb = kb.by_name["BRA"]
 
     # Build BRA opcode pattern from KB encoding
@@ -275,7 +279,7 @@ def _scan_inline_dispatch(code, base_addr, code_size, kb: KB,
         except (DecodeError, struct.error):
             break
 
-    return targets
+    return targets, pos
 
 
 # ── Main detection ───────────────────────────────────────────────────────
@@ -332,6 +336,8 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                 "pattern": "self_relative_word",
                                 "targets": targets,
                                 "dispatch_block": addr,
+                                "base_addr": None,
+                                "table_end": table_base + len(targets) * 2,
                             })
                         continue
 
@@ -341,15 +347,23 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
         # Pattern C: PC-relative indexed
         if ea_info["base_mode"] == "pc":
             base = last.offset + kb.opword_bytes + ea_info["displacement"]
-            targets = _scan_inline_dispatch(code, base, code_size, kb)
+            # Scan from after the full dispatch instruction, not from
+            # the PC-relative base (which may overlap the extension word)
+            scan_start = last.offset + last.size
+            targets, dispatch_end = _scan_inline_dispatch(
+                code, scan_start, code_size, kb)
             if targets:
-                tables.append({"addr": base, "pattern": "pc_inline_dispatch",
-                               "targets": targets, "dispatch_block": addr})
+                tables.append({"addr": scan_start,
+                               "pattern": "pc_inline_dispatch",
+                               "targets": targets, "dispatch_block": addr,
+                               "table_end": dispatch_end})
                 continue
             targets = _scan_word_offset_table(code, base, base, code_size)
             if len(targets) >= 2:
                 tables.append({"addr": base, "pattern": "pc_word_offset",
-                               "targets": targets, "dispatch_block": addr})
+                               "targets": targets, "dispatch_block": addr,
+                               "base_addr": base,
+                               "table_end": base + len(targets) * 2})
             continue
 
         # Patterns A/D: register-indexed with LEA base
@@ -394,6 +408,8 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             "pattern": "indirect_table_read",
                             "targets": targets,
                             "dispatch_block": addr,
+                            "base_addr": target_base,
+                            "table_end": table_start + len(targets) * 2,
                         })
                     continue
 
@@ -409,9 +425,12 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                         code, table_start, lea_addr, code_size)
                 if len(targets) >= 2:
                     pattern = "self_relative_word" if has_adda else "word_offset"
-                    tables.append({"addr": lea_addr if has_adda else table_start,
+                    tbl_addr = lea_addr if has_adda else table_start
+                    tables.append({"addr": tbl_addr,
                                    "pattern": pattern, "targets": targets,
-                                   "dispatch_block": addr})
+                                   "dispatch_block": addr,
+                                   "base_addr": None if has_adda else lea_addr,
+                                   "table_end": tbl_addr + len(targets) * 2})
 
     return tables
 

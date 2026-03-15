@@ -176,6 +176,26 @@
         "l"
       ]
     },
+    "size_suffixes": [
+      "b",
+      "w",
+      "l",
+      "s"
+    ],
+    "size_suffixes_source": "M68K PRM: .b/.w/.l operand sizes, .s short branch displacement",
+    "default_operand_size": "w",
+    "default_operand_size_source": "M68K PRM: word is the default operand size when no suffix is specified",
+    "register_aliases": {
+      "sp": "a7"
+    },
+    "register_aliases_source": "M68K PRM p.2-2: SP is an alternate name for A7",
+    "ea_full_ext_bd_size": {
+      "0": "reserved",
+      "1": "null",
+      "2": "word",
+      "3": "long"
+    },
+    "ea_full_ext_bd_size_source": "M68K PRM: Full Extension Word BD SIZE field",
     "cc_test_definitions": {
       "t": {
         "encoding": 0,
@@ -528,27 +548,7 @@
       "EOR": "EORI",
       "OR": "ORI",
       "SUB": "SUBI"
-    },
-    "default_operand_size": "w",
-    "default_operand_size_source": "M68K PRM: word is the default operand size when no suffix is specified",
-    "register_aliases": {
-      "sp": "a7"
-    },
-    "register_aliases_source": "M68K PRM p.2-2: SP is an alternate name for A7",
-    "size_suffixes": [
-      "b",
-      "w",
-      "l",
-      "s"
-    ],
-    "size_suffixes_source": "M68K PRM: .b/.w/.l operand sizes, .s short branch displacement",
-    "ea_full_ext_bd_size": {
-      "0": "reserved",
-      "1": "null",
-      "2": "word",
-      "3": "long"
-    },
-    "ea_full_ext_bd_size_source": "M68K PRM: Full Extension Word BD SIZE field"
+    }
   },
   "instructions": [
     {
@@ -1475,7 +1475,11 @@
           "field": "DATA",
           "bits": 3,
           "zero_means": 8
-        }
+        },
+        "an_sizes": [
+          "w",
+          "l"
+        ]
       },
       "cc_semantics": {
         "X": {
@@ -12000,6 +12004,7 @@
         "l"
       ],
       "uses_label": false,
+      "operation_class": "load_effective_address",
       "cc_semantics": {
         "X": {
           "rule": "unchanged"
@@ -12031,8 +12036,7 @@
         "terms": [
           "source"
         ]
-      },
-      "operation_class": "load_effective_address"
+      }
     },
     {
       "mnemonic": "LINK",
@@ -14170,6 +14174,7 @@
         "l"
       ],
       "uses_label": false,
+      "operation_class": "multi_register_transfer",
       "constraints": {
         "movem_direction": {
           "field": "dr",
@@ -14237,8 +14242,7 @@
           "0": 0,
           "1": 1
         }
-      },
-      "operation_class": "multi_register_transfer"
+      }
     },
     {
       "mnemonic": "MOVEP",
@@ -19625,7 +19629,11 @@
           "field": "DATA",
           "bits": 3,
           "zero_means": 8
-        }
+        },
+        "an_sizes": [
+          "w",
+          "l"
+        ]
       },
       "cc_semantics": {
         "X": {

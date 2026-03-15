@@ -9,5 +9,8 @@ dependencies = [
     "pymupdf>=1.27.2",
 ]
 
+[dependency-groups]
+dev = ["pytest>=8"]
+
 [tool.uv.sources]
 machine68k = { path = "resources/machine68k/dist/machine68k-0.4.2.dev0+g61600df53.d20260308-cp314-cp314-win_amd64.whl" }

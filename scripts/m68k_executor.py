@@ -992,11 +992,15 @@ class AbstractMemory:
     big-endian (M68K native).
     """
 
-    def __init__(self):
+    def __init__(self, code_section: bytes | None = None):
         self._bytes: dict[int, AbstractValue] = {}  # concrete addr -> byte
         self._tags: dict[tuple, dict] = {}  # (addr, nbytes) -> tag dict
         # Symbolic store: (base_name, offset, nbytes) -> AbstractValue
         self._sym: dict[tuple, AbstractValue] = {}
+        # Read-only fallback: code section bytes for resolving data reads.
+        # When a concrete address is unmapped, falls back to code_section
+        # if the address is within range.
+        self._code_section: bytes | None = code_section
 
     def write(self, addr, value: AbstractValue, size: str):
         """Write a value.  addr is int (concrete) or AbstractValue (symbolic)."""
@@ -1044,6 +1048,12 @@ class AbstractMemory:
         for i in range(nbytes):
             bv = self._bytes.get(addr + i)
             if bv is None or not bv.is_known:
+                # Fall back to code section for unmapped addresses
+                if (bv is None and self._code_section is not None
+                        and 0 <= addr + i < len(self._code_section)):
+                    byte_val = self._code_section[addr + i]
+                    result = (result << 8) | byte_val
+                    continue
                 tag = self._tags.get((addr, nbytes))
                 return _unknown(tag=tag)
             result = (result << 8) | (bv.concrete & 0xFF)
@@ -1052,7 +1062,7 @@ class AbstractMemory:
 
     def copy(self) -> "AbstractMemory":
         """Create an independent copy."""
-        m = AbstractMemory()
+        m = AbstractMemory(self._code_section)
         m._bytes = dict(self._bytes)
         m._tags = dict(self._tags)
         m._sym = dict(self._sym)
@@ -1505,9 +1515,13 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     # Branch/jump/return/call have their effects handled above.
     # Instructions whose compute_formula describes SP operations
     # (PEA, LINK) also stop here — their SP effects are already applied.
+    # EXG has no compute_formula (op is None) but has register effects
+    # handled below via operation_type == "swap".
     flow_check = inst_kb.get("pc_effects", {}).get("flow", {})
-    if op is None or flow_check.get("type") in (
+    if flow_check.get("type") in (
             "branch", "jump", "return", "call"):
+        return
+    if op is None and op_type != "swap":
         return
     # PEA: pushes EA address to stack.  SP decrement already handled.
     # Write the EA address to memory at the new SP.
@@ -2112,6 +2126,11 @@ def propagate_states(blocks: dict[int, BasicBlock],
             initial_mem = platform["_initial_mem"].copy()
         else:
             initial_mem = AbstractMemory()
+    # Enable code-section reads: when a concrete address within the code
+    # range is read but not in tracked memory, fall back to the code bytes.
+    # This resolves indirect calls through data pointers, function tables,
+    # and dispatch structures without format-specific parsers.
+    initial_mem._code_section = code
 
     # Map block_start -> {source_key: (cpu_state, memory)}
     # Keyed by source so each predecessor overwrites its previous
@@ -2615,10 +2634,9 @@ def analyze(code: bytes, base_addr: int = 0,
                 kb_by_name, cc_test_defs, cc_aliases,
                 existing=existing)
             sums = platform["_summary_cache"]
-        prop_states = propagate_states(
+        result["exit_states"] = propagate_states(
             blocks, code, base_addr, platform=platform,
             summaries=sums)
-        result["exit_states"] = prop_states
 
     return result
 

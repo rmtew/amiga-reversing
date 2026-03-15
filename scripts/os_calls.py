@@ -21,7 +21,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from m68k_executor import BasicBlock, _extract_mnemonic, _extract_branch_target
-from kb_util import KB, xf, parse_reg_name, read_string_at
+from kb_util import (KB, xf, parse_reg_name, read_string_at,
+                     decode_destination)
+from m68k_executor import _extract_size
 
 
 _OS_KB_CACHE = None
@@ -188,13 +190,12 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
     set.  All instructions between the setter and the call that use
     d(An) on the typed register get struct field annotations.
 
-    Register write detection uses text heuristic (destination is the
-    last comma-separated operand).  This covers MOVE/MOVEA/LEA/CLR
-    but not all M68K instructions.  A KB-driven approach would require
-    per-instruction destination field extraction from encodings.
+    Register write detection uses KB-driven destination decoding from
+    opcode bits via decode_destination().
 
     Returns: {inst_offset: {reg: {"struct": "IS", "fields": {14: "IS_DATA", ...}}}}
     """
+    kb = KB()
     structs = os_kb["structs"]
     result = {}
 
@@ -225,18 +226,21 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
         # For each typed register, walk backward to find where it was
         # set, then annotate all instructions from setter to call.
         for reg, struct_name in typed_inputs.items():
+            reg_mode, reg_num = parse_reg_name(reg)
             field_map = _build_struct_field_map(structs[struct_name])
 
             # Walk backward: find last instruction that writes to reg.
-            # Heuristic: destination is the last comma-separated operand.
             setter_idx = 0
             for j in range(call_idx - 1, -1, -1):
-                parts = block.instructions[j].text.strip().lower().split(
-                    None, 1)
-                if len(parts) < 2:
+                jinst = block.instructions[j]
+                mn = _extract_mnemonic(jinst.text)
+                inst_kb = kb.find(mn)
+                if inst_kb is None:
                     continue
-                dst = parts[1].split(",")[-1].strip()
-                if dst == reg:
+                sz = _extract_size(jinst.text)
+                dst = decode_destination(
+                    jinst.raw, inst_kb, kb.meta, sz, jinst.offset)
+                if dst is not None and dst[0] == reg_mode and dst[1] == reg_num:
                     setter_idx = j
                     break
 

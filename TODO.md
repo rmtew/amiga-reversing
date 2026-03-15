@@ -192,12 +192,47 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
 - [x] Audit: _is_valid_68000 uses KB `processor_020` flag, not hardcoded mnemonics
 - [x] Audit: _RELOC_INFO loaded from KB `relocation_semantics`, not hardcoded dict
 - [x] Audit: build_reloc_map handles all absolute reloc types from KB
-- GenAm results: 59.3% coverage, 374 subroutines, 524 entities, 13 named, 495 call pairs
-- [ ] Improve coverage beyond 59%:
+- GenAm results: 34% core code, 21% hint code (3064 core blocks, 11118 instructions)
+- [x] Jump table structured emission: word-offset and self-relative tables as `dc.w target-base`
+  - base_addr and table_end added to jump_tables.py return dicts
+  - pc_inline_dispatch tables emitted as decoded BRA instructions
+  - Jump table target labels get `; jt: base_label` comments
+- [x] Jump table + indirect target discovery loop in gen_disasm.py
+  - Iterates until stable, feeding jump table targets and resolved indirect targets as core entries
+- [x] Code section memory reads: AbstractMemory falls back to code bytes for unmapped addresses
+  - Resolves indirect calls through data pointers (longword pointer tables)
+  - 3 pytest tests verify resolution and block discovery
+- [x] Instruction validation (KB-driven):
+  - EA mode validation against KB `ea_modes` (ea/src/dst keys)
+  - An size restriction from KB `an_sizes` constraint (ADDQ/SUBQ byte to An)
+  - An byte-size rejection from KB `ea_mode_sizes`
+  - Branch target word-alignment from KB `opword_bytes`
+  - 68020+ architecture comments from KB `processor_min` + variant `processor_020`
+- [x] Hint block validation: block-level rejection (not per-instruction)
+  - Flow-terminating last instruction required
+  - Zero opword ($0000) rejects entire block
+  - Invalid EA, odd branch target, 68020+ instruction rejects entire block
+  - Hint blocks overlapping core code_addrs filtered out
+- [x] Label cleanup:
+  - Fallthrough-only labels removed (only branch targets get labels)
+  - Hint successor labels: `hint_` for hint targets, `loc_` for core code targets
+- [x] PC-relative target discovery from hint blocks (reduces vasm warnings)
+- [x] Parser extended:
+  - `an_sizes` constraint extracted from PDF description (ADDQ/SUBQ)
+  - `ea_is_source` derived from opmode operation text arrow direction
+  - `rx_mode`/`ry_mode` for EXG from description text
+  - `operation_class` from instruction title (LEA, MOVEM)
+  - 8 `_meta` fields added (size_suffixes, default_operand_size, register_aliases, ea_full_ext_bd_size)
+- [x] pytest suite: `uv run pytest tests/` — 3 tests for code section reads
+- [ ] Improve coverage beyond 34%:
   - [x] Add dispatch pattern D to `jump_tables.py`: LEA d(PC),An; MOVE.W d(An,Dn),Dn; JSR d(An,Dn)
     - Word-offset table at $0E9A, 29 entries (base-relative to A1=$0EA2)
     - Separate MOVE.W reads offset from table; JSR dispatches via same base register
     - JSR dispatch targets injected into call_targets for subroutine map (+38 subroutines)
+  - [ ] String dispatch table at pcref_3f3c: 65 assembler directives with self-relative handler offsets
+    - Requires per-instruction state tracking (register modified in loop)
+    - Code section reads resolve some indirect targets but not loop-based access
+    - Data structure typing needs access-pattern analysis, not content scanning
   - [ ] Memory dispatch via d(A6) function pointers: executor needs to resolve
     MOVEA.L d(An),Am + JMP/JSR (Am) where stored values come from LEA d(PC)
     - Diagnostic hint: d(378)(A6) at $7612 has targets $2D2E, $9884 from 4 store sites
@@ -210,14 +245,14 @@ Foundation: `scripts/m68k_compute.py` (verified against Musashi with 4870 tests)
     - 16 orphan relocs (JSR/JMP in undecoded code), 446 trailing returns, 128 string table entries
     - All trace back to: indirect dispatch through d(A6) function pointers
 - [x] Disassembly generator: `scripts/gen_disasm.py` → `disasm/genam.s`
-  - Flow-verified blocks only (reloc-target entries filtered to reachable-from-entry-0)
+  - Core analysis with jump table + indirect target discovery loop
+  - Hint blocks with block-level validation (flow, zero opword, EA, arch, alignment)
   - Label replacement: branch targets, relocated absolutes, PC-relative, immediates
-  - Data regions as dc.b with dc.l at reloc offsets
-  - 020+ instructions (KB `processor_020`) emitted as dc.b
-- [x] vasm round-trip: 0/64920 byte differences, 0/117 reloc differences (perfect match)
-  - `vasmm68k_mot -Fhunkexe -no-opt -m68020` — zero errors, warnings only
-  - 5188 instructions disassembled, 49032 data bytes, 2156 flow-verified blocks
-  - Comparison via `parse_file()` on both sides (not raw byte scan)
+  - Data regions as dc.b with dc.l at reloc offsets, strings as dc.b "text",0
+  - Jump tables as dc.w target-base, inline dispatch as decoded BRA instructions
+  - 020+ instructions emitted with `; 68020+` architecture comments
+  - LVO symbols, argument constants, struct field substitution, app memory offsets
+- [x] vasm assembly: zero errors, warnings only (absolute displacements in hint blocks)
 - [ ] GenAm self-assembly round-trip: disassemble → reassemble with GenAm via vamos → binary diff
 
 ## Existing Infrastructure
