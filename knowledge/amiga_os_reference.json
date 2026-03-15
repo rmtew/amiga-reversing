@@ -475,7 +475,95 @@
       "timerequest": "TIMEREQUEST",
       "timeval": "TIMEVAL",
       "colorEntry": "colorEntry"
-    }
+    },
+    "constant_domains": {
+      "OpenDiskFont": [
+        "OT_UnderLined",
+        "OT_StrikeThrough"
+      ],
+      "Open": [
+        "MODE_OLDFILE",
+        "MODE_NEWFILE",
+        "MODE_READWRITE"
+      ],
+      "Seek": [
+        "OFFSET_BEGINNING",
+        "OFFSET_CURRENT",
+        "OFFSET_END",
+        "OFFSET_BEGINING"
+      ],
+      "Lock": [
+        "SHARED_LOCK"
+      ],
+      "ChangeMode": [
+        "CHANGE_LOCK",
+        "CHANGE_FH"
+      ],
+      "MakeLink": [
+        "LINK_HARD",
+        "LINK_SOFT"
+      ],
+      "LockDosList": [
+        "LDF_DEVICES",
+        "LDF_VOLUMES",
+        "LDF_ASSIGNS",
+        "LDF_ENTRY",
+        "LDF_DELETE",
+        "LDF_READ",
+        "LDF_WRITE",
+        "LDF_ALL"
+      ],
+      "ErrorReport": [
+        "REPORT_STREAM",
+        "REPORT_TASK",
+        "REPORT_LOCK",
+        "REPORT_VOLUME",
+        "REPORT_INSERT"
+      ],
+      "SetVBuf": [
+        "BUF_LINE",
+        "BUF_FULL",
+        "BUF_NONE"
+      ],
+      "GetVar": [
+        "GVF_GLOBAL_ONLY"
+      ],
+      "AllocMem": [
+        "MEMF_ANY",
+        "MEMF_PUBLIC",
+        "MEMF_CHIP",
+        "MEMF_FAST",
+        "MEMF_LOCAL",
+        "MEMF_24BITDMA",
+        "MEMF_KICK",
+        "MEMF_CLEAR",
+        "MEMF_LARGEST",
+        "MEMF_REVERSE",
+        "MEMF_TOTAL",
+        "MEMF_NO_EXPUNGE"
+      ],
+      "BestModeID": [
+        "MUST_FLAGS"
+      ],
+      "ScreenPosition": [
+        "SPOS_RELATIVE",
+        "SPOS_ABSOLUTE",
+        "SPOS_MAKEVISIBLE",
+        "SPOS_FORCEDRAG"
+      ],
+      "AllocScreenBuffer": [
+        "SB_SCREEN_BITMAP"
+      ],
+      "IfAmigaXIP": [
+        "CISTPL_AMIGAXIP"
+      ],
+      "SeekF": [
+        "RXIO_BEGIN",
+        "RXIO_CURR",
+        "RXIO_END"
+      ]
+    },
+    "constant_domains_source": "NDK 3.1 .I files: comment annotations linking constants to functions"
   },
   "libraries": {
     "amigaguide.library": {

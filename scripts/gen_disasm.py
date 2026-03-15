@@ -561,39 +561,164 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         if struct_map:
             print(f"  {len(struct_map)} instructions with struct type info")
 
-        # Build dispatch call comments: map instruction offset to
-        # "; library/function" for calls through dispatch subroutines.
-        dispatch_comments: dict[int, str] = {}
+        # Build LVO symbol substitutions from resolved library calls.
+        # Two patterns:
+        # 1. Direct: jsr -60(a6) -> jsr _LVOOpenLibrary(a6)
+        # 2. Dispatch: moveq #-60,d0 -> moveq #_LVOOutput,d0
+        # Collect all _LVO EQUs needed, grouped by library.
+        lvo_equs: dict[str, dict[int, str]] = {}  # lib -> {lvo: symbol}
+        # Map instruction offset -> (old_text_fragment, new_text_fragment)
+        lvo_substitutions: dict[int, tuple[str, str]] = {}
+
+        sorted_code_ents = sorted(
+            [{"addr": int(e["addr"], 16), "end": int(e["end"], 16)}
+             for e in hunk_entities if e["type"] == "code"],
+            key=lambda s: s["addr"])
+
         for call in lib_calls:
-            disp_addr = call.get("dispatch")
-            if disp_addr is None:
+            lib = call.get("library")
+            func = call.get("function")
+            lvo = call.get("lvo")
+            if not lib or not func or lvo is None or lib == "unknown":
                 continue
-            # The caller block is call["addr"]. Find the BSR/JSR
-            # instruction in that block that targets the dispatch sub.
-            caller_blk = blocks.get(call["addr"])
-            if not caller_blk:
-                continue
-            # Find the dispatch subroutine entry
-            disp_sub = find_containing_sub(
-                disp_addr,
-                sorted([{"addr": int(e["addr"], 16),
-                         "end": int(e["end"], 16)}
-                        for e in hunk_entities
-                        if e["type"] == "code"],
-                       key=lambda s: s["addr"]))
-            if disp_sub is None:
-                continue
-            # Find the call instruction targeting the dispatch sub
-            for inst in caller_blk.instructions:
-                target = _extract_branch_target(inst, inst.offset)
-                if target == disp_sub:
-                    lib = call.get("library", "?")
-                    func = call.get("function", "?")
-                    dispatch_comments[inst.offset] = (
-                        f" ; {lib}/{func}")
+            if func.startswith("LVO_"):
+                continue  # unresolved
+
+            sym = f"_LVO{func}"
+            lvo_equs.setdefault(lib, {})[lvo] = sym
+
+            if "dispatch" in call:
+                # Dispatch call: find the moveq/move that sets D0
+                # in the caller block before the BSR to the dispatcher.
+                caller_blk = blocks.get(call["addr"])
+                if not caller_blk:
+                    continue
+                disp_sub = find_containing_sub(
+                    call["dispatch"], sorted_code_ents)
+                if disp_sub is None:
+                    continue
+                # Find BSR/JSR to dispatch sub, then scan backward
+                # for the instruction that sets D0 to the LVO value.
+                for i, inst in enumerate(caller_blk.instructions):
+                    target = _extract_branch_target(inst, inst.offset)
+                    if target != disp_sub:
+                        continue
+                    # Scan backward for moveq/move #lvo,d0
+                    for j in range(i - 1, -1, -1):
+                        prev = caller_blk.instructions[j]
+                        # Match #-NN or #$FF.. forms of the LVO value
+                        if f"#{lvo}," in prev.text or \
+                           f"#-{-lvo}," in prev.text:
+                            lvo_substitutions[prev.offset] = (
+                                f"#{lvo}", f"#{sym}")
+                            break
+                        elif lvo < 0:
+                            # moveq uses signed byte: check hex form
+                            byte_val = lvo & 0xFF
+                            if f"#${byte_val:02x}," in prev.text.lower():
+                                lvo_substitutions[prev.offset] = (
+                                    f"#{lvo}", f"#{sym}")
+                                break
                     break
-        if dispatch_comments:
-            print(f"  {len(dispatch_comments)} dispatch call comments")
+            else:
+                # Direct call: jsr lvo(a6)
+                lvo_substitutions[call["addr"]] = (
+                    f"{lvo}(", f"{sym}(")
+
+        lvo_count = sum(len(v) for v in lvo_equs.values())
+        if lvo_count:
+            print(f"  {lvo_count} LVO symbols "
+                  f"({', '.join(sorted(lvo_equs))})")
+
+        # Build argument constant substitutions from OS KB
+        # constant_domains.  For each resolved call, find instructions
+        # that set input registers to immediate values matching known
+        # constants for that function.
+        arg_equs: dict[str, int] = {}  # constant_name -> value
+        arg_substitutions: dict[int, tuple[str, str]] = {}
+        const_domains = os_kb["_meta"].get("constant_domains", {})
+        all_consts = os_kb.get("constants", {})
+        # Build per-function value->name map from domains
+        func_const_map: dict[str, dict[int, str]] = {}
+        for func_name, const_names in const_domains.items():
+            vmap = {}
+            for cn in const_names:
+                cv = all_consts.get(cn, {}).get("value")
+                if cv is not None:
+                    vmap[cv] = cn
+            if vmap:
+                func_const_map[func_name] = vmap
+
+        for call in lib_calls:
+            func_name = call.get("function")
+            if not func_name or func_name.startswith("LVO_"):
+                continue
+            vmap = func_const_map.get(func_name)
+            if not vmap:
+                continue
+            lib = call["library"]
+            func = os_kb["libraries"].get(lib, {}).get(
+                "functions", {}).get(func_name, {})
+            inputs = func.get("inputs", [])
+            if not inputs:
+                continue
+
+            # Find the block containing the call
+            blk_addr = call["block"]
+            blk = blocks.get(blk_addr)
+            if not blk:
+                continue
+
+            # Find the call instruction index
+            call_idx = None
+            call_addr = call["addr"]
+            # For dispatch calls, find the BSR to the dispatcher
+            if "dispatch" in call:
+                disp_sub = find_containing_sub(
+                    call["dispatch"], sorted_code_ents)
+                for ci, inst in enumerate(blk.instructions):
+                    if _extract_branch_target(inst, inst.offset) == disp_sub:
+                        call_idx = ci
+                        break
+            else:
+                for ci, inst in enumerate(blk.instructions):
+                    if inst.offset == call_addr:
+                        call_idx = ci
+                        break
+            if call_idx is None:
+                continue
+
+            # For each input register, scan backward for immediate set
+            for inp in inputs:
+                reg = inp["reg"].lower()
+                # Scan backward from call for #imm,reg
+                for j in range(call_idx - 1, -1, -1):
+                    prev = blk.instructions[j]
+                    text = prev.text.strip().lower()
+                    # Match: moveq #N,reg or move.l #N,reg etc.
+                    m = re.match(
+                        r'\w+(?:\.\w)?\s+#([^,]+),\s*' + re.escape(reg),
+                        text)
+                    if not m:
+                        continue
+                    imm_str = m.group(1).strip()
+                    try:
+                        if imm_str.startswith("$"):
+                            imm_val = int(imm_str[1:], 16)
+                        else:
+                            imm_val = int(imm_str)
+                    except ValueError:
+                        break
+                    const_name = vmap.get(imm_val)
+                    if const_name:
+                        arg_equs[const_name] = imm_val
+                        arg_substitutions[prev.offset] = (
+                            f"#{imm_str}", f"#{const_name}")
+                    break  # stop scanning for this register
+
+        if arg_substitutions:
+            print(f"  {len(arg_substitutions)} argument constant "
+                  f"substitutions")
 
         # Build app memory offset EQUs from init memory tags.
         app_offsets: dict[int, str] = {}
@@ -624,6 +749,21 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                     f"{len(hunk_entities)} entities, "
                     f"{len(blocks)} blocks\n")
             f.write("\n")
+
+            # LVO EQUs grouped by library
+            for lib_name in sorted(lvo_equs):
+                f.write(f"; LVO offsets: {lib_name}\n")
+                by_lvo = lvo_equs[lib_name]
+                for lvo_val in sorted(by_lvo):
+                    f.write(f"{by_lvo[lvo_val]}\tEQU\t{lvo_val}\n")
+                f.write("\n")
+
+            # Argument constant EQUs
+            if arg_equs:
+                f.write("; OS function argument constants\n")
+                for name in sorted(arg_equs):
+                    f.write(f"{name}\tEQU\t{arg_equs[name]}\n")
+                f.write("\n")
 
             # App memory offset EQUs
             if app_offsets:
@@ -673,9 +813,15 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                                     text = text.replace(
                                         f"{off}(a{brn})",
                                         f"{sym}(a{brn})")
-                            comment = dispatch_comments.get(
-                                inst.offset, "")
-                            f.write(f"    {text}{comment}\n")
+                            # Substitute LVO constants
+                            sub = lvo_substitutions.get(inst.offset)
+                            if sub:
+                                text = text.replace(sub[0], sub[1])
+                            # Substitute argument constants
+                            sub = arg_substitutions.get(inst.offset)
+                            if sub:
+                                text = text.replace(sub[0], sub[1])
+                            f.write(f"    {text}\n")
                             instr_count += 1
                     pos = blk.end
                 elif pos in code_addrs:
