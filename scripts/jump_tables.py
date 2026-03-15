@@ -990,3 +990,171 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                         resolved.append({"target": ea_val.concrete})
 
     return resolved
+
+
+def resolve_backward_slice(blocks: dict[int, BasicBlock],
+                           exit_states: dict, code: bytes,
+                           code_size: int,
+                           platform: dict | None = None,
+                           max_depth: int = 8) -> list[dict]:
+    """Resolve indirect targets by backward-slicing through predecessor chains.
+
+    When a block's merged exit state loses a register value needed for
+    an indirect dispatch, walk backward through predecessor chains to
+    find paths where the value was concrete. For each such path,
+    propagate the predecessor's state forward to the dispatch block
+    and try to resolve.
+
+    This generalises resolve_per_caller (which only handles subroutine
+    entries) to work across any block boundary, following predecessor
+    chains up to max_depth levels.
+    """
+    kb = KB()
+    rts_kb = kb.find("RTS")
+    if rts_kb is None:
+        raise KeyError("KB missing RTS instruction")
+    rts_sp_inc = sum(e["bytes"] for e in rts_kb.get("sp_effects", [])
+                     if e.get("action") == "increment")
+    addr_size = next(
+        (k for k, v in kb.size_bytes.items() if v == rts_sp_inc), None)
+    if addr_size is None:
+        raise ValueError(
+            f"KB size_byte_count has no entry for {rts_sp_inc} bytes")
+
+    def _valid_target(addr):
+        return 0 <= addr < code_size and not (addr & kb.align_mask)
+
+    # Find unresolved indirect blocks (same criteria as resolve_per_caller
+    # but not limited to subroutine entries)
+    unresolved = []
+    for addr in sorted(blocks):
+        block = blocks[addr]
+        if not block.instructions:
+            continue
+        last = block.instructions[-1]
+        ikb = kb.find(_extract_mnemonic(last.text))
+        if ikb is None:
+            continue
+        ft, _ = kb.flow_type(last)
+
+        if ft == "return":
+            if addr in exit_states:
+                cpu, mem = exit_states[addr]
+                if cpu.sp.is_known:
+                    pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
+                elif cpu.sp.is_symbolic:
+                    pre_sp = cpu.sp.sym_add(-rts_sp_inc)
+                else:
+                    continue
+                ret_val = mem.read(pre_sp, addr_size)
+                if ret_val.is_known:
+                    continue
+            unresolved.append((addr, "return"))
+            continue
+
+        operand, _ = _decode_jump_ea(last, kb)
+        if operand is None:
+            continue
+        if operand.mode not in kb.reg_indirect_modes:
+            continue
+        if addr in exit_states:
+            cpu, _ = exit_states[addr]
+            ea_val = resolve_ea(operand, cpu, addr_size)
+            if ea_val is not None and ea_val.is_known:
+                continue
+        unresolved.append((addr, "jump"))
+
+    if not unresolved:
+        return []
+
+    # For each unresolved block, search backward through predecessors
+    # for paths where the state produces a concrete target.
+    resolved = []
+    seen_targets = set()  # avoid duplicates
+
+    for unres_addr, unres_type in unresolved:
+        operand = None
+        if unres_type == "jump":
+            last = blocks[unres_addr].instructions[-1]
+            operand, _ = _decode_jump_ea(last, kb)
+
+        # Collect blocks on the path from a concrete-value predecessor
+        # to the unresolved block.  BFS backward, then propagate forward.
+        def _try_resolve_from(start_addr, start_cpu, start_mem, path):
+            """Propagate start state through path blocks to unres_addr."""
+            path_blocks = {a: blocks[a] for a in path if a in blocks}
+            if not path_blocks or start_addr not in path_blocks:
+                return None
+            per_path_exits = propagate_states(
+                path_blocks, code, start_addr,
+                initial_state=start_cpu,
+                initial_mem=start_mem,
+                platform=platform)
+            if unres_addr not in per_path_exits:
+                return None
+            cpu, mem = per_path_exits[unres_addr]
+            if unres_type == "return":
+                if cpu.sp.is_known:
+                    pre_sp = (cpu.sp.concrete - rts_sp_inc) & 0xFFFFFFFF
+                elif cpu.sp.is_symbolic:
+                    pre_sp = cpu.sp.sym_add(-rts_sp_inc)
+                else:
+                    return None
+                ret_val = mem.read(pre_sp, addr_size)
+                if ret_val.is_known and _valid_target(ret_val.concrete):
+                    return ret_val.concrete
+            elif operand is not None:
+                ea_val = resolve_ea(operand, cpu, addr_size)
+                if ea_val is not None and ea_val.is_known:
+                    if _valid_target(ea_val.concrete):
+                        return ea_val.concrete
+            return None
+
+        # Walk predecessor chains backward, collecting paths.
+        # At each level, try to propagate.  If the predecessor's exit
+        # state resolves the target, we're done.  Otherwise, go deeper.
+        # Work queue: (predecessor_addr, path_from_pred_to_unres)
+        work = []
+        for pred in blocks[unres_addr].predecessors:
+            if pred in exit_states:
+                work.append((pred, [pred, unres_addr]))
+
+        visited = {unres_addr}
+        for _ in range(max_depth):
+            next_work = []
+            for pred_addr, path in work:
+                if pred_addr in visited:
+                    continue
+                visited.add(pred_addr)
+
+                if pred_addr not in exit_states:
+                    continue
+                pred_cpu, pred_mem = exit_states[pred_addr]
+                init_cpu = pred_cpu.copy()
+
+                # Restore base register from platform if needed
+                if platform:
+                    base_info = platform.get("initial_base_reg")
+                    if base_info:
+                        breg_num, breg_val = base_info
+                        if not init_cpu.a[breg_num].is_known:
+                            init_cpu.set_reg("an", breg_num,
+                                             _concrete(breg_val))
+
+                target = _try_resolve_from(
+                    pred_addr, init_cpu, pred_mem.copy(), path)
+                if target is not None and target not in seen_targets:
+                    resolved.append({"target": target})
+                    seen_targets.add(target)
+                else:
+                    # Go one level deeper: add pred's predecessors
+                    if pred_addr in blocks:
+                        for pp in blocks[pred_addr].predecessors:
+                            if pp not in visited and pp in exit_states:
+                                next_work.append(
+                                    (pp, [pp] + path))
+            work = next_work
+            if not work:
+                break
+
+    return resolved

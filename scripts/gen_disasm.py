@@ -32,7 +32,8 @@ from m68k_executor import (_extract_branch_target, _extract_mnemonic,
 from kb_util import (KB, read_string_at, find_containing_sub,
                      decode_instruction_operands, decode_destination,
                      parse_reg_name)
-from jump_tables import detect_jump_tables, resolve_indirect_targets, resolve_per_caller
+from jump_tables import (detect_jump_tables, resolve_indirect_targets,
+                         resolve_per_caller, resolve_backward_slice)
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -616,6 +617,13 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                     core_entries.add(r["target"])
                     added += 1
             for r in resolve_per_caller(
+                    result["blocks"],
+                    result.get("exit_states", {}),
+                    code, code_size, platform=platform):
+                if r["target"] not in core_entries:
+                    core_entries.add(r["target"])
+                    added += 1
+            for r in resolve_backward_slice(
                     result["blocks"],
                     result.get("exit_states", {}),
                     code, code_size, platform=platform):

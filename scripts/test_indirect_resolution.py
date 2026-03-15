@@ -23,7 +23,7 @@ sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent))
 from m68k_executor import (analyze, CPUState, AbstractMemory,
                             _concrete, _unknown)
 from jump_tables import (resolve_indirect_targets, resolve_per_caller,
-                         detect_jump_tables)
+                         detect_jump_tables, resolve_backward_slice)
 
 
 # ---- Helpers ----------------------------------------------------------------
@@ -47,6 +47,8 @@ def _analyze_and_resolve(code, entry_points=None, platform=None):
             resolved.append({"target": tgt})
     resolved += resolve_indirect_targets(blocks, exit_states, len(code))
     resolved += resolve_per_caller(
+        blocks, exit_states, code, len(code), platform=platform)
+    resolved += resolve_backward_slice(
         blocks, exit_states, code, len(code), platform=platform)
     return blocks, exit_states, resolved
 
@@ -861,7 +863,267 @@ def test_register_clobbered_both_paths():
     print("  register_clobbered_both_paths: OK")
 
 
-# ---- 9. Edge cases ----------------------------------------------------------
+# ---- 9. Backward slice across merges ----------------------------------------
+
+def test_backward_slice_one_level():
+    """Register value recovered one merge back from dispatch.
+
+    Block A: LEA data(pc),A0; beq.s C
+    Block B: MOVEA.L D7,A0  (clobber, fallthrough to C)
+    Block C: (merge) NOP; BEQ.S D  (creates block boundary)
+    Block D: (dispatch) MOVE.W 2(A0),D0; LEA base; ADDA; JMP (A1)
+
+    A0 is concrete on path A->C, unknown on B->C.
+    Merge at C kills A0. Backward slice from D through C finds A's
+    concrete A0 and resolves the dispatch.
+    """
+    code = b''
+    # Block A at $00: set A0, conditional branch to C
+    # lea $20(pc),a0  -> a0 = $00+2+$20 = $22 (data record)
+    code += struct.pack('>HH', 0x41FA, 0x0020)          # [0x00] lea data(pc),a0
+    code += struct.pack('>H', 0x4A00)                    # [0x04] tst.b d0
+    code += struct.pack('>H', 0x6702)                    # [0x06] beq.s $0A (skip B)
+    # Block B at $08: clobber A0 (fallthrough to C)
+    code += struct.pack('>H', 0x2047)                    # [0x08] movea.l d7,a0
+    # Block C at $0A: merge (preds: A via beq, B via fallthrough)
+    code += struct.pack('>H', 0x4A01)                    # [0x0a] tst.b d1
+    code += struct.pack('>H', 0x6702)                    # [0x0c] beq.s $10 (dispatch)
+    # Block (fallthrough from C)
+    code += struct.pack('>H', 0x4E71)                    # [0x0e] nop
+    # Block D at $10: dispatch
+    code += struct.pack('>HH', 0x3028, 0x0002)          # [0x10] move.w 2(a0),d0
+    # lea $14(pc),a1  -> a1 = $14+2+$14 = $2a (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x0014)          # [0x14] lea base(pc),a1
+    code += struct.pack('>H', 0xD2C0)                    # [0x18] adda.w d0,a1
+    code += struct.pack('>H', 0x4ED1)                    # [0x1a] jmp (a1)
+    # Padding
+    code += b'\x4e\x71' * 3                              # [0x1c..$21] nop
+    # Data record at $22: [word0=0, word1=handler_offset=4, word2=0]
+    code += struct.pack('>HHH', 0x0000, 0x0004, 0x0000) # [0x22] data
+    # Padding
+    code += struct.pack('>H', 0x4E71)                    # [0x28] nop
+    # Handler base at $2a
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x2a] handler 0
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x2e] handler 1 (target)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # a0=$22, offset at $24 = 4, base=$2a, target = $2a+4 = $2e
+    assert 0x2e in targets, (
+        f"Expected $002e (handler via backward slice through merge), "
+        f"got {targets}")
+    print("  backward_slice_one_level: OK")
+
+
+def test_backward_slice_two_levels():
+    """Register value recovered two merges back from dispatch.
+
+    Block A: LEA data,A0; beq.s C
+    Block B: MOVEA.L D7,A0  (clobber, fallthrough to C)
+    Block C: (merge1) tst; beq.s E
+    Block D: MOVEA.L D6,A0  (clobber, fallthrough to E)
+    Block E: (merge2) tst; beq.s G
+    Block F: (fallthrough from E)
+    Block G: (dispatch) uses A0
+
+    A0 survives only on path A->C->E->G. The backward slice must
+    traverse two merge points to find A's concrete value.
+    """
+    code = b''
+    # Block A: set A0
+    # lea $28(pc),a0 -> a0 = $00+2+$28 = $2a (data)
+    code += struct.pack('>HH', 0x41FA, 0x0028)          # [0x00] lea data(pc),a0
+    code += struct.pack('>H', 0x4A00)                    # [0x04] tst.b d0
+    code += struct.pack('>H', 0x6702)                    # [0x06] beq.s $0A (skip B)
+    # Block B: clobber1 (fallthrough to C)
+    code += struct.pack('>H', 0x2047)                    # [0x08] movea.l d7,a0
+    # Block C: merge1
+    code += struct.pack('>H', 0x4A01)                    # [0x0a] tst.b d1
+    code += struct.pack('>H', 0x6702)                    # [0x0c] beq.s $10 (skip D)
+    # Block D: clobber2 (fallthrough to E)
+    code += struct.pack('>H', 0x2046)                    # [0x0e] movea.l d6,a0
+    # Block E: merge2
+    code += struct.pack('>H', 0x4A02)                    # [0x10] tst.b d2
+    code += struct.pack('>H', 0x6702)                    # [0x12] beq.s $16 (dispatch)
+    # Block F: fallthrough
+    code += struct.pack('>H', 0x4E71)                    # [0x14] nop
+    # Block G at $16: dispatch
+    code += struct.pack('>HH', 0x3028, 0x0002)          # [0x16] move.w 2(a0),d0
+    # lea $14(pc),a1 -> a1 = $1a+2+$14 = $30 (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x0014)          # [0x1a] lea base(pc),a1
+    code += struct.pack('>H', 0xD2C0)                    # [0x1e] adda.w d0,a1
+    code += struct.pack('>H', 0x4ED1)                    # [0x20] jmp (a1)
+    # Padding
+    code += b'\x4e\x71' * 4                              # [0x22..$29] nop
+    # Data at $2a: [0, offset=6, 0]
+    code += struct.pack('>HHH', 0x0000, 0x0006, 0x0000) # [0x2a] data
+    # Handler base at $30
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x30] handler 0
+    code += struct.pack('>H', 0x4E71)                    # [0x34] pad
+    # Target at $30 + 6 = $36
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x36] handler 1 (target)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x36 in targets, (
+        f"Expected $0036 (handler via 2-level backward slice), "
+        f"got {targets}")
+    print("  backward_slice_two_levels: OK")
+
+
+def test_backward_slice_many_predecessors():
+    """Merge point with many predecessors, only one has concrete value.
+
+    Entry splits into 4 paths via cascading conditionals. Only path 1
+    sets A0 concretely; paths 2-4 leave it unknown. All merge at the
+    dispatch block.
+    """
+    code = b''
+    # Path 1: lea data(pc),a0
+    # lea $2c(pc),a0  -> a0 = $00+2+$2c = $2e (data)
+    code += struct.pack('>HH', 0x41FA, 0x002C)          # [0x00] lea data(pc),a0
+    code += struct.pack('>H', 0x4A00)                    # [0x04] tst.b d0
+    # beq.s $0C  -> merge
+    code += struct.pack('>H', 0x6716)                    # [0x06] beq.s $1E (merge)
+    # Path 2: leave a0 alone (unknown from entry)
+    code += struct.pack('>H', 0x4A01)                    # [0x08] tst.b d1
+    # beq.s merge
+    code += struct.pack('>H', 0x6712)                    # [0x0a] beq.s $1E
+    # Path 3: clobber a0
+    code += struct.pack('>H', 0x2047)                    # [0x0c] movea.l d7,a0
+    code += struct.pack('>H', 0x4A02)                    # [0x0e] tst.b d2
+    # beq.s merge
+    code += struct.pack('>H', 0x670C)                    # [0x10] beq.s $1E
+    # Path 4: different clobber
+    code += struct.pack('>H', 0x2046)                    # [0x12] movea.l d6,a0
+    # bra.s merge
+    code += struct.pack('>H', 0x600A)                    # [0x14] bra.s $20
+    # Padding
+    code += b'\x4e\x71' * 4                              # [0x16..$1d] nop
+
+    # Merge/dispatch at $1E
+    # Actually wait, the beq targets need to be right. Let me recalculate.
+    # beq.s $1E at $06: disp = $1E - ($06+2) = $16. That's > 127... too far.
+    # Let me make it tighter.
+
+    code = b''
+    # Path 1: set a0
+    # lea $20(pc),a0 -> a0 = $00+2+$20 = $22 (data)
+    code += struct.pack('>HH', 0x41FA, 0x0020)          # [0x00] lea data(pc),a0
+    code += struct.pack('>H', 0x4A00)                    # [0x04] tst.b d0
+    code += struct.pack('>H', 0x670C)                    # [0x06] beq.s $14 (merge)
+    # Path 2: clobber a0
+    code += struct.pack('>H', 0x2047)                    # [0x08] movea.l d7,a0
+    code += struct.pack('>H', 0x4A01)                    # [0x0a] tst.b d1
+    code += struct.pack('>H', 0x6706)                    # [0x0c] beq.s $14 (merge)
+    # Path 3: another clobber
+    code += struct.pack('>H', 0x2046)                    # [0x0e] movea.l d6,a0
+    code += struct.pack('>H', 0x6002)                    # [0x10] bra.s $14 (merge)
+    code += struct.pack('>H', 0x4E71)                    # [0x12] nop
+    # Merge + dispatch at $14
+    code += struct.pack('>HH', 0x3028, 0x0002)          # [0x14] move.w 2(a0),d0
+    # lea $14(pc),a1 -> a1 = $18+2+$14 = $2e (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x0014)          # [0x18] lea base(pc),a1
+    code += struct.pack('>H', 0xD2C0)                    # [0x1c] adda.w d0,a1
+    code += struct.pack('>H', 0x4ED1)                    # [0x1e] jmp (a1)
+    # Padding
+    code += struct.pack('>H', 0x4E71)                    # [0x20] nop
+    # Data at $22
+    code += struct.pack('>HHH', 0x0000, 0x0004, 0x0000) # [0x22] data
+    # Padding
+    code += b'\x4e\x71' * 3                              # [0x28..$2d] nop
+    # Handler base at $2e
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x2e] handler 0
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x32] handler 1 (target)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # Only path 1 (beq at $06 taken) has A0=$22. offset=4 -> target=$2e+4=$32
+    assert 0x32 in targets, (
+        f"Expected $0032 (handler via backward slice, 1 of 3 paths), "
+        f"got {targets}")
+    print("  backward_slice_many_predecessors: OK")
+
+
+def test_backward_slice_all_paths_clobbered():
+    """Backward slice should NOT resolve when no path has the value.
+
+    All predecessors clobber A0 to different unknown values.
+    No backward path can recover a concrete A0.
+    """
+    code = b''
+    code += struct.pack('>H', 0x4A00)                    # [0x00] tst.b d0
+    code += struct.pack('>H', 0x6704)                    # [0x02] beq.s $08
+    # Path A: clobber a0
+    code += struct.pack('>H', 0x2047)                    # [0x04] movea.l d7,a0
+    code += struct.pack('>H', 0x6002)                    # [0x06] bra.s $0A
+    # Path B: different clobber
+    code += struct.pack('>H', 0x2046)                    # [0x08] movea.l d6,a0
+    # Merge + dispatch at $0A
+    code += struct.pack('>HH', 0x3028, 0x0002)          # [0x0a] move.w 2(a0),d0
+    code += struct.pack('>HH', 0x43FA, 0x0010)          # [0x0e] lea $10(pc),a1
+    code += struct.pack('>H', 0xD2C0)                    # [0x12] adda.w d0,a1
+    code += struct.pack('>H', 0x4ED1)                    # [0x14] jmp (a1)
+    code += b'\x4e\x71' * 10                             # padding
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert len(targets) == 0, (
+        f"Should not resolve when A0 clobbered on all paths, "
+        f"got {targets}")
+    print("  backward_slice_all_paths_clobbered: OK")
+
+
+def test_backward_slice_through_non_sub_blocks():
+    """Backward slice works for blocks that aren't subroutine entries.
+
+    The dispatch block is reached through normal branches (not BSR),
+    so per-caller analysis doesn't apply. Only backward slicing can
+    recover the register value.
+
+    Models GenAm $7542: LEA pcref,A0 several blocks before the dispatch,
+    with intervening conditionals and merges.
+    """
+    code = b''
+    # Entry: set A0 and branch into processing
+    # lea $30(pc),a0 -> a0 = $00+2+$30 = $32 (data)
+    code += struct.pack('>HH', 0x41FA, 0x0030)          # [0x00] lea data(pc),a0
+    code += struct.pack('>H', 0x4A00)                    # [0x04] tst.b d0
+    code += struct.pack('>H', 0x6704)                    # [0x06] beq.s $0C
+    # Processing path that doesn't touch A0
+    code += struct.pack('>H', 0x7205)                    # [0x08] moveq #5,d1
+    code += struct.pack('>H', 0x6006)                    # [0x0a] bra.s $12
+    # Skip path
+    code += struct.pack('>H', 0x7200)                    # [0x0c] moveq #0,d1
+    code += struct.pack('>H', 0x4A01)                    # [0x0e] tst.b d1
+    code += struct.pack('>H', 0x6702)                    # [0x10] beq.s $14
+    # Merge at $12, second merge at $14
+    code += struct.pack('>H', 0x5241)                    # [0x12] addq.w #1,d1
+    # Final merge + dispatch at $14
+    code += struct.pack('>HH', 0x3028, 0x0002)          # [0x14] move.w 2(a0),d0
+    # lea $1c(pc),a1 -> a1 = $18+2+$1c = $36 (handler base)
+    code += struct.pack('>HH', 0x43FA, 0x001C)          # [0x18] lea base(pc),a1
+    code += struct.pack('>H', 0xD2C0)                    # [0x1c] adda.w d0,a1
+    code += struct.pack('>H', 0x4ED1)                    # [0x1e] jmp (a1)
+    # Padding
+    code += b'\x4e\x71' * 9                              # [0x20..$31] nop
+    # Data at $32
+    code += struct.pack('>HHH', 0x0000, 0x0008, 0x0000) # [0x32] data
+    # Handler base at $36
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x38] pad
+    code += b'\x4e\x71' * 2                              # [0x3c..] pad
+    # Target at $36 + 8 = $3e
+    code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x3e] handler (target)
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x3e in targets, (
+        f"Expected $003e (handler via backward slice through non-sub blocks), "
+        f"got {targets}")
+    print("  backward_slice_through_non_sub_blocks: OK")
+
+
+# ---- 10. Edge cases ---------------------------------------------------------
 
 def test_disp_indirect_unknown_register():
     """JMP d(An) where An is unknown should NOT resolve."""
@@ -881,19 +1143,15 @@ def test_indexed_indirect_unknown_index():
     code = b''
     # lea $30(pc),a1  -> a1 = $32 (known)
     code += struct.pack('>HH', 0x43FA, 0x0030)          # [0x00] lea $30(pc),a1
-    # jsr 0(a1,d0.w)  -- d0 unknown
+    # jsr 0(a1,d0.w)  -- d0 unknown, target unresolvable
     code += struct.pack('>HH', 0x4EB1, 0x0000)          # [0x04] jsr 0(a1,d0.w)
-    code += struct.pack('>H', 0x4E75)                    # [0x08] rts
-    code += b'\x4e\x71' * 24
+    # No RTS -- only the JSR is under test
+    code += b'\x4e\x71' * 26
 
     _, _, resolved = _analyze_and_resolve(code)
-    jsr_resolved = [r for r in resolved
-                    if r.get("target", 0) != 0]
-    # The JSR at $04 should not resolve (D0 unknown)
-    # But other instructions might resolve via other mechanisms
-    # Filter: no target in the code range should come from the JSR block
-    assert len(jsr_resolved) == 0, (
-        f"Should not resolve with unknown d0, got {jsr_resolved}")
+    targets = _resolved_targets(resolved)
+    assert len(targets) == 0, (
+        f"Should not resolve with unknown d0, got {targets}")
     print("  indexed_indirect_unknown_index: OK")
 
 
@@ -989,7 +1247,14 @@ if __name__ == "__main__":
     test_register_survives_conditional_call()
     test_register_clobbered_both_paths()
 
-    print("\n9. Edge cases:")
+    print("\n9. Backward slice across merges:")
+    test_backward_slice_one_level()
+    test_backward_slice_two_levels()
+    test_backward_slice_many_predecessors()
+    test_backward_slice_all_paths_clobbered()
+    test_backward_slice_through_non_sub_blocks()
+
+    print("\n10. Edge cases:")
     test_disp_indirect_unknown_register()
     test_indexed_indirect_unknown_index()
     test_disp_indirect_target_out_of_range()
