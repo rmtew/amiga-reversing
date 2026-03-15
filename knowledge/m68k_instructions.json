@@ -11085,17 +11085,23 @@
           {
             "opmode": 8,
             "size": null,
-            "description": "Data registers"
+            "description": "Data registers",
+            "rx_mode": "dn",
+            "ry_mode": "dn"
           },
           {
             "opmode": 9,
             "size": null,
-            "description": "Address registers"
+            "description": "Address registers",
+            "rx_mode": "an",
+            "ry_mode": "an"
           },
           {
             "opmode": 17,
             "size": null,
-            "description": "Data register and address register"
+            "description": "Data register and address register",
+            "rx_mode": "dn",
+            "ry_mode": "an"
           }
         ]
       },
