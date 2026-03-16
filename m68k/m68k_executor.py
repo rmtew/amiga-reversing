@@ -2652,14 +2652,14 @@ def propagate_states(blocks: dict[int, BasicBlock],
             # callee code and is more precise than the generic
             # calling convention.
             if platform and platform.get("scratch_regs"):
-                preserved_d = (summary.get("preserved_d", set())
-                               if summary else set())
-                preserved_a = (summary.get("preserved_a", set())
-                               if summary else set())
+                known_d = summary.get("preserved_d", set()) if summary else set()
+                known_d = known_d | set(summary.get("produced_d", {}).keys()) if summary else known_d
+                known_a = summary.get("preserved_a", set()) if summary else set()
+                known_a = known_a | set(summary.get("produced_a", {}).keys()) if summary else known_a
                 for reg_mode, reg_num in platform["scratch_regs"]:
-                    if reg_mode == "dn" and reg_num in preserved_d:
+                    if reg_mode == "dn" and reg_num in known_d:
                         continue
-                    if reg_mode == "an" and reg_num in preserved_a:
+                    if reg_mode == "an" and reg_num in known_a:
                         continue
                     ft_cpu.set_reg(reg_mode, reg_num, _unknown())
 
@@ -2876,11 +2876,25 @@ def _compute_summary(entry: int, owned: set[int],
     preserved_a = {i for i in range(len(rts_cpu.a))
                    if rts_cpu.a[i].sym_base == f"A{i}_entry"
                    and rts_cpu.a[i].sym_offset == 0}
+    # Produced values: registers that are concrete at all RTS exits
+    # regardless of input.  These are constants the sub always computes
+    # (e.g. LEA target(pc),a0 — always returns the same address).
+    # Input-dependent results show as symbolic (Dn_entry + offset) or
+    # unknown, not concrete — so this is sound.
+    produced_d = {}
+    for i in range(len(rts_cpu.d)):
+        if i not in preserved_d and rts_cpu.d[i].is_known:
+            produced_d[i] = rts_cpu.d[i].concrete
+    produced_a = {}
+    for i in range(len(rts_cpu.a)):
+        if i not in preserved_a and rts_cpu.a[i].is_known:
+            produced_a[i] = rts_cpu.a[i].concrete
     sp_delta = 0
     if rts_cpu.sp.is_symbolic and rts_cpu.sp.sym_base == "SP_entry":
         sp_delta = rts_cpu.sp.sym_offset
 
     return {"preserved_d": preserved_d, "preserved_a": preserved_a,
+            "produced_d": produced_d, "produced_a": produced_a,
             "sp_delta": sp_delta}
 
 
@@ -2889,15 +2903,26 @@ def _apply_summary(caller_cpu: "CPUState",
     """Apply a subroutine summary to a caller's state.
 
     Preserved registers keep the caller's value.
-    Clobbered registers become unknown.  SP adjusted by delta.
+    Produced registers get the callee's concrete return value.
+    Everything else becomes unknown.  SP adjusted by delta.
     """
     result = CPUState()
+    produced_d = summary.get("produced_d", {})
+    produced_a = summary.get("produced_a", {})
     for i in range(len(result.d)):
-        result.d[i] = (caller_cpu.d[i] if i in summary["preserved_d"]
-                       else _unknown())
+        if i in summary["preserved_d"]:
+            result.d[i] = caller_cpu.d[i]
+        elif i in produced_d:
+            result.d[i] = _concrete(produced_d[i])
+        else:
+            result.d[i] = _unknown()
     for i in range(len(result.a)):
-        result.a[i] = (caller_cpu.a[i] if i in summary["preserved_a"]
-                       else _unknown())
+        if i in summary["preserved_a"]:
+            result.a[i] = caller_cpu.a[i]
+        elif i in produced_a:
+            result.a[i] = _concrete(produced_a[i])
+        else:
+            result.a[i] = _unknown()
     delta = summary["sp_delta"]
     if caller_cpu.sp.is_symbolic:
         result.sp = caller_cpu.sp.sym_add(delta)

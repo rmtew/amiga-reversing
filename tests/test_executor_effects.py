@@ -639,10 +639,87 @@ def test_summary_preserves_scratch_register():
         f"D0 should be 42, got {cpu.d[0].concrete}")
 
 
-def test_summary_clobbered_scratch_stays_unknown():
-    """Scratch register that summary says is clobbered stays unknown.
+def test_summary_produced_value_propagates():
+    """Callee that always produces a concrete return value in D0.
 
-    This is the normal case -- both summary and scratch agree it's gone.
+    Sub computes D0=99 regardless of input. The summary should capture
+    this as a 'produced' value, and the caller's fallthrough should
+    have D0=99 (not unknown).
+    """
+    sentinel = 0x80000002
+    code = b''
+    # $00: moveq #42,d0
+    code += struct.pack('>H', 0x702A)
+    # $02: bsr.w $08
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $06: rts (D0 should be 99 here -- produced by callee)
+    code += struct.pack('>H', 0x4E75)
+    # sub at $08: moveq #99,d0 (always produces D0=99)
+    code += struct.pack('>H', 0x7063)
+    # $0A: rts
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {
+        "scratch_regs": [("dn", 0), ("dn", 1)],
+        "initial_base_reg": (6, sentinel),
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    cpu, _ = result["exit_states"][0x06]
+    assert cpu.d[0].is_known, (
+        f"D0 should be 99 (produced by callee), got {cpu.d[0]}")
+    assert cpu.d[0].concrete == 99, (
+        f"D0 should be 99, got {cpu.d[0].concrete}")
+
+
+def test_summary_produced_address_enables_dispatch():
+    """Callee produces a concrete code address in A0, caller dispatches.
+
+    Sub always sets A0 = LEA target(pc),a0. After return, caller does
+    jsr (a0) which should resolve to the target address.
+
+    This models the $3ED6 pattern in GenAm where a utility sub computes
+    a function pointer and the caller dispatches through it.
+    """
+    sentinel = 0x80000002
+    code = b''
+    # $00: bsr.w $08
+    code += struct.pack('>HH', 0x6100, 0x0006)
+    # $04: jsr (a0)  -- should resolve to $10
+    code += struct.pack('>H', 0x4E90)
+    # $06: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub at $08: lea $10(pc),a0 -> a0 = $0A + 6 = $10
+    code += struct.pack('>HH', 0x41FA, 0x0006)
+    # $0C: rts
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>H', 0x4E71)
+    # target at $10: rts
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {
+        "scratch_regs": [("an", 0), ("an", 1)],
+        "initial_base_reg": (6, sentinel),
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    from m68k.jump_tables import resolve_indirect_targets
+    resolved = resolve_indirect_targets(
+        result["blocks"], result.get("exit_states", {}), len(code))
+    targets = sorted(r["target"] for r in resolved)
+    assert 0x10 in targets, (
+        f"Expected $0010 from jsr (a0) with callee-produced A0, "
+        f"got {targets}")
+
+
+def test_summary_input_dependent_stays_unknown():
+    """Callee return value depends on input -- should NOT be in summary.
+
+    Sub adds 1 to D0 and returns. Different callers get different results.
+    The summary should NOT capture a concrete produced value.
     """
     sentinel = 0x80000002
     code = b''
@@ -652,8 +729,8 @@ def test_summary_clobbered_scratch_stays_unknown():
     code += struct.pack('>HH', 0x6100, 0x0004)
     # $06: rts
     code += struct.pack('>H', 0x4E75)
-    # sub at $08: moveq #99,d0 (clobbers D0)
-    code += struct.pack('>H', 0x7063)
+    # sub at $08: addq.l #1,d0 (input-dependent result)
+    code += struct.pack('>H', 0x5280)
     # $0A: rts
     code += struct.pack('>H', 0x4E75)
 
@@ -664,10 +741,43 @@ def test_summary_clobbered_scratch_stays_unknown():
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
-    # Check fallthrough block ($06)
+    # D0 should be unknown at fallthrough -- the summary can't know it's 43
+    # because the sub's output depends on the input (not constant)
     cpu, _ = result["exit_states"][0x06]
     assert not cpu.d[0].is_known, (
-        f"D0 should be unknown (clobbered by callee), got {cpu.d[0]}")
+        f"D0 should be unknown (input-dependent return), got {cpu.d[0]}")
+
+
+def test_summary_unknown_return_stays_unknown():
+    """Callee clobbers D0 with an unknown value -- stays unknown.
+
+    Sub reads D0 from memory (unknown address), producing an unknown
+    return value. This should NOT be captured as a produced value.
+    """
+    sentinel = 0x80000002
+    code = b''
+    # $00: moveq #42,d0
+    code += struct.pack('>H', 0x702A)
+    # $02: bsr.w $08
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $06: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub at $08: move.l (a0),d0 (reads from unknown address -> D0 unknown)
+    code += struct.pack('>H', 0x2010)
+    # $0A: rts
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {
+        "scratch_regs": [("dn", 0)],
+        "initial_base_reg": (6, sentinel),
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    cpu, _ = result["exit_states"][0x06]
+    assert not cpu.d[0].is_known, (
+        f"D0 should be unknown (callee reads from unknown addr), "
+        f"got {cpu.d[0]}")
 
 
 # ── Multi-entry propagation ──────────────────────────────────────────
