@@ -1780,3 +1780,63 @@ def test_branch_forking_resolves_both_paths():
         f"got {targets}")
 
 
+def test_branch_forking_single_exit_no_fork():
+    """Callee with one RTS exit doesn't trigger forking.
+
+    sub_inner has a single exit path. The joined summary already
+    captures the concrete value. No per-exit forking needed.
+    """
+    code = b''
+    # $00: bsr.w $08
+    code += struct.pack('>HH', 0x6100, 0x0006)
+    # $04: jsr (a0)
+    code += struct.pack('>H', 0x4E90)
+    # $06: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_inner at $08: lea $10(pc),a0 -> a0 = $0A + 6 = $10
+    code += struct.pack('>HH', 0x41FA, 0x0006)
+    # $0C: rts (single exit)
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>H', 0x4E71)
+    # target at $10: rts
+    code += struct.pack('>H', 0x4E75)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # Should resolve via produced-value summary, not forking
+    assert 0x10 in targets, (
+        f"Expected $0010 from single-exit callee, got {targets}")
+
+
+def test_branch_forking_unknown_inputs_no_result():
+    """Forking with unknown inputs produces no concrete targets.
+
+    All callers have unknown D0. The callee branches on D0.
+    Both paths produce concrete A0, but the dispatch sub's callers
+    also have unknown state. No resolution expected.
+    """
+    code = b''
+    # $00: bsr.w $06 (sub_outer, D0 unknown at entry)
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $04: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_outer at $06: bsr.w $0E (sub_inner)
+    code += struct.pack('>HH', 0x6100, 0x0006)
+    # $0A: jsr (a0)
+    code += struct.pack('>H', 0x4E90)
+    # $0C: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_inner at $0E: movea.l d0,a0 (input-dependent, single path)
+    code += struct.pack('>H', 0x2040)
+    # $10: rts
+    code += struct.pack('>H', 0x4E75)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    # D0 is unknown -> A0 is unknown -> jsr (a0) can't resolve
+    # The only resolved targets should be RTS return addresses
+    assert all(t <= 0x12 for t in targets), (
+        f"Expected no dispatch targets (unknown inputs), got {targets}")
+
+

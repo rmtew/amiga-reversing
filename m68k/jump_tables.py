@@ -27,6 +27,13 @@ from .m68k_disasm import _Decoder, _decode_one, DecodeError
 from .kb_util import KB, xf
 
 
+# Maximum RTS exits to try when forking a nested callee's per-exit
+# summaries.  Each exit requires a full sub propagation, so this bounds
+# the cost of per-exit resolution.  Typical M68K subroutines have 1-4
+# RTS blocks; 16 covers all practical cases.
+_MAX_FORK_EXITS = 16
+
+
 # ── Extension word parsing (from KB field definitions) ───────────────────
 
 def _parse_ext_word(ext: int, raw: bytes, meta: dict) -> dict | None:
@@ -1289,54 +1296,38 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                                         fork_exits = per_exit
                                     break
 
+                def _try_resolve_from(exits):
+                    """Try resolving from a set of exit states."""
+                    if unres_addr not in exits:
+                        return
+                    cpu, mem = exits[unres_addr]
+                    target = _try_resolve_block(
+                        unres_addr, unres_type, blocks,
+                        cpu, mem, kb, code_size)
+                    if target is not None:
+                        resolved.append({"target": target})
+
                 if fork_callee and fork_exits:
-                    # Try each RTS exit of the forking callee
-                    _MAX_EXIT_ATTEMPTS = 16
-                    for i, exit_sum in enumerate(fork_exits):
-                        if i >= _MAX_EXIT_ATTEMPTS:
-                            break
+                    # Try each RTS exit of the forking callee.
+                    for i, exit_sum in enumerate(
+                            fork_exits[:_MAX_FORK_EXITS]):
                         trial_sums = dict(inline_sums)
                         trial_sums[fork_callee] = exit_sum
-                        per_caller_exits = propagate_states(
+                        _try_resolve_from(propagate_states(
                             sub_dict, code, sub_entry,
                             initial_state=init_cpu,
                             initial_mem=caller_mem.copy(),
                             platform=pc_platform,
-                            summaries=trial_sums)
-                        if unres_addr not in per_caller_exits:
-                            continue
-                        cpu, mem = per_caller_exits[unres_addr]
-                        target = _try_resolve_block(
-                            unres_addr, unres_type, blocks,
-                            cpu, mem, kb, code_size)
-                        if target is not None:
-                            resolved.append({"target": target})
+                            summaries=trial_sums))
                 elif inline_sums:
-                    # No forking needed — use joined summaries
-                    per_caller_exits = propagate_states(
+                    _try_resolve_from(propagate_states(
                         sub_dict, code, sub_entry,
                         initial_state=init_cpu,
                         initial_mem=caller_mem.copy(),
                         platform=pc_platform,
-                        summaries=inline_sums)
-                    if unres_addr not in per_caller_exits:
-                        continue
-                    cpu, mem = per_caller_exits[unres_addr]
-                    target = _try_resolve_block(
-                        unres_addr, unres_type, blocks,
-                        cpu, mem, kb, code_size)
-                    if target is not None:
-                        resolved.append({"target": target})
+                        summaries=inline_sums))
                 else:
-                    per_caller_exits = pass1_exits
-                    if unres_addr not in per_caller_exits:
-                        continue
-                    cpu, mem = per_caller_exits[unres_addr]
-                    target = _try_resolve_block(
-                        unres_addr, unres_type, blocks,
-                        cpu, mem, kb, code_size)
-                    if target is not None:
-                        resolved.append({"target": target})
+                    _try_resolve_from(pass1_exits)
 
     return resolved
 
