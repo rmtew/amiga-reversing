@@ -1605,6 +1605,52 @@ def _apply_binary_op(op_fn, d, inst_kb, cpu, mem, size, size_bytes,
         # CMPI: no write
     elif is_compare:
         pass  # compare: no register/memory write (CC flags only)
+    elif "operand_modes" in inst_kb.get("constraints", {}):
+        # Register-pair encoding: ADDX/SUBX/ABCD/SBCD
+        # KB constraints.operand_modes: {field: "R/M", values: {0: "dn,dn", 1: "predec,predec"}}
+        # Encoding: REGISTER Rx (dest, bits 11:9), REGISTER Ry (src, bits 2:0)
+        enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
+        reg_fields = sorted(
+            [f for f in enc_fields if f["name"].startswith("REGISTER")],
+            key=lambda f: f["bit_lo"], reverse=True)
+        rm_field = next((f for f in enc_fields
+                         if f["name"] == "R/M"), None)
+        if len(reg_fields) < 2 or rm_field is None:
+            mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
+            raise KeyError(
+                f"Missing register/R/M encoding fields for {mnemonic}")
+        rx_field = reg_fields[0]  # higher bits = destination
+        ry_field = reg_fields[1]  # lower bits = source
+        opcode = d.opcode
+        rx = _xf(opcode, (rx_field["bit_hi"], rx_field["bit_lo"],
+                          rx_field["width"]))
+        ry = _xf(opcode, (ry_field["bit_hi"], ry_field["bit_lo"],
+                          ry_field["width"]))
+        rm = _xf(opcode, (rm_field["bit_hi"], rm_field["bit_lo"],
+                          rm_field["width"]))
+        if rm == 0:
+            # Register-to-register: src=Dy, dst=Dx
+            src_val = cpu.d[ry]
+            dst_val = cpu.d[rx]
+            if src_val.is_known and dst_val.is_known:
+                r = op_fn(dst_val.concrete, src_val.concrete) & 0xFFFFFFFF
+                cpu.set_reg("dn", rx, _concrete(r))
+            else:
+                cpu.set_reg("dn", rx, _unknown())
+        else:
+            # Predecrement: src=-(Ay), dst=-(Ax) — memory operation
+            # Decrement both address registers, read, compute, write
+            for an in (ry, rx):
+                if cpu.a[an].is_known:
+                    cpu.set_reg("an", an, _concrete(
+                        (cpu.a[an].concrete - size_bytes) & 0xFFFFFFFF))
+            src_val = mem.read(cpu.a[ry], size)
+            dst_val = mem.read(cpu.a[rx], size)
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                r = op_fn(dst_val.concrete, src_val.concrete) & 0xFFFFFFFF
+                mem.write(cpu.a[rx], _concrete(r), size)
+            elif cpu.a[rx].is_known:
+                mem.write(cpu.a[rx], _unknown(), size)
     else:
         mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
         raise ValueError(
@@ -2397,7 +2443,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
 
     # Flow-control stops here
     flow = inst_kb.get("pc_effects", {}).get("flow", {})
-    if flow.get("type") in ("branch", "jump", "return", "call"):
+    if flow.get("type") in ("branch", "jump", "return", "call", "trap"):
         return
     if op is None and op_type != "swap":
         return

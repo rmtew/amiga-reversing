@@ -6030,14 +6030,7 @@
           2
         ]
       },
-      "operation_type": "sub",
-      "compute_formula": {
-        "op": "subtract",
-        "terms": [
-          "destination",
-          "source"
-        ]
-      }
+      "operation_type": "sub"
     },
     {
       "mnemonic": "BTST",
@@ -11529,14 +11522,7 @@
           2
         ]
       },
-      "operation_type": "sub",
-      "compute_formula": {
-        "op": "subtract",
-        "terms": [
-          "destination",
-          "source"
-        ]
-      }
+      "operation_type": "sub"
     },
     {
       "mnemonic": "JMP",
@@ -11867,14 +11853,7 @@
           2
         ]
       },
-      "operation_type": "sub",
-      "compute_formula": {
-        "op": "subtract",
-        "terms": [
-          "destination",
-          "source"
-        ]
-      }
+      "operation_type": "sub"
     },
     {
       "mnemonic": "LEA",
@@ -12367,14 +12346,7 @@
           }
         ]
       },
-      "operation_type": "sub",
-      "compute_formula": {
-        "op": "subtract",
-        "terms": [
-          "destination",
-          "source"
-        ]
-      }
+      "operation_type": "sub"
     },
     {
       "mnemonic": "LSL, LSR",
@@ -18013,14 +17985,7 @@
           }
         ]
       },
-      "operation_type": "add",
-      "compute_formula": {
-        "op": "add",
-        "terms": [
-          "source",
-          "destination"
-        ]
-      }
+      "operation_type": "add"
     },
     {
       "mnemonic": "RTM",
@@ -18537,14 +18502,7 @@
           2
         ]
       },
-      "operation_type": "add",
-      "compute_formula": {
-        "op": "add",
-        "terms": [
-          "source",
-          "destination"
-        ]
-      }
+      "operation_type": "add"
     },
     {
       "mnemonic": "SBCD",
@@ -21123,14 +21081,7 @@
           2
         ]
       },
-      "operation_type": "add",
-      "compute_formula": {
-        "op": "add",
-        "terms": [
-          "source",
-          "destination"
-        ]
-      }
+      "operation_type": "add"
     },
     {
       "mnemonic": "UNPK",

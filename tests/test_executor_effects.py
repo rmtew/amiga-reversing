@@ -1110,3 +1110,39 @@ def test_both_paths_agree_on_non_init_value():
         f"A0 should be concrete (both paths wrote ${new_target:02X})")
     assert cpu.a[0].concrete == new_target, (
         f"A0 should be ${new_target:02X}, got ${cpu.a[0].concrete:02X}")
+
+
+# ── Extended arithmetic: ADDX, SUBX ─────────────────────────────────
+
+def test_addx_reg_reg():
+    """ADDX.B D1,D1: D1 = D1 + D1 + X. Classic bit-reverse building block."""
+    # moveq #0,d1; moveq #1,d0 (sets X via prior add)
+    # We can't easily set X flag, so test with known values where X=0
+    # moveq #5,d0; moveq #3,d1; addx.l d0,d1 -> d1 = 3 + 5 + 0 = 8
+    code = b''
+    code += struct.pack('>H', 0x7005)  # moveq #5,d0
+    code += struct.pack('>H', 0x7203)  # moveq #3,d1
+    # ADDX.L D0,D1: 1101 001 1 10 0 00 000 = 0xD380
+    # Rx=1(D1=dest), Size=10(.L), R/M=0(reg), Ry=0(D0=src)
+    code += struct.pack('>H', 0xD380)
+    code += struct.pack('>H', 0x4E75)  # rts
+    cpu, _ = _run(code)
+    assert cpu.d[1].is_known, f"D1 should be concrete after ADDX, got {cpu.d[1]}"
+    # X flag starts unknown (cleared by moveq), so result depends on X
+    # moveq clears X, N, Z, V, C. So X=0 after moveq #3,d1
+    # ADDX.L D0,D1 = 3 + 5 + 0 = 8
+    assert cpu.d[1].concrete == 8, f"D1 should be 8 (3+5+X=0), got {cpu.d[1].concrete}"
+
+
+def test_subx_reg_reg():
+    """SUBX.L D0,D1: D1 = D1 - D0 - X."""
+    code = b''
+    code += struct.pack('>H', 0x7005)  # moveq #5,d0
+    code += struct.pack('>H', 0x720A)  # moveq #10,d1
+    # SUBX.L D0,D1: 1001 001 1 10 0 00 000 = 0x9380
+    code += struct.pack('>H', 0x9380)
+    code += struct.pack('>H', 0x4E75)  # rts
+    cpu, _ = _run(code)
+    assert cpu.d[1].is_known, f"D1 should be concrete after SUBX, got {cpu.d[1]}"
+    # moveq clears X, so SUBX = 10 - 5 - 0 = 5
+    assert cpu.d[1].concrete == 5, f"D1 should be 5 (10-5-X=0), got {cpu.d[1].concrete}"

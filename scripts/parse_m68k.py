@@ -3209,6 +3209,25 @@ def _extract_compute_formula(inst):
     if not operation or not op_type:
         return
 
+    # Skip instructions whose operation text describes SP manipulation,
+    # not data computation.  These have sp_effects and flow effects
+    # (call/return/trap) — their operation text contains stack
+    # operations that the classifier misreads as add/subtract formulas.
+    if inst.get("sp_effects"):
+        flow_type = (inst.get("pc_effects", {})
+                     .get("flow", {}).get("type"))
+        if flow_type in ("call", "return", "trap"):
+            return
+        # LINK/UNLK: have sp_effects but sequential flow.
+        # Their operation_type is "sub" or "add" from SP arithmetic,
+        # not from a data computation.  Detect by checking if the
+        # operation text only references SP/An, not Source/Destination
+        # or effective address.
+        if ("Source" not in operation and "Destination" not in operation
+                and "< ea >" not in operation
+                and "source" not in operation.lower()):
+            return
+
     # Map operation_type to structured formula based on PDF Operation text.
     # Each formula captures the operator and operand order FROM the PDF.
 
