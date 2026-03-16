@@ -8,6 +8,7 @@ Supports caching via save/load for instant reuse.
 """
 
 import pickle
+import re
 import struct
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -121,6 +122,11 @@ class HunkAnalysis:
 
 # ── Relocated segment detection ───────────────────────────────────────
 
+# Postincrement move pattern from disassembled instruction text.
+# Matches move.b/w/l (An)+,(Am)+ — the copy loop primitive.
+_POSTINC_COPY_RE = re.compile(
+    r'move\.[bwl]\s+\(a(\d)\)\+\s*,\s*\(a(\d)\)\+')
+
 def detect_relocated_segments(code: bytes) -> list[dict]:
     """Detect copy-and-jump patterns that relocate code to fixed addresses.
 
@@ -152,14 +158,11 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
     # The stub source bytes are still in the hunk at their original
     # offset.  Analyze them as secondary entry points, then look for
     # copy-and-jump patterns in the combined block set.
-    import re
     secondary_entries = set()
     for addr in sorted(blocks):
         blk = blocks[addr]
         for inst in blk.instructions:
-            m = re.match(
-                r'move\.[bwl]\s+\(a(\d)\)\+\s*,\s*\(a(\d)\)\+',
-                inst.text.lower())
+            m = _POSTINC_COPY_RE.match(inst.text.lower())
             if m:
                 src_reg = int(m.group(1))
                 for pred_addr in sorted(blocks):
@@ -222,33 +225,26 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
 
         # Check: is there a copy loop in the blocks before this JMP?
         # Walk predecessor chain looking for postincrement move pattern
-        _find_copy_segment(
-            jmp_target, blocks, exit_states, code_size, kb, segments,
-            all_entries)
+        seg = _find_copy_segment(
+            jmp_target, blocks, exit_states, code_size, all_entries)
+        if seg is not None and seg not in segments:
+            segments.append(seg)
 
     return segments
 
 
 def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
-                       code_size: int, kb: KB,
-                       segments: list[dict],
-                       all_entries: set[int] = None):
+                       code_size: int,
+                       entry_points: set[int]) -> dict | None:
     """Check if blocks before a JMP contain a copy loop targeting jmp_target.
 
-    Looks for postincrement move patterns (move.b/w/l (An)+,(Am)+)
-    where Am's initial value equals jmp_target (the copy destination).
-    The source register's initial value gives the file offset.
-    If the source register is unknown (set in a prior stage), checks
-    all registers in the setup block for a file-offset-like value.
+    Looks for postincrement move patterns where the destination register's
+    initial value equals jmp_target. Returns a segment dict or None.
     """
-    import re
-
     for addr in sorted(blocks):
         blk = blocks[addr]
         for inst in blk.instructions:
-            text = inst.text.lower()
-            m = re.match(
-                r'move\.[bwl]\s+\(a(\d)\)\+\s*,\s*\(a(\d)\)\+', text)
+            m = _POSTINC_COPY_RE.match(inst.text.lower())
             if not m:
                 continue
 
@@ -268,9 +264,7 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                         and dst_val.concrete == jmp_target):
                     continue
 
-                # Destination matches JMP target.
-                # Find source: check the source register first,
-                # then try all address registers for file offsets.
+                # Destination matches JMP target. Find source offset.
                 src_val = cpu.a[src_reg]
                 file_offset = None
                 if (src_val.is_known
@@ -278,8 +272,6 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                     file_offset = src_val.concrete
                 else:
                     # Source register unknown (set in prior stage).
-                    # Look for any register with a plausible file offset
-                    # that's between the bootstrap and the JMP target.
                     for i in range(len(cpu.a)):
                         v = cpu.a[i]
                         if (v.is_known and 0 < v.concrete < code_size
@@ -289,19 +281,12 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                             break
 
                 if file_offset is not None:
-                    seg = {
+                    return {
                         "file_offset": file_offset,
                         "base_addr": jmp_target,
-                        "entry_points": sorted(all_entries or {0}),
+                        "entry_points": sorted(entry_points),
                     }
-                    for i in range(len(cpu.d)):
-                        d_val = cpu.d[i]
-                        if d_val.is_known and d_val.concrete > 0:
-                            seg["size"] = d_val.concrete
-                            break
-                    if seg not in segments:
-                        segments.append(seg)
-                    return
+    return None
 
 
 # ── Pipeline ─────────────────────────────────────────────────────────────
