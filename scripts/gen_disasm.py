@@ -480,6 +480,24 @@ def format_app_offset_comment(text: str, base_reg: int,
     return f"app+${offset:X}"
 
 
+def format_ascii_immediate(value: int) -> str | None:
+    """Format a longword immediate as 'ABCD' if all 4 bytes are printable.
+
+    Returns the quoted string or None if any byte is non-printable.
+    Only longword (4-byte) values are candidates -- shorter values
+    produce too many false positives.
+    """
+    if value < 0x20202020 or value > 0x7E7E7E7E:
+        return None
+    chars = []
+    for i in range(4):
+        b = (value >> (24 - i * 8)) & 0xFF
+        if b < 0x20 or b > 0x7E:
+            return None
+        chars.append(chr(b))
+    return "'" + "".join(chars) + "'"
+
+
 def collect_data_access_sizes(blocks: dict, exit_states: dict
                               ) -> dict[int, int]:
     """Collect data access sizes from code blocks.
@@ -539,6 +557,86 @@ def collect_data_access_sizes(blocks: dict, exit_states: dict
                         sizes[ea_addr] = byte_size
 
     return sizes
+
+
+_MIN_STRING_LEN = 4  # minimum printable bytes to emit as string
+
+
+def _is_printable(b: int) -> bool:
+    """Check if a byte is printable ASCII (0x20-0x7E)."""
+    return 0x20 <= b <= 0x7E
+
+
+def _emit_hex_bytes(f, data: bytes, indent: str):
+    """Emit raw bytes as dc.b hex dump, 16 per row."""
+    for i in range(0, len(data), 16):
+        row = data[i:i + 16]
+        hex_vals = ",".join(f"${b:02x}" for b in row)
+        f.write(f"{indent}dc.b    {hex_vals}\n")
+
+
+def _emit_chunk_with_strings(f, code: bytes, start: int, end: int,
+                             indent: str):
+    """Emit a byte chunk, detecting printable ASCII runs as strings.
+
+    Scans for runs of 4+ printable bytes. Non-printable spans are
+    emitted as dc.b hex. Printable runs are emitted as dc.b "text"
+    with ,0 appended if null-terminated.
+    """
+    pos = start
+    while pos < end:
+        # Find next printable run
+        run_start = None
+        for i in range(pos, end):
+            if _is_printable(code[i]):
+                if run_start is None:
+                    run_start = i
+            else:
+                if run_start is not None:
+                    run_len = i - run_start
+                    if run_len >= _MIN_STRING_LEN:
+                        break  # found a valid run
+                    run_start = None  # too short, reset
+        else:
+            # End of chunk: check if we have a pending run
+            if run_start is not None:
+                run_len = end - run_start
+                if run_len < _MIN_STRING_LEN:
+                    run_start = None
+                else:
+                    i = end
+
+        if run_start is None:
+            # No printable run found — emit everything as hex
+            _emit_hex_bytes(f, code[pos:end], indent)
+            break
+
+        # Emit non-printable bytes before the run
+        if run_start > pos:
+            _emit_hex_bytes(f, code[pos:run_start], indent)
+
+        # Determine run end (stop at non-printable)
+        str_end = run_start
+        while str_end < end and _is_printable(code[str_end]):
+            str_end += 1
+
+        # Emit the printable run as a string
+        text = code[run_start:str_end].decode('ascii')
+        null_term = (str_end < end and code[str_end] == 0)
+        run_len = str_end - run_start
+        # Non-null-terminated runs need 6+ bytes to avoid false
+        # positives from opcodes that happen to be printable ASCII.
+        # Null-terminated runs are strong signals at 4+ bytes.
+        if null_term or run_len >= 6:
+            if null_term:
+                _emit_string(f, text, indent)
+            else:
+                f.write(f'{indent}dc.b    "{text}"\n')
+            pos = str_end + (1 if null_term else 0)
+        else:
+            # Too short and not null-terminated — emit as hex
+            _emit_hex_bytes(f, code[run_start:str_end], indent)
+            pos = str_end
 
 
 def emit_data_region(f, code: bytes, start: int, end: int,
@@ -625,23 +723,21 @@ def emit_data_region(f, code: bytes, start: int, end: int,
                 pos = zero_end
                 continue
 
-        # 4. Raw bytes until next boundary
+        # 5. Raw bytes with inline string detection.
+        # Scan forward for printable ASCII runs (4+ bytes).
+        # Emit non-printable spans as dc.b hex, printable runs as
+        # dc.b "text" (with ,0 if null-terminated).
         chunk_end = pos + 1
         while chunk_end < end:
             if (chunk_end in labels or chunk_end in reloc_map
                     or chunk_end in string_addrs):
                 break
-            # Stop before zero runs of 4+
             if (code[chunk_end] == 0 and chunk_end + 3 < end
                     and all(code[chunk_end + i] == 0 for i in range(4))):
                 break
             chunk_end += 1
 
-        chunk = code[pos:chunk_end]
-        for i in range(0, len(chunk), 16):
-            row = chunk[i:i + 16]
-            hex_vals = ",".join(f"${b:02x}" for b in row)
-            f.write(f"{indent}dc.b    {hex_vals}\n")
+        _emit_chunk_with_strings(f, code, pos, chunk_end, indent)
         pos = chunk_end
 
 
@@ -1180,6 +1276,15 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                                 text, base_info[0], app_offsets)
                             if app_comment:
                                 comment = app_comment
+                        # ASCII immediate comment for #$XXXXXXXX
+                        if not comment:
+                            imm_match = re.search(
+                                r'#\$([0-9a-fA-F]{8})\b', text)
+                            if imm_match:
+                                ascii_str = format_ascii_immediate(
+                                    int(imm_match.group(1), 16))
+                                if ascii_str:
+                                    comment = ascii_str
                         if comment:
                             f.write(f"    {text} ; {comment}\n")
                         else:
@@ -1265,9 +1370,25 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                         sub = lvo_substitutions.get(inst.offset)
                         if sub:
                             text = text.replace(sub[0], sub[1])
+                        comment = ""
                         pmin = _get_processor_min(inst.text, kb)
                         if pmin != "68000":
-                            f.write(f"    {text} ; {pmin}+\n")
+                            comment = f"{pmin}+"
+                        if not comment:
+                            imm_match = re.search(
+                                r'#\$([0-9a-fA-F]{8})\b', text)
+                            if imm_match:
+                                ascii_str = format_ascii_immediate(
+                                    int(imm_match.group(1), 16))
+                                if ascii_str:
+                                    comment = ascii_str
+                        if not comment and base_info:
+                            app_comment = format_app_offset_comment(
+                                text, base_info[0], app_offsets)
+                            if app_comment:
+                                comment = app_comment
+                        if comment:
+                            f.write(f"    {text} ; {comment}\n")
                         else:
                             f.write(f"    {text}\n")
                         hint_instr += 1

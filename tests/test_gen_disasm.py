@@ -1,14 +1,12 @@
-"""Tests for disassembly output generation helpers.
+"""Tests for disassembly output generation helpers."""
 
-Tests data region format selection from access patterns (Feature 4)
-and app memory offset comment generation (Feature 3).
-"""
-
+import io
 import struct
 
 from m68k.m68k_executor import analyze
 from scripts.gen_disasm import (collect_data_access_sizes,
-                                emit_data_region, format_app_offset_comment)
+                                emit_data_region, format_app_offset_comment,
+                                format_ascii_immediate)
 
 
 # ── Feature 3: App memory offset comments ────────────────────────────
@@ -103,3 +101,89 @@ def test_emit_data_long_format():
                      access_sizes=access_sizes)
     output = f.getvalue()
     assert "dc.l" in output, f"Expected dc.l in output, got:\n{output}"
+
+
+# ── String detection in data regions ─────────────────────────────────
+
+def test_data_region_detects_embedded_string():
+    """Printable ASCII run in data region emits dc.b "text" not hex.
+
+    Models GenAm version string: non-printable prefix then
+    "VER: GenAm",0 as a null-terminated string.
+    """
+    data = bytes([0x94, 0x85, 0xC2]) + b'VER: GenAm\x00' + bytes([0xFF])
+    f = io.StringIO()
+    emit_data_region(f, data, 0, len(data), {}, {}, set())
+    output = f.getvalue()
+    assert '"VER: GenAm"' in output, (
+        f"Expected quoted string in output, got:\n{output}")
+    # The non-printable prefix should be hex
+    assert "$94" in output
+
+
+def test_data_region_short_printable_not_string():
+    """Short non-null-terminated printable runs stay as hex."""
+    data = bytes([0x41, 0x42, 0x43, 0x44, 0xFF])  # "ABCD" + junk, no null
+    f = io.StringIO()
+    emit_data_region(f, data, 0, len(data), {}, {}, set())
+    output = f.getvalue()
+    # 4 printable bytes without null terminator is too short (need 6+)
+    assert '"ABCD"' not in output
+
+
+def test_data_region_short_null_terminated_is_string():
+    """Short null-terminated printable runs (4+) ARE strings."""
+    data = b'ABCD\x00'
+    f = io.StringIO()
+    emit_data_region(f, data, 0, len(data), {}, {}, set())
+    output = f.getvalue()
+    assert '"ABCD"' in output
+
+
+def test_data_region_null_terminated_string():
+    """Null-terminated printable run emits as string with ,0 terminator."""
+    data = b'include_longmac\x00'
+    f = io.StringIO()
+    emit_data_region(f, data, 0, len(data), {}, {}, set())
+    output = f.getvalue()
+    assert '"include_longmac"' in output
+    assert ",0" in output
+
+
+def test_data_region_mixed_hex_and_string():
+    """Data with non-printable bytes, then string, then more non-printable.
+
+    Should emit: dc.b hex... then dc.b "text",0 then dc.b hex...
+    """
+    data = bytes([0x4A, 0xFB]) + b'hello\x00' + bytes([0xDE, 0xAD])
+    f = io.StringIO()
+    emit_data_region(f, data, 0, len(data), {}, {}, set())
+    output = f.getvalue()
+    assert '"hello"' in output
+    assert "$4a" in output.lower() or "$4A" in output
+
+
+# ── ASCII immediate comments ─────────────────────────────────────────
+
+def test_ascii_immediate_longword():
+    """4-byte all-printable immediate gets 'ABCD' comment."""
+    result = format_ascii_immediate(0x4C494E45)  # 'LINE'
+    assert result == "'LINE'"
+
+
+def test_ascii_immediate_non_printable():
+    """Immediate with non-printable byte returns None."""
+    result = format_ascii_immediate(0x4C490045)  # 'LI\x00E'
+    assert result is None
+
+
+def test_ascii_immediate_word_too_short():
+    """Word-sized immediates are too short -- return None."""
+    result = format_ascii_immediate(0x4F4B)  # 'OK'
+    assert result is None
+
+
+def test_ascii_immediate_spaces_allowed():
+    """Spaces are valid printable characters."""
+    result = format_ascii_immediate(0x54455354)  # 'TEST'
+    assert result == "'TEST'"
