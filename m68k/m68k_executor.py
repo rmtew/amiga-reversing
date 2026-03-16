@@ -2647,8 +2647,20 @@ def propagate_states(blocks: dict[int, BasicBlock],
             # Scratch reg invalidation on fallthrough (not on
             # callee — the callee receives pre-call register
             # state as input, e.g. D0 = LVO offset).
+            # Skip invalidation for registers the summary says are
+            # preserved — the summary is computed from the actual
+            # callee code and is more precise than the generic
+            # calling convention.
             if platform and platform.get("scratch_regs"):
+                preserved_d = (summary.get("preserved_d", set())
+                               if summary else set())
+                preserved_a = (summary.get("preserved_a", set())
+                               if summary else set())
                 for reg_mode, reg_num in platform["scratch_regs"]:
+                    if reg_mode == "dn" and reg_num in preserved_d:
+                        continue
+                    if reg_mode == "an" and reg_num in preserved_a:
+                        continue
                     ft_cpu.set_reg(reg_mode, reg_num, _unknown())
 
             # Apply pending call effect (from _apply_instruction's

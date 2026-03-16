@@ -596,6 +596,80 @@ def test_bset_reg():
     assert cpu.d[0].concrete == 1
 
 
+# ── Summary overrides scratch invalidation ───────────────────────────
+
+def test_summary_preserves_scratch_register():
+    """Summary-preserved registers survive even if in scratch set.
+
+    Caller sets D0=42, BSRs to sub that doesn't touch D0.
+    Sub's summary should say D0 is preserved. After return,
+    D0 should still be 42 at the fallthrough block -- scratch
+    invalidation should NOT override a summary-preserved register.
+    """
+    sentinel = 0x80000002
+    code = b''
+    # $00: moveq #42,d0
+    code += struct.pack('>H', 0x702A)
+    # $02: bsr.w $08 (sub that preserves D0)
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $06: rts (D0 should still be 42 here)
+    code += struct.pack('>H', 0x4E75)
+    # sub at $08: moveq #99,d1 (only modifies D1, not D0)
+    code += struct.pack('>H', 0x7263)
+    # $0A: rts
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {
+        "scratch_regs": [("dn", 0), ("dn", 1), ("an", 0), ("an", 1)],
+        "initial_base_reg": (6, sentinel),  # needed for summary computation
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+    exit_states = result.get("exit_states", {})
+
+    # Check the fallthrough block ($06), not the caller block ($00)
+    assert 0x06 in exit_states, (
+        f"Fallthrough block $06 should have exit state, "
+        f"got {sorted(hex(a) for a in exit_states)}")
+    cpu, _ = exit_states[0x06]
+    assert cpu.d[0].is_known, (
+        f"D0 should be preserved across call (summary overrides scratch), "
+        f"got {cpu.d[0]}")
+    assert cpu.d[0].concrete == 42, (
+        f"D0 should be 42, got {cpu.d[0].concrete}")
+
+
+def test_summary_clobbered_scratch_stays_unknown():
+    """Scratch register that summary says is clobbered stays unknown.
+
+    This is the normal case -- both summary and scratch agree it's gone.
+    """
+    sentinel = 0x80000002
+    code = b''
+    # $00: moveq #42,d0
+    code += struct.pack('>H', 0x702A)
+    # $02: bsr.w $08
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $06: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub at $08: moveq #99,d0 (clobbers D0)
+    code += struct.pack('>H', 0x7063)
+    # $0A: rts
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {
+        "scratch_regs": [("dn", 0)],
+        "initial_base_reg": (6, sentinel),
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    # Check fallthrough block ($06)
+    cpu, _ = result["exit_states"][0x06]
+    assert not cpu.d[0].is_known, (
+        f"D0 should be unknown (clobbered by callee), got {cpu.d[0]}")
+
+
 # ── Multi-entry propagation ──────────────────────────────────────────
 
 def test_all_entry_points_get_exit_states():
