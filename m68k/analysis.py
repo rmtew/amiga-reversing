@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .hunk_parser import parse_file, HunkType, _HUNK_KB
-from .m68k_executor import analyze, BasicBlock
+from .m68k_executor import analyze, BasicBlock, _extract_mnemonic
 from .jump_tables import (detect_jump_tables, resolve_indirect_targets,
                           resolve_per_caller, resolve_backward_slice)
 from .os_calls import (load_os_kb, get_platform_config,
@@ -322,6 +322,43 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                 hint_blocks[a] = b
         for e in scan_entries:
             hint_source[e] = "scan"
+
+    # Post-scan: seed at addresses immediately after each hint block
+    # that ends with a flow-terminating instruction (RTS, BRA, JMP).
+    # These are adjacent code regions that the main scanner missed
+    # because they were consumed by larger candidates or not reachable
+    # from any branch target.
+    post_scan_entries = set()
+    all_known = set(blocks) | set(hint_blocks)
+    for hb in hint_blocks.values():
+        if not hb.instructions:
+            continue
+        last = hb.instructions[-1]
+        ft, _ = kb.flow_type(last)
+        if ft in ("return", "jump") or (ft == "branch"
+                                         and not kb.find(
+                                             _extract_mnemonic(last.text)
+                                         ).get("pc_effects", {}).get(
+                                             "flow", {}).get(
+                                             "conditional", True)):
+            next_addr = hb.end
+            if (next_addr < code_size
+                    and next_addr not in all_known
+                    and next_addr not in post_scan_entries):
+                post_scan_entries.add(next_addr)
+    if post_scan_entries:
+        post_result = analyze(code, base_addr=0,
+                              entry_points=sorted(post_scan_entries),
+                              propagate=False)
+        added = 0
+        for a, b in post_result["blocks"].items():
+            if a not in blocks and a not in hint_blocks:
+                hint_blocks[a] = b
+                added += 1
+        for e in post_scan_entries:
+            if e in hint_blocks:
+                hint_source[e] = "scan"
+                scan_entries.add(e)
 
     hint_reasons: dict[int, dict] = {}
     for entry in sorted(set(hint_entries) | scan_entries):
