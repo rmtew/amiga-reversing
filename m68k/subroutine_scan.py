@@ -100,8 +100,8 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
                 "has_flow": has_flow,
             }
 
-        if ft == "jump" and not conditional:
-            # Unconditional jump — could be tail call
+        if ft in ("jump", "branch") and not conditional:
+            # Unconditional jump/branch — could be tail call
             if instrs >= 3 and has_flow:
                 return {
                     "addr": start,

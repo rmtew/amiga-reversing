@@ -187,3 +187,52 @@ def test_ascii_immediate_spaces_allowed():
     """Spaces are valid printable characters."""
     result = format_ascii_immediate(0x54455354)  # 'TEST'
     assert result == "'TEST'"
+
+
+# ── Subroutine scan gap computation ──────────────────────────────────
+
+def test_scan_uses_hint_blocks_for_gaps():
+    """Subroutine scanner should use hint blocks when computing gaps.
+
+    A hint block covers $00-$06 (moveq + bra.w). The bytes at $06
+    are a separate subroutine (moveq + rts). The scanner should
+    find the subroutine at $06 because the hint block makes $00-$06
+    not a gap.
+
+    Without this fix, the scanner sees $00-$0A as one gap and the
+    candidate at $00 (moveq + bra.w = 2 instrs, unconditional jump)
+    is rejected (< 3 instrs), then it tries $02 which is mid-BRA
+    and fails, then $04 which is mid-displacement, then $06 where
+    it finds the subroutine. But if another larger candidate starting
+    before $06 consumes the region, $06 is never tried.
+    """
+    from m68k.subroutine_scan import scan_candidates
+    from m68k.m68k_executor import BasicBlock, Instruction
+
+    code = b''
+    # $00: moveq #1,d0
+    code += struct.pack('>H', 0x7001)
+    # $02: bra.w $20 (far jump, not in our code)
+    code += struct.pack('>HH', 0x6000, 0x001C)
+    # $06: moveq #2,d0 (separate subroutine)
+    code += struct.pack('>H', 0x7002)
+    # $08: rts
+    code += struct.pack('>H', 0x4E75)
+
+    # With a hint block at $00-$06: gap starts at $06,
+    # scanner finds subroutine there
+    hint_block = BasicBlock(
+        start=0, end=6,
+        instructions=[
+            Instruction(offset=0, size=2, opcode=0x7001,
+                        text="moveq   #1,d0", raw=code[0:2]),
+            Instruction(offset=2, size=4, opcode=0x6000,
+                        text="bra.w   $20", raw=code[2:6]),
+        ],
+        is_entry=True,
+    )
+    candidates_with_hint = scan_candidates({0: hint_block}, code)
+    addrs_with_hint = {c["addr"] for c in candidates_with_hint}
+    assert 0x06 in addrs_with_hint, (
+        f"With hint block at $00-$06, scanner should find $06, "
+        f"got {addrs_with_hint}")

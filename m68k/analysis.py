@@ -302,7 +302,13 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         for e in hint_entries:
             hint_source[e] = "reloc"
 
-    scan_candidates = scan_and_score(blocks, code, reloc_targets,
+    # Pass combined core + hint blocks so the scanner's gap computation
+    # respects already-discovered hint regions.  Without this, a large
+    # gap containing a hint block gets scanned from the gap start and
+    # a bigger candidate can consume code that should be a separate sub.
+    scan_blocks = dict(blocks)
+    scan_blocks.update(hint_blocks)
+    scan_candidates = scan_and_score(scan_blocks, code, reloc_targets,
                                      call_targets)
     scan_entries = {c["addr"] for c in scan_candidates
                     if c["addr"] not in blocks
