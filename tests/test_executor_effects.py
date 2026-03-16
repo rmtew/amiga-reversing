@@ -594,3 +594,291 @@ def test_bset_reg():
     cpu, _ = _run(code)
     assert cpu.d[0].is_known, "BSET should produce a concrete result"
     assert cpu.d[0].concrete == 1
+
+
+# ── Init memory join semantics ───────────────────────────────────────
+
+def test_init_mem_value_survives_join():
+    """Init memory pointer survives merge of two paths.
+
+    Two paths converge, neither touches the init mem slot.
+    After merge, movea.l 100(a6),a0; jsr (a0) should resolve.
+    """
+    sentinel = 0x80000002
+    target = 0x10  # address of target rts
+
+    code = b''
+    # $00: tst.b d0
+    code += struct.pack('>H', 0x4A00)
+    # $02: beq.s $08 (offset = 4)
+    code += struct.pack('>H', 0x6704)
+    # $04: moveq #1,d1
+    code += struct.pack('>H', 0x7201)
+    # $06: bra.s $0A (offset = 2)
+    code += struct.pack('>H', 0x6002)
+    # $08: moveq #2,d1
+    code += struct.pack('>H', 0x7402)
+    # $0A: movea.l 100(a6),a0
+    code += struct.pack('>HH', 0x206E, 0x0064)
+    # $0E: jsr (a0)
+    code += struct.pack('>H', 0x4E90)
+    # $10: rts (target)
+    code += struct.pack('>H', 0x4E75)
+
+    init_mem = AbstractMemory()
+    init_mem.write(sentinel + 100, _concrete(target), "l")
+
+    platform = {
+        "initial_base_reg": (6, sentinel),
+        "_initial_mem": init_mem,
+        "scratch_regs": [],
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    from m68k.jump_tables import resolve_indirect_targets
+    resolved = resolve_indirect_targets(
+        result["blocks"], result.get("exit_states", {}), len(code))
+    targets = sorted(r["target"] for r in resolved)
+    assert target in targets, (
+        f"Expected ${target:04X} from jsr (a0) via init mem, got {targets}")
+
+
+def test_store_in_one_sub_load_in_another():
+    """Value stored by one sub, loaded and dispatched in another.
+
+    Sub A stores LEA-computed address to d(A6).
+    Sub B loads and dispatches. Init_mem seeded with the stored value.
+    """
+    sentinel = 0x80000002
+    handler_addr = 0x1E
+
+    code = b''
+    # $00: bsr.w sub_store ($0A)
+    code += struct.pack('>HH', 0x6100, 0x0008)
+    # $04: bsr.w sub_load ($14)
+    code += struct.pack('>HH', 0x6100, 0x000E)
+    # $08: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_store ($0A): lea handler(pc),a0
+    # PC=$0C, disp=$12, target=$0C+$12=$1E
+    code += struct.pack('>HH', 0x41FA, 0x0012)
+    # $0E: move.l a0,100(a6)
+    code += struct.pack('>HH', 0x2D48, 0x0064)
+    # $12: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_load ($14): movea.l 100(a6),a0
+    code += struct.pack('>HH', 0x206E, 0x0064)
+    # $18: jsr (a0)
+    code += struct.pack('>H', 0x4E90)
+    # $1A: rts
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>H', 0x4E71)
+    # handler ($1E): rts
+    code += struct.pack('>H', 0x4E75)
+
+    # Seed init_mem with the value that sub_store would write
+    init_mem = AbstractMemory()
+    init_mem.write(sentinel + 100, _concrete(handler_addr), "l")
+
+    platform = {
+        "initial_base_reg": (6, sentinel),
+        "_initial_mem": init_mem,
+        "scratch_regs": [],
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    from m68k.jump_tables import resolve_indirect_targets
+    resolved = resolve_indirect_targets(
+        result["blocks"], result.get("exit_states", {}), len(code))
+    targets = sorted(r["target"] for r in resolved)
+    assert handler_addr in targets, (
+        f"Expected ${handler_addr:04X} from jsr (a0) via init mem, "
+        f"got {targets}")
+
+
+def test_local_write_overrides_init_mem():
+    """Block-local write overrides init memory value.
+
+    A block writes unknown to d(A6) then reads it. The read should get
+    unknown, not the init_mem value. No join involved — single path.
+    """
+    sentinel = 0x80000002
+    code_target = 0x20
+
+    code = b''
+    # $00: move.l d0,100(a6)  -- d0 is unknown, overwrites init_mem slot
+    code += struct.pack('>HH', 0x2D40, 0x0064)
+    # $04: movea.l 100(a6),a0  -- should get unknown (d0 was unknown)
+    code += struct.pack('>HH', 0x206E, 0x0064)
+    # $08: rts
+    code += struct.pack('>H', 0x4E75)
+
+    init_mem = AbstractMemory()
+    init_mem.write(sentinel + 100, _concrete(code_target), "l")
+
+    platform = {
+        "initial_base_reg": (6, sentinel),
+        "_initial_mem": init_mem,
+        "scratch_regs": [],
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    cpu, _ = result["exit_states"][0]
+    assert not cpu.a[0].is_known, (
+        f"A0 should be unknown after local write of unknown D0, "
+        f"got {cpu.a[0]}")
+
+
+def test_unknown_write_kills_init_mem_at_join():
+    """Explicit unknown write on one path must NOT be restored at join.
+
+    Path A: writes unknown d0 to init mem slot 100(a6).
+    Path B: doesn't touch the slot (has init value).
+    After merge: slot should be unknown (one path explicitly killed it).
+
+    This is the soundness test — post-join restoration would incorrectly
+    bring back the init value, producing a wrong concrete dispatch target.
+    """
+    sentinel = 0x80000002
+    init_target = 0x20  # init mem has this, but path A kills it
+
+    code = b''
+    # $00: tst.b d0
+    code += struct.pack('>H', 0x4A00)
+    # $02: beq.s $0A  (path B: skip to nop)
+    code += struct.pack('>H', 0x6706)
+    # $04: move.l d0,100(a6)  (path A: write unknown d0 to slot)
+    code += struct.pack('>HH', 0x2D40, 0x0064)
+    # $08: bra.s $0C  (skip to merge)
+    code += struct.pack('>H', 0x6002)
+    # $0A: nop  (path B: no-op)
+    code += struct.pack('>H', 0x4E71)
+    # $0C: movea.l 100(a6),a0  (merge point: load from slot)
+    code += struct.pack('>HH', 0x206E, 0x0064)
+    # $10: rts
+    code += struct.pack('>H', 0x4E75)
+
+    init_mem = AbstractMemory()
+    init_mem.write(sentinel + 100, _concrete(init_target), "l")
+
+    platform = {
+        "initial_base_reg": (6, sentinel),
+        "_initial_mem": init_mem,
+        "scratch_regs": [],
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    # A0 must be unknown: path A wrote unknown, path B has init value.
+    # The join of (unknown, concrete) = unknown.
+    cpu, _ = result["exit_states"][0x0C]
+    assert not cpu.a[0].is_known, (
+        f"A0 should be unknown (one path wrote unknown to slot), "
+        f"got {cpu.a[0]}")
+
+
+def test_concrete_overwrite_on_one_path_kills_init_at_join():
+    """One path writes a different concrete value to an init mem slot.
+
+    Path A: writes concrete 0x30 to slot (init had 0x20).
+    Path B: doesn't touch the slot (has init value 0x20).
+    After merge: slot should be unknown (disagreeing concrete values).
+
+    Layout:
+        $00: moveq  #$30,d1
+        $02: tst.b  d0
+        $04: beq.s  $0E          ; path B -> merge
+        $06: move.l d1,100(a6)   ; path A: write 0x30
+        $0A: bra.s  $0E          ; -> merge
+        $0C: nop                 ; padding
+        $0E: movea.l 100(a6),a0  ; merge point
+        $12: rts
+    """
+    sentinel = 0x80000002
+    init_target = 0x20
+    other_target = 0x30
+
+    code = b''
+    # $00: moveq #$30,d1
+    code += struct.pack('>H', 0x7230)
+    # $02: tst.b d0
+    code += struct.pack('>H', 0x4A00)
+    # $04: beq.s $0E  (PC=$06, disp=8)
+    code += struct.pack('>H', 0x6708)
+    # $06: move.l d1,100(a6)  (path A: write 0x30)
+    code += struct.pack('>HH', 0x2D41, 0x0064)
+    # $0A: bra.s $0E  (PC=$0C, disp=2)
+    code += struct.pack('>H', 0x6002)
+    # $0C: nop  (padding)
+    code += struct.pack('>H', 0x4E71)
+    # $0E: movea.l 100(a6),a0  (merge point)
+    code += struct.pack('>HH', 0x206E, 0x0064)
+    # $12: rts
+    code += struct.pack('>H', 0x4E75)
+
+    init_mem = AbstractMemory()
+    init_mem.write(sentinel + 100, _concrete(init_target), "l")
+
+    platform = {
+        "initial_base_reg": (6, sentinel),
+        "_initial_mem": init_mem,
+        "scratch_regs": [],
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    # A0 must be unknown: path A has 0x30, path B has 0x20.
+    cpu, _ = result["exit_states"][0x0E]
+    assert not cpu.a[0].is_known, (
+        f"A0 should be unknown (paths disagree: ${init_target:02X} vs "
+        f"${other_target:02X}), got {cpu.a[0]}")
+
+
+def test_both_paths_agree_on_non_init_value():
+    """Both paths write the same concrete value to an init mem slot.
+
+    Both paths overwrite init value 0x20 with 0x30. After merge the
+    slot should be concrete 0x30 (both agree, join preserves it).
+    """
+    sentinel = 0x80000002
+    new_target = 0x30
+
+    code = b''
+    # $00: moveq #$30,d1
+    code += struct.pack('>H', 0x7230)
+    # $02: tst.b d0
+    code += struct.pack('>H', 0x4A00)
+    # $04: beq.s $0C  (path B)
+    code += struct.pack('>H', 0x6706)
+    # $06: move.l d1,100(a6)  (path A: write 0x30)
+    code += struct.pack('>HH', 0x2D41, 0x0064)
+    # $0A: bra.s $10  (skip to merge)
+    code += struct.pack('>H', 0x6004)
+    # $0C: move.l d1,100(a6)  (path B: also write 0x30)
+    code += struct.pack('>HH', 0x2D41, 0x0064)
+    # $10: movea.l 100(a6),a0  (merge point)
+    code += struct.pack('>HH', 0x206E, 0x0064)
+    # $14: rts
+    code += struct.pack('>H', 0x4E75)
+
+    init_mem = AbstractMemory()
+    init_mem.write(sentinel + 100, _concrete(0x20), "l")
+
+    platform = {
+        "initial_base_reg": (6, sentinel),
+        "_initial_mem": init_mem,
+        "scratch_regs": [],
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    # A0 should be 0x30: both paths wrote it, overriding init value
+    cpu, _ = result["exit_states"][0x10]
+    assert cpu.a[0].is_known, (
+        f"A0 should be concrete (both paths wrote ${new_target:02X})")
+    assert cpu.a[0].concrete == new_target, (
+        f"A0 should be ${new_target:02X}, got ${cpu.a[0].concrete:02X}")

@@ -252,8 +252,6 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                     continue
                 if val.concrete is None:
                     continue
-                if not (0 <= val.concrete < code_size):
-                    continue
                 init_mem._bytes[mem_addr] = val
                 new_stores += 1
             for key, tag in mem._tags.items():

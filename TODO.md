@@ -234,11 +234,11 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - `rx_mode`/`ry_mode` for EXG from description text
   - `operation_class` from instruction title (LEA, MOVEM)
   - 8 `_meta` fields added (size_suffixes, default_operand_size, register_aliases, ea_full_ext_bd_size)
-- [x] pytest suite: `py -m pytest tests/` -- 1887 tests in ~2s
+- [x] pytest suite: `py -m pytest tests/` -- 1893 tests in ~2s
   - `test_m68k_roundtrip.py`: 1796 KB-driven roundtrip tests, batch-assembled (12 vasm calls)
   - `test_indirect_resolution.py`: 37 tests (dispatch patterns, backward slice, per-caller)
   - `test_executor_propagation.py`: 8 tests (memory, joins, instruction effects)
-  - `test_executor_effects.py`: 37 tests (all compute ops, preservation, merge, invalidation)
+  - `test_executor_effects.py`: 43 tests (all compute ops, preservation, merge, invalidation, init mem join semantics)
   - `test_analysis.py`: 6 tests (pipeline, save/load cache, version check)
   - `test_code_section_reads.py`: 3 tests (pointer resolution through code data)
 - [x] PEA EA mode validation: guard against invalid modes via KB `ea_modes.ea`
@@ -261,6 +261,12 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - Context from KB: shift_count_modulus, direction from dr field, fill from variants,
     bit_modulus from instruction, data_sizes from forms, i/r field for count source
 - [x] Base register restoration after merge points (prevents A6 loss through joins)
+- [x] Init memory join semantics: `_join_states` uses init_mem as default for missing bytes
+  - Replaces unsound post-join restoration (which overrode explicit unknown writes)
+  - Init bytes survive joins where no predecessor touched them
+  - Explicit writes (even unknown) correctly kill init values at merge
+  - Store pass broadened: removed code-range filter on captured values
+  - 6 tests: survive join, cross-sub dispatch, local override, unknown-write kill, concrete disagree, both-agree
 - [x] Audit: KB.addr_mask replaces hardcoded 0xFFFFFFFF, SWAP/EXG detected in
   _reg_modified_in_sub, invalidation path respects write_to_ea, i/r encoding
   field distinguishes immediate vs register shift counts
@@ -277,10 +283,11 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
     - Requires per-instruction state tracking (register modified in loop)
     - Code section reads resolve some indirect targets but not loop-based access
     - Data structure typing needs access-pattern analysis, not content scanning
-  - [ ] Memory dispatch via d(A6) function pointers: executor needs to resolve
-    MOVEA.L d(An),Am + JMP/JSR (Am) where stored values come from LEA d(PC)
+  - [ ] Memory dispatch via d(A6) function pointers: partially resolved
+    - [x] Init memory join semantics: values survive merges soundly (no false restoration)
+    - [x] Store pass captures all concrete app-base values (219 across 3 passes)
+    - [ ] Remaining: 10 jsr/jmp (An) sites still unresolved -- need store-to-load chain tracing
     - Diagnostic hint: d(378)(A6) at $7612 has targets $2D2E, $9884 from 4 store sites
-    - Requires executor to propagate d(A6) stores through call graph, not raw binary scan
     - Per-caller context accumulation (not join) needed for polymorphic dispatch slots
   - [ ] Computed PEA+RTS dispatch at $7550: addresses $16E0-$1D14 (2.6KB addressing mode handlers)
     - LEA $1D14(PC) + ADDA.W D3 + push + RTS — D3 from instruction encoding table at runtime

@@ -1289,12 +1289,19 @@ def _join_values(a: AbstractValue, b: AbstractValue) -> AbstractValue:
     return _unknown(tag=tag)
 
 
-def _join_states(states: list) -> tuple:
+def _join_states(states: list, init_mem: 'AbstractMemory | None' = None
+                 ) -> tuple:
     """Join multiple CPU states at a block merge point.
 
     Returns (joined_cpu_state, joined_memory).
     For each register/flag/memory cell: if all incoming states agree on
     a concrete value, keep it; otherwise mark unknown.
+
+    init_mem, when provided, supplies default values for memory bytes
+    that a predecessor never wrote to.  This makes the join aware of
+    program-init state without post-hoc restoration.  If a predecessor
+    explicitly overwrote an init byte (even with unknown), its value is
+    used in the join -- init_mem only fills genuinely missing bytes.
     """
     if not states:
         return CPUState(), AbstractMemory()
@@ -1413,22 +1420,51 @@ def _join_states(states: list) -> tuple:
     else:
         result_mem = AbstractMemory(code_sec)
         _jv = _join_values
+        init_bytes = init_mem._bytes if init_mem is not None else {}
+
+        # Compute address sets: intersection for non-init bytes,
+        # union for init-mem bytes (using init value as default).
         common_addrs = set(states[0][1]._bytes.keys())
         for _, mem in states[1:]:
             common_addrs &= mem._bytes.keys()
-        for addr in common_addrs:
-            r = states[0][1]._bytes[addr]
+        # Add init-mem addresses present in at least one predecessor
+        if init_bytes:
+            all_addrs = set(states[0][1]._bytes.keys())
             for _, mem in states[1:]:
-                r = _jv(r, mem._bytes[addr])
+                all_addrs |= mem._bytes.keys()
+            common_addrs |= (all_addrs & init_bytes.keys())
+
+        for addr in common_addrs:
+            init_default = init_bytes.get(addr)
+            r = states[0][1]._bytes.get(addr, init_default)
+            if r is None:
+                continue
+            for _, mem in states[1:]:
+                v = mem._bytes.get(addr, init_default)
+                if v is None:
+                    r = _UNKNOWN
+                    break
+                r = _jv(r, v)
             if r.concrete is not None:
                 result_mem._bytes[addr] = r
+
+        # Tags: intersection semantics (init_mem tags included)
+        init_tags = init_mem._tags if init_mem is not None else {}
         common_tags = set(states[0][1]._tags.keys())
         for _, mem in states[1:]:
             common_tags &= mem._tags.keys()
+        if init_tags:
+            all_tag_keys = set(states[0][1]._tags.keys())
+            for _, mem in states[1:]:
+                all_tag_keys |= mem._tags.keys()
+            common_tags |= (all_tag_keys & init_tags.keys())
         for key in common_tags:
-            t0 = states[0][1]._tags[key]
-            if all(s[1]._tags[key] == t0 for s in states[1:]):
+            init_t = init_tags.get(key)
+            t0 = states[0][1]._tags.get(key, init_t)
+            if t0 is not None and all(
+                    s[1]._tags.get(key, init_t) == t0 for s in states[1:]):
                 result_mem._tags[key] = t0
+
         common_sym = set(states[0][1]._sym.keys())
         for _, mem in states[1:]:
             common_sym &= mem._sym.keys()
@@ -2504,8 +2540,11 @@ def propagate_states(blocks: dict[int, BasicBlock],
             continue
         pred_states = list(pred_dict.values())
 
-        # Join incoming states
-        cpu, mem = _join_states(pred_states)
+        # Join incoming states.  Pass init_mem so the join uses init
+        # values as defaults for bytes a predecessor never touched,
+        # without overriding explicit writes (even unknown ones).
+        p_init_mem = platform.get("_initial_mem") if platform else None
+        cpu, mem = _join_states(pred_states, init_mem=p_init_mem)
         cpu.pc = addr
 
         # Restore app base register if merge killed it.
