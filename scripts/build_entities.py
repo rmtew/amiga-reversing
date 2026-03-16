@@ -22,64 +22,12 @@ from collections import defaultdict
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from m68k.hunk_parser import parse_file, HunkType
-from m68k.m68k_executor import analyze, BasicBlock, _load_kb
-from m68k.jump_tables import (detect_jump_tables, resolve_indirect_targets,
-                               resolve_per_caller, resolve_backward_slice)
-from m68k.os_calls import (load_os_kb, get_platform_config, identify_library_calls,
-                            _SENTINEL_ALLOC_BASE)
-from m68k.subroutine_scan import scan_and_score
-from m68k.kb_util import KB
+from m68k.m68k_executor import BasicBlock, _load_kb
+from m68k.analysis import analyze_hunk, resolve_reloc_target, _RELOC_INFO
 from m68k.name_entities import name_subroutines
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
-
-# Relocation semantics loaded from hunk format KB.
-# Maps HunkType int → {"bytes": N, "mode": "absolute"|"pc_relative"|...}
-from m68k.hunk_parser import _HUNK_KB
-_RELOC_INFO = {}
-for _name, _sem in _HUNK_KB.get("relocation_semantics", {}).items():
-    if _name in HunkType.__members__:
-        _RELOC_INFO[HunkType[_name]] = {
-            "bytes": _sem["bytes"],
-            "mode": _sem["mode"],
-        }
-
-# struct format strings by byte width (big-endian, signed for relative)
-_RELOC_ABS_FMT = {4: ">I", 2: ">H"}
-_RELOC_REL_FMT = {4: ">i", 2: ">h", 1: ">b"}
-
-
-def _resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
-    """Resolve a relocation offset to its target address.
-
-    Returns the absolute target offset within the hunk, or None if the
-    reloc type requires context we don't have (data-relative).
-    """
-    info = _RELOC_INFO.get(reloc.reloc_type)
-    if info is None:
-        return None
-    nbytes = info["bytes"]
-    mode = info["mode"]
-    if offset + nbytes > len(data):
-        return None
-
-    if mode == "absolute":
-        fmt = _RELOC_ABS_FMT.get(nbytes)
-        if fmt is None:
-            return None
-        return struct.unpack_from(fmt, data, offset)[0]
-
-    if mode == "pc_relative":
-        fmt = _RELOC_REL_FMT.get(nbytes)
-        if fmt is None:
-            return None
-        disp = struct.unpack_from(fmt, data, offset)[0]
-        return offset + disp
-
-    # data_relative: would need to know data hunk base, which depends on
-    # loader placement — can't resolve statically without more context
-    return None
 
 
 def fmt_addr(addr: int) -> str:
@@ -191,7 +139,7 @@ def build_reloc_references(hunks, code_size: int,
             if info is None:
                 continue
             for offset in reloc.offsets:
-                target = _resolve_reloc_target(reloc, offset, hunk.data)
+                target = resolve_reloc_target(reloc, offset, hunk.data)
                 if target is not None and 0 <= target < code_size:
                     if not in_known_sub(target):
                         data_refs.append({
@@ -343,281 +291,21 @@ def build_entities(binary_path: str, output_path: str = None):
         code = hunk.data
         code_size = len(code)
 
-        # Collect extra entry points from relocations
-        reloc_targets = set()
-        for reloc in hunk.relocs:
-            for offset in reloc.offsets:
-                target = _resolve_reloc_target(reloc, offset, code)
-                if target is not None and 0 <= target < code_size:
-                    reloc_targets.add(target)
-
-        # Load platform config from OS KB for calling convention
-        platform_config = get_platform_config()
-
         print(f"\nAnalyzing hunk #{hunk.index} "
-              f"({code_size} bytes, {len(reloc_targets)} reloc targets)...")
+              f"({code_size} bytes)...")
 
-        def _stats(blks):
-            covered = sum(b.end - b.start for b in blks.values())
-            n = sum(len(b.instructions) for b in blks.values())
-            return (f"{len(blks)} blocks, {n} instructions, "
-                    f"{covered}/{code_size} ({100*covered/code_size:.1f}%)")
+        # Run shared analysis pipeline
+        ha = analyze_hunk(code, hunk.relocs, hunk.index)
 
-        # ── Phase 0: Init discovery ──────────────────────────────────
-        # Entry point 0 only. Discovers base register (AllocMem
-        # pattern) and captures init memory (library base tags).
-        base_reg_num = platform_config["_base_reg_num"]
-        init_result = analyze(code, base_addr=0, entry_points=[0],
-                              propagate=True, platform=platform_config)
-        alloc_base = _SENTINEL_ALLOC_BASE
-        alloc_limit = platform_config["_next_alloc_sentinel"]
-        discovered_base = None
-        best_addr = None
-        best_slots = 0
-        for addr, (cpu, mem) in init_result.get(
-                "exit_states", {}).items():
-            val = cpu.a[base_reg_num]
-            if (val.is_known
-                    and alloc_base <= val.concrete < alloc_limit):
-                if discovered_base is None:
-                    discovered_base = val.concrete
-                slots = sum(1 for a in mem._bytes
-                            if alloc_base <= a < alloc_limit)
-                if slots > best_slots:
-                    best_slots = slots
-                    best_addr = addr
-        if discovered_base is not None:
-            print(f"  Base register A{base_reg_num} "
-                  f"= ${discovered_base:08X} (from init"
-                  f", {best_slots} memory bytes)")
-            platform_config["initial_base_reg"] = (
-                base_reg_num, discovered_base)
-            if best_addr is not None:
-                _, init_mem = init_result["exit_states"][best_addr]
-                platform_config["_initial_mem"] = init_mem
-
-        # ── Phase 1: Core analysis ───────────────────────────────────
-        # Entry point 0 only.  Jump table and indirect targets are
-        # flow-verified and feed back into the core.  Propagation
-        # gives concrete state to all reachable blocks.  No reloc
-        # or scan entries — those are hints (Phase 2).
-        #
-        # Multi-pass: after convergence, scan exit states for concrete
-        # stores to app memory (function pointers, library bases set
-        # after init).  Merge into init memory and re-run.  Each pass
-        # discovers more stores, enabling more indirect resolution.
-        core_entries = {0}
-        jt_call_targets = set()
-        kb = KB()
-
-        def _resolve_and_expand():
-            """Run all resolution passes, add new targets to core_entries.
-            Returns number of new entries added."""
-            added = 0
-            for t in detect_jump_tables(
-                    result["blocks"], code, base_addr=0):
-                for tgt in t["targets"]:
-                    if tgt not in core_entries:
-                        core_entries.add(tgt)
-                        added += 1
-                dblk = result["blocks"].get(t["dispatch_block"])
-                if dblk and dblk.instructions:
-                    ft, _ = kb.flow_type(dblk.instructions[-1])
-                    if ft == "call":
-                        jt_call_targets.update(t["targets"])
-            for r in resolve_indirect_targets(
-                    result["blocks"],
-                    result.get("exit_states", {}),
-                    code_size):
-                if r["target"] not in core_entries:
-                    core_entries.add(r["target"])
-                    added += 1
-            for r in resolve_per_caller(
-                    result["blocks"],
-                    result.get("exit_states", {}),
-                    code, code_size,
-                    platform=platform_config):
-                if r["target"] not in core_entries:
-                    core_entries.add(r["target"])
-                    added += 1
-            for r in resolve_backward_slice(
-                    result["blocks"],
-                    result.get("exit_states", {}),
-                    code, code_size,
-                    platform=platform_config):
-                if r["target"] not in core_entries:
-                    core_entries.add(r["target"])
-                    added += 1
-            return added
-
-        entries_converged = False
-        for store_pass in range(5):
-            # Inner loop: analyze + resolve until no new entries.
-            # After entries converge, store passes only re-analyze
-            # (for updated memory in exit states) without re-resolving.
-            for _ in range(10):
-                result = analyze(code, base_addr=0,
-                                 entry_points=sorted(core_entries),
-                                 propagate=True,
-                                 platform=platform_config)
-                if entries_converged:
-                    break  # just re-analyzed with new memory
-                if not _resolve_and_expand():
-                    entries_converged = True
-                    break
-
-            # Scan exit states for concrete stores to app memory.
-            # When a block's exit memory has concrete values in the
-            # base-register region that the init memory lacks, those
-            # are stores made during the main flow (function pointer
-            # setup, library base caching).  Merge them into init
-            # memory for the next pass.
-            if not platform_config.get("initial_base_reg"):
-                break
-            breg_num, breg_val = platform_config["initial_base_reg"]
-            init_mem = platform_config.get("_initial_mem")
-            if init_mem is None:
-                break
-
-            new_stores = 0
-            for addr, (cpu, mem) in result.get(
-                    "exit_states", {}).items():
-                for mem_addr, val in mem._bytes.items():
-                    if not (alloc_base <= mem_addr < alloc_limit):
-                        continue
-                    if mem_addr in init_mem._bytes:
-                        continue  # already known
-                    if val.concrete is None:
-                        continue
-                    # Only capture values that are valid code
-                    # addresses (within the hunk)
-                    if not (0 <= val.concrete < code_size):
-                        continue
-                    init_mem._bytes[mem_addr] = val
-                    new_stores += 1
-                # Also merge tags
-                for key, tag in mem._tags.items():
-                    if key not in init_mem._tags:
-                        init_mem._tags[key] = tag
-
-            if new_stores == 0:
-                break
-            disp_example = ""
-            for mem_addr in sorted(init_mem._bytes):
-                if (alloc_base <= mem_addr < alloc_limit
-                        and init_mem._bytes[mem_addr].concrete is not None
-                        and 0 <= init_mem._bytes[mem_addr].concrete < code_size):
-                    disp_example = f" (e.g. d({mem_addr - breg_val}))"
-                    break
-            print(f"  Store pass {store_pass + 1}: "
-                  f"{new_stores} new memory values{disp_example}")
-
-        blocks = result["blocks"]
-        xrefs = result["xrefs"]
-        call_targets = result["call_targets"] | jt_call_targets
-        exit_states = result.get("exit_states", {})
-        core_covered = sum(b.end - b.start for b in blocks.values())
-        print(f"  Core: {_stats(blocks)}")
-
-        # ── Phase 2: Hint discovery ──────────────────────────────────
-        # Reloc targets and heuristic scan produce additional blocks.
-        # These are NOT part of the core — no propagation, no state.
-        # They tell us where code exists that the core can't reach.
-        # Each hint is annotated with its source and why the core
-        # can't reach it — these drive engine improvements.
-
-        # Build reloc reference map: target -> [referencing offsets]
-        reloc_refs: dict[int, list[int]] = {}
-        for reloc in hunk.relocs:
-            for offset in reloc.offsets:
-                target = _resolve_reloc_target(reloc, offset, code)
-                if target is not None and 0 <= target < code_size:
-                    reloc_refs.setdefault(target, []).append(offset)
-
-        # Core address set for classifying references
-        core_addrs = set()
-        for blk in blocks.values():
-            for a in range(blk.start, blk.end):
-                core_addrs.add(a)
-
-        # Discover hint blocks from reloc targets
-        hint_entries = reloc_targets - set(blocks.keys())
-        hint_blocks: dict[int, BasicBlock] = {}
-        hint_source: dict[int, str] = {}  # entry -> "reloc"|"scan"
-        if hint_entries:
-            hint_result = analyze(code, base_addr=0,
-                                  entry_points=sorted(hint_entries),
-                                  propagate=False)
-            for a, b in hint_result["blocks"].items():
-                if a not in blocks:
-                    hint_blocks[a] = b
-            for e in hint_entries:
-                hint_source[e] = "reloc"
-
-        # Heuristic scan on uncovered regions
-        scan_candidates = scan_and_score(
-            blocks, code, reloc_targets, call_targets)
-        scan_entries = {c["addr"] for c in scan_candidates
-                        if c["addr"] not in blocks
-                        and c["addr"] not in hint_blocks}
-        if scan_entries:
-            scan_result = analyze(code, base_addr=0,
-                                  entry_points=sorted(scan_entries),
-                                  propagate=False)
-            for a, b in scan_result["blocks"].items():
-                if a not in blocks and a not in hint_blocks:
-                    hint_blocks[a] = b
-            for e in scan_entries:
-                hint_source[e] = "scan"
-
-        # Classify each hint entry: why can't the core reach it?
-        # - "reloc_from_core": referenced by a reloc in core code
-        #   (function pointer loaded but not called directly)
-        # - "reloc_from_hint": referenced by a reloc in non-core code
-        # - "scan": found by heuristic scan (no reloc reference)
-        hint_reasons: dict[int, dict] = {}
-        for entry in sorted(set(hint_entries) | scan_entries):
-            reason = {"source": hint_source.get(entry, "scan")}
-            if entry in reloc_refs:
-                refs = reloc_refs[entry]
-                core_refs = [r for r in refs if r in core_addrs]
-                if core_refs:
-                    reason["source"] = "reloc_from_core"
-                    reason["referenced_from"] = core_refs
-                else:
-                    reason["source"] = "reloc_from_hint"
-                    reason["referenced_from"] = refs
-            hint_reasons[entry] = reason
-
-        if hint_blocks:
-            hint_covered = sum(b.end - b.start
-                               for b in hint_blocks.values())
-            # Summarize by reason
-            by_reason = defaultdict(int)
-            for r in hint_reasons.values():
-                by_reason[r["source"]] += 1
-            reason_str = ", ".join(f"{c} {s}"
-                                   for s, c in sorted(by_reason.items()))
-            print(f"  Hints: {_stats(hint_blocks)} "
-                  f"({reason_str})")
-
-        print(f"  {len(xrefs)} xrefs, "
-              f"{len(call_targets)} call targets, "
-              f"{len(result['branch_targets'])} branch targets")
-
-        # Identify OS library calls
-        os_kb = load_os_kb()
-        lib_calls = identify_library_calls(
-            blocks, code, os_kb, result.get("exit_states", {}),
-            call_targets, platform_config)
-        if lib_calls:
-            identified = sum(1 for c in lib_calls
-                             if c.get("library") != "unknown")
-            libs_seen = set(c["library"] for c in lib_calls
-                            if c.get("library") != "unknown")
-            print(f"  {len(lib_calls)} library calls identified "
-                  f"({identified} resolved, "
-                  f"libraries: {', '.join(sorted(libs_seen))})")
+        blocks = ha.blocks
+        xrefs = ha.xrefs
+        call_targets = ha.call_targets
+        exit_states = ha.exit_states
+        hint_blocks = ha.hint_blocks
+        hint_reasons = ha.hint_reasons
+        lib_calls = ha.lib_calls
+        os_kb = ha.os_kb
+        reloc_refs = ha.reloc_refs
 
         # Build subroutine map
         subroutines = build_subroutine_map(blocks, call_targets, 0)

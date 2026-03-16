@@ -22,18 +22,13 @@ from collections import defaultdict
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from m68k.hunk_parser import parse_file, HunkType
-from m68k.m68k_executor import analyze
-from m68k.os_calls import (get_platform_config, _SENTINEL_ALLOC_BASE,
-                            load_os_kb, identify_library_calls,
-                            propagate_input_types)
-from build_entities import _resolve_reloc_target
+from m68k.analysis import analyze_hunk, resolve_reloc_target
+from m68k.os_calls import propagate_input_types
 from m68k.m68k_executor import (_extract_branch_target, _extract_mnemonic,
                                 _extract_size)
 from m68k.kb_util import (KB, read_string_at, find_containing_sub,
                            decode_instruction_operands, decode_destination,
                            parse_reg_name)
-from m68k.jump_tables import (detect_jump_tables, resolve_indirect_targets,
-                               resolve_per_caller, resolve_backward_slice)
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -560,111 +555,22 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         print(f"Hunk #{hunk.index}: {code_size} bytes, "
               f"{len(hunk_entities)} entities")
 
-        # Run executor to get basic blocks (code vs data boundaries)
-        reloc_targets = set()
-        for reloc in hunk.relocs:
-            for offset in reloc.offsets:
-                target = _resolve_reloc_target(reloc, offset, code)
-                if target is not None and 0 <= target < code_size:
-                    reloc_targets.add(target)
+        # Run shared analysis pipeline
+        ha = analyze_hunk(code, hunk.relocs, hunk.index)
+        blocks = ha.blocks
+        hint_blocks = ha.hint_blocks
+        jt_list = ha.jump_tables
+        lib_calls = ha.lib_calls
+        os_kb = ha.os_kb
+        platform = ha.platform
+        reloc_targets = ha.reloc_targets
 
-        platform = get_platform_config()
-        # Discover base register + init memory from init pass
-        init_result = analyze(code, base_addr=0, entry_points=[0],
-                              propagate=True, platform=platform)
-        alloc_limit = platform["_next_alloc_sentinel"]
-        base_reg_num = platform["_base_reg_num"]
-        best_addr = None
-        best_slots = 0
-        for addr, (cpu, mem) in init_result["exit_states"].items():
-            val = cpu.a[base_reg_num]
-            if (val.is_known
-                    and _SENTINEL_ALLOC_BASE <= val.concrete < alloc_limit):
-                if best_addr is None:
-                    platform["initial_base_reg"] = (
-                        base_reg_num, val.concrete)
-                slots = sum(1 for a in mem._bytes
-                            if _SENTINEL_ALLOC_BASE <= a < alloc_limit)
-                if slots > best_slots:
-                    best_slots = slots
-                    best_addr = addr
-        if best_addr is not None:
-            _, init_mem = init_result["exit_states"][best_addr]
-            platform["_initial_mem"] = init_mem
-
-        # Core analysis with jump table discovery loop.
-        # Iteratively adds jump table targets and indirect targets
-        # as entry points until no new targets are found.
-        core_entries = {0}
-        jt_list = []
-        for _ in range(10):
-            result = analyze(code, base_addr=0,
-                             entry_points=sorted(core_entries),
-                             propagate=True, platform=platform)
-            added = 0
-            jt_list = detect_jump_tables(result["blocks"], code,
-                                         base_addr=0)
-            for t in jt_list:
-                for tgt in t["targets"]:
-                    if tgt not in core_entries:
-                        core_entries.add(tgt)
-                        added += 1
-            for r in resolve_indirect_targets(
-                    result["blocks"],
-                    result.get("exit_states", {}),
-                    code_size):
-                if r["target"] not in core_entries:
-                    core_entries.add(r["target"])
-                    added += 1
-            for r in resolve_per_caller(
-                    result["blocks"],
-                    result.get("exit_states", {}),
-                    code, code_size, platform=platform):
-                if r["target"] not in core_entries:
-                    core_entries.add(r["target"])
-                    added += 1
-            for r in resolve_backward_slice(
-                    result["blocks"],
-                    result.get("exit_states", {}),
-                    code, code_size, platform=platform):
-                if r["target"] not in core_entries:
-                    core_entries.add(r["target"])
-                    added += 1
-            if not added:
-                break
-        blocks = result["blocks"]
         code_addrs = set()
         for blk in blocks.values():
             for a in range(blk.start, blk.end):
                 code_addrs.add(a)
         print(f"  {len(blocks)} core blocks, "
               f"{len(code_addrs)}/{code_size} code bytes")
-
-        # Hint blocks: reloc targets + scan, separate discovery.
-        # Emitted as unverified disassembly (readable but not trusted).
-        from m68k.subroutine_scan import scan_and_score
-        hint_entries = reloc_targets - set(blocks.keys())
-        hint_blocks: dict = {}
-        if hint_entries:
-            hint_r = analyze(code, base_addr=0,
-                             entry_points=sorted(hint_entries),
-                             propagate=False)
-            hint_blocks = {a: b for a, b in hint_r["blocks"].items()
-                           if a not in blocks and a not in code_addrs}
-        scan_cands = scan_and_score(
-            blocks, code, reloc_targets,
-            result.get("call_targets", set()))
-        scan_entries = {c["addr"] for c in scan_cands
-                        if c["addr"] not in blocks
-                        and c["addr"] not in hint_blocks}
-        if scan_entries:
-            scan_r = analyze(code, base_addr=0,
-                             entry_points=sorted(scan_entries),
-                             propagate=False)
-            for a, b in scan_r["blocks"].items():
-                if (a not in blocks and a not in code_addrs
-                        and a not in hint_blocks):
-                    hint_blocks[a] = b
 
         hint_addrs = set()
         for blk in hint_blocks.values():
@@ -689,6 +595,10 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             for succ in blk.successors:
                 if succ != blk.end:
                     branch_targets.add(succ)
+        # Core entries: entry point 0 + all discovered targets
+        core_entries = {0} | ha.call_targets | ha.branch_targets
+        for t in jt_list:
+            core_entries.update(t["targets"])
         internal_targets = branch_targets | core_entries
 
         # Discover PC-relative targets (strings, data tables)
@@ -787,12 +697,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         print(f"  {len(labels)} labels")
 
         # Build struct type map for displacement substitution.
-        # Run library call identification on verified blocks, then
-        # backward-propagate struct types from call inputs.
-        os_kb = load_os_kb()
-        lib_calls = identify_library_calls(
-            blocks, code, os_kb, result.get("exit_states", {}),
-            result.get("call_targets", set()), platform)
+        # Backward-propagate struct types from library call inputs.
         struct_map = propagate_input_types(blocks, lib_calls, os_kb)
         if struct_map:
             print(f"  {len(struct_map)} instructions with struct type info")
