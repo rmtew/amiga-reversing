@@ -1425,6 +1425,81 @@ def test_backward_slice_skips_call_predecessor():
     print("  backward_slice_skips_call_predecessor: OK")
 
 
+# ---- Jump table boundary: must not scan into code ----------------------------
+
+def test_table_scan_stops_at_call_target():
+    """_scan_word_offset_table must not read past a known call target.
+
+    Models GenAm's false positive: table at $0E9A has 22 real entries,
+    but the scanner reads 29 because sub $0EC6 (a call target) has
+    opcodes that decode as valid word offsets.
+
+    Layout: 3 real table entries at $00-$04, then code at $06 that
+    is a call target. The code bytes happen to decode as a valid offset.
+    """
+    from m68k.jump_tables import _scan_word_offset_table
+    from m68k.kb_util import KB
+
+    kb = KB()
+    base = 0x10  # base address for offset computation
+
+    # Build code bytes:
+    # $00-$04: 3 real table entries (word offsets from base $10)
+    # $06: code (LEA opcode $41EE = offset +16878, target $10 + $41EE = in range)
+    data = b''
+    data += struct.pack('>h', 0x20 - base)   # $00: entry 0 -> $20
+    data += struct.pack('>h', 0x22 - base)   # $02: entry 1 -> $22
+    data += struct.pack('>h', 0x24 - base)   # $04: entry 2 -> $24
+    # $06: LEA 100(a6),a0 opcode — looks like offset $41EE from base
+    data += struct.pack('>HH', 0x41EE, 0x0064)
+    # Pad to make false target in range
+    data += b'\x4e\x75' * 0x2100  # enough NOPs to make $41FE in range
+
+    code_size = len(data)
+    call_targets = {0x06}  # $06 is a known call target
+
+    # Without call_targets guard: scanner reads past $06
+    targets_no_guard = _scan_word_offset_table(
+        data, 0x00, base, code_size, kb)
+    assert len(targets_no_guard) > 3, (
+        f"Without guard, scanner should read past code (got {len(targets_no_guard)})")
+
+    # With call_targets guard: scanner must stop at $06
+    targets_guarded = _scan_word_offset_table(
+        data, 0x00, base, code_size, kb,
+        call_targets=call_targets)
+    assert len(targets_guarded) == 3, (
+        f"With guard, scanner should stop at call target $06 "
+        f"(got {len(targets_guarded)}: {[hex(t) for t in targets_guarded]})")
+
+
+def test_table_scan_no_false_positives_from_opcodes():
+    """Table scanner stops on invalid target, not on code block overlap.
+
+    The scanner's existing validity checks (target < code_size,
+    alignment) are the primary guard against reading into code.
+    call_targets provides an additional stop for subroutine boundaries.
+    """
+    from m68k.jump_tables import _scan_word_offset_table
+    from m68k.kb_util import KB
+
+    kb = KB()
+    base = 0x10
+
+    # 3 valid entries, then a word that produces an odd target (invalid)
+    data = b''
+    data += struct.pack('>h', 0x20 - base)   # $00: entry 0 -> $20
+    data += struct.pack('>h', 0x22 - base)   # $02: entry 1 -> $22
+    data += struct.pack('>h', 0x24 - base)   # $04: entry 2 -> $24
+    data += struct.pack('>h', 0x03)          # $06: odd target -> stops scan
+    data += b'\x00' * 0x30
+
+    targets = _scan_word_offset_table(
+        data, 0x00, base, len(data), kb)
+    assert len(targets) == 3, (
+        f"Should stop at odd target, got {len(targets)}")
+
+
 # ---- Inline data skip pattern ------------------------------------------------
 
 def test_inline_data_skip():

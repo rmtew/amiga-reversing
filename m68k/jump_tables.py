@@ -184,11 +184,13 @@ def _get_lea_dst_reg(inst, kb: KB) -> int | None:
 
 def _scan_word_offset_table(code, table_addr, base_addr, code_size,
                             kb: KB, max_entries=256,
-                            field_offset: int = 0, stride: int = 0):
+                            field_offset: int = 0, stride: int = 0,
+                            call_targets: set | None = None):
     """Read word-offset table. target = base_addr + entry.
 
     field_offset: byte offset of the word field within each entry.
     stride: byte distance between entries (default = word size).
+    call_targets: known subroutine entries -- stop before reading these.
     """
     word_size = kb.size_bytes["w"]
     if stride == 0:
@@ -197,6 +199,9 @@ def _scan_word_offset_table(code, table_addr, base_addr, code_size,
     for i in range(max_entries):
         ea = table_addr + field_offset + i * stride
         if ea + word_size > code_size:
+            break
+        # Stop if this address is a known subroutine entry
+        if call_targets and ea in call_targets:
             break
         offset = struct.unpack_from(">h", code, ea)[0]
         target = (base_addr + offset) & kb.addr_mask
@@ -207,13 +212,16 @@ def _scan_word_offset_table(code, table_addr, base_addr, code_size,
 
 
 def _scan_self_relative_table(code, table_addr, code_size, kb: KB,
-                              max_entries=256):
+                              max_entries=256,
+                              call_targets: set | None = None):
     """Read self-relative word table. target = &entry + entry."""
     word_size = kb.size_bytes["w"]
     targets = []
     for i in range(max_entries):
         ea = table_addr + i * word_size
         if ea + word_size > code_size:
+            break
+        if call_targets and ea in call_targets:
             break
         offset = struct.unpack_from(">h", code, ea)[0]
         target = ea + offset
@@ -312,6 +320,14 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
     kb = KB()
     code_size = len(code)
     tables = []
+
+    # Collect call targets (subroutine entries) to prevent table
+    # scanners from reading into subroutine code.
+    _call_targets = set()
+    for blk in blocks.values():
+        for xref in blk.xrefs:
+            if xref.type == "call":
+                _call_targets.add(xref.dst)
 
     for addr in sorted(blocks):
         block = blocks[addr]
@@ -431,7 +447,8 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                     code, tbl_info["table_addr"],
                                     handler_base, code_size, kb,
                                     field_offset=tbl_info["field_offset"],
-                                    stride=tbl_info["stride"])
+                                    stride=tbl_info["stride"],
+                                    call_targets=_call_targets)
                                 if len(targets) >= 2:
                                     tables.append({
                                         "addr": tbl_info["table_addr"],
@@ -462,7 +479,8 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                "targets": targets, "dispatch_block": addr,
                                "table_end": dispatch_end})
                 continue
-            targets = _scan_word_offset_table(code, base, base, code_size, kb)
+            targets = _scan_word_offset_table(code, base, base, code_size, kb,
+                                               call_targets=_call_targets)
             if len(targets) >= 2:
                 tables.append({"addr": base, "pattern": "pc_word_offset",
                                "targets": targets, "dispatch_block": addr,
@@ -505,7 +523,8 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     table_start = lea_addr + move_disp
                     target_base = lea_addr + ea_info["displacement"]
                     targets = _scan_word_offset_table(
-                        code, table_start, target_base, code_size, kb)
+                        code, table_start, target_base, code_size, kb,
+                        call_targets=_call_targets)
                     if len(targets) >= 2:
                         tables.append({
                             "addr": table_start,
@@ -522,11 +541,13 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     for inst in block.instructions[-3:])
                 if has_adda:
                     targets = _scan_self_relative_table(
-                        code, lea_addr, code_size, kb)
+                        code, lea_addr, code_size, kb,
+                        call_targets=_call_targets)
                 else:
                     table_start = lea_addr + ea_info["displacement"]
                     targets = _scan_word_offset_table(
-                        code, table_start, lea_addr, code_size, kb)
+                        code, table_start, lea_addr, code_size, kb,
+                        call_targets=_call_targets)
                 if len(targets) >= 2:
                     pattern = "self_relative_word" if has_adda else "word_offset"
                     tbl_addr = lea_addr if has_adda else table_start
