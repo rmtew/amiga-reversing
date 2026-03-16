@@ -255,7 +255,8 @@ def assign_xrefs(subroutines: list[dict], xrefs: list,
     return forward, reverse
 
 
-def build_entities(binary_path: str, output_path: str = None):
+def build_entities(binary_path: str, output_path: str = None,
+                   base_addr: int = 0, code_start: int = 0):
     """Main pipeline: parse binary, run executor, generate entities."""
     if output_path is None:
         output_path = str(PROJECT_ROOT / "entities.jsonl")
@@ -295,7 +296,8 @@ def build_entities(binary_path: str, output_path: str = None):
               f"({code_size} bytes)...")
 
         # Run shared analysis pipeline
-        ha = analyze_hunk(code, hunk.relocs, hunk.index)
+        ha = analyze_hunk(code, hunk.relocs, hunk.index,
+                          base_addr=base_addr, code_start=code_start)
 
         # Cache analysis for gen_disasm reuse
         cache_path = Path(binary_path).with_suffix(".analysis")
@@ -537,9 +539,17 @@ def main():
     parser.add_argument("binary", help="Path to Amiga hunk executable")
     parser.add_argument("--output", "-o",
                         help="Output path (default: entities.jsonl)")
+    parser.add_argument("--base-addr", type=lambda x: int(x, 0),
+                        default=0,
+                        help="Runtime base address (e.g. 0x400)")
+    parser.add_argument("--code-start", type=lambda x: int(x, 0),
+                        default=0,
+                        help="Byte offset where code begins (skips bootstrap)")
     args = parser.parse_args()
 
-    return build_entities(args.binary, args.output)
+    return build_entities(args.binary, args.output,
+                          base_addr=args.base_addr,
+                          code_start=args.code_start)
 
 
 if __name__ == "__main__":

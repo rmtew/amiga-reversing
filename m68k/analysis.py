@@ -119,14 +119,202 @@ class HunkAnalysis:
         return ha
 
 
+# ── Relocated segment detection ───────────────────────────────────────
+
+def detect_relocated_segments(code: bytes) -> list[dict]:
+    """Detect copy-and-jump patterns that relocate code to fixed addresses.
+
+    Common in Amiga game executables: bootstrap code copies the payload
+    to an absolute address and jumps to it.  Pattern:
+        LEA source,An
+        LEA dest,Am
+        copy loop: move.b/w/l (An)+,(Am)+
+        JMP dest
+
+    Returns list of segments:
+        [{"file_offset": int, "base_addr": int, "size": int}]
+    """
+    kb = KB()
+
+    code_size = len(code)
+
+    # Run entry-0 propagation to get concrete register values.
+    # Also follow copied code: if the bootstrap copies code within
+    # the hunk and jumps to it (via TRAP or JMP), analyze the copy
+    # source as a secondary entry point.
+    result = analyze(code, base_addr=0, entry_points=[0], propagate=True)
+    blocks = result["blocks"]
+    exit_states = result.get("exit_states", {})
+
+    # Detect first-stage copies (small stubs copied to low memory).
+    # The stub source bytes are still in the hunk at their original
+    # offset.  Analyze them as secondary entry points, then look for
+    # copy-and-jump patterns in the combined block set.
+    import re
+    secondary_entries = set()
+    for addr in sorted(blocks):
+        blk = blocks[addr]
+        for inst in blk.instructions:
+            m = re.match(
+                r'move\.[bwl]\s+\(a(\d)\)\+\s*,\s*\(a(\d)\)\+',
+                inst.text.lower())
+            if m:
+                src_reg = int(m.group(1))
+                for pred_addr in sorted(blocks):
+                    if pred_addr >= addr:
+                        break
+                    if pred_addr in exit_states:
+                        cpu, _ = exit_states[pred_addr]
+                        src_val = cpu.a[src_reg]
+                        if (src_val.is_known
+                                and 0 < src_val.concrete < code_size):
+                            secondary_entries.add(src_val.concrete)
+                break
+
+    if secondary_entries:
+        # Collect all register values from the bootstrap's exit states
+        # to carry into the secondary analysis.  This preserves values
+        # like A6 (payload source) set before TRAP.
+        bootstrap_regs = {}
+        for addr in sorted(exit_states, reverse=True):
+            cpu, _ = exit_states[addr]
+            for i in range(len(cpu.a)):
+                if cpu.a[i].is_known and i not in bootstrap_regs:
+                    bootstrap_regs[i] = cpu.a[i].concrete
+            break  # use last block's state
+
+        result2 = analyze(code, base_addr=0,
+                          entry_points=sorted(secondary_entries),
+                          propagate=True)
+        # Merge bootstrap register knowledge into secondary exit states
+        for addr in result2.get("exit_states", {}):
+            cpu, mem = result2["exit_states"][addr]
+            for i, val in bootstrap_regs.items():
+                if not cpu.a[i].is_known:
+                    from .m68k_executor import _concrete
+                    cpu.set_reg("an", i, _concrete(val))
+        blocks.update(result2["blocks"])
+        exit_states.update(result2.get("exit_states", {}))
+
+    segments = []
+
+    # Find blocks ending with JMP to an absolute address
+    for addr in sorted(blocks):
+        blk = blocks[addr]
+        if not blk.instructions:
+            continue
+        last = blk.instructions[-1]
+        ft, _ = kb.flow_type(last)
+        if ft != "jump":
+            continue
+
+        # Extract JMP target from xrefs
+        jmp_target = None
+        for xref in blk.xrefs:
+            if xref.type == "jump":
+                jmp_target = xref.dst
+                break
+        if jmp_target is None:
+            continue
+
+        # Check: is there a copy loop in the blocks before this JMP?
+        # Walk predecessor chain looking for postincrement move pattern
+        _find_copy_segment(
+            jmp_target, blocks, exit_states, code_size, kb, segments)
+
+    return segments
+
+
+def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
+                       code_size: int, kb: KB,
+                       segments: list[dict]):
+    """Check if blocks before a JMP contain a copy loop targeting jmp_target.
+
+    Looks for postincrement move patterns (move.b/w/l (An)+,(Am)+)
+    where Am's initial value equals jmp_target (the copy destination).
+    The source register's initial value gives the file offset.
+    If the source register is unknown (set in a prior stage), checks
+    all registers in the setup block for a file-offset-like value.
+    """
+    import re
+
+    for addr in sorted(blocks):
+        blk = blocks[addr]
+        for inst in blk.instructions:
+            text = inst.text.lower()
+            m = re.match(
+                r'move\.[bwl]\s+\(a(\d)\)\+\s*,\s*\(a(\d)\)\+', text)
+            if not m:
+                continue
+
+            src_reg = int(m.group(1))
+            dst_reg = int(m.group(2))
+
+            # Find the setup block before the copy loop
+            for pred_addr in sorted(blocks):
+                if pred_addr >= addr:
+                    break
+                if pred_addr not in exit_states:
+                    continue
+                cpu, _ = exit_states[pred_addr]
+                dst_val = cpu.a[dst_reg]
+
+                if not (dst_val.is_known
+                        and dst_val.concrete == jmp_target):
+                    continue
+
+                # Destination matches JMP target.
+                # Find source: check the source register first,
+                # then try all address registers for file offsets.
+                src_val = cpu.a[src_reg]
+                file_offset = None
+                if (src_val.is_known
+                        and 0 < src_val.concrete < code_size):
+                    file_offset = src_val.concrete
+                else:
+                    # Source register unknown (set in prior stage).
+                    # Look for any register with a plausible file offset
+                    # that's between the bootstrap and the JMP target.
+                    for i in range(len(cpu.a)):
+                        v = cpu.a[i]
+                        if (v.is_known and 0 < v.concrete < code_size
+                                and v.concrete > addr
+                                and i != dst_reg):
+                            file_offset = v.concrete
+                            break
+
+                if file_offset is not None:
+                    seg = {
+                        "file_offset": file_offset,
+                        "base_addr": jmp_target,
+                    }
+                    for i in range(len(cpu.d)):
+                        d_val = cpu.d[i]
+                        if d_val.is_known and d_val.concrete > 0:
+                            seg["size"] = d_val.concrete
+                            break
+                    if seg not in segments:
+                        segments.append(seg)
+                    return
+
+
 # ── Pipeline ─────────────────────────────────────────────────────────────
 
 def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
-                 print_fn=print) -> HunkAnalysis:
+                 print_fn=print,
+                 base_addr: int = 0,
+                 code_start: int = 0) -> HunkAnalysis:
     """Run the complete analysis pipeline on a code hunk.
 
+    Args:
+        code: raw hunk data bytes
+        relocs: relocation entries
+        base_addr: runtime base address of the code section (default 0)
+        code_start: byte offset within code where the real code begins
+            (skips bootstrap prefix like copy loops)
+
     Phases:
-        0. Init discovery (entry 0 only) -- base register, init memory
+        0. Init discovery (entry point only) -- base register, init memory
         1. Core analysis with resolution loop -- jump tables, indirect,
            per-caller, backward slice, store passes
         2. Hint discovery -- reloc targets + heuristic scan
@@ -134,6 +322,18 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
 
     Returns HunkAnalysis with all results.
     """
+    # Auto-detect relocated segments if no explicit base_addr/code_start
+    if base_addr == 0 and code_start == 0:
+        segments = detect_relocated_segments(code)
+        if segments:
+            seg = segments[0]  # use first detected segment
+            base_addr = seg["base_addr"]
+            code_start = seg["file_offset"]
+            print_fn(f"  Auto-detected segment: file ${code_start:X} "
+                     f"-> addr ${base_addr:X}")
+
+    if code_start > 0:
+        code = code[code_start:]
     code_size = len(code)
     kb = KB()
 
@@ -151,7 +351,8 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
 
     # ── Phase 0: Init discovery ──────────────────────────────────────
     base_reg_num = platform["_base_reg_num"]
-    init_result = analyze(code, base_addr=0, entry_points=[0],
+    init_result = analyze(code, base_addr=base_addr,
+                          entry_points=[base_addr],
                           propagate=True, platform=platform)
     alloc_base = _SENTINEL_ALLOC_BASE
     alloc_limit = platform["_next_alloc_sentinel"]
@@ -178,7 +379,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             platform["_initial_mem"] = init_mem
 
     # ── Phase 1: Core analysis with resolution loop ──────────────────
-    core_entries = {0}
+    core_entries = {base_addr}
     jt_call_targets = set()
     jt_list = []  # final jump table list (for gen_disasm)
 
@@ -186,7 +387,8 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         """Run all resolution passes, return number of new entries."""
         nonlocal jt_list
         added = 0
-        jt_list = detect_jump_tables(result["blocks"], code, base_addr=0)
+        jt_list = detect_jump_tables(result["blocks"], code,
+                                        base_addr=base_addr)
         for t in jt_list:
             for tgt in t["targets"]:
                 if tgt not in core_entries:
@@ -226,7 +428,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     result = None
     for store_pass in range(5):
         for _ in range(10):
-            result = analyze(code, base_addr=0,
+            result = analyze(code, base_addr=base_addr,
                              entry_points=sorted(core_entries),
                              propagate=True, platform=platform)
             if entries_converged:
@@ -293,7 +495,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     hint_blocks: dict[int, BasicBlock] = {}
     hint_source: dict[int, str] = {}
     if hint_entries:
-        hint_result = analyze(code, base_addr=0,
+        hint_result = analyze(code, base_addr=base_addr,
                               entry_points=sorted(hint_entries),
                               propagate=False)
         for a, b in hint_result["blocks"].items():
@@ -314,7 +516,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                     if c["addr"] not in blocks
                     and c["addr"] not in hint_blocks}
     if scan_entries:
-        scan_result = analyze(code, base_addr=0,
+        scan_result = analyze(code, base_addr=base_addr,
                               entry_points=sorted(scan_entries),
                               propagate=False)
         for a, b in scan_result["blocks"].items():
@@ -343,7 +545,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                     and next_addr not in post_scan_entries):
                 post_scan_entries.add(next_addr)
     if post_scan_entries:
-        post_result = analyze(code, base_addr=0,
+        post_result = analyze(code, base_addr=base_addr,
                               entry_points=sorted(post_scan_entries),
                               propagate=False)
         added = 0

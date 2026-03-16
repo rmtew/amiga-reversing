@@ -4,7 +4,8 @@ import struct
 import tempfile
 from pathlib import Path
 
-from m68k.analysis import analyze_hunk, HunkAnalysis
+from m68k.analysis import (analyze_hunk, HunkAnalysis,
+                           detect_relocated_segments)
 
 
 def _make_simple_hunk():
@@ -114,3 +115,147 @@ def test_load_rejects_wrong_version():
         import pytest
         with pytest.raises(ValueError, match="version mismatch"):
             HunkAnalysis.load(path, {})
+
+
+def test_base_addr_resolves_absolute_targets():
+    """Analysis with non-zero base_addr resolves absolute branch targets.
+
+    Models Bloodwych: code runs at $0400, uses absolute addresses.
+    BSR $0410 should discover the subroutine at file offset $10
+    (which maps to runtime address $0410 with base_addr=$0400).
+    """
+    code = b''
+    # $0400: bsr.w $0410
+    # BSR.W: PC=$0402, disp=$000E, target=$0402+$000E=$0410
+    code += struct.pack('>HH', 0x6100, 0x000E)
+    # $0404: moveq #42,d0
+    code += struct.pack('>H', 0x702A)
+    # $0406: rts
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>HHHH', 0x4E71, 0x4E71, 0x4E71, 0x4E71)
+    # $0410: sub at file offset $10
+    code += struct.pack('>H', 0x7000)  # moveq #0,d0
+    code += struct.pack('>H', 0x4E75)  # rts
+
+    base = 0x0400
+    ha = analyze_hunk(code, [], base_addr=base)
+
+    # Subroutine at $0410 should be discovered
+    assert 0x0410 in ha.call_targets, (
+        f"Expected call target $0410, got {sorted(hex(t) for t in ha.call_targets)}")
+    # Block at $0410 should have exit state
+    assert 0x0410 in ha.blocks, (
+        f"Expected block at $0410, got {sorted(hex(a) for a in ha.blocks)[:10]}")
+
+
+def test_base_addr_with_code_start():
+    """Analysis with code_start skips bootstrap prefix.
+
+    Models Bloodwych: first $5C bytes are bootstrap (copy loop),
+    real code starts at file offset $5C running at address $0400.
+    """
+    bootstrap = b'\x4e\x71' * 10  # 20 bytes of NOP (fake bootstrap)
+    real_code = b''
+    # $0400 (file offset $14): moveq #1,d0
+    real_code += struct.pack('>H', 0x7001)
+    # $0402: rts
+    real_code += struct.pack('>H', 0x4E75)
+
+    full_data = bootstrap + real_code
+    base = 0x0400
+    code_start = len(bootstrap)
+
+    ha = analyze_hunk(full_data, [], base_addr=base,
+                      code_start=code_start)
+
+    # Entry block should be at $0400 (not $0000)
+    assert base in ha.blocks, (
+        f"Expected block at ${base:04X}, got {sorted(hex(a) for a in ha.blocks)[:10]}")
+    # Should have exit state with D0=1
+    assert base in ha.exit_states
+    cpu, _ = ha.exit_states[base]
+    assert cpu.d[0].is_known and cpu.d[0].concrete == 1
+
+
+# ── Auto-detect relocated segments ───────────────────────────────────
+
+def test_detect_copy_and_jump():
+    """Detect copy loop followed by JMP to destination.
+
+    Bootstrap:
+        $00: lea     $1C(pc),a6     ; source = $1E
+        $04: lea     $0400,a0       ; dest = $0400
+        $0A: moveq   #9,d0          ; 10 bytes
+    loop:
+        $0C: move.b  (a6)+,(a0)+    ; copy
+        $0E: dbf     d0,loop
+        $12: jmp     $0400           ; enter payload
+    payload ($1E in file, runs at $0400):
+        $1E: moveq   #42,d0
+        $20: rts
+    """
+    code = b''
+    # $00: lea $1C(pc),a6 -> a6 = $02 + $1C = $1E
+    code += struct.pack('>HH', 0x4DFA, 0x001C)
+    # $04: lea $0400,a0
+    code += struct.pack('>HHH', 0x41F9, 0x0000, 0x0400)
+    # $0A: moveq #9,d0
+    code += struct.pack('>H', 0x7009)
+    # $0C: move.b (a6)+,(a0)+
+    code += struct.pack('>H', 0x10DE)
+    # $0E: dbf d0,$0C (disp = $0C - $10 = -4)
+    code += struct.pack('>HH', 0x51C8, 0xFFFC)
+    # $12: jmp $0400
+    code += struct.pack('>HHH', 0x4EF9, 0x0000, 0x0400)
+    # padding to $1E
+    code += struct.pack('>HH', 0x4E71, 0x4E71)
+    # $1E: payload
+    code += struct.pack('>H', 0x702A)  # moveq #42,d0
+    code += struct.pack('>H', 0x4E75)  # rts
+
+    segments = detect_relocated_segments(code)
+    assert len(segments) >= 1, (
+        f"Expected at least 1 relocated segment, got {segments}")
+    seg = segments[0]
+    assert seg["file_offset"] == 0x1E, (
+        f"Expected file_offset=$1E, got ${seg['file_offset']:X}")
+    assert seg["base_addr"] == 0x400, (
+        f"Expected base_addr=$400, got ${seg['base_addr']:X}")
+
+
+def test_detect_no_copy_returns_empty():
+    """Normal hunk (no copy pattern) returns no relocated segments."""
+    code = b''
+    code += struct.pack('>H', 0x7000)  # moveq #0,d0
+    code += struct.pack('>H', 0x4E75)  # rts
+
+    segments = detect_relocated_segments(code)
+    assert segments == []
+
+
+def test_auto_segments_in_analyze_hunk():
+    """analyze_hunk with auto-detect finds blocks at relocated address.
+
+    Same bootstrap pattern. analyze_hunk should auto-detect the segment
+    and produce blocks at $0400+ without manual --base-addr.
+    """
+    code = b''
+    # Bootstrap: copy $1E -> $0400, then JMP $0400
+    code += struct.pack('>HH', 0x4DFA, 0x001C)       # lea $1C(pc),a6
+    code += struct.pack('>HHH', 0x41F9, 0x0000, 0x0400)  # lea $0400,a0
+    code += struct.pack('>H', 0x7009)                  # moveq #9,d0
+    code += struct.pack('>H', 0x10DE)                  # move.b (a6)+,(a0)+
+    code += struct.pack('>HH', 0x51C8, 0xFFFC)        # dbf d0,$0C
+    code += struct.pack('>HHH', 0x4EF9, 0x0000, 0x0400)  # jmp $0400
+    code += struct.pack('>HH', 0x4E71, 0x4E71)        # padding
+    # $1E: payload (runs at $0400)
+    code += struct.pack('>H', 0x702A)                  # moveq #42,d0
+    code += struct.pack('>H', 0x4E75)                  # rts
+
+    ha = analyze_hunk(code, [])
+
+    # Should have blocks in both bootstrap ($00) and payload ($0400)
+    assert 0x0400 in ha.blocks, (
+        f"Expected block at $0400 from auto-detected segment, "
+        f"got {sorted(hex(a) for a in ha.blocks)[:10]}")

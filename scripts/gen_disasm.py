@@ -755,7 +755,8 @@ def emit_data_region(f, code: bytes, start: int, end: int,
 
 
 
-def gen_disasm(binary_path: str, entities_path: str, output_path: str):
+def gen_disasm(binary_path: str, entities_path: str, output_path: str,
+               base_addr: int = 0, code_start: int = 0):
     """Main: generate vasm-compatible .s file from binary + entities.
 
     Uses the executor to get basic block boundaries (not linear disassembly)
@@ -789,7 +790,9 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
             ha = HunkAnalysis.load(cache_path, load_os_kb())
             print(f"  Loaded cached analysis from {cache_path.name}")
         else:
-            ha = analyze_hunk(code, hunk.relocs, hunk.index)
+            ha = analyze_hunk(code, hunk.relocs, hunk.index,
+                              base_addr=base_addr,
+                              code_start=code_start)
         blocks = ha.blocks
         hint_blocks = ha.hint_blocks
         jt_list = ha.jump_tables
@@ -830,7 +833,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                 if succ != blk.end:
                     branch_targets.add(succ)
         # Core entries: entry point 0 + all discovered targets
-        core_entries = {0} | ha.call_targets | ha.branch_targets
+        core_entries = {base_addr} | ha.call_targets | ha.branch_targets
         for t in jt_list:
             core_entries.update(t["targets"])
         internal_targets = branch_targets | core_entries
@@ -1501,12 +1504,20 @@ def main():
     parser.add_argument("--output", "-o",
                         default=str(PROJECT_ROOT / "disasm" / "genam.s"),
                         help="Output .s file path")
+    parser.add_argument("--base-addr", type=lambda x: int(x, 0),
+                        default=0,
+                        help="Runtime base address (e.g. 0x400)")
+    parser.add_argument("--code-start", type=lambda x: int(x, 0),
+                        default=0,
+                        help="Byte offset where code begins (skips bootstrap)")
     args = parser.parse_args()
 
     # Ensure output directory exists
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
 
-    return gen_disasm(args.binary, args.entities, args.output)
+    return gen_disasm(args.binary, args.entities, args.output,
+                      base_addr=args.base_addr,
+                      code_start=args.code_start)
 
 
 if __name__ == "__main__":
