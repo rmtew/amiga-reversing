@@ -3,8 +3,10 @@
 import io
 import struct
 
-from m68k.m68k_executor import analyze
-from scripts.gen_disasm import (collect_data_access_sizes,
+from m68k.m68k_executor import analyze, BasicBlock, Instruction
+from m68k.kb_util import KB
+from scripts.gen_disasm import (build_label_map, collect_data_access_sizes,
+                                discover_pc_relative_targets,
                                 emit_data_region, format_app_offset_comment,
                                 format_ascii_immediate)
 
@@ -236,3 +238,117 @@ def test_scan_uses_hint_blocks_for_gaps():
     assert 0x06 in addrs_with_hint, (
         f"With hint block at $00-$06, scanner should find $06, "
         f"got {addrs_with_hint}")
+
+
+# ── PC-relative target discovery ─────────────────────────────────────
+
+def test_pc_relative_discovers_data_target():
+    """LEA d(PC),An pointing to data between instructions gets a label."""
+    code = b''
+    # $00: lea $08(pc),a0 -> target = $02 + $08 = $0A (data)
+    code += struct.pack('>HH', 0x41FA, 0x0008)
+    # $04: moveq #0,d0
+    code += struct.pack('>H', 0x7000)
+    # $06: rts
+    code += struct.pack('>H', 0x4E75)
+    # $08: nop (padding)
+    code += struct.pack('>H', 0x4E71)
+    # $0A: data (not an instruction)
+    code += struct.pack('>HH', 0x0000, 0x0000)
+
+    result = analyze(code, entry_points=[0])
+    kb = KB()
+    targets = discover_pc_relative_targets(result["blocks"], code, kb)
+
+    assert 0x0A in targets, (
+        f"LEA target $0A (data) should be discovered, got {targets}")
+
+
+def test_pc_relative_discovers_code_target():
+    """LEA d(PC),An pointing to an instruction start gets a label.
+
+    Previously, all targets inside instruction ranges were rejected.
+    The fix: only reject targets that land mid-instruction, not at
+    instruction start addresses.
+    """
+    code = b''
+    # $00: lea $06(pc),a0 -> target = $02 + $06 = $08 (code at $08)
+    code += struct.pack('>HH', 0x41FA, 0x0006)
+    # $04: moveq #0,d0
+    code += struct.pack('>H', 0x7000)
+    # $06: rts
+    code += struct.pack('>H', 0x4E75)
+    # $08: moveq #42,d0 (a valid instruction — target of LEA)
+    code += struct.pack('>H', 0x702A)
+    # $0A: rts
+    code += struct.pack('>H', 0x4E75)
+
+    result = analyze(code, entry_points=[0, 0x08])
+    kb = KB()
+    targets = discover_pc_relative_targets(result["blocks"], code, kb)
+
+    assert 0x08 in targets, (
+        f"LEA target $08 (instruction start) should be discovered, "
+        f"got {targets}")
+
+
+def test_pc_relative_rejects_mid_instruction():
+    """LEA d(PC),An pointing to the middle of an instruction is rejected.
+
+    e.g. JMP 0(PC,D0.w) where the PC value is the extension word
+    address — targeting the middle of the JMP instruction itself.
+    """
+    code = b''
+    # $00: lea $03(pc),a0 -> target = $02 + $03 = $05 (mid-instruction)
+    code += struct.pack('>HH', 0x41FA, 0x0003)
+    # $04: move.l #$12345678,d0 (6-byte instruction: $04-$09)
+    code += struct.pack('>HI', 0x203C, 0x12345678)
+    # $0A: rts
+    code += struct.pack('>H', 0x4E75)
+
+    result = analyze(code, entry_points=[0])
+    kb = KB()
+    targets = discover_pc_relative_targets(result["blocks"], code, kb)
+
+    assert 0x05 not in targets, (
+        f"Target $05 (mid-instruction at $04) should be rejected, "
+        f"got {targets}")
+
+
+# ── Label map: core block entries get loc_ labels ────────────────────
+
+def test_core_block_entries_get_labels():
+    """All core block start addresses should get loc_ labels.
+
+    This ensures relocation entry points and other non-call/non-branch
+    block starts get labels for PC-relative references.
+    """
+    # Simulate core blocks at $00, $08, $1C (like relocated payload)
+    blocks = {0x00: None, 0x08: None, 0x1C: None}
+    labels = build_label_map([], blocks, set(), {})
+
+    for addr in (0x00, 0x08, 0x1C):
+        assert addr in labels, (
+            f"Core block at ${addr:04X} should have a label")
+        assert labels[addr] == f"loc_{addr:04x}", (
+            f"Expected loc_{addr:04x}, got {labels[addr]}")
+
+
+def test_label_priority_entity_over_block():
+    """Entity names take priority over loc_ block labels."""
+    entities = [{"addr": "001c", "type": "code", "name": "payload_init"}]
+    blocks = {0x00: None, 0x1C: None}
+    labels = build_label_map(entities, blocks, set(), {})
+
+    assert labels[0x1C] == "payload_init"
+    assert labels[0x00] == "loc_0000"
+
+
+def test_label_priority_block_over_pcref():
+    """Block loc_ labels take priority over pcref_ labels."""
+    blocks = {0x1C: None}
+    pc_targets = {0x1C: "pcref_001c"}
+    labels = build_label_map([], blocks, set(), pc_targets)
+
+    assert labels[0x1C] == "loc_001c", (
+        f"Block label should override pcref, got {labels[0x1C]}")

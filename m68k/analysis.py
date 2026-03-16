@@ -313,12 +313,12 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
 
     Returns HunkAnalysis with all results.
     """
-    # Auto-detect relocated code: if the bootstrap copies code to a
-    # higher address and jumps to it, build a flat runtime memory image
-    # with the copy applied, then analyze from entry 0.  This handles
-    # the common Amiga game pattern of: bootstrap -> copy payload ->
-    # JMP to payload.  The flat image lets block discovery decode the
-    # correct (copied) bytes at the target address.
+    # Auto-detect relocated code: if the bootstrap copies payload to
+    # a higher address and jumps to it, add the payload source offset
+    # as a core entry.  This ensures the .s output has disassembled
+    # code at the original file offset (what the assembler reproduces).
+    # No flat image is built — the original bytes are correct at all
+    # file offsets, and the bootstrap's copy reproduces them at runtime.
     extra_entries = set()
     if base_addr == 0 and code_start == 0:
         segments = detect_relocated_segments(code)
@@ -326,16 +326,9 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             seg = segments[0]
             src = seg["file_offset"]
             dst = seg["base_addr"]
-            payload_size = len(code) - src
-            flat_size = dst + payload_size
-            flat = bytearray(flat_size)
-            flat[0:len(code)] = code  # bootstrap at original offsets
-            flat[dst:dst + payload_size] = code[src:]  # payload at runtime addr
-            code = bytes(flat)
-            # Collect all entry points (bootstrap + copy stubs)
             extra_entries = set(seg.get("entry_points", []))
-            print_fn(f"  Relocated: file ${src:X} -> addr ${dst:X} "
-                     f"({payload_size} bytes, flat image {flat_size})")
+            extra_entries.add(src)
+            print_fn(f"  Relocated: file ${src:X} -> runtime ${dst:X}")
 
     if code_start > 0:
         code = code[code_start:]
@@ -562,6 +555,14 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             if e in hint_blocks:
                 hint_source[e] = "scan"
                 scan_entries.add(e)
+
+    # Remove hint blocks that overlap with core blocks.
+    # A hint starting before a core block can decode a multi-byte
+    # instruction that spans into the core range, producing wrong output.
+    for addr in list(hint_blocks):
+        hb = hint_blocks[addr]
+        if any(a in core_addrs for a in range(hb.start, hb.end)):
+            del hint_blocks[addr]
 
     hint_reasons: dict[int, dict] = {}
     for entry in sorted(set(hint_entries) | scan_entries):

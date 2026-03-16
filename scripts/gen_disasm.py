@@ -56,14 +56,15 @@ def discover_pc_relative_targets(blocks: dict, code: bytes,
 
     Names targets based on content: string -> str_XXXX, else pcref_XXXX.
     """
-    # Build set of all instruction byte ranges to exclude targets
+    # Build set of mid-instruction byte addresses to exclude targets
     # that fall inside instructions (e.g. jmp 0(pc,d0.w) where the
-    # base address IS the extension word location).
-    instr_ranges = set()
+    # base address IS the extension word location).  Instruction START
+    # addresses are valid targets (code references like LEA sub(pc),An).
+    instr_middles = set()
     for blk in blocks.values():
         for inst in blk.instructions:
-            for a in range(inst.offset, inst.offset + inst.size):
-                instr_ranges.add(a)
+            for a in range(inst.offset + 1, inst.offset + inst.size):
+                instr_middles.add(a)
 
     targets = {}  # addr -> name
     for blk in blocks.values():
@@ -86,7 +87,7 @@ def discover_pc_relative_targets(blocks: dict, code: bytes,
                     continue
                 if target < 0 or target >= len(code) or target in targets:
                     continue
-                if target in instr_ranges:
+                if target in instr_middles:
                     continue
                 s = read_string_at(code, target)
                 if s and len(s) >= 3:
@@ -832,8 +833,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
             for succ in blk.successors:
                 if succ != blk.end:
                     branch_targets.add(succ)
-        # Core entries: entry point 0 + all discovered targets
-        core_entries = {base_addr} | ha.call_targets | ha.branch_targets
+        # Core entries: all core block starts + discovered targets
+        core_entries = set(blocks.keys()) | ha.call_targets | ha.branch_targets
         for t in jt_list:
             core_entries.update(t["targets"])
         internal_targets = branch_targets | core_entries

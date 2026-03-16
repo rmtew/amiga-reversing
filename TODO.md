@@ -16,9 +16,9 @@ SP effects, PC effects, compute formulas, shift/rotate/overflow rules.
 ### Phase 4: Verification Harness (done)
 `scripts/test_m68k_execution.py` -- 4870 tests, 119 mnemonics, 0 failures (Musashi oracle).
 
-### Phase 5: Symbolic Executor (done — static analysis complete)
-`m68k/m68k_executor.py` — KB-driven abstract interpretation engine.
-`m68k/analysis.py` — shared analysis pipeline with `analyze_hunk()`.
+### Phase 5: Symbolic Executor (done -- static analysis complete)
+`m68k/m68k_executor.py` -- KB-driven abstract interpretation engine.
+`m68k/analysis.py` -- shared analysis pipeline with `analyze_hunk()`.
 
 Key capabilities:
 - Block discovery, state propagation, conservative joins
@@ -31,23 +31,36 @@ Key capabilities:
 - Sound init memory join semantics
 - Store pass for app base memory values (219 across 3 passes)
 - Heuristic subroutine scan, hint block validation
+- Relocated code detection: bootstrap copy-and-jump patterns,
+  secondary entry discovery, payload source as core entry
 
-GenAm results: 34.4% core (3110 blocks, 7393 instructions), 20.6% hints.
-279 subroutines, 25 named, 39 library calls resolved.
+GenAm results: 28.5% core (2581 blocks, 6112 instructions), 37.9% hints.
+242 subroutines, 25 named, 39 library calls resolved.
+
+Bloodwych results: 7.9% core (2979 blocks, 8663 instructions), 12.2% hints.
+310 subroutines, auto-detected relocation ($5C -> $400).
 
 Static analysis limits reached: remaining 12 unresolved dispatch sites are
 runtime-dependent (callback pointers, input-dependent function pointers).
 
-Test suite: `py -m pytest tests/` -- 1903 tests in ~2s.
+Test suite: `py -m pytest tests/` -- 1954 tests in ~2s.
 
 ### Disassembly Generator (done)
-`scripts/gen_disasm.py` -> `disasm/genam.s` (vasm-compatible, zero errors).
+`scripts/gen_disasm.py` -> `disasm/genam.s`, `disasm/bloodwych.s`.
+PC-relative code references labeled (LEA to instruction starts).
+Hint/core overlap filtering prevents output corruption.
+
+## Current Targets
+
+- GenAm (DevPac 3.18 assembler): `resources/Amiga_Devpac_3_18/GenAm`
+- Bloodwych (no-OS game): `resources/Bloodwych/Bloodwych439`
 
 ## Phase 6: Beyond Static Analysis (current focus)
 
-Static analysis has reached its limits at 34.4% core coverage. The remaining
-code is reachable only through runtime-dependent dispatch (callback pointers,
-input-dependent computed addresses). Three approaches to drive toward 100%:
+Static analysis has reached its limits for GenAm at 28.5% core coverage.
+The remaining code is reachable only through runtime-dependent dispatch
+(callback pointers, input-dependent computed addresses). Three approaches
+to drive toward 100%:
 
 ### Emulation-Guided Coverage (highest priority)
 - [ ] Instrumented vamos execution of GenAm with real source files
