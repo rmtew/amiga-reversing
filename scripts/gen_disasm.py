@@ -410,9 +410,15 @@ def replace_struct_fields(text: str, inst_offset: int,
     return text
 
 
+# Printable ASCII range: space (0x20) through tilde (0x7E).
+# Standard 7-bit ASCII printable character range per ANSI X3.4.
+_PRINTABLE_MIN = 0x20
+_PRINTABLE_MAX = 0x7E
+
+
 def _is_printable_ascii(b: int) -> bool:
     """Check if a byte is printable ASCII (space through tilde)."""
-    return 0x20 <= b <= 0x7E
+    return _PRINTABLE_MIN <= b <= _PRINTABLE_MAX
 
 
 def _try_read_string(code: bytes, pos: int, end: int) -> str | None:
@@ -487,12 +493,16 @@ def format_ascii_immediate(value: int) -> str | None:
     Only longword (4-byte) values are candidates -- shorter values
     produce too many false positives.
     """
-    if value < 0x20202020 or value > 0x7E7E7E7E:
+    lo = _PRINTABLE_MIN
+    hi = _PRINTABLE_MAX
+    lo4 = lo | (lo << 8) | (lo << 16) | (lo << 24)
+    hi4 = hi | (hi << 8) | (hi << 16) | (hi << 24)
+    if value < lo4 or value > hi4:
         return None
     chars = []
     for i in range(4):
         b = (value >> (24 - i * 8)) & 0xFF
-        if b < 0x20 or b > 0x7E:
+        if b < lo or b > hi:
             return None
         chars.append(chr(b))
     return "'" + "".join(chars) + "'"
@@ -504,12 +514,15 @@ def collect_data_access_sizes(blocks: dict, exit_states: dict
 
     Scans instructions for memory reads/writes at concrete addresses
     (from propagated register state).  Returns {address: byte_size}
-    where byte_size is 1, 2, or 4.
+    where byte_size is KB-derived (size_byte_count).
     """
     import re
     from m68k.m68k_executor import _extract_mnemonic
+    from m68k.kb_util import KB
+    kb = KB()
     sizes = {}
-    size_map = {"b": 1, "w": 2, "l": 4}
+    size_map = kb.size_bytes  # {"b": 1, "w": 2, "l": 4} from KB
+    num_addr_regs = len(exit_states[next(iter(exit_states))][0].a) if exit_states else 8
 
     for addr, block in blocks.items():
         if addr not in exit_states:
@@ -530,7 +543,7 @@ def collect_data_access_sizes(blocks: dict, exit_states: dict
                 continue
 
             # Check for (An) or (An)+ addressing with concrete An
-            for i in range(8):
+            for i in range(num_addr_regs):
                 reg_val = cpu.a[i]
                 if not reg_val.is_known:
                     continue
@@ -545,7 +558,7 @@ def collect_data_access_sizes(blocks: dict, exit_states: dict
                         sizes[addr_val] = byte_size
 
             # Check for d(An) with concrete An
-            for i in range(8):
+            for i in range(num_addr_regs):
                 reg_val = cpu.a[i]
                 if not reg_val.is_known:
                     continue
@@ -563,8 +576,8 @@ _MIN_STRING_LEN = 4  # minimum printable bytes to emit as string
 
 
 def _is_printable(b: int) -> bool:
-    """Check if a byte is printable ASCII (0x20-0x7E)."""
-    return 0x20 <= b <= 0x7E
+    """Check if a byte is printable ASCII (space through tilde)."""
+    return _PRINTABLE_MIN <= b <= _PRINTABLE_MAX
 
 
 def _emit_hex_bytes(f, data: bytes, indent: str):

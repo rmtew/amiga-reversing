@@ -334,13 +334,9 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         if not hb.instructions:
             continue
         last = hb.instructions[-1]
-        ft, _ = kb.flow_type(last)
+        ft, conditional = kb.flow_type(last)
         if ft in ("return", "jump") or (ft == "branch"
-                                         and not kb.find(
-                                             _extract_mnemonic(last.text)
-                                         ).get("pc_effects", {}).get(
-                                             "flow", {}).get(
-                                             "conditional", True)):
+                                         and not conditional):
             next_addr = hb.end
             if (next_addr < code_size
                     and next_addr not in all_known

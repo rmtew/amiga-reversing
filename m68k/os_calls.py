@@ -215,15 +215,15 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
             for inst in instructions:
                 text = inst.text.lower()
                 mn = _extract_mnemonic(text)
-                if mn in ("move", "movea"):
+                ikb = kb.find(mn) if mn else None
+                if ikb and ikb.get("operation_type") == "move":
                     m = re.match(
                         rf'{mn}\.\w\s+{ret_reg}\s*,'
                         rf'\s*(-?\d+)\({base_reg_name}\)',
                         text)
                     if m:
                         return int(m.group(1))
-                # Stop if ret_reg is overwritten by a non-store instruction
-                ikb = kb.find(mn) if mn else None
+                # Stop if ret_reg is overwritten
                 if ikb:
                     dst = decode_destination(
                         inst.raw, ikb, kb.meta,
@@ -292,9 +292,10 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
                 continue
 
             copied_to = None  # register added by copy in this instruction
+            ikb = kb.find(mn)
 
             # Check for store to d(base_reg) from any tracked register
-            if mn in ("move", "movea"):
+            if ikb and ikb.get("operation_type") == "move":
                 for treg in list(tracked):
                     m = re.match(
                         rf'{mn}\.\w\s+{treg}\s*,\s*'
@@ -318,7 +319,6 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
 
             # Check if any tracked register is overwritten
             # (skip the register we just added via copy)
-            ikb = kb.find(mn)
             if ikb:
                 dst = decode_destination(
                     inst.raw, ikb, kb.meta,
