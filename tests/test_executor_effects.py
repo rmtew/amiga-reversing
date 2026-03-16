@@ -407,3 +407,122 @@ def test_base_register_survives_merge():
     assert 0x2c in targets, (
         f"Expected $002c from jsr -6(a6) with base a6=$32 restored "
         f"after merge, got {targets}")
+
+
+# ── Shift/rotate: currently invalidated, should compute ──────────────
+
+def test_lsl_immediate():
+    """LSL.W #2,D0: 5 << 2 = 20."""
+    code = b''
+    code += struct.pack('>H', 0x7005)       # moveq #5,d0
+    # LSL.W #2,D0: 1110 010 1 01 0 00 000 = $E548
+    code += struct.pack('>H', 0xE548)       # lsl.w #2,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "LSL should produce a concrete result"
+    assert cpu.d[0].concrete == 20, f"5 << 2 = 20, got {cpu.d[0].concrete}"
+
+
+def test_lsr_immediate():
+    """LSR.L #3,D0: 40 >> 3 = 5."""
+    code = b''
+    code += struct.pack('>H', 0x7028)       # moveq #40,d0
+    # LSR.L #3,D0: 1110 011 0 10 0 01 000 = $E688
+    code += struct.pack('>H', 0xE688)       # lsr.l #3,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "LSR should produce a concrete result"
+    assert cpu.d[0].concrete == 5
+
+
+def test_asr_immediate():
+    """ASR.L #1,D0: -4 >> 1 = -2 (arithmetic, sign-preserving)."""
+    code = b''
+    code += struct.pack('>H', 0x70FC)       # moveq #-4,d0
+    # ASR.L #1,D0: 1110 001 0 10 0 00 000 = $E280
+    code += struct.pack('>H', 0xE280)       # asr.l #1,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "ASR should produce a concrete result"
+    assert cpu.d[0].concrete == (-2) & 0xFFFFFFFF
+
+
+def test_asl_immediate():
+    """ASL.W #1,D0: 3 << 1 = 6."""
+    code = b''
+    code += struct.pack('>H', 0x7003)       # moveq #3,d0
+    # ASL.W #1,D0: 1110 001 1 01 1 00 000 = $E340
+    code += struct.pack('>H', 0xE340)       # asl.w #1,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "ASL should produce a concrete result"
+    assert cpu.d[0].concrete == 6
+
+
+# ── Multiply: currently invalidated, should compute ──────────────────
+
+def test_mulu_w():
+    """MULU.W D1,D0: 5 * 7 = 35 (unsigned word multiply -> long result)."""
+    code = b''
+    code += struct.pack('>H', 0x7005)       # moveq #5,d0
+    code += struct.pack('>H', 0x7207)       # moveq #7,d1
+    # MULU.W D1,D0: 1100 000 011 000 001 = $C0C1
+    code += struct.pack('>H', 0xC0C1)       # mulu.w d1,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "MULU should produce a concrete result"
+    assert cpu.d[0].concrete == 35
+
+
+def test_muls_w():
+    """MULS.W D1,D0: -3 * 4 = -12 (signed word multiply -> long result)."""
+    code = b''
+    code += struct.pack('>H', 0x70FD)       # moveq #-3,d0
+    code += struct.pack('>H', 0x7204)       # moveq #4,d1
+    # MULS.W D1,D0: 1100 000 111 000 001 = $C1C1
+    code += struct.pack('>H', 0xC1C1)       # muls.w d1,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "MULS should produce a concrete result"
+    assert cpu.d[0].concrete == (-12) & 0xFFFFFFFF
+
+
+# ── Bit ops: currently invalidated, should compute ───────────────────
+
+def test_btst_reg():
+    """BTST D1,D0: test bit, should NOT modify D0."""
+    code = b''
+    code += struct.pack('>H', 0x70FF)       # moveq #-1,d0 ($FFFFFFFF)
+    code += struct.pack('>H', 0x7203)       # moveq #3,d1
+    # BTST D1,D0: 0000 001 100 000 000 = $0300
+    code += struct.pack('>H', 0x0300)       # btst d1,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "BTST should not clobber destination"
+    assert cpu.d[0].concrete == 0xFFFFFFFF
+
+
+def test_bclr_reg():
+    """BCLR D1,D0: clear bit 3 of D0."""
+    code = b''
+    code += struct.pack('>H', 0x70FF)       # moveq #-1,d0 ($FFFFFFFF)
+    code += struct.pack('>H', 0x7203)       # moveq #3,d1
+    # BCLR D1,D0: 0000 001 110 000 000 = $0380
+    code += struct.pack('>H', 0x0380)       # bclr d1,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "BCLR should produce a concrete result"
+    assert cpu.d[0].concrete == 0xFFFFFFF7
+
+
+def test_bset_reg():
+    """BSET D1,D0: set bit 0 of D0."""
+    code = b''
+    code += struct.pack('>H', 0x7000)       # moveq #0,d0
+    code += struct.pack('>H', 0x7200)       # moveq #0,d1
+    # BSET D1,D0: 0000 001 111 000 000 = $03C0
+    code += struct.pack('>H', 0x03C0)       # bset d1,d0
+    code += struct.pack('>H', 0x4E75)       # rts
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "BSET should produce a concrete result"
+    assert cpu.d[0].concrete == 1

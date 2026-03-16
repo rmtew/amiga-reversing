@@ -318,9 +318,18 @@ def decode_instruction_ops(inst: "Instruction", inst_kb: dict,
     imm_range = inst_kb.get("constraints", {}).get("immediate_range")
     data_field_name = imm_range.get("field") if imm_range else None
     if data_field_name:
-        # Pattern 1: immediate from named encoding field
+        # Pattern 1: immediate from named encoding field.
+        # Some KB entries use descriptive names (e.g. "Count/Register")
+        # that don't match the encoding field names (just "REGISTER").
+        # Fall back to the upper REGISTER field only if the encoding
+        # has no MODE field (register-only form where the upper REGISTER
+        # IS the data field, like shift #count,Dn). If there IS a MODE
+        # field, the instruction has a register form (like BCLR Dn,<ea>)
+        # where the upper REGISTER is a register operand, not data.
         df = next((f for f in enc_fields
                    if f["name"] == data_field_name), None)
+        if df is None and len(reg_fields) >= 2 and not mode_fields:
+            df = reg_fields[-1]  # upper REGISTER field
         if df:
             raw_val = _xf(d.opcode, (df["bit_hi"], df["bit_lo"],
                                    df["bit_hi"] - df["bit_lo"] + 1))
@@ -2115,6 +2124,188 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
                 platform["_pending_call_effect"] = call_effect
 
 
+def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
+    """Apply any remaining compute_formula op via m68k_compute.
+
+    Uses _compute_result to evaluate the KB formula with concrete operand
+    values. Handles shift, rotate, multiply, divide, bit ops, BCD -- any
+    op that _compute_result supports. If operands are unknown, invalidates
+    the destination (conservative).
+
+    The compute engine needs src (source operand value) and dst (destination
+    operand value). For OPMODE instructions, ea_is_source determines which
+    is which. For immediate+EA, imm is src and EA is dst.
+    """
+    from .m68k_compute import _compute_result
+
+    bits = size_bytes * 8
+    op = formula["op"] if formula else None
+    op_type = inst_kb.get("operation_type")
+    src_sign_ext = inst_kb.get("source_sign_extend", False)
+
+    # Resolve source and destination values
+    src_val = dst_val = None
+    write_to_ea = True  # default: write result to EA operand
+
+    if d.ea_op and d.reg_num is not None and d.ea_is_source is None and d.imm_val is None:
+        # EA + Dn without OPMODE. Direction depends on instruction type:
+        # - bit_test ops (BTST/BCHG/BCLR/BSET): Dn=bit_number(src), EA=data(dst)
+        # - multiply (MULU/MULS): EA=multiplicand(src), Dn=multiplier(dst)
+        if op_type == "bit_test":
+            src_val = cpu.get_reg("dn", d.reg_num)
+            dst_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+            write_to_ea = True  # result writes back to EA
+        else:
+            src_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+            dst_val = cpu.get_reg("dn", d.reg_num)
+            write_to_ea = False  # result goes to reg
+    elif d.ea_is_source is not None and d.ea_op and d.reg_num is not None:
+        # OPMODE-directed (e.g. ADD <ea>,Dn or ADD Dn,<ea>)
+        ea_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+        reg_val = cpu.get_reg("dn", d.reg_num)
+        if d.ea_is_source:
+            src_val = ea_val
+            dst_val = reg_val
+            write_to_ea = False
+        else:
+            src_val = reg_val
+            dst_val = ea_val
+    elif d.imm_val is not None and d.ea_op:
+        # Immediate + EA (e.g. BTST #n,Dn)
+        src_val = _concrete(d.imm_val)
+        dst_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+    elif d.imm_val is not None and d.ea_op is None:
+        # Immediate count + Dn (shift/rotate register form).
+        # No MODE field, so ea_op is None. Dn is in the lower
+        # REGISTER field of the encoding.
+        enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
+        dn_fields = sorted(
+            [f for f in enc_fields if f["name"] == "REGISTER"],
+            key=lambda f: f["bit_lo"])
+        if dn_fields:
+            dn = _xf(d.opcode, (dn_fields[0]["bit_hi"],
+                                dn_fields[0]["bit_lo"],
+                                dn_fields[0]["bit_hi"] - dn_fields[0]["bit_lo"] + 1))
+            src_val = _concrete(d.imm_val)
+            dst_val = cpu.get_reg("dn", dn)
+            write_to_ea = False
+            d.reg_num = dn  # so result writes to correct register
+    elif d.ea_op:
+        # Single operand (e.g. memory shift ASL.W <ea>)
+        if d.imm_val is not None:
+            src_val = _concrete(d.imm_val)
+        dst_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+
+    # Need concrete values to compute
+    src_concrete = src_val.concrete if src_val and src_val.is_known else None
+    dst_concrete = dst_val.concrete if dst_val and dst_val.is_known else None
+
+    # Some ops only need dst (single-operand: memory shifts, TAS)
+    # Some ops need both src and dst (shift by count, multiply, bit ops)
+    can_compute = False
+    if op in ("bit_test", "bit_change", "bit_clear", "bit_set",
+              "shift", "rotate", "rotate_extend",
+              "multiply", "divide"):
+        can_compute = (src_concrete is not None and dst_concrete is not None)
+    elif op in ("add_decimal", "subtract_decimal"):
+        can_compute = (src_concrete is not None and dst_concrete is not None)
+    elif dst_concrete is not None:
+        can_compute = True
+
+    if can_compute and formula:
+        src_c = src_concrete if src_concrete is not None else 0
+        dst_c = dst_concrete if dst_concrete is not None else 0
+
+        # Build context for the compute engine
+        ctx = {}
+
+        # Bit modulus from KB (BTST/BCHG/BCLR/BSET)
+        bit_mod = inst_kb.get("bit_modulus")
+        if bit_mod:
+            # For register-direct EA: use "register" modulus
+            if d.ea_op and d.ea_op.mode == "dn":
+                ctx["bit_modulus"] = bit_mod.get("register", 32)
+            else:
+                ctx["bit_modulus"] = bit_mod.get("memory", 8)
+
+        # Shift/rotate count modulus from KB
+        count_mod = inst_kb.get("shift_count_modulus")
+        if count_mod:
+            ctx["count_modulus"] = count_mod
+
+        # Rotate extra bits from KB
+        rotate_extra = inst_kb.get("rotate_extra_bits")
+        if rotate_extra:
+            ctx["rotate_extra_bits"] = rotate_extra
+
+        # Direction + fill from KB variants, selected by opcode dr field
+        dir_variants = inst_kb.get("constraints", {}).get(
+            "direction_variants")
+        if dir_variants and inst_kb.get("variants"):
+            dr_field_name = dir_variants.get("field")
+            if dr_field_name:
+                enc_fields = inst_kb.get("encodings", [{}])[0].get(
+                    "fields", [])
+                dr_f = next((f for f in enc_fields
+                             if f["name"] == dr_field_name), None)
+                if dr_f:
+                    dr_val = _xf(d.opcode, (dr_f["bit_hi"],
+                                            dr_f["bit_lo"],
+                                            dr_f["bit_hi"] - dr_f["bit_lo"] + 1))
+                    dr_char = dir_variants["values"].get(str(dr_val))
+                    # Find the matching variant
+                    for v in inst_kb["variants"]:
+                        vdir = v.get("direction", "")
+                        if vdir and vdir[0].lower() == dr_char:
+                            ctx["direction"] = vdir[0].upper()
+                            if v.get("fill"):
+                                ctx["fill"] = v["fill"]
+                            break
+
+        # Multiply/divide: data_sizes + signed from KB forms
+        if op in ("multiply", "divide"):
+            for form in inst_kb.get("forms", []):
+                if form.get("processor_020"):
+                    continue
+                ds = form.get("data_sizes")
+                if ds:
+                    ctx["data_sizes"] = ds
+                    break
+            if inst_kb.get("signed") is not None:
+                ctx["signed"] = inst_kb["signed"]
+
+        # CCR for extend operations
+        initial_ccr = {}
+
+        try:
+            result_full, result = _compute_result(
+                inst_kb, src_c, dst_c, mask, bits, initial_ccr, ctx)
+        except (RuntimeError, KeyError, ZeroDivisionError):
+            # Compute failed (e.g. division by zero) -- invalidate
+            result = None
+
+        if result is not None:
+            # For bit_test: no write (only CC flags affected)
+            if op == "bit_test":
+                return
+            # Apply size masking: preserve upper bits for sub-long ops
+            if size != "l" and dst_concrete is not None:
+                result = (dst_c & ~mask) | (result & mask)
+            result_val = _concrete(result & 0xFFFFFFFF)
+            if write_to_ea and d.ea_op:
+                _write_operand(d.ea_op, cpu, mem, result_val,
+                               size, size_bytes)
+            elif d.reg_num is not None:
+                cpu.set_reg("dn", d.reg_num, result_val)
+            return
+
+    # Could not compute -- invalidate destination
+    if d.ea_op:
+        _write_operand(d.ea_op, cpu, mem, _unknown(), size, size_bytes)
+    elif d.reg_num is not None:
+        cpu.set_reg("dn", d.reg_num, _unknown())
+
+
 def _apply_instruction(inst: Instruction, inst_kb: dict,
                        cpu: "CPUState_inner", mem: AbstractMemory,
                        code: bytes, base_addr: int,
@@ -2202,11 +2393,10 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         _apply_exg(d, inst_kb, cpu)
         return
 
-    # Fallthrough: invalidate destination
-    if d.ea_op:
-        _write_operand(d.ea_op, cpu, mem, _unknown(), size, size_bytes)
-    elif d.reg_num is not None:
-        cpu.set_reg("dn", d.reg_num, _unknown())
+    # KB-driven compute fallback: use m68k_compute._compute_result for
+    # all remaining ops (shift, rotate, multiply, divide, bit ops, BCD).
+    # If both operands are concrete, compute the result; otherwise invalidate.
+    _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask)
 
 
 def propagate_states(blocks: dict[int, BasicBlock],
