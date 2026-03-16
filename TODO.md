@@ -234,11 +234,11 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - `rx_mode`/`ry_mode` for EXG from description text
   - `operation_class` from instruction title (LEA, MOVEM)
   - 8 `_meta` fields added (size_suffixes, default_operand_size, register_aliases, ea_full_ext_bd_size)
-- [x] pytest suite: `py -m pytest tests/` -- 1893 tests in ~2s
+- [x] pytest suite: `py -m pytest tests/` -- 1896 tests in ~2s
   - `test_m68k_roundtrip.py`: 1796 KB-driven roundtrip tests, batch-assembled (12 vasm calls)
-  - `test_indirect_resolution.py`: 37 tests (dispatch patterns, backward slice, per-caller)
+  - `test_indirect_resolution.py`: 39 tests (dispatch patterns, backward slice, per-caller, inline data skip)
   - `test_executor_propagation.py`: 8 tests (memory, joins, instruction effects)
-  - `test_executor_effects.py`: 43 tests (all compute ops, preservation, merge, invalidation, init mem join semantics)
+  - `test_executor_effects.py`: 44 tests (all compute ops, preservation, merge, invalidation, init mem join, multi-entry propagation)
   - `test_analysis.py`: 6 tests (pipeline, save/load cache, version check)
   - `test_code_section_reads.py`: 3 tests (pointer resolution through code data)
 - [x] PEA EA mode validation: guard against invalid modes via KB `ea_modes.ea`
@@ -284,18 +284,21 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - [x] Coverage gap diagnostic: 27 unresolved jumps, 307 unresolved returns
     - 16 jsr d(a6) already resolved by OS call identification (exec/dos library calls)
   ### Core expansion blockers (entry-point reachable, ordered by impact)
-  - [ ] Inline data skip pattern at $1754: `movea.l (sp)+,a0; jmp 2(a0)`
-    - BSR/JSR pushes return addr, callee pops it, jumps past inline data word
-    - Common Amiga/68K idiom -- need to model return-addr-as-data-pointer
-    - Unblocks fallthrough past inline data at every call site using this sub
-  - [ ] Self-relative jump table at $3BBE (pattern E): 27 targets
-    - `lea d(pc,d1.w),a2; adda.w (a2),a2; jmp (a2)` -- read word offset, add to own addr
-    - Table already detected by find_jump_tables but D1 unknown at dispatch
-    - D1 is a character-class index computed from input -- table is enumerable from data
+  - [x] Multi-entry propagation seeding: all entry points get exit states
+    - Was: 2159/3109 blocks with exit states. Now: 3109/3110
+    - Jump table targets: 28/29, 21/21, 26/27 (was 2/29, 2/21, 9/27)
+    - propagate_states seeds all is_entry blocks, not just base_addr
+  - [x] Inline data skip at $1754: per-caller already resolves this pattern
+    - Tests confirm: BSR pushes return addr, callee pops, jmp 2(a0) resolves
+    - GenAm's $1754 is embedded in larger sub, needs intra-sub flow tracing
+  - [ ] Unresolved library base at d(4300)(A6): 3 LVO calls ($AA6A, $ABF6, $AC0A)
+    - A6 loaded from app memory offset 4300, library identity unknown
+    - LVOs -66 and -48 suggest non-exec library (exec OpenLibrary is -552)
+    - Store pass doesn't capture the value -- may need init pass extension
   - [ ] A2 dispatch cluster at $8A4A-$8F3A: 5 unresolved jsr/jmp (a2)
     - A2 loaded earlier in subroutine, lost at internal merge points
     - Some sites in same sub already resolve (A2=$71F0 at $8EF0, A2=$A11A at $8D7E)
-    - Need to trace A2 load through intra-procedural control flow
+    - Likely callback function pointers (number formatting routine)
   - [ ] Callback trampolines at $3AB0 and $4370: jsr (a0) with A0 from caller
     - Per-caller resolution should handle these but A0 is unknown in callers too
     - Need to trace A0 further back through caller chain
