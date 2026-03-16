@@ -63,6 +63,42 @@ def _load_kb():
     return by_name, instructions, meta
 
 
+# ── Module-level KB singletons (avoid per-call cache overhead) ────────────
+
+_KB_BY_NAME, _KB_LIST, _KB_META = _load_kb()
+
+# Size suffixes for mnemonic extraction (e.g. (".b", ".w", ".l", ".s"))
+_SIZE_SUFFIXES = tuple("." + s for s in _KB_META["size_suffixes"])
+_DEFAULT_SIZE = _KB_META["default_operand_size"]
+
+# CC lookup data
+_CC_TEST_DEFS = _KB_META["cc_test_definitions"]
+_CC_ALIASES = _KB_META["cc_aliases"]
+_CC_FAMILIES = _KB_META["_cc_families"]
+
+# EA mode reverse lookup: (mode_int, reg_int) -> mode_name
+_EA_REVERSE = {}
+for _name, (_m, _r) in _KB_META["ea_mode_encoding"].items():
+    if _r is not None:
+        _EA_REVERSE[(_m, _r)] = _name
+    else:
+        # Register-agnostic modes: set for all 8 register values
+        for _i in range(8):
+            _EA_REVERSE.setdefault((_m, _i), _name)
+
+# Brief extension word field specs (pre-computed tuple lookups)
+_BRIEF_EXT_FIELDS = {}
+for _f in _KB_META["ea_brief_ext_word"]:
+    _BRIEF_EXT_FIELDS[_f["name"]] = (_f["bit_hi"], _f["bit_lo"], _f["bit_hi"] - _f["bit_lo"] + 1)
+
+# Pre-computed size byte counts
+_SIZE_BYTE_COUNT = _KB_META["size_byte_count"]
+_OPWORD_BYTES = _KB_META["opword_bytes"]
+
+# Clean up loop variables from module scope
+del _name, _m, _r, _i, _f
+
+
 # ── Structured operand representation ─────────────────────────────────────
 
 @dataclass
@@ -86,23 +122,7 @@ def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
     Returns (Operand, new_pos) where new_pos accounts for consumed extension words.
     Uses KB ea_mode_encoding to map (mode, reg) to mode name.
     """
-    _, _, meta = _load_kb()
-    ea_enc = meta["ea_mode_encoding"]
-    # Reverse lookup: find mode name from (mode, reg) in KB ea_mode_encoding.
-    # KB entries have [mode, null] for modes that don't use register sub-select,
-    # and [mode, reg] for those that do. Try specific (mode, reg) first, then
-    # (mode, null) — this matches the KB structure without hardcoding the
-    # mode-7 boundary.
-    mode_name = None
-    for name, (m, r) in ea_enc.items():
-        if m == mode and r == reg:
-            mode_name = name
-            break
-    if mode_name is None:
-        for name, (m, r) in ea_enc.items():
-            if m == mode and r is None:
-                mode_name = name
-                break
+    mode_name = _EA_REVERSE.get((mode, reg))
     if mode_name is None:
         raise ValueError(f"Unknown EA mode={mode} reg={reg}")
 
@@ -125,10 +145,7 @@ def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
         if pos + 2 > len(data):
             raise ValueError("Truncated index extension word")
         ext = struct.unpack_from(">H", data, pos)[0]
-        # Brief extension word layout from KB ea_brief_ext_word
-        brief = meta["ea_brief_ext_word"]
-        bf = {f["name"]: (f["bit_hi"], f["bit_lo"], f["bit_hi"] - f["bit_lo"] + 1)
-              for f in brief}
+        bf = _BRIEF_EXT_FIELDS
         xreg = _xf(ext, bf["REGISTER"])
         xtype_bit = _xf(ext, bf["D/A"])
         xsize_bit = _xf(ext, bf["W/L"])
@@ -158,16 +175,13 @@ def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
             raise ValueError("Truncated PC displacement")
         disp = struct.unpack_from(">h", data, pos)[0]
         # PC-relative: target = PC + displacement (PC = instruction addr + opword)
-        opword_bytes = meta["opword_bytes"]
-        target = pc_offset + opword_bytes + disp
+        target = pc_offset + _OPWORD_BYTES + disp
         return Operand(mode="pcdisp", reg=None, value=target), pos + 2
     elif mode_name == "pcindex":
         if pos + 2 > len(data):
             raise ValueError("Truncated PC index extension word")
         ext = struct.unpack_from(">H", data, pos)[0]
-        brief = meta["ea_brief_ext_word"]
-        bf = {f["name"]: (f["bit_hi"], f["bit_lo"], f["bit_hi"] - f["bit_lo"] + 1)
-              for f in brief}
+        bf = _BRIEF_EXT_FIELDS
         xreg = _xf(ext, bf["REGISTER"])
         xtype_bit = _xf(ext, bf["D/A"])
         xsize_bit = _xf(ext, bf["W/L"])
@@ -176,16 +190,14 @@ def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
         if disp_raw & (1 << (disp_width - 1)):
             disp_raw -= (1 << disp_width)
         # Value stores PC-relative base (instruction addr + opword + displacement)
-        opword_bytes = meta["opword_bytes"]
-        target = pc_offset + opword_bytes + disp_raw
+        target = pc_offset + _OPWORD_BYTES + disp_raw
         return Operand(
             mode="pcindex", reg=None, value=target,
             index_reg=xreg, index_is_addr=(xtype_bit == 1),
             index_size="l" if xsize_bit == 1 else "w"
         ), pos + 2
     elif mode_name == "imm":
-        size_bytes = meta["size_byte_count"]
-        nbytes = size_bytes.get(op_size, 2)
+        nbytes = _SIZE_BYTE_COUNT.get(op_size, 2)
         if nbytes <= 2:
             if pos + 2 > len(data):
                 raise ValueError("Truncated immediate extension word")
@@ -270,8 +282,7 @@ def _resolve_operand(operand: Operand, cpu, mem, size: str,
         idx_val = cpu.get_reg(idx_mode, operand.index_reg)
         if not idx_val.is_known:
             return None
-        _, _, meta = _load_kb()
-        nbits = meta["size_byte_count"][operand.index_size] * 8
+        nbits = _SIZE_BYTE_COUNT[operand.index_size] * 8
         mask = (1 << nbits) - 1
         idx_v = idx_val.concrete & mask
         if idx_v >= (1 << (nbits - 1)):
@@ -405,7 +416,7 @@ def _unknown(label: str = "", tag: dict | None = None) -> AbstractValue:
 
 def _make_cpu_state_class():
     """Build CPUState class with register layout derived from KB."""
-    _, _, meta = _load_kb()
+    meta = _KB_META
     num_d = meta["_num_data_regs"]
     num_a = meta["_num_addr_regs"]
     sp_reg = meta["_sp_reg_num"]
@@ -551,8 +562,7 @@ def predict_pc(inst_kb: dict, pc: int, instr_size: int,
         ccr: current CCR flags dict (may have None values for unknown flags)
         dn_val: Dn counter value for DBcc (None if unknown)
     """
-    _, _, meta = _load_kb()
-    opword_bytes = meta["opword_bytes"]
+    opword_bytes = _OPWORD_BYTES
     pc_effects = inst_kb.get("pc_effects", {})
     flow = pc_effects.get("flow", {})
     flow_type = flow.get("type", "sequential")
@@ -626,9 +636,9 @@ def discover_blocks(code: bytes, base_addr: int = 0,
     Returns dict mapping block start address -> BasicBlock.
     Uses KB pc_effects to determine control flow at block boundaries.
     """
-    kb_by_name, _, meta = _load_kb()
-    cc_test_defs = meta["cc_test_definitions"]
-    cc_aliases = meta["cc_aliases"]
+    kb_by_name = _KB_BY_NAME
+    cc_test_defs = _CC_TEST_DEFS
+    cc_aliases = _CC_ALIASES
 
     if entry_points is None:
         entry_points = [base_addr]
@@ -643,8 +653,7 @@ def discover_blocks(code: bytes, base_addr: int = 0,
         if addr in instr_map:
             return instr_map[addr]
         offset = addr - base_addr
-        _, _, m = _load_kb()
-        if offset < 0 or offset + m["opword_bytes"] > len(code):
+        if offset < 0 or offset + _OPWORD_BYTES > len(code):
             return None
         d = _Decoder(code, base_addr)
         d.pos = offset
@@ -782,6 +791,8 @@ def discover_blocks(code: bytes, base_addr: int = 0,
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
+_MNEMONIC_CACHE = {}
+
 def _extract_mnemonic(text: str) -> str:
     """Extract mnemonic from disassembled instruction text.
 
@@ -790,20 +801,25 @@ def _extract_mnemonic(text: str) -> str:
              'bra.w $1234' -> 'bra'
     Size suffixes derived from KB size_byte_count keys + short branch "s".
     """
-    _, _, meta = _load_kb()
-    # Size suffixes from KB (includes short branch ".s")
-    size_suffixes = ["." + s for s in meta["size_suffixes"]]
-    # Split on first space to get mnemonic+suffix
+    cached = _MNEMONIC_CACHE.get(text)
+    if cached is not None:
+        return cached
     parts = text.strip().split(None, 1)
     if not parts:
+        _MNEMONIC_CACHE[text] = ""
         return ""
     mn_part = parts[0]
-    # Strip size suffix
-    for suffix in size_suffixes:
+    for suffix in _SIZE_SUFFIXES:
         if mn_part.endswith(suffix):
-            return mn_part[:-len(suffix)]
+            result = mn_part[:-len(suffix)]
+            _MNEMONIC_CACHE[text] = result
+            return result
+    _MNEMONIC_CACHE[text] = mn_part
     return mn_part
 
+
+_KB_ENTRY_CACHE = {}
+_SENTINEL = object()
 
 def _find_kb_entry(kb_by_name: dict, mnemonic: str,
                    cc_test_defs: dict, cc_aliases: dict) -> dict | None:
@@ -812,13 +828,17 @@ def _find_kb_entry(kb_by_name: dict, mnemonic: str,
     CC families (Bcc, Scc, DBcc, etc.) are discovered from KB
     cc_parameterized fields, not hardcoded.
     """
-    _, _, meta = _load_kb()
-    cc_families = meta["_cc_families"]  # {prefix: kb_mnemonic}
+    cached = _KB_ENTRY_CACHE.get(mnemonic, _SENTINEL)
+    if cached is not _SENTINEL:
+        return cached
+    cc_families = _CC_FAMILIES
     mn_upper = mnemonic.upper()
 
     # Direct lookup
     if mn_upper in kb_by_name:
-        return kb_by_name[mn_upper]
+        result = kb_by_name[mn_upper]
+        _KB_ENTRY_CACHE[mnemonic] = result
+        return result
 
     # Check condition code families from KB cc_parameterized.
     # Sort by prefix length descending so "db" matches before "b".
@@ -829,20 +849,26 @@ def _find_kb_entry(kb_by_name: dict, mnemonic: str,
             kb_name = cc_families[prefix]
             # Check if it's a known condition code or alias
             if cc_part in cc_test_defs or cc_part in cc_aliases:
-                return kb_by_name.get(kb_name)
+                result = kb_by_name.get(kb_name)
+                _KB_ENTRY_CACHE[mnemonic] = result
+                return result
 
     # Combined mnemonics: "ASL, ASR" -> match on "ASL" or "ASR"
     for kb_mn, inst in kb_by_name.items():
         if "," in kb_mn:
             parts = [p.strip() for p in kb_mn.split(",")]
             if mn_upper in parts:
+                _KB_ENTRY_CACHE[mnemonic] = inst
                 return inst
 
     # KB entries with spaces: try prefix matching for MOVE variants
     for kb_mn in kb_by_name:
         if kb_mn.startswith(mn_upper + " ") or kb_mn.startswith(mn_upper + ","):
-            return kb_by_name[kb_mn]
+            result = kb_by_name[kb_mn]
+            _KB_ENTRY_CACHE[mnemonic] = result
+            return result
 
+    _KB_ENTRY_CACHE[mnemonic] = None
     return None
 
 
@@ -856,8 +882,9 @@ def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
     Displacement encoding rules (word_signal, long_signal) from KB.
     EA field positions (MODE, REGISTER) from KB encoding fields.
     """
-    kb_by_name, _, meta = _load_kb()
-    opword_bytes = meta["opword_bytes"]
+    kb_by_name = _KB_BY_NAME
+    meta = _KB_META
+    opword_bytes = _OPWORD_BYTES
     ea_enc = meta["ea_mode_encoding"]
 
     text = inst.text.strip()
@@ -865,9 +892,7 @@ def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
     mnemonic = _extract_mnemonic(text)
 
     # Look up KB entry to get flow type and displacement_encoding
-    cc_test_defs = meta["cc_test_definitions"]
-    cc_aliases = meta["cc_aliases"]
-    inst_kb = _find_kb_entry(kb_by_name, mnemonic, cc_test_defs, cc_aliases)
+    inst_kb = _find_kb_entry(kb_by_name, mnemonic, _CC_TEST_DEFS, _CC_ALIASES)
     if inst_kb is None:
         return None
 
@@ -1004,8 +1029,7 @@ class AbstractMemory:
 
     def write(self, addr, value: AbstractValue, size: str):
         """Write a value.  addr is int (concrete) or AbstractValue (symbolic)."""
-        _, _, meta = _load_kb()
-        nbytes = meta["size_byte_count"][size]
+        nbytes = _SIZE_BYTE_COUNT[size]
 
         if isinstance(addr, AbstractValue):
             if addr.is_symbolic:
@@ -1032,8 +1056,7 @@ class AbstractMemory:
 
     def read(self, addr, size: str) -> AbstractValue:
         """Read a value.  addr is int (concrete) or AbstractValue (symbolic)."""
-        _, _, meta = _load_kb()
-        nbytes = meta["size_byte_count"][size]
+        nbytes = _SIZE_BYTE_COUNT[size]
 
         if isinstance(addr, AbstractValue):
             if addr.is_symbolic:
@@ -1126,45 +1149,106 @@ def _join_states(states: list) -> tuple:
         cpu, mem = states[0]
         return cpu.copy(), mem.copy()
 
-    result_cpu = CPUState()
-    first_cpu = states[0][0]
-    n_d = len(result_cpu.d)
-    n_a = len(result_cpu.a)
-    _jv = _join_values  # local ref for speed
+    first_cpu, first_mem = states[0]
+    _UNK = _UNKNOWN
 
-    # Join data registers
-    for i in range(n_d):
-        r = first_cpu.d[i]
-        for s in states[1:]:
-            r = _jv(r, s[0].d[i])
-        result_cpu.d[i] = r
+    # Fast path for 2 predecessors (most common merge case).
+    # Inline the join logic to avoid 16+ function calls per merge.
+    if len(states) == 2:
+        other_cpu, other_mem = states[1]
 
-    # Join address registers
-    for i in range(n_a):
-        r = first_cpu.a[i]
-        for s in states[1:]:
-            r = _jv(r, s[0].a[i])
-        result_cpu.a[i] = r
-
-    # Join SP
-    r = first_cpu.sp
-    for s in states[1:]:
-        r = _jv(r, s[0].sp)
-    result_cpu.sp = r
-
-    # Join CCR flags
-    for flag in result_cpu.ccr:
-        v0 = first_cpu.ccr.get(flag)
-        if v0 is not None and all(
-                s[0].ccr.get(flag) == v0 for s in states[1:]):
-            result_cpu.ccr[flag] = v0
+        # If both CPU states are the same object, skip register comparison
+        if first_cpu is other_cpu:
+            result_cpu = first_cpu.copy()
         else:
-            result_cpu.ccr[flag] = None
+            cls = _get_cpu_state_class()
+            result_cpu = cls.__new__(cls)
+            # Inline join for data registers
+            rd = [None] * len(first_cpu.d)
+            fd, od = first_cpu.d, other_cpu.d
+            for i in range(len(fd)):
+                a = fd[i]
+                b = od[i]
+                if a is b:
+                    rd[i] = a
+                elif (a.concrete is not None and a.concrete == b.concrete
+                      and a.tag == b.tag):
+                    rd[i] = a
+                elif (a.sym_base is not None and a.sym_base == b.sym_base
+                      and a.sym_offset == b.sym_offset and a.tag == b.tag):
+                    rd[i] = a
+                else:
+                    rd[i] = _UNK
+            result_cpu.d = rd
 
-    # Join memory: skip if all states share the same memory object.
-    # Preserve _code_section from incoming states (all share the same
-    # code bytes, so any non-None value is correct).
-    first_mem = states[0][1]
+            # Inline join for address registers
+            ra = [None] * len(first_cpu.a)
+            fa, oa = first_cpu.a, other_cpu.a
+            for i in range(len(fa)):
+                a = fa[i]
+                b = oa[i]
+                if a is b:
+                    ra[i] = a
+                elif (a.concrete is not None and a.concrete == b.concrete
+                      and a.tag == b.tag):
+                    ra[i] = a
+                elif (a.sym_base is not None and a.sym_base == b.sym_base
+                      and a.sym_offset == b.sym_offset and a.tag == b.tag):
+                    ra[i] = a
+                else:
+                    ra[i] = _UNK
+            result_cpu.a = ra
+
+            # SP
+            a, b = first_cpu.sp, other_cpu.sp
+            if a is b:
+                result_cpu.sp = a
+            elif (a.concrete is not None and a.concrete == b.concrete
+                  and a.tag == b.tag):
+                result_cpu.sp = a
+            elif (a.sym_base is not None and a.sym_base == b.sym_base
+                  and a.sym_offset == b.sym_offset and a.tag == b.tag):
+                result_cpu.sp = a
+            else:
+                result_cpu.sp = _UNK
+
+            result_cpu.pc = 0
+            # CCR
+            ccr = {}
+            for flag in first_cpu.ccr:
+                v0 = first_cpu.ccr.get(flag)
+                ccr[flag] = v0 if v0 is not None and other_cpu.ccr.get(flag) == v0 else None
+            result_cpu.ccr = ccr
+    else:
+        # General N-way join
+        result_cpu = CPUState()
+        n_d = len(result_cpu.d)
+        n_a = len(result_cpu.a)
+        _jv = _join_values
+
+        for i in range(n_d):
+            r = first_cpu.d[i]
+            for s in states[1:]:
+                r = _jv(r, s[0].d[i])
+            result_cpu.d[i] = r
+        for i in range(n_a):
+            r = first_cpu.a[i]
+            for s in states[1:]:
+                r = _jv(r, s[0].a[i])
+            result_cpu.a[i] = r
+        r = first_cpu.sp
+        for s in states[1:]:
+            r = _jv(r, s[0].sp)
+        result_cpu.sp = r
+        for flag in result_cpu.ccr:
+            v0 = first_cpu.ccr.get(flag)
+            if v0 is not None and all(
+                    s[0].ccr.get(flag) == v0 for s in states[1:]):
+                result_cpu.ccr[flag] = v0
+            else:
+                result_cpu.ccr[flag] = None
+
+    # Join memory
     code_sec = first_mem._code_section
     if code_sec is None:
         for _, mem in states[1:]:
@@ -1175,7 +1259,7 @@ def _join_states(states: list) -> tuple:
         result_mem = first_mem.copy()
     else:
         result_mem = AbstractMemory(code_sec)
-        # Concrete bytes — intersect keys (only addresses in ALL states)
+        _jv = _join_values
         common_addrs = set(states[0][1]._bytes.keys())
         for _, mem in states[1:]:
             common_addrs &= mem._bytes.keys()
@@ -1185,8 +1269,6 @@ def _join_states(states: list) -> tuple:
                 r = _jv(r, mem._bytes[addr])
             if r.concrete is not None:
                 result_mem._bytes[addr] = r
-
-        # Concrete memory tags — intersect
         common_tags = set(states[0][1]._tags.keys())
         for _, mem in states[1:]:
             common_tags &= mem._tags.keys()
@@ -1194,8 +1276,6 @@ def _join_states(states: list) -> tuple:
             t0 = states[0][1]._tags[key]
             if all(s[1]._tags[key] == t0 for s in states[1:]):
                 result_mem._tags[key] = t0
-
-        # Symbolic slots — intersect
         common_sym = set(states[0][1]._sym.keys())
         for _, mem in states[1:]:
             common_sym &= mem._sym.keys()
@@ -1209,20 +1289,27 @@ def _join_states(states: list) -> tuple:
     return result_cpu, result_mem
 
 
+_SIZE_CACHE = {}
+
 def _extract_size(text: str) -> str:
     """Extract size suffix from disassembled instruction text.
 
     Returns the size letter, or the KB default_operand_size if unsized.
     """
-    _, _, meta = _load_kb()
+    cached = _SIZE_CACHE.get(text)
+    if cached is not None:
+        return cached
     parts = text.strip().split(None, 1)
     if not parts:
-        return meta["default_operand_size"]
+        _SIZE_CACHE[text] = _DEFAULT_SIZE
+        return _DEFAULT_SIZE
     mn_part = parts[0]
-    for sz in meta["size_suffixes"]:
+    for sz in _KB_META["size_suffixes"]:
         if mn_part.endswith("." + sz):
+            _SIZE_CACHE[text] = sz
             return sz
-    return meta["default_operand_size"]
+    _SIZE_CACHE[text] = _DEFAULT_SIZE
+    return _DEFAULT_SIZE
 
 
 def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
@@ -1230,10 +1317,9 @@ def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
 
     Returns ('dn', N) or ('an', N) or None.
     """
-    _, _, meta = _load_kb()
     reg_text = reg_text.strip().lower()
     # Check register aliases from KB (e.g. "sp" -> "a7")
-    aliases = meta.get("register_aliases", {})
+    aliases = _KB_META.get("register_aliases", {})
     if reg_text in aliases:
         reg_text = aliases[reg_text]
     if len(reg_text) == 2 and reg_text[0] in ('d', 'a') and reg_text[1].isdigit():
@@ -1258,16 +1344,16 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     If platform is provided (from OS KB calling_convention), scratch registers
     are invalidated after call instructions.
     """
-    _, _, meta = _load_kb()
+    meta = _KB_META
     text = inst.text.strip()
     mnemonic = _extract_mnemonic(text)
     size = _extract_size(text)
-    if size not in meta["size_byte_count"]:
+    if size not in _SIZE_BYTE_COUNT:
         # Unsized instructions (e.g. JMP, LEA) default to word
         # for extension word parsing — not an error.
-        size_bytes = meta["size_byte_count"]["w"]
+        size_bytes = _SIZE_BYTE_COUNT["w"]
     else:
-        size_bytes = meta["size_byte_count"][size]
+        size_bytes = _SIZE_BYTE_COUNT[size]
     mask = (1 << (size_bytes * 8)) - 1
 
     # KB fields that drive dispatch
@@ -2117,9 +2203,9 @@ def propagate_states(blocks: dict[int, BasicBlock],
 
     Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
     """
-    kb_by_name, _, meta = _load_kb()
-    cc_test_defs = meta["cc_test_definitions"]
-    cc_aliases = meta["cc_aliases"]
+    kb_by_name = _KB_BY_NAME
+    cc_test_defs = _CC_TEST_DEFS
+    cc_aliases = _CC_ALIASES
 
     if initial_state is None:
         initial_state = CPUState()
@@ -2640,13 +2726,10 @@ def analyze(code: bytes, base_addr: int = 0,
         # preservation on call fallthroughs.
         sums = None
         if platform and platform.get("initial_base_reg"):
-            kb_by_name, _, meta = _load_kb()
-            cc_test_defs = meta["cc_test_definitions"]
-            cc_aliases = meta["cc_aliases"]
             existing = platform.get("_summary_cache")
             platform["_summary_cache"] = compute_all_summaries(
                 blocks, code, base_addr,
-                kb_by_name, cc_test_defs, cc_aliases,
+                _KB_BY_NAME, _CC_TEST_DEFS, _CC_ALIASES,
                 existing=existing)
             sums = platform["_summary_cache"]
         result["exit_states"] = propagate_states(

@@ -410,49 +410,60 @@ def build_entities(binary_path: str, output_path: str = None):
         jt_call_targets = set()
         kb = KB()
 
+        def _resolve_and_expand():
+            """Run all resolution passes, add new targets to core_entries.
+            Returns number of new entries added."""
+            added = 0
+            for t in detect_jump_tables(
+                    result["blocks"], code, base_addr=0):
+                for tgt in t["targets"]:
+                    if tgt not in core_entries:
+                        core_entries.add(tgt)
+                        added += 1
+                dblk = result["blocks"].get(t["dispatch_block"])
+                if dblk and dblk.instructions:
+                    ft, _ = kb.flow_type(dblk.instructions[-1])
+                    if ft == "call":
+                        jt_call_targets.update(t["targets"])
+            for r in resolve_indirect_targets(
+                    result["blocks"],
+                    result.get("exit_states", {}),
+                    code_size):
+                if r["target"] not in core_entries:
+                    core_entries.add(r["target"])
+                    added += 1
+            for r in resolve_per_caller(
+                    result["blocks"],
+                    result.get("exit_states", {}),
+                    code, code_size,
+                    platform=platform_config):
+                if r["target"] not in core_entries:
+                    core_entries.add(r["target"])
+                    added += 1
+            for r in resolve_backward_slice(
+                    result["blocks"],
+                    result.get("exit_states", {}),
+                    code, code_size,
+                    platform=platform_config):
+                if r["target"] not in core_entries:
+                    core_entries.add(r["target"])
+                    added += 1
+            return added
+
+        entries_converged = False
         for store_pass in range(5):
-            # Inner loop: expand with tables/indirect until stable
+            # Inner loop: analyze + resolve until no new entries.
+            # After entries converge, store passes only re-analyze
+            # (for updated memory in exit states) without re-resolving.
             for _ in range(10):
                 result = analyze(code, base_addr=0,
                                  entry_points=sorted(core_entries),
                                  propagate=True,
                                  platform=platform_config)
-                added = 0
-                for t in detect_jump_tables(
-                        result["blocks"], code, base_addr=0):
-                    for tgt in t["targets"]:
-                        if tgt not in core_entries:
-                            core_entries.add(tgt)
-                            added += 1
-                    dblk = result["blocks"].get(t["dispatch_block"])
-                    if dblk and dblk.instructions:
-                        ft, _ = kb.flow_type(dblk.instructions[-1])
-                        if ft == "call":
-                            jt_call_targets.update(t["targets"])
-                for r in resolve_indirect_targets(
-                        result["blocks"],
-                        result.get("exit_states", {}),
-                        code_size):
-                    if r["target"] not in core_entries:
-                        core_entries.add(r["target"])
-                        added += 1
-                for r in resolve_per_caller(
-                        result["blocks"],
-                        result.get("exit_states", {}),
-                        code, code_size,
-                        platform=platform_config):
-                    if r["target"] not in core_entries:
-                        core_entries.add(r["target"])
-                        added += 1
-                for r in resolve_backward_slice(
-                        result["blocks"],
-                        result.get("exit_states", {}),
-                        code, code_size,
-                        platform=platform_config):
-                    if r["target"] not in core_entries:
-                        core_entries.add(r["target"])
-                        added += 1
-                if not added:
+                if entries_converged:
+                    break  # just re-analyzed with new memory
+                if not _resolve_and_expand():
+                    entries_converged = True
                     break
 
             # Scan exit states for concrete stores to app memory.

@@ -880,56 +880,138 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
     return resolved
 
 
+def _needed_registers(operand, unres_type: str) -> list[tuple[str, int]]:
+    """Identify which registers an EA operand depends on.
+
+    Returns list of (mode, reg_num) pairs, e.g. [("an", 6), ("dn", 0)]
+    for jsr 0(a6,d0.w).  For RTS, returns empty (depends on stack, not
+    registers).
+    """
+    if unres_type == "return" or operand is None:
+        return []
+    regs = []
+    if operand.mode in ("ind", "disp", "index", "postinc", "predec"):
+        regs.append(("an", operand.reg))
+    if operand.mode == "index":
+        idx_mode = "an" if operand.index_is_addr else "dn"
+        regs.append((idx_mode, operand.index_reg))
+    return regs
+
+
+def _reg_modified_in_sub(blocks: dict, sub_entry: int,
+                         dispatch_addr: int,
+                         reg_mode: str, reg_num: int,
+                         kb: KB) -> bool:
+    """Check if a register is modified on any path from sub entry to dispatch.
+
+    Walks forward from sub_entry through the block graph.  For each
+    instruction, checks if it writes to the given register.  Returns True
+    if any path modifies it before reaching the dispatch block.
+
+    Uses KB operation_type/compute_formula to identify writes without
+    executing instructions.
+    """
+    from .kb_util import decode_destination
+    visited = set()
+    work = [sub_entry]
+
+    while work:
+        addr = work.pop()
+        if addr in visited or addr not in blocks:
+            continue
+        visited.add(addr)
+        block = blocks[addr]
+
+        for inst in block.instructions:
+            # Don't check instructions AT the dispatch block -- they're
+            # the consumers, not modifiers.
+            if inst.offset >= dispatch_addr:
+                break
+
+            mn = _extract_mnemonic(inst.text)
+            ikb = kb.find(mn)
+            if ikb is None:
+                continue
+
+            # Check if this instruction could write to the register.
+            # KB-driven: check destination operand and operation type.
+            ft = ikb.get("pc_effects", {}).get("flow", {}).get("type")
+            if ft in ("call", "jump", "return", "branch"):
+                continue  # flow instructions don't write to data/addr regs
+
+            # Check explicit destination via KB encoding
+            from .m68k_executor import _extract_size
+            size = _extract_size(inst.text)
+            dst = decode_destination(inst.raw, ikb, kb.meta, size,
+                                     inst.offset)
+            if dst and dst == (reg_mode, reg_num):
+                return True
+
+            # MOVEM can write to any register in the mask
+            if ikb.get("operation_class") == "multi_register_transfer":
+                return True  # conservative: assume it could write our reg
+
+        # Continue to successors within the sub
+        for succ in block.successors:
+            if succ in blocks and succ != dispatch_addr:
+                work.append(succ)
+
+    return False
+
+
+def _find_sub_blocks(entry: int, blocks: dict,
+                     call_targets: set) -> set[int]:
+    """Find all blocks owned by a subroutine starting at entry."""
+    owned = set()
+    work = [entry]
+    while work:
+        a = work.pop()
+        if a in owned or a not in blocks:
+            continue
+        if a != entry and a in call_targets:
+            continue
+        owned.add(a)
+        for s in blocks[a].successors:
+            work.append(s)
+    return owned
+
+
 def resolve_per_caller(blocks: dict[int, BasicBlock],
                        exit_states: dict, code: bytes,
                        code_size: int,
                        platform: dict | None = None) -> list[dict]:
     """Resolve indirect targets that require per-caller analysis.
 
-    When a subroutine's indirect jump can't be resolved because the
-    merged state lost caller-specific information, re-analyze the
-    subroutine with each caller's state independently.
+    Uses targeted register substitution when possible: if the dispatch
+    depends on registers that pass through the subroutine unmodified,
+    substitute each caller's values directly (O(1) per caller).
 
-    This handles patterns where:
-    - A trampoline pops the caller's return address and jumps through it
-    - A dispatch sub uses a register (e.g. D0) set by each caller
+    Falls back to full per-caller propagation only when the subroutine
+    modifies the needed registers.
     """
     kb = KB()
     unresolved = _find_unresolved(blocks, exit_states, kb, code_size)
     if not unresolved:
         return []
 
-    # Find call-site predecessors for each unresolved block's subroutine.
     call_targets = set()
     for block in blocks.values():
         for xref in block.xrefs:
             if xref.type == "call":
                 call_targets.add(xref.dst)
 
-    # Map subroutine entries to their blocks
-    sub_blocks = {}
-    for entry in call_targets:
-        if entry not in blocks:
-            continue
-        owned = set()
-        work = [entry]
-        while work:
-            a = work.pop()
-            if a in owned or a not in blocks:
-                continue
-            if a != entry and a in call_targets:
-                continue
-            owned.add(a)
-            for s in blocks[a].successors:
-                work.append(s)
-        sub_blocks[entry] = owned
+    # Map subroutine entries to their blocks (cached)
+    sub_blocks_cache = {}
 
     resolved = []
     for unres_addr, unres_type in unresolved:
         # Find the containing subroutine
         sub_entry = None
-        for entry, owned in sub_blocks.items():
-            if unres_addr in owned:
+        for entry in call_targets:
+            if entry not in sub_blocks_cache:
+                sub_blocks_cache[entry] = _find_sub_blocks(
+                    entry, blocks, call_targets)
+            if unres_addr in sub_blocks_cache[entry]:
                 sub_entry = entry
                 break
         if sub_entry is None:
@@ -939,28 +1021,85 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         if not callers:
             continue
 
-        sub_block_dict = {a: blocks[a] for a in sub_blocks[sub_entry]
-                          if a in blocks}
+        # Decode the dispatch EA to find needed registers
+        operand = None
+        if unres_type == "jump":
+            last = blocks[unres_addr].instructions[-1]
+            operand, _ = _decode_jump_ea(last, kb)
+        needed_regs = _needed_registers(operand, unres_type)
 
-        for caller_addr in callers:
-            if caller_addr not in exit_states:
-                continue
-            caller_cpu, caller_mem = exit_states[caller_addr]
-            init_cpu = _restore_base_reg(caller_cpu.copy(), platform)
+        sub_dict = {a: blocks[a] for a in sub_blocks_cache[sub_entry]
+                    if a in blocks}
 
-            per_caller_exits = propagate_states(
-                sub_block_dict, code, sub_entry,
-                initial_state=init_cpu,
-                initial_mem=caller_mem.copy(),
-                platform=platform)
+        # Identify which needed registers are unknown in the merged
+        # exit state -- those are the caller-varying ones we need to
+        # substitute.  Registers that are concrete in the merged state
+        # (even if modified in the sub) are already resolved.
+        merged_cpu, merged_mem = exit_states.get(
+            unres_addr, (None, None))
+        unknown_regs = []
+        if needed_regs and unres_type == "jump" and merged_cpu is not None:
+            for mode, num in needed_regs:
+                val = merged_cpu.get_reg(mode, num)
+                if not val.is_known:
+                    unknown_regs.append((mode, num))
 
-            if unres_addr not in per_caller_exits:
-                continue
-            cpu, mem = per_caller_exits[unres_addr]
-            target = _try_resolve_block(
-                unres_addr, unres_type, blocks, cpu, mem, kb, code_size)
-            if target is not None:
-                resolved.append({"target": target})
+        # Fast path only works when: (a) there ARE unknown registers in
+        # the merged state, (b) those registers flow through from the
+        # sub entry unmodified, and (c) the dispatch isn't at the sub
+        # entry itself (single-block subs need full propagation because
+        # the register is computed within the block, e.g. trampolines).
+        use_fast_path = (
+            unknown_regs
+            and merged_cpu is not None
+            and unres_addr != sub_entry
+            and all(not _reg_modified_in_sub(sub_dict, sub_entry,
+                                             unres_addr, mode, num, kb)
+                    for mode, num in unknown_regs))
+
+        if use_fast_path:
+            # Fast path: substitute caller-varying register values
+            # into the merged exit state. Registers that the sub
+            # computes to concrete values are already correct in the
+            # merged state.
+            for caller_addr in callers:
+                if caller_addr not in exit_states:
+                    continue
+                caller_cpu, _ = exit_states[caller_addr]
+                test_cpu = merged_cpu.copy()
+                for mode, num in unknown_regs:
+                    val = caller_cpu.get_reg(mode, num)
+                    test_cpu.set_reg(mode, num, val)
+                _restore_base_reg(test_cpu, platform)
+
+                target = _try_resolve_block(
+                    unres_addr, unres_type, blocks,
+                    test_cpu, merged_mem, kb, code_size)
+                if target is not None:
+                    resolved.append({"target": target})
+        else:
+            # Slow path: full propagation per caller (trampolines, etc.)
+            for caller_addr in callers:
+                if caller_addr not in exit_states:
+                    continue
+                caller_cpu, caller_mem = exit_states[caller_addr]
+                init_cpu = _restore_base_reg(
+                    caller_cpu.copy(), platform)
+
+                per_caller_exits = propagate_states(
+                    sub_dict, code, sub_entry,
+                    initial_state=init_cpu,
+                    initial_mem=caller_mem.copy(),
+                    platform=platform)
+
+                if unres_addr not in per_caller_exits:
+                    continue
+                cpu, mem = per_caller_exits[unres_addr]
+                target = _try_resolve_block(
+                    unres_addr, unres_type, blocks,
+                    cpu, mem, kb, code_size)
+                if target is not None:
+                    resolved.append({"target": target})
 
     return resolved
 
