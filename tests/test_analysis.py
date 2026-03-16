@@ -259,3 +259,8 @@ def test_auto_segments_in_analyze_hunk():
     assert 0x0400 in ha.blocks, (
         f"Expected block at $0400 from auto-detected segment, "
         f"got {sorted(hex(a) for a in ha.blocks)[:10]}")
+
+    # Bootstrap blocks should ALSO be present (not discarded)
+    assert 0 in ha.blocks, (
+        f"Expected bootstrap block at $0000, "
+        f"got {sorted(hex(a) for a in ha.blocks)[:10]}")

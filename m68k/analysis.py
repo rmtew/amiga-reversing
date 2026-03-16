@@ -323,14 +323,20 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     Returns HunkAnalysis with all results.
     """
     # Auto-detect relocated segments if no explicit base_addr/code_start
+    bootstrap_blocks = {}
     if base_addr == 0 and code_start == 0:
         segments = detect_relocated_segments(code)
         if segments:
-            seg = segments[0]  # use first detected segment
+            seg = segments[0]
+            # Analyze the bootstrap BEFORE slicing
+            bootstrap_result = analyze(code, base_addr=0,
+                                       entry_points=[0], propagate=False)
+            bootstrap_blocks = bootstrap_result["blocks"]
             base_addr = seg["base_addr"]
             code_start = seg["file_offset"]
             print_fn(f"  Auto-detected segment: file ${code_start:X} "
-                     f"-> addr ${base_addr:X}")
+                     f"-> addr ${base_addr:X} "
+                     f"({len(bootstrap_blocks)} bootstrap blocks)")
 
     if code_start > 0:
         code = code[code_start:]
@@ -594,6 +600,12 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         print_fn(f"  {len(lib_calls)} library calls identified "
                  f"({len(resolved)} resolved"
                  f", libraries: {', '.join(sorted(libs))})")
+
+    # Merge bootstrap blocks (if auto-detected) into the result.
+    # Bootstrap runs at base_addr=0, payload at the detected base.
+    # No address conflicts since bootstrap < code_start < base_addr.
+    if bootstrap_blocks:
+        blocks.update(bootstrap_blocks)
 
     return HunkAnalysis(
         code=code,
