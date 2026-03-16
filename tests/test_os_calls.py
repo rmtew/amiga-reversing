@@ -1,12 +1,13 @@
 """Tests for OS call type propagation.
 
-Tests return value store tracing (Gap 1) and argument annotation (Gap 2)
+Tests return value store tracing and argument annotation
 from identified library calls.
 """
 
 import struct
 
-from m68k.os_calls import trace_return_stores, annotate_call_arguments
+from m68k.os_calls import (trace_return_stores, annotate_call_arguments,
+                           build_app_memory_types)
 from m68k.m68k_executor import analyze, BasicBlock
 
 
@@ -221,3 +222,165 @@ def test_annotate_multiple_arguments():
     assert 0x00 in annotations  # D1 = file
     assert 0x06 in annotations  # D2 = buffer
     assert 0x08 in annotations  # D3 = length
+
+
+# ── Gaps 3-6: Unified app memory type map ────────────────────────────
+
+def test_backward_type_names_app_slot():
+    """Gap 3: argument load from d(A6) names the app memory slot.
+
+    Write(file=D1) where D1 loaded from 100(a6) -> offset 100 typed
+    as 'file' for Write.
+    """
+    sentinel = 0x80000002
+    code = b''
+    # $00: move.l 100(a6),d1  (load file handle for Write)
+    code += struct.pack('>HH', 0x222E, 0x0064)
+    # $04: bsr.w $0A
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $08: rts
+    code += struct.pack('>H', 0x4E75)
+    # $0A: rts
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {"scratch_regs": [], "initial_base_reg": (6, sentinel)}
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    lib_calls = [_make_lib_call(
+        addr=0x04, block=0x00, function="Write", lvo=-48,
+        inputs=[{"name": "file", "reg": "D1", "type": "BPTR"}],
+    )]
+
+    types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
+    assert 100 in types, f"Expected offset 100 typed from Write input, got {types}"
+    assert types[100]["name"] == "file"
+
+
+def test_forward_through_register_copy():
+    """Gap 4: return value flows through register copy to store.
+
+    Output() returns D0, then move.l d0,d1; move.l d1,100(a6).
+    The store should still be traced to Output's return value.
+    """
+    sentinel = 0x80000002
+    code = b''
+    # $00: bsr.w $0C (Output call)
+    code += struct.pack('>HH', 0x6100, 0x000A)
+    # $04: move.l d0,d1  (copy return value)
+    code += struct.pack('>H', 0x2200)
+    # $06: move.l d1,100(a6)  (store via copy)
+    code += struct.pack('>HH', 0x2D41, 0x0064)
+    # $0A: rts
+    code += struct.pack('>H', 0x4E75)
+    # $0C: rts (dummy dispatch)
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {"scratch_regs": [], "initial_base_reg": (6, sentinel)}
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    lib_calls = [_make_lib_call(
+        addr=0x00, block=0x00, function="Output",
+        output={"name": "file", "reg": "D0", "type": "BPTR"},
+    )]
+
+    types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
+    assert 100 in types, (
+        f"Expected offset 100 from Output via D0->D1 copy, got {types}")
+    assert types[100]["function"] == "Output"
+
+
+def test_cross_sub_type_flow():
+    """Gap 5: type flows through app memory across subroutines.
+
+    Sub A: Output() -> store to 100(a6)
+    Sub B: load 100(a6) -> D1 -> Write(file=D1)
+
+    Both forward (Output -> store) and backward (Write input -> load)
+    should name offset 100.
+    """
+    sentinel = 0x80000002
+    code = b''
+    # sub_a at $00: calls Output, stores result
+    # $00: bsr.w $14 (Output)
+    code += struct.pack('>HH', 0x6100, 0x0012)
+    # $04: move.l d0,100(a6)
+    code += struct.pack('>HH', 0x2D40, 0x0064)
+    # $08: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_b at $0A: loads from 100(a6), calls Write
+    # $0A: move.l 100(a6),d1
+    code += struct.pack('>HH', 0x222E, 0x0064)
+    # $0E: bsr.w $14 (Write dispatch)
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $12: rts
+    code += struct.pack('>H', 0x4E75)
+    # dispatch at $14: rts
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {"scratch_regs": [], "initial_base_reg": (6, sentinel)}
+    result = analyze(code, propagate=True, entry_points=[0, 0x0A],
+                     platform=platform)
+
+    lib_calls = [
+        _make_lib_call(addr=0x00, block=0x00, function="Output",
+                       output={"name": "file", "reg": "D0", "type": "BPTR"}),
+        _make_lib_call(addr=0x0E, block=0x0A, function="Write", lvo=-48,
+                       inputs=[{"name": "file", "reg": "D1", "type": "BPTR"}]),
+    ]
+
+    types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
+    assert 100 in types, (
+        f"Expected offset 100 typed from Output store or Write load, "
+        f"got {types}")
+
+
+def test_conditional_store_after_return():
+    """Gap 6: return value stored after conditional check.
+
+    Output() -> tst.l d0 -> beq skip -> move.l d0,100(a6)
+    The store should still be found despite the intervening tst/beq.
+    """
+    sentinel = 0x80000002
+    code = b''
+    # $00: bsr.w $10 (Output)
+    code += struct.pack('>HH', 0x6100, 0x000E)
+    # $04: tst.l d0
+    code += struct.pack('>H', 0x4A80)
+    # $06: beq.s $0E (skip store if null)
+    code += struct.pack('>H', 0x6706)
+    # $08: move.l d0,100(a6)
+    code += struct.pack('>HH', 0x2D40, 0x0064)
+    # $0C: bra.s $0E
+    code += struct.pack('>H', 0x6000 | 0)
+    # Actually bra.s $0E from $0C: PC=$0E, disp=0 -> bra.w
+    # Let me restructure:
+    # $00: bsr.w $0E (Output)
+    code = b''
+    code += struct.pack('>HH', 0x6100, 0x000C)
+    # fallthrough at $04:
+    # $04: tst.l d0
+    code += struct.pack('>H', 0x4A80)
+    # $06: beq.s $0C (skip, disp = $0C - $08 = 4)
+    code += struct.pack('>H', 0x6704)
+    # $08: move.l d0,100(a6)
+    code += struct.pack('>HH', 0x2D40, 0x0064)
+    # $0C: rts
+    code += struct.pack('>H', 0x4E75)
+    # $0E: rts (dummy dispatch)
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {"scratch_regs": [], "initial_base_reg": (6, sentinel)}
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+
+    lib_calls = [_make_lib_call(
+        addr=0x00, block=0x00, function="Output",
+        output={"name": "file", "reg": "D0", "type": "BPTR"},
+    )]
+
+    types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
+    assert 100 in types, (
+        f"Expected offset 100 from Output despite conditional store, "
+        f"got {types}")

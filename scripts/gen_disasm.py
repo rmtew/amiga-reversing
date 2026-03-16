@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from m68k.hunk_parser import parse_file, HunkType
 from m68k.analysis import analyze_hunk, resolve_reloc_target, HunkAnalysis
-from m68k.os_calls import (propagate_input_types, trace_return_stores,
+from m68k.os_calls import (propagate_input_types, build_app_memory_types,
                            annotate_call_arguments)
 from m68k.m68k_executor import (_extract_branch_target, _extract_mnemonic,
                                 _extract_size)
@@ -926,11 +926,11 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                 base_name = lib_name.rsplit(".", 1)[0]
                 sym = re.sub(r'[^a-z0-9]+', '_', base_name.lower())
                 app_offsets[offset] = f"app_{sym}_base"
-        # Add return-value-derived app memory offsets from library calls.
+        # Add typed app memory offsets from library call data flow.
         if base_info and lib_calls:
-            ret_stores = trace_return_stores(
+            typed_slots = build_app_memory_types(
                 blocks, lib_calls, base_reg=base_info[0])
-            for offset, info in ret_stores.items():
+            for offset, info in typed_slots.items():
                 if offset not in app_offsets:
                     func = info["function"]
                     name = info.get("name", "result")

@@ -257,6 +257,183 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
     return result
 
 
+# ── Unified app memory type map ───────────────────────────────────────
+
+def build_app_memory_types(blocks: dict[int, BasicBlock],
+                           lib_calls: list[dict],
+                           base_reg: int) -> dict[int, dict]:
+    """Build a type map for app memory slots from library call data flow.
+
+    Combines forward propagation (return values -> register copies ->
+    app memory stores) with backward propagation (call inputs <- app
+    memory loads).  Handles cross-subroutine flow: sub A stores Output()
+    result to d(A6), sub B loads it for Write(file=D1).
+
+    Returns: {app_offset: {"name": str, "function": str, "type": str, ...}}
+    """
+    import re
+    kb = KB()
+    result = {}
+    base_reg_name = f"a{base_reg}"
+    disp_pattern = re.compile(rf'(-?\d+)\({base_reg_name}\)')
+
+    def _trace_reg_forward(instructions, src_reg, info):
+        """Trace src_reg through copies and stores to d(base_reg).
+
+        Follows move/movea chains: if src_reg is copied to another
+        register, continues tracing the copy.  Stops when src_reg
+        (or its copy) is stored to d(base_reg) or overwritten.
+        """
+        tracked = {src_reg}  # set of registers carrying the value
+        for inst in instructions:
+            text = inst.text.lower()
+            mn = _extract_mnemonic(text)
+            if not mn:
+                continue
+
+            copied_to = None  # register added by copy in this instruction
+
+            # Check for store to d(base_reg) from any tracked register
+            if mn in ("move", "movea"):
+                for treg in list(tracked):
+                    m = re.match(
+                        rf'{mn}\.\w\s+{treg}\s*,\s*'
+                        rf'(-?\d+)\({base_reg_name}\)',
+                        text)
+                    if m:
+                        offset = int(m.group(1))
+                        if offset not in result:
+                            result[offset] = dict(info)
+                        return
+
+                # Check for register-to-register copy of tracked reg
+                for treg in list(tracked):
+                    m = re.match(
+                        rf'{mn}\.\w\s+{treg}\s*,\s*([da]\d)\s*$',
+                        text)
+                    if m:
+                        copied_to = m.group(1)
+                        tracked.add(copied_to)
+                        break
+
+            # Check if any tracked register is overwritten
+            # (skip the register we just added via copy)
+            ikb = kb.find(mn)
+            if ikb:
+                dst = decode_destination(
+                    inst.raw, ikb, kb.meta,
+                    _extract_size(text), inst.offset)
+                if dst:
+                    mode_str, reg_num = dst
+                    dst_name = f"{'d' if mode_str == 'dn' else 'a'}{reg_num}"
+                    if dst_name in tracked and dst_name != copied_to:
+                        tracked.discard(dst_name)
+                        if not tracked:
+                            return
+
+    # Forward: trace return values to app memory stores
+    for call in lib_calls:
+        output = call.get("output")
+        if not output or not output.get("reg"):
+            continue
+        ret_reg = output["reg"].lower()
+        call_addr = call["addr"]
+        info = {
+            "function": call["function"],
+            "name": output.get("name", "result"),
+            "type": output.get("type"),
+            "library": call.get("library"),
+            "direction": "forward",
+        }
+
+        block = blocks.get(call.get("block"))
+        if not block:
+            continue
+
+        # Collect instructions after the call
+        past_call = False
+        after_call = []
+        for inst in block.instructions:
+            if past_call:
+                after_call.append(inst)
+            if inst.offset == call_addr:
+                past_call = True
+
+        # Trace in same block
+        _trace_reg_forward(after_call, ret_reg, info)
+
+        # Trace in fallthrough block
+        for xref in block.xrefs:
+            if xref.type == "fallthrough":
+                ft_block = blocks.get(xref.dst)
+                if ft_block:
+                    _trace_reg_forward(ft_block.instructions, ret_reg, info)
+                    # Also follow fallthrough's fallthrough (conditional blocks)
+                    for xref2 in ft_block.xrefs:
+                        if xref2.type in ("fallthrough", "branch"):
+                            ft2 = blocks.get(xref2.dst)
+                            if ft2:
+                                _trace_reg_forward(
+                                    ft2.instructions, ret_reg, info)
+                break
+
+    # Backward: trace call inputs to app memory loads
+    for call in lib_calls:
+        inputs = call.get("inputs")
+        if not inputs:
+            continue
+
+        block = blocks.get(call.get("block"))
+        if not block or not block.instructions:
+            continue
+
+        call_idx = None
+        for i, inst in enumerate(block.instructions):
+            if inst.offset == call["addr"]:
+                call_idx = i
+                break
+        if call_idx is None:
+            continue
+
+        for inp in inputs:
+            reg = inp["reg"].lower()
+            # Walk backward to find where this register was loaded
+            for i in range(call_idx - 1, -1, -1):
+                inst = block.instructions[i]
+                text = inst.text.lower()
+                mn = _extract_mnemonic(text)
+                ikb = kb.find(mn) if mn else None
+                if not ikb:
+                    continue
+
+                # Check if this instruction writes to the arg register
+                dst = decode_destination(
+                    inst.raw, ikb, kb.meta,
+                    _extract_size(text), inst.offset)
+                if not dst:
+                    continue
+                mode_str = "dn" if reg[0] == "d" else "an"
+                reg_num = int(reg[1])
+                if dst != (mode_str, reg_num):
+                    continue
+
+                # Found the setter. Check if source is d(base_reg)
+                m = disp_pattern.search(text)
+                if m:
+                    offset = int(m.group(1))
+                    if offset not in result:
+                        result[offset] = {
+                            "name": inp["name"],
+                            "function": call["function"],
+                            "type": inp.get("type"),
+                            "library": call.get("library"),
+                            "direction": "backward",
+                        }
+                break  # stop after finding the setter
+
+    return result
+
+
 # ── Call argument annotation ─────────────────────────────────────────
 
 def annotate_call_arguments(blocks: dict[int, BasicBlock],
