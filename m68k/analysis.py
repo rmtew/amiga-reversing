@@ -4,10 +4,13 @@ Runs the complete analysis: hunk parse -> init discovery -> core analysis
 with jump table/indirect resolution -> store passes -> hint scan -> OS calls.
 
 Both build_entities and gen_disasm call analyze_hunk() and use the result.
+Supports caching via save/load for instant reuse.
 """
 
+import pickle
 import struct
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from .hunk_parser import parse_file, HunkType, _HUNK_KB
 from .m68k_executor import analyze, BasicBlock
@@ -58,6 +61,14 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
 
 # ── Analysis result ──────────────────────────────────────────────────────
 
+_CACHE_VERSION = 1  # bump when HunkAnalysis fields change
+
+# Platform dict keys that are not serializable (lambdas, resolvers)
+_PLATFORM_TRANSIENT_KEYS = {
+    "_os_call_resolver", "_pending_call_effect", "_summary_cache",
+}
+
+
 @dataclass
 class HunkAnalysis:
     """Complete analysis result for one code hunk."""
@@ -75,7 +86,37 @@ class HunkAnalysis:
     platform: dict                # platform config (base reg, init mem, etc.)
     reloc_targets: set            # reloc-derived target addresses
     reloc_refs: dict              # target -> [referencing offsets]
-    os_kb: dict                   # OS knowledge base
+    os_kb: dict                   # OS knowledge base (not cached)
+
+    def save(self, path: str | Path):
+        """Serialize analysis to disk (excluding os_kb and transient state)."""
+        # Strip non-serializable items
+        saved_os_kb = self.os_kb
+        saved_platform = self.platform
+        self.os_kb = None
+        clean_platform = {k: v for k, v in saved_platform.items()
+                          if k not in _PLATFORM_TRANSIENT_KEYS
+                          and not callable(v)}
+        self.platform = clean_platform
+        try:
+            with open(path, "wb") as f:
+                pickle.dump((_CACHE_VERSION, self), f,
+                            protocol=pickle.HIGHEST_PROTOCOL)
+        finally:
+            self.os_kb = saved_os_kb
+            self.platform = saved_platform
+
+    @staticmethod
+    def load(path: str | Path, os_kb: dict) -> "HunkAnalysis":
+        """Load cached analysis, re-attaching the OS KB."""
+        with open(path, "rb") as f:
+            version, ha = pickle.load(f)
+        if version != _CACHE_VERSION:
+            raise ValueError(
+                f"Cache version mismatch: file={version}, "
+                f"expected={_CACHE_VERSION}")
+        ha.os_kb = os_kb
+        return ha
 
 
 # ── Pipeline ─────────────────────────────────────────────────────────────

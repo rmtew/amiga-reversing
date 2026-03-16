@@ -27,3 +27,4 @@ resources/Hardware_Manual_guide/
 
 # Transient test output
 resources/_roundtrip_test/
+*.analysis

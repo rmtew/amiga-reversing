@@ -22,7 +22,7 @@ from collections import defaultdict
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from m68k.hunk_parser import parse_file, HunkType
-from m68k.analysis import analyze_hunk, resolve_reloc_target
+from m68k.analysis import analyze_hunk, resolve_reloc_target, HunkAnalysis
 from m68k.os_calls import propagate_input_types
 from m68k.m68k_executor import (_extract_branch_target, _extract_mnemonic,
                                 _extract_size)
@@ -555,8 +555,14 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         print(f"Hunk #{hunk.index}: {code_size} bytes, "
               f"{len(hunk_entities)} entities")
 
-        # Run shared analysis pipeline
-        ha = analyze_hunk(code, hunk.relocs, hunk.index)
+        # Load cached analysis if available, otherwise run fresh
+        cache_path = Path(binary_path).with_suffix(".analysis")
+        if cache_path.exists():
+            from m68k.os_calls import load_os_kb
+            ha = HunkAnalysis.load(cache_path, load_os_kb())
+            print(f"  Loaded cached analysis from {cache_path.name}")
+        else:
+            ha = analyze_hunk(code, hunk.relocs, hunk.index)
         blocks = ha.blocks
         hint_blocks = ha.hint_blocks
         jt_list = ha.jump_tables

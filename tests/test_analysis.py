@@ -1,6 +1,8 @@
 """Test the shared analysis pipeline (m68k.analysis)."""
 
 import struct
+import tempfile
+from pathlib import Path
 
 from m68k.analysis import analyze_hunk, HunkAnalysis
 
@@ -73,3 +75,42 @@ def test_analyze_hunk_identifies_os_calls():
     assert "structs" in result.os_kb
     assert "_meta" in result.os_kb
     assert "calling_convention" in result.os_kb["_meta"]
+
+
+def test_save_load_roundtrip():
+    """HunkAnalysis can be saved and loaded with identical data."""
+    code = _make_simple_hunk()
+    ha = analyze_hunk(code, relocs=[], hunk_index=0,
+                      print_fn=lambda *a: None)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = Path(tmpdir) / "test.analysis"
+        ha.save(path)
+        assert path.exists()
+        assert path.stat().st_size > 0
+
+        ha2 = HunkAnalysis.load(path, ha.os_kb)
+        assert len(ha2.blocks) == len(ha.blocks)
+        assert len(ha2.exit_states) == len(ha.exit_states)
+        assert ha2.hunk_index == ha.hunk_index
+        assert ha2.code == ha.code
+        assert ha2.call_targets == ha.call_targets
+        assert ha2.os_kb is ha.os_kb  # re-attached, same object
+
+
+def test_load_rejects_wrong_version():
+    """Loading a cache with mismatched version raises ValueError."""
+    import pickle
+    code = _make_simple_hunk()
+    ha = analyze_hunk(code, relocs=[], hunk_index=0,
+                      print_fn=lambda *a: None)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = Path(tmpdir) / "test.analysis"
+        # Save normally first, then tamper with version
+        ha.save(path)
+        with open(path, "rb") as f:
+            _, saved_ha = pickle.load(f)
+        with open(path, "wb") as f:
+            pickle.dump((999, saved_ha), f)
+        import pytest
+        with pytest.raises(ValueError, match="version mismatch"):
+            HunkAnalysis.load(path, {})

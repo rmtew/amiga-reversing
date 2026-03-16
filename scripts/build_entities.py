@@ -297,6 +297,11 @@ def build_entities(binary_path: str, output_path: str = None):
         # Run shared analysis pipeline
         ha = analyze_hunk(code, hunk.relocs, hunk.index)
 
+        # Cache analysis for gen_disasm reuse
+        cache_path = Path(binary_path).with_suffix(".analysis")
+        ha.save(cache_path)
+        print(f"  Cached analysis to {cache_path.name}")
+
         blocks = ha.blocks
         xrefs = ha.xrefs
         call_targets = ha.call_targets

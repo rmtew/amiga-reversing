@@ -561,75 +561,62 @@ def _unknown(label: str = "", tag: dict | None = None) -> AbstractValue:
     return AbstractValue(label=label, tag=tag)
 
 
-def _make_cpu_state_class():
-    """Build CPUState class with register layout derived from KB."""
-    meta = _KB_META
-    num_d = meta["_num_data_regs"]
-    num_a = meta["_num_addr_regs"]
-    sp_reg = meta["_sp_reg_num"]
-    ccr_flags = list(meta["ccr_bit_positions"].keys())
+# KB-derived register layout constants (set at module load from _KB_META)
+_NUM_DATA_REGS = _KB_META["_num_data_regs"]
+_NUM_ADDR_REGS = _KB_META["_num_addr_regs"]
+_SP_REG_NUM = _KB_META["_sp_reg_num"]
+_CCR_FLAGS = list(_KB_META["ccr_bit_positions"].keys())
+_DEFAULT_D = [_UNKNOWN] * _NUM_DATA_REGS
+_DEFAULT_A = [_UNKNOWN] * _NUM_ADDR_REGS
+_DEFAULT_CCR = {f: None for f in _CCR_FLAGS}
 
-    _default_d = [_UNKNOWN] * num_d
-    _default_a = [_UNKNOWN] * num_a
-    _default_ccr = {f: None for f in ccr_flags}
 
-    class CPUState:
-        """Abstract CPU state for symbolic execution.
+class _CPUState:
+    """Abstract CPU state for symbolic execution.
 
-        Register layout derived from KB movem_reg_masks and ccr_bit_positions.
-        Uses __slots__ for performance (thousands of instances).
-        """
-        __slots__ = ("d", "a", "sp", "pc", "ccr")
+    Register layout derived from KB movem_reg_masks and ccr_bit_positions.
+    Uses __slots__ for performance (thousands of instances).
+    """
+    __slots__ = ("d", "a", "sp", "pc", "ccr")
 
-        def __init__(self):
-            self.d = list(_default_d)
-            self.a = list(_default_a)
-            self.sp = _UNKNOWN
-            self.pc = 0
-            self.ccr = dict(_default_ccr)
+    def __init__(self):
+        self.d = list(_DEFAULT_D)
+        self.a = list(_DEFAULT_A)
+        self.sp = _UNKNOWN
+        self.pc = 0
+        self.ccr = dict(_DEFAULT_CCR)
 
-        def get_reg(self, mode: str, reg: int) -> AbstractValue:
-            if mode == "dn":
-                return self.d[reg]
-            if mode == "an":
-                return self.sp if reg == sp_reg else self.a[reg]
-            raise ValueError(f"get_reg: unsupported mode '{mode}'")
+    def get_reg(self, mode: str, reg: int) -> AbstractValue:
+        if mode == "dn":
+            return self.d[reg]
+        if mode == "an":
+            return self.sp if reg == _SP_REG_NUM else self.a[reg]
+        raise ValueError(f"get_reg: unsupported mode '{mode}'")
 
-        def set_reg(self, mode: str, reg: int, val: AbstractValue):
-            if mode == "dn":
-                self.d[reg] = val
-            elif mode == "an":
-                if reg == sp_reg:
-                    self.sp = val
-                else:
-                    self.a[reg] = val
+    def set_reg(self, mode: str, reg: int, val: AbstractValue):
+        if mode == "dn":
+            self.d[reg] = val
+        elif mode == "an":
+            if reg == _SP_REG_NUM:
+                self.sp = val
             else:
-                raise ValueError(f"set_reg: unsupported mode '{mode}'")
+                self.a[reg] = val
+        else:
+            raise ValueError(f"set_reg: unsupported mode '{mode}'")
 
-        def copy(self) -> "CPUState":
-            s = CPUState.__new__(CPUState)
-            s.d = list(self.d)
-            s.a = list(self.a)
-            s.sp = self.sp
-            s.pc = self.pc
-            s.ccr = dict(self.ccr)
-            return s
+    def copy(self) -> "_CPUState":
+        s = _CPUState.__new__(_CPUState)
+        s.d = list(self.d)
+        s.a = list(self.a)
+        s.sp = self.sp
+        s.pc = self.pc
+        s.ccr = dict(self.ccr)
+        return s
 
-    return CPUState
-
-# Defer construction until first use (KB must be loaded first)
-_CPUState = None
-
-def _get_cpu_state_class():
-    global _CPUState
-    if _CPUState is None:
-        _CPUState = _make_cpu_state_class()
-    return _CPUState
 
 def CPUState(*args, **kwargs):
     """Create a CPUState instance (register layout from KB)."""
-    cls = _get_cpu_state_class()
-    return cls(*args, **kwargs)
+    return _CPUState(*args, **kwargs)
 
 
 # ── EA resolution ─────────────────────────────────────────────────────────
@@ -1308,7 +1295,7 @@ def _join_states(states: list) -> tuple:
         if first_cpu is other_cpu:
             result_cpu = first_cpu.copy()
         else:
-            cls = _get_cpu_state_class()
+            cls = _CPUState
             result_cpu = cls.__new__(cls)
             # Inline join for data registers
             rd = [None] * len(first_cpu.d)
