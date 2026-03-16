@@ -50,6 +50,8 @@ class KB:
             raise ValueError(
                 f"KB size_byte_count has no entry for "
                 f"{self.rts_sp_inc} bytes (RTS pop size)")
+        # Address mask derived from address size (e.g. 4 bytes -> 0xFFFFFFFF)
+        self.addr_mask = (1 << (self.rts_sp_inc * 8)) - 1
 
     def find(self, mnemonic: str) -> dict | None:
         """Look up KB entry for a mnemonic (handles CC families)."""

@@ -321,15 +321,25 @@ def decode_instruction_ops(inst: "Instruction", inst_kb: dict,
         # Pattern 1: immediate from named encoding field.
         # Some KB entries use descriptive names (e.g. "Count/Register")
         # that don't match the encoding field names (just "REGISTER").
-        # Fall back to the upper REGISTER field only if the encoding
-        # has no MODE field (register-only form where the upper REGISTER
-        # IS the data field, like shift #count,Dn). If there IS a MODE
-        # field, the instruction has a register form (like BCLR Dn,<ea>)
-        # where the upper REGISTER is a register operand, not data.
+        # Fall back to the upper REGISTER field only if:
+        # 1. No MODE field (register-only form)
+        # 2. No i/r discriminator field, OR the i/r bit indicates
+        #    immediate (0), not register count (1).
         df = next((f for f in enc_fields
                    if f["name"] == data_field_name), None)
         if df is None and len(reg_fields) >= 2 and not mode_fields:
-            df = reg_fields[-1]  # upper REGISTER field
+            # Check for i/r discriminator (shift/rotate instructions)
+            ir_field = next((f for f in enc_fields
+                             if f["name"] == "i/r"), None)
+            if ir_field:
+                ir_val = _xf(d.opcode, (ir_field["bit_hi"],
+                                        ir_field["bit_lo"],
+                                        ir_field["bit_hi"] - ir_field["bit_lo"] + 1))
+                if ir_val == 0:  # immediate count
+                    df = reg_fields[-1]
+                # else: register count -- don't treat as immediate
+            else:
+                df = reg_fields[-1]  # no discriminator, safe to use
         if df:
             raw_val = _xf(d.opcode, (df["bit_hi"], df["bit_lo"],
                                    df["bit_hi"] - df["bit_lo"] + 1))
@@ -1476,6 +1486,7 @@ def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
 
 _BINARY_OPS = {
     "add": operator.add,
+    "subtract": operator.sub,
     "bitwise_and": operator.and_,
     "bitwise_or": operator.or_,
     "bitwise_xor": operator.xor,
@@ -2143,6 +2154,10 @@ def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
     op_type = inst_kb.get("operation_type")
     src_sign_ext = inst_kb.get("source_sign_extend", False)
 
+    # Check if encoding has MODE fields (determines operand form)
+    enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
+    mode_fields_exist = any(f["name"] == "MODE" for f in enc_fields)
+
     # Resolve source and destination values
     src_val = dst_val = None
     write_to_ea = True  # default: write result to EA operand
@@ -2174,22 +2189,28 @@ def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
         # Immediate + EA (e.g. BTST #n,Dn)
         src_val = _concrete(d.imm_val)
         dst_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
-    elif d.imm_val is not None and d.ea_op is None:
-        # Immediate count + Dn (shift/rotate register form).
-        # No MODE field, so ea_op is None. Dn is in the lower
-        # REGISTER field of the encoding.
+    elif d.ea_op is None and d.reg_num is not None and not mode_fields_exist:
+        # Two-REGISTER form (shift/rotate): upper REGISTER = count or
+        # count register, lower REGISTER = destination Dn.
+        # The i/r field distinguishes immediate count from register count.
         enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
         dn_fields = sorted(
             [f for f in enc_fields if f["name"] == "REGISTER"],
             key=lambda f: f["bit_lo"])
-        if dn_fields:
+        if len(dn_fields) >= 2:
             dn = _xf(d.opcode, (dn_fields[0]["bit_hi"],
                                 dn_fields[0]["bit_lo"],
                                 dn_fields[0]["bit_hi"] - dn_fields[0]["bit_lo"] + 1))
-            src_val = _concrete(d.imm_val)
+            if d.imm_val is not None:
+                # Immediate count form (#count,Dn)
+                src_val = _concrete(d.imm_val)
+            else:
+                # Register count form (Dm,Dn) -- count comes from Dm
+                count_reg = d.reg_num  # upper REGISTER = count register
+                src_val = cpu.get_reg("dn", count_reg)
             dst_val = cpu.get_reg("dn", dn)
             write_to_ea = False
-            d.reg_num = dn  # so result writes to correct register
+            d.reg_num = dn  # result writes to destination Dn
     elif d.ea_op:
         # Single operand (e.g. memory shift ASL.W <ea>)
         if d.imm_val is not None:
@@ -2300,10 +2321,12 @@ def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
             return
 
     # Could not compute -- invalidate destination
-    if d.ea_op:
+    if write_to_ea and d.ea_op:
         _write_operand(d.ea_op, cpu, mem, _unknown(), size, size_bytes)
     elif d.reg_num is not None:
         cpu.set_reg("dn", d.reg_num, _unknown())
+    elif d.ea_op:
+        _write_operand(d.ea_op, cpu, mem, _unknown(), size, size_bytes)
 
 
 def _apply_instruction(inst: Instruction, inst_kb: dict,
@@ -2357,18 +2380,12 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         _apply_pea(inst_kb, d, cpu, mem)
         return
 
-    # Subtract special cases (NEG, CMP) before binary dispatch
-    if op == "subtract":
-        terms = formula.get("terms", [])
-        if "implicit" in terms:
-            _apply_neg(d, inst_kb, cpu, mem, size, size_bytes, mask)
-            return
-        # SUB/SUBA/CMP/CMPA/CMPI -- handled by binary op
-        _apply_binary_op(operator.sub, d, inst_kb, cpu, mem, size,
-                         size_bytes, op_type)
+    # NEG: subtract with implicit operand (0 - dst), separate from table
+    if op == "subtract" and "implicit" in (formula.get("terms") or []):
+        _apply_neg(d, inst_kb, cpu, mem, size, size_bytes, mask)
         return
 
-    # Binary ops (add, bitwise_and, bitwise_or, bitwise_xor)
+    # Binary ops (add, subtract, and, or, xor)
     if op in _BINARY_OPS:
         _apply_binary_op(_BINARY_OPS[op], d, inst_kb, cpu, mem, size,
                          size_bytes, op_type)

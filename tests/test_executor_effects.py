@@ -223,6 +223,74 @@ def test_adda_w():
     assert cpu.a[0].concrete == 0x0E
 
 
+# ── Rotate: should compute via KB ────────────────────────────────────
+
+def test_rol_immediate():
+    """ROL.L #2,D0: rotate left 2 bits."""
+    code = b''
+    code += struct.pack('>HI', 0x203C, 0x80000001)  # move.l #$80000001,d0
+    # ROL.L #2,D0: 1110 010 1 10 1 11 000 = $E598
+    code += struct.pack('>H', 0xE598)                # rol.l #2,d0
+    code += struct.pack('>H', 0x4E75)
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "ROL should produce a concrete result"
+    assert cpu.d[0].concrete == 0x00000006
+
+
+def test_ror_immediate():
+    """ROR.L #1,D0: rotate right 1 bit."""
+    code = b''
+    code += struct.pack('>H', 0x7001)                # moveq #1,d0
+    # ROR.L #1,D0: 1110 001 0 10 1 11 000 = $E298
+    code += struct.pack('>H', 0xE298)                # ror.l #1,d0
+    code += struct.pack('>H', 0x4E75)
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "ROR should produce a concrete result"
+    assert cpu.d[0].concrete == 0x80000000
+
+
+# ── Divide: should compute via KB ────────────────────────────────────
+
+def test_divu_w():
+    """DIVU.W D1,D0: 35 / 7 = 5 remainder 0."""
+    code = b''
+    code += struct.pack('>H', 0x7023)                # moveq #35,d0
+    code += struct.pack('>H', 0x7207)                # moveq #7,d1
+    # DIVU.W D1,D0: 1000 000 011 000 001 = $80C1
+    code += struct.pack('>H', 0x80C1)                # divu.w d1,d0
+    code += struct.pack('>H', 0x4E75)
+    cpu, _ = _run(code)
+    assert cpu.d[0].is_known, "DIVU should produce a concrete result"
+    assert cpu.d[0].concrete == 5, f"35/7=5, got {cpu.d[0].concrete}"
+
+
+# ── Unknown operand: invalidate path ─────────────────────────────────
+
+def test_shift_unknown_count_invalidates():
+    """LSL with unknown count should invalidate the destination."""
+    code = b''
+    code += struct.pack('>H', 0x7005)                # moveq #5,d0
+    # D1 is unknown (not set), LSL.W D1,D0
+    # 1110 001 1 01 1 00 000 = $E368
+    code += struct.pack('>H', 0xE368)                # lsl.w d1,d0
+    code += struct.pack('>H', 0x4E75)
+    cpu, _ = _run(code)
+    assert not cpu.d[0].is_known, (
+        f"LSL with unknown count should invalidate, got {cpu.d[0]}")
+
+
+def test_multiply_unknown_operand_invalidates():
+    """MULU with unknown source should invalidate the destination."""
+    code = b''
+    code += struct.pack('>H', 0x7005)                # moveq #5,d0
+    # D1 unknown, MULU.W D1,D0: $C0C1
+    code += struct.pack('>H', 0xC0C1)                # mulu.w d1,d0
+    code += struct.pack('>H', 0x4E75)
+    cpu, _ = _run(code)
+    assert not cpu.d[0].is_known, (
+        f"MULU with unknown source should invalidate, got {cpu.d[0]}")
+
+
 # ── Register preservation through calls ──────────────────────────────
 
 def test_register_preserved_through_push_pop_call():

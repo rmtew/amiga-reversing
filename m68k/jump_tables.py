@@ -198,7 +198,7 @@ def _scan_word_offset_table(code, table_addr, base_addr, code_size,
         if ea + word_size > code_size:
             break
         offset = struct.unpack_from(">h", code, ea)[0]
-        target = (base_addr + offset) & 0xFFFFFFFF
+        target = (base_addr + offset) & kb.addr_mask
         if target >= code_size or target & kb.align_mask:
             break
         targets.append(target)
@@ -760,7 +760,7 @@ def _read_rts_target(cpu, mem, kb: KB) -> int | None:
     Returns the concrete target address, or None.
     """
     if cpu.sp.is_known:
-        pre_sp = (cpu.sp.concrete - kb.rts_sp_inc) & 0xFFFFFFFF
+        pre_sp = (cpu.sp.concrete - kb.rts_sp_inc) & kb.addr_mask
     elif cpu.sp.is_symbolic:
         pre_sp = cpu.sp.sym_add(-kb.rts_sp_inc)
     else:
@@ -945,6 +945,14 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
             dst = decode_destination(inst.raw, ikb, kb.meta, size,
                                      inst.offset)
             if dst and dst == (reg_mode, reg_num):
+                return True
+
+            # SWAP/EXG modify registers without a conventional destination.
+            # SWAP modifies the Dn from its REGISTER field.
+            # EXG modifies both Rx and Ry from its encoding.
+            # Conservative: if the instruction is a swap type, assume it
+            # could modify our register.
+            if ikb.get("operation_type") == "swap":
                 return True
 
             # MOVEM can write to any register in the mask
@@ -1136,12 +1144,9 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
     call_blocks = set()
     for addr, block in blocks.items():
         if block.instructions:
-            last = block.instructions[-1]
-            ikb = kb.find(_extract_mnemonic(last.text))
-            if ikb:
-                ft = ikb.get("pc_effects", {}).get("flow", {}).get("type")
-                if ft == "call":
-                    call_blocks.add(addr)
+            ft, _ = kb.flow_type(block.instructions[-1])
+            if ft == "call":
+                call_blocks.add(addr)
 
     for unres_addr, unres_type in unresolved:
         # Walk predecessor chains backward, collecting paths.
