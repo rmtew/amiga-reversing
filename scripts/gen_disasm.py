@@ -458,16 +458,101 @@ def _emit_string(f, s: str, indent: str):
     f.write(f"{indent}dc.b    {','.join(parts)}\n")
 
 
+def format_app_offset_comment(text: str, base_reg: int,
+                              named_offsets: dict[str, str]) -> str | None:
+    """Generate a hex offset comment for unnamed d(base_reg) references.
+
+    Returns 'app+$HHH' for unnamed offsets, None if already named or
+    not a base register reference.
+    """
+    import re
+    base_name = f"a{base_reg}"
+    m = re.search(rf'(-?\d+)\({base_name}\)', text)
+    if not m:
+        return None
+    offset_str = m.group(1)
+    # Check if already substituted to a symbolic name
+    if re.search(rf'[a-z_]+\({base_name}\)', text):
+        return None
+    offset = int(offset_str)
+    if offset < 0:
+        return f"app-${-offset:X}"
+    return f"app+${offset:X}"
+
+
+def collect_data_access_sizes(blocks: dict, exit_states: dict
+                              ) -> dict[int, int]:
+    """Collect data access sizes from code blocks.
+
+    Scans instructions for memory reads/writes at concrete addresses
+    (from propagated register state).  Returns {address: byte_size}
+    where byte_size is 1, 2, or 4.
+    """
+    import re
+    from m68k.m68k_executor import _extract_mnemonic
+    sizes = {}
+    size_map = {"b": 1, "w": 2, "l": 4}
+
+    for addr, block in blocks.items():
+        if addr not in exit_states:
+            continue
+        cpu, mem = exit_states[addr]
+
+        for inst in block.instructions:
+            text = inst.text.lower()
+            # Extract size suffix
+            mn = _extract_mnemonic(text)
+            if not mn:
+                continue
+            size_match = re.search(rf'{re.escape(mn)}\.([bwl])', text)
+            if not size_match:
+                continue
+            byte_size = size_map.get(size_match.group(1))
+            if not byte_size:
+                continue
+
+            # Check for (An) or (An)+ addressing with concrete An
+            for i in range(8):
+                reg_val = cpu.a[i]
+                if not reg_val.is_known:
+                    continue
+                addr_val = reg_val.concrete
+                # Match (An) or (An)+ in the instruction
+                pat = rf'\(a{i}\)\+?'
+                if re.search(pat, text):
+                    # Check this is a source operand (read)
+                    # Simple heuristic: if An appears after comma or
+                    # is the first operand, it's a source
+                    if addr_val not in sizes or byte_size > sizes[addr_val]:
+                        sizes[addr_val] = byte_size
+
+            # Check for d(An) with concrete An
+            for i in range(8):
+                reg_val = cpu.a[i]
+                if not reg_val.is_known:
+                    continue
+                m = re.search(rf'(-?\d+)\(a{i}\)', text)
+                if m:
+                    disp = int(m.group(1))
+                    ea_addr = (reg_val.concrete + disp) & 0xFFFFFFFF
+                    if ea_addr not in sizes or byte_size > sizes[ea_addr]:
+                        sizes[ea_addr] = byte_size
+
+    return sizes
+
+
 def emit_data_region(f, code: bytes, start: int, end: int,
                      labels: dict[int, str], reloc_map: dict[int, int],
-                     string_addrs: set[int], indent: str = "    "):
+                     string_addrs: set[int], indent: str = "    ",
+                     access_sizes: dict[int, int] | None = None):
     """Emit a data/unknown region as structured directives.
 
     Classification priority at each position:
-    1. Relocated longword → dc.l label
-    2. Verified string (at a labeled PC-relative target) → dc.b "text",0
-    3. Zero padding (4+ consecutive zero bytes) → dcb.b N,0
-    4. Raw bytes → dc.b hex dump
+    1. Relocated longword -> dc.l label
+    2. Verified string (at a labeled PC-relative target) -> dc.b "text",0
+    3. Known access size from code (word/long) -> dc.w/dc.l
+    4. Zero padding (4+ consecutive zero bytes) -> dcb.b N,0
+    5. Raw bytes -> dc.b hex dump
     """
     pos = start
     while pos < end:
@@ -494,7 +579,39 @@ def emit_data_region(f, code: bytes, start: int, end: int,
                 pos += len(s) + 1  # string + null
                 continue
 
-        # 3. Zero padding (4+ consecutive zero bytes)
+        # 3. Known access size from code -> dc.w or dc.l
+        if access_sizes and pos in access_sizes:
+            asize = access_sizes[pos]
+            if asize == 4 and pos + 4 <= end:
+                val = struct.unpack_from(">I", code, pos)[0]
+                if val in labels:
+                    f.write(f"{indent}dc.l    {labels[val]}\n")
+                else:
+                    f.write(f"{indent}dc.l    ${val:08x}\n")
+                pos += 4
+                continue
+            elif asize == 2 and pos + 2 <= end:
+                # Emit consecutive words until a boundary
+                word_end = pos
+                while (word_end + 2 <= end
+                       and word_end not in labels
+                       and word_end not in reloc_map
+                       and word_end not in string_addrs):
+                    if word_end != pos and (
+                            access_sizes.get(word_end, asize) != asize):
+                        break
+                    word_end += 2
+                vals = []
+                for wp in range(pos, word_end, 2):
+                    vals.append(f"${struct.unpack_from('>H', code, wp)[0]:04x}")
+                # Emit in rows of 8
+                for i in range(0, len(vals), 8):
+                    row = ",".join(vals[i:i + 8])
+                    f.write(f"{indent}dc.w    {row}\n")
+                pos = word_end
+                continue
+
+        # 4. Zero padding (4+ consecutive zero bytes)
         if code[pos] == 0:
             zero_end = pos + 1
             while zero_end < end and code[zero_end] == 0:
@@ -571,6 +688,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         os_kb = ha.os_kb
         platform = ha.platform
         reloc_targets = ha.reloc_targets
+        exit_states = ha.exit_states
 
         code_addrs = set()
         for blk in blocks.values():
@@ -946,6 +1064,10 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         if arg_annotations:
             print(f"  {len(arg_annotations)} argument annotations")
 
+        # Collect data access sizes for data region formatting.
+        data_access_sizes = collect_data_access_sizes(
+            blocks, exit_states)
+
         # Generate output
         print(f"Writing {output_path}...")
         used_structs = set()  # struct names used in field substitutions
@@ -1016,7 +1138,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                             emit_data_region(f, code, inst.offset,
                                              inst.offset + inst.size,
                                              labels, reloc_map,
-                                             string_addrs)
+                                             string_addrs,
+                                             access_sizes=data_access_sizes)
                             data_bytes += inst.size
                             continue
                         text = replace_targets_in_text(
@@ -1051,6 +1174,12 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                                         f"{arg_ann['arg_name']}")
                             comment = (f"{comment}; {ann_text}"
                                        if comment else ann_text)
+                        # App memory offset comment for unnamed d(A6)
+                        if base_info and not comment:
+                            app_comment = format_app_offset_comment(
+                                text, base_info[0], app_offsets)
+                            if app_comment:
+                                comment = app_comment
                         if comment:
                             f.write(f"    {text} ; {comment}\n")
                         else:
@@ -1114,7 +1243,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                         # Not valid code — emit as data
                         emit_data_region(f, code, pos, blk.end,
                                          labels, reloc_map,
-                                         string_addrs)
+                                         string_addrs,
+                                         access_sizes=data_access_sizes)
                         data_bytes += blk.end - pos
                         pos = blk.end
                         continue
@@ -1189,7 +1319,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                            and data_end not in labels):
                         data_end += 1
                     emit_data_region(f, code, pos, data_end,
-                                     labels, reloc_map, string_addrs)
+                                     labels, reloc_map, string_addrs,
+                                     access_sizes=data_access_sizes)
                     data_bytes += data_end - pos
                     pos = data_end
 
