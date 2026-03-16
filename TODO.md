@@ -203,7 +203,7 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
 - [x] Audit: _is_valid_68000 uses KB `processor_020` flag, not hardcoded mnemonics
 - [x] Audit: _RELOC_INFO loaded from KB `relocation_semantics`, not hardcoded dict
 - [x] Audit: build_reloc_map handles all absolute reloc types from KB
-- GenAm results: 34% core code, 21% hint code (3069 core blocks, 7309 instructions)
+- GenAm results: 34.4% core (3109 blocks, 7393 instructions), 20.6% hints (1795 blocks)
 - [x] Jump table structured emission: word-offset and self-relative tables as `dc.w target-base`
   - base_addr and table_end added to jump_tables.py return dicts
   - pc_inline_dispatch tables emitted as decoded BRA instructions
@@ -234,15 +234,31 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - `rx_mode`/`ry_mode` for EXG from description text
   - `operation_class` from instruction title (LEA, MOVEM)
   - 8 `_meta` fields added (size_suffixes, default_operand_size, register_aliases, ea_full_ext_bd_size)
-- [x] pytest suite: `py -m pytest tests/` -- 1844 tests in ~2s
+- [x] pytest suite: `py -m pytest tests/` -- 1870 tests in ~2s
   - `test_m68k_roundtrip.py`: 1796 KB-driven roundtrip tests, batch-assembled (12 vasm calls)
   - `test_indirect_resolution.py`: 37 tests (dispatch patterns, backward slice, per-caller)
   - `test_executor_propagation.py`: 8 tests (memory, joins, instruction effects)
+  - `test_executor_effects.py`: 20 tests (binary ops, unary ops, assign, LEA, SWAP, EXG, ADDA)
+  - `test_analysis.py`: 6 tests (pipeline, save/load cache, version check)
   - `test_code_section_reads.py`: 3 tests (pointer resolution through code data)
 - [x] PEA EA mode validation: guard against invalid modes via KB `ea_modes.ea`
 - [x] Backward slice: skip call predecessors to prevent false-positive RTS resolutions
 - [x] `_scan_inline_dispatch`: diagnostic stderr on decode errors
 - [x] Jump table patterns A-D: dedicated regression tests
+- [x] Package restructure: `m68k/` library, `scripts/` CLI tools, `tests/` pytest
+- [x] Shared analysis pipeline: `m68k/analysis.py` with `analyze_hunk()` + `HunkAnalysis`
+  - Both build_entities and gen_disasm use the same pipeline (eliminated ~441 lines duplication)
+  - Cached results: `HunkAnalysis.save/load` via pickle (gen_disasm: 12s -> 0.7s with cache)
+- [x] Executor refactored: `_apply_instruction` split into dispatch + handler functions
+  - `decode_instruction_ops()`: shared operand decode (DecodedOps dataclass)
+  - `_apply_binary_op()`: unified add/sub/and/or/xor handler (was 4 copies)
+  - `_resolve_os_call()`: OS call resolution separated from instruction effects
+  - `_apply_instruction`: 92-line table-driven dispatch (was ~850 lines)
+  - Bug fix: SWAP now works for encodings without MODE field
+- [x] Performance: build_entities 28s -> 12s, gen_disasm 12s -> 0.7s (cached)
+  - KB caching: module-level singletons, mnemonic/size/entry caches, EA reverse lookup
+  - Targeted per-caller resolution: register substitution (O(1)) vs full propagation
+  - Pipeline convergence skip: no redundant resolution after entry-point convergence
 - [ ] Improve coverage beyond 34%:
   - [x] Add dispatch pattern D to `jump_tables.py`: LEA d(PC),An; MOVE.W d(An,Dn),Dn; JSR d(An,Dn)
     - Word-offset table at $0E9A, 29 entries (base-relative to A1=$0EA2)
@@ -260,9 +276,11 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - [ ] Computed PEA+RTS dispatch at $7550: addresses $16E0-$1D14 (2.6KB addressing mode handlers)
     - LEA $1D14(PC) + ADDA.W D3 + push + RTS — D3 from instruction encoding table at runtime
     - Handlers are valid code but entry points depend on runtime table data
-  - [x] Coverage gap diagnostic: `scripts/coverage_gaps.py` identifies root causes
-    - 16 orphan relocs (JSR/JMP in undecoded code), 446 trailing returns, 128 string table entries
-    - All trace back to: indirect dispatch through d(A6) function pointers
+  - [x] Coverage gap diagnostic: 28 unresolved jumps, 307 unresolved returns
+    - 17 jsr d(a6) with A6=unknown: library calls in regions where A6 lost to merge/invalidation
+    - 10 jsr/jmp (An) with An=unknown: function pointers loaded from untracked memory
+    - Root cause: A6 library base tag lost when per-caller analysis doesn't reach these paths
+    - Key sub: $B0D6 (dos_dispatch, 23 callers) -- A6 unknown at merge point
 - [x] Disassembly generator: `scripts/gen_disasm.py` -> `disasm/genam.s`
   - Core analysis with jump table + indirect target discovery loop
   - Hint blocks with block-level validation (flow, zero opword, EA, arch, alignment)
