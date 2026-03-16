@@ -132,7 +132,9 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
         JMP dest
 
     Returns list of segments:
-        [{"file_offset": int, "base_addr": int, "size": int}]
+        [{"file_offset": int, "base_addr": int, "size": int,
+          "entry_points": [int]}]
+    Entry points include secondary code (e.g. copy stubs reached via TRAP).
     """
     kb = KB()
 
@@ -197,6 +199,7 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
         exit_states.update(result2.get("exit_states", {}))
 
     segments = []
+    all_entries = {0} | secondary_entries
 
     # Find blocks ending with JMP to an absolute address
     for addr in sorted(blocks):
@@ -220,14 +223,16 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
         # Check: is there a copy loop in the blocks before this JMP?
         # Walk predecessor chain looking for postincrement move pattern
         _find_copy_segment(
-            jmp_target, blocks, exit_states, code_size, kb, segments)
+            jmp_target, blocks, exit_states, code_size, kb, segments,
+            all_entries)
 
     return segments
 
 
 def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                        code_size: int, kb: KB,
-                       segments: list[dict]):
+                       segments: list[dict],
+                       all_entries: set[int] = None):
     """Check if blocks before a JMP contain a copy loop targeting jmp_target.
 
     Looks for postincrement move patterns (move.b/w/l (An)+,(Am)+)
@@ -287,6 +292,7 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                     seg = {
                         "file_offset": file_offset,
                         "base_addr": jmp_target,
+                        "entry_points": sorted(all_entries or {0}),
                     }
                     for i in range(len(cpu.d)):
                         d_val = cpu.d[i]
@@ -322,21 +328,29 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
 
     Returns HunkAnalysis with all results.
     """
-    # Auto-detect relocated segments if no explicit base_addr/code_start
-    bootstrap_blocks = {}
+    # Auto-detect relocated code: if the bootstrap copies code to a
+    # higher address and jumps to it, build a flat runtime memory image
+    # with the copy applied, then analyze from entry 0.  This handles
+    # the common Amiga game pattern of: bootstrap -> copy payload ->
+    # JMP to payload.  The flat image lets block discovery decode the
+    # correct (copied) bytes at the target address.
+    extra_entries = set()
     if base_addr == 0 and code_start == 0:
         segments = detect_relocated_segments(code)
         if segments:
             seg = segments[0]
-            # Analyze the bootstrap BEFORE slicing
-            bootstrap_result = analyze(code, base_addr=0,
-                                       entry_points=[0], propagate=False)
-            bootstrap_blocks = bootstrap_result["blocks"]
-            base_addr = seg["base_addr"]
-            code_start = seg["file_offset"]
-            print_fn(f"  Auto-detected segment: file ${code_start:X} "
-                     f"-> addr ${base_addr:X} "
-                     f"({len(bootstrap_blocks)} bootstrap blocks)")
+            src = seg["file_offset"]
+            dst = seg["base_addr"]
+            payload_size = len(code) - src
+            flat_size = dst + payload_size
+            flat = bytearray(flat_size)
+            flat[0:len(code)] = code  # bootstrap at original offsets
+            flat[dst:dst + payload_size] = code[src:]  # payload at runtime addr
+            code = bytes(flat)
+            # Collect all entry points (bootstrap + copy stubs)
+            extra_entries = set(seg.get("entry_points", []))
+            print_fn(f"  Relocated: file ${src:X} -> addr ${dst:X} "
+                     f"({payload_size} bytes, flat image {flat_size})")
 
     if code_start > 0:
         code = code[code_start:]
@@ -385,7 +399,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             platform["_initial_mem"] = init_mem
 
     # ── Phase 1: Core analysis with resolution loop ──────────────────
-    core_entries = {base_addr}
+    core_entries = {base_addr} | extra_entries
     jt_call_targets = set()
     jt_list = []  # final jump table list (for gen_disasm)
 
@@ -600,12 +614,6 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         print_fn(f"  {len(lib_calls)} library calls identified "
                  f"({len(resolved)} resolved"
                  f", libraries: {', '.join(sorted(libs))})")
-
-    # Merge bootstrap blocks (if auto-detected) into the result.
-    # Bootstrap runs at base_addr=0, payload at the detected base.
-    # No address conflicts since bootstrap < code_start < base_addr.
-    if bootstrap_blocks:
-        blocks.update(bootstrap_blocks)
 
     return HunkAnalysis(
         code=code,

@@ -234,33 +234,54 @@ def test_detect_no_copy_returns_empty():
     assert segments == []
 
 
-def test_auto_segments_in_analyze_hunk():
-    """analyze_hunk with auto-detect finds blocks at relocated address.
+def test_copy_and_jump_flat_image():
+    """Bootstrap copies payload to higher address and JMPs to it.
 
-    Same bootstrap pattern. analyze_hunk should auto-detect the segment
-    and produce blocks at $0400+ without manual --base-addr.
+    File layout:
+        $00-$17: bootstrap (copy loop + JMP $0400)
+        $1E-$21: payload source (moveq #42,d0; rts)
+
+    Runtime layout (after copy):
+        $00-$17: bootstrap (same)
+        $0400:   moveq #42,d0  (copied from file $1E)
+        $0402:   rts
+
+    analyze_hunk builds the runtime flat image and analyzes from entry 0.
+    The JMP $0400 resolves to the COPIED bytes, not file offset $0400.
     """
     code = b''
-    # Bootstrap: copy $1E -> $0400, then JMP $0400
-    code += struct.pack('>HH', 0x4DFA, 0x001C)       # lea $1C(pc),a6
-    code += struct.pack('>HHH', 0x41F9, 0x0000, 0x0400)  # lea $0400,a0
-    code += struct.pack('>H', 0x7009)                  # moveq #9,d0
-    code += struct.pack('>H', 0x10DE)                  # move.b (a6)+,(a0)+
-    code += struct.pack('>HH', 0x51C8, 0xFFFC)        # dbf d0,$0C
-    code += struct.pack('>HHH', 0x4EF9, 0x0000, 0x0400)  # jmp $0400
-    code += struct.pack('>HH', 0x4E71, 0x4E71)        # padding
-    # $1E: payload (runs at $0400)
-    code += struct.pack('>H', 0x702A)                  # moveq #42,d0
-    code += struct.pack('>H', 0x4E75)                  # rts
+    # $00: lea $1A(pc),a6 -> a6 = $02 + $1A = $1C (payload source)
+    code += struct.pack('>HH', 0x4DFA, 0x001A)
+    # $04: lea $0400,a0  (dest)
+    code += struct.pack('>HHH', 0x41F9, 0x0000, 0x0400)
+    # $0A: moveq #3,d0  (4 bytes: DBF loops 4 times)
+    code += struct.pack('>H', 0x7003)
+    # $0C: move.b (a6)+,(a0)+
+    code += struct.pack('>H', 0x10DE)
+    # $0E: dbf d0,$0C
+    code += struct.pack('>HH', 0x51C8, 0xFFFC)
+    # $12: jmp $0400
+    code += struct.pack('>HHH', 0x4EF9, 0x0000, 0x0400)
+    # padding to $1C
+    code += struct.pack('>HH', 0x4E71, 0x4E71)
+    # $1C: payload bytes (copied to $0400 at runtime)
+    code += struct.pack('>H', 0x702A)  # moveq #42,d0
+    code += struct.pack('>H', 0x4E75)  # rts
 
     ha = analyze_hunk(code, [])
 
-    # Should have blocks in both bootstrap ($00) and payload ($0400)
-    assert 0x0400 in ha.blocks, (
-        f"Expected block at $0400 from auto-detected segment, "
-        f"got {sorted(hex(a) for a in ha.blocks)[:10]}")
-
-    # Bootstrap blocks should ALSO be present (not discarded)
+    # Bootstrap at $00 should be analyzed
     assert 0 in ha.blocks, (
-        f"Expected bootstrap block at $0000, "
+        f"Bootstrap block at $0000 missing, "
         f"got {sorted(hex(a) for a in ha.blocks)[:10]}")
+    # Payload at $0400 should be analyzed (from flat image with copy applied)
+    assert 0x0400 in ha.blocks, (
+        f"Payload block at $0400 missing, "
+        f"got {sorted(hex(a) for a in ha.blocks)[:10]}")
+    # The payload block should contain moveq #42 (from file $1E),
+    # NOT whatever random bytes are at file offset $0400
+    if 0x0400 in ha.exit_states:
+        cpu, _ = ha.exit_states[0x0400]
+        assert cpu.d[0].is_known and cpu.d[0].concrete == 42, (
+            f"D0 at $0400 should be 42 (from copied payload), "
+            f"got {cpu.d[0]}")
