@@ -1056,6 +1056,46 @@ def _inline_summary(callee_entry: int, blocks: dict,
             "sp_delta": sp_delta}
 
 
+def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
+                              call_targets: set, exit_states: dict,
+                              kb: KB) -> list[dict]:
+    """Compute one summary per RTS exit of a callee.
+
+    Unlike _inline_summary (which joins all RTS states into one),
+    this returns a list of summaries — one for each RTS exit block.
+    Each summary has the concrete register values from that specific
+    exit path.  The caller can try each summary separately to resolve
+    dispatch targets from callees that branch on input.
+    """
+    owned = _find_sub_blocks(callee_entry, blocks, call_targets)
+    summaries = []
+
+    for addr in owned:
+        blk = blocks.get(addr)
+        if not blk or not blk.instructions:
+            continue
+        ft, _ = kb.flow_type(blk.instructions[-1])
+        if ft != "return" or addr not in exit_states:
+            continue
+
+        cpu, _ = exit_states[addr]
+        produced_d = {i: cpu.d[i].concrete
+                      for i in range(len(cpu.d)) if cpu.d[i].is_known}
+        produced_a = {i: cpu.a[i].concrete
+                      for i in range(len(cpu.a)) if cpu.a[i].is_known}
+        sp_delta = 0
+        if cpu.sp.is_symbolic and cpu.sp.sym_base == "SP_entry":
+            sp_delta = cpu.sp.sym_offset
+
+        summaries.append({
+            "preserved_d": set(), "preserved_a": set(),
+            "produced_d": produced_d, "produced_a": produced_a,
+            "sp_delta": sp_delta,
+        })
+
+    return summaries
+
+
 def _find_sub_blocks(entry: int, blocks: dict,
                      call_targets: set) -> set[int]:
     """Find all blocks owned by a subroutine starting at entry."""
@@ -1222,34 +1262,81 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                     initial_mem=caller_mem.copy(),
                     platform=pc_platform)
 
-                # Compute inline summaries from nested callees' exits
+                # Compute inline summaries. Use joined summary for
+                # callees that don't affect the needed register, and
+                # per-exit summaries for the callee that does.
                 inline_sums = {}
+                fork_callee = None
+                fork_exits = []
                 for callee_entry in nested_callees:
                     isum = _inline_summary(
                         callee_entry, blocks, call_targets,
                         pass1_exits, kb)
                     if isum is not None:
                         inline_sums[callee_entry] = isum
+                        # Check if this callee's joined summary lacks
+                        # a needed register (per-exit might resolve it)
+                        if fork_callee is None and needed_regs:
+                            for mode, num in needed_regs:
+                                pkey = ("produced_a" if mode == "an"
+                                        else "produced_d")
+                                if num not in isum.get(pkey, {}):
+                                    per_exit = _inline_summaries_per_exit(
+                                        callee_entry, blocks,
+                                        call_targets, pass1_exits, kb)
+                                    if len(per_exit) > 1:
+                                        fork_callee = callee_entry
+                                        fork_exits = per_exit
+                                    break
 
-                # Pass 2: re-propagate sub with inline summaries
-                if inline_sums:
+                if fork_callee and fork_exits:
+                    # Try each RTS exit of the forking callee
+                    _MAX_EXIT_ATTEMPTS = 16
+                    for i, exit_sum in enumerate(fork_exits):
+                        if i >= _MAX_EXIT_ATTEMPTS:
+                            break
+                        trial_sums = dict(inline_sums)
+                        trial_sums[fork_callee] = exit_sum
+                        per_caller_exits = propagate_states(
+                            sub_dict, code, sub_entry,
+                            initial_state=init_cpu,
+                            initial_mem=caller_mem.copy(),
+                            platform=pc_platform,
+                            summaries=trial_sums)
+                        if unres_addr not in per_caller_exits:
+                            continue
+                        cpu, mem = per_caller_exits[unres_addr]
+                        target = _try_resolve_block(
+                            unres_addr, unres_type, blocks,
+                            cpu, mem, kb, code_size)
+                        if target is not None:
+                            resolved.append({"target": target})
+                elif inline_sums:
+                    # No forking needed — use joined summaries
                     per_caller_exits = propagate_states(
                         sub_dict, code, sub_entry,
                         initial_state=init_cpu,
                         initial_mem=caller_mem.copy(),
                         platform=pc_platform,
                         summaries=inline_sums)
+                    if unres_addr not in per_caller_exits:
+                        continue
+                    cpu, mem = per_caller_exits[unres_addr]
+                    target = _try_resolve_block(
+                        unres_addr, unres_type, blocks,
+                        cpu, mem, kb, code_size)
+                    if target is not None:
+                        resolved.append({"target": target})
                 else:
                     per_caller_exits = pass1_exits
-
-                if unres_addr not in per_caller_exits:
-                    continue
-                cpu, mem = per_caller_exits[unres_addr]
-                target = _try_resolve_block(
-                    unres_addr, unres_type, blocks,
-                    cpu, mem, kb, code_size)
-                if target is not None:
-                    resolved.append({"target": target})
+                    if unres_addr not in per_caller_exits:
+                        continue
+                    cpu, mem = per_caller_exits[unres_addr]
+                    target = _try_resolve_block(
+                        unres_addr, unres_type, blocks,
+                        cpu, mem, kb, code_size)
+                    if target is not None:
+                        resolved.append({"target": target})
 
     return resolved
 

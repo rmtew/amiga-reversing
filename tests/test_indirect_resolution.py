@@ -1719,3 +1719,64 @@ def test_per_caller_nested_multiple_callers():
         f"Expected $0024 from caller_b (D0=$24), got {targets}")
 
 
+# ---- Branch forking: per-exit resolution ------------------------------------
+
+def test_branch_forking_resolves_both_paths():
+    """Callee branches on unknown input, each path produces different A0.
+
+    sub_outer calls sub_inner with unknown D0.
+    sub_inner: lea base(pc),a0; tst.b d0; beq path_b;
+               addq.l #4,a0; rts   -- path A: a0 = base+4
+    path_b:    addq.l #8,a0; rts   -- path B: a0 = base+8
+    sub_outer: jsr (a0)            -- should resolve BOTH targets
+
+    The current inline summary joins both RTS exits (a0 unknown).
+    With per-exit resolution, each RTS produces a separate a0 value.
+    """
+    code = b''
+    # main at $00: bsr.w sub_outer ($08)
+    code += struct.pack('>HH', 0x6100, 0x0006)
+    # $04: rts
+    code += struct.pack('>H', 0x4E75)
+    # $06: nop (padding)
+    code += struct.pack('>H', 0x4E71)
+    # sub_outer at $08: bsr.w sub_inner ($10)
+    code += struct.pack('>HH', 0x6100, 0x0006)
+    # $0C: jsr (a0)
+    code += struct.pack('>H', 0x4E90)
+    # $0E: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_inner at $10: lea $12(pc),a0 -> a0 = $12 + $12 = $24
+    code += struct.pack('>HH', 0x41FA, 0x0012)
+    # $14: tst.b d0
+    code += struct.pack('>H', 0x4A00)
+    # $16: beq.s $1C (path B) -- disp = $1C - $18 = 4
+    code += struct.pack('>H', 0x6704)
+    # $18: addq.l #4,a0 (path A: a0 = $24 + 4 = $28)
+    code += struct.pack('>H', 0x5888)
+    # $1A: rts
+    code += struct.pack('>H', 0x4E75)
+    # $1C: addq.l #8,a0 (path B: a0 = $24 + 8 = $2C)
+    code += struct.pack('>H', 0x5088)
+    # $1E: rts
+    code += struct.pack('>H', 0x4E75)
+    # padding to $28
+    code += struct.pack('>HHHH', 0x4E71, 0x4E71, 0x4E71, 0x4E71)
+    # target_a at $28: rts
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>H', 0x4E71)
+    # target_b at $2C: rts
+    code += struct.pack('>H', 0x4E75)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+
+    assert 0x28 in targets, (
+        f"Expected $0028 (path A: base+4) from branch forking, "
+        f"got {targets}")
+    assert 0x2C in targets, (
+        f"Expected $002C (path B: base+8) from branch forking, "
+        f"got {targets}")
+
+
