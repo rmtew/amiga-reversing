@@ -1146,3 +1146,48 @@ def test_subx_reg_reg():
     assert cpu.d[1].is_known, f"D1 should be concrete after SUBX, got {cpu.d[1]}"
     # moveq clears X, so SUBX = 10 - 5 - 0 = 5
     assert cpu.d[1].concrete == 5, f"D1 should be 5 (10-5-X=0), got {cpu.d[1].concrete}"
+
+
+def test_addx_predecrement():
+    """ADDX.W -(A0),-(A1): memory-to-memory with predecrement."""
+    # Set up: A0 points past source word, A1 points past dest word
+    # Source word at $10: $0003. Dest word at $20: $0005.
+    # ADDX.W -(A0),-(A1) -> A0=$10, A1=$20, read src=$0003, dst=$0005
+    # Result = $0005 + $0003 = $0008, written to $20
+    code = b''
+    # $00: movea.l #$12,a0 (source at $10, A0 points past it)
+    code += struct.pack('>HHH', 0x207C, 0x0000, 0x0012)
+    # $06: movea.l #$22,a1 (dest at $20, A1 points past it)
+    code += struct.pack('>HHH', 0x227C, 0x0000, 0x0022)
+    # $0C: addx.w -(a0),-(a1)
+    # 1101 001 1 01 1 00 000 = Rx=1(A1), Size=01(.W), R/M=1, Ry=0(A0)
+    code += struct.pack('>H', 0xD348)
+    # $0E: rts
+    code += struct.pack('>H', 0x4E75)
+    # Pad to $10
+    code += struct.pack('>H', 0x0003)  # $10: source word = 3
+    # Pad to $20
+    code += b'\x00' * (0x20 - 0x12)
+    code += struct.pack('>H', 0x0005)  # $20: dest word = 5
+
+    cpu, mem = _run(code)
+    # A0 should be decremented by 2 (word size) to $10
+    assert cpu.a[0].is_known and cpu.a[0].concrete == 0x10
+    # A1 should be decremented by 2 to $20
+    assert cpu.a[1].is_known and cpu.a[1].concrete == 0x20
+
+
+def test_trap_no_register_modification():
+    """TRAP instruction should not modify data/address registers."""
+    code = b''
+    # $00: moveq #42,d0
+    code += struct.pack('>H', 0x702A)
+    # $02: trap #0
+    code += struct.pack('>H', 0x4E40)
+
+    result = analyze(code, propagate=True, entry_points=[0])
+    # Block 0 ends at trap (flow-terminating).
+    # D0 should still be 42 at exit.
+    cpu, _ = result["exit_states"][0]
+    assert cpu.d[0].is_known and cpu.d[0].concrete == 42, (
+        f"D0 should be 42 (trap should not modify registers), got {cpu.d[0]}")
