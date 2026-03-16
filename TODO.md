@@ -274,29 +274,43 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - KB caching: module-level singletons, mnemonic/size/entry caches, EA reverse lookup
   - Targeted per-caller resolution: register substitution (O(1)) vs full propagation
   - Pipeline convergence skip: no redundant resolution after entry-point convergence
-- [ ] Improve coverage beyond 34%:
+- [ ] Improve coverage beyond 34% (current focus):
   - [x] Add dispatch pattern D to `jump_tables.py`: LEA d(PC),An; MOVE.W d(An,Dn),Dn; JSR d(An,Dn)
     - Word-offset table at $0E9A, 29 entries (base-relative to A1=$0EA2)
     - Separate MOVE.W reads offset from table; JSR dispatches via same base register
     - JSR dispatch targets injected into call_targets for subroutine map (+38 subroutines)
-  - [ ] String dispatch table at pcref_3f3c: 65 assembler directives with self-relative handler offsets
-    - Requires per-instruction state tracking (register modified in loop)
-    - Code section reads resolve some indirect targets but not loop-based access
-    - Data structure typing needs access-pattern analysis, not content scanning
-  - [ ] Memory dispatch via d(A6) function pointers: partially resolved
-    - [x] Init memory join semantics: values survive merges soundly (no false restoration)
-    - [x] Store pass captures all concrete app-base values (219 across 3 passes)
-    - [ ] Remaining: 10 jsr/jmp (An) sites still unresolved -- need store-to-load chain tracing
-    - Diagnostic hint: d(378)(A6) at $7612 has targets $2D2E, $9884 from 4 store sites
-    - Per-caller context accumulation (not join) needed for polymorphic dispatch slots
-  - [ ] Computed PEA+RTS dispatch at $7550: addresses $16E0-$1D14 (2.6KB addressing mode handlers)
-    - LEA $1D14(PC) + ADDA.W D3 + push + RTS — D3 from instruction encoding table at runtime
-    - Handlers are valid code but entry points depend on runtime table data
+  - [x] Init memory join semantics: values survive merges soundly (no false restoration)
+    - Store pass captures all concrete app-base values (219 across 3 passes)
   - [x] Coverage gap diagnostic: 27 unresolved jumps, 307 unresolved returns
     - 16 jsr d(a6) already resolved by OS call identification (exec/dos library calls)
-    - 11 genuinely unresolved: 10 jsr/jmp (An) function pointers + 1 dos_dispatch variant
-    - Function pointers loaded from d(A6) memory -- requires inter-procedural memory propagation
-    - Base register merge restoration added but doesn't expand entry count (library calls already identified)
+  ### Core expansion blockers (entry-point reachable, ordered by impact)
+  - [ ] Inline data skip pattern at $1754: `movea.l (sp)+,a0; jmp 2(a0)`
+    - BSR/JSR pushes return addr, callee pops it, jumps past inline data word
+    - Common Amiga/68K idiom -- need to model return-addr-as-data-pointer
+    - Unblocks fallthrough past inline data at every call site using this sub
+  - [ ] Self-relative jump table at $3BBE (pattern E): 27 targets
+    - `lea d(pc,d1.w),a2; adda.w (a2),a2; jmp (a2)` -- read word offset, add to own addr
+    - Table already detected by find_jump_tables but D1 unknown at dispatch
+    - D1 is a character-class index computed from input -- table is enumerable from data
+  - [ ] A2 dispatch cluster at $8A4A-$8F3A: 5 unresolved jsr/jmp (a2)
+    - A2 loaded earlier in subroutine, lost at internal merge points
+    - Some sites in same sub already resolve (A2=$71F0 at $8EF0, A2=$A11A at $8D7E)
+    - Need to trace A2 load through intra-procedural control flow
+  - [ ] Callback trampolines at $3AB0 and $4370: jsr (a0) with A0 from caller
+    - Per-caller resolution should handle these but A0 is unknown in callers too
+    - Need to trace A0 further back through caller chain
+  - [ ] Memory dispatch via d(A6) function pointers ($852A, $B0EA)
+    - Sentinel-address function pointers loaded from app memory
+    - Downstream of other fixes -- store pass may capture values once more code is discovered
+  ### Deferred (hint-only, not blocking core)
+  - [ ] String dispatch table at pcref_3f3c: 65 assembler directives with self-relative handler offsets
+    - Currently only in hint territory -- defer until core expansion reaches it
+    - Requires per-instruction state tracking (register modified in loop)
+  - [ ] Computed PEA+RTS dispatch at $7550: addresses $16E0-$1D14 (2.6KB addressing mode handlers)
+    - Currently only in hint territory -- defer until core expansion reaches it
+    - LEA $1D14(PC) + ADDA.W D3 + push + RTS -- D3 from instruction encoding table
+  - [ ] Jump tables discovered only through hint blocks
+    - Note their existence but don't analyze until reachable from entry point
 - [x] Disassembly generator: `scripts/gen_disasm.py` -> `disasm/genam.s`
   - Core analysis with jump table + indirect target discovery loop
   - Hint blocks with block-level validation (flow, zero opword, EA, arch, alignment)
