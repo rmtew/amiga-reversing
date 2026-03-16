@@ -3057,7 +3057,7 @@ def analyze(code: bytes, base_addr: int = 0,
         # Pre-compute subroutine summaries for SP delta + register
         # preservation on call fallthroughs.
         sums = None
-        if platform and platform.get("initial_base_reg"):
+        if platform:
             existing = platform.get("_summary_cache")
             platform["_summary_cache"] = compute_all_summaries(
                 blocks, code, base_addr,

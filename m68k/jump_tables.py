@@ -21,7 +21,8 @@ import struct
 import sys
 
 from .m68k_executor import (BasicBlock, _extract_mnemonic, _extract_branch_target,
-                           _decode_ea, resolve_ea, propagate_states, _concrete)
+                           _decode_ea, resolve_ea, propagate_states, _concrete,
+                           _join_states)
 from .m68k_disasm import _Decoder, _decode_one, DecodeError
 from .kb_util import KB, xf
 
@@ -901,7 +902,8 @@ def _needed_registers(operand, unres_type: str) -> list[tuple[str, int]]:
 def _reg_modified_in_sub(blocks: dict, sub_entry: int,
                          dispatch_addr: int,
                          reg_mode: str, reg_num: int,
-                         kb: KB) -> bool:
+                         kb: KB,
+                         platform_ref: dict | None = None) -> bool:
     """Check if a register is modified on any path from sub entry to dispatch.
 
     Walks forward from sub_entry through the block graph.  For each
@@ -936,8 +938,26 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
             # Check if this instruction could write to the register.
             # KB-driven: check destination operand and operation type.
             ft = ikb.get("pc_effects", {}).get("flow", {}).get("type")
-            if ft in ("call", "jump", "return", "branch"):
+            if ft in ("jump", "return", "branch"):
                 continue  # flow instructions don't write to data/addr regs
+            if ft == "call":
+                # A call to a nested callee may modify registers.
+                # Check the callee's summary: if the register is NOT
+                # preserved (and not produced as the same value),
+                # the call effectively modifies it.
+                call_target = _extract_branch_target(inst, inst.offset)
+                if call_target is not None:
+                    global_sums = (platform_ref.get("_summary_cache")
+                                   if platform_ref else None)
+                    callee_sum = (global_sums.get(call_target)
+                                 if global_sums else None)
+                    if callee_sum is not None:
+                        pkey = ("preserved_d" if reg_mode == "dn"
+                                else "preserved_a")
+                        if reg_num not in callee_sum.get(pkey, set()):
+                            return True
+                # No summary or no target — skip (old behavior)
+                continue
 
             # Check explicit destination via KB encoding
             from .m68k_executor import _extract_size
@@ -965,6 +985,54 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
                 work.append(succ)
 
     return False
+
+
+def _inline_summary(callee_entry: int, blocks: dict,
+                    call_targets: set, exit_states: dict,
+                    kb: KB) -> dict | None:
+    """Compute a summary from a callee's actual execution exit states.
+
+    Unlike _compute_summary (which uses symbolic inputs), this builds
+    a summary from concrete exit states produced by running the callee
+    with specific inputs.  All concrete registers at RTS become produced
+    values in the summary.
+    """
+    owned = _find_sub_blocks(callee_entry, blocks, call_targets)
+
+    rts_states = []
+    for addr in owned:
+        blk = blocks.get(addr)
+        if not blk or not blk.instructions:
+            continue
+        last = blk.instructions[-1]
+        mn = _extract_mnemonic(last.text)
+        ikb = kb.find(mn)
+        if ikb is None:
+            continue
+        ft, _ = kb.flow_type(last)
+        if ft == "return" and addr in exit_states:
+            rts_states.append(exit_states[addr])
+
+    if not rts_states:
+        return None
+
+    rts_cpu, _ = _join_states(rts_states)
+
+    produced_d = {}
+    for i in range(len(rts_cpu.d)):
+        if rts_cpu.d[i].is_known:
+            produced_d[i] = rts_cpu.d[i].concrete
+    produced_a = {}
+    for i in range(len(rts_cpu.a)):
+        if rts_cpu.a[i].is_known:
+            produced_a[i] = rts_cpu.a[i].concrete
+    sp_delta = 0
+    if rts_cpu.sp.is_symbolic and rts_cpu.sp.sym_base == "SP_entry":
+        sp_delta = rts_cpu.sp.sym_offset
+
+    return {"preserved_d": set(), "preserved_a": set(),
+            "produced_d": produced_d, "produced_a": produced_a,
+            "sp_delta": sp_delta}
 
 
 def _find_sub_blocks(entry: int, blocks: dict,
@@ -1062,7 +1130,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             and merged_cpu is not None
             and unres_addr != sub_entry
             and all(not _reg_modified_in_sub(sub_dict, sub_entry,
-                                             unres_addr, mode, num, kb)
+                                             unres_addr, mode, num, kb,
+                                             platform_ref=platform)
                     for mode, num in unknown_regs))
 
         if use_fast_path:
@@ -1087,6 +1156,37 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                     resolved.append({"target": target})
         else:
             # Slow path: full propagation per caller (trampolines, etc.)
+            # Two-pass approach for nested callees:
+            #   Pass 1: execute sub + nested callees with caller's state
+            #   Pass 2: compute inline summaries from callee's actual
+            #           execution, re-propagate sub with those summaries.
+            # This resolves registers set by nested callees (e.g. A0 from
+            # a utility sub that computes a function pointer from input).
+
+            # Collect nested callee entries and their blocks
+            nested_callees = set()
+            for addr in sub_blocks_cache[sub_entry]:
+                blk = blocks.get(addr)
+                if not blk:
+                    continue
+                for xref in blk.xrefs:
+                    if (xref.type == "call"
+                            and xref.dst in call_targets
+                            and xref.dst != sub_entry):
+                        nested_callees.add(xref.dst)
+
+            # Expand block set with nested callee blocks
+            expanded = dict(sub_dict)
+            for callee_entry in nested_callees:
+                for na in _find_sub_blocks(
+                        callee_entry, blocks, call_targets):
+                    if na in blocks and na not in expanded:
+                        expanded[na] = blocks[na]
+
+            # Per-caller platform: no scratch invalidation for pass 1
+            pc_platform = dict(platform) if platform else {}
+            pc_platform["scratch_regs"] = []
+
             for caller_addr in callers:
                 if caller_addr not in exit_states:
                     continue
@@ -1094,11 +1194,32 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 init_cpu = _restore_base_reg(
                     caller_cpu.copy(), platform)
 
-                per_caller_exits = propagate_states(
-                    sub_dict, code, sub_entry,
+                # Pass 1: execute everything (callee gets real inputs)
+                pass1_exits = propagate_states(
+                    expanded, code, sub_entry,
                     initial_state=init_cpu,
                     initial_mem=caller_mem.copy(),
-                    platform=platform)
+                    platform=pc_platform)
+
+                # Compute inline summaries from nested callees' exits
+                inline_sums = {}
+                for callee_entry in nested_callees:
+                    isum = _inline_summary(
+                        callee_entry, blocks, call_targets,
+                        pass1_exits, kb)
+                    if isum is not None:
+                        inline_sums[callee_entry] = isum
+
+                # Pass 2: re-propagate sub with inline summaries
+                if inline_sums:
+                    per_caller_exits = propagate_states(
+                        sub_dict, code, sub_entry,
+                        initial_state=init_cpu,
+                        initial_mem=caller_mem.copy(),
+                        platform=pc_platform,
+                        summaries=inline_sums)
+                else:
+                    per_caller_exits = pass1_exits
 
                 if unres_addr not in per_caller_exits:
                     continue

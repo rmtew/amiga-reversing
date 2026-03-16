@@ -1535,3 +1535,112 @@ def test_inline_data_skip_multiple_callers():
         f"Expected $001C from caller_b's inline skip, got {targets}")
 
 
+# ---- Nested callee return value resolution ----------------------------------
+
+def test_per_caller_resolves_through_nested_callee():
+    """Per-caller resolves dispatch when register comes from nested callee.
+
+    Pattern (models GenAm $3A6C -> $3ED6 -> jsr (a0)):
+        main:
+            moveq   #$1C,d0         ; input for sub_inner
+            bsr.w   sub_outer
+            rts
+        sub_outer:
+            bsr.w   sub_inner       ; sub_inner sets A0 from D0
+            jsr     (a0)            ; dispatch -- should resolve
+            rts
+        sub_inner:
+            movea.l d0,a0           ; A0 = D0 (input-dependent)
+            rts
+        target ($1C):
+            rts
+
+    Static summary for sub_inner says A0 is clobbered (input-dependent).
+    Per-caller should re-execute sub_inner with D0=$1C to get A0=$1C.
+    """
+    code = b''
+    # main at $00:
+    # $00: moveq #$1C,d0
+    code += struct.pack('>H', 0x701C)
+    # $02: bsr.w sub_outer ($08)
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $06: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_outer at $08:
+    # $08: bsr.w sub_inner ($10)
+    code += struct.pack('>HH', 0x6100, 0x0006)
+    # $0C: jsr (a0) -- should resolve to $1C
+    code += struct.pack('>H', 0x4E90)
+    # $0E: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_inner at $10:
+    # $10: movea.l d0,a0
+    code += struct.pack('>H', 0x2040)
+    # $12: rts
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>H', 0x4E71)
+    code += struct.pack('>H', 0x4E71)
+    code += struct.pack('>H', 0x4E71)
+    code += struct.pack('>H', 0x4E71)
+    # target at $1C:
+    code += struct.pack('>H', 0x4E75)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+
+    assert 0x1C in targets, (
+        f"Expected $001C from jsr (a0) via nested callee, got {targets}")
+
+
+def test_per_caller_nested_multiple_callers():
+    """Multiple callers pass different values through nested callee.
+
+    caller_a passes D0=$20, caller_b passes D0=$24.
+    sub_outer calls sub_inner (A0=D0), then jsr (a0).
+    Both targets should resolve.
+    """
+    code = b''
+    # main at $00:
+    # $00: moveq #$20,d0
+    code += struct.pack('>H', 0x7020)
+    # $02: bsr.w sub_outer ($0E)
+    code += struct.pack('>HH', 0x6100, 0x000A)
+    # $06: moveq #$24,d0
+    code += struct.pack('>H', 0x7024)
+    # $08: bsr.w sub_outer ($0E)
+    code += struct.pack('>HH', 0x6100, 0x0004)
+    # $0C: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_outer at $0E:
+    # $0E: bsr.w sub_inner ($16)
+    code += struct.pack('>HH', 0x6100, 0x0006)
+    # $12: jsr (a0)
+    code += struct.pack('>H', 0x4E90)
+    # $14: rts
+    code += struct.pack('>H', 0x4E75)
+    # sub_inner at $16:
+    # $16: movea.l d0,a0
+    code += struct.pack('>H', 0x2040)
+    # $18: rts
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>H', 0x4E71)
+    code += struct.pack('>H', 0x4E71)
+    code += struct.pack('>H', 0x4E71)
+    # target_a at $20:
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>H', 0x4E71)
+    # target_b at $24:
+    code += struct.pack('>H', 0x4E75)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+
+    assert 0x20 in targets, (
+        f"Expected $0020 from caller_a (D0=$20), got {targets}")
+    assert 0x24 in targets, (
+        f"Expected $0024 from caller_b (D0=$24), got {targets}")
+
+
