@@ -234,11 +234,11 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - `rx_mode`/`ry_mode` for EXG from description text
   - `operation_class` from instruction title (LEA, MOVEM)
   - 8 `_meta` fields added (size_suffixes, default_operand_size, register_aliases, ea_full_ext_bd_size)
-- [x] pytest suite: `py -m pytest tests/` -- 1896 tests in ~2s
+- [x] pytest suite: `py -m pytest tests/` -- 1901 tests in ~2s
   - `test_m68k_roundtrip.py`: 1796 KB-driven roundtrip tests, batch-assembled (12 vasm calls)
   - `test_indirect_resolution.py`: 39 tests (dispatch patterns, backward slice, per-caller, inline data skip)
   - `test_executor_propagation.py`: 8 tests (memory, joins, instruction effects)
-  - `test_executor_effects.py`: 44 tests (all compute ops, preservation, merge, invalidation, init mem join, multi-entry propagation)
+  - `test_executor_effects.py`: 49 tests (compute ops, preservation, merge, init mem join, multi-entry, return value summaries)
   - `test_analysis.py`: 6 tests (pipeline, save/load cache, version check)
   - `test_code_section_reads.py`: 3 tests (pointer resolution through code data)
 - [x] PEA EA mode validation: guard against invalid modes via KB `ea_modes.ea`
@@ -291,20 +291,33 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - [x] Inline data skip at $1754: per-caller already resolves this pattern
     - Tests confirm: BSR pushes return addr, callee pops, jmp 2(a0) resolves
     - GenAm's $1754 is embedded in larger sub, needs intra-sub flow tracing
-  - [ ] Unresolved library base at d(4300)(A6): 3 LVO calls ($AA6A, $ABF6, $AC0A)
-    - A6 loaded from app memory offset 4300, library identity unknown
-    - LVOs -66 and -48 suggest non-exec library (exec OpenLibrary is -552)
-    - Store pass doesn't capture the value -- may need init pass extension
+  - [x] Summary-aware scratch invalidation: preserved/produced regs survive calls
+    - 29/193 subs produce concrete return values (LEA target, constants)
+    - Scratch invalidation skips summary-proven preserved AND produced regs
+  - [x] Return value summaries: callee-produced concrete values propagate to callers
+    - _compute_summary captures produced_d/produced_a (concrete at all RTS exits)
+    - _apply_summary sets produced regs to concrete values, not unknown
+  ### Resolved at higher level (not blocking core)
+  - [x] 14 ExecBase LVO calls ($A910-$B06E): tagged A6 resolved by os_calls
+    - movea.l ($0004).w,a6 correctly tags A6 with exec.library
+    - _find_unresolved reports them but os_calls identifies all 39 library calls
+  - [x] dos_dispatch at $B0F0: polymorphic by design, resolved per-caller
+    - 22 dos.library calls resolved at each caller's BSR site via os_calls
+    - $B0F0 is the shared dispatch block, will never resolve to single target
+  ### Remaining genuine blockers (12 sites, 3 tractable)
+  - [ ] Callback trampolines at $3AB0 and $4370: jsr (a0) with A0 from sub $3ED6
+    - $3ED6 summary: A0 not preserved, not produced (input-dependent return)
+    - Needs per-caller summary evaluation: re-run $3ED6 per caller's inputs
+    - Only tractable remaining blocker with concrete analysis path
   - [ ] A2 dispatch cluster at $8A4A-$8F3A: 5 unresolved jsr/jmp (a2)
-    - A2 loaded earlier in subroutine, lost at internal merge points
-    - Some sites in same sub already resolve (A2=$71F0 at $8EF0, A2=$A11A at $8D7E)
-    - Likely callback function pointers (number formatting routine)
-  - [ ] Callback trampolines at $3AB0 and $4370: jsr (a0) with A0 from caller
-    - Per-caller resolution should handle these but A0 is unknown in callers too
-    - Need to trace A0 further back through caller chain
-  - [ ] Memory dispatch via d(A6) function pointers ($852A, $B0EA)
-    - Sentinel-address function pointers loaded from app memory
-    - Downstream of other fixes -- store pass may capture values once more code is discovered
+    - Callback function pointers (number formatting routine)
+    - A2 likely set by callers as runtime-dependent function pointer
+  - [ ] Runtime-dependent dispatches (not statically resolvable)
+    - $B0DE: jsr (a0) double-indirect through sentinel memory chain
+    - $8D44: jsr (a3), $901E: jsr (a4) -- unknown source
+    - $1754: jmp 2(a0) embedded inline skip, needs intra-sub per-caller
+  ### Deferred (not entry-0 reachable)
+  - [ ] d(4300)(A6) LVO calls ($AA6A, $ABF6, $AC0A): hint-only, not entry-0 reachable
   ### Deferred (hint-only, not blocking core)
   - [ ] String dispatch table at pcref_3f3c: 65 assembler directives with self-relative handler offsets
     - Currently only in hint territory -- defer until core expansion reaches it
