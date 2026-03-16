@@ -8,12 +8,17 @@ These tests exercise the KB-driven dispatch in _apply_instruction:
 binary ops (add/sub/and/or/xor), unary ops (neg/not/swap/ext),
 assign (move/moveq/clr), LEA, PEA, MOVEM, EXG, and the
 compare-no-write path.
+
+Also tests subroutine summaries: register preservation through
+push/pop patterns, SP delta computation, and how summaries interact
+with the propagation engine.
 """
 
 import struct
 import pytest
 
-from m68k.m68k_executor import analyze, _concrete
+from m68k.m68k_executor import (analyze, _concrete, _unknown, _symbolic,
+                                CPUState, AbstractMemory)
 
 
 def _run(code):
@@ -216,3 +221,189 @@ def test_adda_w():
     cpu, _ = _run(code)
     # a0 = $12 + sign_extend_w(-4) = $12 + (-4) = $0E
     assert cpu.a[0].concrete == 0x0E
+
+
+# ── Register preservation through calls ──────────────────────────────
+
+def test_register_preserved_through_push_pop_call():
+    """Register saved/restored around a call should survive on fallthrough.
+
+    Pattern:
+        move.l  a5,-(sp)       ; save A5
+        bsr.w   sub            ; call (may clobber A5)
+        movea.l (sp)+,a5       ; restore A5
+        jmp     d(a5)          ; dispatch using preserved A5
+
+    The subroutine summary should detect that A5 is NOT in the
+    scratch register set (it was pushed before the call and popped
+    after). On the fallthrough path, A5 should retain its pre-call
+    value, enabling the dispatch to resolve.
+
+    This models the Amiga pattern of saving registers around ExecBase
+    calls where the calling convention clobbers address registers.
+    """
+    code = b''
+    # Entry: set A5 to a known value via LEA
+    # lea $30(pc),a5 -> a5 = $00+2+$30 = $32
+    code += struct.pack('>HH', 0x4BFA, 0x0030)          # [0x00] lea $30(pc),a5
+    # Save A5: move.l a5,-(sp)
+    code += struct.pack('>H', 0x2F0D)                    # [0x04] move.l a5,-(sp)
+    # BSR to sub (sub may clobber a5 -- it's a scratch reg)
+    # bsr.w $10  (PC=$08, disp=$08, target=$08+$08=$10)
+    code += struct.pack('>HH', 0x6100, 0x0008)          # [0x06] bsr.w $10
+    # Restore A5: movea.l (sp)+,a5
+    code += struct.pack('>H', 0x2A5F)                    # [0x0a] movea.l (sp)+,a5
+    # Use A5: jmp 4(a5) -> target should be $32 + 4 = $36
+    code += struct.pack('>HH', 0x4EED, 0x0004)          # [0x0c] jmp 4(a5)
+    # Sub at $10: just RTS (clobbers nothing, but scratch invalidation
+    # would kill A5 if it's in the scratch set)
+    code += struct.pack('>H', 0x4E75)                    # [0x10] rts
+    # Padding to $32
+    code += b'\x4e\x71' * 16                             # [0x12..$31] nop
+    # Data at $32
+    code += b'\x4e\x71' * 4                              # [0x32..$39] nop
+    # Target at $36
+    code += struct.pack('>H', 0x4E75)                    # [0x36] rts (target)
+
+    platform = {
+        "scratch_regs": [("an", 5)],  # A5 is a scratch register
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+    blocks = result["blocks"]
+    exit_states = result.get("exit_states", {})
+
+    # The block at $0a (restore + dispatch) should have A5 = $32
+    # because the push/pop preserved it across the call.
+    # Without preservation: A5 would be unknown (scratch-clobbered).
+    from m68k.jump_tables import resolve_indirect_targets
+    resolved = resolve_indirect_targets(blocks, exit_states, len(code))
+    targets = sorted(r["target"] for r in resolved)
+    assert 0x36 in targets, (
+        f"Expected $0036 from jmp 4(a5) with preserved a5=$32, "
+        f"got {targets}")
+
+
+def test_library_base_survives_push_pop_exec_call():
+    """Library base register preserved through push/pop around call.
+
+    Pattern (common in Amiga code):
+        lea     table(pc),a5     ; a5 = concrete code address
+        move.l  a5,-(sp)         ; save a5
+        bsr.w   sub              ; call (a5 in scratch set, clobbered)
+        movea.l (sp)+,a5         ; restore a5
+        movea.l (a5),a0          ; load function pointer from table
+        jsr     (a0)             ; dispatch using value from preserved a5
+
+    After the call + restore, A5 should have its original concrete
+    value, enabling the memory read and dispatch to resolve.
+    """
+    code = b''
+    # lea $20(pc),a5 -> a5 = $00+2+$20 = $22 (table)
+    code += struct.pack('>HH', 0x4BFA, 0x0020)          # [0x00] lea $20(pc),a5
+    # Save A5: move.l a5,-(sp)
+    code += struct.pack('>H', 0x2F0D)                    # [0x04] move.l a5,-(sp)
+    # BSR to sub at $10
+    # bsr.w: PC=$08, disp=$08, target=$08+$08=$10
+    code += struct.pack('>HH', 0x6100, 0x0008)          # [0x06] bsr.w $10
+    # Restore A5: movea.l (sp)+,a5
+    code += struct.pack('>H', 0x2A5F)                    # [0x0a] movea.l (sp)+,a5
+    # Load fn ptr: movea.l (a5),a0 -> a0 = long at $22
+    code += struct.pack('>H', 0x2055)                    # [0x0c] movea.l (a5),a0
+    # Dispatch: jsr (a0)
+    code += struct.pack('>H', 0x4E90)                    # [0x0e] jsr (a0)
+    # Sub at $10: just RTS
+    code += struct.pack('>H', 0x4E75)                    # [0x10] rts
+    # Padding
+    code += b'\x4e\x71' * 8                              # [0x12..$21] nop
+    # Table at $22: longword pointer to handler at $2a
+    code += struct.pack('>I', 0x0000002A)                # [0x22] -> $2a
+    # Padding
+    code += struct.pack('>HH', 0x4E71, 0x4E71)          # [0x26..$29] nop
+    # Handler at $2a
+    code += struct.pack('>H', 0x4E75)                    # [0x2a] rts
+
+    platform = {
+        "scratch_regs": [("an", 5), ("an", 0), ("dn", 0)],
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+    blocks = result["blocks"]
+    exit_states = result.get("exit_states", {})
+
+    from m68k.jump_tables import resolve_indirect_targets
+    resolved = resolve_indirect_targets(blocks, exit_states, len(code))
+    targets = sorted(r["target"] for r in resolved)
+    assert 0x2a in targets, (
+        f"Expected $002a from jsr (a0) where a0 loaded via preserved a5, "
+        f"got {targets}")
+
+
+def test_base_register_survives_merge():
+    """App base register restored after merge kills it.
+
+    When multiple paths converge and one has the base register unknown
+    (e.g. after a call that clobbers it), the conservative join makes
+    the register unknown. Since the app base register is set once in
+    init and never changes, the propagator should restore it after
+    any merge that loses it.
+
+    Layout:
+        $00: lea data(pc),a6   ; a6 = base (concrete)
+        $04: tst.b d0
+        $06: beq.s $0A         ; path A: a6 survives
+        $08: movea.l d7,a6     ; path B: a6 clobbered
+        $0A: (merge)           ; a6 should be restored to base
+        $0C: jsr -6(a6)        ; should resolve to base + (-6)
+    """
+    code = b''
+    # lea $30(pc),a6 -> a6 = $00+2+$30 = $32
+    code += struct.pack('>HH', 0x4DFA, 0x0030)          # [0x00] lea $30(pc),a6
+    code += struct.pack('>H', 0x4A00)                    # [0x04] tst.b d0
+    code += struct.pack('>H', 0x6702)                    # [0x06] beq.s $0A
+    # Clobber path: movea.l d7,a6
+    code += struct.pack('>H', 0x2C47)                    # [0x08] movea.l d7,a6
+    # Merge at $0A: dispatch
+    code += struct.pack('>HH', 0x4EAE, 0xFFFA)          # [0x0a] jsr -6(a6)
+    code += struct.pack('>H', 0x4E75)                    # [0x0e] rts
+    # Padding
+    code += b'\x4e\x71' * 18                             # [0x10..$31] nop
+    # Target at $32 + (-6) = $2c
+    code += b'\x4e\x71' * 2                              # [0x32..$35] pad
+    # But we need target at $2c
+    # Recalculate: a6=$32, jsr -6(a6) -> $32-6 = $2c
+    # Put RTS at $2c
+    # Code is: $00-$0f = instructions, $10-$31 = nop padding
+    # $2c is at offset $2c = 44. We have 16 bytes of code ($00-$0f)
+    # then nop padding. Position $2c is within the nop padding.
+    # Let's rebuild with exact layout:
+
+    code = b''
+    # $00: lea $30(pc),a6 -> a6 = $32
+    code += struct.pack('>HH', 0x4DFA, 0x0030)          # [0x00]
+    code += struct.pack('>H', 0x4A00)                    # [0x04] tst.b d0
+    code += struct.pack('>H', 0x6702)                    # [0x06] beq.s $0A
+    code += struct.pack('>H', 0x2C47)                    # [0x08] movea.l d7,a6
+    # $0A: merge + dispatch
+    code += struct.pack('>HH', 0x4EAE, 0xFFFA)          # [0x0a] jsr -6(a6)
+    code += struct.pack('>H', 0x4E75)                    # [0x0e] rts
+    # Pad to $2c (target = $32 - 6 = $2c)
+    code += b'\x4e\x71' * 15                             # [0x10..$2b]
+    code += struct.pack('>H', 0x4E75)                    # [0x2c] rts (target!)
+    code += b'\x4e\x71' * 3                              # pad
+
+    platform = {
+        "initial_base_reg": (6, 0x32),  # A6 is always $32
+        "scratch_regs": [],
+    }
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=platform)
+    blocks = result["blocks"]
+    exit_states = result.get("exit_states", {})
+
+    from m68k.jump_tables import resolve_indirect_targets
+    resolved = resolve_indirect_targets(blocks, exit_states, len(code))
+    targets = sorted(r["target"] for r in resolved)
+    assert 0x2c in targets, (
+        f"Expected $002c from jsr -6(a6) with base a6=$32 restored "
+        f"after merge, got {targets}")

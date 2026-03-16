@@ -2301,6 +2301,19 @@ def propagate_states(blocks: dict[int, BasicBlock],
         cpu, mem = _join_states(pred_states)
         cpu.pc = addr
 
+        # Restore app base register if merge killed it.
+        # The base register is set once in init and never legitimately
+        # changes to a different value. A conservative join may lose it
+        # when one predecessor clobbered it (e.g. after a call that
+        # used it for ExecBase). Restoring it here is safe and enables
+        # library call resolution downstream.
+        if platform:
+            base_info = platform.get("initial_base_reg")
+            if base_info:
+                breg_num, breg_val = base_info
+                if not cpu.a[breg_num].is_known:
+                    cpu.set_reg("an", breg_num, _concrete(breg_val))
+
         # Fixpoint check: skip if state unchanged from last visit.
         if addr in visited and addr in exit_states:
             prev_cpu, _ = exit_states[addr]
