@@ -234,11 +234,11 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - `rx_mode`/`ry_mode` for EXG from description text
   - `operation_class` from instruction title (LEA, MOVEM)
   - 8 `_meta` fields added (size_suffixes, default_operand_size, register_aliases, ea_full_ext_bd_size)
-- [x] pytest suite: `py -m pytest tests/` -- 1870 tests in ~2s
+- [x] pytest suite: `py -m pytest tests/` -- 1887 tests in ~2s
   - `test_m68k_roundtrip.py`: 1796 KB-driven roundtrip tests, batch-assembled (12 vasm calls)
   - `test_indirect_resolution.py`: 37 tests (dispatch patterns, backward slice, per-caller)
   - `test_executor_propagation.py`: 8 tests (memory, joins, instruction effects)
-  - `test_executor_effects.py`: 20 tests (binary ops, unary ops, assign, LEA, SWAP, EXG, ADDA)
+  - `test_executor_effects.py`: 37 tests (all compute ops, preservation, merge, invalidation)
   - `test_analysis.py`: 6 tests (pipeline, save/load cache, version check)
   - `test_code_section_reads.py`: 3 tests (pointer resolution through code data)
 - [x] PEA EA mode validation: guard against invalid modes via KB `ea_modes.ea`
@@ -254,7 +254,16 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - `_apply_binary_op()`: unified add/sub/and/or/xor handler (was 4 copies)
   - `_resolve_os_call()`: OS call resolution separated from instruction effects
   - `_apply_instruction`: 92-line table-driven dispatch (was ~850 lines)
+  - `_apply_computed()`: KB-driven fallback via m68k_compute for all remaining ops
   - Bug fix: SWAP now works for encodings without MODE field
+- [x] All 21 KB compute_formula ops handled (was 10, shift/rotate/multiply/divide/bit ops added)
+  - Uses verified m68k_compute._compute_result (4870 Musashi tests)
+  - Context from KB: shift_count_modulus, direction from dr field, fill from variants,
+    bit_modulus from instruction, data_sizes from forms, i/r field for count source
+- [x] Base register restoration after merge points (prevents A6 loss through joins)
+- [x] Audit: KB.addr_mask replaces hardcoded 0xFFFFFFFF, SWAP/EXG detected in
+  _reg_modified_in_sub, invalidation path respects write_to_ea, i/r encoding
+  field distinguishes immediate vs register shift counts
 - [x] Performance: build_entities 28s -> 12s, gen_disasm 12s -> 0.7s (cached)
   - KB caching: module-level singletons, mnemonic/size/entry caches, EA reverse lookup
   - Targeted per-caller resolution: register substitution (O(1)) vs full propagation
@@ -276,11 +285,11 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - [ ] Computed PEA+RTS dispatch at $7550: addresses $16E0-$1D14 (2.6KB addressing mode handlers)
     - LEA $1D14(PC) + ADDA.W D3 + push + RTS — D3 from instruction encoding table at runtime
     - Handlers are valid code but entry points depend on runtime table data
-  - [x] Coverage gap diagnostic: 28 unresolved jumps, 307 unresolved returns
-    - 17 jsr d(a6) with A6=unknown: library calls in regions where A6 lost to merge/invalidation
-    - 10 jsr/jmp (An) with An=unknown: function pointers loaded from untracked memory
-    - Root cause: A6 library base tag lost when per-caller analysis doesn't reach these paths
-    - Key sub: $B0D6 (dos_dispatch, 23 callers) -- A6 unknown at merge point
+  - [x] Coverage gap diagnostic: 27 unresolved jumps, 307 unresolved returns
+    - 16 jsr d(a6) already resolved by OS call identification (exec/dos library calls)
+    - 11 genuinely unresolved: 10 jsr/jmp (An) function pointers + 1 dos_dispatch variant
+    - Function pointers loaded from d(A6) memory -- requires inter-procedural memory propagation
+    - Base register merge restoration added but doesn't expand entry count (library calls already identified)
 - [x] Disassembly generator: `scripts/gen_disasm.py` -> `disasm/genam.s`
   - Core analysis with jump table + indirect target discovery loop
   - Hint blocks with block-level validation (flow, zero opword, EA, arch, alignment)
