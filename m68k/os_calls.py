@@ -168,6 +168,161 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
     return None
 
 
+# ── Return value store tracing ───────────────────────────────────────
+
+def trace_return_stores(blocks: dict[int, BasicBlock],
+                        lib_calls: list[dict],
+                        base_reg: int) -> dict[int, dict]:
+    """Trace return value stores to app memory after library calls.
+
+    For each lib_call with an output field, scans the fallthrough block
+    for stores of the return register to d(base_reg).  Returns a map
+    of app memory offsets to the function/field that produced the value.
+
+    Returns: {offset: {"function": "Output", "name": "file", ...}}
+    """
+    kb = KB()
+    result = {}
+    base_reg_name = f"a{base_reg}"
+
+    for call in lib_calls:
+        output = call.get("output")
+        if not output or not output.get("reg"):
+            continue
+
+        ret_reg = output["reg"].lower()
+        call_addr = call["addr"]
+
+        # Find the block containing the call
+        block = blocks.get(call.get("block"))
+        if not block:
+            continue
+
+        # Scan for store of ret_reg to d(base_reg) in instructions
+        # after the call.  The call may end the block, so also check
+        # the fallthrough block.
+        import re
+        ret_key = ("dn" if ret_reg[0] == "d" else "an", int(ret_reg[1]))
+        store_info = {
+            "function": call["function"],
+            "name": output.get("name", "result"),
+            "type": output.get("type"),
+            "library": call.get("library"),
+        }
+
+        def _scan_for_store(instructions):
+            """Scan instructions for ret_reg -> d(base_reg). Returns offset or None."""
+            for inst in instructions:
+                text = inst.text.lower()
+                mn = _extract_mnemonic(text)
+                if mn in ("move", "movea"):
+                    m = re.match(
+                        rf'{mn}\.\w\s+{ret_reg}\s*,'
+                        rf'\s*(-?\d+)\({base_reg_name}\)',
+                        text)
+                    if m:
+                        return int(m.group(1))
+                # Stop if ret_reg is overwritten by a non-store instruction
+                ikb = kb.find(mn) if mn else None
+                if ikb:
+                    dst = decode_destination(
+                        inst.raw, ikb, kb.meta,
+                        _extract_size(text), inst.offset)
+                    if dst == ret_key:
+                        return None
+            return None
+
+        # Instructions after the call in the same block
+        past_call = False
+        after_call = []
+        for inst in block.instructions:
+            if past_call:
+                after_call.append(inst)
+            if inst.offset == call_addr:
+                past_call = True
+
+        offset = _scan_for_store(after_call)
+        if offset is None:
+            # Check fallthrough block
+            for xref in block.xrefs:
+                if xref.type == "fallthrough":
+                    ft_block = blocks.get(xref.dst)
+                    if ft_block:
+                        offset = _scan_for_store(ft_block.instructions)
+                    break
+
+        if offset is not None:
+            result[offset] = store_info
+
+    return result
+
+
+# ── Call argument annotation ─────────────────────────────────────────
+
+def annotate_call_arguments(blocks: dict[int, BasicBlock],
+                            lib_calls: list[dict]) -> dict[int, dict]:
+    """Annotate instructions that set up arguments for library calls.
+
+    For each lib_call with inputs, walks backward from the call within
+    the containing block to find instructions that write to argument
+    registers.  Returns a map of instruction offsets to argument info.
+
+    Returns: {inst_offset: {"arg_name": "file", "function": "Write", ...}}
+    """
+    kb = KB()
+    result = {}
+
+    for call in lib_calls:
+        inputs = call.get("inputs")
+        if not inputs:
+            continue
+
+        block = blocks.get(call.get("block"))
+        if not block or not block.instructions:
+            continue
+
+        # Find the call instruction index
+        call_idx = None
+        for i, inst in enumerate(block.instructions):
+            if inst.offset == call["addr"]:
+                call_idx = i
+                break
+        if call_idx is None:
+            continue
+
+        # Build set of argument registers to find
+        pending = {}  # reg_key -> input dict
+        for inp in inputs:
+            reg = inp["reg"].lower()
+            mode_str = "dn" if reg[0] == "d" else "an"
+            reg_num = int(reg[1])
+            pending[(mode_str, reg_num)] = inp
+
+        # Walk backward from call
+        for i in range(call_idx - 1, -1, -1):
+            if not pending:
+                break
+            inst = block.instructions[i]
+            text = inst.text.lower()
+            mn = _extract_mnemonic(text)
+            ikb = kb.find(mn) if mn else None
+            if not ikb:
+                continue
+
+            dst = decode_destination(inst.raw, ikb, kb.meta,
+                                     _extract_size(text), inst.offset)
+            if dst and dst in pending:
+                inp = pending.pop(dst)
+                result[inst.offset] = {
+                    "arg_name": inp["name"],
+                    "arg_reg": inp["reg"],
+                    "function": call["function"],
+                    "library": call.get("library"),
+                }
+
+    return result
+
+
 # ── Backward type propagation ─────────────────────────────────────────
 
 def _build_struct_field_map(struct_def: dict) -> dict[int, str]:

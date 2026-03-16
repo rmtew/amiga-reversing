@@ -23,7 +23,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from m68k.hunk_parser import parse_file, HunkType
 from m68k.analysis import analyze_hunk, resolve_reloc_target, HunkAnalysis
-from m68k.os_calls import propagate_input_types
+from m68k.os_calls import (propagate_input_types, trace_return_stores,
+                           annotate_call_arguments)
 from m68k.m68k_executor import (_extract_branch_target, _extract_mnemonic,
                                 _extract_size)
 from m68k.kb_util import (KB, read_string_at, find_containing_sub,
@@ -911,16 +912,39 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
         if base_info and init_mem:
             base_concrete = base_info[1]
             base_reg_num = base_info[0]
+            alloc_base = 0x80000000
             for (addr, _nbytes), tag in init_mem._tags.items():
                 if not tag or "library_base" not in tag:
                     continue
+                # Skip sentinel allocation addresses (not real app offsets)
+                if addr >= alloc_base:
+                    offset = addr - base_concrete
+                    if offset < 0 or offset > 0xFFFF:
+                        continue
                 offset = addr - base_concrete
                 lib_name = tag["library_base"]
                 base_name = lib_name.rsplit(".", 1)[0]
                 sym = re.sub(r'[^a-z0-9]+', '_', base_name.lower())
                 app_offsets[offset] = f"app_{sym}_base"
+        # Add return-value-derived app memory offsets from library calls.
+        if base_info and lib_calls:
+            ret_stores = trace_return_stores(
+                blocks, lib_calls, base_reg=base_info[0])
+            for offset, info in ret_stores.items():
+                if offset not in app_offsets:
+                    func = info["function"]
+                    name = info.get("name", "result")
+                    sym = re.sub(r'[^a-z0-9]+', '_',
+                                 f"app_{func}_{name}".lower())
+                    app_offsets[offset] = sym
+
         if app_offsets:
             print(f"  {len(app_offsets)} app memory offset symbols")
+
+        # Build argument annotations from library call inputs.
+        arg_annotations = annotate_call_arguments(blocks, lib_calls)
+        if arg_annotations:
+            print(f"  {len(arg_annotations)} argument annotations")
 
         # Generate output
         print(f"Writing {output_path}...")
@@ -1016,9 +1040,19 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str):
                         sub = arg_substitutions.get(inst.offset)
                         if sub:
                             text = text.replace(sub[0], sub[1])
+                        # Build comment from annotations
+                        comment = ""
                         pmin = _get_processor_min(inst.text, kb)
                         if pmin != "68000":
-                            f.write(f"    {text} ; {pmin}+\n")
+                            comment = f"{pmin}+"
+                        arg_ann = arg_annotations.get(inst.offset)
+                        if arg_ann:
+                            ann_text = (f"{arg_ann['function']}: "
+                                        f"{arg_ann['arg_name']}")
+                            comment = (f"{comment}; {ann_text}"
+                                       if comment else ann_text)
+                        if comment:
+                            f.write(f"    {text} ; {comment}\n")
                         else:
                             f.write(f"    {text}\n")
                         instr_count += 1

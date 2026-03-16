@@ -293,7 +293,7 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
     c_type_decls = []
     for line in lines:
         line_s = line.strip()
-        proto_m = re.match(r'(.+?)\s+\*?\s*\w+\s*\((.+)\)\s*;', line_s)
+        proto_m = re.match(r'(.+?)\s+\*?\s*\w+\s*\((.+)\)\s*;?$', line_s)
         if proto_m:
             c_proto = line_s
             continue
@@ -311,7 +311,7 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
     # Extract arg types from C prototype
     arg_types_from_proto = []
     if c_proto:
-        proto_m = re.match(r'(.+?)\b(\w+)\s*\((.+)\)\s*;', c_proto)
+        proto_m = re.match(r'(.+?)\b(\w+)\s*\((.+)\)\s*;?$', c_proto)
         if proto_m:
             ret_type_str = proto_m.group(1).strip()
             if ret_type_str.endswith('*'):
@@ -1278,7 +1278,7 @@ def main():
                 doc = autodocs[func_name]
 
                 # Parse synopsis for typed inputs/outputs
-                if "synopsis" in doc and fd_func["args"]:
+                if "synopsis" in doc:
                     parsed = parse_synopsis(
                         doc["synopsis"], fd_func["args"], fd_func["regs"]
                     )
@@ -1404,6 +1404,47 @@ def main():
 
     # --- Build constants ---
     output["constants"] = evaluated_constants
+
+    # ========================================================================
+    # 6a. Constant domains — map functions to relevant constants
+    # ========================================================================
+    # Scan autodoc text (description, inputs, results, notes) for
+    # references to known constants.  Data-driven from NDK autodocs
+    # and the parsed constants dict.
+    print("Building constant domains...")
+    resolved_consts = {name for name, c in evaluated_constants.items()
+                       if c.get("value") is not None
+                       and re.match(r'^[A-Z][A-Z0-9_]+$', name)}
+    constant_domains: dict[str, list[str]] = {}
+    if resolved_consts:
+        # Build regex pattern (process in batches for regex size limits)
+        sorted_names = sorted(resolved_consts, key=len, reverse=True)
+        batch_size = 500
+        # Scan all autodocs for constant references
+        for lib_name, lib_autodocs in autodoc_data.items():
+            for func_name, doc in lib_autodocs.items():
+                text_parts = []
+                for key in ("description", "inputs_text", "results_text",
+                             "notes"):
+                    val = doc.get(key)
+                    if val:
+                        text_parts.append(val)
+                if not text_parts:
+                    continue
+                full_text = "\n".join(text_parts)
+                found = set()
+                for i in range(0, len(sorted_names), batch_size):
+                    batch = sorted_names[i:i + batch_size]
+                    pattern = (r'\b(' + '|'.join(re.escape(n) for n in batch)
+                               + r')\b')
+                    for m in re.finditer(pattern, full_text):
+                        found.add(m.group(1))
+                if found:
+                    constant_domains[func_name] = sorted(found)
+    output["_meta"]["constant_domains"] = constant_domains
+    cd_count = sum(len(v) for v in constant_domains.values())
+    print(f"  {len(constant_domains)} functions with "
+          f"{cd_count} constant references")
 
     # ========================================================================
     # 6b. Build C-to-I struct name mapping
