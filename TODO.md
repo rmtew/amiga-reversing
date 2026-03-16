@@ -234,9 +234,9 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
   - `rx_mode`/`ry_mode` for EXG from description text
   - `operation_class` from instruction title (LEA, MOVEM)
   - 8 `_meta` fields added (size_suffixes, default_operand_size, register_aliases, ea_full_ext_bd_size)
-- [x] pytest suite: `py -m pytest tests/` -- 1901 tests in ~2s
+- [x] pytest suite: `py -m pytest tests/` -- 1903 tests in ~2s
   - `test_m68k_roundtrip.py`: 1796 KB-driven roundtrip tests, batch-assembled (12 vasm calls)
-  - `test_indirect_resolution.py`: 39 tests (dispatch patterns, backward slice, per-caller, inline data skip)
+  - `test_indirect_resolution.py`: 41 tests (dispatch patterns, backward slice, per-caller, inline data skip, nested callee)
   - `test_executor_propagation.py`: 8 tests (memory, joins, instruction effects)
   - `test_executor_effects.py`: 49 tests (compute ops, preservation, merge, init mem join, multi-entry, return value summaries)
   - `test_analysis.py`: 6 tests (pipeline, save/load cache, version check)
@@ -305,10 +305,15 @@ Foundation: `m68k/m68k_compute.py` (verified against Musashi with 4870 tests).
     - 22 dos.library calls resolved at each caller's BSR site via os_calls
     - $B0F0 is the shared dispatch block, will never resolve to single target
   ### Remaining genuine blockers (12 sites, 3 tractable)
-  - [ ] Callback trampolines at $3AB0 and $4370: jsr (a0) with A0 from sub $3ED6
-    - $3ED6 summary: A0 not preserved, not produced (input-dependent return)
-    - Needs per-caller summary evaluation: re-run $3ED6 per caller's inputs
-    - Only tractable remaining blocker with concrete analysis path
+  - [x] Per-caller nested callee resolution: two-pass with inline summaries
+    - Slow path expands blocks to include nested callees, disables scratch
+    - Inline summary from callee's actual execution feeds back to fallthrough
+    - _reg_modified_in_sub checks callee summaries for register modification
+    - Summary computation decoupled from initial_base_reg
+  - [x] Investigated $3AB0/$4370 (jsr (a0) via sub $3ED6): not resolvable
+    - $3ED6 is input-dependent (branches make A0 unknown through control flow)
+    - Callers have D0=? -- inputs are unknown, callee can't produce concrete A0
+    - These are runtime-dependent callback dispatches, not analysis limitations
   - [ ] A2 dispatch cluster at $8A4A-$8F3A: 5 unresolved jsr/jmp (a2)
     - Callback function pointers (number formatting routine)
     - A2 likely set by callers as runtime-dependent function pointer
