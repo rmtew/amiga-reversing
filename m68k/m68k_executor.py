@@ -2459,10 +2459,11 @@ def propagate_states(blocks: dict[int, BasicBlock],
                      platform: dict | None = None,
                      summaries: dict[int, dict | None] | None = None,
                      ) -> dict[int, tuple]:
-    """Propagate abstract state through basic blocks from the program entry.
+    """Propagate abstract state through basic blocks.
 
-    Seeds the block at base_addr with initial state, then walks forward
-    via BFS.  At merge points, joins states conservatively.
+    Seeds all entry points (base_addr + blocks marked is_entry) with
+    initial state, then walks forward via BFS.  At merge points, joins
+    states conservatively.
 
     Call fallthroughs use subroutine summaries (SP delta + register
     preservation) when available.  Caller state is also propagated into
@@ -2470,10 +2471,6 @@ def propagate_states(blocks: dict[int, BasicBlock],
     base loads).  If a summary clobbers the app base register and the
     platform has a discovered base value, the base register is restored
     (the init routine sets it — its summary reports it as clobbered).
-
-    Only blocks reachable from base_addr through control flow have exit
-    states.  Blocks discovered from other entry points (reloc targets,
-    heuristic scan) are not analyzed — they are discovery hints.
 
     Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
     """
@@ -2514,16 +2511,24 @@ def propagate_states(blocks: dict[int, BasicBlock],
     # Map block_start -> (exit_cpu_state, exit_memory) after execution
     exit_states: dict[int, tuple] = {}
 
-    # Seed ONLY the program entry point (base_addr) with initial state.
-    # All other blocks derive state through control flow: callee
-    # propagation enters subroutines with the caller's concrete state.
-    # Blocks not reachable from the program entry have no exit states
-    # — they are discovery hints, not concrete analysis targets.
+    # Seed all entry points with initial state.  The primary entry
+    # (base_addr) always gets seeded.  Additional entry points (from
+    # jump table targets, resolved indirect jumps, etc.) are also
+    # seeded so they produce exit states even when the control flow
+    # path from base_addr to them is unresolved.
+    seed_addrs = []
     if base_addr in blocks:
-        incoming[base_addr] = {"_init": (initial_state.copy(),
-                                         initial_mem.copy())}
+        seed_addrs.append(base_addr)
+    # Additional entry points from the blocks' is_entry flag
+    for addr, blk in blocks.items():
+        if blk.is_entry and addr != base_addr and addr in blocks:
+            seed_addrs.append(addr)
+    for addr in seed_addrs:
+        if addr not in incoming:
+            incoming[addr] = {"_init": (initial_state.copy(),
+                                        initial_mem.copy())}
 
-    work = deque([base_addr] if base_addr in blocks else [])
+    work = deque(seed_addrs)
     visited = set()
     iterations = 0
     max_iterations = len(blocks) * 10  # convergence guard

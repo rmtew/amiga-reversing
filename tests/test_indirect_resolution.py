@@ -1425,3 +1425,113 @@ def test_backward_slice_skips_call_predecessor():
     print("  backward_slice_skips_call_predecessor: OK")
 
 
+# ---- Inline data skip pattern ------------------------------------------------
+
+def test_inline_data_skip():
+    """BSR to sub that pops return addr and jumps past inline data.
+
+    Pattern:
+        bsr.w   skip_sub        ; pushes return addr (= addr of inline data)
+        dc.w    $1234           ; inline data (skipped)
+        moveq   #42,d0          ; execution resumes here
+        rts
+    skip_sub:
+        movea.l (sp)+,a0        ; pop return addr into A0
+        jmp     2(a0)           ; jump past 2-byte inline data
+
+    Per-caller resolution should resolve jmp 2(a0) to the instruction
+    after the inline data word, because the caller's pushed return address
+    is concrete and the callee pops it.
+    """
+    code = b''
+    # $00: bsr.w $0A  (push $04, jump to skip_sub)
+    code += struct.pack('>HH', 0x6100, 0x0008)
+    # $04: dc.w $1234  (inline data -- NOT an instruction)
+    code += struct.pack('>H', 0x1234)
+    # $06: moveq #42,d0
+    code += struct.pack('>H', 0x702A)
+    # $08: rts
+    code += struct.pack('>H', 0x4E75)
+    # skip_sub at $0A:
+    # $0A: movea.l (sp)+,a0
+    code += struct.pack('>H', 0x205F)
+    # $0C: jmp 2(a0)
+    code += struct.pack('>HH', 0x4EE8, 0x0002)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+
+    # The jmp 2(a0) should resolve to $06 (return addr $04 + 2)
+    assert 0x06 in targets, (
+        f"Expected $0006 from jmp 2(a0) with return addr $04, "
+        f"got {targets}")
+    print("  inline_data_skip: OK")
+
+
+def test_inline_data_skip_multiple_callers():
+    """Multiple callers to inline-data-skip sub, each with different data.
+
+    caller_a:
+        bsr.w   skip_sub
+        dc.w    $AAAA           ; caller A's inline data
+        moveq   #1,d0
+        rts
+    caller_b:
+        bsr.w   skip_sub
+        dc.w    $BBBB           ; caller B's inline data
+        moveq   #2,d0
+        rts
+    main:
+        bsr.w   caller_a
+        bsr.w   caller_b
+        rts
+    skip_sub:
+        movea.l (sp)+,a0
+        jmp     2(a0)
+
+    Per-caller should resolve both return addresses.
+    """
+    code = b''
+    # main at $00:
+    # $00: bsr.w caller_a ($0C)
+    code += struct.pack('>HH', 0x6100, 0x000A)
+    # $04: bsr.w caller_b ($16)
+    code += struct.pack('>HH', 0x6100, 0x0010)
+    # $08: rts
+    code += struct.pack('>H', 0x4E75)
+    # padding
+    code += struct.pack('>H', 0x4E71)
+    # caller_a at $0C:
+    # $0C: bsr.w skip_sub ($20)
+    code += struct.pack('>HH', 0x6100, 0x0012)
+    # $10: dc.w $AAAA
+    code += struct.pack('>H', 0xAAAA)
+    # $12: moveq #1,d0
+    code += struct.pack('>H', 0x7001)
+    # $14: rts
+    code += struct.pack('>H', 0x4E75)
+    # caller_b at $16:
+    # $16: bsr.w skip_sub ($20)
+    code += struct.pack('>HH', 0x6100, 0x0008)
+    # $1A: dc.w $BBBB
+    code += struct.pack('>H', 0xBBBB)
+    # $1C: moveq #2,d0
+    code += struct.pack('>H', 0x7201)
+    # $1E: rts
+    code += struct.pack('>H', 0x4E75)
+    # skip_sub at $20:
+    # $20: movea.l (sp)+,a0
+    code += struct.pack('>H', 0x205F)
+    # $22: jmp 2(a0)
+    code += struct.pack('>HH', 0x4EE8, 0x0002)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+
+    # Should resolve both $12 (caller_a's data skip) and $1C (caller_b's)
+    assert 0x12 in targets, (
+        f"Expected $0012 from caller_a's inline skip, got {targets}")
+    assert 0x1C in targets, (
+        f"Expected $001C from caller_b's inline skip, got {targets}")
+
+

@@ -596,6 +596,50 @@ def test_bset_reg():
     assert cpu.d[0].concrete == 1
 
 
+# ── Multi-entry propagation ──────────────────────────────────────────
+
+def test_all_entry_points_get_exit_states():
+    """Every entry point should be seeded with initial state for propagation.
+
+    Entry point 0 has a BSR to sub_a at $04.
+    Entry point $0C (e.g. from a jump table) is a separate subroutine.
+    Both should have exit states after propagation.
+    """
+    code = b''
+    # $00: bsr.w $04
+    code += struct.pack('>HH', 0x6100, 0x0002)
+    # $04: rts (sub_a, called from entry 0)
+    code += struct.pack('>H', 0x4E75)
+    # $06: nop (padding)
+    code += struct.pack('>H', 0x4E71)
+    # $08: nop
+    code += struct.pack('>H', 0x4E71)
+    # $0A: nop
+    code += struct.pack('>H', 0x4E71)
+    # $0C: moveq #99,d0 (separate entry point, e.g. jump table target)
+    code += struct.pack('>H', 0x7063)
+    # $0E: rts
+    code += struct.pack('>H', 0x4E75)
+
+    platform = {"scratch_regs": []}
+    result = analyze(code, propagate=True, entry_points=[0, 0x0C],
+                     platform=platform)
+    exit_states = result.get("exit_states", {})
+
+    # Entry 0 and its callee ($04) should have exit states
+    assert 0 in exit_states, "Entry 0 should have exit state"
+
+    # Entry $0C should ALSO have exit state -- it's a valid entry point
+    assert 0x0C in exit_states, (
+        f"Entry $0C should have exit state (seeded as entry point), "
+        f"got states for: {sorted(hex(a) for a in exit_states)}")
+
+    # And D0 should be 99 at exit of $0C
+    cpu, _ = exit_states[0x0C]
+    assert cpu.d[0].is_known and cpu.d[0].concrete == 99, (
+        f"D0 should be 99 at exit of $0C, got {cpu.d[0]}")
+
+
 # ── Init memory join semantics ───────────────────────────────────────
 
 def test_init_mem_value_survives_join():
