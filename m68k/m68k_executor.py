@@ -11,6 +11,7 @@ Usage:
 """
 
 import json
+import operator
 import struct
 import sys
 from collections import deque
@@ -111,6 +112,17 @@ class Operand:
     index_is_addr: bool = False       # True if index is An, False if Dn
     index_size: str = "w"             # "w" or "l" for index register
     size: str | None = None           # operand size for immediates
+
+
+@dataclass
+class DecodedOps:
+    """Structured operands decoded from instruction opcode bytes."""
+    ea_op: Operand | None = None        # source EA from lower MODE/REGISTER
+    dst_op: Operand | None = None       # destination EA from upper MODE/REGISTER (MOVE)
+    reg_num: int | None = None          # register from upper REGISTER field
+    ea_is_source: bool | None = None    # from OPMODE table
+    imm_val: int | None = None          # immediate from DATA field or extension words
+    opcode: int = 0                     # raw opcode word
 
 
 # ── Operand decoder ───────────────────────────────────────────────────────
@@ -218,6 +230,141 @@ def _xf(word: int, field_spec: tuple) -> int:
     """Extract field from word given (bit_hi, bit_lo, width)."""
     bit_hi, bit_lo, width = field_spec
     return (word >> bit_lo) & ((1 << width) - 1)
+
+
+def decode_instruction_ops(inst: "Instruction", inst_kb: dict,
+                           size: str) -> DecodedOps:
+    """Decode structured operands from instruction bytes using KB encoding fields.
+
+    Returns a DecodedOps with:
+    - ea_op: the EA operand from MODE/REGISTER in bits 5-0
+    - dst_op: the destination EA from upper MODE/REGISTER (MOVE only)
+    - reg_num: the register number from REGISTER in bits 11-9
+    - ea_is_source: from OPMODE table (True=EA is src, False=EA is dst)
+    - imm_val: immediate from DATA field or extension words
+    - opcode: raw opcode word
+    """
+    meta = _KB_META
+    d = DecodedOps()
+    if len(inst.raw) < meta["opword_bytes"]:
+        return d
+    d.opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+    enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
+
+    mode_fields = sorted(
+        [f for f in enc_fields if f["name"] == "MODE"],
+        key=lambda f: f["bit_lo"])
+    reg_fields = sorted(
+        [f for f in enc_fields if f["name"] == "REGISTER"],
+        key=lambda f: f["bit_lo"])
+
+    # Decode EA from lowest MODE + lowest REGISTER
+    ext_pos = meta["opword_bytes"]
+    if mode_fields and reg_fields:
+        mf = mode_fields[0]
+        rf = reg_fields[0]
+        ea_mode = _xf(d.opcode, (mf["bit_hi"], mf["bit_lo"],
+                               mf["bit_hi"] - mf["bit_lo"] + 1))
+        ea_reg = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
+                              rf["bit_hi"] - rf["bit_lo"] + 1))
+        try:
+            d.ea_op, ext_pos = _decode_ea(
+                inst.raw, meta["opword_bytes"],
+                ea_mode, ea_reg, size, inst.offset)
+        except ValueError:
+            d.ea_op = None
+            ext_pos = meta["opword_bytes"]
+
+        # Destination EA from upper MODE + upper REGISTER (MOVE)
+        if len(mode_fields) >= 2 and len(reg_fields) >= 2:
+            dmf = mode_fields[1]
+            drf = reg_fields[1]
+            d_mode = _xf(d.opcode, (dmf["bit_hi"], dmf["bit_lo"],
+                                  dmf["bit_hi"] - dmf["bit_lo"] + 1))
+            d_reg = _xf(d.opcode, (drf["bit_hi"], drf["bit_lo"],
+                                 drf["bit_hi"] - drf["bit_lo"] + 1))
+            try:
+                d.dst_op, _ = _decode_ea(
+                    inst.raw, ext_pos,
+                    d_mode, d_reg, size, inst.offset)
+            except ValueError:
+                d.dst_op = None
+
+    # Upper register number (bits 11-9 typically)
+    if len(reg_fields) >= 2:
+        rf = reg_fields[-1]
+        d.reg_num = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
+                                 rf["bit_hi"] - rf["bit_lo"] + 1))
+
+    # OPMODE direction from KB opmode_table
+    opmode_table = inst_kb.get("constraints", {}).get("opmode_table")
+    if opmode_table:
+        opmode_f = next(
+            (f for f in enc_fields if f["name"] == "OPMODE"), None)
+        if opmode_f:
+            opmode_val = _xf(d.opcode, (
+                opmode_f["bit_hi"], opmode_f["bit_lo"],
+                opmode_f["bit_hi"] - opmode_f["bit_lo"] + 1))
+            for entry in opmode_table:
+                if entry["opmode"] == opmode_val:
+                    d.ea_is_source = entry.get("ea_is_source")
+                    break
+
+    # Decode immediate value from opcode (KB-driven).
+    # Pattern 1: DATA field in opcode (ADDQ/SUBQ/MOVEQ) --
+    #   immediate_range.field tells us which encoding field.
+    # Pattern 2: extension word immediate (ADDI/SUBI/etc.) --
+    #   no DATA field, immediate follows opword before EA.
+    imm_range = inst_kb.get("constraints", {}).get("immediate_range")
+    data_field_name = imm_range.get("field") if imm_range else None
+    if data_field_name:
+        # Pattern 1: immediate from named encoding field
+        df = next((f for f in enc_fields
+                   if f["name"] == data_field_name), None)
+        if df:
+            raw_val = _xf(d.opcode, (df["bit_hi"], df["bit_lo"],
+                                   df["bit_hi"] - df["bit_lo"] + 1))
+            # Apply constraints
+            if imm_range.get("zero_means") and raw_val == 0:
+                raw_val = imm_range["zero_means"]
+            if imm_range.get("signed"):
+                bits = imm_range["bits"]
+                if raw_val >= (1 << (bits - 1)):
+                    raw_val -= (1 << bits)
+                raw_val &= 0xFFFFFFFF
+            d.imm_val = raw_val
+
+    elif (not opmode_table and not data_field_name
+          and mode_fields and not imm_range):
+        # Pattern 2: extension word immediate (ADDI etc.).
+        # The immediate is the first extension word(s), followed
+        # by the EA extension words.  Size from the instruction.
+        imm_bytes = meta["size_byte_count"].get(
+            size, meta["size_byte_count"]["w"])
+        pos = meta["opword_bytes"]
+        if pos + imm_bytes <= len(inst.raw):
+            if imm_bytes <= 2:
+                d.imm_val = struct.unpack_from(">H", inst.raw, pos)[0]
+                if size == "b":
+                    d.imm_val &= 0xFF
+            else:
+                d.imm_val = struct.unpack_from(">I", inst.raw, pos)[0]
+            # Re-decode EA after the immediate
+            if mode_fields and reg_fields:
+                mf = mode_fields[0]
+                rf = reg_fields[0]
+                ea_m = _xf(d.opcode, (mf["bit_hi"], mf["bit_lo"],
+                                    mf["bit_hi"] - mf["bit_lo"] + 1))
+                ea_r = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
+                                    rf["bit_hi"] - rf["bit_lo"] + 1))
+                try:
+                    d.ea_op, _ = _decode_ea(
+                        inst.raw, pos + max(imm_bytes, 2),
+                        ea_m, ea_r, size, inst.offset)
+                except ValueError:
+                    pass
+
+    return d
 
 
 def _resolve_operand(operand: Operand, cpu, mem, size: str,
@@ -1329,13 +1476,665 @@ def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
     return None
 
 
+# ── Binary operation table ────────────────────────────────────────────────
+
+_BINARY_OPS = {
+    "add": operator.add,
+    "bitwise_and": operator.and_,
+    "bitwise_or": operator.or_,
+    "bitwise_xor": operator.xor,
+}
+
+
+def _sign_ext_src(val, src_sign_ext, size):
+    """Sign-extend source value per KB source_sign_extend."""
+    if src_sign_ext and size == "w" and val and val.is_known:
+        w_bits = _KB_META["size_byte_count"]["w"] * 8
+        w_mask = (1 << w_bits) - 1
+        v = val.concrete & w_mask
+        if v >= (1 << (w_bits - 1)):
+            v |= ~w_mask
+        return _concrete(v & 0xFFFFFFFF)
+    return val
+
+
+def _apply_binary_op(op_fn, d, inst_kb, cpu, mem, size, size_bytes,
+                     op_type):
+    """Apply a binary arithmetic/logic operation to the abstract state.
+
+    Handles three patterns from KB:
+    1. OPMODE-directed: ea_is_source determines direction (ADD/SUB/AND/OR/EOR)
+    2. Immediate + EA: ADDI/SUBI/ANDI/ORI/EORI
+    3. Error if neither pattern matches
+
+    For subtract with compare (operation_type=="compare"): no write (CMP/CMPI/CMPA).
+    Source sign-extension applied per KB source_sign_extend.
+    """
+    src_sign_ext = inst_kb.get("source_sign_extend", False)
+    is_compare = (op_type == "compare")
+    # For bitwise ops, the destination is always Dn (no source_sign_extend).
+    # For add/subtract, source_sign_extend distinguishes ADDA/SUBA (An dest)
+    # from ADD/SUB (Dn dest).
+    is_bitwise = (op_fn in (operator.and_, operator.or_, operator.xor))
+
+    if d.ea_is_source is not None and d.ea_op and d.reg_num is not None:
+        # OPMODE-directed
+        if is_bitwise:
+            dst_mode = "dn"
+        else:
+            dst_mode = "an" if src_sign_ext else "dn"
+        ea_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+        reg_val = cpu.get_reg(dst_mode, d.reg_num)
+        if d.ea_is_source:
+            src_val = _sign_ext_src(ea_val, src_sign_ext, size)
+            dst_val = reg_val
+        else:
+            src_val = _sign_ext_src(reg_val, src_sign_ext, size)
+            dst_val = ea_val
+        if not is_compare:
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                r = op_fn(dst_val.concrete, src_val.concrete) & 0xFFFFFFFF
+                if d.ea_is_source:
+                    cpu.set_reg(dst_mode, d.reg_num, _concrete(r))
+                else:
+                    _write_operand(d.ea_op, cpu, mem, _concrete(r),
+                                   size, size_bytes)
+            else:
+                if d.ea_is_source:
+                    cpu.set_reg(dst_mode, d.reg_num, _unknown())
+                else:
+                    _write_operand(d.ea_op, cpu, mem, _unknown(),
+                                   size, size_bytes)
+        # CMP/CMPA: no register/memory write (CC flags only)
+    elif d.imm_val is not None and d.ea_op:
+        # Immediate + EA destination (ADDQ/ADDI/SUBI/ANDI/ORI/EORI)
+        if not is_compare:
+            dst_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+            src_val = _sign_ext_src(_concrete(d.imm_val),
+                                    src_sign_ext, size)
+            if src_val and dst_val and src_val.is_known and dst_val.is_known:
+                r = op_fn(dst_val.concrete, src_val.concrete) & 0xFFFFFFFF
+                _write_operand(d.ea_op, cpu, mem, _concrete(r),
+                               size, size_bytes)
+            else:
+                _write_operand(d.ea_op, cpu, mem, _unknown(),
+                               size, size_bytes)
+        # CMPI: no write
+    elif is_compare:
+        pass  # compare: no register/memory write (CC flags only)
+    else:
+        mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
+        raise ValueError(
+            f"{op_fn.__name__}: no structured decode for {mnemonic}")
+
+
+def _apply_neg(d, inst_kb, cpu, mem, size, size_bytes, mask):
+    """Apply NEG: implicit(0) - destination (single operand)."""
+    mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
+    implicit_val = inst_kb.get("implicit_operand")
+    if implicit_val is None:
+        raise KeyError(f"implicit_operand missing for {mnemonic}")
+    if d.ea_op is None:
+        raise ValueError(
+            f"subtract/implicit: no EA for {mnemonic}")
+    dst_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+    if dst_val and dst_val.is_known:
+        result = (implicit_val - dst_val.concrete) & mask
+        if size != "l":
+            result = (dst_val.concrete & ~mask) | result
+        _write_operand(d.ea_op, cpu, mem,
+                       _concrete(result & 0xFFFFFFFF),
+                       size, size_bytes)
+    else:
+        _write_operand(d.ea_op, cpu, mem, _unknown(),
+                       size, size_bytes)
+
+
+def _apply_complement(d, cpu, mem, size, size_bytes, mask):
+    """Apply NOT: ~destination (single operand = ea_op)."""
+    if d.ea_op is None:
+        raise ValueError("bitwise_complement: no EA")
+    dst_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+    if dst_val and dst_val.is_known:
+        result = dst_val.concrete ^ mask
+        if size != "l":
+            result = (dst_val.concrete & ~mask) | result
+        _write_operand(d.ea_op, cpu, mem,
+                       _concrete(result & 0xFFFFFFFF),
+                       size, size_bytes)
+    else:
+        _write_operand(d.ea_op, cpu, mem, _unknown(),
+                       size, size_bytes)
+
+
+def _apply_swap(d, inst_kb, formula, cpu):
+    """Apply SWAP: exchange bit ranges within Dn."""
+    range_a = formula.get("range_a")
+    range_b = formula.get("range_b")
+    if not (range_a and range_b):
+        return
+    # Get Dn register: from ea_op if decoded, else from REGISTER field
+    if d.ea_op and d.ea_op.mode == "dn":
+        dn = d.ea_op.reg
+    else:
+        enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
+        rf = next((f for f in enc_fields
+                   if f["name"] == "REGISTER"), None)
+        if rf is None:
+            return
+        dn = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
+                           rf["bit_hi"] - rf["bit_lo"] + 1))
+    val = cpu.get_reg("dn", dn)
+    if val.is_known:
+        v = val.concrete
+        a_hi, a_lo = range_a
+        b_hi, b_lo = range_b
+        a_width = a_hi - a_lo + 1
+        b_width = b_hi - b_lo + 1
+        a_mask = ((1 << a_width) - 1) << a_lo
+        b_mask = ((1 << b_width) - 1) << b_lo
+        a_bits = (v & a_mask) >> a_lo
+        b_bits = (v & b_mask) >> b_lo
+        v = (v & ~(a_mask | b_mask)) | (b_bits << a_lo) | (a_bits << b_lo)
+        cpu.set_reg("dn", dn, _concrete(v & 0xFFFFFFFF))
+    else:
+        cpu.set_reg("dn", dn, _unknown())
+
+
+def _apply_sign_extend(d, inst_kb, formula, cpu, mnemonic, size):
+    """Apply EXT/EXTB: sign-extend Dn from source_bits_by_size."""
+    meta = _KB_META
+    src_bits_by_size = formula.get("source_bits_by_size")
+    if src_bits_by_size is None:
+        raise KeyError(f"source_bits_by_size missing for {mnemonic}")
+    # EXT has Dn in REGISTER field (no MODE field, so ea_op may
+    # be None).  Fall back to first REGISTER field from encoding.
+    if d.ea_op and d.ea_op.mode == "dn":
+        dn = d.ea_op.reg
+    else:
+        enc_fields = inst_kb.get("encodings", [{}])[0].get(
+            "fields", [])
+        rf = next((f for f in enc_fields
+                   if f["name"] == "REGISTER"), None)
+        if rf is None:
+            raise ValueError(
+                f"sign_extend: no Dn for {mnemonic}")
+        dn = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
+                           rf["bit_hi"] - rf["bit_lo"] + 1))
+    val = cpu.get_reg("dn", dn)
+    if val.is_known:
+        v = val.concrete
+        mnemonic_key = mnemonic.lower() + "_" + size
+        src_bits = src_bits_by_size.get(mnemonic_key,
+                                        src_bits_by_size.get(size))
+        if src_bits is None:
+            raise KeyError(
+                f"No source_bits for size={size} in {mnemonic}")
+        src_mask = (1 << src_bits) - 1
+        src_val = v & src_mask
+        w_bits = meta["size_byte_count"]["w"] * 8
+        w_mask = (1 << w_bits) - 1
+        if src_val >= (1 << (src_bits - 1)):
+            if size == "w":
+                extended = src_val | (~src_mask & w_mask)
+                v = (v & ~w_mask) | (extended & w_mask)
+            else:
+                v = src_val | ~src_mask
+        else:
+            if size == "w":
+                v = (v & ~w_mask) | (src_val & w_mask)
+            else:
+                v = src_val
+        cpu.set_reg("dn", dn, _concrete(v & 0xFFFFFFFF))
+    else:
+        cpu.set_reg("dn", dn, _unknown())
+
+
+def _apply_exg(d, inst_kb, cpu):
+    """Apply EXG: exchange two registers (KB operation_type == 'swap',
+    no compute_formula)."""
+    mnemonic = inst_kb.get("mnemonic", "?")
+    opmode_table = inst_kb.get("constraints", {}).get("opmode_table")
+    if opmode_table is None:
+        raise KeyError(f"opmode_table missing for {mnemonic}")
+    # Get OPMODE from encoding
+    opmode_f = next(
+        (f for f in inst_kb["encodings"][0]["fields"]
+         if f["name"] == "OPMODE"), None)
+    if opmode_f is None:
+        raise KeyError(f"OPMODE field missing for {mnemonic}")
+    opmode_val = _xf(d.opcode, (opmode_f["bit_hi"],
+                               opmode_f["bit_lo"],
+                               opmode_f["bit_hi"] - opmode_f["bit_lo"] + 1))
+    entry = next((e for e in opmode_table
+                   if e["opmode"] == opmode_val), None)
+    if entry is None:
+        raise ValueError(
+            f"Unknown OPMODE {opmode_val} for {mnemonic}")
+    # Rx from bits 11-9, Ry from bits 2-0
+    rx_f = next(f for f in inst_kb["encodings"][0]["fields"]
+                if f["name"].startswith("REGISTER") and f["bit_hi"] > 5)
+    ry_f = next(f for f in inst_kb["encodings"][0]["fields"]
+                if f["name"].startswith("REGISTER") and f["bit_hi"] <= 5)
+    rx = _xf(d.opcode, (rx_f["bit_hi"], rx_f["bit_lo"],
+                       rx_f["bit_hi"] - rx_f["bit_lo"] + 1))
+    ry = _xf(d.opcode, (ry_f["bit_hi"], ry_f["bit_lo"],
+                       ry_f["bit_hi"] - ry_f["bit_lo"] + 1))
+    rx_mode = entry["rx_mode"]
+    ry_mode = entry["ry_mode"]
+    sv = cpu.get_reg(rx_mode, rx)
+    dv = cpu.get_reg(ry_mode, ry)
+    cpu.set_reg(rx_mode, rx, dv)
+    cpu.set_reg(ry_mode, ry, sv)
+
+
+def _apply_movem(inst, inst_kb, d, cpu, mem):
+    """Apply MOVEM: move multiple registers to/from memory."""
+    meta = _KB_META
+    opword_bytes = meta["opword_bytes"]
+    if len(inst.raw) < opword_bytes + 2:
+        return  # truncated
+    opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+    reg_mask = struct.unpack_from(">H", inst.raw, opword_bytes)[0]
+
+    # Direction from KB encoding "dr" field
+    dr_field = None
+    for f in inst_kb["encodings"][0]["fields"]:
+        if f["name"] == "dr":
+            dr_field = (f["bit_hi"], f["bit_lo"],
+                        f["bit_hi"] - f["bit_lo"] + 1)
+            break
+    if dr_field is None:
+        raise KeyError("MOVEM encoding lacks 'dr' field")
+    direction = _xf(opcode, dr_field)  # 0=reg-to-mem, 1=mem-to-reg
+
+    # EA mode from encoding
+    ea_mode_f = ea_reg_f = None
+    for f in inst_kb["encodings"][0]["fields"]:
+        if f["name"] == "MODE":
+            ea_mode_f = (f["bit_hi"], f["bit_lo"],
+                         f["bit_hi"] - f["bit_lo"] + 1)
+        elif f["name"] == "REGISTER" and f["bit_hi"] <= 5:
+            ea_reg_f = (f["bit_hi"], f["bit_lo"],
+                        f["bit_hi"] - f["bit_lo"] + 1)
+    if ea_mode_f is None or ea_reg_f is None:
+        raise KeyError("MOVEM encoding lacks MODE/REGISTER fields")
+    ea_mode = _xf(opcode, ea_mode_f)
+    ea_reg = _xf(opcode, ea_reg_f)
+
+    # EA mode name from KB
+    ea_enc = meta["ea_mode_encoding"]
+    predec_enc = ea_enc["predec"]
+    postinc_enc = ea_enc["postinc"]
+    is_predec = (ea_mode == predec_enc[0])
+    is_postinc = (ea_mode == postinc_enc[0])
+
+    # Register order from KB movem_reg_masks
+    masks = meta["movem_reg_masks"]
+    reg_order = masks["predecrement"] if is_predec else masks["normal"]
+
+    # Collect registers to transfer (bit N set -> reg_order[N])
+    regs = []
+    for bit in range(16):
+        if reg_mask & (1 << bit):
+            regs.append(reg_order[bit])
+
+    if not regs:
+        return
+
+    # Size from KB encoding "SIZE" field
+    size_field = None
+    for f in inst_kb["encodings"][0]["fields"]:
+        if f["name"] == "SIZE":
+            size_field = (f["bit_hi"], f["bit_lo"],
+                          f["bit_hi"] - f["bit_lo"] + 1)
+            break
+    if size_field is None:
+        raise KeyError("MOVEM encoding lacks 'SIZE' field")
+    size_bit = _xf(opcode, size_field)
+    xfer_size = "l" if size_bit == 1 else "w"
+    xfer_bytes = meta["size_byte_count"][xfer_size]
+
+    sp_reg = meta["_sp_reg_num"]
+
+    if direction == 0 and is_predec and ea_reg == sp_reg:
+        # Register-to-memory via -(SP): push registers onto stack.
+        # SP decrements BEFORE each transfer (predecrement mode).
+        total_bytes = len(regs) * xfer_bytes
+        for reg_name in regs:
+            reg_info = _parse_reg_from_text(reg_name)
+            if reg_info is None:
+                continue
+            # Decrement SP
+            if cpu.sp.is_known:
+                cpu.sp = _concrete(
+                    (cpu.sp.concrete - xfer_bytes) & 0xFFFFFFFF)
+            elif cpu.sp.is_symbolic:
+                cpu.sp = cpu.sp.sym_add(-xfer_bytes)
+            else:
+                break
+            # Write register value to memory at new SP
+            val = cpu.get_reg(reg_info[0], reg_info[1])
+            mem.write(cpu.sp, val, xfer_size)
+
+    elif direction == 1 and is_postinc and ea_reg == sp_reg:
+        # Memory-to-register via (SP)+: pop registers from stack.
+        # SP increments AFTER each transfer (postincrement mode).
+        for reg_name in regs:
+            reg_info = _parse_reg_from_text(reg_name)
+            if reg_info is None:
+                continue
+            # Read from current SP
+            if cpu.sp.is_known:
+                val = mem.read(cpu.sp.concrete, xfer_size)
+            elif cpu.sp.is_symbolic:
+                val = mem.read(cpu.sp, xfer_size)
+            else:
+                val = _unknown()
+            cpu.set_reg(reg_info[0], reg_info[1], val)
+            # Increment SP
+            if cpu.sp.is_known:
+                cpu.sp = _concrete(
+                    (cpu.sp.concrete + xfer_bytes) & 0xFFFFFFFF)
+            elif cpu.sp.is_symbolic:
+                cpu.sp = cpu.sp.sym_add(xfer_bytes)
+
+    else:
+        # Non-stack MOVEM (e.g. to/from absolute address):
+        # no SP effect, registers become unknown for loads.
+        if direction == 1:
+            for reg_name in regs:
+                reg_info = _parse_reg_from_text(reg_name)
+                if reg_info:
+                    cpu.set_reg(reg_info[0], reg_info[1], _unknown())
+
+
+def _apply_lea(d, cpu):
+    """Apply LEA: load effective address into An register."""
+    meta = _KB_META
+    src_op = d.ea_op
+    addr_val = None
+    if src_op:
+        # Compute the EA address from the decoded operand
+        if src_op.mode == "pcdisp":
+            addr_val = _concrete(src_op.value)
+        elif src_op.mode == "pcindex":
+            base_addr_val = src_op.value
+            idx_mode = "an" if src_op.index_is_addr else "dn"
+            idx_val = cpu.get_reg(idx_mode, src_op.index_reg)
+            if idx_val.is_known:
+                nbits = meta["size_byte_count"][
+                    src_op.index_size] * 8
+                mask = (1 << nbits) - 1
+                iv = idx_val.concrete & mask
+                if iv >= (1 << (nbits - 1)):
+                    iv -= (1 << nbits)
+                addr_val = _concrete(
+                    (base_addr_val + iv) & 0xFFFFFFFF)
+        elif src_op.mode == "disp":
+            base = cpu.a[src_op.reg]
+            if base.is_known:
+                addr_val = _concrete(
+                    (base.concrete + src_op.value) & 0xFFFFFFFF)
+            elif base.is_symbolic:
+                addr_val = base.sym_add(src_op.value)
+        elif src_op.mode == "ind":
+            addr_val = cpu.get_reg("an", src_op.reg)
+        elif src_op.mode in ("absw", "absl"):
+            addr_val = _concrete(src_op.value)
+    # Write to destination An (from KB encoding)
+    if d.reg_num is not None:
+        cpu.set_reg("an", d.reg_num,
+                    addr_val if addr_val else _unknown())
+
+
+def _apply_pea(inst_kb, d, cpu, mem):
+    """Apply PEA: push effective address to stack."""
+    meta = _KB_META
+    # Validate EA mode against KB-allowed modes (catches internal bugs)
+    pea_ea_modes = inst_kb.get("ea_modes", {}).get("ea", [])
+    if pea_ea_modes and d.ea_op.mode not in pea_ea_modes:
+        raise ValueError(
+            f"PEA: EA mode {d.ea_op.mode!r} not in allowed modes "
+            f"{pea_ea_modes} (internal bug)")
+    # Compute the effective address (not the value at it)
+    addr_val = resolve_ea(d.ea_op, cpu, "l")
+    if addr_val is not None and (cpu.sp.is_known or cpu.sp.is_symbolic):
+        # Write size from KB sp_effects decrement
+        push_bytes = sum(
+            e["bytes"] for e in inst_kb["sp_effects"]
+            if e.get("action") == "decrement")
+        write_size = next(
+            k for k, v in meta["size_byte_count"].items()
+            if v == push_bytes)
+        mem.write(cpu.sp, addr_val, write_size)
+
+
+def _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform):
+    """Apply MOVE/MOVEA/MOVEQ/CLR family."""
+    meta = _KB_META
+    formula = inst_kb.get("compute_formula", {})
+    terms = formula.get("terms", [])
+    src_sign_ext = inst_kb.get("source_sign_extend", False)
+    mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
+    src_op = d.ea_op  # alias for assign handler
+
+    if "implicit" in terms:
+        # CLR: assign implicit_operand (0) to destination.
+        implicit_val = inst_kb.get("implicit_operand")
+        if implicit_val is None:
+            raise KeyError(f"implicit_operand missing for {mnemonic}")
+        write_op = d.dst_op if d.dst_op else src_op
+        if write_op:
+            _write_operand(write_op, cpu, mem,
+                           _concrete(implicit_val), size, size_bytes)
+        return
+
+    # Source-assign: MOVE, MOVEA, MOVEQ.
+    # Source from structured EA decode, or from decoded immediate
+    # (MOVEQ has immediate in DATA field, not EA).
+    if src_op:
+        src_val = _resolve_operand(src_op, cpu, mem, size, size_bytes)
+    elif d.imm_val is not None:
+        src_val = _concrete(d.imm_val)
+    else:
+        src_val = None
+
+    # Sign-extend immediate from KB constraints.immediate_range
+    imm_range = inst_kb.get("constraints", {}).get("immediate_range")
+    if imm_range and imm_range.get("signed") and src_val and src_val.is_known:
+        bits = imm_range["bits"]
+        val = src_val.concrete & ((1 << bits) - 1)
+        if val >= (1 << (bits - 1)):
+            val |= ~((1 << bits) - 1)
+        val &= 0xFFFFFFFF
+        src_val = _concrete(val)
+
+    # Source sign-extension from KB source_sign_extend
+    if src_sign_ext and size == "w" and src_val and src_val.is_known:
+        w_bits = meta["size_byte_count"]["w"] * 8
+        w_mask = (1 << w_bits) - 1
+        val = src_val.concrete & w_mask
+        if val >= (1 << (w_bits - 1)):
+            val |= ~w_mask
+        src_val = _concrete(val & 0xFFFFFFFF)
+
+    # ExecBase load: MOVEA.L ($N).W,An -- source is absw
+    # matching platform exec_base_addr.
+    if (src_val is None and platform and src_op
+            and src_op.mode == "absw"
+            and src_op.value == platform.get("exec_base_addr")):
+        src_val = _unknown(tag=platform.get("exec_base_tag"))
+
+    # Write to destination.
+    result = src_val if src_val is not None else _unknown()
+    if d.dst_op:
+        _write_operand(d.dst_op, cpu, mem, result, size, size_bytes)
+    elif d.reg_num is not None:
+        if src_sign_ext:
+            cpu.set_reg("an", d.reg_num, result)
+        else:
+            cpu.set_reg("dn", d.reg_num, result)
+    else:
+        # Single REGISTER field (MOVEQ: Dn from bits 11-9).
+        # The EA is the source (imm_val), the register is the dest.
+        enc_fields = inst_kb.get("encodings", [{}])[0].get(
+            "fields", [])
+        single_rf = [f for f in enc_fields
+                     if f["name"].startswith("REGISTER")]
+        if single_rf:
+            rf = max(single_rf, key=lambda f: f["bit_lo"])
+            rn = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
+                               rf["bit_hi"] - rf["bit_lo"] + 1))
+            cpu.set_reg("dn", rn, result)
+        elif d.ea_op:
+            _write_operand(d.ea_op, cpu, mem, result,
+                           size, size_bytes)
+
+
+def _resolve_os_call(inst, inst_kb, cpu, platform, code):
+    """Resolve OS library call from instruction EA.
+
+    Returns call_effect dict or None.
+    """
+    meta = _KB_META
+    call_effect = None
+    resolver = platform.get("_os_call_resolver")
+    if resolver and len(inst.raw) >= meta["opword_bytes"]:
+        lvo = None
+        base_reg_num = platform["_base_reg_num"]
+        opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+        # Extract EA fields from KB encoding
+        enc_fields = inst_kb.get("encodings", [{}])[0].get(
+            "fields", [])
+        ea_mode_f = ea_reg_f = None
+        for f in enc_fields:
+            if f["name"] == "MODE":
+                ea_mode_f = (f["bit_hi"], f["bit_lo"],
+                             f["bit_hi"] - f["bit_lo"] + 1)
+            elif (f["name"] == "REGISTER"
+                  and f["bit_hi"] <= 5):
+                ea_reg_f = (f["bit_hi"], f["bit_lo"],
+                            f["bit_hi"] - f["bit_lo"] + 1)
+        if ea_mode_f and ea_reg_f:
+            ea_mode = _xf(opcode, ea_mode_f)
+            ea_reg = _xf(opcode, ea_reg_f)
+            try:
+                operand, _ = _decode_ea(
+                    inst.raw, meta["opword_bytes"],
+                    ea_mode, ea_reg, "l", inst.offset)
+            except ValueError:
+                operand = None
+            if operand:
+                if (operand.mode == "disp"
+                        and operand.reg == base_reg_num):
+                    lvo = operand.value
+                elif (operand.mode == "index"
+                      and operand.reg == base_reg_num):
+                    # LVO = displacement + index reg value
+                    idx_mode = ("an" if operand.index_is_addr
+                                else "dn")
+                    idx_val = cpu.get_reg(
+                        idx_mode, operand.index_reg)
+                    if idx_val.is_known:
+                        idx_v = idx_val.concrete
+                        if operand.index_size == "w":
+                            idx_v = _to_signed(
+                                idx_v & 0xFFFF, "w")
+                        else:
+                            idx_v = _to_signed(
+                                idx_v & 0xFFFFFFFF, "l")
+                        lvo = operand.value + idx_v
+        a6_tag = cpu.a[base_reg_num].tag
+        a6_lib = (a6_tag.get("library_base")
+                  if a6_tag else None)
+        if lvo is not None and a6_lib:
+            call_effect = resolver(
+                inst.offset, lvo, a6_lib, cpu, code,
+                platform=platform)
+    return call_effect
+
+
+def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
+                      code):
+    """Apply SP effects and OS call resolution (orthogonal to compute).
+
+    Handles SP decrement/increment, displacement_adjust (LINK),
+    call return address write, scratch reg invalidation, and OS
+    call resolution.
+    """
+    meta = _KB_META
+    sp_effects = inst_kb.get("sp_effects", [])
+    if not sp_effects:
+        return
+
+    for effect in sp_effects:
+        action = effect.get("action")
+        if "bytes" not in effect and action in ("decrement", "increment"):
+            raise KeyError(
+                f"sp_effects.bytes missing for {mnemonic} action={action}")
+        if action == "decrement":
+            if cpu.sp.is_known:
+                cpu.sp = _concrete(cpu.sp.concrete - effect["bytes"])
+            elif cpu.sp.is_symbolic:
+                cpu.sp = cpu.sp.sym_add(-effect["bytes"])
+        elif action == "increment":
+            if cpu.sp.is_known:
+                cpu.sp = _concrete(cpu.sp.concrete + effect["bytes"])
+            elif cpu.sp.is_symbolic:
+                cpu.sp = cpu.sp.sym_add(effect["bytes"])
+        elif action == "displacement_adjust":
+            # LINK-style: SP += displacement (negative = allocate).
+            # Displacement from extension word (KB immediate_range).
+            disp_val = d.imm_val
+            if disp_val is None and len(inst.raw) >= 4:
+                disp_val = struct.unpack_from(
+                    ">h", inst.raw, meta["opword_bytes"])[0]
+            if disp_val is not None:
+                disp = _to_signed(disp_val & 0xFFFF, "w")
+                if cpu.sp.is_known:
+                    cpu.sp = _concrete(cpu.sp.concrete + disp)
+                elif cpu.sp.is_symbolic:
+                    cpu.sp = cpu.sp.sym_add(disp)
+
+    # For call instructions (JSR/BSR), write the return address to
+    # the stack.  The return address is the instruction immediately
+    # after the call.  This enables RTS resolution and push/pop
+    # patterns to work through abstract memory.
+    if cpu.sp.is_known or cpu.sp.is_symbolic:
+        flow = inst_kb.get("pc_effects", {}).get("flow", {})
+        if flow.get("type") == "call":
+            return_addr = inst.offset + inst.size
+            mem.write(cpu.sp, _concrete(return_addr), "l")
+
+    # After call instructions, invalidate scratch registers per
+    # platform calling convention.  Detect calls by KB pc_effects
+    # flow type, not by SP decrement (PEA also decrements SP but
+    # isn't a call).
+    if platform and platform.get("scratch_regs"):
+        flow_type = inst_kb.get("pc_effects", {}).get(
+            "flow", {}).get("type")
+        if flow_type == "call":
+            # Resolve call effects before invalidation (needs pre-call
+            # register state for input registers like A1 name string).
+            call_effect = _resolve_os_call(inst, inst_kb, cpu, platform,
+                                           code)
+
+            # Store call effect for propagate_states to apply
+            # after scratch reg invalidation on the fallthrough.
+            # Don't invalidate here -- the callee needs the
+            # pre-call register state (e.g. D0 = LVO offset).
+            if call_effect:
+                platform["_pending_call_effect"] = call_effect
+
+
 def _apply_instruction(inst: Instruction, inst_kb: dict,
                        cpu: "CPUState_inner", mem: AbstractMemory,
                        code: bytes, base_addr: int,
                        platform: dict | None = None):
     """Apply one instruction's effects to the abstract state.
 
-    Dispatches on KB compute_formula.op and operation_type — not mnemonics.
+    Dispatches on KB compute_formula.op and operation_type -- not mnemonics.
     Sign-extension widths, bit ranges, and implicit operands all come from KB.
     LEA is the one exception: it resolves the EA address (not value) and has
     no KB field to distinguish this from MOVE, so it is detected by its unique
@@ -1344,838 +2143,83 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     If platform is provided (from OS KB calling_convention), scratch registers
     are invalidated after call instructions.
     """
-    meta = _KB_META
-    text = inst.text.strip()
-    mnemonic = _extract_mnemonic(text)
-    size = _extract_size(text)
-    if size not in _SIZE_BYTE_COUNT:
-        # Unsized instructions (e.g. JMP, LEA) default to word
-        # for extension word parsing — not an error.
-        size_bytes = _SIZE_BYTE_COUNT["w"]
-    else:
-        size_bytes = _SIZE_BYTE_COUNT[size]
+    mnemonic = _extract_mnemonic(inst.text)
+    size = _extract_size(inst.text)
+    size_bytes = _SIZE_BYTE_COUNT.get(size, _SIZE_BYTE_COUNT["w"])
     mask = (1 << (size_bytes * 8)) - 1
 
-    # KB fields that drive dispatch
     formula = inst_kb.get("compute_formula")
     op = formula.get("op") if formula else None
     op_type = inst_kb.get("operation_type")
-    src_sign_ext = inst_kb.get("source_sign_extend", False)
 
-    # Decode structured operands from opcode bytes (KB-driven).
-    # ea_op: the EA operand from MODE/REGISTER in bits 5-0
-    # dst_op: the destination EA from upper MODE/REGISTER (MOVE only)
-    # reg_num: the register number from REGISTER in bits 11-9
-    # For OPMODE instructions: ea_is_source from KB opmode_table
-    ea_op = dst_op = None
-    opcode = 0
-    reg_num = None  # register from upper REGISTER field
-    ea_is_source = None  # from OPMODE: True=EA is src, False=EA is dst
-    imm_val = None  # immediate from DATA field or extension words
-    if len(inst.raw) >= meta["opword_bytes"]:
-        opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-        enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
+    d = decode_instruction_ops(inst, inst_kb, size)
 
-        mode_fields = sorted(
-            [f for f in enc_fields if f["name"] == "MODE"],
-            key=lambda f: f["bit_lo"])
-        reg_fields = sorted(
-            [f for f in enc_fields if f["name"] == "REGISTER"],
-            key=lambda f: f["bit_lo"])
+    # SP effects (orthogonal to compute)
+    _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
+                      code)
 
-        # Decode EA from lowest MODE + lowest REGISTER
-        if mode_fields and reg_fields:
-            mf = mode_fields[0]
-            rf = reg_fields[0]
-            ea_mode = _xf(opcode, (mf["bit_hi"], mf["bit_lo"],
-                                   mf["bit_hi"] - mf["bit_lo"] + 1))
-            ea_reg = _xf(opcode, (rf["bit_hi"], rf["bit_lo"],
-                                  rf["bit_hi"] - rf["bit_lo"] + 1))
-            try:
-                ea_op, ext_pos = _decode_ea(
-                    inst.raw, meta["opword_bytes"],
-                    ea_mode, ea_reg, size, inst.offset)
-            except ValueError:
-                ea_op = None
-                ext_pos = meta["opword_bytes"]
-
-            # Destination EA from upper MODE + upper REGISTER (MOVE)
-            if len(mode_fields) >= 2 and len(reg_fields) >= 2:
-                dmf = mode_fields[1]
-                drf = reg_fields[1]
-                d_mode = _xf(opcode, (dmf["bit_hi"], dmf["bit_lo"],
-                                      dmf["bit_hi"] - dmf["bit_lo"] + 1))
-                d_reg = _xf(opcode, (drf["bit_hi"], drf["bit_lo"],
-                                     drf["bit_hi"] - drf["bit_lo"] + 1))
-                try:
-                    dst_op, _ = _decode_ea(
-                        inst.raw, ext_pos,
-                        d_mode, d_reg, size, inst.offset)
-                except ValueError:
-                    dst_op = None
-
-        # Upper register number (bits 11-9 typically)
-        if len(reg_fields) >= 2:
-            rf = reg_fields[-1]
-            reg_num = _xf(opcode, (rf["bit_hi"], rf["bit_lo"],
-                                   rf["bit_hi"] - rf["bit_lo"] + 1))
-
-        # OPMODE direction from KB opmode_table
-        opmode_table = inst_kb.get("constraints", {}).get("opmode_table")
-        if opmode_table:
-            opmode_f = next(
-                (f for f in enc_fields if f["name"] == "OPMODE"), None)
-            if opmode_f:
-                opmode_val = _xf(opcode, (
-                    opmode_f["bit_hi"], opmode_f["bit_lo"],
-                    opmode_f["bit_hi"] - opmode_f["bit_lo"] + 1))
-                for entry in opmode_table:
-                    if entry["opmode"] == opmode_val:
-                        ea_is_source = entry.get("ea_is_source")
-                        break
-
-        # Decode immediate value from opcode (KB-driven).
-        # Pattern 1: DATA field in opcode (ADDQ/SUBQ/MOVEQ) —
-        #   immediate_range.field tells us which encoding field.
-        # Pattern 2: extension word immediate (ADDI/SUBI/etc.) —
-        #   no DATA field, immediate follows opword before EA.
-        imm_range = inst_kb.get("constraints", {}).get("immediate_range")
-        data_field_name = imm_range.get("field") if imm_range else None
-        if data_field_name:
-            # Pattern 1: immediate from named encoding field
-            df = next((f for f in enc_fields
-                       if f["name"] == data_field_name), None)
-            if df:
-                raw_val = _xf(opcode, (df["bit_hi"], df["bit_lo"],
-                                       df["bit_hi"] - df["bit_lo"] + 1))
-                # Apply constraints
-                if imm_range.get("zero_means") and raw_val == 0:
-                    raw_val = imm_range["zero_means"]
-                if imm_range.get("signed"):
-                    bits = imm_range["bits"]
-                    if raw_val >= (1 << (bits - 1)):
-                        raw_val -= (1 << bits)
-                    raw_val &= 0xFFFFFFFF
-                imm_val = raw_val
-
-        elif (not opmode_table and not data_field_name
-              and mode_fields and not imm_range):
-            # Pattern 2: extension word immediate (ADDI etc.).
-            # The immediate is the first extension word(s), followed
-            # by the EA extension words.  Size from the instruction.
-            imm_bytes = meta["size_byte_count"].get(
-                size, meta["size_byte_count"]["w"])
-            pos = meta["opword_bytes"]
-            if pos + imm_bytes <= len(inst.raw):
-                if imm_bytes <= 2:
-                    imm_val = struct.unpack_from(">H", inst.raw, pos)[0]
-                    if size == "b":
-                        imm_val &= 0xFF
-                else:
-                    imm_val = struct.unpack_from(">I", inst.raw, pos)[0]
-                # Re-decode EA after the immediate
-                if mode_fields and reg_fields:
-                    mf = mode_fields[0]
-                    rf = reg_fields[0]
-                    ea_m = _xf(opcode, (mf["bit_hi"], mf["bit_lo"],
-                                        mf["bit_hi"] - mf["bit_lo"] + 1))
-                    ea_r = _xf(opcode, (rf["bit_hi"], rf["bit_lo"],
-                                        rf["bit_hi"] - rf["bit_lo"] + 1))
-                    try:
-                        ea_op, _ = _decode_ea(
-                            inst.raw, pos + max(imm_bytes, 2),
-                            ea_m, ea_r, size, inst.offset)
-                    except ValueError:
-                        pass
-
-    src_op = ea_op  # for assign handler
-
-    # SP-modifying instructions: track stack pointer (check first, these
-    # are orthogonal to compute effects and may return early)
-    sp_effects = inst_kb.get("sp_effects", [])
-    if sp_effects:
-        for effect in sp_effects:
-            action = effect.get("action")
-            if "bytes" not in effect and action in ("decrement", "increment"):
-                raise KeyError(
-                    f"sp_effects.bytes missing for {mnemonic} action={action}")
-            if action == "decrement":
-                if cpu.sp.is_known:
-                    cpu.sp = _concrete(cpu.sp.concrete - effect["bytes"])
-                elif cpu.sp.is_symbolic:
-                    cpu.sp = cpu.sp.sym_add(-effect["bytes"])
-            elif action == "increment":
-                if cpu.sp.is_known:
-                    cpu.sp = _concrete(cpu.sp.concrete + effect["bytes"])
-                elif cpu.sp.is_symbolic:
-                    cpu.sp = cpu.sp.sym_add(effect["bytes"])
-            elif action == "displacement_adjust":
-                # LINK-style: SP += displacement (negative = allocate).
-                # Displacement from extension word (KB immediate_range).
-                disp_val = imm_val
-                if disp_val is None and len(inst.raw) >= 4:
-                    disp_val = struct.unpack_from(
-                        ">h", inst.raw, meta["opword_bytes"])[0]
-                if disp_val is not None:
-                    disp = _to_signed(disp_val & 0xFFFF, "w")
-                    if cpu.sp.is_known:
-                        cpu.sp = _concrete(cpu.sp.concrete + disp)
-                    elif cpu.sp.is_symbolic:
-                        cpu.sp = cpu.sp.sym_add(disp)
-        # For call instructions (JSR/BSR), write the return address to
-        # the stack.  The return address is the instruction immediately
-        # after the call.  This enables RTS resolution and push/pop
-        # patterns to work through abstract memory.
-        if cpu.sp.is_known or cpu.sp.is_symbolic:
-            flow = inst_kb.get("pc_effects", {}).get("flow", {})
-            if flow.get("type") == "call":
-                return_addr = inst.offset + inst.size
-                mem.write(cpu.sp, _concrete(return_addr), "l")
-
-        # After call instructions, invalidate scratch registers per
-        # platform calling convention.  Detect calls by KB pc_effects
-        # flow type, not by SP decrement (PEA also decrements SP but
-        # isn't a call).
-        if platform and platform.get("scratch_regs"):
-            flow_type = inst_kb.get("pc_effects", {}).get(
-                "flow", {}).get("type")
-            if flow_type == "call":
-                # Resolve call effects before invalidation (needs pre-call
-                # register state for input registers like A1 name string).
-                # Decode EA from opcode bits (KB-driven, not text parsing).
-                call_effect = None
-                resolver = platform.get("_os_call_resolver")
-                if resolver and len(inst.raw) >= meta["opword_bytes"]:
-                    lvo = None
-                    base_reg_num = platform["_base_reg_num"]
-                    opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-                    # Extract EA fields from KB encoding
-                    enc_fields = inst_kb.get("encodings", [{}])[0].get(
-                        "fields", [])
-                    ea_mode_f = ea_reg_f = None
-                    for f in enc_fields:
-                        if f["name"] == "MODE":
-                            ea_mode_f = (f["bit_hi"], f["bit_lo"],
-                                         f["bit_hi"] - f["bit_lo"] + 1)
-                        elif (f["name"] == "REGISTER"
-                              and f["bit_hi"] <= 5):
-                            ea_reg_f = (f["bit_hi"], f["bit_lo"],
-                                        f["bit_hi"] - f["bit_lo"] + 1)
-                    if ea_mode_f and ea_reg_f:
-                        ea_mode = _xf(opcode, ea_mode_f)
-                        ea_reg = _xf(opcode, ea_reg_f)
-                        try:
-                            operand, _ = _decode_ea(
-                                inst.raw, meta["opword_bytes"],
-                                ea_mode, ea_reg, "l", inst.offset)
-                        except ValueError:
-                            operand = None
-                        if operand:
-                            if (operand.mode == "disp"
-                                    and operand.reg == base_reg_num):
-                                lvo = operand.value
-                            elif (operand.mode == "index"
-                                  and operand.reg == base_reg_num):
-                                # LVO = displacement + index reg value
-                                idx_mode = ("an" if operand.index_is_addr
-                                            else "dn")
-                                idx_val = cpu.get_reg(
-                                    idx_mode, operand.index_reg)
-                                if idx_val.is_known:
-                                    idx_v = idx_val.concrete
-                                    if operand.index_size == "w":
-                                        idx_v = _to_signed(
-                                            idx_v & 0xFFFF, "w")
-                                    else:
-                                        idx_v = _to_signed(
-                                            idx_v & 0xFFFFFFFF, "l")
-                                    lvo = operand.value + idx_v
-                    a6_tag = cpu.a[base_reg_num].tag
-                    a6_lib = (a6_tag.get("library_base")
-                              if a6_tag else None)
-                    if lvo is not None and a6_lib:
-                        call_effect = resolver(
-                            inst.offset, lvo, a6_lib, cpu, code,
-                            platform=platform)
-
-                # Store call effect for propagate_states to apply
-                # after scratch reg invalidation on the fallthrough.
-                # Don't invalidate here — the callee needs the
-                # pre-call register state (e.g. D0 = LVO offset).
-                if call_effect:
-                    platform["_pending_call_effect"] = call_effect
-
-    # Flow-control and SP-only instructions stop here.
-    # Branch/jump/return/call have their effects handled above.
-    # Instructions whose compute_formula describes SP operations
-    # (PEA, LINK) also stop here — their SP effects are already applied.
-    # EXG has no compute_formula (op is None) but has register effects
-    # handled below via operation_type == "swap".
-    flow_check = inst_kb.get("pc_effects", {}).get("flow", {})
-    if flow_check.get("type") in (
-            "branch", "jump", "return", "call"):
+    # Flow-control stops here
+    flow = inst_kb.get("pc_effects", {}).get("flow", {})
+    if flow.get("type") in ("branch", "jump", "return", "call"):
         return
     if op is None and op_type != "swap":
         return
-    # PEA: pushes EA address to stack.  SP decrement already handled.
-    # Write the EA address to memory at the new SP.
-    # The write size is derived from the KB sp_effects decrement bytes.
-    if inst_kb.get("sp_effects") and op_type == "sub" and ea_op:
-        # Validate EA mode against KB-allowed modes (catches internal bugs)
-        pea_ea_modes = inst_kb.get("ea_modes", {}).get("ea", [])
-        if pea_ea_modes and ea_op.mode not in pea_ea_modes:
-            raise ValueError(
-                f"PEA: EA mode {ea_op.mode!r} not in allowed modes "
-                f"{pea_ea_modes} (internal bug)")
-        # Compute the effective address (not the value at it)
-        addr_val = resolve_ea(ea_op, cpu, "l")
-        if addr_val is not None and (cpu.sp.is_known or cpu.sp.is_symbolic):
-            # Write size from KB sp_effects decrement
-            push_bytes = sum(
-                e["bytes"] for e in inst_kb["sp_effects"]
-                if e.get("action") == "decrement")
-            write_size = next(
-                k for k, v in meta["size_byte_count"].items()
-                if v == push_bytes)
-            mem.write(cpu.sp, addr_val, write_size)
+
+    # Special handlers by operation_class
+    op_class = inst_kb.get("operation_class")
+    if op_class == "multi_register_transfer":
+        _apply_movem(inst, inst_kb, d, cpu, mem)
+        return
+    if op_class == "load_effective_address" and op == "assign":
+        _apply_lea(d, cpu)
         return
 
-    # MOVEM: Move Multiple Registers.  Transfers a set of registers
-    # to/from memory via a 16-bit mask in the extension word.
-    # Detected by KB operation_class (set by parser from form syntax).
-    # Register order from KB movem_reg_masks (normal vs predecrement).
-    if inst_kb.get("operation_class") == "multi_register_transfer":
-        opword_bytes = meta["opword_bytes"]
-        if len(inst.raw) < opword_bytes + 2:
-            return  # truncated
-        opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-        reg_mask = struct.unpack_from(">H", inst.raw, opword_bytes)[0]
-
-        # Direction from KB encoding "dr" field
-        dr_field = None
-        for f in inst_kb["encodings"][0]["fields"]:
-            if f["name"] == "dr":
-                dr_field = (f["bit_hi"], f["bit_lo"],
-                            f["bit_hi"] - f["bit_lo"] + 1)
-                break
-        if dr_field is None:
-            raise KeyError("MOVEM encoding lacks 'dr' field")
-        direction = _xf(opcode, dr_field)  # 0=reg-to-mem, 1=mem-to-reg
-
-        # EA mode from encoding
-        ea_mode_f = ea_reg_f = None
-        for f in inst_kb["encodings"][0]["fields"]:
-            if f["name"] == "MODE":
-                ea_mode_f = (f["bit_hi"], f["bit_lo"],
-                             f["bit_hi"] - f["bit_lo"] + 1)
-            elif f["name"] == "REGISTER" and f["bit_hi"] <= 5:
-                ea_reg_f = (f["bit_hi"], f["bit_lo"],
-                            f["bit_hi"] - f["bit_lo"] + 1)
-        if ea_mode_f is None or ea_reg_f is None:
-            raise KeyError("MOVEM encoding lacks MODE/REGISTER fields")
-        ea_mode = _xf(opcode, ea_mode_f)
-        ea_reg = _xf(opcode, ea_reg_f)
-
-        # EA mode name from KB
-        ea_enc = meta["ea_mode_encoding"]
-        predec_enc = ea_enc["predec"]
-        postinc_enc = ea_enc["postinc"]
-        is_predec = (ea_mode == predec_enc[0])
-        is_postinc = (ea_mode == postinc_enc[0])
-
-        # Register order from KB movem_reg_masks
-        masks = meta["movem_reg_masks"]
-        reg_order = masks["predecrement"] if is_predec else masks["normal"]
-
-        # Collect registers to transfer (bit N set → reg_order[N])
-        regs = []
-        for bit in range(16):
-            if reg_mask & (1 << bit):
-                regs.append(reg_order[bit])
-
-        if not regs:
-            return
-
-        # Size from KB encoding "SIZE" field
-        size_field = None
-        for f in inst_kb["encodings"][0]["fields"]:
-            if f["name"] == "SIZE":
-                size_field = (f["bit_hi"], f["bit_lo"],
-                              f["bit_hi"] - f["bit_lo"] + 1)
-                break
-        if size_field is None:
-            raise KeyError("MOVEM encoding lacks 'SIZE' field")
-        size_bit = _xf(opcode, size_field)
-        xfer_size = "l" if size_bit == 1 else "w"
-        xfer_bytes = meta["size_byte_count"][xfer_size]
-
-        sp_reg = meta["_sp_reg_num"]
-
-        if direction == 0 and is_predec and ea_reg == sp_reg:
-            # Register-to-memory via -(SP): push registers onto stack.
-            # SP decrements BEFORE each transfer (predecrement mode).
-            total_bytes = len(regs) * xfer_bytes
-            for reg_name in regs:
-                reg_info = _parse_reg_from_text(reg_name)
-                if reg_info is None:
-                    continue
-                # Decrement SP
-                if cpu.sp.is_known:
-                    cpu.sp = _concrete(
-                        (cpu.sp.concrete - xfer_bytes) & 0xFFFFFFFF)
-                elif cpu.sp.is_symbolic:
-                    cpu.sp = cpu.sp.sym_add(-xfer_bytes)
-                else:
-                    break
-                # Write register value to memory at new SP
-                val = cpu.get_reg(reg_info[0], reg_info[1])
-                mem.write(cpu.sp, val, xfer_size)
-
-        elif direction == 1 and is_postinc and ea_reg == sp_reg:
-            # Memory-to-register via (SP)+: pop registers from stack.
-            # SP increments AFTER each transfer (postincrement mode).
-            for reg_name in regs:
-                reg_info = _parse_reg_from_text(reg_name)
-                if reg_info is None:
-                    continue
-                # Read from current SP
-                if cpu.sp.is_known:
-                    val = mem.read(cpu.sp.concrete, xfer_size)
-                elif cpu.sp.is_symbolic:
-                    val = mem.read(cpu.sp, xfer_size)
-                else:
-                    val = _unknown()
-                cpu.set_reg(reg_info[0], reg_info[1], val)
-                # Increment SP
-                if cpu.sp.is_known:
-                    cpu.sp = _concrete(
-                        (cpu.sp.concrete + xfer_bytes) & 0xFFFFFFFF)
-                elif cpu.sp.is_symbolic:
-                    cpu.sp = cpu.sp.sym_add(xfer_bytes)
-
-        else:
-            # Non-stack MOVEM (e.g. to/from absolute address):
-            # no SP effect, registers become unknown for loads.
-            if direction == 1:
-                for reg_name in regs:
-                    reg_info = _parse_reg_from_text(reg_name)
-                    if reg_info:
-                        cpu.set_reg(reg_info[0], reg_info[1], _unknown())
+    # PEA detection
+    if inst_kb.get("sp_effects") and op_type == "sub" and d.ea_op:
+        _apply_pea(inst_kb, d, cpu, mem)
         return
 
-    # LEA: loads the effective address itself (not the value at EA).
-    # Detected by KB operation_class. Resolves the source EA to its
-    # address (not the value at the address), then writes to the
-    # destination An register decoded from the opcode.
-    if inst_kb.get("operation_class") == "load_effective_address" and op == "assign":
-        addr_val = None
-        if src_op:
-            # Compute the EA address from the decoded operand
-            if src_op.mode == "pcdisp":
-                addr_val = _concrete(src_op.value)
-            elif src_op.mode == "pcindex":
-                base_addr_val = src_op.value
-                idx_mode = "an" if src_op.index_is_addr else "dn"
-                idx_val = cpu.get_reg(idx_mode, src_op.index_reg)
-                if idx_val.is_known:
-                    nbits = meta["size_byte_count"][
-                        src_op.index_size] * 8
-                    mask = (1 << nbits) - 1
-                    iv = idx_val.concrete & mask
-                    if iv >= (1 << (nbits - 1)):
-                        iv -= (1 << nbits)
-                    addr_val = _concrete(
-                        (base_addr_val + iv) & 0xFFFFFFFF)
-            elif src_op.mode == "disp":
-                base = cpu.a[src_op.reg]
-                if base.is_known:
-                    addr_val = _concrete(
-                        (base.concrete + src_op.value) & 0xFFFFFFFF)
-                elif base.is_symbolic:
-                    addr_val = base.sym_add(src_op.value)
-            elif src_op.mode == "ind":
-                addr_val = cpu.get_reg("an", src_op.reg)
-            elif src_op.mode in ("absw", "absl"):
-                addr_val = _concrete(src_op.value)
-        # Write to destination An (from KB encoding)
-        if reg_num is not None:
-            cpu.set_reg("an", reg_num,
-                        addr_val if addr_val else _unknown())
-        return
-
-    # --- Formula-driven dispatch ---
-
-    if op == "assign":
-        # MOVE/MOVEA/MOVEQ/CLR family.
-        terms = formula.get("terms", [])
-
-        if "implicit" in terms:
-            # CLR: assign implicit_operand (0) to destination.
-            implicit_val = inst_kb.get("implicit_operand")
-            if implicit_val is None:
-                raise KeyError(f"implicit_operand missing for {mnemonic}")
-            write_op = dst_op if dst_op else src_op
-            if write_op:
-                _write_operand(write_op, cpu, mem,
-                               _concrete(implicit_val), size, size_bytes)
-            return
-
-        # Source-assign: MOVE, MOVEA, MOVEQ.
-        # Source from structured EA decode, or from decoded immediate
-        # (MOVEQ has immediate in DATA field, not EA).
-        if src_op:
-            src_val = _resolve_operand(src_op, cpu, mem, size, size_bytes)
-        elif imm_val is not None:
-            src_val = _concrete(imm_val)
-        else:
-            src_val = None
-
-        # Sign-extend immediate from KB constraints.immediate_range
-        imm_range = inst_kb.get("constraints", {}).get("immediate_range")
-        if imm_range and imm_range.get("signed") and src_val and src_val.is_known:
-            bits = imm_range["bits"]
-            val = src_val.concrete & ((1 << bits) - 1)
-            if val >= (1 << (bits - 1)):
-                val |= ~((1 << bits) - 1)
-            val &= 0xFFFFFFFF
-            src_val = _concrete(val)
-
-        # Source sign-extension from KB source_sign_extend
-        if src_sign_ext and size == "w" and src_val and src_val.is_known:
-            w_bits = meta["size_byte_count"]["w"] * 8
-            w_mask = (1 << w_bits) - 1
-            val = src_val.concrete & w_mask
-            if val >= (1 << (w_bits - 1)):
-                val |= ~w_mask
-            src_val = _concrete(val & 0xFFFFFFFF)
-
-        # ExecBase load: MOVEA.L ($N).W,An — source is absw
-        # matching platform exec_base_addr.
-        if (src_val is None and platform and src_op
-                and src_op.mode == "absw"
-                and src_op.value == platform.get("exec_base_addr")):
-            src_val = _unknown(tag=platform.get("exec_base_tag"))
-
-        # Write to destination.
-        result = src_val if src_val is not None else _unknown()
-        if dst_op:
-            _write_operand(dst_op, cpu, mem, result, size, size_bytes)
-        elif reg_num is not None:
-            if src_sign_ext:
-                cpu.set_reg("an", reg_num, result)
-            else:
-                cpu.set_reg("dn", reg_num, result)
-        else:
-            # Single REGISTER field (MOVEQ: Dn from bits 11-9).
-            # The EA is the source (imm_val), the register is the dest.
-            enc_fields = inst_kb.get("encodings", [{}])[0].get(
-                "fields", [])
-            single_rf = [f for f in enc_fields
-                         if f["name"].startswith("REGISTER")]
-            if single_rf:
-                rf = max(single_rf, key=lambda f: f["bit_lo"])
-                rn = _xf(opcode, (rf["bit_hi"], rf["bit_lo"],
-                                   rf["bit_hi"] - rf["bit_lo"] + 1))
-                cpu.set_reg("dn", rn, result)
-            elif ea_op:
-                _write_operand(ea_op, cpu, mem, result,
-                               size, size_bytes)
-        return
-
-    # Helper: sign-extend source value per KB source_sign_extend
-    def _sign_ext_src(val):
-        if src_sign_ext and size == "w" and val and val.is_known:
-            w_bits = meta["size_byte_count"]["w"] * 8
-            w_mask = (1 << w_bits) - 1
-            v = val.concrete & w_mask
-            if v >= (1 << (w_bits - 1)):
-                v |= ~w_mask
-            return _concrete(v & 0xFFFFFFFF)
-        return val
-
-    if op == "add":
-        if ea_is_source is not None and ea_op and reg_num is not None:
-            # OPMODE-directed: ADD <ea>,Dn or ADDA <ea>,An or ADD Dn,<ea>
-            # KB source_sign_extend distinguishes ADDA (destination An)
-            # from ADD (destination Dn).
-            dst_mode = "an" if inst_kb.get("source_sign_extend") else "dn"
-            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            reg_val = cpu.get_reg(dst_mode, reg_num)
-            src_val = _sign_ext_src(ea_val if ea_is_source else reg_val)
-            dst_val = reg_val if ea_is_source else ea_val
-            if src_val and dst_val and src_val.is_known and dst_val.is_known:
-                result = (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF
-                if ea_is_source:
-                    cpu.set_reg(dst_mode, reg_num, _concrete(result))
-                else:
-                    _write_operand(ea_op, cpu, mem, _concrete(result),
-                                   size, size_bytes)
-            else:
-                if ea_is_source:
-                    cpu.set_reg(dst_mode, reg_num, _unknown())
-                else:
-                    _write_operand(ea_op, cpu, mem, _unknown(),
-                                   size, size_bytes)
-        elif imm_val is not None and ea_op:
-            # ADDQ/ADDI: immediate + EA destination
-            src_val = _sign_ext_src(_concrete(imm_val))
-            dst_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            if src_val and dst_val and src_val.is_known and dst_val.is_known:
-                _write_operand(ea_op, cpu, mem, _concrete(
-                    (dst_val.concrete + src_val.concrete) & 0xFFFFFFFF),
-                    size, size_bytes)
-            else:
-                _write_operand(ea_op, cpu, mem, _unknown(),
-                               size, size_bytes)
-        else:
-            raise ValueError(
-                f"add: no structured decode for {mnemonic} at "
-                f"${inst.offset:04X}")
-        return
-
+    # Subtract special cases (NEG, CMP) before binary dispatch
     if op == "subtract":
         terms = formula.get("terms", [])
         if "implicit" in terms:
-            # NEG: implicit(0) - destination (single operand = ea_op)
-            implicit_val = inst_kb.get("implicit_operand")
-            if implicit_val is None:
-                raise KeyError(f"implicit_operand missing for {mnemonic}")
-            if ea_op is None:
-                raise ValueError(
-                    f"subtract/implicit: no EA for {mnemonic}")
-            dst_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            if dst_val and dst_val.is_known:
-                result = (implicit_val - dst_val.concrete) & mask
-                if size != "l":
-                    result = (dst_val.concrete & ~mask) | result
-                _write_operand(ea_op, cpu, mem,
-                               _concrete(result & 0xFFFFFFFF),
-                               size, size_bytes)
-            else:
-                _write_operand(ea_op, cpu, mem, _unknown(),
-                               size, size_bytes)
+            _apply_neg(d, inst_kb, cpu, mem, size, size_bytes, mask)
             return
-        is_compare = (op_type == "compare")
-        if ea_is_source is not None and ea_op and reg_num is not None:
-            if not is_compare:
-                # SUBA: destination An (source_sign_extend).
-                # SUB: destination Dn or EA.
-                dst_mode = "an" if inst_kb.get("source_sign_extend") else "dn"
-                ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-                reg_val = cpu.get_reg(dst_mode, reg_num)
-                src_val = _sign_ext_src(
-                    ea_val if ea_is_source else reg_val)
-                dst_val = reg_val if ea_is_source else ea_val
-                if (src_val and dst_val
-                        and src_val.is_known and dst_val.is_known):
-                    r = (dst_val.concrete - src_val.concrete) & 0xFFFFFFFF
-                    if ea_is_source:
-                        cpu.set_reg(dst_mode, reg_num, _concrete(r))
-                    else:
-                        _write_operand(ea_op, cpu, mem, _concrete(r),
-                                       size, size_bytes)
-                else:
-                    if ea_is_source:
-                        cpu.set_reg(dst_mode, reg_num, _unknown())
-                    else:
-                        _write_operand(ea_op, cpu, mem, _unknown(),
-                                       size, size_bytes)
-            # CMP/CMPA: no register/memory write (CC flags only)
-        elif imm_val is not None and ea_op:
-            if not is_compare:
-                dst_val = _resolve_operand(
-                    ea_op, cpu, mem, size, size_bytes)
-                src_val = _sign_ext_src(_concrete(imm_val))
-                if (src_val and dst_val
-                        and src_val.is_known and dst_val.is_known):
-                    _write_operand(ea_op, cpu, mem, _concrete(
-                        (dst_val.concrete - src_val.concrete)
-                        & 0xFFFFFFFF), size, size_bytes)
-                else:
-                    _write_operand(ea_op, cpu, mem, _unknown(),
-                                   size, size_bytes)
-            # CMPI: no write
-        elif is_compare:
-            pass  # compare: no register/memory write (CC flags only)
-        else:
-            raise ValueError(
-                f"subtract: no structured decode for {mnemonic} at "
-                f"${inst.offset:04X}")
+        # SUB/SUBA/CMP/CMPA/CMPI -- handled by binary op
+        _apply_binary_op(operator.sub, d, inst_kb, cpu, mem, size,
+                         size_bytes, op_type)
         return
 
-    if op in ("bitwise_and", "bitwise_or", "bitwise_xor"):
-        py_op = {"bitwise_and": "__and__", "bitwise_or": "__or__",
-                 "bitwise_xor": "__xor__"}[op]
-        if ea_is_source is not None and ea_op and reg_num is not None:
-            # OPMODE-directed: AND/OR/EOR <ea>,Dn or Dn,<ea>
-            ea_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            dn_val = cpu.get_reg("dn", reg_num)
-            s, d = (ea_val, dn_val) if ea_is_source else (dn_val, ea_val)
-            if s and d and s.is_known and d.is_known:
-                r = getattr(d.concrete, py_op)(s.concrete)
-                if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _concrete(r))
-                else:
-                    _write_operand(ea_op, cpu, mem, _concrete(r),
-                                   size, size_bytes)
-            else:
-                if ea_is_source:
-                    cpu.set_reg("dn", reg_num, _unknown())
-                else:
-                    _write_operand(ea_op, cpu, mem, _unknown(),
-                                   size, size_bytes)
-        elif imm_val is not None and ea_op:
-            # ANDI/ORI/EORI: immediate + EA destination
-            dst_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-            if dst_val and dst_val.is_known:
-                r = getattr(dst_val.concrete, py_op)(imm_val)
-                _write_operand(ea_op, cpu, mem, _concrete(r),
-                               size, size_bytes)
-            else:
-                _write_operand(ea_op, cpu, mem, _unknown(),
-                               size, size_bytes)
-        else:
-            raise ValueError(
-                f"{op}: no structured decode for {mnemonic} at "
-                f"${inst.offset:04X}")
+    # Binary ops (add, bitwise_and, bitwise_or, bitwise_xor)
+    if op in _BINARY_OPS:
+        _apply_binary_op(_BINARY_OPS[op], d, inst_kb, cpu, mem, size,
+                         size_bytes, op_type)
         return
 
+    # Remaining handlers
+    if op == "assign":
+        _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform)
+        return
     if op == "bitwise_complement":
-        # NOT: ~destination (single operand = ea_op)
-        if ea_op is None:
-            raise ValueError(
-                f"bitwise_complement: no EA for {mnemonic}")
-        dst_val = _resolve_operand(ea_op, cpu, mem, size, size_bytes)
-        if dst_val and dst_val.is_known:
-            result = dst_val.concrete ^ mask
-            if size != "l":
-                result = (dst_val.concrete & ~mask) | result
-            _write_operand(ea_op, cpu, mem,
-                           _concrete(result & 0xFFFFFFFF),
-                           size, size_bytes)
-        else:
-            _write_operand(ea_op, cpu, mem, _unknown(),
-                           size, size_bytes)
+        _apply_complement(d, cpu, mem, size, size_bytes, mask)
         return
-
     if op == "exchange":
-        # SWAP: exchange bit ranges within Dn (from ea_op)
-        range_a = formula.get("range_a")
-        range_b = formula.get("range_b")
-        if range_a and range_b and ea_op and ea_op.mode == "dn":
-            val = cpu.get_reg("dn", ea_op.reg)
-            if val.is_known:
-                v = val.concrete
-                a_hi, a_lo = range_a
-                b_hi, b_lo = range_b
-                a_width = a_hi - a_lo + 1
-                b_width = b_hi - b_lo + 1
-                a_mask = ((1 << a_width) - 1) << a_lo
-                b_mask = ((1 << b_width) - 1) << b_lo
-                a_bits = (v & a_mask) >> a_lo
-                b_bits = (v & b_mask) >> b_lo
-                v = (v & ~(a_mask | b_mask)) | (b_bits << a_lo) | (a_bits << b_lo)
-                cpu.set_reg("dn", ea_op.reg, _concrete(v & 0xFFFFFFFF))
-            else:
-                cpu.set_reg("dn", ea_op.reg, _unknown())
-            return
-
+        _apply_swap(d, inst_kb, formula, cpu)
+        return
     if op == "sign_extend":
-        # EXT/EXTB: sign-extend Dn from source_bits_by_size
-        src_bits_by_size = formula.get("source_bits_by_size")
-        if src_bits_by_size is None:
-            raise KeyError(f"source_bits_by_size missing for {mnemonic}")
-        # EXT has Dn in REGISTER field (no MODE field, so ea_op may
-        # be None).  Fall back to first REGISTER field from encoding.
-        if ea_op and ea_op.mode == "dn":
-            dn = ea_op.reg
-        else:
-            enc_fields = inst_kb.get("encodings", [{}])[0].get(
-                "fields", [])
-            rf = next((f for f in enc_fields
-                       if f["name"] == "REGISTER"), None)
-            if rf is None:
-                raise ValueError(
-                    f"sign_extend: no Dn for {mnemonic}")
-            dn = _xf(opcode, (rf["bit_hi"], rf["bit_lo"],
-                               rf["bit_hi"] - rf["bit_lo"] + 1))
-        val = cpu.get_reg("dn", dn)
-        if val.is_known:
-            v = val.concrete
-            mnemonic_key = mnemonic.lower() + "_" + size
-            src_bits = src_bits_by_size.get(mnemonic_key,
-                                            src_bits_by_size.get(size))
-            if src_bits is None:
-                raise KeyError(
-                    f"No source_bits for size={size} in {mnemonic}")
-            src_mask = (1 << src_bits) - 1
-            src_val = v & src_mask
-            w_bits = meta["size_byte_count"]["w"] * 8
-            w_mask = (1 << w_bits) - 1
-            if src_val >= (1 << (src_bits - 1)):
-                if size == "w":
-                    extended = src_val | (~src_mask & w_mask)
-                    v = (v & ~w_mask) | (extended & w_mask)
-                else:
-                    v = src_val | ~src_mask
-            else:
-                if size == "w":
-                    v = (v & ~w_mask) | (src_val & w_mask)
-                else:
-                    v = src_val
-            cpu.set_reg("dn", dn, _concrete(v & 0xFFFFFFFF))
-        else:
-            cpu.set_reg("dn", dn, _unknown())
+        _apply_sign_extend(d, inst_kb, formula, cpu, mnemonic, size)
         return
-
     if op == "test":
-        # TST: reads destination but doesn't write (only sets CC flags).
-        # No state change needed for abstract propagation.
-        return
-
-    # EXG: KB operation_type == "swap" with no compute_formula.
-    # Register types from KB opmode_table (rx_mode/ry_mode).
+        return  # CC only, no state change
     if op_type == "swap" and op is None:
-        opmode_table = inst_kb.get("constraints", {}).get("opmode_table")
-        if opmode_table is None:
-            raise KeyError(f"opmode_table missing for {mnemonic}")
-        # Get OPMODE from encoding
-        opmode_f = next(
-            (f for f in inst_kb["encodings"][0]["fields"]
-             if f["name"] == "OPMODE"), None)
-        if opmode_f is None:
-            raise KeyError(f"OPMODE field missing for {mnemonic}")
-        opmode_val = _xf(opcode, (opmode_f["bit_hi"],
-                                   opmode_f["bit_lo"],
-                                   opmode_f["bit_hi"] - opmode_f["bit_lo"] + 1))
-        entry = next((e for e in opmode_table
-                       if e["opmode"] == opmode_val), None)
-        if entry is None:
-            raise ValueError(
-                f"Unknown OPMODE {opmode_val} for {mnemonic}")
-        # Rx from bits 11-9, Ry from bits 2-0
-        rx_f = next(f for f in inst_kb["encodings"][0]["fields"]
-                    if f["name"].startswith("REGISTER") and f["bit_hi"] > 5)
-        ry_f = next(f for f in inst_kb["encodings"][0]["fields"]
-                    if f["name"].startswith("REGISTER") and f["bit_hi"] <= 5)
-        rx = _xf(opcode, (rx_f["bit_hi"], rx_f["bit_lo"],
-                           rx_f["bit_hi"] - rx_f["bit_lo"] + 1))
-        ry = _xf(opcode, (ry_f["bit_hi"], ry_f["bit_lo"],
-                           ry_f["bit_hi"] - ry_f["bit_lo"] + 1))
-        rx_mode = entry["rx_mode"]
-        ry_mode = entry["ry_mode"]
-        sv = cpu.get_reg(rx_mode, rx)
-        dv = cpu.get_reg(ry_mode, ry)
-        cpu.set_reg(rx_mode, rx, dv)
-        cpu.set_reg(ry_mode, ry, sv)
+        _apply_exg(d, inst_kb, cpu)
         return
 
-    # Unhandled compute formulas (multiply, divide, shift, rotate, etc.):
-    # invalidate the destination. Use ea_op if available, else reg_num.
-    if ea_op:
-        _write_operand(ea_op, cpu, mem, _unknown(), size, size_bytes)
-    elif reg_num is not None:
-        cpu.set_reg("dn", reg_num, _unknown())
+    # Fallthrough: invalidate destination
+    if d.ea_op:
+        _write_operand(d.ea_op, cpu, mem, _unknown(), size, size_bytes)
+    elif d.reg_num is not None:
+        cpu.set_reg("dn", d.reg_num, _unknown())
 
 
 def propagate_states(blocks: dict[int, BasicBlock],
