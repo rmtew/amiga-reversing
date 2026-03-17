@@ -72,8 +72,8 @@ def main():
             end = parse_addr(e.get("end", 0))
             bytes_classified += end - start
 
-    coverage = f"{(bytes_classified / binary_size * 100):.1f}%" if binary_size else "—"
-    binary_size_str = str(binary_size) if binary_size else "—"
+    coverage = f"{(bytes_classified / binary_size * 100):.1f}%" if binary_size else "-"
+    binary_size_str = str(binary_size) if binary_size else "-"
 
     named = sum(1 for e in entities if e.get("name"))
     documented = sum(1 for e in entities if e.get("status") == "documented")

@@ -18,6 +18,8 @@ ext/vasm.tar.gz
 __pycache__/
 
 # External resources (copyrighted / user-supplied, see RESOURCES.md)
+bin/*
+!bin/.gitkeep
 resources/*
 !resources/.gitkeep
 
