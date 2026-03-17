@@ -267,33 +267,32 @@ def _make_relocated_hunk():
     return code
 
 
-def test_copy_and_jump_flat_image():
-    """Bootstrap copies payload to higher address and JMPs to it.
+def test_payload_at_runtime_address():
+    """Payload blocks are at runtime addresses, not file offsets.
 
-    analyze_hunk builds a flat runtime image for analysis, but the
-    output blocks must be at the original file offset (not the runtime
-    address).  Flat-image blocks at $0400 are filtered out — the same
-    code is at file offset $1C.
+    The bootstrap copies the payload from file offset $1C to runtime
+    address $0400.  The analysis must use base_addr=$0400 for the
+    payload so that absolute address references in the code naturally
+    match block/label addresses.
     """
     code = _make_relocated_hunk()
     ha = analyze_hunk(code, [])
 
-    # Bootstrap at $00 should be analyzed
+    # Bootstrap at $00 should be analyzed (at file offsets)
     assert 0 in ha.blocks, (
         f"Bootstrap block at $0000 missing, "
         f"got {sorted(hex(a) for a in ha.blocks)[:10]}")
-    # Payload at file offset $1C should be core (not at runtime $0400)
-    assert 0x1C in ha.blocks, (
-        f"Payload at file offset $001C missing, "
+    # Payload should be at runtime address $0400 (not file offset $1C)
+    assert 0x0400 in ha.blocks, (
+        f"Payload block at $0400 missing, "
         f"got {sorted(hex(a) for a in ha.blocks)[:10]}")
-    # Flat-image block at $0400 should be filtered out
-    assert 0x0400 not in ha.blocks, (
-        f"Flat-image block at $0400 should be excluded")
-    # The payload block at file offset should contain moveq #42
-    if 0x1C in ha.exit_states:
-        cpu, _ = ha.exit_states[0x1C]
+    assert 0x1C not in ha.blocks, (
+        f"Payload should NOT be at file offset $001C")
+    # The payload block should contain moveq #42
+    if 0x0400 in ha.exit_states:
+        cpu, _ = ha.exit_states[0x0400]
         assert cpu.d[0].is_known and cpu.d[0].concrete == 42, (
-            f"D0 at $001C should be 42 (payload), got {cpu.d[0]}")
+            f"D0 at $0400 should be 42 (payload), got {cpu.d[0]}")
 
 
 def _make_two_stage_relocated_hunk():
@@ -350,98 +349,47 @@ def _make_two_stage_relocated_hunk():
     return code  # 56 bytes ($38)
 
 
-def test_reloc_source_is_core_simple():
-    """Single-stage relocation: source offset is already a core entry.
-
-    In the simple case (direct copy + JMP), the copy source register
-    value becomes a secondary entry in detect_relocated_segments, so
-    it's already in core_entries.  This is the baseline.
-    """
-    code = _make_relocated_hunk()
-    ha = analyze_hunk(code, [])
-
-    assert 0x1C in ha.blocks, (
-        f"Payload at file offset $001C should be a core block, "
-        f"got core={sorted(hex(a) for a in ha.blocks)}")
-    assert 0x1C not in ha.hint_blocks, (
-        f"Payload at file offset $001C should NOT be a hint block")
-
-
-def test_reloc_source_is_core_two_stage():
-    """Two-stage relocation: payload source must be core, not hints.
+def test_payload_at_runtime_two_stage():
+    """Two-stage relocation: payload at runtime address.
 
     In the Bloodwych pattern (bootstrap -> TRAP -> handler copies
-    payload), the payload file offset ($34) differs from the secondary
-    entry ($20 = handler source).  The file_offset from
-    detect_relocated_segments must be added as a core entry so
-    the .s output reproduces the original file layout as code.
+    payload), the payload starts at runtime address $0400.  The
+    handler at $20 (secondary entry) stays at file offsets.
     """
     code = _make_two_stage_relocated_hunk()
     ha = analyze_hunk(code, [])
 
-    # Verify detection found the right segment
     segs = detect_relocated_segments(code)
-    assert len(segs) >= 1, f"Expected relocated segment, got {segs}"
-    assert segs[0]["file_offset"] == 0x34, (
-        f"Expected file_offset=$34, got ${segs[0]['file_offset']:X}")
+    assert len(segs) >= 1
+    assert segs[0]["file_offset"] == 0x34
+    assert segs[0]["base_addr"] == 0x400
 
-    # Payload at file offset $34 should be CORE (not hint)
-    assert 0x34 in ha.blocks, (
-        f"Payload at file offset $0034 should be a core block, "
-        f"got core={sorted(hex(a) for a in ha.blocks)}, "
-        f"hints={sorted(hex(a) for a in ha.hint_blocks)}")
-    assert 0x34 not in ha.hint_blocks, (
-        f"Payload at $0034 should NOT be a hint block")
+    # Payload at runtime address $0400
+    assert 0x0400 in ha.blocks, (
+        f"Payload block at $0400 missing, "
+        f"got core={sorted(hex(a) for a in ha.blocks)}")
+    assert 0x34 not in ha.blocks, (
+        f"Payload should NOT be at file offset $0034")
 
 
 def test_secondary_entries_are_core():
-    """Secondary entries (handler stubs) should be core blocks.
+    """Secondary entries (handler stubs) stay at file offsets.
 
-    In the two-stage pattern, the handler at $20 is a secondary entry
-    discovered by detect_relocated_segments.  It must be analyzed as
-    core (with propagation) so the handler code is properly disassembled.
+    The handler at $20 is in the bootstrap region (before the
+    payload file_offset).  It should be analyzed as core at its
+    file offset, not at a runtime address.
     """
     code = _make_two_stage_relocated_hunk()
     ha = analyze_hunk(code, [])
 
-    # Handler at $20 should be core
+    # Handler at $20 should be core (file offset, in bootstrap region)
     assert 0x20 in ha.blocks, (
         f"Handler at $0020 should be a core block, "
         f"got core={sorted(hex(a) for a in ha.blocks)}")
-    assert 0x20 not in ha.hint_blocks, (
-        f"Handler at $0020 should NOT be a hint block")
 
-    # Handler's JMP target ($0400) is beyond the 56-byte binary,
-    # so no block there — but the handler itself is properly analyzed.
-    # The handler may be split into multiple blocks (copy loop boundary).
-    handler_instrs = sum(
-        len(b.instructions) for a, b in ha.blocks.items()
-        if 0x20 <= a < 0x34)
-    assert handler_instrs >= 5, (
-        f"Handler blocks ($20-$33) should have >= 5 instructions, "
-        f"got {handler_instrs}")
-
-
-def test_no_runtime_blocks_in_core():
-    """No core blocks at the relocated runtime address.
-
-    Without a flat image, the runtime address ($0400) is beyond the
-    test binary's size, so the executor can't follow JMP $0400.
-    The payload is analyzed at its original file offset instead.
-    """
-    # Simple case: 32-byte binary, runtime addr $0400 is beyond code
-    code = _make_relocated_hunk()
-    ha = analyze_hunk(code, [])
-    assert 0x0400 not in ha.blocks, (
-        f"Runtime address $0400 should not be in core blocks, "
-        f"got core={sorted(hex(a) for a in ha.blocks)}")
-
-    # Two-stage case: 56-byte binary, runtime addr $0400 is beyond code
-    code2 = _make_two_stage_relocated_hunk()
-    ha2 = analyze_hunk(code2, [])
-    assert 0x0400 not in ha2.blocks, (
-        f"Runtime address $0400 should not be in core blocks, "
-        f"got core={sorted(hex(a) for a in ha2.blocks)}")
+    # Handler's JMP $0400 should connect to the payload block
+    assert 0x0400 in ha.blocks, (
+        f"Payload at $0400 (handler's JMP target) should be core")
 
 
 def _assert_no_hint_core_overlap(ha):
@@ -468,3 +416,25 @@ def test_hint_blocks_no_core_overlap():
     _assert_no_hint_core_overlap(analyze_hunk(_make_relocated_hunk(), []))
     _assert_no_hint_core_overlap(
         analyze_hunk(_make_two_stage_relocated_hunk(), []))
+
+
+def test_relocated_segments_stored():
+    """HunkAnalysis stores relocated segment info for gen_disasm."""
+    code = _make_relocated_hunk()
+    ha = analyze_hunk(code, [])
+
+    assert hasattr(ha, 'relocated_segments'), (
+        "HunkAnalysis must have relocated_segments field")
+    assert len(ha.relocated_segments) == 1
+    seg = ha.relocated_segments[0]
+    assert seg["file_offset"] == 0x1C
+    assert seg["base_addr"] == 0x0400
+
+
+def test_non_relocated_has_empty_segments():
+    """Non-relocated hunk has empty relocated_segments."""
+    code = _make_simple_hunk()
+    ha = analyze_hunk(code, [])
+
+    assert hasattr(ha, 'relocated_segments')
+    assert ha.relocated_segments == []

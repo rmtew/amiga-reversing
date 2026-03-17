@@ -803,6 +803,23 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
         reloc_targets = ha.reloc_targets
         exit_states = ha.exit_states
 
+        # For relocated binaries, build a runtime-addressed code buffer.
+        # Bootstrap bytes at file offsets, payload bytes at runtime base.
+        relocated_segments = getattr(ha, 'relocated_segments', [])
+        reloc_file_offset = 0
+        reloc_base_addr = 0
+        if relocated_segments:
+            seg = relocated_segments[0]
+            reloc_file_offset = seg["file_offset"]
+            reloc_base_addr = seg["base_addr"]
+            payload_size = code_size - reloc_file_offset
+            runtime_size = reloc_base_addr + payload_size
+            runtime_code = bytearray(runtime_size)
+            runtime_code[:reloc_file_offset] = code[:reloc_file_offset]
+            runtime_code[reloc_base_addr:] = code[reloc_file_offset:]
+            code = bytes(runtime_code)
+            code_size = runtime_size
+
         code_addrs = set()
         for blk in blocks.values():
             for a in range(blk.start, blk.end):
@@ -1231,236 +1248,248 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                 else:
                     f.write(f"{lbl}:\n")
 
-            # Walk ALL bytes in order, emitting code or data
-            pos = 0
-            while pos < code_size:
+            # Walk bytes in order, emitting code or data.
+            # For relocated binaries: bootstrap pass (file offsets),
+            # then ORG + payload pass (runtime addresses).
+            _emit_passes = [(0, code_size)]
+            if relocated_segments:
+                _emit_passes = [
+                    (0, reloc_file_offset),
+                    (reloc_base_addr, code_size),
+                ]
+            for _pass_idx, (_pass_start, _pass_end) in enumerate(
+                    _emit_passes):
+                if _pass_idx == 1:
+                    f.write(f"\n    org ${reloc_base_addr:X}\n\n")
+                pos = _pass_start
+                while pos < _pass_end:
                 # Emit label if present
-                if pos in labels:
-                    _emit_label(pos)
+                    if pos in labels:
+                        _emit_label(pos)
 
-                if pos in blocks:
-                    # This is a basic block — disassemble instructions
-                    blk = blocks[pos]
-                    for inst in blk.instructions:
-                        # Internal label
-                        if inst.offset != pos and inst.offset in labels:
-                            _emit_label(inst.offset)
-                        if (not _is_valid_encoding(inst.text, inst.raw,
-                                                   inst.offset, kb)
-                                or not _has_valid_branch_target(inst, kb)):
-                            emit_data_region(f, code, inst.offset,
-                                             inst.offset + inst.size,
+                    if pos in blocks:
+                        # This is a basic block — disassemble instructions
+                        blk = blocks[pos]
+                        for inst in blk.instructions:
+                            # Internal label
+                            if inst.offset != pos and inst.offset in labels:
+                                _emit_label(inst.offset)
+                            if (not _is_valid_encoding(inst.text, inst.raw,
+                                                       inst.offset, kb)
+                                    or not _has_valid_branch_target(inst, kb)):
+                                emit_data_region(f, code, inst.offset,
+                                                 inst.offset + inst.size,
+                                                 labels, reloc_map,
+                                                 string_addrs,
+                                                 access_sizes=data_access_sizes)
+                                data_bytes += inst.size
+                                continue
+                            text = replace_targets_in_text(
+                                    inst.text, inst.offset, inst.size,
+                                    labels, reloc_map, kb.opword_bytes)
+                            text = replace_struct_fields(
+                                    text, inst.offset, struct_map,
+                                    used_structs)
+                            # Substitute app memory offsets
+                            if app_offsets and base_info:
+                                brn = base_info[0]
+                                for off, sym in app_offsets.items():
+                                    text = text.replace(
+                                        f"{off}(a{brn})",
+                                        f"{sym}(a{brn})")
+                            # Substitute LVO constants
+                            sub = lvo_substitutions.get(inst.offset)
+                            if sub:
+                                text = text.replace(sub[0], sub[1])
+                            # Substitute argument constants
+                            sub = arg_substitutions.get(inst.offset)
+                            if sub:
+                                text = text.replace(sub[0], sub[1])
+                            # Build comment from annotations
+                            comment = ""
+                            pmin = _get_processor_min(inst.text, kb)
+                            if pmin != "68000":
+                                comment = f"{pmin}+"
+                            arg_ann = arg_annotations.get(inst.offset)
+                            if arg_ann:
+                                ann_text = (f"{arg_ann['function']}: "
+                                            f"{arg_ann['arg_name']}")
+                                comment = (f"{comment}; {ann_text}"
+                                           if comment else ann_text)
+                            # App memory offset comment for unnamed d(A6)
+                            if base_info and not comment:
+                                app_comment = format_app_offset_comment(
+                                    text, base_info[0], app_offsets)
+                                if app_comment:
+                                    comment = app_comment
+                            # ASCII immediate comment for #$XXXXXXXX
+                            if not comment:
+                                imm_match = re.search(
+                                    r'#\$([0-9a-fA-F]{8})\b', text)
+                                if imm_match:
+                                    ascii_str = format_ascii_immediate(
+                                        int(imm_match.group(1), 16))
+                                    if ascii_str:
+                                        comment = ascii_str
+                            if comment:
+                                f.write(f"    {text} ; {comment}\n")
+                            else:
+                                f.write(f"    {text}\n")
+                            instr_count += 1
+                        pos = blk.end
+                    elif pos in code_addrs:
+                        # Inside a block but not at the start — skip
+                        pos += 1
+                    elif pos in hint_blocks:
+                        # Hint block: emit as unverified disassembly only if
+                        # ALL validation checks pass.  Unlike core blocks
+                        # (which have verified control flow), hint blocks
+                        # have no trust — one bad instruction rejects the
+                        # entire block as data.
+                        #
+                        # Checks (all KB-driven):
+                        # 1. Last instruction is flow-terminating
+                        # 2. No zero opwords ($0000 = null bytes as code)
+                        # 3. All instructions have valid EA modes/sizes
+                        # 4. All branch targets are word-aligned
+                        # 5. No 68020+ instructions (unverified mixed-arch
+                        #    blocks are almost certainly false decodes)
+                        blk = hint_blocks[pos]
+                        valid_hint = False
+                        if blk.instructions:
+                            last = blk.instructions[-1]
+                            last_kb = kb.find(
+                                _extract_mnemonic(last.text))
+                            if last_kb:
+                                flow = last_kb.get("pc_effects", {}).get(
+                                    "flow", {})
+                                ftype = flow.get("type")
+                                if ftype in ("return", "jump", "branch"):
+                                    valid_hint = True
+                                elif (ftype == "call"
+                                      and not flow.get("conditional")):
+                                    valid_hint = True  # tail call
+                        if valid_hint:
+                            for inst in blk.instructions:
+                                # Zero opword
+                                if (len(inst.raw) >= kb.opword_bytes
+                                        and struct.unpack_from(">H",
+                                            inst.raw, 0)[0] == 0):
+                                    valid_hint = False
+                                    break
+                                # Invalid EA mode/size
+                                if not _is_valid_encoding(inst.text,
+                                        inst.raw, inst.offset, kb):
+                                    valid_hint = False
+                                    break
+                                # Odd branch target
+                                if not _has_valid_branch_target(inst, kb):
+                                    valid_hint = False
+                                    break
+                                # 68020+ in unverified block
+                                if _get_processor_min(inst.text, kb) != "68000":
+                                    valid_hint = False
+                                    break
+                        if not valid_hint:
+                            # Not valid code — emit as data
+                            emit_data_region(f, code, pos, blk.end,
                                              labels, reloc_map,
                                              string_addrs,
                                              access_sizes=data_access_sizes)
-                            data_bytes += inst.size
+                            data_bytes += blk.end - pos
+                            pos = blk.end
                             continue
-                        text = replace_targets_in_text(
-                                inst.text, inst.offset, inst.size,
-                                labels, reloc_map, kb.opword_bytes)
-                        text = replace_struct_fields(
-                                text, inst.offset, struct_map,
-                                used_structs)
-                        # Substitute app memory offsets
-                        if app_offsets and base_info:
-                            brn = base_info[0]
-                            for off, sym in app_offsets.items():
-                                text = text.replace(
-                                    f"{off}(a{brn})",
-                                    f"{sym}(a{brn})")
-                        # Substitute LVO constants
-                        sub = lvo_substitutions.get(inst.offset)
-                        if sub:
-                            text = text.replace(sub[0], sub[1])
-                        # Substitute argument constants
-                        sub = arg_substitutions.get(inst.offset)
-                        if sub:
-                            text = text.replace(sub[0], sub[1])
-                        # Build comment from annotations
-                        comment = ""
-                        pmin = _get_processor_min(inst.text, kb)
-                        if pmin != "68000":
-                            comment = f"{pmin}+"
-                        arg_ann = arg_annotations.get(inst.offset)
-                        if arg_ann:
-                            ann_text = (f"{arg_ann['function']}: "
-                                        f"{arg_ann['arg_name']}")
-                            comment = (f"{comment}; {ann_text}"
-                                       if comment else ann_text)
-                        # App memory offset comment for unnamed d(A6)
-                        if base_info and not comment:
-                            app_comment = format_app_offset_comment(
-                                text, base_info[0], app_offsets)
-                            if app_comment:
-                                comment = app_comment
-                        # ASCII immediate comment for #$XXXXXXXX
-                        if not comment:
-                            imm_match = re.search(
-                                r'#\$([0-9a-fA-F]{8})\b', text)
-                            if imm_match:
-                                ascii_str = format_ascii_immediate(
-                                    int(imm_match.group(1), 16))
-                                if ascii_str:
-                                    comment = ascii_str
-                        if comment:
-                            f.write(f"    {text} ; {comment}\n")
-                        else:
-                            f.write(f"    {text}\n")
-                        instr_count += 1
-                    pos = blk.end
-                elif pos in code_addrs:
-                    # Inside a block but not at the start — skip
-                    pos += 1
-                elif pos in hint_blocks:
-                    # Hint block: emit as unverified disassembly only if
-                    # ALL validation checks pass.  Unlike core blocks
-                    # (which have verified control flow), hint blocks
-                    # have no trust — one bad instruction rejects the
-                    # entire block as data.
-                    #
-                    # Checks (all KB-driven):
-                    # 1. Last instruction is flow-terminating
-                    # 2. No zero opwords ($0000 = null bytes as code)
-                    # 3. All instructions have valid EA modes/sizes
-                    # 4. All branch targets are word-aligned
-                    # 5. No 68020+ instructions (unverified mixed-arch
-                    #    blocks are almost certainly false decodes)
-                    blk = hint_blocks[pos]
-                    valid_hint = False
-                    if blk.instructions:
-                        last = blk.instructions[-1]
-                        last_kb = kb.find(
-                            _extract_mnemonic(last.text))
-                        if last_kb:
-                            flow = last_kb.get("pc_effects", {}).get(
-                                "flow", {})
-                            ftype = flow.get("type")
-                            if ftype in ("return", "jump", "branch"):
-                                valid_hint = True
-                            elif (ftype == "call"
-                                  and not flow.get("conditional")):
-                                valid_hint = True  # tail call
-                    if valid_hint:
+                        f.write("; --- unverified ---\n")
+                        hint_instr = 0
                         for inst in blk.instructions:
-                            # Zero opword
-                            if (len(inst.raw) >= kb.opword_bytes
-                                    and struct.unpack_from(">H",
-                                        inst.raw, 0)[0] == 0):
-                                valid_hint = False
-                                break
-                            # Invalid EA mode/size
-                            if not _is_valid_encoding(inst.text,
-                                    inst.raw, inst.offset, kb):
-                                valid_hint = False
-                                break
-                            # Odd branch target
-                            if not _has_valid_branch_target(inst, kb):
-                                valid_hint = False
-                                break
-                            # 68020+ in unverified block
-                            if _get_processor_min(inst.text, kb) != "68000":
-                                valid_hint = False
-                                break
-                    if not valid_hint:
-                        # Not valid code — emit as data
-                        emit_data_region(f, code, pos, blk.end,
-                                         labels, reloc_map,
-                                         string_addrs,
-                                         access_sizes=data_access_sizes)
-                        data_bytes += blk.end - pos
-                        pos = blk.end
-                        continue
-                    f.write("; --- unverified ---\n")
-                    hint_instr = 0
-                    for inst in blk.instructions:
-                        if inst.offset != pos and inst.offset in labels:
-                            _emit_label(inst.offset)
-                        text = replace_targets_in_text(
-                                inst.text, inst.offset, inst.size,
-                                labels, reloc_map, kb.opword_bytes)
-                        if app_offsets and base_info:
-                            brn = base_info[0]
-                            for off, sym in app_offsets.items():
-                                text = text.replace(
-                                    f"{off}(a{brn})",
-                                    f"{sym}(a{brn})")
-                        sub = lvo_substitutions.get(inst.offset)
-                        if sub:
-                            text = text.replace(sub[0], sub[1])
-                        comment = ""
-                        pmin = _get_processor_min(inst.text, kb)
-                        if pmin != "68000":
-                            comment = f"{pmin}+"
-                        if not comment:
-                            imm_match = re.search(
-                                r'#\$([0-9a-fA-F]{8})\b', text)
-                            if imm_match:
-                                ascii_str = format_ascii_immediate(
-                                    int(imm_match.group(1), 16))
-                                if ascii_str:
-                                    comment = ascii_str
-                        if not comment and base_info:
-                            app_comment = format_app_offset_comment(
-                                text, base_info[0], app_offsets)
-                            if app_comment:
-                                comment = app_comment
-                        if comment:
-                            f.write(f"    {text} ; {comment}\n")
-                        else:
-                            f.write(f"    {text}\n")
-                        hint_instr += 1
-                    instr_count += hint_instr
-                    pos = blk.end
-                elif pos in hint_addrs:
-                    # Inside a hint block but not at start — skip
-                    pos += 1
-                elif pos in jt_regions:
-                    jt = jt_regions[pos]
-                    if jt["pattern"] == "pc_inline_dispatch":
-                        # Decode and emit BRA instructions inline
-                        from m68k.m68k_disasm import _Decoder, _decode_one
-                        dec = _Decoder(code, 0)
-                        dec.pos = pos
-                        while dec.pos < jt["table_end"]:
-                            if dec.pos in labels and dec.pos != pos:
-                                _emit_label(dec.pos)
-                            inst = _decode_one(dec, None)
-                            if inst is None:
-                                break
+                            if inst.offset != pos and inst.offset in labels:
+                                _emit_label(inst.offset)
                             text = replace_targets_in_text(
-                                inst.text, inst.offset, inst.size,
-                                labels, reloc_map, kb.opword_bytes)
-                            f.write(f"    {text}\n")
-                            instr_count += 1
-                        pos = jt["table_end"]
-                    else:
-                        # Data tables — emit structured dc.w entries
-                        for entry_addr, tgt in jt["entries"]:
-                            if entry_addr in labels and entry_addr != pos:
-                                _emit_label(entry_addr)
-                            tgt_label = labels[tgt]
-                            if jt["base_addr"] is None:
-                                f.write(
-                                    f"    dc.w    {tgt_label}-*\n")
+                                    inst.text, inst.offset, inst.size,
+                                    labels, reloc_map, kb.opword_bytes)
+                            if app_offsets and base_info:
+                                brn = base_info[0]
+                                for off, sym in app_offsets.items():
+                                    text = text.replace(
+                                        f"{off}(a{brn})",
+                                        f"{sym}(a{brn})")
+                            sub = lvo_substitutions.get(inst.offset)
+                            if sub:
+                                text = text.replace(sub[0], sub[1])
+                            comment = ""
+                            pmin = _get_processor_min(inst.text, kb)
+                            if pmin != "68000":
+                                comment = f"{pmin}+"
+                            if not comment:
+                                imm_match = re.search(
+                                    r'#\$([0-9a-fA-F]{8})\b', text)
+                                if imm_match:
+                                    ascii_str = format_ascii_immediate(
+                                        int(imm_match.group(1), 16))
+                                    if ascii_str:
+                                        comment = ascii_str
+                            if not comment and base_info:
+                                app_comment = format_app_offset_comment(
+                                    text, base_info[0], app_offsets)
+                                if app_comment:
+                                    comment = app_comment
+                            if comment:
+                                f.write(f"    {text} ; {comment}\n")
                             else:
-                                f.write(
-                                    f"    dc.w    "
-                                    f"{tgt_label}-{jt['base_label']}\n")
-                        data_bytes += jt["table_end"] - pos
-                        pos = jt["table_end"]
-                else:
-                    # Not in any block — emit as data
-                    data_end = pos + 1
-                    while (data_end < code_size
-                           and data_end not in blocks
-                           and data_end not in hint_blocks
-                           and data_end not in labels):
-                        data_end += 1
-                    emit_data_region(f, code, pos, data_end,
-                                     labels, reloc_map, string_addrs,
-                                     access_sizes=data_access_sizes)
-                    data_bytes += data_end - pos
-                    pos = data_end
+                                f.write(f"    {text}\n")
+                            hint_instr += 1
+                        instr_count += hint_instr
+                        pos = blk.end
+                    elif pos in hint_addrs:
+                        # Inside a hint block but not at start — skip
+                        pos += 1
+                    elif pos in jt_regions:
+                        jt = jt_regions[pos]
+                        if jt["pattern"] == "pc_inline_dispatch":
+                            # Decode and emit BRA instructions inline
+                            from m68k.m68k_disasm import _Decoder, _decode_one
+                            dec = _Decoder(code, 0)
+                            dec.pos = pos
+                            while dec.pos < jt["table_end"]:
+                                if dec.pos in labels and dec.pos != pos:
+                                    _emit_label(dec.pos)
+                                inst = _decode_one(dec, None)
+                                if inst is None:
+                                    break
+                                text = replace_targets_in_text(
+                                    inst.text, inst.offset, inst.size,
+                                    labels, reloc_map, kb.opword_bytes)
+                                f.write(f"    {text}\n")
+                                instr_count += 1
+                            pos = jt["table_end"]
+                        else:
+                            # Data tables — emit structured dc.w entries
+                            for entry_addr, tgt in jt["entries"]:
+                                if entry_addr in labels and entry_addr != pos:
+                                    _emit_label(entry_addr)
+                                tgt_label = labels[tgt]
+                                if jt["base_addr"] is None:
+                                    f.write(
+                                        f"    dc.w    {tgt_label}-*\n")
+                                else:
+                                    f.write(
+                                        f"    dc.w    "
+                                        f"{tgt_label}-{jt['base_label']}\n")
+                            data_bytes += jt["table_end"] - pos
+                            pos = jt["table_end"]
+                    else:
+                        # Not in any block — emit as data
+                        data_end = pos + 1
+                        while (data_end < _pass_end
+                               and data_end not in blocks
+                               and data_end not in hint_blocks
+                               and data_end not in labels):
+                            data_end += 1
+                        emit_data_region(f, code, pos, data_end,
+                                         labels, reloc_map, string_addrs,
+                                         access_sizes=data_access_sizes)
+                        data_bytes += data_end - pos
+                        pos = data_end
 
             print(f"  {instr_count} instructions, "
                   f"{data_bytes} data bytes emitted")

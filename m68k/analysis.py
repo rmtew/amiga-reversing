@@ -62,7 +62,7 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
 
 # ── Analysis result ──────────────────────────────────────────────────────
 
-_CACHE_VERSION = 1  # bump when HunkAnalysis fields change
+_CACHE_VERSION = 2  # bump when HunkAnalysis fields change
 
 # Platform dict keys that are not serializable (lambdas, resolvers)
 _PLATFORM_TRANSIENT_KEYS = {
@@ -87,6 +87,7 @@ class HunkAnalysis:
     platform: dict                # platform config (base reg, init mem, etc.)
     reloc_targets: set            # reloc-derived target addresses
     reloc_refs: dict              # target -> [referencing offsets]
+    relocated_segments: list      # [{file_offset, base_addr}] or []
     os_kb: dict                   # OS knowledge base (not cached)
 
     def save(self, path: str | Path):
@@ -313,20 +314,31 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     Returns HunkAnalysis with all results.
     """
     # Auto-detect relocated code: if the bootstrap copies payload to
-    # a higher address and jumps to it, add the payload source offset
-    # as a core entry.  This ensures the .s output has disassembled
-    # code at the original file offset (what the assembler reproduces).
-    # No flat image is built — the original bytes are correct at all
-    # file offsets, and the bootstrap's copy reproduces them at runtime.
-    extra_entries = set()
+    # a higher address and jumps to it, analyze the payload at its
+    # runtime base address.  This lets absolute address references
+    # in the code naturally match block/label addresses, enabling
+    # labelisation and eventual position-independent conversion.
+    relocated_segments = []
+    bootstrap_blocks = {}
     if base_addr == 0 and code_start == 0:
         segments = detect_relocated_segments(code)
         if segments:
             seg = segments[0]
             src = seg["file_offset"]
             dst = seg["base_addr"]
-            extra_entries = set(seg.get("entry_points", []))
-            extra_entries.add(src)
+            relocated_segments.append({
+                "file_offset": src, "base_addr": dst})
+            # Analyze bootstrap (file offsets) separately from payload.
+            # Use only the bootstrap slice so the executor can't follow
+            # JMP targets into the payload (wrong address space).
+            boot_entries = set(seg.get("entry_points", []))
+            boot_result = analyze(code[:src], base_addr=0,
+                                  entry_points=sorted(boot_entries),
+                                  propagate=True)
+            bootstrap_blocks = boot_result["blocks"]
+            # Switch to payload: analyze at runtime base address.
+            code = code[src:]
+            base_addr = dst
             print_fn(f"  Relocated: file ${src:X} -> runtime ${dst:X}")
 
     if code_start > 0:
@@ -376,7 +388,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             platform["_initial_mem"] = init_mem
 
     # ── Phase 1: Core analysis with resolution loop ──────────────────
-    core_entries = {base_addr} | extra_entries
+    core_entries = {base_addr}
     jt_call_targets = set()
     jt_list = []  # final jump table list (for gen_disasm)
 
@@ -470,6 +482,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                  f"{new_stores} new memory values{disp_example}")
 
     blocks = result["blocks"]
+    blocks.update(bootstrap_blocks)
     xrefs = result["xrefs"]
     call_targets = result["call_targets"] | jt_call_targets
     exit_states = result.get("exit_states", {})
@@ -618,5 +631,6 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         platform=platform,
         reloc_targets=reloc_targets,
         reloc_refs=reloc_refs,
+        relocated_segments=relocated_segments,
         os_kb=os_kb,
     )
