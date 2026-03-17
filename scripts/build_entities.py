@@ -8,8 +8,8 @@ Entity granularity: subroutine-level for code (not basic-block-level).
 Uncovered regions between subroutines are marked as 'unknown'.
 
 Usage:
-    python build_entities.py <binary_path> [--output entities.jsonl]
-    python build_entities.py resources/Amiga_Devpac_3_18/GenAm
+    python build_entities.py <binary_path> -t targets/genam
+    python build_entities.py <binary_path> --output entities.jsonl
 """
 
 import json
@@ -259,7 +259,7 @@ def build_entities(binary_path: str, output_path: str = None,
                    base_addr: int = 0, code_start: int = 0):
     """Main pipeline: parse binary, run executor, generate entities."""
     if output_path is None:
-        output_path = str(PROJECT_ROOT / "entities.jsonl")
+        output_path = "entities.jsonl"
 
     print(f"Parsing {binary_path}...")
     hf = parse_file(binary_path)
@@ -538,7 +538,9 @@ def main():
         description="Build entities.jsonl from hunk binary analysis")
     parser.add_argument("binary", help="Path to Amiga hunk executable")
     parser.add_argument("--output", "-o",
-                        help="Output path (default: entities.jsonl)")
+                        help="Output path (default: <target-dir>/entities.jsonl)")
+    parser.add_argument("--target-dir", "-t",
+                        help="Target output directory (e.g. targets/genam)")
     parser.add_argument("--base-addr", type=lambda x: int(x, 0),
                         default=0,
                         help="Runtime base address (e.g. 0x400)")
@@ -547,7 +549,11 @@ def main():
                         help="Byte offset where code begins (skips bootstrap)")
     args = parser.parse_args()
 
-    return build_entities(args.binary, args.output,
+    output = args.output
+    if output is None and args.target_dir:
+        output = str(Path(args.target_dir) / "entities.jsonl")
+
+    return build_entities(args.binary, output,
                           base_addr=args.base_addr,
                           code_start=args.code_start)
 

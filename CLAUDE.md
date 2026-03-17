@@ -48,7 +48,7 @@ PDF  →  parser  →  JSON (knowledge base)  →  generated tools
 ## Key Conventions
 
 ### Entity Tracking
-- Every address range in the binary is an **entity** tracked in `entities.jsonl`
+- Every address range in the binary is an **entity** tracked in `targets/<name>/entities.jsonl`
 - Entities have types: `code`, `data`, `bss`, `unknown`
 - Data entities have subtypes: `sprite`, `bitmap`, `copper_list`, `palette`,
   `tilemap`, `string`, `pointer_table`, `sound_sample`, `level_data`,
@@ -56,9 +56,10 @@ PDF  →  parser  →  JSON (knowledge base)  →  generated tools
 - Entity status progression: `unmapped → typed → named → documented`
 - Confidence levels: `tool-inferred`, `llm-guessed`, `verified`
 
-### Disassembly Output
-- All disassembly output goes in `disasm/` as `.s` files (vasm-compatible syntax)
-- Use symbolic names from `entities.jsonl` for all labels and references
+### Target Output
+- Per-target output goes in `targets/<name>/` (entities, disassembly, progress)
+- Disassembly output is vasm-compatible `.s` files
+- Use symbolic names from entities for all labels and references
 - Hardware register accesses must use symbolic names from `knowledge/amiga-hardware.md`
 - OS library calls must reference names from `knowledge/amiga-os.md`
 

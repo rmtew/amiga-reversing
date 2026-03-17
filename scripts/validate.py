@@ -16,17 +16,15 @@ from pathlib import Path
 from collections import defaultdict
 
 PROJECT_ROOT = Path(__file__).parent.parent
-ENTITIES_FILE = PROJECT_ROOT / "entities.jsonl"
 BIN_DIR = PROJECT_ROOT / "bin"
-DISASM_DIR = PROJECT_ROOT / "disasm"
 
 
-def load_entities():
+def load_entities(entities_file):
     """Load all entities from JSONL file."""
     entities = []
-    if not ENTITIES_FILE.exists():
+    if not entities_file.exists():
         return entities
-    with open(ENTITIES_FILE) as f:
+    with open(entities_file) as f:
         for lineno, line in enumerate(f, 1):
             line = line.strip()
             if not line or line.startswith("#"):
@@ -231,10 +229,18 @@ def compute_coverage(entities, binary_size=None):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Validate entities.jsonl")
+    parser.add_argument("--target-dir", "-t", default=".",
+                        help="Target directory containing entities.jsonl")
+    args = parser.parse_args()
+
+    entities_file = Path(args.target_dir) / "entities.jsonl"
+
     print("=== Amiga Disassembly Validator ===")
 
-    entities = load_entities()
-    print(f"\nLoaded {len(entities)} entities from {ENTITIES_FILE}")
+    entities = load_entities(entities_file)
+    print(f"\nLoaded {len(entities)} entities from {entities_file}")
 
     if not entities:
         print("No entities to validate. Add entries to entities.jsonl to begin.")

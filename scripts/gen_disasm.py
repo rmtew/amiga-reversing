@@ -8,7 +8,8 @@ Produces a reassemblable Motorola-syntax assembly file:
 - Relocations converted to label references
 
 Usage:
-    python gen_disasm.py <binary> [--entities entities.jsonl] [--output disasm/out.s]
+    python gen_disasm.py <binary> -t targets/genam
+    python gen_disasm.py <binary> --entities entities.jsonl --output out.s
 """
 
 import json
@@ -1529,11 +1530,11 @@ def main():
         description="Generate vasm-compatible .s file from binary + entities")
     parser.add_argument("binary", help="Path to Amiga hunk executable")
     parser.add_argument("--entities", "-e",
-                        default=str(PROJECT_ROOT / "entities.jsonl"),
                         help="Path to entities.jsonl")
     parser.add_argument("--output", "-o",
-                        default=str(PROJECT_ROOT / "disasm" / "genam.s"),
                         help="Output .s file path")
+    parser.add_argument("--target-dir", "-t",
+                        help="Target output directory (e.g. targets/genam)")
     parser.add_argument("--base-addr", type=lambda x: int(x, 0),
                         default=0,
                         help="Runtime base address (e.g. 0x400)")
@@ -1542,10 +1543,14 @@ def main():
                         help="Byte offset where code begins (skips bootstrap)")
     args = parser.parse_args()
 
-    # Ensure output directory exists
-    Path(args.output).parent.mkdir(parents=True, exist_ok=True)
+    target_dir = args.target_dir
+    entities = args.entities or (str(Path(target_dir) / "entities.jsonl") if target_dir else "entities.jsonl")
+    output = args.output or (str(Path(target_dir) / (Path(args.binary).stem + ".s")) if target_dir else "disasm.s")
 
-    return gen_disasm(args.binary, args.entities, args.output,
+    # Ensure output directory exists
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
+
+    return gen_disasm(args.binary, entities, output,
                       base_addr=args.base_addr,
                       code_start=args.code_start)
 

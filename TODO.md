@@ -46,14 +46,14 @@ runtime-dependent (callback pointers, input-dependent function pointers).
 Test suite: `py -m pytest tests/` -- 1954 tests in ~2s.
 
 ### Disassembly Generator (done)
-`scripts/gen_disasm.py` -> `disasm/genam.s`, `disasm/bloodwych.s`.
+`scripts/gen_disasm.py` -> `targets/<name>/<name>.s`.
 PC-relative code references labeled (LEA to instruction starts).
 Hint/core overlap filtering prevents output corruption.
 
 ## Current Targets
 
-- GenAm (DevPac 3.18 assembler): `resources/Amiga_Devpac_3_18/GenAm`
-- Bloodwych (no-OS game): `resources/Bloodwych/Bloodwych439`
+- GenAm (DevPac 3.18 assembler): `targets/genam/`
+- Bloodwych (no-OS game): `targets/bloodwych/`
 
 ## Phase 6: Beyond Static Analysis (current focus)
 

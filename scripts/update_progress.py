@@ -12,8 +12,6 @@ from pathlib import Path
 from collections import defaultdict
 
 PROJECT_ROOT = Path(__file__).parent.parent
-ENTITIES_FILE = PROJECT_ROOT / "entities.jsonl"
-PROGRESS_FILE = PROJECT_ROOT / "progress.md"
 BIN_DIR = PROJECT_ROOT / "bin"
 
 
@@ -25,11 +23,11 @@ def parse_addr(addr):
     return 0
 
 
-def load_entities():
+def load_entities(entities_file):
     entities = []
-    if not ENTITIES_FILE.exists():
+    if not entities_file.exists():
         return entities
-    with open(ENTITIES_FILE) as f:
+    with open(entities_file) as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
@@ -50,7 +48,17 @@ def get_binary_size():
 
 
 def main():
-    entities = load_entities()
+    import argparse
+    parser = argparse.ArgumentParser(description="Update progress.md from entities.jsonl")
+    parser.add_argument("--target-dir", "-t", default=".",
+                        help="Target directory containing entities.jsonl")
+    args = parser.parse_args()
+
+    target_dir = Path(args.target_dir)
+    entities_file = target_dir / "entities.jsonl"
+    progress_file = target_dir / "progress.md"
+
+    entities = load_entities(entities_file)
     binary_size = get_binary_size()
 
     total = len(entities)
@@ -149,7 +157,7 @@ def main():
 
     progress += "\n## Recent Activity\n(Updated as work progresses)\n"
 
-    with open(PROGRESS_FILE, "w") as f:
+    with open(progress_file, "w") as f:
         f.write(progress)
 
     print(f"Progress updated: {total} entities, {coverage} coverage")
