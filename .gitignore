@@ -20,4 +20,8 @@ __pycache__/
 # External resources (copyrighted / user-supplied, see RESOURCES.md)
 resources/*
 !resources/.gitkeep
+
+# Per-target output (entities, disassembly, progress)
+targets/*
+!targets/.gitkeep
 *.analysis
