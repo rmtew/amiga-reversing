@@ -14,7 +14,7 @@ All instruction selection, form types, and predictions are derived from KB data.
 No hardcoded M68K instruction knowledge.
 
 Usage:
-    uv run python scripts/test_m68k_execution.py [--verbose] [--filter MNEMONIC]
+    uv run python scripts/oracle_m68k_exec.py [--verbose] [--filter MNEMONIC]
 """
 
 import json

@@ -9,8 +9,8 @@ Supported oracles:
   devpac - DevPac GenAm 3.18 (via vamos, hunk output, sentinel batching)
 
 Usage:
-    python test_m68k_oracle.py vasm [--verbose] [--filter MNEMONIC]
-    python test_m68k_oracle.py devpac [--verbose] [--filter MNEMONIC]
+    python oracle_m68k_asm.py vasm [--verbose] [--filter MNEMONIC]
+    python oracle_m68k_asm.py devpac [--verbose] [--filter MNEMONIC]
 """
 
 import abc

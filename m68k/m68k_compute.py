@@ -5,7 +5,7 @@ all driven from structured data in m68k_instructions.json. Contains no
 hardcoded M68K instruction knowledge.
 
 Used by:
-  - test_m68k_execution.py (verification against machine68k oracle)
+  - oracle_m68k_exec.py (verification against machine68k oracle)
   - Future: symbolic execution / static analysis engine
 """
 

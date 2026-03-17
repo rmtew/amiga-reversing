@@ -14,7 +14,7 @@ SP effects, PC effects, compute formulas, shift/rotate/overflow rules.
 `m68k/m68k_compute.py` -- KB-driven compute engine (CC/SP/result prediction).
 
 ### Phase 4: Verification Harness (done)
-`scripts/test_m68k_execution.py` -- 4870 tests, 119 mnemonics, 0 failures (Musashi oracle).
+`scripts/oracle_m68k_exec.py` -- 4870 tests, 119 mnemonics, 0 failures (Musashi oracle).
 
 ### Phase 5: Symbolic Executor (done -- static analysis complete)
 `m68k/m68k_executor.py` -- KB-driven abstract interpretation engine.
