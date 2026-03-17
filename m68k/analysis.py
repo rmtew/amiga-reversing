@@ -138,8 +138,7 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
         JMP dest
 
     Returns list of segments:
-        [{"file_offset": int, "base_addr": int, "size": int,
-          "entry_points": [int]}]
+        [{"file_offset": int, "base_addr": int, "entry_points": [int]}]
     Entry points include secondary code (e.g. copy stubs reached via TRAP).
     """
     kb = KB()
@@ -559,10 +558,12 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     # Remove hint blocks that overlap with core blocks.
     # A hint starting before a core block can decode a multi-byte
     # instruction that spans into the core range, producing wrong output.
+    overlap_count = 0
     for addr in list(hint_blocks):
         hb = hint_blocks[addr]
         if any(a in core_addrs for a in range(hb.start, hb.end)):
             del hint_blocks[addr]
+            overlap_count += 1
 
     hint_reasons: dict[int, dict] = {}
     for entry in sorted(set(hint_entries) | scan_entries):
@@ -578,12 +579,13 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                 reason["referenced_from"] = refs
         hint_reasons[entry] = reason
 
-    if hint_blocks:
+    if hint_blocks or overlap_count:
         from collections import Counter
         by_reason = Counter(r["source"] for r in hint_reasons.values())
-        reason_str = ", ".join(f"{c} {s}"
-                               for s, c in sorted(by_reason.items()))
-        print_fn(f"  Hints: {_stats(hint_blocks)} ({reason_str})")
+        parts = [f"{c} {s}" for s, c in sorted(by_reason.items())]
+        if overlap_count:
+            parts.append(f"{overlap_count} dropped/overlap")
+        print_fn(f"  Hints: {_stats(hint_blocks)} ({', '.join(parts)})")
 
     print_fn(f"  {len(xrefs)} xrefs, "
              f"{len(call_targets)} call targets, "

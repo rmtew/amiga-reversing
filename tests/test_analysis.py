@@ -444,29 +444,27 @@ def test_no_runtime_blocks_in_core():
         f"got core={sorted(hex(a) for a in ha2.blocks)}")
 
 
-def test_hint_blocks_no_core_overlap():
-    """Hint blocks must not overlap with core blocks.
-
-    If a hint block starts before a core block and extends into it,
-    the hint must be removed — core takes precedence.  Otherwise
-    gen_disasm would emit the hint first, consuming core block bytes.
-    """
-    # Build a binary where a core block at $1C could overlap with
-    # a hint found at a gap address before $1C.
-    # Use the relocated hunk: core at $1C (payload source).
-    # Add 2 padding bytes before $1C that could decode as an instruction
-    # starting at $1A and extending past $1C.
-    code = _make_relocated_hunk()
-    ha = analyze_hunk(code, [])
-
-    # Check: no hint block should overlap with any core block
+def _assert_no_hint_core_overlap(ha):
+    """Assert no hint block overlaps any core block byte range."""
     core_addrs = set()
     for blk in ha.blocks.values():
         for a in range(blk.start, blk.end):
             core_addrs.add(a)
-
     for addr, hb in ha.hint_blocks.items():
         for a in range(hb.start, hb.end):
             assert a not in core_addrs, (
                 f"Hint block ${addr:04X} ({hb.start:X}-{hb.end:X}) "
                 f"overlaps with core at ${a:04X}")
+
+
+def test_hint_blocks_no_core_overlap():
+    """Hint blocks must not overlap with core blocks.
+
+    The overlap filter in analyze_hunk removes hints that span into
+    core block ranges.  Verify for both single-stage and two-stage
+    relocated binaries (two-stage has more gap regions where the
+    hint scanner may produce overlapping blocks).
+    """
+    _assert_no_hint_core_overlap(analyze_hunk(_make_relocated_hunk(), []))
+    _assert_no_hint_core_overlap(
+        analyze_hunk(_make_two_stage_relocated_hunk(), []))
