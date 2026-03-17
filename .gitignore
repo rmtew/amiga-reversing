@@ -17,14 +17,7 @@ ext/vasm.tar.gz
 *.pyc
 __pycache__/
 
-# Third-party reference packages
-resources/amitools/
-resources/machine68k/
-
-# Hardware manual (large, not project-generated)
-resources/Hardware_Manual.html
-resources/Hardware_Manual_guide/
-
-# Transient test output
-resources/_roundtrip_test/
+# External resources (copyrighted / user-supplied, see RESOURCES.md)
+resources/*
+!resources/.gitkeep
 *.analysis
