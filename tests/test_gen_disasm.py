@@ -4,11 +4,19 @@ import io
 import struct
 
 from m68k.m68k_executor import analyze, BasicBlock, Instruction
+from m68k.m68k_disasm import _canonical_mnemonic
 from m68k.kb_util import KB
-from scripts.gen_disasm import (build_label_map, collect_data_access_sizes,
+from scripts.gen_disasm import (add_hint_labels, build_label_map,
+                                collect_data_access_sizes,
+                                _decode_instruction_for_emit,
+                                load_fixed_absolute_addresses,
+                                _lookup_instruction_kb,
+                                discover_absolute_targets,
                                 discover_pc_relative_targets,
+                                filter_core_absolute_targets,
                                 emit_data_region, format_app_offset_comment,
-                                format_ascii_immediate)
+                                format_ascii_immediate,
+                                replace_targets_in_text)
 
 
 # ── Feature 3: App memory offset comments ────────────────────────────
@@ -91,6 +99,32 @@ def test_emit_data_word_format():
     output = f.getvalue()
     assert "dc.w" in output, f"Expected dc.w in output, got:\n{output}"
     assert "$0010" in output or "16" in output
+
+
+def test_emit_data_word_format_stops_at_unknown_access():
+    """A word run stops once access size metadata stops."""
+    import io
+    code = bytes([0x00, 0x10, 0x41, 0x42])
+    f = io.StringIO()
+
+    emit_data_region(f, code, 0, 4, {}, {}, set(), access_sizes={0: 2})
+
+    output = f.getvalue()
+    assert "dc.w    $0010" in output
+    assert "$41" in output and "$42" in output
+
+
+def test_emit_data_raw_chunk_stops_before_later_word_access():
+    """Raw-byte chunking must not swallow a later structured word region."""
+    import io
+    code = bytes([0xAA, 0xBB, 0x12, 0x34])
+    f = io.StringIO()
+
+    emit_data_region(f, code, 0, 4, {}, {}, set(), access_sizes={2: 2})
+
+    output = f.getvalue()
+    assert "$aa" in output.lower() and "$bb" in output.lower()
+    assert "dc.w    $1234" in output
 
 
 def test_emit_data_long_format():
@@ -227,9 +261,11 @@ def test_scan_uses_hint_blocks_for_gaps():
         start=0, end=6,
         instructions=[
             Instruction(offset=0, size=2, opcode=0x7001,
-                        text="moveq   #1,d0", raw=code[0:2]),
+                        text="moveq   #1,d0", raw=code[0:2],
+                        kb_mnemonic="moveq"),
             Instruction(offset=2, size=4, opcode=0x6000,
-                        text="bra.w   $20", raw=code[2:6]),
+                        text="bra.w   $20", raw=code[2:6],
+                        kb_mnemonic="bra"),
         ],
         is_entry=True,
     )
@@ -325,7 +361,7 @@ def test_core_block_entries_get_labels():
     """
     # Simulate core blocks at $00, $08, $1C (like relocated payload)
     blocks = {0x00: None, 0x08: None, 0x1C: None}
-    labels = build_label_map([], blocks, set(), {})
+    labels = build_label_map([], blocks, set(), set(), {})
 
     for addr in (0x00, 0x08, 0x1C):
         assert addr in labels, (
@@ -338,7 +374,7 @@ def test_label_priority_entity_over_block():
     """Entity names take priority over loc_ block labels."""
     entities = [{"addr": "001c", "type": "code", "name": "payload_init"}]
     blocks = {0x00: None, 0x1C: None}
-    labels = build_label_map(entities, blocks, set(), {})
+    labels = build_label_map(entities, blocks, set(), set(), {})
 
     assert labels[0x1C] == "payload_init"
     assert labels[0x00] == "loc_0000"
@@ -348,7 +384,183 @@ def test_label_priority_block_over_pcref():
     """Block loc_ labels take priority over pcref_ labels."""
     blocks = {0x1C: None}
     pc_targets = {0x1C: "pcref_001c"}
-    labels = build_label_map([], blocks, set(), pc_targets)
+    labels = build_label_map([], blocks, set(), set(), pc_targets)
 
     assert labels[0x1C] == "loc_001c", (
         f"Block label should override pcref, got {labels[0x1C]}")
+
+
+def test_discover_absolute_targets_finds_internal_data_refs():
+    """Internal absolute operands are decoded from raw instruction bytes."""
+    block = BasicBlock(
+        start=0x40, end=0x48,
+        instructions=[
+            Instruction(offset=0x40, size=4, opcode=0x4238,
+                        text="clr.b   opaque", raw=struct.pack(">HH", 0x4238, 0x8C1F),
+                        kb_mnemonic="clr"),
+            Instruction(offset=0x44, size=4, opcode=0x4238,
+                        text="clr.w   opaque", raw=struct.pack(">HH", 0x4278, 0xDFF0),
+                        kb_mnemonic="clr"),
+        ],
+        is_entry=True,
+    )
+
+    targets = discover_absolute_targets({0x40: block}, 0x9000, KB())
+
+    assert targets == {0x8C1F}
+
+
+def test_build_label_map_adds_core_absolute_data_labels():
+    """Core absolute targets get relocatable data labels."""
+    labels = build_label_map([], {}, set(), {0x8C1E}, {})
+
+    assert labels[0x8C1E] == "dat_8c1e"
+
+
+def test_filter_core_absolute_targets_keeps_hint_only_addresses():
+    """Core absolute data refs must not be dropped just because hints cover them."""
+    targets = {0x8C1E, 0x8C1F, 0xEE2D}
+    filtered = filter_core_absolute_targets(
+        targets,
+        code_addrs={0x2000, 0x2001},
+        fixed_addrs=set(),
+    )
+
+    assert filtered == {0x8C1E, 0x8C1F, 0xEE2D}
+
+
+def test_load_fixed_absolute_addresses_includes_execbase():
+    """Fixed OS absolute addresses come from the OS KB."""
+    fixed = load_fixed_absolute_addresses()
+
+    assert 0x0004 in fixed
+
+
+def test_filter_core_absolute_targets_excludes_fixed_os_addresses():
+    """Fixed system addresses must not become relocatable data labels."""
+    filtered = filter_core_absolute_targets(
+        targets={0x0004, 0x8C1E},
+        code_addrs=set(),
+        fixed_addrs={0x0004},
+    )
+
+    assert filtered == {0x8C1E}
+
+
+def test_lookup_instruction_kb_normalizes_pmmu_condition_variant():
+    """PMMU condition-coded variants resolve to the PBcc KB entry."""
+    inst_kb = _lookup_instruction_kb("pb#44", KB())
+
+    assert inst_kb["mnemonic"] == "PBcc"
+
+
+def test_decode_instruction_for_emit_requires_kb_mnemonic():
+    """Emission-time decode must reject instructions without KB identity."""
+    try:
+        _decode_instruction_for_emit(
+            "lea     $00000400,a0",
+            struct.pack(">HH", 0x41F8, 0x0400),
+            0x0038,
+            KB(),
+            "",
+        )
+    except ValueError as exc:
+        assert "missing kb_mnemonic" in str(exc)
+    else:
+        raise AssertionError("expected missing kb_mnemonic error")
+
+
+def test_lookup_instruction_kb_normalizes_pmmu_text_condition_variant():
+    """PMMU textual condition variants resolve to the PBcc KB entry."""
+    inst_kb = _lookup_instruction_kb("pbbs", KB())
+
+    assert inst_kb["mnemonic"] == "PBcc"
+
+
+def test_kb_find_resolves_pmmu_condition_family():
+    """Shared KB lookup resolves mixed-case PMMU condition families."""
+    inst_kb = KB().find("PBcc")
+
+    assert inst_kb is not None
+    assert inst_kb["mnemonic"] == "PBcc"
+
+
+def test_canonical_mnemonic_normalizes_pmmu_numeric_condition():
+    """Disassembler canonicalization maps PMMU numeric conditions to PBcc."""
+    assert _canonical_mnemonic("pb#44.w") == "pbcc"
+
+
+def test_canonical_mnemonic_normalizes_pmmu_text_condition():
+    """Disassembler canonicalization maps PMMU textual conditions to PBcc."""
+    assert _canonical_mnemonic("pbbs.w") == "pbcc"
+
+
+def test_add_hint_labels_adds_hint_block_and_successor_labels():
+    """Hint block labels appear without overriding existing core labels."""
+    hint_block = BasicBlock(
+        start=0x200, end=0x204,
+        instructions=[],
+        successors=[0x220],
+        is_entry=True,
+    )
+    labels = {0x220: "loc_0220"}
+
+    add_hint_labels(labels, {0x200: hint_block}, code_addrs={0x220})
+
+    assert labels[0x200] == "hint_0200"
+    assert labels[0x220] == "loc_0220"
+
+
+def test_replace_targets_substitutes_absolute_code_operand():
+    """Absolute code operands should use decoded absolute EA targets."""
+    text = "lea     $00000400,a0"
+    labels = {0x0400: "loc_0400"}
+
+    result = replace_targets_in_text(
+        text, inst_raw=struct.pack(">HH", 0x41F8, 0x0400),
+        inst_offset=0x0038, inst_size=4,
+        labels=labels, reloc_map={}, opword_bytes=2, kb=KB(),
+        kb_mnemonic="lea")
+
+    assert result == "lea loc_0400,a0"
+
+
+def test_replace_targets_substitutes_pc_relative_operand():
+    """PC-relative operands should render labels from decoded targets."""
+    text = "lea     8(pc),a0"
+    labels = {0x004A: "pcref_004a"}
+
+    result = replace_targets_in_text(
+        text, inst_raw=struct.pack(">HH", 0x41FA, 0x0008),
+        inst_offset=0x0040, inst_size=4,
+        labels=labels, reloc_map={}, opword_bytes=2, kb=KB(),
+        kb_mnemonic="lea")
+
+    assert result == "lea pcref_004a(pc),a0"
+
+
+def test_replace_targets_substitutes_branch_target():
+    """Branch targets should render labels from structured branch decode."""
+    text = "bne.s   $000048"
+    labels = {0x0048: "loc_0048"}
+
+    result = replace_targets_in_text(
+        text, inst_raw=struct.pack(">H", 0x6606),
+        inst_offset=0x0040, inst_size=2,
+        labels=labels, reloc_map={}, opword_bytes=2, kb=KB(),
+        kb_mnemonic="bcc")
+
+    assert result == "bne.s loc_0048"
+
+
+def test_replace_targets_leaves_non_label_immediate_alone():
+    """Numeric immediates should stay numeric when not known labels."""
+    text = "move.l  #$00000400,d0"
+
+    result = replace_targets_in_text(
+        text, inst_raw=struct.pack(">HI", 0x203C, 0x00000400),
+        inst_offset=0x0038, inst_size=6,
+        labels={}, reloc_map={}, opword_bytes=2, kb=KB(),
+        kb_mnemonic="move")
+
+    assert result == text

@@ -39,11 +39,38 @@ def _load_kb():
     # Each cc-parameterized instruction (Bcc, Scc, DBcc, etc.) has
     # constraints.cc_parameterized.prefix that maps mnemonic prefixes
     # to the KB entry name.
-    cc_families = {}  # prefix -> kb_mnemonic
+    pmmu_codes = {
+        code.lower()
+        for code in meta.get("pmmu_condition_codes", [])
+        if code and not code.startswith("#")
+    }
+    cpu_codes = set(meta["cc_test_definitions"])
+    cpu_codes.update(meta["cc_aliases"])
+
+    cc_families = {}  # prefix -> {mnemonic, codes, numeric_suffix}
     for inst in instructions:
         cc_param = inst.get("constraints", {}).get("cc_parameterized")
+        is_pmmu = "MC68851" in inst.get("processors", "")
+        codes = pmmu_codes if is_pmmu else cpu_codes
         if cc_param:
-            cc_families[cc_param["prefix"].lower()] = inst["mnemonic"]
+            cc_families[cc_param["prefix"].lower()] = {
+                "mnemonic": inst["mnemonic"],
+                "codes": codes,
+                "numeric_suffix": is_pmmu,
+            }
+            continue
+        for raw_name in inst["mnemonic"].split(","):
+            name = raw_name.strip()
+            if not name.endswith("cc"):
+                continue
+            prefix = name[:-2].lower()
+            if not prefix or prefix in cc_families:
+                continue
+            cc_families[prefix] = {
+                "mnemonic": name,
+                "codes": codes,
+                "numeric_suffix": is_pmmu,
+            }
     meta["_cc_families"] = cc_families
 
     # Derive register layout from movem_reg_masks: count of data and address
@@ -67,6 +94,7 @@ def _load_kb():
 # ── Module-level KB singletons (avoid per-call cache overhead) ────────────
 
 _KB_BY_NAME, _KB_LIST, _KB_META = _load_kb()
+_KB_BY_NAME_UPPER = {name.upper(): inst for name, inst in _KB_BY_NAME.items()}
 
 # Size suffixes for mnemonic extraction (e.g. (".b", ".w", ".l", ".s"))
 _SIZE_SUFFIXES = tuple("." + s for s in _KB_META["size_suffixes"])
@@ -985,11 +1013,15 @@ def _find_kb_entry(kb_by_name: dict, mnemonic: str,
     if cached is not _SENTINEL:
         return cached
     cc_families = _CC_FAMILIES
+    if mnemonic in kb_by_name:
+        result = kb_by_name[mnemonic]
+        _KB_ENTRY_CACHE[mnemonic] = result
+        return result
     mn_upper = mnemonic.upper()
 
-    # Direct lookup
-    if mn_upper in kb_by_name:
-        result = kb_by_name[mn_upper]
+    # Direct case-insensitive canonical lookup
+    result = _KB_BY_NAME_UPPER.get(mn_upper)
+    if result is not None:
         _KB_ENTRY_CACHE[mnemonic] = result
         return result
 
@@ -999,9 +1031,11 @@ def _find_kb_entry(kb_by_name: dict, mnemonic: str,
         prefix_upper = prefix.upper()
         if mn_upper.startswith(prefix_upper) and len(mn_upper) > len(prefix_upper):
             cc_part = mn_upper[len(prefix_upper):].lower()
-            kb_name = cc_families[prefix]
+            family = cc_families[prefix]
+            kb_name = family["mnemonic"]
             # Check if it's a known condition code or alias
-            if cc_part in cc_test_defs or cc_part in cc_aliases:
+            if (cc_part in family["codes"]
+                    or (family["numeric_suffix"] and cc_part.startswith("#"))):
                 result = kb_by_name.get(kb_name)
                 _KB_ENTRY_CACHE[mnemonic] = result
                 return result

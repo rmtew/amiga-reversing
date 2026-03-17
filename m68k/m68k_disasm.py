@@ -18,6 +18,8 @@ class Instruction:
     opcode: int       # first word
     text: str         # disassembled text (mnemonic + operands)
     raw: bytes        # raw instruction bytes
+    kb_mnemonic: str | None = None  # canonical KB mnemonic family
+    decoded_operands: dict | None = None
 
 
 class DecodeError(Exception):
@@ -476,6 +478,13 @@ def _load_disasm_meta() -> dict:
     pmmu_condition_codes = kb_meta["pmmu_condition_codes"]
 
     families = {}
+    pmmu_cc_names = []
+    for code in pmmu_condition_codes:
+        if not code:
+            continue
+        if code.startswith("#"):
+            continue
+        pmmu_cc_names.append(code.lower())
     for inst in kb:
         constraints = inst.get("constraints", {})
         cc_param = constraints.get("cc_parameterized")
@@ -491,10 +500,16 @@ def _load_disasm_meta() -> dict:
 
             entry = families.get(name)
             if entry is None:
+                codes = condition_codes[:]
+                match_numeric_suffix = False
+                if "MC68851" in inst.get("processors", ""):
+                    codes = pmmu_cc_names[:]
+                    match_numeric_suffix = True
                 entry = {
                     "prefix": prefix,
                     "canonical": name,
-                    "codes": condition_codes[:],
+                    "codes": codes,
+                    "match_numeric_suffix": match_numeric_suffix,
                     "excluded": set(),
                 }
                 families[name] = entry
@@ -523,6 +538,7 @@ def _load_disasm_meta() -> dict:
             "prefix": entry["prefix"],
             "canonical": entry["canonical"],
             "codes": codes,
+            "match_numeric_suffix": entry["match_numeric_suffix"],
             "exclude_from_family": sorted(entry["excluded"]),
         })
 
@@ -542,7 +558,9 @@ def _load_disasm_meta() -> dict:
 
 def _canonical_mnemonic(decoded: str) -> str:
     """Normalize a decoded token to a KB mnemonic key."""
-    tok = decoded.split(".", 1)[0].lower()
+    parts = decoded.strip().split(None, 1)
+    tok = parts[0].lower() if parts else ""
+    tok = tok.split(".", 1)[0]
     if tok in ("", "#"):
         return tok
 
@@ -557,7 +575,8 @@ def _canonical_mnemonic(decoded: str) -> str:
             continue
         suffix = tok[len(prefix):]
         if suffix not in fam["codes"]:
-            continue
+            if not (fam.get("match_numeric_suffix") and suffix.startswith("#")):
+                continue
         if tok in fam["exclude_from_family"]:
             continue
         return fam["canonical"]
@@ -777,8 +796,9 @@ def _decode_one(d: _Decoder, max_cpu: str | None) -> Instruction:
 
     size = d.pos - start
     raw = d.data[start:d.pos]
+    kb_mnemonic = _canonical_mnemonic(text)
     return Instruction(offset=pc_offset, size=size, opcode=opcode,
-                       text=text, raw=raw)
+                       text=text, raw=raw, kb_mnemonic=kb_mnemonic)
 
 
 def _decode_opcode(d: _Decoder, op: int, group: int, pc: int) -> str:

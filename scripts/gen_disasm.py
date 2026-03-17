@@ -13,27 +13,108 @@ Usage:
 """
 
 import json
+import io
 import re
 import struct
 import sys
 import argparse
+import time
+import faulthandler
 from pathlib import Path
 from collections import defaultdict
+from contextlib import contextmanager
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from m68k.hunk_parser import parse_file, HunkType
 from m68k.analysis import analyze_hunk, resolve_reloc_target, HunkAnalysis
 from m68k.os_calls import (propagate_input_types, build_app_memory_types,
-                           annotate_call_arguments)
+                           annotate_call_arguments, load_os_kb)
 from m68k.m68k_executor import (_extract_branch_target, _extract_mnemonic,
                                 _extract_size)
+from m68k.m68k_disasm import Instruction
 from m68k.kb_util import (KB, read_string_at, find_containing_sub,
                            decode_instruction_operands, decode_destination,
                            parse_reg_name)
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
+_INSTRUCTION_KB_CACHE: dict[str, dict | None] = {}
+_INSTRUCTION_DECODE_CACHE: dict[tuple[str, bytes, int], dict] = {}
+
+
+class StageTimer:
+    """Optional wall-clock timing for coarse generator stages."""
+
+    def __init__(self, enabled: bool = False):
+        self.enabled = enabled
+        self.samples: list[tuple[str, float]] = []
+
+    @contextmanager
+    def measure(self, name: str):
+        start = time.perf_counter()
+        try:
+            yield
+        finally:
+            if self.enabled:
+                self.samples.append((name, time.perf_counter() - start))
+
+    def format_lines(self) -> list[str]:
+        if not self.enabled:
+            return []
+        return [f"  timing {name}: {elapsed:.3f}s"
+                for name, elapsed in self.samples]
+
+def _lookup_instruction_kb(mnemonic: str, kb: KB) -> dict:
+    """Return KB entry for mnemonic or raise if it is missing."""
+    if not mnemonic:
+        raise ValueError("Instruction mnemonic is missing")
+    if mnemonic not in _INSTRUCTION_KB_CACHE:
+        inst_kb = kb.find(mnemonic)
+        _INSTRUCTION_KB_CACHE[mnemonic] = inst_kb
+    inst_kb = _INSTRUCTION_KB_CACHE[mnemonic]
+    if inst_kb is None:
+        raise KeyError(f"KB missing instruction entry for {mnemonic}")
+    return inst_kb
+
+
+def _decode_instruction_for_emit(inst_text: str, inst_raw: bytes,
+                                 inst_offset: int, kb: KB,
+                                 kb_mnemonic: str) -> dict:
+    """Decode an instruction once for emission-time consumers."""
+    if not kb_mnemonic:
+        raise ValueError(
+            f"Instruction at ${inst_offset:06x} is missing kb_mnemonic")
+    key = (kb_mnemonic, inst_raw, inst_offset)
+    cached = _INSTRUCTION_DECODE_CACHE.get(key)
+    if cached is not None:
+        return cached
+
+    inst_kb = _lookup_instruction_kb(kb_mnemonic, kb)
+    size = _extract_size(inst_text)
+    decoded = decode_instruction_operands(
+        inst_raw, inst_kb, kb.meta, size, inst_offset)
+    cached = {
+        "mnemonic": kb_mnemonic,
+        "size": size,
+        "inst_kb": inst_kb,
+        "decoded": decoded,
+    }
+    _INSTRUCTION_DECODE_CACHE[key] = cached
+    return cached
+
+
+def _decode_inst_for_emit(inst, kb: KB) -> dict:
+    """Decode and cache operand metadata on an Instruction object."""
+    if inst.decoded_operands is not None:
+        return inst.decoded_operands
+    if not inst.kb_mnemonic:
+        raise ValueError(
+            f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
+    meta = _decode_instruction_for_emit(
+        inst.text, inst.raw, inst.offset, kb, inst.kb_mnemonic)
+    inst.decoded_operands = meta
+    return meta
 
 
 def load_entities(path: str) -> list[dict]:
@@ -57,57 +138,85 @@ def discover_pc_relative_targets(blocks: dict, code: bytes,
 
     Names targets based on content: string -> str_XXXX, else pcref_XXXX.
     """
-    # Build set of mid-instruction byte addresses to exclude targets
-    # that fall inside instructions (e.g. jmp 0(pc,d0.w) where the
-    # base address IS the extension word location).  Instruction START
-    # addresses are valid targets (code references like LEA sub(pc),An).
+    pc_targets, _ = discover_operand_targets(blocks, code, kb)
+    return pc_targets
+
+
+def discover_operand_targets(blocks: dict, code: bytes | None,
+                             kb: KB) -> tuple[dict[int, str], set[int]]:
+    """Discover PC-relative and absolute targets from one decode pass."""
     instr_middles = set()
     for blk in blocks.values():
         for inst in blk.instructions:
             for a in range(inst.offset + 1, inst.offset + inst.size):
                 instr_middles.add(a)
 
-    targets = {}  # addr -> name
+    pc_targets: dict[int, str] = {}
+    absolute_targets: set[int] = set()
     for blk in blocks.values():
         for inst in blk.instructions:
-            mn = _extract_mnemonic(inst.text)
-            inst_kb = kb.find(mn)
-            if inst_kb is None:
-                continue
-            sz = _extract_size(inst.text)
-            decoded = decode_instruction_operands(
-                inst.raw, inst_kb, kb.meta, sz, inst.offset)
-            # Check both ea_op and dst_op for PC-relative modes
+            decoded = _decode_inst_for_emit(inst, kb)["decoded"]
             for op in (decoded["ea_op"], decoded["dst_op"]):
-                if op is None:
+                if op is None or op.value is None:
                     continue
-                if op.mode not in ("pcdisp", "pcindex"):
+                if op.mode in ("pcdisp", "pcindex"):
+                    if code is None:
+                        continue
+                    target = op.value
+                    if target < 0 or target >= len(code) or target in pc_targets:
+                        continue
+                    if target in instr_middles:
+                        continue
+                    s = read_string_at(code, target)
+                    if s and len(s) >= 3:
+                        pc_targets[target] = f"str_{target:04x}"
+                    else:
+                        pc_targets[target] = f"pcref_{target:04x}"
                     continue
-                target = op.value
-                if target is None:
+                if op.mode == "absw":
+                    absolute_targets.add(op.value & 0xFFFF)
                     continue
-                if target < 0 or target >= len(code) or target in targets:
-                    continue
-                if target in instr_middles:
-                    continue
-                s = read_string_at(code, target)
-                if s and len(s) >= 3:
-                    targets[target] = f"str_{target:04x}"
-                else:
-                    targets[target] = f"pcref_{target:04x}"
-    return targets
+                if op.mode == "absl":
+                    absolute_targets.add(op.value)
+
+    return pc_targets, absolute_targets
+
+
+def discover_absolute_targets(blocks: dict, code_size: int, kb: KB) -> set[int]:
+    """Discover internal absolute-address operands in a block set."""
+    _, targets = discover_operand_targets(blocks, None, kb)
+    return {target for target in targets if 0 <= target < code_size}
+
+
+def load_fixed_absolute_addresses() -> set[int]:
+    """Return KB-declared fixed system absolute addresses."""
+    os_kb = load_os_kb()
+    exec_base = os_kb["_meta"].get("exec_base_addr")
+    if exec_base is None:
+        raise KeyError("OS KB missing _meta.exec_base_addr")
+    address = exec_base.get("address")
+    if address is None:
+        raise KeyError("OS KB missing _meta.exec_base_addr.address")
+    return {address}
+
+
+def filter_core_absolute_targets(targets: set[int],
+                                 code_addrs: set[int],
+                                 fixed_addrs: set[int]) -> set[int]:
+    """Keep core absolute refs unless they hit code or fixed system addresses."""
+    return set(targets) - code_addrs - fixed_addrs
 
 
 def build_label_map(entities: list[dict], blocks: dict,
-                    reloc_targets: set[int],
+                    reloc_targets: set[int], absolute_targets: set[int],
                     pc_targets: dict[int, str]) -> dict[int, str]:
-    """Build addr→name label map from all sources.
+    """Build addr?name label map from all sources.
 
     Label naming priority:
     1. Named entities: use their name
     2. Unnamed code entities: sub_XXXX
     3. Internal block targets: loc_XXXX
-    4. Reloc targets: dat_XXXX
+    4. Reloc/absolute targets: dat_XXXX
     5. PC-relative targets: str_XXXX or pcref_XXXX
     """
     labels = {}
@@ -130,6 +239,10 @@ def build_label_map(entities: list[dict], blocks: dict,
         if addr not in labels:
             labels[addr] = f"dat_{addr:04x}"
 
+    for addr in sorted(absolute_targets):
+        if addr not in labels:
+            labels[addr] = f"dat_{addr:04x}"
+
     # PC-relative targets (strings, data tables referenced via d(PC))
     for addr, name in sorted(pc_targets.items()):
         if addr not in labels:
@@ -138,8 +251,25 @@ def build_label_map(entities: list[dict], blocks: dict,
     return labels
 
 
+def add_hint_labels(labels: dict[int, str], hint_blocks: dict,
+                    code_addrs: set[int]) -> None:
+    """Add hint-only labels without overriding core-derived labels."""
+    for addr in sorted(hint_blocks):
+        if addr not in labels:
+            labels[addr] = f"hint_{addr:04x}"
+        blk = hint_blocks[addr]
+        for succ in blk.successors:
+            if succ == blk.end:
+                continue
+            if succ not in labels:
+                if succ in hint_blocks:
+                    labels[succ] = f"hint_{succ:04x}"
+                elif succ in code_addrs:
+                    labels[succ] = f"loc_{succ:04x}"
+
+
 def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
-    """Build offset→target map from absolute reloc entries for a hunk.
+    """Build offset?target map from absolute reloc entries for a hunk.
 
     Uses relocation_semantics from hunk format KB to determine which
     reloc types are absolute (need label references in disassembly).
@@ -180,7 +310,8 @@ def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
     return reloc_map
 
 
-def _is_valid_encoding(text: str, raw: bytes, offset: int, kb: KB) -> bool:
+def _is_valid_encoding(text: str, raw: bytes, offset: int, kb: KB,
+                       kb_mnemonic: str) -> bool:
     """Check if instruction's EA mode and size are valid per KB constraints.
 
     Validates:
@@ -192,17 +323,13 @@ def _is_valid_encoding(text: str, raw: bytes, offset: int, kb: KB) -> bool:
     - "ea": single EA operand (JSR, LEA, CLR, etc.)
     - "src"/"dst": separate source and destination modes (MOVE)
     """
-    mn = _extract_mnemonic(text)
-    if not mn:
-        return True
-    ikb = kb.find(mn)
-    if ikb is None:
-        return True
+    meta = _decode_instruction_for_emit(text, raw, offset, kb, kb_mnemonic)
+    ikb = meta["inst_kb"]
     ea_modes = ikb.get("ea_modes", {})
     if not ea_modes:
         return True
-    sz = _extract_size(text)
-    decoded = decode_instruction_operands(raw, ikb, kb.meta, sz, offset)
+    sz = meta["size"]
+    decoded = meta["decoded"]
     ea_op = decoded["ea_op"]
     dst_op = decoded["dst_op"]
 
@@ -250,14 +377,14 @@ def _has_valid_branch_target(inst, kb: KB) -> bool:
     Only checks instructions whose KB flow type is branch, jump, or
     call — other instructions are not branches and always pass.
     """
-    mn = _extract_mnemonic(inst.text)
-    if mn:
-        ikb = kb.find(mn)
-        if ikb:
-            flow = ikb.get("pc_effects", {}).get("flow", {})
-            ftype = flow.get("type")
-            if ftype not in ("branch", "jump", "call"):
-                return True  # not a branch instruction
+    if not inst.kb_mnemonic:
+        raise ValueError(
+            f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
+    ikb = _lookup_instruction_kb(inst.kb_mnemonic, kb)
+    flow = ikb.get("pc_effects", {}).get("flow", {})
+    ftype = flow.get("type")
+    if ftype not in ("branch", "jump", "call"):
+        return True  # not a branch instruction
     try:
         target = _extract_branch_target(inst, inst.offset)
     except (struct.error, IndexError):
@@ -281,9 +408,7 @@ def _get_processor_min(text: str, kb: KB) -> str:
     mn = _extract_mnemonic(text)
     if not mn:
         return "68000"
-    ikb = kb.find(mn)
-    if ikb is None:
-        return "68000"
+    ikb = _lookup_instruction_kb(mn, kb)
     # Instruction-level processor_min (e.g. BFINS -> 68020)
     pmin = ikb.get("processor_min", "68000")
     if pmin != "68000":
@@ -296,25 +421,104 @@ def _get_processor_min(text: str, kb: KB) -> str:
     return "68000"
 
 
-def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
-                            labels: dict[int, str], reloc_map: dict[int, int],
-                            opword_bytes: int) -> str:
-    """Replace hex addresses in instruction text with label names.
+def _split_operand_tokens(operands: str) -> list[str]:
+    """Split operand text on top-level commas."""
+    tokens = []
+    start = 0
+    depth = 0
+    for idx, ch in enumerate(operands):
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            tokens.append(operands[start:idx].strip())
+            start = idx + 1
+    tokens.append(operands[start:].strip())
+    return tokens
 
-    Handles:
-    - Branch targets: bra.s $XXXX → bra.s label
-    - Absolute addresses: jsr $XXXXXXXX → jsr label
-    - PC-relative: lea NNN(pc),An → lea label(pc),An
-    - Relocated immediates: move.l #$XXXX,An → move.l #label,An
-    """
+
+def _parse_absolute_token(token: str) -> int | None:
+    """Parse a plain absolute hex operand token."""
+    if not token.startswith("$"):
+        return None
+    digits = token[1:]
+    if not digits or any(ch not in "0123456789abcdefABCDEF" for ch in digits):
+        return None
+    return int(digits, 16)
+
+
+def _parse_immediate_token(token: str) -> int | None:
+    """Parse a plain immediate hex operand token."""
+    if not token.startswith("#$"):
+        return None
+    digits = token[2:]
+    if not digits or any(ch not in "0123456789abcdefABCDEF" for ch in digits):
+        return None
+    return int(digits, 16)
+
+
+def _replace_token_value(tokens: list[str], target: int, replacement: str | None,
+                         parse_token, reverse: bool = False) -> bool:
+    """Replace the first token whose parsed numeric value equals target."""
+    if replacement is None:
+        return False
+    indexes = range(len(tokens) - 1, -1, -1) if reverse else range(len(tokens))
+    for idx in indexes:
+        if parse_token(tokens[idx]) == target:
+            tokens[idx] = replacement
+            return True
+    return False
+
+
+def _replace_pc_relative_token(tokens: list[str], replacement: str) -> bool:
+    """Replace the displacement prefix of a single PC-relative operand token."""
+    matches = [idx for idx, token in enumerate(tokens) if "(pc" in token.lower()]
+    if not matches:
+        return False
+    if len(matches) != 1:
+        raise ValueError(f"Ambiguous PC-relative operands: {tokens}")
+    idx = matches[0]
+    token = tokens[idx]
+    pc_pos = token.lower().find("(pc")
+    if pc_pos <= 0:
+        raise ValueError(f"Malformed PC-relative operand: {token!r}")
+    tokens[idx] = replacement + token[pc_pos:]
+    return True
+
+
+def _replace_decoded_target_tokens(tokens: list[str], decoded: dict,
+                                   labels: dict[int, str]) -> None:
+    """Apply structured absolute and PC-relative operand substitutions."""
+    for op in (decoded["ea_op"], decoded["dst_op"]):
+        if op is None or op.value is None:
+            continue
+        if op.mode == "absw":
+            _replace_token_value(tokens, op.value & 0xFFFF,
+                                 labels.get(op.value & 0xFFFF),
+                                 _parse_absolute_token)
+        elif op.mode == "absl":
+            _replace_token_value(tokens, op.value, labels.get(op.value),
+                                 _parse_absolute_token)
+        elif op.mode in ("pcdisp", "pcindex") and op.value in labels:
+            _replace_pc_relative_token(tokens, labels[op.value])
+
+
+def replace_targets_in_text(text: str, inst_raw: bytes,
+                            inst_offset: int, inst_size: int,
+                            labels: dict[int, str], reloc_map: dict[int, int],
+                            opword_bytes: int, kb: KB,
+                            kb_mnemonic: str) -> str:
+    """Render label substitutions from structured decode and reloc data."""
     parts = text.split(None, 1)
     if len(parts) < 2:
         return text
     mnemonic = parts[0]
-    operands = parts[1]
+    original_operands = parts[1]
+    tokens = _split_operand_tokens(original_operands)
+    meta = _decode_instruction_for_emit(
+        text, inst_raw, inst_offset, kb, kb_mnemonic)
 
-    # Check all extension word offsets for relocations.
-    # Handles both immediates (#$XXXX) and absolute addresses ($XXXXXXXX).
     for ext_off in range(inst_offset + opword_bytes,
                          inst_offset + inst_size):
         if ext_off not in reloc_map:
@@ -322,57 +526,26 @@ def replace_targets_in_text(text: str, inst_offset: int, inst_size: int,
         target = reloc_map[ext_off]
         if target not in labels:
             continue
-        lbl = labels[target]
-        # Try immediate: #$XXXX → #label
-        new_ops, n = re.subn(r'#\$[0-9a-fA-F]+', f'#{lbl}',
-                             operands, count=1)
-        if n:
-            return f"{mnemonic} {new_ops}"
-        # Try absolute address: $XXXXXXXX or $XXXX → label
-        hex8 = f"${target:08x}"
-        hex4 = f"${target:04x}"
-        if hex8 in operands.lower():
-            operands = re.sub(re.escape(hex8), lbl,
-                              operands, count=1, flags=re.IGNORECASE)
-            return f"{mnemonic} {operands}"
-        if hex4 in operands.lower():
-            operands = re.sub(re.escape(hex4), lbl,
-                              operands, count=1, flags=re.IGNORECASE)
-            return f"{mnemonic} {operands}"
+        if _replace_token_value(tokens, target, f"#{labels[target]}",
+                                _parse_immediate_token):
+            return f"{mnemonic} {','.join(tokens)}"
+        if _replace_token_value(tokens, target, labels[target],
+                                _parse_absolute_token):
+            return f"{mnemonic} {','.join(tokens)}"
 
-    # PC-relative: NNN(pc) → label(pc) or NNN(pc,Xn) → label(pc,Xn).
-    # For both pcdisp and pcindex modes, the base address PC + d is known.
-    # The index register (if present) is preserved in the output.
-    pc_match = re.search(r'(-?\d+)\(pc([),])', operands, re.IGNORECASE)
-    if pc_match:
-        disp = int(pc_match.group(1))
-        target = inst_offset + opword_bytes + disp
-        if target in labels:
-            delim = pc_match.group(2)  # ')' for pcdisp, ',' for pcindex
-            # Replace displacement with label, keep delimiter and rest
-            operands = (operands[:pc_match.start()] +
-                        f"{labels[target]}(pc{delim}" +
-                        operands[pc_match.end():])
-            return f"{mnemonic} {operands}"
+    _replace_decoded_target_tokens(tokens, meta["decoded"], labels)
 
-    # Branch/jump targets: $XXXX at end of operand string
-    hex_match = re.search(r'\$([0-9a-fA-F]{2,8})\s*$', operands)
-    if hex_match:
-        target = int(hex_match.group(1), 16)
-        if target in labels:
-            operands = operands[:hex_match.start()] + labels[target]
-            return f"{mnemonic} {operands}"
+    flow = meta["inst_kb"].get("pc_effects", {}).get("flow", {})
+    if flow.get("type") in ("branch", "jump", "call"):
+        inst = Instruction(offset=inst_offset, size=inst_size, opcode=0,
+                           text=text, raw=inst_raw)
+        target = _extract_branch_target(inst, inst_offset)
+        if target is not None and target in labels:
+            _replace_token_value(tokens, target, labels[target],
+                                 _parse_absolute_token, reverse=True)
 
-    # DBcc targets: dbf d0,$56 — target after comma
-    dbcc_match = re.search(r',\s*\$([0-9a-fA-F]{2,8})\s*$', operands)
-    if dbcc_match:
-        target = int(dbcc_match.group(1), 16)
-        if target in labels:
-            operands = operands[:dbcc_match.start()] + \
-                f",{labels[target]}"
-            return f"{mnemonic} {operands}"
-
-    return text
+    rendered = f"{mnemonic} {','.join(tokens)}"
+    return rendered if rendered != f"{mnemonic} {original_operands}" else text
 
 
 def replace_struct_fields(text: str, inst_offset: int,
@@ -522,6 +695,8 @@ def collect_data_access_sizes(blocks: dict, exit_states: dict
     from m68k.m68k_executor import _extract_mnemonic
     from m68k.kb_util import KB
     kb = KB()
+    fixed_abs_addrs = load_fixed_absolute_addresses()
+    fixed_abs_addrs = load_fixed_absolute_addresses()
     sizes = {}
     size_map = kb.size_bytes  # {"b": 1, "w": 2, "l": 4} from KB
     num_addr_regs = len(exit_states[next(iter(exit_states))][0].a) if exit_states else 8
@@ -599,59 +774,36 @@ def _emit_chunk_with_strings(f, code: bytes, start: int, end: int,
     with ,0 appended if null-terminated.
     """
     pos = start
+    hex_start = start
     while pos < end:
-        # Find next printable run
-        run_start = None
-        for i in range(pos, end):
-            if _is_printable(code[i]):
-                if run_start is None:
-                    run_start = i
-            else:
-                if run_start is not None:
-                    run_len = i - run_start
-                    if run_len >= _MIN_STRING_LEN:
-                        break  # found a valid run
-                    run_start = None  # too short, reset
+        if not _is_printable(code[pos]):
+            pos += 1
+            continue
+
+        run_start = pos
+        while pos < end and _is_printable(code[pos]):
+            pos += 1
+
+        run_end = pos
+        run_len = run_end - run_start
+        null_term = (run_end < end and code[run_end] == 0)
+        min_len = _MIN_STRING_LEN if null_term else 6
+        if run_len < min_len:
+            continue
+
+        if hex_start < run_start:
+            _emit_hex_bytes(f, code[hex_start:run_start], indent)
+
+        text = code[run_start:run_end].decode('ascii')
+        if null_term:
+            _emit_string(f, text, indent)
+            pos += 1
         else:
-            # End of chunk: check if we have a pending run
-            if run_start is not None:
-                run_len = end - run_start
-                if run_len < _MIN_STRING_LEN:
-                    run_start = None
-                else:
-                    i = end
+            f.write(f'{indent}dc.b    "{text}"\n')
+        hex_start = pos
 
-        if run_start is None:
-            # No printable run found — emit everything as hex
-            _emit_hex_bytes(f, code[pos:end], indent)
-            break
-
-        # Emit non-printable bytes before the run
-        if run_start > pos:
-            _emit_hex_bytes(f, code[pos:run_start], indent)
-
-        # Determine run end (stop at non-printable)
-        str_end = run_start
-        while str_end < end and _is_printable(code[str_end]):
-            str_end += 1
-
-        # Emit the printable run as a string
-        text = code[run_start:str_end].decode('ascii')
-        null_term = (str_end < end and code[str_end] == 0)
-        run_len = str_end - run_start
-        # Non-null-terminated runs need 6+ bytes to avoid false
-        # positives from opcodes that happen to be printable ASCII.
-        # Null-terminated runs are strong signals at 4+ bytes.
-        if null_term or run_len >= 6:
-            if null_term:
-                _emit_string(f, text, indent)
-            else:
-                f.write(f'{indent}dc.b    "{text}"\n')
-            pos = str_end + (1 if null_term else 0)
-        else:
-            # Too short and not null-terminated — emit as hex
-            _emit_hex_bytes(f, code[run_start:str_end], indent)
-            pos = str_end
+    if hex_start < end:
+        _emit_hex_bytes(f, code[hex_start:end], indent)
 
 
 def emit_data_region(f, code: bytes, start: int, end: int,
@@ -704,22 +856,24 @@ def emit_data_region(f, code: bytes, start: int, end: int,
                 pos += 4
                 continue
             elif asize == 2 and pos + 2 <= end:
-                # Emit consecutive words until a boundary
-                word_end = pos
-                while (word_end + 2 <= end
-                       and word_end not in labels
-                       and word_end not in reloc_map
-                       and word_end not in string_addrs):
-                    if word_end != pos and (
-                            access_sizes.get(word_end, asize) != asize):
+                # Emit consecutive words until the next non-word access or
+                # structural boundary.  access_sizes only records explicit
+                # typed addresses, so the run length is bounded by adjacent
+                # entries instead of scanning arbitrary bytes.
+                word_end = pos + 2
+                while access_sizes.get(word_end) == asize and word_end + 2 <= end:
+                    if (word_end in labels or word_end in reloc_map
+                            or word_end in string_addrs):
                         break
                     word_end += 2
-                vals = []
-                for wp in range(pos, word_end, 2):
-                    vals.append(f"${struct.unpack_from('>H', code, wp)[0]:04x}")
                 # Emit in rows of 8
-                for i in range(0, len(vals), 8):
-                    row = ",".join(vals[i:i + 8])
+                for row_start in range(pos, word_end, 16):
+                    row_end = min(row_start + 16, word_end)
+                    vals = []
+                    for wp in range(row_start, row_end, 2):
+                        vals.append(
+                            f"${struct.unpack_from('>H', code, wp)[0]:04x}")
+                    row = ",".join(vals)
                     f.write(f"{indent}dc.w    {row}\n")
                 pos = word_end
                 continue
@@ -745,7 +899,8 @@ def emit_data_region(f, code: bytes, start: int, end: int,
         chunk_end = pos + 1
         while chunk_end < end:
             if (chunk_end in labels or chunk_end in reloc_map
-                    or chunk_end in string_addrs):
+                    or chunk_end in string_addrs
+                    or (access_sizes and chunk_end in access_sizes)):
                 break
             if (code[chunk_end] == 0 and chunk_end + 3 < end
                     and all(code[chunk_end + i] == 0 for i in range(4))):
@@ -758,20 +913,29 @@ def emit_data_region(f, code: bytes, start: int, end: int,
 
 
 def gen_disasm(binary_path: str, entities_path: str, output_path: str,
-               base_addr: int = 0, code_start: int = 0):
+               base_addr: int = 0, code_start: int = 0,
+               profile_stages: bool = False,
+               stall_timeout: float | None = None):
     """Main: generate vasm-compatible .s file from binary + entities.
 
     Uses the executor to get basic block boundaries (not linear disassembly)
     so embedded data within code entities is emitted as dc.b, not decoded
     as instructions.
     """
+    stage_timer = StageTimer(enabled=profile_stages)
+    if stall_timeout:
+        faulthandler.dump_traceback_later(stall_timeout, repeat=True)
+
     print(f"Parsing {binary_path}...")
-    hf = parse_file(binary_path)
+    with stage_timer.measure("parse_file"):
+        hf = parse_file(binary_path)
 
     print(f"Loading entities from {entities_path}...")
-    entities = load_entities(entities_path)
+    with stage_timer.measure("load_entities"):
+        entities = load_entities(entities_path)
 
     kb = KB()
+    fixed_abs_addrs = load_fixed_absolute_addresses()
 
     for hunk in hf.hunks:
         if hunk.hunk_type != HunkType.HUNK_CODE:
@@ -787,14 +951,15 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
 
         # Load cached analysis if available, otherwise run fresh
         cache_path = Path(binary_path).with_suffix(".analysis")
-        if cache_path.exists():
-            from m68k.os_calls import load_os_kb
-            ha = HunkAnalysis.load(cache_path, load_os_kb())
-            print(f"  Loaded cached analysis from {cache_path.name}")
-        else:
-            ha = analyze_hunk(code, hunk.relocs, hunk.index,
-                              base_addr=base_addr,
-                              code_start=code_start)
+        with stage_timer.measure("load_analysis"):
+            if cache_path.exists():
+                from m68k.os_calls import load_os_kb
+                ha = HunkAnalysis.load(cache_path, load_os_kb())
+                print(f"  Loaded cached analysis from {cache_path.name}")
+            else:
+                ha = analyze_hunk(code, hunk.relocs, hunk.index,
+                                  base_addr=base_addr,
+                                  code_start=code_start)
         blocks = ha.blocks
         hint_blocks = ha.hint_blocks
         jt_list = ha.jump_tables
@@ -837,8 +1002,9 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                   f"{len(hint_addrs)} hint bytes")
 
         # Build reloc map
-        reloc_map = build_reloc_map(hf.hunks, hunk.index)
-        reloc_target_set = set(reloc_map.values())
+        with stage_timer.measure("build_reloc_map"):
+            reloc_map = build_reloc_map(hf.hunks, hunk.index)
+            reloc_target_set = set(reloc_map.values())
         print(f"  {len(reloc_map)} relocations")
 
         # Discover internal branch targets from blocks.
@@ -857,19 +1023,25 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
             core_entries.update(t["targets"])
         internal_targets = branch_targets | core_entries
 
-        # Discover PC-relative targets (strings, data tables)
-        pc_targets = discover_pc_relative_targets(blocks, code, kb)
-        # Also discover from hint blocks so their d(PC) references
-        # get labels and assemble without absolute displacement warnings.
-        hint_pc = discover_pc_relative_targets(hint_blocks, code, kb)
-        for addr, name in hint_pc.items():
-            if addr not in pc_targets:
-                pc_targets[addr] = name
+        with stage_timer.measure("discover_targets"):
+            pc_targets = discover_pc_relative_targets(blocks, code, kb)
+            core_absolute_targets = discover_absolute_targets(
+                blocks, code_size, kb)
+            core_absolute_targets = filter_core_absolute_targets(
+                core_absolute_targets, code_addrs, fixed_abs_addrs)
+            # Also discover from hint blocks so their d(PC) references
+            # get labels and assemble without absolute displacement warnings.
+            hint_pc = discover_pc_relative_targets(hint_blocks, code, kb)
+            for addr, name in hint_pc.items():
+                if addr not in pc_targets:
+                    pc_targets[addr] = name
         # String addresses: only PC-relative-verified targets
         string_addrs = {addr for addr, name in pc_targets.items()
                         if name.startswith("str_")}
         print(f"  {len(pc_targets)} PC-relative targets "
               f"({len(string_addrs)} verified strings)")
+        if core_absolute_targets:
+            print(f"  {len(core_absolute_targets)} core absolute targets")
 
         # Build jump table metadata for structured emission.
         # Uses jt_list captured from the discovery loop (final
@@ -903,11 +1075,13 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
             print(f"  {len(jt_regions)} jump tables for structured emission")
 
         # Build label map
-        labels = build_label_map(
-            hunk_entities,
-            {t: None for t in internal_targets},
-            reloc_target_set,
-            pc_targets)
+        with stage_timer.measure("build_labels"):
+            labels = build_label_map(
+                hunk_entities,
+                {t: None for t in internal_targets},
+                reloc_target_set,
+                core_absolute_targets,
+                pc_targets)
         # Ensure jump table targets and base addresses have labels
         for tbl_addr, jt in jt_regions.items():
             if jt["pattern"] == "pc_inline_dispatch":
@@ -936,20 +1110,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                 if source not in jt_target_sources[tgt]:
                     jt_target_sources[tgt].append(source)
 
-        # Add hint block labels (don't override existing labels)
-        for addr in sorted(hint_blocks):
-            if addr not in labels:
-                labels[addr] = f"hint_{addr:04x}"
-            # Also add labels for hint block successors
-            blk = hint_blocks[addr]
-            for succ in blk.successors:
-                if succ == blk.end:
-                    continue  # fallthrough, no label needed
-                if succ not in labels:
-                    if succ in hint_blocks:
-                        labels[succ] = f"hint_{succ:04x}"
-                    elif succ in code_addrs:
-                        labels[succ] = f"loc_{succ:04x}"
+        add_hint_labels(labels, hint_blocks, code_addrs)
         print(f"  {len(labels)} labels")
 
         # Build struct type map for displacement substitution.
@@ -1198,11 +1359,15 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
         # Collect data access sizes for data region formatting.
         data_access_sizes = collect_data_access_sizes(
             blocks, exit_states)
+        if profile_stages:
+            print(f"  {len(data_access_sizes)} data access size entries")
 
         # Generate output
         print(f"Writing {output_path}...")
         used_structs = set()  # struct names used in field substitutions
-        with open(output_path, "w") as f:
+        tmp_output = Path(str(output_path) + ".tmp")
+        with stage_timer.measure("emit_output"):
+            f = io.StringIO()
             # Header
             f.write("; Generated disassembly -- vasm Motorola syntax\n")
             f.write("; Source: " + str(binary_path) + "\n")
@@ -1249,6 +1414,11 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                 else:
                     f.write(f"{lbl}:\n")
 
+            def _emit_data(start: int, stop: int):
+                emit_data_region(
+                    f, code, start, stop, labels, reloc_map, string_addrs,
+                    access_sizes=data_access_sizes)
+
             # Walk bytes in order, emitting code or data.
             # For relocated binaries: bootstrap pass (file offsets),
             # then ORG + payload pass (runtime addresses).
@@ -1276,18 +1446,17 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                             if inst.offset != pos and inst.offset in labels:
                                 _emit_label(inst.offset)
                             if (not _is_valid_encoding(inst.text, inst.raw,
-                                                       inst.offset, kb)
+                                                       inst.offset, kb,
+                                                       inst.kb_mnemonic)
                                     or not _has_valid_branch_target(inst, kb)):
-                                emit_data_region(f, code, inst.offset,
-                                                 inst.offset + inst.size,
-                                                 labels, reloc_map,
-                                                 string_addrs,
-                                                 access_sizes=data_access_sizes)
+                                _emit_data(inst.offset, inst.offset + inst.size)
                                 data_bytes += inst.size
                                 continue
                             text = replace_targets_in_text(
-                                    inst.text, inst.offset, inst.size,
-                                    labels, reloc_map, kb.opword_bytes)
+                                    inst.text, inst.raw, inst.offset,
+                                    inst.size, labels, reloc_map,
+                                    kb.opword_bytes, kb,
+                                    inst.kb_mnemonic)
                             text = replace_struct_fields(
                                     text, inst.offset, struct_map,
                                     used_structs)
@@ -1380,7 +1549,8 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                                     break
                                 # Invalid EA mode/size
                                 if not _is_valid_encoding(inst.text,
-                                        inst.raw, inst.offset, kb):
+                                                         inst.raw, inst.offset,
+                                                         kb, inst.kb_mnemonic):
                                     valid_hint = False
                                     break
                                 # Odd branch target
@@ -1393,10 +1563,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                                     break
                         if not valid_hint:
                             # Not valid code — emit as data
-                            emit_data_region(f, code, pos, blk.end,
-                                             labels, reloc_map,
-                                             string_addrs,
-                                             access_sizes=data_access_sizes)
+                            _emit_data(pos, blk.end)
                             data_bytes += blk.end - pos
                             pos = blk.end
                             continue
@@ -1406,8 +1573,10 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                             if inst.offset != pos and inst.offset in labels:
                                 _emit_label(inst.offset)
                             text = replace_targets_in_text(
-                                    inst.text, inst.offset, inst.size,
-                                    labels, reloc_map, kb.opword_bytes)
+                                    inst.text, inst.raw, inst.offset,
+                                    inst.size, labels, reloc_map,
+                                    kb.opword_bytes, kb,
+                                    inst.kb_mnemonic)
                             if app_offsets and base_info:
                                 brn = base_info[0]
                                 for off, sym in app_offsets.items():
@@ -1458,8 +1627,10 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                                 if inst is None:
                                     break
                                 text = replace_targets_in_text(
-                                    inst.text, inst.offset, inst.size,
-                                    labels, reloc_map, kb.opword_bytes)
+                                    inst.text, inst.raw, inst.offset,
+                                    inst.size, labels, reloc_map,
+                                    kb.opword_bytes, kb,
+                                    inst.kb_mnemonic)
                                 f.write(f"    {text}\n")
                                 instr_count += 1
                             pos = jt["table_end"]
@@ -1486,14 +1657,14 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                                and data_end not in hint_blocks
                                and data_end not in labels):
                             data_end += 1
-                        emit_data_region(f, code, pos, data_end,
-                                         labels, reloc_map, string_addrs,
-                                         access_sizes=data_access_sizes)
+                        _emit_data(pos, data_end)
                         data_bytes += data_end - pos
                         pos = data_end
 
             print(f"  {instr_count} instructions, "
                   f"{data_bytes} data bytes emitted")
+
+            tmp_output.write_text(f.getvalue())
 
         # Insert INCLUDE directives for used struct definitions.
         # The .I files define the field offset constants (e.g., IS_CODE EQU 18)
@@ -1507,7 +1678,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                 includes.add(inc_path)
 
             if includes:
-                with open(output_path, "r") as f:
+                with open(tmp_output, "r") as f:
                     content = f.read()
                 # Insert after the header comments, before section directive
                 insert_point = content.index("    section code,code")
@@ -1517,11 +1688,17 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                 include_block += "\n"
                 content = (content[:insert_point] + include_block
                            + content[insert_point:])
-                with open(output_path, "w") as f:
+                with open(tmp_output, "w") as f:
                     f.write(content)
                 print(f"  {len(includes)} INCLUDE directives for "
                       f"{len(used_structs)} struct types")
+        with stage_timer.measure("finalize_output"):
+            tmp_output.replace(output_path)
 
+    for line in stage_timer.format_lines():
+        print(line)
+    if stall_timeout:
+        faulthandler.cancel_dump_traceback_later()
     print(f"\nDone: {output_path}")
 
 
@@ -1541,6 +1718,10 @@ def main():
     parser.add_argument("--code-start", type=lambda x: int(x, 0),
                         default=0,
                         help="Byte offset where code begins (skips bootstrap)")
+    parser.add_argument("--profile-stages", action="store_true",
+                        help="Print coarse wall-clock timing for major stages")
+    parser.add_argument("--stall-timeout", type=float,
+                        help="Dump Python traceback every N seconds while running")
     args = parser.parse_args()
 
     target_dir = args.target_dir
@@ -1552,8 +1733,12 @@ def main():
 
     return gen_disasm(args.binary, entities, output,
                       base_addr=args.base_addr,
-                      code_start=args.code_start)
+                      code_start=args.code_start,
+                      profile_stages=args.profile_stages,
+                      stall_timeout=args.stall_timeout)
 
 
 if __name__ == "__main__":
     sys.exit(main() or 0)
+
+

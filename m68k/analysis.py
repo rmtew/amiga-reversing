@@ -62,7 +62,7 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
 
 # ── Analysis result ──────────────────────────────────────────────────────
 
-_CACHE_VERSION = 2  # bump when HunkAnalysis fields change
+_CACHE_VERSION = 3  # bump when HunkAnalysis fields change
 
 # Platform dict keys that are not serializable (lambdas, resolvers)
 _PLATFORM_TRANSIENT_KEYS = {
