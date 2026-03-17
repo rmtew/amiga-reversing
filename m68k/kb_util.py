@@ -234,7 +234,7 @@ def decode_instruction_operands(inst_raw: bytes, inst_kb: dict,
             result["imm_val"] = raw_val
 
     elif (not opmode_table and not data_field_name
-          and mode_fields and not imm_range):
+          and len(mode_fields) == 1 and not imm_range):
         # Pattern 2: extension word immediate (ADDI etc.)
         imm_bytes = meta["size_byte_count"].get(
             size, meta["size_byte_count"]["w"])
