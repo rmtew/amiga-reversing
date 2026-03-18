@@ -6,8 +6,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from disasm.cli import main
+from disasm.server import main
 
 
 if __name__ == "__main__":
-    raise SystemExit(main() or 0)
+    main()

@@ -6,17 +6,23 @@ import struct
 from m68k.m68k_executor import analyze, BasicBlock, Instruction
 from m68k.m68k_disasm import _canonical_mnemonic
 from m68k.kb_util import KB
-from scripts.gen_disasm import (add_hint_labels, build_label_map,
-                                collect_data_access_sizes,
-                                _decode_instruction_for_emit,
-                                load_fixed_absolute_addresses,
-                                _lookup_instruction_kb,
-                                discover_absolute_targets,
-                                discover_pc_relative_targets,
-                                filter_core_absolute_targets,
-                                emit_data_region, format_app_offset_comment,
-                                format_ascii_immediate,
-                                replace_targets_in_text)
+from disasm.comments import (build_instruction_comment_parts,
+                             format_app_offset_comment,
+                             format_ascii_immediate)
+from disasm.data_access import collect_data_access_sizes
+from disasm.data_render import emit_data_region
+from disasm.decode import (decode_inst_for_emit,
+                           decode_instruction_for_emit,
+                           lookup_instruction_kb)
+from disasm.discovery import (add_hint_labels, build_label_map,
+                              discover_absolute_targets,
+                              discover_pc_relative_targets,
+                              filter_core_absolute_targets,
+                              load_fixed_absolute_addresses)
+from disasm.instruction_rows import (make_instruction_row,
+                                     render_instruction_text)
+from disasm.operands import build_instruction_semantic_operands
+from disasm.types import HunkDisassemblySession
 
 
 # ── Feature 3: App memory offset comments ────────────────────────────
@@ -449,7 +455,7 @@ def test_filter_core_absolute_targets_excludes_fixed_os_addresses():
 
 def test_lookup_instruction_kb_normalizes_pmmu_condition_variant():
     """PMMU condition-coded variants resolve to the PBcc KB entry."""
-    inst_kb = _lookup_instruction_kb("pb#44", KB())
+    inst_kb = lookup_instruction_kb("pb#44", KB())
 
     assert inst_kb["mnemonic"] == "PBcc"
 
@@ -457,7 +463,7 @@ def test_lookup_instruction_kb_normalizes_pmmu_condition_variant():
 def test_decode_instruction_for_emit_requires_kb_mnemonic():
     """Emission-time decode must reject instructions without KB identity."""
     try:
-        _decode_instruction_for_emit(
+        decode_instruction_for_emit(
             "lea     $00000400,a0",
             struct.pack(">HH", 0x41F8, 0x0400),
             0x0038,
@@ -472,7 +478,7 @@ def test_decode_instruction_for_emit_requires_kb_mnemonic():
 
 def test_lookup_instruction_kb_normalizes_pmmu_text_condition_variant():
     """PMMU textual condition variants resolve to the PBcc KB entry."""
-    inst_kb = _lookup_instruction_kb("pbbs", KB())
+    inst_kb = lookup_instruction_kb("pbbs", KB())
 
     assert inst_kb["mnemonic"] == "PBcc"
 
@@ -511,56 +517,853 @@ def test_add_hint_labels_adds_hint_block_and_successor_labels():
     assert labels[0x220] == "loc_0220"
 
 
-def test_replace_targets_substitutes_absolute_code_operand():
+def test_render_instruction_text_substitutes_absolute_code_operand():
     """Absolute code operands should use decoded absolute EA targets."""
-    text = "lea     $00000400,a0"
-    labels = {0x0400: "loc_0400"}
+    inst = Instruction(offset=0x0038, size=4, opcode=0x41F8,
+                       text="lea     $00000400,a0",
+                       raw=struct.pack(">HH", 0x41F8, 0x0400),
+                       kb_mnemonic="lea")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x0400: "loc_0400"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
 
-    result = replace_targets_in_text(
-        text, inst_raw=struct.pack(">HH", 0x41F8, 0x0400),
-        inst_offset=0x0038, inst_size=4,
-        labels=labels, reloc_map={}, opword_bytes=2, kb=KB(),
-        kb_mnemonic="lea")
+    text, _comment, _comment_parts = render_instruction_text(inst, session, set())
 
-    assert result == "lea loc_0400,a0"
+    assert text == "lea loc_0400,a0"
 
 
-def test_replace_targets_substitutes_pc_relative_operand():
+def test_render_instruction_text_substitutes_pc_relative_operand():
     """PC-relative operands should render labels from decoded targets."""
-    text = "lea     8(pc),a0"
-    labels = {0x004A: "pcref_004a"}
+    inst = Instruction(offset=0x0040, size=4, opcode=0x41FA,
+                       text="lea     8(pc),a0",
+                       raw=struct.pack(">HH", 0x41FA, 0x0008),
+                       kb_mnemonic="lea")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x004A: "pcref_004a"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
 
-    result = replace_targets_in_text(
-        text, inst_raw=struct.pack(">HH", 0x41FA, 0x0008),
-        inst_offset=0x0040, inst_size=4,
-        labels=labels, reloc_map={}, opword_bytes=2, kb=KB(),
-        kb_mnemonic="lea")
+    text, _comment, _comment_parts = render_instruction_text(inst, session, set())
 
-    assert result == "lea pcref_004a(pc),a0"
+    assert text == "lea pcref_004a(pc),a0"
 
 
-def test_replace_targets_substitutes_branch_target():
-    """Branch targets should render labels from structured branch decode."""
-    text = "bne.s   $000048"
-    labels = {0x0048: "loc_0048"}
+def test_build_instruction_semantic_operands_marks_branch_target():
+    inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
+                       text="bne.s   $000048", raw=struct.pack(">H", 0x6606),
+                       kb_mnemonic="bcc")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x0048: "loc_0048"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
 
-    result = replace_targets_in_text(
-        text, inst_raw=struct.pack(">H", 0x6606),
-        inst_offset=0x0040, inst_size=2,
-        labels=labels, reloc_map={}, opword_bytes=2, kb=KB(),
-        kb_mnemonic="bcc")
+    ops = build_instruction_semantic_operands(inst, session)
 
-    assert result == "bne.s loc_0048"
+    assert len(ops) == 1
+    assert ops[0].kind == "branch_target"
+    assert ops[0].target_addr == 0x0048
+    assert ops[0].text == "loc_0048"
 
 
-def test_replace_targets_leaves_non_label_immediate_alone():
-    """Numeric immediates should stay numeric when not known labels."""
-    text = "move.l  #$00000400,d0"
+def test_build_instruction_semantic_operands_keeps_numeric_immediate():
+    inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
+                       text="move.l  #$00000400,d0",
+                       raw=struct.pack(">HI", 0x203C, 0x00000400),
+                       kb_mnemonic="move")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
 
-    result = replace_targets_in_text(
-        text, inst_raw=struct.pack(">HI", 0x203C, 0x00000400),
-        inst_offset=0x0038, inst_size=6,
-        labels={}, reloc_map={}, opword_bytes=2, kb=KB(),
-        kb_mnemonic="move")
+    ops = build_instruction_semantic_operands(inst, session)
 
-    assert result == text
+    assert len(ops) == 2
+    assert ops[0].kind == "immediate"
+    assert ops[0].value == 0x400
+    assert ops[0].target_addr is None
+    assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
+    inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
+                       text="moveq   #1,d0",
+                       raw=struct.pack(">H", 0x7001),
+                       kb_mnemonic="moveq")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "immediate"
+    assert ops[0].value == 1
+    assert ops[0].text == "#1"
+    assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
+    inst = Instruction(offset=0x0038, size=4, opcode=0x41F8,
+                       text="lea     $00000400,a0",
+                       raw=struct.pack(">HH", 0x41F8, 0x0400),
+                       kb_mnemonic="lea")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x0400: "loc_0400"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "absolute_target"
+    assert ops[0].value == 0x400
+    assert ops[0].target_addr == 0x400
+    assert ops[0].text == "loc_0400"
+    assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
+    inst = Instruction(offset=0x0040, size=4, opcode=0x41FA,
+                       text="lea     8(pc),a0",
+                       raw=struct.pack(">HH", 0x41FA, 0x0008),
+                       kb_mnemonic="lea")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x004A: "pcref_004a"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "pc_relative_target"
+    assert ops[0].target_addr == 0x004A
+    assert ops[0].value == 0x004A
+    assert ops[0].text == "pcref_004a(pc)"
+    assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
+    inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
+                       text="move.w  18(a1),d0",
+                       raw=struct.pack(">HH", 0x3029, 0x0012),
+                       kb_mnemonic="move")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={0x0100: {"a1": {"struct": "InitStruct", "fields": {18: "IS_CODE"}}}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    used_structs = set()
+
+    ops = build_instruction_semantic_operands(
+        inst, session, used_structs=used_structs)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "base_displacement_symbol"
+    assert ops[0].base_register == "a1"
+    assert ops[0].displacement == 18
+    assert ops[0].value == 18
+    assert ops[0].text == "IS_CODE(a1)"
+    assert used_structs == {"InitStruct"}
+    assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
+    inst = Instruction(offset=0x0100, size=4, opcode=0x3231,
+                       text="move.w  8(a1,d0.w),d1",
+                       raw=struct.pack(">HH", 0x3231, 0x0008),
+                       kb_mnemonic="move")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "indexed"
+    assert ops[0].base_register == "a1"
+    assert ops[0].displacement == 8
+    assert ops[0].value == 8
+    assert ops[0].metadata["index_register"] == "d0"
+    assert ops[0].metadata["index_size"] == "w"
+    assert ops[0].text == "8(a1,d0.w)"
+    assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_immediate():
+    inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
+                       text="move.l  #loc_0400,d0",
+                       raw=struct.pack(">HI", 0x203C, 0x00000400),
+                       kb_mnemonic="move")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={0x003A: 0x0400, 0x003C: 0x0400},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x0400: "loc_0400"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "immediate_symbol"
+    assert ops[0].value == 0x400
+    assert ops[0].target_addr == 0x400
+    assert ops[0].text == "#loc_0400"
+    assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch():
+    inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
+                       text="moveq   #1,d0,d1",
+                       raw=struct.pack(">H", 0x7001),
+                       kb_mnemonic="moveq")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    try:
+        build_instruction_semantic_operands(inst, session)
+    except ValueError as exc:
+        assert "Operand text count mismatch" in str(exc)
+    else:
+        raise AssertionError("expected operand text count mismatch")
+
+
+def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots():
+    inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
+                       text="moveq",
+                       raw=struct.pack(">H", 0x7001),
+                       kb_mnemonic="moveq")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    try:
+        build_instruction_semantic_operands(inst, session)
+    except ValueError as exc:
+        assert "Decoded operands missing text slots" in str(exc)
+    else:
+        raise AssertionError("expected missing operand text slots")
+
+
+def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
+    inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
+                       text="move.l  #$4C494E45,d0",
+                       raw=struct.pack(">HI", 0x203C, 0x4C494E45),
+                       kb_mnemonic="move")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    parts = build_instruction_comment_parts(
+        inst, "move.l #$4C494E45,d0", session, include_arg_subs=True)
+
+    assert parts == ("'LINE'",)
+
+
+def test_make_instruction_row_renders_from_semantic_operands_and_comments():
+    inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
+                       text="bne.s   $000048", raw=struct.pack(">H", 0x6606),
+                       kb_mnemonic="bcc")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x0048: "loc_0048"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    row = make_instruction_row(
+        "bne.s loc_0048",
+        inst,
+        session,
+        entity_addr=0x0040,
+        verified_state="verified",
+        comment_parts=("68020+", "branch note"),
+    )
+
+    assert row.operand_text == "loc_0048"
+    assert row.comment_text == "68020+; branch note"
+    assert row.text == "    bne.s loc_0048 ; 68020+; branch note\n"
+
+
+def test_build_instruction_semantic_operands_substitutes_struct_field():
+    inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
+                       text="move.w  18(a1),d0",
+                       raw=struct.pack(">HH", 0x3029, 0x0012),
+                       kb_mnemonic="move")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={0x0100: {"a1": {"struct": "InitStruct", "fields": {18: "IS_CODE"}}}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    used_structs = set()
+
+    ops = build_instruction_semantic_operands(
+        inst, session, used_structs=used_structs)
+
+    assert used_structs == {"InitStruct"}
+    assert ops[0].kind == "base_displacement_symbol"
+    assert ops[0].text == "IS_CODE(a1)"
+    assert ops[0].metadata["symbol"] == "IS_CODE"
+
+
+def test_render_instruction_text_uses_semantic_branch_substitution():
+    inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
+                       text="bne.s   $000048", raw=struct.pack(">H", 0x6606),
+                       kb_mnemonic="bcc")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x0048: "loc_0048"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    text, comment, comment_parts = render_instruction_text(inst, session, set())
+
+    assert text == "bne.s loc_0048"
+    assert comment == ""
+    assert comment_parts == ()
+
+
+def test_render_instruction_text_uses_semantic_struct_substitution():
+    inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
+                       text="move.w  18(a1),d0",
+                       raw=struct.pack(">HH", 0x3029, 0x0012),
+                       kb_mnemonic="move")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={0x0100: {"a1": {"struct": "InitStruct", "fields": {18: "IS_CODE"}}}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    used_structs = set()
+
+    text, comment, comment_parts = render_instruction_text(
+        inst, session, used_structs)
+
+    assert text == "move.w IS_CODE(a1),d0"
+    assert comment == ""
+    assert comment_parts == ()
+    assert used_structs == {"InitStruct"}

@@ -76,7 +76,7 @@ def main():
     binary_size_str = str(binary_size) if binary_size else "-"
 
     named = sum(1 for e in entities if e.get("name"))
-    documented = sum(1 for e in entities if e.get("status") == "documented")
+    documented = sum(1 for e in entities if str(e.get("comment", "")).strip())
     verified = sum(1 for e in entities if e.get("confidence") == "verified")
     typed = sum(1 for e in entities if e.get("type") not in (None, "unknown"))
 
@@ -84,14 +84,10 @@ def main():
     xref_fields = ["calls", "called_by", "reads", "read_by", "writes", "written_by"]
     total_xrefs = sum(len(e.get(f, [])) for e in entities for f in xref_fields) // 2  # bidirectional
 
-    def count_by_status(ents):
-        counts = defaultdict(int)
-        for e in ents:
-            counts[e.get("status", "unmapped")] += 1
-        return counts
-
-    code_status = count_by_status(code_ents)
-    data_status = count_by_status(data_ents)
+    unknown_code = sum(1 for e in code_ents if not e.get("name"))
+    documented_code = sum(1 for e in code_ents if str(e.get("comment", "")).strip())
+    unknown_data = sum(1 for e in data_ents if not e.get("subtype"))
+    documented_data = sum(1 for e in data_ents if str(e.get("comment", "")).strip())
 
     progress = f"""# Disassembly Progress
 
@@ -123,23 +119,21 @@ def main():
 - [ ] Level data format understood
 - [ ] Full round-trip reassembly passes
 
-## Entity Status Breakdown
+## Entity Breakdown
 
 ### Code Entities ({len(code_ents)} total)
-| Status | Count |
+| Metric | Count |
 |--------|-------|
-| unmapped | {code_status['unmapped']} |
-| typed | {code_status['typed']} |
-| named | {code_status['named']} |
-| documented | {code_status['documented']} |
+| named | {len(code_ents) - unknown_code} |
+| unnamed | {unknown_code} |
+| documented | {documented_code} |
 
 ### Data Entities ({len(data_ents)} total)
-| Status | Count |
+| Metric | Count |
 |--------|-------|
-| unmapped | {data_status['unmapped']} |
-| typed | {data_status['typed']} |
-| named | {data_status['named']} |
-| documented | {data_status['documented']} |
+| typed subtype | {len(data_ents) - unknown_data} |
+| untyped subtype | {unknown_data} |
+| documented | {documented_data} |
 
 ## Data Subtype Breakdown
 """

@@ -192,7 +192,6 @@ def fill_gaps(entities: list[dict], total_size: int, hunk_idx: int):
             "addr": fmt_addr(start),
             "end": fmt_addr(end),
             "type": "unknown",
-            "status": "unmapped",
             "confidence": "tool-inferred",
             "hunk": hunk_idx,
         })
@@ -283,7 +282,6 @@ def build_entities(binary_path: str, output_path: str = None,
                 "addr": fmt_addr(0),
                 "end": fmt_addr(hunk.alloc_size),
                 "type": etype,
-                "status": "unmapped",
                 "confidence": "tool-inferred",
                 "hunk": hunk.index,
             })
@@ -339,7 +337,6 @@ def build_entities(binary_path: str, output_path: str = None,
                 "addr": fmt_addr(sub["addr"]),
                 "end": fmt_addr(sub["end"]),
                 "type": "code",
-                "status": "typed",
                 "confidence": "tool-inferred",
                 "hunk": hunk.index,
                 "block_count": sub["block_count"],
@@ -416,7 +413,6 @@ def build_entities(binary_path: str, output_path: str = None,
                     "addr": fmt_addr(region["addr"]),
                     "end": fmt_addr(region["end"]),
                     "type": "code",
-                    "status": "unmapped",
                     "confidence": "hint",
                     "hunk": hunk.index,
                     "block_count": region["block_count"],
@@ -449,7 +445,6 @@ def build_entities(binary_path: str, output_path: str = None,
                 "addr": fmt_addr(ref["addr"]),
                 "end": fmt_addr(ref_end),
                 "type": "unknown",
-                "status": "unmapped",
                 "confidence": "tool-inferred",
                 "hunk": hunk.index,
                 "source": "reloc32",
@@ -502,7 +497,7 @@ def build_entities(binary_path: str, output_path: str = None,
                             for s, c in sorted(by_src.items()))
         print(f"  Hints: {len(hint_code)} regions ({src_str})")
     gap_count = sum(1 for e in all_entities
-                    if e.get("status") == "unmapped"
+                    if e.get("type") == "unknown"
                     and e.get("confidence") != "hint")
     print(f"  Gaps: {gap_count} unmapped regions")
 

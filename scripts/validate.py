@@ -53,7 +53,6 @@ def check_entity_consistency(entities):
 
     required_fields = ["addr", "end", "type"]
     valid_types = {"code", "data", "bss", "unknown"}
-    valid_statuses = {"unmapped", "typed", "named", "documented"}
     valid_confidence = {"tool-inferred", "llm-guessed", "verified"}
     valid_data_subtypes = {
         "sprite", "bitmap", "copper_list", "palette", "tilemap",
@@ -72,10 +71,6 @@ def check_entity_consistency(entities):
         if ent.get("type") and ent["type"] not in valid_types:
             print(f"  ERROR: Entity at {ent.get('addr', '?')} has invalid type '{ent['type']}'")
             errors += 1
-
-        if ent.get("status") and ent["status"] not in valid_statuses:
-            print(f"  WARNING: Entity at {ent.get('addr', '?')} has non-standard status '{ent['status']}'")
-            warnings += 1
 
         if ent.get("confidence") and ent["confidence"] not in valid_confidence:
             print(f"  WARNING: Entity at {ent.get('addr', '?')} has non-standard confidence '{ent['confidence']}'")
@@ -182,7 +177,6 @@ def compute_coverage(entities, binary_size=None):
     verified_count = 0
 
     type_counts = defaultdict(int)
-    status_counts = defaultdict(int)
     subtype_counts = defaultdict(int)
 
     for ent in entities:
@@ -194,14 +188,11 @@ def compute_coverage(entities, binary_size=None):
         etype = ent.get("type", "unknown")
         type_counts[etype] += 1
 
-        status = ent.get("status", "unmapped")
-        status_counts[status] += 1
-
         if etype != "unknown":
             typed_bytes += size
         if ent.get("name"):
             named_count += 1
-        if status == "documented":
+        if str(ent.get("comment", "")).strip():
             documented_count += 1
         if ent.get("confidence") == "verified":
             verified_count += 1
@@ -216,9 +207,6 @@ def compute_coverage(entities, binary_size=None):
     print(f"\n  By type:")
     for t, c in sorted(type_counts.items()):
         print(f"    {t}: {c}")
-    print(f"\n  By status:")
-    for s, c in sorted(status_counts.items()):
-        print(f"    {s}: {c}")
     if subtype_counts:
         print(f"\n  Data subtypes:")
         for s, c in sorted(subtype_counts.items()):

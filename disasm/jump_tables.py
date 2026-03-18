@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+from disasm.instruction_rows import make_instruction_row, make_text_rows, render_instruction_text
+
+
+def emit_jump_table_rows(rows: list, hunk_session, pos: int, entity_addr: int,
+                         used_structs: set[str], emit_label) -> int:
+    jt = hunk_session.jump_table_regions[pos]
+    if jt["pattern"] == "pc_inline_dispatch":
+        from m68k.m68k_disasm import _Decoder, _decode_one
+
+        dec = _Decoder(hunk_session.code, 0)
+        dec.pos = pos
+        while dec.pos < jt["table_end"]:
+            if dec.pos in hunk_session.labels and dec.pos != pos:
+                emit_label(dec.pos)
+            inst = _decode_one(dec, None)
+            if inst is None:
+                break
+            text, _comment, _comment_parts = render_instruction_text(
+                inst, hunk_session, used_structs, include_arg_subs=False)
+            rows.append(make_instruction_row(
+                text, inst, hunk_session, entity_addr, "verified",
+                source_context={"kind": "jump-table-inline"},
+                used_structs=used_structs,
+                include_arg_subs=False,
+            ))
+        return jt["table_end"]
+
+    for entry_addr, tgt in jt["entries"]:
+        if entry_addr in hunk_session.labels and entry_addr != pos:
+            emit_label(entry_addr)
+        tgt_label = hunk_session.labels[tgt]
+        if jt["base_addr"] is None:
+            line = f"    dc.w    {tgt_label}-*\n"
+        else:
+            line = f"    dc.w    {tgt_label}-{jt['base_label']}\n"
+        rows.extend(make_text_rows(
+            "data",
+            line,
+            entity_addr=entity_addr,
+            addr=entry_addr,
+            verified_state="verified",
+            source_context={"kind": "jump-table"},
+        ))
+    return jt["table_end"]

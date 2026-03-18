@@ -1,0 +1,189 @@
+body {
+  margin: 0;
+  font-family: Consolas, "Courier New", monospace;
+  background: #f4f4f4;
+  color: #1a1a1a;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: end;
+  padding: 20px 24px;
+  background: #e0e0e0;
+  border-bottom: 1px solid #c0c0c0;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #555;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+}
+
+.controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.controls input,
+.controls select,
+.controls button {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid #999;
+  background: #fff;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 16px;
+  padding: 16px;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #c8c8c8;
+  padding: 16px;
+  min-height: 400px;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.listing-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.panel-wide {
+  min-width: 0;
+}
+
+.listing-view {
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.listing-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  white-space: pre;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #efefef;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.listing-row.selected {
+  background: #dcdcdc;
+}
+
+.listing-row:disabled {
+  color: #333;
+  cursor: default;
+}
+
+.entity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entity-meta {
+  color: #555;
+  font-size: 12px;
+  min-height: 16px;
+}
+
+.entity-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.action-group {
+  display: flex;
+  gap: 8px;
+}
+
+.entity-form input,
+.entity-form textarea,
+.entity-form button {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid #999;
+  background: #fff;
+}
+
+.xref-panel {
+  margin-top: 20px;
+  border-top: 1px solid #ddd;
+  padding-top: 16px;
+}
+
+.xref-panel h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.xref-group {
+  margin-bottom: 12px;
+}
+
+.xref-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.xref-button {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid #999;
+  background: #efefef;
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
