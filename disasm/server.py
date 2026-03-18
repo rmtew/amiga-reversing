@@ -2,17 +2,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import threading
+import time
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from disasm.annotations import get_entity, patch_entity
-from disasm.api import listing_window_payload, session_metadata
-from disasm.project_paths import resolve_project_paths
-from disasm.projects import build_project_session, list_projects
+from disasm.api import listing_window_payload
 from disasm.emitter import emit_session_rows
+from disasm.projects import (
+    build_project_session,
+    create_project,
+    get_project,
+    list_projects,
+    mark_project_opened,
+)
 
 WEB_ROOT = Path(__file__).resolve().parent.parent / "scripts" / "web"
+_PROJECT_ROW_CACHE: dict[str, list] = {}
+_LISTING_JOBS: dict[str, dict] = {}
+_JOB_LOCK = threading.Lock()
 
 
 def _json_bytes(payload: dict) -> bytes:
@@ -27,25 +38,102 @@ def _parse_int_arg(values: dict[str, list[str]], key: str,
     return int(raw, 0)
 
 
-def _project_payload(project_name: str) -> dict:
-    paths = resolve_project_paths(project_name)
-    session = build_project_session(project_name)
+def _empty_listing_payload(addr: int | None) -> dict:
     return {
-        "project": {
-            "name": paths.name,
-            "target_dir": str(paths.target_dir),
-            "entities_path": str(paths.entities_path),
-            "output_path": str(paths.output_path) if paths.output_path else None,
-            "binary_path": str(paths.binary_path),
-            "analysis_cache_path": str(paths.analysis_cache_path),
-            "provenance": paths.provenance,
-        },
-        "session": session_metadata(session),
+        "anchor_addr": addr,
+        "start": 0,
+        "end": 0,
+        "has_more_before": False,
+        "has_more_after": False,
+        "total_rows": 0,
+        "rows": [],
     }
+
+
+def _job_payload(job_id: str) -> dict:
+    with _JOB_LOCK:
+        job = dict(_LISTING_JOBS[job_id])
+    return job
+
+
+def _set_job_state(job_id: str, **updates) -> None:
+    with _JOB_LOCK:
+        _LISTING_JOBS[job_id].update(updates)
+
+
+def _build_rows_job(job_id: str, project_name: str) -> None:
+    try:
+        _set_job_state(job_id, status="building", phase="session")
+        session = build_project_session(project_name)
+        _set_job_state(job_id, phase="rows")
+        rows = emit_session_rows(session)
+        _PROJECT_ROW_CACHE[project_name] = rows
+        _set_job_state(
+            job_id,
+            status="ready",
+            phase="done",
+            total_rows=len(rows),
+            finished_at=time.time(),
+        )
+    except Exception as exc:  # pragma: no cover
+        _set_job_state(
+            job_id,
+            status="failed",
+            phase="error",
+            error=str(exc),
+            finished_at=time.time(),
+        )
+
+
+def _start_listing_job(project_name: str) -> dict:
+    cached_rows = _PROJECT_ROW_CACHE.get(project_name)
+    if cached_rows is not None:
+        job_id = f"cached-{project_name}"
+        payload = {
+            "job_id": job_id,
+            "project_id": project_name,
+            "status": "ready",
+            "phase": "done",
+            "total_rows": len(cached_rows),
+            "error": None,
+        }
+        with _JOB_LOCK:
+            _LISTING_JOBS[job_id] = payload
+        return payload
+
+    with _JOB_LOCK:
+        for existing_id, job in _LISTING_JOBS.items():
+            if job["project_id"] == project_name and job["status"] in {"queued", "building", "ready"}:
+                return dict(job)
+        job_id = str(uuid.uuid4())
+        _LISTING_JOBS[job_id] = {
+            "job_id": job_id,
+            "project_id": project_name,
+            "status": "queued",
+            "phase": "queued",
+            "total_rows": None,
+            "error": None,
+            "created_at": time.time(),
+        }
+
+    worker = threading.Thread(
+        target=_build_rows_job,
+        args=(job_id, project_name),
+        daemon=True,
+    )
+    worker.start()
+    return _job_payload(job_id)
+
+
+def _project_payload(project_name: str) -> dict:
+    project = get_project(project_name)
+    return {"project": project}
 
 
 def resolve_static_response(path: str) -> tuple[str, bytes]:
     relative = "index.html" if path in ("", "/") else path.lstrip("/")
+    if relative and "." not in Path(relative).name:
+        relative = "index.html"
     file_path = (WEB_ROOT / relative).resolve()
     if WEB_ROOT.resolve() not in file_path.parents and file_path != WEB_ROOT.resolve():
         raise FileNotFoundError(f"Unknown route: {path}")
@@ -121,6 +209,33 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length) or b"{}")
+            body = _json_bytes(route_request(
+                "POST", parsed.path, parse_qs(parsed.query), payload))
+            content_type = "application/json; charset=utf-8"
+            self.send_response(200)
+        except FileNotFoundError as exc:
+            body = _json_bytes({"ok": False, "error": str(exc)})
+            content_type = "application/json; charset=utf-8"
+            self.send_response(404)
+        except (FileExistsError, ValueError) as exc:
+            body = _json_bytes({"ok": False, "error": str(exc)})
+            content_type = "application/json; charset=utf-8"
+            self.send_response(400)
+        except Exception as exc:  # pragma: no cover
+            body = _json_bytes({"ok": False, "error": str(exc)})
+            content_type = "application/json; charset=utf-8"
+            self.send_response(500)
+
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def log_message(self, format: str, *args):  # noqa: A003
         return
 
@@ -129,25 +244,47 @@ def route_request(method: str, path: str, query: dict[str, list[str]],
                   body: dict | None = None) -> dict:
     if method == "GET" and path == "/api/projects":
         return {"ok": True, "data": list_projects()}
+    if method == "POST" and path == "/api/projects":
+        project_id = (body or {}).get("id", "")
+        return {"ok": True, "data": create_project(project_id)}
 
     parts = [part for part in path.split("/") if part]
     if len(parts) >= 3 and parts[0] == "api" and parts[1] == "projects":
         project_name = parts[2]
         if method == "GET" and len(parts) == 3:
             return {"ok": True, "data": _project_payload(project_name)}
+        if method == "POST" and len(parts) == 4 and parts[3] == "open":
+            return {"ok": True, "data": mark_project_opened(project_name)}
         if method == "GET" and len(parts) == 4 and parts[3] == "session":
-            session = build_project_session(project_name)
-            return {"ok": True, "data": session_metadata(session)}
+            return {"ok": True, "data": None}
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
-            session = build_project_session(project_name)
-            rows = emit_session_rows(session)
+            project = get_project(project_name)
+            if not project.get("ready"):
+                return {"ok": True, "data": _empty_listing_payload(None)}
+            rows = _PROJECT_ROW_CACHE.get(project_name)
+            if rows is None:
+                raise ValueError(f"Canonical rows not loaded for project: {project_name}")
             addr = _parse_int_arg(query, "addr")
-            before = _parse_int_arg(query, "before", 80)
-            after = _parse_int_arg(query, "after", 160)
-            return {
-                "ok": True,
-                "data": listing_window_payload(rows, addr, before=before, after=after),
-            }
+            before = _parse_int_arg(query, "before", 80) or 80
+            after = _parse_int_arg(query, "after", 200) or 200
+            return {"ok": True, "data": listing_window_payload(rows, addr, before, after)}
+        if method == "POST" and len(parts) == 5 and parts[3] == "listing" and parts[4] == "open":
+            project = get_project(project_name)
+            if not project.get("ready"):
+                return {"ok": True, "data": {
+                    "job_id": None,
+                    "project_id": project_name,
+                    "status": "ready",
+                    "phase": "done",
+                    "total_rows": 0,
+                    "error": None,
+                }}
+            return {"ok": True, "data": _start_listing_job(project_name)}
+        if method == "GET" and len(parts) == 5 and parts[3] == "listing" and parts[4] == "status":
+            job_id = query.get("job_id", [None])[0]
+            if not job_id:
+                raise ValueError("Missing job_id")
+            return {"ok": True, "data": _job_payload(job_id)}
         if method == "GET" and len(parts) == 5 and parts[3] == "entities":
             return {"ok": True, "data": get_entity(project_name, parts[4])}
         if method == "PATCH" and len(parts) == 5 and parts[3] == "entities":

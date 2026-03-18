@@ -1,10 +1,7 @@
 const state = {
   project: null,
-  session: null,
-  listing: null,
-  selectedAddr: null,
-  before: 80,
-  after: 160,
+  projectData: null,
+  loadingToken: 0,
 };
 
 async function fetchJson(url, options = {}) {
@@ -16,217 +13,214 @@ async function fetchJson(url, options = {}) {
   return payload.data;
 }
 
-function formatSession(session) {
-  const lines = [
-    `target: ${session.target_name}`,
-    `binary: ${session.binary_path}`,
-    `entities: ${session.entity_count}`,
-    `hunks: ${session.hunk_count}`,
-  ];
-  for (const hunk of session.hunks) {
-    lines.push(
-      `hunk ${hunk.hunk_index}: ${hunk.code_size} bytes, ` +
-      `${hunk.label_count} labels, ${hunk.core_block_count} core blocks`
-    );
-  }
-  return lines.join("\n");
+function projectPath(projectId) {
+  return `/${encodeURIComponent(projectId)}`;
 }
 
-function renderListing(listing) {
-  const view = document.getElementById("listing-view");
-  view.innerHTML = "";
-  for (const row of listing.rows) {
-    const line = document.createElement("button");
-    line.type = "button";
-    line.className = "listing-row";
-    if (row.addr != null && state.selectedAddr != null && row.addr === state.selectedAddr) {
-      line.classList.add("selected");
-    }
-    line.textContent = row.text.replace(/\n$/, "");
-    if (row.addr != null) {
-      line.dataset.addr = `0x${row.addr.toString(16)}`;
-      line.addEventListener("click", async () => {
-        await selectAddress(line.dataset.addr);
-      });
-    } else {
-      line.disabled = true;
-    }
-    view.appendChild(line);
-  }
+function currentProjectId() {
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
+  return path || null;
 }
 
-function renderXrefList(elementId, addrs) {
-  const container = document.getElementById(elementId);
-  container.innerHTML = "";
-  const values = Array.isArray(addrs) ? addrs : [];
-  if (values.length === 0) {
-    container.textContent = "None";
-    return;
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;");
+}
+
+function formatProjectDetails(projectData) {
+  const details = [];
+  if (projectData.project.binary_path) {
+    details.push(projectData.project.binary_path);
   }
-  for (const addr of values) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "xref-button";
-    button.textContent = addr;
-    button.addEventListener("click", async () => {
-      document.getElementById("addr-input").value = addr;
-      await loadListing(addr);
-      await selectAddress(addr);
-    });
-    container.appendChild(button);
+  if (!projectData.project.output_path) {
+    details.push("No disassembly output");
+  }
+  if (!projectData.project.ready) {
+    details.push("No binary loaded");
+  }
+  return details.join(" | ");
+}
+
+function setStatus(text) {
+  const node = document.getElementById("status-text");
+  if (node) {
+    node.textContent = text;
   }
 }
 
-function setEntityForm(entity) {
-  document.getElementById("entity-addr").value = entity?.addr || "";
-  document.getElementById("entity-name").value = entity?.name || "";
-  document.getElementById("entity-subtype").value = entity?.subtype || "";
-  document.getElementById("entity-comment").value = entity?.comment || "";
-  document.getElementById("subtype-group").classList.toggle(
-    "hidden",
-    !entity || entity.type !== "data"
-  );
-  const meta = [];
-  if (entity?.type) {
-    meta.push(`type: ${entity.type}`);
-  }
-  if (entity?.subtype) {
-    meta.push(`subtype: ${entity.subtype}`);
-  }
-  if (entity?.confidence) {
-    meta.push(`confidence: ${entity.confidence}`);
-  }
-  document.getElementById("entity-meta").textContent = meta.join(" | ");
-  renderXrefList("entity-calls", entity?.calls);
-  renderXrefList("entity-called-by", entity?.called_by);
+function sleep(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-async function patchSelectedEntity(patch) {
-  const addr = document.getElementById("entity-addr").value.trim();
-  if (!addr) {
-    return;
-  }
-  await fetchJson(`/api/projects/${state.project}/entities/${addr}`, {
-    method: "PATCH",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(patch),
-  });
-  await selectAddress(addr);
-  await loadListing(addr);
-}
-
-async function loadProjects() {
+async function renderHome() {
   const projects = await fetchJson("/api/projects");
-  const select = document.getElementById("project-select");
-  select.innerHTML = "";
-  for (const project of projects) {
-    const option = document.createElement("option");
-    option.value = project.name;
-    option.textContent = project.name;
-    select.appendChild(option);
-  }
-  if (projects.length > 0) {
-    state.project = projects[0].name;
-    select.value = state.project;
-    await loadProject(state.project);
-  } else {
-    document.getElementById("session-summary").textContent = "No projects found.";
-    document.getElementById("listing-view").textContent = "";
-  }
-}
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <section class="page page-home">
+      <div class="projects-header">
+        <h1>Projects</h1>
+      </div>
+      <form id="new-project-form" class="new-project-form">
+        <input id="new-project-id" placeholder="new-project-id" autocomplete="off">
+        <button type="submit">Add Project</button>
+      </form>
+      <div id="home-error" class="error"></div>
+      <div class="project-list">
+        ${projects.map((project) => `
+          <button class="project-item" data-project-id="${escapeHtml(project.id)}" type="button">
+            <span class="project-name">${escapeHtml(project.name)}</span>
+            <span class="project-meta">${escapeHtml(project.last_opened || "Not opened yet")}</span>
+          </button>
+        `).join("") || '<div class="empty">No projects.</div>'}
+      </div>
+    </section>
+  `;
 
-async function loadProject(projectName, addr = null) {
-  state.project = projectName;
-  state.selectedAddr = null;
-  state.session = await fetchJson(`/api/projects/${projectName}/session`);
-  document.getElementById("session-summary").textContent = formatSession(state.session);
-  setEntityForm(null);
-  await loadListing(addr);
-}
-
-async function loadListing(addr = null) {
-  if (!state.project) {
-    return;
-  }
-  const query = new URLSearchParams();
-  query.set("before", String(state.before));
-  query.set("after", String(state.after));
-  if (addr) {
-    query.set("addr", addr);
-  }
-  state.listing = await fetchJson(`/api/projects/${state.project}/listing?${query.toString()}`);
-  renderListing(state.listing);
-}
-
-async function selectAddress(addr) {
-  state.selectedAddr = parseInt(addr, 16);
-  const entity = await fetchJson(`/api/projects/${state.project}/entities/${addr}`);
-  setEntityForm(entity);
-  renderListing(state.listing);
-}
-
-async function saveEntity(event) {
-  event.preventDefault();
-  const addr = document.getElementById("entity-addr").value.trim();
-  if (!addr) {
-    return;
-  }
-  const name = document.getElementById("entity-name").value;
-  const subtype = document.getElementById("entity-subtype").value;
-  const comment = document.getElementById("entity-comment").value;
-  await patchSelectedEntity({name, subtype, comment});
-}
-
-function bindEvents() {
-  document.getElementById("project-select").addEventListener("change", async (event) => {
-    await loadProject(event.target.value);
+  document.querySelectorAll(".project-item").forEach((button) => {
+    button.addEventListener("click", () => {
+      navigateToProject(button.dataset.projectId);
+    });
   });
 
-  document.getElementById("jump-button").addEventListener("click", async () => {
-    const addr = document.getElementById("addr-input").value.trim();
-    await loadListing(addr || null);
-    if (addr) {
-      await selectAddress(addr);
+  document.getElementById("new-project-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = document.getElementById("new-project-id");
+    const error = document.getElementById("home-error");
+    error.textContent = "";
+    try {
+      const project = await fetchJson("/api/projects", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({id: input.value.trim()}),
+      });
+      navigateToProject(project.id);
+    } catch (err) {
+      error.textContent = String(err.message || err);
     }
   });
-
-  document.getElementById("load-prev").addEventListener("click", async () => {
-    if (!state.listing || state.listing.rows.length === 0) {
-      return;
-    }
-    const first = state.listing.rows[0];
-    const addr = first.addr != null ? `0x${first.addr.toString(16)}` : null;
-    await loadListing(addr);
-  });
-
-  document.getElementById("load-next").addEventListener("click", async () => {
-    if (!state.listing || state.listing.rows.length === 0) {
-      return;
-    }
-    const last = state.listing.rows[state.listing.rows.length - 1];
-    const nextAddr = last.addr != null ? `0x${(last.addr + 2).toString(16)}` : null;
-    await loadListing(nextAddr);
-  });
-
-  document.getElementById("entity-form").addEventListener("submit", saveEntity);
-  document.getElementById("mark-code").addEventListener("click", async () => {
-    await patchSelectedEntity({type: "code"});
-  });
-  document.getElementById("mark-data").addEventListener("click", async () => {
-    await patchSelectedEntity({type: "data"});
-  });
-  document.getElementById("mark-string").addEventListener("click", async () => {
-    await patchSelectedEntity({type: "data", subtype: "string"});
-  });
 }
 
-async function main() {
-  bindEvents();
+function renderListingRows(rows) {
+  if (!rows.length) {
+    return '<div class="empty listing-empty">No disassembly available.</div>';
+  }
+  return rows.map((row) => `
+    <div class="listing-row">${escapeHtml(row.text.replace(/\n$/, ""))}</div>
+  `).join("");
+}
+
+async function renderProject(projectId) {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <section class="page page-project">
+      <div class="project-bar">
+        <div class="project-title">${escapeHtml(projectId)}</div>
+        <div class="project-details" id="project-details">Loading project...</div>
+        <button id="exit-project" type="button">Exit</button>
+      </div>
+      <div class="status-bar" id="status-text">Loading project...</div>
+      <div class="listing-viewport" id="listing-viewport">
+        <div class="empty listing-empty">Loading disassembly...</div>
+      </div>
+    </section>
+  `;
+
+  document.getElementById("exit-project").addEventListener("click", () => {
+    window.history.pushState({}, "", "/");
+    void route();
+  });
+
+  const token = ++state.loadingToken;
+  state.project = projectId;
+  fetchJson(`/api/projects/${encodeURIComponent(projectId)}/open`, {method: "POST"})
+    .catch(() => null);
   try {
-    await loadProjects();
+    setStatus("Loading project...");
+    const projectData = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}`);
+    if (token !== state.loadingToken) {
+      return;
+    }
+    state.projectData = projectData;
+    document.getElementById("project-details").textContent = formatProjectDetails(projectData);
+
+    if (!projectData.project.ready) {
+      document.getElementById("listing-viewport").innerHTML =
+        '<div class="empty listing-empty">No disassembly available.</div>';
+      setStatus("Project has no loaded binary.");
+      return;
+    }
+
+    setStatus("Queueing canonical listing...");
+    const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
+      method: "POST",
+    });
+    if (token !== state.loadingToken) {
+      return;
+    }
+
+    let jobState = job;
+    while (jobState.status === "queued" || jobState.status === "building") {
+      setStatus(`Loading disassembly... ${jobState.phase}`);
+      await sleep(250);
+      if (token !== state.loadingToken) {
+        return;
+      }
+      jobState = await fetchJson(
+        `/api/projects/${encodeURIComponent(projectId)}/listing/status?job_id=${encodeURIComponent(job.job_id)}`
+      );
+      if (token !== state.loadingToken) {
+        return;
+      }
+    }
+
+    if (jobState.status === "failed") {
+      throw new Error(jobState.error || "Canonical listing build failed");
+    }
+
+    setStatus("Loading disassembly window...");
+    const listing = await fetchJson(
+      `/api/projects/${encodeURIComponent(projectId)}/listing?before=80&after=200`
+    );
+    if (token !== state.loadingToken) {
+      return;
+    }
+    document.getElementById("listing-viewport").innerHTML = renderListingRows(listing.rows);
+    setStatus(`Loaded ${listing.rows.length} rows.`);
   } catch (error) {
-    document.getElementById("session-summary").textContent = String(error);
+    if (token !== state.loadingToken) {
+      return;
+    }
+    document.getElementById("project-details").textContent = "Load failed";
+    document.getElementById("listing-viewport").innerHTML =
+      `<div class="error">${escapeHtml(String(error.message || error))}</div>`;
+    setStatus("Load failed.");
   }
 }
 
-main();
+function navigateToProject(projectId) {
+  window.history.pushState({}, "", projectPath(projectId));
+  void route();
+}
+
+async function route() {
+  const projectId = currentProjectId();
+  try {
+    if (projectId) {
+      await renderProject(projectId);
+    } else {
+      await renderHome();
+    }
+  } catch (error) {
+    const app = document.getElementById("app");
+    app.innerHTML = `<div class="page"><div class="error">${escapeHtml(String(error.message || error))}</div></div>`;
+  }
+}
+
+window.addEventListener("popstate", () => {
+  void route();
+});
+
+void route();

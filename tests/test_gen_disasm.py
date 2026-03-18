@@ -21,7 +21,8 @@ from disasm.discovery import (add_hint_labels, build_label_map,
                               load_fixed_absolute_addresses)
 from disasm.instruction_rows import (make_instruction_row,
                                      render_instruction_text)
-from disasm.operands import build_instruction_semantic_operands
+from disasm.operands import (_operand_types_for_inst,
+                             build_instruction_semantic_operands)
 from disasm.types import HunkDisassemblySession
 
 
@@ -474,6 +475,19 @@ def test_decode_instruction_for_emit_requires_kb_mnemonic():
         assert "missing kb_mnemonic" in str(exc)
     else:
         raise AssertionError("expected missing kb_mnemonic error")
+
+
+def test_decode_instruction_for_emit_prefers_actual_text_mnemonic():
+    meta = decode_instruction_for_emit(
+        "bset    #6,12(a1)",
+        struct.pack(">HHH", 0x08E9, 0x0006, 0x000C),
+        0x0200,
+        KB(),
+        "bchg",
+    )
+
+    assert meta["mnemonic"] == "bset"
+    assert meta["inst_kb"]["mnemonic"] == "BSET"
 
 
 def test_lookup_instruction_kb_normalizes_pmmu_text_condition_variant():
@@ -970,6 +984,421 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
     assert ops[1].kind == "register"
 
 
+def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape():
+    inst = Instruction(offset=0x0046, size=2, opcode=0x598E,
+                       text="subq.l  #4,a6",
+                       raw=struct.pack(">H", 0x598E),
+                       kb_mnemonic="subq")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={"initial_base_reg": (6, 0)},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "immediate"
+    assert ops[0].value == 4
+    assert ops[0].text == "#4"
+    assert ops[1].kind == "register"
+    assert ops[1].register == "a6"
+    assert ops[1].text == "a6"
+
+
+def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
+    inst = Instruction(offset=0x0058, size=4, opcode=0x51C8,
+                       text="dbf    d0,$56",
+                       raw=struct.pack(">HH", 0x51C8, 0x0054),
+                       kb_mnemonic="dbcc")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x0056: "loc_0056"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "register"
+    assert ops[0].register == "d0"
+    assert ops[1].kind == "branch_target"
+    assert ops[1].target_addr == 0xAE
+    assert ops[1].text == "$56"
+
+
+def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
+    inst = Instruction(offset=0x0200, size=6, opcode=0x08E9,
+                       text="bset    #6,12(a1)",
+                       raw=struct.pack(">HHH", 0x08E9, 0x0006, 0x000C),
+                       kb_mnemonic="bset")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "immediate"
+    assert ops[0].value == 6
+    assert ops[0].text == "#6"
+    assert ops[1].kind == "base_displacement"
+    assert ops[1].base_register == "a1"
+    assert ops[1].displacement == 12
+
+
+def test_operand_types_for_inst_selects_register_shift_form_from_opcode_bit():
+    kb = KB()
+    inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
+                       text="lsl.l  d0,d2",
+                       raw=b"\xE1\xAA",
+                       kb_mnemonic="lsl")
+    meta = decode_instruction_for_emit(inst.text, inst.raw, inst.offset, kb, "lsl")
+
+    assert _operand_types_for_inst(inst, meta) == ("dn", "dn")
+
+
+def test_build_instruction_semantic_operands_supports_register_shift_form():
+    inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
+                       text="lsl.l  d0,d2",
+                       raw=b"\xE1\xAA",
+                       kb_mnemonic="lsl")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "register"
+    assert ops[0].register == "d0"
+    assert ops[1].kind == "register"
+    assert ops[1].register == "d2"
+
+
+def test_build_instruction_semantic_operands_supports_immediate_shift_form():
+    inst = Instruction(offset=0x0200, size=2, opcode=0xE900,
+                       text="asl.b  #4,d0",
+                       raw=b"\xE9\x00",
+                       kb_mnemonic="asl")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "immediate"
+    assert ops[0].value == 4
+    assert ops[1].kind == "register"
+    assert ops[1].register == "d0"
+
+
+def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
+    inst = Instruction(offset=0x0200, size=2, opcode=0x4180,
+                       text="chk.w   d0,d0",
+                       raw=b"\x41\x80",
+                       kb_mnemonic="chk")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "register"
+    assert ops[0].register == "d0"
+    assert ops[1].kind == "register"
+    assert ops[1].register == "d0"
+
+
+def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
+    inst = Instruction(offset=0x0200, size=4, opcode=0xEAC0,
+                       text="bfchg    d0{2:8}",
+                       raw=bytes.fromhex("eac00088"),
+                       kb_mnemonic="bfchg")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 1
+    assert ops[0].kind == "bitfield_ea"
+    assert ops[0].register == "d0"
+    assert ops[0].metadata["bitfield"]["offset_value"] == 2
+    assert ops[0].metadata["bitfield"]["width_value"] == 8
+
+
+def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
+    inst = Instruction(offset=0x0200, size=4, opcode=0xE9C0,
+                       text="bfextu   d0{2:8},d1",
+                       raw=bytes.fromhex("e9c01088"),
+                       kb_mnemonic="bfextu")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "bitfield_ea"
+    assert ops[1].kind == "register"
+    assert ops[1].register == "d1"
+
+
 def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_immediate():
     inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
                        text="move.l  #loc_0400,d0",
@@ -1117,6 +1546,49 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         assert "Decoded operands missing text slots" in str(exc)
     else:
         raise AssertionError("expected missing operand text slots")
+
+
+def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
+    inst = Instruction(offset=0x0000, size=4, opcode=0xF000,
+                       text="pflusha", raw=bytes.fromhex("F0002400"),
+                       kb_mnemonic="pflusha")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    assert build_instruction_semantic_operands(inst, session) == ()
 
 
 def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():

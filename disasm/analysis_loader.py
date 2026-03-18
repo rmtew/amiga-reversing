@@ -12,6 +12,8 @@ def load_hunk_analysis(*, binary_path: str | Path, code: bytes, relocs,
     cache_path = Path(binary_path).with_suffix(".analysis")
     if cache_path.exists():
         return HunkAnalysis.load(cache_path, load_os_kb())
-    return analyze_hunk(code, relocs, hunk_index,
-                        base_addr=base_addr,
-                        code_start=code_start)
+    analysis = analyze_hunk(code, relocs, hunk_index,
+                            base_addr=base_addr,
+                            code_start=code_start)
+    analysis.save(cache_path)
+    return analysis

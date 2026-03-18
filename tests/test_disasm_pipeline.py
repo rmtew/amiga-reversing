@@ -298,8 +298,13 @@ def test_load_hunk_analysis_uses_cache_when_present(tmp_path, monkeypatch):
 
 def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path, monkeypatch):
     binary_path = tmp_path / "demo.bin"
-    sentinel = object()
     seen = {}
+
+    class FakeAnalysis:
+        def save(self, path):
+            seen["saved_path"] = path
+
+    sentinel = FakeAnalysis()
 
     def fake_analyze_hunk(code, relocs, hunk_index, base_addr, code_start):
         seen["args"] = (code, relocs, hunk_index, base_addr, code_start)
@@ -318,6 +323,7 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path, monkeypatch):
 
     assert result is sentinel
     assert seen["args"] == (b"\x01\x02", [("r", 1)], 3, 0x400, 2)
+    assert seen["saved_path"] == binary_path.with_suffix(".analysis")
 
 
 def test_render_rows_concatenates_listing_text():

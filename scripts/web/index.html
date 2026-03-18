@@ -3,95 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Disassembly Browser</title>
+  <title>Disassembly Projects</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <h1>Disassembly Browser</h1>
-      <p class="subtitle">Canonical session and listing view</p>
-    </div>
-    <div class="controls">
-      <label>
-        Project
-        <select id="project-select"></select>
-      </label>
-      <label>
-        Address
-        <input id="addr-input" placeholder="0x0000">
-      </label>
-      <button id="jump-button" type="button">Jump</button>
-    </div>
-  </header>
-
-  <main class="layout">
-    <section class="panel">
-      <h2>Session</h2>
-      <pre id="session-summary">Loading projects...</pre>
-    </section>
-    <section class="panel panel-wide">
-      <h2>Listing</h2>
-      <div class="listing-toolbar">
-        <button id="load-prev" type="button">Load Previous</button>
-        <button id="load-next" type="button">Load Next</button>
-      </div>
-      <div id="listing-view" class="listing-view"></div>
-    </section>
-    <section class="panel">
-      <h2>Entity</h2>
-      <form id="entity-form" class="entity-form">
-        <label>
-          Address
-          <input id="entity-addr" readonly>
-        </label>
-        <div id="entity-meta" class="entity-meta"></div>
-        <label>
-          Name
-          <input id="entity-name" placeholder="symbol name">
-        </label>
-        <div class="action-group">
-          <button id="mark-code" type="button">Mark as code</button>
-          <button id="mark-data" type="button">Mark as data</button>
-          <button id="mark-string" type="button">Mark as string</button>
-        </div>
-        <label id="subtype-group">
-          Data kind
-          <select id="entity-subtype">
-            <option value="">none</option>
-            <option value="string">string</option>
-            <option value="pointer_table">pointer table</option>
-            <option value="struct_instance">struct instance</option>
-            <option value="lookup_table">lookup table</option>
-            <option value="sprite">sprite</option>
-            <option value="bitmap">bitmap</option>
-            <option value="palette">palette</option>
-            <option value="copper_list">copper list</option>
-            <option value="tilemap">tilemap</option>
-            <option value="sound_sample">sound sample</option>
-            <option value="level_data">level data</option>
-          </select>
-        </label>
-        <label>
-          Comment
-          <textarea id="entity-comment" rows="8" placeholder="notes"></textarea>
-        </label>
-        <button id="save-entity" type="submit">Save</button>
-      </form>
-      <section class="xref-panel">
-        <h3>Xrefs</h3>
-        <div class="xref-group">
-          <strong>Calls</strong>
-          <div id="entity-calls" class="xref-list"></div>
-        </div>
-        <div class="xref-group">
-          <strong>Called By</strong>
-          <div id="entity-called-by" class="xref-list"></div>
-        </div>
-      </section>
-    </section>
-  </main>
-
+  <main id="app"></main>
   <script src="/app.js"></script>
 </body>
 </html>

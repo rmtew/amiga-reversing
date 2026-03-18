@@ -73,6 +73,25 @@ def _load_kb():
             }
     meta["_cc_families"] = cc_families
 
+    asm_mnemonic_index = {}
+    for syntax_key, kb_mnemonic in meta.get("asm_syntax_index", {}).items():
+        asm_mnemonic, _, operand_types = syntax_key.partition(":")
+        if operand_types:
+            continue
+        existing = asm_mnemonic_index.get(asm_mnemonic)
+        if existing is not None and existing != kb_mnemonic:
+            raise ValueError(
+                f"asm_syntax_index maps bare mnemonic {asm_mnemonic!r} "
+                f"to multiple KB entries: {existing!r}, {kb_mnemonic!r}"
+            )
+        if kb_mnemonic not in by_name:
+            raise ValueError(
+                f"asm_syntax_index maps bare mnemonic {asm_mnemonic!r} "
+                f"to missing KB instruction {kb_mnemonic!r}"
+            )
+        asm_mnemonic_index[asm_mnemonic] = kb_mnemonic
+    meta["_asm_mnemonic_index"] = asm_mnemonic_index
+
     # Derive register layout from movem_reg_masks: count of data and address
     # registers, and which address register number maps to SP.
     reg_masks = meta.get("movem_reg_masks", {}).get("normal", [])
@@ -104,6 +123,10 @@ _DEFAULT_SIZE = _KB_META["default_operand_size"]
 _CC_TEST_DEFS = _KB_META["cc_test_definitions"]
 _CC_ALIASES = _KB_META["cc_aliases"]
 _CC_FAMILIES = _KB_META["_cc_families"]
+_ASM_MNEMONIC_INDEX = {
+    mnemonic.upper(): kb_name
+    for mnemonic, kb_name in _KB_META["_asm_mnemonic_index"].items()
+}
 
 # EA mode reverse lookup: (mode_int, reg_int) -> mode_name
 _EA_REVERSE = {}
@@ -1022,6 +1045,12 @@ def _find_kb_entry(kb_by_name: dict, mnemonic: str,
     # Direct case-insensitive canonical lookup
     result = _KB_BY_NAME_UPPER.get(mn_upper)
     if result is not None:
+        _KB_ENTRY_CACHE[mnemonic] = result
+        return result
+
+    kb_name = _ASM_MNEMONIC_INDEX.get(mn_upper)
+    if kb_name is not None:
+        result = kb_by_name[kb_name]
         _KB_ENTRY_CACHE[mnemonic] = result
         return result
 
