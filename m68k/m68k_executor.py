@@ -285,155 +285,20 @@ def _xf(word: int, field_spec: tuple) -> int:
 
 def decode_instruction_ops(inst: "Instruction", inst_kb: dict,
                            size: str) -> DecodedOps:
-    """Decode structured operands from instruction bytes using KB encoding fields.
+    """Decode operands via the shared KB utility layer."""
+    from .kb_util import decode_instruction_operands
 
-    Returns a DecodedOps with:
-    - ea_op: the EA operand from MODE/REGISTER in bits 5-0
-    - dst_op: the destination EA from upper MODE/REGISTER (MOVE only)
-    - reg_num: the register number from REGISTER in bits 11-9
-    - ea_is_source: from OPMODE table (True=EA is src, False=EA is dst)
-    - imm_val: immediate from DATA field or extension words
-    - opcode: raw opcode word
-    """
-    meta = _KB_META
     d = DecodedOps()
-    if len(inst.raw) < meta["opword_bytes"]:
+    if len(inst.raw) < _KB_META["opword_bytes"]:
         return d
     d.opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-    enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
-
-    mode_fields = sorted(
-        [f for f in enc_fields if f["name"] == "MODE"],
-        key=lambda f: f["bit_lo"])
-    reg_fields = sorted(
-        [f for f in enc_fields if f["name"] == "REGISTER"],
-        key=lambda f: f["bit_lo"])
-
-    # Decode EA from lowest MODE + lowest REGISTER
-    ext_pos = meta["opword_bytes"]
-    if mode_fields and reg_fields:
-        mf = mode_fields[0]
-        rf = reg_fields[0]
-        ea_mode = _xf(d.opcode, (mf["bit_hi"], mf["bit_lo"],
-                               mf["bit_hi"] - mf["bit_lo"] + 1))
-        ea_reg = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
-                              rf["bit_hi"] - rf["bit_lo"] + 1))
-        try:
-            d.ea_op, ext_pos = _decode_ea(
-                inst.raw, meta["opword_bytes"],
-                ea_mode, ea_reg, size, inst.offset)
-        except ValueError:
-            d.ea_op = None
-            ext_pos = meta["opword_bytes"]
-
-        # Destination EA from upper MODE + upper REGISTER (MOVE)
-        if len(mode_fields) >= 2 and len(reg_fields) >= 2:
-            dmf = mode_fields[1]
-            drf = reg_fields[1]
-            d_mode = _xf(d.opcode, (dmf["bit_hi"], dmf["bit_lo"],
-                                  dmf["bit_hi"] - dmf["bit_lo"] + 1))
-            d_reg = _xf(d.opcode, (drf["bit_hi"], drf["bit_lo"],
-                                 drf["bit_hi"] - drf["bit_lo"] + 1))
-            try:
-                d.dst_op, _ = _decode_ea(
-                    inst.raw, ext_pos,
-                    d_mode, d_reg, size, inst.offset)
-            except ValueError:
-                d.dst_op = None
-
-    # Upper register number (bits 11-9 typically)
-    if len(reg_fields) >= 2:
-        rf = reg_fields[-1]
-        d.reg_num = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
-                                 rf["bit_hi"] - rf["bit_lo"] + 1))
-
-    # OPMODE direction from KB opmode_table
-    opmode_table = inst_kb.get("constraints", {}).get("opmode_table")
-    if opmode_table:
-        opmode_f = next(
-            (f for f in enc_fields if f["name"] == "OPMODE"), None)
-        if opmode_f:
-            opmode_val = _xf(d.opcode, (
-                opmode_f["bit_hi"], opmode_f["bit_lo"],
-                opmode_f["bit_hi"] - opmode_f["bit_lo"] + 1))
-            for entry in opmode_table:
-                if entry["opmode"] == opmode_val:
-                    d.ea_is_source = entry.get("ea_is_source")
-                    break
-
-    # Decode immediate value from opcode (KB-driven).
-    # Pattern 1: DATA field in opcode (ADDQ/SUBQ/MOVEQ) --
-    #   immediate_range.field tells us which encoding field.
-    # Pattern 2: extension word immediate (ADDI/SUBI/etc.) --
-    #   no DATA field, immediate follows opword before EA.
-    imm_range = inst_kb.get("constraints", {}).get("immediate_range")
-    data_field_name = imm_range.get("field") if imm_range else None
-    if data_field_name:
-        # Pattern 1: immediate from named encoding field.
-        # Some KB entries use descriptive names (e.g. "Count/Register")
-        # that don't match the encoding field names (just "REGISTER").
-        # Fall back to the upper REGISTER field only if:
-        # 1. No MODE field (register-only form)
-        # 2. No i/r discriminator field, OR the i/r bit indicates
-        #    immediate (0), not register count (1).
-        df = next((f for f in enc_fields
-                   if f["name"] == data_field_name), None)
-        if df is None and len(reg_fields) >= 2 and not mode_fields:
-            # Check for i/r discriminator (shift/rotate instructions)
-            ir_field = next((f for f in enc_fields
-                             if f["name"] == "i/r"), None)
-            if ir_field:
-                ir_val = _xf(d.opcode, (ir_field["bit_hi"],
-                                        ir_field["bit_lo"],
-                                        ir_field["bit_hi"] - ir_field["bit_lo"] + 1))
-                if ir_val == 0:  # immediate count
-                    df = reg_fields[-1]
-                # else: register count -- don't treat as immediate
-            else:
-                df = reg_fields[-1]  # no discriminator, safe to use
-        if df:
-            raw_val = _xf(d.opcode, (df["bit_hi"], df["bit_lo"],
-                                   df["bit_hi"] - df["bit_lo"] + 1))
-            # Apply constraints
-            if imm_range.get("zero_means") and raw_val == 0:
-                raw_val = imm_range["zero_means"]
-            if imm_range.get("signed"):
-                bits = imm_range["bits"]
-                if raw_val >= (1 << (bits - 1)):
-                    raw_val -= (1 << bits)
-                raw_val &= 0xFFFFFFFF
-            d.imm_val = raw_val
-
-    elif (not opmode_table and not data_field_name
-          and mode_fields and not imm_range):
-        # Pattern 2: extension word immediate (ADDI etc.).
-        # The immediate is the first extension word(s), followed
-        # by the EA extension words.  Size from the instruction.
-        imm_bytes = meta["size_byte_count"].get(
-            size, meta["size_byte_count"]["w"])
-        pos = meta["opword_bytes"]
-        if pos + imm_bytes <= len(inst.raw):
-            if imm_bytes <= 2:
-                d.imm_val = struct.unpack_from(">H", inst.raw, pos)[0]
-                if size == "b":
-                    d.imm_val &= 0xFF
-            else:
-                d.imm_val = struct.unpack_from(">I", inst.raw, pos)[0]
-            # Re-decode EA after the immediate
-            if mode_fields and reg_fields:
-                mf = mode_fields[0]
-                rf = reg_fields[0]
-                ea_m = _xf(d.opcode, (mf["bit_hi"], mf["bit_lo"],
-                                    mf["bit_hi"] - mf["bit_lo"] + 1))
-                ea_r = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
-                                    rf["bit_hi"] - rf["bit_lo"] + 1))
-                try:
-                    d.ea_op, _ = _decode_ea(
-                        inst.raw, pos + max(imm_bytes, 2),
-                        ea_m, ea_r, size, inst.offset)
-                except ValueError:
-                    pass
-
+    decoded = decode_instruction_operands(
+        inst.raw, inst_kb, _KB_META, size, inst.offset)
+    d.ea_op = decoded["ea_op"]
+    d.dst_op = decoded["dst_op"]
+    d.reg_num = decoded["reg_num"]
+    d.ea_is_source = decoded["ea_is_source"]
+    d.imm_val = decoded["imm_val"]
     return d
 
 
