@@ -20,7 +20,9 @@ import struct
 from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
                                 _concrete, _unknown)
 from m68k.jump_tables import (resolve_indirect_targets, resolve_per_caller,
-                              detect_jump_tables, resolve_backward_slice)
+                              detect_jump_tables, resolve_backward_slice,
+                              _scan_inline_dispatch)
+from m68k.kb_util import KB
 
 
 # ---- Helpers ----------------------------------------------------------------
@@ -1498,6 +1500,15 @@ def test_table_scan_no_false_positives_from_opcodes():
         data, 0x00, base, len(data), kb)
     assert len(targets) == 3, (
         f"Should stop at odd target, got {len(targets)}")
+
+
+def test_scan_inline_dispatch_stops_quietly_on_decode_error():
+    code = bytes.fromhex("6002ffff")
+
+    targets, end_pos = _scan_inline_dispatch(code, 0, len(code), KB(), max_entries=4)
+
+    assert targets == []
+    assert end_pos == 2
 
 
 # ---- Inline data skip pattern ------------------------------------------------

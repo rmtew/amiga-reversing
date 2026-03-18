@@ -18,7 +18,6 @@ Per-caller resolution (resolve_per_caller):
 """
 
 import struct
-import sys
 
 from .m68k_executor import (BasicBlock, _extract_mnemonic, _extract_branch_target,
                            _decode_ea, resolve_ea, propagate_states, _concrete,
@@ -310,10 +309,7 @@ def _scan_inline_dispatch(code, base_addr, code_size, kb: KB,
                 if target is not None:
                     targets.append(target)
             pos += inst.size
-        except (DecodeError, struct.error) as exc:
-            print(f"_scan_inline_dispatch: decode error at ${pos:04x}: "
-                  f"{exc} -- ending scan with {len(targets)} entries",
-                  file=sys.stderr)
+        except (DecodeError, struct.error):
             break
 
     return targets, pos
