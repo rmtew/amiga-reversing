@@ -354,8 +354,12 @@ def _build_m68k_runtime() -> dict:
         all_types.update(operand_types)
     special_operand_types = tuple(sorted(all_types - generic_types))
 
+    runtime_meta = dict(meta)
+    runtime_meta.update(derived_meta)
+
     return {
-        "derived_meta": derived_meta,
+        "instructions": instructions,
+        "meta": runtime_meta,
         "tables": {
             "mnemonic_index": mnemonic_index,
             "encoding_masks": tuple(encoding_masks_by_idx),

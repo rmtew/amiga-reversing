@@ -42,14 +42,29 @@ def _load_runtime_module(module_name: str):
     return importlib.import_module(f"knowledge.{module_name}")
 
 
+def _require_mapping(payload: dict, key: str) -> dict:
+    value = payload.get(key)
+    if not isinstance(value, dict):
+        raise KeyError(f"runtime KB missing dict {key!r}")
+    return value
+
+
+def _require_list(payload: dict, key: str) -> list:
+    value = payload.get(key)
+    if not isinstance(value, list):
+        raise KeyError(f"runtime KB missing list {key!r}")
+    return value
+
+
 @lru_cache(maxsize=1)
 def load_m68k_runtime_kb() -> dict:
-    payload = load_canonical_m68k_kb()
     runtime = _load_runtime_module("runtime_m68k").RUNTIME
-    instructions = payload["instructions"]
-    meta = dict(payload["_meta"])
-    meta.update(runtime["derived_meta"])
+    instructions = _require_list(runtime, "instructions")
+    meta = _require_mapping(runtime, "meta")
+    _require_mapping(runtime, "tables")
     by_name = {inst["mnemonic"]: inst for inst in instructions}
+    if len(by_name) != len(instructions):
+        raise ValueError("runtime KB contains duplicate instruction mnemonics")
     return {
         "instructions": instructions,
         "meta": meta,

@@ -132,6 +132,48 @@ def test_runtime_builder_requires_condition_families(monkeypatch):
         build_runtime_kb._build_m68k_runtime()
 
 
+def test_runtime_loader_does_not_fallback_to_canonical_m68k(monkeypatch):
+    load_m68k_runtime_kb.cache_clear()
+    monkeypatch.setattr(
+        "m68k.runtime_kb.load_canonical_m68k_kb",
+        lambda: pytest.fail("canonical KB should not be loaded by runtime loader"),
+    )
+    try:
+        payload = load_m68k_runtime_kb()
+        assert payload["instructions"]
+        assert payload["meta"]["condition_codes"]
+    finally:
+        load_m68k_runtime_kb.cache_clear()
+
+
+def test_runtime_loader_requires_runtime_instructions(monkeypatch):
+    load_m68k_runtime_kb.cache_clear()
+
+    class FakeModule:
+        RUNTIME = {"meta": {}, "tables": {}}
+
+    monkeypatch.setattr("m68k.runtime_kb._load_runtime_module", lambda _: FakeModule)
+    try:
+        with pytest.raises(KeyError, match="instructions"):
+            load_m68k_runtime_kb()
+    finally:
+        load_m68k_runtime_kb.cache_clear()
+
+
+def test_runtime_loader_requires_runtime_meta(monkeypatch):
+    load_m68k_runtime_kb.cache_clear()
+
+    class FakeModule:
+        RUNTIME = {"instructions": [], "tables": {}}
+
+    monkeypatch.setattr("m68k.runtime_kb._load_runtime_module", lambda _: FakeModule)
+    try:
+        with pytest.raises(KeyError, match="meta"):
+            load_m68k_runtime_kb()
+    finally:
+        load_m68k_runtime_kb.cache_clear()
+
+
 def test_assembler_requires_kb_size_encoding(monkeypatch):
     move_inst = next(
         inst for inst in load_canonical_m68k_kb()["instructions"]
