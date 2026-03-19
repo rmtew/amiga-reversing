@@ -10,17 +10,16 @@ Usage:
     blocks = exe.discover_blocks()
 """
 
-import json
 import operator
 import struct
 import sys
 from collections import deque
 from dataclasses import dataclass, field
-from pathlib import Path
 from .decode_errors import DecodeError
 from .ea_extension import parse_full_extension
 from .m68k_compute import _to_signed
 from .m68k_disasm import disassemble, Instruction, _Decoder, _decode_one
+from .runtime_kb import load_m68k_runtime_kb
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────
@@ -30,81 +29,10 @@ _KB_CACHE = {}
 def _load_kb():
     if _KB_CACHE:
         return _KB_CACHE["by_name"], _KB_CACHE["list"], _KB_CACHE["meta"]
-    path = Path(__file__).resolve().parent.parent / "knowledge" / "m68k_instructions.json"
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-    instructions = data.get("instructions", [])
-    meta = data.get("_meta", {})
-    by_name = {inst["mnemonic"]: inst for inst in instructions}
-
-    # Build CC family lookup from KB cc_parameterized fields.
-    # Each cc-parameterized instruction (Bcc, Scc, DBcc, etc.) has
-    # constraints.cc_parameterized.prefix that maps mnemonic prefixes
-    # to the KB entry name.
-    pmmu_codes = {
-        code.lower()
-        for code in meta.get("pmmu_condition_codes", [])
-        if code and not code.startswith("#")
-    }
-    cpu_codes = set(meta["cc_test_definitions"])
-    cpu_codes.update(meta["cc_aliases"])
-
-    cc_families = {}  # prefix -> {mnemonic, codes, numeric_suffix}
-    for inst in instructions:
-        cc_param = inst.get("constraints", {}).get("cc_parameterized")
-        is_pmmu = "MC68851" in inst.get("processors", "")
-        codes = pmmu_codes if is_pmmu else cpu_codes
-        if cc_param:
-            cc_families[cc_param["prefix"].lower()] = {
-                "mnemonic": inst["mnemonic"],
-                "codes": codes,
-                "numeric_suffix": is_pmmu,
-            }
-            continue
-        for raw_name in inst["mnemonic"].split(","):
-            name = raw_name.strip()
-            if not name.endswith("cc"):
-                continue
-            prefix = name[:-2].lower()
-            if not prefix or prefix in cc_families:
-                continue
-            cc_families[prefix] = {
-                "mnemonic": name,
-                "codes": codes,
-                "numeric_suffix": is_pmmu,
-            }
-    meta["_cc_families"] = cc_families
-
-    asm_mnemonic_index = {}
-    for syntax_key, kb_mnemonic in meta.get("asm_syntax_index", {}).items():
-        asm_mnemonic, _, operand_types = syntax_key.partition(":")
-        if operand_types:
-            continue
-        existing = asm_mnemonic_index.get(asm_mnemonic)
-        if existing is not None and existing != kb_mnemonic:
-            raise ValueError(
-                f"asm_syntax_index maps bare mnemonic {asm_mnemonic!r} "
-                f"to multiple KB entries: {existing!r}, {kb_mnemonic!r}"
-            )
-        if kb_mnemonic not in by_name:
-            raise ValueError(
-                f"asm_syntax_index maps bare mnemonic {asm_mnemonic!r} "
-                f"to missing KB instruction {kb_mnemonic!r}"
-            )
-        asm_mnemonic_index[asm_mnemonic] = kb_mnemonic
-    meta["_asm_mnemonic_index"] = asm_mnemonic_index
-
-    # Derive register layout from movem_reg_masks: count of data and address
-    # registers, and which address register number maps to SP.
-    reg_masks = meta.get("movem_reg_masks", {}).get("normal", [])
-    data_regs = [r for r in reg_masks if r.startswith("d")]
-    addr_regs = [r for r in reg_masks if r.startswith("a")]
-    meta["_num_data_regs"] = len(data_regs)
-    meta["_num_addr_regs"] = len(addr_regs)
-    # SP register number: highest address register (a7 -> 7)
-    if not addr_regs:
-        raise KeyError("KB movem_reg_masks has no address registers")
-    meta["_sp_reg_num"] = int(addr_regs[-1][1:])
+    payload = load_m68k_runtime_kb()
+    instructions = payload["instructions"]
+    meta = payload["meta"]
+    by_name = payload["by_name"]
 
     _KB_CACHE["by_name"] = by_name
     _KB_CACHE["list"] = instructions

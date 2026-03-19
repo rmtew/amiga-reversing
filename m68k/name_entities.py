@@ -6,7 +6,7 @@ Signals used (in priority order):
 3. Call graph position — entry point, leaf functions
 
 String detection uses KB ea_mode_encoding.pcdisp and opword_bytes.
-OS call naming uses amiga_os_reference.json function names.
+OS call naming uses the runtime OS KB function names.
 No hardcoded mnemonic names.
 
 Usage:
@@ -14,15 +14,14 @@ Usage:
     name_subroutines(entities, blocks, code, os_calls, result)
 """
 
-import json
 import struct
 import sys
 import re
-from pathlib import Path
 
 from .m68k_executor import BasicBlock, _extract_mnemonic
 from .os_calls import load_os_kb
 from .kb_util import KB, xf, find_containing_sub
+from .runtime_kb import load_naming_runtime_kb
 
 
 def find_string_refs(blocks: dict[int, BasicBlock],
@@ -123,16 +122,14 @@ def _load_naming_rules() -> dict:
     global _NAMING_RULES
     if _NAMING_RULES is not None:
         return _NAMING_RULES
-    path = Path(__file__).resolve().parent.parent / "knowledge" / "naming_rules.json"
-    with open(path, encoding="utf-8") as f:
-        _NAMING_RULES = json.load(f)
+    _NAMING_RULES = load_naming_runtime_kb()
     return _NAMING_RULES
 
 
 def _os_calls_to_name(os_calls: list[str]) -> str | None:
     """Suggest a name from a subroutine's OS call list.
 
-    Naming rules loaded from knowledge/naming_rules.json.
+    Naming rules loaded from the runtime naming KB.
     """
     if not os_calls:
         return None

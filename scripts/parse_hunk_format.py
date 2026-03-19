@@ -15,6 +15,7 @@ import re
 import sys
 import argparse
 from pathlib import Path
+from build_runtime_kb import build_runtime_artifacts
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -480,6 +481,8 @@ def main():
     with open(args.outfile, "w", encoding="utf-8") as f:
         json.dump(kb, f, indent=2)
     print(f"\nWrote {args.outfile}")
+    for runtime_out in build_runtime_artifacts():
+        print(f"Wrote {runtime_out}")
 
 
 if __name__ == "__main__":

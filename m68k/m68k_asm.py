@@ -1,6 +1,6 @@
 """KB-driven M68K assembler — assembly text → machine code bytes.
 
-All M68K knowledge comes from knowledge/m68k_instructions.json.
+All M68K knowledge comes from the runtime KB and its canonical source data.
 No instruction encodings, sizes, or field values are hardcoded.
 
 Usage:
@@ -8,28 +8,19 @@ Usage:
     code = assemble_instruction("move.l d0,(a1)")
 """
 
-import json
 import re
 import struct
 from functools import lru_cache
-from pathlib import Path
-
-PROJ_ROOT = Path(__file__).resolve().parent.parent
-KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
-
-
-# ── KB loader ─────────────────────────────────────────────────────────────
+from .runtime_kb import load_m68k_runtime_kb
 
 @lru_cache(maxsize=1)
 def _load_kb():
-    with open(KNOWLEDGE, encoding="utf-8") as f:
-        data = json.load(f)
-    instructions = data.get("instructions", [])
-    meta = data.get("_meta", {})
-    by_mnemonic = {}
-    for inst in instructions:
-        by_mnemonic[inst["mnemonic"]] = inst
-    return by_mnemonic, instructions, meta
+    payload = load_m68k_runtime_kb()
+    return payload["by_name"], payload["instructions"], payload["meta"]
+
+
+def _runtime():
+    return load_m68k_runtime_kb()["runtime"]["tables"]
 
 def _kb():
     return _load_kb()[0]
@@ -309,38 +300,14 @@ def _kb_encoding_masks():
 
 @lru_cache(maxsize=1)
 def _kb_size_encodings():
-    """Return {mnemonic: {size_suffix: binary_val}} — reverse of disassembler's mapping.
-
-    Parses size encoding from KB field_descriptions.Size text.
-    """
-    size_name_map = {"byte": "b", "word": "w", "long": "l"}
-    result = {}
-    for inst in _kb_list():
-        fd = inst.get("field_descriptions", {})
-        size_desc = fd.get("Size", "")
-        if not size_desc:
-            continue
-        mapping = {}
-        for m in re.finditer(
-                r"([01]{1,2})\s*[\u2014\u2013\-]\s*(Byte|Word|Long)",
-                size_desc, re.IGNORECASE):
-            bits = int(m.group(1), 2)
-            sz = size_name_map[m.group(2).lower()]
-            mapping[sz] = bits
-        if mapping:
-            result[inst["mnemonic"]] = mapping
-    return result
+    """Return {mnemonic: {size_suffix: binary_val}} from runtime KB."""
+    return _runtime()["size_encodings_asm"]
 
 
 @lru_cache(maxsize=1)
 def _kb_opmode_tables():
     """Return {mnemonic: [{opmode, size, operation}, ...]} from KB constraints."""
-    result = {}
-    for inst in _kb_list():
-        opm = inst.get("constraints", {}).get("opmode_table")
-        if opm:
-            result[inst["mnemonic"]] = opm
-    return result
+    return _runtime()["opmode_tables_list"]
 
 
 @lru_cache(maxsize=1)
@@ -352,23 +319,13 @@ def _kb_cc_index():
 @lru_cache(maxsize=1)
 def _kb_cc_families():
     """Return {prefix: (mnemonic, cc_parameterized_info)} for cc-parameterized instructions."""
-    result = {}
-    for inst in _kb_list():
-        cc_param = inst.get("constraints", {}).get("cc_parameterized")
-        if cc_param:
-            result[cc_param["prefix"]] = (inst["mnemonic"], cc_param)
-    return result
+    return _runtime()["cc_families"]
 
 
 @lru_cache(maxsize=1)
 def _kb_immediate_ranges():
     """Return {mnemonic: immediate_range_info} from KB constraints."""
-    result = {}
-    for inst in _kb_list():
-        ir = inst.get("constraints", {}).get("immediate_range")
-        if ir:
-            result[inst["mnemonic"]] = ir
-    return result
+    return _runtime()["immediate_ranges"]
 
 
 # ── Mnemonic resolution ──────────────────────────────────────────────────
@@ -566,18 +523,27 @@ def _build_opword(inst, field_values, enc_idx=0):
 def _get_size_encoding(inst, size_char):
     """Get binary size field value for an instruction.
 
-    Returns the binary value to pack into the SIZE field, or None if no size field.
+    Returns the binary value to pack into the SIZE field.
     """
+    if size_char is None:
+        return None
+    has_size_field = any(
+        field["name"] == "SIZE"
+        for enc in inst.get("encodings", [])
+        for field in enc.get("fields", [])
+    )
+    if not has_size_field:
+        return None
     mnemonic = inst["mnemonic"]
     size_encs = _kb_size_encodings()
-    if mnemonic in size_encs:
-        enc = size_encs[mnemonic]
-        if size_char in enc:
-            return enc[size_char]
-    # Default encoding: b=0, w=1, l=2 (most instructions use this)
-    # This default is derived from the most common pattern in KB field_descriptions
-    default = {"b": 0, "w": 1, "l": 2}
-    return default.get(size_char)
+    if mnemonic not in size_encs:
+        raise KeyError(f"KB missing size encoding for {mnemonic!r}")
+    enc = size_encs[mnemonic]
+    if size_char not in enc:
+        raise KeyError(
+            f"KB size encoding for {mnemonic!r} missing size {size_char!r}"
+        )
+    return enc[size_char]
 
 
 # ── Instruction assemblers ────────────────────────────────────────────────
@@ -1474,31 +1440,13 @@ def _special_operand_types():
     not standard EA modes. These require special resolution because they map
     to separate KB instructions (e.g. 'ccr' in 'andi:imm,ccr' → 'ANDI to CCR').
     """
-    ea_modes = set(_ea_mode_encoding().keys())  # dn, an, ind, postinc, etc.
-    # Types that are parameters, not named registers
-    generic_types = ea_modes | {"ea", "imm", "label", "reglist", "ctrl_reg",
-                                "rn", "bf_ea", "unknown", "dn_pair",
-                                "disp", "postinc", "predec"}
-    all_types = set()
-    for key in _kb_meta()["asm_syntax_index"]:
-        parts = key.split(":", 1)
-        if len(parts) > 1 and parts[1]:
-            for t in parts[1].split(","):
-                all_types.add(t)
-    return all_types - generic_types
+    return set(_runtime()["special_operand_types"])
 
 
 @lru_cache(maxsize=1)
 def _asm_syntax_index():
     """Return {(asm_mnemonic, op_type_tuple): kb_mnemonic} from KB _meta."""
-    raw = _kb_meta()["asm_syntax_index"]
-    result = {}
-    for key, kb_mnemonic in raw.items():
-        parts = key.split(":", 1)
-        asm_mn = parts[0]
-        op_types = tuple(parts[1].split(",")) if len(parts) > 1 and parts[1] else ()
-        result[(asm_mn, op_types)] = kb_mnemonic
-    return result
+    return _runtime()["asm_syntax_index"]
 
 
 def _classify_asm_operand(text):

@@ -3,14 +3,12 @@
 Decodes 68000 instructions from raw bytes and emits assembly text.
 """
 
-import json
-import re
 import struct
 from dataclasses import dataclass, field
 from functools import lru_cache
-from pathlib import Path
 from .decode_errors import DecodeError
 from .ea_extension import parse_full_extension
+from .runtime_kb import load_m68k_runtime_kb
 
 
 @dataclass
@@ -225,7 +223,6 @@ SIZE_LONG = 2
 SIZE_SUFFIX = {SIZE_BYTE: ".b", SIZE_WORD: ".w", SIZE_LONG: ".l"}
 SIZE_NAMES = {SIZE_BYTE: "byte", SIZE_WORD: "word", SIZE_LONG: "long"}
 _SIZE_LETTER_TO_INT = {"b": SIZE_BYTE, "w": SIZE_WORD, "l": SIZE_LONG}
-CC_CONDITION_TABLE = re.compile(r"\b([A-Za-z]{2})\s+[A-Za-z]\s+(?:set|clear)\b")
 
 
 def _normalize_cpu(cpu_name: str | None) -> str:
@@ -243,59 +240,27 @@ def _load_kb_payload() -> tuple[list[dict], dict]:
     global _KB_PAYLOAD_CACHE
     if _KB_PAYLOAD_CACHE is not None:
         return _KB_PAYLOAD_CACHE
-    path = Path(__file__).resolve().parent.parent / "knowledge" / "m68k_instructions.json"
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    _KB_PAYLOAD_CACHE = (data["instructions"], data["_meta"])
+    payload = load_m68k_runtime_kb()
+    _KB_PAYLOAD_CACHE = (payload["instructions"], payload["meta"])
     return _KB_PAYLOAD_CACHE
 
 
-def _iter_mnemonic_tokens(text: str):
-    start = None
-    for i, ch in enumerate(text):
-        if ch.isspace() or ch == ",":
-            if start is not None:
-                yield text[start:i]
-                start = None
-            continue
-        if start is None:
-            start = i
-    if start is not None:
-        yield text[start:]
+def _runtime():
+    return load_m68k_runtime_kb()["runtime"]["tables"]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_mnemonic_index() -> dict[str, list[dict]]:
-    kb, _ = _load_kb_payload()
-    index: dict[str, list[dict]] = {}
-    for inst in kb:
-        lowered = inst["mnemonic"].lower()
-        keys = {lowered, lowered.partition(" ")[0]}
-        keys.update(_iter_mnemonic_tokens(lowered))
-        for key in keys:
-            index.setdefault(key, []).append(inst)
-    return index
+    by_name = load_m68k_runtime_kb()["by_name"]
+    return {
+        key: [by_name[mnemonic] for mnemonic in mnemonics]
+        for key, mnemonics in _runtime()["mnemonic_index"].items()
+    }
 
 
 def _kb_encoding_masks(enc_idx: int) -> dict[str, tuple[int, int]]:
-    """Return {mnemonic: (mask, val)} computed from KB encoding[enc_idx] fixed fields."""
-    kb, _ = _load_kb_payload()
-    result: dict[str, tuple[int, int]] = {}
-    for inst in kb:
-        encs = inst["encodings"]
-        if len(encs) <= enc_idx:
-            continue
-        fields = encs[enc_idx]["fields"]
-        mask = val = 0
-        for f in fields:
-            if f["name"] in ("0", "1"):
-                bit = 1 if f["name"] == "1" else 0
-                for b in range(f["bit_lo"], f["bit_hi"] + 1):
-                    mask |= (1 << b)
-                    val |= (bit << b)
-        if mask:
-            result[inst["mnemonic"]] = (mask, val)
-    return result
+    """Return {mnemonic: (mask, val)} from runtime KB."""
+    return _runtime()["encoding_masks"][enc_idx]
 
 
 @lru_cache(maxsize=1)
@@ -322,47 +287,18 @@ def _load_kb_fixed_opcodes() -> dict[int, str]:
 
     These are zero-operand or fixed-format instructions (NOP, RESET, RTE, RTS, etc.)
     """
-    masks = _load_kb_encoding_masks()
-    return {val: mn for mn, (mask, val) in masks.items() if mask == 0xFFFF}
+    return _runtime()["fixed_opcodes"]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_ext_field_names() -> dict[str, frozenset[str]]:
     """Return {mnemonic: frozenset(ext_word_field_names)} for instructions with
     extension words.  Uses encoding[1] field names (excluding fixed 0/1 bits)."""
-    kb, _ = _load_kb_payload()
-    result: dict[str, frozenset[str]] = {}
-    for inst in kb:
-        encs = inst["encodings"]
-        if len(encs) < 2:
-            continue
-        names = frozenset(
-            f["name"] for f in encs[1]["fields"]
-            if f["name"] not in ("0", "1")
-        )
-        if names:
-            result[inst["mnemonic"]] = names
-    return result
+    return _runtime()["ext_field_names"]
 
 
 def _kb_field_map(enc_idx: int) -> dict[str, dict[str, tuple[int, int, int]]]:
-    """Return {mnemonic: {field_name: (bit_hi, bit_lo, width)}} for a given encoding index.
-
-    Extracts named fields (excluding fixed 0/1 bits) from encoding[enc_idx].
-    """
-    kb, _ = _load_kb_payload()
-    result: dict[str, dict[str, tuple[int, int, int]]] = {}
-    for inst in kb:
-        encs = inst["encodings"]
-        if len(encs) <= enc_idx:
-            continue
-        fields = {}
-        for f in encs[enc_idx]["fields"]:
-            if f["name"] not in ("0", "1"):
-                fields[f["name"]] = (f["bit_hi"], f["bit_lo"], f["width"])
-        if fields:
-            result[inst["mnemonic"]] = fields
-    return result
+    return _runtime()["field_maps"][enc_idx]
 
 
 @lru_cache(maxsize=1)
@@ -391,30 +327,12 @@ def _load_kb_raw_fields(enc_idx: int) -> dict[str, list[tuple[str, int, int, int
     in their original order â€” needed for instructions with duplicate REGISTER or MODE fields
     (MOVE, LEA, CHK, ADD, etc.).
     """
-    kb, _ = _load_kb_payload()
-    result: dict[str, list[tuple[str, int, int, int]]] = {}
-    for inst in kb:
-        encs = inst["encodings"]
-        if len(encs) <= enc_idx:
-            continue
-        fields = []
-        for f in encs[enc_idx]["fields"]:
-            if f["name"] not in ("0", "1"):
-                fields.append((f["name"], f["bit_hi"], f["bit_lo"], f["width"]))
-        if fields:
-            result[inst["mnemonic"]] = fields
-    return result
+    return _runtime()["raw_fields"][enc_idx]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_ea_brief_fields() -> dict[str, tuple[int, int, int]]:
-    """Return {field_name: (bit_hi, bit_lo, width)} for Brief Extension Word fields."""
-    _, meta = _load_kb_payload()
-    result: dict[str, tuple[int, int, int]] = {}
-    for f in meta["ea_brief_ext_word"]:
-        width = f["bit_hi"] - f["bit_lo"] + 1
-        result[f["name"]] = (f["bit_hi"], f["bit_lo"], width)
-    return result
+    return _runtime()["ea_brief_fields"]
 
 
 @lru_cache(maxsize=1)
@@ -422,30 +340,6 @@ def _load_kb_movem_reg_masks() -> dict[str, list[str]]:
     """Return {"normal": [...], "predecrement": [...]} register mask tables from KB."""
     _, meta = _load_kb_payload()
     return meta["movem_reg_masks"]
-
-
-def _derive_varying_bits(mask_val_pairs: list[tuple[int, int]]) -> tuple[int, int]:
-    """XOR encoding vals to find the contiguous bit range that distinguishes related instructions.
-
-    Returns (bit_hi, bit_lo).
-    """
-    if len(mask_val_pairs) < 2:
-        raise RuntimeError("need at least 2 mask/val pairs to derive varying bits")
-    # XOR all vals together to find bits that vary
-    varying = 0
-    base_val = mask_val_pairs[0][1]
-    for _, v in mask_val_pairs[1:]:
-        varying |= base_val ^ v
-    # Also check all pairs against each other
-    for i in range(len(mask_val_pairs)):
-        for j in range(i + 1, len(mask_val_pairs)):
-            varying |= mask_val_pairs[i][1] ^ mask_val_pairs[j][1]
-    if varying == 0:
-        raise RuntimeError("all vals are identical â€” cannot derive varying bits")
-    bit_lo = (varying & -varying).bit_length() - 1
-    bit_hi = varying.bit_length() - 1
-    return bit_hi, bit_lo
-
 
 @lru_cache(maxsize=1)
 def _load_kb_dest_reg_field() -> dict[str, tuple[int, int, int]]:
@@ -455,25 +349,12 @@ def _load_kb_dest_reg_field() -> dict[str, tuple[int, int, int]]:
     and returns the one with higher bit position. For instructions with a single
     REGISTER field at bits 11:9, also includes those.
     """
-    raw = _load_kb_raw_fields(0)
-    result: dict[str, tuple[int, int, int]] = {}
-    for mn, fields in raw.items():
-        reg_fields = [(name, hi, lo, w) for name, hi, lo, w in fields if name == "REGISTER"]
-        if len(reg_fields) >= 2:
-            # Multiple REGISTER fields â€” take the highest one (destination reg at bits 11:9)
-            upper = max(reg_fields, key=lambda f: f[1])
-            result[mn] = (upper[1], upper[2], upper[3])
-        elif len(reg_fields) == 1 and reg_fields[0][1] >= 9:
-            # Single REGISTER at upper position (e.g., MOVEQ)
-            result[mn] = (reg_fields[0][1], reg_fields[0][2], reg_fields[0][3])
-    return result
+    return _runtime()["dest_reg_field"]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_bf_mnemonics() -> list[str]:
-    """Return BFxxx mnemonics from KB (group E, size_bits=3 instructions)."""
-    masks = _load_kb_encoding_masks()
-    return [mn for mn in masks if mn.startswith("BF")]
+    return list(_runtime()["bf_mnemonics"])
 
 
 @lru_cache(maxsize=1)
@@ -483,17 +364,7 @@ def _load_kb_bitop_names() -> tuple[dict[int, str], tuple[int, int, int]]:
     BTST/BCHG/BCLR/BSET are distinguished by varying bits in their encoding vals.
     Returns the name table and the (bit_hi, bit_lo, width) field for runtime extraction.
     """
-    masks = _load_kb_encoding_masks()
-    _mns = ("BTST", "BCHG", "BCLR", "BSET")
-    pairs = [masks[mn] for mn in _mns]
-    hi, lo = _derive_varying_bits(pairs)
-    w = hi - lo + 1
-    result: dict[int, str] = {}
-    for mn in _mns:
-        _, val = masks[mn]
-        idx = (val >> lo) & ((1 << w) - 1)
-        result[idx] = mn.lower()
-    return result, (hi, lo, w)
+    return _runtime()["bitop_names"]
 
 
 @lru_cache(maxsize=1)
@@ -503,17 +374,7 @@ def _load_kb_imm_names() -> tuple[dict[int, str], tuple[int, int, int]]:
     ORI/ANDI/SUBI/ADDI/EORI/CMPI are distinguished by varying bits in their encoding vals.
     Returns the name table and the (bit_hi, bit_lo, width) field for runtime extraction.
     """
-    masks = _load_kb_encoding_masks()
-    _mns = ("ORI", "ANDI", "SUBI", "ADDI", "EORI", "CMPI")
-    pairs = [masks[mn] for mn in _mns]
-    hi, lo = _derive_varying_bits(pairs)
-    w = hi - lo + 1
-    result: dict[int, str] = {}
-    for mn in _mns:
-        _, val = masks[mn]
-        idx = (val >> lo) & ((1 << w) - 1)
-        result[idx] = mn.lower()
-    return result, (hi, lo, w)
+    return _runtime()["imm_names"]
 
 
 @lru_cache(maxsize=1)
@@ -523,18 +384,7 @@ def _load_kb_shift_names() -> dict[int, str]:
     ASL/ASR, LSL/LSR, ROXL/ROXR, ROL/ROR are distinguished by varying bits
     in their register-mode encoding[0] vals.
     """
-    masks = _load_kb_encoding_masks()
-    _mns = ("ASL, ASR", "LSL, LSR", "ROXL, ROXR", "ROL, ROR")
-    _prefixes = ("as", "ls", "rox", "ro")
-    pairs = [masks[mn] for mn in _mns]
-    hi, lo = _derive_varying_bits(pairs)
-    w = hi - lo + 1
-    result: dict[int, str] = {}
-    for mn, prefix in zip(_mns, _prefixes):
-        _, val = masks[mn]
-        idx = (val >> lo) & ((1 << w) - 1)
-        result[idx] = prefix
-    return result
+    return _runtime()["shift_names"]
 
 
 @lru_cache(maxsize=1)
@@ -543,14 +393,7 @@ def _load_kb_shift_type_fields() -> tuple[tuple[int, int, int], tuple[int, int, 
 
     Returns (reg_type_field, mem_type_field) as (bit_hi, bit_lo, width) tuples.
     """
-    _mns = ("ASL, ASR", "LSL, LSR", "ROXL, ROXR", "ROL, ROR")
-    # Register mode: encoding[0] vals
-    reg_pairs = [_kb_encoding_masks(0)[mn] for mn in _mns]
-    rhi, rlo = _derive_varying_bits(reg_pairs)
-    # Memory mode: encoding[1] vals
-    mem_pairs = [_kb_encoding_masks(1)[mn] for mn in _mns]
-    mhi, mlo = _derive_varying_bits(mem_pairs)
-    return (rhi, rlo, rhi - rlo + 1), (mhi, mlo, mhi - mlo + 1)
+    return _runtime()["shift_type_fields"]
 
 
 @lru_cache(maxsize=1)
@@ -561,17 +404,7 @@ def _load_kb_shift_fields() -> dict:
       dr_values:  {0: "r", 1: "l"} direction mapping
       zero_means: value to substitute when count field is 0 (e.g. 8)
     """
-    kb, _ = _load_kb_payload()
-    for inst in kb:
-        if inst["mnemonic"].startswith("ASL"):
-            dv = inst["constraints"]["direction_variants"]
-            dr_values = {int(k): v for k, v in dv["values"].items()}
-            imm_range = inst["constraints"]["immediate_range"]
-            return {
-                "dr_values": dr_values,
-                "zero_means": imm_range["zero_means"],
-            }
-    raise RuntimeError("KB missing ASL/ASR â€” regenerate m68k_instructions.json")
+    return _runtime()["shift_fields"]
 
 
 _SIZE_NAME_MAP = {"byte": SIZE_BYTE, "word": SIZE_WORD, "long": SIZE_LONG}
@@ -588,190 +421,45 @@ def _load_kb_rm_field() -> dict[str, tuple[int, dict[int, str]]]:
 
     Returns {mnemonic: (bit_lo, {0: 'dn,dn', 1: 'predec,predec'})}.
     """
-    kb, _ = _load_kb_payload()
-    result: dict[str, tuple[int, dict[int, str]]] = {}
-    for inst in kb:
-        om = inst.get("constraints", {}).get("operand_modes")
-        if not om or om.get("field") != "R/M":
-            continue
-        # Get R/M field position from encoding
-        fields = _load_kb_opword_field_map().get(inst["mnemonic"], {})
-        rm_field = fields.get("R/M")
-        if not rm_field:
-            continue
-        values = {int(k): v for k, v in om["values"].items()}
-        result[inst["mnemonic"]] = (rm_field[0], values)  # (bit_pos, value_map)
-    return result
+    return _runtime()["rm_field"]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_addq_zero_means() -> int:
     """Load the zero_means value for ADDQ/SUBQ from KB immediate_range."""
-    kb, _ = _load_kb_payload()
-    for inst in kb:
-        if inst["mnemonic"] == "ADDQ":
-            return inst["constraints"]["immediate_range"]["zero_means"]
-    raise RuntimeError("KB missing ADDQ â€” regenerate m68k_instructions.json")
+    return _runtime()["addq_zero_means"]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_control_registers() -> dict[int, str]:
     """Load MOVEC control register names from KB: {hex_code: abbreviation}."""
-    kb, _ = _load_kb_payload()
-    for inst in kb:
-        if inst["mnemonic"] == "MOVEC":
-            ctrl_regs = inst["constraints"]["control_registers"]
-            result: dict[int, str] = {}
-            for cr in ctrl_regs:
-                hex_val = int(cr["hex"], 16)
-                # First occurrence wins (avoids EC040 aliases overwriting)
-                if hex_val not in result:
-                    result[hex_val] = cr["abbrev"]
-            return result
-    raise RuntimeError("KB missing MOVEC â€” regenerate m68k_instructions.json")
+    return _runtime()["control_registers"]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_size_encodings() -> dict[str, dict[int, int]]:
-    """Parse size encoding mappings from KB field_descriptions.
-
-    Returns {mnemonic: {binary_val: SIZE_xxx}} derived from the Size field
-    description text, e.g. "01 â€” Byte operation 10 â€” Word operation 11 â€” Long".
-    """
-    kb, _ = _load_kb_payload()
-    result: dict[str, dict[int, int]] = {}
-    for inst in kb:
-        fd = inst["field_descriptions"]
-        size_desc = fd.get("Size", "")
-        if not size_desc:
-            continue
-        mapping: dict[int, int] = {}
-        for m in re.finditer(r"([01]{1,2})\s*[\u2014\u2013\-]\s*(Byte|Word|Long)", size_desc, re.IGNORECASE):
-            bits = int(m.group(1), 2)
-            mapping[bits] = _SIZE_NAME_MAP[m.group(2).lower()]
-        if mapping:
-            result[inst["mnemonic"]] = mapping
-    return result
+    """Return {mnemonic: {binary_val: SIZE_xxx}} from structured runtime KB data."""
+    return _runtime()["size_encodings_disasm"]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_processor_mins() -> dict[str, str]:
-    kb, _ = _load_kb_payload()
-
-    mins: dict[str, str] = {}
-    for inst in kb:
-        min_cpu = _normalize_cpu(inst["processor_min"])
-        mnemonic = inst["mnemonic"]
-        for part in mnemonic.split(","):
-            tokens = part.strip().split()
-            if not tokens:
-                continue
-            # Keep full token and individual alias tokens like "ASL" and "ASR".
-            for token in tokens:
-                mins[token.lower()] = min_cpu
-    return mins
+    return _runtime()["processor_mins"]
 
 
 @lru_cache(maxsize=1)
 def _load_kb_opmode_tables() -> dict[str, dict[int, dict]]:
     """Return {mnemonic: {opmode_int: {size, operation/description}}} from KB."""
-    kb, _ = _load_kb_payload()
-    result: dict[str, dict[int, dict]] = {}
-    for inst in kb:
-        opm = inst.get("constraints", {}).get("opmode_table")
-        if not opm:
-            continue
-        table: dict[int, dict] = {}
-        for entry in opm:
-            table[entry["opmode"]] = entry
-        result[inst["mnemonic"]] = table
-    return result
+    return _runtime()["opmode_tables_by_value"]
 
 
 @lru_cache(maxsize=1)
 def _load_disasm_meta() -> dict:
-    kb, kb_meta = _load_kb_payload()
-
-    condition_codes = list(kb_meta["condition_codes"])
-    cpu_hierarchy = kb_meta["cpu_hierarchy"]
-    pmmu_condition_codes = kb_meta["pmmu_condition_codes"]
-
-    families = {}
-    pmmu_cc_names = []
-    for code in pmmu_condition_codes:
-        if not code:
-            continue
-        if code.startswith("#"):
-            continue
-        pmmu_cc_names.append(code.lower())
-    for inst in kb:
-        constraints = inst.get("constraints", {})
-        cc_param = constraints.get("cc_parameterized")
-
-        for raw_name in inst["mnemonic"].split(","):
-            name = raw_name.strip().lower().replace(" ", "")
-            if not name or not name.endswith("cc"):
-                continue
-
-            prefix = name[:-2]
-            if not prefix:
-                continue
-
-            entry = families.get(name)
-            if entry is None:
-                codes = condition_codes[:]
-                match_numeric_suffix = False
-                if "MC68851" in inst.get("processors", ""):
-                    codes = pmmu_cc_names[:]
-                    match_numeric_suffix = True
-                entry = {
-                    "prefix": prefix,
-                    "canonical": name,
-                    "codes": codes,
-                    "match_numeric_suffix": match_numeric_suffix,
-                    "excluded": set(),
-                }
-                families[name] = entry
-
-            if cc_param:
-                if cc_param.get("excluded"):
-                    entry["excluded"].update(
-                        code.lower() for code in cc_param.get("excluded", [])
-                    )
-                continue
-
-            description = inst["description"]
-            parsed_codes = [
-                code.lower()
-                for code in CC_CONDITION_TABLE.findall(description)
-            ]
-            if parsed_codes:
-                entry["codes"] = parsed_codes
-
-    canonical_families = []
-    for entry in families.values():
-        codes = entry["codes"]
-        if not codes:
-            continue
-        canonical_families.append({
-            "prefix": entry["prefix"],
-            "canonical": entry["canonical"],
-            "codes": codes,
-            "match_numeric_suffix": entry["match_numeric_suffix"],
-            "exclude_from_family": sorted(entry["excluded"]),
-        })
-
-    # Ensure deterministic ordering.
-    canonical_families = sorted(
-        canonical_families,
-        key=lambda item: item["canonical"]
-    )
-
     return {
-        "condition_codes": condition_codes,
-        "condition_families": canonical_families,
-        "cpu_hierarchy": cpu_hierarchy,
-        "pmmu_condition_codes": pmmu_condition_codes,
+        "condition_codes": list(_load_kb_payload()[1]["condition_codes"]),
+        "condition_families": list(_runtime()["condition_families"]),
+        "cpu_hierarchy": _load_kb_payload()[1]["cpu_hierarchy"],
+        "pmmu_condition_codes": _load_kb_payload()[1]["pmmu_condition_codes"],
     }
 
 
@@ -824,7 +512,7 @@ def _kb_mnemonic_matches(inst_name: str, canonical: str) -> bool:
         return True
     if lowered.startswith(canonical + " "):
         return True
-    return canonical in _iter_mnemonic_tokens(lowered)
+    return canonical in lowered.replace(",", " ").split()
 
 
 def _encoding_match_literal_count(opcode: int, encoding: dict) -> int | None:
@@ -1445,13 +1133,7 @@ def _load_kb_move_fields() -> tuple[tuple[int, int, int], tuple[int, int, int],
     MOVE has duplicate MODE and REGISTER fields; disambiguate by positional order
     in raw field list (higher bits first in the encoding).
     """
-    raw = _load_kb_raw_fields(0)["MOVE"]
-    modes = [(hi, lo, w) for name, hi, lo, w in raw if name == "MODE"]
-    regs = [(hi, lo, w) for name, hi, lo, w in raw if name == "REGISTER"]
-    # Higher-bit fields are destination, lower-bit fields are source
-    modes.sort(key=lambda f: f[0], reverse=True)
-    regs.sort(key=lambda f: f[0], reverse=True)
-    return regs[0], modes[0], modes[1], regs[1]  # dst_reg, dst_mode, src_mode, src_reg
+    return _runtime()["move_fields"]
 
 
 def _decode_move(d: _Decoder, op: int, pc: int, size: int) -> DecodedInstructionText:
@@ -2378,11 +2060,7 @@ def _decode_shift(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 @lru_cache(maxsize=1)
 def _load_kb_cpid_field() -> tuple[int, int]:
-    """Derive coprocessor ID field position from KB FPU instruction encoding."""
-    kb, _ = _load_kb_payload()
-    inst = next(i for i in kb if i["mnemonic"] == "FRESTORE")
-    id_field = next(f for f in inst["encodings"][0]["fields"] if f["name"] == "ID")
-    return id_field["bit_lo"], id_field["width"]
+    return _runtime()["cpid_field"]
 
 
 def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:

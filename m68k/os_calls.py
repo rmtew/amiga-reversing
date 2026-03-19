@@ -1,11 +1,11 @@
 """Amiga OS library call identification.
 
 Identifies OS library calls in analyzed M68K code by matching the
-ExecBase load pattern and LVO dispatch pattern against the OS KB.
+ExecBase load pattern and LVO dispatch pattern against the OS runtime KB.
 
 All identification is data-driven from:
-- amiga_os_reference.json: exec_base_addr, lvo_index, calling_convention
-- m68k_instructions.json: ea_mode_encoding for addressing mode detection
+- runtime_os.py: exec_base_addr, lvo_index, calling_convention
+- runtime_m68k.py/canonical instruction KB: ea_mode_encoding for addressing mode detection
 
 Usage:
     from os_calls import load_os_kb, identify_library_calls
@@ -13,29 +13,18 @@ Usage:
     calls = identify_library_calls(blocks, code, os_kb)
 """
 
-import json
 import struct
 import sys
-from pathlib import Path
 
 from .m68k_executor import BasicBlock, _extract_branch_target
 from .kb_util import (KB, xf, parse_reg_name, read_string_at,
                       decode_destination, decode_instruction_operands)
-
-
-_OS_KB_CACHE = None
-
+from .runtime_kb import load_os_runtime_kb
 
 
 def load_os_kb() -> dict:
-    """Load the Amiga OS reference KB. Cached after first call."""
-    global _OS_KB_CACHE
-    if _OS_KB_CACHE is not None:
-        return _OS_KB_CACHE
-    path = Path(__file__).resolve().parent.parent / "knowledge" / "amiga_os_reference.json"
-    with open(path, encoding="utf-8") as f:
-        _OS_KB_CACHE = json.load(f)
-    return _OS_KB_CACHE
+    """Load the Amiga OS runtime KB."""
+    return load_os_runtime_kb()
 
 
 def _decode_inst(kb: KB, inst):

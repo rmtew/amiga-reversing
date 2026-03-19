@@ -20,6 +20,7 @@ import fitz
 import re, json, sys, argparse
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
+from build_runtime_kb import build_runtime_artifacts
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Shared constants
@@ -232,7 +233,8 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
                    nop_opword: int | None = None,
                    asm_syntax_index: dict[str, str] | None = None,
                    cc_aliases: dict[str, str] | None = None,
-                   immediate_routing: dict[str, str] | None = None) -> dict:
+                   immediate_routing: dict[str, str] | None = None,
+                   condition_families: list[dict] | None = None) -> dict:
     # Track B parser-assertion: CCR bit positions within SR from PDF p21,
     # Figure 1-8 "Status Register". The figure shows a 16-bit SR diagram with
     # bit numbers 15..0 and labels: bit 0=C (Carry), 1=V (Overflow), 2=Z (Zero),
@@ -330,6 +332,8 @@ def _as_kb_payload(kb_data: list[dict], pmmu_cc: list[str],
         meta["cc_aliases"] = cc_aliases
     if immediate_routing is not None:
         meta["immediate_routing"] = immediate_routing
+    if condition_families is not None:
+        meta["condition_families"] = condition_families
     return {
         "_meta": meta,
         "instructions": kb_data,
@@ -4470,6 +4474,108 @@ def _extract_immediate_routing(kb_data):
 # Phase 13: Direction field value extraction
 # ═══════════════════════════════════════════════════════════════════════════════
 
+_SIZE_ENCODING_PATTERN = re.compile(
+    r"([01]{1,2})\s*[\u2014\u2013\-]\s*(Byte|Word|Long)",
+    re.IGNORECASE,
+)
+
+
+def _apply_size_encodings(kb_data):
+    """Extract structured SIZE field encodings from PDF field descriptions."""
+    size_name_map = {"byte": "b", "word": "w", "long": "l"}
+    count = 0
+
+    for inst in kb_data:
+        size_fields = [
+            field
+            for enc in inst.get("encodings", [])
+            for field in enc.get("fields", [])
+            if field["name"] == "SIZE"
+        ]
+        if not size_fields:
+            continue
+
+        size_desc = inst.get("field_descriptions", {}).get("Size")
+        values = []
+        if size_desc:
+            seen_sizes = set()
+            seen_bits = set()
+            for match in _SIZE_ENCODING_PATTERN.finditer(size_desc):
+                bits = int(match.group(1), 2)
+                size = size_name_map[match.group(2).lower()]
+                if size in seen_sizes:
+                    raise RuntimeError(
+                        f"{inst['mnemonic']}: duplicate size encoding for {size!r}"
+                    )
+                if bits in seen_bits:
+                    raise RuntimeError(
+                        f"{inst['mnemonic']}: duplicate SIZE bit pattern {bits:02b}"
+                    )
+                seen_sizes.add(size)
+                seen_bits.add(bits)
+                values.append({"size": size, "bits": bits})
+        else:
+            # Parser-asserted from the PDF multiply/divide syntax lines:
+            # the only instructions with a SIZE bit but no Size field table are
+            # MULS/MULU/DIVS/DIVU long-form extension words. Their syntax shows
+            # a word form and a long form, and the extension SIZE field is 1 bit,
+            # so encode word=0, long=1 structurally from the form set.
+            sizes = inst.get("sizes", [])
+            width = size_fields[0]["width"]
+            if width == 1 and sizes == ["w", "l"]:
+                values = [{"size": "w", "bits": 0}, {"size": "l", "bits": 1}]
+            else:
+                continue
+
+        if not values:
+            continue
+
+        inst["size_encoding"] = {
+            "field": "SIZE",
+            "values": sorted(values, key=lambda item: item["size"]),
+        }
+        count += 1
+
+    return count
+
+
+def _build_condition_families(kb_data, pmmu_cc):
+    """Build structured condition-code mnemonic families from canonical data."""
+    cpu_codes = tuple(code.lower() for code in _kb_condition_codes())
+    pmmu_codes = tuple(code.lower() for code in pmmu_cc)
+    families = {}
+
+    for inst in kb_data:
+        constraints = inst.get("constraints", {})
+        cc_param = constraints.get("cc_parameterized")
+        is_pmmu = "68851" in inst.get("processors", "")
+        codes = pmmu_codes if is_pmmu else cpu_codes
+        excluded = tuple(sorted(code.lower() for code in cc_param.get("excluded", ()))) if cc_param else ()
+
+        for raw_name in inst["mnemonic"].split(","):
+            canonical = raw_name.strip().lower().replace(" ", "")
+            if not canonical.endswith("cc"):
+                continue
+            prefix = canonical[:-2]
+            if not prefix:
+                continue
+            entry = {
+                "prefix": prefix,
+                "canonical": canonical,
+                "codes": codes,
+                "match_numeric_suffix": is_pmmu,
+                "exclude_from_family": excluded,
+            }
+            existing = families.get(canonical)
+            if existing is not None and existing != entry:
+                raise RuntimeError(
+                    f"Conflicting condition family definition for {canonical!r}"
+                )
+            families[canonical] = entry
+
+    return [families[key] for key in sorted(families)]
+
+
 def _apply_direction_field_values(kb_data):
     """Parse direction field descriptions into structured form-to-field-value mapping.
 
@@ -4687,32 +4793,38 @@ def main():
     asm_syntax_index = _build_asm_syntax_index(kb_data)
     print(f"  Indexed {len(asm_syntax_index)} syntax entries")
 
-    # Phase 13: Parse direction field descriptions into structured values
+    print("Phase 13: Extracting size encodings...")
+    size_encoding_count = _apply_size_encodings(kb_data)
+    print(f"  Instructions with size encodings: {size_encoding_count}")
+
+    # Phase 14: Parse direction field descriptions into structured values
     # Instructions like MOVE USP have a 'dr' field whose meaning is described
     # in natural language in field_descriptions. Parse "0 — Transfer the
     # address register to the user stack pointer" into {0: "an_to_usp",
     # 1: "usp_to_an"} so downstream tools don't need to parse English text.
-    print("Phase 13: Extracting direction field values...")
+    print("Phase 14: Extracting direction field values...")
     dir_count = _apply_direction_field_values(kb_data)
     print(f"  Instructions with direction field values: {dir_count}")
 
-    # Phase 14: Extract displacement encoding from description text
+    # Phase 15: Extract displacement encoding from description text
     # PDF descriptions for Bcc/BRA/BSR explicitly state the reserved values
     # in the 8-bit displacement field that signal word/long extension.
     # Parse these into structured data so downstream tools don't hardcode them.
-    print("Phase 14: Extracting displacement encoding...")
+    print("Phase 15: Extracting displacement encoding...")
     disp_count = _extract_displacement_encoding(kb_data)
     print(f"  Instructions with displacement_encoding: {disp_count}")
 
-    # Phase 15: Extract mnemonic aliases and immediate routing
+    # Phase 16: Extract mnemonic aliases and immediate routing
     # CC aliases from PDF Table 3-19 parenthetical notation (e.g. CC(HS) → hs=cc)
     # plus parser-asserted DBRA → DBF. Immediate routing from title pattern matching
     # (ADDI title "Add Immediate" → ADD routes to ADDI for #imm operands).
-    print("Phase 15: Extracting mnemonic aliases...")
+    print("Phase 16: Extracting mnemonic aliases...")
     cc_aliases = _extract_cc_aliases(doc)
     immediate_routing = _extract_immediate_routing(kb_data)
+    condition_families = _build_condition_families(kb_data, pmmu_cc)
     print(f"  CC aliases: {cc_aliases}")
     print(f"  Immediate routing: {immediate_routing}")
+    print(f"  Condition families: {len(condition_families)}")
 
     # Track B parser-assertion: EXG encoding field boundaries.
     # PDF p128 Figure shows OPMODE as bits 7:3 (5 bits) and REGISTER Ry as
@@ -4770,8 +4882,26 @@ def main():
             if outpath.exists():
                 outpath.unlink()
             with open(outpath, "w", encoding="utf-8") as f:
-                json.dump(_as_kb_payload(kb_data, pmmu_cc, ea_brief, ea_full, movem_masks, nop_opword, asm_syntax_index, cc_aliases, immediate_routing), f, indent=2, ensure_ascii=False)
+                json.dump(
+                    _as_kb_payload(
+                        kb_data,
+                        pmmu_cc,
+                        ea_brief,
+                        ea_full,
+                        movem_masks,
+                        nop_opword,
+                        asm_syntax_index,
+                        cc_aliases,
+                        immediate_routing,
+                        condition_families,
+                    ),
+                    f,
+                    indent=2,
+                    ensure_ascii=False,
+                )
             print(f"\nWrote {len(kb_data)} instructions to {outpath}")
+            for runtime_out in build_runtime_artifacts():
+                print(f"Wrote {runtime_out}")
         else:
             print(f"\n(dry run, {len(kb_data)} instructions would be written)")
 

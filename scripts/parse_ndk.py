@@ -16,6 +16,7 @@ import re
 import json
 import sys
 import argparse
+from build_runtime_kb import build_runtime_artifacts
 
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -1572,6 +1573,8 @@ def main():
 
     fsize = os.path.getsize(args.outfile)
     print(f"\nWrote {args.outfile} ({fsize:,} bytes)")
+    for runtime_out in build_runtime_artifacts():
+        print(f"Wrote {runtime_out}")
 
 
 if __name__ == "__main__":

@@ -548,7 +548,300 @@
       "EOR": "EORI",
       "OR": "ORI",
       "SUB": "SUBI"
-    }
+    },
+    "condition_families": [
+      {
+        "prefix": "b",
+        "canonical": "bcc",
+        "codes": [
+          "t",
+          "f",
+          "hi",
+          "ls",
+          "cc",
+          "cs",
+          "ne",
+          "eq",
+          "vc",
+          "vs",
+          "pl",
+          "mi",
+          "ge",
+          "lt",
+          "gt",
+          "le"
+        ],
+        "match_numeric_suffix": false,
+        "exclude_from_family": [
+          "f",
+          "t"
+        ]
+      },
+      {
+        "prefix": "cpb",
+        "canonical": "cpbcc",
+        "codes": [
+          "t",
+          "f",
+          "hi",
+          "ls",
+          "cc",
+          "cs",
+          "ne",
+          "eq",
+          "vc",
+          "vs",
+          "pl",
+          "mi",
+          "ge",
+          "lt",
+          "gt",
+          "le"
+        ],
+        "match_numeric_suffix": false,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "cpdb",
+        "canonical": "cpdbcc",
+        "codes": [
+          "t",
+          "f",
+          "hi",
+          "ls",
+          "cc",
+          "cs",
+          "ne",
+          "eq",
+          "vc",
+          "vs",
+          "pl",
+          "mi",
+          "ge",
+          "lt",
+          "gt",
+          "le"
+        ],
+        "match_numeric_suffix": false,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "cps",
+        "canonical": "cpscc",
+        "codes": [
+          "t",
+          "f",
+          "hi",
+          "ls",
+          "cc",
+          "cs",
+          "ne",
+          "eq",
+          "vc",
+          "vs",
+          "pl",
+          "mi",
+          "ge",
+          "lt",
+          "gt",
+          "le"
+        ],
+        "match_numeric_suffix": false,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "cptrap",
+        "canonical": "cptrapcc",
+        "codes": [
+          "t",
+          "f",
+          "hi",
+          "ls",
+          "cc",
+          "cs",
+          "ne",
+          "eq",
+          "vc",
+          "vs",
+          "pl",
+          "mi",
+          "ge",
+          "lt",
+          "gt",
+          "le"
+        ],
+        "match_numeric_suffix": false,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "db",
+        "canonical": "dbcc",
+        "codes": [
+          "t",
+          "f",
+          "hi",
+          "ls",
+          "cc",
+          "cs",
+          "ne",
+          "eq",
+          "vc",
+          "vs",
+          "pl",
+          "mi",
+          "ge",
+          "lt",
+          "gt",
+          "le"
+        ],
+        "match_numeric_suffix": false,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "pb",
+        "canonical": "pbcc",
+        "codes": [
+          "bs",
+          "bc",
+          "ls",
+          "lc",
+          "ss",
+          "sc",
+          "as",
+          "ac",
+          "ws",
+          "wc",
+          "is",
+          "ic",
+          "gs",
+          "gc",
+          "cs",
+          "cc"
+        ],
+        "match_numeric_suffix": true,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "pdb",
+        "canonical": "pdbcc",
+        "codes": [
+          "bs",
+          "bc",
+          "ls",
+          "lc",
+          "ss",
+          "sc",
+          "as",
+          "ac",
+          "ws",
+          "wc",
+          "is",
+          "ic",
+          "gs",
+          "gc",
+          "cs",
+          "cc"
+        ],
+        "match_numeric_suffix": true,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "ps",
+        "canonical": "pscc",
+        "codes": [
+          "bs",
+          "bc",
+          "ls",
+          "lc",
+          "ss",
+          "sc",
+          "as",
+          "ac",
+          "ws",
+          "wc",
+          "is",
+          "ic",
+          "gs",
+          "gc",
+          "cs",
+          "cc"
+        ],
+        "match_numeric_suffix": true,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "ptrap",
+        "canonical": "ptrapcc",
+        "codes": [
+          "bs",
+          "bc",
+          "ls",
+          "lc",
+          "ss",
+          "sc",
+          "as",
+          "ac",
+          "ws",
+          "wc",
+          "is",
+          "ic",
+          "gs",
+          "gc",
+          "cs",
+          "cc"
+        ],
+        "match_numeric_suffix": true,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "s",
+        "canonical": "scc",
+        "codes": [
+          "t",
+          "f",
+          "hi",
+          "ls",
+          "cc",
+          "cs",
+          "ne",
+          "eq",
+          "vc",
+          "vs",
+          "pl",
+          "mi",
+          "ge",
+          "lt",
+          "gt",
+          "le"
+        ],
+        "match_numeric_suffix": false,
+        "exclude_from_family": []
+      },
+      {
+        "prefix": "trap",
+        "canonical": "trapcc",
+        "codes": [
+          "t",
+          "f",
+          "hi",
+          "ls",
+          "cc",
+          "cs",
+          "ne",
+          "eq",
+          "vc",
+          "vs",
+          "pl",
+          "mi",
+          "ge",
+          "lt",
+          "gt",
+          "le"
+        ],
+        "match_numeric_suffix": false,
+        "exclude_from_family": []
+      }
+    ]
   },
   "instructions": [
     {
@@ -1332,6 +1625,23 @@
           "source",
           "destination"
         ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
       }
     },
     {
@@ -1513,6 +1823,23 @@
         "terms": [
           "source",
           "destination"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -1704,6 +2031,23 @@
           "source",
           "destination",
           "X"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -2106,6 +2450,23 @@
         "terms": [
           "source",
           "destination"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -2609,6 +2970,23 @@
       ],
       "compute_formula": {
         "op": "shift"
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
       }
     },
     {
@@ -7094,7 +7472,24 @@
           2
         ]
       },
-      "operation_type": "compare_swap"
+      "operation_type": "compare_swap",
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 3
+          },
+          {
+            "size": "w",
+            "bits": 2
+          }
+        ]
+      }
     },
     {
       "mnemonic": "CHK",
@@ -7263,6 +7658,19 @@
         "comparison": "signed",
         "lower_bound": 0,
         "upper_bound": "source"
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 3
+          }
+        ]
       }
     },
     {
@@ -7520,7 +7928,24 @@
           2
         ]
       },
-      "operation_type": "bounds_check"
+      "operation_type": "bounds_check",
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
+      }
     },
     {
       "mnemonic": "CLR",
@@ -7693,6 +8118,23 @@
         "op": "assign",
         "terms": [
           "implicit"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -8254,6 +8696,23 @@
           "destination",
           "source"
         ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
       }
     },
     {
@@ -8420,6 +8879,23 @@
         "terms": [
           "destination",
           "source"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -8678,7 +9154,24 @@
           2
         ]
       },
-      "operation_type": "bounds_check"
+      "operation_type": "bounds_check",
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
+      }
     },
     {
       "mnemonic": "cpBcc",
@@ -10000,7 +10493,20 @@
           "mnemonic": "DIVSL",
           "processor_020": true
         }
-      ]
+      ],
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "l",
+            "bits": 1
+          },
+          {
+            "size": "w",
+            "bits": 0
+          }
+        ]
+      }
     },
     {
       "mnemonic": "DIVU, DIVUL",
@@ -10403,7 +10909,20 @@
           "mnemonic": "DIVUL",
           "processor_020": true
         }
-      ]
+      ],
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "l",
+            "bits": 1
+          },
+          {
+            "size": "w",
+            "bits": 0
+          }
+        ]
+      }
     },
     {
       "mnemonic": "EOR",
@@ -10761,6 +11280,23 @@
         "terms": [
           "source",
           "destination"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -12662,6 +13198,23 @@
       ],
       "compute_formula": {
         "op": "shift"
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
       }
     },
     {
@@ -12830,6 +13383,23 @@
         "terms": [
           "source"
         ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 3
+          }
+        ]
       }
     },
     {
@@ -12995,7 +13565,20 @@
         ]
       },
       "source_sign_extend": true,
-      "cc_result_bits": 32
+      "cc_result_bits": 32,
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 3
+          }
+        ]
+      }
     },
     {
       "mnemonic": "MOVE from CCR",
@@ -14208,6 +14791,19 @@
           "source"
         ]
       },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "l",
+            "bits": 1
+          },
+          {
+            "size": "w",
+            "bits": 0
+          }
+        ]
+      },
       "direction_field_values": {
         "field": "dr",
         "form_field_value": {
@@ -14947,6 +15543,19 @@
           "source",
           "destination"
         ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "l",
+            "bits": 1
+          },
+          {
+            "size": "w",
+            "bits": 0
+          }
+        ]
       }
     },
     {
@@ -15319,6 +15928,19 @@
           "source",
           "destination"
         ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "l",
+            "bits": 1
+          },
+          {
+            "size": "w",
+            "bits": 0
+          }
+        ]
       }
     },
     {
@@ -15678,6 +16300,23 @@
           "implicit",
           "destination"
         ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
       }
     },
     {
@@ -15854,6 +16493,23 @@
           "implicit",
           "destination",
           "X"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -16195,6 +16851,23 @@
         "op": "bitwise_complement",
         "terms": [
           "destination"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -16597,6 +17270,23 @@
         "terms": [
           "source",
           "destination"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -17458,6 +18148,23 @@
       ],
       "compute_formula": {
         "op": "rotate"
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
       }
     },
     {
@@ -17776,6 +18483,23 @@
       ],
       "compute_formula": {
         "op": "rotate_extend"
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
       }
     },
     {
@@ -19439,6 +20163,23 @@
           "destination",
           "source"
         ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
       }
     },
     {
@@ -19625,6 +20366,23 @@
         "terms": [
           "destination",
           "source"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -19816,6 +20574,23 @@
           "destination",
           "source",
           "X"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -20909,6 +21684,23 @@
         "op": "test",
         "terms": [
           "destination"
+        ]
+      },
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
         ]
       }
     },
@@ -23500,7 +24292,24 @@
           2
         ]
       },
-      "operation_type": "sr_op"
+      "operation_type": "sr_op",
+      "size_encoding": {
+        "field": "SIZE",
+        "values": [
+          {
+            "size": "b",
+            "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 2
+          },
+          {
+            "size": "w",
+            "bits": 1
+          }
+        ]
+      }
     },
     {
       "mnemonic": "ORI to SR",

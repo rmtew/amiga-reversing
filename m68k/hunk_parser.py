@@ -3,24 +3,22 @@
 Parses both executable (HUNK_HEADER) and object (HUNK_UNIT) files.
 All data is big-endian (Motorola byte order).
 
-Type IDs and format metadata loaded from amiga_hunk_format.json (KB),
-generated from NDK 3.1 DOSHUNKS.H by parse_hunk_format.py.
+Type IDs and format metadata loaded from the generated runtime hunk KB,
+derived from NDK 3.1 DOSHUNKS.H by parse_hunk_format.py.
 """
 
-import json
 import struct
 from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
+from .runtime_kb import load_hunk_runtime_kb
 
 
 # ── KB-driven type definitions ────────────────────────────────────────────
 
 def _load_hunk_kb():
-    """Load hunk format KB. Returns the parsed JSON dict."""
-    path = Path(__file__).resolve().parent.parent / "knowledge" / "amiga_hunk_format.json"
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    """Load hunk format KB."""
+    return load_hunk_runtime_kb()
 
 def _build_enum(name, kb_section, base_class=IntEnum):
     """Build an IntEnum from a KB section {name: {id: N, ...}}."""
