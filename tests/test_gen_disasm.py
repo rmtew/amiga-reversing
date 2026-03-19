@@ -357,6 +357,20 @@ def test_scan_uses_hint_blocks_for_gaps():
         f"got {addrs_with_hint}")
 
 
+def test_scan_candidates_finds_sequential_subroutines_in_one_gap():
+    from m68k.subroutine_scan import scan_candidates
+
+    code = b""
+    code += struct.pack(">H", 0x7001)  # $00 moveq #1,d0
+    code += struct.pack(">H", 0x4E75)  # $02 rts
+    code += struct.pack(">H", 0x7002)  # $04 moveq #2,d0
+    code += struct.pack(">H", 0x4E75)  # $06 rts
+
+    candidates = scan_candidates({}, code)
+
+    assert [c["addr"] for c in candidates] == [0x00, 0x04]
+
+
 # ── PC-relative target discovery ─────────────────────────────────────
 
 def test_pc_relative_discovers_data_target():

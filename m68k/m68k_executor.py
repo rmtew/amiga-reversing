@@ -1523,6 +1523,10 @@ def _join_states(states: list, init_mem: 'AbstractMemory | None' = None
     return result_cpu, result_mem
 
 
+def _incoming_state_signature(pred_dict: dict) -> frozenset[tuple[object, int, int]]:
+    return frozenset((src, id(cpu), id(mem)) for src, (cpu, mem) in pred_dict.items())
+
+
 def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
     """Parse a register name into (mode, reg_num).
 
@@ -2578,6 +2582,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
     incoming: dict[int, dict] = {}
     # Map block_start -> (exit_cpu_state, exit_memory) after execution
     exit_states: dict[int, tuple] = {}
+    last_incoming_sig: dict[int, frozenset[tuple[object, int, int]]] = {}
 
     # Seed all entry points with initial state.  The primary entry
     # (base_addr) always gets seeded.  Additional entry points (from
@@ -2611,6 +2616,9 @@ def propagate_states(blocks: dict[int, BasicBlock],
         pred_dict = incoming.get(addr)
         if not pred_dict:
             continue
+        incoming_sig = _incoming_state_signature(pred_dict)
+        if addr in visited and last_incoming_sig.get(addr) == incoming_sig:
+            continue
         pred_states = list(pred_dict.values())
 
         # Join incoming states.  Pass init_mem so the join uses init
@@ -2638,6 +2646,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
             prev_cpu, _ = exit_states[addr]
             if (cpu.d == prev_cpu.d and cpu.a == prev_cpu.a
                     and cpu.sp == prev_cpu.sp):
+                last_incoming_sig[addr] = incoming_sig
                 continue
 
         visited.add(addr)
@@ -2652,6 +2661,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
         exit_cpu = cpu.copy()
         exit_mem = mem.copy()
         exit_states[addr] = (exit_cpu, exit_mem)
+        last_incoming_sig[addr] = incoming_sig
 
         # Propagate to successors.
         # For call fallthroughs, adjust SP to account for the callee's
@@ -2825,6 +2835,7 @@ def _compute_summary(entry: int, owned: set[int],
 
     incoming = {entry: {"_init": (entry_cpu.copy(), AbstractMemory())}}
     exit_states = {}
+    last_incoming_sig = {}
     work = deque([entry])
     visited = set()
 
@@ -2837,6 +2848,9 @@ def _compute_summary(entry: int, owned: set[int],
         pred_dict = incoming.get(addr)
         if not pred_dict:
             continue
+        incoming_sig = _incoming_state_signature(pred_dict)
+        if addr in visited and last_incoming_sig.get(addr) == incoming_sig:
+            continue
 
         cpu, mem = _join_states(list(pred_dict.values()))
         cpu.pc = addr
@@ -2845,6 +2859,7 @@ def _compute_summary(entry: int, owned: set[int],
             prev_cpu, _ = exit_states[addr]
             if (cpu.d == prev_cpu.d and cpu.a == prev_cpu.a
                     and cpu.sp == prev_cpu.sp):
+                last_incoming_sig[addr] = incoming_sig
                 continue
         visited.add(addr)
 
@@ -2857,6 +2872,7 @@ def _compute_summary(entry: int, owned: set[int],
         exit_cpu = cpu.copy()
         exit_mem = mem.copy()
         exit_states[addr] = (exit_cpu, exit_mem)
+        last_incoming_sig[addr] = incoming_sig
         if global_exit_states is not None:
             global_exit_states[addr] = exit_states[addr]
 

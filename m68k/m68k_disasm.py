@@ -250,6 +250,33 @@ def _load_kb_payload() -> tuple[list[dict], dict]:
     return _KB_PAYLOAD_CACHE
 
 
+def _iter_mnemonic_tokens(text: str):
+    start = None
+    for i, ch in enumerate(text):
+        if ch.isspace() or ch == ",":
+            if start is not None:
+                yield text[start:i]
+                start = None
+            continue
+        if start is None:
+            start = i
+    if start is not None:
+        yield text[start:]
+
+
+@lru_cache(maxsize=1)
+def _load_kb_mnemonic_index() -> dict[str, list[dict]]:
+    kb, _ = _load_kb_payload()
+    index: dict[str, list[dict]] = {}
+    for inst in kb:
+        lowered = inst["mnemonic"].lower()
+        keys = {lowered, lowered.partition(" ")[0]}
+        keys.update(_iter_mnemonic_tokens(lowered))
+        for key in keys:
+            index.setdefault(key, []).append(inst)
+    return index
+
+
 def _kb_encoding_masks(enc_idx: int) -> dict[str, tuple[int, int]]:
     """Return {mnemonic: (mask, val)} computed from KB encoding[enc_idx] fixed fields."""
     kb, _ = _load_kb_payload()
@@ -797,8 +824,7 @@ def _kb_mnemonic_matches(inst_name: str, canonical: str) -> bool:
         return True
     if lowered.startswith(canonical + " "):
         return True
-    parts = re.split(r"[\s,]+", lowered)
-    return canonical in parts
+    return canonical in _iter_mnemonic_tokens(lowered)
 
 
 def _encoding_match_literal_count(opcode: int, encoding: dict) -> int | None:
@@ -818,11 +844,9 @@ def _encoding_match_literal_count(opcode: int, encoding: dict) -> int | None:
 
 def _resolve_kb_mnemonic(opcode: int, opcode_text: str) -> str:
     canonical = _canonical_mnemonic(opcode_text)
-    kb, _ = _load_kb_payload()
+    kb_index = _load_kb_mnemonic_index()
     matches: list[tuple[int, str]] = []
-    for inst in kb:
-        if not _kb_mnemonic_matches(inst["mnemonic"], canonical):
-            continue
+    for inst in kb_index.get(canonical, ()):
         best_specificity = None
         for encoding in inst.get("encodings", []):
             literal_count = _encoding_match_literal_count(opcode, encoding)

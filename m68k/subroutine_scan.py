@@ -20,6 +20,23 @@ from .m68k_executor import BasicBlock
 from .kb_util import KB
 
 
+def _decode_at(code: bytes, pos: int, cache: dict[int, object]):
+    if pos in cache:
+        cached = cache[pos]
+        if isinstance(cached, Exception):
+            raise cached
+        return cached
+    try:
+        d = _Decoder(code, 0)
+        d.pos = pos
+        inst = _decode_one(d, None)
+    except (DecodeError, struct.error) as exc:
+        cache[pos] = exc
+        raise
+    cache[pos] = inst
+    return inst
+
+
 def _uncovered_ranges(blocks: dict[int, BasicBlock],
                       code_size: int) -> list[tuple[int, int]]:
     """Compute word-aligned gaps not covered by any block."""
@@ -51,7 +68,7 @@ def _uncovered_ranges(blocks: dict[int, BasicBlock],
 
 
 def _try_decode_subroutine(code: bytes, start: int, end: int,
-                           kb: KB) -> dict | None:
+                           kb: KB, decode_cache: dict[int, object]) -> dict | None:
     """Try to decode a subroutine starting at `start` within [start, end).
 
     Returns candidate dict or None. Stops at return/unconditional-jump
@@ -63,9 +80,7 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
 
     while pos < end:
         try:
-            d = _Decoder(code, 0)
-            d.pos = pos
-            inst = _decode_one(d, None)
+            inst = _decode_at(code, pos, decode_cache)
         except (DecodeError, struct.error):
             return None
         if inst is None:
@@ -127,9 +142,10 @@ def scan_candidates(blocks: dict[int, BasicBlock],
     candidates = []
 
     for gap_start, gap_end in gaps:
+        decode_cache: dict[int, object] = {}
         pos = gap_start
         while pos + kb.opword_bytes <= gap_end:
-            cand = _try_decode_subroutine(code, pos, gap_end, kb)
+            cand = _try_decode_subroutine(code, pos, gap_end, kb, decode_cache)
             if cand:
                 candidates.append(cand)
                 # Candidate end is always word-aligned (return instruction end)

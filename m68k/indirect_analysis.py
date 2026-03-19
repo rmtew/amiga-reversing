@@ -56,20 +56,99 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 call_targets.add(xref.dst)
 
     sub_blocks_cache = {}
+    block_owner = {}
+    sub_info_cache = {}
+    caller_ctx_cache = {}
+    per_exit_cache = {}
+
+    def _sub_blocks(entry):
+        if entry not in sub_blocks_cache:
+            sub_blocks_cache[entry] = subroutine_summary.find_sub_blocks(
+                entry, blocks, call_targets)
+            for addr in sub_blocks_cache[entry]:
+                block_owner.setdefault(addr, entry)
+        return sub_blocks_cache[entry]
+
+    def _sub_info(entry):
+        if entry in sub_info_cache:
+            return sub_info_cache[entry]
+        sub_blocks = _sub_blocks(entry)
+        sub_dict = {a: blocks[a] for a in sub_blocks if a in blocks}
+        nested_callees = set()
+        for addr in sub_blocks:
+            blk = blocks.get(addr)
+            if not blk:
+                continue
+            for xref in blk.xrefs:
+                if (xref.type == "call"
+                        and xref.dst in call_targets
+                        and xref.dst != entry):
+                    nested_callees.add(xref.dst)
+        expanded = dict(sub_dict)
+        for callee_entry in nested_callees:
+            for na in _sub_blocks(callee_entry):
+                if na in blocks and na not in expanded:
+                    expanded[na] = blocks[na]
+        pc_platform = dict(platform) if platform else {}
+        pc_platform["scratch_regs"] = []
+        info = {
+            "sub_blocks": sub_blocks,
+            "sub_dict": sub_dict,
+            "nested_callees": nested_callees,
+            "expanded": expanded,
+            "pc_platform": pc_platform,
+            "callers": blocks[entry].predecessors if entry in blocks else [],
+        }
+        sub_info_cache[entry] = info
+        return info
+
+    def _caller_ctx(entry, caller_addr):
+        key = (entry, caller_addr)
+        if key in caller_ctx_cache:
+            return caller_ctx_cache[key]
+        caller_cpu, caller_mem = exit_states[caller_addr]
+        info = _sub_info(entry)
+        init_cpu = subroutine_summary.restore_base_reg(caller_cpu.copy(), platform)
+        pass1_exits = propagate_states(
+            info["expanded"], code, entry,
+            initial_state=init_cpu,
+            initial_mem=caller_mem.copy(),
+            platform=info["pc_platform"])
+        inline_sums = {}
+        for callee_entry in info["nested_callees"]:
+            isum = subroutine_summary._inline_summary(
+                callee_entry, blocks, call_targets, pass1_exits, kb)
+            if isum is not None:
+                inline_sums[callee_entry] = isum
+        ctx = {
+            "init_cpu": init_cpu,
+            "caller_mem": caller_mem,
+            "pass1_exits": pass1_exits,
+            "inline_sums": inline_sums,
+        }
+        caller_ctx_cache[key] = ctx
+        return ctx
+
+    def _per_exit_summaries(entry, caller_addr, callee_entry, pass1_exits):
+        key = (entry, caller_addr, callee_entry)
+        if key not in per_exit_cache:
+            per_exit_cache[key] = subroutine_summary._inline_summaries_per_exit(
+                callee_entry, blocks, call_targets, pass1_exits, kb)
+        return per_exit_cache[key]
+
     resolved = []
     for unres_addr, unres_type in unresolved:
-        sub_entry = None
-        for entry in call_targets:
-            if entry not in sub_blocks_cache:
-                sub_blocks_cache[entry] = subroutine_summary.find_sub_blocks(
-                    entry, blocks, call_targets)
-            if unres_addr in sub_blocks_cache[entry]:
-                sub_entry = entry
-                break
+        sub_entry = block_owner.get(unres_addr)
+        if sub_entry is None:
+            for entry in call_targets:
+                if unres_addr in _sub_blocks(entry):
+                    sub_entry = entry
+                    break
         if sub_entry is None:
             continue
 
-        callers = blocks[sub_entry].predecessors if sub_entry in blocks else []
+        info = _sub_info(sub_entry)
+        callers = info["callers"]
         if not callers:
             continue
 
@@ -79,7 +158,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             operand, _ = indirect_core.decode_jump_ea(last, kb)
         needed_regs = indirect_core._needed_registers(operand, unres_type)
 
-        sub_dict = {a: blocks[a] for a in sub_blocks_cache[sub_entry] if a in blocks}
+        sub_dict = info["sub_dict"]
 
         merged_cpu, merged_mem = exit_states.get(unres_addr, (None, None))
         unknown_regs = []
@@ -115,57 +194,28 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 if target is not None:
                     resolved.append({"target": target})
         else:
-            nested_callees = set()
-            for addr in sub_blocks_cache[sub_entry]:
-                blk = blocks.get(addr)
-                if not blk:
-                    continue
-                for xref in blk.xrefs:
-                    if (xref.type == "call"
-                            and xref.dst in call_targets
-                            and xref.dst != sub_entry):
-                        nested_callees.add(xref.dst)
-
-            expanded = dict(sub_dict)
-            for callee_entry in nested_callees:
-                for na in subroutine_summary.find_sub_blocks(callee_entry, blocks, call_targets):
-                    if na in blocks and na not in expanded:
-                        expanded[na] = blocks[na]
-
-            pc_platform = dict(platform) if platform else {}
-            pc_platform["scratch_regs"] = []
-
             for caller_addr in callers:
                 if caller_addr not in exit_states:
                     continue
-                caller_cpu, caller_mem = exit_states[caller_addr]
-                init_cpu = subroutine_summary.restore_base_reg(caller_cpu.copy(), platform)
-
-                pass1_exits = propagate_states(
-                    expanded, code, sub_entry,
-                    initial_state=init_cpu,
-                    initial_mem=caller_mem.copy(),
-                    platform=pc_platform)
-
-                inline_sums = {}
+                ctx = _caller_ctx(sub_entry, caller_addr)
+                init_cpu = ctx["init_cpu"]
+                caller_mem = ctx["caller_mem"]
+                pass1_exits = ctx["pass1_exits"]
+                inline_sums = dict(ctx["inline_sums"])
                 fork_callee = None
                 fork_exits = []
-                for callee_entry in nested_callees:
-                    isum = subroutine_summary._inline_summary(
-                        callee_entry, blocks, call_targets, pass1_exits, kb)
-                    if isum is not None:
-                        inline_sums[callee_entry] = isum
-                        if fork_callee is None and needed_regs:
-                            for mode, num in needed_regs:
-                                pkey = "produced_a" if mode == "an" else "produced_d"
-                                if num not in isum.get(pkey, {}):
-                                    per_exit = subroutine_summary._inline_summaries_per_exit(
-                                        callee_entry, blocks, call_targets,
-                                        pass1_exits, kb)
-                                    if len(per_exit) > 1:
-                                        fork_callee = callee_entry
-                                        fork_exits = per_exit
-                                    break
+                for callee_entry, isum in inline_sums.items():
+                    if fork_callee is not None or not needed_regs:
+                        continue
+                    for mode, num in needed_regs:
+                        pkey = "produced_a" if mode == "an" else "produced_d"
+                        if num not in isum.get(pkey, {}):
+                            per_exit = _per_exit_summaries(
+                                sub_entry, caller_addr, callee_entry, pass1_exits)
+                            if len(per_exit) > 1:
+                                fork_callee = callee_entry
+                                fork_exits = per_exit
+                            break
 
                 def _try_resolve_from(exits):
                     if unres_addr not in exits:
@@ -184,14 +234,14 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                             sub_dict, code, sub_entry,
                             initial_state=init_cpu,
                             initial_mem=caller_mem.copy(),
-                            platform=pc_platform,
+                            platform=info["pc_platform"],
                             summaries=trial_sums))
                 elif inline_sums:
                     _try_resolve_from(propagate_states(
                         sub_dict, code, sub_entry,
                         initial_state=init_cpu,
                         initial_mem=caller_mem.copy(),
-                        platform=pc_platform,
+                        platform=info["pc_platform"],
                         summaries=inline_sums))
                 else:
                     _try_resolve_from(pass1_exits)

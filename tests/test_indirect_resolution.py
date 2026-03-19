@@ -391,6 +391,49 @@ def test_dispatch_per_caller():
     print("  dispatch_per_caller: OK")
 
 
+def test_dispatch_per_caller_multiple_unresolved_in_shared_sub():
+    """Two callers, shared dispatch sub, two indirect calls inside the sub."""
+    sentinel_a6 = 0x80000000
+    lib_base = 0x40
+
+    code = b""
+    code += struct.pack(">H", 0x70FA)                    # [0x00] moveq #-6,d0
+    code += struct.pack(">HH", 0x6100, 0x000C)          # [0x02] bsr.w $10
+    code += struct.pack(">H", 0x70F4)                    # [0x06] moveq #-12,d0
+    code += struct.pack(">HH", 0x6100, 0x0006)          # [0x08] bsr.w $10
+    code += struct.pack(">H", 0x4E75)                    # [0x0c] rts
+    code += struct.pack(">H", 0x4E71)                    # [0x0e] nop
+    code += struct.pack(">H", 0x2F0E)                    # [0x10] move.l a6,-(sp)
+    code += struct.pack(">HH", 0x2C6E, 0x0064)          # [0x12] movea.l 100(a6),a6
+    code += struct.pack(">HH", 0x4EB6, 0x0000)          # [0x16] jsr 0(a6,d0.w)
+    code += struct.pack(">HH", 0x4EB6, 0x0002)          # [0x1a] jsr 2(a6,d0.w)
+    code += struct.pack(">H", 0x2C5F)                    # [0x1e] movea.l (sp)+,a6
+    code += struct.pack(">H", 0x4E75)                    # [0x20] rts
+    code += b"\x4e\x71" * 9                              # [0x22..$33] nop
+    code += struct.pack(">H", 0x4E75)                    # [0x34] rts
+    code += b"\x4e\x71" * 2                              # [$36..$39] nop
+    code += struct.pack(">H", 0x4E75)                    # [0x3a] rts
+    code += b"\x4e\x71"                                  # [$3c..$3d] nop
+    code += struct.pack(">H", 0x4E75)                    # [0x3e] rts
+    code += b"\x4e\x71"                                  # [$40..$41] nop
+
+    init_mem = AbstractMemory()
+    init_mem.write(sentinel_a6 + 100, _concrete(lib_base), "l")
+
+    platform = {
+        "initial_base_reg": (6, sentinel_a6),
+        "_initial_mem": init_mem,
+        "scratch_regs": [],
+    }
+
+    _, _, resolved = _analyze_and_resolve(code, platform=platform)
+    targets = _resolved_targets(resolved)
+    assert 0x3A in targets, f"Expected $003a, got {targets}"
+    assert 0x3C in targets, f"Expected $003c, got {targets}"
+    assert 0x34 in targets, f"Expected $0034, got {targets}"
+    assert 0x36 in targets, f"Expected $0036, got {targets}"
+
+
 # ---- 5. Structure field access ----------------------------------------------
 
 def test_struct_field_code_pointer():

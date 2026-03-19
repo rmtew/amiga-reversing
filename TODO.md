@@ -98,6 +98,7 @@ to drive toward 100%:
 ### Round-Trip Validation
 - [x] GenAm -> disasm -> vasm -> binary-diff = 0 bytes, 0 relocs different
 - [ ] GenAm self-assembly: disassemble -> reassemble with GenAm via vamos -> binary diff
+- [ ] Re-run round-trip validation for fresh GenAm / Bloodwych output after the shared-analysis and renderer refactors, then classify any remaining binary diffs as formatting churn vs real semantic regressions
 
 ## Knowledge Base — Amiga Platform
 - [ ] Refine OS version tagging (570 "1.3" functions -> 1.0/1.1/1.2/1.3)
@@ -113,4 +114,12 @@ to drive toward 100%:
 - [ ] Add local assembler support for full-extension EA syntax such as `(od,[bd,An,Xn])` and `([bd,An,Xn],od)` / PC-relative variants so these 68020 forms can be round-tripped from source text instead of only tested via oracle bytes
 
 ### Analysis Architecture
-- [ ] Extract the constant/base reconstruction logic that has accumulated in `m68k/jump_tables.py` into shared KB-driven analysis infrastructure so jump-table detection consumes general facts instead of owning its own localized abstract interpretation
+- [x] Extract jump-table-local constant/base reconstruction into shared KB-driven analysis modules (`constant_evaluator.py`, `indirect_core.py`, `subroutine_summary.py`, `address_reconstruction.py`, `table_recovery.py`, `indirect_analysis.py`)
+- [ ] Decide whether the remaining orchestration in `m68k/indirect_analysis.py` should stay as one module or split further from lower-level reusable analysis
+- [ ] Add a small number of whole-target integration checks around GenAm / Bloodwych output so renderer and analysis regressions are caught above the unit-test level
+
+## Tasks Of Interest
+
+- [ ] Investigate any remaining GenAm output drift after the inline-dispatch stale-block fix; the core semantic issue is fixed, but remaining diff should be triaged into formatting churn vs improved output
+- [ ] Re-review Bloodwych absolute-short symbolization changes with round-trip/reassembly checks to confirm they are semantic improvements, not just prettier text
+- [ ] Add an integration regression for the contiguous `$VER: GenAm 3.18 (2.8.94)` string rendering so that improved string emission stays stable
