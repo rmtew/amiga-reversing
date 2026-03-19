@@ -2,6 +2,9 @@
 
 import io
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from disasm import cli as gen_disasm_mod
 from disasm.comments import build_instruction_comment_parts, render_comment_parts
@@ -25,7 +28,8 @@ from disasm.types import (DisassemblySession, HunkDisassemblySession,
                           ListingRow, SemanticOperand)
 from m68k.m68k_executor import Instruction
 from m68k.kb_util import KB
-from disasm.validation import get_processor_min, has_valid_branch_target
+from disasm.validation import get_instruction_processor_min, has_valid_branch_target
+from disasm.validation import get_instruction_processor_min
 
 
 def test_load_entities_reads_jsonl(tmp_path):
@@ -71,16 +75,19 @@ def test_build_lvo_substitutions_collects_direct_jsr_substitution():
 
 
 def test_build_arg_substitutions_collects_immediate_constant():
+    setter = Instruction(
+        offset=0x10,
+        size=4,
+        opcode=0x7001,
+        text="corrupted",
+        raw=b"\x70\x01",
+        kb_mnemonic="moveq",
+        operand_size="l",
+        operand_texts=("#1", "d0"),
+    )
     block = type("Block", (), {
         "instructions": [
-            Instruction(
-                offset=0x10,
-                size=4,
-                opcode=0x7001,
-                text="moveq   #1,d0",
-                raw=b"\x70\x01",
-                kb_mnemonic="moveq",
-            ),
+            setter,
             Instruction(
                 offset=0x20,
                 size=2,
@@ -88,6 +95,8 @@ def test_build_arg_substitutions_collects_immediate_constant():
                 text="jsr     _LVOOpenLibrary(a6)",
                 raw=b"\x4E\x75",
                 kb_mnemonic="jsr",
+                operand_size="w",
+                operand_texts=("_LVOOpenLibrary(a6)",),
             ),
         ]
     })()
@@ -105,6 +114,7 @@ def test_build_arg_substitutions_collects_immediate_constant():
 
     arg_equs, arg_substitutions = build_arg_substitutions(
         blocks={0x20: block},
+        hunk_entities=[],
         lib_calls=[{"library": "dos.library", "function": "OpenLibrary", "block": 0x20, "addr": 0x20}],
         os_kb=os_kb,
         kb=KB(),
@@ -112,6 +122,136 @@ def test_build_arg_substitutions_collects_immediate_constant():
 
     assert arg_equs == {"OL_TAG": 1}
     assert arg_substitutions == {0x10: ("#1", "#OL_TAG")}
+
+
+def test_build_arg_substitutions_collects_dispatch_call_constant():
+    setter = Instruction(
+        offset=0x12,
+        size=2,
+        opcode=0x76FF,
+        text="corrupted",
+        raw=b"\x76\xff",
+        kb_mnemonic="moveq",
+        operand_size="l",
+        operand_texts=("#-1", "d3"),
+    )
+    branch = Instruction(
+        offset=0x16,
+        size=4,
+        opcode=0x6100,
+        text="bsr.w   $40",
+        raw=b"\x61\x00\x00\x28",
+        kb_mnemonic="bsr",
+        operand_size="w",
+        operand_texts=("$40",),
+    )
+    block = type("Block", (), {
+        "instructions": [
+            Instruction(
+                offset=0x10,
+                size=2,
+                opcode=0x2F03,
+                text="move.l  d3,-(sp)",
+                raw=b"\x2f\x03",
+                kb_mnemonic="move",
+                operand_size="l",
+                operand_texts=("d3", "-(sp)"),
+            ),
+            setter,
+            Instruction(
+                offset=0x14,
+                size=2,
+                opcode=0x70BE,
+                text="moveq   #-66,d0",
+                raw=b"\x70\xbe",
+                kb_mnemonic="moveq",
+                operand_size="l",
+                operand_texts=("#-66", "d0"),
+            ),
+            branch,
+        ]
+    })()
+    os_kb = {
+        "_meta": {"constant_domains": {"Seek": ["OFFSET_BEGINNING", "OFFSET_CURRENT"]}},
+        "constants": {
+            "OFFSET_BEGINNING": {"value": -1},
+            "OFFSET_CURRENT": {"value": 0},
+        },
+        "libraries": {
+            "dos.library": {
+                "functions": {
+                    "Seek": {
+                        "inputs": [
+                            {"reg": "d1"},
+                            {"reg": "d2"},
+                            {"reg": "d3"},
+                        ]
+                    }
+                }
+            }
+        },
+    }
+
+    arg_equs, arg_substitutions = build_arg_substitutions(
+        blocks={0x10: block},
+        lib_calls=[{
+            "library": "dos.library",
+            "function": "Seek",
+            "block": 0x10,
+            "addr": 0x10,
+            "dispatch": 0x42,
+        }],
+        hunk_entities=[{"addr": "0040", "end": "0050", "type": "code"}],
+        os_kb=os_kb,
+        kb=KB(),
+    )
+
+    assert arg_equs == {"OFFSET_BEGINNING": -1}
+    assert arg_substitutions == {0x12: ("#-1", "#OFFSET_BEGINNING")}
+
+
+def test_build_lvo_substitutions_collects_dispatch_call_lvo_constant():
+    branch = Instruction(
+        offset=0x16,
+        size=4,
+        opcode=0x6100,
+        text="bsr.w   $40",
+        raw=b"\x61\x00\x00\x28",
+        kb_mnemonic="bsr",
+        operand_size="w",
+        operand_texts=("$40",),
+    )
+    block = type("Block", (), {
+        "instructions": [
+            Instruction(
+                offset=0x12,
+                size=2,
+                opcode=0x70BE,
+                text="moveq   #-66,d0",
+                raw=b"\x70\xbe",
+                kb_mnemonic="moveq",
+                operand_size="l",
+                operand_texts=("#-66", "d0"),
+            ),
+            branch,
+        ]
+    })()
+
+    lvo_equs, lvo_substitutions = build_lvo_substitutions(
+        blocks={0x10: block},
+        lib_calls=[{
+            "library": "dos.library",
+            "function": "Seek",
+            "lvo": -66,
+            "addr": 0x10,
+            "dispatch": 0x42,
+        }],
+        hunk_entities=[{"addr": "0040", "end": "0050", "type": "code"}],
+        kb=KB(),
+    )
+
+    assert lvo_equs == {"dos.library": {-66: "_LVOSeek"}}
+    assert lvo_substitutions == {0x12: ("#-66", "#_LVOSeek")}
 
 
 def test_build_app_offset_symbols_prefers_initial_mem_and_typed_slots():
@@ -326,6 +466,68 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path, monkeypatch):
     assert seen["saved_path"] == binary_path.with_suffix(".analysis")
 
 
+def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path, monkeypatch):
+    binary_path = tmp_path / "demo.bin"
+    cache_path = binary_path.with_suffix(".analysis")
+    cache_path.write_text("stale", encoding="utf-8")
+    seen = {}
+
+    class FakeAnalysis:
+        def save(self, path):
+            seen["saved_path"] = path
+
+    sentinel = FakeAnalysis()
+
+    def fake_load(path, os_kb):
+        seen["load"] = (path, os_kb)
+        from m68k.analysis import AnalysisCacheError
+        raise AnalysisCacheError("Cache version mismatch")
+
+    def fake_analyze_hunk(code, relocs, hunk_index, base_addr, code_start):
+        seen["analyze"] = (code, relocs, hunk_index, base_addr, code_start)
+        return sentinel
+
+    monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
+    monkeypatch.setattr("disasm.analysis_loader.analyze_hunk", fake_analyze_hunk)
+    monkeypatch.setattr("disasm.analysis_loader.load_os_kb", lambda: {"ok": True})
+
+    result = load_hunk_analysis(
+        binary_path=binary_path,
+        code=b"\x01\x02",
+        relocs=[("r", 1)],
+        hunk_index=3,
+        base_addr=0x400,
+        code_start=2,
+    )
+
+    assert result is sentinel
+    assert seen["load"] == (cache_path, {"ok": True})
+    assert seen["analyze"] == (b"\x01\x02", [("r", 1)], 3, 0x400, 2)
+    assert seen["saved_path"] == cache_path
+
+
+def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path, monkeypatch):
+    binary_path = tmp_path / "demo.bin"
+    cache_path = binary_path.with_suffix(".analysis")
+    cache_path.write_text("broken", encoding="utf-8")
+
+    def fake_load(path, os_kb):
+        raise ValueError("unexpected parse bug")
+
+    monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
+    monkeypatch.setattr("disasm.analysis_loader.load_os_kb", lambda: {"ok": True})
+
+    with pytest.raises(ValueError, match="unexpected parse bug"):
+        load_hunk_analysis(
+            binary_path=binary_path,
+            code=b"\x01\x02",
+            relocs=[],
+            hunk_index=0,
+            base_addr=0,
+            code_start=0,
+        )
+
+
 def test_render_rows_concatenates_listing_text():
     rows = [
         ListingRow(row_id="a", kind="comment", text="; one\n"),
@@ -344,9 +546,11 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii():
         offset=0x10,
         size=6,
         opcode=0x203C,
-        text="move.l  #$4C494E45,568(a6)",
-        raw=b"",
+        text="corrupted",
+        raw=b"\x20\x3C\x4C\x49\x4E\x45",
         kb_mnemonic="move",
+        operand_size="l",
+        operand_texts=("#$4C494E45", "568(a6)"),
     )
     session = HunkDisassemblySession(
         hunk_index=0,
@@ -385,13 +589,207 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii():
     )
 
     parts = build_instruction_comment_parts(
-        inst, "move.l #$4C494E45,568(a6)", session)
+        inst,
+        session,
+        operand_parts=(
+            SimpleNamespace(kind="immediate", value=0x4C494E45,
+                            base_register=None, displacement=None,
+                            text="#$4C494E45"),
+            SimpleNamespace(kind="base_displacement", value=568,
+                            base_register="a6", displacement=568,
+                            text="568(a6)"),
+        ))
 
     assert parts == ("app+$238",)
 
 
-def test_get_processor_min_reports_base_68000_instruction():
-    assert get_processor_min("moveq   #0,d0", KB()) == "68000"
+def test_build_instruction_comment_parts_uses_instruction_processor_min_not_text():
+    inst = Instruction(
+        offset=0x10,
+        size=2,
+        opcode=0x49C0,
+        text="corrupted",
+        raw=b"\x49\xC0",
+        kb_mnemonic="extb",
+        operand_size="l",
+    )
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    parts = build_instruction_comment_parts(
+        inst,
+        session,
+        operand_parts=(
+            SimpleNamespace(kind="register", value=None,
+                            base_register=None, displacement=None,
+                            text="d0"),
+        ))
+    assert parts == ("68020+",)
+
+
+def test_render_instruction_text_requires_opcode_text():
+    inst = Instruction(
+        offset=0x10,
+        size=2,
+        opcode=0x49C0,
+        text="corrupted",
+        raw=b"\x49\xC0",
+        kb_mnemonic="extb",
+        operand_size="l",
+        operand_texts=("d0",),
+    )
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    from disasm.instruction_rows import render_instruction_text
+
+    try:
+        render_instruction_text(inst, session, set())
+    except ValueError as exc:
+        assert "missing opcode_text" in str(exc)
+    else:
+        raise AssertionError("expected missing opcode_text")
+
+
+def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_text():
+    inst = Instruction(
+        offset=0x38,
+        size=6,
+        opcode=0x203C,
+        text="corrupted",
+        raw=b"\x20\x3C\x4C\x49\x4E\x45",
+        kb_mnemonic="move",
+        operand_size="l",
+        operand_texts=("#$4C494E45", "d0"),
+    )
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        kb=KB(),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    parts = build_instruction_comment_parts(
+        inst,
+        session,
+        operand_parts=(
+            SimpleNamespace(kind="immediate", value=0x4C494E45,
+                            base_register=None, displacement=None,
+                            text="#$4C494E45"),
+            SimpleNamespace(kind="register", value=None,
+                            base_register=None, displacement=None,
+                            text="d0"),
+        ))
+
+    assert parts == ("'LINE'",)
+
+
+def test_get_instruction_processor_min_reports_base_68000_instruction():
+    inst = Instruction(
+        offset=0x10,
+        size=2,
+        opcode=0x7000,
+        text="moveq   #0,d0",
+        raw=b"\x70\x00",
+        kb_mnemonic="moveq",
+        operand_size="l",
+    )
+    assert get_instruction_processor_min(inst, KB()) == "68000"
 
 
 def test_has_valid_branch_target_rejects_odd_branch_target():
@@ -417,6 +815,7 @@ def test_hint_block_has_supported_terminal_flow_for_return():
                 text="rts",
                 raw=b"\x4E\x75",
                 kb_mnemonic="rts",
+                operand_size="w",
             )
         ]
     })()
@@ -431,9 +830,10 @@ def test_is_valid_hint_block_rejects_non_68000_instruction():
                 offset=0x10,
                 size=2,
                 opcode=0x49C0,
-                text="extb.l d0",
+                text="corrupted",
                 raw=b"\x49\xC0",
                 kb_mnemonic="extb",
+                operand_size="l",
             )
         ]
     })()

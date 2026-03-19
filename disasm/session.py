@@ -90,6 +90,7 @@ def build_disassembly_session(binary_path: str, entities_path: str,
         arg_equs, arg_substitutions = build_arg_substitutions(
             blocks=blocks,
             lib_calls=lib_calls,
+            hunk_entities=hunk_entities,
             os_kb=os_kb,
             kb=kb,
         )

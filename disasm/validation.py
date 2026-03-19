@@ -4,13 +4,13 @@ import struct
 
 from disasm.decode import decode_instruction_for_emit, lookup_instruction_kb
 from m68k.kb_util import KB
-from m68k.m68k_executor import _extract_branch_target, _extract_mnemonic
+from m68k.m68k_executor import _extract_branch_target
 
 
-def is_valid_encoding(text: str, raw: bytes, offset: int, kb: KB,
-                      kb_mnemonic: str) -> bool:
+def is_valid_encoding(raw: bytes, offset: int, kb: KB,
+                      kb_mnemonic: str, operand_size: str) -> bool:
     """Check if instruction EA mode and size are valid per KB constraints."""
-    meta = decode_instruction_for_emit(text, raw, offset, kb, kb_mnemonic)
+    meta = decode_instruction_for_emit(raw, offset, kb, kb_mnemonic, operand_size)
     ikb = meta["inst_kb"]
     ea_modes = ikb.get("ea_modes", {})
     if not ea_modes:
@@ -69,19 +69,15 @@ def has_valid_branch_target(inst, kb: KB) -> bool:
         return True
     return target % kb.opword_bytes == 0
 
-
-def get_processor_min(text: str, kb: KB) -> str:
-    """Get minimum processor for instruction from KB."""
-    mnemonic = _extract_mnemonic(text)
-    if not mnemonic:
-        return "68000"
-    ikb = lookup_instruction_kb(mnemonic, kb)
+def get_instruction_processor_min(inst, kb: KB) -> str:
+    """Get minimum processor for a decoded instruction."""
+    ikb = kb.instruction_kb(inst)
     pmin = ikb.get("processor_min", "68000")
     if pmin != "68000":
         return pmin
-    mnemonic_upper = mnemonic.upper()
+    mnemonic = (inst.kb_mnemonic or "").upper()
     for variant in ikb.get("variants", []):
-        if (variant["mnemonic"].upper() == mnemonic_upper
+        if (variant["mnemonic"].upper() == mnemonic
                 and variant.get("processor_020")):
             return "68020"
     return "68000"

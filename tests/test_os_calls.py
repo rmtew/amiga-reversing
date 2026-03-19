@@ -25,6 +25,12 @@ def _make_lib_call(addr, block, function, library="dos.library",
     return lc
 
 
+def _corrupt_instruction_texts(blocks):
+    for block in blocks.values():
+        for inst in block.instructions:
+            inst.text = "corrupted"
+
+
 # ── Gap 1: Return value store tracing ────────────────────────────────
 
 def test_return_store_to_app_memory():
@@ -58,6 +64,7 @@ def test_return_store_to_app_memory():
         output={"name": "file", "reg": "D0", "type": "BPTR"},
     )]
 
+    _corrupt_instruction_texts(blocks)
     stores = trace_return_stores(blocks, lib_calls, base_reg=6)
     # Should find: offset 100 -> "Output_file" or similar
     assert 100 in stores, (
@@ -179,6 +186,7 @@ def test_annotate_argument_from_app_memory():
         ],
     )]
 
+    _corrupt_instruction_texts(result["blocks"])
     annotations = annotate_call_arguments(result["blocks"], lib_calls)
     # Should annotate $00 (move.l 100(a6),d1) as "file" argument
     assert 0x00 in annotations, (
@@ -285,6 +293,7 @@ def test_forward_through_register_copy():
         output={"name": "file", "reg": "D0", "type": "BPTR"},
     )]
 
+    _corrupt_instruction_texts(result["blocks"])
     types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
     assert 100 in types, (
         f"Expected offset 100 from Output via D0->D1 copy, got {types}")

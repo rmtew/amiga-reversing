@@ -9,6 +9,8 @@ SP effects, PC effects, compute formulas, shift/rotate/overflow rules.
 
 ### Phase 2: Data-Driven Assembler (done)
 `m68k/m68k_asm.py` -- 1299 tests, 90 mnemonics, verified against vasm + DevPac.
+- [ ] Add local assembler support for `PACK` / `UNPK` so these forms can be round-tripped from source text instead of only tested via oracle bytes
+- [ ] Fix local assembler support for `LINK.L`; `assemble_instruction("link.l ...")` currently emits the word form instead of the long form
 
 ### Phase 3: Data-Driven Effect Predictor (done)
 `m68k/m68k_compute.py` -- KB-driven compute engine (CC/SP/result prediction).
@@ -108,3 +110,7 @@ to drive toward 100%:
 - [ ] Inventory Amiga compilers (SAS/C, Lattice, DICE, Aztec/Manx, GCC)
 - [ ] Run under vamos, extract signatures (startup, prologues, runtime)
 - [ ] Build fingerprint database for auto-identifying compiler/language
+- [ ] Add local assembler support for full-extension EA syntax such as `(od,[bd,An,Xn])` and `([bd,An,Xn],od)` / PC-relative variants so these 68020 forms can be round-tripped from source text instead of only tested via oracle bytes
+
+### Analysis Architecture
+- [ ] Extract the constant/base reconstruction logic that has accumulated in `m68k/jump_tables.py` into shared KB-driven analysis infrastructure so jump-table detection consumes general facts instead of owning its own localized abstract interpretation

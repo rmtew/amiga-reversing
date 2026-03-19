@@ -1,25 +1,26 @@
 from __future__ import annotations
 
-import re
-
 from disasm.ascii import PRINTABLE_MAX, PRINTABLE_MIN
-from disasm.validation import get_processor_min
+from disasm.validation import get_instruction_processor_min
 from disasm.types import HunkDisassemblySession
 
 
-def format_app_offset_comment(text: str, base_reg: int,
-                              named_offsets: dict[str, str]) -> str | None:
+def format_app_offset_comment(operand_parts, base_reg: int) -> str | None:
     """Generate a hex offset comment for unnamed d(base_reg) references."""
     base_name = f"a{base_reg}"
-    match = re.search(rf'(-?\d+)\({base_name}\)', text)
-    if not match:
-        return None
-    if re.search(rf'[a-z_]+\({base_name}\)', text):
-        return None
-    offset = int(match.group(1))
-    if offset < 0:
-        return f"app-${-offset:X}"
-    return f"app+${offset:X}"
+    for operand in operand_parts:
+        if operand.base_register != base_name:
+            continue
+        if operand.kind != "base_displacement":
+            continue
+        if operand.displacement is None:
+            raise ValueError(
+                f"Base displacement operand {operand.text!r} missing displacement")
+        offset = operand.displacement
+        if offset < 0:
+            return f"app-${-offset:X}"
+        return f"app+${offset:X}"
+    return None
 
 
 def format_ascii_immediate(value: int) -> str | None:
@@ -37,12 +38,13 @@ def format_ascii_immediate(value: int) -> str | None:
     return "'" + "".join(chars) + "'"
 
 
-def build_instruction_comment_parts(inst, rendered_text: str,
+def build_instruction_comment_parts(inst,
                                     hunk_session: HunkDisassemblySession,
+                                    operand_parts,
                                     include_arg_subs: bool = True
                                     ) -> tuple[str, ...]:
     parts: list[str] = []
-    pmin = get_processor_min(inst.text, hunk_session.kb)
+    pmin = get_instruction_processor_min(inst, hunk_session.kb)
     if pmin != "68000":
         parts.append(f"{pmin}+")
 
@@ -51,18 +53,21 @@ def build_instruction_comment_parts(inst, rendered_text: str,
         parts.append(f"{arg_ann['function']}: {arg_ann['arg_name']}")
 
     base_info = hunk_session.platform.get("initial_base_reg")
-    if not parts and base_info:
-        app_comment = format_app_offset_comment(
-            rendered_text, base_info[0], hunk_session.app_offsets)
+    if not parts and base_info and operand_parts is not None:
+        app_comment = format_app_offset_comment(operand_parts, base_info[0])
         if app_comment:
             parts.append(app_comment)
 
-    if not parts:
-        imm_match = re.search(r'#\$([0-9a-fA-F]{8})\b', rendered_text)
-        if imm_match:
-            ascii_str = format_ascii_immediate(int(imm_match.group(1), 16))
+    if not parts and operand_parts is not None:
+        for operand in operand_parts:
+            if operand.kind != "immediate" or operand.value is None:
+                continue
+            if inst.operand_size != "l":
+                continue
+            ascii_str = format_ascii_immediate(operand.value & 0xFFFFFFFF)
             if ascii_str:
                 parts.append(ascii_str)
+                break
 
     return tuple(parts)
 

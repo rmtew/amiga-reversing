@@ -518,7 +518,7 @@
       "moves:rn,ea": "MOVES",
       "moves:ea,rn": "MOVES",
       "ori:imm,sr": "ORI to SR",
-      "pbcc:unknown": "PBcc",
+      "pbcc:label": "PBcc",
       "pdbcc:dn,label": "PDBcc",
       "pflush:unknown,unknown": "PFLUSH",
       "pflush:unknown,unknown,ea": "PFLUSH",
@@ -23791,8 +23791,7 @@
           "syntax": "PBcc. <size> <label>",
           "operands": [
             {
-              "type": "unknown",
-              "raw": "<size> <label>"
+              "type": "label"
             }
           ]
         }
@@ -24642,15 +24641,15 @@
             },
             {
               "name": "MASK",
-              "bit_hi": 8,
-              "bit_lo": 6,
+              "bit_hi": 7,
+              "bit_lo": 5,
               "width": 3
             },
             {
               "name": "FC",
-              "bit_hi": 5,
+              "bit_hi": 3,
               "bit_lo": 0,
-              "width": 6
+              "width": 4
             }
           ]
         }

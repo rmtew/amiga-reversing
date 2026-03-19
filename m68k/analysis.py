@@ -8,19 +8,19 @@ Supports caching via save/load for instant reuse.
 """
 
 import pickle
-import re
 import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from .hunk_parser import parse_file, HunkType, _HUNK_KB
-from .m68k_executor import analyze, BasicBlock, _extract_mnemonic
-from .jump_tables import (detect_jump_tables, resolve_indirect_targets,
-                          resolve_per_caller, resolve_backward_slice)
+from .m68k_executor import analyze, BasicBlock
+from .jump_tables import detect_jump_tables
+from .indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
+                                resolve_backward_slice)
 from .os_calls import (load_os_kb, get_platform_config,
                        identify_library_calls, _SENTINEL_ALLOC_BASE)
 from .subroutine_scan import scan_and_score
-from .kb_util import KB
+from .kb_util import KB, decode_instruction_operands
 
 
 # ── Relocation helpers ───────────────────────────────────────────────────
@@ -62,12 +62,16 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
 
 # ── Analysis result ──────────────────────────────────────────────────────
 
-_CACHE_VERSION = 3  # bump when HunkAnalysis fields change
+_CACHE_VERSION = 8  # bump when cached analysis semantics/fields change
 
 # Platform dict keys that are not serializable (lambdas, resolvers)
 _PLATFORM_TRANSIENT_KEYS = {
     "_os_call_resolver", "_pending_call_effect", "_summary_cache",
 }
+
+
+class AnalysisCacheError(Exception):
+    pass
 
 
 @dataclass
@@ -114,19 +118,65 @@ class HunkAnalysis:
         with open(path, "rb") as f:
             version, ha = pickle.load(f)
         if version != _CACHE_VERSION:
-            raise ValueError(
+            raise AnalysisCacheError(
                 f"Cache version mismatch: file={version}, "
                 f"expected={_CACHE_VERSION}")
         ha.os_kb = os_kb
         return ha
 
 
+def _prune_inline_dispatch_blocks(blocks: dict, exit_states: dict,
+                                  jt_list: list[dict], kb: KB) -> None:
+    remove_addrs: set[int] = set()
+    for table in jt_list:
+        if table.get("pattern") != "pc_inline_dispatch":
+            continue
+        dispatch_block = blocks.get(table["dispatch_block"])
+        if not dispatch_block or not dispatch_block.instructions:
+            continue
+        last = dispatch_block.instructions[-1]
+        prune_start = last.offset + kb.opword_bytes
+        prune_end = table["addr"]
+        protected = set(table["targets"])
+        protected.add(table["dispatch_block"])
+        for addr in blocks:
+            if addr in protected:
+                continue
+            if prune_start <= addr < prune_end:
+                remove_addrs.add(addr)
+
+    if not remove_addrs:
+        return
+
+    for addr in remove_addrs:
+        blocks.pop(addr, None)
+        exit_states.pop(addr, None)
+
+    for block in blocks.values():
+        block.successors = [succ for succ in block.successors if succ not in remove_addrs]
+        block.predecessors = [pred for pred in block.predecessors if pred not in remove_addrs]
+
+
 # ── Relocated segment detection ───────────────────────────────────────
 
 # Postincrement move pattern from disassembled instruction text.
 # Matches move.b/w/l (An)+,(Am)+ — the copy loop primitive.
-_POSTINC_COPY_RE = re.compile(
-    r'move\.[bwl]\s+\(a(\d)\)\+\s*,\s*\(a(\d)\)\+')
+def _postinc_copy_regs(inst, kb: KB) -> tuple[int, int] | None:
+    """Return (src_reg, dst_reg) for MOVE.(b/w/l) (An)+,(Am)+ copy ops."""
+    inst_kb = kb.instruction_kb(inst)
+    if inst_kb.get("operation_type") != "move":
+        return None
+    if inst.operand_size not in {"b", "w", "l"}:
+        return None
+    decoded = decode_instruction_operands(
+        inst.raw, inst_kb, kb.meta, inst.operand_size, inst.offset)
+    src = decoded.get("ea_op")
+    dst = decoded.get("dst_op")
+    if src is None or dst is None:
+        return None
+    if src.mode != "postinc" or dst.mode != "postinc":
+        return None
+    return src.reg, dst.reg
 
 def detect_relocated_segments(code: bytes) -> list[dict]:
     """Detect copy-and-jump patterns that relocate code to fixed addresses.
@@ -162,19 +212,20 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
     for addr in sorted(blocks):
         blk = blocks[addr]
         for inst in blk.instructions:
-            m = _POSTINC_COPY_RE.match(inst.text.lower())
-            if m:
-                src_reg = int(m.group(1))
-                for pred_addr in sorted(blocks):
-                    if pred_addr >= addr:
-                        break
-                    if pred_addr in exit_states:
-                        cpu, _ = exit_states[pred_addr]
-                        src_val = cpu.a[src_reg]
-                        if (src_val.is_known
-                                and 0 < src_val.concrete < code_size):
-                            secondary_entries.add(src_val.concrete)
-                break
+            copy_regs = _postinc_copy_regs(inst, kb)
+            if copy_regs is None:
+                continue
+            src_reg, _ = copy_regs
+            for pred_addr in sorted(blocks):
+                if pred_addr >= addr:
+                    break
+                if pred_addr in exit_states:
+                    cpu, _ = exit_states[pred_addr]
+                    src_val = cpu.a[src_reg]
+                    if (src_val.is_known
+                            and 0 < src_val.concrete < code_size):
+                        secondary_entries.add(src_val.concrete)
+            break
 
     if secondary_entries:
         # Collect all register values from the bootstrap's exit states
@@ -226,7 +277,7 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
         # Check: is there a copy loop in the blocks before this JMP?
         # Walk predecessor chain looking for postincrement move pattern
         seg = _find_copy_segment(
-            jmp_target, blocks, exit_states, code_size, all_entries)
+            jmp_target, blocks, exit_states, code_size, all_entries, kb)
         if seg is not None and seg not in segments:
             segments.append(seg)
 
@@ -235,7 +286,7 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
 
 def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                        code_size: int,
-                       entry_points: set[int]) -> dict | None:
+                       entry_points: set[int], kb: KB) -> dict | None:
     """Check if blocks before a JMP contain a copy loop targeting jmp_target.
 
     Looks for postincrement move patterns where the destination register's
@@ -244,12 +295,11 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
     for addr in sorted(blocks):
         blk = blocks[addr]
         for inst in blk.instructions:
-            m = _POSTINC_COPY_RE.match(inst.text.lower())
-            if not m:
+            copy_regs = _postinc_copy_regs(inst, kb)
+            if copy_regs is None:
                 continue
 
-            src_reg = int(m.group(1))
-            dst_reg = int(m.group(2))
+            src_reg, dst_reg = copy_regs
 
             # Find the setup block before the copy loop
             for pred_addr in sorted(blocks):
@@ -398,6 +448,12 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         added = 0
         jt_list = detect_jump_tables(result["blocks"], code,
                                         base_addr=base_addr)
+        _prune_inline_dispatch_blocks(
+            result["blocks"],
+            result.get("exit_states", {}),
+            jt_list,
+            kb,
+        )
         for t in jt_list:
             for tgt in t["targets"]:
                 if tgt not in core_entries:
@@ -482,6 +538,12 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                  f"{new_stores} new memory values{disp_example}")
 
     blocks = result["blocks"]
+    _prune_inline_dispatch_blocks(
+        blocks,
+        result.get("exit_states", {}),
+        jt_list,
+        kb,
+    )
     blocks.update(bootstrap_blocks)
     xrefs = result["xrefs"]
     call_targets = result["call_targets"] | jt_call_targets

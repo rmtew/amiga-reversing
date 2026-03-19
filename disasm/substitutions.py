@@ -4,9 +4,47 @@ from __future__ import annotations
 import re
 
 from m68k.kb_util import KB, decode_destination, parse_reg_name
-from m68k.m68k_executor import _extract_branch_target, _extract_mnemonic, _extract_size
+from m68k.m68k_executor import _extract_branch_target
 from m68k.kb_util import find_containing_sub, decode_instruction_operands
 from m68k.os_calls import build_app_memory_types
+
+
+def _immediate_operand_token(inst) -> str:
+    if inst.operand_texts is None:
+        raise ValueError(
+            f"Instruction at ${inst.offset:06x} is missing operand_texts")
+    if not inst.operand_texts:
+        raise ValueError(
+            f"Instruction at ${inst.offset:06x} has no operand_texts")
+    token = inst.operand_texts[0]
+    if not token.startswith("#"):
+        raise ValueError(
+            f"Instruction at ${inst.offset:06x} first operand is not immediate: {token!r}")
+    return token
+
+
+def _sorted_code_entities(hunk_entities: list[dict]) -> list[dict[str, int]]:
+    return sorted(
+        [{"addr": int(e["addr"], 16), "end": int(e["end"], 16)}
+         for e in hunk_entities if e["type"] == "code"],
+        key=lambda s: s["addr"])
+
+
+def _call_instruction_index(*, blk, call: dict, sorted_code_ents: list[dict]) -> int | None:
+    if "dispatch" in call:
+        dispatch_sub = find_containing_sub(call["dispatch"], sorted_code_ents)
+        if dispatch_sub is None:
+            return None
+        for ci, inst in enumerate(blk.instructions):
+            if _extract_branch_target(inst, inst.offset) == dispatch_sub:
+                return ci
+        return None
+
+    call_addr = call["addr"]
+    for ci, inst in enumerate(blk.instructions):
+        if inst.offset == call_addr:
+            return ci
+    return None
 
 
 def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
@@ -14,10 +52,7 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
                             ) -> tuple[dict[str, dict[int, str]], dict[int, tuple[str, str]]]:
     lvo_equs: dict[str, dict[int, str]] = {}
     lvo_substitutions: dict[int, tuple[str, str]] = {}
-    sorted_code_ents = sorted(
-        [{"addr": int(e["addr"], 16), "end": int(e["end"], 16)}
-         for e in hunk_entities if e["type"] == "code"],
-        key=lambda s: s["addr"])
+    sorted_code_ents = _sorted_code_entities(hunk_entities)
 
     for call in lib_calls:
         lib = call.get("library")
@@ -33,42 +68,37 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
             caller_blk = blocks.get(call["addr"])
             if not caller_blk:
                 continue
-            disp_sub = find_containing_sub(call["dispatch"], sorted_code_ents)
-            if disp_sub is None:
+            call_idx = _call_instruction_index(
+                blk=caller_blk,
+                call=call,
+                sorted_code_ents=sorted_code_ents,
+            )
+            if call_idx is None:
                 continue
-            for i, inst in enumerate(caller_blk.instructions):
-                target = _extract_branch_target(inst, inst.offset)
-                if target != disp_sub:
+            for j in range(call_idx - 1, -1, -1):
+                prev = caller_blk.instructions[j]
+                prev_kb = kb.instruction_kb(prev)
+                prev_dec = decode_instruction_operands(
+                    prev.raw, prev_kb, kb.meta, prev.operand_size, prev.offset)
+                if prev_dec["imm_val"] is None:
                     continue
-                for j in range(i - 1, -1, -1):
-                    prev = caller_blk.instructions[j]
-                    prev_mn = _extract_mnemonic(prev.text)
-                    prev_kb = kb.find(prev_mn)
-                    if prev_kb is None:
-                        continue
-                    prev_sz = _extract_size(prev.text)
-                    prev_dec = decode_instruction_operands(
-                        prev.raw, prev_kb, kb.meta, prev_sz, prev.offset)
-                    if prev_dec["imm_val"] is None:
-                        continue
-                    pv = prev_dec["imm_val"]
-                    pv_signed = pv - 0x100000000 if pv >= 0x80000000 else pv
-                    if pv_signed == lvo:
-                        imm_m = re.search(r'#(\$?-?[0-9a-fA-F]+)', prev.text)
-                        if imm_m:
-                            lvo_substitutions[prev.offset] = (
-                                f"#{imm_m.group(1)}", f"#{sym}")
-                        break
-                break
+                pv = prev_dec["imm_val"]
+                pv_signed = pv - 0x100000000 if pv >= 0x80000000 else pv
+                if pv_signed == lvo:
+                    imm_token = _immediate_operand_token(prev)
+                    lvo_substitutions[prev.offset] = (imm_token, f"#{sym}")
+                    break
         else:
             lvo_substitutions[call["addr"]] = (f"{lvo}(", f"{sym}(")
     return lvo_equs, lvo_substitutions
 
 
-def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], os_kb: dict,
+def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entities: list[dict],
+                            os_kb: dict,
                             kb: KB) -> tuple[dict[str, int], dict[int, tuple[str, str]]]:
     arg_equs: dict[str, int] = {}
     arg_substitutions: dict[int, tuple[str, str]] = {}
+    sorted_code_ents = _sorted_code_entities(hunk_entities)
     const_domains = os_kb["_meta"]["constant_domains"]
     all_consts = os_kb.get("constants", {})
     func_const_map: dict[str, dict[int, str]] = {}
@@ -96,14 +126,11 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], os_kb: dict,
         blk = blocks.get(blk_addr)
         if not blk:
             continue
-        call_idx = None
-        call_addr = call["addr"]
-        if "dispatch" in call:
-            continue
-        for ci, inst in enumerate(blk.instructions):
-            if inst.offset == call_addr:
-                call_idx = ci
-                break
+        call_idx = _call_instruction_index(
+            blk=blk,
+            call=call,
+            sorted_code_ents=sorted_code_ents,
+        )
         if call_idx is None:
             continue
         for inp in inputs:
@@ -111,17 +138,13 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], os_kb: dict,
             reg_mode, reg_n = parse_reg_name(reg)
             for j in range(call_idx - 1, -1, -1):
                 prev = blk.instructions[j]
-                prev_mn = _extract_mnemonic(prev.text)
-                prev_kb = kb.find(prev_mn)
-                if prev_kb is None:
-                    continue
-                prev_sz = _extract_size(prev.text)
+                prev_kb = kb.instruction_kb(prev)
                 prev_dec = decode_instruction_operands(
-                    prev.raw, prev_kb, kb.meta, prev_sz, prev.offset)
+                    prev.raw, prev_kb, kb.meta, prev.operand_size, prev.offset)
                 if prev_dec["imm_val"] is None:
                     continue
                 dst = decode_destination(prev.raw, prev_kb, kb.meta,
-                                         prev_sz, prev.offset)
+                                         prev.operand_size, prev.offset)
                 if dst is None:
                     continue
                 dst_mode, dst_num = dst
@@ -134,10 +157,8 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], os_kb: dict,
                 if const_name:
                     equ_val = imm_val - 0x100000000 if imm_val >= 0x80000000 else imm_val
                     arg_equs[const_name] = equ_val
-                    imm_m = re.search(r'#(\$?-?[0-9a-fA-F]+)', prev.text)
-                    if imm_m:
-                        arg_substitutions[prev.offset] = (
-                            f"#{imm_m.group(1)}", f"#{const_name}")
+                    imm_token = _immediate_operand_token(prev)
+                    arg_substitutions[prev.offset] = (imm_token, f"#{const_name}")
                 break
     return arg_equs, arg_substitutions
 

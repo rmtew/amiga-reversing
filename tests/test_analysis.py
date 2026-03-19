@@ -4,8 +4,16 @@ import struct
 import tempfile
 from pathlib import Path
 
-from m68k.analysis import (analyze_hunk, HunkAnalysis,
-                           detect_relocated_segments)
+import pytest
+
+from m68k.analysis import (analyze_hunk, HunkAnalysis, AnalysisCacheError,
+                           detect_relocated_segments, _postinc_copy_regs)
+from m68k.decode_errors import DecodeError
+from m68k.kb_util import KB
+from m68k.m68k_asm import assemble_instruction
+from m68k.m68k_disasm import disassemble
+from m68k.m68k_executor import analyze
+from m68k.ea_extension import parse_full_extension
 
 
 def _make_simple_hunk():
@@ -99,7 +107,7 @@ def test_save_load_roundtrip():
 
 
 def test_load_rejects_wrong_version():
-    """Loading a cache with mismatched version raises ValueError."""
+    """Loading a cache with mismatched version raises AnalysisCacheError."""
     import pickle
     code = _make_simple_hunk()
     ha = analyze_hunk(code, relocs=[], hunk_index=0,
@@ -113,7 +121,7 @@ def test_load_rejects_wrong_version():
         with open(path, "wb") as f:
             pickle.dump((999, saved_ha), f)
         import pytest
-        with pytest.raises(ValueError, match="version mismatch"):
+        with pytest.raises(AnalysisCacheError, match="version mismatch"):
             HunkAnalysis.load(path, {})
 
 
@@ -178,6 +186,46 @@ def test_base_addr_with_code_start():
     assert cpu.d[0].is_known and cpu.d[0].concrete == 1
 
 
+def test_analyze_skips_invalid_full_extension_words():
+    result = analyze(bytes.fromhex("20312100"), propagate=False, entry_points=[0])
+
+    assert result["blocks"] == {}
+
+
+def test_parse_full_extension_raises_decode_error_for_reserved_shape():
+    kb = KB()
+    with pytest.raises(DecodeError, match="Reserved full extension BD SIZE value"):
+        parse_full_extension(
+            0x2100,
+            b"",
+            0,
+            kb.meta,
+            base_register="a0",
+            pc_offset=None,
+        )
+
+
+def test_analyze_hunk_prunes_inline_dispatch_speculative_blocks():
+    code = b''
+    code += struct.pack('>H', 0x7000)          # [0x00] moveq #0,d0
+    code += struct.pack('>HH', 0x4EFB, 0x0000)  # [0x02] jmp 0(pc,d0.w)
+    code += struct.pack('>H', 0x6006)          # [0x06] bra.s $0e
+    code += struct.pack('>H', 0x6008)          # [0x08] bra.s $12
+    code += struct.pack('>H', 0x600A)          # [0x0a] bra.s $16
+    code += struct.pack('>H', 0x4E71)          # [0x0c] nop
+    code += struct.pack('>HH', 0x4E71, 0x4E75)  # [0x0e] handler 0
+    code += struct.pack('>HH', 0x4E71, 0x4E75)  # [0x12] handler 1
+    code += struct.pack('>HH', 0x4E71, 0x4E75)  # [0x16] handler 2
+
+    result = analyze_hunk(code, relocs=[], hunk_index=0, print_fn=lambda *a: None)
+
+    assert any(t["pattern"] == "pc_inline_dispatch" for t in result.jump_tables)
+    assert 0x04 not in result.blocks
+    assert 0x0E in result.blocks
+    assert 0x12 in result.blocks
+    assert 0x16 in result.blocks
+
+
 # ── Auto-detect relocated segments ───────────────────────────────────
 
 def test_detect_copy_and_jump():
@@ -232,6 +280,13 @@ def test_detect_no_copy_returns_empty():
 
     segments = detect_relocated_segments(code)
     assert segments == []
+
+
+def test_postinc_copy_detection_uses_decoded_operands_not_text():
+    inst = disassemble(assemble_instruction("move.b (a6)+,(a0)+"))[0]
+    inst.text = "corrupted"
+
+    assert _postinc_copy_regs(inst, KB()) == (6, 0)
 
 
 def _make_relocated_hunk():

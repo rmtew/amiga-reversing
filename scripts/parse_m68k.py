@@ -1488,6 +1488,7 @@ def _normalize_syntax(raw):
 def _parse_operand(token):
     """Parse a single operand token into a type descriptor."""
     t = token.strip()
+    t = re.sub(r"^<size>\s+", "", t, flags=re.IGNORECASE)
 
     if t in ("<ea>",):
         return {"type": "ea"}
@@ -4728,6 +4729,30 @@ def main():
                 elif f["name"].startswith("REGISTER") and f["bit_hi"] == 3:
                     f["bit_hi"] = 2
                     f["width"] = f["bit_hi"] - f["bit_lo"] + 1
+            break
+
+    # Track B parser-assertion: MC68851 PFLUSH/PFLUSHA extension word fields.
+    # The PDF multi-word table for PFLUSH PFLUSHA is one of the known PMMU
+    # extraction gaps. The extracted encoding[1] currently conflates the MASK
+    # and FC spans as MASK=8:6 and FC=5:0. Oracle assembly against the bundled
+    # vasm shows the immediate-form command word uses MASK in bits 7:5 and FC
+    # in bits 3:0 (e.g. "pflush #1,#2,(a0)" -> ext word $3851, where 7:5=010
+    # and 3:0=0001). This matches the manual's prose on pp. 492-494 that the
+    # MC68851 mask is 3 bits and the immediate FC is 4 bits. Downstream tools
+    # must consume the corrected field positions from the KB rather than
+    # hardcoding decode logic.
+    for inst in kb_data:
+        if inst["mnemonic"] == "PFLUSH PFLUSHA":
+            enc = inst["encodings"][1]
+            for f in enc["fields"]:
+                if f["name"] == "MASK":
+                    f["bit_hi"] = 7
+                    f["bit_lo"] = 5
+                    f["width"] = 3
+                elif f["name"] == "FC":
+                    f["bit_hi"] = 3
+                    f["bit_lo"] = 0
+                    f["width"] = 4
             break
 
     # Output

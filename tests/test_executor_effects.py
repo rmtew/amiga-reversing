@@ -344,7 +344,7 @@ def test_register_preserved_through_push_pop_call():
     # The block at $0a (restore + dispatch) should have A5 = $32
     # because the push/pop preserved it across the call.
     # Without preservation: A5 would be unknown (scratch-clobbered).
-    from m68k.jump_tables import resolve_indirect_targets
+    from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(blocks, exit_states, len(code))
     targets = sorted(r["target"] for r in resolved)
     assert 0x36 in targets, (
@@ -399,7 +399,7 @@ def test_library_base_survives_push_pop_exec_call():
     blocks = result["blocks"]
     exit_states = result.get("exit_states", {})
 
-    from m68k.jump_tables import resolve_indirect_targets
+    from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(blocks, exit_states, len(code))
     targets = sorted(r["target"] for r in resolved)
     assert 0x2a in targets, (
@@ -469,7 +469,7 @@ def test_base_register_survives_merge():
     blocks = result["blocks"]
     exit_states = result.get("exit_states", {})
 
-    from m68k.jump_tables import resolve_indirect_targets
+    from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(blocks, exit_states, len(code))
     targets = sorted(r["target"] for r in resolved)
     assert 0x2c in targets, (
@@ -706,7 +706,7 @@ def test_summary_produced_address_enables_dispatch():
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
-    from m68k.jump_tables import resolve_indirect_targets
+    from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(
         result["blocks"], result.get("exit_states", {}), len(code))
     targets = sorted(r["target"] for r in resolved)
@@ -864,7 +864,7 @@ def test_init_mem_value_survives_join():
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
-    from m68k.jump_tables import resolve_indirect_targets
+    from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(
         result["blocks"], result.get("exit_states", {}), len(code))
     targets = sorted(r["target"] for r in resolved)
@@ -918,7 +918,7 @@ def test_store_in_one_sub_load_in_another():
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
-    from m68k.jump_tables import resolve_indirect_targets
+    from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(
         result["blocks"], result.get("exit_states", {}), len(code))
     targets = sorted(r["target"] for r in resolved)

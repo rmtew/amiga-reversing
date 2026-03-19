@@ -3,6 +3,8 @@
 import io
 import struct
 
+import pytest
+
 from m68k.m68k_executor import analyze, BasicBlock, Instruction
 from m68k.m68k_disasm import _canonical_mnemonic
 from m68k.kb_util import KB
@@ -20,29 +22,46 @@ from disasm.discovery import (add_hint_labels, build_label_map,
                               filter_core_absolute_targets,
                               load_fixed_absolute_addresses)
 from disasm.instruction_rows import (make_instruction_row,
+                                     make_text_rows,
                                      render_instruction_text)
 from disasm.operands import (_operand_types_for_inst,
                              build_instruction_semantic_operands)
-from disasm.types import HunkDisassemblySession
+from disasm.types import HunkDisassemblySession, SemanticOperand
 
 
 # ── Feature 3: App memory offset comments ────────────────────────────
 
 def test_app_offset_comment_hex():
     """Unnamed d(A6) offset gets hex comment."""
-    comment = format_app_offset_comment("move.l  568(a6),d0", 6, {"3286": "app_dos_base"})
+    from disasm.types import SemanticOperand
+    comment = format_app_offset_comment((
+        SemanticOperand(kind="base_displacement", text="568(a6)",
+                        base_register="a6", displacement=568),
+        SemanticOperand(kind="register", text="d0", register="d0"),
+    ), 6)
     assert comment == "app+$238"
 
 
 def test_app_offset_comment_named_no_duplicate():
     """Named offset (already substituted) gets no comment."""
-    comment = format_app_offset_comment("move.l  app_dos_base(a6),d0", 6, {"3286": "app_dos_base"})
+    from disasm.types import SemanticOperand
+    comment = format_app_offset_comment((
+        SemanticOperand(kind="base_displacement_symbol", text="app_dos_base(a6)",
+                        base_register="a6", displacement=568,
+                        metadata={"symbol": "app_dos_base"}),
+        SemanticOperand(kind="register", text="d0", register="d0"),
+    ), 6)
     assert comment is None
 
 
 def test_app_offset_comment_non_base_reg():
     """d(A0) reference does not get app offset comment."""
-    comment = format_app_offset_comment("move.l  100(a0),d0", 6, {})
+    from disasm.types import SemanticOperand
+    comment = format_app_offset_comment((
+        SemanticOperand(kind="base_displacement", text="100(a0)",
+                        base_register="a0", displacement=100),
+        SemanticOperand(kind="register", text="d0", register="d0"),
+    ), 6)
     assert comment is None
 
 
@@ -93,6 +112,24 @@ def test_collect_long_access():
     sizes = collect_data_access_sizes(result["blocks"], result.get("exit_states", {}))
     assert sizes.get(0x0A) == 4, (
         f"Expected long access at $0A, got {sizes}")
+
+
+def test_collect_data_access_uses_decoded_operands_not_text():
+    code = b""
+    code += struct.pack('>HH', 0x41FA, 0x0008)  # lea $0a(pc),a0
+    code += struct.pack('>H', 0x2010)           # move.l (a0),d0
+    code += struct.pack('>H', 0x4E75)           # rts
+    code += struct.pack('>H', 0x4E71)
+    code += struct.pack('>II', 0x12345678, 0xDEADBEEF)
+
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform={"scratch_regs": []})
+    for block in result["blocks"].values():
+        for inst in block.instructions:
+            inst.text = "corrupted"
+
+    sizes = collect_data_access_sizes(result["blocks"], result.get("exit_states", {}))
+    assert sizes.get(0x0A) == 4
 
 
 def test_emit_data_word_format():
@@ -193,6 +230,41 @@ def test_data_region_null_terminated_string():
     assert ",0" in output
 
 
+def test_data_region_prefers_obvious_string_over_word_access():
+    data = b"3.18 (2.8.94)\x00"
+    f = io.StringIO()
+    emit_data_region(
+        f,
+        data,
+        0,
+        len(data),
+        {},
+        {},
+        set(),
+        access_sizes={0: 2},
+    )
+    output = f.getvalue()
+    assert 'dc.b    "3.18 (2.8.94)",0' in output
+    assert "dc.w" not in output
+
+
+def test_data_region_does_not_cross_internal_label_for_string():
+    data = b"HELLO\x00"
+    f = io.StringIO()
+    emit_data_region(
+        f,
+        data,
+        0,
+        len(data),
+        {3: "loc_0003"},
+        {},
+        set(),
+    )
+    output = f.getvalue()
+    assert '"HELLO"' not in output
+    assert "loc_0003:" in output
+
+
 def test_data_region_mixed_hex_and_string():
     """Data with non-printable bytes, then string, then more non-printable.
 
@@ -269,10 +341,12 @@ def test_scan_uses_hint_blocks_for_gaps():
         instructions=[
             Instruction(offset=0, size=2, opcode=0x7001,
                         text="moveq   #1,d0", raw=code[0:2],
-                        kb_mnemonic="moveq"),
+                        kb_mnemonic="moveq", operand_size="l",
+                        operand_texts=("#1", "d0")),
             Instruction(offset=2, size=4, opcode=0x6000,
                         text="bra.w   $20", raw=code[2:6],
-                        kb_mnemonic="bra"),
+                        kb_mnemonic="bra", operand_size="w",
+                        operand_texts=("$20",)),
         ],
         is_entry=True,
     )
@@ -404,10 +478,12 @@ def test_discover_absolute_targets_finds_internal_data_refs():
         instructions=[
             Instruction(offset=0x40, size=4, opcode=0x4238,
                         text="clr.b   opaque", raw=struct.pack(">HH", 0x4238, 0x8C1F),
-                        kb_mnemonic="clr"),
+                        kb_mnemonic="clr", operand_size="b",
+                        operand_texts=("opaque",)),
             Instruction(offset=0x44, size=4, opcode=0x4238,
                         text="clr.w   opaque", raw=struct.pack(">HH", 0x4278, 0xDFF0),
-                        kb_mnemonic="clr"),
+                        kb_mnemonic="clr", operand_size="w",
+                        operand_texts=("opaque",)),
         ],
         is_entry=True,
     )
@@ -465,11 +541,11 @@ def test_decode_instruction_for_emit_requires_kb_mnemonic():
     """Emission-time decode must reject instructions without KB identity."""
     try:
         decode_instruction_for_emit(
-            "lea     $00000400,a0",
             struct.pack(">HH", 0x41F8, 0x0400),
             0x0038,
             KB(),
             "",
+            "w",
         )
     except ValueError as exc:
         assert "missing kb_mnemonic" in str(exc)
@@ -477,17 +553,15 @@ def test_decode_instruction_for_emit_requires_kb_mnemonic():
         raise AssertionError("expected missing kb_mnemonic error")
 
 
-def test_decode_instruction_for_emit_prefers_actual_text_mnemonic():
-    meta = decode_instruction_for_emit(
-        "bset    #6,12(a1)",
-        struct.pack(">HHH", 0x08E9, 0x0006, 0x000C),
-        0x0200,
-        KB(),
-        "bchg",
-    )
-
-    assert meta["mnemonic"] == "bset"
-    assert meta["inst_kb"]["mnemonic"] == "BSET"
+def test_decode_instruction_for_emit_errors_on_mismatched_kb_mnemonic():
+    with pytest.raises(ValueError, match="KB encoding match count 0"):
+        decode_instruction_for_emit(
+            struct.pack(">HHH", 0x08E9, 0x0006, 0x000C),
+            0x0200,
+            KB(),
+            "BCHG",
+            "w",
+        )
 
 
 def test_lookup_instruction_kb_normalizes_pmmu_text_condition_variant():
@@ -534,9 +608,11 @@ def test_add_hint_labels_adds_hint_block_and_successor_labels():
 def test_render_instruction_text_substitutes_absolute_code_operand():
     """Absolute code operands should use decoded absolute EA targets."""
     inst = Instruction(offset=0x0038, size=4, opcode=0x41F8,
-                       text="lea     $00000400,a0",
+                       text="corrupted",
                        raw=struct.pack(">HH", 0x41F8, 0x0400),
-                       kb_mnemonic="lea")
+                       kb_mnemonic="lea", operand_size="l",
+                       operand_texts=("$00000400", "a0"),
+                       opcode_text="lea")
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -581,9 +657,11 @@ def test_render_instruction_text_substitutes_absolute_code_operand():
 def test_render_instruction_text_substitutes_pc_relative_operand():
     """PC-relative operands should render labels from decoded targets."""
     inst = Instruction(offset=0x0040, size=4, opcode=0x41FA,
-                       text="lea     8(pc),a0",
+                       text="corrupted",
                        raw=struct.pack(">HH", 0x41FA, 0x0008),
-                       kb_mnemonic="lea")
+                       kb_mnemonic="lea", operand_size="l",
+                       operand_texts=("8(pc)", "a0"),
+                       opcode_text="lea")
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -628,7 +706,8 @@ def test_render_instruction_text_substitutes_pc_relative_operand():
 def test_build_instruction_semantic_operands_marks_branch_target():
     inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
                        text="bne.s   $000048", raw=struct.pack(">H", 0x6606),
-                       kb_mnemonic="bcc")
+                       kb_mnemonic="bcc", operand_size="s",
+                       operand_texts=("$000048",))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -677,7 +756,8 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate():
     inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
                        text="move.l  #$00000400,d0",
                        raw=struct.pack(">HI", 0x203C, 0x00000400),
-                       kb_mnemonic="move")
+                       kb_mnemonic="move", operand_size="l",
+                       operand_texts=("#$00000400", "d0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -727,7 +807,8 @@ def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
     inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
                        text="moveq   #1,d0",
                        raw=struct.pack(">H", 0x7001),
-                       kb_mnemonic="moveq")
+                       kb_mnemonic="moveq", operand_size="l",
+                       operand_texts=("#1", "d0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -777,7 +858,8 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
     inst = Instruction(offset=0x0038, size=4, opcode=0x41F8,
                        text="lea     $00000400,a0",
                        raw=struct.pack(">HH", 0x41F8, 0x0400),
-                       kb_mnemonic="lea")
+                       kb_mnemonic="lea", operand_size="l",
+                       operand_texts=("$00000400", "a0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -828,7 +910,8 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
     inst = Instruction(offset=0x0040, size=4, opcode=0x41FA,
                        text="lea     8(pc),a0",
                        raw=struct.pack(">HH", 0x41FA, 0x0008),
-                       kb_mnemonic="lea")
+                       kb_mnemonic="lea", operand_size="l",
+                       operand_texts=("8(pc)", "a0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -879,7 +962,8 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
     inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
                        text="move.w  18(a1),d0",
                        raw=struct.pack(">HH", 0x3029, 0x0012),
-                       kb_mnemonic="move")
+                       kb_mnemonic="move", operand_size="w",
+                       operand_texts=("18(a1)", "d0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -934,7 +1018,8 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
     inst = Instruction(offset=0x0100, size=4, opcode=0x3231,
                        text="move.w  8(a1,d0.w),d1",
                        raw=struct.pack(">HH", 0x3231, 0x0008),
-                       kb_mnemonic="move")
+                       kb_mnemonic="move", operand_size="w",
+                       operand_texts=("8(a1,d0.w)", "d1"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -988,7 +1073,8 @@ def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape(
     inst = Instruction(offset=0x0046, size=2, opcode=0x598E,
                        text="subq.l  #4,a6",
                        raw=struct.pack(">H", 0x598E),
-                       kb_mnemonic="subq")
+                       kb_mnemonic="subq", operand_size="l",
+                       operand_texts=("#4", "a6"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1040,7 +1126,8 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
     inst = Instruction(offset=0x0058, size=4, opcode=0x51C8,
                        text="dbf    d0,$56",
                        raw=struct.pack(">HH", 0x51C8, 0x0054),
-                       kb_mnemonic="dbcc")
+                       kb_mnemonic="dbcc", operand_size="w",
+                       operand_texts=("d0", "$56"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1091,7 +1178,8 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
     inst = Instruction(offset=0x0200, size=6, opcode=0x08E9,
                        text="bset    #6,12(a1)",
                        raw=struct.pack(">HHH", 0x08E9, 0x0006, 0x000C),
-                       kb_mnemonic="bset")
+                       kb_mnemonic="bset", operand_size="w",
+                       operand_texts=("#6", "12(a1)"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1144,17 +1232,35 @@ def test_operand_types_for_inst_selects_register_shift_form_from_opcode_bit():
     inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
                        text="lsl.l  d0,d2",
                        raw=b"\xE1\xAA",
-                       kb_mnemonic="lsl")
-    meta = decode_instruction_for_emit(inst.text, inst.raw, inst.offset, kb, "lsl")
+                       kb_mnemonic="lsl",
+                       operand_size="l",
+                       operand_texts=("d0", "d2"))
+    meta = decode_instruction_for_emit(inst.raw, inst.offset, kb, "lsl", "l")
 
     assert _operand_types_for_inst(inst, meta) == ("dn", "dn")
+
+
+def test_decode_inst_for_emit_uses_operand_size_not_text():
+    kb = KB()
+    inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
+                       text="corrupted",
+                       raw=b"\xE1\xAA",
+                       kb_mnemonic="lsl",
+                       operand_size="l",
+                       operand_texts=("d0", "d2"))
+
+    meta = decode_inst_for_emit(inst, kb)
+
+    assert meta["size"] == "l"
 
 
 def test_build_instruction_semantic_operands_supports_register_shift_form():
     inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
                        text="lsl.l  d0,d2",
                        raw=b"\xE1\xAA",
-                       kb_mnemonic="lsl")
+                       kb_mnemonic="lsl",
+                       operand_size="l",
+                       operand_texts=("d0", "d2"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1204,7 +1310,8 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form():
     inst = Instruction(offset=0x0200, size=2, opcode=0xE900,
                        text="asl.b  #4,d0",
                        raw=b"\xE9\x00",
-                       kb_mnemonic="asl")
+                       kb_mnemonic="asl", operand_size="b",
+                       operand_texts=("#4", "d0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1254,7 +1361,8 @@ def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
     inst = Instruction(offset=0x0200, size=2, opcode=0x4180,
                        text="chk.w   d0,d0",
                        raw=b"\x41\x80",
-                       kb_mnemonic="chk")
+                       kb_mnemonic="chk", operand_size="w",
+                       operand_texts=("d0", "d0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1304,7 +1412,8 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
     inst = Instruction(offset=0x0200, size=4, opcode=0xEAC0,
                        text="bfchg    d0{2:8}",
                        raw=bytes.fromhex("eac00088"),
-                       kb_mnemonic="bfchg")
+                       kb_mnemonic="bfchg", operand_size="w",
+                       operand_texts=("d0{2:8}",))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1354,7 +1463,8 @@ def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
     inst = Instruction(offset=0x0200, size=4, opcode=0xE9C0,
                        text="bfextu   d0{2:8},d1",
                        raw=bytes.fromhex("e9c01088"),
-                       kb_mnemonic="bfextu")
+                       kb_mnemonic="bfextu", operand_size="w",
+                       operand_texts=("d0{2:8}", "d1"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1403,7 +1513,8 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
     inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
                        text="move.l  #loc_0400,d0",
                        raw=struct.pack(">HI", 0x203C, 0x00000400),
-                       kb_mnemonic="move")
+                       kb_mnemonic="move", operand_size="l",
+                       operand_texts=("#loc_0400", "d0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1452,9 +1563,10 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
 
 def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch():
     inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
-                       text="moveq   #1,d0,d1",
+                       text="corrupted",
                        raw=struct.pack(">H", 0x7001),
-                       kb_mnemonic="moveq")
+                       kb_mnemonic="moveq", operand_size="l",
+                       operand_texts=("#1", "d0", "d1"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1495,6 +1607,8 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         build_instruction_semantic_operands(inst, session)
     except ValueError as exc:
         assert "Operand text count mismatch" in str(exc)
+        assert "$000000" in str(exc)
+        assert "corrupted" not in str(exc)
     else:
         raise AssertionError("expected operand text count mismatch")
 
@@ -1503,7 +1617,8 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
     inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
                        text="moveq",
                        raw=struct.pack(">H", 0x7001),
-                       kb_mnemonic="moveq")
+                       kb_mnemonic="moveq", operand_size="l",
+                       operand_texts=None)
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1543,7 +1658,7 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
     try:
         build_instruction_semantic_operands(inst, session)
     except ValueError as exc:
-        assert "Decoded operands missing text slots" in str(exc)
+        assert "missing operand_texts" in str(exc)
     else:
         raise AssertionError("expected missing operand text slots")
 
@@ -1551,7 +1666,8 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
 def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
     inst = Instruction(offset=0x0000, size=4, opcode=0xF000,
                        text="pflusha", raw=bytes.fromhex("F0002400"),
-                       kb_mnemonic="pflusha")
+                       kb_mnemonic="pflusha", operand_size="w",
+                       operand_texts=())
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1595,7 +1711,8 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
     inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
                        text="move.l  #$4C494E45,d0",
                        raw=struct.pack(">HI", 0x203C, 0x4C494E45),
-                       kb_mnemonic="move")
+                       kb_mnemonic="move", operand_size="l",
+                       operand_texts=("#$4C494E45", "d0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1633,15 +1750,23 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
     )
 
     parts = build_instruction_comment_parts(
-        inst, "move.l #$4C494E45,d0", session, include_arg_subs=True)
+        inst,
+        session,
+        operand_parts=(
+            SemanticOperand(kind="immediate", text="#$4C494E45", value=0x4C494E45),
+            SemanticOperand(kind="register", text="d0", register="d0"),
+        ),
+        include_arg_subs=True)
 
     assert parts == ("'LINE'",)
 
 
 def test_make_instruction_row_renders_from_semantic_operands_and_comments():
     inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
-                       text="bne.s   $000048", raw=struct.pack(">H", 0x6606),
-                       kb_mnemonic="bcc")
+                       text="corrupted", raw=struct.pack(">H", 0x6606),
+                       kb_mnemonic="bcc", operand_size="s",
+                       operand_texts=("$000048",),
+                       opcode_text="bne.s")
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1692,11 +1817,20 @@ def test_make_instruction_row_renders_from_semantic_operands_and_comments():
     assert row.text == "    bne.s loc_0048 ; 68020+; branch note\n"
 
 
+def test_make_text_rows_uses_text_semantic_operands_for_directives():
+    rows = make_text_rows("directive", "    dc.w $1234,d0\n", addr=0x40)
+
+    assert len(rows) == 1
+    assert [part.kind for part in rows[0].operand_parts] == ["text", "text"]
+    assert [part.text for part in rows[0].operand_parts] == ["$1234", "d0"]
+
+
 def test_build_instruction_semantic_operands_substitutes_struct_field():
     inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
                        text="move.w  18(a1),d0",
                        raw=struct.pack(">HH", 0x3029, 0x0012),
-                       kb_mnemonic="move")
+                       kb_mnemonic="move", operand_size="w",
+                       operand_texts=("18(a1)", "d0"))
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1745,8 +1879,10 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
 
 def test_render_instruction_text_uses_semantic_branch_substitution():
     inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
-                       text="bne.s   $000048", raw=struct.pack(">H", 0x6606),
-                       kb_mnemonic="bcc")
+                       text="corrupted", raw=struct.pack(">H", 0x6606),
+                       kb_mnemonic="bcc", operand_size="s",
+                       operand_texts=("$000048",),
+                       opcode_text="bne.s")
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1792,9 +1928,11 @@ def test_render_instruction_text_uses_semantic_branch_substitution():
 
 def test_render_instruction_text_uses_semantic_struct_substitution():
     inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
-                       text="move.w  18(a1),d0",
+                       text="corrupted",
                        raw=struct.pack(">HH", 0x3029, 0x0012),
-                       kb_mnemonic="move")
+                       kb_mnemonic="move", operand_size="w",
+                       operand_texts=("18(a1)", "d0"),
+                       opcode_text="move.w")
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",

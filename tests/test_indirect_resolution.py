@@ -16,13 +16,14 @@ GenAm patterns modelled:
 """
 
 import struct
-
 from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
                                 _concrete, _unknown)
-from m68k.jump_tables import (resolve_indirect_targets, resolve_per_caller,
-                              detect_jump_tables, resolve_backward_slice,
-                              _scan_inline_dispatch)
+from m68k.jump_tables import detect_jump_tables, _scan_inline_dispatch, _is_indexed_ea
+from m68k.indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
+                                    resolve_backward_slice)
+from m68k.indirect_core import decode_jump_ea
 from m68k.kb_util import KB
+from m68k.m68k_disasm import disassemble
 
 
 # ---- Helpers ----------------------------------------------------------------
@@ -55,6 +56,29 @@ def _analyze_and_resolve(code, entry_points=None, platform=None):
 def _resolved_targets(resolved):
     """Extract sorted unique target addresses from resolution results."""
     return sorted(set(r["target"] for r in resolved))
+
+
+def test_is_indexed_ea_uses_shared_decode_for_brief_indexed_mode():
+    kb = KB()
+    inst = disassemble(bytes.fromhex("4eb32002"), max_cpu="68020")[0]
+    info = _is_indexed_ea(inst.raw, kb, kb.instruction_kb(inst), inst.offset)
+
+    assert info == {
+        "base_mode": "an",
+        "base_reg": 3,
+        "index_is_addr": False,
+        "index_reg": 2,
+        "displacement": 2,
+    }
+
+
+def test_is_indexed_ea_rejects_full_extension_memory_indirect():
+    kb = KB()
+    inst = disassemble(bytes.fromhex("2031212200000004"), max_cpu="68020")[0]
+
+    assert _is_indexed_ea(inst.raw, kb, kb.instruction_kb(inst), inst.offset) is None
+
+
 
 
 # ---- 1. Displacement indirect: jmp/jsr d(An) with concrete An --------------
@@ -134,6 +158,47 @@ def test_indexed_indirect_with_displacement():
     assert 0x32 in targets, (
         f"Expected $0032 from jsr 2(a3,d2.w), got {targets}")
     print("  indexed_indirect_with_displacement: OK")
+
+
+def test_full_extension_memory_indirect_indexed_jsr():
+    """JSR ([bd,An,Dn.w],od) should resolve through the pointed address."""
+    code = b""
+    code += struct.pack(">H", 0x7404)                    # [0x00] moveq #4,d2
+    code += struct.pack(">HH", 0x43FA, 0x000C)          # [0x02] lea $0c(pc),a1 -> $10
+    code += bytes.fromhex("4eb1212200000004")           # [0x06] jsr ([0,a1,d2.w],4)
+    code += struct.pack(">H", 0x4E75)                    # [0x0e] rts
+    code += struct.pack(">H", 0x4E71)                    # [0x10] nop
+    code += struct.pack(">H", 0x4E71)                    # [0x12] nop
+    code += struct.pack(">I", 0x0000001C)                # [0x14] dc.l $1c
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x18] nop; nop
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x20 in targets, (
+        f"Expected $0020 from jsr ([0,a1,d2.w],4), got {targets}")
+    print("  full_extension_memory_indirect_indexed_jsr: OK")
+
+
+def test_full_extension_pc_memory_indirect_indexed_jsr():
+    """JSR ([bd,PC,Dn.w],od) should resolve through the pointed address."""
+    code = b""
+    code += struct.pack(">H", 0x740C)                    # [0x00] moveq #12,d2
+    code += bytes.fromhex("4ebb212200000004")           # [0x02] jsr ([0,pc,d2.w],4)
+    code += struct.pack(">H", 0x4E75)                    # [0x0a] rts
+    code += struct.pack(">H", 0x4E71)                    # [0x0c] nop
+    code += struct.pack(">H", 0x4E71)                    # [0x0e] nop
+    code += struct.pack(">I", 0x00000018)                # [0x10] dc.l $18
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x14] nop; nop
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+
+    _, _, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+    assert 0x1C in targets, (
+        f"Expected $001c from jsr ([0,pc,d2.w],4), got {targets}")
+    print("  full_extension_pc_memory_indirect_indexed_jsr: OK")
 
 
 # ---- 3. Trampoline: callee uses return address (models GenAm sub_16e0) ------
@@ -1379,6 +1444,1817 @@ def test_pattern_d_indirect_table_read():
     assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
     assert 0x1a in t["targets"], f"Expected $001a in targets, got {t['targets']}"
     print("  pattern_d_indirect_table_read: OK")
+
+
+def test_pattern_e_full_extension_memory_indirect_pointer_table():
+    """Pattern E: LEA d(PC),An; JSR ([bd,An,Dn.w],od) through long pointers."""
+    code = b""
+    code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
+    code += struct.pack(">HH", 0x43FA, 0x0010)          # [0x02] lea $10(pc),a1 -> $14
+    code += bytes.fromhex("4eb1212200000004")           # [0x06] jsr ([0,a1,d2.w],4)
+    code += struct.pack(">H", 0x4E75)                    # [0x0e] rts
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x10] nop; nop
+    code += struct.pack(">I", 0x0000001C)                # [0x14] dc.l $1c
+    code += struct.pack(">I", 0x00000020)                # [0x18] dc.l $20
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x1c] nop; nop
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "memory_indirect_long_pointer", (
+        f"Expected pattern 'memory_indirect_long_pointer', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_e_full_extension_memory_indirect_pointer_table: OK")
+
+
+def test_pattern_f_pc_full_extension_memory_indirect_pointer_table():
+    """Pattern F: JSR ([d,PC,Dn.w],od) through long pointers."""
+    code = b""
+    code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
+    code += bytes.fromhex("4ebb2122000c0004")           # [0x02] jsr ([12,pc,d2.w],4)
+    code += struct.pack(">H", 0x4E75)                    # [0x0a] rts
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0c] nop; nop
+    code += struct.pack(">I", 0x00000018)                # [0x10] dc.l $18
+    code += struct.pack(">I", 0x0000001C)                # [0x14] dc.l $1c
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "pc_memory_indirect_long_pointer", (
+        f"Expected pattern 'pc_memory_indirect_long_pointer', got {t['pattern']!r}")
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    print("  pattern_f_pc_full_extension_memory_indirect_pointer_table: OK")
+
+
+def test_pattern_g_full_extension_memory_indirect_pointer_table_via_reg_copy():
+    """Pattern G: LEA table,Ax; MOVEA.L Ax,Ay; JSR ([0,Ay,Dn.w],4)."""
+    code = b""
+    code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x02] lea $10(pc),a0 -> $14
+    code += struct.pack(">H", 0x2248)                    # [0x06] movea.l a0,a1
+    code += bytes.fromhex("4eb1212200000004")           # [0x08] jsr ([0,a1,d2.w],4)
+    code += struct.pack(">H", 0x4E75)                    # [0x10] rts
+    code += struct.pack(">H", 0x4E71)                    # [0x12] nop
+    code += struct.pack(">I", 0x0000001C)                # [0x14] dc.l $1c
+    code += struct.pack(">I", 0x00000020)                # [0x18] dc.l $20
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x1c] nop; nop
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "memory_indirect_long_pointer", (
+        f"Expected pattern 'memory_indirect_long_pointer', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_g_full_extension_memory_indirect_pointer_table_via_reg_copy: OK")
+
+
+def test_pattern_h_word_offset_via_reg_copy():
+    """Pattern H: LEA base,Ax; MOVEA.L Ax,Ay; JMP disp(Ay,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x0008)          # [0x02] lea $08(pc),a0 -> $0c
+    code += struct.pack(">H", 0x2248)                    # [0x06] movea.l a0,a1
+    code += struct.pack(">HH", 0x4EF1, 0x0000)          # [0x08] jmp 0(a1,d0.w)
+    code += struct.pack(">hhh", 0, 4, 10)                # [0x0c] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x0C in t["targets"], f"Expected $000c in targets, got {t['targets']}"
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    print("  pattern_h_word_offset_via_reg_copy: OK")
+
+
+def test_pattern_i_indirect_table_read_via_reg_copy():
+    """Pattern I: LEA table,Ax; MOVEA.L Ax,Ay; MOVE.W (Ay,Dn),Dn; JSR d(Ay,Dn)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x02] lea $0e(pc),a0 -> $12
+    code += struct.pack(">H", 0x2248)                    # [0x06] movea.l a0,a1
+    code += struct.pack(">HH", 0x3031, 0x0000)          # [0x08] move.w 0(a1,d0.w),d0
+    code += struct.pack(">HH", 0x4EB1, 0x0006)          # [0x0c] jsr 6(a1,d0.w)
+    code += struct.pack(">H", 0x4E75)                    # [0x10] rts
+    code += struct.pack(">hh", 0, 4)                     # [0x12] dc.w 0,4
+    code += struct.pack(">H", 0x4E71)                    # [0x16] nop
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_table_read", (
+        f"Expected pattern 'indirect_table_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_i_indirect_table_read_via_reg_copy: OK")
+
+
+def test_pattern_j_indirect_pointer_read_into_jump_register():
+    """Pattern J: LEA table,Ax; MOVEA.L 0(Ax,Dn.w),Ay; JMP (Ay)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x0008)          # [0x02] lea $08(pc),a0 -> $0c
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x0a] jmp (a1)
+    code += struct.pack(">I", 0x00000014)                # [0x0c] dc.l $14
+    code += struct.pack(">I", 0x00000018)                # [0x10] dc.l $18
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x14] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    print("  pattern_j_indirect_pointer_read_into_jump_register: OK")
+
+
+def test_pattern_k_pc_indirect_pointer_read_into_jump_register():
+    """Pattern K: MOVEA.L 0(PC,Dn.w),Ay; JMP (Ay)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x227B, 0x0004)          # [0x02] movea.l 4(pc,d0.w),a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x06] jmp (a1)
+    code += struct.pack(">I", 0x00000010)                # [0x08] dc.l $10
+    code += struct.pack(">I", 0x00000014)                # [0x0c] dc.l $14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x10] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x14] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    print("  pattern_k_pc_indirect_pointer_read_into_jump_register: OK")
+
+
+def test_pattern_l_full_extension_pointer_read_into_jump_register():
+    """Pattern L: LEA table,Ax; MOVEA.L ([0,Ax,Dn.w],4),Ay; JMP (Ay)."""
+    code = b""
+    code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
+    code += struct.pack(">HH", 0x41FA, 0x000C)          # [0x02] lea $0c(pc),a0 -> $10
+    code += bytes.fromhex("2270212200000004")           # [0x06] movea.l ([0,a0,d2.w],4),a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x0e] jmp (a1)
+    code += struct.pack(">I", 0x00000010)                # [0x10] dc.l $10
+    code += struct.pack(">I", 0x00000014)                # [0x14] dc.l $14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    print("  pattern_l_full_extension_pointer_read_into_jump_register: OK")
+
+
+def test_pattern_m_word_offset_via_addq_adjusted_base():
+    """Pattern M: LEA base,An; ADDQ.L #imm,An; JMP disp(An,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000A)          # [0x02] lea $0a(pc),a0 -> $0e
+    code += struct.pack(">H", 0x5888)                    # [0x06] addq.l #4,a0 -> $12
+    code += struct.pack(">HH", 0x4EF0, 0x0000)          # [0x08] jmp 0(a0,d0.w)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0c] pad; pad
+    code += struct.pack(">hhh", 0, 4, 10)                # [0x10] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    assert 0x1c in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_m_word_offset_via_addq_adjusted_base: OK")
+
+
+def test_pattern_n_indirect_pointer_read_via_addq_adjusted_base():
+    """Pattern N: LEA table-4,An; ADDQ.L #4,An; MOVEA.L 0(An,Dn.w),Ay; JMP (Ay)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000A)          # [0x02] lea $0a(pc),a0 -> $0e
+    code += struct.pack(">H", 0x5888)                    # [0x06] addq.l #4,a0 -> $12
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x0c] jmp (a1)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0e] pad; pad
+    code += struct.pack(">I", 0x00000018)                # [0x12] dc.l $18
+    code += struct.pack(">I", 0x0000001C)                # [0x16] dc.l $1c
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    print("  pattern_n_indirect_pointer_read_via_addq_adjusted_base: OK")
+
+
+def test_pattern_o_word_offset_via_adda_adjusted_base():
+    """Pattern O: LEA base,An; ADDA.L #imm,An; JMP disp(An,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x0008)          # [0x02] lea $08(pc),a0 -> $0c
+    code += bytes.fromhex("d1fc00000004")               # [0x06] adda.l #4,a0 -> $10
+    code += struct.pack(">HH", 0x4EF0, 0x0000)          # [0x0c] jmp 0(a0,d0.w)
+    code += struct.pack(">hhh", 0, 4, 10)                # [0x10] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1a in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_o_word_offset_via_adda_adjusted_base: OK")
+
+
+def test_pattern_p_word_offset_via_subq_adjusted_base():
+    """Pattern P: LEA base+imm,An; SUBQ.L #imm,An; JMP disp(An,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000C)          # [0x02] lea $0c(pc),a0 -> $10
+    code += struct.pack(">H", 0x5988)                    # [0x06] subq.l #4,a0 -> $0c
+    code += struct.pack(">HH", 0x4EF0, 0x0000)          # [0x08] jmp 0(a0,d0.w)
+    code += struct.pack(">hhh", 6, 10, 14)               # [0x0c] dc.w 6,10,14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x12 in t["targets"], f"Expected $0012 in targets, got {t['targets']}"
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    assert 0x1a in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_p_word_offset_via_subq_adjusted_base: OK")
+
+
+def test_pattern_q_word_offset_via_suba_adjusted_base():
+    """Pattern Q: LEA base+imm,An; SUBA.L #imm,An; JMP disp(An,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x02] lea $10(pc),a0 -> $14
+    code += bytes.fromhex("91fc00000004")               # [0x06] suba.l #4,a0 -> $10
+    code += struct.pack(">HH", 0x4EF0, 0x0000)          # [0x0c] jmp 0(a0,d0.w)
+    code += struct.pack(">hhh", 6, 10, 14)               # [0x10] dc.w 6,10,14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    assert 0x1a in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    assert 0x1e in t["targets"], f"Expected $001e in targets, got {t['targets']}"
+    print("  pattern_q_word_offset_via_suba_adjusted_base: OK")
+
+
+def test_pattern_r_word_offset_via_movea_pcdisp_base():
+    """Pattern R: MOVEA.L d(PC),An; JMP disp(An,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x207A, 0x0006)          # [0x02] movea.l 6(pc),a0 -> $0a
+    code += struct.pack(">HH", 0x4EF0, 0x0000)          # [0x06] jmp 0(a0,d0.w)
+    code += struct.pack(">hhh", 0, 4, 10)                # [0x0a] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x10] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x14] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x0A in t["targets"], f"Expected $000a in targets, got {t['targets']}"
+    assert 0x0E in t["targets"], f"Expected $000e in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    print("  pattern_r_word_offset_via_movea_pcdisp_base: OK")
+
+
+def test_pattern_s_word_offset_via_movea_pcindex_base():
+    """Pattern S: MOVEA.L d(PC,Dn.w),An; JMP disp(An,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7008)                    # [0x00] moveq #8,d0
+    code += struct.pack(">HH", 0x207B, 0x0000)          # [0x02] movea.l 0(pc,d0.w),a0 -> $0c
+    code += struct.pack(">HH", 0x4EF0, 0x0000)          # [0x06] jmp 0(a0,d0.w)
+    code += struct.pack(">H", 0x4E71)                    # [0x0a] pad
+    code += struct.pack(">hhh", 0, 4, 10)                # [0x0c] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x0C in t["targets"], f"Expected $000c in targets, got {t['targets']}"
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    print("  pattern_s_word_offset_via_movea_pcindex_base: OK")
+
+
+def test_pattern_v_word_offset_via_movea_pcindex_base_with_index_copy():
+    """Pattern V: MOVEQ -> Dn copy -> MOVEA.L d(PC,Dn),An -> JMP disp(An,Dm)."""
+    code = b""
+    code += struct.pack(">H", 0x7208)                    # [0x00] moveq #8,d1
+    code += struct.pack(">H", 0x3001)                    # [0x02] move.w d1,d0
+    code += struct.pack(">H", 0x7400)                    # [0x04] moveq #0,d2
+    code += struct.pack(">HH", 0x207B, 0x0000)          # [0x06] movea.l 0(pc,d0.w),a0 -> $10
+    code += struct.pack(">HH", 0x4EF0, 0x2000)          # [0x0a] jmp 0(a0,d2.w)
+    code += struct.pack(">H", 0x4E71)                    # [0x0e] pad
+    code += struct.pack(">hhh", 6, 10, 14)               # [0x10] dc.w 6,10,14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    assert 0x1E in t["targets"], f"Expected $001e in targets, got {t['targets']}"
+    print("  pattern_v_word_offset_via_movea_pcindex_base_with_index_copy: OK")
+
+
+def test_pattern_w_word_offset_via_movea_pcindex_base_with_cross_bank_index_copy():
+    """Pattern W: MOVEQ -> MOVEA.L Dn,An -> MOVEA.L d(PC,An),Ax -> JMP disp(Ax,Dm)."""
+    code = b""
+    code += struct.pack(">H", 0x7208)                    # [0x00] moveq #8,d1
+    code += struct.pack(">H", 0x2041)                    # [0x02] movea.l d1,a0
+    code += struct.pack(">H", 0x7400)                    # [0x04] moveq #0,d2
+    code += bytes.fromhex("227b8000")                   # [0x06] movea.l 0(pc,a0.w),a1 -> $10
+    code += struct.pack(">HH", 0x4EF1, 0x2000)          # [0x0a] jmp 0(a1,d2.w)
+    code += struct.pack(">H", 0x4E71)                    # [0x0e] pad
+    code += struct.pack(">hhh", 6, 10, 14)               # [0x10] dc.w 6,10,14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    assert 0x1E in t["targets"], f"Expected $001e in targets, got {t['targets']}"
+    print("  pattern_w_word_offset_via_movea_pcindex_base_with_cross_bank_index_copy: OK")
+
+
+def test_pattern_x_word_offset_via_movea_pcindex_base_with_index_adjustment():
+    """Pattern X: MOVEQ -> ADDQ -> Dn copy -> MOVEA.L d(PC,Dn),An -> JMP disp(An,Dm)."""
+    code = b""
+    code += struct.pack(">H", 0x7207)                    # [0x00] moveq #7,d1
+    code += struct.pack(">H", 0x5241)                    # [0x02] addq.w #1,d1 -> 8
+    code += struct.pack(">H", 0x3001)                    # [0x04] move.w d1,d0
+    code += struct.pack(">H", 0x7400)                    # [0x06] moveq #0,d2
+    code += struct.pack(">HH", 0x207B, 0x0000)          # [0x08] movea.l 0(pc,d0.w),a0 -> $12
+    code += struct.pack(">HH", 0x4EF0, 0x2000)          # [0x0c] jmp 0(a0,d2.w)
+    code += struct.pack(">H", 0x4E71)                    # [0x10] pad
+    code += struct.pack(">hhh", 6, 10, 14)               # [0x12] dc.w 6,10,14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    print("  pattern_x_word_offset_via_movea_pcindex_base_with_index_adjustment: OK")
+
+
+def test_pattern_y_word_offset_via_movea_pcindex_base_with_clr_index():
+    """Pattern Y: CLR Dn -> MOVEA.L d(PC,Dn),An -> JMP disp(An,Dm)."""
+    code = b""
+    code += struct.pack(">H", 0x4240)                    # [0x00] clr.w d0
+    code += struct.pack(">H", 0x7400)                    # [0x02] moveq #0,d2
+    code += struct.pack(">HH", 0x207B, 0x0006)          # [0x04] movea.l 6(pc,d0.w),a0 -> $0c
+    code += struct.pack(">HH", 0x4EF0, 0x2000)          # [0x08] jmp 0(a0,d2.w)
+    code += struct.pack(">hhh", 6, 10, 14)               # [0x0c] dc.w 6,10,14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x12 in t["targets"], f"Expected $0012 in targets, got {t['targets']}"
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_y_word_offset_via_movea_pcindex_base_with_clr_index: OK")
+
+
+def test_pattern_z_indirect_pointer_read_via_data_register_copy():
+    """Pattern Z: LEA table,Ax; MOVE.L 0(Ax,Dn.w),Dy; MOVEA.L Dy,Az; JMP (Az)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000C)          # [0x02] lea $0c(pc),a0 -> $10
+    code += struct.pack(">HH", 0x2230, 0x0000)          # [0x06] move.l 0(a0,d0.w),d1
+    code += struct.pack(">H", 0x2441)                    # [0x0a] movea.l d1,a2
+    code += struct.pack(">H", 0x4ED2)                    # [0x0c] jmp (a2)
+    code += struct.pack(">H", 0x4E71)                    # [0x0e] nop
+    code += struct.pack(">I", 0x00000018)                # [0x10] dc.l $18
+    code += struct.pack(">I", 0x0000001C)                # [0x14] dc.l $1c
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_z_indirect_pointer_read_via_data_register_copy: OK")
+
+
+def test_pattern_aa_postindexed_pointer_read_into_jump_register():
+    """Pattern AA: LEA ptr,Ax; MOVEA.L ([0,Ax],Dn.w,4),Ay; JMP (Ay)."""
+    code = b""
+    code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
+    code += struct.pack(">HH", 0x41FA, 0x000C)          # [0x02] lea $0c(pc),a0 -> $10
+    code += bytes.fromhex("2270212600000004")           # [0x06] movea.l ([0,a0],d2.w,4),a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x0e] jmp (a1)
+    code += struct.pack(">I", 0x00000014)                # [0x10] dc.l $14
+    code += struct.pack(">I", 0x00000000)                # [0x14] pad long
+    code += struct.pack(">I", 0x00000024)                # [0x18] dc.l $24
+    code += struct.pack(">I", 0x00000028)                # [0x1c] dc.l $28
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x20] nop; nop
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x28] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    assert 0x28 in t["targets"], f"Expected $0028 in targets, got {t['targets']}"
+    print("  pattern_aa_postindexed_pointer_read_into_jump_register: OK")
+
+
+def test_pattern_ab_word_offset_via_movea_immediate_base():
+    """Pattern AB: MOVEA.L #table,An; JMP disp(An,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += bytes.fromhex("207c00000010")               # [0x02] movea.l #$10,a0
+    code += struct.pack(">HH", 0x4EF0, 0x0000)          # [0x08] jmp 0(a0,d0.w)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0c] pad; pad
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x10] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_ab_word_offset_via_movea_immediate_base: OK")
+
+
+def test_pattern_ac_indirect_pointer_read_via_movea_immediate_base():
+    """Pattern AC: MOVEA.L #table,Ax; MOVEA.L 0(Ax,Dn.w),Ay; JMP (Ay)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += bytes.fromhex("207c00000012")               # [0x02] movea.l #$12,a0
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x0c] jmp (a1)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0e] pad; pad
+    code += struct.pack(">I", 0x00000018)                # [0x12] dc.l $18
+    code += struct.pack(">I", 0x0000001C)                # [0x16] dc.l $1c
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_ac_indirect_pointer_read_via_movea_immediate_base: OK")
+
+
+def test_pattern_ad_indirect_pointer_read_via_two_long_copies():
+    """Pattern AD: pointer load flows through two long register copies before JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000C)          # [0x02] lea $0c(pc),a0 -> $10
+    code += struct.pack(">HH", 0x2230, 0x0000)          # [0x06] move.l 0(a0,d0.w),d1
+    code += struct.pack(">H", 0x2401)                    # [0x0a] move.l d1,d2
+    code += struct.pack(">H", 0x2442)                    # [0x0c] movea.l d2,a2
+    code += struct.pack(">H", 0x4ED2)                    # [0x0e] jmp (a2)
+    code += struct.pack(">I", 0x00000018)                # [0x10] dc.l $18
+    code += struct.pack(">I", 0x0000001C)                # [0x14] dc.l $1c
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_ad_indirect_pointer_read_via_two_long_copies: OK")
+
+
+def test_pattern_ae_indirect_pointer_read_via_adjusted_loaded_pointer():
+    """Pattern AE: pointer loaded from table, then adjusted before JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000A)          # [0x02] lea $0a(pc),a0 -> $0e
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x5889)                    # [0x0a] addq.l #4,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x0c] jmp (a1)
+    code += struct.pack(">I", 0x00000014)                # [0x0e] dc.l $14
+    code += struct.pack(">I", 0x00000018)                # [0x12] dc.l $18
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_ae_indirect_pointer_read_via_adjusted_loaded_pointer: OK")
+
+
+def test_pattern_af_word_offset_via_constant_register_base_copy():
+    """Pattern AF: constant Dn copied into An before indexed word-offset JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7010)                    # [0x00] moveq #$10,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0x2040)                    # [0x04] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x06] jmp 0(a0,d1.w)
+    code += struct.pack(">HHH", 0x4E71, 0x4E71, 0x4E71) # [0x0a] pad to $10
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x10] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_af_word_offset_via_constant_register_base_copy: OK")
+
+
+def test_pattern_ag_indirect_pointer_read_via_constant_register_base_copy():
+    """Pattern AG: constant Dn copied into An before indexed long pointer load."""
+    code = b""
+    code += struct.pack(">H", 0x7012)                    # [0x00] moveq #$12,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0x2040)                    # [0x04] movea.l d0,a0
+    code += struct.pack(">HH", 0x2270, 0x1000)          # [0x06] movea.l 0(a0,d1.w),a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x0a] jmp (a1)
+    code += struct.pack(">HHH", 0x4E71, 0x4E71, 0x4E71) # [0x0c] pad to $12
+    code += struct.pack(">I", 0x0000001A)                # [0x12] dc.l $1a
+    code += struct.pack(">I", 0x0000001E)                # [0x16] dc.l $1e
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    assert 0x1E in t["targets"], f"Expected $001e in targets, got {t['targets']}"
+    print("  pattern_ag_indirect_pointer_read_via_constant_register_base_copy: OK")
+
+
+def test_pattern_ah_indirect_pointer_read_via_adjusted_constant_register_base_copy():
+    """Pattern AH: adjusted constant Dn copied into An before indexed pointer load."""
+    code = b""
+    code += struct.pack(">H", 0x7014)                    # [0x00] moveq #$14,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0x5880)                    # [0x04] addq.l #4,d0 -> $18
+    code += struct.pack(">H", 0x2040)                    # [0x06] movea.l d0,a0
+    code += struct.pack(">HH", 0x2270, 0x1000)          # [0x08] movea.l 0(a0,d1.w),a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x0c] jmp (a1)
+    code += struct.pack(">HHHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71)  # [0x0e] pad to $18
+    code += struct.pack(">I", 0x00000020)                # [0x18] dc.l $20
+    code += struct.pack(">I", 0x00000024)                # [0x1c] dc.l $24
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_ah_indirect_pointer_read_via_adjusted_constant_register_base_copy: OK")
+
+
+def test_pattern_ai_word_offset_via_clr_seeded_constant_register_base_copy():
+    """Pattern AI: CLR-seeded Dn copied into An before indexed word-offset JMP."""
+    code = b""
+    code += struct.pack(">H", 0x4280)                    # [0x00] clr.l d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0x5080)                    # [0x04] addq.l #8,d0
+    code += struct.pack(">H", 0x5880)                    # [0x06] addq.l #4,d0
+    code += struct.pack(">H", 0x5880)                    # [0x08] addq.l #4,d0 -> $10
+    code += struct.pack(">H", 0x2040)                    # [0x0a] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0c] jmp 0(a0,d1.w)
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x10] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_ai_word_offset_via_clr_seeded_constant_register_base_copy: OK")
+
+
+def test_pattern_aj_indirect_pointer_read_via_data_register_adjust_after_copy():
+    """Pattern AJ: loaded pointer copied through Dn, adjusted, then moved to jump An."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x02] lea $0e(pc),a0 -> $12
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += struct.pack(">H", 0x5882)                    # [0x0c] addq.l #4,d2
+    code += struct.pack(">H", 0x2642)                    # [0x0e] movea.l d2,a3
+    code += struct.pack(">H", 0x4ED3)                    # [0x10] jmp (a3)
+    code += struct.pack(">I", 0x00000018)                # [0x12] dc.l $18
+    code += struct.pack(">I", 0x0000001C)                # [0x16] dc.l $1c
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    print("  pattern_aj_indirect_pointer_read_via_data_register_adjust_after_copy: OK")
+
+
+def test_pattern_ak_word_offset_via_register_add_constant_base():
+    """Pattern AK: constant Dm added into base Dn before MOVEA and indexed JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7010)                    # [0x00] moveq #$10,d0
+    code += struct.pack(">H", 0x7404)                    # [0x02] moveq #4,d2
+    code += struct.pack(">H", 0x7200)                    # [0x04] moveq #0,d1
+    code += struct.pack(">H", 0xD082)                    # [0x06] add.l d2,d0 -> $14
+    code += struct.pack(">H", 0x2040)                    # [0x08] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">HHH", 0x4E71, 0x4E71, 0x4E71) # [0x0e] pad to $14
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x14] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1E in t["targets"], f"Expected $001e in targets, got {t['targets']}"
+    print("  pattern_ak_word_offset_via_register_add_constant_base: OK")
+
+
+def test_pattern_al_indirect_pointer_read_via_register_add_constant_after_copy():
+    """Pattern AL: loaded pointer copied through Dn and adjusted by constant Dm."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x43FA, 0x0010)          # [0x02] lea $10(pc),a1 -> $14
+    code += struct.pack(">HH", 0x2471, 0x0000)          # [0x06] movea.l 0(a1,d0.w),a2
+    code += struct.pack(">H", 0x260A)                    # [0x0a] move.l a2,d3
+    code += struct.pack(">H", 0x7804)                    # [0x0c] moveq #4,d4
+    code += struct.pack(">H", 0xD684)                    # [0x0e] add.l d4,d3
+    code += struct.pack(">H", 0x2A43)                    # [0x10] movea.l d3,a5
+    code += struct.pack(">H", 0x4ED5)                    # [0x12] jmp (a5)
+    code += struct.pack(">I", 0x0000001C)                # [0x14] dc.l $1c
+    code += struct.pack(">I", 0x00000020)                # [0x18] dc.l $20
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_al_indirect_pointer_read_via_register_add_constant_after_copy: OK")
+
+
+def test_pattern_am_word_offset_via_register_add_constant_base_adjustment():
+    """Pattern AM: LEA base,An; ADDA.L Dn,An with constant Dn; JMP disp(An,Dm.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7404)                    # [0x00] moveq #4,d2
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x04] lea $0e(pc),a0 -> $14
+    code += struct.pack(">H", 0xD1C2)                    # [0x08] adda.l d2,a0 -> $18
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">HHHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71)  # [0x0e] pad to $18
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x18] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    assert 0x22 in t["targets"], f"Expected $0022 in targets, got {t['targets']}"
+    print("  pattern_am_word_offset_via_register_add_constant_base_adjustment: OK")
+
+
+def test_pattern_an_word_offset_via_shifted_constant_register_base():
+    """Pattern AN: constant Dn shifted before MOVEA and indexed word-offset JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7004)                    # [0x00] moveq #4,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0xE588)                    # [0x04] lsl.l #2,d0 -> $10
+    code += struct.pack(">H", 0x2040)                    # [0x06] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x08] jmp 0(a0,d1.w)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0c] pad to $10
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x10] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_an_word_offset_via_shifted_constant_register_base: OK")
+
+
+def test_pattern_ao_word_offset_via_masked_constant_register_base():
+    """Pattern AO: constant Dn masked by immediate logical op before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x701F)                    # [0x00] moveq #$1f,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += bytes.fromhex("02800000001c")               # [0x04] andi.l #$1c,d0
+    code += struct.pack(">H", 0x2040)                    # [0x0a] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0c] jmp 0(a0,d1.w)
+    code += struct.pack(">HHHHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71)  # [0x10] pad to $1c
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x1c] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x26 in t["targets"], f"Expected $0026 in targets, got {t['targets']}"
+    print("  pattern_ao_word_offset_via_masked_constant_register_base: OK")
+
+
+def test_pattern_aq_word_offset_via_register_shifted_constant_register_base():
+    """Pattern AQ: constant Dn shifted by constant Dm before MOVEA and indexed JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7004)                    # [0x00] moveq #4,d0
+    code += struct.pack(">H", 0x7402)                    # [0x02] moveq #2,d2
+    code += struct.pack(">H", 0x7200)                    # [0x04] moveq #0,d1
+    code += struct.pack(">H", 0xE5A8)                    # [0x06] lsl.l d2,d0 -> $10
+    code += struct.pack(">H", 0x2040)                    # [0x08] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">H", 0x4E71)                    # [0x0e] pad to $10
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x10] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_aq_word_offset_via_register_shifted_constant_register_base: OK")
+
+
+def test_pattern_ar_word_offset_via_register_or_constant_base():
+    """Pattern AR: constant Dn ORed with constant source register before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7010)                    # [0x00] moveq #$10,d0
+    code += struct.pack(">H", 0x740C)                    # [0x02] moveq #$0c,d2
+    code += struct.pack(">H", 0x7200)                    # [0x04] moveq #0,d1
+    code += struct.pack(">H", 0x8082)                    # [0x06] or.l d2,d0 -> $1c
+    code += struct.pack(">H", 0x2040)                    # [0x08] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">HHHHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71)  # [0x0e] pad to $1c
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x1c] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x26 in t["targets"], f"Expected $0026 in targets, got {t['targets']}"
+    print("  pattern_ar_word_offset_via_register_or_constant_base: OK")
+
+
+def test_pattern_as_word_offset_via_not_constant_register_base():
+    """Pattern AS: constant Dn transformed by NOT before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x70E3)                    # [0x00] moveq #$e3,d0 -> -29
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0x4680)                    # [0x04] not.l d0 -> $1c
+    code += struct.pack(">H", 0x2040)                    # [0x06] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x08] jmp 0(a0,d1.w)
+    code += struct.pack(">HHHHHHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71)  # [0x0c] pad to $1c
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x1c] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x26 in t["targets"], f"Expected $0026 in targets, got {t['targets']}"
+    print("  pattern_as_word_offset_via_not_constant_register_base: OK")
+
+
+def test_pattern_at_indirect_pointer_read_via_unary_transformed_loaded_pointer():
+    """Pattern AT: loaded pointer copied through Dn, unary-transformed, then jumped.""" 
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x02] lea $0e(pc),a0 -> $12
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += struct.pack(">H", 0x4682)                    # [0x0c] not.l d2
+    code += struct.pack(">H", 0x2242)                    # [0x0e] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x10] jmp (a1)
+    code += struct.pack(">I", 0xFFFFFFE7)                # [0x12] dc.l ~$18
+    code += struct.pack(">I", 0xFFFFFFE3)                # [0x16] dc.l ~$1c
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_at_indirect_pointer_read_via_unary_transformed_loaded_pointer: OK")
+
+
+def test_pattern_au_word_offset_via_swapped_constant_register_base():
+    """Pattern AU: constant Dn transformed by SWAP before MOVEA/JMP."""
+    code = b""
+    code += bytes.fromhex("203c00100000")               # [0x00] move.l #$00100000,d0
+    code += struct.pack(">H", 0x7200)                    # [0x06] moveq #0,d1
+    code += struct.pack(">H", 0x4840)                    # [0x08] swap d0 -> $10
+    code += struct.pack(">H", 0x2040)                    # [0x0a] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0c] jmp 0(a0,d1.w)
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x10] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_au_word_offset_via_swapped_constant_register_base: OK")
+
+
+def test_pattern_av_word_offset_via_ext_constant_register_base():
+    """Pattern AV: constant Dn sign-extended by EXT before MOVEA/JMP."""
+    code = b""
+    code += bytes.fromhex("203c00000080")               # [0x00] move.l #$00000080,d0
+    code += struct.pack(">H", 0x7200)                    # [0x06] moveq #0,d1
+    code += struct.pack(">H", 0x4880)                    # [0x08] ext.w d0 -> $0000ff80
+    code += struct.pack(">H", 0x2040)                    # [0x0a] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0c] jmp 0(a0,d1.w)
+    code += bytes(0xFF80 - len(code))                    # pad to $ff80
+    code += struct.pack(">hhh", 0, 4, 10)               # [$ff80] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$ff86] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$ff8a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0xFF80 in t["targets"], f"Expected $ff80 in targets, got {t['targets']}"
+    assert 0xFF84 in t["targets"], f"Expected $ff84 in targets, got {t['targets']}"
+    assert 0xFF8A in t["targets"], f"Expected $ff8a in targets, got {t['targets']}"
+    print("  pattern_av_word_offset_via_ext_constant_register_base: OK")
+
+
+def test_pattern_aw_indirect_pointer_read_via_swapped_loaded_pointer():
+    """Pattern AW: loaded pointer copied through Dn, swapped, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x02] lea $0e(pc),a0 -> $12
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += struct.pack(">H", 0x4842)                    # [0x0c] swap d2
+    code += struct.pack(">H", 0x2242)                    # [0x0e] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x10] jmp (a1)
+    code += struct.pack(">I", 0x00180000)                # [0x12] dc.l $00180000
+    code += struct.pack(">I", 0x001C0000)                # [0x16] dc.l $001c0000
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_aw_indirect_pointer_read_via_swapped_loaded_pointer: OK")
+
+
+def test_pattern_ax_indirect_pointer_read_via_sign_extended_loaded_pointer():
+    """Pattern AX: loaded pointer copied through Dn, EXT-transformed, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x02] lea $0e(pc),a0 -> $12
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += struct.pack(">H", 0x4882)                    # [0x0c] ext.w d2
+    code += struct.pack(">H", 0x2242)                    # [0x0e] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x10] jmp (a1)
+    code += struct.pack(">I", 0x000000F8)                # [0x12] dc.l sign-extends to $0000fff8
+    code += struct.pack(">I", 0x00000000)                # [0x16] stopper
+    code += bytes(0xFFF8 - len(code))                    # pad to $fff8
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$fff8] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0xFFF8 in t["targets"], f"Expected $fff8 in targets, got {t['targets']}"
+    print("  pattern_ax_indirect_pointer_read_via_sign_extended_loaded_pointer: OK")
+
+
+def test_pattern_ay_full_extension_postindexed_pointer_dispatch():
+    """Pattern AY: LEA ptr,Ax; JMP ([0,Ax],Dn.w,4) through long pointers."""
+    code = b""
+    code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
+    code += struct.pack(">HH", 0x41FA, 0x000C)          # [0x02] lea $0c(pc),a0 -> $10
+    code += bytes.fromhex("4ef0212600000004")           # [0x06] jmp ([0,a0],d2.w,4)
+    code += struct.pack(">H", 0x4E71)                    # [0x0e] pad to $10
+    code += struct.pack(">I", 0x00000014)                # [0x10] dc.l $14
+    code += struct.pack(">I", 0x00000000)                # [0x14] pad long
+    code += struct.pack(">I", 0x00000024)                # [0x18] dc.l $24
+    code += struct.pack(">I", 0x00000028)                # [0x1c] dc.l $28
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x20] nop; nop
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x28] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "memory_indirect_postindexed_long_pointer", (
+        f"Expected pattern 'memory_indirect_postindexed_long_pointer', got {t['pattern']!r}")
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    assert 0x28 in t["targets"], f"Expected $0028 in targets, got {t['targets']}"
+    print("  pattern_ay_full_extension_postindexed_pointer_dispatch: OK")
+
+
+def test_pattern_az_pc_full_extension_postindexed_pointer_dispatch():
+    """Pattern AZ: JMP ([0,PC],Dn.w,4) through long pointers."""
+    code = b""
+    code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
+    code += bytes.fromhex("4efb2126000c0004")           # [0x02] jmp ([12,pc],d2.w,4)
+    code += struct.pack(">HHH", 0x4E71, 0x4E71, 0x4E71) # [0x0a] pad to $10
+    code += struct.pack(">I", 0x00000014)                # [0x10] dc.l $14
+    code += struct.pack(">I", 0x00000000)                # [0x14] pad long
+    code += struct.pack(">I", 0x00000024)                # [0x18] dc.l $24
+    code += struct.pack(">I", 0x00000028)                # [0x1c] dc.l $28
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x20] nop; nop
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x28] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "pc_memory_indirect_postindexed_long_pointer", (
+        f"Expected pattern 'pc_memory_indirect_postindexed_long_pointer', got {t['pattern']!r}")
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    assert 0x28 in t["targets"], f"Expected $0028 in targets, got {t['targets']}"
+    print("  pattern_az_pc_full_extension_postindexed_pointer_dispatch: OK")
+
+
+def test_pattern_ba_word_offset_via_multiplied_constant_register_base():
+    """Pattern BA: constant Dn multiplied by constant source before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7007)                    # [0x00] moveq #7,d0
+    code += struct.pack(">H", 0x7404)                    # [0x02] moveq #4,d2
+    code += struct.pack(">H", 0x7200)                    # [0x04] moveq #0,d1
+    code += struct.pack(">H", 0xC0C2)                    # [0x06] mulu.w d2,d0 -> $1c
+    code += struct.pack(">H", 0x2040)                    # [0x08] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">HHHHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71)  # [0x0e] pad to $1c
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x1c] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x26 in t["targets"], f"Expected $0026 in targets, got {t['targets']}"
+    print("  pattern_ba_word_offset_via_multiplied_constant_register_base: OK")
+
+
+def test_pattern_bb_word_offset_via_divided_constant_register_base():
+    """Pattern BB: constant Dn divided by constant source before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7070)                    # [0x00] moveq #112,d0
+    code += struct.pack(">H", 0x7404)                    # [0x02] moveq #4,d2
+    code += struct.pack(">H", 0x7200)                    # [0x04] moveq #0,d1
+    code += struct.pack(">H", 0x80C2)                    # [0x06] divu.w d2,d0 -> $1c
+    code += struct.pack(">H", 0x2040)                    # [0x08] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">HHHHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71)  # [0x0e] pad to $1c
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x1c] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x26 in t["targets"], f"Expected $0026 in targets, got {t['targets']}"
+    print("  pattern_bb_word_offset_via_divided_constant_register_base: OK")
+
+
+def test_pattern_bc_indirect_pointer_read_via_multiplied_loaded_pointer():
+    """Pattern BC: loaded pointer copied through Dn, multiplied, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x02] lea $10(pc),a0 -> $14
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += bytes.fromhex("c4fc0004")                   # [0x0c] mulu.w #$4,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">I", 0x00000006)                # [0x14] dc.l $06
+    code += struct.pack(">I", 0x00000007)                # [0x18] dc.l $07
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_bc_indirect_pointer_read_via_multiplied_loaded_pointer: OK")
+
+
+def test_pattern_bd_indirect_pointer_read_via_divided_loaded_pointer():
+    """Pattern BD: loaded pointer copied through Dn, divided, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x02] lea $10(pc),a0 -> $14
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += bytes.fromhex("84fc0004")                   # [0x0c] divu.w #$4,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">I", 0x00000080)                # [0x14] dc.l $80
+    code += struct.pack(">I", 0x00000090)                # [0x18] dc.l $90
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_bd_indirect_pointer_read_via_divided_loaded_pointer: OK")
+
+
+def test_pattern_be_indirect_pointer_read_via_register_multiplied_loaded_pointer():
+    """Pattern BE: loaded pointer copied through Dn, multiplied by constant register, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7604)                    # [0x02] moveq #4,d3
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x04] lea $10(pc),a0 -> $16
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0c] move.l a1,d2
+    code += struct.pack(">H", 0xC4C3)                    # [0x0e] mulu.w d3,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">H", 0x4E71)                    # [0x14] pad to $16
+    code += struct.pack(">I", 0x00000006)                # [0x16] dc.l $06
+    code += struct.pack(">I", 0x00000007)                # [0x1a] dc.l $07
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_be_indirect_pointer_read_via_register_multiplied_loaded_pointer: OK")
+
+
+def test_pattern_bf_indirect_pointer_read_via_register_divided_loaded_pointer():
+    """Pattern BF: loaded pointer copied through Dn, divided by constant register, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7604)                    # [0x02] moveq #4,d3
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x04] lea $10(pc),a0 -> $16
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0c] move.l a1,d2
+    code += struct.pack(">H", 0x84C3)                    # [0x0e] divu.w d3,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">H", 0x4E71)                    # [0x14] pad to $16
+    code += struct.pack(">I", 0x00000080)                # [0x16] dc.l $80
+    code += struct.pack(">I", 0x00000090)                # [0x1a] dc.l $90
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_bf_indirect_pointer_read_via_register_divided_loaded_pointer: OK")
+
+
+def test_pattern_bg_indirect_pointer_read_via_register_shifted_loaded_pointer():
+    """Pattern BG: loaded pointer copied through Dn, shifted by constant register, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7602)                    # [0x02] moveq #2,d3
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x04] lea $10(pc),a0 -> $16
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0c] move.l a1,d2
+    code += struct.pack(">H", 0xE7AA)                    # [0x0e] lsl.l d3,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">H", 0x4E71)                    # [0x14] pad to $16
+    code += struct.pack(">I", 0x00000006)                # [0x16] dc.l $06
+    code += struct.pack(">I", 0x00000007)                # [0x1a] dc.l $07
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_bg_indirect_pointer_read_via_register_shifted_loaded_pointer: OK")
+
+
+def test_pattern_bh_indirect_pointer_read_via_register_logical_loaded_pointer():
+    """Pattern BH: loaded pointer copied through Dn, ORed with constant register, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7608)                    # [0x02] moveq #8,d3
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x04] lea $10(pc),a0 -> $16
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0c] move.l a1,d2
+    code += struct.pack(">H", 0x8483)                    # [0x0e] or.l d3,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">H", 0x4E71)                    # [0x14] pad to $16
+    code += struct.pack(">I", 0x00000010)                # [0x16] dc.l $10
+    code += struct.pack(">I", 0x00000014)                # [0x1a] dc.l $14
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_bh_indirect_pointer_read_via_register_logical_loaded_pointer: OK")
+
+
+def test_pattern_bi_indirect_pointer_read_via_register_divided_loaded_pointer():
+    """Pattern BI: loaded pointer copied through Dn, divided by constant register, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7604)                    # [0x02] moveq #4,d3
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x04] lea $10(pc),a0 -> $16
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0c] move.l a1,d2
+    code += struct.pack(">H", 0x84C3)                    # [0x0e] divu.w d3,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">H", 0x4E71)                    # [0x14] pad to $16
+    code += struct.pack(">I", 0x00000080)                # [0x16] dc.l $80
+    code += struct.pack(">I", 0x00000090)                # [0x1a] dc.l $90
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_bi_indirect_pointer_read_via_register_divided_loaded_pointer: OK")
+
+
+def test_pattern_bj_word_offset_via_rotated_constant_register_base():
+    """Pattern BJ: constant Dn rotated before MOVEA and indexed JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7001)                    # [0x00] moveq #1,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0xE998)                    # [0x04] rol.l #4,d0 -> $10
+    code += struct.pack(">H", 0x2040)                    # [0x06] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x08] jmp 0(a0,d1.w)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0c] pad to $10
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x10] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_bj_word_offset_via_rotated_constant_register_base: OK")
+
+
+def test_pattern_bk_indirect_pointer_read_via_register_rotated_loaded_pointer():
+    """Pattern BK: loaded pointer copied through Dn, rotated by constant register, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7601)                    # [0x02] moveq #1,d3
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x04] lea $10(pc),a0 -> $16
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0c] move.l a1,d2
+    code += struct.pack(">H", 0xE7BA)                    # [0x0e] rol.l d3,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">H", 0x4E71)                    # [0x14] pad to $16
+    code += struct.pack(">I", 0x0000000C)                # [0x16] dc.l $0c
+    code += struct.pack(">I", 0x0000000E)                # [0x1a] dc.l $0e
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_bk_indirect_pointer_read_via_register_rotated_loaded_pointer: OK")
+
+
+def test_pattern_bl_word_offset_via_exg_base_copy():
+    """Pattern BL: LEA base,Ax; EXG Ax,Ay; JMP disp(Ay,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x0008)          # [0x02] lea $08(pc),a0 -> $0c
+    code += struct.pack(">H", 0xC149)                    # [0x06] exg a0,a1
+    code += struct.pack(">HH", 0x4EF1, 0x0000)          # [0x08] jmp 0(a1,d0.w)
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x0c] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x0C in t["targets"], f"Expected $000c in targets, got {t['targets']}"
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    print("  pattern_bl_word_offset_via_exg_base_copy: OK")
+
+
+def test_pattern_bm_indirect_pointer_read_via_exg_loaded_pointer_copy():
+    """Pattern BM: loaded pointer swapped into Dn with EXG, then moved back to An for jump."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7400)                    # [0x02] moveq #0,d2
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x04] lea $0e(pc),a0 -> $14
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0xC589)                    # [0x0c] exg d2,a1
+    code += struct.pack(">H", 0x2442)                    # [0x0e] movea.l d2,a2
+    code += struct.pack(">H", 0x4ED2)                    # [0x10] jmp (a2)
+    code += struct.pack(">H", 0x4E71)                    # [0x12] pad
+    code += struct.pack(">I", 0x0000001C)                # [0x14] dc.l $1c
+    code += struct.pack(">I", 0x00000020)                # [0x18] dc.l $20
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    print("  pattern_bm_indirect_pointer_read_via_exg_loaded_pointer_copy: OK")
+
+
+def test_pattern_bn_word_offset_via_bitset_constant_register_base():
+    """Pattern BN: constant Dn bit-set before MOVEA and indexed JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7002)                    # [0x00] moveq #2,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += bytes.fromhex("08c00004")                   # [0x04] bset #4,d0 -> $12
+    code += struct.pack(">H", 0x2040)                    # [0x08] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0e] pad to $12
+    code += struct.pack(">hhh", -2, 2, 8)               # [0x12] dc.w table -> $10,$14,$1a
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_bn_word_offset_via_bitset_constant_register_base: OK")
+
+
+def test_pattern_bo_indirect_pointer_read_via_bitset_loaded_pointer():
+    """Pattern BO: loaded pointer copied through Dn, bit-set, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x0010)          # [0x02] lea $10(pc),a0 -> $14
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += bytes.fromhex("08c20002")                   # [0x0c] bset #2,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">I", 0x00000018)                # [0x14] dc.l $18 -> bset #2 => $1c
+    code += struct.pack(">I", 0x00000020)                # [0x18] dc.l $20 -> bset #2 => $24
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_bo_indirect_pointer_read_via_bitset_loaded_pointer: OK")
+
+
+def test_pattern_bp_word_offset_via_register_bitset_constant_base():
+    """Pattern BP: constant Dn bit-set by constant register before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7604)                    # [0x02] moveq #4,d3
+    code += struct.pack(">H", 0x7200)                    # [0x04] moveq #0,d1
+    code += struct.pack(">H", 0x07C0)                    # [0x06] bset d3,d0 -> $10
+    code += struct.pack(">H", 0x2040)                    # [0x08] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">H", 0x4E71)                    # [0x0e] pad to $10
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x10] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_bp_word_offset_via_register_bitset_constant_base: OK")
+
+
+def test_pattern_bq_indirect_pointer_read_via_register_bitset_loaded_pointer():
+    """Pattern BQ: loaded pointer copied through Dn, bit-set by constant register, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">H", 0x7602)                    # [0x02] moveq #2,d3
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x04] lea $0e(pc),a0 -> $14
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x08] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0c] move.l a1,d2
+    code += struct.pack(">H", 0x07C2)                    # [0x0e] bset d3,d2
+    code += struct.pack(">H", 0x2242)                    # [0x10] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x12] jmp (a1)
+    code += struct.pack(">I", 0x00000018)                # [0x14] dc.l $18 -> $1c
+    code += struct.pack(">I", 0x00000020)                # [0x18] dc.l $20 -> $24
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
+    print("  pattern_bq_indirect_pointer_read_via_register_bitset_loaded_pointer: OK")
+
+
+def test_pattern_br_word_offset_via_tas_constant_register_base():
+    """Pattern BR: constant Dn TAS-updated before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x7018)                    # [0x00] moveq #$18,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0x4AC0)                    # [0x04] tas d0 -> $98
+    code += struct.pack(">H", 0x2040)                    # [0x06] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x08] jmp 0(a0,d1.w)
+    code += bytes(0x98 - len(code))                     # pad to $98
+    code += struct.pack(">hhh", 0, 4, 10)               # [$98] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$9e] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$a2] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x98 in t["targets"], f"Expected $0098 in targets, got {t['targets']}"
+    assert 0x9C in t["targets"], f"Expected $009c in targets, got {t['targets']}"
+    assert 0xA2 in t["targets"], f"Expected $00a2 in targets, got {t['targets']}"
+    print("  pattern_br_word_offset_via_tas_constant_register_base: OK")
+
+
+def test_pattern_bs_indirect_pointer_read_via_tas_loaded_pointer():
+    """Pattern BS: loaded pointer copied through Dn, TAS-updated, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x02] lea $0e(pc),a0 -> $12
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += struct.pack(">H", 0x4AC2)                    # [0x0c] tas d2
+    code += struct.pack(">H", 0x2242)                    # [0x0e] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x10] jmp (a1)
+    code += struct.pack(">I", 0x00000018)                # [0x12] dc.l $18 -> $98
+    code += struct.pack(">I", 0x00000020)                # [0x16] dc.l $20 -> $A0
+    code += bytes(0x98 - len(code))                     # pad to $98
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$98] nop; rts
+    code += bytes(0xA0 - len(code))                     # pad to $a0
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$a0] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x98 in t["targets"], f"Expected $0098 in targets, got {t['targets']}"
+    assert 0xA0 in t["targets"], f"Expected $00a0 in targets, got {t['targets']}"
+    print("  pattern_bs_indirect_pointer_read_via_tas_loaded_pointer: OK")
+
+
+def test_pattern_bt_word_offset_via_tst_constant_register_base():
+    """Pattern BT: constant Dn TSTed before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x700C)                    # [0x00] moveq #$0c,d0
+    code += struct.pack(">H", 0x7200)                    # [0x02] moveq #0,d1
+    code += struct.pack(">H", 0x4A80)                    # [0x04] tst.l d0
+    code += struct.pack(">H", 0x2040)                    # [0x06] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x08] jmp 0(a0,d1.w)
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x0c] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x0C in t["targets"], f"Expected $000c in targets, got {t['targets']}"
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    print("  pattern_bt_word_offset_via_tst_constant_register_base: OK")
+
+
+def test_pattern_bu_indirect_pointer_read_via_tst_loaded_pointer():
+    """Pattern BU: loaded pointer copied through Dn, TSTed, then jumped."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x41FA, 0x000E)          # [0x02] lea $0e(pc),a0 -> $12
+    code += struct.pack(">HH", 0x2270, 0x0000)          # [0x06] movea.l 0(a0,d0.w),a1
+    code += struct.pack(">H", 0x2409)                    # [0x0a] move.l a1,d2
+    code += struct.pack(">H", 0x4A82)                    # [0x0c] tst.l d2
+    code += struct.pack(">H", 0x2242)                    # [0x0e] movea.l d2,a1
+    code += struct.pack(">H", 0x4ED1)                    # [0x10] jmp (a1)
+    code += struct.pack(">I", 0x00000018)                # [0x12] dc.l $18
+    code += struct.pack(">I", 0x0000001C)                # [0x16] dc.l $1c
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
+    assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
+    print("  pattern_bu_indirect_pointer_read_via_tst_loaded_pointer: OK")
+
+
+def test_pattern_ap_word_offset_via_register_logical_constant_base():
+    """Pattern AP: constant Dn masked by constant register source before MOVEA/JMP."""
+    code = b""
+    code += struct.pack(">H", 0x701F)                    # [0x00] moveq #$1f,d0
+    code += struct.pack(">H", 0x741C)                    # [0x02] moveq #$1c,d2
+    code += struct.pack(">H", 0x7200)                    # [0x04] moveq #0,d1
+    code += struct.pack(">H", 0xC082)                    # [0x06] and.l d2,d0
+    code += struct.pack(">H", 0x2040)                    # [0x08] movea.l d0,a0
+    code += struct.pack(">HH", 0x4EF0, 0x1000)          # [0x0a] jmp 0(a0,d1.w)
+    code += struct.pack(">HHHHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71, 0x4E71)  # [0x0e] pad to $1c
+    code += struct.pack(">hhh", 0, 4, 10)               # [0x1c] dc.w table
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
+    assert 0x26 in t["targets"], f"Expected $0026 in targets, got {t['targets']}"
+    print("  pattern_ap_word_offset_via_register_logical_constant_base: OK")
+
+
+def test_pattern_t_indirect_pointer_read_via_movea_pcdisp_and_reg_copy():
+    """Pattern T: MOVEA.L d(PC),Ax; MOVEA.L Ax,Ay; MOVEA.L 0(Ay,Dn.w),Az; JMP (Az)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x207A, 0x000A)          # [0x02] movea.l 10(pc),a0 -> $0e
+    code += struct.pack(">H", 0x2248)                    # [0x06] movea.l a0,a1
+    code += struct.pack(">HH", 0x2671, 0x0000)          # [0x08] movea.l 0(a1,d0.w),a3
+    code += struct.pack(">H", 0x4ED3)                    # [0x0c] jmp (a3)
+    code += struct.pack(">I", 0x00000016)                # [0x0e] dc.l $16
+    code += struct.pack(">I", 0x0000001A)                # [0x12] dc.l $1a
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "indirect_pointer_read", (
+        f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
+    assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_t_indirect_pointer_read_via_movea_pcdisp_and_reg_copy: OK")
+
+
+def test_pattern_u_word_offset_via_movea_pcdisp_and_addq():
+    """Pattern U: MOVEA.L d(PC),An; ADDQ.L #imm,An; JMP disp(An,Dn.w)."""
+    code = b""
+    code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
+    code += struct.pack(">HH", 0x207A, 0x0008)          # [0x02] movea.l 8(pc),a0 -> $0c
+    code += struct.pack(">H", 0x5888)                    # [0x06] addq.l #4,a0 -> $10
+    code += struct.pack(">HH", 0x4EF0, 0x0000)          # [0x08] jmp 0(a0,d0.w)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)          # [0x0c] pad; pad
+    code += struct.pack(">hhh", 0, 4, 10)                # [0x10] dc.w 0,4,10
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
+
+    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, code)
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "word_offset", (
+        f"Expected pattern 'word_offset', got {t['pattern']!r}")
+    assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
+    assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
+    assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
+    print("  pattern_u_word_offset_via_movea_pcdisp_and_addq: OK")
 
 
 # ---- 12. Backward slice skips call predecessors ----------------------------

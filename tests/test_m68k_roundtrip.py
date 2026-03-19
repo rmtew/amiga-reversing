@@ -16,7 +16,8 @@ from pathlib import Path
 import pytest
 
 from m68k.hunk_parser import parse_file
-from m68k.m68k_disasm import DecodeError, disassemble
+from m68k.decode_errors import DecodeError
+from m68k.m68k_disasm import disassemble
 
 
 # ── Paths ────────────────────────────────────────────────────────────────

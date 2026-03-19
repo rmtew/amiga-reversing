@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import re
-
-from m68k.kb_util import KB
-from m68k.m68k_executor import _extract_mnemonic
+from m68k.kb_util import KB, decode_instruction_operands
 
 
 def collect_data_access_sizes(blocks: dict, exit_states: dict) -> dict[int, int]:
@@ -19,36 +16,30 @@ def collect_data_access_sizes(blocks: dict, exit_states: dict) -> dict[int, int]
         cpu, _mem = exit_states[addr]
 
         for inst in block.instructions:
-            text = inst.text.lower()
-            mnemonic = _extract_mnemonic(text)
-            if not mnemonic:
+            if not inst.operand_size:
                 continue
-            size_match = re.search(rf'{re.escape(mnemonic)}\.([bwl])', text)
-            if not size_match:
-                continue
-            byte_size = size_map.get(size_match.group(1))
+            byte_size = size_map.get(inst.operand_size)
             if not byte_size:
                 continue
+            inst_kb = kb.instruction_kb(inst)
+            decoded = decode_instruction_operands(
+                inst.raw, inst_kb, kb.meta, inst.operand_size, inst.offset)
 
-            for index in range(num_addr_regs):
-                reg_val = cpu.a[index]
+            for op in (decoded.get("ea_op"), decoded.get("dst_op")):
+                if op is None or op.reg is None:
+                    continue
+                if op.mode not in {"ind", "postinc", "disp"}:
+                    continue
+                if op.reg >= num_addr_regs:
+                    raise ValueError(
+                        f"Address register index {op.reg} out of range for ${inst.offset:06x}")
+                reg_val = cpu.a[op.reg]
                 if not reg_val.is_known:
                     continue
                 addr_val = reg_val.concrete
-                pat = rf'\(a{index}\)\+?'
-                if re.search(pat, text):
-                    if addr_val not in sizes or byte_size > sizes[addr_val]:
-                        sizes[addr_val] = byte_size
-
-            for index in range(num_addr_regs):
-                reg_val = cpu.a[index]
-                if not reg_val.is_known:
-                    continue
-                match = re.search(rf'(-?\d+)\(a{index}\)', text)
-                if match:
-                    disp = int(match.group(1))
-                    ea_addr = (reg_val.concrete + disp) & 0xFFFFFFFF
-                    if ea_addr not in sizes or byte_size > sizes[ea_addr]:
-                        sizes[ea_addr] = byte_size
+                if op.mode == "disp":
+                    addr_val = (addr_val + op.value) & 0xFFFFFFFF
+                if addr_val not in sizes or byte_size > sizes[addr_val]:
+                    sizes[addr_val] = byte_size
 
     return sizes

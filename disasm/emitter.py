@@ -144,9 +144,9 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 for inst in blk.instructions:
                     if inst.offset != pos and inst.offset in hunk_session.labels:
                         emit_label(inst.offset)
-                    if (not is_valid_encoding(inst.text, inst.raw,
+                    if (not is_valid_encoding(inst.raw,
                                                inst.offset, hunk_session.kb,
-                                               inst.kb_mnemonic)
+                                               inst.kb_mnemonic, inst.operand_size)
                             or not has_valid_branch_target(inst, hunk_session.kb)):
                         emit_data(inst.offset, inst.offset + inst.size, entity_addr)
                         continue

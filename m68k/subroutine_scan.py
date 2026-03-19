@@ -14,8 +14,9 @@ Usage:
 
 import struct
 
-from .m68k_disasm import _Decoder, _decode_one, DecodeError
-from .m68k_executor import BasicBlock, _extract_mnemonic
+from .decode_errors import DecodeError
+from .m68k_disasm import _Decoder, _decode_one
+from .m68k_executor import BasicBlock
 from .kb_util import KB
 
 
@@ -75,9 +76,7 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
         if next_pos > end:
             return None  # would overlap known code
 
-        ikb = kb.find(_extract_mnemonic(inst.text))
-        if ikb is None:
-            return None  # unrecognized instruction
+        ikb = kb.instruction_kb(inst)
         pc_effects = ikb.get("pc_effects")
         if pc_effects is None:
             ft = None

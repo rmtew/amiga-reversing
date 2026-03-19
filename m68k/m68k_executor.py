@@ -17,8 +17,10 @@ import sys
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
+from .decode_errors import DecodeError
+from .ea_extension import parse_full_extension
 from .m68k_compute import _to_signed
-from .m68k_disasm import disassemble, Instruction, DecodeError, _Decoder, _decode_one
+from .m68k_disasm import disassemble, Instruction, _Decoder, _decode_one
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────
@@ -163,6 +165,14 @@ class Operand:
     index_is_addr: bool = False       # True if index is An, False if Dn
     index_size: str = "w"             # "w" or "l" for index register
     size: str | None = None           # operand size for immediates
+    index_scale: int = 1
+    full_extension: bool = False
+    memory_indirect: bool = False
+    postindexed: bool = False
+    base_suppressed: bool = False
+    index_suppressed: bool = False
+    base_displacement: int | None = None
+    outer_displacement: int | None = None
 
 
 @dataclass
@@ -208,6 +218,26 @@ def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
         if pos + 2 > len(data):
             raise ValueError("Truncated index extension word")
         ext = struct.unpack_from(">H", data, pos)[0]
+        if ext & 0x0100:
+            info, pos = parse_full_extension(
+                ext, data, pos + 2, _KB_META,
+                base_register=f"a{reg}", pc_offset=None)
+            return Operand(
+                mode="index",
+                reg=reg,
+                value=info["base_displacement"],
+                index_reg=info["index_reg_num"],
+                index_is_addr=info["index_is_addr"],
+                index_size=info["index_size"] or "w",
+                index_scale=info["index_scale"] or 1,
+                full_extension=True,
+                memory_indirect=bool(info["memory_indirect"]),
+                postindexed=bool(info["postindexed"]),
+                base_suppressed=bool(info["base_suppressed"]),
+                index_suppressed=bool(info["index_suppressed"]),
+                base_displacement=info["base_displacement"],
+                outer_displacement=info["outer_displacement"],
+            ), pos
         bf = _BRIEF_EXT_FIELDS
         xreg = _xf(ext, bf["REGISTER"])
         xtype_bit = _xf(ext, bf["D/A"])
@@ -244,6 +274,26 @@ def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
         if pos + 2 > len(data):
             raise ValueError("Truncated PC index extension word")
         ext = struct.unpack_from(">H", data, pos)[0]
+        if ext & 0x0100:
+            info, pos = parse_full_extension(
+                ext, data, pos + 2, _KB_META,
+                base_register="pc", pc_offset=pc_offset)
+            return Operand(
+                mode="pcindex",
+                reg=None,
+                value=info["base_target"],
+                index_reg=info["index_reg_num"],
+                index_is_addr=info["index_is_addr"],
+                index_size=info["index_size"] or "w",
+                index_scale=info["index_scale"] or 1,
+                full_extension=True,
+                memory_indirect=bool(info["memory_indirect"]),
+                postindexed=bool(info["postindexed"]),
+                base_suppressed=bool(info["base_suppressed"]),
+                index_suppressed=bool(info["index_suppressed"]),
+                base_displacement=info["base_displacement"],
+                outer_displacement=info["outer_displacement"],
+            ), pos
         bf = _BRIEF_EXT_FIELDS
         xreg = _xf(ext, bf["REGISTER"])
         xtype_bit = _xf(ext, bf["D/A"])
@@ -357,8 +407,15 @@ def _resolve_operand(operand: Operand, cpu, mem, size: str,
     if operand.mode in ("absw", "absl", "pcdisp"):
         return None  # can't resolve without memory map
     if operand.mode == "index":
+        if operand.full_extension:
+            ea = _resolve_full_extension_ea(operand, cpu, mem)
+            if ea is None:
+                return None
+            return mem.read(ea, size)
         base = cpu.get_reg("an", operand.reg)
         if not base.is_known:
+            return None
+        if operand.memory_indirect or operand.base_suppressed or operand.index_suppressed:
             return None
         idx_mode = "an" if operand.index_is_addr else "dn"
         idx_val = cpu.get_reg(idx_mode, operand.index_reg)
@@ -369,7 +426,7 @@ def _resolve_operand(operand: Operand, cpu, mem, size: str,
         idx_v = idx_val.concrete & mask
         if idx_v >= (1 << (nbits - 1)):
             idx_v -= (1 << nbits)
-        ea = (base.concrete + operand.value + idx_v) & 0xFFFFFFFF
+        ea = (base.concrete + operand.value + idx_v * operand.index_scale) & 0xFFFFFFFF
         return mem.read(ea, size)
     return None
 
@@ -418,6 +475,10 @@ def _write_operand(operand: Operand, cpu, mem, value,
                 value, size)
         elif addr.is_symbolic:
             mem.write(addr.sym_add(operand.value), value, size)
+    elif operand.mode in ("index", "pcindex") and operand.full_extension:
+        ea = _resolve_full_extension_ea(operand, cpu, mem)
+        if ea is not None:
+            mem.write(ea, value, size)
 
 
 # ── Abstract state ────────────────────────────────────────────────────────
@@ -557,7 +618,7 @@ def CPUState(*args, **kwargs):
 # ── EA resolution ─────────────────────────────────────────────────────────
 
 def resolve_ea(operand: Operand, state: CPUState,
-               size: str) -> AbstractValue | None:
+               size: str, mem=None) -> AbstractValue | None:
     """Resolve an EA operand to its effective address or value.
 
     For register-direct modes, returns the register value.
@@ -580,14 +641,22 @@ def resolve_ea(operand: Operand, state: CPUState,
             return _concrete(base.concrete + operand.value)
         return None
     elif operand.mode == "index":
+        if operand.full_extension:
+            ea = _resolve_full_extension_ea(operand, state, mem)
+            if ea is not None:
+                return _concrete(ea)
+            if operand.memory_indirect:
+                return None
         base = state.get_reg("an", operand.reg)
+        if operand.memory_indirect or operand.base_suppressed or operand.index_suppressed:
+            return None
         idx = state.get_reg("an" if operand.index_is_addr else "dn", operand.index_reg)
         if base.is_known and idx.is_known:
             idx_val = idx.concrete
             if operand.index_size == "w":
                 idx_val = _to_signed(idx_val & 0xFFFF, "w")
                 idx_val &= 0xFFFFFFFF
-            return _concrete(base.concrete + idx_val + operand.value)
+            return _concrete(base.concrete + idx_val * operand.index_scale + operand.value)
         return None
     elif operand.mode == "absw":
         return _concrete(operand.value)
@@ -596,6 +665,14 @@ def resolve_ea(operand: Operand, state: CPUState,
     elif operand.mode == "pcdisp":
         return _concrete(operand.value)  # already resolved to absolute target
     elif operand.mode == "pcindex":
+        if operand.full_extension:
+            ea = _resolve_full_extension_ea(operand, state, mem)
+            if ea is not None:
+                return _concrete(ea)
+            if operand.memory_indirect:
+                return None
+        if operand.memory_indirect or operand.base_suppressed or operand.index_suppressed:
+            return None
         # Base target is resolved, but index register adds to it
         idx = state.get_reg("an" if operand.index_is_addr else "dn", operand.index_reg)
         if idx.is_known:
@@ -603,11 +680,70 @@ def resolve_ea(operand: Operand, state: CPUState,
             if operand.index_size == "w":
                 idx_val = _to_signed(idx_val & 0xFFFF, "w")
                 idx_val &= 0xFFFFFFFF
-            return _concrete(operand.value + idx_val)
+            return _concrete(operand.value + idx_val * operand.index_scale)
         return None
     elif operand.mode == "imm":
         return _concrete(operand.value)
     return None
+
+
+def _index_offset(operand: Operand, state: CPUState) -> int | None:
+    if operand.index_suppressed:
+        return 0
+    idx = state.get_reg("an" if operand.index_is_addr else "dn", operand.index_reg)
+    if not idx.is_known:
+        return None
+    idx_val = idx.concrete
+    if operand.index_size == "w":
+        idx_val = _to_signed(idx_val & 0xFFFF, "w")
+    return idx_val * operand.index_scale
+
+
+def _full_extension_base_addr(operand: Operand, state: CPUState) -> int | None:
+    if operand.mode == "index":
+        if operand.base_suppressed:
+            return 0
+        base = state.get_reg("an", operand.reg)
+        if not base.is_known:
+            return None
+        return base.concrete
+    if operand.mode == "pcindex":
+        if operand.base_suppressed:
+            return 0
+        if operand.value is None:
+            return None
+        return operand.value - (operand.base_displacement or 0)
+    return None
+
+
+def _resolve_full_extension_ea(operand: Operand, state: CPUState,
+                               mem) -> int | None:
+    base_addr = _full_extension_base_addr(operand, state)
+    if base_addr is None:
+        return None
+    index_offset = _index_offset(operand, state)
+    if index_offset is None:
+        return None
+    base_disp = operand.base_displacement or 0
+
+    if not operand.memory_indirect:
+        return (base_addr + base_disp + index_offset) & 0xFFFFFFFF
+    if mem is None:
+        return None
+
+    if operand.postindexed:
+        pointer_addr = (base_addr + base_disp) & 0xFFFFFFFF
+    else:
+        pointer_addr = (base_addr + base_disp + index_offset) & 0xFFFFFFFF
+
+    pointer = mem.read(pointer_addr, "l")
+    if not pointer.is_known:
+        return None
+
+    final_addr = pointer.concrete + (operand.outer_displacement or 0)
+    if operand.postindexed:
+        final_addr += index_offset
+    return final_addr & 0xFFFFFFFF
 
 
 # ── PC prediction ─────────────────────────────────────────────────────────
@@ -751,11 +887,7 @@ def discover_blocks(code: bytes, base_addr: int = 0,
             if inst is None:
                 break
             next_seq = pc + inst.size
-            mnemonic = _extract_mnemonic(inst.text)
-            inst_kb = _find_kb_entry(kb_by_name, mnemonic, cc_test_defs, cc_aliases)
-
-            if inst_kb is None:
-                break
+            inst_kb = _instruction_kb(inst, kb_by_name, cc_test_defs, cc_aliases)
 
             flow = inst_kb.get("pc_effects", {}).get("flow", {})
             flow_type = flow.get("type", "sequential")
@@ -795,12 +927,10 @@ def discover_blocks(code: bytes, base_addr: int = 0,
                 break
             block_instrs.append(inst)
             pc += inst.size
-            mnemonic = _extract_mnemonic(inst.text)
-            inst_kb = _find_kb_entry(kb_by_name, mnemonic, cc_test_defs, cc_aliases)
-            if inst_kb:
-                ft = inst_kb.get("pc_effects", {}).get("flow", {}).get("type", "sequential")
-                if ft != "sequential":
-                    break
+            inst_kb = _instruction_kb(inst, kb_by_name, cc_test_defs, cc_aliases)
+            ft = inst_kb.get("pc_effects", {}).get("flow", {}).get("type", "sequential")
+            if ft != "sequential":
+                break
 
         if not block_instrs:
             continue
@@ -815,36 +945,34 @@ def discover_blocks(code: bytes, base_addr: int = 0,
         )
 
         # Derive edges from the last instruction's KB flow type
-        last_mn = _extract_mnemonic(last_inst.text)
-        last_kb = _find_kb_entry(kb_by_name, last_mn, cc_test_defs, cc_aliases)
-        if last_kb:
-            flow = last_kb.get("pc_effects", {}).get("flow", {})
-            flow_type = flow.get("type", "sequential")
-            conditional = flow.get("conditional", False)
+        last_kb = _instruction_kb(last_inst, kb_by_name, cc_test_defs, cc_aliases)
+        flow = last_kb.get("pc_effects", {}).get("flow", {})
+        flow_type = flow.get("type", "sequential")
+        conditional = flow.get("conditional", False)
 
-            if flow_type == "sequential":
-                # Fallthrough to next block
-                if end in block_starts:
-                    block.successors.append(end)
-                    block.xrefs.append(XRef(
-                        src=last_inst.offset, dst=end,
-                        type="fallthrough", conditional=False))
+        if flow_type == "sequential":
+            # Fallthrough to next block
+            if end in block_starts:
+                block.successors.append(end)
+                block.xrefs.append(XRef(
+                    src=last_inst.offset, dst=end,
+                    type="fallthrough", conditional=False))
 
-            elif flow_type in ("branch", "jump", "call"):
-                target = _extract_branch_target(last_inst, last_inst.offset)
-                if target is not None:
-                    block.successors.append(target)
-                    block.xrefs.append(XRef(
-                        src=last_inst.offset, dst=target,
-                        type=flow_type, conditional=conditional))
-                if conditional or flow_type == "call":
-                    block.successors.append(end)
-                    block.xrefs.append(XRef(
-                        src=last_inst.offset, dst=end,
-                        type="fallthrough", conditional=False))
+        elif flow_type in ("branch", "jump", "call"):
+            target = _extract_branch_target(last_inst, last_inst.offset)
+            if target is not None:
+                block.successors.append(target)
+                block.xrefs.append(XRef(
+                    src=last_inst.offset, dst=target,
+                    type=flow_type, conditional=conditional))
+            if conditional or flow_type == "call":
+                block.successors.append(end)
+                block.xrefs.append(XRef(
+                    src=last_inst.offset, dst=end,
+                    type="fallthrough", conditional=False))
 
-            elif flow_type == "return":
-                block.is_return = True
+        elif flow_type == "return":
+            block.is_return = True
 
         blocks[start] = block
 
@@ -860,31 +988,11 @@ def discover_blocks(code: bytes, base_addr: int = 0,
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-_MNEMONIC_CACHE = {}
-
-def _extract_mnemonic(text: str) -> str:
-    """Extract mnemonic from disassembled instruction text.
-
-    Handles: 'add.l d0,d1' -> 'add'
-             'moveq #$0,d0' -> 'moveq'
-             'bra.w $1234' -> 'bra'
-    Size suffixes derived from KB size_byte_count keys + short branch "s".
-    """
-    cached = _MNEMONIC_CACHE.get(text)
-    if cached is not None:
-        return cached
-    parts = text.strip().split(None, 1)
-    if not parts:
-        _MNEMONIC_CACHE[text] = ""
-        return ""
-    mn_part = parts[0]
-    for suffix in _SIZE_SUFFIXES:
-        if mn_part.endswith(suffix):
-            result = mn_part[:-len(suffix)]
-            _MNEMONIC_CACHE[text] = result
-            return result
-    _MNEMONIC_CACHE[text] = mn_part
-    return mn_part
+def _kb_mnemonic_name(inst_kb: dict) -> str:
+    mnemonic = inst_kb.get("mnemonic")
+    if not mnemonic:
+        raise KeyError("KB instruction entry missing mnemonic")
+    return mnemonic
 
 
 _KB_ENTRY_CACHE = {}
@@ -953,6 +1061,19 @@ def _find_kb_entry(kb_by_name: dict, mnemonic: str,
     return None
 
 
+def _instruction_kb(inst: Instruction, kb_by_name: dict,
+                    cc_test_defs: dict, cc_aliases: dict) -> dict:
+    if not inst.kb_mnemonic:
+        raise KeyError(f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
+    inst_kb = _find_kb_entry(kb_by_name, inst.kb_mnemonic,
+                             cc_test_defs, cc_aliases)
+    if inst_kb is None:
+        raise KeyError(
+            f"KB missing instruction entry for {inst.kb_mnemonic!r} "
+            f"at ${inst.offset:06x}")
+    return inst_kb
+
+
 def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
     """Extract branch/jump target address from instruction.
 
@@ -968,14 +1089,10 @@ def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
     opword_bytes = _OPWORD_BYTES
     ea_enc = meta["ea_mode_encoding"]
 
-    text = inst.text.strip()
     raw = inst.raw
-    mnemonic = _extract_mnemonic(text)
 
     # Look up KB entry to get flow type and displacement_encoding
-    inst_kb = _find_kb_entry(kb_by_name, mnemonic, _CC_TEST_DEFS, _CC_ALIASES)
-    if inst_kb is None:
-        return None
+    inst_kb = _instruction_kb(inst, kb_by_name, _CC_TEST_DEFS, _CC_ALIASES)
 
     flow = inst_kb.get("pc_effects", {}).get("flow", {})
     flow_type = flow.get("type", "sequential")
@@ -1406,29 +1523,6 @@ def _join_states(states: list, init_mem: 'AbstractMemory | None' = None
     return result_cpu, result_mem
 
 
-_SIZE_CACHE = {}
-
-def _extract_size(text: str) -> str:
-    """Extract size suffix from disassembled instruction text.
-
-    Returns the size letter, or the KB default_operand_size if unsized.
-    """
-    cached = _SIZE_CACHE.get(text)
-    if cached is not None:
-        return cached
-    parts = text.strip().split(None, 1)
-    if not parts:
-        _SIZE_CACHE[text] = _DEFAULT_SIZE
-        return _DEFAULT_SIZE
-    mn_part = parts[0]
-    for sz in _KB_META["size_suffixes"]:
-        if mn_part.endswith("." + sz):
-            _SIZE_CACHE[text] = sz
-            return sz
-    _SIZE_CACHE[text] = _DEFAULT_SIZE
-    return _DEFAULT_SIZE
-
-
 def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
     """Parse a register name into (mode, reg_num).
 
@@ -1544,9 +1638,8 @@ def _apply_binary_op(op_fn, d, inst_kb, cpu, mem, size, size_bytes,
         rm_field = next((f for f in enc_fields
                          if f["name"] == "R/M"), None)
         if len(reg_fields) < 2 or rm_field is None:
-            mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
             raise KeyError(
-                f"Missing register/R/M encoding fields for {mnemonic}")
+                f"Missing register/R/M encoding fields for {_kb_mnemonic_name(inst_kb)}")
         rx_field = reg_fields[0]  # higher bits = destination
         ry_field = reg_fields[1]  # lower bits = source
         opcode = d.opcode
@@ -1580,14 +1673,13 @@ def _apply_binary_op(op_fn, d, inst_kb, cpu, mem, size, size_bytes,
             elif cpu.a[rx].is_known:
                 mem.write(cpu.a[rx], _unknown(), size)
     else:
-        mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
         raise ValueError(
-            f"{op_fn.__name__}: no structured decode for {mnemonic}")
+            f"{op_fn.__name__}: no structured decode for {_kb_mnemonic_name(inst_kb)}")
 
 
 def _apply_neg(d, inst_kb, cpu, mem, size, size_bytes, mask):
     """Apply NEG: implicit(0) - destination (single operand)."""
-    mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
+    mnemonic = _kb_mnemonic_name(inst_kb)
     implicit_val = inst_kb.get("implicit_operand")
     if implicit_val is None:
         raise KeyError(f"implicit_operand missing for {mnemonic}")
@@ -1933,7 +2025,7 @@ def _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform):
     formula = inst_kb.get("compute_formula", {})
     terms = formula.get("terms", [])
     src_sign_ext = inst_kb.get("source_sign_extend", False)
-    mnemonic = _extract_mnemonic(inst_kb.get("mnemonic", "?"))
+    mnemonic = _kb_mnemonic_name(inst_kb)
     src_op = d.ea_op  # alias for assign handler
 
     if "implicit" in terms:
@@ -2354,8 +2446,10 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     If platform is provided (from OS KB calling_convention), scratch registers
     are invalidated after call instructions.
     """
-    mnemonic = _extract_mnemonic(inst.text)
-    size = _extract_size(inst.text)
+    if not inst.kb_mnemonic:
+        raise KeyError(f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
+    mnemonic = inst.kb_mnemonic
+    size = inst.operand_size
     size_bytes = _SIZE_BYTE_COUNT.get(size, _SIZE_BYTE_COUNT["w"])
     mask = (1 << (size_bytes * 8)) - 1
 
@@ -2550,11 +2644,9 @@ def propagate_states(blocks: dict[int, BasicBlock],
 
         # Execute all instructions in the block
         for inst in block.instructions:
-            mn = _extract_mnemonic(inst.text)
-            ikb = _find_kb_entry(kb_by_name, mn, cc_test_defs, cc_aliases)
-            if ikb:
-                _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
-                                   platform)
+            ikb = _instruction_kb(inst, kb_by_name, cc_test_defs, cc_aliases)
+            _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
+                               platform)
             cpu.pc = inst.offset + inst.size
 
         exit_cpu = cpu.copy()
@@ -2567,15 +2659,12 @@ def propagate_states(blocks: dict[int, BasicBlock],
         call_sp_push = 0
         if block.instructions:
             last = block.instructions[-1]
-            last_mn = _extract_mnemonic(last.text)
-            last_ikb = _find_kb_entry(kb_by_name, last_mn,
-                                      cc_test_defs, cc_aliases)
-            if last_ikb:
-                flow = last_ikb.get("pc_effects", {}).get("flow", {})
-                if flow.get("type") == "call":
-                    for eff in last_ikb.get("sp_effects", []):
-                        if eff.get("action") == "decrement":
-                            call_sp_push += eff["bytes"]
+            last_ikb = _instruction_kb(last, kb_by_name, cc_test_defs, cc_aliases)
+            flow = last_ikb.get("pc_effects", {}).get("flow", {})
+            if flow.get("type") == "call":
+                for eff in last_ikb.get("sp_effects", []):
+                    if eff.get("action") == "decrement":
+                        call_sp_push += eff["bytes"]
 
         # Classify xrefs
         call_dst = ft_dst = None
@@ -2761,11 +2850,9 @@ def _compute_summary(entry: int, owned: set[int],
 
         block = blocks[addr]
         for inst in block.instructions:
-            mn = _extract_mnemonic(inst.text)
-            ikb = _find_kb_entry(kb_by_name, mn, cc_test_defs, cc_aliases)
-            if ikb:
-                _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
-                                   None)  # no platform
+            ikb = _instruction_kb(inst, kb_by_name, cc_test_defs, cc_aliases)
+            _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
+                               None)  # no platform
             cpu.pc = inst.offset + inst.size
         exit_cpu = cpu.copy()
         exit_mem = mem.copy()
@@ -2777,15 +2864,12 @@ def _compute_summary(entry: int, owned: set[int],
         call_sp_push = 0
         if block.instructions:
             last = block.instructions[-1]
-            last_mn = _extract_mnemonic(last.text)
-            last_ikb = _find_kb_entry(kb_by_name, last_mn,
-                                      cc_test_defs, cc_aliases)
-            if last_ikb:
-                flow = last_ikb.get("pc_effects", {}).get("flow", {})
-                if flow.get("type") == "call":
-                    for eff in last_ikb.get("sp_effects", []):
-                        if eff.get("action") == "decrement":
-                            call_sp_push += eff["bytes"]
+            last_ikb = _instruction_kb(last, kb_by_name, cc_test_defs, cc_aliases)
+            flow = last_ikb.get("pc_effects", {}).get("flow", {})
+            if flow.get("type") == "call":
+                for eff in last_ikb.get("sp_effects", []):
+                    if eff.get("action") == "decrement":
+                        call_sp_push += eff["bytes"]
 
         call_dst = ft_dst = None
         other_xrefs = []
@@ -2832,12 +2916,10 @@ def _compute_summary(entry: int, owned: set[int],
         if not blk or not blk.instructions:
             continue
         last = blk.instructions[-1]
-        mn = _extract_mnemonic(last.text)
-        ikb = _find_kb_entry(kb_by_name, mn, cc_test_defs, cc_aliases)
-        if ikb:
-            flow = ikb.get("pc_effects", {}).get("flow", {})
-            if flow.get("type") == "return" and addr in exit_states:
-                rts_states.append(exit_states[addr])
+        ikb = _instruction_kb(last, kb_by_name, cc_test_defs, cc_aliases)
+        flow = ikb.get("pc_effects", {}).get("flow", {})
+        if flow.get("type") == "return" and addr in exit_states:
+            rts_states.append(exit_states[addr])
 
     if not rts_states:
         return None

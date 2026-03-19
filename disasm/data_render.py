@@ -48,6 +48,15 @@ def _emit_hex_bytes(handle, data: bytes, indent: str):
         handle.write(f"{indent}dc.b    {hex_vals}\n")
 
 
+def _safe_string_span(*, start: int, text: str,
+                      labels: dict[int, str], reloc_map: dict[int, int]) -> int | None:
+    string_end = start + len(text) + 1
+    for addr in range(start + 1, string_end):
+        if addr in labels or addr in reloc_map:
+            return None
+    return string_end
+
+
 def _emit_chunk_with_strings(handle, code: bytes, start: int, end: int,
                              indent: str):
     pos = start
@@ -107,6 +116,19 @@ def emit_data_region(handle, code: bytes, start: int, end: int,
             if text:
                 _emit_string(handle, text, indent)
                 pos += len(text) + 1
+                continue
+
+        text = _try_read_string(code, pos, end)
+        if text:
+            string_end = _safe_string_span(
+                start=pos,
+                text=text,
+                labels=labels,
+                reloc_map=reloc_map,
+            )
+            if string_end is not None:
+                _emit_string(handle, text, indent)
+                pos = string_end
                 continue
 
         if access_sizes and pos in access_sizes:

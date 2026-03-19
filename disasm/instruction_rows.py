@@ -5,9 +5,8 @@ import io
 from disasm.comments import (build_instruction_comment_parts,
                              render_comment_parts)
 from disasm.data_render import emit_data_region
-from disasm.operands import (build_instruction_semantic_operands,
-                             build_semantic_operands)
-from disasm.types import HunkDisassemblySession, ListingRow
+from disasm.operands import build_instruction_semantic_operands
+from disasm.types import HunkDisassemblySession, ListingRow, SemanticOperand
 
 
 def render_semantic_operands(operands) -> str:
@@ -22,6 +21,13 @@ def make_row(kind: str, text: str, **kwargs) -> ListingRow:
     return ListingRow(row_id=row_id, kind=kind, text=text, **kwargs)
 
 
+def _instruction_opcode_text(inst) -> str:
+    if inst.opcode_text is None:
+        raise ValueError(
+            f"Instruction at ${inst.offset:06x} is missing opcode_text")
+    return inst.opcode_text
+
+
 def make_instruction_row(text: str, inst, hunk_session: HunkDisassemblySession,
                          entity_addr: int,
                          verified_state: str,
@@ -30,8 +36,7 @@ def make_instruction_row(text: str, inst, hunk_session: HunkDisassemblySession,
                          comment_parts: tuple[str, ...] = (),
                          used_structs: set[str] | None = None,
                          include_arg_subs: bool = True) -> ListingRow:
-    parts = text.strip().split(None, 1)
-    opcode = parts[0] if parts else ""
+    opcode = _instruction_opcode_text(inst)
     operand_parts = build_instruction_semantic_operands(
         inst, hunk_session,
         used_structs=used_structs,
@@ -79,6 +84,25 @@ def make_text_rows(kind: str, text: str, entity_addr: int | None = None,
             if parts:
                 opcode = parts[0]
                 operands = parts[1] if len(parts) > 1 else ""
+        operand_parts = ()
+        if operands:
+            tokens = []
+            start = 0
+            depth = 0
+            for pos, ch in enumerate(operands):
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    depth -= 1
+                elif ch == "," and depth == 0:
+                    tokens.append(operands[start:pos].strip())
+                    start = pos + 1
+            tokens.append(operands[start:].strip())
+            operand_parts = tuple(
+                SemanticOperand(kind="text", text=token)
+                for token in tokens
+                if token
+            )
         rows.append(ListingRow(
             row_id=f"{kind}:{addr if addr is not None else 'none'}:{idx}",
             kind=kind,
@@ -88,7 +112,7 @@ def make_text_rows(kind: str, text: str, entity_addr: int | None = None,
             verified_state=verified_state,
             label=label,
             opcode_or_directive=opcode,
-            operand_parts=build_semantic_operands(operands),
+            operand_parts=operand_parts,
             operand_text=operands,
             comment_parts=(comment,) if comment else (),
             comment_text=comment,
@@ -119,8 +143,7 @@ def render_instruction_text(inst, hunk_session: HunkDisassemblySession,
                             used_structs: set[str],
                             include_arg_subs: bool = True
                             ) -> tuple[str, str, tuple[str, ...]]:
-    parts = inst.text.strip().split(None, 1)
-    opcode = parts[0] if parts else ""
+    opcode = _instruction_opcode_text(inst)
     operand_parts = build_instruction_semantic_operands(
         inst, hunk_session,
         used_structs=used_structs,
@@ -129,5 +152,6 @@ def render_instruction_text(inst, hunk_session: HunkDisassemblySession,
     operand_text = render_semantic_operands(operand_parts)
     text = opcode if not operand_text else f"{opcode} {operand_text}"
     comment_parts = build_instruction_comment_parts(
-        inst, text, hunk_session, include_arg_subs=include_arg_subs)
+        inst, hunk_session, operand_parts=operand_parts,
+        include_arg_subs=include_arg_subs)
     return text, "; ".join(comment_parts), comment_parts

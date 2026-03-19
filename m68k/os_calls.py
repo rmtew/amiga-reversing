@@ -18,10 +18,9 @@ import struct
 import sys
 from pathlib import Path
 
-from .m68k_executor import BasicBlock, _extract_mnemonic, _extract_branch_target
+from .m68k_executor import BasicBlock, _extract_branch_target
 from .kb_util import (KB, xf, parse_reg_name, read_string_at,
-                      decode_destination)
-from .m68k_executor import _extract_size
+                      decode_destination, decode_instruction_operands)
 
 
 _OS_KB_CACHE = None
@@ -37,6 +36,47 @@ def load_os_kb() -> dict:
     with open(path, encoding="utf-8") as f:
         _OS_KB_CACHE = json.load(f)
     return _OS_KB_CACHE
+
+
+def _decode_inst(kb: KB, inst):
+    inst_kb = kb.instruction_kb(inst)
+    if not inst.operand_size:
+        raise KeyError(
+            f"Instruction at ${inst.offset:06x} is missing operand_size")
+    decoded = decode_instruction_operands(
+        inst.raw, inst_kb, kb.meta, inst.operand_size, inst.offset)
+    return inst_kb, decoded
+
+
+def _reg_name(mode: str, reg: int) -> str:
+    prefix = {"dn": "d", "an": "a"}.get(mode)
+    if prefix is None:
+        raise ValueError(f"Unsupported register mode {mode!r}")
+    return f"{prefix}{reg}"
+
+
+def _base_disp_operand(op, base_reg: int) -> int | None:
+    if op is None or op.mode != "disp" or op.reg != base_reg:
+        return None
+    return op.value
+
+
+def _decoded_source_reg(decoded) -> str | None:
+    src = decoded.get("ea_op")
+    if src is None or src.mode not in {"dn", "an"}:
+        return None
+    return _reg_name(src.mode, src.reg)
+
+
+def _decoded_dest_reg(decoded) -> str | None:
+    dst = decoded.get("dst_op")
+    if dst is not None and dst.mode in {"dn", "an"}:
+        return _reg_name(dst.mode, dst.reg)
+    reg_mode = decoded.get("reg_mode")
+    reg_num = decoded.get("reg_num")
+    if reg_mode in {"dn", "an"} and reg_num is not None:
+        return _reg_name(reg_mode, reg_num)
+    return None
 
 
 # Sentinel addresses for abstract memory regions.
@@ -201,7 +241,6 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
         # Scan for store of ret_reg to d(base_reg) in instructions
         # after the call.  The call may end the block, so also check
         # the fallthrough block.
-        import re
         ret_key = ("dn" if ret_reg[0] == "d" else "an", int(ret_reg[1]))
         store_info = {
             "function": call["function"],
@@ -213,23 +252,17 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
         def _scan_for_store(instructions):
             """Scan instructions for ret_reg -> d(base_reg). Returns offset or None."""
             for inst in instructions:
-                text = inst.text.lower()
-                mn = _extract_mnemonic(text)
-                ikb = kb.find(mn) if mn else None
+                ikb, decoded = _decode_inst(kb, inst)
                 if ikb and ikb.get("operation_type") == "move":
-                    m = re.match(
-                        rf'{mn}\.\w\s+{ret_reg}\s*,'
-                        rf'\s*(-?\d+)\({base_reg_name}\)',
-                        text)
-                    if m:
-                        return int(m.group(1))
+                    if (_decoded_source_reg(decoded) == ret_reg
+                            and (offset := _base_disp_operand(
+                                decoded.get("dst_op"), base_reg)) is not None):
+                        return offset
                 # Stop if ret_reg is overwritten
-                if ikb:
-                    dst = decode_destination(
-                        inst.raw, ikb, kb.meta,
-                        _extract_size(text), inst.offset)
-                    if dst == ret_key:
-                        return None
+                dst = decode_destination(
+                    inst.raw, ikb, kb.meta, inst.operand_size, inst.offset)
+                if dst == ret_key:
+                    return None
             return None
 
         # Instructions after the call in the same block
@@ -271,11 +304,8 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
 
     Returns: {app_offset: {"name": str, "function": str, "type": str, ...}}
     """
-    import re
     kb = KB()
     result = {}
-    base_reg_name = f"a{base_reg}"
-    disp_pattern = re.compile(rf'(-?\d+)\({base_reg_name}\)')
 
     def _trace_reg_forward(instructions, src_reg, info):
         """Trace src_reg through copies and stores to d(base_reg).
@@ -286,50 +316,33 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
         """
         tracked = {src_reg}  # set of registers carrying the value
         for inst in instructions:
-            text = inst.text.lower()
-            mn = _extract_mnemonic(text)
-            if not mn:
-                continue
-
             copied_to = None  # register added by copy in this instruction
-            ikb = kb.find(mn)
+            ikb, decoded = _decode_inst(kb, inst)
 
             # Check for store to d(base_reg) from any tracked register
             if ikb and ikb.get("operation_type") == "move":
-                for treg in list(tracked):
-                    m = re.match(
-                        rf'{mn}\.\w\s+{treg}\s*,\s*'
-                        rf'(-?\d+)\({base_reg_name}\)',
-                        text)
-                    if m:
-                        offset = int(m.group(1))
+                src_name = _decoded_source_reg(decoded)
+                if src_name in tracked:
+                    offset = _base_disp_operand(decoded.get("dst_op"), base_reg)
+                    if offset is not None:
                         if offset not in result:
                             result[offset] = dict(info)
                         return
 
-                # Check for register-to-register copy of tracked reg
-                for treg in list(tracked):
-                    m = re.match(
-                        rf'{mn}\.\w\s+{treg}\s*,\s*([da]\d)\s*$',
-                        text)
-                    if m:
-                        copied_to = m.group(1)
+                    copied_to = _decoded_dest_reg(decoded)
+                    if copied_to is not None:
                         tracked.add(copied_to)
-                        break
 
             # Check if any tracked register is overwritten
             # (skip the register we just added via copy)
-            if ikb:
-                dst = decode_destination(
-                    inst.raw, ikb, kb.meta,
-                    _extract_size(text), inst.offset)
-                if dst:
-                    mode_str, reg_num = dst
-                    dst_name = f"{'d' if mode_str == 'dn' else 'a'}{reg_num}"
-                    if dst_name in tracked and dst_name != copied_to:
-                        tracked.discard(dst_name)
-                        if not tracked:
-                            return
+            dst = decode_destination(
+                inst.raw, ikb, kb.meta, inst.operand_size, inst.offset)
+            if dst:
+                dst_name = _reg_name(dst[0], dst[1])
+                if dst_name in tracked and dst_name != copied_to:
+                    tracked.discard(dst_name)
+                    if not tracked:
+                        return
 
     # Forward: trace return values to app memory stores
     for call in lib_calls:
@@ -400,16 +413,11 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
             # Walk backward to find where this register was loaded
             for i in range(call_idx - 1, -1, -1):
                 inst = block.instructions[i]
-                text = inst.text.lower()
-                mn = _extract_mnemonic(text)
-                ikb = kb.find(mn) if mn else None
-                if not ikb:
-                    continue
+                ikb, decoded = _decode_inst(kb, inst)
 
                 # Check if this instruction writes to the arg register
                 dst = decode_destination(
-                    inst.raw, ikb, kb.meta,
-                    _extract_size(text), inst.offset)
+                    inst.raw, ikb, kb.meta, inst.operand_size, inst.offset)
                 if not dst:
                     continue
                 mode_str = "dn" if reg[0] == "d" else "an"
@@ -418,9 +426,8 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
                     continue
 
                 # Found the setter. Check if source is d(base_reg)
-                m = disp_pattern.search(text)
-                if m:
-                    offset = int(m.group(1))
+                offset = _base_disp_operand(decoded.get("ea_op"), base_reg)
+                if offset is not None:
                     if offset not in result:
                         result[offset] = {
                             "name": inp["name"],
@@ -480,14 +487,10 @@ def annotate_call_arguments(blocks: dict[int, BasicBlock],
             if not pending:
                 break
             inst = block.instructions[i]
-            text = inst.text.lower()
-            mn = _extract_mnemonic(text)
-            ikb = kb.find(mn) if mn else None
-            if not ikb:
-                continue
+            ikb, _ = _decode_inst(kb, inst)
 
             dst = decode_destination(inst.raw, ikb, kb.meta,
-                                     _extract_size(text), inst.offset)
+                                     inst.operand_size, inst.offset)
             if dst and dst in pending:
                 inp = pending.pop(dst)
                 result[inst.offset] = {
@@ -563,11 +566,8 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
             setter_idx = 0
             for j in range(call_idx - 1, -1, -1):
                 jinst = block.instructions[j]
-                mn = _extract_mnemonic(jinst.text)
-                inst_kb = kb.find(mn)
-                if inst_kb is None:
-                    continue
-                sz = _extract_size(jinst.text)
+                inst_kb = kb.instruction_kb(jinst)
+                sz = jinst.operand_size
                 dst = decode_destination(
                     jinst.raw, inst_kb, kb.meta, sz, jinst.offset)
                 if dst is not None and dst[0] == reg_mode and dst[1] == reg_num:
@@ -743,10 +743,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                 a6_lib = a6_val.tag["library_base"]
 
         for inst in block.instructions:
-            mn = _extract_mnemonic(inst.text)
-            ikb = kb.find(mn)
-            if ikb is None:
-                continue
+            ikb = kb.instruction_kb(inst)
 
             flow = ikb.get("pc_effects", {}).get("flow", {})
 

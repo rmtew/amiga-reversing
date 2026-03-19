@@ -1,27 +1,15 @@
 from __future__ import annotations
 """Build semantic operands from decoded instruction operands."""
 
-from m68k.kb_util import decode_destination, select_encoding_fields, select_operand_types
+from m68k.kb_util import decode_destination, select_encoding_fields, select_operand_types, select_operand_types_from_raw
 from m68k.m68k_executor import _extract_branch_target
 
 from disasm.decode import decode_inst_for_emit
 from disasm.types import HunkDisassemblySession, SemanticOperand
 
 
-def _split_operand_tokens(operands: str) -> list[str]:
-    tokens = []
-    start = 0
-    depth = 0
-    for idx, ch in enumerate(operands):
-        if ch == "(":
-            depth += 1
-        elif ch == ")":
-            depth -= 1
-        elif ch == "," and depth == 0:
-            tokens.append(operands[start:idx].strip())
-            start = idx + 1
-    tokens.append(operands[start:].strip())
-    return tokens
+def _instruction_ref(inst) -> str:
+    return f"instruction at ${inst.offset:06x}"
 
 
 def _operand_types_for_inst(inst, meta: dict) -> tuple[str, ...]:
@@ -35,19 +23,27 @@ def _operand_types_for_inst(inst, meta: dict) -> tuple[str, ...]:
         return form_operand_types[0] if ((opcode >> 3) & 1) else form_operand_types[1]
     if form_operand_types == [("rn", "ea"), ("ea", "rn")]:
         if len(inst.raw) < 4:
-            raise ValueError(f"MOVES extension word missing for {inst.text!r}")
+            raise ValueError(f"MOVES extension word missing for {_instruction_ref(inst)}")
         ext = int.from_bytes(inst.raw[2:4], "big")
-        return form_operand_types[0] if ((ext >> 11) & 1) == 0 else form_operand_types[1]
-    return select_operand_types(meta["inst_kb"], opcode)
+        return form_operand_types[0] if ((ext >> 11) & 1) != 0 else form_operand_types[1]
+    return select_operand_types_from_raw(meta["inst_kb"], inst.raw)
 
 
 def _selected_form_register(inst, meta: dict, register_index: int) -> tuple[str, int] | None:
     opcode = int.from_bytes(inst.raw[:2], "big")
     fields = select_encoding_fields(meta["inst_kb"], opcode)
-    register_fields = [
+    plain_register_fields = [
         field for field in fields
         if field.get("name") == "REGISTER"
     ]
+    if plain_register_fields:
+        register_fields = plain_register_fields
+    else:
+        register_fields = [
+            field for field in fields
+            if field.get("name", "").startswith("REGISTER ")
+        ]
+        register_fields.sort(key=lambda field: field["bit_lo"])
     if len(register_fields) <= register_index:
         return None
     field = register_fields[register_index]
@@ -55,16 +51,6 @@ def _selected_form_register(inst, meta: dict, register_index: int) -> tuple[str,
     mask = (1 << width) - 1
     reg = (opcode >> field["bit_lo"]) & mask
     return ("dn", reg)
-
-
-def build_semantic_operands(operand_text: str) -> tuple[SemanticOperand, ...]:
-    if not operand_text:
-        return ()
-    return tuple(
-        SemanticOperand(kind="text", text=token.strip())
-        for token in _split_operand_tokens(operand_text)
-        if token.strip()
-    )
 
 
 def _normalized_absolute_value(decoded_op) -> int | None:
@@ -96,6 +82,18 @@ def _register_text(mode: str, reg: int, token: str) -> str:
     if mode == "an" and reg == 7 and token.lower() == "sp":
         return "sp"
     return token.lower()
+
+
+def _address_base_name(reg: int) -> str:
+    return "sp" if reg == 7 else f"a{reg}"
+
+
+def _same_register_name(expected: str, actual: str | None) -> bool:
+    if actual is None:
+        return False
+    if expected == actual:
+        return True
+    return {expected, actual} == {"a7", "sp"}
 
 
 def _apply_instruction_text_substitutions(text: str, inst_offset: int,
@@ -175,18 +173,46 @@ def _register_operand(token: str, mode: str, reg: int) -> SemanticOperand:
     )
 
 
-def _index_metadata(decoded_op, inst_text: str, token: str) -> dict[str, object]:
+def _index_metadata(decoded_op, inst) -> dict[str, object]:
     index_reg = getattr(decoded_op, "index_reg", None)
     if index_reg is None:
-        raise ValueError(f"Indexed operand missing index register: {inst_text!r}")
+        raise ValueError(
+            f"Indexed operand missing index register for {_instruction_ref(inst)}")
     index_size = getattr(decoded_op, "index_size", None)
     if not index_size:
-        raise ValueError(f"Indexed operand missing index size: {inst_text!r}")
+        raise ValueError(
+            f"Indexed operand missing index size for {_instruction_ref(inst)}")
     prefix = "a" if getattr(decoded_op, "index_is_addr", False) else "d"
     return {
         "index_register": f"{prefix}{index_reg}",
         "index_size": index_size,
     }
+
+
+def _full_index_metadata(decoded_op, inst) -> dict[str, object]:
+    if getattr(decoded_op, "index_suppressed", False):
+        metadata = {
+            "index_register": None,
+            "index_size": None,
+            "index_scale": None,
+        }
+    else:
+        metadata = _index_metadata(decoded_op, inst)
+        metadata["index_scale"] = getattr(decoded_op, "index_scale", 1)
+    metadata["base_register"] = (
+        None
+        if getattr(decoded_op, "base_suppressed", False)
+        else ("pc" if getattr(decoded_op, "mode", None) == "pcindex"
+              else _address_base_name(decoded_op.reg))
+    )
+    metadata["memory_indirect"] = getattr(decoded_op, "memory_indirect", False)
+    metadata["postindexed"] = getattr(decoded_op, "postindexed", False)
+    metadata["preindexed"] = bool(metadata["memory_indirect"] and not metadata["postindexed"])
+    metadata["base_suppressed"] = getattr(decoded_op, "base_suppressed", False)
+    metadata["index_suppressed"] = getattr(decoded_op, "index_suppressed", False)
+    metadata["base_displacement"] = getattr(decoded_op, "base_displacement", None)
+    metadata["outer_displacement"] = getattr(decoded_op, "outer_displacement", None)
+    return metadata
 
 
 def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
@@ -204,25 +230,34 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
     bitfield = decoded.get("bitfield")
     compare_reg = decoded.get("compare_reg")
     update_reg = decoded.get("update_reg")
+    control_register = decoded.get("control_register")
     ea_is_source = decoded["ea_is_source"]
 
+    if operand_types == ("label",):
+        return [("label", None)]
     if ea_op is None and dst_op is None and reg_num is None and imm_val is None:
         return []
     if operand_types == ("imm", "ea"):
         if imm_val is None or ea_op is None:
-            raise ValueError(f"Decoded immediate/ea shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded immediate/ea shape incomplete for {_instruction_ref(inst)}")
         return [("immediate", imm_val), ("decoded", ea_op)]
     if operand_types == ("bf_ea",):
         if ea_op is None or bitfield is None:
-            raise ValueError(f"Decoded bitfield ea shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded bitfield ea shape incomplete for {_instruction_ref(inst)}")
         return [("bitfield_ea", (ea_op, bitfield))]
     if operand_types == ("bf_ea", "dn"):
         if ea_op is None or bitfield is None or reg_num is None:
-            raise ValueError(f"Decoded bitfield ea/register shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded bitfield ea/register shape incomplete for {_instruction_ref(inst)}")
         return [("bitfield_ea", (ea_op, bitfield)), ("register", ("dn", reg_num))]
+    if operand_types == ("dn", "bf_ea"):
+        if ea_op is None or bitfield is None or reg_num is None:
+            raise ValueError(
+                f"Decoded register/bitfield-ea shape incomplete for {_instruction_ref(inst)}")
+        return [("register", ("dn", reg_num)), ("bitfield_ea", (ea_op, bitfield))]
     if operand_types == ("dn", "dn", "ea"):
         if compare_reg is None or update_reg is None or ea_op is None:
-            raise ValueError(f"Decoded CAS shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded CAS shape incomplete for {_instruction_ref(inst)}")
         return [
             ("register", ("dn", compare_reg)),
             ("register", ("dn", update_reg)),
@@ -230,104 +265,144 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
         ]
     if operand_types == ("ea", "rn"):
         if ea_op is None or reg_num is None or reg_mode is None:
-            raise ValueError(f"Decoded ea/rn shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded ea/rn shape incomplete for {_instruction_ref(inst)}")
         return [("decoded", ea_op), ("register", (reg_mode, reg_num))]
     if operand_types == ("usp", "an"):
         if reg_num is None:
-            raise ValueError(f"Decoded usp/address-register shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded usp/address-register shape incomplete for {_instruction_ref(inst)}")
         return [("special_register", "usp"), ("register", ("an", reg_num))]
     if operand_types == ("an", "usp"):
         if reg_num is None:
-            raise ValueError(f"Decoded address-register/usp shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded address-register/usp shape incomplete for {_instruction_ref(inst)}")
         return [("register", ("an", reg_num)), ("special_register", "usp")]
+    if operand_types == ("ctrl_reg", "rn"):
+        if control_register is None or reg_num is None or reg_mode is None:
+            raise ValueError(f"Decoded control-register/rn shape incomplete for {_instruction_ref(inst)}")
+        return [("special_register", control_register), ("register", (reg_mode, reg_num))]
+    if operand_types == ("rn", "ctrl_reg"):
+        if control_register is None or reg_num is None or reg_mode is None:
+            raise ValueError(f"Decoded rn/control-register shape incomplete for {_instruction_ref(inst)}")
+        return [("register", (reg_mode, reg_num)), ("special_register", control_register)]
     if operand_types == ("an", "imm"):
         if reg_num is None or imm_val is None:
-            raise ValueError(f"Decoded address-register/immediate shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded address-register/immediate shape incomplete for {_instruction_ref(inst)}")
         return [("register", ("an", reg_num)), ("immediate", imm_val)]
     if operand_types == ("imm", "dn"):
         if imm_val is None or reg_num is None:
-            raise ValueError(f"Decoded immediate/register shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded immediate/register shape incomplete for {_instruction_ref(inst)}")
         return [("immediate", imm_val), ("register", ("dn", reg_num))]
     if operand_types == ("dn",):
         if reg_num is None:
-            raise ValueError(f"Decoded single-register shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded single-register shape incomplete for {_instruction_ref(inst)}")
         return [("register", ("dn", reg_num))]
     if operand_types == ("rn",):
         if reg_num is None or reg_mode is None:
-            raise ValueError(f"Decoded rn shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded rn shape incomplete for {_instruction_ref(inst)}")
         return [("register", (reg_mode, reg_num))]
     if operand_types == ("an",):
         if reg_num is None:
-            raise ValueError(f"Decoded single-address-register shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded single-address-register shape incomplete for {_instruction_ref(inst)}")
         return [("register", ("an", reg_num))]
     if operand_types == ("dn", "dn"):
         if reg_num is None:
-            raise ValueError(f"Decoded register/register shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded register/register shape incomplete for {_instruction_ref(inst)}")
         dest = _selected_form_register(inst, meta, 1)
         if dest is None:
             dest = decode_destination(inst.raw, meta["inst_kb"], hunk_session.kb.meta,
                                       meta["size"], inst.offset)
         if dest is None:
-            raise ValueError(f"Unable to resolve destination operand from decode: {inst.text!r}")
+            raise ValueError(
+                f"Unable to resolve destination operand from decode for {_instruction_ref(inst)}")
         return [("register", ("dn", reg_num)), ("register", dest)]
+    if operand_types == ("dn", "dn", "imm"):
+        if ea_op is None or reg_num is None or secondary_reg is None or imm_val is None:
+            raise ValueError(f"Decoded PACK/UNPK register form incomplete for {_instruction_ref(inst)}")
+        return [("register", ("dn", reg_num)), ("register", ("dn", secondary_reg)), ("immediate", imm_val)]
     if operand_types == ("dn", "ea"):
         if reg_num is None or ea_op is None:
-            raise ValueError(f"Decoded register/ea shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded register/ea shape incomplete for {_instruction_ref(inst)}")
         return [("register", ("dn", reg_num)), ("decoded", ea_op)]
     if operand_types == ("dn", "disp"):
         if reg_num is None or ea_op is None:
-            raise ValueError(f"Decoded register/displacement shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded register/displacement shape incomplete for {_instruction_ref(inst)}")
         return [("register", ("dn", reg_num)), ("decoded", ea_op)]
     if operand_types == ("ea", "ccr"):
         if ea_op is None:
-            raise ValueError(f"Decoded ea/ccr shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded ea/ccr shape incomplete for {_instruction_ref(inst)}")
         return [("decoded", ea_op), ("special_register", "ccr")]
     if operand_types == ("ea", "sr"):
         if ea_op is None:
-            raise ValueError(f"Decoded ea/sr shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded ea/sr shape incomplete for {_instruction_ref(inst)}")
         return [("decoded", ea_op), ("special_register", "sr")]
     if operand_types == ("sr", "ea"):
         if ea_op is None:
-            raise ValueError(f"Decoded sr/ea shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded sr/ea shape incomplete for {_instruction_ref(inst)}")
         return [("special_register", "sr"), ("decoded", ea_op)]
     if operand_types == ("ccr", "ea"):
         if ea_op is None:
-            raise ValueError(f"Decoded ccr/ea shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded ccr/ea shape incomplete for {_instruction_ref(inst)}")
         return [("special_register", "ccr"), ("decoded", ea_op)]
     if operand_types == ("ea", "dn"):
         if ea_op is None or reg_num is None:
-            raise ValueError(f"Decoded ea/register shape incomplete for {inst.text!r}")
+            raise ValueError(f"Decoded ea/register shape incomplete for {_instruction_ref(inst)}")
         if secondary_reg is not None and secondary_reg != reg_num:
             return [("decoded", ea_op), ("register_pair", (secondary_reg, reg_num))]
         return [("decoded", ea_op), ("register", ("dn", reg_num))]
     if operand_types == ("ea", "dn_pair"):
         if ea_op is None or reg_num is None or secondary_reg is None:
-            raise ValueError(f"Decoded ea/register-pair shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded ea/register-pair shape incomplete for {_instruction_ref(inst)}")
         return [("decoded", ea_op), ("register_pair", (secondary_reg, reg_num))]
     if operand_types == ("disp", "dn"):
         if ea_op is None or reg_num is None:
-            raise ValueError(f"Decoded displacement/register shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded displacement/register shape incomplete for {_instruction_ref(inst)}")
         return [("decoded", ea_op), ("register", ("dn", reg_num))]
     if operand_types == ("ea", "an"):
         if ea_op is None or reg_num is None:
-            raise ValueError(f"Decoded ea/address-register shape incomplete for {inst.text!r}")
+            raise ValueError(
+                f"Decoded ea/address-register shape incomplete for {_instruction_ref(inst)}")
         return [("decoded", ea_op), ("register", ("an", reg_num))]
+    if operand_types == ("predec", "predec"):
+        if ea_op is None or dst_op is None:
+            raise ValueError(
+                f"Decoded predecrement/predecrement shape incomplete for {_instruction_ref(inst)}")
+        return [("decoded", ea_op), ("decoded", dst_op)]
+    if operand_types == ("predec", "predec", "imm"):
+        if ea_op is None or dst_op is None or imm_val is None:
+            raise ValueError(
+                f"Decoded PACK/UNPK predecrement form incomplete for {_instruction_ref(inst)}")
+        return [("decoded", ea_op), ("decoded", dst_op), ("immediate", imm_val)]
+    if operand_types == ("postinc", "postinc"):
+        if ea_op is None or dst_op is None:
+            raise ValueError(f"Decoded postincrement/postincrement shape incomplete for {_instruction_ref(inst)}")
+        return [("decoded", ea_op), ("decoded", dst_op)]
+    if operand_types in {("absl", "postinc"), ("postinc", "absl"), ("absl", "ind"), ("ind", "absl")}:
+        if ea_op is None or dst_op is None:
+            raise ValueError(f"Decoded MOVE16 mixed addressing shape incomplete for {_instruction_ref(inst)}")
+        return [("decoded", ea_op), ("decoded", dst_op)]
     if dst_op is None and reg_num is None:
         if operand_types == ("reglist", "ea"):
             if ea_op is None:
-                raise ValueError(f"Decoded ea operand missing for {inst.text!r}")
+                raise ValueError(f"Decoded ea operand missing for {_instruction_ref(inst)}")
             return [("reglist", None), ("decoded", ea_op)]
         if operand_types == ("ea", "reglist"):
             if ea_op is None:
-                raise ValueError(f"Decoded ea operand missing for {inst.text!r}")
+                raise ValueError(f"Decoded ea operand missing for {_instruction_ref(inst)}")
             return [("decoded", ea_op), ("reglist", None)]
         if operand_types == ("ea",):
             if ea_op is None:
-                raise ValueError(f"Decoded ea operand missing for {inst.text!r}")
+                raise ValueError(f"Decoded ea operand missing for {_instruction_ref(inst)}")
             return [("decoded", ea_op)]
         if operand_types == ("imm",):
             if imm_val is None:
-                raise ValueError(f"Decoded immediate operand missing for {inst.text!r}")
+                raise ValueError(f"Decoded immediate operand missing for {_instruction_ref(inst)}")
             return [("immediate", imm_val)]
         if ea_op is not None and imm_val is not None:
             return [("immediate", imm_val), ("decoded", ea_op)]
@@ -335,9 +410,15 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
             return [("decoded", ea_op)]
         if imm_val is not None:
             return [("immediate", imm_val)]
-        raise ValueError(f"Unsupported single-operand instruction shape: {inst.text!r}")
+        raise ValueError(
+            f"Unsupported single-operand instruction shape for {_instruction_ref(inst)}")
     if operand_types == ("dn", "label"):
         return [("register", ("dn", reg_num)), ("label", None)]
+    if operand_types == ("rn", "ea"):
+        if ea_op is None or reg_num is None or reg_mode is None or ea_is_source is None:
+            raise ValueError(f"Decoded rn/ea shape incomplete for {_instruction_ref(inst)}")
+        reg_spec = ("register", (reg_mode, reg_num))
+        return [reg_spec, ("decoded", ea_op)] if ea_is_source else [("decoded", ea_op), reg_spec]
     if ea_is_source is not None and ea_op is not None and reg_num is not None:
         reg_spec = ("register", ("dn", reg_num))
         return [("decoded", ea_op), reg_spec] if ea_is_source else [reg_spec, ("decoded", ea_op)]
@@ -347,7 +428,8 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
     elif imm_val is not None:
         first = ("immediate", imm_val)
     else:
-        raise ValueError(f"Unable to resolve first operand from decode: {inst.text!r}")
+        raise ValueError(
+            f"Unable to resolve first operand from decode for {_instruction_ref(inst)}")
 
     if dst_op is not None:
         second = ("decoded", dst_op)
@@ -355,23 +437,369 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
         dest = decode_destination(inst.raw, meta["inst_kb"], hunk_session.kb.meta,
                                   meta["size"], inst.offset)
         if dest is None:
-            raise ValueError(f"Unable to resolve destination operand from decode: {inst.text!r}")
+            raise ValueError(
+                f"Unable to resolve destination operand from decode for {_instruction_ref(inst)}")
         second = ("register", dest)
     return [first, second]
 
 
-def _operand_text_slots(inst_text: str, operand_count: int) -> list[str]:
-    parts = inst_text.strip().split(None, 1)
+def _operand_text_slots(inst, operand_count: int) -> list[str]:
     if operand_count == 0:
         return []
-    if len(parts) < 2:
-        raise ValueError(f"Decoded operands missing text slots for {inst_text!r}")
-    tokens = [token for token in _split_operand_tokens(parts[1]) if token]
+    if inst.operand_texts is None:
+        raise ValueError(
+            f"Instruction at ${inst.offset:06x} is missing operand_texts")
+    tokens = [token for token in inst.operand_texts if token]
     if len(tokens) != operand_count:
         raise ValueError(
-            f"Operand text count mismatch for {inst_text!r}: "
+            f"Operand text count mismatch for {_instruction_ref(inst)}: "
             f"decoded {operand_count}, text {len(tokens)}")
     return tokens
+
+
+def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
+                               operand_index: int,
+                               hunk_session: HunkDisassemblySession,
+                               meta: dict,
+                               used_structs: set[str] | None,
+                               include_arg_subs: bool) -> SemanticOperand | None:
+    flow_type = meta["inst_kb"].get("pc_effects", {}).get("flow", {}).get("type")
+    labels = hunk_session.labels
+
+    if spec_type == "register" and node.kind == "register":
+        mode, reg = spec_value
+        expected = f"{'a' if mode == 'an' else 'd'}{reg}"
+        if not _same_register_name(expected, node.register):
+            raise ValueError(
+                f"Typed register mismatch for {_instruction_ref(inst)}: "
+                f"decoded {expected}, node {node.register}")
+        return SemanticOperand(kind="register", text=node.text.lower(), register=node.register)
+
+    if spec_type == "special_register" and node.kind == "special_register":
+        if str(spec_value) != node.register:
+            raise ValueError(
+                f"Typed special-register mismatch for {_instruction_ref(inst)}: "
+                f"decoded {spec_value}, node {node.register}")
+        return SemanticOperand(kind="register", text=node.text.lower(), register=node.register)
+
+    if spec_type == "reglist" and node.kind == "register_list":
+        return SemanticOperand(
+            kind="register_list",
+            text=node.text,
+            metadata=dict(node.metadata),
+        )
+
+    if spec_type == "register_pair" and node.kind == "register_pair":
+        expected = [f"d{spec_value[0]}", f"d{spec_value[1]}"]
+        actual = node.metadata.get("registers")
+        if actual != expected:
+            raise ValueError(
+                f"Typed register-pair mismatch for {_instruction_ref(inst)}: "
+                f"decoded {expected}, node {actual}")
+        return SemanticOperand(
+            kind="register_pair",
+            text=node.text.lower(),
+            metadata={"registers": expected},
+        )
+
+    if spec_type == "immediate" and node.kind == "immediate":
+        value = spec_value
+        same_encoded_value = False
+        if node.value is not None and value is not None:
+            for bits in (8, 16, 32):
+                mask = (1 << bits) - 1
+                if (node.value & mask) == value:
+                    same_encoded_value = True
+                    break
+        if node.value != value and not same_encoded_value:
+            raise ValueError(
+                f"Typed immediate mismatch for {_instruction_ref(inst)}: "
+                f"decoded {value}, node {node.value}")
+        target = _reloc_target(inst, hunk_session, value)
+        label = labels.get(target) if target is not None else None
+        text = f"#{label}" if label is not None else node.text
+        text = _apply_instruction_text_substitutions(
+            text, inst.offset, hunk_session, include_arg_subs)
+        return SemanticOperand(
+            kind="immediate_symbol" if label is not None else "immediate",
+            text=text,
+            value=value,
+            target_addr=target,
+            metadata={"symbol": label} if label is not None else {},
+        )
+
+    if (spec_type == "immediate"
+            and node.kind == "branch_target"
+            and flow_type in ("branch", "jump", "call")):
+        target_addr = node.target
+        if target_addr is None:
+            raise ValueError(f"Typed branch target missing for {_instruction_ref(inst)}")
+        label = labels.get(target_addr)
+        text = label if label is not None else node.text
+        return SemanticOperand(
+            kind="call_target" if flow_type == "call" else "branch_target",
+            text=text,
+            value=target_addr,
+            target_addr=target_addr,
+            metadata={"symbol": label} if label is not None else {},
+        )
+
+    if spec_type == "label" and node.kind == "branch_target":
+        target_addr = node.target
+        if target_addr is None:
+            raise ValueError(f"Typed branch target missing for {_instruction_ref(inst)}")
+        label = labels.get(target_addr)
+        text = label if label is not None else node.text
+        return SemanticOperand(
+            kind="call_target" if flow_type == "call" else "branch_target",
+            text=text,
+            value=target_addr,
+            target_addr=target_addr,
+            metadata={"symbol": label} if label is not None else {},
+        )
+
+    if spec_type == "bitfield_ea" and node.kind == "bitfield_ea":
+        decoded_op, bitfield = spec_value
+        base_node = node.metadata.get("base_node")
+        if base_node is None:
+            raise ValueError(f"Typed bitfield operand missing base node for {_instruction_ref(inst)}")
+        base = _simple_semantic_from_node(
+            inst, base_node, "decoded", decoded_op, operand_index,
+            hunk_session, meta, used_structs, include_arg_subs)
+        if base is None:
+            raise ValueError(f"Typed bitfield base node did not decode for {_instruction_ref(inst)}")
+        for key in ("offset_is_register", "offset_value", "width_is_register", "width_value"):
+            if node.metadata.get(key) != bitfield.get(key):
+                raise ValueError(
+                    f"Typed bitfield operand mismatch for {_instruction_ref(inst)}: "
+                    f"{key} decoded {bitfield.get(key)}, node {node.metadata.get(key)}")
+        metadata = dict(base.metadata)
+        metadata["bitfield"] = bitfield
+        return SemanticOperand(
+            kind="bitfield_ea",
+            text=node.text,
+            value=base.value,
+            register=base.register,
+            base_register=base.base_register,
+            displacement=base.displacement,
+            target_addr=base.target_addr,
+            metadata=metadata,
+        )
+
+    if spec_type == "decoded":
+        decoded_op = spec_value
+        op_mode = getattr(decoded_op, "mode", None)
+        op_value = getattr(decoded_op, "value", None)
+        metadata: dict[str, object] = {}
+        kind = "text"
+        value = None
+        register = None
+        base_register = None
+        displacement = None
+        target_addr = None
+        text = node.text
+
+        if op_mode in ("dn", "dreg") and node.kind == "register":
+            expected = f"d{decoded_op.reg}"
+            if node.register != expected:
+                raise ValueError(
+                    f"Typed register mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {expected}, node {node.register}")
+            kind = "register"
+            register = node.register
+            text = node.text.lower()
+        elif op_mode in ("an", "areg") and node.kind == "register":
+            expected = f"a{decoded_op.reg}"
+            if not _same_register_name(expected, node.register):
+                raise ValueError(
+                    f"Typed register mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {expected}, node {node.register}")
+            kind = "register"
+            register = node.register
+            text = node.text.lower()
+        elif op_mode == "imm" and node.kind == "immediate":
+            value = op_value
+            same_encoded_value = False
+            if node.value is not None and value is not None:
+                for bits in (8, 16, 32):
+                    mask = (1 << bits) - 1
+                    if (node.value & mask) == value:
+                        same_encoded_value = True
+                        break
+            if node.value != value and not same_encoded_value:
+                raise ValueError(
+                    f"Typed immediate mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {value}, node {node.value}")
+            target = _reloc_target(inst, hunk_session, value) if value is not None else None
+            label = labels.get(target) if target is not None else None
+            if label is not None:
+                kind = "immediate_symbol"
+                target_addr = target
+                metadata["symbol"] = label
+                text = f"#{label}"
+            else:
+                kind = "immediate"
+        elif op_mode == "ind" and node.kind == "indirect":
+            base_register = _address_base_name(decoded_op.reg)
+            if node.metadata.get("base_register") != base_register:
+                raise ValueError(
+                    f"Typed indirect mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
+            kind = "indirect"
+        elif op_mode == "postinc" and node.kind == "postincrement":
+            base_register = _address_base_name(decoded_op.reg)
+            if node.metadata.get("base_register") != base_register:
+                raise ValueError(
+                    f"Typed postincrement mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
+            kind = "postincrement"
+        elif op_mode == "predec" and node.kind == "predecrement":
+            base_register = _address_base_name(decoded_op.reg)
+            if node.metadata.get("base_register") != base_register:
+                raise ValueError(
+                    f"Typed predecrement mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
+            kind = "predecrement"
+        elif op_mode == "disp" and node.kind == "base_displacement":
+            base_register = _address_base_name(decoded_op.reg)
+            displacement = op_value
+            if node.metadata.get("base_register") != base_register:
+                raise ValueError(
+                    f"Typed base displacement mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
+            if node.metadata.get("displacement") != displacement:
+                raise ValueError(
+                    f"Typed base displacement mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {displacement}, node {node.metadata.get('displacement')}")
+            value = displacement
+            symbol = (_struct_field_symbol(inst.offset, base_register, displacement,
+                                           hunk_session, used_structs)
+                      or _app_offset_symbol(base_register, displacement, hunk_session))
+            if symbol is not None:
+                kind = "base_displacement_symbol"
+                metadata["symbol"] = symbol
+            else:
+                kind = "base_displacement"
+            text = _base_disp_text(base_register, displacement, node.text, decoded_op, symbol)
+        elif op_mode in ("absw", "absl") and node.kind == "absolute_target":
+            value = _normalized_absolute_value(decoded_op)
+            target_addr = value
+            if node.target != target_addr:
+                raise ValueError(
+                    f"Typed absolute target mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {target_addr}, node {node.target}")
+            label = labels.get(target_addr)
+            text = label if label is not None else node.text
+            if flow_type == "call" and operand_index == 0:
+                kind = "call_target"
+            elif flow_type in ("branch", "jump") and operand_index == 0:
+                kind = "branch_target"
+            else:
+                kind = "absolute_target"
+        elif op_mode == "pcdisp" and node.kind == "pc_relative_target":
+            target_addr = op_value
+            value = op_value
+            if node.target != target_addr:
+                raise ValueError(
+                    f"Typed PC-relative target mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {target_addr}, node {node.target}")
+            label = labels.get(target_addr)
+            text = _pc_relative_text(label, decoded_op, node.text)
+            if flow_type == "call" and operand_index == 0:
+                kind = "call_target"
+            elif flow_type in ("branch", "jump") and operand_index == 0:
+                kind = "branch_target"
+            else:
+                kind = "pc_relative_target"
+        elif op_mode == "index" and node.kind == "indexed":
+            base_register = _address_base_name(decoded_op.reg)
+            displacement = op_value
+            if node.metadata.get("base_register") != base_register:
+                raise ValueError(
+                    f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
+            if node.metadata.get("displacement") != displacement:
+                raise ValueError(
+                    f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {displacement}, node {node.metadata.get('displacement')}")
+            metadata.update(_index_metadata(decoded_op, inst))
+            if node.metadata.get("index_register") != metadata["index_register"]:
+                raise ValueError(
+                    f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {metadata['index_register']}, node {node.metadata.get('index_register')}")
+            if node.metadata.get("index_size") != metadata["index_size"]:
+                raise ValueError(
+                    f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {metadata['index_size']}, node {node.metadata.get('index_size')}")
+            value = displacement
+            symbol = (_struct_field_symbol(inst.offset, base_register, displacement,
+                                           hunk_session, used_structs)
+                      or _app_offset_symbol(base_register, displacement, hunk_session))
+            kind = "base_displacement_symbol" if symbol is not None else "indexed"
+            if symbol is not None:
+                metadata["symbol"] = symbol
+            text = _base_disp_text(base_register, displacement, node.text, decoded_op, symbol)
+        elif op_mode == "index" and node.kind == "memory_indirect_indexed":
+            base_register = _address_base_name(decoded_op.reg)
+            metadata.update(_full_index_metadata(decoded_op, inst))
+            if node.metadata != metadata:
+                raise ValueError(
+                    f"Typed full indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {metadata}, node {node.metadata}")
+            displacement = metadata["base_displacement"]
+            value = displacement
+            kind = "memory_indirect_indexed"
+            text = node.text
+        elif op_mode == "pcindex" and node.kind == "pc_relative_indexed":
+            target_addr = op_value
+            if node.target != target_addr:
+                raise ValueError(
+                    f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {target_addr}, node {node.target}")
+            metadata.update(_index_metadata(decoded_op, inst))
+            if node.metadata.get("index_register") != metadata["index_register"]:
+                raise ValueError(
+                    f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {metadata['index_register']}, node {node.metadata.get('index_register')}")
+            if node.metadata.get("index_size") != metadata["index_size"]:
+                raise ValueError(
+                    f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {metadata['index_size']}, node {node.metadata.get('index_size')}")
+            value = op_value
+            label = labels.get(target_addr)
+            text = _pc_relative_text(label, decoded_op, node.text)
+            kind = "pc_relative_indexed"
+        elif op_mode == "pcindex" and node.kind == "pc_memory_indirect_indexed":
+            target_addr = op_value
+            if node.target != target_addr:
+                raise ValueError(
+                    f"Typed PC full indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {target_addr}, node {node.target}")
+            metadata.update(_full_index_metadata(decoded_op, inst))
+            if node.metadata != metadata:
+                raise ValueError(
+                    f"Typed PC full indexed operand mismatch for {_instruction_ref(inst)}: "
+                    f"decoded {metadata}, node {node.metadata}")
+            value = op_value
+            kind = "pc_memory_indirect_indexed"
+            text = node.text
+        else:
+            return None
+
+        text = _apply_instruction_text_substitutions(
+            text, inst.offset, hunk_session, include_arg_subs)
+        return SemanticOperand(
+            kind=kind,
+            text=text,
+            value=value,
+            register=register,
+            base_register=base_register,
+            displacement=displacement,
+            target_addr=target_addr,
+            metadata=metadata,
+        )
+
+    return None
 
 
 def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value,
@@ -428,7 +856,8 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
 
     if spec_type == "label":
         if branch_target is None:
-            raise ValueError(f"Decoded label operand missing branch target for {inst.text!r}")
+            raise ValueError(
+                f"Decoded label operand missing branch target for {_instruction_ref(inst)}")
         label = labels.get(branch_target)
         text = label if label is not None else token
         return SemanticOperand(
@@ -511,6 +940,9 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             kind = "call_target"
         elif flow_type in ("branch", "jump") and operand_index == 0:
             kind = "branch_target"
+        elif op_mode == "pcindex" and getattr(decoded_op, "memory_indirect", False):
+            metadata.update(_full_index_metadata(decoded_op, inst))
+            kind = "pc_memory_indirect_indexed"
         elif op_mode == "pcindex":
             kind = "pc_relative_indexed"
         else:
@@ -541,10 +973,15 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         base_register = f"a{decoded_op.reg}"
         displacement = op_value
         value = op_value
-        metadata.update(_index_metadata(decoded_op, inst.text, token))
-        kind = "indexed"
+        if getattr(decoded_op, "memory_indirect", False):
+            metadata.update(_full_index_metadata(decoded_op, inst))
+            kind = "memory_indirect_indexed"
+        else:
+            metadata.update(_index_metadata(decoded_op, inst))
+            kind = "indexed"
     else:
-        raise ValueError(f"Unsupported decoded operand mode {op_mode!r} in {inst.text!r}")
+        raise ValueError(
+            f"Unsupported decoded operand mode {op_mode!r} in {_instruction_ref(inst)}")
 
     if (flow_type in ("branch", "jump", "call")
             and operand_index == 0
@@ -577,10 +1014,15 @@ def build_instruction_semantic_operands(
 ) -> tuple[SemanticOperand, ...]:
     meta = decode_inst_for_emit(inst, hunk_session.kb)
     specs = _decoded_operand_specs(inst, hunk_session, meta)
-    tokens = _operand_text_slots(inst.text, len(specs))
+    nodes = list(inst.operand_nodes or ())
+    tokens = _operand_text_slots(inst, len(specs))
 
     return tuple(
-        _build_decoded_semantic_operand(
+        (_simple_semantic_from_node(
+            inst, nodes[idx], spec_type, spec_value, idx,
+            hunk_session, meta, used_structs, include_arg_subs,
+        ) if idx < len(nodes) else None)
+        or _build_decoded_semantic_operand(
             inst,
             token,
             spec_type,
