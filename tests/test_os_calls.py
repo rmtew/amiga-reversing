@@ -31,7 +31,7 @@ def _corrupt_instruction_texts(blocks):
             inst.text = "corrupted"
 
 
-# ── Gap 1: Return value store tracing ────────────────────────────────
+# -- Gap 1: Return value store tracing --------------------------------
 
 def test_return_store_to_app_memory():
     """D0 from library call stored to d(A6) -> names the app memory slot.
@@ -153,7 +153,7 @@ def test_return_store_no_output():
     assert len(stores) == 0
 
 
-# ── Gap 2: Argument annotation ───────────────────────────────────────
+# -- Gap 2: Argument annotation ---------------------------------------
 
 def test_annotate_argument_from_app_memory():
     """Argument loaded from d(A6) before call gets annotation.
@@ -232,7 +232,7 @@ def test_annotate_multiple_arguments():
     assert 0x08 in annotations  # D3 = length
 
 
-# ── Gaps 3-6: Unified app memory type map ────────────────────────────
+# -- Gaps 3-6: Unified app memory type map ----------------------------
 
 def test_backward_type_names_app_slot():
     """Gap 3: argument load from d(A6) names the app memory slot.

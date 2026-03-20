@@ -1,9 +1,9 @@
 """Name subroutine entities from available signals.
 
 Signals used (in priority order):
-1. OS call patterns — subroutines calling specific library functions
-2. String references — LEA d(PC),An pointing to readable strings
-3. Call graph position — entry point, leaf functions
+1. OS call patterns - subroutines calling specific library functions
+2. String references - LEA d(PC),An pointing to readable strings
+3. Call graph position - entry point, leaf functions
 
 String detection uses KB ea_mode_encoding.pcdisp and opword_bytes.
 OS call naming uses the runtime OS KB function names.
@@ -18,9 +18,9 @@ import struct
 import sys
 import re
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_decode
-from knowledge import runtime_naming
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_naming
 
 from .instruction_kb import find_kb_entry, instruction_kb
 from .m68k_executor import BasicBlock
@@ -187,7 +187,7 @@ def name_subroutines(entities: list[dict],
     os_kb = load_os_kb()
     os_lib_names = set(os_kb.LIBRARIES)
 
-    # Build block→subroutine mapping
+    # Build block->subroutine mapping
     entity_by_addr = {}
     for ent in entities:
         if ent.get("type") != "code":

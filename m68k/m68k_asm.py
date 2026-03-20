@@ -1,4 +1,4 @@
-"""KB-driven M68K assembler — assembly text → machine code bytes.
+"""KB-driven M68K assembler - assembly text -> machine code bytes.
 
 All M68K knowledge comes from the runtime KB and its canonical source data.
 No instruction encodings, sizes, or field values are hardcoded.
@@ -11,14 +11,14 @@ Usage:
 import re
 import struct
 
-from knowledge import runtime_m68k_asm
+from m68k_kb import runtime_m68k_asm
 
 _SIZE_BYTE = 0
 _SIZE_WORD = 1
 _SIZE_LONG = 2
 
 
-# ── EA mode encoding from KB ─────────────────────────────────────────────
+# -- EA mode encoding from KB ---------------------------------------------
 
 def _ea_mode_encoding():
     """Return {mode_name: (mode_num, reg_or_none)} from KB _meta."""
@@ -56,7 +56,7 @@ def _field_map(inst, enc_idx=0):
     return runtime_m68k_asm.FIELD_MAPS[enc_idx].get(inst, {})
 
 
-# ── Bit field helpers ─────────────────────────────────────────────────────
+# -- Bit field helpers -----------------------------------------------------
 
 def _pack_field(word, value, bit_hi, bit_lo):
     """Set bits [bit_hi:bit_lo] of word to value."""
@@ -75,7 +75,7 @@ def _to_bytes_32(val):
     return struct.pack(">I", val & 0xFFFFFFFF)
 
 
-# ── EA mode parser (the shared core) ─────────────────────────────────────
+# -- EA mode parser (the shared core) -------------------------------------
 
 # Regex patterns for operand syntax.
 # These are Motorola assembly syntax conventions, not M68K instruction knowledge.
@@ -118,7 +118,7 @@ def _build_brief_ext_word(xreg_num, is_addr, is_long, disp8):
     word = _pack_field(word, 1 if is_addr else 0, *bf["D/A"][:2])
     word = _pack_field(word, xreg_num, *bf["REGISTER"][:2])
     word = _pack_field(word, 1 if is_long else 0, *bf["W/L"][:2])
-    # SCALE = 0 (×1) for 68000 basic indexed mode
+    # SCALE = 0 (x1) for 68000 basic indexed mode
     word = _pack_field(word, disp8 & 0xFF, *bf["DISPLACEMENT"][:2])
     return word
 
@@ -173,7 +173,7 @@ def parse_ea(operand, op_size=None):
         mode, _ = enc["predec"]
         return mode, 7, b""
 
-    # d(An,Xn.s) — indexed (must check before disp because of overlapping patterns)
+    # d(An,Xn.s) - indexed (must check before disp because of overlapping patterns)
     m = _RE_INDEX.match(operand)
     if m:
         disp = int(m.group(1))
@@ -194,7 +194,7 @@ def parse_ea(operand, op_size=None):
         ext_word = _build_brief_ext_word(xreg, xtype == "a", xsize == "l", disp)
         return mode, 7, _to_bytes_16(ext_word)
 
-    # d(An) / d(SP) — displacement
+    # d(An) / d(SP) - displacement
     m = _RE_DISP.match(operand)
     if m:
         disp = int(m.group(1))
@@ -207,7 +207,7 @@ def parse_ea(operand, op_size=None):
         mode, _ = enc["disp"]
         return mode, 7, _to_bytes_16(disp)
 
-    # (An) / (SP) — indirect (check after postinc/predec/disp/index)
+    # (An) / (SP) - indirect (check after postinc/predec/disp/index)
     m = _RE_IND.match(operand)
     if m:
         mode, _ = enc["ind"]
@@ -216,7 +216,7 @@ def parse_ea(operand, op_size=None):
         mode, _ = enc["ind"]
         return mode, 7, b""
 
-    # d(PC,Xn.s) — PC indexed
+    # d(PC,Xn.s) - PC indexed
     m = _RE_PCINDEX.match(operand)
     if m:
         disp = int(m.group(1))
@@ -227,14 +227,14 @@ def parse_ea(operand, op_size=None):
         ext_word = _build_brief_ext_word(xreg, xtype == "a", xsize == "l", disp)
         return mode, reg, _to_bytes_16(ext_word)
 
-    # d(PC) — PC displacement
+    # d(PC) - PC displacement
     m = _RE_PCDISP.match(operand)
     if m:
         disp = int(m.group(1))
         mode, reg = enc["pcdisp"]
         return mode, reg, _to_bytes_16(disp)
 
-    # #imm — immediate
+    # #imm - immediate
     m = _RE_IMM.match(operand)
     if m:
         val = _parse_imm_value(m.group(1))
@@ -244,21 +244,21 @@ def parse_ea(operand, op_size=None):
         else:
             return mode, reg, _to_bytes_16(val)
 
-    # ($xxxx).w — absolute word
+    # ($xxxx).w - absolute word
     m = _RE_ABSW.match(operand)
     if m:
         addr = int(m.group(1), 16)
         mode, reg = enc["absw"]
         return mode, reg, _to_bytes_16(addr)
 
-    # $xxxx — absolute long (hex)
+    # $xxxx - absolute long (hex)
     m = _RE_ABSL_HEX.match(operand)
     if m:
         addr = int(m.group(1), 16)
         mode, reg = enc["absl"]
         return mode, reg, _to_bytes_32(addr)
 
-    # decimal number — absolute long
+    # decimal number - absolute long
     m = _RE_ABSL_DEC.match(operand)
     if m:
         addr = int(m.group(1))
@@ -268,13 +268,13 @@ def parse_ea(operand, op_size=None):
     raise ValueError(f"Cannot parse EA operand: {operand!r}")
 
 
-# ── KB encoding helpers ───────────────────────────────────────────────────
+# -- KB encoding helpers ---------------------------------------------------
 
 
-# ── Mnemonic resolution ──────────────────────────────────────────────────
+# -- Mnemonic resolution --------------------------------------------------
 
 def _parse_mnemonic_size(text):
-    """Parse 'move.l' → ('move', 'l') or 'nop' → ('nop', None)."""
+    """Parse 'move.l' -> ('move', 'l') or 'nop' -> ('nop', None)."""
     text = text.strip().lower()
     # Try splitting on last dot
     if "." in text:
@@ -285,10 +285,10 @@ def _parse_mnemonic_size(text):
 
 
 def _resolve_cc_mnemonic(mnemonic_lower):
-    """Check if mnemonic is a cc-parameterized variant (e.g. 'beq' → Bcc, cc=1).
+    """Check if mnemonic is a cc-parameterized variant (e.g. 'beq' -> Bcc, cc=1).
 
-    Also handles CC aliases from KB _meta.cc_aliases (e.g. 'dbra' → DBcc with
-    cc=F, 'blo' → Bcc with cc=CS).
+    Also handles CC aliases from KB _meta.cc_aliases (e.g. 'dbra' -> DBcc with
+    cc=F, 'blo' -> Bcc with cc=CS).
 
     Returns (kb_inst, cc_index) or None.
     """
@@ -304,7 +304,7 @@ def _resolve_cc_mnemonic(mnemonic_lower):
                 excluded = set(cc_param.get("excluded", []))
                 if cc_suffix not in excluded:
                     return kb_mnemonic, cc_idx[cc_suffix]
-            # Alias CC match (e.g. "ra" → "f", "lo" → "cs")
+            # Alias CC match (e.g. "ra" -> "f", "lo" -> "cs")
             canonical = cc_aliases.get(cc_suffix)
             if canonical and canonical in cc_idx:
                 excluded = set(cc_param.get("excluded", []))
@@ -314,7 +314,7 @@ def _resolve_cc_mnemonic(mnemonic_lower):
 
 
 def _resolve_direction_mnemonic(mnemonic_lower):
-    """Check if mnemonic is a direction variant (e.g. 'asl' → 'ASL, ASR', direction=L).
+    """Check if mnemonic is a direction variant (e.g. 'asl' -> 'ASL, ASR', direction=L).
 
     Returns (kb_inst, direction_bit_value, individual_mnemonic) or None.
     """
@@ -383,7 +383,7 @@ def resolve_instruction(mnemonic_str, size_char=None):
     raise ValueError(f"Unknown mnemonic: {mnemonic_str!r}")
 
 
-# ── Opword construction ──────────────────────────────────────────────────
+# -- Opword construction --------------------------------------------------
 
 def _build_opword(inst, field_values, enc_idx=0):
     """Build opword from KB encoding fixed bits + variable field values.
@@ -392,7 +392,7 @@ def _build_opword(inst, field_values, enc_idx=0):
         inst: KB instruction dict
         field_values: dict mapping field name to value.
             For duplicate fields (e.g. MOVE has two MODE), use
-            field_values with list values — first element is highest bit position.
+            field_values with list values - first element is highest bit position.
             For named fields (e.g. "REGISTER Rx"), use exact names.
         enc_idx: which encoding to use (default 0, the primary encoding).
 
@@ -465,7 +465,7 @@ def _get_size_encoding(inst, size_char):
     return value
 
 
-# ── Instruction assemblers ────────────────────────────────────────────────
+# -- Instruction assemblers ------------------------------------------------
 
 def _assemble_no_operands(inst, resolution):
     """Assemble instructions with no operands (NOP, RTS, RTE, etc.)."""
@@ -504,7 +504,7 @@ def _assemble_two_ea(inst, resolution, src_str, dst_str):
     # KB encoding lists fields in bit order (high to low), so:
     # First REGISTER = dst (bits 11:9), second REGISTER = src (bits 2:0)
     # First MODE = dst (bits 8:6), second MODE = src (bits 5:3)
-    # Use list values for duplicate fields — first = highest bit position = destination.
+    # Use list values for duplicate fields - first = highest bit position = destination.
 
     # Check if this instruction has duplicate MODE/REGISTER fields
     fields0 = _raw_fields(inst, 0)
@@ -530,7 +530,7 @@ def _assemble_two_ea(inst, resolution, src_str, dst_str):
 def _assemble_opmode(inst, resolution, src_str, dst_str):
     """Assemble instructions with OPMODE field (ADD, SUB, AND, OR, CMP, etc.).
 
-    OPMODE determines both size and direction (ea→Dn or Dn→ea).
+    OPMODE determines both size and direction (ea->Dn or Dn->ea).
     """
     size_char = resolution["size"]
     sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
@@ -544,27 +544,27 @@ def _assemble_opmode(inst, resolution, src_str, dst_str):
     dst_mode, dst_reg, dst_ext = parse_ea(dst_str, sz_bytes)
 
     # Determine direction from operands:
-    # If dst is Dn (mode 0), direction is ea→Dn: look for matching opmode with "→ Dn" operation
-    # If src is Dn (mode 0) and dst is EA, direction is Dn→ea: look for "→ <ea>" operation
+    # If dst is Dn (mode 0), direction is ea->Dn: look for matching opmode with "-> Dn" operation
+    # If src is Dn (mode 0) and dst is EA, direction is Dn->ea: look for "-> <ea>" operation
     enc = _ea_mode_encoding()
     dn_mode = enc["dn"][0]
 
     selected_opmode = None
     if dst_mode == dn_mode:
-        # Destination is Dn — find opmode for ea→Dn at this size
+        # Destination is Dn - find opmode for ea->Dn at this size
         for entry in opm_table:
-            if entry["size"] == size_char and "Dn" in entry.get("operation", "").split("→")[-1]:
+            if entry["size"] == size_char and "Dn" in entry.get("operation", "").split("->")[-1]:
                 selected_opmode = entry["opmode"]
                 break
     if selected_opmode is None and src_mode == dn_mode:
-        # Source is Dn — find opmode for Dn→ea at this size
+        # Source is Dn - find opmode for Dn->ea at this size
         for entry in opm_table:
             op = entry.get("operation", "")
-            if entry["size"] == size_char and "ea" in op.split("→")[-1].lower():
+            if entry["size"] == size_char and "ea" in op.split("->")[-1].lower():
                 selected_opmode = entry["opmode"]
                 break
     if selected_opmode is None:
-        # Fallback: just match size (e.g. CMP only has ea→Dn direction)
+        # Fallback: just match size (e.g. CMP only has ea->Dn direction)
         for entry in opm_table:
             if entry["size"] == size_char:
                 selected_opmode = entry["opmode"]
@@ -577,17 +577,17 @@ def _assemble_opmode(inst, resolution, src_str, dst_str):
 
     # For opmode instructions: REGISTER field = Dn register, MODE/REGISTER(EA) = the EA operand
     if dst_mode == dn_mode:
-        # ea→Dn: REGISTER=dst_reg(Dn), MODE=src_mode, EA_REGISTER=src_reg
+        # ea->Dn: REGISTER=dst_reg(Dn), MODE=src_mode, EA_REGISTER=src_reg
         fields = {"REGISTER": dst_reg, "OPMODE": selected_opmode,
                   "MODE": src_mode}
-        # Find the EA register field (might be named REGISTER too — it's the lower one)
+        # Find the EA register field (might be named REGISTER too - it's the lower one)
         enc_fields = _raw_fields(inst, 0)
         reg_fields = [field for field in enc_fields if field[0] == "REGISTER"]
         if len(reg_fields) >= 2:
             # Two REGISTER fields: higher = Dn, lower = EA reg
             fields["REGISTER"] = [dst_reg, src_reg]
         else:
-            # Single REGISTER field — EA reg is separate
+            # Single REGISTER field - EA reg is separate
             fields["REGISTER"] = dst_reg
             # Hmm, need to figure out which field holds the EA register
             # For ADD etc., the encoding is: REGISTER[11:9]=Dn, OPMODE[8:6], MODE[5:3], REGISTER[2:0]=EA
@@ -595,7 +595,7 @@ def _assemble_opmode(inst, resolution, src_str, dst_str):
         word = _build_opword(inst, fields)
         return _to_bytes_16(word) + src_ext
     else:
-        # Dn→ea: REGISTER=src_reg(Dn), MODE=dst_mode, EA_REGISTER=dst_reg
+        # Dn->ea: REGISTER=src_reg(Dn), MODE=dst_mode, EA_REGISTER=dst_reg
         fields = {"REGISTER": [src_reg, dst_reg], "OPMODE": selected_opmode,
                   "MODE": dst_mode}
         word = _build_opword(inst, fields)
@@ -624,7 +624,7 @@ def _assemble_immediate(inst, resolution, imm_str, dst_str):
 
 
 def _assemble_quick(inst, resolution, imm_str, dst_str):
-    """Assemble ADDQ/SUBQ — inline 3-bit immediate with zero_means."""
+    """Assemble ADDQ/SUBQ - inline 3-bit immediate with zero_means."""
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
     sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
@@ -649,7 +649,7 @@ def _assemble_quick(inst, resolution, imm_str, dst_str):
 
 
 def _assemble_moveq(inst, resolution, imm_str, dst_str):
-    """Assemble MOVEQ — 8-bit immediate in opword."""
+    """Assemble MOVEQ - 8-bit immediate in opword."""
     imm_val = _parse_imm_value(imm_str.lstrip("#"))
 
     # Destination must be Dn
@@ -704,9 +704,9 @@ def _assemble_branch(inst, resolution, target_str, pc=0):
     # Reserved values in the byte displacement field (signal word/long extension)
     reserved = set()
     if word_signal is not None:
-        reserved.add(word_signal)            # 0x00 → word extension
+        reserved.add(word_signal)            # 0x00 -> word extension
     if long_signal is not None:
-        reserved.add(long_signal - 256)      # 0xFF as signed → -1
+        reserved.add(long_signal - 256)      # 0xFF as signed -> -1
 
     # Auto-select size if none specified
     if size_char is None:
@@ -746,7 +746,7 @@ def _assemble_branch(inst, resolution, target_str, pc=0):
 
 
 def _assemble_dbcc(inst, resolution, reg_str, target_str, pc=0):
-    """Assemble DBcc — decrement and branch.
+    """Assemble DBcc - decrement and branch.
 
     Displacement is computed as target - (pc + 2), same as Bcc.
     DBcc always uses 16-bit displacement.
@@ -776,7 +776,7 @@ def _assemble_shift_reg(inst, resolution, operands):
         REGISTER(11:9) = count/register (immediate count or source Dn number)
         REGISTER(2:0)  = destination Dn
     The type bits (distinguishing ASL/LSL/ROL/ROXL) are fixed in each
-    instruction's encoding — no variable type field needed.
+    instruction's encoding - no variable type field needed.
     """
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
@@ -837,7 +837,7 @@ def _assemble_shift_mem(inst, resolution, operand):
 
 
 def _assemble_ea_dn(inst, resolution, src_str, dst_str):
-    """Assemble <ea>,Dn form — CHK, DIVS, DIVU, MULS, MULU.
+    """Assemble <ea>,Dn form - CHK, DIVS, DIVU, MULS, MULU.
 
     Encoding: REGISTER(11:9)=Dn, MODE(5:3)+REGISTER(2:0)=EA source.
     CHK also has a SIZE field.
@@ -861,7 +861,7 @@ def _assemble_ea_dn(inst, resolution, src_str, dst_str):
 
 
 def _assemble_movep(inst, resolution, src_str, dst_str):
-    """Assemble MOVEP — data register to/from memory displacement.
+    """Assemble MOVEP - data register to/from memory displacement.
 
     KB encoding uses named fields: DATA REGISTER (11:9), ADDRESS REGISTER (2:0).
     Direction and size determined from opmode_table.
@@ -879,7 +879,7 @@ def _assemble_movep(inst, resolution, src_str, dst_str):
     selected = None
 
     if ms_dn and not md_dn:
-        # Dn,d(An) → register to memory
+        # Dn,d(An) -> register to memory
         data_reg = int(ms_dn.group(1))
         m = _RE_DISP.match(dst_str.strip()) or _RE_DISP_SP.match(dst_str.strip())
         if not m:
@@ -892,7 +892,7 @@ def _assemble_movep(inst, resolution, src_str, dst_str):
                 selected = entry["opmode"]
                 break
     elif md_dn and not ms_dn:
-        # d(An),Dn → memory to register
+        # d(An),Dn -> memory to register
         data_reg = int(md_dn.group(1))
         m = _RE_DISP.match(src_str.strip()) or _RE_DISP_SP.match(src_str.strip())
         if not m:
@@ -917,7 +917,7 @@ def _assemble_movep(inst, resolution, src_str, dst_str):
 
 
 def _assemble_movem(inst, resolution, operands):
-    """Assemble MOVEM — register list to/from memory."""
+    """Assemble MOVEM - register list to/from memory."""
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
     sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
@@ -930,7 +930,7 @@ def _assemble_movem(inst, resolution, operands):
     reg_masks = runtime_m68k_asm.MOVEM_REG_MASKS
 
     def _parse_reglist(s):
-        """Parse register list string like 'd0-d2/a0' → bitmask."""
+        """Parse register list string like 'd0-d2/a0' -> bitmask."""
         s = s.strip().lower()
         regs = set()
         for part in s.split("/"):
@@ -1020,7 +1020,7 @@ def _assemble_unlk(inst, resolution, reg_str):
 
 
 def _assemble_exg(inst, resolution, src_str, dst_str):
-    """Assemble EXG — exchange registers.
+    """Assemble EXG - exchange registers.
 
     KB encoding uses named fields: REGISTER Rx (11:9), REGISTER Ry (3:0).
     KB opmode_table uses "description" (not "operation") for form descriptions.
@@ -1065,7 +1065,7 @@ def _assemble_exg(inst, resolution, src_str, dst_str):
                 opmode = entry["opmode"]
                 break
     elif mas and md:
-        # Ax,Dy — swap to canonical Dy,Ax
+        # Ax,Dy - swap to canonical Dy,Ax
         rx = int(md.group(1))
         ry = 7 if _RE_SP.match(src_str.strip()) else int(mas.group(1))
         for entry in opm_table:
@@ -1095,8 +1095,8 @@ def _assemble_swap(inst, resolution, reg_str):
 def _assemble_ext(inst, resolution, reg_str):
     """Assemble EXT/EXTB Dn.
 
-    EXT has no SIZE field — size is encoded in OPMODE from KB opmode_table.
-    User's size suffix is the result size (.w = byte→word, .l = word→long).
+    EXT has no SIZE field - size is encoded in OPMODE from KB opmode_table.
+    User's size suffix is the result size (.w = byte->word, .l = word->long).
     """
     size_char = resolution["size"]
     user_mnemonic = resolution.get("mnemonic_str", "ext")
@@ -1190,7 +1190,7 @@ def _assemble_lea_pea(inst, resolution, src_str, dst_str=None):
 
 
 def _assemble_bcd(inst, resolution, src_str, dst_str):
-    """Assemble ABCD/SBCD — data register or predecrement form.
+    """Assemble ABCD/SBCD - data register or predecrement form.
 
     KB encoding has two named REGISTER fields (highest bits = dst, lowest = src).
     Base-name fallback in _build_opword handles varying suffixes (Rx/Ry, Dy/Dx).
@@ -1214,7 +1214,7 @@ def _assemble_bcd(inst, resolution, src_str, dst_str):
 
 
 def _assemble_addx_subx(inst, resolution, src_str, dst_str):
-    """Assemble ADDX/SUBX — data register or predecrement form.
+    """Assemble ADDX/SUBX - data register or predecrement form.
 
     KB encoding has two named REGISTER fields (highest bits = dst, lowest = src).
     Base-name fallback in _build_opword handles varying suffixes (Rx/Ry, Dy/Ax).
@@ -1244,7 +1244,7 @@ def _assemble_cmpm(inst, resolution, src_str, dst_str):
     """Assemble CMPM (Ay)+,(Ax)+.
 
     KB encoding uses named fields: REGISTER Ax (11:9) = dst, REGISTER Ay (2:0) = src.
-    Syntax: CMPM (Ay)+,(Ax)+ — source is first operand, destination is second.
+    Syntax: CMPM (Ay)+,(Ax)+ - source is first operand, destination is second.
     """
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
@@ -1305,7 +1305,7 @@ def _assemble_movea(inst, resolution, src_str, dst_str):
 
 
 def _assemble_bit_reg(inst, resolution, src_str, dst_str):
-    """Assemble BTST/BCHG/BCLR/BSET Dn,<ea> — dynamic (register) form.
+    """Assemble BTST/BCHG/BCLR/BSET Dn,<ea> - dynamic (register) form.
 
     Uses encoding[0]: REGISTER(11:9)=Dn, MODE(5:3), REGISTER(2:0)=EA.
     """
@@ -1321,7 +1321,7 @@ def _assemble_bit_reg(inst, resolution, src_str, dst_str):
 
 
 def _assemble_bit_imm(inst, resolution, src_str, dst_str):
-    """Assemble BTST/BCHG/BCLR/BSET #n,<ea> — static (immediate) form.
+    """Assemble BTST/BCHG/BCLR/BSET #n,<ea> - static (immediate) form.
 
     Uses encoding[1] for the opword (fixed bits 15:8 + MODE/REGISTER for EA)
     and a 16-bit extension word containing the bit number.
@@ -1372,14 +1372,14 @@ def _assemble_adda_suba_cmpa(inst, resolution, src_str, dst_str):
     return _to_bytes_16(word) + src_ext
 
 
-# ── KB-driven operand type classification ────────────────────────────────
+# -- KB-driven operand type classification --------------------------------
 
 def _special_operand_types():
     """Derive special register operand types from KB asm_syntax_index.
 
     Returns the set of operand types that appear in the syntax index but are
     not standard EA modes. These require special resolution because they map
-    to separate KB instructions (e.g. 'ccr' in 'andi:imm,ccr' → 'ANDI to CCR').
+    to separate KB instructions (e.g. 'ccr' in 'andi:imm,ccr' -> 'ANDI to CCR').
     """
     return set(runtime_m68k_asm.SPECIAL_OPERAND_TYPES)
 
@@ -1446,7 +1446,7 @@ def _resolve_by_syntax_index(mnemonic_lower, operands):
     return kb_mnemonic, 0
 
 
-# ── SR/CCR/USP instruction handlers ──────────────────────────────────────
+# -- SR/CCR/USP instruction handlers --------------------------------------
 
 def _inst_size_bytes(inst):
     """Get operand size in bytes from the instruction's KB sizes field."""
@@ -1458,7 +1458,7 @@ def _inst_size_bytes(inst):
 
 
 def _assemble_imm_to_sr_ccr(inst, imm_str):
-    """Assemble ANDI/EORI/ORI to CCR/SR — all-fixed opword + immediate extension.
+    """Assemble ANDI/EORI/ORI to CCR/SR - all-fixed opword + immediate extension.
 
     Extension word size derived from KB sizes field via size_byte_count.
     """
@@ -1473,7 +1473,7 @@ def _assemble_imm_to_sr_ccr(inst, imm_str):
 
 
 def _assemble_ea_to_sr_ccr(inst, src_str):
-    """Assemble MOVE <ea>,CCR or MOVE <ea>,SR — source EA in encoding.
+    """Assemble MOVE <ea>,CCR or MOVE <ea>,SR - source EA in encoding.
 
     Operand size derived from KB sizes field.
     """
@@ -1485,7 +1485,7 @@ def _assemble_ea_to_sr_ccr(inst, src_str):
 
 
 def _assemble_sr_ccr_to_ea(inst, dst_str):
-    """Assemble MOVE SR,<ea> or MOVE CCR,<ea> — destination EA in encoding.
+    """Assemble MOVE SR,<ea> or MOVE CCR,<ea> - destination EA in encoding.
 
     Operand size derived from KB sizes field.
     """
@@ -1540,7 +1540,7 @@ def _assemble_direction_field(inst, form_idx, operands):
     return _to_bytes_16(word)
 
 
-# ── Main assembler entry point ───────────────────────────────────────────
+# -- Main assembler entry point -------------------------------------------
 
 def _split_operands(operand_str):
     """Split operand string on comma, respecting parentheses."""
@@ -1588,7 +1588,7 @@ def assemble_instruction(text, pc=0):
 
     operands = _split_operands(operand_part) if operand_part else []
 
-    # Check for special operands (SR/CCR/USP) — resolve via KB asm_syntax_index
+    # Check for special operands (SR/CCR/USP) - resolve via KB asm_syntax_index
     if operands:
         op_types = tuple(_classify_asm_operand(op) for op in operands)
         if any(t in _special_operand_types() for t in op_types):
@@ -1669,7 +1669,7 @@ def assemble_instruction(text, pc=0):
     if mnemonic == "CMPM":
         return _assemble_cmpm(inst, resolution, operands[0], operands[1])
 
-    # Bit operations: BTST/BCHG/BCLR/BSET — two forms (register and immediate)
+    # Bit operations: BTST/BCHG/BCLR/BSET - two forms (register and immediate)
     if mnemonic in ("BTST", "BCHG", "BCLR", "BSET") and len(operands) == 2:
         if operands[0].strip().startswith("#"):
             return _assemble_bit_imm(inst, resolution, operands[0], operands[1])
@@ -1697,7 +1697,7 @@ def assemble_instruction(text, pc=0):
     if mnemonic == "PEA":
         return _assemble_lea_pea(inst, resolution, operands[0])
 
-    # Two-operand MOVE-style (dual EA) — BEFORE opmode/immediate checks
+    # Two-operand MOVE-style (dual EA) - BEFORE opmode/immediate checks
     # so that MOVE #imm,<ea> uses the dual-EA path, not the immediate path
     if len(operands) == 2:
         fields0 = _raw_fields(inst, 0)
@@ -1705,7 +1705,7 @@ def assemble_instruction(text, pc=0):
         if mode_count >= 2:
             return _assemble_two_ea(inst, resolution, operands[0], operands[1])
 
-    # Immediate routing: ADD #imm,<ea> → ADDI #imm,<ea> (canonical encoding)
+    # Immediate routing: ADD #imm,<ea> -> ADDI #imm,<ea> (canonical encoding)
     # Driven by KB _meta.immediate_routing, which maps general-purpose
     # mnemonics to their immediate-specific variants.
     if (len(operands) == 2 and operands[0].strip().startswith("#")
@@ -1749,7 +1749,7 @@ def assemble_instruction(text, pc=0):
     raise ValueError(f"Cannot assemble: {text!r}")
 
 
-# ── CLI ──────────────────────────────────────────────────────────────────
+# -- CLI ------------------------------------------------------------------
 
 if __name__ == "__main__":
     import sys

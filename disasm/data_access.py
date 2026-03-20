@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_decode
 
 from m68k.instruction_decode import decode_inst_operands
 

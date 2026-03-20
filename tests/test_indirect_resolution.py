@@ -16,9 +16,10 @@ GenAm patterns modelled:
 """
 
 import struct
+from types import SimpleNamespace
 from m68k.instruction_kb import instruction_kb
 from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
-                                _concrete, _unknown)
+                                _concrete, _unknown, BasicBlock, XRef)
 from m68k.jump_tables import detect_jump_tables, _scan_inline_dispatch, _is_indexed_ea
 from m68k.indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
                                     resolve_backward_slice)
@@ -3366,7 +3367,7 @@ def test_table_scan_stops_at_call_target():
     data += struct.pack('>h', 0x20 - base)   # $00: entry 0 -> $20
     data += struct.pack('>h', 0x22 - base)   # $02: entry 1 -> $22
     data += struct.pack('>h', 0x24 - base)   # $04: entry 2 -> $24
-    # $06: LEA 100(a6),a0 opcode — looks like offset $41EE from base
+    # $06: LEA 100(a6),a0 opcode - looks like offset $41EE from base
     data += struct.pack('>HH', 0x41EE, 0x0064)
     # Pad to make false target in range
     data += b'\x4e\x75' * 0x2100  # enough NOPs to make $41FE in range
@@ -3757,5 +3758,60 @@ def test_branch_forking_unknown_inputs_no_result():
     # The only resolved targets should be RTS return addresses
     assert all(t <= 0x12 for t in targets), (
         f"Expected no dispatch targets (unknown inputs), got {targets}")
+
+
+def test_resolve_per_caller_caches_summarized_propagation(monkeypatch):
+    caller = BasicBlock(start=0x00, end=0x02, instructions=[], successors=[0x10],
+                        predecessors=[], xrefs=[XRef(src=0x00, dst=0x10, type="call")])
+    sub = BasicBlock(start=0x10, end=0x12,
+                     instructions=[SimpleNamespace(offset=0x10)],
+                     successors=[0x12, 0x14], predecessors=[0x00],
+                     xrefs=[XRef(src=0x10, dst=0x30, type="call")])
+    unres_a = BasicBlock(start=0x12, end=0x14,
+                         instructions=[SimpleNamespace(offset=0x12)],
+                         successors=[], predecessors=[0x10], xrefs=[])
+    unres_b = BasicBlock(start=0x14, end=0x16,
+                         instructions=[SimpleNamespace(offset=0x14)],
+                         successors=[], predecessors=[0x10], xrefs=[])
+    callee = BasicBlock(start=0x30, end=0x32, instructions=[],
+                        successors=[], predecessors=[], xrefs=[])
+    blocks = {0x00: caller, 0x10: sub, 0x12: unres_a, 0x14: unres_b, 0x30: callee}
+
+    cpu = CPUState()
+    mem = AbstractMemory()
+    exit_states = {0x00: (cpu, mem)}
+
+    calls = {"count": 0}
+
+    def _fake_propagate_states(*args, **kwargs):
+        calls["count"] += 1
+        return {0x12: (CPUState(), AbstractMemory()), 0x14: (CPUState(), AbstractMemory())}
+
+    monkeypatch.setattr("m68k.indirect_analysis.propagate_states", _fake_propagate_states)
+    monkeypatch.setattr("m68k.indirect_analysis.indirect_core._find_unresolved",
+                        lambda blocks, exit_states, code_size: [(0x12, "jump"), (0x14, "jump")])
+    monkeypatch.setattr("m68k.indirect_analysis.indirect_core.decode_jump_ea",
+                        lambda inst: (None, None))
+    monkeypatch.setattr("m68k.indirect_analysis.indirect_core._needed_registers",
+                        lambda operand, unres_type: [])
+    monkeypatch.setattr("m68k.indirect_analysis.indirect_core._try_resolve_block",
+                        lambda addr, unres_type, blocks, cpu, mem, code_size: 0x40 + addr)
+    monkeypatch.setattr("m68k.indirect_analysis.subroutine_summary.find_sub_blocks",
+                        lambda entry, blocks, call_targets: {0x10, 0x12, 0x14})
+    monkeypatch.setattr("m68k.indirect_analysis.subroutine_summary.restore_base_reg",
+                        lambda cpu, platform: cpu)
+    monkeypatch.setattr("m68k.indirect_analysis.subroutine_summary._inline_summary",
+                        lambda callee_entry, blocks, call_targets, exit_states: {
+                            "preserved_d": set(),
+                            "preserved_a": set(),
+                            "produced_d": {0: 1},
+                            "produced_a": {},
+                            "sp_delta": 0,
+                        })
+
+    resolved = resolve_per_caller(blocks, exit_states, b"", 0x100, platform={"scratch_regs": []})
+
+    assert sorted(r["target"] for r in resolved) == [0x52, 0x54]
+    assert calls["count"] == 2
 
 

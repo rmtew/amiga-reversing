@@ -1,6 +1,6 @@
 """Shared KB-driven recursive constant register evaluation helpers."""
 
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_decode
 
 from .instruction_kb import instruction_kb
 from .instruction_decode import decode_inst_destination, decode_inst_operands

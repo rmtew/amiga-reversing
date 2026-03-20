@@ -28,7 +28,7 @@ def _run(code):
     return cpu, mem
 
 
-# ── Binary ops: add, sub, and, or, xor ──────────────────────────────
+# -- Binary ops: add, sub, and, or, xor ------------------------------
 
 def test_add_reg_reg():
     """ADD.W D1,D0 with known values."""
@@ -107,7 +107,7 @@ def test_cmp_no_write():
     assert cpu.d[1].concrete == 10  # unchanged
 
 
-# ── Unary ops ────────────────────────────────────────────────────────
+# -- Unary ops --------------------------------------------------------
 
 def test_neg():
     """NEG.L D0: 0 - 5 = -5."""
@@ -124,7 +124,7 @@ def test_not():
     assert cpu.d[0].concrete == 0xFFFFFFF0
 
 
-# ── Assign: MOVE, MOVEQ, CLR ────────────────────────────────────────
+# -- Assign: MOVE, MOVEQ, CLR ----------------------------------------
 
 def test_moveq():
     """MOVEQ #42,D0."""
@@ -151,7 +151,7 @@ def test_move_reg_reg():
     assert cpu.d[1].concrete == 42
 
 
-# ── LEA ──────────────────────────────────────────────────────────────
+# -- LEA --------------------------------------------------------------
 
 def test_lea_pcdisp():
     """LEA d(PC),A0 computes address, not memory value."""
@@ -163,7 +163,7 @@ def test_lea_pcdisp():
     assert cpu.a[0].concrete == 0x12
 
 
-# ── SWAP ─────────────────────────────────────────────────────────────
+# -- SWAP -------------------------------------------------------------
 
 def test_swap():
     """SWAP D0: exchange upper and lower words.
@@ -180,7 +180,7 @@ def test_swap():
     assert cpu.d[0].concrete == 0x00020001
 
 
-# ── EXT ──────────────────────────────────────────────────────────────
+# -- EXT --------------------------------------------------------------
 
 def test_ext_w():
     """EXT.W D0: sign-extend byte to word."""
@@ -197,7 +197,7 @@ def test_ext_w():
     assert cpu.d[0].concrete == 0x0000FF80
 
 
-# ── EXG ──────────────────────────────────────────────────────────────
+# -- EXG --------------------------------------------------------------
 
 def test_exg_data():
     """EXG D0,D1."""
@@ -208,7 +208,7 @@ def test_exg_data():
     assert cpu.d[1].concrete == 10
 
 
-# ── ADDA/SUBA (source sign-extend) ──────────────────────────────────
+# -- ADDA/SUBA (source sign-extend) ----------------------------------
 
 def test_adda_w():
     """ADDA.W D0,A0: source word sign-extended to long before add."""
@@ -223,7 +223,7 @@ def test_adda_w():
     assert cpu.a[0].concrete == 0x0E
 
 
-# ── Rotate: should compute via KB ────────────────────────────────────
+# -- Rotate: should compute via KB ------------------------------------
 
 def test_rol_immediate():
     """ROL.L #2,D0: rotate left 2 bits."""
@@ -249,7 +249,7 @@ def test_ror_immediate():
     assert cpu.d[0].concrete == 0x80000000
 
 
-# ── Divide: should compute via KB ────────────────────────────────────
+# -- Divide: should compute via KB ------------------------------------
 
 def test_divu_w():
     """DIVU.W D1,D0: 35 / 7 = 5 remainder 0."""
@@ -264,7 +264,7 @@ def test_divu_w():
     assert cpu.d[0].concrete == 5, f"35/7=5, got {cpu.d[0].concrete}"
 
 
-# ── Unknown operand: invalidate path ─────────────────────────────────
+# -- Unknown operand: invalidate path ---------------------------------
 
 def test_shift_unknown_count_invalidates():
     """LSL with unknown count should invalidate the destination."""
@@ -291,7 +291,7 @@ def test_multiply_unknown_operand_invalidates():
         f"MULU with unknown source should invalidate, got {cpu.d[0]}")
 
 
-# ── Register preservation through calls ──────────────────────────────
+# -- Register preservation through calls ------------------------------
 
 def test_register_preserved_through_push_pop_call():
     """Register saved/restored around a call should survive on fallthrough.
@@ -477,7 +477,7 @@ def test_base_register_survives_merge():
         f"after merge, got {targets}")
 
 
-# ── Shift/rotate: currently invalidated, should compute ──────────────
+# -- Shift/rotate: currently invalidated, should compute --------------
 
 def test_lsl_immediate():
     """LSL.W #2,D0: 5 << 2 = 20."""
@@ -527,7 +527,7 @@ def test_asl_immediate():
     assert cpu.d[0].concrete == 6
 
 
-# ── Multiply: currently invalidated, should compute ──────────────────
+# -- Multiply: currently invalidated, should compute ------------------
 
 def test_mulu_w():
     """MULU.W D1,D0: 5 * 7 = 35 (unsigned word multiply -> long result)."""
@@ -555,7 +555,7 @@ def test_muls_w():
     assert cpu.d[0].concrete == (-12) & 0xFFFFFFFF
 
 
-# ── Bit ops: currently invalidated, should compute ───────────────────
+# -- Bit ops: currently invalidated, should compute -------------------
 
 def test_btst_reg():
     """BTST D1,D0: test bit, should NOT modify D0."""
@@ -596,7 +596,7 @@ def test_bset_reg():
     assert cpu.d[0].concrete == 1
 
 
-# ── Summary overrides scratch invalidation ───────────────────────────
+# -- Summary overrides scratch invalidation ---------------------------
 
 def test_summary_preserves_scratch_register():
     """Summary-preserved registers survive even if in scratch set.
@@ -780,7 +780,7 @@ def test_summary_unknown_return_stays_unknown():
         f"got {cpu.d[0]}")
 
 
-# ── Multi-entry propagation ──────────────────────────────────────────
+# -- Multi-entry propagation ------------------------------------------
 
 def test_all_entry_points_get_exit_states():
     """Every entry point should be seeded with initial state for propagation.
@@ -824,7 +824,7 @@ def test_all_entry_points_get_exit_states():
         f"D0 should be 99 at exit of $0C, got {cpu.d[0]}")
 
 
-# ── Init memory join semantics ───────────────────────────────────────
+# -- Init memory join semantics ---------------------------------------
 
 def test_init_mem_value_survives_join():
     """Init memory pointer survives merge of two paths.
@@ -931,7 +931,7 @@ def test_local_write_overrides_init_mem():
     """Block-local write overrides init memory value.
 
     A block writes unknown to d(A6) then reads it. The read should get
-    unknown, not the init_mem value. No join involved — single path.
+    unknown, not the init_mem value. No join involved - single path.
     """
     sentinel = 0x80000002
     code_target = 0x20
@@ -968,7 +968,7 @@ def test_unknown_write_kills_init_mem_at_join():
     Path B: doesn't touch the slot (has init value).
     After merge: slot should be unknown (one path explicitly killed it).
 
-    This is the soundness test — post-join restoration would incorrectly
+    This is the soundness test - post-join restoration would incorrectly
     bring back the init value, producing a wrong concrete dispatch target.
     """
     sentinel = 0x80000002
@@ -1112,7 +1112,7 @@ def test_both_paths_agree_on_non_init_value():
         f"A0 should be ${new_target:02X}, got ${cpu.a[0].concrete:02X}")
 
 
-# ── Extended arithmetic: ADDX, SUBX ─────────────────────────────────
+# -- Extended arithmetic: ADDX, SUBX ---------------------------------
 
 def test_addx_reg_reg():
     """ADDX.B D1,D1: D1 = D1 + D1 + X. Classic bit-reverse building block."""

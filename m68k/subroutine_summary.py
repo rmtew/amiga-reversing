@@ -1,6 +1,6 @@
 """Shared KB-driven subroutine CFG and summary helpers."""
 
-from knowledge import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_analysis
 from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_primitives import extract_branch_target
 from .m68k_executor import _join_states

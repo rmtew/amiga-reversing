@@ -1,6 +1,6 @@
 """Shared M68K instruction KB lookup helpers."""
 
-from knowledge import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_analysis
 
 
 _LOOKUP_CANONICAL = runtime_m68k_analysis.LOOKUP_CANONICAL

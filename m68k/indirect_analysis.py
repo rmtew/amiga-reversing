@@ -1,6 +1,6 @@
 """Shared KB-driven indirect target analysis for M68K code."""
 
-from knowledge import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_analysis
 
 from .instruction_kb import instruction_flow
 from .instruction_primitives import extract_branch_target
@@ -13,6 +13,23 @@ _MAX_FORK_EXITS = 16
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
 _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
+
+
+def _summary_signature(summary: dict) -> tuple:
+    return (
+        tuple(sorted(summary.get("preserved_d", ()))),
+        tuple(sorted(summary.get("preserved_a", ()))),
+        tuple(sorted(summary.get("produced_d", {}).items())),
+        tuple(sorted(summary.get("produced_a", {}).items())),
+        summary.get("sp_delta", 0),
+    )
+
+
+def _inline_summaries_signature(summaries: dict[int, dict]) -> tuple:
+    return tuple(
+        sorted((callee_entry, _summary_signature(summary))
+               for callee_entry, summary in summaries.items())
+    )
 
 
 def resolve_indirect_targets(blocks: dict[int, BasicBlock],
@@ -64,6 +81,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
     sub_info_cache = {}
     caller_ctx_cache = {}
     per_exit_cache = {}
+    resolved_exit_cache = {}
 
     def _sub_blocks(entry):
         if entry not in sub_blocks_cache:
@@ -114,17 +132,19 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         info = _sub_info(entry)
         init_cpu = subroutine_summary.restore_base_reg(caller_cpu.copy(), platform)
         pass1_exits = propagate_states(
-            info["expanded"], code, entry,
+            info["expanded"] if info["nested_callees"] else info["sub_dict"],
+            code, entry,
             initial_state=init_cpu,
             initial_mem=caller_mem.copy(),
             platform=info["pc_platform"],
         )
         inline_sums = {}
-        for callee_entry in info["nested_callees"]:
-            isum = subroutine_summary._inline_summary(
-                callee_entry, blocks, call_targets, pass1_exits)
-            if isum is not None:
-                inline_sums[callee_entry] = isum
+        if info["nested_callees"]:
+            for callee_entry in info["nested_callees"]:
+                isum = subroutine_summary._inline_summary(
+                    callee_entry, blocks, call_targets, pass1_exits)
+                if isum is not None:
+                    inline_sums[callee_entry] = isum
         ctx = {
             "init_cpu": init_cpu,
             "caller_mem": caller_mem,
@@ -140,6 +160,17 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             per_exit_cache[key] = subroutine_summary._inline_summaries_per_exit(
                 callee_entry, blocks, call_targets, pass1_exits)
         return per_exit_cache[key]
+
+    def _propagated_with_summaries(info, sub_entry, caller_addr, init_cpu, caller_mem, summaries):
+        key = (sub_entry, caller_addr, _inline_summaries_signature(summaries))
+        if key not in resolved_exit_cache:
+            resolved_exit_cache[key] = propagate_states(
+                info["sub_dict"], code, sub_entry,
+                initial_state=init_cpu,
+                initial_mem=caller_mem.copy(),
+                platform=info["pc_platform"],
+                summaries=summaries)
+        return resolved_exit_cache[key]
 
     resolved = []
     for unres_addr, unres_type in unresolved:
@@ -234,19 +265,11 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                     for exit_sum in fork_exits[:_MAX_FORK_EXITS]:
                         trial_sums = dict(inline_sums)
                         trial_sums[fork_callee] = exit_sum
-                        _try_resolve_from(propagate_states(
-                            sub_dict, code, sub_entry,
-                            initial_state=init_cpu,
-                            initial_mem=caller_mem.copy(),
-                            platform=info["pc_platform"],
-                            summaries=trial_sums))
+                        _try_resolve_from(_propagated_with_summaries(
+                            info, sub_entry, caller_addr, init_cpu, caller_mem, trial_sums))
                 elif inline_sums:
-                    _try_resolve_from(propagate_states(
-                        sub_dict, code, sub_entry,
-                        initial_state=init_cpu,
-                        initial_mem=caller_mem.copy(),
-                        platform=info["pc_platform"],
-                        summaries=inline_sums))
+                    _try_resolve_from(_propagated_with_summaries(
+                        info, sub_entry, caller_addr, init_cpu, caller_mem, inline_sums))
                 else:
                     _try_resolve_from(pass1_exits)
 

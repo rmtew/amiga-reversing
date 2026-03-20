@@ -12,6 +12,7 @@ from scripts import build_runtime_kb
 from m68k import m68k_asm
 from tests.runtime_kb_helpers import (
     KNOWLEDGE,
+    RUNTIME_PY,
     load_m68k_asm_runtime_module,
     load_m68k_analysis_runtime_module,
     load_m68k_compute_runtime_module,
@@ -63,28 +64,31 @@ def test_production_modules_do_not_read_canonical_instruction_bag_fields():
                     f"{path} still reads canonical instruction field {key.value!r}")
 
 
-def test_production_modules_do_not_contain_mojibake_markers():
+def test_source_modules_use_ascii_only_text():
     repo_root = Path(__file__).resolve().parent.parent
-    bad_markers = ("\u00c3", "\u00e2\u20ac", "\u00e2\u2020")
-    for path in list((repo_root / "m68k").glob("*.py")) + list((repo_root / "disasm").glob("*.py")):
+    for path in (
+        list((repo_root / "m68k").glob("*.py"))
+        + list((repo_root / "disasm").glob("*.py"))
+        + list((repo_root / "tests").glob("*.py"))
+    ):
         text = path.read_text(encoding="utf-8")
-        if any(marker in text for marker in bad_markers):
-            raise AssertionError(f"{path} contains mojibake markers")
+        if any(ord(ch) > 127 for ch in text):
+            raise AssertionError(f"{path} contains non-ASCII source text")
 
 
 def test_runtime_kb_generation_is_deterministic():
     script = Path(__file__).resolve().parent.parent / "scripts" / "build_runtime_kb.py"
     targets = [
-        KNOWLEDGE / "runtime_m68k.py",
-        KNOWLEDGE / "runtime_m68k_decode.py",
-        KNOWLEDGE / "runtime_m68k_disasm.py",
-        KNOWLEDGE / "runtime_m68k_asm.py",
-        KNOWLEDGE / "runtime_m68k_analysis.py",
-        KNOWLEDGE / "runtime_m68k_compute.py",
-        KNOWLEDGE / "runtime_m68k_executor.py",
-        KNOWLEDGE / "runtime_os.py",
-        KNOWLEDGE / "runtime_hunk.py",
-        KNOWLEDGE / "runtime_naming.py",
+        RUNTIME_PY / "runtime_m68k.py",
+        RUNTIME_PY / "runtime_m68k_decode.py",
+        RUNTIME_PY / "runtime_m68k_disasm.py",
+        RUNTIME_PY / "runtime_m68k_asm.py",
+        RUNTIME_PY / "runtime_m68k_analysis.py",
+        RUNTIME_PY / "runtime_m68k_compute.py",
+        RUNTIME_PY / "runtime_m68k_executor.py",
+        RUNTIME_PY / "runtime_os.py",
+        RUNTIME_PY / "runtime_hunk.py",
+        RUNTIME_PY / "runtime_naming.py",
     ]
     before = {path: path.read_bytes() for path in targets}
     subprocess.run([sys.executable, str(script)], check=True)

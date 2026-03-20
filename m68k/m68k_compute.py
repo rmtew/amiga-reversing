@@ -1,4 +1,4 @@
-"""KB-driven M68K computation engine — pure functions, no machine dependency.
+"""KB-driven M68K computation engine - pure functions, no machine dependency.
 
 Provides CC flag prediction, result computation, and SP effect prediction,
 all driven from structured data in m68k_instructions.json. Contains no
@@ -9,10 +9,10 @@ Used by:
   - Future: symbolic execution / static analysis engine
 """
 
-from knowledge import runtime_m68k_compute
+from m68k_kb import runtime_m68k_compute
 
 
-# ── Size utilities ────────────────────────────────────────────────────────
+# -- Size utilities --------------------------------------------------------
 
 def _size_mask(sz):
     """Return bit mask and bit count for operation size."""
@@ -37,7 +37,7 @@ def _size_from_bits(bits):
     return {8: "b", 16: "w", 32: "l"}[bits]
 
 
-# ── CC prediction from KB rules ──────────────────────────────────────────
+# -- CC prediction from KB rules ------------------------------------------
 
 def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     """Predict CC flags after instruction execution.
@@ -73,8 +73,8 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     mask, bits = _size_mask(sz)
 
     # Allow KB data_sizes to override default operand/result widths.
-    # Multiply: operands may be narrower than result (16x16→32).
-    # Divide: dividend may be wider than divisor/quotient (32÷16→16).
+    # Multiply: operands may be narrower than result (16x16->32).
+    # Divide: dividend may be wider than divisor/quotient (32/16->16).
     data_sizes = ctx.get("data_sizes")
     if data_sizes:
         ds_type, src_bits, dst_bits, result_bits = data_sizes
@@ -91,15 +91,15 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
         src_mask = dst_mask = result_mask = mask
 
     # KB cc_result_bits overrides operand/result width for compute + CC evaluation
-    # (e.g. SWAP: Size=Word but PDF CC says "32-bit result" — operation is 32-bit)
+    # (e.g. SWAP: Size=Word but PDF CC says "32-bit result" - operation is 32-bit)
     cc_override = ctx.get("cc_result_bits")
     if cc_override is not None:
         # KB source_sign_extend: sign-extend source from declared size to
-        # override size (e.g. CMPA.W: 16-bit source → 32-bit for comparison)
+        # override size (e.g. CMPA.W: 16-bit source -> 32-bit for comparison)
         if ctx.get("source_sign_extend"):
             src_val_masked = src_val & src_mask
             if src_val_masked & (1 << (src_bits - 1)):
-                # Sign bit set — extend with 1s
+                # Sign bit set - extend with 1s
                 src_val = src_val_masked | (~src_mask & ((1 << cc_override) - 1))
             else:
                 src_val = src_val_masked
@@ -109,7 +109,7 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     src = src_val & src_mask
     dst = dst_val & dst_mask
 
-    # CCR/SR manipulation instructions have no compute_formula — they
+    # CCR/SR manipulation instructions have no compute_formula - they
     # directly modify CC flags via rules that reference the source/immediate.
     # No result computation needed; pass through dummy values.
     if op_type in (runtime_m68k_compute.OperationType.CCR_OP, runtime_m68k_compute.OperationType.SR_OP):
@@ -147,11 +147,11 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     return predicted
 
 
-# ── KB-driven result computation ──────────────────────────────────────────
+# -- KB-driven result computation ------------------------------------------
 #
 # The compute_formula in the KB (extracted from PDF Operation text by the
 # parser) specifies what operation to perform and in what operand order.
-# This evaluator maps universal math operators to Python — the operators
+# This evaluator maps universal math operators to Python - the operators
 # themselves (+, -, &, |, ^, ~, *, /) are not M68K knowledge; the KB
 # specifies which one applies to each instruction and the operand order.
 
@@ -168,14 +168,14 @@ def _resolve_term(term, src, dst, ccr, implicit):
         if implicit is None:
             raise RuntimeError(
                 "Formula references 'implicit' term but no implicit_operand "
-                "in KB instruction — add implicit_operand extraction to parser")
+                "in KB instruction - add implicit_operand extraction to parser")
         return implicit
     if isinstance(term, int):
         return term
     raise RuntimeError(f"Unknown formula term: {term!r}")
 
 
-# Universal math operators — these map formula 'op' names (from KB) to
+# Universal math operators - these map formula 'op' names (from KB) to
 # Python functions. None of these are M68K-specific; they are standard
 # binary arithmetic/logic operations.
 _FORMULA_OPS = {
@@ -194,7 +194,7 @@ def _compute_exchange(dst, range_a, range_b):
     """Compute bit-range exchange from KB formula (SWAP).
 
     The KB specifies exact bit ranges from the PDF Operation text:
-    e.g. range_a=[31,16], range_b=[15,0] for "Register [31:16] ←→ [15:0]".
+    e.g. range_a=[31,16], range_b=[15,0] for "Register [31:16] <--> [15:0]".
     """
     hi_top, hi_bot = range_a
     lo_top, lo_bot = range_b
@@ -210,7 +210,7 @@ def _compute_exchange(dst, range_a, range_b):
 def _compute_sign_extend(dst, mask, bits, ctx):
     """Sign-extend from a narrower source width to the operation size.
 
-    The KB formula has 'source_bits_by_size' mapping size→source width,
+    The KB formula has 'source_bits_by_size' mapping size->source width,
     extracted from PDF description text (e.g. "extends a byte to a word").
     The ctx must have 'sign_extend_source_bits' set by the test generator.
     """
@@ -218,7 +218,7 @@ def _compute_sign_extend(dst, mask, bits, ctx):
     if source_bits is None:
         raise RuntimeError(
             "compute sign_extend: missing 'sign_extend_source_bits' in ctx "
-            "— must come from KB source_bits_by_size")
+            "- must come from KB source_bits_by_size")
     source_mask = (1 << source_bits) - 1
     val = dst & source_mask
     # Sign-extend: if MSB of source is set, fill upper bits with 1s
@@ -234,7 +234,7 @@ def _compute_shift(src, dst, mask, bits, ccr, ctx):
     direction = ctx["direction"]
     fill = ctx.get("fill")
     if fill is None:
-        raise RuntimeError("_compute_shift: missing 'fill' in ctx — must come from KB variant")
+        raise RuntimeError("_compute_shift: missing 'fill' in ctx - must come from KB variant")
     val = dst & mask
     if count == 0:
         return val
@@ -297,7 +297,7 @@ def _compute_multiply(src, dst, mask, bits, ccr, ctx):
 def _compute_divide(src, dst, mask, bits, ccr, ctx):
     """Divide. Signedness from KB, truncation direction from KB compute_formula."""
     if src == 0:
-        raise RuntimeError("Division by zero in test — fix test values")
+        raise RuntimeError("Division by zero in test - fix test values")
     ds = ctx["data_sizes"]
     _kind, divisor_bits, dividend_bits, _quotient_bits = ds
     if ctx.get("signed", False):
@@ -310,9 +310,9 @@ def _compute_divide(src, dst, mask, bits, ccr, ctx):
 
 
 def _bcd_add(a, b, x):
-    """Packed BCD addition: a + b + x → (result, carry).
+    """Packed BCD addition: a + b + x -> (result, carry).
 
-    Standard packed BCD algorithm — correct each nibble by adding 6 when
+    Standard packed BCD algorithm - correct each nibble by adding 6 when
     the nibble exceeds 9 or produces a binary carry. Returns (result_byte, carry).
     """
     low = (a & 0xF) + (b & 0xF) + x
@@ -329,9 +329,9 @@ def _bcd_add(a, b, x):
 
 
 def _bcd_subtract(a, b, x):
-    """Packed BCD subtraction: a - b - x → (result, borrow).
+    """Packed BCD subtraction: a - b - x -> (result, borrow).
 
-    Standard packed BCD subtraction — correct each nibble by subtracting 6
+    Standard packed BCD subtraction - correct each nibble by subtracting 6
     when borrow occurs. Returns (result_byte, borrow).
     """
     low = (a & 0xF) - (b & 0xF) - x
@@ -351,12 +351,12 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
     """Evaluate a KB compute_formula to produce the operation result.
 
     The formula structure comes from the KB (extracted from PDF Operation text).
-    This evaluator applies universal math operators — it contains no M68K knowledge.
+    This evaluator applies universal math operators - it contains no M68K knowledge.
     """
     op, terms, range_a, range_b, _source_bits_by_size, _truncation = formula
     implicit = ctx.get("implicit_operand")
 
-    # BCD arithmetic — packed decimal, byte only
+    # BCD arithmetic - packed decimal, byte only
     if op == runtime_m68k_compute.ComputeOp.ADD_DECIMAL:
         resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
         a, b, x = resolved
@@ -388,7 +388,7 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
         else:
             raise RuntimeError(f"Formula op '{op}' with {len(terms)} terms")
 
-    # Complex operations — parameterized by KB data
+    # Complex operations - parameterized by KB data
     if op == runtime_m68k_compute.ComputeOp.EXCHANGE:
         if range_a is None or range_b is None:
             raise RuntimeError("exchange compute formula missing ranges")
@@ -414,7 +414,7 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
         bit_mod = ctx.get("bit_modulus")
         if bit_mod is None:
             raise RuntimeError(
-                f"compute {op}: missing 'bit_modulus' in ctx — must come from KB")
+                f"compute {op}: missing 'bit_modulus' in ctx - must come from KB")
         bit_num = src % bit_mod
         if op == runtime_m68k_compute.ComputeOp.BIT_TEST:
             return dst  # test only, destination unchanged
@@ -436,7 +436,7 @@ def _compute_result(mnemonic: str, src, dst, mask, bits, initial_ccr, ctx=None):
     if formula is None:
         op_type = runtime_m68k_compute.OPERATION_TYPES.get(mnemonic)
         raise RuntimeError(
-            f"{mnemonic}: missing compute_formula in runtime KB — "
+            f"{mnemonic}: missing compute_formula in runtime KB - "
             f"regenerate KB or add formula extraction for operation_type "
             f"'{op_type}'"
         )
@@ -535,7 +535,7 @@ def _rule_bit_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_s
     bit_mod = ctx.get("bit_modulus")
     if bit_mod is None:
         raise RuntimeError(
-            "bit_zero: missing 'bit_modulus' in ctx — must come from KB")
+            "bit_zero: missing 'bit_modulus' in ctx - must come from KB")
     bit_num = src % bit_mod
     return 1 if (dst >> bit_num) & 1 == 0 else 0
 
@@ -548,14 +548,14 @@ def _rule_decimal_carry(result, result_full, src, dst, mask, bits, op_type, ccr,
     """C flag for BCD addition: set if decimal carry was generated."""
     carry = ctx.get("_decimal_carry")
     if carry is None:
-        raise RuntimeError("decimal_carry rule: missing _decimal_carry in ctx — BCD compute needed")
+        raise RuntimeError("decimal_carry rule: missing _decimal_carry in ctx - BCD compute needed")
     return carry
 
 def _rule_decimal_borrow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     """C flag for BCD subtraction: set if decimal borrow was generated."""
     borrow = ctx.get("_decimal_borrow")
     if borrow is None:
-        raise RuntimeError("decimal_borrow rule: missing _decimal_borrow in ctx — BCD compute needed")
+        raise RuntimeError("decimal_borrow rule: missing _decimal_borrow in ctx - BCD compute needed")
     return borrow
 
 def _rule_undefined(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
@@ -654,7 +654,7 @@ def _rule_last_shifted_out(result, result_full, src, dst, mask, bits, op_type, c
             fill = ctx.get("fill")
             if fill is None:
                 raise RuntimeError(
-                    "last_shifted_out: missing 'fill' in ctx — must come from KB variant")
+                    "last_shifted_out: missing 'fill' in ctx - must come from KB variant")
             if fill == "sign":
                 return (val >> (bits - 1)) & 1
             else:
@@ -717,7 +717,7 @@ def _rule_last_rotated_out(result, result_full, src, dst, mask, bits, op_type, c
 
 def _rule_msb_changed_during_shift(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
     """ASL V flag: set if MSB changed at any point during left shift.
-    For right shifts (ASR), MSB is preserved at every step → always 0.
+    For right shifts (ASR), MSB is preserved at every step -> always 0.
     """
     direction = ctx["direction"]
     if direction == "R":
@@ -801,7 +801,7 @@ def _apply_rule(rule, flag, result, result_full, src, dst, mask, bits,
                    initial_ccr, cc_sem, flag, ctx)
 
 
-# ── SP effect prediction ──────────────────────────────────────────────────
+# -- SP effect prediction --------------------------------------------------
 
 def predict_sp(inst, sp_before, displacement=0, reg_state=None):
     """Predict SP after instruction execution from KB sp_effects.
@@ -862,7 +862,7 @@ def predict_sp(inst, sp_before, displacement=0, reg_state=None):
     return sp & 0xFFFFFFFF
 
 
-# ── Condition test evaluator ─────────────────────────────────────────────
+# -- Condition test evaluator ---------------------------------------------
 
 def evaluate_cc_test(test_expr, ccr):
     """Evaluate a condition code test expression against CCR flag values.

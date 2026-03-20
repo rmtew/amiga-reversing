@@ -8,6 +8,7 @@ from pathlib import Path
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
 KNOWLEDGE = PROJ_ROOT / "knowledge"
+RUNTIME_PY = PROJ_ROOT / "m68k_kb"
 
 
 def _load_json(name: str) -> dict:
@@ -37,7 +38,7 @@ def load_canonical_naming_rules() -> dict:
 
 
 def _load_runtime_module(module_name: str):
-    return importlib.import_module(f"knowledge.{module_name}")
+    return importlib.import_module(f"m68k_kb.{module_name}")
 
 
 def _require_attr(module: object, name: str):

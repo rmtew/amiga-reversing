@@ -52,6 +52,48 @@ def test_join_states():
     assert mem_j.read(0x1000, "b").concrete == 0xAA
 
 
+def test_join_states_fast_path_for_identical_inputs():
+    cpu = CPUState()
+    cpu.d[0] = _concrete(42)
+    mem = AbstractMemory()
+    mem.write(0x1000, _concrete(0xAA), "b")
+
+    cpu_j, mem_j = _join_states([(cpu, mem), (cpu, mem), (cpu, mem)])
+
+    assert cpu_j is not cpu
+    assert mem_j is not mem
+    assert cpu_j.d[0].is_known and cpu_j.d[0].concrete == 42
+    assert mem_j.read(0x1000, "b").concrete == 0xAA
+
+
+def test_join_states_fast_path_for_identical_cpu_objects():
+    cpu = CPUState()
+    cpu.d[0] = _concrete(42)
+    mem1 = AbstractMemory()
+    mem1.write(0x1000, _concrete(0xAA), "b")
+    mem2 = AbstractMemory()
+    mem2.write(0x1000, _concrete(0xAA), "b")
+
+    cpu_j, mem_j = _join_states([(cpu, mem1), (cpu, mem2)])
+
+    assert cpu_j.d[0].is_known and cpu_j.d[0].concrete == 42
+    assert mem_j.read(0x1000, "b").concrete == 0xAA
+
+
+def test_join_states_fast_path_for_identical_memory_objects():
+    cpu1 = CPUState()
+    cpu1.d[0] = _concrete(42)
+    cpu2 = CPUState()
+    cpu2.d[0] = _concrete(42)
+    mem = AbstractMemory()
+    mem.write(0x1000, _concrete(0xAA), "b")
+
+    cpu_j, mem_j = _join_states([(cpu1, mem), (cpu2, mem)])
+
+    assert cpu_j.d[0].is_known and cpu_j.d[0].concrete == 42
+    assert mem_j.read(0x1000, "b").concrete == 0xAA
+
+
 def test_propagation_moveq_lea():
     """Test MOVEQ + LEA propagation across blocks."""
     code = b''

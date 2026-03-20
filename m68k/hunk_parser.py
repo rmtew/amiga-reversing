@@ -12,10 +12,10 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
 
-from knowledge import runtime_hunk
+from m68k_kb import runtime_hunk
 
 
-# ── KB-driven type definitions ────────────────────────────────────────────
+# -- KB-driven type definitions --------------------------------------------
 
 def _load_hunk_kb():
     """Load hunk format KB."""
@@ -35,7 +35,7 @@ _HUNK_META = _HUNK_KB.META
 HunkType = _build_enum("HunkType", _HUNK_KB.HUNK_TYPES)
 ExtType = _build_enum("ExtType", _HUNK_KB.EXT_TYPES)
 
-# All constants derived from KB — no hardcoded values.
+# All constants derived from KB - no hardcoded values.
 _HUNK_TYPE_ID_MASK = _HUNK_META["hunk_type_id_mask"]
 _SIZE_LONGS_MASK = _HUNK_META["size_longs_mask"]
 _MEM_FLAGS_SHIFT = _HUNK_META["mem_flags_shift"]
@@ -48,7 +48,7 @@ MemType = IntEnum("MemType", {
     for k, v in _HUNK_KB.MEMORY_TYPE_CODES.items()
 })
 
-# Reverse lookup: ext type ID → KB name (for has_common_size etc.)
+# Reverse lookup: ext type ID -> KB name (for has_common_size etc.)
 _ext_id_to_name = {
     v["id"]: k for k, v in _HUNK_KB.EXT_TYPES.items() if "id" in v
 }
@@ -271,7 +271,7 @@ def _parse_ext(r: _Reader) -> tuple[list[ExtDef], list[ExtRef]]:
             value = r.read_u32()
             defs.append(ExtDef(name=name, ext_type=ext_type, value=value))
         else:
-            # Reference — check KB for common_size field
+            # Reference - check KB for common_size field
             common_size = 0
             ext_name = _ext_id_to_name.get(ext_type)
             if ext_name and _HUNK_KB.EXT_TYPES.get(ext_name, {}).get(
@@ -348,7 +348,7 @@ def _parse_object(r: _Reader, hf: HunkFile):
         hunk_id = _parse_hunk_id(peek)
 
         if hunk_id == HunkType.HUNK_UNIT:
-            # Another unit — stop (we only parse first unit)
+            # Another unit - stop (we only parse first unit)
             break
         elif hunk_id == HunkType.HUNK_NAME:
             r.read_u32()  # consume
@@ -439,7 +439,7 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
             hunk.debug_data = _parse_debug(r)
         elif sub_id in (HunkType.HUNK_CODE, HunkType.HUNK_DATA,
                         HunkType.HUNK_BSS, HunkType.HUNK_NAME):
-            # Next hunk starts — no HUNK_END (some tools omit it)
+            # Next hunk starts - no HUNK_END (some tools omit it)
             break
         else:
             # Unknown sub-block, skip it
@@ -486,7 +486,7 @@ def dump(hf: HunkFile):
 
         for er in h.ext_refs:
             tname = ExtType(er.ext_type).name if er.ext_type in ExtType._value2member_map_ else f"${er.ext_type:02X}"
-            print(f"        ext_ref: {er.name} ({tname}) × {len(er.offsets)}")
+            print(f"        ext_ref: {er.name} ({tname}) x {len(er.offsets)}")
 
         if h.debug_data:
             print(f"        debug: {len(h.debug_data)} bytes")

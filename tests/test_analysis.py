@@ -221,7 +221,7 @@ def test_analyze_hunk_prunes_inline_dispatch_speculative_blocks():
     assert 0x16 in result.blocks
 
 
-# ── Auto-detect relocated segments ───────────────────────────────────
+# -- Auto-detect relocated segments -----------------------------------
 
 def test_detect_copy_and_jump():
     """Detect copy loop followed by JMP to destination.
@@ -275,6 +275,17 @@ def test_detect_no_copy_returns_empty():
 
     segments = detect_relocated_segments(code)
     assert segments == []
+
+
+def test_detect_relocated_segments_skips_analysis_without_bootstrap_signature(monkeypatch):
+    code = struct.pack(">HH", 0x7000, 0x4E75)
+
+    def _unexpected_analyze(*args, **kwargs):
+        raise AssertionError("plain code should not trigger relocation analysis")
+
+    monkeypatch.setattr("m68k.analysis.analyze", _unexpected_analyze)
+
+    assert detect_relocated_segments(code) == []
 
 
 def test_postinc_copy_detection_uses_decoded_operands_not_text():
@@ -361,7 +372,7 @@ def _make_two_stage_relocated_hunk():
     Key: the payload at $34 is only reachable via the TWO-STAGE
     copy (bootstrap sets A6, handler uses A6).  Unlike the simple
     case where the copy source IS the secondary entry, here $34
-    is the file_offset but NOT a secondary entry — $20 is.
+    is the file_offset but NOT a secondary entry - $20 is.
     """
     code = b''
     # $00: lea $1E(pc),a0 -> a0 = $02 + $1E = $20 (handler source)

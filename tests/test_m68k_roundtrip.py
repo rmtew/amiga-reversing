@@ -20,7 +20,7 @@ from m68k.decode_errors import DecodeError
 from m68k.m68k_disasm import disassemble
 
 
-# ── Paths ────────────────────────────────────────────────────────────────
+# -- Paths ----------------------------------------------------------------
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
 VASM = PROJ_ROOT / "tools" / "vasmm68k_mot.exe"
@@ -28,7 +28,7 @@ KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
 VASM_COMPAT = PROJ_ROOT / "knowledge" / "vasm_compat.json"
 
 
-# ── KB + vasm compat loading ─────────────────────────────────────────────
+# -- KB + vasm compat loading ---------------------------------------------
 
 def _load_kb():
     with open(KNOWLEDGE, encoding="utf-8") as f:
@@ -59,7 +59,7 @@ LABEL_MNEMONICS = frozenset(
     i["mnemonic"] for i in KB_INSTRUCTIONS if i.get("uses_label"))
 
 
-# ── Test case ────────────────────────────────────────────────────────────
+# -- Test case ------------------------------------------------------------
 
 @dataclass(frozen=True)
 class Case:
@@ -75,7 +75,7 @@ class Case:
         return f"{self.mnemonic}:{d}" if d else self.mnemonic
 
 
-# ── EA / immediate helpers (KB-driven from vasm_compat) ──────────────────
+# -- EA / immediate helpers (KB-driven from vasm_compat) ------------------
 
 def ea_syntax(mode, size=None, imm_val=None):
     """Assembly syntax for an EA mode, from vasm_compat ea_mode_syntax."""
@@ -140,7 +140,7 @@ def _form_mnemonics(m_variants, dir_variants, form_syntax):
         f"Unresolved form syntax: '{form_syntax}' not in {m_variants}")
 
 
-# ── Test generation (from KB forms/ea_modes/sizes/constraints) ───────────
+# -- Test generation (from KB forms/ea_modes/sizes/constraints) -----------
 
 def _gen_label_tests(m_lower, op_types, cc_param, sizes):
     tests = []
@@ -490,7 +490,7 @@ def _generate_tests(inst, compat=None):
     return tests
 
 
-# ── Generate all cases ───────────────────────────────────────────────────
+# -- Generate all cases ---------------------------------------------------
 
 def _generate_all_cases():
     cases = []
@@ -514,7 +514,7 @@ def _generate_all_cases():
     return cases
 
 
-# ── Batch assembly ───────────────────────────────────────────────────────
+# -- Batch assembly -------------------------------------------------------
 
 def _batch_assemble(cases, cpu_flag, tmpdir):
     """Assemble multiple cases in a single vasm call.
@@ -563,7 +563,7 @@ def _batch_assemble(cases, cpu_flag, tmpdir):
     return results
 
 
-# ── Roundtrip engine ─────────────────────────────────────────────────────
+# -- Roundtrip engine -----------------------------------------------------
 
 def _run_all_roundtrips(cases, tmpdir):
     """Batch assemble -> disassemble -> batch reassemble -> compare.
@@ -657,7 +657,7 @@ def _run_all_roundtrips(cases, tmpdir):
     return errors
 
 
-# ── Pytest integration ───────────────────────────────────────────────────
+# -- Pytest integration ---------------------------------------------------
 
 ALL_CASES = _generate_all_cases()
 _RESULTS = None

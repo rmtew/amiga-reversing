@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import struct
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_decode
 
 from disasm.decode import decode_instruction_for_emit, lookup_instruction_kb
 from m68k.instruction_kb import instruction_kb

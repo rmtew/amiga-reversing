@@ -2,7 +2,7 @@
 
 import struct
 
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_decode
 
 from .decode_errors import DecodeError
 from .instruction_primitives import decode_ea as _decode_ea, Operand, xf as _xf

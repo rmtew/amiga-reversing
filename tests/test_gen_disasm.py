@@ -31,7 +31,7 @@ from disasm.operands import (_operand_types_for_inst,
 from disasm.types import HunkDisassemblySession, SemanticOperand
 
 
-# ── Feature 3: App memory offset comments ────────────────────────────
+# -- Feature 3: App memory offset comments ----------------------------
 
 def test_app_offset_comment_hex():
     """Unnamed d(A6) offset gets hex comment."""
@@ -67,7 +67,7 @@ def test_app_offset_comment_non_base_reg():
     assert comment is None
 
 
-# ── Feature 4: Data region format from access patterns ───────────────
+# -- Feature 4: Data region format from access patterns ---------------
 
 def test_collect_word_access():
     """MOVE.W from a data address via d(An) marks it as word-sized."""
@@ -185,7 +185,7 @@ def test_emit_data_long_format():
     assert "dc.l" in output, f"Expected dc.l in output, got:\n{output}"
 
 
-# ── String detection in data regions ─────────────────────────────────
+# -- String detection in data regions ---------------------------------
 
 def test_data_region_detects_embedded_string():
     """Printable ASCII run in data region emits dc.b "text" not hex.
@@ -280,7 +280,7 @@ def test_data_region_mixed_hex_and_string():
     assert "$4a" in output.lower() or "$4A" in output
 
 
-# ── ASCII immediate comments ─────────────────────────────────────────
+# -- ASCII immediate comments -----------------------------------------
 
 def test_ascii_immediate_longword():
     """4-byte all-printable immediate gets 'ABCD' comment."""
@@ -306,7 +306,7 @@ def test_ascii_immediate_spaces_allowed():
     assert result == "'TEST'"
 
 
-# ── Subroutine scan gap computation ──────────────────────────────────
+# -- Subroutine scan gap computation ----------------------------------
 
 def test_scan_uses_hint_blocks_for_gaps():
     """Subroutine scanner should use hint blocks when computing gaps.
@@ -373,7 +373,63 @@ def test_scan_candidates_finds_sequential_subroutines_in_one_gap():
     assert [c["addr"] for c in candidates] == [0x00, 0x04]
 
 
-# ── PC-relative target discovery ─────────────────────────────────────
+def test_try_decode_subroutine_reuses_scan_cache(monkeypatch):
+    from m68k import subroutine_scan
+
+    code = b""
+    code += struct.pack(">H", 0x7001)  # moveq #1,d0
+    code += struct.pack(">H", 0x4E75)  # rts
+
+    calls = {"count": 0}
+    real_decode_at = subroutine_scan._decode_at
+
+    def _counting_decode_at(code_bytes, pos, cache):
+        calls["count"] += 1
+        return real_decode_at(code_bytes, pos, cache)
+
+    monkeypatch.setattr(subroutine_scan, "_decode_at", _counting_decode_at)
+
+    decode_cache = {}
+    scan_cache = {}
+    flow_cache = {}
+
+    first = subroutine_scan._try_decode_subroutine(
+        code, 0, len(code), decode_cache, scan_cache, flow_cache
+    )
+    second = subroutine_scan._try_decode_subroutine(
+        code, 0, len(code), decode_cache, scan_cache, flow_cache
+    )
+
+    assert first == second
+    assert calls["count"] == 2
+
+
+def test_try_decode_subroutine_rejects_immediate_unconditional_branch(monkeypatch):
+    from m68k import subroutine_scan
+
+    code = b""
+    code += struct.pack(">H", 0x6002)  # bra.s $04
+    code += struct.pack(">H", 0x4E71)  # nop
+    code += struct.pack(">H", 0x4E75)  # rts
+
+    calls = {"count": 0}
+    real_decode_at = subroutine_scan._decode_at
+
+    def _counting_decode_at(code_bytes, pos, cache):
+        calls["count"] += 1
+        return real_decode_at(code_bytes, pos, cache)
+
+    monkeypatch.setattr(subroutine_scan, "_decode_at", _counting_decode_at)
+
+    candidate = subroutine_scan._try_decode_subroutine(
+        code, 0, len(code), {}, {}, {}
+    )
+
+    assert candidate is None
+    assert calls["count"] == 1
+
+
+# -- PC-relative target discovery -------------------------------------
 
 def test_pc_relative_discovers_data_target():
     """LEA d(PC),An pointing to data between instructions gets a label."""
@@ -410,7 +466,7 @@ def test_pc_relative_discovers_code_target():
     code += struct.pack('>H', 0x7000)
     # $06: rts
     code += struct.pack('>H', 0x4E75)
-    # $08: moveq #42,d0 (a valid instruction — target of LEA)
+    # $08: moveq #42,d0 (a valid instruction - target of LEA)
     code += struct.pack('>H', 0x702A)
     # $0A: rts
     code += struct.pack('>H', 0x4E75)
@@ -427,7 +483,7 @@ def test_pc_relative_rejects_mid_instruction():
     """LEA d(PC),An pointing to the middle of an instruction is rejected.
 
     e.g. JMP 0(PC,D0.w) where the PC value is the extension word
-    address — targeting the middle of the JMP instruction itself.
+    address - targeting the middle of the JMP instruction itself.
     """
     code = b''
     # $00: lea $03(pc),a0 -> target = $02 + $03 = $05 (mid-instruction)
@@ -445,7 +501,7 @@ def test_pc_relative_rejects_mid_instruction():
         f"got {targets}")
 
 
-# ── Label map: core block entries get loc_ labels ────────────────────
+# -- Label map: core block entries get loc_ labels --------------------
 
 def test_core_block_entries_get_labels():
     """All core block start addresses should get loc_ labels.

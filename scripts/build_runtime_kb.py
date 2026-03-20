@@ -11,6 +11,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 KNOWLEDGE_DIR = PROJECT_ROOT / "knowledge"
+RUNTIME_PY_DIR = PROJECT_ROOT / "m68k_kb"
 
 
 def _load_json(name: str) -> dict:
@@ -2001,54 +2002,61 @@ def _build_naming_runtime() -> dict:
 
 
 def build_runtime_artifacts() -> list[Path]:
+    RUNTIME_PY_DIR.mkdir(exist_ok=True)
+    init_py = RUNTIME_PY_DIR / "__init__.py"
+    if not init_py.exists():
+        init_py.write_text(
+            '"""Generated Python runtime KB modules. Do not edit directly."""\n',
+            encoding="utf-8",
+        )
     outputs = []
     m68k_runtime = _build_m68k_runtime()
-    outputs.append(KNOWLEDGE_DIR / "runtime_m68k.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_m68k.py")
     _write_m68k_runtime_python(outputs[-1], m68k_runtime,
                                header="Generated runtime M68K knowledge artifact. Do not edit directly.")
-    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_decode.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_m68k_decode.py")
     _write_m68k_decode_runtime_python(
         outputs[-1],
         _build_m68k_decode_runtime(m68k_runtime),
         header="Generated runtime M68K decode knowledge artifact. Do not edit directly.",
     )
-    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_disasm.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_m68k_disasm.py")
     _write_m68k_disasm_runtime_python(
         outputs[-1],
         _build_m68k_disasm_runtime(m68k_runtime),
         header="Generated runtime M68K disassembly knowledge artifact. Do not edit directly.",
     )
-    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_asm.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_m68k_asm.py")
     _write_m68k_asm_runtime_python(
         outputs[-1],
         _build_m68k_asm_runtime(m68k_runtime),
         header="Generated runtime M68K assembler knowledge artifact. Do not edit directly.",
     )
-    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_analysis.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_m68k_analysis.py")
     _write_m68k_analysis_runtime_python(
         outputs[-1],
         _build_m68k_analysis_runtime(m68k_runtime),
         header="Generated runtime M68K analysis knowledge artifact. Do not edit directly.",
     )
-    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_compute.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_m68k_compute.py")
     _write_runtime_constants_python(
         outputs[-1],
         _build_m68k_compute_runtime(m68k_runtime),
         header="Generated runtime M68K compute knowledge artifact. Do not edit directly.",
     )
-    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_executor.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_m68k_executor.py")
     _write_runtime_constants_python(
         outputs[-1],
         _build_m68k_executor_runtime(m68k_runtime),
         header="Generated runtime M68K executor knowledge artifact. Do not edit directly.",
     )
-    outputs.append(KNOWLEDGE_DIR / "runtime_os.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_os.py")
     _write_runtime_constants_python(outputs[-1], _build_os_runtime(),
                                     header="Generated runtime Amiga OS knowledge artifact. Do not edit directly.")
-    outputs.append(KNOWLEDGE_DIR / "runtime_hunk.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_hunk.py")
     _write_hunk_runtime_python(outputs[-1], _build_hunk_runtime(),
                                header="Generated runtime hunk knowledge artifact. Do not edit directly.")
-    outputs.append(KNOWLEDGE_DIR / "runtime_naming.py")
+    outputs.append(RUNTIME_PY_DIR / "runtime_naming.py")
     _write_runtime_constants_python(outputs[-1], _build_naming_runtime(),
                                     header="Generated runtime naming knowledge artifact. Do not edit directly.")
     return outputs

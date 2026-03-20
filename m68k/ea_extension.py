@@ -1,6 +1,6 @@
 import struct
 
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_decode
 
 from .decode_errors import DecodeError
 

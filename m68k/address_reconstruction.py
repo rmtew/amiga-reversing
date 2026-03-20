@@ -2,8 +2,8 @@
 
 import struct
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_decode
 
 from .instruction_kb import find_kb_entry, instruction_kb
 from .instruction_decode import decode_inst_destination, decode_inst_operands, xf

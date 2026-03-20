@@ -12,8 +12,8 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_decode
 
 from .hunk_parser import parse_file, HunkType, _HUNK_KB
 from .m68k_executor import analyze, BasicBlock
@@ -33,7 +33,7 @@ _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
-# ── Relocation helpers ───────────────────────────────────────────────────
+# -- Relocation helpers ---------------------------------------------------
 
 _RELOC_INFO = {}
 for _name, _sem in _HUNK_KB.RELOCATION_SEMANTICS.items():
@@ -70,7 +70,7 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
     return None
 
 
-# ── Analysis result ──────────────────────────────────────────────────────
+# -- Analysis result ------------------------------------------------------
 
 _CACHE_VERSION = 8  # bump when cached analysis semantics/fields change
 
@@ -167,10 +167,10 @@ def _prune_inline_dispatch_blocks(blocks: dict, exit_states: dict,
         block.predecessors = [pred for pred in block.predecessors if pred not in remove_addrs]
 
 
-# ── Relocated segment detection ───────────────────────────────────────
+# -- Relocated segment detection ---------------------------------------
 
 # Postincrement move pattern from disassembled instruction text.
-# Matches move.b/w/l (An)+,(Am)+ — the copy loop primitive.
+# Matches move.b/w/l (An)+,(Am)+ - the copy loop primitive.
 def _postinc_copy_regs(inst) -> tuple[int, int] | None:
     """Return (src_reg, dst_reg) for MOVE.(b/w/l) (An)+,(Am)+ copy ops."""
     mnemonic = instruction_kb(inst)
@@ -187,6 +187,24 @@ def _postinc_copy_regs(inst) -> tuple[int, int] | None:
         return None
     return src.reg, dst.reg
 
+
+def _has_relocation_bootstrap_signature(code: bytes) -> bool:
+    words = code[:len(code) & ~1]
+    if not words:
+        return False
+    if b"\x4e\xf9" not in words and not any(
+            (word & 0xFFF0) == 0x4E40
+            for word, in struct.iter_unpack(">H", words)):
+        return False
+    return any(
+        word in {
+            0x10D8, 0x10D9, 0x10DA, 0x10DB, 0x10DC, 0x10DD, 0x10DE, 0x10DF,
+            0x20D8, 0x20D9, 0x20DA, 0x20DB, 0x20DC, 0x20DD, 0x20DE, 0x20DF,
+            0x30D8, 0x30D9, 0x30DA, 0x30DB, 0x30DC, 0x30DD, 0x30DE, 0x30DF,
+        }
+        for word, in struct.iter_unpack(">H", words)
+    )
+
 def detect_relocated_segments(code: bytes) -> list[dict]:
     """Detect copy-and-jump patterns that relocate code to fixed addresses.
 
@@ -202,6 +220,9 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
     Entry points include secondary code (e.g. copy stubs reached via TRAP).
     """
     code_size = len(code)
+
+    if not _has_relocation_bootstrap_signature(code):
+        return []
 
     # Run entry-0 propagation to get concrete register values.
     # Also follow copied code: if the bootstrap copies code within
@@ -345,7 +366,7 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
     return None
 
 
-# ── Pipeline ─────────────────────────────────────────────────────────────
+# -- Pipeline -------------------------------------------------------------
 
 def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                  print_fn=print,
@@ -412,7 +433,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
 
     platform = get_platform_config()
 
-    # ── Phase 0: Init discovery ──────────────────────────────────────
+    # -- Phase 0: Init discovery --------------------------------------
     base_reg_num = platform["_base_reg_num"]
     init_result = analyze(code, base_addr=base_addr,
                           entry_points=[base_addr],
@@ -441,7 +462,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             _, init_mem = init_result["exit_states"][best_addr]
             platform["_initial_mem"] = init_mem
 
-    # ── Phase 1: Core analysis with resolution loop ──────────────────
+    # -- Phase 1: Core analysis with resolution loop ------------------
     core_entries = {base_addr}
     jt_call_targets = set()
     jt_list = []  # final jump table list (for gen_disasm)
@@ -559,7 +580,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
 
     print_fn(f"  Core: {_stats(blocks)}")
 
-    # ── Phase 2: Hint discovery ──────────────────────────────────────
+    # -- Phase 2: Hint discovery --------------------------------------
     core_addrs = set()
     for blk in blocks.values():
         for a in range(blk.start, blk.end):
@@ -668,7 +689,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
              f"{len(call_targets)} call targets, "
              f"{len(result['branch_targets'])} branch targets")
 
-    # ── Phase 3: OS call identification ──────────────────────────────
+    # -- Phase 3: OS call identification ------------------------------
     os_kb = load_os_kb()
     lib_calls = identify_library_calls(
         blocks, code, os_kb, exit_states, call_targets, platform)

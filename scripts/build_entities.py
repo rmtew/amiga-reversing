@@ -21,7 +21,7 @@ from collections import defaultdict
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_decode
 from m68k.hunk_parser import parse_file, HunkType
 from m68k.m68k_executor import BasicBlock
 from m68k.analysis import analyze_hunk, resolve_reloc_target, _RELOC_INFO

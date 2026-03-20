@@ -6,7 +6,7 @@ Decodes 68000 instructions from raw bytes and emits assembly text.
 import struct
 from dataclasses import dataclass, field
 
-from knowledge import runtime_m68k_disasm
+from m68k_kb import runtime_m68k_disasm
 
 from .decode_errors import DecodeError
 from .ea_extension import parse_full_extension
@@ -714,8 +714,8 @@ def _opmode_ea_to_dn(entry: tuple[str | None, str | None, bool | None, str | Non
         return bool(entry[_OPMODE_EA_IS_SOURCE])
     op_text = entry[_OPMODE_DESCRIPTION] or ""
     # Multi-column format: "< ea > OP Dn -> Dn" vs "Dn OP < ea > -> < ea >"
-    if "→" in op_text:
-        dest = op_text.split("→")[-1].strip()
+    if "->" in op_text:
+        dest = op_text.split("->")[-1].strip()
         return "Dn" in dest and "ea" not in dest.lower()
     # Arrow may be missing from PDF extraction; determine from operand order
     if op_text:

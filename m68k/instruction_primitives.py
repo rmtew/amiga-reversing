@@ -3,8 +3,8 @@
 import struct
 from dataclasses import dataclass
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_executor
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_executor
 
 from .ea_extension import parse_full_extension
 from .instruction_kb import instruction_kb
@@ -184,6 +184,19 @@ def decode_instruction_ops(inst, mnemonic: str, size: str) -> DecodedOps:
     from .instruction_decode import decode_instruction_operands
 
     decoded_ops = DecodedOps()
+    if (inst.decoded_operands is not None
+            and inst.kb_mnemonic is not None
+            and inst.kb_mnemonic.upper() == mnemonic.upper()
+            and inst.operand_size == size):
+        decoded = inst.decoded_operands
+        decoded_ops.opcode = struct.unpack_from(">H", inst.raw, 0)[0] if len(inst.raw) >= _OPWORD_BYTES else 0
+        decoded_ops.ea_op = decoded["ea_op"]
+        decoded_ops.dst_op = decoded["dst_op"]
+        decoded_ops.reg_num = decoded["reg_num"]
+        decoded_ops.ea_is_source = decoded["ea_is_source"]
+        decoded_ops.imm_val = decoded["imm_val"]
+        return decoded_ops
+
     if len(inst.raw) < _OPWORD_BYTES:
         return decoded_ops
     decoded_ops.opcode = struct.unpack_from(">H", inst.raw, 0)[0]

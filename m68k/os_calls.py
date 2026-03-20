@@ -16,9 +16,9 @@ Usage:
 import struct
 import sys
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_decode
-from knowledge import runtime_os
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_os
 
 from .instruction_kb import find_kb_entry, instruction_flow, instruction_kb
 from .instruction_decode import decode_inst_destination, decode_inst_operands, xf
@@ -200,7 +200,7 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
     return None
 
 
-# ── Return value store tracing ───────────────────────────────────────
+# -- Return value store tracing ---------------------------------------
 
 def trace_return_stores(blocks: dict[int, BasicBlock],
                         lib_calls: list[dict],
@@ -279,7 +279,7 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
     return result
 
 
-# ── Unified app memory type map ───────────────────────────────────────
+# -- Unified app memory type map ---------------------------------------
 
 def build_app_memory_types(blocks: dict[int, BasicBlock],
                            lib_calls: list[dict],
@@ -427,7 +427,7 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
     return result
 
 
-# ── Call argument annotation ─────────────────────────────────────────
+# -- Call argument annotation -----------------------------------------
 
 def annotate_call_arguments(blocks: dict[int, BasicBlock],
                             lib_calls: list[dict]) -> dict[int, dict]:
@@ -487,7 +487,7 @@ def annotate_call_arguments(blocks: dict[int, BasicBlock],
     return result
 
 
-# ── Backward type propagation ─────────────────────────────────────────
+# -- Backward type propagation -----------------------------------------
 
 def _build_struct_field_map(struct_def: dict) -> dict[int, str]:
     """Build offset -> field_name map from KB struct definition."""
@@ -726,8 +726,8 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
             flow_type, _ = instruction_flow(inst)
 
             # Detect library base load into the base register.
-            # 1. MOVEA.L ($N).W,A6 — ExecBase from absolute address
-            # 2. MOVEA.L d(An),A6 — library base from tagged memory
+            # 1. MOVEA.L ($N).W,A6 - ExecBase from absolute address
+            # 2. MOVEA.L d(An),A6 - library base from tagged memory
             if (runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE
                     and ikb in runtime_m68k_analysis.SOURCE_SIGN_EXTEND
                     and len(inst.raw) >= runtime_m68k_decode.OPWORD_BYTES + 2):
@@ -761,7 +761,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                 continue
             target = extract_branch_target(inst, inst.offset)
             if target is not None:
-                continue  # resolved — not a library call
+                continue  # resolved - not a library call
             if len(inst.raw) < runtime_m68k_decode.OPWORD_BYTES + 2:
                 continue
 
@@ -769,7 +769,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
             ea_mode = xf(opcode, jsr_mode_f)
             ea_reg = xf(opcode, jsr_reg_f)
 
-            # Pattern 1: JSR d(A6) — displacement EA, LVO is disp
+            # Pattern 1: JSR d(A6) - displacement EA, LVO is disp
             if ea_mode == disp_enc[0] and ea_reg == base_reg_num:
                 disp = struct.unpack_from(
                     ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
@@ -784,7 +784,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                 results.append(call_info)
                 continue
 
-            # Pattern 2: JSR 0(A6,Dn.w) — indexed EA, LVO in index reg
+            # Pattern 2: JSR 0(A6,Dn.w) - indexed EA, LVO in index reg
             if ea_mode == index_enc[0] and ea_reg == base_reg_num:
                 ext = struct.unpack_from(
                     ">H", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]

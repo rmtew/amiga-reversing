@@ -12,8 +12,8 @@ Jump tables (detect_jump_tables):
 
 import struct
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_decode
 
 from .decode_errors import DecodeError
 from .instruction_kb import instruction_flow, instruction_kb
@@ -38,9 +38,9 @@ _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
-# ── Extension word parsing (from KB field definitions) ───────────────────
+# -- Extension word parsing (from KB field definitions) -------------------
 
-# ── EA analysis helpers ──────────────────────────────────────────────────
+# -- EA analysis helpers --------------------------------------------------
 
 def _is_indexed_ea(inst, mnemonic: str | None = None) -> dict | None:
     """Check if instruction uses indexed EA (An+Xn or PC+Xn)."""
@@ -74,7 +74,7 @@ def _is_indexed_ea(inst, mnemonic: str | None = None) -> dict | None:
         }
     return None
 
-# ── Table scanning ───────────────────────────────────────────────────────
+# -- Table scanning -------------------------------------------------------
 
 def _scan_word_offset_table(code, table_addr, base_addr, code_size,
                             max_entries=256,
@@ -184,7 +184,7 @@ def _scan_inline_dispatch(code, base_addr, code_size,
     return targets, pos
 
 
-# ── Main detection ───────────────────────────────────────────────────────
+# -- Main detection -------------------------------------------------------
 
 def detect_jump_tables(blocks: dict[int, BasicBlock],
                        code: bytes, base_addr: int = 0) -> list[dict]:
@@ -452,5 +452,5 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
 
     return tables
 
-# ── Indirect target resolution ───────────────────────────────────────────
+# -- Indirect target resolution -------------------------------------------
 

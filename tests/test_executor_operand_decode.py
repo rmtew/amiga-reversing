@@ -2,9 +2,9 @@ import copy
 
 import pytest
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_decode
-from knowledge import runtime_m68k_executor
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_m68k_executor
 
 from disasm.operands import build_instruction_semantic_operands
 from disasm.types import HunkDisassemblySession

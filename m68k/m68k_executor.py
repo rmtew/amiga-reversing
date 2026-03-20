@@ -1,4 +1,4 @@
-"""KB-driven M68K symbolic executor — static analysis via abstract interpretation.
+"""KB-driven M68K symbolic executor - static analysis via abstract interpretation.
 
 Walks disassembled code, maintaining an abstract register/memory state.
 All instruction semantics are derived from the KB (m68k_instructions.json)
@@ -16,8 +16,8 @@ import sys
 from collections import deque
 from dataclasses import dataclass, field
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_executor
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_executor
 
 from .decode_errors import DecodeError
 from .instruction_kb import instruction_kb
@@ -27,7 +27,7 @@ from .m68k_disasm import disassemble, Instruction, _Decoder, _decode_one
 from .operand_resolution import resolve_ea, _resolve_full_extension_ea
 
 
-# ── KB loader ─────────────────────────────────────────────────────────────
+# -- KB loader -------------------------------------------------------------
 
 _SIZE_BYTE_COUNT = runtime_m68k_analysis.SIZE_BYTE_COUNT
 _OPWORD_BYTES = runtime_m68k_analysis.OPWORD_BYTES
@@ -41,11 +41,11 @@ _FLOW_SEQUENTIAL = runtime_m68k_analysis.FlowType.SEQUENTIAL
 _FLOW_TRAP = runtime_m68k_analysis.FlowType.TRAP
 
 
-# ── Module-level KB singletons (avoid per-call cache overhead) ────────────
+# -- Module-level KB singletons (avoid per-call cache overhead) ------------
 
 
 
-# ── Shared decode primitives ─────────────────────────────────────────────
+# -- Shared decode primitives ---------------------------------------------
 
 Operand = _instruction_primitives.Operand
 DecodedOps = _instruction_primitives.DecodedOps
@@ -183,7 +183,7 @@ def _write_operand(operand: Operand, cpu, mem, value,
             mem.write(ea, value, size)
 
 
-# ── Abstract state ────────────────────────────────────────────────────────
+# -- Abstract state --------------------------------------------------------
 
 class AbstractValue:
     """A value that may be concrete, symbolic (base+offset), or unknown.
@@ -317,9 +317,9 @@ def CPUState(*args, **kwargs):
     return _CPUState(*args, **kwargs)
 
 
-# ── EA resolution ─────────────────────────────────────────────────────────
+# -- EA resolution ---------------------------------------------------------
 
-# ── PC prediction ─────────────────────────────────────────────────────────
+# -- PC prediction ---------------------------------------------------------
 
 def predict_pc(inst_kb: dict, pc: int, instr_size: int,
                displacement: int | None, ccr: dict,
@@ -353,7 +353,7 @@ def predict_pc(inst_kb: dict, pc: int, instr_size: int,
             # Branches are relative to PC + opword_bytes (KB _meta.opword_bytes)
             target = pc + opword_bytes + displacement
         else:
-            target = None  # jump through register — unknown target
+            target = None  # jump through register - unknown target
 
         if not conditional:
             if target is not None:
@@ -367,7 +367,7 @@ def predict_pc(inst_kb: dict, pc: int, instr_size: int,
         return targets
 
     if flow_type == _FLOW_RETURN:
-        return []  # unknown — return address on stack
+        return []  # unknown - return address on stack
 
     if flow_type == _FLOW_TRAP:
         return []  # exception vector
@@ -377,7 +377,7 @@ def predict_pc(inst_kb: dict, pc: int, instr_size: int,
     return [next_seq]
 
 
-# ── Cross-reference tracking ─────────────────────────────────────────────
+# -- Cross-reference tracking ---------------------------------------------
 
 @dataclass
 class XRef:
@@ -388,7 +388,7 @@ class XRef:
     conditional: bool = False
 
 
-# ── Basic block ───────────────────────────────────────────────────────────
+# -- Basic block -----------------------------------------------------------
 
 @dataclass
 class BasicBlock:
@@ -403,7 +403,7 @@ class BasicBlock:
     is_return: bool = False
 
 
-# ── Block discovery ───────────────────────────────────────────────────────
+# -- Block discovery -------------------------------------------------------
 
 def discover_blocks(code: bytes, base_addr: int = 0,
                     entry_points: list[int] | None = None) -> dict[int, BasicBlock]:
@@ -437,7 +437,7 @@ def discover_blocks(code: bytes, base_addr: int = 0,
         return inst
 
     # Pass 1: Follow control flow to discover block boundary addresses.
-    # We only record block_starts here — edges are derived in pass 2.
+    # We only record block_starts here - edges are derived in pass 2.
     block_starts = set(entry_points)
     work = list(entry_points)
     visited = set()
@@ -551,9 +551,9 @@ def discover_blocks(code: bytes, base_addr: int = 0,
     return blocks
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────
+# -- Helpers ---------------------------------------------------------------
 
-# ── Abstract memory ──────────────────────────────────────────────────────
+# -- Abstract memory ------------------------------------------------------
 
 _extract_branch_target = _instruction_primitives.extract_branch_target
 
@@ -561,8 +561,8 @@ _extract_branch_target = _instruction_primitives.extract_branch_target
 class AbstractMemory:
     """Sparse memory map tracking concrete and symbolic values.
 
-    Two stores: concrete (addr: int → byte values) and symbolic
-    (base+offset keys → full values).  Concrete store handles normal
+    Two stores: concrete (addr: int -> byte values) and symbolic
+    (base+offset keys -> full values).  Concrete store handles normal
     memory; symbolic store handles SP-relative push/pop where the
     actual address is unknown but the base+offset is tracked.
 
@@ -592,7 +592,7 @@ class AbstractMemory:
             if addr.is_known:
                 addr = addr.concrete
             else:
-                return  # unknown address — can't store
+                return  # unknown address - can't store
 
         if value.is_known:
             val = value.concrete
@@ -661,13 +661,13 @@ class AbstractMemory:
         return ranges
 
 
-# ── State propagation ────────────────────────────────────────────────────
+# -- State propagation ----------------------------------------------------
 
 def _join_values(a: AbstractValue, b: AbstractValue) -> AbstractValue:
     """Join two abstract values at a merge point.
 
-    Concrete: both concrete and equal → keep.
-    Symbolic: both symbolic with same base and offset → keep.
+    Concrete: both concrete and equal -> keep.
+    Symbolic: both symbolic with same base and offset -> keep.
     Otherwise: unknown.  Tag preserved if both agree.
     """
     # Fast path: identical objects (common when sharing references)
@@ -708,8 +708,16 @@ def _join_states(states: list, init_mem: 'AbstractMemory | None' = None
     if len(states) == 1:
         cpu, mem = states[0]
         return cpu.copy(), mem.copy()
-
     first_cpu, first_mem = states[0]
+    if all(cpu is first_cpu and mem is first_mem for cpu, mem in states[1:]):
+        return first_cpu.copy(), first_mem.copy()
+    if all(cpu is first_cpu for cpu, _ in states[1:]):
+        _, result_mem = _join_states([(CPUState(), mem) for _, mem in states], init_mem=init_mem)
+        return first_cpu.copy(), result_mem
+    if all(mem is first_mem for _, mem in states[1:]):
+        result_cpu, _ = _join_states([(cpu, AbstractMemory()) for cpu, _ in states])
+        return result_cpu, first_mem.copy()
+
     _UNK = _UNKNOWN
 
     # Fast path for 2 predecessors (most common merge case).
@@ -899,7 +907,7 @@ def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
     return None
 
 
-# ── Binary operation table ────────────────────────────────────────────────
+# -- Binary operation table ------------------------------------------------
 
 _BINARY_OPS = {
     "add": operator.add,
@@ -1013,7 +1021,7 @@ def _apply_binary_op(op_fn, d, inst_kb, cpu, mem, size, size_bytes,
             else:
                 cpu.set_reg("dn", rx, _unknown())
         else:
-            # Predecrement: src=-(Ay), dst=-(Ax) — memory operation
+            # Predecrement: src=-(Ay), dst=-(Ax) - memory operation
             # Decrement both address registers, read, compute, write
             for an in (ry, rx):
                 if cpu.a[an].is_known:
@@ -1821,7 +1829,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
     callees for concrete execution (resolves memory reads like library
     base loads).  If a summary clobbers the app base register and the
     platform has a discovered base value, the base register is restored
-    (the init routine sets it — its summary reports it as clobbered).
+    (the init routine sets it - its summary reports it as clobbered).
 
     Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
     """
@@ -1830,7 +1838,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
         if platform:
             # Set initial SP as symbolic base for abstract stack tracking.
             # SP_entry+0 at entry; push gives SP_entry-4, pop gives SP_entry+0.
-            # Symbolic SP survives joins (same base+offset → keep).
+            # Symbolic SP survives joins (same base+offset -> keep).
             initial_state.sp = _symbolic("SP_entry", 0)
             # Set initial base register if discovered from prior pass
             base_info = platform.get("initial_base_reg")
@@ -1972,7 +1980,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
             if summary:
                 ft_cpu = _apply_summary(exit_cpu, summary)
                 # If the summary clobbered the app base register,
-                # restore it.  Only the init routine does this —
+                # restore it.  Only the init routine does this -
                 # its summary reports A6 as clobbered since
                 # output != input, but we know the actual value.
                 base_info = (platform.get("initial_base_reg")
@@ -1992,10 +2000,10 @@ def propagate_states(blocks: dict[int, BasicBlock],
                     ft_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
 
             # Scratch reg invalidation on fallthrough (not on
-            # callee — the callee receives pre-call register
+            # callee - the callee receives pre-call register
             # state as input, e.g. D0 = LVO offset).
             # Skip invalidation for registers the summary says are
-            # preserved — the summary is computed from the actual
+            # preserved - the summary is computed from the actual
             # callee code and is more precise than the generic
             # calling convention.
             if platform and platform.get("scratch_regs"):
@@ -2054,7 +2062,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
     return exit_states
 
 
-# ── Subroutine summaries ─────────────────────────────────────────────────
+# -- Subroutine summaries -------------------------------------------------
 
 def _compute_sub_blocks(blocks: dict[int, BasicBlock],
                         call_targets: set[int]) -> dict[int, set[int]]:
@@ -2092,7 +2100,7 @@ def _compute_summary(entry: int, owned: set[int],
 
     Each register gets a unique symbolic value (D0_entry, A0_entry,
     SP_entry).  At RTS, registers whose symbolic value survived are
-    preserved; others are clobbered.  No platform config — summaries
+    preserved; others are clobbered.  No platform config - summaries
     track register preservation, not concrete OS call effects.
 
     Returns {"preserved_d": set, "preserved_a": set, "sp_delta": int}
@@ -2220,9 +2228,9 @@ def _compute_summary(entry: int, owned: set[int],
                    and rts_cpu.a[i].sym_offset == 0}
     # Produced values: registers that are concrete at all RTS exits
     # regardless of input.  These are constants the sub always computes
-    # (e.g. LEA target(pc),a0 — always returns the same address).
+    # (e.g. LEA target(pc),a0 - always returns the same address).
     # Input-dependent results show as symbolic (Dn_entry + offset) or
-    # unknown, not concrete — so this is sound.
+    # unknown, not concrete - so this is sound.
     produced_d = {}
     for i in range(len(rts_cpu.d)):
         if i not in preserved_d and rts_cpu.d[i].is_known:
@@ -2313,7 +2321,7 @@ def compute_all_summaries(blocks: dict[int, BasicBlock],
                         calls.add(xref.dst)
         callees[entry] = calls
 
-    # Topological sort — count only UN-summarized callees
+    # Topological sort - count only UN-summarized callees
     in_degree = {}
     callers: dict[int, set[int]] = {e: set() for e in needed}
     for entry in needed:
@@ -2347,7 +2355,7 @@ def compute_all_summaries(blocks: dict[int, BasicBlock],
     return summaries
 
 
-# ── Public API ────────────────────────────────────────────────────────────
+# -- Public API ------------------------------------------------------------
 
 def analyze(code: bytes, base_addr: int = 0,
             entry_points: list[int] | None = None,
@@ -2407,7 +2415,7 @@ def analyze(code: bytes, base_addr: int = 0,
     return result
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────
+# -- CLI -------------------------------------------------------------------
 
 if __name__ == "__main__":
     from .hunk_parser import parse_file, HunkType as HT

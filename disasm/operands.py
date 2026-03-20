@@ -1,9 +1,9 @@
 from __future__ import annotations
 """Build semantic operands from decoded instruction operands."""
 
-from knowledge import runtime_m68k_analysis
-from knowledge import runtime_m68k_disasm
-from knowledge import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_disasm
+from m68k_kb import runtime_m68k_decode
 
 from m68k.instruction_decode import (
     decode_inst_destination,
