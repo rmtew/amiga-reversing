@@ -799,6 +799,56 @@ def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_tex
     assert parts == ("'LINE'",)
 
 
+def test_build_instruction_comment_parts_appends_unresolved_indirect_marker():
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        unresolved_indirects={0x20: {"shape": "pcindex.brief", "region": "core"}},
+    )
+    inst = Instruction(
+        offset=0x20,
+        size=2,
+        opcode=0x4E90,
+        text="corrupted",
+        raw=b"\x4E\x90",
+        kb_mnemonic="jsr",
+    )
+
+    parts = build_instruction_comment_parts(inst, session, ())
+
+    assert parts == ("unresolved_indirect_core:pcindex.brief",)
+
+
 def test_get_instruction_processor_min_reports_base_68000_instruction():
     inst = Instruction(
         offset=0x10,

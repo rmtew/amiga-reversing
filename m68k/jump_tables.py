@@ -354,16 +354,22 @@ def _find_sparse_pc_indirect_table(pred: BasicBlock, call_inst, code: bytes,
 
 
 def _find_dispatch_decoder_entry(blocks: dict[int, BasicBlock], pred: BasicBlock) -> int | None:
-    sub_entry = _find_preceding_direct_call(pred)
-    if sub_entry is not None:
-        return sub_entry
-    for pred_addr in pred.predecessors:
-        pred2 = blocks.get(pred_addr)
-        if pred2 is None:
+    seen = set()
+    work = [pred]
+    while work:
+        block = work.pop(0)
+        if block.start in seen:
             continue
-        sub_entry = _find_preceding_direct_call(pred2)
+        seen.add(block.start)
+        sub_entry = _find_preceding_direct_call(block)
         if sub_entry is not None:
             return sub_entry
+        for pred_addr in block.predecessors:
+            pred2 = blocks.get(pred_addr)
+            if pred2 is None:
+                continue
+            if pred2.start not in seen:
+                work.append(pred2)
     return None
 
 
@@ -423,7 +429,7 @@ def _find_string_dispatch_targets(blocks: dict[int, BasicBlock], code: bytes,
 
 def detect_jump_tables(blocks: dict[int, BasicBlock],
                        code: bytes, base_addr: int = 0) -> list[dict]:
-    """Detect jump tables. Returns list of {addr, pattern, targets, dispatch_block}."""
+    """Detect jump tables with explicit dispatch sites."""
     code_size = len(code)
     tables = []
 
@@ -490,6 +496,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             "entries": call_pc_sparse["entries"],
                             "pattern": "pc_sparse_word_offset",
                             "targets": call_pc_sparse["targets"],
+                            "dispatch_sites": [addr],
                             "dispatch_block": addr,
                             "base_addr": call_pc_sparse["addr"],
                             "table_end": call_pc_sparse["table_end"],
@@ -509,6 +516,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             "entries": table_info["entries"],
                             "pattern": "string_dispatch_self_relative",
                             "targets": table_info["targets"],
+                            "dispatch_sites": [addr],
                             "dispatch_block": addr,
                             "base_addr": None,
                             "decoder_entry": sub_entry,
@@ -529,6 +537,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     "addr": full_ext_info["table_addr"],
                     "pattern": full_ext_info["pattern"],
                     "targets": targets,
+                    "dispatch_sites": [addr],
                     "dispatch_block": addr,
                     "base_addr": None,
                     "table_end": (full_ext_info["table_addr"]
@@ -567,6 +576,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             "addr": ptr_info["table_addr"],
                             "pattern": "indirect_pointer_read",
                             "targets": targets,
+                            "dispatch_sites": [addr],
                             "dispatch_block": addr,
                             "base_addr": None,
                             "table_end": (ptr_info["table_addr"]
@@ -592,6 +602,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             "addr": table_base,
                             "pattern": "self_relative_word",
                             "targets": targets,
+                            "dispatch_sites": [addr],
                             "dispatch_block": addr,
                             "base_addr": None,
                             "table_end": table_base + len(targets) * runtime_m68k_decode.SIZE_BYTE_COUNT["w"],
@@ -638,6 +649,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                                     "addr": tbl_info["table_addr"],
                                     "pattern": "adda_dispatch",
                                     "targets": targets,
+                                    "dispatch_sites": [addr],
                                     "dispatch_block": addr,
                                     "base_addr": handler_base,
                                     "table_end": (tbl_info["table_addr"]
@@ -659,14 +671,14 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
             if targets:
                 tables.append({"addr": scan_start,
                                "pattern": "pc_inline_dispatch",
-                               "targets": targets, "dispatch_block": addr,
+                               "targets": targets, "dispatch_sites": [addr], "dispatch_block": addr,
                                "table_end": dispatch_end})
                 continue
             targets = _scan_word_offset_table(
                 code, base, base, code_size, call_targets=_call_targets)
             if len(targets) >= 2:
                 tables.append({"addr": base, "pattern": "pc_word_offset",
-                               "targets": targets, "dispatch_block": addr,
+                               "targets": targets, "dispatch_sites": [addr], "dispatch_block": addr,
                                "base_addr": base,
                                "table_end": base + len(targets) * runtime_m68k_decode.SIZE_BYTE_COUNT["w"]})
             continue
@@ -706,6 +718,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                             "addr": table_start,
                             "pattern": "indirect_table_read",
                             "targets": targets,
+                            "dispatch_sites": [addr],
                             "dispatch_block": addr,
                             "base_addr": target_base,
                             "table_end": table_start + len(targets) * runtime_m68k_decode.SIZE_BYTE_COUNT["w"],
@@ -727,6 +740,7 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
                     tbl_addr = lea_addr if has_adda else table_start
                     tables.append({"addr": tbl_addr,
                                    "pattern": pattern, "targets": targets,
+                                   "dispatch_sites": [addr],
                                    "dispatch_block": addr,
                                    "base_addr": None if has_adda else lea_addr,
                                    "table_end": tbl_addr + len(targets) * runtime_m68k_decode.SIZE_BYTE_COUNT["w"]})

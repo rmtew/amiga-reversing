@@ -69,6 +69,11 @@ def build_instruction_comment_parts(inst,
                 parts.append(ascii_str)
                 break
 
+    unresolved = hunk_session.unresolved_indirects.get(inst.offset)
+    if unresolved is not None:
+        parts.append(
+            f"unresolved_indirect_{unresolved['region']}:{unresolved['shape']}")
+
     return tuple(parts)
 
 

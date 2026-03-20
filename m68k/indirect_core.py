@@ -62,6 +62,19 @@ def _is_runtime_indirect_operand(operand) -> bool:
     return operand.mode == "pcindex"
 
 
+def indirect_operand_shape(operand) -> str:
+    """Render a stable searchable shape tag for an indirect operand."""
+    shape = operand.mode
+    if operand.mode in ("index", "pcindex"):
+        if operand.memory_indirect:
+            shape += ".memind"
+        elif operand.full_extension:
+            shape += ".full"
+        else:
+            shape += ".brief"
+    return shape
+
+
 def _is_valid_target(addr: int, code_size: int, align_mask: int) -> bool:
     """Check if addr is a valid code target."""
     return 0 <= addr < code_size and not (addr & align_mask)
@@ -135,3 +148,36 @@ def _try_resolve_block(unres_addr: int, unres_type: str,
         if _is_valid_target(ea_val.concrete, code_size, runtime_m68k_decode.ALIGN_MASK):
             return ea_val.concrete
     return None
+
+
+def find_indirect_control_sites(blocks: dict, exit_states: dict,
+                                code_size: int) -> list[dict]:
+    """Enumerate non-direct JMP/JSR sites and their current runtime state."""
+    sites = []
+    for block_addr in sorted(blocks):
+        block = blocks[block_addr]
+        if not block.instructions:
+            continue
+        last = block.instructions[-1]
+        ft, _ = instruction_flow(last)
+        if ft not in (_FLOW_CALL, _FLOW_JUMP):
+            continue
+        if extract_branch_target(last, last.offset) is not None:
+            continue
+        operand, ikb = decode_jump_ea(last)
+        if operand is None or not _is_runtime_indirect_operand(operand):
+            continue
+        site_addr = last.offset
+        target = None
+        if block_addr in exit_states:
+            cpu, mem = exit_states[block_addr]
+            target = _try_resolve_block(block_addr, ft, blocks, cpu, mem, code_size)
+        sites.append({
+            "addr": site_addr,
+            "mnemonic": ikb,
+            "flow_type": ft,
+            "shape": indirect_operand_shape(operand),
+            "status": "resolved_runtime" if target is not None else "unresolved",
+            "target": target,
+        })
+    return sites

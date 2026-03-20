@@ -21,7 +21,8 @@ from m68k.instruction_kb import instruction_kb
 from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
                                 _concrete, _unknown, BasicBlock, XRef)
 from m68k.jump_tables import detect_jump_tables, _scan_inline_dispatch, _is_indexed_ea
-from m68k.indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
+from m68k.indirect_analysis import (collect_call_entry_states,
+                                    resolve_indirect_targets, resolve_per_caller,
                                     resolve_backward_slice)
 from m68k.indirect_core import decode_jump_ea
 from m68k.m68k_asm import assemble_instruction
@@ -1607,6 +1608,8 @@ def test_pattern_string_dispatch_self_relative_via_decoder_subroutine():
         f"Expected table addr ${labels['table']:04x}, got ${t['addr']:04x}")
     assert t["table_end"] == labels["table_end"], (
         f"Expected table end ${labels['table_end']:04x}, got ${t['table_end']:04x}")
+    assert t["dispatch_sites"] == [labels["skip"] - 2], (
+        f"Expected dispatch site ${labels['skip'] - 2:04x}, got {t['dispatch_sites']}")
     assert [entry["offset_addr"] for entry in t["entries"]] == [
         labels["table"] + 2,
         labels["table"] + 6,
@@ -1688,6 +1691,78 @@ def test_pattern_string_dispatch_uses_scanned_table_end_not_target_bound():
         f"Expected scanned table end ${labels['after_table']:04x}, got ${t['table_end']:04x}")
 
 
+def test_pattern_string_dispatch_through_multiple_conditional_predecessors():
+    specs = [
+        ("asm", "moveq #1,d1"),
+        ("asm", "bsr.w {sub}"),
+        ("asm", "beq.s {skip}"),
+        ("asm", "bpl.s {call}"),
+        ("asm", "tst.b d2"),
+        ("asm", "beq.s {skip}"),
+        ("label", "call"),
+        ("asm", "jsr (a0)"),
+        ("label", "skip"),
+        ("asm", "rts"),
+        ("label", "sub"),
+        ("asm", "lea {table_disp}(pc),a0"),
+        ("asm", "move.b (a0)+,d2"),
+        ("label", "loop"),
+        ("asm", "beq.s {no_match}"),
+        ("asm", "cmp.b (a0),d1"),
+        ("asm", "bne.s {skip_entry}"),
+        ("asm", "lea 1(a0),a1"),
+        ("asm", "move.b (a1)+,d0"),
+        ("asm", "lsl.w #8,d0"),
+        ("asm", "move.b (a1)+,d0"),
+        ("asm", "lea -2(a1,d0.w),a0"),
+        ("asm", "lea {end_disp}(pc),a2"),
+        ("asm", "cmpa.l a2,a0"),
+        ("asm", "rts"),
+        ("label", "skip_entry"),
+        ("asm", "lea 2(a0,d2.w),a0"),
+        ("asm", "bra.s {loop}"),
+        ("label", "no_match"),
+        ("asm", "moveq #0,d0"),
+        ("asm", "rts"),
+        ("label", "table"),
+        ("bytes", b"\x00" * 9),
+        ("label", "table_end"),
+        ("bytes", b"\x00"),
+        ("label", "handler1"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+        ("label", "handler2"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+    ]
+    code, labels = _assemble_with_labels(specs)
+    code = bytearray(code)
+
+    entry1_offset_pos = labels["table"] + 2
+    entry2_offset_pos = labels["table"] + 6
+    code[labels["table"]:labels["table"] + 4] = bytes((
+        1,
+        1,
+        ((labels["handler1"] - entry1_offset_pos) >> 8) & 0xFF,
+        (labels["handler1"] - entry1_offset_pos) & 0xFF,
+    ))
+    code[labels["table"] + 4:labels["table"] + 8] = bytes((
+        1,
+        2,
+        ((labels["handler2"] - entry2_offset_pos) >> 8) & 0xFF,
+        (labels["handler2"] - entry2_offset_pos) & 0xFF,
+    ))
+    code[labels["table"] + 8] = 0
+
+    result = analyze(bytes(code), propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    tables = detect_jump_tables(result["blocks"], bytes(code))
+
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    assert tables[0]["pattern"] == "string_dispatch_self_relative"
+    assert tables[0]["dispatch_sites"] == [labels["call"]], (
+        f"Expected dispatch site ${labels['call']:04x}, got {tables[0]['dispatch_sites']}")
+
+
 def test_pattern_pc_sparse_word_offset_dispatch():
     specs = [
         ("asm", "moveq #1,d1"),
@@ -1696,6 +1771,7 @@ def test_pattern_pc_sparse_word_offset_dispatch():
         ("asm", "add.w d1,d1"),
         ("asm", "move.w {table_disp}(pc,d1.w),d0"),
         ("asm", "beq.s {fail}"),
+        ("label", "call"),
         ("asm", "jsr {table_disp}(pc,d0.w)"),
         ("asm", "rts"),
         ("label", "fail"),
@@ -1723,6 +1799,8 @@ def test_pattern_pc_sparse_word_offset_dispatch():
     t = tables[0]
     assert t["pattern"] == "pc_sparse_word_offset", (
         f"Expected pattern 'pc_sparse_word_offset', got {t['pattern']!r}")
+    assert t["dispatch_sites"] == [labels["call"]], (
+        f"Expected dispatch site ${labels['call']:04x}, got {t['dispatch_sites']}")
     assert t["addr"] == table, (
         f"Expected table addr ${table:04x}, got ${t['addr']:04x}")
     assert t["table_end"] == table + 8, (
@@ -3883,6 +3961,135 @@ def test_per_caller_nested_multiple_callers():
         f"Expected $0020 from caller_a (D0=$20), got {targets}")
     assert 0x24 in targets, (
         f"Expected $0024 from caller_b (D0=$24), got {targets}")
+
+
+def test_per_caller_resolves_preserved_register_through_wrapper_callers():
+    """Outer callers seed preserved A2 through a wrapper into shared jsr (a2)."""
+    code = b""
+    pc = 0
+    for text in (
+            "movea.l #30,a2",
+            "bsr.w 22",
+            "movea.l #32,a2",
+            "bsr.w 22",
+            "rts",
+            "bsr.w 28",
+            "rts",
+            "jsr (a2)",
+            "rts",
+            "rts",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+
+    assert 0x1E in targets, (
+        f"Expected $0018 from outer_a via wrapper caller chain, got {targets}")
+    assert 0x20 in targets, (
+        f"Expected $001a from outer_b via wrapper caller chain, got {targets}")
+
+
+def test_per_caller_resolves_register_copy_through_wrapper_callers():
+    """Outer callers seed A2, wrapper preserves target by copying A2 -> A3."""
+    code = b""
+    pc = 0
+    for text in (
+            "movea.l #36,a2",
+            "bsr.w 22",
+            "movea.l #38,a2",
+            "bsr.w 22",
+            "rts",
+            "movea.l a2,a3",
+            "moveq #0,d0",
+            "bsr.w 32",
+            "rts",
+            "jsr (a3)",
+            "rts",
+            "rts",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    blocks, exit_states, resolved = _analyze_and_resolve(code)
+    targets = _resolved_targets(resolved)
+
+    assert 0x24 in targets, (
+        f"Expected $0026 from outer_a via a2->a3 wrapper copy, got {targets}")
+    assert 0x26 in targets, (
+        f"Expected $0028 from outer_b via a2->a3 wrapper copy, got {targets}")
+
+
+def test_collect_call_entry_states_through_direct_call_wrapper():
+    code = b""
+    pc = 0
+    for text in (
+            "movea.l #46,a2",
+            "bsr.w 24",
+            "movea.l #48,a2",
+            "bsr.w 24",
+            "rts",
+            "rts",
+            "movea.l a2,a3",
+            "movea.l #42,a2",
+            "bsr.w 38",
+            "rts",
+            "jsr (a2)",
+            "rts",
+            "jsr (a3)",
+            "rts",
+            "rts",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    result = analyze(code, entry_points=[0], propagate=True)
+    states = collect_call_entry_states(
+        result["blocks"], result.get("exit_states", {}), code, 0x26)
+
+    got = {
+        (
+            cpu.a[2].concrete if cpu.a[2].is_known else None,
+            cpu.a[3].concrete if cpu.a[3].is_known else None,
+        )
+        for cpu, _ in states
+    }
+    assert got == {(0x2A, 0x2E), (0x2A, 0x30)}
+
+
+def test_indirect_resolution_results_have_normalized_entry_state_shape():
+    code = b""
+    pc = 0
+    for text in (
+            "movea.l #36,a2",
+            "bsr.w 22",
+            "movea.l #38,a2",
+            "bsr.w 22",
+            "rts",
+            "movea.l a2,a3",
+            "moveq #0,d0",
+            "bsr.w 32",
+            "rts",
+            "jsr (a3)",
+            "rts",
+            "rts",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    blocks, exit_states, _ = _analyze_and_resolve(code)
+    runtime = resolve_indirect_targets(blocks, exit_states, len(code))
+    per_caller = resolve_per_caller(blocks, exit_states, code, len(code))
+
+    assert all(item["entry_states"] == () for item in runtime)
+    assert all(isinstance(item["entry_states"], tuple) for item in per_caller)
+
+
 
 
 # ---- Branch forking: per-exit resolution ------------------------------------

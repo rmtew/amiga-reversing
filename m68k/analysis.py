@@ -21,6 +21,7 @@ from .m68k_executor import analyze, BasicBlock
 from .jump_tables import detect_jump_tables
 from .indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
                                 resolve_backward_slice)
+from . import indirect_core
 from .os_calls import (get_platform_config,
                        identify_library_calls, _SENTINEL_ALLOC_BASE)
 from .subroutine_scan import scan_and_score
@@ -73,7 +74,7 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
 
 # -- Analysis result ------------------------------------------------------
 
-_CACHE_VERSION = 8  # bump when cached analysis semantics/fields change
+_CACHE_VERSION = 11  # bump when cached analysis semantics/fields change
 
 # Platform dict keys that are not serializable (lambdas, resolvers)
 _PLATFORM_TRANSIENT_KEYS = {
@@ -104,6 +105,7 @@ class HunkAnalysis:
     reloc_refs: dict              # target -> [referencing offsets]
     relocated_segments: list      # [{file_offset, base_addr}] or []
     os_kb: dict                   # OS knowledge base (not cached)
+    indirect_sites: list[dict] = field(default_factory=list)
 
     def save(self, path: str | Path):
         """Serialize analysis to disk (excluding os_kb and transient state)."""
@@ -467,10 +469,41 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     core_entries = {base_addr}
     jt_call_targets = set()
     jt_list = []  # final jump table list (for gen_disasm)
+    per_caller_entry_states = {}
+    per_caller_entry_state_keys = {}
+    last_runtime_resolutions = []
+    last_per_caller_resolutions = []
+    last_backward_resolutions = []
+
+    def _entry_state_key(cpu, mem) -> tuple:
+        reg_sig = tuple(
+            (val.is_known, val.concrete)
+            for val in (*cpu.d, *cpu.a)
+        )
+        mem_sig = tuple(
+            sorted((addr, val.concrete) for addr, val in mem._bytes.items())
+        )
+        tag_sig = tuple(
+            sorted((repr(key), repr(tag)) for key, tag in mem._tags.items())
+        )
+        return reg_sig, mem_sig, tag_sig
+
+    def _record_indirect_entry_states(resolution: dict) -> None:
+        target = resolution["target"]
+        for cpu, mem in resolution["entry_states"]:
+            key = _entry_state_key(cpu, mem)
+            seen = per_caller_entry_state_keys.setdefault(target, set())
+            if key in seen:
+                continue
+            seen.add(key)
+            per_caller_entry_states.setdefault(target, []).append((cpu, mem))
 
     def _resolve_and_expand():
         """Run all resolution passes, return number of new entries."""
         nonlocal jt_list
+        nonlocal last_runtime_resolutions
+        nonlocal last_per_caller_resolutions
+        nonlocal last_backward_resolutions
         added = 0
         jt_list = detect_jump_tables(result["blocks"], code,
                                         base_addr=base_addr)
@@ -489,26 +522,31 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                 ft, _ = instruction_flow(dblk.instructions[-1])
                 if ft == _FLOW_CALL:
                     jt_call_targets.update(t["targets"])
-        for r in resolve_indirect_targets(
-                result["blocks"],
-                result.get("exit_states", {}),
-                code_size):
+        last_runtime_resolutions = resolve_indirect_targets(
+            result["blocks"],
+            result.get("exit_states", {}),
+            code_size)
+        for r in last_runtime_resolutions:
             if r["target"] not in core_entries:
                 core_entries.add(r["target"])
                 added += 1
-        for r in resolve_per_caller(
-                result["blocks"],
-                result.get("exit_states", {}),
-                code, code_size,
-                platform=platform):
+        last_per_caller_resolutions = resolve_per_caller(
+            result["blocks"],
+            result.get("exit_states", {}),
+            code, code_size,
+            platform=platform,
+            seed_entry_states=per_caller_entry_states)
+        for r in last_per_caller_resolutions:
+            _record_indirect_entry_states(r)
             if r["target"] not in core_entries:
                 core_entries.add(r["target"])
                 added += 1
-        for r in resolve_backward_slice(
-                result["blocks"],
-                result.get("exit_states", {}),
-                code, code_size,
-                platform=platform):
+        last_backward_resolutions = resolve_backward_slice(
+            result["blocks"],
+            result.get("exit_states", {}),
+            code, code_size,
+            platform=platform)
+        for r in last_backward_resolutions:
             if r["target"] not in core_entries:
                 core_entries.add(r["target"])
                 added += 1
@@ -702,6 +740,71 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                  f"({len(resolved)} resolved"
                  f", libraries: {', '.join(sorted(libs))})")
 
+    indirect_sites = indirect_core.find_indirect_control_sites(
+        blocks, exit_states, code_size)
+    for site in indirect_sites:
+        site["region"] = "core"
+    jump_dispatch = {}
+    for table in jt_list:
+        for site_addr in table["dispatch_sites"]:
+            jump_dispatch[site_addr] = table
+    resolved_indirects = {}
+    for resolver in (
+            last_runtime_resolutions,
+            last_per_caller_resolutions,
+            last_backward_resolutions,
+    ):
+        for item in resolver:
+            source_addr = item["source_addr"]
+            if source_addr not in resolved_indirects:
+                resolved_indirects[source_addr] = item["kind"]
+    external_calls = {
+        call["addr"]: call
+        for call in lib_calls
+        if "addr" in call
+    }
+    for site in indirect_sites:
+        dispatch = jump_dispatch.get(site["addr"])
+        if dispatch is not None:
+            site["status"] = "jump_table"
+            site["detail"] = dispatch["pattern"]
+            site["target_count"] = len(dispatch["targets"])
+            site["target"] = None
+            continue
+        external = external_calls.get(site["addr"])
+        if external is not None:
+            site["status"] = "external"
+            site["detail"] = f"{external['library']}::{external['function']}"
+            site["target"] = None
+            continue
+        resolved_kind = resolved_indirects.get(site["addr"])
+        if resolved_kind is not None:
+            site["status"] = resolved_kind
+
+    hint_indirect_sites = indirect_core.find_indirect_control_sites(
+        hint_blocks, {}, code_size)
+    for site in hint_indirect_sites:
+        site["region"] = "hint"
+        site["status"] = "unresolved"
+        site["target"] = None
+    indirect_sites.extend(hint_indirect_sites)
+
+    if indirect_sites:
+        from collections import Counter
+        by_bucket = Counter(
+            f"{site['region']}_{site['status']}"
+            for site in indirect_sites
+        )
+        parts = [f"{count} {bucket}" for bucket, count in sorted(by_bucket.items())]
+        print_fn(f"  Indirects: {len(indirect_sites)} sites ({', '.join(parts)})")
+        for site in indirect_sites:
+            if site["status"] != "unresolved":
+                continue
+            print_fn(
+                f"    unresolved_indirect_{site['region']} ${site['addr']:04X}: "
+                f"{site['mnemonic']} {site['shape']}"
+            )
+
     return HunkAnalysis(
         code=code,
         hunk_index=hunk_index,
@@ -719,4 +822,5 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         reloc_refs=reloc_refs,
         relocated_segments=relocated_segments,
         os_kb=os_kb,
+        indirect_sites=indirect_sites,
     )

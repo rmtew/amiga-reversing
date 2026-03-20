@@ -69,6 +69,7 @@ class HunkDisassemblySession:
     relocated_segments: list[dict]
     reloc_file_offset: int
     reloc_base_addr: int
+    unresolved_indirects: dict[int, dict] = field(default_factory=dict)
 
 
 @dataclass

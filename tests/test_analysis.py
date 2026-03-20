@@ -9,6 +9,7 @@ import pytest
 from m68k.analysis import (analyze_hunk, HunkAnalysis, AnalysisCacheError,
                            detect_relocated_segments, _postinc_copy_regs)
 from m68k.decode_errors import DecodeError
+from m68k.hunk_parser import HunkType
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze
@@ -219,6 +220,142 @@ def test_analyze_hunk_prunes_inline_dispatch_speculative_blocks():
     assert 0x0E in result.blocks
     assert 0x12 in result.blocks
     assert 0x16 in result.blocks
+
+
+def test_analyze_hunk_reports_unresolved_indirect_sites():
+    code = b""
+    code += struct.pack(">H", 0x4E90)  # jsr (a0)
+    code += struct.pack(">H", 0x4E75)  # rts
+    lines = []
+
+    result = analyze_hunk(
+        code,
+        relocs=[],
+        hunk_index=0,
+        print_fn=lambda line: lines.append(line),
+    )
+
+    assert result.indirect_sites == [{
+        "addr": 0,
+        "mnemonic": "JSR",
+        "flow_type": "call",
+        "shape": "ind",
+        "region": "core",
+        "status": "unresolved",
+        "target": None,
+    }]
+    assert any("Indirects: 1 sites (1 core_unresolved)" in line for line in lines)
+    assert any("unresolved_indirect_core $0000: JSR ind" in line for line in lines)
+
+
+def test_analyze_hunk_reports_terminal_indirect_site_offset_not_block_start(monkeypatch):
+    code = b""
+    pc = 0
+    for text in (
+            "movea.l d0,a6",
+            "jsr -2(a6)",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    monkeypatch.setattr(
+        "m68k.analysis.identify_library_calls",
+        lambda *args, **kwargs: [],
+    )
+
+    result = analyze_hunk(
+        code,
+        relocs=[],
+        hunk_index=0,
+        print_fn=lambda *_: None,
+    )
+
+    assert result.indirect_sites == [{
+        "addr": 0x2,
+        "mnemonic": "JSR",
+        "flow_type": "call",
+        "shape": "disp",
+        "region": "core",
+        "status": "unresolved",
+        "target": None,
+    }]
+
+
+def test_analyze_hunk_marks_identified_library_call_as_external(monkeypatch):
+    code = b""
+    pc = 0
+    for text in (
+            "movea.l d0,a6",
+            "jsr -2(a6)",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    monkeypatch.setattr(
+        "m68k.analysis.identify_library_calls",
+        lambda *args, **kwargs: [{
+            "addr": 0x2,
+            "block": 0x0,
+            "library": "exec.library",
+            "function": "AllocMem",
+            "lvo": -2,
+        }],
+    )
+
+    result = analyze_hunk(
+        code,
+        relocs=[],
+        hunk_index=0,
+        print_fn=lambda *_: None,
+    )
+
+    assert result.indirect_sites == [{
+        "addr": 0x2,
+        "mnemonic": "JSR",
+        "flow_type": "call",
+        "shape": "disp",
+        "region": "core",
+        "status": "external",
+        "detail": "exec.library::AllocMem",
+        "target": None,
+    }]
+
+
+def test_analyze_hunk_core_per_caller_does_not_promote_hint_only_target(monkeypatch):
+    monkeypatch.setattr("m68k.analysis.scan_and_score", lambda *args, **kwargs: [])
+
+    code = b""
+    code += struct.pack(">HH", 0x45FA, 0x000C)          # [0x00] lea $0c(pc),a2 -> $0e
+    code += struct.pack(">HH", 0x6100, 0x0004)          # [0x04] bsr.w $0a
+    code += struct.pack(">H", 0x4E75)                   # [0x08] rts
+    code += struct.pack(">H", 0x4E92)                   # [0x0a] jsr (a2)
+    code += struct.pack(">H", 0x4E75)                   # [0x0c] rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)         # [0x0e] core handler
+    code += struct.pack(">HH", 0x45FA, 0x0008)         # [0x12] lea $08(pc),a2 -> $1c
+    code += struct.pack(">HH", 0x6100, 0xFFF2)         # [0x16] bsr.w $0a
+    code += struct.pack(">H", 0x4E75)                   # [0x1a] rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)         # [0x1c] hint-only handler
+    code += struct.pack(">I", 0x00000012)               # [0x20] reloc target -> hint caller
+
+    relocs = [_FakeReloc(HunkType.HUNK_RELOC32, [0x20])]
+    result = analyze_hunk(code, relocs=relocs, hunk_index=0,
+                          print_fn=lambda *a: None)
+
+    assert 0x0A in result.blocks
+    assert 0x0E in result.blocks
+    assert 0x12 in result.hint_blocks
+    assert 0x1C not in result.blocks
+    assert {
+        "addr": 0x0A,
+        "mnemonic": "JSR",
+        "flow_type": "call",
+        "shape": "ind",
+        "region": "core",
+        "status": "runtime",
+        "target": 0x0E,
+    } in result.indirect_sites
 
 
 # -- Auto-detect relocated segments -----------------------------------

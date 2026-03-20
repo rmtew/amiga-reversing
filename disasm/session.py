@@ -97,6 +97,11 @@ def build_disassembly_session(binary_path: str, entities_path: str,
 
         arg_annotations = annotate_call_arguments(blocks, lib_calls)
         data_access_sizes = collect_data_access_sizes(blocks, exit_states)
+        unresolved_indirects = {
+            site["addr"]: site
+            for site in ha.indirect_sites
+            if site["status"] == "unresolved"
+        }
 
         hunk_sessions.append(build_hunk_session(
             hunk_index=hunk.index,
@@ -131,6 +136,7 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             relocated_segments=relocated_segments,
             reloc_file_offset=reloc_file_offset,
             reloc_base_addr=reloc_base_addr,
+            unresolved_indirects=unresolved_indirects,
         ))
 
     return build_session_object(
