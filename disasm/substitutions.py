@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import re
 
-from m68k.kb_util import KB, decode_destination, parse_reg_name
-from m68k.m68k_executor import _extract_branch_target
-from m68k.kb_util import find_containing_sub, decode_instruction_operands
+from m68k.instruction_kb import instruction_kb
+from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
+from m68k.instruction_primitives import extract_branch_target
 from m68k.os_calls import build_app_memory_types
+from m68k.registers import parse_reg_name
+from m68k.subroutine_ranges import find_containing_sub
 
 
 def _immediate_operand_token(inst) -> str:
@@ -36,7 +38,7 @@ def _call_instruction_index(*, blk, call: dict, sorted_code_ents: list[dict]) ->
         if dispatch_sub is None:
             return None
         for ci, inst in enumerate(blk.instructions):
-            if _extract_branch_target(inst, inst.offset) == dispatch_sub:
+            if extract_branch_target(inst, inst.offset) == dispatch_sub:
                 return ci
         return None
 
@@ -48,7 +50,7 @@ def _call_instruction_index(*, blk, call: dict, sorted_code_ents: list[dict]) ->
 
 
 def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
-                            hunk_entities: list[dict], kb: KB
+                            hunk_entities: list[dict]
                             ) -> tuple[dict[str, dict[int, str]], dict[int, tuple[str, str]]]:
     lvo_equs: dict[str, dict[int, str]] = {}
     lvo_substitutions: dict[int, tuple[str, str]] = {}
@@ -77,9 +79,8 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
                 continue
             for j in range(call_idx - 1, -1, -1):
                 prev = caller_blk.instructions[j]
-                prev_kb = kb.instruction_kb(prev)
-                prev_dec = decode_instruction_operands(
-                    prev.raw, prev_kb, kb.meta, prev.operand_size, prev.offset)
+                prev_kb = instruction_kb(prev)
+                prev_dec = decode_inst_operands(prev, prev_kb)
                 if prev_dec["imm_val"] is None:
                     continue
                 pv = prev_dec["imm_val"]
@@ -94,13 +95,12 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
 
 
 def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entities: list[dict],
-                            os_kb: dict,
-                            kb: KB) -> tuple[dict[str, int], dict[int, tuple[str, str]]]:
+                            os_kb) -> tuple[dict[str, int], dict[int, tuple[str, str]]]:
     arg_equs: dict[str, int] = {}
     arg_substitutions: dict[int, tuple[str, str]] = {}
     sorted_code_ents = _sorted_code_entities(hunk_entities)
-    const_domains = os_kb["_meta"]["constant_domains"]
-    all_consts = os_kb.get("constants", {})
+    const_domains = os_kb.META["constant_domains"]
+    all_consts = os_kb.CONSTANTS
     func_const_map: dict[str, dict[int, str]] = {}
     for func_name, const_names in const_domains.items():
         vmap = {}
@@ -118,7 +118,7 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entitie
         if not vmap:
             continue
         lib = call["library"]
-        func = os_kb["libraries"].get(lib, {}).get("functions", {}).get(func_name, {})
+        func = os_kb.LIBRARIES.get(lib, {}).get("functions", {}).get(func_name, {})
         inputs = func.get("inputs", [])
         if not inputs:
             continue
@@ -138,13 +138,11 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entitie
             reg_mode, reg_n = parse_reg_name(reg)
             for j in range(call_idx - 1, -1, -1):
                 prev = blk.instructions[j]
-                prev_kb = kb.instruction_kb(prev)
-                prev_dec = decode_instruction_operands(
-                    prev.raw, prev_kb, kb.meta, prev.operand_size, prev.offset)
+                prev_kb = instruction_kb(prev)
+                prev_dec = decode_inst_operands(prev, prev_kb)
                 if prev_dec["imm_val"] is None:
                     continue
-                dst = decode_destination(prev.raw, prev_kb, kb.meta,
-                                         prev.operand_size, prev.offset)
+                dst = decode_inst_destination(prev, prev_kb)
                 if dst is None:
                     continue
                 dst_mode, dst_num = dst

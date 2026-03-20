@@ -145,9 +145,9 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     if inst.offset != pos and inst.offset in hunk_session.labels:
                         emit_label(inst.offset)
                     if (not is_valid_encoding(inst.raw,
-                                               inst.offset, hunk_session.kb,
+                                               inst.offset,
                                                inst.kb_mnemonic, inst.operand_size)
-                            or not has_valid_branch_target(inst, hunk_session.kb)):
+                            or not has_valid_branch_target(inst)):
                         emit_data(inst.offset, inst.offset + inst.size, entity_addr)
                         continue
                     text, comment, comment_parts = render_instruction_text(
@@ -165,7 +165,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 pos += 1
             elif pos in hunk_session.hint_blocks:
                 blk = hunk_session.hint_blocks[pos]
-                valid_hint = is_valid_hint_block(blk, hunk_session.kb)
+                valid_hint = is_valid_hint_block(blk)
                 if not valid_hint:
                     emit_data(pos, blk.end, entity_addr, verified_state="unverified")
                     pos = blk.end
@@ -204,7 +204,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
     if used_structs:
         includes = set()
         for struct_name in sorted(used_structs):
-            struct_def = hunk_session.os_kb["structs"][struct_name]
+            struct_def = hunk_session.os_kb.STRUCTS[struct_name]
             includes.add(struct_def["source"].lower())
         if includes:
             insert_at = 0

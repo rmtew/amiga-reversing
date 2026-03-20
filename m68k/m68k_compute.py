@@ -9,6 +9,8 @@ Used by:
   - Future: symbolic execution / static analysis engine
 """
 
+from knowledge import runtime_m68k_compute
+
 
 # ── Size utilities ────────────────────────────────────────────────────────
 
@@ -60,9 +62,10 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     if not cc_sem:
         raise RuntimeError(f"{inst['mnemonic']}: missing cc_semantics in KB")
 
-    op_type = inst.get("operation_type")
+    mnemonic = inst["mnemonic"]
+    op_type = runtime_m68k_compute.OPERATION_TYPES.get(mnemonic)
     if not op_type:
-        raise RuntimeError(f"{inst['mnemonic']}: missing operation_type in KB")
+        raise RuntimeError(f"{mnemonic}: missing operation_type in runtime KB")
 
     if ctx is None:
         ctx = {}
@@ -74,17 +77,12 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     # Divide: dividend may be wider than divisor/quotient (32÷16→16).
     data_sizes = ctx.get("data_sizes")
     if data_sizes:
-        ds_type = data_sizes.get("type")
-        if ds_type == "multiply":
-            src_bits = data_sizes["src_bits"]
-            dst_bits = data_sizes["dst_bits"]
-            result_bits = data_sizes["result_bits"]
-        elif ds_type == "divide":
-            src_bits = data_sizes["divisor_bits"]
-            dst_bits = data_sizes["dividend_bits"]
-            result_bits = data_sizes["quotient_bits"]
-        else:
-            src_bits = dst_bits = result_bits = bits
+        ds_type, src_bits, dst_bits, result_bits = data_sizes
+        if ds_type not in (
+            runtime_m68k_compute.PrimaryDataSizeKind.MULTIPLY,
+            runtime_m68k_compute.PrimaryDataSizeKind.DIVIDE,
+        ):
+            raise RuntimeError(f"unknown primary data size kind: {ds_type!r}")
         src_mask = (1 << src_bits) - 1
         dst_mask = (1 << dst_bits) - 1
         result_mask = (1 << result_bits) - 1
@@ -114,7 +112,7 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     # CCR/SR manipulation instructions have no compute_formula — they
     # directly modify CC flags via rules that reference the source/immediate.
     # No result computation needed; pass through dummy values.
-    if op_type in ("ccr_op", "sr_op"):
+    if op_type in (runtime_m68k_compute.OperationType.CCR_OP, runtime_m68k_compute.OperationType.SR_OP):
         result_full = 0
         result = 0
     else:
@@ -160,13 +158,13 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
 
 def _resolve_term(term, src, dst, ccr, implicit):
     """Resolve a formula operand term to its numeric value."""
-    if term == "source":
+    if term == runtime_m68k_compute.FormulaTerm.SOURCE:
         return src
-    if term == "destination":
+    if term == runtime_m68k_compute.FormulaTerm.DESTINATION:
         return dst
-    if term == "X":
+    if term == runtime_m68k_compute.FormulaTerm.EXTEND:
         return ccr.get("X", 0)
-    if term == "implicit":
+    if term == runtime_m68k_compute.FormulaTerm.IMPLICIT:
         if implicit is None:
             raise RuntimeError(
                 "Formula references 'implicit' term but no implicit_operand "
@@ -181,25 +179,25 @@ def _resolve_term(term, src, dst, ccr, implicit):
 # Python functions. None of these are M68K-specific; they are standard
 # binary arithmetic/logic operations.
 _FORMULA_OPS = {
-    "add":                lambda a, b: a + b,
-    "subtract":           lambda a, b: a - b,
-    "bitwise_and":        lambda a, b: a & b,
-    "bitwise_or":         lambda a, b: a | b,
-    "bitwise_xor":        lambda a, b: a ^ b,
-    "bitwise_complement": lambda a: ~a,
-    "assign":             lambda a: a,
-    "test":               lambda a: a,
+    runtime_m68k_compute.ComputeOp.ADD:                lambda a, b: a + b,
+    runtime_m68k_compute.ComputeOp.SUBTRACT:           lambda a, b: a - b,
+    runtime_m68k_compute.ComputeOp.BITWISE_AND:        lambda a, b: a & b,
+    runtime_m68k_compute.ComputeOp.BITWISE_OR:         lambda a, b: a | b,
+    runtime_m68k_compute.ComputeOp.BITWISE_XOR:        lambda a, b: a ^ b,
+    runtime_m68k_compute.ComputeOp.BITWISE_COMPLEMENT: lambda a: ~a,
+    runtime_m68k_compute.ComputeOp.ASSIGN:             lambda a: a,
+    runtime_m68k_compute.ComputeOp.TEST:               lambda a: a,
 }
 
 
-def _compute_exchange(dst, formula):
+def _compute_exchange(dst, range_a, range_b):
     """Compute bit-range exchange from KB formula (SWAP).
 
     The KB specifies exact bit ranges from the PDF Operation text:
     e.g. range_a=[31,16], range_b=[15,0] for "Register [31:16] ←→ [15:0]".
     """
-    hi_top, hi_bot = formula["range_a"]
-    lo_top, lo_bot = formula["range_b"]
+    hi_top, hi_bot = range_a
+    lo_top, lo_bot = range_b
     hi_width = hi_top - hi_bot + 1
     lo_width = lo_top - lo_bot + 1
     hi_mask = ((1 << hi_width) - 1) << hi_bot
@@ -209,7 +207,7 @@ def _compute_exchange(dst, formula):
     return (lo_val << hi_bot) | (hi_val << lo_bot)
 
 
-def _compute_sign_extend(dst, mask, bits, ctx, formula):
+def _compute_sign_extend(dst, mask, bits, ctx):
     """Sign-extend from a narrower source width to the operation size.
 
     The KB formula has 'source_bits_by_size' mapping size→source width,
@@ -287,8 +285,7 @@ def _compute_rotate_extend(src, dst, mask, bits, ccr, ctx):
 def _compute_multiply(src, dst, mask, bits, ccr, ctx):
     """Multiply. Signedness from KB 'signed', operand widths from KB 'data_sizes'."""
     ds = ctx["data_sizes"]
-    src_bits = ds["src_bits"]
-    dst_bits = ds["dst_bits"]
+    _kind, src_bits, dst_bits, _result_bits = ds
     if ctx.get("signed", False):
         s_signed = src if src < (1 << (src_bits - 1)) else src - (1 << src_bits)
         d_signed = dst if dst < (1 << (dst_bits - 1)) else dst - (1 << dst_bits)
@@ -302,8 +299,7 @@ def _compute_divide(src, dst, mask, bits, ccr, ctx):
     if src == 0:
         raise RuntimeError("Division by zero in test — fix test values")
     ds = ctx["data_sizes"]
-    divisor_bits = ds["divisor_bits"]
-    dividend_bits = ds["dividend_bits"]
+    _kind, divisor_bits, dividend_bits, _quotient_bits = ds
     if ctx.get("signed", False):
         s_signed = src if src < (1 << (divisor_bits - 1)) else src - (1 << divisor_bits)
         d_signed = dst if dst < (1 << (dividend_bits - 1)) else dst - (1 << dividend_bits)
@@ -357,18 +353,17 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
     The formula structure comes from the KB (extracted from PDF Operation text).
     This evaluator applies universal math operators — it contains no M68K knowledge.
     """
-    op = formula["op"]
-    terms = formula.get("terms", [])
+    op, terms, range_a, range_b, _source_bits_by_size, _truncation = formula
     implicit = ctx.get("implicit_operand")
 
     # BCD arithmetic — packed decimal, byte only
-    if op == "add_decimal":
+    if op == runtime_m68k_compute.ComputeOp.ADD_DECIMAL:
         resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
         a, b, x = resolved
         result, carry = _bcd_add(a & 0xFF, b & 0xFF, x)
         ctx["_decimal_carry"] = carry
         return result
-    if op == "subtract_decimal":
+    if op == runtime_m68k_compute.ComputeOp.SUBTRACT_DECIMAL:
         resolved = [_resolve_term(t, src, dst, ccr, implicit) for t in terms]
         a, b, x = resolved
         result, borrow = _bcd_subtract(a & 0xFF, b & 0xFF, x)
@@ -382,9 +377,9 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
         if len(terms) == 3:
             # Extended operations: add(a, b, X) or subtract(a, b, X)
             a, b, x = resolved
-            if op == "add":
+            if op == runtime_m68k_compute.ComputeOp.ADD:
                 return a + b + x
-            elif op == "subtract":
+            elif op == runtime_m68k_compute.ComputeOp.SUBTRACT:
                 return a - b - x
         elif len(terms) == 2:
             return fn(resolved[0], resolved[1])
@@ -394,54 +389,64 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
             raise RuntimeError(f"Formula op '{op}' with {len(terms)} terms")
 
     # Complex operations — parameterized by KB data
-    if op == "exchange":
-        return _compute_exchange(dst, formula)
-    if op == "sign_extend":
-        return _compute_sign_extend(dst, mask, bits, ctx, formula)
-    if op == "shift":
+    if op == runtime_m68k_compute.ComputeOp.EXCHANGE:
+        if range_a is None or range_b is None:
+            raise RuntimeError("exchange compute formula missing ranges")
+        return _compute_exchange(dst, range_a, range_b)
+    if op == runtime_m68k_compute.ComputeOp.SIGN_EXTEND:
+        return _compute_sign_extend(dst, mask, bits, ctx)
+    if op == runtime_m68k_compute.ComputeOp.SHIFT:
         return _compute_shift(src, dst, mask, bits, ccr, ctx)
-    if op == "rotate":
+    if op == runtime_m68k_compute.ComputeOp.ROTATE:
         return _compute_rotate(src, dst, mask, bits, ccr, ctx)
-    if op == "rotate_extend":
+    if op == runtime_m68k_compute.ComputeOp.ROTATE_EXTEND:
         return _compute_rotate_extend(src, dst, mask, bits, ccr, ctx)
-    if op == "multiply":
+    if op == runtime_m68k_compute.ComputeOp.MULTIPLY:
         return _compute_multiply(src, dst, mask, bits, ccr, ctx)
-    if op == "divide":
+    if op == runtime_m68k_compute.ComputeOp.DIVIDE:
         return _compute_divide(src, dst, mask, bits, ccr, ctx)
-    if op in ("bit_test", "bit_change", "bit_clear", "bit_set"):
+    if op in (
+        runtime_m68k_compute.ComputeOp.BIT_TEST,
+        runtime_m68k_compute.ComputeOp.BIT_CHANGE,
+        runtime_m68k_compute.ComputeOp.BIT_CLEAR,
+        runtime_m68k_compute.ComputeOp.BIT_SET,
+    ):
         bit_mod = ctx.get("bit_modulus")
         if bit_mod is None:
             raise RuntimeError(
                 f"compute {op}: missing 'bit_modulus' in ctx — must come from KB")
         bit_num = src % bit_mod
-        if op == "bit_test":
+        if op == runtime_m68k_compute.ComputeOp.BIT_TEST:
             return dst  # test only, destination unchanged
-        if op == "bit_change":
+        if op == runtime_m68k_compute.ComputeOp.BIT_CHANGE:
             return dst ^ (1 << bit_num)
-        if op == "bit_clear":
+        if op == runtime_m68k_compute.ComputeOp.BIT_CLEAR:
             return dst & ~(1 << bit_num)
         return dst | (1 << bit_num)  # bit_set
 
     raise RuntimeError(f"Unknown compute_formula op: {op!r}")
 
 
-def _compute_result(inst, src, dst, mask, bits, initial_ccr, ctx=None):
+def _compute_result(mnemonic: str, src, dst, mask, bits, initial_ccr, ctx=None):
     """Compute the full (unmasked) and masked result using KB compute_formula.
 
     Raises RuntimeError if the instruction has no compute_formula in the KB.
     """
-    formula = inst.get("compute_formula")
+    formula = runtime_m68k_compute.COMPUTE_FORMULAS.get(mnemonic)
     if formula is None:
+        op_type = runtime_m68k_compute.OPERATION_TYPES.get(mnemonic)
         raise RuntimeError(
-            f"{inst['mnemonic']}: missing compute_formula in KB — "
+            f"{mnemonic}: missing compute_formula in runtime KB — "
             f"regenerate KB or add formula extraction for operation_type "
-            f"'{inst.get('operation_type')}'"
+            f"'{op_type}'"
         )
     if ctx is None:
         ctx = {}
     # Thread implicit_operand from KB into ctx for formula evaluation
-    if "implicit_operand" in inst and "implicit_operand" not in ctx:
-        ctx["implicit_operand"] = inst["implicit_operand"]
+    if "implicit_operand" not in ctx:
+        implicit = runtime_m68k_compute.IMPLICIT_OPERANDS.get(mnemonic)
+        if implicit is not None:
+            ctx["implicit_operand"] = implicit
     result_full = _evaluate_formula(formula, src, dst, mask, bits, initial_ccr, ctx)
     result = result_full & mask
     return result_full, result
@@ -815,23 +820,23 @@ def predict_sp(inst, sp_before, displacement=0, reg_state=None):
         RuntimeError if load_from_reg is encountered without reg_state providing
         the required register value, or if an unknown action is encountered.
     """
-    sp_effects = inst.get("sp_effects", [])
+    sp_effects = runtime_m68k_compute.SP_EFFECTS.get(inst["mnemonic"], ())
     if not sp_effects:
         return sp_before
 
     sp = sp_before
     for effect in sp_effects:
-        action = effect["action"]
-        if action == "decrement":
-            sp -= effect["bytes"]
-        elif action == "increment":
-            sp += effect["bytes"]
-        elif action == "adjust":
+        action, nbytes, aux = effect
+        if action == runtime_m68k_compute.SpEffectAction.DECREMENT:
+            sp -= nbytes
+        elif action == runtime_m68k_compute.SpEffectAction.INCREMENT:
+            sp += nbytes
+        elif action == runtime_m68k_compute.SpEffectAction.ADJUST:
             sp += displacement
-        elif action == "save_to_reg":
+        elif action == runtime_m68k_compute.SpEffectAction.SAVE_TO_REG:
             pass  # copies SP to register, no SP change
-        elif action == "load_from_reg":
-            reg = effect.get("reg")
+        elif action == runtime_m68k_compute.SpEffectAction.LOAD_FROM_REG:
+            reg = aux
             if reg_state is None:
                 raise RuntimeError(
                     f"{inst['mnemonic']}: load_from_reg requires reg_state "

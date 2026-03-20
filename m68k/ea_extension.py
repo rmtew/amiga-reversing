@@ -1,5 +1,7 @@
 import struct
 
+from knowledge import runtime_m68k_decode
+
 from .decode_errors import DecodeError
 
 
@@ -8,26 +10,15 @@ def _xf(word: int, field_spec: tuple[int, int, int]) -> int:
     return (word >> bit_lo) & ((1 << width) - 1)
 
 
-def _field_map(fields_def: list[dict]) -> dict[str, tuple[int, int, int]]:
-    return {
-        field["name"]: (
-            field["bit_hi"],
-            field["bit_lo"],
-            field["bit_hi"] - field["bit_lo"] + 1,
-        )
-        for field in fields_def
-    }
-
-
-def parse_full_extension(ext: int, data: bytes, pos: int, meta: dict,
+def parse_full_extension(ext: int, data: bytes, pos: int,
                          *, base_register: str | None,
                          pc_offset: int | None) -> tuple[dict[str, object], int]:
-    fields = _field_map(meta["ea_full_ext_word"])
+    fields = runtime_m68k_decode.EA_FULL_FIELDS
     iis = _xf(ext, fields["I/IS"])
     if iis == 4:
         raise DecodeError("Reserved full extension I/IS value")
 
-    bd_kind = meta["ea_full_ext_bd_size"].get(str(_xf(ext, fields["BD SIZE"])))
+    bd_kind = runtime_m68k_decode.EA_FULL_BD_SIZE.get(str(_xf(ext, fields["BD SIZE"])))
     if bd_kind is None or bd_kind == "reserved":
         raise DecodeError("Reserved full extension BD SIZE value")
 
@@ -76,7 +67,7 @@ def parse_full_extension(ext: int, data: bytes, pos: int, meta: dict,
 
     base_target = None
     if pc_offset is not None and not base_suppressed:
-        base_target = pc_offset + meta["opword_bytes"] + (base_displacement or 0)
+        base_target = pc_offset + runtime_m68k_decode.OPWORD_BYTES + (base_displacement or 0)
 
     return {
         "base_register": None if base_suppressed else base_register,

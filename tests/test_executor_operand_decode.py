@@ -2,22 +2,25 @@ import copy
 
 import pytest
 
+from knowledge import runtime_m68k_analysis
+from knowledge import runtime_m68k_decode
+from knowledge import runtime_m68k_executor
+
 from disasm.operands import build_instruction_semantic_operands
 from disasm.types import HunkDisassemblySession
-from m68k.kb_util import KB
+from m68k import m68k_executor as executor_mod
+from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
+from m68k.instruction_primitives import Operand, extract_branch_target
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble, _resolve_kb_mnemonic
-from m68k.m68k_executor import (_load_kb, analyze, decode_instruction_ops,
-                                _extract_branch_target, CPUState,
-                                AbstractMemory, Operand, _concrete,
-                                _resolve_operand, _write_operand, resolve_ea)
-
+from m68k.m68k_executor import (analyze, decode_instruction_ops,
+                                 CPUState, AbstractMemory, _concrete,
+                                 _resolve_operand, _write_operand, resolve_ea)
 
 def _decoded_ops(asm: str, kb_mnemonic: str):
     raw = assemble_instruction(asm)
     inst = disassemble(raw, max_cpu="68010")[0]
-    kb_by_name, _, _ = _load_kb()
-    return decode_instruction_ops(inst, kb_by_name[kb_mnemonic], "l")
+    return decode_instruction_ops(inst, kb_mnemonic, "l")
 
 
 def _operand_session() -> HunkDisassemblySession:
@@ -48,7 +51,6 @@ def _operand_session() -> HunkDisassemblySession:
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -56,6 +58,26 @@ def _operand_session() -> HunkDisassemblySession:
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
+
+
+def _reload_executor_with_runtime_tables(monkeypatch, mutate_tables):
+    real = runtime_m68k_executor
+    attrs = {
+        name: copy.deepcopy(getattr(real, name))
+        for name in dir(real)
+        if name.isupper()
+    }
+    mutate_tables(attrs)
+    real_attrs = {
+        name
+        for name in dir(runtime_m68k_executor)
+        if name.isupper()
+    }
+    for name in real_attrs - set(attrs):
+        monkeypatch.delattr(runtime_m68k_executor, name, raising=False)
+    for name, value in attrs.items():
+        monkeypatch.setattr(runtime_m68k_executor, name, value, raising=False)
+    return executor_mod
 
 
 @pytest.mark.parametrize(
@@ -93,26 +115,105 @@ def test_decode_instruction_ops_uses_shared_kb_decoder_for_move_usp():
     assert decoded.ea_is_source is False
 
 
+def test_decode_inst_operands_uses_instruction_fields_directly():
+    inst = disassemble(assemble_instruction("move.l usp,a0"), max_cpu="68010")[0]
+
+    decoded = decode_inst_operands(inst, "MOVE USP")
+
+    assert decoded["reg_num"] == 0
+    assert decoded["ea_is_source"] is True
+
+
+def test_decode_inst_destination_uses_instruction_fields_directly():
+    inst = disassemble(assemble_instruction("moveq #-1,d3"), max_cpu="68010")[0]
+
+    dst = decode_inst_destination(inst, "MOVEQ")
+
+    assert dst == ("dn", 3)
+
+
 def test_decode_instruction_ops_errors_when_move_usp_kb_field_missing():
     raw = assemble_instruction("move.l usp,a0")
     inst = disassemble(raw, max_cpu="68010")[0]
-    kb_by_name, _, _ = _load_kb()
-    inst_kb = copy.deepcopy(kb_by_name["MOVE USP"])
-    inst_kb["encodings"][0]["fields"] = [
+    inst_kb = "MOVE USP"
+    raw_fields = list(copy.deepcopy(runtime_m68k_decode.RAW_FIELDS))
+    raw_fields[0] = dict(raw_fields[0])
+    raw_fields[0]["MOVE USP"] = tuple(
         field
-        for field in inst_kb["encodings"][0]["fields"]
-        if field["name"] != "dr"
-    ]
+        for field in raw_fields[0]["MOVE USP"]
+        if field[0] != "dr"
+    )
 
-    with pytest.raises(ValueError, match="direction/register fields missing"):
-        decode_instruction_ops(inst, inst_kb, "l")
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(runtime_m68k_decode, "RAW_FIELDS", tuple(raw_fields), raising=False)
+        with pytest.raises(ValueError, match="direction/register fields missing"):
+            decode_instruction_ops(inst, inst_kb, "l")
+
+
+def test_decode_instruction_ops_requires_runtime_movec_control_registers(monkeypatch):
+    inst = disassemble(bytes.fromhex("4e7b0000"), max_cpu="68020")[0]
+    real = runtime_m68k_decode
+    attrs = {
+        name: copy.deepcopy(getattr(real, name))
+        for name in dir(real)
+        if name.isupper()
+    }
+    del attrs["CONTROL_REGISTERS"]
+    for name in [name for name in dir(runtime_m68k_decode) if name.isupper()]:
+        if name not in attrs:
+            monkeypatch.delattr(runtime_m68k_decode, name, raising=False)
+    for name, value in attrs.items():
+        monkeypatch.setattr(runtime_m68k_decode, name, value, raising=False)
+
+    with pytest.raises((AttributeError, KeyError), match="CONTROL_REGISTERS"):
+        decode_instruction_ops(inst, "MOVEC", inst.operand_size)
+
+
+def test_analyze_requires_runtime_opmode_table_for_exg(monkeypatch):
+    reloaded = _reload_executor_with_runtime_tables(
+        monkeypatch,
+        lambda attrs: attrs["OPMODE_TABLES_BY_VALUE"].pop("EXG"),
+    )
+
+    with pytest.raises(KeyError, match="opmode table for EXG"):
+        reloaded.analyze(
+            assemble_instruction("exg d0,d1"),
+            propagate=True,
+            entry_points=[0],
+        )
+
+
+def test_analyze_requires_runtime_single_register_field_for_swap(monkeypatch):
+    reloaded = _reload_executor_with_runtime_tables(
+        monkeypatch,
+        lambda attrs: attrs["REGISTER_FIELDS"].pop("SWAP"),
+    )
+
+    with pytest.raises(KeyError, match="single register field for SWAP"):
+        reloaded.analyze(
+            assemble_instruction("swap d0"),
+            propagate=True,
+            entry_points=[0],
+        )
+
+
+def test_analyze_requires_runtime_immediate_range_for_signed_moveq(monkeypatch):
+    reloaded = _reload_executor_with_runtime_tables(
+        monkeypatch,
+        lambda attrs: attrs["IMMEDIATE_RANGES"].pop("MOVEQ"),
+    )
+
+    with pytest.raises(KeyError, match="immediate range for MOVEQ"):
+        reloaded.analyze(
+            assemble_instruction("moveq #-1,d0"),
+            propagate=True,
+            entry_points=[0],
+        )
 
 
 def test_decode_instruction_ops_skips_immediate_word_before_indexed_ea():
     inst = disassemble(bytes.fromhex("0c72ffff2000"), max_cpu="68010")[0]
-    kb_by_name, _, _ = _load_kb()
-
-    decoded = decode_instruction_ops(inst, kb_by_name["CMPI"], inst.operand_size)
+    decoded = decode_instruction_ops(inst, "CMPI", inst.operand_size)
 
     assert decoded.imm_val == 0xFFFF
     assert decoded.ea_op is not None
@@ -125,9 +226,7 @@ def test_decode_instruction_ops_skips_immediate_word_before_indexed_ea():
 
 def test_decode_instruction_ops_skips_immediate_word_before_full_extension_ea():
     inst = disassemble(bytes.fromhex("0470634e7570004e754e"), max_cpu="68020")[0]
-    kb_by_name, _, _ = _load_kb()
-
-    decoded = decode_instruction_ops(inst, kb_by_name["SUBI"], inst.operand_size)
+    decoded = decode_instruction_ops(inst, "SUBI", inst.operand_size)
 
     assert decoded.imm_val == 0x634E
     assert decoded.ea_op is not None
@@ -164,7 +263,19 @@ def test_extract_branch_target_uses_kb_mnemonic_not_text():
     inst = disassemble(assemble_instruction("bsr.w $10"), max_cpu="68010")[0]
     inst.text = "corrupted"
 
-    assert _extract_branch_target(inst, inst.offset) == 0x10
+    assert extract_branch_target(inst, inst.offset) == 0x10
+
+
+def test_extract_branch_target_uses_runtime_extension_branch_table_for_dbcc():
+    inst = disassemble(assemble_instruction("dbf d0,$8"), max_cpu="68010")[0]
+
+    assert extract_branch_target(inst, inst.offset) == 0x8
+
+
+def test_extract_branch_target_uses_runtime_extension_branch_table_for_pdbcc():
+    inst = disassemble(bytes.fromhex("f048000000004e71"), max_cpu="68040")[0]
+
+    assert extract_branch_target(inst, inst.offset) == 0x2
 
 
 def test_resolve_kb_mnemonic_uses_opcode_not_operand_text():
@@ -986,8 +1097,7 @@ def test_build_instruction_semantic_operands_use_full_extension_indexed_nodes_no
 
 def test_resolve_operand_reads_full_extension_memory_indirect_indexed_ea():
     inst = disassemble(bytes.fromhex("2031212200000004"), max_cpu="68020")[0]
-    kb_by_name, _, _ = _load_kb()
-    decoded = decode_instruction_ops(inst, kb_by_name[inst.kb_mnemonic], inst.operand_size)
+    decoded = decode_instruction_ops(inst, inst.kb_mnemonic, inst.operand_size)
 
     cpu = CPUState()
     cpu.set_reg("an", 1, _concrete(0x100))
@@ -1006,8 +1116,7 @@ def test_resolve_operand_reads_full_extension_memory_indirect_indexed_ea():
 
 def test_write_operand_writes_full_extension_memory_indirect_indexed_ea():
     inst = disassemble(bytes.fromhex("2031212200000004"), max_cpu="68020")[0]
-    kb_by_name, _, _ = _load_kb()
-    decoded = decode_instruction_ops(inst, kb_by_name[inst.kb_mnemonic], inst.operand_size)
+    decoded = decode_instruction_ops(inst, inst.kb_mnemonic, inst.operand_size)
 
     cpu = CPUState()
     cpu.set_reg("an", 1, _concrete(0x100))

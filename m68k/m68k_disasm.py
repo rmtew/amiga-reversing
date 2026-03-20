@@ -5,10 +5,11 @@ Decodes 68000 instructions from raw bytes and emits assembly text.
 
 import struct
 from dataclasses import dataclass, field
-from functools import lru_cache
+
+from knowledge import runtime_m68k_disasm
+
 from .decode_errors import DecodeError
 from .ea_extension import parse_full_extension
-from .runtime_kb import load_m68k_runtime_kb
 
 
 @dataclass
@@ -115,7 +116,7 @@ def _bitfield_node(base_node: DecodedOperandNode, bitfield: dict[str, object],
 
 
 def _brief_index_metadata(ext: int) -> tuple[int, str, str, bool]:
-    bf = _load_kb_ea_brief_fields()
+    bf = runtime_m68k_disasm.EA_BRIEF_FIELDS
     index_reg = _xf(ext, bf["REGISTER"])
     index_is_addr = _xf(ext, bf["D/A"]) == 1
     index_size = "l" if _xf(ext, bf["W/L"]) == 1 else "w"
@@ -224,6 +225,16 @@ SIZE_SUFFIX = {SIZE_BYTE: ".b", SIZE_WORD: ".w", SIZE_LONG: ".l"}
 SIZE_NAMES = {SIZE_BYTE: "byte", SIZE_WORD: "word", SIZE_LONG: "long"}
 _SIZE_LETTER_TO_INT = {"b": SIZE_BYTE, "w": SIZE_WORD, "l": SIZE_LONG}
 
+_OPMODE_SIZE = 0
+_OPMODE_DESCRIPTION = 1
+_OPMODE_EA_IS_SOURCE = 2
+_OPMODE_SOURCE = 3
+_OPMODE_DESTINATION = 4
+_SIZE_ENC_0 = 0
+_SIZE_ENC_1 = 1
+_SIZE_ENC_2 = 2
+_SIZE_ENC_3 = 3
+
 
 def _normalize_cpu(cpu_name: str | None) -> str:
     """Strip vasm -m prefix from cpu flag strings (e.g. '-m68000' -> '68000')."""
@@ -234,177 +245,24 @@ def _normalize_cpu(cpu_name: str | None) -> str:
     return cpu_name
 
 
-_KB_PAYLOAD_CACHE = None
-
-def _load_kb_payload() -> tuple[list[dict], dict]:
-    global _KB_PAYLOAD_CACHE
-    if _KB_PAYLOAD_CACHE is not None:
-        return _KB_PAYLOAD_CACHE
-    payload = load_m68k_runtime_kb()
-    _KB_PAYLOAD_CACHE = (payload["instructions"], payload["meta"])
-    return _KB_PAYLOAD_CACHE
 
 
-def _runtime():
-    return load_m68k_runtime_kb()["runtime"]["tables"]
 
 
-@lru_cache(maxsize=1)
-def _load_kb_mnemonic_index() -> dict[str, list[dict]]:
-    by_name = load_m68k_runtime_kb()["by_name"]
-    return {
-        key: [by_name[mnemonic] for mnemonic in mnemonics]
-        for key, mnemonics in _runtime()["mnemonic_index"].items()
-    }
 
 
-def _kb_encoding_masks(enc_idx: int) -> dict[str, tuple[int, int]]:
-    """Return {mnemonic: (mask, val)} from runtime KB."""
-    return _runtime()["encoding_masks"][enc_idx]
 
 
-@lru_cache(maxsize=1)
-def _load_kb_encoding_masks() -> dict[str, tuple[int, int]]:
-    """Return {mnemonic: (mask, val)} from opword (encoding[0]) fixed fields."""
-    return _kb_encoding_masks(0)
 
 
-@lru_cache(maxsize=1)
-def _load_kb_ext_encoding_masks() -> dict[str, tuple[int, int]]:
-    """Return {mnemonic: (mask, val)} from extension word (encoding[1]) fixed fields."""
-    return _kb_encoding_masks(1)
 
 
-@lru_cache(maxsize=4)
-def _load_kb_encoding_masks_idx(enc_idx: int) -> dict[str, tuple[int, int]]:
-    """Return {mnemonic: (mask, val)} from encoding[enc_idx] fixed fields."""
-    return _kb_encoding_masks(enc_idx)
 
 
-@lru_cache(maxsize=1)
-def _load_kb_fixed_opcodes() -> dict[int, str]:
-    """Return {opcode_value: mnemonic} for all instructions where mask=0xFFFF.
-
-    These are zero-operand or fixed-format instructions (NOP, RESET, RTE, RTS, etc.)
-    """
-    return _runtime()["fixed_opcodes"]
 
 
-@lru_cache(maxsize=1)
-def _load_kb_ext_field_names() -> dict[str, frozenset[str]]:
-    """Return {mnemonic: frozenset(ext_word_field_names)} for instructions with
-    extension words.  Uses encoding[1] field names (excluding fixed 0/1 bits)."""
-    return _runtime()["ext_field_names"]
 
 
-def _kb_field_map(enc_idx: int) -> dict[str, dict[str, tuple[int, int, int]]]:
-    return _runtime()["field_maps"][enc_idx]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_opword_field_map() -> dict[str, dict[str, tuple[int, int, int]]]:
-    """Return {mnemonic: {field_name: (bit_hi, bit_lo, width)}} for opwords (encoding[0])."""
-    return _kb_field_map(0)
-
-
-@lru_cache(maxsize=1)
-def _load_kb_ext_field_map() -> dict[str, dict[str, tuple[int, int, int]]]:
-    """Return {mnemonic: {field_name: (bit_hi, bit_lo, width)}} for extension words (encoding[1])."""
-    return _kb_field_map(1)
-
-
-@lru_cache(maxsize=1)
-def _load_kb_ext2_field_map() -> dict[str, dict[str, tuple[int, int, int]]]:
-    """Return {mnemonic: {field_name: (bit_hi, bit_lo, width)}} for encoding[2]."""
-    return _kb_field_map(2)
-
-
-@lru_cache(maxsize=4)
-def _load_kb_raw_fields(enc_idx: int) -> dict[str, list[tuple[str, int, int, int]]]:
-    """Return {mnemonic: [(name, bit_hi, bit_lo, width), ...]} preserving duplicate field names.
-
-    Unlike _kb_field_map() which deduplicates by name, this preserves all fields
-    in their original order â€” needed for instructions with duplicate REGISTER or MODE fields
-    (MOVE, LEA, CHK, ADD, etc.).
-    """
-    return _runtime()["raw_fields"][enc_idx]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_ea_brief_fields() -> dict[str, tuple[int, int, int]]:
-    return _runtime()["ea_brief_fields"]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_movem_reg_masks() -> dict[str, list[str]]:
-    """Return {"normal": [...], "predecrement": [...]} register mask tables from KB."""
-    _, meta = _load_kb_payload()
-    return meta["movem_reg_masks"]
-
-@lru_cache(maxsize=1)
-def _load_kb_dest_reg_field() -> dict[str, tuple[int, int, int]]:
-    """Return {mnemonic: (bit_hi, bit_lo, width)} for the UPPER REGISTER field (bits 11:9).
-
-    Scans _load_kb_raw_fields(0) for instructions with duplicate REGISTER fields
-    and returns the one with higher bit position. For instructions with a single
-    REGISTER field at bits 11:9, also includes those.
-    """
-    return _runtime()["dest_reg_field"]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_bf_mnemonics() -> list[str]:
-    return list(_runtime()["bf_mnemonics"])
-
-
-@lru_cache(maxsize=1)
-def _load_kb_bitop_names() -> tuple[dict[int, str], tuple[int, int, int]]:
-    """Derive bit-op name table from KB: ({bit_index: mnemonic}, field_tuple).
-
-    BTST/BCHG/BCLR/BSET are distinguished by varying bits in their encoding vals.
-    Returns the name table and the (bit_hi, bit_lo, width) field for runtime extraction.
-    """
-    return _runtime()["bitop_names"]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_imm_names() -> tuple[dict[int, str], tuple[int, int, int]]:
-    """Derive immediate-op name table from KB: ({top_bits: mnemonic}, field_tuple).
-
-    ORI/ANDI/SUBI/ADDI/EORI/CMPI are distinguished by varying bits in their encoding vals.
-    Returns the name table and the (bit_hi, bit_lo, width) field for runtime extraction.
-    """
-    return _runtime()["imm_names"]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_shift_names() -> dict[int, str]:
-    """Derive shift/rotate name table from KB: {type_index: prefix}.
-
-    ASL/ASR, LSL/LSR, ROXL/ROXR, ROL/ROR are distinguished by varying bits
-    in their register-mode encoding[0] vals.
-    """
-    return _runtime()["shift_names"]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_shift_type_fields() -> tuple[tuple[int, int, int], tuple[int, int, int]]:
-    """Derive shift type extraction fields for register and memory modes.
-
-    Returns (reg_type_field, mem_type_field) as (bit_hi, bit_lo, width) tuples.
-    """
-    return _runtime()["shift_type_fields"]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_shift_fields() -> dict:
-    """Load shift/rotate field rules from KB.
-
-    Returns dict with:
-      dr_values:  {0: "r", 1: "l"} direction mapping
-      zero_means: value to substitute when count field is 0 (e.g. 8)
-    """
-    return _runtime()["shift_fields"]
 
 
 _SIZE_NAME_MAP = {"byte": SIZE_BYTE, "word": SIZE_WORD, "long": SIZE_LONG}
@@ -415,52 +273,11 @@ def _xf(op: int, field: tuple[int, int, int]) -> int:
     return (op >> field[1]) & ((1 << field[2]) - 1)
 
 
-@lru_cache(maxsize=1)
-def _load_kb_rm_field() -> dict[str, tuple[int, dict[int, str]]]:
-    """Load R/M field position and value mapping from KB operand_modes.
-
-    Returns {mnemonic: (bit_lo, {0: 'dn,dn', 1: 'predec,predec'})}.
-    """
-    return _runtime()["rm_field"]
 
 
-@lru_cache(maxsize=1)
-def _load_kb_addq_zero_means() -> int:
-    """Load the zero_means value for ADDQ/SUBQ from KB immediate_range."""
-    return _runtime()["addq_zero_means"]
 
 
-@lru_cache(maxsize=1)
-def _load_kb_control_registers() -> dict[int, str]:
-    """Load MOVEC control register names from KB: {hex_code: abbreviation}."""
-    return _runtime()["control_registers"]
 
-
-@lru_cache(maxsize=1)
-def _load_kb_size_encodings() -> dict[str, dict[int, int]]:
-    """Return {mnemonic: {binary_val: SIZE_xxx}} from structured runtime KB data."""
-    return _runtime()["size_encodings_disasm"]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_processor_mins() -> dict[str, str]:
-    return _runtime()["processor_mins"]
-
-
-@lru_cache(maxsize=1)
-def _load_kb_opmode_tables() -> dict[str, dict[int, dict]]:
-    """Return {mnemonic: {opmode_int: {size, operation/description}}} from KB."""
-    return _runtime()["opmode_tables_by_value"]
-
-
-@lru_cache(maxsize=1)
-def _load_disasm_meta() -> dict:
-    return {
-        "condition_codes": list(_load_kb_payload()[1]["condition_codes"]),
-        "condition_families": list(_runtime()["condition_families"]),
-        "cpu_hierarchy": _load_kb_payload()[1]["cpu_hierarchy"],
-        "pmmu_condition_codes": _load_kb_payload()[1]["pmmu_condition_codes"],
-    }
 
 
 def _canonical_mnemonic(opcode_text: str) -> str:
@@ -472,22 +289,21 @@ def _canonical_mnemonic(opcode_text: str) -> str:
     if tok in ("", "#"):
         return tok
 
-    meta = _load_disasm_meta()
-    families = meta["condition_families"]
+    families = runtime_m68k_disasm.CONDITION_FAMILIES
 
     for fam in families:
-        prefix = fam["prefix"]
+        prefix, canonical, codes, match_numeric_suffix, excluded = fam
         if not prefix:
             continue
         if not tok.startswith(prefix):
             continue
         suffix = tok[len(prefix):]
-        if suffix not in fam["codes"]:
-            if not (fam.get("match_numeric_suffix") and suffix.startswith("#")):
+        if suffix not in codes:
+            if not (match_numeric_suffix and suffix.startswith("#")):
                 continue
-        if tok in fam["exclude_from_family"]:
+        if tok in excluded:
             continue
-        return fam["canonical"]
+        return canonical
 
     return tok
 
@@ -500,7 +316,7 @@ def _decode_operand_size(opcode_text: str) -> str | None:
     mnemonic = opcode_text.lower()
     _, sep, suffix = mnemonic.rpartition(".")
     if not sep:
-        return _load_kb_payload()[1]["default_operand_size"]
+        return runtime_m68k_disasm.DEFAULT_OPERAND_SIZE
     if suffix not in {"b", "w", "l", "s"}:
         raise DecodeError(f"Unsupported size suffix in instruction opcode {opcode_text!r}")
     return suffix
@@ -515,16 +331,11 @@ def _kb_mnemonic_matches(inst_name: str, canonical: str) -> bool:
     return canonical in lowered.replace(",", " ").split()
 
 
-def _encoding_match_literal_count(opcode: int, encoding: dict) -> int | None:
-    mask = value = 0
-    for field in encoding.get("fields", []):
-        if field["name"] not in {"0", "1"}:
-            continue
-        bit = 1 if field["name"] == "1" else 0
-        for pos in range(field["bit_lo"], field["bit_hi"] + 1):
-            mask |= 1 << pos
-            if bit:
-                value |= 1 << pos
+def _encoding_match_literal_count(opcode: int, mnemonic: str, enc_idx: int) -> int | None:
+    masks = runtime_m68k_disasm.ENCODING_MASKS[enc_idx]
+    if mnemonic not in masks:
+        return 0
+    mask, value = masks[mnemonic]
     if (opcode & mask) != value:
         return None
     return mask.bit_count()
@@ -532,18 +343,18 @@ def _encoding_match_literal_count(opcode: int, encoding: dict) -> int | None:
 
 def _resolve_kb_mnemonic(opcode: int, opcode_text: str) -> str:
     canonical = _canonical_mnemonic(opcode_text)
-    kb_index = _load_kb_mnemonic_index()
+    kb_index = runtime_m68k_disasm.MNEMONIC_INDEX
     matches: list[tuple[int, str]] = []
-    for inst in kb_index.get(canonical, ()):
+    for mnemonic in kb_index.get(canonical, ()):
         best_specificity = None
-        for encoding in inst.get("encodings", []):
-            literal_count = _encoding_match_literal_count(opcode, encoding)
+        for enc_idx in range(runtime_m68k_disasm.ENCODING_COUNTS[mnemonic]):
+            literal_count = _encoding_match_literal_count(opcode, mnemonic, enc_idx)
             if literal_count is None:
                 continue
             if best_specificity is None or literal_count > best_specificity:
                 best_specificity = literal_count
         if best_specificity is not None:
-            matches.append((best_specificity, inst["mnemonic"]))
+            matches.append((best_specificity, mnemonic))
     if not matches:
         raise DecodeError(
             f"KB entry match count 0 for opcode ${opcode:04x} "
@@ -569,7 +380,7 @@ def _ensure_cpu_supported(opcode_text: str, max_cpu: str | None) -> None:
         return
 
     max_cpu = _normalize_cpu(max_cpu)
-    cpu_hier = _load_disasm_meta()["cpu_hierarchy"]
+    cpu_hier = runtime_m68k_disasm.CPU_HIERARCHY
     cpu_order = cpu_hier["order"]
     cpu_aliases = cpu_hier["aliases"]
 
@@ -578,11 +389,11 @@ def _ensure_cpu_supported(opcode_text: str, max_cpu: str | None) -> None:
         return
 
     canonical = _canonical_mnemonic(opcode_text)
-    required_cpu = _load_kb_processor_mins().get(canonical)
+    required_cpu = runtime_m68k_disasm.PROCESSOR_MINS.get(canonical)
     if required_cpu is None:
         return
 
-    required_cpu = cpu_aliases.get(required_cpu, required_cpu)
+    required_cpu = cpu_aliases.get(str(required_cpu), str(required_cpu))
     if cpu_order.index(required_cpu) > cpu_order.index(max_cpu):
         raise DecodeError(
             f"unsupported instruction '{canonical}' for max_cpu={max_cpu}; "
@@ -625,14 +436,15 @@ class _Decoder:
         return val
 
 
-def _extract_size_bits(op: int, size_field: tuple, sz_enc: dict[int, int]) -> int:
+def _extract_size_bits(op: int, size_field: tuple, sz_enc: tuple[int | None, int | None, int | None, int | None]) -> int:
     """Extract size bits from opword using KB field position and encoding values.
 
     The KB field width may be inflated by orphan expansion (e.g., 2 bits when only
     1 is needed).  Derive the effective width from the encoding's max value.
     """
     bit_hi = size_field[0]
-    max_val = max(sz_enc.keys()) if sz_enc else 0
+    present = [idx for idx, size_val in enumerate(sz_enc) if size_val is not None]
+    max_val = max(present) if present else 0
     eff_w = max(max_val.bit_length(), 1)
     return (op >> (bit_hi - eff_w + 1)) & ((1 << eff_w) - 1)
 
@@ -685,7 +497,7 @@ def _maybe_simple_ea_node(d: _Decoder, mode: int, reg: int, size: int,
         ext = d.read_u16()
         if ext & 0x0100:
             info, d.pos = parse_full_extension(
-                ext, d.data, d.pos, _load_kb_payload()[1],
+                ext, d.data, d.pos,
                 base_register=_reg_name(reg, True),
                 pc_offset=None,
             )
@@ -733,7 +545,7 @@ def _maybe_simple_ea_node(d: _Decoder, mode: int, reg: int, size: int,
         ext = d.read_u16()
         if ext & 0x0100:
             info, d.pos = parse_full_extension(
-                ext, d.data, d.pos, _load_kb_payload()[1],
+                ext, d.data, d.pos,
                 base_register="pc",
                 pc_offset=pc_offset,
             )
@@ -778,7 +590,7 @@ def _movem_registers(mask: int, direction: int) -> list[str]:
     direction: 0 = register-to-memory (reversed bit order for predecrement)
                1 = memory-to-register (normal bit order)
     """
-    masks = _load_kb_movem_reg_masks()
+    masks = runtime_m68k_disasm.MOVEM_REG_MASKS
     table = masks["predecrement"] if direction == 0 else masks["normal"]
     regs = [table[i] for i in range(16) if mask & (1 << i)]
     dregs = sorted(int(r[1:]) for r in regs if r.startswith("d"))
@@ -896,20 +708,20 @@ def _decode_opcode(d: _Decoder, op: int, group: int, pc: int) -> DecodedInstruct
     raise DecodeError(f"unhandled group {group}")
 
 
-def _opmode_ea_to_dn(entry: dict) -> bool:
-    """Return True if opmode table entry indicates eaâ†’Dn direction, False for Dnâ†’ea."""
-    if "ea_is_source" in entry:
-        return bool(entry["ea_is_source"])
-    op_text = entry.get("operation", "")
-    # Multi-column format: "< ea > OP Dn â†’ Dn" vs "Dn OP < ea > â†’ < ea >"
-    if "â†’" in op_text:
-        dest = op_text.split("â†’")[-1].strip()
+def _opmode_ea_to_dn(entry: tuple[str | None, str | None, bool | None, str | None, str | None]) -> bool:
+    """Return True if opmode table entry indicates ea->Dn direction, False for Dn->ea."""
+    if entry[_OPMODE_EA_IS_SOURCE] is not None:
+        return bool(entry[_OPMODE_EA_IS_SOURCE])
+    op_text = entry[_OPMODE_DESCRIPTION] or ""
+    # Multi-column format: "< ea > OP Dn -> Dn" vs "Dn OP < ea > -> < ea >"
+    if "→" in op_text:
+        dest = op_text.split("→")[-1].strip()
         return "Dn" in dest and "ea" not in dest.lower()
     # Arrow may be missing from PDF extraction; determine from operand order
     if op_text:
         return op_text.lstrip().startswith("<")
     # Value-description format: "memory to register" vs "register to memory"
-    desc = entry.get("description", "").lower()
+    desc = op_text.lower()
     return "to register" in desc
 
 
@@ -917,16 +729,16 @@ def _opmode_ea_to_dn(entry: dict) -> bool:
 
 def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """Bit operations and immediate ops (ORI, ANDI, SUBI, ADDI, EORI, CMPI, BTST, etc.)"""
-    _masks = _load_kb_encoding_masks()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
 
     # Derive bit-op name table from KB: extract bits 7:6 from each instruction's val
-    _bitop_names, _bitop_field = _load_kb_bitop_names()
+    _bitop_names, _bitop_field = runtime_m68k_disasm.BITOP_NAMES
 
-    _fields = _load_kb_opword_field_map()
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
 
-    # MOVEP â€” detect via KB mask/val + opmode validation
+    # MOVEP - detect via KB mask/val + opmode validation
     _movep_m, _movep_v = _masks["MOVEP"]
-    _movep_opm = _load_kb_opmode_tables()["MOVEP"]
+    _movep_opm = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE["MOVEP"]
     if (op & _movep_m) == _movep_v:
         _movep_f = _fields["MOVEP"]
         opmode = _xf(op, _movep_f["OPMODE"])
@@ -935,8 +747,8 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             areg = _xf(op, _movep_f["ADDRESS REGISTER"])
             disp = d.read_i16()
             entry = _movep_opm[opmode]
-            sfx = f".{entry['size']}"
-            desc = entry.get("description", "").lower()
+            sfx = f".{entry[_OPMODE_SIZE]}"
+            desc = (entry[_OPMODE_DESCRIPTION] or "").lower()
             disp_node = _base_displacement_node(f"a{areg}", disp)
             if "memory to register" in desc:
                 return _build_decoded_instruction_text(
@@ -947,7 +759,7 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
     if op & 0x0100:
         # Dynamic bit operations: BTST/BCHG/BCLR/BSET Dn,<ea>
-        _dest_reg = _load_kb_dest_reg_field()
+        _dest_reg = runtime_m68k_disasm.DEST_REG_FIELD
         _btst_f = _fields["BTST"]
         reg = _xf(op, _dest_reg["BTST"])
         mode = _xf(op, _btst_f["MODE"])
@@ -960,13 +772,13 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     else:
         # Static bit ops or immediate ops
         # Use ORI SIZE field for size_bits; imm_names returns field for top_bits
-        imm_names, _imm_field = _load_kb_imm_names()
+        imm_names, _imm_field = runtime_m68k_disasm.IMM_NAMES
         _ori_f = _fields["ORI"]
         top_bits = _xf(op, _imm_field)
         size_bits = _xf(op, _ori_f["SIZE"])
 
         if top_bits == 4:
-            # Static bit operations â€” MODE/REGISTER same positions as dynamic BTST
+            # Static bit operations - MODE/REGISTER same positions as dynamic BTST
             _btst_f = _fields["BTST"]
             mode = _xf(op, _btst_f["MODE"])
             ea_reg = _xf(op, _btst_f["REGISTER"])
@@ -980,11 +792,11 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         # CMP2/CHK2/CAS (68020+): size_bits==3 distinguishes from immediate ops
         # Note: CAS.L also has top_bits==7, so CAS must be checked before MOVES.
         if size_bits == 3:
-            _m_cmp, _v_cmp = _masks["CMP2"]    # KeyError â†’ regenerate KB JSON
+            _m_cmp, _v_cmp = _masks["CMP2"]    # KeyError -> regenerate KB JSON
             _m_cas, _v_cas = _masks["CAS CAS2"]
             if (op & _m_cmp) == _v_cmp:
                 # CMP2/CHK2: SIZE from KB field map (valid: 0,1,2 only)
-                # ss==3 means this is RTM, not CMP2 â€” fall through
+                # ss==3 means this is RTM, not CMP2 - fall through
                 _cmp2_f = _fields["CMP2"]
                 ss = _xf(op, _cmp2_f["SIZE"])
                 if ss <= 2:
@@ -993,7 +805,7 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                     reg = _xf(op, _cmp2_f["REGISTER"])
                     ext = d.read_u16()
                     # Extension word fields from KB (D/A + REGISTER combined span)
-                    _ef = _load_kb_ext_field_map()["CMP2"]
+                    _ef = runtime_m68k_disasm.FIELD_MAPS[1]["CMP2"]
                     ad_hi = _ef["D/A"][0]
                     reg_lo = _ef["REGISTER"][1]
                     reg_span = _ef["D/A"][1] - reg_lo + 1
@@ -1001,7 +813,7 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                     gpreg = (ext >> reg_lo) & ((1 << reg_span) - 1)
                     # CHK2 vs CMP2: compute ext mask/val from fixed bits in
                     # CHK2's encoding[1] to find the distinguishing bit
-                    chk2_ext_mask, chk2_ext_val = _load_kb_ext_encoding_masks()["CHK2"]
+                    chk2_ext_mask, chk2_ext_val = runtime_m68k_disasm.ENCODING_MASKS[1]["CHK2"]
                     chk2 = (ext & chk2_ext_mask) == chk2_ext_val
                     name = "chk2" if chk2 else "cmp2"
                     gp_name = f"{'a' if is_an else 'd'}{gpreg}"
@@ -1011,9 +823,9 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             if (op & _m_cas) == _v_cas:
                 # Size encoding parsed from KB field description
                 _cas_f = _fields["CAS CAS2"]
-                cas_sz = _load_kb_size_encodings()["CAS CAS2"]
+                cas_sz = runtime_m68k_disasm.SIZE_ENCODINGS_DISASM["CAS CAS2"]
                 ss_raw = _xf(op, _cas_f["SIZE"])
-                if ss_raw not in cas_sz:
+                if not (0 <= ss_raw < len(cas_sz)) or cas_sz[ss_raw] is None:
                     raise DecodeError(f"unknown CAS size={ss_raw}")
                 sz = cas_sz[ss_raw]
                 sfx = SIZE_SUFFIX[sz]
@@ -1021,7 +833,7 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                 reg = _xf(op, _cas_f["REGISTER"])
                 ext = d.read_u16()
                 # Extension word field positions from KB
-                _cas_ef = _load_kb_ext_field_map()["CAS CAS2"]
+                _cas_ef = runtime_m68k_disasm.FIELD_MAPS[1]["CAS CAS2"]
                 du_lo = _cas_ef["Du"][1]
                 du_w = _cas_ef["Du"][2]
                 dc_lo = _cas_ef["Dc"][1]
@@ -1034,7 +846,7 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
         # MOVES (68010+): top_bits=7, size_bits in 0-2 (CAS.L already caught above)
         if top_bits == 7:
-            _m, _v = _masks["MOVES"]  # KeyError â†’ regenerate m68k_instructions.json
+            _m, _v = _masks["MOVES"]  # KeyError -> regenerate m68k_instructions.json
             if (op & _m) == _v:
                 sz = size_bits
                 if sz > 2:
@@ -1044,7 +856,7 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                 mode = _xf(op, _moves_f["MODE"])
                 reg = _xf(op, _moves_f["REGISTER"])
                 ext = d.read_u16()
-                _ef = _load_kb_ext_field_map()["MOVES"]
+                _ef = runtime_m68k_disasm.FIELD_MAPS[1]["MOVES"]
                 # A/D flag at A/D.bit_hi; register spans A/D.bit_lo..REGISTER.bit_lo
                 _ad_hi = _ef["A/D"][0]
                 _reg_lo = _ef["REGISTER"][1]
@@ -1052,7 +864,7 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                 _dr_hi = _ef["dr"][0]
                 is_an = (ext >> _ad_hi) & 1
                 gpreg = (ext >> _reg_lo) & ((1 << _reg_span) - 1)
-                rw = (ext >> _dr_hi) & 1   # 1 = Rnâ†’EA (write), 0 = EAâ†’Rn (read)
+                rw = (ext >> _dr_hi) & 1   # 1 = Rn->EA (write), 0 = EA->Rn (read)
                 gp_name = f"{'a' if is_an else 'd'}{gpreg}"
                 ea_node = _must_decode_ea_node(d, mode, reg, sz, pc)
                 if rw:
@@ -1063,7 +875,7 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                         f"moves{sfx}", (ea_node, _register_node(gp_name)))
             raise DecodeError(f"unknown group0 top={top_bits}")
 
-        # CALLM / RTM (68020) â€” detect via KB mask/val
+        # CALLM / RTM (68020) - detect via KB mask/val
         _m_rtm, _v_rtm = _masks["RTM"]
         if (op & _m_rtm) == _v_rtm:
             _rtm_f = _fields["RTM"]
@@ -1079,24 +891,24 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             mode = _xf(op, _callm_f["MODE"])
             ea_reg = _xf(op, _callm_f["REGISTER"])
             ext = d.read_u16()
-            _callm_ef = _load_kb_ext_field_map()["CALLM"]
+            _callm_ef = runtime_m68k_disasm.FIELD_MAPS[1]["CALLM"]
             _ac = _callm_ef["ARGUMENT COUNT"]
             arg_count = (ext >> _ac[1]) & ((1 << _ac[2]) - 1)
             ea_node = _must_decode_ea_node(d, mode, ea_reg, SIZE_LONG, pc)
             return _build_decoded_instruction_text(
                 "callm", (_immediate_node(arg_count, f"#{arg_count}"), ea_node))
 
-        # Immediate operations â€” name table derived from KB encoding vals
+        # Immediate operations - name table derived from KB encoding vals
         if top_bits not in imm_names:
             raise DecodeError(f"unknown group0 top={top_bits}")
 
         name = imm_names[top_bits]
-        # Use ORI fields as representative â€” all imm ops share MODE/REGISTER positions
+        # Use ORI fields as representative - all imm ops share MODE/REGISTER positions
         _imm_f = _fields["ORI"]
         mode = _xf(op, _imm_f["MODE"])
         ea_reg = _xf(op, _imm_f["REGISTER"])
 
-        # Special cases: ORI/ANDI/EORI to CCR/SR â€” detect via KB mask/val
+        # Special cases: ORI/ANDI/EORI to CCR/SR - detect via KB mask/val
         for _sr_suffix, _sr_name, _sr_size in (("CCR", "ccr", "b"), ("SR", "sr", "w")):
             _sr_key = f"{name.upper()} to {_sr_suffix}"
             _sr_mv = _masks.get(_sr_key)
@@ -1125,20 +937,10 @@ def _decode_group0(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             f"{name}{sfx}", (_immediate_node(imm, imm_s), ea_node))
 
 
-@lru_cache(maxsize=1)
-def _load_kb_move_fields() -> tuple[tuple[int, int, int], tuple[int, int, int],
-                                     tuple[int, int, int], tuple[int, int, int]]:
-    """Return (dst_reg, dst_mode, src_mode, src_reg) field tuples for MOVE.
-
-    MOVE has duplicate MODE and REGISTER fields; disambiguate by positional order
-    in raw field list (higher bits first in the encoding).
-    """
-    return _runtime()["move_fields"]
-
 
 def _decode_move(d: _Decoder, op: int, pc: int, size: int) -> DecodedInstructionText:
     """Decode MOVE/MOVEA instruction."""
-    dst_reg_f, dst_mode_f, src_mode_f, src_reg_f = _load_kb_move_fields()
+    dst_reg_f, dst_mode_f, src_mode_f, src_reg_f = runtime_m68k_disasm.MOVE_FIELDS
     src_mode = _xf(op, src_mode_f)
     src_reg = _xf(op, src_reg_f)
     dst_reg = _xf(op, dst_reg_f)
@@ -1169,13 +971,13 @@ def _decode_move_word(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """Miscellaneous: LEA, PEA, CLR, NEG, NOT, TST, MOVEM, JMP, JSR, etc."""
-    _masks = _load_kb_encoding_masks()
-    _fields = _load_kb_opword_field_map()
-    _dest_reg = _load_kb_dest_reg_field()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
+    _dest_reg = runtime_m68k_disasm.DEST_REG_FIELD
 
     # --- Fixed-opword instructions (mask=0xFFFF in KB) ---
     # Build lookup from all KB instructions whose mask covers all 16 bits
-    _fixed = _load_kb_fixed_opcodes()
+    _fixed = runtime_m68k_disasm.FIXED_OPCODES
     if op in _fixed:
         mn = _fixed[op]
         mn_l = mn.lower()
@@ -1193,8 +995,8 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         vec = _xf(op, _fields["TRAP"]["VECTOR"])
         return _build_decoded_instruction_text("trap", (_immediate_node(vec, f"#{vec}"),))
 
-    # LINK.L (68020+) â€” encoding[2] in KB; must check before LINK.W
-    _m2, _v2 = _load_kb_encoding_masks_idx(2)["LINK"]
+    # LINK.L (68020+) - encoding[2] in KB; must check before LINK.W
+    _m2, _v2 = runtime_m68k_disasm.ENCODING_MASKS[2]["LINK"]
     if (op & _m2) == _v2:
         areg = _xf(op, _fields["LINK"]["REGISTER"])
         disp = d.read_i32()
@@ -1202,11 +1004,11 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             "link.l",
             (_register_node(_reg_name(areg, True)), _immediate_node(disp & 0xFFFFFFFF, f"#{disp}")))
 
-    # MULU.L/MULS.L (68020+) â€” enc[1] opword, enc[2] ext word
-    _enc1 = _load_kb_encoding_masks_idx(1)
-    _enc2 = _load_kb_encoding_masks_idx(2)
-    _ef1 = _load_kb_ext_field_map()
-    _ef2 = _load_kb_ext2_field_map()
+    # MULU.L/MULS.L (68020+) - enc[1] opword, enc[2] ext word
+    _enc1 = runtime_m68k_disasm.ENCODING_MASKS[1]
+    _enc2 = runtime_m68k_disasm.ENCODING_MASKS[2]
+    _ef1 = runtime_m68k_disasm.FIELD_MAPS[1]
+    _ef2 = runtime_m68k_disasm.FIELD_MAPS[2]
 
     _m1_mul, _v1_mul = _enc1["MULS"]  # MULS/MULU share enc[1] opword
     if (op & _m1_mul) == _v1_mul:
@@ -1298,7 +1100,7 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         areg = _xf(op, _fields["UNLK"]["REGISTER"])
         return _build_decoded_instruction_text("unlk", (_register_node(_reg_name(areg, True)),))
 
-    # MOVE USP â€” dr field from KB
+    # MOVE USP - dr field from KB
     _m, _v = _masks["MOVE USP"]
     if (op & _m) == _v:
         _usp_f = _fields["MOVE USP"]
@@ -1346,23 +1148,23 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         vec = _xf(op, _fields["BKPT"]["VECTOR"])
         return _build_decoded_instruction_text("bkpt", (_immediate_node(vec, f"#{vec}"),))
 
-    # SWAP (must be before PEA â€” both match similar patterns but SWAP has mode=0)
+    # SWAP (must be before PEA - both match similar patterns but SWAP has mode=0)
     _m, _v = _masks["SWAP"]
     if (op & _m) == _v:
         return _build_decoded_instruction_text(
             "swap", (_register_node(f"d{_xf(op, _fields['SWAP']['REGISTER'])}"),))
 
-    # EXT, EXTB (must be before MOVEM â€” EXT has mode=0)
+    # EXT, EXTB (must be before MOVEM - EXT has mode=0)
     _m, _v = _masks["EXT, EXTB"]
     if (op & _m) == _v:
         _ext_f = _fields["EXT, EXTB"]
         opmode = _xf(op, _ext_f["OPMODE"])
         dreg = _xf(op, _ext_f["REGISTER"])
-        _ext_opm = _load_kb_opmode_tables()["EXT, EXTB"]
+        _ext_opm = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE["EXT, EXTB"]
         if opmode in _ext_opm:
             entry = _ext_opm[opmode]
-            # Description tells us the output: byteâ†’word = ext.w, wordâ†’long = ext.l, byteâ†’long = extb.l
-            desc = entry.get("description", "").lower()
+    # Description tells us the output: byte->word = ext.w, word->long = ext.l, byte->long = extb.l
+            desc = (entry[_OPMODE_DESCRIPTION] or "").lower()
             if "byte" in desc and "to long" in desc:
                 return _build_decoded_instruction_text("extb.l", (_register_node(f"d{dreg}"),))
             elif "to long" in desc:
@@ -1384,7 +1186,7 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     if (op & _m) == _v:
         _of = _fields["MOVEM"]
         direction = _xf(op, _of["dr"])  # 0=reg-to-mem, 1=mem-to-reg
-        sz_enc = _load_kb_size_encodings()["MOVEM"]
+        sz_enc = runtime_m68k_disasm.SIZE_ENCODINGS_DISASM["MOVEM"]
         sz_bits = _extract_size_bits(op, _of["SIZE"], sz_enc)
         sz = sz_enc[sz_bits]
         sfx = SIZE_SUFFIX[sz]
@@ -1404,7 +1206,7 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         else:
             return _build_decoded_instruction_text(f"movem{sfx}", (ea_node, reglist_node))
 
-    # CLR, NEG, NEGX, NOT â€” mask/val from KB
+    # CLR, NEG, NEGX, NOT - mask/val from KB
     for _mn in ("CLR", "NEG", "NEGX", "NOT"):
         _m, _v = _masks[_mn]
         if (op & _m) == _v:
@@ -1484,7 +1286,7 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         ea_node = _must_decode_ea_node(d, mode, reg, SIZE_WORD, pc)
         return _build_decoded_instruction_text("move.w", (ea_node, _special_register_node("sr")))
 
-    # CHK (word and long) â€” broad mask, must be checked after specific instructions
+    # CHK (word and long) - broad mask, must be checked after specific instructions
     _m, _v = _masks["CHK"]
     if (op & _m) == _v:
         dreg = _xf(op, _dest_reg["CHK"])
@@ -1494,21 +1296,21 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         sz_lo = _of["SIZE"][1]
         sz_w = _of["SIZE"][2]
         sz_bits = (op >> sz_lo) & ((1 << sz_w) - 1)
-        chk_sz = _load_kb_size_encodings()["CHK"]
-        if sz_bits in chk_sz:
+        chk_sz = runtime_m68k_disasm.SIZE_ENCODINGS_DISASM["CHK"]
+        if 0 <= sz_bits < len(chk_sz) and chk_sz[sz_bits] is not None:
             sz = chk_sz[sz_bits]
             sfx = SIZE_SUFFIX[sz]
             ea_node = _must_decode_ea_node(d, mode, reg, sz, pc)
             return _build_decoded_instruction_text(
                 f"chk{sfx}", (ea_node, _register_node(f"d{dreg}")))
 
-    # MOVEC (68010+) â€” extension word fields from KB
+    # MOVEC (68010+) - extension word fields from KB
     _m, _v = _masks["MOVEC"]
     if (op & _m) == _v:
         ext = d.read_u16()
         _movec_f = _fields["MOVEC"]
-        dr = _xf(op, _movec_f["dr"])  # 0 = Rcâ†’Rn, 1 = Rnâ†’Rc
-        _ef = _load_kb_ext_field_map()["MOVEC"]
+        dr = _xf(op, _movec_f["dr"])  # 0 = Rc->Rn, 1 = Rn->Rc
+        _ef = runtime_m68k_disasm.FIELD_MAPS[1]["MOVEC"]
         # A/D flag at A/D.bit_hi; register spans A/D.bit_lo..REGISTER.bit_lo
         ad_hi = _ef["A/D"][0]
         reg_lo = _ef["REGISTER"][1]
@@ -1518,7 +1320,7 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         is_an = (ext >> ad_hi) & 1
         gpreg = (ext >> reg_lo) & ((1 << reg_span) - 1)
         ctrl = (ext >> ctrl_lo) & ((1 << ctrl_w) - 1)
-        _ctrl_regs = _load_kb_control_registers()
+        _ctrl_regs = runtime_m68k_disasm.CONTROL_REGISTERS
         if ctrl not in _ctrl_regs:
             raise DecodeError(f"unknown MOVEC control register ${ctrl:03x}")
         ctrl_name = _ctrl_regs[ctrl]
@@ -1535,7 +1337,7 @@ def _decode_group4(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 def _decode_group5(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """ADDQ, SUBQ, Scc, DBcc"""
-    _fields = _load_kb_opword_field_map()
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
     _addq_f = _fields["ADDQ"]
     size_bits = _xf(op, _addq_f["SIZE"])
 
@@ -1556,13 +1358,13 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             return _build_decoded_instruction_text(
                 f"db{cc}", (_register_node(f"d{reg}"), _branch_target_node(target)))
 
-        # TRAPcc (68020+) â€” mode=7, reg from KB opmode_table
+    # TRAPcc (68020+) - mode=7, reg from KB opmode_table
         if mode == 7:
-            _trapcc_opm = _load_kb_opmode_tables()["TRAPcc"]
+            _trapcc_opm = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE["TRAPcc"]
             if reg in _trapcc_opm:
                 cc = _cc_name(condition)
                 entry = _trapcc_opm[reg]
-                sz = entry["size"]
+                sz = entry[_OPMODE_SIZE]
                 if sz == "w":
                     imm = d.read_u16()
                     return _build_decoded_instruction_text(
@@ -1579,12 +1381,12 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         cc = _cc_name(condition)
         return _build_decoded_instruction_text(f"s{cc}", (ea_node,))
     else:
-        # ADDQ / SUBQ â€” discriminate via KB mask/val
-        _masks = _load_kb_encoding_masks()
+    # ADDQ / SUBQ - discriminate via KB mask/val
+        _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
         _subq_m, _subq_v = _masks["SUBQ"]
         data = _xf(op, _addq_f["DATA"])
         if data == 0:
-            data = _load_kb_addq_zero_means()
+            data = runtime_m68k_disasm.ADDQ_ZERO_MEANS
         is_sub = (op & _subq_m) == _subq_v
         name = "subq" if is_sub else "addq"
         sfx = SIZE_SUFFIX[size_bits]
@@ -1595,7 +1397,7 @@ def _decode_group5(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             f"{name}{sfx}", (_immediate_node(data, f"#{data}"), ea_node))
 
 
-CC_NAMES = _load_disasm_meta()["condition_codes"]
+CC_NAMES = runtime_m68k_disasm.CONDITION_CODES
 
 def _cc_name(cc: int) -> str:
     return CC_NAMES[cc]
@@ -1603,8 +1405,8 @@ def _cc_name(cc: int) -> str:
 
 def _decode_group6(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """Bcc, BSR, BRA"""
-    _masks = _load_kb_encoding_masks()
-    _fields = _load_kb_opword_field_map()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
     _bcc_f = _fields["Bcc"]
     condition = _xf(op, _bcc_f["CONDITION"])
     _bra_f = _fields["BRA"]
@@ -1637,10 +1439,10 @@ def _decode_group6(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 def _decode_moveq(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """MOVEQ"""
-    _m, _v = _load_kb_encoding_masks()["MOVEQ"]
+    _m, _v = runtime_m68k_disasm.ENCODING_MASKS[0]["MOVEQ"]
     if (op & _m) != _v:
         raise DecodeError(f"invalid moveq ${op:04x}")
-    _moveq_f = _load_kb_opword_field_map()["MOVEQ"]
+    _moveq_f = runtime_m68k_disasm.FIELD_MAPS[0]["MOVEQ"]
     reg = _xf(op, _moveq_f["REGISTER"])
     data = _xf(op, _moveq_f["DATA"])
     if data & 0x80:
@@ -1651,16 +1453,16 @@ def _decode_moveq(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 def _decode_group8(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """OR, DIV, SBCD"""
-    _masks = _load_kb_encoding_masks()
-    _fields = _load_kb_opword_field_map()
-    _dest_reg = _load_kb_dest_reg_field()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
+    _dest_reg = runtime_m68k_disasm.DEST_REG_FIELD
     _or_f = _fields["OR"]
     reg = _xf(op, _dest_reg["OR"])
     opmode = _xf(op, _or_f["OPMODE"])
     mode = _xf(op, _or_f["MODE"])
     ea_reg = _xf(op, _or_f["REGISTER"])
 
-    # DIVU.W / DIVS.W â€” detect via KB masks
+    # DIVU.W / DIVS.W - detect via KB masks
     for _divmn in ("DIVU, DIVUL", "DIVS, DIVSL"):
         _dm, _dv = _masks[_divmn]
         if (op & _dm) == _dv:
@@ -1669,13 +1471,13 @@ def _decode_group8(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             return _build_decoded_instruction_text(
                 f"{name}.w", (ea_node, _register_node(f"d{reg}")))
 
-    # SBCD â€” R/M field from KB operand_modes
+    # SBCD - R/M field from KB operand_modes
     _m, _v = _masks["SBCD"]
     if (op & _m) == _v:
         _sbcd_f = _fields["SBCD"]
         ry = _xf(op, _sbcd_f["REGISTER Dx/Ax"])
         rx = _xf(op, _sbcd_f["REGISTER Dy/Ay"])
-        _rm_lo, _rm_vals = _load_kb_rm_field()["SBCD"]
+        _rm_lo, _rm_vals = runtime_m68k_disasm.RM_FIELD["SBCD"]
         rm = (op >> _rm_lo) & 1
         if _rm_vals[rm] == "predec,predec":
             return _build_decoded_instruction_text(
@@ -1684,10 +1486,10 @@ def _decode_group8(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             "sbcd", (_register_node(f"d{ry}"), _register_node(f"d{rx}")))
 
     # PACK / UNPK (68020+): identified by KB mask/val, field positions from KB
-    _masks = _load_kb_encoding_masks()
-    _m_pack, _v_pack = _masks["PACK"]   # KeyError â†’ regenerate KB JSON
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _m_pack, _v_pack = _masks["PACK"]   # KeyError -> regenerate KB JSON
     _m_unpk, _v_unpk = _masks["UNPK"]
-    _opfields = _load_kb_opword_field_map()
+    _opfields = runtime_m68k_disasm.FIELD_MAPS[0]
     for _mn_upper, _m, _v in (("PACK", _m_pack, _v_pack), ("UNPK", _m_unpk, _v_unpk)):
         if (op & _m) == _v:
             _of = _opfields[_mn_upper]
@@ -1706,10 +1508,10 @@ def _decode_group8(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                 (_register_node(f"d{dy}"), _register_node(f"d{dx}"), _immediate_node(adj, f"#${adj:x}")),
             )
 
-    # OR â€” size/direction from KB opmode_table
-    _or_opm = _load_kb_opmode_tables()["OR"]
+    # OR - size/direction from KB opmode_table
+    _or_opm = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE["OR"]
     entry = _or_opm[opmode]
-    sz = _SIZE_LETTER_TO_INT[entry["size"]]
+    sz = _SIZE_LETTER_TO_INT[entry[_OPMODE_SIZE]]
     sfx = SIZE_SUFFIX[sz]
     ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
     if _opmode_ea_to_dn(entry):
@@ -1720,25 +1522,25 @@ def _decode_group8(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 def _decode_sub(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """SUB, SUBA, SUBX"""
-    _masks = _load_kb_encoding_masks()
-    _opm_tables = _load_kb_opmode_tables()
-    _fields = _load_kb_opword_field_map()
-    _dest_reg = _load_kb_dest_reg_field()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _opm_tables = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
+    _dest_reg = runtime_m68k_disasm.DEST_REG_FIELD
     _sub_f = _fields["SUB"]
     reg = _xf(op, _dest_reg["SUB"])
     opmode = _xf(op, _sub_f["OPMODE"])
     mode = _xf(op, _sub_f["MODE"])
     ea_reg = _xf(op, _sub_f["REGISTER"])
 
-    # SUBA â€” opmode 3/7 from KB opmode_table
+    # SUBA - opmode 3/7 from KB opmode_table
     _suba_opm = _opm_tables["SUBA"]
     if opmode in _suba_opm:
-        sz = _SIZE_LETTER_TO_INT[_suba_opm[opmode]["size"]]
+        sz = _SIZE_LETTER_TO_INT[_suba_opm[opmode][_OPMODE_SIZE]]
         ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
         sfx = SIZE_SUFFIX[sz]
         return _build_decoded_instruction_text(f"suba{sfx}", (ea_node, _register_node(f"a{reg}")))
 
-    # SUBX â€” R/M field from KB operand_modes
+    # SUBX - R/M field from KB operand_modes
     _m, _v = _masks["SUBX"]
     if (op & _m) == _v and (mode == 0 or mode == 1):
         _subx_f = _fields["SUBX"]
@@ -1746,7 +1548,7 @@ def _decode_sub(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         rx = _xf(op, _subx_f["REGISTER Dy/Ay"])
         sz = _xf(op, _subx_f["SIZE"])
         sfx = SIZE_SUFFIX[sz]
-        _rm_lo, _rm_vals = _load_kb_rm_field()["SUBX"]
+        _rm_lo, _rm_vals = runtime_m68k_disasm.RM_FIELD["SUBX"]
         rm = (op >> _rm_lo) & 1
         if _rm_vals[rm] == "predec,predec":
             return _build_decoded_instruction_text(
@@ -1754,10 +1556,10 @@ def _decode_sub(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         return _build_decoded_instruction_text(
             f"subx{sfx}", (_register_node(f"d{ry}"), _register_node(f"d{rx}")))
 
-    # SUB â€” size/direction from KB opmode_table
+    # SUB - size/direction from KB opmode_table
     _sub_opm = _opm_tables["SUB"]
     entry = _sub_opm[opmode]
-    sz = _SIZE_LETTER_TO_INT[entry["size"]]
+    sz = _SIZE_LETTER_TO_INT[entry[_OPMODE_SIZE]]
     sfx = SIZE_SUFFIX[sz]
     ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
     if _opmode_ea_to_dn(entry):
@@ -1768,25 +1570,25 @@ def _decode_sub(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 def _decode_cmp_eor(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """CMP, CMPA, CMPM, EOR"""
-    _masks = _load_kb_encoding_masks()
-    _opm_tables = _load_kb_opmode_tables()
-    _fields = _load_kb_opword_field_map()
-    _dest_reg = _load_kb_dest_reg_field()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _opm_tables = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
+    _dest_reg = runtime_m68k_disasm.DEST_REG_FIELD
     _cmp_f = _fields["CMP"]
     reg = _xf(op, _dest_reg["CMP"])
     opmode = _xf(op, _cmp_f["OPMODE"])
     mode = _xf(op, _cmp_f["MODE"])
     ea_reg = _xf(op, _cmp_f["REGISTER"])
 
-    # CMPA â€” opmode 3/7 from KB opmode_table
+    # CMPA - opmode 3/7 from KB opmode_table
     _cmpa_opm = _opm_tables["CMPA"]
     if opmode in _cmpa_opm:
-        sz = _SIZE_LETTER_TO_INT[_cmpa_opm[opmode]["size"]]
+        sz = _SIZE_LETTER_TO_INT[_cmpa_opm[opmode][_OPMODE_SIZE]]
         ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
         sfx = SIZE_SUFFIX[sz]
         return _build_decoded_instruction_text(f"cmpa{sfx}", (ea_node, _register_node(f"a{reg}")))
 
-    # CMPM â€” SIZE field from KB (not ad-hoc opmode - 4)
+    # CMPM - SIZE field from KB (not ad hoc opmode 4)
     _m, _v = _masks["CMPM"]
     if (op & _m) == _v:
         _cmpm_f = _fields["CMPM"]
@@ -1795,19 +1597,19 @@ def _decode_cmp_eor(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         return _build_decoded_instruction_text(
             f"cmpm{sfx}", (_postincrement_node(f"a{ea_reg}"), _postincrement_node(f"a{reg}")))
 
-    # EOR â€” opmode 4/5/6 from KB opmode_table
+    # EOR - opmode 4/5/6 from KB opmode_table
     _eor_opm = _opm_tables["EOR"]
     if opmode in _eor_opm:
         entry = _eor_opm[opmode]
-        sz = _SIZE_LETTER_TO_INT[entry["size"]]
+        sz = _SIZE_LETTER_TO_INT[entry[_OPMODE_SIZE]]
         sfx = SIZE_SUFFIX[sz]
         ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
         return _build_decoded_instruction_text(f"eor{sfx}", (_register_node(f"d{reg}"), ea_node))
 
-    # CMP â€” opmode 0/1/2 from KB opmode_table
+    # CMP - opmode 0/1/2 from KB opmode_table
     _cmp_opm = _opm_tables["CMP"]
     entry = _cmp_opm[opmode]
-    sz = _SIZE_LETTER_TO_INT[entry["size"]]
+    sz = _SIZE_LETTER_TO_INT[entry[_OPMODE_SIZE]]
     sfx = SIZE_SUFFIX[sz]
     ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
     return _build_decoded_instruction_text(f"cmp{sfx}", (ea_node, _register_node(f"d{reg}")))
@@ -1815,17 +1617,17 @@ def _decode_cmp_eor(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 def _decode_group_c(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """AND, MUL, ABCD, EXG"""
-    _masks = _load_kb_encoding_masks()
-    _opm_tables = _load_kb_opmode_tables()
-    _fields = _load_kb_opword_field_map()
-    _dest_reg = _load_kb_dest_reg_field()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _opm_tables = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
+    _dest_reg = runtime_m68k_disasm.DEST_REG_FIELD
     _and_f = _fields["AND"]
     reg = _xf(op, _dest_reg["AND"])
     opmode = _xf(op, _and_f["OPMODE"])
     mode = _xf(op, _and_f["MODE"])
     ea_reg = _xf(op, _and_f["REGISTER"])
 
-    # MULU.W / MULS.W â€” detect via KB masks
+    # MULU.W / MULS.W - detect via KB masks
     for _mulmn in ("MULU", "MULS"):
         _mm, _mv = _masks[_mulmn]
         if (op & _mm) == _mv:
@@ -1833,13 +1635,13 @@ def _decode_group_c(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             return _build_decoded_instruction_text(
                 f"{_mulmn.lower()}.w", (ea_node, _register_node(f"d{reg}")))
 
-    # ABCD â€” R/M field from KB operand_modes
+    # ABCD - R/M field from KB operand_modes
     _m, _v = _masks["ABCD"]
     if (op & _m) == _v:
         _abcd_f = _fields["ABCD"]
         ry = _xf(op, _abcd_f["REGISTER Ry"])
         rx = _xf(op, _abcd_f["REGISTER Rx"])
-        _rm_lo, _rm_vals = _load_kb_rm_field()["ABCD"]
+        _rm_lo, _rm_vals = runtime_m68k_disasm.RM_FIELD["ABCD"]
         rm = (op >> _rm_lo) & 1
         if _rm_vals[rm] == "predec,predec":
             return _build_decoded_instruction_text(
@@ -1847,7 +1649,7 @@ def _decode_group_c(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         return _build_decoded_instruction_text(
             "abcd", (_register_node(f"d{ry}"), _register_node(f"d{rx}")))
 
-    # EXG â€” check KB encoding mask first, then opmode table
+    # EXG - check KB encoding mask first, then opmode table
     _exg_m, _exg_v = _masks["EXG"]
     if (op & _exg_m) == _exg_v:
         _exg_opm = _opm_tables["EXG"]
@@ -1864,7 +1666,7 @@ def _decode_group_c(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             # Ry occupies bits below the corrected OPMODE boundary
             ry = op & ((1 << opm_lo) - 1)
             entry = _exg_opm[exg_mode]
-            desc = entry.get("description", "").lower()
+            desc = (entry[_OPMODE_DESCRIPTION] or "").lower()
             if "data register" in desc and "address register" in desc:
                 return _build_decoded_instruction_text(
                     "exg", (_register_node(f"d{rx}"), _register_node(f"a{ry}")))
@@ -1875,10 +1677,10 @@ def _decode_group_c(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                 return _build_decoded_instruction_text(
                     "exg", (_register_node(f"d{rx}"), _register_node(f"d{ry}")))
 
-    # AND â€” size/direction from KB opmode_table
+    # AND - size/direction from KB opmode_table
     _and_opm = _opm_tables["AND"]
     entry = _and_opm[opmode]
-    sz = _SIZE_LETTER_TO_INT[entry["size"]]
+    sz = _SIZE_LETTER_TO_INT[entry[_OPMODE_SIZE]]
     sfx = SIZE_SUFFIX[sz]
     ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
     if _opmode_ea_to_dn(entry):
@@ -1889,25 +1691,25 @@ def _decode_group_c(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 def _decode_add(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """ADD, ADDA, ADDX"""
-    _masks = _load_kb_encoding_masks()
-    _opm_tables = _load_kb_opmode_tables()
-    _fields = _load_kb_opword_field_map()
-    _dest_reg = _load_kb_dest_reg_field()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _opm_tables = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE
+    _fields = runtime_m68k_disasm.FIELD_MAPS[0]
+    _dest_reg = runtime_m68k_disasm.DEST_REG_FIELD
     _add_f = _fields["ADD"]
     reg = _xf(op, _dest_reg["ADD"])
     opmode = _xf(op, _add_f["OPMODE"])
     mode = _xf(op, _add_f["MODE"])
     ea_reg = _xf(op, _add_f["REGISTER"])
 
-    # ADDA â€” opmode 3/7 from KB opmode_table
+    # ADDA - opmode 3/7 from KB opmode_table
     _adda_opm = _opm_tables["ADDA"]
     if opmode in _adda_opm:
-        sz = _SIZE_LETTER_TO_INT[_adda_opm[opmode]["size"]]
+        sz = _SIZE_LETTER_TO_INT[_adda_opm[opmode][_OPMODE_SIZE]]
         ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
         sfx = SIZE_SUFFIX[sz]
         return _build_decoded_instruction_text(f"adda{sfx}", (ea_node, _register_node(f"a{reg}")))
 
-    # ADDX â€” R/M field from KB operand_modes
+    # ADDX - R/M field from KB operand_modes
     _m, _v = _masks["ADDX"]
     if (op & _m) == _v and (mode == 0 or mode == 1):
         _addx_f = _fields["ADDX"]
@@ -1915,7 +1717,7 @@ def _decode_add(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         rx = _xf(op, _addx_f["REGISTER Rx"])
         sz = _xf(op, _addx_f["SIZE"])
         sfx = SIZE_SUFFIX[sz]
-        _rm_lo, _rm_vals = _load_kb_rm_field()["ADDX"]
+        _rm_lo, _rm_vals = runtime_m68k_disasm.RM_FIELD["ADDX"]
         rm = (op >> _rm_lo) & 1
         if _rm_vals[rm] == "predec,predec":
             return _build_decoded_instruction_text(
@@ -1923,10 +1725,10 @@ def _decode_add(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         return _build_decoded_instruction_text(
             f"addx{sfx}", (_register_node(f"d{ry}"), _register_node(f"d{rx}")))
 
-    # ADD â€” size/direction from KB opmode_table
+    # ADD - size/direction from KB opmode_table
     _add_opm = _opm_tables["ADD"]
     entry = _add_opm[opmode]
-    sz = _SIZE_LETTER_TO_INT[entry["size"]]
+    sz = _SIZE_LETTER_TO_INT[entry[_OPMODE_SIZE]]
     sfx = SIZE_SUFFIX[sz]
     ea_node = _must_decode_ea_node(d, mode, ea_reg, sz, pc)
     if _opmode_ea_to_dn(entry):
@@ -1944,7 +1746,7 @@ def _decode_bfxxx(d: _Decoder, op: int, pc: int, mn: str,
       Dw:       flag bit at Dw.bit_hi; width spans Dw.bit_lo..WIDTH.bit_lo
       REGISTER: destination/source Dn (only present in BFEXTU/BFEXTS/BFFFO/BFINS)
     """
-    ext_fields = _load_kb_ext_field_map()[mn]  # hard-fail if missing
+    ext_fields = runtime_m68k_disasm.FIELD_MAPS[1][mn]  # hard-fail if missing
 
     # Do flag and offset field (from KB positions)
     do_hi, do_lo, _ = ext_fields["Do"]
@@ -1970,7 +1772,7 @@ def _decode_bfxxx(d: _Decoder, op: int, pc: int, mn: str,
     w_val = (ext >> w_total_lo) & ((1 << w_bits) - 1)
     w_str = f"d{w_val & 7}" if dw else ("32" if w_val == 0 else str(w_val))
 
-    _bf_opf = _load_kb_opword_field_map()[mn]
+    _bf_opf = runtime_m68k_disasm.FIELD_MAPS[0][mn]
     mode = _xf(op, _bf_opf["MODE"])
     reg = _xf(op, _bf_opf["REGISTER"])
     ea_node = _must_decode_ea_node(d, mode, reg, SIZE_LONG, pc)
@@ -1983,16 +1785,13 @@ def _decode_bfxxx(d: _Decoder, op: int, pc: int, mn: str,
     }
     bitfield_node = _bitfield_node(ea_node, bitfield_meta, bitfield)
 
-    # REGISTER field (Dn) â€” only present in BFEXTU/BFEXTS/BFFFO/BFINS
+    # REGISTER field (Dn) - only present in BFEXTU/BFEXTS/BFFFO/BFINS
     if "REGISTER" not in ext_fields:
         return _build_decoded_instruction_text(mn.lower(), (bitfield_node,))
     _, reg_lo, reg_w = ext_fields["REGISTER"]
     dn = (ext >> reg_lo) & ((1 << reg_w) - 1)
     # Operand order from KB forms: BFINS has Dn before <ea>, others have <ea> before Dn
-    kb, _ = _load_kb_payload()
-    bf_inst = next(i for i in kb if i["mnemonic"] == mn)
-    bf_ops = bf_inst["forms"][0]["operands"]
-    dn_first = bf_ops and bf_ops[0]["type"] == "dn"
+    dn_first = runtime_m68k_disasm.FORM_OPERAND_TYPES[mn][0][0] == "dn"
     if dn_first:
         return _build_decoded_instruction_text(mn.lower(), (_register_node(f"d{dn}"), bitfield_node))
     return _build_decoded_instruction_text(mn.lower(), (bitfield_node, _register_node(f"d{dn}")))
@@ -2000,45 +1799,45 @@ def _decode_bfxxx(d: _Decoder, op: int, pc: int, mn: str,
 
 def _decode_shift(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """ASd, LSd, ROd, ROXd, BFxxx"""
-    _shift_reg_f = _load_kb_opword_field_map()["ASL, ASR"]
+    _shift_reg_f = runtime_m68k_disasm.FIELD_MAPS[0]["ASL, ASR"]
     size_bits = _xf(op, _shift_reg_f["SIZE"])
 
     if size_bits == 3:
         # BFxxx instructions (68020+) live in group E with size_bits=3.
         # Mnemonic list and mask/val derived from KB.
-        _masks = _load_kb_encoding_masks()
-        _ext_names = _load_kb_ext_field_names()
-        for mn in _load_kb_bf_mnemonics():
+        _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+        _ext_names = runtime_m68k_disasm.EXT_FIELD_NAMES
+        for mn in runtime_m68k_disasm.BF_MNEMONICS:
             _m, _v = _masks[mn]
             if (op & _m) == _v:
                 return _decode_bfxxx(d, op, pc, mn, _ext_names[mn])
 
         # Memory shift (word only, shift by 1)
-        # Field positions from KB â€” memory shift uses encoding[1]
-        _sf = _load_kb_shift_fields()
-        _mem_shift_f = _kb_field_map(1)["ASL, ASR"]
+    # Field positions from KB - memory shift uses encoding[1]
+        _sf = runtime_m68k_disasm.SHIFT_FIELDS
+        _mem_shift_f = runtime_m68k_disasm.FIELD_MAPS[1]["ASL, ASR"]
         dr_val = _xf(op, _mem_shift_f["dr"])
-        direction = _sf["dr_values"][dr_val]
-        _, _mem_type_f = _load_kb_shift_type_fields()
+        direction = _sf[1][dr_val]
+        _, _mem_type_f = runtime_m68k_disasm.SHIFT_TYPE_FIELDS
         shift_type = _xf(op, _mem_type_f)
-        _shift_names = _load_kb_shift_names()
+        _shift_names = runtime_m68k_disasm.SHIFT_NAMES
         mode = _xf(op, _mem_shift_f["MODE"])
         reg = _xf(op, _mem_shift_f["REGISTER"])
         ea_node = _must_decode_ea_node(d, mode, reg, SIZE_WORD, pc)
         return _build_decoded_instruction_text(
             f"{_shift_names[shift_type]}{direction}.w", (ea_node,))
 
-    # Register shift â€” field positions from KB
-    _sf = _load_kb_shift_fields()
-    _shift_f = _load_kb_opword_field_map()["ASL, ASR"]
+    # Register shift - field positions from KB
+    _shift_direction_field, _shift_directions, _shift_zero_means = runtime_m68k_disasm.SHIFT_FIELDS
+    _shift_f = runtime_m68k_disasm.FIELD_MAPS[0]["ASL, ASR"]
     dr_val = _xf(op, _shift_f["dr"])
-    direction = _sf["dr_values"][dr_val]
-    _reg_type_f, _ = _load_kb_shift_type_fields()
+    direction = _shift_directions[dr_val]
+    _reg_type_f, _ = runtime_m68k_disasm.SHIFT_TYPE_FIELDS
     shift_type = _xf(op, _reg_type_f)
-    _shift_names = _load_kb_shift_names()
+    _shift_names = runtime_m68k_disasm.SHIFT_NAMES
     sfx = SIZE_SUFFIX[size_bits]
     dreg = _xf(op, _shift_f["REGISTER"])
-    _shift_dest = _load_kb_dest_reg_field()
+    _shift_dest = runtime_m68k_disasm.DEST_REG_FIELD
     count_or_reg = _xf(op, _shift_dest["ASL, ASR"])
 
     ir_val = _xf(op, _shift_f["i/r"])
@@ -2048,8 +1847,8 @@ def _decode_shift(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             f"{_shift_names[shift_type]}{direction}{sfx}",
             (_register_node(f"d{count_or_reg}"), _register_node(f"d{dreg}")))
     else:
-        # Shift by immediate (i/r = 0); count 0 â†’ zero_means from KB
-        count = count_or_reg if count_or_reg != 0 else _sf["zero_means"]
+        # Shift by immediate (i/r = 0); count 0 -> zero_means from KB
+        count = count_or_reg if count_or_reg != 0 else _shift_zero_means
         return _build_decoded_instruction_text(
             f"{_shift_names[shift_type]}{direction}{sfx}",
             (_immediate_node(count, f"#{count}"), _register_node(f"d{dreg}")))
@@ -2058,24 +1857,20 @@ def _decode_shift(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
 # --- Line-F (coprocessor / 68040) ---
 
-@lru_cache(maxsize=1)
-def _load_kb_cpid_field() -> tuple[int, int]:
-    return _runtime()["cpid_field"]
-
 
 def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
     """Line-F: coprocessor (FPU/MMU), MOVE16, etc."""
-    _masks = _load_kb_encoding_masks()
-    _cpid_lo, _cpid_w = _load_kb_cpid_field()
+    _masks = runtime_m68k_disasm.ENCODING_MASKS[0]
+    _cpid_lo, _cpid_w = runtime_m68k_disasm.CPID_FIELD
     cpid = (op >> _cpid_lo) & ((1 << _cpid_w) - 1)
 
-    # MOVE16 (68040) â€” separate encoding masks for postincrement vs absolute forms
-    _m16_pi_m, _m16_pi_v = _load_kb_encoding_masks_idx(0)["MOVE16"]  # enc[0] postincrement
+    # MOVE16 (68040) - separate encoding masks for postincrement vs absolute forms
+    _m16_pi_m, _m16_pi_v = runtime_m68k_disasm.ENCODING_MASKS[0]["MOVE16"]  # enc[0] postincrement
     if (op & _m16_pi_m) == _m16_pi_v:
-        _m16f0 = _kb_field_map(0)["MOVE16"]
+        _m16f0 = runtime_m68k_disasm.FIELD_MAPS[0]["MOVE16"]
         ax = _xf(op, _m16f0["REGISTER Ax"])
         ext = d.read_u16()
-        _m16f1 = _kb_field_map(1)["MOVE16"]
+        _m16f1 = runtime_m68k_disasm.FIELD_MAPS[1]["MOVE16"]
         ay = _xf(ext, _m16f1["REGISTER Ay"])
         return _build_decoded_instruction_text(
             "move16",
@@ -2092,24 +1887,24 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                 ),
             ),
         )
-    _m16_abs_masks = _load_kb_encoding_masks_idx(2)
+    _m16_abs_masks = runtime_m68k_disasm.ENCODING_MASKS[2]
     if "MOVE16" in _m16_abs_masks:
         _m16a_m, _m16a_v = _m16_abs_masks["MOVE16"]
         if (op & _m16a_m) == _m16a_v:
             # OPMODE and REGISTER from KB encoding[2]
-            _fmap = _kb_field_map(2)["MOVE16"]
+            _fmap = runtime_m68k_disasm.FIELD_MAPS[2]["MOVE16"]
             opmode = _xf(op, _fmap["OPMODE"])
             an = _xf(op, _fmap["REGISTER Ay"])
             addr = d.read_u32()
             # Operand order from KB opmode_table
-            _m16_opm = _load_kb_opmode_tables()["MOVE16"]
+            _m16_opm = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE["MOVE16"]
             entry = _m16_opm[opmode]
             # Source field tells us which operand is first
-            src = entry["source"]
+            src = entry[_OPMODE_SOURCE]
             postinc = "+" in src
             abs_first = "(xxx)" in src
             if abs_first:
-                reg_postinc = "+" in entry["destination"]
+                reg_postinc = "+" in entry[_OPMODE_DESTINATION]
                 reg_node = (
                     DecodedOperandNode(
                         kind="postincrement",
@@ -2146,8 +1941,8 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
     # MMU (cpid=0): PRESTORE/PSAVE/PBcc/PDBcc/PScc/PTRAPcc/PFLUSH/PFLUSHR
     if cpid == 0:
-        _opf = _load_kb_opword_field_map()
-        pmmu_cc = _load_disasm_meta()["pmmu_condition_codes"]
+        _opf = runtime_m68k_disasm.FIELD_MAPS[0]
+        pmmu_cc = runtime_m68k_disasm.PMMU_CONDITION_CODES
 
         # PRESTORE
         _m, _v = _masks["PRESTORE"]
@@ -2167,7 +1962,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             ea_node = _must_decode_ea_node(d, mode, reg, SIZE_LONG, pc)
             return _build_decoded_instruction_text("psave", (ea_node,))
 
-        # PBcc â€” KB mask/val and fields
+            # PBcc - KB mask/val and fields
         _pbcc_m, _pbcc_v = _masks["PBcc"]
         if (op & _pbcc_m) == _pbcc_v:
             _pbcc_f = _opf["PBcc"]
@@ -2189,7 +1984,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             _pdbcc_f = _opf["PDBcc"]
             reg = _xf(op, _pdbcc_f["COUNT REGISTER"])
             ext = d.read_u16()
-            _pdbcc_ef = _load_kb_ext_field_map()["PDBcc"]
+            _pdbcc_ef = runtime_m68k_disasm.FIELD_MAPS[1]["PDBcc"]
             cond = _xf(ext, _pdbcc_ef["MC68851 CONDITION"])
             cc = pmmu_cc[cond] if cond < len(pmmu_cc) else f"#{cond}"
             disp = d.read_i16()
@@ -2198,17 +1993,17 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
         # PTRAPcc (more specific mask, check before PScc; validate opmode)
         _ptrap_m, _ptrap_v = _masks["PTRAPcc"]
-        _ptrap_opm = _load_kb_opmode_tables()["PTRAPcc"]
+        _ptrap_opm = runtime_m68k_disasm.OPMODE_TABLES_BY_VALUE["PTRAPcc"]
         if (op & _ptrap_m) == _ptrap_v:
             _ptrap_f = _opf["PTRAPcc"]
             opmode = _xf(op, _ptrap_f["OPMODE"])
             if opmode in _ptrap_opm:
                 ext = d.read_u16()
-                _ptrap_ef = _load_kb_ext_field_map()["PTRAPcc"]
+                _ptrap_ef = runtime_m68k_disasm.FIELD_MAPS[1]["PTRAPcc"]
                 cond = _xf(ext, _ptrap_ef["MC68851 CONDITION"])
                 cc = pmmu_cc[cond] if cond < len(pmmu_cc) else f"#{cond}"
                 entry = _ptrap_opm[opmode]
-                sz = entry["size"]
+                sz = entry[_OPMODE_SIZE]
                 if sz == "w":
                     imm = d.read_u16()
                     return _build_decoded_instruction_text(
@@ -2227,7 +2022,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             mode = _xf(op, _pscc_f["MODE"])
             reg = _xf(op, _pscc_f["REGISTER"])
             ext = d.read_u16()
-            _pscc_ef = _load_kb_ext_field_map()["PScc"]
+            _pscc_ef = runtime_m68k_disasm.FIELD_MAPS[1]["PScc"]
             cond = _xf(ext, _pscc_ef["MC68851 CONDITION"])
             cc = pmmu_cc[cond] if cond < len(pmmu_cc) else f"#{cond}"
             ea_node = _must_decode_ea_node(d, mode, reg, SIZE_BYTE, pc)
@@ -2238,10 +2033,10 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
         mode = _xf(op, _pfl_f["MODE"])
         reg = _xf(op, _pfl_f["REGISTER"])
         ext = d.read_u16()
-        _ext_masks = _load_kb_ext_encoding_masks()
+        _ext_masks = runtime_m68k_disasm.ENCODING_MASKS[1]
         _pf_m, _pf_v = _ext_masks["PFLUSH PFLUSHA"]
         if (ext & _pf_m) == _pf_v:
-            _ext_fields = _load_kb_ext_field_map()["PFLUSH PFLUSHA"]
+            _ext_fields = runtime_m68k_disasm.FIELD_MAPS[1]["PFLUSH PFLUSHA"]
             pflush_mode = _xf(ext, _ext_fields["MODE"])
             pflush_mask = _xf(ext, _ext_fields["MASK"])
             fc = _xf(ext, _ext_fields["FC"])
@@ -2260,7 +2055,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
 
     # FPU (cpid=1): FRESTORE/FSAVE
     if cpid == 1:
-        _opf = _load_kb_opword_field_map()
+        _opf = runtime_m68k_disasm.FIELD_MAPS[0]
 
         _m, _v = _masks["FRESTORE"]
         if (op & _m) == _v:
@@ -2278,7 +2073,7 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
             ea_node = _must_decode_ea_node(d, mode, reg, SIZE_LONG, pc)
             return _build_decoded_instruction_text("fsave", (ea_node,))
 
-        # Other FPU instructions (cpGEN etc.) â€” not yet decoded
+        # Other FPU instructions (cpGEN etc.) - not yet decoded
         raise DecodeError(f"unsupported FPU command: op=${op:04x}")
 
     raise DecodeError(f"unsupported line-F op=${op:04x}")

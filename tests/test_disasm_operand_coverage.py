@@ -3,8 +3,8 @@
 import tempfile
 from collections import defaultdict
 
+from m68k.instruction_kb import find_kb_entry
 from m68k.m68k_disasm import disassemble
-from m68k.kb_util import KB
 from disasm.operands import build_instruction_semantic_operands
 from disasm.types import HunkDisassemblySession
 from tests.test_m68k_roundtrip import ALL_CASES, _batch_assemble
@@ -38,7 +38,6 @@ def _coverage_session() -> HunkDisassemblySession:
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -49,7 +48,7 @@ def _coverage_session() -> HunkDisassemblySession:
 
 
 def test_kb_find_resolves_bare_mnemonic_via_asm_syntax_index():
-    assert KB().find("PFLUSHA")["mnemonic"] == "PFLUSH PFLUSHA"
+    assert find_kb_entry("PFLUSHA") == "PFLUSH PFLUSHA"
 
 
 def test_kb_generated_cases_build_canonical_semantic_operands():

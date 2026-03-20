@@ -16,25 +16,27 @@ Usage:
 import struct
 import sys
 
-from .m68k_executor import BasicBlock, _extract_branch_target
-from .kb_util import (KB, xf, parse_reg_name, read_string_at,
-                      decode_destination, decode_instruction_operands)
-from .runtime_kb import load_os_runtime_kb
+from knowledge import runtime_m68k_analysis
+from knowledge import runtime_m68k_decode
+from knowledge import runtime_os
+
+from .instruction_kb import find_kb_entry, instruction_flow, instruction_kb
+from .instruction_decode import decode_inst_destination, decode_inst_operands, xf
+from .instruction_primitives import extract_branch_target
+from .m68k_executor import BasicBlock
+from .registers import parse_reg_name
+from .strings import read_string_at
 
 
-def load_os_kb() -> dict:
+def load_os_kb():
     """Load the Amiga OS runtime KB."""
-    return load_os_runtime_kb()
+    return runtime_os
 
 
-def _decode_inst(kb: KB, inst):
-    inst_kb = kb.instruction_kb(inst)
-    if not inst.operand_size:
-        raise KeyError(
-            f"Instruction at ${inst.offset:06x} is missing operand_size")
-    decoded = decode_instruction_operands(
-        inst.raw, inst_kb, kb.meta, inst.operand_size, inst.offset)
-    return inst_kb, decoded
+def _decode_inst(inst):
+    mnemonic = instruction_kb(inst)
+    decoded = decode_inst_operands(inst, mnemonic)
+    return mnemonic, decoded
 
 
 def _reg_name(mode: str, reg: int) -> str:
@@ -75,6 +77,7 @@ def _decoded_dest_reg(decoded) -> str | None:
 _SENTINEL_SP = 0x7F000000
 _SENTINEL_ALLOC_BASE = 0x80000000
 _SENTINEL_ALLOC_STEP = 0x00100000  # 1MB per allocation
+_FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
 
 
 def get_platform_config() -> dict:
@@ -86,7 +89,7 @@ def get_platform_config() -> dict:
         initial_sp: int (sentinel SP for abstract stack tracking)
     """
     os_kb = load_os_kb()
-    meta = os_kb["_meta"]
+    meta = os_kb.META
     cc = meta["calling_convention"]
 
     scratch = [parse_reg_name(r) for r in cc["scratch_regs"]]
@@ -118,7 +121,7 @@ def get_platform_config() -> dict:
 
 def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
                          cpu_state, code: bytes,
-                         os_kb: dict | None = None,
+                         os_kb=None,
                          platform: dict | None = None) -> dict | None:
     """Determine the effects of a library call on register state.
 
@@ -140,7 +143,7 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
     if a6_lib is None:
         return None
 
-    lib_data = os_kb["libraries"].get(a6_lib)
+    lib_data = os_kb.LIBRARIES.get(a6_lib)
     if lib_data is None:
         return None
 
@@ -210,9 +213,7 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
 
     Returns: {offset: {"function": "Output", "name": "file", ...}}
     """
-    kb = KB()
     result = {}
-    base_reg_name = f"a{base_reg}"
 
     for call in lib_calls:
         output = call.get("output")
@@ -241,15 +242,14 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
         def _scan_for_store(instructions):
             """Scan instructions for ret_reg -> d(base_reg). Returns offset or None."""
             for inst in instructions:
-                ikb, decoded = _decode_inst(kb, inst)
-                if ikb and ikb.get("operation_type") == "move":
+                ikb, decoded = _decode_inst(inst)
+                if ikb and runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE:
                     if (_decoded_source_reg(decoded) == ret_reg
                             and (offset := _base_disp_operand(
                                 decoded.get("dst_op"), base_reg)) is not None):
                         return offset
                 # Stop if ret_reg is overwritten
-                dst = decode_destination(
-                    inst.raw, ikb, kb.meta, inst.operand_size, inst.offset)
+                dst = decode_inst_destination(inst, ikb)
                 if dst == ret_key:
                     return None
             return None
@@ -293,7 +293,6 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
 
     Returns: {app_offset: {"name": str, "function": str, "type": str, ...}}
     """
-    kb = KB()
     result = {}
 
     def _trace_reg_forward(instructions, src_reg, info):
@@ -306,10 +305,10 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
         tracked = {src_reg}  # set of registers carrying the value
         for inst in instructions:
             copied_to = None  # register added by copy in this instruction
-            ikb, decoded = _decode_inst(kb, inst)
+            ikb, decoded = _decode_inst(inst)
 
             # Check for store to d(base_reg) from any tracked register
-            if ikb and ikb.get("operation_type") == "move":
+            if ikb and runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE:
                 src_name = _decoded_source_reg(decoded)
                 if src_name in tracked:
                     offset = _base_disp_operand(decoded.get("dst_op"), base_reg)
@@ -324,8 +323,7 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
 
             # Check if any tracked register is overwritten
             # (skip the register we just added via copy)
-            dst = decode_destination(
-                inst.raw, ikb, kb.meta, inst.operand_size, inst.offset)
+            dst = decode_inst_destination(inst, ikb)
             if dst:
                 dst_name = _reg_name(dst[0], dst[1])
                 if dst_name in tracked and dst_name != copied_to:
@@ -402,11 +400,10 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
             # Walk backward to find where this register was loaded
             for i in range(call_idx - 1, -1, -1):
                 inst = block.instructions[i]
-                ikb, decoded = _decode_inst(kb, inst)
+                ikb, decoded = _decode_inst(inst)
 
                 # Check if this instruction writes to the arg register
-                dst = decode_destination(
-                    inst.raw, ikb, kb.meta, inst.operand_size, inst.offset)
+                dst = decode_inst_destination(inst, ikb)
                 if not dst:
                     continue
                 mode_str = "dn" if reg[0] == "d" else "an"
@@ -442,7 +439,6 @@ def annotate_call_arguments(blocks: dict[int, BasicBlock],
 
     Returns: {inst_offset: {"arg_name": "file", "function": "Write", ...}}
     """
-    kb = KB()
     result = {}
 
     for call in lib_calls:
@@ -476,10 +472,9 @@ def annotate_call_arguments(blocks: dict[int, BasicBlock],
             if not pending:
                 break
             inst = block.instructions[i]
-            ikb, _ = _decode_inst(kb, inst)
+            ikb, _ = _decode_inst(inst)
 
-            dst = decode_destination(inst.raw, ikb, kb.meta,
-                                     inst.operand_size, inst.offset)
+            dst = decode_inst_destination(inst, ikb)
             if dst and dst in pending:
                 inp = pending.pop(dst)
                 result[inst.offset] = {
@@ -517,8 +512,7 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
 
     Returns: {inst_offset: {reg: {"struct": "IS", "fields": {14: "IS_DATA", ...}}}}
     """
-    kb = KB()
-    structs = os_kb["structs"]
+    structs = os_kb.STRUCTS
     result = {}
 
     for call in lib_calls:
@@ -555,10 +549,9 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
             setter_idx = 0
             for j in range(call_idx - 1, -1, -1):
                 jinst = block.instructions[j]
-                inst_kb = kb.instruction_kb(jinst)
+                mnemonic = instruction_kb(jinst)
                 sz = jinst.operand_size
-                dst = decode_destination(
-                    jinst.raw, inst_kb, kb.meta, sz, jinst.offset)
+                dst = decode_inst_destination(jinst, mnemonic)
                 if dst is not None and dst[0] == reg_mode and dst[1] == reg_num:
                     setter_idx = j
                     break
@@ -582,7 +575,7 @@ def _build_lvo_lookup(os_kb: dict) -> dict:
     """
     by_lib_lvo = {}
     by_lvo = {}
-    for lib_name, lib_data in os_kb["libraries"].items():
+    for lib_name, lib_data in os_kb.LIBRARIES.items():
         for lvo_str, func_name in lib_data["lvo_index"].items():
             lvo = int(lvo_str)
             func = lib_data["functions"][func_name]
@@ -659,8 +652,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
          "lvo": int, "no_return": bool,
          "inputs": [...], "output": {...}}
     """
-    kb = KB()
-    os_meta = os_kb["_meta"]
+    os_meta = os_kb.META
     exec_base_addr = os_meta["exec_base_addr"]["address"]
     exec_lib_name = os_meta["exec_base_addr"]["library"]
     base_mode, base_reg_num = parse_reg_name(
@@ -675,24 +667,22 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
     base_info = platform.get("initial_base_reg")
     app_base = base_info[1] if base_info else None
 
-    absw_enc = kb.ea_enc["absw"]
-    disp_enc = kb.ea_enc["disp"]
-    index_enc = kb.ea_enc["index"]
-    addr_mask = (1 << (kb.meta["size_byte_count"]["l"] * 8)) - 1
-    brief_ext = {f["name"]: (f["bit_hi"], f["bit_lo"],
-                             f["bit_hi"] - f["bit_lo"] + 1)
-                 for f in kb.meta["ea_brief_ext_word"]}
+    absw_enc = runtime_m68k_decode.EA_MODE_ENCODING["absw"]
+    disp_enc = runtime_m68k_decode.EA_MODE_ENCODING["disp"]
+    index_enc = runtime_m68k_decode.EA_MODE_ENCODING["index"]
+    addr_mask = runtime_m68k_analysis.ADDR_MASK
+    brief_ext = runtime_m68k_decode.EA_BRIEF_FIELDS
 
-    movea_kb = kb.find("movea")
-    jsr_kb = kb.find("jsr")
+    movea_kb = find_kb_entry("movea")
+    jsr_kb = find_kb_entry("jsr")
     if movea_kb is None:
         raise KeyError("MOVEA not found in M68K KB")
     if jsr_kb is None:
         raise KeyError("JSR not found in M68K KB")
 
-    movea_ea_spec = kb.ea_field_spec(movea_kb)
-    movea_dst_spec = kb.dst_reg_field(movea_kb)
-    jsr_ea_spec = kb.ea_field_spec(jsr_kb)
+    movea_ea_spec = runtime_m68k_decode.EA_FIELD_SPECS.get(movea_kb)
+    movea_dst_spec = runtime_m68k_decode.DEST_REG_FIELD.get(movea_kb)
+    jsr_ea_spec = runtime_m68k_decode.EA_FIELD_SPECS.get(jsr_kb)
     if movea_ea_spec is None:
         raise KeyError("MOVEA encoding lacks MODE/REGISTER EA fields")
     if movea_dst_spec is None:
@@ -732,16 +722,15 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                 a6_lib = a6_val.tag["library_base"]
 
         for inst in block.instructions:
-            ikb = kb.instruction_kb(inst)
-
-            flow = ikb.get("pc_effects", {}).get("flow", {})
+            ikb = instruction_kb(inst)
+            flow_type, _ = instruction_flow(inst)
 
             # Detect library base load into the base register.
             # 1. MOVEA.L ($N).W,A6 — ExecBase from absolute address
             # 2. MOVEA.L d(An),A6 — library base from tagged memory
-            if (ikb.get("operation_type") == "move"
-                    and ikb.get("source_sign_extend")
-                    and len(inst.raw) >= kb.opword_bytes + 2):
+            if (runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE
+                    and ikb in runtime_m68k_analysis.SOURCE_SIGN_EXTEND
+                    and len(inst.raw) >= runtime_m68k_decode.OPWORD_BYTES + 2):
                 opcode = struct.unpack_from(">H", inst.raw, 0)[0]
                 src_mode = xf(opcode, movea_mode_f)
                 src_reg = xf(opcode, movea_reg_f)
@@ -751,7 +740,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                     if (src_mode == absw_enc[0]
                             and src_reg == absw_enc[1]):
                         addr_val = struct.unpack_from(
-                            ">h", inst.raw, kb.opword_bytes)[0]
+                            ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
                         addr_val &= addr_mask
                         if addr_val == exec_base_addr:
                             a6_lib = exec_lib_name
@@ -759,7 +748,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                             and block_addr in exit_states
                             and app_base is not None):
                         disp_val = struct.unpack_from(
-                            ">h", inst.raw, kb.opword_bytes)[0]
+                            ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
                         _, blk_mem = exit_states[block_addr]
                         mem_addr = (app_base + disp_val) & addr_mask
                         tag_val = blk_mem.read(mem_addr, "l")
@@ -768,12 +757,12 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                             a6_lib = tag_val.tag["library_base"]
 
             # Detect library call: JSR through base_reg
-            if flow.get("type") != "call":
+            if flow_type != _FLOW_CALL:
                 continue
-            target = _extract_branch_target(inst, inst.offset)
+            target = extract_branch_target(inst, inst.offset)
             if target is not None:
                 continue  # resolved — not a library call
-            if len(inst.raw) < kb.opword_bytes + 2:
+            if len(inst.raw) < runtime_m68k_decode.OPWORD_BYTES + 2:
                 continue
 
             opcode = struct.unpack_from(">H", inst.raw, 0)[0]
@@ -783,7 +772,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
             # Pattern 1: JSR d(A6) — displacement EA, LVO is disp
             if ea_mode == disp_enc[0] and ea_reg == base_reg_num:
                 disp = struct.unpack_from(
-                    ">h", inst.raw, kb.opword_bytes)[0]
+                    ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
                 call_info = {"addr": inst.offset, "block": block_addr,
                              "lvo": disp}
                 if a6_lib:
@@ -798,7 +787,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
             # Pattern 2: JSR 0(A6,Dn.w) — indexed EA, LVO in index reg
             if ea_mode == index_enc[0] and ea_reg == base_reg_num:
                 ext = struct.unpack_from(
-                    ">H", inst.raw, kb.opword_bytes)[0]
+                    ">H", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
                 idx_da = xf(ext, brief_ext["D/A"])
                 idx_reg = xf(ext, brief_ext["REGISTER"])
                 idx_wl = xf(ext, brief_ext["W/L"])
@@ -816,7 +805,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                     if idx_val.is_known:
                         v = idx_val.concrete
                         idx_size = "l" if idx_wl == 1 else "w"
-                        nbits = kb.meta["size_byte_count"][idx_size] * 8
+                        nbits = runtime_m68k_decode.SIZE_BYTE_COUNT[idx_size] * 8
                         mask = (1 << nbits) - 1
                         v = v & mask
                         if v >= (1 << (nbits - 1)):
@@ -856,7 +845,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                 continue
             v = idx_val.concrete
             idx_size = "l" if idx_wl == 1 else "w"
-            nbits = kb.meta["size_byte_count"][idx_size] * 8
+            nbits = runtime_m68k_decode.SIZE_BYTE_COUNT[idx_size] * 8
             mask = (1 << nbits) - 1
             v = v & mask
             if v >= (1 << (nbits - 1)):

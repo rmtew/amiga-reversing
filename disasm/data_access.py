@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from m68k.kb_util import KB, decode_instruction_operands
+from knowledge import runtime_m68k_decode
+
+from m68k.instruction_decode import decode_inst_operands
 
 
 def collect_data_access_sizes(blocks: dict, exit_states: dict) -> dict[int, int]:
     """Collect concrete data access sizes from analyzed code blocks."""
-    kb = KB()
     sizes = {}
-    size_map = kb.size_bytes
+    size_map = runtime_m68k_decode.SIZE_BYTE_COUNT
     num_addr_regs = len(exit_states[next(iter(exit_states))][0].a) if exit_states else 8
 
     for addr, block in blocks.items():
@@ -21,9 +22,7 @@ def collect_data_access_sizes(blocks: dict, exit_states: dict) -> dict[int, int]
             byte_size = size_map.get(inst.operand_size)
             if not byte_size:
                 continue
-            inst_kb = kb.instruction_kb(inst)
-            decoded = decode_instruction_operands(
-                inst.raw, inst_kb, kb.meta, inst.operand_size, inst.offset)
+            decoded = decode_inst_operands(inst)
 
             for op in (decoded.get("ea_op"), decoded.get("dst_op")):
                 if op is None or op.reg is None:

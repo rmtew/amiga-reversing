@@ -15,269 +15,43 @@ import struct
 import sys
 from collections import deque
 from dataclasses import dataclass, field
+
+from knowledge import runtime_m68k_analysis
+from knowledge import runtime_m68k_executor
+
 from .decode_errors import DecodeError
-from .ea_extension import parse_full_extension
+from .instruction_kb import instruction_kb
+from . import instruction_primitives as _instruction_primitives
 from .m68k_compute import _to_signed
 from .m68k_disasm import disassemble, Instruction, _Decoder, _decode_one
-from .runtime_kb import load_m68k_runtime_kb
+from .operand_resolution import resolve_ea, _resolve_full_extension_ea
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────
 
-_KB_CACHE = {}
-
-def _load_kb():
-    if _KB_CACHE:
-        return _KB_CACHE["by_name"], _KB_CACHE["list"], _KB_CACHE["meta"]
-    payload = load_m68k_runtime_kb()
-    instructions = payload["instructions"]
-    meta = payload["meta"]
-    by_name = payload["by_name"]
-
-    _KB_CACHE["by_name"] = by_name
-    _KB_CACHE["list"] = instructions
-    _KB_CACHE["meta"] = meta
-    return by_name, instructions, meta
+_SIZE_BYTE_COUNT = runtime_m68k_analysis.SIZE_BYTE_COUNT
+_OPWORD_BYTES = runtime_m68k_analysis.OPWORD_BYTES
+_OPMODE_RX_MODE = 5
+_OPMODE_RY_MODE = 6
+_FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
+_FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
+_FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
+_FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
+_FLOW_SEQUENTIAL = runtime_m68k_analysis.FlowType.SEQUENTIAL
+_FLOW_TRAP = runtime_m68k_analysis.FlowType.TRAP
 
 
 # ── Module-level KB singletons (avoid per-call cache overhead) ────────────
 
-_KB_BY_NAME, _KB_LIST, _KB_META = _load_kb()
-_KB_BY_NAME_UPPER = {name.upper(): inst for name, inst in _KB_BY_NAME.items()}
-
-# Size suffixes for mnemonic extraction (e.g. (".b", ".w", ".l", ".s"))
-_SIZE_SUFFIXES = tuple("." + s for s in _KB_META["size_suffixes"])
-_DEFAULT_SIZE = _KB_META["default_operand_size"]
-
-# CC lookup data
-_CC_TEST_DEFS = _KB_META["cc_test_definitions"]
-_CC_ALIASES = _KB_META["cc_aliases"]
-_CC_FAMILIES = _KB_META["_cc_families"]
-_ASM_MNEMONIC_INDEX = {
-    mnemonic.upper(): kb_name
-    for mnemonic, kb_name in _KB_META["_asm_mnemonic_index"].items()
-}
-
-# EA mode reverse lookup: (mode_int, reg_int) -> mode_name
-_EA_REVERSE = {}
-for _name, (_m, _r) in _KB_META["ea_mode_encoding"].items():
-    if _r is not None:
-        _EA_REVERSE[(_m, _r)] = _name
-    else:
-        # Register-agnostic modes: set for all 8 register values
-        for _i in range(8):
-            _EA_REVERSE.setdefault((_m, _i), _name)
-
-# Brief extension word field specs (pre-computed tuple lookups)
-_BRIEF_EXT_FIELDS = {}
-for _f in _KB_META["ea_brief_ext_word"]:
-    _BRIEF_EXT_FIELDS[_f["name"]] = (_f["bit_hi"], _f["bit_lo"], _f["bit_hi"] - _f["bit_lo"] + 1)
-
-# Pre-computed size byte counts
-_SIZE_BYTE_COUNT = _KB_META["size_byte_count"]
-_OPWORD_BYTES = _KB_META["opword_bytes"]
-
-# Clean up loop variables from module scope
-del _name, _m, _r, _i, _f
 
 
-# ── Structured operand representation ─────────────────────────────────────
+# ── Shared decode primitives ─────────────────────────────────────────────
 
-@dataclass
-class Operand:
-    """Structured operand decoded from opcode bits."""
-    mode: str          # EA mode name from KB: "dn", "an", "ind", "postinc", etc.
-    reg: int | None    # register number (0-7) for modes that use one
-    value: int | None  # immediate value, displacement, or absolute address
-    index_reg: int | None = None      # index register number
-    index_is_addr: bool = False       # True if index is An, False if Dn
-    index_size: str = "w"             # "w" or "l" for index register
-    size: str | None = None           # operand size for immediates
-    index_scale: int = 1
-    full_extension: bool = False
-    memory_indirect: bool = False
-    postindexed: bool = False
-    base_suppressed: bool = False
-    index_suppressed: bool = False
-    base_displacement: int | None = None
-    outer_displacement: int | None = None
-
-
-@dataclass
-class DecodedOps:
-    """Structured operands decoded from instruction opcode bytes."""
-    ea_op: Operand | None = None        # source EA from lower MODE/REGISTER
-    dst_op: Operand | None = None       # destination EA from upper MODE/REGISTER (MOVE)
-    reg_num: int | None = None          # register from upper REGISTER field
-    ea_is_source: bool | None = None    # from OPMODE table
-    imm_val: int | None = None          # immediate from DATA field or extension words
-    opcode: int = 0                     # raw opcode word
-
-
-# ── Operand decoder ───────────────────────────────────────────────────────
-
-def _decode_ea(data: bytes, pos: int, mode: int, reg: int,
-               op_size: str, pc_offset: int) -> tuple[Operand, int]:
-    """Decode an effective address from opcode bits + extension words.
-
-    Returns (Operand, new_pos) where new_pos accounts for consumed extension words.
-    Uses KB ea_mode_encoding to map (mode, reg) to mode name.
-    """
-    mode_name = _EA_REVERSE.get((mode, reg))
-    if mode_name is None:
-        raise ValueError(f"Unknown EA mode={mode} reg={reg}")
-
-    if mode_name == "dn":
-        return Operand(mode="dn", reg=reg, value=None), pos
-    elif mode_name == "an":
-        return Operand(mode="an", reg=reg, value=None), pos
-    elif mode_name == "ind":
-        return Operand(mode="ind", reg=reg, value=None), pos
-    elif mode_name == "postinc":
-        return Operand(mode="postinc", reg=reg, value=None), pos
-    elif mode_name == "predec":
-        return Operand(mode="predec", reg=reg, value=None), pos
-    elif mode_name == "disp":
-        if pos + 2 > len(data):
-            raise ValueError("Truncated displacement extension word")
-        disp = struct.unpack_from(">h", data, pos)[0]
-        return Operand(mode="disp", reg=reg, value=disp), pos + 2
-    elif mode_name == "index":
-        if pos + 2 > len(data):
-            raise ValueError("Truncated index extension word")
-        ext = struct.unpack_from(">H", data, pos)[0]
-        if ext & 0x0100:
-            info, pos = parse_full_extension(
-                ext, data, pos + 2, _KB_META,
-                base_register=f"a{reg}", pc_offset=None)
-            return Operand(
-                mode="index",
-                reg=reg,
-                value=info["base_displacement"],
-                index_reg=info["index_reg_num"],
-                index_is_addr=info["index_is_addr"],
-                index_size=info["index_size"] or "w",
-                index_scale=info["index_scale"] or 1,
-                full_extension=True,
-                memory_indirect=bool(info["memory_indirect"]),
-                postindexed=bool(info["postindexed"]),
-                base_suppressed=bool(info["base_suppressed"]),
-                index_suppressed=bool(info["index_suppressed"]),
-                base_displacement=info["base_displacement"],
-                outer_displacement=info["outer_displacement"],
-            ), pos
-        bf = _BRIEF_EXT_FIELDS
-        xreg = _xf(ext, bf["REGISTER"])
-        xtype_bit = _xf(ext, bf["D/A"])
-        xsize_bit = _xf(ext, bf["W/L"])
-        disp_raw = _xf(ext, bf["DISPLACEMENT"])
-        disp_width = bf["DISPLACEMENT"][2]
-        if disp_raw & (1 << (disp_width - 1)):
-            disp_raw -= (1 << disp_width)
-        return Operand(
-            mode="index", reg=reg, value=disp_raw,
-            index_reg=xreg, index_is_addr=(xtype_bit == 1),
-            index_size="l" if xsize_bit == 1 else "w"
-        ), pos + 2
-    elif mode_name == "absw":
-        if pos + 2 > len(data):
-            raise ValueError("Truncated abs.w extension word")
-        addr = struct.unpack_from(">h", data, pos)[0]
-        # Sign-extend to 32 bits (abs.w is sign-extended)
-        addr &= 0xFFFFFFFF
-        return Operand(mode="absw", reg=None, value=addr), pos + 2
-    elif mode_name == "absl":
-        if pos + 4 > len(data):
-            raise ValueError("Truncated abs.l extension words")
-        addr = struct.unpack_from(">I", data, pos)[0]
-        return Operand(mode="absl", reg=None, value=addr), pos + 4
-    elif mode_name == "pcdisp":
-        if pos + 2 > len(data):
-            raise ValueError("Truncated PC displacement")
-        disp = struct.unpack_from(">h", data, pos)[0]
-        # PC-relative: target = PC + displacement (PC = instruction addr + opword)
-        target = pc_offset + _OPWORD_BYTES + disp
-        return Operand(mode="pcdisp", reg=None, value=target), pos + 2
-    elif mode_name == "pcindex":
-        if pos + 2 > len(data):
-            raise ValueError("Truncated PC index extension word")
-        ext = struct.unpack_from(">H", data, pos)[0]
-        if ext & 0x0100:
-            info, pos = parse_full_extension(
-                ext, data, pos + 2, _KB_META,
-                base_register="pc", pc_offset=pc_offset)
-            return Operand(
-                mode="pcindex",
-                reg=None,
-                value=info["base_target"],
-                index_reg=info["index_reg_num"],
-                index_is_addr=info["index_is_addr"],
-                index_size=info["index_size"] or "w",
-                index_scale=info["index_scale"] or 1,
-                full_extension=True,
-                memory_indirect=bool(info["memory_indirect"]),
-                postindexed=bool(info["postindexed"]),
-                base_suppressed=bool(info["base_suppressed"]),
-                index_suppressed=bool(info["index_suppressed"]),
-                base_displacement=info["base_displacement"],
-                outer_displacement=info["outer_displacement"],
-            ), pos
-        bf = _BRIEF_EXT_FIELDS
-        xreg = _xf(ext, bf["REGISTER"])
-        xtype_bit = _xf(ext, bf["D/A"])
-        xsize_bit = _xf(ext, bf["W/L"])
-        disp_raw = _xf(ext, bf["DISPLACEMENT"])
-        disp_width = bf["DISPLACEMENT"][2]
-        if disp_raw & (1 << (disp_width - 1)):
-            disp_raw -= (1 << disp_width)
-        # Value stores PC-relative base (instruction addr + opword + displacement)
-        target = pc_offset + _OPWORD_BYTES + disp_raw
-        return Operand(
-            mode="pcindex", reg=None, value=target,
-            index_reg=xreg, index_is_addr=(xtype_bit == 1),
-            index_size="l" if xsize_bit == 1 else "w"
-        ), pos + 2
-    elif mode_name == "imm":
-        nbytes = _SIZE_BYTE_COUNT.get(op_size, 2)
-        if nbytes <= 2:
-            if pos + 2 > len(data):
-                raise ValueError("Truncated immediate extension word")
-            imm = struct.unpack_from(">H", data, pos)[0]
-            if op_size == "b":
-                imm &= 0xFF
-            return Operand(mode="imm", reg=None, value=imm, size=op_size), pos + 2
-        else:
-            if pos + 4 > len(data):
-                raise ValueError("Truncated immediate long extension")
-            imm = struct.unpack_from(">I", data, pos)[0]
-            return Operand(mode="imm", reg=None, value=imm, size=op_size), pos + 4
-    else:
-        raise ValueError(f"Unhandled EA mode name '{mode_name}'")
-
-
-def _xf(word: int, field_spec: tuple) -> int:
-    """Extract field from word given (bit_hi, bit_lo, width)."""
-    bit_hi, bit_lo, width = field_spec
-    return (word >> bit_lo) & ((1 << width) - 1)
-
-
-def decode_instruction_ops(inst: "Instruction", inst_kb: dict,
-                           size: str) -> DecodedOps:
-    """Decode operands via the shared KB utility layer."""
-    from .kb_util import decode_instruction_operands
-
-    d = DecodedOps()
-    if len(inst.raw) < _KB_META["opword_bytes"]:
-        return d
-    d.opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-    decoded = decode_instruction_operands(
-        inst.raw, inst_kb, _KB_META, size, inst.offset)
-    d.ea_op = decoded["ea_op"]
-    d.dst_op = decoded["dst_op"]
-    d.reg_num = decoded["reg_num"]
-    d.ea_is_source = decoded["ea_is_source"]
-    d.imm_val = decoded["imm_val"]
-    return d
+Operand = _instruction_primitives.Operand
+DecodedOps = _instruction_primitives.DecodedOps
+_decode_ea = _instruction_primitives.decode_ea
+decode_instruction_ops = _instruction_primitives.decode_instruction_ops
+_xf = _instruction_primitives.xf
 
 
 def _resolve_operand(operand: Operand, cpu, mem, size: str,
@@ -485,11 +259,11 @@ def _unknown(label: str = "", tag: dict | None = None) -> AbstractValue:
     return AbstractValue(label=label, tag=tag)
 
 
-# KB-derived register layout constants (set at module load from _KB_META)
-_NUM_DATA_REGS = _KB_META["_num_data_regs"]
-_NUM_ADDR_REGS = _KB_META["_num_addr_regs"]
-_SP_REG_NUM = _KB_META["_sp_reg_num"]
-_CCR_FLAGS = list(_KB_META["ccr_bit_positions"].keys())
+# KB-derived register layout constants
+_NUM_DATA_REGS = runtime_m68k_analysis.NUM_DATA_REGS
+_NUM_ADDR_REGS = runtime_m68k_analysis.NUM_ADDR_REGS
+_SP_REG_NUM = runtime_m68k_analysis.SP_REG_NUM
+_CCR_FLAGS = list(runtime_m68k_analysis.CCR_FLAG_NAMES)
 _DEFAULT_D = [_UNKNOWN] * _NUM_DATA_REGS
 _DEFAULT_A = [_UNKNOWN] * _NUM_ADDR_REGS
 _DEFAULT_CCR = {f: None for f in _CCR_FLAGS}
@@ -545,135 +319,6 @@ def CPUState(*args, **kwargs):
 
 # ── EA resolution ─────────────────────────────────────────────────────────
 
-def resolve_ea(operand: Operand, state: CPUState,
-               size: str, mem=None) -> AbstractValue | None:
-    """Resolve an EA operand to its effective address or value.
-
-    For register-direct modes, returns the register value.
-    For memory modes, returns the memory address (not the value at that address).
-    For immediate mode, returns the immediate value.
-    Returns None if the address cannot be determined.
-    """
-    if operand.mode == "dn":
-        return state.get_reg("dn", operand.reg)
-    elif operand.mode == "an":
-        return state.get_reg("an", operand.reg)
-    elif operand.mode == "ind":
-        return state.get_reg("an", operand.reg)
-    elif operand.mode in ("postinc", "predec"):
-        base = state.get_reg("an", operand.reg)
-        return base  # address before inc/dec adjustment
-    elif operand.mode == "disp":
-        base = state.get_reg("an", operand.reg)
-        if base.is_known:
-            return _concrete(base.concrete + operand.value)
-        return None
-    elif operand.mode == "index":
-        if operand.full_extension:
-            ea = _resolve_full_extension_ea(operand, state, mem)
-            if ea is not None:
-                return _concrete(ea)
-            if operand.memory_indirect:
-                return None
-        base = state.get_reg("an", operand.reg)
-        if operand.memory_indirect or operand.base_suppressed or operand.index_suppressed:
-            return None
-        idx = state.get_reg("an" if operand.index_is_addr else "dn", operand.index_reg)
-        if base.is_known and idx.is_known:
-            idx_val = idx.concrete
-            if operand.index_size == "w":
-                idx_val = _to_signed(idx_val & 0xFFFF, "w")
-                idx_val &= 0xFFFFFFFF
-            return _concrete(base.concrete + idx_val * operand.index_scale + operand.value)
-        return None
-    elif operand.mode == "absw":
-        return _concrete(operand.value)
-    elif operand.mode == "absl":
-        return _concrete(operand.value)
-    elif operand.mode == "pcdisp":
-        return _concrete(operand.value)  # already resolved to absolute target
-    elif operand.mode == "pcindex":
-        if operand.full_extension:
-            ea = _resolve_full_extension_ea(operand, state, mem)
-            if ea is not None:
-                return _concrete(ea)
-            if operand.memory_indirect:
-                return None
-        if operand.memory_indirect or operand.base_suppressed or operand.index_suppressed:
-            return None
-        # Base target is resolved, but index register adds to it
-        idx = state.get_reg("an" if operand.index_is_addr else "dn", operand.index_reg)
-        if idx.is_known:
-            idx_val = idx.concrete
-            if operand.index_size == "w":
-                idx_val = _to_signed(idx_val & 0xFFFF, "w")
-                idx_val &= 0xFFFFFFFF
-            return _concrete(operand.value + idx_val * operand.index_scale)
-        return None
-    elif operand.mode == "imm":
-        return _concrete(operand.value)
-    return None
-
-
-def _index_offset(operand: Operand, state: CPUState) -> int | None:
-    if operand.index_suppressed:
-        return 0
-    idx = state.get_reg("an" if operand.index_is_addr else "dn", operand.index_reg)
-    if not idx.is_known:
-        return None
-    idx_val = idx.concrete
-    if operand.index_size == "w":
-        idx_val = _to_signed(idx_val & 0xFFFF, "w")
-    return idx_val * operand.index_scale
-
-
-def _full_extension_base_addr(operand: Operand, state: CPUState) -> int | None:
-    if operand.mode == "index":
-        if operand.base_suppressed:
-            return 0
-        base = state.get_reg("an", operand.reg)
-        if not base.is_known:
-            return None
-        return base.concrete
-    if operand.mode == "pcindex":
-        if operand.base_suppressed:
-            return 0
-        if operand.value is None:
-            return None
-        return operand.value - (operand.base_displacement or 0)
-    return None
-
-
-def _resolve_full_extension_ea(operand: Operand, state: CPUState,
-                               mem) -> int | None:
-    base_addr = _full_extension_base_addr(operand, state)
-    if base_addr is None:
-        return None
-    index_offset = _index_offset(operand, state)
-    if index_offset is None:
-        return None
-    base_disp = operand.base_displacement or 0
-
-    if not operand.memory_indirect:
-        return (base_addr + base_disp + index_offset) & 0xFFFFFFFF
-    if mem is None:
-        return None
-
-    if operand.postindexed:
-        pointer_addr = (base_addr + base_disp) & 0xFFFFFFFF
-    else:
-        pointer_addr = (base_addr + base_disp + index_offset) & 0xFFFFFFFF
-
-    pointer = mem.read(pointer_addr, "l")
-    if not pointer.is_known:
-        return None
-
-    final_addr = pointer.concrete + (operand.outer_displacement or 0)
-    if operand.postindexed:
-        final_addr += index_offset
-    return final_addr & 0xFFFFFFFF
-
-
 # ── PC prediction ─────────────────────────────────────────────────────────
 
 def predict_pc(inst_kb: dict, pc: int, instr_size: int,
@@ -696,16 +341,14 @@ def predict_pc(inst_kb: dict, pc: int, instr_size: int,
         dn_val: Dn counter value for DBcc (None if unknown)
     """
     opword_bytes = _OPWORD_BYTES
-    pc_effects = inst_kb.get("pc_effects", {})
-    flow = pc_effects.get("flow", {})
-    flow_type = flow.get("type", "sequential")
-    conditional = flow.get("conditional", False)
+    flow_type = runtime_m68k_analysis.FLOW_TYPES[inst_kb]
+    conditional = runtime_m68k_analysis.FLOW_CONDITIONAL[inst_kb]
     next_seq = pc + instr_size
 
-    if flow_type == "sequential":
+    if flow_type == _FLOW_SEQUENTIAL:
         return [next_seq]
 
-    if flow_type in ("branch", "jump", "call"):
+    if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL):
         if displacement is not None:
             # Branches are relative to PC + opword_bytes (KB _meta.opword_bytes)
             target = pc + opword_bytes + displacement
@@ -723,10 +366,10 @@ def predict_pc(inst_kb: dict, pc: int, instr_size: int,
             targets.append(target)
         return targets
 
-    if flow_type == "return":
+    if flow_type == _FLOW_RETURN:
         return []  # unknown — return address on stack
 
-    if flow_type == "trap":
+    if flow_type == _FLOW_TRAP:
         return []  # exception vector
 
     print(f"WARNING: predict_pc: unhandled flow_type '{flow_type}' "
@@ -769,10 +412,6 @@ def discover_blocks(code: bytes, base_addr: int = 0,
     Returns dict mapping block start address -> BasicBlock.
     Uses KB pc_effects to determine control flow at block boundaries.
     """
-    kb_by_name = _KB_BY_NAME
-    cc_test_defs = _CC_TEST_DEFS
-    cc_aliases = _CC_ALIASES
-
     if entry_points is None:
         entry_points = [base_addr]
 
@@ -815,25 +454,24 @@ def discover_blocks(code: bytes, base_addr: int = 0,
             if inst is None:
                 break
             next_seq = pc + inst.size
-            inst_kb = _instruction_kb(inst, kb_by_name, cc_test_defs, cc_aliases)
+            inst_kb = instruction_kb(inst)
 
-            flow = inst_kb.get("pc_effects", {}).get("flow", {})
-            flow_type = flow.get("type", "sequential")
-            conditional = flow.get("conditional", False)
+            flow_type = runtime_m68k_analysis.FLOW_TYPES[inst_kb]
+            conditional = runtime_m68k_analysis.FLOW_CONDITIONAL[inst_kb]
 
-            if flow_type == "sequential":
+            if flow_type == _FLOW_SEQUENTIAL:
                 pc = next_seq
                 if next_seq in block_starts and next_seq != addr:
                     break
                 continue
 
-            if flow_type in ("branch", "jump", "call"):
+            if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL):
                 target = _extract_branch_target(inst, pc)
                 if target is not None:
                     block_starts.add(target)
                     if target not in visited:
                         work.append(target)
-                if conditional or flow_type == "call":
+                if conditional or flow_type == _FLOW_CALL:
                     block_starts.add(next_seq)
                     if next_seq not in visited:
                         work.append(next_seq)
@@ -855,9 +493,9 @@ def discover_blocks(code: bytes, base_addr: int = 0,
                 break
             block_instrs.append(inst)
             pc += inst.size
-            inst_kb = _instruction_kb(inst, kb_by_name, cc_test_defs, cc_aliases)
-            ft = inst_kb.get("pc_effects", {}).get("flow", {}).get("type", "sequential")
-            if ft != "sequential":
+            inst_kb = instruction_kb(inst)
+            ft = runtime_m68k_analysis.FLOW_TYPES[inst_kb]
+            if ft != _FLOW_SEQUENTIAL:
                 break
 
         if not block_instrs:
@@ -873,12 +511,11 @@ def discover_blocks(code: bytes, base_addr: int = 0,
         )
 
         # Derive edges from the last instruction's KB flow type
-        last_kb = _instruction_kb(last_inst, kb_by_name, cc_test_defs, cc_aliases)
-        flow = last_kb.get("pc_effects", {}).get("flow", {})
-        flow_type = flow.get("type", "sequential")
-        conditional = flow.get("conditional", False)
+        last_kb = instruction_kb(last_inst)
+        flow_type = runtime_m68k_analysis.FLOW_TYPES[last_kb]
+        conditional = runtime_m68k_analysis.FLOW_CONDITIONAL[last_kb]
 
-        if flow_type == "sequential":
+        if flow_type == _FLOW_SEQUENTIAL:
             # Fallthrough to next block
             if end in block_starts:
                 block.successors.append(end)
@@ -886,20 +523,20 @@ def discover_blocks(code: bytes, base_addr: int = 0,
                     src=last_inst.offset, dst=end,
                     type="fallthrough", conditional=False))
 
-        elif flow_type in ("branch", "jump", "call"):
+        elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL):
             target = _extract_branch_target(last_inst, last_inst.offset)
             if target is not None:
                 block.successors.append(target)
                 block.xrefs.append(XRef(
                     src=last_inst.offset, dst=target,
                     type=flow_type, conditional=conditional))
-            if conditional or flow_type == "call":
+            if conditional or flow_type == _FLOW_CALL:
                 block.successors.append(end)
                 block.xrefs.append(XRef(
                     src=last_inst.offset, dst=end,
                     type="fallthrough", conditional=False))
 
-        elif flow_type == "return":
+        elif flow_type == _FLOW_RETURN:
             block.is_return = True
 
         blocks[start] = block
@@ -916,220 +553,10 @@ def discover_blocks(code: bytes, base_addr: int = 0,
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def _kb_mnemonic_name(inst_kb: dict) -> str:
-    mnemonic = inst_kb.get("mnemonic")
-    if not mnemonic:
-        raise KeyError("KB instruction entry missing mnemonic")
-    return mnemonic
-
-
-_KB_ENTRY_CACHE = {}
-_SENTINEL = object()
-
-def _find_kb_entry(kb_by_name: dict, mnemonic: str,
-                   cc_test_defs: dict, cc_aliases: dict) -> dict | None:
-    """Find KB entry for a mnemonic, handling condition code families.
-
-    CC families (Bcc, Scc, DBcc, etc.) are discovered from KB
-    cc_parameterized fields, not hardcoded.
-    """
-    cached = _KB_ENTRY_CACHE.get(mnemonic, _SENTINEL)
-    if cached is not _SENTINEL:
-        return cached
-    cc_families = _CC_FAMILIES
-    if mnemonic in kb_by_name:
-        result = kb_by_name[mnemonic]
-        _KB_ENTRY_CACHE[mnemonic] = result
-        return result
-    mn_upper = mnemonic.upper()
-
-    # Direct case-insensitive canonical lookup
-    result = _KB_BY_NAME_UPPER.get(mn_upper)
-    if result is not None:
-        _KB_ENTRY_CACHE[mnemonic] = result
-        return result
-
-    kb_name = _ASM_MNEMONIC_INDEX.get(mn_upper)
-    if kb_name is not None:
-        result = kb_by_name[kb_name]
-        _KB_ENTRY_CACHE[mnemonic] = result
-        return result
-
-    # Check condition code families from KB cc_parameterized.
-    # Sort by prefix length descending so "db" matches before "b".
-    for prefix in sorted(cc_families, key=len, reverse=True):
-        prefix_upper = prefix.upper()
-        if mn_upper.startswith(prefix_upper) and len(mn_upper) > len(prefix_upper):
-            cc_part = mn_upper[len(prefix_upper):].lower()
-            family = cc_families[prefix]
-            kb_name = family["mnemonic"]
-            # Check if it's a known condition code or alias
-            if (cc_part in family["codes"]
-                    or (family["numeric_suffix"] and cc_part.startswith("#"))):
-                result = kb_by_name.get(kb_name)
-                _KB_ENTRY_CACHE[mnemonic] = result
-                return result
-
-    # Combined mnemonics: "ASL, ASR" -> match on "ASL" or "ASR"
-    for kb_mn, inst in kb_by_name.items():
-        if "," in kb_mn:
-            parts = [p.strip() for p in kb_mn.split(",")]
-            if mn_upper in parts:
-                _KB_ENTRY_CACHE[mnemonic] = inst
-                return inst
-
-    # KB entries with spaces: try prefix matching for MOVE variants
-    for kb_mn in kb_by_name:
-        if kb_mn.startswith(mn_upper + " ") or kb_mn.startswith(mn_upper + ","):
-            result = kb_by_name[kb_mn]
-            _KB_ENTRY_CACHE[mnemonic] = result
-            return result
-
-    _KB_ENTRY_CACHE[mnemonic] = None
-    return None
-
-
-def _instruction_kb(inst: Instruction, kb_by_name: dict,
-                    cc_test_defs: dict, cc_aliases: dict) -> dict:
-    if not inst.kb_mnemonic:
-        raise KeyError(f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
-    inst_kb = _find_kb_entry(kb_by_name, inst.kb_mnemonic,
-                             cc_test_defs, cc_aliases)
-    if inst_kb is None:
-        raise KeyError(
-            f"KB missing instruction entry for {inst.kb_mnemonic!r} "
-            f"at ${inst.offset:06x}")
-    return inst_kb
-
-
-def _extract_branch_target(inst: Instruction, pc: int) -> int | None:
-    """Extract branch/jump target address from instruction.
-
-    For PC-relative branches: target = PC + opword_bytes + displacement.
-    For JMP/JSR with absolute address: extract from extension words.
-    For JMP/JSR (An): target is unknown (returns None).
-
-    Displacement encoding rules (word_signal, long_signal) from KB.
-    EA field positions (MODE, REGISTER) from KB encoding fields.
-    """
-    kb_by_name = _KB_BY_NAME
-    meta = _KB_META
-    opword_bytes = _OPWORD_BYTES
-    ea_enc = meta["ea_mode_encoding"]
-
-    raw = inst.raw
-
-    # Look up KB entry to get flow type and displacement_encoding
-    inst_kb = _instruction_kb(inst, kb_by_name, _CC_TEST_DEFS, _CC_ALIASES)
-
-    flow = inst_kb.get("pc_effects", {}).get("flow", {})
-    flow_type = flow.get("type", "sequential")
-
-    # Check if this instruction uses displacement encoding (Bcc, BRA, BSR, DBcc).
-    # The KB distinguishes branch vs call vs jump at the flow level, but the
-    # displacement mechanics are shared — determined by displacement_encoding
-    # and multi-word encoding presence in the KB.
-    disp_enc = inst_kb.get("constraints", {}).get("displacement_encoding")
-    encodings = inst_kb.get("encodings", [])
-    has_multiword_disp = len(encodings) > 1
-
-    if disp_enc or has_multiword_disp:
-        opcode = struct.unpack_from(">H", raw, 0)[0]
-
-        if has_multiword_disp:
-            # Multi-word encoding: displacement is in the second word
-            # (e.g. DBcc has 16-bit displacement in word 2)
-            disp_field = encodings[1].get("fields", [{}])[0]
-            disp_width = disp_field.get("width", 16)
-            if len(raw) >= opword_bytes + (disp_width // 8):
-                if disp_width == 16:
-                    disp = struct.unpack_from(">h", raw, opword_bytes)[0]
-                else:
-                    disp = struct.unpack_from(">i", raw, opword_bytes)[0]
-                return pc + opword_bytes + disp
-            return None
-
-        if disp_enc:
-            # Single-word branch with 8-bit displacement or extension
-            disp_field_name = disp_enc["field"]
-            # Find the field in the encoding
-            for f in encodings[0].get("fields", []):
-                if f["name"] == disp_field_name:
-                    disp8 = _xf(opcode, (f["bit_hi"], f["bit_lo"],
-                                         f["bit_hi"] - f["bit_lo"] + 1))
-                    break
-            else:
-                return None
-
-            word_signal = disp_enc["word_signal"]
-            long_signal = disp_enc["long_signal"]
-            word_bits = disp_enc["word_bits"]
-            long_bits = disp_enc["long_bits"]
-
-            if disp8 == word_signal:
-                # Word displacement in extension
-                ext_bytes = word_bits // 8
-                if len(raw) >= opword_bytes + ext_bytes:
-                    disp = struct.unpack_from(">h", raw, opword_bytes)[0]
-                    return pc + opword_bytes + disp
-            elif disp8 == long_signal:
-                # Long displacement in extension (020+)
-                ext_bytes = long_bits // 8
-                if len(raw) >= opword_bytes + ext_bytes:
-                    disp = struct.unpack_from(">i", raw, opword_bytes)[0]
-                    return pc + opword_bytes + disp
-            else:
-                # 8-bit displacement (sign-extend from displacement field width)
-                disp_bits = encodings[0]["fields"][-1]["width"]  # last field = displacement
-                if disp8 >= (1 << (disp_bits - 1)):
-                    disp8 -= (1 << disp_bits)
-                return pc + opword_bytes + disp8
-
-    elif flow_type in ("jump", "call"):
-        # Extract MODE and REGISTER from KB encoding fields
-        encodings = inst_kb.get("encodings", [])
-        if not encodings:
-            return None
-        fields = encodings[0].get("fields", [])
-        mode_field = None
-        reg_field = None
-        for f in fields:
-            if f["name"] == "MODE":
-                mode_field = f
-            elif f["name"] == "REGISTER":
-                reg_field = f
-        if mode_field is None or reg_field is None:
-            return None
-
-        opcode = struct.unpack_from(">H", raw, 0)[0]
-        mode = _xf(opcode, (mode_field["bit_hi"], mode_field["bit_lo"],
-                            mode_field["bit_hi"] - mode_field["bit_lo"] + 1))
-        reg = _xf(opcode, (reg_field["bit_hi"], reg_field["bit_lo"],
-                           reg_field["bit_hi"] - reg_field["bit_lo"] + 1))
-
-        # Use EA mode encoding from KB to determine addressing mode
-        absw_enc = ea_enc["absw"]
-        absl_enc = ea_enc["absl"]
-        pcdisp_enc = ea_enc["pcdisp"]
-
-        if mode == absw_enc[0] and reg == absw_enc[1]:
-            if len(raw) >= opword_bytes + 2:
-                addr = struct.unpack_from(">h", raw, opword_bytes)[0]
-                return addr & 0xFFFFFFFF
-        elif mode == absl_enc[0] and reg == absl_enc[1]:
-            if len(raw) >= opword_bytes + 4:
-                return struct.unpack_from(">I", raw, opword_bytes)[0]
-        elif mode == pcdisp_enc[0] and reg == pcdisp_enc[1]:
-            if len(raw) >= opword_bytes + 2:
-                disp = struct.unpack_from(">h", raw, opword_bytes)[0]
-                return pc + opword_bytes + disp
-        # (An), d(An), etc. — target depends on register value
-        return None
-
-    return None
-
-
 # ── Abstract memory ──────────────────────────────────────────────────────
+
+_extract_branch_target = _instruction_primitives.extract_branch_target
+
 
 class AbstractMemory:
     """Sparse memory map tracking concrete and symbolic values.
@@ -1462,7 +889,7 @@ def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
     """
     reg_text = reg_text.strip().lower()
     # Check register aliases from KB (e.g. "sp" -> "a7")
-    aliases = _KB_META.get("register_aliases", {})
+    aliases = runtime_m68k_analysis.REGISTER_ALIASES
     if reg_text in aliases:
         reg_text = aliases[reg_text]
     if len(reg_text) == 2 and reg_text[0] in ('d', 'a') and reg_text[1].isdigit():
@@ -1486,7 +913,7 @@ _BINARY_OPS = {
 def _sign_ext_src(val, src_sign_ext, size):
     """Sign-extend source value per KB source_sign_extend."""
     if src_sign_ext and size == "w" and val and val.is_known:
-        w_bits = _KB_META["size_byte_count"]["w"] * 8
+        w_bits = _SIZE_BYTE_COUNT["w"] * 8
         w_mask = (1 << w_bits) - 1
         v = val.concrete & w_mask
         if v >= (1 << (w_bits - 1)):
@@ -1507,8 +934,8 @@ def _apply_binary_op(op_fn, d, inst_kb, cpu, mem, size, size_bytes,
     For subtract with compare (operation_type=="compare"): no write (CMP/CMPI/CMPA).
     Source sign-extension applied per KB source_sign_extend.
     """
-    src_sign_ext = inst_kb.get("source_sign_extend", False)
-    is_compare = (op_type == "compare")
+    src_sign_ext = inst_kb in runtime_m68k_executor.SOURCE_SIGN_EXTEND
+    is_compare = (op_type == runtime_m68k_executor.OperationType.COMPARE)
     # For bitwise ops, the destination is always Dn (no source_sign_extend).
     # For add/subtract, source_sign_extend distinguishes ADDA/SUBA (An dest)
     # from ADD/SUB (Dn dest).
@@ -1559,28 +986,23 @@ def _apply_binary_op(op_fn, d, inst_kb, cpu, mem, size, size_bytes,
         # CMPI: no write
     elif is_compare:
         pass  # compare: no register/memory write (CC flags only)
-    elif "operand_modes" in inst_kb.get("constraints", {}):
+    elif inst_kb in runtime_m68k_executor.OPERAND_MODE_TABLES:
         # Register-pair encoding: ADDX/SUBX/ABCD/SBCD
-        # KB constraints.operand_modes: {field: "R/M", values: {0: "dn,dn", 1: "predec,predec"}}
-        # Encoding: REGISTER Rx (dest, bits 11:9), REGISTER Ry (src, bits 2:0)
-        enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
-        reg_fields = sorted(
-            [f for f in enc_fields if f["name"].startswith("REGISTER")],
-            key=lambda f: f["bit_lo"], reverse=True)
-        rm_field = next((f for f in enc_fields
-                         if f["name"] == "R/M"), None)
-        if len(reg_fields) < 2 or rm_field is None:
+        mnemonic = inst_kb
+        reg_fields = runtime_m68k_executor.REGISTER_FIELDS.get(mnemonic)
+        if len(reg_fields) < 2:
             raise KeyError(
-                f"Missing register/R/M encoding fields for {_kb_mnemonic_name(inst_kb)}")
-        rx_field = reg_fields[0]  # higher bits = destination
-        ry_field = reg_fields[1]  # lower bits = source
-        opcode = d.opcode
-        rx = _xf(opcode, (rx_field["bit_hi"], rx_field["bit_lo"],
-                          rx_field["width"]))
-        ry = _xf(opcode, (ry_field["bit_hi"], ry_field["bit_lo"],
-                          ry_field["width"]))
-        rm = _xf(opcode, (rm_field["bit_hi"], rm_field["bit_lo"],
-                          rm_field["width"]))
+                f"runtime KB missing paired register fields for {mnemonic}"
+            )
+        rx = _xf(d.opcode, reg_fields[0])
+        ry = _xf(d.opcode, reg_fields[1])
+        rm_info = runtime_m68k_executor.RM_FIELD.get(mnemonic)
+        if rm_info is None:
+            raise KeyError(f"runtime KB missing R/M field for {mnemonic}")
+        rm_bit_lo, rm_values = rm_info
+        rm = (d.opcode >> rm_bit_lo) & 1
+        if not (0 <= rm < len(rm_values)) or rm_values[rm] is None:
+            raise ValueError(f"runtime KB missing R/M value {rm} for {mnemonic}")
         if rm == 0:
             # Register-to-register: src=Dy, dst=Dx
             src_val = cpu.d[ry]
@@ -1606,13 +1028,13 @@ def _apply_binary_op(op_fn, d, inst_kb, cpu, mem, size, size_bytes,
                 mem.write(cpu.a[rx], _unknown(), size)
     else:
         raise ValueError(
-            f"{op_fn.__name__}: no structured decode for {_kb_mnemonic_name(inst_kb)}")
+            f"{op_fn.__name__}: no structured decode for {inst_kb}")
 
 
 def _apply_neg(d, inst_kb, cpu, mem, size, size_bytes, mask):
     """Apply NEG: implicit(0) - destination (single operand)."""
-    mnemonic = _kb_mnemonic_name(inst_kb)
-    implicit_val = inst_kb.get("implicit_operand")
+    mnemonic = inst_kb
+    implicit_val = runtime_m68k_executor.IMPLICIT_OPERANDS.get(mnemonic)
     if implicit_val is None:
         raise KeyError(f"implicit_operand missing for {mnemonic}")
     if d.ea_op is None:
@@ -1650,21 +1072,19 @@ def _apply_complement(d, cpu, mem, size, size_bytes, mask):
 
 def _apply_swap(d, inst_kb, formula, cpu):
     """Apply SWAP: exchange bit ranges within Dn."""
-    range_a = formula.get("range_a")
-    range_b = formula.get("range_b")
+    range_a = formula[2]
+    range_b = formula[3]
     if not (range_a and range_b):
         return
     # Get Dn register: from ea_op if decoded, else from REGISTER field
     if d.ea_op and d.ea_op.mode == "dn":
         dn = d.ea_op.reg
     else:
-        enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
-        rf = next((f for f in enc_fields
-                   if f["name"] == "REGISTER"), None)
-        if rf is None:
-            return
-        dn = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
-                           rf["bit_hi"] - rf["bit_lo"] + 1))
+        mnemonic = inst_kb
+        reg_fields = runtime_m68k_executor.REGISTER_FIELDS.get(mnemonic)
+        if reg_fields is None or len(reg_fields) != 1:
+            raise KeyError(f"runtime KB missing single register field for {mnemonic}")
+        dn = _xf(d.opcode, reg_fields[0])
     val = cpu.get_reg("dn", dn)
     if val.is_known:
         v = val.concrete
@@ -1684,24 +1104,18 @@ def _apply_swap(d, inst_kb, formula, cpu):
 
 def _apply_sign_extend(d, inst_kb, formula, cpu, mnemonic, size):
     """Apply EXT/EXTB: sign-extend Dn from source_bits_by_size."""
-    meta = _KB_META
-    src_bits_by_size = formula.get("source_bits_by_size")
-    if src_bits_by_size is None:
+    src_bits_by_size = dict(formula[4])
+    if not src_bits_by_size:
         raise KeyError(f"source_bits_by_size missing for {mnemonic}")
     # EXT has Dn in REGISTER field (no MODE field, so ea_op may
     # be None).  Fall back to first REGISTER field from encoding.
     if d.ea_op and d.ea_op.mode == "dn":
         dn = d.ea_op.reg
     else:
-        enc_fields = inst_kb.get("encodings", [{}])[0].get(
-            "fields", [])
-        rf = next((f for f in enc_fields
-                   if f["name"] == "REGISTER"), None)
-        if rf is None:
-            raise ValueError(
-                f"sign_extend: no Dn for {mnemonic}")
-        dn = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
-                           rf["bit_hi"] - rf["bit_lo"] + 1))
+        reg_fields = runtime_m68k_executor.REGISTER_FIELDS.get(mnemonic)
+        if reg_fields is None or len(reg_fields) != 1:
+            raise KeyError(f"runtime KB missing single register field for {mnemonic}")
+        dn = _xf(d.opcode, reg_fields[0])
     val = cpu.get_reg("dn", dn)
     if val.is_known:
         v = val.concrete
@@ -1713,7 +1127,7 @@ def _apply_sign_extend(d, inst_kb, formula, cpu, mnemonic, size):
                 f"No source_bits for size={size} in {mnemonic}")
         src_mask = (1 << src_bits) - 1
         src_val = v & src_mask
-        w_bits = meta["size_byte_count"]["w"] * 8
+        w_bits = _SIZE_BYTE_COUNT["w"] * 8
         w_mask = (1 << w_bits) - 1
         if src_val >= (1 << (src_bits - 1)):
             if size == "w":
@@ -1734,35 +1148,31 @@ def _apply_sign_extend(d, inst_kb, formula, cpu, mnemonic, size):
 def _apply_exg(d, inst_kb, cpu):
     """Apply EXG: exchange two registers (KB operation_type == 'swap',
     no compute_formula)."""
-    mnemonic = inst_kb.get("mnemonic", "?")
-    opmode_table = inst_kb.get("constraints", {}).get("opmode_table")
+    mnemonic = inst_kb
+    opmode_table = runtime_m68k_executor.OPMODE_TABLES_BY_VALUE.get(mnemonic)
     if opmode_table is None:
-        raise KeyError(f"opmode_table missing for {mnemonic}")
-    # Get OPMODE from encoding
-    opmode_f = next(
-        (f for f in inst_kb["encodings"][0]["fields"]
-         if f["name"] == "OPMODE"), None)
-    if opmode_f is None:
-        raise KeyError(f"OPMODE field missing for {mnemonic}")
-    opmode_val = _xf(d.opcode, (opmode_f["bit_hi"],
-                               opmode_f["bit_lo"],
-                               opmode_f["bit_hi"] - opmode_f["bit_lo"] + 1))
-    entry = next((e for e in opmode_table
-                   if e["opmode"] == opmode_val), None)
+        raise KeyError(f"runtime KB missing opmode table for {mnemonic}")
+    opword_fields = runtime_m68k_executor.FIELD_MAPS[0].get(mnemonic)
+    if opword_fields is None:
+        raise KeyError(f"runtime KB missing opword field map for {mnemonic}")
+    try:
+        opmode = _xf(d.opcode, opword_fields["OPMODE"])
+    except KeyError as exc:
+        raise KeyError(f"runtime KB missing OPMODE field for {mnemonic}") from exc
+    entry = opmode_table.get(opmode)
     if entry is None:
-        raise ValueError(
-            f"Unknown OPMODE {opmode_val} for {mnemonic}")
-    # Rx from bits 11-9, Ry from bits 2-0
-    rx_f = next(f for f in inst_kb["encodings"][0]["fields"]
-                if f["name"].startswith("REGISTER") and f["bit_hi"] > 5)
-    ry_f = next(f for f in inst_kb["encodings"][0]["fields"]
-                if f["name"].startswith("REGISTER") and f["bit_hi"] <= 5)
-    rx = _xf(d.opcode, (rx_f["bit_hi"], rx_f["bit_lo"],
-                       rx_f["bit_hi"] - rx_f["bit_lo"] + 1))
-    ry = _xf(d.opcode, (ry_f["bit_hi"], ry_f["bit_lo"],
-                       ry_f["bit_hi"] - ry_f["bit_lo"] + 1))
-    rx_mode = entry["rx_mode"]
-    ry_mode = entry["ry_mode"]
+        raise ValueError(f"Unknown OPMODE {opmode} for {mnemonic}")
+    reg_fields = runtime_m68k_executor.REGISTER_FIELDS.get(mnemonic)
+    if len(reg_fields) < 2:
+        raise KeyError(
+            f"runtime KB missing paired register fields for {mnemonic}"
+        )
+    rx = _xf(d.opcode, reg_fields[0])
+    ry = _xf(d.opcode, reg_fields[1])
+    rx_mode = entry[_OPMODE_RX_MODE]
+    ry_mode = entry[_OPMODE_RY_MODE]
+    if rx_mode is None or ry_mode is None:
+        raise KeyError(f"runtime KB missing EXG register modes for {mnemonic}")
     sv = cpu.get_reg(rx_mode, rx)
     dv = cpu.get_reg(ry_mode, ry)
     cpu.set_reg(rx_mode, rx, dv)
@@ -1771,47 +1181,24 @@ def _apply_exg(d, inst_kb, cpu):
 
 def _apply_movem(inst, inst_kb, d, cpu, mem):
     """Apply MOVEM: move multiple registers to/from memory."""
-    meta = _KB_META
-    opword_bytes = meta["opword_bytes"]
+    opword_bytes = _OPWORD_BYTES
     if len(inst.raw) < opword_bytes + 2:
         return  # truncated
     opcode = struct.unpack_from(">H", inst.raw, 0)[0]
     reg_mask = struct.unpack_from(">H", inst.raw, opword_bytes)[0]
-
-    # Direction from KB encoding "dr" field
-    dr_field = None
-    for f in inst_kb["encodings"][0]["fields"]:
-        if f["name"] == "dr":
-            dr_field = (f["bit_hi"], f["bit_lo"],
-                        f["bit_hi"] - f["bit_lo"] + 1)
-            break
-    if dr_field is None:
-        raise KeyError("MOVEM encoding lacks 'dr' field")
-    direction = _xf(opcode, dr_field)  # 0=reg-to-mem, 1=mem-to-reg
-
-    # EA mode from encoding
-    ea_mode_f = ea_reg_f = None
-    for f in inst_kb["encodings"][0]["fields"]:
-        if f["name"] == "MODE":
-            ea_mode_f = (f["bit_hi"], f["bit_lo"],
-                         f["bit_hi"] - f["bit_lo"] + 1)
-        elif f["name"] == "REGISTER" and f["bit_hi"] <= 5:
-            ea_reg_f = (f["bit_hi"], f["bit_lo"],
-                        f["bit_hi"] - f["bit_lo"] + 1)
-    if ea_mode_f is None or ea_reg_f is None:
-        raise KeyError("MOVEM encoding lacks MODE/REGISTER fields")
-    ea_mode = _xf(opcode, ea_mode_f)
-    ea_reg = _xf(opcode, ea_reg_f)
+    direction = _xf(opcode, runtime_m68k_executor.MOVEM_FIELDS["dr"])  # 0=reg-to-mem, 1=mem-to-reg
+    ea_mode = _xf(opcode, runtime_m68k_executor.MOVEM_FIELDS["mode"])
+    ea_reg = _xf(opcode, runtime_m68k_executor.MOVEM_FIELDS["register"])
 
     # EA mode name from KB
-    ea_enc = meta["ea_mode_encoding"]
+    ea_enc = runtime_m68k_analysis.EA_MODE_ENCODING
     predec_enc = ea_enc["predec"]
     postinc_enc = ea_enc["postinc"]
     is_predec = (ea_mode == predec_enc[0])
     is_postinc = (ea_mode == postinc_enc[0])
 
     # Register order from KB movem_reg_masks
-    masks = meta["movem_reg_masks"]
+    masks = runtime_m68k_analysis.MOVEM_REG_MASKS
     reg_order = masks["predecrement"] if is_predec else masks["normal"]
 
     # Collect registers to transfer (bit N set -> reg_order[N])
@@ -1823,20 +1210,11 @@ def _apply_movem(inst, inst_kb, d, cpu, mem):
     if not regs:
         return
 
-    # Size from KB encoding "SIZE" field
-    size_field = None
-    for f in inst_kb["encodings"][0]["fields"]:
-        if f["name"] == "SIZE":
-            size_field = (f["bit_hi"], f["bit_lo"],
-                          f["bit_hi"] - f["bit_lo"] + 1)
-            break
-    if size_field is None:
-        raise KeyError("MOVEM encoding lacks 'SIZE' field")
-    size_bit = _xf(opcode, size_field)
+    size_bit = _xf(opcode, runtime_m68k_executor.MOVEM_FIELDS["size"])
     xfer_size = "l" if size_bit == 1 else "w"
-    xfer_bytes = meta["size_byte_count"][xfer_size]
+    xfer_bytes = _SIZE_BYTE_COUNT[xfer_size]
 
-    sp_reg = meta["_sp_reg_num"]
+    sp_reg = _SP_REG_NUM
 
     if direction == 0 and is_predec and ea_reg == sp_reg:
         # Register-to-memory via -(SP): push registers onto stack.
@@ -1892,7 +1270,6 @@ def _apply_movem(inst, inst_kb, d, cpu, mem):
 
 def _apply_lea(d, cpu):
     """Apply LEA: load effective address into An register."""
-    meta = _KB_META
     src_op = d.ea_op
     addr_val = None
     if src_op:
@@ -1904,8 +1281,7 @@ def _apply_lea(d, cpu):
             idx_mode = "an" if src_op.index_is_addr else "dn"
             idx_val = cpu.get_reg(idx_mode, src_op.index_reg)
             if idx_val.is_known:
-                nbits = meta["size_byte_count"][
-                    src_op.index_size] * 8
+                nbits = _SIZE_BYTE_COUNT[src_op.index_size] * 8
                 mask = (1 << nbits) - 1
                 iv = idx_val.concrete & mask
                 if iv >= (1 << (nbits - 1)):
@@ -1931,9 +1307,8 @@ def _apply_lea(d, cpu):
 
 def _apply_pea(inst_kb, d, cpu, mem):
     """Apply PEA: push effective address to stack."""
-    meta = _KB_META
     # Validate EA mode against KB-allowed modes (catches internal bugs)
-    pea_ea_modes = inst_kb.get("ea_modes", {}).get("ea", [])
+    pea_ea_modes = runtime_m68k_analysis.EA_MODE_TABLES.get(inst_kb, ((), (), ()))[2]
     if pea_ea_modes and d.ea_op.mode not in pea_ea_modes:
         raise ValueError(
             f"PEA: EA mode {d.ea_op.mode!r} not in allowed modes "
@@ -1943,26 +1318,27 @@ def _apply_pea(inst_kb, d, cpu, mem):
     if addr_val is not None and (cpu.sp.is_known or cpu.sp.is_symbolic):
         # Write size from KB sp_effects decrement
         push_bytes = sum(
-            e["bytes"] for e in inst_kb["sp_effects"]
-            if e.get("action") == "decrement")
+            nbytes
+            for action, nbytes, _ in runtime_m68k_analysis.SP_EFFECTS[inst_kb]
+            if action == runtime_m68k_analysis.SpEffectAction.DECREMENT
+        )
         write_size = next(
-            k for k, v in meta["size_byte_count"].items()
+            k for k, v in _SIZE_BYTE_COUNT.items()
             if v == push_bytes)
         mem.write(cpu.sp, addr_val, write_size)
 
 
 def _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform):
     """Apply MOVE/MOVEA/MOVEQ/CLR family."""
-    meta = _KB_META
-    formula = inst_kb.get("compute_formula", {})
-    terms = formula.get("terms", [])
-    src_sign_ext = inst_kb.get("source_sign_extend", False)
-    mnemonic = _kb_mnemonic_name(inst_kb)
+    formula = runtime_m68k_analysis.COMPUTE_FORMULAS.get(inst_kb)
+    terms = formula[1] if formula is not None else ()
+    src_sign_ext = inst_kb in runtime_m68k_executor.SOURCE_SIGN_EXTEND
+    mnemonic = inst_kb
     src_op = d.ea_op  # alias for assign handler
 
-    if "implicit" in terms:
+    if runtime_m68k_analysis.FormulaTerm.IMPLICIT in terms:
         # CLR: assign implicit_operand (0) to destination.
-        implicit_val = inst_kb.get("implicit_operand")
+        implicit_val = runtime_m68k_executor.IMPLICIT_OPERANDS.get(mnemonic)
         if implicit_val is None:
             raise KeyError(f"implicit_operand missing for {mnemonic}")
         write_op = d.dst_op if d.dst_op else src_op
@@ -1982,9 +1358,13 @@ def _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform):
         src_val = None
 
     # Sign-extend immediate from KB constraints.immediate_range
-    imm_range = inst_kb.get("constraints", {}).get("immediate_range")
-    if imm_range and imm_range.get("signed") and src_val and src_val.is_known:
-        bits = imm_range["bits"]
+    imm_range = runtime_m68k_executor.IMMEDIATE_RANGES.get(mnemonic)
+    if src_val and src_val.is_known and mnemonic == "MOVEQ" and imm_range is None:
+        raise KeyError("runtime KB missing immediate range for MOVEQ")
+    if imm_range and imm_range[2] and src_val and src_val.is_known:
+        bits = imm_range[1]
+        if bits is None:
+            raise KeyError(f"runtime KB immediate range for {mnemonic} missing bit width")
         val = src_val.concrete & ((1 << bits) - 1)
         if val >= (1 << (bits - 1)):
             val |= ~((1 << bits) - 1)
@@ -1993,7 +1373,7 @@ def _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform):
 
     # Source sign-extension from KB source_sign_extend
     if src_sign_ext and size == "w" and src_val and src_val.is_known:
-        w_bits = meta["size_byte_count"]["w"] * 8
+        w_bits = _SIZE_BYTE_COUNT["w"] * 8
         w_mask = (1 << w_bits) - 1
         val = src_val.concrete & w_mask
         if val >= (1 << (w_bits - 1)):
@@ -2019,16 +1399,16 @@ def _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform):
     else:
         # Single REGISTER field (MOVEQ: Dn from bits 11-9).
         # The EA is the source (imm_val), the register is the dest.
-        enc_fields = inst_kb.get("encodings", [{}])[0].get(
-            "fields", [])
-        single_rf = [f for f in enc_fields
-                     if f["name"].startswith("REGISTER")]
-        if single_rf:
-            rf = max(single_rf, key=lambda f: f["bit_lo"])
-            rn = _xf(d.opcode, (rf["bit_hi"], rf["bit_lo"],
-                               rf["bit_hi"] - rf["bit_lo"] + 1))
+        mnemonic = inst_kb
+        try:
+            rn = _xf(d.opcode, runtime_m68k_executor.DEST_REG_FIELD[mnemonic])
+        except KeyError:
+            if not d.ea_op:
+                raise
+        else:
             cpu.set_reg("dn", rn, result)
-        elif d.ea_op:
+            return
+        if d.ea_op:
             _write_operand(d.ea_op, cpu, mem, result,
                            size, size_bytes)
 
@@ -2038,54 +1418,46 @@ def _resolve_os_call(inst, inst_kb, cpu, platform, code):
 
     Returns call_effect dict or None.
     """
-    meta = _KB_META
     call_effect = None
     resolver = platform.get("_os_call_resolver")
-    if resolver and len(inst.raw) >= meta["opword_bytes"]:
+    if resolver and len(inst.raw) >= _OPWORD_BYTES:
         lvo = None
         base_reg_num = platform["_base_reg_num"]
         opcode = struct.unpack_from(">H", inst.raw, 0)[0]
-        # Extract EA fields from KB encoding
-        enc_fields = inst_kb.get("encodings", [{}])[0].get(
-            "fields", [])
-        ea_mode_f = ea_reg_f = None
-        for f in enc_fields:
-            if f["name"] == "MODE":
-                ea_mode_f = (f["bit_hi"], f["bit_lo"],
-                             f["bit_hi"] - f["bit_lo"] + 1)
-            elif (f["name"] == "REGISTER"
-                  and f["bit_hi"] <= 5):
-                ea_reg_f = (f["bit_hi"], f["bit_lo"],
-                            f["bit_hi"] - f["bit_lo"] + 1)
-        if ea_mode_f and ea_reg_f:
-            ea_mode = _xf(opcode, ea_mode_f)
-            ea_reg = _xf(opcode, ea_reg_f)
-            try:
-                operand, _ = _decode_ea(
-                    inst.raw, meta["opword_bytes"],
-                    ea_mode, ea_reg, "l", inst.offset)
-            except ValueError:
-                operand = None
-            if operand:
-                if (operand.mode == "disp"
-                        and operand.reg == base_reg_num):
-                    lvo = operand.value
-                elif (operand.mode == "index"
-                      and operand.reg == base_reg_num):
-                    # LVO = displacement + index reg value
-                    idx_mode = ("an" if operand.index_is_addr
-                                else "dn")
-                    idx_val = cpu.get_reg(
-                        idx_mode, operand.index_reg)
-                    if idx_val.is_known:
-                        idx_v = idx_val.concrete
-                        if operand.index_size == "w":
-                            idx_v = _to_signed(
-                                idx_v & 0xFFFF, "w")
-                        else:
-                            idx_v = _to_signed(
-                                idx_v & 0xFFFFFFFF, "l")
-                        lvo = operand.value + idx_v
+        mnemonic = inst_kb
+        opword_fields = runtime_m68k_executor.FIELD_MAPS[0].get(mnemonic)
+        if opword_fields is None:
+            raise KeyError(f"runtime KB missing opword field map for {mnemonic}")
+        if "MODE" not in opword_fields or "REGISTER" not in opword_fields:
+            return None
+        ea_mode = _xf(opcode, opword_fields["MODE"])
+        ea_reg = _xf(opcode, opword_fields["REGISTER"])
+        try:
+            operand, _ = _decode_ea(
+                inst.raw, _OPWORD_BYTES,
+                ea_mode, ea_reg, "l", inst.offset)
+        except ValueError:
+            operand = None
+        if operand:
+            if (operand.mode == "disp"
+                    and operand.reg == base_reg_num):
+                lvo = operand.value
+            elif (operand.mode == "index"
+                  and operand.reg == base_reg_num):
+                # LVO = displacement + index reg value
+                idx_mode = ("an" if operand.index_is_addr
+                            else "dn")
+                idx_val = cpu.get_reg(
+                    idx_mode, operand.index_reg)
+                if idx_val.is_known:
+                    idx_v = idx_val.concrete
+                    if operand.index_size == "w":
+                        idx_v = _to_signed(
+                            idx_v & 0xFFFF, "w")
+                    else:
+                        idx_v = _to_signed(
+                            idx_v & 0xFFFFFFFF, "l")
+                    lvo = operand.value + idx_v
         a6_tag = cpu.a[base_reg_num].tag
         a6_lib = (a6_tag.get("library_base")
                   if a6_tag else None)
@@ -2104,27 +1476,29 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
     call return address write, scratch reg invalidation, and OS
     call resolution.
     """
-    meta = _KB_META
-    sp_effects = inst_kb.get("sp_effects", [])
+    sp_effects = runtime_m68k_analysis.SP_EFFECTS.get(mnemonic, ())
     if not sp_effects:
         return
 
     for effect in sp_effects:
-        action = effect.get("action")
-        if "bytes" not in effect and action in ("decrement", "increment"):
+        action, nbytes, _aux = effect
+        if nbytes is None and action in (
+            runtime_m68k_analysis.SpEffectAction.DECREMENT,
+            runtime_m68k_analysis.SpEffectAction.INCREMENT,
+        ):
             raise KeyError(
                 f"sp_effects.bytes missing for {mnemonic} action={action}")
-        if action == "decrement":
+        if action == runtime_m68k_analysis.SpEffectAction.DECREMENT:
             if cpu.sp.is_known:
-                cpu.sp = _concrete(cpu.sp.concrete - effect["bytes"])
+                cpu.sp = _concrete(cpu.sp.concrete - nbytes)
             elif cpu.sp.is_symbolic:
-                cpu.sp = cpu.sp.sym_add(-effect["bytes"])
-        elif action == "increment":
+                cpu.sp = cpu.sp.sym_add(-nbytes)
+        elif action == runtime_m68k_analysis.SpEffectAction.INCREMENT:
             if cpu.sp.is_known:
-                cpu.sp = _concrete(cpu.sp.concrete + effect["bytes"])
+                cpu.sp = _concrete(cpu.sp.concrete + nbytes)
             elif cpu.sp.is_symbolic:
-                cpu.sp = cpu.sp.sym_add(effect["bytes"])
-        elif action == "displacement_adjust":
+                cpu.sp = cpu.sp.sym_add(nbytes)
+        elif action == runtime_m68k_analysis.SpEffectAction.ADJUST:
             # LINK-style: SP += displacement (negative = allocate).
             # Displacement from extension word (KB immediate_range).
             disp_val = d.imm_val
@@ -2143,8 +1517,7 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
     # after the call.  This enables RTS resolution and push/pop
     # patterns to work through abstract memory.
     if cpu.sp.is_known or cpu.sp.is_symbolic:
-        flow = inst_kb.get("pc_effects", {}).get("flow", {})
-        if flow.get("type") == "call":
+        if runtime_m68k_analysis.FLOW_TYPES[inst_kb] == _FLOW_CALL:
             return_addr = inst.offset + inst.size
             mem.write(cpu.sp, _concrete(return_addr), "l")
 
@@ -2153,9 +1526,8 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
     # flow type, not by SP decrement (PEA also decrements SP but
     # isn't a call).
     if platform and platform.get("scratch_regs"):
-        flow_type = inst_kb.get("pc_effects", {}).get(
-            "flow", {}).get("type")
-        if flow_type == "call":
+        flow_type = runtime_m68k_analysis.FLOW_TYPES[inst_kb]
+        if flow_type == _FLOW_CALL:
             # Resolve call effects before invalidation (needs pre-call
             # register state for input registers like A1 name string).
             call_effect = _resolve_os_call(inst, inst_kb, cpu, platform,
@@ -2184,13 +1556,14 @@ def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
     from .m68k_compute import _compute_result
 
     bits = size_bytes * 8
-    op = formula["op"] if formula else None
-    op_type = inst_kb.get("operation_type")
-    src_sign_ext = inst_kb.get("source_sign_extend", False)
-
-    # Check if encoding has MODE fields (determines operand form)
-    enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
-    mode_fields_exist = any(f["name"] == "MODE" for f in enc_fields)
+    op = formula[0] if formula else None
+    mnemonic = inst_kb
+    op_type = runtime_m68k_executor.OPERATION_TYPES.get(mnemonic)
+    src_sign_ext = mnemonic in runtime_m68k_executor.SOURCE_SIGN_EXTEND
+    opword_fields = runtime_m68k_executor.FIELD_MAPS[0].get(mnemonic)
+    if opword_fields is None:
+        raise KeyError(f"runtime KB missing opword field map for {mnemonic}")
+    mode_fields_exist = "MODE" in opword_fields
 
     # Resolve source and destination values
     src_val = dst_val = None
@@ -2227,14 +1600,9 @@ def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
         # Two-REGISTER form (shift/rotate): upper REGISTER = count or
         # count register, lower REGISTER = destination Dn.
         # The i/r field distinguishes immediate count from register count.
-        enc_fields = inst_kb.get("encodings", [{}])[0].get("fields", [])
-        dn_fields = sorted(
-            [f for f in enc_fields if f["name"] == "REGISTER"],
-            key=lambda f: f["bit_lo"])
-        if len(dn_fields) >= 2:
-            dn = _xf(d.opcode, (dn_fields[0]["bit_hi"],
-                                dn_fields[0]["bit_lo"],
-                                dn_fields[0]["bit_hi"] - dn_fields[0]["bit_lo"] + 1))
+        reg_fields = runtime_m68k_executor.REGISTER_FIELDS.get(mnemonic)
+        if reg_fields and len(reg_fields) >= 2:
+            dn = _xf(d.opcode, reg_fields[-1])
             if d.imm_val is not None:
                 # Immediate count form (#count,Dn)
                 src_val = _concrete(d.imm_val)
@@ -2275,59 +1643,43 @@ def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
         ctx = {}
 
         # Bit modulus from KB (BTST/BCHG/BCLR/BSET)
-        bit_mod = inst_kb.get("bit_modulus")
+        bit_mod = runtime_m68k_executor.BIT_MODULI.get(mnemonic)
         if bit_mod:
             # For register-direct EA: use "register" modulus
             if d.ea_op and d.ea_op.mode == "dn":
-                ctx["bit_modulus"] = bit_mod.get("register", 32)
+                ctx["bit_modulus"] = bit_mod[0]
             else:
-                ctx["bit_modulus"] = bit_mod.get("memory", 8)
+                ctx["bit_modulus"] = bit_mod[1]
 
         # Shift/rotate count modulus from KB
-        count_mod = inst_kb.get("shift_count_modulus")
+        count_mod = runtime_m68k_executor.SHIFT_COUNT_MODULI.get(mnemonic)
         if count_mod:
             ctx["count_modulus"] = count_mod
 
         # Rotate extra bits from KB
-        rotate_extra = inst_kb.get("rotate_extra_bits")
+        rotate_extra = runtime_m68k_executor.ROTATE_EXTRA_BITS.get(mnemonic)
         if rotate_extra:
-            ctx["rotate_extra_bits"] = rotate_extra
+            ctx["extra_bits"] = rotate_extra
 
         # Direction + fill from KB variants, selected by opcode dr field
-        dir_variants = inst_kb.get("constraints", {}).get(
-            "direction_variants")
-        if dir_variants and inst_kb.get("variants"):
-            dr_field_name = dir_variants.get("field")
-            if dr_field_name:
-                enc_fields = inst_kb.get("encodings", [{}])[0].get(
-                    "fields", [])
-                dr_f = next((f for f in enc_fields
-                             if f["name"] == dr_field_name), None)
-                if dr_f:
-                    dr_val = _xf(d.opcode, (dr_f["bit_hi"],
-                                            dr_f["bit_lo"],
-                                            dr_f["bit_hi"] - dr_f["bit_lo"] + 1))
-                    dr_char = dir_variants["values"].get(str(dr_val))
-                    # Find the matching variant
-                    for v in inst_kb["variants"]:
-                        vdir = v.get("direction", "")
-                        if vdir and vdir[0].lower() == dr_char:
-                            ctx["direction"] = vdir[0].upper()
-                            if v.get("fill"):
-                                ctx["fill"] = v["fill"]
-                            break
+        dir_variants = runtime_m68k_executor.DIRECTION_VARIANTS.get(mnemonic)
+        if dir_variants:
+            dr_val = _xf(d.opcode, runtime_m68k_executor.SHIFT_FIELDS[0])
+            dr_values = runtime_m68k_executor.SHIFT_FIELDS[1]
+            dr_char = dr_values[dr_val] if 0 <= dr_val < len(dr_values) else None
+            for _variant, direction, fill, _arithmetic in runtime_m68k_executor.SHIFT_VARIANT_BEHAVIORS.get(mnemonic, ()):
+                if direction.value[0] == dr_char:
+                    ctx["direction"] = direction.value[0].upper()
+                    ctx["fill"] = fill.value
+                    break
 
         # Multiply/divide: data_sizes + signed from KB forms
         if op in ("multiply", "divide"):
-            for form in inst_kb.get("forms", []):
-                if form.get("processor_020"):
-                    continue
-                ds = form.get("data_sizes")
-                if ds:
-                    ctx["data_sizes"] = ds
-                    break
-            if inst_kb.get("signed") is not None:
-                ctx["signed"] = inst_kb["signed"]
+            ds = runtime_m68k_executor.PRIMARY_DATA_SIZES.get(inst_kb)
+            if ds:
+                ctx["data_sizes"] = ds
+            if mnemonic in runtime_m68k_executor.SIGNED_RESULTS:
+                ctx["signed"] = runtime_m68k_executor.SIGNED_RESULTS[mnemonic]
 
         # CCR for extend operations
         initial_ccr = {}
@@ -2385,9 +1737,9 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     size_bytes = _SIZE_BYTE_COUNT.get(size, _SIZE_BYTE_COUNT["w"])
     mask = (1 << (size_bytes * 8)) - 1
 
-    formula = inst_kb.get("compute_formula")
-    op = formula.get("op") if formula else None
-    op_type = inst_kb.get("operation_type")
+    formula = runtime_m68k_analysis.COMPUTE_FORMULAS.get(mnemonic)
+    op = formula[0] if formula else None
+    op_type = runtime_m68k_executor.OPERATION_TYPES.get(mnemonic)
 
     d = decode_instruction_ops(inst, inst_kb, size)
 
@@ -2396,28 +1748,27 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
                       code)
 
     # Flow-control stops here
-    flow = inst_kb.get("pc_effects", {}).get("flow", {})
-    if flow.get("type") in ("branch", "jump", "return", "call", "trap"):
+    if runtime_m68k_analysis.FLOW_TYPES[inst_kb] in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_RETURN, _FLOW_CALL, _FLOW_TRAP):
         return
     if op is None and op_type != "swap":
         return
 
     # Special handlers by operation_class
-    op_class = inst_kb.get("operation_class")
-    if op_class == "multi_register_transfer":
+    op_class = runtime_m68k_executor.OPERATION_CLASSES.get(mnemonic)
+    if op_class == runtime_m68k_analysis.OperationClass.MULTI_REGISTER_TRANSFER:
         _apply_movem(inst, inst_kb, d, cpu, mem)
         return
-    if op_class == "load_effective_address" and op == "assign":
+    if op_class == runtime_m68k_analysis.OperationClass.LOAD_EFFECTIVE_ADDRESS and op == runtime_m68k_analysis.ComputeOp.ASSIGN:
         _apply_lea(d, cpu)
         return
 
     # PEA detection
-    if inst_kb.get("sp_effects") and op_type == "sub" and d.ea_op:
+    if runtime_m68k_analysis.SP_EFFECTS.get(mnemonic) and op_type == runtime_m68k_executor.OperationType.SUB and d.ea_op:
         _apply_pea(inst_kb, d, cpu, mem)
         return
 
     # NEG: subtract with implicit operand (0 - dst), separate from table
-    if op == "subtract" and "implicit" in (formula.get("terms") or []):
+    if op == runtime_m68k_analysis.ComputeOp.SUBTRACT and runtime_m68k_analysis.FormulaTerm.IMPLICIT in (formula[1] if formula else ()):
         _apply_neg(d, inst_kb, cpu, mem, size, size_bytes, mask)
         return
 
@@ -2428,21 +1779,21 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         return
 
     # Remaining handlers
-    if op == "assign":
+    if op == runtime_m68k_analysis.ComputeOp.ASSIGN:
         _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform)
         return
-    if op == "bitwise_complement":
+    if op == runtime_m68k_analysis.ComputeOp.BITWISE_COMPLEMENT:
         _apply_complement(d, cpu, mem, size, size_bytes, mask)
         return
-    if op == "exchange":
+    if op == runtime_m68k_analysis.ComputeOp.EXCHANGE:
         _apply_swap(d, inst_kb, formula, cpu)
         return
-    if op == "sign_extend":
+    if op == runtime_m68k_analysis.ComputeOp.SIGN_EXTEND:
         _apply_sign_extend(d, inst_kb, formula, cpu, mnemonic, size)
         return
-    if op == "test":
+    if op == runtime_m68k_analysis.ComputeOp.TEST:
         return  # CC only, no state change
-    if op_type == "swap" and op is None:
+    if op_type == runtime_m68k_executor.OperationType.SWAP and op is None:
         _apply_exg(d, inst_kb, cpu)
         return
 
@@ -2474,10 +1825,6 @@ def propagate_states(blocks: dict[int, BasicBlock],
 
     Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
     """
-    kb_by_name = _KB_BY_NAME
-    cc_test_defs = _CC_TEST_DEFS
-    cc_aliases = _CC_ALIASES
-
     if initial_state is None:
         initial_state = CPUState()
         if platform:
@@ -2581,7 +1928,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
 
         # Execute all instructions in the block
         for inst in block.instructions:
-            ikb = _instruction_kb(inst, kb_by_name, cc_test_defs, cc_aliases)
+            ikb = instruction_kb(inst)
             _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
                                platform)
             cpu.pc = inst.offset + inst.size
@@ -2597,12 +1944,11 @@ def propagate_states(blocks: dict[int, BasicBlock],
         call_sp_push = 0
         if block.instructions:
             last = block.instructions[-1]
-            last_ikb = _instruction_kb(last, kb_by_name, cc_test_defs, cc_aliases)
-            flow = last_ikb.get("pc_effects", {}).get("flow", {})
-            if flow.get("type") == "call":
-                for eff in last_ikb.get("sp_effects", []):
-                    if eff.get("action") == "decrement":
-                        call_sp_push += eff["bytes"]
+            last_ikb = instruction_kb(last)
+            if runtime_m68k_analysis.FLOW_TYPES[last_ikb] == _FLOW_CALL:
+                for action, nbytes, _ in runtime_m68k_analysis.SP_EFFECTS.get(last_ikb, ()):
+                    if action == runtime_m68k_analysis.SpEffectAction.DECREMENT:
+                        call_sp_push += nbytes
 
         # Classify xrefs
         call_dst = ft_dst = None
@@ -2740,8 +2086,6 @@ def _compute_summary(entry: int, owned: set[int],
                      blocks: dict[int, BasicBlock],
                      summaries: dict[int, dict | None],
                      code: bytes, base_addr: int,
-                     kb_by_name: dict, cc_test_defs: dict,
-                     cc_aliases: dict,
                      global_exit_states: dict | None = None,
                      ) -> dict | None:
     """Compute a subroutine summary by analyzing with symbolic inputs.
@@ -2793,7 +2137,7 @@ def _compute_summary(entry: int, owned: set[int],
 
         block = blocks[addr]
         for inst in block.instructions:
-            ikb = _instruction_kb(inst, kb_by_name, cc_test_defs, cc_aliases)
+            ikb = instruction_kb(inst)
             _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
                                None)  # no platform
             cpu.pc = inst.offset + inst.size
@@ -2808,12 +2152,11 @@ def _compute_summary(entry: int, owned: set[int],
         call_sp_push = 0
         if block.instructions:
             last = block.instructions[-1]
-            last_ikb = _instruction_kb(last, kb_by_name, cc_test_defs, cc_aliases)
-            flow = last_ikb.get("pc_effects", {}).get("flow", {})
-            if flow.get("type") == "call":
-                for eff in last_ikb.get("sp_effects", []):
-                    if eff.get("action") == "decrement":
-                        call_sp_push += eff["bytes"]
+            last_ikb = instruction_kb(last)
+            if runtime_m68k_analysis.FLOW_TYPES[last_ikb] == _FLOW_CALL:
+                for action, nbytes, _ in runtime_m68k_analysis.SP_EFFECTS.get(last_ikb, ()):
+                    if action == runtime_m68k_analysis.SpEffectAction.DECREMENT:
+                        call_sp_push += nbytes
 
         call_dst = ft_dst = None
         other_xrefs = []
@@ -2860,9 +2203,8 @@ def _compute_summary(entry: int, owned: set[int],
         if not blk or not blk.instructions:
             continue
         last = blk.instructions[-1]
-        ikb = _instruction_kb(last, kb_by_name, cc_test_defs, cc_aliases)
-        flow = ikb.get("pc_effects", {}).get("flow", {})
-        if flow.get("type") == "return" and addr in exit_states:
+        ikb = instruction_kb(last)
+        if runtime_m68k_analysis.FLOW_TYPES[ikb] == _FLOW_RETURN and addr in exit_states:
             rts_states.append(exit_states[addr])
 
     if not rts_states:
@@ -2934,8 +2276,6 @@ def _apply_summary(caller_cpu: "CPUState",
 
 def compute_all_summaries(blocks: dict[int, BasicBlock],
                           code: bytes, base_addr: int,
-                          kb_by_name: dict, cc_test_defs: dict,
-                          cc_aliases: dict,
                           existing: dict[int, dict | None] | None = None,
                           global_exit_states: dict | None = None,
                           ) -> dict[int, dict | None]:
@@ -2990,8 +2330,7 @@ def compute_all_summaries(blocks: dict[int, BasicBlock],
         entry = ready.pop()
         summaries[entry] = _compute_summary(
             entry, sub_map[entry], blocks, summaries, code,
-            base_addr, kb_by_name, cc_test_defs, cc_aliases,
-            global_exit_states)
+            base_addr, global_exit_states)
         for caller in callers.get(entry, set()):
             if caller in in_degree:
                 in_degree[caller] -= 1
@@ -3003,8 +2342,7 @@ def compute_all_summaries(blocks: dict[int, BasicBlock],
         if entry not in summaries:
             summaries[entry] = _compute_summary(
                 entry, sub_map[entry], blocks, summaries, code,
-                base_addr, kb_by_name, cc_test_defs, cc_aliases,
-                global_exit_states)
+                base_addr, global_exit_states)
 
     return summaries
 
@@ -3060,9 +2398,7 @@ def analyze(code: bytes, base_addr: int = 0,
         if platform:
             existing = platform.get("_summary_cache")
             platform["_summary_cache"] = compute_all_summaries(
-                blocks, code, base_addr,
-                _KB_BY_NAME, _CC_TEST_DEFS, _CC_ALIASES,
-                existing=existing)
+                blocks, code, base_addr, existing=existing)
             sums = platform["_summary_cache"]
         result["exit_states"] = propagate_states(
             blocks, code, base_addr, platform=platform,

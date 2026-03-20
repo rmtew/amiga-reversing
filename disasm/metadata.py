@@ -11,7 +11,7 @@ from disasm.discovery import (add_hint_labels, build_label_map,
 
 def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
                         hunk_entities: list[dict], ha, hf_hunks: list,
-                        kb, fixed_abs_addrs: set[int]) -> dict:
+                        fixed_abs_addrs: set[int]) -> dict:
     blocks = ha.blocks
     hint_blocks = ha.hint_blocks
     jt_list = ha.jump_tables
@@ -33,11 +33,11 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
         core_entries.update(table["targets"])
     internal_targets = branch_targets | core_entries
 
-    pc_targets = discover_pc_relative_targets(blocks, code, kb)
-    core_absolute_targets = discover_absolute_targets(blocks, code_size, kb)
+    pc_targets = discover_pc_relative_targets(blocks, code)
+    core_absolute_targets = discover_absolute_targets(blocks, code_size)
     core_absolute_targets = filter_core_absolute_targets(
         core_absolute_targets, code_addrs, fixed_abs_addrs)
-    hint_pc = discover_pc_relative_targets(hint_blocks, code, kb)
+    hint_pc = discover_pc_relative_targets(hint_blocks, code)
     for addr, name in hint_pc.items():
         if addr not in pc_targets:
             pc_targets[addr] = name

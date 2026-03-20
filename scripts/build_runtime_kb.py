@@ -27,6 +27,964 @@ def _write_python(path: Path, variable: str, payload: object, *, header: str) ->
     path.write_text(text, encoding="utf-8")
 
 
+def _render_py(payload: object) -> str:
+    return pprint.pformat(payload, width=100, sort_dicts=False)
+
+
+def _write_runtime_constants_python(path: Path, payload: dict, *, header: str) -> None:
+    lines = ['"""' + header + '"""', "", "from __future__ import annotations", ""]
+    if (
+        "OPERATION_TYPES" in payload
+        or "OPERATION_CLASSES" in payload
+        or "COMPUTE_FORMULAS" in payload
+        or "SP_EFFECTS" in payload
+        or "PRIMARY_DATA_SIZES" in payload
+        or "SHIFT_VARIANT_BEHAVIORS" in payload
+    ):
+        lines.extend(["from enum import StrEnum", ""])
+    if (
+        "OPMODE_TABLES_BY_VALUE" in payload
+        or "LOOKUP_CC_FAMILIES" in payload
+        or "CC_TEST_DEFINITIONS" in payload
+        or "SIZE_ENCODINGS_ASM" in payload
+        or "SIZE_ENCODINGS_DISASM" in payload
+        or "COMPUTE_FORMULAS" in payload
+        or "PRIMARY_DATA_SIZES" in payload
+        or "SP_EFFECTS" in payload
+        or "SHIFT_VARIANT_BEHAVIORS" in payload
+    ):
+        lines.extend(["from typing import TypeAlias", ""])
+    if "OPMODE_TABLES_BY_VALUE" in payload:
+        lines.append(
+            "OpmodeEntry: TypeAlias = tuple[str | None, str | None, bool | None, str | None, str | None, str | None, str | None]"
+        )
+    if "LOOKUP_CC_FAMILIES" in payload:
+        lines.append("CcLookupFamily: TypeAlias = tuple[str, tuple[str, ...], bool]")
+    if "CC_TEST_DEFINITIONS" in payload:
+        lines.append("CcTestDefinition: TypeAlias = tuple[int, str]")
+    if "SIZE_ENCODINGS_ASM" in payload:
+        lines.append("AsmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None]")
+    if "SIZE_ENCODINGS_DISASM" in payload:
+        lines.append("DisasmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None, int | None]")
+    if "COMPUTE_FORMULAS" in payload:
+        lines.extend([
+            "class ComputeOp(StrEnum):",
+            "    ADD = 'add'",
+            "    ADD_DECIMAL = 'add_decimal'",
+            "    ASSIGN = 'assign'",
+            "    BIT_CHANGE = 'bit_change'",
+            "    BIT_CLEAR = 'bit_clear'",
+            "    BIT_SET = 'bit_set'",
+            "    BIT_TEST = 'bit_test'",
+            "    BITWISE_AND = 'bitwise_and'",
+            "    BITWISE_COMPLEMENT = 'bitwise_complement'",
+            "    BITWISE_OR = 'bitwise_or'",
+            "    BITWISE_XOR = 'bitwise_xor'",
+            "    DIVIDE = 'divide'",
+            "    EXCHANGE = 'exchange'",
+            "    MULTIPLY = 'multiply'",
+            "    ROTATE = 'rotate'",
+            "    ROTATE_EXTEND = 'rotate_extend'",
+            "    SHIFT = 'shift'",
+            "    SIGN_EXTEND = 'sign_extend'",
+            "    SUBTRACT = 'subtract'",
+            "    SUBTRACT_DECIMAL = 'subtract_decimal'",
+            "    TEST = 'test'",
+            "",
+            "class FormulaTerm(StrEnum):",
+            "    SOURCE = 'source'",
+            "    DESTINATION = 'destination'",
+            "    EXTEND = 'X'",
+            "    IMPLICIT = 'implicit'",
+            "",
+            "class TruncationMode(StrEnum):",
+            "    TOWARD_ZERO = 'toward_zero'",
+        ])
+    if "PRIMARY_DATA_SIZES" in payload:
+        lines.extend([
+            "class PrimaryDataSizeKind(StrEnum):",
+            "    MULTIPLY = 'multiply'",
+            "    DIVIDE = 'divide'",
+        ])
+    if "OPERATION_TYPES" in payload:
+        lines.extend([
+            "class OperationType(StrEnum):",
+            "    ADD = 'add'",
+            "    ADD_DECIMAL = 'add_decimal'",
+            "    ADDX = 'addx'",
+            "    AND = 'and'",
+            "    BIT_TEST = 'bit_test'",
+            "    BITFIELD = 'bitfield'",
+            "    BOUNDS_CHECK = 'bounds_check'",
+            "    CCR_OP = 'ccr_op'",
+            "    CLEAR = 'clear'",
+            "    COMPARE = 'compare'",
+            "    COMPARE_SWAP = 'compare_swap'",
+            "    DIVIDE = 'divide'",
+            "    MOVE = 'move'",
+            "    MULTIPLY = 'multiply'",
+            "    NEG = 'neg'",
+            "    NEGX = 'negx'",
+            "    NOT = 'not'",
+            "    OR = 'or'",
+            "    ROTATE = 'rotate'",
+            "    ROTATE_EXTEND = 'rotate_extend'",
+            "    SHIFT = 'shift'",
+            "    SIGN_EXTEND = 'sign_extend'",
+            "    SR_OP = 'sr_op'",
+            "    SUB = 'sub'",
+            "    SUB_DECIMAL = 'sub_decimal'",
+            "    SUBX = 'subx'",
+            "    SWAP = 'swap'",
+            "    TEST = 'test'",
+            "    XOR = 'xor'",
+        ])
+    if "OPERATION_CLASSES" in payload:
+        lines.extend([
+            "class OperationClass(StrEnum):",
+            "    LOAD_EFFECTIVE_ADDRESS = 'load_effective_address'",
+            "    MULTI_REGISTER_TRANSFER = 'multi_register_transfer'",
+        ])
+    if "SP_EFFECTS" in payload:
+        lines.extend([
+            "class SpEffectAction(StrEnum):",
+            "    DECREMENT = 'decrement'",
+            "    INCREMENT = 'increment'",
+            "    ADJUST = 'adjust'",
+            "    SAVE_TO_REG = 'save_to_reg'",
+            "    LOAD_FROM_REG = 'load_from_reg'",
+        ])
+    if "SHIFT_VARIANT_BEHAVIORS" in payload:
+        lines.extend([
+            "class ShiftDirection(StrEnum):",
+            "    LEFT = 'left'",
+            "    RIGHT = 'right'",
+            "",
+            "class ShiftFill(StrEnum):",
+            "    ZERO = 'zero'",
+            "    SIGN = 'sign'",
+            "    ROTATE = 'rotate'",
+        ])
+    if "COMPUTE_FORMULAS" in payload:
+        lines.append(
+            "ComputeFormula: TypeAlias = tuple[ComputeOp, tuple[FormulaTerm | int, ...], tuple[int, int] | None, tuple[int, int] | None, tuple[tuple[str, int], ...], TruncationMode | None]"
+        )
+    if "PRIMARY_DATA_SIZES" in payload:
+        lines.append("PrimaryDataSize: TypeAlias = tuple[PrimaryDataSizeKind, int, int, int]")
+    if "SP_EFFECTS" in payload:
+        lines.append("SpEffect: TypeAlias = tuple[SpEffectAction, int | None, str | None]")
+    if "SHIFT_VARIANT_BEHAVIORS" in payload:
+        lines.append("ShiftVariantBehavior: TypeAlias = tuple[str, ShiftDirection, ShiftFill, bool]")
+    if (
+        "OPMODE_TABLES_BY_VALUE" in payload
+        or "LOOKUP_CC_FAMILIES" in payload
+        or "CC_TEST_DEFINITIONS" in payload
+        or "SIZE_ENCODINGS_ASM" in payload
+        or "SIZE_ENCODINGS_DISASM" in payload
+        or "COMPUTE_FORMULAS" in payload
+        or "PRIMARY_DATA_SIZES" in payload
+        or "SP_EFFECTS" in payload
+        or "SHIFT_VARIANT_BEHAVIORS" in payload
+    ):
+        lines.append("")
+    for name, value in payload.items():
+        if name == "CC_TEST_DEFINITIONS":
+            lines.append(f"{name} = {_render_cc_test_definitions(value)}")
+        elif name in {"SIZE_ENCODINGS_ASM", "SIZE_ENCODINGS_DISASM"}:
+            lines.append(f"{name} = {_render_size_encodings(value)}")
+        elif name == "OPERATION_TYPES":
+            lines.append(f"{name} = {_render_operation_type_table(value)}")
+        elif name == "OPERATION_CLASSES":
+            lines.append(f"{name} = {_render_operation_class_table(value)}")
+        elif name == "COMPUTE_FORMULAS":
+            lines.append(f"{name} = {_render_compute_formulas(value)}")
+        elif name == "SP_EFFECTS":
+            lines.append(f"{name} = {_render_sp_effects(value)}")
+        elif name == "PRIMARY_DATA_SIZES":
+            lines.append(f"{name} = {_render_primary_data_sizes(value)}")
+        elif name == "SHIFT_VARIANT_BEHAVIORS":
+            lines.append(f"{name} = {_render_shift_variant_behaviors(value)}")
+        else:
+            lines.append(f"{name} = {_render_py(value)}")
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _enum_member(enum_name: str, raw_value: str) -> str:
+    members = {
+        "Processor": {
+            "68000": "M68000",
+            "68008": "M68008",
+            "68010": "M68010",
+            "68020": "M68020",
+            "68030": "M68030",
+            "68040": "M68040",
+            "CPU32": "CPU32",
+            "68851": "MC68851",
+        },
+        "FlowType": {
+            "sequential": "SEQUENTIAL",
+            "branch": "BRANCH",
+            "jump": "JUMP",
+            "call": "CALL",
+            "return": "RETURN",
+            "trap": "TRAP",
+        },
+        "ComputeOp": {
+            "add": "ADD",
+            "add_decimal": "ADD_DECIMAL",
+            "assign": "ASSIGN",
+            "bit_change": "BIT_CHANGE",
+            "bit_clear": "BIT_CLEAR",
+            "bit_set": "BIT_SET",
+            "bit_test": "BIT_TEST",
+            "bitwise_and": "BITWISE_AND",
+            "bitwise_complement": "BITWISE_COMPLEMENT",
+            "bitwise_or": "BITWISE_OR",
+            "bitwise_xor": "BITWISE_XOR",
+            "divide": "DIVIDE",
+            "exchange": "EXCHANGE",
+            "multiply": "MULTIPLY",
+            "rotate": "ROTATE",
+            "rotate_extend": "ROTATE_EXTEND",
+            "shift": "SHIFT",
+            "sign_extend": "SIGN_EXTEND",
+            "subtract": "SUBTRACT",
+            "subtract_decimal": "SUBTRACT_DECIMAL",
+            "test": "TEST",
+        },
+        "FormulaTerm": {
+            "source": "SOURCE",
+            "destination": "DESTINATION",
+            "X": "EXTEND",
+            "implicit": "IMPLICIT",
+        },
+        "TruncationMode": {
+            "toward_zero": "TOWARD_ZERO",
+        },
+        "PrimaryDataSizeKind": {
+            "multiply": "MULTIPLY",
+            "divide": "DIVIDE",
+        },
+        "OperationType": {
+            "add": "ADD",
+            "add_decimal": "ADD_DECIMAL",
+            "addx": "ADDX",
+            "and": "AND",
+            "bit_test": "BIT_TEST",
+            "bitfield": "BITFIELD",
+            "bounds_check": "BOUNDS_CHECK",
+            "ccr_op": "CCR_OP",
+            "clear": "CLEAR",
+            "compare": "COMPARE",
+            "compare_swap": "COMPARE_SWAP",
+            "divide": "DIVIDE",
+            "move": "MOVE",
+            "multiply": "MULTIPLY",
+            "neg": "NEG",
+            "negx": "NEGX",
+            "not": "NOT",
+            "or": "OR",
+            "rotate": "ROTATE",
+            "rotate_extend": "ROTATE_EXTEND",
+            "shift": "SHIFT",
+            "sign_extend": "SIGN_EXTEND",
+            "sr_op": "SR_OP",
+            "sub": "SUB",
+            "sub_decimal": "SUB_DECIMAL",
+            "subx": "SUBX",
+            "swap": "SWAP",
+            "test": "TEST",
+            "xor": "XOR",
+        },
+        "OperationClass": {
+            "load_effective_address": "LOAD_EFFECTIVE_ADDRESS",
+            "multi_register_transfer": "MULTI_REGISTER_TRANSFER",
+        },
+        "SpEffectAction": {
+            "decrement": "DECREMENT",
+            "increment": "INCREMENT",
+            "adjust": "ADJUST",
+            "save_to_reg": "SAVE_TO_REG",
+            "load_from_reg": "LOAD_FROM_REG",
+        },
+        "ShiftDirection": {
+            "left": "LEFT",
+            "right": "RIGHT",
+        },
+        "ShiftFill": {
+            "zero": "ZERO",
+            "sign": "SIGN",
+            "rotate": "ROTATE",
+        },
+        "RelocMode": {
+            "absolute": "ABSOLUTE",
+            "pc_relative": "PC_RELATIVE",
+            "data_relative": "DATA_RELATIVE",
+        },
+    }
+    return f"{enum_name}.{members[enum_name][raw_value]}"
+
+
+def _render_processor_table(table: dict[str, str]) -> str:
+    rendered = ",\n ".join(
+        f"{key!r}: {_enum_member('Processor', value)}"
+        for key, value in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_flow_table(table: dict[str, str]) -> str:
+    rendered = ",\n ".join(
+        f"{key!r}: {_enum_member('FlowType', value)}"
+        for key, value in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_operation_type_table(table: dict[str, str]) -> str:
+    rendered = ",\n ".join(
+        f"{key!r}: {_enum_member('OperationType', value)}"
+        for key, value in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_operation_class_table(table: dict[str, str]) -> str:
+    rendered = ",\n ".join(
+        f"{key!r}: {_enum_member('OperationClass', value)}"
+        for key, value in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_hunk_relocation_semantics(table: dict[str, tuple[int, str]]) -> str:
+    rendered = ",\n ".join(
+        f"{key!r}: ({nbytes!r}, {_enum_member('RelocMode', mode)})"
+        for key, (nbytes, mode) in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_primary_data_sizes(table: dict[str, tuple[str, int, int, int]]) -> str:
+    rendered = ",\n ".join(
+        f"{key!r}: ({_enum_member('PrimaryDataSizeKind', kind)}, {src_bits!r}, {dst_bits!r}, {result_bits!r})"
+        for key, (kind, src_bits, dst_bits, result_bits) in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_cc_test_definitions(table: dict[str, dict[str, int | str]]) -> str:
+    rendered = ",\n ".join(
+        f"{key!r}: ({value['encoding']!r}, {value['test']!r})"
+        for key, value in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_size_encodings(table: dict[str, dict[object, int]]) -> str:
+    def _entry(mapping: dict[object, int], *keys: object) -> str:
+        return "(" + ", ".join(repr(mapping.get(key)) for key in keys) + ")"
+
+    rendered = ",\n ".join(
+        f"{key!r}: {_entry(value, 'b', 'w', 'l') if 'b' in value or 'w' in value or 'l' in value else _entry(value, 0, 1, 2, 3)}"
+        for key, value in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_rm_fields(table: dict[str, tuple[int, dict[int, str]]]) -> str:
+    rendered = ",\n ".join(
+        f"{key!r}: ({bit_lo!r}, ({', '.join(repr(values.get(idx)) for idx in range(max(values) + 1))}))"
+        for key, (bit_lo, values) in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_shift_fields(value: dict[str, object]) -> str:
+    dr_values = value["dr_values"]
+    max_idx = max(dr_values)
+    rendered_values = ", ".join(repr(dr_values.get(idx)) for idx in range(max_idx + 1))
+    return f"({value['dr_field']!r}, ({rendered_values}), {value['zero_means']!r})"
+
+
+def _render_compute_formulas(table: dict[str, tuple]) -> str:
+    def _render_formula_term(term: str | int) -> str:
+        if isinstance(term, int):
+            return repr(term)
+        return _enum_member("FormulaTerm", term)
+
+    def _render_source_bits(entries: tuple[tuple[str, int], ...]) -> str:
+        rendered_entries = ", ".join(f"({size!r}, {bits!r})" for size, bits in entries)
+        if len(entries) == 1:
+            rendered_entries += ","
+        return f"({rendered_entries})"
+
+    rendered = ",\n ".join(
+        f"{key!r}: ("
+        f"{_enum_member('ComputeOp', value[0])}, "
+        f"({', '.join(_render_formula_term(term) for term in value[1])}{',' if len(value[1]) == 1 else ''}), "
+        f"{value[2]!r}, "
+        f"{value[3]!r}, "
+        f"{_render_source_bits(value[4])}, "
+        f"{_enum_member('TruncationMode', value[5]) if value[5] is not None else 'None'})"
+        for key, value in table.items()
+    )
+    return "{%s}" % rendered
+
+
+def _render_sp_effects(table: dict[str, tuple[tuple[str, int | None, str | None], ...]]) -> str:
+    entries = []
+    for key, value in table.items():
+        rendered_value = ", ".join(
+            f"({_enum_member('SpEffectAction', action)}, {nbytes!r}, {aux!r})"
+            for action, nbytes, aux in value
+        )
+        entries.append(f"{key!r}: ({rendered_value},)")
+    rendered = ",\n ".join(entries)
+    return "{%s}" % rendered
+
+
+def _render_shift_variant_behaviors(table: dict[str, tuple[tuple[str, str, str, bool], ...]]) -> str:
+    entries = []
+    for key, value in table.items():
+        rendered_value = ", ".join(
+            f"({variant!r}, {_enum_member('ShiftDirection', direction)}, {_enum_member('ShiftFill', fill)}, {arithmetic!r})"
+            for variant, direction, fill, arithmetic in value
+        )
+        entries.append(f"{key!r}: ({rendered_value},)")
+    rendered = ",\n ".join(entries)
+    return "{%s}" % rendered
+
+
+def _write_m68k_runtime_python(path: Path, payload: dict, *, header: str) -> None:
+    meta = payload["meta"]
+    tables = payload["tables"]
+    text = "\n".join(
+        [
+            '"""' + header + '"""',
+            "",
+            "from __future__ import annotations",
+            "",
+            "from enum import IntEnum, StrEnum",
+            "from typing import TypeAlias",
+            "",
+            "class SizeCode(IntEnum):",
+            "    BYTE = 0",
+            "    WORD = 1",
+            "    LONG = 2",
+            "",
+            "class Processor(StrEnum):",
+            "    M68000 = '68000'",
+            "    M68008 = '68008'",
+            "    M68010 = '68010'",
+            "    M68020 = '68020'",
+            "    M68030 = '68030'",
+            "    M68040 = '68040'",
+            "    CPU32 = 'CPU32'",
+            "    MC68851 = '68851'",
+            "",
+            "class FlowType(StrEnum):",
+            "    SEQUENTIAL = 'sequential'",
+            "    BRANCH = 'branch'",
+            "    JUMP = 'jump'",
+            "    CALL = 'call'",
+            "    RETURN = 'return'",
+            "    TRAP = 'trap'",
+            "",
+            "class ComputeOp(StrEnum):",
+            "    ADD = 'add'",
+            "    ADD_DECIMAL = 'add_decimal'",
+            "    ASSIGN = 'assign'",
+            "    BIT_CHANGE = 'bit_change'",
+            "    BIT_CLEAR = 'bit_clear'",
+            "    BIT_SET = 'bit_set'",
+            "    BIT_TEST = 'bit_test'",
+            "    BITWISE_AND = 'bitwise_and'",
+            "    BITWISE_COMPLEMENT = 'bitwise_complement'",
+            "    BITWISE_OR = 'bitwise_or'",
+            "    BITWISE_XOR = 'bitwise_xor'",
+            "    DIVIDE = 'divide'",
+            "    EXCHANGE = 'exchange'",
+            "    MULTIPLY = 'multiply'",
+            "    ROTATE = 'rotate'",
+            "    ROTATE_EXTEND = 'rotate_extend'",
+            "    SHIFT = 'shift'",
+            "    SIGN_EXTEND = 'sign_extend'",
+            "    SUBTRACT = 'subtract'",
+            "    SUBTRACT_DECIMAL = 'subtract_decimal'",
+            "    TEST = 'test'",
+            "",
+            "class FormulaTerm(StrEnum):",
+            "    SOURCE = 'source'",
+            "    DESTINATION = 'destination'",
+            "    EXTEND = 'X'",
+            "    IMPLICIT = 'implicit'",
+            "",
+            "class TruncationMode(StrEnum):",
+            "    TOWARD_ZERO = 'toward_zero'",
+            "",
+            "class PrimaryDataSizeKind(StrEnum):",
+            "    MULTIPLY = 'multiply'",
+            "    DIVIDE = 'divide'",
+            "",
+            "class OperationType(StrEnum):",
+            "    ADD = 'add'",
+            "    ADD_DECIMAL = 'add_decimal'",
+            "    ADDX = 'addx'",
+            "    AND = 'and'",
+            "    BIT_TEST = 'bit_test'",
+            "    BITFIELD = 'bitfield'",
+            "    BOUNDS_CHECK = 'bounds_check'",
+            "    CCR_OP = 'ccr_op'",
+            "    CLEAR = 'clear'",
+            "    COMPARE = 'compare'",
+            "    COMPARE_SWAP = 'compare_swap'",
+            "    DIVIDE = 'divide'",
+            "    MOVE = 'move'",
+            "    MULTIPLY = 'multiply'",
+            "    NEG = 'neg'",
+            "    NEGX = 'negx'",
+            "    NOT = 'not'",
+            "    OR = 'or'",
+            "    ROTATE = 'rotate'",
+            "    ROTATE_EXTEND = 'rotate_extend'",
+            "    SHIFT = 'shift'",
+            "    SIGN_EXTEND = 'sign_extend'",
+            "    SR_OP = 'sr_op'",
+            "    SUB = 'sub'",
+            "    SUB_DECIMAL = 'sub_decimal'",
+            "    SUBX = 'subx'",
+            "    SWAP = 'swap'",
+            "    TEST = 'test'",
+            "    XOR = 'xor'",
+            "",
+            "class OperationClass(StrEnum):",
+            "    LOAD_EFFECTIVE_ADDRESS = 'load_effective_address'",
+            "    MULTI_REGISTER_TRANSFER = 'multi_register_transfer'",
+            "",
+            "class SpEffectAction(StrEnum):",
+            "    DECREMENT = 'decrement'",
+            "    INCREMENT = 'increment'",
+            "    ADJUST = 'adjust'",
+            "    SAVE_TO_REG = 'save_to_reg'",
+            "    LOAD_FROM_REG = 'load_from_reg'",
+            "",
+            "class ShiftDirection(StrEnum):",
+            "    LEFT = 'left'",
+            "    RIGHT = 'right'",
+            "",
+            "class ShiftFill(StrEnum):",
+            "    ZERO = 'zero'",
+            "    SIGN = 'sign'",
+            "    ROTATE = 'rotate'",
+            "",
+            "BitField: TypeAlias = tuple[int, int, int]",
+            "AsmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None]",
+            "DisasmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None, int | None]",
+            "ShiftFieldInfo: TypeAlias = tuple[BitField, tuple[str | None, ...], int]",
+            "RmFieldInfo: TypeAlias = tuple[int, tuple[str | None, ...]]",
+            "ConditionFamily: TypeAlias = tuple[str, str, tuple[str, ...], bool, tuple[str, ...]]",
+            "DirectionVariant: TypeAlias = tuple[BitField, str, tuple[str, ...], dict[int, str]]",
+            "ImmediateRange: TypeAlias = tuple[str | None, int | None, bool, int | None, int | None, int | None]",
+            "BitModulus: TypeAlias = tuple[int, int]",
+            "BranchInlineDisplacement: TypeAlias = tuple[str, BitField, int, int, int, int]",
+            "BranchExtensionDisplacement: TypeAlias = tuple[int, int]",
+            "EaModeTable: TypeAlias = tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]",
+            "OperandModeTable: TypeAlias = tuple[str, dict[int, tuple[str, ...]]]",
+            "OpmodeEntry: TypeAlias = tuple[str | None, str | None, bool | None, str | None, str | None, str | None, str | None]",
+            "CcLookupFamily: TypeAlias = tuple[str, tuple[str, ...], bool]",
+            "ComputeFormula: TypeAlias = tuple[ComputeOp, tuple[FormulaTerm | int, ...], tuple[int, int] | None, tuple[int, int] | None, tuple[tuple[str, int], ...], TruncationMode | None]",
+            "PrimaryDataSize: TypeAlias = tuple[PrimaryDataSizeKind, int, int, int]",
+            "SpEffect: TypeAlias = tuple[SpEffectAction, int | None, str | None]",
+            "ShiftVariantBehavior: TypeAlias = tuple[str, ShiftDirection, ShiftFill, bool]",
+            "DirectionFormValue: TypeAlias = tuple[str, tuple[int, ...]]",
+            "",
+            f"META = {_render_py(meta)}",
+            "",
+            f"MNEMONIC_INDEX = {_render_py(tables['mnemonic_index'])}",
+            f"ENCODING_COUNTS = {_render_py(tables['encoding_counts'])}",
+            f"ENCODING_MASKS = {_render_py(tables['encoding_masks'])}",
+            f"FIXED_OPCODES = {_render_py(tables['fixed_opcodes'])}",
+            f"EXT_FIELD_NAMES = {_render_py(tables['ext_field_names'])}",
+            f"FIELD_MAPS = {_render_py(tables['field_maps'])}",
+            f"RAW_FIELDS = {_render_py(tables['raw_fields'])}",
+            f"EA_BRIEF_FIELDS = {_render_py(tables['ea_brief_fields'])}",
+            f"SIZE_ENCODINGS_ASM = {_render_size_encodings(tables['size_encodings_asm'])}",
+            f"SIZE_ENCODINGS_DISASM = {_render_size_encodings(tables['size_encodings_disasm'])}",
+            f"CC_FAMILIES = {_render_py(tables['cc_families'])}",
+            f"IMMEDIATE_RANGES = {_render_py(tables['immediate_ranges'])}",
+            f"COMPUTE_FORMULAS = {_render_compute_formulas(tables['compute_formulas'])}",
+            f"SP_EFFECTS = {_render_sp_effects(tables['sp_effects'])}",
+            f"IMPLICIT_OPERANDS = {_render_py(tables['implicit_operands'])}",
+            f"BIT_MODULI = {_render_py(tables['bit_moduli'])}",
+            f"ROTATE_EXTRA_BITS = {_render_py(tables['rotate_extra_bits'])}",
+            f"SIGNED_RESULTS = {_render_py(tables['signed_results'])}",
+            f"INSTRUCTION_SIZES = {_render_py(tables['instruction_sizes'])}",
+            f"OPERATION_TYPES = {_render_operation_type_table(tables['operation_types'])}",
+            f"OPERATION_CLASSES = {_render_operation_class_table(tables['operation_classes'])}",
+            f"SOURCE_SIGN_EXTEND = {_render_py(tables['source_sign_extend'])}",
+            f"SHIFT_COUNT_MODULI = {_render_py(tables['shift_count_moduli'])}",
+            f"OPMODE_TABLES_LIST = {_render_py(tables['opmode_tables_list'])}",
+            f"OPMODE_TABLES_BY_VALUE = {_render_py(tables['opmode_tables_by_value'])}",
+            f"FORM_OPERAND_TYPES = {_render_py(tables['form_operand_types'])}",
+            f"FORM_FLAGS_020 = {_render_py(tables['form_flags_020'])}",
+            f"PRIMARY_DATA_SIZES = {_render_primary_data_sizes(tables['primary_data_sizes'])}",
+            f"EA_MODE_TABLES = {_render_py(tables['ea_mode_tables'])}",
+            f"AN_SIZES = {_render_py(tables['an_sizes'])}",
+            f"OPERAND_MODE_TABLES = {_render_py(tables['operand_mode_tables'])}",
+            f"DIRECTION_VARIANTS = {_render_py(tables['direction_variants'])}",
+            f"REGISTER_FIELDS = {_render_py(tables['register_fields'])}",
+            f"DEST_REG_FIELD = {_render_py(tables['dest_reg_field'])}",
+            f"BF_MNEMONICS = {_render_py(tables['bf_mnemonics'])}",
+            f"BITOP_NAMES = {_render_py(tables['bitop_names'])}",
+            f"IMM_NAMES = {_render_py(tables['imm_names'])}",
+            f"SHIFT_NAMES = {_render_py(tables['shift_names'])}",
+            f"SHIFT_TYPE_FIELDS = {_render_py(tables['shift_type_fields'])}",
+            f"SHIFT_FIELDS = {_render_shift_fields(tables['shift_fields'])}",
+            f"RM_FIELD = {_render_rm_fields(tables['rm_field'])}",
+            f"ADDQ_ZERO_MEANS = {_render_py(tables['addq_zero_means'])}",
+            f"CONTROL_REGISTERS = {_render_py(tables['control_registers'])}",
+            f"PROCESSOR_MINS = {_render_processor_table(tables['processor_mins'])}",
+            f"FLOW_TYPES = {_render_flow_table(tables['flow_types'])}",
+            f"FLOW_CONDITIONAL = {_render_py(tables['flow_conditional'])}",
+            f"CONDITION_FAMILIES = {_render_py(tables['condition_families'])}",
+            f"BRANCH_INLINE_DISPLACEMENTS = {_render_py(tables['branch_inline_displacements'])}",
+            f"BRANCH_EXTENSION_DISPLACEMENTS = {_render_py(tables['branch_extension_displacements'])}",
+            f"MOVE_FIELDS = {_render_py(tables['move_fields'])}",
+            f"MOVEM_FIELDS = {_render_py(tables['movem_fields'])}",
+            f"CPID_FIELD = {_render_py(tables['cpid_field'])}",
+            f"ASM_SYNTAX_INDEX = {_render_py(tables['asm_syntax_index'])}",
+            f"SPECIAL_OPERAND_TYPES = {_render_py(tables['special_operand_types'])}",
+            f"USES_LABELS = {_render_py(tables['uses_labels'])}",
+            f"DIRECTION_FORM_VALUES = {_render_py(tables['direction_form_values'])}",
+            f"SHIFT_VARIANT_BEHAVIORS = {_render_shift_variant_behaviors(tables['shift_variant_behaviors'])}",
+            f"PROCESSOR_020_VARIANTS = {_render_py(tables['processor_020_variants'])}",
+            "",
+        ]
+    )
+    path.write_text(text, encoding="utf-8")
+
+
+def _write_m68k_decode_runtime_python(path: Path, payload: dict, *, header: str) -> None:
+    lines = [
+        '"""' + header + '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from enum import StrEnum",
+        "",
+        "from typing import TypeAlias",
+        "",
+        "BitField: TypeAlias = tuple[int, int, int]",
+        "class OperationType(StrEnum):",
+        "    ADD = 'add'",
+        "    ADD_DECIMAL = 'add_decimal'",
+        "    ADDX = 'addx'",
+        "    AND = 'and'",
+        "    BIT_TEST = 'bit_test'",
+        "    BITFIELD = 'bitfield'",
+        "    BOUNDS_CHECK = 'bounds_check'",
+        "    CCR_OP = 'ccr_op'",
+        "    CLEAR = 'clear'",
+        "    COMPARE = 'compare'",
+        "    COMPARE_SWAP = 'compare_swap'",
+        "    DIVIDE = 'divide'",
+        "    MOVE = 'move'",
+        "    MULTIPLY = 'multiply'",
+        "    NEG = 'neg'",
+        "    NEGX = 'negx'",
+        "    NOT = 'not'",
+        "    OR = 'or'",
+        "    ROTATE = 'rotate'",
+        "    ROTATE_EXTEND = 'rotate_extend'",
+        "    SHIFT = 'shift'",
+        "    SIGN_EXTEND = 'sign_extend'",
+        "    SR_OP = 'sr_op'",
+        "    SUB = 'sub'",
+        "    SUB_DECIMAL = 'sub_decimal'",
+        "    SUBX = 'subx'",
+        "    SWAP = 'swap'",
+        "    TEST = 'test'",
+        "    XOR = 'xor'",
+        "",
+    ]
+    for name, value in payload.items():
+        if name == "OPERATION_TYPES":
+            lines.append(f"{name} = {_render_operation_type_table(value)}")
+        else:
+            lines.append(f"{name} = {_render_py(value)}")
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_m68k_disasm_runtime_python(path: Path, payload: dict, *, header: str) -> None:
+    lines = [
+        '"""' + header + '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from enum import StrEnum",
+        "",
+        "from typing import TypeAlias",
+        "",
+        "DisasmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None, int | None]",
+        "ShiftFieldInfo: TypeAlias = tuple[tuple[int, int, int], tuple[str | None, ...], int]",
+        "RmFieldInfo: TypeAlias = tuple[int, tuple[str | None, ...]]",
+        "class OperationType(StrEnum):",
+        "    ADD = 'add'",
+        "    ADD_DECIMAL = 'add_decimal'",
+        "    ADDX = 'addx'",
+        "    AND = 'and'",
+        "    BIT_TEST = 'bit_test'",
+        "    BITFIELD = 'bitfield'",
+        "    BOUNDS_CHECK = 'bounds_check'",
+        "    CCR_OP = 'ccr_op'",
+        "    CLEAR = 'clear'",
+        "    COMPARE = 'compare'",
+        "    COMPARE_SWAP = 'compare_swap'",
+        "    DIVIDE = 'divide'",
+        "    MOVE = 'move'",
+        "    MULTIPLY = 'multiply'",
+        "    NEG = 'neg'",
+        "    NEGX = 'negx'",
+        "    NOT = 'not'",
+        "    OR = 'or'",
+        "    ROTATE = 'rotate'",
+        "    ROTATE_EXTEND = 'rotate_extend'",
+        "    SHIFT = 'shift'",
+        "    SIGN_EXTEND = 'sign_extend'",
+        "    SR_OP = 'sr_op'",
+        "    SUB = 'sub'",
+        "    SUB_DECIMAL = 'sub_decimal'",
+        "    SUBX = 'subx'",
+        "    SWAP = 'swap'",
+        "    TEST = 'test'",
+        "    XOR = 'xor'",
+        "class OperationClass(StrEnum):",
+        "    LOAD_EFFECTIVE_ADDRESS = 'load_effective_address'",
+        "    MULTI_REGISTER_TRANSFER = 'multi_register_transfer'",
+        "",
+    ]
+    for name, value in payload.items():
+        if name == "SIZE_ENCODINGS_DISASM":
+            lines.append(f"{name} = {_render_size_encodings(value)}")
+        elif name == "SHIFT_FIELDS":
+            lines.append(f"{name} = {_render_shift_fields(value)}")
+        elif name == "RM_FIELD":
+            lines.append(f"{name} = {_render_rm_fields(value)}")
+        elif name == "OPERATION_TYPES":
+            lines.append(f"{name} = {_render_operation_type_table(value)}")
+        elif name == "OPERATION_CLASSES":
+            lines.append(f"{name} = {_render_operation_class_table(value)}")
+        else:
+            lines.append(f"{name} = {_render_py(value)}")
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_m68k_asm_runtime_python(path: Path, payload: dict, *, header: str) -> None:
+    lines = [
+        '"""' + header + '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from enum import StrEnum",
+        "",
+        "from typing import TypeAlias",
+        "",
+        "AsmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None]",
+        "class OperationType(StrEnum):",
+        "    ADD = 'add'",
+        "    ADD_DECIMAL = 'add_decimal'",
+        "    ADDX = 'addx'",
+        "    AND = 'and'",
+        "    BIT_TEST = 'bit_test'",
+        "    BITFIELD = 'bitfield'",
+        "    BOUNDS_CHECK = 'bounds_check'",
+        "    CCR_OP = 'ccr_op'",
+        "    CLEAR = 'clear'",
+        "    COMPARE = 'compare'",
+        "    COMPARE_SWAP = 'compare_swap'",
+        "    DIVIDE = 'divide'",
+        "    MOVE = 'move'",
+        "    MULTIPLY = 'multiply'",
+        "    NEG = 'neg'",
+        "    NEGX = 'negx'",
+        "    NOT = 'not'",
+        "    OR = 'or'",
+        "    ROTATE = 'rotate'",
+        "    ROTATE_EXTEND = 'rotate_extend'",
+        "    SHIFT = 'shift'",
+        "    SIGN_EXTEND = 'sign_extend'",
+        "    SR_OP = 'sr_op'",
+        "    SUB = 'sub'",
+        "    SUB_DECIMAL = 'sub_decimal'",
+        "    SUBX = 'subx'",
+        "    SWAP = 'swap'",
+        "    TEST = 'test'",
+        "    XOR = 'xor'",
+        "",
+    ]
+    for name, value in payload.items():
+        if name == "SIZE_ENCODINGS_ASM":
+            lines.append(f"{name} = {_render_size_encodings(value)}")
+        elif name == "OPERATION_TYPES":
+            lines.append(f"{name} = {_render_operation_type_table(value)}")
+        else:
+            lines.append(f"{name} = {_render_py(value)}")
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_m68k_analysis_runtime_python(path: Path, payload: dict, *, header: str) -> None:
+    lines = [
+        '"""' + header + '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from enum import StrEnum",
+        "",
+        "class Processor(StrEnum):",
+        "    M68000 = '68000'",
+        "    M68008 = '68008'",
+        "    M68010 = '68010'",
+        "    M68020 = '68020'",
+        "    M68030 = '68030'",
+        "    M68040 = '68040'",
+        "    CPU32 = 'CPU32'",
+        "    MC68851 = '68851'",
+        "",
+        "class FlowType(StrEnum):",
+        "    SEQUENTIAL = 'sequential'",
+        "    BRANCH = 'branch'",
+        "    JUMP = 'jump'",
+        "    CALL = 'call'",
+        "    RETURN = 'return'",
+        "    TRAP = 'trap'",
+        "",
+        "class OperationType(StrEnum):",
+        "    ADD = 'add'",
+        "    ADD_DECIMAL = 'add_decimal'",
+        "    ADDX = 'addx'",
+        "    AND = 'and'",
+        "    BIT_TEST = 'bit_test'",
+        "    BITFIELD = 'bitfield'",
+        "    BOUNDS_CHECK = 'bounds_check'",
+        "    CCR_OP = 'ccr_op'",
+        "    CLEAR = 'clear'",
+        "    COMPARE = 'compare'",
+        "    COMPARE_SWAP = 'compare_swap'",
+        "    DIVIDE = 'divide'",
+        "    MOVE = 'move'",
+        "    MULTIPLY = 'multiply'",
+        "    NEG = 'neg'",
+        "    NEGX = 'negx'",
+        "    NOT = 'not'",
+        "    OR = 'or'",
+        "    ROTATE = 'rotate'",
+        "    ROTATE_EXTEND = 'rotate_extend'",
+        "    SHIFT = 'shift'",
+        "    SIGN_EXTEND = 'sign_extend'",
+        "    SR_OP = 'sr_op'",
+        "    SUB = 'sub'",
+        "    SUB_DECIMAL = 'sub_decimal'",
+        "    SUBX = 'subx'",
+        "    SWAP = 'swap'",
+        "    TEST = 'test'",
+        "    XOR = 'xor'",
+        "",
+        "class OperationClass(StrEnum):",
+        "    LOAD_EFFECTIVE_ADDRESS = 'load_effective_address'",
+        "    MULTI_REGISTER_TRANSFER = 'multi_register_transfer'",
+        "",
+        "class ComputeOp(StrEnum):",
+        "    ADD = 'add'",
+        "    ADD_DECIMAL = 'add_decimal'",
+        "    ASSIGN = 'assign'",
+        "    BIT_CHANGE = 'bit_change'",
+        "    BIT_CLEAR = 'bit_clear'",
+        "    BIT_SET = 'bit_set'",
+        "    BIT_TEST = 'bit_test'",
+        "    BITWISE_AND = 'bitwise_and'",
+        "    BITWISE_COMPLEMENT = 'bitwise_complement'",
+        "    BITWISE_OR = 'bitwise_or'",
+        "    BITWISE_XOR = 'bitwise_xor'",
+        "    DIVIDE = 'divide'",
+        "    EXCHANGE = 'exchange'",
+        "    MULTIPLY = 'multiply'",
+        "    ROTATE = 'rotate'",
+        "    ROTATE_EXTEND = 'rotate_extend'",
+        "    SHIFT = 'shift'",
+        "    SIGN_EXTEND = 'sign_extend'",
+        "    SUBTRACT = 'subtract'",
+        "    SUBTRACT_DECIMAL = 'subtract_decimal'",
+        "    TEST = 'test'",
+        "",
+        "class FormulaTerm(StrEnum):",
+        "    SOURCE = 'source'",
+        "    DESTINATION = 'destination'",
+        "    EXTEND = 'X'",
+        "    IMPLICIT = 'implicit'",
+        "",
+        "class TruncationMode(StrEnum):",
+        "    TOWARD_ZERO = 'toward_zero'",
+        "",
+        "class SpEffectAction(StrEnum):",
+        "    DECREMENT = 'decrement'",
+        "    INCREMENT = 'increment'",
+        "    ADJUST = 'adjust'",
+        "    SAVE_TO_REG = 'save_to_reg'",
+        "    LOAD_FROM_REG = 'load_from_reg'",
+        "",
+    ]
+    for name, value in payload.items():
+        if name == "PROCESSOR_MINS":
+            lines.append(f"{name} = {_render_processor_table(value)}")
+        elif name == "FLOW_TYPES":
+            lines.append(f"{name} = {_render_flow_table(value)}")
+        elif name == "OPERATION_TYPES":
+            lines.append(f"{name} = {_render_operation_type_table(value)}")
+        elif name == "OPERATION_CLASSES":
+            lines.append(f"{name} = {_render_operation_class_table(value)}")
+        elif name == "COMPUTE_FORMULAS":
+            lines.append(f"{name} = {_render_compute_formulas(value)}")
+        elif name == "SP_EFFECTS":
+            lines.append(f"{name} = {_render_sp_effects(value)}")
+        else:
+            lines.append(f"{name} = {_render_py(value)}")
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_hunk_runtime_python(path: Path, payload: dict, *, header: str) -> None:
+    lines = [
+        '"""' + header + '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from enum import StrEnum",
+        "",
+        "class RelocMode(StrEnum):",
+        "    ABSOLUTE = 'absolute'",
+        "    PC_RELATIVE = 'pc_relative'",
+        "    DATA_RELATIVE = 'data_relative'",
+        "",
+        f"META = {_render_py(payload['META'])}",
+        f"HUNK_TYPES = {_render_py(payload['HUNK_TYPES'])}",
+        f"EXT_TYPES = {_render_py(payload['EXT_TYPES'])}",
+        f"MEMORY_FLAGS = {_render_py(payload['MEMORY_FLAGS'])}",
+        f"MEMORY_TYPE_CODES = {_render_py(payload['MEMORY_TYPE_CODES'])}",
+        f"EXT_TYPE_CATEGORIES = {_render_py(payload['EXT_TYPE_CATEGORIES'])}",
+        f"COMPATIBILITY_NOTES = {_render_py(payload['COMPATIBILITY_NOTES'])}",
+        f"RELOC_FORMATS = {_render_py(payload['RELOC_FORMATS'])}",
+        f"RELOCATION_SEMANTICS = {_render_hunk_relocation_semantics(payload['RELOCATION_SEMANTICS'])}",
+        f"HUNK_CONTENT_FORMATS = {_render_py(payload['HUNK_CONTENT_FORMATS'])}",
+        "",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def _iter_mnemonic_tokens(text: str):
     start = None
     for i, ch in enumerate(text):
@@ -92,6 +1050,52 @@ def _runtime_size_encodings(inst: dict) -> tuple[dict[str, int], dict[int, int]]
     return asm_map, disasm_map
 
 
+def _runtime_branch_displacement(inst: dict,
+                                 field_maps_by_idx: list[dict[str, dict[str, tuple[int, int, int]]]],
+                                 raw_fields_by_idx: list[dict[str, tuple[tuple[str, int, int, int], ...]]]
+                                 ) -> dict | None:
+    flow = inst.get("pc_effects", {}).get("flow", {})
+    if flow.get("type") not in {"branch", "call"}:
+        return None
+
+    displacement_encoding = inst.get("constraints", {}).get("displacement_encoding")
+    if displacement_encoding:
+        field_name = displacement_encoding["field"]
+        field_map = field_maps_by_idx[0].get(inst["mnemonic"], {})
+        if field_name not in field_map:
+            raise KeyError(f"{inst['mnemonic']}: missing displacement field {field_name!r}")
+        return {
+            "kind": "inline_or_extension",
+            "field_name": field_name,
+            "field": field_map[field_name],
+            "word_signal": displacement_encoding["word_signal"],
+            "long_signal": displacement_encoding["long_signal"],
+            "word_bytes": displacement_encoding["word_bits"] // 8,
+            "long_bytes": displacement_encoding["long_bits"] // 8,
+        }
+
+    forms = [
+        tuple(operand["type"] for operand in form.get("operands", []))
+        for form in inst.get("forms", [])
+    ]
+    if ("dn", "label") not in forms:
+        return None
+    encodings = inst.get("encodings", [])
+    if len(encodings) <= 1:
+        raise KeyError(f"{inst['mnemonic']}: branch form missing extension displacement encoding")
+    return {
+        "kind": "extension_only",
+        "offset_bytes": (len(encodings) - 1) * 2,
+        "bytes": 2,
+    }
+
+
+def _project_instruction_runtime(inst: dict) -> dict:
+    return {
+        "mnemonic": inst["mnemonic"],
+    }
+
+
 def _build_m68k_runtime() -> dict:
     payload = _load_json("m68k_instructions.json")
     instructions = payload["instructions"]
@@ -99,6 +1103,10 @@ def _build_m68k_runtime() -> dict:
     by_name = {inst["mnemonic"]: inst for inst in instructions}
 
     mnemonic_index: dict[str, tuple[str, ...]] = {}
+    encoding_counts = {
+        inst["mnemonic"]: len(inst.get("encodings", []))
+        for inst in instructions
+    }
     for inst in instructions:
         lowered = inst["mnemonic"].lower()
         keys = {lowered, lowered.partition(" ")[0]}
@@ -111,10 +1119,11 @@ def _build_m68k_runtime() -> dict:
         for key, values in sorted(mnemonic_index.items())
     }
 
+    max_encoding_count = max(len(inst.get("encodings", ())) for inst in instructions)
     encoding_masks_by_idx: list[dict[str, tuple[int, int]]] = []
     field_maps_by_idx: list[dict[str, dict[str, tuple[int, int, int]]]] = []
     raw_fields_by_idx: list[dict[str, tuple[tuple[str, int, int, int], ...]]] = []
-    for enc_idx in range(3):
+    for enc_idx in range(max_encoding_count):
         masks: dict[str, tuple[int, int]] = {}
         field_maps: dict[str, dict[str, tuple[int, int, int]]] = {}
         raw_fields: dict[str, tuple[tuple[str, int, int, int], ...]] = {}
@@ -170,7 +1179,6 @@ def _build_m68k_runtime() -> dict:
             size_encodings_asm[inst["mnemonic"]] = asm_map
             size_encodings_disasm[inst["mnemonic"]] = disasm_map
 
-    cc_index = {name: index for index, name in enumerate(meta["condition_codes"])}
     cc_families = {}
     for inst in instructions:
         cc_param = inst.get("constraints", {}).get("cc_parameterized")
@@ -178,10 +1186,155 @@ def _build_m68k_runtime() -> dict:
             cc_families[cc_param["prefix"]] = (inst["mnemonic"], cc_param)
 
     immediate_ranges = {
-        inst["mnemonic"]: inst["constraints"]["immediate_range"]
+        inst["mnemonic"]: (
+            inst["constraints"]["immediate_range"].get("field"),
+            inst["constraints"]["immediate_range"].get("bits"),
+            bool(inst["constraints"]["immediate_range"].get("signed", False)),
+            inst["constraints"]["immediate_range"].get("min"),
+            inst["constraints"]["immediate_range"].get("max"),
+            inst["constraints"]["immediate_range"].get("zero_means"),
+        )
         for inst in instructions
         if inst.get("constraints", {}).get("immediate_range")
     }
+    compute_formulas = {}
+    sp_effects = {}
+    implicit_operands = {}
+    bit_moduli = {}
+    rotate_extra_bits = {}
+    signed_results = {}
+    instruction_sizes = {}
+    operation_types = {}
+    operation_classes = {}
+    source_sign_extend = set()
+    shift_count_moduli = {}
+    shift_variant_behaviors = {}
+    processor_020_variants = {}
+    for inst in instructions:
+        mnemonic = inst["mnemonic"]
+        instruction_sizes[mnemonic] = tuple(inst.get("sizes", ()))
+        if "operation_type" in inst:
+            operation_types[mnemonic] = inst["operation_type"]
+        if "operation_class" in inst:
+            operation_classes[mnemonic] = inst["operation_class"]
+        if inst.get("source_sign_extend"):
+            source_sign_extend.add(mnemonic)
+        if "shift_count_modulus" in inst:
+            shift_count_moduli[mnemonic] = inst["shift_count_modulus"]
+        formula = inst.get("compute_formula")
+        if formula:
+            compute_formulas[mnemonic] = (
+                formula["op"],
+                tuple(formula.get("terms", ())),
+                tuple(formula["range_a"]) if "range_a" in formula else None,
+                tuple(formula["range_b"]) if "range_b" in formula else None,
+                tuple((size, bits) for size, bits in formula.get("source_bits_by_size", {}).items()),
+                formula.get("truncation"),
+            )
+        raw_sp_effects = inst.get("sp_effects")
+        if raw_sp_effects:
+            sp_effects[mnemonic] = tuple(
+                (effect["action"], effect.get("bytes"), effect.get("reg", effect.get("operand")))
+                for effect in raw_sp_effects
+            )
+        if "implicit_operand" in inst:
+            implicit_operands[mnemonic] = inst["implicit_operand"]
+        if "bit_modulus" in inst:
+            bit_mod = inst["bit_modulus"]
+            bit_moduli[mnemonic] = (bit_mod["register"], bit_mod["memory"])
+        if "rotate_extra_bits" in inst:
+            rotate_extra_bits[mnemonic] = inst["rotate_extra_bits"]
+        if "signed" in inst:
+            signed_results[mnemonic] = bool(inst["signed"])
+        raw_variants = inst.get("variants", ())
+        shift_behaviors = tuple(
+            (
+                variant["mnemonic"],
+                variant["direction"],
+                variant["fill"],
+                bool(variant.get("arithmetic", False)),
+            )
+            for variant in raw_variants
+            if "direction" in variant and "fill" in variant
+        )
+        if shift_behaviors:
+            shift_variant_behaviors[mnemonic] = shift_behaviors
+        variant_020 = frozenset(
+            variant["mnemonic"]
+            for variant in raw_variants
+            if variant.get("processor_020")
+        )
+        if variant_020:
+            processor_020_variants[mnemonic] = variant_020
+
+    form_operand_types = {}
+    form_flags_020 = {}
+    primary_data_sizes = {}
+    ea_mode_tables = {}
+    an_sizes = {}
+    operand_mode_tables = {}
+    uses_labels = {}
+    direction_form_values = {}
+    flow_conditional = {}
+    for inst in instructions:
+        mnemonic = inst["mnemonic"]
+        forms = inst.get("forms", [])
+        if forms:
+            form_operand_types[mnemonic] = tuple(
+                tuple(operand["type"] for operand in form.get("operands", []))
+                for form in forms
+            )
+            form_flags_020[mnemonic] = tuple(bool(form.get("processor_020")) for form in forms)
+            for form in forms:
+                data_sizes = form.get("data_sizes")
+                if data_sizes and not form.get("processor_020") and mnemonic not in primary_data_sizes:
+                    kind = data_sizes["type"]
+                    if kind == "multiply":
+                        primary_data_sizes[mnemonic] = (
+                            kind,
+                            data_sizes["src_bits"],
+                            data_sizes["dst_bits"],
+                            data_sizes["result_bits"],
+                        )
+                    elif kind == "divide":
+                        primary_data_sizes[mnemonic] = (
+                            kind,
+                            data_sizes["divisor_bits"],
+                            data_sizes["dividend_bits"],
+                            data_sizes["quotient_bits"],
+                        )
+                    else:
+                        raise KeyError(f"unsupported primary data size kind {kind!r} for {mnemonic}")
+        ea_modes = inst.get("ea_modes")
+        if ea_modes:
+            ea_mode_tables[mnemonic] = (
+                tuple(ea_modes.get("src", ())),
+                tuple(ea_modes.get("dst", ())),
+                tuple(ea_modes.get("ea", ())),
+            )
+        raw_constraints = inst.get("constraints", {})
+        if raw_constraints.get("an_sizes"):
+            an_sizes[mnemonic] = tuple(raw_constraints["an_sizes"])
+        operand_modes = raw_constraints.get("operand_modes")
+        if operand_modes:
+            operand_mode_tables[mnemonic] = (
+                operand_modes["field"],
+                {
+                    int(key): tuple(value.split(","))
+                    for key, value in operand_modes["values"].items()
+                },
+            )
+        uses_labels[mnemonic] = bool(inst.get("uses_label"))
+        if "direction_field_values" in inst:
+            field_name = inst["direction_field_values"]["field"]
+            form_field_value = inst["direction_field_values"]["form_field_value"]
+            max_form_idx = max(int(key) for key in form_field_value)
+            direction_form_values[mnemonic] = (
+                field_name,
+                tuple(form_field_value[str(idx)] for idx in range(max_form_idx + 1)),
+            )
+        flow = inst.get("pc_effects", {}).get("flow", {})
+        flow_conditional[mnemonic] = bool(flow.get("conditional", False))
 
     opmode_tables_list = {
         inst["mnemonic"]: inst["constraints"]["opmode_table"]
@@ -189,7 +1342,18 @@ def _build_m68k_runtime() -> dict:
         if inst.get("constraints", {}).get("opmode_table")
     }
     opmode_tables_by_value = {
-        mnemonic: {entry["opmode"]: entry for entry in table}
+        mnemonic: {
+            entry["opmode"]: (
+                entry.get("size"),
+                entry.get("description") or entry.get("operation"),
+                entry.get("ea_is_source"),
+                entry.get("source"),
+                entry.get("destination"),
+                entry.get("rx_mode"),
+                entry.get("ry_mode"),
+            )
+            for entry in table
+        }
         for mnemonic, table in opmode_tables_list.items()
     }
 
@@ -202,11 +1366,11 @@ def _build_m68k_runtime() -> dict:
         is_pmmu = "68851" in inst.get("processors", "")
         codes = pmmu_codes if is_pmmu else tuple(sorted(cpu_codes))
         if cc_param:
-            derived_cc_families[cc_param["prefix"].lower()] = {
-                "mnemonic": inst["mnemonic"],
-                "codes": tuple(codes),
-                "numeric_suffix": is_pmmu,
-            }
+            derived_cc_families[cc_param["prefix"].lower()] = (
+                inst["mnemonic"],
+                tuple(codes),
+                is_pmmu,
+            )
             continue
         for raw_name in inst["mnemonic"].split(","):
             name = raw_name.strip()
@@ -215,11 +1379,7 @@ def _build_m68k_runtime() -> dict:
             prefix = name[:-2].lower()
             if not prefix or prefix in derived_cc_families:
                 continue
-            derived_cc_families[prefix] = {
-                "mnemonic": name,
-                "codes": tuple(codes),
-                "numeric_suffix": is_pmmu,
-            }
+            derived_cc_families[prefix] = (name, tuple(codes), is_pmmu)
 
     asm_mnemonic_index = {}
     for syntax_key, kb_mnemonic in meta["asm_syntax_index"].items():
@@ -246,14 +1406,23 @@ def _build_m68k_runtime() -> dict:
         "_sp_reg_num": int(addr_regs[-1][1:]),
     }
 
+    register_fields = {}
     dest_reg_field = {}
     for mnemonic, fields in raw_fields_by_idx[0].items():
-        reg_fields = [(name, hi, lo, width) for name, hi, lo, width in fields if name == "REGISTER"]
-        if len(reg_fields) >= 2:
-            upper = max(reg_fields, key=lambda item: item[1])
-            dest_reg_field[mnemonic] = (upper[1], upper[2], upper[3])
-        elif len(reg_fields) == 1 and reg_fields[0][1] >= 9:
-            dest_reg_field[mnemonic] = (reg_fields[0][1], reg_fields[0][2], reg_fields[0][3])
+        reg_fields = sorted(
+            [
+                (hi, lo, width)
+                for name, hi, lo, width in fields
+                if name.startswith("REGISTER")
+            ],
+            reverse=True,
+        )
+        if reg_fields:
+            register_fields[mnemonic] = tuple(reg_fields)
+            if len(reg_fields) >= 2:
+                dest_reg_field[mnemonic] = reg_fields[0]
+            elif reg_fields[0][0] >= 9:
+                dest_reg_field[mnemonic] = reg_fields[0]
 
     bf_mnemonics = tuple(sorted(mn for mn in encoding_masks_by_idx[0] if mn.startswith("BF")))
 
@@ -287,14 +1456,23 @@ def _build_m68k_runtime() -> dict:
     )
 
     shift_fields = None
+    direction_variants = {}
     for inst in instructions:
-        if inst["mnemonic"].startswith("ASL"):
-            dv = inst["constraints"]["direction_variants"]
+        dv = inst.get("constraints", {}).get("direction_variants")
+        if dv:
+            field_map = field_maps_by_idx[0].get(inst["mnemonic"], {})
+            direction_variants[inst["mnemonic"]] = (
+                field_map[dv["field"]],
+                dv["base"],
+                tuple(dv["variants"]),
+                {int(key): value for key, value in dv["values"].items()},
+            )
+        if shift_fields is None and inst["mnemonic"].startswith("ASL"):
             shift_fields = {
-                "dr_values": {int(key): value for key, value in dv["values"].items()},
+                "dr_field": direction_variants[inst["mnemonic"]][0],
+                "dr_values": direction_variants[inst["mnemonic"]][3],
                 "zero_means": inst["constraints"]["immediate_range"]["zero_means"],
             }
-            break
     if shift_fields is None:
         raise RuntimeError("KB missing ASL/ASR")
 
@@ -307,7 +1485,7 @@ def _build_m68k_runtime() -> dict:
         if field:
             rm_field[inst["mnemonic"]] = (field[0], {int(key): value for key, value in operand_modes["values"].items()})
 
-    addq_zero_means = immediate_ranges["ADDQ"]["zero_means"]
+    addq_zero_means = immediate_ranges["ADDQ"][5]
     control_registers = {}
     for control in by_name["MOVEC"]["constraints"]["control_registers"]:
         hex_value = int(control["hex"], 16)
@@ -322,20 +1500,52 @@ def _build_m68k_runtime() -> dict:
                 processor_mins[token.lower()] = min_cpu[2:] if min_cpu.startswith("-m") else min_cpu
 
     condition_families = tuple(
-        {
-            "prefix": entry["prefix"],
-            "canonical": entry["canonical"],
-            "codes": tuple(entry["codes"]),
-            "match_numeric_suffix": entry["match_numeric_suffix"],
-            "exclude_from_family": tuple(entry["exclude_from_family"]),
-        }
+        (
+            entry["prefix"],
+            entry["canonical"],
+            tuple(entry["codes"]),
+            entry["match_numeric_suffix"],
+            tuple(entry["exclude_from_family"]),
+        )
         for entry in meta["condition_families"]
     )
+
+    branch_inline_displacements = {}
+    branch_extension_displacements = {}
+    for inst in instructions:
+        branch_info = _runtime_branch_displacement(inst, field_maps_by_idx, raw_fields_by_idx)
+        if branch_info is not None:
+            if branch_info["kind"] == "inline_or_extension":
+                branch_inline_displacements[inst["mnemonic"]] = (
+                    branch_info["field_name"],
+                    branch_info["field"],
+                    branch_info["word_signal"],
+                    branch_info["long_signal"],
+                    branch_info["word_bytes"],
+                    branch_info["long_bytes"],
+                )
+            elif branch_info["kind"] == "extension_only":
+                branch_extension_displacements[inst["mnemonic"]] = (
+                    branch_info["offset_bytes"],
+                    branch_info["bytes"],
+                )
+            else:
+                raise ValueError(f"{inst['mnemonic']}: unknown branch displacement kind {branch_info['kind']!r}")
 
     move_raw = raw_fields_by_idx[0]["MOVE"]
     move_modes = sorted([(hi, lo, width) for name, hi, lo, width in move_raw if name == "MODE"], reverse=True)
     move_regs = sorted([(hi, lo, width) for name, hi, lo, width in move_raw if name == "REGISTER"], reverse=True)
     move_fields = (move_regs[0], move_modes[0], move_modes[1], move_regs[1])
+
+    movem_field_map = field_maps_by_idx[0].get("MOVEM")
+    if movem_field_map is None:
+        raise KeyError("MOVEM: missing opword field map")
+    movem_fields = {
+        "dr": movem_field_map["dr"],
+        "size": movem_field_map["SIZE"],
+        "mode": movem_field_map["MODE"],
+        "register": movem_field_map["REGISTER"],
+    }
 
     frestore = by_name["FRESTORE"]
     id_field = next(field for field in frestore["encodings"][0]["fields"] if field["name"] == "ID")
@@ -353,7 +1563,12 @@ def _build_m68k_runtime() -> dict:
         asm_syntax_index[(mnemonic, operand_types)] = kb_mnemonic
         all_types.update(operand_types)
     special_operand_types = tuple(sorted(all_types - generic_types))
+    flow_types = {
+        inst["mnemonic"]: inst.get("pc_effects", {}).get("flow", {}).get("type", "sequential")
+        for inst in instructions
+    }
 
+    instructions = [_project_instruction_runtime(inst) for inst in instructions]
     runtime_meta = dict(meta)
     runtime_meta.update(derived_meta)
 
@@ -362,6 +1577,7 @@ def _build_m68k_runtime() -> dict:
         "meta": runtime_meta,
         "tables": {
             "mnemonic_index": mnemonic_index,
+            "encoding_counts": dict(sorted(encoding_counts.items())),
             "encoding_masks": tuple(encoding_masks_by_idx),
             "fixed_opcodes": dict(sorted(fixed_opcodes.items())),
             "ext_field_names": dict(sorted(ext_field_names.items())),
@@ -370,11 +1586,29 @@ def _build_m68k_runtime() -> dict:
             "ea_brief_fields": ea_brief_fields,
             "size_encodings_asm": dict(sorted(size_encodings_asm.items())),
             "size_encodings_disasm": dict(sorted(size_encodings_disasm.items())),
-            "cc_index": cc_index,
             "cc_families": dict(sorted(cc_families.items())),
-            "immediate_ranges": dict(sorted(immediate_ranges.items())),
-            "opmode_tables_list": dict(sorted(opmode_tables_list.items())),
+              "immediate_ranges": dict(sorted(immediate_ranges.items())),
+              "compute_formulas": dict(sorted(compute_formulas.items())),
+              "sp_effects": dict(sorted(sp_effects.items())),
+              "implicit_operands": dict(sorted(implicit_operands.items())),
+              "bit_moduli": dict(sorted(bit_moduli.items())),
+              "rotate_extra_bits": dict(sorted(rotate_extra_bits.items())),
+              "signed_results": dict(sorted(signed_results.items())),
+              "instruction_sizes": dict(sorted(instruction_sizes.items())),
+              "operation_types": dict(sorted(operation_types.items())),
+              "operation_classes": dict(sorted(operation_classes.items())),
+              "source_sign_extend": tuple(sorted(source_sign_extend)),
+              "shift_count_moduli": dict(sorted(shift_count_moduli.items())),
+              "opmode_tables_list": dict(sorted(opmode_tables_list.items())),
             "opmode_tables_by_value": dict(sorted(opmode_tables_by_value.items())),
+            "form_operand_types": dict(sorted(form_operand_types.items())),
+            "form_flags_020": dict(sorted(form_flags_020.items())),
+            "primary_data_sizes": dict(sorted(primary_data_sizes.items())),
+            "ea_mode_tables": dict(sorted(ea_mode_tables.items())),
+            "an_sizes": dict(sorted(an_sizes.items())),
+            "operand_mode_tables": dict(sorted(operand_mode_tables.items())),
+            "direction_variants": dict(sorted(direction_variants.items())),
+            "register_fields": dict(sorted(register_fields.items())),
             "dest_reg_field": dict(sorted(dest_reg_field.items())),
             "bf_mnemonics": bf_mnemonics,
             "bitop_names": (dict(sorted(bitop_names.items())), bitop_field),
@@ -386,28 +1620,27 @@ def _build_m68k_runtime() -> dict:
             "addq_zero_means": addq_zero_means,
             "control_registers": dict(sorted(control_registers.items())),
             "processor_mins": dict(sorted(processor_mins.items())),
+            "flow_types": dict(sorted(flow_types.items())),
+            "flow_conditional": dict(sorted(flow_conditional.items())),
             "condition_families": tuple(condition_families),
+            "branch_inline_displacements": dict(sorted(branch_inline_displacements.items())),
+            "branch_extension_displacements": dict(sorted(branch_extension_displacements.items())),
             "move_fields": move_fields,
+            "movem_fields": movem_fields,
             "cpid_field": cpid_field,
             "asm_syntax_index": asm_syntax_index,
             "special_operand_types": special_operand_types,
+            "uses_labels": dict(sorted(uses_labels.items())),
+            "direction_form_values": dict(sorted(direction_form_values.items())),
+            "shift_variant_behaviors": dict(sorted(shift_variant_behaviors.items())),
+            "processor_020_variants": dict(sorted(processor_020_variants.items())),
         },
     }
 
 
 def _build_os_runtime() -> dict:
     canonical = _load_json("amiga_os_reference.json")
-    runtime = {
-        "_meta": {
-            "calling_convention": canonical["_meta"]["calling_convention"],
-            "exec_base_addr": canonical["_meta"]["exec_base_addr"],
-            "lvo_slot_size": canonical["_meta"]["lvo_slot_size"],
-            "constant_domains": canonical["_meta"]["constant_domains"],
-        },
-        "structs": canonical["structs"],
-        "constants": canonical["constants"],
-        "libraries": {},
-    }
+    libraries = {}
     for library_name, library_data in sorted(canonical["libraries"].items()):
         funcs = {}
         for func_name, func_data in sorted(library_data["functions"].items()):
@@ -416,31 +1649,408 @@ def _build_os_runtime() -> dict:
                 if key in func_data:
                     compact[key] = func_data[key]
             funcs[func_name] = compact
-        runtime["libraries"][library_name] = {
+        libraries[library_name] = {
             "lvo_index": library_data["lvo_index"],
             "functions": funcs,
         }
-    return runtime
+    return {
+        "META": {
+            "calling_convention": canonical["_meta"]["calling_convention"],
+            "exec_base_addr": canonical["_meta"]["exec_base_addr"],
+            "lvo_slot_size": canonical["_meta"]["lvo_slot_size"],
+            "constant_domains": canonical["_meta"]["constant_domains"],
+        },
+        "STRUCTS": canonical["structs"],
+        "CONSTANTS": canonical["constants"],
+        "LIBRARIES": libraries,
+    }
+
+
+def _build_m68k_decode_runtime(runtime_payload: dict) -> dict:
+    meta = runtime_payload["meta"]
+    tables = runtime_payload["tables"]
+    ea_field_specs = {}
+    for mnemonic, fields in tables["raw_fields"][0].items():
+        mode_field = None
+        reg_field = None
+        for name, bit_hi, bit_lo, width in fields:
+            if name == "MODE":
+                mode_field = (bit_hi, bit_lo, width)
+            elif name == "REGISTER" and bit_hi <= 5:
+                reg_field = (bit_hi, bit_lo, width)
+        if mode_field is not None and reg_field is not None:
+            ea_field_specs[mnemonic] = (mode_field, reg_field)
+    direct_modes = {"dn", "an"}
+    auto_modify_modes = {"postinc", "predec"}
+    return {
+        "OPWORD_BYTES": meta["opword_bytes"],
+        "ALIGN_MASK": meta["opword_bytes"] - 1,
+        "DEFAULT_OPERAND_SIZE": meta["default_operand_size"],
+        "SIZE_BYTE_COUNT": meta["size_byte_count"],
+        "EA_MODE_ENCODING": meta["ea_mode_encoding"],
+        "REG_INDIRECT_MODES": tuple(sorted(
+            name
+            for name, (_mode_val, reg_val) in meta["ea_mode_encoding"].items()
+            if reg_val is None
+            and name not in direct_modes
+            and name not in auto_modify_modes
+        )),
+        "MOVEM_REG_MASKS": meta["movem_reg_masks"],
+        "SP_REG_NUM": meta["_sp_reg_num"],
+        "NUM_DATA_REGS": meta["_num_data_regs"],
+        "NUM_ADDR_REGS": meta["_num_addr_regs"],
+        "EA_BRIEF_FIELDS": tables["ea_brief_fields"],
+        "EA_FULL_FIELDS": {
+            field["name"]: (
+                field["bit_hi"],
+                field["bit_lo"],
+                field["bit_hi"] - field["bit_lo"] + 1,
+            )
+            for field in meta["ea_full_ext_word"]
+        },
+        "EA_FULL_BD_SIZE": meta["ea_full_ext_bd_size"],
+        "ENCODING_COUNTS": tables["encoding_counts"],
+        "ENCODING_MASKS": tables["encoding_masks"],
+        "FIELD_MAPS": tables["field_maps"],
+        "RAW_FIELDS": tables["raw_fields"],
+        "EA_FIELD_SPECS": ea_field_specs,
+        "EXT_FIELD_NAMES": tables["ext_field_names"],
+        "FORM_OPERAND_TYPES": tables["form_operand_types"],
+        "OPERATION_TYPES": tables["operation_types"],
+        "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
+        "OPMODE_TABLES_BY_VALUE": tables["opmode_tables_by_value"],
+        "OPERAND_MODE_TABLES": tables["operand_mode_tables"],
+        "EA_MODE_TABLES": tables["ea_mode_tables"],
+        "AN_SIZES": tables["an_sizes"],
+        "IMMEDIATE_RANGES": tables["immediate_ranges"],
+        "REGISTER_FIELDS": tables["register_fields"],
+        "DEST_REG_FIELD": tables["dest_reg_field"],
+        "DIRECTION_VARIANTS": tables["direction_variants"],
+        "SHIFT_FIELDS": tables["shift_fields"],
+        "RM_FIELD": tables["rm_field"],
+        "CONTROL_REGISTERS": tables["control_registers"],
+        "MOVE_FIELDS": tables["move_fields"],
+        "MOVEM_FIELDS": tables["movem_fields"],
+        "CPID_FIELD": tables["cpid_field"],
+    }
+
+
+def _build_m68k_disasm_runtime(runtime_payload: dict) -> dict:
+    meta = runtime_payload["meta"]
+    tables = runtime_payload["tables"]
+    return {
+        "MNEMONIC_INDEX": tables["mnemonic_index"],
+        "ENCODING_COUNTS": tables["encoding_counts"],
+        "ENCODING_MASKS": tables["encoding_masks"],
+        "FIXED_OPCODES": tables["fixed_opcodes"],
+        "EXT_FIELD_NAMES": tables["ext_field_names"],
+        "FIELD_MAPS": tables["field_maps"],
+        "RAW_FIELDS": tables["raw_fields"],
+        "FORM_OPERAND_TYPES": tables["form_operand_types"],
+        "EA_BRIEF_FIELDS": tables["ea_brief_fields"],
+        "MOVEM_REG_MASKS": meta["movem_reg_masks"],
+        "DEST_REG_FIELD": tables["dest_reg_field"],
+        "BF_MNEMONICS": tables["bf_mnemonics"],
+        "BITOP_NAMES": tables["bitop_names"],
+        "IMM_NAMES": tables["imm_names"],
+        "SHIFT_NAMES": tables["shift_names"],
+        "SHIFT_TYPE_FIELDS": tables["shift_type_fields"],
+        "SHIFT_FIELDS": tables["shift_fields"],
+        "RM_FIELD": tables["rm_field"],
+        "ADDQ_ZERO_MEANS": tables["addq_zero_means"],
+        "CONTROL_REGISTERS": tables["control_registers"],
+        "SIZE_ENCODINGS_DISASM": tables["size_encodings_disasm"],
+        "INSTRUCTION_SIZES": tables["instruction_sizes"],
+        "OPERATION_TYPES": tables["operation_types"],
+        "OPERATION_CLASSES": tables["operation_classes"],
+        "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
+        "SHIFT_COUNT_MODULI": tables["shift_count_moduli"],
+        "PROCESSOR_MINS": tables["processor_mins"],
+        "OPMODE_TABLES_BY_VALUE": tables["opmode_tables_by_value"],
+        "CONDITION_FAMILIES": tables["condition_families"],
+        "CONDITION_CODES": tuple(meta["condition_codes"]),
+        "CPU_HIERARCHY": meta["cpu_hierarchy"],
+        "PMMU_CONDITION_CODES": tuple(meta["pmmu_condition_codes"]),
+        "DEFAULT_OPERAND_SIZE": meta["default_operand_size"],
+        "MOVE_FIELDS": tables["move_fields"],
+        "CPID_FIELD": tables["cpid_field"],
+    }
+
+
+def _build_m68k_asm_runtime(runtime_payload: dict) -> dict:
+    meta = runtime_payload["meta"]
+    tables = runtime_payload["tables"]
+    lookup_upper = {
+        inst["mnemonic"].upper(): inst["mnemonic"]
+        for inst in runtime_payload["instructions"]
+    }
+    for inst in runtime_payload["instructions"]:
+        mnemonic = inst["mnemonic"]
+        if "," in mnemonic:
+            for part in mnemonic.split(","):
+                lookup_upper[part.strip().upper()] = mnemonic
+    for mnemonic, kb_name in meta["_asm_mnemonic_index"].items():
+        lookup_upper[mnemonic.upper()] = kb_name
+    return {
+        "ENCODING_COUNTS": tables["encoding_counts"],
+        "ENCODING_MASKS": tables["encoding_masks"],
+        "FIELD_MAPS": tables["field_maps"],
+        "RAW_FIELDS": tables["raw_fields"],
+        "LOOKUP_UPPER": dict(sorted(lookup_upper.items())),
+        "EA_MODE_ENCODING": meta["ea_mode_encoding"],
+        "EA_BRIEF_FIELDS": tables["ea_brief_fields"],
+        "SIZE_BYTE_COUNT": meta["size_byte_count"],
+        "CONDITION_CODES": tuple(meta["condition_codes"]),
+        "CC_ALIASES": meta["cc_aliases"],
+        "MOVEM_REG_MASKS": meta["movem_reg_masks"],
+        "IMMEDIATE_ROUTING": meta["immediate_routing"],
+        "SIZE_ENCODINGS_ASM": tables["size_encodings_asm"],
+        "INSTRUCTION_SIZES": tables["instruction_sizes"],
+        "OPERATION_TYPES": tables["operation_types"],
+        "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
+        "OPMODE_TABLES_LIST": tables["opmode_tables_list"],
+        "FORM_OPERAND_TYPES": tables["form_operand_types"],
+        "FORM_FLAGS_020": tables["form_flags_020"],
+        "EA_MODE_TABLES": tables["ea_mode_tables"],
+        "CC_FAMILIES": tables["cc_families"],
+        "IMMEDIATE_RANGES": tables["immediate_ranges"],
+        "DIRECTION_VARIANTS": tables["direction_variants"],
+        "BRANCH_INLINE_DISPLACEMENTS": tables["branch_inline_displacements"],
+        "AN_SIZES": tables["an_sizes"],
+        "USES_LABELS": tables["uses_labels"],
+        "DIRECTION_FORM_VALUES": tables["direction_form_values"],
+        "SPECIAL_OPERAND_TYPES": tables["special_operand_types"],
+        "ASM_SYNTAX_INDEX": tables["asm_syntax_index"],
+    }
+
+
+def _build_m68k_analysis_runtime(runtime_payload: dict) -> dict:
+    meta = runtime_payload["meta"]
+    instructions = runtime_payload["instructions"]
+    tables = runtime_payload["tables"]
+    rts_sp_inc = sum(
+        nbytes
+        for action, nbytes, _ in tables["sp_effects"]["RTS"]
+        if action == "increment"
+    )
+    if not rts_sp_inc:
+        raise ValueError("RTS has no increment SP effect")
+    addr_size = next(
+        (size for size, nbytes in meta["size_byte_count"].items() if nbytes == rts_sp_inc),
+        None,
+    )
+    if addr_size is None:
+        raise ValueError(
+            f"size_byte_count has no entry for {rts_sp_inc} bytes (RTS pop size)"
+        )
+    ea_reverse = {}
+    for name, (mode, reg) in meta["ea_mode_encoding"].items():
+        if reg is not None:
+            ea_reverse[(mode, reg)] = name
+            continue
+        for index in range(8):
+            ea_reverse.setdefault((mode, index), name)
+    lookup_cc_families = {}
+    for prefix, family in meta["_cc_families"].items():
+        lookup_cc_families[prefix] = (
+            family[0],
+            tuple(family[1]),
+            family[2],
+        )
+    lookup_canonical = {}
+    lookup_upper = {
+        name.upper(): name
+        for name in {inst["mnemonic"] for inst in instructions}
+    }
+    for mnemonic, kb_name in meta["_asm_mnemonic_index"].items():
+        lookup_upper[mnemonic.upper()] = kb_name
+    for inst in instructions:
+        mnemonic = inst["mnemonic"]
+        if "," in mnemonic:
+            for part in mnemonic.split(","):
+                lookup_upper[part.strip().upper()] = mnemonic
+    for upper_name, kb_name in lookup_upper.items():
+        lookup_canonical[upper_name] = kb_name
+    numeric_cc_prefixes = {}
+    for prefix, (kb_name, codes, match_numeric_suffix) in lookup_cc_families.items():
+        prefix_upper = prefix.upper()
+        if match_numeric_suffix:
+            numeric_cc_prefixes[prefix_upper] = kb_name
+        for code in codes:
+            lookup_canonical[f"{prefix_upper}{code.upper()}"] = kb_name
+    cc_test_definitions = {
+        name: (entry["encoding"], entry["test"])
+        for name, entry in meta["cc_test_definitions"].items()
+    }
+    return {
+        "OPWORD_BYTES": meta["opword_bytes"],
+        "DEFAULT_OPERAND_SIZE": meta["default_operand_size"],
+        "SIZE_BYTE_COUNT": meta["size_byte_count"],
+        "EA_MODE_ENCODING": meta["ea_mode_encoding"],
+        "EA_REVERSE": ea_reverse,
+        "EA_BRIEF_FIELDS": tables["ea_brief_fields"],
+        "EA_MODE_SIZES": meta["ea_mode_sizes"],
+        "MOVEM_REG_MASKS": meta["movem_reg_masks"],
+        "CC_TEST_DEFINITIONS": cc_test_definitions,
+        "CC_ALIASES": meta["cc_aliases"],
+        "REGISTER_ALIASES": meta["register_aliases"],
+        "NUM_DATA_REGS": meta["_num_data_regs"],
+        "NUM_ADDR_REGS": meta["_num_addr_regs"],
+        "SP_REG_NUM": meta["_sp_reg_num"],
+        "RTS_SP_INC": rts_sp_inc,
+        "ADDR_SIZE": addr_size,
+        "ADDR_MASK": (1 << (rts_sp_inc * 8)) - 1,
+        "CCR_FLAG_NAMES": tuple(meta["ccr_bit_positions"]),
+        "OPERATION_TYPES": tables["operation_types"],
+        "OPERATION_CLASSES": tables["operation_classes"],
+        "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
+        "FLOW_TYPES": tables["flow_types"],
+        "FLOW_CONDITIONAL": tables["flow_conditional"],
+        "COMPUTE_FORMULAS": tables["compute_formulas"],
+        "SP_EFFECTS": tables["sp_effects"],
+        "EA_MODE_TABLES": tables["ea_mode_tables"],
+        "AN_SIZES": tables["an_sizes"],
+        "PROCESSOR_MINS": tables["processor_mins"],
+        "PROCESSOR_020_VARIANTS": tables["processor_020_variants"],
+        "LOOKUP_UPPER": dict(sorted(lookup_upper.items())),
+        "LOOKUP_CANONICAL": dict(sorted(lookup_canonical.items())),
+        "LOOKUP_NUMERIC_CC_PREFIXES": dict(sorted(numeric_cc_prefixes.items())),
+        "LOOKUP_CC_FAMILIES": lookup_cc_families,
+        "LOOKUP_ASM_MNEMONIC_INDEX": meta["_asm_mnemonic_index"],
+    }
+
+
+def _build_m68k_compute_runtime(runtime_payload: dict) -> dict:
+    tables = runtime_payload["tables"]
+    return {
+        "OPERATION_TYPES": tables["operation_types"],
+        "COMPUTE_FORMULAS": tables["compute_formulas"],
+        "IMPLICIT_OPERANDS": tables["implicit_operands"],
+        "SP_EFFECTS": tables["sp_effects"],
+        "PRIMARY_DATA_SIZES": tables["primary_data_sizes"],
+    }
+
+
+def _build_m68k_executor_runtime(runtime_payload: dict) -> dict:
+    tables = runtime_payload["tables"]
+    shift_fields = tables["shift_fields"]
+    dr_values = shift_fields["dr_values"]
+    max_dr_value = max(dr_values) if dr_values else -1
+    return {
+        "FIELD_MAPS": tables["field_maps"],
+        "RAW_FIELDS": tables["raw_fields"],
+        "OPERAND_MODE_TABLES": tables["operand_mode_tables"],
+        "REGISTER_FIELDS": tables["register_fields"],
+        "RM_FIELD": tables["rm_field"],
+        "IMPLICIT_OPERANDS": tables["implicit_operands"],
+        "OPMODE_TABLES_BY_VALUE": tables["opmode_tables_by_value"],
+        "MOVEM_FIELDS": tables["movem_fields"],
+        "IMMEDIATE_RANGES": tables["immediate_ranges"],
+        "DEST_REG_FIELD": tables["dest_reg_field"],
+        "OPERATION_TYPES": tables["operation_types"],
+        "OPERATION_CLASSES": tables["operation_classes"],
+        "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
+        "BIT_MODULI": tables["bit_moduli"],
+        "SHIFT_COUNT_MODULI": tables["shift_count_moduli"],
+        "ROTATE_EXTRA_BITS": tables["rotate_extra_bits"],
+        "DIRECTION_VARIANTS": tables["direction_variants"],
+        "SHIFT_FIELDS": (
+            shift_fields["dr_field"],
+            tuple(dr_values.get(idx) for idx in range(max_dr_value + 1)),
+            shift_fields["zero_means"],
+        ),
+        "SHIFT_VARIANT_BEHAVIORS": tables["shift_variant_behaviors"],
+        "PRIMARY_DATA_SIZES": tables["primary_data_sizes"],
+        "SIGNED_RESULTS": tables["signed_results"],
+        "BRANCH_INLINE_DISPLACEMENTS": tables["branch_inline_displacements"],
+        "BRANCH_EXTENSION_DISPLACEMENTS": tables["branch_extension_displacements"],
+    }
 
 
 def _build_passthrough(name: str) -> dict:
     return _load_json(name)
 
 
+def _build_hunk_runtime() -> dict:
+    canonical = _load_json("amiga_hunk_format.json")
+    return {
+        "META": canonical["_meta"],
+        "HUNK_TYPES": canonical["hunk_types"],
+        "EXT_TYPES": canonical["ext_types"],
+        "MEMORY_FLAGS": canonical["memory_flags"],
+        "MEMORY_TYPE_CODES": canonical["memory_type_codes"],
+        "EXT_TYPE_CATEGORIES": canonical["ext_type_categories"],
+        "COMPATIBILITY_NOTES": canonical["compatibility_notes"],
+        "RELOC_FORMATS": canonical["reloc_formats"],
+        "RELOCATION_SEMANTICS": {
+            name: (entry["bytes"], entry["mode"])
+            for name, entry in canonical["relocation_semantics"].items()
+        },
+        "HUNK_CONTENT_FORMATS": canonical["hunk_content_formats"],
+    }
+
+
+def _build_naming_runtime() -> dict:
+    canonical = _load_json("naming_rules.json")
+    return {
+        "META": canonical["_meta"],
+        "PATTERNS": canonical["patterns"],
+        "TRIVIAL_FUNCTIONS": canonical["trivial_functions"],
+        "GENERIC_PREFIX": canonical["generic_prefix"],
+    }
+
+
 def build_runtime_artifacts() -> list[Path]:
     outputs = []
+    m68k_runtime = _build_m68k_runtime()
     outputs.append(KNOWLEDGE_DIR / "runtime_m68k.py")
-    _write_python(outputs[-1], "RUNTIME", _build_m68k_runtime(),
-                  header="Generated runtime M68K knowledge artifact. Do not edit directly.")
+    _write_m68k_runtime_python(outputs[-1], m68k_runtime,
+                               header="Generated runtime M68K knowledge artifact. Do not edit directly.")
+    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_decode.py")
+    _write_m68k_decode_runtime_python(
+        outputs[-1],
+        _build_m68k_decode_runtime(m68k_runtime),
+        header="Generated runtime M68K decode knowledge artifact. Do not edit directly.",
+    )
+    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_disasm.py")
+    _write_m68k_disasm_runtime_python(
+        outputs[-1],
+        _build_m68k_disasm_runtime(m68k_runtime),
+        header="Generated runtime M68K disassembly knowledge artifact. Do not edit directly.",
+    )
+    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_asm.py")
+    _write_m68k_asm_runtime_python(
+        outputs[-1],
+        _build_m68k_asm_runtime(m68k_runtime),
+        header="Generated runtime M68K assembler knowledge artifact. Do not edit directly.",
+    )
+    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_analysis.py")
+    _write_m68k_analysis_runtime_python(
+        outputs[-1],
+        _build_m68k_analysis_runtime(m68k_runtime),
+        header="Generated runtime M68K analysis knowledge artifact. Do not edit directly.",
+    )
+    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_compute.py")
+    _write_runtime_constants_python(
+        outputs[-1],
+        _build_m68k_compute_runtime(m68k_runtime),
+        header="Generated runtime M68K compute knowledge artifact. Do not edit directly.",
+    )
+    outputs.append(KNOWLEDGE_DIR / "runtime_m68k_executor.py")
+    _write_runtime_constants_python(
+        outputs[-1],
+        _build_m68k_executor_runtime(m68k_runtime),
+        header="Generated runtime M68K executor knowledge artifact. Do not edit directly.",
+    )
     outputs.append(KNOWLEDGE_DIR / "runtime_os.py")
-    _write_python(outputs[-1], "RUNTIME", _build_os_runtime(),
-                  header="Generated runtime Amiga OS knowledge artifact. Do not edit directly.")
+    _write_runtime_constants_python(outputs[-1], _build_os_runtime(),
+                                    header="Generated runtime Amiga OS knowledge artifact. Do not edit directly.")
     outputs.append(KNOWLEDGE_DIR / "runtime_hunk.py")
-    _write_python(outputs[-1], "RUNTIME", _build_passthrough("amiga_hunk_format.json"),
-                  header="Generated runtime hunk knowledge artifact. Do not edit directly.")
+    _write_hunk_runtime_python(outputs[-1], _build_hunk_runtime(),
+                               header="Generated runtime hunk knowledge artifact. Do not edit directly.")
     outputs.append(KNOWLEDGE_DIR / "runtime_naming.py")
-    _write_python(outputs[-1], "RUNTIME", _build_passthrough("naming_rules.json"),
-                  header="Generated runtime naming knowledge artifact. Do not edit directly.")
+    _write_runtime_constants_python(outputs[-1], _build_naming_runtime(),
+                                    header="Generated runtime naming knowledge artifact. Do not edit directly.")
     return outputs
 
 

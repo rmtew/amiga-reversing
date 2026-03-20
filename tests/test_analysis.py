@@ -9,7 +9,6 @@ import pytest
 from m68k.analysis import (analyze_hunk, HunkAnalysis, AnalysisCacheError,
                            detect_relocated_segments, _postinc_copy_regs)
 from m68k.decode_errors import DecodeError
-from m68k.kb_util import KB
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze
@@ -49,7 +48,7 @@ def test_analyze_hunk_returns_dataclass():
     assert isinstance(result.exit_states, dict)
     assert isinstance(result.hint_blocks, dict)
     assert isinstance(result.lib_calls, list)
-    assert isinstance(result.os_kb, dict)
+    assert result.os_kb.STRUCTS
     assert 0 in result.blocks  # entry point block exists
 
 
@@ -80,10 +79,8 @@ def test_analyze_hunk_identifies_os_calls():
     code = _make_simple_hunk()
     result = analyze_hunk(code, relocs=[], hunk_index=0,
                           print_fn=lambda *a: None)
-    # OS KB should have structs and _meta with calling convention
-    assert "structs" in result.os_kb
-    assert "_meta" in result.os_kb
-    assert "calling_convention" in result.os_kb["_meta"]
+    assert result.os_kb.STRUCTS
+    assert "calling_convention" in result.os_kb.META
 
 
 def test_save_load_roundtrip():
@@ -193,13 +190,11 @@ def test_analyze_skips_invalid_full_extension_words():
 
 
 def test_parse_full_extension_raises_decode_error_for_reserved_shape():
-    kb = KB()
     with pytest.raises(DecodeError, match="Reserved full extension BD SIZE value"):
         parse_full_extension(
             0x2100,
             b"",
             0,
-            kb.meta,
             base_register="a0",
             pc_offset=None,
         )
@@ -286,7 +281,7 @@ def test_postinc_copy_detection_uses_decoded_operands_not_text():
     inst = disassemble(assemble_instruction("move.b (a6)+,(a0)+"))[0]
     inst.text = "corrupted"
 
-    assert _postinc_copy_regs(inst, KB()) == (6, 0)
+    assert _postinc_copy_regs(inst) == (6, 0)
 
 
 def _make_relocated_hunk():

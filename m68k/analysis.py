@@ -12,6 +12,9 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from knowledge import runtime_m68k_analysis
+from knowledge import runtime_m68k_decode
+
 from .hunk_parser import parse_file, HunkType, _HUNK_KB
 from .m68k_executor import analyze, BasicBlock
 from .jump_tables import detect_jump_tables
@@ -20,17 +23,24 @@ from .indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
 from .os_calls import (load_os_kb, get_platform_config,
                        identify_library_calls, _SENTINEL_ALLOC_BASE)
 from .subroutine_scan import scan_and_score
-from .kb_util import KB, decode_instruction_operands
+from .instruction_kb import instruction_flow, instruction_kb
+from .instruction_decode import decode_inst_operands
+
+
+_FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
+_FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
+_FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
+_FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
 # ── Relocation helpers ───────────────────────────────────────────────────
 
 _RELOC_INFO = {}
-for _name, _sem in _HUNK_KB.get("relocation_semantics", {}).items():
+for _name, _sem in _HUNK_KB.RELOCATION_SEMANTICS.items():
     if _name in HunkType.__members__:
         _RELOC_INFO[HunkType[_name]] = {
-            "bytes": _sem["bytes"],
-            "mode": _sem["mode"],
+            "bytes": _sem[0],
+            "mode": _sem[1],
         }
 
 _RELOC_ABS_FMT = {4: ">I", 2: ">H"}
@@ -46,12 +56,12 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
     mode = info["mode"]
     if offset + nbytes > len(data):
         return None
-    if mode == "absolute":
+    if mode == _HUNK_KB.RelocMode.ABSOLUTE:
         fmt = _RELOC_ABS_FMT.get(nbytes)
         if fmt is None:
             return None
         return struct.unpack_from(fmt, data, offset)[0]
-    if mode == "pc_relative":
+    if mode == _HUNK_KB.RelocMode.PC_RELATIVE:
         fmt = _RELOC_REL_FMT.get(nbytes)
         if fmt is None:
             return None
@@ -126,7 +136,7 @@ class HunkAnalysis:
 
 
 def _prune_inline_dispatch_blocks(blocks: dict, exit_states: dict,
-                                  jt_list: list[dict], kb: KB) -> None:
+                                  jt_list: list[dict]) -> None:
     remove_addrs: set[int] = set()
     for table in jt_list:
         if table.get("pattern") != "pc_inline_dispatch":
@@ -135,7 +145,7 @@ def _prune_inline_dispatch_blocks(blocks: dict, exit_states: dict,
         if not dispatch_block or not dispatch_block.instructions:
             continue
         last = dispatch_block.instructions[-1]
-        prune_start = last.offset + kb.opword_bytes
+        prune_start = last.offset + runtime_m68k_decode.OPWORD_BYTES
         prune_end = table["addr"]
         protected = set(table["targets"])
         protected.add(table["dispatch_block"])
@@ -161,15 +171,14 @@ def _prune_inline_dispatch_blocks(blocks: dict, exit_states: dict,
 
 # Postincrement move pattern from disassembled instruction text.
 # Matches move.b/w/l (An)+,(Am)+ — the copy loop primitive.
-def _postinc_copy_regs(inst, kb: KB) -> tuple[int, int] | None:
+def _postinc_copy_regs(inst) -> tuple[int, int] | None:
     """Return (src_reg, dst_reg) for MOVE.(b/w/l) (An)+,(Am)+ copy ops."""
-    inst_kb = kb.instruction_kb(inst)
-    if inst_kb.get("operation_type") != "move":
+    mnemonic = instruction_kb(inst)
+    if runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic) != runtime_m68k_analysis.OperationType.MOVE:
         return None
     if inst.operand_size not in {"b", "w", "l"}:
         return None
-    decoded = decode_instruction_operands(
-        inst.raw, inst_kb, kb.meta, inst.operand_size, inst.offset)
+    decoded = decode_inst_operands(inst, mnemonic)
     src = decoded.get("ea_op")
     dst = decoded.get("dst_op")
     if src is None or dst is None:
@@ -192,8 +201,6 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
         [{"file_offset": int, "base_addr": int, "entry_points": [int]}]
     Entry points include secondary code (e.g. copy stubs reached via TRAP).
     """
-    kb = KB()
-
     code_size = len(code)
 
     # Run entry-0 propagation to get concrete register values.
@@ -212,7 +219,7 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
     for addr in sorted(blocks):
         blk = blocks[addr]
         for inst in blk.instructions:
-            copy_regs = _postinc_copy_regs(inst, kb)
+            copy_regs = _postinc_copy_regs(inst)
             if copy_regs is None:
                 continue
             src_reg, _ = copy_regs
@@ -261,8 +268,8 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
         if not blk.instructions:
             continue
         last = blk.instructions[-1]
-        ft, _ = kb.flow_type(last)
-        if ft != "jump":
+        ft, _ = instruction_flow(last)
+        if ft != _FLOW_JUMP:
             continue
 
         # Extract JMP target from xrefs
@@ -276,8 +283,7 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
 
         # Check: is there a copy loop in the blocks before this JMP?
         # Walk predecessor chain looking for postincrement move pattern
-        seg = _find_copy_segment(
-            jmp_target, blocks, exit_states, code_size, all_entries, kb)
+        seg = _find_copy_segment(jmp_target, blocks, exit_states, code_size, all_entries)
         if seg is not None and seg not in segments:
             segments.append(seg)
 
@@ -286,7 +292,7 @@ def detect_relocated_segments(code: bytes) -> list[dict]:
 
 def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                        code_size: int,
-                       entry_points: set[int], kb: KB) -> dict | None:
+                       entry_points: set[int]) -> dict | None:
     """Check if blocks before a JMP contain a copy loop targeting jmp_target.
 
     Looks for postincrement move patterns where the destination register's
@@ -295,7 +301,7 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
     for addr in sorted(blocks):
         blk = blocks[addr]
         for inst in blk.instructions:
-            copy_regs = _postinc_copy_regs(inst, kb)
+            copy_regs = _postinc_copy_regs(inst)
             if copy_regs is None:
                 continue
 
@@ -394,8 +400,6 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     if code_start > 0:
         code = code[code_start:]
     code_size = len(code)
-    kb = KB()
-
     # Collect reloc targets
     reloc_targets = set()
     reloc_refs: dict[int, list[int]] = {}
@@ -452,7 +456,6 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             result["blocks"],
             result.get("exit_states", {}),
             jt_list,
-            kb,
         )
         for t in jt_list:
             for tgt in t["targets"]:
@@ -461,8 +464,8 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                     added += 1
             dblk = result["blocks"].get(t["dispatch_block"])
             if dblk and dblk.instructions:
-                ft, _ = kb.flow_type(dblk.instructions[-1])
-                if ft == "call":
+                ft, _ = instruction_flow(dblk.instructions[-1])
+                if ft == _FLOW_CALL:
                     jt_call_targets.update(t["targets"])
         for r in resolve_indirect_targets(
                 result["blocks"],
@@ -542,7 +545,6 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         blocks,
         result.get("exit_states", {}),
         jt_list,
-        kb,
     )
     blocks.update(bootstrap_blocks)
     xrefs = result["xrefs"]
@@ -608,9 +610,9 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         if not hb.instructions:
             continue
         last = hb.instructions[-1]
-        ft, conditional = kb.flow_type(last)
-        if ft in ("return", "jump") or (ft == "branch"
-                                         and not conditional):
+        ft, conditional = instruction_flow(last)
+        if ft in (_FLOW_RETURN, _FLOW_JUMP) or (ft == _FLOW_BRANCH
+                and not conditional):
             next_addr = hb.end
             if (next_addr < code_size
                     and next_addr not in all_known

@@ -63,7 +63,6 @@ class HunkDisassemblySession:
     data_access_sizes: dict[int, int]
     platform: dict
     os_kb: dict
-    kb: Any
     fixed_abs_addrs: set[int]
     base_addr: int
     code_start: int
@@ -82,4 +81,3 @@ class DisassemblySession:
     entities: list[dict]
     hunk_sessions: list[HunkDisassemblySession]
     profile_stages: bool = False
-

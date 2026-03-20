@@ -18,10 +18,15 @@ import struct
 import sys
 import re
 
-from .m68k_executor import BasicBlock, _extract_mnemonic
+from knowledge import runtime_m68k_analysis
+from knowledge import runtime_m68k_decode
+from knowledge import runtime_naming
+
+from .instruction_kb import find_kb_entry, instruction_kb
+from .m68k_executor import BasicBlock
 from .os_calls import load_os_kb
-from .kb_util import KB, xf, find_containing_sub
-from .runtime_kb import load_naming_runtime_kb
+from .instruction_decode import xf
+from .subroutine_ranges import find_containing_sub
 
 
 def find_string_refs(blocks: dict[int, BasicBlock],
@@ -33,13 +38,12 @@ def find_string_refs(blocks: dict[int, BasicBlock],
 
     Returns {block_addr: [(string_addr, string_text), ...]}.
     """
-    kb = KB()
-    pcdisp = kb.ea_enc["pcdisp"]
+    pcdisp = runtime_m68k_decode.EA_MODE_ENCODING["pcdisp"]
 
-    lea_kb = kb.find("lea")
+    lea_kb = find_kb_entry("lea")
     if lea_kb is None:
         raise KeyError("LEA not found in M68K KB")
-    ea_spec = kb.ea_field_spec(lea_kb)
+    ea_spec = runtime_m68k_decode.EA_FIELD_SPECS.get(lea_kb)
     if ea_spec is None:
         raise KeyError("LEA encoding lacks MODE/REGISTER fields")
     mode_spec, reg_spec = ea_spec
@@ -50,10 +54,10 @@ def find_string_refs(blocks: dict[int, BasicBlock],
         block = blocks[block_addr]
         refs = []
         for inst in block.instructions:
-            ikb = kb.instruction_kb(inst)
-            if ikb.get("operation_class") != "load_effective_address":
+            ikb = instruction_kb(inst)
+            if runtime_m68k_analysis.OPERATION_CLASSES.get(ikb) != runtime_m68k_analysis.OperationClass.LOAD_EFFECTIVE_ADDRESS:
                 continue
-            if len(inst.raw) < kb.opword_bytes + 2:
+            if len(inst.raw) < runtime_m68k_decode.OPWORD_BYTES + 2:
                 continue
 
             opcode = struct.unpack_from(">H", inst.raw, 0)[0]
@@ -63,8 +67,8 @@ def find_string_refs(blocks: dict[int, BasicBlock],
             if src_mode != pcdisp[0] or src_reg != pcdisp[1]:
                 continue
 
-            disp = struct.unpack_from(">h", inst.raw, kb.opword_bytes)[0]
-            str_addr = inst.offset + kb.opword_bytes + disp
+            disp = struct.unpack_from(">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
+            str_addr = inst.offset + runtime_m68k_decode.OPWORD_BYTES + disp
             if str_addr < 0 or str_addr >= len(code):
                 continue
 
@@ -117,12 +121,12 @@ def _string_to_name(s: str, os_lib_names: set[str] | None = None) -> str:
 
 _NAMING_RULES = None
 
-def _load_naming_rules() -> dict:
+def _load_naming_rules():
     """Load naming rules from KB. Cached after first call."""
     global _NAMING_RULES
     if _NAMING_RULES is not None:
         return _NAMING_RULES
-    _NAMING_RULES = load_naming_runtime_kb()
+    _NAMING_RULES = runtime_naming
     return _NAMING_RULES
 
 
@@ -144,7 +148,7 @@ def _os_calls_to_name(os_calls: list[str]) -> str | None:
             funcs.add(parts[1])
 
     # Match against patterns from KB
-    for pattern in rules["patterns"]:
+    for pattern in rules.PATTERNS:
         required = set(pattern["functions"])
         if pattern.get("partial"):
             # At least one required function must be present
@@ -156,8 +160,8 @@ def _os_calls_to_name(os_calls: list[str]) -> str | None:
                 return pattern["name"]
 
     # Generic: use the most distinctive function name
-    trivial = set(rules["trivial_functions"])
-    prefix = rules["generic_prefix"]
+    trivial = set(rules.TRIVIAL_FUNCTIONS)
+    prefix = rules.GENERIC_PREFIX
     distinctive = funcs - trivial
     if distinctive:
         func = sorted(distinctive)[0]
@@ -181,7 +185,7 @@ def name_subroutines(entities: list[dict],
     """
     # Known OS library/device/resource names from KB
     os_kb = load_os_kb()
-    os_lib_names = set(os_kb["libraries"].keys())
+    os_lib_names = set(os_kb.LIBRARIES)
 
     # Build block→subroutine mapping
     entity_by_addr = {}

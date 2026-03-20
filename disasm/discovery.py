@@ -4,19 +4,17 @@ import struct
 
 from disasm.decode import decode_inst_for_emit
 from m68k.hunk_parser import HunkType
-from m68k.kb_util import KB, read_string_at
 from m68k.os_calls import load_os_kb
+from m68k.strings import read_string_at
 
 
-def discover_pc_relative_targets(blocks: dict, code: bytes,
-                                 kb: KB) -> dict[int, str]:
+def discover_pc_relative_targets(blocks: dict, code: bytes) -> dict[int, str]:
     """Discover PC-relative operand targets in flow-verified blocks."""
-    pc_targets, _ = discover_operand_targets(blocks, code, kb)
+    pc_targets, _ = discover_operand_targets(blocks, code)
     return pc_targets
 
 
-def discover_operand_targets(blocks: dict, code: bytes | None,
-                             kb: KB) -> tuple[dict[int, str], set[int]]:
+def discover_operand_targets(blocks: dict, code: bytes | None) -> tuple[dict[int, str], set[int]]:
     """Discover PC-relative and absolute targets from one decode pass."""
     instr_middles = set()
     for blk in blocks.values():
@@ -28,7 +26,7 @@ def discover_operand_targets(blocks: dict, code: bytes | None,
     absolute_targets: set[int] = set()
     for blk in blocks.values():
         for inst in blk.instructions:
-            decoded = decode_inst_for_emit(inst, kb)["decoded"]
+            decoded = decode_inst_for_emit(inst)["decoded"]
             for op in (decoded["ea_op"], decoded["dst_op"]):
                 if op is None or op.value is None:
                     continue
@@ -55,22 +53,21 @@ def discover_operand_targets(blocks: dict, code: bytes | None,
     return pc_targets, absolute_targets
 
 
-def discover_absolute_targets(blocks: dict, code_size: int,
-                              kb: KB) -> set[int]:
+def discover_absolute_targets(blocks: dict, code_size: int) -> set[int]:
     """Discover internal absolute-address operands in a block set."""
-    _, targets = discover_operand_targets(blocks, None, kb)
+    _, targets = discover_operand_targets(blocks, None)
     return {target for target in targets if 0 <= target < code_size}
 
 
 def load_fixed_absolute_addresses() -> set[int]:
     """Return KB-declared fixed system absolute addresses."""
     os_kb = load_os_kb()
-    exec_base = os_kb["_meta"].get("exec_base_addr")
+    exec_base = os_kb.META.get("exec_base_addr")
     if exec_base is None:
-        raise KeyError("OS KB missing _meta.exec_base_addr")
+        raise KeyError("OS KB missing META.exec_base_addr")
     address = exec_base.get("address")
     if address is None:
-        raise KeyError("OS KB missing _meta.exec_base_addr.address")
+        raise KeyError("OS KB missing META.exec_base_addr.address")
     return {address}
 
 
@@ -134,10 +131,10 @@ def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
     """Build offset->target map from absolute reloc entries for a hunk."""
     from m68k.hunk_parser import _HUNK_KB
 
-    reloc_sem = _HUNK_KB.get("relocation_semantics", {})
+    reloc_sem = _HUNK_KB.RELOCATION_SEMANTICS
     abs_types = set()
     for name, sem in reloc_sem.items():
-        if sem.get("mode") == "absolute" and name in HunkType.__members__:
+        if sem[1] == _HUNK_KB.RelocMode.ABSOLUTE and name in HunkType.__members__:
             abs_types.add(HunkType[name])
 
     reloc_map = {}
@@ -155,7 +152,7 @@ def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
             if sem is None:
                 raise KeyError(
                     f"relocation_semantics missing for {rtype.name}")
-            nbytes = sem["bytes"]
+            nbytes = sem[0]
             fmt = {4: ">I", 2: ">H"}.get(nbytes)
             if fmt is None:
                 raise ValueError(

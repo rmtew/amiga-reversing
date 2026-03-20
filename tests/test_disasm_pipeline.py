@@ -27,9 +27,7 @@ from disasm.text import listing_window, render_rows
 from disasm.types import (DisassemblySession, HunkDisassemblySession,
                           ListingRow, SemanticOperand)
 from m68k.m68k_executor import Instruction
-from m68k.kb_util import KB
 from disasm.validation import get_instruction_processor_min, has_valid_branch_target
-from disasm.validation import get_instruction_processor_min
 
 
 def test_load_entities_reads_jsonl(tmp_path):
@@ -67,7 +65,6 @@ def test_build_lvo_substitutions_collects_direct_jsr_substitution():
         blocks={},
         lib_calls=[call],
         hunk_entities=[],
-        kb=KB(),
     )
 
     assert lvo_equs == {"dos.library": {-552: "_LVOOpenLibrary"}}
@@ -100,24 +97,23 @@ def test_build_arg_substitutions_collects_immediate_constant():
             ),
         ]
     })()
-    os_kb = {
-        "_meta": {"constant_domains": {"OpenLibrary": ["OL_TAG"]}},
-        "constants": {"OL_TAG": {"value": 1}},
-        "libraries": {
+    os_kb = SimpleNamespace(
+        META={"constant_domains": {"OpenLibrary": ["OL_TAG"]}},
+        CONSTANTS={"OL_TAG": {"value": 1}},
+        LIBRARIES={
             "dos.library": {
                 "functions": {
                     "OpenLibrary": {"inputs": [{"reg": "d0"}]}
                 }
             }
         },
-    }
+    )
 
     arg_equs, arg_substitutions = build_arg_substitutions(
         blocks={0x20: block},
         hunk_entities=[],
         lib_calls=[{"library": "dos.library", "function": "OpenLibrary", "block": 0x20, "addr": 0x20}],
         os_kb=os_kb,
-        kb=KB(),
     )
 
     assert arg_equs == {"OL_TAG": 1}
@@ -171,13 +167,13 @@ def test_build_arg_substitutions_collects_dispatch_call_constant():
             branch,
         ]
     })()
-    os_kb = {
-        "_meta": {"constant_domains": {"Seek": ["OFFSET_BEGINNING", "OFFSET_CURRENT"]}},
-        "constants": {
+    os_kb = SimpleNamespace(
+        META={"constant_domains": {"Seek": ["OFFSET_BEGINNING", "OFFSET_CURRENT"]}},
+        CONSTANTS={
             "OFFSET_BEGINNING": {"value": -1},
             "OFFSET_CURRENT": {"value": 0},
         },
-        "libraries": {
+        LIBRARIES={
             "dos.library": {
                 "functions": {
                     "Seek": {
@@ -190,7 +186,7 @@ def test_build_arg_substitutions_collects_dispatch_call_constant():
                 }
             }
         },
-    }
+    )
 
     arg_equs, arg_substitutions = build_arg_substitutions(
         blocks={0x10: block},
@@ -203,7 +199,6 @@ def test_build_arg_substitutions_collects_dispatch_call_constant():
         }],
         hunk_entities=[{"addr": "0040", "end": "0050", "type": "code"}],
         os_kb=os_kb,
-        kb=KB(),
     )
 
     assert arg_equs == {"OFFSET_BEGINNING": -1}
@@ -247,7 +242,6 @@ def test_build_lvo_substitutions_collects_dispatch_call_lvo_constant():
             "dispatch": 0x42,
         }],
         hunk_entities=[{"addr": "0040", "end": "0050", "type": "code"}],
-        kb=KB(),
     )
 
     assert lvo_equs == {"dos.library": {-66: "_LVOSeek"}}
@@ -331,7 +325,6 @@ def test_build_hunk_session_preserves_metadata_and_analysis_fields():
         data_access_sizes={0x40: 2},
         platform={"initial_base_reg": (6, 0x1000)},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs={0x0004},
         base_addr=0x400,
         code_start=2,
@@ -365,7 +358,6 @@ def test_build_hunk_metadata_collects_code_and_hint_addresses():
         hunk_entities=[],
         ha=ha,
         hf_hunks=[],
-        kb=KB(),
         fixed_abs_addrs=set(),
     )
 
@@ -396,7 +388,6 @@ def test_build_hunk_metadata_builds_word_table_regions_and_sources():
         hunk_entities=[],
         ha=ha,
         hf_hunks=[],
-        kb=KB(),
         fixed_abs_addrs=set(),
     )
 
@@ -579,7 +570,6 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii():
         data_access_sizes={},
         platform={"initial_base_reg": (6, "a6")},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -640,7 +630,6 @@ def test_build_instruction_comment_parts_uses_instruction_processor_min_not_text
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -698,7 +687,6 @@ def test_render_instruction_text_requires_opcode_text():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -755,7 +743,6 @@ def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_tex
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -789,7 +776,7 @@ def test_get_instruction_processor_min_reports_base_68000_instruction():
         kb_mnemonic="moveq",
         operand_size="l",
     )
-    assert get_instruction_processor_min(inst, KB()) == "68000"
+    assert get_instruction_processor_min(inst) == "68000"
 
 
 def test_has_valid_branch_target_rejects_odd_branch_target():
@@ -802,7 +789,7 @@ def test_has_valid_branch_target_rejects_odd_branch_target():
         kb_mnemonic="bcc",
     )
 
-    assert has_valid_branch_target(inst, KB()) is False
+    assert has_valid_branch_target(inst) is False
 
 
 def test_hint_block_has_supported_terminal_flow_for_return():
@@ -820,7 +807,7 @@ def test_hint_block_has_supported_terminal_flow_for_return():
         ]
     })()
 
-    assert hint_block_has_supported_terminal_flow(block, KB()) is True
+    assert hint_block_has_supported_terminal_flow(block) is True
 
 
 def test_is_valid_hint_block_rejects_non_68000_instruction():
@@ -838,7 +825,7 @@ def test_is_valid_hint_block_rejects_non_68000_instruction():
         ]
     })()
 
-    assert is_valid_hint_block(block, KB()) is False
+    assert is_valid_hint_block(block) is False
 
 
 def test_emit_jump_table_rows_emits_data_entries():
@@ -910,7 +897,6 @@ def test_emit_jump_table_rows_emits_inline_dispatch_rows():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1045,7 +1031,6 @@ def test_emit_session_rows_smoke_for_empty_hunk_session():
                 data_access_sizes={},
                 platform={},
                 os_kb={"structs": {}},
-                kb=KB(),
                 fixed_abs_addrs=set(),
                 base_addr=0,
                 code_start=0,
@@ -1127,7 +1112,6 @@ def test_session_metadata_summarizes_hunks():
                 data_access_sizes={},
                 platform={},
                 os_kb={"structs": {}},
-                kb=None,
                 fixed_abs_addrs=set(),
                 base_addr=0,
                 code_start=0,

@@ -44,7 +44,7 @@ def build_instruction_comment_parts(inst,
                                     include_arg_subs: bool = True
                                     ) -> tuple[str, ...]:
     parts: list[str] = []
-    pmin = get_instruction_processor_min(inst, hunk_session.kb)
+    pmin = get_instruction_processor_min(inst)
     if pmin != "68000":
         parts.append(f"{pmin}+")
 

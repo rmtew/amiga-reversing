@@ -1,38 +1,43 @@
 """Shared KB-driven indirect target analysis for M68K code."""
 
-from .m68k_executor import BasicBlock, _extract_branch_target, propagate_states
+from knowledge import runtime_m68k_analysis
+
+from .instruction_kb import instruction_flow
+from .instruction_primitives import extract_branch_target
+from .m68k_executor import BasicBlock, propagate_states
 from . import indirect_core
-from .kb_util import KB
 from . import subroutine_summary
 
 
 _MAX_FORK_EXITS = 16
+_FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
+_FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
+_FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
 def resolve_indirect_targets(blocks: dict[int, BasicBlock],
                              exit_states: dict, code_size: int) -> list[dict]:
     """Resolve indirect JMP/JSR and RTS via propagated state."""
-    kb = KB()
     resolved = []
     for addr in sorted(blocks):
         block = blocks[addr]
         if not block.instructions or addr not in exit_states:
             continue
         last = block.instructions[-1]
-        ft, _ = kb.flow_type(last)
+        ft, _ = instruction_flow(last)
 
-        if ft == "return":
-            unres_type = "return"
-        elif ft in ("call", "jump"):
-            if _extract_branch_target(last, last.offset) is not None:
+        if ft == _FLOW_RETURN:
+            unres_type = _FLOW_RETURN
+        elif ft in (_FLOW_CALL, _FLOW_JUMP):
+            if extract_branch_target(last, last.offset) is not None:
                 continue
-            unres_type = "jump"
+            unres_type = _FLOW_JUMP
         else:
             continue
 
         cpu, mem = exit_states[addr]
         target = indirect_core._try_resolve_block(
-            addr, unres_type, blocks, cpu, mem, kb, code_size)
+            addr, unres_type, blocks, cpu, mem, code_size)
         if target is not None:
             resolved.append({"target": target})
 
@@ -44,8 +49,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                        code_size: int,
                        platform: dict | None = None) -> list[dict]:
     """Resolve indirect targets that require per-caller analysis."""
-    kb = KB()
-    unresolved = indirect_core._find_unresolved(blocks, exit_states, kb, code_size)
+    unresolved = indirect_core._find_unresolved(blocks, exit_states, code_size)
     if not unresolved:
         return []
 
@@ -113,11 +117,12 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             info["expanded"], code, entry,
             initial_state=init_cpu,
             initial_mem=caller_mem.copy(),
-            platform=info["pc_platform"])
+            platform=info["pc_platform"],
+        )
         inline_sums = {}
         for callee_entry in info["nested_callees"]:
             isum = subroutine_summary._inline_summary(
-                callee_entry, blocks, call_targets, pass1_exits, kb)
+                callee_entry, blocks, call_targets, pass1_exits)
             if isum is not None:
                 inline_sums[callee_entry] = isum
         ctx = {
@@ -133,7 +138,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         key = (entry, caller_addr, callee_entry)
         if key not in per_exit_cache:
             per_exit_cache[key] = subroutine_summary._inline_summaries_per_exit(
-                callee_entry, blocks, call_targets, pass1_exits, kb)
+                callee_entry, blocks, call_targets, pass1_exits)
         return per_exit_cache[key]
 
     resolved = []
@@ -153,16 +158,16 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             continue
 
         operand = None
-        if unres_type == "jump":
+        if unres_type == _FLOW_JUMP:
             last = blocks[unres_addr].instructions[-1]
-            operand, _ = indirect_core.decode_jump_ea(last, kb)
+            operand, _ = indirect_core.decode_jump_ea(last)
         needed_regs = indirect_core._needed_registers(operand, unres_type)
 
         sub_dict = info["sub_dict"]
 
         merged_cpu, merged_mem = exit_states.get(unres_addr, (None, None))
         unknown_regs = []
-        if needed_regs and unres_type == "jump" and merged_cpu is not None:
+        if needed_regs and unres_type == _FLOW_JUMP and merged_cpu is not None:
             for mode, num in needed_regs:
                 val = merged_cpu.get_reg(mode, num)
                 if not val.is_known:
@@ -173,7 +178,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             and merged_cpu is not None
             and unres_addr != sub_entry
             and all(not subroutine_summary._reg_modified_in_sub(
-                sub_dict, sub_entry, unres_addr, mode, num, kb,
+                sub_dict, sub_entry, unres_addr, mode, num,
                 platform_ref=platform)
                 for mode, num in unknown_regs)
         )
@@ -189,8 +194,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 subroutine_summary.restore_base_reg(test_cpu, platform)
 
                 target = indirect_core._try_resolve_block(
-                    unres_addr, unres_type, blocks,
-                    test_cpu, merged_mem, kb, code_size)
+                    unres_addr, unres_type, blocks, test_cpu, merged_mem, code_size)
                 if target is not None:
                     resolved.append({"target": target})
         else:
@@ -222,7 +226,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                         return
                     cpu, mem = exits[unres_addr]
                     target = indirect_core._try_resolve_block(
-                        unres_addr, unres_type, blocks, cpu, mem, kb, code_size)
+                        unres_addr, unres_type, blocks, cpu, mem, code_size)
                     if target is not None:
                         resolved.append({"target": target})
 
@@ -255,8 +259,7 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
                            platform: dict | None = None,
                            max_depth: int = 8) -> list[dict]:
     """Resolve indirect targets by backward-slicing predecessor chains."""
-    kb = KB()
-    unresolved = indirect_core._find_unresolved(blocks, exit_states, kb, code_size)
+    unresolved = indirect_core._find_unresolved(blocks, exit_states, code_size)
     if not unresolved:
         return []
 
@@ -266,8 +269,8 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
     call_blocks = set()
     for addr, block in blocks.items():
         if block.instructions:
-            ft, _ = kb.flow_type(block.instructions[-1])
-            if ft == "call":
+            ft, _ = instruction_flow(block.instructions[-1])
+            if ft == _FLOW_CALL:
                 call_blocks.add(addr)
 
     for unres_addr, unres_type in unresolved:
@@ -301,7 +304,7 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
                     continue
                 p_cpu, p_mem = per_path_exits[unres_addr]
                 target = indirect_core._try_resolve_block(
-                    unres_addr, unres_type, blocks, p_cpu, p_mem, kb, code_size)
+                    unres_addr, unres_type, blocks, p_cpu, p_mem, code_size)
                 if target is not None and target not in seen_targets:
                     resolved.append({"target": target})
                     seen_targets.add(target)

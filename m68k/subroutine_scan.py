@@ -14,10 +14,19 @@ Usage:
 
 import struct
 
+from knowledge import runtime_m68k_analysis
+from knowledge import runtime_m68k_decode
+
 from .decode_errors import DecodeError
+from .instruction_kb import instruction_flow
 from .m68k_disasm import _Decoder, _decode_one
 from .m68k_executor import BasicBlock
-from .kb_util import KB
+
+
+_FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
+_FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
+_FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
+_FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
 def _decode_at(code: bytes, pos: int, cache: dict[int, object]):
@@ -68,7 +77,7 @@ def _uncovered_ranges(blocks: dict[int, BasicBlock],
 
 
 def _try_decode_subroutine(code: bytes, start: int, end: int,
-                           kb: KB, decode_cache: dict[int, object]) -> dict | None:
+                           decode_cache: dict[int, object]) -> dict | None:
     """Try to decode a subroutine starting at `start` within [start, end).
 
     Returns candidate dict or None. Stops at return/unconditional-jump
@@ -91,20 +100,12 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
         if next_pos > end:
             return None  # would overlap known code
 
-        ikb = kb.instruction_kb(inst)
-        pc_effects = ikb.get("pc_effects")
-        if pc_effects is None:
-            ft = None
-            conditional = False
-        else:
-            flow = pc_effects["flow"]
-            ft = flow["type"]
-            conditional = flow.get("conditional", False)
+        ft, conditional = instruction_flow(inst)
 
-        if ft in ("call", "branch"):
+        if ft in (_FLOW_CALL, _FLOW_BRANCH):
             has_flow = True
 
-        if ft == "return":
+        if ft == _FLOW_RETURN:
             if instrs < 2:
                 return None  # too short (bare return)
             return {
@@ -114,7 +115,7 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
                 "has_flow": has_flow,
             }
 
-        if ft in ("jump", "branch") and not conditional:
+        if ft in (_FLOW_JUMP, _FLOW_BRANCH) and not conditional:
             # Unconditional jump/branch — could be tail call
             if instrs >= 3 and has_flow:
                 return {
@@ -137,21 +138,20 @@ def scan_candidates(blocks: dict[int, BasicBlock],
     Returns list of candidate dicts with keys:
         addr, end, instr_count, has_flow
     """
-    kb = KB()
     gaps = _uncovered_ranges(blocks, len(code))
     candidates = []
 
     for gap_start, gap_end in gaps:
         decode_cache: dict[int, object] = {}
         pos = gap_start
-        while pos + kb.opword_bytes <= gap_end:
-            cand = _try_decode_subroutine(code, pos, gap_end, kb, decode_cache)
+        while pos + runtime_m68k_decode.OPWORD_BYTES <= gap_end:
+            cand = _try_decode_subroutine(code, pos, gap_end, decode_cache)
             if cand:
                 candidates.append(cand)
                 # Candidate end is always word-aligned (return instruction end)
                 pos = cand["end"]
             else:
-                pos += kb.opword_bytes
+                pos += runtime_m68k_decode.OPWORD_BYTES
 
     return candidates
 
@@ -165,8 +165,6 @@ def score_candidates(candidates: list[dict],
 
     Returns only candidates with score >= 1.0, sorted by score descending.
     """
-    kb = KB()
-
     scored = []
     for cand in candidates:
         addr = cand["addr"]
@@ -191,14 +189,14 @@ def score_candidates(candidates: list[dict],
             score += 0.5
 
         # Preceded by a return instruction (end of previous subroutine)
-        if addr >= kb.opword_bytes:
+        if addr >= runtime_m68k_decode.OPWORD_BYTES:
             try:
                 d = _Decoder(code, 0)
-                d.pos = addr - kb.opword_bytes
+                d.pos = addr - runtime_m68k_decode.OPWORD_BYTES
                 prev_inst = _decode_one(d, None)
-                if prev_inst and prev_inst.size == kb.opword_bytes:
-                    ft, _ = kb.flow_type(prev_inst)
-                    if ft == "return":
+                if prev_inst and prev_inst.size == runtime_m68k_decode.OPWORD_BYTES:
+                    ft, _ = instruction_flow(prev_inst)
+                    if ft == _FLOW_RETURN:
                         score += 1.0
             except (DecodeError, struct.error):
                 pass

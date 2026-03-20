@@ -1,7 +1,16 @@
 """Shared KB-driven subroutine CFG and summary helpers."""
 
-from .m68k_executor import _extract_branch_target, _join_states
-from .kb_util import decode_destination
+from knowledge import runtime_m68k_analysis
+from .instruction_kb import instruction_flow, instruction_kb
+from .instruction_primitives import extract_branch_target
+from .m68k_executor import _join_states
+from .instruction_decode import decode_inst_destination
+
+
+_FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
+_FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
+_FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
+_FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
 def find_sub_blocks(entry: int, blocks: dict, call_targets: set) -> set[int]:
@@ -23,7 +32,6 @@ def find_sub_blocks(entry: int, blocks: dict, call_targets: set) -> set[int]:
 def _reg_modified_in_sub(blocks: dict, sub_entry: int,
                          dispatch_addr: int,
                          reg_mode: str, reg_num: int,
-                         kb,
                          platform_ref: dict | None = None) -> bool:
     """Check whether any path from sub entry to dispatch modifies a register."""
     visited = set()
@@ -40,12 +48,12 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
             if inst.offset >= dispatch_addr:
                 break
 
-            ikb = kb.instruction_kb(inst)
-            ft = ikb.get("pc_effects", {}).get("flow", {}).get("type")
-            if ft in ("jump", "return", "branch"):
+            ikb = instruction_kb(inst)
+            ft, _ = instruction_flow(inst)
+            if ft in (_FLOW_JUMP, _FLOW_RETURN, _FLOW_BRANCH):
                 continue
-            if ft == "call":
-                call_target = _extract_branch_target(inst, inst.offset)
+            if ft == _FLOW_CALL:
+                call_target = extract_branch_target(inst, inst.offset)
                 if call_target is not None:
                     global_sums = (platform_ref.get("_summary_cache")
                                    if platform_ref else None)
@@ -58,15 +66,14 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
                             return True
                 continue
 
-            dst = decode_destination(inst.raw, ikb, kb.meta,
-                                     inst.operand_size, inst.offset)
+            dst = decode_inst_destination(inst, ikb)
             if dst and dst == (reg_mode, reg_num):
                 return True
 
-            if ikb.get("operation_type") == "swap":
+            if runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.SWAP:
                 return True
 
-            if ikb.get("operation_class") == "multi_register_transfer":
+            if runtime_m68k_analysis.OPERATION_CLASSES.get(ikb) == runtime_m68k_analysis.OperationClass.MULTI_REGISTER_TRANSFER:
                 return True
 
         for succ in block.successors:
@@ -77,8 +84,7 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
 
 
 def _inline_summary(callee_entry: int, blocks: dict,
-                    call_targets: set, exit_states: dict,
-                    kb) -> dict | None:
+                    call_targets: set, exit_states: dict) -> dict | None:
     """Compute a joined concrete-exit summary for a callee."""
     owned = find_sub_blocks(callee_entry, blocks, call_targets)
 
@@ -88,8 +94,8 @@ def _inline_summary(callee_entry: int, blocks: dict,
         if not blk or not blk.instructions:
             continue
         last = blk.instructions[-1]
-        ft, _ = kb.flow_type(last)
-        if ft == "return" and addr in exit_states:
+        ft, _ = instruction_flow(last)
+        if ft == _FLOW_RETURN and addr in exit_states:
             rts_states.append(exit_states[addr])
 
     if not rts_states:
@@ -115,8 +121,7 @@ def _inline_summary(callee_entry: int, blocks: dict,
 
 
 def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
-                               call_targets: set, exit_states: dict,
-                               kb) -> list[dict]:
+                               call_targets: set, exit_states: dict) -> list[dict]:
     """Compute one concrete summary per RTS exit for a callee."""
     owned = find_sub_blocks(callee_entry, blocks, call_targets)
     summaries = []
@@ -125,8 +130,8 @@ def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
         blk = blocks.get(addr)
         if not blk or not blk.instructions:
             continue
-        ft, _ = kb.flow_type(blk.instructions[-1])
-        if ft != "return" or addr not in exit_states:
+        ft, _ = instruction_flow(blk.instructions[-1])
+        if ft != _FLOW_RETURN or addr not in exit_states:
             continue
 
         cpu, _ = exit_states[addr]

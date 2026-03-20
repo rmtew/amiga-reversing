@@ -11,14 +11,15 @@ import struct
 from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
-from .runtime_kb import load_hunk_runtime_kb
+
+from knowledge import runtime_hunk
 
 
 # ── KB-driven type definitions ────────────────────────────────────────────
 
 def _load_hunk_kb():
     """Load hunk format KB."""
-    return load_hunk_runtime_kb()
+    return runtime_hunk
 
 def _build_enum(name, kb_section, base_class=IntEnum):
     """Build an IntEnum from a KB section {name: {id: N, ...}}."""
@@ -29,27 +30,27 @@ def _build_enum(name, kb_section, base_class=IntEnum):
     return base_class(name, members)
 
 _HUNK_KB = _load_hunk_kb()
-_HUNK_META = _HUNK_KB["_meta"]
+_HUNK_META = _HUNK_KB.META
 
-HunkType = _build_enum("HunkType", _HUNK_KB["hunk_types"])
-ExtType = _build_enum("ExtType", _HUNK_KB["ext_types"])
+HunkType = _build_enum("HunkType", _HUNK_KB.HUNK_TYPES)
+ExtType = _build_enum("ExtType", _HUNK_KB.EXT_TYPES)
 
 # All constants derived from KB — no hardcoded values.
 _HUNK_TYPE_ID_MASK = _HUNK_META["hunk_type_id_mask"]
 _SIZE_LONGS_MASK = _HUNK_META["size_longs_mask"]
 _MEM_FLAGS_SHIFT = _HUNK_META["mem_flags_shift"]
 _LONGWORD_BYTES = _HUNK_META["longword_bytes"]
-_EXT_BOUNDARY = _HUNK_KB["ext_type_categories"]["boundary"]
+_EXT_BOUNDARY = _HUNK_KB.EXT_TYPE_CATEGORIES["boundary"]
 
 # Build MemType enum from KB memory_type_codes
 MemType = IntEnum("MemType", {
     v["name"]: int(k)
-    for k, v in _HUNK_KB["memory_type_codes"].items()
+    for k, v in _HUNK_KB.MEMORY_TYPE_CODES.items()
 })
 
 # Reverse lookup: ext type ID → KB name (for has_common_size etc.)
 _ext_id_to_name = {
-    v["id"]: k for k, v in _HUNK_KB["ext_types"].items() if "id" in v
+    v["id"]: k for k, v in _HUNK_KB.EXT_TYPES.items() if "id" in v
 }
 
 
@@ -193,7 +194,7 @@ def _parse_mem_flags(raw: int) -> int:
 
     Shift and width from KB memory_flags bit positions.
     """
-    return (raw >> _MEM_FLAGS_SHIFT) & (len(_HUNK_KB["memory_type_codes"]) - 1)
+    return (raw >> _MEM_FLAGS_SHIFT) & (len(_HUNK_KB.MEMORY_TYPE_CODES) - 1)
 
 
 def _parse_size_and_mem(raw: int, r: _Reader) -> tuple[int, int]:
@@ -273,7 +274,7 @@ def _parse_ext(r: _Reader) -> tuple[list[ExtDef], list[ExtRef]]:
             # Reference — check KB for common_size field
             common_size = 0
             ext_name = _ext_id_to_name.get(ext_type)
-            if ext_name and _HUNK_KB["ext_types"].get(ext_name, {}).get(
+            if ext_name and _HUNK_KB.EXT_TYPES.get(ext_name, {}).get(
                     "has_common_size"):
                 common_size = r.read_u32()
             ref_count = r.read_u32()

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from m68k.hunk_parser import parse_file, HunkType
 from m68k.os_calls import propagate_input_types, annotate_call_arguments
-from m68k.kb_util import KB
 from disasm.analysis_loader import load_hunk_analysis
 from disasm.discovery import load_fixed_absolute_addresses
 from disasm.data_access import collect_data_access_sizes
@@ -22,7 +21,6 @@ def build_disassembly_session(binary_path: str, entities_path: str,
                               profile_stages: bool = False) -> DisassemblySession:
     hf = parse_file(binary_path)
     entities = load_entities(entities_path)
-    kb = KB()
     fixed_abs_addrs = load_fixed_absolute_addresses()
     target_dir = Path(entities_path).parent if Path(entities_path).parent.exists() else None
     target_name = infer_target_name(target_dir, entities_path)
@@ -65,7 +63,6 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             hunk_entities=hunk_entities,
             ha=ha,
             hf_hunks=hf.hunks,
-            kb=kb,
             fixed_abs_addrs=fixed_abs_addrs,
         )
         code_addrs = metadata["code_addrs"]
@@ -85,14 +82,12 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             blocks=blocks,
             lib_calls=lib_calls,
             hunk_entities=hunk_entities,
-            kb=kb,
         )
         arg_equs, arg_substitutions = build_arg_substitutions(
             blocks=blocks,
             lib_calls=lib_calls,
             hunk_entities=hunk_entities,
             os_kb=os_kb,
-            kb=kb,
         )
         app_offsets = build_app_offset_symbols(
             blocks=blocks,
@@ -130,7 +125,6 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             data_access_sizes=data_access_sizes,
             platform=platform,
             os_kb=os_kb,
-            kb=kb,
             fixed_abs_addrs=fixed_abs_addrs,
             base_addr=base_addr,
             code_start=code_start,

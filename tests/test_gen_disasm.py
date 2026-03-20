@@ -5,9 +5,11 @@ import struct
 
 import pytest
 
+from m68k.instruction_kb import find_kb_entry
+from m68k.m68k_asm import assemble_instruction
+from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze, BasicBlock, Instruction
 from m68k.m68k_disasm import _canonical_mnemonic
-from m68k.kb_util import KB
 from disasm.comments import (build_instruction_comment_parts,
                              format_app_offset_comment,
                              format_ascii_immediate)
@@ -388,8 +390,7 @@ def test_pc_relative_discovers_data_target():
     code += struct.pack('>HH', 0x0000, 0x0000)
 
     result = analyze(code, entry_points=[0])
-    kb = KB()
-    targets = discover_pc_relative_targets(result["blocks"], code, kb)
+    targets = discover_pc_relative_targets(result["blocks"], code)
 
     assert 0x0A in targets, (
         f"LEA target $0A (data) should be discovered, got {targets}")
@@ -415,8 +416,7 @@ def test_pc_relative_discovers_code_target():
     code += struct.pack('>H', 0x4E75)
 
     result = analyze(code, entry_points=[0, 0x08])
-    kb = KB()
-    targets = discover_pc_relative_targets(result["blocks"], code, kb)
+    targets = discover_pc_relative_targets(result["blocks"], code)
 
     assert 0x08 in targets, (
         f"LEA target $08 (instruction start) should be discovered, "
@@ -438,8 +438,7 @@ def test_pc_relative_rejects_mid_instruction():
     code += struct.pack('>H', 0x4E75)
 
     result = analyze(code, entry_points=[0])
-    kb = KB()
-    targets = discover_pc_relative_targets(result["blocks"], code, kb)
+    targets = discover_pc_relative_targets(result["blocks"], code)
 
     assert 0x05 not in targets, (
         f"Target $05 (mid-instruction at $04) should be rejected, "
@@ -502,7 +501,7 @@ def test_discover_absolute_targets_finds_internal_data_refs():
         is_entry=True,
     )
 
-    targets = discover_absolute_targets({0x40: block}, 0x9000, KB())
+    targets = discover_absolute_targets({0x40: block}, 0x9000)
 
     assert targets == {0x8C1F}
 
@@ -546,9 +545,9 @@ def test_filter_core_absolute_targets_excludes_fixed_os_addresses():
 
 def test_lookup_instruction_kb_normalizes_pmmu_condition_variant():
     """PMMU condition-coded variants resolve to the PBcc KB entry."""
-    inst_kb = lookup_instruction_kb("pb#44", KB())
+    inst_kb = lookup_instruction_kb("pb#44")
 
-    assert inst_kb["mnemonic"] == "PBcc"
+    assert inst_kb == "PBcc"
 
 
 def test_decode_instruction_for_emit_requires_kb_mnemonic():
@@ -557,7 +556,6 @@ def test_decode_instruction_for_emit_requires_kb_mnemonic():
         decode_instruction_for_emit(
             struct.pack(">HH", 0x41F8, 0x0400),
             0x0038,
-            KB(),
             "",
             "w",
         )
@@ -572,7 +570,6 @@ def test_decode_instruction_for_emit_errors_on_mismatched_kb_mnemonic():
         decode_instruction_for_emit(
             struct.pack(">HHH", 0x08E9, 0x0006, 0x000C),
             0x0200,
-            KB(),
             "BCHG",
             "w",
         )
@@ -580,17 +577,17 @@ def test_decode_instruction_for_emit_errors_on_mismatched_kb_mnemonic():
 
 def test_lookup_instruction_kb_normalizes_pmmu_text_condition_variant():
     """PMMU textual condition variants resolve to the PBcc KB entry."""
-    inst_kb = lookup_instruction_kb("pbbs", KB())
+    inst_kb = lookup_instruction_kb("pbbs")
 
-    assert inst_kb["mnemonic"] == "PBcc"
+    assert inst_kb == "PBcc"
 
 
 def test_kb_find_resolves_pmmu_condition_family():
     """Shared KB lookup resolves mixed-case PMMU condition families."""
-    inst_kb = KB().find("PBcc")
+    inst_kb = find_kb_entry("PBcc")
 
     assert inst_kb is not None
-    assert inst_kb["mnemonic"] == "PBcc"
+    assert inst_kb == "PBcc"
 
 
 def test_canonical_mnemonic_normalizes_pmmu_numeric_condition():
@@ -654,7 +651,6 @@ def test_render_instruction_text_substitutes_absolute_code_operand():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -703,7 +699,6 @@ def test_render_instruction_text_substitutes_pc_relative_operand():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -749,7 +744,6 @@ def test_build_instruction_semantic_operands_marks_branch_target():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -799,7 +793,6 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -850,7 +843,6 @@ def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -901,7 +893,6 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -953,7 +944,6 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1005,7 +995,6 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1061,7 +1050,6 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1116,7 +1104,6 @@ def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape(
         data_access_sizes={},
         platform={"initial_base_reg": (6, 0)},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1169,7 +1156,6 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1221,7 +1207,6 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1242,20 +1227,18 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
 
 
 def test_operand_types_for_inst_selects_register_shift_form_from_opcode_bit():
-    kb = KB()
     inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
                        text="lsl.l  d0,d2",
                        raw=b"\xE1\xAA",
                        kb_mnemonic="lsl",
                        operand_size="l",
                        operand_texts=("d0", "d2"))
-    meta = decode_instruction_for_emit(inst.raw, inst.offset, kb, "lsl", "l")
+    meta = decode_instruction_for_emit(inst.raw, inst.offset, "lsl", "l")
 
     assert _operand_types_for_inst(inst, meta) == ("dn", "dn")
 
 
 def test_decode_inst_for_emit_uses_operand_size_not_text():
-    kb = KB()
     inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
                        text="corrupted",
                        raw=b"\xE1\xAA",
@@ -1263,7 +1246,7 @@ def test_decode_inst_for_emit_uses_operand_size_not_text():
                        operand_size="l",
                        operand_texts=("d0", "d2"))
 
-    meta = decode_inst_for_emit(inst, kb)
+    meta = decode_inst_for_emit(inst)
 
     assert meta["size"] == "l"
 
@@ -1302,7 +1285,6 @@ def test_build_instruction_semantic_operands_supports_register_shift_form():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1353,7 +1335,6 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1367,6 +1348,52 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form():
     assert len(ops) == 2
     assert ops[0].kind == "immediate"
     assert ops[0].value == 4
+    assert ops[1].kind == "register"
+    assert ops[1].register == "d0"
+
+
+def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count():
+    inst = disassemble(assemble_instruction("asl.b #8,d0"))[0]
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "immediate"
+    assert ops[0].value == 8
     assert ops[1].kind == "register"
     assert ops[1].register == "d0"
 
@@ -1404,7 +1431,6 @@ def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1455,7 +1481,6 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1506,7 +1531,6 @@ def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1556,7 +1580,6 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1608,7 +1631,6 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1660,7 +1682,6 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1709,7 +1730,6 @@ def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1754,7 +1774,6 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1808,7 +1827,6 @@ def test_make_instruction_row_renders_from_semantic_operands_and_comments():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1872,7 +1890,6 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1924,7 +1941,6 @@ def test_render_instruction_text_uses_semantic_branch_substitution():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1974,7 +1990,6 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
         data_access_sizes={},
         platform={},
         os_kb={"structs": {}},
-        kb=KB(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,

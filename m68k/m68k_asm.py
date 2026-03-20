@@ -10,52 +10,50 @@ Usage:
 
 import re
 import struct
-from functools import lru_cache
-from .runtime_kb import load_m68k_runtime_kb
 
-@lru_cache(maxsize=1)
-def _load_kb():
-    payload = load_m68k_runtime_kb()
-    return payload["by_name"], payload["instructions"], payload["meta"]
+from knowledge import runtime_m68k_asm
 
-
-def _runtime():
-    return load_m68k_runtime_kb()["runtime"]["tables"]
-
-def _kb():
-    return _load_kb()[0]
-
-def _kb_list():
-    return _load_kb()[1]
-
-def _kb_meta():
-    return _load_kb()[2]
+_SIZE_BYTE = 0
+_SIZE_WORD = 1
+_SIZE_LONG = 2
 
 
 # ── EA mode encoding from KB ─────────────────────────────────────────────
 
-@lru_cache(maxsize=1)
 def _ea_mode_encoding():
     """Return {mode_name: (mode_num, reg_or_none)} from KB _meta."""
-    raw = _kb_meta()["ea_mode_encoding"]
-    return {name: (vals[0], vals[1]) for name, vals in raw.items()}
+    return runtime_m68k_asm.EA_MODE_ENCODING
 
 
-@lru_cache(maxsize=1)
 def _ea_brief_fields():
     """Return brief extension word field layout from KB _meta.
 
     Returns dict mapping field name to (bit_hi, bit_lo, width).
     """
-    raw = _kb_meta()["ea_brief_ext_word"]
-    return {f["name"]: (f["bit_hi"], f["bit_lo"], f["bit_hi"] - f["bit_lo"] + 1)
-            for f in raw}
+    return runtime_m68k_asm.EA_BRIEF_FIELDS
 
 
-@lru_cache(maxsize=1)
 def _size_byte_count():
     """Return {size_suffix: byte_count} from KB _meta."""
-    return _kb_meta()["size_byte_count"]
+    return runtime_m68k_asm.SIZE_BYTE_COUNT
+
+
+def _encoding_count(inst):
+    mnemonic = inst
+    if mnemonic not in runtime_m68k_asm.ENCODING_COUNTS:
+        raise KeyError(f"runtime KB missing encoding count for {mnemonic!r}")
+    return runtime_m68k_asm.ENCODING_COUNTS[mnemonic]
+
+
+def _raw_fields(inst, enc_idx=0):
+    mnemonic = inst
+    if enc_idx >= _encoding_count(inst):
+        raise KeyError(f"{mnemonic}: missing encoding {enc_idx}")
+    return runtime_m68k_asm.RAW_FIELDS[enc_idx].get(mnemonic, ())
+
+
+def _field_map(inst, enc_idx=0):
+    return runtime_m68k_asm.FIELD_MAPS[enc_idx].get(inst, {})
 
 
 # ── Bit field helpers ─────────────────────────────────────────────────────
@@ -272,61 +270,6 @@ def parse_ea(operand, op_size=None):
 
 # ── KB encoding helpers ───────────────────────────────────────────────────
 
-@lru_cache(maxsize=1)
-def _kb_encoding_masks():
-    """Return {mnemonic: (mask, val, fields)} from KB encoding fixed bits.
-
-    fields is list of (name, bit_hi, bit_lo, width) for variable fields.
-    """
-    result = {}
-    for inst in _kb_list():
-        if not inst.get("encodings"):
-            continue
-        enc = inst["encodings"][0]
-        mask = val = 0
-        fields = []
-        for f in enc["fields"]:
-            if f["name"] in ("0", "1"):
-                bit = 1 if f["name"] == "1" else 0
-                for b in range(f["bit_lo"], f["bit_hi"] + 1):
-                    mask |= (1 << b)
-                    val |= (bit << b)
-            else:
-                fields.append((f["name"], f["bit_hi"], f["bit_lo"],
-                               f["bit_hi"] - f["bit_lo"] + 1))
-        result[inst["mnemonic"]] = (mask, val, fields)
-    return result
-
-
-@lru_cache(maxsize=1)
-def _kb_size_encodings():
-    """Return {mnemonic: {size_suffix: binary_val}} from runtime KB."""
-    return _runtime()["size_encodings_asm"]
-
-
-@lru_cache(maxsize=1)
-def _kb_opmode_tables():
-    """Return {mnemonic: [{opmode, size, operation}, ...]} from KB constraints."""
-    return _runtime()["opmode_tables_list"]
-
-
-@lru_cache(maxsize=1)
-def _kb_cc_index():
-    """Return {cc_name: index} from KB _meta.condition_codes."""
-    return {name: i for i, name in enumerate(_kb_meta()["condition_codes"])}
-
-
-@lru_cache(maxsize=1)
-def _kb_cc_families():
-    """Return {prefix: (mnemonic, cc_parameterized_info)} for cc-parameterized instructions."""
-    return _runtime()["cc_families"]
-
-
-@lru_cache(maxsize=1)
-def _kb_immediate_ranges():
-    """Return {mnemonic: immediate_range_info} from KB constraints."""
-    return _runtime()["immediate_ranges"]
-
 
 # ── Mnemonic resolution ──────────────────────────────────────────────────
 
@@ -349,9 +292,9 @@ def _resolve_cc_mnemonic(mnemonic_lower):
 
     Returns (kb_inst, cc_index) or None.
     """
-    families = _kb_cc_families()
-    cc_idx = _kb_cc_index()
-    cc_aliases = _kb_meta()["cc_aliases"]
+    families = runtime_m68k_asm.CC_FAMILIES
+    cc_idx = {name: i for i, name in enumerate(runtime_m68k_asm.CONDITION_CODES)}
+    cc_aliases = runtime_m68k_asm.CC_ALIASES
 
     for prefix, (kb_mnemonic, cc_param) in families.items():
         if mnemonic_lower.startswith(prefix) and len(mnemonic_lower) > len(prefix):
@@ -360,42 +303,30 @@ def _resolve_cc_mnemonic(mnemonic_lower):
             if cc_suffix in cc_idx:
                 excluded = set(cc_param.get("excluded", []))
                 if cc_suffix not in excluded:
-                    return _kb()[kb_mnemonic], cc_idx[cc_suffix]
+                    return kb_mnemonic, cc_idx[cc_suffix]
             # Alias CC match (e.g. "ra" → "f", "lo" → "cs")
             canonical = cc_aliases.get(cc_suffix)
             if canonical and canonical in cc_idx:
                 excluded = set(cc_param.get("excluded", []))
                 if canonical not in excluded:
-                    return _kb()[kb_mnemonic], cc_idx[canonical]
+                    return kb_mnemonic, cc_idx[canonical]
     return None
 
 
 def _resolve_direction_mnemonic(mnemonic_lower):
     """Check if mnemonic is a direction variant (e.g. 'asl' → 'ASL, ASR', direction=L).
 
-    KB direction_variants has:
-        field: "dr"
-        values: {"0": "r", "1": "l"}  — bit_value → suffix
-        base: "as"
-        variants: ["asl", "asr"]  — string list of valid mnemonics
-
     Returns (kb_inst, direction_bit_value, individual_mnemonic) or None.
     """
-    kb = _kb()
-    for mnemonic, inst in kb.items():
-        dv = inst.get("constraints", {}).get("direction_variants")
-        if not dv:
+    for mnemonic, dv in runtime_m68k_asm.DIRECTION_VARIANTS.items():
+        _, base, variant_names, values = dv
+        variants = [variant.lower() for variant in variant_names]
+        if mnemonic_lower not in variants:
             continue
-        variants = dv.get("variants", [])
-        # variants are strings like ["asl", "asr"]
-        if mnemonic_lower not in [v.lower() for v in variants]:
-            continue
-        # Matched — derive direction bit value from suffix
-        base = dv.get("base", "")
         suffix = mnemonic_lower[len(base):]
-        for bit_val, dir_char in dv.get("values", {}).items():
+        for bit_val, dir_char in values.items():
             if dir_char == suffix:
-                return inst, int(bit_val), mnemonic_lower
+                return mnemonic, int(bit_val), mnemonic_lower
     return None
 
 
@@ -412,21 +343,12 @@ def resolve_instruction(mnemonic_str, size_char=None):
     mnemonic_lower = mnemonic_str.lower()
 
     # Direct match (case-insensitive, try upper)
-    kb = _kb()
-    for kb_mnemonic, inst in kb.items():
-        # Match against the full mnemonic or any comma-separated part
-        parts = [p.strip().lower() for p in kb_mnemonic.split(",")]
-        if mnemonic_lower in parts:
-            # If this instruction has direction variants, delegate to that path
-            # so the direction field value gets resolved properly
-            if inst.get("constraints", {}).get("direction_variants"):
-                break  # fall through to direction variant check below
-            # If this instruction is CC-parameterized (Scc, Bcc, etc.), delegate
-            # to the CC resolution path so the condition index gets set
-            if inst.get("constraints", {}).get("cc_parameterized"):
-                break  # fall through to CC-parameterized check below
+    kb_mnemonic = runtime_m68k_asm.LOOKUP_UPPER.get(mnemonic_lower.upper())
+    if kb_mnemonic is not None:
+        if (kb_mnemonic not in runtime_m68k_asm.DIRECTION_VARIANTS
+                and kb_mnemonic not in {family[0] for family in runtime_m68k_asm.CC_FAMILIES.values()}):
             return {
-                "inst": inst,
+                "mnemonic": kb_mnemonic,
                 "cc_index": None,
                 "direction": None,
                 "direction_mnemonic": None,
@@ -438,7 +360,7 @@ def resolve_instruction(mnemonic_str, size_char=None):
     cc_result = _resolve_cc_mnemonic(mnemonic_lower)
     if cc_result:
         return {
-            "inst": cc_result[0],
+            "mnemonic": cc_result[0],
             "cc_index": cc_result[1],
             "direction": None,
             "direction_mnemonic": None,
@@ -450,7 +372,7 @@ def resolve_instruction(mnemonic_str, size_char=None):
     dir_result = _resolve_direction_mnemonic(mnemonic_lower)
     if dir_result:
         return {
-            "inst": dir_result[0],
+            "mnemonic": dir_result[0],
             "cc_index": None,
             "direction": dir_result[1],
             "direction_mnemonic": dir_result[2],
@@ -477,29 +399,26 @@ def _build_opword(inst, field_values, enc_idx=0):
     Returns:
         16-bit opword integer.
     """
-    enc = inst["encodings"][enc_idx]
     word = 0
+    fields = _raw_fields(inst, enc_idx)
 
     # Set fixed bits
-    for f in enc["fields"]:
-        if f["name"] in ("0", "1"):
-            bit = 1 if f["name"] == "1" else 0
-            word = _pack_field(word, bit, f["bit_hi"], f["bit_lo"])
+    mask, value = runtime_m68k_asm.ENCODING_MASKS[enc_idx].get(inst, (0, 0))
+    word |= value & mask
 
     # Set variable fields
     # Support two styles:
     #   1. Exact named fields: {"REGISTER Rx": 3, "REGISTER Ry": 5}
     #   2. List-based duplicates: {"REGISTER": [3, 5]} (indexed by occurrence order)
     field_counts = {}
-    for f in enc["fields"]:
-        name = f["name"]
+    for name, bit_hi, bit_lo, _width in fields:
         if name in ("0", "1"):
             continue
 
         # Try exact field name match first
         exact_val = field_values.get(name)
         if exact_val is not None and not isinstance(exact_val, list):
-            word = _pack_field(word, exact_val, f["bit_hi"], f["bit_lo"])
+            word = _pack_field(word, exact_val, bit_hi, bit_lo)
             continue
 
         # Fallback: base name (before space) with index tracking for list values
@@ -512,10 +431,10 @@ def _build_opword(inst, field_values, enc_idx=0):
             continue
         if isinstance(val, list):
             if idx < len(val):
-                word = _pack_field(word, val[idx], f["bit_hi"], f["bit_lo"])
+                word = _pack_field(word, val[idx], bit_hi, bit_lo)
         else:
             if idx == 0:
-                word = _pack_field(word, val, f["bit_hi"], f["bit_lo"])
+                word = _pack_field(word, val, bit_hi, bit_lo)
 
     return word
 
@@ -527,23 +446,23 @@ def _get_size_encoding(inst, size_char):
     """
     if size_char is None:
         return None
-    has_size_field = any(
-        field["name"] == "SIZE"
-        for enc in inst.get("encodings", [])
-        for field in enc.get("fields", [])
-    )
+    has_size_field = any("SIZE" in _field_map(inst, enc_idx) for enc_idx in range(_encoding_count(inst)))
     if not has_size_field:
         return None
-    mnemonic = inst["mnemonic"]
-    size_encs = _kb_size_encodings()
+    mnemonic = inst
+    size_encs = runtime_m68k_asm.SIZE_ENCODINGS_ASM
     if mnemonic not in size_encs:
         raise KeyError(f"KB missing size encoding for {mnemonic!r}")
     enc = size_encs[mnemonic]
-    if size_char not in enc:
+    idx = {"b": _SIZE_BYTE, "w": _SIZE_WORD, "l": _SIZE_LONG}.get(size_char)
+    if idx is None:
+        raise KeyError(f"unsupported size {size_char!r}")
+    value = enc[idx]
+    if value is None:
         raise KeyError(
             f"KB size encoding for {mnemonic!r} missing size {size_char!r}"
         )
-    return enc[size_char]
+    return value
 
 
 # ── Instruction assemblers ────────────────────────────────────────────────
@@ -588,8 +507,8 @@ def _assemble_two_ea(inst, resolution, src_str, dst_str):
     # Use list values for duplicate fields — first = highest bit position = destination.
 
     # Check if this instruction has duplicate MODE/REGISTER fields
-    enc = inst["encodings"][0]
-    mode_count = sum(1 for f in enc["fields"] if f["name"] == "MODE")
+    fields0 = _raw_fields(inst, 0)
+    mode_count = sum(1 for name, _, _, _ in fields0 if name == "MODE")
 
     if mode_count >= 2:
         # Dual EA (MOVE-style): higher bits = destination
@@ -599,7 +518,7 @@ def _assemble_two_ea(inst, resolution, src_str, dst_str):
         }
     else:
         # Single EA + register (ADD-style): handled by _assemble_opmode instead
-        raise ValueError(f"_assemble_two_ea called for non-dual-EA instruction {inst['mnemonic']}")
+        raise ValueError(f"_assemble_two_ea called for non-dual-EA instruction {inst}")
 
     if size_enc is not None:
         fields["SIZE"] = size_enc
@@ -616,9 +535,10 @@ def _assemble_opmode(inst, resolution, src_str, dst_str):
     size_char = resolution["size"]
     sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
 
-    opm_table = inst.get("constraints", {}).get("opmode_table", [])
+    mnemonic = inst
+    opm_table = runtime_m68k_asm.OPMODE_TABLES_LIST.get(mnemonic)
     if not opm_table:
-        raise ValueError(f"{inst['mnemonic']}: no opmode_table in KB")
+        raise KeyError(f"{mnemonic}: runtime KB missing opmode_table")
 
     src_mode, src_reg, src_ext = parse_ea(src_str, sz_bytes)
     dst_mode, dst_reg, dst_ext = parse_ea(dst_str, sz_bytes)
@@ -661,8 +581,8 @@ def _assemble_opmode(inst, resolution, src_str, dst_str):
         fields = {"REGISTER": dst_reg, "OPMODE": selected_opmode,
                   "MODE": src_mode}
         # Find the EA register field (might be named REGISTER too — it's the lower one)
-        enc_fields = inst["encodings"][0]["fields"]
-        reg_fields = [f for f in enc_fields if f["name"] == "REGISTER"]
+        enc_fields = _raw_fields(inst, 0)
+        reg_fields = [field for field in enc_fields if field[0] == "REGISTER"]
         if len(reg_fields) >= 2:
             # Two REGISTER fields: higher = Dn, lower = EA reg
             fields["REGISTER"] = [dst_reg, src_reg]
@@ -713,8 +633,11 @@ def _assemble_quick(inst, resolution, imm_str, dst_str):
     dst_mode, dst_reg, dst_ext = parse_ea(dst_str, sz_bytes)
 
     # Handle zero_means: if imm_val equals zero_means value, encode as 0
-    ir = inst.get("constraints", {}).get("immediate_range", {})
-    zero_means = ir.get("zero_means")
+    mnemonic = inst
+    ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
+    if ir is None:
+        raise KeyError(f"{mnemonic}: runtime KB missing immediate_range")
+    zero_means = ir[5]
     data_val = imm_val
     if zero_means is not None and imm_val == zero_means:
         data_val = 0
@@ -754,19 +677,22 @@ def _assemble_branch(inst, resolution, target_str, pc=0):
     """
     size_char = resolution["size"]
     cc_index = resolution["cc_index"]
-    ir = inst.get("constraints", {}).get("immediate_range", {})
-    disp_enc = inst.get("constraints", {}).get("displacement_encoding", {})
+    mnemonic = inst
+    ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
+    if ir is None:
+        raise KeyError(f"{mnemonic}: runtime KB missing immediate_range")
+    disp_enc = runtime_m68k_asm.BRANCH_INLINE_DISPLACEMENTS.get(mnemonic)
+    if disp_enc is None:
+        raise KeyError(f"{mnemonic}: runtime KB missing branch displacement table")
 
     # KB-driven displacement field name, reserved values, and extension sizes
-    disp_field = disp_enc.get("field", ir.get("field", "8-BIT DISPLACEMENT"))
-    word_signal = disp_enc.get("word_signal")
-    long_signal = disp_enc.get("long_signal")
-    word_bits = disp_enc.get("word_bits", 16)
-    long_bits = disp_enc.get("long_bits", 32)
+    disp_field, _disp_spec, word_signal, long_signal, word_bytes, long_bytes = disp_enc
+    word_bits = word_bytes * 8
+    long_bits = long_bytes * 8
 
     # KB-driven byte displacement range
-    byte_min = ir.get("min", -128)
-    byte_max = ir.get("max", 127)
+    byte_min = ir[3] if ir[3] is not None else -128
+    byte_max = ir[4] if ir[4] is not None else 127
 
     target = _parse_imm_value(target_str)
     disp = target - (pc + 2)
@@ -875,8 +801,11 @@ def _assemble_shift_reg(inst, resolution, operands):
 
     if m_imm:
         count = _parse_imm_value(m_imm.group(1))
-        ir = inst.get("constraints", {}).get("immediate_range", {})
-        zero_means = ir.get("zero_means")
+        mnemonic = inst
+        ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
+        if ir is None:
+            raise KeyError(f"{mnemonic}: runtime KB missing immediate_range")
+        zero_means = ir[5]
         if zero_means is not None and count == zero_means:
             count = 0
         # REGISTER(11:9) = count, REGISTER(2:0) = dst
@@ -943,7 +872,10 @@ def _assemble_movep(inst, resolution, src_str, dst_str):
     ms_dn = _RE_DN.match(src_str.strip())
     md_dn = _RE_DN.match(dst_str.strip())
 
-    opm_table = inst.get("constraints", {}).get("opmode_table", [])
+    mnemonic = inst
+    opm_table = runtime_m68k_asm.OPMODE_TABLES_LIST.get(mnemonic)
+    if not opm_table:
+        raise KeyError(f"{mnemonic}: runtime KB missing opmode_table")
     selected = None
 
     if ms_dn and not md_dn:
@@ -995,7 +927,7 @@ def _assemble_movem(inst, resolution, operands):
     # Determine direction: reg-to-mem or mem-to-reg
     # If source looks like a register list, it's reg-to-mem
     # If destination looks like a register list, it's mem-to-reg
-    reg_masks = _kb_meta()["movem_reg_masks"]
+    reg_masks = runtime_m68k_asm.MOVEM_REG_MASKS
 
     def _parse_reglist(s):
         """Parse register list string like 'd0-d2/a0' → bitmask."""
@@ -1100,7 +1032,10 @@ def _assemble_exg(inst, resolution, src_str, dst_str):
 
     opmode = None
     rx = ry = 0
-    opm_table = inst.get("constraints", {}).get("opmode_table", [])
+    mnemonic = inst
+    opm_table = runtime_m68k_asm.OPMODE_TABLES_LIST.get(mnemonic)
+    if not opm_table:
+        raise KeyError(f"{mnemonic}: runtime KB missing opmode_table")
 
     if ms and md:
         # Dx,Dy
@@ -1169,7 +1104,10 @@ def _assemble_ext(inst, resolution, reg_str):
     if not m:
         raise ValueError(f"EXT register must be Dn, got {reg_str!r}")
 
-    opm_table = inst.get("constraints", {}).get("opmode_table", [])
+    mnemonic = inst
+    opm_table = runtime_m68k_asm.OPMODE_TABLES_LIST.get(mnemonic)
+    if not opm_table:
+        raise KeyError(f"{mnemonic}: runtime KB missing opmode_table")
     selected = None
     for entry in opm_table:
         desc = entry.get("description", "").lower()
@@ -1198,16 +1136,20 @@ def _assemble_opword_immediate(inst, resolution, imm_str):
     Used for TRAP, BKPT, and any instruction whose immediate_range.field
     names an encoding field in the opword (e.g. VECTOR, DATA).
     """
-    ir = inst.get("constraints", {}).get("immediate_range", {})
-    field_name = ir.get("field")
+    mnemonic = inst
+    ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
+    if ir is None:
+        raise KeyError(f"{mnemonic}: runtime KB missing immediate_range")
+    field_name = ir[0]
     if not field_name:
-        raise ValueError(f"{inst['mnemonic']}: no immediate_range.field in KB")
+        raise ValueError(f"{inst}: no immediate_range.field in KB")
     imm_val = _parse_imm_value(imm_str.strip().lstrip("#"))
-    ir_min = ir.get("min", 0)
-    ir_max = ir.get("max", (1 << ir.get("bits", 16)) - 1)
+    bits = ir[1] if ir[1] is not None else 16
+    ir_min = ir[3] if ir[3] is not None else 0
+    ir_max = ir[4] if ir[4] is not None else (1 << bits) - 1
     if not (ir_min <= imm_val <= ir_max):
         raise ValueError(
-            f"{inst['mnemonic']}: immediate {imm_val} out of range "
+            f"{inst}: immediate {imm_val} out of range "
             f"[{ir_min}..{ir_max}]")
     fields = {field_name: imm_val}
     word = _build_opword(inst, fields)
@@ -1223,9 +1165,9 @@ def _assemble_lea_pea(inst, resolution, src_str, dst_str=None):
     fields = {"MODE": src_mode}
 
     # Find the EA register field name
-    enc_fields = inst["encodings"][0]["fields"]
-    reg_fields = [(f["name"], f["bit_hi"]) for f in enc_fields
-                  if f["name"] not in ("0", "1") and "REGISTER" in f["name"].upper()]
+    enc_fields = _raw_fields(inst, 0)
+    reg_fields = [(name, bit_hi) for name, bit_hi, _, _ in enc_fields
+                  if name not in ("0", "1") and "REGISTER" in name.upper()]
 
     if dst_str is not None:
         # LEA: destination is An
@@ -1345,9 +1287,7 @@ def _assemble_movea(inst, resolution, src_str, dst_str):
         raise ValueError(f"MOVEA destination must be An, got {dst_str!r}")
 
     # Get MOVE instruction from KB for encoding
-    move_inst = _kb().get("MOVE")
-    if move_inst is None:
-        raise ValueError("MOVE instruction not found in KB")
+    move_inst = "MOVE"
 
     an_mode = _ea_mode_encoding()["an"][0]  # mode 1
 
@@ -1413,8 +1353,10 @@ def _assemble_adda_suba_cmpa(inst, resolution, src_str, dst_str):
     else:
         raise ValueError(f"{inst['mnemonic']} destination must be An, got {dst_str!r}")
 
-    # Use the instruction's own opmode_table
-    opm_table = inst.get("constraints", {}).get("opmode_table", [])
+    mnemonic = inst
+    opm_table = runtime_m68k_asm.OPMODE_TABLES_LIST.get(mnemonic)
+    if opm_table is None:
+        raise KeyError(f"{mnemonic}: runtime KB missing opmode_table")
     selected_opmode = None
     for entry in opm_table:
         if entry["size"] == size_char:
@@ -1422,7 +1364,7 @@ def _assemble_adda_suba_cmpa(inst, resolution, src_str, dst_str):
             break
 
     if selected_opmode is None:
-        raise ValueError(f"{inst['mnemonic']}.{size_char}: no opmode")
+        raise ValueError(f"{inst}.{size_char}: no opmode")
 
     fields = {"REGISTER": [dst_areg, src_reg],
               "OPMODE": selected_opmode, "MODE": src_mode}
@@ -1432,7 +1374,6 @@ def _assemble_adda_suba_cmpa(inst, resolution, src_str, dst_str):
 
 # ── KB-driven operand type classification ────────────────────────────────
 
-@lru_cache(maxsize=1)
 def _special_operand_types():
     """Derive special register operand types from KB asm_syntax_index.
 
@@ -1440,13 +1381,12 @@ def _special_operand_types():
     not standard EA modes. These require special resolution because they map
     to separate KB instructions (e.g. 'ccr' in 'andi:imm,ccr' → 'ANDI to CCR').
     """
-    return set(_runtime()["special_operand_types"])
+    return set(runtime_m68k_asm.SPECIAL_OPERAND_TYPES)
 
 
-@lru_cache(maxsize=1)
 def _asm_syntax_index():
     """Return {(asm_mnemonic, op_type_tuple): kb_mnemonic} from KB _meta."""
-    return _runtime()["asm_syntax_index"]
+    return runtime_m68k_asm.ASM_SYNTAX_INDEX
 
 
 def _classify_asm_operand(text):
@@ -1499,26 +1439,20 @@ def _resolve_by_syntax_index(mnemonic_lower, operands):
 
     if kb_mnemonic is None:
         return None
-    inst = _kb().get(kb_mnemonic)
-    if inst is None:
-        raise ValueError(
-            f"asm_syntax_index maps {key} to {kb_mnemonic!r} "
-            f"but that instruction is not in the KB")
     # Find matching form index by operand types (try exact then promoted)
-    for form_idx, form in enumerate(inst.get("forms", [])):
-        form_ops = tuple(o["type"] for o in form.get("operands", []))
+    for form_idx, form_ops in enumerate(runtime_m68k_asm.FORM_OPERAND_TYPES.get(kb_mnemonic, ())):
         if form_ops == op_types or form_ops == key[1]:
-            return inst, form_idx
-    return inst, 0
+            return kb_mnemonic, form_idx
+    return kb_mnemonic, 0
 
 
 # ── SR/CCR/USP instruction handlers ──────────────────────────────────────
 
 def _inst_size_bytes(inst):
     """Get operand size in bytes from the instruction's KB sizes field."""
-    sizes = inst.get("sizes", [])
+    sizes = runtime_m68k_asm.INSTRUCTION_SIZES.get(inst, ())
     if not sizes:
-        raise ValueError(f"{inst['mnemonic']}: no sizes in KB")
+        raise ValueError(f"{inst}: no sizes in runtime KB")
     sbc = _size_byte_count()
     return sbc[sizes[0]]
 
@@ -1567,22 +1501,20 @@ def _assemble_direction_field(inst, form_idx, operands):
 
     Uses KB direction_field_values to determine the dr bit value from form index.
     """
-    dfv = inst.get("direction_field_values")
-    if dfv is None:
+    direction_form = runtime_m68k_asm.DIRECTION_FORM_VALUES.get(inst)
+    if direction_form is None:
         raise ValueError(
-            f"{inst['mnemonic']}: no direction_field_values in KB")
+            f"{inst}: no direction_field_values in KB")
 
-    field_name = dfv["field"]
-    # JSON serializes int keys as strings
-    dr_value = dfv["form_field_value"].get(str(form_idx))
-    if dr_value is None:
+    field_name, form_values = direction_form
+    if form_idx >= len(form_values):
         raise ValueError(
-            f"{inst['mnemonic']}: form index {form_idx} not in "
+            f"{inst}: form index {form_idx} not in "
             f"direction_field_values.form_field_value")
+    dr_value = form_values[form_idx]
 
     # Determine which operand is the An register
-    forms = inst.get("forms", [])
-    form_ops = [o["type"] for o in forms[form_idx].get("operands", [])]
+    form_ops = runtime_m68k_asm.FORM_OPERAND_TYPES[inst][form_idx]
 
     # Find the non-special operand (the An register)
     an_str = None
@@ -1592,7 +1524,7 @@ def _assemble_direction_field(inst, form_idx, operands):
             break
     if an_str is None:
         raise ValueError(
-            f"{inst['mnemonic']}: no 'an' operand in form {form_idx}")
+            f"{inst}: no 'an' operand in form {form_idx}")
 
     m = _RE_AN.match(an_str.strip())
     if m:
@@ -1601,7 +1533,7 @@ def _assemble_direction_field(inst, form_idx, operands):
         an_reg = 7
     else:
         raise ValueError(
-            f"{inst['mnemonic']}: operand must be An, got {an_str!r}")
+            f"{inst}: operand must be An, got {an_str!r}")
 
     fields = {field_name: dr_value, "REGISTER": an_reg}
     word = _build_opword(inst, fields)
@@ -1651,8 +1583,8 @@ def assemble_instruction(text, pc=0):
 
     mnemonic_str, size_char = _parse_mnemonic_size(mnemonic_part)
     resolution = resolve_instruction(mnemonic_str, size_char)
-    inst = resolution["inst"]
-    mnemonic = inst["mnemonic"]
+    inst = resolution["mnemonic"]
+    mnemonic = inst
 
     operands = _split_operands(operand_part) if operand_part else []
 
@@ -1665,8 +1597,7 @@ def assemble_instruction(text, pc=0):
                 raise ValueError(
                     f"No KB instruction for {mnemonic_str} with operand types {op_types}")
             sr_inst, form_idx = resolved
-            form_ops = tuple(
-                o["type"] for o in sr_inst["forms"][form_idx].get("operands", []))
+            form_ops = runtime_m68k_asm.FORM_OPERAND_TYPES[sr_inst][form_idx]
 
             # Route by form operand pattern
             if form_ops in (("imm", "ccr"), ("imm", "sr")):
@@ -1680,11 +1611,10 @@ def assemble_instruction(text, pc=0):
             else:
                 raise ValueError(
                     f"Unhandled special operand form: {form_ops} "
-                    f"for {sr_inst['mnemonic']}")
+                    f"for {sr_inst}")
 
     # Route to specific assembler based on instruction characteristics
-    forms = inst.get("forms", [])
-    op_types = [tuple(o["type"] for o in f.get("operands", [])) for f in forms]
+    op_types = list(runtime_m68k_asm.FORM_OPERAND_TYPES.get(inst, ()))
 
     # No operands
     if not operands:
@@ -1724,9 +1654,9 @@ def assemble_instruction(text, pc=0):
     # Instructions with immediate embedded in opword field (TRAP, BKPT, etc.)
     # Detected by: single #imm operand, immediate_range.field names an opword field
     if len(operands) == 1 and operands[0].strip().startswith("#"):
-        ir = inst.get("constraints", {}).get("immediate_range", {})
-        ir_field = ir.get("field", "")
-        enc_fields = {f["name"] for f in inst["encodings"][0]["fields"]}
+        ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
+        ir_field = ir[0] if ir is not None else ""
+        enc_fields = {name for name, _, _, _ in _raw_fields(inst, 0)}
         if ir_field and ir_field in enc_fields:
             return _assemble_opword_immediate(inst, resolution, operands[0])
 
@@ -1747,7 +1677,7 @@ def assemble_instruction(text, pc=0):
             return _assemble_bit_reg(inst, resolution, operands[0], operands[1])
 
     # Branch instructions
-    if inst.get("uses_label"):
+    if runtime_m68k_asm.USES_LABELS.get(mnemonic, False):
         if len(operands) == 2 and _RE_DN.match(operands[0].strip()):
             return _assemble_dbcc(inst, resolution, operands[0], operands[1], pc)
         return _assemble_branch(inst, resolution, operands[0], pc)
@@ -1770,8 +1700,8 @@ def assemble_instruction(text, pc=0):
     # Two-operand MOVE-style (dual EA) — BEFORE opmode/immediate checks
     # so that MOVE #imm,<ea> uses the dual-EA path, not the immediate path
     if len(operands) == 2:
-        enc = inst["encodings"][0]
-        mode_count = sum(1 for f in enc["fields"] if f["name"] == "MODE")
+        fields0 = _raw_fields(inst, 0)
+        mode_count = sum(1 for name, _, _, _ in fields0 if name == "MODE")
         if mode_count >= 2:
             return _assemble_two_ea(inst, resolution, operands[0], operands[1])
 
@@ -1779,26 +1709,26 @@ def assemble_instruction(text, pc=0):
     # Driven by KB _meta.immediate_routing, which maps general-purpose
     # mnemonics to their immediate-specific variants.
     if (len(operands) == 2 and operands[0].strip().startswith("#")
-            and inst.get("constraints", {}).get("opmode_table")):
-        imm_routing = _kb_meta()["immediate_routing"]
+            and mnemonic in runtime_m68k_asm.OPMODE_TABLES_LIST):
+        imm_routing = runtime_m68k_asm.IMMEDIATE_ROUTING
         imm_mnemonic = imm_routing.get(mnemonic)
-        if imm_mnemonic and imm_mnemonic in _kb():
-            imm_inst = _kb()[imm_mnemonic]
+        if imm_mnemonic:
+            imm_inst = imm_mnemonic
             imm_resolution = {**resolution, "inst": imm_inst}
             return _assemble_immediate(imm_inst, imm_resolution,
                                        operands[0], operands[1])
 
     # Instructions with opmode table (ADD, SUB, AND, OR, CMP)
-    if inst.get("constraints", {}).get("opmode_table") and len(operands) == 2:
+    if mnemonic in runtime_m68k_asm.OPMODE_TABLES_LIST and len(operands) == 2:
         return _assemble_opmode(inst, resolution, operands[0], operands[1])
 
     # Generic <ea>,Dn form (CHK, DIVS, DIVU, MULS, MULU, etc.)
     # Detected by: 2 operands, 1 MODE field, 2+ REGISTER fields, no opmode table
-    if len(operands) == 2 and not inst.get("constraints", {}).get("opmode_table"):
-        enc = inst["encodings"][0]
-        mode_count = sum(1 for f in enc["fields"] if f["name"] == "MODE")
-        reg_count = sum(1 for f in enc["fields"]
-                        if f["name"] not in ("0", "1") and "REGISTER" in f["name"].upper())
+    if len(operands) == 2 and mnemonic not in runtime_m68k_asm.OPMODE_TABLES_LIST:
+        fields0 = _raw_fields(inst, 0)
+        mode_count = sum(1 for name, _, _, _ in fields0 if name == "MODE")
+        reg_count = sum(1 for name, _, _, _ in fields0
+                        if name not in ("0", "1") and "REGISTER" in name.upper())
         if mode_count == 1 and reg_count >= 2:
             # Determine direction: if dst is Dn, it's <ea>,Dn
             if _RE_DN.match(operands[1].strip()):
@@ -1807,8 +1737,8 @@ def assemble_instruction(text, pc=0):
     # Immediate instructions (#imm,<ea>)
     if len(operands) == 2 and operands[0].strip().startswith("#"):
         # Check if this is ADDQ/SUBQ (quick immediate)
-        ir = inst.get("constraints", {}).get("immediate_range", {})
-        if ir.get("field") == "DATA":
+        ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
+        if ir is not None and ir[0] == "DATA":
             return _assemble_quick(inst, resolution, operands[0], operands[1])
         return _assemble_immediate(inst, resolution, operands[0], operands[1])
 

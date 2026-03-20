@@ -118,6 +118,36 @@ to drive toward 100%:
 - [ ] Decide whether the remaining orchestration in `m68k/indirect_analysis.py` should stay as one module or split further from lower-level reusable analysis
 - [ ] Add a small number of whole-target integration checks around GenAm / Bloodwych output so renderer and analysis regressions are caught above the unit-test level
 
+### KB Python Integration Debt
+- [x] Extract low-level decode and operand-resolution primitives out of [`m68k/m68k_executor.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/m68k_executor.py)
+  - `Operand`, `DecodedOps`, `decode_ea`, `decode_instruction_ops`, `xf`, `extract_branch_target` now live in [`m68k/instruction_primitives.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/instruction_primitives.py)
+  - `resolve_ea` and full-extension EA resolution now live in [`m68k/operand_resolution.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/operand_resolution.py)
+  - Indirect-analysis helpers no longer import executor for low-level operand plumbing
+- [x] Finish flow enum normalization across consumers
+  - `instruction_flow()` now returns `FlowType` directly
+  - Closed flow-domain comparisons now use `FlowType` enums across executor, indirect analysis/core, jump tables, subroutine scan/summary, analysis, operands, hint validation, and validation
+  - Remaining `xref.type` strings are a separate xref data surface, not instruction-flow KB leakage
+- [x] Remove the broad root runtime surface from production where possible
+  - Production code now uses consumer-specific generated modules (`runtime_m68k_decode`, `runtime_m68k_disasm`, `runtime_m68k_asm`, `runtime_m68k_analysis`, `runtime_m68k_compute`, `runtime_m68k_executor`)
+  - [`knowledge/runtime_m68k.py`](C:/Data/R/git/claude-repos/amiga-reversing2/knowledge/runtime_m68k.py) is now effectively an aggregate/test surface, not a production integration layer
+- [x] Reduce repeated decode orchestration around `decode_instruction_operands()` / `decode_destination()`
+  - Added explicit instruction-level helpers in [`m68k/instruction_decode.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/instruction_decode.py): `decode_inst_operands()` and `decode_inst_destination()`
+  - Converted the main hotspot callers and secondary production paths: [`m68k/address_reconstruction.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/address_reconstruction.py), [`m68k/analysis.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/analysis.py), [`m68k/constant_evaluator.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/constant_evaluator.py), [`m68k/indirect_core.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/indirect_core.py), [`m68k/jump_tables.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/jump_tables.py), [`m68k/os_calls.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/os_calls.py), [`m68k/subroutine_summary.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/subroutine_summary.py), [`m68k/table_recovery.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/table_recovery.py), [`disasm/data_access.py`](C:/Data/R/git/claude-repos/amiga-reversing2/disasm/data_access.py), [`disasm/operands.py`](C:/Data/R/git/claude-repos/amiga-reversing2/disasm/operands.py), [`disasm/substitutions.py`](C:/Data/R/git/claude-repos/amiga-reversing2/disasm/substitutions.py)
+  - [`disasm/decode.py`](C:/Data/R/git/claude-repos/amiga-reversing2/disasm/decode.py) now uses the instruction-shaped path as its primary boundary; remaining raw decode calls are just the low-level primitives themselves
+- [x] Push remaining mnemonic/condition-family lookup logic upstream into generated runtime where viable
+  - Generated analysis runtime now provides direct `LOOKUP_CANONICAL` and `LOOKUP_NUMERIC_CC_PREFIXES`
+  - [`m68k/instruction_kb.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/instruction_kb.py) is reduced to direct table lookup plus the minimal numeric `#...` suffix rule
+- [ ] Replace remaining ad hoc small record dicts in runtime tables with tuple/type-alias forms where the schema is fixed and performance-sensitive
+- [x] Continue flattening consumers onto the dedicated generated runtime modules where it genuinely removes cross-module shape knowledge, especially remaining generic lookup/helper paths
+- [x] Flatten the main disassembler runtime accessor layer
+  - [`m68k/m68k_disasm.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/m68k_disasm.py) now reads `runtime_m68k_disasm` directly instead of routing through a `_load_kb_*` helper layer
+  - Companion assembler flattening is now also done in [`m68k/m68k_asm.py`](C:/Data/R/git/claude-repos/amiga-reversing2/m68k/m68k_asm.py)
+- [x] Consolidate repeated tiny runtime accessors (`_kb_*`, `_runtime_*`) where they no longer add validation or semantic value
+- [x] Remove any remaining production reads of canonical-shape instruction fields from runtime consumers; keep canonical JSON for generation/testing only
+  - Production `m68k/` and `disasm/` code no longer reads canonical instruction bag fields like `forms`, `constraints`, `ea_modes`, `pc_effects`, or `encodings`
+  - Added an architecture test to keep that boundary from regressing
+- [ ] Add one explicit generated-runtime shape test per KB module (`runtime_m68k.py`, `runtime_os.py`, `runtime_hunk.py`, `runtime_naming.py`) so direct-import cleanup does not regress silently
+
 ## Tasks Of Interest
 
 - [ ] Investigate any remaining GenAm output drift after the inline-dispatch stale-block fix; the core semantic issue is fixed, but remaining diff should be triaged into formatting churn vs improved output

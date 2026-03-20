@@ -3,9 +3,8 @@
 from . import constant_evaluator
 
 
-def _resolve_block_constant_reg(instructions, kb,
-                                reg_mode: str, reg_num: int,
+def _resolve_block_constant_reg(instructions, reg_mode: str, reg_num: int,
                                 stop_before: int) -> int | None:
     """Resolve a simple concrete register value from local deterministic writes."""
     return constant_evaluator.resolve_constant_reg(
-        instructions, kb, reg_mode, reg_num, stop_before)
+        instructions, reg_mode, reg_num, stop_before)

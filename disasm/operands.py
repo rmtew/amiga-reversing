@@ -1,11 +1,25 @@
 from __future__ import annotations
 """Build semantic operands from decoded instruction operands."""
 
-from m68k.kb_util import decode_destination, select_encoding_fields, select_operand_types, select_operand_types_from_raw
-from m68k.m68k_executor import _extract_branch_target
+from knowledge import runtime_m68k_analysis
+from knowledge import runtime_m68k_disasm
+from knowledge import runtime_m68k_decode
+
+from m68k.instruction_decode import (
+    decode_inst_destination,
+    select_encoding_fields,
+    select_operand_types,
+    select_operand_types_from_raw,
+)
+from m68k.instruction_primitives import extract_branch_target
 
 from disasm.decode import decode_inst_for_emit
 from disasm.types import HunkDisassemblySession, SemanticOperand
+
+
+_FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
+_FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
+_FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 
 
 def _instruction_ref(inst) -> str:
@@ -14,11 +28,7 @@ def _instruction_ref(inst) -> str:
 
 def _operand_types_for_inst(inst, meta: dict) -> tuple[str, ...]:
     opcode = int.from_bytes(inst.raw[:2], "big")
-    forms = meta["inst_kb"].get("forms") or []
-    form_operand_types = [
-        tuple(operand.get("type") for operand in (form.get("operands") or []))
-        for form in forms
-    ]
+    form_operand_types = list(runtime_m68k_disasm.FORM_OPERAND_TYPES.get(meta["mnemonic"], ()))
     if form_operand_types == [("usp", "an"), ("an", "usp")]:
         return form_operand_types[0] if ((opcode >> 3) & 1) else form_operand_types[1]
     if form_operand_types == [("rn", "ea"), ("ea", "rn")]:
@@ -26,30 +36,30 @@ def _operand_types_for_inst(inst, meta: dict) -> tuple[str, ...]:
             raise ValueError(f"MOVES extension word missing for {_instruction_ref(inst)}")
         ext = int.from_bytes(inst.raw[2:4], "big")
         return form_operand_types[0] if ((ext >> 11) & 1) != 0 else form_operand_types[1]
-    return select_operand_types_from_raw(meta["inst_kb"], inst.raw)
+    return select_operand_types_from_raw(meta["mnemonic"], inst.raw)
 
 
 def _selected_form_register(inst, meta: dict, register_index: int) -> tuple[str, int] | None:
     opcode = int.from_bytes(inst.raw[:2], "big")
-    fields = select_encoding_fields(meta["inst_kb"], opcode)
+    fields = select_encoding_fields(meta["mnemonic"], opcode)
     plain_register_fields = [
         field for field in fields
-        if field.get("name") == "REGISTER"
+        if field[0] == "REGISTER"
     ]
     if plain_register_fields:
         register_fields = plain_register_fields
     else:
         register_fields = [
             field for field in fields
-            if field.get("name", "").startswith("REGISTER ")
+            if field[0].startswith("REGISTER ")
         ]
-        register_fields.sort(key=lambda field: field["bit_lo"])
+        register_fields.sort(key=lambda field: field[2])
     if len(register_fields) <= register_index:
         return None
     field = register_fields[register_index]
-    width = field["width"]
+    width = field[3]
     mask = (1 << width) - 1
-    reg = (opcode >> field["bit_lo"]) & mask
+    reg = (opcode >> field[2]) & mask
     return ("dn", reg)
 
 
@@ -64,7 +74,7 @@ def _normalized_absolute_value(decoded_op) -> int | None:
 
 
 def _reloc_target(inst, hunk_session: HunkDisassemblySession, value: int) -> int | None:
-    for ext_off in range(inst.offset + hunk_session.kb.opword_bytes,
+    for ext_off in range(inst.offset + runtime_m68k_decode.OPWORD_BYTES,
                          inst.offset + inst.size):
         target = hunk_session.reloc_map.get(ext_off)
         if target == value:
@@ -313,8 +323,7 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
             raise ValueError(f"Decoded register/register shape incomplete for {_instruction_ref(inst)}")
         dest = _selected_form_register(inst, meta, 1)
         if dest is None:
-            dest = decode_destination(inst.raw, meta["inst_kb"], hunk_session.kb.meta,
-                                      meta["size"], inst.offset)
+            dest = decode_inst_destination(inst, meta["mnemonic"])
         if dest is None:
             raise ValueError(
                 f"Unable to resolve destination operand from decode for {_instruction_ref(inst)}")
@@ -434,8 +443,7 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
     if dst_op is not None:
         second = ("decoded", dst_op)
     else:
-        dest = decode_destination(inst.raw, meta["inst_kb"], hunk_session.kb.meta,
-                                  meta["size"], inst.offset)
+        dest = decode_inst_destination(inst, meta["mnemonic"])
         if dest is None:
             raise ValueError(
                 f"Unable to resolve destination operand from decode for {_instruction_ref(inst)}")
@@ -463,7 +471,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                                meta: dict,
                                used_structs: set[str] | None,
                                include_arg_subs: bool) -> SemanticOperand | None:
-    flow_type = meta["inst_kb"].get("pc_effects", {}).get("flow", {}).get("type")
+    flow_type = runtime_m68k_analysis.FLOW_TYPES[meta["mnemonic"]]
     labels = hunk_session.labels
 
     if spec_type == "register" and node.kind == "register":
@@ -530,14 +538,14 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
 
     if (spec_type == "immediate"
             and node.kind == "branch_target"
-            and flow_type in ("branch", "jump", "call")):
+            and flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL)):
         target_addr = node.target
         if target_addr is None:
             raise ValueError(f"Typed branch target missing for {_instruction_ref(inst)}")
         label = labels.get(target_addr)
         text = label if label is not None else node.text
         return SemanticOperand(
-            kind="call_target" if flow_type == "call" else "branch_target",
+            kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
             text=text,
             value=target_addr,
             target_addr=target_addr,
@@ -551,7 +559,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
         label = labels.get(target_addr)
         text = label if label is not None else node.text
         return SemanticOperand(
-            kind="call_target" if flow_type == "call" else "branch_target",
+            kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
             text=text,
             value=target_addr,
             target_addr=target_addr,
@@ -690,9 +698,9 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                     f"decoded {target_addr}, node {node.target}")
             label = labels.get(target_addr)
             text = label if label is not None else node.text
-            if flow_type == "call" and operand_index == 0:
+            if flow_type == _FLOW_CALL and operand_index == 0:
                 kind = "call_target"
-            elif flow_type in ("branch", "jump") and operand_index == 0:
+            elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
                 kind = "branch_target"
             else:
                 kind = "absolute_target"
@@ -705,9 +713,9 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                     f"decoded {target_addr}, node {node.target}")
             label = labels.get(target_addr)
             text = _pc_relative_text(label, decoded_op, node.text)
-            if flow_type == "call" and operand_index == 0:
+            if flow_type == _FLOW_CALL and operand_index == 0:
                 kind = "call_target"
-            elif flow_type in ("branch", "jump") and operand_index == 0:
+            elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
                 kind = "branch_target"
             else:
                 kind = "pc_relative_target"
@@ -808,10 +816,10 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
                                     meta: dict,
                                     used_structs: set[str] | None,
                                     include_arg_subs: bool) -> SemanticOperand:
-    flow_type = meta["inst_kb"].get("pc_effects", {}).get("flow", {}).get("type")
+    flow_type = runtime_m68k_analysis.FLOW_TYPES[meta["mnemonic"]]
     branch_target = None
-    if flow_type in ("branch", "jump", "call"):
-        branch_target = _extract_branch_target(inst, inst.offset)
+    if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL):
+        branch_target = extract_branch_target(inst, inst.offset)
     labels = hunk_session.labels
 
     if spec_type == "register":
@@ -861,7 +869,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         label = labels.get(branch_target)
         text = label if label is not None else token
         return SemanticOperand(
-            kind="call_target" if flow_type == "call" else "branch_target",
+            kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
             text=text,
             value=branch_target,
             target_addr=branch_target,
@@ -870,12 +878,12 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
 
     if spec_type == "immediate":
         value = spec_value
-        target = branch_target if flow_type in ("branch", "jump", "call") else _reloc_target(
+        target = branch_target if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL) else _reloc_target(
             inst, hunk_session, value)
         label = labels.get(target) if target is not None else None
-        if flow_type in ("branch", "jump", "call") and label is not None:
+        if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL) and label is not None:
             text = label
-            kind = "call_target" if flow_type == "call" else "branch_target"
+            kind = "call_target" if flow_type == _FLOW_CALL else "branch_target"
         else:
             text = f"#{label}" if label is not None else token
             kind = "immediate_symbol" if label is not None else "immediate"
@@ -925,9 +933,9 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         target_addr = value
         label = labels.get(target_addr)
         text = label if label is not None else token
-        if flow_type == "call" and operand_index == 0:
+        if flow_type == _FLOW_CALL and operand_index == 0:
             kind = "call_target"
-        elif flow_type in ("branch", "jump") and operand_index == 0:
+        elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
             kind = "branch_target"
         else:
             kind = "absolute_target"
@@ -936,9 +944,9 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         value = op_value
         label = labels.get(target_addr)
         text = _pc_relative_text(label, decoded_op, token)
-        if flow_type == "call" and operand_index == 0:
+        if flow_type == _FLOW_CALL and operand_index == 0:
             kind = "call_target"
-        elif flow_type in ("branch", "jump") and operand_index == 0:
+        elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
             kind = "branch_target"
         elif op_mode == "pcindex" and getattr(decoded_op, "memory_indirect", False):
             metadata.update(_full_index_metadata(decoded_op, inst))
@@ -983,7 +991,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         raise ValueError(
             f"Unsupported decoded operand mode {op_mode!r} in {_instruction_ref(inst)}")
 
-    if (flow_type in ("branch", "jump", "call")
+    if (flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL)
             and operand_index == 0
             and branch_target is not None):
         target_addr = branch_target
@@ -991,7 +999,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         label = labels.get(branch_target)
         if label is not None and op_mode not in ("pcdisp", "pcindex"):
             text = label
-        kind = "call_target" if flow_type == "call" else "branch_target"
+        kind = "call_target" if flow_type == _FLOW_CALL else "branch_target"
 
     text = _apply_instruction_text_substitutions(
         text, inst.offset, hunk_session, include_arg_subs)
@@ -1012,7 +1020,7 @@ def build_instruction_semantic_operands(
         used_structs: set[str] | None = None,
         include_arg_subs: bool = True
 ) -> tuple[SemanticOperand, ...]:
-    meta = decode_inst_for_emit(inst, hunk_session.kb)
+    meta = decode_inst_for_emit(inst)
     specs = _decoded_operand_specs(inst, hunk_session, meta)
     nodes = list(inst.operand_nodes or ())
     tokens = _operand_text_slots(inst, len(specs))

@@ -16,13 +16,13 @@ GenAm patterns modelled:
 """
 
 import struct
+from m68k.instruction_kb import instruction_kb
 from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
                                 _concrete, _unknown)
 from m68k.jump_tables import detect_jump_tables, _scan_inline_dispatch, _is_indexed_ea
 from m68k.indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
                                     resolve_backward_slice)
 from m68k.indirect_core import decode_jump_ea
-from m68k.kb_util import KB
 from m68k.m68k_disasm import disassemble
 
 
@@ -59,9 +59,8 @@ def _resolved_targets(resolved):
 
 
 def test_is_indexed_ea_uses_shared_decode_for_brief_indexed_mode():
-    kb = KB()
     inst = disassemble(bytes.fromhex("4eb32002"), max_cpu="68020")[0]
-    info = _is_indexed_ea(inst.raw, kb, kb.instruction_kb(inst), inst.offset)
+    info = _is_indexed_ea(inst, instruction_kb(inst))
 
     assert info == {
         "base_mode": "an",
@@ -73,10 +72,9 @@ def test_is_indexed_ea_uses_shared_decode_for_brief_indexed_mode():
 
 
 def test_is_indexed_ea_rejects_full_extension_memory_indirect():
-    kb = KB()
     inst = disassemble(bytes.fromhex("2031212200000004"), max_cpu="68020")[0]
 
-    assert _is_indexed_ea(inst.raw, kb, kb.instruction_kb(inst), inst.offset) is None
+    assert _is_indexed_ea(inst, instruction_kb(inst)) is None
 
 
 
@@ -3359,9 +3357,6 @@ def test_table_scan_stops_at_call_target():
     is a call target. The code bytes happen to decode as a valid offset.
     """
     from m68k.jump_tables import _scan_word_offset_table
-    from m68k.kb_util import KB
-
-    kb = KB()
     base = 0x10  # base address for offset computation
 
     # Build code bytes:
@@ -3380,15 +3375,13 @@ def test_table_scan_stops_at_call_target():
     call_targets = {0x06}  # $06 is a known call target
 
     # Without call_targets guard: scanner reads past $06
-    targets_no_guard = _scan_word_offset_table(
-        data, 0x00, base, code_size, kb)
+    targets_no_guard = _scan_word_offset_table(data, 0x00, base, code_size)
     assert len(targets_no_guard) > 3, (
         f"Without guard, scanner should read past code (got {len(targets_no_guard)})")
 
     # With call_targets guard: scanner must stop at $06
     targets_guarded = _scan_word_offset_table(
-        data, 0x00, base, code_size, kb,
-        call_targets=call_targets)
+        data, 0x00, base, code_size, call_targets=call_targets)
     assert len(targets_guarded) == 3, (
         f"With guard, scanner should stop at call target $06 "
         f"(got {len(targets_guarded)}: {[hex(t) for t in targets_guarded]})")
@@ -3402,9 +3395,6 @@ def test_table_scan_no_false_positives_from_opcodes():
     call_targets provides an additional stop for subroutine boundaries.
     """
     from m68k.jump_tables import _scan_word_offset_table
-    from m68k.kb_util import KB
-
-    kb = KB()
     base = 0x10
 
     # 3 valid entries, then a word that produces an odd target (invalid)
@@ -3415,8 +3405,7 @@ def test_table_scan_no_false_positives_from_opcodes():
     data += struct.pack('>h', 0x03)          # $06: odd target -> stops scan
     data += b'\x00' * 0x30
 
-    targets = _scan_word_offset_table(
-        data, 0x00, base, len(data), kb)
+    targets = _scan_word_offset_table(data, 0x00, base, len(data))
     assert len(targets) == 3, (
         f"Should stop at odd target, got {len(targets)}")
 
@@ -3424,7 +3413,7 @@ def test_table_scan_no_false_positives_from_opcodes():
 def test_scan_inline_dispatch_stops_quietly_on_decode_error():
     code = bytes.fromhex("6002ffff")
 
-    targets, end_pos = _scan_inline_dispatch(code, 0, len(code), KB(), max_entries=4)
+    targets, end_pos = _scan_inline_dispatch(code, 0, len(code), max_entries=4)
 
     assert targets == []
     assert end_pos == 2

@@ -21,8 +21,9 @@ from collections import defaultdict
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from knowledge import runtime_m68k_decode
 from m68k.hunk_parser import parse_file, HunkType
-from m68k.m68k_executor import BasicBlock, _load_kb
+from m68k.m68k_executor import BasicBlock
 from m68k.analysis import analyze_hunk, resolve_reloc_target, _RELOC_INFO
 from m68k.name_entities import name_subroutines
 
@@ -42,8 +43,7 @@ def build_subroutine_map(blocks: dict[int, BasicBlock],
     Returns list of dicts with keys: addr, end, block_count, instr_count,
     and optionally reached=False for stub entries.
     """
-    _, _, meta = _load_kb()
-    opword_bytes = meta["opword_bytes"]
+    opword_bytes = runtime_m68k_decode.OPWORD_BYTES
 
     # All subroutine entry points
     entries = sorted({entry_point} | call_targets)
