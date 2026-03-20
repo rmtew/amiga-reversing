@@ -150,6 +150,34 @@ def test_decode_instruction_ops_errors_when_move_usp_kb_field_missing():
             decode_instruction_ops(inst, inst_kb, "l")
 
 
+def test_decode_inst_operands_requires_runtime_form_operand_types():
+    inst = disassemble(assemble_instruction("moveq #-1,d3"), max_cpu="68010")[0]
+    form_operand_types = copy.deepcopy(runtime_m68k_decode.FORM_OPERAND_TYPES)
+    del form_operand_types["MOVEQ"]
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            runtime_m68k_decode,
+            "FORM_OPERAND_TYPES",
+            form_operand_types,
+            raising=False,
+        )
+        with pytest.raises(KeyError, match="MOVEQ"):
+            decode_inst_operands(inst, "MOVEQ")
+
+
+def test_decode_instruction_ops_requires_runtime_raw_fields_for_mnemonic():
+    inst = disassemble(assemble_instruction("move.l usp,a0"), max_cpu="68010")[0]
+    raw_fields = list(copy.deepcopy(runtime_m68k_decode.RAW_FIELDS))
+    raw_fields[0] = dict(raw_fields[0])
+    del raw_fields[0]["MOVE USP"]
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(runtime_m68k_decode, "RAW_FIELDS", tuple(raw_fields), raising=False)
+        with pytest.raises((KeyError, ValueError), match="MOVE USP"):
+            decode_instruction_ops(inst, "MOVE USP", "l")
+
+
 def test_decode_instruction_ops_requires_runtime_movec_control_registers(monkeypatch):
     inst = disassemble(bytes.fromhex("4e7b0000"), max_cpu="68020")[0]
     real = runtime_m68k_decode
@@ -206,6 +234,71 @@ def test_analyze_requires_runtime_immediate_range_for_signed_moveq(monkeypatch):
     with pytest.raises(KeyError, match="immediate range for MOVEQ"):
         reloaded.analyze(
             assemble_instruction("moveq #-1,d0"),
+            propagate=True,
+            entry_points=[0],
+        )
+
+
+def test_analyze_requires_runtime_compute_formula_for_moveq(monkeypatch):
+    formulas = copy.deepcopy(runtime_m68k_analysis.COMPUTE_FORMULAS)
+    del formulas["MOVEQ"]
+    monkeypatch.setattr(runtime_m68k_analysis, "COMPUTE_FORMULAS", formulas, raising=False)
+
+    with pytest.raises(KeyError, match="MOVEQ"):
+        analyze(
+            assemble_instruction("moveq #-1,d0"),
+            propagate=True,
+            entry_points=[0],
+        )
+
+
+def test_analyze_requires_runtime_sp_effects_for_rts(monkeypatch):
+    sp_effects = copy.deepcopy(runtime_m68k_analysis.SP_EFFECTS)
+    del sp_effects["RTS"]
+    monkeypatch.setattr(runtime_m68k_analysis, "SP_EFFECTS", sp_effects, raising=False)
+
+    with pytest.raises(KeyError, match="RTS"):
+        analyze(
+            assemble_instruction("rts"),
+            propagate=True,
+            entry_points=[0],
+        )
+
+
+def test_analyze_requires_runtime_flow_type_for_rts(monkeypatch):
+    flow_types = copy.deepcopy(runtime_m68k_analysis.FLOW_TYPES)
+    del flow_types["RTS"]
+    monkeypatch.setattr(runtime_m68k_analysis, "FLOW_TYPES", flow_types, raising=False)
+
+    with pytest.raises(KeyError, match="RTS"):
+        analyze(
+            assemble_instruction("rts"),
+            propagate=True,
+            entry_points=[0],
+        )
+
+
+def test_analyze_requires_runtime_operation_type_for_exg(monkeypatch):
+    operation_types = copy.deepcopy(runtime_m68k_executor.OPERATION_TYPES)
+    del operation_types["EXG"]
+    monkeypatch.setattr(runtime_m68k_executor, "OPERATION_TYPES", operation_types, raising=False)
+
+    with pytest.raises(KeyError, match="EXG"):
+        analyze(
+            assemble_instruction("exg d0,d1"),
+            propagate=True,
+            entry_points=[0],
+        )
+
+
+def test_analyze_requires_runtime_operation_class_for_lea(monkeypatch):
+    operation_classes = copy.deepcopy(runtime_m68k_executor.OPERATION_CLASSES)
+    del operation_classes["LEA"]
+    monkeypatch.setattr(runtime_m68k_executor, "OPERATION_CLASSES", operation_classes, raising=False)
+
+    with pytest.raises(KeyError, match="LEA"):
+        analyze(
+            assemble_instruction("lea 8(a0),a1"),
             propagate=True,
             entry_points=[0],
         )

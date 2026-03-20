@@ -28,7 +28,7 @@ def _instruction_ref(inst) -> str:
 
 def _operand_types_for_inst(inst, meta: dict) -> tuple[str, ...]:
     opcode = int.from_bytes(inst.raw[:2], "big")
-    form_operand_types = list(runtime_m68k_disasm.FORM_OPERAND_TYPES.get(meta["mnemonic"], ()))
+    form_operand_types = list(runtime_m68k_disasm.FORM_OPERAND_TYPES[meta["mnemonic"]])
     if form_operand_types == [("usp", "an"), ("an", "usp")]:
         return form_operand_types[0] if ((opcode >> 3) & 1) else form_operand_types[1]
     if form_operand_types == [("rn", "ea"), ("ea", "rn")]:

@@ -20,42 +20,6 @@ _SIZE_LONG = 2
 
 # -- EA mode encoding from KB ---------------------------------------------
 
-def _ea_mode_encoding():
-    """Return {mode_name: (mode_num, reg_or_none)} from KB _meta."""
-    return runtime_m68k_asm.EA_MODE_ENCODING
-
-
-def _ea_brief_fields():
-    """Return brief extension word field layout from KB _meta.
-
-    Returns dict mapping field name to (bit_hi, bit_lo, width).
-    """
-    return runtime_m68k_asm.EA_BRIEF_FIELDS
-
-
-def _size_byte_count():
-    """Return {size_suffix: byte_count} from KB _meta."""
-    return runtime_m68k_asm.SIZE_BYTE_COUNT
-
-
-def _encoding_count(inst):
-    mnemonic = inst
-    if mnemonic not in runtime_m68k_asm.ENCODING_COUNTS:
-        raise KeyError(f"runtime KB missing encoding count for {mnemonic!r}")
-    return runtime_m68k_asm.ENCODING_COUNTS[mnemonic]
-
-
-def _raw_fields(inst, enc_idx=0):
-    mnemonic = inst
-    if enc_idx >= _encoding_count(inst):
-        raise KeyError(f"{mnemonic}: missing encoding {enc_idx}")
-    return runtime_m68k_asm.RAW_FIELDS[enc_idx].get(mnemonic, ())
-
-
-def _field_map(inst, enc_idx=0):
-    return runtime_m68k_asm.FIELD_MAPS[enc_idx].get(inst, {})
-
-
 # -- Bit field helpers -----------------------------------------------------
 
 def _pack_field(word, value, bit_hi, bit_lo):
@@ -113,7 +77,7 @@ def _parse_imm_value(s):
 
 def _build_brief_ext_word(xreg_num, is_addr, is_long, disp8):
     """Build brief extension word from KB field layout."""
-    bf = _ea_brief_fields()
+    bf = runtime_m68k_asm.EA_BRIEF_FIELDS
     word = 0
     word = _pack_field(word, 1 if is_addr else 0, *bf["D/A"][:2])
     word = _pack_field(word, xreg_num, *bf["REGISTER"][:2])
@@ -138,7 +102,7 @@ def parse_ea(operand, op_size=None):
             ext_bytes: bytes object with extension word data (may be empty)
     """
     operand = operand.strip()
-    enc = _ea_mode_encoding()
+    enc = runtime_m68k_asm.EA_MODE_ENCODING
 
     # Dn
     m = _RE_DN.match(operand)
@@ -400,10 +364,10 @@ def _build_opword(inst, field_values, enc_idx=0):
         16-bit opword integer.
     """
     word = 0
-    fields = _raw_fields(inst, enc_idx)
+    fields = runtime_m68k_asm.RAW_FIELDS[enc_idx][inst]
 
     # Set fixed bits
-    mask, value = runtime_m68k_asm.ENCODING_MASKS[enc_idx].get(inst, (0, 0))
+    mask, value = runtime_m68k_asm.ENCODING_MASKS[enc_idx][inst]
     word |= value & mask
 
     # Set variable fields
@@ -428,13 +392,15 @@ def _build_opword(inst, field_values, enc_idx=0):
 
         val = exact_val if exact_val is not None else field_values.get(base_name)
         if val is None:
-            continue
+            raise KeyError(f"{inst}: missing value for field {name}")
         if isinstance(val, list):
-            if idx < len(val):
-                word = _pack_field(word, val[idx], bit_hi, bit_lo)
+            if idx >= len(val):
+                raise KeyError(f"{inst}: missing value for field {name}")
+            word = _pack_field(word, val[idx], bit_hi, bit_lo)
         else:
-            if idx == 0:
-                word = _pack_field(word, val, bit_hi, bit_lo)
+            if idx != 0:
+                raise KeyError(f"{inst}: missing value for field {name}")
+            word = _pack_field(word, val, bit_hi, bit_lo)
 
     return word
 
@@ -446,7 +412,10 @@ def _get_size_encoding(inst, size_char):
     """
     if size_char is None:
         return None
-    has_size_field = any("SIZE" in _field_map(inst, enc_idx) for enc_idx in range(_encoding_count(inst)))
+    has_size_field = any(
+        any(name == "SIZE" for name, _, _, _ in runtime_m68k_asm.RAW_FIELDS[enc_idx][inst])
+        for enc_idx in range(runtime_m68k_asm.ENCODING_COUNTS[inst])
+    )
     if not has_size_field:
         return None
     mnemonic = inst
@@ -477,7 +446,7 @@ def _assemble_ea_single(inst, resolution, operand, enc_idx=0):
     """Assemble instructions with a single EA operand (CLR, NEG, NOT, TST, etc.)."""
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     mode, reg, ext = parse_ea(operand, sz_bytes)
 
@@ -495,7 +464,7 @@ def _assemble_two_ea(inst, resolution, src_str, dst_str):
     """Assemble instructions with source and destination EA (MOVE, etc.)."""
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     src_mode, src_reg, src_ext = parse_ea(src_str, sz_bytes)
     dst_mode, dst_reg, dst_ext = parse_ea(dst_str, sz_bytes)
@@ -507,7 +476,7 @@ def _assemble_two_ea(inst, resolution, src_str, dst_str):
     # Use list values for duplicate fields - first = highest bit position = destination.
 
     # Check if this instruction has duplicate MODE/REGISTER fields
-    fields0 = _raw_fields(inst, 0)
+    fields0 = runtime_m68k_asm.RAW_FIELDS[0][inst]
     mode_count = sum(1 for name, _, _, _ in fields0 if name == "MODE")
 
     if mode_count >= 2:
@@ -533,7 +502,7 @@ def _assemble_opmode(inst, resolution, src_str, dst_str):
     OPMODE determines both size and direction (ea->Dn or Dn->ea).
     """
     size_char = resolution["size"]
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     mnemonic = inst
     opm_table = runtime_m68k_asm.OPMODE_TABLES_LIST.get(mnemonic)
@@ -546,7 +515,7 @@ def _assemble_opmode(inst, resolution, src_str, dst_str):
     # Determine direction from operands:
     # If dst is Dn (mode 0), direction is ea->Dn: look for matching opmode with "-> Dn" operation
     # If src is Dn (mode 0) and dst is EA, direction is Dn->ea: look for "-> <ea>" operation
-    enc = _ea_mode_encoding()
+    enc = runtime_m68k_asm.EA_MODE_ENCODING
     dn_mode = enc["dn"][0]
 
     selected_opmode = None
@@ -581,7 +550,7 @@ def _assemble_opmode(inst, resolution, src_str, dst_str):
         fields = {"REGISTER": dst_reg, "OPMODE": selected_opmode,
                   "MODE": src_mode}
         # Find the EA register field (might be named REGISTER too - it's the lower one)
-        enc_fields = _raw_fields(inst, 0)
+        enc_fields = runtime_m68k_asm.RAW_FIELDS[0][inst]
         reg_fields = [field for field in enc_fields if field[0] == "REGISTER"]
         if len(reg_fields) >= 2:
             # Two REGISTER fields: higher = Dn, lower = EA reg
@@ -606,7 +575,7 @@ def _assemble_immediate(inst, resolution, imm_str, dst_str):
     """Assemble immediate instructions (ADDI, SUBI, ORI, ANDI, EORI, CMPI)."""
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     imm_val = _parse_imm_value(imm_str.lstrip("#"))
     dst_mode, dst_reg, dst_ext = parse_ea(dst_str, sz_bytes)
@@ -627,7 +596,7 @@ def _assemble_quick(inst, resolution, imm_str, dst_str):
     """Assemble ADDQ/SUBQ - inline 3-bit immediate with zero_means."""
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     imm_val = _parse_imm_value(imm_str.lstrip("#"))
     dst_mode, dst_reg, dst_ext = parse_ea(dst_str, sz_bytes)
@@ -844,7 +813,7 @@ def _assemble_ea_dn(inst, resolution, src_str, dst_str):
     """
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     src_mode, src_reg, src_ext = parse_ea(src_str, sz_bytes)
 
@@ -920,7 +889,7 @@ def _assemble_movem(inst, resolution, operands):
     """Assemble MOVEM - register list to/from memory."""
     size_char = resolution["size"]
     size_enc = _get_size_encoding(inst, size_char)
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     src_str, dst_str = operands
 
@@ -973,7 +942,7 @@ def _assemble_movem(inst, resolution, operands):
         direction = 0  # reg-to-mem
 
         # Use predecrement order if destination is predecrement
-        predec_mode = _ea_mode_encoding()["predec"][0]
+        predec_mode = runtime_m68k_asm.EA_MODE_ENCODING["predec"][0]
         if ea_mode == predec_mode:
             mask = _reglist_to_mask(regs, reg_masks["predecrement"])
         else:
@@ -1130,6 +1099,24 @@ def _assemble_ext(inst, resolution, reg_str):
     return _to_bytes_16(word)
 
 
+def _assemble_rn(inst, resolution, reg_str):
+    """Assemble single rn register forms such as RTM."""
+    stripped = reg_str.strip()
+    m = _RE_DN.match(stripped)
+    if m:
+        fields = {"D/A": 0, "REGISTER": int(m.group(1))}
+    else:
+        m = _RE_AN.match(stripped)
+        if m:
+            fields = {"D/A": 1, "REGISTER": int(m.group(1))}
+        elif _RE_SP.match(stripped):
+            fields = {"D/A": 1, "REGISTER": 7}
+        else:
+            raise ValueError(f"{inst} register must be Dn or An, got {reg_str!r}")
+    word = _build_opword(inst, fields)
+    return _to_bytes_16(word)
+
+
 def _assemble_opword_immediate(inst, resolution, imm_str):
     """Assemble instructions where immediate goes into an opword field.
 
@@ -1165,7 +1152,7 @@ def _assemble_lea_pea(inst, resolution, src_str, dst_str=None):
     fields = {"MODE": src_mode}
 
     # Find the EA register field name
-    enc_fields = _raw_fields(inst, 0)
+    enc_fields = runtime_m68k_asm.RAW_FIELDS[0][inst]
     reg_fields = [(name, bit_hi) for name, bit_hi, _, _ in enc_fields
                   if name not in ("0", "1") and "REGISTER" in name.upper()]
 
@@ -1273,7 +1260,7 @@ def _assemble_cmpm(inst, resolution, src_str, dst_str):
 def _assemble_movea(inst, resolution, src_str, dst_str):
     """Assemble MOVEA <ea>,An."""
     size_char = resolution["size"]
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     src_mode, src_reg, src_ext = parse_ea(src_str, sz_bytes)
 
@@ -1289,7 +1276,7 @@ def _assemble_movea(inst, resolution, src_str, dst_str):
     # Get MOVE instruction from KB for encoding
     move_inst = "MOVE"
 
-    an_mode = _ea_mode_encoding()["an"][0]  # mode 1
+    an_mode = runtime_m68k_asm.EA_MODE_ENCODING["an"][0]  # mode 1
 
     size_enc = _get_size_encoding(move_inst, size_char)
 
@@ -1341,7 +1328,7 @@ def _assemble_adda_suba_cmpa(inst, resolution, src_str, dst_str):
     The opmode_table uses "description" (not "operation") for entries.
     """
     size_char = resolution["size"]
-    sz_bytes = _size_byte_count().get(size_char, 2) if size_char else 2
+    sz_bytes = runtime_m68k_asm.SIZE_BYTE_COUNT.get(size_char, 2) if size_char else 2
 
     src_mode, src_reg, src_ext = parse_ea(src_str, sz_bytes)
 
@@ -1370,23 +1357,6 @@ def _assemble_adda_suba_cmpa(inst, resolution, src_str, dst_str):
               "OPMODE": selected_opmode, "MODE": src_mode}
     word = _build_opword(inst, fields)
     return _to_bytes_16(word) + src_ext
-
-
-# -- KB-driven operand type classification --------------------------------
-
-def _special_operand_types():
-    """Derive special register operand types from KB asm_syntax_index.
-
-    Returns the set of operand types that appear in the syntax index but are
-    not standard EA modes. These require special resolution because they map
-    to separate KB instructions (e.g. 'ccr' in 'andi:imm,ccr' -> 'ANDI to CCR').
-    """
-    return set(runtime_m68k_asm.SPECIAL_OPERAND_TYPES)
-
-
-def _asm_syntax_index():
-    """Return {(asm_mnemonic, op_type_tuple): kb_mnemonic} from KB _meta."""
-    return runtime_m68k_asm.ASM_SYNTAX_INDEX
 
 
 def _classify_asm_operand(text):
@@ -1423,7 +1393,7 @@ def _resolve_by_syntax_index(mnemonic_lower, operands):
     Returns (kb_inst, matched_form_index) or None.
     """
     op_types = tuple(_classify_asm_operand(op) for op in operands)
-    index = _asm_syntax_index()
+    index = runtime_m68k_asm.ASM_SYNTAX_INDEX
 
     # Try exact match first
     key = (mnemonic_lower, op_types)
@@ -1440,7 +1410,7 @@ def _resolve_by_syntax_index(mnemonic_lower, operands):
     if kb_mnemonic is None:
         return None
     # Find matching form index by operand types (try exact then promoted)
-    for form_idx, form_ops in enumerate(runtime_m68k_asm.FORM_OPERAND_TYPES.get(kb_mnemonic, ())):
+    for form_idx, form_ops in enumerate(runtime_m68k_asm.FORM_OPERAND_TYPES[kb_mnemonic]):
         if form_ops == op_types or form_ops == key[1]:
             return kb_mnemonic, form_idx
     return kb_mnemonic, 0
@@ -1453,8 +1423,7 @@ def _inst_size_bytes(inst):
     sizes = runtime_m68k_asm.INSTRUCTION_SIZES.get(inst, ())
     if not sizes:
         raise ValueError(f"{inst}: no sizes in runtime KB")
-    sbc = _size_byte_count()
-    return sbc[sizes[0]]
+    return runtime_m68k_asm.SIZE_BYTE_COUNT[sizes[0]]
 
 
 def _assemble_imm_to_sr_ccr(inst, imm_str):
@@ -1562,6 +1531,139 @@ def _split_operands(operand_str):
     return parts
 
 
+def _assemble_special_operand_form(mnemonic_str, operands):
+    op_types = tuple(_classify_asm_operand(op) for op in operands)
+    if not any(t in runtime_m68k_asm.SPECIAL_OPERAND_TYPES for t in op_types):
+        return None
+
+    resolved = _resolve_by_syntax_index(mnemonic_str.lower(), operands)
+    if resolved is None:
+        raise ValueError(
+            f"No KB instruction for {mnemonic_str} with operand types {op_types}")
+    sr_inst, form_idx = resolved
+    form_ops = runtime_m68k_asm.FORM_OPERAND_TYPES[sr_inst][form_idx]
+
+    if form_ops in (("imm", "ccr"), ("imm", "sr")):
+        return _assemble_imm_to_sr_ccr(sr_inst, operands[0])
+    if form_ops in (("ea", "ccr"), ("ea", "sr")):
+        return _assemble_ea_to_sr_ccr(sr_inst, operands[0])
+    if form_ops in (("sr", "ea"), ("ccr", "ea")):
+        return _assemble_sr_ccr_to_ea(sr_inst, operands[1])
+    if form_ops in (("usp", "an"), ("an", "usp")):
+        return _assemble_direction_field(sr_inst, form_idx, operands)
+    raise ValueError(f"Unhandled special operand form: {form_ops} for {sr_inst}")
+
+
+def _assemble_special_mnemonic(inst, resolution, operands):
+    mnemonic = inst
+    if mnemonic == "MOVEQ":
+        return _assemble_moveq(inst, resolution, operands[0], operands[1])
+    if mnemonic == "MOVEA":
+        return _assemble_movea(inst, resolution, operands[0], operands[1])
+    if mnemonic in ("ADDA", "SUBA", "CMPA"):
+        return _assemble_adda_suba_cmpa(inst, resolution, operands[0], operands[1])
+    if mnemonic == "MOVEM":
+        return _assemble_movem(inst, resolution, operands)
+    if mnemonic == "MOVEP":
+        return _assemble_movep(inst, resolution, operands[0], operands[1])
+    if mnemonic == "LINK":
+        return _assemble_link(inst, resolution, operands[0], operands[1])
+    if mnemonic == "UNLK":
+        return _assemble_unlk(inst, resolution, operands[0])
+    if mnemonic == "EXG":
+        return _assemble_exg(inst, resolution, operands[0], operands[1])
+    if mnemonic == "SWAP":
+        return _assemble_swap(inst, resolution, operands[0])
+    if mnemonic in ("EXT", "EXT, EXTB"):
+        return _assemble_ext(inst, resolution, operands[0])
+    if mnemonic == "RTM":
+        return _assemble_rn(inst, resolution, operands[0])
+    if mnemonic in ("ABCD", "SBCD"):
+        return _assemble_bcd(inst, resolution, operands[0], operands[1])
+    if mnemonic in ("ADDX", "SUBX"):
+        return _assemble_addx_subx(inst, resolution, operands[0], operands[1])
+    if mnemonic == "CMPM":
+        return _assemble_cmpm(inst, resolution, operands[0], operands[1])
+    return None
+
+
+def _has_dual_ea_form(inst):
+    fields0 = runtime_m68k_asm.RAW_FIELDS[0][inst]
+    return sum(1 for name, _, _, _ in fields0 if name == "MODE") >= 2
+
+
+def _is_generic_ea_dn_form(inst):
+    fields0 = runtime_m68k_asm.RAW_FIELDS[0][inst]
+    mode_count = sum(1 for name, _, _, _ in fields0 if name == "MODE")
+    reg_count = sum(
+        1
+        for name, _, _, _ in fields0
+        if name not in ("0", "1") and "REGISTER" in name.upper()
+    )
+    return mode_count == 1 and reg_count >= 2
+
+
+def _assemble_single_operand(inst, resolution, operands, pc):
+    mnemonic = inst
+    operand = operands[0]
+    if operand.strip().startswith("#"):
+        ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
+        ir_field = ir[0] if ir is not None else ""
+        enc_fields = {name for name, _, _, _ in runtime_m68k_asm.RAW_FIELDS[0][inst]}
+        if ir_field and ir_field in enc_fields:
+            return _assemble_opword_immediate(inst, resolution, operand)
+
+    if runtime_m68k_asm.USES_LABELS[mnemonic]:
+        return _assemble_branch(inst, resolution, operand, pc)
+    if resolution["direction"] is not None:
+        return _assemble_shift_mem(inst, resolution, operand)
+    return _assemble_ea_single(inst, resolution, operand)
+
+
+def _assemble_two_operands(inst, resolution, operands, pc):
+    mnemonic = inst
+    src, dst = operands
+
+    if mnemonic in ("BTST", "BCHG", "BCLR", "BSET"):
+        if src.strip().startswith("#"):
+            return _assemble_bit_imm(inst, resolution, src, dst)
+        return _assemble_bit_reg(inst, resolution, src, dst)
+
+    if runtime_m68k_asm.USES_LABELS[mnemonic]:
+        if _RE_DN.match(src.strip()):
+            return _assemble_dbcc(inst, resolution, src, dst, pc)
+        return _assemble_branch(inst, resolution, src, pc)
+
+    if resolution["direction"] is not None:
+        return _assemble_shift_reg(inst, resolution, operands)
+
+    if mnemonic == "LEA":
+        return _assemble_lea_pea(inst, resolution, src, dst)
+
+    if _has_dual_ea_form(inst):
+        return _assemble_two_ea(inst, resolution, src, dst)
+
+    if src.strip().startswith("#") and mnemonic in runtime_m68k_asm.OPMODE_TABLES_LIST:
+        imm_mnemonic = runtime_m68k_asm.IMMEDIATE_ROUTING.get(mnemonic)
+        if imm_mnemonic:
+            imm_resolution = {**resolution, "inst": imm_mnemonic}
+            return _assemble_immediate(imm_mnemonic, imm_resolution, src, dst)
+
+    if mnemonic in runtime_m68k_asm.OPMODE_TABLES_LIST:
+        return _assemble_opmode(inst, resolution, src, dst)
+
+    if _is_generic_ea_dn_form(inst) and _RE_DN.match(dst.strip()):
+        return _assemble_ea_dn(inst, resolution, src, dst)
+
+    if src.strip().startswith("#"):
+        ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
+        if ir is not None and ir[0] == "DATA":
+            return _assemble_quick(inst, resolution, src, dst)
+        return _assemble_immediate(inst, resolution, src, dst)
+
+    return None
+
+
 def assemble_instruction(text, pc=0):
     """Assemble a single M68K instruction into bytes.
 
@@ -1584,167 +1686,30 @@ def assemble_instruction(text, pc=0):
     mnemonic_str, size_char = _parse_mnemonic_size(mnemonic_part)
     resolution = resolve_instruction(mnemonic_str, size_char)
     inst = resolution["mnemonic"]
-    mnemonic = inst
-
     operands = _split_operands(operand_part) if operand_part else []
 
-    # Check for special operands (SR/CCR/USP) - resolve via KB asm_syntax_index
     if operands:
-        op_types = tuple(_classify_asm_operand(op) for op in operands)
-        if any(t in _special_operand_types() for t in op_types):
-            resolved = _resolve_by_syntax_index(mnemonic_str.lower(), operands)
-            if resolved is None:
-                raise ValueError(
-                    f"No KB instruction for {mnemonic_str} with operand types {op_types}")
-            sr_inst, form_idx = resolved
-            form_ops = runtime_m68k_asm.FORM_OPERAND_TYPES[sr_inst][form_idx]
+        result = _assemble_special_operand_form(mnemonic_str, operands)
+        if result is not None:
+            return result
 
-            # Route by form operand pattern
-            if form_ops in (("imm", "ccr"), ("imm", "sr")):
-                return _assemble_imm_to_sr_ccr(sr_inst, operands[0])
-            elif form_ops in (("ea", "ccr"), ("ea", "sr")):
-                return _assemble_ea_to_sr_ccr(sr_inst, operands[0])
-            elif form_ops in (("sr", "ea"), ("ccr", "ea")):
-                return _assemble_sr_ccr_to_ea(sr_inst, operands[1])
-            elif form_ops in (("usp", "an"), ("an", "usp")):
-                return _assemble_direction_field(sr_inst, form_idx, operands)
-            else:
-                raise ValueError(
-                    f"Unhandled special operand form: {form_ops} "
-                    f"for {sr_inst}")
-
-    # Route to specific assembler based on instruction characteristics
-    op_types = list(runtime_m68k_asm.FORM_OPERAND_TYPES.get(inst, ()))
-
-    # No operands
     if not operands:
         return _assemble_no_operands(inst, resolution)
 
-    # Special instruction routing by mnemonic
-    if mnemonic == "MOVEQ":
-        return _assemble_moveq(inst, resolution, operands[0], operands[1])
+    result = _assemble_special_mnemonic(inst, resolution, operands)
+    if result is not None:
+        return result
 
-    if mnemonic == "MOVEA":
-        return _assemble_movea(inst, resolution, operands[0], operands[1])
-
-    if mnemonic in ("ADDA", "SUBA", "CMPA"):
-        return _assemble_adda_suba_cmpa(inst, resolution, operands[0], operands[1])
-
-    if mnemonic == "MOVEM":
-        return _assemble_movem(inst, resolution, operands)
-
-    if mnemonic == "MOVEP":
-        return _assemble_movep(inst, resolution, operands[0], operands[1])
-
-    if mnemonic == "LINK":
-        return _assemble_link(inst, resolution, operands[0], operands[1])
-
-    if mnemonic == "UNLK":
-        return _assemble_unlk(inst, resolution, operands[0])
-
-    if mnemonic == "EXG":
-        return _assemble_exg(inst, resolution, operands[0], operands[1])
-
-    if mnemonic == "SWAP":
-        return _assemble_swap(inst, resolution, operands[0])
-
-    if mnemonic in ("EXT", "EXT, EXTB"):
-        return _assemble_ext(inst, resolution, operands[0])
-
-    # Instructions with immediate embedded in opword field (TRAP, BKPT, etc.)
-    # Detected by: single #imm operand, immediate_range.field names an opword field
-    if len(operands) == 1 and operands[0].strip().startswith("#"):
-        ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
-        ir_field = ir[0] if ir is not None else ""
-        enc_fields = {name for name, _, _, _ in _raw_fields(inst, 0)}
-        if ir_field and ir_field in enc_fields:
-            return _assemble_opword_immediate(inst, resolution, operands[0])
-
-    if mnemonic in ("ABCD", "SBCD"):
-        return _assemble_bcd(inst, resolution, operands[0], operands[1])
-
-    if mnemonic in ("ADDX", "SUBX"):
-        return _assemble_addx_subx(inst, resolution, operands[0], operands[1])
-
-    if mnemonic == "CMPM":
-        return _assemble_cmpm(inst, resolution, operands[0], operands[1])
-
-    # Bit operations: BTST/BCHG/BCLR/BSET - two forms (register and immediate)
-    if mnemonic in ("BTST", "BCHG", "BCLR", "BSET") and len(operands) == 2:
-        if operands[0].strip().startswith("#"):
-            return _assemble_bit_imm(inst, resolution, operands[0], operands[1])
-        else:
-            return _assemble_bit_reg(inst, resolution, operands[0], operands[1])
-
-    # Branch instructions
-    if runtime_m68k_asm.USES_LABELS.get(mnemonic, False):
-        if len(operands) == 2 and _RE_DN.match(operands[0].strip()):
-            return _assemble_dbcc(inst, resolution, operands[0], operands[1], pc)
-        return _assemble_branch(inst, resolution, operands[0], pc)
-
-    # Shift/rotate: register form (2 operands) or memory form (1 operand)
-    if resolution["direction"] is not None:
-        if len(operands) == 2:
-            return _assemble_shift_reg(inst, resolution, operands)
-        if len(operands) == 1:
-            return _assemble_shift_mem(inst, resolution, operands[0])
-
-    # LEA <ea>,An
-    if mnemonic == "LEA":
-        return _assemble_lea_pea(inst, resolution, operands[0], operands[1])
-
-    # PEA <ea>
-    if mnemonic == "PEA":
+    if inst == "PEA":
         return _assemble_lea_pea(inst, resolution, operands[0])
 
-    # Two-operand MOVE-style (dual EA) - BEFORE opmode/immediate checks
-    # so that MOVE #imm,<ea> uses the dual-EA path, not the immediate path
-    if len(operands) == 2:
-        fields0 = _raw_fields(inst, 0)
-        mode_count = sum(1 for name, _, _, _ in fields0 if name == "MODE")
-        if mode_count >= 2:
-            return _assemble_two_ea(inst, resolution, operands[0], operands[1])
-
-    # Immediate routing: ADD #imm,<ea> -> ADDI #imm,<ea> (canonical encoding)
-    # Driven by KB _meta.immediate_routing, which maps general-purpose
-    # mnemonics to their immediate-specific variants.
-    if (len(operands) == 2 and operands[0].strip().startswith("#")
-            and mnemonic in runtime_m68k_asm.OPMODE_TABLES_LIST):
-        imm_routing = runtime_m68k_asm.IMMEDIATE_ROUTING
-        imm_mnemonic = imm_routing.get(mnemonic)
-        if imm_mnemonic:
-            imm_inst = imm_mnemonic
-            imm_resolution = {**resolution, "inst": imm_inst}
-            return _assemble_immediate(imm_inst, imm_resolution,
-                                       operands[0], operands[1])
-
-    # Instructions with opmode table (ADD, SUB, AND, OR, CMP)
-    if mnemonic in runtime_m68k_asm.OPMODE_TABLES_LIST and len(operands) == 2:
-        return _assemble_opmode(inst, resolution, operands[0], operands[1])
-
-    # Generic <ea>,Dn form (CHK, DIVS, DIVU, MULS, MULU, etc.)
-    # Detected by: 2 operands, 1 MODE field, 2+ REGISTER fields, no opmode table
-    if len(operands) == 2 and mnemonic not in runtime_m68k_asm.OPMODE_TABLES_LIST:
-        fields0 = _raw_fields(inst, 0)
-        mode_count = sum(1 for name, _, _, _ in fields0 if name == "MODE")
-        reg_count = sum(1 for name, _, _, _ in fields0
-                        if name not in ("0", "1") and "REGISTER" in name.upper())
-        if mode_count == 1 and reg_count >= 2:
-            # Determine direction: if dst is Dn, it's <ea>,Dn
-            if _RE_DN.match(operands[1].strip()):
-                return _assemble_ea_dn(inst, resolution, operands[0], operands[1])
-
-    # Immediate instructions (#imm,<ea>)
-    if len(operands) == 2 and operands[0].strip().startswith("#"):
-        # Check if this is ADDQ/SUBQ (quick immediate)
-        ir = runtime_m68k_asm.IMMEDIATE_RANGES.get(mnemonic)
-        if ir is not None and ir[0] == "DATA":
-            return _assemble_quick(inst, resolution, operands[0], operands[1])
-        return _assemble_immediate(inst, resolution, operands[0], operands[1])
-
-    # Single EA operand
     if len(operands) == 1:
-        return _assemble_ea_single(inst, resolution, operands[0])
+        return _assemble_single_operand(inst, resolution, operands, pc)
+
+    if len(operands) == 2:
+        result = _assemble_two_operands(inst, resolution, operands, pc)
+        if result is not None:
+            return result
 
     raise ValueError(f"Cannot assemble: {text!r}")
 

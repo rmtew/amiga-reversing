@@ -16,11 +16,6 @@ from m68k_kb import runtime_hunk
 
 
 # -- KB-driven type definitions --------------------------------------------
-
-def _load_hunk_kb():
-    """Load hunk format KB."""
-    return runtime_hunk
-
 def _build_enum(name, kb_section, base_class=IntEnum):
     """Build an IntEnum from a KB section {name: {id: N, ...}}."""
     members = {}
@@ -29,7 +24,7 @@ def _build_enum(name, kb_section, base_class=IntEnum):
             members[entry_name] = entry["id"]
     return base_class(name, members)
 
-_HUNK_KB = _load_hunk_kb()
+_HUNK_KB = runtime_hunk
 _HUNK_META = _HUNK_KB.META
 
 HunkType = _build_enum("HunkType", _HUNK_KB.HUNK_TYPES)

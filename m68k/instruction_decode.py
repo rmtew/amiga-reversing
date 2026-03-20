@@ -15,18 +15,6 @@ _OPMODE_DESTINATION = 4
 _OPMODE_RX_MODE = 5
 _OPMODE_RY_MODE = 6
 
-def _runtime_raw_fields(mnemonic: str, enc_idx: int) -> tuple[tuple[str, int, int, int], ...]:
-    raw_fields = runtime_m68k_decode.RAW_FIELDS[enc_idx]
-    if mnemonic not in raw_fields:
-        return ()
-    return raw_fields[mnemonic]
-
-
-def _runtime_encoding_count(mnemonic: str) -> int:
-    if mnemonic not in runtime_m68k_decode.ENCODING_COUNTS:
-        raise KeyError(f"runtime KB missing encoding count for {mnemonic}")
-    return runtime_m68k_decode.ENCODING_COUNTS[mnemonic]
-
 
 def _raw_field_spec(raw_fields: tuple[tuple[str, int, int, int], ...], name: str):
     for field_name, bit_hi, bit_lo, width in raw_fields:
@@ -71,20 +59,17 @@ def xf(opcode: int, field: tuple) -> int:
 
 
 def _encoding_literal_count(mnemonic: str, enc_idx: int, opcode: int) -> int | None:
-    masks = runtime_m68k_decode.ENCODING_MASKS[enc_idx]
-    if mnemonic not in masks:
-        return 0
-    mask, value = masks[mnemonic]
+    mask, value = runtime_m68k_decode.ENCODING_MASKS[enc_idx][mnemonic]
     if (opcode & mask) != value:
         return None
     return mask.bit_count()
 
 
 def select_encoding_index(mnemonic: str, opcode: int) -> int:
-    encoding_count = _runtime_encoding_count(mnemonic)
+    encoding_count = runtime_m68k_decode.ENCODING_COUNTS[mnemonic]
     if not encoding_count:
         raise ValueError(f"KB entry {mnemonic} has no encodings")
-    form_operand_types = list(runtime_m68k_decode.FORM_OPERAND_TYPES.get(mnemonic, ()))
+    form_operand_types = list(runtime_m68k_decode.FORM_OPERAND_TYPES[mnemonic])
     forms = form_operand_types
     if form_operand_types == [("dn", "dn"), ("imm", "dn"), ("ea",)]:
         return 1 if ((opcode >> 6) & 0b11) == 0b11 else 0
@@ -95,14 +80,9 @@ def select_encoding_index(mnemonic: str, opcode: int) -> int:
         if _encoding_literal_count(mnemonic, index, opcode) is not None
     ]
     if not matches:
-        literal_encodings = [
-            index
-            for index in range(encoding_count)
-            if mnemonic in runtime_m68k_decode.ENCODING_MASKS[index]
-        ]
         matches = [
             index
-            for index in literal_encodings
+            for index in range(primary_count, encoding_count)
             if _encoding_literal_count(mnemonic, index, opcode) is not None
         ]
     if len(matches) > 1:
@@ -120,11 +100,11 @@ def select_encoding_index(mnemonic: str, opcode: int) -> int:
 
 
 def select_encoding_fields(mnemonic: str, opcode: int) -> tuple[tuple[str, int, int, int], ...]:
-    return _runtime_raw_fields(mnemonic, select_encoding_index(mnemonic, opcode))
+    return runtime_m68k_decode.RAW_FIELDS[select_encoding_index(mnemonic, opcode)][mnemonic]
 
 
 def select_operand_types(mnemonic: str, opcode: int) -> tuple[str, ...]:
-    forms = runtime_m68k_decode.FORM_OPERAND_TYPES.get(mnemonic, ())
+    forms = runtime_m68k_decode.FORM_OPERAND_TYPES[mnemonic]
     if not forms:
         return ()
     form_operand_types = list(forms)
@@ -139,7 +119,7 @@ def select_operand_types(mnemonic: str, opcode: int) -> tuple[str, ...]:
             return form_operand_types[2]
 
     if form_operand_types == [("dn", "disp"), ("disp", "dn")]:
-        enc_fields = _runtime_raw_fields(mnemonic, encoding_index)
+        enc_fields = runtime_m68k_decode.RAW_FIELDS[encoding_index][mnemonic]
         entry = _runtime_opmode_entry(mnemonic, opcode, enc_fields)
         desc = (entry[_OPMODE_DESCRIPTION] or "").lower()
         if "register to memory" in desc:
@@ -150,7 +130,7 @@ def select_operand_types(mnemonic: str, opcode: int) -> tuple[str, ...]:
             f"Unsupported MOVEP-style opmode description {entry[_OPMODE_DESCRIPTION]!r}")
 
     if form_operand_types == [("reglist", "ea"), ("ea", "reglist")]:
-        enc_fields = _runtime_raw_fields(mnemonic, encoding_index)
+        enc_fields = runtime_m68k_decode.RAW_FIELDS[encoding_index][mnemonic]
         dr_field = _raw_field_spec(enc_fields, "dr")
         if dr_field is None:
             raise ValueError(f"MOVEM-style form selection missing dr in {mnemonic}")
@@ -158,7 +138,7 @@ def select_operand_types(mnemonic: str, opcode: int) -> tuple[str, ...]:
         return form_operand_types[1] if dr else form_operand_types[0]
 
     if form_operand_types == [("ctrl_reg", "rn"), ("rn", "ctrl_reg")]:
-        enc_fields = _runtime_raw_fields(mnemonic, encoding_index)
+        enc_fields = runtime_m68k_decode.RAW_FIELDS[encoding_index][mnemonic]
         dr_field = _raw_field_spec(enc_fields, "dr")
         if dr_field is None:
             raise ValueError(f"MOVEC-style form selection missing dr in {mnemonic}")
@@ -168,7 +148,7 @@ def select_operand_types(mnemonic: str, opcode: int) -> tuple[str, ...]:
     operand_modes = runtime_m68k_decode.OPERAND_MODE_TABLES.get(mnemonic)
     if operand_modes:
         field_name, values = operand_modes
-        enc_fields = _runtime_raw_fields(mnemonic, encoding_index)
+        enc_fields = runtime_m68k_decode.RAW_FIELDS[encoding_index][mnemonic]
         mode_field = _raw_field_spec(enc_fields, field_name)
         if mode_field is None:
             raise ValueError(f"Operand-mode selection missing {field_name!r} in {mnemonic}")
@@ -201,9 +181,9 @@ def select_operand_types_from_raw(mnemonic: str, inst_raw: bytes) -> tuple[str, 
     opcode = struct.unpack_from(">H", inst_raw, 0)[0]
     operand_types = select_operand_types(mnemonic, opcode)
     encoding_index = select_encoding_index(mnemonic, opcode)
-    form_operand_types = list(runtime_m68k_decode.FORM_OPERAND_TYPES.get(mnemonic, ()))
+    form_operand_types = list(runtime_m68k_decode.FORM_OPERAND_TYPES[mnemonic])
     if mnemonic == "MOVE16" and encoding_index == 2:
-        enc_fields = _runtime_raw_fields(mnemonic, 2)
+        enc_fields = runtime_m68k_decode.RAW_FIELDS[2][mnemonic]
         entry = _runtime_opmode_entry(mnemonic, opcode, enc_fields)
 
         def _move16_operand_type(operand_text: str) -> str:
@@ -221,7 +201,7 @@ def select_operand_types_from_raw(mnemonic: str, inst_raw: bytes) -> tuple[str, 
             _move16_operand_type(entry[_OPMODE_DESTINATION]),
         )
     if mnemonic == "PTRAPcc":
-        enc_fields = _runtime_raw_fields(mnemonic, 0)
+        enc_fields = runtime_m68k_decode.RAW_FIELDS[0][mnemonic]
         entry = _runtime_opmode_entry(mnemonic, opcode, enc_fields)
         return ("imm",) if entry[_OPMODE_SIZE] in {"w", "l"} else ()
     if encoding_index != 1 or len(inst_raw) < 4:
@@ -229,9 +209,9 @@ def select_operand_types_from_raw(mnemonic: str, inst_raw: bytes) -> tuple[str, 
 
     if (mnemonic in {"MULS", "MULU"}
             and form_operand_types == [("ea", "dn"), ("ea", "dn"), ("ea", "dn_pair")]
-            and _runtime_encoding_count(mnemonic) >= 3):
+            and runtime_m68k_decode.ENCODING_COUNTS[mnemonic] >= 3):
         ext = struct.unpack_from(">H", inst_raw, 2)[0]
-        fields = _runtime_raw_fields(mnemonic, 2)
+        fields = runtime_m68k_decode.RAW_FIELDS[2][mnemonic]
         size_field = _raw_field_spec(fields, "SIZE")
         if size_field is None:
             raise ValueError(f"{mnemonic} extension SIZE field missing")
@@ -240,9 +220,9 @@ def select_operand_types_from_raw(mnemonic: str, inst_raw: bytes) -> tuple[str, 
 
     if (mnemonic in {"DIVS, DIVSL", "DIVU, DIVUL"}
             and form_operand_types == [("ea", "dn"), ("ea", "dn"), ("ea", "dn_pair"), ("ea", "dn_pair")]
-            and _runtime_encoding_count(mnemonic) >= 3):
+            and runtime_m68k_decode.ENCODING_COUNTS[mnemonic] >= 3):
         ext = struct.unpack_from(">H", inst_raw, 2)[0]
-        fields = _runtime_raw_fields(mnemonic, 2)
+        fields = runtime_m68k_decode.RAW_FIELDS[2][mnemonic]
         size_field = _raw_field_spec(fields, "SIZE")
         dq_field = _raw_field_spec(fields, "REGISTER Dq")
         dr_field = _raw_field_spec(fields, "REGISTER Dr")
@@ -257,12 +237,12 @@ def select_operand_types_from_raw(mnemonic: str, inst_raw: bytes) -> tuple[str, 
 
 
 def _decode_bitfield_extension(inst_raw: bytes, opword_bytes: int, mnemonic: str) -> dict:
-    if _runtime_encoding_count(mnemonic) < 2:
+    if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2:
         raise ValueError(f"KB bitfield extension encoding missing in {mnemonic}")
     if len(inst_raw) < opword_bytes + 2:
         raise ValueError("Bitfield extension word missing")
     ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
-    fields = _runtime_raw_fields(mnemonic, 1)
+    fields = runtime_m68k_decode.RAW_FIELDS[1][mnemonic]
 
     def _field(name: str):
         return _raw_field_spec(fields, name)
@@ -322,7 +302,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
 
     opcode = struct.unpack_from(">H", inst_raw, 0)[0]
     encoding_index = select_encoding_index(mnemonic, opcode)
-    enc_fields = _runtime_raw_fields(mnemonic, encoding_index)
+    enc_fields = runtime_m68k_decode.RAW_FIELDS[encoding_index][mnemonic]
     operand_types = select_operand_types_from_raw(mnemonic, inst_raw)
 
     mode_fields = sorted(
@@ -379,11 +359,11 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
     if "bf_ea" in operand_types:
         result["bitfield"] = _decode_bitfield_extension(inst_raw, opword_bytes, mnemonic)
     if mnemonic == "MOVES" and operand_types in {("rn", "ea"), ("ea", "rn")}:
-        if _runtime_encoding_count(mnemonic) < 2 or len(inst_raw) < opword_bytes + 2:
+        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")
         ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
         ext_pos = opword_bytes + 2
-        fields = _runtime_raw_fields(mnemonic, 1)
+        fields = runtime_m68k_decode.RAW_FIELDS[1][mnemonic]
         ad_field = _raw_field_spec(fields, "A/D")
         reg_field = _raw_field_spec(fields, "REGISTER")
         dr_field = _raw_field_spec(fields, "dr")
@@ -401,10 +381,10 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
             result["ea_op"] = ea_op
         result["ea_is_source"] = bool(dr)
     if mnemonic == "MOVEC" and operand_types in {("ctrl_reg", "rn"), ("rn", "ctrl_reg")}:
-        if _runtime_encoding_count(mnemonic) < 2 or len(inst_raw) < opword_bytes + 2:
+        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")
         ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
-        fields = _runtime_raw_fields(mnemonic, 1)
+        fields = runtime_m68k_decode.RAW_FIELDS[1][mnemonic]
         ad_field = _raw_field_spec(fields, "A/D")
         reg_field = _raw_field_spec(fields, "REGISTER")
         ctrl_field = _raw_field_spec(fields, "CONTROL REGISTER")
@@ -442,10 +422,10 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                 raise ValueError("LINK.W displacement word missing")
             result["imm_val"] = struct.unpack_from(">h", inst_raw, opword_bytes)[0] & 0xFFFFFFFF
     if mnemonic == "MOVE16" and operand_types == ("postinc", "postinc"):
-        if _runtime_encoding_count(mnemonic) < 2 or len(inst_raw) < opword_bytes + 2:
+        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError("MOVE16 extension word missing")
-        op_fields = _runtime_raw_fields(mnemonic, 0)
-        ext_fields = _runtime_raw_fields(mnemonic, 1)
+        op_fields = runtime_m68k_decode.RAW_FIELDS[0][mnemonic]
+        ext_fields = runtime_m68k_decode.RAW_FIELDS[1][mnemonic]
         ax_field = _raw_field_spec(op_fields, "REGISTER Ax")
         ay_field = _raw_field_spec(ext_fields, "REGISTER Ay")
         if ax_field is None or ay_field is None:
@@ -457,17 +437,15 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         result["dst_op"] = Operand(mode="postinc", reg=ay, value=None)
     if mnemonic == "MOVE16" and operand_types in {
             ("absl", "postinc"), ("postinc", "absl"), ("absl", "ind"), ("ind", "absl")}:
-        if _runtime_encoding_count(mnemonic) < 3 or len(inst_raw) < opword_bytes + 4:
+        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 3 or len(inst_raw) < opword_bytes + 4:
             raise ValueError("MOVE16 absolute address words missing")
-        op_fields = _runtime_raw_fields(mnemonic, 2)
+        op_fields = runtime_m68k_decode.RAW_FIELDS[2][mnemonic]
         opmode_field = _raw_field_spec(op_fields, "OPMODE")
         reg_field = _raw_field_spec(op_fields, "REGISTER Ay")
         if opmode_field is None or reg_field is None:
             raise ValueError("MOVE16 absolute form fields missing")
         opmode = _xf(opcode, opmode_field)
-        opmode_table = runtime_m68k_decode.OPMODE_TABLES_BY_VALUE.get("MOVE16")
-        if opmode_table is None:
-            raise KeyError("runtime KB missing opmode table for MOVE16")
+        opmode_table = runtime_m68k_decode.OPMODE_TABLES_BY_VALUE["MOVE16"]
         entry = opmode_table.get(opmode)
         if entry is None:
             raise ValueError(f"MOVE16 missing opmode_table entry for {opmode}")
@@ -516,11 +494,11 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
             result["ea_op"] = Operand(mode="predec", reg=src_reg, value=None)
             result["dst_op"] = Operand(mode="predec", reg=dst_reg, value=None)
     if mnemonic in {"CHK2", "CMP2"} and operand_types == ("ea", "rn"):
-        if _runtime_encoding_count(mnemonic) < 2 or len(inst_raw) < opword_bytes + 2:
+        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")
         ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
         ext_pos = opword_bytes + 2
-        fields = _runtime_raw_fields(mnemonic, 1)
+        fields = runtime_m68k_decode.RAW_FIELDS[1][mnemonic]
         da_field = _raw_field_spec(fields, "D/A")
         reg_field = _raw_field_spec(fields, "REGISTER")
         if da_field is None or reg_field is None:
@@ -528,11 +506,11 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         result["reg_mode"] = "an" if _xf(ext, da_field) else "dn"
         result["reg_num"] = _xf(ext, reg_field)
     if operand_types == ("dn", "dn", "ea"):
-        if _runtime_encoding_count(mnemonic) < 2 or len(inst_raw) < opword_bytes + 2:
+        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"CAS extension word missing for {mnemonic}")
         ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
         ext_pos = opword_bytes + 2
-        fields = _runtime_raw_fields(mnemonic, 1)
+        fields = runtime_m68k_decode.RAW_FIELDS[1][mnemonic]
         du_field = _raw_field_spec(fields, "Du")
         dc_field = _raw_field_spec(fields, "Dc")
         if du_field is None or dc_field is None:
@@ -540,10 +518,10 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         result["update_reg"] = _xf(ext, du_field)
         result["compare_reg"] = _xf(ext, dc_field)
     if operand_types == ("ea", "rn"):
-        if _runtime_encoding_count(mnemonic) < 2 or len(inst_raw) < opword_bytes + 2:
+        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")
         ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
-        fields = _runtime_raw_fields(mnemonic, 1)
+        fields = runtime_m68k_decode.RAW_FIELDS[1][mnemonic]
         da_field = _raw_field_spec(fields, "D/A")
         reg_field = _raw_field_spec(fields, "REGISTER")
         if da_field is None or reg_field is None:
@@ -587,9 +565,9 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
     if (operand_types in {("ea", "dn"), ("ea", "dn_pair")}
             and encoding_index > 0
             and len(inst_raw) >= opword_bytes + 2):
-        if _runtime_encoding_count(mnemonic) >= 3:
+        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] >= 3:
             ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
-            fields = _runtime_raw_fields(mnemonic, 2)
+            fields = runtime_m68k_decode.RAW_FIELDS[2][mnemonic]
             ext_reg_fields = _raw_fields_by_prefix(fields, "REGISTER ")
             if ext_reg_fields:
                 reg_values = {

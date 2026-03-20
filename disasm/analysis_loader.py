@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from m68k_kb import runtime_os
 from m68k.analysis import AnalysisCacheError, HunkAnalysis, analyze_hunk
-from m68k.os_calls import load_os_kb
 
 
 def load_hunk_analysis(*, binary_path: str | Path, code: bytes, relocs,
@@ -12,7 +12,7 @@ def load_hunk_analysis(*, binary_path: str | Path, code: bytes, relocs,
     cache_path = Path(binary_path).with_suffix(".analysis")
     if cache_path.exists():
         try:
-            return HunkAnalysis.load(cache_path, load_os_kb())
+            return HunkAnalysis.load(cache_path, runtime_os)
         except AnalysisCacheError:
             pass
     analysis = analyze_hunk(code, relocs, hunk_index,

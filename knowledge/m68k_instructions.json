@@ -1023,7 +1023,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -1256,7 +1257,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -1430,7 +1432,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -1612,7 +1615,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -1811,7 +1815,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -2018,7 +2023,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -2260,7 +2266,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -2438,7 +2445,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -2645,7 +2653,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -2944,7 +2953,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -3456,7 +3466,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -3795,7 +3806,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -4032,7 +4044,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -4254,7 +4267,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -4471,7 +4485,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -4688,7 +4703,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -4905,7 +4921,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -5120,7 +5137,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -5342,7 +5360,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -5566,7 +5585,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -5736,7 +5756,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "trap"
+          "type": "trap",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -6220,7 +6241,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -6729,7 +6751,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -6976,7 +6999,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -7466,7 +7490,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -7646,13 +7671,22 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
         ]
       },
       "operation_type": "bounds_check",
+      "bounds_check": {
+        "register_operand": "destination",
+        "lower_bound": "zero",
+        "upper_bound": "source",
+        "comparison": "signed",
+        "sign_extend_bounds_for_address_register": false,
+        "trap_on_out_of_bounds": true
+      },
       "trap_condition": {
         "test": "destination < 0 || destination > source",
         "comparison": "signed",
@@ -7922,13 +7956,22 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
         ]
       },
       "operation_type": "bounds_check",
+      "bounds_check": {
+        "register_operand": "rn",
+        "lower_bound": "ea_lower",
+        "upper_bound": "ea_upper",
+        "comparison": null,
+        "sign_extend_bounds_for_address_register": true,
+        "trap_on_out_of_bounds": true
+      },
       "size_encoding": {
         "field": "SIZE",
         "values": [
@@ -8106,7 +8149,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -8314,7 +8358,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -8494,7 +8539,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -8683,7 +8729,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -8867,7 +8914,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -9148,13 +9196,22 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
         ]
       },
       "operation_type": "bounds_check",
+      "bounds_check": {
+        "register_operand": "rn",
+        "lower_bound": "ea_lower",
+        "upper_bound": "ea_upper",
+        "comparison": null,
+        "sign_extend_bounds_for_address_register": true,
+        "trap_on_out_of_bounds": false
+      },
       "size_encoding": {
         "field": "SIZE",
         "values": [
@@ -9521,7 +9578,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         }
       }
     },
@@ -9742,7 +9800,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -10463,7 +10522,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -10879,7 +10939,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -11090,7 +11151,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -11268,7 +11330,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -11475,7 +11538,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -11657,7 +11721,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -11856,7 +11921,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -12052,7 +12118,8 @@
       ],
       "pc_effects": {
         "flow": {
-          "type": "trap"
+          "type": "trap",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -12211,7 +12278,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "jump"
+          "type": "jump",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -12539,7 +12607,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -12860,7 +12929,8 @@
       ],
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           4,
@@ -13172,7 +13242,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -13371,7 +13442,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -13551,7 +13623,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -13738,7 +13811,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -13918,7 +13992,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -14087,7 +14162,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -14538,7 +14614,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2,
@@ -14778,7 +14855,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -15000,7 +15078,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           4
@@ -15159,7 +15238,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -15529,7 +15609,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -15914,7 +15995,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -16109,7 +16191,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -16286,7 +16369,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -16479,7 +16563,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -16674,7 +16759,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -16840,7 +16926,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -17080,7 +17167,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -17258,7 +17346,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -17465,7 +17554,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -17651,7 +17741,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -17825,7 +17916,8 @@
       ],
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -18122,7 +18214,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -18456,7 +18549,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -18695,7 +18789,8 @@
       ],
       "pc_effects": {
         "flow": {
-          "type": "return"
+          "type": "return",
+          "conditional": false
         },
         "base_sizes": [
           4
@@ -18867,7 +18962,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -19045,7 +19141,8 @@
       ],
       "pc_effects": {
         "flow": {
-          "type": "return"
+          "type": "return",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -19220,7 +19317,8 @@
       ],
       "pc_effects": {
         "flow": {
-          "type": "return"
+          "type": "return",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -19407,7 +19505,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -19570,7 +19669,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -19794,7 +19894,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -19968,7 +20069,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -20150,7 +20252,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -20354,7 +20457,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -20561,7 +20665,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -20754,7 +20859,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -20936,7 +21042,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -21107,7 +21214,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "trap"
+          "type": "trap",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -21673,7 +21781,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -21867,7 +21976,8 @@
       ],
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -22041,7 +22151,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -22231,7 +22342,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -22380,7 +22492,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -22533,7 +22646,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -22682,7 +22796,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -22831,7 +22946,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -23014,7 +23130,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -23164,7 +23281,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -23312,7 +23430,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -23481,7 +23600,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -23662,7 +23782,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -24011,7 +24132,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -24286,7 +24408,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -24486,7 +24609,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -25310,7 +25434,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -25549,7 +25674,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -25812,7 +25938,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -26043,7 +26170,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -27496,7 +27624,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -27659,7 +27788,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -27820,7 +27950,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -28056,7 +28187,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -28718,7 +28850,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -29433,7 +29566,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -29608,7 +29742,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "sequential"
+          "type": "sequential",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -29777,7 +29912,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "return"
+          "type": "return",
+          "conditional": false
         },
         "base_sizes": [
           2
@@ -29971,7 +30107,8 @@
       },
       "pc_effects": {
         "flow": {
-          "type": "trap"
+          "type": "trap",
+          "conditional": false
         },
         "base_sizes": [
           4

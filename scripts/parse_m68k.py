@@ -2969,12 +2969,12 @@ def _classify_flow_type(inst):
 
     # Returns: pop PC from stack (RTS, RTR, RTD, RTE)
     if "(SP) → PC" in operation:
-        return {"type": "return"}
+        return {"type": "return", "conditional": False}
 
     # Supervisor returns: RTE — operation says "If Supervisor State" but
     # description loads processor state from exception stack frame
     if "exception stack frame" in description and "loads" in description:
-        return {"type": "return"}
+        return {"type": "return", "conditional": False}
 
     # Calls: push PC + change PC (BSR, JSR)
     if writes_pc and has_push and "PC → (SP)" in operation:
@@ -2990,7 +2990,7 @@ def _classify_flow_type(inst):
 
     # Unconditional jumps: writes PC from EA (JMP)
     if writes_pc and "Destination Address → PC" in operation:
-        return {"type": "jump"}
+        return {"type": "jump", "conditional": False}
 
     # Traps: operation is specifically to generate a trap/exception, not
     # instructions that may incidentally trap on error (like DIV or CHK).
@@ -3036,10 +3036,10 @@ def _classify_flow_type(inst):
         )
         if is_conditional:
             return {"type": "trap", "conditional": True}
-        return {"type": "trap"}
+        return {"type": "trap", "conditional": False}
 
     # Everything else is sequential
-    return {"type": "sequential"}
+    return {"type": "sequential", "conditional": False}
 
 
 def apply_pc_effects(kb_data):
@@ -3554,7 +3554,7 @@ def _extract_transfer_layout(inst):
 
 
 def _extract_bounds_check(inst):
-    """Extract bounds-check trap condition from PDF operation text.
+    """Extract structured bounds-check semantics from PDF text.
 
     Track A: PDF p173 CHK operation says:
       "If Dn < 0 or Dn > Source"
@@ -3569,15 +3569,42 @@ def _extract_bounds_check(inst):
     op_type = inst.get("operation_type")
     if op_type != "bounds_check":
         return
+    mnemonic = inst.get("mnemonic")
     operation = inst.get("operation", "")
+    description = inst.get("description", "")
     # Match "If Dn < 0 or Dn > Source" pattern
     m = re.search(r'If\s+Dn\s*<\s*0\s+or\s+Dn\s*>\s*Source', operation)
     if m:
+        inst["bounds_check"] = {
+            "register_operand": "destination",
+            "lower_bound": "zero",
+            "upper_bound": "source",
+            "comparison": "signed",
+            "sign_extend_bounds_for_address_register": False,
+            "trap_on_out_of_bounds": True,
+        }
         inst["trap_condition"] = {
             "test": "destination < 0 || destination > source",
             "comparison": "signed",
             "lower_bound": 0,
             "upper_bound": "source",
+        }
+        return
+    if mnemonic in {"CHK2", "CMP2"} and re.search(
+            r'(?:If|Compare)\s+Rn\s*<\s*LB\s+or\s+Rn\s*>\s*UB', operation):
+        comparison = None
+        desc_lower = description.lower()
+        if "for signed comparisons" in desc_lower and "for unsigned comparisons" not in desc_lower:
+            comparison = "signed"
+        elif "for unsigned comparisons" in desc_lower and "for signed comparisons" not in desc_lower:
+            comparison = "unsigned"
+        inst["bounds_check"] = {
+            "register_operand": "rn",
+            "lower_bound": "ea_lower",
+            "upper_bound": "ea_upper",
+            "comparison": comparison,
+            "sign_extend_bounds_for_address_register": True,
+            "trap_on_out_of_bounds": mnemonic == "CHK2",
         }
 
 

@@ -343,17 +343,17 @@ def _render_flow_table(table: dict[str, str]) -> str:
     return "{%s}" % rendered
 
 
-def _render_operation_type_table(table: dict[str, str]) -> str:
+def _render_operation_type_table(table: dict[str, str | None]) -> str:
     rendered = ",\n ".join(
-        f"{key!r}: {_enum_member('OperationType', value)}"
+        f"{key!r}: {(_enum_member('OperationType', value) if value is not None else 'None')}"
         for key, value in table.items()
     )
     return "{%s}" % rendered
 
 
-def _render_operation_class_table(table: dict[str, str]) -> str:
+def _render_operation_class_table(table: dict[str, str | None]) -> str:
     rendered = ",\n ".join(
-        f"{key!r}: {_enum_member('OperationClass', value)}"
+        f"{key!r}: {(_enum_member('OperationClass', value) if value is not None else 'None')}"
         for key, value in table.items()
     )
     return "{%s}" % rendered
@@ -625,6 +625,7 @@ def _write_m68k_runtime_python(path: Path, payload: dict, *, header: str) -> Non
             f"OPERATION_TYPES = {_render_operation_type_table(tables['operation_types'])}",
             f"OPERATION_CLASSES = {_render_operation_class_table(tables['operation_classes'])}",
             f"SOURCE_SIGN_EXTEND = {_render_py(tables['source_sign_extend'])}",
+            f"BOUNDS_CHECKS = {_render_py(tables['bounds_checks'])}",
             f"SHIFT_COUNT_MODULI = {_render_py(tables['shift_count_moduli'])}",
             f"OPMODE_TABLES_LIST = {_render_py(tables['opmode_tables_list'])}",
             f"OPMODE_TABLES_BY_VALUE = {_render_py(tables['opmode_tables_by_value'])}",
@@ -1090,7 +1091,6 @@ def _runtime_branch_displacement(inst: dict,
         "bytes": 2,
     }
 
-
 def _project_instruction_runtime(inst: dict) -> dict:
     return {
         "mnemonic": inst["mnemonic"],
@@ -1146,12 +1146,9 @@ def _build_m68k_runtime() -> dict:
                 spec = (field["bit_hi"], field["bit_lo"], field["width"])
                 fields_map[name] = spec
                 raw_fields_list.append((name, field["bit_hi"], field["bit_lo"], field["width"]))
-            if mask:
-                masks[inst["mnemonic"]] = (mask, val)
-            if fields_map:
-                field_maps[inst["mnemonic"]] = fields_map
-            if raw_fields_list:
-                raw_fields[inst["mnemonic"]] = tuple(raw_fields_list)
+            masks[inst["mnemonic"]] = (mask, val)
+            field_maps[inst["mnemonic"]] = fields_map
+            raw_fields[inst["mnemonic"]] = tuple(raw_fields_list)
         encoding_masks_by_idx.append(dict(sorted(masks.items())))
         field_maps_by_idx.append(dict(sorted(field_maps.items())))
         raw_fields_by_idx.append(dict(sorted(raw_fields.items())))
@@ -1199,6 +1196,7 @@ def _build_m68k_runtime() -> dict:
         if inst.get("constraints", {}).get("immediate_range")
     }
     compute_formulas = {}
+    bounds_checks = {}
     sp_effects = {}
     implicit_operands = {}
     bit_moduli = {}
@@ -1214,10 +1212,8 @@ def _build_m68k_runtime() -> dict:
     for inst in instructions:
         mnemonic = inst["mnemonic"]
         instruction_sizes[mnemonic] = tuple(inst.get("sizes", ()))
-        if "operation_type" in inst:
-            operation_types[mnemonic] = inst["operation_type"]
-        if "operation_class" in inst:
-            operation_classes[mnemonic] = inst["operation_class"]
+        operation_types[mnemonic] = inst.get("operation_type")
+        operation_classes[mnemonic] = inst.get("operation_class")
         if inst.get("source_sign_extend"):
             source_sign_extend.add(mnemonic)
         if "shift_count_modulus" in inst:
@@ -1232,6 +1228,15 @@ def _build_m68k_runtime() -> dict:
                 tuple((size, bits) for size, bits in formula.get("source_bits_by_size", {}).items()),
                 formula.get("truncation"),
             )
+        raw_bounds_check = inst.get("bounds_check")
+        bounds_checks[mnemonic] = None if raw_bounds_check is None else (
+            raw_bounds_check["register_operand"],
+            raw_bounds_check["lower_bound"],
+            raw_bounds_check["upper_bound"],
+            raw_bounds_check.get("comparison"),
+            bool(raw_bounds_check.get("sign_extend_bounds_for_address_register", False)),
+            bool(raw_bounds_check.get("trap_on_out_of_bounds", False)),
+        )
         raw_sp_effects = inst.get("sp_effects")
         if raw_sp_effects:
             sp_effects[mnemonic] = tuple(
@@ -1280,42 +1285,39 @@ def _build_m68k_runtime() -> dict:
     for inst in instructions:
         mnemonic = inst["mnemonic"]
         forms = inst.get("forms", [])
-        if forms:
-            form_operand_types[mnemonic] = tuple(
-                tuple(operand["type"] for operand in form.get("operands", []))
-                for form in forms
-            )
-            form_flags_020[mnemonic] = tuple(bool(form.get("processor_020")) for form in forms)
-            for form in forms:
-                data_sizes = form.get("data_sizes")
-                if data_sizes and not form.get("processor_020") and mnemonic not in primary_data_sizes:
-                    kind = data_sizes["type"]
-                    if kind == "multiply":
-                        primary_data_sizes[mnemonic] = (
-                            kind,
-                            data_sizes["src_bits"],
-                            data_sizes["dst_bits"],
-                            data_sizes["result_bits"],
-                        )
-                    elif kind == "divide":
-                        primary_data_sizes[mnemonic] = (
-                            kind,
-                            data_sizes["divisor_bits"],
-                            data_sizes["dividend_bits"],
-                            data_sizes["quotient_bits"],
-                        )
-                    else:
-                        raise KeyError(f"unsupported primary data size kind {kind!r} for {mnemonic}")
-        ea_modes = inst.get("ea_modes")
-        if ea_modes:
-            ea_mode_tables[mnemonic] = (
-                tuple(ea_modes.get("src", ())),
-                tuple(ea_modes.get("dst", ())),
-                tuple(ea_modes.get("ea", ())),
-            )
+        form_operand_types[mnemonic] = tuple(
+            tuple(operand["type"] for operand in form.get("operands", []))
+            for form in forms
+        )
+        form_flags_020[mnemonic] = tuple(bool(form.get("processor_020")) for form in forms)
+        for form in forms:
+            data_sizes = form.get("data_sizes")
+            if data_sizes and not form.get("processor_020") and mnemonic not in primary_data_sizes:
+                kind = data_sizes["type"]
+                if kind == "multiply":
+                    primary_data_sizes[mnemonic] = (
+                        kind,
+                        data_sizes["src_bits"],
+                        data_sizes["dst_bits"],
+                        data_sizes["result_bits"],
+                    )
+                elif kind == "divide":
+                    primary_data_sizes[mnemonic] = (
+                        kind,
+                        data_sizes["divisor_bits"],
+                        data_sizes["dividend_bits"],
+                        data_sizes["quotient_bits"],
+                    )
+                else:
+                    raise KeyError(f"unsupported primary data size kind {kind!r} for {mnemonic}")
+        ea_modes = inst.get("ea_modes") or {}
+        ea_mode_tables[mnemonic] = (
+            tuple(ea_modes.get("src", ())),
+            tuple(ea_modes.get("dst", ())),
+            tuple(ea_modes.get("ea", ())),
+        )
         raw_constraints = inst.get("constraints", {})
-        if raw_constraints.get("an_sizes"):
-            an_sizes[mnemonic] = tuple(raw_constraints["an_sizes"])
+        an_sizes[mnemonic] = tuple(raw_constraints.get("an_sizes", ()))
         operand_modes = raw_constraints.get("operand_modes")
         if operand_modes:
             operand_mode_tables[mnemonic] = (
@@ -1334,8 +1336,7 @@ def _build_m68k_runtime() -> dict:
                 field_name,
                 tuple(form_field_value[str(idx)] for idx in range(max_form_idx + 1)),
             )
-        flow = inst.get("pc_effects", {}).get("flow", {})
-        flow_conditional[mnemonic] = bool(flow.get("conditional", False))
+        flow_conditional[mnemonic] = bool(inst["pc_effects"]["flow"]["conditional"])
 
     opmode_tables_list = {
         inst["mnemonic"]: inst["constraints"]["opmode_table"]
@@ -1565,7 +1566,7 @@ def _build_m68k_runtime() -> dict:
         all_types.update(operand_types)
     special_operand_types = tuple(sorted(all_types - generic_types))
     flow_types = {
-        inst["mnemonic"]: inst.get("pc_effects", {}).get("flow", {}).get("type", "sequential")
+        inst["mnemonic"]: inst["pc_effects"]["flow"]["type"]
         for inst in instructions
     }
 
@@ -1590,6 +1591,7 @@ def _build_m68k_runtime() -> dict:
             "cc_families": dict(sorted(cc_families.items())),
               "immediate_ranges": dict(sorted(immediate_ranges.items())),
               "compute_formulas": dict(sorted(compute_formulas.items())),
+              "bounds_checks": dict(sorted(bounds_checks.items())),
               "sp_effects": dict(sorted(sp_effects.items())),
               "implicit_operands": dict(sorted(implicit_operands.items())),
               "bit_moduli": dict(sorted(bit_moduli.items())),
@@ -1907,6 +1909,7 @@ def _build_m68k_analysis_runtime(runtime_payload: dict) -> dict:
         "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
         "FLOW_TYPES": tables["flow_types"],
         "FLOW_CONDITIONAL": tables["flow_conditional"],
+        "BOUNDS_CHECKS": tables["bounds_checks"],
         "COMPUTE_FORMULAS": tables["compute_formulas"],
         "SP_EFFECTS": tables["sp_effects"],
         "EA_MODE_TABLES": tables["ea_mode_tables"],
@@ -1951,6 +1954,7 @@ def _build_m68k_executor_runtime(runtime_payload: dict) -> dict:
         "OPERATION_TYPES": tables["operation_types"],
         "OPERATION_CLASSES": tables["operation_classes"],
         "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
+        "BOUNDS_CHECKS": tables["bounds_checks"],
         "BIT_MODULI": tables["bit_moduli"],
         "SHIFT_COUNT_MODULI": tables["shift_count_moduli"],
         "ROTATE_EXTRA_BITS": tables["rotate_extra_bits"],

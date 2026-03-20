@@ -8,8 +8,9 @@ All identification is data-driven from:
 - runtime_m68k.py/canonical instruction KB: ea_mode_encoding for addressing mode detection
 
 Usage:
-    from os_calls import load_os_kb, identify_library_calls
-    os_kb = load_os_kb()
+    from os_calls import identify_library_calls
+    from m68k_kb import runtime_os
+    os_kb = runtime_os
     calls = identify_library_calls(blocks, code, os_kb)
 """
 
@@ -26,11 +27,6 @@ from .instruction_primitives import extract_branch_target
 from .m68k_executor import BasicBlock
 from .registers import parse_reg_name
 from .strings import read_string_at
-
-
-def load_os_kb():
-    """Load the Amiga OS runtime KB."""
-    return runtime_os
 
 
 def _decode_inst(inst):
@@ -88,8 +84,7 @@ def get_platform_config() -> dict:
         exec_base_addr: int (absolute address of ExecBase pointer)
         initial_sp: int (sentinel SP for abstract stack tracking)
     """
-    os_kb = load_os_kb()
-    meta = os_kb.META
+    meta = runtime_os.META
     cc = meta["calling_convention"]
 
     scratch = [parse_reg_name(r) for r in cc["scratch_regs"]]
@@ -138,7 +133,7 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
     or None if no effect can be determined.
     """
     if os_kb is None:
-        os_kb = load_os_kb()
+        os_kb = runtime_os
 
     if a6_lib is None:
         return None

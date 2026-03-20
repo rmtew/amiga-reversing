@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import struct
 
+from m68k_kb import runtime_os
 from disasm.decode import decode_inst_for_emit
 from m68k.hunk_parser import HunkType
-from m68k.os_calls import load_os_kb
 from m68k.strings import read_string_at
 
 
@@ -61,8 +61,7 @@ def discover_absolute_targets(blocks: dict, code_size: int) -> set[int]:
 
 def load_fixed_absolute_addresses() -> set[int]:
     """Return KB-declared fixed system absolute addresses."""
-    os_kb = load_os_kb()
-    exec_base = os_kb.META.get("exec_base_addr")
+    exec_base = runtime_os.META.get("exec_base_addr")
     if exec_base is None:
         raise KeyError("OS KB missing META.exec_base_addr")
     address = exec_base.get("address")

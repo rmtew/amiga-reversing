@@ -107,6 +107,19 @@ def test_cmp_no_write():
     assert cpu.d[1].concrete == 10  # unchanged
 
 
+def test_cmp2_no_write_and_no_compute_formula_requirement():
+    """CMP2.W (A0),D0 should analyze without forcing a generic compute formula."""
+    code = b""
+    code += struct.pack(">H", 0x7005)          # moveq #5,d0
+    code += struct.pack(">HH", 0x41FA, 0x0004) # lea 4(pc),a0
+    code += bytes.fromhex("02d00000")          # cmp2.w (a0),d0
+    code += struct.pack(">H", 0x4E75)          # rts
+    code += struct.pack(">HH", 0x0000, 0x000A) # lower, upper bounds
+    cpu, _ = _run(code)
+    assert cpu.d[0].concrete == 5
+    assert cpu.a[0].concrete == 0x08
+
+
 # -- Unary ops --------------------------------------------------------
 
 def test_neg():

@@ -24,6 +24,7 @@ from m68k.jump_tables import detect_jump_tables, _scan_inline_dispatch, _is_inde
 from m68k.indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
                                     resolve_backward_slice)
 from m68k.indirect_core import decode_jump_ea
+from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 
 
@@ -57,6 +58,54 @@ def _analyze_and_resolve(code, entry_points=None, platform=None):
 def _resolved_targets(resolved):
     """Extract sorted unique target addresses from resolution results."""
     return sorted(set(r["target"] for r in resolved))
+
+
+def _assemble_with_labels(specs):
+    all_labels = {
+        payload
+        for kind, payload in specs
+        if kind == "label"
+    }
+    labels = {}
+    pc = 0
+    for kind, payload in specs:
+        if kind == "label":
+            labels[payload] = pc
+            continue
+        if kind == "bytes":
+            pc += len(payload)
+            continue
+        if kind != "asm":
+            raise AssertionError(f"unknown spec kind {kind!r}")
+        text = payload
+        if "{table_disp}" in text or "{end_disp}" in text or "{bound_disp}" in text:
+            text = text.format(table_disp=0, end_disp=0, bound_disp=0)
+        elif "{" in text:
+            text = text.format(**{name: 0 for name in all_labels})
+        pc += len(assemble_instruction(text, pc=pc))
+
+    code = b""
+    pc = 0
+    for kind, payload in specs:
+        if kind == "label":
+            continue
+        if kind == "bytes":
+            code += payload
+            pc += len(payload)
+            continue
+        text = payload
+        if "{table_disp}" in text:
+            text = text.format(table_disp=labels["table"] - (pc + 2))
+        elif "{bound_disp}" in text:
+            text = text.format(bound_disp=labels["bound"] - (pc + 2))
+        elif "{end_disp}" in text:
+            text = text.format(end_disp=labels["table_end"] - (pc + 2))
+        elif "{" in text:
+            text = text.format(**labels)
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+    return code, labels
 
 
 def test_is_indexed_ea_uses_shared_decode_for_brief_indexed_mode():
@@ -1486,6 +1535,203 @@ def test_pattern_d_indirect_table_read():
     assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
     assert 0x1a in t["targets"], f"Expected $001a in targets, got {t['targets']}"
     print("  pattern_d_indirect_table_read: OK")
+
+
+def test_pattern_string_dispatch_self_relative_via_decoder_subroutine():
+    specs = [
+        ("asm", "moveq #1,d1"),
+        ("asm", "bsr.w {sub}"),
+        ("asm", "beq.s {skip}"),
+        ("asm", "jsr (a0)"),
+        ("label", "skip"),
+        ("asm", "rts"),
+        ("label", "sub"),
+        ("asm", "lea {table_disp}(pc),a0"),
+        ("asm", "move.b (a0)+,d2"),
+        ("label", "loop"),
+        ("asm", "beq.s {no_match}"),
+        ("asm", "cmp.b (a0),d1"),
+        ("asm", "bne.s {skip_entry}"),
+        ("asm", "lea 1(a0),a1"),
+        ("asm", "move.b (a1)+,d0"),
+        ("asm", "lsl.w #8,d0"),
+        ("asm", "move.b (a1)+,d0"),
+        ("asm", "lea -2(a1,d0.w),a0"),
+        ("asm", "lea {end_disp}(pc),a2"),
+        ("asm", "cmpa.l a2,a0"),
+        ("asm", "rts"),
+        ("label", "skip_entry"),
+        ("asm", "lea 2(a0,d2.w),a0"),
+        ("asm", "bra.s {loop}"),
+        ("label", "no_match"),
+        ("asm", "moveq #0,d0"),
+        ("asm", "rts"),
+        ("label", "table"),
+        ("bytes", b"\x00" * 9),
+        ("label", "table_end"),
+        ("bytes", b"\x00"),
+        ("label", "handler1"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+        ("label", "handler2"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+    ]
+    code, labels = _assemble_with_labels(specs)
+    code = bytearray(code)
+
+    entry1_offset_pos = labels["table"] + 2
+    entry2_offset_pos = labels["table"] + 6
+    code[labels["table"]:labels["table"] + 4] = bytes((
+        1,
+        1,
+        ((labels["handler1"] - entry1_offset_pos) >> 8) & 0xFF,
+        (labels["handler1"] - entry1_offset_pos) & 0xFF,
+    ))
+    code[labels["table"] + 4:labels["table"] + 8] = bytes((
+        1,
+        2,
+        ((labels["handler2"] - entry2_offset_pos) >> 8) & 0xFF,
+        (labels["handler2"] - entry2_offset_pos) & 0xFF,
+    ))
+    code[labels["table"] + 8] = 0
+
+    result = analyze(bytes(code), propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    blocks = result["blocks"]
+    tables = detect_jump_tables(blocks, bytes(code))
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "string_dispatch_self_relative", (
+        f"Expected pattern 'string_dispatch_self_relative', got {t['pattern']!r}")
+    assert t["addr"] == labels["table"], (
+        f"Expected table addr ${labels['table']:04x}, got ${t['addr']:04x}")
+    assert t["table_end"] == labels["table_end"], (
+        f"Expected table end ${labels['table_end']:04x}, got ${t['table_end']:04x}")
+    assert [entry["offset_addr"] for entry in t["entries"]] == [
+        labels["table"] + 2,
+        labels["table"] + 6,
+    ], f"Unexpected entry offsets: {t['entries']}"
+    assert labels["handler1"] in t["targets"], (
+        f"Expected ${labels['handler1']:04x} in targets, got {t['targets']}")
+    assert labels["handler2"] in t["targets"], (
+        f"Expected ${labels['handler2']:04x} in targets, got {t['targets']}")
+    print("  pattern_string_dispatch_self_relative_via_decoder_subroutine: OK")
+
+
+def test_pattern_string_dispatch_uses_scanned_table_end_not_target_bound():
+    specs = [
+        ("asm", "moveq #1,d1"),
+        ("asm", "bsr.w {sub}"),
+        ("asm", "beq.s {skip}"),
+        ("asm", "jsr (a0)"),
+        ("label", "skip"),
+        ("asm", "rts"),
+        ("label", "sub"),
+        ("asm", "lea {table_disp}(pc),a0"),
+        ("asm", "move.b (a0)+,d2"),
+        ("label", "loop"),
+        ("asm", "beq.s {no_match}"),
+        ("asm", "cmp.b (a0),d1"),
+        ("asm", "bne.s {skip_entry}"),
+        ("asm", "lea 1(a0),a1"),
+        ("asm", "move.b (a1)+,d0"),
+        ("asm", "lsl.w #8,d0"),
+        ("asm", "move.b (a1)+,d0"),
+        ("asm", "lea -2(a1,d0.w),a0"),
+        ("asm", "lea {bound_disp}(pc),a2"),
+        ("asm", "cmpa.l a2,a0"),
+        ("asm", "rts"),
+        ("label", "skip_entry"),
+        ("asm", "lea 2(a0,d2.w),a0"),
+        ("asm", "bra.s {loop}"),
+        ("label", "no_match"),
+        ("asm", "moveq #0,d0"),
+        ("asm", "rts"),
+        ("label", "table"),
+        ("bytes", b"\x00" * 9),
+        ("label", "after_table"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+        ("label", "bound"),
+        ("bytes", b"\x00"),
+        ("label", "handler1"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+        ("label", "handler2"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+    ]
+    code, labels = _assemble_with_labels(specs)
+    code = bytearray(code)
+
+    entry1_offset_pos = labels["table"] + 2
+    entry2_offset_pos = labels["table"] + 6
+    code[labels["table"]:labels["table"] + 4] = bytes((
+        1,
+        1,
+        ((labels["handler1"] - entry1_offset_pos) >> 8) & 0xFF,
+        (labels["handler1"] - entry1_offset_pos) & 0xFF,
+    ))
+    code[labels["table"] + 4:labels["table"] + 8] = bytes((
+        1,
+        2,
+        ((labels["handler2"] - entry2_offset_pos) >> 8) & 0xFF,
+        (labels["handler2"] - entry2_offset_pos) & 0xFF,
+    ))
+    code[labels["table"] + 8] = 0
+
+    result = analyze(bytes(code), propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    tables = detect_jump_tables(result["blocks"], bytes(code))
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["table_end"] == labels["after_table"], (
+        f"Expected scanned table end ${labels['after_table']:04x}, got ${t['table_end']:04x}")
+
+
+def test_pattern_pc_sparse_word_offset_dispatch():
+    specs = [
+        ("asm", "moveq #1,d1"),
+        ("asm", "cmpi.b #4,d1"),
+        ("asm", "bcc.s {fail}"),
+        ("asm", "add.w d1,d1"),
+        ("asm", "move.w {table_disp}(pc,d1.w),d0"),
+        ("asm", "beq.s {fail}"),
+        ("asm", "jsr {table_disp}(pc,d0.w)"),
+        ("asm", "rts"),
+        ("label", "fail"),
+        ("asm", "rts"),
+        ("label", "table"),
+        ("bytes", b"\x00" * 8),
+        ("label", "handler1"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+        ("label", "handler2"),
+        ("asm", "nop"),
+        ("asm", "rts"),
+    ]
+    code, labels = _assemble_with_labels(specs)
+    code = bytearray(code)
+
+    table = labels["table"]
+    handler1_off = labels["handler1"] - table
+    handler2_off = labels["handler2"] - table
+    code[table:table + 8] = struct.pack(">hhhh", 0, handler1_off, 0, handler2_off)
+
+    result = analyze(bytes(code), propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    tables = detect_jump_tables(result["blocks"], bytes(code))
+    assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
+    t = tables[0]
+    assert t["pattern"] == "pc_sparse_word_offset", (
+        f"Expected pattern 'pc_sparse_word_offset', got {t['pattern']!r}")
+    assert t["addr"] == table, (
+        f"Expected table addr ${table:04x}, got ${t['addr']:04x}")
+    assert t["table_end"] == table + 8, (
+        f"Expected table end ${table + 8:04x}, got ${t['table_end']:04x}")
+    assert [entry["offset_addr"] for entry in t["entries"]] == [table + 2, table + 6]
+    assert labels["handler1"] in t["targets"], (
+        f"Expected ${labels['handler1']:04x} in targets, got {t['targets']}")
+    assert labels["handler2"] in t["targets"], (
+        f"Expected ${labels['handler2']:04x} in targets, got {t['targets']}")
 
 
 def test_pattern_e_full_extension_memory_indirect_pointer_table():

@@ -118,7 +118,7 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     else:
         # Compute result using KB compute_formula
         result_full, result = _compute_result(
-            inst, src, dst, result_mask, result_bits, initial_ccr, ctx)
+            mnemonic, src, dst, result_mask, result_bits, initial_ccr, ctx)
 
     # Predict each flag using KB cc_semantics rules
     predicted = {}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from disasm.instruction_rows import make_instruction_row, make_text_rows, render_instruction_text
+from disasm.instruction_rows import (emit_data_rows, make_instruction_row,
+                                     make_text_rows, render_instruction_text)
 
 
 def emit_jump_table_rows(rows: list, hunk_session, pos: int, entity_addr: int,
@@ -27,7 +28,47 @@ def emit_jump_table_rows(rows: list, hunk_session, pos: int, entity_addr: int,
             ))
         return jt["table_end"]
 
+    if jt["pattern"] == "string_dispatch_self_relative":
+        chunk_pos = pos
+        for entry_addr, tgt in jt["entries"]:
+            if chunk_pos < entry_addr:
+                rows.extend(emit_data_rows(
+                    hunk_session.code, chunk_pos, entry_addr,
+                    hunk_session.labels, hunk_session.reloc_map,
+                    hunk_session.string_addrs, hunk_session.data_access_sizes,
+                    entity_addr,
+                    {"kind": "jump-table", "verified_state": "verified"},
+                ))
+            tgt_label = hunk_session.labels[tgt]
+            rows.extend(make_text_rows(
+                "data",
+                f"    dc.w    {tgt_label}-*\n",
+                entity_addr=entity_addr,
+                addr=entry_addr,
+                verified_state="verified",
+                source_context={"kind": "jump-table"},
+            ))
+            chunk_pos = entry_addr + 2
+        if chunk_pos < jt["table_end"]:
+            rows.extend(emit_data_rows(
+                hunk_session.code, chunk_pos, jt["table_end"],
+                hunk_session.labels, hunk_session.reloc_map,
+                hunk_session.string_addrs, hunk_session.data_access_sizes,
+                entity_addr,
+                {"kind": "jump-table", "verified_state": "verified"},
+            ))
+        return jt["table_end"]
+
+    chunk_pos = pos
     for entry_addr, tgt in jt["entries"]:
+        if chunk_pos < entry_addr:
+            rows.extend(emit_data_rows(
+                hunk_session.code, chunk_pos, entry_addr,
+                hunk_session.labels, hunk_session.reloc_map,
+                hunk_session.string_addrs, hunk_session.data_access_sizes,
+                entity_addr,
+                {"kind": "jump-table", "verified_state": "verified"},
+            ))
         if entry_addr in hunk_session.labels and entry_addr != pos:
             emit_label(entry_addr)
         tgt_label = hunk_session.labels[tgt]
@@ -42,5 +83,14 @@ def emit_jump_table_rows(rows: list, hunk_session, pos: int, entity_addr: int,
             addr=entry_addr,
             verified_state="verified",
             source_context={"kind": "jump-table"},
+        ))
+        chunk_pos = entry_addr + 2
+    if chunk_pos < jt["table_end"]:
+        rows.extend(emit_data_rows(
+            hunk_session.code, chunk_pos, jt["table_end"],
+            hunk_session.labels, hunk_session.reloc_map,
+            hunk_session.string_addrs, hunk_session.data_access_sizes,
+            entity_addr,
+            {"kind": "jump-table", "verified_state": "verified"},
         ))
     return jt["table_end"]

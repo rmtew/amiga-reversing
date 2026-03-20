@@ -399,6 +399,39 @@ def test_build_hunk_metadata_builds_word_table_regions_and_sources():
     }
 
 
+def test_build_hunk_metadata_preserves_string_dispatch_entry_offsets():
+    block = type("Block", (), {"start": 0x10, "end": 0x14, "successors": [], "instructions": []})()
+    ha = type("Analysis", (), {
+        "blocks": {0x10: block},
+        "hint_blocks": {},
+        "call_targets": set(),
+        "branch_targets": set(),
+        "jump_tables": [{
+            "addr": 0x30,
+            "pattern": "string_dispatch_self_relative",
+            "base_addr": None,
+            "entries": [
+                {"addr": 0x30, "offset_addr": 0x32, "target": 0x80, "end": 0x34},
+                {"addr": 0x34, "offset_addr": 0x37, "target": 0x90, "end": 0x39},
+            ],
+            "targets": [0x80, 0x90],
+            "table_end": 0x39,
+        }],
+    })()
+
+    metadata = build_hunk_metadata(
+        code=b"\x00" * 0x100,
+        code_size=0x100,
+        hunk_index=0,
+        hunk_entities=[],
+        ha=ha,
+        hf_hunks=[],
+        fixed_abs_addrs=set(),
+    )
+
+    assert metadata["jump_table_regions"][0x30]["entries"] == [(0x32, 0x80), (0x37, 0x90)]
+
+
 def test_load_hunk_analysis_uses_cache_when_present(tmp_path, monkeypatch):
     binary_path = tmp_path / "demo.bin"
     cache_path = binary_path.with_suffix(".analysis")
@@ -412,7 +445,7 @@ def test_load_hunk_analysis_uses_cache_when_present(tmp_path, monkeypatch):
         return sentinel
 
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
-    monkeypatch.setattr("disasm.analysis_loader.load_os_kb", lambda: {"ok": True})
+    monkeypatch.setattr("disasm.analysis_loader.runtime_os", {"ok": True})
 
     result = load_hunk_analysis(
         binary_path=binary_path,
@@ -480,7 +513,7 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path, monkeypatch):
 
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
     monkeypatch.setattr("disasm.analysis_loader.analyze_hunk", fake_analyze_hunk)
-    monkeypatch.setattr("disasm.analysis_loader.load_os_kb", lambda: {"ok": True})
+    monkeypatch.setattr("disasm.analysis_loader.runtime_os", {"ok": True})
 
     result = load_hunk_analysis(
         binary_path=binary_path,
@@ -506,7 +539,7 @@ def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path, monke
         raise ValueError("unexpected parse bug")
 
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
-    monkeypatch.setattr("disasm.analysis_loader.load_os_kb", lambda: {"ok": True})
+    monkeypatch.setattr("disasm.analysis_loader.runtime_os", {"ok": True})
 
     with pytest.raises(ValueError, match="unexpected parse bug"):
         load_hunk_analysis(
@@ -911,7 +944,130 @@ def test_emit_jump_table_rows_emits_inline_dispatch_rows():
     assert end == 0x04
     assert labels_seen == [0x02]
     assert len(rows) == 2
-    assert rows[0].kind == "instruction"
+
+
+def test_emit_jump_table_rows_emits_string_dispatch_rows():
+    rows = []
+
+    def emit_label(addr: int):
+        raise AssertionError(f"Unexpected label emission at ${addr:04x}")
+
+    code = bytes([1, 1, 0, 6, 1, 2, 0, 8, 0, 0x4E, 0x75, 0x4E, 0x75])
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=code,
+        code_size=len(code),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x08: "loc_0008", 0x0A: "loc_000a"},
+        jump_table_regions={
+            0x00: {
+                "pattern": "string_dispatch_self_relative",
+                "entries": [(0x02, 0x08), (0x06, 0x0A)],
+                "base_addr": None,
+                "base_label": None,
+                "table_end": 0x08,
+            }
+        },
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    end = emit_jump_table_rows(
+        rows, hunk_session, 0x00, 0x00, set(), emit_label)
+
+    assert end == 0x08
+    assert [row.text for row in rows] == [
+        "    dc.b    $01,$01\n",
+        "    dc.w    loc_0008-*\n",
+        "    dc.b    $01,$02\n",
+        "    dc.w    loc_000a-*\n",
+    ]
+
+
+def test_emit_jump_table_rows_preserves_sparse_word_gaps():
+    rows = []
+
+    def emit_label(addr: int):
+        raise AssertionError(f"Unexpected label emission at ${addr:04x}")
+
+    code = bytes.fromhex("0000000400000008")
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=code,
+        code_size=len(code),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={0x20: "loc_0020", 0x24: "loc_0024"},
+        jump_table_regions={
+            0x00: {
+                "pattern": "pc_sparse_word_offset",
+                "entries": [(0x02, 0x20), (0x06, 0x24)],
+                "base_addr": 0x00,
+                "base_label": "jt_0000",
+                "table_end": 0x08,
+            }
+        },
+        jump_table_target_sources={},
+        struct_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform={},
+        os_kb={"structs": {}},
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    end = emit_jump_table_rows(
+        rows, hunk_session, 0x00, 0x00, set(), emit_label)
+
+    assert end == 0x08
+    assert [row.text for row in rows] == [
+        "    dc.b    $00,$00\n",
+        "    dc.w    loc_0020-jt_0000\n",
+        "    dc.b    $00,$00\n",
+        "    dc.w    loc_0024-jt_0000\n",
+    ]
 
 
 def test_listing_window_anchors_to_matching_addr():

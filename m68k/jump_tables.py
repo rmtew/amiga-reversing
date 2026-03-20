@@ -24,6 +24,7 @@ from . import indirect_core
 from .m68k_disasm import _Decoder, _decode_one
 from .instruction_decode import decode_inst_operands, xf
 from . import table_recovery
+from . import subroutine_summary
 from . import value_transforms
 
 
@@ -105,6 +106,35 @@ def _scan_word_offset_table(code, table_addr, base_addr, code_size,
     return targets
 
 
+def _scan_sparse_word_offset_table(code, table_addr, base_addr, code_size,
+                                   entry_count: int):
+    """Read a bounded word-offset table where zero means no target."""
+    word_size = runtime_m68k_decode.SIZE_BYTE_COUNT["w"]
+    targets = []
+    entries = []
+    for i in range(entry_count):
+        entry_addr = table_addr + i * word_size
+        if entry_addr + word_size > code_size:
+            break
+        offset = struct.unpack_from(">h", code, entry_addr)[0]
+        if offset == 0:
+            continue
+        target = (base_addr + offset) & runtime_m68k_analysis.ADDR_MASK
+        if target >= code_size or target & runtime_m68k_decode.ALIGN_MASK:
+            continue
+        targets.append(target)
+        entries.append({
+            "offset_addr": entry_addr,
+            "target": target,
+        })
+    return {
+        "addr": table_addr,
+        "entries": entries,
+        "table_end": table_addr + entry_count * word_size,
+        "targets": targets,
+    }
+
+
 def _scan_long_pointer_table(code, table_addr, addend, code_size,
                              max_entries=256, field_offset: int = 0,
                              stride: int = 0,
@@ -184,6 +214,211 @@ def _scan_inline_dispatch(code, base_addr, code_size,
     return targets, pos
 
 
+def _scan_string_dispatch_table(code, table_addr, target_limit, code_size):
+    """Decode len+key+self-relative-word string dispatch entries."""
+    targets = []
+    entries = []
+    pos = table_addr
+    limit = min(target_limit, code_size)
+    scanned_end = table_addr
+    while pos < limit:
+        entry_len = code[pos]
+        if entry_len == 0:
+            scanned_end = pos + 1
+            break
+        next_pos = pos + entry_len + 3
+        if next_pos > limit:
+            break
+        offset_pos = pos + entry_len + 1
+        offset = struct.unpack_from(">h", code, offset_pos)[0]
+        target = offset_pos + offset
+        if (0 <= target < code_size
+                and not (target & runtime_m68k_decode.ALIGN_MASK)):
+            targets.append(target)
+            entries.append({
+                "addr": pos,
+                "offset_addr": offset_pos,
+                "target": target,
+                "end": next_pos,
+            })
+        pos = next_pos
+        scanned_end = pos
+    return {
+        "addr": table_addr,
+        "entries": entries,
+        "table_end": scanned_end,
+        "targets": targets,
+    }
+
+
+def _find_dispatch_call_reg(last) -> int | None:
+    operand, _ = indirect_core.decode_jump_ea(last)
+    if operand is None or operand.mode != "ind":
+        return None
+    return operand.reg
+
+
+def _find_dispatch_call_index_reg(last, mnemonic: str | None) -> int | None:
+    ea_info = _is_indexed_ea(last, mnemonic)
+    if ea_info is None:
+        return None
+    return ea_info["index_reg"]
+
+
+def _find_preceding_direct_call(block: BasicBlock) -> int | None:
+    for inst in reversed(block.instructions):
+        ft, _ = instruction_flow(inst)
+        if ft != _FLOW_CALL:
+            continue
+        target = extract_branch_target(inst, inst.offset)
+        if target is not None:
+            return target
+    return None
+
+
+def _find_sparse_pc_indirect_table(pred: BasicBlock, call_inst, code: bytes,
+                                   code_size: int, target_reg: int,
+                                   blocks: dict[int, BasicBlock] | None = None) -> dict | None:
+    call_kb = instruction_kb(call_inst)
+    call_ea = _is_indexed_ea(call_inst, call_kb)
+    if call_ea is None or call_ea["base_mode"] != "pc" or call_ea["index_reg"] != target_reg:
+        return None
+
+    table_addr = call_inst.offset + runtime_m68k_decode.OPWORD_BYTES + call_ea["displacement"]
+    entry_count = None
+    saw_zero_branch = False
+    saw_load = False
+
+    search_blocks = [pred]
+    if blocks is not None:
+        seen = {pred.start}
+        frontier = [pred]
+        for _ in range(2):
+            next_frontier = []
+            for block in frontier:
+                for pred_addr in block.predecessors:
+                    pred2 = blocks.get(pred_addr)
+                    if pred2 is None or pred2.start in seen:
+                        continue
+                    seen.add(pred2.start)
+                    search_blocks.append(pred2)
+                    next_frontier.append(pred2)
+            frontier = next_frontier
+    search_blocks.sort(key=lambda block: block.start)
+
+    for block in search_blocks:
+        for idx, inst in enumerate(block.instructions):
+            mnemonic = instruction_kb(inst)
+            decoded = decode_inst_operands(inst, mnemonic)
+            ea_info = _is_indexed_ea(inst, mnemonic)
+
+            if ea_info is not None and ea_info["base_mode"] == "pc":
+                dst_field = runtime_m68k_decode.DEST_REG_FIELD.get(mnemonic)
+                if dst_field and len(inst.raw) >= runtime_m68k_decode.OPWORD_BYTES:
+                    opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+                    dst_reg = xf(opcode, dst_field)
+                    load_base = inst.offset + runtime_m68k_decode.OPWORD_BYTES + ea_info["displacement"]
+                    if dst_reg == target_reg and load_base == table_addr:
+                        saw_load = True
+                        continue
+
+            if (runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic)
+                    == runtime_m68k_analysis.OperationType.COMPARE):
+                compared_reg = decoded.get("reg_num")
+                if compared_reg is None and decoded.get("ea_op") is not None:
+                    ea_op = decoded["ea_op"]
+                    if ea_op.mode == "dn":
+                        compared_reg = ea_op.reg
+                imm_val = decoded.get("imm_val")
+                if imm_val is None and decoded.get("ea_op") is not None:
+                    ea_op = decoded["ea_op"]
+                    if ea_op.mode == "imm":
+                        imm_val = ea_op.value
+                next_inst = block.instructions[idx + 1] if idx + 1 < len(block.instructions) else None
+                if (next_inst is not None
+                        and instruction_flow(next_inst)[0] == _FLOW_BRANCH
+                        and compared_reg is not None
+                        and imm_val is not None):
+                    entry_count = imm_val
+                    continue
+
+            if (block is pred
+                    and inst is pred.instructions[-1]
+                    and instruction_flow(inst)[0] == _FLOW_BRANCH
+                    and instruction_flow(inst)[1]):
+                saw_zero_branch = True
+
+    if not saw_load or not saw_zero_branch or entry_count is None or entry_count < 2:
+        return None
+    return _scan_sparse_word_offset_table(code, table_addr, table_addr, code_size, entry_count)
+
+
+def _find_dispatch_decoder_entry(blocks: dict[int, BasicBlock], pred: BasicBlock) -> int | None:
+    sub_entry = _find_preceding_direct_call(pred)
+    if sub_entry is not None:
+        return sub_entry
+    for pred_addr in pred.predecessors:
+        pred2 = blocks.get(pred_addr)
+        if pred2 is None:
+            continue
+        sub_entry = _find_preceding_direct_call(pred2)
+        if sub_entry is not None:
+            return sub_entry
+    return None
+
+
+def _find_string_dispatch_targets(blocks: dict[int, BasicBlock], code: bytes,
+                                  code_size: int, call_targets: set[int],
+                                  sub_entry: int, target_reg: int) -> dict | None:
+    owned = subroutine_summary.find_sub_blocks(sub_entry, blocks, call_targets)
+    instructions = []
+    for addr in sorted(owned):
+        instructions.extend(blocks[addr].instructions)
+    if not instructions:
+        return None
+
+    table_base = None
+    table_end = None
+    saw_skip = False
+    saw_target_calc = False
+    pc_lea_targets = {}
+
+    for inst in instructions:
+        ikb = instruction_kb(inst)
+        if address_reconstruction.is_lea(inst):
+            dst = address_reconstruction._get_lea_dst_reg(inst)
+            decoded = decode_inst_operands(inst, ikb)
+            ea_op = decoded.get("ea_op")
+            if ea_op is None:
+                continue
+            if ea_op.mode == "pcdisp":
+                resolved = address_reconstruction._resolve_lea_pc(inst)
+                if resolved is not None and dst is not None:
+                    pc_lea_targets[dst] = resolved
+                    if dst == target_reg and table_base is None:
+                        table_base = resolved
+                continue
+            if ea_op.mode != "index" or dst != target_reg or ea_op.index_is_addr:
+                continue
+            if ea_op.reg == target_reg and ea_op.value == 2:
+                saw_skip = True
+            elif ea_op.value == -2:
+                saw_target_calc = True
+            continue
+
+        if ikb != "CMPA":
+            continue
+        decoded = decode_inst_operands(inst, ikb)
+        ea_op = decoded.get("ea_op")
+        if decoded.get("reg_num") != target_reg or ea_op is None or ea_op.mode != "an":
+            continue
+        table_end = pc_lea_targets.get(ea_op.reg)
+
+    if table_base is None or table_end is None or not saw_skip or not saw_target_calc:
+        return None
+    return _scan_string_dispatch_table(code, table_base, table_end, code_size)
+
+
 # -- Main detection -------------------------------------------------------
 
 def detect_jump_tables(blocks: dict[int, BasicBlock],
@@ -236,6 +471,52 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
 
         jump_operand, _ = indirect_core.decode_jump_ea(last) if ft != _FLOW_RETURN else (None, None)
         ea_info = _is_indexed_ea(last, ikb) if ft != _FLOW_RETURN else None
+
+        if ft == _FLOW_CALL:
+            dispatch_reg = _find_dispatch_call_reg(last)
+            if dispatch_reg is None:
+                dispatch_reg = _find_dispatch_call_index_reg(last, ikb)
+            if dispatch_reg is not None:
+                call_pc_sparse = None
+                for pred_addr in block.predecessors:
+                    pred = blocks.get(pred_addr)
+                    if pred is None or not pred.instructions:
+                        continue
+                    call_pc_sparse = _find_sparse_pc_indirect_table(
+                        pred, last, code, code_size, dispatch_reg, blocks)
+                    if call_pc_sparse is not None and len(call_pc_sparse["targets"]) >= 2:
+                        tables.append({
+                            "addr": call_pc_sparse["addr"],
+                            "entries": call_pc_sparse["entries"],
+                            "pattern": "pc_sparse_word_offset",
+                            "targets": call_pc_sparse["targets"],
+                            "dispatch_block": addr,
+                            "base_addr": call_pc_sparse["addr"],
+                            "table_end": call_pc_sparse["table_end"],
+                        })
+                        break
+                    pred_ft, pred_conditional = instruction_flow(pred.instructions[-1])
+                    if pred_ft != _FLOW_BRANCH or not pred_conditional:
+                        continue
+                    sub_entry = _find_dispatch_decoder_entry(blocks, pred)
+                    if sub_entry is None:
+                        continue
+                    table_info = _find_string_dispatch_targets(
+                        blocks, code, code_size, _call_targets, sub_entry, dispatch_reg)
+                    if table_info is not None and len(table_info["targets"]) >= 2:
+                        tables.append({
+                            "addr": table_info["addr"],
+                            "entries": table_info["entries"],
+                            "pattern": "string_dispatch_self_relative",
+                            "targets": table_info["targets"],
+                            "dispatch_block": addr,
+                            "base_addr": None,
+                            "decoder_entry": sub_entry,
+                            "table_end": table_info["table_end"],
+                        })
+                        break
+                if tables and tables[-1]["dispatch_block"] == addr:
+                    continue
 
         full_ext_info = table_recovery._find_full_extension_long_pointer_dispatch(
             jump_operand, block.instructions[:-1], code, code_size)

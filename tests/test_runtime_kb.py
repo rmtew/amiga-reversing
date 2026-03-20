@@ -203,7 +203,33 @@ def test_runtime_special_case_tables_match_canonical_data():
     assert payload.SIGNED_RESULTS["MULS"] is True
     assert payload.INSTRUCTION_SIZES["MOVEQ"] == ("l",)
     assert payload.OPERATION_TYPES["MOVEQ"] == payload.OperationType.MOVE
+    assert payload.OPERATION_TYPES["NOP"] is None
     assert payload.OPERATION_CLASSES["LEA"] == payload.OperationClass.LOAD_EFFECTIVE_ADDRESS
+    assert payload.OPERATION_CLASSES["MOVEQ"] is None
+    assert payload.BOUNDS_CHECKS["CHK"] == (
+        "destination",
+        "zero",
+        "source",
+        "signed",
+        False,
+        True,
+    )
+    assert payload.BOUNDS_CHECKS["CHK2"] == (
+        "rn",
+        "ea_lower",
+        "ea_upper",
+        None,
+        True,
+        True,
+    )
+    assert payload.BOUNDS_CHECKS["CMP2"] == (
+        "rn",
+        "ea_lower",
+        "ea_upper",
+        None,
+        True,
+        False,
+    )
     assert payload.PRIMARY_DATA_SIZES["MULS"] == (
         payload.PrimaryDataSizeKind.MULTIPLY,
         16,
@@ -215,6 +241,36 @@ def test_runtime_special_case_tables_match_canonical_data():
     assert payload.PROCESSOR_MINS["move"] == payload.Processor.M68000
     assert payload.FLOW_TYPES["BRA"] == payload.FlowType.BRANCH
     assert not hasattr(payload, "RUNTIME")
+
+
+def test_canonical_bounds_checks_are_structured_for_chk_family():
+    canonical = load_canonical_m68k_kb()
+    by_name = {inst["mnemonic"]: inst for inst in canonical["instructions"]}
+
+    assert by_name["CHK"]["bounds_check"] == {
+        "register_operand": "destination",
+        "lower_bound": "zero",
+        "upper_bound": "source",
+        "comparison": "signed",
+        "sign_extend_bounds_for_address_register": False,
+        "trap_on_out_of_bounds": True,
+    }
+    assert by_name["CHK2"]["bounds_check"] == {
+        "register_operand": "rn",
+        "lower_bound": "ea_lower",
+        "upper_bound": "ea_upper",
+        "comparison": None,
+        "sign_extend_bounds_for_address_register": True,
+        "trap_on_out_of_bounds": True,
+    }
+    assert by_name["CMP2"]["bounds_check"] == {
+        "register_operand": "rn",
+        "lower_bound": "ea_lower",
+        "upper_bound": "ea_upper",
+        "comparison": None,
+        "sign_extend_bounds_for_address_register": True,
+        "trap_on_out_of_bounds": False,
+    }
 
 
 def test_runtime_hunk_relocation_semantics_are_typed():
@@ -242,6 +298,7 @@ def test_runtime_decode_module_exposes_direct_decode_constants():
     assert payload.EA_FIELD_SPECS["LEA"] == ((5, 3, 3), (2, 0, 3))
     assert payload.MOVEM_FIELDS["dr"] == (10, 10, 1)
     assert payload.IMMEDIATE_RANGES["MOVEQ"] == ("DATA", 8, True, -128, 127, None)
+    assert payload.FORM_OPERAND_TYPES["RTS"] == ((),)
 
 
 def test_runtime_disasm_module_exposes_direct_disasm_constants():
@@ -253,6 +310,7 @@ def test_runtime_disasm_module_exposes_direct_disasm_constants():
     assert payload.PMMU_CONDITION_CODES == tuple(canonical["_meta"]["pmmu_condition_codes"])
     assert payload.DEFAULT_OPERAND_SIZE == canonical["_meta"]["default_operand_size"]
     assert payload.FORM_OPERAND_TYPES["BFINS"][0][0] == "dn"
+    assert payload.FORM_OPERAND_TYPES["RTS"] == ((),)
     assert payload.CPID_FIELD == (9, 3)
 
 
@@ -276,6 +334,8 @@ def test_runtime_asm_module_exposes_direct_asm_constants():
         4,
     )
     assert payload.SPECIAL_OPERAND_TYPES == ("ccr", "sr", "usp")
+    assert payload.RAW_FIELDS[0]["RTS"] == ()
+    assert payload.FORM_OPERAND_TYPES["RTS"] == ((),)
 
 
 def test_runtime_analysis_module_exposes_direct_analysis_constants():
@@ -369,16 +429,19 @@ def test_runtime_root_module_exposes_no_instruction_bag():
 def test_runtime_projection_keeps_only_minimal_constraint_fields():
     payload = load_m68k_runtime_module()
     assert payload.AN_SIZES["ADDQ"] == ("w", "l")
+    assert payload.AN_SIZES["RTS"] == ()
     assert payload.OPERAND_MODE_TABLES["ABCD"] == (
         "R/M",
         {0: ("dn", "dn"), 1: ("predec", "predec")},
     )
     assert payload.FORM_OPERAND_TYPES["MOVEQ"] == (("imm", "dn"),)
+    assert payload.FORM_OPERAND_TYPES["RTS"] == ((),)
     assert payload.EA_MODE_TABLES["ADD"] == (
         ("dn", "an", "ind", "postinc", "predec", "disp", "index", "absw", "absl", "pcdisp", "pcindex", "imm"),
         ("ind", "postinc", "predec", "disp", "index", "absw", "absl"),
         (),
     )
+    assert payload.EA_MODE_TABLES["RTS"] == ((), (), ())
 
 
 def test_canonical_m68k_runtime_fields_are_structured():
@@ -394,6 +457,15 @@ def test_canonical_m68k_runtime_fields_are_structured():
             entry["size"]: entry["bits"]
             for entry in inst["size_encoding"]["values"]
         } == {"w": 0, "l": 1}
+
+
+def test_canonical_m68k_flow_entries_are_total():
+    canonical = load_canonical_m68k_kb()
+    for inst in canonical["instructions"]:
+        flow = inst["pc_effects"]["flow"]
+        assert "type" in flow
+        assert "conditional" in flow
+        assert isinstance(flow["conditional"], bool)
 
 
 def test_runtime_builder_requires_structured_size_encoding(monkeypatch):
@@ -422,6 +494,36 @@ def test_runtime_builder_requires_condition_families(monkeypatch):
 
     monkeypatch.setattr(build_runtime_kb, "_load_json", fake_load_json)
     with pytest.raises(KeyError, match="condition_families"):
+        build_runtime_kb._build_m68k_runtime()
+
+
+def test_runtime_builder_requires_flow_type(monkeypatch):
+    broken = copy.deepcopy(load_canonical_m68k_kb())
+    target = next(inst for inst in broken["instructions"] if inst["mnemonic"] == "BRA")
+    del target["pc_effects"]["flow"]["type"]
+
+    def fake_load_json(name: str):
+        if name == "m68k_instructions.json":
+            return broken
+        raise AssertionError(f"unexpected load for {name}")
+
+    monkeypatch.setattr(build_runtime_kb, "_load_json", fake_load_json)
+    with pytest.raises(KeyError, match="type"):
+        build_runtime_kb._build_m68k_runtime()
+
+
+def test_runtime_builder_requires_flow_conditional(monkeypatch):
+    broken = copy.deepcopy(load_canonical_m68k_kb())
+    target = next(inst for inst in broken["instructions"] if inst["mnemonic"] == "BRA")
+    del target["pc_effects"]["flow"]["conditional"]
+
+    def fake_load_json(name: str):
+        if name == "m68k_instructions.json":
+            return broken
+        raise AssertionError(f"unexpected load for {name}")
+
+    monkeypatch.setattr(build_runtime_kb, "_load_json", fake_load_json)
+    with pytest.raises(KeyError, match="conditional"):
         build_runtime_kb._build_m68k_runtime()
 
 
@@ -738,6 +840,7 @@ def test_runtime_loader_requires_executor_branch_table(monkeypatch):
         OPERATION_TYPES = {}
         OPERATION_CLASSES = {}
         SOURCE_SIGN_EXTEND = ()
+        BOUNDS_CHECKS = {}
         BIT_MODULI = {}
         SHIFT_COUNT_MODULI = {}
         ROTATE_EXTRA_BITS = {}
@@ -807,9 +910,34 @@ def test_assembler_requires_kb_size_encoding(monkeypatch):
         m68k_asm._get_size_encoding("MOVE", "w")
 
 
-def test_assembler_requires_runtime_direction_variants(monkeypatch):
-    monkeypatch.setattr(m68k_asm.runtime_m68k_asm, "DIRECTION_VARIANTS", {})
-    assert m68k_asm._resolve_direction_mnemonic("asl") is None
+def test_assembler_requires_runtime_raw_fields_for_mnemonic(monkeypatch):
+    raw_fields = list(copy.deepcopy(m68k_asm.runtime_m68k_asm.RAW_FIELDS))
+    raw_fields[0] = dict(raw_fields[0])
+    del raw_fields[0]["MOVE"]
+    monkeypatch.setattr(m68k_asm.runtime_m68k_asm, "RAW_FIELDS", tuple(raw_fields))
+
+    with pytest.raises(KeyError, match="MOVE"):
+        m68k_asm.assemble_instruction("move.w d0,d1")
+
+
+def test_assembler_requires_runtime_encoding_mask_for_mnemonic(monkeypatch):
+    encoding_masks = list(copy.deepcopy(m68k_asm.runtime_m68k_asm.ENCODING_MASKS))
+    encoding_masks[0] = dict(encoding_masks[0])
+    del encoding_masks[0]["MOVE"]
+    monkeypatch.setattr(m68k_asm.runtime_m68k_asm, "ENCODING_MASKS", tuple(encoding_masks))
+
+    with pytest.raises(KeyError, match="MOVE"):
+        m68k_asm.assemble_instruction("move.w d0,d1")
+
+
+def test_build_opword_requires_value_for_named_field():
+    with pytest.raises(KeyError, match="MODE"):
+        m68k_asm._build_opword("MOVE", {"REGISTER": [1, 0], "SIZE": 3})
+
+
+def test_build_opword_requires_value_for_duplicate_field_occurrence():
+    with pytest.raises(KeyError, match="REGISTER"):
+        m68k_asm._build_opword("MOVE", {"MODE": [0, 0], "REGISTER": [1], "SIZE": 3})
 
 
 def test_runtime_loader_requires_os_meta(monkeypatch):

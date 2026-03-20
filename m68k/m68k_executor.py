@@ -1484,7 +1484,11 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
     call return address write, scratch reg invalidation, and OS
     call resolution.
     """
-    sp_effects = runtime_m68k_analysis.SP_EFFECTS.get(mnemonic, ())
+    flow_type = runtime_m68k_analysis.FLOW_TYPES[inst_kb]
+    if flow_type in (_FLOW_CALL, _FLOW_RETURN):
+        sp_effects = runtime_m68k_analysis.SP_EFFECTS[mnemonic]
+    else:
+        sp_effects = runtime_m68k_analysis.SP_EFFECTS.get(mnemonic)
     if not sp_effects:
         return
 
@@ -1525,7 +1529,7 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
     # after the call.  This enables RTS resolution and push/pop
     # patterns to work through abstract memory.
     if cpu.sp.is_known or cpu.sp.is_symbolic:
-        if runtime_m68k_analysis.FLOW_TYPES[inst_kb] == _FLOW_CALL:
+        if flow_type == _FLOW_CALL:
             return_addr = inst.offset + inst.size
             mem.write(cpu.sp, _concrete(return_addr), "l")
 
@@ -1534,7 +1538,6 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
     # flow type, not by SP decrement (PEA also decrements SP but
     # isn't a call).
     if platform and platform.get("scratch_regs"):
-        flow_type = runtime_m68k_analysis.FLOW_TYPES[inst_kb]
         if flow_type == _FLOW_CALL:
             # Resolve call effects before invalidation (needs pre-call
             # register state for input registers like A1 name string).
@@ -1566,7 +1569,7 @@ def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
     bits = size_bytes * 8
     op = formula[0] if formula else None
     mnemonic = inst_kb
-    op_type = runtime_m68k_executor.OPERATION_TYPES.get(mnemonic)
+    op_type = runtime_m68k_executor.OPERATION_TYPES[mnemonic]
     src_sign_ext = mnemonic in runtime_m68k_executor.SOURCE_SIGN_EXTEND
     opword_fields = runtime_m68k_executor.FIELD_MAPS[0].get(mnemonic)
     if opword_fields is None:
@@ -1741,30 +1744,51 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
     if not inst.kb_mnemonic:
         raise KeyError(f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
     mnemonic = inst.kb_mnemonic
+    flow_type = runtime_m68k_analysis.FLOW_TYPES[mnemonic]
     size = inst.operand_size
-    size_bytes = _SIZE_BYTE_COUNT.get(size, _SIZE_BYTE_COUNT["w"])
+    if size in _SIZE_BYTE_COUNT:
+        size_bytes = _SIZE_BYTE_COUNT[size]
+    elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_RETURN, _FLOW_CALL, _FLOW_TRAP):
+        size_bytes = _SIZE_BYTE_COUNT["w"]
+    else:
+        raise KeyError(f"runtime KB missing size byte count for {size!r}")
     mask = (1 << (size_bytes * 8)) - 1
 
     formula = runtime_m68k_analysis.COMPUTE_FORMULAS.get(mnemonic)
     op = formula[0] if formula else None
-    op_type = runtime_m68k_executor.OPERATION_TYPES.get(mnemonic)
+    op_type = runtime_m68k_executor.OPERATION_TYPES[mnemonic]
 
-    d = decode_instruction_ops(inst, inst_kb, size)
+    d = decode_instruction_ops(inst, mnemonic, size)
 
     # SP effects (orthogonal to compute)
-    _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
+    _apply_sp_effects(inst, mnemonic, d, cpu, mem, mnemonic, platform,
                       code)
 
     # Flow-control stops here
-    if runtime_m68k_analysis.FLOW_TYPES[inst_kb] in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_RETURN, _FLOW_CALL, _FLOW_TRAP):
+    if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_RETURN, _FLOW_CALL, _FLOW_TRAP):
+        return
+    if (
+        op_type is not None
+        and op_type not in (
+            runtime_m68k_executor.OperationType.BOUNDS_CHECK,
+            runtime_m68k_executor.OperationType.SWAP,
+            runtime_m68k_executor.OperationType.CCR_OP,
+            runtime_m68k_executor.OperationType.SR_OP,
+        )
+        and formula is None
+    ):
+        formula = runtime_m68k_analysis.COMPUTE_FORMULAS[mnemonic]
+        op = formula[0]
+    if op_type == runtime_m68k_executor.OperationType.BOUNDS_CHECK:
+        runtime_m68k_executor.BOUNDS_CHECKS[mnemonic]
         return
     if op is None and op_type != "swap":
         return
 
     # Special handlers by operation_class
-    op_class = runtime_m68k_executor.OPERATION_CLASSES.get(mnemonic)
+    op_class = runtime_m68k_executor.OPERATION_CLASSES[mnemonic]
     if op_class == runtime_m68k_analysis.OperationClass.MULTI_REGISTER_TRANSFER:
-        _apply_movem(inst, inst_kb, d, cpu, mem)
+        _apply_movem(inst, mnemonic, d, cpu, mem)
         return
     if op_class == runtime_m68k_analysis.OperationClass.LOAD_EFFECTIVE_ADDRESS and op == runtime_m68k_analysis.ComputeOp.ASSIGN:
         _apply_lea(d, cpu)
@@ -1772,43 +1796,43 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
 
     # PEA detection
     if runtime_m68k_analysis.SP_EFFECTS.get(mnemonic) and op_type == runtime_m68k_executor.OperationType.SUB and d.ea_op:
-        _apply_pea(inst_kb, d, cpu, mem)
+        _apply_pea(mnemonic, d, cpu, mem)
         return
 
     # NEG: subtract with implicit operand (0 - dst), separate from table
     if op == runtime_m68k_analysis.ComputeOp.SUBTRACT and runtime_m68k_analysis.FormulaTerm.IMPLICIT in (formula[1] if formula else ()):
-        _apply_neg(d, inst_kb, cpu, mem, size, size_bytes, mask)
+        _apply_neg(d, mnemonic, cpu, mem, size, size_bytes, mask)
         return
 
     # Binary ops (add, subtract, and, or, xor)
     if op in _BINARY_OPS:
-        _apply_binary_op(_BINARY_OPS[op], d, inst_kb, cpu, mem, size,
+        _apply_binary_op(_BINARY_OPS[op], d, mnemonic, cpu, mem, size,
                          size_bytes, op_type)
         return
 
     # Remaining handlers
     if op == runtime_m68k_analysis.ComputeOp.ASSIGN:
-        _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform)
+        _apply_assign(d, mnemonic, cpu, mem, size, size_bytes, platform)
         return
     if op == runtime_m68k_analysis.ComputeOp.BITWISE_COMPLEMENT:
         _apply_complement(d, cpu, mem, size, size_bytes, mask)
         return
     if op == runtime_m68k_analysis.ComputeOp.EXCHANGE:
-        _apply_swap(d, inst_kb, formula, cpu)
+        _apply_swap(d, mnemonic, formula, cpu)
         return
     if op == runtime_m68k_analysis.ComputeOp.SIGN_EXTEND:
-        _apply_sign_extend(d, inst_kb, formula, cpu, mnemonic, size)
+        _apply_sign_extend(d, mnemonic, formula, cpu, mnemonic, size)
         return
     if op == runtime_m68k_analysis.ComputeOp.TEST:
         return  # CC only, no state change
     if op_type == runtime_m68k_executor.OperationType.SWAP and op is None:
-        _apply_exg(d, inst_kb, cpu)
+        _apply_exg(d, mnemonic, cpu)
         return
 
     # KB-driven compute fallback: use m68k_compute._compute_result for
     # all remaining ops (shift, rotate, multiply, divide, bit ops, BCD).
     # If both operands are concrete, compute the result; otherwise invalidate.
-    _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask)
+    _apply_computed(d, mnemonic, formula, cpu, mem, size, size_bytes, mask)
 
 
 def propagate_states(blocks: dict[int, BasicBlock],

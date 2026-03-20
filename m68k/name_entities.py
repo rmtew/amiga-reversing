@@ -21,10 +21,10 @@ import re
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
 from m68k_kb import runtime_naming
+from m68k_kb import runtime_os
 
 from .instruction_kb import find_kb_entry, instruction_kb
 from .m68k_executor import BasicBlock
-from .os_calls import load_os_kb
 from .instruction_decode import xf
 from .subroutine_ranges import find_containing_sub
 
@@ -119,17 +119,6 @@ def _string_to_name(s: str, os_lib_names: set[str] | None = None) -> str:
     return name
 
 
-_NAMING_RULES = None
-
-def _load_naming_rules():
-    """Load naming rules from KB. Cached after first call."""
-    global _NAMING_RULES
-    if _NAMING_RULES is not None:
-        return _NAMING_RULES
-    _NAMING_RULES = runtime_naming
-    return _NAMING_RULES
-
-
 def _os_calls_to_name(os_calls: list[str]) -> str | None:
     """Suggest a name from a subroutine's OS call list.
 
@@ -138,7 +127,7 @@ def _os_calls_to_name(os_calls: list[str]) -> str | None:
     if not os_calls:
         return None
 
-    rules = _load_naming_rules()
+    rules = runtime_naming
 
     # Extract just function names (strip library prefix)
     funcs = set()
@@ -184,8 +173,7 @@ def name_subroutines(entities: list[dict],
     3. Entry point / call graph position
     """
     # Known OS library/device/resource names from KB
-    os_kb = load_os_kb()
-    os_lib_names = set(os_kb.LIBRARIES)
+    os_lib_names = set(runtime_os.LIBRARIES)
 
     # Build block->subroutine mapping
     entity_by_addr = {}

@@ -57,10 +57,16 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
                 "targets": table["targets"],
             }
         else:
+            entries = table.get("entries")
+            if entries is None:
+                entries = [(table_addr + i * 2, tgt)
+                           for i, tgt in enumerate(table["targets"])]
+            else:
+                entries = [(entry["offset_addr"], entry["target"])
+                           for entry in entries]
             jump_table_regions[table_addr] = {
                 "base_addr": table["base_addr"],
-                "entries": [(table_addr + i * 2, tgt)
-                            for i, tgt in enumerate(table["targets"])],
+                "entries": entries,
                 "pattern": table["pattern"],
                 "table_end": table["table_end"],
             }

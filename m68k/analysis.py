@@ -14,13 +14,14 @@ from pathlib import Path
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_os
 
 from .hunk_parser import parse_file, HunkType, _HUNK_KB
 from .m68k_executor import analyze, BasicBlock
 from .jump_tables import detect_jump_tables
 from .indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
                                 resolve_backward_slice)
-from .os_calls import (load_os_kb, get_platform_config,
+from .os_calls import (get_platform_config,
                        identify_library_calls, _SENTINEL_ALLOC_BASE)
 from .subroutine_scan import scan_and_score
 from .instruction_kb import instruction_flow, instruction_kb
@@ -690,7 +691,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
              f"{len(result['branch_targets'])} branch targets")
 
     # -- Phase 3: OS call identification ------------------------------
-    os_kb = load_os_kb()
+    os_kb = runtime_os
     lib_calls = identify_library_calls(
         blocks, code, os_kb, exit_states, call_targets, platform)
 
