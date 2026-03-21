@@ -133,7 +133,8 @@ def parse_fd_file(path: str) -> dict:
     base_name = ""
     bias = 0
     public = True
-    since_version = None
+    block_fd_version = None
+    block_os_since = None
 
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -143,16 +144,32 @@ def parse_fd_file(path: str) -> dict:
 
             # Track version markers in comments
             if line.startswith("*"):
-                vm = re.search(
-                    r'(?:[Nn]ew|[Aa]dded)\s+(?:functions?\s+)?(?:for|as of)\s+'
-                    r'(?:[Rr]elease\s+|[Vv]ersion\s+|[Vv])(\d[\d.]*)',
+                release_marker = re.search(r'[Rr]elease\s+(\d[\d.]*)', line)
+                if release_marker:
+                    block_os_since = release_marker.group(1)
+                fd_version_marker = re.search(
+                    r'functions?\s+in\s+[Vv](\d[\d.]*)\s+or\s+higher',
                     line
                 )
-                if vm:
-                    since_version = vm.group(1)
-                vm2 = re.match(r'\*[-\s]*(\d\.\d)\s+[Nn]ew\b', line)
-                if vm2:
-                    since_version = vm2.group(1)
+                if fd_version_marker:
+                    block_fd_version = fd_version_marker.group(1)
+                os_since_marker = re.search(
+                    r'(?:[Nn]ew|[Aa]dded)\s+(?:functions?\s+)?(?:for|as of)\s+'
+                    r'[Rr]elease\s+(\d[\d.]*)',
+                    line
+                )
+                if os_since_marker:
+                    block_os_since = os_since_marker.group(1)
+                short_os_since_marker = re.match(r'\*[-\s]*(\d\.\d)\s+[Nn]ew\b', line)
+                if short_os_since_marker:
+                    block_os_since = short_os_since_marker.group(1)
+                explicit_fd_version = re.search(
+                    r'(?:[Nn]ew|[Aa]dded)\s+(?:functions?\s+)?(?:for|as of)\s+'
+                    r'(?:[Vv]ersion\s+|[Vv])(\d[\d.]*)',
+                    line
+                )
+                if explicit_fd_version:
+                    block_fd_version = explicit_fd_version.group(1)
                 continue
 
             if line.startswith("##base"):
@@ -183,8 +200,10 @@ def parse_fd_file(path: str) -> dict:
                 }
                 if not public:
                     entry["private"] = True
-                if since_version:
-                    entry["since"] = since_version
+                if block_fd_version:
+                    entry["fd_version"] = block_fd_version
+                if block_os_since:
+                    entry["os_since"] = block_os_since
                 functions[name] = entry
                 bias += LVO_SLOT_SIZE
 
@@ -429,6 +448,8 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
     current_struct = None
     current_fields = []
     current_offset = 0
+    current_base_offset = 0
+    current_base_offset_symbol = None
 
     # Build regex matching any known type macro with size > 0
     # (excludes STRUCT, LABEL, ALIGNWORD, ALIGNLONG which are handled separately)
@@ -454,15 +475,20 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
 
     def finish_struct():
         nonlocal current_struct, current_fields, current_offset
+        nonlocal current_base_offset, current_base_offset_symbol
         if current_struct and current_fields:
             structs[current_struct] = {
                 "source": source,
+                "base_offset": current_base_offset,
+                "base_offset_symbol": current_base_offset_symbol,
                 "size": current_offset,
                 "fields": current_fields,
             }
         current_struct = None
         current_fields = []
         current_offset = 0
+        current_base_offset = 0
+        current_base_offset_symbol = None
 
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -482,12 +508,16 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                     resolved = resolve_constant_value(init_offset_str, all_constants)
                     if resolved is not None:
                         current_offset = resolved
+                        current_base_offset_symbol = init_offset_str
                     else:
                         print(f"  WARNING: struct {current_struct} initial offset "
                               f"'{init_offset_str}' unresolved, skipping struct",
                               file=sys.stderr)
                         current_struct = None
                         continue
+                else:
+                    current_base_offset_symbol = None
+                current_base_offset = current_offset
                 current_fields = []
                 continue
 
@@ -530,6 +560,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                         "type": "STRUCT",
                         "offset": current_offset,
                         "size": fsize,
+                        "size_symbol": None if size_str.isdigit() else size_str,
                     })
                     current_offset += fsize
                     continue
@@ -588,6 +619,59 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
 
     finish_struct()
     return {"structs": structs, "constants": constants}
+
+
+def _build_size_symbol_to_struct(structs: dict) -> dict[str, str]:
+    symbol_to_struct = {}
+    for struct_name, struct_def in structs.items():
+        for field in struct_def["fields"]:
+            if field["type"] != "LABEL":
+                continue
+            if field["offset"] != struct_def["size"]:
+                continue
+            symbol_to_struct.setdefault(field["name"], struct_name)
+    return symbol_to_struct
+
+
+def annotate_embedded_structs(structs: dict) -> None:
+    """Resolve embedded struct references from parsed size symbols.
+
+    The Amiga .I files express inline struct composition in two ways:
+    - `STRUCTURE Foo,BAR_SIZE` means Foo begins after embedded struct BAR
+    - `STRUCT field,BAR_SIZE` means an inline embedded BAR field
+
+    `parse_asm_include()` preserves the raw size symbols; this pass resolves
+    them to concrete struct names using parsed LABEL size constants.
+    """
+    symbol_to_struct = _build_size_symbol_to_struct(structs)
+
+    for struct_def in structs.values():
+        base_offset_symbol = struct_def.get("base_offset_symbol")
+        if base_offset_symbol:
+            base_struct = symbol_to_struct.get(base_offset_symbol)
+            if base_struct is not None:
+                expected_size = structs[base_struct]["size"]
+                if expected_size != struct_def["base_offset"]:
+                    raise ValueError(
+                        f"Struct base offset mismatch for {base_offset_symbol}: "
+                        f"expected {expected_size}, got {struct_def['base_offset']}")
+                struct_def["base_struct"] = base_struct
+
+        for field in struct_def["fields"]:
+            if field["type"] != "STRUCT":
+                continue
+            size_symbol = field.get("size_symbol")
+            if not size_symbol:
+                continue
+            embedded_struct = symbol_to_struct.get(size_symbol)
+            if embedded_struct is None:
+                continue
+            expected_size = structs[embedded_struct]["size"]
+            if expected_size != field["size"]:
+                raise ValueError(
+                    f"Embedded struct size mismatch for {size_symbol}: "
+                    f"expected {expected_size}, got {field['size']}")
+            field["struct"] = embedded_struct
 
 
 # =============================================================================
@@ -1130,6 +1214,8 @@ def main():
                 for sname, sdata in result["structs"].items():
                     raw_structs[sname] = sdata
 
+    annotate_embedded_structs(raw_structs)
+
     print(f"  Structs: {len(raw_structs)}")
 
     # ========================================================================
@@ -1236,10 +1322,14 @@ def main():
             },
             "version_map": VERSION_MAP,
             "lvo_slot_size": LVO_SLOT_SIZE,
-            "since_default_note": (
-                "Functions without version markers default to since='1.0'. "
-                "NDK 1.3 FD files lack pre-1.3 version granularity (1.0/1.1/1.2), "
-                "so all pre-existing functions are tagged 1.0 as a lower bound."
+            "version_fields_note": (
+                "Function version data is split: os_since is first known OS release, "
+                "while fd_version is the interface/library version marker from FD comments. "
+                "They must not be conflated."
+            ),
+            "os_since_default_note": (
+                "Functions without OS release markers default to os_since='1.0' as a lower bound. "
+                "NDK 1.3 FD files lack reliable pre-1.3 OS granularity."
             ),
         },
         "libraries": {},
@@ -1363,21 +1453,16 @@ def main():
                         entry["returns_memory"]["size_reg"] = \
                             size_inputs[0]["reg"]
 
-            # Version info
-            since = fd_func.get("since")
-
-            # OS_CHANGES overrides FD version markers
+            os_since = fd_func.get("os_since")
             if oc_lib and func_name in oc_lib["functions"]:
-                since = oc_lib["functions"][func_name]
+                os_since = oc_lib["functions"][func_name]
 
-            # Normalize version numbers
-            if since:
-                since = VERSION_MAP.get(since, since)
+            if os_since:
+                entry["os_since"] = os_since
             else:
-                # Default: if not in OS_CHANGES, it existed from the start
-                since = "1.0"
-
-            entry["since"] = since
+                entry["os_since"] = "1.0"
+            if fd_func.get("fd_version"):
+                entry["fd_version"] = fd_func["fd_version"]
 
             # Private flag (only if true)
             if fd_func.get("private"):
@@ -1397,7 +1482,7 @@ def main():
                     if func_name not in lib["functions"]:
                         lib["functions"][func_name] = {
                             "lvo": None,
-                            "since": ver,
+                            "os_since": ver,
                         }
 
     # --- Build structs ---

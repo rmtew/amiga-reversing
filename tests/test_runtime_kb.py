@@ -29,6 +29,9 @@ from tests.runtime_kb_helpers import (
     load_os_runtime_kb,
 )
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+from parse_ndk import parse_fd_file
+
 
 def test_production_modules_import_generated_runtime_modules_directly():
     repo_root = Path(__file__).resolve().parent.parent
@@ -1009,7 +1012,41 @@ def test_runtime_os_is_compact_subset_of_canonical_os_kb():
         for func_name, func_data in library_data["functions"].items():
             source_func = source_library["functions"][func_name]
             for key, value in func_data.items():
-                assert source_func[key] == value
+                    assert source_func[key] == value
+
+
+def test_canonical_os_kb_preserves_embedded_struct_metadata():
+    canonical = load_canonical_os_kb()
+
+    io_struct = canonical["structs"]["IO"]
+    assert io_struct["base_offset"] == 20
+    assert io_struct["base_offset_symbol"] == "MN_SIZE"
+    assert io_struct["base_struct"] == "MN"
+
+    mp_struct = canonical["structs"]["MP"]
+    msg_list = next(field for field in mp_struct["fields"]
+                    if field["name"] == "MP_MSGLIST")
+    assert msg_list["type"] == "STRUCT"
+    assert msg_list["size_symbol"] == "LH_SIZE"
+    assert msg_list["struct"] == "LH"
+
+
+def test_parse_fd_file_recognizes_release_marker_for_private_blocks(tmp_path):
+    fd_path = tmp_path / "AMIGAGUIDE_LIB.FD"
+    fd_path.write_text(
+        "##base _AmigaGuideBase\n"
+        "##bias 30\n"
+        "*--- functions in V40 or higher (Release 3.1) ---\n"
+        "##private\n"
+        "amigaguidePrivate1()()\n",
+        encoding="utf-8",
+    )
+
+    parsed = parse_fd_file(str(fd_path))
+
+    func = parsed["functions"]["amigaguidePrivate1"]
+    assert func["fd_version"] == "40"
+    assert func["os_since"] == "3.1"
 
 
 def test_runtime_hunk_and_naming_match_canonical_payloads():

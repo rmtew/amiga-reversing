@@ -579,7 +579,7 @@ def _build_lvo_lookup(os_kb: dict) -> dict:
                 "function": func_name,
                 "lvo": lvo,
                 **{k: v for k, v in func.items() if k in (
-                    "inputs", "output", "no_return", "since")},
+                    "inputs", "output", "no_return", "os_since", "fd_version")},
             }
             if lvo not in by_lvo:
                 by_lvo[lvo] = []
