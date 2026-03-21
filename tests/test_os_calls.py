@@ -232,6 +232,47 @@ def test_annotate_multiple_arguments():
     assert 0x08 in annotations  # D3 = length
 
 
+def test_open_device_annotates_iorequest_on_a1_not_flags():
+    """LEA d(A6),A1 sets OpenDevice ioRequest, not D1 flags."""
+    sentinel = 0x80000002
+    code = b""
+    # $00: lea 100(a6),a1
+    code += struct.pack(">HH", 0x43EE, 0x0064)
+    # $04: moveq #0,d1
+    code += struct.pack(">H", 0x7200)
+    # $06: bsr.w $0C
+    code += struct.pack(">HH", 0x6100, 0x0004)
+    # $0A: rts
+    code += struct.pack(">H", 0x4E75)
+    # $0C: rts
+    code += struct.pack(">H", 0x4E75)
+
+    platform = {"scratch_regs": [], "initial_base_reg": (6, sentinel)}
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+    lib_calls = [_make_lib_call(
+        addr=0x06, block=0x00, function="OpenDevice", library="exec.library",
+        lvo=-444,
+        inputs=[
+            {"name": "devName", "reg": "A0", "type": "STRPTR"},
+            {"name": "unit", "reg": "D0", "type": "ULONG"},
+            {"name": "ioRequest", "reg": "A1", "type": "struct IORequest *",
+             "i_struct": "IO"},
+            {"name": "flags", "reg": "D1", "type": "ULONG"},
+        ],
+    )]
+
+    annotations = annotate_call_arguments(result["blocks"], lib_calls)
+    assert annotations[0x00]["arg_name"] == "ioRequest"
+    assert annotations[0x00]["arg_reg"] == "A1"
+    assert annotations[0x04]["arg_name"] == "flags"
+    assert annotations[0x04]["arg_reg"] == "D1"
+
+    types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
+    assert types[100]["name"] == "ioRequest"
+    assert types[100]["type"] == "struct IORequest *"
+
+
 # -- Gaps 3-6: Unified app memory type map ----------------------------
 
 def test_backward_type_names_app_slot():

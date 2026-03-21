@@ -1,20 +1,42 @@
 from __future__ import annotations
 """Build semantic operands from decoded instruction operands."""
+from dataclasses import replace
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_disasm
 from m68k_kb import runtime_m68k_decode
 
 from m68k.instruction_decode import (
+    DecodedBitfield,
+    DecodedOperands,
     decode_inst_destination,
     select_encoding_fields,
     select_operand_types,
     select_operand_types_from_raw,
 )
-from m68k.instruction_primitives import extract_branch_target
+from m68k.instruction_primitives import extract_branch_target, Operand
+from m68k.m68k_disasm import (
+    DecodedBaseDisplacementNodeMetadata,
+    DecodedBaseRegisterNodeMetadata,
+    DecodedBitfieldNodeMetadata,
+    DecodedFullExtensionNodeMetadata,
+    DecodedIndexedNodeMetadata,
+    DecodedRegisterListNodeMetadata,
+    DecodedRegisterPairNodeMetadata,
+)
 
-from disasm.decode import decode_inst_for_emit
-from disasm.types import HunkDisassemblySession, SemanticOperand
+from disasm.decode import DecodedInstructionForEmit, decode_inst_for_emit
+from disasm.types import (
+    BitfieldOperandMetadata,
+    FullIndexedOperandMetadata,
+    HunkDisassemblySession,
+    IndexedOperandMetadata,
+    RegisterListOperandMetadata,
+    RegisterPairOperandMetadata,
+    SemanticOperand,
+    SemanticOperandMetadata,
+    SymbolOperandMetadata,
+)
 
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
@@ -26,9 +48,9 @@ def _instruction_ref(inst) -> str:
     return f"instruction at ${inst.offset:06x}"
 
 
-def _operand_types_for_inst(inst, meta: dict) -> tuple[str, ...]:
+def _operand_types_for_inst(inst, meta: DecodedInstructionForEmit) -> tuple[str, ...]:
     opcode = int.from_bytes(inst.raw[:2], "big")
-    form_operand_types = list(runtime_m68k_disasm.FORM_OPERAND_TYPES[meta["mnemonic"]])
+    form_operand_types = list(runtime_m68k_disasm.FORM_OPERAND_TYPES[meta.mnemonic])
     if form_operand_types == [("usp", "an"), ("an", "usp")]:
         return form_operand_types[0] if ((opcode >> 3) & 1) else form_operand_types[1]
     if form_operand_types == [("rn", "ea"), ("ea", "rn")]:
@@ -36,12 +58,13 @@ def _operand_types_for_inst(inst, meta: dict) -> tuple[str, ...]:
             raise ValueError(f"MOVES extension word missing for {_instruction_ref(inst)}")
         ext = int.from_bytes(inst.raw[2:4], "big")
         return form_operand_types[0] if ((ext >> 11) & 1) != 0 else form_operand_types[1]
-    return select_operand_types_from_raw(meta["mnemonic"], inst.raw)
+    return select_operand_types_from_raw(meta.mnemonic, inst.raw)
 
 
-def _selected_form_register(inst, meta: dict, register_index: int) -> tuple[str, int] | None:
+def _selected_form_register(inst, meta: DecodedInstructionForEmit,
+                            register_index: int) -> tuple[str, int] | None:
     opcode = int.from_bytes(inst.raw[:2], "big")
-    fields = select_encoding_fields(meta["mnemonic"], opcode)
+    fields = select_encoding_fields(meta.mnemonic, opcode)
     plain_register_fields = [
         field for field in fields
         if field[0] == "REGISTER"
@@ -63,8 +86,8 @@ def _selected_form_register(inst, meta: dict, register_index: int) -> tuple[str,
     return ("dn", reg)
 
 
-def _normalized_absolute_value(decoded_op) -> int | None:
-    if decoded_op is None or getattr(decoded_op, "value", None) is None:
+def _normalized_absolute_value(decoded_op: Operand | None) -> int | None:
+    if decoded_op is None or decoded_op.value is None:
         return None
     if decoded_op.mode == "absw":
         return decoded_op.value & 0xFFFF
@@ -144,30 +167,30 @@ def _app_offset_symbol(base_register: str, displacement: int,
     return hunk_session.app_offsets.get(displacement)
 
 
-def _pc_relative_text(label: str | None, decoded_op, token: str) -> str:
+def _pc_relative_text(label: str | None, decoded_op: Operand, token: str) -> str:
     if label is None:
         return token
     if decoded_op.mode == "pcdisp":
         return f"{label}(pc)"
-    index_reg = getattr(decoded_op, "index_reg", None)
+    index_reg = decoded_op.index_reg
     if index_reg is None:
         raise ValueError(f"PC-index operand missing index register: {token!r}")
-    prefix = "a" if getattr(decoded_op, "index_is_addr", False) else "d"
-    index_size = getattr(decoded_op, "index_size", None)
+    prefix = "a" if decoded_op.index_is_addr else "d"
+    index_size = decoded_op.index_size
     if not index_size:
         raise ValueError(f"PC-index operand missing index size: {token!r}")
     return f"{label}(pc,{prefix}{index_reg}.{index_size})"
 
 
 def _base_disp_text(base_register: str, displacement: int, token: str,
-                    decoded_op, symbol: str | None) -> str:
+                    decoded_op: Operand, symbol: str | None) -> str:
     if symbol is not None:
-        if getattr(decoded_op, "mode", None) == "index":
-            index_reg = getattr(decoded_op, "index_reg", None)
+        if decoded_op.mode == "index":
+            index_reg = decoded_op.index_reg
             if index_reg is None:
                 raise ValueError(f"Indexed operand missing index register: {token!r}")
-            prefix = "a" if getattr(decoded_op, "index_is_addr", False) else "d"
-            index_size = getattr(decoded_op, "index_size", None)
+            prefix = "a" if decoded_op.index_is_addr else "d"
+            index_size = decoded_op.index_size
             if not index_size:
                 raise ValueError(f"Indexed operand missing index size: {token!r}")
             return f"{symbol}({base_register},{prefix}{index_reg}.{index_size})"
@@ -183,65 +206,70 @@ def _register_operand(token: str, mode: str, reg: int) -> SemanticOperand:
     )
 
 
-def _index_metadata(decoded_op, inst) -> dict[str, object]:
-    index_reg = getattr(decoded_op, "index_reg", None)
+def _index_metadata(decoded_op: Operand, inst) -> IndexedOperandMetadata:
+    index_reg = decoded_op.index_reg
     if index_reg is None:
         raise ValueError(
             f"Indexed operand missing index register for {_instruction_ref(inst)}")
-    index_size = getattr(decoded_op, "index_size", None)
+    index_size = decoded_op.index_size
     if not index_size:
         raise ValueError(
             f"Indexed operand missing index size for {_instruction_ref(inst)}")
-    prefix = "a" if getattr(decoded_op, "index_is_addr", False) else "d"
-    return {
-        "index_register": f"{prefix}{index_reg}",
-        "index_size": index_size,
-    }
+    prefix = "a" if decoded_op.index_is_addr else "d"
+    return IndexedOperandMetadata(
+        index_register=f"{prefix}{index_reg}",
+        index_size=index_size,
+    )
 
 
-def _full_index_metadata(decoded_op, inst) -> dict[str, object]:
-    if getattr(decoded_op, "index_suppressed", False):
-        metadata = {
-            "index_register": None,
-            "index_size": None,
-            "index_scale": None,
-        }
+def _full_index_metadata(decoded_op: Operand, inst) -> FullIndexedOperandMetadata:
+    if decoded_op.index_suppressed:
+        index_register = None
+        index_size = None
+        index_scale = None
     else:
-        metadata = _index_metadata(decoded_op, inst)
-        metadata["index_scale"] = getattr(decoded_op, "index_scale", 1)
-    metadata["base_register"] = (
+        indexed = _index_metadata(decoded_op, inst)
+        index_register = indexed.index_register
+        index_size = indexed.index_size
+        index_scale = decoded_op.index_scale
+    base_register = (
         None
-        if getattr(decoded_op, "base_suppressed", False)
-        else ("pc" if getattr(decoded_op, "mode", None) == "pcindex"
+        if decoded_op.base_suppressed
+        else ("pc" if decoded_op.mode == "pcindex"
               else _address_base_name(decoded_op.reg))
     )
-    metadata["memory_indirect"] = getattr(decoded_op, "memory_indirect", False)
-    metadata["postindexed"] = getattr(decoded_op, "postindexed", False)
-    metadata["preindexed"] = bool(metadata["memory_indirect"] and not metadata["postindexed"])
-    metadata["base_suppressed"] = getattr(decoded_op, "base_suppressed", False)
-    metadata["index_suppressed"] = getattr(decoded_op, "index_suppressed", False)
-    metadata["base_displacement"] = getattr(decoded_op, "base_displacement", None)
-    metadata["outer_displacement"] = getattr(decoded_op, "outer_displacement", None)
-    return metadata
+    return FullIndexedOperandMetadata(
+        base_register=base_register,
+        index_register=index_register,
+        index_size=index_size,
+        index_scale=index_scale,
+        memory_indirect=decoded_op.memory_indirect,
+        postindexed=decoded_op.postindexed,
+        preindexed=bool(decoded_op.memory_indirect and not decoded_op.postindexed),
+        base_suppressed=decoded_op.base_suppressed,
+        index_suppressed=decoded_op.index_suppressed,
+        base_displacement=decoded_op.base_displacement,
+        outer_displacement=decoded_op.outer_displacement,
+    )
 
 
 def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
-                           meta: dict) -> list[tuple[str, object]]:
-    decoded = meta["decoded"]
+                           meta: DecodedInstructionForEmit) -> list[tuple[str, object]]:
+    decoded = meta.decoded
     operand_types = _operand_types_for_inst(inst, meta)
     if operand_types == ():
         return []
-    ea_op = decoded["ea_op"]
-    dst_op = decoded["dst_op"]
-    reg_num = decoded["reg_num"]
-    reg_mode = decoded.get("reg_mode")
-    secondary_reg = decoded.get("secondary_reg")
-    imm_val = decoded.get("imm_val")
-    bitfield = decoded.get("bitfield")
-    compare_reg = decoded.get("compare_reg")
-    update_reg = decoded.get("update_reg")
-    control_register = decoded.get("control_register")
-    ea_is_source = decoded["ea_is_source"]
+    ea_op = decoded.ea_op
+    dst_op = decoded.dst_op
+    reg_num = decoded.reg_num
+    reg_mode = decoded.reg_mode
+    secondary_reg = decoded.secondary_reg
+    imm_val = decoded.imm_val
+    bitfield = decoded.bitfield
+    compare_reg = decoded.compare_reg
+    update_reg = decoded.update_reg
+    control_register = decoded.control_register
+    ea_is_source = decoded.ea_is_source
 
     if operand_types == ("label",):
         return [("label", None)]
@@ -323,7 +351,7 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
             raise ValueError(f"Decoded register/register shape incomplete for {_instruction_ref(inst)}")
         dest = _selected_form_register(inst, meta, 1)
         if dest is None:
-            dest = decode_inst_destination(inst, meta["mnemonic"])
+            dest = decode_inst_destination(inst, meta.mnemonic)
         if dest is None:
             raise ValueError(
                 f"Unable to resolve destination operand from decode for {_instruction_ref(inst)}")
@@ -443,7 +471,7 @@ def _decoded_operand_specs(inst, hunk_session: HunkDisassemblySession,
     if dst_op is not None:
         second = ("decoded", dst_op)
     else:
-        dest = decode_inst_destination(inst, meta["mnemonic"])
+        dest = decode_inst_destination(inst, meta.mnemonic)
         if dest is None:
             raise ValueError(
                 f"Unable to resolve destination operand from decode for {_instruction_ref(inst)}")
@@ -468,10 +496,10 @@ def _operand_text_slots(inst, operand_count: int) -> list[str]:
 def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                                operand_index: int,
                                hunk_session: HunkDisassemblySession,
-                               meta: dict,
+                               meta: DecodedInstructionForEmit,
                                used_structs: set[str] | None,
                                include_arg_subs: bool) -> SemanticOperand | None:
-    flow_type = runtime_m68k_analysis.FLOW_TYPES[meta["mnemonic"]]
+    flow_type = runtime_m68k_analysis.FLOW_TYPES[meta.mnemonic]
     labels = hunk_session.labels
 
     if spec_type == "register" and node.kind == "register":
@@ -491,15 +519,19 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
         return SemanticOperand(kind="register", text=node.text.lower(), register=node.register)
 
     if spec_type == "reglist" and node.kind == "register_list":
+        if not isinstance(node.metadata, DecodedRegisterListNodeMetadata):
+            raise ValueError(f"Typed register list metadata missing for {_instruction_ref(inst)}")
         return SemanticOperand(
             kind="register_list",
             text=node.text,
-            metadata=dict(node.metadata),
+            metadata=RegisterListOperandMetadata(registers=node.metadata.registers),
         )
 
     if spec_type == "register_pair" and node.kind == "register_pair":
         expected = [f"d{spec_value[0]}", f"d{spec_value[1]}"]
-        actual = node.metadata.get("registers")
+        if not isinstance(node.metadata, DecodedRegisterPairNodeMetadata):
+            raise ValueError(f"Typed register pair metadata missing for {_instruction_ref(inst)}")
+        actual = list(node.metadata.registers)
         if actual != expected:
             raise ValueError(
                 f"Typed register-pair mismatch for {_instruction_ref(inst)}: "
@@ -507,7 +539,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
         return SemanticOperand(
             kind="register_pair",
             text=node.text.lower(),
-            metadata={"registers": expected},
+            metadata=RegisterPairOperandMetadata(registers=tuple(expected)),
         )
 
     if spec_type == "immediate" and node.kind == "immediate":
@@ -533,7 +565,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             text=text,
             value=value,
             target_addr=target,
-            metadata={"symbol": label} if label is not None else {},
+            metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
     if (spec_type == "immediate"
@@ -549,7 +581,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             text=text,
             value=target_addr,
             target_addr=target_addr,
-            metadata={"symbol": label} if label is not None else {},
+            metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
     if spec_type == "label" and node.kind == "branch_target":
@@ -563,26 +595,31 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             text=text,
             value=target_addr,
             target_addr=target_addr,
-            metadata={"symbol": label} if label is not None else {},
+            metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
     if spec_type == "bitfield_ea" and node.kind == "bitfield_ea":
         decoded_op, bitfield = spec_value
-        base_node = node.metadata.get("base_node")
-        if base_node is None:
+        metadata = node.metadata
+        if not isinstance(metadata, DecodedBitfieldNodeMetadata):
             raise ValueError(f"Typed bitfield operand missing base node for {_instruction_ref(inst)}")
         base = _simple_semantic_from_node(
-            inst, base_node, "decoded", decoded_op, operand_index,
+            inst, metadata.base_node, "decoded", decoded_op, operand_index,
             hunk_session, meta, used_structs, include_arg_subs)
         if base is None:
             raise ValueError(f"Typed bitfield base node did not decode for {_instruction_ref(inst)}")
-        for key in ("offset_is_register", "offset_value", "width_is_register", "width_value"):
-            if node.metadata.get(key) != bitfield.get(key):
+        for key, node_value, decoded_value in (
+            ("offset_is_register", metadata.offset_is_register, bitfield.offset_is_register),
+            ("offset_value", metadata.offset_value, bitfield.offset_value),
+            ("width_is_register", metadata.width_is_register, bitfield.width_is_register),
+            ("width_value", metadata.width_value, bitfield.width_value),
+        ):
+            if node_value != decoded_value:
                 raise ValueError(
                     f"Typed bitfield operand mismatch for {_instruction_ref(inst)}: "
-                    f"{key} decoded {bitfield.get(key)}, node {node.metadata.get(key)}")
-        metadata = dict(base.metadata)
-        metadata["bitfield"] = bitfield
+                    f"{key} decoded {decoded_value}, node {node_value}")
+        symbol = base.metadata.symbol if isinstance(base.metadata, SymbolOperandMetadata) else None
+        semantic_metadata = BitfieldOperandMetadata(bitfield=bitfield, symbol=symbol)
         return SemanticOperand(
             kind="bitfield_ea",
             text=node.text,
@@ -591,14 +628,14 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             base_register=base.base_register,
             displacement=base.displacement,
             target_addr=base.target_addr,
-            metadata=metadata,
+            metadata=semantic_metadata,
         )
 
     if spec_type == "decoded":
-        decoded_op = spec_value
-        op_mode = getattr(decoded_op, "mode", None)
-        op_value = getattr(decoded_op, "value", None)
-        metadata: dict[str, object] = {}
+        decoded_op: Operand = spec_value
+        op_mode = decoded_op.mode
+        op_value = decoded_op.value
+        metadata: SemanticOperandMetadata = {}
         kind = "text"
         value = None
         register = None
@@ -643,49 +680,58 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             if label is not None:
                 kind = "immediate_symbol"
                 target_addr = target
-                metadata["symbol"] = label
+                metadata = SymbolOperandMetadata(symbol=label)
                 text = f"#{label}"
             else:
                 kind = "immediate"
         elif op_mode == "ind" and node.kind == "indirect":
             base_register = _address_base_name(decoded_op.reg)
-            if node.metadata.get("base_register") != base_register:
+            if not isinstance(node.metadata, DecodedBaseRegisterNodeMetadata):
+                raise ValueError(f"Typed indirect metadata missing for {_instruction_ref(inst)}")
+            if node.metadata.base_register != base_register:
                 raise ValueError(
                     f"Typed indirect mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
+                    f"decoded {base_register}, node {node.metadata.base_register}")
             kind = "indirect"
         elif op_mode == "postinc" and node.kind == "postincrement":
             base_register = _address_base_name(decoded_op.reg)
-            if node.metadata.get("base_register") != base_register:
+            if not isinstance(node.metadata, DecodedBaseRegisterNodeMetadata):
+                raise ValueError(f"Typed postincrement metadata missing for {_instruction_ref(inst)}")
+            if node.metadata.base_register != base_register:
                 raise ValueError(
                     f"Typed postincrement mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
+                    f"decoded {base_register}, node {node.metadata.base_register}")
             kind = "postincrement"
         elif op_mode == "predec" and node.kind == "predecrement":
             base_register = _address_base_name(decoded_op.reg)
-            if node.metadata.get("base_register") != base_register:
+            if not isinstance(node.metadata, DecodedBaseRegisterNodeMetadata):
+                raise ValueError(f"Typed predecrement metadata missing for {_instruction_ref(inst)}")
+            if node.metadata.base_register != base_register:
                 raise ValueError(
                     f"Typed predecrement mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
+                    f"decoded {base_register}, node {node.metadata.base_register}")
             kind = "predecrement"
         elif op_mode == "disp" and node.kind == "base_displacement":
             base_register = _address_base_name(decoded_op.reg)
             displacement = op_value
-            if node.metadata.get("base_register") != base_register:
+            if not isinstance(node.metadata, DecodedBaseDisplacementNodeMetadata):
+                raise ValueError(
+                    f"Typed base displacement metadata missing for {_instruction_ref(inst)}")
+            if node.metadata.base_register != base_register:
                 raise ValueError(
                     f"Typed base displacement mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
-            if node.metadata.get("displacement") != displacement:
+                    f"decoded {base_register}, node {node.metadata.base_register}")
+            if node.metadata.displacement != displacement:
                 raise ValueError(
                     f"Typed base displacement mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {displacement}, node {node.metadata.get('displacement')}")
+                    f"decoded {displacement}, node {node.metadata.displacement}")
             value = displacement
             symbol = (_struct_field_symbol(inst.offset, base_register, displacement,
                                            hunk_session, used_structs)
                       or _app_offset_symbol(base_register, displacement, hunk_session))
             if symbol is not None:
                 kind = "base_displacement_symbol"
-                metadata["symbol"] = symbol
+                metadata = SymbolOperandMetadata(symbol=symbol)
             else:
                 kind = "base_displacement"
             text = _base_disp_text(base_register, displacement, node.text, decoded_op, symbol)
@@ -722,39 +768,77 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
         elif op_mode == "index" and node.kind == "indexed":
             base_register = _address_base_name(decoded_op.reg)
             displacement = op_value
-            if node.metadata.get("base_register") != base_register:
-                raise ValueError(
-                    f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {base_register}, node {node.metadata.get('base_register')}")
-            if node.metadata.get("displacement") != displacement:
-                raise ValueError(
-                    f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {displacement}, node {node.metadata.get('displacement')}")
-            metadata.update(_index_metadata(decoded_op, inst))
-            if node.metadata.get("index_register") != metadata["index_register"]:
-                raise ValueError(
-                    f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {metadata['index_register']}, node {node.metadata.get('index_register')}")
-            if node.metadata.get("index_size") != metadata["index_size"]:
-                raise ValueError(
-                    f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {metadata['index_size']}, node {node.metadata.get('index_size')}")
+            if isinstance(node.metadata, DecodedIndexedNodeMetadata):
+                if node.metadata.base_register != base_register:
+                    raise ValueError(
+                        f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
+                        f"decoded {base_register}, node {node.metadata.base_register}")
+                if node.metadata.displacement != displacement:
+                    raise ValueError(
+                        f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
+                        f"decoded {displacement}, node {node.metadata.displacement}")
+                metadata = _index_metadata(decoded_op, inst)
+                if node.metadata.index_register != metadata.index_register:
+                    raise ValueError(
+                        f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
+                        f"decoded {metadata.index_register}, node {node.metadata.index_register}")
+                if node.metadata.index_size != metadata.index_size:
+                    raise ValueError(
+                        f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
+                        f"decoded {metadata.index_size}, node {node.metadata.index_size}")
+            elif isinstance(node.metadata, DecodedFullExtensionNodeMetadata):
+                metadata = _full_index_metadata(decoded_op, inst)
+                expected = FullIndexedOperandMetadata(
+                    base_register=node.metadata.base_register,
+                    index_register=node.metadata.index_register,
+                    index_size=node.metadata.index_size,
+                    index_scale=node.metadata.index_scale,
+                    memory_indirect=node.metadata.memory_indirect,
+                    postindexed=node.metadata.postindexed,
+                    preindexed=node.metadata.preindexed,
+                    base_suppressed=node.metadata.base_suppressed,
+                    index_suppressed=node.metadata.index_suppressed,
+                    base_displacement=node.metadata.base_displacement,
+                    outer_displacement=node.metadata.outer_displacement,
+                )
+                if expected != metadata:
+                    raise ValueError(
+                        f"Typed full indexed operand mismatch for {_instruction_ref(inst)}: "
+                        f"decoded {metadata}, node {expected}")
+            else:
+                raise ValueError(f"Typed indexed metadata missing for {_instruction_ref(inst)}")
             value = displacement
             symbol = (_struct_field_symbol(inst.offset, base_register, displacement,
                                            hunk_session, used_structs)
                       or _app_offset_symbol(base_register, displacement, hunk_session))
             kind = "base_displacement_symbol" if symbol is not None else "indexed"
             if symbol is not None:
-                metadata["symbol"] = symbol
+                metadata = replace(metadata, symbol=symbol)
             text = _base_disp_text(base_register, displacement, node.text, decoded_op, symbol)
         elif op_mode == "index" and node.kind == "memory_indirect_indexed":
             base_register = _address_base_name(decoded_op.reg)
-            metadata.update(_full_index_metadata(decoded_op, inst))
-            if node.metadata != metadata:
+            metadata = _full_index_metadata(decoded_op, inst)
+            if not isinstance(node.metadata, DecodedFullExtensionNodeMetadata):
+                raise ValueError(
+                    f"Typed full indexed metadata missing for {_instruction_ref(inst)}")
+            expected = FullIndexedOperandMetadata(
+                base_register=node.metadata.base_register,
+                index_register=node.metadata.index_register,
+                index_size=node.metadata.index_size,
+                index_scale=node.metadata.index_scale,
+                memory_indirect=node.metadata.memory_indirect,
+                postindexed=node.metadata.postindexed,
+                preindexed=node.metadata.preindexed,
+                base_suppressed=node.metadata.base_suppressed,
+                index_suppressed=node.metadata.index_suppressed,
+                base_displacement=node.metadata.base_displacement,
+                outer_displacement=node.metadata.outer_displacement,
+            )
+            if expected != metadata:
                 raise ValueError(
                     f"Typed full indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {metadata}, node {node.metadata}")
-            displacement = metadata["base_displacement"]
+                    f"decoded {metadata}, node {expected}")
+            displacement = metadata.base_displacement
             value = displacement
             kind = "memory_indirect_indexed"
             text = node.text
@@ -764,15 +848,17 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                 raise ValueError(
                     f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
                     f"decoded {target_addr}, node {node.target}")
-            metadata.update(_index_metadata(decoded_op, inst))
-            if node.metadata.get("index_register") != metadata["index_register"]:
+            if not isinstance(node.metadata, DecodedIndexedNodeMetadata):
+                raise ValueError(f"Typed PC-indexed metadata missing for {_instruction_ref(inst)}")
+            metadata = _index_metadata(decoded_op, inst)
+            if node.metadata.index_register != metadata.index_register:
                 raise ValueError(
                     f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {metadata['index_register']}, node {node.metadata.get('index_register')}")
-            if node.metadata.get("index_size") != metadata["index_size"]:
+                    f"decoded {metadata.index_register}, node {node.metadata.index_register}")
+            if node.metadata.index_size != metadata.index_size:
                 raise ValueError(
                     f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {metadata['index_size']}, node {node.metadata.get('index_size')}")
+                    f"decoded {metadata.index_size}, node {node.metadata.index_size}")
             value = op_value
             label = labels.get(target_addr)
             text = _pc_relative_text(label, decoded_op, node.text)
@@ -783,11 +869,27 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                 raise ValueError(
                     f"Typed PC full indexed operand mismatch for {_instruction_ref(inst)}: "
                     f"decoded {target_addr}, node {node.target}")
-            metadata.update(_full_index_metadata(decoded_op, inst))
-            if node.metadata != metadata:
+            metadata = _full_index_metadata(decoded_op, inst)
+            if not isinstance(node.metadata, DecodedFullExtensionNodeMetadata):
+                raise ValueError(
+                    f"Typed PC full indexed metadata missing for {_instruction_ref(inst)}")
+            expected = FullIndexedOperandMetadata(
+                base_register=node.metadata.base_register,
+                index_register=node.metadata.index_register,
+                index_size=node.metadata.index_size,
+                index_scale=node.metadata.index_scale,
+                memory_indirect=node.metadata.memory_indirect,
+                postindexed=node.metadata.postindexed,
+                preindexed=node.metadata.preindexed,
+                base_suppressed=node.metadata.base_suppressed,
+                index_suppressed=node.metadata.index_suppressed,
+                base_displacement=node.metadata.base_displacement,
+                outer_displacement=node.metadata.outer_displacement,
+            )
+            if expected != metadata:
                 raise ValueError(
                     f"Typed PC full indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {metadata}, node {node.metadata}")
+                    f"decoded {metadata}, node {expected}")
             value = op_value
             kind = "pc_memory_indirect_indexed"
             text = node.text
@@ -813,10 +915,10 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
 def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value,
                                     operand_index: int,
                                     hunk_session: HunkDisassemblySession,
-                                    meta: dict,
+                                    meta: DecodedInstructionForEmit,
                                     used_structs: set[str] | None,
                                     include_arg_subs: bool) -> SemanticOperand:
-    flow_type = runtime_m68k_analysis.FLOW_TYPES[meta["mnemonic"]]
+    flow_type = runtime_m68k_analysis.FLOW_TYPES[meta.mnemonic]
     branch_target = None
     if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL):
         branch_target = extract_branch_target(inst, inst.offset)
@@ -831,8 +933,6 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         base = _build_decoded_semantic_operand(
             inst, token, "decoded", decoded_op, operand_index,
             hunk_session, meta, used_structs, include_arg_subs)
-        metadata = dict(base.metadata)
-        metadata["bitfield"] = bitfield
         return SemanticOperand(
             kind="bitfield_ea",
             text=base.text,
@@ -841,7 +941,10 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             base_register=base.base_register,
             displacement=base.displacement,
             target_addr=base.target_addr,
-            metadata=metadata,
+            metadata=BitfieldOperandMetadata(
+                bitfield=bitfield,
+                symbol=base.metadata.symbol if isinstance(base.metadata, SymbolOperandMetadata) else None,
+            ),
         )
 
     if spec_type == "special_register":
@@ -856,7 +959,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         return SemanticOperand(
             kind="register_pair",
             text=token.lower(),
-            metadata={"registers": [f"d{hi}", f"d{lo}"]},
+            metadata=RegisterPairOperandMetadata(registers=(f"d{hi}", f"d{lo}")),
         )
 
     if spec_type == "reglist":
@@ -873,7 +976,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             text=text,
             value=branch_target,
             target_addr=branch_target,
-            metadata={"symbol": label} if label is not None else {},
+            metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
     if spec_type == "immediate":
@@ -894,13 +997,13 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             text=text,
             value=value,
             target_addr=target,
-            metadata={"symbol": label} if label is not None else {},
+            metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
-    decoded_op = spec_value
-    op_mode = getattr(decoded_op, "mode", None)
-    op_value = getattr(decoded_op, "value", None)
-    metadata: dict[str, object] = {}
+    decoded_op: Operand = spec_value
+    op_mode = decoded_op.mode
+    op_value = decoded_op.value
+    metadata: SemanticOperandMetadata = {}
     kind = "text"
     value = None
     register = None
@@ -924,7 +1027,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         if label is not None:
             kind = "immediate_symbol"
             target_addr = target
-            metadata["symbol"] = label
+            metadata = SymbolOperandMetadata(symbol=label)
             text = f"#{label}"
         else:
             kind = "immediate"
@@ -948,10 +1051,11 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             kind = "call_target"
         elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
             kind = "branch_target"
-        elif op_mode == "pcindex" and getattr(decoded_op, "memory_indirect", False):
-            metadata.update(_full_index_metadata(decoded_op, inst))
+        elif op_mode == "pcindex" and decoded_op.memory_indirect:
+            metadata = _full_index_metadata(decoded_op, inst)
             kind = "pc_memory_indirect_indexed"
         elif op_mode == "pcindex":
+            metadata = _index_metadata(decoded_op, inst)
             kind = "pc_relative_indexed"
         else:
             kind = "pc_relative_target"
@@ -964,7 +1068,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
                   or _app_offset_symbol(base_register, displacement, hunk_session))
         if symbol is not None:
             kind = "base_displacement_symbol"
-            metadata["symbol"] = symbol
+            metadata = SymbolOperandMetadata(symbol=symbol)
         else:
             kind = "base_displacement"
         text = _base_disp_text(base_register, displacement, token, decoded_op, symbol)
@@ -981,11 +1085,11 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         base_register = f"a{decoded_op.reg}"
         displacement = op_value
         value = op_value
-        if getattr(decoded_op, "memory_indirect", False):
-            metadata.update(_full_index_metadata(decoded_op, inst))
+        if decoded_op.memory_indirect:
+            metadata = _full_index_metadata(decoded_op, inst)
             kind = "memory_indirect_indexed"
         else:
-            metadata.update(_index_metadata(decoded_op, inst))
+            metadata = _index_metadata(decoded_op, inst)
             kind = "indexed"
     else:
         raise ValueError(

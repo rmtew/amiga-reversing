@@ -81,9 +81,9 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
                 prev = caller_blk.instructions[j]
                 prev_kb = instruction_kb(prev)
                 prev_dec = decode_inst_operands(prev, prev_kb)
-                if prev_dec["imm_val"] is None:
+                if prev_dec.imm_val is None:
                     continue
-                pv = prev_dec["imm_val"]
+                pv = prev_dec.imm_val
                 pv_signed = pv - 0x100000000 if pv >= 0x80000000 else pv
                 if pv_signed == lvo:
                     imm_token = _immediate_operand_token(prev)
@@ -140,7 +140,7 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entitie
                 prev = blk.instructions[j]
                 prev_kb = instruction_kb(prev)
                 prev_dec = decode_inst_operands(prev, prev_kb)
-                if prev_dec["imm_val"] is None:
+                if prev_dec.imm_val is None:
                     continue
                 dst = decode_inst_destination(prev, prev_kb)
                 if dst is None:
@@ -148,7 +148,7 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entitie
                 dst_mode, dst_num = dst
                 if dst_mode != reg_mode or dst_num != reg_n:
                     continue
-                imm_val = prev_dec["imm_val"]
+                imm_val = prev_dec.imm_val
                 const_name = vmap.get(imm_val)
                 if const_name is None and imm_val >= 0x80000000:
                     const_name = vmap.get(imm_val - 0x100000000)

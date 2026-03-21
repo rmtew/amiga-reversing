@@ -1,7 +1,21 @@
 from __future__ import annotations
 
+from dataclasses import asdict, is_dataclass
+
 from disasm.text import listing_window
-from disasm.types import DisassemblySession, ListingRow, SemanticOperand
+from disasm.types import (
+    DisassemblySession,
+    ListingRow,
+    SemanticOperand,
+)
+
+
+def _semantic_metadata_dict(metadata) -> dict:
+    if isinstance(metadata, dict):
+        return dict(metadata)
+    if is_dataclass(metadata):
+        return asdict(metadata)
+    raise TypeError(f"Unsupported semantic metadata type: {type(metadata)!r}")
 
 
 def serialize_operand(operand: SemanticOperand) -> dict:
@@ -13,7 +27,7 @@ def serialize_operand(operand: SemanticOperand) -> dict:
         "base_register": operand.base_register,
         "displacement": operand.displacement,
         "target_addr": operand.target_addr,
-        "metadata": dict(operand.metadata),
+        "metadata": _semantic_metadata_dict(operand.metadata),
     }
 
 
@@ -73,4 +87,3 @@ def listing_window_payload(rows: list[ListingRow], addr: int | None,
         "total_rows": window["total_rows"],
         "rows": [serialize_row(row) for row in window["rows"]],
     }
-

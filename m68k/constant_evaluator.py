@@ -19,18 +19,18 @@ def resolve_constant_reg(instructions, reg_mode: str, reg_num: int,
         mnemonic = instruction_kb(inst)
         op_type = runtime_m68k_decode.OPERATION_TYPES.get(mnemonic)
         decoded = decode_inst_operands(inst, mnemonic)
-        ea_op = decoded.get("ea_op")
+        ea_op = decoded.ea_op
         if (op_type == "clear"
                 and ea_op is not None
                 and ea_op.mode == current_mode
                 and ea_op.reg == current_reg):
             return offset
         if (op_type in ("add", "sub")
-                and decoded.get("imm_val") is not None
+                and decoded.imm_val is not None
                 and ea_op is not None
                 and ea_op.mode == current_mode
                 and ea_op.reg == current_reg):
-            imm = decoded["imm_val"]
+            imm = decoded.imm_val
             offset += imm if op_type == runtime_m68k_decode.OperationType.ADD else -imm
             continue
         if (op_type in ("add", "sub")
@@ -45,18 +45,18 @@ def resolve_constant_reg(instructions, reg_mode: str, reg_num: int,
                     continue
         if (current_mode == "dn"
                 and op_type in ("shift", "rotate")
-                and decoded.get("reg_num") == current_reg
-                and decoded.get("imm_val") is not None):
+                and decoded.reg_num == current_reg
+                and decoded.imm_val is not None):
             src_val = resolve_constant_reg(
                 instructions, current_mode, current_reg, inst.offset)
             if src_val is not None:
                 shifted = value_transforms._apply_known_shift(
-                    inst.opcode_text, inst.operand_size, src_val, decoded["imm_val"])
+                    inst.opcode_text, inst.operand_size, src_val, decoded.imm_val)
                 if shifted is not None:
                     return shifted + offset
         if (current_mode == "dn"
                 and op_type in ("shift", "rotate")
-                and decoded.get("imm_val") is None
+                and decoded.imm_val is None
                 and len(inst.operand_nodes) == 2):
             src_node, dst_node = inst.operand_nodes
             if (src_node.kind == "register"
@@ -77,7 +77,7 @@ def resolve_constant_reg(instructions, reg_mode: str, reg_num: int,
                             return shifted + offset
         if (current_mode == "dn"
                 and op_type in ("and", "or", "xor")
-                and decoded.get("imm_val") is not None
+                and decoded.imm_val is not None
                 and ea_op is not None
                 and ea_op.mode == "dn"
                 and ea_op.reg == current_reg):
@@ -85,7 +85,7 @@ def resolve_constant_reg(instructions, reg_mode: str, reg_num: int,
                 instructions, current_mode, current_reg, inst.offset)
             if src_val is not None:
                 updated = value_transforms._apply_known_logical(
-                    op_type, inst.operand_size, src_val, decoded["imm_val"])
+                    op_type, inst.operand_size, src_val, decoded.imm_val)
                 if updated is not None:
                     return updated + offset
         if (current_mode == "dn"
@@ -93,17 +93,17 @@ def resolve_constant_reg(instructions, reg_mode: str, reg_num: int,
                 and ea_op is not None
                 and ea_op.mode == "dn"
                 and ea_op.reg == current_reg
-                and decoded.get("imm_val") is not None):
+                and decoded.imm_val is not None):
             src_val = resolve_constant_reg(
                 instructions, current_mode, current_reg, inst.offset)
             if src_val is not None:
                 updated = value_transforms._apply_known_bitop(
-                    inst.opcode_text, src_val, decoded["imm_val"])
+                    inst.opcode_text, src_val, decoded.imm_val)
                 if updated is not None:
                     return updated + offset
         if (current_mode == "dn"
                 and op_type == "bit_test"
-                and decoded.get("imm_val") is None
+                and decoded.imm_val is None
                 and len(inst.operand_nodes) == 2):
             src_node, dst_node = inst.operand_nodes
             if (src_node.kind == "register"
@@ -136,7 +136,7 @@ def resolve_constant_reg(instructions, reg_mode: str, reg_num: int,
                     return updated + offset
         if (current_mode == "dn"
                 and op_type in ("and", "or", "xor")
-                and decoded.get("imm_val") is None
+                and decoded.imm_val is None
                 and ea_op is not None
                 and ea_op.mode in ("dn", "an")):
             dst = decode_inst_destination(inst, mnemonic)
@@ -232,8 +232,8 @@ def resolve_constant_reg(instructions, reg_mode: str, reg_num: int,
         dst = decode_inst_destination(inst, mnemonic)
         if dst != (current_mode, current_reg):
             continue
-        if decoded.get("imm_val") is not None:
-            return decoded["imm_val"] + offset
+        if decoded.imm_val is not None:
+            return decoded.imm_val + offset
         if ea_op is not None and ea_op.mode == "imm" and ea_op.value is not None:
             return ea_op.value + offset
         if op_type == runtime_m68k_decode.OperationType.MOVE and ea_op is not None and ea_op.mode in ("dn", "an"):

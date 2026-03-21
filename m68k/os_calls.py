@@ -22,7 +22,7 @@ from m68k_kb import runtime_m68k_decode
 from m68k_kb import runtime_os
 
 from .instruction_kb import find_kb_entry, instruction_flow, instruction_kb
-from .instruction_decode import decode_inst_destination, decode_inst_operands, xf
+from .instruction_decode import DecodedOperands, decode_inst_destination, decode_inst_operands, xf
 from .instruction_primitives import extract_branch_target
 from .m68k_executor import BasicBlock
 from .registers import parse_reg_name
@@ -48,19 +48,19 @@ def _base_disp_operand(op, base_reg: int) -> int | None:
     return op.value
 
 
-def _decoded_source_reg(decoded) -> str | None:
-    src = decoded.get("ea_op")
+def _decoded_source_reg(decoded: DecodedOperands) -> str | None:
+    src = decoded.ea_op
     if src is None or src.mode not in {"dn", "an"}:
         return None
     return _reg_name(src.mode, src.reg)
 
 
-def _decoded_dest_reg(decoded) -> str | None:
-    dst = decoded.get("dst_op")
+def _decoded_dest_reg(decoded: DecodedOperands) -> str | None:
+    dst = decoded.dst_op
     if dst is not None and dst.mode in {"dn", "an"}:
         return _reg_name(dst.mode, dst.reg)
-    reg_mode = decoded.get("reg_mode")
-    reg_num = decoded.get("reg_num")
+    reg_mode = decoded.reg_mode
+    reg_num = decoded.reg_num
     if reg_mode in {"dn", "an"} and reg_num is not None:
         return _reg_name(reg_mode, reg_num)
     return None
@@ -241,7 +241,7 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
                 if ikb and runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE:
                     if (_decoded_source_reg(decoded) == ret_reg
                             and (offset := _base_disp_operand(
-                                decoded.get("dst_op"), base_reg)) is not None):
+                                decoded.dst_op, base_reg)) is not None):
                         return offset
                 # Stop if ret_reg is overwritten
                 dst = decode_inst_destination(inst, ikb)
@@ -306,7 +306,7 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
             if ikb and runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE:
                 src_name = _decoded_source_reg(decoded)
                 if src_name in tracked:
-                    offset = _base_disp_operand(decoded.get("dst_op"), base_reg)
+                    offset = _base_disp_operand(decoded.dst_op, base_reg)
                     if offset is not None:
                         if offset not in result:
                             result[offset] = dict(info)
@@ -407,7 +407,7 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
                     continue
 
                 # Found the setter. Check if source is d(base_reg)
-                offset = _base_disp_operand(decoded.get("ea_op"), base_reg)
+                offset = _base_disp_operand(decoded.ea_op, base_reg)
                 if offset is not None:
                     if offset not in result:
                         result[offset] = {

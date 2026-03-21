@@ -26,8 +26,8 @@ def discover_operand_targets(blocks: dict, code: bytes | None) -> tuple[dict[int
     absolute_targets: set[int] = set()
     for blk in blocks.values():
         for inst in blk.instructions:
-            decoded = decode_inst_for_emit(inst)["decoded"]
-            for op in (decoded["ea_op"], decoded["dst_op"]):
+            decoded = decode_inst_for_emit(inst).decoded
+            for op in (decoded.ea_op, decoded.dst_op):
                 if op is None or op.value is None:
                     continue
                 if op.mode in ("pcdisp", "pcindex"):

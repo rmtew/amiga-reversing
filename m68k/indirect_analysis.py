@@ -396,7 +396,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         if runtime_m68k_analysis.OPERATION_TYPES[ikb] != runtime_m68k_analysis.OperationType.MOVE:
             return None
         decoded = decode_inst_operands(inst, ikb)
-        src = decoded.get("ea_op")
+        src = decoded.ea_op
         dst = decode_inst_destination(inst, ikb)
         if src is None or dst is None:
             return None
@@ -568,7 +568,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         if use_fast_path:
             source_ft = None
             last_inst = blocks[unres_addr].instructions[-1]
-            if getattr(last_inst, "kb_mnemonic", None):
+            if last_inst.kb_mnemonic:
                 source_ft = instruction_flow(last_inst)[0]
             for caller_addr in callers:
                 owner = block_owner.get(caller_addr)
@@ -614,7 +614,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         else:
             source_ft = None
             last_inst = blocks[unres_addr].instructions[-1]
-            if getattr(last_inst, "kb_mnemonic", None):
+            if last_inst.kb_mnemonic:
                 source_ft = instruction_flow(last_inst)[0]
             for caller_addr in callers:
                 if caller_addr not in exit_states:

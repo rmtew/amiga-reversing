@@ -16,7 +16,6 @@ GenAm patterns modelled:
 """
 
 import struct
-from types import SimpleNamespace
 from m68k.instruction_kb import instruction_kb
 from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
                                 _concrete, _unknown, BasicBlock, XRef)
@@ -26,7 +25,7 @@ from m68k.indirect_analysis import (collect_call_entry_states,
                                     resolve_backward_slice)
 from m68k.indirect_core import decode_jump_ea
 from m68k.m68k_asm import assemble_instruction
-from m68k.m68k_disasm import disassemble
+from m68k.m68k_disasm import disassemble, Instruction
 
 
 # ---- Helpers ----------------------------------------------------------------
@@ -34,6 +33,18 @@ from m68k.m68k_disasm import disassemble
 # Minimal platform config enabling SP tracking (symbolic SP at entry).
 # All propagation-based tests need this for BSR/JSR stack tracking.
 _MINIMAL_PLATFORM = {"scratch_regs": []}
+
+
+def _stub_instruction(offset: int) -> Instruction:
+    return Instruction(
+        offset=offset,
+        size=2,
+        opcode=0x4E71,
+        text="nop",
+        raw=b"\x4E\x71",
+        kb_mnemonic=None,
+        operand_size=None,
+    )
 
 
 def _analyze_and_resolve(code, entry_points=None, platform=None):
@@ -4217,14 +4228,14 @@ def test_resolve_per_caller_caches_summarized_propagation(monkeypatch):
     caller = BasicBlock(start=0x00, end=0x02, instructions=[], successors=[0x10],
                         predecessors=[], xrefs=[XRef(src=0x00, dst=0x10, type="call")])
     sub = BasicBlock(start=0x10, end=0x12,
-                     instructions=[SimpleNamespace(offset=0x10)],
+                     instructions=[_stub_instruction(0x10)],
                      successors=[0x12, 0x14], predecessors=[0x00],
                      xrefs=[XRef(src=0x10, dst=0x30, type="call")])
     unres_a = BasicBlock(start=0x12, end=0x14,
-                         instructions=[SimpleNamespace(offset=0x12)],
+                         instructions=[_stub_instruction(0x12)],
                          successors=[], predecessors=[0x10], xrefs=[])
     unres_b = BasicBlock(start=0x14, end=0x16,
-                         instructions=[SimpleNamespace(offset=0x14)],
+                         instructions=[_stub_instruction(0x14)],
                          successors=[], predecessors=[0x10], xrefs=[])
     callee = BasicBlock(start=0x30, end=0x32, instructions=[],
                         successors=[], predecessors=[], xrefs=[])

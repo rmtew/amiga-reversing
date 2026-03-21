@@ -24,7 +24,7 @@ def collect_data_access_sizes(blocks: dict, exit_states: dict) -> dict[int, int]
                 continue
             decoded = decode_inst_operands(inst)
 
-            for op in (decoded.get("ea_op"), decoded.get("dst_op")):
+            for op in (decoded.ea_op, decoded.dst_op):
                 if op is None or op.reg is None:
                     continue
                 if op.mode not in {"ind", "postinc", "disp"}:

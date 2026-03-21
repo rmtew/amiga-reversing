@@ -48,7 +48,7 @@ def _is_indexed_ea(inst, mnemonic: str | None = None) -> dict | None:
     if len(inst.raw) < 4:
         return None
     decoded = decode_inst_operands(inst, mnemonic)
-    operand = decoded.get("ea_op")
+    operand = decoded.ea_op
     if operand is None:
         return None
     if operand.mode == "pcindex":
@@ -324,14 +324,14 @@ def _find_sparse_pc_indirect_table(pred: BasicBlock, call_inst, code: bytes,
 
             if (runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic)
                     == runtime_m68k_analysis.OperationType.COMPARE):
-                compared_reg = decoded.get("reg_num")
-                if compared_reg is None and decoded.get("ea_op") is not None:
-                    ea_op = decoded["ea_op"]
+                compared_reg = decoded.reg_num
+                if compared_reg is None and decoded.ea_op is not None:
+                    ea_op = decoded.ea_op
                     if ea_op.mode == "dn":
                         compared_reg = ea_op.reg
-                imm_val = decoded.get("imm_val")
-                if imm_val is None and decoded.get("ea_op") is not None:
-                    ea_op = decoded["ea_op"]
+                imm_val = decoded.imm_val
+                if imm_val is None and decoded.ea_op is not None:
+                    ea_op = decoded.ea_op
                     if ea_op.mode == "imm":
                         imm_val = ea_op.value
                 next_inst = block.instructions[idx + 1] if idx + 1 < len(block.instructions) else None
@@ -394,7 +394,7 @@ def _find_string_dispatch_targets(blocks: dict[int, BasicBlock], code: bytes,
         if address_reconstruction.is_lea(inst):
             dst = address_reconstruction._get_lea_dst_reg(inst)
             decoded = decode_inst_operands(inst, ikb)
-            ea_op = decoded.get("ea_op")
+            ea_op = decoded.ea_op
             if ea_op is None:
                 continue
             if ea_op.mode == "pcdisp":
@@ -415,8 +415,8 @@ def _find_string_dispatch_targets(blocks: dict[int, BasicBlock], code: bytes,
         if ikb != "CMPA":
             continue
         decoded = decode_inst_operands(inst, ikb)
-        ea_op = decoded.get("ea_op")
-        if decoded.get("reg_num") != target_reg or ea_op is None or ea_op.mode != "an":
+        ea_op = decoded.ea_op
+        if decoded.reg_num != target_reg or ea_op is None or ea_op.mode != "an":
             continue
         table_end = pc_lea_targets.get(ea_op.reg)
 
@@ -461,8 +461,8 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
             prev_kb = instruction_kb(prev)
             if prev_kb and runtime_m68k_analysis.OPERATION_TYPES.get(prev_kb) == runtime_m68k_analysis.OperationType.MOVE:
                 decoded = decode_inst_operands(prev, prev_kb)
-                ea_op = decoded.get("ea_op")
-                dst_op = decoded.get("dst_op")
+                ea_op = decoded.ea_op
+                dst_op = decoded.dst_op
                 # Source must be An, destination must be predec SP
                 if (ea_op and ea_op.mode == "an"
                         and dst_op and dst_op.mode == "predec"

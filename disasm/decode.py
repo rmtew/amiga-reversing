@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from types import SimpleNamespace
 
 from m68k.instruction_kb import find_kb_entry
-from m68k.instruction_decode import decode_inst_operands
+from m68k.instruction_decode import DecodedOperands, decode_inst_operands
 
 _INSTRUCTION_KB_CACHE: dict[str, str | None] = {}
-_INSTRUCTION_DECODE_CACHE: dict[tuple[str, bytes, int, str], dict] = {}
+
+
+@dataclass(slots=True)
+class DecodedInstructionForEmit:
+    mnemonic: str
+    size: str
+    decoded: DecodedOperands
+
+
+_INSTRUCTION_DECODE_CACHE: dict[tuple[str, bytes, int, str], DecodedInstructionForEmit] = {}
 
 
 def lookup_instruction_kb(mnemonic: str) -> str:
@@ -24,7 +34,7 @@ def lookup_instruction_kb(mnemonic: str) -> str:
 def decode_instruction_for_emit(inst_raw: bytes,
                                 inst_offset: int,
                                 kb_mnemonic: str,
-                                operand_size: str) -> dict:
+                                operand_size: str) -> DecodedInstructionForEmit:
     """Decode an instruction once for emission-time consumers."""
     if not kb_mnemonic:
         raise ValueError(
@@ -42,7 +52,7 @@ def decode_instruction_for_emit(inst_raw: bytes,
     return decode_inst_for_emit(inst)
 
 
-def decode_inst_for_emit(inst) -> dict:
+def decode_inst_for_emit(inst) -> DecodedInstructionForEmit:
     """Decode and cache operand metadata on an Instruction object."""
     if inst.decoded_operands is not None:
         return inst.decoded_operands
@@ -59,11 +69,11 @@ def decode_inst_for_emit(inst) -> dict:
         return cached
 
     mnemonic = lookup_instruction_kb(inst.kb_mnemonic)
-    meta = {
-        "mnemonic": mnemonic,
-        "size": inst.operand_size,
-        "decoded": decode_inst_operands(inst, mnemonic),
-    }
+    meta = DecodedInstructionForEmit(
+        mnemonic=mnemonic,
+        size=inst.operand_size,
+        decoded=decode_inst_operands(inst, mnemonic),
+    )
     _INSTRUCTION_DECODE_CACHE[key] = meta
     inst.decoded_operands = meta
     return meta

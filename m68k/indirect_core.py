@@ -34,7 +34,7 @@ def decode_jump_ea(last):
     except (ValueError, struct.error):
         return None, None
 
-    operand = decoded.get("ea_op")
+    operand = decoded.ea_op
     if operand is None:
         return None, None
     return operand, ikb

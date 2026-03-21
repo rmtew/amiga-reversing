@@ -4,6 +4,62 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from m68k.instruction_decode import DecodedBitfield
+
+
+@dataclass(frozen=True, slots=True)
+class SymbolOperandMetadata:
+    symbol: str
+
+
+@dataclass(frozen=True, slots=True)
+class RegisterListOperandMetadata:
+    registers: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RegisterPairOperandMetadata:
+    registers: tuple[str, str]
+
+
+@dataclass(frozen=True, slots=True)
+class BitfieldOperandMetadata:
+    bitfield: DecodedBitfield
+    symbol: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class IndexedOperandMetadata:
+    index_register: str
+    index_size: str
+    symbol: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class FullIndexedOperandMetadata:
+    base_register: str | None
+    index_register: str | None
+    index_size: str | None
+    index_scale: int | None
+    memory_indirect: bool
+    postindexed: bool
+    preindexed: bool
+    base_suppressed: bool
+    index_suppressed: bool
+    base_displacement: int | None
+    outer_displacement: int | None
+    symbol: str | None = None
+
+
+SemanticOperandMetadata = (
+    dict[str, Any]
+    | SymbolOperandMetadata
+    | RegisterListOperandMetadata
+    | RegisterPairOperandMetadata
+    | BitfieldOperandMetadata
+    | IndexedOperandMetadata
+    | FullIndexedOperandMetadata
+)
 
 @dataclass(frozen=True)
 class SemanticOperand:
@@ -14,7 +70,7 @@ class SemanticOperand:
     base_register: str | None = None
     displacement: int | None = None
     target_addr: int | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: SemanticOperandMetadata = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

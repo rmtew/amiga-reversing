@@ -1,11 +1,18 @@
 """Shared M68K instruction decode and operand-selection helpers."""
 
+from __future__ import annotations
+
 import struct
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from m68k_kb import runtime_m68k_decode
 
 from .decode_errors import DecodeError
 from .instruction_primitives import decode_ea as _decode_ea, Operand, xf as _xf
+
+if TYPE_CHECKING:
+    from .m68k_disasm import Instruction
 
 _OPMODE_SIZE = 0
 _OPMODE_DESCRIPTION = 1
@@ -14,6 +21,31 @@ _OPMODE_SOURCE = 3
 _OPMODE_DESTINATION = 4
 _OPMODE_RX_MODE = 5
 _OPMODE_RY_MODE = 6
+
+
+@dataclass(slots=True)
+class DecodedOperands:
+    operand_types: tuple[str, ...] = ()
+    ea_op: Operand | None = None
+    dst_op: Operand | None = None
+    reg_num: int | None = None
+    imm_val: int | None = None
+    ea_is_source: bool | None = None
+    compare_reg: int | None = None
+    update_reg: int | None = None
+    reg_mode: str | None = None
+    secondary_reg: int | None = None
+    control_register: str | None = None
+    bitfield: DecodedBitfield | None = None
+
+
+@dataclass(slots=True)
+class DecodedBitfield:
+    offset_is_register: bool
+    offset_value: int
+    width_is_register: bool
+    width_value: int
+    register: int | None = None
 
 
 def _raw_field_spec(raw_fields: tuple[tuple[str, int, int, int], ...], name: str):
@@ -236,7 +268,7 @@ def select_operand_types_from_raw(mnemonic: str, inst_raw: bytes) -> tuple[str, 
     return operand_types
 
 
-def _decode_bitfield_extension(inst_raw: bytes, opword_bytes: int, mnemonic: str) -> dict:
+def _decode_bitfield_extension(inst_raw: bytes, opword_bytes: int, mnemonic: str) -> DecodedBitfield:
     if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2:
         raise ValueError(f"KB bitfield extension encoding missing in {mnemonic}")
     if len(inst_raw) < opword_bytes + 2:
@@ -261,41 +293,37 @@ def _decode_bitfield_extension(inst_raw: bytes, opword_bytes: int, mnemonic: str
         offset_value -= 32
     if not width_is_register and width_value == 0:
         width_value = 32
-    result = {
-        "offset_is_register": offset_is_register,
-        "offset_value": offset_value,
-        "width_is_register": width_is_register,
-        "width_value": width_value,
-    }
     reg_field = _field("REGISTER")
-    if reg_field is not None:
-        result["register"] = _xf(ext, reg_field)
-    return result
+    register = _xf(ext, reg_field) if reg_field is not None else None
+    return DecodedBitfield(
+        offset_is_register=offset_is_register,
+        offset_value=offset_value,
+        width_is_register=width_is_register,
+        width_value=width_value,
+        register=register,
+    )
 
 
 def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                                 opword_bytes: int,
                                 size_byte_count: dict[str, int],
                                 size: str,
-                                inst_offset: int) -> dict:
+                                inst_offset: int) -> DecodedOperands:
     """Decode source and destination operands from raw instruction bytes.
 
     Extracts structured operand info using KB encoding fields, without
     executing the instruction.  This is the same decode logic used in the
     executor's _apply_instruction, extracted for use by downstream tools.
 
-    Returns dict with:
+    Returns:
+        operand_types: resolved operand form from KB, or ()
         ea_op: Operand from MODE/REGISTER (bits 5-0), or None
         dst_op: Operand from upper MODE/REGISTER (MOVE only), or None
         reg_num: register number from upper REGISTER field, or None
         imm_val: decoded immediate (from DATA field or extension words), or None
         ea_is_source: bool from OPMODE (None if no OPMODE)
     """
-    result = {"ea_op": None, "dst_op": None, "reg_num": None,
-              "imm_val": None, "ea_is_source": None,
-              "compare_reg": None, "update_reg": None,
-              "reg_mode": None, "secondary_reg": None,
-              "control_register": None}
+    result = DecodedOperands()
 
     if len(inst_raw) < opword_bytes:
         return result
@@ -304,6 +332,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
     encoding_index = select_encoding_index(mnemonic, opcode)
     enc_fields = runtime_m68k_decode.RAW_FIELDS[encoding_index][mnemonic]
     operand_types = select_operand_types_from_raw(mnemonic, inst_raw)
+    result.operand_types = operand_types
 
     mode_fields = sorted(
         [(name, bit_hi, bit_lo, width) for name, bit_hi, bit_lo, width in enc_fields if name == "MODE"],
@@ -357,7 +386,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         ext_pos += 2
 
     if "bf_ea" in operand_types:
-        result["bitfield"] = _decode_bitfield_extension(inst_raw, opword_bytes, mnemonic)
+        result.bitfield = _decode_bitfield_extension(inst_raw, opword_bytes, mnemonic)
     if mnemonic == "MOVES" and operand_types in {("rn", "ea"), ("ea", "rn")}:
         if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")
@@ -369,8 +398,8 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         dr_field = _raw_field_spec(fields, "dr")
         if ad_field is None or reg_field is None or dr_field is None:
             raise ValueError(f"{mnemonic} extension fields missing")
-        result["reg_mode"] = "an" if _xf(ext, ad_field) else "dn"
-        result["reg_num"] = _xf(ext, reg_field)
+        result.reg_mode = "an" if _xf(ext, ad_field) else "dn"
+        result.reg_num = _xf(ext, reg_field)
         dr = _xf(ext, dr_field)
         if mode_fields and reg_fields:
             mf = mode_fields[0]
@@ -378,8 +407,8 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
             ea_mode = _xf(opcode, (mf[1], mf[2], mf[3]))
             ea_reg = _xf(opcode, (rf[1], rf[2], rf[3]))
             ea_op, _ = _decode_ea(inst_raw, ext_pos, ea_mode, ea_reg, size, inst_offset)
-            result["ea_op"] = ea_op
-        result["ea_is_source"] = bool(dr)
+            result.ea_op = ea_op
+        result.ea_is_source = bool(dr)
     if mnemonic == "MOVEC" and operand_types in {("ctrl_reg", "rn"), ("rn", "ctrl_reg")}:
         if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")
@@ -390,10 +419,10 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         ctrl_field = _raw_field_spec(fields, "CONTROL REGISTER")
         if ad_field is None or reg_field is None or ctrl_field is None:
             raise ValueError(f"{mnemonic} extension fields missing")
-        result["reg_mode"] = "an" if _xf(ext, ad_field) else "dn"
-        result["reg_num"] = _xf(ext, reg_field)
+        result.reg_mode = "an" if _xf(ext, ad_field) else "dn"
+        result.reg_num = _xf(ext, reg_field)
         ctrl = _xf(ext, ctrl_field)
-        result["control_register"] = _runtime_control_register_name(ctrl)
+        result.control_register = _runtime_control_register_name(ctrl)
     if mnemonic == "PTRAPcc" and operand_types == ("imm",):
         if len(inst_raw) < opword_bytes + 2:
             raise ValueError("PTRAPcc condition word missing")
@@ -401,26 +430,26 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         if size == "w":
             if len(inst_raw) < ext_pos + 2:
                 raise ValueError("PTRAPcc word immediate missing")
-            result["imm_val"] = struct.unpack_from(">H", inst_raw, ext_pos)[0]
+            result.imm_val = struct.unpack_from(">H", inst_raw, ext_pos)[0]
         elif size == "l":
             if len(inst_raw) < ext_pos + 4:
                 raise ValueError("PTRAPcc long immediate missing")
-            result["imm_val"] = struct.unpack_from(">I", inst_raw, ext_pos)[0]
+            result.imm_val = struct.unpack_from(">I", inst_raw, ext_pos)[0]
         else:
             raise ValueError(f"Unsupported PTRAPcc operand size {size!r}")
     if mnemonic == "LINK" and operand_types == ("an", "imm"):
         reg_field = _raw_field_spec(enc_fields, "REGISTER")
         if reg_field is None:
             raise ValueError("LINK register field missing")
-        result["reg_num"] = _xf(opcode, reg_field)
+        result.reg_num = _xf(opcode, reg_field)
         if encoding_index == 2:
             if len(inst_raw) < opword_bytes + 4:
                 raise ValueError("LINK.L displacement words missing")
-            result["imm_val"] = struct.unpack_from(">I", inst_raw, opword_bytes)[0]
+            result.imm_val = struct.unpack_from(">I", inst_raw, opword_bytes)[0]
         else:
             if len(inst_raw) < opword_bytes + 2:
                 raise ValueError("LINK.W displacement word missing")
-            result["imm_val"] = struct.unpack_from(">h", inst_raw, opword_bytes)[0] & 0xFFFFFFFF
+            result.imm_val = struct.unpack_from(">h", inst_raw, opword_bytes)[0] & 0xFFFFFFFF
     if mnemonic == "MOVE16" and operand_types == ("postinc", "postinc"):
         if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError("MOVE16 extension word missing")
@@ -433,8 +462,8 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
         ax = _xf(opcode, ax_field)
         ay = _xf(ext, ay_field)
-        result["ea_op"] = Operand(mode="postinc", reg=ax, value=None)
-        result["dst_op"] = Operand(mode="postinc", reg=ay, value=None)
+        result.ea_op = Operand(mode="postinc", reg=ax, value=None)
+        result.dst_op = Operand(mode="postinc", reg=ay, value=None)
     if mnemonic == "MOVE16" and operand_types in {
             ("absl", "postinc"), ("postinc", "absl"), ("absl", "ind"), ("ind", "absl")}:
         if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 3 or len(inst_raw) < opword_bytes + 4:
@@ -462,8 +491,8 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                 return Operand(mode="ind", reg=an, value=None)
             raise ValueError(f"Unsupported MOVE16 operand text {text!r}")
 
-        result["ea_op"] = _move16_operand(entry[_OPMODE_SOURCE])
-        result["dst_op"] = _move16_operand(entry[_OPMODE_DESTINATION])
+        result.ea_op = _move16_operand(entry[_OPMODE_SOURCE])
+        result.dst_op = _move16_operand(entry[_OPMODE_DESTINATION])
     if mnemonic == "CMPM" and operand_types == ("postinc", "postinc"):
         ax_field = _raw_field_spec(enc_fields, "REGISTER Ax")
         ay_field = _raw_field_spec(enc_fields, "REGISTER Ay")
@@ -471,8 +500,8 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
             raise ValueError("CMPM register fields missing")
         ax = _xf(opcode, ax_field)
         ay = _xf(opcode, ay_field)
-        result["ea_op"] = Operand(mode="postinc", reg=ay, value=None)
-        result["dst_op"] = Operand(mode="postinc", reg=ax, value=None)
+        result.ea_op = Operand(mode="postinc", reg=ay, value=None)
+        result.dst_op = Operand(mode="postinc", reg=ax, value=None)
     if mnemonic in {"PACK", "UNPK"} and operand_types in {
             ("dn", "dn", "imm"), ("predec", "predec", "imm")}:
         if len(inst_raw) < opword_bytes + 2:
@@ -485,14 +514,14 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         src_reg = _xf(opcode, named_reg_fields[0][1:])
         dst_reg = _xf(opcode, named_reg_fields[1][1:])
         imm = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
-        result["imm_val"] = imm
+        result.imm_val = imm
         if operand_types == ("dn", "dn", "imm"):
-            result["ea_op"] = Operand(mode="dn", reg=src_reg, value=None)
-            result["reg_num"] = src_reg
-            result["secondary_reg"] = dst_reg
+            result.ea_op = Operand(mode="dn", reg=src_reg, value=None)
+            result.reg_num = src_reg
+            result.secondary_reg = dst_reg
         else:
-            result["ea_op"] = Operand(mode="predec", reg=src_reg, value=None)
-            result["dst_op"] = Operand(mode="predec", reg=dst_reg, value=None)
+            result.ea_op = Operand(mode="predec", reg=src_reg, value=None)
+            result.dst_op = Operand(mode="predec", reg=dst_reg, value=None)
     if mnemonic in {"CHK2", "CMP2"} and operand_types == ("ea", "rn"):
         if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")
@@ -503,8 +532,8 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         reg_field = _raw_field_spec(fields, "REGISTER")
         if da_field is None or reg_field is None:
             raise ValueError(f"{mnemonic} extension fields missing")
-        result["reg_mode"] = "an" if _xf(ext, da_field) else "dn"
-        result["reg_num"] = _xf(ext, reg_field)
+        result.reg_mode = "an" if _xf(ext, da_field) else "dn"
+        result.reg_num = _xf(ext, reg_field)
     if operand_types == ("dn", "dn", "ea"):
         if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"CAS extension word missing for {mnemonic}")
@@ -515,8 +544,8 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         dc_field = _raw_field_spec(fields, "Dc")
         if du_field is None or dc_field is None:
             raise ValueError(f"CAS extension fields missing for {mnemonic}")
-        result["update_reg"] = _xf(ext, du_field)
-        result["compare_reg"] = _xf(ext, dc_field)
+        result.update_reg = _xf(ext, du_field)
+        result.compare_reg = _xf(ext, dc_field)
     if operand_types == ("ea", "rn"):
         if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")
@@ -526,28 +555,28 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         reg_field = _raw_field_spec(fields, "REGISTER")
         if da_field is None or reg_field is None:
             raise ValueError(f"{mnemonic} extension fields missing")
-        result["reg_mode"] = "an" if _xf(ext, da_field) else "dn"
-        result["reg_num"] = _xf(ext, reg_field)
+        result.reg_mode = "an" if _xf(ext, da_field) else "dn"
+        result.reg_num = _xf(ext, reg_field)
     if operand_types == ("rn",):
         da_field = _raw_field_spec(enc_fields, "D/A")
         reg_field = _raw_field_spec(enc_fields, "REGISTER")
         if da_field is None or reg_field is None:
             raise ValueError(f"{mnemonic} register fields missing")
-        result["reg_mode"] = "an" if _xf(opcode, da_field) else "dn"
-        result["reg_num"] = _xf(opcode, reg_field)
+        result.reg_mode = "an" if _xf(opcode, da_field) else "dn"
+        result.reg_num = _xf(opcode, reg_field)
     if operand_types == ("dn", "label"):
         reg_field = _raw_field_spec(enc_fields, "COUNT REGISTER") or _raw_field_spec(enc_fields, "REGISTER")
         if reg_field is None:
             raise ValueError(f"{mnemonic} count register field missing")
-        result["reg_num"] = _xf(opcode, reg_field)
+        result.reg_num = _xf(opcode, reg_field)
     if operand_types in {("usp", "an"), ("an", "usp")}:
         dr_field = _raw_field_spec(enc_fields, "dr")
         reg_field = _raw_field_spec(enc_fields, "REGISTER")
         if dr_field is None or reg_field is None:
             raise ValueError(f"{mnemonic} direction/register fields missing")
-        result["reg_mode"] = "an"
-        result["reg_num"] = _xf(opcode, reg_field)
-        result["ea_is_source"] = bool(_xf(opcode, dr_field))
+        result.reg_mode = "an"
+        result.reg_num = _xf(opcode, reg_field)
+        result.ea_is_source = bool(_xf(opcode, dr_field))
     if mnemonic in {"ADDX", "SUBX", "ABCD", "SBCD"}:
         named_reg_fields = sorted(
             _raw_fields_by_prefix(enc_fields, "REGISTER "),
@@ -557,11 +586,11 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         src_reg = _xf(opcode, named_reg_fields[0][1:])
         dst_reg = _xf(opcode, named_reg_fields[1][1:])
         if operand_types == ("dn", "dn"):
-            result["ea_op"] = Operand(mode="dn", reg=src_reg, value=None)
-            result["reg_num"] = src_reg
+            result.ea_op = Operand(mode="dn", reg=src_reg, value=None)
+            result.reg_num = src_reg
         elif operand_types == ("predec", "predec"):
-            result["ea_op"] = Operand(mode="predec", reg=src_reg, value=None)
-            result["dst_op"] = Operand(mode="predec", reg=dst_reg, value=None)
+            result.ea_op = Operand(mode="predec", reg=src_reg, value=None)
+            result.dst_op = Operand(mode="predec", reg=dst_reg, value=None)
     if (operand_types in {("ea", "dn"), ("ea", "dn_pair")}
             and encoding_index > 0
             and len(inst_raw) >= opword_bytes + 2):
@@ -575,14 +604,14 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                     for name, bit_hi, bit_lo, width in ext_reg_fields
                 }
                 if "REGISTER Dr" in reg_values and "REGISTER Dq" in reg_values:
-                    result["reg_num"] = reg_values["REGISTER Dr"]
-                    result["secondary_reg"] = reg_values["REGISTER Dq"]
+                    result.reg_num = reg_values["REGISTER Dr"]
+                    result.secondary_reg = reg_values["REGISTER Dq"]
                 elif "REGISTER Dl" in reg_values and "REGISTER Dh" in reg_values:
-                    result["reg_num"] = reg_values["REGISTER Dl"]
-                    result["secondary_reg"] = reg_values["REGISTER Dh"]
+                    result.reg_num = reg_values["REGISTER Dl"]
+                    result.secondary_reg = reg_values["REGISTER Dh"]
                 elif "REGISTER Dh" in reg_values and "REGISTER DI" in reg_values:
-                    result["reg_num"] = reg_values["REGISTER DI"]
-                    result["secondary_reg"] = reg_values["REGISTER Dh"]
+                    result.reg_num = reg_values["REGISTER DI"]
+                    result.secondary_reg = reg_values["REGISTER Dh"]
 
     # Decode EA from lowest MODE + lowest REGISTER
     if mode_fields and reg_fields:
@@ -594,7 +623,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
             ea_op, ext_pos = _decode_ea(
                 inst_raw, ext_pos,
                 ea_mode, ea_reg, size, inst_offset)
-            result["ea_op"] = ea_op
+            result.ea_op = ea_op
         except (ValueError, DecodeError):
             ext_pos = opword_bytes
 
@@ -608,7 +637,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                 dst_op, _ = _decode_ea(
                     inst_raw, ext_pos,
                     d_mode, d_reg, size, inst_offset)
-                result["dst_op"] = dst_op
+                result.dst_op = dst_op
             except (ValueError, DecodeError):
                 pass
 
@@ -617,40 +646,40 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         addr_reg_field = _raw_field_spec(enc_fields, "ADDRESS REGISTER")
         if data_reg_field is None or addr_reg_field is None:
             raise ValueError(f"MOVEP decode fields missing for {mnemonic}")
-        result["reg_num"] = _xf(opcode, data_reg_field)
+        result.reg_num = _xf(opcode, data_reg_field)
         if len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"MOVEP displacement missing for opcode ${opcode:04x}")
         disp = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
         if disp >= 0x8000:
             disp -= 0x10000
         addr_reg = _xf(opcode, addr_reg_field)
-        result["ea_op"] = Operand(mode="disp", reg=addr_reg, value=disp,
-                                  index_reg=None, index_is_addr=False,
-                                  index_size="w", size=None)
+        result.ea_op = Operand(mode="disp", reg=addr_reg, value=disp,
+                               index_reg=None, index_is_addr=False,
+                               index_size="w", size=None)
     if operand_types == ("bf_ea", "dn"):
-        bitfield = result.get("bitfield")
-        if bitfield is None or "register" not in bitfield:
+        bitfield = result.bitfield
+        if bitfield is None or bitfield.register is None:
             raise ValueError(f"Bitfield destination register missing for {mnemonic}")
-        result["reg_num"] = bitfield["register"]
+        result.reg_num = bitfield.register
     if operand_types == ("dn", "bf_ea"):
-        bitfield = result.get("bitfield")
-        if bitfield is None or "register" not in bitfield:
+        bitfield = result.bitfield
+        if bitfield is None or bitfield.register is None:
             raise ValueError(f"Bitfield source register missing for {mnemonic}")
-        result["reg_num"] = bitfield["register"]
+        result.reg_num = bitfield.register
 
     # Register number from REGISTER field.
     # With 2+ REGISTER fields: upper field is the "other" register (bits 11-9).
     # With exactly 1 REGISTER and no MODE: the sole REGISTER is the
     # destination (e.g. MOVEQ where DATA has the immediate).
-    if result["reg_num"] is None and operand_types == ("imm", "dn") and len(reg_fields) >= 2:
+    if result.reg_num is None and operand_types == ("imm", "dn") and len(reg_fields) >= 2:
         rf = reg_fields[0]
-        result["reg_num"] = _xf(opcode, (rf[1], rf[2], rf[3]))
-    elif result["reg_num"] is None and len(reg_fields) >= 2:
+        result.reg_num = _xf(opcode, (rf[1], rf[2], rf[3]))
+    elif result.reg_num is None and len(reg_fields) >= 2:
         rf = reg_fields[-1]
-        result["reg_num"] = _xf(opcode, (rf[1], rf[2], rf[3]))
-    elif result["reg_num"] is None and len(reg_fields) == 1 and not mode_fields:
+        result.reg_num = _xf(opcode, (rf[1], rf[2], rf[3]))
+    elif result.reg_num is None and len(reg_fields) == 1 and not mode_fields:
         rf = reg_fields[0]
-        result["reg_num"] = _xf(opcode, (rf[1], rf[2], rf[3]))
+        result.reg_num = _xf(opcode, (rf[1], rf[2], rf[3]))
 
     # OPMODE direction from KB opmode_table
     opmode_tables = runtime_m68k_decode.OPMODE_TABLES_BY_VALUE
@@ -662,12 +691,12 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
             if entry is None:
                 raise ValueError(
                     f"{mnemonic} missing opmode_table entry for {opmode_val}")
-            result["ea_is_source"] = entry[_OPMODE_EA_IS_SOURCE]
+            result.ea_is_source = entry[_OPMODE_EA_IS_SOURCE]
 
     # Decode immediate value from opcode (KB-driven).
     # Pattern 1: DATA field in opcode (ADDQ/SUBQ/MOVEQ)
     # Pattern 2: extension word immediate (ADDI/SUBI/etc.)
-    if result["imm_val"] is not None:
+    if result.imm_val is not None:
         imm_range = None
     data_field_name = imm_range[0] if imm_range else None
     if data_field_name:
@@ -683,7 +712,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                 if raw_val >= (1 << (bits - 1)):
                     raw_val -= (1 << bits)
                 raw_val &= 0xFFFFFFFF
-            result["imm_val"] = raw_val
+            result.imm_val = raw_val
         elif operand_types == ("imm", "dn") and len(reg_fields) >= 2:
             rf = reg_fields[-1]
             raw_val = _xf(opcode, (rf[1], rf[2], rf[3]))
@@ -696,7 +725,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                 if raw_val >= (1 << (bits - 1)):
                     raw_val -= (1 << bits)
                 raw_val &= 0xFFFFFFFF
-            result["imm_val"] = raw_val
+            result.imm_val = raw_val
         elif "imm" in operand_types and len(inst_raw) >= opword_bytes + 2:
             bits = imm_range[1] if imm_range[1] is not None else 16
             imm_bytes = max(2, (bits + 7) // 8)
@@ -712,7 +741,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                 if imm_val >= (1 << (bits - 1)):
                     imm_val -= (1 << bits)
                 imm_val &= 0xFFFFFFFF
-            result["imm_val"] = imm_val
+            result.imm_val = imm_val
             if mode_fields and reg_fields:
                 mf = mode_fields[0]
                 rf = reg_fields[0]
@@ -722,7 +751,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                     ea_op, _ = _decode_ea(
                         inst_raw, pos + max(imm_bytes, 2),
                         ea_m, ea_r, size, inst_offset)
-                    result["ea_op"] = ea_op
+                    result.ea_op = ea_op
                 except (ValueError, DecodeError):
                     pass
 
@@ -739,7 +768,7 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                     imm_val &= 0xFF
             else:
                 imm_val = struct.unpack_from(">I", inst_raw, pos)[0]
-            result["imm_val"] = imm_val
+            result.imm_val = imm_val
             # Re-decode EA after the immediate
             if mode_fields and reg_fields:
                 mf = mode_fields[0]
@@ -750,21 +779,21 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
                     ea_op, _ = _decode_ea(
                         inst_raw, pos + max(imm_bytes, 2),
                         ea_m, ea_r, size, inst_offset)
-                    result["ea_op"] = ea_op
+                    result.ea_op = ea_op
                 except (ValueError, DecodeError):
                     pass
 
     return result
 
 
-def decode_inst_operands(inst, mnemonic: str | None = None) -> dict:
-    """Decode operands directly from an Instruction-like object."""
+def decode_inst_operands(inst: Instruction, mnemonic: str | None = None) -> DecodedOperands:
+    """Decode operands directly from an Instruction."""
     if mnemonic is None:
-        if not getattr(inst, "kb_mnemonic", None):
+        if not inst.kb_mnemonic:
             raise ValueError(
                 f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
         mnemonic = inst.kb_mnemonic
-    if not getattr(inst, "operand_size", None):
+    if not inst.operand_size:
         raise ValueError(
             f"Instruction at ${inst.offset:06x} is missing operand_size")
     return decode_instruction_operands(
@@ -775,6 +804,20 @@ def decode_inst_operands(inst, mnemonic: str | None = None) -> dict:
         inst.operand_size,
         inst.offset,
     )
+
+
+def _decoded_register_mode(decoded: DecodedOperands, operand_types: tuple[str, ...]) -> str | None:
+    for operand_type in reversed(operand_types):
+        if operand_type == "an":
+            return "an"
+        if operand_type == "dn":
+            return "dn"
+        if operand_type == "rn":
+            reg_mode = decoded.reg_mode
+            if reg_mode in {"dn", "an"}:
+                return reg_mode
+            raise ValueError("operand_types include 'rn' but decoded reg_mode is missing")
+    return None
 
 
 def decode_destination(inst_raw: bytes, mnemonic: str,
@@ -794,23 +837,26 @@ def decode_destination(inst_raw: bytes, mnemonic: str,
     """
     decoded = decode_instruction_operands(
         inst_raw, mnemonic, opword_bytes, size_byte_count, size, inst_offset)
+    operand_types = decoded.operand_types
 
     # MOVE/MOVEA: has dst_op with explicit mode
-    dst_op = decoded["dst_op"]
+    dst_op = decoded.dst_op
     if dst_op is not None:
         if dst_op.mode in ("dn", "an"):
             return (dst_op.mode, dst_op.reg)
         return None  # destination is memory, not a register
 
     # OPMODE instructions (ADD, SUB, AND, OR, etc.)
-    ea_is_source = decoded["ea_is_source"]
-    ea_op = decoded["ea_op"]
-    reg_num = decoded["reg_num"]
+    ea_is_source = decoded.ea_is_source
+    ea_op = decoded.ea_op
+    reg_num = decoded.reg_num
     if ea_is_source is not None:
         if ea_is_source:
-            # EA is source -> destination is the upper register (Dn)
+            # EA is source -> destination is the upper register from KB form
             if reg_num is not None:
-                return ("dn", reg_num)
+                reg_mode = _decoded_register_mode(decoded, operand_types)
+                if reg_mode is not None:
+                    return (reg_mode, reg_num)
         else:
             # EA is destination
             if ea_op and ea_op.mode in ("dn", "an"):
@@ -821,6 +867,12 @@ def decode_destination(inst_raw: bytes, mnemonic: str,
     # Check if instruction writes to An via source_sign_extend (MOVEA pattern)
     if mnemonic in runtime_m68k_decode.SOURCE_SIGN_EXTEND and reg_num is not None:
         return ("an", reg_num)
+
+    # Explicit register operand form from the KB (LEA, MOVEA, ADDA, etc.)
+    if reg_num is not None and operand_types:
+        reg_mode = _decoded_register_mode(decoded, operand_types)
+        if reg_mode is not None:
+            return (reg_mode, reg_num)
 
     # Default: reg_num is destination Dn (MOVEQ, ADDQ to Dn, etc.)
     if reg_num is not None:
@@ -835,14 +887,14 @@ def decode_destination(inst_raw: bytes, mnemonic: str,
     return None
 
 
-def decode_inst_destination(inst, mnemonic: str | None = None) -> tuple[str, int] | None:
-    """Determine destination register directly from an Instruction-like object."""
+def decode_inst_destination(inst: Instruction, mnemonic: str | None = None) -> tuple[str, int] | None:
+    """Determine destination register directly from an Instruction."""
     if mnemonic is None:
-        if not getattr(inst, "kb_mnemonic", None):
+        if not inst.kb_mnemonic:
             raise ValueError(
                 f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
         mnemonic = inst.kb_mnemonic
-    if not getattr(inst, "operand_size", None):
+    if not inst.operand_size:
         raise ValueError(
             f"Instruction at ${inst.offset:06x} is missing operand_size")
     return decode_destination(

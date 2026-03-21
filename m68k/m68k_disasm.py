@@ -5,11 +5,15 @@ Decodes 68000 instructions from raw bytes and emits assembly text.
 
 import struct
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from m68k_kb import runtime_m68k_disasm
 
 from .decode_errors import DecodeError
 from .ea_extension import parse_full_extension
+
+if TYPE_CHECKING:
+    from disasm.decode import DecodedInstructionForEmit
 
 
 @dataclass
@@ -21,10 +25,10 @@ class Instruction:
     raw: bytes        # raw instruction bytes
     opcode_text: str | None = None
     kb_mnemonic: str | None = None  # canonical KB mnemonic family
-    decoded_operands: dict | None = None
+    decoded_operands: DecodedInstructionForEmit | None = None
     operand_size: str | None = None
     operand_texts: tuple[str, ...] | None = None
-    operand_nodes: tuple["DecodedOperandNode", ...] | None = None
+    operand_nodes: tuple[DecodedOperandNode, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -34,7 +38,70 @@ class DecodedOperandNode:
     value: int | None = None
     register: str | None = None
     target: int | None = None
-    metadata: dict[str, object] = field(default_factory=dict)
+    metadata: (
+        DecodedBitfieldNodeMetadata
+        | DecodedRegisterListNodeMetadata
+        | DecodedRegisterPairNodeMetadata
+        | DecodedBaseRegisterNodeMetadata
+        | DecodedBaseDisplacementNodeMetadata
+        | DecodedIndexedNodeMetadata
+        | DecodedFullExtensionNodeMetadata
+        | None
+    ) = None
+
+
+@dataclass(frozen=True, slots=True)
+class DecodedBitfieldNodeMetadata:
+    base_node: DecodedOperandNode
+    offset_is_register: bool
+    offset_value: int
+    width_is_register: bool
+    width_value: int
+
+
+@dataclass(frozen=True, slots=True)
+class DecodedRegisterListNodeMetadata:
+    registers: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class DecodedRegisterPairNodeMetadata:
+    registers: tuple[str, str]
+
+
+@dataclass(frozen=True, slots=True)
+class DecodedBaseRegisterNodeMetadata:
+    base_register: str
+
+
+@dataclass(frozen=True, slots=True)
+class DecodedBaseDisplacementNodeMetadata:
+    base_register: str
+    displacement: int
+
+
+@dataclass(frozen=True, slots=True)
+class DecodedIndexedNodeMetadata:
+    displacement: int
+    index_register: str
+    index_size: str
+    index_is_addr: bool
+    base_register: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DecodedFullExtensionNodeMetadata:
+    base_register: str | None
+    base_displacement: int | None
+    index_register: str | None
+    index_size: str | None
+    index_scale: int | None
+    memory_indirect: bool
+    preindexed: bool
+    postindexed: bool
+    outer_displacement: int | None
+    base_suppressed: bool
+    index_suppressed: bool
 
 
 @dataclass(frozen=True)
@@ -59,7 +126,7 @@ def _predecrement_node(register: str) -> DecodedOperandNode:
     return DecodedOperandNode(
         kind="predecrement",
         text=f"-({register})",
-        metadata={"base_register": register},
+        metadata=DecodedBaseRegisterNodeMetadata(base_register=register),
     )
 
 
@@ -67,7 +134,7 @@ def _postincrement_node(register: str) -> DecodedOperandNode:
     return DecodedOperandNode(
         kind="postincrement",
         text=f"({register})+",
-        metadata={"base_register": register},
+        metadata=DecodedBaseRegisterNodeMetadata(base_register=register),
     )
 
 
@@ -76,7 +143,10 @@ def _base_displacement_node(register: str, displacement: int) -> DecodedOperandN
         kind="base_displacement",
         text=f"{displacement}({register})",
         value=displacement,
-        metadata={"base_register": register, "displacement": displacement},
+        metadata=DecodedBaseDisplacementNodeMetadata(
+            base_register=register,
+            displacement=displacement,
+        ),
     )
 
 
@@ -92,7 +162,7 @@ def _register_list_node(text: str, registers: list[str]) -> DecodedOperandNode:
     return DecodedOperandNode(
         kind="register_list",
         text=text,
-        metadata={"registers": tuple(registers)},
+        metadata=DecodedRegisterListNodeMetadata(registers=tuple(registers)),
     )
 
 
@@ -100,7 +170,7 @@ def _register_pair_node(text: str, registers: tuple[str, str]) -> DecodedOperand
     return DecodedOperandNode(
         kind="register_pair",
         text=text,
-        metadata={"registers": list(registers)},
+        metadata=DecodedRegisterPairNodeMetadata(registers=registers),
     )
 
 
@@ -108,11 +178,9 @@ def _absolute_target_node(text: str, target: int) -> DecodedOperandNode:
     return DecodedOperandNode(kind="absolute_target", text=text, target=target)
 
 
-def _bitfield_node(base_node: DecodedOperandNode, bitfield: dict[str, object],
+def _bitfield_node(base_node: DecodedOperandNode, bitfield: DecodedBitfieldNodeMetadata,
                    text: str) -> DecodedOperandNode:
-    metadata = dict(bitfield)
-    metadata["base_node"] = base_node
-    return DecodedOperandNode(kind="bitfield_ea", text=text, metadata=metadata)
+    return DecodedOperandNode(kind="bitfield_ea", text=text, metadata=bitfield)
 
 
 def _brief_index_metadata(ext: int) -> tuple[int, str, str, bool]:
@@ -169,21 +237,19 @@ def _full_extension_node(info: dict[str, object], *, pc_relative: bool) -> Decod
     kind = "pc_relative_indexed" if pc_relative else "indexed"
     if info["memory_indirect"]:
         kind = "pc_memory_indirect_indexed" if pc_relative else "memory_indirect_indexed"
-    metadata = {
-        "base_register": info["base_register"],
-        "base_displacement": info["base_displacement"],
-        "index_register": info["index_register"],
-        "index_size": info["index_size"],
-        "index_scale": info["index_scale"],
-        "memory_indirect": info["memory_indirect"],
-        "preindexed": info["preindexed"],
-        "postindexed": info["postindexed"],
-        "outer_displacement": info["outer_displacement"],
-        "base_suppressed": info["base_suppressed"],
-        "index_suppressed": info["index_suppressed"],
-    }
-    if not info["memory_indirect"]:
-        metadata["displacement"] = info["base_displacement"]
+    metadata = DecodedFullExtensionNodeMetadata(
+        base_register=info["base_register"],
+        base_displacement=info["base_displacement"],
+        index_register=info["index_register"],
+        index_size=info["index_size"],
+        index_scale=info["index_scale"],
+        memory_indirect=info["memory_indirect"],
+        preindexed=info["preindexed"],
+        postindexed=info["postindexed"],
+        outer_displacement=info["outer_displacement"],
+        base_suppressed=info["base_suppressed"],
+        index_suppressed=info["index_suppressed"],
+    )
     return DecodedOperandNode(
         kind=kind,
         text=_full_extension_text(info),
@@ -468,21 +534,21 @@ def _maybe_simple_ea_node(d: _Decoder, mode: int, reg: int, size: int,
         return DecodedOperandNode(
             kind="indirect",
             text=f"({name})",
-            metadata={"base_register": name},
+            metadata=DecodedBaseRegisterNodeMetadata(base_register=name),
         )
     if mode == 3:
         name = _reg_name(reg, True)
         return DecodedOperandNode(
             kind="postincrement",
             text=f"({name})+",
-            metadata={"base_register": name},
+            metadata=DecodedBaseRegisterNodeMetadata(base_register=name),
         )
     if mode == 4:
         name = _reg_name(reg, True)
         return DecodedOperandNode(
             kind="predecrement",
             text=f"-({name})",
-            metadata={"base_register": name},
+            metadata=DecodedBaseRegisterNodeMetadata(base_register=name),
         )
     if mode == 5:
         disp = d.read_i16()
@@ -491,7 +557,10 @@ def _maybe_simple_ea_node(d: _Decoder, mode: int, reg: int, size: int,
             kind="base_displacement",
             text=f"{disp}({name})",
             value=disp,
-            metadata={"base_register": name, "displacement": disp},
+            metadata=DecodedBaseDisplacementNodeMetadata(
+                base_register=name,
+                displacement=disp,
+            ),
         )
     if mode == 6:
         ext = d.read_u16()
@@ -508,13 +577,13 @@ def _maybe_simple_ea_node(d: _Decoder, mode: int, reg: int, size: int,
             kind="indexed",
             text=f"{disp}({name},{index_register}.{index_size})",
             value=disp,
-            metadata={
-                "base_register": name,
-                "displacement": disp,
-                "index_register": index_register,
-                "index_size": index_size,
-                "index_is_addr": index_is_addr,
-            },
+            metadata=DecodedIndexedNodeMetadata(
+                base_register=name,
+                displacement=disp,
+                index_register=index_register,
+                index_size=index_size,
+                index_is_addr=index_is_addr,
+            ),
         )
     if mode == 7 and reg == 0:
         addr = d.read_i16()
@@ -557,12 +626,12 @@ def _maybe_simple_ea_node(d: _Decoder, mode: int, reg: int, size: int,
             text=f"{disp}(pc,{index_register}.{index_size})",
             value=target,
             target=target,
-            metadata={
-                "displacement": disp,
-                "index_register": index_register,
-                "index_size": index_size,
-                "index_is_addr": index_is_addr,
-            },
+            metadata=DecodedIndexedNodeMetadata(
+                displacement=disp,
+                index_register=index_register,
+                index_size=index_size,
+                index_is_addr=index_is_addr,
+            ),
         )
     if mode == 7 and reg == 4:
         if size == SIZE_BYTE or size == SIZE_WORD:
@@ -1777,12 +1846,13 @@ def _decode_bfxxx(d: _Decoder, op: int, pc: int, mn: str,
     reg = _xf(op, _bf_opf["REGISTER"])
     ea_node = _must_decode_ea_node(d, mode, reg, SIZE_LONG, pc)
     bitfield = f"{ea_node.text}{{{off_str}:{w_str}}}"
-    bitfield_meta = {
-        "offset_is_register": bool(do),
-        "offset_value": off_val & 7 if do else off_val,
-        "width_is_register": bool(dw),
-        "width_value": w_val & 7 if dw else (32 if w_val == 0 else w_val),
-    }
+    bitfield_meta = DecodedBitfieldNodeMetadata(
+        base_node=ea_node,
+        offset_is_register=bool(do),
+        offset_value=off_val & 7 if do else off_val,
+        width_is_register=bool(dw),
+        width_value=w_val & 7 if dw else (32 if w_val == 0 else w_val),
+    )
     bitfield_node = _bitfield_node(ea_node, bitfield_meta, bitfield)
 
     # REGISTER field (Dn) - only present in BFEXTU/BFEXTS/BFFFO/BFINS
@@ -1878,12 +1948,12 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                 DecodedOperandNode(
                     kind="postincrement",
                     text=f"(a{ax})+",
-                    metadata={"base_register": f"a{ax}"},
+                    metadata=DecodedBaseRegisterNodeMetadata(base_register=f"a{ax}"),
                 ),
                 DecodedOperandNode(
                     kind="postincrement",
                     text=f"(a{ay})+",
-                    metadata={"base_register": f"a{ay}"},
+                    metadata=DecodedBaseRegisterNodeMetadata(base_register=f"a{ay}"),
                 ),
             ),
         )
@@ -1909,13 +1979,13 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                     DecodedOperandNode(
                         kind="postincrement",
                         text=f"(a{an})+",
-                        metadata={"base_register": f"a{an}"},
+                        metadata=DecodedBaseRegisterNodeMetadata(base_register=f"a{an}"),
                     )
                     if reg_postinc else
                     DecodedOperandNode(
                         kind="indirect",
                         text=f"(a{an})",
-                        metadata={"base_register": f"a{an}"},
+                        metadata=DecodedBaseRegisterNodeMetadata(base_register=f"a{an}"),
                     )
                 )
                 abs_node = _absolute_target_node(f"${addr:08x}.l", addr)
@@ -1926,13 +1996,13 @@ def _decode_line_f(d: _Decoder, op: int, pc: int) -> DecodedInstructionText:
                     DecodedOperandNode(
                         kind="postincrement",
                         text=f"(a{an})+",
-                        metadata={"base_register": f"a{an}"},
+                        metadata=DecodedBaseRegisterNodeMetadata(base_register=f"a{an}"),
                     )
                     if postinc else
                     DecodedOperandNode(
                         kind="indirect",
                         text=f"(a{an})",
-                        metadata={"base_register": f"a{an}"},
+                        metadata=DecodedBaseRegisterNodeMetadata(base_register=f"a{an}"),
                     )
                 )
                 abs_node = _absolute_target_node(f"${addr:08x}.l", addr)

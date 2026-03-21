@@ -52,7 +52,7 @@ def build_disassembly_session(binary_path: str, entities_path: str,
         platform = ha.platform
         reloc_targets = ha.reloc_targets
         exit_states = ha.exit_states
-        relocated_segments = getattr(ha, "relocated_segments", [])
+        relocated_segments = ha.relocated_segments
         code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = (
             prepare_hunk_code(code, relocated_segments)
         )

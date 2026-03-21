@@ -89,15 +89,15 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
         op_type = runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic)
         decoded = decode_inst_operands(inst, mnemonic)
         if (op_type in ("add", "sub")
-                and decoded.get("imm_val") is not None):
-            ea_op = decoded.get("ea_op")
+                and decoded.imm_val is not None):
+            ea_op = decoded.ea_op
             if (ea_op is not None
                     and ea_op.mode == current_mode
                     and ea_op.reg == current_reg):
-                imm = decoded["imm_val"]
+                imm = decoded.imm_val
                 addend_offset += imm if op_type == runtime_m68k_analysis.OperationType.ADD else -imm
                 continue
-        ea_op = decoded.get("ea_op")
+        ea_op = decoded.ea_op
         if (op_type in ("add", "sub")
                 and ea_op is not None
                 and ea_op.mode in ("dn", "an")):
@@ -110,13 +110,13 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
                     continue
         if (current_mode == "dn"
                 and op_type in ("shift", "rotate")
-                and decoded.get("reg_num") == current_reg
-                and decoded.get("imm_val") is not None):
-            transforms.append(("shift", inst.opcode_text, inst.operand_size, decoded["imm_val"]))
+                and decoded.reg_num == current_reg
+                and decoded.imm_val is not None):
+            transforms.append(("shift", inst.opcode_text, inst.operand_size, decoded.imm_val))
             continue
         if (current_mode == "dn"
                 and op_type in ("shift", "rotate")
-                and decoded.get("imm_val") is None
+                and decoded.imm_val is None
                 and len(inst.operand_nodes) == 2):
             src_node, dst_node = inst.operand_nodes
             if (src_node.kind == "register"
@@ -133,24 +133,24 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
             return None
         if (current_mode == "dn"
                 and op_type in ("and", "or", "xor")
-                and decoded.get("imm_val") is not None
+                and decoded.imm_val is not None
                 and ea_op is not None
                 and ea_op.mode == "dn"
                 and ea_op.reg == current_reg):
             transforms.append(("logical", op_type, inst.operand_size,
-                               decoded["imm_val"]))
+                               decoded.imm_val))
             continue
         if (current_mode == "dn"
                 and op_type == "bit_test"
                 and ea_op is not None
                 and ea_op.mode == "dn"
                 and ea_op.reg == current_reg
-                and decoded.get("imm_val") is not None):
-            transforms.append(("bitop", inst.opcode_text, decoded["imm_val"]))
+                and decoded.imm_val is not None):
+            transforms.append(("bitop", inst.opcode_text, decoded.imm_val))
             continue
         if (current_mode == "dn"
                 and op_type == "bit_test"
-                and decoded.get("imm_val") is None
+                and decoded.imm_val is None
                 and len(inst.operand_nodes) == 2):
             src_node, dst_node = inst.operand_nodes
             if (src_node.kind == "register"
@@ -174,7 +174,7 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
             continue
         if (current_mode == "dn"
                 and op_type in ("and", "or", "xor")
-                and decoded.get("imm_val") is None
+                and decoded.imm_val is None
                 and ea_op is not None
                 and ea_op.mode in ("dn", "an")):
             dst = decode_inst_destination(inst, mnemonic)
@@ -335,7 +335,7 @@ def find_table_source(instructions, index_mode: str,
             continue
 
         decoded = decode_inst_operands(inst, mi)
-        ea_op = decoded.get("ea_op")
+        ea_op = decoded.ea_op
         if ea_op is None:
             return None
 
@@ -358,7 +358,7 @@ def find_table_source(instructions, index_mode: str,
                         continue
                     scan_mi = instruction_kb(scan_inst)
                     scan_decoded = decode_inst_operands(scan_inst, scan_mi)
-                    scan_ea = scan_decoded.get("ea_op")
+                    scan_ea = scan_decoded.ea_op
                     if (scan_ea and scan_ea.mode == "postinc"
                             and scan_ea.reg == src_reg):
                         if scan_inst.offset == inst.offset:

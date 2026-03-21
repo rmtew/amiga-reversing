@@ -10,6 +10,8 @@ Usage:
     blocks = exe.discover_blocks()
 """
 
+from __future__ import annotations
+
 import operator
 import struct
 import sys
@@ -55,7 +57,7 @@ _xf = _instruction_primitives.xf
 
 
 def _resolve_operand(operand: Operand, cpu, mem, size: str,
-                     size_bytes: int) -> "AbstractValue | None":
+                     size_bytes: int) -> AbstractValue | None:
     """Read the value at a decoded EA operand.
 
     For postincrement/predecrement, also adjusts the register.
@@ -212,7 +214,7 @@ class AbstractValue:
     def is_symbolic(self) -> bool:
         return self.sym_base is not None
 
-    def sym_add(self, delta: int) -> "AbstractValue":
+    def sym_add(self, delta: int) -> AbstractValue:
         """Return a new symbolic value with adjusted offset."""
         return AbstractValue(sym_base=self.sym_base,
                              sym_offset=self.sym_offset + delta,
@@ -302,7 +304,7 @@ class _CPUState:
         else:
             raise ValueError(f"set_reg: unsupported mode '{mode}'")
 
-    def copy(self) -> "_CPUState":
+    def copy(self) -> _CPUState:
         s = _CPUState.__new__(_CPUState)
         s.d = list(self.d)
         s.a = list(self.a)
@@ -636,7 +638,7 @@ class AbstractMemory:
         tag = self._tags.get((addr, nbytes))
         return _concrete(result, tag=tag)
 
-    def copy(self) -> "AbstractMemory":
+    def copy(self) -> AbstractMemory:
         """Create an independent copy."""
         m = AbstractMemory(self._code_section)
         m._bytes = dict(self._bytes)
@@ -1727,7 +1729,7 @@ def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
 
 
 def _apply_instruction(inst: Instruction, inst_kb: dict,
-                       cpu: "CPUState_inner", mem: AbstractMemory,
+                       cpu: _CPUState, mem: AbstractMemory,
                        code: bytes, base_addr: int,
                        platform: dict | None = None):
     """Apply one instruction's effects to the abstract state.
@@ -1837,7 +1839,7 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
 
 def propagate_states(blocks: dict[int, BasicBlock],
                      code: bytes, base_addr: int = 0,
-                     initial_state: "CPUState_inner | None" = None,
+                     initial_state: _CPUState | None = None,
                      initial_mem: AbstractMemory | None = None,
                      platform: dict | None = None,
                      summaries: dict[int, dict | None] | None = None,
@@ -2272,8 +2274,8 @@ def _compute_summary(entry: int, owned: set[int],
             "sp_delta": sp_delta}
 
 
-def _apply_summary(caller_cpu: "CPUState",
-                   summary: dict) -> "CPUState":
+def _apply_summary(caller_cpu: _CPUState,
+                   summary: dict) -> _CPUState:
     """Apply a subroutine summary to a caller's state.
 
     Preserved registers keep the caller's value.

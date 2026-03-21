@@ -190,11 +190,11 @@ def decode_instruction_ops(inst, mnemonic: str, size: str) -> DecodedOps:
             and inst.operand_size == size):
         decoded = inst.decoded_operands
         decoded_ops.opcode = struct.unpack_from(">H", inst.raw, 0)[0] if len(inst.raw) >= _OPWORD_BYTES else 0
-        decoded_ops.ea_op = decoded["ea_op"]
-        decoded_ops.dst_op = decoded["dst_op"]
-        decoded_ops.reg_num = decoded["reg_num"]
-        decoded_ops.ea_is_source = decoded["ea_is_source"]
-        decoded_ops.imm_val = decoded["imm_val"]
+        decoded_ops.ea_op = decoded.ea_op
+        decoded_ops.dst_op = decoded.dst_op
+        decoded_ops.reg_num = decoded.reg_num
+        decoded_ops.ea_is_source = decoded.ea_is_source
+        decoded_ops.imm_val = decoded.imm_val
         return decoded_ops
 
     if len(inst.raw) < _OPWORD_BYTES:
@@ -203,11 +203,11 @@ def decode_instruction_ops(inst, mnemonic: str, size: str) -> DecodedOps:
     decoded = decode_instruction_operands(
         inst.raw, mnemonic, _OPWORD_BYTES, _SIZE_BYTE_COUNT, size, inst.offset
     )
-    decoded_ops.ea_op = decoded["ea_op"]
-    decoded_ops.dst_op = decoded["dst_op"]
-    decoded_ops.reg_num = decoded["reg_num"]
-    decoded_ops.ea_is_source = decoded["ea_is_source"]
-    decoded_ops.imm_val = decoded["imm_val"]
+    decoded_ops.ea_op = decoded.ea_op
+    decoded_ops.dst_op = decoded.dst_op
+    decoded_ops.reg_num = decoded.reg_num
+    decoded_ops.ea_is_source = decoded.ea_is_source
+    decoded_ops.imm_val = decoded.imm_val
     return decoded_ops
 
 

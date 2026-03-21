@@ -14,15 +14,15 @@ def is_valid_encoding(raw: bytes, offset: int,
                       kb_mnemonic: str, operand_size: str) -> bool:
     """Check if instruction EA mode and size are valid per KB constraints."""
     meta = decode_instruction_for_emit(raw, offset, kb_mnemonic, operand_size)
-    mnemonic = meta["mnemonic"]
+    mnemonic = meta.mnemonic
     ea_mode_table = runtime_m68k_analysis.EA_MODE_TABLES.get(mnemonic)
     if not ea_mode_table:
         return True
     src_modes, dst_modes, ea_modes = ea_mode_table
-    sz = meta["size"]
-    decoded = meta["decoded"]
-    ea_op = decoded["ea_op"]
-    dst_op = decoded["dst_op"]
+    sz = meta.size
+    decoded = meta.decoded
+    ea_op = decoded.ea_op
+    dst_op = decoded.dst_op
 
     if ea_op and ea_op.mode:
         if ea_modes:

@@ -7,6 +7,8 @@ Both build_entities and gen_disasm call analyze_hunk() and use the result.
 Supports caching via save/load for instant reuse.
 """
 
+from __future__ import annotations
+
 import pickle
 import struct
 from dataclasses import dataclass, field
@@ -126,7 +128,7 @@ class HunkAnalysis:
             self.platform = saved_platform
 
     @staticmethod
-    def load(path: str | Path, os_kb: dict) -> "HunkAnalysis":
+    def load(path: str | Path, os_kb: dict) -> HunkAnalysis:
         """Load cached analysis, re-attaching the OS KB."""
         with open(path, "rb") as f:
             version, ha = pickle.load(f)
@@ -182,8 +184,8 @@ def _postinc_copy_regs(inst) -> tuple[int, int] | None:
     if inst.operand_size not in {"b", "w", "l"}:
         return None
     decoded = decode_inst_operands(inst, mnemonic)
-    src = decoded.get("ea_op")
-    dst = decoded.get("dst_op")
+    src = decoded.ea_op
+    dst = decoded.dst_op
     if src is None or dst is None:
         return None
     if src.mode != "postinc" or dst.mode != "postinc":

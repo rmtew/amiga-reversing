@@ -6,25 +6,25 @@ from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
 
 from .instruction_kb import find_kb_entry, instruction_kb
-from .instruction_decode import decode_inst_destination, decode_inst_operands, xf
+from .instruction_decode import DecodedOperands, decode_inst_destination, decode_inst_operands, xf
 from . import value_transforms as _vt
 
 
-def _immediate_an_adjustment(mnemonic: str, decoded: dict,
+def _immediate_an_adjustment(mnemonic: str, decoded: DecodedOperands,
                              current_reg: int) -> int | None:
     """Return signed immediate delta for supported An adjustment forms."""
     op_type = runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic)
-    ea_op = decoded.get("ea_op")
+    ea_op = decoded.ea_op
 
     if (op_type in (
             runtime_m68k_analysis.OperationType.ADD,
             runtime_m68k_analysis.OperationType.SUB,
     )
-            and decoded.get("imm_val") is not None
+            and decoded.imm_val is not None
             and ea_op is not None
             and ea_op.mode == "an"
             and ea_op.reg == current_reg):
-        imm = decoded["imm_val"]
+        imm = decoded.imm_val
         return imm if op_type == runtime_m68k_analysis.OperationType.ADD else -imm
 
     if (mnemonic in runtime_m68k_analysis.SOURCE_SIGN_EXTEND
@@ -32,7 +32,7 @@ def _immediate_an_adjustment(mnemonic: str, decoded: dict,
                 runtime_m68k_analysis.OperationType.ADD,
                 runtime_m68k_analysis.OperationType.SUB,
             )
-            and decoded.get("reg_num") == current_reg
+            and decoded.reg_num == current_reg
             and ea_op is not None
             and ea_op.mode == "imm"
             and ea_op.value is not None):
@@ -50,7 +50,7 @@ def _resolve_lea_pc(inst) -> int | None:
     if lea_kb is None:
         return None
     decoded = decode_inst_operands(inst, lea_kb)
-    ea_op = decoded.get("ea_op")
+    ea_op = decoded.ea_op
     if ea_op is None:
         return None
     if ea_op.mode == "pcdisp":
@@ -94,7 +94,7 @@ def is_lea(inst) -> bool:
     )
 
 
-def _static_an_source_base(mnemonic: str, decoded: dict,
+def _static_an_source_base(mnemonic: str, decoded: DecodedOperands,
                            current_reg: int, instructions,
                            inst_offset: int) -> int | None:
     """Return concrete static source used to seed An, if any."""
@@ -102,9 +102,9 @@ def _static_an_source_base(mnemonic: str, decoded: dict,
 
     if mnemonic not in runtime_m68k_analysis.SOURCE_SIGN_EXTEND:
         return None
-    if decoded.get("reg_num") != current_reg:
+    if decoded.reg_num != current_reg:
         return None
-    ea_op = decoded.get("ea_op")
+    ea_op = decoded.ea_op
     if ea_op is None:
         return None
     op_type = runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic)
@@ -162,10 +162,10 @@ def resolve_block_pc_base(instructions, target_reg: int) -> int | None:
             continue
         mnemonic = mi
         op_type = runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic)
-        ea_op = decoded.get("ea_op")
+        ea_op = decoded.ea_op
         if (mnemonic in runtime_m68k_analysis.SOURCE_SIGN_EXTEND
                 and op_type in ("add", "sub")
-                and decoded.get("reg_num") == current_reg
+                and decoded.reg_num == current_reg
                 and ea_op is not None
                 and ea_op.mode in ("dn", "an")):
             src_val = _sv._resolve_block_constant_reg(

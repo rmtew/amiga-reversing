@@ -15,9 +15,11 @@ from disasm.comments import (build_instruction_comment_parts,
                              format_ascii_immediate)
 from disasm.data_access import collect_data_access_sizes
 from disasm.data_render import emit_data_region
-from disasm.decode import (decode_inst_for_emit,
+from disasm.decode import (DecodedInstructionForEmit,
+                           decode_inst_for_emit,
                            decode_instruction_for_emit,
                            lookup_instruction_kb)
+from m68k.instruction_decode import DecodedBitfield
 from disasm.discovery import (add_hint_labels, build_label_map,
                               discover_absolute_targets,
                               discover_pc_relative_targets,
@@ -28,7 +30,13 @@ from disasm.instruction_rows import (make_instruction_row,
                                      render_instruction_text)
 from disasm.operands import (_operand_types_for_inst,
                              build_instruction_semantic_operands)
-from disasm.types import HunkDisassemblySession, SemanticOperand
+from disasm.types import (
+    BitfieldOperandMetadata,
+    IndexedOperandMetadata,
+    HunkDisassemblySession,
+    SemanticOperand,
+    SymbolOperandMetadata,
+)
 
 
 # -- Feature 3: App memory offset comments ----------------------------
@@ -1121,8 +1129,9 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
     assert ops[0].value == 8
-    assert ops[0].metadata["index_register"] == "d0"
-    assert ops[0].metadata["index_size"] == "w"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d0"
+    assert ops[0].metadata.index_size == "w"
     assert ops[0].text == "8(a1,d0.w)"
     assert ops[1].kind == "register"
 
@@ -1291,6 +1300,7 @@ def test_operand_types_for_inst_selects_register_shift_form_from_opcode_bit():
                        operand_texts=("d0", "d2"))
     meta = decode_instruction_for_emit(inst.raw, inst.offset, "lsl", "l")
 
+    assert isinstance(meta, DecodedInstructionForEmit)
     assert _operand_types_for_inst(inst, meta) == ("dn", "dn")
 
 
@@ -1304,7 +1314,8 @@ def test_decode_inst_for_emit_uses_operand_size_not_text():
 
     meta = decode_inst_for_emit(inst)
 
-    assert meta["size"] == "l"
+    assert isinstance(meta, DecodedInstructionForEmit)
+    assert meta.size == "l"
 
 
 def test_build_instruction_semantic_operands_supports_register_shift_form():
@@ -1550,8 +1561,10 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
     assert len(ops) == 1
     assert ops[0].kind == "bitfield_ea"
     assert ops[0].register == "d0"
-    assert ops[0].metadata["bitfield"]["offset_value"] == 2
-    assert ops[0].metadata["bitfield"]["width_value"] == 8
+    assert isinstance(ops[0].metadata, BitfieldOperandMetadata)
+    assert isinstance(ops[0].metadata.bitfield, DecodedBitfield)
+    assert ops[0].metadata.bitfield.offset_value == 2
+    assert ops[0].metadata.bitfield.width_value == 8
 
 
 def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
@@ -1961,7 +1974,8 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
     assert used_structs == {"InitStruct"}
     assert ops[0].kind == "base_displacement_symbol"
     assert ops[0].text == "IS_CODE(a1)"
-    assert ops[0].metadata["symbol"] == "IS_CODE"
+    assert isinstance(ops[0].metadata, SymbolOperandMetadata)
+    assert ops[0].metadata.symbol == "IS_CODE"
 
 
 def test_render_instruction_text_uses_semantic_branch_substitution():

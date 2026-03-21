@@ -7,12 +7,28 @@ from m68k_kb import runtime_m68k_decode
 from m68k_kb import runtime_m68k_executor
 
 from disasm.operands import build_instruction_semantic_operands
-from disasm.types import HunkDisassemblySession
+from disasm.types import (
+    BitfieldOperandMetadata,
+    FullIndexedOperandMetadata,
+    HunkDisassemblySession,
+    IndexedOperandMetadata,
+    RegisterListOperandMetadata,
+    RegisterPairOperandMetadata,
+)
 from m68k import m68k_executor as executor_mod
-from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
+from m68k.instruction_decode import (
+    DecodedBitfield,
+    DecodedOperands,
+    decode_inst_destination,
+    decode_inst_operands,
+)
 from m68k.instruction_primitives import Operand, extract_branch_target
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble, _resolve_kb_mnemonic
+from m68k.m68k_disasm import DecodedBaseDisplacementNodeMetadata, DecodedBaseRegisterNodeMetadata
+from m68k.m68k_disasm import DecodedBitfieldNodeMetadata
+from m68k.m68k_disasm import DecodedFullExtensionNodeMetadata, DecodedIndexedNodeMetadata
+from m68k.m68k_disasm import DecodedRegisterListNodeMetadata, DecodedRegisterPairNodeMetadata
 from m68k.m68k_executor import (analyze, decode_instruction_ops,
                                  CPUState, AbstractMemory, _concrete,
                                  _resolve_operand, _write_operand, resolve_ea)
@@ -120,8 +136,9 @@ def test_decode_inst_operands_uses_instruction_fields_directly():
 
     decoded = decode_inst_operands(inst, "MOVE USP")
 
-    assert decoded["reg_num"] == 0
-    assert decoded["ea_is_source"] is True
+    assert isinstance(decoded, DecodedOperands)
+    assert decoded.reg_num == 0
+    assert decoded.ea_is_source is True
 
 
 def test_decode_inst_destination_uses_instruction_fields_directly():
@@ -130,6 +147,58 @@ def test_decode_inst_destination_uses_instruction_fields_directly():
     dst = decode_inst_destination(inst, "MOVEQ")
 
     assert dst == ("dn", 3)
+
+
+def test_decode_inst_destination_preserves_address_register_destination():
+    inst = disassemble(assemble_instruction("lea 4(a6),a1"), max_cpu="68010")[0]
+
+    dst = decode_inst_destination(inst, "LEA")
+
+    assert dst == ("an", 1)
+
+
+@pytest.mark.parametrize(
+    ("asm", "mnemonic", "expected"),
+    [
+        ("movea.l 4(a6),a2", "MOVEA", ("an", 2)),
+        ("adda.l 4(a6),a3", "ADDA", ("an", 3)),
+        ("suba.l 4(a6),a4", "SUBA", ("an", 4)),
+        ("unlk a5", "UNLK", ("an", 5)),
+    ],
+)
+def test_decode_inst_destination_preserves_kb_register_class_for_address_writers(
+        asm, mnemonic, expected):
+    inst = disassemble(assemble_instruction(asm), max_cpu="68010")[0]
+
+    dst = decode_inst_destination(inst, mnemonic)
+
+    assert dst == expected
+
+
+def test_decode_inst_destination_requires_operand_types_from_decoded_form(monkeypatch):
+    inst = disassemble(assemble_instruction("lea 4(a6),a1"), max_cpu="68010")[0]
+    real = decode_inst_operands(inst, "LEA")
+    broken = type("BrokenDecoded", (), {
+        "ea_op": real.ea_op,
+        "dst_op": real.dst_op,
+        "reg_num": real.reg_num,
+        "imm_val": real.imm_val,
+        "ea_is_source": real.ea_is_source,
+        "compare_reg": real.compare_reg,
+        "update_reg": real.update_reg,
+        "reg_mode": real.reg_mode,
+        "secondary_reg": real.secondary_reg,
+        "control_register": real.control_register,
+        "bitfield": real.bitfield,
+    })()
+
+    monkeypatch.setattr(
+        "m68k.instruction_decode.decode_instruction_operands",
+        lambda *args, **kwargs: broken,
+    )
+
+    with pytest.raises(AttributeError, match="operand_types"):
+        decode_inst_destination(inst, "LEA")
 
 
 def test_decode_instruction_ops_errors_when_move_usp_kb_field_missing():
@@ -433,6 +502,10 @@ def test_semantic_operands_prefer_typed_nodes_for_move_base_displacement():
     inst = disassemble(assemble_instruction("move.w 18(a1),d0"), max_cpu="68010")[0]
     inst.operand_texts = ("garbage", "junk")
 
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedBaseDisplacementNodeMetadata)
+    assert inst.operand_nodes[0].metadata.base_register == "a1"
+    assert inst.operand_nodes[0].metadata.displacement == 18
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert [op.kind for op in ops] == ["base_displacement", "register"]
@@ -464,12 +537,16 @@ def test_semantic_operands_prefer_typed_nodes_for_tst_indexed_ea():
     assert [op.text for op in ops] == ["8(a1,d2.w)"]
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
-    assert ops[0].metadata["index_register"] == "d2"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
 
 
 def test_semantic_operands_prefer_typed_nodes_for_tas_postincrement():
     inst = disassemble(assemble_instruction("tas (a0)+"), max_cpu="68010")[0]
     inst.operand_texts = ("garbage",)
+
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedBaseRegisterNodeMetadata)
+    assert inst.operand_nodes[0].metadata.base_register == "a0"
 
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
@@ -489,7 +566,8 @@ def test_semantic_operands_prefer_typed_nodes_for_addq_indexed_ea():
     assert ops[0].value == 1
     assert ops[1].base_register == "a1"
     assert ops[1].displacement == 8
-    assert ops[1].metadata["index_register"] == "d2"
+    assert isinstance(ops[1].metadata, IndexedOperandMetadata)
+    assert ops[1].metadata.index_register == "d2"
 
 
 def test_semantic_operands_prefer_typed_nodes_for_scc_postincrement():
@@ -514,7 +592,8 @@ def test_semantic_operands_prefer_typed_nodes_for_dynamic_bitop_ea():
     assert ops[0].register == "d0"
     assert ops[1].base_register == "a1"
     assert ops[1].displacement == 8
-    assert ops[1].metadata["index_register"] == "d2"
+    assert isinstance(ops[1].metadata, IndexedOperandMetadata)
+    assert ops[1].metadata.index_register == "d2"
 
 
 def test_semantic_operands_prefer_typed_nodes_for_static_bitop_ea():
@@ -539,7 +618,8 @@ def test_semantic_operands_prefer_typed_nodes_for_or_indexed_ea():
     assert [op.text for op in ops] == ["8(a1,d2.w)", "d0"]
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
-    assert ops[0].metadata["index_register"] == "d2"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
 
 
 def test_semantic_operands_prefer_typed_nodes_for_adda_indexed_ea():
@@ -552,7 +632,8 @@ def test_semantic_operands_prefer_typed_nodes_for_adda_indexed_ea():
     assert [op.text for op in ops] == ["8(a1,d2.w)", "a0"]
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
-    assert ops[0].metadata["index_register"] == "d2"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
     assert ops[1].register == "a0"
 
 
@@ -566,7 +647,8 @@ def test_semantic_operands_prefer_typed_nodes_for_divu_indexed_ea():
     assert [op.text for op in ops] == ["8(a1,d2.w)", "d0"]
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
-    assert ops[0].metadata["index_register"] == "d2"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
     assert ops[1].register == "d0"
 
 
@@ -580,7 +662,8 @@ def test_semantic_operands_prefer_typed_nodes_for_mulu_indexed_ea():
     assert [op.text for op in ops] == ["8(a1,d2.w)", "d0"]
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
-    assert ops[0].metadata["index_register"] == "d2"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
     assert ops[1].register == "d0"
 
 
@@ -594,7 +677,8 @@ def test_semantic_operands_prefer_typed_nodes_for_chk_indexed_ea():
     assert [op.text for op in ops] == ["8(a1,d2.w)", "d0"]
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
-    assert ops[0].metadata["index_register"] == "d2"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
     assert ops[1].register == "d0"
 
 
@@ -602,31 +686,43 @@ def test_semantic_operands_prefer_typed_nodes_for_movem_load_ea():
     inst = disassemble(assemble_instruction("movem.w 8(a1,d2.w),d0-d1"), max_cpu="68020")[0]
     inst.operand_texts = ("garbage0", "garbage1")
 
+    assert isinstance(inst.operand_nodes[1].metadata, DecodedRegisterListNodeMetadata)
+    assert inst.operand_nodes[1].metadata.registers == ("d0", "d1")
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert [op.kind for op in ops] == ["indexed", "register_list"]
     assert [op.text for op in ops] == ["8(a1,d2.w)", "d0-d1"]
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
-    assert ops[0].metadata["index_register"] == "d2"
-    assert ops[1].metadata["registers"] == ("d0", "d1")
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
+    assert isinstance(ops[1].metadata, RegisterListOperandMetadata)
+    assert ops[1].metadata.registers == ("d0", "d1")
 
 
 def test_semantic_operands_prefer_typed_nodes_for_movem_store_ea():
     inst = disassemble(assemble_instruction("movem.w d0-d1,-(a7)"), max_cpu="68020")[0]
     inst.operand_texts = ("garbage0", "garbage1")
 
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedRegisterListNodeMetadata)
+    assert inst.operand_nodes[0].metadata.registers == ("d0", "d1")
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert [op.kind for op in ops] == ["register_list", "predecrement"]
     assert [op.text for op in ops] == ["d0-d1", "-(sp)"]
-    assert ops[0].metadata["registers"] == ("d0", "d1")
+    assert isinstance(ops[0].metadata, RegisterListOperandMetadata)
+    assert ops[0].metadata.registers == ("d0", "d1")
     assert ops[1].base_register == "sp"
 
 
 def test_semantic_operands_prefer_typed_nodes_for_moves_store_ea():
     inst = disassemble(bytes.fromhex("0e500800"), max_cpu="68020")[0]
     inst.operand_texts = ("garbage", "junk")
+
+    assert isinstance(inst.operand_nodes[1].metadata, DecodedBaseRegisterNodeMetadata)
+    assert inst.operand_nodes[1].metadata.base_register == "a0"
 
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
@@ -671,7 +767,8 @@ def test_semantic_operands_prefer_typed_nodes_for_immediate_indexed_ea():
     assert ops[0].value == 0x1234
     assert ops[1].base_register == "a1"
     assert ops[1].displacement == 8
-    assert ops[1].metadata["index_register"] == "d2"
+    assert isinstance(ops[1].metadata, IndexedOperandMetadata)
+    assert ops[1].metadata.index_register == "d2"
 
 
 def test_semantic_operands_prefer_typed_nodes_for_cmp2_ea():
@@ -748,13 +845,19 @@ def test_semantic_operands_prefer_typed_nodes_for_bfextu():
     inst = disassemble(bytes.fromhex("e9c01088"), max_cpu="68020")[0]
     inst.operand_texts = ("junk0", "junk1")
 
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedBitfieldNodeMetadata)
+    assert inst.operand_nodes[0].metadata.offset_value == 2
+    assert inst.operand_nodes[0].metadata.width_value == 8
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert [op.kind for op in ops] == ["bitfield_ea", "register"]
     assert [op.text for op in ops] == ["d0{2:8}", "d1"]
     assert ops[0].register == "d0"
-    assert ops[0].metadata["bitfield"]["offset_value"] == 2
-    assert ops[0].metadata["bitfield"]["width_value"] == 8
+    assert isinstance(ops[0].metadata, BitfieldOperandMetadata)
+    assert isinstance(ops[0].metadata.bitfield, DecodedBitfield)
+    assert ops[0].metadata.bitfield.offset_value == 2
+    assert ops[0].metadata.bitfield.width_value == 8
     assert ops[1].register == "d1"
 
 
@@ -830,22 +933,30 @@ def test_semantic_operands_prefer_typed_nodes_for_divsl_register_pair():
     inst = disassemble(bytes.fromhex("4c401800"), max_cpu="68020")[0]
     inst.operand_texts = ("junk0", "junk1")
 
+    assert isinstance(inst.operand_nodes[1].metadata, DecodedRegisterPairNodeMetadata)
+    assert inst.operand_nodes[1].metadata.registers == ("d1", "d0")
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert [op.kind for op in ops] == ["register", "register_pair"]
     assert [op.text for op in ops] == ["d0", "d0:d1"]
-    assert ops[1].metadata["registers"] == ["d1", "d0"]
+    assert isinstance(ops[1].metadata, RegisterPairOperandMetadata)
+    assert ops[1].metadata.registers == ("d1", "d0")
 
 
 def test_semantic_operands_prefer_typed_nodes_for_mulu_long_register_pair():
     inst = disassemble(bytes.fromhex("4c001402"), max_cpu="68020")[0]
     inst.operand_texts = ("junk0", "junk1")
 
+    assert isinstance(inst.operand_nodes[1].metadata, DecodedRegisterPairNodeMetadata)
+    assert inst.operand_nodes[1].metadata.registers == ("d2", "d1")
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert [op.kind for op in ops] == ["register", "register_pair"]
     assert [op.text for op in ops] == ["d0", "d2:d1"]
-    assert ops[1].metadata["registers"] == ["d2", "d1"]
+    assert isinstance(ops[1].metadata, RegisterPairOperandMetadata)
+    assert ops[1].metadata.registers == ("d2", "d1")
 
 
 def test_semantic_operands_build_addx_register_form():
@@ -863,6 +974,11 @@ def test_semantic_operands_build_addx_register_form():
 def test_semantic_operands_build_subx_predecrement_form():
     inst = disassemble(assemble_instruction("subx.b -(a0),-(a1)"), max_cpu="68010")[0]
     inst.operand_texts = ("junk0", "junk1")
+
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedBaseRegisterNodeMetadata)
+    assert inst.operand_nodes[0].metadata.base_register == "a0"
+    assert isinstance(inst.operand_nodes[1].metadata, DecodedBaseRegisterNodeMetadata)
+    assert inst.operand_nodes[1].metadata.base_register == "a1"
 
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
@@ -1098,26 +1214,36 @@ def test_semantic_operands_prefer_typed_nodes_for_indexed_ea():
     inst = disassemble(assemble_instruction("move.w 8(a1,d2.w),d0"), max_cpu="68010")[0]
     inst.operand_texts = ("garbage", "junk")
 
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedIndexedNodeMetadata)
+    assert inst.operand_nodes[0].metadata.base_register == "a1"
+    assert inst.operand_nodes[0].metadata.displacement == 8
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert [op.kind for op in ops] == ["indexed", "register"]
     assert [op.text for op in ops] == ["8(a1,d2.w)", "d0"]
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 8
-    assert ops[0].metadata["index_register"] == "d2"
-    assert ops[0].metadata["index_size"] == "w"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
+    assert ops[0].metadata.index_size == "w"
 
 
 def test_semantic_operands_prefer_typed_nodes_for_pc_indexed_ea():
     inst = disassemble(assemble_instruction("lea 8(pc,d2.w),a0"), max_cpu="68010")[0]
     inst.operand_texts = ("garbage", "junk")
 
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedIndexedNodeMetadata)
+    assert inst.operand_nodes[0].metadata.base_register is None
+    assert inst.operand_nodes[0].metadata.displacement == 8
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert [op.kind for op in ops] == ["pc_relative_indexed", "register"]
     assert [op.text for op in ops] == ["8(pc,d2.w)", "a0"]
-    assert ops[0].metadata["index_register"] == "d2"
-    assert ops[0].metadata["index_size"] == "w"
+    assert isinstance(ops[0].metadata, IndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d2"
+    assert ops[0].metadata.index_size == "w"
     assert ops[1].register == "a0"
 
 
@@ -1125,25 +1251,26 @@ def test_build_instruction_semantic_operands_use_full_extension_nodes_not_text()
     inst = disassemble(bytes.fromhex("2031212200000004"), max_cpu="68020")[0]
     inst.operand_texts = ("garbage", "d0")
 
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedFullExtensionNodeMetadata)
+
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
     assert ops[0].kind == "memory_indirect_indexed"
     assert ops[0].text == "([0,a1,d2.w],4)"
     assert ops[0].base_register == "a1"
     assert ops[0].displacement == 0
-    assert ops[0].metadata == {
-        "base_register": "a1",
-        "index_register": "d2",
-        "index_size": "w",
-        "index_scale": 1,
-        "memory_indirect": True,
-        "postindexed": False,
-        "preindexed": True,
-        "base_suppressed": False,
-        "index_suppressed": False,
-        "base_displacement": 0,
-        "outer_displacement": 4,
-    }
+    assert isinstance(ops[0].metadata, FullIndexedOperandMetadata)
+    assert ops[0].metadata.base_register == "a1"
+    assert ops[0].metadata.index_register == "d2"
+    assert ops[0].metadata.index_size == "w"
+    assert ops[0].metadata.index_scale == 1
+    assert ops[0].metadata.memory_indirect is True
+    assert ops[0].metadata.postindexed is False
+    assert ops[0].metadata.preindexed is True
+    assert ops[0].metadata.base_suppressed is False
+    assert ops[0].metadata.index_suppressed is False
+    assert ops[0].metadata.base_displacement == 0
+    assert ops[0].metadata.outer_displacement == 4
 
 
 def test_build_instruction_semantic_operands_use_postindexed_no_index_full_extension_nodes():
@@ -1156,24 +1283,25 @@ def test_build_instruction_semantic_operands_use_postindexed_no_index_full_exten
     assert ops[0].text == "([a5],1583242847)"
     assert ops[0].base_register == "a5"
     assert ops[0].displacement is None
-    assert inst.operand_nodes[0].metadata == {
-        "base_register": "a5",
-        "base_displacement": None,
-        "index_register": None,
-        "index_size": None,
-        "index_scale": None,
-        "memory_indirect": True,
-        "preindexed": False,
-        "postindexed": True,
-        "outer_displacement": 1583242847,
-        "base_suppressed": False,
-        "index_suppressed": True,
-    }
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedFullExtensionNodeMetadata)
+    assert inst.operand_nodes[0].metadata.base_register == "a5"
+    assert inst.operand_nodes[0].metadata.base_displacement is None
+    assert inst.operand_nodes[0].metadata.index_register is None
+    assert inst.operand_nodes[0].metadata.index_size is None
+    assert inst.operand_nodes[0].metadata.index_scale is None
+    assert inst.operand_nodes[0].metadata.memory_indirect is True
+    assert inst.operand_nodes[0].metadata.preindexed is False
+    assert inst.operand_nodes[0].metadata.postindexed is True
+    assert inst.operand_nodes[0].metadata.outer_displacement == 1583242847
+    assert inst.operand_nodes[0].metadata.base_suppressed is False
+    assert inst.operand_nodes[0].metadata.index_suppressed is True
 
 
 def test_build_instruction_semantic_operands_use_full_extension_indexed_nodes_not_text():
     inst = disassemble(bytes.fromhex("20746f204144"), max_cpu="68020")[0]
     inst.operand_texts = ("garbage", "a0")
+
+    assert isinstance(inst.operand_nodes[0].metadata, DecodedFullExtensionNodeMetadata)
 
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
@@ -1181,11 +1309,11 @@ def test_build_instruction_semantic_operands_use_full_extension_indexed_nodes_no
     assert ops[0].text == "(16708,a4,d6.l*8)"
     assert ops[0].base_register == "a4"
     assert ops[0].displacement == 16708
-    assert ops[0].metadata["index_register"] == "d6"
-    assert ops[0].metadata["index_size"] == "l"
-    assert inst.operand_nodes[0].metadata["base_displacement"] == 16708
-    assert inst.operand_nodes[0].metadata["displacement"] == 16708
-    assert inst.operand_nodes[0].metadata["index_scale"] == 8
+    assert isinstance(ops[0].metadata, FullIndexedOperandMetadata)
+    assert ops[0].metadata.index_register == "d6"
+    assert ops[0].metadata.index_size == "l"
+    assert inst.operand_nodes[0].metadata.base_displacement == 16708
+    assert inst.operand_nodes[0].metadata.index_scale == 8
 
 
 def test_resolve_operand_reads_full_extension_memory_indirect_indexed_ea():
