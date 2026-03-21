@@ -28,6 +28,7 @@ from m68k.os_structs import resolve_struct_field
 
 from disasm.decode import DecodedInstructionForEmit, decode_inst_for_emit
 from disasm.types import (
+    AppStructFieldOperandMetadata,
     BitfieldOperandMetadata,
     FullIndexedOperandMetadata,
     HunkDisassemblySession,
@@ -146,25 +147,60 @@ def _apply_instruction_text_substitutions(text: str, inst_offset: int,
 def _struct_field_symbol(inst_offset: int, base_register: str, displacement: int,
                          hunk_session: HunkDisassemblySession,
                          used_structs: set[str] | None) -> str | None:
-    reg_types = hunk_session.struct_map.get(inst_offset)
-    if not reg_types or base_register not in reg_types:
+    region_types = hunk_session.region_map.get(inst_offset)
+    if not region_types or base_register not in region_types:
         return None
-    reg_info = reg_types[base_register]
+    reg_info = region_types[base_register]
     field_info = resolve_struct_field(
         hunk_session.os_kb.STRUCTS,
         reg_info.struct,
-        displacement,
+        reg_info.struct_offset + displacement,
     )
     if not field_info:
         return None
     if used_structs is not None:
-        used_structs.add(field_info["struct"])
-    return field_info["name"]
+        used_structs.add(field_info.owner_struct)
+    return field_info.field.name
+
+
+def _app_struct_field_metadata(base_register: str, displacement: int,
+                               hunk_session: HunkDisassemblySession,
+                               used_structs: set[str] | None
+                               ) -> AppStructFieldOperandMetadata | None:
+    base_info = hunk_session.platform.initial_base_reg
+    if base_info is None:
+        return None
+    if base_register != f"a{base_info[0]}":
+        return None
+    for region_offset, region in hunk_session.app_struct_regions.items():
+        region_end = region_offset + region.size
+        if displacement < region_offset or displacement >= region_end:
+            continue
+        app_symbol = _app_offset_symbol(base_register, region_offset, hunk_session)
+        if app_symbol is None:
+            raise ValueError(
+                f"Missing app symbol for struct region at offset {region_offset}")
+        if displacement == region_offset:
+            return AppStructFieldOperandMetadata(base_symbol=app_symbol)
+        field_info = resolve_struct_field(
+            hunk_session.os_kb.STRUCTS,
+            region.struct,
+            region.struct_offset + displacement - region_offset,
+        )
+        if field_info is None:
+            return None
+        if used_structs is not None:
+            used_structs.add(field_info.owner_struct)
+        return AppStructFieldOperandMetadata(
+            base_symbol=app_symbol,
+            field_symbol=field_info.field.name,
+        )
+    return None
 
 
 def _app_offset_symbol(base_register: str, displacement: int,
                        hunk_session: HunkDisassemblySession) -> str | None:
-    base_info = hunk_session.platform.get("initial_base_reg")
+    base_info = hunk_session.platform.initial_base_reg
     if not (hunk_session.app_offsets and base_info):
         return None
     if base_register != f"a{base_info[0]}":
@@ -187,8 +223,20 @@ def _pc_relative_text(label: str | None, decoded_op: Operand, token: str) -> str
     return f"{label}(pc,{prefix}{index_reg}.{index_size})"
 
 
+def _operand_symbol(metadata: SemanticOperandMetadata) -> str | None:
+    if isinstance(metadata, SymbolOperandMetadata):
+        return metadata.symbol
+    if isinstance(metadata, AppStructFieldOperandMetadata):
+        if metadata.field_symbol is None:
+            return metadata.base_symbol
+        return f"{metadata.base_symbol}+{metadata.field_symbol}"
+    return None
+
+
 def _base_disp_text(base_register: str, displacement: int, token: str,
-                    decoded_op: Operand, symbol: str | None) -> str:
+                    decoded_op: Operand,
+                    metadata: SymbolOperandMetadata | AppStructFieldOperandMetadata | None) -> str:
+    symbol = None if metadata is None else _operand_symbol(metadata)
     if symbol is not None:
         if decoded_op.mode == "index":
             index_reg = decoded_op.index_reg
@@ -623,7 +671,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                 raise ValueError(
                     f"Typed bitfield operand mismatch for {_instruction_ref(inst)}: "
                     f"{key} decoded {decoded_value}, node {node_value}")
-        symbol = base.metadata.symbol if isinstance(base.metadata, SymbolOperandMetadata) else None
+        symbol = _operand_symbol(base.metadata)
         semantic_metadata = BitfieldOperandMetadata(bitfield=bitfield, symbol=symbol)
         return SemanticOperand(
             kind="bitfield_ea",
@@ -731,15 +779,25 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                     f"Typed base displacement mismatch for {_instruction_ref(inst)}: "
                     f"decoded {displacement}, node {node.metadata.displacement}")
             value = displacement
-            symbol = (_struct_field_symbol(inst.offset, base_register, displacement,
-                                           hunk_session, used_structs)
-                      or _app_offset_symbol(base_register, displacement, hunk_session))
+            symbol = _struct_field_symbol(inst.offset, base_register, displacement,
+                                          hunk_session, used_structs)
+            app_region_metadata = _app_struct_field_metadata(
+                base_register, displacement, hunk_session, used_structs)
             if symbol is not None:
                 kind = "base_displacement_symbol"
                 metadata = SymbolOperandMetadata(symbol=symbol)
+            elif app_region_metadata is not None:
+                kind = "base_displacement_symbol"
+                metadata = app_region_metadata
             else:
-                kind = "base_displacement"
-            text = _base_disp_text(base_register, displacement, node.text, decoded_op, symbol)
+                app_symbol = _app_offset_symbol(base_register, displacement, hunk_session)
+                if app_symbol is not None:
+                    kind = "base_displacement_symbol"
+                    metadata = SymbolOperandMetadata(symbol=app_symbol)
+                else:
+                    kind = "base_displacement"
+            text = _base_disp_text(base_register, displacement, node.text, decoded_op,
+                                   metadata if kind == "base_displacement_symbol" else None)
         elif op_mode in ("absw", "absl") and node.kind == "absolute_target":
             value = _normalized_absolute_value(decoded_op)
             target_addr = value
@@ -813,13 +871,25 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             else:
                 raise ValueError(f"Typed indexed metadata missing for {_instruction_ref(inst)}")
             value = displacement
-            symbol = (_struct_field_symbol(inst.offset, base_register, displacement,
-                                           hunk_session, used_structs)
-                      or _app_offset_symbol(base_register, displacement, hunk_session))
+            symbol = None
+            if decoded_op.index_suppressed:
+                symbol = _struct_field_symbol(inst.offset, base_register, displacement,
+                                              hunk_session, used_structs)
+                if symbol is None:
+                    symbol = _operand_symbol(_app_struct_field_metadata(
+                        base_register, displacement, hunk_session, used_structs) or {})
+                if symbol is None:
+                    symbol = _app_offset_symbol(base_register, displacement, hunk_session)
             kind = "base_displacement_symbol" if symbol is not None else "indexed"
             if symbol is not None:
                 metadata = replace(metadata, symbol=symbol)
-            text = _base_disp_text(base_register, displacement, node.text, decoded_op, symbol)
+            text = _base_disp_text(
+                base_register,
+                displacement,
+                node.text,
+                decoded_op,
+                SymbolOperandMetadata(symbol=symbol) if symbol is not None else None,
+            )
         elif op_mode == "index" and node.kind == "memory_indirect_indexed":
             base_register = _address_base_name(decoded_op.reg)
             metadata = _full_index_metadata(decoded_op, inst)
@@ -948,7 +1018,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             target_addr=base.target_addr,
             metadata=BitfieldOperandMetadata(
                 bitfield=bitfield,
-                symbol=base.metadata.symbol if isinstance(base.metadata, SymbolOperandMetadata) else None,
+                symbol=_operand_symbol(base.metadata),
             ),
         )
 
@@ -1068,15 +1138,25 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         base_register = f"a{decoded_op.reg}"
         displacement = op_value
         value = op_value
-        symbol = (_struct_field_symbol(inst.offset, base_register, displacement,
-                                       hunk_session, used_structs)
-                  or _app_offset_symbol(base_register, displacement, hunk_session))
+        symbol = _struct_field_symbol(inst.offset, base_register, displacement,
+                                      hunk_session, used_structs)
+        app_region_metadata = _app_struct_field_metadata(
+            base_register, displacement, hunk_session, used_structs)
         if symbol is not None:
             kind = "base_displacement_symbol"
             metadata = SymbolOperandMetadata(symbol=symbol)
+        elif app_region_metadata is not None:
+            kind = "base_displacement_symbol"
+            metadata = app_region_metadata
         else:
-            kind = "base_displacement"
-        text = _base_disp_text(base_register, displacement, token, decoded_op, symbol)
+            app_symbol = _app_offset_symbol(base_register, displacement, hunk_session)
+            if app_symbol is not None:
+                kind = "base_displacement_symbol"
+                metadata = SymbolOperandMetadata(symbol=app_symbol)
+            else:
+                kind = "base_displacement"
+        text = _base_disp_text(base_register, displacement, token, decoded_op,
+                               metadata if kind == "base_displacement_symbol" else None)
     elif op_mode == "ind":
         base_register = f"a{decoded_op.reg}"
         kind = "indirect"

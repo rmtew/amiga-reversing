@@ -3,18 +3,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from m68k.analysis import RelocatedSegment
 from disasm.types import DisassemblySession, HunkDisassemblySession
 
 
-def prepare_hunk_code(code: bytes, relocated_segments: list[dict]
-                      ) -> tuple[bytes, int, list[dict], int, int]:
+def prepare_hunk_code(code: bytes, relocated_segments: list[RelocatedSegment]
+                      ) -> tuple[bytes, int, list[RelocatedSegment], int, int]:
     code_size = len(code)
     reloc_file_offset = 0
     reloc_base_addr = 0
     if relocated_segments:
         seg = relocated_segments[0]
-        reloc_file_offset = seg["file_offset"]
-        reloc_base_addr = seg["base_addr"]
+        reloc_file_offset = seg.file_offset
+        reloc_base_addr = seg.base_addr
         payload_size = code_size - reloc_file_offset
         runtime_size = reloc_base_addr + payload_size
         runtime_code = bytearray(runtime_size)

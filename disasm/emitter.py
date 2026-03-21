@@ -9,7 +9,8 @@ from disasm.instruction_rows import (emit_data_rows, make_instruction_row,
 from disasm.jump_tables import emit_jump_table_rows
 from disasm.validation import is_valid_encoding, has_valid_branch_target
 from disasm.text import listing_window as _listing_window, render_rows
-from disasm.types import DisassemblySession, HunkDisassemblySession, ListingRow
+from disasm.types import (BlockRowContext, DisassemblySession,
+                          HeaderRowContext, HunkDisassemblySession, ListingRow)
 from disasm.session import build_disassembly_session
 
 
@@ -27,18 +28,18 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
     rows.append(make_row(
         "comment",
         "; Generated disassembly -- vasm Motorola syntax\n",
-        source_context={"section": "header"},
+        source_context=HeaderRowContext(section="header"),
     ))
     rows.append(make_row(
         "comment",
         "; Source: " + str(binary_path) + "\n",
-        source_context={"section": "header"},
+        source_context=HeaderRowContext(section="header"),
     ))
     rows.append(make_row(
         "comment",
         f"; {hunk_session.code_size} bytes, {len(hunk_session.entities)} entities, "
         f"{len(hunk_session.blocks)} blocks\n",
-        source_context={"section": "header"},
+        source_context=HeaderRowContext(section="header"),
     ))
     rows.append(make_row("blank", "\n"))
 
@@ -63,7 +64,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             ))
         rows.append(make_row("blank", "\n"))
 
-    base_info = hunk_session.platform.get("initial_base_reg")
+    base_info = hunk_session.platform.initial_base_reg
     if hunk_session.app_offsets:
         rows.append(make_row(
             "comment",
@@ -109,7 +110,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             hunk_session.code, start, stop, hunk_session.labels,
             hunk_session.reloc_map, hunk_session.string_addrs,
             hunk_session.data_access_sizes, entity_addr,
-            {"verified_state": verified_state},
+            BlockRowContext(kind="data", verified_state=verified_state),
         ))
 
     emit_passes = [(0, hunk_session.code_size)]
@@ -154,7 +155,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                         inst, hunk_session, used_structs, include_arg_subs=True)
                     rows.append(make_instruction_row(
                         text, inst, hunk_session, entity_addr, "verified",
-                        source_context={"kind": "core-block"},
+                        source_context=BlockRowContext(kind="core-block"),
                         comment_text=comment,
                         comment_parts=comment_parts,
                         used_structs=used_structs,
@@ -179,7 +180,10 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                         inst, hunk_session, used_structs, include_arg_subs=False)
                     rows.append(make_instruction_row(
                         text, inst, hunk_session, entity_addr, "unverified",
-                        source_context={"kind": "hint-block"},
+                        source_context=BlockRowContext(
+                            kind="hint-block",
+                            verified_state="unverified",
+                        ),
                         comment_text=comment,
                         comment_parts=comment_parts,
                         used_structs=used_structs,
@@ -205,7 +209,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         includes = set()
         for struct_name in sorted(used_structs):
             struct_def = hunk_session.os_kb.STRUCTS[struct_name]
-            includes.add(struct_def["source"].lower())
+            includes.add(struct_def.source.lower())
         if includes:
             insert_at = 0
             for idx, row in enumerate(rows):

@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
-from m68k_kb.runtime_os import OsStruct
+from dataclasses import dataclass
+
+from m68k_kb.runtime_os import OsStruct, OsStructField
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedStructField:
+    owner_struct: str
+    field: OsStructField
 
 
 def resolve_struct_field(structs: dict[str, OsStruct], struct_name: str, offset: int,
                          active: frozenset[str] = frozenset()
-                         ) -> dict[str, str] | None:
+                         ) -> ResolvedStructField | None:
     if struct_name in active:
         raise ValueError(f"Cyclic struct embedding detected for {struct_name}")
     struct_def = structs[struct_name]
@@ -17,29 +25,16 @@ def resolve_struct_field(structs: dict[str, OsStruct], struct_name: str, offset:
     next_active = active | {struct_name}
 
     for field in struct_def.fields:
-        field_offset = field.offset
-        field_type = field.type
-        if field_type == "LABEL":
-            continue
-        if field_type != "STRUCT" and field_offset == offset:
-            return {"name": field.name, "struct": struct_name}
+        if field.type != "STRUCT" and field.type != "LABEL" and field.offset == offset:
+            return ResolvedStructField(owner_struct=struct_name, field=field)
 
-    if struct_def.base_struct is not None:
-        base_struct = struct_def.base_struct
-        base_offset = struct_def.base_offset
-        if offset < base_offset:
-            return resolve_struct_field(structs, base_struct, offset, next_active)
+    if struct_def.base_struct is not None and offset < struct_def.base_offset:
+        return resolve_struct_field(structs, struct_def.base_struct, offset, next_active)
 
     for field in struct_def.fields:
-        if field.type != "STRUCT":
-            continue
-        if field.struct is None:
-            continue
-        embedded_struct = field.struct
-        embedded_size = field.size
-        field_offset = field.offset
-        if field_offset <= offset < field_offset + embedded_size:
-            return resolve_struct_field(
-                structs, embedded_struct, offset - field_offset, next_active)
+        if field.type == "STRUCT" and field.struct is not None:
+            if field.offset <= offset < field.offset + field.size:
+                return resolve_struct_field(
+                    structs, field.struct, offset - field.offset, next_active)
 
     return None

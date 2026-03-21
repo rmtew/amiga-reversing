@@ -24,9 +24,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from m68k_kb import runtime_m68k_decode
 from m68k.hunk_parser import parse_file, HunkType
-from m68k.m68k_executor import BasicBlock
+from m68k.instruction_decode import decode_inst_operands
+from m68k.instruction_kb import instruction_kb
+from m68k.instruction_primitives import Operand
+from m68k.m68k_executor import BasicBlock, XRef
 from m68k.analysis import analyze_hunk, resolve_reloc_target, _RELOC_INFO
 from m68k.name_entities import name_subroutines
+from m68k.indirect_core import IndirectSite
+from m68k.os_calls import AppSlotInfo, build_app_slot_infos
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -41,8 +46,34 @@ class SubroutineRange:
     reached: bool = True
 
 
+@dataclass(frozen=True, slots=True)
+class ReferencedAppSlot:
+    offset: int
+    symbol: str
+    struct: str | None
+    size: int | None
+    pointer_struct: str | None
+    named_base: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class ReferencedIndirectSite:
+    addr: int
+    shape: str
+    status: str
+    flow: str
+    detail: str | None = None
+    target_count: int | None = None
+
+
 def fmt_addr(addr: int) -> str:
     return f"0x{addr:04X}"
+
+
+def fmt_disp(offset: int) -> str:
+    if offset < 0:
+        return f"-0x{abs(offset):04X}"
+    return f"0x{offset:04X}"
 
 
 def build_subroutine_map(blocks: dict[int, BasicBlock],
@@ -213,7 +244,7 @@ def fill_gaps(entities: list[dict], total_size: int, hunk_idx: int):
     return gap_entities
 
 
-def assign_xrefs(subroutines: list[SubroutineRange], xrefs: list,
+def assign_xrefs(subroutines: list[SubroutineRange], xrefs: list[XRef],
                  ) -> tuple[dict, dict]:
     """Map instruction-level xrefs to subroutine-level entity xrefs.
 
@@ -267,6 +298,177 @@ def assign_xrefs(subroutines: list[SubroutineRange], xrefs: list,
     if dropped:
         print(f"  {dropped} xrefs dropped (src or dst outside known subroutines)")
     return forward, reverse
+
+
+def _operand_app_disp(op: Operand | None, base_reg: int) -> int | None:
+    if op is None:
+        return None
+    if op.reg != base_reg:
+        return None
+    if op.mode == "disp":
+        return op.value
+    if op.mode == "index":
+        if op.memory_indirect:
+            return None
+        return op.base_displacement if op.full_extension else op.value
+    return None
+
+
+def _find_app_slot_reference(offset: int,
+                             slot_infos: tuple[AppSlotInfo, ...]) -> AppSlotInfo | None:
+    for info in slot_infos:
+        if info.offset == offset:
+            return info
+        if info.size is None:
+            continue
+        if info.offset <= offset < info.offset + info.size:
+            return info
+    return None
+
+
+def collect_subroutine_app_slots(sub: SubroutineRange,
+                                 blocks: dict[int, BasicBlock],
+                                 slot_infos: tuple[AppSlotInfo, ...],
+                                 base_reg: int,
+                                 ) -> tuple[ReferencedAppSlot, ...]:
+    block_list = [
+        block for block in blocks.values()
+        if sub.addr <= block.start < sub.end
+    ]
+    if not block_list:
+        return ()
+    referenced: dict[int, ReferencedAppSlot] = {}
+    for block in sorted(block_list, key=lambda item: item.start):
+        for inst in block.instructions:
+            kb = instruction_kb(inst)
+            decoded = decode_inst_operands(inst, kb)
+            for op in (decoded.ea_op, decoded.dst_op):
+                offset = _operand_app_disp(op, base_reg)
+                if offset is None:
+                    continue
+                info = _find_app_slot_reference(offset, slot_infos)
+                if info is None:
+                    continue
+                referenced.setdefault(
+                    info.offset,
+                    ReferencedAppSlot(
+                        offset=info.offset,
+                        symbol=info.symbol,
+                        struct=info.struct,
+                        size=info.size,
+                        pointer_struct=info.pointer_struct,
+                        named_base=info.named_base,
+                    ),
+                )
+    return tuple(referenced[offset] for offset in sorted(referenced))
+
+
+def app_slot_entity_payloads(app_slots: tuple[ReferencedAppSlot, ...]) -> list[dict]:
+    payloads: list[dict] = []
+    for slot in app_slots:
+        payload = {
+            "offset": fmt_disp(slot.offset),
+            "symbol": slot.symbol,
+            **({"named_base": slot.named_base} if slot.named_base is not None else {}),
+        }
+        if slot.struct is not None:
+            payload["kind"] = "struct_instance"
+            payload["struct"] = slot.struct
+            if slot.size is None:
+                raise ValueError(f"Struct app slot {slot.symbol} is missing size")
+            payload["size"] = slot.size
+        elif slot.pointer_struct is not None:
+            payload["kind"] = "struct_pointer"
+            payload["pointer_struct"] = slot.pointer_struct
+        payloads.append(payload)
+    return payloads
+
+
+def collect_subroutine_indirect_sites(sub: SubroutineRange,
+                                      indirect_sites: list[IndirectSite],
+                                      ) -> tuple[ReferencedIndirectSite, ...]:
+    sites = [
+        ReferencedIndirectSite(
+            addr=site.addr,
+            shape=site.shape,
+            status=site.status.value,
+            flow=site.flow_type.value,
+            detail=site.detail,
+            target_count=site.target_count,
+        )
+        for site in indirect_sites
+        if sub.addr <= site.addr < sub.end
+    ]
+    return tuple(sorted(sites, key=lambda site: site.addr))
+
+
+def indirect_site_entity_payloads(
+        indirect_sites: tuple[ReferencedIndirectSite, ...]) -> list[dict]:
+    return [{
+        "addr": fmt_addr(site.addr),
+        "shape": site.shape,
+        "status": site.status,
+        "flow": site.flow,
+        **({"detail": site.detail} if site.detail is not None else {}),
+        **({"target_count": site.target_count}
+           if site.target_count is not None else {}),
+    } for site in indirect_sites]
+
+
+def _slot_struct_refs(slot: dict) -> set[str]:
+    refs: set[str] = set()
+    struct_name = slot.get("struct")
+    if struct_name is not None:
+        refs.add(struct_name)
+    pointer_struct = slot.get("pointer_struct")
+    if pointer_struct is not None:
+        refs.add(pointer_struct)
+    return refs
+
+
+def summarize_entity_app_slots(entities: list[dict]) -> None:
+    code_entities = {
+        int(ent["addr"], 16): ent
+        for ent in entities
+        if ent.get("type") == "code"
+    }
+    summary_cache: dict[int, tuple[set[str], set[str]]] = {}
+
+    def _visit(addr: int, stack: set[int]) -> tuple[set[str], set[str]]:
+        cached = summary_cache.get(addr)
+        if cached is not None:
+            return cached
+        if addr in stack:
+            return set(), set()
+        ent = code_entities[addr]
+        direct_named_bases = {
+            slot["named_base"]
+            for slot in ent.get("app_slots", ())
+            if slot.get("named_base") is not None
+        }
+        direct_struct_refs = set()
+        for slot in ent.get("app_slots", ()):
+            direct_struct_refs.update(_slot_struct_refs(slot))
+        all_named_bases = set(direct_named_bases)
+        all_struct_refs = set(direct_struct_refs)
+        next_stack = set(stack)
+        next_stack.add(addr)
+        for call_addr in ent.get("calls", ()):
+            callee = code_entities.get(int(call_addr, 16))
+            if callee is None:
+                continue
+            callee_named_bases, callee_struct_refs = _visit(int(call_addr, 16), next_stack)
+            all_named_bases.update(callee_named_bases)
+            all_struct_refs.update(callee_struct_refs)
+        ent["named_bases"] = sorted(direct_named_bases)
+        ent["struct_refs"] = sorted(direct_struct_refs)
+        ent["named_bases_transitive"] = sorted(all_named_bases)
+        ent["struct_refs_transitive"] = sorted(all_struct_refs)
+        summary_cache[addr] = (all_named_bases, all_struct_refs)
+        return summary_cache[addr]
+
+    for addr in sorted(code_entities):
+        _visit(addr, set())
 
 
 def build_entities(binary_path: str, output_path: str = None,
@@ -325,8 +527,15 @@ def build_entities(binary_path: str, output_path: str = None,
         hint_reasons = ha.hint_reasons
         lib_calls = ha.lib_calls
         os_kb = ha.os_kb
-        reloc_refs = ha.reloc_refs
-
+        if os_kb is None:
+            raise ValueError("OS KB is required for entity typing")
+        slot_infos = build_app_slot_infos(
+            blocks,
+            lib_calls,
+            code,
+            os_kb,
+            ha.platform,
+        )
         # Build subroutine map
         subroutines = build_subroutine_map(blocks, call_targets, 0)
         stubs = sum(1 for s in subroutines if not s.reached)
@@ -398,6 +607,20 @@ def build_entities(binary_path: str, output_path: str = None,
                         typed_calls.append(entry)
                 if typed_calls:
                     ent["os_call_types"] = typed_calls
+            if ha.platform.initial_base_reg is not None:
+                app_slots = collect_subroutine_app_slots(
+                    sub,
+                    blocks,
+                    slot_infos,
+                    ha.platform.initial_base_reg[0],
+                )
+                if app_slots:
+                    ent["app_slots"] = app_slot_entity_payloads(app_slots)
+            indirect_sites = collect_subroutine_indirect_sites(
+                sub, ha.indirect_sites)
+            if indirect_sites:
+                ent["indirect_sites"] = indirect_site_entity_payloads(
+                    indirect_sites)
             all_entities.append(ent)
 
         # ── Hint entities ────────────────────────────────────────────
@@ -439,14 +662,14 @@ def build_entities(binary_path: str, output_path: str = None,
                 for entry, reason in hint_reasons.items():
                     if region["addr"] <= entry < region["end"]:
                         if (best_reason is None
-                                or reason["source"] == "reloc_from_core"):
+                                or reason.source == "reloc_from_core"):
                             best_reason = reason
                 if best_reason:
-                    ent["hint_source"] = best_reason["source"]
-                    if "referenced_from" in best_reason:
+                    ent["hint_source"] = best_reason.source
+                    if best_reason.referenced_from:
                         ent["hint_refs"] = sorted(
                             fmt_addr(r)
-                            for r in best_reason["referenced_from"])
+                            for r in best_reason.referenced_from)
                 else:
                     ent["hint_source"] = "scan"
                 all_entities.append(ent)
@@ -475,8 +698,14 @@ def build_entities(binary_path: str, output_path: str = None,
             code_size, hunk.index)
         all_entities.extend(gap_ents)
 
+        hunk_entities = [
+            ent for ent in all_entities
+            if ent.get("hunk") == hunk.index
+        ]
+        summarize_entity_app_slots(hunk_entities)
+
         # Name subroutines from OS calls, string references, call graph
-        named = name_subroutines(all_entities, blocks, code, lib_calls)
+        named = name_subroutines(hunk_entities, blocks, code, lib_calls)
         if named:
             print(f"  Named {named} subroutines")
 

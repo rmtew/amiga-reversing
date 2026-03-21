@@ -4,15 +4,17 @@ from pathlib import Path
 
 from m68k_kb import runtime_os
 from m68k.hunk_parser import parse_file, HunkType
-from m68k.os_calls import propagate_input_types, annotate_call_arguments
+from m68k.indirect_core import IndirectSiteStatus
+from m68k.os_calls import (annotate_call_arguments, build_app_struct_regions,
+                           propagate_typed_memory_regions)
 from disasm.analysis_loader import load_hunk_analysis
 from disasm.data_access import collect_data_access_sizes
 from disasm.entities import infer_target_name, load_entities
 from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
 from disasm.metadata import build_hunk_metadata
-from disasm.substitutions import (build_app_offset_symbols,
-                                  build_arg_substitutions,
+from disasm.substitutions import (build_arg_substitutions,
                                   build_lvo_substitutions)
+from m68k.os_calls import build_app_slot_symbols
 from disasm.types import DisassemblySession, HunkDisassemblySession
 
 def build_disassembly_session(binary_path: str, entities_path: str,
@@ -65,18 +67,19 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             hf_hunks=hf.hunks,
             fixed_abs_addrs=fixed_abs_addrs,
         )
-        code_addrs = metadata["code_addrs"]
-        hint_addrs = metadata["hint_addrs"]
-        reloc_map = metadata["reloc_map"]
-        reloc_target_set = metadata["reloc_target_set"]
-        pc_targets = metadata["pc_targets"]
-        string_addrs = metadata["string_addrs"]
-        core_absolute_targets = metadata["core_absolute_targets"]
-        jt_regions = metadata["jump_table_regions"]
-        jt_target_sources = metadata["jump_table_target_sources"]
-        labels = metadata["labels"]
+        code_addrs = metadata.code_addrs
+        hint_addrs = metadata.hint_addrs
+        reloc_map = metadata.reloc_map
+        reloc_target_set = metadata.reloc_target_set
+        pc_targets = metadata.pc_targets
+        string_addrs = metadata.string_addrs
+        core_absolute_targets = metadata.core_absolute_targets
+        jt_regions = metadata.jump_table_regions
+        jt_target_sources = metadata.jump_table_target_sources
+        labels = metadata.labels
 
-        struct_map = propagate_input_types(blocks, lib_calls, os_kb)
+        region_map = propagate_typed_memory_regions(blocks, lib_calls, code, os_kb, platform)
+        app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
 
         lvo_equs, lvo_substitutions = build_lvo_substitutions(
             blocks=blocks,
@@ -89,18 +92,20 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             hunk_entities=hunk_entities,
             os_kb=os_kb,
         )
-        app_offsets = build_app_offset_symbols(
+        app_offsets = build_app_slot_symbols(
             blocks=blocks,
             lib_calls=lib_calls,
+            code=code,
+            os_kb=os_kb,
             platform=platform,
         )
 
         arg_annotations = annotate_call_arguments(blocks, lib_calls)
         data_access_sizes = collect_data_access_sizes(blocks, exit_states)
         unresolved_indirects = {
-            site["addr"]: site
+            site.addr: site
             for site in ha.indirect_sites
-            if site["status"] == "unresolved"
+            if site.status == IndirectSiteStatus.UNRESOLVED
         }
 
         hunk_sessions.append(build_hunk_session(
@@ -119,8 +124,9 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             core_absolute_targets=core_absolute_targets,
             labels=labels,
             jump_table_regions=jt_regions,
-            jump_table_target_sources=dict(jt_target_sources),
-            struct_map=struct_map,
+            jump_table_target_sources=jt_target_sources,
+            region_map=region_map,
+            app_struct_regions=app_struct_regions,
             lvo_equs=lvo_equs,
             lvo_substitutions=lvo_substitutions,
             arg_equs=arg_equs,

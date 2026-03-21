@@ -25,6 +25,10 @@ _LVOAvailMem	EQU	-216
 _LVOFreeMem	EQU	-210
 _LVOAllocMem	EQU	-198
 
+; LVO offsets: timer.device
+_LVOGetSysTime	EQU	-66
+_LVOSubTime	EQU	-48
+
 ; OS function argument constants
 ACCESS_READ	EQU	-2
 CONU_STANDARD	EQU	0
@@ -37,7 +41,13 @@ app_freemem_memoryblock	EQU	-2
 app_open_file	EQU	2390
 app_dos_base	EQU	3286
 app_output_file	EQU	3290
-app_opendevice_iorequest	EQU	4280
+app_subtime_src	EQU	4264
+app_subtime_dest	EQU	4272
+app_timer_device_iorequest	EQU	4280
+
+    INCLUDE "devices/timer.i"
+    INCLUDE "exec/io.i"
+    INCLUDE "exec/libraries.i"
 
     section code,code
 
@@ -81,7 +91,7 @@ loc_007c:
     bsr.w sub_6e42
 loc_0094:
     clr.b 1736(a6) ; app+$6C8
-    lea 4320(a6),a3 ; app+$10E0
+    lea app_timer_device_iorequest+IO_DATA(a6),a3
     bsr.w sub_4668
 loc_00a0:
     lea 2098(a6),a3 ; app+$832
@@ -8088,7 +8098,7 @@ loc_3d62:
 loc_3d66:
     bra.s loc_3d5e
 loc_3d68: ; jt: pcref_3c12
-    lea 4320(a6),a3 ; app+$10E0
+    lea app_timer_device_iorequest+IO_DATA(a6),a3
     sf 299(a6) ; app+$12B
     bra.s sub_3d56
 loc_3d72: ; jt: pcref_3c12
@@ -8693,7 +8703,7 @@ loc_42e6:
     bra.s loc_4330
 loc_42e8: ; jt: pcref_3f3c
     move.b 2112(a6),-(sp) ; app+$840
-    lea 4320(a6),a3 ; app+$10E0
+    lea app_timer_device_iorequest+IO_DATA(a6),a3
     sf 299(a6) ; app+$12B
     bra.s loc_4302
 sub_42f6: ; jt: pcref_3f3c
@@ -17483,7 +17493,7 @@ loc_8fbe:
 loc_8fc6:
     movem.l (sp)+,d3/a0/a2
     rts
-sub_8fcc:
+dos_dispatch:
     jmp loc_06a4
 loc_8fd2:
     move.l a2,d0
@@ -17502,7 +17512,7 @@ loc_8fe6:
     dbf d0,loc_8fe6
 loc_8fec:
     tst.b 277(a6) ; app+$115
-    bgt.s sub_8fcc
+    bgt.s dos_dispatch
 loc_8ff2:
     lea 1448(a6),a3 ; app+$5A8
     move.b 23(a3),d3
@@ -19977,7 +19987,7 @@ call_output:
     bne.s loc_a878
 loc_a86c:
     moveq #_LVOOutput,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_a872:
     move.l d0,app_output_file(a6)
     move.l d0,d1
@@ -19987,7 +19997,7 @@ loc_a878:
     moveq #0,d3
     move.w 3566(a6),d3 ; app+$DEE
     moveq #_LVOWrite,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_a88a:
     move.l (sp)+,d3
     bsr.w check_signals
@@ -20042,7 +20052,7 @@ call_write:
     exg
     move.l a0,d2
     moveq #_LVOWrite,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_a8f8:
     bsr.w check_signals
 loc_a8fc:
@@ -20054,7 +20064,7 @@ loc_a900:
 loc_a906:
     move.l d3,d1
     moveq #_LVOClose,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_a90e:
     rts
 init_app:
@@ -20137,13 +20147,13 @@ loc_a9d4:
 loc_a9de:
     move.l a0,-(sp)
     moveq #_LVOInput,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_a9e6:
     move.l d0,d1
     move.l (sp),d2
     move.l #$100,d3
     moveq #_LVORead,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_a9f6:
     cmp.b #$1,d0
     ble.w loc_aaae
@@ -20166,7 +20176,7 @@ loc_aa1a:
     sf 256(a6) ; app+$100
     lea str_aaa0(pc),a0 ; OpenDevice: devName
     moveq #0,d0
-    lea app_opendevice_iorequest(a6),a1 ; OpenDevice: ioRequest
+    lea app_timer_device_iorequest(a6),a1 ; OpenDevice: ioRequest
     moveq #CONU_STANDARD,d0 ; OpenDevice: unit
     move.l a6,-(sp)
     movea.l ($0004).w,a6
@@ -20176,14 +20186,14 @@ loc_aa4c:
     tst.b d0
     bne.s loc_aa70
 loc_aa52:
-    movea.l 4300(a6),a0 ; app+$10CC
-    cmpi.w #$24,20(a0)
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a0
+    cmpi.w #$24,LIB_VERSION(a0)
     bcs.w loc_aa70
 loc_aa60:
-    lea 4264(a6),a0 ; app+$10A8
+    lea app_subtime_src(a6),a0 ; GetSysTime: dest
     pea (a6)
-    movea.l 4300(a6),a6 ; app+$10CC
-    jsr -66(a6) ; app-$42
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a6
+    jsr _LVOGetSysTime(a6) ; app-$42
 loc_aa6e:
     movea.l (sp)+,a6
 loc_aa70:
@@ -20253,7 +20263,7 @@ loc_ab2c:
     move.l d3,-(sp)
     moveq #0,d3
     moveq #_LVOOpen,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_ab3e:
     move.l (sp)+,d3
     tst.l d0
@@ -20321,30 +20331,30 @@ loc_abce:
     lea str_ac70(pc),a0
     bsr.w sub_9292
 loc_abd6:
-    tst.b 4311(a6) ; app+$10D7
+    tst.b app_timer_device_iorequest+IO_ERROR(a6)
     bne.w loc_ac68
 loc_abde:
-    movea.l 4300(a6),a0 ; app+$10CC
-    cmpi.w #$24,20(a0)
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a0
+    cmpi.w #$24,LIB_VERSION(a0)
     bcs.w loc_ac58
 loc_abec:
-    lea 4272(a6),a0 ; app+$10B0
+    lea app_subtime_dest(a6),a0 ; GetSysTime: dest
     pea (a6)
-    movea.l 4300(a6),a6 ; app+$10CC
-    jsr -66(a6) ; app-$42
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a6
+    jsr _LVOGetSysTime(a6) ; app-$42
 loc_abfa:
     movea.l (sp)+,a6
-    lea 4272(a6),a0 ; app+$10B0
-    lea 4264(a6),a1 ; app+$10A8
+    lea app_subtime_dest(a6),a0 ; SubTime: dest
+    lea app_subtime_src(a6),a1 ; SubTime: src
     pea (a6)
-    movea.l 4300(a6),a6 ; app+$10CC
-    jsr -48(a6) ; app-$30
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a6
+    jsr _LVOSubTime(a6) ; app-$30
 loc_ac0e:
     movea.l (sp)+,a6
     lea str_ac7c(pc),a0
     bsr.w sub_9292
 loc_ac18:
-    move.l 4272(a6),d1 ; app+$10B0
+    move.l app_subtime_dest(a6),d1
     bsr.w sub_8f04
 loc_ac20:
     moveq #46,d1
@@ -20357,7 +20367,7 @@ loc_ac26:
     move.w d0,-(sp)
     lea 6(sp),a3
     lea loc_ac6c(pc),a2
-    move.l 4276(a6),d1 ; app+$10B4
+    move.l app_subtime_dest+TV_MICRO(a6),d1
     bsr.w sub_8f08
 loc_ac44:
     lea -6(a3),a0
@@ -20367,7 +20377,7 @@ loc_ac4c:
     lea str_ac84(pc),a0
     bsr.w sub_9292
 loc_ac58:
-    lea app_opendevice_iorequest(a6),a1 ; CloseDevice: ioRequest
+    lea app_timer_device_iorequest(a6),a1 ; CloseDevice: ioRequest
     move.l a6,-(sp)
     movea.l ($0004).w,a6
     jsr _LVOCloseDevice(a6) ; app-$1C2
@@ -20398,7 +20408,7 @@ loc_acae:
     moveq #21,d3
     move.l app_output_file(a6),d1
     moveq #_LVOWrite,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_acc0:
     bsr.s call_input
 loc_acc2:
@@ -20421,14 +20431,14 @@ loc_acec:
     rts
 call_input:
     moveq #_LVOInput,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_acfa:
     move.l d0,d1
     clr.w -(sp)
     move.l sp,d2
     moveq #1,d3
     moveq #_LVORead,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_ad08:
     move.b (sp)+,d1
     rts
@@ -20436,7 +20446,7 @@ call_datestamp:
     lea -12(sp),sp
     move.l sp,d1
     move.l #$ffffff40,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_ad1c:
     move.l (sp),d0
     lea 12(sp),sp
@@ -20697,7 +20707,7 @@ call_close:
     move.l a0,d1
     move.l #$3ed,d2
     moveq #_LVOOpen,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_af38:
     move.l (sp)+,d1
     move.l d0,d4
@@ -20716,7 +20726,7 @@ loc_af52:
     move.l d4,-(sp)
     moveq #ACCESS_READ,d2
     moveq #_LVOLock,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_af5c:
     move.l d0,d4
     beq.w loc_af8a
@@ -20732,12 +20742,12 @@ loc_af72:
     addq.l #4,d2
 loc_af78:
     moveq #_LVOExamine,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_af7e:
     move.l d0,-(sp)
     move.l d4,d1
     moveq #_LVOUnLock,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_af88:
     move.l (sp)+,d0
 loc_af8a:
@@ -20759,7 +20769,7 @@ loc_afa4:
 loc_afac:
     move.l d4,d1
     moveq #_LVOClose,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_afb4:
     moveq #0,d4
 loc_afb6:
@@ -20767,7 +20777,7 @@ loc_afb6:
 call_close_afb8:
     move.l d2,d1
     moveq #_LVOClose,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_afc0:
     rts
 call_read:
@@ -20776,7 +20786,7 @@ call_read:
     move.l d2,d1
     move.l a0,d2
     moveq #_LVORead,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_afd0:
     tst.l d0
     bmi.s loc_afd8
@@ -20802,7 +20812,7 @@ call_read_aff6:
     exg
     move.l a0,d2
     moveq #_LVORead,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_b000:
     rts
 call_open:
@@ -20811,7 +20821,7 @@ call_open:
     move.l d3,-(sp)
     moveq #-1,d3
     moveq #_LVOOpen,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_b014:
     move.l (sp)+,d3
     tst.l d0
@@ -20832,7 +20842,7 @@ loc_b028:
     move.l 390(a6),d1 ; app+$186
     move.l a0,d2
     moveq #_LVOWrite,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_b03a:
     movem.l (sp)+,d1-d3
     cmp.l d0,d1
@@ -20843,7 +20853,7 @@ call_seek:
     moveq #OFFSET_BEGINNING,d3
     move.l 390(a6),d1 ; app+$186
     moveq #_LVOSeek,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_b050:
     move.l (sp)+,d3
     rts
@@ -20853,7 +20863,7 @@ call_seek_b054:
     moveq #OFFSET_CURRENT,d2
     moveq #OFFSET_CURRENT,d3
     moveq #_LVOSeek,d0
-    bsr.w dos_dispatch
+    bsr.w dos_dispatch_b0d6
 loc_b064:
     move.l (sp)+,d3
     rts
@@ -20909,7 +20919,7 @@ loc_b0cc:
     tst.l d5
 loc_b0d4:
     rts
-dos_dispatch:
+dos_dispatch_b0d6:
     move.l a6,-(sp)
     tst.l 418(a6) ; app+$1A2
     beq.s loc_b0f0
@@ -22840,7 +22850,7 @@ sub_fcd6:
     move.l d4,d3
     bra.s loc_fd10
 sub_fcda:
-    movea.l 4320(a6),a0 ; app+$10E0
+    movea.l app_timer_device_iorequest+IO_DATA(a6),a0
 loc_fcde:
     tst.b (a0)
     beq.s loc_fd02

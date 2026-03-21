@@ -12,6 +12,7 @@ import re
 import struct
 
 from m68k_kb import runtime_m68k_asm
+from m68k_kb import runtime_m68k_decode
 
 _SIZE_BYTE = 0
 _SIZE_WORD = 1
@@ -65,6 +66,7 @@ _RE_IMM = re.compile(r'^#(.+)$', re.I)
 _RE_ABSW = re.compile(r'^\(?\$?([0-9a-f]+)\)?\.(w)$', re.I)
 _RE_ABSL_HEX = re.compile(r'^\$([0-9a-f]+)$', re.I)
 _RE_ABSL_DEC = re.compile(r'^(\d+)$')
+_RE_FULL_INDEX = re.compile(r'^([da])([0-7])\.(w|l)(?:\*(1|2|4|8))?$', re.I)
 
 
 def _parse_imm_value(s):
@@ -73,6 +75,183 @@ def _parse_imm_value(s):
     if s.startswith("$") or s.startswith("0x"):
         return int(s.replace("$", ""), 16)
     return int(s)
+
+
+def _split_top_level(text):
+    parts = []
+    current = []
+    depth = 0
+    for ch in text:
+        if ch == ',' and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+            continue
+        if ch == '[':
+            depth += 1
+        elif ch == ']':
+            depth -= 1
+            if depth < 0:
+                raise ValueError(f"Unbalanced brackets in EA operand: {text!r}")
+        current.append(ch)
+    if depth != 0:
+        raise ValueError(f"Unbalanced brackets in EA operand: {text!r}")
+    parts.append("".join(current).strip())
+    return parts
+
+
+def _parse_num(text):
+    text = text.strip()
+    if not text:
+        raise ValueError("Expected numeric value")
+    return _parse_imm_value(text)
+
+
+def _parse_full_index(text):
+    match = _RE_FULL_INDEX.match(text.strip())
+    if match is None:
+        raise ValueError(f"Invalid full-extension index operand: {text!r}")
+    reg_kind = match.group(1).lower()
+    reg_num = int(match.group(2))
+    is_long = match.group(3).lower() == "l"
+    scale = 1 if match.group(4) is None else int(match.group(4))
+    return reg_kind == "a", reg_num, is_long, scale
+
+
+def _build_full_ext_word(*, index_is_addr, index_reg, index_is_long, index_scale,
+                         base_suppressed, index_suppressed, base_disp_kind, iis):
+    fields = runtime_m68k_decode.EA_FULL_FIELDS
+    bd_value = {name: int(key) for key, name in runtime_m68k_decode.EA_FULL_BD_SIZE.items()}
+    scale_value = {1: 0, 2: 1, 4: 2, 8: 3}
+    if base_disp_kind not in bd_value:
+        raise ValueError(f"Unsupported base displacement kind {base_disp_kind!r}")
+    if index_scale not in scale_value:
+        raise ValueError(f"Unsupported index scale {index_scale}")
+
+    word = 0x0100
+    if index_suppressed:
+        index_is_addr = False
+        index_reg = 0
+        index_is_long = False
+        index_scale = 1
+    word = _pack_field(word, 1 if index_is_addr else 0, *fields["D/A"][:2])
+    word = _pack_field(word, index_reg, *fields["REGISTER"][:2])
+    word = _pack_field(word, 1 if index_is_long else 0, *fields["W/L"][:2])
+    word = _pack_field(word, scale_value[index_scale], *fields["SCALE"][:2])
+    word = _pack_field(word, 1 if base_suppressed else 0, *fields["BS"][:2])
+    word = _pack_field(word, 1 if index_suppressed else 0, *fields["IS"][:2])
+    word = _pack_field(word, bd_value[base_disp_kind], *fields["BD SIZE"][:2])
+    word = _pack_field(word, iis, *fields["I/IS"][:2])
+    return word
+
+
+def _full_ext_disp_kind(value):
+    if value is None:
+        return "null"
+    if -0x8000 <= value <= 0x7FFF:
+        return "word"
+    return "long"
+
+
+def _full_ext_disp_bytes(value):
+    if value is None:
+        return b""
+    if -0x8000 <= value <= 0x7FFF:
+        return _to_bytes_16(value)
+    return struct.pack(">i", value)
+
+
+def _parse_full_extension_ea(operand, enc):
+    if not (operand.startswith("([") and operand.endswith(")")):
+        return None
+    inner = operand[1:-1]
+    parts = _split_top_level(inner)
+    if not parts or not parts[0].startswith("[") or not parts[0].endswith("]"):
+        raise ValueError(f"Invalid full-extension EA operand: {operand!r}")
+    bracket_parts = _split_top_level(parts[0][1:-1])
+    if not bracket_parts:
+        raise ValueError(f"Invalid full-extension EA operand: {operand!r}")
+
+    base_disp = None
+    base_register = None
+    index_is_addr = False
+    index_reg = 0
+    index_is_long = False
+    index_scale = 1
+    bracket_index = None
+
+    for item in bracket_parts:
+        low = item.lower()
+        if low == "pc":
+            if base_register is not None:
+                raise ValueError(f"Duplicate base register in EA operand: {operand!r}")
+            base_register = "pc"
+            continue
+        if _RE_AN.match(low) or _RE_SP.match(low):
+            if base_register is not None:
+                raise ValueError(f"Duplicate base register in EA operand: {operand!r}")
+            base_register = "sp" if low == "sp" else low
+            continue
+        if _RE_FULL_INDEX.match(item):
+            if bracket_index is not None:
+                raise ValueError(f"Duplicate index register in EA operand: {operand!r}")
+            bracket_index = item
+            continue
+        if base_disp is not None:
+            raise ValueError(f"Duplicate base displacement in EA operand: {operand!r}")
+        base_disp = _parse_num(item)
+
+    outer_disp = None
+    trailing_index = None
+    for item in parts[1:]:
+        if _RE_FULL_INDEX.match(item):
+            if trailing_index is not None:
+                raise ValueError(f"Duplicate trailing index in EA operand: {operand!r}")
+            trailing_index = item
+            continue
+        if outer_disp is not None:
+            raise ValueError(f"Duplicate outer displacement in EA operand: {operand!r}")
+        outer_disp = _parse_num(item)
+
+    preindexed = bracket_index is not None
+    postindexed = trailing_index is not None
+    if preindexed and postindexed:
+        raise ValueError(f"EA operand cannot be both preindexed and postindexed: {operand!r}")
+
+    index_text = bracket_index if preindexed else trailing_index
+    if index_text is not None:
+        index_is_addr, index_reg, index_is_long, index_scale = _parse_full_index(index_text)
+        index_suppressed = False
+    else:
+        index_suppressed = True
+
+    if base_register is None:
+        raise ValueError(f"Full-extension EA missing base register: {operand!r}")
+
+    outer_kind = "null" if outer_disp is None else _full_ext_disp_kind(outer_disp)
+    if preindexed:
+        iis = {"null": 1, "word": 2, "long": 3}[outer_kind]
+    else:
+        iis = {"null": 5, "word": 6, "long": 7}[outer_kind]
+
+    base_disp_kind = _full_ext_disp_kind(base_disp)
+    ext_word = _build_full_ext_word(
+        index_is_addr=index_is_addr,
+        index_reg=index_reg,
+        index_is_long=index_is_long,
+        index_scale=index_scale,
+        base_suppressed=False,
+        index_suppressed=index_suppressed,
+        base_disp_kind=base_disp_kind,
+        iis=iis,
+    )
+    ext = _to_bytes_16(ext_word) + _full_ext_disp_bytes(base_disp) + _full_ext_disp_bytes(outer_disp)
+
+    if base_register == "pc":
+        mode, reg = enc["pcindex"]
+        return mode, reg, ext
+    mode, _ = enc["index"]
+    reg = 7 if base_register == "sp" else int(base_register[1])
+    return mode, reg, ext
 
 
 def _build_brief_ext_word(xreg_num, is_addr, is_long, disp8):
@@ -103,6 +282,10 @@ def parse_ea(operand, op_size=None):
     """
     operand = operand.strip()
     enc = runtime_m68k_asm.EA_MODE_ENCODING
+
+    full_ext = _parse_full_extension_ea(operand, enc)
+    if full_ext is not None:
+        return full_ext
 
     # Dn
     m = _RE_DN.match(operand)

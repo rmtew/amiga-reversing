@@ -22,7 +22,8 @@ from disasm.decode import (DecodedInstructionForEmit,
                            decode_instruction_for_emit,
                            lookup_instruction_kb)
 from m68k.instruction_decode import DecodedBitfield
-from m68k.os_calls import StructRegisterType
+from m68k.os_calls import (MemoryRegionProvenance, MemoryRegionProvenanceKind,
+                           TypedMemoryRegion)
 from disasm.discovery import (add_hint_labels, build_label_map,
                               discover_absolute_targets,
                               discover_pc_relative_targets,
@@ -33,12 +34,15 @@ from disasm.instruction_rows import (make_instruction_row,
 from disasm.operands import (_operand_types_for_inst,
                              build_instruction_semantic_operands)
 from disasm.types import (
+    AppStructFieldOperandMetadata,
     BitfieldOperandMetadata,
     IndexedOperandMetadata,
     HunkDisassemblySession,
     SemanticOperand,
     SymbolOperandMetadata,
 )
+from tests.os_kb_helpers import make_empty_os_kb
+from tests.platform_helpers import make_platform
 
 _INIT_STRUCTS = {
     "InitStruct": runtime_os.OsStruct(
@@ -103,7 +107,7 @@ def test_collect_word_access():
     # $0E: data table (4 words)
     code += struct.pack('>HHHH', 0x0010, 0x0020, 0x0030, 0x0040)
 
-    platform = {"scratch_regs": []}
+    platform = make_platform(scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -127,7 +131,7 @@ def test_collect_long_access():
     # $0A: data (2 longs)
     code += struct.pack('>II', 0x12345678, 0xDEADBEEF)
 
-    platform = {"scratch_regs": []}
+    platform = make_platform(scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -145,7 +149,7 @@ def test_collect_data_access_uses_decoded_operands_not_text():
     code += struct.pack('>II', 0x12345678, 0xDEADBEEF)
 
     result = analyze(code, propagate=True, entry_points=[0],
-                     platform={"scratch_regs": []})
+                     platform=make_platform(scratch_regs=()))
     for block in result["blocks"].values():
         for inst in block.instructions:
             inst.text = "corrupted"
@@ -710,7 +714,7 @@ def test_render_instruction_text_substitutes_absolute_code_operand():
         labels={0x0400: "loc_0400"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -718,8 +722,8 @@ def test_render_instruction_text_substitutes_absolute_code_operand():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -758,7 +762,7 @@ def test_render_instruction_text_substitutes_pc_relative_operand():
         labels={0x004A: "pcref_004a"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -766,8 +770,8 @@ def test_render_instruction_text_substitutes_pc_relative_operand():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -803,7 +807,7 @@ def test_build_instruction_semantic_operands_marks_branch_target():
         labels={0x0048: "loc_0048"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -811,8 +815,8 @@ def test_build_instruction_semantic_operands_marks_branch_target():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -852,7 +856,7 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -860,8 +864,8 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -902,7 +906,7 @@ def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -910,8 +914,8 @@ def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -952,7 +956,7 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
         labels={0x0400: "loc_0400"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -960,8 +964,8 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1003,7 +1007,7 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
         labels={0x004A: "pcref_004a"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1011,8 +1015,8 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1054,7 +1058,14 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={0x0100: {"a1": StructRegisterType("InitStruct")}},
+        region_map={0x0100: {"a1": TypedMemoryRegion(
+            struct="InitStruct",
+            size=20,
+                provenance=MemoryRegionProvenance(
+                    kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                    absolute_addr=0x100,
+                ),
+        )}},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1062,8 +1073,13 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb=SimpleNamespace(STRUCTS=_INIT_STRUCTS),
+        platform=make_platform(),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=_INIT_STRUCTS,
+            CONSTANTS={},
+            LIBRARIES={},
+        ),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1109,7 +1125,7 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1117,8 +1133,8 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1164,7 +1180,7 @@ def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape(
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1172,8 +1188,8 @@ def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape(
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={"initial_base_reg": (6, 0)},
-        os_kb={"structs": {}},
+        platform=make_platform(initial_base_reg=(6, 0)),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1216,7 +1232,7 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
         labels={0x0056: "loc_0056"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1224,8 +1240,8 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1267,7 +1283,7 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1275,8 +1291,8 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1347,7 +1363,7 @@ def test_build_instruction_semantic_operands_supports_register_shift_form():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1355,8 +1371,8 @@ def test_build_instruction_semantic_operands_supports_register_shift_form():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1397,7 +1413,7 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1405,8 +1421,8 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1443,7 +1459,7 @@ def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count()
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1451,8 +1467,8 @@ def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count()
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1493,7 +1509,7 @@ def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1501,8 +1517,8 @@ def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1543,7 +1559,7 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1551,8 +1567,8 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1595,7 +1611,7 @@ def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1603,8 +1619,8 @@ def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1644,7 +1660,7 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
         labels={0x0400: "loc_0400"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1652,8 +1668,8 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1695,7 +1711,7 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1703,8 +1719,8 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1746,7 +1762,7 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1754,8 +1770,8 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1794,7 +1810,7 @@ def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1802,8 +1818,8 @@ def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1838,7 +1854,7 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1846,8 +1862,8 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1891,7 +1907,7 @@ def test_make_instruction_row_renders_from_semantic_operands_and_comments():
         labels={0x0048: "loc_0048"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1899,8 +1915,8 @@ def test_make_instruction_row_renders_from_semantic_operands_and_comments():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1954,7 +1970,14 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={0x0100: {"a1": StructRegisterType("InitStruct")}},
+        region_map={0x0100: {"a1": TypedMemoryRegion(
+            struct="InitStruct",
+            size=20,
+                provenance=MemoryRegionProvenance(
+                    kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                    absolute_addr=0x100,
+                ),
+        )}},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1962,8 +1985,13 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb=SimpleNamespace(STRUCTS=_INIT_STRUCTS),
+        platform=make_platform(),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=_INIT_STRUCTS,
+            CONSTANTS={},
+            LIBRARIES={},
+        ),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -2006,7 +2034,7 @@ def test_render_instruction_text_uses_semantic_branch_substitution():
         labels={0x0048: "loc_0048"},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -2014,8 +2042,8 @@ def test_render_instruction_text_uses_semantic_branch_substitution():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -2055,7 +2083,14 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={0x0100: {"a1": StructRegisterType("InitStruct")}},
+        region_map={0x0100: {"a1": TypedMemoryRegion(
+            struct="InitStruct",
+            size=20,
+                provenance=MemoryRegionProvenance(
+                    kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                    absolute_addr=0x100,
+                ),
+        )}},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -2063,8 +2098,13 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb=SimpleNamespace(STRUCTS=_INIT_STRUCTS),
+        platform=make_platform(),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=_INIT_STRUCTS,
+            CONSTANTS={},
+            LIBRARIES={},
+        ),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -2081,3 +2121,387 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
     assert comment == ""
     assert comment_parts == ()
     assert used_structs == {"InitStruct"}
+
+
+def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substitution():
+    inst = Instruction(offset=0x0100, size=4, opcode=0x2029,
+                       text="corrupted",
+                       raw=struct.pack(">HH", 0x2029, 0x0000),
+                       kb_mnemonic="move", operand_size="l",
+                       operand_texts=("0(a1)", "d0"))
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={0x0100: {"a1": TypedMemoryRegion(
+            struct="MP",
+            size=runtime_os.STRUCTS["MP"].size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.FIELD_POINTER,
+                base_register="a0",
+                displacement=14,
+            ),
+            struct_offset=16,
+        )}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    used_structs = set()
+
+    ops = build_instruction_semantic_operands(inst, session, used_structs=used_structs)
+
+    assert len(ops) == 2
+    assert ops[0].kind == "base_displacement_symbol"
+    assert ops[0].text == "MP_SIGTASK(a1)"
+    assert ops[0].metadata == SymbolOperandMetadata(symbol="MP_SIGTASK")
+    assert used_structs == {"MP"}
+
+
+def test_render_instruction_text_uses_shifted_pointee_struct_substitution():
+    inst = Instruction(offset=0x0100, size=4, opcode=0x2029,
+                       text="corrupted",
+                       raw=struct.pack(">HH", 0x2029, 0x0000),
+                       kb_mnemonic="move", operand_size="l",
+                       operand_texts=("0(a1)", "d0"),
+                       opcode_text="move.l")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={0x0100: {"a1": TypedMemoryRegion(
+            struct="MP",
+            size=runtime_os.STRUCTS["MP"].size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.FIELD_POINTER,
+                base_register="a0",
+                displacement=14,
+            ),
+            struct_offset=16,
+        )}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    used_structs = set()
+
+    text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
+
+    assert text == "move.l MP_SIGTASK(a1),d0"
+    assert comment == ""
+    assert comment_parts == ()
+    assert used_structs == {"MP"}
+
+
+def test_render_instruction_text_uses_app_region_struct_substitution():
+    inst = Instruction(offset=0x0100, size=4, opcode=0x206E,
+                       text="corrupted",
+                       raw=struct.pack(">HH", 0x206E, 0x0078),
+                       kb_mnemonic="movea", operand_size="l",
+                       operand_texts=("120(a6)", "a0"),
+                       opcode_text="movea.l")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+            app_offsets={100: "app_timer_device_iorequest"},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(initial_base_reg=(6, 0)),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=runtime_os.STRUCTS,
+            CONSTANTS={},
+            LIBRARIES={},
+        ),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        app_struct_regions={
+            100: TypedMemoryRegion(
+                struct="IO",
+                size=runtime_os.STRUCTS["IO"].size,
+                provenance=MemoryRegionProvenance(
+                    kind=MemoryRegionProvenanceKind.APP_RELATIVE,
+                    base_register="a6",
+                    displacement=100,
+                ),
+            )
+        },
+    )
+    used_structs = set()
+
+    text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
+
+    assert text == "movea.l app_timer_device_iorequest+IO_DEVICE(a6),a0"
+    assert comment == ""
+    assert comment_parts == ()
+    assert used_structs == {"IO"}
+    ops = build_instruction_semantic_operands(inst, session)
+    assert ops[0].metadata == AppStructFieldOperandMetadata(
+        base_symbol="app_timer_device_iorequest",
+        field_symbol="IO_DEVICE",
+    )
+
+
+def test_render_instruction_text_uses_inherited_pointee_base_field_substitution():
+    inst = Instruction(offset=0x0104, size=4, opcode=0x0C68,
+                       text="corrupted",
+                       raw=struct.pack(">HH", 0x0C68, 0x0014),
+                       kb_mnemonic="cmpi", operand_size="w",
+                       operand_texts=("#$24", "20(a0)"),
+                       opcode_text="cmpi.w")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={0x0104: {"a0": TypedMemoryRegion(
+            struct="DD",
+            size=runtime_os.STRUCTS["DD"].size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.FIELD_POINTER,
+                base_register="a6",
+                displacement=120,
+            ),
+        )}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={100: "app_opendevice_iorequest"},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(initial_base_reg=(6, 0)),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=runtime_os.STRUCTS,
+            CONSTANTS={},
+            LIBRARIES={},
+        ),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    used_structs = set()
+
+    text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
+
+    assert text == "cmpi.w #$24,LIB_VERSION(a0)"
+    assert comment == ""
+    assert comment_parts == ()
+    assert used_structs == {"LIB"}
+
+
+def test_render_instruction_text_uses_concrete_named_base_field_substitution():
+    inst = Instruction(offset=0x0104, size=4, opcode=0x2028,
+                       text="corrupted",
+                       raw=struct.pack(">HH", 0x2028, 0x003A),
+                       kb_mnemonic="move", operand_size="l",
+                       operand_texts=("58(a0)", "d0"),
+                       opcode_text="move.l")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={0x0104: {"a0": TypedMemoryRegion(
+            struct="DosLibrary",
+            size=runtime_os.STRUCTS["DosLibrary"].size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
+                base_register="a6",
+                displacement=100,
+            ),
+        )}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={100: "app_dos_base"},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(initial_base_reg=(6, 0)),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=runtime_os.STRUCTS,
+            CONSTANTS={},
+            LIBRARIES={},
+        ),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    used_structs = set()
+
+    text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
+
+    assert text == "move.l dl_TimeReq(a0),d0"
+    assert comment == ""
+    assert comment_parts == ()
+    assert used_structs == {"DosLibrary"}
+
+
+def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_calls():
+    inst = Instruction(offset=0x0104, size=4, opcode=0x4EB0,
+                       text="corrupted",
+                       raw=struct.pack(">HH", 0x4EB0, 0x0000),
+                       kb_mnemonic="jsr", operand_size="w",
+                       operand_texts=("0(a6,d0.w)",),
+                       opcode_text="jsr")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        core_absolute_targets=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={0x0104: {"a6": TypedMemoryRegion(
+            struct="DosLibrary",
+            size=runtime_os.STRUCTS["DosLibrary"].size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
+                base_register="a6",
+                displacement=100,
+            ),
+        )}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={100: "app_dos_base"},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(initial_base_reg=(6, 0)),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=runtime_os.STRUCTS,
+            CONSTANTS={},
+            LIBRARIES={},
+        ),
+        fixed_abs_addrs=set(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    used_structs = set()
+
+    text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
+
+    assert text == "jsr 0(a6,d0.w)"
+    assert comment == ""
+    assert comment_parts == ()
+    assert used_structs == set()

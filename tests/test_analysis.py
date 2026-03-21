@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 from m68k.analysis import (analyze_hunk, HunkAnalysis, AnalysisCacheError,
-                           detect_relocated_segments, _postinc_copy_regs)
+                           detect_relocated_segments, _postinc_copy_regs,
+                           RelocatedSegment)
 from m68k.decode_errors import DecodeError
 from m68k.hunk_parser import HunkType
 from m68k.m68k_asm import assemble_instruction
@@ -15,6 +16,20 @@ from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze
 from m68k.os_calls import LibraryCall
 from m68k.ea_extension import parse_full_extension
+
+
+def _site_view(site):
+    return {
+        "addr": site.addr,
+        "mnemonic": site.mnemonic,
+        "flow_type": site.flow_type,
+        "shape": site.shape,
+        "region": site.region,
+        "status": site.status,
+        "target": site.target,
+        **({"detail": site.detail} if site.detail is not None else {}),
+        **({"target_count": site.target_count} if site.target_count is not None else {}),
+    }
 
 
 def _make_simple_hunk():
@@ -216,7 +231,7 @@ def test_analyze_hunk_prunes_inline_dispatch_speculative_blocks():
 
     result = analyze_hunk(code, relocs=[], hunk_index=0, print_fn=lambda *a: None)
 
-    assert any(t["pattern"] == "pc_inline_dispatch" for t in result.jump_tables)
+    assert any(t.pattern == "pc_inline_dispatch" for t in result.jump_tables)
     assert 0x04 not in result.blocks
     assert 0x0E in result.blocks
     assert 0x12 in result.blocks
@@ -236,7 +251,7 @@ def test_analyze_hunk_reports_unresolved_indirect_sites():
         print_fn=lambda line: lines.append(line),
     )
 
-    assert result.indirect_sites == [{
+    assert [_site_view(site) for site in result.indirect_sites] == [{
         "addr": 0,
         "mnemonic": "JSR",
         "flow_type": "call",
@@ -272,7 +287,7 @@ def test_analyze_hunk_reports_terminal_indirect_site_offset_not_block_start(monk
         print_fn=lambda *_: None,
     )
 
-    assert result.indirect_sites == [{
+    assert [_site_view(site) for site in result.indirect_sites] == [{
         "addr": 0x2,
         "mnemonic": "JSR",
         "flow_type": "call",
@@ -312,7 +327,7 @@ def test_analyze_hunk_marks_identified_library_call_as_external(monkeypatch):
         print_fn=lambda *_: None,
     )
 
-    assert result.indirect_sites == [{
+    assert [_site_view(site) for site in result.indirect_sites] == [{
         "addr": 0x2,
         "mnemonic": "JSR",
         "flow_type": "call",
@@ -356,7 +371,7 @@ def test_analyze_hunk_core_per_caller_does_not_promote_hint_only_target(monkeypa
         "region": "core",
         "status": "runtime",
         "target": 0x0E,
-    } in result.indirect_sites
+    } in [_site_view(site) for site in result.indirect_sites]
 
 
 # -- Auto-detect relocated segments -----------------------------------
@@ -399,10 +414,10 @@ def test_detect_copy_and_jump():
     assert len(segments) >= 1, (
         f"Expected at least 1 relocated segment, got {segments}")
     seg = segments[0]
-    assert seg["file_offset"] == 0x1E, (
-        f"Expected file_offset=$1E, got ${seg['file_offset']:X}")
-    assert seg["base_addr"] == 0x400, (
-        f"Expected base_addr=$400, got ${seg['base_addr']:X}")
+    assert seg.file_offset == 0x1E, (
+        f"Expected file_offset=$1E, got ${seg.file_offset:X}")
+    assert seg.base_addr == 0x400, (
+        f"Expected base_addr=$400, got ${seg.base_addr:X}")
 
 
 def test_detect_no_copy_returns_empty():
@@ -560,8 +575,8 @@ def test_payload_at_runtime_two_stage():
 
     segs = detect_relocated_segments(code)
     assert len(segs) >= 1
-    assert segs[0]["file_offset"] == 0x34
-    assert segs[0]["base_addr"] == 0x400
+    assert segs[0].file_offset == 0x34
+    assert segs[0].base_addr == 0x400
 
     # Payload at runtime address $0400
     assert 0x0400 in ha.blocks, (
@@ -626,8 +641,8 @@ def test_relocated_segments_stored():
         "HunkAnalysis must have relocated_segments field")
     assert len(ha.relocated_segments) == 1
     seg = ha.relocated_segments[0]
-    assert seg["file_offset"] == 0x1C
-    assert seg["base_addr"] == 0x0400
+    assert seg.file_offset == 0x1C
+    assert seg.base_addr == 0x0400
 
 
 def test_non_relocated_has_empty_segments():

@@ -29,7 +29,9 @@ from .m68k_disasm import disassemble, Instruction, _Decoder, _decode_one
 from .operand_resolution import resolve_ea, _resolve_full_extension_ea
 from .os_calls import (
     BaseRegisterCallEffect,
+    LibraryBaseTag,
     MemoryAllocationCallEffect,
+    OsResultTag,
     OutputRegisterCallEffect,
 )
 
@@ -251,16 +253,16 @@ class AbstractValue:
 _UNKNOWN = AbstractValue()
 
 
-def _concrete(val: int, tag: dict | None = None) -> AbstractValue:
+def _concrete(val: int, tag: object | None = None) -> AbstractValue:
     return AbstractValue(concrete=val & 0xFFFFFFFF, tag=tag)
 
 
 def _symbolic(base: str, offset: int = 0,
-              tag: dict | None = None) -> AbstractValue:
+              tag: object | None = None) -> AbstractValue:
     return AbstractValue(sym_base=base, sym_offset=offset, tag=tag)
 
 
-def _unknown(label: str = "", tag: dict | None = None) -> AbstractValue:
+def _unknown(label: str = "", tag: object | None = None) -> AbstractValue:
     if not label and tag is None:
         return _UNKNOWN
     return AbstractValue(label=label, tag=tag)
@@ -393,6 +395,17 @@ class XRef:
     dst: int           # target address
     type: str          # "branch", "jump", "call", "data_read", "data_write"
     conditional: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class CallSummary:
+    preserved_d: frozenset[int] = frozenset()
+    preserved_a: frozenset[int] = frozenset()
+    produced_d: tuple[tuple[int, int], ...] = ()
+    produced_d_tags: tuple[tuple[int, object], ...] = ()
+    produced_a: tuple[tuple[int, int], ...] = ()
+    produced_a_tags: tuple[tuple[int, object], ...] = ()
+    sp_delta: int = 0
 
 
 # -- Basic block -----------------------------------------------------------
@@ -1399,8 +1412,8 @@ def _apply_assign(d, inst_kb, cpu, mem, size, size_bytes, platform):
     # matching platform exec_base_addr.
     if (src_val is None and platform and src_op
             and src_op.mode == "absw"
-            and src_op.value == platform.get("exec_base_addr")):
-        src_val = _unknown(tag=platform.get("exec_base_tag"))
+            and src_op.value == platform.exec_base_addr):
+        src_val = _unknown(tag=platform.exec_base_tag)
 
     # Write to destination.
     result = src_val if src_val is not None else _unknown()
@@ -1434,10 +1447,10 @@ def _resolve_os_call(inst, inst_kb, cpu, platform, code):
     Returns call_effect dict or None.
     """
     call_effect = None
-    resolver = platform.get("_os_call_resolver")
+    resolver = platform.os_call_resolver
     if resolver and len(inst.raw) >= _OPWORD_BYTES:
         lvo = None
-        base_reg_num = platform["_base_reg_num"]
+        base_reg_num = platform.base_reg_num
         opcode = struct.unpack_from(">H", inst.raw, 0)[0]
         mnemonic = inst_kb
         opword_fields = runtime_m68k_executor.FIELD_MAPS[0].get(mnemonic)
@@ -1474,8 +1487,7 @@ def _resolve_os_call(inst, inst_kb, cpu, platform, code):
                             idx_v & 0xFFFFFFFF, "l")
                     lvo = operand.value + idx_v
         a6_tag = cpu.a[base_reg_num].tag
-        a6_lib = (a6_tag.get("library_base")
-                  if a6_tag else None)
+        a6_lib = a6_tag.library_base if isinstance(a6_tag, LibraryBaseTag) else None
         if lvo is not None and a6_lib:
             call_effect = resolver(
                 inst.offset, lvo, a6_lib, cpu, code,
@@ -1544,7 +1556,7 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
     # platform calling convention.  Detect calls by KB pc_effects
     # flow type, not by SP decrement (PEA also decrements SP but
     # isn't a call).
-    if platform and platform.get("scratch_regs"):
+    if platform and platform.scratch_regs:
         if flow_type == _FLOW_CALL:
             # Resolve call effects before invalidation (needs pre-call
             # register state for input registers like A1 name string).
@@ -1556,7 +1568,7 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
             # Don't invalidate here -- the callee needs the
             # pre-call register state (e.g. D0 = LVO offset).
             if call_effect:
-                platform["_pending_call_effect"] = call_effect
+                platform.pending_call_effect = call_effect
 
 
 def _apply_computed(d, inst_kb, formula, cpu, mem, size, size_bytes, mask):
@@ -1847,7 +1859,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
                      initial_state: _CPUState | None = None,
                      initial_mem: AbstractMemory | None = None,
                      platform: dict | None = None,
-                     summaries: dict[int, dict | None] | None = None,
+                     summaries: dict[int, CallSummary | None] | None = None,
                      ) -> dict[int, tuple]:
     """Propagate abstract state through basic blocks.
 
@@ -1872,7 +1884,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
             # Symbolic SP survives joins (same base+offset -> keep).
             initial_state.sp = _symbolic("SP_entry", 0)
             # Set initial base register if discovered from prior pass
-            base_info = platform.get("initial_base_reg")
+            base_info = platform.initial_base_reg
             if base_info:
                 reg_num, concrete_val = base_info
                 initial_state.set_reg("an", reg_num,
@@ -1880,8 +1892,8 @@ def propagate_states(blocks: dict[int, BasicBlock],
     if initial_mem is None:
         # Use init-discovered memory if available (base-region contents
         # from the init routine, e.g. library bases stored at d(An))
-        if platform and "_initial_mem" in platform:
-            initial_mem = platform["_initial_mem"].copy()
+        if platform and platform.initial_mem is not None:
+            initial_mem = platform.initial_mem.copy()
         else:
             initial_mem = AbstractMemory()
     # Enable code-section reads: when a concrete address within the code
@@ -1938,7 +1950,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
         # Join incoming states.  Pass init_mem so the join uses init
         # values as defaults for bytes a predecessor never touched,
         # without overriding explicit writes (even unknown ones).
-        p_init_mem = platform.get("_initial_mem") if platform else None
+        p_init_mem = platform.initial_mem if platform else None
         cpu, mem = _join_states(pred_states, init_mem=p_init_mem)
         cpu.pc = addr
 
@@ -1949,7 +1961,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
         # used it for ExecBase). Restoring it here is safe and enables
         # library call resolution downstream.
         if platform:
-            base_info = platform.get("initial_base_reg")
+            base_info = platform.initial_base_reg
             if base_info:
                 breg_num, breg_val = base_info
                 if not cpu.a[breg_num].is_known:
@@ -2001,85 +2013,9 @@ def propagate_states(blocks: dict[int, BasicBlock],
                 other_xrefs.append(xref)
 
         if call_sp_push and ft_dst:
-            # Call with fallthrough.  Apply summary to fallthrough
-            # (SP delta + register preservation).  Also propagate
-            # caller state into callee for concrete execution.
-            # Build fallthrough state: summary provides SP delta +
-            # register preservation.  Then apply scratch reg
-            # invalidation + call effects (OS call return tags).
             summary = summaries.get(call_dst) if summaries else None
-            if summary:
-                ft_cpu = _apply_summary(exit_cpu, summary)
-                # If the summary clobbered the app base register,
-                # restore it.  Only the init routine does this -
-                # its summary reports A6 as clobbered since
-                # output != input, but we know the actual value.
-                base_info = (platform.get("initial_base_reg")
-                             if platform else None)
-                if base_info:
-                    breg_num, breg_val = base_info
-                    if not ft_cpu.a[breg_num].is_known:
-                        ft_cpu.set_reg("an", breg_num,
-                                       _concrete(breg_val))
-            else:
-                ft_cpu = exit_cpu.copy()
-                if exit_cpu.sp.is_known:
-                    ft_cpu.sp = _concrete(
-                        (exit_cpu.sp.concrete + call_sp_push)
-                        & 0xFFFFFFFF)
-                elif exit_cpu.sp.is_symbolic:
-                    ft_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
-
-            # Scratch reg invalidation on fallthrough (not on
-            # callee - the callee receives pre-call register
-            # state as input, e.g. D0 = LVO offset).
-            # Skip invalidation for registers the summary says are
-            # preserved - the summary is computed from the actual
-            # callee code and is more precise than the generic
-            # calling convention.
-            if platform and platform.get("scratch_regs"):
-                known_d = summary.get("preserved_d", set()) if summary else set()
-                known_d = known_d | set(summary.get("produced_d", {}).keys()) if summary else known_d
-                known_a = summary.get("preserved_a", set()) if summary else set()
-                known_a = known_a | set(summary.get("produced_a", {}).keys()) if summary else known_a
-                for reg_mode, reg_num in platform["scratch_regs"]:
-                    if reg_mode == "dn" and reg_num in known_d:
-                        continue
-                    if reg_mode == "an" and reg_num in known_a:
-                        continue
-                    ft_cpu.set_reg(reg_mode, reg_num, _unknown())
-
-            # Apply pending call effect (from _apply_instruction's
-            # OS call resolver) to post-invalidation state.
-            if platform:
-                call_effect = platform.pop("_pending_call_effect",
-                                           None)
-                if call_effect:
-                    if isinstance(call_effect, BaseRegisterCallEffect):
-                        mode, num = _parse_reg_from_text(
-                            call_effect.base_reg)
-                        ft_cpu.set_reg(mode, num,
-                                       _unknown(tag={
-                                           "library_base": call_effect.tag.library_base,
-                                           **({"os_type": call_effect.tag.os_type}
-                                              if call_effect.tag.os_type is not None else {}),
-                                       }))
-                    elif isinstance(call_effect, MemoryAllocationCallEffect):
-                        mode, num = _parse_reg_from_text(
-                            call_effect.result_reg)
-                        ft_cpu.set_reg(mode, num,
-                                       _concrete(call_effect.concrete))
-                    elif isinstance(call_effect, OutputRegisterCallEffect):
-                        mode, num = _parse_reg_from_text(
-                            call_effect.output_reg)
-                        ft_cpu.set_reg(mode, num,
-                                       _unknown(tag={
-                                           "os_type": call_effect.output_type.os_type,
-                                           "os_result": call_effect.output_type.os_result,
-                                           "call": call_effect.output_type.call,
-                                           "library": call_effect.output_type.library,
-                                       }))
-
+            ft_cpu = _call_fallthrough_state(
+                exit_cpu, call_sp_push, summary, platform)
             incoming.setdefault(ft_dst, {})[addr] = \
                 (ft_cpu, exit_mem)
             work.append(ft_dst)
@@ -2132,10 +2068,11 @@ def _compute_sub_blocks(blocks: dict[int, BasicBlock],
 
 def _compute_summary(entry: int, owned: set[int],
                      blocks: dict[int, BasicBlock],
-                     summaries: dict[int, dict | None],
+                     summaries: dict[int, CallSummary | None],
                      code: bytes, base_addr: int,
+                     platform: object | None = None,
                      global_exit_states: dict | None = None,
-                     ) -> dict | None:
+                     ) -> CallSummary | None:
     """Compute a subroutine summary by analyzing with symbolic inputs.
 
     Each register gets a unique symbolic value (D0_entry, A0_entry,
@@ -2143,8 +2080,7 @@ def _compute_summary(entry: int, owned: set[int],
     preserved; others are clobbered.  No platform config - summaries
     track register preservation, not concrete OS call effects.
 
-    Returns {"preserved_d": set, "preserved_a": set, "sp_delta": int}
-    or None.
+    Returns a typed call summary or None.
     """
     entry_cpu = CPUState()
     for i in range(len(entry_cpu.d)):
@@ -2187,7 +2123,7 @@ def _compute_summary(entry: int, owned: set[int],
         for inst in block.instructions:
             ikb = instruction_kb(inst)
             _apply_instruction(inst, ikb, cpu, mem, code, base_addr,
-                               None)  # no platform
+                               platform)
             cpu.pc = inst.offset + inst.size
         exit_cpu = cpu.copy()
         exit_mem = mem.copy()
@@ -2218,20 +2154,10 @@ def _compute_summary(entry: int, owned: set[int],
 
         if call_sp_push and ft_dst and ft_dst in owned:
             nested = summaries.get(call_dst)
-            if nested:
-                ft_cpu = _apply_summary(exit_cpu, nested)
-                incoming.setdefault(ft_dst, {})[addr] = \
-                    (ft_cpu, exit_mem)
-            else:
-                adj_cpu = exit_cpu.copy()
-                if exit_cpu.sp.is_symbolic:
-                    adj_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
-                elif exit_cpu.sp.is_known:
-                    adj_cpu.sp = _concrete(
-                        (exit_cpu.sp.concrete + call_sp_push)
-                        & 0xFFFFFFFF)
-                incoming.setdefault(ft_dst, {})[addr] = \
-                    (adj_cpu, exit_mem)
+            ft_cpu = _call_fallthrough_state(
+                exit_cpu, call_sp_push, nested, platform)
+            incoming.setdefault(ft_dst, {})[addr] = \
+                (ft_cpu, exit_mem)
             work.append(ft_dst)
         elif ft_dst and ft_dst in owned:
             incoming.setdefault(ft_dst, {})[addr] = \
@@ -2260,36 +2186,52 @@ def _compute_summary(entry: int, owned: set[int],
 
     rts_cpu, _ = _join_states(rts_states)
 
-    preserved_d = {i for i in range(len(rts_cpu.d))
-                   if rts_cpu.d[i].sym_base == f"D{i}_entry"
-                   and rts_cpu.d[i].sym_offset == 0}
-    preserved_a = {i for i in range(len(rts_cpu.a))
-                   if rts_cpu.a[i].sym_base == f"A{i}_entry"
-                   and rts_cpu.a[i].sym_offset == 0}
+    preserved_d = frozenset(
+        i for i in range(len(rts_cpu.d))
+        if rts_cpu.d[i].sym_base == f"D{i}_entry"
+        and rts_cpu.d[i].sym_offset == 0
+    )
+    preserved_a = frozenset(
+        i for i in range(len(rts_cpu.a))
+        if rts_cpu.a[i].sym_base == f"A{i}_entry"
+        and rts_cpu.a[i].sym_offset == 0
+    )
     # Produced values: registers that are concrete at all RTS exits
     # regardless of input.  These are constants the sub always computes
     # (e.g. LEA target(pc),a0 - always returns the same address).
     # Input-dependent results show as symbolic (Dn_entry + offset) or
     # unknown, not concrete - so this is sound.
-    produced_d = {}
+    produced_d = []
+    produced_d_tags = []
     for i in range(len(rts_cpu.d)):
         if i not in preserved_d and rts_cpu.d[i].is_known:
-            produced_d[i] = rts_cpu.d[i].concrete
-    produced_a = {}
+            produced_d.append((i, rts_cpu.d[i].concrete))
+        if i not in preserved_d and rts_cpu.d[i].tag is not None:
+            produced_d_tags.append((i, rts_cpu.d[i].tag))
+    produced_a = []
+    produced_a_tags = []
     for i in range(len(rts_cpu.a)):
         if i not in preserved_a and rts_cpu.a[i].is_known:
-            produced_a[i] = rts_cpu.a[i].concrete
+            produced_a.append((i, rts_cpu.a[i].concrete))
+        if i not in preserved_a and rts_cpu.a[i].tag is not None:
+            produced_a_tags.append((i, rts_cpu.a[i].tag))
     sp_delta = 0
     if rts_cpu.sp.is_symbolic and rts_cpu.sp.sym_base == "SP_entry":
         sp_delta = rts_cpu.sp.sym_offset
 
-    return {"preserved_d": preserved_d, "preserved_a": preserved_a,
-            "produced_d": produced_d, "produced_a": produced_a,
-            "sp_delta": sp_delta}
+    return CallSummary(
+        preserved_d=preserved_d,
+        preserved_a=preserved_a,
+        produced_d=tuple(produced_d),
+        produced_d_tags=tuple(produced_d_tags),
+        produced_a=tuple(produced_a),
+        produced_a_tags=tuple(produced_a_tags),
+        sp_delta=sp_delta,
+    )
 
 
 def _apply_summary(caller_cpu: _CPUState,
-                   summary: dict) -> _CPUState:
+                   summary: CallSummary) -> _CPUState:
     """Apply a subroutine summary to a caller's state.
 
     Preserved registers keep the caller's value.
@@ -2297,23 +2239,29 @@ def _apply_summary(caller_cpu: _CPUState,
     Everything else becomes unknown.  SP adjusted by delta.
     """
     result = CPUState()
-    produced_d = summary.get("produced_d", {})
-    produced_a = summary.get("produced_a", {})
+    produced_d = dict(summary.produced_d)
+    produced_d_tags = dict(summary.produced_d_tags)
+    produced_a = dict(summary.produced_a)
+    produced_a_tags = dict(summary.produced_a_tags)
     for i in range(len(result.d)):
-        if i in summary["preserved_d"]:
+        if i in summary.preserved_d:
             result.d[i] = caller_cpu.d[i]
         elif i in produced_d:
-            result.d[i] = _concrete(produced_d[i])
+            result.d[i] = _concrete(produced_d[i], tag=produced_d_tags.get(i))
+        elif i in produced_d_tags:
+            result.d[i] = _unknown(tag=produced_d_tags[i])
         else:
             result.d[i] = _unknown()
     for i in range(len(result.a)):
-        if i in summary["preserved_a"]:
+        if i in summary.preserved_a:
             result.a[i] = caller_cpu.a[i]
         elif i in produced_a:
-            result.a[i] = _concrete(produced_a[i])
+            result.a[i] = _concrete(produced_a[i], tag=produced_a_tags.get(i))
+        elif i in produced_a_tags:
+            result.a[i] = _unknown(tag=produced_a_tags[i])
         else:
             result.a[i] = _unknown()
-    delta = summary["sp_delta"]
+    delta = summary.sp_delta
     if caller_cpu.sp.is_symbolic:
         result.sp = caller_cpu.sp.sym_add(delta)
     elif caller_cpu.sp.is_known:
@@ -2322,11 +2270,83 @@ def _apply_summary(caller_cpu: _CPUState,
     return result
 
 
+def _summary_known_regs(summary: CallSummary | None) -> tuple[set[int], set[int]]:
+    if summary is None:
+        return set(), set()
+    known_d = set(summary.preserved_d)
+    known_d.update(reg_num for reg_num, _ in summary.produced_d)
+    known_d.update(reg_num for reg_num, _ in summary.produced_d_tags)
+    known_a = set(summary.preserved_a)
+    known_a.update(reg_num for reg_num, _ in summary.produced_a)
+    known_a.update(reg_num for reg_num, _ in summary.produced_a_tags)
+    return known_d, known_a
+
+
+def _apply_pending_call_effect(ft_cpu: _CPUState, platform) -> None:
+    if platform is None:
+        return
+    call_effect = platform.pending_call_effect
+    platform.pending_call_effect = None
+    if call_effect is None:
+        return
+    if isinstance(call_effect, BaseRegisterCallEffect):
+        mode, num = _parse_reg_from_text(call_effect.base_reg)
+        ft_cpu.set_reg(mode, num, _unknown(tag=call_effect.tag))
+    elif isinstance(call_effect, MemoryAllocationCallEffect):
+        mode, num = _parse_reg_from_text(call_effect.result_reg)
+        ft_cpu.set_reg(mode, num, _concrete(call_effect.concrete))
+    elif isinstance(call_effect, OutputRegisterCallEffect):
+        mode, num = _parse_reg_from_text(call_effect.output_reg)
+        ft_cpu.set_reg(
+            mode,
+            num,
+            _unknown(tag=OsResultTag(
+                os_type=call_effect.output_type.os_type,
+                os_result=call_effect.output_type.os_result,
+                call=call_effect.output_type.call,
+                library=call_effect.output_type.library,
+            )),
+        )
+
+
+def _call_fallthrough_state(exit_cpu: _CPUState,
+                            call_sp_push: int,
+                            summary: CallSummary | None,
+                            platform) -> _CPUState:
+    if summary:
+        ft_cpu = _apply_summary(exit_cpu, summary)
+        base_info = platform.initial_base_reg if platform else None
+        if base_info:
+            breg_num, breg_val = base_info
+            if not ft_cpu.a[breg_num].is_known:
+                ft_cpu.set_reg("an", breg_num, _concrete(breg_val))
+    else:
+        ft_cpu = exit_cpu.copy()
+        if exit_cpu.sp.is_known:
+            ft_cpu.sp = _concrete(
+                (exit_cpu.sp.concrete + call_sp_push) & 0xFFFFFFFF)
+        elif exit_cpu.sp.is_symbolic:
+            ft_cpu.sp = exit_cpu.sp.sym_add(call_sp_push)
+
+    if platform and platform.scratch_regs:
+        known_d, known_a = _summary_known_regs(summary)
+        for reg_mode, reg_num in platform.scratch_regs:
+            if reg_mode == "dn" and reg_num in known_d:
+                continue
+            if reg_mode == "an" and reg_num in known_a:
+                continue
+            ft_cpu.set_reg(reg_mode, reg_num, _unknown())
+
+    _apply_pending_call_effect(ft_cpu, platform)
+    return ft_cpu
+
+
 def compute_all_summaries(blocks: dict[int, BasicBlock],
                           code: bytes, base_addr: int,
-                          existing: dict[int, dict | None] | None = None,
+                          existing: dict[int, CallSummary | None] | None = None,
+                          platform: object | None = None,
                           global_exit_states: dict | None = None,
-                          ) -> dict[int, dict | None]:
+                          ) -> dict[int, CallSummary | None]:
     """Pre-compute summaries for all subroutines in topological order.
 
     Leaf subroutines (no calls) are computed first, then their callers
@@ -2378,7 +2398,7 @@ def compute_all_summaries(blocks: dict[int, BasicBlock],
         entry = ready.pop()
         summaries[entry] = _compute_summary(
             entry, sub_map[entry], blocks, summaries, code,
-            base_addr, global_exit_states)
+            base_addr, platform, global_exit_states)
         for caller in callers.get(entry, set()):
             if caller in in_degree:
                 in_degree[caller] -= 1
@@ -2390,7 +2410,7 @@ def compute_all_summaries(blocks: dict[int, BasicBlock],
         if entry not in summaries:
             summaries[entry] = _compute_summary(
                 entry, sub_map[entry], blocks, summaries, code,
-                base_addr, global_exit_states)
+                base_addr, platform, global_exit_states)
 
     return summaries
 
@@ -2444,10 +2464,10 @@ def analyze(code: bytes, base_addr: int = 0,
         # preservation on call fallthroughs.
         sums = None
         if platform:
-            existing = platform.get("_summary_cache")
-            platform["_summary_cache"] = compute_all_summaries(
-                blocks, code, base_addr, existing=existing)
-            sums = platform["_summary_cache"]
+            existing = platform.summary_cache
+            platform.summary_cache = compute_all_summaries(
+                blocks, code, base_addr, existing=existing, platform=platform)
+            sums = platform.summary_cache
         result["exit_states"] = propagate_states(
             blocks, code, base_addr, platform=platform,
             summaries=sums)

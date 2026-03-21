@@ -6,6 +6,8 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+from scripts.build_entities import build_entities
+from disasm.analysis_loader import analysis_cache_is_current
 from disasm.emitter import emit_session_rows
 from disasm.session import build_disassembly_session
 from disasm.text import render_rows
@@ -34,6 +36,16 @@ class StageTimer:
                 for name, elapsed in self.samples]
 
 
+def _entities_need_refresh(binary_path: str, entities_path: str) -> bool:
+    entities_file = Path(entities_path)
+    if not entities_file.exists():
+        return True
+    if not analysis_cache_is_current(binary_path):
+        return True
+    cache_path = Path(binary_path).with_suffix(".analysis")
+    return entities_file.stat().st_mtime < cache_path.stat().st_mtime
+
+
 def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                base_addr: int = 0, code_start: int = 0,
                profile_stages: bool = False,
@@ -44,6 +56,16 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
         faulthandler.dump_traceback_later(stall_timeout, repeat=True)
 
     try:
+        if _entities_need_refresh(binary_path, entities_path):
+            entities_parent = Path(entities_path).parent
+            entities_parent.mkdir(parents=True, exist_ok=True)
+            print(f"Refreshing entities for {binary_path}...")
+            build_entities(
+                binary_path,
+                entities_path,
+                base_addr=base_addr,
+                code_start=code_start,
+            )
         print(f"Loading disassembly session for {binary_path}...")
         with stage_timer.measure("build_session"):
             session = build_disassembly_session(

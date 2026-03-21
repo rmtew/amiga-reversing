@@ -7,6 +7,8 @@ from m68k.instruction_kb import find_kb_entry
 from m68k.m68k_disasm import disassemble
 from disasm.operands import build_instruction_semantic_operands
 from disasm.types import HunkDisassemblySession
+from tests.os_kb_helpers import make_empty_os_kb
+from tests.platform_helpers import make_platform
 from tests.test_m68k_roundtrip import ALL_CASES, _batch_assemble
 
 
@@ -28,7 +30,7 @@ def _coverage_session() -> HunkDisassemblySession:
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -36,8 +38,8 @@ def _coverage_session() -> HunkDisassemblySession:
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,

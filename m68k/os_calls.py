@@ -14,11 +14,14 @@ Usage:
     calls = identify_library_calls(blocks, code, os_kb)
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import StrEnum
+import re
 import struct
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Protocol, TypeAlias
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
@@ -27,11 +30,15 @@ from m68k_kb import runtime_os
 from .instruction_kb import find_kb_entry, instruction_flow, instruction_kb
 from .instruction_decode import DecodedOperands, decode_inst_destination, decode_inst_operands, xf
 from .instruction_primitives import extract_branch_target
+from .os_structs import resolve_struct_field
 from .registers import parse_reg_name
 from .strings import read_string_at
 
 if TYPE_CHECKING:
-    from .m68k_executor import BasicBlock
+    from .m68k_executor import BasicBlock, CallSummary
+
+
+ScratchReg: TypeAlias = tuple[str, int]
 
 
 def _decode_inst(inst):
@@ -71,6 +78,10 @@ def _decoded_dest_reg(decoded: DecodedOperands) -> str | None:
     return None
 
 
+def _address_reg_name(reg: int) -> str:
+    return "sp" if reg == 7 else f"a{reg}"
+
+
 # Sentinel addresses for abstract memory regions.
 # These must not overlap with real hunk addresses (code is 0..64K range).
 # SP sentinel: top of a virtual stack region.
@@ -86,10 +97,27 @@ class AppMemoryDirection(StrEnum):
     BACKWARD = "backward"
 
 
+class MemoryRegionProvenanceKind(StrEnum):
+    APP_RELATIVE = "app_relative"
+    BASE_DISPLACEMENT = "base_displacement"
+    PC_RELATIVE = "pc_relative"
+    ABSOLUTE = "absolute"
+    FIELD_POINTER = "field_pointer"
+    NAMED_BASE = "named_base"
+
+
+class OsKb(Protocol):
+    META: runtime_os.OsMeta
+    STRUCTS: dict[str, runtime_os.OsStruct]
+    CONSTANTS: dict[str, runtime_os.OsConstant]
+    LIBRARIES: dict[str, runtime_os.OsLibrary]
+
+
 @dataclass(frozen=True, slots=True)
 class LibraryBaseTag:
     library_base: str
     os_type: str | None = None
+    struct_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +159,99 @@ class AppMemoryType:
 
 
 @dataclass(frozen=True, slots=True)
+class AppSlotNaming:
+    offset: int
+    candidates: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class AppSlotInfo:
+    offset: int
+    symbol: str
+    usages: tuple[AppMemoryType, ...]
+    struct: str | None = None
+    size: int | None = None
+    pointer_struct: str | None = None
+    named_base: str | None = None
+
+
+def _sanitize_app_name(name: str) -> str:
+    return re.sub(r'[^a-z0-9]+', '_', name.lower())
+
+
+def _refined_named_base_struct(os_kb: OsKb,
+                               named_base: str | None,
+                               generic_struct: str | None) -> str | None:
+    if named_base is None or generic_struct is None:
+        return generic_struct
+    specific_struct = os_kb.META.named_base_structs.get(named_base)
+    if specific_struct is None:
+        return generic_struct
+    if specific_struct not in os_kb.STRUCTS:
+        raise KeyError(
+            f"Named base {named_base} maps to unknown struct {specific_struct}")
+    return specific_struct
+
+
+def app_memory_type_priority(info: AppMemoryType) -> int:
+    return 0 if info.direction is AppMemoryDirection.BACKWARD else 1
+
+
+def select_primary_app_memory_type(usages: tuple[AppMemoryType, ...]) -> AppMemoryType:
+    if not usages:
+        raise ValueError("App memory type usages cannot be empty")
+    ranked = sorted(enumerate(usages), key=lambda item: (app_memory_type_priority(item[1]), item[0]))
+    return ranked[0][1]
+
+
+def _app_slot_usage_symbol(info: AppMemoryType) -> str:
+    return _sanitize_app_name(f"app_{info.function}_{info.name}")
+
+
+def _app_slot_usage_suffix(infos: tuple[AppMemoryType, ...]) -> str | None:
+    ranked = sorted(enumerate(infos), key=lambda item: (app_memory_type_priority(item[1]), item[0]))
+    names: list[str] = []
+    for _, info in ranked:
+        suffix = _sanitize_app_name(info.name)
+        if suffix not in names:
+            names.append(suffix)
+    if len(names) != 1:
+        return None
+    if names[0] in {"library", "resource", "device", "base"}:
+        return "base"
+    return names[0]
+
+
+def _ordered_app_slot_symbols(infos: tuple[AppMemoryType, ...]) -> tuple[str, ...]:
+    ranked = sorted(enumerate(infos), key=lambda item: (app_memory_type_priority(item[1]), item[0]))
+    ordered: list[str] = []
+    for _, info in ranked:
+        sym = _app_slot_usage_symbol(info)
+        if sym not in ordered:
+            ordered.append(sym)
+    if not ordered:
+        raise ValueError("App slot usage candidates cannot be empty")
+    return tuple(ordered)
+
+
+def _app_slot_naming(*, offset: int, infos: tuple[AppMemoryType, ...], named_base: str | None) -> AppSlotNaming:
+    if named_base is not None:
+        base_sym = _sanitize_app_name(named_base)
+        suffix = _app_slot_usage_suffix(infos)
+        if suffix is None:
+            return AppSlotNaming(offset=offset, candidates=(f"app_{base_sym}_base",))
+        return AppSlotNaming(offset=offset, candidates=(f"app_{base_sym}_{suffix}",))
+    return AppSlotNaming(offset=offset, candidates=_ordered_app_slot_symbols(infos))
+
+
+def _choose_app_slot_symbol(naming: AppSlotNaming, grouped_candidates: dict[str, list[int]]) -> str:
+    for sym in naming.candidates:
+        if len(grouped_candidates[sym]) == 1:
+            return sym
+    return naming.candidates[0]
+
+
+@dataclass(frozen=True, slots=True)
 class CallArgumentAnnotation:
     arg_name: str
     arg_reg: str
@@ -139,8 +260,58 @@ class CallArgumentAnnotation:
 
 
 @dataclass(frozen=True, slots=True)
-class StructRegisterType:
+class MemoryRegionProvenance:
+    kind: MemoryRegionProvenanceKind
+    base_register: str | None = None
+    displacement: int | None = None
+    absolute_addr: int | None = None
+    target_addr: int | None = None
+    named_base: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TypedMemoryRegion:
     struct: str
+    size: int
+    provenance: MemoryRegionProvenance
+    struct_offset: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class RegisterFact:
+    region: TypedMemoryRegion | None = None
+    concrete: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class FieldPointerTransfer:
+    dst_reg: str
+    src_reg: str
+    displacement: int
+
+
+@dataclass(frozen=True, slots=True)
+class RegionSummary:
+    produced: tuple[tuple[str, TypedMemoryRegion], ...] = ()
+    field_pointer_transfers: tuple[FieldPointerTransfer, ...] = ()
+
+
+@dataclass(slots=True)
+class PlatformState:
+    scratch_regs: tuple[ScratchReg, ...]
+    exec_base_addr: int
+    exec_base_library: str
+    exec_base_tag: LibraryBaseTag
+    base_reg: str
+    return_reg: str
+    initial_sp: int
+    base_reg_num: int
+    next_alloc_sentinel: int
+    os_call_resolver: Callable[..., CallEffect | None] | None
+    initial_base_reg: tuple[int, int] | None = None
+    initial_mem: object | None = None
+    pending_call_effect: CallEffect | None = None
+    summary_cache: dict[int, CallSummary | None] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,18 +329,12 @@ class LibraryCall:
     fd_version: str | None = None
 
 
-def get_platform_config() -> dict:
-    """Build platform config dict from OS KB for the executor.
-
-    Returns dict with:
-        scratch_regs: list of (mode, num) tuples to invalidate after calls
-        exec_base_addr: int (absolute address of ExecBase pointer)
-        initial_sp: int (sentinel SP for abstract stack tracking)
-    """
+def get_platform_config() -> PlatformState:
+    """Build executor platform state from the OS KB."""
     meta = runtime_os.META
     cc = meta.calling_convention
 
-    scratch = [parse_reg_name(r) for r in cc.scratch_regs]
+    scratch = tuple(parse_reg_name(r) for r in cc.scratch_regs)
 
     base_reg_name = cc.base_reg.upper()
     if not base_reg_name.startswith("A"):
@@ -177,26 +342,25 @@ def get_platform_config() -> dict:
     base_reg_num = int(base_reg_name[1])
     exec_lib = meta.exec_base_addr.library
 
-    return {
-        "scratch_regs": scratch,
-        "exec_base_addr": meta.exec_base_addr.address,
-        "exec_base_library": exec_lib,
-        "exec_base_tag": {"library_base": exec_lib},
-        "base_reg": cc.base_reg,
-        "return_reg": cc.return_reg,
-        "initial_sp": _SENTINEL_SP,
-        "_base_reg_num": base_reg_num,
-        "_next_alloc_sentinel": _SENTINEL_ALLOC_BASE,
-        "_os_call_resolver": lambda offset, lvo, lib, cpu, code, platform=None:
-            resolve_call_effects(offset, lvo, lib, cpu, code,
-                                 platform=platform),
-    }
+    return PlatformState(
+        scratch_regs=scratch,
+        exec_base_addr=meta.exec_base_addr.address,
+        exec_base_library=exec_lib,
+        exec_base_tag=LibraryBaseTag(library_base=exec_lib),
+        base_reg=cc.base_reg,
+        return_reg=cc.return_reg,
+        initial_sp=_SENTINEL_SP,
+        base_reg_num=base_reg_num,
+        next_alloc_sentinel=_SENTINEL_ALLOC_BASE,
+        os_call_resolver=lambda offset, lvo, lib, cpu, code, platform=None:
+            resolve_call_effects(offset, lvo, lib, cpu, code, platform=platform),
+    )
 
 
 def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
                          cpu_state, code: bytes,
-                         os_kb=None,
-                         platform: dict | None = None) -> CallEffect | None:
+                         os_kb: OsKb | None = None,
+                         platform: PlatformState | None = None) -> CallEffect | None:
     """Determine the effects of a library call on register state.
 
     Handles three KB fields, in priority order:
@@ -242,21 +406,19 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
                     tag=LibraryBaseTag(
                         library_base=lib_name,
                         os_type=None if output is None else output.type,
+                        struct_name=None if output is None else output.i_struct,
                     ),
                 )
 
     # Check returns_memory (AllocMem, AllocVec, etc.)
     rm = func.returns_memory
-    if rm is not None and platform:
-        sentinel = platform.get("_next_alloc_sentinel")
-        if sentinel is not None:
-            # Advance sentinel for next allocation
-            platform["_next_alloc_sentinel"] = \
-                sentinel + _SENTINEL_ALLOC_STEP
-            return MemoryAllocationCallEffect(
-                result_reg=rm.result_reg,
-                concrete=sentinel,
-            )
+    if rm is not None and platform is not None:
+        sentinel = platform.next_alloc_sentinel
+        platform.next_alloc_sentinel = sentinel + _SENTINEL_ALLOC_STEP
+        return MemoryAllocationCallEffect(
+            result_reg=rm.result_reg,
+            concrete=sentinel,
+        )
 
     # Generic output type tag from KB
     output = func.output
@@ -354,21 +516,24 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
     return result
 
 
-# -- Unified app memory type map ---------------------------------------
+def collect_app_memory_type_usages(blocks: dict[int, BasicBlock],
+                                   lib_calls: list[LibraryCall],
+                                   base_reg: int) -> dict[int, tuple[AppMemoryType, ...]]:
+    """Collect all typed app memory slot usages from library call data flow.
 
-def build_app_memory_types(blocks: dict[int, BasicBlock],
-                           lib_calls: list[LibraryCall],
-                           base_reg: int) -> dict[int, AppMemoryType]:
-    """Build a type map for app memory slots from library call data flow.
-
-    Combines forward propagation (return values -> register copies ->
+    Combines forward propagation (return values -> register copies -> 
     app memory stores) with backward propagation (call inputs <- app
     memory loads).  Handles cross-subroutine flow: sub A stores Output()
     result to d(A6), sub B loads it for Write(file=D1).
 
-    Returns: {app_offset: {"name": str, "function": str, "type": str, ...}}
+    Returns: {app_offset: (AppMemoryType, ...)}
     """
-    result = {}
+    result: dict[int, list[AppMemoryType]] = {}
+
+    def _record(offset: int, info: AppMemoryType) -> None:
+        entries = result.setdefault(offset, [])
+        if info not in entries:
+            entries.append(info)
 
     def _trace_reg_forward(instructions, src_reg: str, info: AppMemoryType):
         """Trace src_reg through copies and stores to d(base_reg).
@@ -388,8 +553,7 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
                 if src_name in tracked:
                     offset = _base_disp_operand(decoded.dst_op, base_reg)
                     if offset is not None:
-                        if offset not in result:
-                            result[offset] = info
+                        _record(offset, info)
                         return
 
                     copied_to = _decoded_dest_reg(decoded)
@@ -489,16 +653,28 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
                 # Found the setter. Check if source is d(base_reg)
                 offset = _base_disp_operand(decoded.ea_op, base_reg)
                 if offset is not None:
-                    if offset not in result:
-                        result[offset] = AppMemoryType(
-                            name=inp.name,
-                            function=call.function,
-                            type=inp.type,
-                            library=call.library,
-                            direction=AppMemoryDirection.BACKWARD,
-                        )
+                    _record(offset, AppMemoryType(
+                        name=inp.name,
+                        function=call.function,
+                        type=inp.type,
+                        library=call.library,
+                        direction=AppMemoryDirection.BACKWARD,
+                    ))
                 break  # stop after finding the setter
-    return result
+    return {offset: tuple(entries) for offset, entries in result.items()}
+
+
+# -- Unified app memory type map ---------------------------------------
+
+def build_app_memory_types(blocks: dict[int, BasicBlock],
+                           lib_calls: list[LibraryCall],
+                           base_reg: int) -> dict[int, AppMemoryType]:
+    """Build a primary type map for app memory slots from library call data flow."""
+    usages = collect_app_memory_type_usages(blocks, lib_calls, base_reg)
+    return {
+        offset: select_primary_app_memory_type(entries)
+        for offset, entries in usages.items()
+    }
 
 
 # -- Call argument annotation -----------------------------------------
@@ -561,74 +737,1158 @@ def annotate_call_arguments(blocks: dict[int, BasicBlock],
     return result
 
 
-# -- Backward type propagation -----------------------------------------
+# -- Typed memory regions ----------------------------------------------
 
 
-def propagate_input_types(blocks: dict, lib_calls: list[LibraryCall],
-                          os_kb) -> dict[int, dict[str, StructRegisterType]]:
-    """Walk backward from OS call sites to find struct-typed register ranges.
+def _region_from_lea(inst, decoded: DecodedOperands, struct_name: str,
+                     os_kb: OsKb, platform: PlatformState | None) -> TypedMemoryRegion | None:
+    op = decoded.ea_op
+    if op is None:
+        return None
+    struct_def = os_kb.STRUCTS[struct_name]
+    if op.mode == "disp":
+        base_register = _address_reg_name(op.reg)
+        kind = MemoryRegionProvenanceKind.BASE_DISPLACEMENT
+        if platform is not None and platform.initial_base_reg is not None:
+            base_reg_num, _base_addr = platform.initial_base_reg
+            if op.reg == base_reg_num:
+                kind = MemoryRegionProvenanceKind.APP_RELATIVE
+        return TypedMemoryRegion(
+            struct=struct_name,
+            size=struct_def.size,
+            provenance=MemoryRegionProvenance(
+                kind=kind,
+                base_register=base_register,
+                displacement=op.value,
+            ),
+        )
+    if op.mode == "pcdisp":
+        return TypedMemoryRegion(
+            struct=struct_name,
+            size=struct_def.size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.PC_RELATIVE,
+                target_addr=inst.offset + runtime_m68k_decode.OPWORD_BYTES + op.value,
+            ),
+        )
+    if op.mode == "absw":
+        return TypedMemoryRegion(
+            struct=struct_name,
+            size=struct_def.size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                absolute_addr=op.value & 0xFFFF,
+            ),
+        )
+    if op.mode == "absl":
+        return TypedMemoryRegion(
+            struct=struct_name,
+            size=struct_def.size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                absolute_addr=op.value,
+            ),
+        )
+    return None
 
-    For each resolved OS call with struct-typed inputs, traces backward
-    through the containing block to find where the input register was
-    set.  All instructions between the setter and the call that use
-    d(An) on the typed register get struct field annotations.
 
-    Register write detection uses KB-driven destination decoding from
-    opcode bits via decode_destination().
+def _find_region_seed(block, call_addr: int, reg_name: str, struct_name: str,
+                      os_kb: OsKb, platform: PlatformState | None
+                      ) -> tuple[int, str, TypedMemoryRegion] | None:
+    call_idx = None
+    for i, inst in enumerate(block.instructions):
+        if inst.offset == call_addr:
+            call_idx = i
+            break
+    if call_idx is None:
+        return None
 
-    Returns: {inst_offset: {reg: StructRegisterType(struct=...)}}
-    """
-    structs = os_kb.STRUCTS
-    result = {}
-
-    for call in lib_calls:
-        # Collect struct-typed input registers
-        typed_inputs = {}  # reg_name_lower -> i_struct name
-        for inp in call.inputs:
-            i_struct = inp.i_struct
-            if i_struct and i_struct in structs:
-                typed_inputs[inp.reg.lower()] = i_struct
-
-        if not typed_inputs:
+    tracked = reg_name
+    for j in range(call_idx - 1, -1, -1):
+        inst = block.instructions[j]
+        ikb, decoded = _decode_inst(inst)
+        dst = decode_inst_destination(inst, ikb)
+        dst_name = None if dst is None else _reg_name(dst[0], dst[1])
+        if dst_name != tracked:
             continue
 
-        block = blocks.get(call.block)
-        if not block or not block.instructions:
+        op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
+        if op_type == runtime_m68k_analysis.OperationType.MOVE:
+            src_name = _decoded_source_reg(decoded)
+            if src_name is not None:
+                tracked = src_name
+                continue
+
+        if ikb is not None and ikb.upper() == "LEA":
+            region = _region_from_lea(inst, decoded, struct_name, os_kb, platform)
+            if region is None:
+                return None
+            return inst.offset, tracked, region
+        return None
+    return None
+
+
+def _region_facts(facts: dict[str, RegisterFact]) -> dict[str, TypedMemoryRegion]:
+    return {
+        reg: fact.region
+        for reg, fact in facts.items()
+        if fact.region is not None
+    }
+
+
+def _concrete_facts(facts: dict[str, RegisterFact]) -> dict[str, int]:
+    return {
+        reg: fact.concrete
+        for reg, fact in facts.items()
+        if fact.concrete is not None
+    }
+
+
+def _merge_register_facts(existing: dict[str, RegisterFact] | None,
+                          incoming: dict[str, RegisterFact]
+                          ) -> tuple[dict[str, RegisterFact], bool]:
+    if existing is None:
+        return dict(incoming), True
+    merged = {
+        reg: fact
+        for reg, fact in existing.items()
+        if reg in incoming and incoming[reg] == fact
+    }
+    return merged, merged != existing
+
+
+def _summary_register_facts(current: dict[str, RegisterFact],
+                            summary: CallSummary | None,
+                            os_kb: OsKb,
+                            ) -> dict[str, RegisterFact]:
+    if summary is None:
+        return dict(current)
+    result: dict[str, RegisterFact] = {}
+    produced_d_tags = dict(summary.produced_d_tags)
+    produced_a_tags = dict(summary.produced_a_tags)
+    for reg_num in summary.preserved_d:
+        reg_name = _reg_name("dn", reg_num)
+        fact = current.get(reg_name)
+        if fact is not None:
+            result[reg_name] = fact
+    for reg_num in summary.preserved_a:
+        reg_name = _reg_name("an", reg_num)
+        fact = current.get(reg_name)
+        if fact is not None:
+            result[reg_name] = fact
+    for reg_num, concrete in summary.produced_d:
+        reg_name = _reg_name("dn", reg_num)
+        tag = produced_d_tags.get(reg_num)
+        region = (_region_from_library_base_tag(tag, os_kb)
+                  if isinstance(tag, LibraryBaseTag) else None)
+        result[reg_name] = RegisterFact(region=region, concrete=concrete)
+    for reg_num, tag in summary.produced_d_tags:
+        reg_name = _reg_name("dn", reg_num)
+        if reg_name in result:
             continue
-
-        # Find the call instruction index
-        call_idx = None
-        for i, inst in enumerate(block.instructions):
-            if inst.offset == call.addr:
-                call_idx = i
-                break
-        if call_idx is None:
+        region = (_region_from_library_base_tag(tag, os_kb)
+                  if isinstance(tag, LibraryBaseTag) else None)
+        result[reg_name] = RegisterFact(region=region)
+    for reg_num, concrete in summary.produced_a:
+        reg_name = _reg_name("an", reg_num)
+        tag = produced_a_tags.get(reg_num)
+        region = (_region_from_library_base_tag(tag, os_kb)
+                  if isinstance(tag, LibraryBaseTag) else None)
+        result[reg_name] = RegisterFact(region=region, concrete=concrete)
+    for reg_num, tag in summary.produced_a_tags:
+        reg_name = _reg_name("an", reg_num)
+        if reg_name in result:
             continue
-
-        # For each typed register, walk backward to find where it was
-        # set, then annotate all instructions from setter to call.
-        for reg, struct_name in typed_inputs.items():
-            reg_mode, reg_num = parse_reg_name(reg)
-            if struct_name not in structs:
-                raise KeyError(f"Unknown struct {struct_name}")
-
-            # Walk backward: find last instruction that writes to reg.
-            setter_idx = 0
-            for j in range(call_idx - 1, -1, -1):
-                jinst = block.instructions[j]
-                mnemonic = instruction_kb(jinst)
-                dst = decode_inst_destination(jinst, mnemonic)
-                if dst is not None and dst[0] == reg_mode and dst[1] == reg_num:
-                    setter_idx = j
-                    break
-
-            # Annotate all instructions in [setter_idx, call_idx]
-            for j in range(setter_idx, call_idx + 1):
-                off = block.instructions[j].offset
-                result.setdefault(off, {})[reg] = StructRegisterType(
-                    struct=struct_name)
-
+        region = (_region_from_library_base_tag(tag, os_kb)
+                  if isinstance(tag, LibraryBaseTag) else None)
+        result[reg_name] = RegisterFact(region=region)
     return result
+
+
+def _restore_platform_register_facts(result: dict[str, RegisterFact],
+                                     platform: PlatformState | None,
+                                     ) -> None:
+    if platform is not None and platform.initial_base_reg is not None:
+        reg_num, concrete_val = platform.initial_base_reg
+        reg_name = _address_reg_name(reg_num)
+        result.setdefault(reg_name, RegisterFact(concrete=concrete_val))
+
+
+def _apply_region_fact_summary(current: dict[str, RegisterFact],
+                               result: dict[str, RegisterFact],
+                               region_summary: RegionSummary | None,
+                               os_kb: OsKb,
+                               ) -> None:
+    if region_summary is None:
+        return
+    for transfer in region_summary.field_pointer_transfers:
+        src_fact = current.get(transfer.src_reg)
+        if src_fact is None or src_fact.region is None:
+            continue
+        field_info = _resolve_region_field(
+            os_kb, src_fact.region, transfer.displacement)
+        if field_info is None:
+            continue
+        pointer_struct = field_info.field.pointer_struct
+        if pointer_struct is None:
+            raise ValueError(
+                f"Region transfer {transfer.src_reg}+{transfer.displacement} missing pointer struct")
+        struct_def = os_kb.STRUCTS[pointer_struct]
+        result[transfer.dst_reg] = RegisterFact(
+            region=TypedMemoryRegion(
+                struct=pointer_struct,
+                size=struct_def.size,
+                provenance=MemoryRegionProvenance(
+                    kind=MemoryRegionProvenanceKind.FIELD_POINTER,
+                    base_register=transfer.src_reg,
+                    displacement=transfer.displacement,
+                ),
+            ),
+        )
+    for reg_name, region in region_summary.produced:
+        existing = result.get(reg_name)
+        result[reg_name] = RegisterFact(
+            region=region,
+            concrete=None if existing is None else existing.concrete,
+        )
+
+
+def _apply_register_fact_summary(current: dict[str, RegisterFact],
+                                 summary: CallSummary | None,
+                                 region_summary: RegionSummary | None,
+                                 os_kb: OsKb,
+                                 platform: PlatformState | None,
+                                 ) -> dict[str, RegisterFact]:
+    result = _summary_register_facts(current, summary, os_kb)
+    _restore_platform_register_facts(result, platform)
+    _apply_region_fact_summary(current, result, region_summary, os_kb)
+    return result
+
+
+def _signed_16(value: int) -> int:
+    value &= 0xFFFF
+    return value - 0x10000 if value & 0x8000 else value
+
+
+def _signed_index_value(op, concrete_regs: dict[str, int]) -> int | None:
+    if op.index_suppressed:
+        return 0
+    if op.index_reg is None:
+        raise ValueError("Indexed operand missing index register")
+    index_mode = "an" if op.index_is_addr else "dn"
+    index_name = _reg_name(index_mode, op.index_reg)
+    index_value = concrete_regs.get(index_name)
+    if index_value is None:
+        return None
+    if op.index_size == "w":
+        index_value = _signed_16(index_value)
+    elif op.index_size != "l":
+        raise ValueError(f"Unsupported index size {op.index_size!r}")
+    return index_value * op.index_scale
+
+
+def _effective_index_offset(op, concrete_regs: dict[str, int]) -> tuple[str, int] | None:
+    if op is None or op.mode != "index" or op.memory_indirect or op.base_suppressed:
+        return None
+    base_register = _address_reg_name(op.reg)
+    base_displacement = op.value if op.value is not None else op.base_displacement
+    if base_displacement is None:
+        base_displacement = 0
+    index_value = _signed_index_value(op, concrete_regs)
+    if index_value is None:
+        return None
+    return base_register, base_displacement + index_value
+
+
+def _resolve_region_field(os_kb: OsKb, region: TypedMemoryRegion, displacement: int):
+    field_offset = region.struct_offset + displacement
+    if field_offset < 0:
+        return None
+    return resolve_struct_field(
+        os_kb.STRUCTS,
+        region.struct,
+        field_offset,
+    )
+
+
+def _resolve_app_struct_field(app_struct_regions: dict[int, TypedMemoryRegion],
+                              displacement: int,
+                              os_kb: OsKb):
+    for region_offset, region in app_struct_regions.items():
+        region_end = region_offset + region.size
+        if displacement < region_offset or displacement >= region_end:
+            continue
+        field_displacement = displacement - region_offset
+        field_info = _resolve_region_field(os_kb, region, field_displacement)
+        if field_info is None:
+            return None
+        return region_offset, region, field_displacement, field_info
+    return None
+
+
+def _resolve_app_pointer_region(app_pointer_regions: dict[int, TypedMemoryRegion],
+                                displacement: int) -> TypedMemoryRegion | None:
+    return app_pointer_regions.get(displacement)
+
+
+def _region_from_library_base_tag(tag: LibraryBaseTag,
+                                  os_kb: OsKb) -> TypedMemoryRegion | None:
+    if tag.struct_name is None:
+        return None
+    struct_name = _refined_named_base_struct(
+        os_kb, tag.library_base, tag.struct_name)
+    struct_def = os_kb.STRUCTS[struct_name]
+    return TypedMemoryRegion(
+        struct=struct_name,
+        size=struct_def.size,
+        provenance=MemoryRegionProvenance(
+            kind=MemoryRegionProvenanceKind.NAMED_BASE,
+            named_base=tag.library_base,
+        ),
+    )
+
+
+def _region_from_typed_address(current: dict[str, RegisterFact],
+                               op,
+                               os_kb: OsKb,
+                               app_struct_regions: dict[int, TypedMemoryRegion],
+                               platform: PlatformState | None) -> TypedMemoryRegion | None:
+    if op is None:
+        return None
+    if op.mode == "ind":
+        base_fact = current.get(_address_reg_name(op.reg))
+        if base_fact is None or base_fact.region is None:
+            return None
+        return base_fact.region
+    if op.mode == "disp":
+        if (platform is not None
+                and platform.initial_base_reg is not None
+                and op.reg == platform.initial_base_reg[0]):
+            resolved = _resolve_app_struct_field(app_struct_regions, op.value, os_kb)
+            if resolved is not None:
+                _region_offset, region, field_displacement, _field_info = resolved
+                return TypedMemoryRegion(
+                    struct=region.struct,
+                    size=region.size,
+                    provenance=region.provenance,
+                    struct_offset=region.struct_offset + field_displacement,
+                )
+        base_fact = current.get(_address_reg_name(op.reg))
+        if base_fact is None or base_fact.region is None:
+            return None
+        next_offset = base_fact.region.struct_offset + op.value
+        if next_offset < 0 or next_offset >= base_fact.region.size:
+            return None
+        return TypedMemoryRegion(
+            struct=base_fact.region.struct,
+            size=base_fact.region.size,
+            provenance=base_fact.region.provenance,
+            struct_offset=next_offset,
+        )
+    if op.mode != "index" or op.base_suppressed:
+        return None
+    base_fact = current.get(_address_reg_name(op.reg))
+    if base_fact is None or base_fact.region is None:
+        return None
+    concrete_regs = _concrete_facts(current)
+    if not op.memory_indirect:
+        offset_info = _effective_index_offset(op, concrete_regs)
+        if offset_info is None:
+            return None
+        _base_register, displacement = offset_info
+        next_offset = base_fact.region.struct_offset + displacement
+        if next_offset < 0 or next_offset >= base_fact.region.size:
+            return None
+        return TypedMemoryRegion(
+            struct=base_fact.region.struct,
+            size=base_fact.region.size,
+            provenance=base_fact.region.provenance,
+            struct_offset=next_offset,
+        )
+    base_displacement = 0 if op.base_displacement is None else op.base_displacement
+    index_value = _signed_index_value(op, concrete_regs)
+    if index_value is None:
+        return None
+    pointer_field_offset = base_displacement
+    pointee_offset = 0 if op.outer_displacement is None else op.outer_displacement
+    if op.postindexed:
+        pointee_offset += index_value
+    else:
+        pointer_field_offset += index_value
+    field_info = _resolve_region_field(os_kb, base_fact.region, pointer_field_offset)
+    if field_info is None:
+        return None
+    pointer_struct = field_info.field.pointer_struct
+    if pointer_struct is None:
+        return None
+    struct_def = os_kb.STRUCTS[pointer_struct]
+    if pointee_offset < 0 or pointee_offset >= struct_def.size:
+        return None
+    return TypedMemoryRegion(
+        struct=pointer_struct,
+        size=struct_def.size,
+        provenance=MemoryRegionProvenance(
+            kind=MemoryRegionProvenanceKind.FIELD_POINTER,
+            base_register=_address_reg_name(op.reg),
+            displacement=pointer_field_offset,
+        ),
+        struct_offset=pointee_offset,
+    )
+
+
+def _field_offset_from_source_operand(op) -> tuple[str, int] | None:
+    if op is None:
+        return None
+    if op.mode == "ind":
+        return _address_reg_name(op.reg), 0
+    if op.mode == "disp":
+        return _address_reg_name(op.reg), op.value
+    if (op.mode == "index"
+            and op.full_extension
+            and not op.memory_indirect
+            and not op.base_suppressed
+            and op.index_suppressed):
+        return _address_reg_name(op.reg), 0 if op.base_displacement is None else op.base_displacement
+    return None
+
+
+def _pointee_region_from_load(current: dict[str, RegisterFact],
+                              decoded: DecodedOperands,
+                              dst_name: str,
+                              os_kb: OsKb,
+                              app_struct_regions: dict[int, TypedMemoryRegion],
+                              app_pointer_regions: dict[int, TypedMemoryRegion],
+                              platform: PlatformState | None) -> TypedMemoryRegion | None:
+    src_info = _field_offset_from_source_operand(decoded.ea_op)
+    if src_info is None:
+        src_info = _effective_index_offset(decoded.ea_op, _concrete_facts(current))
+    if src_info is None:
+        return None
+    base_register, displacement = src_info
+    field_info = None
+    if (platform is not None
+            and platform.initial_base_reg is not None
+            and base_register == _address_reg_name(platform.initial_base_reg[0])):
+        resolved = _resolve_app_struct_field(app_struct_regions, displacement, os_kb)
+        if resolved is not None:
+            _region_offset, _region, _field_displacement, field_info = resolved
+        else:
+            pointer_region = _resolve_app_pointer_region(app_pointer_regions, displacement)
+            if pointer_region is not None:
+                return pointer_region
+    if field_info is None:
+        base_fact = current.get(base_register)
+        if base_fact is None or base_fact.region is None:
+            return None
+        field_info = _resolve_region_field(os_kb, base_fact.region, displacement)
+        if field_info is None:
+            return None
+    pointer_struct = field_info.field.pointer_struct
+    if pointer_struct is None:
+        return None
+    struct_def = os_kb.STRUCTS[pointer_struct]
+    return TypedMemoryRegion(
+        struct=pointer_struct,
+        size=struct_def.size,
+        provenance=MemoryRegionProvenance(
+            kind=MemoryRegionProvenanceKind.FIELD_POINTER,
+            base_register=base_register,
+            displacement=displacement,
+        ),
+    )
+
+
+def _immediate_constant(decoded: DecodedOperands) -> int | None:
+    return decoded.imm_val
+
+
+def _updated_concrete_value(current: dict[str, RegisterFact], ikb: str | None,
+                            decoded: DecodedOperands, dst_name: str) -> int | None:
+    op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
+    if op_type == runtime_m68k_analysis.OperationType.MOVE:
+        src_name = _decoded_source_reg(decoded)
+        if src_name is not None:
+            src_fact = current.get(src_name)
+            if src_fact is not None and src_fact.concrete is not None:
+                return src_fact.concrete
+        imm_val = _immediate_constant(decoded)
+        if imm_val is not None:
+            return imm_val
+    if op_type == runtime_m68k_analysis.OperationType.CLEAR:
+        return 0
+    if op_type in {
+        runtime_m68k_analysis.OperationType.ADD,
+        runtime_m68k_analysis.OperationType.SUB,
+    } and ikb in {"ADDQ", "SUBQ"}:
+        imm_val = _immediate_constant(decoded)
+        if imm_val is None:
+            raise ValueError(f"{ikb} missing decoded immediate")
+        prior_fact = current.get(dst_name)
+        if prior_fact is None or prior_fact.concrete is None:
+            return None
+        delta = imm_val if ikb == "ADDQ" else -imm_val
+        return (prior_fact.concrete + delta) & 0xFFFFFFFF
+    return None
+
+
+def _set_register_fact(current: dict[str, RegisterFact], reg_name: str,
+                       *, region: TypedMemoryRegion | None,
+                       concrete: int | None) -> None:
+    if region is None and concrete is None:
+        current.pop(reg_name, None)
+        return
+    current[reg_name] = RegisterFact(region=region, concrete=concrete)
+
+
+def _apply_register_update(current: dict[str, RegisterFact],
+                           ikb: str | None,
+                           decoded: DecodedOperands,
+                           dst_name: str,
+                           os_kb: OsKb,
+                           app_struct_regions: dict[int, TypedMemoryRegion],
+                           app_pointer_regions: dict[int, TypedMemoryRegion],
+                           platform: PlatformState | None) -> None:
+    op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
+    concrete = _updated_concrete_value(current, ikb, decoded, dst_name)
+    if ikb == "LEA":
+        region = _region_from_typed_address(
+            current, decoded.ea_op, os_kb, app_struct_regions, platform)
+        _set_register_fact(current, dst_name, region=region, concrete=concrete)
+        return
+    if op_type == runtime_m68k_analysis.OperationType.MOVE or ikb == "MOVEA":
+        pointee_region = _pointee_region_from_load(
+            current, decoded, dst_name, os_kb, app_struct_regions, app_pointer_regions, platform)
+        if pointee_region is not None:
+            _set_register_fact(current, dst_name, region=pointee_region, concrete=concrete)
+            return
+        src_name = _decoded_source_reg(decoded)
+        if src_name is not None:
+            src_fact = current.get(src_name)
+            if src_fact is not None and src_fact.region is not None:
+                _set_register_fact(current, dst_name, region=src_fact.region, concrete=concrete)
+                return
+    _set_register_fact(current, dst_name, region=None, concrete=concrete)
+
+
+def build_app_struct_regions(blocks: dict[int, BasicBlock],
+                             lib_calls: list[LibraryCall],
+                             os_kb: OsKb,
+                             platform: PlatformState | None = None
+                             ) -> dict[int, TypedMemoryRegion]:
+    """Build persistent app-relative typed regions from OS call inputs."""
+    if platform is None or platform.initial_base_reg is None:
+        return {}
+    base_reg_num, _base_addr = platform.initial_base_reg
+    base_reg_name = _address_reg_name(base_reg_num)
+    result: dict[int, TypedMemoryRegion] = {}
+    for call in lib_calls:
+        block = blocks.get(call.block)
+        if block is None:
+            continue
+        for inp in call.inputs:
+            if inp.i_struct is None:
+                continue
+            seed = _find_region_seed(
+                block, call.addr, inp.reg.lower(), inp.i_struct, os_kb, platform)
+            if seed is None:
+                continue
+            _seed_offset, _seed_reg, region = seed
+            provenance = region.provenance
+            if provenance.kind != MemoryRegionProvenanceKind.APP_RELATIVE:
+                continue
+            if provenance.base_register != base_reg_name:
+                raise ValueError(
+                    f"App-relative region base mismatch: expected {base_reg_name}, "
+                    f"got {provenance.base_register}")
+            displacement = provenance.displacement
+            if displacement is None:
+                raise ValueError("App-relative region missing displacement")
+            existing = result.get(displacement)
+            if existing is not None and existing != region:
+                raise ValueError(
+                    f"Conflicting app struct regions at offset {displacement}: "
+                    f"{existing} vs {region}")
+            result[displacement] = region
+    return result
+
+
+def build_app_slot_symbols(blocks: dict[int, BasicBlock],
+                           lib_calls: list[LibraryCall],
+                           code: bytes,
+                           os_kb: OsKb,
+                           platform: PlatformState) -> dict[int, str]:
+    raw_app_offsets: dict[int, str] = {}
+    base_info = platform.initial_base_reg
+    init_mem = platform.initial_mem
+    if base_info and init_mem:
+        base_concrete = base_info[1]
+        alloc_base = 0x80000000
+        for (addr, _nbytes), tag in init_mem._tags.items():
+            if not isinstance(tag, LibraryBaseTag):
+                continue
+            if addr >= alloc_base:
+                offset = addr - base_concrete
+                if offset < 0 or offset > 0xFFFF:
+                    continue
+            offset = addr - base_concrete
+            lib_name = tag.library_base
+            base_name = lib_name.rsplit(".", 1)[0]
+            sym = _sanitize_app_name(base_name)
+            raw_app_offsets[offset] = f"app_{sym}_base"
+    if base_info and lib_calls:
+        named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
+        slot_usages = collect_app_memory_type_usages(blocks, lib_calls, base_reg=base_info[0])
+        naming_by_offset: dict[int, AppSlotNaming] = {}
+        for offset, infos in slot_usages.items():
+            if offset not in raw_app_offsets:
+                naming_by_offset[offset] = _app_slot_naming(
+                    offset=offset,
+                    infos=infos,
+                    named_base=named_bases.get(offset),
+                )
+        grouped_candidates: dict[str, list[int]] = {}
+        for naming in naming_by_offset.values():
+            for sym in naming.candidates:
+                grouped_candidates.setdefault(sym, []).append(naming.offset)
+        for offset, naming in naming_by_offset.items():
+            raw_app_offsets[offset] = _choose_app_slot_symbol(naming, grouped_candidates)
+
+    grouped: dict[str, list[int]] = {}
+    for offset, symbol in raw_app_offsets.items():
+        grouped.setdefault(symbol, []).append(offset)
+
+    app_offsets: dict[int, str] = {}
+    for symbol, offsets in grouped.items():
+        if len(offsets) == 1:
+            app_offsets[offsets[0]] = symbol
+            continue
+        for offset in sorted(offsets):
+            app_offsets[offset] = f"{symbol}_{offset:04X}"
+    return app_offsets
+
+
+def build_app_slot_infos(blocks: dict[int, BasicBlock],
+                         lib_calls: list[LibraryCall],
+                         code: bytes,
+                         os_kb: OsKb,
+                         platform: PlatformState) -> tuple[AppSlotInfo, ...]:
+    base_info = platform.initial_base_reg
+    if base_info is None:
+        return ()
+    symbols = build_app_slot_symbols(blocks, lib_calls, code, os_kb, platform)
+    usages = collect_app_memory_type_usages(blocks, lib_calls, base_reg=base_info[0])
+    regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
+    pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform)
+    named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
+    infos: list[AppSlotInfo] = []
+    for offset, symbol in sorted(symbols.items()):
+        region = regions.get(offset)
+        named_base = named_bases.get(offset)
+        pointer_region = pointer_regions.get(offset)
+        infos.append(AppSlotInfo(
+            offset=offset,
+            symbol=symbol,
+            usages=usages.get(offset, ()),
+            struct=None if region is None else region.struct,
+            size=None if region is None else region.size,
+            pointer_struct=None if pointer_region is None else pointer_region.struct,
+            named_base=named_base,
+        ))
+    return tuple(infos)
+
+
+def build_app_slot_pointer_structs(blocks: dict[int, BasicBlock],
+                                   lib_calls: list[LibraryCall],
+                                   os_kb: OsKb,
+                                   platform: PlatformState | None = None
+                                   ) -> dict[int, str]:
+    result: dict[int, str] = {}
+    if platform is None or platform.initial_base_reg is None:
+        return result
+    base_reg = platform.initial_base_reg[0]
+    for call in lib_calls:
+        if call.library == "unknown":
+            continue
+        library = os_kb.LIBRARIES.get(call.library)
+        if library is None:
+            raise KeyError(f"Unknown library {call.library}")
+        func = library.functions.get(call.function)
+        if func is None:
+            raise KeyError(f"Unknown function {call.library}:{call.function}")
+        output = func.output
+        if output is None or output.i_struct is None or output.reg is None:
+            continue
+        if output.i_struct not in os_kb.STRUCTS:
+            raise KeyError(f"Unknown output struct {output.i_struct}")
+        store_offsets = _trace_app_return_store_offsets(
+            blocks, call, output.reg.lower(), base_reg)
+        for offset in store_offsets:
+            existing = result.get(offset)
+            if existing is not None and existing != output.i_struct:
+                raise ValueError(
+                    f"Conflicting pointer struct types for app slot {offset}: "
+                    f"{existing} vs {output.i_struct}")
+            result[offset] = output.i_struct
+    return result
+
+
+def build_app_pointer_regions(blocks: dict[int, BasicBlock],
+                              lib_calls: list[LibraryCall],
+                              code: bytes,
+                              os_kb: OsKb,
+                              platform: PlatformState | None = None
+                              ) -> dict[int, TypedMemoryRegion]:
+    if platform is None or platform.initial_base_reg is None:
+        return {}
+    base_reg_name = _address_reg_name(platform.initial_base_reg[0])
+    named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
+    pointer_structs = build_app_slot_pointer_structs(blocks, lib_calls, os_kb, platform)
+    result: dict[int, TypedMemoryRegion] = {}
+    for offset, generic_struct in pointer_structs.items():
+        named_base = named_bases.get(offset)
+        struct_name = _refined_named_base_struct(os_kb, named_base, generic_struct)
+        struct_def = os_kb.STRUCTS[struct_name]
+        region = TypedMemoryRegion(
+            struct=struct_name,
+            size=struct_def.size,
+            provenance=MemoryRegionProvenance(
+                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
+                base_register=base_reg_name,
+                displacement=offset,
+            ),
+        )
+        existing = result.get(offset)
+        if existing is not None and existing != region:
+            raise ValueError(
+                f"Conflicting app pointer regions at offset {offset}: "
+                f"{existing} vs {region}")
+        result[offset] = region
+    return result
+
+
+def _call_targets(blocks: dict[int, BasicBlock]) -> set[int]:
+    targets: set[int] = set()
+    for block in blocks.values():
+        for xref in block.xrefs:
+            if xref.type == "call":
+                targets.add(xref.dst)
+    return targets
+
+
+def _compute_region_summaries(blocks: dict[int, BasicBlock],
+                              facts_by_inst: dict[int, dict[str, TypedMemoryRegion]],
+                              exec_summaries: dict[int, CallSummary | None] | None,
+                              ) -> dict[int, RegionSummary]:
+    from . import subroutine_summary
+
+    call_targets = _call_targets(blocks)
+    summaries: dict[int, RegionSummary] = {}
+    for entry in sorted(call_targets):
+        owned = subroutine_summary.find_sub_blocks(entry, blocks, call_targets)
+        return_facts: list[dict[str, TypedMemoryRegion]] = []
+        for addr in owned:
+            block = blocks.get(addr)
+            if block is None or not block.instructions:
+                continue
+            last = block.instructions[-1]
+            if instruction_flow(last)[0] != runtime_m68k_analysis.FlowType.RETURN:
+                continue
+            return_facts.append(facts_by_inst.get(last.offset, {}))
+        if not return_facts:
+            continue
+        common_regs = set(return_facts[0])
+        for facts in return_facts[1:]:
+            common_regs &= set(facts)
+        produced: list[tuple[str, TypedMemoryRegion]] = []
+        transfers: list[FieldPointerTransfer] = []
+        exec_summary = None if exec_summaries is None else exec_summaries.get(entry)
+        preserved_regs: set[str] = set()
+        if exec_summary is not None:
+            preserved_regs |= {_reg_name("dn", num) for num in exec_summary.preserved_d}
+            preserved_regs |= {_reg_name("an", num) for num in exec_summary.preserved_a}
+        for reg_name in sorted(common_regs):
+            if reg_name in preserved_regs:
+                continue
+            region = return_facts[0][reg_name]
+            if all(facts[reg_name] == region for facts in return_facts[1:]):
+                provenance = region.provenance
+                if (provenance.kind is MemoryRegionProvenanceKind.FIELD_POINTER
+                        and provenance.base_register is not None
+                        and provenance.displacement is not None):
+                    transfers.append(FieldPointerTransfer(
+                        dst_reg=reg_name,
+                        src_reg=provenance.base_register,
+                        displacement=provenance.displacement,
+                    ))
+                else:
+                    produced.append((reg_name, region))
+        if produced or transfers:
+            summaries[entry] = RegionSummary(
+                produced=tuple(produced),
+                field_pointer_transfers=tuple(transfers),
+            )
+    return summaries
+
+
+def _find_string_seed(block, call_addr: int, reg_name: str, code: bytes) -> str | None:
+    call_idx = None
+    for i, inst in enumerate(block.instructions):
+        if inst.offset == call_addr:
+            call_idx = i
+            break
+    if call_idx is None:
+        raise ValueError(f"Call ${call_addr:06x} not found in block ${block.start:06x}")
+    for i in range(call_idx - 1, -1, -1):
+        inst = block.instructions[i]
+        ikb, decoded = _decode_inst(inst)
+        dst = decode_inst_destination(inst, ikb)
+        if dst is None or _reg_name(dst[0], dst[1]) != reg_name:
+            continue
+        op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
+        if ikb == "LEA" and decoded.ea_op is not None and decoded.ea_op.mode == "pcdisp":
+            return read_string_at(code, decoded.ea_op.value)
+        if op_type == runtime_m68k_analysis.OperationType.MOVE and decoded.ea_op is not None:
+            op = decoded.ea_op
+            if op.mode in {"absw", "absl"} and op.value is not None:
+                return read_string_at(code, op.value & 0xFFFFFFFF)
+        return None
+    return None
+
+
+def _trace_app_return_store_offsets(blocks: dict[int, BasicBlock],
+                                    call: LibraryCall,
+                                    result_reg: str,
+                                    base_reg: int) -> tuple[int, ...]:
+    offsets: list[int] = []
+
+    def _record(offset: int) -> None:
+        if offset not in offsets:
+            offsets.append(offset)
+
+    def _scan(instructions) -> None:
+        tracked = {result_reg}
+        for inst in instructions:
+            copied_to = None
+            ikb, decoded = _decode_inst(inst)
+            if ikb and runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE:
+                src_name = _decoded_source_reg(decoded)
+                if src_name in tracked:
+                    offset = _base_disp_operand(decoded.dst_op, base_reg)
+                    if offset is not None:
+                        _record(offset)
+                    copied_to = _decoded_dest_reg(decoded)
+                    if copied_to is not None:
+                        tracked.add(copied_to)
+            dst = decode_inst_destination(inst, ikb)
+            if dst is None:
+                continue
+            dst_name = _reg_name(dst[0], dst[1])
+            if dst_name in tracked and dst_name != copied_to:
+                tracked.discard(dst_name)
+                if not tracked:
+                    return
+
+    block = blocks.get(call.block)
+    if block is None:
+        return ()
+    after_call: list = []
+    past_call = False
+    for inst in block.instructions:
+        if past_call:
+            after_call.append(inst)
+        if inst.offset == call.addr:
+            past_call = True
+    _scan(after_call)
+    for xref in block.xrefs:
+        if xref.type != "fallthrough":
+            continue
+        ft_block = blocks.get(xref.dst)
+        if ft_block is None:
+            break
+        _scan(ft_block.instructions)
+        for xref2 in ft_block.xrefs:
+            if xref2.type not in ("fallthrough", "branch"):
+                continue
+            ft2 = blocks.get(xref2.dst)
+            if ft2 is not None:
+                _scan(ft2.instructions)
+        break
+    return tuple(offsets)
+
+
+def build_app_named_bases(blocks: dict[int, BasicBlock],
+                          lib_calls: list[LibraryCall],
+                          code: bytes,
+                          os_kb: OsKb,
+                          platform: PlatformState | None = None
+                          ) -> dict[int, str]:
+    """Map app-relative slots/regions to named opened bases."""
+    result: dict[int, str] = {}
+    for call in lib_calls:
+        block = blocks.get(call.block)
+        if block is None:
+            continue
+        if call.library == "exec.library" and call.function == "OpenDevice":
+            io_seed = _find_region_seed(block, call.addr, "a1", "IO", os_kb, platform)
+            if io_seed is None:
+                continue
+            _seed_offset, _seed_reg, region = io_seed
+            if region.provenance.kind != MemoryRegionProvenanceKind.APP_RELATIVE:
+                continue
+            displacement = region.provenance.displacement
+            if displacement is None:
+                raise ValueError("OpenDevice app-relative IO region missing displacement")
+            dev_name = _find_string_seed(block, call.addr, "a0", code)
+            if dev_name is None:
+                continue
+            existing = result.get(displacement)
+            if existing is not None and existing != dev_name:
+                raise ValueError(
+                    f"Conflicting device names for IO region {displacement}: "
+                    f"{existing!r} vs {dev_name!r}")
+            result[displacement] = dev_name
+            continue
+        if call.library == "unknown":
+            continue
+
+        library = os_kb.LIBRARIES.get(call.library)
+        if library is None:
+            raise KeyError(f"Unknown library {call.library}")
+        func = library.functions.get(call.function)
+        if func is None:
+            raise KeyError(f"Unknown function {call.library}:{call.function}")
+        returns_base = func.returns_base
+        if returns_base is None or platform is None or platform.initial_base_reg is None:
+            continue
+        base_name = _find_string_seed(block, call.addr, returns_base.name_reg.lower(), code)
+        if base_name is None:
+            continue
+        store_offsets = _trace_app_return_store_offsets(
+            blocks, call, returns_base.base_reg.lower(), platform.initial_base_reg[0])
+        for offset in store_offsets:
+            existing = result.get(offset)
+            if existing is not None and existing != base_name:
+                raise ValueError(
+                    f"Conflicting base names for app slot {offset}: "
+                    f"{existing!r} vs {base_name!r}")
+            result[offset] = base_name
+    return result
+
+
+def _find_app_slot_seed(block, call_addr: int, reg_name: str, base_reg: int) -> int | None:
+    call_idx = None
+    for i, inst in enumerate(block.instructions):
+        if inst.offset == call_addr:
+            call_idx = i
+            break
+    if call_idx is None:
+        raise ValueError(f"Call ${call_addr:06x} not found in block ${block.start:06x}")
+    tracked = reg_name
+    for j in range(call_idx - 1, -1, -1):
+        inst = block.instructions[j]
+        ikb, decoded = _decode_inst(inst)
+        dst = decode_inst_destination(inst, ikb)
+        dst_name = None if dst is None else _reg_name(dst[0], dst[1])
+        if dst_name != tracked:
+            continue
+        op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
+        if op_type == runtime_m68k_analysis.OperationType.MOVE or ikb == "MOVEA":
+            offset = _base_disp_operand(decoded.ea_op, base_reg)
+            if offset is not None:
+                return offset
+            src_name = _decoded_source_reg(decoded)
+            if src_name is not None:
+                tracked = src_name
+                continue
+        return None
+    return None
+
+
+def refine_opened_base_calls(blocks: dict[int, BasicBlock],
+                             lib_calls: list[LibraryCall],
+                             code: bytes,
+                             os_kb: OsKb,
+                             platform: PlatformState | None = None) -> list[LibraryCall]:
+    """Resolve unknown direct base calls through named opened bases."""
+    if platform is None or platform.initial_base_reg is None:
+        return lib_calls
+    app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
+    named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
+    if not named_bases:
+        return lib_calls
+    region_map = propagate_typed_memory_regions(blocks, lib_calls, code, os_kb, platform)
+    lvo_lookup = _build_lvo_lookup(os_kb)
+    base_reg_name = _address_reg_name(platform.initial_base_reg[0])
+    refined: list[LibraryCall] = []
+    for call in lib_calls:
+        if call.library != "unknown" or call.lvo is None:
+            refined.append(call)
+            continue
+        resolved_call = None
+        region = region_map.get(call.addr, {}).get("a6")
+        if region is not None and region.struct == "DD":
+            provenance = region.provenance
+            if provenance.base_register == base_reg_name and provenance.displacement is not None:
+                resolved = _resolve_app_struct_field(app_struct_regions, provenance.displacement, os_kb)
+                if resolved is not None:
+                    region_offset, _parent_region, _field_displacement, field_info = resolved
+                    if field_info.field.name == "IO_DEVICE":
+                        device_name = named_bases.get(region_offset)
+                        if device_name is not None:
+                            resolved_call = _resolve_lvo(call.lvo, device_name, lvo_lookup)
+        if resolved_call is None:
+            block = blocks.get(call.block)
+            if block is None:
+                refined.append(call)
+                continue
+            slot_offset = _find_app_slot_seed(block, call.addr, "a6", platform.initial_base_reg[0])
+            if slot_offset is None:
+                refined.append(call)
+                continue
+            base_name = named_bases.get(slot_offset)
+            if base_name is None:
+                refined.append(call)
+                continue
+            resolved_call = _resolve_lvo(call.lvo, base_name, lvo_lookup)
+        refined.append(LibraryCall(
+            addr=call.addr,
+            block=call.block,
+            library=resolved_call.library,
+            function=resolved_call.function,
+            lvo=resolved_call.lvo,
+            inputs=resolved_call.inputs,
+            output=resolved_call.output,
+            no_return=resolved_call.no_return,
+            dispatch=call.dispatch,
+            os_since=resolved_call.os_since,
+            fd_version=resolved_call.fd_version,
+        ))
+    return refined
+
+
+def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
+                                   lib_calls: list[LibraryCall],
+                                   code: bytes,
+                                   os_kb: OsKb,
+                                   platform: PlatformState | None = None
+                                   ) -> dict[int, dict[str, TypedMemoryRegion]]:
+    """Propagate KB-typed memory regions through register values.
+
+    Seeds regions from struct-typed OS call inputs whose base address can be
+    derived from the setup code, then propagates those facts forward through
+    the CFG via register copies and overwrites.
+
+    Returns: {inst_offset: {reg_name: TypedMemoryRegion}}
+    """
+    seed_regions: dict[int, dict[str, RegisterFact]] = {}
+    for call in lib_calls:
+        block = blocks.get(call.block)
+        if not block:
+            continue
+        for inp in call.inputs:
+            if inp.i_struct is None:
+                continue
+            struct_name = inp.i_struct
+            if struct_name not in os_kb.STRUCTS:
+                raise KeyError(f"Unknown struct {struct_name}")
+            seed = _find_region_seed(
+                block, call.addr, inp.reg.lower(), struct_name, os_kb, platform)
+            if seed is None:
+                continue
+            seed_offset, seed_reg, region = seed
+            seed_regions.setdefault(seed_offset, {})[seed_reg] = RegisterFact(region=region)
+    app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
+    app_pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform)
+
+    exec_summaries = None if platform is None else platform.summary_cache
+    region_summaries: dict[int, RegionSummary] = {}
+
+    max_iterations = max(1, len(blocks) + len(_call_targets(blocks)))
+    iterations = 0
+    while True:
+        iterations += 1
+        if iterations > max_iterations:
+            raise RuntimeError(
+                f"Typed memory region propagation did not converge after {max_iterations} iterations")
+        block_in: dict[int, dict[str, RegisterFact] | None] = {
+            addr: None for addr in blocks
+        }
+        if platform is not None and platform.initial_base_reg is not None:
+            reg_num, concrete_val = platform.initial_base_reg
+            init_fact = {
+                _address_reg_name(reg_num): RegisterFact(concrete=concrete_val)
+            }
+            for addr, block in blocks.items():
+                if not block.predecessors:
+                    block_in[addr] = dict(init_fact)
+        worklist = [addr for addr, block in blocks.items() if not block.predecessors]
+        if not worklist:
+            worklist = list(blocks)
+        facts_by_inst: dict[int, dict[str, TypedMemoryRegion]] = {}
+
+        while worklist:
+            block_addr = worklist.pop()
+            block = blocks[block_addr]
+            current = {} if block_in[block_addr] is None else dict(block_in[block_addr])
+            for inst in block.instructions:
+                facts_by_inst[inst.offset] = _region_facts(current)
+
+                seeded = seed_regions.get(inst.offset)
+                if seeded:
+                    current.update(seeded)
+
+                ikb, decoded = _decode_inst(inst)
+                dst = decode_inst_destination(inst, ikb)
+                dst_name = None if dst is None else _reg_name(dst[0], dst[1])
+                if dst_name is None:
+                    continue
+                if seeded and dst_name in seeded:
+                    continue
+                _apply_register_update(
+                    current, ikb, decoded, dst_name, os_kb, app_struct_regions, app_pointer_regions, platform)
+
+            call_dst = None
+            ft_dst = None
+            other_succs: list[int] = []
+            for xref in block.xrefs:
+                if xref.type == "call":
+                    call_dst = xref.dst
+                elif xref.type == "fallthrough":
+                    ft_dst = xref.dst
+                else:
+                    other_succs.append(xref.dst)
+
+            if call_dst is not None and call_dst in blocks:
+                merged, changed = _merge_register_facts(block_in[call_dst], current)
+                if changed:
+                    block_in[call_dst] = merged
+                    worklist.append(call_dst)
+
+            if ft_dst is not None and ft_dst in blocks:
+                summary = None
+                if exec_summaries is not None and call_dst is not None:
+                    summary = exec_summaries.get(call_dst)
+                region_summary = None if call_dst is None else region_summaries.get(call_dst)
+                fallthrough = _apply_register_fact_summary(
+                    current, summary, region_summary, os_kb, platform)
+                merged, changed = _merge_register_facts(block_in[ft_dst], fallthrough)
+                if changed:
+                    block_in[ft_dst] = merged
+                    worklist.append(ft_dst)
+
+            for succ in other_succs:
+                if succ not in blocks:
+                    continue
+                merged, changed = _merge_register_facts(block_in[succ], current)
+                if changed:
+                    block_in[succ] = merged
+                    worklist.append(succ)
+
+        new_region_summaries = _compute_region_summaries(
+            blocks, facts_by_inst, exec_summaries)
+        if new_region_summaries == region_summaries:
+            return facts_by_inst
+        region_summaries = new_region_summaries
 
 
 @dataclass(frozen=True, slots=True)
@@ -649,7 +1909,11 @@ class LvoLookup:
     by_lvo: dict[int, tuple[ResolvedLibraryCall, ...]]
 
 
-def _build_lvo_lookup(os_kb) -> LvoLookup:
+def _library_base_from_tag(tag) -> str | None:
+    return tag.library_base if isinstance(tag, LibraryBaseTag) else None
+
+
+def _build_lvo_lookup(os_kb: OsKb) -> LvoLookup:
     """Build combined LVO lookup: {(library_name, lvo_offset_int): function_dict}.
 
     Also builds reverse: {lvo_offset_int: [(library_name, func_name, func_dict)]}
@@ -725,10 +1989,10 @@ def _find_sub_entry(block_addr: int, blocks: dict,
 
 def identify_library_calls(blocks: dict[int, BasicBlock],
                            code: bytes,
-                           os_kb,
+                           os_kb: OsKb,
                            exit_states: dict[int, tuple],
                            call_targets: set[int],
-                           platform: dict,
+                           platform: PlatformState,
                            ) -> list[LibraryCall]:
     """Identify OS library calls in analyzed code.
 
@@ -758,7 +2022,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
     lvo_lookup = _build_lvo_lookup(os_kb)
 
     # App base register concrete value (from init discovery)
-    base_info = platform.get("initial_base_reg")
+    base_info = platform.initial_base_reg
     app_base = base_info[1] if base_info else None
 
     absw_enc = runtime_m68k_decode.EA_MODE_ENCODING["absw"]
@@ -812,8 +2076,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
         if block_addr in exit_states:
             cpu, _mem = exit_states[block_addr]
             a6_val = cpu.a[base_reg_num]
-            if a6_val.tag and "library_base" in a6_val.tag:
-                a6_lib = a6_val.tag["library_base"]
+            a6_lib = _library_base_from_tag(a6_val.tag)
 
         for inst in block.instructions:
             ikb = instruction_kb(inst)
@@ -846,9 +2109,7 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                         _, blk_mem = exit_states[block_addr]
                         mem_addr = (app_base + disp_val) & addr_mask
                         tag_val = blk_mem.read(mem_addr, "l")
-                        if (tag_val.tag
-                                and "library_base" in tag_val.tag):
-                            a6_lib = tag_val.tag["library_base"]
+                        a6_lib = _library_base_from_tag(tag_val.tag)
 
             # Detect library call: JSR through base_reg
             if flow_type != _FLOW_CALL:
@@ -867,15 +2128,29 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
             if ea_mode == disp_enc[0] and ea_reg == base_reg_num:
                 disp = struct.unpack_from(
                     ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
-                call_info = {"addr": inst.offset, "block": block_addr,
-                             "lvo": disp}
                 if a6_lib:
-                    call_info.update(_resolve_lvo(disp, a6_lib,
-                                                 lvo_lookup))
+                    resolved = _resolve_lvo(disp, a6_lib, lvo_lookup)
                 else:
-                    call_info["library"] = "unknown"
-                    call_info["function"] = f"LVO_{-disp}"
-                results.append(call_info)
+                    resolved = LibraryCall(
+                        addr=0,
+                        block=0,
+                        library="unknown",
+                        function=f"LVO_{-disp}",
+                        lvo=disp,
+                    )
+                results.append(LibraryCall(
+                    addr=inst.offset,
+                    block=block_addr,
+                    library=resolved.library,
+                    function=resolved.function,
+                    lvo=resolved.lvo,
+                    inputs=resolved.inputs,
+                    output=resolved.output,
+                    no_return=resolved.no_return,
+                    dispatch=resolved.dispatch,
+                    os_since=resolved.os_since,
+                    fd_version=resolved.fd_version,
+                ))
                 continue
 
             # Pattern 2: JSR 0(A6,Dn.w) - indexed EA, LVO in index reg
@@ -905,15 +2180,29 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
                         if v >= (1 << (nbits - 1)):
                             v -= (1 << nbits)
                         lvo = disp_raw + v
-                        call_info = {"addr": inst.offset,
-                                     "block": block_addr, "lvo": lvo}
                         if a6_lib:
-                            call_info.update(_resolve_lvo(
-                                lvo, a6_lib, lvo_lookup))
+                            resolved = _resolve_lvo(lvo, a6_lib, lvo_lookup)
                         else:
-                            call_info["library"] = "unknown"
-                            call_info["function"] = f"LVO_{-lvo}"
-                        results.append(call_info)
+                            resolved = LibraryCall(
+                                addr=0,
+                                block=0,
+                                library="unknown",
+                                function=f"LVO_{-lvo}",
+                                lvo=lvo,
+                            )
+                        results.append(LibraryCall(
+                            addr=inst.offset,
+                            block=block_addr,
+                            library=resolved.library,
+                            function=resolved.function,
+                            lvo=resolved.lvo,
+                            inputs=resolved.inputs,
+                            output=resolved.output,
+                            no_return=resolved.no_return,
+                            dispatch=resolved.dispatch,
+                            os_since=resolved.os_since,
+                            fd_version=resolved.fd_version,
+                        ))
                         continue
 
                 # Defer for per-caller resolution
@@ -950,14 +2239,23 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
             call_lib = lib
             if call_lib is None:
                 a6_val = caller_cpu.a[base_reg_num]
-                if a6_val.tag and "library_base" in a6_val.tag:
-                    call_lib = a6_val.tag["library_base"]
+                call_lib = _library_base_from_tag(a6_val.tag)
             if call_lib is None:
                 continue
 
-            call_info = {"addr": caller_addr, "block": caller_addr,
-                         "lvo": lvo, "dispatch": inst_addr}
-            call_info.update(_resolve_lvo(lvo, call_lib, lvo_lookup))
-            results.append(call_info)
+            resolved = _resolve_lvo(lvo, call_lib, lvo_lookup)
+            results.append(LibraryCall(
+                addr=caller_addr,
+                block=caller_addr,
+                library=resolved.library,
+                function=resolved.function,
+                lvo=resolved.lvo,
+                inputs=resolved.inputs,
+                output=resolved.output,
+                no_return=resolved.no_return,
+                dispatch=inst_addr,
+                os_since=resolved.os_since,
+                fd_version=resolved.fd_version,
+            ))
 
     return results

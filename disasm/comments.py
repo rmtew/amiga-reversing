@@ -52,7 +52,7 @@ def build_instruction_comment_parts(inst,
     if include_arg_subs and arg_ann:
         parts.append(f"{arg_ann.function}: {arg_ann.arg_name}")
 
-    base_info = hunk_session.platform.get("initial_base_reg")
+    base_info = hunk_session.platform.initial_base_reg
     if not parts and base_info and operand_parts is not None:
         app_comment = format_app_offset_comment(operand_parts, base_info[0])
         if app_comment:
@@ -72,7 +72,7 @@ def build_instruction_comment_parts(inst,
     unresolved = hunk_session.unresolved_indirects.get(inst.offset)
     if unresolved is not None:
         parts.append(
-            f"unresolved_indirect_{unresolved['region']}:{unresolved['shape']}")
+            f"unresolved_indirect_{unresolved.region}:{unresolved.shape}")
 
     return tuple(parts)
 

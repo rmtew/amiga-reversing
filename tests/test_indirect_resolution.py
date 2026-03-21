@@ -18,7 +18,7 @@ GenAm patterns modelled:
 import struct
 from m68k.instruction_kb import instruction_kb
 from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
-                                _concrete, _unknown, BasicBlock, XRef)
+                                _concrete, _unknown, BasicBlock, CallSummary, XRef)
 from m68k.jump_tables import detect_jump_tables, _scan_inline_dispatch, _is_indexed_ea
 from m68k.indirect_analysis import (collect_call_entry_states,
                                     resolve_indirect_targets, resolve_per_caller,
@@ -26,13 +26,14 @@ from m68k.indirect_analysis import (collect_call_entry_states,
 from m68k.indirect_core import decode_jump_ea
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble, Instruction
+from tests.platform_helpers import make_platform
 
 
 # ---- Helpers ----------------------------------------------------------------
 
 # Minimal platform config enabling SP tracking (symbolic SP at entry).
 # All propagation-based tests need this for BSR/JSR stack tracking.
-_MINIMAL_PLATFORM = {"scratch_regs": []}
+_MINIMAL_PLATFORM = make_platform(scratch_regs=())
 
 
 def _stub_instruction(offset: int) -> Instruction:
@@ -50,14 +51,14 @@ def _stub_instruction(offset: int) -> Instruction:
 def _analyze_and_resolve(code, entry_points=None, platform=None):
     """Run full analysis pipeline: jump tables, direct resolution, per-caller."""
     if platform is None:
-        platform = dict(_MINIMAL_PLATFORM)
+        platform = make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs)
     result = analyze(code, propagate=True, entry_points=entry_points,
                      platform=platform)
     blocks = result["blocks"]
     exit_states = result.get("exit_states", {})
     resolved = []
     for t in detect_jump_tables(blocks, code):
-        for tgt in t["targets"]:
+        for tgt in t.targets:
             resolved.append({"target": tgt})
     resolved += resolve_indirect_targets(blocks, exit_states, len(code))
     resolved += resolve_per_caller(
@@ -69,7 +70,26 @@ def _analyze_and_resolve(code, entry_points=None, platform=None):
 
 def _resolved_targets(resolved):
     """Extract sorted unique target addresses from resolution results."""
-    return sorted(set(r["target"] for r in resolved))
+    return sorted(set(
+        r["target"] if isinstance(r, dict) else r.target
+        for r in resolved
+    ))
+
+
+def _jump_table_view(table):
+    return {
+        "addr": table.addr,
+        "entries": [
+            {"offset_addr": entry.offset_addr, "target": entry.target}
+            for entry in table.entries
+        ],
+        "pattern": table.pattern,
+        "targets": list(table.targets),
+        "dispatch_sites": list(table.dispatch_sites),
+        "dispatch_block": table.dispatch_block,
+        "table_end": table.table_end,
+        "base_addr": table.base_addr,
+    }
 
 
 def _assemble_with_labels(specs):
@@ -386,11 +406,11 @@ def test_indexed_dispatch_single():
     init_mem = AbstractMemory()
     init_mem.write(sentinel_a6 + 100, _concrete(lib_base), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel_a6),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel_a6),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
 
     _, _, resolved = _analyze_and_resolve(code, platform=platform)
     targets = _resolved_targets(resolved)
@@ -434,11 +454,11 @@ def test_dispatch_per_caller():
     init_mem = AbstractMemory()
     init_mem.write(sentinel_a6 + 100, _concrete(lib_base), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel_a6),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel_a6),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
 
     _, _, resolved = _analyze_and_resolve(code, platform=platform)
     targets = _resolved_targets(resolved)
@@ -480,11 +500,11 @@ def test_dispatch_per_caller_multiple_unresolved_in_shared_sub():
     init_mem = AbstractMemory()
     init_mem.write(sentinel_a6 + 100, _concrete(lib_base), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel_a6),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel_a6),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
 
     _, _, resolved = _analyze_and_resolve(code, platform=platform)
     targets = _resolved_targets(resolved)
@@ -1395,11 +1415,11 @@ def test_pattern_a_word_offset():
     code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x10] nop; rts
     code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x14] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x0a in t["targets"], f"Expected $000a in targets, got {t['targets']}"
@@ -1436,11 +1456,11 @@ def test_pattern_b_self_relative():
     code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x12] handler 0
     code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x16] handler 1
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "self_relative_word", (
         f"Expected pattern 'self_relative_word', got {t['pattern']!r}")
     assert 0x12 in t["targets"], f"Expected $0012 in targets, got {t['targets']}"
@@ -1475,11 +1495,11 @@ def test_pattern_c_pc_inline_dispatch():
     code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x12] handler 1
     code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x16] handler 2
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "pc_inline_dispatch", (
         f"Expected pattern 'pc_inline_dispatch', got {t['pattern']!r}")
     assert 0x0e in t["targets"], f"Expected $000e in targets, got {t['targets']}"
@@ -1537,11 +1557,11 @@ def test_pattern_d_indirect_table_read():
     code += struct.pack('>HH', 0x4E71, 0x4E75)          # [0x1a] handler 1
     code += struct.pack('>H', 0x4E71)                    # [0x1e] pad
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_table_read", (
         f"Expected pattern 'indirect_table_read', got {t['pattern']!r}")
     assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
@@ -1608,11 +1628,11 @@ def test_pattern_string_dispatch_self_relative_via_decoder_subroutine():
     ))
     code[labels["table"] + 8] = 0
 
-    result = analyze(bytes(code), propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(bytes(code), propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, bytes(code))
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "string_dispatch_self_relative", (
         f"Expected pattern 'string_dispatch_self_relative', got {t['pattern']!r}")
     assert t["addr"] == labels["table"], (
@@ -1694,10 +1714,10 @@ def test_pattern_string_dispatch_uses_scanned_table_end_not_target_bound():
     ))
     code[labels["table"] + 8] = 0
 
-    result = analyze(bytes(code), propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(bytes(code), propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     tables = detect_jump_tables(result["blocks"], bytes(code))
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["table_end"] == labels["after_table"], (
         f"Expected scanned table end ${labels['after_table']:04x}, got ${t['table_end']:04x}")
 
@@ -1765,13 +1785,13 @@ def test_pattern_string_dispatch_through_multiple_conditional_predecessors():
     ))
     code[labels["table"] + 8] = 0
 
-    result = analyze(bytes(code), propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(bytes(code), propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     tables = detect_jump_tables(result["blocks"], bytes(code))
 
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    assert tables[0]["pattern"] == "string_dispatch_self_relative"
-    assert tables[0]["dispatch_sites"] == [labels["call"]], (
-        f"Expected dispatch site ${labels['call']:04x}, got {tables[0]['dispatch_sites']}")
+    assert tables[0].pattern == "string_dispatch_self_relative"
+    assert tables[0].dispatch_sites == (labels["call"],), (
+        f"Expected dispatch site ${labels['call']:04x}, got {tables[0].dispatch_sites}")
 
 
 def test_pattern_pc_sparse_word_offset_dispatch():
@@ -1804,10 +1824,10 @@ def test_pattern_pc_sparse_word_offset_dispatch():
     handler2_off = labels["handler2"] - table
     code[table:table + 8] = struct.pack(">hhhh", 0, handler1_off, 0, handler2_off)
 
-    result = analyze(bytes(code), propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(bytes(code), propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     tables = detect_jump_tables(result["blocks"], bytes(code))
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "pc_sparse_word_offset", (
         f"Expected pattern 'pc_sparse_word_offset', got {t['pattern']!r}")
     assert t["dispatch_sites"] == [labels["call"]], (
@@ -1837,11 +1857,11 @@ def test_pattern_e_full_extension_memory_indirect_pointer_table():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "memory_indirect_long_pointer", (
         f"Expected pattern 'memory_indirect_long_pointer', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -1862,11 +1882,11 @@ def test_pattern_f_pc_full_extension_memory_indirect_pointer_table():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "pc_memory_indirect_long_pointer", (
         f"Expected pattern 'pc_memory_indirect_long_pointer', got {t['pattern']!r}")
     assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
@@ -1889,11 +1909,11 @@ def test_pattern_g_full_extension_memory_indirect_pointer_table_via_reg_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "memory_indirect_long_pointer", (
         f"Expected pattern 'memory_indirect_long_pointer', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -1912,11 +1932,11 @@ def test_pattern_h_word_offset_via_reg_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x0C in t["targets"], f"Expected $000c in targets, got {t['targets']}"
@@ -1939,11 +1959,11 @@ def test_pattern_i_indirect_table_read_via_reg_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_table_read", (
         f"Expected pattern 'indirect_table_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -1963,11 +1983,11 @@ def test_pattern_j_indirect_pointer_read_into_jump_register():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x14] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
@@ -1986,11 +2006,11 @@ def test_pattern_k_pc_indirect_pointer_read_into_jump_register():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x10] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x14] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -2010,11 +2030,11 @@ def test_pattern_l_full_extension_pointer_read_into_jump_register():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
@@ -2034,11 +2054,11 @@ def test_pattern_m_word_offset_via_addq_adjusted_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
@@ -2060,11 +2080,11 @@ def test_pattern_n_indirect_pointer_read_via_addq_adjusted_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
@@ -2083,11 +2103,11 @@ def test_pattern_o_word_offset_via_adda_adjusted_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -2108,11 +2128,11 @@ def test_pattern_p_word_offset_via_subq_adjusted_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x12 in t["targets"], f"Expected $0012 in targets, got {t['targets']}"
@@ -2133,11 +2153,11 @@ def test_pattern_q_word_offset_via_suba_adjusted_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
@@ -2156,11 +2176,11 @@ def test_pattern_r_word_offset_via_movea_pcdisp_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x10] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x14] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x0A in t["targets"], f"Expected $000a in targets, got {t['targets']}"
@@ -2180,11 +2200,11 @@ def test_pattern_s_word_offset_via_movea_pcindex_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x0C in t["targets"], f"Expected $000c in targets, got {t['targets']}"
@@ -2207,11 +2227,11 @@ def test_pattern_v_word_offset_via_movea_pcindex_base_with_index_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
@@ -2234,11 +2254,11 @@ def test_pattern_w_word_offset_via_movea_pcindex_base_with_cross_bank_index_copy
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
@@ -2262,11 +2282,11 @@ def test_pattern_x_word_offset_via_movea_pcindex_base_with_index_adjustment():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -2287,11 +2307,11 @@ def test_pattern_y_word_offset_via_movea_pcindex_base_with_clr_index():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x12 in t["targets"], f"Expected $0012 in targets, got {t['targets']}"
@@ -2314,11 +2334,11 @@ def test_pattern_z_indirect_pointer_read_via_data_register_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -2341,11 +2361,11 @@ def test_pattern_aa_postindexed_pointer_read_into_jump_register():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x28] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
@@ -2364,11 +2384,11 @@ def test_pattern_ab_word_offset_via_movea_immediate_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -2390,11 +2410,11 @@ def test_pattern_ac_indirect_pointer_read_via_movea_immediate_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -2416,11 +2436,11 @@ def test_pattern_ad_indirect_pointer_read_via_two_long_copies():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -2441,11 +2461,11 @@ def test_pattern_ae_indirect_pointer_read_via_adjusted_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -2465,11 +2485,11 @@ def test_pattern_af_word_offset_via_constant_register_base_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -2492,11 +2512,11 @@ def test_pattern_ag_indirect_pointer_read_via_constant_register_base_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x1A in t["targets"], f"Expected $001a in targets, got {t['targets']}"
@@ -2519,11 +2539,11 @@ def test_pattern_ah_indirect_pointer_read_via_adjusted_constant_register_base_co
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -2545,11 +2565,11 @@ def test_pattern_ai_word_offset_via_clr_seeded_constant_register_base_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -2573,11 +2593,11 @@ def test_pattern_aj_indirect_pointer_read_via_data_register_adjust_after_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
@@ -2599,11 +2619,11 @@ def test_pattern_ak_word_offset_via_register_add_constant_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x14 in t["targets"], f"Expected $0014 in targets, got {t['targets']}"
@@ -2629,11 +2649,11 @@ def test_pattern_al_indirect_pointer_read_via_register_add_constant_after_copy()
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -2654,11 +2674,11 @@ def test_pattern_am_word_offset_via_register_add_constant_base_adjustment():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -2680,11 +2700,11 @@ def test_pattern_an_word_offset_via_shifted_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -2706,11 +2726,11 @@ def test_pattern_ao_word_offset_via_masked_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -2732,11 +2752,11 @@ def test_pattern_aq_word_offset_via_register_shifted_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -2759,11 +2779,11 @@ def test_pattern_ar_word_offset_via_register_or_constant_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -2784,11 +2804,11 @@ def test_pattern_as_word_offset_via_not_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -2811,11 +2831,11 @@ def test_pattern_at_indirect_pointer_read_via_unary_transformed_loaded_pointer()
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -2835,11 +2855,11 @@ def test_pattern_au_word_offset_via_swapped_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -2861,11 +2881,11 @@ def test_pattern_av_word_offset_via_ext_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$ff86] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$ff8a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0xFF80 in t["targets"], f"Expected $ff80 in targets, got {t['targets']}"
@@ -2889,11 +2909,11 @@ def test_pattern_aw_indirect_pointer_read_via_swapped_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -2916,11 +2936,11 @@ def test_pattern_ax_indirect_pointer_read_via_sign_extended_loaded_pointer():
     code += bytes(0xFFF8 - len(code))                    # pad to $fff8
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$fff8] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0xFFF8 in t["targets"], f"Expected $fff8 in targets, got {t['targets']}"
@@ -2942,11 +2962,11 @@ def test_pattern_ay_full_extension_postindexed_pointer_dispatch():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x28] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "memory_indirect_postindexed_long_pointer", (
         f"Expected pattern 'memory_indirect_postindexed_long_pointer', got {t['pattern']!r}")
     assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
@@ -2968,11 +2988,11 @@ def test_pattern_az_pc_full_extension_postindexed_pointer_dispatch():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x28] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "pc_memory_indirect_postindexed_long_pointer", (
         f"Expected pattern 'pc_memory_indirect_postindexed_long_pointer', got {t['pattern']!r}")
     assert 0x24 in t["targets"], f"Expected $0024 in targets, got {t['targets']}"
@@ -2994,11 +3014,11 @@ def test_pattern_ba_word_offset_via_multiplied_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -3020,11 +3040,11 @@ def test_pattern_bb_word_offset_via_divided_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -3047,11 +3067,11 @@ def test_pattern_bc_indirect_pointer_read_via_multiplied_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -3075,11 +3095,11 @@ def test_pattern_bd_indirect_pointer_read_via_divided_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -3104,11 +3124,11 @@ def test_pattern_be_indirect_pointer_read_via_register_multiplied_loaded_pointer
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -3134,11 +3154,11 @@ def test_pattern_bf_indirect_pointer_read_via_register_divided_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -3163,11 +3183,11 @@ def test_pattern_bg_indirect_pointer_read_via_register_shifted_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -3192,11 +3212,11 @@ def test_pattern_bh_indirect_pointer_read_via_register_logical_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -3222,11 +3242,11 @@ def test_pattern_bi_indirect_pointer_read_via_register_divided_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -3247,11 +3267,11 @@ def test_pattern_bj_word_offset_via_rotated_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -3277,11 +3297,11 @@ def test_pattern_bk_indirect_pointer_read_via_register_rotated_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -3300,11 +3320,11 @@ def test_pattern_bl_word_offset_via_exg_base_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x0C in t["targets"], f"Expected $000c in targets, got {t['targets']}"
@@ -3329,11 +3349,11 @@ def test_pattern_bm_indirect_pointer_read_via_exg_loaded_pointer_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
@@ -3354,11 +3374,11 @@ def test_pattern_bn_word_offset_via_bitset_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x18] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1c] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -3383,11 +3403,11 @@ def test_pattern_bo_indirect_pointer_read_via_bitset_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
@@ -3409,11 +3429,11 @@ def test_pattern_bp_word_offset_via_register_bitset_constant_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -3439,11 +3459,11 @@ def test_pattern_bq_indirect_pointer_read_via_register_bitset_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x20] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x24] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x1C in t["targets"], f"Expected $001c in targets, got {t['targets']}"
@@ -3464,11 +3484,11 @@ def test_pattern_br_word_offset_via_tas_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$9e] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$a2] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x98 in t["targets"], f"Expected $0098 in targets, got {t['targets']}"
@@ -3494,11 +3514,11 @@ def test_pattern_bs_indirect_pointer_read_via_tas_loaded_pointer():
     code += bytes(0xA0 - len(code))                     # pad to $a0
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [$a0] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x98 in t["targets"], f"Expected $0098 in targets, got {t['targets']}"
@@ -3518,11 +3538,11 @@ def test_pattern_bt_word_offset_via_tst_constant_register_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x12] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x0C in t["targets"], f"Expected $000c in targets, got {t['targets']}"
@@ -3546,11 +3566,11 @@ def test_pattern_bu_indirect_pointer_read_via_tst_loaded_pointer():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1e] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x18 in t["targets"], f"Expected $0018 in targets, got {t['targets']}"
@@ -3572,11 +3592,11 @@ def test_pattern_ap_word_offset_via_register_logical_constant_base():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x22] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x26] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x20 in t["targets"], f"Expected $0020 in targets, got {t['targets']}"
@@ -3597,11 +3617,11 @@ def test_pattern_t_indirect_pointer_read_via_movea_pcdisp_and_reg_copy():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "indirect_pointer_read", (
         f"Expected pattern 'indirect_pointer_read', got {t['pattern']!r}")
     assert 0x16 in t["targets"], f"Expected $0016 in targets, got {t['targets']}"
@@ -3621,11 +3641,11 @@ def test_pattern_u_word_offset_via_movea_pcdisp_and_addq():
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x16] nop; rts
     code += struct.pack(">HH", 0x4E71, 0x4E75)          # [0x1a] nop; rts
 
-    result = analyze(code, propagate=True, platform=dict(_MINIMAL_PLATFORM))
+    result = analyze(code, propagate=True, platform=make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs))
     blocks = result["blocks"]
     tables = detect_jump_tables(blocks, code)
     assert len(tables) == 1, f"Expected 1 table, got {len(tables)}"
-    t = tables[0]
+    t = _jump_table_view(tables[0])
     assert t["pattern"] == "word_offset", (
         f"Expected pattern 'word_offset', got {t['pattern']!r}")
     assert 0x10 in t["targets"], f"Expected $0010 in targets, got {t['targets']}"
@@ -3673,7 +3693,10 @@ def test_backward_slice_skips_call_predecessor():
     # Per-caller resolves sub's RTS -> $04 (correct).
     # Backward slice must NOT produce $04 again from the BSR predecessor.
     # Count how many times $04 appears in resolved results.
-    count_04 = sum(1 for r in resolved if r["target"] == 0x04)
+    count_04 = sum(
+        1 for r in resolved
+        if (r["target"] if isinstance(r, dict) else r.target) == 0x04
+    )
     assert count_04 <= 1, (
         f"Target $0004 resolved {count_04} times -- backward slice "
         f"should not duplicate via call predecessor")
@@ -4097,8 +4120,8 @@ def test_indirect_resolution_results_have_normalized_entry_state_shape():
     runtime = resolve_indirect_targets(blocks, exit_states, len(code))
     per_caller = resolve_per_caller(blocks, exit_states, code, len(code))
 
-    assert all(item["entry_states"] == () for item in runtime)
-    assert all(isinstance(item["entry_states"], tuple) for item in per_caller)
+    assert all(item.entry_states == () for item in runtime)
+    assert all(isinstance(item.entry_states, tuple) for item in per_caller)
 
 
 
@@ -4265,17 +4288,13 @@ def test_resolve_per_caller_caches_summarized_propagation(monkeypatch):
     monkeypatch.setattr("m68k.indirect_analysis.subroutine_summary.restore_base_reg",
                         lambda cpu, platform: cpu)
     monkeypatch.setattr("m68k.indirect_analysis.subroutine_summary._inline_summary",
-                        lambda callee_entry, blocks, call_targets, exit_states: {
-                            "preserved_d": set(),
-                            "preserved_a": set(),
-                            "produced_d": {0: 1},
-                            "produced_a": {},
-                            "sp_delta": 0,
-                        })
+                        lambda callee_entry, blocks, call_targets, exit_states: CallSummary(
+                            produced_d=((0, 1),),
+                        ))
 
-    resolved = resolve_per_caller(blocks, exit_states, b"", 0x100, platform={"scratch_regs": []})
+    resolved = resolve_per_caller(blocks, exit_states, b"", 0x100, platform=make_platform(scratch_regs=()))
 
-    assert sorted(r["target"] for r in resolved) == [0x52, 0x54]
+    assert sorted(r.target for r in resolved) == [0x52, 0x54]
     assert calls["count"] == 2
 
 

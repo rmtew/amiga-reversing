@@ -1,12 +1,15 @@
 """Shared KB-driven indirect target analysis for M68K code."""
 
+import copy
+from dataclasses import dataclass
+
 from m68k_kb import runtime_m68k_analysis
 
 from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_decode import decode_inst_operands
 from .instruction_decode import decode_inst_destination
 from .instruction_primitives import extract_branch_target
-from .m68k_executor import BasicBlock, propagate_states
+from .m68k_executor import BasicBlock, CallSummary, propagate_states
 from . import indirect_core
 from . import subroutine_summary
 
@@ -17,20 +20,27 @@ _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
+@dataclass(frozen=True, slots=True)
+class IndirectResolution:
+    target: int
+    source_addr: int
+    kind: indirect_core.IndirectSiteStatus
+    caller_addr: int | None = None
+    entry_states: tuple = ()
+
+
 def _indirect_resolution(target: int,
                          source_addr: int,
-                         kind: str,
+                         kind: indirect_core.IndirectSiteStatus,
                          caller_addr: int | None = None,
-                         entry_states: tuple = ()) -> dict:
-    item = {
-        "target": target,
-        "source_addr": source_addr,
-        "kind": kind,
-        "entry_states": entry_states,
-    }
-    if caller_addr is not None:
-        item["caller_addr"] = caller_addr
-    return item
+                         entry_states: tuple = ()) -> IndirectResolution:
+    return IndirectResolution(
+        target=target,
+        source_addr=source_addr,
+        kind=kind,
+        caller_addr=caller_addr,
+        entry_states=entry_states,
+    )
 
 
 def _terminal_site_addr(blocks: dict[int, BasicBlock], block_addr: int) -> int:
@@ -40,17 +50,19 @@ def _terminal_site_addr(blocks: dict[int, BasicBlock], block_addr: int) -> int:
     return block.instructions[-1].offset
 
 
-def _summary_signature(summary: dict) -> tuple:
+def _summary_signature(summary: CallSummary) -> tuple:
     return (
-        tuple(sorted(summary.get("preserved_d", ()))),
-        tuple(sorted(summary.get("preserved_a", ()))),
-        tuple(sorted(summary.get("produced_d", {}).items())),
-        tuple(sorted(summary.get("produced_a", {}).items())),
-        summary.get("sp_delta", 0),
+        tuple(sorted(summary.preserved_d)),
+        tuple(sorted(summary.preserved_a)),
+        summary.produced_d,
+        summary.produced_d_tags,
+        summary.produced_a,
+        summary.produced_a_tags,
+        summary.sp_delta,
     )
 
 
-def _inline_summaries_signature(summaries: dict[int, dict]) -> tuple:
+def _inline_summaries_signature(summaries: dict[int, CallSummary]) -> tuple:
     return tuple(
         sorted((callee_entry, _summary_signature(summary))
                for callee_entry, summary in summaries.items())
@@ -58,7 +70,7 @@ def _inline_summaries_signature(summaries: dict[int, dict]) -> tuple:
 
 
 def resolve_indirect_targets(blocks: dict[int, BasicBlock],
-                             exit_states: dict, code_size: int) -> list[dict]:
+                             exit_states: dict, code_size: int) -> list[IndirectResolution]:
     """Resolve indirect JMP/JSR and RTS via propagated state."""
     resolved = []
     for addr in sorted(blocks):
@@ -82,7 +94,8 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
             addr, unres_type, blocks, cpu, mem, code_size)
         if target is not None:
             resolved.append(_indirect_resolution(
-                target, _terminal_site_addr(blocks, addr), "runtime"))
+                target, _terminal_site_addr(blocks, addr),
+                indirect_core.IndirectSiteStatus.RUNTIME))
 
     return resolved
 
@@ -147,8 +160,9 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
             if addr in blocks and addr not in expanded:
                 expanded[addr] = blocks[addr]
 
-    pc_platform = dict(platform) if platform else {}
-    pc_platform["scratch_regs"] = []
+    pc_platform = copy.copy(platform) if platform else None
+    if pc_platform is not None:
+        pc_platform.scratch_regs = ()
     callers = list(blocks[sub_entry].predecessors) if sub_entry in blocks else []
     inline_cache = {}
     states = []
@@ -214,7 +228,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                        exit_states: dict, code: bytes,
                        code_size: int,
                        platform: dict | None = None,
-                       seed_entry_states: dict[int, list[tuple]] | None = None) -> list[dict]:
+                       seed_entry_states: dict[int, list[tuple]] | None = None) -> list[IndirectResolution]:
     """Resolve indirect targets that require per-caller analysis."""
     unresolved = indirect_core._find_unresolved(blocks, exit_states, code_size)
     if not unresolved:
@@ -266,8 +280,9 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             for na in _sub_blocks(callee_entry):
                 if na in blocks and na not in expanded:
                     expanded[na] = blocks[na]
-        pc_platform = dict(platform) if platform else {}
-        pc_platform["scratch_regs"] = []
+        pc_platform = copy.copy(platform) if platform else None
+        if pc_platform is not None:
+            pc_platform.scratch_regs = ()
         info = {
             "sub_blocks": sub_blocks,
             "sub_dict": sub_dict,
@@ -359,8 +374,12 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             if fork_callee is not None or not needed_regs:
                 continue
             for mode, num in needed_regs:
-                pkey = "produced_a" if mode == "an" else "produced_d"
-                if num not in isum.get(pkey, {}):
+                produced_regs = (
+                    {reg_num for reg_num, _ in isum.produced_a}
+                    if mode == "an"
+                    else {reg_num for reg_num, _ in isum.produced_d}
+                )
+                if num not in produced_regs:
                     per_exit = _per_exit_summaries(
                         sub_entry, caller_addr, callee_entry, pass1_exits)
                     if len(per_exit) > 1:
@@ -416,13 +435,15 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 call_target = extract_branch_target(inst, inst.offset)
                 if call_target is None:
                     return False
-                global_sums = platform.get("_summary_cache") if platform else None
+                global_sums = platform.summary_cache if platform else None
                 callee_sum = global_sums.get(call_target) if global_sums else None
                 if callee_sum is None:
                     return None
                 for mode, num in set(source_map.values()):
-                    pkey = "preserved_d" if mode == "dn" else "preserved_a"
-                    if num not in callee_sum.get(pkey, set()):
+                    preserved_regs = (callee_sum.preserved_d
+                                      if mode == "dn"
+                                      else callee_sum.preserved_a)
+                    if num not in preserved_regs:
                         return None
                 continue
             reg_copy = _simple_register_copy(inst, ikb)
@@ -595,7 +616,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                             entry_states = tuple(
                                 (cpu.copy(), mem.copy()) for cpu, mem in target_states)
                         resolved.append(_indirect_resolution(
-                            target, _terminal_site_addr(blocks, unres_addr), "per_caller",
+                            target, _terminal_site_addr(blocks, unres_addr),
+                            indirect_core.IndirectSiteStatus.PER_CALLER,
                             caller_addr=caller_addr,
                             entry_states=entry_states))
             for entry_cpu, entry_mem in entry_states:
@@ -608,7 +630,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                     unres_addr, unres_type, blocks, test_cpu, merged_mem or entry_mem, code_size)
                 if target is not None:
                     resolved.append(_indirect_resolution(
-                        target, _terminal_site_addr(blocks, unres_addr), "per_caller",
+                        target, _terminal_site_addr(blocks, unres_addr),
+                        indirect_core.IndirectSiteStatus.PER_CALLER,
                         entry_states=(((entry_cpu.copy(), entry_mem.copy()),)
                                       if source_ft == _FLOW_CALL else ())))
         else:
@@ -626,7 +649,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                         unres_addr, unres_type, blocks, cpu, mem, code_size)
                     if target is not None:
                         resolved.append(_indirect_resolution(
-                            target, _terminal_site_addr(blocks, unres_addr), "per_caller",
+                            target, _terminal_site_addr(blocks, unres_addr),
+                            indirect_core.IndirectSiteStatus.PER_CALLER,
                             caller_addr=caller_addr,
                             entry_states=(((cpu.copy(), mem.copy()),)
                                           if source_ft == _FLOW_CALL else ())))
@@ -638,7 +662,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                         unres_addr, unres_type, blocks, cpu, mem, code_size)
                     if target is not None:
                         resolved.append(_indirect_resolution(
-                            target, _terminal_site_addr(blocks, unres_addr), "per_caller",
+                            target, _terminal_site_addr(blocks, unres_addr),
+                            indirect_core.IndirectSiteStatus.PER_CALLER,
                             entry_states=(((cpu.copy(), mem.copy()),)
                                           if source_ft == _FLOW_CALL else ())))
 
@@ -649,7 +674,7 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
                            exit_states: dict, code: bytes,
                            code_size: int,
                            platform: dict | None = None,
-                           max_depth: int = 8) -> list[dict]:
+                           max_depth: int = 8) -> list[IndirectResolution]:
     """Resolve indirect targets by backward-slicing predecessor chains."""
     unresolved = indirect_core._find_unresolved(blocks, exit_states, code_size)
     if not unresolved:
@@ -699,7 +724,8 @@ def resolve_backward_slice(blocks: dict[int, BasicBlock],
                     unres_addr, unres_type, blocks, p_cpu, p_mem, code_size)
                 if target is not None and target not in seen_targets:
                     resolved.append(_indirect_resolution(
-                        target, _terminal_site_addr(blocks, unres_addr), "backward_slice"))
+                        target, _terminal_site_addr(blocks, unres_addr),
+                        indirect_core.IndirectSiteStatus.BACKWARD_SLICE))
                     seen_targets.add(target)
                 else:
                     if pred_addr in blocks:

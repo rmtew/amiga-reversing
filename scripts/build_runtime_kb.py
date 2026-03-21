@@ -998,6 +998,10 @@ def _render_os_struct_field(field: dict) -> str:
         parts.append(f"size_symbol={field['size_symbol']!r}")
     if "struct" in field:
         parts.append(f"struct={field['struct']!r}")
+    if "c_type" in field:
+        parts.append(f"c_type={field['c_type']!r}")
+    if "pointer_struct" in field:
+        parts.append(f"pointer_struct={field['pointer_struct']!r}")
     return f"OsStructField({', '.join(parts)})"
 
 
@@ -1104,6 +1108,7 @@ def _write_os_runtime_python(path: Path, payload: dict, *, header: str) -> None:
         "    calling_convention: CallingConvention",
         "    exec_base_addr: ExecBaseAddress",
         "    lvo_slot_size: int",
+        "    named_base_structs: dict[str, str]",
         "    constant_domains: dict[str, tuple[str, ...]]",
         "",
         "@dataclass(frozen=True, slots=True)",
@@ -1114,6 +1119,8 @@ def _write_os_runtime_python(path: Path, payload: dict, *, header: str) -> None:
         "    size: int",
         "    size_symbol: str | None = None",
         "    struct: str | None = None",
+        "    c_type: str | None = None",
+        "    pointer_struct: str | None = None",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsStruct:",
@@ -1174,6 +1181,7 @@ def _write_os_runtime_python(path: Path, payload: dict, *, header: str) -> None:
         f"    calling_convention=CallingConvention(scratch_regs={tuple(meta['calling_convention']['scratch_regs'])!r}, preserved_regs={tuple(meta['calling_convention']['preserved_regs'])!r}, base_reg={meta['calling_convention']['base_reg']!r}, return_reg={meta['calling_convention']['return_reg']!r}, note={meta['calling_convention']['note']!r}),",
         f"    exec_base_addr=ExecBaseAddress(address={meta['exec_base_addr']['address']!r}, library={meta['exec_base_addr']['library']!r}, note={meta['exec_base_addr']['note']!r}),",
         f"    lvo_slot_size={meta['lvo_slot_size']!r},",
+        f"    named_base_structs={_render_py(dict(sorted(meta['named_base_structs'].items())))} ,",
         f"    constant_domains={{{', '.join(f'{name!r}: {tuple(values)!r}' for name, values in sorted(meta['constant_domains'].items()))}}},",
         ")",
         "",
@@ -1891,6 +1899,7 @@ def _build_os_runtime() -> dict:
             "calling_convention": canonical["_meta"]["calling_convention"],
             "exec_base_addr": canonical["_meta"]["exec_base_addr"],
             "lvo_slot_size": canonical["_meta"]["lvo_slot_size"],
+            "named_base_structs": canonical["_meta"]["named_base_structs"],
             "constant_domains": canonical["_meta"]["constant_domains"],
         },
         "STRUCTS": canonical["structs"],

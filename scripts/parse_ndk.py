@@ -397,6 +397,189 @@ def _resolve_struct_ref(type_str: str, c_to_i: dict,
     return None
 
 
+def parse_structure_offsets(path: str) -> dict[str, dict[str, object]]:
+    c_structs: dict[str, dict[str, object]] = {}
+    current_c: str | None = None
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.rstrip()
+            if not line:
+                continue
+            if line[0] != " " and line.endswith(":"):
+                current_c = line[:-1]
+                c_structs[current_c] = {"size": None, "fields": []}
+                continue
+            if current_c is None or not line.startswith("  "):
+                continue
+            parts = line.split()
+            if "sizeof" in line:
+                c_structs[current_c]["size"] = int(parts[1])
+                continue
+            if len(parts) < 4:
+                continue
+            field_name = parts[3]
+            if "." in field_name:
+                continue
+            c_structs[current_c]["fields"].append({
+                "offset": int(parts[1]),
+                "size": int(parts[2]),
+                "name": field_name,
+            })
+    return c_structs
+
+
+def _parse_c_struct_declaration(decl: str) -> list[tuple[str, str]]:
+    decl = " ".join(decl.strip().rstrip(";").split())
+    if not decl or "(" in decl or ")" in decl or ":" in decl:
+        return []
+    m = re.match(
+        r"(.+?)\s+((?:\*+\w+(?:\[[^\]]*\])?|\w+(?:\[[^\]]*\])?)"
+        r"(?:\s*,\s*(?:\*+\w+(?:\[[^\]]*\])?|\w+(?:\[[^\]]*\])?))*)$",
+        decl,
+    )
+    if not m:
+        return []
+    base_type = m.group(1).strip()
+    result = []
+    for raw_decl in m.group(2).split(","):
+        raw_decl = raw_decl.strip()
+        stars = len(raw_decl) - len(raw_decl.lstrip("*"))
+        name = raw_decl.lstrip("*").split("[", 1)[0]
+        raw_type = base_type + (" " + ("*" * stars) if stars else "")
+        result.append((name, raw_type))
+    return result
+
+
+def parse_c_struct_field_types(include_h_dir: str) -> dict[str, dict[str, str]]:
+    c_structs: dict[str, dict[str, str]] = {}
+    for dirpath, _dirnames, filenames in os.walk(include_h_dir):
+        for fname in sorted(filenames):
+            if not fname.upper().endswith(".H"):
+                continue
+            fpath = os.path.join(dirpath, fname)
+            text = open(fpath, encoding="utf-8", errors="replace").read()
+            text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+            current_struct: str | None = None
+            brace_depth = 0
+            decl_parts: list[str] = []
+            for raw_line in text.splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if current_struct is None:
+                    m = re.match(r"struct\s+(\w+)\s*\{", line)
+                    if m:
+                        current_struct = m.group(1)
+                        if current_struct in c_structs:
+                            raise ValueError(f"Duplicate C struct definition {current_struct}")
+                        c_structs[current_struct] = {}
+                        brace_depth = line.count("{") - line.count("}")
+                    continue
+                if brace_depth == 1 and "{" not in line and "}" not in line:
+                    decl_parts.append(line)
+                    if line.endswith(";"):
+                        for field_name, field_type in _parse_c_struct_declaration(
+                                " ".join(decl_parts)):
+                            existing = c_structs[current_struct].get(field_name)
+                            if existing is not None and existing != field_type:
+                                raise ValueError(
+                                    f"Conflicting C field type for {current_struct}.{field_name}: "
+                                    f"{existing} vs {field_type}")
+                            c_structs[current_struct][field_name] = field_type
+                        decl_parts = []
+                else:
+                    decl_parts = []
+                brace_depth += line.count("{") - line.count("}")
+                if brace_depth == 0:
+                    current_struct = None
+                    decl_parts = []
+    return c_structs
+
+
+def _extract_named_base_struct(comment_lines: list[str],
+                               struct_name: str) -> tuple[str, str] | None:
+    if not comment_lines:
+        return None
+    comment_text = " ".join(comment_lines)
+    explicit = re.search(
+        r'\(\s*STRUCT\s+(\w+)\s*\*\s*\)\s*Open(Library|Device|Resource)\(\s*"([^"]+)"',
+        comment_text,
+        re.IGNORECASE,
+    )
+    if explicit is not None:
+        mapped_struct = explicit.group(1)
+        if mapped_struct != struct_name:
+            raise ValueError(
+                f"Comment-based base struct mismatch: comment says {mapped_struct}, "
+                f"structure is {struct_name}")
+        return explicit.group(3), struct_name
+    implicit = re.search(
+        r'Open(Library|Device|Resource)\(\s*"([^"]+)"[^)]*\)\s+returns\s+a\s+pointer\s+to\s+this\s+structure',
+        comment_text,
+        re.IGNORECASE,
+    )
+    if implicit is not None:
+        return implicit.group(2), struct_name
+    return None
+
+
+def annotate_c_struct_field_types(structs: dict,
+                                  c_structs_so: dict[str, dict[str, object]],
+                                  c_field_types: dict[str, dict[str, str]],
+                                  c_to_i: dict[str, str]) -> None:
+    i_names = set(structs)
+    candidates_by_i: dict[str, list[dict[str, object]]] = {}
+    for c_name, struct_info in c_structs_so.items():
+        i_name = c_to_i.get(c_name)
+        if i_name is None or c_name not in c_field_types:
+            continue
+        candidates_by_i.setdefault(i_name, []).append(struct_info | {"c_name": c_name})
+
+    for i_name, struct_def in structs.items():
+        candidates = [
+            candidate
+            for candidate in candidates_by_i.get(i_name, ())
+            if candidate["size"] == struct_def["size"]
+        ]
+        for field in struct_def["fields"]:
+            if field["type"] == "LABEL":
+                continue
+            matches = []
+            for candidate in candidates:
+                for c_field in candidate["fields"]:
+                    if c_field["offset"] == field["offset"]:
+                        matches.append((candidate["c_name"], c_field))
+            if not matches:
+                continue
+            c_name, c_field = matches[0]
+            for other_c_name, other_field in matches[1:]:
+                if other_field != c_field:
+                    raise ValueError(
+                        f"Conflicting C field mapping for {i_name}.{field['name']} at "
+                        f"offset {field['offset']}: {c_name}.{c_field['name']} vs "
+                        f"{other_c_name}.{other_field['name']}")
+            c_type = c_field_types[c_name].get(c_field["name"])
+            if c_type is None:
+                continue
+            field["c_type"] = c_type
+            i_ref = _resolve_struct_ref(c_type, c_to_i, i_names)
+            if i_ref is None:
+                continue
+            if "*" in c_type:
+                field["pointer_struct"] = i_ref
+                continue
+            if field["type"] != "STRUCT":
+                raise ValueError(
+                    f"C struct field {c_name}.{c_field['name']} is inline struct {c_type} "
+                    f"but asm field {i_name}.{field['name']} is {field['type']}")
+            existing_struct = field.get("struct")
+            if existing_struct is not None and existing_struct != i_ref:
+                raise ValueError(
+                    f"Conflicting embedded struct for {i_name}.{field['name']}: "
+                    f"{existing_struct} vs {i_ref}")
+            field["struct"] = i_ref
+
+
 def check_no_return(doc: dict) -> bool:
     """Check if autodoc text indicates the function never returns.
 
@@ -445,11 +628,13 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
     """
     structs = {}
     constants = {}
+    named_base_structs = {}
     current_struct = None
     current_fields = []
     current_offset = 0
     current_base_offset = 0
     current_base_offset_symbol = None
+    comment_lines: list[str] = []
 
     # Build regex matching any known type macro with size > 0
     # (excludes STRUCT, LABEL, ALIGNWORD, ALIGNLONG which are handled separately)
@@ -493,12 +678,29 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.rstrip()
+            stripped = line.strip()
+
+            if stripped.startswith(";") or stripped.startswith("*"):
+                comment_lines.append(stripped.lstrip(";*").strip())
+                continue
+            if not stripped:
+                continue
 
             # STRUCTURE definition start: STRUCTURE Name,InitialOffset
             m = re.match(r'\s+STRUCTURE\s+(\w+),(\w+)', line)
             if m:
                 finish_struct()
                 current_struct = m.group(1)
+                named_base_struct = _extract_named_base_struct(comment_lines, current_struct)
+                if named_base_struct is not None:
+                    base_name, mapped_struct = named_base_struct
+                    existing = named_base_structs.get(base_name)
+                    if existing is not None and existing != mapped_struct:
+                        raise ValueError(
+                            f"Conflicting named base struct for {base_name}: "
+                            f"{existing} vs {mapped_struct}")
+                    named_base_structs[base_name] = mapped_struct
+                comment_lines = []
                 init_offset_str = m.group(2)
                 # Initial offset can be a constant name (e.g. LIB_SIZE)
                 # or a number
@@ -537,6 +739,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                         "size": fsize,
                     })
                     current_offset += fsize
+                    comment_lines = []
                     continue
 
                 # STRUCT name,size — embedded sub-structure
@@ -563,6 +766,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                         "size_symbol": None if size_str.isdigit() else size_str,
                     })
                     current_offset += fsize
+                    comment_lines = []
                     continue
 
                 # LABEL name — zero-size marker
@@ -575,16 +779,19 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                         "offset": current_offset,
                         "size": 0,
                     })
+                    comment_lines = []
                     continue
 
                 # ALIGNWORD
                 if re.match(r'\s+ALIGNWORD\b', line):
                     current_offset = (current_offset + 1) & ~1
+                    comment_lines = []
                     continue
 
                 # ALIGNLONG
                 if re.match(r'\s+ALIGNLONG\b', line):
                     current_offset = (current_offset + 3) & ~3
+                    comment_lines = []
                     continue
 
                 # DS.B / DS.W / DS.L — data storage (rare in structs but possible)
@@ -607,6 +814,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                 name = cm.group(1)
                 value = cm.group(2).strip()
                 constants[name] = value
+                comment_lines = []
                 continue
 
             # SET constants (skip include guards ending in _I)
@@ -616,9 +824,14 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                 value = cm.group(2).strip()
                 if not name.endswith("_I") and name != "SOFFSET" and name != "EOFFSET":
                     constants[name] = value
+                comment_lines = []
 
     finish_struct()
-    return {"structs": structs, "constants": constants}
+    return {
+        "structs": structs,
+        "constants": constants,
+        "named_base_structs": named_base_structs,
+    }
 
 
 def _build_size_symbol_to_slice(structs: dict) -> dict[str, dict[str, object]]:
@@ -666,6 +879,23 @@ def annotate_embedded_structs(structs: dict) -> None:
                     f"Embedded struct size mismatch for {size_symbol}: "
                     f"expected {embedded_slice['size']}, got {field['size']}")
             field["struct"] = embedded_slice["struct"]
+
+
+def derive_named_base_structs(fd_data: dict,
+                              structs: dict,
+                              explicit_mappings: dict[str, str]) -> dict[str, str]:
+    result = dict(explicit_mappings)
+    for lib_name, fd_info in fd_data.items():
+        base_name = fd_info["base"]
+        if base_name not in structs:
+            continue
+        existing = result.get(lib_name)
+        if existing is not None and existing != base_name:
+            raise ValueError(
+                f"Conflicting named base struct for {lib_name}: "
+                f"{existing} vs {base_name}")
+        result[lib_name] = base_name
+    return dict(sorted(result.items()))
 
 
 # =============================================================================
@@ -1040,6 +1270,7 @@ def main():
     print("Parsing include files...")
     raw_constants = {}  # name -> raw expression string
     raw_structs = {}    # name -> struct dict
+    raw_named_base_structs = {}  # opened base name -> concrete struct
 
     include_subdirs = sorted([
         d for d in os.listdir(include_dir)
@@ -1207,6 +1438,13 @@ def main():
                 result = parse_asm_include(fpath, type_sizes, const_lookup)
                 for sname, sdata in result["structs"].items():
                     raw_structs[sname] = sdata
+                for base_name, struct_name in result["named_base_structs"].items():
+                    existing = raw_named_base_structs.get(base_name)
+                    if existing is not None and existing != struct_name:
+                        raise ValueError(
+                            f"Conflicting named base struct for {base_name}: "
+                            f"{existing} vs {struct_name}")
+                    raw_named_base_structs[base_name] = struct_name
 
     annotate_embedded_structs(raw_structs)
 
@@ -1225,6 +1463,11 @@ def main():
                 lib_name = fd_stem_to_lib_name(raw_name)
                 fd_data[lib_name] = result
     print(f"  {len(fd_data)} FD files parsed")
+    named_base_structs = derive_named_base_structs(
+        fd_data,
+        raw_structs,
+        raw_named_base_structs,
+    )
 
     # ========================================================================
     # 4. Parse autodocs
@@ -1316,6 +1559,7 @@ def main():
             },
             "version_map": VERSION_MAP,
             "lvo_slot_size": LVO_SLOT_SIZE,
+            "named_base_structs": named_base_structs,
             "version_fields_note": (
                 "Function version data is split: os_since is first known OS release, "
                 "while fd_version is the interface/library version marker from FD comments. "
@@ -1536,30 +1780,16 @@ def main():
     # KB structs extracted from .I files.
     struct_offsets_path = os.path.join(
         ndk_root, "INCLUDES&LIBS", "STRUCTOFFSETS", "STRUCTURE.OFFSETS")
+    include_h_dir = os.path.join(ndk_root, "INCLUDES&LIBS", "INCLUDE_H")
     c_to_i_map = {}  # C struct name -> I struct name
     if os.path.isfile(struct_offsets_path):
         print("Building C-to-I struct name mapping...")
-        # Parse STRUCTURE.OFFSETS
-        c_structs_so = {}  # C name -> list of field names
-        current_c = None
-        with open(struct_offsets_path, encoding="utf-8",
-                  errors="replace") as f:
-            for line in f:
-                line = line.rstrip()
-                if not line:
-                    continue
-                if line[0] != " " and line.endswith(":"):
-                    current_c = line[:-1]
-                    c_structs_so[current_c] = []
-                elif current_c and line.startswith("  "):
-                    parts = line.split()
-                    if len(parts) >= 4 and "sizeof" not in line:
-                        c_structs_so[current_c].append(parts[3])
-
+        c_structs_so = parse_structure_offsets(struct_offsets_path)
         i_names = set(raw_structs.keys())
         i_names_upper = {k.upper(): k for k in i_names}
 
-        for c_name, c_fields in c_structs_so.items():
+        for c_name, c_struct in c_structs_so.items():
+            c_fields = tuple(field["name"] for field in c_struct["fields"])
             # Strategy 1: direct match (case-sensitive)
             if c_name in i_names:
                 c_to_i_map[c_name] = c_name
@@ -1580,6 +1810,13 @@ def main():
                     break
 
         print(f"  {len(c_to_i_map)}/{len(c_structs_so)} C structs mapped")
+
+        print("Parsing C header struct field types...")
+        c_field_types = parse_c_struct_field_types(include_h_dir)
+        print(f"  {len(c_field_types)} C struct declarations parsed")
+
+        annotate_c_struct_field_types(
+            raw_structs, c_structs_so, c_field_types, c_to_i_map)
 
         # Enrich function signature types with i_struct references.
         # When a function input/output type is "struct Foo *", add

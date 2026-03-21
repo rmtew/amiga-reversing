@@ -102,6 +102,18 @@ def test_runtime_kb_generation_is_deterministic():
     assert before == middle == after
 
 
+def test_runtime_os_meta_has_named_base_structs():
+    os_kb = load_os_runtime_kb()
+
+    assert os_kb.META.named_base_structs["dos.library"] == "DosLibrary"
+    assert os_kb.META.named_base_structs["graphics.library"] == "GfxBase"
+    assert os_kb.META.named_base_structs["intuition.library"] == "IntuitionBase"
+    assert os_kb.META.named_base_structs["locale.library"] == "LocaleBase"
+    assert os_kb.META.named_base_structs["realtime.library"] == "RealTimeBase"
+    assert os_kb.META.named_base_structs["utility.library"] == "UtilityBase"
+    assert os_kb.META.named_base_structs["expansion.library"] == "ExpansionBase"
+
+
 def test_runtime_size_encodings_match_canonical_structured_size_encoding():
     runtime = load_m68k_runtime_module().SIZE_ENCODINGS_ASM
     expected = {}
@@ -1078,12 +1090,33 @@ def test_canonical_os_kb_preserves_embedded_struct_metadata():
 def test_runtime_os_resolves_nested_struct_fields_on_demand():
     structs = load_os_runtime_kb().STRUCTS
 
-    assert resolve_struct_field(structs, "IO", 0) == {
-        "name": "LN_SUCC", "struct": "LN"}
-    assert resolve_struct_field(structs, "IO", 14) == {
-        "name": "MN_REPLYPORT", "struct": "MN"}
-    assert resolve_struct_field(structs, "IO", 20) == {
-        "name": "IO_DEVICE", "struct": "IO"}
+    succ = resolve_struct_field(structs, "IO", 0)
+    assert succ is not None
+    assert succ.owner_struct == "LN"
+    assert succ.field.name == "LN_SUCC"
+
+    reply_port = resolve_struct_field(structs, "IO", 14)
+    assert reply_port is not None
+    assert reply_port.owner_struct == "MN"
+    assert reply_port.field.name == "MN_REPLYPORT"
+
+    device = resolve_struct_field(structs, "IO", 20)
+    assert device is not None
+    assert device.owner_struct == "IO"
+    assert device.field.name == "IO_DEVICE"
+
+
+def test_runtime_os_struct_fields_include_pointer_struct_metadata():
+    os_kb = load_os_runtime_kb()
+    io_fields = {field.name: field for field in os_kb.STRUCTS["IO"].fields}
+    mn_fields = {field.name: field for field in os_kb.STRUCTS["MN"].fields}
+
+    assert io_fields["IO_DEVICE"].c_type == "struct Device *"
+    assert io_fields["IO_DEVICE"].pointer_struct == "DD"
+    assert io_fields["IO_UNIT"].c_type == "struct Unit *"
+    assert io_fields["IO_UNIT"].pointer_struct == "UNIT"
+    assert mn_fields["MN_REPLYPORT"].c_type == "struct MsgPort *"
+    assert mn_fields["MN_REPLYPORT"].pointer_struct == "MP"
 
 
 def test_parse_fd_file_recognizes_release_marker_for_private_blocks(tmp_path):

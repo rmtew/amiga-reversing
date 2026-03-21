@@ -5,12 +5,21 @@ from pathlib import Path
 from typing import Any, TypeAlias
 
 from m68k.instruction_decode import DecodedBitfield
-from m68k.os_calls import CallArgumentAnnotation, LibraryCall, StructRegisterType
+from m68k.analysis import RelocatedSegment
+from m68k.indirect_core import IndirectSite
+from m68k.os_calls import (CallArgumentAnnotation, LibraryCall, OsKb,
+                           PlatformState, TypedMemoryRegion)
 
 
 @dataclass(frozen=True, slots=True)
 class SymbolOperandMetadata:
     symbol: str
+
+
+@dataclass(frozen=True, slots=True)
+class AppStructFieldOperandMetadata:
+    base_symbol: str
+    field_symbol: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +64,7 @@ class FullIndexedOperandMetadata:
 SemanticOperandMetadata = (
     dict[str, Any]
     | SymbolOperandMetadata
+    | AppStructFieldOperandMetadata
     | RegisterListOperandMetadata
     | RegisterPairOperandMetadata
     | BitfieldOperandMetadata
@@ -89,10 +99,60 @@ class ListingRow:
     operand_text: str = ""
     comment_parts: tuple[str, ...] = ()
     comment_text: str = ""
-    source_context: dict[str, Any] = field(default_factory=dict)
+    source_context: "RowSourceContext | None" = None
 
 
-InstructionStructMap: TypeAlias = dict[int, dict[str, StructRegisterType]]
+@dataclass(frozen=True, slots=True)
+class HeaderRowContext:
+    section: str
+
+
+@dataclass(frozen=True, slots=True)
+class BlockRowContext:
+    kind: str
+    verified_state: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AddressRowContext:
+    block: int
+
+
+RowSourceContext = HeaderRowContext | BlockRowContext | AddressRowContext
+
+
+@dataclass(frozen=True, slots=True)
+class JumpTableEntryRef:
+    entry_addr: int
+    target: int
+
+
+@dataclass(frozen=True, slots=True)
+class JumpTableRegion:
+    pattern: str
+    table_end: int
+    entries: tuple[JumpTableEntryRef, ...] = ()
+    targets: tuple[int, ...] = ()
+    base_addr: int | None = None
+    base_label: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class HunkMetadata:
+    code_addrs: set[int]
+    hint_addrs: set[int]
+    reloc_map: dict[int, int]
+    reloc_target_set: set[int]
+    pc_targets: dict[int, str]
+    string_addrs: set[int]
+    core_absolute_targets: set[int]
+    jump_table_regions: dict[int, JumpTableRegion]
+    jump_table_target_sources: dict[int, tuple[str, ...]]
+    labels: dict[int, str]
+
+
+InstructionRegionMap: TypeAlias = dict[int, dict[str, TypedMemoryRegion]]
+AppStructRegionMap: TypeAlias = dict[int, TypedMemoryRegion]
 
 
 @dataclass
@@ -111,9 +171,9 @@ class HunkDisassemblySession:
     string_addrs: set[int]
     core_absolute_targets: set[int]
     labels: dict[int, str]
-    jump_table_regions: dict[int, dict]
-    jump_table_target_sources: dict[int, list[str]]
-    struct_map: InstructionStructMap
+    jump_table_regions: dict[int, JumpTableRegion]
+    jump_table_target_sources: dict[int, tuple[str, ...]]
+    region_map: InstructionRegionMap
     lvo_equs: dict[str, dict[int, str]]
     lvo_substitutions: dict[int, tuple[str, str]]
     arg_equs: dict[str, int]
@@ -121,15 +181,16 @@ class HunkDisassemblySession:
     app_offsets: dict[int, str]
     arg_annotations: dict[int, CallArgumentAnnotation]
     data_access_sizes: dict[int, int]
-    platform: dict
-    os_kb: dict
+    platform: PlatformState
+    os_kb: OsKb
     fixed_abs_addrs: set[int]
     base_addr: int
     code_start: int
-    relocated_segments: list[dict]
+    relocated_segments: list[RelocatedSegment]
     reloc_file_offset: int
     reloc_base_addr: int
-    unresolved_indirects: dict[int, dict] = field(default_factory=dict)
+    app_struct_regions: AppStructRegionMap = field(default_factory=dict)
+    unresolved_indirects: dict[int, IndirectSite] = field(default_factory=dict)
 
 
 @dataclass

@@ -1,14 +1,13 @@
 from __future__ import annotations
 """Build disassembly-time substitution maps."""
 
-import re
-
 from m68k.instruction_kb import instruction_kb
 from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
 from m68k.instruction_primitives import extract_branch_target
-from m68k.os_calls import LibraryCall, build_app_memory_types
+from m68k.os_calls import LibraryCall, OsKb
 from m68k.registers import parse_reg_name
 from m68k.subroutine_ranges import find_containing_sub
+
 
 
 def _immediate_operand_token(inst) -> str:
@@ -95,7 +94,7 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[LibraryCall],
 
 
 def build_arg_substitutions(*, blocks: dict, lib_calls: list[LibraryCall], hunk_entities: list[dict],
-                            os_kb) -> tuple[dict[str, int], dict[int, tuple[str, str]]]:
+                            os_kb: OsKb) -> tuple[dict[str, int], dict[int, tuple[str, str]]]:
     arg_equs: dict[str, int] = {}
     arg_substitutions: dict[int, tuple[str, str]] = {}
     sorted_code_ents = _sorted_code_entities(hunk_entities)
@@ -165,34 +164,3 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[LibraryCall], hunk_
                     arg_substitutions[prev.offset] = (imm_token, f"#{const_name}")
                 break
     return arg_equs, arg_substitutions
-
-
-def build_app_offset_symbols(*, blocks: dict, lib_calls: list[LibraryCall], platform: dict
-                             ) -> dict[int, str]:
-    app_offsets: dict[int, str] = {}
-    base_info = platform.get("initial_base_reg")
-    init_mem = platform.get("_initial_mem")
-    if base_info and init_mem:
-        base_concrete = base_info[1]
-        alloc_base = 0x80000000
-        for (addr, _nbytes), tag in init_mem._tags.items():
-            if not tag or "library_base" not in tag:
-                continue
-            if addr >= alloc_base:
-                offset = addr - base_concrete
-                if offset < 0 or offset > 0xFFFF:
-                    continue
-            offset = addr - base_concrete
-            lib_name = tag["library_base"]
-            base_name = lib_name.rsplit(".", 1)[0]
-            sym = re.sub(r'[^a-z0-9]+', '_', base_name.lower())
-            app_offsets[offset] = f"app_{sym}_base"
-    if base_info and lib_calls:
-        typed_slots = build_app_memory_types(blocks, lib_calls, base_reg=base_info[0])
-        for offset, info in typed_slots.items():
-            if offset not in app_offsets:
-                func = info.function
-                name = info.name
-                sym = re.sub(r'[^a-z0-9]+', '_', f"app_{func}_{name}".lower())
-                app_offsets[offset] = sym
-    return app_offsets

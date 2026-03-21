@@ -10,6 +10,14 @@ from disasm.types import (
 )
 
 
+def _row_source_context_dict(source_context) -> dict:
+    if source_context is None:
+        return {}
+    if is_dataclass(source_context):
+        return asdict(source_context)
+    raise TypeError(f"Unsupported row source_context type: {type(source_context)!r}")
+
+
 def _semantic_metadata_dict(metadata) -> dict:
     if isinstance(metadata, dict):
         return dict(metadata)
@@ -46,7 +54,7 @@ def serialize_row(row: ListingRow) -> dict:
         "operand_text": row.operand_text,
         "comment_parts": list(row.comment_parts),
         "comment_text": row.comment_text,
-        "source_context": dict(row.source_context),
+        "source_context": _row_source_context_dict(row.source_context),
     }
 
 

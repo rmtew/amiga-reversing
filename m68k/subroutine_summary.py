@@ -3,7 +3,7 @@
 from m68k_kb import runtime_m68k_analysis
 from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_primitives import extract_branch_target
-from .m68k_executor import _join_states
+from .m68k_executor import _join_states, CallSummary
 from .instruction_decode import decode_inst_destination
 
 
@@ -55,14 +55,17 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
             if ft == _FLOW_CALL:
                 call_target = extract_branch_target(inst, inst.offset)
                 if call_target is not None:
-                    global_sums = (platform_ref.get("_summary_cache")
+                    global_sums = (platform_ref.summary_cache
                                    if platform_ref else None)
                     callee_sum = (global_sums.get(call_target)
                                   if global_sums else None)
                     if callee_sum is not None:
                         pkey = ("preserved_d" if reg_mode == "dn"
                                 else "preserved_a")
-                        if reg_num not in callee_sum.get(pkey, set()):
+                        preserved_regs = (callee_sum.preserved_d
+                                          if reg_mode == "dn"
+                                          else callee_sum.preserved_a)
+                        if reg_num not in preserved_regs:
                             return True
                 continue
 
@@ -84,7 +87,7 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
 
 
 def _inline_summary(callee_entry: int, blocks: dict,
-                    call_targets: set, exit_states: dict) -> dict | None:
+                    call_targets: set, exit_states: dict) -> CallSummary | None:
     """Compute a joined concrete-exit summary for a callee."""
     owned = find_sub_blocks(callee_entry, blocks, call_targets)
 
@@ -103,25 +106,39 @@ def _inline_summary(callee_entry: int, blocks: dict,
 
     rts_cpu, _ = _join_states(rts_states)
 
-    produced_d = {i: rts_cpu.d[i].concrete
-                  for i in range(len(rts_cpu.d)) if rts_cpu.d[i].is_known}
-    produced_a = {i: rts_cpu.a[i].concrete
-                  for i in range(len(rts_cpu.a)) if rts_cpu.a[i].is_known}
+    produced_d = tuple(
+        (i, rts_cpu.d[i].concrete)
+        for i in range(len(rts_cpu.d)) if rts_cpu.d[i].is_known
+    )
+    produced_d_tags = tuple(
+        (i, rts_cpu.d[i].tag)
+        for i in range(len(rts_cpu.d))
+        if rts_cpu.d[i].tag is not None
+    )
+    produced_a = tuple(
+        (i, rts_cpu.a[i].concrete)
+        for i in range(len(rts_cpu.a)) if rts_cpu.a[i].is_known
+    )
+    produced_a_tags = tuple(
+        (i, rts_cpu.a[i].tag)
+        for i in range(len(rts_cpu.a))
+        if rts_cpu.a[i].tag is not None
+    )
     sp_delta = 0
     if rts_cpu.sp.is_symbolic and rts_cpu.sp.sym_base == "SP_entry":
         sp_delta = rts_cpu.sp.sym_offset
 
-    return {
-        "preserved_d": set(),
-        "preserved_a": set(),
-        "produced_d": produced_d,
-        "produced_a": produced_a,
-        "sp_delta": sp_delta,
-    }
+    return CallSummary(
+        produced_d=produced_d,
+        produced_d_tags=produced_d_tags,
+        produced_a=produced_a,
+        produced_a_tags=produced_a_tags,
+        sp_delta=sp_delta,
+    )
 
 
 def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
-                               call_targets: set, exit_states: dict) -> list[dict]:
+                               call_targets: set, exit_states: dict) -> list[CallSummary]:
     """Compute one concrete summary per RTS exit for a callee."""
     owned = find_sub_blocks(callee_entry, blocks, call_targets)
     summaries = []
@@ -135,21 +152,35 @@ def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
             continue
 
         cpu, _ = exit_states[addr]
-        produced_d = {i: cpu.d[i].concrete
-                      for i in range(len(cpu.d)) if cpu.d[i].is_known}
-        produced_a = {i: cpu.a[i].concrete
-                      for i in range(len(cpu.a)) if cpu.a[i].is_known}
+        produced_d = tuple(
+            (i, cpu.d[i].concrete)
+            for i in range(len(cpu.d)) if cpu.d[i].is_known
+        )
+        produced_d_tags = tuple(
+            (i, cpu.d[i].tag)
+            for i in range(len(cpu.d))
+            if cpu.d[i].tag is not None
+        )
+        produced_a = tuple(
+            (i, cpu.a[i].concrete)
+            for i in range(len(cpu.a)) if cpu.a[i].is_known
+        )
+        produced_a_tags = tuple(
+            (i, cpu.a[i].tag)
+            for i in range(len(cpu.a))
+            if cpu.a[i].tag is not None
+        )
         sp_delta = 0
         if cpu.sp.is_symbolic and cpu.sp.sym_base == "SP_entry":
             sp_delta = cpu.sp.sym_offset
 
-        summaries.append({
-            "preserved_d": set(),
-            "preserved_a": set(),
-            "produced_d": produced_d,
-            "produced_a": produced_a,
-            "sp_delta": sp_delta,
-        })
+        summaries.append(CallSummary(
+            produced_d=produced_d,
+            produced_d_tags=produced_d_tags,
+            produced_a=produced_a,
+            produced_a_tags=produced_a_tags,
+            sp_delta=sp_delta,
+        ))
 
     return summaries
 
@@ -157,7 +188,7 @@ def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
 def restore_base_reg(cpu, platform: dict | None):
     """Restore configured base register if the current state lost it."""
     if platform:
-        base_info = platform.get("initial_base_reg")
+        base_info = platform.initial_base_reg
         if base_info:
             breg_num, breg_val = base_info
             if not cpu.a[breg_num].is_known:

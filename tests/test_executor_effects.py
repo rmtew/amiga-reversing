@@ -17,8 +17,12 @@ with the propagation engine.
 import struct
 import pytest
 
+from m68k.m68k_asm import assemble_instruction
+from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import (analyze, _concrete, _unknown, _symbolic,
-                                CPUState, AbstractMemory)
+                                CPUState, AbstractMemory, _resolve_os_call)
+from m68k.os_calls import LibraryBaseTag
+from tests.platform_helpers import make_platform
 
 
 def _run(code):
@@ -346,9 +350,7 @@ def test_register_preserved_through_push_pop_call():
     # Target at $36
     code += struct.pack('>H', 0x4E75)                    # [0x36] rts (target)
 
-    platform = {
-        "scratch_regs": [("an", 5)],  # A5 is a scratch register
-    }
+    platform = make_platform(scratch_regs=(("an", 5),))
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
     blocks = result["blocks"]
@@ -359,7 +361,7 @@ def test_register_preserved_through_push_pop_call():
     # Without preservation: A5 would be unknown (scratch-clobbered).
     from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(blocks, exit_states, len(code))
-    targets = sorted(r["target"] for r in resolved)
+    targets = sorted(r.target for r in resolved)
     assert 0x36 in targets, (
         f"Expected $0036 from jmp 4(a5) with preserved a5=$32, "
         f"got {targets}")
@@ -404,9 +406,7 @@ def test_library_base_survives_push_pop_exec_call():
     # Handler at $2a
     code += struct.pack('>H', 0x4E75)                    # [0x2a] rts
 
-    platform = {
-        "scratch_regs": [("an", 5), ("an", 0), ("dn", 0)],
-    }
+    platform = make_platform(scratch_regs=(("an", 5), ("an", 0), ("dn", 0)))
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
     blocks = result["blocks"]
@@ -414,7 +414,7 @@ def test_library_base_survives_push_pop_exec_call():
 
     from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(blocks, exit_states, len(code))
-    targets = sorted(r["target"] for r in resolved)
+    targets = sorted(r.target for r in resolved)
     assert 0x2a in targets, (
         f"Expected $002a from jsr (a0) where a0 loaded via preserved a5, "
         f"got {targets}")
@@ -473,10 +473,7 @@ def test_base_register_survives_merge():
     code += struct.pack('>H', 0x4E75)                    # [0x2c] rts (target!)
     code += b'\x4e\x71' * 3                              # pad
 
-    platform = {
-        "initial_base_reg": (6, 0x32),  # A6 is always $32
-        "scratch_regs": [],
-    }
+    platform = make_platform(initial_base_reg=(6, 0x32), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
     blocks = result["blocks"]
@@ -484,7 +481,7 @@ def test_base_register_survives_merge():
 
     from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(blocks, exit_states, len(code))
-    targets = sorted(r["target"] for r in resolved)
+    targets = sorted(r.target for r in resolved)
     assert 0x2c in targets, (
         f"Expected $002c from jsr -6(a6) with base a6=$32 restored "
         f"after merge, got {targets}")
@@ -632,10 +629,10 @@ def test_summary_preserves_scratch_register():
     # $0A: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = {
-        "scratch_regs": [("dn", 0), ("dn", 1), ("an", 0), ("an", 1)],
-        "initial_base_reg": (6, sentinel),  # needed for summary computation
-    }
+    platform = make_platform(
+        scratch_regs=(("dn", 0), ("dn", 1), ("an", 0), ("an", 1)),
+        initial_base_reg=(6, sentinel),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
     exit_states = result.get("exit_states", {})
@@ -672,10 +669,10 @@ def test_summary_produced_value_propagates():
     # $0A: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = {
-        "scratch_regs": [("dn", 0), ("dn", 1)],
-        "initial_base_reg": (6, sentinel),
-    }
+    platform = make_platform(
+        scratch_regs=(("dn", 0), ("dn", 1)),
+        initial_base_reg=(6, sentinel),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -712,20 +709,42 @@ def test_summary_produced_address_enables_dispatch():
     # target at $10: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = {
-        "scratch_regs": [("an", 0), ("an", 1)],
-        "initial_base_reg": (6, sentinel),
-    }
+    platform = make_platform(
+        scratch_regs=(("an", 0), ("an", 1)),
+        initial_base_reg=(6, sentinel),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
     from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(
         result["blocks"], result.get("exit_states", {}), len(code))
-    targets = sorted(r["target"] for r in resolved)
+    targets = sorted(r.target for r in resolved)
     assert 0x10 in targets, (
         f"Expected $0010 from jsr (a0) with callee-produced A0, "
         f"got {targets}")
+
+
+def test_summary_produced_library_base_tag_propagates():
+    """Callee that opens dos.library should return a tagged D0 via summary."""
+    code = b""
+    code += struct.pack(">HH", 0x6100, 0x0004)      # $00: bsr.w $06
+    code += struct.pack(">H", 0x4E75)               # $04: rts
+    code += struct.pack(">HH", 0x43FA, 0x0012)      # $06: lea str(pc),a1
+    code += struct.pack(">H", 0x7000)               # $0A: moveq #0,d0
+    code += struct.pack(">H", 0x2F0E)               # $0C: move.l a6,-(sp)
+    code += struct.pack(">I", 0x2C780004)           # $0E: movea.l ($0004).w,a6
+    code += struct.pack(">HH", 0x4EAE, 0xFDD8)      # $12: jsr -552(a6)
+    code += struct.pack(">H", 0x2C5F)               # $16: movea.l (sp)+,a6
+    code += struct.pack(">H", 0x4E75)               # $18: rts
+    code += b"dos.library\x00"                      # $1A
+
+    result = analyze(code, propagate=True, entry_points=[0],
+                     platform=make_platform())
+
+    cpu, _ = result["exit_states"][0x04]
+    assert isinstance(cpu.d[0].tag, LibraryBaseTag)
+    assert cpu.d[0].tag.library_base == "dos.library"
 
 
 def test_summary_input_dependent_stays_unknown():
@@ -747,10 +766,10 @@ def test_summary_input_dependent_stays_unknown():
     # $0A: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = {
-        "scratch_regs": [("dn", 0)],
-        "initial_base_reg": (6, sentinel),
-    }
+    platform = make_platform(
+        scratch_regs=(("dn", 0),),
+        initial_base_reg=(6, sentinel),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -780,10 +799,10 @@ def test_summary_unknown_return_stays_unknown():
     # $0A: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = {
-        "scratch_regs": [("dn", 0)],
-        "initial_base_reg": (6, sentinel),
-    }
+    platform = make_platform(
+        scratch_regs=(("dn", 0),),
+        initial_base_reg=(6, sentinel),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -818,7 +837,7 @@ def test_all_entry_points_get_exit_states():
     # $0E: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = {"scratch_regs": []}
+    platform = make_platform(scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0, 0x0C],
                      platform=platform)
     exit_states = result.get("exit_states", {})
@@ -869,18 +888,18 @@ def test_init_mem_value_survives_join():
     init_mem = AbstractMemory()
     init_mem.write(sentinel + 100, _concrete(target), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
     from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(
         result["blocks"], result.get("exit_states", {}), len(code))
-    targets = sorted(r["target"] for r in resolved)
+    targets = sorted(r.target for r in resolved)
     assert target in targets, (
         f"Expected ${target:04X} from jsr (a0) via init mem, got {targets}")
 
@@ -923,18 +942,18 @@ def test_store_in_one_sub_load_in_another():
     init_mem = AbstractMemory()
     init_mem.write(sentinel + 100, _concrete(handler_addr), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
     from m68k.indirect_analysis import resolve_indirect_targets
     resolved = resolve_indirect_targets(
         result["blocks"], result.get("exit_states", {}), len(code))
-    targets = sorted(r["target"] for r in resolved)
+    targets = sorted(r.target for r in resolved)
     assert handler_addr in targets, (
         f"Expected ${handler_addr:04X} from jsr (a0) via init mem, "
         f"got {targets}")
@@ -960,11 +979,11 @@ def test_local_write_overrides_init_mem():
     init_mem = AbstractMemory()
     init_mem.write(sentinel + 100, _concrete(code_target), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -1006,11 +1025,11 @@ def test_unknown_write_kills_init_mem_at_join():
     init_mem = AbstractMemory()
     init_mem.write(sentinel + 100, _concrete(init_target), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -1064,11 +1083,11 @@ def test_concrete_overwrite_on_one_path_kills_init_at_join():
     init_mem = AbstractMemory()
     init_mem.write(sentinel + 100, _concrete(init_target), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -1109,11 +1128,11 @@ def test_both_paths_agree_on_non_init_value():
     init_mem = AbstractMemory()
     init_mem.write(sentinel + 100, _concrete(0x20), "l")
 
-    platform = {
-        "initial_base_reg": (6, sentinel),
-        "_initial_mem": init_mem,
-        "scratch_regs": [],
-    }
+    platform = make_platform(
+        initial_base_reg=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -1204,3 +1223,32 @@ def test_trap_no_register_modification():
     cpu, _ = result["exit_states"][0]
     assert cpu.d[0].is_known and cpu.d[0].concrete == 42, (
         f"D0 should be 42 (trap should not modify registers), got {cpu.d[0]}")
+
+
+def test_resolve_os_call_uses_typed_library_base_tag():
+    inst = disassemble(assemble_instruction("jsr -30(a6)"))[0]
+    cpu = CPUState()
+    cpu.set_reg("an", 6, _unknown(tag=LibraryBaseTag(library_base="exec.library")))
+    platform = make_platform()
+    seen = {}
+
+    def fake_resolver(offset, lvo, a6_lib, cpu_state, code, platform=None):
+        seen["call"] = (offset, lvo, a6_lib)
+        return object()
+
+    platform.os_call_resolver = fake_resolver
+
+    effect = _resolve_os_call(inst, "JSR", cpu, platform, inst.raw)
+
+    assert effect is not None
+    assert seen["call"] == (0, -30, "exec.library")
+
+
+def test_library_base_tag_survives_memory_store_and_reload():
+    mem = AbstractMemory()
+    tagged = _unknown(tag=LibraryBaseTag(library_base="dos.library"))
+    mem.write(0x1234, tagged, "l")
+    loaded = mem.read(0x1234, "l")
+
+    assert isinstance(loaded.tag, LibraryBaseTag)
+    assert loaded.tag.library_base == "dos.library"

@@ -50,7 +50,7 @@ def test_resolve_jsr_through_longword_pointer():
     resolved = resolve_indirect_targets(
         result["blocks"], result.get("exit_states", {}), len(code))
 
-    targets = {r["target"] for r in resolved}
+    targets = {r.target for r in resolved}
     assert 0x0040 in targets, (
         f"handler at 0x0040 not resolved; got targets: "
         f"{[hex(t) for t in targets]}")
@@ -90,7 +90,7 @@ def test_resolve_jsr_through_pointer_table():
     resolved = resolve_indirect_targets(
         result["blocks"], result.get("exit_states", {}), len(code))
 
-    targets = {r["target"] for r in resolved}
+    targets = {r.target for r in resolved}
     assert 0x0060 in targets, (
         f"handler1 at 0x0060 not resolved; got: "
         f"{[hex(t) for t in targets]}")
@@ -121,7 +121,7 @@ def test_handler_becomes_block():
         result["blocks"], result.get("exit_states", {}), len(code))
 
     # Feed resolved targets as entry points
-    entries = {0} | {r["target"] for r in resolved}
+    entries = {0} | {r.target for r in resolved}
     result2 = analyze(code, base_addr=0,
                       entry_points=sorted(entries), propagate=True)
 

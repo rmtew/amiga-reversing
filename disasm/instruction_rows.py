@@ -6,7 +6,8 @@ from disasm.comments import (build_instruction_comment_parts,
                              render_comment_parts)
 from disasm.data_render import emit_data_region
 from disasm.operands import build_instruction_semantic_operands
-from disasm.types import HunkDisassemblySession, ListingRow, SemanticOperand
+from disasm.types import (BlockRowContext, HunkDisassemblySession, ListingRow,
+                          RowSourceContext, SemanticOperand)
 
 
 def render_semantic_operands(operands) -> str:
@@ -31,7 +32,7 @@ def _instruction_opcode_text(inst) -> str:
 def make_instruction_row(text: str, inst, hunk_session: HunkDisassemblySession,
                          entity_addr: int,
                          verified_state: str,
-                         source_context: dict | None = None,
+                         source_context: RowSourceContext | None = None,
                          comment_text: str = "",
                          comment_parts: tuple[str, ...] = (),
                          used_structs: set[str] | None = None,
@@ -62,14 +63,14 @@ def make_instruction_row(text: str, inst, hunk_session: HunkDisassemblySession,
         operand_text=operands,
         comment_parts=comment_parts if comment_parts else ((comment_text,) if comment_text else ()),
         comment_text=rendered_comment,
-        source_context=source_context or {},
+        source_context=source_context,
     )
 
 
 def make_text_rows(kind: str, text: str, entity_addr: int | None = None,
                    addr: int | None = None,
                    verified_state: str | None = None,
-                   source_context: dict | None = None) -> list[ListingRow]:
+                   source_context: RowSourceContext | None = None) -> list[ListingRow]:
     rows = []
     for idx, line in enumerate(text.splitlines(keepends=True)):
         stripped = line.rstrip("\n")
@@ -116,7 +117,7 @@ def make_text_rows(kind: str, text: str, entity_addr: int | None = None,
             operand_text=operands,
             comment_parts=(comment,) if comment else (),
             comment_text=comment,
-            source_context=source_context or {},
+            source_context=source_context,
         ))
     return rows
 
@@ -125,7 +126,7 @@ def emit_data_rows(code: bytes, start: int, end: int,
                    labels: dict[int, str], reloc_map: dict[int, int],
                    string_addrs: set[int], access_sizes: dict[int, int],
                    entity_addr: int | None,
-                   source_context: dict) -> list[ListingRow]:
+                   source_context: BlockRowContext) -> list[ListingRow]:
     buf = io.StringIO()
     emit_data_region(buf, code, start, end, labels, reloc_map, string_addrs,
                      access_sizes=access_sizes)
@@ -134,7 +135,7 @@ def emit_data_rows(code: bytes, start: int, end: int,
         buf.getvalue(),
         entity_addr=entity_addr,
         addr=start,
-        verified_state=source_context.get("verified_state"),
+        verified_state=source_context.verified_state,
         source_context=source_context,
     )
 

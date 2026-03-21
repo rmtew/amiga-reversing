@@ -159,6 +159,23 @@ def _os_calls_to_name(os_calls: list[str]) -> str | None:
     return None
 
 
+def _dispatch_name_from_base(named_base: str) -> str:
+    base = named_base.rsplit(".", 1)[0]
+    return re.sub(r'[^a-z0-9]+', '_', base.lower()) + "_dispatch"
+
+
+def _transitive_dispatch_name(ent: dict) -> str | None:
+    named_bases = ent.get("named_bases_transitive", ())
+    if len(named_bases) != 1:
+        return None
+    indirect_sites = ent.get("indirect_sites", ())
+    if not indirect_sites:
+        return None
+    if not any(site.get("flow") == "call" for site in indirect_sites):
+        return None
+    return _dispatch_name_from_base(named_bases[0])
+
+
 def name_subroutines(entities: list[dict],
                      blocks: dict[int, BasicBlock],
                      code: bytes,
@@ -248,10 +265,12 @@ def name_subroutines(entities: list[dict],
         if name is None and addr in dispatch_libs:
             libs = dispatch_libs[addr]
             if len(libs) == 1:
-                base = next(iter(libs)).rsplit(".", 1)[0]
-                name = re.sub(r'[^a-z0-9]+', '_', base.lower()) + "_dispatch"
+                name = _dispatch_name_from_base(next(iter(libs)))
             elif libs:
                 name = "lib_dispatch"
+
+        if name is None:
+            name = _transitive_dispatch_name(ent)
 
         # Priority 2: string reference
         if name is None and addr in sub_strings:

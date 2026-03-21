@@ -1,6 +1,8 @@
 """Shared KB-driven indirect target resolution helpers."""
 
 import struct
+from dataclasses import dataclass
+from enum import StrEnum
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
@@ -13,6 +15,34 @@ from .instruction_decode import decode_inst_operands
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
 _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
+
+
+class IndirectSiteRegion(StrEnum):
+    CORE = "core"
+    HINT = "hint"
+
+
+class IndirectSiteStatus(StrEnum):
+    UNRESOLVED = "unresolved"
+    RESOLVED_RUNTIME = "resolved_runtime"
+    RUNTIME = "runtime"
+    PER_CALLER = "per_caller"
+    BACKWARD_SLICE = "backward_slice"
+    JUMP_TABLE = "jump_table"
+    EXTERNAL = "external"
+
+
+@dataclass(slots=True)
+class IndirectSite:
+    addr: int
+    mnemonic: str
+    flow_type: runtime_m68k_analysis.FlowType
+    shape: str
+    status: IndirectSiteStatus
+    target: int | None
+    region: IndirectSiteRegion | None = None
+    detail: str | None = None
+    target_count: int | None = None
 
 
 def decode_jump_ea(last):
@@ -151,7 +181,7 @@ def _try_resolve_block(unres_addr: int, unres_type: str,
 
 
 def find_indirect_control_sites(blocks: dict, exit_states: dict,
-                                code_size: int) -> list[dict]:
+                                code_size: int) -> list[IndirectSite]:
     """Enumerate non-direct JMP/JSR sites and their current runtime state."""
     sites = []
     for block_addr in sorted(blocks):
@@ -172,12 +202,16 @@ def find_indirect_control_sites(blocks: dict, exit_states: dict,
         if block_addr in exit_states:
             cpu, mem = exit_states[block_addr]
             target = _try_resolve_block(block_addr, ft, blocks, cpu, mem, code_size)
-        sites.append({
-            "addr": site_addr,
-            "mnemonic": ikb,
-            "flow_type": ft,
-            "shape": indirect_operand_shape(operand),
-            "status": "resolved_runtime" if target is not None else "unresolved",
-            "target": target,
-        })
+        sites.append(IndirectSite(
+            addr=site_addr,
+            mnemonic=ikb,
+            flow_type=ft,
+            shape=indirect_operand_shape(operand),
+            status=(
+                IndirectSiteStatus.RESOLVED_RUNTIME
+                if target is not None
+                else IndirectSiteStatus.UNRESOLVED
+            ),
+            target=target,
+        ))
     return sites

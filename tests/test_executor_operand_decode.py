@@ -32,6 +32,8 @@ from m68k.m68k_disasm import DecodedRegisterListNodeMetadata, DecodedRegisterPai
 from m68k.m68k_executor import (analyze, decode_instruction_ops,
                                  CPUState, AbstractMemory, _concrete,
                                  _resolve_operand, _write_operand, resolve_ea)
+from tests.os_kb_helpers import make_empty_os_kb
+from tests.platform_helpers import make_platform
 
 def _decoded_ops(asm: str, kb_mnemonic: str):
     raw = assemble_instruction(asm)
@@ -57,7 +59,7 @@ def _operand_session() -> HunkDisassemblySession:
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={},
+        region_map={},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -65,8 +67,8 @@ def _operand_session() -> HunkDisassemblySession:
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform={},
-        os_kb={"structs": {}},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1295,6 +1297,18 @@ def test_build_instruction_semantic_operands_use_postindexed_no_index_full_exten
     assert inst.operand_nodes[0].metadata.outer_displacement == 1583242847
     assert inst.operand_nodes[0].metadata.base_suppressed is False
     assert inst.operand_nodes[0].metadata.index_suppressed is True
+
+
+def test_assemble_instruction_parses_full_extension_memory_indirect_preindexed():
+    raw = assemble_instruction("move.l ([0,a1,d2.w],4),d0")
+
+    assert raw == bytes.fromhex("2031212200000004")
+
+
+def test_assemble_instruction_parses_full_extension_memory_indirect_postindexed_no_index():
+    raw = assemble_instruction("move.l ([a5],1583242847),d1")
+
+    assert raw == bytes.fromhex("223501575e5e5e5f")
 
 
 def test_build_instruction_semantic_operands_use_full_extension_indexed_nodes_not_text():

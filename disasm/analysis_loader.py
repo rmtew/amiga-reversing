@@ -7,6 +7,17 @@ from m68k_kb import runtime_os
 from m68k.analysis import AnalysisCacheError, HunkAnalysis, analyze_hunk
 
 
+def analysis_cache_is_current(binary_path: str | Path) -> bool:
+    cache_path = Path(binary_path).with_suffix(".analysis")
+    if not cache_path.exists():
+        return False
+    try:
+        HunkAnalysis.load(cache_path, runtime_os)
+    except AnalysisCacheError:
+        return False
+    return True
+
+
 def load_hunk_analysis(*, binary_path: str | Path, code: bytes, relocs,
                        hunk_index: int, base_addr: int, code_start: int):
     cache_path = Path(binary_path).with_suffix(".analysis")

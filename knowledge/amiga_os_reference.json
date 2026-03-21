@@ -151,6 +151,15 @@
       "44": "3.5"
     },
     "lvo_slot_size": 6,
+    "named_base_structs": {
+      "dos.library": "DosLibrary",
+      "expansion.library": "ExpansionBase",
+      "graphics.library": "GfxBase",
+      "intuition.library": "IntuitionBase",
+      "locale.library": "LocaleBase",
+      "realtime.library": "RealTimeBase",
+      "utility.library": "UtilityBase"
+    },
     "version_fields_note": "Function version data is split: os_since is first known OS release, while fd_version is the interface/library version marker from FD comments. They must not be conflated.",
     "os_since_default_note": "Functions without OS release markers default to os_since='1.0' as a lower bound. NDK 1.3 FD files lack reliable pre-1.3 OS granularity.",
     "constant_domains": {
@@ -26334,37 +26343,43 @@
           "name": "ioa_AllocKey",
           "type": "WORD",
           "offset": 32,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "ioa_Data",
           "type": "APTR",
           "offset": 34,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "ioa_Length",
           "type": "ULONG",
           "offset": 38,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ioa_Period",
           "type": "UWORD",
           "offset": 42,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ioa_Volume",
           "type": "UWORD",
           "offset": 44,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ioa_Cycles",
           "type": "UWORD",
           "offset": 46,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ioa_WriteMsg",
@@ -26372,7 +26387,8 @@
           "offset": 48,
           "size": 20,
           "size_symbol": "MN_SIZE",
-          "struct": "MN"
+          "struct": "MN",
+          "c_type": "struct Message"
         },
         {
           "name": "ioa_SIZEOF",
@@ -26400,13 +26416,15 @@
           "name": "BB_CHKSUM",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "BB_DOSBLOCK",
           "type": "LONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "BB_ENTRY",
@@ -26432,37 +26450,43 @@
           "name": "CDINFO_PlaySpeed",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_ReadSpeed",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_ReadXLSpeed",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_SectorSize",
           "type": "UWORD",
           "offset": 6,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_XLECC",
           "type": "UWORD",
           "offset": 8,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_EjectReset",
           "type": "UWORD",
           "offset": 10,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_Reserved1",
@@ -26475,19 +26499,22 @@
           "name": "CDINFO_MaxSpeed",
           "type": "UWORD",
           "offset": 20,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_AudioPrecision",
           "type": "UWORD",
           "offset": 22,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_Status",
           "type": "UWORD",
           "offset": 24,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "CDINFO_Reserved2",
@@ -26514,25 +26541,29 @@
           "name": "Reserved",
           "type": "UBYTE",
           "offset": 0,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "Minute",
           "type": "UBYTE",
           "offset": 1,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "Second",
           "type": "UBYTE",
           "offset": 2,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "Frame",
           "type": "UBYTE",
           "offset": 3,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "RMSF_SIZE",
@@ -26554,31 +26585,36 @@
           "offset": 0,
           "size": 8,
           "size_symbol": "MLN_SIZE",
-          "struct": "MLN"
+          "struct": "MLN",
+          "c_type": "struct MinNode"
         },
         {
           "name": "CDXL_Buffer",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "CDXL_Length",
           "type": "LONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "CDXL_Actual",
           "type": "LONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "CDXL_IntData",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "CDXL_IntCode",
@@ -26604,20 +26640,23 @@
           "name": "TOCS_FirstTrack",
           "type": "UBYTE",
           "offset": 0,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "TOCS_LastTrack",
           "type": "UBYTE",
           "offset": 1,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "TOCS_LeadOut",
           "type": "STRUCT",
           "offset": 2,
           "size": 4,
-          "size_symbol": "LSNMSF_SIZE"
+          "size_symbol": "LSNMSF_SIZE",
+          "c_type": "union LSNMSF"
         },
         {
           "name": "TOCSummary_SIZE",
@@ -26637,20 +26676,23 @@
           "name": "TOCE_CtlAdr",
           "type": "UBYTE",
           "offset": 0,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "TOCE_Track",
           "type": "UBYTE",
           "offset": 1,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "TOCE_Position",
           "type": "STRUCT",
           "offset": 2,
           "size": 4,
-          "size_symbol": "LSNMSF_SIZE"
+          "size_symbol": "LSNMSF_SIZE",
+          "c_type": "union LSNMSF"
         },
         {
           "name": "TOCEntry_SIZE",
@@ -26670,39 +26712,45 @@
           "name": "QCODE_CtlAdr",
           "type": "UBYTE",
           "offset": 0,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "QCODE_Track",
           "type": "UBYTE",
           "offset": 1,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "QCODE_Index",
           "type": "UBYTE",
           "offset": 2,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "QCODE_Zero",
           "type": "UBYTE",
           "offset": 3,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "QCODE_TrackPosition",
           "type": "STRUCT",
           "offset": 4,
           "size": 4,
-          "size_symbol": "LSNMSF_SIZE"
+          "size_symbol": "LSNMSF_SIZE",
+          "c_type": "union LSNMSF"
         },
         {
           "name": "QCODE_DiskPosition",
           "type": "STRUCT",
           "offset": 8,
           "size": 4,
-          "size_symbol": "LSNMSF_SIZE"
+          "size_symbol": "LSNMSF_SIZE",
+          "c_type": "union LSNMSF"
         },
         {
           "name": "QCODE_SIZE",
@@ -26724,13 +26772,15 @@
           "offset": 0,
           "size": 14,
           "size_symbol": "LN_SIZE",
-          "struct": "LN"
+          "struct": "LN",
+          "c_type": "struct Node"
         },
         {
           "name": "cu_UnitNum",
           "type": "ULONG",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         }
       ]
     },
@@ -26746,67 +26796,80 @@
           "offset": 0,
           "size": 20,
           "size_symbol": "MN_SIZE",
-          "struct": "MN"
+          "struct": "MN",
+          "c_type": "struct Message"
         },
         {
           "name": "io_Device",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Device *",
+          "pointer_struct": "DD"
         },
         {
           "name": "io_Unit",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "struct ClipboardUnitPartial *",
+          "pointer_struct": "ClipboardUnitPartial"
         },
         {
           "name": "io_Command",
           "type": "UWORD",
           "offset": 28,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "io_Flags",
           "type": "UBYTE",
           "offset": 30,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "io_Error",
           "type": "BYTE",
           "offset": 31,
-          "size": 1
+          "size": 1,
+          "c_type": "BYTE"
         },
         {
           "name": "io_Actual",
           "type": "ULONG",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "io_Length",
           "type": "ULONG",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "io_Data",
           "type": "APTR",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "STRPTR"
         },
         {
           "name": "io_Offset",
           "type": "ULONG",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "io_ClipID",
           "type": "LONG",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "iocr_SIZEOF",
@@ -26828,19 +26891,22 @@
           "offset": 0,
           "size": 20,
           "size_symbol": "MN_SIZE",
-          "struct": "MN"
+          "struct": "MN",
+          "c_type": "struct Message"
         },
         {
           "name": "sm_Unit",
           "type": "UWORD",
           "offset": 20,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "sm_ClipID",
           "type": "LONG",
           "offset": 22,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "satisfyMsg_SIZEOF",
@@ -26860,19 +26926,22 @@
           "name": "chm_Type",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "chm_ChangeCmd",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "chm_ClipID",
           "type": "LONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         }
       ]
     },
@@ -27091,25 +27160,29 @@
           "name": "gpt_Keys",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "gpt_Timeout",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "gpt_XDelta",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "gpt_YDelta",
           "type": "UWORD",
           "offset": 6,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "gpt_SIZEOF",
@@ -27370,13 +27443,15 @@
           "name": "bbe_BadBlock",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "bbe_GoodBlock",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "BadBlockEntry_SIZEOF",
@@ -27726,7 +27801,9 @@
           "name": "iepp_Screen",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Screen *",
+          "pointer_struct": "Screen"
         },
         {
           "name": "iepp_Position",
@@ -27800,7 +27877,8 @@
           "name": "iept_Pressure",
           "type": "WORD",
           "offset": 8,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "IEPointerTablet_SIZEOF",
@@ -27894,31 +27972,37 @@
           "name": "ie_NextEvent",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct InputEvent *",
+          "pointer_struct": "InputEvent"
         },
         {
           "name": "ie_Class",
           "type": "UBYTE",
           "offset": 4,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ie_SubClass",
           "type": "UBYTE",
           "offset": 5,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ie_Code",
           "type": "UWORD",
           "offset": 6,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ie_Qualifier",
           "type": "UWORD",
           "offset": 8,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ie_EventAddress",
@@ -27968,7 +28052,8 @@
           "offset": 14,
           "size": 8,
           "size_symbol": "TV_SIZE",
-          "struct": "TIMEVAL"
+          "struct": "TIMEVAL",
+          "c_type": "struct timeval"
         },
         {
           "name": "ie_SIZEOF",
@@ -27988,49 +28073,57 @@
           "name": "km_LoKeyMapTypes",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "km_LoKeyMap",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG *"
         },
         {
           "name": "km_LoCapsable",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "km_LoRepeatable",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "km_HiKeyMapTypes",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "km_HiKeyMap",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG *"
         },
         {
           "name": "km_HiCapsable",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "km_HiRepeatable",
           "type": "APTR",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "km_SIZEOF",
@@ -28052,7 +28145,8 @@
           "offset": 0,
           "size": 14,
           "size_symbol": "LN_SIZE",
-          "struct": "LN"
+          "struct": "LN",
+          "c_type": "struct Node"
         },
         {
           "name": "kn_KeyMap",
@@ -28060,7 +28154,8 @@
           "offset": 14,
           "size": 32,
           "size_symbol": "km_SIZEOF",
-          "struct": "KeyMap"
+          "struct": "KeyMap",
+          "c_type": "struct KeyMap"
         },
         {
           "name": "kn_SIZEOF",
@@ -28082,7 +28177,8 @@
           "offset": 0,
           "size": 14,
           "size_symbol": "LN_SIZE",
-          "struct": "LN"
+          "struct": "LN",
+          "c_type": "struct Node"
         },
         {
           "name": "kr_List",
@@ -28090,7 +28186,8 @@
           "offset": 14,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "kr_SIZEOF",
@@ -28313,19 +28410,22 @@
           "name": "IO_PEXTFLAGS",
           "type": "ULONG",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IO_PARSTATUS",
           "type": "UBYTE",
           "offset": 52,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "IO_PARFLAGS",
           "type": "UBYTE",
           "offset": 53,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "IO_PTERMARRAY",
@@ -28333,7 +28433,8 @@
           "offset": 54,
           "size": 8,
           "size_symbol": "PTERMARRAY_SIZE",
-          "struct": "PTERMARRAY"
+          "struct": "PTERMARRAY",
+          "c_type": "struct IOPArray"
         },
         {
           "name": "IOEXTPar_SIZE",
@@ -28354,31 +28455,36 @@
           "name": "io_PrtCommand",
           "type": "UWORD",
           "offset": 32,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "io_Parm0",
           "type": "UBYTE",
           "offset": 34,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "io_Parm1",
           "type": "UBYTE",
           "offset": 35,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "io_Parm2",
           "type": "UBYTE",
           "offset": 36,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "io_Parm3",
           "type": "UBYTE",
           "offset": 37,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "iopcr_SIZEOF",
@@ -28399,61 +28505,73 @@
           "name": "io_RastPort",
           "type": "APTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "struct RastPort *",
+          "pointer_struct": "RastPort"
         },
         {
           "name": "io_ColorMap",
           "type": "APTR",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "struct ColorMap *",
+          "pointer_struct": "ColorMap"
         },
         {
           "name": "io_Modes",
           "type": "ULONG",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "io_SrcX",
           "type": "UWORD",
           "offset": 44,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "io_SrcY",
           "type": "UWORD",
           "offset": 46,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "io_SrcWidth",
           "type": "UWORD",
           "offset": 48,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "io_SrcHeight",
           "type": "UWORD",
           "offset": 50,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "io_DestCols",
           "type": "LONG",
           "offset": 52,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "io_DestRows",
           "type": "LONG",
           "offset": 56,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "io_Special",
           "type": "UWORD",
           "offset": 60,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "iodrpr_SIZEOF",
@@ -28474,31 +28592,36 @@
           "name": "dd_Segment",
           "type": "APTR",
           "offset": 34,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dd_ExecBase",
           "type": "APTR",
           "offset": 38,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dd_CmdVectors",
           "type": "APTR",
           "offset": 42,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dd_CmdBytes",
           "type": "APTR",
           "offset": 46,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dd_NumCommands",
           "type": "UWORD",
           "offset": 50,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "dd_SIZEOF",
@@ -28519,7 +28642,8 @@
           "name": "ped_PrinterName",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "ped_Init",
@@ -28549,61 +28673,71 @@
           "name": "ped_PrinterClass",
           "type": "UBYTE",
           "offset": 20,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ped_ColorClass",
           "type": "UBYTE",
           "offset": 21,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ped_MaxColumns",
           "type": "UBYTE",
           "offset": 22,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ped_NumCharSets",
           "type": "UBYTE",
           "offset": 23,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ped_NumRows",
           "type": "UWORD",
           "offset": 24,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ped_MaxXDots",
           "type": "ULONG",
           "offset": 26,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ped_MaxYDots",
           "type": "ULONG",
           "offset": 30,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ped_XDotsInch",
           "type": "UWORD",
           "offset": 34,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ped_YDotsInch",
           "type": "UWORD",
           "offset": 36,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ped_Commands",
           "type": "APTR",
           "offset": 38,
-          "size": 4
+          "size": 4,
+          "c_type": "char ***"
         },
         {
           "name": "ped_DoSpecial",
@@ -28621,19 +28755,22 @@
           "name": "ped_TimeoutSecs",
           "type": "LONG",
           "offset": 50,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "ped_8BitChars",
           "type": "APTR",
           "offset": 54,
-          "size": 4
+          "size": 4,
+          "c_type": "char **"
         },
         {
           "name": "ped_PrintMode",
           "type": "LONG",
           "offset": 58,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "ped_ConvFunv",
@@ -28736,229 +28873,269 @@
           "name": "pi_rp",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct RastPort *",
+          "pointer_struct": "RastPort"
         },
         {
           "name": "pi_temprp",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct RastPort *",
+          "pointer_struct": "RastPort"
         },
         {
           "name": "pi_RowBuf",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "pi_HamBuf",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "pi_ColorMap",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "union colorEntry *"
         },
         {
           "name": "pi_ColorInt",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "union colorEntry *"
         },
         {
           "name": "pi_HamInt",
           "type": "APTR",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "union colorEntry *"
         },
         {
           "name": "pi_Dest1Int",
           "type": "APTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "union colorEntry *"
         },
         {
           "name": "pi_Dest2Int",
           "type": "APTR",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "union colorEntry *"
         },
         {
           "name": "pi_ScaleX",
           "type": "APTR",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "pi_ScaleXAlt",
           "type": "APTR",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "pi_dmatrix",
           "type": "APTR",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "pi_TopBuf",
           "type": "APTR",
           "offset": 52,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "pi_BotBuf",
           "type": "APTR",
           "offset": 56,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "pi_RowBufSize",
           "type": "UWORD",
           "offset": 60,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_HamBufSize",
           "type": "UWORD",
           "offset": 62,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_ColorMapSize",
           "type": "UWORD",
           "offset": 64,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_ColorIntSize",
           "type": "UWORD",
           "offset": 66,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_HamIntSize",
           "type": "UWORD",
           "offset": 68,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_Dest1IntSize",
           "type": "UWORD",
           "offset": 70,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_Dest2IntSize",
           "type": "UWORD",
           "offset": 72,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_ScaleXSize",
           "type": "UWORD",
           "offset": 74,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_ScaleXAltSize",
           "type": "UWORD",
           "offset": 76,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_PrefsFlags",
           "type": "UWORD",
           "offset": 78,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_special",
           "type": "ULONG",
           "offset": 80,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "pi_xstart",
           "type": "UWORD",
           "offset": 84,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_ystart",
           "type": "UWORD",
           "offset": 86,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_width",
           "type": "UWORD",
           "offset": 88,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_height",
           "type": "UWORD",
           "offset": 90,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_pc",
           "type": "ULONG",
           "offset": 92,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "pi_pr",
           "type": "ULONG",
           "offset": 96,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "pi_ymult",
           "type": "UWORD",
           "offset": 100,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_ymod",
           "type": "UWORD",
           "offset": 102,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_ety",
           "type": "UWORD",
           "offset": 104,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "pi_xpos",
           "type": "UWORD",
           "offset": 106,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_threshold",
           "type": "UWORD",
           "offset": 108,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_tempwidth",
           "type": "UWORD",
           "offset": 110,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "pi_flags",
           "type": "UWORD",
           "offset": 112,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "prtinfo_SIZEOF",
@@ -28978,67 +29155,78 @@
           "name": "scsi_Data",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "scsi_Length",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "scsi_Actual",
           "type": "ULONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "scsi_Command",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "scsi_CmdLength",
           "type": "UWORD",
           "offset": 16,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "scsi_CmdActual",
           "type": "UWORD",
           "offset": 18,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "scsi_Flags",
           "type": "UBYTE",
           "offset": 20,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "scsi_Status",
           "type": "UBYTE",
           "offset": 21,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "scsi_SenseData",
           "type": "APTR",
           "offset": 22,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "scsi_SenseLength",
           "type": "UWORD",
           "offset": 26,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "scsi_SenseActual",
           "type": "UWORD",
           "offset": 28,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "scsi_SIZEOF",
@@ -29084,31 +29272,36 @@
           "name": "IO_CTLCHAR",
           "type": "ULONG",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IO_RBUFLEN",
           "type": "ULONG",
           "offset": 52,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IO_EXTFLAGS",
           "type": "ULONG",
           "offset": 56,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IO_BAUD",
           "type": "ULONG",
           "offset": 60,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IO_BRKTIME",
           "type": "ULONG",
           "offset": 64,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IO_TERMARRAY",
@@ -29116,37 +29309,43 @@
           "offset": 68,
           "size": 8,
           "size_symbol": "TERMARRAY_SIZE",
-          "struct": "TERMARRAY"
+          "struct": "TERMARRAY",
+          "c_type": "struct IOTArray"
         },
         {
           "name": "IO_READLEN",
           "type": "UBYTE",
           "offset": 76,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "IO_WRITELEN",
           "type": "UBYTE",
           "offset": 77,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "IO_STOPBITS",
           "type": "UBYTE",
           "offset": 78,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "IO_SERFLAGS",
           "type": "UBYTE",
           "offset": 79,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "IO_STATUS",
           "type": "UWORD",
           "offset": 80,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "IOEXTSER_SIZE",
@@ -29167,13 +29366,15 @@
           "name": "TV_SECS",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "TV_MICRO",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "TV_SIZE",
@@ -29193,13 +29394,15 @@
           "name": "EV_HI",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "EV_LO",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "EV_SIZE",
@@ -29221,7 +29424,8 @@
           "offset": 32,
           "size": 8,
           "size_symbol": "TV_SIZE",
-          "struct": "TIMEVAL"
+          "struct": "TIMEVAL",
+          "c_type": "struct timeval"
         },
         {
           "name": "IOTV_SIZE",
@@ -29242,13 +29446,15 @@
           "name": "IOTD_COUNT",
           "type": "ULONG",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IOTD_SECLABEL",
           "type": "ULONG",
           "offset": 52,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IOTD_SIZE",
@@ -29269,61 +29475,71 @@
           "name": "dg_SectorSize",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dg_TotalSectors",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dg_Cylinders",
           "type": "ULONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dg_CylSectors",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dg_Heads",
           "type": "ULONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dg_TrackSectors",
           "type": "ULONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dg_BufMemType",
           "type": "ULONG",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dg_DeviceType",
           "type": "UBYTE",
           "offset": 28,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "dg_Flags",
           "type": "UBYTE",
           "offset": 29,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "dg_Reserved",
           "type": "UWORD",
           "offset": 30,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "dg_SIZEOF",
@@ -29343,61 +29559,71 @@
           "name": "TDU_COMP01TRACK",
           "type": "UWORD",
           "offset": 38,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "TDU_COMP10TRACK",
           "type": "UWORD",
           "offset": 40,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "TDU_COMP11TRACK",
           "type": "UWORD",
           "offset": 42,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "TDU_STEPDELAY",
           "type": "ULONG",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "TDU_SETTLEDELAY",
           "type": "ULONG",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "TDU_RETRYCNT",
           "type": "UBYTE",
           "offset": 52,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "TDU_PUBFLAGS",
           "type": "UBYTE",
           "offset": 53,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "TDU_CURRTRK",
           "type": "UWORD",
           "offset": 54,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "TDU_CALIBRATEDELAY",
           "type": "ULONG",
           "offset": 56,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "TDU_COUNTER",
           "type": "ULONG",
           "offset": 60,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "TDU_PUBLICUNITSIZE",
@@ -29425,19 +29651,22 @@
           "name": "fc_YSize",
           "type": "UWORD",
           "offset": 256,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "fc_Style",
           "type": "UBYTE",
           "offset": 258,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "fc_Flags",
           "type": "UBYTE",
           "offset": 259,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "fc_SIZEOF",
@@ -29502,13 +29731,15 @@
           "name": "fch_FileID",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "fch_NumEntries",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "fch_FC",
@@ -29530,25 +29761,29 @@
           "offset": 0,
           "size": 14,
           "size_symbol": "LN_SIZE",
-          "struct": "LN"
+          "struct": "LN",
+          "c_type": "struct Node"
         },
         {
           "name": "dfh_FileID",
           "type": "UWORD",
           "offset": 14,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "dfh_Revision",
           "type": "UWORD",
           "offset": 16,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "dfh_Segment",
           "type": "LONG",
           "offset": 18,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dfh_Name",
@@ -29563,7 +29798,8 @@
           "offset": 54,
           "size": 52,
           "size_symbol": "tf_SIZEOF",
-          "struct": "TextFont"
+          "struct": "TextFont",
+          "c_type": "struct TextFont"
         },
         {
           "name": "dfh_SIZEOF",
@@ -29583,7 +29819,8 @@
           "name": "af_Type",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "af_Attr",
@@ -29591,7 +29828,8 @@
           "offset": 2,
           "size": 8,
           "size_symbol": "ta_SIZEOF",
-          "struct": "TextAttr"
+          "struct": "TextAttr",
+          "c_type": "struct TextAttr"
         },
         {
           "name": "af_SIZEOF",
@@ -29611,7 +29849,8 @@
           "name": "taf_Type",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "taf_Attr",
@@ -29619,7 +29858,8 @@
           "offset": 2,
           "size": 12,
           "size_symbol": "tta_SIZEOF",
-          "struct": "TTextAttr"
+          "struct": "TTextAttr",
+          "c_type": "struct TTextAttr"
         },
         {
           "name": "taf_SIZEOF",
@@ -29639,7 +29879,8 @@
           "name": "afh_NumEntries",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "afh_AF",
@@ -29659,13 +29900,16 @@
           "name": "gle_Library",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Library *",
+          "pointer_struct": "LIB"
         },
         {
           "name": "gle_Name",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         }
       ]
     },
@@ -29679,85 +29923,99 @@
           "name": "glm_BMModulo",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "glm_BMRows",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "glm_BlackLeft",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "glm_BlackTop",
           "type": "UWORD",
           "offset": 6,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "glm_BlackWidth",
           "type": "UWORD",
           "offset": 8,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "glm_BlackHeight",
           "type": "UWORD",
           "offset": 10,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "glm_XOrigin",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "FIXED"
         },
         {
           "name": "glm_YOrigin",
           "type": "ULONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "FIXED"
         },
         {
           "name": "glm_X0",
           "type": "WORD",
           "offset": 20,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "glm_Y0",
           "type": "WORD",
           "offset": 22,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "glm_X1",
           "type": "WORD",
           "offset": 24,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "glm_Y1",
           "type": "WORD",
           "offset": 26,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "glm_Width",
           "type": "ULONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "FIXED"
         },
         {
           "name": "glm_BitMap",
           "type": "APTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "GlyphMap_SIZEOF",
@@ -29779,19 +30037,22 @@
           "offset": 0,
           "size": 8,
           "size_symbol": "MLN_SIZE",
-          "struct": "MLN"
+          "struct": "MLN",
+          "c_type": "struct MinNode"
         },
         {
           "name": "gwe_Code",
           "type": "UWORD",
           "offset": 8,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "gwe_Width",
           "type": "ULONG",
           "offset": 10,
-          "size": 4
+          "size": 4,
+          "c_type": "FIXED"
         },
         {
           "name": "GlyphWidthEntry_SIZEOF",
@@ -29813,37 +30074,43 @@
           "offset": 0,
           "size": 12,
           "size_symbol": "ds_SIZEOF",
-          "struct": "DateStamp"
+          "struct": "DateStamp",
+          "c_type": "struct DateStamp"
         },
         {
           "name": "dat_Format",
           "type": "UBYTE",
           "offset": 12,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "dat_Flags",
           "type": "UBYTE",
           "offset": 13,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "dat_StrDay",
           "type": "CPTR",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "dat_StrDate",
           "type": "CPTR",
           "offset": 18,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "dat_StrTime",
           "type": "CPTR",
           "offset": 22,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "dat_SIZEOF",
@@ -29863,19 +30130,22 @@
           "name": "ds_Days",
           "type": "LONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "ds_Minute",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "ds_Tick",
           "type": "LONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "ds_SIZEOF",
@@ -29895,13 +30165,15 @@
           "name": "fib_DiskKey",
           "type": "LONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fib_DirEntryType",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fib_FileName",
@@ -29914,25 +30186,29 @@
           "name": "fib_Protection",
           "type": "LONG",
           "offset": 116,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fib_EntryType",
           "type": "LONG",
           "offset": 120,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fib_Size",
           "type": "LONG",
           "offset": 124,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fib_NumBlocks",
           "type": "LONG",
           "offset": 128,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fib_DateStamp",
@@ -29940,7 +30216,8 @@
           "offset": 132,
           "size": 12,
           "size_symbol": "ds_SIZEOF",
-          "struct": "DateStamp"
+          "struct": "DateStamp",
+          "c_type": "struct DateStamp"
         },
         {
           "name": "fib_Comment",
@@ -29953,13 +30230,15 @@
           "name": "fib_OwnerUID",
           "type": "UWORD",
           "offset": 224,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "fib_OwnerGID",
           "type": "UWORD",
           "offset": 226,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "fib_Reserved",
@@ -29986,55 +30265,64 @@
           "name": "id_NumSoftErrors",
           "type": "LONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "id_UnitNumber",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "id_DiskState",
           "type": "LONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "id_NumBlocks",
           "type": "LONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "id_NumBlocksUsed",
           "type": "LONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "id_BytesPerBlock",
           "type": "LONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "id_DiskType",
           "type": "LONG",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "id_VolumeNode",
           "type": "BPTR",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "id_InUse",
           "type": "LONG",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "id_SIZEOF",
@@ -30196,7 +30484,8 @@
           "offset": 0,
           "size": 92,
           "size_symbol": "TC_SIZE",
-          "struct": "TC_Struct"
+          "struct": "TC_Struct",
+          "c_type": "struct Task"
         },
         {
           "name": "pr_MsgPort",
@@ -30204,115 +30493,134 @@
           "offset": 92,
           "size": 34,
           "size_symbol": "MP_SIZE",
-          "struct": "MP"
+          "struct": "MP",
+          "c_type": "struct MsgPort"
         },
         {
           "name": "pr_Pad",
           "type": "WORD",
           "offset": 126,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "pr_SegList",
           "type": "BPTR",
           "offset": 128,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "pr_StackSize",
           "type": "LONG",
           "offset": 132,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "pr_GlobVec",
           "type": "APTR",
           "offset": 136,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "pr_TaskNum",
           "type": "LONG",
           "offset": 140,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "pr_StackBase",
           "type": "BPTR",
           "offset": 144,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "pr_Result2",
           "type": "LONG",
           "offset": 148,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "pr_CurrentDir",
           "type": "BPTR",
           "offset": 152,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "pr_CIS",
           "type": "BPTR",
           "offset": 156,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "pr_COS",
           "type": "BPTR",
           "offset": 160,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "pr_ConsoleTask",
           "type": "APTR",
           "offset": 164,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "pr_FileSystemTask",
           "type": "APTR",
           "offset": 168,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "pr_CLI",
           "type": "BPTR",
           "offset": 172,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "pr_ReturnAddr",
           "type": "APTR",
           "offset": 176,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "pr_PktWait",
           "type": "APTR",
           "offset": 180,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "pr_WindowPtr",
           "type": "APTR",
           "offset": 184,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "pr_HomeDir",
           "type": "BPTR",
           "offset": 188,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "pr_Flags",
           "type": "LONG",
           "offset": 192,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "pr_ExitCode",
@@ -30324,13 +30632,15 @@
           "name": "pr_ExitData",
           "type": "LONG",
           "offset": 200,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "pr_Arguments",
           "type": "APTR",
           "offset": 204,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "pr_LocalVars",
@@ -30338,19 +30648,22 @@
           "offset": 208,
           "size": 12,
           "size_symbol": "MLH_SIZE",
-          "struct": "MLH"
+          "struct": "MLH",
+          "c_type": "struct MinList"
         },
         {
           "name": "pr_ShellPrivate",
           "type": "APTR",
           "offset": 220,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "pr_CES",
           "type": "BPTR",
           "offset": 224,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "pr_SIZEOF",
@@ -30466,14 +30779,17 @@
           "offset": 0,
           "size": 20,
           "size_symbol": "MN_SIZE",
-          "struct": "MN"
+          "struct": "MN",
+          "c_type": "struct Message"
         },
         {
           "name": "sp_Pkt",
           "type": "STRUCT",
           "offset": 20,
           "size": 48,
-          "size_symbol": "dp_SIZEOF"
+          "size_symbol": "dp_SIZEOF",
+          "c_type": "struct DosPacket",
+          "struct": "DosPacket"
         },
         {
           "name": "sp_SIZEOF",
@@ -30493,13 +30809,15 @@
           "name": "estr_Nums",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG *"
         },
         {
           "name": "estr_Strings",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "ErrorString_SIZEOF",
@@ -30521,61 +30839,76 @@
           "offset": 0,
           "size": 34,
           "size_symbol": "LIB_SIZE",
-          "struct": "LIB"
+          "struct": "LIB",
+          "c_type": "struct Library"
         },
         {
           "name": "dl_Root",
           "type": "APTR",
           "offset": 34,
-          "size": 4
+          "size": 4,
+          "c_type": "struct RootNode *",
+          "pointer_struct": "RootNode"
         },
         {
           "name": "dl_GV",
           "type": "APTR",
           "offset": 38,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dl_A2",
           "type": "LONG",
           "offset": 42,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dl_A5",
           "type": "LONG",
           "offset": 46,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dl_A6",
           "type": "LONG",
           "offset": 50,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dl_Errors",
           "type": "APTR",
           "offset": 54,
-          "size": 4
+          "size": 4,
+          "c_type": "struct ErrorString *",
+          "pointer_struct": "ErrorString"
         },
         {
           "name": "dl_TimeReq",
           "type": "APTR",
           "offset": 58,
-          "size": 4
+          "size": 4,
+          "c_type": "struct timerequest *",
+          "pointer_struct": "TIMEREQUEST"
         },
         {
           "name": "dl_UtilityBase",
           "type": "APTR",
           "offset": 62,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Library *",
+          "pointer_struct": "LIB"
         },
         {
           "name": "dl_IntuitionBase",
           "type": "APTR",
           "offset": 66,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Library *",
+          "pointer_struct": "LIB"
         },
         {
           "name": "dl_SIZEOF",
@@ -30595,13 +30928,15 @@
           "name": "rn_TaskArray",
           "type": "BPTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "rn_ConsoleSegment",
           "type": "BPTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "rn_Time",
@@ -30609,25 +30944,29 @@
           "offset": 8,
           "size": 12,
           "size_symbol": "ds_SIZEOF",
-          "struct": "DateStamp"
+          "struct": "DateStamp",
+          "c_type": "struct DateStamp"
         },
         {
           "name": "rn_RestartSeg",
           "type": "LONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rn_Info",
           "type": "BPTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "rn_FileHandlerSegment",
           "type": "BPTR",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "rn_CliList",
@@ -30635,25 +30974,30 @@
           "offset": 32,
           "size": 12,
           "size_symbol": "MLH_SIZE",
-          "struct": "MLH"
+          "struct": "MLH",
+          "c_type": "struct MinList"
         },
         {
           "name": "rn_BootProc",
           "type": "APTR",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort *",
+          "pointer_struct": "MP"
         },
         {
           "name": "rn_ShellSegment",
           "type": "BPTR",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "rn_Flags",
           "type": "LONG",
           "offset": 52,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rn_SIZEOF",
@@ -30675,19 +31019,23 @@
           "offset": 0,
           "size": 8,
           "size_symbol": "MLN_SIZE",
-          "struct": "MLN"
+          "struct": "MLN",
+          "c_type": "struct MinNode"
         },
         {
           "name": "cpl_First",
           "type": "LONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "cpl_Array",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort **",
+          "pointer_struct": "MP"
         },
         {
           "name": "cpl_SIZEOF",
@@ -30721,19 +31069,22 @@
           "name": "seg_Next",
           "type": "BPTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "seg_UC",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "seg_Seg",
           "type": "BPTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "seg_Name",
@@ -30760,97 +31111,113 @@
           "name": "cli_Result2",
           "type": "LONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "cli_SetName",
           "type": "BSTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "cli_CommandDir",
           "type": "BPTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "cli_ReturnCode",
           "type": "LONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "cli_CommandName",
           "type": "BSTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "cli_FailLevel",
           "type": "LONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "cli_Prompt",
           "type": "BSTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "cli_StandardInput",
           "type": "BPTR",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "cli_CurrentInput",
           "type": "BPTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "cli_CommandFile",
           "type": "BSTR",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "cli_Interactive",
           "type": "LONG",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "cli_Background",
           "type": "LONG",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "cli_CurrentOutput",
           "type": "BPTR",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "cli_DefaultStack",
           "type": "LONG",
           "offset": 52,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "cli_StandardOutput",
           "type": "BPTR",
           "offset": 56,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "cli_Module",
           "type": "BPTR",
           "offset": 60,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "cli_SIZEOF",
@@ -30940,67 +31307,78 @@
           "name": "dvi_Next",
           "type": "BPTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dvi_Type",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dvi_Task",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dvi_Lock",
           "type": "BPTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dvi_Handler",
           "type": "BSTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "dvi_Stacksize",
           "type": "LONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dvi_Priority",
           "type": "LONG",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dvi_Startup",
           "type": "LONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dvi_SegList",
           "type": "BPTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dvi_GlobVec",
           "type": "BPTR",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dvi_Name",
           "type": "BSTR",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "dvi_SIZEOF",
@@ -31020,25 +31398,30 @@
           "name": "dol_Next",
           "type": "BPTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dol_Type",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dol_Task",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort *",
+          "pointer_struct": "MP"
         },
         {
           "name": "dol_Lock",
           "type": "BPTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dol_VolumeDate",
@@ -31115,7 +31498,8 @@
           "name": "dol_Name",
           "type": "BSTR",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "DosList_SIZEOF",
@@ -31135,25 +31519,31 @@
           "name": "dvp_Port",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort *",
+          "pointer_struct": "MP"
         },
         {
           "name": "dvp_Lock",
           "type": "BPTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dvp_Flags",
           "type": "ULONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dvp_DevNode",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "struct DosList *",
+          "pointer_struct": "DosList"
         },
         {
           "name": "dvp_SIZEOF",
@@ -31173,31 +31563,37 @@
           "name": "fl_Link",
           "type": "BPTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "fl_Key",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fl_Access",
           "type": "LONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fl_Task",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort *",
+          "pointer_struct": "MP"
         },
         {
           "name": "fl_Volume",
           "type": "BPTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "fl_SIZEOF",
@@ -31217,67 +31613,79 @@
           "name": "ed_Next",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct ExAllData *",
+          "pointer_struct": "ExAllData"
         },
         {
           "name": "ed_Name",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "ed_Type",
           "type": "LONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "ed_Size",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ed_Prot",
           "type": "ULONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ed_Days",
           "type": "ULONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ed_Mins",
           "type": "ULONG",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ed_Ticks",
           "type": "ULONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ed_Comment",
           "type": "APTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "ed_OwnerUID",
           "type": "UWORD",
           "offset": 36,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ed_OwnerGID",
           "type": "UWORD",
           "offset": 38,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ed_Strings",
@@ -31303,25 +31711,30 @@
           "name": "eac_Entries",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "eac_LastKey",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "eac_MatchString",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "eac_MatchFunc",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Hook *",
+          "pointer_struct": "HOOK"
         },
         {
           "name": "ExAllControl_SIZEOF",
@@ -31341,121 +31754,141 @@
           "name": "de_TableSize",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_SizeBlock",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_SecOrg",
           "type": "ULONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_Surfaces",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_SectorPerBlock",
           "type": "ULONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_BlocksPerTrack",
           "type": "ULONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_Reserved",
           "type": "ULONG",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_PreAlloc",
           "type": "ULONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_Interleave",
           "type": "ULONG",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_LowCyl",
           "type": "ULONG",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_HighCyl",
           "type": "ULONG",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_NumBuffers",
           "type": "ULONG",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_BufMemType",
           "type": "ULONG",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_MaxTransfer",
           "type": "ULONG",
           "offset": 52,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_Mask",
           "type": "ULONG",
           "offset": 56,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_BootPri",
           "type": "LONG",
           "offset": 60,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "de_DosType",
           "type": "ULONG",
           "offset": 64,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_Baud",
           "type": "ULONG",
           "offset": 68,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_Control",
           "type": "ULONG",
           "offset": 72,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "de_BootBlocks",
           "type": "ULONG",
           "offset": 76,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "DosEnvec_SIZEOF",
@@ -31475,25 +31908,29 @@
           "name": "fssm_Unit",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "fssm_Device",
           "type": "BSTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "fssm_Environ",
           "type": "BPTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "fssm_Flags",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "FileSysStartupMsg_SIZEOF",
@@ -31513,67 +31950,79 @@
           "name": "dn_Next",
           "type": "BPTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dn_Type",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dn_Task",
           "type": "CPTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort *",
+          "pointer_struct": "MP"
         },
         {
           "name": "dn_Lock",
           "type": "BPTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dn_Handler",
           "type": "BSTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "dn_StackSize",
           "type": "ULONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dn_Priority",
           "type": "LONG",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "dn_Startup",
           "type": "BPTR",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dn_SegList",
           "type": "BPTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dn_GlobalVec",
           "type": "BPTR",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "dn_Name",
           "type": "BSTR",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "DeviceNode_SIZEOF",
@@ -31595,37 +32044,44 @@
           "offset": 0,
           "size": 20,
           "size_symbol": "MN_SIZE",
-          "struct": "MN"
+          "struct": "MN",
+          "c_type": "struct Message"
         },
         {
           "name": "nm_Class",
           "type": "ULONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "nm_Code",
           "type": "UWORD",
           "offset": 24,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "nm_NReq",
           "type": "APTR",
           "offset": 26,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NotifyRequest *",
+          "pointer_struct": "NotifyRequest"
         },
         {
           "name": "nm_DoNotTouch",
           "type": "ULONG",
           "offset": 30,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "nm_DoNotTouch2",
           "type": "ULONG",
           "offset": 34,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "NotifyMessage_SIZEOF",
@@ -31683,19 +32139,22 @@
           "name": "CS_Buffer",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "CS_Length",
           "type": "LONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "CS_CurChr",
           "type": "LONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "CS_SIZEOF",
@@ -31717,37 +32176,43 @@
           "offset": 0,
           "size": 12,
           "size_symbol": "CS_SIZEOF",
-          "struct": "CSource"
+          "struct": "CSource",
+          "c_type": "struct CSource"
         },
         {
           "name": "RDA_DAList",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "RDA_Buffer",
           "type": "LONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "RDA_BufSiz",
           "type": "LONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "RDA_ExtHelp",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "RDA_Flags",
           "type": "LONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "RDA_SIZEOF",
@@ -31767,25 +32232,29 @@
           "name": "rec_FH",
           "type": "BPTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "rec_Offset",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "rec_Length",
           "type": "ULONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "rec_Mode",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "RecordLock_SIZEOF",
@@ -31807,25 +32276,29 @@
           "offset": 0,
           "size": 14,
           "size_symbol": "LN_SIZE",
-          "struct": "LN"
+          "struct": "LN",
+          "c_type": "struct Node"
         },
         {
           "name": "lv_Flags",
           "type": "UWORD",
           "offset": 14,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "lv_Value",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "lv_Len",
           "type": "ULONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "LocalVar_SIZEOF",
@@ -31860,19 +32333,22 @@
           "name": "UNIT_FLAGS",
           "type": "UBYTE",
           "offset": 34,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "UNIT_pad",
           "type": "UBYTE",
           "offset": 35,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "UNIT_OPENCNT",
           "type": "UWORD",
           "offset": 36,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "UNIT_SIZE",
@@ -32409,7 +32885,8 @@
           "name": "IS_DATA",
           "type": "APTR",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "IS_CODE",
@@ -32436,7 +32913,8 @@
           "name": "IV_DATA",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "IV_CODE",
@@ -32448,7 +32926,9 @@
           "name": "IV_NODE",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Node *",
+          "pointer_struct": "LN"
         },
         {
           "name": "IV_SIZE",
@@ -32468,7 +32948,8 @@
           "name": "SH_PAD",
           "type": "UWORD",
           "offset": 14,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "SH_SIZE",
@@ -32489,31 +32970,38 @@
           "name": "IO_DEVICE",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Device *",
+          "pointer_struct": "DD"
         },
         {
           "name": "IO_UNIT",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Unit *",
+          "pointer_struct": "UNIT"
         },
         {
           "name": "IO_COMMAND",
           "type": "UWORD",
           "offset": 28,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "IO_FLAGS",
           "type": "UBYTE",
           "offset": 30,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "IO_ERROR",
           "type": "BYTE",
           "offset": 31,
-          "size": 1
+          "size": 1,
+          "c_type": "BYTE"
         },
         {
           "name": "IO_SIZE",
@@ -32525,25 +33013,29 @@
           "name": "IO_ACTUAL",
           "type": "ULONG",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IO_LENGTH",
           "type": "ULONG",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IO_DATA",
           "type": "APTR",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "IO_OFFSET",
           "type": "ULONG",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "IOSTD_SIZE",
@@ -32564,55 +33056,64 @@
           "name": "LIB_FLAGS",
           "type": "UBYTE",
           "offset": 14,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "LIB_pad",
           "type": "UBYTE",
           "offset": 15,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "LIB_NEGSIZE",
           "type": "UWORD",
           "offset": 16,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "LIB_POSSIZE",
           "type": "UWORD",
           "offset": 18,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "LIB_VERSION",
           "type": "UWORD",
           "offset": 20,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "LIB_REVISION",
           "type": "UWORD",
           "offset": 22,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "LIB_IDSTRING",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "LIB_SUM",
           "type": "ULONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "LIB_OPENCNT",
           "type": "UWORD",
           "offset": 32,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "LIB_SIZE",
@@ -32633,31 +33134,39 @@
           "name": "LH_HEAD",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Node *",
+          "pointer_struct": "LN"
         },
         {
           "name": "LH_TAIL",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Node *",
+          "pointer_struct": "LN"
         },
         {
           "name": "LH_TAILPRED",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Node *",
+          "pointer_struct": "LN"
         },
         {
           "name": "LH_TYPE",
           "type": "UBYTE",
           "offset": 12,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "LH_pad",
           "type": "UBYTE",
           "offset": 13,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "LH_SIZE",
@@ -32677,19 +33186,25 @@
           "name": "MLH_HEAD",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MinNode *",
+          "pointer_struct": "MLN"
         },
         {
           "name": "MLH_TAIL",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MinNode *",
+          "pointer_struct": "MLN"
         },
         {
           "name": "MLH_TAILPRED",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MinNode *",
+          "pointer_struct": "MLN"
         },
         {
           "name": "MLH_SIZE",
@@ -32748,7 +33263,8 @@
           "name": "ME_LENGTH",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "ME_SIZE",
@@ -32800,31 +33316,37 @@
           "name": "MH_ATTRIBUTES",
           "type": "UWORD",
           "offset": 14,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "MH_FIRST",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MemChunk *",
+          "pointer_struct": "MC"
         },
         {
           "name": "MH_LOWER",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "MH_UPPER",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "MH_FREE",
           "type": "ULONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "MH_SIZE",
@@ -32871,31 +33393,38 @@
           "name": "LN_SUCC",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Node *",
+          "pointer_struct": "LN"
         },
         {
           "name": "LN_PRED",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Node *",
+          "pointer_struct": "LN"
         },
         {
           "name": "LN_TYPE",
           "type": "UBYTE",
           "offset": 8,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "LN_PRI",
           "type": "BYTE",
           "offset": 9,
-          "size": 1
+          "size": 1,
+          "c_type": "BYTE"
         },
         {
           "name": "LN_NAME",
           "type": "APTR",
           "offset": 10,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "LN_SIZE",
@@ -32915,13 +33444,17 @@
           "name": "MLN_SUCC",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MinNode *",
+          "pointer_struct": "MLN"
         },
         {
           "name": "MLN_PRED",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MinNode *",
+          "pointer_struct": "MLN"
         },
         {
           "name": "MLN_SIZE",
@@ -32941,19 +33474,22 @@
           "name": "MP_FLAGS",
           "type": "UBYTE",
           "offset": 14,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "MP_SIGBIT",
           "type": "UBYTE",
           "offset": 15,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "MP_SIGTASK",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "void *"
         },
         {
           "name": "MP_MSGLIST",
@@ -32961,7 +33497,8 @@
           "offset": 20,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "MP_SIZE",
@@ -32982,13 +33519,16 @@
           "name": "MN_REPLYPORT",
           "type": "APTR",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort *",
+          "pointer_struct": "MP"
         },
         {
           "name": "MN_LENGTH",
           "type": "UWORD",
           "offset": 18,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "MN_SIZE",
@@ -33009,61 +33549,72 @@
           "name": "RT_MATCHWORD",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "RT_MATCHTAG",
           "type": "APTR",
           "offset": 2,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Resident *",
+          "pointer_struct": "RT"
         },
         {
           "name": "RT_ENDSKIP",
           "type": "APTR",
           "offset": 6,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "RT_FLAGS",
           "type": "UBYTE",
           "offset": 10,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "RT_VERSION",
           "type": "UBYTE",
           "offset": 11,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "RT_TYPE",
           "type": "UBYTE",
           "offset": 12,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "RT_PRI",
           "type": "BYTE",
           "offset": 13,
-          "size": 1
+          "size": 1,
+          "c_type": "BYTE"
         },
         {
           "name": "RT_NAME",
           "type": "APTR",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "RT_IDSTRING",
           "type": "APTR",
           "offset": 18,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "RT_INIT",
           "type": "APTR",
           "offset": 22,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "RT_SIZE",
@@ -33399,19 +33950,22 @@
           "name": "stk_Lower",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "stk_Upper",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "stk_Pointer",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "StackSwapStruct_SIZEOF",
@@ -35721,49 +36275,59 @@
           "name": "XLN_SUCC",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Node *",
+          "pointer_struct": "LN"
         },
         {
           "name": "XLN_PRED",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Node *",
+          "pointer_struct": "LN"
         },
         {
           "name": "XLN_TYPE",
           "type": "UBYTE",
           "offset": 8,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "XLN_PRI",
           "type": "BYTE",
           "offset": 9,
-          "size": 1
+          "size": 1,
+          "c_type": "BYTE"
         },
         {
           "name": "XLN_NAME",
           "type": "APTR",
           "offset": 10,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "XLN_SUBSYSTEM",
           "type": "UBYTE",
           "offset": 14,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "XLN_SUBTYPE",
           "type": "UBYTE",
           "offset": 15,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "XLN_LIBRARY",
           "type": "LONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "XLN_INIT",
@@ -36609,115 +37173,136 @@
           "name": "bsa_SrcX",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_SrcY",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_SrcWidth",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_SrcHeight",
           "type": "UWORD",
           "offset": 6,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_XSrcFactor",
           "type": "UWORD",
           "offset": 8,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_YSrcFactor",
           "type": "UWORD",
           "offset": 10,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_DestX",
           "type": "UWORD",
           "offset": 12,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_DestY",
           "type": "UWORD",
           "offset": 14,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_DestWidth",
           "type": "UWORD",
           "offset": 16,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_DestHeight",
           "type": "UWORD",
           "offset": 18,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_XDestFactor",
           "type": "UWORD",
           "offset": 20,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_YDestFactor",
           "type": "UWORD",
           "offset": 22,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_SrcBitMap",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "struct BitMap *",
+          "pointer_struct": "BitMap"
         },
         {
           "name": "bsa_DestBitMap",
           "type": "APTR",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "struct BitMap *",
+          "pointer_struct": "BitMap"
         },
         {
           "name": "bsa_Flags",
           "type": "ULONG",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "bsa_XDDA",
           "type": "UWORD",
           "offset": 36,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_YDDA",
           "type": "UWORD",
           "offset": 38,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "bsa_Reserved1",
           "type": "LONG",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "bsa_Reserved2",
           "type": "LONG",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "bsa_SIZEOF",
@@ -36815,25 +37400,29 @@
           "name": "ta_Name",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "STRPTR"
         },
         {
           "name": "ta_YSize",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ta_Style",
           "type": "UBYTE",
           "offset": 6,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ta_Flags",
           "type": "UBYTE",
           "offset": 7,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ta_SIZEOF",
@@ -36853,31 +37442,37 @@
           "name": "tta_Name",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "STRPTR"
         },
         {
           "name": "tta_YSize",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "tta_Style",
           "type": "UBYTE",
           "offset": 6,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "tta_Flags",
           "type": "UBYTE",
           "offset": 7,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "tta_Tags",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct TagItem *",
+          "pointer_struct": "TagItem"
         },
         {
           "name": "tta_SIZEOF",
@@ -36897,85 +37492,99 @@
           "name": "tf_YSize",
           "type": "UWORD",
           "offset": 20,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "tf_Style",
           "type": "UBYTE",
           "offset": 22,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "tf_Flags",
           "type": "UBYTE",
           "offset": 23,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "tf_XSize",
           "type": "UWORD",
           "offset": 24,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "tf_Baseline",
           "type": "UWORD",
           "offset": 26,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "tf_BoldSmear",
           "type": "UWORD",
           "offset": 28,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "tf_Accessors",
           "type": "UWORD",
           "offset": 30,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "tf_LoChar",
           "type": "UBYTE",
           "offset": 32,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "tf_HiChar",
           "type": "UBYTE",
           "offset": 33,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "tf_CharData",
           "type": "APTR",
           "offset": 34,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "tf_Modulo",
           "type": "UWORD",
           "offset": 38,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "tf_CharLoc",
           "type": "APTR",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "tf_CharSpace",
           "type": "APTR",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "tf_CharKern",
           "type": "APTR",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "tf_SIZEOF",
@@ -36996,49 +37605,60 @@
           "name": "tfe_MatchWord",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "tfe_Flags0",
           "type": "UBYTE",
           "offset": 2,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "tfe_Flags1",
           "type": "UBYTE",
           "offset": 3,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "tfe_BackPtr",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct TextFont *",
+          "pointer_struct": "TextFont"
         },
         {
           "name": "tfe_OrigReplyPort",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort *",
+          "pointer_struct": "MP"
         },
         {
           "name": "tfe_Tags",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "struct TagItem *",
+          "pointer_struct": "TagItem"
         },
         {
           "name": "tfe_OFontPatchS",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "tfe_OFontPatchK",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "tfe_SIZEOF",
@@ -37058,19 +37678,22 @@
           "name": "cfc_Reserved",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "cfc_Count",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "cfc_ColorTable",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "UWORD *"
         },
         {
           "name": "cfc_SIZEOF",
@@ -37160,20 +37783,24 @@
           "name": "te_Width",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "te_Height",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "te_Extent",
           "type": "STRUCT",
           "offset": 4,
           "size": 8,
-          "size_symbol": null
+          "size_symbol": null,
+          "c_type": "struct Rectangle",
+          "struct": "Rectangle"
         },
         {
           "name": "te_SIZEOF",
@@ -37678,13 +38305,15 @@
           "name": "dbi_Link1",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dbi_Count1",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dbi_SafeMessage",
@@ -37692,25 +38321,29 @@
           "offset": 8,
           "size": 20,
           "size_symbol": "MN_SIZE",
-          "struct": "MN"
+          "struct": "MN",
+          "c_type": "struct Message"
         },
         {
           "name": "dbi_UserData1",
           "type": "APTR",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dbi_Link2",
           "type": "APTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dbi_Count2",
           "type": "ULONG",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dbi_DispMessage",
@@ -37718,49 +38351,57 @@
           "offset": 40,
           "size": 20,
           "size_symbol": "MN_SIZE",
-          "struct": "MN"
+          "struct": "MN",
+          "c_type": "struct Message"
         },
         {
           "name": "dbi_UserData2",
           "type": "APTR",
           "offset": 60,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dbi_MatchLong",
           "type": "ULONG",
           "offset": 64,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dbi_CopPtr1",
           "type": "APTR",
           "offset": 68,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dbi_CopPtr2",
           "type": "APTR",
           "offset": 72,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dbi_CopPtr3",
           "type": "APTR",
           "offset": 76,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "dbi_BeamPos1",
           "type": "UWORD",
           "offset": 80,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "dbi_BeamPos2",
           "type": "UWORD",
           "offset": 82,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "dbi_SIZEOF",
@@ -37967,13 +38608,16 @@
           "offset": 0,
           "size": 8,
           "size_symbol": "MLN_SIZE",
-          "struct": "MLN"
+          "struct": "MLN",
+          "c_type": "struct MinNode"
         },
         {
           "name": "o_Class",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct IClass *",
+          "pointer_struct": "ICLASS"
         },
         {
           "name": "_object_SIZEOF",
@@ -38007,13 +38651,17 @@
           "name": "ops_AttrList",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct TagItem *",
+          "pointer_struct": "TagItem"
         },
         {
           "name": "ops_GInfo",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct GadgetInfo *",
+          "pointer_struct": "GadgetInfo"
         }
       ]
     },
@@ -38027,19 +38675,24 @@
           "name": "opu_AttrList",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct TagItem *",
+          "pointer_struct": "TagItem"
         },
         {
           "name": "opu_GInfo",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct GadgetInfo *",
+          "pointer_struct": "GadgetInfo"
         },
         {
           "name": "opu_Flags",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         }
       ]
     },
@@ -38053,13 +38706,15 @@
           "name": "opg_AttrID",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "opg_Storage",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG *"
         }
       ]
     },
@@ -38073,7 +38728,9 @@
           "name": "opat_List",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct List *",
+          "pointer_struct": "LH"
         }
       ]
     },
@@ -38087,7 +38744,8 @@
           "name": "opam_Object",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "Object *"
         }
       ]
     },
@@ -38262,25 +38920,32 @@
           "name": "impf_ContentsBox",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct IBox *",
+          "pointer_struct": "IBox"
         },
         {
           "name": "impf_FrameBox",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "struct IBox *",
+          "pointer_struct": "IBox"
         },
         {
           "name": "impf_DrInfo",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "struct DrawInfo *",
+          "pointer_struct": "DrawInfo"
         },
         {
           "name": "impf_FrameFlags",
           "type": "LONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         }
       ]
     },
@@ -38294,7 +38959,9 @@
           "name": "impd_RPort",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct RastPort *",
+          "pointer_struct": "RastPort"
         },
         {
           "name": "impd_OffsetX",
@@ -38312,13 +38979,16 @@
           "name": "impd_State",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "impd_DrInfo",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "struct DrawInfo *",
+          "pointer_struct": "DrawInfo"
         },
         {
           "name": "impd_DimensionsWidth",
@@ -38344,7 +39014,9 @@
           "name": "impe_RPort",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct RastPort *",
+          "pointer_struct": "RastPort"
         },
         {
           "name": "impe_OffsetX",
@@ -40037,31 +40709,36 @@
           "name": "es_StructSize",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "es_Flags",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "es_Title",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "es_TextFormat",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "es_GadgetFormat",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "EasyStruct_SIZEOF",
@@ -41008,37 +41685,44 @@
           "name": "psn_Screen",
           "type": "APTR",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Screen *",
+          "pointer_struct": "Screen"
         },
         {
           "name": "psn_Flags",
           "type": "UWORD",
           "offset": 18,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "psn_Size",
           "type": "WORD",
           "offset": 20,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "psn_VisitorCount",
           "type": "WORD",
           "offset": 22,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "psn_SigTask",
           "type": "APTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Task *"
         },
         {
           "name": "psn_SigBit",
           "type": "UBYTE",
           "offset": 28,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "psn_Pad1",
@@ -41091,7 +41775,9 @@
           "name": "sex_Font",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct TextFont *",
+          "pointer_struct": "TextFont"
         },
         {
           "name": "sex_Pens",
@@ -41111,19 +41797,23 @@
           "name": "sex_InitialModes",
           "type": "ULONG",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "sex_EditHook",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Hook *",
+          "pointer_struct": "HOOK"
         },
         {
           "name": "sex_WorkBuffer",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "sex_Reserved",
@@ -41150,79 +41840,96 @@
           "name": "sgw_Gadget",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Gadget *",
+          "pointer_struct": "Gadget"
         },
         {
           "name": "sgw_StringInfo",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct StringInfo *",
+          "pointer_struct": "StringInfo"
         },
         {
           "name": "sgw_WorkBuffer",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "sgw_PrevBuffer",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "sgw_Modes",
           "type": "ULONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "sgw_IEvent",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "struct InputEvent *",
+          "pointer_struct": "InputEvent"
         },
         {
           "name": "sgw_Code",
           "type": "UWORD",
           "offset": 24,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "sgw_BufferPos",
           "type": "WORD",
           "offset": 26,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "sgw_NumChars",
           "type": "WORD",
           "offset": 28,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "sgw_Actions",
           "type": "ULONG",
           "offset": 30,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "sgw_LongInt",
           "type": "LONG",
           "offset": 34,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "sgw_GadgetInfo",
           "type": "APTR",
           "offset": 38,
-          "size": 4
+          "size": 4,
+          "c_type": "struct GadgetInfo *",
+          "pointer_struct": "GadgetInfo"
         },
         {
           "name": "sgw_EditOp",
           "type": "UWORD",
           "offset": 42,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "sgw_SIZEOF",
@@ -42058,67 +42765,78 @@
           "name": "er_Type",
           "type": "UBYTE",
           "offset": 0,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "er_Product",
           "type": "UBYTE",
           "offset": 1,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "er_Flags",
           "type": "UBYTE",
           "offset": 2,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "er_Reserved03",
           "type": "UBYTE",
           "offset": 3,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "er_Manufacturer",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "er_SerialNumber",
           "type": "ULONG",
           "offset": 6,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "er_InitDiagVec",
           "type": "UWORD",
           "offset": 10,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "er_Reserved0c",
           "type": "UBYTE",
           "offset": 12,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "er_Reserved0d",
           "type": "UBYTE",
           "offset": 13,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "er_Reserved0e",
           "type": "UBYTE",
           "offset": 14,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "er_Reserved0f",
           "type": "UBYTE",
           "offset": 15,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ExpansionRom_SIZEOF",
@@ -42138,97 +42856,113 @@
           "name": "ec_Interrupt",
           "type": "UBYTE",
           "offset": 0,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Z3_HighBase",
           "type": "UBYTE",
           "offset": 1,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_BaseAddress",
           "type": "UBYTE",
           "offset": 2,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Shutup",
           "type": "UBYTE",
           "offset": 3,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved14",
           "type": "UBYTE",
           "offset": 4,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved15",
           "type": "UBYTE",
           "offset": 5,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved16",
           "type": "UBYTE",
           "offset": 6,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved17",
           "type": "UBYTE",
           "offset": 7,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved18",
           "type": "UBYTE",
           "offset": 8,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved19",
           "type": "UBYTE",
           "offset": 9,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved1a",
           "type": "UBYTE",
           "offset": 10,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved1b",
           "type": "UBYTE",
           "offset": 11,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved1c",
           "type": "UBYTE",
           "offset": 12,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved1d",
           "type": "UBYTE",
           "offset": 13,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved1e",
           "type": "UBYTE",
           "offset": 14,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ec_Reserved1f",
           "type": "UBYTE",
           "offset": 15,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ExpansionControl_SIZEOF",
@@ -42248,49 +42982,57 @@
           "name": "da_Config",
           "type": "UBYTE",
           "offset": 0,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "da_Flags",
           "type": "UBYTE",
           "offset": 1,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "da_Size",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "da_DiagPoint",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "da_BootPoint",
           "type": "UWORD",
           "offset": 6,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "da_Name",
           "type": "UWORD",
           "offset": 8,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "da_Reserved01",
           "type": "UWORD",
           "offset": 10,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "da_Reserved02",
           "type": "UWORD",
           "offset": 12,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "DiagArea_SIZEOF",
@@ -42395,25 +43137,30 @@
           "name": "cb_ConfigDev",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct ConfigDev *",
+          "pointer_struct": "ConfigDev"
         },
         {
           "name": "cb_FileName",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "cb_ProductString",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "cb_ToolTypes",
           "type": "APTR",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE **"
         },
         {
           "name": "CurrentBinding_SIZEOF",
@@ -45066,31 +45813,39 @@
           "offset": 0,
           "size": 14,
           "size_symbol": "LN_SIZE",
-          "struct": "LN"
+          "struct": "LN",
+          "c_type": "struct Node"
         },
         {
           "name": "cah_CardRemoved",
           "type": "APTR",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Interrupt *",
+          "pointer_struct": "IS"
         },
         {
           "name": "cah_CardInserted",
           "type": "APTR",
           "offset": 18,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Interrupt *",
+          "pointer_struct": "IS"
         },
         {
           "name": "cah_CardStatus",
           "type": "APTR",
           "offset": 22,
-          "size": 4
+          "size": 4,
+          "c_type": "struct Interrupt *",
+          "pointer_struct": "IS"
         },
         {
           "name": "cah_CardFlags",
           "type": "UBYTE",
           "offset": 26,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "CardHandle_SIZEOF",
@@ -45110,25 +45865,29 @@
           "name": "dtd_DTsize",
           "type": "ULONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dtd_DTspeed",
           "type": "ULONG",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "dtd_DTtype",
           "type": "UBYTE",
           "offset": 8,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "dtd_DTflags",
           "type": "UBYTE",
           "offset": 9,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "DeviceTData_SIZEOF",
@@ -45148,37 +45907,43 @@
           "name": "cmm_CommonMemory",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "cmm_AttributeMemory",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "cmm_IOMemory",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "UBYTE *"
         },
         {
           "name": "cmm_CommonMemSize",
           "type": "ULONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "cmm_AttributeMemSize",
           "type": "ULONG",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "cmm_IOMemSize",
           "type": "ULONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "CardMemoryMap_SIZEOF",
@@ -45199,7 +45964,8 @@
           "type": "STRUCT",
           "offset": 0,
           "size": 2,
-          "size_symbol": null
+          "size_symbol": null,
+          "c_type": "UBYTE"
         },
         {
           "name": "TP_XIPLOC",
@@ -45213,14 +45979,16 @@
           "type": "STRUCT",
           "offset": 6,
           "size": 1,
-          "size_symbol": null
+          "size_symbol": null,
+          "c_type": "UBYTE"
         },
         {
           "name": "TP_XIPRESRV",
           "type": "STRUCT",
           "offset": 7,
           "size": 1,
-          "size_symbol": null
+          "size_symbol": null,
+          "c_type": "UBYTE"
         },
         {
           "name": "TP_AmigaXIP_SIZEOF",
@@ -45242,7 +46010,8 @@
           "offset": 20,
           "size": 22,
           "size_symbol": "IS_SIZE",
-          "struct": "IS"
+          "struct": "IS",
+          "c_type": "struct Interrupt"
         },
         {
           "name": "DRU_DISCSYNC",
@@ -45250,7 +46019,8 @@
           "offset": 42,
           "size": 22,
           "size_symbol": "IS_SIZE",
-          "struct": "IS"
+          "struct": "IS",
+          "c_type": "struct Interrupt"
         },
         {
           "name": "DRU_INDEX",
@@ -45258,7 +46028,8 @@
           "offset": 64,
           "size": 22,
           "size_symbol": "IS_SIZE",
-          "struct": "IS"
+          "struct": "IS",
+          "c_type": "struct Interrupt"
         },
         {
           "name": "DRU_SIZE",
@@ -45369,7 +46140,8 @@
           "name": "fsr_Creator",
           "type": "CPTR",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "fsr_FileSysEntries",
@@ -45377,7 +46149,8 @@
           "offset": 18,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "FileSysResource_SIZEOF",
@@ -45398,73 +46171,85 @@
           "name": "fse_DosType",
           "type": "ULONG",
           "offset": 14,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "fse_Version",
           "type": "ULONG",
           "offset": 18,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "fse_PatchFlags",
           "type": "ULONG",
           "offset": 22,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "fse_Type",
           "type": "ULONG",
           "offset": 26,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "fse_Task",
           "type": "CPTR",
           "offset": 30,
-          "size": 4
+          "size": 4,
+          "c_type": "CPTR"
         },
         {
           "name": "fse_Lock",
           "type": "BPTR",
           "offset": 34,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "fse_Handler",
           "type": "BSTR",
           "offset": 38,
-          "size": 4
+          "size": 4,
+          "c_type": "BSTR"
         },
         {
           "name": "fse_StackSize",
           "type": "ULONG",
           "offset": 42,
-          "size": 4
+          "size": 4,
+          "c_type": "ULONG"
         },
         {
           "name": "fse_Priority",
           "type": "LONG",
           "offset": 46,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "fse_Startup",
           "type": "BPTR",
           "offset": 50,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "fse_SegList",
           "type": "BPTR",
           "offset": 54,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "fse_GlobalVec",
           "type": "BPTR",
           "offset": 58,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         }
       ],
       "base_struct": "LN"
@@ -45479,31 +46264,36 @@
           "name": "iobRpt",
           "type": "APTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "iobRct",
           "type": "LONG",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "iobDFH",
           "type": "LONG",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "iobLock",
           "type": "APTR",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "iobBct",
           "type": "LONG",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "iobArea",
@@ -45533,7 +46323,8 @@
           "offset": 32,
           "size": 34,
           "size_symbol": "MP_SIZE",
-          "struct": "MP"
+          "struct": "MP",
+          "c_type": "struct MsgPort"
         },
         {
           "name": "rmp_ReplyList",
@@ -45541,7 +46332,8 @@
           "offset": 66,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rmp_SIZEOF",
@@ -45562,151 +46354,184 @@
           "name": "rl_Flags",
           "type": "UBYTE",
           "offset": 34,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "rl_Shadow",
           "type": "UBYTE",
           "offset": 35,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "rl_SysBase",
           "type": "APTR",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rl_DOSBase",
           "type": "APTR",
           "offset": 40,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rl_IeeeDPBase",
           "type": "APTR",
           "offset": 44,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rl_SegList",
           "type": "LONG",
           "offset": 48,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rl_NIL",
           "type": "LONG",
           "offset": 52,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rl_Chunk",
           "type": "LONG",
           "offset": 56,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rl_MaxNest",
           "type": "LONG",
           "offset": 60,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rl_NULL",
           "type": "APTR",
           "offset": 64,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NexxStr *",
+          "pointer_struct": "NexxStr"
         },
         {
           "name": "rl_FALSE",
           "type": "APTR",
           "offset": 68,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NexxStr *",
+          "pointer_struct": "NexxStr"
         },
         {
           "name": "rl_TRUE",
           "type": "APTR",
           "offset": 72,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NexxStr *",
+          "pointer_struct": "NexxStr"
         },
         {
           "name": "rl_REXX",
           "type": "APTR",
           "offset": 76,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NexxStr *",
+          "pointer_struct": "NexxStr"
         },
         {
           "name": "rl_COMMAND",
           "type": "APTR",
           "offset": 80,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NexxStr *",
+          "pointer_struct": "NexxStr"
         },
         {
           "name": "rl_STDIN",
           "type": "APTR",
           "offset": 84,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NexxStr *",
+          "pointer_struct": "NexxStr"
         },
         {
           "name": "rl_STDOUT",
           "type": "APTR",
           "offset": 88,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NexxStr *",
+          "pointer_struct": "NexxStr"
         },
         {
           "name": "rl_STDERR",
           "type": "APTR",
           "offset": 92,
-          "size": 4
+          "size": 4,
+          "c_type": "struct NexxStr *",
+          "pointer_struct": "NexxStr"
         },
         {
           "name": "rl_Version",
           "type": "APTR",
           "offset": 96,
-          "size": 4
+          "size": 4,
+          "c_type": "STRPTR"
         },
         {
           "name": "rl_TaskName",
           "type": "APTR",
           "offset": 100,
-          "size": 4
+          "size": 4,
+          "c_type": "STRPTR"
         },
         {
           "name": "rl_TaskPri",
           "type": "LONG",
           "offset": 104,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rl_TaskSeg",
           "type": "LONG",
           "offset": 108,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rl_StackSize",
           "type": "LONG",
           "offset": 112,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rl_RexxDir",
           "type": "APTR",
           "offset": 116,
-          "size": 4
+          "size": 4,
+          "c_type": "STRPTR"
         },
         {
           "name": "rl_CTABLE",
           "type": "APTR",
           "offset": 120,
-          "size": 4
+          "size": 4,
+          "c_type": "STRPTR"
         },
         {
           "name": "rl_Notice",
           "type": "APTR",
           "offset": 124,
-          "size": 4
+          "size": 4,
+          "c_type": "STRPTR"
         },
         {
           "name": "rl_RexxPort",
@@ -45714,19 +46539,22 @@
           "offset": 128,
           "size": 34,
           "size_symbol": "MP_SIZE",
-          "struct": "MP"
+          "struct": "MP",
+          "c_type": "struct MsgPort"
         },
         {
           "name": "rl_ReadLock",
           "type": "UWORD",
           "offset": 162,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "rl_TraceFH",
           "type": "APTR",
           "offset": 164,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rl_TaskList",
@@ -45734,13 +46562,15 @@
           "offset": 168,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rl_NumTask",
           "type": "WORD",
           "offset": 182,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "rl_LibList",
@@ -45748,13 +46578,15 @@
           "offset": 184,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rl_NumLib",
           "type": "WORD",
           "offset": 198,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "rl_ClipList",
@@ -45762,13 +46594,15 @@
           "offset": 200,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rl_NumClip",
           "type": "WORD",
           "offset": 214,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "rl_MsgList",
@@ -45776,13 +46610,15 @@
           "offset": 216,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rl_NumMsg",
           "type": "WORD",
           "offset": 230,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "rl_PgmList",
@@ -45790,25 +46626,29 @@
           "offset": 232,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rl_NumPgm",
           "type": "WORD",
           "offset": 246,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "rl_TraceCnt",
           "type": "UWORD",
           "offset": 248,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "rl_avail",
           "type": "WORD",
           "offset": 250,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "rl_SIZEOF",
@@ -45829,25 +46669,29 @@
           "name": "ns_Ivalue",
           "type": "LONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "ns_Length",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ns_Flags",
           "type": "UBYTE",
           "offset": 6,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ns_Hash",
           "type": "UBYTE",
           "offset": 7,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ns_Buff",
@@ -45874,25 +46718,29 @@
           "name": "ra_Size",
           "type": "LONG",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "ra_Length",
           "type": "UWORD",
           "offset": 4,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "ra_Flags",
           "type": "UBYTE",
           "offset": 6,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ra_Hash",
           "type": "UBYTE",
           "offset": 7,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "ra_Buff",
@@ -46007,31 +46855,36 @@
           "name": "rr_Func",
           "type": "WORD",
           "offset": 14,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "rr_Base",
           "type": "APTR",
           "offset": 16,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rr_Size",
           "type": "LONG",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rr_Arg1",
           "type": "LONG",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "rr_Arg2",
           "type": "LONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "RRSIZEOF",
@@ -46054,55 +46907,64 @@
           "offset": 200,
           "size": 34,
           "size_symbol": "MP_SIZE",
-          "struct": "MP"
+          "struct": "MP",
+          "c_type": "struct MsgPort"
         },
         {
           "name": "rt_Flags",
           "type": "UBYTE",
           "offset": 234,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "rt_SigBit",
           "type": "BYTE",
           "offset": 235,
-          "size": 1
+          "size": 1,
+          "c_type": "BYTE"
         },
         {
           "name": "rt_ClientID",
           "type": "APTR",
           "offset": 236,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rt_MsgPkt",
           "type": "APTR",
           "offset": 240,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rt_TaskID",
           "type": "APTR",
           "offset": 244,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rt_RexxPort",
           "type": "APTR",
           "offset": 248,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rt_ErrTrap",
           "type": "APTR",
           "offset": 252,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rt_StackPtr",
           "type": "APTR",
           "offset": 256,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "rt_Header1",
@@ -46110,7 +46972,8 @@
           "offset": 260,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rt_Header2",
@@ -46118,7 +46981,8 @@
           "offset": 274,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rt_Header3",
@@ -46126,7 +46990,8 @@
           "offset": 288,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rt_Header4",
@@ -46134,7 +46999,8 @@
           "offset": 302,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rt_Header5",
@@ -46142,7 +47008,8 @@
           "offset": 316,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "rt_SIZEOF",
@@ -46162,25 +47029,31 @@
           "name": "sn_Succ",
           "type": "APTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "struct SrcNode *",
+          "pointer_struct": "SrcNode"
         },
         {
           "name": "sn_Pred",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "struct SrcNode *",
+          "pointer_struct": "SrcNode"
         },
         {
           "name": "sn_Ptr",
           "type": "APTR",
           "offset": 8,
-          "size": 4
+          "size": 4,
+          "c_type": "APTR"
         },
         {
           "name": "sn_Size",
           "type": "LONG",
           "offset": 12,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "sn_SIZEOF",
@@ -46358,37 +47231,45 @@
           "offset": 0,
           "size": 20,
           "size_symbol": "MN_SIZE",
-          "struct": "MN"
+          "struct": "MN",
+          "c_type": "struct Message"
         },
         {
           "name": "sm_Process",
           "type": "APTR",
           "offset": 20,
-          "size": 4
+          "size": 4,
+          "c_type": "struct MsgPort *",
+          "pointer_struct": "MP"
         },
         {
           "name": "sm_Segment",
           "type": "BPTR",
           "offset": 24,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "sm_NumArgs",
           "type": "LONG",
           "offset": 28,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "sm_ToolWindow",
           "type": "APTR",
           "offset": 32,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "sm_ArgList",
           "type": "APTR",
           "offset": 36,
-          "size": 4
+          "size": 4,
+          "c_type": "struct WBArg *",
+          "pointer_struct": "WBArg"
         },
         {
           "name": "sm_SIZEOF",
@@ -46408,13 +47289,15 @@
           "name": "wa_Lock",
           "type": "BPTR",
           "offset": 0,
-          "size": 4
+          "size": 4,
+          "c_type": "BPTR"
         },
         {
           "name": "wa_Name",
           "type": "APTR",
           "offset": 4,
-          "size": 4
+          "size": 4,
+          "c_type": "BYTE *"
         },
         {
           "name": "wa_SIZEOF",
@@ -46468,13 +47351,15 @@
           "name": "do_Magic",
           "type": "UWORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "do_Version",
           "type": "UWORD",
           "offset": 2,
-          "size": 2
+          "size": 2,
+          "c_type": "UWORD"
         },
         {
           "name": "do_Gadget",
@@ -46482,13 +47367,15 @@
           "offset": 4,
           "size": 44,
           "size_symbol": "gg_SIZEOF",
-          "struct": "Gadget"
+          "struct": "Gadget",
+          "c_type": "struct Gadget"
         },
         {
           "name": "do_Type",
           "type": "UBYTE",
           "offset": 48,
-          "size": 1
+          "size": 1,
+          "c_type": "UBYTE"
         },
         {
           "name": "do_PAD_BYTE",
@@ -46500,43 +47387,51 @@
           "name": "do_DefaultTool",
           "type": "APTR",
           "offset": 50,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "do_ToolTypes",
           "type": "APTR",
           "offset": 54,
-          "size": 4
+          "size": 4,
+          "c_type": "char **"
         },
         {
           "name": "do_CurrentX",
           "type": "LONG",
           "offset": 58,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "do_CurrentY",
           "type": "LONG",
           "offset": 62,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "do_DrawerData",
           "type": "APTR",
           "offset": 66,
-          "size": 4
+          "size": 4,
+          "c_type": "struct DrawerData *",
+          "pointer_struct": "DrawerData"
         },
         {
           "name": "do_ToolWindow",
           "type": "APTR",
           "offset": 70,
-          "size": 4
+          "size": 4,
+          "c_type": "char *"
         },
         {
           "name": "do_StackSize",
           "type": "LONG",
           "offset": 74,
-          "size": 4
+          "size": 4,
+          "c_type": "LONG"
         },
         {
           "name": "do_SIZEOF",
@@ -46556,7 +47451,8 @@
           "name": "fl_NumFree",
           "type": "WORD",
           "offset": 0,
-          "size": 2
+          "size": 2,
+          "c_type": "WORD"
         },
         {
           "name": "fl_MemList",
@@ -46564,7 +47460,8 @@
           "offset": 2,
           "size": 14,
           "size_symbol": "LH_SIZE",
-          "struct": "LH"
+          "struct": "LH",
+          "c_type": "struct List"
         },
         {
           "name": "FreeList_SIZEOF",
