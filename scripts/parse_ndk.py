@@ -621,41 +621,36 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
     return {"structs": structs, "constants": constants}
 
 
-def _build_size_symbol_to_struct(structs: dict) -> dict[str, str]:
-    symbol_to_struct = {}
+def _build_size_symbol_to_slice(structs: dict) -> dict[str, dict[str, object]]:
+    symbol_to_slice: dict[str, dict[str, object]] = {}
     for struct_name, struct_def in structs.items():
         for field in struct_def["fields"]:
             if field["type"] != "LABEL":
                 continue
-            if field["offset"] != struct_def["size"]:
-                continue
-            symbol_to_struct.setdefault(field["name"], struct_name)
-    return symbol_to_struct
+            entry = {"struct": struct_name, "size": field["offset"]}
+            existing = symbol_to_slice.get(field["name"])
+            if existing is not None and existing != entry:
+                raise ValueError(
+                    f"Conflicting struct slice label {field['name']}: "
+                    f"{existing} vs {entry}")
+            symbol_to_slice[field["name"]] = entry
+    return symbol_to_slice
 
 
 def annotate_embedded_structs(structs: dict) -> None:
-    """Resolve embedded struct references from parsed size symbols.
+    """Resolve embedded struct references and struct-prefix slices."""
+    symbol_to_slice = _build_size_symbol_to_slice(structs)
 
-    The Amiga .I files express inline struct composition in two ways:
-    - `STRUCTURE Foo,BAR_SIZE` means Foo begins after embedded struct BAR
-    - `STRUCT field,BAR_SIZE` means an inline embedded BAR field
-
-    `parse_asm_include()` preserves the raw size symbols; this pass resolves
-    them to concrete struct names using parsed LABEL size constants.
-    """
-    symbol_to_struct = _build_size_symbol_to_struct(structs)
-
-    for struct_def in structs.values():
+    for struct_name, struct_def in structs.items():
         base_offset_symbol = struct_def.get("base_offset_symbol")
         if base_offset_symbol:
-            base_struct = symbol_to_struct.get(base_offset_symbol)
-            if base_struct is not None:
-                expected_size = structs[base_struct]["size"]
-                if expected_size != struct_def["base_offset"]:
+            base_slice = symbol_to_slice.get(base_offset_symbol)
+            if base_slice is not None:
+                if base_slice["size"] != struct_def["base_offset"]:
                     raise ValueError(
                         f"Struct base offset mismatch for {base_offset_symbol}: "
-                        f"expected {expected_size}, got {struct_def['base_offset']}")
-                struct_def["base_struct"] = base_struct
+                        f"expected {base_slice['size']}, got {struct_def['base_offset']}")
+                struct_def["base_struct"] = base_slice["struct"]
 
         for field in struct_def["fields"]:
             if field["type"] != "STRUCT":
@@ -663,15 +658,14 @@ def annotate_embedded_structs(structs: dict) -> None:
             size_symbol = field.get("size_symbol")
             if not size_symbol:
                 continue
-            embedded_struct = symbol_to_struct.get(size_symbol)
-            if embedded_struct is None:
+            embedded_slice = symbol_to_slice.get(size_symbol)
+            if embedded_slice is None:
                 continue
-            expected_size = structs[embedded_struct]["size"]
-            if expected_size != field["size"]:
+            if embedded_slice["size"] != field["size"]:
                 raise ValueError(
                     f"Embedded struct size mismatch for {size_symbol}: "
-                    f"expected {expected_size}, got {field['size']}")
-            field["struct"] = embedded_struct
+                    f"expected {embedded_slice['size']}, got {field['size']}")
+            field["struct"] = embedded_slice["struct"]
 
 
 # =============================================================================

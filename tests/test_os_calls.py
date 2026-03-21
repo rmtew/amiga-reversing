@@ -6,23 +6,44 @@ from identified library calls.
 
 import struct
 
-from m68k.os_calls import (trace_return_stores, annotate_call_arguments,
-                           build_app_memory_types)
+from m68k_kb import runtime_os
+from m68k.os_calls import (CallArgumentAnnotation, LibraryCall,
+                           StructRegisterType, trace_return_stores,
+                           annotate_call_arguments, build_app_memory_types,
+                           propagate_input_types)
 from m68k.m68k_executor import analyze, BasicBlock
+from m68k.os_structs import resolve_struct_field
 
 
 def _make_lib_call(addr, block, function, library="dos.library",
                    lvo=-60, output=None, inputs=None):
-    """Build a lib_call dict matching the format from identify_library_calls."""
-    lc = {
-        "addr": addr, "block": block, "lvo": lvo,
-        "library": library, "function": function,
-    }
-    if output:
-        lc["output"] = output
-    if inputs:
-        lc["inputs"] = inputs
-    return lc
+    """Build a LibraryCall matching identify_library_calls output."""
+    typed_output = None
+    if output is not None:
+        typed_output = runtime_os.OsOutput(
+            name=output["name"],
+            reg=output["reg"],
+            type=output.get("type"),
+            i_struct=output.get("i_struct"),
+        )
+    typed_inputs = tuple(
+        runtime_os.OsInput(
+            name=inp["name"],
+            reg=inp["reg"],
+            type=inp.get("type"),
+            i_struct=inp.get("i_struct"),
+        )
+        for inp in (inputs or ())
+    )
+    return LibraryCall(
+        addr=addr,
+        block=block,
+        library=library,
+        function=function,
+        lvo=lvo,
+        inputs=typed_inputs,
+        output=typed_output,
+    )
 
 
 def _corrupt_instruction_texts(blocks):
@@ -71,8 +92,8 @@ def test_return_store_to_app_memory():
         f"Expected app offset 100 from D0 store after Output(), "
         f"got {stores}")
     info = stores[100]
-    assert info["function"] == "Output"
-    assert info["name"] == "file"
+    assert info.function == "Output"
+    assert info.name == "file"
 
 
 def test_return_store_multiple_calls():
@@ -133,8 +154,8 @@ def test_return_store_multiple_calls():
     ]
 
     stores = trace_return_stores(blocks, lib_calls, base_reg=6)
-    assert 100 in stores and stores[100]["function"] == "Output"
-    assert 104 in stores and stores[104]["function"] == "Input"
+    assert 100 in stores and stores[100].function == "Output"
+    assert 104 in stores and stores[104].function == "Input"
 
 
 def test_return_store_no_output():
@@ -191,7 +212,7 @@ def test_annotate_argument_from_app_memory():
     # Should annotate $00 (move.l 100(a6),d1) as "file" argument
     assert 0x00 in annotations, (
         f"Expected annotation at $00 for D1=file, got {annotations}")
-    assert annotations[0x00]["arg_name"] == "file"
+    assert annotations[0x00].arg_name == "file"
 
 
 def test_annotate_multiple_arguments():
@@ -263,14 +284,93 @@ def test_open_device_annotates_iorequest_on_a1_not_flags():
     )]
 
     annotations = annotate_call_arguments(result["blocks"], lib_calls)
-    assert annotations[0x00]["arg_name"] == "ioRequest"
-    assert annotations[0x00]["arg_reg"] == "A1"
-    assert annotations[0x04]["arg_name"] == "flags"
-    assert annotations[0x04]["arg_reg"] == "D1"
+    assert annotations[0x00].arg_name == "ioRequest"
+    assert annotations[0x00].arg_reg == "A1"
+    assert annotations[0x04].arg_name == "flags"
+    assert annotations[0x04].arg_reg == "D1"
 
     types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
-    assert types[100]["name"] == "ioRequest"
-    assert types[100]["type"] == "struct IORequest *"
+    assert types[100].name == "ioRequest"
+    assert types[100].type == "struct IORequest *"
+
+
+def test_propagate_input_types_tracks_struct_typed_register_and_resolves_nested_fields():
+    sentinel = 0x80000002
+    code = b""
+    # $00: lea 100(a6),a1
+    code += struct.pack(">HH", 0x43EE, 0x0064)
+    # $04: bsr.w $0A
+    code += struct.pack(">HH", 0x6100, 0x0004)
+    # $08: rts
+    code += struct.pack(">H", 0x4E75)
+    # $0A: rts
+    code += struct.pack(">H", 0x4E75)
+
+    platform = {"scratch_regs": [], "initial_base_reg": (6, sentinel)}
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+    lib_calls = [_make_lib_call(
+        addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
+        lvo=-444,
+        inputs=[
+            {"name": "devName", "reg": "A0", "type": "STRPTR"},
+            {"name": "unit", "reg": "D0", "type": "ULONG"},
+            {"name": "ioRequest", "reg": "A1", "type": "struct IORequest *",
+             "i_struct": "IO"},
+            {"name": "flags", "reg": "D1", "type": "ULONG"},
+        ],
+    )]
+    os_kb = type("FakeOsKb", (), {
+        "STRUCTS": {
+            "LN": runtime_os.OsStruct(
+                source="exec/types.i",
+                base_offset=0,
+                base_offset_symbol=None,
+                size=14,
+                fields=(
+                    runtime_os.OsStructField("LN_SUCC", "APTR", 0, 4),
+                    runtime_os.OsStructField("LN_PRED", "APTR", 4, 4),
+                    runtime_os.OsStructField("LN_TYPE", "UBYTE", 8, 1),
+                    runtime_os.OsStructField("LN_PRI", "BYTE", 9, 1),
+                    runtime_os.OsStructField("LN_NAME", "APTR", 10, 4),
+                    runtime_os.OsStructField("LN_SIZE", "LABEL", 14, 0),
+                ),
+            ),
+            "MN": runtime_os.OsStruct(
+                source="exec/ports.i",
+                base_offset=14,
+                base_offset_symbol=None,
+                size=20,
+                fields=(
+                    runtime_os.OsStructField("MN_REPLYPORT", "APTR", 14, 4),
+                    runtime_os.OsStructField("MN_LENGTH", "UWORD", 18, 2),
+                    runtime_os.OsStructField("MN_SIZE", "LABEL", 20, 0),
+                ),
+                base_struct="LN",
+            ),
+            "IO": runtime_os.OsStruct(
+                source="exec/io.i",
+                base_offset=20,
+                base_offset_symbol=None,
+                size=48,
+                fields=(
+                    runtime_os.OsStructField("IO_DEVICE", "APTR", 20, 4),
+                    runtime_os.OsStructField("IO_SIZE", "LABEL", 32, 0),
+                ),
+                base_struct="MN",
+            ),
+        },
+    })()
+
+    types = propagate_input_types(result["blocks"], lib_calls, os_kb)
+
+    assert types[0x04]["a1"] == StructRegisterType("IO")
+    assert resolve_struct_field(os_kb.STRUCTS, "IO", 0) == {
+        "name": "LN_SUCC", "struct": "LN"}
+    assert resolve_struct_field(os_kb.STRUCTS, "IO", 14) == {
+        "name": "MN_REPLYPORT", "struct": "MN"}
+    assert resolve_struct_field(os_kb.STRUCTS, "IO", 20) == {
+        "name": "IO_DEVICE", "struct": "IO"}
 
 
 # -- Gaps 3-6: Unified app memory type map ----------------------------
@@ -303,7 +403,7 @@ def test_backward_type_names_app_slot():
 
     types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
     assert 100 in types, f"Expected offset 100 typed from Write input, got {types}"
-    assert types[100]["name"] == "file"
+    assert types[100].name == "file"
 
 
 def test_forward_through_register_copy():
@@ -338,7 +438,7 @@ def test_forward_through_register_copy():
     types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
     assert 100 in types, (
         f"Expected offset 100 from Output via D0->D1 copy, got {types}")
-    assert types[100]["function"] == "Output"
+    assert types[100].function == "Output"
 
 
 def test_cross_sub_type_flow():

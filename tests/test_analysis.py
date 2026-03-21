@@ -13,6 +13,7 @@ from m68k.hunk_parser import HunkType
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze
+from m68k.os_calls import LibraryCall
 from m68k.ea_extension import parse_full_extension
 
 
@@ -81,7 +82,7 @@ def test_analyze_hunk_identifies_os_calls():
     result = analyze_hunk(code, relocs=[], hunk_index=0,
                           print_fn=lambda *a: None)
     assert result.os_kb.STRUCTS
-    assert "calling_convention" in result.os_kb.META
+    assert result.os_kb.META.calling_convention.base_reg == "A6"
 
 
 def test_save_load_roundtrip():
@@ -295,13 +296,13 @@ def test_analyze_hunk_marks_identified_library_call_as_external(monkeypatch):
 
     monkeypatch.setattr(
         "m68k.analysis.identify_library_calls",
-        lambda *args, **kwargs: [{
-            "addr": 0x2,
-            "block": 0x0,
-            "library": "exec.library",
-            "function": "AllocMem",
-            "lvo": -2,
-        }],
+        lambda *args, **kwargs: [LibraryCall(
+            addr=0x2,
+            block=0x0,
+            library="exec.library",
+            function="AllocMem",
+            lvo=-2,
+        )],
     )
 
     result = analyze_hunk(

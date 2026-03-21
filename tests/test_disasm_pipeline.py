@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from m68k_kb import runtime_os
 from disasm import cli as gen_disasm_mod
 from disasm.comments import build_instruction_comment_parts, render_comment_parts
 from disasm import data_render as data_render_mod
@@ -27,6 +28,7 @@ from disasm.text import listing_window, render_rows
 from disasm.types import (DisassemblySession, HunkDisassemblySession,
                           ListingRow, SemanticOperand)
 from m68k.m68k_executor import Instruction
+from m68k.os_calls import CallArgumentAnnotation, LibraryCall, StructRegisterType
 from disasm.validation import get_instruction_processor_min, has_valid_branch_target
 
 
@@ -59,7 +61,13 @@ def test_infer_target_name_falls_back_to_entities_parent(tmp_path):
 
 
 def test_build_lvo_substitutions_collects_direct_jsr_substitution():
-    call = {"library": "dos.library", "function": "OpenLibrary", "lvo": -552, "addr": 0x20}
+    call = LibraryCall(
+        addr=0x20,
+        block=0x20,
+        library="dos.library",
+        function="OpenLibrary",
+        lvo=-552,
+    )
 
     lvo_equs, lvo_substitutions = build_lvo_substitutions(
         blocks={},
@@ -98,21 +106,36 @@ def test_build_arg_substitutions_collects_immediate_constant():
         ]
     })()
     os_kb = SimpleNamespace(
-        META={"constant_domains": {"OpenLibrary": ["OL_TAG"]}},
-        CONSTANTS={"OL_TAG": {"value": 1}},
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            constant_domains={"OpenLibrary": ("OL_TAG",)},
+        ),
+        CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="1", value=1)},
         LIBRARIES={
-            "dos.library": {
-                "functions": {
-                    "OpenLibrary": {"inputs": [{"reg": "d0"}]}
-                }
-            }
+            "dos.library": runtime_os.OsLibrary(
+                lvo_index={},
+                functions={
+                    "OpenLibrary": runtime_os.OsFunction(
+                        lvo=-552,
+                        inputs=(runtime_os.OsInput(name="name", reg="d0"),),
+                    )
+                },
+            )
         },
     )
 
     arg_equs, arg_substitutions = build_arg_substitutions(
         blocks={0x20: block},
         hunk_entities=[],
-        lib_calls=[{"library": "dos.library", "function": "OpenLibrary", "block": 0x20, "addr": 0x20}],
+        lib_calls=[LibraryCall(
+            addr=0x20,
+            block=0x20,
+            library="dos.library",
+            function="OpenLibrary",
+            lvo=-552,
+        )],
         os_kb=os_kb,
     )
 
@@ -168,35 +191,43 @@ def test_build_arg_substitutions_collects_dispatch_call_constant():
         ]
     })()
     os_kb = SimpleNamespace(
-        META={"constant_domains": {"Seek": ["OFFSET_BEGINNING", "OFFSET_CURRENT"]}},
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            constant_domains={"Seek": ("OFFSET_BEGINNING", "OFFSET_CURRENT")},
+        ),
         CONSTANTS={
-            "OFFSET_BEGINNING": {"value": -1},
-            "OFFSET_CURRENT": {"value": 0},
+            "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
+            "OFFSET_CURRENT": runtime_os.OsConstant(raw="0", value=0),
         },
         LIBRARIES={
-            "dos.library": {
-                "functions": {
-                    "Seek": {
-                        "inputs": [
-                            {"reg": "d1"},
-                            {"reg": "d2"},
-                            {"reg": "d3"},
-                        ]
-                    }
-                }
-            }
+            "dos.library": runtime_os.OsLibrary(
+                lvo_index={},
+                functions={
+                    "Seek": runtime_os.OsFunction(
+                        lvo=-66,
+                        inputs=(
+                            runtime_os.OsInput(name="arg1", reg="d1"),
+                            runtime_os.OsInput(name="arg2", reg="d2"),
+                            runtime_os.OsInput(name="mode", reg="d3"),
+                        ),
+                    )
+                },
+            )
         },
     )
 
     arg_equs, arg_substitutions = build_arg_substitutions(
         blocks={0x10: block},
-        lib_calls=[{
-            "library": "dos.library",
-            "function": "Seek",
-            "block": 0x10,
-            "addr": 0x10,
-            "dispatch": 0x42,
-        }],
+        lib_calls=[LibraryCall(
+            addr=0x10,
+            block=0x10,
+            library="dos.library",
+            function="Seek",
+            lvo=-66,
+            dispatch=0x42,
+        )],
         hunk_entities=[{"addr": "0040", "end": "0050", "type": "code"}],
         os_kb=os_kb,
     )
@@ -234,13 +265,14 @@ def test_build_lvo_substitutions_collects_dispatch_call_lvo_constant():
 
     lvo_equs, lvo_substitutions = build_lvo_substitutions(
         blocks={0x10: block},
-        lib_calls=[{
-            "library": "dos.library",
-            "function": "Seek",
-            "lvo": -66,
-            "addr": 0x10,
-            "dispatch": 0x42,
-        }],
+        lib_calls=[LibraryCall(
+            addr=0x10,
+            block=0x10,
+            library="dos.library",
+            function="Seek",
+            lvo=-66,
+            dispatch=0x42,
+        )],
         hunk_entities=[{"addr": "0040", "end": "0050", "type": "code"}],
     )
 
@@ -315,13 +347,13 @@ def test_build_hunk_session_preserves_metadata_and_analysis_fields():
         labels={0x40: "loc_0040"},
         jump_table_regions={0x10: {"pattern": "word_table"}},
         jump_table_target_sources={0x80: ["loc_0040"]},
-        struct_map={0x00: {"a0": {"struct": "Foo", "fields": {}}}},
+        struct_map={0x00: {"a0": StructRegisterType("Foo")}},
         lvo_equs={"dos.library": {-552: "_LVOOpenLibrary"}},
         lvo_substitutions={0x10: ("-552(", "_LVOOpenLibrary(")},
         arg_equs={"OL_TAG": 1},
         arg_substitutions={0x12: ("#1", "#OL_TAG")},
         app_offsets={0x20: "app_dos_base"},
-        arg_annotations={0x30: {"d0": "name"}},
+        arg_annotations={0x30: CallArgumentAnnotation("name", "D0", "OpenLibrary", "dos.library")},
         data_access_sizes={0x40: 2},
         platform={"initial_base_reg": (6, 0x1000)},
         os_kb={"structs": {}},

@@ -27,6 +27,11 @@ from . import instruction_primitives as _instruction_primitives
 from .m68k_compute import _to_signed
 from .m68k_disasm import disassemble, Instruction, _Decoder, _decode_one
 from .operand_resolution import resolve_ea, _resolve_full_extension_ea
+from .os_calls import (
+    BaseRegisterCallEffect,
+    MemoryAllocationCallEffect,
+    OutputRegisterCallEffect,
+)
 
 
 # -- KB loader -------------------------------------------------------------
@@ -2050,21 +2055,30 @@ def propagate_states(blocks: dict[int, BasicBlock],
                 call_effect = platform.pop("_pending_call_effect",
                                            None)
                 if call_effect:
-                    if "tag" in call_effect:
+                    if isinstance(call_effect, BaseRegisterCallEffect):
                         mode, num = _parse_reg_from_text(
-                            call_effect["base_reg"])
+                            call_effect.base_reg)
                         ft_cpu.set_reg(mode, num,
-                                       _unknown(tag=call_effect["tag"]))
-                    elif "concrete" in call_effect:
+                                       _unknown(tag={
+                                           "library_base": call_effect.tag.library_base,
+                                           **({"os_type": call_effect.tag.os_type}
+                                              if call_effect.tag.os_type is not None else {}),
+                                       }))
+                    elif isinstance(call_effect, MemoryAllocationCallEffect):
                         mode, num = _parse_reg_from_text(
-                            call_effect["result_reg"])
+                            call_effect.result_reg)
                         ft_cpu.set_reg(mode, num,
-                                       _concrete(call_effect["concrete"]))
-                    elif "output_type" in call_effect:
+                                       _concrete(call_effect.concrete))
+                    elif isinstance(call_effect, OutputRegisterCallEffect):
                         mode, num = _parse_reg_from_text(
-                            call_effect["output_reg"])
+                            call_effect.output_reg)
                         ft_cpu.set_reg(mode, num,
-                                       _unknown(tag=call_effect["output_type"]))
+                                       _unknown(tag={
+                                           "os_type": call_effect.output_type.os_type,
+                                           "os_result": call_effect.output_type.os_result,
+                                           "call": call_effect.output_type.call,
+                                           "library": call_effect.output_type.library,
+                                       }))
 
             incoming.setdefault(ft_dst, {})[addr] = \
                 (ft_cpu, exit_mem)

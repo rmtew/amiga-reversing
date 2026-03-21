@@ -162,7 +162,7 @@ def _os_calls_to_name(os_calls: list[str]) -> str | None:
 def name_subroutines(entities: list[dict],
                      blocks: dict[int, BasicBlock],
                      code: bytes,
-                     lib_calls: list[dict]) -> int:
+                     lib_calls) -> int:
     """Assign names to unnamed code entities.
 
     Modifies entities in place. Returns count of entities named.
@@ -205,26 +205,26 @@ def name_subroutines(entities: list[dict],
     # Aggregate OS calls by subroutine (from lib_calls)
     sub_os_calls: dict[int, list[str]] = {}
     for call in lib_calls:
-        sub_addr = find_containing_sub(call["addr"], sorted_sub_list)
+        sub_addr = find_containing_sub(call.addr, sorted_sub_list)
         if sub_addr is not None:
             if sub_addr not in sub_os_calls:
                 sub_os_calls[sub_addr] = []
-            lib = call["library"]
-            func = call["function"]
+            lib = call.library
+            func = call.function
             sub_os_calls[sub_addr].append(f"{lib}/{func}")
 
     # Detect dispatch subroutines: subs containing per-caller dispatch
     # instructions (identified by the "dispatch" field in lib_calls).
     dispatch_libs: dict[int, set] = {}
     for call in lib_calls:
-        disp_addr = call.get("dispatch")
+        disp_addr = call.dispatch
         if disp_addr is None:
             continue
         sub_addr = find_containing_sub(disp_addr, sorted_sub_list)
         if sub_addr is not None:
             if sub_addr not in dispatch_libs:
                 dispatch_libs[sub_addr] = set()
-            lib = call.get("library")
+            lib = call.library
             if lib and lib != "unknown":
                 dispatch_libs[sub_addr].add(lib)
 

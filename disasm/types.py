@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 from m68k.instruction_decode import DecodedBitfield
+from m68k.os_calls import CallArgumentAnnotation, LibraryCall, StructRegisterType
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +92,9 @@ class ListingRow:
     source_context: dict[str, Any] = field(default_factory=dict)
 
 
+InstructionStructMap: TypeAlias = dict[int, dict[str, StructRegisterType]]
+
+
 @dataclass
 class HunkDisassemblySession:
     hunk_index: int
@@ -109,13 +113,13 @@ class HunkDisassemblySession:
     labels: dict[int, str]
     jump_table_regions: dict[int, dict]
     jump_table_target_sources: dict[int, list[str]]
-    struct_map: dict[int, dict]
+    struct_map: InstructionStructMap
     lvo_equs: dict[str, dict[int, str]]
     lvo_substitutions: dict[int, tuple[str, str]]
     arg_equs: dict[str, int]
     arg_substitutions: dict[int, tuple[str, str]]
     app_offsets: dict[int, str]
-    arg_annotations: dict[int, dict]
+    arg_annotations: dict[int, CallArgumentAnnotation]
     data_access_sizes: dict[int, int]
     platform: dict
     os_kb: dict

@@ -16,6 +16,7 @@ import json
 import struct
 import sys
 import argparse
+from dataclasses import dataclass
 from pathlib import Path
 from collections import defaultdict
 
@@ -31,17 +32,25 @@ from m68k.name_entities import name_subroutines
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
+@dataclass(frozen=True, slots=True)
+class SubroutineRange:
+    addr: int
+    end: int
+    block_count: int
+    instr_count: int
+    reached: bool = True
+
+
 def fmt_addr(addr: int) -> str:
     return f"0x{addr:04X}"
 
 
 def build_subroutine_map(blocks: dict[int, BasicBlock],
                          call_targets: set[int],
-                         entry_point: int) -> list[dict]:
+                         entry_point: int) -> list[SubroutineRange]:
     """Compute subroutine boundaries from basic blocks and call targets.
 
-    Returns list of dicts with keys: addr, end, block_count, instr_count,
-    and optionally reached=False for stub entries.
+    Returns typed subroutine ranges.
     """
     opword_bytes = runtime_m68k_decode.OPWORD_BYTES
 
@@ -79,50 +88,56 @@ def build_subroutine_map(blocks: dict[int, BasicBlock],
     for block_addr, owner in block_owner.items():
         sub_blocks[owner].append(blocks[block_addr])
 
-    subroutines = []
+    subroutines: list[SubroutineRange] = []
     for entry in entries:
         if entry in sub_blocks:
             blist = sub_blocks[entry]
             sub_start = min(b.start for b in blist)
             sub_end = max(b.end for b in blist)
             instr_count = sum(len(b.instructions) for b in blist)
-            subroutines.append({
-                "addr": sub_start,
-                "end": sub_end,
-                "block_count": len(blist),
-                "instr_count": instr_count,
-            })
+            subroutines.append(SubroutineRange(
+                addr=sub_start,
+                end=sub_end,
+                block_count=len(blist),
+                instr_count=instr_count,
+            ))
         else:
             # Call target not reached by executor — create stub entity.
             # End placeholder: minimum instruction size from KB opword_bytes.
-            subroutines.append({
-                "addr": entry,
-                "end": entry + opword_bytes,
-                "block_count": 0,
-                "instr_count": 0,
-                "reached": False,
-            })
+            subroutines.append(SubroutineRange(
+                addr=entry,
+                end=entry + opword_bytes,
+                block_count=0,
+                instr_count=0,
+                reached=False,
+            ))
 
     # Sort by address
-    subroutines.sort(key=lambda s: s["addr"])
+    subroutines.sort(key=lambda s: s.addr)
 
     # Fix overlaps: truncate earlier subroutine if it overlaps the next
     for i in range(len(subroutines) - 1):
-        if subroutines[i]["end"] > subroutines[i + 1]["addr"]:
-            subroutines[i]["end"] = subroutines[i + 1]["addr"]
+        if subroutines[i].end > subroutines[i + 1].addr:
+            subroutines[i] = SubroutineRange(
+                addr=subroutines[i].addr,
+                end=subroutines[i + 1].addr,
+                block_count=subroutines[i].block_count,
+                instr_count=subroutines[i].instr_count,
+                reached=subroutines[i].reached,
+            )
 
     return subroutines
 
 
 def build_reloc_references(hunks, code_size: int,
-                           subroutines: list[dict]) -> list[dict]:
+                           subroutines: list[SubroutineRange]) -> list[dict]:
     """Extract data references from relocation entries.
 
     Reloc offsets point to longwords in the code that contain absolute
     addresses. Targets outside known subroutines are potential data regions.
     """
     # Build address lookup for subroutines
-    sub_ranges = [(s["addr"], s["end"]) for s in subroutines]
+    sub_ranges = [(s.addr, s.end) for s in subroutines]
 
     def in_known_sub(addr):
         for start, end in sub_ranges:
@@ -198,7 +213,7 @@ def fill_gaps(entities: list[dict], total_size: int, hunk_idx: int):
     return gap_entities
 
 
-def assign_xrefs(subroutines: list[dict], xrefs: list,
+def assign_xrefs(subroutines: list[SubroutineRange], xrefs: list,
                  ) -> tuple[dict, dict]:
     """Map instruction-level xrefs to subroutine-level entity xrefs.
 
@@ -207,7 +222,7 @@ def assign_xrefs(subroutines: list[dict], xrefs: list,
     Prints count of xrefs dropped due to unmapped src/dst addresses.
     """
     # For fast range lookup, build sorted list
-    sorted_subs = sorted(subroutines, key=lambda s: s["addr"])
+    sorted_subs = sorted(subroutines, key=lambda s: s.addr)
 
     def find_sub(addr):
         """Find which subroutine contains the given address."""
@@ -216,12 +231,12 @@ def assign_xrefs(subroutines: list[dict], xrefs: list,
         while lo <= hi:
             mid = (lo + hi) // 2
             s = sorted_subs[mid]
-            if addr < s["addr"]:
+            if addr < s.addr:
                 hi = mid - 1
-            elif addr >= s["end"]:
+            elif addr >= s.end:
                 lo = mid + 1
             else:
-                return s["addr"]
+                return s.addr
         return None
 
     forward: dict[int, dict[str, set]] = defaultdict(lambda: defaultdict(set))
@@ -314,7 +329,7 @@ def build_entities(binary_path: str, output_path: str = None,
 
         # Build subroutine map
         subroutines = build_subroutine_map(blocks, call_targets, 0)
-        stubs = sum(1 for s in subroutines if not s.get("reached", True))
+        stubs = sum(1 for s in subroutines if not s.reached)
         print(f"  {len(subroutines)} subroutines ({stubs} stubs — unreached)")
 
         # Assign cross-references (reports dropped xrefs)
@@ -323,29 +338,29 @@ def build_entities(binary_path: str, output_path: str = None,
         # Build library call map: subroutine addr -> list of OS calls
         lib_call_map = defaultdict(list)
         if lib_calls:
-            sorted_subs = sorted(subroutines, key=lambda s: s["addr"])
+            sorted_subs = sorted(subroutines, key=lambda s: s.addr)
             for call in lib_calls:
                 for sub in sorted_subs:
-                    if sub["addr"] <= call["addr"] < sub["end"]:
-                        lib_call_map[sub["addr"]].append(call)
+                    if sub.addr <= call.addr < sub.end:
+                        lib_call_map[sub.addr].append(call)
                         break
 
         # Build subroutine entities
         stub_count = 0
         for sub in subroutines:
             ent = {
-                "addr": fmt_addr(sub["addr"]),
-                "end": fmt_addr(sub["end"]),
+                "addr": fmt_addr(sub.addr),
+                "end": fmt_addr(sub.end),
                 "type": "code",
                 "confidence": "tool-inferred",
                 "hunk": hunk.index,
-                "block_count": sub["block_count"],
-                "instr_count": sub["instr_count"],
+                "block_count": sub.block_count,
+                "instr_count": sub.instr_count,
             }
-            if not sub.get("reached", True):
+            if not sub.reached:
                 ent["stub"] = True
                 stub_count += 1
-            addr = sub["addr"]
+            addr = sub.addr
             # Add forward xrefs
             if addr in fwd_xrefs:
                 for field, targets in fwd_xrefs[addr].items():
@@ -358,27 +373,27 @@ def build_entities(binary_path: str, output_path: str = None,
             if addr in lib_call_map:
                 calls = lib_call_map[addr]
                 ent["os_calls"] = sorted(set(
-                    f"{c['library']}/{c['function']}" for c in calls))
+                    f"{c.library}/{c.function}" for c in calls))
                 # Collect typed register annotations from KB
                 typed_calls = []
                 for c in calls:
-                    entry = {"call": f"{c['library']}/{c['function']}"}
-                    if c.get("inputs"):
+                    entry = {"call": f"{c.library}/{c.function}"}
+                    if c.inputs:
                         inputs = {}
-                        for inp in c["inputs"]:
-                            if inp.get("reg") and inp.get("type"):
-                                info = {"type": inp["type"]}
-                                if inp.get("i_struct"):
-                                    info["i_struct"] = inp["i_struct"]
-                                inputs[inp["reg"]] = info
+                        for inp in c.inputs:
+                            if inp.reg and inp.type:
+                                info = {"type": inp.type}
+                                if inp.i_struct:
+                                    info["i_struct"] = inp.i_struct
+                                inputs[inp.reg] = info
                         if inputs:
                             entry["inputs"] = inputs
-                    out = c.get("output")
-                    if out and out.get("type"):
-                        info = {"type": out["type"]}
-                        if out.get("i_struct"):
-                            info["i_struct"] = out["i_struct"]
-                        entry["output"] = {out["reg"]: info}
+                    out = c.output
+                    if out and out.type:
+                        info = {"type": out.type}
+                        if out.i_struct:
+                            info["i_struct"] = out.i_struct
+                        entry["output"] = {out.reg: info}
                     if "inputs" in entry or "output" in entry:
                         typed_calls.append(entry)
                 if typed_calls:

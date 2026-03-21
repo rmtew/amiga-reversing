@@ -50,7 +50,7 @@ def build_instruction_comment_parts(inst,
 
     arg_ann = hunk_session.arg_annotations.get(inst.offset)
     if include_arg_subs and arg_ann:
-        parts.append(f"{arg_ann['function']}: {arg_ann['arg_name']}")
+        parts.append(f"{arg_ann.function}: {arg_ann.arg_name}")
 
     base_info = hunk_session.platform.get("initial_base_reg")
     if not parts and base_info and operand_parts is not None:

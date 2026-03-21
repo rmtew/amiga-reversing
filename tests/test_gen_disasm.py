@@ -2,9 +2,11 @@
 
 import io
 import struct
+from types import SimpleNamespace
 
 import pytest
 
+from m68k_kb import runtime_os
 from m68k.instruction_kb import find_kb_entry
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
@@ -20,11 +22,11 @@ from disasm.decode import (DecodedInstructionForEmit,
                            decode_instruction_for_emit,
                            lookup_instruction_kb)
 from m68k.instruction_decode import DecodedBitfield
+from m68k.os_calls import StructRegisterType
 from disasm.discovery import (add_hint_labels, build_label_map,
                               discover_absolute_targets,
                               discover_pc_relative_targets,
-                              filter_core_absolute_targets,
-                              load_fixed_absolute_addresses)
+                              filter_core_absolute_targets)
 from disasm.instruction_rows import (make_instruction_row,
                                      make_text_rows,
                                      render_instruction_text)
@@ -37,6 +39,16 @@ from disasm.types import (
     SemanticOperand,
     SymbolOperandMetadata,
 )
+
+_INIT_STRUCTS = {
+    "InitStruct": runtime_os.OsStruct(
+        source="exec/initstruct.i",
+        base_offset=0,
+        base_offset_symbol=None,
+        size=20,
+        fields=(runtime_os.OsStructField("IS_CODE", "UWORD", 18, 2),),
+    ),
+}
 
 
 # -- Feature 3: App memory offset comments ----------------------------
@@ -589,19 +601,12 @@ def test_filter_core_absolute_targets_keeps_hint_only_addresses():
     assert filtered == {0x8C1E, 0x8C1F, 0xEE2D}
 
 
-def test_load_fixed_absolute_addresses_includes_execbase():
-    """Fixed OS absolute addresses come from the OS KB."""
-    fixed = load_fixed_absolute_addresses()
-
-    assert 0x0004 in fixed
-
-
 def test_filter_core_absolute_targets_excludes_fixed_os_addresses():
     """Fixed system addresses must not become relocatable data labels."""
     filtered = filter_core_absolute_targets(
-        targets={0x0004, 0x8C1E},
+        targets={runtime_os.META.exec_base_addr.address, 0x8C1E},
         code_addrs=set(),
-        fixed_addrs={0x0004},
+        fixed_addrs={runtime_os.META.exec_base_addr.address},
     )
 
     assert filtered == {0x8C1E}
@@ -1049,7 +1054,7 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={0x0100: {"a1": {"struct": "InitStruct", "fields": {18: "IS_CODE"}}}},
+        struct_map={0x0100: {"a1": StructRegisterType("InitStruct")}},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1058,7 +1063,7 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
         arg_annotations={},
         data_access_sizes={},
         platform={},
-        os_kb={"structs": {}},
+        os_kb=SimpleNamespace(STRUCTS=_INIT_STRUCTS),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -1949,7 +1954,7 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={0x0100: {"a1": {"struct": "InitStruct", "fields": {18: "IS_CODE"}}}},
+        struct_map={0x0100: {"a1": StructRegisterType("InitStruct")}},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -1958,7 +1963,7 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
         arg_annotations={},
         data_access_sizes={},
         platform={},
-        os_kb={"structs": {}},
+        os_kb=SimpleNamespace(STRUCTS=_INIT_STRUCTS),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
@@ -2050,7 +2055,7 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
-        struct_map={0x0100: {"a1": {"struct": "InitStruct", "fields": {18: "IS_CODE"}}}},
+        struct_map={0x0100: {"a1": StructRegisterType("InitStruct")}},
         lvo_equs={},
         lvo_substitutions={},
         arg_equs={},
@@ -2059,7 +2064,7 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
         arg_annotations={},
         data_access_sizes={},
         platform={},
-        os_kb={"structs": {}},
+        os_kb=SimpleNamespace(STRUCTS=_INIT_STRUCTS),
         fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,

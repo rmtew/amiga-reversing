@@ -14,8 +14,11 @@ Usage:
     calls = identify_library_calls(blocks, code, os_kb)
 """
 
+from dataclasses import dataclass
+from enum import StrEnum
 import struct
 import sys
+from typing import TYPE_CHECKING
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
@@ -24,9 +27,11 @@ from m68k_kb import runtime_os
 from .instruction_kb import find_kb_entry, instruction_flow, instruction_kb
 from .instruction_decode import DecodedOperands, decode_inst_destination, decode_inst_operands, xf
 from .instruction_primitives import extract_branch_target
-from .m68k_executor import BasicBlock
 from .registers import parse_reg_name
 from .strings import read_string_at
+
+if TYPE_CHECKING:
+    from .m68k_executor import BasicBlock
 
 
 def _decode_inst(inst):
@@ -76,6 +81,83 @@ _SENTINEL_ALLOC_STEP = 0x00100000  # 1MB per allocation
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
 
 
+class AppMemoryDirection(StrEnum):
+    FORWARD = "forward"
+    BACKWARD = "backward"
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryBaseTag:
+    library_base: str
+    os_type: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class OsResultTag:
+    os_type: str
+    os_result: str
+    call: str
+    library: str
+
+
+@dataclass(frozen=True, slots=True)
+class BaseRegisterCallEffect:
+    base_reg: str
+    tag: LibraryBaseTag
+
+
+@dataclass(frozen=True, slots=True)
+class MemoryAllocationCallEffect:
+    result_reg: str
+    concrete: int
+
+
+@dataclass(frozen=True, slots=True)
+class OutputRegisterCallEffect:
+    output_reg: str
+    output_type: OsResultTag
+
+
+CallEffect = BaseRegisterCallEffect | MemoryAllocationCallEffect | OutputRegisterCallEffect
+
+
+@dataclass(frozen=True, slots=True)
+class AppMemoryType:
+    name: str
+    function: str
+    type: str | None
+    library: str | None
+    direction: AppMemoryDirection
+
+
+@dataclass(frozen=True, slots=True)
+class CallArgumentAnnotation:
+    arg_name: str
+    arg_reg: str
+    function: str
+    library: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class StructRegisterType:
+    struct: str
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryCall:
+    addr: int
+    block: int
+    library: str
+    function: str
+    lvo: int
+    inputs: tuple[runtime_os.OsInput, ...] = ()
+    output: runtime_os.OsOutput | None = None
+    no_return: bool = False
+    dispatch: int | None = None
+    os_since: str | None = None
+    fd_version: str | None = None
+
+
 def get_platform_config() -> dict:
     """Build platform config dict from OS KB for the executor.
 
@@ -85,26 +167,23 @@ def get_platform_config() -> dict:
         initial_sp: int (sentinel SP for abstract stack tracking)
     """
     meta = runtime_os.META
-    cc = meta["calling_convention"]
+    cc = meta.calling_convention
 
-    scratch = [parse_reg_name(r) for r in cc["scratch_regs"]]
+    scratch = [parse_reg_name(r) for r in cc.scratch_regs]
 
-    base_reg_name = cc["base_reg"].upper()
+    base_reg_name = cc.base_reg.upper()
     if not base_reg_name.startswith("A"):
         raise ValueError(f"calling_convention.base_reg must be An, got {base_reg_name}")
     base_reg_num = int(base_reg_name[1])
-
-    exec_lib = meta["exec_base_addr"].get("library")
-    if exec_lib is None:
-        raise KeyError("exec_base_addr.library missing from OS KB")
+    exec_lib = meta.exec_base_addr.library
 
     return {
         "scratch_regs": scratch,
-        "exec_base_addr": meta["exec_base_addr"]["address"],
+        "exec_base_addr": meta.exec_base_addr.address,
         "exec_base_library": exec_lib,
         "exec_base_tag": {"library_base": exec_lib},
-        "base_reg": cc["base_reg"],
-        "return_reg": cc["return_reg"],
+        "base_reg": cc.base_reg,
+        "return_reg": cc.return_reg,
         "initial_sp": _SENTINEL_SP,
         "_base_reg_num": base_reg_num,
         "_next_alloc_sentinel": _SENTINEL_ALLOC_BASE,
@@ -117,7 +196,7 @@ def get_platform_config() -> dict:
 def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
                          cpu_state, code: bytes,
                          os_kb=None,
-                         platform: dict | None = None) -> dict | None:
+                         platform: dict | None = None) -> CallEffect | None:
     """Determine the effects of a library call on register state.
 
     Handles three KB fields, in priority order:
@@ -142,55 +221,55 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
     if lib_data is None:
         return None
 
-    lvo_index = lib_data["lvo_index"]
+    lvo_index = lib_data.lvo_index
     func_name = lvo_index.get(str(lvo))
     if func_name is None:
         return None
 
-    func = lib_data["functions"][func_name]
+    func = lib_data.functions[func_name]
 
     # Check returns_base first (OpenLibrary, OpenResource)
-    rb = func.get("returns_base")
-    if rb:
-        mode, num = parse_reg_name(rb["name_reg"])
+    rb = func.returns_base
+    if rb is not None:
+        mode, num = parse_reg_name(rb.name_reg)
         reg_val = cpu_state.get_reg(mode, num)
         if reg_val.is_known:
             lib_name = read_string_at(code, reg_val.concrete)
             if lib_name:
-                output = func.get("output", {})
-                tag = {"library_base": lib_name}
-                if output.get("type"):
-                    tag["os_type"] = output["type"]
-                return {
-                    "base_reg": rb["base_reg"],
-                    "tag": tag,
-                }
+                output = func.output
+                return BaseRegisterCallEffect(
+                    base_reg=rb.base_reg,
+                    tag=LibraryBaseTag(
+                        library_base=lib_name,
+                        os_type=None if output is None else output.type,
+                    ),
+                )
 
     # Check returns_memory (AllocMem, AllocVec, etc.)
-    rm = func.get("returns_memory")
-    if rm and platform:
+    rm = func.returns_memory
+    if rm is not None and platform:
         sentinel = platform.get("_next_alloc_sentinel")
         if sentinel is not None:
             # Advance sentinel for next allocation
             platform["_next_alloc_sentinel"] = \
                 sentinel + _SENTINEL_ALLOC_STEP
-            return {
-                "result_reg": rm["result_reg"],
-                "concrete": sentinel,
-            }
+            return MemoryAllocationCallEffect(
+                result_reg=rm.result_reg,
+                concrete=sentinel,
+            )
 
     # Generic output type tag from KB
-    output = func.get("output")
-    if output and output.get("reg") and output.get("type"):
-        return {
-            "output_reg": output["reg"],
-            "output_type": {
-                "os_type": output["type"],
-                "os_result": output.get("name"),
-                "call": func_name,
-                "library": a6_lib,
-            },
-        }
+    output = func.output
+    if output is not None and output.reg and output.type:
+        return OutputRegisterCallEffect(
+            output_reg=output.reg,
+            output_type=OsResultTag(
+                os_type=output.type,
+                os_result=output.name,
+                call=func_name,
+                library=a6_lib,
+            ),
+        )
 
     return None
 
@@ -198,8 +277,8 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
 # -- Return value store tracing ---------------------------------------
 
 def trace_return_stores(blocks: dict[int, BasicBlock],
-                        lib_calls: list[dict],
-                        base_reg: int) -> dict[int, dict]:
+                        lib_calls: list[LibraryCall],
+                        base_reg: int) -> dict[int, AppMemoryType]:
     """Trace return value stores to app memory after library calls.
 
     For each lib_call with an output field, scans the fallthrough block
@@ -211,15 +290,15 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
     result = {}
 
     for call in lib_calls:
-        output = call.get("output")
-        if not output or not output.get("reg"):
+        output = call.output
+        if output is None or output.reg is None:
             continue
 
-        ret_reg = output["reg"].lower()
-        call_addr = call["addr"]
+        ret_reg = output.reg.lower()
+        call_addr = call.addr
 
         # Find the block containing the call
-        block = blocks.get(call.get("block"))
+        block = blocks.get(call.block)
         if not block:
             continue
 
@@ -227,12 +306,13 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
         # after the call.  The call may end the block, so also check
         # the fallthrough block.
         ret_key = ("dn" if ret_reg[0] == "d" else "an", int(ret_reg[1]))
-        store_info = {
-            "function": call["function"],
-            "name": output.get("name", "result"),
-            "type": output.get("type"),
-            "library": call.get("library"),
-        }
+        store_info = AppMemoryType(
+            function=call.function,
+            name=output.name,
+            type=output.type,
+            library=call.library,
+            direction=AppMemoryDirection.FORWARD,
+        )
 
         def _scan_for_store(instructions):
             """Scan instructions for ret_reg -> d(base_reg). Returns offset or None."""
@@ -277,8 +357,8 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
 # -- Unified app memory type map ---------------------------------------
 
 def build_app_memory_types(blocks: dict[int, BasicBlock],
-                           lib_calls: list[dict],
-                           base_reg: int) -> dict[int, dict]:
+                           lib_calls: list[LibraryCall],
+                           base_reg: int) -> dict[int, AppMemoryType]:
     """Build a type map for app memory slots from library call data flow.
 
     Combines forward propagation (return values -> register copies ->
@@ -290,7 +370,7 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
     """
     result = {}
 
-    def _trace_reg_forward(instructions, src_reg, info):
+    def _trace_reg_forward(instructions, src_reg: str, info: AppMemoryType):
         """Trace src_reg through copies and stores to d(base_reg).
 
         Follows move/movea chains: if src_reg is copied to another
@@ -309,7 +389,7 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
                     offset = _base_disp_operand(decoded.dst_op, base_reg)
                     if offset is not None:
                         if offset not in result:
-                            result[offset] = dict(info)
+                            result[offset] = info
                         return
 
                     copied_to = _decoded_dest_reg(decoded)
@@ -328,20 +408,20 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
 
     # Forward: trace return values to app memory stores
     for call in lib_calls:
-        output = call.get("output")
-        if not output or not output.get("reg"):
+        output = call.output
+        if output is None or output.reg is None:
             continue
-        ret_reg = output["reg"].lower()
-        call_addr = call["addr"]
-        info = {
-            "function": call["function"],
-            "name": output.get("name", "result"),
-            "type": output.get("type"),
-            "library": call.get("library"),
-            "direction": "forward",
-        }
+        ret_reg = output.reg.lower()
+        call_addr = call.addr
+        info = AppMemoryType(
+            function=call.function,
+            name=output.name,
+            type=output.type,
+            library=call.library,
+            direction=AppMemoryDirection.FORWARD,
+        )
 
-        block = blocks.get(call.get("block"))
+        block = blocks.get(call.block)
         if not block:
             continue
 
@@ -374,24 +454,24 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
 
     # Backward: trace call inputs to app memory loads
     for call in lib_calls:
-        inputs = call.get("inputs")
+        inputs = call.inputs
         if not inputs:
             continue
 
-        block = blocks.get(call.get("block"))
+        block = blocks.get(call.block)
         if not block or not block.instructions:
             continue
 
         call_idx = None
         for i, inst in enumerate(block.instructions):
-            if inst.offset == call["addr"]:
+            if inst.offset == call.addr:
                 call_idx = i
                 break
         if call_idx is None:
             continue
 
         for inp in inputs:
-            reg = inp["reg"].lower()
+            reg = inp.reg.lower()
             # Walk backward to find where this register was loaded
             for i in range(call_idx - 1, -1, -1):
                 inst = block.instructions[i]
@@ -410,22 +490,21 @@ def build_app_memory_types(blocks: dict[int, BasicBlock],
                 offset = _base_disp_operand(decoded.ea_op, base_reg)
                 if offset is not None:
                     if offset not in result:
-                        result[offset] = {
-                            "name": inp["name"],
-                            "function": call["function"],
-                            "type": inp.get("type"),
-                            "library": call.get("library"),
-                            "direction": "backward",
-                        }
+                        result[offset] = AppMemoryType(
+                            name=inp.name,
+                            function=call.function,
+                            type=inp.type,
+                            library=call.library,
+                            direction=AppMemoryDirection.BACKWARD,
+                        )
                 break  # stop after finding the setter
-
     return result
 
 
 # -- Call argument annotation -----------------------------------------
 
 def annotate_call_arguments(blocks: dict[int, BasicBlock],
-                            lib_calls: list[dict]) -> dict[int, dict]:
+                            lib_calls: list[LibraryCall]) -> dict[int, CallArgumentAnnotation]:
     """Annotate instructions that set up arguments for library calls.
 
     For each lib_call with inputs, walks backward from the call within
@@ -437,18 +516,18 @@ def annotate_call_arguments(blocks: dict[int, BasicBlock],
     result = {}
 
     for call in lib_calls:
-        inputs = call.get("inputs")
+        inputs = call.inputs
         if not inputs:
             continue
 
-        block = blocks.get(call.get("block"))
+        block = blocks.get(call.block)
         if not block or not block.instructions:
             continue
 
         # Find the call instruction index
         call_idx = None
         for i, inst in enumerate(block.instructions):
-            if inst.offset == call["addr"]:
+            if inst.offset == call.addr:
                 call_idx = i
                 break
         if call_idx is None:
@@ -457,7 +536,7 @@ def annotate_call_arguments(blocks: dict[int, BasicBlock],
         # Build set of argument registers to find
         pending = {}  # reg_key -> input dict
         for inp in inputs:
-            reg = inp["reg"].lower()
+            reg = inp.reg.lower()
             mode_str = "dn" if reg[0] == "d" else "an"
             reg_num = int(reg[1])
             pending[(mode_str, reg_num)] = inp
@@ -472,29 +551,21 @@ def annotate_call_arguments(blocks: dict[int, BasicBlock],
             dst = decode_inst_destination(inst, ikb)
             if dst and dst in pending:
                 inp = pending.pop(dst)
-                result[inst.offset] = {
-                    "arg_name": inp["name"],
-                    "arg_reg": inp["reg"],
-                    "function": call["function"],
-                    "library": call.get("library"),
-                }
+                result[inst.offset] = CallArgumentAnnotation(
+                    arg_name=inp.name,
+                    arg_reg=inp.reg,
+                    function=call.function,
+                    library=call.library,
+                )
 
     return result
 
 
 # -- Backward type propagation -----------------------------------------
 
-def _build_struct_field_map(struct_def: dict) -> dict[int, str]:
-    """Build offset -> field_name map from KB struct definition."""
-    return {
-        f["offset"]: f["name"]
-        for f in struct_def["fields"]
-        if f["type"] != "LABEL"
-    }
 
-
-def propagate_input_types(blocks: dict, lib_calls: list[dict],
-                          os_kb: dict) -> dict[int, dict[str, dict]]:
+def propagate_input_types(blocks: dict, lib_calls: list[LibraryCall],
+                          os_kb) -> dict[int, dict[str, StructRegisterType]]:
     """Walk backward from OS call sites to find struct-typed register ranges.
 
     For each resolved OS call with struct-typed inputs, traces backward
@@ -505,7 +576,7 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
     Register write detection uses KB-driven destination decoding from
     opcode bits via decode_destination().
 
-    Returns: {inst_offset: {reg: {"struct": "IS", "fields": {14: "IS_DATA", ...}}}}
+    Returns: {inst_offset: {reg: StructRegisterType(struct=...)}}
     """
     structs = os_kb.STRUCTS
     result = {}
@@ -513,22 +584,22 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
     for call in lib_calls:
         # Collect struct-typed input registers
         typed_inputs = {}  # reg_name_lower -> i_struct name
-        for inp in call.get("inputs", []):
-            i_struct = inp.get("i_struct")
+        for inp in call.inputs:
+            i_struct = inp.i_struct
             if i_struct and i_struct in structs:
-                typed_inputs[inp["reg"].lower()] = i_struct
+                typed_inputs[inp.reg.lower()] = i_struct
 
         if not typed_inputs:
             continue
 
-        block = blocks.get(call["block"])
+        block = blocks.get(call.block)
         if not block or not block.instructions:
             continue
 
         # Find the call instruction index
         call_idx = None
         for i, inst in enumerate(block.instructions):
-            if inst.offset == call["addr"]:
+            if inst.offset == call.addr:
                 call_idx = i
                 break
         if call_idx is None:
@@ -538,14 +609,14 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
         # set, then annotate all instructions from setter to call.
         for reg, struct_name in typed_inputs.items():
             reg_mode, reg_num = parse_reg_name(reg)
-            field_map = _build_struct_field_map(structs[struct_name])
+            if struct_name not in structs:
+                raise KeyError(f"Unknown struct {struct_name}")
 
             # Walk backward: find last instruction that writes to reg.
             setter_idx = 0
             for j in range(call_idx - 1, -1, -1):
                 jinst = block.instructions[j]
                 mnemonic = instruction_kb(jinst)
-                sz = jinst.operand_size
                 dst = decode_inst_destination(jinst, mnemonic)
                 if dst is not None and dst[0] == reg_mode and dst[1] == reg_num:
                     setter_idx = j
@@ -554,53 +625,84 @@ def propagate_input_types(blocks: dict, lib_calls: list[dict],
             # Annotate all instructions in [setter_idx, call_idx]
             for j in range(setter_idx, call_idx + 1):
                 off = block.instructions[j].offset
-                result.setdefault(off, {})[reg] = {
-                    "struct": struct_name,
-                    "fields": field_map,
-                }
+                result.setdefault(off, {})[reg] = StructRegisterType(
+                    struct=struct_name)
 
     return result
 
 
-def _build_lvo_lookup(os_kb: dict) -> dict:
+@dataclass(frozen=True, slots=True)
+class ResolvedLibraryCall:
+    library: str
+    function: str
+    lvo: int
+    inputs: tuple[runtime_os.OsInput, ...]
+    output: runtime_os.OsOutput | None
+    no_return: bool
+    os_since: str | None
+    fd_version: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class LvoLookup:
+    by_lib_lvo: dict[tuple[str, int], ResolvedLibraryCall]
+    by_lvo: dict[int, tuple[ResolvedLibraryCall, ...]]
+
+
+def _build_lvo_lookup(os_kb) -> LvoLookup:
     """Build combined LVO lookup: {(library_name, lvo_offset_int): function_dict}.
 
     Also builds reverse: {lvo_offset_int: [(library_name, func_name, func_dict)]}
     for when we don't know which library base is in A6.
     """
-    by_lib_lvo = {}
-    by_lvo = {}
+    by_lib_lvo: dict[tuple[str, int], ResolvedLibraryCall] = {}
+    by_lvo: dict[int, list[ResolvedLibraryCall]] = {}
     for lib_name, lib_data in os_kb.LIBRARIES.items():
-        for lvo_str, func_name in lib_data["lvo_index"].items():
+        for lvo_str, func_name in lib_data.lvo_index.items():
             lvo = int(lvo_str)
-            func = lib_data["functions"][func_name]
-            by_lib_lvo[(lib_name, lvo)] = {
-                "library": lib_name,
-                "function": func_name,
-                "lvo": lvo,
-                **{k: v for k, v in func.items() if k in (
-                    "inputs", "output", "no_return", "os_since", "fd_version")},
-            }
-            if lvo not in by_lvo:
-                by_lvo[lvo] = []
-            by_lvo[lvo].append((lib_name, func_name, func))
-    return {"by_lib_lvo": by_lib_lvo, "by_lvo": by_lvo}
+            func = lib_data.functions[func_name]
+            call = ResolvedLibraryCall(
+                library=lib_name,
+                function=func_name,
+                lvo=lvo,
+                inputs=func.inputs,
+                output=func.output,
+                no_return=func.no_return,
+                os_since=func.os_since,
+                fd_version=func.fd_version,
+            )
+            by_lib_lvo[(lib_name, lvo)] = call
+            by_lvo.setdefault(lvo, []).append(call)
+    return LvoLookup(
+        by_lib_lvo=by_lib_lvo,
+        by_lvo={lvo: tuple(calls) for lvo, calls in by_lvo.items()},
+    )
 
 
-def _resolve_lvo(lvo: int, library: str, lvo_lookup: dict) -> dict:
+def _resolve_lvo(lvo: int, library: str, lvo_lookup: LvoLookup) -> LibraryCall:
     """Resolve an LVO offset to a function in a known library."""
     key = (library, lvo)
-    match = lvo_lookup["by_lib_lvo"].get(key)
+    match = lvo_lookup.by_lib_lvo.get(key)
     if match:
-        info = {"library": match["library"], "function": match["function"]}
-        if match.get("no_return"):
-            info["no_return"] = True
-        if match.get("inputs"):
-            info["inputs"] = match["inputs"]
-        if match.get("output"):
-            info["output"] = match["output"]
-        return info
-    return {"library": library, "function": f"LVO_{-lvo}"}
+        return LibraryCall(
+            addr=0,
+            block=0,
+            library=match.library,
+            function=match.function,
+            lvo=lvo,
+            inputs=match.inputs,
+            output=match.output,
+            no_return=match.no_return,
+            os_since=match.os_since,
+            fd_version=match.fd_version,
+        )
+    return LibraryCall(
+        addr=0,
+        block=0,
+        library=library,
+        function=f"LVO_{-lvo}",
+        lvo=lvo,
+    )
 
 
 def _find_sub_entry(block_addr: int, blocks: dict,
@@ -623,11 +725,11 @@ def _find_sub_entry(block_addr: int, blocks: dict,
 
 def identify_library_calls(blocks: dict[int, BasicBlock],
                            code: bytes,
-                           os_kb: dict,
+                           os_kb,
                            exit_states: dict[int, tuple],
                            call_targets: set[int],
                            platform: dict,
-                           ) -> list[dict]:
+                           ) -> list[LibraryCall]:
     """Identify OS library calls in analyzed code.
 
     Detects two patterns through the library base register (OS KB):
@@ -642,16 +744,13 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
     EA field positions from M68K KB encodings.  ExecBase address and
     library base register from OS KB.
 
-    Returns list of dicts:
-        {"addr": int, "block": int, "library": str, "function": str,
-         "lvo": int, "no_return": bool,
-         "inputs": [...], "output": {...}}
+    Returns typed LibraryCall records.
     """
     os_meta = os_kb.META
-    exec_base_addr = os_meta["exec_base_addr"]["address"]
-    exec_lib_name = os_meta["exec_base_addr"]["library"]
+    exec_base_addr = os_meta.exec_base_addr.address
+    exec_lib_name = os_meta.exec_base_addr.library
     base_mode, base_reg_num = parse_reg_name(
-        os_meta["calling_convention"]["base_reg"])
+        os_meta.calling_convention.base_reg)
     if base_mode != "an":
         raise ValueError(
             f"calling_convention.base_reg must be An, got {base_mode}")

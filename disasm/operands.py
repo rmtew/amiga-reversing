@@ -24,6 +24,7 @@ from m68k.m68k_disasm import (
     DecodedRegisterListNodeMetadata,
     DecodedRegisterPairNodeMetadata,
 )
+from m68k.os_structs import resolve_struct_field
 
 from disasm.decode import DecodedInstructionForEmit, decode_inst_for_emit
 from disasm.types import (
@@ -149,12 +150,16 @@ def _struct_field_symbol(inst_offset: int, base_register: str, displacement: int
     if not reg_types or base_register not in reg_types:
         return None
     reg_info = reg_types[base_register]
-    field_name = reg_info["fields"].get(displacement)
-    if not field_name:
+    field_info = resolve_struct_field(
+        hunk_session.os_kb.STRUCTS,
+        reg_info.struct,
+        displacement,
+    )
+    if not field_info:
         return None
     if used_structs is not None:
-        used_structs.add(reg_info["struct"])
-    return field_name
+        used_structs.add(field_info["struct"])
+    return field_info["name"]
 
 
 def _app_offset_symbol(base_register: str, displacement: int,

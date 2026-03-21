@@ -10,6 +10,7 @@ import pytest
 
 from scripts import build_runtime_kb
 from m68k import m68k_asm
+from m68k.os_structs import resolve_struct_field
 from tests.runtime_kb_helpers import (
     KNOWLEDGE,
     RUNTIME_PY,
@@ -997,22 +998,47 @@ def test_runtime_loader_requires_naming_patterns(monkeypatch):
         load_naming_runtime_kb.cache_clear()
 
 
-def test_runtime_os_is_compact_subset_of_canonical_os_kb():
+def test_runtime_os_meta_is_typed():
     runtime = load_os_runtime_kb()
-    canonical = load_canonical_os_kb()
-    assert runtime.META["calling_convention"] == canonical["_meta"]["calling_convention"]
-    assert runtime.META["exec_base_addr"] == canonical["_meta"]["exec_base_addr"]
-    assert runtime.META["constant_domains"] == canonical["_meta"]["constant_domains"]
-    assert runtime.STRUCTS == canonical["structs"]
-    assert runtime.CONSTANTS == canonical["constants"]
+
+    assert runtime.META.calling_convention.base_reg == "A6"
+    assert runtime.META.calling_convention.return_reg == "D0"
+    assert runtime.META.exec_base_addr.address == 4
+    assert runtime.META.exec_base_addr.library == "exec.library"
+    assert "OpenDevice" in runtime.META.constant_domains
     assert not hasattr(runtime, "RUNTIME")
-    for library, library_data in runtime.LIBRARIES.items():
-        source_library = canonical["libraries"][library]
-        assert library_data["lvo_index"] == source_library["lvo_index"]
-        for func_name, func_data in library_data["functions"].items():
-            source_func = source_library["functions"][func_name]
-            for key, value in func_data.items():
-                    assert source_func[key] == value
+
+
+def test_runtime_os_struct_entries_are_typed():
+    runtime = load_os_runtime_kb()
+
+    io_struct = runtime.STRUCTS["IO"]
+    assert io_struct.base_struct == "MN"
+    assert io_struct.base_offset == 20
+    assert io_struct.base_offset_symbol == "MN_SIZE"
+    assert io_struct.size == 48
+
+    msg_list = next(field for field in runtime.STRUCTS["MP"].fields
+                    if field.name == "MP_MSGLIST")
+    assert msg_list.type == "STRUCT"
+    assert msg_list.size_symbol == "LH_SIZE"
+    assert msg_list.struct == "LH"
+    assert msg_list.size == 14
+
+
+def test_runtime_os_library_function_entries_are_typed():
+    runtime = load_os_runtime_kb()
+
+    open_device = runtime.LIBRARIES["exec.library"].functions["OpenDevice"]
+    assert open_device.lvo == -444
+    assert tuple(arg.name for arg in open_device.inputs) == (
+        "devName", "unit", "ioRequest", "flags")
+    assert tuple(arg.reg for arg in open_device.inputs) == (
+        "A0", "D0", "A1", "D1")
+    assert open_device.inputs[2].i_struct == "IO"
+    assert open_device.output is not None
+    assert open_device.output.name == "error"
+    assert open_device.output.reg == "D0"
 
 
 def test_canonical_os_kb_preserves_embedded_struct_metadata():
@@ -1029,6 +1055,35 @@ def test_canonical_os_kb_preserves_embedded_struct_metadata():
     assert msg_list["type"] == "STRUCT"
     assert msg_list["size_symbol"] == "LH_SIZE"
     assert msg_list["struct"] == "LH"
+    assert msg_list["size"] == 14
+
+    io_audio = canonical["structs"]["IOAudio"]
+    assert io_audio["base_struct"] == "IO"
+    assert io_audio["base_offset"] == 32
+    write_msg = next(field for field in io_audio["fields"]
+                     if field["name"] == "ioa_WriteMsg")
+    assert write_msg["struct"] == "MN"
+    assert write_msg["size"] == 20
+
+    timer_request = canonical["structs"]["TIMEREQUEST"]
+    assert timer_request["base_struct"] == "IO"
+    assert timer_request["base_offset"] == 32
+
+    rexx_task = canonical["structs"]["RexxTask"]
+    assert rexx_task["base_offset"] == 200
+    assert rexx_task["base_offset_symbol"] == "GLOBALSZ"
+    assert "base_struct" not in rexx_task
+
+
+def test_runtime_os_resolves_nested_struct_fields_on_demand():
+    structs = load_os_runtime_kb().STRUCTS
+
+    assert resolve_struct_field(structs, "IO", 0) == {
+        "name": "LN_SUCC", "struct": "LN"}
+    assert resolve_struct_field(structs, "IO", 14) == {
+        "name": "MN_REPLYPORT", "struct": "MN"}
+    assert resolve_struct_field(structs, "IO", 20) == {
+        "name": "IO_DEVICE", "struct": "IO"}
 
 
 def test_parse_fd_file_recognizes_release_marker_for_private_blocks(tmp_path):

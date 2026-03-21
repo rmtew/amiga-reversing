@@ -25,7 +25,8 @@ from .indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
                                 resolve_backward_slice)
 from . import indirect_core
 from .os_calls import (get_platform_config,
-                       identify_library_calls, _SENTINEL_ALLOC_BASE)
+                       identify_library_calls, _SENTINEL_ALLOC_BASE,
+                       LibraryCall)
 from .subroutine_scan import scan_and_score
 from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_decode import decode_inst_operands
@@ -101,7 +102,7 @@ class HunkAnalysis:
     jump_tables: list             # detect_jump_tables results
     hint_blocks: dict             # addr -> BasicBlock (hints)
     hint_reasons: dict            # entry -> {source, referenced_from}
-    lib_calls: list               # identify_library_calls results
+    lib_calls: list[LibraryCall]  # identify_library_calls results
     platform: dict                # platform config (base reg, init mem, etc.)
     reloc_targets: set            # reloc-derived target addresses
     reloc_refs: dict              # target -> [referencing offsets]
@@ -736,8 +737,8 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         blocks, code, os_kb, exit_states, call_targets, platform)
 
     if lib_calls:
-        resolved = [c for c in lib_calls if c.get("function")]
-        libs = set(c.get("library", "?") for c in resolved)
+        resolved = [c for c in lib_calls if c.function]
+        libs = {c.library for c in resolved}
         print_fn(f"  {len(lib_calls)} library calls identified "
                  f"({len(resolved)} resolved"
                  f", libraries: {', '.join(sorted(libs))})")
@@ -761,9 +762,8 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             if source_addr not in resolved_indirects:
                 resolved_indirects[source_addr] = item["kind"]
     external_calls = {
-        call["addr"]: call
+        call.addr: call
         for call in lib_calls
-        if "addr" in call
     }
     for site in indirect_sites:
         dispatch = jump_dispatch.get(site["addr"])
@@ -776,7 +776,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         external = external_calls.get(site["addr"])
         if external is not None:
             site["status"] = "external"
-            site["detail"] = f"{external['library']}::{external['function']}"
+            site["detail"] = f"{external.library}::{external.function}"
             site["target"] = None
             continue
         resolved_kind = resolved_indirects.get(site["addr"])

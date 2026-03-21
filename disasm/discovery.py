@@ -59,17 +59,6 @@ def discover_absolute_targets(blocks: dict, code_size: int) -> set[int]:
     return {target for target in targets if 0 <= target < code_size}
 
 
-def load_fixed_absolute_addresses() -> set[int]:
-    """Return KB-declared fixed system absolute addresses."""
-    exec_base = runtime_os.META.get("exec_base_addr")
-    if exec_base is None:
-        raise KeyError("OS KB missing META.exec_base_addr")
-    address = exec_base.get("address")
-    if address is None:
-        raise KeyError("OS KB missing META.exec_base_addr.address")
-    return {address}
-
-
 def filter_core_absolute_targets(targets: set[int],
                                  code_addrs: set[int],
                                  fixed_addrs: set[int]) -> set[int]:

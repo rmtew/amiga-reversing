@@ -6,7 +6,7 @@ import re
 from m68k.instruction_kb import instruction_kb
 from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
 from m68k.instruction_primitives import extract_branch_target
-from m68k.os_calls import build_app_memory_types
+from m68k.os_calls import LibraryCall, build_app_memory_types
 from m68k.registers import parse_reg_name
 from m68k.subroutine_ranges import find_containing_sub
 
@@ -32,9 +32,9 @@ def _sorted_code_entities(hunk_entities: list[dict]) -> list[dict[str, int]]:
         key=lambda s: s["addr"])
 
 
-def _call_instruction_index(*, blk, call: dict, sorted_code_ents: list[dict]) -> int | None:
-    if "dispatch" in call:
-        dispatch_sub = find_containing_sub(call["dispatch"], sorted_code_ents)
+def _call_instruction_index(*, blk, call: LibraryCall, sorted_code_ents: list[dict]) -> int | None:
+    if call.dispatch is not None:
+        dispatch_sub = find_containing_sub(call.dispatch, sorted_code_ents)
         if dispatch_sub is None:
             return None
         for ci, inst in enumerate(blk.instructions):
@@ -42,14 +42,14 @@ def _call_instruction_index(*, blk, call: dict, sorted_code_ents: list[dict]) ->
                 return ci
         return None
 
-    call_addr = call["addr"]
+    call_addr = call.addr
     for ci, inst in enumerate(blk.instructions):
         if inst.offset == call_addr:
             return ci
     return None
 
 
-def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
+def build_lvo_substitutions(*, blocks: dict, lib_calls: list[LibraryCall],
                             hunk_entities: list[dict]
                             ) -> tuple[dict[str, dict[int, str]], dict[int, tuple[str, str]]]:
     lvo_equs: dict[str, dict[int, str]] = {}
@@ -57,17 +57,17 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
     sorted_code_ents = _sorted_code_entities(hunk_entities)
 
     for call in lib_calls:
-        lib = call.get("library")
-        func = call.get("function")
-        lvo = call.get("lvo")
+        lib = call.library
+        func = call.function
+        lvo = call.lvo
         if not lib or not func or lvo is None or lib == "unknown":
             continue
         if func.startswith("LVO_"):
             continue
         sym = f"_LVO{func}"
         lvo_equs.setdefault(lib, {})[lvo] = sym
-        if "dispatch" in call:
-            caller_blk = blocks.get(call["addr"])
+        if call.dispatch is not None:
+            caller_blk = blocks.get(call.addr)
             if not caller_blk:
                 continue
             call_idx = _call_instruction_index(
@@ -90,39 +90,45 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[dict],
                     lvo_substitutions[prev.offset] = (imm_token, f"#{sym}")
                     break
         else:
-            lvo_substitutions[call["addr"]] = (f"{lvo}(", f"{sym}(")
+            lvo_substitutions[call.addr] = (f"{lvo}(", f"{sym}(")
     return lvo_equs, lvo_substitutions
 
 
-def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entities: list[dict],
+def build_arg_substitutions(*, blocks: dict, lib_calls: list[LibraryCall], hunk_entities: list[dict],
                             os_kb) -> tuple[dict[str, int], dict[int, tuple[str, str]]]:
     arg_equs: dict[str, int] = {}
     arg_substitutions: dict[int, tuple[str, str]] = {}
     sorted_code_ents = _sorted_code_entities(hunk_entities)
-    const_domains = os_kb.META["constant_domains"]
+    const_domains = os_kb.META.constant_domains
     all_consts = os_kb.CONSTANTS
     func_const_map: dict[str, dict[int, str]] = {}
     for func_name, const_names in const_domains.items():
         vmap = {}
         for cn in const_names:
-            cv = all_consts.get(cn, {}).get("value")
+            constant = all_consts.get(cn)
+            cv = None if constant is None else constant.value
             if cv is not None:
                 vmap[cv] = cn
         if vmap:
             func_const_map[func_name] = vmap
     for call in lib_calls:
-        func_name = call.get("function")
+        func_name = call.function
         if not func_name or func_name.startswith("LVO_"):
             continue
         vmap = func_const_map.get(func_name)
         if not vmap:
             continue
-        lib = call["library"]
-        func = os_kb.LIBRARIES.get(lib, {}).get("functions", {}).get(func_name, {})
-        inputs = func.get("inputs", [])
+        lib = call.library
+        library = os_kb.LIBRARIES.get(lib)
+        if library is None:
+            continue
+        func = library.functions.get(func_name)
+        if func is None:
+            continue
+        inputs = func.inputs
         if not inputs:
             continue
-        blk_addr = call["block"]
+        blk_addr = call.block
         blk = blocks.get(blk_addr)
         if not blk:
             continue
@@ -134,7 +140,7 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entitie
         if call_idx is None:
             continue
         for inp in inputs:
-            reg = inp["reg"].lower()
+            reg = inp.reg.lower()
             reg_mode, reg_n = parse_reg_name(reg)
             for j in range(call_idx - 1, -1, -1):
                 prev = blk.instructions[j]
@@ -161,7 +167,7 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[dict], hunk_entitie
     return arg_equs, arg_substitutions
 
 
-def build_app_offset_symbols(*, blocks: dict, lib_calls: list[dict], platform: dict
+def build_app_offset_symbols(*, blocks: dict, lib_calls: list[LibraryCall], platform: dict
                              ) -> dict[int, str]:
     app_offsets: dict[int, str] = {}
     base_info = platform.get("initial_base_reg")
@@ -185,8 +191,8 @@ def build_app_offset_symbols(*, blocks: dict, lib_calls: list[dict], platform: d
         typed_slots = build_app_memory_types(blocks, lib_calls, base_reg=base_info[0])
         for offset, info in typed_slots.items():
             if offset not in app_offsets:
-                func = info["function"]
-                name = info.get("name", "result")
+                func = info.function
+                name = info.name
                 sym = re.sub(r'[^a-z0-9]+', '_', f"app_{func}_{name}".lower())
                 app_offsets[offset] = sym
     return app_offsets

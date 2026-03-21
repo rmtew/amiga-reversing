@@ -987,6 +987,227 @@ def _write_hunk_runtime_python(path: Path, payload: dict, *, header: str) -> Non
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _render_os_struct_field(field: dict) -> str:
+    parts = [
+        f"name={field['name']!r}",
+        f"type={field['type']!r}",
+        f"offset={field['offset']!r}",
+        f"size={field['size']!r}",
+    ]
+    if "size_symbol" in field:
+        parts.append(f"size_symbol={field['size_symbol']!r}")
+    if "struct" in field:
+        parts.append(f"struct={field['struct']!r}")
+    return f"OsStructField({', '.join(parts)})"
+
+
+def _render_os_struct(struct_def: dict) -> str:
+    fields = ", ".join(_render_os_struct_field(field) for field in struct_def["fields"])
+    if len(struct_def["fields"]) == 1:
+        fields += ","
+    parts = [
+        f"source={struct_def['source']!r}",
+        f"base_offset={struct_def['base_offset']!r}",
+        f"base_offset_symbol={struct_def['base_offset_symbol']!r}",
+        f"size={struct_def['size']!r}",
+        f"fields=({fields})",
+    ]
+    if "base_struct" in struct_def:
+        parts.append(f"base_struct={struct_def['base_struct']!r}")
+    return f"OsStruct({', '.join(parts)})"
+
+
+def _render_os_constant(constant: dict) -> str:
+    return f"OsConstant(raw={constant['raw']!r}, value={constant['value']!r})"
+
+
+def _render_os_input(arg: dict) -> str:
+    return (
+        "OsInput("
+        f"name={arg['name']!r}, "
+        f"reg={arg['reg']!r}, "
+        f"type={arg.get('type')!r}, "
+        f"i_struct={arg.get('i_struct')!r}"
+        ")"
+    )
+
+
+def _render_os_output(arg: dict) -> str:
+    return (
+        "OsOutput("
+        f"name={arg['name']!r}, "
+        f"reg={arg['reg']!r}, "
+        f"type={arg.get('type')!r}, "
+        f"i_struct={arg.get('i_struct')!r}"
+        ")"
+    )
+
+
+def _render_os_function(func: dict) -> str:
+    inputs = ", ".join(_render_os_input(arg) for arg in func.get("inputs", ()))
+    if func.get("inputs"):
+        if len(func["inputs"]) == 1:
+            inputs += ","
+        inputs_repr = f"({inputs})"
+    else:
+        inputs_repr = "()"
+    parts = [
+        f"lvo={func['lvo']!r}",
+        f"inputs={inputs_repr}",
+        f"output={_render_os_output(func['output']) if 'output' in func else 'None'}",
+        (
+            "returns_base="
+            f"{'OsReturnsBase(name_reg=%r, base_reg=%r)' % (func['returns_base']['name_reg'], func['returns_base']['base_reg'])}"
+            if "returns_base" in func else "returns_base=None"
+        ),
+        (
+            "returns_memory="
+            f"{'OsReturnsMemory(result_reg=%r, size_reg=%r)' % (func['returns_memory']['result_reg'], func['returns_memory'].get('size_reg'))}"
+            if "returns_memory" in func else "returns_memory=None"
+        ),
+        f"no_return={func.get('no_return', False)!r}",
+        f"os_since={func.get('os_since')!r}",
+        f"fd_version={func.get('fd_version')!r}",
+        f"private={func.get('private', False)!r}",
+    ]
+    return f"OsFunction({', '.join(parts)})"
+
+
+def _write_os_runtime_python(path: Path, payload: dict, *, header: str) -> None:
+    meta = payload["META"]
+    structs = payload["STRUCTS"]
+    constants = payload["CONSTANTS"]
+    libraries = payload["LIBRARIES"]
+    lines = [
+        '"""' + header + '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from dataclasses import dataclass",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class CallingConvention:",
+        "    scratch_regs: tuple[str, ...]",
+        "    preserved_regs: tuple[str, ...]",
+        "    base_reg: str",
+        "    return_reg: str",
+        "    note: str",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class ExecBaseAddress:",
+        "    address: int",
+        "    library: str",
+        "    note: str",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsMeta:",
+        "    calling_convention: CallingConvention",
+        "    exec_base_addr: ExecBaseAddress",
+        "    lvo_slot_size: int",
+        "    constant_domains: dict[str, tuple[str, ...]]",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsStructField:",
+        "    name: str",
+        "    type: str",
+        "    offset: int",
+        "    size: int",
+        "    size_symbol: str | None = None",
+        "    struct: str | None = None",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsStruct:",
+        "    source: str",
+        "    base_offset: int",
+        "    base_offset_symbol: str | None",
+        "    size: int",
+        "    fields: tuple[OsStructField, ...]",
+        "    base_struct: str | None = None",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsConstant:",
+        "    raw: str",
+        "    value: int | None",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsInput:",
+        "    name: str",
+        "    reg: str",
+        "    type: str | None = None",
+        "    i_struct: str | None = None",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsOutput:",
+        "    name: str",
+        "    reg: str",
+        "    type: str | None = None",
+        "    i_struct: str | None = None",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsReturnsBase:",
+        "    name_reg: str",
+        "    base_reg: str",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsReturnsMemory:",
+        "    result_reg: str",
+        "    size_reg: str | None = None",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsFunction:",
+        "    lvo: int | None",
+        "    inputs: tuple[OsInput, ...] = ()",
+        "    output: OsOutput | None = None",
+        "    returns_base: OsReturnsBase | None = None",
+        "    returns_memory: OsReturnsMemory | None = None",
+        "    no_return: bool = False",
+        "    os_since: str | None = None",
+        "    fd_version: str | None = None",
+        "    private: bool = False",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsLibrary:",
+        "    lvo_index: dict[str, str]",
+        "    functions: dict[str, OsFunction]",
+        "",
+        "META = OsMeta(",
+        f"    calling_convention=CallingConvention(scratch_regs={tuple(meta['calling_convention']['scratch_regs'])!r}, preserved_regs={tuple(meta['calling_convention']['preserved_regs'])!r}, base_reg={meta['calling_convention']['base_reg']!r}, return_reg={meta['calling_convention']['return_reg']!r}, note={meta['calling_convention']['note']!r}),",
+        f"    exec_base_addr=ExecBaseAddress(address={meta['exec_base_addr']['address']!r}, library={meta['exec_base_addr']['library']!r}, note={meta['exec_base_addr']['note']!r}),",
+        f"    lvo_slot_size={meta['lvo_slot_size']!r},",
+        f"    constant_domains={{{', '.join(f'{name!r}: {tuple(values)!r}' for name, values in sorted(meta['constant_domains'].items()))}}},",
+        ")",
+        "",
+        "STRUCTS = {",
+    ]
+    for name, struct_def in sorted(structs.items()):
+        lines.append(f"    {name!r}: {_render_os_struct(struct_def)},")
+    lines.extend([
+        "}",
+        "",
+        "CONSTANTS = {",
+    ])
+    for name, constant in sorted(constants.items()):
+        lines.append(f"    {name!r}: {_render_os_constant(constant)},")
+    lines.extend([
+        "}",
+        "",
+        "LIBRARIES = {",
+    ])
+    for name, library in sorted(libraries.items()):
+        lines.append(f"    {name!r}: OsLibrary(")
+        lines.append(f"        lvo_index={_render_py(library['lvo_index'])},")
+        lines.append("        functions={")
+        for func_name, func in sorted(library["functions"].items()):
+            lines.append(f"            {func_name!r}: {_render_os_function(func)},")
+        lines.append("        },")
+        lines.append("    ),")
+    lines.extend([
+        "}",
+        "",
+    ])
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def _iter_mnemonic_tokens(text: str):
     start = None
     for i, ch in enumerate(text):
@@ -1647,8 +1868,17 @@ def _build_os_runtime() -> dict:
     for library_name, library_data in sorted(canonical["libraries"].items()):
         funcs = {}
         for func_name, func_data in sorted(library_data["functions"].items()):
-            compact = {}
-            for key in ("returns_base", "returns_memory", "output", "no_return", "inputs"):
+            compact = {"lvo": func_data["lvo"]}
+            for key in (
+                "returns_base",
+                "returns_memory",
+                "output",
+                "no_return",
+                "inputs",
+                "os_since",
+                "fd_version",
+                "private",
+            ):
                 if key in func_data:
                     compact[key] = func_data[key]
             funcs[func_name] = compact
@@ -2055,8 +2285,8 @@ def build_runtime_artifacts() -> list[Path]:
         header="Generated runtime M68K executor knowledge artifact. Do not edit directly.",
     )
     outputs.append(RUNTIME_PY_DIR / "runtime_os.py")
-    _write_runtime_constants_python(outputs[-1], _build_os_runtime(),
-                                    header="Generated runtime Amiga OS knowledge artifact. Do not edit directly.")
+    _write_os_runtime_python(outputs[-1], _build_os_runtime(),
+                             header="Generated runtime Amiga OS knowledge artifact. Do not edit directly.")
     outputs.append(RUNTIME_PY_DIR / "runtime_hunk.py")
     _write_hunk_runtime_python(outputs[-1], _build_hunk_runtime(),
                                header="Generated runtime hunk knowledge artifact. Do not edit directly.")

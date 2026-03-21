@@ -26380,7 +26380,8 @@
           "offset": 68,
           "size": 0
         }
-      ]
+      ],
+      "base_struct": "IO"
     },
     "BB": {
       "source": "DEVICES/BOOTBLOCK.I",
@@ -28385,7 +28386,8 @@
           "offset": 38,
           "size": 0
         }
-      ]
+      ],
+      "base_struct": "IO"
     },
     "IODRPReq": {
       "source": "DEVICES/PRINTER.I",
@@ -28459,7 +28461,8 @@
           "offset": 62,
           "size": 0
         }
-      ]
+      ],
+      "base_struct": "IO"
     },
     "DeviceData": {
       "source": "DEVICES/PRTBASE.I",
@@ -29226,7 +29229,8 @@
           "offset": 40,
           "size": 0
         }
-      ]
+      ],
+      "base_struct": "IO"
     },
     "IOEXTTD": {
       "source": "DEVICES/TRACKDISK.I",

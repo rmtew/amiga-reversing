@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
+from m68k_kb import runtime_os
 from m68k.hunk_parser import parse_file, HunkType
 from m68k.os_calls import propagate_input_types, annotate_call_arguments
 from disasm.analysis_loader import load_hunk_analysis
-from disasm.discovery import load_fixed_absolute_addresses
 from disasm.data_access import collect_data_access_sizes
 from disasm.entities import infer_target_name, load_entities
 from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
@@ -21,7 +21,7 @@ def build_disassembly_session(binary_path: str, entities_path: str,
                               profile_stages: bool = False) -> DisassemblySession:
     hf = parse_file(binary_path)
     entities = load_entities(entities_path)
-    fixed_abs_addrs = load_fixed_absolute_addresses()
+    fixed_abs_addrs = {runtime_os.META.exec_base_addr.address}
     target_dir = Path(entities_path).parent if Path(entities_path).parent.exists() else None
     target_name = infer_target_name(target_dir, entities_path)
     hunk_sessions: list[HunkDisassemblySession] = []
