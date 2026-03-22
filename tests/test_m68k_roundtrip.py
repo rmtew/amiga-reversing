@@ -546,7 +546,7 @@ def _batch_assemble(cases, cpu_flag, tmpdir):
     result = subprocess.run(
         [str(VASM), "-Fhunk", "-no-opt", "-quiet", "-x", cpu_flag,
          "-o", obj_path, src_path],
-        capture_output=True, text=True)
+        capture_output=True, text=True, stdin=subprocess.DEVNULL)
     if result.returncode != 0:
         raise AssertionError(
             f"Batch assembly failed for {cpu_flag}:\n{result.stderr}")
@@ -604,8 +604,8 @@ def _run_all_roundtrips(cases, tmpdir):
         if is_branch:
             parts = text.rsplit("$", 1)
             hex_str = parts[1].split("(")[0].split()[0]
-            target_addr = int(hex_str, 16)
-            nops = max(0, (target_addr - first.size) // 2)
+            segment_addr = int(hex_str, 16)
+            nops = max(0, (segment_addr - first.size) // 2)
             reasm_source = f"{parts[0]}.t" + "\nnop" * nops + "\n.t:"
         else:
             reasm_source = text

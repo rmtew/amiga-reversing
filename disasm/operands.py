@@ -26,6 +26,13 @@ from m68k.m68k_disasm import (
 )
 from m68k.os_structs import resolve_struct_field
 
+from disasm.hardware_symbols import (
+    hardware_absolute_addr,
+    hardware_register_by_addr,
+    hardware_register_by_base_offset,
+    render_hardware_absolute,
+    render_hardware_relative,
+)
 from disasm.decode import DecodedInstructionForEmit, decode_inst_for_emit
 from disasm.types import (
     AppStructFieldOperandMetadata,
@@ -107,6 +114,60 @@ def _reloc_target(inst, hunk_session: HunkDisassemblySession, value: int) -> int
     return None
 
 
+def _absolute_label_or_text(segment_addr: int,
+                            hunk_session: HunkDisassemblySession,
+                            token: str,
+                            inst) -> str:
+    register_def = hardware_register_by_addr(segment_addr)
+    if register_def is not None:
+        return render_hardware_absolute(segment_addr)
+    label = hunk_session.absolute_labels.get(segment_addr)
+    if label is not None and segment_addr in hunk_session.reserved_absolute_addrs:
+        return label
+    label = hunk_session.labels.get(segment_addr)
+    if label is not None:
+        return label
+    label = hunk_session.absolute_labels.get(segment_addr)
+    if label is not None:
+        return label
+    if segment_addr in hunk_session.reserved_absolute_addrs:
+        raise ValueError(
+            f"Missing absolute symbol metadata for {_instruction_ref(inst)} operand {token!r} "
+            f"targeting ${segment_addr:08X}")
+    return token.lower()
+
+
+def _hardware_base_addr(hunk_session: HunkDisassemblySession,
+                        inst_offset: int,
+                        base_register: str) -> int | None:
+    return hunk_session.hardware_base_regs.get(inst_offset, {}).get(base_register)
+
+
+def _hardware_relative_text(hunk_session: HunkDisassemblySession,
+                            inst_offset: int,
+                            base_register: str,
+                            displacement: int,
+                            token: str,
+                            decoded_op: Operand) -> tuple[str, int] | None:
+    base_addr = _hardware_base_addr(hunk_session, inst_offset, base_register)
+    if base_addr is None:
+        return None
+    register_def = hardware_register_by_base_offset(base_addr, displacement)
+    if register_def is None:
+        return None
+    text = render_hardware_relative(base_register, base_addr, displacement)
+    if decoded_op.mode == "index":
+        index_reg = decoded_op.index_reg
+        if index_reg is None:
+            raise ValueError(f"Indexed operand missing index register: {token!r}")
+        prefix = "a" if decoded_op.index_is_addr else "d"
+        index_size = decoded_op.index_size
+        if not index_size:
+            raise ValueError(f"Indexed operand missing index size: {token!r}")
+        text = f"{text[:-1]},{prefix}{index_reg}.{index_size})"
+    return text, hardware_absolute_addr(base_addr, displacement)
+
+
 def _register_name(mode: str, reg: int, token: str | None = None) -> str:
     if mode == "an" and reg == 7 and token is not None and token.lower() == "sp":
         return "sp"
@@ -167,10 +228,10 @@ def _app_struct_field_metadata(base_register: str, displacement: int,
                                hunk_session: HunkDisassemblySession,
                                used_structs: set[str] | None
                                ) -> AppStructFieldOperandMetadata | None:
-    base_info = hunk_session.platform.initial_base_reg
+    base_info = hunk_session.platform.app_base
     if base_info is None:
         return None
-    if base_register != f"a{base_info[0]}":
+    if base_register != f"a{base_info.reg_num}":
         return None
     for region_offset, region in hunk_session.app_struct_regions.items():
         region_end = region_offset + region.size
@@ -200,10 +261,10 @@ def _app_struct_field_metadata(base_register: str, displacement: int,
 
 def _app_offset_symbol(base_register: str, displacement: int,
                        hunk_session: HunkDisassemblySession) -> str | None:
-    base_info = hunk_session.platform.initial_base_reg
+    base_info = hunk_session.platform.app_base
     if not (hunk_session.app_offsets and base_info):
         return None
-    if base_register != f"a{base_info[0]}":
+    if base_register != f"a{base_info.reg_num}":
         return None
     return hunk_session.app_offsets.get(displacement)
 
@@ -617,37 +678,37 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             kind="immediate_symbol" if label is not None else "immediate",
             text=text,
             value=value,
-            target_addr=target,
+            segment_addr=target,
             metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
     if (spec_type == "immediate"
             and node.kind == "branch_target"
             and flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL)):
-        target_addr = node.target
-        if target_addr is None:
+        segment_addr = node.target
+        if segment_addr is None:
             raise ValueError(f"Typed branch target missing for {_instruction_ref(inst)}")
-        label = labels.get(target_addr)
+        label = labels.get(segment_addr)
         text = label if label is not None else node.text
         return SemanticOperand(
             kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
             text=text,
-            value=target_addr,
-            target_addr=target_addr,
+            value=segment_addr,
+            segment_addr=segment_addr,
             metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
     if spec_type == "label" and node.kind == "branch_target":
-        target_addr = node.target
-        if target_addr is None:
+        segment_addr = node.target
+        if segment_addr is None:
             raise ValueError(f"Typed branch target missing for {_instruction_ref(inst)}")
-        label = labels.get(target_addr)
+        label = labels.get(segment_addr)
         text = label if label is not None else node.text
         return SemanticOperand(
             kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
             text=text,
-            value=target_addr,
-            target_addr=target_addr,
+            value=segment_addr,
+            segment_addr=segment_addr,
             metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
@@ -680,7 +741,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             register=base.register,
             base_register=base.base_register,
             displacement=base.displacement,
-            target_addr=base.target_addr,
+            segment_addr=base.segment_addr,
             metadata=semantic_metadata,
         )
 
@@ -694,7 +755,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
         register = None
         base_register = None
         displacement = None
-        target_addr = None
+        segment_addr = None
         text = node.text
 
         if op_mode in ("dn", "dreg") and node.kind == "register":
@@ -732,7 +793,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             label = labels.get(target) if target is not None else None
             if label is not None:
                 kind = "immediate_symbol"
-                target_addr = target
+                segment_addr = target
                 metadata = SymbolOperandMetadata(symbol=label)
                 text = f"#{label}"
             else:
@@ -746,6 +807,10 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                     f"Typed indirect mismatch for {_instruction_ref(inst)}: "
                     f"decoded {base_register}, node {node.metadata.base_register}")
             kind = "indirect"
+            custom = _hardware_relative_text(
+                hunk_session, inst.offset, base_register, 0, node.text, decoded_op)
+            if custom is not None:
+                text, segment_addr = custom
         elif op_mode == "postinc" and node.kind == "postincrement":
             base_register = _address_base_name(decoded_op.reg)
             if not isinstance(node.metadata, DecodedBaseRegisterNodeMetadata):
@@ -796,17 +861,24 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                     metadata = SymbolOperandMetadata(symbol=app_symbol)
                 else:
                     kind = "base_displacement"
-            text = _base_disp_text(base_register, displacement, node.text, decoded_op,
-                                   metadata if kind == "base_displacement_symbol" else None)
+            custom = _hardware_relative_text(
+                hunk_session, inst.offset, base_register, displacement, node.text, decoded_op)
+            if custom is not None:
+                text, segment_addr = custom
+                kind = "base_displacement_symbol"
+                metadata = SymbolOperandMetadata(symbol=text.split("(", 1)[0])
+            else:
+                text = _base_disp_text(base_register, displacement, node.text, decoded_op,
+                                       metadata if kind == "base_displacement_symbol" else None)
         elif op_mode in ("absw", "absl") and node.kind == "absolute_target":
             value = _normalized_absolute_value(decoded_op)
-            target_addr = value
-            if node.target != target_addr:
+            segment_addr = value
+            if node.target != segment_addr:
                 raise ValueError(
                     f"Typed absolute target mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {target_addr}, node {node.target}")
-            label = labels.get(target_addr)
-            text = label if label is not None else node.text
+                    f"decoded {segment_addr}, node {node.target}")
+            label = _absolute_label_or_text(segment_addr, hunk_session, node.text, inst)
+            text = label
             if flow_type == _FLOW_CALL and operand_index == 0:
                 kind = "call_target"
             elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
@@ -814,13 +886,13 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             else:
                 kind = "absolute_target"
         elif op_mode == "pcdisp" and node.kind == "pc_relative_target":
-            target_addr = op_value
+            segment_addr = op_value
             value = op_value
-            if node.target != target_addr:
+            if node.target != segment_addr:
                 raise ValueError(
                     f"Typed PC-relative target mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {target_addr}, node {node.target}")
-            label = labels.get(target_addr)
+                    f"decoded {segment_addr}, node {node.target}")
+            label = labels.get(segment_addr)
             text = _pc_relative_text(label, decoded_op, node.text)
             if flow_type == _FLOW_CALL and operand_index == 0:
                 kind = "call_target"
@@ -883,13 +955,20 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             kind = "base_displacement_symbol" if symbol is not None else "indexed"
             if symbol is not None:
                 metadata = replace(metadata, symbol=symbol)
-            text = _base_disp_text(
-                base_register,
-                displacement,
-                node.text,
-                decoded_op,
-                SymbolOperandMetadata(symbol=symbol) if symbol is not None else None,
-            )
+            custom = _hardware_relative_text(
+                hunk_session, inst.offset, base_register, displacement, node.text, decoded_op)
+            if custom is not None:
+                text, segment_addr = custom
+                kind = "base_displacement_symbol"
+                metadata = replace(metadata, symbol=text.split("(", 1)[0])
+            else:
+                text = _base_disp_text(
+                    base_register,
+                    displacement,
+                    node.text,
+                    decoded_op,
+                    SymbolOperandMetadata(symbol=symbol) if symbol is not None else None,
+                )
         elif op_mode == "index" and node.kind == "memory_indirect_indexed":
             base_register = _address_base_name(decoded_op.reg)
             metadata = _full_index_metadata(decoded_op, inst)
@@ -918,11 +997,11 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             kind = "memory_indirect_indexed"
             text = node.text
         elif op_mode == "pcindex" and node.kind == "pc_relative_indexed":
-            target_addr = op_value
-            if node.target != target_addr:
+            segment_addr = op_value
+            if node.target != segment_addr:
                 raise ValueError(
                     f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {target_addr}, node {node.target}")
+                    f"decoded {segment_addr}, node {node.target}")
             if not isinstance(node.metadata, DecodedIndexedNodeMetadata):
                 raise ValueError(f"Typed PC-indexed metadata missing for {_instruction_ref(inst)}")
             metadata = _index_metadata(decoded_op, inst)
@@ -935,15 +1014,15 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
                     f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
                     f"decoded {metadata.index_size}, node {node.metadata.index_size}")
             value = op_value
-            label = labels.get(target_addr)
+            label = labels.get(segment_addr)
             text = _pc_relative_text(label, decoded_op, node.text)
             kind = "pc_relative_indexed"
         elif op_mode == "pcindex" and node.kind == "pc_memory_indirect_indexed":
-            target_addr = op_value
-            if node.target != target_addr:
+            segment_addr = op_value
+            if node.target != segment_addr:
                 raise ValueError(
                     f"Typed PC full indexed operand mismatch for {_instruction_ref(inst)}: "
-                    f"decoded {target_addr}, node {node.target}")
+                    f"decoded {segment_addr}, node {node.target}")
             metadata = _full_index_metadata(decoded_op, inst)
             if not isinstance(node.metadata, DecodedFullExtensionNodeMetadata):
                 raise ValueError(
@@ -980,7 +1059,7 @@ def _simple_semantic_from_node(inst, node, spec_type: str, spec_value,
             register=register,
             base_register=base_register,
             displacement=displacement,
-            target_addr=target_addr,
+            segment_addr=segment_addr,
             metadata=metadata,
         )
 
@@ -1015,7 +1094,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             register=base.register,
             base_register=base.base_register,
             displacement=base.displacement,
-            target_addr=base.target_addr,
+            segment_addr=base.segment_addr,
             metadata=BitfieldOperandMetadata(
                 bitfield=bitfield,
                 symbol=_operand_symbol(base.metadata),
@@ -1050,7 +1129,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
             text=text,
             value=branch_target,
-            target_addr=branch_target,
+            segment_addr=branch_target,
             metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
@@ -1071,7 +1150,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
             kind=kind,
             text=text,
             value=value,
-            target_addr=target,
+            segment_addr=target,
             metadata=SymbolOperandMetadata(symbol=label) if label is not None else {},
         )
 
@@ -1084,7 +1163,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
     register = None
     base_register = None
     displacement = None
-    target_addr = None
+    segment_addr = None
     text = token
 
     if op_mode in ("dn", "dreg"):
@@ -1101,16 +1180,16 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         label = labels.get(target) if target is not None else None
         if label is not None:
             kind = "immediate_symbol"
-            target_addr = target
+            segment_addr = target
             metadata = SymbolOperandMetadata(symbol=label)
             text = f"#{label}"
         else:
             kind = "immediate"
     elif op_mode in ("absw", "absl"):
         value = _normalized_absolute_value(decoded_op)
-        target_addr = value
-        label = labels.get(target_addr)
-        text = label if label is not None else token
+        segment_addr = value
+        label = _absolute_label_or_text(segment_addr, hunk_session, token, inst)
+        text = label
         if flow_type == _FLOW_CALL and operand_index == 0:
             kind = "call_target"
         elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
@@ -1118,9 +1197,9 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         else:
             kind = "absolute_target"
     elif op_mode in ("pcdisp", "pcindex"):
-        target_addr = op_value
+        segment_addr = op_value
         value = op_value
-        label = labels.get(target_addr)
+        label = labels.get(segment_addr)
         text = _pc_relative_text(label, decoded_op, token)
         if flow_type == _FLOW_CALL and operand_index == 0:
             kind = "call_target"
@@ -1155,11 +1234,22 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
                 metadata = SymbolOperandMetadata(symbol=app_symbol)
             else:
                 kind = "base_displacement"
-        text = _base_disp_text(base_register, displacement, token, decoded_op,
-                               metadata if kind == "base_displacement_symbol" else None)
+        custom = _hardware_relative_text(
+            hunk_session, inst.offset, base_register, displacement, token, decoded_op)
+        if custom is not None:
+            text, segment_addr = custom
+            kind = "base_displacement_symbol"
+            metadata = SymbolOperandMetadata(symbol=text.split("(", 1)[0])
+        else:
+            text = _base_disp_text(base_register, displacement, token, decoded_op,
+                                   metadata if kind == "base_displacement_symbol" else None)
     elif op_mode == "ind":
         base_register = f"a{decoded_op.reg}"
         kind = "indirect"
+        custom = _hardware_relative_text(
+            hunk_session, inst.offset, base_register, 0, token, decoded_op)
+        if custom is not None:
+            text, segment_addr = custom
     elif op_mode == "postinc":
         base_register = f"a{decoded_op.reg}"
         kind = "postincrement"
@@ -1176,6 +1266,12 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         else:
             metadata = _index_metadata(decoded_op, inst)
             kind = "indexed"
+            custom = _hardware_relative_text(
+                hunk_session, inst.offset, base_register, displacement, token, decoded_op)
+            if custom is not None:
+                text, segment_addr = custom
+                kind = "base_displacement_symbol"
+                metadata = SymbolOperandMetadata(symbol=text.split("(", 1)[0])
     else:
         raise ValueError(
             f"Unsupported decoded operand mode {op_mode!r} in {_instruction_ref(inst)}")
@@ -1183,7 +1279,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
     if (flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL)
             and operand_index == 0
             and branch_target is not None):
-        target_addr = branch_target
+        segment_addr = branch_target
         value = branch_target if value is None else value
         label = labels.get(branch_target)
         if label is not None and op_mode not in ("pcdisp", "pcindex"):
@@ -1199,7 +1295,7 @@ def _build_decoded_semantic_operand(inst, token: str, spec_type: str, spec_value
         register=register,
         base_register=base_register,
         displacement=displacement,
-        target_addr=target_addr,
+        segment_addr=segment_addr,
         metadata=metadata,
     )
 
@@ -1232,3 +1328,4 @@ def build_instruction_semantic_operands(
         )
         for idx, (token, (spec_type, spec_value)) in enumerate(zip(tokens, specs))
     )
+

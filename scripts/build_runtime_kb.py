@@ -152,8 +152,10 @@ def _write_runtime_constants_python(path: Path, payload: dict, *, header: str) -
             "    DECREMENT = 'decrement'",
             "    INCREMENT = 'increment'",
             "    ADJUST = 'adjust'",
+            "    STORE_REG_TO_STACK = 'store_reg_to_stack'",
             "    SAVE_TO_REG = 'save_to_reg'",
             "    LOAD_FROM_REG = 'load_from_reg'",
+            "    LOAD_FROM_STACK_TO_REG = 'load_from_stack_to_reg'",
         ])
     if "SHIFT_VARIANT_BEHAVIORS" in payload:
         lines.extend([
@@ -306,8 +308,10 @@ def _enum_member(enum_name: str, raw_value: str) -> str:
             "decrement": "DECREMENT",
             "increment": "INCREMENT",
             "adjust": "ADJUST",
+            "store_reg_to_stack": "STORE_REG_TO_STACK",
             "save_to_reg": "SAVE_TO_REG",
             "load_from_reg": "LOAD_FROM_REG",
+            "load_from_stack_to_reg": "LOAD_FROM_STACK_TO_REG",
         },
         "ShiftDirection": {
             "left": "LEFT",
@@ -568,8 +572,10 @@ def _write_m68k_runtime_python(path: Path, payload: dict, *, header: str) -> Non
             "    DECREMENT = 'decrement'",
             "    INCREMENT = 'increment'",
             "    ADJUST = 'adjust'",
+            "    STORE_REG_TO_STACK = 'store_reg_to_stack'",
             "    SAVE_TO_REG = 'save_to_reg'",
             "    LOAD_FROM_REG = 'load_from_reg'",
+            "    LOAD_FROM_STACK_TO_REG = 'load_from_stack_to_reg'",
             "",
             "class ShiftDirection(StrEnum):",
             "    LEFT = 'left'",
@@ -936,8 +942,10 @@ def _write_m68k_analysis_runtime_python(path: Path, payload: dict, *, header: st
         "    DECREMENT = 'decrement'",
         "    INCREMENT = 'increment'",
         "    ADJUST = 'adjust'",
+        "    STORE_REG_TO_STACK = 'store_reg_to_stack'",
         "    SAVE_TO_REG = 'save_to_reg'",
         "    LOAD_FROM_REG = 'load_from_reg'",
+        "    LOAD_FROM_STACK_TO_REG = 'load_from_stack_to_reg'",
         "",
     ]
     for name, value in payload.items():
@@ -1031,7 +1039,9 @@ def _render_os_input(arg: dict) -> str:
         f"name={arg['name']!r}, "
         f"reg={arg['reg']!r}, "
         f"type={arg.get('type')!r}, "
-        f"i_struct={arg.get('i_struct')!r}"
+        f"i_struct={arg.get('i_struct')!r}, "
+        f"semantic_kind={arg.get('semantic_kind')!r}, "
+        f"semantic_note={arg.get('semantic_note')!r}"
         ")"
     )
 
@@ -1104,9 +1114,16 @@ def _write_os_runtime_python(path: Path, payload: dict, *, header: str) -> None:
         "    note: str",
         "",
         "@dataclass(frozen=True, slots=True)",
+        "class AbsoluteSymbol:",
+        "    address: int",
+        "    name: str",
+        "    note: str",
+        "",
+        "@dataclass(frozen=True, slots=True)",
         "class OsMeta:",
         "    calling_convention: CallingConvention",
         "    exec_base_addr: ExecBaseAddress",
+        "    absolute_symbols: tuple[AbsoluteSymbol, ...]",
         "    lvo_slot_size: int",
         "    named_base_structs: dict[str, str]",
         "    constant_domains: dict[str, tuple[str, ...]]",
@@ -1142,6 +1159,8 @@ def _write_os_runtime_python(path: Path, payload: dict, *, header: str) -> None:
         "    reg: str",
         "    type: str | None = None",
         "    i_struct: str | None = None",
+        "    semantic_kind: str | None = None",
+        "    semantic_note: str | None = None",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsOutput:",
@@ -1180,13 +1199,21 @@ def _write_os_runtime_python(path: Path, payload: dict, *, header: str) -> None:
         "META = OsMeta(",
         f"    calling_convention=CallingConvention(scratch_regs={tuple(meta['calling_convention']['scratch_regs'])!r}, preserved_regs={tuple(meta['calling_convention']['preserved_regs'])!r}, base_reg={meta['calling_convention']['base_reg']!r}, return_reg={meta['calling_convention']['return_reg']!r}, note={meta['calling_convention']['note']!r}),",
         f"    exec_base_addr=ExecBaseAddress(address={meta['exec_base_addr']['address']!r}, library={meta['exec_base_addr']['library']!r}, note={meta['exec_base_addr']['note']!r}),",
+        "    absolute_symbols=(",
+    ]
+    for symbol in meta["absolute_symbols"]:
+        lines.append(
+            f"        AbsoluteSymbol(address={symbol['address']!r}, name={symbol['name']!r}, note={symbol['note']!r}),"
+        )
+    lines.extend([
+        "    ),",
         f"    lvo_slot_size={meta['lvo_slot_size']!r},",
         f"    named_base_structs={_render_py(dict(sorted(meta['named_base_structs'].items())))} ,",
         f"    constant_domains={{{', '.join(f'{name!r}: {tuple(values)!r}' for name, values in sorted(meta['constant_domains'].items()))}}},",
         ")",
         "",
         "STRUCTS = {",
-    ]
+    ])
     for name, struct_def in sorted(structs.items()):
         lines.append(f"    {name!r}: {_render_os_struct(struct_def)},")
     lines.extend([
@@ -1427,6 +1454,7 @@ def _build_m68k_runtime() -> dict:
     compute_formulas = {}
     bounds_checks = {}
     sp_effects = {}
+    sp_effects_complete = set()
     implicit_operands = {}
     bit_moduli = {}
     rotate_extra_bits = {}
@@ -1472,6 +1500,8 @@ def _build_m68k_runtime() -> dict:
                 (effect["action"], effect.get("bytes"), effect.get("reg", effect.get("operand")))
                 for effect in raw_sp_effects
             )
+            if inst.get("sp_effects_complete"):
+                sp_effects_complete.add(mnemonic)
         if "implicit_operand" in inst:
             implicit_operands[mnemonic] = inst["implicit_operand"]
         if "bit_modulus" in inst:
@@ -1822,6 +1852,7 @@ def _build_m68k_runtime() -> dict:
               "compute_formulas": dict(sorted(compute_formulas.items())),
               "bounds_checks": dict(sorted(bounds_checks.items())),
               "sp_effects": dict(sorted(sp_effects.items())),
+              "sp_effects_complete": tuple(sorted(sp_effects_complete)),
               "implicit_operands": dict(sorted(implicit_operands.items())),
               "bit_moduli": dict(sorted(bit_moduli.items())),
               "rotate_extra_bits": dict(sorted(rotate_extra_bits.items())),
@@ -1898,6 +1929,7 @@ def _build_os_runtime() -> dict:
         "META": {
             "calling_convention": canonical["_meta"]["calling_convention"],
             "exec_base_addr": canonical["_meta"]["exec_base_addr"],
+            "absolute_symbols": canonical["_meta"]["absolute_symbols"],
             "lvo_slot_size": canonical["_meta"]["lvo_slot_size"],
             "named_base_structs": canonical["_meta"]["named_base_structs"],
             "constant_domains": canonical["_meta"]["constant_domains"],
@@ -2151,6 +2183,7 @@ def _build_m68k_analysis_runtime(runtime_payload: dict) -> dict:
         "BOUNDS_CHECKS": tables["bounds_checks"],
         "COMPUTE_FORMULAS": tables["compute_formulas"],
         "SP_EFFECTS": tables["sp_effects"],
+        "SP_EFFECTS_COMPLETE": tables["sp_effects_complete"],
         "EA_MODE_TABLES": tables["ea_mode_tables"],
         "AN_SIZES": tables["an_sizes"],
         "PROCESSOR_MINS": tables["processor_mins"],
@@ -2244,6 +2277,34 @@ def _build_naming_runtime() -> dict:
     }
 
 
+def _build_hardware_runtime() -> dict:
+    canonical = _load_json("amiga_hw_symbols.json")
+    registers = {}
+    for entry in canonical["registers"]:
+        cpu_address = int(entry["cpu_address"], 16)
+        symbols = tuple(entry["symbols"])
+        if not symbols:
+            raise ValueError(f"Hardware entry missing symbols for ${cpu_address:08X}")
+        preferred = symbols[0]
+        if cpu_address in registers and registers[cpu_address]["symbol"] != preferred:
+            raise ValueError(
+                f"Conflicting hardware register name for ${cpu_address:08X}: "
+                f"{registers[cpu_address]['symbol']!r} vs {preferred!r}"
+            )
+        registers[cpu_address] = {
+            "symbol": preferred,
+            "aliases": symbols[1:],
+            "family": entry["family"],
+            "include": entry["include"],
+            "base_symbol": entry["base_symbol"],
+            "offset": int(entry["offset"], 16),
+        }
+    return {
+        "META": canonical["_meta"],
+        "REGISTER_DEFS": registers,
+    }
+
+
 def build_runtime_artifacts() -> list[Path]:
     RUNTIME_PY_DIR.mkdir(exist_ok=True)
     init_py = RUNTIME_PY_DIR / "__init__.py"
@@ -2302,6 +2363,12 @@ def build_runtime_artifacts() -> list[Path]:
     outputs.append(RUNTIME_PY_DIR / "runtime_naming.py")
     _write_runtime_constants_python(outputs[-1], _build_naming_runtime(),
                                     header="Generated runtime naming knowledge artifact. Do not edit directly.")
+    outputs.append(RUNTIME_PY_DIR / "runtime_hardware.py")
+    _write_runtime_constants_python(
+        outputs[-1],
+        _build_hardware_runtime(),
+        header="Generated runtime Amiga hardware artifact. Do not edit directly.",
+    )
     return outputs
 
 

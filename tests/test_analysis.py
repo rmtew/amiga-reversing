@@ -15,6 +15,7 @@ from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze
 from m68k.os_calls import LibraryCall
+from m68k_kb import runtime_os
 from m68k.ea_extension import parse_full_extension
 
 
@@ -98,6 +99,60 @@ def test_analyze_hunk_identifies_os_calls():
                           print_fn=lambda *a: None)
     assert result.os_kb.STRUCTS
     assert result.os_kb.META.calling_convention.base_reg == "A6"
+
+
+def test_analyze_hunk_defers_per_caller_until_cheap_resolution_stabilizes(monkeypatch):
+    code = _make_simple_hunk()
+    real_runtime = []
+    real_per_caller = []
+
+    def fake_runtime(*args, **kwargs):
+        real_runtime.append(1)
+        if len(real_runtime) == 1:
+            from m68k.indirect_analysis import IndirectResolution
+            from m68k.indirect_core import IndirectSiteStatus
+            return [IndirectResolution(target=4, source_addr=0,
+                                       kind=IndirectSiteStatus.RUNTIME)]
+        return []
+
+    def fake_per_caller(*args, **kwargs):
+        real_per_caller.append(1)
+        return []
+
+    monkeypatch.setattr("m68k.analysis.detect_jump_tables", lambda *a, **k: [])
+    monkeypatch.setattr("m68k.analysis._prune_inline_dispatch_blocks", lambda *a, **k: None)
+    monkeypatch.setattr("m68k.analysis.resolve_indirect_targets", fake_runtime)
+    monkeypatch.setattr("m68k.analysis.resolve_backward_slice", lambda *a, **k: [])
+    monkeypatch.setattr("m68k.analysis.resolve_per_caller", fake_per_caller)
+
+    analyze_hunk(code, relocs=[], hunk_index=0, print_fn=lambda *a: None)
+
+    assert len(real_runtime) >= 2
+    assert len(real_per_caller) == 1
+
+
+def test_analyze_hunk_skips_preclassified_external_sites_in_per_caller(monkeypatch):
+    code = _make_simple_hunk()
+    seen_skip_sets = []
+
+    def fake_per_caller(*args, **kwargs):
+        seen_skip_sets.append(kwargs["skip_site_addrs"])
+        return []
+
+    monkeypatch.setattr("m68k.analysis.detect_jump_tables", lambda *a, **k: [])
+    monkeypatch.setattr("m68k.analysis._prune_inline_dispatch_blocks", lambda *a, **k: None)
+    monkeypatch.setattr("m68k.analysis.resolve_indirect_targets", lambda *a, **k: [])
+    monkeypatch.setattr("m68k.analysis.resolve_backward_slice", lambda *a, **k: [])
+    monkeypatch.setattr("m68k.analysis.identify_library_calls", lambda *a, **k: [
+        LibraryCall(addr=4, block=0, library="exec.library",
+                    function="FindTask", lvo=-294)
+    ])
+    monkeypatch.setattr("m68k.analysis.refine_opened_base_calls", lambda *a, **k: a[1])
+    monkeypatch.setattr("m68k.analysis.resolve_per_caller", fake_per_caller)
+
+    analyze_hunk(code, relocs=[], hunk_index=0, print_fn=lambda *a: None)
+
+    assert seen_skip_sets == [frozenset({4})]
 
 
 def test_save_load_roundtrip():
@@ -204,6 +259,38 @@ def test_analyze_skips_invalid_full_extension_words():
     result = analyze(bytes.fromhex("20312100"), propagate=False, entry_points=[0])
 
     assert result["blocks"] == {}
+
+
+def test_analyze_hunk_promotes_code_pointer_args_into_core_entries(monkeypatch):
+    code = b""
+    code += struct.pack(">HH", 0x4BFA, 0x0008)  # lea $0c(pc),a5
+    code += struct.pack(">HH", 0x6100, 0x0008)  # bsr.w $0e
+    code += struct.pack(">H", 0x4E75)           # rts
+    code += struct.pack(">HH", 0x7000, 0x4E73)  # moveq #0,d0 ; rte
+    code += struct.pack(">H", 0x4E75)           # dispatcher rts
+
+    lib_call = LibraryCall(
+        addr=0x04,
+        block=0x00,
+        library="exec.library",
+        function="Supervisor",
+        lvo=-30,
+        inputs=(
+            runtime_os.OsInput(
+                name="userFunction",
+                reg="A5",
+                type="void *",
+                semantic_kind="code_ptr",
+            ),
+        ),
+    )
+
+    monkeypatch.setattr("m68k.analysis.identify_library_calls", lambda *a, **k: [lib_call])
+    monkeypatch.setattr("m68k.analysis.refine_opened_base_calls", lambda *a, **k: a[1])
+
+    ha = analyze_hunk(code, relocs=[], hunk_index=0, print_fn=lambda *a: None)
+
+    assert 0x0A in ha.blocks
 
 
 def test_parse_full_extension_raises_decode_error_for_reserved_shape():

@@ -27,11 +27,13 @@ from .indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
                                 resolve_backward_slice, IndirectResolution)
 from . import indirect_core
 from .os_calls import (get_platform_config, PlatformState,
-                       identify_library_calls, refine_opened_base_calls, _SENTINEL_ALLOC_BASE,
+                       AppBaseInfo, AppBaseKind, identify_library_calls,
+                       refine_opened_base_calls, analyze_call_setups,
+                       _SENTINEL_ALLOC_BASE,
                        LibraryCall, OsKb)
 from .subroutine_scan import scan_and_score
 from .instruction_kb import instruction_flow, instruction_kb
-from .instruction_decode import decode_inst_operands
+from .instruction_decode import decode_inst_destination, decode_inst_operands
 
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
@@ -79,7 +81,7 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
 
 # -- Analysis result ------------------------------------------------------
 
-_CACHE_VERSION = 13  # bump when cached analysis semantics/fields change
+_CACHE_VERSION = 17  # bump when cached analysis semantics/fields change
 
 class AnalysisCacheError(Exception):
     pass
@@ -161,8 +163,12 @@ class HunkAnalysis:
     @staticmethod
     def load(path: str | Path, os_kb: OsKb) -> HunkAnalysis:
         """Load cached analysis, re-attaching the OS KB."""
-        with open(path, "rb") as f:
-            version, ha = pickle.load(f)
+        try:
+            with open(path, "rb") as f:
+                version, ha = pickle.load(f)
+        except (AttributeError, EOFError, ImportError, ModuleNotFoundError,
+                pickle.PickleError, TypeError, ValueError) as exc:
+            raise AnalysisCacheError(f"Unusable analysis cache at {path}: {exc}") from exc
         if version != _CACHE_VERSION:
             raise AnalysisCacheError(
                 f"Cache version mismatch: file={version}, "
@@ -402,6 +408,65 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
     return None
 
 
+def _has_app_base_memory_uses(blocks: dict[int, BasicBlock], base_reg_num: int) -> bool:
+    for block in blocks.values():
+        for inst in block.instructions:
+            decoded = decode_inst_operands(inst, instruction_kb(inst))
+            for op in (decoded.ea_op, decoded.dst_op):
+                if op is None:
+                    continue
+                if op.mode == "disp" and op.reg == base_reg_num:
+                    return True
+                if op.mode == "index" and op.reg == base_reg_num and not op.base_suppressed:
+                    return True
+    return False
+
+
+def _discover_absolute_app_base(init_blocks: dict[int, BasicBlock],
+                                init_exit_states: dict[int, ExitState],
+                                base_reg_num: int,
+                                relocated_segments: list[RelocatedSegment],
+                                code_size: int) -> int | None:
+    if not _has_app_base_memory_uses(init_blocks, base_reg_num):
+        return None
+    candidates: set[int] = set()
+    for block in init_blocks.values():
+        for inst in block.instructions:
+            mnemonic = instruction_kb(inst)
+            decoded = decode_inst_operands(inst, mnemonic)
+            dst = decode_inst_destination(inst, mnemonic)
+            if dst != ("an", base_reg_num):
+                continue
+            if mnemonic == "LEA" and decoded.ea_op is not None:
+                if decoded.ea_op.mode == "absw":
+                    candidates.add(decoded.ea_op.value & 0xFFFF)
+                elif decoded.ea_op.mode == "absl":
+                    candidates.add(decoded.ea_op.value)
+                continue
+            if mnemonic == "MOVEA" and decoded.ea_op is not None and decoded.ea_op.mode == "imm":
+                candidates.add(decoded.ea_op.value & 0xFFFFFFFF)
+    if not candidates:
+        return None
+    relocated_runtime_ranges = [
+        (segment.base_addr, code_size)
+        for segment in relocated_segments
+    ]
+    concrete_hits: dict[int, int] = {}
+    for cpu, _mem in init_exit_states.values():
+        val = cpu.a[base_reg_num]
+        if not val.is_known:
+            continue
+        concrete = val.concrete & 0xFFFFFFFF
+        if concrete not in candidates:
+            continue
+        if any(start <= concrete < end for start, end in relocated_runtime_ranges):
+            continue
+        concrete_hits[concrete] = concrete_hits.get(concrete, 0) + 1
+    if not concrete_hits:
+        return None
+    return max(sorted(concrete_hits), key=lambda concrete: concrete_hits[concrete])
+
+
 # -- Pipeline -------------------------------------------------------------
 
 def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
@@ -475,27 +540,47 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                           propagate=True, platform=platform)
     alloc_base = _SENTINEL_ALLOC_BASE
     alloc_limit = platform.next_alloc_sentinel
-    discovered_base = None
+    discovered_dynamic_base = None
     best_addr = None
     best_slots = 0
     for addr, (cpu, mem) in init_result.get("exit_states", {}).items():
         val = cpu.a[base_reg_num]
         if val.is_known and alloc_base <= val.concrete < alloc_limit:
-            if discovered_base is None:
-                discovered_base = val.concrete
+            if discovered_dynamic_base is None:
+                discovered_dynamic_base = val.concrete
             slots = sum(1 for a in mem._bytes
                         if alloc_base <= a < alloc_limit)
             if slots > best_slots:
                 best_slots = slots
                 best_addr = addr
-    if discovered_base is not None:
+    if discovered_dynamic_base is not None:
         print_fn(f"  Base register A{base_reg_num} "
-                 f"= ${discovered_base:08X} (from init"
+                 f"= ${discovered_dynamic_base:08X} (dynamic app base from init"
                  f", {best_slots} memory bytes)")
-        platform.initial_base_reg = (base_reg_num, discovered_base)
+        platform.app_base = AppBaseInfo(
+            kind=AppBaseKind.DYNAMIC,
+            reg_num=base_reg_num,
+            concrete=discovered_dynamic_base,
+        )
         if best_addr is not None:
             _, init_mem = init_result["exit_states"][best_addr]
             platform.initial_mem = init_mem
+    else:
+        absolute_base = _discover_absolute_app_base(
+            init_result["blocks"],
+            init_result.get("exit_states", {}),
+            base_reg_num,
+            relocated_segments,
+            len(code),
+        )
+        if absolute_base is not None:
+            print_fn(f"  Base register A{base_reg_num} "
+                     f"= ${absolute_base:08X} (absolute app anchor from init)")
+            platform.app_base = AppBaseInfo(
+                kind=AppBaseKind.ABSOLUTE,
+                reg_num=base_reg_num,
+                concrete=absolute_base,
+            )
 
     # -- Phase 1: Core analysis with resolution loop ------------------
     core_entries = {base_addr}
@@ -530,11 +615,10 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             seen.add(key)
             per_caller_entry_states.setdefault(target, []).append((cpu, mem))
 
-    def _resolve_and_expand():
-        """Run all resolution passes, return number of new entries."""
+    def _resolve_cheap_entries():
+        """Run non-per-caller entry discovery passes, return new entry count."""
         nonlocal jt_list
         nonlocal last_runtime_resolutions
-        nonlocal last_per_caller_resolutions
         nonlocal last_backward_resolutions
         added = 0
         jt_list = detect_jump_tables(result["blocks"], code,
@@ -562,23 +646,52 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             if r.target not in core_entries:
                 core_entries.add(r.target)
                 added += 1
-        last_per_caller_resolutions = resolve_per_caller(
-            result["blocks"],
-            result.get("exit_states", {}),
-            code, code_size,
-            platform=platform,
-            seed_entry_states=per_caller_entry_states)
-        for r in last_per_caller_resolutions:
-            _record_indirect_entry_states(r)
-            if r.target not in core_entries:
-                core_entries.add(r.target)
-                added += 1
         last_backward_resolutions = resolve_backward_slice(
             result["blocks"],
             result.get("exit_states", {}),
             code, code_size,
             platform=platform)
         for r in last_backward_resolutions:
+            if r.target not in core_entries:
+                core_entries.add(r.target)
+                added += 1
+        return added
+
+    def _resolve_per_caller_entries():
+        """Run expensive per-caller resolution after cheaper passes stabilize."""
+        nonlocal last_per_caller_resolutions
+        preclassified_calls = identify_library_calls(
+            result["blocks"], code, runtime_os,
+            result.get("exit_states", {}), result["call_targets"], platform)
+        preclassified_calls = refine_opened_base_calls(
+            result["blocks"], preclassified_calls, code, runtime_os, platform)
+        callback_setups = analyze_call_setups(
+            result["blocks"],
+            preclassified_calls,
+            runtime_os,
+            code,
+            platform,
+            base_addr=base_addr,
+            include_data_labels=False,
+        )
+        added = 0
+        for target in callback_setups.code_entry_points:
+            if target not in core_entries:
+                core_entries.add(target)
+                added += 1
+        if added:
+            last_per_caller_resolutions = []
+            return added
+        skip_site_addrs = frozenset(call.addr for call in preclassified_calls)
+        last_per_caller_resolutions = resolve_per_caller(
+            result["blocks"],
+            result.get("exit_states", {}),
+            code, code_size,
+            platform=platform,
+            seed_entry_states=per_caller_entry_states,
+            skip_site_addrs=skip_site_addrs)
+        for r in last_per_caller_resolutions:
+            _record_indirect_entry_states(r)
             if r.target not in core_entries:
                 core_entries.add(r.target)
                 added += 1
@@ -593,14 +706,17 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                              propagate=True, platform=platform)
             if entries_converged:
                 break  # just re-analyzed with new memory
-            if not _resolve_and_expand():
+            if _resolve_cheap_entries():
+                continue
+            if not _resolve_per_caller_entries():
                 entries_converged = True
                 break
 
         # Store pass: scan exit states for concrete stores to app memory
-        if platform.initial_base_reg is None:
+        if platform.app_base is None:
             break
-        breg_num, breg_val = platform.initial_base_reg
+        breg_num = platform.app_base.reg_num
+        breg_val = platform.app_base.concrete
         init_mem = platform.initial_mem
         if init_mem is None:
             break
@@ -865,3 +981,4 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         os_kb=os_kb,
         indirect_sites=indirect_sites,
     )
+

@@ -2820,13 +2820,16 @@ def _parse_sp_effects(operation, mnemonic):
 
     Returns a list of effect dicts, e.g.:
       [{"action": "push", "bytes": 4}, {"action": "adjust", "expr": "d"}]
-    Returns empty list if no SP effects.
+    Returns (effects, complete) where complete means the operation was fully
+    represented by structured SP effects.
+    Returns ([], False) if no SP effects.
     Raises RuntimeError if a clause references SP but no pattern matched.
     """
     if not operation or ("SP" not in operation and "SSP" not in operation):
-        return []
+        return [], False
 
     effects = []
+    complete = True
     unmatched_sp_clauses = []
     # Split on semicolons — each clause is one step
     clauses = [c.strip() for c in operation.split(";")]
@@ -2863,10 +2866,22 @@ def _parse_sp_effects(operation, mnemonic):
             effects.append({"action": "load_from_reg", "reg": "An"})
             continue
 
+        # (SP) → An  (load address register from stack, e.g. UNLK)
+        m = re.match(r"\(SP\)\s*→\s*An", clause)
+        if m:
+            effects.append({"action": "load_from_stack_to_reg", "bytes": 4, "reg": "An"})
+            continue
+
         # SP → An  (save SP to register, e.g. LINK)
         m = re.match(r"SP\s*→\s*An", clause)
         if m:
             effects.append({"action": "save_to_reg", "reg": "An"})
+            continue
+
+        # An → (SP)  (store address register to stack, e.g. LINK)
+        m = re.match(r"An\s*→\s*\(SP\)", clause)
+        if m:
+            effects.append({"action": "store_reg_to_stack", "bytes": 4, "reg": "An"})
             continue
 
         # Clauses that read/write through SP but don't change it (e.g. "PC → (SP)",
@@ -2877,6 +2892,10 @@ def _parse_sp_effects(operation, mnemonic):
         # If clause mentions SP/SSP and we didn't match, that's an error
         if "SP" in clause:
             unmatched_sp_clauses.append(clause)
+            complete = False
+            continue
+
+        complete = False
 
     if unmatched_sp_clauses:
         raise RuntimeError(
@@ -2884,7 +2903,50 @@ def _parse_sp_effects(operation, mnemonic):
             f"_parse_sp_effects:\n  " + "\n  ".join(unmatched_sp_clauses)
         )
 
-    return effects
+    return effects, complete
+
+
+def _sp_effects_complete(operation):
+    """Return True when the Operation field is fully represented by SP effects."""
+    if not operation or ("SP" not in operation and "SSP" not in operation):
+        return False
+
+    clauses = [c.strip() for c in operation.split(";")]
+    normalized_clauses = [
+        clause.replace("\u2013", "-").replace("\u2014", "-").replace("\u2192", "->")
+        for clause in clauses
+        if clause
+    ]
+    normalized_patterns = (
+        r"\*?S?SP\s*-\s*(\d+)\s*->\s*\*?S?[Ss][Pp]",
+        r"S?SP\s*\+\s*(\d+)\s*->\s*S?[Ss][Pp]",
+        r"S?SP\s*\+\s*([a-z_]\w*)\s*->\s*S?[Ss][Pp]",
+        r"S?SP\s*\+\s*(\d+)\s*\+\s*([a-z_]\w*)\s*->\s*S?[Ss][Pp]",
+        r"An\s*->\s*SP",
+        r"\(SP\)\s*->\s*An",
+        r"SP\s*->\s*An",
+        r"An\s*->\s*\(SP\)",
+    )
+    if all(any(re.match(pattern, clause) for pattern in normalized_patterns)
+           for clause in normalized_clauses):
+        return True
+
+    represented_patterns = (
+        r"\*?S?SP\s*[\u2013\u2014â€“-]\s*(\d+)\s*â†’\s*\*?S?[Ss][Pp]",
+        r"S?SP\s*\+\s*(\d+)\s*â†’\s*S?[Ss][Pp]",
+        r"S?SP\s*\+\s*([a-z_]\w*)\s*â†’\s*S?[Ss][Pp]",
+        r"S?SP\s*\+\s*(\d+)\s*\+\s*([a-z_]\w*)\s*â†’\s*S?[Ss][Pp]",
+        r"An\s*â†’\s*SP",
+        r"\(SP\)\s*â†’\s*An",
+        r"SP\s*â†’\s*An",
+        r"An\s*â†’\s*\(SP\)",
+    )
+    for clause in clauses:
+        if not clause:
+            continue
+        if not any(re.match(pattern, clause) for pattern in represented_patterns):
+            return False
+    return True
 
 
 def apply_sp_effects(kb_data):
@@ -2892,9 +2954,11 @@ def apply_sp_effects(kb_data):
     with_effects = 0
     for inst in kb_data:
         operation = inst.get("operation", "")
-        sp_effects = _parse_sp_effects(operation, inst["mnemonic"])
+        sp_effects, _complete = _parse_sp_effects(operation, inst["mnemonic"])
         if sp_effects:
             inst["sp_effects"] = sp_effects
+            if _sp_effects_complete(operation):
+                inst["sp_effects_complete"] = True
             with_effects += 1
     return with_effects
 

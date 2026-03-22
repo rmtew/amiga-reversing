@@ -235,7 +235,7 @@ class AbstractValue:
             if off == 0:
                 return self.sym_base
             return f"{self.sym_base}{off:+d}"
-        return f"?{self.label or ''}"
+        return f"-{self.label or ''}"
 
     def __eq__(self, other):
         if not isinstance(other, AbstractValue):
@@ -1504,12 +1504,16 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
     call resolution.
     """
     flow_type = runtime_m68k_analysis.FLOW_TYPES[inst_kb]
-    if flow_type in (_FLOW_CALL, _FLOW_RETURN):
-        sp_effects = runtime_m68k_analysis.SP_EFFECTS[mnemonic]
-    else:
-        sp_effects = runtime_m68k_analysis.SP_EFFECTS.get(mnemonic)
+    sp_effects = runtime_m68k_analysis.SP_EFFECTS.get(mnemonic)
     if not sp_effects:
         return
+
+    def _address_effect_reg(aux: str | None) -> int:
+        if aux != "An":
+            raise KeyError(f"{mnemonic}: unsupported SP effect register target {aux!r}")
+        if d.reg_num is None:
+            raise KeyError(f"{mnemonic}: missing decoded An register for SP effect")
+        return d.reg_num
 
     for effect in sp_effects:
         action, nbytes, _aux = effect
@@ -1542,6 +1546,39 @@ def _apply_sp_effects(inst, inst_kb, d, cpu, mem, mnemonic, platform,
                     cpu.sp = _concrete(cpu.sp.concrete + disp)
                 elif cpu.sp.is_symbolic:
                     cpu.sp = cpu.sp.sym_add(disp)
+        elif action == runtime_m68k_analysis.SpEffectAction.STORE_REG_TO_STACK:
+            reg_num = _address_effect_reg(_aux)
+            if nbytes is None:
+                raise KeyError(f"sp_effects.bytes missing for {mnemonic} action={action}")
+            if nbytes == 1:
+                stack_size = "b"
+            elif nbytes == 2:
+                stack_size = "w"
+            elif nbytes == 4:
+                stack_size = "l"
+            else:
+                raise KeyError(f"{mnemonic}: unsupported stack size {nbytes} for {action}")
+            mem.write(cpu.sp, cpu.get_reg("an", reg_num), stack_size)
+        elif action == runtime_m68k_analysis.SpEffectAction.SAVE_TO_REG:
+            reg_num = _address_effect_reg(_aux)
+            cpu.set_reg("an", reg_num, cpu.sp)
+        elif action == runtime_m68k_analysis.SpEffectAction.LOAD_FROM_REG:
+            reg_num = _address_effect_reg(_aux)
+            cpu.sp = cpu.get_reg("an", reg_num)
+        elif action == runtime_m68k_analysis.SpEffectAction.LOAD_FROM_STACK_TO_REG:
+            reg_num = _address_effect_reg(_aux)
+            if nbytes is None:
+                raise KeyError(f"sp_effects.bytes missing for {mnemonic} action={action}")
+            if nbytes == 1:
+                stack_size = "b"
+            elif nbytes == 2:
+                stack_size = "w"
+            elif nbytes == 4:
+                stack_size = "l"
+            else:
+                raise KeyError(f"{mnemonic}: unsupported stack size {nbytes} for {action}")
+            stack_val = mem.read(cpu.sp, stack_size)
+            cpu.set_reg("an", reg_num, stack_val)
 
     # For call instructions (JSR/BSR), write the return address to
     # the stack.  The return address is the instruction immediately
@@ -1796,6 +1833,8 @@ def _apply_instruction(inst: Instruction, inst_kb: dict,
         )
         and formula is None
     ):
+        if mnemonic in runtime_m68k_analysis.SP_EFFECTS_COMPLETE:
+            return
         formula = runtime_m68k_analysis.COMPUTE_FORMULAS[mnemonic]
         op = formula[0]
     if op_type == runtime_m68k_executor.OperationType.BOUNDS_CHECK:
@@ -1884,11 +1923,10 @@ def propagate_states(blocks: dict[int, BasicBlock],
             # Symbolic SP survives joins (same base+offset -> keep).
             initial_state.sp = _symbolic("SP_entry", 0)
             # Set initial base register if discovered from prior pass
-            base_info = platform.initial_base_reg
+            base_info = platform.app_base
             if base_info:
-                reg_num, concrete_val = base_info
-                initial_state.set_reg("an", reg_num,
-                                      _concrete(concrete_val))
+                initial_state.set_reg(
+                    "an", base_info.reg_num, _concrete(base_info.concrete))
     if initial_mem is None:
         # Use init-discovered memory if available (base-region contents
         # from the init routine, e.g. library bases stored at d(An))
@@ -1961,11 +1999,10 @@ def propagate_states(blocks: dict[int, BasicBlock],
         # used it for ExecBase). Restoring it here is safe and enables
         # library call resolution downstream.
         if platform:
-            base_info = platform.initial_base_reg
+            base_info = platform.app_base
             if base_info:
-                breg_num, breg_val = base_info
-                if not cpu.a[breg_num].is_known:
-                    cpu.set_reg("an", breg_num, _concrete(breg_val))
+                if not cpu.a[base_info.reg_num].is_known:
+                    cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
 
         # Fixpoint check: skip if state unchanged from last visit.
         if addr in visited and addr in exit_states:
@@ -2315,11 +2352,10 @@ def _call_fallthrough_state(exit_cpu: _CPUState,
                             platform) -> _CPUState:
     if summary:
         ft_cpu = _apply_summary(exit_cpu, summary)
-        base_info = platform.initial_base_reg if platform else None
+        base_info = platform.app_base if platform else None
         if base_info:
-            breg_num, breg_val = base_info
-            if not ft_cpu.a[breg_num].is_known:
-                ft_cpu.set_reg("an", breg_num, _concrete(breg_val))
+            if not ft_cpu.a[base_info.reg_num].is_known:
+                ft_cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
     else:
         ft_cpu = exit_cpu.copy()
         if exit_cpu.sp.is_known:
@@ -2535,3 +2571,4 @@ if __name__ == "__main__":
                 if mem_ranges:
                     print(f"  ; mem: {len(mem_ranges)} known ranges")
             print()
+

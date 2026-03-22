@@ -20,10 +20,11 @@ from tests.runtime_kb_helpers import (
     load_canonical_hunk_kb,
     load_canonical_m68k_kb,
     load_m68k_decode_runtime_module,
-    load_m68k_disasm_runtime_module,
     load_m68k_executor_runtime_module,
     load_canonical_naming_rules,
+    load_canonical_hardware_symbols,
     load_canonical_os_kb,
+    load_hardware_runtime_kb,
     load_hunk_runtime_kb,
     load_m68k_runtime_module,
     load_naming_runtime_kb,
@@ -93,6 +94,7 @@ def test_runtime_kb_generation_is_deterministic():
         RUNTIME_PY / "runtime_os.py",
         RUNTIME_PY / "runtime_hunk.py",
         RUNTIME_PY / "runtime_naming.py",
+        RUNTIME_PY / "runtime_hardware.py",
     ]
     before = {path: path.read_bytes() for path in targets}
     subprocess.run([sys.executable, str(script)], check=True)
@@ -112,6 +114,42 @@ def test_runtime_os_meta_has_named_base_structs():
     assert os_kb.META.named_base_structs["realtime.library"] == "RealTimeBase"
     assert os_kb.META.named_base_structs["utility.library"] == "UtilityBase"
     assert os_kb.META.named_base_structs["expansion.library"] == "ExpansionBase"
+
+
+def test_runtime_os_input_semantic_kinds_cover_callback_cases():
+    os_kb = load_os_runtime_kb()
+
+    assert os_kb.LIBRARIES["exec.library"].functions["Supervisor"].inputs[0].semantic_kind == "code_ptr"
+    assert os_kb.LIBRARIES["exec.library"].functions["Supervisor"].inputs[0].semantic_note is None
+    assert os_kb.LIBRARIES["graphics.library"].functions["SetCollision"].inputs[1].semantic_kind == "code_ptr"
+    assert os_kb.LIBRARIES["exec.library"].functions["AddTask"].inputs[1].semantic_kind == "code_ptr"
+    assert os_kb.LIBRARIES["exec.library"].functions["AddTask"].inputs[2].semantic_kind == "code_ptr"
+    assert os_kb.LIBRARIES["exec.library"].functions["SetFunction"].inputs[2].semantic_kind == "code_ptr"
+    assert os_kb.LIBRARIES["exec.library"].functions["SetFunction"].inputs[2].semantic_note is None
+    assert os_kb.LIBRARIES["exec.library"].functions["ObtainQuickVector"].inputs[0].semantic_kind == "code_ptr"
+    assert os_kb.LIBRARIES["exec.library"].functions["ObtainQuickVector"].inputs[0].semantic_note
+    assert os_kb.LIBRARIES["lowlevel.library"].functions["AddKBInt"].inputs[0].semantic_kind == "code_ptr"
+    assert os_kb.LIBRARIES["lowlevel.library"].functions["AddTimerInt"].inputs[0].semantic_kind == "code_ptr"
+    assert os_kb.LIBRARIES["lowlevel.library"].functions["AddVBlankInt"].inputs[0].semantic_kind == "code_ptr"
+
+
+def test_runtime_hardware_matches_canonical_hardware_symbols():
+    canonical = load_canonical_hardware_symbols()
+    runtime = load_hardware_runtime_kb()
+
+    assert runtime.META == canonical["_meta"]
+    expected = {
+        int(entry["cpu_address"], 16): {
+            "symbol": entry["symbols"][0],
+            "aliases": tuple(entry["symbols"][1:]),
+            "family": entry["family"],
+            "include": entry["include"],
+            "base_symbol": entry["base_symbol"],
+            "offset": int(entry["offset"], 16),
+        }
+        for entry in canonical["registers"]
+    }
+    assert runtime.REGISTER_DEFS == expected
 
 
 def test_runtime_size_encodings_match_canonical_structured_size_encoding():
@@ -315,21 +353,6 @@ def test_runtime_decode_module_exposes_direct_decode_constants():
     assert payload.MOVEM_FIELDS["dr"] == (10, 10, 1)
     assert payload.IMMEDIATE_RANGES["MOVEQ"] == ("DATA", 8, True, -128, 127, None)
     assert payload.FORM_OPERAND_TYPES["RTS"] == ((),)
-
-
-def test_runtime_disasm_module_exposes_direct_disasm_constants():
-    payload = load_m68k_disasm_runtime_module()
-    canonical = load_canonical_m68k_kb()
-    assert payload.MOVEM_REG_MASKS == canonical["_meta"]["movem_reg_masks"]
-    assert payload.CONDITION_CODES == tuple(canonical["_meta"]["condition_codes"])
-    assert payload.CPU_HIERARCHY == canonical["_meta"]["cpu_hierarchy"]
-    assert payload.PMMU_CONDITION_CODES == tuple(canonical["_meta"]["pmmu_condition_codes"])
-    assert payload.DEFAULT_OPERAND_SIZE == canonical["_meta"]["default_operand_size"]
-    assert payload.FORM_OPERAND_TYPES["BFINS"][0][0] == "dn"
-    assert payload.FORM_OPERAND_TYPES["RTS"] == ((),)
-    assert payload.CPID_FIELD == (9, 3)
-
-
 def test_runtime_asm_module_exposes_direct_asm_constants():
     payload = load_m68k_asm_runtime_module()
     canonical = load_canonical_m68k_kb()
@@ -694,48 +717,6 @@ def test_runtime_loader_requires_decode_opword_bytes(monkeypatch):
             load_m68k_decode_runtime_module()
     finally:
         load_m68k_decode_runtime_module.cache_clear()
-
-
-def test_runtime_loader_requires_disasm_condition_codes(monkeypatch):
-    load_m68k_disasm_runtime_module.cache_clear()
-
-    class FakeModule:
-        MNEMONIC_INDEX = {}
-        ENCODING_COUNTS = {}
-        ENCODING_MASKS = ()
-        FIXED_OPCODES = {}
-        EXT_FIELD_NAMES = {}
-        FIELD_MAPS = ()
-        RAW_FIELDS = ()
-        FORM_OPERAND_TYPES = {}
-        EA_BRIEF_FIELDS = {}
-        MOVEM_REG_MASKS = {}
-        DEST_REG_FIELD = {}
-        BF_MNEMONICS = ()
-        BITOP_NAMES = ({}, (0, 0, 0))
-        IMM_NAMES = ({}, (0, 0, 0))
-        SHIFT_NAMES = {}
-        SHIFT_TYPE_FIELDS = ()
-        SHIFT_FIELDS = {}
-        RM_FIELD = {}
-        ADDQ_ZERO_MEANS = 8
-        CONTROL_REGISTERS = {}
-        SIZE_ENCODINGS_DISASM = {}
-        PROCESSOR_MINS = {}
-        OPMODE_TABLES_BY_VALUE = {}
-        CONDITION_FAMILIES = ()
-        CPU_HIERARCHY = {}
-        PMMU_CONDITION_CODES = ()
-        DEFAULT_OPERAND_SIZE = "w"
-        MOVE_FIELDS = ()
-        CPID_FIELD = ()
-
-    monkeypatch.setattr("tests.runtime_kb_helpers._load_runtime_module", lambda _: FakeModule)
-    try:
-        with pytest.raises(KeyError, match="CONDITION_CODES"):
-            load_m68k_disasm_runtime_module()
-    finally:
-        load_m68k_disasm_runtime_module.cache_clear()
 
 
 def test_runtime_loader_requires_asm_immediate_routing(monkeypatch):

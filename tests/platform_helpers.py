@@ -1,13 +1,20 @@
-from m68k.os_calls import PlatformState, get_platform_config
+from m68k.os_calls import AppBaseInfo, AppBaseKind, PlatformState, get_platform_config
 
 
-def make_platform(*, scratch_regs=None, initial_base_reg=None, initial_mem=None,
+def make_platform(*, scratch_regs=None, app_base=None, initial_mem=None,
                   pending_call_effect=None, summary_cache=None) -> PlatformState:
     platform = get_platform_config()
     if scratch_regs is not None:
         platform.scratch_regs = tuple(scratch_regs)
-    if initial_base_reg is not None:
-        platform.initial_base_reg = initial_base_reg
+    if app_base is not None:
+        if isinstance(app_base, tuple):
+            platform.app_base = AppBaseInfo(
+                kind=AppBaseKind.DYNAMIC,
+                reg_num=app_base[0],
+                concrete=app_base[1],
+            )
+        else:
+            platform.app_base = app_base
     if initial_mem is not None:
         platform.initial_mem = initial_mem
     if pending_call_effect is not None:

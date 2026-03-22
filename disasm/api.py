@@ -34,7 +34,7 @@ def serialize_operand(operand: SemanticOperand) -> dict:
         "register": operand.register,
         "base_register": operand.base_register,
         "displacement": operand.displacement,
-        "target_addr": operand.target_addr,
+        "segment_addr": operand.segment_addr,
         "metadata": _semantic_metadata_dict(operand.metadata),
     }
 

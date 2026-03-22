@@ -74,8 +74,10 @@ class SpEffectAction(StrEnum):
     DECREMENT = 'decrement'
     INCREMENT = 'increment'
     ADJUST = 'adjust'
+    STORE_REG_TO_STACK = 'store_reg_to_stack'
     SAVE_TO_REG = 'save_to_reg'
     LOAD_FROM_REG = 'load_from_reg'
+    LOAD_FROM_STACK_TO_REG = 'load_from_stack_to_reg'
 ComputeFormula: TypeAlias = tuple[ComputeOp, tuple[FormulaTerm | int, ...], tuple[int, int] | None, tuple[int, int] | None, tuple[tuple[str, int], ...], TruncationMode | None]
 PrimaryDataSize: TypeAlias = tuple[PrimaryDataSizeKind, int, int, int]
 SpEffect: TypeAlias = tuple[SpEffectAction, int | None, str | None]
@@ -268,12 +270,12 @@ IMPLICIT_OPERANDS = {'CLR': 0, 'NBCD': 0, 'NEG': 0, 'NEGX': 0}
 SP_EFFECTS = {'BSR': ((SpEffectAction.DECREMENT, 4, None),),
  'ILLEGAL': ((SpEffectAction.DECREMENT, 2, None),),
  'JSR': ((SpEffectAction.DECREMENT, 4, None),),
- 'LINK': ((SpEffectAction.DECREMENT, 4, None), (SpEffectAction.SAVE_TO_REG, None, 'An'), (SpEffectAction.ADJUST, None, 'd'),),
+ 'LINK': ((SpEffectAction.DECREMENT, 4, None), (SpEffectAction.STORE_REG_TO_STACK, 4, 'An'), (SpEffectAction.SAVE_TO_REG, None, 'An'), (SpEffectAction.ADJUST, None, 'd'),),
  'PEA': ((SpEffectAction.DECREMENT, 4, None),),
  'RTD': ((SpEffectAction.INCREMENT, 4, None), (SpEffectAction.ADJUST, None, 'd'),),
  'RTR': ((SpEffectAction.INCREMENT, 2, None), (SpEffectAction.INCREMENT, 4, None),),
  'RTS': ((SpEffectAction.INCREMENT, 4, None),),
- 'UNLK': ((SpEffectAction.LOAD_FROM_REG, None, 'An'), (SpEffectAction.INCREMENT, 4, None),)}
+ 'UNLK': ((SpEffectAction.LOAD_FROM_REG, None, 'An'), (SpEffectAction.LOAD_FROM_STACK_TO_REG, 4, 'An'), (SpEffectAction.INCREMENT, 4, None),)}
 PRIMARY_DATA_SIZES = {'DIVS, DIVSL': (PrimaryDataSizeKind.DIVIDE, 16, 32, 16),
  'DIVU, DIVUL': (PrimaryDataSizeKind.DIVIDE, 16, 32, 16),
  'MULS': (PrimaryDataSizeKind.MULTIPLY, 16, 16, 32),

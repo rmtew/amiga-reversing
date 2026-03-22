@@ -80,7 +80,7 @@ class SemanticOperand:
     register: str | None = None
     base_register: str | None = None
     displacement: int | None = None
-    target_addr: int | None = None
+    segment_addr: int | None = None
     metadata: SemanticOperandMetadata = field(default_factory=dict)
 
 
@@ -141,18 +141,23 @@ class JumpTableRegion:
 class HunkMetadata:
     code_addrs: set[int]
     hint_addrs: set[int]
+    hint_blocks: dict[int, object]
     reloc_map: dict[int, int]
     reloc_target_set: set[int]
     pc_targets: dict[int, str]
     string_addrs: set[int]
-    core_absolute_targets: set[int]
+    generic_data_label_addrs: set[int]
     jump_table_regions: dict[int, JumpTableRegion]
     jump_table_target_sources: dict[int, tuple[str, ...]]
     labels: dict[int, str]
+    string_ranges: dict[int, int] = field(default_factory=dict)
+    absolute_labels: dict[int, str] = field(default_factory=dict)
+    reserved_absolute_addrs: set[int] = field(default_factory=set)
 
 
 InstructionRegionMap: TypeAlias = dict[int, dict[str, TypedMemoryRegion]]
 AppStructRegionMap: TypeAlias = dict[int, TypedMemoryRegion]
+HardwareBaseRegMap: TypeAlias = dict[int, dict[str, int]]
 
 
 @dataclass
@@ -169,7 +174,6 @@ class HunkDisassemblySession:
     reloc_target_set: set[int]
     pc_targets: dict[int, str]
     string_addrs: set[int]
-    core_absolute_targets: set[int]
     labels: dict[int, str]
     jump_table_regions: dict[int, JumpTableRegion]
     jump_table_target_sources: dict[int, tuple[str, ...]]
@@ -183,13 +187,16 @@ class HunkDisassemblySession:
     data_access_sizes: dict[int, int]
     platform: PlatformState
     os_kb: OsKb
-    fixed_abs_addrs: set[int]
     base_addr: int
     code_start: int
     relocated_segments: list[RelocatedSegment]
     reloc_file_offset: int
     reloc_base_addr: int
+    string_ranges: dict[int, int] = field(default_factory=dict)
+    absolute_labels: dict[int, str] = field(default_factory=dict)
+    reserved_absolute_addrs: set[int] = field(default_factory=set)
     app_struct_regions: AppStructRegionMap = field(default_factory=dict)
+    hardware_base_regs: HardwareBaseRegMap = field(default_factory=dict)
     unresolved_indirects: dict[int, IndirectSite] = field(default_factory=dict)
 
 

@@ -29,6 +29,20 @@ def find_sub_blocks(entry: int, blocks: dict, call_targets: set) -> set[int]:
     return owned
 
 
+def cached_sub_blocks(entry: int,
+                      blocks: dict,
+                      call_targets: set,
+                      cache: dict[int, set[int]],
+                      owner_map: dict[int, int] | None = None) -> set[int]:
+    if entry not in cache:
+        owned = find_sub_blocks(entry, blocks, call_targets)
+        cache[entry] = owned
+        if owner_map is not None:
+            for addr in owned:
+                owner_map.setdefault(addr, entry)
+    return cache[entry]
+
+
 def _reg_modified_in_sub(blocks: dict, sub_entry: int,
                          dispatch_addr: int,
                          reg_mode: str, reg_num: int,
@@ -188,10 +202,10 @@ def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
 def restore_base_reg(cpu, platform: dict | None):
     """Restore configured base register if the current state lost it."""
     if platform:
-        base_info = platform.initial_base_reg
+        base_info = platform.app_base
         if base_info:
-            breg_num, breg_val = base_info
-            if not cpu.a[breg_num].is_known:
+            if not cpu.a[base_info.reg_num].is_known:
                 from .m68k_executor import _concrete
-                cpu.set_reg("an", breg_num, _concrete(breg_val))
+                cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
     return cpu
+

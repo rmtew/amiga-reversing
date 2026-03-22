@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from m68k_kb import runtime_hardware
+
 from disasm.hint_validation import is_valid_hint_block
 from disasm.instruction_rows import (emit_data_rows, make_instruction_row,
                                      make_row, make_text_rows,
@@ -14,11 +16,68 @@ from disasm.types import (BlockRowContext, DisassemblySession,
 from disasm.session import build_disassembly_session
 
 
+def _app_slot_equ_value(base_info, offset: int) -> str:
+    if base_info.kind.name == "ABSOLUTE":
+        addr = (base_info.concrete + offset) & 0xFFFFFFFF
+        return f"${addr:X}"
+    return str(offset)
+
+
 def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
     rows: list[ListingRow] = []
     for hunk_session in session.hunk_sessions:
         rows.extend(_emit_hunk_rows(hunk_session, session.binary_path))
     return rows
+
+
+def _collect_used_absolute_addrs(rows: list[ListingRow],
+                                 hunk_session: HunkDisassemblySession) -> set[int]:
+    used: set[int] = set()
+    for row in rows:
+        for operand in row.operand_parts:
+            if operand.segment_addr is None:
+                continue
+            if operand.segment_addr in runtime_hardware.REGISTER_DEFS:
+                used.add(operand.segment_addr)
+                continue
+            label = hunk_session.absolute_labels.get(operand.segment_addr)
+            if label is None:
+                continue
+            if operand.text in {label, f"#{label}"}:
+                used.add(operand.segment_addr)
+    return used
+
+
+def _absolute_symbol_rows(used_absolute_addrs: set[int],
+                          hunk_session: HunkDisassemblySession
+                          ) -> tuple[list[ListingRow], set[str]]:
+    equ_rows: list[ListingRow] = []
+    include_paths: set[str] = set()
+    equ_defs: list[tuple[int, str]] = []
+    for addr in sorted(used_absolute_addrs):
+        register = runtime_hardware.REGISTER_DEFS.get(addr)
+        if register is not None and register["include"]:
+            include = register["include"]
+            if not include:
+                raise ValueError(
+                    f"Missing include path for hardware register ${addr:08X} ({register['symbol']})"
+                )
+            include_paths.add(include)
+            continue
+        label = hunk_session.absolute_labels.get(addr)
+        if label is None:
+            raise ValueError(f"Missing absolute label for used address ${addr:08X}")
+        equ_defs.append((addr, label))
+    if equ_defs:
+        equ_rows.append(make_row("comment", "; Absolute symbols\n"))
+        for addr, name in equ_defs:
+            equ_rows.append(make_row(
+                "directive",
+                f"{name}\tEQU\t${addr:X}\n",
+                opcode_or_directive="EQU",
+            ))
+        equ_rows.append(make_row("blank", "\n"))
+    return equ_rows, include_paths
 
 
 def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
@@ -64,16 +123,23 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             ))
         rows.append(make_row("blank", "\n"))
 
-    base_info = hunk_session.platform.initial_base_reg
+    base_info = hunk_session.platform.app_base
     if hunk_session.app_offsets:
+        if base_info.kind.name == "ABSOLUTE":
+            comment = (
+                f"; App memory addresses (base register A{base_info.reg_num} "
+                f"anchored at ${base_info.concrete:X})\n"
+            )
+        else:
+            comment = f"; App memory offsets (base register A{base_info.reg_num})\n"
         rows.append(make_row(
             "comment",
-            f"; App memory offsets (base register A{base_info[0]})\n",
+            comment,
         ))
         for off in sorted(hunk_session.app_offsets):
             rows.append(make_row(
                 "directive",
-                f"{hunk_session.app_offsets[off]}\tEQU\t{off}\n",
+                f"{hunk_session.app_offsets[off]}\tEQU\t{_app_slot_equ_value(base_info, off)}\n",
                 opcode_or_directive="EQU",
             ))
         rows.append(make_row("blank", "\n"))
@@ -205,26 +271,37 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 emit_data(pos, data_end, entity_addr)
                 pos = data_end
 
+    used_absolute_addrs = _collect_used_absolute_addrs(rows, hunk_session)
+    absolute_symbol_rows, hardware_includes = _absolute_symbol_rows(
+        used_absolute_addrs, hunk_session)
+    if absolute_symbol_rows:
+        insert_at = 0
+        for idx, row in enumerate(rows):
+            if row.kind == "section":
+                insert_at = idx
+                break
+        rows[insert_at:insert_at] = absolute_symbol_rows
+
+    includes = set(hardware_includes)
     if used_structs:
-        includes = set()
         for struct_name in sorted(used_structs):
             struct_def = hunk_session.os_kb.STRUCTS[struct_name]
             includes.add(struct_def.source.lower())
-        if includes:
-            insert_at = 0
-            for idx, row in enumerate(rows):
-                if row.kind == "section":
-                    insert_at = idx
-                    break
-            include_rows = []
-            for inc in sorted(includes):
-                include_rows.append(make_row(
-                    "directive",
-                    f'    INCLUDE "{inc}"\n',
-                    opcode_or_directive="INCLUDE",
-                ))
-            include_rows.append(make_row("blank", "\n"))
-            rows[insert_at:insert_at] = include_rows
+    if includes:
+        insert_at = 0
+        for idx, row in enumerate(rows):
+            if row.kind == "section":
+                insert_at = idx
+                break
+        include_rows = []
+        for inc in sorted(includes):
+            include_rows.append(make_row(
+                "directive",
+                f'    INCLUDE "{inc}"\n',
+                opcode_or_directive="INCLUDE",
+            ))
+        include_rows.append(make_row("blank", "\n"))
+        rows[insert_at:insert_at] = include_rows
 
     return rows
 
@@ -250,3 +327,4 @@ def build_listing_window(binary_path: str, entities_path: str,
 
 def render_session_text(session: DisassemblySession) -> str:
     return render_rows(emit_session_rows(session))
+

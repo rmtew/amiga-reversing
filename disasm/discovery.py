@@ -59,15 +59,15 @@ def discover_absolute_targets(blocks: dict, code_size: int) -> set[int]:
     return {target for target in targets if 0 <= target < code_size}
 
 
-def filter_core_absolute_targets(targets: set[int],
-                                 code_addrs: set[int],
-                                 fixed_addrs: set[int]) -> set[int]:
-    """Keep core absolute refs unless they hit code or fixed system addresses."""
-    return set(targets) - code_addrs - fixed_addrs
+def filter_internal_absolute_data_targets(targets: set[int],
+                                          code_addrs: set[int],
+                                          reserved_addrs: set[int]) -> set[int]:
+    """Keep internal absolute data refs unless they hit code or reserved symbols."""
+    return set(targets) - code_addrs - reserved_addrs
 
 
 def build_label_map(entities: list[dict], blocks: dict,
-                    reloc_targets: set[int], absolute_targets: set[int],
+                    reloc_targets: set[int], internal_absolute_data_targets: set[int],
                     pc_targets: dict[int, str]) -> dict[int, str]:
     """Build label names from entities, blocks, relocations, and PC refs."""
     labels = {}
@@ -87,7 +87,7 @@ def build_label_map(entities: list[dict], blocks: dict,
         if addr not in labels:
             labels[addr] = f"dat_{addr:04x}"
 
-    for addr in sorted(absolute_targets):
+    for addr in sorted(internal_absolute_data_targets):
         if addr not in labels:
             labels[addr] = f"dat_{addr:04x}"
 
@@ -96,6 +96,19 @@ def build_label_map(entities: list[dict], blocks: dict,
             labels[addr] = name
 
     return labels
+
+
+def apply_generic_data_label_promotions(labels: dict[int, str],
+                                        pc_targets: dict[int, str],
+                                        generic_label_addrs: set[int],
+                                        promoted_labels: dict[int, str]) -> None:
+    """Promote explicit generic data labels to typed names."""
+    for addr, promoted in promoted_labels.items():
+        if addr not in generic_label_addrs:
+            continue
+        labels[addr] = promoted
+        if addr in pc_targets:
+            pc_targets[addr] = promoted
 
 
 def add_hint_labels(labels: dict[int, str], hint_blocks: dict,

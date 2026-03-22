@@ -1,0 +1,1349 @@
+{
+  "_meta": {
+    "source": "NDK hardware includes",
+    "include_dir": "hardware/",
+    "files": {
+      "custom": {
+        "path": "hardware/custom.i",
+        "version": "custom.i 39.1 (18.9.92)"
+      },
+      "cia": {
+        "path": "hardware/cia.i",
+        "version": "cia.i 39.1 (18.9.92)"
+      }
+    }
+  },
+  "registers": [
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF000",
+      "offset": "0x000",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltddat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF002",
+      "offset": "0x002",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "dmaconr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF004",
+      "offset": "0x004",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vposr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF006",
+      "offset": "0x006",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vhposr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF008",
+      "offset": "0x008",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "dskdatr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF00A",
+      "offset": "0x00A",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "joy0dat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF00C",
+      "offset": "0x00C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "joy1dat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF00E",
+      "offset": "0x00E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "clxdat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF010",
+      "offset": "0x010",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "adkconr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF012",
+      "offset": "0x012",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "pot0dat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF014",
+      "offset": "0x014",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "pot1dat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF016",
+      "offset": "0x016",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "potinp"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF018",
+      "offset": "0x018",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "serdatr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF01A",
+      "offset": "0x01A",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "dskbytr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF01C",
+      "offset": "0x01C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "intenar"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF01E",
+      "offset": "0x01E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "intreqr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF020",
+      "offset": "0x020",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "dskpt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF024",
+      "offset": "0x024",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "dsklen"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF026",
+      "offset": "0x026",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "dskdat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF028",
+      "offset": "0x028",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "refptr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF02A",
+      "offset": "0x02A",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vposw"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF02C",
+      "offset": "0x02C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vhposw"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF02E",
+      "offset": "0x02E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "copcon"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF030",
+      "offset": "0x030",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "serdat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF032",
+      "offset": "0x032",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "serper"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF034",
+      "offset": "0x034",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "potgo"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF036",
+      "offset": "0x036",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "joytest"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF038",
+      "offset": "0x038",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "strequ"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF03A",
+      "offset": "0x03A",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "strvbl"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF03C",
+      "offset": "0x03C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "strhor"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF03E",
+      "offset": "0x03E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "strlong"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF040",
+      "offset": "0x040",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltcon0"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF042",
+      "offset": "0x042",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltcon1"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF044",
+      "offset": "0x044",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltafwm"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF046",
+      "offset": "0x046",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltalwm"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF048",
+      "offset": "0x048",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltcpt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF04C",
+      "offset": "0x04C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltbpt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF050",
+      "offset": "0x050",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltapt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF054",
+      "offset": "0x054",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltdpt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF058",
+      "offset": "0x058",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltsize"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF05B",
+      "offset": "0x05B",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltcon0l"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF05C",
+      "offset": "0x05C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltsizv"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF05E",
+      "offset": "0x05E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltsizh"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF060",
+      "offset": "0x060",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltcmod"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF062",
+      "offset": "0x062",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltbmod"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF064",
+      "offset": "0x064",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltamod"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF066",
+      "offset": "0x066",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltdmod"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF070",
+      "offset": "0x070",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltcdat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF072",
+      "offset": "0x072",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltbdat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF074",
+      "offset": "0x074",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bltadat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF07C",
+      "offset": "0x07C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "deniseid"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF07E",
+      "offset": "0x07E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "dsksync"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF080",
+      "offset": "0x080",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "cop1lc"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF084",
+      "offset": "0x084",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "cop2lc"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF088",
+      "offset": "0x088",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "copjmp1"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF08A",
+      "offset": "0x08A",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "copjmp2"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF08C",
+      "offset": "0x08C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "copins"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF08E",
+      "offset": "0x08E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "diwstrt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF090",
+      "offset": "0x090",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "diwstop"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF092",
+      "offset": "0x092",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "ddfstrt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF094",
+      "offset": "0x094",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "ddfstop"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF096",
+      "offset": "0x096",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "dmacon"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF098",
+      "offset": "0x098",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "clxcon"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF09A",
+      "offset": "0x09A",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "intena"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF09C",
+      "offset": "0x09C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "intreq"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF09E",
+      "offset": "0x09E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "adkcon"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF0A0",
+      "offset": "0x0A0",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "aud0",
+        "aud"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF0B0",
+      "offset": "0x0B0",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "aud1"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF0C0",
+      "offset": "0x0C0",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "aud2"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF0D0",
+      "offset": "0x0D0",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "aud3"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF0E0",
+      "offset": "0x0E0",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bplpt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF100",
+      "offset": "0x100",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bplcon0"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF102",
+      "offset": "0x102",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bplcon1"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF104",
+      "offset": "0x104",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bplcon2"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF106",
+      "offset": "0x106",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bplcon3"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF108",
+      "offset": "0x108",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bpl1mod"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF10A",
+      "offset": "0x10A",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bpl2mod"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF10C",
+      "offset": "0x10C",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bplcon4"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF10E",
+      "offset": "0x10E",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "clxcon2"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF110",
+      "offset": "0x110",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bpldat"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF120",
+      "offset": "0x120",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "sprpt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF140",
+      "offset": "0x140",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "spr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF180",
+      "offset": "0x180",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "color"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1C0",
+      "offset": "0x1C0",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "htotal"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1C2",
+      "offset": "0x1C2",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "hsstop"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1C4",
+      "offset": "0x1C4",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "hbstrt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1C6",
+      "offset": "0x1C6",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "hbstop"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1C8",
+      "offset": "0x1C8",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vtotal"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1CA",
+      "offset": "0x1CA",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vsstop"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1CC",
+      "offset": "0x1CC",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vbstrt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1CE",
+      "offset": "0x1CE",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vbstop"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1D0",
+      "offset": "0x1D0",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "sprhstrt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1D2",
+      "offset": "0x1D2",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "sprhstop"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1D4",
+      "offset": "0x1D4",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bplhstrt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1D6",
+      "offset": "0x1D6",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "bplhstop"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1D8",
+      "offset": "0x1D8",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "hhposw"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1DA",
+      "offset": "0x1DA",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "hhposr"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1DC",
+      "offset": "0x1DC",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "beamcon0"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1DE",
+      "offset": "0x1DE",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "hsstrt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1E0",
+      "offset": "0x1E0",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "vsstrt"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1E2",
+      "offset": "0x1E2",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "hcenter"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1E4",
+      "offset": "0x1E4",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "diwhigh"
+      ]
+    },
+    {
+      "family": "custom",
+      "cpu_address": "0xDFF1FC",
+      "offset": "0x1FC",
+      "include": "hardware/custom.i",
+      "base_symbol": "_custom",
+      "symbols": [
+        "fmode"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE001",
+      "offset": "0x0000",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciapra"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE101",
+      "offset": "0x0100",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciaprb"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE201",
+      "offset": "0x0200",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciaddra"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE301",
+      "offset": "0x0300",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciaddrb"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE401",
+      "offset": "0x0400",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciatalo"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE501",
+      "offset": "0x0500",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciatahi"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE601",
+      "offset": "0x0600",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciatblo"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE701",
+      "offset": "0x0700",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciatbhi"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE801",
+      "offset": "0x0800",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciatodlow"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFE901",
+      "offset": "0x0900",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciatodmid"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFEA01",
+      "offset": "0x0A00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciatodhi"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFEC01",
+      "offset": "0x0C00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciasdr"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFED01",
+      "offset": "0x0D00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciaicr"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFEE01",
+      "offset": "0x0E00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciacra"
+      ]
+    },
+    {
+      "family": "ciaa",
+      "cpu_address": "0xBFEF01",
+      "offset": "0x0F00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciaa",
+      "symbols": [
+        "ciacrb"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD000",
+      "offset": "0x0000",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciapra"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD100",
+      "offset": "0x0100",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciaprb"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD200",
+      "offset": "0x0200",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciaddra"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD300",
+      "offset": "0x0300",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciaddrb"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD400",
+      "offset": "0x0400",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciatalo"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD500",
+      "offset": "0x0500",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciatahi"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD600",
+      "offset": "0x0600",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciatblo"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD700",
+      "offset": "0x0700",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciatbhi"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD800",
+      "offset": "0x0800",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciatodlow"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFD900",
+      "offset": "0x0900",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciatodmid"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFDA00",
+      "offset": "0x0A00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciatodhi"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFDC00",
+      "offset": "0x0C00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciasdr"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFDD00",
+      "offset": "0x0D00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciaicr"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFDE00",
+      "offset": "0x0E00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciacra"
+      ]
+    },
+    {
+      "family": "ciab",
+      "cpu_address": "0xBFDF00",
+      "offset": "0x0F00",
+      "include": "hardware/cia.i",
+      "base_symbol": "_ciab",
+      "symbols": [
+        "ciacrb"
+      ]
+    }
+  ]
+}

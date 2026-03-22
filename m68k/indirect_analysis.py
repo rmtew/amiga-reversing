@@ -50,6 +50,14 @@ def _terminal_site_addr(blocks: dict[int, BasicBlock], block_addr: int) -> int:
     return block.instructions[-1].offset
 
 
+def _cpu_object_signature(cpu) -> tuple:
+    return (
+        tuple(id(val) for val in cpu.d),
+        tuple(id(val) for val in cpu.a),
+        id(cpu.sp),
+    )
+
+
 def _summary_signature(summary: CallSummary) -> tuple:
     return (
         tuple(sorted(summary.preserved_d)),
@@ -107,6 +115,10 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
                               platform: dict | None = None,
                               seed_entry_states: dict[int, list[tuple]] | None = None,
                               trail: frozenset[int] = frozenset(),
+                              sub_blocks_cache: dict[int, set[int]] | None = None,
+                              block_owner: dict[int, int] | None = None,
+                              state_cache: dict[tuple[int, frozenset[int]], list[tuple]] | None = None,
+                              owned_entries: set[int] | None = None,
                               ) -> list[tuple]:
     """Collect full CPU/memory states at an indirect call site per caller."""
     if source_addr not in blocks:
@@ -115,26 +127,33 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
         return []
     if source_addr in trail:
         return []
+    if state_cache is None:
+        state_cache = {}
+    cache_key = (source_addr, trail)
+    cached_states = state_cache.get(cache_key)
+    if cached_states is not None:
+        return cached_states
 
-    call_targets = set()
-    for block in blocks.values():
-        for xref in block.xrefs:
-            if xref.type == "call":
-                call_targets.add(xref.dst)
-    owned_entries = set(call_targets)
-    if seed_entry_states:
-        owned_entries.update(seed_entry_states)
+    if owned_entries is None:
+        call_targets = set()
+        for block in blocks.values():
+            for xref in block.xrefs:
+                if xref.type == "call":
+                    call_targets.add(xref.dst)
+        owned_entries = set(call_targets)
+        if seed_entry_states:
+            owned_entries.update(seed_entry_states)
+    else:
+        call_targets = set(owned_entries)
 
-    sub_blocks_cache = {}
-    block_owner = {}
+    if sub_blocks_cache is None:
+        sub_blocks_cache = {}
+    if block_owner is None:
+        block_owner = {}
 
     def _sub_blocks(entry):
-        if entry not in sub_blocks_cache:
-            sub_blocks_cache[entry] = subroutine_summary.find_sub_blocks(
-                entry, blocks, owned_entries)
-            for addr in sub_blocks_cache[entry]:
-                block_owner.setdefault(addr, entry)
-        return sub_blocks_cache[entry]
+        return subroutine_summary.cached_sub_blocks(
+            entry, blocks, owned_entries, sub_blocks_cache, block_owner)
 
     for entry in owned_entries:
         _sub_blocks(entry)
@@ -165,9 +184,15 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
         pc_platform.scratch_regs = ()
     callers = list(blocks[sub_entry].predecessors) if sub_entry in blocks else []
     inline_cache = {}
+    collect_cache = {}
     states = []
 
     def _collect(init_cpu, init_mem):
+        collect_key = (_cpu_object_signature(init_cpu), id(init_mem))
+        cached = collect_cache.get(collect_key)
+        if cached is not None:
+            states.extend(cached)
+            return
         init_cpu = subroutine_summary.restore_base_reg(init_cpu.copy(), platform)
         pass1_exits = propagate_states(
             expanded if nested_callees else sub_dict,
@@ -196,8 +221,11 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
             )
         else:
             exits = pass1_exits
+        collected = []
         if source_addr in exits:
-            states.append(exits[source_addr])
+            collected.append(exits[source_addr])
+        collect_cache[collect_key] = collected
+        states.extend(collected)
 
     next_trail = frozenset(set(trail) | {source_addr})
     for caller_addr in callers:
@@ -210,7 +238,11 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
                     blocks, exit_states, code, caller_addr,
                     platform=platform,
                     seed_entry_states=seed_entry_states,
-                    trail=next_trail)
+                    trail=next_trail,
+                    sub_blocks_cache=sub_blocks_cache,
+                    block_owner=block_owner,
+                    state_cache=state_cache,
+                    owned_entries=owned_entries)
                 if nested_states:
                     for caller_cpu, caller_mem in nested_states:
                         _collect(caller_cpu, caller_mem)
@@ -221,6 +253,7 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
         _collect(caller_cpu, caller_mem)
     for entry_cpu, entry_mem in (seed_entry_states or {}).get(sub_entry, []):
         _collect(entry_cpu, entry_mem)
+    state_cache[cache_key] = states
     return states
 
 
@@ -228,7 +261,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                        exit_states: dict, code: bytes,
                        code_size: int,
                        platform: dict | None = None,
-                       seed_entry_states: dict[int, list[tuple]] | None = None) -> list[IndirectResolution]:
+                       seed_entry_states: dict[int, list[tuple]] | None = None,
+                       skip_site_addrs: frozenset[int] = frozenset()) -> list[IndirectResolution]:
     """Resolve indirect targets that require per-caller analysis."""
     unresolved = indirect_core._find_unresolved(blocks, exit_states, code_size)
     if not unresolved:
@@ -249,16 +283,13 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
     resolved_exit_cache = {}
     caller_regs_cache = {}
     call_entry_state_cache = {}
+    collect_state_cache = {}
     synthetic_entry_states = seed_entry_states if seed_entry_states is not None else {}
     owned_entries.update(synthetic_entry_states)
 
     def _sub_blocks(entry):
-        if entry not in sub_blocks_cache:
-            sub_blocks_cache[entry] = subroutine_summary.find_sub_blocks(
-                entry, blocks, owned_entries)
-            for addr in sub_blocks_cache[entry]:
-                block_owner.setdefault(addr, entry)
-        return sub_blocks_cache[entry]
+        return subroutine_summary.cached_sub_blocks(
+            entry, blocks, owned_entries, sub_blocks_cache, block_owner)
 
     def _sub_info(entry):
         if entry in sub_info_cache:
@@ -365,7 +396,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 summaries=summaries)
         return resolved_exit_cache[key]
 
-    def _states_from_ctx(info, sub_entry, caller_addr, ctx, needed_regs, target_addr):
+    def _states_from_ctx(info, sub_entry, caller_addr, ctx, needed_regs, segment_addr):
         pass1_exits = ctx["pass1_exits"]
         inline_sums = dict(ctx["inline_sums"])
         fork_callee = None
@@ -390,8 +421,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         states = []
 
         def _collect(exits):
-            if target_addr in exits:
-                states.append(exits[target_addr])
+            if segment_addr in exits:
+                states.append(exits[segment_addr])
 
         if fork_callee and fork_exits:
             for exit_sum in fork_exits[:_MAX_FORK_EXITS]:
@@ -536,11 +567,17 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 blocks, exit_states, code, source_addr,
                 platform=platform,
                 seed_entry_states=synthetic_entry_states,
+                sub_blocks_cache=sub_blocks_cache,
+                block_owner=block_owner,
+                state_cache=collect_state_cache,
+                owned_entries=owned_entries,
             )
         return call_entry_state_cache[source_addr]
 
     resolved = []
     for unres_addr, unres_type in unresolved:
+        if _terminal_site_addr(blocks, unres_addr) in skip_site_addrs:
+            continue
         sub_entry = block_owner.get(unres_addr)
         if sub_entry is None:
             for entry in owned_entries:

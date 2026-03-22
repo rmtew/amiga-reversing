@@ -37,6 +37,11 @@ def load_canonical_naming_rules() -> dict:
     return _load_json("naming_rules.json")
 
 
+@lru_cache(maxsize=1)
+def load_canonical_hardware_symbols() -> dict:
+    return _load_json("amiga_hw_symbols.json")
+
+
 def _load_runtime_module(module_name: str):
     return importlib.import_module(f"m68k_kb.{module_name}")
 
@@ -103,25 +108,6 @@ def load_m68k_decode_runtime_module():
         "OPERAND_MODE_TABLES", "EA_MODE_TABLES", "IMMEDIATE_RANGES",
         "REGISTER_FIELDS", "DEST_REG_FIELD", "DIRECTION_VARIANTS", "SHIFT_FIELDS",
         "RM_FIELD", "CONTROL_REGISTERS", "MOVE_FIELDS", "MOVEM_FIELDS", "CPID_FIELD",
-    ):
-        _require_attr(module, name)
-    return module
-
-
-@lru_cache(maxsize=1)
-def load_m68k_disasm_runtime_module():
-    module = _load_runtime_module("runtime_m68k_disasm")
-    for name in (
-        "MNEMONIC_INDEX", "ENCODING_COUNTS", "ENCODING_MASKS", "FIXED_OPCODES",
-        "EXT_FIELD_NAMES", "FIELD_MAPS", "RAW_FIELDS", "EA_BRIEF_FIELDS",
-        "MOVEM_REG_MASKS", "DEST_REG_FIELD", "BF_MNEMONICS", "BITOP_NAMES",
-        "IMM_NAMES", "SHIFT_NAMES", "SHIFT_TYPE_FIELDS", "SHIFT_FIELDS", "RM_FIELD",
-        "ADDQ_ZERO_MEANS", "CONTROL_REGISTERS", "SIZE_ENCODINGS_DISASM",
-        "PROCESSOR_MINS", "OPMODE_TABLES_BY_VALUE", "CONDITION_FAMILIES",
-        "CONDITION_CODES", "CPU_HIERARCHY", "PMMU_CONDITION_CODES",
-        "DEFAULT_OPERAND_SIZE", "MOVE_FIELDS", "CPID_FIELD",
-        "INSTRUCTION_SIZES", "OPERATION_TYPES", "OPERATION_CLASSES",
-        "SOURCE_SIGN_EXTEND", "SHIFT_COUNT_MODULI",
     ):
         _require_attr(module, name)
     return module
@@ -216,5 +202,13 @@ def load_hunk_runtime_kb():
 def load_naming_runtime_kb():
     module = _load_runtime_module("runtime_naming")
     for name in ("META", "PATTERNS", "TRIVIAL_FUNCTIONS", "GENERIC_PREFIX"):
+        _require_attr(module, name)
+    return module
+
+
+@lru_cache(maxsize=1)
+def load_hardware_runtime_kb():
+    module = _load_runtime_module("runtime_hardware")
+    for name in ("META", "REGISTER_DEFS"):
         _require_attr(module, name)
     return module

@@ -26,7 +26,6 @@ def _coverage_session() -> HunkDisassemblySession:
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -40,13 +39,19 @@ def _coverage_session() -> HunkDisassemblySession:
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
+
+
+def _seed_absolute_labels(session: HunkDisassemblySession, inst) -> None:
+    for node in inst.operand_nodes or ():
+        target = getattr(node, "target", None)
+        if isinstance(target, int):
+            session.absolute_labels.setdefault(target, f"abs_{target:08x}")
 
 
 def test_kb_find_resolves_bare_mnemonic_via_asm_syntax_index():
@@ -68,6 +73,7 @@ def test_kb_generated_cases_build_canonical_semantic_operands():
                     insts = disassemble(raw, max_cpu=case.max_cpu)
                     if not insts:
                         raise ValueError(f"Disassembly produced no instructions for {case.asm!r}")
+                    _seed_absolute_labels(session, insts[0])
                     build_instruction_semantic_operands(insts[0], session)
                 except Exception as exc:
                     failures.append(f"{case.asm} => {type(exc).__name__}: {exc}")

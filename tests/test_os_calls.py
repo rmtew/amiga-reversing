@@ -8,17 +8,21 @@ import struct
 
 from m68k_kb import runtime_os
 from m68k.instruction_primitives import Operand
+from m68k.memory_provenance import (MemoryRegionAddressSpace,
+                                    MemoryRegionDerivation,
+                                    MemoryRegionDerivationKind,
+                                    MemoryRegionProvenance)
 from m68k.os_calls import (AppMemoryDirection, AppMemoryType, AppSlotInfo,
                            CallArgumentAnnotation, LibraryCall,
+                           analyze_call_setups,
                            build_app_named_bases,
                            build_app_pointer_regions,
                            build_app_slot_infos,
                            build_app_struct_regions,
-                           MemoryRegionProvenance, MemoryRegionProvenanceKind,
                            RegisterFact, TypedMemoryRegion,
                            _region_from_typed_address,
                            app_memory_type_priority,
-                           annotate_call_arguments, build_app_memory_types,
+                           build_app_memory_types,
                            refine_opened_base_calls,
                            propagate_typed_memory_regions,
                            select_primary_app_memory_type,
@@ -26,6 +30,38 @@ from m68k.os_calls import (AppMemoryDirection, AppMemoryType, AppSlotInfo,
 from m68k.m68k_executor import analyze, BasicBlock
 from m68k.os_structs import resolve_struct_field
 from tests.platform_helpers import make_platform
+
+
+def _prov_base(address_space, base_register, displacement):
+    return MemoryRegionProvenance(
+        address_space=address_space,
+        derivation=MemoryRegionDerivation(
+            kind=MemoryRegionDerivationKind.BASE_DISPLACEMENT,
+            base_register=base_register,
+            displacement=displacement,
+        ),
+    )
+
+
+def _prov_ptr(base_register, displacement):
+    return MemoryRegionProvenance(
+        address_space=MemoryRegionAddressSpace.REGISTER,
+        derivation=MemoryRegionDerivation(
+            kind=MemoryRegionDerivationKind.FIELD_POINTER,
+            base_register=base_register,
+            displacement=displacement,
+        ),
+    )
+
+
+def _prov_named(named_base):
+    return MemoryRegionProvenance(
+        address_space=MemoryRegionAddressSpace.REGISTER,
+        derivation=MemoryRegionDerivation(
+            kind=MemoryRegionDerivationKind.NAMED_BASE,
+            named_base=named_base,
+        ),
+    )
 
 
 def _make_lib_call(addr, block, function, library="dos.library",
@@ -45,6 +81,8 @@ def _make_lib_call(addr, block, function, library="dos.library",
             reg=inp["reg"],
             type=inp.get("type"),
             i_struct=inp.get("i_struct"),
+            semantic_kind=inp.get("semantic_kind"),
+            semantic_note=inp.get("semantic_note"),
         )
         for inp in (inputs or ())
     )
@@ -85,7 +123,7 @@ def test_return_store_to_app_memory():
     # $0A: rts (dummy dos_dispatch)
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
     blocks = result["blocks"]
@@ -147,7 +185,7 @@ def test_return_store_multiple_calls():
     # dispatch at $14: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0, 0x0A],
                      platform=platform)
     blocks = result["blocks"]
@@ -172,7 +210,7 @@ def test_return_store_no_output():
     code += struct.pack('>HH', 0x2D40, 0x0064)  # move.l d0,100(a6)
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, 0x80000002), scratch_regs=())
+    platform = make_platform(app_base=(6, 0x80000002), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -201,7 +239,7 @@ def test_annotate_argument_from_app_memory():
     # $0A: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -215,11 +253,71 @@ def test_annotate_argument_from_app_memory():
     )]
 
     _corrupt_instruction_texts(result["blocks"])
-    annotations = annotate_call_arguments(result["blocks"], lib_calls)
+    annotations = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, platform).arg_annotations
     # Should annotate $00 (move.l 100(a6),d1) as "file" argument
     assert 0x00 in annotations, (
         f"Expected annotation at $00 for D1=file, got {annotations}")
     assert annotations[0x00].arg_name == "file"
+
+
+def test_analyze_call_setups_promotes_code_pointer_seed():
+    code = b""
+    code += struct.pack(">HH", 0x4BFA, 0x0008)  # lea $0c(pc),a5
+    code += struct.pack(">HH", 0x6100, 0x0008)  # bsr.w $0e
+    code += struct.pack(">H", 0x4E75)           # rts
+    code += struct.pack(">HH", 0x7000, 0x4E73)  # moveq #0,d0 ; rte
+    code += struct.pack(">H", 0x4E75)           # dispatcher rts
+
+    platform = make_platform()
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+    lib_calls = [_make_lib_call(
+        addr=0x04,
+        block=0x00,
+        function="Supervisor",
+        library="exec.library",
+        lvo=-30,
+        inputs=[{
+            "name": "userFunction",
+            "reg": "A5",
+            "type": "void *",
+            "semantic_kind": "code_ptr",
+        }],
+    )]
+
+    setup = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, platform, base_addr=0)
+
+    assert setup.code_entry_points == (0x0A,)
+    assert setup.segment_code_symbols[0x0A] == "supervisor_userfunction"
+
+
+def test_analyze_call_setups_skips_non_literal_string_seed():
+    code = b""
+    code += struct.pack(">HI", 0x223C, 0x0000000E)  # move.l #$0000000E,d1
+    code += struct.pack(">HH", 0x6100, 0x0006)      # bsr.w $0c
+    code += struct.pack(">HH", 0x7000, 0x4E75)      # moveq #0,d0 ; rts
+    code += struct.pack(">H", 0x4E75)               # dispatcher rts
+    code += b"\xFF\x00"
+
+    platform = make_platform()
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+    lib_calls = [_make_lib_call(
+        addr=0x06,
+        block=0x00,
+        function="Open",
+        library="dos.library",
+        lvo=-30,
+        inputs=[{
+            "name": "name",
+            "reg": "D1",
+            "type": "STRPTR",
+            "semantic_kind": "string_ptr",
+        }],
+    )]
+
+    setup = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, platform, base_addr=0)
+
+    assert setup.string_ranges == {}
+    assert setup.segment_data_symbols == {}
 
 
 def test_annotate_multiple_arguments():
@@ -241,7 +339,7 @@ def test_annotate_multiple_arguments():
     # $10: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -254,7 +352,7 @@ def test_annotate_multiple_arguments():
         ],
     )]
 
-    annotations = annotate_call_arguments(result["blocks"], lib_calls)
+    annotations = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, platform).arg_annotations
     assert 0x00 in annotations  # D1 = file
     assert 0x06 in annotations  # D2 = buffer
     assert 0x08 in annotations  # D3 = length
@@ -275,7 +373,7 @@ def test_open_device_annotates_iorequest_on_a1_not_flags():
     # $0C: rts
     code += struct.pack(">H", 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
 
     lib_calls = [_make_lib_call(
@@ -290,7 +388,7 @@ def test_open_device_annotates_iorequest_on_a1_not_flags():
         ],
     )]
 
-    annotations = annotate_call_arguments(result["blocks"], lib_calls)
+    annotations = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, platform).arg_annotations
     assert annotations[0x00].arg_name == "ioRequest"
     assert annotations[0x00].arg_reg == "A1"
     assert annotations[0x04].arg_name == "flags"
@@ -299,6 +397,50 @@ def test_open_device_annotates_iorequest_on_a1_not_flags():
     types = build_app_memory_types(result["blocks"], lib_calls, base_reg=6)
     assert types[100].name == "ioRequest"
     assert types[100].type == "struct IORequest *"
+
+
+def test_analyze_call_setups_tracks_zero_terminated_strptr_segment_range():
+    code = b""
+    code += struct.pack(">HH", 0x41FA, 0x0008)      # $00 lea $0A(pc),a0
+    code += struct.pack(">HH", 0x6100, 0x0008)      # $04 bsr.w $0E
+    code += struct.pack(">H", 0x4E75)               # $08 rts
+    code += b"con.device\x00"                       # $0A
+    code += struct.pack(">H", 0x4E75)               # $15 rts
+
+    result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
+    lib_calls = [_make_lib_call(
+        addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
+        lvo=-444,
+        inputs=[
+            {"name": "devName", "reg": "A0", "type": "STRPTR"},
+        ],
+    )]
+
+    setup = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, make_platform())
+    assert setup.segment_data_symbols == {0x000A: "opendevice_devname"}
+    assert setup.string_ranges == {0x000A: 0x0015}
+
+
+def test_analyze_call_setups_tracks_internal_absolute_strptr_segment_range():
+    code = b""
+    code += struct.pack(">HI", 0x41F9, 0x0000000A)   # $00 lea $0000000A,a0
+    code += struct.pack(">HH", 0x6100, 0x0008)       # $06 bsr.w $10
+    code += b"con.device\x00"                        # $0A
+    code += struct.pack(">H", 0x4E75)                # $15 rts
+    code += struct.pack(">H", 0x4E75)                # $17 rts
+
+    result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
+    lib_calls = [_make_lib_call(
+        addr=0x06, block=0x00, function="OpenDevice", library="exec.library",
+        lvo=-444,
+        inputs=[
+            {"name": "devName", "reg": "A0", "type": "STRPTR"},
+        ],
+    )]
+
+    setup = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, make_platform())
+    assert setup.segment_data_symbols == {0x000A: "opendevice_devname"}
+    assert setup.string_ranges == {0x000A: 0x0015}
 
 
 def test_propagate_typed_memory_regions_tracks_struct_typed_register_and_resolves_nested_fields():
@@ -313,7 +455,7 @@ def test_propagate_typed_memory_regions_tracks_struct_typed_register_and_resolve
     # $0A: rts
     code += struct.pack(">H", 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
 
     lib_calls = [_make_lib_call(
@@ -377,11 +519,7 @@ def test_propagate_typed_memory_regions_tracks_struct_typed_register_and_resolve
     assert types[0x04]["a1"] == TypedMemoryRegion(
         struct="IO",
         size=48,
-        provenance=MemoryRegionProvenance(
-        kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-            base_register="a6",
-            displacement=100,
-        ),
+        provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
     )
     succ = resolve_struct_field(os_kb.STRUCTS, "IO", 0)
     assert succ is not None
@@ -413,7 +551,7 @@ def test_propagate_typed_memory_regions_survives_past_call_fallthrough():
     # $0E: rts
     code += struct.pack(">H", 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
 
     lib_calls = [_make_lib_call(
@@ -445,7 +583,7 @@ def test_propagate_typed_memory_regions_loads_pointee_struct_from_field():
     # $12: rts
     code += struct.pack(">H", 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
 
     lib_calls = [_make_lib_call(
@@ -461,11 +599,7 @@ def test_propagate_typed_memory_regions_loads_pointee_struct_from_field():
     assert types[0x0C]["a0"] == TypedMemoryRegion(
         struct="DD",
         size=34,
-        provenance=MemoryRegionProvenance(
-        kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=20,
-        ),
+        provenance=_prov_ptr("a1", 20),
     )
 
 
@@ -479,7 +613,7 @@ def test_propagate_typed_memory_regions_loads_reply_port_pointee_struct():
     code += struct.pack(">H", 0x4E75)           # rts
     code += struct.pack(">H", 0x4E75)           # rts
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
@@ -492,11 +626,7 @@ def test_propagate_typed_memory_regions_loads_reply_port_pointee_struct():
     assert types[0x0C]["a0"] == TypedMemoryRegion(
         struct="MP",
         size=34,
-        provenance=MemoryRegionProvenance(
-        kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=14,
-        ),
+        provenance=_prov_ptr("a1", 14),
     )
 
 
@@ -510,7 +640,7 @@ def test_propagate_typed_memory_regions_loads_unit_pointee_struct():
     code += struct.pack(">H", 0x4E75)           # rts
     code += struct.pack(">H", 0x4E75)           # rts
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
@@ -523,11 +653,7 @@ def test_propagate_typed_memory_regions_loads_unit_pointee_struct():
     assert types[0x0C]["a0"] == TypedMemoryRegion(
         struct="UNIT",
         size=38,
-        provenance=MemoryRegionProvenance(
-        kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=24,
-        ),
+        provenance=_prov_ptr("a1", 24),
     )
 
 
@@ -541,7 +667,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_static_full_extension
     code += struct.pack(">H", 0x4E75)               # $12 rts
     code += struct.pack(">H", 0x4E75)               # $14 rts
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
@@ -554,11 +680,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_static_full_extension
     assert types[0x0E]["a0"] == TypedMemoryRegion(
         struct="DD",
         size=34,
-        provenance=MemoryRegionProvenance(
-        kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=20,
-        ),
+        provenance=_prov_ptr("a1", 20),
     )
 
 
@@ -573,7 +695,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_brief_index_with_conc
     code += struct.pack(">H", 0x4E75)               # $12 rts
     code += struct.pack(">H", 0x4E75)               # $14 rts
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x06, block=0x00, function="OpenDevice", library="exec.library",
@@ -586,11 +708,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_brief_index_with_conc
     assert types[0x0E]["a0"] == TypedMemoryRegion(
         struct="DD",
         size=34,
-        provenance=MemoryRegionProvenance(
-        kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=20,
-        ),
+        provenance=_prov_ptr("a1", 20),
     )
 
 
@@ -605,7 +723,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_full_extension_index_
     code += struct.pack(">H", 0x4E75)               # $14 rts
     code += struct.pack(">H", 0x4E75)               # $16 rts
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x06, block=0x00, function="OpenDevice", library="exec.library",
@@ -618,17 +736,13 @@ def test_propagate_typed_memory_regions_loads_pointee_from_full_extension_index_
     assert types[0x10]["a0"] == TypedMemoryRegion(
         struct="DD",
         size=34,
-        provenance=MemoryRegionProvenance(
-        kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=20,
-        ),
+        provenance=_prov_ptr("a1", 20),
     )
 
 
 def test_propagate_typed_memory_regions_supports_pc_relative_storage():
     code = b""
-    # $00: lea 8(pc),a1 -> target = $0C
+    # $00: lea 8(pc),a1 -> target = $0A
     code += struct.pack(">HH", 0x43FA, 0x0008)
     # $04: bsr.w $0A
     code += struct.pack(">HH", 0x6100, 0x0004)
@@ -655,8 +769,8 @@ def test_propagate_typed_memory_regions_supports_pc_relative_storage():
         struct="IO",
         size=runtime_os.STRUCTS["IO"].size,
             provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.PC_RELATIVE,
-                target_addr=0x0C,
+                address_space=MemoryRegionAddressSpace.SEGMENT,
+                segment_addr=0x0A,
             ),
     )
 
@@ -668,7 +782,7 @@ def test_build_app_struct_regions_persists_open_device_iorequest_region():
     code += struct.pack(">HH", 0x6100, 0x0004)  # bsr.w $0A
     code += struct.pack(">H", 0x4E75)           # rts
     code += struct.pack(">H", 0x4E75)           # rts
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
@@ -683,11 +797,7 @@ def test_build_app_struct_regions_persists_open_device_iorequest_region():
         100: TypedMemoryRegion(
             struct="IO",
             size=runtime_os.STRUCTS["IO"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-                base_register="a6",
-                displacement=100,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
         )
     }
 
@@ -705,7 +815,7 @@ def test_build_app_pointer_regions_refines_openlibrary_slot_to_concrete_struct()
     code += struct.pack(">H", 0x4E75)               # $18 rts
     code += b"dos.library\x00"                      # $1A
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x06, block=0x00, function="OpenLibrary", library="exec.library",
@@ -721,11 +831,7 @@ def test_build_app_pointer_regions_refines_openlibrary_slot_to_concrete_struct()
         100: TypedMemoryRegion(
             struct="DosLibrary",
             size=runtime_os.STRUCTS["DosLibrary"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-                base_register="a6",
-                displacement=100,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
         )
     }
 
@@ -743,7 +849,7 @@ def test_propagate_typed_memory_regions_loads_concrete_named_base_from_app_slot(
     code += struct.pack(">H", 0x4E75)               # $18 rts
     code += b"dos.library\x00"                      # $1A
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x06, block=0x00, function="OpenLibrary", library="exec.library",
@@ -758,11 +864,7 @@ def test_propagate_typed_memory_regions_loads_concrete_named_base_from_app_slot(
     assert types[0x12]["a0"] == TypedMemoryRegion(
         struct="DosLibrary",
         size=runtime_os.STRUCTS["DosLibrary"].size,
-        provenance=MemoryRegionProvenance(
-            kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-            base_register="a6",
-            displacement=100,
-        ),
+        provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
     )
 
 
@@ -795,10 +897,7 @@ def test_propagate_typed_memory_regions_uses_summary_produced_named_base_region(
     assert types[0x06]["a0"] == TypedMemoryRegion(
         struct="DosLibrary",
         size=runtime_os.STRUCTS["DosLibrary"].size,
-        provenance=MemoryRegionProvenance(
-            kind=MemoryRegionProvenanceKind.NAMED_BASE,
-            named_base="dos.library",
-        ),
+        provenance=_prov_named("dos.library"),
     )
 
 
@@ -814,7 +913,7 @@ def test_propagate_typed_memory_regions_uses_summary_field_pointer_transfer():
     code += struct.pack(">HH", 0x2069, 0x0014)      # $14 movea.l 20(a1),a0
     code += struct.pack(">H", 0x4E75)               # $18 rts
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
@@ -828,11 +927,7 @@ def test_propagate_typed_memory_regions_uses_summary_field_pointer_transfer():
     assert types[0x0C]["a0"] == TypedMemoryRegion(
         struct="DD",
         size=runtime_os.STRUCTS["DD"].size,
-        provenance=MemoryRegionProvenance(
-            kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=20,
-        ),
+        provenance=_prov_ptr("a1", 20),
     )
 
 
@@ -845,7 +940,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_app_region_access():
     code += struct.pack(">HH", 0x2028, 0x0014)  # $0C move.l 20(a0),d0
     code += struct.pack(">H", 0x4E75)           # $10 rts
     code += struct.pack(">H", 0x4E75)           # $12 rts
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
@@ -859,11 +954,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_app_region_access():
     assert types[0x0C]["a0"] == TypedMemoryRegion(
         struct="DD",
         size=runtime_os.STRUCTS["DD"].size,
-        provenance=MemoryRegionProvenance(
-            kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a6",
-            displacement=120,
-        ),
+        provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 120),
     )
 
 
@@ -876,7 +967,7 @@ def test_build_app_named_bases_reads_constant_device_name():
     code += struct.pack(">H", 0x4E75)               # $0C rts
     code += struct.pack(">H", 0x4E75)               # $0E rts
     code += b"timer.device\x00"                     # $10
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x08, block=0x00, function="OpenDevice", library="exec.library",
@@ -905,7 +996,7 @@ def test_refine_opened_base_calls_resolves_timer_device_from_open_device_seed():
     code += b"\x00\x00\x00\x00\x00\x00"            # padding
     code += struct.pack(">H", 0x4E75)               # $1C rts
     code += b"timer.device\x00"                     # $1E
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [
         _make_lib_call(
@@ -941,7 +1032,7 @@ def test_build_app_named_bases_reads_openlibrary_store_name():
     code += struct.pack(">H", 0x4E75)               # $10 rts
     code += b"\x00\x00"                            # $12 padding
     code += b"dos.library\x00"                      # $14
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x06, block=0x00, function="OpenLibrary", library="exec.library",
@@ -969,7 +1060,7 @@ def test_build_app_slot_infos_infers_pointer_struct_for_openlibrary_store():
     code += struct.pack(">H", 0x4E75)               # $10 rts
     code += b"dos.library\x00"                      # $12
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x06, block=0x00, function="OpenLibrary", library="exec.library",
@@ -1006,7 +1097,7 @@ def test_refine_opened_base_calls_resolves_library_call_from_app_slot():
     code += b"\x00\x00\x00\x00"                    # $18 padding
     code += struct.pack(">H", 0x4E75)               # $1C rts
     code += b"dos.library\x00"                      # $1E
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [
         _make_lib_call(
@@ -1041,7 +1132,7 @@ def test_refine_opened_base_calls_resolves_resource_call_from_app_slot():
     code += struct.pack(">H", 0x4E75)               # $14 rts
     code += struct.pack(">H", 0x4E75)               # $16 rts
     code += b"misc.resource\x00"                    # $18
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [
         _make_lib_call(
@@ -1071,7 +1162,7 @@ def test_propagate_typed_memory_regions_handles_movea_pointee_load_to_a6():
     code += struct.pack(">HH", 0x4EAE, 0xFFBE)      # $0C jsr -66(a6)
     code += struct.pack(">H", 0x4E75)               # $10 rts
     code += struct.pack(">H", 0x4E75)               # $12 rts
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
     lib_calls = [_make_lib_call(
         addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
@@ -1085,11 +1176,7 @@ def test_propagate_typed_memory_regions_handles_movea_pointee_load_to_a6():
     assert types[0x0C]["a6"] == TypedMemoryRegion(
         struct="DD",
         size=runtime_os.STRUCTS["DD"].size,
-        provenance=MemoryRegionProvenance(
-            kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a6",
-            displacement=120,
-        ),
+        provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 120),
     )
 
 
@@ -1098,11 +1185,7 @@ def test_region_from_typed_address_keeps_struct_offset_for_direct_displacement()
         "a1": RegisterFact(region=TypedMemoryRegion(
             struct="MP",
             size=runtime_os.STRUCTS["MP"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-                base_register="a0",
-                displacement=14,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.REGISTER, "a0", 14),
             struct_offset=14,
         )),
     }
@@ -1113,11 +1196,7 @@ def test_region_from_typed_address_keeps_struct_offset_for_direct_displacement()
     assert region == TypedMemoryRegion(
         struct="MP",
         size=runtime_os.STRUCTS["MP"].size,
-        provenance=MemoryRegionProvenance(
-            kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a0",
-            displacement=14,
-        ),
+        provenance=_prov_base(MemoryRegionAddressSpace.REGISTER, "a0", 14),
         struct_offset=16,
     )
 
@@ -1127,11 +1206,7 @@ def test_region_from_typed_address_loads_memory_indirect_preindexed_pointee():
         "a1": RegisterFact(region=TypedMemoryRegion(
             struct="IO",
             size=runtime_os.STRUCTS["IO"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-                base_register="a6",
-                displacement=100,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
         )),
         "d0": RegisterFact(concrete=4),
     }
@@ -1157,11 +1232,7 @@ def test_region_from_typed_address_loads_memory_indirect_preindexed_pointee():
     assert region == TypedMemoryRegion(
         struct="DD",
         size=runtime_os.STRUCTS["DD"].size,
-        provenance=MemoryRegionProvenance(
-            kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=20,
-        ),
+        provenance=_prov_ptr("a1", 20),
     )
 
 
@@ -1170,11 +1241,7 @@ def test_region_from_typed_address_loads_memory_indirect_postindexed_pointee_off
         "a1": RegisterFact(region=TypedMemoryRegion(
             struct="IO",
             size=runtime_os.STRUCTS["IO"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-                base_register="a6",
-                displacement=100,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
         )),
         "d0": RegisterFact(concrete=16),
     }
@@ -1200,11 +1267,7 @@ def test_region_from_typed_address_loads_memory_indirect_postindexed_pointee_off
     assert region == TypedMemoryRegion(
         struct="DD",
         size=runtime_os.STRUCTS["DD"].size,
-        provenance=MemoryRegionProvenance(
-            kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-            base_register="a1",
-            displacement=20,
-        ),
+        provenance=_prov_ptr("a1", 20),
         struct_offset=16,
     )
 
@@ -1228,7 +1291,7 @@ def test_backward_type_names_app_slot():
     # $0A: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -1281,7 +1344,7 @@ def test_forward_through_register_copy():
     # $0C: rts (dummy dispatch)
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -1325,7 +1388,7 @@ def test_cross_sub_type_flow():
     # dispatch at $14: rts
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0, 0x0A],
                      platform=platform)
 
@@ -1377,7 +1440,7 @@ def test_conditional_store_after_return():
     # $0E: rts (dummy dispatch)
     code += struct.pack('>H', 0x4E75)
 
-    platform = make_platform(initial_base_reg=(6, sentinel), scratch_regs=())
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
 
@@ -1390,3 +1453,4 @@ def test_conditional_store_after_return():
     assert 100 in types, (
         f"Expected offset 100 from Output despite conditional store, "
         f"got {types}")
+

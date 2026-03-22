@@ -52,9 +52,9 @@ def build_instruction_comment_parts(inst,
     if include_arg_subs and arg_ann:
         parts.append(f"{arg_ann.function}: {arg_ann.arg_name}")
 
-    base_info = hunk_session.platform.initial_base_reg
+    base_info = hunk_session.platform.app_base
     if not parts and base_info and operand_parts is not None:
-        app_comment = format_app_offset_comment(operand_parts, base_info[0])
+        app_comment = format_app_offset_comment(operand_parts, base_info.reg_num)
         if app_comment:
             parts.append(app_comment)
 
@@ -79,3 +79,4 @@ def build_instruction_comment_parts(inst,
 
 def render_comment_parts(comment_parts: tuple[str, ...]) -> str:
     return "; ".join(part for part in comment_parts if part)
+

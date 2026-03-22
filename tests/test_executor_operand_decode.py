@@ -55,7 +55,6 @@ def _operand_session() -> HunkDisassemblySession:
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -69,7 +68,6 @@ def _operand_session() -> HunkDisassemblySession:
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -131,6 +129,28 @@ def test_decode_instruction_ops_uses_shared_kb_decoder_for_move_usp():
     decoded = _decoded_ops("move.l a1,usp", "MOVE USP")
     assert decoded.reg_num == 1
     assert decoded.ea_is_source is False
+
+
+def test_decode_instruction_ops_caches_by_instruction(monkeypatch):
+    inst = disassemble(assemble_instruction("move.l usp,a0"), max_cpu="68010")[0]
+    calls = {"count": 0}
+    from m68k import instruction_decode as decode_mod
+    real = decode_mod.decode_instruction_operands
+
+    def counting_decode(*args, **kwargs):
+        calls["count"] += 1
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(decode_mod, "decode_instruction_operands",
+                        counting_decode, raising=False)
+    from m68k import instruction_primitives as primitives_mod
+    primitives_mod._DECODED_OPS_CACHE.clear()
+
+    first = decode_instruction_ops(inst, "MOVE USP", "l")
+    second = decode_instruction_ops(inst, "MOVE USP", "l")
+
+    assert first == second
+    assert calls["count"] == 1
 
 
 def test_decode_inst_operands_uses_instruction_fields_directly():
@@ -323,17 +343,16 @@ def test_analyze_requires_runtime_compute_formula_for_moveq(monkeypatch):
         )
 
 
-def test_analyze_requires_runtime_sp_effects_for_rts(monkeypatch):
+def test_analyze_does_not_require_runtime_sp_effects_for_rts(monkeypatch):
     sp_effects = copy.deepcopy(runtime_m68k_analysis.SP_EFFECTS)
     del sp_effects["RTS"]
     monkeypatch.setattr(runtime_m68k_analysis, "SP_EFFECTS", sp_effects, raising=False)
 
-    with pytest.raises(KeyError, match="RTS"):
-        analyze(
-            assemble_instruction("rts"),
-            propagate=True,
-            entry_points=[0],
-        )
+    analyze(
+        assemble_instruction("rts"),
+        propagate=True,
+        entry_points=[0],
+    )
 
 
 def test_analyze_requires_runtime_flow_type_for_rts(monkeypatch):
@@ -485,7 +504,7 @@ def test_semantic_operands_prefer_typed_nodes_for_simple_branch():
 
     assert [op.kind for op in ops] == ["branch_target"]
     assert [op.text for op in ops] == ["$8"]
-    assert ops[0].target_addr == 0x8
+    assert ops[0].segment_addr == 0x8
 
 
 def test_semantic_operands_prefer_typed_nodes_for_lea_pc_relative():
@@ -496,7 +515,7 @@ def test_semantic_operands_prefer_typed_nodes_for_lea_pc_relative():
 
     assert [op.kind for op in ops] == ["pc_relative_target", "register"]
     assert [op.text for op in ops] == ["8(pc)", "a0"]
-    assert ops[0].target_addr == 0xA
+    assert ops[0].segment_addr == 0xA
     assert ops[1].register == "a0"
 
 
@@ -912,8 +931,10 @@ def test_semantic_operands_prefer_typed_nodes_for_move16_postinc_pair():
 def test_semantic_operands_prefer_typed_nodes_for_move16_absolute_to_postinc():
     inst = disassemble(bytes.fromhex("f60812345678"), max_cpu="68040")[0]
     inst.operand_texts = ("junk0", "junk1")
+    session = _operand_session()
+    session.labels[0x12345678] = "abs_12345678"
 
-    ops = build_instruction_semantic_operands(inst, _operand_session())
+    ops = build_instruction_semantic_operands(inst, session)
 
     assert [op.kind for op in ops] == ["absolute_target", "postincrement"]
     assert ops[0].value == 0x12345678
@@ -923,8 +944,10 @@ def test_semantic_operands_prefer_typed_nodes_for_move16_absolute_to_postinc():
 def test_semantic_operands_prefer_typed_nodes_for_move16_postinc_to_absolute():
     inst = disassemble(bytes.fromhex("f60012345678"), max_cpu="68040")[0]
     inst.operand_texts = ("junk0", "junk1")
+    session = _operand_session()
+    session.labels[0x12345678] = "abs_12345678"
 
-    ops = build_instruction_semantic_operands(inst, _operand_session())
+    ops = build_instruction_semantic_operands(inst, session)
 
     assert [op.kind for op in ops] == ["postincrement", "absolute_target"]
     assert ops[0].base_register == "a0"
@@ -1087,7 +1110,7 @@ def test_semantic_operands_build_pdbcc_register_and_target_form():
     assert [op.kind for op in ops] == ["register", "branch_target"]
     assert [op.text for op in ops] == ["d0", "$2"]
     assert ops[0].register == "d0"
-    assert ops[1].target_addr == 2
+    assert ops[1].segment_addr == 2
 
 
 def test_semantic_operands_build_pbcc_target_form():
@@ -1098,7 +1121,7 @@ def test_semantic_operands_build_pbcc_target_form():
 
     assert [op.kind for op in ops] == ["branch_target"]
     assert [op.text for op in ops] == ["$4"]
-    assert ops[0].target_addr == 4
+    assert ops[0].segment_addr == 4
 
 
 def test_semantic_operands_build_ptrapcc_immediate_form():

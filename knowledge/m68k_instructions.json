@@ -12919,6 +12919,11 @@
           "bytes": 4
         },
         {
+          "action": "store_reg_to_stack",
+          "bytes": 4,
+          "reg": "An"
+        },
+        {
           "action": "save_to_reg",
           "reg": "An"
         },
@@ -12927,6 +12932,7 @@
           "operand": "d"
         }
       ],
+      "sp_effects_complete": true,
       "pc_effects": {
         "flow": {
           "type": "sequential",
@@ -21970,10 +21976,16 @@
           "reg": "An"
         },
         {
+          "action": "load_from_stack_to_reg",
+          "bytes": 4,
+          "reg": "An"
+        },
+        {
           "action": "increment",
           "bytes": 4
         }
       ],
+      "sp_effects_complete": true,
       "pc_effects": {
         "flow": {
           "type": "sequential",

@@ -26,4 +26,9 @@ resources/*
 # Per-target output (entities, disassembly, progress)
 targets/*
 !targets/.gitkeep
+!targets/*/
+targets/*/*
+!targets/*/*.s
+!targets/*/entities.jsonl
+!targets/*/benchmark.json
 *.analysis

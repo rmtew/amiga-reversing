@@ -22,12 +22,15 @@ from disasm.decode import (DecodedInstructionForEmit,
                            decode_instruction_for_emit,
                            lookup_instruction_kb)
 from m68k.instruction_decode import DecodedBitfield
-from m68k.os_calls import (MemoryRegionProvenance, MemoryRegionProvenanceKind,
-                           TypedMemoryRegion)
-from disasm.discovery import (add_hint_labels, build_label_map,
+from m68k.memory_provenance import (MemoryRegionAddressSpace,
+                                    MemoryRegionDerivation,
+                                    MemoryRegionDerivationKind,
+                                    MemoryRegionProvenance)
+from m68k.os_calls import TypedMemoryRegion
+from disasm.discovery import (add_hint_labels, apply_generic_data_label_promotions, build_label_map,
                               discover_absolute_targets,
                               discover_pc_relative_targets,
-                              filter_core_absolute_targets)
+                              filter_internal_absolute_data_targets)
 from disasm.instruction_rows import (make_instruction_row,
                                      make_text_rows,
                                      render_instruction_text)
@@ -53,6 +56,17 @@ _INIT_STRUCTS = {
         fields=(runtime_os.OsStructField("IS_CODE", "UWORD", 18, 2),),
     ),
 }
+
+
+def _prov_base(address_space, base_register, displacement):
+    return MemoryRegionProvenance(
+        address_space=address_space,
+        derivation=MemoryRegionDerivation(
+            kind=MemoryRegionDerivationKind.BASE_DISPLACEMENT,
+            base_register=base_register,
+            displacement=displacement,
+        ),
+    )
 
 
 # -- Feature 3: App memory offset comments ----------------------------
@@ -593,24 +607,54 @@ def test_build_label_map_adds_core_absolute_data_labels():
     assert labels[0x8C1E] == "dat_8c1e"
 
 
-def test_filter_core_absolute_targets_keeps_hint_only_addresses():
+def test_apply_generic_data_label_promotions_overrides_only_generic_labels():
+    labels = {
+        0x004A: "pcref_004a",
+        0x0050: "dat_0050",
+        0x0060: "entry_point",
+    }
+    pc_targets = {
+        0x004A: "pcref_004a",
+        0x0070: "str_0070",
+    }
+
+    apply_generic_data_label_promotions(
+        labels,
+        pc_targets,
+        {0x004A, 0x0050},
+        {
+            0x004A: "openscreen_newscreen",
+            0x0050: "openwindow_newwindow",
+            0x0060: "should_not_override",
+            0x0070: "should_not_override_string",
+        },
+    )
+
+    assert labels[0x004A] == "openscreen_newscreen"
+    assert labels[0x0050] == "openwindow_newwindow"
+    assert labels[0x0060] == "entry_point"
+    assert pc_targets[0x004A] == "openscreen_newscreen"
+    assert pc_targets[0x0070] == "str_0070"
+
+
+def test_filter_internal_absolute_data_targets_keeps_hint_only_addresses():
     """Core absolute data refs must not be dropped just because hints cover them."""
     targets = {0x8C1E, 0x8C1F, 0xEE2D}
-    filtered = filter_core_absolute_targets(
+    filtered = filter_internal_absolute_data_targets(
         targets,
         code_addrs={0x2000, 0x2001},
-        fixed_addrs=set(),
+        reserved_addrs=set(),
     )
 
     assert filtered == {0x8C1E, 0x8C1F, 0xEE2D}
 
 
-def test_filter_core_absolute_targets_excludes_fixed_os_addresses():
+def test_filter_internal_absolute_data_targets_excludes_fixed_os_addresses():
     """Fixed system addresses must not become relocatable data labels."""
-    filtered = filter_core_absolute_targets(
+    filtered = filter_internal_absolute_data_targets(
         targets={runtime_os.META.exec_base_addr.address, 0x8C1E},
         code_addrs=set(),
-        fixed_addrs={runtime_os.META.exec_base_addr.address},
+        reserved_addrs={runtime_os.META.exec_base_addr.address},
     )
 
     assert filtered == {0x8C1E}
@@ -710,7 +754,6 @@ def test_render_instruction_text_substitutes_absolute_code_operand():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x0400: "loc_0400"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -724,7 +767,6 @@ def test_render_instruction_text_substitutes_absolute_code_operand():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -758,7 +800,6 @@ def test_render_instruction_text_substitutes_pc_relative_operand():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x004A: "pcref_004a"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -772,7 +813,6 @@ def test_render_instruction_text_substitutes_pc_relative_operand():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -803,7 +843,6 @@ def test_build_instruction_semantic_operands_marks_branch_target():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x0048: "loc_0048"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -817,7 +856,6 @@ def test_build_instruction_semantic_operands_marks_branch_target():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -829,7 +867,7 @@ def test_build_instruction_semantic_operands_marks_branch_target():
 
     assert len(ops) == 1
     assert ops[0].kind == "branch_target"
-    assert ops[0].target_addr == 0x0048
+    assert ops[0].segment_addr == 0x0048
     assert ops[0].text == "loc_0048"
 
 
@@ -852,7 +890,6 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -866,7 +903,6 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -879,7 +915,7 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate():
     assert len(ops) == 2
     assert ops[0].kind == "immediate"
     assert ops[0].value == 0x400
-    assert ops[0].target_addr is None
+    assert ops[0].segment_addr is None
     assert ops[1].kind == "register"
 
 
@@ -902,7 +938,6 @@ def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -916,7 +951,6 @@ def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -952,7 +986,6 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x0400: "loc_0400"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -966,7 +999,6 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -979,7 +1011,7 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
     assert len(ops) == 2
     assert ops[0].kind == "absolute_target"
     assert ops[0].value == 0x400
-    assert ops[0].target_addr == 0x400
+    assert ops[0].segment_addr == 0x400
     assert ops[0].text == "loc_0400"
     assert ops[1].kind == "register"
 
@@ -1003,7 +1035,6 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x004A: "pcref_004a"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1017,7 +1048,6 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1029,7 +1059,7 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
 
     assert len(ops) == 2
     assert ops[0].kind == "pc_relative_target"
-    assert ops[0].target_addr == 0x004A
+    assert ops[0].segment_addr == 0x004A
     assert ops[0].value == 0x004A
     assert ops[0].text == "pcref_004a(pc)"
     assert ops[1].kind == "register"
@@ -1054,7 +1084,6 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1062,7 +1091,7 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
             struct="InitStruct",
             size=20,
                 provenance=MemoryRegionProvenance(
-                    kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                    address_space=MemoryRegionAddressSpace.ABSOLUTE,
                     absolute_addr=0x100,
                 ),
         )}},
@@ -1080,7 +1109,6 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
             CONSTANTS={},
             LIBRARIES={},
         ),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1121,7 +1149,6 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1135,7 +1162,6 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1176,7 +1202,6 @@ def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape(
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1188,9 +1213,8 @@ def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape(
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1228,7 +1252,6 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x0056: "loc_0056"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1242,7 +1265,6 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1256,7 +1278,7 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
     assert ops[0].kind == "register"
     assert ops[0].register == "d0"
     assert ops[1].kind == "branch_target"
-    assert ops[1].target_addr == 0xAE
+    assert ops[1].segment_addr == 0xAE
     assert ops[1].text == "$56"
 
 
@@ -1279,7 +1301,6 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1293,7 +1314,6 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1359,7 +1379,6 @@ def test_build_instruction_semantic_operands_supports_register_shift_form():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1373,7 +1392,6 @@ def test_build_instruction_semantic_operands_supports_register_shift_form():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1409,7 +1427,6 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1423,7 +1440,6 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1455,7 +1471,6 @@ def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count()
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1469,7 +1484,6 @@ def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count()
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1505,7 +1519,6 @@ def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1519,7 +1532,6 @@ def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1555,7 +1567,6 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1569,7 +1580,6 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1607,7 +1617,6 @@ def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1621,7 +1630,6 @@ def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1656,7 +1664,6 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x0400: "loc_0400"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1670,7 +1677,6 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1683,7 +1689,7 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
     assert len(ops) == 2
     assert ops[0].kind == "immediate_symbol"
     assert ops[0].value == 0x400
-    assert ops[0].target_addr == 0x400
+    assert ops[0].segment_addr == 0x400
     assert ops[0].text == "#loc_0400"
     assert ops[1].kind == "register"
 
@@ -1707,7 +1713,6 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1721,7 +1726,6 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1758,7 +1762,6 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1772,7 +1775,6 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1806,7 +1808,6 @@ def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1820,7 +1821,6 @@ def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1850,7 +1850,6 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1864,7 +1863,6 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1903,7 +1901,6 @@ def test_make_instruction_row_renders_from_semantic_operands_and_comments():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x0048: "loc_0048"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1917,7 +1914,6 @@ def test_make_instruction_row_renders_from_semantic_operands_and_comments():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1966,7 +1962,6 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1974,7 +1969,7 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
             struct="InitStruct",
             size=20,
                 provenance=MemoryRegionProvenance(
-                    kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                    address_space=MemoryRegionAddressSpace.ABSOLUTE,
                     absolute_addr=0x100,
                 ),
         )}},
@@ -1992,7 +1987,6 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
             CONSTANTS={},
             LIBRARIES={},
         ),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2030,7 +2024,6 @@ def test_render_instruction_text_uses_semantic_branch_substitution():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x0048: "loc_0048"},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -2044,7 +2037,6 @@ def test_render_instruction_text_uses_semantic_branch_substitution():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2079,7 +2071,6 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -2087,7 +2078,7 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
             struct="InitStruct",
             size=20,
                 provenance=MemoryRegionProvenance(
-                    kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                    address_space=MemoryRegionAddressSpace.ABSOLUTE,
                     absolute_addr=0x100,
                 ),
         )}},
@@ -2105,7 +2096,6 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
             CONSTANTS={},
             LIBRARIES={},
         ),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2121,6 +2111,54 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
     assert comment == ""
     assert comment_parts == ()
     assert used_structs == {"InitStruct"}
+
+
+def test_render_instruction_text_uses_custom_relative_register_symbol():
+    inst = Instruction(offset=0x0100, size=4, opcode=0x3028,
+                       text="corrupted",
+                       raw=struct.pack(">HH", 0x3028, 0x009A),
+                       kb_mnemonic="move", operand_size="w",
+                       operand_texts=("154(a0)", "d0"),
+                       opcode_text="move.w")
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        hardware_base_regs={0x0100: {"a0": 0x00DFF000}},
+    )
+
+    text, comment, comment_parts = render_instruction_text(inst, session, set())
+
+    assert text == "move.w intena(a0),d0"
+    assert comment == ""
+    assert comment_parts == ()
 
 
 def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substitution():
@@ -2142,18 +2180,13 @@ def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substit
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
         region_map={0x0100: {"a1": TypedMemoryRegion(
             struct="MP",
             size=runtime_os.STRUCTS["MP"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-                base_register="a0",
-                displacement=14,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.REGISTER, "a0", 14),
             struct_offset=16,
         )}},
         lvo_equs={},
@@ -2165,7 +2198,6 @@ def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substit
         data_access_sizes={},
         platform=make_platform(),
         os_kb=runtime_os,
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2203,18 +2235,13 @@ def test_render_instruction_text_uses_shifted_pointee_struct_substitution():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
         region_map={0x0100: {"a1": TypedMemoryRegion(
             struct="MP",
             size=runtime_os.STRUCTS["MP"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-                base_register="a0",
-                displacement=14,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.REGISTER, "a0", 14),
             struct_offset=16,
         )}},
         lvo_equs={},
@@ -2226,7 +2253,6 @@ def test_render_instruction_text_uses_shifted_pointee_struct_substitution():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=runtime_os,
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2263,7 +2289,6 @@ def test_render_instruction_text_uses_app_region_struct_substitution():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -2275,14 +2300,13 @@ def test_render_instruction_text_uses_app_region_struct_substitution():
             app_offsets={100: "app_timer_device_iorequest"},
         arg_annotations={},
         data_access_sizes={},
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
         os_kb=SimpleNamespace(
             META=runtime_os.META,
             STRUCTS=runtime_os.STRUCTS,
             CONSTANTS={},
             LIBRARIES={},
         ),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2292,11 +2316,7 @@ def test_render_instruction_text_uses_app_region_struct_substitution():
             100: TypedMemoryRegion(
                 struct="IO",
                 size=runtime_os.STRUCTS["IO"].size,
-                provenance=MemoryRegionProvenance(
-                    kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-                    base_register="a6",
-                    displacement=100,
-                ),
+                provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
             )
         },
     )
@@ -2335,18 +2355,13 @@ def test_render_instruction_text_uses_inherited_pointee_base_field_substitution(
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
         region_map={0x0104: {"a0": TypedMemoryRegion(
             struct="DD",
             size=runtime_os.STRUCTS["DD"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.FIELD_POINTER,
-                base_register="a6",
-                displacement=120,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.REGISTER, "a6", 120),
         )}},
         lvo_equs={},
         lvo_substitutions={},
@@ -2355,14 +2370,13 @@ def test_render_instruction_text_uses_inherited_pointee_base_field_substitution(
         app_offsets={100: "app_opendevice_iorequest"},
         arg_annotations={},
         data_access_sizes={},
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
         os_kb=SimpleNamespace(
             META=runtime_os.META,
             STRUCTS=runtime_os.STRUCTS,
             CONSTANTS={},
             LIBRARIES={},
         ),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2399,18 +2413,13 @@ def test_render_instruction_text_uses_concrete_named_base_field_substitution():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
         region_map={0x0104: {"a0": TypedMemoryRegion(
             struct="DosLibrary",
             size=runtime_os.STRUCTS["DosLibrary"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-                base_register="a6",
-                displacement=100,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
         )}},
         lvo_equs={},
         lvo_substitutions={},
@@ -2419,14 +2428,13 @@ def test_render_instruction_text_uses_concrete_named_base_field_substitution():
         app_offsets={100: "app_dos_base"},
         arg_annotations={},
         data_access_sizes={},
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
         os_kb=SimpleNamespace(
             META=runtime_os.META,
             STRUCTS=runtime_os.STRUCTS,
             CONSTANTS={},
             LIBRARIES={},
         ),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2463,18 +2471,13 @@ def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
         region_map={0x0104: {"a6": TypedMemoryRegion(
             struct="DosLibrary",
             size=runtime_os.STRUCTS["DosLibrary"].size,
-            provenance=MemoryRegionProvenance(
-                kind=MemoryRegionProvenanceKind.APP_RELATIVE,
-                base_register="a6",
-                displacement=100,
-            ),
+            provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
         )}},
         lvo_equs={},
         lvo_substitutions={},
@@ -2483,14 +2486,13 @@ def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_
         app_offsets={100: "app_dos_base"},
         arg_annotations={},
         data_access_sizes={},
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
         os_kb=SimpleNamespace(
             META=runtime_os.META,
             STRUCTS=runtime_os.STRUCTS,
             CONSTANTS={},
             LIBRARIES={},
         ),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -2505,3 +2507,4 @@ def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_
     assert comment == ""
     assert comment_parts == ()
     assert used_structs == set()
+

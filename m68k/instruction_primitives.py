@@ -4,6 +4,7 @@ import struct
 from dataclasses import dataclass
 
 from m68k_kb import runtime_m68k_analysis
+from m68k_kb import runtime_m68k_decode
 from m68k_kb import runtime_m68k_executor
 
 from .ea_extension import parse_full_extension
@@ -14,6 +15,7 @@ _EA_REVERSE = dict(runtime_m68k_analysis.EA_REVERSE)
 _BRIEF_EXT_FIELDS = runtime_m68k_analysis.EA_BRIEF_FIELDS
 _SIZE_BYTE_COUNT = runtime_m68k_analysis.SIZE_BYTE_COUNT
 _OPWORD_BYTES = runtime_m68k_analysis.OPWORD_BYTES
+_DECODED_OPS_CACHE: dict[tuple[bytes, int, str, str, int, int], DecodedOps] = {}
 
 
 @dataclass
@@ -183,12 +185,14 @@ def decode_ea(data: bytes, pos: int, mode: int, reg: int,
 def decode_instruction_ops(inst, mnemonic: str, size: str) -> DecodedOps:
     from .instruction_decode import decode_instruction_operands
 
-    decoded_ops = DecodedOps()
     if (inst.decoded_operands is not None
             and inst.kb_mnemonic is not None
             and inst.kb_mnemonic.upper() == mnemonic.upper()
             and inst.operand_size == size):
+        decoded_ops = DecodedOps()
         decoded = inst.decoded_operands
+        if hasattr(decoded, "decoded"):
+            decoded = decoded.decoded
         decoded_ops.opcode = struct.unpack_from(">H", inst.raw, 0)[0] if len(inst.raw) >= _OPWORD_BYTES else 0
         decoded_ops.ea_op = decoded.ea_op
         decoded_ops.dst_op = decoded.dst_op
@@ -198,7 +202,19 @@ def decode_instruction_ops(inst, mnemonic: str, size: str) -> DecodedOps:
         return decoded_ops
 
     if len(inst.raw) < _OPWORD_BYTES:
-        return decoded_ops
+        return DecodedOps()
+    cache_key = (
+        inst.raw,
+        inst.offset,
+        mnemonic,
+        size,
+        id(runtime_m68k_decode.RAW_FIELDS),
+        id(runtime_m68k_decode.FORM_OPERAND_TYPES),
+    )
+    cached = _DECODED_OPS_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    decoded_ops = DecodedOps()
     decoded_ops.opcode = struct.unpack_from(">H", inst.raw, 0)[0]
     decoded = decode_instruction_operands(
         inst.raw, mnemonic, _OPWORD_BYTES, _SIZE_BYTE_COUNT, size, inst.offset
@@ -208,6 +224,7 @@ def decode_instruction_ops(inst, mnemonic: str, size: str) -> DecodedOps:
     decoded_ops.reg_num = decoded.reg_num
     decoded_ops.ea_is_source = decoded.ea_is_source
     decoded_ops.imm_val = decoded.imm_val
+    _DECODED_OPS_CACHE[cache_key] = decoded_ops
     return decoded_ops
 
 

@@ -11,6 +11,7 @@ from m68k_kb import runtime_os
 from m68k_kb import runtime_m68k_analysis
 from m68k.jump_tables import JumpTable, JumpTableEntry, JumpTablePattern
 from m68k.indirect_core import IndirectSite, IndirectSiteRegion, IndirectSiteStatus
+from m68k.memory_provenance import MemoryRegionAddressSpace, MemoryRegionProvenance
 from disasm import cli as gen_disasm_mod
 from disasm.comments import build_instruction_comment_parts, render_comment_parts
 from disasm import data_render as data_render_mod
@@ -32,9 +33,10 @@ from disasm.types import (AddressRowContext, DisassemblySession, HunkDisassembly
                           HunkMetadata, JumpTableEntryRef, JumpTableRegion,
                           ListingRow, SemanticOperand)
 from m68k.m68k_executor import Instruction
-from m68k.os_calls import (CallArgumentAnnotation, LibraryBaseTag, LibraryCall,
-                           MemoryRegionProvenance, MemoryRegionProvenanceKind,
-                           TypedMemoryRegion, build_app_slot_symbols)
+from m68k.os_calls import (AppBaseInfo, AppBaseKind, CallArgumentAnnotation,
+                           CallSetupAnalysis,
+                           LibraryBaseTag, LibraryCall, TypedMemoryRegion,
+                           analyze_call_setups, build_app_slot_symbols)
 from disasm.validation import get_instruction_processor_min, has_valid_branch_target
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
@@ -117,6 +119,7 @@ def test_build_arg_substitutions_collects_immediate_constant():
         META=runtime_os.OsMeta(
             calling_convention=runtime_os.META.calling_convention,
             exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
             constant_domains={"OpenLibrary": ("OL_TAG",)},
@@ -203,6 +206,7 @@ def test_build_arg_substitutions_collects_dispatch_call_constant():
         META=runtime_os.OsMeta(
             calling_convention=runtime_os.META.calling_convention,
             exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
             constant_domains={"Seek": ("OFFSET_BEGINNING", "OFFSET_CURRENT")},
@@ -301,7 +305,7 @@ def test_build_app_slot_symbols_prefers_initial_mem_and_typed_slots():
         lib_calls=[],
         code=b"",
         os_kb=runtime_os,
-        platform=make_platform(initial_base_reg=(6, 0x1000), initial_mem=FakeInitMem()),
+        platform=make_platform(app_base=(6, 0x1000), initial_mem=FakeInitMem()),
     )
 
     assert app_offsets == {0x20: "app_dos_base"}
@@ -365,7 +369,7 @@ def test_build_app_slot_symbols_disambiguates_duplicate_typed_slot_names():
         lib_calls=lib_calls,
         code=b"",
         os_kb=runtime_os,
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
     )
 
     assert app_offsets == {
@@ -415,7 +419,7 @@ def test_build_app_slot_symbols_prefers_backward_usage_name_for_single_slot():
         lib_calls=lib_calls,
         code=b"",
         os_kb=runtime_os,
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
     )
 
     assert app_offsets == {
@@ -462,7 +466,7 @@ def test_build_app_slot_symbols_preserves_first_equal_priority_usage():
         lib_calls=lib_calls,
         code=b"",
         os_kb=runtime_os,
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
     )
 
     assert app_offsets == {
@@ -506,12 +510,174 @@ def test_build_app_slot_symbols_prefers_named_base_identity_for_struct_slot():
         lib_calls=lib_calls,
         code=code,
         os_kb=runtime_os,
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
     )
 
     assert app_offsets == {
         0x10B8: "app_timer_device_iorequest",
     }
+
+
+def test_build_app_slot_symbols_for_absolute_app_base_disambiguates_by_absolute_address():
+    lib_calls = [
+        LibraryCall(
+            addr=4,
+            block=0,
+            library="exec.library",
+            function="OpenLibrary",
+            lvo=-552,
+            output=runtime_os.OsOutput(name="library", reg="D0", type="struct Library *", i_struct="LIBRARY"),
+        ),
+        LibraryCall(
+            addr=12,
+            block=8,
+            library="exec.library",
+            function="OpenLibrary",
+            lvo=-552,
+            output=runtime_os.OsOutput(name="library", reg="D0", type="struct Library *", i_struct="LIBRARY"),
+        ),
+    ]
+    blocks = {
+        0: type("Block", (), {"instructions": [
+            Instruction(offset=4, size=2, opcode=0x4E75, text="rts", raw=b"\x4E\x75",
+                        kb_mnemonic="RTS", operand_size="w"),
+            Instruction(offset=6, size=4, opcode=0x2D40, text="move.l d0,-32768(a6)", raw=b"\x2D\x40\x80\x00",
+                        kb_mnemonic="MOVE", operand_size="l"),
+        ]})(),
+        8: type("Block", (), {"instructions": [
+            Instruction(offset=12, size=2, opcode=0x4E75, text="rts", raw=b"\x4E\x75",
+                        kb_mnemonic="RTS", operand_size="w"),
+            Instruction(offset=14, size=4, opcode=0x2D40, text="move.l d0,-32764(a6)", raw=b"\x2D\x40\x80\x04",
+                        kb_mnemonic="MOVE", operand_size="l"),
+        ]})(),
+    }
+    blocks[0].xrefs = []
+    blocks[8].xrefs = []
+
+    app_offsets = build_app_slot_symbols(
+        blocks=blocks,
+        lib_calls=lib_calls,
+        code=b"",
+        os_kb=runtime_os,
+        platform=make_platform(app_base=AppBaseInfo(
+            kind=AppBaseKind.ABSOLUTE,
+            reg_num=6,
+            concrete=0x8000,
+        )),
+    )
+
+    assert app_offsets == {
+        -32768: "app_openlibrary_library_0000",
+        -32764: "app_openlibrary_library_0004",
+    }
+
+
+def test_analyze_call_setups_names_pc_relative_struct_argument_targets():
+    lib_calls = [
+        LibraryCall(
+            addr=4,
+            block=0,
+            library="intuition.library",
+            function="OpenScreen",
+            lvo=-198,
+            inputs=(runtime_os.OsInput(name="newScreen", reg="A0",
+                                       type="struct NewScreen *", i_struct="NewScreen"),),
+        ),
+    ]
+    blocks = {
+        0: type("Block", (), {"instructions": [
+            Instruction(offset=0, size=4, opcode=0x41FA, text="lea 8(pc),a0", raw=b"\x41\xFA\x00\x08",
+                        kb_mnemonic="LEA", operand_size="l"),
+            Instruction(offset=4, size=2, opcode=0x4E75, text="rts", raw=b"\x4E\x75",
+                        kb_mnemonic="RTS", operand_size="w"),
+        ]})(),
+    }
+
+    result = analyze_call_setups(
+        blocks=blocks,
+        lib_calls=lib_calls,
+        os_kb=runtime_os,
+        code=b"\x00" * 16,
+        platform=make_platform(),
+    )
+
+    assert result == CallSetupAnalysis(
+        arg_annotations={0: CallArgumentAnnotation("newScreen", "A0", "OpenScreen", "intuition.library")},
+        segment_data_symbols={0x000A: "openscreen_newscreen"},
+        segment_code_symbols={},
+        code_entry_points=(),
+        string_ranges={},
+    )
+
+
+def test_analyze_call_setups_errors_on_conflicting_typed_names_for_same_segment_address():
+    lib_calls = [
+        LibraryCall(
+            addr=4,
+            block=0,
+            library="intuition.library",
+            function="OpenScreen",
+            lvo=-198,
+            inputs=(runtime_os.OsInput(name="newScreen", reg="A0",
+                                       type="struct NewScreen *", i_struct="NewScreen"),),
+        ),
+        LibraryCall(
+            addr=10,
+            block=0,
+            library="intuition.library",
+            function="OpenWindow",
+            lvo=-204,
+            inputs=(runtime_os.OsInput(name="newWindow", reg="A0",
+                                       type="struct NewWindow *", i_struct="NewWindow"),),
+        ),
+    ]
+    blocks = {
+        0: type("Block", (), {"instructions": [
+            Instruction(offset=0, size=4, opcode=0x41FA, text="lea 8(pc),a0", raw=b"\x41\xFA\x00\x08",
+                        kb_mnemonic="LEA", operand_size="l"),
+            Instruction(offset=4, size=2, opcode=0x4E75, text="rts", raw=b"\x4E\x75",
+                        kb_mnemonic="RTS", operand_size="w"),
+            Instruction(offset=6, size=4, opcode=0x41FA, text="lea 2(pc),a0", raw=b"\x41\xFA\x00\x02",
+                        kb_mnemonic="LEA", operand_size="l"),
+            Instruction(offset=10, size=2, opcode=0x4E75, text="rts", raw=b"\x4E\x75",
+                        kb_mnemonic="RTS", operand_size="w"),
+        ]})(),
+    }
+
+    with pytest.raises(ValueError, match="Conflicting typed segment names"):
+        analyze_call_setups(
+            blocks=blocks,
+            lib_calls=lib_calls,
+            os_kb=runtime_os,
+            code=b"\x00" * 16,
+            platform=make_platform(),
+        )
+
+
+def test_build_hunk_metadata_masks_hints_inside_typed_string_ranges():
+    core_block = type("Block", (), {"start": 0x00, "end": 0x04, "successors": [], "instructions": []})()
+    hint_block = type("Block", (), {"start": 0x20, "end": 0x24, "successors": [], "instructions": []})()
+    ha = type("HA", (), {
+        "blocks": {0x00: core_block},
+        "hint_blocks": {0x20: hint_block},
+        "call_targets": set(),
+        "branch_targets": set(),
+        "jump_tables": [],
+    })()
+    metadata = build_hunk_metadata(
+        code=b"\x00" * 0x40,
+        code_size=0x40,
+        hunk_index=0,
+        hunk_entities=[],
+        ha=ha,
+        hf_hunks=[],
+        typed_string_ranges={0x20: 0x24},
+    )
+
+    assert metadata.hint_addrs == set()
+    assert metadata.string_addrs == {0x20}
+    assert metadata.string_ranges == {0x20: 0x24}
+    assert 0x20 not in metadata.labels
 
 
 def test_prepare_hunk_code_relocates_payload_segment():
@@ -562,7 +728,6 @@ def test_build_hunk_session_preserves_metadata_and_analysis_fields():
         reloc_target_set={0x40},
         pc_targets={0x20: "pcref_0020"},
         string_addrs={0x20},
-        core_absolute_targets={0x40},
         labels={0x40: "loc_0040"},
         jump_table_regions={0x10: JumpTableRegion(pattern="word_table", table_end=0)},
         jump_table_target_sources={0x80: ("loc_0040",)},
@@ -570,7 +735,7 @@ def test_build_hunk_session_preserves_metadata_and_analysis_fields():
             struct="Foo",
             size=4,
                 provenance=MemoryRegionProvenance(
-                    kind=MemoryRegionProvenanceKind.ABSOLUTE,
+                    address_space=MemoryRegionAddressSpace.ABSOLUTE,
                     absolute_addr=0,
                 ),
         )}},
@@ -581,9 +746,8 @@ def test_build_hunk_session_preserves_metadata_and_analysis_fields():
         app_offsets={0x20: "app_dos_base"},
         arg_annotations={0x30: CallArgumentAnnotation("name", "D0", "OpenLibrary", "dos.library")},
         data_access_sizes={0x40: 2},
-        platform=make_platform(initial_base_reg=(6, 0x1000)),
+        platform=make_platform(app_base=(6, 0x1000)),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs={0x0004},
         base_addr=0x400,
         code_start=2,
         relocated_segments=[RelocatedSegment(file_offset=0, base_addr=0)],
@@ -616,7 +780,7 @@ def test_build_hunk_metadata_collects_code_and_hint_addresses():
         hunk_entities=[],
         ha=ha,
         hf_hunks=[],
-        fixed_abs_addrs=set(),
+        reserved_absolute_addrs=set(),
     )
 
     assert metadata.code_addrs == {0x10, 0x11, 0x12, 0x13}
@@ -648,7 +812,7 @@ def test_build_hunk_metadata_builds_word_table_regions_and_sources():
         hunk_entities=[],
         ha=ha,
         hf_hunks=[],
-        fixed_abs_addrs=set(),
+        reserved_absolute_addrs=set(),
     )
 
     assert metadata.jump_table_regions[0x30].entries == (
@@ -688,7 +852,7 @@ def test_build_hunk_metadata_preserves_string_dispatch_entry_offsets():
         hunk_entities=[],
         ha=ha,
         hf_hunks=[],
-        fixed_abs_addrs=set(),
+        reserved_absolute_addrs=set(),
     )
 
     assert metadata.jump_table_regions[0x30].entries == (
@@ -854,7 +1018,6 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -866,9 +1029,8 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii():
         app_offsets={},
         arg_annotations={},
         data_access_sizes={},
-        platform=make_platform(initial_base_reg=(6, 0)),
+        platform=make_platform(app_base=(6, 0)),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -914,7 +1076,6 @@ def test_build_instruction_comment_parts_uses_instruction_processor_min_not_text
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -928,7 +1089,6 @@ def test_build_instruction_comment_parts_uses_instruction_processor_min_not_text
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -971,7 +1131,6 @@ def test_render_instruction_text_requires_opcode_text():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -985,7 +1144,6 @@ def test_render_instruction_text_requires_opcode_text():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1027,7 +1185,6 @@ def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_tex
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1041,7 +1198,6 @@ def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_tex
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1078,7 +1234,6 @@ def test_build_instruction_comment_parts_appends_unresolved_indirect_marker():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={},
         jump_table_regions={},
         jump_table_target_sources={},
@@ -1092,7 +1247,6 @@ def test_build_instruction_comment_parts_appends_unresolved_indirect_marker():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1233,7 +1387,6 @@ def test_emit_jump_table_rows_emits_inline_dispatch_rows():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x02: "loc_0002"},
         jump_table_regions={
             0x00: JumpTableRegion(pattern="pc_inline_dispatch", table_end=0x04)
@@ -1249,7 +1402,6 @@ def test_emit_jump_table_rows_emits_inline_dispatch_rows():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1285,7 +1437,6 @@ def test_emit_jump_table_rows_emits_string_dispatch_rows():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x08: "loc_0008", 0x0A: "loc_000a"},
         jump_table_regions={
             0x00: JumpTableRegion(
@@ -1305,7 +1456,6 @@ def test_emit_jump_table_rows_emits_string_dispatch_rows():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1345,7 +1495,6 @@ def test_emit_jump_table_rows_preserves_sparse_word_gaps():
         reloc_target_set=set(),
         pc_targets={},
         string_addrs=set(),
-        core_absolute_targets=set(),
         labels={0x20: "loc_0020", 0x24: "loc_0024"},
         jump_table_regions={
             0x00: JumpTableRegion(
@@ -1367,7 +1516,6 @@ def test_emit_jump_table_rows_preserves_sparse_word_gaps():
         data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
-        fixed_abs_addrs=set(),
         base_addr=0,
         code_start=0,
         relocated_segments=[],
@@ -1548,7 +1696,6 @@ def test_emit_session_rows_smoke_for_empty_hunk_session():
                 reloc_target_set=set(),
                 pc_targets={},
                 string_addrs=set(),
-                core_absolute_targets=set(),
                 labels={},
                 jump_table_regions={},
                 jump_table_target_sources={},
@@ -1562,7 +1709,6 @@ def test_emit_session_rows_smoke_for_empty_hunk_session():
                 data_access_sizes={},
                 platform=make_platform(),
         os_kb=make_empty_os_kb(),
-                fixed_abs_addrs=set(),
                 base_addr=0,
                 code_start=0,
                 relocated_segments=[],
@@ -1576,6 +1722,42 @@ def test_emit_session_rows_smoke_for_empty_hunk_session():
 
     assert rows
     assert rows[0].kind == "comment"
+
+
+def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes():
+    hunk_session = SimpleNamespace(
+        absolute_labels={
+            0x00000004: "AbsExecBase",
+        },
+    )
+    rows = [
+        ListingRow(
+            row_id="instruction:000000",
+            kind="instruction",
+            text="",
+            operand_parts=(
+                SemanticOperand(
+                    kind="absolute_target",
+                    text="_custom+intena",
+                    segment_addr=0x00DFF09A,
+                ),
+                SemanticOperand(kind="absolute_target", text="AbsExecBase", segment_addr=0x00000004),
+                SemanticOperand(kind="absolute_target", text="_ciaa+ciapra", segment_addr=0x00BFE001),
+                SemanticOperand(kind="absolute_target", text="$1234", segment_addr=0x00001234),
+            ),
+        )
+    ]
+
+    used = emitter_mod._collect_used_absolute_addrs(rows, hunk_session)
+    equ_rows, includes = emitter_mod._absolute_symbol_rows(used, hunk_session)
+
+    assert used == {0x00000004, 0x00DFF09A, 0x00BFE001}
+    assert includes == {"hardware/cia.i", "hardware/custom.i"}
+    assert [row.text for row in equ_rows] == [
+        "; Absolute symbols\n",
+        "AbsExecBase\tEQU\t$4\n",
+        "\n",
+    ]
 
 
 def test_serialize_row_preserves_structured_fields():
@@ -1629,7 +1811,6 @@ def test_session_metadata_summarizes_hunks():
                 reloc_target_set=set(),
                 pc_targets={},
                 string_addrs=set(),
-                core_absolute_targets=set(),
                 labels={0: "entry_point"},
                 jump_table_regions={},
                 jump_table_target_sources={},
@@ -1643,7 +1824,6 @@ def test_session_metadata_summarizes_hunks():
                 data_access_sizes={},
                 platform=make_platform(),
         os_kb=make_empty_os_kb(),
-                fixed_abs_addrs=set(),
                 base_addr=0,
                 code_start=0,
                 relocated_segments=[],
@@ -1790,3 +1970,4 @@ def test_emit_data_region_renders_ascii_string():
     )
 
     assert output.getvalue() == '    dc.b    "TEST",0\n'
+

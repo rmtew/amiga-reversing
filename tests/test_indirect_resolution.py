@@ -407,7 +407,7 @@ def test_indexed_dispatch_single():
     init_mem.write(sentinel_a6 + 100, _concrete(lib_base), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel_a6),
+        app_base=(6, sentinel_a6),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -455,7 +455,7 @@ def test_dispatch_per_caller():
     init_mem.write(sentinel_a6 + 100, _concrete(lib_base), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel_a6),
+        app_base=(6, sentinel_a6),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -501,7 +501,7 @@ def test_dispatch_per_caller_multiple_unresolved_in_shared_sub():
     init_mem.write(sentinel_a6 + 100, _concrete(lib_base), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel_a6),
+        app_base=(6, sentinel_a6),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -4296,5 +4296,6 @@ def test_resolve_per_caller_caches_summarized_propagation(monkeypatch):
 
     assert sorted(r.target for r in resolved) == [0x52, 0x54]
     assert calls["count"] == 2
+
 
 

@@ -17,6 +17,7 @@ with the propagation engine.
 import struct
 import pytest
 
+from m68k_kb import runtime_m68k_analysis
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import (analyze, _concrete, _unknown, _symbolic,
@@ -473,7 +474,7 @@ def test_base_register_survives_merge():
     code += struct.pack('>H', 0x4E75)                    # [0x2c] rts (target!)
     code += b'\x4e\x71' * 3                              # pad
 
-    platform = make_platform(initial_base_reg=(6, 0x32), scratch_regs=())
+    platform = make_platform(app_base=(6, 0x32), scratch_regs=())
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
     blocks = result["blocks"]
@@ -631,7 +632,7 @@ def test_summary_preserves_scratch_register():
 
     platform = make_platform(
         scratch_regs=(("dn", 0), ("dn", 1), ("an", 0), ("an", 1)),
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
     )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
@@ -671,7 +672,7 @@ def test_summary_produced_value_propagates():
 
     platform = make_platform(
         scratch_regs=(("dn", 0), ("dn", 1)),
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
     )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
@@ -711,7 +712,7 @@ def test_summary_produced_address_enables_dispatch():
 
     platform = make_platform(
         scratch_regs=(("an", 0), ("an", 1)),
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
     )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
@@ -768,7 +769,7 @@ def test_summary_input_dependent_stays_unknown():
 
     platform = make_platform(
         scratch_regs=(("dn", 0),),
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
     )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
@@ -801,7 +802,7 @@ def test_summary_unknown_return_stays_unknown():
 
     platform = make_platform(
         scratch_regs=(("dn", 0),),
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
     )
     result = analyze(code, propagate=True, entry_points=[0],
                      platform=platform)
@@ -889,7 +890,7 @@ def test_init_mem_value_survives_join():
     init_mem.write(sentinel + 100, _concrete(target), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -943,7 +944,7 @@ def test_store_in_one_sub_load_in_another():
     init_mem.write(sentinel + 100, _concrete(handler_addr), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -980,7 +981,7 @@ def test_local_write_overrides_init_mem():
     init_mem.write(sentinel + 100, _concrete(code_target), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -1026,7 +1027,7 @@ def test_unknown_write_kills_init_mem_at_join():
     init_mem.write(sentinel + 100, _concrete(init_target), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -1084,7 +1085,7 @@ def test_concrete_overwrite_on_one_path_kills_init_at_join():
     init_mem.write(sentinel + 100, _concrete(init_target), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -1129,7 +1130,7 @@ def test_both_paths_agree_on_non_init_value():
     init_mem.write(sentinel + 100, _concrete(0x20), "l")
 
     platform = make_platform(
-        initial_base_reg=(6, sentinel),
+        app_base=(6, sentinel),
         initial_mem=init_mem,
         scratch_regs=(),
     )
@@ -1252,3 +1253,25 @@ def test_library_base_tag_survives_memory_store_and_reload():
 
     assert isinstance(loaded.tag, LibraryBaseTag)
     assert loaded.tag.library_base == "dos.library"
+
+
+def test_link_unlk_apply_structured_sp_effects():
+    assert "LINK" in runtime_m68k_analysis.SP_EFFECTS_COMPLETE
+    assert "UNLK" in runtime_m68k_analysis.SP_EFFECTS_COMPLETE
+    assert "PEA" not in runtime_m68k_analysis.SP_EFFECTS_COMPLETE
+    assert "RTS" not in runtime_m68k_analysis.SP_EFFECTS_COMPLETE
+
+    code = b""
+    code += assemble_instruction("movea.l #$00000100,a7")
+    code += assemble_instruction("movea.l #$00000200,a6")
+    code += assemble_instruction("link a6,#-8")
+    code += assemble_instruction("unlk a6")
+    code += assemble_instruction("nop")
+
+    cpu, mem = _run(code)
+
+    assert cpu.a[6].is_known and cpu.a[6].concrete == 0x00000200
+    assert cpu.sp.is_known and cpu.sp.concrete == 0x00000100
+    saved_fp = mem.read(0x000000FC, "l")
+    assert saved_fp.is_known and saved_fp.concrete == 0x00000200
+

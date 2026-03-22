@@ -45,6 +45,9 @@ app_subtime_src	EQU	4264
 app_subtime_dest	EQU	4272
 app_timer_device_iorequest	EQU	4280
 
+; Absolute symbols
+AbsExecBase	EQU	$4
+
     INCLUDE "devices/timer.i"
     INCLUDE "exec/io.i"
     INCLUDE "exec/libraries.i"
@@ -5843,10 +5846,10 @@ hint_2d20:
     bsr.w loc_0a38
 hint_2d24:
 ; --- unverified ---
-    lea str_2d2e(pc),a0
+    lea pcref_2d2e(pc),a0
     move.l a0,378(a6) ; app+$17A
     moveq #10,d1
-str_2d2e:
+pcref_2d2e:
     rts
 hint_2d30:
 ; --- unverified ---
@@ -7087,7 +7090,7 @@ hint_35c2:
 ; --- unverified ---
     moveq #-1,d0
     rts
-str_35c6:
+pcref_35c6:
     dc.b    $02,$53,$46,$43,$00,$00,$02,$44,$46,$43,$00,$01,$03,$43
     dc.b    $41,$43,$52,$00,$02,$02,$55,$53,$50,$08,$00,$02,$56,$42,$52,$08
     dc.b    $01,$03,$43,$41,$41,$52,$08,$02,$02,$4d,$53,$50,$08,$03,$02,$49
@@ -12669,8 +12672,8 @@ hint_5f7c:
 hint_5f86:
 ; --- unverified ---
     add.w d0,d0
-    or.w str_5f8c(pc,d0.w),d5
-str_5f8c:
+    or.w pcref_5f8c(pc,d0.w),d5
+pcref_5f8c:
     rts
 hint_5f8e:
     dc.b    $18,$00,$10,$00,$00,$00,$14,$00,$0c,$00
@@ -16061,14 +16064,14 @@ loc_78e8:
     move.l a0,-(sp)
     bsr.s sub_7902
 loc_78ec:
-    lea str_78fc(pc),a4
+    lea pcref_78fc(pc),a4
     move.b (a4)+,d1
     moveq #1,d3
     bsr.w sub_7952
 loc_78f8:
     movea.l (sp)+,a4
     rts
-str_78fc:
+pcref_78fc:
     dc.b    "TEXT",$0a,0
 sub_7902:
     clr.l 346(a6) ; app+$15A
@@ -17378,9 +17381,9 @@ loc_8ebc:
     move.w (sp)+,d1
 sub_8ebe:
     andi.w #$f,d1
-    move.b str_8ec8(pc,d1.w),d1
+    move.b pcref_8ec8(pc,d1.w),d1
     bra.s sub_8e98
-str_8ec8:
+pcref_8ec8:
     dc.b    "0123456789ABCDEF"
 sub_8ed8:
     moveq #6,d3
@@ -17395,7 +17398,7 @@ loc_8ee6:
     beq.s loc_8ef2
 loc_8eea:
     st d2
-    move.b str_8ec8(pc,d1.w),d1
+    move.b pcref_8ec8(pc,d1.w),d1
     jsr (a2)
 loc_8ef2:
     move.l (sp)+,d1
@@ -17403,7 +17406,7 @@ loc_8ef2:
 loc_8ef8:
     rol.l #4,d1
     andi.w #$f,d1
-    move.b str_8ec8(pc,d1.w),d1
+    move.b pcref_8ec8(pc,d1.w),d1
     jmp (a2)
 sub_8f04:
     lea sub_8e98(pc),a2
@@ -18643,7 +18646,7 @@ loc_9abc:
     beq.s loc_9afe
 loc_9ae2:
     movea.l 406(a6),a1 ; app+$196
-    lea str_9b6a(pc),a2
+    lea pcref_9b6a(pc),a2
     bsr.w sub_99d0
 loc_9aee:
     bne.s loc_9afe
@@ -18708,7 +18711,7 @@ loc_9b5e:
 loc_9b64:
     moveq #77,d0
     bra.w loc_846e
-str_9b6a:
+pcref_9b6a:
     dc.b    $03,$42,$53,$53,$04,$43,$4f,$44,$45,$04,$44,$41,$54,$41,$05,$42
     dc.b    $53,$53,$5f,$43,$05,$42,$53,$53,$5f,$46,$06
     dc.b    "CODE_C"
@@ -20073,7 +20076,7 @@ init_app:
     movea.l a0,a4
     moveq #MEMF_PUBLIC,d1 ; AllocMem: requirements
     move.l #$1140,d0 ; AllocMem: byteSize
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
 loc_a928:
     tst.l d0
@@ -20086,10 +20089,10 @@ loc_a930:
     addq.l #2,a6
     clr.l 418(a6) ; app+$1A2
     clr.l app_output_file(a6)
-    lea str_b0a0(pc),a1 ; OpenLibrary: libName
+    lea openlibrary_libname(pc),a1 ; OpenLibrary: libName
     moveq #0,d0 ; OpenLibrary: version
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOOpenLibrary(a6) ; app-$228
 loc_a94c:
     movea.l (sp)+,a6
@@ -20098,7 +20101,7 @@ loc_a94c:
 loc_a952:
     lea app_freemem_memoryblock(a6),a1 ; FreeMem: memoryBlock
     move.l #$1140,d0 ; FreeMem: byteSize
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOFreeMem(a6) ; app-$D2
 loc_a964:
     moveq #127,d0
@@ -20174,12 +20177,12 @@ loc_aa1a:
     sf 254(a6) ; app+$FE
     sf 255(a6) ; app+$FF
     sf 256(a6) ; app+$100
-    lea str_aaa0(pc),a0 ; OpenDevice: devName
+    lea opendevice_devname(pc),a0 ; OpenDevice: devName
     moveq #0,d0
     lea app_timer_device_iorequest(a6),a1 ; OpenDevice: ioRequest
     moveq #CONU_STANDARD,d0 ; OpenDevice: unit
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOOpenDevice(a6) ; app-$1BC
 loc_aa4c:
     movea.l (sp)+,a6
@@ -20217,7 +20220,7 @@ loc_aa98:
 loc_aa9c:
     moveq #0,d0
     rts
-str_aaa0:
+opendevice_devname:
     dc.b    "timer.device",0
     dc.b    $00
 loc_aaae:
@@ -20302,7 +20305,7 @@ check_signals:
     moveq #0,d0 ; SetSignal: newSignals
     moveq #0,d1 ; SetSignal: signalSet
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOSetSignal(a6) ; app-$132
 loc_ab98:
     movea.l (sp)+,a6
@@ -20313,7 +20316,7 @@ loc_aba0:
     moveq #0,d0 ; SetSignal: newSignals
     move.l #$1000,d1 ; SetSignal: signalSet
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOSetSignal(a6) ; app-$132
 loc_abb8:
     movea.l (sp)+,a6
@@ -20379,7 +20382,7 @@ loc_ac4c:
 loc_ac58:
     lea app_timer_device_iorequest(a6),a1 ; CloseDevice: ioRequest
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOCloseDevice(a6) ; app-$1C2
 loc_ac66:
     movea.l (sp)+,a6
@@ -20415,14 +20418,14 @@ loc_acc2:
     movea.l 3294(a6),sp ; app+$CDE
     movea.l app_dos_base(a6),a1 ; CloseLibrary: library
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOCloseLibrary(a6) ; app-$19E
 loc_acd4:
     movea.l (sp)+,a6
     move.b 570(a6),d4 ; app+$23A
     lea app_freemem_memoryblock(a6),a1 ; FreeMem: memoryBlock
     move.l #$1140,d0 ; FreeMem: byteSize
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOFreeMem(a6) ; app-$D2
 loc_acec:
     move.b d4,d0
@@ -20555,7 +20558,7 @@ alloc_memory:
     ori.l #$10001,d0
     exg
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
 loc_ae22:
     movea.l (sp)+,a6
@@ -20581,7 +20584,7 @@ alloc_memory_ae42:
     move.l d1,d0 ; AllocMem: byteSize
     moveq #MEMF_PUBLIC,d1 ; AllocMem: requirements
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
 loc_ae54:
     movea.l (sp)+,a6
@@ -20599,7 +20602,7 @@ free_memory:
     move.l -(a1),d0 ; FreeMem: byteSize
     sub.l d0,3562(a6) ; app+$DEA
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOFreeMem(a6) ; app-$D2
 loc_ae78:
     movea.l (sp)+,a6
@@ -20874,7 +20877,7 @@ loc_b06e:
     movem.l d1-d2/a0-a2,-(sp)
     move.l #$20001,d1 ; AvailMem: requirements
     move.l a6,-(sp)
-    movea.l ($0004).w,a6
+    movea.l AbsExecBase,a6
     jsr _LVOAvailMem(a6) ; app-$D8
 loc_b082:
     movea.l (sp)+,a6
@@ -20894,7 +20897,7 @@ loc_b09a:
     ble.s loc_b098
 loc_b09e:
     bra.s loc_b096
-str_b0a0:
+openlibrary_libname:
     dc.b    "dos.library",0
 sub_b0ac:
     bsr.w call_close
@@ -20944,7 +20947,7 @@ sub_b0fc:
 hint_b102:
 ; --- unverified ---
     movem.l d0/a0,-(sp)
-    movea.l ($0004).w,a0
+    movea.l AbsExecBase,a0
     move.b 297(a0),d0
     btst #4,d0
     beq.s hint_b126

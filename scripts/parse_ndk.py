@@ -8,7 +8,9 @@ Parses:
 - TYPES.I: type size macros (parsed, not hardcoded)
 - OS_CHANGES: version tagging (1.3 -> 2.04 -> 2.1 -> 3.0 -> 3.1 transitions)
 
-Outputs: knowledge/amiga_os_reference.json
+Outputs:
+- knowledge/amiga_os_reference.json
+- knowledge/amiga_hw_symbols.json
 """
 
 import os
@@ -16,13 +18,14 @@ import re
 import json
 import sys
 import argparse
+from collections import defaultdict
 from build_runtime_kb import build_runtime_artifacts
 
 sys.stdout.reconfigure(encoding="utf-8")
 
 
 # =============================================================================
-# TYPES.I parser — extract type sizes from macro definitions
+# TYPES.I parser ? extract type sizes from macro definitions
 # =============================================================================
 
 def scan_type_macros(include_dir: str) -> dict:
@@ -116,6 +119,161 @@ def scan_type_macros(include_dir: str) -> dict:
             type_sizes[name] = 0
 
     return type_sizes
+
+
+def resolve_include_i_dir(ndk_root: str) -> str:
+    candidates = [
+        os.path.join(ndk_root, "INCLUDES&LIBS", "INCLUDE_I"),
+        os.path.join(ndk_root, "Include", "include_i"),
+    ]
+    existing = [path for path in candidates if os.path.isdir(path)]
+    if not existing:
+        raise ValueError(
+            f"Could not find NDK include_i directory under {ndk_root!r}"
+        )
+    if len(existing) > 1:
+        raise ValueError(
+            f"Ambiguous NDK include_i directories under {ndk_root!r}: {existing}"
+        )
+    return existing[0]
+
+
+_HEX_EQU_RE = re.compile(r"^\s*([A-Za-z_]\w*)\s+EQU\s+\$([0-9A-Fa-f]+)\b")
+
+
+def _parse_ver_line(line: str) -> str | None:
+    match = re.search(r"\$VER:\s*([^\r\n*]+)", line)
+    if not match:
+        return None
+    return match.group(1).strip()
+
+
+def _load_hw_manual_base_address() -> int:
+    manual_path = os.path.join("knowledge", "amiga_hw_registers.json")
+    with open(manual_path, encoding="utf-8") as handle:
+        canonical = json.load(handle)
+    return int(canonical["base_address"], 16)
+
+
+def _collect_equ_offsets(path: str,
+                         *,
+                         stop_before_comments: tuple[str, ...] = (),
+                         ignored_prefixes: tuple[str, ...] = (),
+                         ignored_ranges: tuple[tuple[str, str], ...] = (),
+                         ) -> tuple[dict[int, list[str]], str | None]:
+    offsets: dict[int, list[str]] = defaultdict(list)
+    version = None
+    active_ignored_end = None
+
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        for raw_line in handle:
+            line = raw_line.rstrip()
+            if version is None:
+                version = _parse_ver_line(line)
+            stripped = line.strip()
+            if active_ignored_end is not None:
+                match = _HEX_EQU_RE.match(line)
+                if match and match.group(1) == active_ignored_end:
+                    active_ignored_end = None
+                continue
+            if stripped.startswith("*"):
+                comment = stripped.lstrip("*").strip()
+                if comment in stop_before_comments:
+                    break
+                for start_comment, end_name in ignored_ranges:
+                    if comment == start_comment:
+                        active_ignored_end = end_name
+                        break
+                continue
+            match = _HEX_EQU_RE.match(line)
+            if not match:
+                continue
+            name = match.group(1)
+            if any(name.startswith(prefix) for prefix in ignored_prefixes):
+                continue
+            offsets[int(match.group(2), 16)].append(name)
+
+    return dict(offsets), version
+
+
+def build_hardware_symbols_kb(include_dir: str) -> dict:
+    hardware_dir = os.path.join(include_dir, "hardware")
+    custom_path = os.path.join(hardware_dir, "custom.i")
+    cia_path = os.path.join(hardware_dir, "cia.i")
+    if not os.path.isfile(custom_path):
+        raise ValueError(f"Missing NDK hardware include {custom_path}")
+    if not os.path.isfile(cia_path):
+        raise ValueError(f"Missing NDK hardware include {cia_path}")
+
+    custom_offsets, custom_ver = _collect_equ_offsets(
+        custom_path,
+        ignored_ranges=(("AudChannel", "ac_SIZEOF"), ("SpriteDef", "sd_SIZEOF")),
+    )
+    cia_offsets, cia_ver = _collect_equ_offsets(
+        cia_path,
+        stop_before_comments=(
+            "interrupt control register bit numbers",
+            "Port definitions -- what each bit in a cia peripheral register is tied to",
+        ),
+    )
+
+    ciaa_base = None
+    ciab_base = None
+    with open(cia_path, encoding="utf-8", errors="replace") as handle:
+        for raw_line in handle:
+            line = raw_line.rstrip()
+            match_a = re.search(r"_ciaa.*--\s*\$(?P<hex>[0-9A-Fa-f]+)", line)
+            if match_a:
+                ciaa_base = int(match_a.group("hex"), 16)
+            match_b = re.search(r"_ciab.*--\s*\$(?P<hex>[0-9A-Fa-f]+)", line)
+            if match_b:
+                ciab_base = int(match_b.group("hex"), 16)
+    if ciaa_base is None or ciab_base is None:
+        raise ValueError(f"Missing CIA base address comments in {cia_path}")
+
+    custom_base = _load_hw_manual_base_address()
+    entries = []
+    for offset, names in sorted(custom_offsets.items()):
+        sorted_names = sorted(set(names), key=lambda item: (-len(item), item))
+        entries.append({
+            "family": "custom",
+            "cpu_address": f"0x{custom_base + offset:06X}",
+            "offset": f"0x{offset:03X}",
+            "include": "hardware/custom.i",
+            "base_symbol": "_custom",
+            "symbols": sorted_names,
+        })
+    for family, base_addr, base_symbol in (
+        ("ciaa", ciaa_base, "_ciaa"),
+        ("ciab", ciab_base, "_ciab"),
+    ):
+        for offset, names in sorted(cia_offsets.items()):
+            sorted_names = sorted(set(names))
+            entries.append({
+                "family": family,
+                "cpu_address": f"0x{base_addr + offset:06X}",
+                "offset": f"0x{offset:04X}",
+                "include": "hardware/cia.i",
+                "base_symbol": base_symbol,
+                "symbols": sorted_names,
+            })
+    return {
+        "_meta": {
+            "source": "NDK hardware includes",
+            "include_dir": "hardware/",
+            "files": {
+                "custom": {
+                    "path": "hardware/custom.i",
+                    "version": custom_ver,
+                },
+                "cia": {
+                    "path": "hardware/cia.i",
+                    "version": cia_ver,
+                },
+            },
+        },
+        "registers": entries,
+    }
 
 
 # =============================================================================
@@ -282,7 +440,7 @@ def parse_autodoc(path: str) -> dict:
 
 
 # =============================================================================
-# Synopsis parser — structured inputs/outputs from autodoc synopsis
+# Synopsis parser ? structured inputs/outputs from autodoc synopsis
 # =============================================================================
 
 def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
@@ -313,11 +471,11 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
     c_type_decls = []
     for line in lines:
         line_s = line.strip()
-        proto_m = re.match(r'(.+?)\s+\*?\s*\w+\s*\((.+)\)\s*;?$', line_s)
+        proto_m = re.match(r'(.+-)\s+\*-\s*\w+\s*\((.+)\)\s*;-$', line_s)
         if proto_m:
             c_proto = line_s
             continue
-        decl_m = re.match(r'((?:struct\s+|unsigned\s+)?\w+)\s*(\*?)\s*(\w+)\s*;', line_s)
+        decl_m = re.match(r'((-:struct\s+|unsigned\s+)-\w+)\s*(\*-)\s*(\w+)\s*;', line_s)
         if decl_m:
             typ = decl_m.group(1).strip()
             ptr = decl_m.group(2)
@@ -331,7 +489,7 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
     # Extract arg types from C prototype
     arg_types_from_proto = []
     if c_proto:
-        proto_m = re.match(r'(.+?)\b(\w+)\s*\((.+)\)\s*;?$', c_proto)
+        proto_m = re.match(r'(.+-)\b(\w+)\s*\((.+)\)\s*;-$', c_proto)
         if proto_m:
             ret_type_str = proto_m.group(1).strip()
             if ret_type_str.endswith('*'):
@@ -362,6 +520,225 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
         result["inputs"].append(inp)
 
     return result
+
+
+def _normalized_type_string(type_str: str | None) -> str | None:
+    if type_str is None:
+        return None
+    normalized = " ".join(type_str.strip().split())
+    return normalized or None
+
+
+def _infer_input_semantic_kind(type_str: str | None) -> str | None:
+    normalized = _normalized_type_string(type_str)
+    if normalized is None:
+        return None
+    compact = normalized.replace(" ", "")
+    if "(*)" in compact:
+        return "code_ptr"
+    if normalized == "struct Hook *":
+        return "hook_ptr"
+    if normalized == "STRPTR":
+        return "string_ptr"
+    return None
+
+
+def _split_c_args(arg_str: str) -> list[str]:
+    args: list[str] = []
+    current: list[str] = []
+    depth = 0
+    for ch in arg_str:
+        if ch == "," and depth == 0:
+            part = "".join(current).strip()
+            if part:
+                args.append(part)
+            current = []
+            continue
+        current.append(ch)
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth < 0:
+                raise ValueError(f"Unbalanced C argument list {arg_str!r}")
+    part = "".join(current).strip()
+    if part:
+        args.append(part)
+    return args
+
+
+def _parse_c_prototype_arg(arg: str) -> dict[str, str] | None:
+    normalized = " ".join(arg.strip().split())
+    if not normalized or normalized == "void" or normalized == "...":
+        return None
+    fn_ptr = re.match(r"^(?P<rtype>.+?)\(\s*\*\s*(?P<name>\w+)\s*\)\s*\((?P<inner>.*)\)$", normalized)
+    if fn_ptr:
+        return {
+            "name": fn_ptr.group("name"),
+            "type": f"{fn_ptr.group('rtype').strip()} (*)({fn_ptr.group('inner').strip()})",
+        }
+    plain = re.match(r"^(?P<type>.+?)\b(?P<name>\w+)$", normalized)
+    if plain is None:
+        if re.match(r"^(struct\s+\w+|[A-Za-z_]\w*)(\s*\*)+$", normalized):
+            return None
+        raise ValueError(f"Unsupported C prototype argument {arg!r}")
+    return {
+        "name": plain.group("name"),
+        "type": plain.group("type").strip(),
+    }
+
+
+def parse_clib_prototypes(include_h_dir: str) -> dict[str, dict[str, list[dict[str, str]]]]:
+    clib_dir = os.path.join(include_h_dir, "clib")
+    if not os.path.isdir(clib_dir):
+        raise ValueError(f"Missing clib include directory {clib_dir}")
+    parsed: dict[str, dict[str, list[dict[str, str]]]] = {}
+    for fname in sorted(os.listdir(clib_dir)):
+        if not fname.lower().endswith("_protos.h"):
+            continue
+        stem = fname[:-len("_protos.h")].lower()
+        path = os.path.join(clib_dir, fname)
+        text = open(path, encoding="utf-8", errors="replace").read()
+        text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+        statements: list[str] = []
+        current: list[str] = []
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            current.append(line)
+            if line.endswith(";"):
+                statements.append(" ".join(current))
+                current = []
+        if current:
+            raise ValueError(f"Unterminated declaration in {path}")
+        functions: dict[str, list[dict[str, str]]] = {}
+        for statement in statements:
+            statement = statement.rstrip(";").strip()
+            if statement.startswith("typedef "):
+                continue
+            proto = re.match(r"^(?P<ret>.+?)\b(?P<name>\w+)\s*\((?P<args>.*)\)$", statement)
+            if proto is None:
+                continue
+            args = []
+            for arg in _split_c_args(proto.group("args")):
+                parsed_arg = _parse_c_prototype_arg(arg)
+                if parsed_arg is not None:
+                    args.append(parsed_arg)
+            functions[proto.group("name")] = args
+        parsed[stem] = functions
+    return parsed
+
+
+def _resolve_clib_library_name(stem: str, library_names: set[str]) -> str | None:
+    candidates = [
+        name for name in library_names
+        if name in {f"{stem}.library", f"{stem}.device", f"{stem}.resource"}
+    ]
+    if not candidates:
+        return None
+    if len(candidates) != 1:
+        raise ValueError(f"Ambiguous clib stem {stem!r}: {candidates}")
+    return candidates[0]
+
+
+def reconcile_clib_callback_types(output: dict, include_h_dir: str) -> int:
+    clib = parse_clib_prototypes(include_h_dir)
+    library_names = set(output["libraries"])
+    updates = 0
+    for stem, functions in clib.items():
+        lib_name = _resolve_clib_library_name(stem, library_names)
+        if lib_name is None:
+            continue
+        library = output["libraries"][lib_name]
+        for func_name, args in functions.items():
+            if func_name not in library["functions"]:
+                continue
+            inputs = library["functions"][func_name].get("inputs", [])
+            if not inputs or not args:
+                continue
+            by_name = {arg["name"]: arg for arg in args}
+            for inp in inputs:
+                parsed_arg = by_name.get(inp["name"])
+                if parsed_arg is None:
+                    continue
+                parsed_type = _normalized_type_string(parsed_arg["type"])
+                current_type = _normalized_type_string(inp.get("type"))
+                if parsed_type is not None and parsed_type != current_type:
+                    inp["type"] = parsed_type
+                    updates += 1
+                semantic_kind = _infer_input_semantic_kind(inp.get("type"))
+                if semantic_kind is not None:
+                    if inp.get("semantic_kind") != semantic_kind:
+                        inp["semantic_kind"] = semantic_kind
+                        updates += 1
+                    if "semantic_note" in inp:
+                        inp.pop("semantic_note", None)
+                        updates += 1
+    return updates
+
+
+_INPUT_SEMANTIC_ASSERTIONS: dict[tuple[str, str, str], dict[str, str]] = {
+    ("exec.library", "AddTask", "initPC"): {
+        "semantic_kind": "code_ptr",
+        "semantic_note": (
+            "Parser-authored: exec.library/AddTask uses initPC as the new task "
+            "entry point. NDK synopsis types it as APTR, so direct parse cannot "
+            "distinguish code from generic pointer data."
+        ),
+    },
+    ("exec.library", "AddTask", "finalPC"): {
+        "semantic_kind": "code_ptr",
+        "semantic_note": (
+            "Parser-authored: exec.library/AddTask uses finalPC as the task exit "
+            "handler entry point. NDK synopsis types it as APTR, so direct parse "
+            "cannot preserve callback semantics."
+        ),
+    },
+    ("exec.library", "ObtainQuickVector", "interruptCode"): {
+        "semantic_kind": "code_ptr",
+        "semantic_note": (
+            "Parser-authored: exec.library/ObtainQuickVector autodoc says the "
+            "function installs the code pointer into a quick interrupt vector. "
+            "NDK synopsis types it as APTR, so direct parse loses callback semantics."
+        ),
+    },
+    ("lowlevel.library", "AddKBInt", "intRoutine"): {
+        "semantic_kind": "code_ptr",
+        "semantic_note": (
+            "Parser-authored: lowlevel.library/AddKBInt autodoc says intRoutine is "
+            "called from the keyboard interrupt context. NDK synopsis types it as APTR, "
+            "so direct parse cannot preserve callback semantics."
+        ),
+    },
+    ("lowlevel.library", "AddTimerInt", "intRoutine"): {
+        "semantic_kind": "code_ptr",
+        "semantic_note": (
+            "Parser-authored: lowlevel.library/AddTimerInt autodoc says intRoutine is "
+            "called from timer interrupt context. NDK synopsis types it as APTR, "
+            "so direct parse cannot preserve callback semantics."
+        ),
+    },
+    ("lowlevel.library", "AddVBlankInt", "intRoutine"): {
+        "semantic_kind": "code_ptr",
+        "semantic_note": (
+            "Parser-authored: lowlevel.library/AddVBlankInt autodoc says intRoutine is "
+            "called from vertical blank interrupt context. NDK synopsis types it as APTR, "
+            "so direct parse cannot preserve callback semantics."
+        ),
+    },
+}
+
+
+def _apply_input_semantics(lib_name: str, func_name: str, entry: dict) -> None:
+    for inp in entry.get("inputs", []):
+        semantic_kind = _infer_input_semantic_kind(inp.get("type"))
+        if semantic_kind is not None:
+            inp["semantic_kind"] = semantic_kind
+        assertion = _INPUT_SEMANTIC_ASSERTIONS.get((lib_name, func_name, inp["name"]))
+        if assertion is not None:
+            inp["semantic_kind"] = assertion["semantic_kind"]
+            inp["semantic_note"] = assertion["semantic_note"]
 
 
 # =============================================================================
@@ -433,8 +810,8 @@ def _parse_c_struct_declaration(decl: str) -> list[tuple[str, str]]:
     if not decl or "(" in decl or ")" in decl or ":" in decl:
         return []
     m = re.match(
-        r"(.+?)\s+((?:\*+\w+(?:\[[^\]]*\])?|\w+(?:\[[^\]]*\])?)"
-        r"(?:\s*,\s*(?:\*+\w+(?:\[[^\]]*\])?|\w+(?:\[[^\]]*\])?))*)$",
+        r"(.+-)\s+((-:\*+\w+(-:\[[^\]]*\])-|\w+(-:\[[^\]]*\])-)"
+        r"(-:\s*,\s*(-:\*+\w+(-:\[[^\]]*\])-|\w+(-:\[[^\]]*\])-))*)$",
         decl,
     )
     if not m:
@@ -458,7 +835,7 @@ def parse_c_struct_field_types(include_h_dir: str) -> dict[str, dict[str, str]]:
                 continue
             fpath = os.path.join(dirpath, fname)
             text = open(fpath, encoding="utf-8", errors="replace").read()
-            text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+            text = re.sub(r"/\*.*-\*/", "", text, flags=re.S)
             current_struct: str | None = None
             brace_depth = 0
             decl_parts: list[str] = []
@@ -595,16 +972,16 @@ def check_no_return(doc: dict) -> bool:
     definitive_patterns = [
         # "This function never returns." or "This function never returns"
         re.compile(
-            r'\b(?:this\s+(?:function|routine|call))\s+never\s+returns?\s*[.\n]',
+            r'\b(-:this\s+(-:function|routine|call))\s+never\s+returns-\s*[.\n]',
             re.IGNORECASE,
         ),
         # "This function does not return." (sentence-final)
         re.compile(
-            r'\b(?:this\s+(?:function|routine|call))\s+does\s+not\s+return\s*[.\n]',
+            r'\b(-:this\s+(-:function|routine|call))\s+does\s+not\s+return\s*[.\n]',
             re.IGNORECASE,
         ),
         # Standalone "never returns." at end of sentence (common brief form)
-        re.compile(r'^\s*\w+\(?\)?\s+never\s+returns?\s*\.', re.IGNORECASE | re.MULTILINE),
+        re.compile(r'^\s*\w+\(-\)-\s+never\s+returns-\s*\.', re.IGNORECASE | re.MULTILINE),
     ]
 
     for key in ("description", "notes"):
@@ -618,7 +995,7 @@ def check_no_return(doc: dict) -> bool:
 
 
 # =============================================================================
-# Include file parser (structs and constants) — with offset computation
+# Include file parser (structs and constants) ? with offset computation
 # =============================================================================
 
 def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
@@ -647,7 +1024,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
         type_alt = "|".join(re.escape(t) for t in sized_types)
         type_field_re = re.compile(rf'\s+({type_alt})\s+(\w+)')
     else:
-        type_field_re = re.compile(r'(?!)')  # never matches
+        type_field_re = re.compile(r'(-!)')  # never matches
 
     # Track the source subpath (e.g. "exec/NODES.I")
     rel_parts = path.replace("\\", "/").split("/")
@@ -742,7 +1119,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                     comment_lines = []
                     continue
 
-                # STRUCT name,size — embedded sub-structure
+                # STRUCT name,size ? embedded sub-structure
                 sm = re.match(r'\s+STRUCT\s+(\w+),(\w+)', line)
                 if sm:
                     fname = sm.group(1)
@@ -769,7 +1146,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                     comment_lines = []
                     continue
 
-                # LABEL name — zero-size marker
+                # LABEL name ? zero-size marker
                 lm = re.match(r'\s+LABEL\s+(\w+)', line)
                 if lm:
                     fname = lm.group(1)
@@ -794,7 +1171,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                     comment_lines = []
                     continue
 
-                # DS.B / DS.W / DS.L — data storage (rare in structs but possible)
+                # DS.B / DS.W / DS.L ? data storage (rare in structs but possible)
                 dm = re.match(r'\s+DS\.\w\s+', line)
                 if dm:
                     continue
@@ -809,7 +1186,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                         finish_struct()
 
             # EQU constants
-            cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
+            cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+-)(-:\s*[;*].*)-$', line)
             if cm:
                 name = cm.group(1)
                 value = cm.group(2).strip()
@@ -818,7 +1195,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                 continue
 
             # SET constants (skip include guards ending in _I)
-            cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
+            cm = re.match(r'^(\w+)\s+SET\s+(.+-)(-:\s*[;*].*)-$', line)
             if cm:
                 name = cm.group(1)
                 value = cm.group(2).strip()
@@ -995,7 +1372,7 @@ def resolve_constant_value(expr: str, all_constants: dict, depth: int = 0) -> in
                     return lval * rval
             return None
 
-    # Single identifier — look up in constants
+    # Single identifier ? look up in constants
     m = re.match(r'^[A-Za-z_]\w*$', expr)
     if m:
         if expr in all_constants:
@@ -1072,7 +1449,7 @@ def parse_change_file(path: str) -> dict:
     with open(path, encoding="utf-8", errors="replace") as f:
         content = f.read()
 
-    sections = re.split(r'\n(?=(?:Added|Removed|New functions) in )', content)
+    sections = re.split(r'\n(-=(-:Added|Removed|New functions) in )', content)
 
     for section in sections:
         section = section.strip()
@@ -1218,7 +1595,7 @@ def match_autodoc_to_lib(doc_filename: str, lib_names: set) -> str | None:
         if candidate in lib_names:
             return candidate
 
-    # Try without suffix — some docs match library names directly
+    # Try without suffix ? some docs match library names directly
     for lib in lib_names:
         lib_base = lib.rsplit(".", 1)[0]
         if lib_base == stem:
@@ -1248,12 +1625,28 @@ def main():
     parser.add_argument("ndk_root", help="Path to NDK root directory")
     parser.add_argument("--os-changes", help="Path to OS_CHANGES directory")
     parser.add_argument("--outfile", default="knowledge/amiga_os_reference.json")
+    parser.add_argument("--hardware-outfile", default="knowledge/amiga_hw_symbols.json")
+    parser.add_argument("--hardware-only", action="store_true")
     args = parser.parse_args()
 
     ndk_root = args.ndk_root
+    include_dir = resolve_include_i_dir(ndk_root)
+
+    hardware_outdir = os.path.dirname(args.hardware_outfile)
+    if hardware_outdir and not os.path.isdir(hardware_outdir):
+        os.makedirs(hardware_outdir, exist_ok=True)
+    hardware_output = build_hardware_symbols_kb(include_dir)
+    with open(args.hardware_outfile, "w", encoding="utf-8") as handle:
+        json.dump(hardware_output, handle, indent=2, ensure_ascii=False)
+    print(f"Wrote {args.hardware_outfile} ({os.path.getsize(args.hardware_outfile):,} bytes)")
+
+    if args.hardware_only:
+        for runtime_out in build_runtime_artifacts():
+            print(f"Wrote {runtime_out}")
+        return
+
     fd_dir = os.path.join(ndk_root, "INCLUDES&LIBS", "FD")
     autodoc_dir = os.path.join(ndk_root, "DOCS", "DOC")
-    include_dir = os.path.join(ndk_root, "INCLUDES&LIBS", "INCLUDE_I")
 
     print(f"NDK 3.1 at {ndk_root}")
 
@@ -1308,13 +1701,13 @@ def main():
                         line = line.rstrip()
 
                         # EQU constants
-                        cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
+                        cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+-)(-:\s*[;*].*)-$', line)
                         if cm:
                             raw_constants[cm.group(1)] = cm.group(2).strip()
                             continue
 
                         # SET constants
-                        cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
+                        cm = re.match(r'^(\w+)\s+SET\s+(.+-)(-:\s*[;*].*)-$', line)
                         if cm and not cm.group(1).endswith("_I") and cm.group(1) not in ("SOFFSET", "EOFFSET"):
                             raw_constants[cm.group(1)] = cm.group(2).strip()
                             continue
@@ -1330,7 +1723,7 @@ def main():
                             continue
 
                         # ENUM [base]
-                        enm = re.match(r'\s+ENUM\s*(?:(\S+))?\s*$', line)
+                        enm = re.match(r'\s+ENUM\s*(-:(\S+))-\s*$', line)
                         if enm:
                             base_str = enm.group(1)
                             if base_str:
@@ -1557,6 +1950,18 @@ def main():
                     "The pointer is to the exec.library base structure."
                 ),
             },
+            "absolute_symbols": [
+                {
+                    "address": 4,
+                    "name": "AbsExecBase",
+                    "note": (
+                        "Parser-asserted: ExecBase pointer stored at absolute "
+                        "address $4. ROM Kernel Reference Manual, Exec chapter. "
+                        "All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6. "
+                        "The pointer is to the exec.library base structure."
+                    ),
+                },
+            ],
             "version_map": VERSION_MAP,
             "lvo_slot_size": LVO_SLOT_SIZE,
             "named_base_structs": named_base_structs,
@@ -1628,6 +2033,8 @@ def main():
                 # No-return detection
                 if check_no_return(doc):
                     entry["no_return"] = True
+
+            _apply_input_semantics(lib_name, func_name, entry)
 
             # Detect functions that return a library/device/resource base.
             # Criteria (from autodoc-parsed output type + input signature):
@@ -1730,7 +2137,7 @@ def main():
     output["constants"] = evaluated_constants
 
     # ========================================================================
-    # 6a. Constant domains — map functions to relevant constants
+    # 6a. Constant domains ? map functions to relevant constants
     # ========================================================================
     # Scan autodoc text (description, inputs, results, notes) for
     # references to known constants.  Data-driven from NDK autodocs
@@ -1838,6 +2245,9 @@ def main():
                         out["i_struct"] = i_ref
                         enriched += 1
         print(f"  {enriched} function signature types enriched with i_struct")
+
+        callback_updates = reconcile_clib_callback_types(output, include_h_dir)
+        print(f"  {callback_updates} callback input types reconciled from clib headers")
 
     output["_meta"]["struct_name_map"] = c_to_i_map
 

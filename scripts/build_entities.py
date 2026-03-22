@@ -133,7 +133,7 @@ def build_subroutine_map(blocks: dict[int, BasicBlock],
                 instr_count=instr_count,
             ))
         else:
-            # Call target not reached by executor — create stub entity.
+            # Call target not reached by executor - create stub entity.
             # End placeholder: minimum instruction size from KB opword_bytes.
             subroutines.append(SubroutineRange(
                 addr=entry,
@@ -249,7 +249,7 @@ def assign_xrefs(subroutines: list[SubroutineRange], xrefs: list[XRef],
     """Map instruction-level xrefs to subroutine-level entity xrefs.
 
     Returns (forward_map, reverse_map) where each maps entity addr to
-    {field: set(target_addrs)}.
+    {field: set(segment_addrs)}.
     Prints count of xrefs dropped due to unmapped src/dst addresses.
     """
     # For fast range lookup, build sorted list
@@ -539,7 +539,7 @@ def build_entities(binary_path: str, output_path: str = None,
         # Build subroutine map
         subroutines = build_subroutine_map(blocks, call_targets, 0)
         stubs = sum(1 for s in subroutines if not s.reached)
-        print(f"  {len(subroutines)} subroutines ({stubs} stubs — unreached)")
+        print(f"  {len(subroutines)} subroutines ({stubs} stubs - unreached)")
 
         # Assign cross-references (reports dropped xrefs)
         fwd_xrefs, rev_xrefs = assign_xrefs(subroutines, xrefs)
@@ -607,12 +607,12 @@ def build_entities(binary_path: str, output_path: str = None,
                         typed_calls.append(entry)
                 if typed_calls:
                     ent["os_call_types"] = typed_calls
-            if ha.platform.initial_base_reg is not None:
+            if ha.platform.app_base is not None:
                 app_slots = collect_subroutine_app_slots(
                     sub,
                     blocks,
                     slot_infos,
-                    ha.platform.initial_base_reg[0],
+                    ha.platform.app_base.reg_num,
                 )
                 if app_slots:
                     ent["app_slots"] = app_slot_entity_payloads(app_slots)
@@ -623,9 +623,9 @@ def build_entities(binary_path: str, output_path: str = None,
                     indirect_sites)
             all_entities.append(ent)
 
-        # ── Hint entities ────────────────────────────────────────────
+        # -- Hint entities --------------------------------------------
         # Build hint subroutines from hint blocks, annotated with
-        # source and reachability info.  These are NOT verified —
+        # source and reachability info.  These are NOT verified -
         # they drive engine improvements.
         if hint_blocks:
             # Build hint entities from contiguous block regions.
@@ -736,7 +736,7 @@ def build_entities(binary_path: str, output_path: str = None,
     if hint_code:
         by_src = defaultdict(int)
         for e in hint_code:
-            by_src[e.get("hint_source", "?")] += 1
+            by_src[e.get("hint_source", "-")] += 1
         src_str = ", ".join(f"{c} {s}"
                             for s, c in sorted(by_src.items()))
         print(f"  Hints: {len(hint_code)} regions ({src_str})")
@@ -799,3 +799,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
