@@ -471,25 +471,26 @@ def parse_synopsis(synopsis: str, arg_names: list, arg_regs: list) -> dict:
     c_type_decls = []
     for line in lines:
         line_s = line.strip()
-        proto_m = re.match(r'(.+-)\s+\*-\s*\w+\s*\((.+)\)\s*;-$', line_s)
+        proto_m = re.match(r'(.+?)\s+\*?\s*\w+\s*\((.+)\)\s*;?$', line_s)
         if proto_m:
             c_proto = line_s
             continue
-        decl_m = re.match(r'((-:struct\s+|unsigned\s+)-\w+)\s*(\*-)\s*(\w+)\s*;', line_s)
+        decl_m = re.match(
+            r'(?P<type>(?:struct\s+\w+|unsigned\s+\w+|\w+))(?:\s*(?P<ptr>\*))?\s+(?P<name>\w+)\s*;$',
+            line_s,
+        )
         if decl_m:
-            typ = decl_m.group(1).strip()
-            ptr = decl_m.group(2)
-            name = decl_m.group(3)
-            if ptr:
+            typ = decl_m.group("type").strip()
+            if decl_m.group("ptr"):
                 typ += " *"
-            c_type_decls.append((name, typ))
+            c_type_decls.append((decl_m.group("name"), typ))
 
     type_map = {name: typ for name, typ in c_type_decls}
 
     # Extract arg types from C prototype
     arg_types_from_proto = []
     if c_proto:
-        proto_m = re.match(r'(.+-)\b(\w+)\s*\((.+)\)\s*;-$', c_proto)
+        proto_m = re.match(r'(.+?)\b(\w+)\s*\((.+)\)\s*;?$', c_proto)
         if proto_m:
             ret_type_str = proto_m.group(1).strip()
             if ret_type_str.endswith('*'):
@@ -567,7 +568,74 @@ def _split_c_args(arg_str: str) -> list[str]:
     return args
 
 
-def _parse_c_prototype_arg(arg: str) -> dict[str, str] | None:
+def _iter_c_header_statements(path: str) -> list[str]:
+    text = open(path, encoding="utf-8", errors="replace").read()
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    statements: list[str] = []
+    current: list[str] = []
+    in_preprocessor_continuation = False
+    for raw_line in text.splitlines():
+        stripped_raw = raw_line.rstrip()
+        line = stripped_raw.strip()
+        if in_preprocessor_continuation:
+            if not stripped_raw.endswith("\\"):
+                in_preprocessor_continuation = False
+            continue
+        if not line:
+            continue
+        if line.startswith("#"):
+            in_preprocessor_continuation = stripped_raw.endswith("\\")
+            continue
+        current.append(line)
+        if line.endswith(";"):
+            statements.append(" ".join(current).rstrip(";").strip())
+            current = []
+    if current:
+        raise ValueError(f"Unterminated declaration in {path}")
+    return statements
+
+
+def parse_callback_typedefs(include_h_dir: str) -> dict[str, str]:
+    callback_types: dict[str, str] = {}
+    aliases: dict[str, str] = {}
+    for dirpath, _dirnames, filenames in os.walk(include_h_dir):
+        for fname in sorted(filenames):
+            if not fname.lower().endswith(".h"):
+                continue
+            path = os.path.join(dirpath, fname)
+            for statement in _iter_c_header_statements(path):
+                if not statement.startswith("typedef "):
+                    continue
+                direct = re.match(
+                    r"^typedef\s+(?P<rtype>.+?)\(\s*\*\s*(?P<name>\w+)\s*\)\s*\((?P<inner>.*)\)$",
+                    statement,
+                )
+                if direct is not None:
+                    callback_types[direct.group("name")] = (
+                        f"{direct.group('rtype').strip()} (*)({direct.group('inner').strip()})"
+                    )
+                    continue
+                alias = re.match(r"^typedef\s+(?P<target>\w+)\s+(?P<name>\w+)$", statement)
+                if alias is not None:
+                    aliases[alias.group("name")] = alias.group("target")
+    unresolved = dict(aliases)
+    for _ in range(len(unresolved) + 1):
+        if not unresolved:
+            break
+        changed = False
+        for name, target in list(unresolved.items()):
+            resolved = callback_types.get(target)
+            if resolved is None:
+                continue
+            callback_types[name] = resolved
+            unresolved.pop(name)
+            changed = True
+        if not changed:
+            break
+    return callback_types
+
+
+def _parse_c_prototype_arg(arg: str, callback_typedefs: dict[str, str]) -> dict[str, str] | None:
     normalized = " ".join(arg.strip().split())
     if not normalized or normalized == "void" or normalized == "...":
         return None
@@ -582,9 +650,11 @@ def _parse_c_prototype_arg(arg: str) -> dict[str, str] | None:
         if re.match(r"^(struct\s+\w+|[A-Za-z_]\w*)(\s*\*)+$", normalized):
             return None
         raise ValueError(f"Unsupported C prototype argument {arg!r}")
+    plain_type = plain.group("type").strip()
+    plain_type = callback_typedefs.get(plain_type, plain_type)
     return {
         "name": plain.group("name"),
-        "type": plain.group("type").strip(),
+        "type": plain_type,
     }
 
 
@@ -592,29 +662,15 @@ def parse_clib_prototypes(include_h_dir: str) -> dict[str, dict[str, list[dict[s
     clib_dir = os.path.join(include_h_dir, "clib")
     if not os.path.isdir(clib_dir):
         raise ValueError(f"Missing clib include directory {clib_dir}")
+    callback_typedefs = parse_callback_typedefs(include_h_dir)
     parsed: dict[str, dict[str, list[dict[str, str]]]] = {}
     for fname in sorted(os.listdir(clib_dir)):
         if not fname.lower().endswith("_protos.h"):
             continue
         stem = fname[:-len("_protos.h")].lower()
         path = os.path.join(clib_dir, fname)
-        text = open(path, encoding="utf-8", errors="replace").read()
-        text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-        statements: list[str] = []
-        current: list[str] = []
-        for raw_line in text.splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("#"):
-                continue
-            current.append(line)
-            if line.endswith(";"):
-                statements.append(" ".join(current))
-                current = []
-        if current:
-            raise ValueError(f"Unterminated declaration in {path}")
         functions: dict[str, list[dict[str, str]]] = {}
-        for statement in statements:
-            statement = statement.rstrip(";").strip()
+        for statement in _iter_c_header_statements(path):
             if statement.startswith("typedef "):
                 continue
             proto = re.match(r"^(?P<ret>.+?)\b(?P<name>\w+)\s*\((?P<args>.*)\)$", statement)
@@ -622,7 +678,7 @@ def parse_clib_prototypes(include_h_dir: str) -> dict[str, dict[str, list[dict[s
                 continue
             args = []
             for arg in _split_c_args(proto.group("args")):
-                parsed_arg = _parse_c_prototype_arg(arg)
+                parsed_arg = _parse_c_prototype_arg(arg, callback_typedefs)
                 if parsed_arg is not None:
                     args.append(parsed_arg)
             functions[proto.group("name")] = args
@@ -810,19 +866,22 @@ def _parse_c_struct_declaration(decl: str) -> list[tuple[str, str]]:
     if not decl or "(" in decl or ")" in decl or ":" in decl:
         return []
     m = re.match(
-        r"(.+-)\s+((-:\*+\w+(-:\[[^\]]*\])-|\w+(-:\[[^\]]*\])-)"
-        r"(-:\s*,\s*(-:\*+\w+(-:\[[^\]]*\])-|\w+(-:\[[^\]]*\])-))*)$",
+        r'^(?P<base>(?:const\s+)?(?:struct\s+\w+|unsigned\s+\w+|\w+))\s+(?P<decls>.+)$',
         decl,
     )
-    if not m:
+    if m is None:
         return []
-    base_type = m.group(1).strip()
+    base_type = m.group("base")
+    tail = m.group("decls")
     result = []
-    for raw_decl in m.group(2).split(","):
+    for raw_decl in tail.split(","):
         raw_decl = raw_decl.strip()
-        stars = len(raw_decl) - len(raw_decl.lstrip("*"))
-        name = raw_decl.lstrip("*").split("[", 1)[0]
-        raw_type = base_type + (" " + ("*" * stars) if stars else "")
+        decl_m = re.match(r'^(?P<stars>\*+)?\s*(?P<name>\w+)(?:\[[^\]]*\])?$', raw_decl)
+        if decl_m is None:
+            return []
+        stars = decl_m.group("stars") or ""
+        name = decl_m.group("name")
+        raw_type = base_type + (" " + stars if stars else "")
         result.append((name, raw_type))
     return result
 
@@ -835,7 +894,7 @@ def parse_c_struct_field_types(include_h_dir: str) -> dict[str, dict[str, str]]:
                 continue
             fpath = os.path.join(dirpath, fname)
             text = open(fpath, encoding="utf-8", errors="replace").read()
-            text = re.sub(r"/\*.*-\*/", "", text, flags=re.S)
+            text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
             current_struct: str | None = None
             brace_depth = 0
             decl_parts: list[str] = []
@@ -972,16 +1031,16 @@ def check_no_return(doc: dict) -> bool:
     definitive_patterns = [
         # "This function never returns." or "This function never returns"
         re.compile(
-            r'\b(-:this\s+(-:function|routine|call))\s+never\s+returns-\s*[.\n]',
+            r'\b(?:this\s+(?:function|routine|call))\s+never\s+returns\b\s*[.\n]',
             re.IGNORECASE,
         ),
         # "This function does not return." (sentence-final)
         re.compile(
-            r'\b(-:this\s+(-:function|routine|call))\s+does\s+not\s+return\s*[.\n]',
+            r'\b(?:this\s+(?:function|routine|call))\s+does\s+not\s+return\b\s*[.\n]',
             re.IGNORECASE,
         ),
         # Standalone "never returns." at end of sentence (common brief form)
-        re.compile(r'^\s*\w+\(-\)-\s+never\s+returns-\s*\.', re.IGNORECASE | re.MULTILINE),
+        re.compile(r'^\s*\w+\(\)\s+never\s+returns\b\s*\.', re.IGNORECASE | re.MULTILINE),
     ]
 
     for key in ("description", "notes"):
@@ -1186,7 +1245,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                         finish_struct()
 
             # EQU constants
-            cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+-)(-:\s*[;*].*)-$', line)
+            cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
             if cm:
                 name = cm.group(1)
                 value = cm.group(2).strip()
@@ -1195,7 +1254,7 @@ def parse_asm_include(path: str, type_sizes: dict, all_constants: dict) -> dict:
                 continue
 
             # SET constants (skip include guards ending in _I)
-            cm = re.match(r'^(\w+)\s+SET\s+(.+-)(-:\s*[;*].*)-$', line)
+            cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
             if cm:
                 name = cm.group(1)
                 value = cm.group(2).strip()
@@ -1449,7 +1508,7 @@ def parse_change_file(path: str) -> dict:
     with open(path, encoding="utf-8", errors="replace") as f:
         content = f.read()
 
-    sections = re.split(r'\n(-=(-:Added|Removed|New functions) in )', content)
+    sections = re.split(r'\n(?=(?:Added|Removed|New functions) in )', content)
 
     for section in sections:
         section = section.strip()
@@ -1701,13 +1760,13 @@ def main():
                         line = line.rstrip()
 
                         # EQU constants
-                        cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+-)(-:\s*[;*].*)-$', line)
+                        cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
                         if cm:
                             raw_constants[cm.group(1)] = cm.group(2).strip()
                             continue
 
                         # SET constants
-                        cm = re.match(r'^(\w+)\s+SET\s+(.+-)(-:\s*[;*].*)-$', line)
+                        cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
                         if cm and not cm.group(1).endswith("_I") and cm.group(1) not in ("SOFFSET", "EOFFSET"):
                             raw_constants[cm.group(1)] = cm.group(2).strip()
                             continue
@@ -1723,7 +1782,7 @@ def main():
                             continue
 
                         # ENUM [base]
-                        enm = re.match(r'\s+ENUM\s*(-:(\S+))-\s*$', line)
+                        enm = re.match(r'\s+ENUM(?:\s+(\S+))?\s*$', line)
                         if enm:
                             base_str = enm.group(1)
                             if base_str:

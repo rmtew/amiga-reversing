@@ -34,7 +34,6 @@ The remaining code is reachable only through runtime-dependent dispatch
 - [ ] Refine OS version tagging (570 "1.3" functions -> 1.0/1.1/1.2/1.3)
 - [ ] Complete hardware register bit definitions (104/245 done)
 - [ ] Extend NDK-derived hardware symbol coverage beyond `hardware/custom.i` and `hardware/cia.i` if targets use additional include-backed hardware families, so rendering stays source-accurate without falling back to generic absolute symbols
-- [ ] Extend NDK OS parser beyond direct `clib/*_protos.h` callback declarators to resolve callback typedef chains from headers such as `utility/hooks.h`, so fewer `code_ptr` inputs need parser-authored semantic amendments
 - [ ] Verify HUNK_OVERLAY format against ADCD primary source
 
 ## Future Work

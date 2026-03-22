@@ -2,10 +2,10 @@
   "target": "genam",
   "binary": "bin/GenAm",
   "command": "uv run scripts/gen_disasm.py bin/GenAm -t targets/genam",
-  "measured_at": "2026-03-22T19:13:34+13:00",
+  "measured_at": "2026-03-22T19:40:28+13:00",
   "status": "ok",
-  "elapsed_seconds": 34.32,
-  "analysis_bytes": 11592224,
+  "elapsed_seconds": 40.78,
+  "analysis_bytes": 11592222,
   "entities_bytes": 113872,
   "disasm_bytes": 493360,
   "analysis": {

@@ -18,6 +18,7 @@ def test_build_entities_help_loads_cleanly():
     script = Path(__file__).resolve().parent.parent / "scripts" / "build_entities.py"
     result = subprocess.run(
         [sys.executable, str(script), "--help"],
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         check=False,
