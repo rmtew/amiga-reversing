@@ -38,11 +38,6 @@ The remaining code is reachable only through runtime-dependent dispatch
 
 ## Future Work
 
-### Assembler
-- [ ] Add local assembler support for `PACK` / `UNPK`
-- [ ] Fix local assembler support for `LINK.L`
-- [ ] Add local assembler support for full-extension EA syntax such as `(od,[bd,An,Xn])` and `([bd,An,Xn],od)` / PC-relative variants
-
 ### M68K KB / Executor
 - [ ] Add full upstream `RTE` stack/PC/SR semantics extraction to the M68K parser/runtime tables if a target needs it; keep this spec-driven, not executor-hardcoded
 

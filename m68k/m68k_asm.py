@@ -161,13 +161,30 @@ def _full_ext_disp_bytes(value):
 
 
 def _parse_full_extension_ea(operand, enc):
-    if not (operand.startswith("([") and operand.endswith(")")):
+    if not (operand.startswith("(") and operand.endswith(")")):
+        return None
+    if "[" not in operand or "]" not in operand:
         return None
     inner = operand[1:-1]
     parts = _split_top_level(inner)
-    if not parts or not parts[0].startswith("[") or not parts[0].endswith("]"):
+    if not parts:
         raise ValueError(f"Invalid full-extension EA operand: {operand!r}")
-    bracket_parts = _split_top_level(parts[0][1:-1])
+    leading_outer_disp = None
+    if parts[0].startswith("[") and parts[0].endswith("]"):
+        bracket_text = parts[0][1:-1]
+        outer_parts = parts[1:]
+    elif (
+        len(parts) == 2
+        and parts[1].startswith("[")
+        and parts[1].endswith("]")
+    ):
+        leading_outer_disp = _parse_num(parts[0])
+        bracket_text = parts[1][1:-1]
+        outer_parts = []
+    else:
+        raise ValueError(f"Invalid full-extension EA operand: {operand!r}")
+
+    bracket_parts = _split_top_level(bracket_text)
     if not bracket_parts:
         raise ValueError(f"Invalid full-extension EA operand: {operand!r}")
 
@@ -200,9 +217,9 @@ def _parse_full_extension_ea(operand, enc):
             raise ValueError(f"Duplicate base displacement in EA operand: {operand!r}")
         base_disp = _parse_num(item)
 
-    outer_disp = None
+    outer_disp = leading_outer_disp
     trailing_index = None
-    for item in parts[1:]:
+    for item in outer_parts:
         if _RE_FULL_INDEX.match(item):
             if trailing_index is not None:
                 raise ValueError(f"Duplicate trailing index in EA operand: {operand!r}")
@@ -1156,6 +1173,10 @@ def _assemble_link(inst, resolution, reg_str, imm_str):
 
     disp = _parse_imm_value(imm_str.strip().lstrip("#"))
     fields = {"REGISTER": areg}
+    size_char = resolution["size"] or "w"
+    if size_char == "l":
+        word = _build_opword(inst, fields, enc_idx=2)
+        return _to_bytes_16(word) + _to_bytes_32(disp)
     word = _build_opword(inst, fields)
     return _to_bytes_16(word) + _to_bytes_16(disp)
 
@@ -1381,6 +1402,42 @@ def _assemble_bcd(inst, resolution, src_str, dst_str):
 
     word = _build_opword(inst, fields)
     return _to_bytes_16(word)
+
+
+def _assemble_pack_unpk(inst, resolution, src_str, dst_str, imm_str):
+    """Assemble PACK/UNPK KB-backed forms.
+
+    PACK supports register and predecrement forms.
+    UNPK support follows the current KB/runtime forms exactly.
+    """
+    imm = _parse_imm_value(imm_str.strip().lstrip("#"))
+
+    ms = _RE_DN.match(src_str.strip())
+    md = _RE_DN.match(dst_str.strip())
+    if ms and md:
+        fields = {
+            "REGISTER Dy/Ay": int(md.group(1)),
+            "R/M": 0,
+            "REGISTER Dx/Ax": int(ms.group(1)),
+        }
+        word = _build_opword(inst, fields)
+        return _to_bytes_16(word) + _to_bytes_16(imm)
+
+    if inst != "PACK":
+        raise ValueError(f"{inst}: unsupported operands {(src_str, dst_str, imm_str)!r}")
+
+    ms = _RE_PREDEC.match(src_str.strip())
+    md = _RE_PREDEC.match(dst_str.strip())
+    if not (ms and md):
+        raise ValueError(f"{inst}: operands must be Dn,Dn,#imm or -(An),-(An),#imm")
+
+    fields = {
+        "REGISTER Dy/Ay": int(md.group(1)),
+        "R/M": 1,
+        "REGISTER Dx/Ax": int(ms.group(1)),
+    }
+    word = _build_opword(inst, fields)
+    return _to_bytes_16(word) + _to_bytes_16(imm)
 
 
 def _assemble_addx_subx(inst, resolution, src_str, dst_str):
@@ -1763,6 +1820,8 @@ def _assemble_special_mnemonic(inst, resolution, operands):
         return _assemble_rn(inst, resolution, operands[0])
     if mnemonic in ("ABCD", "SBCD"):
         return _assemble_bcd(inst, resolution, operands[0], operands[1])
+    if mnemonic in ("PACK", "UNPK"):
+        return _assemble_pack_unpk(inst, resolution, operands[0], operands[1], operands[2])
     if mnemonic in ("ADDX", "SUBX"):
         return _assemble_addx_subx(inst, resolution, operands[0], operands[1])
     if mnemonic == "CMPM":
