@@ -6,16 +6,13 @@ import struct
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TypeAlias
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
-from .instruction_kb import instruction_flow, instruction_kb
-from .instruction_primitives import extract_branch_target
-from .instruction_primitives import Operand
-from .operand_resolution import resolve_ea
 from .instruction_decode import decode_inst_operands
+from .instruction_kb import instruction_flow, instruction_kb
+from .instruction_primitives import Operand, extract_branch_target
+from .operand_resolution import resolve_ea
 from .typing_protocols import BasicBlockLike, CpuStateLike, InstructionLike, MemoryLike
 
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
@@ -51,7 +48,7 @@ class IndirectSite:
     target_count: int | None = None
 
 
-ExitState: TypeAlias = tuple[CpuStateLike, MemoryLike]
+type ExitState = tuple[CpuStateLike, MemoryLike]
 
 
 def decode_jump_ea(last: InstructionLike) -> tuple[Operand | None, str | None]:
@@ -192,9 +189,12 @@ def _try_resolve_block(unres_addr: int, unres_type: str,
     if operand is None:
         return None
     ea_val = resolve_ea(operand, cpu, runtime_m68k_analysis.ADDR_SIZE, mem)
-    if ea_val is not None and ea_val.is_known:
-        if _is_valid_target(ea_val.concrete, code_size, runtime_m68k_decode.ALIGN_MASK):
-            return int(ea_val.concrete)
+    if (
+        ea_val is not None
+        and ea_val.is_known
+        and _is_valid_target(ea_val.concrete, code_size, runtime_m68k_decode.ALIGN_MASK)
+    ):
+        return int(ea_val.concrete)
     return None
 
 

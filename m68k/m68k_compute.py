@@ -10,7 +10,7 @@ Used by:
 """
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import Literal, TypeAlias, TypedDict, cast
+from typing import Literal, TypedDict, cast
 
 from m68k_kb import runtime_m68k_compute
 from m68k_kb.runtime_types import (
@@ -18,19 +18,18 @@ from m68k_kb.runtime_types import (
     ComputeFormula,
     ComputeInstructionRecord,
     KnownCcrState,
+    MnemonicInstructionRecord,
     PredictedCcrState,
     PrimaryDataSize,
     RuntimeCcSemantics,
-    MnemonicInstructionRecord,
 )
 
+type SizeCode = Literal["b", "w", "l"]
+type FlagName = Literal["X", "N", "Z", "V", "C"]
+type CcrInput = KnownCcrState
 
-SizeCode: TypeAlias = Literal["b", "w", "l"]
-FlagName: TypeAlias = Literal["X", "N", "Z", "V", "C"]
-CcrInput: TypeAlias = KnownCcrState
 
-
-CcSemantics: TypeAlias = RuntimeCcSemantics
+type CcSemantics = RuntimeCcSemantics
 
 
 class ComputeContext(TypedDict, total=False):
@@ -49,7 +48,7 @@ class ComputeContext(TypedDict, total=False):
     _decimal_borrow: int
 
 
-RuleHandler: TypeAlias = Callable[
+type RuleHandler = Callable[
     [int, int, int, int, int, int, runtime_m68k_compute.OperationType, CcrState, CcSemantics, str, ComputeContext],
     int | None,
 ]
@@ -61,10 +60,10 @@ def _size_mask(sz: SizeCode) -> tuple[int, int]:
     """Return bit mask and bit count for operation size."""
     if sz == "b":
         return 0xFF, 8
-    elif sz == "w":
+    if sz == "w":
         return 0xFFFF, 16
-    else:  # "l"
-        return 0xFFFFFFFF, 32
+    # "l"
+    return 0xFFFFFFFF, 32
 
 
 def _to_signed(value: int, sz: SizeCode) -> int:
@@ -307,11 +306,10 @@ def _compute_shift(
         return val
     if direction == "L":
         return val << count  # unmasked: bits above size used by carry detection
-    else:
-        if fill == "sign" and (val & (1 << (bits - 1))):
-            signed = val - (1 << bits)
-            return signed >> count
-        return val >> count
+    if fill == "sign" and (val & (1 << (bits - 1))):
+        signed = val - (1 << bits)
+        return signed >> count
+    return val >> count
 
 
 def _compute_rotate(
@@ -333,8 +331,7 @@ def _compute_rotate(
         return val
     if direction == "L":
         return ((val << c) | (val >> (bits - c))) & mask
-    else:
-        return ((val >> c) | (val << (bits - c))) & mask
+    return ((val >> c) | (val << (bits - c))) & mask
 
 
 def _compute_rotate_extend(
@@ -378,8 +375,7 @@ def _compute_multiply(
         s_signed = src if src < (1 << (src_bits - 1)) else src - (1 << src_bits)
         d_signed = dst if dst < (1 << (dst_bits - 1)) else dst - (1 << dst_bits)
         return s_signed * d_signed
-    else:
-        return src * dst
+    return src * dst
 
 
 def _compute_divide(
@@ -400,8 +396,7 @@ def _compute_divide(
         d_signed = dst if dst < (1 << (dividend_bits - 1)) else dst - (1 << dividend_bits)
         # Truncation direction from KB compute_formula (asserted as "toward_zero")
         return int(d_signed / s_signed)
-    else:
-        return dst // src
+    return dst // src
 
 
 def _bcd_add(a: int, b: int, x: int) -> tuple[int, int]:
@@ -484,7 +479,7 @@ def _evaluate_formula(
             a, b, x = resolved
             if op == runtime_m68k_compute.ComputeOp.ADD:
                 return a + b + x
-            elif op == runtime_m68k_compute.ComputeOp.SUBTRACT:
+            if op == runtime_m68k_compute.ComputeOp.SUBTRACT:
                 return a - b - x
         elif len(terms) == 2:
             return fn(resolved[0], resolved[1])
@@ -613,9 +608,9 @@ def _rule_same_as_carry(result: int, result_full: int, src: int, dst: int, mask:
                         cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     c_rule = cc_sem.get("C", {}).get("rule")
     if c_rule is None:
-        raise RuntimeError(f"same_as_carry: no C rule in cc_semantics")
+        raise RuntimeError("same_as_carry: no C rule in cc_semantics")
     if c_rule == "same_as_carry":
-        raise RuntimeError(f"same_as_carry: C rule is also same_as_carry (circular)")
+        raise RuntimeError("same_as_carry: C rule is also same_as_carry (circular)")
     return _apply_rule(c_rule, "C", result, result_full, src, dst, mask, bits,
                        op_type, ccr, cc_sem, ctx)
 
@@ -671,8 +666,7 @@ def _rule_overflow_multiply(result: int, result_full: int, src: int, dst: int, m
         max_pos = (1 << (bits - 1)) - 1
         min_neg = -(1 << (bits - 1))
         return 1 if result_full < min_neg or result_full > max_pos else 0
-    else:
-        return 1 if result_full < 0 or result_full >= (1 << bits) else 0
+    return 1 if result_full < 0 or result_full >= (1 << bits) else 0
 
 def _rule_bit_zero(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
                    op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
@@ -758,8 +752,7 @@ def _division_overflows(result_full: int, bits: int, ctx: ComputeContext) -> boo
         max_pos = (1 << (bits - 1)) - 1
         min_neg = -(1 << (bits - 1))
         return result_full < min_neg or result_full > max_pos
-    else:
-        return result_full < 0 or result_full >= (1 << bits)
+    return result_full < 0 or result_full >= (1 << bits)
 
 
 def _rule_division_overflow(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
@@ -803,34 +796,29 @@ def _rule_last_shifted_out(result: int, result_full: int, src: int, dst: int, ma
                 f"last_shifted_out: flag {flag} missing 'zero_count' sub-rule in KB")
         if zero_rule == "unchanged":
             return ccr.get(flag, 0)
-        elif zero_rule == "cleared":
+        if zero_rule == "cleared":
             return 0
-        else:
-            raise RuntimeError(f"last_shifted_out: unknown zero_count rule '{zero_rule}'")
+        raise RuntimeError(f"last_shifted_out: unknown zero_count rule '{zero_rule}'")
     direction = ctx["direction"]
     val = dst & mask
     if direction == "L":
         # Left shift by count: last bit out = bit (bits - count)
         if count <= bits:
             return (val >> (bits - count)) & 1
-        else:
-            return 0  # all bits shifted out, last was zero-fill
-    else:
-        # Right shift by count: last bit out = bit (count - 1)
-        if count <= bits:
-            return (val >> (count - 1)) & 1
-        else:
-            # Count exceeds bit width: fill determines what remains
-            # sign fill (ASR): sign bit propagates, last shifted out = sign bit
-            # zero fill (LSR): zeros fill, last shifted out = 0
-            fill = ctx.get("fill")
-            if fill is None:
-                raise RuntimeError(
-                    "last_shifted_out: missing 'fill' in ctx - must come from KB variant")
-            if fill == "sign":
-                return (val >> (bits - 1)) & 1
-            else:
-                return 0
+        return 0  # all bits shifted out, last was zero-fill
+    # Right shift by count: last bit out = bit (count - 1)
+    if count <= bits:
+        return (val >> (count - 1)) & 1
+    # Count exceeds bit width: fill determines what remains
+    # sign fill (ASR): sign bit propagates, last shifted out = sign bit
+    # zero fill (LSR): zeros fill, last shifted out = 0
+    fill = ctx.get("fill")
+    if fill is None:
+        raise RuntimeError(
+            "last_shifted_out: missing 'fill' in ctx - must come from KB variant")
+    if fill == "sign":
+        return (val >> (bits - 1)) & 1
+    return 0
 
 
 def _rule_last_rotated_out(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
@@ -849,10 +837,9 @@ def _rule_last_rotated_out(result: int, result_full: int, src: int, dst: int, ma
                 f"last_rotated_out: flag {flag} missing 'zero_count' sub-rule in KB")
         if zero_rule == "unchanged":
             return ccr.get(flag, 0)
-        elif zero_rule == "cleared":
+        if zero_rule == "cleared":
             return 0
-        else:
-            raise RuntimeError(f"last_rotated_out: unknown zero_count rule '{zero_rule}'")
+        raise RuntimeError(f"last_rotated_out: unknown zero_count rule '{zero_rule}'")
     direction = ctx["direction"]
     val = dst & mask
     if op_type == "rotate":
@@ -864,13 +851,12 @@ def _rule_last_rotated_out(result: int, result_full: int, src: int, dst: int, ma
             if c == 0:
                 return val & 1
             return (val >> (bits - c)) & 1
-        else:
-            # ROR by c: last bit out = bit ((c-1) % bits) of original
-            c = count % bits
-            if c == 0:
-                return (val >> (bits - 1)) & 1  # bit (bits-1) = MSB
-            return (val >> (c - 1)) & 1
-    elif op_type == "rotate_extend":
+        # ROR by c: last bit out = bit ((c-1) % bits) of original
+        c = count % bits
+        if c == 0:
+            return (val >> (bits - 1)) & 1  # bit (bits-1) = MSB
+        return (val >> (c - 1)) & 1
+    if op_type == "rotate_extend":
         # ROXL/ROXR: rotate through X in a wider field (KB rotate_extra_bits)
         x = ccr.get("X", 0) or 0
         extra = ctx["extra_bits"]
@@ -885,8 +871,7 @@ def _rule_last_rotated_out(result: int, result_full: int, src: int, dst: int, ma
             rotated = ((extended >> c) | (extended << (width - c))) & ((1 << width) - 1)
         # New X = bit at position 'bits' of rotated value
         return (rotated >> bits) & 1
-    else:
-        raise RuntimeError(f"last_rotated_out: unexpected op_type '{op_type}'")
+    raise RuntimeError(f"last_rotated_out: unexpected op_type '{op_type}'")
 
 
 def _rule_msb_changed_during_shift(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,

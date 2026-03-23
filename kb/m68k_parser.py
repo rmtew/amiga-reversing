@@ -16,11 +16,17 @@ Usage:
     python parse_m68k.py <pdf_path> --dry-run
 """
 
-import fitz  # type: ignore[import-untyped]
-import re, json, sys, argparse
-from dataclasses import dataclass, field, asdict
+import argparse
+import json
+import re
+import sys
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Match, cast
+from re import Match
+from typing import Any, cast
+
+import fitz  # type: ignore[import-untyped]
 
 from kb.paths import M68K_INSTRUCTIONS_JSON
 from kb.runtime_builder import build_runtime_artifacts
@@ -196,7 +202,7 @@ def extract_movem_regmask_tables(doc: Any) -> dict[str, list[str]]:
         # Build x -> bit_number mapping from header row
         header_items = rows[header_y]
         x_to_bit = {}
-        for x, x2, text, font, size in header_items:
+        for x, x2, text, _font, _size in header_items:
             mid_x = (x + x2) / 2
             x_to_bit[mid_x] = int(text)
 
@@ -219,7 +225,7 @@ def extract_movem_regmask_tables(doc: Any) -> dict[str, list[str]]:
         # Map each register to its bit position by x-coordinate proximity
         bit_to_reg = {}
         header_xs = sorted(x_to_bit.keys())
-        for x, x2, text, font, size in reg_items:
+        for x, x2, text, _font, _size in reg_items:
             mid_x = (x + x2) / 2
             # Find closest header x
             closest_x = min(header_xs, key=lambda hx: abs(hx - mid_x))
@@ -268,7 +274,7 @@ def _as_kb_payload(kb_data: list[JsonDict], pmmu_cc: list[str],
     # has no byte-width operation on address registers. Cannot be parsed as a
     # single statement from the PDF, so asserted from the universal pattern.
     all_sizes = ["b", "w", "l"]
-    ea_mode_sizes = {mode: all_sizes for mode in ea_mode_encoding}
+    ea_mode_sizes = dict.fromkeys(ea_mode_encoding, all_sizes)
     ea_mode_sizes["an"] = ["w", "l"]
     # Track B parser-assertion: Opword size from PDF encoding tables. Every
     # instruction encoding's first word spans bits 15-0 = 16 bits = 2 bytes.
@@ -614,7 +620,7 @@ def find_encoding_tables(rows: Rows, summary_mode: bool = False) -> list[list[Bi
         # Build x -> bit number mapping
         x_to_bit: dict[float, int] = {}
         leftmost_5_x = None
-        for x, x2, t, _, _ in row:
+        for x, _x2, t, _, _ in row:
             try:
                 n = int(t)
                 if 0 <= n <= 15:
@@ -757,15 +763,11 @@ def _map_values_to_bits(x_to_bit: dict[float, int], value_row: list[EncRowItem])
         else:
             # Narrow labels (e.g. "R/M", "SIZE") use tighter tolerance
             # to avoid overclaiming adjacent bit columns
-            if text_width < avg_spacing * 0.7:
-                tolerance = half_col
-            else:
-                tolerance = half_col * 1.5
+            tolerance = half_col if text_width < avg_spacing * 0.7 else half_col * 1.5
             matching_bits: list[int] = []
             for bit_num, col_x in bit_x.items():
-                if bit_num not in used_bits:
-                    if col_x >= vx - tolerance and col_x <= vx2 + tolerance:
-                        matching_bits.append(bit_num)
+                if bit_num not in used_bits and vx - tolerance <= col_x <= vx2 + tolerance:
+                    matching_bits.append(bit_num)
 
             if matching_bits:
                 matching_bits.sort(reverse=True)
@@ -987,8 +989,7 @@ def parse_all_instructions(doc: Any, page_ranges: list[tuple[int, int]]) -> list
                 if header["mnemonic"] == current[0]["mnemonic"]:
                     current[1].append((pn, rows))
                     continue
-                else:
-                    instructions.append(current)
+                instructions.append(current)
             current = (header, [(pn, rows)])
         elif current:
             current[1].append((pn, rows))
@@ -1362,15 +1363,14 @@ def find_ea_tables_on_page(rows: Rows) -> list[tuple[str, list[str], list[str]]]
                             canonical = None
                             if mode_val < 7:
                                 canonical = MODE_MAP.get((mode_val, None))
-                            elif mode_val == 7:
-                                if col_idx < len(reg_col_xs):
-                                    reg_col_x = reg_col_xs[col_idx]
-                                    for rx, rx2, rtext, _, _ in next_row:
-                                        rc = (rx + rx2) / 2
-                                        if abs(rc - reg_col_x) < 25:
-                                            reg_val = _parse_3bit(rtext.strip())
-                                            if reg_val is not None:
-                                                canonical = MODE_MAP.get((7, reg_val))
+                            elif mode_val == 7 and col_idx < len(reg_col_xs):
+                                reg_col_x = reg_col_xs[col_idx]
+                                for rx, rx2, rtext, _, _ in next_row:
+                                    rc = (rx + rx2) / 2
+                                    if abs(rc - reg_col_x) < 25:
+                                        reg_val = _parse_3bit(rtext.strip())
+                                        if reg_val is not None:
+                                            canonical = MODE_MAP.get((7, reg_val))
                             if canonical:
                                 valid_modes.add(canonical)
                                 if col_has_footnote[col_idx]:
@@ -1508,8 +1508,7 @@ def _normalize_syntax(raw: str) -> str:
     s = re.sub(r"\s*,\s*", ",", s)
     s = re.sub(r"–\s*\(", "-(", s)
     s = re.sub(r"\)\s*\+", ")+", s)
-    s = re.sub(r"\s+", " ", s)
-    return s
+    return re.sub(r"\s+", " ", s)
 
 
 def _parse_operand(token: str) -> JsonDict:
@@ -1655,12 +1654,14 @@ def _parse_syntax_to_form(mnemonic: str, syntax_str: str) -> JsonDict | None:
     for part in mnemonic.split(","):
         for word in part.strip().split():
             known_variants.add(word.upper())
-    if inst_base not in known_variants:
-        if not (inst_base.endswith("D") and any(
+    if inst_base not in known_variants and not (
+        inst_base.endswith("D")
+        and any(
             v.startswith(inst_base[:-1]) and len(v) == len(inst_base)
             for v in known_variants
-        )):
-            return None
+        )
+    ):
+        return None
 
     operand_str = parts[1] if len(parts) > 1 else ""
     operand_str = re.sub(r"\s+where\s+.*$", "", operand_str, flags=re.IGNORECASE)
@@ -2253,7 +2254,6 @@ def _extract_opmode_table(doc: Any, inst: JsonDict) -> list[JsonDict] | None:
     if not has_opmode:
         return None
 
-    SIZE_NAMES = {"b": "byte", "w": "word", "l": "long"}
     SIZE_MAP = {"byte": "b", "word": "w", "long": "l"}
     entries: list[JsonDict] = []
 
@@ -2293,13 +2293,13 @@ def _extract_opmode_table(doc: Any, inst: JsonDict) -> list[JsonDict] | None:
 
             # Detect Byte/Word/Long/Operation header (Format 1)
             texts = {t.lower(): x for x, _, t, _, _ in row_items}
-            if "Byte" in [t for _, _, t, _, _ in row_items] or "byte" in texts:
-                if "word" in texts or "Word" in [t for _, _, t, _, _ in row_items]:
-                    for x, _, t, _, _ in row_items:
-                        tl = t.lower()
-                        if tl in ("byte", "word", "long", "operation"):
-                            header_cols[tl] = x
-                    continue
+            row_texts = [t for _, _, t, _, _ in row_items]
+            if ("Byte" in row_texts or "byte" in texts) and ("word" in texts or "Word" in row_texts):
+                for x, _, t, _, _ in row_items:
+                    tl = t.lower()
+                    if tl in ("byte", "word", "long", "operation"):
+                        header_cols[tl] = x
+                continue
 
             # Detect Source/Destination header (Format 3: MOVE16-style)
             raw_texts = [t for _, _, t, _, _ in row_items]
@@ -2840,8 +2840,8 @@ def apply_cc_semantics(kb_data: list[JsonDict]) -> int:
     if unclassified:
         msgs = [f"{mn}.{fl}: {d}" for mn, fl, d in unclassified]
         raise RuntimeError(
-            f"Unclassified CC descriptions — add patterns to "
-            f"_CC_SEMANTIC_PATTERNS:\n  " + "\n  ".join(msgs)
+            "Unclassified CC descriptions — add patterns to "
+            "_CC_SEMANTIC_PATTERNS:\n  " + "\n  ".join(msgs)
         )
 
     return classified
@@ -3010,9 +3010,7 @@ def _is_real_extension_word(enc: JsonDict) -> bool:
         return False
     name = str(fields[0]["name"])
     # Filter out spurious PDF labels that got captured as encodings
-    if name.startswith("Instruction F"):
-        return False
-    return True
+    return not name.startswith("Instruction F")
 
 
 def _compute_encoding_variants(encodings: list[JsonDict]) -> list[JsonDict]:
@@ -3989,7 +3987,7 @@ def _specialize_overflow_rules(inst: Any) -> None:
         "multiply": "overflow_multiply",
     }
 
-    for flag, spec in cc_sem.items():
+    for _flag, spec in cc_sem.items():
         if spec.get("rule") == "overflow" and op_type in overflow_map:
             spec["rule"] = overflow_map[op_type]
 
@@ -4009,7 +4007,7 @@ def _specialize_carry_borrow_rules(inst: Any) -> None:
     Asserted because the PDF assumes the reader knows what carry/borrow mean.
     """
     cc_sem = inst.get("cc_semantics", {})
-    for flag, spec in cc_sem.items():
+    for _flag, spec in cc_sem.items():
         if spec.get("rule") == "carry":
             spec["detection"] = "unsigned_exceeds_max"
         elif spec.get("rule") == "borrow":
@@ -4042,13 +4040,12 @@ def _specialize_shift_carry_rules(inst: Any) -> None:
     by definition, so V=0 always. Cited: PDF p125 ASL/ASR V flag description.
     """
     cc_sem = inst.get("cc_semantics", {})
-    variants = inst.get("variants", [])
     op_type = inst.get("operation_type")
 
     if op_type not in ("shift", "rotate", "rotate_extend"):
         return
 
-    for flag, spec in cc_sem.items():
+    for _flag, spec in cc_sem.items():
         if spec.get("rule") == "last_shifted_out":
             # Carry semantics differ by fill behavior (from variants)
             spec["carry_semantics"] = "shift_last_out"
@@ -4263,7 +4260,7 @@ def output_summary(kb_data: Any) -> None:
 
 
 def output_markdown(kb_data: Any, outfile: Any) -> None:
-    lines = [f"# M68000 Instruction Set Reference\n",
+    lines = ["# M68000 Instruction Set Reference\n",
              f"Extracted from M68000 Programmer's Reference Manual. {len(kb_data)} instructions.\n",
              "## Index\n"]
     for inst in kb_data:
@@ -4344,7 +4341,7 @@ def dump_page(doc: Any, page_num: int) -> None:
     for y_key in sorted(rows.keys()):
         parts = rows[y_key]
         print(f"  y={y_key:6.0f}:", end="")
-        for x, x2, text, font, size in parts:
+        for x, x2, text, _font, _size in parts:
             print(f"  [x={x:6.1f}-{x2:6.1f} {text!r}]", end="")
         print()
 
@@ -4621,10 +4618,10 @@ def _apply_size_encodings(kb_data: list[JsonDict]) -> int:
 
     for inst in kb_data:
         size_fields = [
-            field
+            size_field
             for enc in cast(list[JsonDict], inst.get("encodings", []))
-            for field in cast(list[JsonDict], enc.get("fields", []))
-            if str(field["name"]) == "SIZE"
+            for size_field in cast(list[JsonDict], enc.get("fields", []))
+            if str(size_field["name"]) == "SIZE"
         ]
         if not size_fields:
             continue

@@ -5,15 +5,14 @@ import subprocess
 import sys
 from collections.abc import MutableMapping
 from pathlib import Path
-from types import ModuleType
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
+from m68k.indirect_core import IndirectSite, IndirectSiteStatus
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
-from m68k.indirect_core import IndirectSite, IndirectSiteStatus
-from m68k_kb import runtime_m68k_analysis
 from m68k.name_entities import name_subroutines
 from m68k.os_calls import AppSlotInfo
+from m68k_kb import runtime_m68k_analysis
 
 
 def test_build_entities_help_loads_cleanly() -> None:

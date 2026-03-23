@@ -11,40 +11,52 @@ from typing import cast
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from m68k.analysis import RelocLike, RelocatedSegment
-from m68k.hunk_parser import HunkType
-from m68k_kb import runtime_os
-from m68k_kb import runtime_m68k_analysis
-from m68k.jump_tables import JumpTable, JumpTableEntry, JumpTablePattern
-from m68k.indirect_core import IndirectSite, IndirectSiteRegion, IndirectSiteStatus
-from m68k.memory_provenance import MemoryRegionAddressSpace, MemoryRegionProvenance
 from disasm import cli as gen_disasm_mod
-from disasm.comments import build_instruction_comment_parts, render_comment_parts
 from disasm import data_render as data_render_mod
-from disasm.analysis_loader import load_hunk_analysis
-from disasm.entities import infer_target_name, load_entities
-from disasm.hunks import (build_hunk_session, build_session_object,
-                          prepare_hunk_code)
-from disasm.metadata import build_hunk_metadata
-from disasm.hint_validation import (hint_block_has_supported_terminal_flow,
-                                    is_valid_hint_block)
-from disasm.jump_tables import emit_jump_table_rows
-from disasm.substitutions import (build_arg_substitutions,
-                                  build_lvo_substitutions)
-from disasm.api import listing_window_payload, serialize_row, session_metadata
 from disasm import emitter as emitter_mod
+from disasm.analysis_loader import load_hunk_analysis
+from disasm.api import listing_window_payload, serialize_row, session_metadata
+from disasm.comments import build_instruction_comment_parts, render_comment_parts
 from disasm.emitter import emit_session_rows
+from disasm.entities import infer_target_name, load_entities
+from disasm.hint_validation import (
+    hint_block_has_supported_terminal_flow,
+    is_valid_hint_block,
+)
+from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
+from disasm.jump_tables import emit_jump_table_rows
+from disasm.metadata import build_hunk_metadata
+from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.text import listing_window, render_rows
-from disasm.types import (AddressRowContext, DisasmBlockLike, DisassemblySession,
-                          HunkDisassemblySession,
-                          HunkMetadata, JumpTableEntryRef, JumpTableRegion,
-                          ListingRow, SemanticOperand)
-from m68k.m68k_disasm import Instruction
-from m68k.os_calls import (AppBaseInfo, AppBaseKind, CallArgumentAnnotation,
-                           CallSetupAnalysis,
-                           LibraryBaseTag, LibraryCall, TypedMemoryRegion,
-                           analyze_call_setups, build_app_slot_symbols)
+from disasm.types import (
+    AddressRowContext,
+    DisasmBlockLike,
+    DisassemblySession,
+    HunkDisassemblySession,
+    JumpTableEntryRef,
+    JumpTableRegion,
+    ListingRow,
+    SemanticOperand,
+)
 from disasm.validation import get_instruction_processor_min, has_valid_branch_target
+from m68k.analysis import RelocatedSegment, RelocLike
+from m68k.hunk_parser import HunkType
+from m68k.indirect_core import IndirectSite, IndirectSiteRegion, IndirectSiteStatus
+from m68k.jump_tables import JumpTable, JumpTableEntry, JumpTablePattern
+from m68k.m68k_disasm import Instruction
+from m68k.memory_provenance import MemoryRegionAddressSpace, MemoryRegionProvenance
+from m68k.os_calls import (
+    AppBaseInfo,
+    AppBaseKind,
+    CallArgumentAnnotation,
+    CallSetupAnalysis,
+    LibraryBaseTag,
+    LibraryCall,
+    TypedMemoryRegion,
+    analyze_call_setups,
+    build_app_slot_symbols,
+)
+from m68k_kb import runtime_m68k_analysis, runtime_os
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
 
@@ -1194,12 +1206,8 @@ def test_render_instruction_text_requires_opcode_text() -> None:
 
     from disasm.instruction_rows import render_instruction_text
 
-    try:
+    with pytest.raises(AssertionError, match="missing opcode_text"):
         render_instruction_text(inst, session, set())
-    except AssertionError as exc:
-        assert "missing opcode_text" in str(exc)
-    else:
-        raise AssertionError("expected missing opcode_text")
 
 
 def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_text() -> None:

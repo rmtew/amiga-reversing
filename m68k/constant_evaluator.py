@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Protocol
 
 from m68k_kb import runtime_m68k_decode
 
-from .instruction_kb import instruction_kb
-from .instruction_decode import decode_inst_destination, decode_inst_operands
-from .typing_protocols import OperandNodeLike
 from . import value_transforms
+from .instruction_decode import decode_inst_destination, decode_inst_operands
+from .instruction_kb import instruction_kb
+from .typing_protocols import OperandNodeLike
 
 if TYPE_CHECKING:
     from disasm.decode import DecodedInstructionForEmit

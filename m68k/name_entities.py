@@ -16,18 +16,19 @@ Usage:
 
 import re
 import struct
-import sys
-from collections.abc import Sequence
-from typing import Mapping, MutableMapping, NotRequired, TypedDict, cast
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import NotRequired, TypedDict, cast
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
-from m68k_kb import runtime_naming
-from m68k_kb import runtime_os
+from m68k_kb import (
+    runtime_m68k_analysis,
+    runtime_m68k_decode,
+    runtime_naming,
+    runtime_os,
+)
 
+from .instruction_decode import xf
 from .instruction_kb import find_kb_entry, instruction_kb
 from .m68k_executor import BasicBlock
-from .instruction_decode import xf
 from .os_calls import LibraryCall
 from .subroutine_ranges import find_containing_sub
 

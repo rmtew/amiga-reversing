@@ -2,8 +2,13 @@
 
 import struct
 
-from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
-                                _concrete, _unknown, _join_states)
+from m68k.m68k_executor import (
+    AbstractMemory,
+    CPUState,
+    _concrete,
+    _join_states,
+    analyze,
+)
 
 
 def test_memory_basic() -> None:

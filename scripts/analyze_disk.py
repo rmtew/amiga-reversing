@@ -15,8 +15,7 @@ import math
 import os
 import struct
 import sys
-from dataclasses import dataclass, field, asdict
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -136,9 +135,7 @@ def amigados_hash(name: str, table_size: int = 72, international: bool = False) 
     for c in name:
         o = ord(c)
         # toupper
-        if 0x61 <= o <= 0x7A:
-            o -= 0x20
-        elif international and 0xE0 <= o <= 0xFE and o != 0xF7:
+        if 0x61 <= o <= 0x7A or international and 0xE0 <= o <= 0xFE and o != 0xF7:
             o -= 0x20
         h = ((h * 13) + o) & 0x7FF
     return h % table_size
@@ -285,7 +282,7 @@ def parse_file_header(data: bytes, block_num: int) -> JsonDict | None:
     sec_type = s32(block, BSIZE - 4)
     is_dir = sec_type == ST_USERDIR
     high_seq = u32(block, 0x08)
-    first_data = u32(block, 0x10)
+    _ = u32(block, 0x10)
 
     # Read data block pointers (or hash table for directories)
     raw_ptrs = [u32(block, 0x18 + i * 4) for i in range(72)]
@@ -460,7 +457,6 @@ def build_block_usage(total_sectors: int, root_block_num: int,
 
     # Cross-ref with bitmap
     orphan_blocks: list[int] = []
-    free_with_data_blocks: list[int] = []
     for i in range(total_sectors):
         if bitmap_map and i < len(bitmap_map):
             if bitmap_map[i] is True and usage[i] == "unknown":
@@ -698,7 +694,6 @@ def analyze_adf(adf_path: str, extract_dir: str | None = None,
     boot = parse_boot_block(data)
     is_dos = boot["is_dos"]
     is_ffs = boot["flags_byte"] & 0x01 == 1 if is_dos else False
-    is_intl = boot["flags_byte"] & 0x02 == 2 if is_dos else False
 
     if verbose:
         dtype = boot["fs_description"] if is_dos else "Non-DOS"
@@ -897,12 +892,12 @@ def print_summary(result: JsonDict) -> None:
             print(f"  Free blocks with data: {len(fwd)}")
 
     if "files" in result:
-        print(f"\n  Files:")
+        print("\n  Files:")
         for f in sorted(result["files"], key=lambda x: x["full_path"]):
             print(f"    {f['full_path']:40s} {f['size']:>8,} bytes  {f['protection']}  {f['date']}")
 
     if "non_dos" in result:
-        print(f"\n  Non-DOS disk")
+        print("\n  Non-DOS disk")
 
     if "track_analysis" in result:
         ta = result["track_analysis"]
@@ -913,7 +908,7 @@ def print_summary(result: JsonDict) -> None:
 
     sigs = result.get("signatures", [])
     if sigs:
-        print(f"\n  Signatures:")
+        print("\n  Signatures:")
         for s in sigs[:30]:
             detail = ""
             if s["type"] == "IFF_FORM":
@@ -924,7 +919,7 @@ def print_summary(result: JsonDict) -> None:
 
     os_calls = result.get("os_calls_by_lvo", {})
     if os_calls:
-        print(f"\n  OS library calls (JSR -xxx(A6)):")
+        print("\n  OS library calls (JSR -xxx(A6)):")
         for lvo, info in list(os_calls.items())[:20]:
             if isinstance(info, dict):
                 name = info.get("exec", "?")

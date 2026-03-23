@@ -11,8 +11,8 @@ as the single source of truth and can be re-run to regenerate.
 """
 
 import json
-import sys
 import os
+import sys
 from typing import Any
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -404,7 +404,7 @@ def build_registry(registry_path: str) -> dict[str, JsonDict]:
             parts = line.split('\t')
             if len(parts) >= 2:
                 name = parts[0].strip()
-                if not name or name.startswith("The ") or name.startswith("additional"):
+                if not name or name.startswith(("The ", "additional")):
                     continue
                 source = parts[1].strip() if len(parts) > 1 else ""
                 desc = parts[2].strip() if len(parts) > 2 else ""

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import importlib
 import json
+from collections.abc import Sequence
 from functools import lru_cache
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Sequence, TypeVar, cast
+from typing import TypeVar, cast
 
 from kb.schemas import (
     HardwareSymbolsPayload,
@@ -14,7 +15,6 @@ from kb.schemas import (
     NamingRulesPayload,
     OsReferencePayload,
 )
-
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
 KNOWLEDGE = PROJ_ROOT / "knowledge"

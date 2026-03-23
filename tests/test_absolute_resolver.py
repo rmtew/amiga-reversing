@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from disasm.absolute_resolver import resolve_absolute_labels
 from disasm.types import HunkDisassemblySession
-from m68k_kb import runtime_hardware
 from m68k.os_calls import AppBaseInfo, AppBaseKind
+from m68k_kb import runtime_hardware
 from tests.platform_helpers import make_platform
 
 

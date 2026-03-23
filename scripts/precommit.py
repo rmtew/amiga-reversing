@@ -27,6 +27,7 @@ def main(argv: list[str]) -> int:
     benchmark_targets = argv[1:] if len(argv) > 1 else _benchmark_targets()
 
     steps: list[list[str]] = [
+        ["uv", "run", "ruff", "check"],
         ["uv", "run", "mypy"],
         ["uv", "run", "pytest", "-q"],
     ]

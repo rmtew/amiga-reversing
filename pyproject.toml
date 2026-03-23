@@ -13,6 +13,7 @@ dependencies = [
 dev = [
     "mypy>=1.18",
     "pytest>=8",
+    "ruff>=0.11",
 ]
 
 [tool.pytest.ini_options]
@@ -150,6 +151,20 @@ files = [
     "tests/test_runtime_kb.py",
     "tests/test_target_render_regressions.py",
 ]
+
+[tool.ruff]
+target-version = "py314"
+include = [
+    "disasm/**/*.py",
+    "kb/**/*.py",
+    "m68k/**/*.py",
+    "scripts/**/*.py",
+    "tests/**/*.py",
+]
+
+[tool.ruff.lint]
+select = ["E9", "F", "B", "UP", "I", "C4", "PT", "PIE", "RET", "SIM", "RUF013", "RUF020", "RUF100"]
+ignore = ["PT018"]
 
 [tool.uv.sources]
 machine68k = { path = "resources/machine68k/dist/machine68k-0.4.2.dev0+g61600df53.d20260308-cp314-cp314-win_amd64.whl" }

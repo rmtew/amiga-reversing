@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping, Protocol
+from typing import Protocol
 
 
 class OsStructFieldLike(Protocol):
@@ -68,9 +69,12 @@ def resolve_struct_field(structs: Mapping[str, OsStructLike], struct_name: str, 
         return resolve_struct_field(structs, struct_def.base_struct, offset, next_active)
 
     for field in struct_def.fields:
-        if field.type == "STRUCT" and field.struct is not None:
-            if field.offset <= offset < field.offset + field.size:
-                return resolve_struct_field(
-                    structs, field.struct, offset - field.offset, next_active)
+        if (
+            field.type == "STRUCT"
+            and field.struct is not None
+            and field.offset <= offset < field.offset + field.size
+        ):
+            return resolve_struct_field(
+                structs, field.struct, offset - field.offset, next_active)
 
     return None

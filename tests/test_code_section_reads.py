@@ -26,8 +26,8 @@ def _assemble(*words: int) -> bytes:
 
 def test_resolve_jsr_through_longword_pointer() -> None:
     """jsr (a0) where a0 was loaded from a longword in the code section."""
-    from m68k.m68k_executor import analyze
     from m68k.indirect_analysis import resolve_indirect_targets
+    from m68k.m68k_executor import analyze
 
     code = bytearray(0x60)
 
@@ -60,8 +60,8 @@ def test_resolve_jsr_through_longword_pointer() -> None:
 
 def test_resolve_jsr_through_pointer_table() -> None:
     """jsr (a1) where a1 loaded from a table of longword pointers."""
-    from m68k.m68k_executor import analyze
     from m68k.indirect_analysis import resolve_indirect_targets
+    from m68k.m68k_executor import analyze
 
     code = bytearray(0x80)
 
@@ -103,8 +103,8 @@ def test_resolve_jsr_through_pointer_table() -> None:
 
 def test_handler_becomes_block() -> None:
     """Resolved handler should become a block when fed back as entry point."""
-    from m68k.m68k_executor import analyze
     from m68k.indirect_analysis import resolve_indirect_targets
+    from m68k.m68k_executor import analyze
 
     code = bytearray(0x60)
 

@@ -18,27 +18,31 @@ import sys
 from collections import deque
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal, TypeAlias, TypedDict, cast
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_executor
-from m68k_kb.runtime_types import CcrState, ComputeFormula, KnownCcrState, MnemonicInstructionRecord
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_executor
+from m68k_kb.runtime_types import CcrState, ComputeFormula, KnownCcrState
 
+from .abstract_values import _UNKNOWN, AbstractValue, _concrete, _symbolic, _unknown
 from .decode_errors import DecodeError
-from .abstract_values import AbstractValue, _UNKNOWN, _concrete, _symbolic, _unknown
 from .instruction_kb import instruction_kb
-from .m68k_compute import _to_signed
-from .m68k_compute import ComputeContext
-from .m68k_disasm import disassemble, Instruction, _Decoder, _decode_one
 from .instruction_primitives import (
-    Operand,
     DecodedOps,
-    decode_ea as _decode_ea,
+    Operand,
     decode_instruction_ops,
+)
+from .instruction_primitives import (
+    decode_ea as _decode_ea,
+)
+from .instruction_primitives import (
     extract_branch_target as _extract_branch_target,
+)
+from .instruction_primitives import (
     xf as _xf,
 )
-from .operand_resolution import resolve_ea, _resolve_full_extension_ea
+from .m68k_compute import ComputeContext, _to_signed
+from .m68k_disasm import Instruction, _decode_one, _Decoder
+from .operand_resolution import _resolve_full_extension_ea, resolve_ea
 from .os_calls import (
     BaseRegisterCallEffect,
     LibraryBaseTag,
@@ -87,12 +91,12 @@ _FLOW_TRAP = runtime_m68k_analysis.FlowType.TRAP
 
 
 
-OperandMode: TypeAlias = str
-StatePair: TypeAlias = tuple["CPUState", "AbstractMemory"]
-IncomingStates: TypeAlias = dict[int, StatePair]
-SymbolicKey: TypeAlias = tuple[str | None, int | None, int]
-TagKey: TypeAlias = tuple[int, int]
-TagMap: TypeAlias = object
+type OperandMode = str
+type StatePair = tuple["CPUState", "AbstractMemory"]
+type IncomingStates = dict[int, StatePair]
+type SymbolicKey = tuple[str | None, int | None, int]
+type TagKey = tuple[int, int]
+type TagMap = object
 class AnalysisResult(TypedDict, total=False):
     blocks: dict[int, BasicBlock]
     xrefs: list[XRef]
@@ -103,8 +107,8 @@ class AnalysisResult(TypedDict, total=False):
 
 def _resolve_operand(
     operand: Operand,
-    cpu: "CPUState",
-    mem: "AbstractMemory",
+    cpu: CPUState,
+    mem: AbstractMemory,
     size: str,
     size_bytes: int,
 ) -> AbstractValue | None:
@@ -198,8 +202,8 @@ def _resolve_operand(
 
 def _write_operand(
     operand: Operand,
-    cpu: "CPUState",
-    mem: "AbstractMemory",
+    cpu: CPUState,
+    mem: AbstractMemory,
     value: AbstractValue,
     size: str,
     size_bytes: int,
@@ -266,7 +270,7 @@ _SP_REG_NUM = runtime_m68k_analysis.SP_REG_NUM
 _CCR_FLAGS = list(runtime_m68k_analysis.CCR_FLAG_NAMES)
 _DEFAULT_D = [_UNKNOWN] * _NUM_DATA_REGS
 _DEFAULT_A = [_UNKNOWN] * _NUM_ADDR_REGS
-_DEFAULT_CCR = {f: None for f in _CCR_FLAGS}
+_DEFAULT_CCR = dict.fromkeys(_CCR_FLAGS)
 
 
 class _CPUState:
@@ -352,11 +356,8 @@ def predict_pc(
         return [next_seq]
 
     if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL):
-        if displacement is not None:
-            # Branches are relative to PC + opword_bytes (KB _meta.opword_bytes)
-            target = pc + opword_bytes + displacement
-        else:
-            target = None  # jump through register - unknown target
+        # Branches are relative to PC + opword_bytes (KB _meta.opword_bytes)
+        target = pc + opword_bytes + displacement if displacement is not None else None
 
         if not conditional:
             if target is not None:
@@ -558,9 +559,8 @@ def discover_blocks(code: bytes, base_addr: int = 0,
     # Fill in predecessors
     for addr, block in blocks.items():
         for succ in block.successors:
-            if succ in blocks:
-                if addr not in blocks[succ].predecessors:
-                    blocks[succ].predecessors.append(addr)
+            if succ in blocks and addr not in blocks[succ].predecessors:
+                blocks[succ].predecessors.append(addr)
 
     return blocks
 
@@ -615,9 +615,9 @@ class AbstractMemory:
             for i in range(nbytes):
                 self._bytes[addr + i] = _unknown()
         if value.tag:
-            self._tags[(addr, nbytes)] = value.tag
+            self._tags[addr, nbytes] = value.tag
         elif (addr, nbytes) in self._tags:
-            del self._tags[(addr, nbytes)]
+            del self._tags[addr, nbytes]
 
     def read(self, addr: int | AbstractValue, size: str) -> AbstractValue:
         """Read a value.  addr is int (concrete) or AbstractValue (symbolic)."""
@@ -751,12 +751,8 @@ def _join_states(
             for i in range(len(fd)):
                 a = fd[i]
                 b = od[i]
-                if a is b:
-                    rd[i] = a
-                elif (a.is_known and b.is_known and a.concrete == b.concrete
-                      and a.tag == b.tag):
-                    rd[i] = a
-                elif (a.sym_base is not None and a.sym_base == b.sym_base
+                if a is b or (a.is_known and b.is_known and a.concrete == b.concrete
+                      and a.tag == b.tag) or (a.sym_base is not None and a.sym_base == b.sym_base
                       and a.sym_offset == b.sym_offset and a.tag == b.tag):
                     rd[i] = a
                 else:
@@ -769,12 +765,8 @@ def _join_states(
             for i in range(len(fa)):
                 a = fa[i]
                 b = oa[i]
-                if a is b:
-                    ra[i] = a
-                elif (a.is_known and b.is_known and a.concrete == b.concrete
-                      and a.tag == b.tag):
-                    ra[i] = a
-                elif (a.sym_base is not None and a.sym_base == b.sym_base
+                if a is b or (a.is_known and b.is_known and a.concrete == b.concrete
+                      and a.tag == b.tag) or (a.sym_base is not None and a.sym_base == b.sym_base
                       and a.sym_offset == b.sym_offset and a.tag == b.tag):
                     ra[i] = a
                 else:
@@ -783,12 +775,8 @@ def _join_states(
 
             # SP
             a, b = first_cpu.sp, other_cpu.sp
-            if a is b:
-                result_cpu.sp = a
-            elif (a.is_known and b.is_known and a.concrete == b.concrete
-                  and a.tag == b.tag):
-                result_cpu.sp = a
-            elif (a.sym_base is not None and a.sym_base == b.sym_base
+            if a is b or (a.is_known and b.is_known and a.concrete == b.concrete
+                  and a.tag == b.tag) or (a.sym_base is not None and a.sym_base == b.sym_base
                   and a.sym_offset == b.sym_offset and a.tag == b.tag):
                 result_cpu.sp = a
             else:
@@ -974,10 +962,7 @@ def _apply_binary_op(
 
     if d.ea_is_source is not None and d.ea_op and d.reg_num is not None:
         # OPMODE-directed
-        if is_bitwise:
-            dst_mode = "dn"
-        else:
-            dst_mode = "an" if src_sign_ext else "dn"
+        dst_mode = "dn" if is_bitwise else "an" if src_sign_ext else "dn"
         ea_val = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
         reg_val = cpu.get_reg(dst_mode, d.reg_num)
         if d.ea_is_source:
@@ -1057,7 +1042,7 @@ def _apply_binary_op(
             elif cpu.a[rx].is_known:
                 mem.write(cpu.a[rx], _unknown(), size)
     else:
-        assert False, f"{op_fn.__name__}: no structured decode for {inst_kb}"
+        raise AssertionError(f"{op_fn.__name__}: no structured decode for {inst_kb}")
 
 
 def _apply_neg(d: DecodedOps, inst_kb: str, cpu: _CPUState, mem: AbstractMemory, size: str, size_bytes: int, mask: int) -> None:
@@ -1176,10 +1161,7 @@ def _apply_sign_extend(
             else:
                 v = src_val | ~src_mask
         else:
-            if size == "w":
-                v = (v & ~w_mask) | (src_val & w_mask)
-            else:
-                v = src_val
+            v = (v & ~w_mask) | (src_val & w_mask) if size == "w" else src_val
         cpu.set_reg("dn", dn, _concrete(v & 0xFFFFFFFF))
     else:
         cpu.set_reg("dn", dn, _unknown())
@@ -1254,7 +1236,6 @@ def _apply_movem(inst: Instruction, inst_kb: str, d: DecodedOps, cpu: _CPUState,
     if direction == 0 and is_predec and ea_reg == sp_reg:
         # Register-to-memory via -(SP): push registers onto stack.
         # SP decrements BEFORE each transfer (predecrement mode).
-        total_bytes = len(regs) * xfer_bytes
         for reg_name in regs:
             reg_info = _parse_reg_from_text(reg_name)
             if reg_info is None:
@@ -1562,7 +1543,7 @@ def _apply_sp_effects(
             runtime_m68k_analysis.SpEffectAction.DECREMENT,
             runtime_m68k_analysis.SpEffectAction.INCREMENT,
         ):
-            assert False, f"sp_effects.bytes missing for {mnemonic} action={action}"
+            raise AssertionError(f"sp_effects.bytes missing for {mnemonic} action={action}")
         if action == runtime_m68k_analysis.SpEffectAction.DECREMENT:
             assert nbytes is not None
             if cpu.sp.is_known:
@@ -1598,7 +1579,7 @@ def _apply_sp_effects(
             elif nbytes == 4:
                 stack_size = "l"
             else:
-                assert False, f"{mnemonic}: unsupported stack size {nbytes} for {action}"
+                raise AssertionError(f"{mnemonic}: unsupported stack size {nbytes} for {action}")
             mem.write(cpu.sp, cpu.get_reg("an", reg_num), stack_size)
         elif action == runtime_m68k_analysis.SpEffectAction.SAVE_TO_REG:
             reg_num = _address_effect_reg(_aux)
@@ -1616,7 +1597,7 @@ def _apply_sp_effects(
             elif nbytes == 4:
                 stack_size = "l"
             else:
-                assert False, f"{mnemonic}: unsupported stack size {nbytes} for {action}"
+                raise AssertionError(f"{mnemonic}: unsupported stack size {nbytes} for {action}")
             stack_val = mem.read(cpu.sp, stack_size)
             cpu.set_reg("an", reg_num, stack_val)
 
@@ -1624,28 +1605,26 @@ def _apply_sp_effects(
     # the stack.  The return address is the instruction immediately
     # after the call.  This enables RTS resolution and push/pop
     # patterns to work through abstract memory.
-    if cpu.sp.is_known or cpu.sp.is_symbolic:
-        if flow_type == _FLOW_CALL:
-            return_addr = inst.offset + inst.size
-            mem.write(cpu.sp, _concrete(return_addr), "l")
+    if (cpu.sp.is_known or cpu.sp.is_symbolic) and flow_type == _FLOW_CALL:
+        return_addr = inst.offset + inst.size
+        mem.write(cpu.sp, _concrete(return_addr), "l")
 
     # After call instructions, invalidate scratch registers per
     # platform calling convention.  Detect calls by KB pc_effects
     # flow type, not by SP decrement (PEA also decrements SP but
     # isn't a call).
-    if platform and platform.scratch_regs:
-        if flow_type == _FLOW_CALL:
-            # Resolve call effects before invalidation (needs pre-call
-            # register state for input registers like A1 name string).
-            call_effect = _resolve_os_call(inst, inst_kb, cpu, platform,
-                                           code)
+    if platform and platform.scratch_regs and flow_type == _FLOW_CALL:
+        # Resolve call effects before invalidation (needs pre-call
+        # register state for input registers like A1 name string).
+        call_effect = _resolve_os_call(inst, inst_kb, cpu, platform,
+                                       code)
 
-            # Store call effect for propagate_states to apply
-            # after scratch reg invalidation on the fallthrough.
-            # Don't invalidate here -- the callee needs the
-            # pre-call register state (e.g. D0 = LVO offset).
-            if call_effect:
-                platform.pending_call_effect = call_effect
+        # Store call effect for propagate_states to apply
+        # after scratch reg invalidation on the fallthrough.
+        # Don't invalidate here -- the callee needs the
+        # pre-call register state (e.g. D0 = LVO offset).
+        if call_effect:
+            platform.pending_call_effect = call_effect
 
 
 def _apply_computed(
@@ -1675,7 +1654,6 @@ def _apply_computed(
     op = formula[0] if formula else None
     mnemonic = inst_kb
     op_type = runtime_m68k_executor.OPERATION_TYPES[mnemonic]
-    src_sign_ext = mnemonic in runtime_m68k_executor.SOURCE_SIGN_EXTEND
     opword_fields = runtime_m68k_executor.FIELD_MAPS[0].get(mnemonic)
     assert opword_fields is not None, f"runtime KB missing opword field map for {mnemonic}"
     mode_fields_exist = "MODE" in opword_fields
@@ -1743,9 +1721,7 @@ def _apply_computed(
     can_compute = False
     if op in ("bit_test", "bit_change", "bit_clear", "bit_set",
               "shift", "rotate", "rotate_extend",
-              "multiply", "divide"):
-        can_compute = (src_concrete is not None and dst_concrete is not None)
-    elif op in ("add_decimal", "subtract_decimal"):
+              "multiply", "divide") or op in ("add_decimal", "subtract_decimal"):
         can_compute = (src_concrete is not None and dst_concrete is not None)
     elif dst_concrete is not None:
         can_compute = True
@@ -1861,7 +1837,7 @@ def _apply_instruction(inst: Instruction, inst_kb: str,
     elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_RETURN, _FLOW_CALL, _FLOW_TRAP):
         size_bytes = _SIZE_BYTE_COUNT["w"]
     else:
-        assert False, f"runtime KB missing size byte count for {size!r}"
+        raise AssertionError(f"runtime KB missing size byte count for {size!r}")
     assert size is not None
     mask = (1 << (size_bytes * 8)) - 1
 
@@ -2055,9 +2031,8 @@ def propagate_states(blocks: dict[int, BasicBlock],
         # library call resolution downstream.
         if platform:
             base_info = platform.app_base
-            if base_info:
-                if not cpu.a[base_info.reg_num].is_known:
-                    cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
+            if base_info and not cpu.a[base_info.reg_num].is_known:
+                cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
 
         # Fixpoint check: skip if state unchanged from last visit.
         if addr in visited and addr in exit_states:
@@ -2090,9 +2065,8 @@ def propagate_states(blocks: dict[int, BasicBlock],
             last_ikb = instruction_kb(last)
             if runtime_m68k_analysis.FLOW_TYPES[last_ikb] == _FLOW_CALL:
                 for action, nbytes, _ in runtime_m68k_analysis.SP_EFFECTS.get(last_ikb, ()):
-                    if action == runtime_m68k_analysis.SpEffectAction.DECREMENT:
-                        if nbytes is not None:
-                            call_sp_push += nbytes
+                    if action == runtime_m68k_analysis.SpEffectAction.DECREMENT and nbytes is not None:
+                        call_sp_push += nbytes
 
         # Classify xrefs
         call_dst = ft_dst = None
@@ -2232,9 +2206,8 @@ def _compute_summary(entry: int, owned: set[int],
             last_ikb = instruction_kb(last)
             if runtime_m68k_analysis.FLOW_TYPES[last_ikb] == _FLOW_CALL:
                 for action, nbytes, _ in runtime_m68k_analysis.SP_EFFECTS.get(last_ikb, ()):
-                    if action == runtime_m68k_analysis.SpEffectAction.DECREMENT:
-                        if nbytes is not None:
-                            call_sp_push += nbytes
+                    if action == runtime_m68k_analysis.SpEffectAction.DECREMENT and nbytes is not None:
+                        call_sp_push += nbytes
 
         call_dst = ft_dst = None
         other_xrefs = []
@@ -2420,9 +2393,8 @@ def _call_fallthrough_state(exit_cpu: _CPUState,
     if summary:
         ft_cpu = _apply_summary(exit_cpu, summary)
         base_info = platform.app_base if platform else None
-        if base_info:
-            if not ft_cpu.a[base_info.reg_num].is_known:
-                ft_cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
+        if base_info and not ft_cpu.a[base_info.reg_num].is_known:
+            ft_cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
     else:
         ft_cpu = exit_cpu.copy()
         if exit_cpu.sp.is_known:
@@ -2582,7 +2554,8 @@ def analyze(code: bytes, base_addr: int = 0,
 # -- CLI -------------------------------------------------------------------
 
 if __name__ == "__main__":
-    from .hunk_parser import parse_file, HunkType as HT
+    from .hunk_parser import HunkType as HT
+    from .hunk_parser import parse_file
 
     do_propagate = "--propagate" in sys.argv
     args = [a for a in sys.argv[1:] if not a.startswith("--")]

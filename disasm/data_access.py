@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Protocol
 
+from m68k.instruction_decode import decode_inst_operands
 from m68k.typing_protocols import BasicBlockLike, CpuStateLike
 from m68k_kb import runtime_m68k_decode
-
-from m68k.instruction_decode import decode_inst_operands
 
 
 class _KnownValue(Protocol):

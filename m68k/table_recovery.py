@@ -4,19 +4,17 @@ from __future__ import annotations
 
 import struct
 from collections.abc import Sequence
-from typing import Literal, TypeAlias, TypedDict, cast
+from typing import Literal, TypedDict, cast
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
-from .instruction_kb import instruction_kb
-from .instruction_decode import decode_inst_destination, decode_inst_operands, xf
 from . import address_reconstruction as _ar
 from . import value_transforms as _vt
-from .typing_protocols import DecodedOperandLike, InstructionLike, OperandNodeLike
 from .address_reconstruction import AddressReconstructionInstructionLike
 from .constant_evaluator import SizedInstructionLike
-
+from .instruction_decode import decode_inst_destination, decode_inst_operands, xf
+from .instruction_kb import instruction_kb
+from .typing_protocols import DecodedOperandLike, InstructionLike, OperandNodeLike
 
 DispatchPattern = Literal[
     "memory_indirect_postindexed_long_pointer",
@@ -25,15 +23,15 @@ DispatchPattern = Literal[
     "pc_memory_indirect_long_pointer",
 ]
 
-ShiftTransform: TypeAlias = tuple[Literal["shift"], str | None, str | None, int]
-LogicalTransform: TypeAlias = tuple[Literal["logical"], str, str | None, int]
-BitOpTransform: TypeAlias = tuple[Literal["bitop"], str | None, int]
-TestTransform: TypeAlias = tuple[Literal["test"], str | None, str | None]
-UnaryTransform: TypeAlias = tuple[Literal["unary"], str, str | None]
-SwapTransform: TypeAlias = tuple[Literal["swap"]]
-SignExtendTransform: TypeAlias = tuple[Literal["sign_extend"], str | None]
-MulDivTransform: TypeAlias = tuple[str, str | None, str | None, int]
-ValueTransform: TypeAlias = (
+type ShiftTransform = tuple[Literal["shift"], str | None, str | None, int]
+type LogicalTransform = tuple[Literal["logical"], str, str | None, int]
+type BitOpTransform = tuple[Literal["bitop"], str | None, int]
+type TestTransform = tuple[Literal["test"], str | None, str | None]
+type UnaryTransform = tuple[Literal["unary"], str, str | None]
+type SwapTransform = tuple[Literal["swap"]]
+type SignExtendTransform = tuple[Literal["sign_extend"], str | None]
+type MulDivTransform = tuple[str, str | None, str | None, int]
+type ValueTransform = (
     ShiftTransform
     | LogicalTransform
     | BitOpTransform
@@ -514,6 +512,4 @@ def _is_adda_ind(inst: InstructionLike, target_reg: int) -> bool:
     if xf(opcode, ea_spec[1]) != target_reg:
         return False
     dst = runtime_m68k_decode.DEST_REG_FIELD.get(mi)
-    if dst is None or xf(opcode, dst) != target_reg:
-        return False
-    return True
+    return not (dst is None or xf(opcode, dst) != target_reg)

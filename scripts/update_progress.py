@@ -7,10 +7,10 @@ with current counts.
 """
 
 import json
-import sys
 from collections import defaultdict
+from contextlib import suppress
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).parent.parent
 BIN_DIR = PROJECT_ROOT / "bin"
@@ -34,10 +34,8 @@ def load_entities(entities_file: Path) -> list[EntityRecord]:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            try:
+            with suppress(json.JSONDecodeError):
                 entities.append(json.loads(line))
-            except json.JSONDecodeError:
-                pass
     return entities
 
 

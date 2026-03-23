@@ -10,15 +10,13 @@ All flow type detection comes from generated KB runtime data.
 import struct
 from typing import TypedDict
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
 from .decode_errors import DecodeError
 from .instruction_kb import find_kb_entry, instruction_flow
-from .m68k_disasm import Instruction, _Decoder, _decode_one
+from .m68k_disasm import Instruction, _decode_one, _Decoder
 from .m68k_executor import BasicBlock
 from .typing_protocols import InstructionLike
-
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
@@ -141,8 +139,7 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
 
         # Subroutine entries that immediately transfer control are noise.
         if instrs == 1 and (
-            ft == _FLOW_RETURN
-            or ft == _FLOW_JUMP
+            ft in (_FLOW_RETURN, _FLOW_JUMP)
             or (ft == _FLOW_BRANCH and not conditional)
         ):
             scan_cache[cache_key] = None

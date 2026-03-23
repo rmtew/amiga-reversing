@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from disasm.ascii import PRINTABLE_MAX, PRINTABLE_MIN
-from m68k.m68k_disasm import Instruction
-from disasm.validation import get_instruction_processor_min
 from disasm.types import HunkDisassemblySession, SemanticOperand
+from disasm.validation import get_instruction_processor_min
+from m68k.m68k_disasm import Instruction
 
 
 def format_app_offset_comment(operand_parts: tuple[SemanticOperand, ...], base_reg: int) -> str | None:

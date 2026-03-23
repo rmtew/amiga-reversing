@@ -3,22 +3,19 @@
 from __future__ import annotations
 
 import struct
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
-from m68k_kb import runtime_m68k_executor
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode, runtime_m68k_executor
 from m68k_kb.runtime_types import (
-    BranchInlineDisplacement,
     BranchExtensionDisplacement,
+    BranchInlineDisplacement,
     FieldSpec,
 )
 
 from .ea_extension import parse_full_extension
 from .instruction_kb import instruction_kb
 from .typing_protocols import InstructionLike
-
 
 _DECODED_OPS_CACHE: dict[tuple[bytes, int, str, str, int, int], DecodedOps] = {}
 BRANCH_INLINE_DISPLACEMENTS: Mapping[str, BranchInlineDisplacement] = runtime_m68k_executor.BRANCH_INLINE_DISPLACEMENTS

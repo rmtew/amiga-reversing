@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from disasm.annotations import AnnotationPatchInput, get_entity, patch_entity
 
 
@@ -81,13 +83,9 @@ def test_patch_entity_rejects_unknown_fields(tmp_path: Path) -> None:
     (target_dir / "Demo.s").write_text("; output\n", encoding="utf-8")
     (bin_dir / "Demo").write_bytes(b"\x4e\x75")
 
-    try:
-        patch = AnnotationPatchInput({"unsupported": "value"})
+    patch = AnnotationPatchInput({"unsupported": "value"})
+    with pytest.raises(ValueError, match="Unsupported annotation fields"):
         patch_entity("demo", "0x0000", patch, project_root=project_root)
-    except ValueError as exc:
-        assert "Unsupported annotation fields" in str(exc)
-    else:
-        raise AssertionError("expected unsupported field error")
 
 
 def test_patch_entity_rejects_invalid_subtype_value(tmp_path: Path) -> None:
@@ -104,10 +102,6 @@ def test_patch_entity_rejects_invalid_subtype_value(tmp_path: Path) -> None:
     (target_dir / "Demo.s").write_text("; output\n", encoding="utf-8")
     (bin_dir / "Demo").write_bytes(b"\x4e\x75")
 
-    try:
-        patch = AnnotationPatchInput({"subtype": "bad-subtype"})
+    patch = AnnotationPatchInput({"subtype": "bad-subtype"})
+    with pytest.raises(ValueError, match="Unsupported subtype"):
         patch_entity("demo", "0x0000", patch, project_root=project_root)
-    except ValueError as exc:
-        assert "Unsupported subtype" in str(exc)
-    else:
-        raise AssertionError("expected invalid subtype error")

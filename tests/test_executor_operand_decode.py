@@ -8,10 +8,6 @@ from typing import cast
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
-from m68k_kb import runtime_m68k_executor
-
 from disasm.operands import build_instruction_semantic_operands
 from disasm.types import (
     BitfieldOperandMetadata,
@@ -22,24 +18,42 @@ from disasm.types import (
     RegisterPairOperandMetadata,
 )
 from m68k import m68k_executor as executor_mod
+from m68k.abstract_values import _concrete
 from m68k.instruction_decode import (
     DecodedBitfield,
     DecodedOperands,
     decode_inst_destination,
     decode_inst_operands,
 )
-from m68k.instruction_primitives import Operand, extract_branch_target
+from m68k.instruction_primitives import (
+    Operand,
+    decode_instruction_ops,
+    extract_branch_target,
+)
 from m68k.m68k_asm import assemble_instruction
-from m68k.m68k_disasm import DecodedOperandNode, Instruction, disassemble, _resolve_kb_mnemonic
-from m68k.m68k_disasm import DecodedBaseDisplacementNodeMetadata, DecodedBaseRegisterNodeMetadata
-from m68k.m68k_disasm import DecodedBitfieldNodeMetadata
-from m68k.m68k_disasm import DecodedFullExtensionNodeMetadata, DecodedIndexedNodeMetadata
-from m68k.m68k_disasm import DecodedRegisterListNodeMetadata, DecodedRegisterPairNodeMetadata
-from m68k.m68k_executor import analyze, CPUState, AbstractMemory, _resolve_operand, _write_operand
-from m68k.abstract_values import _concrete
-from m68k.instruction_primitives import decode_instruction_ops
+from m68k.m68k_disasm import (
+    DecodedBaseDisplacementNodeMetadata,
+    DecodedBaseRegisterNodeMetadata,
+    DecodedBitfieldNodeMetadata,
+    DecodedFullExtensionNodeMetadata,
+    DecodedIndexedNodeMetadata,
+    DecodedOperandNode,
+    DecodedRegisterListNodeMetadata,
+    DecodedRegisterPairNodeMetadata,
+    Instruction,
+    _resolve_kb_mnemonic,
+    disassemble,
+)
+from m68k.m68k_executor import (
+    AbstractMemory,
+    CPUState,
+    _resolve_operand,
+    _write_operand,
+    analyze,
+)
 from m68k.operand_resolution import resolve_ea
 from m68k.typing_protocols import InstructionLike
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode, runtime_m68k_executor
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
 

@@ -163,7 +163,7 @@ def _start_listing_job(project_name: str) -> ListingJobPayload:
         return payload
 
     with _JOB_LOCK:
-        for existing_id, job in _LISTING_JOBS.items():
+        for _existing_id, job in _LISTING_JOBS.items():
             if job["project_id"] == project_name and job["status"] in {"queued", "building", "ready"}:
                 return cast(ListingJobPayload, dict(job))
         job_id = str(uuid.uuid4())
@@ -299,7 +299,7 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, format: str, *args: object) -> None:  # noqa: A003
+    def log_message(self, format: str, *args: object) -> None:
         return
 
 

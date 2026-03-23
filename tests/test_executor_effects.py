@@ -15,14 +15,19 @@ with the propagation engine.
 """
 
 import struct
-import pytest
 
-from m68k_kb import runtime_m68k_analysis
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
-from m68k.m68k_executor import (analyze, _concrete, _unknown, _symbolic,
-                                CPUState, AbstractMemory, _resolve_os_call)
+from m68k.m68k_executor import (
+    AbstractMemory,
+    CPUState,
+    _concrete,
+    _resolve_os_call,
+    _unknown,
+    analyze,
+)
 from m68k.os_calls import LibraryBaseTag
+from m68k_kb import runtime_m68k_analysis
 from tests.platform_helpers import make_platform
 
 

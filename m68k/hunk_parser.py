@@ -16,8 +16,12 @@ from pathlib import Path
 from typing import cast
 
 from m68k_kb import runtime_hunk
-from m68k_kb.runtime_types import ExtTypeCategoryDef, HunkMeta, HunkTypeDef, MemoryTypeCodeDef
-
+from m68k_kb.runtime_types import (
+    ExtTypeCategoryDef,
+    HunkMeta,
+    HunkTypeDef,
+    MemoryTypeCodeDef,
+)
 
 _HUNK_KB = runtime_hunk
 _HUNK_META = cast(HunkMeta, _HUNK_KB.META)
@@ -378,7 +382,7 @@ def _parse_executable(r: _Reader, hf: HunkFile) -> None:
         if not name:
             break
 
-    table_size = r.read_u32()
+    _ = r.read_u32()
     first_hunk = r.read_u32()
     last_hunk = r.read_u32()
     num_hunks = last_hunk - first_hunk + 1
@@ -412,7 +416,7 @@ def _parse_object(r: _Reader, hf: HunkFile) -> None:
         if hunk_id == _HUNK_UNIT:
             # Another unit - stop (we only parse first unit)
             break
-        elif hunk_id == _HUNK_NAME:
+        if hunk_id == _HUNK_NAME:
             r.read_u32()  # consume
             name = r.read_bstr()
             # Name applies to next hunk
@@ -439,7 +443,7 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
     if block_mem != _MEM_ANY:
         mem = block_mem
 
-    if hunk_id == _HUNK_CODE or hunk_id == _HUNK_DATA:
+    if hunk_id in (_HUNK_CODE, _HUNK_DATA):
         num_longs = r.read_u32()
         data = r.read_bytes(num_longs * _LONGWORD_BYTES)
         data_size = num_longs * 4
@@ -466,10 +470,10 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
         if sub_id == _HUNK_END:
             r.read_u32()  # consume
             break
-        elif sub_id == _HUNK_BREAK:
+        if sub_id == _HUNK_BREAK:
             r.read_u32()  # consume
             break
-        elif sub_id in (_HUNK_RELOC32, _HUNK_RELOC16,
+        if sub_id in (_HUNK_RELOC32, _HUNK_RELOC16,
                         _HUNK_RELOC8,
                         _HUNK_DREL16, _HUNK_DREL8,
                         _HUNK_RELRELOC32, _HUNK_ABSRELOC16):

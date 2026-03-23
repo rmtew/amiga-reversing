@@ -5,20 +5,23 @@ from __future__ import annotations
 import copy
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TypeAlias
 
 from m68k_kb import runtime_m68k_analysis
 
+from . import indirect_core, subroutine_summary
+from .instruction_decode import decode_inst_destination, decode_inst_operands
 from .instruction_kb import instruction_flow, instruction_kb
-from .instruction_decode import decode_inst_operands
-from .instruction_decode import decode_inst_destination
 from .instruction_primitives import extract_branch_target
-from .m68k_executor import AbstractMemory, BasicBlock, CPUState, CallSummary, StatePair, propagate_states
-from . import indirect_core
+from .m68k_executor import (
+    AbstractMemory,
+    BasicBlock,
+    CallSummary,
+    CPUState,
+    StatePair,
+    propagate_states,
+)
 from .os_calls import PlatformState
-from . import subroutine_summary
 from .typing_protocols import InstructionLike
-
 
 _MAX_FORK_EXITS = 16
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
@@ -34,21 +37,21 @@ class IndirectResolution:
     caller_addr: int | None = None
     entry_states: EntryStates = ()
 
-EntryStateList: TypeAlias = list[StatePair]
-EntryStates: TypeAlias = tuple[StatePair, ...]
-ExitStates: TypeAlias = Mapping[int, StatePair]
-StateCacheKey: TypeAlias = tuple[int, frozenset[int]]
-CpuObjectSignature: TypeAlias = tuple[tuple[int, ...], tuple[int, ...], int]
-InlineSummaryCacheKey: TypeAlias = tuple[int, int, int]
-PerExitCacheKey: TypeAlias = tuple[int, int, int]
-ResolvedExitCacheKey: TypeAlias = tuple[int, int, tuple[object, ...]]
-CallerCtxCacheKey: TypeAlias = tuple[int, int]
-CallerRegsCacheKey: TypeAlias = tuple[int, tuple[tuple[str, int], ...]]
-CollectCacheKey: TypeAlias = tuple[CpuObjectSignature, int]
-SubBlocksCache: TypeAlias = dict[int, set[int]]
-BlockOwnerMap: TypeAlias = dict[int, int]
-SeedEntryStates: TypeAlias = dict[int, EntryStateList]
-SummaryDict: TypeAlias = dict[int, CallSummary]
+type EntryStateList = list[StatePair]
+type EntryStates = tuple[StatePair, ...]
+type ExitStates = Mapping[int, StatePair]
+type StateCacheKey = tuple[int, frozenset[int]]
+type CpuObjectSignature = tuple[tuple[int, ...], tuple[int, ...], int]
+type InlineSummaryCacheKey = tuple[int, int, int]
+type PerExitCacheKey = tuple[int, int, int]
+type ResolvedExitCacheKey = tuple[int, int, tuple[object, ...]]
+type CallerCtxCacheKey = tuple[int, int]
+type CallerRegsCacheKey = tuple[int, tuple[tuple[str, int], ...]]
+type CollectCacheKey = tuple[CpuObjectSignature, int]
+type SubBlocksCache = dict[int, set[int]]
+type BlockOwnerMap = dict[int, int]
+type SeedEntryStates = dict[int, EntryStateList]
+type SummaryDict = dict[int, CallSummary]
 
 
 @dataclass(frozen=True, slots=True)
@@ -395,13 +398,12 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
                     callee_entry, blocks, call_targets, pass1_exits)
                 if isum is not None:
                     inline_sums[callee_entry] = isum
-        ctx = CallerContext(
+        return CallerContext(
             init_cpu=init_cpu,
             caller_mem=caller_mem,
             pass1_exits=pass1_exits,
             inline_sums=inline_sums,
         )
-        return ctx
 
     def _caller_ctx(entry: int, caller_addr: int) -> CallerContext:
         key = (entry, caller_addr)

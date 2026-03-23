@@ -1,10 +1,12 @@
 from __future__ import annotations
+
 """Entity loading helpers for disassembly sessions."""
 
 import json
 from pathlib import Path
 
 from disasm.types import EntityRecord
+
 
 def load_entities(path: str | Path) -> list[EntityRecord]:
     entities: list[EntityRecord] = []

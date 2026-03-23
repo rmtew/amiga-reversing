@@ -11,9 +11,8 @@ Checks:
 
 import json
 import sys
-import os
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -78,10 +77,9 @@ def check_entity_consistency(entities: list[EntityRecord]) -> int:
             print(f"  WARNING: Entity at {ent.get('addr', '?')} has non-standard confidence '{ent['confidence']}'")
             warnings += 1
 
-        if ent.get("type") == "data" and ent.get("subtype"):
-            if ent["subtype"] not in valid_data_subtypes:
-                print(f"  WARNING: Entity at {ent.get('addr', '?')} has non-standard data subtype '{ent['subtype']}'")
-                warnings += 1
+        if ent.get("type") == "data" and ent.get("subtype") and ent["subtype"] not in valid_data_subtypes:
+            print(f"  WARNING: Entity at {ent.get('addr', '?')} has non-standard data subtype '{ent['subtype']}'")
+            warnings += 1
 
     # Check for overlaps
     sorted_ents = sorted(
@@ -214,11 +212,11 @@ def compute_coverage(entities: list[EntityRecord], binary_size: int | None = Non
     if binary_size:
         pct = (total_bytes / binary_size) * 100
         print(f"  Binary coverage: {pct:.1f}% ({total_bytes}/{binary_size})")
-    print(f"\n  By type:")
+    print("\n  By type:")
     for t, c in sorted(type_counts.items()):
         print(f"    {t}: {c}")
     if subtype_counts:
-        print(f"\n  Data subtypes:")
+        print("\n  Data subtypes:")
         for s, c in sorted(subtype_counts.items()):
             print(f"    {s}: {c}")
     print(f"\n  Named: {named_count}/{len(entities)}")

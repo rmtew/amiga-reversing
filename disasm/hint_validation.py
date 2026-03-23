@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import struct
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
-
-from m68k.instruction_kb import instruction_flow
 from disasm.types import DisasmBlockLike
-from disasm.validation import (get_instruction_processor_min,
-                               has_valid_branch_target,
-                               is_valid_encoding)
-
+from disasm.validation import (
+    get_instruction_processor_min,
+    has_valid_branch_target,
+    is_valid_encoding,
+)
+from m68k.instruction_kb import instruction_flow
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
@@ -25,9 +24,7 @@ def hint_block_has_supported_terminal_flow(block: DisasmBlockLike) -> bool:
     flow_type, conditional = instruction_flow(last)
     if flow_type in (_FLOW_RETURN, _FLOW_JUMP, _FLOW_BRANCH):
         return True
-    if flow_type == _FLOW_CALL and not conditional:
-        return True
-    return False
+    return bool(flow_type == _FLOW_CALL and not conditional)
 
 
 def is_valid_hint_block(block: DisasmBlockLike) -> bool:

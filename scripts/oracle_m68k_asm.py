@@ -24,6 +24,7 @@ import sys
 import tempfile
 import time
 from collections.abc import Sequence
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +33,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJ_ROOT))
-from m68k.m68k_asm import assemble_instruction  # noqa: E402
+from m68k.m68k_asm import assemble_instruction
 
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
 ORACLE_MAP = {
@@ -88,7 +89,7 @@ def _ea_syntax(mode: str, size: str | None = None) -> str:
 def _imm_for_size(size: str | None) -> str:
     if size == "b":
         return "#$12"
-    elif size == "l":
+    if size == "l":
         return "#$12345678"
     return "#$1234"
 
@@ -228,7 +229,7 @@ def generate_tests(inst: JsonDict) -> list[TestCase]:
         """Duplicate tests for direction variants (asl/asr from asl tests)."""
         for variant in extra_mns:
             for asm, desc in tests[start_idx:]:
-                if asm.startswith(f"{primary_mn}.") or asm.startswith(f"{primary_mn} "):
+                if asm.startswith((f"{primary_mn}.", f"{primary_mn} ")):
                     tests.append((variant + asm[len(primary_mn):],
                                   desc.replace(primary_mn, variant)))
                 elif asm == primary_mn:
@@ -340,7 +341,7 @@ def generate_tests(inst: JsonDict) -> list[TestCase]:
 
             elif op_types == ["predec", "predec"]:
                 if op_modes:
-                    for bit_val, mode_type in op_modes["values"].items():
+                    for _bit_val, mode_type in op_modes["values"].items():
                         if mode_type == "predec,predec":
                             tests.append((f"{form_mn}{sfx} -(a0),-(a1)",
                                           f"predec sz={sz}"))
@@ -531,40 +532,40 @@ def _generate_branch_tests() -> list[BranchTestCase]:
             target_b_fwd = pc + 12
             if is_dbcc:
                 tests.append((f"{base_mn} d0,${target_b_fwd:x}",
-                              f"fwd .b disp=10", pc))
+                              "fwd .b disp=10", pc))
             else:
                 tests.append((f"{base_mn}.s ${target_b_fwd:x}",
-                              f"fwd .b disp=10", pc))
+                              "fwd .b disp=10", pc))
 
         # Backward .b: target = pc + 2 - 10 = pc - 8
         if "b" in sizes:
             target_b_bwd = pc - 8
             if is_dbcc:
                 tests.append((f"{base_mn} d0,${target_b_bwd:x}",
-                              f"bwd .b disp=-10", pc))
+                              "bwd .b disp=-10", pc))
             else:
                 tests.append((f"{base_mn}.s ${target_b_bwd:x}",
-                              f"bwd .b disp=-10", pc))
+                              "bwd .b disp=-10", pc))
 
         # Forward .w: target = pc + 2 + 200 = pc + 202
         if "w" in sizes:
             target_w_fwd = pc + 202
             if is_dbcc:
                 tests.append((f"{base_mn} d0,${target_w_fwd:x}",
-                              f"fwd .w disp=200", pc))
+                              "fwd .w disp=200", pc))
             else:
                 tests.append((f"{base_mn}.w ${target_w_fwd:x}",
-                              f"fwd .w disp=200", pc))
+                              "fwd .w disp=200", pc))
 
         # Backward .w: target = pc + 2 - 200 = pc - 198
         if "w" in sizes:
             target_w_bwd = pc - 198
             if is_dbcc:
                 tests.append((f"{base_mn} d0,${target_w_bwd:x}",
-                              f"bwd .w disp=-200", pc))
+                              "bwd .w disp=-200", pc))
             else:
                 tests.append((f"{base_mn}.w ${target_w_bwd:x}",
-                              f"bwd .w disp=-200", pc))
+                              "bwd .w disp=-200", pc))
 
         # CC variants: test a representative subset from KB condition_codes
         if cc_param:
@@ -591,7 +592,7 @@ def _generate_branch_tests() -> list[BranchTestCase]:
 
     # CC alias tests — driven by KB _meta.cc_aliases
     cc_aliases = KB_META["cc_aliases"]
-    for alias_suffix, canonical_suffix in cc_aliases.items():
+    for alias_suffix, _canonical_suffix in cc_aliases.items():
         # Test alias with each cc-parameterized family (Bcc, DBcc, Scc)
         for inst in KB_INSTRUCTIONS:
             if not inst.get("uses_label"):
@@ -696,9 +697,7 @@ def _is_imm_routing_divergence(
     if len(our_bytes) != len(oracle_bytes):
         return False
     # Extension words must be identical (only opword differs)
-    if our_bytes[2:] != oracle_bytes[2:]:
-        return False
-    return True
+    return our_bytes[2:] == oracle_bytes[2:]
 
 
 def _is_commutative_match(mnemonic: str, our_bytes: bytes, oracle_bytes: bytes) -> bool:
@@ -786,17 +785,15 @@ def _extract_hunk_code(data: bytes) -> bytes | None:
         if hunk_id == HUNK_CODE_ID:
             n_longs = struct.unpack(">I", data[pos:pos + 4])[0]
             pos += 4
-            code = data[pos:pos + n_longs * 4]
-            return code
-        elif hunk_id == HUNK_END_ID:
+            return data[pos:pos + n_longs * 4]
+        if hunk_id == HUNK_END_ID:
             continue
+        # Skip unknown hunk
+        if pos + 4 <= len(data):
+            n_longs = struct.unpack(">I", data[pos:pos + 4])[0]
+            pos += 4 + n_longs * 4
         else:
-            # Skip unknown hunk
-            if pos + 4 <= len(data):
-                n_longs = struct.unpack(">I", data[pos:pos + 4])[0]
-                pos += 4 + n_longs * 4
-            else:
-                break
+            break
     return None
 
 
@@ -813,11 +810,11 @@ class OracleDriver(abc.ABC):
 
     def setup(self) -> None:
         """Called before test run. Override for pre-run setup."""
-        pass
+        return
 
     def teardown(self) -> None:
         """Called after test run. Override for cleanup."""
-        pass
+        return
 
     @abc.abstractmethod
     def assemble_one(self, text: str, pc: int = 0) -> bytes | None:
@@ -880,10 +877,8 @@ class VasmDriver(OracleDriver):
             return None
         finally:
             for p in (src_path, out_path):
-                try:
+                with suppress(OSError):
                     os.unlink(p)
-                except OSError:
-                    pass
 
 
 class VamosDriver(OracleDriver):
@@ -955,10 +950,8 @@ class VamosDriver(OracleDriver):
             return None
         finally:
             for p in (src_path, out_path):
-                try:
+                with suppress(OSError):
                     os.unlink(p)
-                except OSError:
-                    pass
 
     def assemble_batch(self, items: Sequence[BatchInput]) -> list[bytes | None] | None:
         """Assemble multiple items in one invocation using sentinel splitting."""
@@ -995,10 +988,8 @@ class VamosDriver(OracleDriver):
             return None
         finally:
             for p in (src_path, out_path):
-                try:
+                with suppress(OSError):
                     os.unlink(p)
-                except OSError:
-                    pass
 
     def prepare_branch_text(self, asm_text: str, pc: int) -> str:
         """Convert $target to *+N syntax (GenAm can't use ORG)."""
@@ -1178,7 +1169,7 @@ def _run_tests(driver: OracleDriver, oracle_cfg: JsonDict, args: Any) -> int:
         print(f"\nFailures ({len(results['failures'])} total):")
         for mn, items in sorted(by_mn.items()):
             print(f"  {mn}:")
-            for asm, desc, ours, oracle in items[:5]:
+            for asm, _desc, ours, oracle in items[:5]:
                 if oracle is None:
                     print(f"    {asm}: {ours}")
                 else:
@@ -1202,7 +1193,7 @@ def _run_batch(driver: OracleDriver, batch: Sequence[AssembledCase], results: Js
                          results, args)
         return
 
-    for i, (mnemonic, our_bytes, asm, desc, oracle_text, pc) in enumerate(batch):
+    for i, (mnemonic, our_bytes, asm, desc, _oracle_text, _pc) in enumerate(batch):
         oracle_bytes = oracle_results[i] if i < len(oracle_results) else None
         _compare_one(mnemonic, our_bytes, asm, desc, oracle_bytes,
                      results, args)

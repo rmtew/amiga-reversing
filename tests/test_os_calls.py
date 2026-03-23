@@ -7,29 +7,35 @@ from identified library calls.
 import struct
 from collections.abc import Iterable, Mapping
 
-from m68k_kb import runtime_os
 from m68k.instruction_primitives import Operand
-from m68k.memory_provenance import (MemoryRegionAddressSpace,
-                                    MemoryRegionDerivation,
-                                    MemoryRegionDerivationKind,
-                                    MemoryRegionProvenance)
-from m68k.os_calls import (AppMemoryDirection, AppMemoryType, AppSlotInfo,
-                           CallArgumentAnnotation, LibraryCall,
-                           analyze_call_setups,
-                           build_app_named_bases,
-                           build_app_pointer_regions,
-                           build_app_slot_infos,
-                           build_app_struct_regions,
-                           RegisterFact, TypedMemoryRegion,
-                           _region_from_typed_address,
-                           app_memory_type_priority,
-                           build_app_memory_types,
-                           refine_opened_base_calls,
-                           propagate_typed_memory_regions,
-                           select_primary_app_memory_type,
-                           trace_return_stores)
-from m68k.m68k_executor import analyze, BasicBlock
+from m68k.m68k_executor import BasicBlock, analyze
+from m68k.memory_provenance import (
+    MemoryRegionAddressSpace,
+    MemoryRegionDerivation,
+    MemoryRegionDerivationKind,
+    MemoryRegionProvenance,
+)
+from m68k.os_calls import (
+    AppMemoryDirection,
+    AppMemoryType,
+    LibraryCall,
+    RegisterFact,
+    TypedMemoryRegion,
+    _region_from_typed_address,
+    analyze_call_setups,
+    app_memory_type_priority,
+    build_app_memory_types,
+    build_app_named_bases,
+    build_app_pointer_regions,
+    build_app_slot_infos,
+    build_app_struct_regions,
+    propagate_typed_memory_regions,
+    refine_opened_base_calls,
+    select_primary_app_memory_type,
+    trace_return_stores,
+)
 from m68k.os_structs import resolve_struct_field
+from m68k_kb import runtime_os
 from tests.platform_helpers import make_platform
 
 

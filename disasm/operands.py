@@ -1,34 +1,9 @@
 from __future__ import annotations
+
 """Build semantic operands from decoded instruction operands."""
 from dataclasses import dataclass, replace
-from typing import TypeAlias
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_disasm
-from m68k_kb import runtime_m68k_decode
-
-from m68k.instruction_decode import (
-    DecodedBitfield,
-    DecodedOperands,
-    decode_inst_destination,
-    select_encoding_fields,
-    select_operand_types,
-    select_operand_types_from_raw,
-)
-from m68k.instruction_primitives import extract_branch_target, Operand
-from m68k.m68k_disasm import (
-    DecodedBaseDisplacementNodeMetadata,
-    DecodedBaseRegisterNodeMetadata,
-    DecodedBitfieldNodeMetadata,
-    DecodedOperandNode,
-    DecodedFullExtensionNodeMetadata,
-    Instruction,
-    DecodedIndexedNodeMetadata,
-    DecodedRegisterListNodeMetadata,
-    DecodedRegisterPairNodeMetadata,
-)
-from m68k.os_structs import resolve_struct_field
-
+from disasm.decode import DecodedInstructionForEmit, decode_inst_for_emit
 from disasm.hardware_symbols import (
     hardware_absolute_addr,
     hardware_register_by_addr,
@@ -36,7 +11,6 @@ from disasm.hardware_symbols import (
     render_hardware_absolute,
     render_hardware_relative,
 )
-from disasm.decode import DecodedInstructionForEmit, decode_inst_for_emit
 from disasm.types import (
     AppStructFieldOperandMetadata,
     BitfieldOperandMetadata,
@@ -49,7 +23,26 @@ from disasm.types import (
     SemanticOperandMetadata,
     SymbolOperandMetadata,
 )
-
+from m68k.instruction_decode import (
+    DecodedBitfield,
+    decode_inst_destination,
+    select_encoding_fields,
+    select_operand_types_from_raw,
+)
+from m68k.instruction_primitives import Operand, extract_branch_target
+from m68k.m68k_disasm import (
+    DecodedBaseDisplacementNodeMetadata,
+    DecodedBaseRegisterNodeMetadata,
+    DecodedBitfieldNodeMetadata,
+    DecodedFullExtensionNodeMetadata,
+    DecodedIndexedNodeMetadata,
+    DecodedOperandNode,
+    DecodedRegisterListNodeMetadata,
+    DecodedRegisterPairNodeMetadata,
+    Instruction,
+)
+from m68k.os_structs import resolve_struct_field
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode, runtime_m68k_disasm
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
@@ -97,7 +90,7 @@ class DecodedOperandSpec:
     operand: Operand
 
 
-OperandSpec: TypeAlias = (
+type OperandSpec = (
     RegisterSpec
     | SpecialRegisterSpec
     | RegListSpec
@@ -336,8 +329,7 @@ def _app_offset_symbol(base_register: str, displacement: int,
         return None
     if base_register != f"a{base_info.reg_num}":
         return None
-    symbol = hunk_session.app_offsets.get(displacement)
-    return symbol
+    return hunk_session.app_offsets.get(displacement)
 
 
 def _pc_relative_text(label: str | None, decoded_op: Operand, token: str) -> str:
@@ -626,7 +618,9 @@ def _decoded_operand_specs(inst: Instruction, hunk_session: HunkDisassemblySessi
     elif imm_val is not None:
         first = ImmediateSpec(imm_val)
     else:
-        assert False, f"Unable to resolve first operand from decode for {_instruction_ref(inst)}"
+        raise AssertionError(
+            f"Unable to resolve first operand from decode for {_instruction_ref(inst)}"
+        )
 
     if dst_op is not None:
         second: OperandSpec = DecodedOperandSpec(dst_op)
@@ -992,7 +986,9 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
                         f"Typed full indexed operand mismatch for {_instruction_ref(inst)}: "
                         f"decoded {semantic_metadata}, node {expected_metadata}")
             else:
-                assert False, f"Typed indexed metadata missing for {_instruction_ref(inst)}"
+                raise AssertionError(
+                    f"Typed indexed metadata missing for {_instruction_ref(inst)}"
+                )
             operand_value = displacement
             symbol = None
             if decoded_operand.index_suppressed:
@@ -1218,7 +1214,6 @@ def _build_decoded_semantic_operand(inst: Instruction, token: str, spec: Operand
     decoded_operand = spec.operand
     op_mode = decoded_operand.mode
     op_value = decoded_operand.value
-    op_reg = decoded_operand.reg
     metadata: SemanticOperandMetadata | None = None
     kind = "text"
     operand_value: int | None = None
@@ -1404,6 +1399,6 @@ def build_instruction_semantic_operands(
             used_structs,
             include_arg_subs,
         )
-        for idx, (token, spec) in enumerate(zip(tokens, specs))
+        for idx, (token, spec) in enumerate(zip(tokens, specs, strict=True))
     )
 

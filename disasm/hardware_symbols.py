@@ -5,15 +5,17 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
-from m68k.instruction_decode import DecodedOperands
-from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
+from m68k.instruction_decode import (
+    DecodedOperands,
+    decode_inst_destination,
+    decode_inst_operands,
+)
 from m68k.instruction_kb import instruction_kb
 from m68k.instruction_primitives import Operand
 from m68k.os_calls import PlatformState
 from m68k.typing_protocols import InstructionLike
 from m68k_kb import runtime_hardware, runtime_m68k_analysis
 from m68k_kb.runtime_types import HardwareRegisterDef
-
 
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
 
@@ -80,7 +82,7 @@ def render_hardware_relative(base_register: str, base_addr: int, offset: int) ->
 
 def collect_hardware_base_regs(blocks: Mapping[int, HardwareBlockLike], code: bytes,
                                platform: PlatformState) -> dict[int, dict[str, int]]:
-    block_in: dict[int, dict[str, int] | None] = {addr: None for addr in blocks}
+    block_in: dict[int, dict[str, int] | None] = dict.fromkeys(blocks)
     worklist = [addr for addr, block in blocks.items() if not block.predecessors]
     if not worklist:
         worklist = list(blocks)

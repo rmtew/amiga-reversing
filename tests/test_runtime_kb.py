@@ -5,35 +5,33 @@ import copy
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from kb import runtime_builder
+from kb.ndk_parser import parse_fd_file
 from m68k import m68k_asm
 from m68k.os_structs import resolve_struct_field
 from tests.runtime_kb_helpers import (
-    KNOWLEDGE,
     RUNTIME_PY,
-    load_m68k_asm_runtime_module,
-    load_m68k_analysis_runtime_module,
-    load_m68k_compute_runtime_module,
+    load_canonical_hardware_symbols,
     load_canonical_hunk_kb,
     load_canonical_m68k_kb,
-    load_m68k_decode_runtime_module,
-    load_m68k_executor_runtime_module,
     load_canonical_naming_rules,
-    load_canonical_hardware_symbols,
     load_canonical_os_kb,
     load_hardware_runtime_kb,
     load_hunk_runtime_kb,
+    load_m68k_analysis_runtime_module,
+    load_m68k_asm_runtime_module,
+    load_m68k_compute_runtime_module,
+    load_m68k_decode_runtime_module,
+    load_m68k_executor_runtime_module,
     load_m68k_runtime_module,
     load_naming_runtime_kb,
     load_os_runtime_kb,
 )
-
-from kb.ndk_parser import parse_fd_file
 
 
 def test_production_modules_import_generated_runtime_modules_directly() -> None:
@@ -138,7 +136,7 @@ def test_runtime_hardware_matches_canonical_hardware_symbols() -> None:
     canonical = load_canonical_hardware_symbols()
     runtime = load_hardware_runtime_kb()
 
-    assert runtime.META == canonical["_meta"]
+    assert canonical["_meta"] == runtime.META
     expected = {
         int(entry["cpu_address"], 16): {
             "symbol": entry["symbols"][0],
@@ -150,7 +148,7 @@ def test_runtime_hardware_matches_canonical_hardware_symbols() -> None:
         }
         for entry in canonical["registers"]
     }
-    assert runtime.REGISTER_DEFS == expected
+    assert expected == runtime.REGISTER_DEFS
 
 
 def test_runtime_size_encodings_match_canonical_structured_size_encoding() -> None:
@@ -177,20 +175,20 @@ def test_runtime_special_case_tables_match_canonical_data() -> None:
     for key, kb_mnemonic in canonical["_meta"]["asm_syntax_index"].items():
         mnemonic, _, raw_operand_types = key.partition(":")
         operand_types = tuple(raw_operand_types.split(",")) if raw_operand_types else ()
-        expected_structured[(mnemonic, operand_types)] = kb_mnemonic
-    assert payload.ASM_SYNTAX_INDEX == expected_structured
+        expected_structured[mnemonic, operand_types] = kb_mnemonic
+    assert expected_structured == payload.ASM_SYNTAX_INDEX
 
-    assert payload.ADDQ_ZERO_MEANS == by_name["ADDQ"]["constraints"]["immediate_range"]["zero_means"]
+    assert by_name["ADDQ"]["constraints"]["immediate_range"]["zero_means"] == payload.ADDQ_ZERO_MEANS
 
     expected_control: dict[int, str] = {}
     for entry in by_name["MOVEC"]["constraints"]["control_registers"]:
         expected_control.setdefault(int(entry["hex"], 16), entry["abbrev"])
-    assert payload.CONTROL_REGISTERS == expected_control
+    assert expected_control == payload.CONTROL_REGISTERS
 
     assert payload.META["_sp_reg_num"] == 7
     assert payload.META["_num_data_regs"] == 8
     assert payload.META["_num_addr_regs"] == 8
-    assert payload.ASM_SYNTAX_INDEX[("move", ("ea", "sr"))] == "MOVE to SR"
+    assert payload.ASM_SYNTAX_INDEX["move", ("ea", "sr")] == "MOVE to SR"
     expected_families = tuple(
         (
             entry["prefix"],
@@ -337,15 +335,15 @@ def test_runtime_hunk_relocation_semantics_are_typed() -> None:
 def test_runtime_decode_module_exposes_direct_decode_constants() -> None:
     payload = load_m68k_decode_runtime_module()
     canonical = load_canonical_m68k_kb()
-    assert payload.OPWORD_BYTES == canonical["_meta"]["opword_bytes"]
-    assert payload.ALIGN_MASK == canonical["_meta"]["opword_bytes"] - 1
-    assert payload.DEFAULT_OPERAND_SIZE == canonical["_meta"]["default_operand_size"]
-    assert payload.SIZE_BYTE_COUNT == canonical["_meta"]["size_byte_count"]
-    assert payload.EA_MODE_ENCODING == canonical["_meta"]["ea_mode_encoding"]
+    assert canonical["_meta"]["opword_bytes"] == payload.OPWORD_BYTES
+    assert canonical["_meta"]["opword_bytes"] - 1 == payload.ALIGN_MASK
+    assert canonical["_meta"]["default_operand_size"] == payload.DEFAULT_OPERAND_SIZE
+    assert canonical["_meta"]["size_byte_count"] == payload.SIZE_BYTE_COUNT
+    assert canonical["_meta"]["ea_mode_encoding"] == payload.EA_MODE_ENCODING
     assert "ind" in payload.REG_INDIRECT_MODES
     assert "dn" not in payload.REG_INDIRECT_MODES
     assert "postinc" not in payload.REG_INDIRECT_MODES
-    assert payload.MOVEM_REG_MASKS == canonical["_meta"]["movem_reg_masks"]
+    assert canonical["_meta"]["movem_reg_masks"] == payload.MOVEM_REG_MASKS
     assert payload.SP_REG_NUM == 7
     assert payload.ENCODING_COUNTS["MOVE16"] == 5
     assert payload.EA_FULL_FIELDS["I/IS"] == (2, 0, 3)
@@ -357,13 +355,13 @@ def test_runtime_decode_module_exposes_direct_decode_constants() -> None:
 def test_runtime_asm_module_exposes_direct_asm_constants() -> None:
     payload = load_m68k_asm_runtime_module()
     canonical = load_canonical_m68k_kb()
-    assert payload.EA_MODE_ENCODING == canonical["_meta"]["ea_mode_encoding"]
-    assert payload.SIZE_BYTE_COUNT == canonical["_meta"]["size_byte_count"]
-    assert payload.CONDITION_CODES == tuple(canonical["_meta"]["condition_codes"])
+    assert canonical["_meta"]["ea_mode_encoding"] == payload.EA_MODE_ENCODING
+    assert canonical["_meta"]["size_byte_count"] == payload.SIZE_BYTE_COUNT
+    assert tuple(canonical["_meta"]["condition_codes"]) == payload.CONDITION_CODES
     assert payload.ENCODING_COUNTS["MOVE"] == 1
-    assert payload.CC_ALIASES == canonical["_meta"]["cc_aliases"]
-    assert payload.MOVEM_REG_MASKS == canonical["_meta"]["movem_reg_masks"]
-    assert payload.IMMEDIATE_ROUTING == canonical["_meta"]["immediate_routing"]
+    assert canonical["_meta"]["cc_aliases"] == payload.CC_ALIASES
+    assert canonical["_meta"]["movem_reg_masks"] == payload.MOVEM_REG_MASKS
+    assert canonical["_meta"]["immediate_routing"] == payload.IMMEDIATE_ROUTING
     assert payload.SIZE_ENCODINGS_ASM["MOVE"] == (1, 3, 2)
     assert payload.BRANCH_INLINE_DISPLACEMENTS["BRA"] == (
         "8-BIT DISPLACEMENT",
@@ -382,30 +380,30 @@ def test_runtime_analysis_module_exposes_direct_analysis_constants() -> None:
     payload = load_m68k_analysis_runtime_module()
     canonical = load_canonical_m68k_kb()
     assert not hasattr(payload, "BY_NAME")
-    assert payload.OPWORD_BYTES == canonical["_meta"]["opword_bytes"]
-    assert payload.DEFAULT_OPERAND_SIZE == canonical["_meta"]["default_operand_size"]
-    assert payload.SIZE_BYTE_COUNT == canonical["_meta"]["size_byte_count"]
-    assert payload.EA_MODE_ENCODING == canonical["_meta"]["ea_mode_encoding"]
-    assert payload.EA_MODE_SIZES == canonical["_meta"]["ea_mode_sizes"]
-    assert payload.CC_TEST_DEFINITIONS == {
+    assert canonical["_meta"]["opword_bytes"] == payload.OPWORD_BYTES
+    assert canonical["_meta"]["default_operand_size"] == payload.DEFAULT_OPERAND_SIZE
+    assert canonical["_meta"]["size_byte_count"] == payload.SIZE_BYTE_COUNT
+    assert canonical["_meta"]["ea_mode_encoding"] == payload.EA_MODE_ENCODING
+    assert canonical["_meta"]["ea_mode_sizes"] == payload.EA_MODE_SIZES
+    assert {
         name: (entry["encoding"], entry["test"])
         for name, entry in canonical["_meta"]["cc_test_definitions"].items()
-    }
-    assert payload.CC_ALIASES == canonical["_meta"]["cc_aliases"]
-    assert payload.MOVEM_REG_MASKS == canonical["_meta"]["movem_reg_masks"]
-    assert payload.REGISTER_ALIASES == canonical["_meta"]["register_aliases"]
+    } == payload.CC_TEST_DEFINITIONS
+    assert canonical["_meta"]["cc_aliases"] == payload.CC_ALIASES
+    assert canonical["_meta"]["movem_reg_masks"] == payload.MOVEM_REG_MASKS
+    assert canonical["_meta"]["register_aliases"] == payload.REGISTER_ALIASES
     assert payload.SP_REG_NUM == 7
     assert payload.RTS_SP_INC == 4
     assert payload.ADDR_SIZE == "l"
     assert payload.ADDR_MASK == 0xFFFFFFFF
-    assert payload.CCR_FLAG_NAMES == tuple(canonical["_meta"]["ccr_bit_positions"])
+    assert tuple(canonical["_meta"]["ccr_bit_positions"]) == payload.CCR_FLAG_NAMES
     assert payload.LOOKUP_UPPER["PFLUSHA"] == "PFLUSH PFLUSHA"
     assert payload.LOOKUP_CANONICAL["PFLUSHA"] == "PFLUSH PFLUSHA"
     assert payload.LOOKUP_CANONICAL["PBBS"] == "PBcc"
     assert payload.LOOKUP_NUMERIC_CC_PREFIXES["PB"] == "PBcc"
     assert payload.LOOKUP_CC_FAMILIES["pb"][0] == "PBcc"
     assert payload.LOOKUP_ASM_MNEMONIC_INDEX["illegal"] == "ILLEGAL"
-    assert payload.EA_REVERSE[(7, 4)] == "imm"
+    assert payload.EA_REVERSE[7, 4] == "imm"
     assert payload.OPERATION_TYPES["MOVE"] == payload.OperationType.MOVE
     assert payload.OPERATION_CLASSES["LEA"] == payload.OperationClass.LOAD_EFFECTIVE_ADDRESS
     assert "MOVEA" in payload.SOURCE_SIGN_EXTEND
@@ -1120,25 +1118,25 @@ def test_parse_fd_file_recognizes_release_marker_for_private_blocks(tmp_path: Pa
 def test_runtime_hunk_and_naming_match_canonical_payloads() -> None:
     hunk_runtime = load_hunk_runtime_kb()
     hunk_canonical = load_canonical_hunk_kb()
-    assert hunk_runtime.META == hunk_canonical["_meta"]
-    assert hunk_runtime.HUNK_TYPES == hunk_canonical["hunk_types"]
-    assert hunk_runtime.EXT_TYPES == hunk_canonical["ext_types"]
-    assert hunk_runtime.MEMORY_FLAGS == hunk_canonical["memory_flags"]
-    assert hunk_runtime.MEMORY_TYPE_CODES == hunk_canonical["memory_type_codes"]
-    assert hunk_runtime.EXT_TYPE_CATEGORIES == hunk_canonical["ext_type_categories"]
-    assert hunk_runtime.COMPATIBILITY_NOTES == hunk_canonical["compatibility_notes"]
-    assert hunk_runtime.RELOC_FORMATS == hunk_canonical["reloc_formats"]
-    assert hunk_runtime.RELOCATION_SEMANTICS == {
+    assert hunk_canonical["_meta"] == hunk_runtime.META
+    assert hunk_canonical["hunk_types"] == hunk_runtime.HUNK_TYPES
+    assert hunk_canonical["ext_types"] == hunk_runtime.EXT_TYPES
+    assert hunk_canonical["memory_flags"] == hunk_runtime.MEMORY_FLAGS
+    assert hunk_canonical["memory_type_codes"] == hunk_runtime.MEMORY_TYPE_CODES
+    assert hunk_canonical["ext_type_categories"] == hunk_runtime.EXT_TYPE_CATEGORIES
+    assert hunk_canonical["compatibility_notes"] == hunk_runtime.COMPATIBILITY_NOTES
+    assert hunk_canonical["reloc_formats"] == hunk_runtime.RELOC_FORMATS
+    assert {
         name: (entry["bytes"], getattr(hunk_runtime.RelocMode, entry["mode"].upper()))
         for name, entry in hunk_canonical["relocation_semantics"].items()
-    }
-    assert hunk_runtime.HUNK_CONTENT_FORMATS == hunk_canonical["hunk_content_formats"]
+    } == hunk_runtime.RELOCATION_SEMANTICS
+    assert hunk_canonical["hunk_content_formats"] == hunk_runtime.HUNK_CONTENT_FORMATS
     assert not hasattr(hunk_runtime, "RUNTIME")
 
     naming_runtime = load_naming_runtime_kb()
     naming_canonical = load_canonical_naming_rules()
-    assert naming_runtime.META == naming_canonical["_meta"]
-    assert naming_runtime.PATTERNS == naming_canonical["patterns"]
-    assert naming_runtime.TRIVIAL_FUNCTIONS == naming_canonical["trivial_functions"]
-    assert naming_runtime.GENERIC_PREFIX == naming_canonical["generic_prefix"]
+    assert naming_canonical["_meta"] == naming_runtime.META
+    assert naming_canonical["patterns"] == naming_runtime.PATTERNS
+    assert naming_canonical["trivial_functions"] == naming_runtime.TRIVIAL_FUNCTIONS
+    assert naming_canonical["generic_prefix"] == naming_runtime.GENERIC_PREFIX
     assert not hasattr(naming_runtime, "RUNTIME")

@@ -2,19 +2,29 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from m68k_kb import runtime_hardware
-
 from disasm.hint_validation import is_valid_hint_block
-from disasm.instruction_rows import (emit_data_rows, make_instruction_row,
-                                     make_row, make_text_rows,
-                                     render_instruction_text)
+from disasm.instruction_rows import (
+    emit_data_rows,
+    make_instruction_row,
+    make_row,
+    make_text_rows,
+    render_instruction_text,
+)
 from disasm.jump_tables import emit_jump_table_rows
-from disasm.validation import is_valid_encoding, has_valid_branch_target
-from disasm.text import ListingWindow, listing_window as _listing_window, render_rows
-from disasm.types import (BlockRowContext, DisassemblySession, EntityRecord,
-                          HeaderRowContext, HunkDisassemblySession, ListingRow)
 from disasm.session import build_disassembly_session
+from disasm.text import ListingWindow, render_rows
+from disasm.text import listing_window as _listing_window
+from disasm.types import (
+    BlockRowContext,
+    DisassemblySession,
+    EntityRecord,
+    HeaderRowContext,
+    HunkDisassemblySession,
+    ListingRow,
+)
+from disasm.validation import has_valid_branch_target, is_valid_encoding
 from m68k.os_calls import AppBaseInfo
+from m68k_kb import runtime_hardware
 
 
 def _app_slot_equ_value(base_info: AppBaseInfo, offset: int) -> str:

@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import struct
 from dataclasses import dataclass
-from typing import Protocol, TypeAlias
+from typing import Protocol
 
 from m68k_kb import runtime_m68k_decode
 from m68k_kb.runtime_types import FieldSpec, ImmediateRange, OpmodeEntry, RawFieldSpec
 
 from .decode_errors import DecodeError
-from .instruction_primitives import decode_ea as _decode_ea, Operand, xf as _xf
+from .instruction_primitives import Operand
+from .instruction_primitives import decode_ea as _decode_ea
+from .instruction_primitives import xf as _xf
 
-OperandTypes: TypeAlias = tuple[str, ...]
-BitFieldSpec: TypeAlias = FieldSpec
+type OperandTypes = tuple[str, ...]
+type BitFieldSpec = FieldSpec
 
 
 class InstructionDecodeLike(Protocol):
@@ -617,27 +619,29 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         elif operand_types == ("predec", "predec"):
             result.ea_op = Operand(mode="predec", reg=src_reg, value=None)
             result.dst_op = Operand(mode="predec", reg=dst_reg, value=None)
-    if (operand_types in {("ea", "dn"), ("ea", "dn_pair")}
-            and encoding_index > 0
-            and len(inst_raw) >= opword_bytes + 2):
-        if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] >= 3:
-            ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
-            fields = runtime_m68k_decode.RAW_FIELDS[2][mnemonic]
-            ext_reg_fields = _raw_fields_by_prefix(fields, "REGISTER ")
-            if ext_reg_fields:
-                reg_values = {
-                    name: _xf(ext, (bit_hi, bit_lo, width))
-                    for name, bit_hi, bit_lo, width in ext_reg_fields
-                }
-                if "REGISTER Dr" in reg_values and "REGISTER Dq" in reg_values:
-                    result.reg_num = reg_values["REGISTER Dr"]
-                    result.secondary_reg = reg_values["REGISTER Dq"]
-                elif "REGISTER Dl" in reg_values and "REGISTER Dh" in reg_values:
-                    result.reg_num = reg_values["REGISTER Dl"]
-                    result.secondary_reg = reg_values["REGISTER Dh"]
-                elif "REGISTER Dh" in reg_values and "REGISTER DI" in reg_values:
-                    result.reg_num = reg_values["REGISTER DI"]
-                    result.secondary_reg = reg_values["REGISTER Dh"]
+    if (
+        operand_types in {("ea", "dn"), ("ea", "dn_pair")}
+        and encoding_index > 0
+        and len(inst_raw) >= opword_bytes + 2
+        and runtime_m68k_decode.ENCODING_COUNTS[mnemonic] >= 3
+    ):
+        ext = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
+        fields = runtime_m68k_decode.RAW_FIELDS[2][mnemonic]
+        ext_reg_fields = _raw_fields_by_prefix(fields, "REGISTER ")
+        if ext_reg_fields:
+            reg_values = {
+                name: _xf(ext, (bit_hi, bit_lo, width))
+                for name, bit_hi, bit_lo, width in ext_reg_fields
+            }
+            if "REGISTER Dr" in reg_values and "REGISTER Dq" in reg_values:
+                result.reg_num = reg_values["REGISTER Dr"]
+                result.secondary_reg = reg_values["REGISTER Dq"]
+            elif "REGISTER Dl" in reg_values and "REGISTER Dh" in reg_values:
+                result.reg_num = reg_values["REGISTER Dl"]
+                result.secondary_reg = reg_values["REGISTER Dh"]
+            elif "REGISTER Dh" in reg_values and "REGISTER DI" in reg_values:
+                result.reg_num = reg_values["REGISTER DI"]
+                result.secondary_reg = reg_values["REGISTER Dh"]
 
     # Decode EA from lowest MODE + lowest REGISTER
     if mode_fields and reg_fields:

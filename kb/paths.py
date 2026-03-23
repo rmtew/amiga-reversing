@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 KNOWLEDGE_DIR = PROJECT_ROOT / "knowledge"
 M68K_INSTRUCTIONS_JSON = KNOWLEDGE_DIR / "m68k_instructions.json"

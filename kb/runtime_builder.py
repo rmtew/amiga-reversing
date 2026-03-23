@@ -8,8 +8,30 @@ import pprint
 import re
 from collections.abc import Iterator, Mapping
 from pathlib import Path
-from typing import Literal, TypedDict, TypeAlias, cast
+from typing import Literal, TypedDict, cast
 
+from kb.schemas import (
+    HardwareSymbolsPayload,
+    HunkFormatPayload,
+    M68kCcParameterized,
+    M68kCcTestDefinition,
+    M68kConditionFamilyEntry,
+    M68kField,
+    M68kInstruction,
+    M68kInstructionsPayload,
+    M68kOpmodeEntry,
+    NamingPattern,
+    NamingRulesMeta,
+    NamingRulesPayload,
+    OsConstant,
+    OsFunction,
+    OsInput,
+    OsMeta,
+    OsOutput,
+    OsReferencePayload,
+    OsStructDef,
+    OsStructField,
+)
 from m68k_kb.runtime_types import (
     BitModulus,
     BoundsCheck,
@@ -40,42 +62,16 @@ from m68k_kb.runtime_types import (
     ShiftVariantBehavior,
     SpEffect,
 )
-from kb.schemas import (
-    M68kCcParameterized,
-    M68kCcTestDefinition,
-    M68kConditionFamilyEntry,
-    M68kConstraints,
-    M68kEncoding,
-    HardwareSymbolsPayload,
-    HunkFormatPayload,
-    M68kField,
-    M68kInstruction,
-    M68kInstructionsPayload,
-    M68kMeta,
-    M68kOpmodeEntry,
-    NamingPattern,
-    NamingRulesMeta,
-    NamingRulesPayload,
-    OsConstant,
-    OsFunction,
-    OsInput,
-    OsMeta,
-    OsOutput,
-    OsReferencePayload,
-    OsStructDef,
-    OsStructField,
-)
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 KNOWLEDGE_DIR = PROJECT_ROOT / "knowledge"
 RUNTIME_PY_DIR = PROJECT_ROOT / "m68k_kb"
 
 
-JsonObject: TypeAlias = dict[str, object]
-RawFieldMap: TypeAlias = dict[str, tuple[RawFieldSpec, ...]]
-CcFamilyRuntime: TypeAlias = tuple[str, M68kCcParameterized]
-DerivedCcFamilyRuntime: TypeAlias = tuple[str, tuple[str, ...], bool]
+type JsonObject = dict[str, object]
+type RawFieldMap = dict[str, tuple[RawFieldSpec, ...]]
+type CcFamilyRuntime = tuple[str, M68kCcParameterized]
+type DerivedCcFamilyRuntime = tuple[str, tuple[str, ...], bool]
 
 
 class ShiftFieldsData(TypedDict):
@@ -390,7 +386,7 @@ class BranchExtensionDisplacementInfo(TypedDict):
     bytes: int
 
 
-BranchDisplacementInfo: TypeAlias = BranchInlineDisplacementInfo | BranchExtensionDisplacementInfo
+type BranchDisplacementInfo = BranchInlineDisplacementInfo | BranchExtensionDisplacementInfo
 
 
 class HunkRuntimePayload(TypedDict):
@@ -486,7 +482,7 @@ def _render_processor_020_variants(table: dict[str, frozenset[str]]) -> str:
         f"{mnemonic!r}: {_render_frozenset(variants)}"
         for mnemonic, variants in sorted(table.items())
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_opmode_tables_by_value(table: dict[str, dict[int, OpmodeEntry]]) -> str:
@@ -497,7 +493,7 @@ def _render_opmode_tables_by_value(table: dict[str, dict[int, OpmodeEntry]]) -> 
             for opmode, entry in entries.items()
         )
         rendered_entries.append(f"{mnemonic!r}: {{{rendered_inner}}}")
-    return "{%s}" % (",\n ".join(rendered_entries))
+    return "{{{}}}".format(",\n ".join(rendered_entries))
 
 
 def _write_runtime_constants_python(path: Path, payload: Mapping[str, object], *, header: str) -> None:
@@ -847,7 +843,7 @@ def _render_processor_table(table: dict[str, str]) -> str:
         f"{key!r}: {_enum_member('Processor', value)}"
         for key, value in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_flow_table(table: dict[str, str]) -> str:
@@ -855,7 +851,7 @@ def _render_flow_table(table: dict[str, str]) -> str:
         f"{key!r}: {_enum_member('FlowType', value)}"
         for key, value in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_operation_type_table(table: dict[str, str | None]) -> str:
@@ -863,7 +859,7 @@ def _render_operation_type_table(table: dict[str, str | None]) -> str:
         f"{key!r}: {(_enum_member('OperationType', value) if value is not None else 'None')}"
         for key, value in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_operation_class_table(table: dict[str, str | None]) -> str:
@@ -871,7 +867,7 @@ def _render_operation_class_table(table: dict[str, str | None]) -> str:
         f"{key!r}: {(_enum_member('OperationClass', value) if value is not None else 'None')}"
         for key, value in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_hunk_relocation_semantics(table: dict[str, tuple[int, str]]) -> str:
@@ -879,7 +875,7 @@ def _render_hunk_relocation_semantics(table: dict[str, tuple[int, str]]) -> str:
         f"{key!r}: ({nbytes!r}, {_enum_member('RelocMode', mode)})"
         for key, (nbytes, mode) in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_primary_data_sizes(table: dict[str, tuple[str, int, int, int]]) -> str:
@@ -887,7 +883,7 @@ def _render_primary_data_sizes(table: dict[str, tuple[str, int, int, int]]) -> s
         f"{key!r}: ({_enum_member('PrimaryDataSizeKind', kind)}, {src_bits!r}, {dst_bits!r}, {result_bits!r})"
         for key, (kind, src_bits, dst_bits, result_bits) in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_cc_test_definitions(table: dict[str, dict[str, int | str]]) -> str:
@@ -895,7 +891,7 @@ def _render_cc_test_definitions(table: dict[str, dict[str, int | str]]) -> str:
         f"{key!r}: ({value['encoding']!r}, {value['test']!r})"
         for key, value in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_size_encodings(table: Mapping[str, Mapping[str | int, int]]) -> str:
@@ -906,7 +902,7 @@ def _render_size_encodings(table: Mapping[str, Mapping[str | int, int]]) -> str:
         f"{key!r}: {_entry(value, 'b', 'w', 'l') if 'b' in value or 'w' in value or 'l' in value else _entry(value, 0, 1, 2, 3)}"
         for key, value in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_rm_fields(table: dict[str, tuple[int, dict[int, str]]]) -> str:
@@ -914,7 +910,7 @@ def _render_rm_fields(table: dict[str, tuple[int, dict[int, str]]]) -> str:
         f"{key!r}: ({bit_lo!r}, ({', '.join(repr(values.get(idx)) for idx in range(max(values) + 1))}))"
         for key, (bit_lo, values) in table.items()
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_shift_fields(value: ShiftFieldsData) -> str:
@@ -946,7 +942,7 @@ def _render_compute_formulas(table: dict[str, ComputeFormula]) -> str:
         f"{_enum_member('TruncationMode', value[5]) if value[5] is not None else 'None'})"
         for key, value in sorted(table.items())
     )
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_sp_effects(table: dict[str, tuple[tuple[str, int | None, str | None], ...]]) -> str:
@@ -958,7 +954,7 @@ def _render_sp_effects(table: dict[str, tuple[tuple[str, int | None, str | None]
         )
         entries.append(f"{key!r}: ({rendered_value},)")
     rendered = ",\n ".join(entries)
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _render_shift_variant_behaviors(table: dict[str, tuple[tuple[str, str, str, bool], ...]]) -> str:
@@ -970,7 +966,7 @@ def _render_shift_variant_behaviors(table: dict[str, tuple[tuple[str, str, str, 
         )
         entries.append(f"{key!r}: ({rendered_value},)")
     rendered = ",\n ".join(entries)
-    return "{%s}" % rendered
+    return f"{{{rendered}}}"
 
 
 def _write_m68k_runtime_python(path: Path, payload: RuntimeM68kPayload, *, header: str) -> None:
@@ -1309,9 +1305,7 @@ def _write_m68k_disasm_runtime_python(path: Path, payload: M68kDisasmRuntimePayl
             lines.append(f"{name}: dict[str, tuple[tuple[str, ...], ...]] = {_render_py(value)}")
         elif name == "EXT_FIELD_NAMES":
             lines.append(f"{name}: dict[str, tuple[str, ...]] = {_render_py(value)}")
-        elif name == "PMMU_CONDITION_CODES":
-            lines.append(f"{name}: tuple[str, ...] = {_render_py(value)}")
-        elif name == "CONDITION_CODES":
+        elif name == "PMMU_CONDITION_CODES" or name == "CONDITION_CODES":
             lines.append(f"{name}: tuple[str, ...] = {_render_py(value)}")
         elif name == "DEFAULT_OPERAND_SIZE":
             lines.append(f"{name}: str | None = {_render_py(value)}")
@@ -1618,12 +1612,12 @@ def _render_os_function(func: OsFunction) -> str:
         f"output={_render_os_output(func['output']) if 'output' in func else 'None'}",
         (
             "returns_base="
-            f"{'OsReturnsBase(name_reg=%r, base_reg=%r)' % (func['returns_base']['name_reg'], func['returns_base']['base_reg'])}"
+            f"{'OsReturnsBase(name_reg={!r}, base_reg={!r})'.format(func['returns_base']['name_reg'], func['returns_base']['base_reg'])}"
             if "returns_base" in func else "returns_base=None"
         ),
         (
             "returns_memory="
-            f"{'OsReturnsMemory(result_reg=%r, size_reg=%r)' % (func['returns_memory']['result_reg'], func['returns_memory'].get('size_reg'))}"
+            f"{'OsReturnsMemory(result_reg={!r}, size_reg={!r})'.format(func['returns_memory']['result_reg'], func['returns_memory'].get('size_reg'))}"
             if "returns_memory" in func else "returns_memory=None"
         ),
         f"no_return={func.get('no_return', False)!r}",
@@ -2224,9 +2218,7 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
         )
         if reg_fields:
             register_fields[mnemonic] = tuple(reg_fields)
-            if len(reg_fields) >= 2:
-                dest_reg_field[mnemonic] = reg_fields[0]
-            elif reg_fields[0][0] >= 9:
+            if len(reg_fields) >= 2 or reg_fields[0][0] >= 9:
                 dest_reg_field[mnemonic] = reg_fields[0]
 
     bf_mnemonics = tuple(sorted(mn for mn in encoding_masks_by_idx[0] if mn.startswith("BF")))
@@ -2240,7 +2232,7 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
         hi, lo = _derive_varying_bits(pairs)
         width = hi - lo + 1
         table: dict[int, str] = {}
-        for mnemonic, label in zip(mnemonics, names):
+        for mnemonic, label in zip(mnemonics, names, strict=True):
             _, val = encoding_masks_by_idx[enc_idx][mnemonic]
             table[(val >> lo) & ((1 << width) - 1)] = label
         return table, (hi, lo, width)
@@ -2369,7 +2361,7 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
     for key, kb_mnemonic in sorted(meta["asm_syntax_index"].items()):
         mnemonic, _, raw_operand_types = key.partition(":")
         operand_types: tuple[str, ...] = tuple(raw_operand_types.split(",")) if raw_operand_types else ()
-        asm_syntax_index[(mnemonic, operand_types)] = kb_mnemonic
+        asm_syntax_index[mnemonic, operand_types] = kb_mnemonic
         all_types.update(operand_types)
     special_operand_types = tuple(sorted(all_types - generic_types))
     flow_types = {
@@ -2671,7 +2663,7 @@ def _build_m68k_analysis_runtime(runtime_payload: RuntimeM68kPayload) -> M68kAna
     ea_reverse = {}
     for name, (mode, reg) in meta["ea_mode_encoding"].items():
         if reg is not None:
-            ea_reverse[(mode, reg)] = name
+            ea_reverse[mode, reg] = name
             continue
         for index in range(8):
             ea_reverse.setdefault((mode, index), name)

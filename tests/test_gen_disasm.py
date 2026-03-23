@@ -4,53 +4,61 @@ from __future__ import annotations
 
 import io
 import struct
-from collections.abc import Callable
 from types import SimpleNamespace
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_os
-from m68k.instruction_kb import find_kb_entry
-from m68k.m68k_asm import assemble_instruction
-from m68k.m68k_disasm import disassemble, Instruction
-from m68k.m68k_executor import analyze, BasicBlock
-from m68k.subroutine_scan import UnscoredSubroutineCandidate
-from m68k.m68k_disasm import _canonical_mnemonic
-from disasm.comments import (build_instruction_comment_parts,
-                             format_app_offset_comment,
-                             format_ascii_immediate)
+from disasm.comments import (
+    build_instruction_comment_parts,
+    format_app_offset_comment,
+    format_ascii_immediate,
+)
 from disasm.data_access import collect_data_access_sizes
 from disasm.data_render import emit_data_region
-from disasm.decode import (DecodedInstructionForEmit,
-                           decode_inst_for_emit,
-                           decode_instruction_for_emit,
-                           lookup_instruction_kb)
-from m68k.instruction_decode import DecodedBitfield
-from m68k.memory_provenance import (MemoryRegionAddressSpace,
-                                    MemoryRegionDerivation,
-                                    MemoryRegionDerivationKind,
-                                    MemoryRegionProvenance)
-from m68k.os_calls import TypedMemoryRegion
-from disasm.discovery import (add_hint_labels, apply_generic_data_label_promotions, build_label_map,
-                              discover_absolute_targets,
-                              discover_pc_relative_targets,
-                              filter_internal_absolute_data_targets)
-from disasm.instruction_rows import (make_instruction_row,
-                                     make_text_rows,
-                                     render_instruction_text)
-from disasm.operands import (_operand_types_for_inst,
-                             build_instruction_semantic_operands)
+from disasm.decode import (
+    DecodedInstructionForEmit,
+    decode_inst_for_emit,
+    decode_instruction_for_emit,
+    lookup_instruction_kb,
+)
+from disasm.discovery import (
+    add_hint_labels,
+    apply_generic_data_label_promotions,
+    build_label_map,
+    discover_absolute_targets,
+    discover_pc_relative_targets,
+    filter_internal_absolute_data_targets,
+)
+from disasm.instruction_rows import (
+    make_instruction_row,
+    make_text_rows,
+    render_instruction_text,
+)
+from disasm.operands import _operand_types_for_inst, build_instruction_semantic_operands
 from disasm.types import (
     AppStructFieldOperandMetadata,
     BitfieldOperandMetadata,
     EntityRecord,
-    IndexedOperandMetadata,
     HunkDisassemblySession,
+    IndexedOperandMetadata,
     SemanticOperand,
     SymbolOperandMetadata,
 )
+from m68k.instruction_decode import DecodedBitfield
+from m68k.instruction_kb import find_kb_entry
+from m68k.m68k_asm import assemble_instruction
+from m68k.m68k_disasm import Instruction, _canonical_mnemonic, disassemble
+from m68k.m68k_executor import BasicBlock, analyze
+from m68k.memory_provenance import (
+    MemoryRegionAddressSpace,
+    MemoryRegionDerivation,
+    MemoryRegionDerivationKind,
+    MemoryRegionProvenance,
+)
+from m68k.os_calls import TypedMemoryRegion
+from m68k.subroutine_scan import UnscoredSubroutineCandidate
+from m68k_kb import runtime_m68k_analysis, runtime_os
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
 
@@ -81,7 +89,7 @@ def _prov_base(address_space: MemoryRegionAddressSpace, base_register: str,
 
 def test_app_offset_comment_hex() -> None:
     """Unnamed d(A6) offset gets hex comment."""
-    from disasm.types import SemanticOperand, SymbolOperandMetadata
+    from disasm.types import SemanticOperand
     comment = format_app_offset_comment((
         SemanticOperand(kind="base_displacement", text="568(a6)",
                         base_register="a6", displacement=568),
@@ -369,8 +377,8 @@ def test_scan_uses_hint_blocks_for_gaps() -> None:
     it finds the subroutine. But if another larger candidate starting
     before $06 consumes the region, $06 is never tried.
     """
-    from m68k.subroutine_scan import scan_candidates
     from m68k.m68k_executor import BasicBlock, Instruction
+    from m68k.subroutine_scan import scan_candidates
 
     code = b''
     # $00: moveq #1,d0
@@ -685,17 +693,13 @@ def test_lookup_instruction_kb_normalizes_pmmu_condition_variant() -> None:
 
 def test_decode_instruction_for_emit_requires_kb_mnemonic() -> None:
     """Emission-time decode must reject instructions without KB identity."""
-    try:
+    with pytest.raises(ValueError, match="missing kb_mnemonic"):
         decode_instruction_for_emit(
             struct.pack(">HH", 0x41F8, 0x0400),
             0x0038,
             "",
             "w",
         )
-    except ValueError as exc:
-        assert "missing kb_mnemonic" in str(exc)
-    else:
-        raise AssertionError("expected missing kb_mnemonic error")
 
 
 def test_decode_instruction_for_emit_errors_on_mismatched_kb_mnemonic() -> None:
@@ -1749,14 +1753,12 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         reloc_base_addr=0,
     )
 
-    try:
+    with pytest.raises(ValueError, match="Operand text count mismatch") as exc_info:
         build_instruction_semantic_operands(inst, session)
-    except ValueError as exc:
-        assert "Operand text count mismatch" in str(exc)
-        assert "$000000" in str(exc)
-        assert "corrupted" not in str(exc)
-    else:
-        raise AssertionError("expected operand text count mismatch")
+    message = str(exc_info.value)
+    assert "Operand text count mismatch" in message
+    assert "$000000" in message
+    assert "corrupted" not in message
 
 
 def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots() -> None:
@@ -1798,12 +1800,8 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         reloc_base_addr=0,
     )
 
-    try:
+    with pytest.raises(ValueError, match="missing operand_texts"):
         build_instruction_semantic_operands(inst, session)
-    except ValueError as exc:
-        assert "missing operand_texts" in str(exc)
-    else:
-        raise AssertionError("expected missing operand text slots")
 
 
 def test_build_instruction_semantic_operands_supports_zero_operand_kb_form() -> None:

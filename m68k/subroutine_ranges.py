@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 
 def find_containing_sub(addr: int, sorted_subs: Sequence[Mapping[str, int]]) -> int | None:

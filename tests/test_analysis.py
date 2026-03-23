@@ -10,18 +10,23 @@ from typing import TypedDict, cast
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from m68k.analysis import (analyze_hunk, HunkAnalysis, AnalysisCacheError,
-                           detect_relocated_segments, _postinc_copy_regs)
-from m68k.analysis import RelocLike
+from m68k.analysis import (
+    AnalysisCacheError,
+    HunkAnalysis,
+    RelocLike,
+    _postinc_copy_regs,
+    analyze_hunk,
+    detect_relocated_segments,
+)
 from m68k.decode_errors import DecodeError
+from m68k.ea_extension import parse_full_extension
 from m68k.hunk_parser import HunkType
 from m68k.indirect_core import IndirectSite
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze
-from m68k.os_calls import LibraryCall, RUNTIME_OS_KB
+from m68k.os_calls import RUNTIME_OS_KB, LibraryCall
 from m68k_kb import runtime_os
-from m68k.ea_extension import parse_full_extension
 
 
 class _IndirectSiteView(TypedDict, total=False):
@@ -622,7 +627,7 @@ def test_payload_at_runtime_address() -> None:
         f"Payload block at $0400 missing, "
         f"got {sorted(hex(a) for a in ha.blocks)[:10]}")
     assert 0x1C not in ha.blocks, (
-        f"Payload should NOT be at file offset $001C")
+        "Payload should NOT be at file offset $001C")
     # The payload block should contain moveq #42
     if 0x0400 in ha.exit_states:
         cpu, _ = ha.exit_states[0x0400]
@@ -704,7 +709,7 @@ def test_payload_at_runtime_two_stage() -> None:
         f"Payload block at $0400 missing, "
         f"got core={sorted(hex(a) for a in ha.blocks)}")
     assert 0x34 not in ha.blocks, (
-        f"Payload should NOT be at file offset $0034")
+        "Payload should NOT be at file offset $0034")
 
 
 def test_secondary_entries_are_core() -> None:
@@ -724,7 +729,7 @@ def test_secondary_entries_are_core() -> None:
 
     # Handler's JMP $0400 should connect to the payload block
     assert 0x0400 in ha.blocks, (
-        f"Payload at $0400 (handler's JMP target) should be core")
+        "Payload at $0400 (handler's JMP target) should be core")
 
 
 def _assert_no_hint_core_overlap(ha: HunkAnalysis) -> None:

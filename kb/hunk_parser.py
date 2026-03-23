@@ -10,10 +10,9 @@ Usage:
     python parse_hunk_format.py D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_H/DOS/DOSHUNKS.H
 """
 
+import argparse
 import json
 import re
-import argparse
-from pathlib import Path
 from typing import Any, cast
 
 from kb.paths import AMIGA_HUNK_FORMAT_JSON
@@ -43,7 +42,7 @@ def parse_doshunks_h(path: str) -> JsonDict:
         stripped = line.strip()
 
         # Collect multi-line comments
-        if stripped.startswith('/*') or stripped.startswith('*'):
+        if stripped.startswith(('/*', '*')):
             # Extract comment text
             comment = stripped.lstrip('/* ').rstrip('*/ ')
             if comment:
@@ -106,7 +105,7 @@ def parse_doshunks_h(path: str) -> JsonDict:
                     })
             hunk_types[name] = entry
 
-        elif name.startswith('HUNKB_') or name.startswith('HUNKF_'):
+        elif name.startswith(('HUNKB_', 'HUNKF_')):
             if name.startswith('HUNKB_'):
                 # Bit number
                 memory_flags[name] = {

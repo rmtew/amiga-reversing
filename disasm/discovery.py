@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import struct
-from collections.abc import Iterable
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 
-from m68k_kb import runtime_os
 from disasm.decode import decode_inst_for_emit
+from disasm.types import DisasmBlockLike, EntityRecord
 from m68k.hunk_parser import Hunk, HunkType
 from m68k.strings import read_string_at
-from disasm.types import DisasmBlockLike, EntityRecord
 
 
 def discover_pc_relative_targets(blocks: Mapping[int, DisasmBlockLike], code: bytes) -> dict[int, str]:

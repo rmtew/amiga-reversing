@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Protocol, TypeAlias
+from typing import Protocol
 
 from .typing_protocols import OperandNodeLike
 
-
-PointerTransform: TypeAlias = tuple[object, ...]
+type PointerTransform = tuple[object, ...]
 
 
 def _apply_known_shift(opcode_text: str, operand_size: str,
@@ -20,7 +19,7 @@ def _apply_known_shift(opcode_text: str, operand_size: str,
     mask = (1 << bits) - 1
     value &= mask
     token = opcode_text.lower()
-    if token.startswith("lsl") or token.startswith("asl"):
+    if token.startswith(("lsl", "asl")):
         return (value << count) & mask
     if token.startswith("lsr"):
         return (value >> count) & mask

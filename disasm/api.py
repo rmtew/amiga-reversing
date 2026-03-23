@@ -1,22 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from typing import Any, TypeAlias, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 from disasm.text import listing_window
 from disasm.types import (
     AddressRowContext,
     BlockRowContext,
-    RowSourceContext,
     DisassemblySession,
     HeaderRowContext,
     ListingRow,
+    RowSourceContext,
     SemanticOperand,
     SemanticOperandMetadata,
 )
 
-
-_RowSourceContextDataclass: TypeAlias = HeaderRowContext | BlockRowContext | AddressRowContext
+type _RowSourceContextDataclass = HeaderRowContext | BlockRowContext | AddressRowContext
 
 
 def _dataclass_dict(value: object) -> dict[str, object]:

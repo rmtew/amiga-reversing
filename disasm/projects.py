@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, TypedDict
 
@@ -127,7 +127,7 @@ def create_project(project_name: str, project_root: Path = PROJECT_ROOT) -> Proj
 def mark_project_opened(project_name: str, project_root: Path = PROJECT_ROOT) -> ProjectRecord:
     get_project(project_name, project_root=project_root)
     state = _load_state(project_root)
-    state["recent_projects"][project_name] = datetime.now(timezone.utc).isoformat()
+    state["recent_projects"][project_name] = datetime.now(UTC).isoformat()
     _save_state(project_root, state)
     return get_project(project_name, project_root=project_root)
 

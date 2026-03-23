@@ -1,14 +1,16 @@
 import pytest
 
-from m68k.memory_provenance import (MemoryRegionAddressSpace,
-                                    MemoryRegionDerivation,
-                                    MemoryRegionDerivationKind,
-                                    MemoryRegionProvenance,
-                                    field_pointer_source,
-                                    provenance_base_displacement,
-                                    provenance_field_pointer,
-                                    provenance_named_base,
-                                    require_base_displacement)
+from m68k.memory_provenance import (
+    MemoryRegionAddressSpace,
+    MemoryRegionDerivation,
+    MemoryRegionDerivationKind,
+    MemoryRegionProvenance,
+    field_pointer_source,
+    provenance_base_displacement,
+    provenance_field_pointer,
+    provenance_named_base,
+    require_base_displacement,
+)
 
 
 def test_require_base_displacement_returns_register_and_displacement() -> None:

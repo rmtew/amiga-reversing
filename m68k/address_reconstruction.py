@@ -6,13 +6,17 @@ import struct
 from collections.abc import Sequence
 from typing import Protocol, cast
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
-from .constant_evaluator import SizedInstructionLike
-from .instruction_kb import find_kb_entry, instruction_kb
-from .instruction_decode import DecodedOperands, decode_inst_destination, decode_inst_operands, xf
 from . import value_transforms as _vt
+from .constant_evaluator import SizedInstructionLike
+from .instruction_decode import (
+    DecodedOperands,
+    decode_inst_destination,
+    decode_inst_operands,
+    xf,
+)
+from .instruction_kb import find_kb_entry, instruction_kb
 
 
 class AddressReconstructionInstructionLike(Protocol):

@@ -16,55 +16,52 @@ Usage:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import StrEnum
 import re
 import struct
-import sys
-from typing import TYPE_CHECKING, Callable, Mapping, Protocol, TypeAlias
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import TYPE_CHECKING, Protocol
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
-from m68k_kb import runtime_os
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode, runtime_os
 from m68k_kb.runtime_os import (
-    AbsoluteSymbol,
-    CallingConvention,
-    ExecBaseAddress,
     OsConstant,
-    OsFunction,
     OsInput,
     OsLibrary,
     OsMeta,
     OsOutput,
-    OsReturnsBase,
-    OsReturnsMemory,
 )
 
+from .instruction_decode import (
+    DecodedOperands,
+    decode_inst_destination,
+    decode_inst_operands,
+    xf,
+)
 from .instruction_kb import find_kb_entry, instruction_flow, instruction_kb
-from .instruction_decode import DecodedOperands, decode_inst_destination, decode_inst_operands, xf
 from .instruction_primitives import Operand, extract_branch_target
-from .memory_provenance import (MemoryRegionAddressSpace,
-                                MemoryRegionProvenance,
-                                field_pointer_derivation,
-                                field_pointer_source,
-                                provenance_base_displacement,
-                                provenance_field_pointer,
-                                provenance_named_base,
-                                require_base_displacement)
-from .os_structs import resolve_struct_field
-from .os_structs import ResolvedStructField
-from .os_structs import OsStructLike, OsStructFieldLike
+from .memory_provenance import (
+    MemoryRegionAddressSpace,
+    MemoryRegionProvenance,
+    field_pointer_derivation,
+    field_pointer_source,
+    provenance_base_displacement,
+    provenance_field_pointer,
+    provenance_named_base,
+    require_base_displacement,
+)
+from .os_structs import OsStructLike, ResolvedStructField, resolve_struct_field
 from .registers import parse_reg_name
 from .strings import read_c_string_span, read_string_at
 from .typing_protocols import CpuStateLike, MemoryLike
 
 if TYPE_CHECKING:
-    from .m68k_executor import AbstractMemory, BasicBlock, CallSummary
     from .m68k_disasm import Instruction
+    from .m68k_executor import AbstractMemory, BasicBlock, CallSummary
 
 
 def _is_named_base_seed(name: str) -> bool:
-    return name.endswith(".library") or name.endswith(".resource")
+    return name.endswith((".library", ".resource"))
 
 
 def _read_named_base_seed(code: bytes, addr: int) -> str | None:
@@ -74,7 +71,7 @@ def _read_named_base_seed(code: bytes, addr: int) -> str | None:
     return name
 
 
-ScratchReg: TypeAlias = tuple[str, int]
+type ScratchReg = tuple[str, int]
 
 
 def _decode_inst(inst: Instruction) -> tuple[str, DecodedOperands]:
@@ -599,18 +596,25 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
             direction=AppMemoryDirection.FORWARD,
         )
 
-        def _scan_for_store(instructions: list[Instruction]) -> int | None:
+        def _scan_for_store(
+            instructions: list[Instruction],
+            *,
+            _ret_reg: str = ret_reg,
+            _ret_key: tuple[str, int] = ret_key,
+        ) -> int | None:
             """Scan instructions for ret_reg -> d(base_reg). Returns offset or None."""
             for inst in instructions:
                 ikb, decoded = _decode_inst(inst)
-                if ikb and runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE:
-                    if (_decoded_source_reg(decoded) == ret_reg
-                            and (offset := _base_disp_operand(
-                                decoded.dst_op, base_reg)) is not None):
-                        return offset
+                if (
+                    ikb
+                    and runtime_m68k_analysis.OPERATION_TYPES.get(ikb) == runtime_m68k_analysis.OperationType.MOVE
+                    and _decoded_source_reg(decoded) == _ret_reg
+                    and (offset := _base_disp_operand(decoded.dst_op, base_reg)) is not None
+                ):
+                    return offset
                 # Stop if ret_reg is overwritten
                 dst = decode_inst_destination(inst, ikb)
-                if dst == ret_key:
+                if dst == _ret_key:
                     return None
             return None
 
@@ -2022,9 +2026,7 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
         if iterations > max_iterations:
             raise RuntimeError(
                 f"Typed memory region propagation did not converge after {max_iterations} iterations")
-        block_in: dict[int, dict[str, RegisterFact] | None] = {
-            addr: None for addr in blocks
-        }
+        block_in: dict[int, dict[str, RegisterFact] | None] = dict.fromkeys(blocks)
         if platform is not None and platform.app_base is not None:
             reg_num = platform.app_base.reg_num
             concrete_val = platform.app_base.concrete
@@ -2148,7 +2150,7 @@ def _build_lvo_lookup(os_kb: OsKb) -> LvoLookup:
                 os_since=func.os_since,
                 fd_version=func.fd_version,
             )
-            by_lib_lvo[(lib_name, lvo)] = call
+            by_lib_lvo[lib_name, lvo] = call
             by_lvo.setdefault(lvo, []).append(call)
     return LvoLookup(
         by_lib_lvo=by_lib_lvo,

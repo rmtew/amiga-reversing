@@ -5,14 +5,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from m68k_kb import runtime_m68k_analysis
+
+from .abstract_values import _concrete
+from .instruction_decode import decode_inst_destination
 from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_primitives import extract_branch_target
-from .m68k_executor import _join_states, CPUState, CallSummary, StatePair
-from .instruction_decode import decode_inst_destination
-from .os_calls import AppBaseInfo, PlatformState
+from .m68k_executor import CallSummary, CPUState, StatePair, _join_states
+from .os_calls import PlatformState
 from .typing_protocols import SuccessorBlockLike
-from .abstract_values import _concrete
-
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
@@ -214,7 +214,6 @@ def restore_base_reg(cpu: CPUState, platform: PlatformState | None) -> CPUState:
     """Restore configured base register if the current state lost it."""
     if platform:
         base_info = platform.app_base
-        if base_info:
-            if not cpu.a[base_info.reg_num].is_known:
-                cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
+        if base_info and not cpu.a[base_info.reg_num].is_known:
+            cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
     return cpu

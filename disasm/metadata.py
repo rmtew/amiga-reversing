@@ -1,15 +1,26 @@
 from __future__ import annotations
+
 """Assemble analysis-derived hunk metadata for disassembly sessions."""
 
-from collections.abc import Mapping
 from collections import defaultdict
+from collections.abc import Mapping
 from typing import Protocol
 
-from disasm.discovery import (add_hint_labels, build_label_map,
-                              build_reloc_map, discover_absolute_targets,
-                              discover_pc_relative_targets,
-                              filter_internal_absolute_data_targets)
-from disasm.types import DisasmBlockLike, EntityRecord, HunkMetadata, JumpTableEntryRef, JumpTableRegion
+from disasm.discovery import (
+    add_hint_labels,
+    build_label_map,
+    build_reloc_map,
+    discover_absolute_targets,
+    discover_pc_relative_targets,
+    filter_internal_absolute_data_targets,
+)
+from disasm.types import (
+    DisasmBlockLike,
+    EntityRecord,
+    HunkMetadata,
+    JumpTableEntryRef,
+    JumpTableRegion,
+)
 from m68k.hunk_parser import Hunk
 from m68k.jump_tables import JumpTable
 

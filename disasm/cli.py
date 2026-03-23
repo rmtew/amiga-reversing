@@ -7,11 +7,11 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from scripts.build_entities import build_entities
 from disasm.analysis_loader import analysis_cache_is_current
 from disasm.emitter import emit_session_rows
 from disasm.session import build_disassembly_session
 from disasm.text import render_rows
+from scripts.build_entities import build_entities
 
 
 class StageTimer:

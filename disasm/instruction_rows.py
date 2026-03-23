@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import io
 
-from disasm.comments import (build_instruction_comment_parts,
-                             render_comment_parts)
+from disasm.comments import build_instruction_comment_parts, render_comment_parts
 from disasm.data_render import emit_data_region
 from disasm.operands import build_instruction_semantic_operands
-from disasm.types import (BlockRowContext, HunkDisassemblySession, ListingRow,
-                          RowSourceContext, SemanticOperand)
+from disasm.types import (
+    BlockRowContext,
+    HunkDisassemblySession,
+    ListingRow,
+    RowSourceContext,
+    SemanticOperand,
+)
 from m68k.m68k_disasm import Instruction
 
 

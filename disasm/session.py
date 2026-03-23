@@ -3,10 +3,6 @@
 from pathlib import Path
 from typing import cast
 
-from m68k.hunk_parser import parse_file, HunkType
-from m68k.indirect_core import IndirectSiteStatus
-from m68k.os_calls import (analyze_call_setups, build_app_struct_regions,
-                           propagate_typed_memory_regions)
 from disasm.absolute_resolver import resolve_absolute_labels
 from disasm.analysis_loader import load_hunk_analysis
 from disasm.data_access import collect_data_access_sizes
@@ -15,10 +11,16 @@ from disasm.entities import infer_target_name, load_entities
 from disasm.hardware_symbols import collect_hardware_base_regs
 from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
 from disasm.metadata import HunkAnalysisLike, build_hunk_metadata
-from disasm.substitutions import (build_arg_substitutions,
-                                  build_lvo_substitutions)
-from m68k.os_calls import build_app_slot_symbols
+from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.types import DisassemblySession, EntityRecord, HunkDisassemblySession
+from m68k.hunk_parser import HunkType, parse_file
+from m68k.indirect_core import IndirectSiteStatus
+from m68k.os_calls import (
+    analyze_call_setups,
+    build_app_slot_symbols,
+    build_app_struct_regions,
+    propagate_typed_memory_regions,
+)
 
 __all__ = [
     "DisassemblySession",
@@ -56,13 +58,10 @@ def build_disassembly_session(binary_path: str, entities_path: str,
         )
 
         blocks = ha.blocks
-        hint_blocks = ha.hint_blocks
-        jt_list = ha.jump_tables
         lib_calls = ha.lib_calls
         os_kb = ha.os_kb
         assert os_kb is not None, f"Analysis for hunk {hunk.index} did not provide an OS KB"
         platform = ha.platform
-        reloc_targets = ha.reloc_targets
         exit_states = ha.exit_states
         relocated_segments = ha.relocated_segments
         code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = (

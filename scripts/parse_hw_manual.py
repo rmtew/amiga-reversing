@@ -17,9 +17,8 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from html import unescape
-from pathlib import Path
 from typing import Any
 
 JsonDict = dict[str, Any]
@@ -58,11 +57,22 @@ class Chapter:
     sections: list[tuple[str, str]] = field(default_factory=list)  # (title, node)
 
 
+def _append_current_bit(
+    all_bits: list[BitDef],
+    current_bit: int | None,
+    current_name: str | None,
+    current_desc_lines: list[str],
+) -> None:
+    if current_bit is None:
+        return
+    desc = " ".join(current_desc_lines).strip()
+    all_bits.append(BitDef(bit=current_bit, name=current_name or "", description=desc))
+
+
 def strip_html(text: str) -> str:
     """Remove HTML tags and decode entities."""
     text = re.sub(r'<[^>]+>', '', text)
-    text = unescape(text)
-    return text
+    return unescape(text)
 
 
 def extract_body(html: str) -> str:
@@ -238,16 +248,9 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
             # Parse bit entries
             current_bit = None
             current_name = None
-            current_desc_lines = []
+            current_desc_lines: list[str] = []
             # Track indentation of the first bit line to detect continuations
             bit_indent = None
-
-            def save_current() -> None:
-                nonlocal current_bit, current_name, current_desc_lines
-                if current_bit is not None:
-                    desc = ' '.join(current_desc_lines).strip()
-                    all_bits.append(BitDef(bit=current_bit, name=current_name, description=desc))
-                    current_bit = None
 
             blank_count = 0
             while i < len(lines):
@@ -262,7 +265,8 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                 rm = re.match(r'^(\s+)(\d{1,2})-(\d{1,2})\s+(\S+)\s*(.*)', line)
 
                 if rm:
-                    save_current()
+                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                    current_bit = None
                     indent = len(rm.group(1))
                     if bit_indent is None:
                         bit_indent = indent
@@ -281,7 +285,8 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                     continue
 
                 if bare_bm and not bm:
-                    save_current()
+                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                    current_bit = None
                     indent = len(bare_bm.group(1))
                     if bit_indent is None:
                         bit_indent = indent
@@ -292,7 +297,8 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                     continue
 
                 if bm:
-                    save_current()
+                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                    current_bit = None
                     indent = len(bm.group(1))
                     if bit_indent is None:
                         bit_indent = indent
@@ -313,7 +319,8 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                 if not stripped:
                     blank_count += 1
                     if blank_count >= 2:
-                        save_current()
+                        _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                        current_bit = None
                         break
                     i += 1
                     continue
@@ -328,10 +335,11 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                         continue
 
                 # Something else — end of bit table
-                save_current()
+                _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                current_bit = None
                 break
 
-            save_current()
+            _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
             continue
 
         # === Detect standalone bit entries without BIT# header ===
@@ -581,7 +589,7 @@ def parse_cia_registers(guide_dir: str) -> list[Register]:
 
 def output_summary(registers: list[Register], chapters: list[Chapter]) -> None:
     """Print summary to stdout."""
-    print(f"\nAmiga Hardware Reference Manual")
+    print("\nAmiga Hardware Reference Manual")
     print(f"{'='*50}")
     print(f"Registers:       {len(registers)}")
 

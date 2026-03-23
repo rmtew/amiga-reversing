@@ -11,30 +11,29 @@ Jump tables (detect_jump_tables):
 """
 
 import struct
-from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import cast
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
-from .decode_errors import DecodeError
-from .instruction_kb import instruction_flow, instruction_kb
-from .instruction_primitives import extract_branch_target
-from .m68k_executor import BasicBlock
-from . import address_reconstruction
-from . import indirect_core
-from .m68k_disasm import _Decoder, _decode_one
-from .instruction_decode import decode_inst_operands, xf
-from . import table_recovery
-from . import subroutine_summary
-from .typing_protocols import DecodedOperandLike, DecodedOperandsLike, InstructionLike
-from . import value_transforms
+from . import (
+    address_reconstruction,
+    indirect_core,
+    subroutine_summary,
+    table_recovery,
+    value_transforms,
+)
 from .address_reconstruction import (
     AddressReconstructionInstructionLike,
 )
-
+from .decode_errors import DecodeError
+from .instruction_decode import decode_inst_operands, xf
+from .instruction_kb import instruction_flow, instruction_kb
+from .instruction_primitives import extract_branch_target
+from .m68k_disasm import _decode_one, _Decoder
+from .m68k_executor import BasicBlock
+from .typing_protocols import DecodedOperandsLike, InstructionLike
 
 # Maximum RTS exits to try when forking a nested callee's per-exit
 # summaries.  Each exit requires a full sub propagation, so this bounds
@@ -595,9 +594,8 @@ def detect_jump_tables(blocks: dict[int, BasicBlock],
 
         if ft not in (_FLOW_JUMP, _FLOW_CALL) and virtual_jmp_reg is None:
             continue
-        if ft in (_FLOW_JUMP, _FLOW_CALL):
-            if extract_branch_target(last, last.offset) is not None:
-                continue  # already resolved
+        if ft in (_FLOW_JUMP, _FLOW_CALL) and extract_branch_target(last, last.offset) is not None:
+            continue  # already resolved
 
         jump_operand, _ = (
             indirect_core.decode_jump_ea(cast(InstructionLike, last))

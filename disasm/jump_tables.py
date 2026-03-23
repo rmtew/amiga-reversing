@@ -2,9 +2,18 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from disasm.instruction_rows import (emit_data_rows, make_instruction_row,
-                                     make_text_rows, render_instruction_text)
-from disasm.types import BlockRowContext, HunkDisassemblySession, JumpTableRegion, ListingRow
+from disasm.instruction_rows import (
+    emit_data_rows,
+    make_instruction_row,
+    make_text_rows,
+    render_instruction_text,
+)
+from disasm.types import (
+    BlockRowContext,
+    HunkDisassemblySession,
+    JumpTableRegion,
+    ListingRow,
+)
 
 
 def emit_jump_table_rows(
@@ -17,7 +26,7 @@ def emit_jump_table_rows(
 ) -> int:
     jt: JumpTableRegion = hunk_session.jump_table_regions[pos]
     if jt.pattern == "pc_inline_dispatch":
-        from m68k.m68k_disasm import _Decoder, _decode_one
+        from m68k.m68k_disasm import _decode_one, _Decoder
 
         dec = _Decoder(hunk_session.code, 0)
         dec.pos = pos

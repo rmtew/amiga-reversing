@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import cast
 
-from disasm.types import HunkDisassemblySession
 import pytest
 
 from disasm.projects import build_project_session
+from disasm.types import HunkDisassemblySession
 
 
 def _bloodwych_hunk_session() -> HunkDisassemblySession:

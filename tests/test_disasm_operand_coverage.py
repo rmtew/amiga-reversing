@@ -5,11 +5,10 @@ from __future__ import annotations
 import tempfile
 from collections import defaultdict
 
-from m68k.instruction_kb import find_kb_entry
-from m68k.m68k_disasm import Instruction
-from m68k.m68k_disasm import disassemble
 from disasm.operands import build_instruction_semantic_operands
 from disasm.types import HunkDisassemblySession
+from m68k.instruction_kb import find_kb_entry
+from m68k.m68k_disasm import Instruction, disassemble
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
 from tests.test_m68k_roundtrip import ALL_CASES, Case, _batch_assemble
@@ -71,7 +70,7 @@ def test_kb_generated_cases_build_canonical_semantic_operands() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         for cpu_flag, cases in batches.items():
             raws = _batch_assemble(cases, cpu_flag, tmpdir)
-            for case, raw in zip(cases, raws):
+            for case, raw in zip(cases, raws, strict=True):
                 try:
                     insts = disassemble(raw, max_cpu=case.max_cpu)
                     if not insts:

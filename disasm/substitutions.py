@@ -1,17 +1,18 @@
 from __future__ import annotations
+
 """Build disassembly-time substitution maps."""
 
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
-from m68k.instruction_kb import instruction_kb
+from disasm.types import EntityRecord
 from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
+from m68k.instruction_kb import instruction_kb
 from m68k.instruction_primitives import extract_branch_target
 from m68k.m68k_disasm import Instruction
 from m68k.os_calls import LibraryCall, OsKb
 from m68k.registers import parse_reg_name
 from m68k.subroutine_ranges import find_containing_sub
-from disasm.types import EntityRecord
 
 
 class _InstructionBlock(Protocol):

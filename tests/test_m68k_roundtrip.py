@@ -14,14 +14,13 @@ import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeAlias, cast
+from typing import Any, cast
 
 import pytest
 
-from m68k.hunk_parser import parse_file
 from m68k.decode_errors import DecodeError
+from m68k.hunk_parser import parse_file
 from m68k.m68k_disasm import disassemble
-
 
 # -- Paths ----------------------------------------------------------------
 
@@ -30,12 +29,12 @@ VASM = PROJ_ROOT / "tools" / "vasmm68k_mot.exe"
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
 VASM_COMPAT = PROJ_ROOT / "knowledge" / "vasm_compat.json"
 
-JsonDict: TypeAlias = dict[str, Any]
-CaseSpec: TypeAlias = tuple[str, str] | tuple[str, str, str]
-DisasmInfo: TypeAlias = tuple[str | None, bytes | None, str | None]
-_FixtureDecorator: TypeAlias = Callable[[Callable[..., list[str | None]]], Callable[..., list[str | None]]]
-_TestFn: TypeAlias = Callable[..., object]
-_Decorator: TypeAlias = Callable[[_TestFn], _TestFn]
+type JsonDict = dict[str, Any]
+type CaseSpec = tuple[str, str] | tuple[str, str, str]
+type DisasmInfo = tuple[str | None, bytes | None, str | None]
+type _FixtureDecorator = Callable[[Callable[..., list[str | None]]], Callable[..., list[str | None]]]
+type _TestFn = Callable[..., object]
+type _Decorator = Callable[[_TestFn], _TestFn]
 
 
 # -- KB + vasm compat loading ---------------------------------------------
@@ -186,7 +185,7 @@ def _gen_label_tests(m_lower: str, op_types: list[str], cc_param: JsonDict | Non
     has_dn = "dn" in op_types
     for mn in mnemonics:
         if has_dn:
-            for sz_sfx, _ in branch_sizes:
+            for _sz_sfx, _ in branch_sizes:
                 tests.append((f"{mn} d0,.t\n.t:", mn))
         else:
             for sz_sfx, needs_nop in branch_sizes:
@@ -288,7 +287,7 @@ def _generate_tests(inst: JsonDict, compat: JsonDict | None = None) -> list[Case
                 asm, desc = case[0], case[1]
                 if asm == primary:
                     tests.append((v, desc))
-                elif asm.startswith(f"{primary}.") or asm.startswith(f"{primary} "):
+                elif asm.startswith((f"{primary}.", f"{primary} ")):
                     tests.append((v + asm[len(primary):], desc))
 
     for form in forms:

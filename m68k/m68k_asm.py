@@ -11,24 +11,23 @@ Usage:
 import re
 import struct
 from collections.abc import Mapping
-from typing import Literal, TypeAlias, TypedDict, cast
+from typing import Literal, TypedDict, cast
 
-from m68k_kb import runtime_m68k_asm
-from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_m68k_asm, runtime_m68k_decode
 from m68k_kb.runtime_types import AsmCcParam, AsmOpmodeEntry, DirectionVariant
 
 _SIZE_BYTE = 0
 _SIZE_WORD = 1
 _SIZE_LONG = 2
 
-SizeChar: TypeAlias = Literal["b", "w", "l", "s"]
-ParsedEa: TypeAlias = tuple[int, int, bytes]
-FieldValue: TypeAlias = int | list[int]
-FieldValues: TypeAlias = dict[str, FieldValue]
-OperandClass: TypeAlias = Literal["imm", "dn", "an", "sr", "ccr", "usp", "ea"]
-Operands: TypeAlias = list[str]
-ResolvedSyntax: TypeAlias = tuple[str, int]
-EaModeEncoding: TypeAlias = dict[str, tuple[int, int]]
+type SizeChar = Literal["b", "w", "l", "s"]
+type ParsedEa = tuple[int, int, bytes]
+type FieldValue = int | list[int]
+type FieldValues = dict[str, FieldValue]
+type OperandClass = Literal["imm", "dn", "an", "sr", "ccr", "usp", "ea"]
+type Operands = list[str]
+type ResolvedSyntax = tuple[str, int]
+type EaModeEncoding = dict[str, tuple[int, int]]
 
 
 __all__ = ["assemble_instruction", "parse_ea", "runtime_m68k_asm"]
@@ -96,7 +95,7 @@ _RE_FULL_INDEX = re.compile(r'^([da])([0-7])\.(w|l)(?:\*(1|2|4|8))?$', re.I)
 def _parse_imm_value(s: str) -> int:
     """Parse an immediate value string (hex $NN or decimal)."""
     s = s.strip()
-    if s.startswith("$") or s.startswith("0x"):
+    if s.startswith(("$", "0x")):
         return int(s.replace("$", ""), 16)
     return int(s)
 
@@ -164,8 +163,7 @@ def _build_full_ext_word(*, index_is_addr: bool, index_reg: int, index_is_long: 
     word = _pack_field(word, 1 if base_suppressed else 0, *fields["BS"][:2])
     word = _pack_field(word, 1 if index_suppressed else 0, *fields["IS"][:2])
     word = _pack_field(word, bd_value[base_disp_kind], *fields["BD SIZE"][:2])
-    word = _pack_field(word, iis, *fields["I/IS"][:2])
-    return word
+    return _pack_field(word, iis, *fields["I/IS"][:2])
 
 
 def _full_ext_disp_kind(value: int | None) -> str:
@@ -303,8 +301,7 @@ def _build_brief_ext_word(xreg_num: int, is_addr: bool, is_long: bool, disp8: in
     word = _pack_field(word, xreg_num, *bf["REGISTER"][:2])
     word = _pack_field(word, 1 if is_long else 0, *bf["W/L"][:2])
     # SCALE = 0 (x1) for 68000 basic indexed mode
-    word = _pack_field(word, disp8 & 0xFF, *bf["DISPLACEMENT"][:2])
-    return word
+    return _pack_field(word, disp8 & 0xFF, *bf["DISPLACEMENT"][:2])
 
 
 def parse_ea(operand: str, op_size: int | None = None) -> ParsedEa:
@@ -429,8 +426,7 @@ def parse_ea(operand: str, op_size: int | None = None) -> ParsedEa:
         mode, reg = enc["imm"]
         if op_size is not None and op_size >= 4:
             return mode, reg, _to_bytes_32(val)
-        else:
-            return mode, reg, _to_bytes_16(val)
+        return mode, reg, _to_bytes_16(val)
 
     # ($xxxx).w - absolute word
     m = _RE_ABSW.match(operand)
@@ -793,12 +789,11 @@ def _assemble_opmode(inst: str, resolution: Resolution, src_str: str, dst_str: s
             ea_fields["REGISTER"] = [dst_reg, src_reg]
         word = _build_opword(inst, ea_fields)
         return _to_bytes_16(word) + src_ext
-    else:
-        # Dn->ea: REGISTER=src_reg(Dn), MODE=dst_mode, EA_REGISTER=dst_reg
-        dst_fields: FieldValues = {"REGISTER": [src_reg, dst_reg], "OPMODE": selected_opmode,
-                  "MODE": dst_mode}
-        word = _build_opword(inst, dst_fields)
-        return _to_bytes_16(word) + dst_ext
+    # Dn->ea: REGISTER=src_reg(Dn), MODE=dst_mode, EA_REGISTER=dst_reg
+    dst_fields: FieldValues = {"REGISTER": [src_reg, dst_reg], "OPMODE": selected_opmode,
+              "MODE": dst_mode}
+    word = _build_opword(inst, dst_fields)
+    return _to_bytes_16(word) + dst_ext
 
 
 def _assemble_immediate(inst: str, resolution: Resolution, imm_str: str, dst_str: str) -> bytes:
@@ -816,10 +811,7 @@ def _assemble_immediate(inst: str, resolution: Resolution, imm_str: str, dst_str
     word = _build_opword(inst, fields)
 
     # Immediate data extension word(s)
-    if sz_bytes >= 4:
-        imm_bytes = _to_bytes_32(imm_val)
-    else:
-        imm_bytes = _to_bytes_16(imm_val)
+    imm_bytes = _to_bytes_32(imm_val) if sz_bytes >= 4 else _to_bytes_16(imm_val)
 
     return _to_bytes_16(word) + imm_bytes + dst_ext
 
@@ -890,7 +882,6 @@ def _assemble_branch(inst: str, resolution: Resolution, target_str: str, pc: int
     # KB-driven displacement field name, reserved values, and extension sizes
     disp_field, _disp_spec, word_signal, long_signal, word_bytes, long_bytes = disp_enc
     word_bits = word_bytes * 8
-    long_bits = long_bytes * 8
 
     # KB-driven byte displacement range
     byte_min = ir[3] if ir[3] is not None else -128
@@ -930,7 +921,7 @@ def _assemble_branch(inst: str, resolution: Resolution, target_str: str, pc: int
         fields[disp_field] = disp_unsigned
         word = _build_opword(inst, fields)
         return _to_bytes_16(word)
-    elif size_char == "w":
+    if size_char == "w":
         word_max = (1 << (word_bits - 1)) - 1
         word_min = -(1 << (word_bits - 1))
         if not (word_min <= disp <= word_max):
@@ -940,11 +931,10 @@ def _assemble_branch(inst: str, resolution: Resolution, target_str: str, pc: int
         fields[disp_field] = word_signal if word_signal is not None else 0x00
         word = _build_opword(inst, fields)
         return _to_bytes_16(word) + _to_bytes_16(disp & 0xFFFF)
-    else:
-        # Long branch (020+)
-        fields[disp_field] = long_signal if long_signal is not None else 0xFF
-        word = _build_opword(inst, fields)
-        return _to_bytes_16(word) + _to_bytes_32(disp & 0xFFFFFFFF)
+    # Long branch (020+)
+    fields[disp_field] = long_signal if long_signal is not None else 0xFF
+    word = _build_opword(inst, fields)
+    return _to_bytes_16(word) + _to_bytes_32(disp & 0xFFFFFFFF)
 
 
 def _assemble_dbcc(inst: str, resolution: Resolution, reg_str: str, target_str: str, pc: int = 0) -> bytes:
@@ -1111,7 +1101,7 @@ def _assemble_movep(inst: str, resolution: Resolution, src_str: str, dst_str: st
                 selected = entry["opmode"]
                 break
     else:
-        raise ValueError(f"MOVEP: need Dn,d(An) or d(An),Dn")
+        raise ValueError("MOVEP: need Dn,d(An) or d(An),Dn")
 
     if selected is None:
         raise ValueError(f"MOVEP.{size_char}: no matching opmode")
@@ -1330,7 +1320,7 @@ def _assemble_ext(inst: str, resolution: Resolution, reg_str: str) -> bytes:
             if user_mnemonic == "extb" and "byte" in desc:
                 selected = entry["opmode"]
                 break
-            elif user_mnemonic == "ext" and "word" in desc:
+            if user_mnemonic == "ext" and "word" in desc:
                 selected = entry["opmode"]
                 break
     if selected is None:
@@ -1393,11 +1383,6 @@ def _assemble_lea_pea(inst: str, resolution: Resolution, src_str: str, dst_str: 
 
     fields: FieldValues = {"MODE": src_mode}
 
-    # Find the EA register field name
-    enc_fields = runtime_m68k_asm.RAW_FIELDS[0][inst]
-    reg_fields = [(name, bit_hi) for name, bit_hi, _, _ in enc_fields
-                  if name not in ("0", "1") and "REGISTER" in name.upper()]
-
     if dst_str is not None:
         # LEA: destination is An
         m = _RE_AN.match(dst_str.strip())
@@ -1435,7 +1420,7 @@ def _assemble_bcd(inst: str, resolution: Resolution, src_str: str, dst_str: str)
         ms = _RE_PREDEC.match(src_str.strip())
         md = _RE_PREDEC.match(dst_str.strip())
         if not (ms and md):
-            raise ValueError(f"ABCD/SBCD operands must be Dn,Dn or -(An),-(An)")
+            raise ValueError("ABCD/SBCD operands must be Dn,Dn or -(An),-(An)")
         fields = {"REGISTER": [int(md.group(1)), int(ms.group(1))], "R/M": 1}
 
     word = _build_opword(inst, fields)
@@ -1496,7 +1481,7 @@ def _assemble_addx_subx(inst: str, resolution: Resolution, src_str: str, dst_str
         ms = _RE_PREDEC.match(src_str.strip())
         md = _RE_PREDEC.match(dst_str.strip())
         if not (ms and md):
-            raise ValueError(f"ADDX/SUBX operands must be Dn,Dn or -(An),-(An)")
+            raise ValueError("ADDX/SUBX operands must be Dn,Dn or -(An),-(An)")
         fields = {"REGISTER": [int(md.group(1)), int(ms.group(1))], "R/M": 1}
     if size_enc is not None:
         fields["SIZE"] = size_enc
@@ -1528,7 +1513,7 @@ def _assemble_cmpm(inst: str, resolution: Resolution, src_str: str, dst_str: str
         dst_reg = int(md.group(1))
 
     if not (ms and md):
-        raise ValueError(f"CMPM operands must be (An)+,(An)+")
+        raise ValueError("CMPM operands must be (An)+,(An)+")
 
     fields: FieldValues = {"REGISTER": [dst_reg, src_reg]}
     if size_enc is not None:
@@ -1713,10 +1698,7 @@ def _assemble_imm_to_sr_ccr(inst: str, imm_str: str) -> bytes:
     sz_bytes = _inst_size_bytes(inst)
     imm_val = _parse_imm_value(imm_str.strip().lstrip("#"))
     word = _build_opword(inst, {})
-    if sz_bytes >= 4:
-        imm_bytes = _to_bytes_32(imm_val)
-    else:
-        imm_bytes = _to_bytes_16(imm_val)
+    imm_bytes = _to_bytes_32(imm_val) if sz_bytes >= 4 else _to_bytes_16(imm_val)
     return _to_bytes_16(word) + imm_bytes
 
 

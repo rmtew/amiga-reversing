@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 from typing import cast
 
-from pytest import MonkeyPatch
+import pytest
 
 from disasm import server as disasm_server
 from disasm.types import ListingRow
 
 
-def test_route_projects_returns_project_list(monkeypatch: MonkeyPatch) -> None:
+def test_route_projects_returns_project_list(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "list_projects",
                         lambda: [{"id": "bloodwych", "name": "bloodwych"}])
 
@@ -19,7 +19,7 @@ def test_route_projects_returns_project_list(monkeypatch: MonkeyPatch) -> None:
     assert payload["data"] == [{"id": "bloodwych", "name": "bloodwych"}]
 
 
-def test_route_create_project(monkeypatch: MonkeyPatch) -> None:
+def test_route_create_project(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "create_project",
@@ -33,7 +33,7 @@ def test_route_create_project(monkeypatch: MonkeyPatch) -> None:
     assert data["id"] == "demo"
 
 
-def test_route_project_returns_project_and_session(monkeypatch: MonkeyPatch) -> None:
+def test_route_project_returns_project_and_session(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -49,7 +49,7 @@ def test_route_project_returns_project_and_session(monkeypatch: MonkeyPatch) -> 
     assert "session" not in data
 
 
-def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch: MonkeyPatch) -> None:
+def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -67,22 +67,18 @@ def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch: Mo
     assert data["rows"] == []
 
 
-def test_route_listing_raises_if_rows_not_loaded(monkeypatch: MonkeyPatch) -> None:
+def test_route_listing_raises_if_rows_not_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._PROJECT_ROW_CACHE.clear()
     monkeypatch.setattr(
         disasm_server,
         "get_project",
         lambda project_name: {"id": project_name, "name": project_name, "ready": True},
     )
-    try:
+    with pytest.raises(ValueError, match="Canonical rows not loaded"):
         disasm_server.route_request("GET", "/api/projects/bloodwych/listing", {})
-    except ValueError as exc:
-        assert "Canonical rows not loaded" in str(exc)
-    else:
-        raise AssertionError("expected unloaded canonical rows failure")
 
 
-def test_route_listing_returns_cached_window(monkeypatch: MonkeyPatch) -> None:
+def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [ListingRow(row_id="r0", kind="instruction", text="moveq #0,d0\n", addr=0x10)]
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
@@ -105,7 +101,7 @@ def test_route_listing_returns_cached_window(monkeypatch: MonkeyPatch) -> None:
     assert rows_data[0]["row_id"] == "r0"
 
 
-def test_route_listing_open_starts_job(monkeypatch: MonkeyPatch) -> None:
+def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -128,7 +124,7 @@ def test_route_listing_open_starts_job(monkeypatch: MonkeyPatch) -> None:
     assert data["job_id"] == "job-1"
 
 
-def test_route_listing_status_returns_job(monkeypatch: MonkeyPatch) -> None:
+def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "_job_payload",
@@ -167,15 +163,11 @@ def test_resolve_static_response_serves_project_route() -> None:
 
 
 def test_resolve_static_response_rejects_missing_file() -> None:
-    try:
+    with pytest.raises(FileNotFoundError, match="Unknown route"):
         disasm_server.resolve_static_response("/missing.txt")
-    except FileNotFoundError as exc:
-        assert "Unknown route" in str(exc)
-    else:
-        raise AssertionError("expected missing static file error")
 
 
-def test_route_get_entity_returns_annotation_view(monkeypatch: MonkeyPatch) -> None:
+def test_route_get_entity_returns_annotation_view(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "get_entity",
                         lambda project_name, addr: {"addr": addr, "name": "main"})
 
@@ -187,7 +179,7 @@ def test_route_get_entity_returns_annotation_view(monkeypatch: MonkeyPatch) -> N
     assert data["name"] == "main"
 
 
-def test_route_patch_entity_updates_annotations(monkeypatch: MonkeyPatch) -> None:
+def test_route_patch_entity_updates_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server, "patch_entity",
         lambda project_name, addr, body: {"addr": addr, "name": body["name"]},

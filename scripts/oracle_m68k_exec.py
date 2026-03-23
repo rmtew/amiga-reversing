@@ -29,13 +29,18 @@ PROJ_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJ_ROOT))
 KNOWLEDGE = PROJ_ROOT / "knowledge" / "m68k_instructions.json"
 
-from m68k.vasm import assemble
+from m68k.m68k_compute import (
+    _RULE_HANDLERS,
+    _compute_result,
+    _size_mask,
+    _to_signed,
+    evaluate_cc_test,
+    predict_cc,
+    predict_sp,
+)
 from m68k.m68k_disasm import disassemble as disasm_bytes
-from m68k.m68k_compute import (predict_cc, predict_sp, _size_mask, _to_signed,
-                               _size_from_bits, _RULE_HANDLERS, _compute_result,
-                               evaluate_cc_test)
+from m68k.vasm import assemble
 from m68k_kb.runtime_types import ComputeInstructionRecord, MnemonicInstructionRecord
-
 
 # ── KB loader ─────────────────────────────────────────────────────────────
 
@@ -462,7 +467,6 @@ def generate_ccr_op_tests(inst: JsonDict, tmpdir: str) -> Any:
     Yields (asm_text, code_bytes, src_val, initial_ccr, desc) tuples.
     """
     mnemonic = inst["mnemonic"]
-    op_type = inst.get("operation_type")
 
     for form in cast(list[JsonDict], inst.get("forms", [])):
         if form.get("processor_020"):
@@ -487,10 +491,7 @@ def generate_ccr_op_tests(inst: JsonDict, tmpdir: str) -> Any:
             asm_base = mnemonic.split(" to ")[0].lower()
             for imm_val in CCR_OP_IMM_VALUES:
                 # For ANDI to SR, must preserve supervisor bit (bit 13)
-                if "ANDI" in mnemonic:
-                    sr_imm = imm_val | 0x2000
-                else:
-                    sr_imm = imm_val
+                sr_imm = imm_val | 0x2000 if "ANDI" in mnemonic else imm_val
                 for ccr_state in INITIAL_CCR_STATES:
                     asm_text = f"{asm_base} #{sr_imm},sr"
                     code_bytes = assemble(asm_text, tmpdir)
@@ -584,10 +585,9 @@ def discover_register_testable_instructions() -> list[RegisterDiscoveryItem]:
                 continue
 
         # EXG: operation_type=swap, no CC, has [dn,dn] form
-        if op_type == "swap" and not has_cc and not has_formula:
-            if ["dn", "dn"] in forms:
-                testable.append((mnemonic, inst, "exg"))
-                continue
+        if op_type == "swap" and not has_cc and not has_formula and ["dn", "dn"] in forms:
+            testable.append((mnemonic, inst, "exg"))
+            continue
 
         # LEA: formula + [ea,an] + no CC, no dn in src
         if mnemonic == "LEA" and has_formula and not has_cc:
@@ -866,7 +866,7 @@ def _gen_branch_tests(mnemonic: str, inst: JsonDict, tmpdir: str) -> Any:
     elif mnemonic == "JMP":
         # JMP (An) — jump to address in A0
         target = SCRATCH_ADDR
-        code = assemble(f"jmp (a0)", tmpdir)
+        code = assemble("jmp (a0)", tmpdir)
         if code:
             def setup_jmp(cpu: Any, mem: Any, _t: int = target) -> None:
                 cpu.w_reg(ADDR_REGS[0], _t)
@@ -935,10 +935,15 @@ def _gen_movep_tests(inst: JsonDict, tmpdir: str) -> Any:
                 raise RuntimeError(
                     f"MOVEP: unsupported byte_order '{byte_order}' in KB")
 
-            def setup(cpu: Any, mem: Any, _bytes: list[tuple[int, int]] = mem_bytes) -> None:
+            def setup(
+                cpu: Any,
+                mem: Any,
+                _bytes: list[tuple[int, int]] = mem_bytes,
+                _n_bytes: int = n_bytes,
+            ) -> None:
                 cpu.w_reg(ADDR_REGS[0], base)
                 cpu.w_reg(DATA_REGS[1], 0)
-                for off in range(n_bytes * stride):
+                for off in range(_n_bytes * stride):
                     mem.w8(base + off, 0)
                 for off, b in _bytes:
                     mem.w8(base + off, b)
@@ -965,9 +970,6 @@ def _gen_chk_tests(inst: JsonDict, tmpdir: str) -> Any:
     trap_cond = inst.get("trap_condition")
     if not trap_cond:
         raise RuntimeError("CHK missing trap_condition in KB — regenerate KB")
-
-    comparison = trap_cond["comparison"]
-    lower_bound = trap_cond["lower_bound"]  # 0 per KB
 
     # CHK.W only on 68000 (KB constraints.sizes_68000 = ["w"])
     sizes_68k = inst.get("constraints", {}).get("sizes_68000")
@@ -1638,8 +1640,6 @@ def generate_sp_tests(inst: JsonDict, tmpdir: str) -> Any:
     that load CCR from memory (RTR).
     """
     mnemonic = inst["mnemonic"]
-    pc_effects = inst.get("pc_effects", {})
-    flow_type = pc_effects.get("flow", {}).get("type", "sequential")
 
     if mnemonic == "PEA":
         for asm, desc_suffix in [("pea (a0)", "ind"), ("pea 4(a0)", "disp")]:
@@ -2062,12 +2062,12 @@ def run_tests(filter_mnemonic: str | None = None, verbose: bool = False) -> bool
         for mnemonic, inst, category in cond_testable:
             if filter_mnemonic:
                 filter_up = filter_mnemonic.upper()
-                if filter_up not in (mnemonic.upper(), "SCC", "BCC", "DBCC"):
-                    # Also allow filtering by individual condition (e.g. BEQ, SNE)
-                    if not any(filter_up == f"{p}{cc.upper()}"
-                               for cc in KB_META.get("cc_test_definitions", {})
-                               for p in ("S", "B", "DB")):
-                        continue
+                if filter_up not in (mnemonic.upper(), "SCC", "BCC", "DBCC") and not any(
+                    filter_up == f"{p}{cc.upper()}"
+                    for cc in KB_META.get("cc_test_definitions", {})
+                    for p in ("S", "B", "DB")
+                ):
+                    continue
 
             for (desc, code_bytes, setup_fn,
                  verify_fn, indiv) in generate_condition_tests(mnemonic, inst, category, tmpdir):
@@ -2111,7 +2111,7 @@ def run_tests(filter_mnemonic: str | None = None, verbose: bool = False) -> bool
 
     # Summary
     print()
-    print(f"=== M68K Execution Verification Results ===")
+    print("=== M68K Execution Verification Results ===")
     print(f"Passed: {passed}/{total}  Failed: {failed}")
     print(f"CC mismatches: {cc_mismatches}  SP mismatches: {sp_mismatches}  "
           f"PC mismatches: {pc_mismatches}")

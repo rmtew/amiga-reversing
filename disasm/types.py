@@ -1,16 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from collections.abc import Sequence
-from typing import NotRequired, Protocol, TypeAlias, TypedDict
+from typing import NotRequired, Protocol, TypedDict
 
-from m68k.instruction_decode import DecodedBitfield
 from m68k.analysis import RelocatedSegment
 from m68k.indirect_core import IndirectSite
+from m68k.instruction_decode import DecodedBitfield
 from m68k.m68k_disasm import Instruction
-from m68k.os_calls import (CallArgumentAnnotation, LibraryCall, OsKb,
-                           PlatformState, TypedMemoryRegion)
+from m68k.os_calls import CallArgumentAnnotation, OsKb, PlatformState, TypedMemoryRegion
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,7 +99,7 @@ class ListingRow:
     operand_text: str = ""
     comment_parts: tuple[str, ...] = ()
     comment_text: str = ""
-    source_context: "RowSourceContext | None" = None
+    source_context: RowSourceContext | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,9 +192,9 @@ class HunkMetadata:
     reserved_absolute_addrs: set[int] = field(default_factory=set)
 
 
-InstructionRegionMap: TypeAlias = dict[int, dict[str, TypedMemoryRegion]]
-AppStructRegionMap: TypeAlias = dict[int, TypedMemoryRegion]
-HardwareBaseRegMap: TypeAlias = dict[int, dict[str, int]]
+type InstructionRegionMap = dict[int, dict[str, TypedMemoryRegion]]
+type AppStructRegionMap = dict[int, TypedMemoryRegion]
+type HardwareBaseRegMap = dict[int, dict[str, int]]
 
 
 @dataclass

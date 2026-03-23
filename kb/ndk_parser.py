@@ -13,11 +13,11 @@ Outputs:
 - knowledge/amiga_hw_symbols.json
 """
 
+import argparse
+import json
 import os
 import re
-import json
 import sys
-import argparse
 from collections import defaultdict
 from typing import Any, cast
 
@@ -491,7 +491,7 @@ def parse_synopsis(synopsis: str, arg_names: list[str], arg_regs: list[str]) -> 
                 typ += " *"
             c_type_decls.append((decl_m.group("name"), typ))
 
-    type_map = {name: typ for name, typ in c_type_decls}
+    type_map = dict(c_type_decls)
 
     # Extract arg types from C prototype
     arg_types_from_proto: list[str] = []
@@ -521,7 +521,7 @@ def parse_synopsis(synopsis: str, arg_names: list[str], arg_regs: list[str]) -> 
 
     # Build structured inputs
     inputs = cast(list[JsonDict], result["inputs"])
-    for i, (aname, areg) in enumerate(zip(arg_names, arg_regs)):
+    for i, (aname, areg) in enumerate(zip(arg_names, arg_regs, strict=True)):
         inp: JsonDict = {"name": aname, "reg": areg.upper()}
         if i < len(arg_types_from_proto):
             inp["type"] = arg_types_from_proto[i]
@@ -578,7 +578,8 @@ def _split_c_args(arg_str: str) -> list[str]:
 
 
 def _iter_c_header_statements(path: str) -> list[str]:
-    text = open(path, encoding="utf-8", errors="replace").read()
+    with open(path, encoding="utf-8", errors="replace") as f:
+        text = f.read()
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
     statements: list[str] = []
     current: list[str] = []
@@ -902,7 +903,8 @@ def parse_c_struct_field_types(include_h_dir: str) -> dict[str, dict[str, str]]:
             if not fname.upper().endswith(".H"):
                 continue
             fpath = os.path.join(dirpath, fname)
-            text = open(fpath, encoding="utf-8", errors="replace").read()
+            with open(fpath, encoding="utf-8", errors="replace") as f:
+                text = f.read()
             text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
             current_struct: str | None = None
             brace_depth = 0
@@ -1125,7 +1127,7 @@ def parse_asm_include(path: str, type_sizes: dict[str, int], all_constants: dict
             line = line.rstrip()
             stripped = line.strip()
 
-            if stripped.startswith(";") or stripped.startswith("*"):
+            if stripped.startswith((";", "*")):
                 comment_lines.append(stripped.lstrip(";*").strip())
                 continue
             if not stripped:
@@ -1247,11 +1249,13 @@ def parse_asm_include(path: str, type_sizes: dict[str, int], all_constants: dict
                 # End of struct detection: non-empty, non-comment line that's
                 # not a recognized struct directive -> end the struct
                 stripped = line.strip()
-                if stripped and not stripped.startswith("*") and not stripped.startswith(";"):
-                    # But allow blank lines and comments within structs
-                    # Check if this line could be part of struct (EQU inside struct, etc.)
-                    if not re.match(r'\s+(DS|CNOP)', line):
-                        finish_struct()
+                if (
+                    stripped
+                    and not stripped.startswith("*")
+                    and not stripped.startswith(";")
+                    and not re.match(r"\s+(DS|CNOP)", line)
+                ):
+                    finish_struct()
 
             # EQU constants
             cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
@@ -1299,7 +1303,7 @@ def annotate_embedded_structs(structs: dict[str, JsonDict]) -> None:
     """Resolve embedded struct references and struct-prefix slices."""
     symbol_to_slice = _build_size_symbol_to_slice(structs)
 
-    for struct_name, struct_def in structs.items():
+    for _struct_name, struct_def in structs.items():
         base_offset_symbol = struct_def.get("base_offset_symbol")
         if base_offset_symbol:
             base_slice = symbol_to_slice.get(base_offset_symbol)
@@ -1426,17 +1430,17 @@ def resolve_constant_value(expr: str, all_constants: dict[str, object], depth: i
             if lval is not None and rval is not None:
                 if op_str == '|':
                     return lval | rval
-                elif op_str == '&':
+                if op_str == '&':
                     return lval & rval
-                elif op_str == '<<':
+                if op_str == '<<':
                     return (lval << rval) & 0xFFFFFFFF
-                elif op_str == '>>':
+                if op_str == '>>':
                     return lval >> rval
-                elif op_str == '+':
+                if op_str == '+':
                     return lval + rval
-                elif op_str == '-':
+                if op_str == '-':
                     return lval - rval
-                elif op_str == '*':
+                if op_str == '*':
                     return lval * rval
             return None
 
@@ -1493,7 +1497,7 @@ def evaluate_all_constants(raw_constants: dict[str, object]) -> dict[str, JsonDi
     # Multiple passes to resolve dependencies
     for _ in range(10):
         changed = False
-        for name, entry in result.items():
+        for _name, entry in result.items():
             if entry["value"] is not None:
                 continue
             val = resolve_constant_value(cast(str, entry["raw"]), cast(dict[str, object], result))
@@ -1803,10 +1807,7 @@ def main() -> None:
                                     eoffset = int(base_str)
                                 except ValueError:
                                     hm = re.match(r'^\$([0-9a-fA-F]+)$', base_str)
-                                    if hm:
-                                        eoffset = int(hm.group(1), 16)
-                                    else:
-                                        eoffset = 0
+                                    eoffset = int(hm.group(1), 16) if hm else 0
                             else:
                                 eoffset = 0
                             continue
@@ -2076,7 +2077,7 @@ def main() -> None:
             if fd_func["args"]:
                 entry["inputs"] = [
                     {"name": a, "reg": r}
-                    for a, r in zip(fd_func["args"], fd_func["regs"])
+                    for a, r in zip(fd_func["args"], fd_func["regs"], strict=True)
                 ]
 
             # Enrich from autodoc
@@ -2150,9 +2151,7 @@ def main() -> None:
                 is_alloc_return = False
                 if func_name.startswith("Alloc") and out_type in (
                         "void *", "APTR", "UBYTE *", "BYTE *",
-                        "struct MemList *"):
-                    is_alloc_return = True
-                elif ("memory" in out_name.lower()
+                        "struct MemList *") or ("memory" in out_name.lower()
                       or "block" in out_name.lower()) and out_type in (
                         "void *", "APTR"):
                     is_alloc_return = True
@@ -2224,7 +2223,7 @@ def main() -> None:
         sorted_names = sorted(resolved_consts, key=len, reverse=True)
         batch_size = 500
         # Scan all autodocs for constant references
-        for lib_name, lib_autodocs in autodoc_data.items():
+        for _lib_name, lib_autodocs in autodoc_data.items():
             for func_name, doc in lib_autodocs.items():
                 text_parts = []
                 for key in ("description", "inputs_text", "results_text",

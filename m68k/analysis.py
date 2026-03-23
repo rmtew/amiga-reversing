@@ -11,37 +11,49 @@ from __future__ import annotations
 
 import pickle
 import struct
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Protocol, TypedDict, TypeAlias
+from typing import TYPE_CHECKING, Protocol, TypedDict
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
-from .hunk_parser import parse_file, HunkType, _HUNK_KB
+from . import indirect_core
 from .abstract_values import AbstractValue, _concrete
+from .hunk_parser import _HUNK_KB, HunkType
+from .indirect_analysis import (
+    IndirectResolution,
+    resolve_backward_slice,
+    resolve_indirect_targets,
+    resolve_per_caller,
+)
+from .instruction_decode import decode_inst_destination, decode_inst_operands
+from .instruction_kb import instruction_flow, instruction_kb
+from .jump_tables import JumpTable, JumpTablePattern, detect_jump_tables
 from .m68k_executor import (
-    analyze,
-    AnalysisResult,
     AbstractMemory,
+    AnalysisResult,
     BasicBlock,
     CPUState,
     StatePair,
     XRef,
+    analyze,
 )
-from .jump_tables import detect_jump_tables, JumpTable, JumpTablePattern
-from .indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
-                                resolve_backward_slice, IndirectResolution)
-from . import indirect_core
-from .os_calls import (get_platform_config, PlatformState,
-                       AppBaseInfo, AppBaseKind, identify_library_calls,
-                       refine_opened_base_calls, analyze_call_setups,
-                       _SENTINEL_ALLOC_BASE, RUNTIME_OS_KB,
-                       LibraryCall, OsKb)
+from .os_calls import (
+    _SENTINEL_ALLOC_BASE,
+    RUNTIME_OS_KB,
+    AppBaseInfo,
+    AppBaseKind,
+    LibraryCall,
+    OsKb,
+    PlatformState,
+    analyze_call_setups,
+    get_platform_config,
+    identify_library_calls,
+    refine_opened_base_calls,
+)
 from .subroutine_scan import scan_and_score
-from .instruction_kb import instruction_flow, instruction_kb
-from .instruction_decode import decode_inst_destination, decode_inst_operands
 
 if TYPE_CHECKING:
     from .m68k_disasm import Instruction
@@ -63,8 +75,8 @@ class RelocInfo(TypedDict):
     mode: object
 
 
-PrintFn: TypeAlias = Callable[[str], None]
-CachePayload: TypeAlias = tuple[int, "HunkAnalysis"]
+type PrintFn = Callable[[str], None]
+type CachePayload = tuple[int, "HunkAnalysis"]
 
 
 # -- Relocation helpers ---------------------------------------------------
@@ -138,7 +150,7 @@ class RelocReference:
     offsets: tuple[int, ...]
 
 
-ExitState: TypeAlias = StatePair
+type ExitState = StatePair
 
 
 @dataclass
@@ -771,7 +783,6 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
         # Store pass: scan exit states for concrete stores to app memory
         if platform.app_base is None:
             break
-        breg_num = platform.app_base.reg_num
         breg_val = platform.app_base.concrete
         platform_init_mem: AbstractMemory | None = platform.initial_mem
         if platform_init_mem is None:
@@ -780,7 +791,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
         new_stores = 0
         if result is None:
             assert result is not None, "Core analysis result missing before store pass"
-        for addr, (cpu, mem) in result.get("exit_states", {}).items():
+        for _addr, (_cpu, mem) in result.get("exit_states", {}).items():
             for mem_addr, val in mem._bytes.items():
                 if not (alloc_base <= mem_addr < alloc_limit):
                     continue

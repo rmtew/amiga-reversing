@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import struct
 
-from m68k_kb import runtime_m68k_analysis
-from m68k_kb import runtime_m68k_decode
-
 from disasm.decode import decode_instruction_for_emit, lookup_instruction_kb
 from m68k.instruction_kb import instruction_kb
-from m68k.m68k_disasm import Instruction
 from m68k.instruction_primitives import extract_branch_target
+from m68k.m68k_disasm import Instruction
+from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
 
 def is_valid_encoding(raw: bytes, offset: int,
@@ -32,13 +30,11 @@ def is_valid_encoding(raw: bytes, offset: int,
         elif src_modes:
             if ea_op.mode not in src_modes:
                 return False
-        elif dst_modes:
-            if ea_op.mode not in dst_modes:
-                return False
-
-    if dst_op and dst_op.mode and dst_modes:
-        if dst_op.mode not in dst_modes:
+        elif dst_modes and ea_op.mode not in dst_modes:
             return False
+
+    if dst_op and dst_op.mode and dst_modes and dst_op.mode not in dst_modes:
+        return False
 
     an_sizes = runtime_m68k_analysis.AN_SIZES.get(mnemonic)
     if an_sizes and sz:

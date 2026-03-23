@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 """Load cached or fresh hunk analysis for disassembly sessions."""
 
 from collections.abc import Sequence
 from pathlib import Path
 
-from m68k_kb import runtime_os
 from m68k.analysis import AnalysisCacheError, HunkAnalysis, RelocLike, analyze_hunk
+from m68k_kb import runtime_os
 
 
 def analysis_cache_is_current(binary_path: str | Path) -> bool:

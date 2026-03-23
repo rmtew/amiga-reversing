@@ -12,28 +12,27 @@ Usage:
     python build_entities.py <binary_path> --output entities.jsonl
 """
 
-import json
-import struct
-import sys
 import argparse
+import json
+import sys
+from collections import defaultdict
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
-from collections import defaultdict
-from typing import Any, MutableMapping, cast
+from typing import Any, cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from m68k_kb import runtime_m68k_decode
-from m68k.hunk_parser import parse_file, HunkType
+from m68k.analysis import _RELOC_INFO, analyze_hunk, resolve_reloc_target
+from m68k.hunk_parser import HunkType, parse_file
+from m68k.indirect_core import IndirectSite
 from m68k.instruction_decode import decode_inst_operands
 from m68k.instruction_kb import instruction_kb
 from m68k.instruction_primitives import Operand
 from m68k.m68k_executor import BasicBlock, XRef
-from m68k.analysis import analyze_hunk, resolve_reloc_target, _RELOC_INFO
 from m68k.name_entities import name_subroutines
-from m68k.indirect_core import IndirectSite
 from m68k.os_calls import AppSlotInfo, build_app_slot_infos
-
+from m68k_kb import runtime_m68k_decode
 
 PROJECT_ROOT = Path(__file__).parent.parent
 JsonDict = dict[str, Any]
@@ -173,10 +172,7 @@ def build_reloc_references(hunks: list[Any], code_size: int,
     sub_ranges = [(s.addr, s.end) for s in subroutines]
 
     def in_known_sub(addr: int) -> bool:
-        for start, end in sub_ranges:
-            if start <= addr < end:
-                return True
-        return False
+        return any(start <= addr < end for start, end in sub_ranges)
 
     data_refs: list[JsonDict] = []
     for hunk in hunks:
@@ -188,14 +184,13 @@ def build_reloc_references(hunks: list[Any], code_size: int,
                 continue
             for offset in reloc.offsets:
                 target = resolve_reloc_target(reloc, offset, hunk.data)
-                if target is not None and 0 <= target < code_size:
-                    if not in_known_sub(target):
-                        data_refs.append({
-                            "addr": target,
-                            "offset": offset,
-                            "hunk": hunk.index,
-                            "ptr_size": info["bytes"],
-                        })
+                if target is not None and 0 <= target < code_size and not in_known_sub(target):
+                    data_refs.append({
+                        "addr": target,
+                        "offset": offset,
+                        "hunk": hunk.index,
+                        "ptr_size": info["bytes"],
+                    })
 
     # Deduplicate by target address
     seen: set[int] = set()
@@ -524,7 +519,6 @@ def build_entities(binary_path: str, output_path: str | None = None,
         blocks = ha.blocks
         xrefs = ha.xrefs
         call_targets = ha.call_targets
-        exit_states = ha.exit_states
         hint_blocks = ha.hint_blocks
         hint_reasons = ha.hint_reasons
         lib_calls = ha.lib_calls
@@ -583,8 +577,7 @@ def build_entities(binary_path: str, output_path: str | None = None,
             # Add OS library calls made by this subroutine
             if addr in lib_call_map:
                 calls = lib_call_map[addr]
-                ent["os_calls"] = sorted(set(
-                    f"{c.library}/{c.function}" for c in calls))
+                ent["os_calls"] = sorted({f"{c.library}/{c.function}" for c in calls})
                 # Collect typed register annotations from KB
                 typed_calls: list[JsonDict] = []
                 for c in calls:
@@ -662,10 +655,11 @@ def build_entities(binary_path: str, output_path: str | None = None,
                 # that falls within this region's address range.
                 best_reason = None
                 for hint_entry_addr, reason in hint_reasons.items():
-                    if region["addr"] <= hint_entry_addr < region["end"]:
-                        if (best_reason is None
-                                or reason.source == "reloc_from_core"):
-                            best_reason = reason
+                    if (
+                        region["addr"] <= hint_entry_addr < region["end"]
+                        and (best_reason is None or reason.source == "reloc_from_core")
+                    ):
+                        best_reason = reason
                 if best_reason:
                     hint_ent["hint_source"] = best_reason.source
                     if best_reason.referenced_from:
@@ -753,7 +747,6 @@ def build_entities(binary_path: str, output_path: str | None = None,
     print(f"  Gaps: {gap_count} unmapped regions")
 
     total_calls = sum(len(e.get("calls", [])) for e in all_entities)
-    total_called_by = sum(len(e.get("called_by", [])) for e in all_entities)
     print(f"  Xrefs: {total_calls} calls")
 
     return 0

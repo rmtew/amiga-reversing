@@ -19,30 +19,40 @@ GenAm patterns modelled:
 
 import struct
 from collections.abc import Sequence
-from typing import Any, TypedDict, TypeAlias, cast
+from typing import Any, TypedDict, cast
+
 from _pytest.monkeypatch import MonkeyPatch
-from m68k.abstract_values import _concrete, _unknown
+
+from m68k.abstract_values import _concrete
+from m68k.indirect_analysis import (
+    IndirectResolution,
+    collect_call_entry_states,
+    resolve_backward_slice,
+    resolve_indirect_targets,
+    resolve_per_caller,
+)
 from m68k.instruction_kb import instruction_kb
-from m68k.m68k_executor import analyze, CPUState, AbstractMemory, BasicBlock, CallSummary, XRef
-from m68k.jump_tables import detect_jump_tables, _scan_inline_dispatch, _is_indexed_ea
-from m68k.indirect_analysis import (collect_call_entry_states,
-                                    resolve_indirect_targets, resolve_per_caller,
-                                    IndirectResolution,
-                                    resolve_backward_slice)
-from m68k.indirect_core import decode_jump_ea
+from m68k.jump_tables import _is_indexed_ea, _scan_inline_dispatch, detect_jump_tables
 from m68k.m68k_asm import assemble_instruction
-from m68k.m68k_disasm import disassemble, Instruction
+from m68k.m68k_disasm import Instruction, disassemble
+from m68k.m68k_executor import (
+    AbstractMemory,
+    BasicBlock,
+    CallSummary,
+    CPUState,
+    XRef,
+    analyze,
+)
 from m68k.os_calls import PlatformState
 from tests.platform_helpers import make_platform
-
 
 # ---- Helpers ----------------------------------------------------------------
 
 # Minimal platform config enabling SP tracking (symbolic SP at entry).
 # All propagation-based tests need this for BSR/JSR stack tracking.
 _MINIMAL_PLATFORM = make_platform(scratch_regs=())
-AssemblySpec: TypeAlias = tuple[str, str | bytes]
-ResolvedEntry: TypeAlias = dict[str, object] | IndirectResolution
+type AssemblySpec = tuple[str, str | bytes]
+type ResolvedEntry = dict[str, object] | IndirectResolution
 
 
 class JumpTableEntryView(TypedDict):
@@ -99,10 +109,10 @@ def _analyze_and_resolve(
 
 def _resolved_targets(resolved: list[ResolvedEntry]) -> list[int]:
     """Extract sorted unique target addresses from resolution results."""
-    return sorted(set(
+    return sorted({
         cast(int, r["target"]) if isinstance(r, dict) else r.target
         for r in resolved
-    ))
+    })
 
 
 def _jump_table_view(table: Any) -> JumpTableView:
@@ -142,7 +152,7 @@ def _assemble_with_labels(specs: Sequence[tuple[str, object]]) -> tuple[bytes, d
         if "{table_disp}" in text or "{end_disp}" in text or "{bound_disp}" in text:
             text = text.format(table_disp=0, end_disp=0, bound_disp=0)
         elif "{" in text:
-            text = text.format(**{name: 0 for name in all_labels})
+            text = text.format(**dict.fromkeys(all_labels, 0))
         pc += len(assemble_instruction(text, pc=pc))
 
     code = bytearray()
@@ -3718,7 +3728,6 @@ def test_backward_slice_skips_call_predecessor() -> None:
     code += struct.pack('>H', 0x4E75)                    # [0x0c] rts
 
     blocks, exit_states, resolved = _analyze_and_resolve(code)
-    targets = _resolved_targets(resolved)
     # Per-caller resolves sub's RTS -> $04 (correct).
     # Backward slice must NOT produce $04 again from the BSR predecessor.
     # Count how many times $04 appears in resolved results.

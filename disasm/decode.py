@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Protocol
 
-from m68k.instruction_kb import find_kb_entry
 from m68k.instruction_decode import DecodedOperands, decode_inst_operands
+from m68k.instruction_kb import find_kb_entry
 
 _INSTRUCTION_KB_CACHE: dict[str, str | None] = {}
 

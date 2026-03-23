@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from .constant_evaluator import SizedInstructionLike
 from . import constant_evaluator
+from .constant_evaluator import SizedInstructionLike
 
 
 def _resolve_block_constant_reg(instructions: Sequence[SizedInstructionLike], reg_mode: str, reg_num: int,

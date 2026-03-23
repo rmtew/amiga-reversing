@@ -1,12 +1,9 @@
 from __future__ import annotations
+
 """Hunk preparation helpers for disassembly session assembly."""
 
 from collections.abc import Mapping
 from pathlib import Path
-
-from m68k.analysis import RelocatedSegment
-from m68k.indirect_core import IndirectSite
-from m68k.os_calls import CallArgumentAnnotation, OsKb, PlatformState, TypedMemoryRegion
 
 from disasm.types import (
     DisasmBlockLike,
@@ -15,6 +12,9 @@ from disasm.types import (
     HunkDisassemblySession,
     JumpTableRegion,
 )
+from m68k.analysis import RelocatedSegment
+from m68k.indirect_core import IndirectSite
+from m68k.os_calls import CallArgumentAnnotation, OsKb, PlatformState, TypedMemoryRegion
 
 
 def prepare_hunk_code(code: bytes, relocated_segments: list[RelocatedSegment]
