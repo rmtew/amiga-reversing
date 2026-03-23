@@ -119,6 +119,7 @@ files = [
     "scripts/parse_iff_specs.py",
     "scripts/parse_m68k.py",
     "scripts/parse_ndk.py",
+    "scripts/precommit.py",
     "scripts/update_progress.py",
     "scripts/validate.py",
     "disasm/types.py",
