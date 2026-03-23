@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 from pathlib import Path
+
+from pytest import MonkeyPatch
 
 from scripts.benchmark_target import (
     _benchmark_record,
@@ -7,7 +11,10 @@ from scripts.benchmark_target import (
 )
 
 
-def test_benchmark_record_uses_relative_paths_and_sizes(tmp_path, monkeypatch):
+def test_benchmark_record_uses_relative_paths_and_sizes(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
     root = Path.cwd()
     binary = root / "bin" / "Example"
     analysis = tmp_path / "Example.analysis"

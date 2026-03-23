@@ -14,14 +14,16 @@ import sys
 import os
 from pathlib import Path
 from collections import defaultdict
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).parent.parent
 BIN_DIR = PROJECT_ROOT / "bin"
+EntityRecord = dict[str, Any]
 
 
-def load_entities(entities_file):
+def load_entities(entities_file: Path) -> list[EntityRecord]:
     """Load all entities from JSONL file."""
-    entities = []
+    entities: list[EntityRecord] = []
     if not entities_file.exists():
         return entities
     with open(entities_file) as f:
@@ -36,7 +38,7 @@ def load_entities(entities_file):
     return entities
 
 
-def parse_addr(addr):
+def parse_addr(addr: object) -> int | None:
     """Parse an address string like '0x0400' to int."""
     if isinstance(addr, int):
         return addr
@@ -45,7 +47,7 @@ def parse_addr(addr):
     return None
 
 
-def check_entity_consistency(entities):
+def check_entity_consistency(entities: list[EntityRecord]) -> int:
     """Check for overlaps, gaps, and required fields."""
     print("\n== Entity Consistency ==")
     errors = 0
@@ -84,11 +86,13 @@ def check_entity_consistency(entities):
     # Check for overlaps
     sorted_ents = sorted(
         [e for e in entities if "addr" in e and "end" in e],
-        key=lambda e: parse_addr(e["addr"])
+        key=lambda e: parse_addr(e["addr"]) or 0
     )
     for i in range(len(sorted_ents) - 1):
         curr_end = parse_addr(sorted_ents[i]["end"])
         next_start = parse_addr(sorted_ents[i + 1]["addr"])
+        if curr_end is None or next_start is None:
+            continue
         if curr_end > next_start:
             print(f"  ERROR: Overlap between entity at {sorted_ents[i]['addr']} "
                   f"(ends {sorted_ents[i]['end']}) and {sorted_ents[i+1]['addr']}")
@@ -98,15 +102,17 @@ def check_entity_consistency(entities):
     return errors
 
 
-def check_cross_references(entities):
+def check_cross_references(entities: list[EntityRecord]) -> int:
     """Verify all cross-references point to valid entities."""
     print("\n== Cross-Reference Integrity ==")
     errors = 0
 
-    known_addrs = set()
+    known_addrs: set[int] = set()
     for ent in entities:
         if "addr" in ent:
-            known_addrs.add(parse_addr(ent["addr"]))
+            addr = parse_addr(ent["addr"])
+            if addr is not None:
+                known_addrs.add(addr)
 
     ref_fields = ["calls", "called_by", "reads", "read_by", "writes", "written_by"]
 
@@ -124,7 +130,7 @@ def check_cross_references(entities):
     return errors
 
 
-def check_data_types(entities):
+def check_data_types(entities: list[EntityRecord]) -> int:
     """Type-specific validation for data entities."""
     print("\n== Data Type Validation ==")
     errors = 0
@@ -136,6 +142,8 @@ def check_data_types(entities):
         addr = ent.get("addr", "?")
         start = parse_addr(ent.get("addr", 0))
         end = parse_addr(ent.get("end", 0))
+        if start is None or end is None:
+            continue
         size = end - start
 
         subtype = ent["subtype"]
@@ -162,7 +170,7 @@ def check_data_types(entities):
     return errors
 
 
-def compute_coverage(entities, binary_size=None):
+def compute_coverage(entities: list[EntityRecord], binary_size: int | None = None) -> None:
     """Compute and display coverage statistics."""
     print("\n== Coverage ==")
 
@@ -176,12 +184,14 @@ def compute_coverage(entities, binary_size=None):
     documented_count = 0
     verified_count = 0
 
-    type_counts = defaultdict(int)
-    subtype_counts = defaultdict(int)
+    type_counts: defaultdict[str, int] = defaultdict(int)
+    subtype_counts: defaultdict[str, int] = defaultdict(int)
 
     for ent in entities:
         start = parse_addr(ent.get("addr", 0))
         end = parse_addr(ent.get("end", 0))
+        if start is None or end is None:
+            continue
         size = end - start
         total_bytes += size
 
@@ -216,7 +226,7 @@ def compute_coverage(entities, binary_size=None):
     print(f"  Verified: {verified_count}/{len(entities)}")
 
 
-def main():
+def main() -> int:
     import argparse
     parser = argparse.ArgumentParser(description="Validate entities.jsonl")
     parser.add_argument("--target-dir", "-t", default=".",

@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import json
+from pathlib import Path
 
-from disasm.annotations import get_entity, patch_entity
+from disasm.annotations import AnnotationPatchInput, get_entity, patch_entity
 
 
-def test_get_entity_merges_overrides(tmp_path):
+def test_get_entity_merges_overrides(tmp_path: Path) -> None:
     project_root = tmp_path
     target_dir = project_root / "targets" / "demo"
     bin_dir = project_root / "bin"
@@ -27,7 +30,7 @@ def test_get_entity_merges_overrides(tmp_path):
     assert entity["comment"] == "hello"
 
 
-def test_patch_entity_persists_name_comment_and_metadata(tmp_path):
+def test_patch_entity_persists_name_comment_and_metadata(tmp_path: Path) -> None:
     project_root = tmp_path
     target_dir = project_root / "targets" / "demo"
     bin_dir = project_root / "bin"
@@ -41,15 +44,17 @@ def test_patch_entity_persists_name_comment_and_metadata(tmp_path):
     (target_dir / "Demo.s").write_text("; output\n", encoding="utf-8")
     (bin_dir / "Demo").write_bytes(b"\x4e\x75")
 
+    patch = AnnotationPatchInput({
+        "name": "main",
+        "comment": "top entry",
+        "type": "data",
+        "subtype": "string",
+        "confidence": "verified",
+    })
+
     updated = patch_entity(
         "demo", "0x0000",
-        {
-            "name": "main",
-            "comment": "top entry",
-            "type": "data",
-            "subtype": "string",
-            "confidence": "verified",
-        },
+        patch,
         project_root=project_root)
 
     assert updated["name"] == "main"
@@ -62,7 +67,7 @@ def test_patch_entity_persists_name_comment_and_metadata(tmp_path):
     assert saved["entities"]["0x0000"]["type"] == "data"
 
 
-def test_patch_entity_rejects_unknown_fields(tmp_path):
+def test_patch_entity_rejects_unknown_fields(tmp_path: Path) -> None:
     project_root = tmp_path
     target_dir = project_root / "targets" / "demo"
     bin_dir = project_root / "bin"
@@ -77,14 +82,15 @@ def test_patch_entity_rejects_unknown_fields(tmp_path):
     (bin_dir / "Demo").write_bytes(b"\x4e\x75")
 
     try:
-        patch_entity("demo", "0x0000", {"unsupported": "value"}, project_root=project_root)
+        patch = AnnotationPatchInput({"unsupported": "value"})
+        patch_entity("demo", "0x0000", patch, project_root=project_root)
     except ValueError as exc:
         assert "Unsupported annotation fields" in str(exc)
     else:
         raise AssertionError("expected unsupported field error")
 
 
-def test_patch_entity_rejects_invalid_subtype_value(tmp_path):
+def test_patch_entity_rejects_invalid_subtype_value(tmp_path: Path) -> None:
     project_root = tmp_path
     target_dir = project_root / "targets" / "demo"
     bin_dir = project_root / "bin"
@@ -99,7 +105,8 @@ def test_patch_entity_rejects_invalid_subtype_value(tmp_path):
     (bin_dir / "Demo").write_bytes(b"\x4e\x75")
 
     try:
-        patch_entity("demo", "0x0000", {"subtype": "bad-subtype"}, project_root=project_root)
+        patch = AnnotationPatchInput({"subtype": "bad-subtype"})
+        patch_entity("demo", "0x0000", patch, project_root=project_root)
     except ValueError as exc:
         assert "Unsupported subtype" in str(exc)
     else:

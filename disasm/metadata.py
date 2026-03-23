@@ -1,17 +1,31 @@
 from __future__ import annotations
 """Assemble analysis-derived hunk metadata for disassembly sessions."""
 
+from collections.abc import Mapping
 from collections import defaultdict
+from typing import Protocol
 
 from disasm.discovery import (add_hint_labels, build_label_map,
                               build_reloc_map, discover_absolute_targets,
                               discover_pc_relative_targets,
                               filter_internal_absolute_data_targets)
-from disasm.types import HunkMetadata, JumpTableEntryRef, JumpTableRegion
+from disasm.types import DisasmBlockLike, EntityRecord, HunkMetadata, JumpTableEntryRef, JumpTableRegion
+from m68k.hunk_parser import Hunk
+from m68k.jump_tables import JumpTable
+
+
+class HunkAnalysisLike(Protocol):
+    blocks: Mapping[int, DisasmBlockLike]
+    hint_blocks: Mapping[int, DisasmBlockLike]
+    jump_tables: list[JumpTable]
+    call_targets: set[int]
+    branch_targets: set[int]
 
 
 def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
-                        hunk_entities: list[dict], ha, hf_hunks: list,
+                        hunk_entities: list[EntityRecord],
+                        ha: HunkAnalysisLike,
+                        hf_hunks: list[Hunk],
                         typed_string_ranges: dict[int, int] | None = None,
                         reserved_absolute_addrs: set[int] | None = None,
                         absolute_labels: dict[int, str] | None = None) -> HunkMetadata:
@@ -69,8 +83,8 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
     generic_data_label_addrs = set(internal_absolute_data_targets)
     generic_data_label_addrs.update(pc_targets)
 
-    jump_table_regions = {}
-    jump_table_target_sources = defaultdict(list)
+    jump_table_regions: dict[int, JumpTableRegion] = {}
+    jump_table_target_sources: defaultdict[int, list[str]] = defaultdict(list)
     for table in jt_list:
         table_addr = table.addr
         if table.pattern == "pc_inline_dispatch":
@@ -98,41 +112,41 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
 
     labels = build_label_map(
         hunk_entities,
-        {target: None for target in internal_targets},
+        internal_targets,
         reloc_target_set,
         internal_absolute_data_targets,
         pc_targets,
     )
-    for table_addr, table in jump_table_regions.items():
-        if table.pattern == "pc_inline_dispatch":
-            for target in table.targets:
+    for table_addr, region in jump_table_regions.items():
+        if region.pattern == "pc_inline_dispatch":
+            for target in region.targets:
                 if target not in labels:
                     labels[target] = f"loc_{target:04x}"
             continue
         if table_addr not in labels:
             labels[table_addr] = f"jt_{table_addr:04x}"
-        base = table.base_addr
+        base = region.base_addr
         if base is not None and base not in labels:
             labels[base] = f"loc_{base:04x}"
-        for entry in table.entries:
+        for entry in region.entries:
             if entry.target not in labels:
                 labels[entry.target] = f"loc_{entry.target:04x}"
 
-    for table_addr, table in jump_table_regions.items():
-        if table.pattern == "pc_inline_dispatch":
+    for table_addr, region in jump_table_regions.items():
+        if region.pattern == "pc_inline_dispatch":
             continue
-        base = table.base_addr
+        base = region.base_addr
         base_label = labels[base] if base is not None else None
         jump_table_regions[table_addr] = JumpTableRegion(
-            pattern=table.pattern,
-            table_end=table.table_end,
-            entries=table.entries,
-            targets=table.targets,
-            base_addr=table.base_addr,
+            pattern=region.pattern,
+            table_end=region.table_end,
+            entries=region.entries,
+            targets=region.targets,
+            base_addr=region.base_addr,
             base_label=base_label,
         )
         source = base_label or labels[table_addr]
-        for entry in table.entries:
+        for entry in region.entries:
             if source not in jump_table_target_sources[entry.target]:
                 jump_table_target_sources[entry.target].append(source)
 

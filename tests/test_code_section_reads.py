@@ -14,15 +14,17 @@ Examples:
     move.w (a0),d0      ; reads word offset from code -> d0 = concrete
     jsr 0(a0,d0.w)      ; resolved: a0 + d0 = handler addr
 """
+from __future__ import annotations
+
 import struct
 
 
-def _assemble(*words):
+def _assemble(*words: int) -> bytes:
     """Pack 16-bit words into bytes."""
     return struct.pack(">" + "H" * len(words), *words)
 
 
-def test_resolve_jsr_through_longword_pointer():
+def test_resolve_jsr_through_longword_pointer() -> None:
     """jsr (a0) where a0 was loaded from a longword in the code section."""
     from m68k.m68k_executor import analyze
     from m68k.indirect_analysis import resolve_indirect_targets
@@ -44,11 +46,11 @@ def test_resolve_jsr_through_longword_pointer():
     # Handler at 0x0040: moveq #1,d0; rts
     code[0x40:0x44] = _assemble(0x7001, 0x4E75)
 
-    code = bytes(code)
-    result = analyze(code, base_addr=0, entry_points=[0], propagate=True)
+    code_bytes = bytes(code)
+    result = analyze(code_bytes, base_addr=0, entry_points=[0], propagate=True)
 
     resolved = resolve_indirect_targets(
-        result["blocks"], result.get("exit_states", {}), len(code))
+        result["blocks"], result.get("exit_states", {}), len(code_bytes))
 
     targets = {r.target for r in resolved}
     assert 0x0040 in targets, (
@@ -56,7 +58,7 @@ def test_resolve_jsr_through_longword_pointer():
         f"{[hex(t) for t in targets]}")
 
 
-def test_resolve_jsr_through_pointer_table():
+def test_resolve_jsr_through_pointer_table() -> None:
     """jsr (a1) where a1 loaded from a table of longword pointers."""
     from m68k.m68k_executor import analyze
     from m68k.indirect_analysis import resolve_indirect_targets
@@ -84,11 +86,11 @@ def test_resolve_jsr_through_pointer_table():
     code[0x60:0x64] = _assemble(0x7001, 0x4E75)  # moveq #1,d0; rts
     code[0x70:0x74] = _assemble(0x7002, 0x4E75)  # moveq #2,d0; rts
 
-    code = bytes(code)
-    result = analyze(code, base_addr=0, entry_points=[0], propagate=True)
+    code_bytes = bytes(code)
+    result = analyze(code_bytes, base_addr=0, entry_points=[0], propagate=True)
 
     resolved = resolve_indirect_targets(
-        result["blocks"], result.get("exit_states", {}), len(code))
+        result["blocks"], result.get("exit_states", {}), len(code_bytes))
 
     targets = {r.target for r in resolved}
     assert 0x0060 in targets, (
@@ -99,7 +101,7 @@ def test_resolve_jsr_through_pointer_table():
         f"{[hex(t) for t in targets]}")
 
 
-def test_handler_becomes_block():
+def test_handler_becomes_block() -> None:
     """Resolved handler should become a block when fed back as entry point."""
     from m68k.m68k_executor import analyze
     from m68k.indirect_analysis import resolve_indirect_targets
@@ -113,16 +115,16 @@ def test_handler_becomes_block():
     code[0x08:0x0A] = _assemble(0x4E75)
     struct.pack_into(">I", code, 0x0020, 0x00000040)
     code[0x40:0x44] = _assemble(0x7001, 0x4E75)
-    code = bytes(code)
+    code_bytes = bytes(code)
 
     # First pass
-    result = analyze(code, base_addr=0, entry_points=[0], propagate=True)
+    result = analyze(code_bytes, base_addr=0, entry_points=[0], propagate=True)
     resolved = resolve_indirect_targets(
-        result["blocks"], result.get("exit_states", {}), len(code))
+        result["blocks"], result.get("exit_states", {}), len(code_bytes))
 
     # Feed resolved targets as entry points
     entries = {0} | {r.target for r in resolved}
-    result2 = analyze(code, base_addr=0,
+    result2 = analyze(code_bytes, base_addr=0,
                       entry_points=sorted(entries), propagate=True)
 
     assert 0x0040 in result2["blocks"], (

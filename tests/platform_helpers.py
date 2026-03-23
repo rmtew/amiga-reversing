@@ -1,8 +1,28 @@
-from m68k.os_calls import AppBaseInfo, AppBaseKind, PlatformState, get_platform_config
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from m68k.os_calls import (
+    AppBaseInfo,
+    AppBaseKind,
+    CallEffect,
+    PlatformState,
+    ScratchReg,
+    get_platform_config,
+)
+
+if TYPE_CHECKING:
+    from m68k.m68k_executor import AbstractMemory, CallSummary
 
 
-def make_platform(*, scratch_regs=None, app_base=None, initial_mem=None,
-                  pending_call_effect=None, summary_cache=None) -> PlatformState:
+def make_platform(
+    *,
+    scratch_regs: tuple[ScratchReg, ...] | None = None,
+    app_base: AppBaseInfo | tuple[int, int] | None = None,
+    initial_mem: AbstractMemory | None = None,
+    pending_call_effect: CallEffect | None = None,
+    summary_cache: dict[int, CallSummary | None] | None = None,
+) -> PlatformState:
     platform = get_platform_config()
     if scratch_regs is not None:
         platform.scratch_regs = tuple(scratch_regs)

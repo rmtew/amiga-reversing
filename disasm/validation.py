@@ -7,6 +7,7 @@ from m68k_kb import runtime_m68k_decode
 
 from disasm.decode import decode_instruction_for_emit, lookup_instruction_kb
 from m68k.instruction_kb import instruction_kb
+from m68k.m68k_disasm import Instruction
 from m68k.instruction_primitives import extract_branch_target
 
 
@@ -54,7 +55,7 @@ def is_valid_encoding(raw: bytes, offset: int,
     return True
 
 
-def has_valid_branch_target(inst) -> bool:
+def has_valid_branch_target(inst: Instruction) -> bool:
     """Check if branch/jump target is word-aligned."""
     if not inst.kb_mnemonic:
         raise ValueError(
@@ -72,9 +73,9 @@ def has_valid_branch_target(inst) -> bool:
         return False
     if target is None:
         return True
-    return target % runtime_m68k_decode.OPWORD_BYTES == 0
+    return target % int(runtime_m68k_decode.OPWORD_BYTES) == 0
 
-def get_instruction_processor_min(inst) -> str:
+def get_instruction_processor_min(inst: Instruction) -> str:
     """Get minimum processor for a decoded instruction."""
     pmin = runtime_m68k_analysis.PROCESSOR_MINS.get((inst.kb_mnemonic or "").lower(), "68000")
     if str(pmin) != "68000":

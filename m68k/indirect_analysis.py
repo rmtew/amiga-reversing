@@ -1,7 +1,11 @@
 """Shared KB-driven indirect target analysis for M68K code."""
 
+from __future__ import annotations
+
 import copy
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import TypeAlias
 
 from m68k_kb import runtime_m68k_analysis
 
@@ -9,9 +13,11 @@ from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_decode import decode_inst_operands
 from .instruction_decode import decode_inst_destination
 from .instruction_primitives import extract_branch_target
-from .m68k_executor import BasicBlock, CallSummary, propagate_states
+from .m68k_executor import AbstractMemory, BasicBlock, CPUState, CallSummary, StatePair, propagate_states
 from . import indirect_core
+from .os_calls import PlatformState
 from . import subroutine_summary
+from .typing_protocols import InstructionLike
 
 
 _MAX_FORK_EXITS = 16
@@ -26,14 +32,48 @@ class IndirectResolution:
     source_addr: int
     kind: indirect_core.IndirectSiteStatus
     caller_addr: int | None = None
-    entry_states: tuple = ()
+    entry_states: EntryStates = ()
+
+EntryStateList: TypeAlias = list[StatePair]
+EntryStates: TypeAlias = tuple[StatePair, ...]
+ExitStates: TypeAlias = Mapping[int, StatePair]
+StateCacheKey: TypeAlias = tuple[int, frozenset[int]]
+CpuObjectSignature: TypeAlias = tuple[tuple[int, ...], tuple[int, ...], int]
+InlineSummaryCacheKey: TypeAlias = tuple[int, int, int]
+PerExitCacheKey: TypeAlias = tuple[int, int, int]
+ResolvedExitCacheKey: TypeAlias = tuple[int, int, tuple[object, ...]]
+CallerCtxCacheKey: TypeAlias = tuple[int, int]
+CallerRegsCacheKey: TypeAlias = tuple[int, tuple[tuple[str, int], ...]]
+CollectCacheKey: TypeAlias = tuple[CpuObjectSignature, int]
+SubBlocksCache: TypeAlias = dict[int, set[int]]
+BlockOwnerMap: TypeAlias = dict[int, int]
+SeedEntryStates: TypeAlias = dict[int, EntryStateList]
+SummaryDict: TypeAlias = dict[int, CallSummary]
+
+
+@dataclass(frozen=True, slots=True)
+class SubroutineInfo:
+    sub_blocks: set[int]
+    sub_dict: dict[int, BasicBlock]
+    nested_callees: set[int]
+    expanded: dict[int, BasicBlock]
+    pc_platform: PlatformState | None
+    callers: list[int]
+
+
+@dataclass(frozen=True, slots=True)
+class CallerContext:
+    init_cpu: CPUState
+    caller_mem: AbstractMemory
+    pass1_exits: ExitStates
+    inline_sums: SummaryDict
 
 
 def _indirect_resolution(target: int,
                          source_addr: int,
                          kind: indirect_core.IndirectSiteStatus,
                          caller_addr: int | None = None,
-                         entry_states: tuple = ()) -> IndirectResolution:
+                         entry_states: EntryStates = ()) -> IndirectResolution:
     return IndirectResolution(
         target=target,
         source_addr=source_addr,
@@ -43,14 +83,14 @@ def _indirect_resolution(target: int,
     )
 
 
-def _terminal_site_addr(blocks: dict[int, BasicBlock], block_addr: int) -> int:
+def _terminal_site_addr(blocks: Mapping[int, BasicBlock], block_addr: int) -> int:
     block = blocks[block_addr]
     if not block.instructions:
         raise KeyError(f"missing terminal instruction for block ${block_addr:06x}")
-    return block.instructions[-1].offset
+    return int(block.instructions[-1].offset)
 
 
-def _cpu_object_signature(cpu) -> tuple:
+def _cpu_object_signature(cpu: CPUState) -> CpuObjectSignature:
     return (
         tuple(id(val) for val in cpu.d),
         tuple(id(val) for val in cpu.a),
@@ -58,7 +98,7 @@ def _cpu_object_signature(cpu) -> tuple:
     )
 
 
-def _summary_signature(summary: CallSummary) -> tuple:
+def _summary_signature(summary: CallSummary) -> tuple[object, ...]:
     return (
         tuple(sorted(summary.preserved_d)),
         tuple(sorted(summary.preserved_a)),
@@ -70,15 +110,26 @@ def _summary_signature(summary: CallSummary) -> tuple:
     )
 
 
-def _inline_summaries_signature(summaries: dict[int, CallSummary]) -> tuple:
+def _inline_summaries_signature(summaries: dict[int, CallSummary]) -> tuple[object, ...]:
     return tuple(
         sorted((callee_entry, _summary_signature(summary))
                for callee_entry, summary in summaries.items())
     )
 
 
-def resolve_indirect_targets(blocks: dict[int, BasicBlock],
-                             exit_states: dict, code_size: int) -> list[IndirectResolution]:
+def _find_unresolved_sites(
+    blocks: Mapping[int, BasicBlock],
+    exit_states: ExitStates,
+    code_size: int,
+) -> list[tuple[int, runtime_m68k_analysis.FlowType]]:
+    return indirect_core._find_unresolved(blocks, exit_states, code_size)
+
+
+def resolve_indirect_targets(
+    blocks: Mapping[int, BasicBlock],
+    exit_states: ExitStates,
+    code_size: int,
+) -> list[IndirectResolution]:
     """Resolve indirect JMP/JSR and RTS via propagated state."""
     resolved = []
     for addr in sorted(blocks):
@@ -108,18 +159,18 @@ def resolve_indirect_targets(blocks: dict[int, BasicBlock],
     return resolved
 
 
-def collect_call_entry_states(blocks: dict[int, BasicBlock],
-                              exit_states: dict,
+def collect_call_entry_states(blocks: Mapping[int, BasicBlock],
+                              exit_states: ExitStates,
                               code: bytes,
                               source_addr: int,
-                              platform: dict | None = None,
-                              seed_entry_states: dict[int, list[tuple]] | None = None,
+                              platform: PlatformState | None = None,
+                              seed_entry_states: SeedEntryStates | None = None,
                               trail: frozenset[int] = frozenset(),
-                              sub_blocks_cache: dict[int, set[int]] | None = None,
-                              block_owner: dict[int, int] | None = None,
-                              state_cache: dict[tuple[int, frozenset[int]], list[tuple]] | None = None,
+                              sub_blocks_cache: SubBlocksCache | None = None,
+                              block_owner: BlockOwnerMap | None = None,
+                              state_cache: dict[StateCacheKey, EntryStateList] | None = None,
                               owned_entries: set[int] | None = None,
-                              ) -> list[tuple]:
+                              ) -> EntryStateList:
     """Collect full CPU/memory states at an indirect call site per caller."""
     if source_addr not in blocks:
         raise KeyError(f"missing block for indirect source ${source_addr:06x}")
@@ -151,9 +202,9 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
     if block_owner is None:
         block_owner = {}
 
-    def _sub_blocks(entry):
-        return subroutine_summary.cached_sub_blocks(
-            entry, blocks, owned_entries, sub_blocks_cache, block_owner)
+    def _sub_blocks(entry: int) -> set[int]:
+        return set(subroutine_summary.cached_sub_blocks(
+            entry, blocks, owned_entries, sub_blocks_cache, block_owner))
 
     for entry in owned_entries:
         _sub_blocks(entry)
@@ -183,11 +234,11 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
     if pc_platform is not None:
         pc_platform.scratch_regs = ()
     callers = list(blocks[sub_entry].predecessors) if sub_entry in blocks else []
-    inline_cache = {}
-    collect_cache = {}
-    states = []
+    inline_cache: dict[InlineSummaryCacheKey, CallSummary | None] = {}
+    collect_cache: dict[CollectCacheKey, EntryStateList] = {}
+    states: EntryStateList = []
 
-    def _collect(init_cpu, init_mem):
+    def _collect(init_cpu: CPUState, init_mem: AbstractMemory) -> None:
         collect_key = (_cpu_object_signature(init_cpu), id(init_mem))
         cached = collect_cache.get(collect_key)
         if cached is not None:
@@ -201,7 +252,7 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
             initial_mem=init_mem.copy(),
             platform=pc_platform,
         )
-        inline_sums = {}
+        inline_sums: SummaryDict = {}
         if nested_callees:
             for callee_entry in nested_callees:
                 key = (id(init_cpu), id(init_mem), callee_entry)
@@ -221,7 +272,7 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
             )
         else:
             exits = pass1_exits
-        collected = []
+        collected: EntryStateList = []
         if source_addr in exits:
             collected.append(exits[source_addr])
         collect_cache[collect_key] = collected
@@ -257,14 +308,14 @@ def collect_call_entry_states(blocks: dict[int, BasicBlock],
     return states
 
 
-def resolve_per_caller(blocks: dict[int, BasicBlock],
-                       exit_states: dict, code: bytes,
+def resolve_per_caller(blocks: Mapping[int, BasicBlock],
+                       exit_states: ExitStates, code: bytes,
                        code_size: int,
-                       platform: dict | None = None,
-                       seed_entry_states: dict[int, list[tuple]] | None = None,
+                       platform: PlatformState | None = None,
+                       seed_entry_states: SeedEntryStates | None = None,
                        skip_site_addrs: frozenset[int] = frozenset()) -> list[IndirectResolution]:
     """Resolve indirect targets that require per-caller analysis."""
-    unresolved = indirect_core._find_unresolved(blocks, exit_states, code_size)
+    unresolved = _find_unresolved_sites(blocks, exit_states, code_size)
     if not unresolved:
         return []
 
@@ -275,23 +326,23 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 call_targets.add(xref.dst)
     owned_entries = set(call_targets)
 
-    sub_blocks_cache = {}
-    block_owner = {}
-    sub_info_cache = {}
-    caller_ctx_cache = {}
-    per_exit_cache = {}
-    resolved_exit_cache = {}
-    caller_regs_cache = {}
-    call_entry_state_cache = {}
-    collect_state_cache = {}
+    sub_blocks_cache: SubBlocksCache = {}
+    block_owner: BlockOwnerMap = {}
+    sub_info_cache: dict[int, SubroutineInfo] = {}
+    caller_ctx_cache: dict[CallerCtxCacheKey, CallerContext] = {}
+    per_exit_cache: dict[PerExitCacheKey, list[CallSummary]] = {}
+    resolved_exit_cache: dict[ResolvedExitCacheKey, ExitStates] = {}
+    caller_regs_cache: dict[CallerRegsCacheKey, list[CPUState]] = {}
+    call_entry_state_cache: dict[int, EntryStateList] = {}
+    collect_state_cache: dict[StateCacheKey, EntryStateList] = {}
     synthetic_entry_states = seed_entry_states if seed_entry_states is not None else {}
     owned_entries.update(synthetic_entry_states)
 
-    def _sub_blocks(entry):
-        return subroutine_summary.cached_sub_blocks(
-            entry, blocks, owned_entries, sub_blocks_cache, block_owner)
+    def _sub_blocks(entry: int) -> set[int]:
+        return set(subroutine_summary.cached_sub_blocks(
+            entry, blocks, owned_entries, sub_blocks_cache, block_owner))
 
-    def _sub_info(entry):
+    def _sub_info(entry: int) -> SubroutineInfo:
         if entry in sub_info_cache:
             return sub_info_cache[entry]
         sub_blocks = _sub_blocks(entry)
@@ -314,42 +365,45 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         pc_platform = copy.copy(platform) if platform else None
         if pc_platform is not None:
             pc_platform.scratch_regs = ()
-        info = {
-            "sub_blocks": sub_blocks,
-            "sub_dict": sub_dict,
-            "nested_callees": nested_callees,
-            "expanded": expanded,
-            "pc_platform": pc_platform,
-            "callers": blocks[entry].predecessors if entry in blocks else [],
-        }
+        info = SubroutineInfo(
+            sub_blocks=sub_blocks,
+            sub_dict=sub_dict,
+            nested_callees=nested_callees,
+            expanded=expanded,
+            pc_platform=pc_platform,
+            callers=list(blocks[entry].predecessors) if entry in blocks else [],
+        )
         sub_info_cache[entry] = info
         return info
 
-    def _build_caller_ctx(entry, info, init_cpu, caller_mem):
+    def _build_caller_ctx(entry: int,
+                          info: SubroutineInfo,
+                          init_cpu: CPUState,
+                          caller_mem: AbstractMemory) -> CallerContext:
         init_cpu = subroutine_summary.restore_base_reg(init_cpu.copy(), platform)
         pass1_exits = propagate_states(
-            info["expanded"] if info["nested_callees"] else info["sub_dict"],
+            info.expanded if info.nested_callees else info.sub_dict,
             code, entry,
             initial_state=init_cpu,
             initial_mem=caller_mem.copy(),
-            platform=info["pc_platform"],
+            platform=info.pc_platform,
         )
-        inline_sums = {}
-        if info["nested_callees"]:
-            for callee_entry in info["nested_callees"]:
+        inline_sums: SummaryDict = {}
+        if info.nested_callees:
+            for callee_entry in info.nested_callees:
                 isum = subroutine_summary._inline_summary(
                     callee_entry, blocks, call_targets, pass1_exits)
                 if isum is not None:
                     inline_sums[callee_entry] = isum
-        ctx = {
-            "init_cpu": init_cpu,
-            "caller_mem": caller_mem,
-            "pass1_exits": pass1_exits,
-            "inline_sums": inline_sums,
-        }
+        ctx = CallerContext(
+            init_cpu=init_cpu,
+            caller_mem=caller_mem,
+            pass1_exits=pass1_exits,
+            inline_sums=inline_sums,
+        )
         return ctx
 
-    def _caller_ctx(entry, caller_addr):
+    def _caller_ctx(entry: int, caller_addr: int) -> CallerContext:
         key = (entry, caller_addr)
         if key in caller_ctx_cache:
             return caller_ctx_cache[key]
@@ -359,7 +413,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         caller_ctx_cache[key] = ctx
         return ctx
 
-    def _caller_block_states(caller_addr):
+    def _caller_block_states(caller_addr: int) -> EntryStateList:
         owner = block_owner.get(caller_addr)
         if owner is None:
             if caller_addr in exit_states:
@@ -370,37 +424,50 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 return [exit_states[caller_addr]]
             return []
         info = _sub_info(owner)
-        states = []
-        for outer_caller in info["callers"]:
+        states: EntryStateList = []
+        for outer_caller in info.callers:
             if outer_caller not in exit_states:
                 continue
             ctx = _caller_ctx(owner, outer_caller)
             states.extend(_states_from_ctx(info, owner, outer_caller, ctx, [], caller_addr))
         return states
 
-    def _per_exit_summaries(entry, caller_addr, callee_entry, pass1_exits):
+    def _per_exit_summaries(entry: int,
+                            caller_addr: int,
+                            callee_entry: int,
+                            pass1_exits: ExitStates) -> list[CallSummary]:
         key = (entry, caller_addr, callee_entry)
         if key not in per_exit_cache:
             per_exit_cache[key] = subroutine_summary._inline_summaries_per_exit(
                 callee_entry, blocks, call_targets, pass1_exits)
         return per_exit_cache[key]
 
-    def _propagated_with_summaries(info, sub_entry, caller_addr, init_cpu, caller_mem, summaries):
+    def _propagated_with_summaries(info: SubroutineInfo,
+                                   sub_entry: int,
+                                   caller_addr: int,
+                                   init_cpu: CPUState,
+                                   caller_mem: AbstractMemory,
+                                   summaries: SummaryDict) -> ExitStates:
         key = (sub_entry, caller_addr, _inline_summaries_signature(summaries))
         if key not in resolved_exit_cache:
             resolved_exit_cache[key] = propagate_states(
-                info["sub_dict"], code, sub_entry,
+                info.sub_dict, code, sub_entry,
                 initial_state=init_cpu,
                 initial_mem=caller_mem.copy(),
-                platform=info["pc_platform"],
+                platform=info.pc_platform,
                 summaries=summaries)
         return resolved_exit_cache[key]
 
-    def _states_from_ctx(info, sub_entry, caller_addr, ctx, needed_regs, segment_addr):
-        pass1_exits = ctx["pass1_exits"]
-        inline_sums = dict(ctx["inline_sums"])
+    def _states_from_ctx(info: SubroutineInfo,
+                         sub_entry: int,
+                         caller_addr: int,
+                         ctx: CallerContext,
+                         needed_regs: list[tuple[str, int]],
+                         segment_addr: int) -> EntryStateList:
+        pass1_exits = ctx.pass1_exits
+        inline_sums = dict(ctx.inline_sums)
         fork_callee = None
-        fork_exits = []
+        fork_exits: list[CallSummary] = []
         for callee_entry, isum in inline_sums.items():
             if fork_callee is not None or not needed_regs:
                 continue
@@ -418,9 +485,9 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                         fork_exits = per_exit
                     break
 
-        states = []
+        states: EntryStateList = []
 
-        def _collect(exits):
+        def _collect(exits: ExitStates) -> None:
             if segment_addr in exits:
                 states.append(exits[segment_addr])
 
@@ -430,19 +497,19 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 trial_sums[fork_callee] = exit_sum
                 _collect(_propagated_with_summaries(
                     info, sub_entry, caller_addr,
-                    ctx["init_cpu"], ctx["caller_mem"], trial_sums))
+                    ctx.init_cpu, ctx.caller_mem, trial_sums))
         elif inline_sums:
             _collect(_propagated_with_summaries(
                 info, sub_entry, caller_addr,
-                ctx["init_cpu"], ctx["caller_mem"], inline_sums))
+                ctx.init_cpu, ctx.caller_mem, inline_sums))
         else:
             _collect(pass1_exits)
         return states
 
-    def _regs_known(cpu, needed_regs):
+    def _regs_known(cpu: CPUState, needed_regs: list[tuple[str, int]]) -> bool:
         return all(cpu.get_reg(mode, num).is_known for mode, num in needed_regs)
 
-    def _simple_register_copy(inst, ikb):
+    def _simple_register_copy(inst: InstructionLike, ikb: str) -> tuple[tuple[str, int], tuple[str, int]] | None:
         if runtime_m68k_analysis.OPERATION_TYPES[ikb] != runtime_m68k_analysis.OperationType.MOVE:
             return None
         decoded = decode_inst_operands(inst, ikb)
@@ -450,13 +517,15 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         dst = decode_inst_destination(inst, ikb)
         if src is None or dst is None:
             return None
-        if src.mode not in ("an", "dn") or dst[0] not in ("an", "dn"):
+        if src.mode not in ("an", "dn") or src.reg is None or dst[0] not in ("an", "dn"):
             return None
         src_mode = "an" if src.mode == "an" else "dn"
         return (src_mode, src.reg), dst
 
-    def _needed_reg_sources_before_terminal_call(block, needed_regs):
-        source_map = {reg: reg for reg in needed_regs}
+    def _needed_reg_sources_before_terminal_call(block: BasicBlock,
+                                                 needed_regs: list[tuple[str, int]]
+                                                 ) -> dict[tuple[str, int], tuple[str, int]] | None | bool:
+        source_map: dict[tuple[str, int], tuple[str, int]] = {reg: reg for reg in needed_regs}
         for inst in reversed(block.instructions[:-1]):
             ikb = instruction_kb(inst)
             ft, _ = instruction_flow(inst)
@@ -494,13 +563,16 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                 return None
         return source_map
 
-    def _project_needed_regs(cpu, source_map):
+    def _project_needed_regs(cpu: CPUState,
+                             source_map: dict[tuple[str, int], tuple[str, int]]) -> CPUState:
         projected = cpu.copy()
         for needed, source in source_map.items():
             projected.set_reg(needed[0], needed[1], cpu.get_reg(source[0], source[1]))
         return projected
 
-    def _direct_call_into_dispatch_preserves(sub_entry, dispatch_addr, reg):
+    def _direct_call_into_dispatch_preserves(sub_entry: int,
+                                             dispatch_addr: int,
+                                             reg: tuple[str, int]) -> bool:
         block = blocks.get(sub_entry)
         if block is None:
             return False
@@ -510,27 +582,30 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             if dst == reg:
                 return False
             if instruction_flow(inst)[0] == _FLOW_CALL:
-                return extract_branch_target(inst, inst.offset) == dispatch_addr
+                return bool(extract_branch_target(inst, inst.offset) == dispatch_addr)
         return False
 
-    def _caller_register_states(caller_addr, needed_regs, trail=frozenset()):
+    def _caller_register_states(caller_addr: int,
+                                needed_regs: list[tuple[str, int]],
+                                trail: frozenset[int] = frozenset()) -> list[CPUState]:
         key = (caller_addr, tuple(needed_regs))
         if key in caller_regs_cache:
             return caller_regs_cache[key]
         if caller_addr not in exit_states:
             return []
         caller_cpu, _ = exit_states[caller_addr]
-        states = [caller_cpu]
+        states: list[CPUState] = [caller_cpu]
         if not needed_regs or _regs_known(caller_cpu, needed_regs):
             caller_regs_cache[key] = states
             return states
 
         owner = block_owner.get(caller_addr)
         block = blocks.get(caller_addr)
-        source_map = None
+        source_map: dict[tuple[str, int], tuple[str, int]] | None = None
         if block is not None and caller_addr == owner:
-            source_map = _needed_reg_sources_before_terminal_call(block, needed_regs)
-            if source_map is not None:
+            source_map_result = _needed_reg_sources_before_terminal_call(block, needed_regs)
+            if isinstance(source_map_result, dict):
+                source_map = source_map_result
                 projected = _project_needed_regs(caller_cpu, source_map)
                 states = [projected]
                 if _regs_known(projected, needed_regs):
@@ -545,15 +620,15 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             return states
 
         owner_info = _sub_info(owner)
-        if not owner_info["callers"]:
+        if not owner_info.callers:
             caller_regs_cache[key] = states
             return states
 
-        nested_states = []
+        nested_states: list[CPUState] = []
         next_trail = set(trail)
         next_trail.add(owner)
         outer_needed = list(dict.fromkeys(source_map.values()))
-        for outer_caller in owner_info["callers"]:
+        for outer_caller in owner_info.callers:
             for outer_cpu in _caller_register_states(outer_caller, outer_needed, frozenset(next_trail)):
                 nested_states.append(_project_needed_regs(outer_cpu, source_map))
         if nested_states:
@@ -561,7 +636,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         caller_regs_cache[key] = states
         return states
 
-    def _call_entry_states(source_addr):
+    def _call_entry_states(source_addr: int) -> EntryStateList:
         if source_addr not in call_entry_state_cache:
             call_entry_state_cache[source_addr] = collect_call_entry_states(
                 blocks, exit_states, code, source_addr,
@@ -574,7 +649,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             )
         return call_entry_state_cache[source_addr]
 
-    resolved = []
+    resolved: list[IndirectResolution] = []
     for unres_addr, unres_type in unresolved:
         if _terminal_site_addr(blocks, unres_addr) in skip_site_addrs:
             continue
@@ -588,8 +663,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             continue
 
         info = _sub_info(sub_entry)
-        callers = info["callers"]
-        entry_states = synthetic_entry_states.get(sub_entry, [])
+        callers = info.callers
+        entry_states: EntryStateList = synthetic_entry_states.get(sub_entry, [])
         if not callers and not entry_states:
             continue
 
@@ -599,7 +674,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
             operand, _ = indirect_core.decode_jump_ea(last)
         needed_regs = indirect_core._needed_registers(operand, unres_type)
 
-        sub_dict = info["sub_dict"]
+        sub_dict = info.sub_dict
 
         merged_cpu, merged_mem = exit_states.get(unres_addr, (None, None))
         unknown_regs = []
@@ -612,6 +687,7 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         use_fast_path = (
             unknown_regs
             and merged_cpu is not None
+            and merged_mem is not None
             and (unres_addr != sub_entry
                  or _needed_reg_sources_before_terminal_call(
                      blocks[unres_addr], unknown_regs) is not None)
@@ -624,6 +700,8 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
         )
 
         if use_fast_path:
+            assert merged_cpu is not None
+            assert merged_mem is not None
             source_ft = None
             last_inst = blocks[unres_addr].instructions[-1]
             if last_inst.kb_mnemonic:
@@ -645,18 +723,18 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
                     target = indirect_core._try_resolve_block(
                         unres_addr, unres_type, blocks, test_cpu, merged_mem, code_size)
                     if target is not None:
-                        entry_states = ()
+                        call_entry_states: EntryStates = ()
                         if source_ft == _FLOW_CALL:
                             target_states = _call_entry_states(unres_addr)
                             if not target_states:
                                 target_states = [(test_cpu, merged_mem.copy())]
-                            entry_states = tuple(
+                            call_entry_states = tuple(
                                 (cpu.copy(), mem.copy()) for cpu, mem in target_states)
                         resolved.append(_indirect_resolution(
                             target, _terminal_site_addr(blocks, unres_addr),
                             indirect_core.IndirectSiteStatus.PER_CALLER,
                             caller_addr=caller_addr,
-                            entry_states=entry_states))
+                            entry_states=call_entry_states))
             for entry_cpu, entry_mem in entry_states:
                 test_cpu = merged_cpu.copy()
                 for mode, num in unknown_regs:
@@ -707,17 +785,17 @@ def resolve_per_caller(blocks: dict[int, BasicBlock],
     return resolved
 
 
-def resolve_backward_slice(blocks: dict[int, BasicBlock],
-                           exit_states: dict, code: bytes,
+def resolve_backward_slice(blocks: Mapping[int, BasicBlock],
+                           exit_states: ExitStates, code: bytes,
                            code_size: int,
-                           platform: dict | None = None,
+                           platform: PlatformState | None = None,
                            max_depth: int = 8) -> list[IndirectResolution]:
     """Resolve indirect targets by backward-slicing predecessor chains."""
-    unresolved = indirect_core._find_unresolved(blocks, exit_states, code_size)
+    unresolved = _find_unresolved_sites(blocks, exit_states, code_size)
     if not unresolved:
         return []
 
-    resolved = []
+    resolved: list[IndirectResolution] = []
     seen_targets = set()
 
     call_blocks = set()

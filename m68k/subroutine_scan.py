@@ -8,14 +8,16 @@ All flow type detection comes from generated KB runtime data.
 """
 
 import struct
+from typing import TypedDict
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
 
 from .decode_errors import DecodeError
 from .instruction_kb import find_kb_entry, instruction_flow
-from .m68k_disasm import _Decoder, _decode_one
+from .m68k_disasm import Instruction, _Decoder, _decode_one
 from .m68k_executor import BasicBlock
+from .typing_protocols import InstructionLike
 
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
@@ -24,8 +26,25 @@ _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
-def _flow_for_inst(inst,
-                   flow_cache: dict[str, tuple[object, bool]]) -> tuple[object, bool]:
+class SubroutineCandidate(TypedDict):
+    addr: int
+    end: int
+    instr_count: int
+    has_flow: bool
+    score: float
+
+
+class UnscoredSubroutineCandidate(TypedDict):
+    addr: int
+    end: int
+    instr_count: int
+    has_flow: bool
+
+
+def _flow_for_inst(
+    inst: InstructionLike,
+    flow_cache: dict[str, tuple[runtime_m68k_analysis.FlowType, bool]],
+) -> tuple[runtime_m68k_analysis.FlowType, bool]:
     if not inst.kb_mnemonic:
         raise KeyError(f"Instruction at ${inst.offset:06x} is missing kb_mnemonic")
     cached = flow_cache.get(inst.kb_mnemonic)
@@ -44,7 +63,7 @@ def _flow_for_inst(inst,
     return result
 
 
-def _decode_at(code: bytes, pos: int, cache: dict[int, object]):
+def _decode_at(code: bytes, pos: int, cache: dict[int, Instruction | Exception]) -> Instruction:
     if pos in cache:
         cached = cache[pos]
         if isinstance(cached, Exception):
@@ -64,19 +83,19 @@ def _decode_at(code: bytes, pos: int, cache: dict[int, object]):
 def _uncovered_ranges(blocks: dict[int, BasicBlock],
                       code_size: int) -> list[tuple[int, int]]:
     """Compute word-aligned gaps not covered by any block."""
-    covered = []
+    covered: list[tuple[int, int]] = []
     for b in blocks.values():
         covered.append((b.start, b.end))
     covered.sort()
 
-    merged = []
+    merged: list[tuple[int, int]] = []
     for start, end in covered:
         if merged and start <= merged[-1][1]:
             merged[-1] = (merged[-1][0], max(merged[-1][1], end))
         else:
             merged.append((start, end))
 
-    gaps = []
+    gaps: list[tuple[int, int]] = []
     prev_end = 0
     for start, end in merged:
         if start > prev_end:
@@ -89,9 +108,10 @@ def _uncovered_ranges(blocks: dict[int, BasicBlock],
 
 
 def _try_decode_subroutine(code: bytes, start: int, end: int,
-                           decode_cache: dict[int, object],
-                           scan_cache: dict[tuple[int, int], dict | None],
-                           flow_cache: dict[str, tuple[object, bool]]) -> dict | None:
+                           decode_cache: dict[int, Instruction | Exception],
+                           scan_cache: dict[tuple[int, int], UnscoredSubroutineCandidate | None],
+                           flow_cache: dict[str, tuple[runtime_m68k_analysis.FlowType, bool]]
+                           ) -> UnscoredSubroutineCandidate | None:
     """Try to decode a subroutine starting at `start` within [start, end)."""
     cache_key = (start, end)
     if cache_key in scan_cache:
@@ -135,7 +155,7 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
             if instrs < 2:
                 scan_cache[cache_key] = None
                 return None
-            candidate = {
+            candidate: UnscoredSubroutineCandidate = {
                 "addr": start,
                 "end": next_pos,
                 "instr_count": instrs,
@@ -164,12 +184,12 @@ def _try_decode_subroutine(code: bytes, start: int, end: int,
 
 
 def _scan_candidates_with_cache(blocks: dict[int, BasicBlock],
-                                code: bytes) -> tuple[list[dict], dict[int, object]]:
+                                code: bytes) -> tuple[list[UnscoredSubroutineCandidate], dict[int, Instruction | Exception]]:
     gaps = _uncovered_ranges(blocks, len(code))
-    candidates = []
-    decode_cache: dict[int, object] = {}
-    scan_cache: dict[tuple[int, int], dict | None] = {}
-    flow_cache: dict[str, tuple[object, bool]] = {}
+    candidates: list[UnscoredSubroutineCandidate] = []
+    decode_cache: dict[int, Instruction | Exception] = {}
+    scan_cache: dict[tuple[int, int], UnscoredSubroutineCandidate | None] = {}
+    flow_cache: dict[str, tuple[runtime_m68k_analysis.FlowType, bool]] = {}
 
     for gap_start, gap_end in gaps:
         pos = gap_start
@@ -187,19 +207,19 @@ def _scan_candidates_with_cache(blocks: dict[int, BasicBlock],
 
 
 def scan_candidates(blocks: dict[int, BasicBlock],
-                    code: bytes) -> list[dict]:
+                    code: bytes) -> list[UnscoredSubroutineCandidate]:
     """Scan unknown regions for subroutine candidates."""
     candidates, _ = _scan_candidates_with_cache(blocks, code)
     return candidates
 
 
-def score_candidates(candidates: list[dict],
+def score_candidates(candidates: list[UnscoredSubroutineCandidate],
                      blocks: dict[int, BasicBlock],
                      reloc_targets: set[int],
                      call_targets: set[int],
-                     code: bytes) -> list[dict]:
+                     code: bytes) -> list[SubroutineCandidate]:
     """Score and filter candidates. Adds 'score' field."""
-    scored = []
+    scored: list[SubroutineCandidate] = []
     for cand in candidates:
         addr = cand["addr"]
         score = 0.0
@@ -228,21 +248,20 @@ def score_candidates(candidates: list[dict],
                 pass
 
         if score >= 1.0:
-            cand["score"] = score
-            scored.append(cand)
+            scored.append({**cand, "score": score})
 
     scored.sort(key=lambda c: (-c["score"], c["addr"]))
     return scored
 
 
-def _score_candidates_with_cache(candidates: list[dict],
+def _score_candidates_with_cache(candidates: list[UnscoredSubroutineCandidate],
                                  blocks: dict[int, BasicBlock],
                                  reloc_targets: set[int],
                                  call_targets: set[int],
                                  code: bytes,
-                                 decode_cache: dict[int, object]) -> list[dict]:
+                                 decode_cache: dict[int, Instruction | Exception]) -> list[SubroutineCandidate]:
     """Score candidates while reusing the scan decode cache."""
-    scored = []
+    scored: list[SubroutineCandidate] = []
     for cand in candidates:
         addr = cand["addr"]
         score = 0.0
@@ -271,8 +290,7 @@ def _score_candidates_with_cache(candidates: list[dict],
                 pass
 
         if score >= 1.0:
-            cand["score"] = score
-            scored.append(cand)
+            scored.append({**cand, "score": score})
 
     scored.sort(key=lambda c: (-c["score"], c["addr"]))
     return scored
@@ -281,7 +299,7 @@ def _score_candidates_with_cache(candidates: list[dict],
 def scan_and_score(blocks: dict[int, BasicBlock],
                    code: bytes,
                    reloc_targets: set[int],
-                   call_targets: set[int]) -> list[dict]:
+                   call_targets: set[int]) -> list[SubroutineCandidate]:
     """Full pipeline: scan, score, filter. Returns accepted candidates."""
     candidates, decode_cache = _scan_candidates_with_cache(blocks, code)
     return _score_candidates_with_cache(

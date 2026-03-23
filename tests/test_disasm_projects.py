@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import json
+from pathlib import Path
 
 from disasm.project_paths import resolve_project_paths
 from disasm.projects import create_project, list_projects, mark_project_opened
 
 
-def test_resolve_project_paths_uses_recorded_binary_path(tmp_path):
+def test_resolve_project_paths_uses_recorded_binary_path(tmp_path: Path) -> None:
     project_root = tmp_path
     target_dir = project_root / "targets" / "demo"
     bin_dir = project_root / "bin"
@@ -25,7 +28,7 @@ def test_resolve_project_paths_uses_recorded_binary_path(tmp_path):
     assert resolved.provenance == "recorded"
 
 
-def test_list_projects_includes_unready_project(tmp_path):
+def test_list_projects_includes_unready_project(tmp_path: Path) -> None:
     project_root = tmp_path
     target_dir = project_root / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -39,14 +42,14 @@ def test_list_projects_includes_unready_project(tmp_path):
     assert projects[0]["binary_path"] is None
 
 
-def test_create_project_creates_entities_file(tmp_path):
+def test_create_project_creates_entities_file(tmp_path: Path) -> None:
     project = create_project("demo", project_root=tmp_path)
 
     assert project["id"] == "demo"
     assert (tmp_path / "targets" / "demo" / "entities.jsonl").exists()
 
 
-def test_mark_project_opened_records_recent_timestamp(tmp_path):
+def test_mark_project_opened_records_recent_timestamp(tmp_path: Path) -> None:
     create_project("demo", project_root=tmp_path)
 
     project = mark_project_opened("demo", project_root=tmp_path)
@@ -55,7 +58,7 @@ def test_mark_project_opened_records_recent_timestamp(tmp_path):
     assert project["last_opened"] == state["recent_projects"]["demo"]
 
 
-def test_list_projects_orders_by_most_recently_opened(tmp_path):
+def test_list_projects_orders_by_most_recently_opened(tmp_path: Path) -> None:
     create_project("older", project_root=tmp_path)
     create_project("newer", project_root=tmp_path)
     mark_project_opened("older", project_root=tmp_path)

@@ -14,9 +14,11 @@ Usage:
     name_subroutines(entities, blocks, code, os_calls, result)
 """
 
+import re
 import struct
 import sys
-import re
+from collections.abc import Sequence
+from typing import Mapping, MutableMapping, NotRequired, TypedDict, cast
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
@@ -26,7 +28,17 @@ from m68k_kb import runtime_os
 from .instruction_kb import find_kb_entry, instruction_kb
 from .m68k_executor import BasicBlock
 from .instruction_decode import xf
+from .os_calls import LibraryCall
 from .subroutine_ranges import find_containing_sub
+
+
+class NamingPattern(TypedDict):
+    functions: list[str]
+    name: str
+    partial: NotRequired[bool]
+
+
+EntityMapping = MutableMapping[str, object]
 
 
 def find_string_refs(blocks: dict[int, BasicBlock],
@@ -127,17 +139,19 @@ def _os_calls_to_name(os_calls: list[str]) -> str | None:
     if not os_calls:
         return None
 
-    rules = runtime_naming
+    patterns = cast(list[NamingPattern], runtime_naming.PATTERNS)
+    trivial = runtime_naming.TRIVIAL_FUNCTIONS
+    prefix = runtime_naming.GENERIC_PREFIX
 
     # Extract just function names (strip library prefix)
-    funcs = set()
+    funcs: set[str] = set()
     for call in os_calls:
         parts = call.split("/")
         if len(parts) == 2:
             funcs.add(parts[1])
 
     # Match against patterns from KB
-    for pattern in rules.PATTERNS:
+    for pattern in patterns:
         required = set(pattern["functions"])
         if pattern.get("partial"):
             # At least one required function must be present
@@ -149,9 +163,7 @@ def _os_calls_to_name(os_calls: list[str]) -> str | None:
                 return pattern["name"]
 
     # Generic: use the most distinctive function name
-    trivial = set(rules.TRIVIAL_FUNCTIONS)
-    prefix = rules.GENERIC_PREFIX
-    distinctive = funcs - trivial
+    distinctive = funcs - set(trivial)
     if distinctive:
         func = sorted(distinctive)[0]
         return prefix + re.sub(r'[^a-z0-9]+', '_', func.lower()).strip('_')
@@ -164,22 +176,30 @@ def _dispatch_name_from_base(named_base: str) -> str:
     return re.sub(r'[^a-z0-9]+', '_', base.lower()) + "_dispatch"
 
 
-def _transitive_dispatch_name(ent: dict) -> str | None:
+def _transitive_dispatch_name(ent: Mapping[str, object]) -> str | None:
     named_bases = ent.get("named_bases_transitive", ())
+    assert isinstance(named_bases, Sequence) and not isinstance(named_bases, (str, bytes))
     if len(named_bases) != 1:
         return None
+    named_base = named_bases[0]
+    if not isinstance(named_base, str):
+        return None
     indirect_sites = ent.get("indirect_sites", ())
+    assert isinstance(indirect_sites, Sequence) and not isinstance(indirect_sites, (str, bytes))
     if not indirect_sites:
         return None
-    if not any(site.get("flow") == "call" for site in indirect_sites):
+    if not any(
+        isinstance(site, Mapping) and site.get("flow") == "call"
+        for site in indirect_sites
+    ):
         return None
-    return _dispatch_name_from_base(named_bases[0])
+    return _dispatch_name_from_base(named_base)
 
 
-def name_subroutines(entities: list[dict],
+def name_subroutines(entities: list[EntityMapping],
                      blocks: dict[int, BasicBlock],
                      code: bytes,
-                     lib_calls) -> int:
+                     lib_calls: list[LibraryCall]) -> int:
     """Assign names to unnamed code entities.
 
     Modifies entities in place. Returns count of entities named.
@@ -190,14 +210,14 @@ def name_subroutines(entities: list[dict],
     3. Entry point / call graph position
     """
     # Known OS library/device/resource names from KB
-    os_lib_names = set(runtime_os.LIBRARIES)
+    os_lib_names = set(cast(list[str], runtime_os.LIBRARIES))
 
     # Build block->subroutine mapping
-    entity_by_addr = {}
+    entity_by_addr: dict[int, EntityMapping] = {}
     for ent in entities:
         if ent.get("type") != "code":
             continue
-        addr = int(ent["addr"], 16)
+        addr = int(cast(str, ent["addr"]), 16)
         entity_by_addr[addr] = ent
 
     # Collect string refs per subroutine
@@ -205,7 +225,7 @@ def name_subroutines(entities: list[dict],
 
     # Build sorted sub list for binary search (with int keys)
     sorted_sub_list = sorted(
-        [{"addr": k, "end": int(entity_by_addr[k]["end"], 16)}
+        [{"addr": k, "end": int(cast(str, entity_by_addr[k]["end"]), 16)}
          for k in entity_by_addr],
         key=lambda s: s["addr"])
 
@@ -232,7 +252,7 @@ def name_subroutines(entities: list[dict],
 
     # Detect dispatch subroutines: subs containing per-caller dispatch
     # instructions (identified by the "dispatch" field in lib_calls).
-    dispatch_libs: dict[int, set] = {}
+    dispatch_libs: dict[int, set[str]] = {}
     for call in lib_calls:
         disp_addr = call.dispatch
         if disp_addr is None:
@@ -246,12 +266,12 @@ def name_subroutines(entities: list[dict],
                 dispatch_libs[sub_addr].add(lib)
 
     named = 0
-    used_names = set()
+    used_names: set[str] = set()
 
     for addr in sorted(entity_by_addr.keys()):
         ent = entity_by_addr[addr]
         if ent.get("name"):
-            used_names.add(ent["name"])
+            used_names.add(cast(str, ent["name"]))
             continue
 
         name = None

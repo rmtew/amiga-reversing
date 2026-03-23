@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from disasm.ascii import PRINTABLE_MAX, PRINTABLE_MIN
+from m68k.m68k_disasm import Instruction
 from disasm.validation import get_instruction_processor_min
-from disasm.types import HunkDisassemblySession
+from disasm.types import HunkDisassemblySession, SemanticOperand
 
 
-def format_app_offset_comment(operand_parts, base_reg: int) -> str | None:
+def format_app_offset_comment(operand_parts: tuple[SemanticOperand, ...], base_reg: int) -> str | None:
     """Generate a hex offset comment for unnamed d(base_reg) references."""
     base_name = f"a{base_reg}"
     for operand in operand_parts:
@@ -38,9 +39,9 @@ def format_ascii_immediate(value: int) -> str | None:
     return "'" + "".join(chars) + "'"
 
 
-def build_instruction_comment_parts(inst,
+def build_instruction_comment_parts(inst: Instruction,
                                     hunk_session: HunkDisassemblySession,
-                                    operand_parts,
+                                    operand_parts: tuple[SemanticOperand, ...] | None,
                                     include_arg_subs: bool = True
                                     ) -> tuple[str, ...]:
     parts: list[str] = []

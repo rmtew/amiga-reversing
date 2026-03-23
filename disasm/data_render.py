@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import struct
+from typing import TextIO
 
 from disasm.ascii import is_printable_ascii
 
@@ -8,7 +9,7 @@ _MIN_STRING_LEN = 4
 
 
 def _try_read_string(code: bytes, pos: int, end: int) -> str | None:
-    chars = []
+    chars: list[str] = []
     i = pos
     while i < end:
         b = code[i]
@@ -24,9 +25,9 @@ def _try_read_string(code: bytes, pos: int, end: int) -> str | None:
     return None
 
 
-def _emit_string(handle, text: str, indent: str):
-    parts = []
-    current = []
+def _emit_string(handle: TextIO, text: str, indent: str) -> None:
+    parts: list[str] = []
+    current: list[str] = []
     for ch in text:
         if is_printable_ascii(ord(ch)) and ch != '"':
             current.append(ch)
@@ -41,7 +42,7 @@ def _emit_string(handle, text: str, indent: str):
     handle.write(f"{indent}dc.b    {','.join(parts)}\n")
 
 
-def _emit_hex_bytes(handle, data: bytes, indent: str):
+def _emit_hex_bytes(handle: TextIO, data: bytes, indent: str) -> None:
     for i in range(0, len(data), 16):
         row = data[i:i + 16]
         hex_vals = ",".join(f"${b:02x}" for b in row)
@@ -57,8 +58,8 @@ def _safe_string_span(*, start: int, text: str,
     return string_end
 
 
-def _emit_chunk_with_strings(handle, code: bytes, start: int, end: int,
-                             indent: str):
+def _emit_chunk_with_strings(handle: TextIO, code: bytes, start: int, end: int,
+                             indent: str) -> None:
     pos = start
     hex_start = start
     while pos < end:
@@ -92,10 +93,10 @@ def _emit_chunk_with_strings(handle, code: bytes, start: int, end: int,
         _emit_hex_bytes(handle, code[hex_start:end], indent)
 
 
-def emit_data_region(handle, code: bytes, start: int, end: int,
+def emit_data_region(handle: TextIO, code: bytes, start: int, end: int,
                      labels: dict[int, str], reloc_map: dict[int, int],
                      string_addrs: set[int], indent: str = "    ",
-                     access_sizes: dict[int, int] | None = None):
+                     access_sizes: dict[int, int] | None = None) -> None:
     pos = start
     while pos < end:
         if pos != start and pos in labels:
@@ -150,7 +151,7 @@ def emit_data_region(handle, code: bytes, start: int, end: int,
                     word_end += 2
                 for row_start in range(pos, word_end, 16):
                     row_end = min(row_start + 16, word_end)
-                    vals = []
+                    vals: list[str] = []
                     for wp in range(row_start, row_end, 2):
                         vals.append(f"${struct.unpack_from('>H', code, wp)[0]:04x}")
                     handle.write(f"{indent}dc.w    {','.join(vals)}\n")

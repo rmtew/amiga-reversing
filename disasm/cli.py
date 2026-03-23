@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import faulthandler
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -21,7 +22,7 @@ class StageTimer:
         self.samples: list[tuple[str, float]] = []
 
     @contextmanager
-    def measure(self, name: str):
+    def measure(self, name: str) -> Iterator[None]:
         start = time.perf_counter()
         try:
             yield
@@ -49,7 +50,7 @@ def _entities_need_refresh(binary_path: str, entities_path: str) -> bool:
 def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                base_addr: int = 0, code_start: int = 0,
                profile_stages: bool = False,
-               stall_timeout: float | None = None):
+               stall_timeout: float | None = None) -> None:
     """Generate vasm-compatible .s file through the canonical row pipeline."""
     stage_timer = StageTimer(enabled=profile_stages)
     if stall_timeout:
@@ -98,7 +99,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
             faulthandler.cancel_dump_traceback_later()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate vasm-compatible .s file from binary + entities")
     parser.add_argument("binary", help="Path to Amiga hunk executable")
@@ -126,8 +127,8 @@ def main():
 
     Path(output).parent.mkdir(parents=True, exist_ok=True)
 
-    return gen_disasm(args.binary, entities, output,
-                      base_addr=args.base_addr,
-                      code_start=args.code_start,
-                      profile_stages=args.profile_stages,
-                      stall_timeout=args.stall_timeout)
+    gen_disasm(args.binary, entities, output,
+               base_addr=args.base_addr,
+               code_start=args.code_start,
+               profile_stages=args.profile_stages,
+               stall_timeout=args.stall_timeout)

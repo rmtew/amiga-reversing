@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from disasm.emitter import emit_session_rows
 from disasm.instruction_rows import render_instruction_text
 from disasm.text import render_rows
-from disasm.types import DisassemblySession
+from disasm.types import DisassemblySession, HunkDisassemblySession
+from m68k.m68k_disasm import Instruction
 
 
-def _instruction_at(hunk, addr: int):
+def _instruction_at(hunk: HunkDisassemblySession, addr: int) -> Instruction:
     for block in hunk.blocks.values():
         for inst in block.instructions:
             if inst.offset == addr:
@@ -14,14 +17,17 @@ def _instruction_at(hunk, addr: int):
     raise ValueError(f"Instruction not found at ${addr:04X}")
 
 
-def _render_at(hunk, addr: int) -> tuple[str, str, tuple[str, ...]]:
+def _render_at(
+    hunk: HunkDisassemblySession,
+    addr: int,
+) -> tuple[str, str, tuple[str, ...]]:
     inst = _instruction_at(hunk, addr)
     text, comment, comment_parts = render_instruction_text(
         inst, hunk, set(), include_arg_subs=True)
     return text, comment, comment_parts
 
 
-def _render_session_for_hunk(hunk) -> str:
+def _render_session_for_hunk(hunk: HunkDisassemblySession) -> str:
     session = DisassemblySession(
         target_name="test",
         binary_path=Path("bin/test"),
@@ -33,7 +39,10 @@ def _render_session_for_hunk(hunk) -> str:
     )
     return render_rows(emit_session_rows(session))
 
-def test_bloodwych_startup_stays_relocatable_and_has_no_absolute_app_anchor(bloodwych_hunk_session):
+
+def test_bloodwych_startup_stays_relocatable_and_has_no_absolute_app_anchor(
+    bloodwych_hunk_session: HunkDisassemblySession,
+) -> None:
     hunk = bloodwych_hunk_session
 
     assert _render_at(hunk, 0x0400) == ("move.w #$7fff,_custom+intena", "", ())
@@ -44,7 +53,9 @@ def test_bloodwych_startup_stays_relocatable_and_has_no_absolute_app_anchor(bloo
     assert "app_base_00008000" not in hunk.absolute_labels.values()
 
 
-def test_bloodwych_emission_uses_custom_include_without_custom_equ_spam(bloodwych_hunk_session):
+def test_bloodwych_emission_uses_custom_include_without_custom_equ_spam(
+    bloodwych_hunk_session: HunkDisassemblySession,
+) -> None:
     text = _render_session_for_hunk(bloodwych_hunk_session)
 
     assert '    INCLUDE "hardware/cia.i"\n' in text

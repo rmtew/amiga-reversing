@@ -13,11 +13,15 @@ as the single source of truth and can be re-run to regenerate.
 import json
 import sys
 import os
+from typing import Any
 
-sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+JsonDict = dict[str, Any]
 
 
-def build_iff_base():
+def build_iff_base() -> JsonDict:
     """IFF container format (EA IFF 85)."""
     return {
         "description": "EA IFF 85 interchange format — all IFF files use this container",
@@ -48,7 +52,7 @@ def build_iff_base():
     }
 
 
-def build_ilbm():
+def build_ilbm() -> JsonDict:
     """ILBM — Interleaved Bitmap (the Amiga standard image format)."""
     return {
         "form_id": "ILBM",
@@ -196,7 +200,7 @@ def build_ilbm():
     }
 
 
-def build_8svx():
+def build_8svx() -> JsonDict:
     """8SVX — 8-bit Sampled Voice."""
     return {
         "form_id": "8SVX",
@@ -281,7 +285,7 @@ def build_8svx():
     }
 
 
-def build_anim():
+def build_anim() -> JsonDict:
     """ANIM — Cel Animation."""
     return {
         "form_id": "ANIM",
@@ -364,7 +368,7 @@ def build_anim():
     }
 
 
-def build_acbm():
+def build_acbm() -> JsonDict:
     """ACBM — Amiga Contiguous Bitmap."""
     return {
         "form_id": "ACBM",
@@ -384,9 +388,9 @@ def build_acbm():
     }
 
 
-def build_registry(registry_path):
+def build_registry(registry_path: str) -> dict[str, JsonDict]:
     """Parse the FORM/chunk registry file."""
-    entries = {}
+    entries: dict[str, JsonDict] = {}
     if not os.path.exists(registry_path):
         return entries
 
@@ -409,14 +413,14 @@ def build_registry(registry_path):
     return entries
 
 
-def main():
+def main() -> None:
     output_path = os.path.join("knowledge", "amiga_iff_formats.json")
     registry_path = "D:/EXTRAS/IFF/IFF_FORMS/REGISTRY_930210"
 
     print("Building IFF format knowledge base...")
 
     # Build the full structure
-    data = {
+    data: JsonDict = {
         "meta": {
             "description": "IFF interchange format specifications for Amiga",
             "sources": [
@@ -470,7 +474,7 @@ def main():
     print(f"Wrote {md_path}")
 
 
-def generate_markdown(data, md_path):
+def generate_markdown(data: JsonDict, md_path: str) -> None:
     """Generate human-readable IFF reference from JSON data."""
     lines = []
     lines.append("# Amiga IFF Format Reference")

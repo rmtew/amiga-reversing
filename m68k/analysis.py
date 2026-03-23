@@ -14,14 +14,22 @@ import struct
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import TypeAlias
+from typing import TYPE_CHECKING, Callable, Protocol, TypedDict, TypeAlias
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
-from m68k_kb import runtime_os
 
 from .hunk_parser import parse_file, HunkType, _HUNK_KB
-from .m68k_executor import analyze, AbstractMemory, BasicBlock, CPUState, XRef
+from .abstract_values import AbstractValue, _concrete
+from .m68k_executor import (
+    analyze,
+    AnalysisResult,
+    AbstractMemory,
+    BasicBlock,
+    CPUState,
+    StatePair,
+    XRef,
+)
 from .jump_tables import detect_jump_tables, JumpTable, JumpTablePattern
 from .indirect_analysis import (resolve_indirect_targets, resolve_per_caller,
                                 resolve_backward_slice, IndirectResolution)
@@ -29,11 +37,14 @@ from . import indirect_core
 from .os_calls import (get_platform_config, PlatformState,
                        AppBaseInfo, AppBaseKind, identify_library_calls,
                        refine_opened_base_calls, analyze_call_setups,
-                       _SENTINEL_ALLOC_BASE,
+                       _SENTINEL_ALLOC_BASE, RUNTIME_OS_KB,
                        LibraryCall, OsKb)
 from .subroutine_scan import scan_and_score
 from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_decode import decode_inst_destination, decode_inst_operands
+
+if TYPE_CHECKING:
+    from .m68k_disasm import Instruction
 
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
@@ -42,9 +53,23 @@ _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
+class RelocLike(Protocol):
+    reloc_type: HunkType
+    offsets: tuple[int, ...]
+
+
+class RelocInfo(TypedDict):
+    bytes: int
+    mode: object
+
+
+PrintFn: TypeAlias = Callable[[str], None]
+CachePayload: TypeAlias = tuple[int, "HunkAnalysis"]
+
+
 # -- Relocation helpers ---------------------------------------------------
 
-_RELOC_INFO = {}
+_RELOC_INFO: dict[HunkType, RelocInfo] = {}
 for _name, _sem in _HUNK_KB.RELOCATION_SEMANTICS.items():
     if _name in HunkType.__members__:
         _RELOC_INFO[HunkType[_name]] = {
@@ -56,7 +81,7 @@ _RELOC_ABS_FMT = {4: ">I", 2: ">H"}
 _RELOC_REL_FMT = {4: ">i", 2: ">h", 1: ">b"}
 
 
-def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
+def resolve_reloc_target(reloc: RelocLike, offset: int, data: bytes) -> int | None:
     """Resolve a relocation offset to its target address."""
     info = _RELOC_INFO.get(reloc.reloc_type)
     if info is None:
@@ -69,12 +94,12 @@ def resolve_reloc_target(reloc, offset: int, data: bytes) -> int | None:
         fmt = _RELOC_ABS_FMT.get(nbytes)
         if fmt is None:
             return None
-        return struct.unpack_from(fmt, data, offset)[0]
+        return int(struct.unpack_from(fmt, data, offset)[0])
     if mode == _HUNK_KB.RelocMode.PC_RELATIVE:
         fmt = _RELOC_REL_FMT.get(nbytes)
         if fmt is None:
             return None
-        disp = struct.unpack_from(fmt, data, offset)[0]
+        disp = int(struct.unpack_from(fmt, data, offset)[0])
         return offset + disp
     return None
 
@@ -113,7 +138,7 @@ class RelocReference:
     offsets: tuple[int, ...]
 
 
-ExitState: TypeAlias = tuple[CPUState, AbstractMemory]
+ExitState: TypeAlias = StatePair
 
 
 @dataclass
@@ -137,7 +162,7 @@ class HunkAnalysis:
     os_kb: OsKb | None
     indirect_sites: list[indirect_core.IndirectSite] = field(default_factory=list)
 
-    def save(self, path: str | Path):
+    def save(self, path: str | Path) -> None:
         """Serialize analysis to disk (excluding os_kb and transient state)."""
         # Strip non-serializable items
         saved_os_kb = self.os_kb
@@ -165,10 +190,15 @@ class HunkAnalysis:
         """Load cached analysis, re-attaching the OS KB."""
         try:
             with open(path, "rb") as f:
-                version, ha = pickle.load(f)
+                payload = pickle.load(f)
         except (AttributeError, EOFError, ImportError, ModuleNotFoundError,
                 pickle.PickleError, TypeError, ValueError) as exc:
             raise AnalysisCacheError(f"Unusable analysis cache at {path}: {exc}") from exc
+        assert isinstance(payload, tuple) and len(payload) == 2, (
+            "Analysis cache payload must be a (version, analysis) tuple")
+        version, ha = payload
+        assert isinstance(version, int), "Analysis cache version must be int"
+        assert isinstance(ha, HunkAnalysis), "Analysis cache analysis payload must be HunkAnalysis"
         if version != _CACHE_VERSION:
             raise AnalysisCacheError(
                 f"Cache version mismatch: file={version}, "
@@ -177,7 +207,7 @@ class HunkAnalysis:
         return ha
 
 
-def _prune_inline_dispatch_blocks(blocks: dict, exit_states: dict,
+def _prune_inline_dispatch_blocks(blocks: dict[int, BasicBlock], exit_states: dict[int, ExitState],
                                   jt_list: list[JumpTable]) -> None:
     remove_addrs: set[int] = set()
     for table in jt_list:
@@ -213,7 +243,7 @@ def _prune_inline_dispatch_blocks(blocks: dict, exit_states: dict,
 
 # Postincrement move pattern from disassembled instruction text.
 # Matches move.b/w/l (An)+,(Am)+ - the copy loop primitive.
-def _postinc_copy_regs(inst) -> tuple[int, int] | None:
+def _postinc_copy_regs(inst: Instruction) -> tuple[int, int] | None:
     """Return (src_reg, dst_reg) for MOVE.(b/w/l) (An)+,(Am)+ copy ops."""
     mnemonic = instruction_kb(inst)
     if runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic) != runtime_m68k_analysis.OperationType.MOVE:
@@ -227,6 +257,9 @@ def _postinc_copy_regs(inst) -> tuple[int, int] | None:
         return None
     if src.mode != "postinc" or dst.mode != "postinc":
         return None
+    if src.reg is None or dst.reg is None:
+        assert src.reg is not None and dst.reg is not None, (
+            "Postincrement copy instruction missing register number")
     return src.reg, dst.reg
 
 
@@ -309,15 +342,14 @@ def detect_relocated_segments(code: bytes) -> list[RelocatedSegment]:
                     bootstrap_regs[i] = cpu.a[i].concrete
             break  # use last block's state
 
-        result2 = analyze(code, base_addr=0,
-                          entry_points=sorted(secondary_entries),
-                          propagate=True)
+        result2 = analyze(
+            code, base_addr=0, entry_points=sorted(secondary_entries), propagate=True
+        )
         # Merge bootstrap register knowledge into secondary exit states
         for addr in result2.get("exit_states", {}):
             cpu, mem = result2["exit_states"][addr]
             for i, val in bootstrap_regs.items():
                 if not cpu.a[i].is_known:
-                    from .m68k_executor import _concrete
                     cpu.set_reg("an", i, _concrete(val))
         blocks.update(result2["blocks"])
         exit_states.update(result2.get("exit_states", {}))
@@ -353,7 +385,7 @@ def detect_relocated_segments(code: bytes) -> list[RelocatedSegment]:
     return segments
 
 
-def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
+def _find_copy_segment(jmp_target: int, blocks: dict[int, BasicBlock], exit_states: dict[int, ExitState],
                        code_size: int,
                        entry_points: set[int]) -> RelocatedSegment | None:
     """Check if blocks before a JMP contain a copy loop targeting jmp_target.
@@ -388,7 +420,7 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                 file_offset = None
                 if (src_val.is_known
                         and 0 < src_val.concrete < code_size):
-                    file_offset = src_val.concrete
+                    file_offset = int(src_val.concrete)
                 else:
                     # Source register unknown (set in prior stage).
                     for i in range(len(cpu.a)):
@@ -396,7 +428,7 @@ def _find_copy_segment(jmp_target: int, blocks: dict, exit_states: dict,
                         if (v.is_known and 0 < v.concrete < code_size
                                 and v.concrete > addr
                                 and i != dst_reg):
-                            file_offset = v.concrete
+                            file_offset = int(v.concrete)
                             break
 
                 if file_offset is not None:
@@ -439,11 +471,17 @@ def _discover_absolute_app_base(init_blocks: dict[int, BasicBlock],
                 continue
             if mnemonic == "LEA" and decoded.ea_op is not None:
                 if decoded.ea_op.mode == "absw":
+                    if decoded.ea_op.value is None:
+                        assert decoded.ea_op.value is not None, "LEA abs.w operand missing value"
                     candidates.add(decoded.ea_op.value & 0xFFFF)
                 elif decoded.ea_op.mode == "absl":
+                    if decoded.ea_op.value is None:
+                        assert decoded.ea_op.value is not None, "LEA abs.l operand missing value"
                     candidates.add(decoded.ea_op.value)
                 continue
             if mnemonic == "MOVEA" and decoded.ea_op is not None and decoded.ea_op.mode == "imm":
+                if decoded.ea_op.value is None:
+                    assert decoded.ea_op.value is not None, "MOVEA immediate operand missing value"
                 candidates.add(decoded.ea_op.value & 0xFFFFFFFF)
     if not candidates:
         return None
@@ -469,8 +507,8 @@ def _discover_absolute_app_base(init_blocks: dict[int, BasicBlock],
 
 # -- Pipeline -------------------------------------------------------------
 
-def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
-                 print_fn=print,
+def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
+                 print_fn: PrintFn = print,
                  base_addr: int = 0,
                  code_start: int = 0) -> HunkAnalysis:
     """Run the complete analysis pipeline on a code hunk.
@@ -496,8 +534,8 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     # runtime base address.  This lets absolute address references
     # in the code naturally match block/label addresses, enabling
     # labelisation and eventual position-independent conversion.
-    relocated_segments = []
-    bootstrap_blocks = {}
+    relocated_segments: list[RelocatedSegment] = []
+    bootstrap_blocks: dict[int, BasicBlock] = {}
     if base_addr == 0 and code_start == 0:
         segments = detect_relocated_segments(code)
         if segments:
@@ -509,9 +547,9 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             # Use only the bootstrap slice so the executor can't follow
             # JMP targets into the payload (wrong address space).
             boot_entries = set(seg.entry_points)
-            boot_result = analyze(code[:src], base_addr=0,
-                                  entry_points=sorted(boot_entries),
-                                  propagate=True)
+            boot_result = analyze(
+                code[:src], base_addr=0, entry_points=sorted(boot_entries), propagate=True
+            )
             bootstrap_blocks = boot_result["blocks"]
             # Switch to payload: analyze at runtime base address.
             code = code[src:]
@@ -535,9 +573,9 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
 
     # -- Phase 0: Init discovery --------------------------------------
     base_reg_num = platform.base_reg_num
-    init_result = analyze(code, base_addr=base_addr,
-                          entry_points=[base_addr],
-                          propagate=True, platform=platform)
+    init_result = analyze(
+        code, base_addr=base_addr, entry_points=[base_addr], propagate=True, platform=platform
+    )
     alloc_base = _SENTINEL_ALLOC_BASE
     alloc_limit = platform.next_alloc_sentinel
     discovered_dynamic_base = None
@@ -584,21 +622,31 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
 
     # -- Phase 1: Core analysis with resolution loop ------------------
     core_entries = {base_addr}
-    jt_call_targets = set()
+    jt_call_targets: set[int] = set()
     jt_list: list[JumpTable] = []
-    per_caller_entry_states = {}
-    per_caller_entry_state_keys = {}
-    last_runtime_resolutions = []
-    last_per_caller_resolutions = []
-    last_backward_resolutions = []
+    per_caller_entry_states: dict[int, list[ExitState]] = {}
+    per_caller_entry_state_keys: dict[int, set[tuple[object, ...]]] = {}
+    last_runtime_resolutions: list[IndirectResolution] = []
+    last_per_caller_resolutions: list[IndirectResolution] = []
+    last_backward_resolutions: list[IndirectResolution] = []
 
-    def _entry_state_key(cpu, mem) -> tuple:
+    def _abstract_value_key(val: AbstractValue) -> tuple[object, ...]:
+        return (
+            val.is_known,
+            val.concrete if val.is_known else None,
+            val.sym_base,
+            val.sym_offset,
+            val.label,
+            repr(val.tag),
+        )
+
+    def _entry_state_key(cpu: CPUState, mem: AbstractMemory) -> tuple[object, ...]:
         reg_sig = tuple(
-            (val.is_known, val.concrete)
+            _abstract_value_key(val)
             for val in (*cpu.d, *cpu.a)
         )
         mem_sig = tuple(
-            sorted((addr, val.concrete) for addr, val in mem._bytes.items())
+            sorted((addr, _abstract_value_key(val)) for addr, val in mem._bytes.items())
         )
         tag_sig = tuple(
             sorted((repr(key), repr(tag)) for key, tag in mem._tags.items())
@@ -615,12 +663,14 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             seen.add(key)
             per_caller_entry_states.setdefault(target, []).append((cpu, mem))
 
-    def _resolve_cheap_entries():
+    def _resolve_cheap_entries() -> int:
         """Run non-per-caller entry discovery passes, return new entry count."""
         nonlocal jt_list
         nonlocal last_runtime_resolutions
         nonlocal last_backward_resolutions
         added = 0
+        if result is None:
+            assert result is not None, "Core analysis result missing before cheap-entry resolution"
         jt_list = detect_jump_tables(result["blocks"], code,
                                         base_addr=base_addr)
         _prune_inline_dispatch_blocks(
@@ -657,18 +707,20 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                 added += 1
         return added
 
-    def _resolve_per_caller_entries():
+    def _resolve_per_caller_entries() -> int:
+        if result is None:
+            assert result is not None, "Core analysis result missing before per-caller resolution"
         """Run expensive per-caller resolution after cheaper passes stabilize."""
         nonlocal last_per_caller_resolutions
         preclassified_calls = identify_library_calls(
-            result["blocks"], code, runtime_os,
+            result["blocks"], code, RUNTIME_OS_KB,
             result.get("exit_states", {}), result["call_targets"], platform)
         preclassified_calls = refine_opened_base_calls(
-            result["blocks"], preclassified_calls, code, runtime_os, platform)
+            result["blocks"], preclassified_calls, code, RUNTIME_OS_KB, platform)
         callback_setups = analyze_call_setups(
             result["blocks"],
             preclassified_calls,
-            runtime_os,
+            RUNTIME_OS_KB,
             code,
             platform,
             base_addr=base_addr,
@@ -698,12 +750,16 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
         return added
 
     entries_converged = False
-    result = None
+    result: AnalysisResult | None = None
     for store_pass in range(5):
         for _ in range(10):
-            result = analyze(code, base_addr=base_addr,
-                             entry_points=sorted(core_entries),
-                             propagate=True, platform=platform)
+            result = analyze(
+                code,
+                base_addr=base_addr,
+                entry_points=sorted(core_entries),
+                propagate=True,
+                platform=platform,
+            )
             if entries_converged:
                 break  # just re-analyzed with new memory
             if _resolve_cheap_entries():
@@ -717,37 +773,41 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
             break
         breg_num = platform.app_base.reg_num
         breg_val = platform.app_base.concrete
-        init_mem = platform.initial_mem
-        if init_mem is None:
+        platform_init_mem: AbstractMemory | None = platform.initial_mem
+        if platform_init_mem is None:
             break
 
         new_stores = 0
+        if result is None:
+            assert result is not None, "Core analysis result missing before store pass"
         for addr, (cpu, mem) in result.get("exit_states", {}).items():
             for mem_addr, val in mem._bytes.items():
                 if not (alloc_base <= mem_addr < alloc_limit):
                     continue
-                if mem_addr in init_mem._bytes:
+                if mem_addr in platform_init_mem._bytes:
                     continue
-                if val.concrete is None:
+                if not val.is_known:
                     continue
-                init_mem._bytes[mem_addr] = val
+                platform_init_mem._bytes[mem_addr] = val
                 new_stores += 1
             for key, tag in mem._tags.items():
-                if key not in init_mem._tags:
-                    init_mem._tags[key] = tag
+                if key not in platform_init_mem._tags:
+                    platform_init_mem._tags[key] = tag
 
         if new_stores == 0:
             break
         disp_example = ""
-        for mem_addr in sorted(init_mem._bytes):
+        for mem_addr in sorted(platform_init_mem._bytes):
             if (alloc_base <= mem_addr < alloc_limit
-                    and init_mem._bytes[mem_addr].concrete is not None
+                    and init_mem._bytes[mem_addr].is_known
                     and 0 <= init_mem._bytes[mem_addr].concrete < code_size):
                 disp_example = f" (e.g. d({mem_addr - breg_val}))"
                 break
         print_fn(f"  Store pass {store_pass + 1}: "
                  f"{new_stores} new memory values{disp_example}")
 
+    if result is None:
+        assert result is not None, "Core analysis result missing after analysis loop"
     blocks = result["blocks"]
     _prune_inline_dispatch_blocks(
         blocks,
@@ -759,7 +819,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     call_targets = result["call_targets"] | jt_call_targets
     exit_states = result.get("exit_states", {})
 
-    def _stats(blks):
+    def _stats(blks: dict[int, BasicBlock]) -> str:
         covered = sum(b.end - b.start for b in blks.values())
         n = sum(len(b.instructions) for b in blks.values())
         return (f"{len(blks)} blocks, {n} instructions, "
@@ -777,9 +837,9 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     hint_blocks: dict[int, BasicBlock] = {}
     hint_source: dict[int, str] = {}
     if hint_entries:
-        hint_result = analyze(code, base_addr=base_addr,
-                              entry_points=sorted(hint_entries),
-                              propagate=False)
+        hint_result = analyze(
+            code, base_addr=base_addr, entry_points=sorted(hint_entries), propagate=False
+        )
         for a, b in hint_result["blocks"].items():
             if a not in blocks:
                 hint_blocks[a] = b
@@ -798,9 +858,9 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                     if c["addr"] not in blocks
                     and c["addr"] not in hint_blocks}
     if scan_entries:
-        scan_result = analyze(code, base_addr=base_addr,
-                              entry_points=sorted(scan_entries),
-                              propagate=False)
+        scan_result = analyze(
+            code, base_addr=base_addr, entry_points=sorted(scan_entries), propagate=False
+        )
         for a, b in scan_result["blocks"].items():
             if a not in blocks and a not in hint_blocks:
                 hint_blocks[a] = b
@@ -827,9 +887,9 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
                     and next_addr not in post_scan_entries):
                 post_scan_entries.add(next_addr)
     if post_scan_entries:
-        post_result = analyze(code, base_addr=base_addr,
-                              entry_points=sorted(post_scan_entries),
-                              propagate=False)
+        post_result = analyze(
+            code, base_addr=base_addr, entry_points=sorted(post_scan_entries), propagate=False
+        )
         added = 0
         for a, b in post_result["blocks"].items():
             if a not in blocks and a not in hint_blocks:
@@ -886,7 +946,7 @@ def analyze_hunk(code: bytes, relocs: list, hunk_index: int = 0,
     )
 
     # -- Phase 3: OS call identification ------------------------------
-    os_kb = runtime_os
+    os_kb = RUNTIME_OS_KB
     lib_calls = identify_library_calls(
         blocks, code, os_kb, exit_states, call_targets, platform)
     lib_calls = refine_opened_base_calls(blocks, lib_calls, code, os_kb, platform)

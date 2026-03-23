@@ -1,13 +1,38 @@
 """Shared KB-driven address/base reconstruction helpers."""
 
+from __future__ import annotations
+
 import struct
+from collections.abc import Sequence
+from typing import Protocol, cast
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
 
+from .constant_evaluator import SizedInstructionLike
 from .instruction_kb import find_kb_entry, instruction_kb
 from .instruction_decode import DecodedOperands, decode_inst_destination, decode_inst_operands, xf
 from . import value_transforms as _vt
+
+
+class AddressReconstructionInstructionLike(Protocol):
+    @property
+    def offset(self) -> int: ...
+
+    @property
+    def size(self) -> int: ...
+
+    @property
+    def raw(self) -> bytes: ...
+
+    @property
+    def kb_mnemonic(self) -> str | None: ...
+
+    @property
+    def operand_size(self) -> str | None: ...
+
+    @property
+    def operand_nodes(self) -> Sequence[object] | None: ...
 
 
 def _immediate_an_adjustment(mnemonic: str, decoded: DecodedOperands,
@@ -25,6 +50,7 @@ def _immediate_an_adjustment(mnemonic: str, decoded: DecodedOperands,
             and ea_op.mode == "an"
             and ea_op.reg == current_reg):
         imm = decoded.imm_val
+        assert isinstance(imm, int)
         return imm if op_type == runtime_m68k_analysis.OperationType.ADD else -imm
 
     if (mnemonic in runtime_m68k_analysis.SOURCE_SIGN_EXTEND
@@ -37,12 +63,13 @@ def _immediate_an_adjustment(mnemonic: str, decoded: DecodedOperands,
             and ea_op.mode == "imm"
             and ea_op.value is not None):
         imm = ea_op.value
+        assert isinstance(imm, int)
         return imm if op_type == runtime_m68k_analysis.OperationType.ADD else -imm
 
     return None
 
 
-def _resolve_lea_pc(inst) -> int | None:
+def _resolve_lea_pc(inst: AddressReconstructionInstructionLike) -> int | None:
     """Resolve a LEA instruction's PC-relative source address."""
     from . import static_values as _sv
 
@@ -61,19 +88,27 @@ def _resolve_lea_pc(inst) -> int | None:
             and not ea_op.base_suppressed
             and not ea_op.index_suppressed):
         index_mode = "an" if ea_op.index_is_addr else "dn"
+        index_reg = ea_op.index_reg
+        if index_reg is None:
+            return None
         index_val = _sv._resolve_block_constant_reg(
-            [inst], index_mode, ea_op.index_reg, inst.offset + inst.size)
+            cast(list[SizedInstructionLike], [inst]), index_mode, index_reg, inst.offset + inst.size)
         if index_val is None:
             return ea_op.value
+        base_value = ea_op.value
+        index_scale = ea_op.index_scale
+        if base_value is None or index_reg is None or index_scale is None:
+            return None
         if ea_op.index_size == "w":
             index_val &= 0xFFFF
             if index_val & 0x8000:
                 index_val -= 0x10000
-        return (ea_op.value + index_val * ea_op.index_scale) & runtime_m68k_analysis.ADDR_MASK
+        addr_mask = runtime_m68k_analysis.ADDR_MASK
+        return (base_value + index_val * index_scale) & addr_mask
     return None
 
 
-def _get_lea_dst_reg(inst) -> int | None:
+def _get_lea_dst_reg(inst: AddressReconstructionInstructionLike) -> int | None:
     """Get destination register number from a LEA instruction."""
     lea_kb = find_kb_entry("lea")
     if lea_kb is None:
@@ -85,7 +120,7 @@ def _get_lea_dst_reg(inst) -> int | None:
     return xf(opcode, dst_spec)
 
 
-def is_lea(inst) -> bool:
+def is_lea(inst: AddressReconstructionInstructionLike) -> bool:
     """Check if instruction is LEA via KB operation text."""
     ikb = instruction_kb(inst)
     return (
@@ -95,7 +130,7 @@ def is_lea(inst) -> bool:
 
 
 def _static_an_source_base(mnemonic: str, decoded: DecodedOperands,
-                           current_reg: int, instructions,
+                           current_reg: int, instructions: Sequence[AddressReconstructionInstructionLike],
                            inst_offset: int) -> int | None:
     """Return concrete static source used to seed An, if any."""
     from . import static_values as _sv
@@ -113,8 +148,10 @@ def _static_an_source_base(mnemonic: str, decoded: DecodedOperands,
             and ea_op.value is not None):
         return ea_op.value
     if op_type == runtime_m68k_analysis.OperationType.MOVE and ea_op.mode in ("dn", "an"):
-        return _sv._resolve_block_constant_reg(
-            instructions, ea_op.mode, ea_op.reg, inst_offset)
+        reg = ea_op.reg
+        if reg is None:
+            return None
+        return _sv._resolve_block_constant_reg(cast(list[SizedInstructionLike], instructions), ea_op.mode, reg, inst_offset)
     if ea_op.mode == "pcdisp":
         return ea_op.value
     if (ea_op.mode == "pcindex"
@@ -123,19 +160,27 @@ def _static_an_source_base(mnemonic: str, decoded: DecodedOperands,
             and not ea_op.base_suppressed
             and not ea_op.index_suppressed):
         index_mode = "an" if ea_op.index_is_addr else "dn"
+        index_reg = ea_op.index_reg
+        if index_reg is None:
+            return None
         index_val = _sv._resolve_block_constant_reg(
-            instructions, index_mode, ea_op.index_reg, inst_offset)
+            cast(list[SizedInstructionLike], instructions), index_mode, index_reg, inst_offset)
         if index_val is None:
+            return None
+        base_value = ea_op.value
+        index_scale = ea_op.index_scale
+        if base_value is None or index_scale is None:
             return None
         if ea_op.index_size == "w":
             index_val &= 0xFFFF
             if index_val & 0x8000:
                 index_val -= 0x10000
-        return (ea_op.value + index_val * ea_op.index_scale) & runtime_m68k_analysis.ADDR_MASK
+        addr_mask = runtime_m68k_analysis.ADDR_MASK
+        return (base_value + index_val * index_scale) & addr_mask
     return None
 
 
-def resolve_block_pc_base(instructions, target_reg: int) -> int | None:
+def resolve_block_pc_base(instructions: Sequence[AddressReconstructionInstructionLike], target_reg: int) -> int | None:
     """Resolve An back to a PC-relative LEA through simple register copies."""
     from . import static_values as _sv
 
@@ -168,8 +213,11 @@ def resolve_block_pc_base(instructions, target_reg: int) -> int | None:
                 and decoded.reg_num == current_reg
                 and ea_op is not None
                 and ea_op.mode in ("dn", "an")):
+            reg = ea_op.reg
+            if reg is None:
+                return None
             src_val = _sv._resolve_block_constant_reg(
-                instructions, ea_op.mode, ea_op.reg, inst.offset)
+                cast(list[SizedInstructionLike], instructions), ea_op.mode, reg, inst.offset)
             if src_val is not None:
                 offset += src_val if op_type == runtime_m68k_analysis.OperationType.ADD else -src_val
                 continue
@@ -178,13 +226,16 @@ def resolve_block_pc_base(instructions, target_reg: int) -> int | None:
                 and op_type in ("add", "sub")
                 and ea_op is not None
                 and ea_op.mode in ("dn", "an")):
+            reg = ea_op.reg
+            if reg is None:
+                return None
             src_val = _sv._resolve_block_constant_reg(
-                instructions, ea_op.mode, ea_op.reg, inst.offset)
+                cast(list[SizedInstructionLike], instructions), ea_op.mode, reg, inst.offset)
             if src_val is not None:
                 offset += src_val if op_type == runtime_m68k_analysis.OperationType.ADD else -src_val
                 continue
         if op_type == runtime_m68k_analysis.OperationType.SWAP:
-            partner = _vt._swap_partner(inst, "an", current_reg)
+            partner = _vt._swap_partner(cast(_vt.ExchangeInstructionLike, inst), "an", current_reg)
             if partner is not None:
                 if partner[0] != "an":
                     return None
@@ -193,6 +244,8 @@ def resolve_block_pc_base(instructions, target_reg: int) -> int | None:
         if dst != ("an", current_reg):
             continue
         if ea_op is None or ea_op.mode != "an":
+            return None
+        if ea_op.reg is None:
             return None
         current_reg = ea_op.reg
     return None

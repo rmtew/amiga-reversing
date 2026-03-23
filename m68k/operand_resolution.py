@@ -1,44 +1,47 @@
 """Low-level M68K operand address resolution helpers."""
 
+from __future__ import annotations
+
+from .abstract_values import AbstractValue, _concrete
 from .instruction_primitives import Operand
 from .m68k_compute import _to_signed
+from .typing_protocols import CpuStateLike, MemoryLike
 
 
-def _concrete_from_state(state, value: int):
-    cls = type(state.get_reg("dn", 0))
-    return cls(concrete=value & 0xFFFFFFFF)
-
-
-def _index_offset(operand: Operand, state) -> int | None:
+def _index_offset(operand: Operand, state: CpuStateLike) -> int | None:
     if operand.index_suppressed:
         return 0
+    if operand.index_reg is None:
+        assert operand.index_reg is not None, "Indexed operand missing index register"
     idx = state.get_reg("an" if operand.index_is_addr else "dn", operand.index_reg)
     if not idx.is_known:
         return None
     idx_val = idx.concrete
     if operand.index_size == "w":
-        idx_val = _to_signed(idx_val & 0xFFFF, "w")
-    return idx_val * operand.index_scale
+        idx_val = int(_to_signed(idx_val & 0xFFFF, "w"))
+    return int(idx_val * operand.index_scale)
 
 
-def _full_extension_base_addr(operand: Operand, state) -> int | None:
+def _full_extension_base_addr(operand: Operand, state: CpuStateLike) -> int | None:
     if operand.mode == "index":
         if operand.base_suppressed:
             return 0
+        if operand.reg is None:
+            assert operand.reg is not None, "Indexed operand missing base register"
         base = state.get_reg("an", operand.reg)
         if not base.is_known:
             return None
-        return base.concrete
+        return int(base.concrete)
     if operand.mode == "pcindex":
         if operand.base_suppressed:
             return 0
         if operand.value is None:
             return None
-        return operand.value - (operand.base_displacement or 0)
+        return int(operand.value - (operand.base_displacement or 0))
     return None
 
 
-def _resolve_full_extension_ea(operand: Operand, state, mem) -> int | None:
+def _resolve_full_extension_ea(operand: Operand, state: CpuStateLike, mem: MemoryLike | None) -> int | None:
     base_addr = _full_extension_base_addr(operand, state)
     if base_addr is None:
         return None
@@ -67,28 +70,44 @@ def _resolve_full_extension_ea(operand: Operand, state, mem) -> int | None:
     return final_addr & 0xFFFFFFFF
 
 
-def resolve_ea(operand: Operand, state, size: str, mem=None):
+def resolve_ea(operand: Operand, state: CpuStateLike, size: str, mem: MemoryLike | None = None) -> AbstractValue | None:
     """Resolve an EA operand to its effective address or value."""
     if operand.mode == "dn":
+        if operand.reg is None:
+            assert operand.reg is not None, "Dn operand missing register"
         return state.get_reg("dn", operand.reg)
     if operand.mode == "an":
+        if operand.reg is None:
+            assert operand.reg is not None, "An operand missing register"
         return state.get_reg("an", operand.reg)
     if operand.mode == "ind":
+        if operand.reg is None:
+            assert operand.reg is not None, "Indirect operand missing register"
         return state.get_reg("an", operand.reg)
     if operand.mode in ("postinc", "predec"):
+        if operand.reg is None:
+            assert operand.reg is not None, "Auto-modify operand missing register"
         return state.get_reg("an", operand.reg)
     if operand.mode == "disp":
+        if operand.reg is None or operand.value is None:
+            assert operand.reg is not None and operand.value is not None, (
+                "Displacement operand missing register or value")
         base = state.get_reg("an", operand.reg)
         if base.is_known:
-            return _concrete_from_state(state, base.concrete + operand.value)
+            return _concrete(base.concrete + operand.value)
         return None
     if operand.mode == "index":
         if operand.full_extension:
             ea = _resolve_full_extension_ea(operand, state, mem)
             if ea is not None:
-                return _concrete_from_state(state, ea)
+                return _concrete(ea)
             if operand.memory_indirect:
                 return None
+        if operand.reg is None:
+            assert operand.reg is not None, "Indexed operand missing base register"
+        if operand.index_reg is None or operand.value is None:
+            assert operand.index_reg is not None and operand.value is not None, (
+                "Indexed operand missing index register or displacement")
         base = state.get_reg("an", operand.reg)
         if operand.memory_indirect or operand.base_suppressed or operand.index_suppressed:
             return None
@@ -98,33 +117,42 @@ def resolve_ea(operand: Operand, state, size: str, mem=None):
             if operand.index_size == "w":
                 idx_val = _to_signed(idx_val & 0xFFFF, "w")
                 idx_val &= 0xFFFFFFFF
-            return _concrete_from_state(
-                state, base.concrete + idx_val * operand.index_scale + operand.value
-            )
+            return _concrete(base.concrete + idx_val * operand.index_scale + operand.value)
         return None
     if operand.mode == "absw":
-        return _concrete_from_state(state, operand.value)
+        if operand.value is None:
+            assert operand.value is not None, "abs.w operand missing value"
+        return _concrete(operand.value)
     if operand.mode == "absl":
-        return _concrete_from_state(state, operand.value)
+        if operand.value is None:
+            assert operand.value is not None, "abs.l operand missing value"
+        return _concrete(operand.value)
     if operand.mode == "pcdisp":
-        return _concrete_from_state(state, operand.value)
+        if operand.value is None:
+            assert operand.value is not None, "pcdisp operand missing value"
+        return _concrete(operand.value)
     if operand.mode == "pcindex":
         if operand.full_extension:
             ea = _resolve_full_extension_ea(operand, state, mem)
             if ea is not None:
-                return _concrete_from_state(state, ea)
+                return _concrete(ea)
             if operand.memory_indirect:
                 return None
         if operand.memory_indirect or operand.base_suppressed or operand.index_suppressed:
             return None
+        if operand.index_reg is None or operand.value is None:
+            assert operand.index_reg is not None and operand.value is not None, (
+                "pcindex operand missing index register or value")
         idx = state.get_reg("an" if operand.index_is_addr else "dn", operand.index_reg)
         if idx.is_known:
             idx_val = idx.concrete
             if operand.index_size == "w":
                 idx_val = _to_signed(idx_val & 0xFFFF, "w")
                 idx_val &= 0xFFFFFFFF
-            return _concrete_from_state(state, operand.value + idx_val * operand.index_scale)
+            return _concrete(operand.value + idx_val * operand.index_scale)
         return None
     if operand.mode == "imm":
-        return _concrete_from_state(state, operand.value)
+        if operand.value is None:
+            assert operand.value is not None, "Immediate operand missing value"
+        return _concrete(operand.value)
     return None

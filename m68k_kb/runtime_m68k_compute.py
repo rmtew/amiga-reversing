@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .runtime_types import PrimaryDataSize, ComputeFormula, SpEffect
+
 from enum import StrEnum
 
 from typing import TypeAlias
@@ -78,9 +80,6 @@ class SpEffectAction(StrEnum):
     SAVE_TO_REG = 'save_to_reg'
     LOAD_FROM_REG = 'load_from_reg'
     LOAD_FROM_STACK_TO_REG = 'load_from_stack_to_reg'
-ComputeFormula: TypeAlias = tuple[ComputeOp, tuple[FormulaTerm | int, ...], tuple[int, int] | None, tuple[int, int] | None, tuple[tuple[str, int], ...], TruncationMode | None]
-PrimaryDataSize: TypeAlias = tuple[PrimaryDataSizeKind, int, int, int]
-SpEffect: TypeAlias = tuple[SpEffectAction, int | None, str | None]
 
 OPERATION_TYPES = {'ABCD': OperationType.ADD_DECIMAL,
  'ADD': OperationType.ADD,

@@ -19,6 +19,7 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 from collections import defaultdict
+from typing import Any, MutableMapping, cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -35,6 +36,7 @@ from m68k.os_calls import AppSlotInfo, build_app_slot_infos
 
 
 PROJECT_ROOT = Path(__file__).parent.parent
+JsonDict = dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,8 +162,8 @@ def build_subroutine_map(blocks: dict[int, BasicBlock],
     return subroutines
 
 
-def build_reloc_references(hunks, code_size: int,
-                           subroutines: list[SubroutineRange]) -> list[dict]:
+def build_reloc_references(hunks: list[Any], code_size: int,
+                           subroutines: list[SubroutineRange]) -> list[JsonDict]:
     """Extract data references from relocation entries.
 
     Reloc offsets point to longwords in the code that contain absolute
@@ -170,13 +172,13 @@ def build_reloc_references(hunks, code_size: int,
     # Build address lookup for subroutines
     sub_ranges = [(s.addr, s.end) for s in subroutines]
 
-    def in_known_sub(addr):
+    def in_known_sub(addr: int) -> bool:
         for start, end in sub_ranges:
             if start <= addr < end:
                 return True
         return False
 
-    data_refs = []
+    data_refs: list[JsonDict] = []
     for hunk in hunks:
         if hunk.hunk_type != HunkType.HUNK_CODE:
             continue
@@ -196,8 +198,8 @@ def build_reloc_references(hunks, code_size: int,
                         })
 
     # Deduplicate by target address
-    seen = set()
-    unique = []
+    seen: set[int] = set()
+    unique: list[JsonDict] = []
     for ref in data_refs:
         if ref["addr"] not in seen:
             seen.add(ref["addr"])
@@ -206,10 +208,10 @@ def build_reloc_references(hunks, code_size: int,
     return unique
 
 
-def fill_gaps(entities: list[dict], total_size: int, hunk_idx: int):
+def fill_gaps(entities: list[JsonDict], total_size: int, hunk_idx: int) -> list[JsonDict]:
     """Add 'unknown' entities for unmapped regions in [0, total_size)."""
     sorted_ents = sorted(entities, key=lambda e: int(e["addr"], 16))
-    gaps = []
+    gaps: list[tuple[int, int]] = []
 
     # Gap before first entity
     if sorted_ents:
@@ -232,7 +234,7 @@ def fill_gaps(entities: list[dict], total_size: int, hunk_idx: int):
         if last_end < total_size:
             gaps.append((last_end, total_size))
 
-    gap_entities = []
+    gap_entities: list[JsonDict] = []
     for start, end in gaps:
         gap_entities.append({
             "addr": fmt_addr(start),
@@ -245,7 +247,7 @@ def fill_gaps(entities: list[dict], total_size: int, hunk_idx: int):
 
 
 def assign_xrefs(subroutines: list[SubroutineRange], xrefs: list[XRef],
-                 ) -> tuple[dict, dict]:
+                 ) -> tuple[dict[int, dict[str, set[int]]], dict[int, dict[str, set[int]]]]:
     """Map instruction-level xrefs to subroutine-level entity xrefs.
 
     Returns (forward_map, reverse_map) where each maps entity addr to
@@ -255,7 +257,7 @@ def assign_xrefs(subroutines: list[SubroutineRange], xrefs: list[XRef],
     # For fast range lookup, build sorted list
     sorted_subs = sorted(subroutines, key=lambda s: s.addr)
 
-    def find_sub(addr):
+    def find_sub(addr: int) -> int | None:
         """Find which subroutine contains the given address."""
         # Binary search
         lo, hi = 0, len(sorted_subs) - 1
@@ -270,8 +272,8 @@ def assign_xrefs(subroutines: list[SubroutineRange], xrefs: list[XRef],
                 return s.addr
         return None
 
-    forward: dict[int, dict[str, set]] = defaultdict(lambda: defaultdict(set))
-    reverse: dict[int, dict[str, set]] = defaultdict(lambda: defaultdict(set))
+    forward: dict[int, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
+    reverse: dict[int, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
     dropped = 0
 
     for xref in xrefs:
@@ -306,11 +308,11 @@ def _operand_app_disp(op: Operand | None, base_reg: int) -> int | None:
     if op.reg != base_reg:
         return None
     if op.mode == "disp":
-        return op.value
+        return cast(int, op.value)
     if op.mode == "index":
         if op.memory_indirect:
             return None
-        return op.base_displacement if op.full_extension else op.value
+        return cast(int, op.base_displacement if op.full_extension else op.value)
     return None
 
 
@@ -363,10 +365,10 @@ def collect_subroutine_app_slots(sub: SubroutineRange,
     return tuple(referenced[offset] for offset in sorted(referenced))
 
 
-def app_slot_entity_payloads(app_slots: tuple[ReferencedAppSlot, ...]) -> list[dict]:
-    payloads: list[dict] = []
+def app_slot_entity_payloads(app_slots: tuple[ReferencedAppSlot, ...]) -> list[JsonDict]:
+    payloads: list[JsonDict] = []
     for slot in app_slots:
-        payload = {
+        payload: JsonDict = {
             "offset": fmt_disp(slot.offset),
             "symbol": slot.symbol,
             **({"named_base": slot.named_base} if slot.named_base is not None else {}),
@@ -403,7 +405,7 @@ def collect_subroutine_indirect_sites(sub: SubroutineRange,
 
 
 def indirect_site_entity_payloads(
-        indirect_sites: tuple[ReferencedIndirectSite, ...]) -> list[dict]:
+        indirect_sites: tuple[ReferencedIndirectSite, ...]) -> list[JsonDict]:
     return [{
         "addr": fmt_addr(site.addr),
         "shape": site.shape,
@@ -415,18 +417,18 @@ def indirect_site_entity_payloads(
     } for site in indirect_sites]
 
 
-def _slot_struct_refs(slot: dict) -> set[str]:
+def _slot_struct_refs(slot: JsonDict) -> set[str]:
     refs: set[str] = set()
     struct_name = slot.get("struct")
     if struct_name is not None:
-        refs.add(struct_name)
+        refs.add(cast(str, struct_name))
     pointer_struct = slot.get("pointer_struct")
     if pointer_struct is not None:
-        refs.add(pointer_struct)
+        refs.add(cast(str, pointer_struct))
     return refs
 
 
-def summarize_entity_app_slots(entities: list[dict]) -> None:
+def summarize_entity_app_slots(entities: list[JsonDict]) -> None:
     code_entities = {
         int(ent["addr"], 16): ent
         for ent in entities
@@ -446,7 +448,7 @@ def summarize_entity_app_slots(entities: list[dict]) -> None:
             for slot in ent.get("app_slots", ())
             if slot.get("named_base") is not None
         }
-        direct_struct_refs = set()
+        direct_struct_refs: set[str] = set()
         for slot in ent.get("app_slots", ()):
             direct_struct_refs.update(_slot_struct_refs(slot))
         all_named_bases = set(direct_named_bases)
@@ -471,8 +473,8 @@ def summarize_entity_app_slots(entities: list[dict]) -> None:
         _visit(addr, set())
 
 
-def build_entities(binary_path: str, output_path: str = None,
-                   base_addr: int = 0, code_start: int = 0):
+def build_entities(binary_path: str, output_path: str | None = None,
+                   base_addr: int = 0, code_start: int = 0) -> int:
     """Main pipeline: parse binary, run executor, generate entities."""
     if output_path is None:
         output_path = "entities.jsonl"
@@ -489,7 +491,7 @@ def build_entities(binary_path: str, output_path: str = None,
         print(f"    #{h.index}: {h.type_name} {len(h.data)} bytes, "
               f"{len(h.relocs)} reloc groups, {len(h.symbols)} symbols")
 
-    all_entities = []
+    all_entities: list[JsonDict] = []
 
     for hunk in hf.hunks:
         if hunk.hunk_type != HunkType.HUNK_CODE:
@@ -511,7 +513,7 @@ def build_entities(binary_path: str, output_path: str = None,
               f"({code_size} bytes)...")
 
         # Run shared analysis pipeline
-        ha = analyze_hunk(code, hunk.relocs, hunk.index,
+        ha = analyze_hunk(code, cast(list[Any], hunk.relocs), hunk.index,
                           base_addr=base_addr, code_start=code_start)
 
         # Cache analysis for gen_disasm reuse
@@ -545,7 +547,7 @@ def build_entities(binary_path: str, output_path: str = None,
         fwd_xrefs, rev_xrefs = assign_xrefs(subroutines, xrefs)
 
         # Build library call map: subroutine addr -> list of OS calls
-        lib_call_map = defaultdict(list)
+        lib_call_map: defaultdict[int, list[Any]] = defaultdict(list)
         if lib_calls:
             sorted_subs = sorted(subroutines, key=lambda s: s.addr)
             for call in lib_calls:
@@ -557,7 +559,7 @@ def build_entities(binary_path: str, output_path: str = None,
         # Build subroutine entities
         stub_count = 0
         for sub in subroutines:
-            ent = {
+            ent: JsonDict = {
                 "addr": fmt_addr(sub.addr),
                 "end": fmt_addr(sub.end),
                 "type": "code",
@@ -584,14 +586,14 @@ def build_entities(binary_path: str, output_path: str = None,
                 ent["os_calls"] = sorted(set(
                     f"{c.library}/{c.function}" for c in calls))
                 # Collect typed register annotations from KB
-                typed_calls = []
+                typed_calls: list[JsonDict] = []
                 for c in calls:
-                    entry = {"call": f"{c.library}/{c.function}"}
+                    entry: JsonDict = {"call": f"{c.library}/{c.function}"}
                     if c.inputs:
-                        inputs = {}
+                        inputs: JsonDict = {}
                         for inp in c.inputs:
                             if inp.reg and inp.type:
-                                info = {"type": inp.type}
+                                info: JsonDict = {"type": inp.type}
                                 if inp.i_struct:
                                     info["i_struct"] = inp.i_struct
                                 inputs[inp.reg] = info
@@ -632,7 +634,7 @@ def build_entities(binary_path: str, output_path: str = None,
             # Each contiguous group of blocks becomes one hint entity.
             sorted_hints = sorted(hint_blocks.values(),
                                   key=lambda b: b.start)
-            regions = []
+            regions: list[dict[str, int]] = []
             for blk in sorted_hints:
                 if (regions and blk.start <= regions[-1]["end"]):
                     # Extend current region
@@ -647,7 +649,7 @@ def build_entities(binary_path: str, output_path: str = None,
                         "instr_count": len(blk.instructions),
                     })
             for region in regions:
-                ent = {
+                hint_ent: JsonDict = {
                     "addr": fmt_addr(region["addr"]),
                     "end": fmt_addr(region["end"]),
                     "type": "code",
@@ -659,20 +661,20 @@ def build_entities(binary_path: str, output_path: str = None,
                 # Find the best-matching hint reason: any hint entry
                 # that falls within this region's address range.
                 best_reason = None
-                for entry, reason in hint_reasons.items():
-                    if region["addr"] <= entry < region["end"]:
+                for hint_entry_addr, reason in hint_reasons.items():
+                    if region["addr"] <= hint_entry_addr < region["end"]:
                         if (best_reason is None
                                 or reason.source == "reloc_from_core"):
                             best_reason = reason
                 if best_reason:
-                    ent["hint_source"] = best_reason.source
+                    hint_ent["hint_source"] = best_reason.source
                     if best_reason.referenced_from:
-                        ent["hint_refs"] = sorted(
+                        hint_ent["hint_refs"] = sorted(
                             fmt_addr(r)
                             for r in best_reason.referenced_from)
                 else:
-                    ent["hint_source"] = "scan"
-                all_entities.append(ent)
+                    hint_ent["hint_source"] = "scan"
+                all_entities.append(hint_ent)
 
         # Build reloc-derived data references for uncovered regions
         data_refs = build_reloc_references(
@@ -705,12 +707,17 @@ def build_entities(binary_path: str, output_path: str = None,
         summarize_entity_app_slots(hunk_entities)
 
         # Name subroutines from OS calls, string references, call graph
-        named = name_subroutines(hunk_entities, blocks, code, lib_calls)
+        named = name_subroutines(
+            cast(list[MutableMapping[str, object]], hunk_entities),
+            blocks,
+            code,
+            lib_calls,
+        )
         if named:
             print(f"  Named {named} subroutines")
 
     # Sort by address
-    def _addr_int(e):
+    def _addr_int(e: JsonDict) -> int:
         a = e["addr"]
         return int(a, 16) if isinstance(a, str) else a
     all_entities.sort(key=_addr_int)
@@ -734,7 +741,7 @@ def build_entities(binary_path: str, output_path: str = None,
     print(f"  Core: {len(core_code)} subroutines, "
           f"{sum(1 for e in core_code if e.get('name'))} named")
     if hint_code:
-        by_src = defaultdict(int)
+        by_src: defaultdict[str, int] = defaultdict(int)
         for e in hint_code:
             by_src[e.get("hint_source", "-")] += 1
         src_str = ", ".join(f"{c} {s}"
@@ -752,10 +759,10 @@ def build_entities(binary_path: str, output_path: str = None,
     return 0
 
 
-def _remove_overlapping(entities: list[dict]) -> list[dict]:
+def _remove_overlapping(entities: list[JsonDict]) -> list[JsonDict]:
     """Remove entities that overlap with earlier ones (sorted by addr)."""
     entities.sort(key=lambda e: int(e["addr"], 16))
-    result = []
+    result: list[JsonDict] = []
     for ent in entities:
         addr = int(ent["addr"], 16)
         end = int(ent["end"], 16)
@@ -772,7 +779,7 @@ def _remove_overlapping(entities: list[dict]) -> list[dict]:
     return result
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build entities.jsonl from hunk binary analysis")
     parser.add_argument("binary", help="Path to Amiga hunk executable")

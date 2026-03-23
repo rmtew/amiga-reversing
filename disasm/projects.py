@@ -4,12 +4,31 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING, TypedDict
 
 from disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from disasm.session import build_disassembly_session
 
+if TYPE_CHECKING:
+    from disasm.session import DisassemblySession
+
 SAFE_PROJECT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 STATE_FILE_NAME = ".browser_state.json"
+
+
+class BrowserState(TypedDict):
+    recent_projects: dict[str, str]
+
+
+class ProjectRecord(TypedDict):
+    id: str
+    name: str
+    target_dir: str
+    entities_path: str
+    output_path: str | None
+    binary_path: str | None
+    ready: bool
+    last_opened: str | None
 
 
 def _targets_dir(project_root: Path) -> Path:
@@ -20,7 +39,7 @@ def _state_path(project_root: Path) -> Path:
     return _targets_dir(project_root) / STATE_FILE_NAME
 
 
-def _load_state(project_root: Path) -> dict:
+def _load_state(project_root: Path) -> BrowserState:
     state_path = _state_path(project_root)
     if not state_path.exists():
         return {"recent_projects": {}}
@@ -31,7 +50,7 @@ def _load_state(project_root: Path) -> dict:
     return {"recent_projects": recent_projects}
 
 
-def _save_state(project_root: Path, state: dict) -> None:
+def _save_state(project_root: Path, state: BrowserState) -> None:
     state_path = _state_path(project_root)
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(
@@ -53,7 +72,7 @@ def _recorded_binary_path(target_dir: Path, project_root: Path) -> tuple[str | N
     return recorded, candidate.exists()
 
 
-def _project_record(target_dir: Path, state: dict, project_root: Path) -> dict:
+def _project_record(target_dir: Path, state: BrowserState, project_root: Path) -> ProjectRecord:
     entities_path = target_dir / "entities.jsonl"
     if not entities_path.exists():
         raise FileNotFoundError(f"Missing entities.jsonl for target: {target_dir.name}")
@@ -71,14 +90,14 @@ def _project_record(target_dir: Path, state: dict, project_root: Path) -> dict:
     }
 
 
-def get_project(project_name: str, project_root: Path = PROJECT_ROOT) -> dict:
+def get_project(project_name: str, project_root: Path = PROJECT_ROOT) -> ProjectRecord:
     target_dir = _targets_dir(project_root) / project_name
     if not target_dir.exists():
         raise FileNotFoundError(f"Unknown target: {project_name}")
     return _project_record(target_dir, _load_state(project_root), project_root)
 
 
-def list_projects(project_root: Path = PROJECT_ROOT) -> list[dict]:
+def list_projects(project_root: Path = PROJECT_ROOT) -> list[ProjectRecord]:
     targets_dir = _targets_dir(project_root)
     if not targets_dir.exists():
         return []
@@ -93,7 +112,7 @@ def list_projects(project_root: Path = PROJECT_ROOT) -> list[dict]:
     return projects
 
 
-def create_project(project_name: str, project_root: Path = PROJECT_ROOT) -> dict:
+def create_project(project_name: str, project_root: Path = PROJECT_ROOT) -> ProjectRecord:
     project_name = project_name.strip()
     if not SAFE_PROJECT_RE.fullmatch(project_name):
         raise ValueError("Project id must match [A-Za-z0-9][A-Za-z0-9._-]*")
@@ -105,7 +124,7 @@ def create_project(project_name: str, project_root: Path = PROJECT_ROOT) -> dict
     return get_project(project_name, project_root=project_root)
 
 
-def mark_project_opened(project_name: str, project_root: Path = PROJECT_ROOT) -> dict:
+def mark_project_opened(project_name: str, project_root: Path = PROJECT_ROOT) -> ProjectRecord:
     get_project(project_name, project_root=project_root)
     state = _load_state(project_root)
     state["recent_projects"][project_name] = datetime.now(timezone.utc).isoformat()
@@ -114,7 +133,7 @@ def mark_project_opened(project_name: str, project_root: Path = PROJECT_ROOT) ->
 
 
 def build_project_session(target_name: str, project_root: Path = PROJECT_ROOT,
-                          profile_stages: bool = False):
+                          profile_stages: bool = False) -> DisassemblySession:
     paths = resolve_project_paths(target_name, project_root=project_root)
     return build_disassembly_session(
         str(paths.binary_path),

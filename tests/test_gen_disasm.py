@@ -1,16 +1,22 @@
+from __future__ import annotations
+
 """Tests for disassembly output generation helpers."""
 
 import io
 import struct
+from collections.abc import Callable
 from types import SimpleNamespace
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
+from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_os
 from m68k.instruction_kb import find_kb_entry
 from m68k.m68k_asm import assemble_instruction
-from m68k.m68k_disasm import disassemble
-from m68k.m68k_executor import analyze, BasicBlock, Instruction
+from m68k.m68k_disasm import disassemble, Instruction
+from m68k.m68k_executor import analyze, BasicBlock
+from m68k.subroutine_scan import UnscoredSubroutineCandidate
 from m68k.m68k_disasm import _canonical_mnemonic
 from disasm.comments import (build_instruction_comment_parts,
                              format_app_offset_comment,
@@ -39,6 +45,7 @@ from disasm.operands import (_operand_types_for_inst,
 from disasm.types import (
     AppStructFieldOperandMetadata,
     BitfieldOperandMetadata,
+    EntityRecord,
     IndexedOperandMetadata,
     HunkDisassemblySession,
     SemanticOperand,
@@ -58,7 +65,8 @@ _INIT_STRUCTS = {
 }
 
 
-def _prov_base(address_space, base_register, displacement):
+def _prov_base(address_space: MemoryRegionAddressSpace, base_register: str,
+               displacement: int) -> MemoryRegionProvenance:
     return MemoryRegionProvenance(
         address_space=address_space,
         derivation=MemoryRegionDerivation(
@@ -71,9 +79,9 @@ def _prov_base(address_space, base_register, displacement):
 
 # -- Feature 3: App memory offset comments ----------------------------
 
-def test_app_offset_comment_hex():
+def test_app_offset_comment_hex() -> None:
     """Unnamed d(A6) offset gets hex comment."""
-    from disasm.types import SemanticOperand
+    from disasm.types import SemanticOperand, SymbolOperandMetadata
     comment = format_app_offset_comment((
         SemanticOperand(kind="base_displacement", text="568(a6)",
                         base_register="a6", displacement=568),
@@ -82,19 +90,19 @@ def test_app_offset_comment_hex():
     assert comment == "app+$238"
 
 
-def test_app_offset_comment_named_no_duplicate():
+def test_app_offset_comment_named_no_duplicate() -> None:
     """Named offset (already substituted) gets no comment."""
     from disasm.types import SemanticOperand
     comment = format_app_offset_comment((
         SemanticOperand(kind="base_displacement_symbol", text="app_dos_base(a6)",
                         base_register="a6", displacement=568,
-                        metadata={"symbol": "app_dos_base"}),
+                        metadata=SymbolOperandMetadata(symbol="app_dos_base")),
         SemanticOperand(kind="register", text="d0", register="d0"),
     ), 6)
     assert comment is None
 
 
-def test_app_offset_comment_non_base_reg():
+def test_app_offset_comment_non_base_reg() -> None:
     """d(A0) reference does not get app offset comment."""
     from disasm.types import SemanticOperand
     comment = format_app_offset_comment((
@@ -107,7 +115,7 @@ def test_app_offset_comment_non_base_reg():
 
 # -- Feature 4: Data region format from access patterns ---------------
 
-def test_collect_word_access():
+def test_collect_word_access() -> None:
     """MOVE.W from a data address via d(An) marks it as word-sized."""
     code = b''
     # $00: lea $0C(pc),a0 -> a0 = $02 + $0C = $0E (data table)
@@ -131,7 +139,7 @@ def test_collect_word_access():
         f"Expected word access at $0E, got {sizes}")
 
 
-def test_collect_long_access():
+def test_collect_long_access() -> None:
     """MOVE.L from a data address marks it as long-sized."""
     code = b''
     # $00: lea $08(pc),a0 -> a0 = $02 + $08 = $0A
@@ -154,7 +162,7 @@ def test_collect_long_access():
         f"Expected long access at $0A, got {sizes}")
 
 
-def test_collect_data_access_uses_decoded_operands_not_text():
+def test_collect_data_access_uses_decoded_operands_not_text() -> None:
     code = b""
     code += struct.pack('>HH', 0x41FA, 0x0008)  # lea $0a(pc),a0
     code += struct.pack('>H', 0x2010)           # move.l (a0),d0
@@ -172,7 +180,7 @@ def test_collect_data_access_uses_decoded_operands_not_text():
     assert sizes.get(0x0A) == 4
 
 
-def test_emit_data_word_format():
+def test_emit_data_word_format() -> None:
     """Data region with word access emits dc.w instead of dc.b."""
     import io
     code = struct.pack('>HHHH', 0x0010, 0x0020, 0x0030, 0x0040)
@@ -185,7 +193,7 @@ def test_emit_data_word_format():
     assert "$0010" in output or "16" in output
 
 
-def test_emit_data_word_format_stops_at_unknown_access():
+def test_emit_data_word_format_stops_at_unknown_access() -> None:
     """A word run stops once access size metadata stops."""
     import io
     code = bytes([0x00, 0x10, 0x41, 0x42])
@@ -198,7 +206,7 @@ def test_emit_data_word_format_stops_at_unknown_access():
     assert "$41" in output and "$42" in output
 
 
-def test_emit_data_raw_chunk_stops_before_later_word_access():
+def test_emit_data_raw_chunk_stops_before_later_word_access() -> None:
     """Raw-byte chunking must not swallow a later structured word region."""
     import io
     code = bytes([0xAA, 0xBB, 0x12, 0x34])
@@ -211,7 +219,7 @@ def test_emit_data_raw_chunk_stops_before_later_word_access():
     assert "dc.w    $1234" in output
 
 
-def test_emit_data_long_format():
+def test_emit_data_long_format() -> None:
     """Data region with long access emits dc.l instead of dc.b."""
     import io
     code = struct.pack('>II', 0x12345678, 0xDEADBEEF)
@@ -225,7 +233,7 @@ def test_emit_data_long_format():
 
 # -- String detection in data regions ---------------------------------
 
-def test_data_region_detects_embedded_string():
+def test_data_region_detects_embedded_string() -> None:
     """Printable ASCII run in data region emits dc.b "text" not hex.
 
     Models GenAm version string: non-printable prefix then
@@ -241,7 +249,7 @@ def test_data_region_detects_embedded_string():
     assert "$94" in output
 
 
-def test_data_region_short_printable_not_string():
+def test_data_region_short_printable_not_string() -> None:
     """Short non-null-terminated printable runs stay as hex."""
     data = bytes([0x41, 0x42, 0x43, 0x44, 0xFF])  # "ABCD" + junk, no null
     f = io.StringIO()
@@ -251,7 +259,7 @@ def test_data_region_short_printable_not_string():
     assert '"ABCD"' not in output
 
 
-def test_data_region_short_null_terminated_is_string():
+def test_data_region_short_null_terminated_is_string() -> None:
     """Short null-terminated printable runs (4+) ARE strings."""
     data = b'ABCD\x00'
     f = io.StringIO()
@@ -260,7 +268,7 @@ def test_data_region_short_null_terminated_is_string():
     assert '"ABCD"' in output
 
 
-def test_data_region_null_terminated_string():
+def test_data_region_null_terminated_string() -> None:
     """Null-terminated printable run emits as string with ,0 terminator."""
     data = b'include_longmac\x00'
     f = io.StringIO()
@@ -270,7 +278,7 @@ def test_data_region_null_terminated_string():
     assert ",0" in output
 
 
-def test_data_region_prefers_obvious_string_over_word_access():
+def test_data_region_prefers_obvious_string_over_word_access() -> None:
     data = b"3.18 (2.8.94)\x00"
     f = io.StringIO()
     emit_data_region(
@@ -288,7 +296,7 @@ def test_data_region_prefers_obvious_string_over_word_access():
     assert "dc.w" not in output
 
 
-def test_data_region_does_not_cross_internal_label_for_string():
+def test_data_region_does_not_cross_internal_label_for_string() -> None:
     data = b"HELLO\x00"
     f = io.StringIO()
     emit_data_region(
@@ -305,7 +313,7 @@ def test_data_region_does_not_cross_internal_label_for_string():
     assert "loc_0003:" in output
 
 
-def test_data_region_mixed_hex_and_string():
+def test_data_region_mixed_hex_and_string() -> None:
     """Data with non-printable bytes, then string, then more non-printable.
 
     Should emit: dc.b hex... then dc.b "text",0 then dc.b hex...
@@ -320,25 +328,25 @@ def test_data_region_mixed_hex_and_string():
 
 # -- ASCII immediate comments -----------------------------------------
 
-def test_ascii_immediate_longword():
+def test_ascii_immediate_longword() -> None:
     """4-byte all-printable immediate gets 'ABCD' comment."""
     result = format_ascii_immediate(0x4C494E45)  # 'LINE'
     assert result == "'LINE'"
 
 
-def test_ascii_immediate_non_printable():
+def test_ascii_immediate_non_printable() -> None:
     """Immediate with non-printable byte returns None."""
     result = format_ascii_immediate(0x4C490045)  # 'LI\x00E'
     assert result is None
 
 
-def test_ascii_immediate_word_too_short():
+def test_ascii_immediate_word_too_short() -> None:
     """Word-sized immediates are too short -- return None."""
     result = format_ascii_immediate(0x4F4B)  # 'OK'
     assert result is None
 
 
-def test_ascii_immediate_spaces_allowed():
+def test_ascii_immediate_spaces_allowed() -> None:
     """Spaces are valid printable characters."""
     result = format_ascii_immediate(0x54455354)  # 'TEST'
     assert result == "'TEST'"
@@ -346,7 +354,7 @@ def test_ascii_immediate_spaces_allowed():
 
 # -- Subroutine scan gap computation ----------------------------------
 
-def test_scan_uses_hint_blocks_for_gaps():
+def test_scan_uses_hint_blocks_for_gaps() -> None:
     """Subroutine scanner should use hint blocks when computing gaps.
 
     A hint block covers $00-$06 (moveq + bra.w). The bytes at $06
@@ -397,7 +405,7 @@ def test_scan_uses_hint_blocks_for_gaps():
         f"got {addrs_with_hint}")
 
 
-def test_scan_candidates_finds_sequential_subroutines_in_one_gap():
+def test_scan_candidates_finds_sequential_subroutines_in_one_gap() -> None:
     from m68k.subroutine_scan import scan_candidates
 
     code = b""
@@ -411,25 +419,29 @@ def test_scan_candidates_finds_sequential_subroutines_in_one_gap():
     assert [c["addr"] for c in candidates] == [0x00, 0x04]
 
 
-def test_try_decode_subroutine_reuses_scan_cache(monkeypatch):
+def test_try_decode_subroutine_reuses_scan_cache(monkeypatch: MonkeyPatch) -> None:
     from m68k import subroutine_scan
 
     code = b""
     code += struct.pack(">H", 0x7001)  # moveq #1,d0
     code += struct.pack(">H", 0x4E75)  # rts
 
-    calls = {"count": 0}
+    calls: dict[str, int] = {"count": 0}
     real_decode_at = subroutine_scan._decode_at
 
-    def _counting_decode_at(code_bytes, pos, cache):
+    def _counting_decode_at(
+        code_bytes: bytes,
+        pos: int,
+        cache: dict[int, Instruction | Exception],
+    ) -> Instruction:
         calls["count"] += 1
         return real_decode_at(code_bytes, pos, cache)
 
     monkeypatch.setattr(subroutine_scan, "_decode_at", _counting_decode_at)
 
-    decode_cache = {}
-    scan_cache = {}
-    flow_cache = {}
+    decode_cache: dict[int, Instruction | Exception] = {}
+    scan_cache: dict[tuple[int, int], UnscoredSubroutineCandidate | None] = {}
+    flow_cache: dict[str, tuple[runtime_m68k_analysis.FlowType, bool]] = {}
 
     first = subroutine_scan._try_decode_subroutine(
         code, 0, len(code), decode_cache, scan_cache, flow_cache
@@ -442,7 +454,7 @@ def test_try_decode_subroutine_reuses_scan_cache(monkeypatch):
     assert calls["count"] == 2
 
 
-def test_try_decode_subroutine_rejects_immediate_unconditional_branch(monkeypatch):
+def test_try_decode_subroutine_rejects_immediate_unconditional_branch(monkeypatch: MonkeyPatch) -> None:
     from m68k import subroutine_scan
 
     code = b""
@@ -450,10 +462,14 @@ def test_try_decode_subroutine_rejects_immediate_unconditional_branch(monkeypatc
     code += struct.pack(">H", 0x4E71)  # nop
     code += struct.pack(">H", 0x4E75)  # rts
 
-    calls = {"count": 0}
+    calls: dict[str, int] = {"count": 0}
     real_decode_at = subroutine_scan._decode_at
 
-    def _counting_decode_at(code_bytes, pos, cache):
+    def _counting_decode_at(
+        code_bytes: bytes,
+        pos: int,
+        cache: dict[int, Instruction | Exception],
+    ) -> Instruction:
         calls["count"] += 1
         return real_decode_at(code_bytes, pos, cache)
 
@@ -469,7 +485,7 @@ def test_try_decode_subroutine_rejects_immediate_unconditional_branch(monkeypatc
 
 # -- PC-relative target discovery -------------------------------------
 
-def test_pc_relative_discovers_data_target():
+def test_pc_relative_discovers_data_target() -> None:
     """LEA d(PC),An pointing to data between instructions gets a label."""
     code = b''
     # $00: lea $08(pc),a0 -> target = $02 + $08 = $0A (data)
@@ -490,7 +506,7 @@ def test_pc_relative_discovers_data_target():
         f"LEA target $0A (data) should be discovered, got {targets}")
 
 
-def test_pc_relative_discovers_code_target():
+def test_pc_relative_discovers_code_target() -> None:
     """LEA d(PC),An pointing to an instruction start gets a label.
 
     Previously, all targets inside instruction ranges were rejected.
@@ -517,7 +533,7 @@ def test_pc_relative_discovers_code_target():
         f"got {targets}")
 
 
-def test_pc_relative_rejects_mid_instruction():
+def test_pc_relative_rejects_mid_instruction() -> None:
     """LEA d(PC),An pointing to the middle of an instruction is rejected.
 
     e.g. JMP 0(PC,D0.w) where the PC value is the extension word
@@ -541,7 +557,7 @@ def test_pc_relative_rejects_mid_instruction():
 
 # -- Label map: core block entries get loc_ labels --------------------
 
-def test_core_block_entries_get_labels():
+def test_core_block_entries_get_labels() -> None:
     """All core block start addresses should get loc_ labels.
 
     This ensures relocation entry points and other non-call/non-branch
@@ -558,9 +574,9 @@ def test_core_block_entries_get_labels():
             f"Expected loc_{addr:04x}, got {labels[addr]}")
 
 
-def test_label_priority_entity_over_block():
+def test_label_priority_entity_over_block() -> None:
     """Entity names take priority over loc_ block labels."""
-    entities = [{"addr": "001c", "type": "code", "name": "payload_init"}]
+    entities: list[EntityRecord] = [{"addr": "001c", "type": "code", "name": "payload_init"}]
     blocks = {0x00: None, 0x1C: None}
     labels = build_label_map(entities, blocks, set(), set(), {})
 
@@ -568,7 +584,7 @@ def test_label_priority_entity_over_block():
     assert labels[0x00] == "loc_0000"
 
 
-def test_label_priority_block_over_pcref():
+def test_label_priority_block_over_pcref() -> None:
     """Block loc_ labels take priority over pcref_ labels."""
     blocks = {0x1C: None}
     pc_targets = {0x1C: "pcref_001c"}
@@ -578,7 +594,7 @@ def test_label_priority_block_over_pcref():
         f"Block label should override pcref, got {labels[0x1C]}")
 
 
-def test_discover_absolute_targets_finds_internal_data_refs():
+def test_discover_absolute_targets_finds_internal_data_refs() -> None:
     """Internal absolute operands are decoded from raw instruction bytes."""
     block = BasicBlock(
         start=0x40, end=0x48,
@@ -600,14 +616,14 @@ def test_discover_absolute_targets_finds_internal_data_refs():
     assert targets == {0x8C1F}
 
 
-def test_build_label_map_adds_core_absolute_data_labels():
+def test_build_label_map_adds_core_absolute_data_labels() -> None:
     """Core absolute targets get relocatable data labels."""
     labels = build_label_map([], {}, set(), {0x8C1E}, {})
 
     assert labels[0x8C1E] == "dat_8c1e"
 
 
-def test_apply_generic_data_label_promotions_overrides_only_generic_labels():
+def test_apply_generic_data_label_promotions_overrides_only_generic_labels() -> None:
     labels = {
         0x004A: "pcref_004a",
         0x0050: "dat_0050",
@@ -637,7 +653,7 @@ def test_apply_generic_data_label_promotions_overrides_only_generic_labels():
     assert pc_targets[0x0070] == "str_0070"
 
 
-def test_filter_internal_absolute_data_targets_keeps_hint_only_addresses():
+def test_filter_internal_absolute_data_targets_keeps_hint_only_addresses() -> None:
     """Core absolute data refs must not be dropped just because hints cover them."""
     targets = {0x8C1E, 0x8C1F, 0xEE2D}
     filtered = filter_internal_absolute_data_targets(
@@ -649,7 +665,7 @@ def test_filter_internal_absolute_data_targets_keeps_hint_only_addresses():
     assert filtered == {0x8C1E, 0x8C1F, 0xEE2D}
 
 
-def test_filter_internal_absolute_data_targets_excludes_fixed_os_addresses():
+def test_filter_internal_absolute_data_targets_excludes_fixed_os_addresses() -> None:
     """Fixed system addresses must not become relocatable data labels."""
     filtered = filter_internal_absolute_data_targets(
         targets={runtime_os.META.exec_base_addr.address, 0x8C1E},
@@ -660,14 +676,14 @@ def test_filter_internal_absolute_data_targets_excludes_fixed_os_addresses():
     assert filtered == {0x8C1E}
 
 
-def test_lookup_instruction_kb_normalizes_pmmu_condition_variant():
+def test_lookup_instruction_kb_normalizes_pmmu_condition_variant() -> None:
     """PMMU condition-coded variants resolve to the PBcc KB entry."""
     inst_kb = lookup_instruction_kb("pb#44")
 
     assert inst_kb == "PBcc"
 
 
-def test_decode_instruction_for_emit_requires_kb_mnemonic():
+def test_decode_instruction_for_emit_requires_kb_mnemonic() -> None:
     """Emission-time decode must reject instructions without KB identity."""
     try:
         decode_instruction_for_emit(
@@ -682,7 +698,7 @@ def test_decode_instruction_for_emit_requires_kb_mnemonic():
         raise AssertionError("expected missing kb_mnemonic error")
 
 
-def test_decode_instruction_for_emit_errors_on_mismatched_kb_mnemonic():
+def test_decode_instruction_for_emit_errors_on_mismatched_kb_mnemonic() -> None:
     with pytest.raises(ValueError, match="KB encoding match count 0"):
         decode_instruction_for_emit(
             struct.pack(">HHH", 0x08E9, 0x0006, 0x000C),
@@ -692,14 +708,14 @@ def test_decode_instruction_for_emit_errors_on_mismatched_kb_mnemonic():
         )
 
 
-def test_lookup_instruction_kb_normalizes_pmmu_text_condition_variant():
+def test_lookup_instruction_kb_normalizes_pmmu_text_condition_variant() -> None:
     """PMMU textual condition variants resolve to the PBcc KB entry."""
     inst_kb = lookup_instruction_kb("pbbs")
 
     assert inst_kb == "PBcc"
 
 
-def test_kb_find_resolves_pmmu_condition_family():
+def test_kb_find_resolves_pmmu_condition_family() -> None:
     """Shared KB lookup resolves mixed-case PMMU condition families."""
     inst_kb = find_kb_entry("PBcc")
 
@@ -707,17 +723,17 @@ def test_kb_find_resolves_pmmu_condition_family():
     assert inst_kb == "PBcc"
 
 
-def test_canonical_mnemonic_normalizes_pmmu_numeric_condition():
+def test_canonical_mnemonic_normalizes_pmmu_numeric_condition() -> None:
     """Disassembler canonicalization maps PMMU numeric conditions to PBcc."""
     assert _canonical_mnemonic("pb#44.w") == "pbcc"
 
 
-def test_canonical_mnemonic_normalizes_pmmu_text_condition():
+def test_canonical_mnemonic_normalizes_pmmu_text_condition() -> None:
     """Disassembler canonicalization maps PMMU textual conditions to PBcc."""
     assert _canonical_mnemonic("pbbs.w") == "pbcc"
 
 
-def test_add_hint_labels_adds_hint_block_and_successor_labels():
+def test_add_hint_labels_adds_hint_block_and_successor_labels() -> None:
     """Hint block labels appear without overriding existing core labels."""
     hint_block = BasicBlock(
         start=0x200, end=0x204,
@@ -733,7 +749,7 @@ def test_add_hint_labels_adds_hint_block_and_successor_labels():
     assert labels[0x220] == "loc_0220"
 
 
-def test_render_instruction_text_substitutes_absolute_code_operand():
+def test_render_instruction_text_substitutes_absolute_code_operand() -> None:
     """Absolute code operands should use decoded absolute EA targets."""
     inst = Instruction(offset=0x0038, size=4, opcode=0x41F8,
                        text="corrupted",
@@ -779,7 +795,7 @@ def test_render_instruction_text_substitutes_absolute_code_operand():
     assert text == "lea loc_0400,a0"
 
 
-def test_render_instruction_text_substitutes_pc_relative_operand():
+def test_render_instruction_text_substitutes_pc_relative_operand() -> None:
     """PC-relative operands should render labels from decoded targets."""
     inst = Instruction(offset=0x0040, size=4, opcode=0x41FA,
                        text="corrupted",
@@ -825,7 +841,7 @@ def test_render_instruction_text_substitutes_pc_relative_operand():
     assert text == "lea pcref_004a(pc),a0"
 
 
-def test_build_instruction_semantic_operands_marks_branch_target():
+def test_build_instruction_semantic_operands_marks_branch_target() -> None:
     inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
                        text="bne.s   $000048", raw=struct.pack(">H", 0x6606),
                        kb_mnemonic="bcc", operand_size="s",
@@ -871,7 +887,7 @@ def test_build_instruction_semantic_operands_marks_branch_target():
     assert ops[0].text == "loc_0048"
 
 
-def test_build_instruction_semantic_operands_keeps_numeric_immediate():
+def test_build_instruction_semantic_operands_keeps_numeric_immediate() -> None:
     inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
                        text="move.l  #$00000400,d0",
                        raw=struct.pack(">HI", 0x203C, 0x00000400),
@@ -919,7 +935,7 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate():
     assert ops[1].kind == "register"
 
 
-def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
+def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate() -> None:
     inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
                        text="moveq   #1,d0",
                        raw=struct.pack(">H", 0x7001),
@@ -967,7 +983,7 @@ def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate():
     assert ops[1].kind == "register"
 
 
-def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
+def test_build_instruction_semantic_operands_uses_decoded_absolute_operand() -> None:
     inst = Instruction(offset=0x0038, size=4, opcode=0x41F8,
                        text="lea     $00000400,a0",
                        raw=struct.pack(">HH", 0x41F8, 0x0400),
@@ -1016,7 +1032,7 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand():
     assert ops[1].kind == "register"
 
 
-def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
+def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target() -> None:
     inst = Instruction(offset=0x0040, size=4, opcode=0x41FA,
                        text="lea     8(pc),a0",
                        raw=struct.pack(">HH", 0x41FA, 0x0008),
@@ -1065,7 +1081,7 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target():
     assert ops[1].kind == "register"
 
 
-def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
+def test_build_instruction_semantic_operands_uses_decoded_base_displacement() -> None:
     inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
                        text="move.w  18(a1),d0",
                        raw=struct.pack(">HH", 0x3029, 0x0012),
@@ -1115,7 +1131,7 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     ops = build_instruction_semantic_operands(
         inst, session, used_structs=used_structs)
@@ -1130,7 +1146,7 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement():
     assert ops[1].kind == "register"
 
 
-def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
+def test_build_instruction_semantic_operands_uses_decoded_indexed_operand() -> None:
     inst = Instruction(offset=0x0100, size=4, opcode=0x3231,
                        text="move.w  8(a1,d0.w),d1",
                        raw=struct.pack(">HH", 0x3231, 0x0008),
@@ -1183,7 +1199,7 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand():
     assert ops[1].kind == "register"
 
 
-def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape():
+def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape() -> None:
     inst = Instruction(offset=0x0046, size=2, opcode=0x598E,
                        text="subq.l  #4,a6",
                        raw=struct.pack(">H", 0x598E),
@@ -1233,7 +1249,7 @@ def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape(
     assert ops[1].text == "a6"
 
 
-def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
+def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape() -> None:
     inst = Instruction(offset=0x0058, size=4, opcode=0x51C8,
                        text="dbf    d0,$56",
                        raw=struct.pack(">HH", 0x51C8, 0x0054),
@@ -1282,7 +1298,7 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape():
     assert ops[1].text == "$56"
 
 
-def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
+def test_build_instruction_semantic_operands_uses_immediate_bitop_form() -> None:
     inst = Instruction(offset=0x0200, size=6, opcode=0x08E9,
                        text="bset    #6,12(a1)",
                        raw=struct.pack(">HHH", 0x08E9, 0x0006, 0x000C),
@@ -1332,7 +1348,7 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form():
     assert ops[1].displacement == 12
 
 
-def test_operand_types_for_inst_selects_register_shift_form_from_opcode_bit():
+def test_operand_types_for_inst_selects_register_shift_form_from_opcode_bit() -> None:
     inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
                        text="lsl.l  d0,d2",
                        raw=b"\xE1\xAA",
@@ -1345,7 +1361,7 @@ def test_operand_types_for_inst_selects_register_shift_form_from_opcode_bit():
     assert _operand_types_for_inst(inst, meta) == ("dn", "dn")
 
 
-def test_decode_inst_for_emit_uses_operand_size_not_text():
+def test_decode_inst_for_emit_uses_operand_size_not_text() -> None:
     inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
                        text="corrupted",
                        raw=b"\xE1\xAA",
@@ -1359,7 +1375,7 @@ def test_decode_inst_for_emit_uses_operand_size_not_text():
     assert meta.size == "l"
 
 
-def test_build_instruction_semantic_operands_supports_register_shift_form():
+def test_build_instruction_semantic_operands_supports_register_shift_form() -> None:
     inst = Instruction(offset=0x1120, size=2, opcode=0xE1AA,
                        text="lsl.l  d0,d2",
                        raw=b"\xE1\xAA",
@@ -1408,7 +1424,7 @@ def test_build_instruction_semantic_operands_supports_register_shift_form():
     assert ops[1].register == "d2"
 
 
-def test_build_instruction_semantic_operands_supports_immediate_shift_form():
+def test_build_instruction_semantic_operands_supports_immediate_shift_form() -> None:
     inst = Instruction(offset=0x0200, size=2, opcode=0xE900,
                        text="asl.b  #4,d0",
                        raw=b"\xE9\x00",
@@ -1456,7 +1472,7 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form():
     assert ops[1].register == "d0"
 
 
-def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count():
+def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count() -> None:
     inst = disassemble(assemble_instruction("asl.b #8,d0"))[0]
     session = HunkDisassemblySession(
         hunk_index=0,
@@ -1500,7 +1516,7 @@ def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count()
     assert ops[1].register == "d0"
 
 
-def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
+def test_build_instruction_semantic_operands_supports_ea_to_dn_form() -> None:
     inst = Instruction(offset=0x0200, size=2, opcode=0x4180,
                        text="chk.w   d0,d0",
                        raw=b"\x41\x80",
@@ -1548,7 +1564,7 @@ def test_build_instruction_semantic_operands_supports_ea_to_dn_form():
     assert ops[1].register == "d0"
 
 
-def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
+def test_build_instruction_semantic_operands_supports_bitfield_ea_form() -> None:
     inst = Instruction(offset=0x0200, size=4, opcode=0xEAC0,
                        text="bfchg    d0{2:8}",
                        raw=bytes.fromhex("eac00088"),
@@ -1598,7 +1614,7 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form():
     assert ops[0].metadata.bitfield.width_value == 8
 
 
-def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
+def test_build_instruction_semantic_operands_supports_bitfield_extract_form() -> None:
     inst = Instruction(offset=0x0200, size=4, opcode=0xE9C0,
                        text="bfextu   d0{2:8},d1",
                        raw=bytes.fromhex("e9c01088"),
@@ -1645,7 +1661,7 @@ def test_build_instruction_semantic_operands_supports_bitfield_extract_form():
     assert ops[1].register == "d1"
 
 
-def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_immediate():
+def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_immediate() -> None:
     inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
                        text="move.l  #loc_0400,d0",
                        raw=struct.pack(">HI", 0x203C, 0x00000400),
@@ -1694,7 +1710,7 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
     assert ops[1].kind == "register"
 
 
-def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch():
+def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch() -> None:
     inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
                        text="corrupted",
                        raw=struct.pack(">H", 0x7001),
@@ -1743,7 +1759,7 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         raise AssertionError("expected operand text count mismatch")
 
 
-def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots():
+def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots() -> None:
     inst = Instruction(offset=0x0000, size=2, opcode=0x7001,
                        text="moveq",
                        raw=struct.pack(">H", 0x7001),
@@ -1790,7 +1806,7 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         raise AssertionError("expected missing operand text slots")
 
 
-def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
+def test_build_instruction_semantic_operands_supports_zero_operand_kb_form() -> None:
     inst = Instruction(offset=0x0000, size=4, opcode=0xF000,
                        text="pflusha", raw=bytes.fromhex("F0002400"),
                        kb_mnemonic="pflusha", operand_size="w",
@@ -1831,7 +1847,7 @@ def test_build_instruction_semantic_operands_supports_zero_operand_kb_form():
     assert build_instruction_semantic_operands(inst, session) == ()
 
 
-def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
+def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment() -> None:
     inst = Instruction(offset=0x0038, size=6, opcode=0x203C,
                        text="move.l  #$4C494E45,d0",
                        raw=struct.pack(">HI", 0x203C, 0x4C494E45),
@@ -1882,7 +1898,7 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment():
     assert parts == ("'LINE'",)
 
 
-def test_make_instruction_row_renders_from_semantic_operands_and_comments():
+def test_make_instruction_row_renders_from_semantic_operands_and_comments() -> None:
     inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
                        text="corrupted", raw=struct.pack(">H", 0x6606),
                        kb_mnemonic="bcc", operand_size="s",
@@ -1935,7 +1951,7 @@ def test_make_instruction_row_renders_from_semantic_operands_and_comments():
     assert row.text == "    bne.s loc_0048 ; 68020+; branch note\n"
 
 
-def test_make_text_rows_uses_text_semantic_operands_for_directives():
+def test_make_text_rows_uses_text_semantic_operands_for_directives() -> None:
     rows = make_text_rows("directive", "    dc.w $1234,d0\n", addr=0x40)
 
     assert len(rows) == 1
@@ -1943,7 +1959,7 @@ def test_make_text_rows_uses_text_semantic_operands_for_directives():
     assert [part.text for part in rows[0].operand_parts] == ["$1234", "d0"]
 
 
-def test_build_instruction_semantic_operands_substitutes_struct_field():
+def test_build_instruction_semantic_operands_substitutes_struct_field() -> None:
     inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
                        text="move.w  18(a1),d0",
                        raw=struct.pack(">HH", 0x3029, 0x0012),
@@ -1993,7 +2009,7 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     ops = build_instruction_semantic_operands(
         inst, session, used_structs=used_structs)
@@ -2005,7 +2021,7 @@ def test_build_instruction_semantic_operands_substitutes_struct_field():
     assert ops[0].metadata.symbol == "IS_CODE"
 
 
-def test_render_instruction_text_uses_semantic_branch_substitution():
+def test_render_instruction_text_uses_semantic_branch_substitution() -> None:
     inst = Instruction(offset=0x0040, size=2, opcode=0x6606,
                        text="corrupted", raw=struct.pack(">H", 0x6606),
                        kb_mnemonic="bcc", operand_size="s",
@@ -2051,7 +2067,7 @@ def test_render_instruction_text_uses_semantic_branch_substitution():
     assert comment_parts == ()
 
 
-def test_render_instruction_text_uses_semantic_struct_substitution():
+def test_render_instruction_text_uses_semantic_struct_substitution() -> None:
     inst = Instruction(offset=0x0100, size=4, opcode=0x3029,
                        text="corrupted",
                        raw=struct.pack(">HH", 0x3029, 0x0012),
@@ -2102,7 +2118,7 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     text, comment, comment_parts = render_instruction_text(
         inst, session, used_structs)
@@ -2113,7 +2129,7 @@ def test_render_instruction_text_uses_semantic_struct_substitution():
     assert used_structs == {"InitStruct"}
 
 
-def test_render_instruction_text_uses_custom_relative_register_symbol():
+def test_render_instruction_text_uses_custom_relative_register_symbol() -> None:
     inst = Instruction(offset=0x0100, size=4, opcode=0x3028,
                        text="corrupted",
                        raw=struct.pack(">HH", 0x3028, 0x009A),
@@ -2161,7 +2177,7 @@ def test_render_instruction_text_uses_custom_relative_register_symbol():
     assert comment_parts == ()
 
 
-def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substitution():
+def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substitution() -> None:
     inst = Instruction(offset=0x0100, size=4, opcode=0x2029,
                        text="corrupted",
                        raw=struct.pack(">HH", 0x2029, 0x0000),
@@ -2204,7 +2220,7 @@ def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substit
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     ops = build_instruction_semantic_operands(inst, session, used_structs=used_structs)
 
@@ -2215,7 +2231,7 @@ def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substit
     assert used_structs == {"MP"}
 
 
-def test_render_instruction_text_uses_shifted_pointee_struct_substitution():
+def test_render_instruction_text_uses_shifted_pointee_struct_substitution() -> None:
     inst = Instruction(offset=0x0100, size=4, opcode=0x2029,
                        text="corrupted",
                        raw=struct.pack(">HH", 0x2029, 0x0000),
@@ -2259,7 +2275,7 @@ def test_render_instruction_text_uses_shifted_pointee_struct_substitution():
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
 
@@ -2269,7 +2285,7 @@ def test_render_instruction_text_uses_shifted_pointee_struct_substitution():
     assert used_structs == {"MP"}
 
 
-def test_render_instruction_text_uses_app_region_struct_substitution():
+def test_render_instruction_text_uses_app_region_struct_substitution() -> None:
     inst = Instruction(offset=0x0100, size=4, opcode=0x206E,
                        text="corrupted",
                        raw=struct.pack(">HH", 0x206E, 0x0078),
@@ -2320,7 +2336,7 @@ def test_render_instruction_text_uses_app_region_struct_substitution():
             )
         },
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
 
@@ -2335,7 +2351,7 @@ def test_render_instruction_text_uses_app_region_struct_substitution():
     )
 
 
-def test_render_instruction_text_uses_inherited_pointee_base_field_substitution():
+def test_render_instruction_text_uses_inherited_pointee_base_field_substitution() -> None:
     inst = Instruction(offset=0x0104, size=4, opcode=0x0C68,
                        text="corrupted",
                        raw=struct.pack(">HH", 0x0C68, 0x0014),
@@ -2383,7 +2399,7 @@ def test_render_instruction_text_uses_inherited_pointee_base_field_substitution(
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
 
@@ -2393,7 +2409,7 @@ def test_render_instruction_text_uses_inherited_pointee_base_field_substitution(
     assert used_structs == {"LIB"}
 
 
-def test_render_instruction_text_uses_concrete_named_base_field_substitution():
+def test_render_instruction_text_uses_concrete_named_base_field_substitution() -> None:
     inst = Instruction(offset=0x0104, size=4, opcode=0x2028,
                        text="corrupted",
                        raw=struct.pack(">HH", 0x2028, 0x003A),
@@ -2441,7 +2457,7 @@ def test_render_instruction_text_uses_concrete_named_base_field_substitution():
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
 
@@ -2451,7 +2467,7 @@ def test_render_instruction_text_uses_concrete_named_base_field_substitution():
     assert used_structs == {"DosLibrary"}
 
 
-def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_calls():
+def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_calls() -> None:
     inst = Instruction(offset=0x0104, size=4, opcode=0x4EB0,
                        text="corrupted",
                        raw=struct.pack(">HH", 0x4EB0, 0x0000),
@@ -2499,7 +2515,7 @@ def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_
         reloc_file_offset=0,
         reloc_base_addr=0,
     )
-    used_structs = set()
+    used_structs: set[str] = set()
 
     text, comment, comment_parts = render_instruction_text(inst, session, used_structs)
 

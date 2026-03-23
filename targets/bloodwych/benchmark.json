@@ -2,10 +2,10 @@
   "target": "bloodwych",
   "binary": "bin/Bloodwych439",
   "command": "uv run scripts/gen_disasm.py bin/Bloodwych439 -t targets/bloodwych",
-  "measured_at": "2026-03-22T19:39:47+13:00",
+  "measured_at": "2026-03-24T10:44:30+13:00",
   "status": "ok",
-  "elapsed_seconds": 18.46,
-  "analysis_bytes": 5092285,
+  "elapsed_seconds": 16.52,
+  "analysis_bytes": 5092307,
   "entities_bytes": 186105,
   "disasm_bytes": 1842074,
   "analysis": {

@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 """Tests for the shared disassembly session/row pipeline."""
 
 import io
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
-from m68k.analysis import RelocatedSegment
+from m68k.analysis import RelocLike, RelocatedSegment
+from m68k.hunk_parser import HunkType
 from m68k_kb import runtime_os
 from m68k_kb import runtime_m68k_analysis
 from m68k.jump_tables import JumpTable, JumpTableEntry, JumpTablePattern
@@ -29,10 +35,11 @@ from disasm.api import listing_window_payload, serialize_row, session_metadata
 from disasm import emitter as emitter_mod
 from disasm.emitter import emit_session_rows
 from disasm.text import listing_window, render_rows
-from disasm.types import (AddressRowContext, DisassemblySession, HunkDisassemblySession,
+from disasm.types import (AddressRowContext, DisasmBlockLike, DisassemblySession,
+                          HunkDisassemblySession,
                           HunkMetadata, JumpTableEntryRef, JumpTableRegion,
                           ListingRow, SemanticOperand)
-from m68k.m68k_executor import Instruction
+from m68k.m68k_disasm import Instruction
 from m68k.os_calls import (AppBaseInfo, AppBaseKind, CallArgumentAnnotation,
                            CallSetupAnalysis,
                            LibraryBaseTag, LibraryCall, TypedMemoryRegion,
@@ -42,7 +49,25 @@ from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
 
 
-def test_load_entities_reads_jsonl(tmp_path):
+@dataclass
+class _FakeBlock:
+    start: int
+    end: int
+    successors: tuple[int, ...]
+    instructions: list[Instruction]
+
+
+@dataclass
+class _FakeReloc:
+    reloc_type: HunkType
+    offsets: tuple[int, ...]
+
+
+def _block(start: int = 0, end: int = 1) -> DisasmBlockLike:
+    return _FakeBlock(start=start, end=end, successors=(), instructions=[])
+
+
+def test_load_entities_reads_jsonl(tmp_path: Path) -> None:
     entities_path = tmp_path / "entities.jsonl"
     entities_path.write_text(
         '{"addr":"0000","type":"code"}\n'
@@ -57,20 +82,20 @@ def test_load_entities_reads_jsonl(tmp_path):
     ]
 
 
-def test_infer_target_name_prefers_target_dir(tmp_path):
+def test_infer_target_name_prefers_target_dir(tmp_path: Path) -> None:
     target_dir = tmp_path / "demo"
     entities_path = target_dir / "entities.jsonl"
 
     assert infer_target_name(target_dir, entities_path) == "demo"
 
 
-def test_infer_target_name_falls_back_to_entities_parent(tmp_path):
+def test_infer_target_name_falls_back_to_entities_parent(tmp_path: Path) -> None:
     entities_path = tmp_path / "demo" / "entities.jsonl"
 
     assert infer_target_name(None, entities_path) == "demo"
 
 
-def test_build_lvo_substitutions_collects_direct_jsr_substitution():
+def test_build_lvo_substitutions_collects_direct_jsr_substitution() -> None:
     call = LibraryCall(
         addr=0x20,
         block=0x20,
@@ -89,7 +114,7 @@ def test_build_lvo_substitutions_collects_direct_jsr_substitution():
     assert lvo_substitutions == {0x20: ("-552(", "_LVOOpenLibrary(")}
 
 
-def test_build_arg_substitutions_collects_immediate_constant():
+def test_build_arg_substitutions_collects_immediate_constant() -> None:
     setter = Instruction(
         offset=0x10,
         size=4,
@@ -155,7 +180,7 @@ def test_build_arg_substitutions_collects_immediate_constant():
     assert arg_substitutions == {0x10: ("#1", "#OL_TAG")}
 
 
-def test_build_arg_substitutions_collects_dispatch_call_constant():
+def test_build_arg_substitutions_collects_dispatch_call_constant() -> None:
     setter = Instruction(
         offset=0x12,
         size=2,
@@ -250,7 +275,7 @@ def test_build_arg_substitutions_collects_dispatch_call_constant():
     assert arg_substitutions == {0x12: ("#-1", "#OFFSET_BEGINNING")}
 
 
-def test_build_lvo_substitutions_collects_dispatch_call_lvo_constant():
+def test_build_lvo_substitutions_collects_dispatch_call_lvo_constant() -> None:
     branch = Instruction(
         offset=0x16,
         size=4,
@@ -294,7 +319,7 @@ def test_build_lvo_substitutions_collects_dispatch_call_lvo_constant():
     assert lvo_substitutions == {0x12: ("#-66", "#_LVOSeek")}
 
 
-def test_build_app_slot_symbols_prefers_initial_mem_and_typed_slots():
+def test_build_app_slot_symbols_prefers_initial_mem_and_typed_slots() -> None:
     class FakeInitMem:
         _tags = {
             (0x1020, 4): LibraryBaseTag(library_base="dos.library"),
@@ -311,7 +336,7 @@ def test_build_app_slot_symbols_prefers_initial_mem_and_typed_slots():
     assert app_offsets == {0x20: "app_dos_base"}
 
 
-def test_build_app_slot_symbols_disambiguates_duplicate_typed_slot_names():
+def test_build_app_slot_symbols_disambiguates_duplicate_typed_slot_names() -> None:
     lib_calls = [
         LibraryCall(
             addr=4,
@@ -378,7 +403,7 @@ def test_build_app_slot_symbols_disambiguates_duplicate_typed_slot_names():
     }
 
 
-def test_build_app_slot_symbols_prefers_backward_usage_name_for_single_slot():
+def test_build_app_slot_symbols_prefers_backward_usage_name_for_single_slot() -> None:
     lib_calls = [
         LibraryCall(
             addr=4,
@@ -427,7 +452,7 @@ def test_build_app_slot_symbols_prefers_backward_usage_name_for_single_slot():
     }
 
 
-def test_build_app_slot_symbols_preserves_first_equal_priority_usage():
+def test_build_app_slot_symbols_preserves_first_equal_priority_usage() -> None:
     lib_calls = [
         LibraryCall(
             addr=4,
@@ -474,7 +499,7 @@ def test_build_app_slot_symbols_preserves_first_equal_priority_usage():
     }
 
 
-def test_build_app_slot_symbols_prefers_named_base_identity_for_struct_slot():
+def test_build_app_slot_symbols_prefers_named_base_identity_for_struct_slot() -> None:
     code = (
         b"\x41\xFA\x00\x08"
         + b"\x43\xEE\x10\xB8"
@@ -518,7 +543,7 @@ def test_build_app_slot_symbols_prefers_named_base_identity_for_struct_slot():
     }
 
 
-def test_build_app_slot_symbols_for_absolute_app_base_disambiguates_by_absolute_address():
+def test_build_app_slot_symbols_for_absolute_app_base_disambiguates_by_absolute_address() -> None:
     lib_calls = [
         LibraryCall(
             addr=4,
@@ -572,7 +597,7 @@ def test_build_app_slot_symbols_for_absolute_app_base_disambiguates_by_absolute_
     }
 
 
-def test_analyze_call_setups_names_pc_relative_struct_argument_targets():
+def test_analyze_call_setups_names_pc_relative_struct_argument_targets() -> None:
     lib_calls = [
         LibraryCall(
             addr=4,
@@ -610,7 +635,7 @@ def test_analyze_call_setups_names_pc_relative_struct_argument_targets():
     )
 
 
-def test_analyze_call_setups_errors_on_conflicting_typed_names_for_same_segment_address():
+def test_analyze_call_setups_errors_on_conflicting_typed_names_for_same_segment_address() -> None:
     lib_calls = [
         LibraryCall(
             addr=4,
@@ -654,7 +679,7 @@ def test_analyze_call_setups_errors_on_conflicting_typed_names_for_same_segment_
         )
 
 
-def test_build_hunk_metadata_masks_hints_inside_typed_string_ranges():
+def test_build_hunk_metadata_masks_hints_inside_typed_string_ranges() -> None:
     core_block = type("Block", (), {"start": 0x00, "end": 0x04, "successors": [], "instructions": []})()
     hint_block = type("Block", (), {"start": 0x20, "end": 0x24, "successors": [], "instructions": []})()
     ha = type("HA", (), {
@@ -680,7 +705,7 @@ def test_build_hunk_metadata_masks_hints_inside_typed_string_ranges():
     assert 0x20 not in metadata.labels
 
 
-def test_prepare_hunk_code_relocates_payload_segment():
+def test_prepare_hunk_code_relocates_payload_segment() -> None:
     code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = prepare_hunk_code(
         b"\xAA\xBB\x11\x22",
         [RelocatedSegment(file_offset=2, base_addr=6)],
@@ -693,7 +718,7 @@ def test_prepare_hunk_code_relocates_payload_segment():
     assert reloc_base_addr == 6
 
 
-def test_build_session_object_uses_binary_analysis_suffix(tmp_path):
+def test_build_session_object_uses_binary_analysis_suffix(tmp_path: Path) -> None:
     binary_path = tmp_path / "demo.bin"
     entities_path = tmp_path / "entities.jsonl"
     output_path = tmp_path / "demo.s"
@@ -714,14 +739,16 @@ def test_build_session_object_uses_binary_analysis_suffix(tmp_path):
     assert session.profile_stages is True
 
 
-def test_build_hunk_session_preserves_metadata_and_analysis_fields():
+def test_build_hunk_session_preserves_metadata_and_analysis_fields() -> None:
+    block = _block()
+    hint_block = _block(2, 3)
     session = build_hunk_session(
         hunk_index=1,
         code=b"\x00\x01",
         code_size=2,
         entities=[{"addr": "0000", "type": "code"}],
-        blocks={"b": 1},
-        hint_blocks={"h": 2},
+        blocks={0: block},
+        hint_blocks={2: hint_block},
         code_addrs={0, 1},
         hint_addrs={2},
         reloc_map={0: 0x40},
@@ -762,7 +789,7 @@ def test_build_hunk_session_preserves_metadata_and_analysis_fields():
     assert session.app_offsets == {0x20: "app_dos_base"}
 
 
-def test_build_hunk_metadata_collects_code_and_hint_addresses():
+def test_build_hunk_metadata_collects_code_and_hint_addresses() -> None:
     block = type("Block", (), {"start": 0x10, "end": 0x14, "successors": [], "instructions": []})()
     hint_block = type("Block", (), {"start": 0x20, "end": 0x22, "successors": [], "instructions": []})()
     ha = type("Analysis", (), {
@@ -787,7 +814,7 @@ def test_build_hunk_metadata_collects_code_and_hint_addresses():
     assert metadata.hint_addrs == {0x20, 0x21}
 
 
-def test_build_hunk_metadata_builds_word_table_regions_and_sources():
+def test_build_hunk_metadata_builds_word_table_regions_and_sources() -> None:
     block = type("Block", (), {"start": 0x10, "end": 0x14, "successors": [], "instructions": []})()
     ha = type("Analysis", (), {
         "blocks": {0x10: block},
@@ -824,7 +851,7 @@ def test_build_hunk_metadata_builds_word_table_regions_and_sources():
     }
 
 
-def test_build_hunk_metadata_preserves_string_dispatch_entry_offsets():
+def test_build_hunk_metadata_preserves_string_dispatch_entry_offsets() -> None:
     block = type("Block", (), {"start": 0x10, "end": 0x14, "successors": [], "instructions": []})()
     ha = type("Analysis", (), {
         "blocks": {0x10: block},
@@ -859,14 +886,14 @@ def test_build_hunk_metadata_preserves_string_dispatch_entry_offsets():
         JumpTableEntryRef(0x32, 0x80), JumpTableEntryRef(0x37, 0x90))
 
 
-def test_load_hunk_analysis_uses_cache_when_present(tmp_path, monkeypatch):
+def test_load_hunk_analysis_uses_cache_when_present(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     binary_path = tmp_path / "demo.bin"
     cache_path = binary_path.with_suffix(".analysis")
     cache_path.write_text("cache", encoding="utf-8")
     sentinel = object()
-    seen = {}
+    seen: dict[str, object] = {}
 
-    def fake_load(path, os_kb):
+    def fake_load(path: Path, os_kb: object) -> object:
         seen["path"] = path
         seen["os_kb"] = os_kb
         return sentinel
@@ -888,17 +915,24 @@ def test_load_hunk_analysis_uses_cache_when_present(tmp_path, monkeypatch):
     assert seen == {"path": cache_path, "os_kb": fake_os_kb}
 
 
-def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path, monkeypatch):
+def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     binary_path = tmp_path / "demo.bin"
-    seen = {}
+    seen: dict[str, object] = {}
 
     class FakeAnalysis:
-        def save(self, path):
+        def save(self, path: Path) -> None:
             seen["saved_path"] = path
 
     sentinel = FakeAnalysis()
+    relocs: list[RelocLike] = [_FakeReloc(reloc_type=HunkType.HUNK_RELOC32, offsets=(1,))]
 
-    def fake_analyze_hunk(code, relocs, hunk_index, base_addr, code_start):
+    def fake_analyze_hunk(
+        code: bytes,
+        relocs: object,
+        hunk_index: int,
+        base_addr: int,
+        code_start: int,
+    ) -> FakeAnalysis:
         seen["args"] = (code, relocs, hunk_index, base_addr, code_start)
         return sentinel
 
@@ -907,35 +941,42 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path, monkeypatch):
     result = load_hunk_analysis(
         binary_path=binary_path,
         code=b"\x01\x02",
-        relocs=[("r", 1)],
+        relocs=relocs,
         hunk_index=3,
         base_addr=0x400,
         code_start=2,
     )
 
-    assert result is sentinel
-    assert seen["args"] == (b"\x01\x02", [("r", 1)], 3, 0x400, 2)
+    assert cast(object, result) is sentinel
+    assert seen["args"] == (b"\x01\x02", relocs, 3, 0x400, 2)
     assert seen["saved_path"] == binary_path.with_suffix(".analysis")
 
 
-def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path, monkeypatch):
+def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     binary_path = tmp_path / "demo.bin"
     cache_path = binary_path.with_suffix(".analysis")
     cache_path.write_text("stale", encoding="utf-8")
-    seen = {}
+    seen: dict[str, object] = {}
 
     class FakeAnalysis:
-        def save(self, path):
+        def save(self, path: Path) -> None:
             seen["saved_path"] = path
 
     sentinel = FakeAnalysis()
+    relocs: list[RelocLike] = [_FakeReloc(reloc_type=HunkType.HUNK_RELOC32, offsets=(1,))]
 
-    def fake_load(path, os_kb):
+    def fake_load(path: Path, os_kb: object) -> object:
         seen["load"] = (path, os_kb)
         from m68k.analysis import AnalysisCacheError
         raise AnalysisCacheError("Cache version mismatch")
 
-    def fake_analyze_hunk(code, relocs, hunk_index, base_addr, code_start):
+    def fake_analyze_hunk(
+        code: bytes,
+        relocs: object,
+        hunk_index: int,
+        base_addr: int,
+        code_start: int,
+    ) -> FakeAnalysis:
         seen["analyze"] = (code, relocs, hunk_index, base_addr, code_start)
         return sentinel
 
@@ -947,24 +988,24 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path, monkeypatch):
     result = load_hunk_analysis(
         binary_path=binary_path,
         code=b"\x01\x02",
-        relocs=[("r", 1)],
+        relocs=relocs,
         hunk_index=3,
         base_addr=0x400,
         code_start=2,
     )
 
-    assert result is sentinel
+    assert cast(object, result) is sentinel
     assert seen["load"] == (cache_path, fake_os_kb)
-    assert seen["analyze"] == (b"\x01\x02", [("r", 1)], 3, 0x400, 2)
+    assert seen["analyze"] == (b"\x01\x02", relocs, 3, 0x400, 2)
     assert seen["saved_path"] == cache_path
 
 
-def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path, monkeypatch):
+def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     binary_path = tmp_path / "demo.bin"
     cache_path = binary_path.with_suffix(".analysis")
     cache_path.write_text("broken", encoding="utf-8")
 
-    def fake_load(path, os_kb):
+    def fake_load(path: Path, os_kb: object) -> object:
         raise ValueError("unexpected parse bug")
 
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
@@ -981,7 +1022,7 @@ def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path, monke
         )
 
 
-def test_render_rows_concatenates_listing_text():
+def test_render_rows_concatenates_listing_text() -> None:
     rows = [
         ListingRow(row_id="a", kind="comment", text="; one\n"),
         ListingRow(row_id="b", kind="instruction", text="moveq #0,d0\n"),
@@ -990,11 +1031,11 @@ def test_render_rows_concatenates_listing_text():
     assert render_rows(rows) == "; one\nmoveq #0,d0\n"
 
 
-def test_render_comment_parts_joins_non_empty_parts():
+def test_render_comment_parts_joins_non_empty_parts() -> None:
     assert render_comment_parts(("68020+", "", "note")) == "68020+; note"
 
 
-def test_build_instruction_comment_parts_prefers_app_offset_before_ascii():
+def test_build_instruction_comment_parts_prefers_app_offset_before_ascii() -> None:
     inst = Instruction(
         offset=0x10,
         size=6,
@@ -1042,10 +1083,10 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii():
         inst,
         session,
         operand_parts=(
-            SimpleNamespace(kind="immediate", value=0x4C494E45,
+            SemanticOperand(kind="immediate", value=0x4C494E45,
                             base_register=None, displacement=None,
                             text="#$4C494E45"),
-            SimpleNamespace(kind="base_displacement", value=568,
+            SemanticOperand(kind="base_displacement", value=568,
                             base_register="a6", displacement=568,
                             text="568(a6)"),
         ))
@@ -1053,7 +1094,7 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii():
     assert parts == ("app+$238",)
 
 
-def test_build_instruction_comment_parts_uses_instruction_processor_min_not_text():
+def test_build_instruction_comment_parts_uses_instruction_processor_min_not_text() -> None:
     inst = Instruction(
         offset=0x10,
         size=2,
@@ -1100,14 +1141,14 @@ def test_build_instruction_comment_parts_uses_instruction_processor_min_not_text
         inst,
         session,
         operand_parts=(
-            SimpleNamespace(kind="register", value=None,
+            SemanticOperand(kind="register", value=None,
                             base_register=None, displacement=None,
                             text="d0"),
         ))
     assert parts == ("68020+",)
 
 
-def test_render_instruction_text_requires_opcode_text():
+def test_render_instruction_text_requires_opcode_text() -> None:
     inst = Instruction(
         offset=0x10,
         size=2,
@@ -1155,13 +1196,13 @@ def test_render_instruction_text_requires_opcode_text():
 
     try:
         render_instruction_text(inst, session, set())
-    except ValueError as exc:
+    except AssertionError as exc:
         assert "missing opcode_text" in str(exc)
     else:
         raise AssertionError("expected missing opcode_text")
 
 
-def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_text():
+def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_text() -> None:
     inst = Instruction(
         offset=0x38,
         size=6,
@@ -1209,10 +1250,10 @@ def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_tex
         inst,
         session,
         operand_parts=(
-            SimpleNamespace(kind="immediate", value=0x4C494E45,
+            SemanticOperand(kind="immediate", value=0x4C494E45,
                             base_register=None, displacement=None,
                             text="#$4C494E45"),
-            SimpleNamespace(kind="register", value=None,
+            SemanticOperand(kind="register", value=None,
                             base_register=None, displacement=None,
                             text="d0"),
         ))
@@ -1220,7 +1261,7 @@ def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_tex
     assert parts == ("'LINE'",)
 
 
-def test_build_instruction_comment_parts_appends_unresolved_indirect_marker():
+def test_build_instruction_comment_parts_appends_unresolved_indirect_marker() -> None:
     session = HunkDisassemblySession(
         hunk_index=0,
         code=b"",
@@ -1276,7 +1317,7 @@ def test_build_instruction_comment_parts_appends_unresolved_indirect_marker():
     assert parts == ("unresolved_indirect_core:pcindex.brief",)
 
 
-def test_get_instruction_processor_min_reports_base_68000_instruction():
+def test_get_instruction_processor_min_reports_base_68000_instruction() -> None:
     inst = Instruction(
         offset=0x10,
         size=2,
@@ -1289,7 +1330,7 @@ def test_get_instruction_processor_min_reports_base_68000_instruction():
     assert get_instruction_processor_min(inst) == "68000"
 
 
-def test_has_valid_branch_target_rejects_odd_branch_target():
+def test_has_valid_branch_target_rejects_odd_branch_target() -> None:
     inst = Instruction(
         offset=0x40,
         size=2,
@@ -1302,7 +1343,7 @@ def test_has_valid_branch_target_rejects_odd_branch_target():
     assert has_valid_branch_target(inst) is False
 
 
-def test_hint_block_has_supported_terminal_flow_for_return():
+def test_hint_block_has_supported_terminal_flow_for_return() -> None:
     block = type("Block", (), {
         "instructions": [
             Instruction(
@@ -1320,7 +1361,7 @@ def test_hint_block_has_supported_terminal_flow_for_return():
     assert hint_block_has_supported_terminal_flow(block) is True
 
 
-def test_is_valid_hint_block_rejects_non_68000_instruction():
+def test_is_valid_hint_block_rejects_non_68000_instruction() -> None:
     block = type("Block", (), {
         "instructions": [
             Instruction(
@@ -1338,11 +1379,11 @@ def test_is_valid_hint_block_rejects_non_68000_instruction():
     assert is_valid_hint_block(block) is False
 
 
-def test_emit_jump_table_rows_emits_data_entries():
-    rows = []
+def test_emit_jump_table_rows_emits_data_entries() -> None:
+    rows: list[ListingRow] = []
     labels_seen = []
 
-    def emit_label(addr: int):
+    def emit_label(addr: int) -> None:
         labels_seen.append(addr)
 
     hunk_session = type("HunkSession", (), {
@@ -1366,11 +1407,11 @@ def test_emit_jump_table_rows_emits_data_entries():
     assert rows[0].text == "    dc.w    loc_0080-*\n"
 
 
-def test_emit_jump_table_rows_emits_inline_dispatch_rows():
-    rows = []
+def test_emit_jump_table_rows_emits_inline_dispatch_rows() -> None:
+    rows: list[ListingRow] = []
     labels_seen = []
 
-    def emit_label(addr: int):
+    def emit_label(addr: int) -> None:
         labels_seen.append(addr)
 
     code = b"\x70\x00\x4E\x75"
@@ -1417,10 +1458,10 @@ def test_emit_jump_table_rows_emits_inline_dispatch_rows():
     assert len(rows) == 2
 
 
-def test_emit_jump_table_rows_emits_string_dispatch_rows():
-    rows = []
+def test_emit_jump_table_rows_emits_string_dispatch_rows() -> None:
+    rows: list[ListingRow] = []
 
-    def emit_label(addr: int):
+    def emit_label(addr: int) -> None:
         raise AssertionError(f"Unexpected label emission at ${addr:04x}")
 
     code = bytes([1, 1, 0, 6, 1, 2, 0, 8, 0, 0x4E, 0x75, 0x4E, 0x75])
@@ -1475,10 +1516,10 @@ def test_emit_jump_table_rows_emits_string_dispatch_rows():
     ]
 
 
-def test_emit_jump_table_rows_preserves_sparse_word_gaps():
-    rows = []
+def test_emit_jump_table_rows_preserves_sparse_word_gaps() -> None:
+    rows: list[ListingRow] = []
 
-    def emit_label(addr: int):
+    def emit_label(addr: int) -> None:
         raise AssertionError(f"Unexpected label emission at ${addr:04x}")
 
     code = bytes.fromhex("0000000400000008")
@@ -1535,7 +1576,7 @@ def test_emit_jump_table_rows_preserves_sparse_word_gaps():
     ]
 
 
-def test_listing_window_anchors_to_matching_addr():
+def test_listing_window_anchors_to_matching_addr() -> None:
     rows = [
         ListingRow(row_id="r0", kind="instruction", text="", addr=0x10),
         ListingRow(row_id="r1", kind="instruction", text="", addr=0x20),
@@ -1549,7 +1590,7 @@ def test_listing_window_anchors_to_matching_addr():
     assert window["end"] == 3
 
 
-def test_listing_window_anchors_to_last_row_past_end():
+def test_listing_window_anchors_to_last_row_past_end() -> None:
     rows = [
         ListingRow(row_id="r0", kind="instruction", text="", addr=0x10),
         ListingRow(row_id="r1", kind="instruction", text="", addr=0x20),
@@ -1563,7 +1604,7 @@ def test_listing_window_anchors_to_last_row_past_end():
     assert window["has_more_after"] is False
 
 
-def test_gen_disasm_uses_shared_session_row_pipeline(monkeypatch, tmp_path):
+def test_gen_disasm_uses_shared_session_row_pipeline(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     calls: list[str] = []
     output_path = tmp_path / "out.s"
     entities_path = tmp_path / "entities.jsonl"
@@ -1577,10 +1618,16 @@ def test_gen_disasm_uses_shared_session_row_pipeline(monkeypatch, tmp_path):
         entities=[],
         hunk_sessions=[],
     )
-    rows = [ListingRow(row_id="row0", kind="instruction", text="moveq #0,d0\n")]
+    rows: list[ListingRow] = [ListingRow(row_id="row0", kind="instruction", text="moveq #0,d0\n")]
 
-    def fake_build_session(binary_path, entities_path, session_output_path,
-                           base_addr=0, code_start=0, profile_stages=False):
+    def fake_build_session(
+        binary_path: str,
+        entities_path: str,
+        session_output_path: str | None,
+        base_addr: int = 0,
+        code_start: int = 0,
+        profile_stages: bool = False,
+    ) -> DisassemblySession:
         calls.append("build_session")
         assert binary_path == "bin/test"
         assert entities_path == str(entities_path_obj)
@@ -1590,17 +1637,17 @@ def test_gen_disasm_uses_shared_session_row_pipeline(monkeypatch, tmp_path):
         assert profile_stages is True
         return session
 
-    def fake_emit_rows(seen_session):
+    def fake_emit_rows(seen_session: DisassemblySession) -> list[ListingRow]:
         calls.append("emit_rows")
         assert seen_session is session
         return rows
 
-    def fake_render_rows(seen_rows):
+    def fake_render_rows(seen_rows: list[ListingRow]) -> str:
         calls.append("render_rows")
         assert seen_rows == rows
         return "; rendered\n"
 
-    def fake_refresh_needed(binary_path, seen_entities_path):
+    def fake_refresh_needed(binary_path: str, seen_entities_path: str) -> bool:
         assert binary_path == "bin/test"
         assert seen_entities_path == str(entities_path_obj)
         return False
@@ -1625,7 +1672,7 @@ def test_gen_disasm_uses_shared_session_row_pipeline(monkeypatch, tmp_path):
     assert output_path.read_text() == "; rendered\n"
 
 
-def test_gen_disasm_refreshes_entities_when_needed(monkeypatch, tmp_path):
+def test_gen_disasm_refreshes_entities_when_needed(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     calls: list[tuple[object, ...]] = []
     output_path = tmp_path / "out.s"
     entities_path = tmp_path / "entities.jsonl"
@@ -1639,25 +1686,42 @@ def test_gen_disasm_refreshes_entities_when_needed(monkeypatch, tmp_path):
         hunk_sessions=[],
     )
 
-    def fake_refresh_needed(binary_path, seen_entities_path):
+    def fake_refresh_needed(binary_path: str, seen_entities_path: str) -> bool:
         calls.append(("refresh_check", binary_path, seen_entities_path))
         return True
 
-    def fake_build_entities(binary_path, seen_entities_path, base_addr, code_start):
+    def fake_build_entities(
+        binary_path: str,
+        seen_entities_path: str,
+        base_addr: int,
+        code_start: int,
+    ) -> int:
         calls.append(("build_entities", binary_path, seen_entities_path, base_addr, code_start))
         Path(seen_entities_path).write_text("", encoding="utf-8")
         return 0
 
-    def fake_build_session(binary_path, seen_entities_path, session_output_path,
-                           base_addr=0, code_start=0, profile_stages=False):
+    def fake_build_session(
+        binary_path: str,
+        seen_entities_path: str,
+        session_output_path: str | None,
+        base_addr: int = 0,
+        code_start: int = 0,
+        profile_stages: bool = False,
+    ) -> DisassemblySession:
         calls.append(("build_session", binary_path, seen_entities_path))
         return session
+
+    def fake_emit_session_rows(seen_session: DisassemblySession) -> list[ListingRow]:
+        return []
+
+    def fake_render_rows(seen_rows: list[ListingRow]) -> str:
+        return ""
 
     monkeypatch.setattr(gen_disasm_mod, "_entities_need_refresh", fake_refresh_needed)
     monkeypatch.setattr(gen_disasm_mod, "build_entities", fake_build_entities)
     monkeypatch.setattr(gen_disasm_mod, "build_disassembly_session", fake_build_session)
-    monkeypatch.setattr(gen_disasm_mod, "emit_session_rows", lambda seen_session: [])
-    monkeypatch.setattr(gen_disasm_mod, "render_rows", lambda seen_rows: "")
+    monkeypatch.setattr(gen_disasm_mod, "emit_session_rows", fake_emit_session_rows)
+    monkeypatch.setattr(gen_disasm_mod, "render_rows", fake_render_rows)
 
     gen_disasm_mod.gen_disasm(
         "bin/test",
@@ -1674,7 +1738,7 @@ def test_gen_disasm_refreshes_entities_when_needed(monkeypatch, tmp_path):
     ]
 
 
-def test_emit_session_rows_smoke_for_empty_hunk_session():
+def test_emit_session_rows_smoke_for_empty_hunk_session() -> None:
     session = DisassemblySession(
         target_name="demo",
         binary_path=Path("bin/demo"),
@@ -1724,8 +1788,38 @@ def test_emit_session_rows_smoke_for_empty_hunk_session():
     assert rows[0].kind == "comment"
 
 
-def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes():
-    hunk_session = SimpleNamespace(
+def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes() -> None:
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
         absolute_labels={
             0x00000004: "AbsExecBase",
         },
@@ -1760,7 +1854,7 @@ def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes(
     ]
 
 
-def test_serialize_row_preserves_structured_fields():
+def test_serialize_row_preserves_structured_fields() -> None:
     row = ListingRow(
         row_id="row0",
         kind="instruction",
@@ -1789,21 +1883,22 @@ def test_serialize_row_preserves_structured_fields():
     assert payload["source_context"] == {"block": 0x20}
 
 
-def test_session_metadata_summarizes_hunks():
+def test_session_metadata_summarizes_hunks() -> None:
+    block = _block(0, 2)
     session = DisassemblySession(
         target_name="test",
         binary_path=Path("bin/test"),
         entities_path=Path("targets/test/entities.jsonl"),
         analysis_cache_path=Path("bin/test.analysis"),
         output_path=Path("targets/test/out.s"),
-        entities=[{"addr": "0x0000"}],
+        entities=[{"addr": "0000", "type": "code"}],
         hunk_sessions=[
             HunkDisassemblySession(
                 hunk_index=0,
                 code=b"\x4e\x75",
                 code_size=2,
-                entities=[{"addr": "0x0000"}],
-                blocks={0: object()},
+                entities=[{"addr": "0000", "type": "code"}],
+                blocks={0: block},
                 hint_blocks={},
                 code_addrs={0, 1},
                 hint_addrs=set(),
@@ -1842,7 +1937,7 @@ def test_session_metadata_summarizes_hunks():
     assert payload["hunks"][0]["relocated"] is False
 
 
-def test_listing_window_payload_serializes_rows():
+def test_listing_window_payload_serializes_rows() -> None:
     rows = [
         ListingRow(row_id="r0", kind="instruction", text="a\n", addr=0x10),
         ListingRow(row_id="r1", kind="instruction", text="b\n", addr=0x20),
@@ -1857,7 +1952,7 @@ def test_listing_window_payload_serializes_rows():
     assert payload["has_more_after"] is False
 
 
-def test_build_listing_rows_delegates_to_session_builder(monkeypatch):
+def test_build_listing_rows_delegates_to_session_builder(monkeypatch: MonkeyPatch) -> None:
     session = DisassemblySession(
         target_name="demo",
         binary_path=Path("bin/demo"),
@@ -1867,10 +1962,17 @@ def test_build_listing_rows_delegates_to_session_builder(monkeypatch):
         entities=[],
         hunk_sessions=[],
     )
-    rows = [ListingRow(row_id="r0", kind="instruction", text="nop\n", addr=0)]
+    rows: list[ListingRow] = [ListingRow(row_id="r0", kind="instruction", text="nop\n", addr=0)]
     calls: list[str] = []
 
-    def fake_build(binary_path, entities_path, output_path, base_addr=0, code_start=0, profile_stages=False):
+    def fake_build(
+        binary_path: str,
+        entities_path: str,
+        output_path: str | None,
+        base_addr: int = 0,
+        code_start: int = 0,
+        profile_stages: bool = False,
+    ) -> DisassemblySession:
         calls.append("build")
         assert binary_path == "bin/demo"
         assert entities_path == "targets/demo/entities.jsonl"
@@ -1879,7 +1981,7 @@ def test_build_listing_rows_delegates_to_session_builder(monkeypatch):
         assert code_start == 2
         return session
 
-    def fake_emit(seen_session):
+    def fake_emit(seen_session: DisassemblySession) -> list[ListingRow]:
         calls.append("emit")
         assert seen_session is session
         return rows
@@ -1894,7 +1996,7 @@ def test_build_listing_rows_delegates_to_session_builder(monkeypatch):
     assert result == rows
 
 
-def test_render_session_text_renders_emitted_rows(monkeypatch):
+def test_render_session_text_renders_emitted_rows(monkeypatch: MonkeyPatch) -> None:
     session = DisassemblySession(
         target_name="demo",
         binary_path=Path("bin/demo"),
@@ -1904,15 +2006,15 @@ def test_render_session_text_renders_emitted_rows(monkeypatch):
         entities=[],
         hunk_sessions=[],
     )
-    rows = [ListingRow(row_id="r0", kind="instruction", text="moveq #0,d0\n", addr=0)]
+    rows: list[ListingRow] = [ListingRow(row_id="r0", kind="instruction", text="moveq #0,d0\n", addr=0)]
     calls: list[str] = []
 
-    def fake_emit(seen_session):
+    def fake_emit(seen_session: DisassemblySession) -> list[ListingRow]:
         calls.append("emit")
         assert seen_session is session
         return rows
 
-    def fake_render(seen_rows):
+    def fake_render(seen_rows: list[ListingRow]) -> str:
         calls.append("render")
         assert seen_rows == rows
         return "; rendered\n"
@@ -1924,7 +2026,7 @@ def test_render_session_text_renders_emitted_rows(monkeypatch):
     assert calls == ["emit", "render"]
 
 
-def test_emit_data_region_renders_relocated_longword_label():
+def test_emit_data_region_renders_relocated_longword_label() -> None:
     output = io.StringIO()
 
     data_render_mod.emit_data_region(
@@ -1940,7 +2042,7 @@ def test_emit_data_region_renders_relocated_longword_label():
     assert output.getvalue() == "    dc.l    target_label\n"
 
 
-def test_emit_data_region_renders_zero_fill_run():
+def test_emit_data_region_renders_zero_fill_run() -> None:
     output = io.StringIO()
 
     data_render_mod.emit_data_region(
@@ -1956,7 +2058,7 @@ def test_emit_data_region_renders_zero_fill_run():
     assert output.getvalue() == "    dcb.b   5,0\n"
 
 
-def test_emit_data_region_renders_ascii_string():
+def test_emit_data_region_renders_ascii_string() -> None:
     output = io.StringIO()
 
     data_render_mod.emit_data_region(

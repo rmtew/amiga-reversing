@@ -3,7 +3,9 @@ from __future__ import annotations
 import importlib.util
 import subprocess
 import sys
+from collections.abc import MutableMapping
 from pathlib import Path
+from types import ModuleType
 from types import SimpleNamespace
 
 from m68k.m68k_asm import assemble_instruction
@@ -14,7 +16,7 @@ from m68k.name_entities import name_subroutines
 from m68k.os_calls import AppSlotInfo
 
 
-def test_build_entities_help_loads_cleanly():
+def test_build_entities_help_loads_cleanly() -> None:
     script = Path(__file__).resolve().parent.parent / "scripts" / "build_entities.py"
     result = subprocess.run(
         [sys.executable, str(script), "--help"],
@@ -27,7 +29,7 @@ def test_build_entities_help_loads_cleanly():
     assert "Build entities.jsonl from hunk binary analysis" in result.stdout
 
 
-def _load_build_entities_module():
+def _load_build_entities_module() -> ModuleType:
     path = Path(__file__).resolve().parent.parent / "scripts" / "build_entities.py"
     spec = importlib.util.spec_from_file_location("build_entities_script", path)
     if spec is None or spec.loader is None:
@@ -37,7 +39,7 @@ def _load_build_entities_module():
     return module
 
 
-def test_collect_subroutine_app_slots_uses_containing_struct_region():
+def test_collect_subroutine_app_slots_uses_containing_struct_region() -> None:
     module = _load_build_entities_module()
     inst = disassemble(assemble_instruction("movea.l 4300(a6),a0"), max_cpu="68010")[0]
     sub = module.SubroutineRange(addr=0x20, end=0x24, block_count=1, instr_count=1)
@@ -69,7 +71,7 @@ def test_collect_subroutine_app_slots_uses_containing_struct_region():
     )
 
 
-def test_app_slot_entity_payloads_emit_struct_and_named_base():
+def test_app_slot_entity_payloads_emit_struct_and_named_base() -> None:
     module = _load_build_entities_module()
 
     payloads = module.app_slot_entity_payloads((
@@ -92,7 +94,7 @@ def test_app_slot_entity_payloads_emit_struct_and_named_base():
     }]
 
 
-def test_app_slot_entity_payloads_format_negative_offsets():
+def test_app_slot_entity_payloads_format_negative_offsets() -> None:
     module = _load_build_entities_module()
 
     payloads = module.app_slot_entity_payloads((
@@ -112,7 +114,7 @@ def test_app_slot_entity_payloads_format_negative_offsets():
     }]
 
 
-def test_summarize_entity_app_slots_adds_direct_and_transitive_summaries():
+def test_summarize_entity_app_slots_adds_direct_and_transitive_summaries() -> None:
     module = _load_build_entities_module()
     entities = [
         {
@@ -151,7 +153,7 @@ def test_summarize_entity_app_slots_adds_direct_and_transitive_summaries():
     assert entities[1]["struct_refs"] == ["DosLibrary"]
 
 
-def test_collect_subroutine_indirect_sites_keeps_dispatch_metadata():
+def test_collect_subroutine_indirect_sites_keeps_dispatch_metadata() -> None:
     module = _load_build_entities_module()
     sub = module.SubroutineRange(addr=0x20, end=0x40, block_count=1, instr_count=1)
     sites = [
@@ -181,8 +183,8 @@ def test_collect_subroutine_indirect_sites_keeps_dispatch_metadata():
     )
 
 
-def test_name_subroutines_uses_transitive_named_base_for_dispatch_wrapper():
-    entities = [{
+def test_name_subroutines_uses_transitive_named_base_for_dispatch_wrapper() -> None:
+    entities: list[MutableMapping[str, object]] = [{
         "addr": "0x0010",
         "end": "0x0018",
         "type": "code",

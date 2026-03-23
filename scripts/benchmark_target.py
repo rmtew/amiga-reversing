@@ -4,9 +4,11 @@ import json
 import subprocess
 import sys
 import time
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -76,7 +78,7 @@ def _binary_path(target_dir: Path) -> Path:
     return ROOT / relative
 
 
-def _covered_bytes(blocks) -> int:
+def _covered_bytes(blocks: Mapping[int, Any]) -> int:
     return sum(block.end - block.start for block in blocks.values())
 
 

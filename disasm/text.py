@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
 from disasm.types import ListingRow
 
 
@@ -7,8 +9,18 @@ def render_rows(rows: list[ListingRow]) -> str:
     return "".join(row.text for row in rows)
 
 
+class ListingWindow(TypedDict):
+    anchor_addr: int | None
+    rows: list[ListingRow]
+    start: int
+    end: int
+    has_more_before: bool
+    has_more_after: bool
+    total_rows: int
+
+
 def listing_window(rows: list[ListingRow], addr: int | None,
-                   before: int = 80, after: int = 160) -> dict:
+                   before: int = 80, after: int = 160) -> ListingWindow:
     anchor_index = 0
     if addr is not None:
         anchor_index = max(0, len(rows) - 1)
@@ -27,4 +39,3 @@ def listing_window(rows: list[ListingRow], addr: int | None,
         "has_more_after": end < len(rows),
         "total_rows": len(rows),
     }
-

@@ -20,6 +20,9 @@ import sys
 from dataclasses import dataclass, field, asdict
 from html import unescape
 from pathlib import Path
+from typing import Any
+
+JsonDict = dict[str, Any]
 
 
 @dataclass
@@ -80,8 +83,8 @@ def parse_address_order_summary(guide_dir: str) -> list[Register]:
 
     # Build a map of register name -> detail page link from the raw HTML
     link_map = {}
-    for m in re.finditer(r'<a href="[^"]*/([^/"]+)"[^>]*>(\w+)</a>', body):
-        page, name = m.group(1), m.group(2)
+    for link_match in re.finditer(r'<a href="[^"]*/([^/"]+)"[^>]*>(\w+)</a>', body):
+        page, name = link_match.group(1), link_match.group(2)
         if name not in link_map and name != 'E':
             link_map[name] = page
 
@@ -110,16 +113,16 @@ def parse_address_order_summary(guide_dir: str) -> list[Register]:
     )
 
     for line in text.split('\n'):
-        m = reg_pattern.match(line)
-        if not m:
+        reg_match = reg_pattern.match(line)
+        if not reg_match:
             continue
 
-        name = m.group(1)
-        flags_raw = m.group(2)
-        copper_flag = m.group(3)
-        addr_hex = m.group(4)
-        access = m.group(5)
-        rest = m.group(6).strip()
+        name = reg_match.group(1)
+        flags_raw = reg_match.group(2)
+        copper_flag = reg_match.group(3)
+        addr_hex = reg_match.group(4)
+        access = reg_match.group(5)
+        rest = reg_match.group(6).strip()
 
         # Skip header line
         if name == 'NAME' and 'FUNCTION' in rest:
@@ -239,7 +242,7 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
             # Track indentation of the first bit line to detect continuations
             bit_indent = None
 
-            def save_current():
+            def save_current() -> None:
                 nonlocal current_bit, current_name, current_desc_lines
                 if current_bit is not None:
                     desc = ' '.join(current_desc_lines).strip()
@@ -395,7 +398,7 @@ def parse_full_manual(index_html: str) -> tuple[list[Register], list[Chapter]]:
     print(f"  Found {len(registers)} registers")
 
     # Collect unique detail pages to parse
-    detail_pages = {}
+    detail_pages: dict[str, tuple[list[BitDef], str] | None] = {}
     for reg in registers:
         if reg.detail_page and reg.detail_page not in detail_pages:
             detail_pages[reg.detail_page] = None
@@ -410,7 +413,10 @@ def parse_full_manual(index_html: str) -> tuple[list[Register], list[Chapter]]:
     regs_with_bits = 0
     for reg in registers:
         if reg.detail_page and reg.detail_page in detail_pages:
-            bits, notes = detail_pages[reg.detail_page]
+            detail = detail_pages[reg.detail_page]
+            if detail is None:
+                continue
+            bits, notes = detail
             if bits:
                 reg.bits = bits
                 regs_with_bits += 1
@@ -573,7 +579,7 @@ def parse_cia_registers(guide_dir: str) -> list[Register]:
     return cia_regs
 
 
-def output_summary(registers: list[Register], chapters: list[Chapter]):
+def output_summary(registers: list[Register], chapters: list[Chapter]) -> None:
     """Print summary to stdout."""
     print(f"\nAmiga Hardware Reference Manual")
     print(f"{'='*50}")
@@ -583,7 +589,7 @@ def output_summary(registers: list[Register], chapters: list[Chapter]):
     print(f"With bit defs:   {with_bits}/{len(registers)}")
 
     # Count by chip
-    chips = {}
+    chips: dict[str, int] = {}
     for r in registers:
         for c in r.chip:
             if c in 'ADP':
@@ -604,9 +610,9 @@ def output_summary(registers: list[Register], chapters: list[Chapter]):
         print(f"{reg.name:<12} ${reg.address:03X}   {reg.access:<4} {reg.chip:<5} {bits_str}  {ecs_mark} {reg.function[:40]}")
 
 
-def output_json(registers: list[Register], chapters: list[Chapter], outfile: str):
+def output_json(registers: list[Register], chapters: list[Chapter], outfile: str) -> None:
     """Write JSON output."""
-    data = {
+    data: JsonDict = {
         "source": "Amiga Hardware Reference Manual",
         "base_address": "0xDFF000",
         "registers": [],
@@ -614,7 +620,7 @@ def output_json(registers: list[Register], chapters: list[Chapter], outfile: str
     }
 
     for reg in registers:
-        rd = {
+        rd: JsonDict = {
             "name": reg.name,
             "address": f"0x{reg.address:03X}",
             "address_68k": f"0x{0xDFF000 + reg.address:06X}",
@@ -649,9 +655,9 @@ def output_json(registers: list[Register], chapters: list[Chapter], outfile: str
     print(f"Wrote {len(registers)} registers to {outfile}")
 
 
-def output_markdown(registers: list[Register], chapters: list[Chapter], outfile: str):
+def output_markdown(registers: list[Register], chapters: list[Chapter], outfile: str) -> None:
     """Write Markdown reference."""
-    lines = [
+    lines: list[str] = [
         "# Amiga Hardware Register Reference",
         "",
         f"Extracted from the Amiga Hardware Reference Manual. {len(registers)} registers.",
@@ -687,7 +693,7 @@ def output_markdown(registers: list[Register], chapters: list[Chapter], outfile:
         if reg.ecs:
             lines.append("- **ECS**: Yes")
 
-        flags = []
+        flags: list[str] = []
         if reg.dma_only:
             flags.append("DMA channel only")
         if reg.dma_usually:
@@ -725,14 +731,15 @@ def output_markdown(registers: list[Register], chapters: list[Chapter], outfile:
     print(f"Wrote {len(registers)} registers to {outfile}")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Parse Amiga Hardware Reference Manual")
     parser.add_argument("html", help="Path to Hardware_Manual.html index file")
     parser.add_argument("--output", choices=["json", "md", "summary"], default="summary")
     parser.add_argument("--outfile", help="Output file path")
     args = parser.parse_args()
 
-    sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
 
     registers, chapters = parse_full_manual(args.html)
 

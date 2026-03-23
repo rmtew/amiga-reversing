@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from disasm.absolute_resolver import resolve_absolute_labels
+from disasm.types import HunkDisassemblySession
 from m68k_kb import runtime_hardware
 from m68k.os_calls import AppBaseInfo, AppBaseKind
 from tests.platform_helpers import make_platform
 
 
-def test_resolve_absolute_labels_keeps_hardware_addresses_reserved_and_app_base_labeled():
+def test_resolve_absolute_labels_keeps_hardware_addresses_reserved_and_app_base_labeled() -> None:
     platform = make_platform(app_base=AppBaseInfo(
         kind=AppBaseKind.ABSOLUTE,
         reg_num=6,
@@ -22,7 +25,7 @@ def test_resolve_absolute_labels_keeps_hardware_addresses_reserved_and_app_base_
     assert 0x00BFE001 not in resolved.absolute_labels
 
 
-def test_runtime_hardware_register_defs_classify_custom_and_cia_addresses():
+def test_runtime_hardware_register_defs_classify_custom_and_cia_addresses() -> None:
     assert runtime_hardware.REGISTER_DEFS[0x00DFF09A] == {
         "symbol": "intena",
         "aliases": (),
@@ -40,7 +43,9 @@ def test_runtime_hardware_register_defs_classify_custom_and_cia_addresses():
         "offset": 0x0000,
     }
 
-def test_bloodwych_project_session_stays_relocatable_path(bloodwych_hunk_session):
+def test_bloodwych_project_session_stays_relocatable_path(
+    bloodwych_hunk_session: HunkDisassemblySession,
+) -> None:
     hunk = bloodwych_hunk_session
 
     assert hunk.platform.app_base is None

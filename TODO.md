@@ -49,6 +49,7 @@ The remaining code is reachable only through runtime-dependent dispatch
 ### Analysis Architecture
 - [ ] Decide whether the remaining orchestration in `m68k/indirect_analysis.py` should stay as one module or split further from lower-level reusable analysis
 - [ ] Add a small number of whole-target integration checks around GenAm / Bloodwych output so renderer and analysis regressions are caught above the unit-test level
+- [ ] Expand strict `mypy` coverage beyond the current typed helper/core slice, shared analysis helpers, typed reusable analysis modules (`m68k/indirect_core.py`, `m68k/indirect_analysis.py`, `m68k/analysis.py`), and typed early disassembly helpers (`disasm/discovery.py`, `disasm/metadata.py`, `disasm/hunks.py`, `disasm/session.py`, `disasm/instruction_rows.py`, `disasm/emitter.py`) into the next M68K/disassembly modules without introducing `Any` shims
 
 ### KB Python Integration Debt
 - [ ] Replace remaining ad hoc small record dicts in runtime tables with tuple/type-alias forms where the schema is fixed and performance-sensitive

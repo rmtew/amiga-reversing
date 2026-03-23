@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypeAlias
+from collections.abc import Sequence
+from typing import NotRequired, Protocol, TypeAlias, TypedDict
 
 from m68k.instruction_decode import DecodedBitfield
 from m68k.analysis import RelocatedSegment
 from m68k.indirect_core import IndirectSite
+from m68k.m68k_disasm import Instruction
 from m68k.os_calls import (CallArgumentAnnotation, LibraryCall, OsKb,
                            PlatformState, TypedMemoryRegion)
 
@@ -62,8 +64,7 @@ class FullIndexedOperandMetadata:
 
 
 SemanticOperandMetadata = (
-    dict[str, Any]
-    | SymbolOperandMetadata
+    SymbolOperandMetadata
     | AppStructFieldOperandMetadata
     | RegisterListOperandMetadata
     | RegisterPairOperandMetadata
@@ -81,7 +82,7 @@ class SemanticOperand:
     base_register: str | None = None
     displacement: int | None = None
     segment_addr: int | None = None
-    metadata: SemanticOperandMetadata = field(default_factory=dict)
+    metadata: SemanticOperandMetadata | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +122,43 @@ class AddressRowContext:
 RowSourceContext = HeaderRowContext | BlockRowContext | AddressRowContext
 
 
+class DisasmBlockLike(Protocol):
+    @property
+    def start(self) -> int: ...
+
+    @property
+    def end(self) -> int: ...
+
+    @property
+    def successors(self) -> Sequence[int]: ...
+
+    @property
+    def instructions(self) -> Sequence[Instruction]: ...
+
+
+class EntityRecord(TypedDict):
+    addr: str
+    type: str
+    end: NotRequired[str]
+    hunk: NotRequired[int]
+    name: NotRequired[str]
+    comment: NotRequired[str]
+    subtype: NotRequired[str]
+    confidence: NotRequired[str]
+
+
+class EntityPatch(TypedDict, total=False):
+    name: str
+    comment: str
+    type: str
+    subtype: str
+    confidence: str
+
+
+class OverridesPayload(TypedDict):
+    entities: dict[str, EntityPatch]
+
+
 @dataclass(frozen=True, slots=True)
 class JumpTableEntryRef:
     entry_addr: int
@@ -141,7 +179,7 @@ class JumpTableRegion:
 class HunkMetadata:
     code_addrs: set[int]
     hint_addrs: set[int]
-    hint_blocks: dict[int, object]
+    hint_blocks: dict[int, DisasmBlockLike]
     reloc_map: dict[int, int]
     reloc_target_set: set[int]
     pc_targets: dict[int, str]
@@ -165,9 +203,9 @@ class HunkDisassemblySession:
     hunk_index: int
     code: bytes
     code_size: int
-    entities: list[dict]
-    blocks: dict
-    hint_blocks: dict
+    entities: list[EntityRecord]
+    blocks: dict[int, DisasmBlockLike]
+    hint_blocks: dict[int, DisasmBlockLike]
     code_addrs: set[int]
     hint_addrs: set[int]
     reloc_map: dict[int, int]
@@ -207,6 +245,6 @@ class DisassemblySession:
     entities_path: Path
     analysis_cache_path: Path
     output_path: Path | None
-    entities: list[dict]
+    entities: list[EntityRecord]
     hunk_sessions: list[HunkDisassemblySession]
     profile_stages: bool = False

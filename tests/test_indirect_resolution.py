@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for indirect jump/call resolution through register tracing.
 
 Tests drive development of:
@@ -16,16 +18,21 @@ GenAm patterns modelled:
 """
 
 import struct
+from collections.abc import Sequence
+from typing import Any, TypedDict, TypeAlias, cast
+from _pytest.monkeypatch import MonkeyPatch
+from m68k.abstract_values import _concrete, _unknown
 from m68k.instruction_kb import instruction_kb
-from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
-                                _concrete, _unknown, BasicBlock, CallSummary, XRef)
+from m68k.m68k_executor import analyze, CPUState, AbstractMemory, BasicBlock, CallSummary, XRef
 from m68k.jump_tables import detect_jump_tables, _scan_inline_dispatch, _is_indexed_ea
 from m68k.indirect_analysis import (collect_call_entry_states,
                                     resolve_indirect_targets, resolve_per_caller,
+                                    IndirectResolution,
                                     resolve_backward_slice)
 from m68k.indirect_core import decode_jump_ea
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble, Instruction
+from m68k.os_calls import PlatformState
 from tests.platform_helpers import make_platform
 
 
@@ -34,6 +41,24 @@ from tests.platform_helpers import make_platform
 # Minimal platform config enabling SP tracking (symbolic SP at entry).
 # All propagation-based tests need this for BSR/JSR stack tracking.
 _MINIMAL_PLATFORM = make_platform(scratch_regs=())
+AssemblySpec: TypeAlias = tuple[str, str | bytes]
+ResolvedEntry: TypeAlias = dict[str, object] | IndirectResolution
+
+
+class JumpTableEntryView(TypedDict):
+    offset_addr: int
+    target: int
+
+
+class JumpTableView(TypedDict):
+    addr: int
+    entries: list[JumpTableEntryView]
+    pattern: str
+    targets: list[int]
+    dispatch_sites: list[int]
+    dispatch_block: int
+    table_end: int
+    base_addr: int | None
 
 
 def _stub_instruction(offset: int) -> Instruction:
@@ -48,7 +73,11 @@ def _stub_instruction(offset: int) -> Instruction:
     )
 
 
-def _analyze_and_resolve(code, entry_points=None, platform=None):
+def _analyze_and_resolve(
+    code: bytes,
+    entry_points: list[int] | None = None,
+    platform: PlatformState | None = None,
+) -> tuple[dict[int, BasicBlock], dict[int, tuple[CPUState, AbstractMemory]], list[ResolvedEntry]]:
     """Run full analysis pipeline: jump tables, direct resolution, per-caller."""
     if platform is None:
         platform = make_platform(scratch_regs=_MINIMAL_PLATFORM.scratch_regs)
@@ -56,7 +85,7 @@ def _analyze_and_resolve(code, entry_points=None, platform=None):
                      platform=platform)
     blocks = result["blocks"]
     exit_states = result.get("exit_states", {})
-    resolved = []
+    resolved: list[ResolvedEntry] = []
     for t in detect_jump_tables(blocks, code):
         for tgt in t.targets:
             resolved.append({"target": tgt})
@@ -68,15 +97,15 @@ def _analyze_and_resolve(code, entry_points=None, platform=None):
     return blocks, exit_states, resolved
 
 
-def _resolved_targets(resolved):
+def _resolved_targets(resolved: list[ResolvedEntry]) -> list[int]:
     """Extract sorted unique target addresses from resolution results."""
     return sorted(set(
-        r["target"] if isinstance(r, dict) else r.target
+        cast(int, r["target"]) if isinstance(r, dict) else r.target
         for r in resolved
     ))
 
 
-def _jump_table_view(table):
+def _jump_table_view(table: Any) -> JumpTableView:
     return {
         "addr": table.addr,
         "entries": [
@@ -92,40 +121,41 @@ def _jump_table_view(table):
     }
 
 
-def _assemble_with_labels(specs):
+def _assemble_with_labels(specs: Sequence[tuple[str, object]]) -> tuple[bytes, dict[str, int]]:
     all_labels = {
-        payload
+        cast(str, payload)
         for kind, payload in specs
         if kind == "label"
     }
-    labels = {}
+    labels: dict[str, int] = {}
     pc = 0
     for kind, payload in specs:
         if kind == "label":
-            labels[payload] = pc
+            labels[cast(str, payload)] = pc
             continue
         if kind == "bytes":
-            pc += len(payload)
+            pc += len(cast(bytes, payload))
             continue
         if kind != "asm":
             raise AssertionError(f"unknown spec kind {kind!r}")
-        text = payload
+        text = cast(str, payload)
         if "{table_disp}" in text or "{end_disp}" in text or "{bound_disp}" in text:
             text = text.format(table_disp=0, end_disp=0, bound_disp=0)
         elif "{" in text:
             text = text.format(**{name: 0 for name in all_labels})
         pc += len(assemble_instruction(text, pc=pc))
 
-    code = b""
+    code = bytearray()
     pc = 0
     for kind, payload in specs:
         if kind == "label":
             continue
         if kind == "bytes":
-            code += payload
-            pc += len(payload)
+            raw_bytes = cast(bytes, payload)
+            code.extend(raw_bytes)
+            pc += len(raw_bytes)
             continue
-        text = payload
+        text = cast(str, payload)
         if "{table_disp}" in text:
             text = text.format(table_disp=labels["table"] - (pc + 2))
         elif "{bound_disp}" in text:
@@ -135,25 +165,24 @@ def _assemble_with_labels(specs):
         elif "{" in text:
             text = text.format(**labels)
         raw = assemble_instruction(text, pc=pc)
-        code += raw
+        code.extend(raw)
         pc += len(raw)
-    return code, labels
+    return bytes(code), labels
 
 
-def test_is_indexed_ea_uses_shared_decode_for_brief_indexed_mode():
+def test_is_indexed_ea_uses_shared_decode_for_brief_indexed_mode() -> None:
     inst = disassemble(bytes.fromhex("4eb32002"), max_cpu="68020")[0]
     info = _is_indexed_ea(inst, instruction_kb(inst))
 
-    assert info == {
-        "base_mode": "an",
-        "base_reg": 3,
-        "index_is_addr": False,
-        "index_reg": 2,
-        "displacement": 2,
-    }
+    assert info is not None
+    assert info.base_mode == "an"
+    assert info.base_reg == 3
+    assert info.index_is_addr is False
+    assert info.index_reg == 2
+    assert info.displacement == 2
 
 
-def test_is_indexed_ea_rejects_full_extension_memory_indirect():
+def test_is_indexed_ea_rejects_full_extension_memory_indirect() -> None:
     inst = disassemble(bytes.fromhex("2031212200000004"), max_cpu="68020")[0]
 
     assert _is_indexed_ea(inst, instruction_kb(inst)) is None
@@ -163,7 +192,7 @@ def test_is_indexed_ea_rejects_full_extension_memory_indirect():
 
 # ---- 1. Displacement indirect: jmp/jsr d(An) with concrete An --------------
 
-def test_disp_indirect_jmp():
+def test_disp_indirect_jmp() -> None:
     """JMP d(An) where An is concrete should resolve to An + d."""
     code = b''
     # lea $20(pc),a0  -> a0 = $00 + 2 + $20 = $22
@@ -179,7 +208,7 @@ def test_disp_indirect_jmp():
     print("  disp_indirect_jmp: OK")
 
 
-def test_disp_indirect_jsr():
+def test_disp_indirect_jsr() -> None:
     """JSR d(An) where An is concrete should resolve to An + d."""
     code = b''
     # lea $18(pc),a2  -> a2 = $00 + 2 + $18 = $1a
@@ -198,7 +227,7 @@ def test_disp_indirect_jsr():
 
 # ---- 2. Indexed indirect: jsr d(An,Dn.w) with concrete An + Dn -------------
 
-def test_indexed_indirect_jsr():
+def test_indexed_indirect_jsr() -> None:
     """JSR d(An,Dn.w) where both An and Dn are concrete should resolve."""
     code = b''
     # moveq #-10,d0  -> d0.w = $FFF6 = -10
@@ -219,7 +248,7 @@ def test_indexed_indirect_jsr():
     print("  indexed_indirect_jsr: OK")
 
 
-def test_indexed_indirect_with_displacement():
+def test_indexed_indirect_with_displacement() -> None:
     """JSR d(An,Dn.w) with non-zero extension word displacement."""
     code = b''
     # moveq #4,d2
@@ -240,7 +269,7 @@ def test_indexed_indirect_with_displacement():
     print("  indexed_indirect_with_displacement: OK")
 
 
-def test_full_extension_memory_indirect_indexed_jsr():
+def test_full_extension_memory_indirect_indexed_jsr() -> None:
     """JSR ([bd,An,Dn.w],od) should resolve through the pointed address."""
     code = b""
     code += struct.pack(">H", 0x7404)                    # [0x00] moveq #4,d2
@@ -261,7 +290,7 @@ def test_full_extension_memory_indirect_indexed_jsr():
     print("  full_extension_memory_indirect_indexed_jsr: OK")
 
 
-def test_full_extension_pc_memory_indirect_indexed_jsr():
+def test_full_extension_pc_memory_indirect_indexed_jsr() -> None:
     """JSR ([bd,PC,Dn.w],od) should resolve through the pointed address."""
     code = b""
     code += struct.pack(">H", 0x740C)                    # [0x00] moveq #12,d2
@@ -283,7 +312,7 @@ def test_full_extension_pc_memory_indirect_indexed_jsr():
 
 # ---- 3. Trampoline: callee uses return address (models GenAm sub_16e0) ------
 
-def test_trampoline_basic():
+def test_trampoline_basic() -> None:
     """Single caller, pop return address, jmp d(a0).
 
     Simplest trampoline: BSR pushes return address, callee pops it
@@ -305,7 +334,7 @@ def test_trampoline_basic():
     print("  trampoline_basic: OK")
 
 
-def test_trampoline_modified_return_addr():
+def test_trampoline_modified_return_addr() -> None:
     """Single caller, return address modified on stack before pop.
 
     Models GenAm sub_16e0 faithfully:
@@ -340,7 +369,7 @@ def test_trampoline_modified_return_addr():
     print("  trampoline_modified_return_addr: OK")
 
 
-def test_trampoline_per_caller():
+def test_trampoline_per_caller() -> None:
     """Two callers to shared trampoline, must resolve per-caller.
 
     Both callers are reachable from entry 0 via sequential flow.
@@ -382,7 +411,7 @@ def test_trampoline_per_caller():
 
 # ---- 4. Library dispatch (models GenAm dos_dispatch) ------------------------
 
-def test_indexed_dispatch_single():
+def test_indexed_dispatch_single() -> None:
     """Single caller, JSR 0(An,Dn.w) with base from platform memory.
 
     Models the LVO dispatch path: load library base from app memory
@@ -419,7 +448,7 @@ def test_indexed_dispatch_single():
     print("  indexed_dispatch_single: OK")
 
 
-def test_dispatch_per_caller():
+def test_dispatch_per_caller() -> None:
     """Two callers to shared dispatch sub with different D0 (LVO) values.
 
     Models GenAm dos_dispatch: each caller sets D0 to a specific LVO
@@ -471,7 +500,7 @@ def test_dispatch_per_caller():
     print("  dispatch_per_caller: OK")
 
 
-def test_dispatch_per_caller_multiple_unresolved_in_shared_sub():
+def test_dispatch_per_caller_multiple_unresolved_in_shared_sub() -> None:
     """Two callers, shared dispatch sub, two indirect calls inside the sub."""
     sentinel_a6 = 0x80000000
     lib_base = 0x40
@@ -516,7 +545,7 @@ def test_dispatch_per_caller_multiple_unresolved_in_shared_sub():
 
 # ---- 5. Structure field access ----------------------------------------------
 
-def test_struct_field_code_pointer():
+def test_struct_field_code_pointer() -> None:
     """Load a code pointer from a struct field and jump through it.
 
     An points to a structure in code memory. A field at offset d
@@ -546,7 +575,7 @@ def test_struct_field_code_pointer():
     print("  struct_field_code_pointer: OK")
 
 
-def test_struct_field_disp_indirect():
+def test_struct_field_disp_indirect() -> None:
     """Load base from struct field, then JMP d(An) through it.
 
     Combines struct field resolution with displacement indirect:
@@ -576,7 +605,7 @@ def test_struct_field_disp_indirect():
 
 # ---- 6. PEA+RTS dispatch (models GenAm $7550 addressing mode handlers) ------
 
-def test_pea_rts_simple():
+def test_pea_rts_simple() -> None:
     """PEA target(PC); RTS dispatches to the PEA'd address.
 
     Simplest case: PEA pushes a PC-relative address onto the stack,
@@ -602,7 +631,7 @@ def test_pea_rts_simple():
     print("  pea_rts_simple: OK")
 
 
-def test_pea_rts_computed():
+def test_pea_rts_computed() -> None:
     """PEA return_point; LEA base; ADDA.W Dn; MOVE.L An,-(SP); RTS.
 
     Models GenAm $7550: two addresses pushed, RTS dispatches to the
@@ -643,7 +672,7 @@ def test_pea_rts_computed():
     print("  pea_rts_computed: OK")
 
 
-def test_pea_rts_per_caller():
+def test_pea_rts_per_caller() -> None:
     """PEA+RTS dispatch with varying offset per caller.
 
     Two callers each set D3 to a different handler offset before
@@ -708,7 +737,7 @@ def test_pea_rts_per_caller():
     print("  pea_rts_per_caller: OK")
 
 
-def test_pea_rts_with_interleaved_call():
+def test_pea_rts_with_interleaved_call() -> None:
     """PEA continuation; BSR processing; RTS dispatches.
 
     Models GenAm pattern where PEA pushes a return point, then a BSR
@@ -749,7 +778,7 @@ def test_pea_rts_with_interleaved_call():
 
 # ---- 7. Data table enumeration ----------------------------------------------
 
-def test_table_single_entry_resolves():
+def test_table_single_entry_resolves() -> None:
     """Dispatch through a value read from a code-section table (baseline).
 
     LEA table,A0; MOVE.W (A0),D0; LEA base,A1; ADDA.W D0,A1; JMP (A1)
@@ -782,7 +811,7 @@ def test_table_single_entry_resolves():
     print("  table_single_entry_resolves: OK")
 
 
-def test_table_all_entries_enumerated():
+def test_table_all_entries_enumerated() -> None:
     """All word-offset table entries should produce dispatch targets.
 
     Same layout as test_table_single_entry_resolves, but the test
@@ -821,7 +850,7 @@ def test_table_all_entries_enumerated():
     print("  table_all_entries_enumerated: OK")
 
 
-def test_table_enumeration_pea_rts():
+def test_table_enumeration_pea_rts() -> None:
     """Table enumeration through PEA+RTS dispatch (GenAm $7550 pattern).
 
     move.w (a0)+,d3; lea base(pc),a1; adda.w d3,a1; move.l a1,-(sp); rts
@@ -865,7 +894,7 @@ def test_table_enumeration_pea_rts():
     print("  table_enumeration_pea_rts: OK")
 
 
-def test_table_enumeration_stops_at_invalid():
+def test_table_enumeration_stops_at_invalid() -> None:
     """Table scan stops when an entry produces an invalid target.
 
     The table has 3 valid entries followed by a value that would
@@ -902,7 +931,7 @@ def test_table_enumeration_stops_at_invalid():
     print("  table_enumeration_stops_at_invalid: OK")
 
 
-def test_table_stride_multi_field():
+def test_table_stride_multi_field() -> None:
     """Table with multi-word entries (stride > 2).
 
     Each entry has 3 words: [flags, handler_offset, extra].
@@ -954,7 +983,7 @@ def test_table_stride_multi_field():
 
 # ---- 8. Register survival across conditional calls -------------------------
 
-def test_register_survives_conditional_call():
+def test_register_survives_conditional_call() -> None:
     """Register set before conditional BSR, used in dispatch after merge.
 
     Models GenAm $748a pattern:
@@ -1016,7 +1045,7 @@ def test_register_survives_conditional_call():
     print("  register_survives_conditional_call: OK")
 
 
-def test_register_clobbered_both_paths():
+def test_register_clobbered_both_paths() -> None:
     """When a register is clobbered on ALL paths, dispatch should NOT resolve.
 
     Both paths of a conditional branch overwrite A0 with different values.
@@ -1052,7 +1081,7 @@ def test_register_clobbered_both_paths():
 
 # ---- 9. Backward slice across merges ----------------------------------------
 
-def test_backward_slice_one_level():
+def test_backward_slice_one_level() -> None:
     """Register value recovered one merge back from dispatch.
 
     Block A: LEA data(pc),A0; beq.s C
@@ -1102,7 +1131,7 @@ def test_backward_slice_one_level():
     print("  backward_slice_one_level: OK")
 
 
-def test_backward_slice_two_levels():
+def test_backward_slice_two_levels() -> None:
     """Register value recovered two merges back from dispatch.
 
     Block A: LEA data,A0; beq.s C
@@ -1158,7 +1187,7 @@ def test_backward_slice_two_levels():
     print("  backward_slice_two_levels: OK")
 
 
-def test_backward_slice_many_predecessors():
+def test_backward_slice_many_predecessors() -> None:
     """Merge point with many predecessors, only one has concrete value.
 
     Entry splits into 4 paths via cascading conditionals. Only path 1
@@ -1232,7 +1261,7 @@ def test_backward_slice_many_predecessors():
     print("  backward_slice_many_predecessors: OK")
 
 
-def test_backward_slice_all_paths_clobbered():
+def test_backward_slice_all_paths_clobbered() -> None:
     """Backward slice should NOT resolve when no path has the value.
 
     All predecessors clobber A0 to different unknown values.
@@ -1261,7 +1290,7 @@ def test_backward_slice_all_paths_clobbered():
     print("  backward_slice_all_paths_clobbered: OK")
 
 
-def test_backward_slice_through_non_sub_blocks():
+def test_backward_slice_through_non_sub_blocks() -> None:
     """Backward slice works for blocks that aren't subroutine entries.
 
     The dispatch block is reached through normal branches (not BSR),
@@ -1312,7 +1341,7 @@ def test_backward_slice_through_non_sub_blocks():
 
 # ---- 10. Edge cases ---------------------------------------------------------
 
-def test_disp_indirect_unknown_register():
+def test_disp_indirect_unknown_register() -> None:
     """JMP d(An) where An is unknown should NOT resolve."""
     code = b''
     code += struct.pack('>HH', 0x4EE8, 0x0002)          # [0x00] jmp 2(a0)
@@ -1325,7 +1354,7 @@ def test_disp_indirect_unknown_register():
     print("  disp_indirect_unknown_register: OK")
 
 
-def test_indexed_indirect_unknown_index():
+def test_indexed_indirect_unknown_index() -> None:
     """JSR d(An,Dn.w) where Dn is unknown should NOT resolve."""
     code = b''
     # lea $30(pc),a1  -> a1 = $32 (known)
@@ -1342,7 +1371,7 @@ def test_indexed_indirect_unknown_index():
     print("  indexed_indirect_unknown_index: OK")
 
 
-def test_disp_indirect_target_out_of_range():
+def test_disp_indirect_target_out_of_range() -> None:
     """JMP d(An) resolving outside code range should NOT resolve."""
     code = b''
     # lea $10(pc),a0  -> a0 = $12
@@ -1358,7 +1387,7 @@ def test_disp_indirect_target_out_of_range():
     print("  disp_indirect_target_out_of_range: OK")
 
 
-def test_odd_target_not_resolved():
+def test_odd_target_not_resolved() -> None:
     """JMP d(An) resolving to an odd address should NOT resolve."""
     code = b''
     # lea $10(pc),a0  -> a0 = $12
@@ -1374,7 +1403,7 @@ def test_odd_target_not_resolved():
     print("  odd_target_not_resolved: OK")
 
 
-def test_rts_resolution_preserved():
+def test_rts_resolution_preserved() -> None:
     """RTS resolution via stack tracking still works after refactor."""
     code = b''
     # bsr.w $08  (disp = $08 - $02 = $06)  -> pushes $04
@@ -1393,7 +1422,7 @@ def test_rts_resolution_preserved():
 
 # ---- 11. Jump table pattern detection (Patterns A-D) -----------------------
 
-def test_pattern_a_word_offset():
+def test_pattern_a_word_offset() -> None:
     """Pattern A: LEA base(PC),An; JMP disp(An,Dn.w) with word-offset table.
 
     The table contains signed word offsets from base. Each target =
@@ -1428,7 +1457,7 @@ def test_pattern_a_word_offset():
     print("  pattern_a_word_offset: OK")
 
 
-def test_pattern_b_self_relative():
+def test_pattern_b_self_relative() -> None:
     """Pattern B: LEA d(PC,Dn),An; ADDA.W (An),An; JMP (An).
 
     Table entries are self-relative: target = &entry + entry_value.
@@ -1468,7 +1497,7 @@ def test_pattern_b_self_relative():
     print("  pattern_b_self_relative: OK")
 
 
-def test_pattern_c_pc_inline_dispatch():
+def test_pattern_c_pc_inline_dispatch() -> None:
     """Pattern C: JMP disp(PC,Dn.w) with inline BRA.S entries.
 
     The dispatch table is a series of BRA.S instructions immediately
@@ -1508,7 +1537,7 @@ def test_pattern_c_pc_inline_dispatch():
     print("  pattern_c_pc_inline_dispatch: OK")
 
 
-def test_pattern_d_indirect_table_read():
+def test_pattern_d_indirect_table_read() -> None:
     """Pattern D: LEA d(PC),An; MOVE.W d1(An,Dn),Dn; JSR d2(An,Dn).
 
     The MOVE reads an offset from a table (at lea+d1), then the JSR
@@ -1569,7 +1598,7 @@ def test_pattern_d_indirect_table_read():
     print("  pattern_d_indirect_table_read: OK")
 
 
-def test_pattern_string_dispatch_self_relative_via_decoder_subroutine():
+def test_pattern_string_dispatch_self_relative_via_decoder_subroutine() -> None:
     specs = [
         ("asm", "moveq #1,d1"),
         ("asm", "bsr.w {sub}"),
@@ -1609,8 +1638,8 @@ def test_pattern_string_dispatch_self_relative_via_decoder_subroutine():
         ("asm", "nop"),
         ("asm", "rts"),
     ]
-    code, labels = _assemble_with_labels(specs)
-    code = bytearray(code)
+    code_bytes, labels = _assemble_with_labels(specs)
+    code = bytearray(code_bytes)
 
     entry1_offset_pos = labels["table"] + 2
     entry2_offset_pos = labels["table"] + 6
@@ -1652,7 +1681,7 @@ def test_pattern_string_dispatch_self_relative_via_decoder_subroutine():
     print("  pattern_string_dispatch_self_relative_via_decoder_subroutine: OK")
 
 
-def test_pattern_string_dispatch_uses_scanned_table_end_not_target_bound():
+def test_pattern_string_dispatch_uses_scanned_table_end_not_target_bound() -> None:
     specs = [
         ("asm", "moveq #1,d1"),
         ("asm", "bsr.w {sub}"),
@@ -1695,8 +1724,8 @@ def test_pattern_string_dispatch_uses_scanned_table_end_not_target_bound():
         ("asm", "nop"),
         ("asm", "rts"),
     ]
-    code, labels = _assemble_with_labels(specs)
-    code = bytearray(code)
+    code_bytes, labels = _assemble_with_labels(specs)
+    code = bytearray(code_bytes)
 
     entry1_offset_pos = labels["table"] + 2
     entry2_offset_pos = labels["table"] + 6
@@ -1722,7 +1751,7 @@ def test_pattern_string_dispatch_uses_scanned_table_end_not_target_bound():
         f"Expected scanned table end ${labels['after_table']:04x}, got ${t['table_end']:04x}")
 
 
-def test_pattern_string_dispatch_through_multiple_conditional_predecessors():
+def test_pattern_string_dispatch_through_multiple_conditional_predecessors() -> None:
     specs = [
         ("asm", "moveq #1,d1"),
         ("asm", "bsr.w {sub}"),
@@ -1766,8 +1795,8 @@ def test_pattern_string_dispatch_through_multiple_conditional_predecessors():
         ("asm", "nop"),
         ("asm", "rts"),
     ]
-    code, labels = _assemble_with_labels(specs)
-    code = bytearray(code)
+    code_bytes, labels = _assemble_with_labels(specs)
+    code = bytearray(code_bytes)
 
     entry1_offset_pos = labels["table"] + 2
     entry2_offset_pos = labels["table"] + 6
@@ -1794,7 +1823,7 @@ def test_pattern_string_dispatch_through_multiple_conditional_predecessors():
         f"Expected dispatch site ${labels['call']:04x}, got {tables[0].dispatch_sites}")
 
 
-def test_pattern_pc_sparse_word_offset_dispatch():
+def test_pattern_pc_sparse_word_offset_dispatch() -> None:
     specs = [
         ("asm", "moveq #1,d1"),
         ("asm", "cmpi.b #4,d1"),
@@ -1816,8 +1845,8 @@ def test_pattern_pc_sparse_word_offset_dispatch():
         ("asm", "nop"),
         ("asm", "rts"),
     ]
-    code, labels = _assemble_with_labels(specs)
-    code = bytearray(code)
+    code_bytes, labels = _assemble_with_labels(specs)
+    code = bytearray(code_bytes)
 
     table = labels["table"]
     handler1_off = labels["handler1"] - table
@@ -1843,7 +1872,7 @@ def test_pattern_pc_sparse_word_offset_dispatch():
         f"Expected ${labels['handler2']:04x} in targets, got {t['targets']}")
 
 
-def test_pattern_e_full_extension_memory_indirect_pointer_table():
+def test_pattern_e_full_extension_memory_indirect_pointer_table() -> None:
     """Pattern E: LEA d(PC),An; JSR ([bd,An,Dn.w],od) through long pointers."""
     code = b""
     code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
@@ -1869,7 +1898,7 @@ def test_pattern_e_full_extension_memory_indirect_pointer_table():
     print("  pattern_e_full_extension_memory_indirect_pointer_table: OK")
 
 
-def test_pattern_f_pc_full_extension_memory_indirect_pointer_table():
+def test_pattern_f_pc_full_extension_memory_indirect_pointer_table() -> None:
     """Pattern F: JSR ([d,PC,Dn.w],od) through long pointers."""
     code = b""
     code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
@@ -1894,7 +1923,7 @@ def test_pattern_f_pc_full_extension_memory_indirect_pointer_table():
     print("  pattern_f_pc_full_extension_memory_indirect_pointer_table: OK")
 
 
-def test_pattern_g_full_extension_memory_indirect_pointer_table_via_reg_copy():
+def test_pattern_g_full_extension_memory_indirect_pointer_table_via_reg_copy() -> None:
     """Pattern G: LEA table,Ax; MOVEA.L Ax,Ay; JSR ([0,Ay,Dn.w],4)."""
     code = b""
     code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
@@ -1921,7 +1950,7 @@ def test_pattern_g_full_extension_memory_indirect_pointer_table_via_reg_copy():
     print("  pattern_g_full_extension_memory_indirect_pointer_table_via_reg_copy: OK")
 
 
-def test_pattern_h_word_offset_via_reg_copy():
+def test_pattern_h_word_offset_via_reg_copy() -> None:
     """Pattern H: LEA base,Ax; MOVEA.L Ax,Ay; JMP disp(Ay,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -1945,7 +1974,7 @@ def test_pattern_h_word_offset_via_reg_copy():
     print("  pattern_h_word_offset_via_reg_copy: OK")
 
 
-def test_pattern_i_indirect_table_read_via_reg_copy():
+def test_pattern_i_indirect_table_read_via_reg_copy() -> None:
     """Pattern I: LEA table,Ax; MOVEA.L Ax,Ay; MOVE.W (Ay,Dn),Dn; JSR d(Ay,Dn)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -1971,7 +2000,7 @@ def test_pattern_i_indirect_table_read_via_reg_copy():
     print("  pattern_i_indirect_table_read_via_reg_copy: OK")
 
 
-def test_pattern_j_indirect_pointer_read_into_jump_register():
+def test_pattern_j_indirect_pointer_read_into_jump_register() -> None:
     """Pattern J: LEA table,Ax; MOVEA.L 0(Ax,Dn.w),Ay; JMP (Ay)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -1995,7 +2024,7 @@ def test_pattern_j_indirect_pointer_read_into_jump_register():
     print("  pattern_j_indirect_pointer_read_into_jump_register: OK")
 
 
-def test_pattern_k_pc_indirect_pointer_read_into_jump_register():
+def test_pattern_k_pc_indirect_pointer_read_into_jump_register() -> None:
     """Pattern K: MOVEA.L 0(PC,Dn.w),Ay; JMP (Ay)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2018,7 +2047,7 @@ def test_pattern_k_pc_indirect_pointer_read_into_jump_register():
     print("  pattern_k_pc_indirect_pointer_read_into_jump_register: OK")
 
 
-def test_pattern_l_full_extension_pointer_read_into_jump_register():
+def test_pattern_l_full_extension_pointer_read_into_jump_register() -> None:
     """Pattern L: LEA table,Ax; MOVEA.L ([0,Ax,Dn.w],4),Ay; JMP (Ay)."""
     code = b""
     code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
@@ -2042,7 +2071,7 @@ def test_pattern_l_full_extension_pointer_read_into_jump_register():
     print("  pattern_l_full_extension_pointer_read_into_jump_register: OK")
 
 
-def test_pattern_m_word_offset_via_addq_adjusted_base():
+def test_pattern_m_word_offset_via_addq_adjusted_base() -> None:
     """Pattern M: LEA base,An; ADDQ.L #imm,An; JMP disp(An,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2066,7 +2095,7 @@ def test_pattern_m_word_offset_via_addq_adjusted_base():
     print("  pattern_m_word_offset_via_addq_adjusted_base: OK")
 
 
-def test_pattern_n_indirect_pointer_read_via_addq_adjusted_base():
+def test_pattern_n_indirect_pointer_read_via_addq_adjusted_base() -> None:
     """Pattern N: LEA table-4,An; ADDQ.L #4,An; MOVEA.L 0(An,Dn.w),Ay; JMP (Ay)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2092,7 +2121,7 @@ def test_pattern_n_indirect_pointer_read_via_addq_adjusted_base():
     print("  pattern_n_indirect_pointer_read_via_addq_adjusted_base: OK")
 
 
-def test_pattern_o_word_offset_via_adda_adjusted_base():
+def test_pattern_o_word_offset_via_adda_adjusted_base() -> None:
     """Pattern O: LEA base,An; ADDA.L #imm,An; JMP disp(An,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2116,7 +2145,7 @@ def test_pattern_o_word_offset_via_adda_adjusted_base():
     print("  pattern_o_word_offset_via_adda_adjusted_base: OK")
 
 
-def test_pattern_p_word_offset_via_subq_adjusted_base():
+def test_pattern_p_word_offset_via_subq_adjusted_base() -> None:
     """Pattern P: LEA base+imm,An; SUBQ.L #imm,An; JMP disp(An,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2141,7 +2170,7 @@ def test_pattern_p_word_offset_via_subq_adjusted_base():
     print("  pattern_p_word_offset_via_subq_adjusted_base: OK")
 
 
-def test_pattern_q_word_offset_via_suba_adjusted_base():
+def test_pattern_q_word_offset_via_suba_adjusted_base() -> None:
     """Pattern Q: LEA base+imm,An; SUBA.L #imm,An; JMP disp(An,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2166,7 +2195,7 @@ def test_pattern_q_word_offset_via_suba_adjusted_base():
     print("  pattern_q_word_offset_via_suba_adjusted_base: OK")
 
 
-def test_pattern_r_word_offset_via_movea_pcdisp_base():
+def test_pattern_r_word_offset_via_movea_pcdisp_base() -> None:
     """Pattern R: MOVEA.L d(PC),An; JMP disp(An,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2189,7 +2218,7 @@ def test_pattern_r_word_offset_via_movea_pcdisp_base():
     print("  pattern_r_word_offset_via_movea_pcdisp_base: OK")
 
 
-def test_pattern_s_word_offset_via_movea_pcindex_base():
+def test_pattern_s_word_offset_via_movea_pcindex_base() -> None:
     """Pattern S: MOVEA.L d(PC,Dn.w),An; JMP disp(An,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7008)                    # [0x00] moveq #8,d0
@@ -2213,7 +2242,7 @@ def test_pattern_s_word_offset_via_movea_pcindex_base():
     print("  pattern_s_word_offset_via_movea_pcindex_base: OK")
 
 
-def test_pattern_v_word_offset_via_movea_pcindex_base_with_index_copy():
+def test_pattern_v_word_offset_via_movea_pcindex_base_with_index_copy() -> None:
     """Pattern V: MOVEQ -> Dn copy -> MOVEA.L d(PC,Dn),An -> JMP disp(An,Dm)."""
     code = b""
     code += struct.pack(">H", 0x7208)                    # [0x00] moveq #8,d1
@@ -2240,7 +2269,7 @@ def test_pattern_v_word_offset_via_movea_pcindex_base_with_index_copy():
     print("  pattern_v_word_offset_via_movea_pcindex_base_with_index_copy: OK")
 
 
-def test_pattern_w_word_offset_via_movea_pcindex_base_with_cross_bank_index_copy():
+def test_pattern_w_word_offset_via_movea_pcindex_base_with_cross_bank_index_copy() -> None:
     """Pattern W: MOVEQ -> MOVEA.L Dn,An -> MOVEA.L d(PC,An),Ax -> JMP disp(Ax,Dm)."""
     code = b""
     code += struct.pack(">H", 0x7208)                    # [0x00] moveq #8,d1
@@ -2267,7 +2296,7 @@ def test_pattern_w_word_offset_via_movea_pcindex_base_with_cross_bank_index_copy
     print("  pattern_w_word_offset_via_movea_pcindex_base_with_cross_bank_index_copy: OK")
 
 
-def test_pattern_x_word_offset_via_movea_pcindex_base_with_index_adjustment():
+def test_pattern_x_word_offset_via_movea_pcindex_base_with_index_adjustment() -> None:
     """Pattern X: MOVEQ -> ADDQ -> Dn copy -> MOVEA.L d(PC,Dn),An -> JMP disp(An,Dm)."""
     code = b""
     code += struct.pack(">H", 0x7207)                    # [0x00] moveq #7,d1
@@ -2295,7 +2324,7 @@ def test_pattern_x_word_offset_via_movea_pcindex_base_with_index_adjustment():
     print("  pattern_x_word_offset_via_movea_pcindex_base_with_index_adjustment: OK")
 
 
-def test_pattern_y_word_offset_via_movea_pcindex_base_with_clr_index():
+def test_pattern_y_word_offset_via_movea_pcindex_base_with_clr_index() -> None:
     """Pattern Y: CLR Dn -> MOVEA.L d(PC,Dn),An -> JMP disp(An,Dm)."""
     code = b""
     code += struct.pack(">H", 0x4240)                    # [0x00] clr.w d0
@@ -2320,7 +2349,7 @@ def test_pattern_y_word_offset_via_movea_pcindex_base_with_clr_index():
     print("  pattern_y_word_offset_via_movea_pcindex_base_with_clr_index: OK")
 
 
-def test_pattern_z_indirect_pointer_read_via_data_register_copy():
+def test_pattern_z_indirect_pointer_read_via_data_register_copy() -> None:
     """Pattern Z: LEA table,Ax; MOVE.L 0(Ax,Dn.w),Dy; MOVEA.L Dy,Az; JMP (Az)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2346,7 +2375,7 @@ def test_pattern_z_indirect_pointer_read_via_data_register_copy():
     print("  pattern_z_indirect_pointer_read_via_data_register_copy: OK")
 
 
-def test_pattern_aa_postindexed_pointer_read_into_jump_register():
+def test_pattern_aa_postindexed_pointer_read_into_jump_register() -> None:
     """Pattern AA: LEA ptr,Ax; MOVEA.L ([0,Ax],Dn.w,4),Ay; JMP (Ay)."""
     code = b""
     code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
@@ -2373,7 +2402,7 @@ def test_pattern_aa_postindexed_pointer_read_into_jump_register():
     print("  pattern_aa_postindexed_pointer_read_into_jump_register: OK")
 
 
-def test_pattern_ab_word_offset_via_movea_immediate_base():
+def test_pattern_ab_word_offset_via_movea_immediate_base() -> None:
     """Pattern AB: MOVEA.L #table,An; JMP disp(An,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2397,7 +2426,7 @@ def test_pattern_ab_word_offset_via_movea_immediate_base():
     print("  pattern_ab_word_offset_via_movea_immediate_base: OK")
 
 
-def test_pattern_ac_indirect_pointer_read_via_movea_immediate_base():
+def test_pattern_ac_indirect_pointer_read_via_movea_immediate_base() -> None:
     """Pattern AC: MOVEA.L #table,Ax; MOVEA.L 0(Ax,Dn.w),Ay; JMP (Ay)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2422,7 +2451,7 @@ def test_pattern_ac_indirect_pointer_read_via_movea_immediate_base():
     print("  pattern_ac_indirect_pointer_read_via_movea_immediate_base: OK")
 
 
-def test_pattern_ad_indirect_pointer_read_via_two_long_copies():
+def test_pattern_ad_indirect_pointer_read_via_two_long_copies() -> None:
     """Pattern AD: pointer load flows through two long register copies before JMP."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2448,7 +2477,7 @@ def test_pattern_ad_indirect_pointer_read_via_two_long_copies():
     print("  pattern_ad_indirect_pointer_read_via_two_long_copies: OK")
 
 
-def test_pattern_ae_indirect_pointer_read_via_adjusted_loaded_pointer():
+def test_pattern_ae_indirect_pointer_read_via_adjusted_loaded_pointer() -> None:
     """Pattern AE: pointer loaded from table, then adjusted before JMP."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2473,7 +2502,7 @@ def test_pattern_ae_indirect_pointer_read_via_adjusted_loaded_pointer():
     print("  pattern_ae_indirect_pointer_read_via_adjusted_loaded_pointer: OK")
 
 
-def test_pattern_af_word_offset_via_constant_register_base_copy():
+def test_pattern_af_word_offset_via_constant_register_base_copy() -> None:
     """Pattern AF: constant Dn copied into An before indexed word-offset JMP."""
     code = b""
     code += struct.pack(">H", 0x7010)                    # [0x00] moveq #$10,d0
@@ -2498,7 +2527,7 @@ def test_pattern_af_word_offset_via_constant_register_base_copy():
     print("  pattern_af_word_offset_via_constant_register_base_copy: OK")
 
 
-def test_pattern_ag_indirect_pointer_read_via_constant_register_base_copy():
+def test_pattern_ag_indirect_pointer_read_via_constant_register_base_copy() -> None:
     """Pattern AG: constant Dn copied into An before indexed long pointer load."""
     code = b""
     code += struct.pack(">H", 0x7012)                    # [0x00] moveq #$12,d0
@@ -2524,7 +2553,7 @@ def test_pattern_ag_indirect_pointer_read_via_constant_register_base_copy():
     print("  pattern_ag_indirect_pointer_read_via_constant_register_base_copy: OK")
 
 
-def test_pattern_ah_indirect_pointer_read_via_adjusted_constant_register_base_copy():
+def test_pattern_ah_indirect_pointer_read_via_adjusted_constant_register_base_copy() -> None:
     """Pattern AH: adjusted constant Dn copied into An before indexed pointer load."""
     code = b""
     code += struct.pack(">H", 0x7014)                    # [0x00] moveq #$14,d0
@@ -2551,7 +2580,7 @@ def test_pattern_ah_indirect_pointer_read_via_adjusted_constant_register_base_co
     print("  pattern_ah_indirect_pointer_read_via_adjusted_constant_register_base_copy: OK")
 
 
-def test_pattern_ai_word_offset_via_clr_seeded_constant_register_base_copy():
+def test_pattern_ai_word_offset_via_clr_seeded_constant_register_base_copy() -> None:
     """Pattern AI: CLR-seeded Dn copied into An before indexed word-offset JMP."""
     code = b""
     code += struct.pack(">H", 0x4280)                    # [0x00] clr.l d0
@@ -2578,7 +2607,7 @@ def test_pattern_ai_word_offset_via_clr_seeded_constant_register_base_copy():
     print("  pattern_ai_word_offset_via_clr_seeded_constant_register_base_copy: OK")
 
 
-def test_pattern_aj_indirect_pointer_read_via_data_register_adjust_after_copy():
+def test_pattern_aj_indirect_pointer_read_via_data_register_adjust_after_copy() -> None:
     """Pattern AJ: loaded pointer copied through Dn, adjusted, then moved to jump An."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2605,7 +2634,7 @@ def test_pattern_aj_indirect_pointer_read_via_data_register_adjust_after_copy():
     print("  pattern_aj_indirect_pointer_read_via_data_register_adjust_after_copy: OK")
 
 
-def test_pattern_ak_word_offset_via_register_add_constant_base():
+def test_pattern_ak_word_offset_via_register_add_constant_base() -> None:
     """Pattern AK: constant Dm added into base Dn before MOVEA and indexed JMP."""
     code = b""
     code += struct.pack(">H", 0x7010)                    # [0x00] moveq #$10,d0
@@ -2632,7 +2661,7 @@ def test_pattern_ak_word_offset_via_register_add_constant_base():
     print("  pattern_ak_word_offset_via_register_add_constant_base: OK")
 
 
-def test_pattern_al_indirect_pointer_read_via_register_add_constant_after_copy():
+def test_pattern_al_indirect_pointer_read_via_register_add_constant_after_copy() -> None:
     """Pattern AL: loaded pointer copied through Dn and adjusted by constant Dm."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2661,7 +2690,7 @@ def test_pattern_al_indirect_pointer_read_via_register_add_constant_after_copy()
     print("  pattern_al_indirect_pointer_read_via_register_add_constant_after_copy: OK")
 
 
-def test_pattern_am_word_offset_via_register_add_constant_base_adjustment():
+def test_pattern_am_word_offset_via_register_add_constant_base_adjustment() -> None:
     """Pattern AM: LEA base,An; ADDA.L Dn,An with constant Dn; JMP disp(An,Dm.w)."""
     code = b""
     code += struct.pack(">H", 0x7404)                    # [0x00] moveq #4,d2
@@ -2687,7 +2716,7 @@ def test_pattern_am_word_offset_via_register_add_constant_base_adjustment():
     print("  pattern_am_word_offset_via_register_add_constant_base_adjustment: OK")
 
 
-def test_pattern_an_word_offset_via_shifted_constant_register_base():
+def test_pattern_an_word_offset_via_shifted_constant_register_base() -> None:
     """Pattern AN: constant Dn shifted before MOVEA and indexed word-offset JMP."""
     code = b""
     code += struct.pack(">H", 0x7004)                    # [0x00] moveq #4,d0
@@ -2713,7 +2742,7 @@ def test_pattern_an_word_offset_via_shifted_constant_register_base():
     print("  pattern_an_word_offset_via_shifted_constant_register_base: OK")
 
 
-def test_pattern_ao_word_offset_via_masked_constant_register_base():
+def test_pattern_ao_word_offset_via_masked_constant_register_base() -> None:
     """Pattern AO: constant Dn masked by immediate logical op before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x701F)                    # [0x00] moveq #$1f,d0
@@ -2738,7 +2767,7 @@ def test_pattern_ao_word_offset_via_masked_constant_register_base():
     print("  pattern_ao_word_offset_via_masked_constant_register_base: OK")
 
 
-def test_pattern_aq_word_offset_via_register_shifted_constant_register_base():
+def test_pattern_aq_word_offset_via_register_shifted_constant_register_base() -> None:
     """Pattern AQ: constant Dn shifted by constant Dm before MOVEA and indexed JMP."""
     code = b""
     code += struct.pack(">H", 0x7004)                    # [0x00] moveq #4,d0
@@ -2765,7 +2794,7 @@ def test_pattern_aq_word_offset_via_register_shifted_constant_register_base():
     print("  pattern_aq_word_offset_via_register_shifted_constant_register_base: OK")
 
 
-def test_pattern_ar_word_offset_via_register_or_constant_base():
+def test_pattern_ar_word_offset_via_register_or_constant_base() -> None:
     """Pattern AR: constant Dn ORed with constant source register before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x7010)                    # [0x00] moveq #$10,d0
@@ -2791,7 +2820,7 @@ def test_pattern_ar_word_offset_via_register_or_constant_base():
     print("  pattern_ar_word_offset_via_register_or_constant_base: OK")
 
 
-def test_pattern_as_word_offset_via_not_constant_register_base():
+def test_pattern_as_word_offset_via_not_constant_register_base() -> None:
     """Pattern AS: constant Dn transformed by NOT before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x70E3)                    # [0x00] moveq #$e3,d0 -> -29
@@ -2816,7 +2845,7 @@ def test_pattern_as_word_offset_via_not_constant_register_base():
     print("  pattern_as_word_offset_via_not_constant_register_base: OK")
 
 
-def test_pattern_at_indirect_pointer_read_via_unary_transformed_loaded_pointer():
+def test_pattern_at_indirect_pointer_read_via_unary_transformed_loaded_pointer() -> None:
     """Pattern AT: loaded pointer copied through Dn, unary-transformed, then jumped.""" 
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2843,7 +2872,7 @@ def test_pattern_at_indirect_pointer_read_via_unary_transformed_loaded_pointer()
     print("  pattern_at_indirect_pointer_read_via_unary_transformed_loaded_pointer: OK")
 
 
-def test_pattern_au_word_offset_via_swapped_constant_register_base():
+def test_pattern_au_word_offset_via_swapped_constant_register_base() -> None:
     """Pattern AU: constant Dn transformed by SWAP before MOVEA/JMP."""
     code = b""
     code += bytes.fromhex("203c00100000")               # [0x00] move.l #$00100000,d0
@@ -2868,7 +2897,7 @@ def test_pattern_au_word_offset_via_swapped_constant_register_base():
     print("  pattern_au_word_offset_via_swapped_constant_register_base: OK")
 
 
-def test_pattern_av_word_offset_via_ext_constant_register_base():
+def test_pattern_av_word_offset_via_ext_constant_register_base() -> None:
     """Pattern AV: constant Dn sign-extended by EXT before MOVEA/JMP."""
     code = b""
     code += bytes.fromhex("203c00000080")               # [0x00] move.l #$00000080,d0
@@ -2894,7 +2923,7 @@ def test_pattern_av_word_offset_via_ext_constant_register_base():
     print("  pattern_av_word_offset_via_ext_constant_register_base: OK")
 
 
-def test_pattern_aw_indirect_pointer_read_via_swapped_loaded_pointer():
+def test_pattern_aw_indirect_pointer_read_via_swapped_loaded_pointer() -> None:
     """Pattern AW: loaded pointer copied through Dn, swapped, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2921,7 +2950,7 @@ def test_pattern_aw_indirect_pointer_read_via_swapped_loaded_pointer():
     print("  pattern_aw_indirect_pointer_read_via_swapped_loaded_pointer: OK")
 
 
-def test_pattern_ax_indirect_pointer_read_via_sign_extended_loaded_pointer():
+def test_pattern_ax_indirect_pointer_read_via_sign_extended_loaded_pointer() -> None:
     """Pattern AX: loaded pointer copied through Dn, EXT-transformed, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -2947,7 +2976,7 @@ def test_pattern_ax_indirect_pointer_read_via_sign_extended_loaded_pointer():
     print("  pattern_ax_indirect_pointer_read_via_sign_extended_loaded_pointer: OK")
 
 
-def test_pattern_ay_full_extension_postindexed_pointer_dispatch():
+def test_pattern_ay_full_extension_postindexed_pointer_dispatch() -> None:
     """Pattern AY: LEA ptr,Ax; JMP ([0,Ax],Dn.w,4) through long pointers."""
     code = b""
     code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
@@ -2974,7 +3003,7 @@ def test_pattern_ay_full_extension_postindexed_pointer_dispatch():
     print("  pattern_ay_full_extension_postindexed_pointer_dispatch: OK")
 
 
-def test_pattern_az_pc_full_extension_postindexed_pointer_dispatch():
+def test_pattern_az_pc_full_extension_postindexed_pointer_dispatch() -> None:
     """Pattern AZ: JMP ([0,PC],Dn.w,4) through long pointers."""
     code = b""
     code += struct.pack(">H", 0x7400)                    # [0x00] moveq #0,d2
@@ -3000,7 +3029,7 @@ def test_pattern_az_pc_full_extension_postindexed_pointer_dispatch():
     print("  pattern_az_pc_full_extension_postindexed_pointer_dispatch: OK")
 
 
-def test_pattern_ba_word_offset_via_multiplied_constant_register_base():
+def test_pattern_ba_word_offset_via_multiplied_constant_register_base() -> None:
     """Pattern BA: constant Dn multiplied by constant source before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x7007)                    # [0x00] moveq #7,d0
@@ -3026,7 +3055,7 @@ def test_pattern_ba_word_offset_via_multiplied_constant_register_base():
     print("  pattern_ba_word_offset_via_multiplied_constant_register_base: OK")
 
 
-def test_pattern_bb_word_offset_via_divided_constant_register_base():
+def test_pattern_bb_word_offset_via_divided_constant_register_base() -> None:
     """Pattern BB: constant Dn divided by constant source before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x7070)                    # [0x00] moveq #112,d0
@@ -3052,7 +3081,7 @@ def test_pattern_bb_word_offset_via_divided_constant_register_base():
     print("  pattern_bb_word_offset_via_divided_constant_register_base: OK")
 
 
-def test_pattern_bc_indirect_pointer_read_via_multiplied_loaded_pointer():
+def test_pattern_bc_indirect_pointer_read_via_multiplied_loaded_pointer() -> None:
     """Pattern BC: loaded pointer copied through Dn, multiplied, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3079,7 +3108,7 @@ def test_pattern_bc_indirect_pointer_read_via_multiplied_loaded_pointer():
     print("  pattern_bc_indirect_pointer_read_via_multiplied_loaded_pointer: OK")
 
 
-def test_pattern_bd_indirect_pointer_read_via_divided_loaded_pointer():
+def test_pattern_bd_indirect_pointer_read_via_divided_loaded_pointer() -> None:
     """Pattern BD: loaded pointer copied through Dn, divided, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3107,7 +3136,7 @@ def test_pattern_bd_indirect_pointer_read_via_divided_loaded_pointer():
     print("  pattern_bd_indirect_pointer_read_via_divided_loaded_pointer: OK")
 
 
-def test_pattern_be_indirect_pointer_read_via_register_multiplied_loaded_pointer():
+def test_pattern_be_indirect_pointer_read_via_register_multiplied_loaded_pointer() -> None:
     """Pattern BE: loaded pointer copied through Dn, multiplied by constant register, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3136,7 +3165,7 @@ def test_pattern_be_indirect_pointer_read_via_register_multiplied_loaded_pointer
     print("  pattern_be_indirect_pointer_read_via_register_multiplied_loaded_pointer: OK")
 
 
-def test_pattern_bf_indirect_pointer_read_via_register_divided_loaded_pointer():
+def test_pattern_bf_indirect_pointer_read_via_register_divided_loaded_pointer() -> None:
     """Pattern BF: loaded pointer copied through Dn, divided by constant register, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3166,7 +3195,7 @@ def test_pattern_bf_indirect_pointer_read_via_register_divided_loaded_pointer():
     print("  pattern_bf_indirect_pointer_read_via_register_divided_loaded_pointer: OK")
 
 
-def test_pattern_bg_indirect_pointer_read_via_register_shifted_loaded_pointer():
+def test_pattern_bg_indirect_pointer_read_via_register_shifted_loaded_pointer() -> None:
     """Pattern BG: loaded pointer copied through Dn, shifted by constant register, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3195,7 +3224,7 @@ def test_pattern_bg_indirect_pointer_read_via_register_shifted_loaded_pointer():
     print("  pattern_bg_indirect_pointer_read_via_register_shifted_loaded_pointer: OK")
 
 
-def test_pattern_bh_indirect_pointer_read_via_register_logical_loaded_pointer():
+def test_pattern_bh_indirect_pointer_read_via_register_logical_loaded_pointer() -> None:
     """Pattern BH: loaded pointer copied through Dn, ORed with constant register, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3224,7 +3253,7 @@ def test_pattern_bh_indirect_pointer_read_via_register_logical_loaded_pointer():
     print("  pattern_bh_indirect_pointer_read_via_register_logical_loaded_pointer: OK")
 
 
-def test_pattern_bi_indirect_pointer_read_via_register_divided_loaded_pointer():
+def test_pattern_bi_indirect_pointer_read_via_register_divided_loaded_pointer() -> None:
     """Pattern BI: loaded pointer copied through Dn, divided by constant register, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3254,7 +3283,7 @@ def test_pattern_bi_indirect_pointer_read_via_register_divided_loaded_pointer():
     print("  pattern_bi_indirect_pointer_read_via_register_divided_loaded_pointer: OK")
 
 
-def test_pattern_bj_word_offset_via_rotated_constant_register_base():
+def test_pattern_bj_word_offset_via_rotated_constant_register_base() -> None:
     """Pattern BJ: constant Dn rotated before MOVEA and indexed JMP."""
     code = b""
     code += struct.pack(">H", 0x7001)                    # [0x00] moveq #1,d0
@@ -3280,7 +3309,7 @@ def test_pattern_bj_word_offset_via_rotated_constant_register_base():
     print("  pattern_bj_word_offset_via_rotated_constant_register_base: OK")
 
 
-def test_pattern_bk_indirect_pointer_read_via_register_rotated_loaded_pointer():
+def test_pattern_bk_indirect_pointer_read_via_register_rotated_loaded_pointer() -> None:
     """Pattern BK: loaded pointer copied through Dn, rotated by constant register, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3309,7 +3338,7 @@ def test_pattern_bk_indirect_pointer_read_via_register_rotated_loaded_pointer():
     print("  pattern_bk_indirect_pointer_read_via_register_rotated_loaded_pointer: OK")
 
 
-def test_pattern_bl_word_offset_via_exg_base_copy():
+def test_pattern_bl_word_offset_via_exg_base_copy() -> None:
     """Pattern BL: LEA base,Ax; EXG Ax,Ay; JMP disp(Ay,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3333,7 +3362,7 @@ def test_pattern_bl_word_offset_via_exg_base_copy():
     print("  pattern_bl_word_offset_via_exg_base_copy: OK")
 
 
-def test_pattern_bm_indirect_pointer_read_via_exg_loaded_pointer_copy():
+def test_pattern_bm_indirect_pointer_read_via_exg_loaded_pointer_copy() -> None:
     """Pattern BM: loaded pointer swapped into Dn with EXG, then moved back to An for jump."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3361,7 +3390,7 @@ def test_pattern_bm_indirect_pointer_read_via_exg_loaded_pointer_copy():
     print("  pattern_bm_indirect_pointer_read_via_exg_loaded_pointer_copy: OK")
 
 
-def test_pattern_bn_word_offset_via_bitset_constant_register_base():
+def test_pattern_bn_word_offset_via_bitset_constant_register_base() -> None:
     """Pattern BN: constant Dn bit-set before MOVEA and indexed JMP."""
     code = b""
     code += struct.pack(">H", 0x7002)                    # [0x00] moveq #2,d0
@@ -3387,7 +3416,7 @@ def test_pattern_bn_word_offset_via_bitset_constant_register_base():
     print("  pattern_bn_word_offset_via_bitset_constant_register_base: OK")
 
 
-def test_pattern_bo_indirect_pointer_read_via_bitset_loaded_pointer():
+def test_pattern_bo_indirect_pointer_read_via_bitset_loaded_pointer() -> None:
     """Pattern BO: loaded pointer copied through Dn, bit-set, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3415,7 +3444,7 @@ def test_pattern_bo_indirect_pointer_read_via_bitset_loaded_pointer():
     print("  pattern_bo_indirect_pointer_read_via_bitset_loaded_pointer: OK")
 
 
-def test_pattern_bp_word_offset_via_register_bitset_constant_base():
+def test_pattern_bp_word_offset_via_register_bitset_constant_base() -> None:
     """Pattern BP: constant Dn bit-set by constant register before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3442,7 +3471,7 @@ def test_pattern_bp_word_offset_via_register_bitset_constant_base():
     print("  pattern_bp_word_offset_via_register_bitset_constant_base: OK")
 
 
-def test_pattern_bq_indirect_pointer_read_via_register_bitset_loaded_pointer():
+def test_pattern_bq_indirect_pointer_read_via_register_bitset_loaded_pointer() -> None:
     """Pattern BQ: loaded pointer copied through Dn, bit-set by constant register, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3471,7 +3500,7 @@ def test_pattern_bq_indirect_pointer_read_via_register_bitset_loaded_pointer():
     print("  pattern_bq_indirect_pointer_read_via_register_bitset_loaded_pointer: OK")
 
 
-def test_pattern_br_word_offset_via_tas_constant_register_base():
+def test_pattern_br_word_offset_via_tas_constant_register_base() -> None:
     """Pattern BR: constant Dn TAS-updated before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x7018)                    # [0x00] moveq #$18,d0
@@ -3497,7 +3526,7 @@ def test_pattern_br_word_offset_via_tas_constant_register_base():
     print("  pattern_br_word_offset_via_tas_constant_register_base: OK")
 
 
-def test_pattern_bs_indirect_pointer_read_via_tas_loaded_pointer():
+def test_pattern_bs_indirect_pointer_read_via_tas_loaded_pointer() -> None:
     """Pattern BS: loaded pointer copied through Dn, TAS-updated, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3526,7 +3555,7 @@ def test_pattern_bs_indirect_pointer_read_via_tas_loaded_pointer():
     print("  pattern_bs_indirect_pointer_read_via_tas_loaded_pointer: OK")
 
 
-def test_pattern_bt_word_offset_via_tst_constant_register_base():
+def test_pattern_bt_word_offset_via_tst_constant_register_base() -> None:
     """Pattern BT: constant Dn TSTed before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x700C)                    # [0x00] moveq #$0c,d0
@@ -3551,7 +3580,7 @@ def test_pattern_bt_word_offset_via_tst_constant_register_base():
     print("  pattern_bt_word_offset_via_tst_constant_register_base: OK")
 
 
-def test_pattern_bu_indirect_pointer_read_via_tst_loaded_pointer():
+def test_pattern_bu_indirect_pointer_read_via_tst_loaded_pointer() -> None:
     """Pattern BU: loaded pointer copied through Dn, TSTed, then jumped."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3578,7 +3607,7 @@ def test_pattern_bu_indirect_pointer_read_via_tst_loaded_pointer():
     print("  pattern_bu_indirect_pointer_read_via_tst_loaded_pointer: OK")
 
 
-def test_pattern_ap_word_offset_via_register_logical_constant_base():
+def test_pattern_ap_word_offset_via_register_logical_constant_base() -> None:
     """Pattern AP: constant Dn masked by constant register source before MOVEA/JMP."""
     code = b""
     code += struct.pack(">H", 0x701F)                    # [0x00] moveq #$1f,d0
@@ -3604,7 +3633,7 @@ def test_pattern_ap_word_offset_via_register_logical_constant_base():
     print("  pattern_ap_word_offset_via_register_logical_constant_base: OK")
 
 
-def test_pattern_t_indirect_pointer_read_via_movea_pcdisp_and_reg_copy():
+def test_pattern_t_indirect_pointer_read_via_movea_pcdisp_and_reg_copy() -> None:
     """Pattern T: MOVEA.L d(PC),Ax; MOVEA.L Ax,Ay; MOVEA.L 0(Ay,Dn.w),Az; JMP (Az)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3629,7 +3658,7 @@ def test_pattern_t_indirect_pointer_read_via_movea_pcdisp_and_reg_copy():
     print("  pattern_t_indirect_pointer_read_via_movea_pcdisp_and_reg_copy: OK")
 
 
-def test_pattern_u_word_offset_via_movea_pcdisp_and_addq():
+def test_pattern_u_word_offset_via_movea_pcdisp_and_addq() -> None:
     """Pattern U: MOVEA.L d(PC),An; ADDQ.L #imm,An; JMP disp(An,Dn.w)."""
     code = b""
     code += struct.pack(">H", 0x7000)                    # [0x00] moveq #0,d0
@@ -3656,7 +3685,7 @@ def test_pattern_u_word_offset_via_movea_pcdisp_and_addq():
 
 # ---- 12. Backward slice skips call predecessors ----------------------------
 
-def test_backward_slice_skips_call_predecessor():
+def test_backward_slice_skips_call_predecessor() -> None:
     """Backward slice must NOT use BSR predecessor's exit state for RTS.
 
     When a BSR block is a predecessor of an RTS block (via call
@@ -3705,7 +3734,7 @@ def test_backward_slice_skips_call_predecessor():
 
 # ---- Jump table boundary: must not scan into code ----------------------------
 
-def test_table_scan_stops_at_call_target():
+def test_table_scan_stops_at_call_target() -> None:
     """_scan_word_offset_table must not read past a known call target.
 
     Models GenAm's false positive: table at $0E9A has 22 real entries,
@@ -3746,7 +3775,7 @@ def test_table_scan_stops_at_call_target():
         f"(got {len(targets_guarded)}: {[hex(t) for t in targets_guarded]})")
 
 
-def test_table_scan_no_false_positives_from_opcodes():
+def test_table_scan_no_false_positives_from_opcodes() -> None:
     """Table scanner stops on invalid target, not on code block overlap.
 
     The scanner's existing validity checks (target < code_size,
@@ -3769,7 +3798,7 @@ def test_table_scan_no_false_positives_from_opcodes():
         f"Should stop at odd target, got {len(targets)}")
 
 
-def test_scan_inline_dispatch_stops_quietly_on_decode_error():
+def test_scan_inline_dispatch_stops_quietly_on_decode_error() -> None:
     code = bytes.fromhex("6002ffff")
 
     targets, end_pos = _scan_inline_dispatch(code, 0, len(code), max_entries=4)
@@ -3780,7 +3809,7 @@ def test_scan_inline_dispatch_stops_quietly_on_decode_error():
 
 # ---- Inline data skip pattern ------------------------------------------------
 
-def test_inline_data_skip():
+def test_inline_data_skip() -> None:
     """BSR to sub that pops return addr and jumps past inline data.
 
     Pattern:
@@ -3821,7 +3850,7 @@ def test_inline_data_skip():
     print("  inline_data_skip: OK")
 
 
-def test_inline_data_skip_multiple_callers():
+def test_inline_data_skip_multiple_callers() -> None:
     """Multiple callers to inline-data-skip sub, each with different data.
 
     caller_a:
@@ -3890,7 +3919,7 @@ def test_inline_data_skip_multiple_callers():
 
 # ---- Nested callee return value resolution ----------------------------------
 
-def test_per_caller_resolves_through_nested_callee():
+def test_per_caller_resolves_through_nested_callee() -> None:
     """Per-caller resolves dispatch when register comes from nested callee.
 
     Pattern (models GenAm $3A6C -> $3ED6 -> jsr (a0)):
@@ -3946,7 +3975,7 @@ def test_per_caller_resolves_through_nested_callee():
         f"Expected $001C from jsr (a0) via nested callee, got {targets}")
 
 
-def test_per_caller_nested_multiple_callers():
+def test_per_caller_nested_multiple_callers() -> None:
     """Multiple callers pass different values through nested callee.
 
     caller_a passes D0=$20, caller_b passes D0=$24.
@@ -3997,7 +4026,7 @@ def test_per_caller_nested_multiple_callers():
         f"Expected $0024 from caller_b (D0=$24), got {targets}")
 
 
-def test_per_caller_resolves_preserved_register_through_wrapper_callers():
+def test_per_caller_resolves_preserved_register_through_wrapper_callers() -> None:
     """Outer callers seed preserved A2 through a wrapper into shared jsr (a2)."""
     code = b""
     pc = 0
@@ -4026,7 +4055,7 @@ def test_per_caller_resolves_preserved_register_through_wrapper_callers():
         f"Expected $001a from outer_b via wrapper caller chain, got {targets}")
 
 
-def test_per_caller_resolves_register_copy_through_wrapper_callers():
+def test_per_caller_resolves_register_copy_through_wrapper_callers() -> None:
     """Outer callers seed A2, wrapper preserves target by copying A2 -> A3."""
     code = b""
     pc = 0
@@ -4057,7 +4086,7 @@ def test_per_caller_resolves_register_copy_through_wrapper_callers():
         f"Expected $0028 from outer_b via a2->a3 wrapper copy, got {targets}")
 
 
-def test_collect_call_entry_states_through_direct_call_wrapper():
+def test_collect_call_entry_states_through_direct_call_wrapper() -> None:
     code = b""
     pc = 0
     for text in (
@@ -4095,7 +4124,7 @@ def test_collect_call_entry_states_through_direct_call_wrapper():
     assert got == {(0x2A, 0x2E), (0x2A, 0x30)}
 
 
-def test_indirect_resolution_results_have_normalized_entry_state_shape():
+def test_indirect_resolution_results_have_normalized_entry_state_shape() -> None:
     code = b""
     pc = 0
     for text in (
@@ -4128,7 +4157,7 @@ def test_indirect_resolution_results_have_normalized_entry_state_shape():
 
 # ---- Branch forking: per-exit resolution ------------------------------------
 
-def test_branch_forking_resolves_both_paths():
+def test_branch_forking_resolves_both_paths() -> None:
     """Callee branches on unknown input, each path produces different A0.
 
     sub_outer calls sub_inner with unknown D0.
@@ -4187,7 +4216,7 @@ def test_branch_forking_resolves_both_paths():
         f"got {targets}")
 
 
-def test_branch_forking_single_exit_no_fork():
+def test_branch_forking_single_exit_no_fork() -> None:
     """Callee with one RTS exit doesn't trigger forking.
 
     sub_inner has a single exit path. The joined summary already
@@ -4216,7 +4245,7 @@ def test_branch_forking_single_exit_no_fork():
         f"Expected $0010 from single-exit callee, got {targets}")
 
 
-def test_branch_forking_unknown_inputs_no_result():
+def test_branch_forking_unknown_inputs_no_result() -> None:
     """Forking with unknown inputs produces no concrete targets.
 
     All callers have unknown D0. The callee branches on D0.
@@ -4247,7 +4276,7 @@ def test_branch_forking_unknown_inputs_no_result():
         f"Expected no dispatch targets (unknown inputs), got {targets}")
 
 
-def test_resolve_per_caller_caches_summarized_propagation(monkeypatch):
+def test_resolve_per_caller_caches_summarized_propagation(monkeypatch: MonkeyPatch) -> None:
     caller = BasicBlock(start=0x00, end=0x02, instructions=[], successors=[0x10],
                         predecessors=[], xrefs=[XRef(src=0x00, dst=0x10, type="call")])
     sub = BasicBlock(start=0x10, end=0x12,
@@ -4268,9 +4297,9 @@ def test_resolve_per_caller_caches_summarized_propagation(monkeypatch):
     mem = AbstractMemory()
     exit_states = {0x00: (cpu, mem)}
 
-    calls = {"count": 0}
+    calls: dict[str, int] = {"count": 0}
 
-    def _fake_propagate_states(*args, **kwargs):
+    def _fake_propagate_states(*args: object, **kwargs: object) -> dict[int, tuple[CPUState, AbstractMemory]]:
         calls["count"] += 1
         return {0x12: (CPUState(), AbstractMemory()), 0x14: (CPUState(), AbstractMemory())}
 

@@ -7,45 +7,114 @@ Type IDs and format metadata loaded from the generated runtime hunk KB,
 derived from NDK 3.1 DOSHUNKS.H by parse_hunk_format.py.
 """
 
+from __future__ import annotations
+
 import struct
 from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
+from typing import cast
 
 from m68k_kb import runtime_hunk
+from m68k_kb.runtime_types import ExtTypeCategoryDef, HunkMeta, HunkTypeDef, MemoryTypeCodeDef
 
-
-# -- KB-driven type definitions --------------------------------------------
-def _build_enum(name, kb_section, base_class=IntEnum):
-    """Build an IntEnum from a KB section {name: {id: N, ...}}."""
-    members = {}
-    for entry_name, entry in kb_section.items():
-        if "id" in entry:
-            members[entry_name] = entry["id"]
-    return base_class(name, members)
 
 _HUNK_KB = runtime_hunk
-_HUNK_META = _HUNK_KB.META
+_HUNK_META = cast(HunkMeta, _HUNK_KB.META)
+_HUNK_TYPES = cast(dict[str, HunkTypeDef], _HUNK_KB.HUNK_TYPES)
+_EXT_TYPES = cast(dict[str, HunkTypeDef], _HUNK_KB.EXT_TYPES)
+_MEMORY_TYPE_CODES = cast(dict[str, MemoryTypeCodeDef], _HUNK_KB.MEMORY_TYPE_CODES)
+_EXT_TYPE_CATEGORIES = cast(ExtTypeCategoryDef, _HUNK_KB.EXT_TYPE_CATEGORIES)
 
-HunkType = _build_enum("HunkType", _HUNK_KB.HUNK_TYPES)
-ExtType = _build_enum("ExtType", _HUNK_KB.EXT_TYPES)
+
+class HunkType(IntEnum):
+    HUNK_UNIT = _HUNK_TYPES["HUNK_UNIT"]["id"]
+    HUNK_NAME = _HUNK_TYPES["HUNK_NAME"]["id"]
+    HUNK_CODE = _HUNK_TYPES["HUNK_CODE"]["id"]
+    HUNK_DATA = _HUNK_TYPES["HUNK_DATA"]["id"]
+    HUNK_BSS = _HUNK_TYPES["HUNK_BSS"]["id"]
+    HUNK_RELOC32 = _HUNK_TYPES["HUNK_RELOC32"]["id"]
+    HUNK_RELOC16 = _HUNK_TYPES["HUNK_RELOC16"]["id"]
+    HUNK_RELOC8 = _HUNK_TYPES["HUNK_RELOC8"]["id"]
+    HUNK_EXT = _HUNK_TYPES["HUNK_EXT"]["id"]
+    HUNK_SYMBOL = _HUNK_TYPES["HUNK_SYMBOL"]["id"]
+    HUNK_DEBUG = _HUNK_TYPES["HUNK_DEBUG"]["id"]
+    HUNK_END = _HUNK_TYPES["HUNK_END"]["id"]
+    HUNK_HEADER = _HUNK_TYPES["HUNK_HEADER"]["id"]
+    HUNK_OVERLAY = _HUNK_TYPES["HUNK_OVERLAY"]["id"]
+    HUNK_BREAK = _HUNK_TYPES["HUNK_BREAK"]["id"]
+    HUNK_DREL32 = _HUNK_TYPES["HUNK_DREL32"]["id"]
+    HUNK_DREL16 = _HUNK_TYPES["HUNK_DREL16"]["id"]
+    HUNK_DREL8 = _HUNK_TYPES["HUNK_DREL8"]["id"]
+    HUNK_LIB = _HUNK_TYPES["HUNK_LIB"]["id"]
+    HUNK_INDEX = _HUNK_TYPES["HUNK_INDEX"]["id"]
+    HUNK_RELOC32SHORT = _HUNK_TYPES["HUNK_RELOC32SHORT"]["id"]
+    HUNK_RELRELOC32 = _HUNK_TYPES["HUNK_RELRELOC32"]["id"]
+    HUNK_ABSRELOC16 = _HUNK_TYPES["HUNK_ABSRELOC16"]["id"]
+
+
+class ExtType(IntEnum):
+    EXT_SYMB = _EXT_TYPES["EXT_SYMB"]["id"]
+    EXT_DEF = _EXT_TYPES["EXT_DEF"]["id"]
+    EXT_ABS = _EXT_TYPES["EXT_ABS"]["id"]
+    EXT_RES = _EXT_TYPES["EXT_RES"]["id"]
+    EXT_REF32 = _EXT_TYPES["EXT_REF32"]["id"]
+    EXT_COMMON = _EXT_TYPES["EXT_COMMON"]["id"]
+    EXT_REF16 = _EXT_TYPES["EXT_REF16"]["id"]
+    EXT_REF8 = _EXT_TYPES["EXT_REF8"]["id"]
+    EXT_DEXT32 = _EXT_TYPES["EXT_DEXT32"]["id"]
+    EXT_DEXT16 = _EXT_TYPES["EXT_DEXT16"]["id"]
+    EXT_DEXT8 = _EXT_TYPES["EXT_DEXT8"]["id"]
+    EXT_RELREF32 = _EXT_TYPES["EXT_RELREF32"]["id"]
+    EXT_RELCOMMON = _EXT_TYPES["EXT_RELCOMMON"]["id"]
+    EXT_ABSREF16 = _EXT_TYPES["EXT_ABSREF16"]["id"]
+    EXT_ABSREF8 = _EXT_TYPES["EXT_ABSREF8"]["id"]
+
+
+class MemType(IntEnum):
+    ANY = int(next(key for key, value in _MEMORY_TYPE_CODES.items() if value["name"] == "ANY"))
+    CHIP = int(next(key for key, value in _MEMORY_TYPE_CODES.items() if value["name"] == "CHIP"))
+    FAST = int(next(key for key, value in _MEMORY_TYPE_CODES.items() if value["name"] == "FAST"))
+    EXTENDED = int(next(key for key, value in _MEMORY_TYPE_CODES.items() if value["name"] == "EXTENDED"))
 
 # All constants derived from KB - no hardcoded values.
 _HUNK_TYPE_ID_MASK = _HUNK_META["hunk_type_id_mask"]
 _SIZE_LONGS_MASK = _HUNK_META["size_longs_mask"]
 _MEM_FLAGS_SHIFT = _HUNK_META["mem_flags_shift"]
 _LONGWORD_BYTES = _HUNK_META["longword_bytes"]
-_EXT_BOUNDARY = _HUNK_KB.EXT_TYPE_CATEGORIES["boundary"]
+_EXT_BOUNDARY = _EXT_TYPE_CATEGORIES["boundary"]
 
-# Build MemType enum from KB memory_type_codes
-MemType = IntEnum("MemType", {
-    v["name"]: int(k)
-    for k, v in _HUNK_KB.MEMORY_TYPE_CODES.items()
-})
+_HUNK_UNIT = int(HunkType.HUNK_UNIT)
+_HUNK_NAME = int(HunkType.HUNK_NAME)
+_HUNK_CODE = int(HunkType.HUNK_CODE)
+_HUNK_DATA = int(HunkType.HUNK_DATA)
+_HUNK_BSS = int(HunkType.HUNK_BSS)
+_HUNK_RELOC32 = int(HunkType.HUNK_RELOC32)
+_HUNK_RELOC16 = int(HunkType.HUNK_RELOC16)
+_HUNK_RELOC8 = int(HunkType.HUNK_RELOC8)
+_HUNK_EXT = int(HunkType.HUNK_EXT)
+_HUNK_SYMBOL = int(HunkType.HUNK_SYMBOL)
+_HUNK_DEBUG = int(HunkType.HUNK_DEBUG)
+_HUNK_END = int(HunkType.HUNK_END)
+_HUNK_HEADER = int(HunkType.HUNK_HEADER)
+_HUNK_BREAK = int(HunkType.HUNK_BREAK)
+_HUNK_DREL32 = int(HunkType.HUNK_DREL32)
+_HUNK_DREL16 = int(HunkType.HUNK_DREL16)
+_HUNK_DREL8 = int(HunkType.HUNK_DREL8)
+_HUNK_RELOC32SHORT = int(HunkType.HUNK_RELOC32SHORT)
+_HUNK_RELRELOC32 = int(HunkType.HUNK_RELRELOC32)
+_HUNK_ABSRELOC16 = int(HunkType.HUNK_ABSRELOC16)
+
+_MEM_ANY = int(MemType.ANY)
+_MEM_CHIP = int(MemType.CHIP)
+_MEM_FAST = int(MemType.FAST)
+_MEM_EXTENDED = int(MemType.EXTENDED)
 
 # Reverse lookup: ext type ID -> KB name (for has_common_size etc.)
 _ext_id_to_name = {
-    v["id"]: k for k, v in _HUNK_KB.EXT_TYPES.items() if "id" in v
+    v["id"]: k
+    for k, v in _EXT_TYPES.items()
+    if "id" in v
 }
 
 
@@ -67,14 +136,14 @@ class ExtRef:
     name: str
     ext_type: int
     common_size: int  # 0 for non-common
-    offsets: list[int]
+    offsets: tuple[int, ...]
 
 
 @dataclass
 class Reloc:
-    reloc_type: int  # HunkType value
+    reloc_type: HunkType
     target_hunk: int
-    offsets: list[int]
+    offsets: tuple[int, ...]
 
 
 @dataclass
@@ -93,13 +162,12 @@ class Hunk:
 
     @property
     def type_name(self) -> str:
-        names = {HunkType.HUNK_CODE: "CODE", HunkType.HUNK_DATA: "DATA",
-                 HunkType.HUNK_BSS: "BSS"}
+        names = {_HUNK_CODE: "CODE", _HUNK_DATA: "DATA", _HUNK_BSS: "BSS"}
         return names.get(self.hunk_type, f"${self.hunk_type:03X}")
 
     @property
     def mem_name(self) -> str:
-        names = {MemType.ANY: "", MemType.CHIP: "CHIP", MemType.FAST: "FAST"}
+        names = {_MEM_ANY: "", _MEM_CHIP: "CHIP", _MEM_FAST: "FAST"}
         return names.get(self.mem_type, "EXT")
 
 
@@ -110,18 +178,18 @@ class HunkParseError(Exception):
 class HunkFile:
     """Parsed Amiga hunk file."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.file_type: int = 0  # HUNK_HEADER or HUNK_UNIT
         self.unit_name: str = ""
         self.hunks: list[Hunk] = []
 
     @property
     def is_executable(self) -> bool:
-        return self.file_type == HunkType.HUNK_HEADER
+        return self.file_type == _HUNK_HEADER
 
     @property
     def is_object(self) -> bool:
-        return self.file_type == HunkType.HUNK_UNIT
+        return self.file_type == _HUNK_UNIT
 
 
 class _Reader:
@@ -139,14 +207,14 @@ class _Reader:
             raise HunkParseError(f"unexpected EOF at offset {self.pos}")
         val = struct.unpack_from(">I", self.data, self.pos)[0]
         self.pos += 4
-        return val
+        return cast(int, val)
 
     def read_u16(self) -> int:
         if self.pos + 2 > len(self.data):
             raise HunkParseError(f"unexpected EOF at offset {self.pos}")
         val = struct.unpack_from(">H", self.data, self.pos)[0]
         self.pos += 2
-        return val
+        return cast(int, val)
 
     def read_bytes(self, n: int) -> bytes:
         if self.pos + n > len(self.data):
@@ -164,7 +232,7 @@ class _Reader:
         # Strip NUL padding
         return raw.rstrip(b"\x00").decode("latin-1")
 
-    def align4(self):
+    def align4(self) -> None:
         """Align position to next 4-byte boundary."""
         rem = self.pos % 4
         if rem:
@@ -173,7 +241,7 @@ class _Reader:
     def peek_u32(self) -> int | None:
         if self.pos + 4 > len(self.data):
             return None
-        return struct.unpack_from(">I", self.data, self.pos)[0]
+        return cast(int, struct.unpack_from(">I", self.data, self.pos)[0])
 
 
 def _parse_hunk_id(raw: int) -> int:
@@ -200,12 +268,12 @@ def _parse_size_and_mem(raw: int, r: _Reader) -> tuple[int, int]:
     """
     mem = _parse_mem_flags(raw)
     size_longs = raw & _SIZE_LONGS_MASK
-    if mem == MemType.EXTENDED:
+    if mem == _MEM_EXTENDED:
         _ext_attrs = r.read_u32()  # read and discard extended attrs for now
     return size_longs * _LONGWORD_BYTES, mem
 
 
-def _parse_reloc(r: _Reader, reloc_type: int) -> list[Reloc]:
+def _parse_reloc(r: _Reader, reloc_type: HunkType) -> list[Reloc]:
     """Parse standard relocation block (ULONG offsets)."""
     relocs = []
     while True:
@@ -213,7 +281,7 @@ def _parse_reloc(r: _Reader, reloc_type: int) -> list[Reloc]:
         if num == 0:
             break
         target = r.read_u32()
-        offsets = [r.read_u32() for _ in range(num)]
+        offsets = tuple(r.read_u32() for _ in range(num))
         relocs.append(Reloc(reloc_type=reloc_type, target_hunk=target, offsets=offsets))
     return relocs
 
@@ -226,7 +294,7 @@ def _parse_reloc32short(r: _Reader) -> list[Reloc]:
         if num == 0:
             break
         target = r.read_u16()
-        offsets = [r.read_u16() for _ in range(num)]
+        offsets = tuple(r.read_u16() for _ in range(num))
         relocs.append(Reloc(reloc_type=HunkType.HUNK_RELOC32SHORT,
                             target_hunk=target, offsets=offsets))
     # Align to longword after 16-bit data
@@ -255,7 +323,7 @@ def _parse_ext(r: _Reader) -> tuple[list[ExtDef], list[ExtRef]]:
         type_and_len = r.read_u32()
         if type_and_len == 0:
             break
-        _ext_pack = _HUNK_META["ext_type_and_len_packing"]
+        _ext_pack = cast(dict[str, int], _HUNK_META["ext_type_and_len_packing"])
         ext_type = (type_and_len >> _ext_pack["name_len_width"]) & \
             ((1 << _ext_pack["type_width"]) - 1)
         name_len = type_and_len & ((1 << _ext_pack["name_len_width"]) - 1)
@@ -269,11 +337,10 @@ def _parse_ext(r: _Reader) -> tuple[list[ExtDef], list[ExtRef]]:
             # Reference - check KB for common_size field
             common_size = 0
             ext_name = _ext_id_to_name.get(ext_type)
-            if ext_name and _HUNK_KB.EXT_TYPES.get(ext_name, {}).get(
-                    "has_common_size"):
+            if ext_name and _EXT_TYPES.get(ext_name, {}).get("has_common_size"):
                 common_size = r.read_u32()
             ref_count = r.read_u32()
-            offsets = [r.read_u32() for _ in range(ref_count)]
+            offsets = tuple(r.read_u32() for _ in range(ref_count))
             refs.append(ExtRef(name=name, ext_type=ext_type,
                                common_size=common_size, offsets=offsets))
     return defs, refs
@@ -291,11 +358,11 @@ def parse(data: bytes) -> HunkFile:
     hf = HunkFile()
 
     magic = r.read_u32()
-    if magic == HunkType.HUNK_HEADER:
-        hf.file_type = HunkType.HUNK_HEADER
+    if magic == _HUNK_HEADER:
+        hf.file_type = _HUNK_HEADER
         _parse_executable(r, hf)
-    elif magic == HunkType.HUNK_UNIT:
-        hf.file_type = HunkType.HUNK_UNIT
+    elif magic == _HUNK_UNIT:
+        hf.file_type = _HUNK_UNIT
         _parse_object(r, hf)
     else:
         raise HunkParseError(f"unknown magic: ${magic:08X}")
@@ -303,7 +370,7 @@ def parse(data: bytes) -> HunkFile:
     return hf
 
 
-def _parse_executable(r: _Reader, hf: HunkFile):
+def _parse_executable(r: _Reader, hf: HunkFile) -> None:
     """Parse HUNK_HEADER executable."""
     # Skip resident library names
     while True:
@@ -331,7 +398,7 @@ def _parse_executable(r: _Reader, hf: HunkFile):
         hf.hunks.append(hunk)
 
 
-def _parse_object(r: _Reader, hf: HunkFile):
+def _parse_object(r: _Reader, hf: HunkFile) -> None:
     """Parse HUNK_UNIT object file."""
     hf.unit_name = r.read_bstr()
 
@@ -342,19 +409,19 @@ def _parse_object(r: _Reader, hf: HunkFile):
             break
         hunk_id = _parse_hunk_id(peek)
 
-        if hunk_id == HunkType.HUNK_UNIT:
+        if hunk_id == _HUNK_UNIT:
             # Another unit - stop (we only parse first unit)
             break
-        elif hunk_id == HunkType.HUNK_NAME:
+        elif hunk_id == _HUNK_NAME:
             r.read_u32()  # consume
             name = r.read_bstr()
             # Name applies to next hunk
-            hunk = _parse_hunk_block(r, hunk_index, 0, MemType.ANY)
+            hunk = _parse_hunk_block(r, hunk_index, 0, _MEM_ANY)
             hunk.name = name
             hf.hunks.append(hunk)
             hunk_index += 1
-        elif hunk_id in (HunkType.HUNK_CODE, HunkType.HUNK_DATA, HunkType.HUNK_BSS):
-            hunk = _parse_hunk_block(r, hunk_index, 0, MemType.ANY)
+        elif hunk_id in (_HUNK_CODE, _HUNK_DATA, _HUNK_BSS):
+            hunk = _parse_hunk_block(r, hunk_index, 0, _MEM_ANY)
             hf.hunks.append(hunk)
             hunk_index += 1
         else:
@@ -369,16 +436,16 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
     raw_type = r.read_u32()
     hunk_id = _parse_hunk_id(raw_type)
     block_mem = _parse_mem_flags(raw_type)
-    if block_mem != MemType.ANY:
+    if block_mem != _MEM_ANY:
         mem = block_mem
 
-    if hunk_id == HunkType.HUNK_CODE or hunk_id == HunkType.HUNK_DATA:
+    if hunk_id == _HUNK_CODE or hunk_id == _HUNK_DATA:
         num_longs = r.read_u32()
         data = r.read_bytes(num_longs * _LONGWORD_BYTES)
         data_size = num_longs * 4
         if alloc_size == 0:
             alloc_size = data_size
-    elif hunk_id == HunkType.HUNK_BSS:
+    elif hunk_id == _HUNK_BSS:
         num_longs = r.read_u32()
         data = b""
         if alloc_size == 0:
@@ -396,19 +463,19 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
             break
         sub_id = _parse_hunk_id(sub_raw)
 
-        if sub_id == HunkType.HUNK_END:
+        if sub_id == _HUNK_END:
             r.read_u32()  # consume
             break
-        elif sub_id == HunkType.HUNK_BREAK:
+        elif sub_id == _HUNK_BREAK:
             r.read_u32()  # consume
             break
-        elif sub_id in (HunkType.HUNK_RELOC32, HunkType.HUNK_RELOC16,
-                        HunkType.HUNK_RELOC8,
-                        HunkType.HUNK_DREL16, HunkType.HUNK_DREL8,
-                        HunkType.HUNK_RELRELOC32, HunkType.HUNK_ABSRELOC16):
+        elif sub_id in (_HUNK_RELOC32, _HUNK_RELOC16,
+                        _HUNK_RELOC8,
+                        _HUNK_DREL16, _HUNK_DREL8,
+                        _HUNK_RELRELOC32, _HUNK_ABSRELOC16):
             r.read_u32()  # consume type
-            hunk.relocs.extend(_parse_reloc(r, sub_id))
-        elif sub_id == HunkType.HUNK_DREL32:
+            hunk.relocs.extend(_parse_reloc(r, HunkType(sub_id)))
+        elif sub_id == _HUNK_DREL32:
             # DOSHUNKS.H: "V37 LoadSeg uses 1015 (HUNK_DREL32) by
             # mistake... HUNK_DREL32 is illegal in load files anyways."
             # In executables: 1015 = short relocs (16-bit format).
@@ -417,23 +484,23 @@ def _parse_hunk_block(r: _Reader, index: int, alloc_size: int, mem: int,
             if is_executable:
                 hunk.relocs.extend(_parse_reloc32short(r))
             else:
-                hunk.relocs.extend(_parse_reloc(r, sub_id))
-        elif sub_id == HunkType.HUNK_RELOC32SHORT:
+                hunk.relocs.extend(_parse_reloc(r, HunkType(sub_id)))
+        elif sub_id == _HUNK_RELOC32SHORT:
             r.read_u32()  # consume type
             hunk.relocs.extend(_parse_reloc32short(r))
-        elif sub_id == HunkType.HUNK_SYMBOL:
+        elif sub_id == _HUNK_SYMBOL:
             r.read_u32()  # consume type
             hunk.symbols.extend(_parse_symbol(r))
-        elif sub_id == HunkType.HUNK_EXT:
+        elif sub_id == _HUNK_EXT:
             r.read_u32()  # consume type
             defs, refs = _parse_ext(r)
             hunk.ext_defs.extend(defs)
             hunk.ext_refs.extend(refs)
-        elif sub_id == HunkType.HUNK_DEBUG:
+        elif sub_id == _HUNK_DEBUG:
             r.read_u32()  # consume type
             hunk.debug_data = _parse_debug(r)
-        elif sub_id in (HunkType.HUNK_CODE, HunkType.HUNK_DATA,
-                        HunkType.HUNK_BSS, HunkType.HUNK_NAME):
+        elif sub_id in (_HUNK_CODE, _HUNK_DATA,
+                        _HUNK_BSS, _HUNK_NAME):
             # Next hunk starts - no HUNK_END (some tools omit it)
             break
         else:
@@ -452,7 +519,7 @@ def parse_file(path: str | Path) -> HunkFile:
     return parse(data)
 
 
-def dump(hf: HunkFile):
+def dump(hf: HunkFile) -> None:
     """Print summary of parsed hunk file."""
     kind = "Executable" if hf.is_executable else "Object"
     print(f"{kind}")

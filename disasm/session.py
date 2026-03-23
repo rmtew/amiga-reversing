@@ -1,6 +1,7 @@
 """Build canonical post-analysis disassembly sessions."""
 
 from pathlib import Path
+from typing import cast
 
 from m68k.hunk_parser import parse_file, HunkType
 from m68k.indirect_core import IndirectSiteStatus
@@ -13,18 +14,25 @@ from disasm.discovery import apply_generic_data_label_promotions
 from disasm.entities import infer_target_name, load_entities
 from disasm.hardware_symbols import collect_hardware_base_regs
 from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
-from disasm.metadata import build_hunk_metadata
+from disasm.metadata import HunkAnalysisLike, build_hunk_metadata
 from disasm.substitutions import (build_arg_substitutions,
                                   build_lvo_substitutions)
 from m68k.os_calls import build_app_slot_symbols
-from disasm.types import DisassemblySession, HunkDisassemblySession
+from disasm.types import DisassemblySession, EntityRecord, HunkDisassemblySession
+
+__all__ = [
+    "DisassemblySession",
+    "EntityRecord",
+    "HunkDisassemblySession",
+    "build_disassembly_session",
+]
 
 def build_disassembly_session(binary_path: str, entities_path: str,
                               output_path: str | None = None,
                               base_addr: int = 0, code_start: int = 0,
                               profile_stages: bool = False) -> DisassemblySession:
     hf = parse_file(binary_path)
-    entities = load_entities(entities_path)
+    entities: list[EntityRecord] = load_entities(entities_path)
     target_dir = Path(entities_path).parent if Path(entities_path).parent.exists() else None
     target_name = infer_target_name(target_dir, entities_path)
     hunk_sessions: list[HunkDisassemblySession] = []
@@ -52,6 +60,7 @@ def build_disassembly_session(binary_path: str, entities_path: str,
         jt_list = ha.jump_tables
         lib_calls = ha.lib_calls
         os_kb = ha.os_kb
+        assert os_kb is not None, f"Analysis for hunk {hunk.index} did not provide an OS KB"
         platform = ha.platform
         reloc_targets = ha.reloc_targets
         exit_states = ha.exit_states
@@ -74,14 +83,14 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             code_size=code_size,
             hunk_index=hunk.index,
             hunk_entities=hunk_entities,
-            ha=ha,
+            ha=cast(HunkAnalysisLike, ha),
             hf_hunks=hf.hunks,
             typed_string_ranges=call_setup_analysis.string_ranges,
             reserved_absolute_addrs=absolute_resolution.reserved_absolute_addrs,
             absolute_labels=absolute_resolution.absolute_labels,
         )
         code_addrs = metadata.code_addrs
-        hint_blocks = metadata.hint_blocks
+        metadata_hint_blocks = metadata.hint_blocks
         hint_addrs = metadata.hint_addrs
         reloc_map = metadata.reloc_map
         reloc_target_set = metadata.reloc_target_set
@@ -140,7 +149,7 @@ def build_disassembly_session(binary_path: str, entities_path: str,
             code_size=code_size,
             entities=hunk_entities,
             blocks=blocks,
-            hint_blocks=hint_blocks,
+            hint_blocks=metadata_hint_blocks,
             code_addrs=code_addrs,
             hint_addrs=hint_addrs,
             reloc_map=reloc_map,

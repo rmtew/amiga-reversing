@@ -6,7 +6,7 @@ from m68k.m68k_executor import (analyze, CPUState, AbstractMemory,
                                 _concrete, _unknown, _join_states)
 
 
-def test_memory_basic():
+def test_memory_basic() -> None:
     """Test basic memory read/write."""
     mem = AbstractMemory()
     mem.write(0x1000, _concrete(0xDEADBEEF), "l")
@@ -22,7 +22,7 @@ def test_memory_basic():
     assert not val_u.is_known
 
 
-def test_memory_copy():
+def test_memory_copy() -> None:
     """Test memory copy independence."""
     mem = AbstractMemory()
     mem.write(0x100, _concrete(42), "w")
@@ -32,7 +32,7 @@ def test_memory_copy():
     assert mem2.read(0x100, "w").concrete == 99
 
 
-def test_join_states():
+def test_join_states() -> None:
     """Test state joining at merge points."""
     cpu1 = CPUState()
     cpu1.d[0] = _concrete(42)
@@ -52,7 +52,7 @@ def test_join_states():
     assert mem_j.read(0x1000, "b").concrete == 0xAA
 
 
-def test_join_states_fast_path_for_identical_inputs():
+def test_join_states_fast_path_for_identical_inputs() -> None:
     cpu = CPUState()
     cpu.d[0] = _concrete(42)
     mem = AbstractMemory()
@@ -66,7 +66,7 @@ def test_join_states_fast_path_for_identical_inputs():
     assert mem_j.read(0x1000, "b").concrete == 0xAA
 
 
-def test_join_states_fast_path_for_identical_cpu_objects():
+def test_join_states_fast_path_for_identical_cpu_objects() -> None:
     cpu = CPUState()
     cpu.d[0] = _concrete(42)
     mem1 = AbstractMemory()
@@ -80,7 +80,7 @@ def test_join_states_fast_path_for_identical_cpu_objects():
     assert mem_j.read(0x1000, "b").concrete == 0xAA
 
 
-def test_join_states_fast_path_for_identical_memory_objects():
+def test_join_states_fast_path_for_identical_memory_objects() -> None:
     cpu1 = CPUState()
     cpu1.d[0] = _concrete(42)
     cpu2 = CPUState()
@@ -94,7 +94,7 @@ def test_join_states_fast_path_for_identical_memory_objects():
     assert mem_j.read(0x1000, "b").concrete == 0xAA
 
 
-def test_propagation_moveq_lea():
+def test_propagation_moveq_lea() -> None:
     """Test MOVEQ + LEA propagation across blocks."""
     code = b''
     code += struct.pack('>HH', 0x41FA, 0x000E)     # lea 14(pc),a0      [0]
@@ -116,7 +116,7 @@ def test_propagation_moveq_lea():
     assert mem.read(0x10, "l").concrete == 42
 
 
-def test_propagation_add_sub():
+def test_propagation_add_sub() -> None:
     """Test ADD/SUB propagation."""
     code = b''
     code += struct.pack('>H', 0x7000 | 10)          # moveq #10,d0
@@ -130,7 +130,7 @@ def test_propagation_add_sub():
     assert cpu.d[1].is_known and cpu.d[1].concrete == 20
 
 
-def test_propagation_clr():
+def test_propagation_clr() -> None:
     """Test CLR propagation."""
     code = b''
     code += struct.pack('>H', 0x7000 | 99)          # moveq #99,d0
@@ -142,7 +142,7 @@ def test_propagation_clr():
     assert cpu.d[0].is_known and cpu.d[0].concrete == 0
 
 
-def test_merge_point():
+def test_merge_point() -> None:
     """Test state merging at a merge point."""
     code = b''
     code += struct.pack('>H', 0x7000 | 10)          # moveq #10,d0
@@ -158,7 +158,7 @@ def test_merge_point():
     assert not cpu.d[1].is_known
 
 
-def test_propagation_exg_swap():
+def test_propagation_exg_swap() -> None:
     """Test EXG and SWAP propagation."""
     code = b''
     code += struct.pack('>H', 0x7000 | 0x12)        # moveq #$12,d0

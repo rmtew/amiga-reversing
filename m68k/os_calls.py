@@ -21,15 +21,28 @@ from enum import StrEnum
 import re
 import struct
 import sys
-from typing import TYPE_CHECKING, Callable, Protocol, TypeAlias
+from typing import TYPE_CHECKING, Callable, Mapping, Protocol, TypeAlias
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
 from m68k_kb import runtime_os
+from m68k_kb.runtime_os import (
+    AbsoluteSymbol,
+    CallingConvention,
+    ExecBaseAddress,
+    OsConstant,
+    OsFunction,
+    OsInput,
+    OsLibrary,
+    OsMeta,
+    OsOutput,
+    OsReturnsBase,
+    OsReturnsMemory,
+)
 
 from .instruction_kb import find_kb_entry, instruction_flow, instruction_kb
 from .instruction_decode import DecodedOperands, decode_inst_destination, decode_inst_operands, xf
-from .instruction_primitives import extract_branch_target
+from .instruction_primitives import Operand, extract_branch_target
 from .memory_provenance import (MemoryRegionAddressSpace,
                                 MemoryRegionProvenance,
                                 field_pointer_derivation,
@@ -39,11 +52,15 @@ from .memory_provenance import (MemoryRegionAddressSpace,
                                 provenance_named_base,
                                 require_base_displacement)
 from .os_structs import resolve_struct_field
+from .os_structs import ResolvedStructField
+from .os_structs import OsStructLike, OsStructFieldLike
 from .registers import parse_reg_name
 from .strings import read_c_string_span, read_string_at
+from .typing_protocols import CpuStateLike, MemoryLike
 
 if TYPE_CHECKING:
-    from .m68k_executor import BasicBlock, CallSummary
+    from .m68k_executor import AbstractMemory, BasicBlock, CallSummary
+    from .m68k_disasm import Instruction
 
 
 def _is_named_base_seed(name: str) -> bool:
@@ -60,7 +77,7 @@ def _read_named_base_seed(code: bytes, addr: int) -> str | None:
 ScratchReg: TypeAlias = tuple[str, int]
 
 
-def _decode_inst(inst):
+def _decode_inst(inst: Instruction) -> tuple[str, DecodedOperands]:
     mnemonic = instruction_kb(inst)
     decoded = decode_inst_operands(inst, mnemonic)
     return mnemonic, decoded
@@ -73,9 +90,10 @@ def _reg_name(mode: str, reg: int) -> str:
     return f"{prefix}{reg}"
 
 
-def _base_disp_operand(op, base_reg: int) -> int | None:
+def _base_disp_operand(op: Operand | None, base_reg: int) -> int | None:
     if op is None or op.mode != "disp" or op.reg != base_reg:
         return None
+    assert op.value is not None, "Displacement operand missing value"
     return op.value
 
 
@@ -83,12 +101,14 @@ def _decoded_source_reg(decoded: DecodedOperands) -> str | None:
     src = decoded.ea_op
     if src is None or src.mode not in {"dn", "an"}:
         return None
+    assert src.reg is not None, "Source register operand missing register number"
     return _reg_name(src.mode, src.reg)
 
 
 def _decoded_dest_reg(decoded: DecodedOperands) -> str | None:
     dst = decoded.dst_op
     if dst is not None and dst.mode in {"dn", "an"}:
+        assert dst.reg is not None, "Destination register operand missing register number"
         return _reg_name(dst.mode, dst.reg)
     reg_mode = decoded.reg_mode
     reg_num = decoded.reg_num
@@ -122,10 +142,17 @@ class AppBaseKind(StrEnum):
 
 
 class OsKb(Protocol):
-    META: runtime_os.OsMeta
-    STRUCTS: dict[str, runtime_os.OsStruct]
-    CONSTANTS: dict[str, runtime_os.OsConstant]
-    LIBRARIES: dict[str, runtime_os.OsLibrary]
+    @property
+    def META(self) -> OsMeta: ...
+
+    @property
+    def STRUCTS(self) -> Mapping[str, OsStructLike]: ...
+
+    @property
+    def CONSTANTS(self) -> Mapping[str, OsConstant]: ...
+
+    @property
+    def LIBRARIES(self) -> Mapping[str, OsLibrary]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -190,6 +217,17 @@ class AppSlotInfo:
     named_base: str | None = None
 
 
+@dataclass(slots=True)
+class _PendingCallInput:
+    input: OsInput
+    arg_reg: str
+    tracked_reg: str
+    complete: bool = False
+
+
+RUNTIME_OS_KB: OsKb = runtime_os
+
+
 def _sanitize_app_name(name: str) -> str:
     return re.sub(r'[^a-z0-9]+', '_', name.lower())
 
@@ -214,7 +252,7 @@ def app_memory_type_priority(info: AppMemoryType) -> int:
 
 def select_primary_app_memory_type(usages: tuple[AppMemoryType, ...]) -> AppMemoryType:
     if not usages:
-        raise ValueError("App memory type usages cannot be empty")
+        assert usages, "App memory type usages cannot be empty"
     ranked = sorted(enumerate(usages), key=lambda item: (app_memory_type_priority(item[1]), item[0]))
     return ranked[0][1]
 
@@ -245,7 +283,7 @@ def _ordered_app_slot_symbols(infos: tuple[AppMemoryType, ...]) -> tuple[str, ..
         if sym not in ordered:
             ordered.append(sym)
     if not ordered:
-        raise ValueError("App slot usage candidates cannot be empty")
+        assert ordered, "App slot usage candidates cannot be empty"
     return tuple(ordered)
 
 
@@ -270,9 +308,10 @@ def _segment_label_disambiguator(address: int) -> str:
     return f"{address:04X}" if address <= 0xFFFF else f"{address:08X}"
 
 
-def _segment_seed_addr(op, code_size: int, base_addr: int = 0) -> int | None:
+def _segment_seed_addr(op: Operand | None, code_size: int, base_addr: int = 0) -> int | None:
     if op is None or op.value is None:
         return None
+    target: int
     if op.mode == "pcdisp":
         target = op.value
     elif op.mode == "absw":
@@ -288,7 +327,7 @@ def _segment_seed_addr(op, code_size: int, base_addr: int = 0) -> int | None:
     return None
 
 
-def _call_input_symbol(call: LibraryCall, inp: runtime_os.OsInput) -> str:
+def _call_input_symbol(call: LibraryCall, inp: OsInput) -> str:
     return f"{_sanitize_app_name(call.function)}_{_sanitize_app_name(inp.name)}"
 
 
@@ -311,8 +350,8 @@ def _finalize_segment_symbols(symbol_candidates: dict[int, set[str]]) -> dict[in
 
 
 def _absolute_app_slot_addr(base_info: AppBaseInfo, offset: int) -> int:
-    if base_info.kind != AppBaseKind.ABSOLUTE:
-        raise ValueError("Absolute app slot address requires absolute app base")
+    assert base_info.kind == AppBaseKind.ABSOLUTE, (
+        "Absolute app slot address requires absolute app base")
     return (base_info.concrete + offset) & 0xFFFFFFFF
 
 
@@ -388,7 +427,7 @@ class PlatformState:
     next_alloc_sentinel: int
     os_call_resolver: Callable[..., CallEffect | None] | None
     app_base: AppBaseInfo | None = None
-    initial_mem: object | None = None
+    initial_mem: AbstractMemory | None = None
     pending_call_effect: CallEffect | None = None
     summary_cache: dict[int, CallSummary | None] | None = None
 
@@ -405,8 +444,8 @@ class LibraryCall:
     library: str
     function: str
     lvo: int
-    inputs: tuple[runtime_os.OsInput, ...] = ()
-    output: runtime_os.OsOutput | None = None
+    inputs: tuple[OsInput, ...] = ()
+    output: OsOutput | None = None
     no_return: bool = False
     dispatch: int | None = None
     os_since: str | None = None
@@ -415,7 +454,7 @@ class LibraryCall:
 
 def get_platform_config() -> PlatformState:
     """Build executor platform state from the OS KB."""
-    meta = runtime_os.META
+    meta = RUNTIME_OS_KB.META
     cc = meta.calling_convention
 
     scratch = tuple(parse_reg_name(r) for r in cc.scratch_regs)
@@ -442,7 +481,7 @@ def get_platform_config() -> PlatformState:
 
 
 def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
-                         cpu_state, code: bytes,
+                         cpu_state: CpuStateLike, code: bytes,
                          os_kb: OsKb | None = None,
                          platform: PlatformState | None = None) -> CallEffect | None:
     """Determine the effects of a library call on register state.
@@ -460,7 +499,7 @@ def resolve_call_effects(inst_offset: int, lvo: int, a6_lib: str | None,
     or None if no effect can be determined.
     """
     if os_kb is None:
-        os_kb = runtime_os
+        os_kb = RUNTIME_OS_KB
 
     if a6_lib is None:
         return None
@@ -560,7 +599,7 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
             direction=AppMemoryDirection.FORWARD,
         )
 
-        def _scan_for_store(instructions):
+        def _scan_for_store(instructions: list[Instruction]) -> int | None:
             """Scan instructions for ret_reg -> d(base_reg). Returns offset or None."""
             for inst in instructions:
                 ikb, decoded = _decode_inst(inst)
@@ -577,7 +616,7 @@ def trace_return_stores(blocks: dict[int, BasicBlock],
 
         # Instructions after the call in the same block
         past_call = False
-        after_call = []
+        after_call: list[Instruction] = []
         for inst in block.instructions:
             if past_call:
                 after_call.append(inst)
@@ -619,14 +658,14 @@ def collect_app_memory_type_usages(blocks: dict[int, BasicBlock],
         if info not in entries:
             entries.append(info)
 
-    def _trace_reg_forward(instructions, src_reg: str, info: AppMemoryType):
+    def _trace_reg_forward(instructions: list[Instruction], src_reg: str, info: AppMemoryType) -> None:
         """Trace src_reg through copies and stores to d(base_reg).
 
         Follows move/movea chains: if src_reg is copied to another
         register, continues tracing the copy.  Stops when src_reg
         (or its copy) is stored to d(base_reg) or overwritten.
         """
-        tracked = {src_reg}  # set of registers carrying the value
+        tracked: set[str] = {src_reg}  # set of registers carrying the value
         for inst in instructions:
             copied_to = None  # register added by copy in this instruction
             ikb, decoded = _decode_inst(inst)
@@ -791,20 +830,13 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
         if call_idx is None:
             continue
 
-        pending: list[dict[str, object]] = []
+        pending: list[_PendingCallInput] = []
         for inp in call.inputs:
-            if inp.reg is None:
-                continue
             reg_name = inp.reg.lower()
-            pending.append({
-                "input": inp,
-                "arg_reg": reg_name,
-                "tracked_reg": reg_name,
-                "complete": False,
-            })
+            pending.append(_PendingCallInput(input=inp, arg_reg=reg_name, tracked_reg=reg_name))
 
         for i in range(call_idx - 1, -1, -1):
-            if all(state["complete"] for state in pending):
+            if all(state.complete for state in pending):
                 break
             inst = block.instructions[i]
             ikb, decoded = _decode_inst(inst)
@@ -814,13 +846,13 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
                 continue
 
             for state in pending:
-                if state["complete"]:
+                if state.complete:
                     continue
-                tracked_reg = state["tracked_reg"]
+                tracked_reg = state.tracked_reg
                 if dst_name != tracked_reg:
                     continue
-                inp = state["input"]
-                arg_reg = state["arg_reg"]
+                inp = state.input
+                arg_reg = state.arg_reg
                 if dst_name == arg_reg:
                     arg_annotations[inst.offset] = CallArgumentAnnotation(
                         arg_name=inp.name,
@@ -832,27 +864,27 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
                 if op_type == runtime_m68k_analysis.OperationType.MOVE:
                     src_name = _decoded_source_reg(decoded)
                     if src_name is not None:
-                        state["tracked_reg"] = src_name
+                        state.tracked_reg = src_name
                         continue
                 if ikb == "MOVEA":
                     src_name = _decoded_source_reg(decoded)
                     if src_name is not None:
-                        state["tracked_reg"] = src_name
+                        state.tracked_reg = src_name
                         continue
                 symbol = _call_input_symbol(call, inp)
                 address = _segment_seed_addr(decoded.ea_op, len(code), base_addr=base_addr)
                 if inp.semantic_kind == "code_ptr":
                     if address is None:
-                        state["complete"] = True
+                        state.complete = True
                         continue
                     segment_code_name_candidates.setdefault(address, set()).add(symbol)
                 elif include_data_labels and (inp.type == "STRPTR" or inp.semantic_kind == "string_ptr"):
                     if address is None:
-                        state["complete"] = True
+                        state.complete = True
                         continue
                     string_span = read_c_string_span(code, address)
                     if string_span is None:
-                        state["complete"] = True
+                        state.complete = True
                         continue
                     _text, end = string_span
                     existing_end = string_ranges.get(address)
@@ -870,7 +902,7 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
                             raise ValueError(
                                 f"Segment provenance missing address for {call.function}:{inp.name}")
                         segment_data_name_candidates.setdefault(address, set()).add(symbol)
-                state["complete"] = True
+                state.complete = True
 
     segment_data_symbols = _finalize_segment_symbols(segment_data_name_candidates)
     segment_code_symbols = _finalize_segment_symbols(segment_code_name_candidates)
@@ -887,14 +919,17 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
 # -- Typed memory regions ----------------------------------------------
 
 
-def _region_from_lea(inst, decoded: DecodedOperands, struct_name: str,
+def _region_from_lea(inst: Instruction, decoded: DecodedOperands, struct_name: str,
                      os_kb: OsKb, platform: PlatformState | None) -> TypedMemoryRegion | None:
     op = decoded.ea_op
     if op is None:
         return None
     struct_def = os_kb.STRUCTS[struct_name]
     if op.mode == "disp":
+        assert op.reg is not None, "Displacement operand missing base register"
+        assert op.value is not None, "Displacement operand missing value"
         base_register = _address_reg_name(op.reg)
+        displacement = op.value
         kind = MemoryRegionAddressSpace.REGISTER
         if platform is not None and platform.app_base is not None:
             base_reg_num = platform.app_base.reg_num
@@ -903,7 +938,7 @@ def _region_from_lea(inst, decoded: DecodedOperands, struct_name: str,
         return TypedMemoryRegion(
             struct=struct_name,
             size=struct_def.size,
-            provenance=provenance_base_displacement(kind, base_register, op.value),
+            provenance=provenance_base_displacement(kind, base_register, displacement),
         )
     if op.mode == "pcdisp":
         return TypedMemoryRegion(
@@ -915,27 +950,31 @@ def _region_from_lea(inst, decoded: DecodedOperands, struct_name: str,
             ),
         )
     if op.mode == "absw":
+        assert op.value is not None, "abs.w operand missing value"
+        value = op.value
         return TypedMemoryRegion(
             struct=struct_name,
             size=struct_def.size,
             provenance=MemoryRegionProvenance(
                 address_space=MemoryRegionAddressSpace.ABSOLUTE,
-                absolute_addr=op.value & 0xFFFF,
+                absolute_addr=value & 0xFFFF,
             ),
         )
     if op.mode == "absl":
+        assert op.value is not None, "abs.l operand missing value"
+        value = op.value
         return TypedMemoryRegion(
             struct=struct_name,
             size=struct_def.size,
             provenance=MemoryRegionProvenance(
                 address_space=MemoryRegionAddressSpace.ABSOLUTE,
-                absolute_addr=op.value,
+                absolute_addr=value,
             ),
         )
     return None
 
 
-def _find_region_seed(block, call_addr: int, reg_name: str, struct_name: str,
+def _find_region_seed(block: BasicBlock, call_addr: int, reg_name: str, struct_name: str,
                       os_kb: OsKb, platform: PlatformState | None
                       ) -> tuple[int, str, TypedMemoryRegion] | None:
     call_idx = None
@@ -1114,13 +1153,13 @@ def _signed_16(value: int) -> int:
     return value - 0x10000 if value & 0x8000 else value
 
 
-def _signed_index_value(op, concrete_regs: dict[str, int]) -> int | None:
+def _signed_index_value(op: Operand, concrete_regs: dict[str, int]) -> int | None:
     if op.index_suppressed:
         return 0
-    if op.index_reg is None:
-        raise ValueError("Indexed operand missing index register")
+    index_reg = op.index_reg
+    assert index_reg is not None, "Indexed operand missing index register"
     index_mode = "an" if op.index_is_addr else "dn"
-    index_name = _reg_name(index_mode, op.index_reg)
+    index_name = _reg_name(index_mode, index_reg)
     index_value = concrete_regs.get(index_name)
     if index_value is None:
         return None
@@ -1128,12 +1167,13 @@ def _signed_index_value(op, concrete_regs: dict[str, int]) -> int | None:
         index_value = _signed_16(index_value)
     elif op.index_size != "l":
         raise ValueError(f"Unsupported index size {op.index_size!r}")
-    return index_value * op.index_scale
+    return index_value * int(op.index_scale)
 
 
-def _effective_index_offset(op, concrete_regs: dict[str, int]) -> tuple[str, int] | None:
+def _effective_index_offset(op: Operand | None, concrete_regs: dict[str, int]) -> tuple[str, int] | None:
     if op is None or op.mode != "index" or op.memory_indirect or op.base_suppressed:
         return None
+    assert op.reg is not None, "Indexed operand missing base register"
     base_register = _address_reg_name(op.reg)
     base_displacement = op.value if op.value is not None else op.base_displacement
     if base_displacement is None:
@@ -1144,7 +1184,8 @@ def _effective_index_offset(op, concrete_regs: dict[str, int]) -> tuple[str, int
     return base_register, base_displacement + index_value
 
 
-def _resolve_region_field(os_kb: OsKb, region: TypedMemoryRegion, displacement: int):
+def _resolve_region_field(os_kb: OsKb, region: TypedMemoryRegion,
+                          displacement: int) -> ResolvedStructField | None:
     field_offset = region.struct_offset + displacement
     if field_offset < 0:
         return None
@@ -1157,7 +1198,8 @@ def _resolve_region_field(os_kb: OsKb, region: TypedMemoryRegion, displacement: 
 
 def _resolve_app_struct_field(app_struct_regions: dict[int, TypedMemoryRegion],
                               displacement: int,
-                              os_kb: OsKb):
+                              os_kb: OsKb
+                              ) -> tuple[int, TypedMemoryRegion, int, ResolvedStructField] | None:
     for region_offset, region in app_struct_regions.items():
         region_end = region_offset + region.size
         if displacement < region_offset or displacement >= region_end:
@@ -1181,6 +1223,8 @@ def _region_from_library_base_tag(tag: LibraryBaseTag,
         return None
     struct_name = _refined_named_base_struct(
         os_kb, tag.library_base, tag.struct_name)
+    if struct_name is None:
+        raise ValueError(f"Named base {tag.library_base} resolved to no struct")
     struct_def = os_kb.STRUCTS[struct_name]
     return TypedMemoryRegion(
         struct=struct_name,
@@ -1190,22 +1234,27 @@ def _region_from_library_base_tag(tag: LibraryBaseTag,
 
 
 def _region_from_typed_address(current: dict[str, RegisterFact],
-                               op,
+                               op: Operand | None,
                                os_kb: OsKb,
                                app_struct_regions: dict[int, TypedMemoryRegion],
                                platform: PlatformState | None) -> TypedMemoryRegion | None:
     if op is None:
         return None
     if op.mode == "ind":
+        assert op.reg is not None, "Indirect operand missing base register"
         base_fact = current.get(_address_reg_name(op.reg))
         if base_fact is None or base_fact.region is None:
             return None
         return base_fact.region
     if op.mode == "disp":
+        assert op.reg is not None and op.value is not None, (
+            "Displacement operand missing register or value")
+        reg = op.reg
+        displacement = op.value
         if (platform is not None
                 and platform.app_base is not None
-                and op.reg == platform.app_base.reg_num):
-            resolved = _resolve_app_struct_field(app_struct_regions, op.value, os_kb)
+                and reg == platform.app_base.reg_num):
+            resolved = _resolve_app_struct_field(app_struct_regions, displacement, os_kb)
             if resolved is not None:
                 _region_offset, region, field_displacement, _field_info = resolved
                 return TypedMemoryRegion(
@@ -1214,10 +1263,10 @@ def _region_from_typed_address(current: dict[str, RegisterFact],
                     provenance=region.provenance,
                     struct_offset=region.struct_offset + field_displacement,
                 )
-        base_fact = current.get(_address_reg_name(op.reg))
+        base_fact = current.get(_address_reg_name(reg))
         if base_fact is None or base_fact.region is None:
             return None
-        next_offset = base_fact.region.struct_offset + op.value
+        next_offset = base_fact.region.struct_offset + displacement
         if next_offset < 0 or next_offset >= base_fact.region.size:
             return None
         return TypedMemoryRegion(
@@ -1228,7 +1277,9 @@ def _region_from_typed_address(current: dict[str, RegisterFact],
         )
     if op.mode != "index" or op.base_suppressed:
         return None
-    base_fact = current.get(_address_reg_name(op.reg))
+    assert op.reg is not None, "Indexed operand missing base register"
+    reg = op.reg
+    base_fact = current.get(_address_reg_name(reg))
     if base_fact is None or base_fact.region is None:
         return None
     concrete_regs = _concrete_facts(current)
@@ -1269,24 +1320,28 @@ def _region_from_typed_address(current: dict[str, RegisterFact],
         struct=pointer_struct,
         size=struct_def.size,
         provenance=provenance_field_pointer(
-            _address_reg_name(op.reg), pointer_field_offset),
+            _address_reg_name(reg), pointer_field_offset),
         struct_offset=pointee_offset,
     )
 
 
-def _field_offset_from_source_operand(op) -> tuple[str, int] | None:
+def _field_offset_from_source_operand(op: Operand | None) -> tuple[str, int] | None:
     if op is None:
         return None
     if op.mode == "ind":
+        assert op.reg is not None, "Indirect operand missing base register"
         return _address_reg_name(op.reg), 0
     if op.mode == "disp":
-        return _address_reg_name(op.reg), op.value
+        assert op.reg is not None and op.value is not None, (
+            "Displacement operand missing register or value")
+        return (_address_reg_name(op.reg), op.value)
     if (op.mode == "index"
             and op.full_extension
             and not op.memory_indirect
             and not op.base_suppressed
             and op.index_suppressed):
-        return _address_reg_name(op.reg), 0 if op.base_displacement is None else op.base_displacement
+        assert op.reg is not None, "Indexed operand missing base register"
+        return (_address_reg_name(op.reg), 0 if op.base_displacement is None else op.base_displacement)
     return None
 
 
@@ -1339,7 +1394,7 @@ def _pointee_region_from_load(current: dict[str, RegisterFact],
 
 
 def _immediate_constant(decoded: DecodedOperands) -> int | None:
-    return decoded.imm_val
+    return None if decoded.imm_val is None else int(decoded.imm_val)
 
 
 def _updated_concrete_value(current: dict[str, RegisterFact], ikb: str | None,
@@ -1361,8 +1416,7 @@ def _updated_concrete_value(current: dict[str, RegisterFact], ikb: str | None,
         runtime_m68k_analysis.OperationType.SUB,
     } and ikb in {"ADDQ", "SUBQ"}:
         imm_val = _immediate_constant(decoded)
-        if imm_val is None:
-            raise ValueError(f"{ikb} missing decoded immediate")
+        assert imm_val is not None, f"{ikb} missing decoded immediate"
         prior_fact = current.get(dst_name)
         if prior_fact is None or prior_fact.concrete is None:
             return None
@@ -1586,6 +1640,8 @@ def build_app_pointer_regions(blocks: dict[int, BasicBlock],
     for offset, generic_struct in pointer_structs.items():
         named_base = named_bases.get(offset)
         struct_name = _refined_named_base_struct(os_kb, named_base, generic_struct)
+        if struct_name is None:
+            raise ValueError(f"App pointer slot {offset} resolved to no struct")
         struct_def = os_kb.STRUCTS[struct_name]
         region = TypedMemoryRegion(
             struct=struct_name,
@@ -1665,7 +1721,7 @@ def _compute_region_summaries(blocks: dict[int, BasicBlock],
     return summaries
 
 
-def _find_string_seed(block, call_addr: int, reg_name: str, code: bytes) -> str | None:
+def _find_string_seed(block: BasicBlock, call_addr: int, reg_name: str, code: bytes) -> str | None:
     call_idx = None
     for i, inst in enumerate(block.instructions):
         if inst.offset == call_addr:
@@ -1681,6 +1737,7 @@ def _find_string_seed(block, call_addr: int, reg_name: str, code: bytes) -> str 
             continue
         op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
         if ikb == "LEA" and decoded.ea_op is not None and decoded.ea_op.mode == "pcdisp":
+            assert decoded.ea_op.value is not None, "pcdisp LEA operand missing value"
             return read_string_at(code, decoded.ea_op.value)
         if op_type == runtime_m68k_analysis.OperationType.MOVE and decoded.ea_op is not None:
             op = decoded.ea_op
@@ -1690,7 +1747,7 @@ def _find_string_seed(block, call_addr: int, reg_name: str, code: bytes) -> str 
     return None
 
 
-def _find_named_base_seed(block, call_addr: int, reg_name: str, code: bytes) -> str | None:
+def _find_named_base_seed(block: BasicBlock, call_addr: int, reg_name: str, code: bytes) -> str | None:
     name = _find_string_seed(block, call_addr, reg_name, code)
     if name is None or not _is_named_base_seed(name):
         return None
@@ -1707,8 +1764,8 @@ def _trace_app_return_store_offsets(blocks: dict[int, BasicBlock],
         if offset not in offsets:
             offsets.append(offset)
 
-    def _scan(instructions) -> None:
-        tracked = {result_reg}
+    def _scan(instructions: list[Instruction]) -> None:
+        tracked: set[str] = {result_reg}
         for inst in instructions:
             copied_to = None
             ikb, decoded = _decode_inst(inst)
@@ -1733,7 +1790,7 @@ def _trace_app_return_store_offsets(blocks: dict[int, BasicBlock],
     block = blocks.get(call.block)
     if block is None:
         return ()
-    after_call: list = []
+    after_call: list[Instruction] = []
     past_call = False
     for inst in block.instructions:
         if past_call:
@@ -1817,7 +1874,7 @@ def build_app_named_bases(blocks: dict[int, BasicBlock],
     return result
 
 
-def _find_app_slot_seed(block, call_addr: int, reg_name: str, base_reg: int) -> int | None:
+def _find_app_slot_seed(block: BasicBlock, call_addr: int, reg_name: str, base_reg: int) -> int | None:
     call_idx = None
     for i, inst in enumerate(block.instructions):
         if inst.offset == call_addr:
@@ -1985,7 +2042,7 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
         while worklist:
             block_addr = worklist.pop()
             block = blocks[block_addr]
-            current = {} if block_in[block_addr] is None else dict(block_in[block_addr])
+            current = dict(block_in[block_addr] or {})
             for inst in block.instructions:
                 facts_by_inst[inst.offset] = _region_facts(current)
 
@@ -2052,8 +2109,8 @@ class ResolvedLibraryCall:
     library: str
     function: str
     lvo: int
-    inputs: tuple[runtime_os.OsInput, ...]
-    output: runtime_os.OsOutput | None
+    inputs: tuple[OsInput, ...]
+    output: OsOutput | None
     no_return: bool
     os_since: str | None
     fd_version: str | None
@@ -2065,7 +2122,7 @@ class LvoLookup:
     by_lvo: dict[int, tuple[ResolvedLibraryCall, ...]]
 
 
-def _library_base_from_tag(tag) -> str | None:
+def _library_base_from_tag(tag: object) -> str | None:
     return tag.library_base if isinstance(tag, LibraryBaseTag) else None
 
 
@@ -2125,11 +2182,11 @@ def _resolve_lvo(lvo: int, library: str, lvo_lookup: LvoLookup) -> LibraryCall:
     )
 
 
-def _find_sub_entry(block_addr: int, blocks: dict,
+def _find_sub_entry(block_addr: int, blocks: Mapping[int, BasicBlock],
                     call_targets: set[int]) -> int | None:
     """Walk predecessors to find the containing subroutine entry."""
-    visited = set()
-    work = [block_addr]
+    visited: set[int] = set()
+    work: list[int] = [block_addr]
     while work:
         addr = work.pop()
         if addr in visited:
@@ -2143,10 +2200,10 @@ def _find_sub_entry(block_addr: int, blocks: dict,
     return None
 
 
-def identify_library_calls(blocks: dict[int, BasicBlock],
+def identify_library_calls(blocks: Mapping[int, BasicBlock],
                            code: bytes,
                            os_kb: OsKb,
-                           exit_states: dict[int, tuple],
+                           exit_states: Mapping[int, tuple[CpuStateLike, MemoryLike]],
                            call_targets: set[int],
                            platform: PlatformState,
                            ) -> list[LibraryCall]:
@@ -2181,11 +2238,11 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
     base_info = platform.app_base
     app_base = base_info.concrete if base_info else None
 
-    absw_enc = runtime_m68k_decode.EA_MODE_ENCODING["absw"]
-    disp_enc = runtime_m68k_decode.EA_MODE_ENCODING["disp"]
-    index_enc = runtime_m68k_decode.EA_MODE_ENCODING["index"]
+    absw_enc: list[int | None] = runtime_m68k_decode.EA_MODE_ENCODING["absw"]
+    disp_enc: list[int | None] = runtime_m68k_decode.EA_MODE_ENCODING["disp"]
+    index_enc: list[int | None] = runtime_m68k_decode.EA_MODE_ENCODING["index"]
     addr_mask = runtime_m68k_analysis.ADDR_MASK
-    brief_ext = runtime_m68k_decode.EA_BRIEF_FIELDS
+    brief_ext: dict[str, tuple[int, int, int]] = runtime_m68k_decode.EA_BRIEF_FIELDS
 
     movea_kb = find_kb_entry("movea")
     jsr_kb = find_kb_entry("jsr")
@@ -2194,9 +2251,9 @@ def identify_library_calls(blocks: dict[int, BasicBlock],
     if jsr_kb is None:
         raise KeyError("JSR not found in M68K KB")
 
-    movea_ea_spec = runtime_m68k_decode.EA_FIELD_SPECS.get(movea_kb)
-    movea_dst_spec = runtime_m68k_decode.DEST_REG_FIELD.get(movea_kb)
-    jsr_ea_spec = runtime_m68k_decode.EA_FIELD_SPECS.get(jsr_kb)
+    movea_ea_spec: tuple[tuple[int, int, int], tuple[int, int, int]] | None = runtime_m68k_decode.EA_FIELD_SPECS.get(movea_kb)
+    movea_dst_spec: tuple[int, int, int] | None = runtime_m68k_decode.DEST_REG_FIELD.get(movea_kb)
+    jsr_ea_spec: tuple[tuple[int, int, int], tuple[int, int, int]] | None = runtime_m68k_decode.EA_FIELD_SPECS.get(jsr_kb)
     if movea_ea_spec is None:
         raise KeyError("MOVEA encoding lacks MODE/REGISTER EA fields")
     if movea_dst_spec is None:

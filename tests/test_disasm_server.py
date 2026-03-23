@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import json
+from typing import cast
+
+from pytest import MonkeyPatch
 
 from disasm import server as disasm_server
 from disasm.types import ListingRow
 
 
-def test_route_projects_returns_project_list(monkeypatch):
+def test_route_projects_returns_project_list(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "list_projects",
                         lambda: [{"id": "bloodwych", "name": "bloodwych"}])
 
@@ -14,7 +19,7 @@ def test_route_projects_returns_project_list(monkeypatch):
     assert payload["data"] == [{"id": "bloodwych", "name": "bloodwych"}]
 
 
-def test_route_create_project(monkeypatch):
+def test_route_create_project(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "create_project",
@@ -22,12 +27,13 @@ def test_route_create_project(monkeypatch):
     )
 
     payload = disasm_server.route_request("POST", "/api/projects", {}, {"id": "demo"})
+    data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
-    assert payload["data"]["id"] == "demo"
+    assert data["id"] == "demo"
 
 
-def test_route_project_returns_project_and_session(monkeypatch):
+def test_route_project_returns_project_and_session(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -35,13 +41,15 @@ def test_route_project_returns_project_and_session(monkeypatch):
     )
 
     payload = disasm_server.route_request("GET", "/api/projects/bloodwych", {})
+    data = cast(dict[str, object], payload["data"])
+    project = cast(dict[str, object], data["project"])
 
     assert payload["ok"] is True
-    assert payload["data"]["project"]["name"] == "bloodwych"
-    assert "session" not in payload["data"]
+    assert project["name"] == "bloodwych"
+    assert "session" not in data
 
 
-def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch):
+def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -53,12 +61,13 @@ def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch):
         "/api/projects/demo/listing",
         {"addr": ["0x10"], "before": ["5"], "after": ["7"]},
     )
+    data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
-    assert payload["data"]["rows"] == []
+    assert data["rows"] == []
 
 
-def test_route_listing_raises_if_rows_not_loaded(monkeypatch):
+def test_route_listing_raises_if_rows_not_loaded(monkeypatch: MonkeyPatch) -> None:
     disasm_server._PROJECT_ROW_CACHE.clear()
     monkeypatch.setattr(
         disasm_server,
@@ -73,7 +82,7 @@ def test_route_listing_raises_if_rows_not_loaded(monkeypatch):
         raise AssertionError("expected unloaded canonical rows failure")
 
 
-def test_route_listing_returns_cached_window(monkeypatch):
+def test_route_listing_returns_cached_window(monkeypatch: MonkeyPatch) -> None:
     rows = [ListingRow(row_id="r0", kind="instruction", text="moveq #0,d0\n", addr=0x10)]
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
@@ -88,13 +97,15 @@ def test_route_listing_returns_cached_window(monkeypatch):
         "/api/projects/bloodwych/listing",
         {"addr": ["0x10"], "before": ["5"], "after": ["7"]},
     )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
 
     assert payload["ok"] is True
-    assert payload["data"]["anchor_addr"] == 0x10
-    assert payload["data"]["rows"][0]["row_id"] == "r0"
+    assert data["anchor_addr"] == 0x10
+    assert rows_data[0]["row_id"] == "r0"
 
 
-def test_route_listing_open_starts_job(monkeypatch):
+def test_route_listing_open_starts_job(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -111,12 +122,13 @@ def test_route_listing_open_starts_job(monkeypatch):
         "/api/projects/bloodwych/listing/open",
         {},
     )
+    data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
-    assert payload["data"]["job_id"] == "job-1"
+    assert data["job_id"] == "job-1"
 
 
-def test_route_listing_status_returns_job(monkeypatch):
+def test_route_listing_status_returns_job(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "_job_payload",
@@ -128,32 +140,33 @@ def test_route_listing_status_returns_job(monkeypatch):
         "/api/projects/bloodwych/listing/status",
         {"job_id": ["job-1"]},
     )
+    data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
-    assert payload["data"]["status"] == "building"
+    assert data["status"] == "building"
 
 
-def test_json_bytes_returns_valid_json():
+def test_json_bytes_returns_valid_json() -> None:
     body = disasm_server._json_bytes({"ok": True, "data": {"x": 1}})
 
     assert json.loads(body.decode("utf-8")) == {"ok": True, "data": {"x": 1}}
 
 
-def test_resolve_static_response_serves_index():
+def test_resolve_static_response_serves_index() -> None:
     content_type, body = disasm_server.resolve_static_response("/")
 
     assert content_type == "text/html; charset=utf-8"
     assert b"Disassembly Projects" in body
 
 
-def test_resolve_static_response_serves_project_route():
+def test_resolve_static_response_serves_project_route() -> None:
     content_type, body = disasm_server.resolve_static_response("/bloodwych")
 
     assert content_type == "text/html; charset=utf-8"
     assert b"Disassembly Projects" in body
 
 
-def test_resolve_static_response_rejects_missing_file():
+def test_resolve_static_response_rejects_missing_file() -> None:
     try:
         disasm_server.resolve_static_response("/missing.txt")
     except FileNotFoundError as exc:
@@ -162,18 +175,19 @@ def test_resolve_static_response_rejects_missing_file():
         raise AssertionError("expected missing static file error")
 
 
-def test_route_get_entity_returns_annotation_view(monkeypatch):
+def test_route_get_entity_returns_annotation_view(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "get_entity",
                         lambda project_name, addr: {"addr": addr, "name": "main"})
 
     payload = disasm_server.route_request(
         "GET", "/api/projects/bloodwych/entities/0x0000", {})
+    data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
-    assert payload["data"]["name"] == "main"
+    assert data["name"] == "main"
 
 
-def test_route_patch_entity_updates_annotations(monkeypatch):
+def test_route_patch_entity_updates_annotations(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server, "patch_entity",
         lambda project_name, addr, body: {"addr": addr, "name": body["name"]},
@@ -182,6 +196,7 @@ def test_route_patch_entity_updates_annotations(monkeypatch):
     payload = disasm_server.route_request(
         "PATCH", "/api/projects/bloodwych/entities/0x0000", {},
         {"name": "main"})
+    data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
-    assert payload["data"]["name"] == "main"
+    assert data["name"] == "main"

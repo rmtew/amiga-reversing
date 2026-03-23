@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from typing import TypeAlias
+from .runtime_types import AsmSizeEncoding
 
-AsmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None]
 class OperationType(StrEnum):
     ADD = 'add'
     ADD_DECIMAL = 'add_decimal'

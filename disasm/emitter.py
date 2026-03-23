@@ -10,13 +10,14 @@ from disasm.instruction_rows import (emit_data_rows, make_instruction_row,
                                      render_instruction_text)
 from disasm.jump_tables import emit_jump_table_rows
 from disasm.validation import is_valid_encoding, has_valid_branch_target
-from disasm.text import listing_window as _listing_window, render_rows
-from disasm.types import (BlockRowContext, DisassemblySession,
+from disasm.text import ListingWindow, listing_window as _listing_window, render_rows
+from disasm.types import (BlockRowContext, DisassemblySession, EntityRecord,
                           HeaderRowContext, HunkDisassemblySession, ListingRow)
 from disasm.session import build_disassembly_session
+from m68k.os_calls import AppBaseInfo
 
 
-def _app_slot_equ_value(base_info, offset: int) -> str:
+def _app_slot_equ_value(base_info: AppBaseInfo, offset: int) -> str:
     if base_info.kind.name == "ABSOLUTE":
         addr = (base_info.concrete + offset) & 0xFFFFFFFF
         return f"${addr:X}"
@@ -125,6 +126,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
 
     base_info = hunk_session.platform.app_base
     if hunk_session.app_offsets:
+        assert base_info is not None, "app_offsets present but platform.app_base is missing"
         if base_info.kind.name == "ABSOLUTE":
             comment = (
                 f"; App memory addresses (base register A{base_info.reg_num} "
@@ -151,7 +153,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
     ))
     rows.append(make_row("blank", "\n"))
 
-    def emit_label(addr: int):
+    def emit_label(addr: int) -> None:
         lbl = hunk_session.labels[addr]
         sources = hunk_session.jump_table_target_sources.get(addr)
         if sources:
@@ -171,7 +173,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             ))
 
     def emit_data(start: int, stop: int, entity_addr: int | None = None,
-                  verified_state: str = "verified"):
+                  verified_state: str = "verified") -> None:
         rows.extend(emit_data_rows(
             hunk_session.code, start, stop, hunk_session.labels,
             hunk_session.reloc_map, hunk_session.string_addrs,
@@ -186,10 +188,10 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             (hunk_session.reloc_base_addr, hunk_session.code_size),
         ]
 
-    entity_lookup = {
-        int(entity["addr"], 16): entity
-        for entity in hunk_session.entities
-    }
+    entity_lookup: dict[int, EntityRecord] = {}
+    for entity in hunk_session.entities:
+        raw_addr = entity["addr"]
+        entity_lookup[int(raw_addr, 16)] = entity
 
     for pass_idx, (pass_start, pass_end) in enumerate(emit_passes):
         if pass_idx == 1:
@@ -203,14 +205,21 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             if pos in hunk_session.labels:
                 emit_label(pos)
 
-            entity = entity_lookup.get(pos)
-            entity_addr = int(entity["addr"], 16) if entity else pos
+            current_entity: EntityRecord | None = entity_lookup.get(pos)
+            if current_entity is None:
+                entity_addr = pos
+            else:
+                raw_addr = current_entity["addr"]
+                entity_addr = int(raw_addr, 16)
 
             if pos in hunk_session.blocks:
                 blk = hunk_session.blocks[pos]
                 for inst in blk.instructions:
                     if inst.offset != pos and inst.offset in hunk_session.labels:
                         emit_label(inst.offset)
+                    if inst.kb_mnemonic is None or inst.operand_size is None:
+                        emit_data(inst.offset, inst.offset + inst.size, entity_addr)
+                        continue
                     if (not is_valid_encoding(inst.raw,
                                                inst.offset,
                                                inst.kb_mnemonic, inst.operand_size)
@@ -319,7 +328,7 @@ def build_listing_rows(binary_path: str, entities_path: str,
 def build_listing_window(binary_path: str, entities_path: str,
                          addr: int | None,
                          before: int = 80, after: int = 160,
-                         base_addr: int = 0, code_start: int = 0) -> dict:
+                         base_addr: int = 0, code_start: int = 0) -> ListingWindow:
     rows = build_listing_rows(binary_path, entities_path,
                               base_addr=base_addr, code_start=code_start)
     return _listing_window(rows, addr, before=before, after=after)

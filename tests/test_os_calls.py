@@ -5,6 +5,7 @@ from identified library calls.
 """
 
 import struct
+from collections.abc import Iterable, Mapping
 
 from m68k_kb import runtime_os
 from m68k.instruction_primitives import Operand
@@ -32,7 +33,8 @@ from m68k.os_structs import resolve_struct_field
 from tests.platform_helpers import make_platform
 
 
-def _prov_base(address_space, base_register, displacement):
+def _prov_base(address_space: MemoryRegionAddressSpace, base_register: str,
+               displacement: int) -> MemoryRegionProvenance:
     return MemoryRegionProvenance(
         address_space=address_space,
         derivation=MemoryRegionDerivation(
@@ -43,7 +45,7 @@ def _prov_base(address_space, base_register, displacement):
     )
 
 
-def _prov_ptr(base_register, displacement):
+def _prov_ptr(base_register: str, displacement: int) -> MemoryRegionProvenance:
     return MemoryRegionProvenance(
         address_space=MemoryRegionAddressSpace.REGISTER,
         derivation=MemoryRegionDerivation(
@@ -54,7 +56,7 @@ def _prov_ptr(base_register, displacement):
     )
 
 
-def _prov_named(named_base):
+def _prov_named(named_base: str) -> MemoryRegionProvenance:
     return MemoryRegionProvenance(
         address_space=MemoryRegionAddressSpace.REGISTER,
         derivation=MemoryRegionDerivation(
@@ -64,27 +66,34 @@ def _prov_named(named_base):
     )
 
 
-def _make_lib_call(addr, block, function, library="dos.library",
-                   lvo=-60, output=None, inputs=None):
+def _make_lib_call(addr: int, block: int, function: str, library: str = "dos.library",
+                   lvo: int = -60, output: Mapping[str, str | None] | None = None,
+                   inputs: Iterable[Mapping[str, str | None]] | None = None) -> LibraryCall:
     """Build a LibraryCall matching identify_library_calls output."""
     typed_output = None
     if output is not None:
+        output_name = output["name"]
+        output_reg = output["reg"]
+        assert output_name is not None
+        assert output_reg is not None
         typed_output = runtime_os.OsOutput(
-            name=output["name"],
-            reg=output["reg"],
+            name=output_name,
+            reg=output_reg,
             type=output.get("type"),
             i_struct=output.get("i_struct"),
         )
     typed_inputs = tuple(
         runtime_os.OsInput(
-            name=inp["name"],
-            reg=inp["reg"],
+            name=input_name,
+            reg=input_reg,
             type=inp.get("type"),
             i_struct=inp.get("i_struct"),
             semantic_kind=inp.get("semantic_kind"),
             semantic_note=inp.get("semantic_note"),
         )
         for inp in (inputs or ())
+        for input_name, input_reg in [(inp["name"], inp["reg"])]
+        if input_name is not None and input_reg is not None
     )
     return LibraryCall(
         addr=addr,
@@ -97,7 +106,7 @@ def _make_lib_call(addr, block, function, library="dos.library",
     )
 
 
-def _corrupt_instruction_texts(blocks):
+def _corrupt_instruction_texts(blocks: Mapping[int, BasicBlock]) -> None:
     for block in blocks.values():
         for inst in block.instructions:
             inst.text = "corrupted"
@@ -105,7 +114,7 @@ def _corrupt_instruction_texts(blocks):
 
 # -- Gap 1: Return value store tracing --------------------------------
 
-def test_return_store_to_app_memory():
+def test_return_store_to_app_memory() -> None:
     """D0 from library call stored to d(A6) -> names the app memory slot.
 
     Pattern:
@@ -144,7 +153,7 @@ def test_return_store_to_app_memory():
     assert info.name == "file"
 
 
-def test_return_store_multiple_calls():
+def test_return_store_multiple_calls() -> None:
     """Two different calls store to different app memory slots.
 
     Each call is in its own block (separated by branches).
@@ -203,7 +212,7 @@ def test_return_store_multiple_calls():
     assert 104 in stores and stores[104].function == "Input"
 
 
-def test_return_store_no_output():
+def test_return_store_no_output() -> None:
     """Call without output field produces no stores."""
     code = b''
     code += struct.pack('>HH', 0x6100, 0x0004)  # bsr.w $06
@@ -221,7 +230,7 @@ def test_return_store_no_output():
 
 # -- Gap 2: Argument annotation ---------------------------------------
 
-def test_annotate_argument_from_app_memory():
+def test_annotate_argument_from_app_memory() -> None:
     """Argument loaded from d(A6) before call gets annotation.
 
     Pattern:
@@ -260,7 +269,7 @@ def test_annotate_argument_from_app_memory():
     assert annotations[0x00].arg_name == "file"
 
 
-def test_analyze_call_setups_promotes_code_pointer_seed():
+def test_analyze_call_setups_promotes_code_pointer_seed() -> None:
     code = b""
     code += struct.pack(">HH", 0x4BFA, 0x0008)  # lea $0c(pc),a5
     code += struct.pack(">HH", 0x6100, 0x0008)  # bsr.w $0e
@@ -290,7 +299,7 @@ def test_analyze_call_setups_promotes_code_pointer_seed():
     assert setup.segment_code_symbols[0x0A] == "supervisor_userfunction"
 
 
-def test_analyze_call_setups_skips_non_literal_string_seed():
+def test_analyze_call_setups_skips_non_literal_string_seed() -> None:
     code = b""
     code += struct.pack(">HI", 0x223C, 0x0000000E)  # move.l #$0000000E,d1
     code += struct.pack(">HH", 0x6100, 0x0006)      # bsr.w $0c
@@ -320,7 +329,7 @@ def test_analyze_call_setups_skips_non_literal_string_seed():
     assert setup.segment_data_symbols == {}
 
 
-def test_annotate_multiple_arguments():
+def test_annotate_multiple_arguments() -> None:
     """Multiple argument registers get separate annotations."""
     sentinel = 0x80000002
     code = b''
@@ -358,7 +367,7 @@ def test_annotate_multiple_arguments():
     assert 0x08 in annotations  # D3 = length
 
 
-def test_open_device_annotates_iorequest_on_a1_not_flags():
+def test_open_device_annotates_iorequest_on_a1_not_flags() -> None:
     """LEA d(A6),A1 sets OpenDevice ioRequest, not D1 flags."""
     sentinel = 0x80000002
     code = b""
@@ -399,7 +408,7 @@ def test_open_device_annotates_iorequest_on_a1_not_flags():
     assert types[100].type == "struct IORequest *"
 
 
-def test_analyze_call_setups_tracks_zero_terminated_strptr_segment_range():
+def test_analyze_call_setups_tracks_zero_terminated_strptr_segment_range() -> None:
     code = b""
     code += struct.pack(">HH", 0x41FA, 0x0008)      # $00 lea $0A(pc),a0
     code += struct.pack(">HH", 0x6100, 0x0008)      # $04 bsr.w $0E
@@ -421,7 +430,7 @@ def test_analyze_call_setups_tracks_zero_terminated_strptr_segment_range():
     assert setup.string_ranges == {0x000A: 0x0015}
 
 
-def test_analyze_call_setups_tracks_internal_absolute_strptr_segment_range():
+def test_analyze_call_setups_tracks_internal_absolute_strptr_segment_range() -> None:
     code = b""
     code += struct.pack(">HI", 0x41F9, 0x0000000A)   # $00 lea $0000000A,a0
     code += struct.pack(">HH", 0x6100, 0x0008)       # $06 bsr.w $10
@@ -443,7 +452,7 @@ def test_analyze_call_setups_tracks_internal_absolute_strptr_segment_range():
     assert setup.string_ranges == {0x000A: 0x0015}
 
 
-def test_propagate_typed_memory_regions_tracks_struct_typed_register_and_resolves_nested_fields():
+def test_propagate_typed_memory_regions_tracks_struct_typed_register_and_resolves_nested_fields() -> None:
     sentinel = 0x80000002
     code = b""
     # $00: lea 100(a6),a1
@@ -537,7 +546,7 @@ def test_propagate_typed_memory_regions_tracks_struct_typed_register_and_resolve
     assert device.field.name == "IO_DEVICE"
 
 
-def test_propagate_typed_memory_regions_survives_past_call_fallthrough():
+def test_propagate_typed_memory_regions_survives_past_call_fallthrough() -> None:
     sentinel = 0x80000002
     code = b""
     # $00: lea 100(a6),a1
@@ -567,7 +576,7 @@ def test_propagate_typed_memory_regions_survives_past_call_fallthrough():
     assert types[0x08]["a1"].struct == "IO"
 
 
-def test_propagate_typed_memory_regions_loads_pointee_struct_from_field():
+def test_propagate_typed_memory_regions_loads_pointee_struct_from_field() -> None:
     sentinel = 0x80000002
     code = b""
     # $00: lea 100(a6),a1
@@ -603,7 +612,7 @@ def test_propagate_typed_memory_regions_loads_pointee_struct_from_field():
     )
 
 
-def test_propagate_typed_memory_regions_loads_reply_port_pointee_struct():
+def test_propagate_typed_memory_regions_loads_reply_port_pointee_struct() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)  # lea 100(a6),a1
@@ -630,7 +639,7 @@ def test_propagate_typed_memory_regions_loads_reply_port_pointee_struct():
     )
 
 
-def test_propagate_typed_memory_regions_loads_unit_pointee_struct():
+def test_propagate_typed_memory_regions_loads_unit_pointee_struct() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)  # lea 100(a6),a1
@@ -657,7 +666,7 @@ def test_propagate_typed_memory_regions_loads_unit_pointee_struct():
     )
 
 
-def test_propagate_typed_memory_regions_loads_pointee_from_static_full_extension_index():
+def test_propagate_typed_memory_regions_loads_pointee_from_static_full_extension_index() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)      # $00 lea 100(a6),a1
@@ -684,7 +693,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_static_full_extension
     )
 
 
-def test_propagate_typed_memory_regions_loads_pointee_from_brief_index_with_concrete_reg():
+def test_propagate_typed_memory_regions_loads_pointee_from_brief_index_with_concrete_reg() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)      # $00 lea 100(a6),a1
@@ -712,7 +721,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_brief_index_with_conc
     )
 
 
-def test_propagate_typed_memory_regions_loads_pointee_from_full_extension_index_with_concrete_reg():
+def test_propagate_typed_memory_regions_loads_pointee_from_full_extension_index_with_concrete_reg() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)      # $00 lea 100(a6),a1
@@ -740,7 +749,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_full_extension_index_
     )
 
 
-def test_propagate_typed_memory_regions_supports_pc_relative_storage():
+def test_propagate_typed_memory_regions_supports_pc_relative_storage() -> None:
     code = b""
     # $00: lea 8(pc),a1 -> target = $0A
     code += struct.pack(">HH", 0x43FA, 0x0008)
@@ -775,7 +784,7 @@ def test_propagate_typed_memory_regions_supports_pc_relative_storage():
     )
 
 
-def test_build_app_struct_regions_persists_open_device_iorequest_region():
+def test_build_app_struct_regions_persists_open_device_iorequest_region() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)  # lea 100(a6),a1
@@ -802,7 +811,7 @@ def test_build_app_struct_regions_persists_open_device_iorequest_region():
     }
 
 
-def test_build_app_pointer_regions_refines_openlibrary_slot_to_concrete_struct():
+def test_build_app_pointer_regions_refines_openlibrary_slot_to_concrete_struct() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43FA, 0x0018)      # $00 lea $1A(pc),a1
@@ -836,7 +845,7 @@ def test_build_app_pointer_regions_refines_openlibrary_slot_to_concrete_struct()
     }
 
 
-def test_propagate_typed_memory_regions_loads_concrete_named_base_from_app_slot():
+def test_propagate_typed_memory_regions_loads_concrete_named_base_from_app_slot() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43FA, 0x0018)      # $00 lea $1A(pc),a1
@@ -868,7 +877,7 @@ def test_propagate_typed_memory_regions_loads_concrete_named_base_from_app_slot(
     )
 
 
-def test_propagate_typed_memory_regions_uses_summary_produced_named_base_region():
+def test_propagate_typed_memory_regions_uses_summary_produced_named_base_region() -> None:
     code = b""
     code += struct.pack(">HH", 0x6100, 0x000A)      # $00 bsr.w $0C
     code += struct.pack(">HH", 0x2040, 0x2028)      # $04 movea.l d0,a0; move.l 58(a0),d0
@@ -901,7 +910,7 @@ def test_propagate_typed_memory_regions_uses_summary_produced_named_base_region(
     )
 
 
-def test_propagate_typed_memory_regions_uses_summary_field_pointer_transfer():
+def test_propagate_typed_memory_regions_uses_summary_field_pointer_transfer() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)      # $00 lea 100(a6),a1
@@ -931,7 +940,7 @@ def test_propagate_typed_memory_regions_uses_summary_field_pointer_transfer():
     )
 
 
-def test_propagate_typed_memory_regions_loads_pointee_from_app_region_access():
+def test_propagate_typed_memory_regions_loads_pointee_from_app_region_access() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)  # $00 lea 100(a6),a1
@@ -958,7 +967,7 @@ def test_propagate_typed_memory_regions_loads_pointee_from_app_region_access():
     )
 
 
-def test_build_app_named_bases_reads_constant_device_name():
+def test_build_app_named_bases_reads_constant_device_name() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x41FA, 0x000E)      # $00 lea $10(pc),a0
@@ -984,7 +993,7 @@ def test_build_app_named_bases_reads_constant_device_name():
     assert bases == {100: "timer.device"}
 
 
-def test_refine_opened_base_calls_resolves_timer_device_from_open_device_seed():
+def test_refine_opened_base_calls_resolves_timer_device_from_open_device_seed() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x41FA, 0x001C)      # $00 lea $1E(pc),a0
@@ -1021,7 +1030,7 @@ def test_refine_opened_base_calls_resolves_timer_device_from_open_device_seed():
     assert refined[1].lvo == -66
 
 
-def test_build_app_named_bases_reads_openlibrary_store_name():
+def test_build_app_named_bases_reads_openlibrary_store_name() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43FA, 0x0012)      # $00 lea $14(pc),a1
@@ -1049,7 +1058,7 @@ def test_build_app_named_bases_reads_openlibrary_store_name():
     assert bases == {100: "dos.library"}
 
 
-def test_build_app_slot_infos_infers_pointer_struct_for_openlibrary_store():
+def test_build_app_slot_infos_infers_pointer_struct_for_openlibrary_store() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43FA, 0x0010)      # $00 lea $12(pc),a1
@@ -1084,7 +1093,7 @@ def test_build_app_slot_infos_infers_pointer_struct_for_openlibrary_store():
     assert info.named_base == "dos.library"
 
 
-def test_refine_opened_base_calls_resolves_library_call_from_app_slot():
+def test_refine_opened_base_calls_resolves_library_call_from_app_slot() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43FA, 0x001C)      # $00 lea $1E(pc),a1
@@ -1121,7 +1130,7 @@ def test_refine_opened_base_calls_resolves_library_call_from_app_slot():
     assert refined[1].lvo == -48
 
 
-def test_refine_opened_base_calls_resolves_resource_call_from_app_slot():
+def test_refine_opened_base_calls_resolves_resource_call_from_app_slot() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43FA, 0x0016)      # $00 lea $18(pc),a1
@@ -1153,7 +1162,7 @@ def test_refine_opened_base_calls_resolves_resource_call_from_app_slot():
     assert refined[1].lvo == -6
 
 
-def test_propagate_typed_memory_regions_handles_movea_pointee_load_to_a6():
+def test_propagate_typed_memory_regions_handles_movea_pointee_load_to_a6() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43EE, 0x0064)      # $00 lea 100(a6),a1
@@ -1180,7 +1189,7 @@ def test_propagate_typed_memory_regions_handles_movea_pointee_load_to_a6():
     )
 
 
-def test_region_from_typed_address_keeps_struct_offset_for_direct_displacement():
+def test_region_from_typed_address_keeps_struct_offset_for_direct_displacement() -> None:
     current = {
         "a1": RegisterFact(region=TypedMemoryRegion(
             struct="MP",
@@ -1201,7 +1210,7 @@ def test_region_from_typed_address_keeps_struct_offset_for_direct_displacement()
     )
 
 
-def test_region_from_typed_address_loads_memory_indirect_preindexed_pointee():
+def test_region_from_typed_address_loads_memory_indirect_preindexed_pointee() -> None:
     current = {
         "a1": RegisterFact(region=TypedMemoryRegion(
             struct="IO",
@@ -1236,7 +1245,7 @@ def test_region_from_typed_address_loads_memory_indirect_preindexed_pointee():
     )
 
 
-def test_region_from_typed_address_loads_memory_indirect_postindexed_pointee_offset():
+def test_region_from_typed_address_loads_memory_indirect_postindexed_pointee_offset() -> None:
     current = {
         "a1": RegisterFact(region=TypedMemoryRegion(
             struct="IO",
@@ -1274,7 +1283,7 @@ def test_region_from_typed_address_loads_memory_indirect_postindexed_pointee_off
 
 # -- Gaps 3-6: Unified app memory type map ----------------------------
 
-def test_backward_type_names_app_slot():
+def test_backward_type_names_app_slot() -> None:
     """Gap 3: argument load from d(A6) names the app memory slot.
 
     Write(file=D1) where D1 loaded from 100(a6) -> offset 100 typed
@@ -1305,7 +1314,7 @@ def test_backward_type_names_app_slot():
     assert types[100].name == "file"
 
 
-def test_select_primary_app_memory_type_prefers_backward_usage():
+def test_select_primary_app_memory_type_prefers_backward_usage() -> None:
     forward = AppMemoryType(
         name="dest",
         function="GetSysTime",
@@ -1325,7 +1334,7 @@ def test_select_primary_app_memory_type_prefers_backward_usage():
     assert select_primary_app_memory_type((forward, backward)) == backward
 
 
-def test_forward_through_register_copy():
+def test_forward_through_register_copy() -> None:
     """Gap 4: return value flows through register copy to store.
 
     Output() returns D0, then move.l d0,d1; move.l d1,100(a6).
@@ -1360,7 +1369,7 @@ def test_forward_through_register_copy():
     assert types[100].function == "Output"
 
 
-def test_cross_sub_type_flow():
+def test_cross_sub_type_flow() -> None:
     """Gap 5: type flows through app memory across subroutines.
 
     Sub A: Output() -> store to 100(a6)
@@ -1405,7 +1414,7 @@ def test_cross_sub_type_flow():
         f"got {types}")
 
 
-def test_conditional_store_after_return():
+def test_conditional_store_after_return() -> None:
     """Gap 6: return value stored after conditional check.
 
     Output() -> tst.l d0 -> beq skip -> move.l d0,100(a6)

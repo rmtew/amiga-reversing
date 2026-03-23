@@ -16,9 +16,12 @@ import os
 import struct
 import sys
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import Any, Optional, cast
 
-sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+JsonDict = dict[str, Any]
 
 # ============================================================
 # Constants
@@ -75,13 +78,13 @@ M68K_PATTERNS = {
 # ============================================================
 
 def u32(data: bytes, offset: int) -> int:
-    return struct.unpack_from(">I", data, offset)[0]
+    return cast(int, struct.unpack_from(">I", data, offset)[0])
 
 def s32(data: bytes, offset: int) -> int:
-    return struct.unpack_from(">i", data, offset)[0]
+    return cast(int, struct.unpack_from(">i", data, offset)[0])
 
 def u16(data: bytes, offset: int) -> int:
-    return struct.unpack_from(">H", data, offset)[0]
+    return cast(int, struct.unpack_from(">H", data, offset)[0])
 
 def read_block(data: bytes, block_num: int) -> bytes:
     start = block_num * BSIZE
@@ -186,7 +189,7 @@ def shannon_entropy(data: bytes) -> float:
 # Boot block parsing
 # ============================================================
 
-def parse_boot_block(data: bytes) -> dict:
+def parse_boot_block(data: bytes) -> JsonDict:
     """Parse the 1024-byte bootblock (blocks 0-1)."""
     boot = data[:1024]
     magic = boot[:3]
@@ -205,7 +208,7 @@ def parse_boot_block(data: bytes) -> dict:
         fs_short, fs_desc = info
 
     # Scan bootcode for signatures
-    sigs = []
+    sigs: list[JsonDict] = []
     for pattern, name in SIGNATURES:
         idx = bootcode.find(pattern)
         if idx >= 0:
@@ -232,7 +235,7 @@ def parse_boot_block(data: bytes) -> dict:
 # AmigaDOS filesystem parsing
 # ============================================================
 
-def parse_root_block(data: bytes, block_num: int) -> dict:
+def parse_root_block(data: bytes, block_num: int) -> JsonDict:
     """Parse the root block."""
     block = read_block(data, block_num)
 
@@ -271,7 +274,7 @@ def parse_root_block(data: bytes, block_num: int) -> dict:
     }
 
 
-def parse_file_header(data: bytes, block_num: int) -> Optional[dict]:
+def parse_file_header(data: bytes, block_num: int) -> JsonDict | None:
     """Parse a file or directory header block."""
     block = read_block(data, block_num)
 
@@ -346,11 +349,11 @@ def parse_file_header(data: bytes, block_num: int) -> Optional[dict]:
     }
 
 
-def walk_directory(data: bytes, hash_table: list, parent_path: str,
-                   total_sectors: int) -> list:
+def walk_directory(data: bytes, hash_table: list[int], parent_path: str,
+                   total_sectors: int) -> list[JsonDict]:
     """Recursively walk an AmigaDOS directory tree."""
-    entries = []
-    visited = set()
+    entries: list[JsonDict] = []
+    visited: set[int] = set()
 
     for slot_ptr in hash_table:
         block_num = slot_ptr
@@ -377,9 +380,9 @@ def walk_directory(data: bytes, hash_table: list, parent_path: str,
     return entries
 
 
-def parse_bitmap(data: bytes, bm_pages: list, total_sectors: int) -> dict:
+def parse_bitmap(data: bytes, bm_pages: list[int], total_sectors: int) -> JsonDict:
     """Parse bitmap blocks to get free/allocated block map."""
-    block_map = [None] * total_sectors  # None = unknown
+    block_map: list[bool | None] = [None] * total_sectors
     # Blocks 0-1 always allocated (bootblock)
     block_map[0] = False
     block_map[1] = False
@@ -419,10 +422,10 @@ def parse_bitmap(data: bytes, bm_pages: list, total_sectors: int) -> dict:
 # ============================================================
 
 def build_block_usage(total_sectors: int, root_block_num: int,
-                      bm_pages: list, files: list,
-                      bitmap_map: list) -> dict:
+                      bm_pages: list[int], files: list[JsonDict],
+                      bitmap_map: list[bool | None]) -> JsonDict:
     """Build a map of what each block is used for."""
-    usage = ["unknown"] * total_sectors
+    usage: list[str] = ["unknown"] * total_sectors
     owner = [""] * total_sectors
 
     # Boot
@@ -440,23 +443,24 @@ def build_block_usage(total_sectors: int, root_block_num: int,
     # Files and directories
     for f in files:
         bn = f["block_num"]
+        owner_name = cast(str, f.get("full_path", f["name"]))
         if 0 <= bn < total_sectors:
             usage[bn] = "dir_header" if f["is_directory"] else "file_header"
-            owner[bn] = f.get("full_path", f["name"])
+            owner[bn] = owner_name
 
         for db in f.get("data_blocks", []):
             if 0 <= db < total_sectors:
                 usage[db] = "data"
-                owner[db] = f.get("full_path", f["name"])
+                owner[db] = owner_name
 
         for eb in f.get("extension_blocks", []):
             if 0 <= eb < total_sectors:
                 usage[eb] = "extension"
-                owner[eb] = f.get("full_path", f["name"])
+                owner[eb] = owner_name
 
     # Cross-ref with bitmap
-    orphan_blocks = []
-    free_with_data_blocks = []
+    orphan_blocks: list[int] = []
+    free_with_data_blocks: list[int] = []
     for i in range(total_sectors):
         if bitmap_map and i < len(bitmap_map):
             if bitmap_map[i] is True and usage[i] == "unknown":
@@ -466,7 +470,7 @@ def build_block_usage(total_sectors: int, root_block_num: int,
                 orphan_blocks.append(i)
 
     # Summary by usage type
-    summary = {}
+    summary: dict[str, int] = {}
     for u in usage:
         summary[u] = summary.get(u, 0) + 1
 
@@ -482,9 +486,9 @@ def build_block_usage(total_sectors: int, root_block_num: int,
 # Signature detection
 # ============================================================
 
-_lvo_cache = None
+_lvo_cache: dict[int, str] | None = None
 
-def _load_lvo_names() -> dict:
+def _load_lvo_names() -> dict[int, str]:
     """Load exec.library LVO→name map from OS reference."""
     global _lvo_cache
     if _lvo_cache is not None:
@@ -506,10 +510,10 @@ def _load_lvo_names() -> dict:
     return _lvo_cache
 
 
-def detect_signatures(data: bytes, total_sectors: int) -> list:
+def detect_signatures(data: bytes, total_sectors: int) -> list[JsonDict]:
     """Scan entire disk for known byte patterns."""
-    results = []
-    seen = set()
+    results: list[JsonDict] = []
+    seen: set[tuple[str, int, int]] = set()
 
     for block_num in range(total_sectors):
         block = read_block(data, block_num)
@@ -522,7 +526,7 @@ def detect_signatures(data: bytes, total_sectors: int) -> list:
                 key = (name, block_num, idx)
                 if key not in seen:
                     seen.add(key)
-                    detail = {}
+                    detail: JsonDict = {}
                     if name == "IFF_FORM":
                         # Try to read FORM type
                         form_size = u32(block, idx + 4) if idx + 8 <= len(block) else 0
@@ -561,10 +565,10 @@ def detect_signatures(data: bytes, total_sectors: int) -> list:
 # Non-DOS / track analysis
 # ============================================================
 
-def scan_ascii_strings(data: bytes, min_length: int = 4) -> list:
+def scan_ascii_strings(data: bytes, min_length: int = 4) -> list[JsonDict]:
     """Find printable ASCII runs."""
-    strings = []
-    current = []
+    strings: list[JsonDict] = []
+    current: list[str] = []
     start = 0
     for i, b in enumerate(data):
         if 0x20 <= b <= 0x7E:
@@ -580,7 +584,7 @@ def scan_ascii_strings(data: bytes, min_length: int = 4) -> list:
     return strings
 
 
-def analyze_track(data: bytes, track_num: int, sectors_per_track: int) -> dict:
+def analyze_track(data: bytes, track_num: int, sectors_per_track: int) -> JsonDict:
     """Analyze a single track for patterns."""
     first_block = track_num * sectors_per_track
     track_data = data[first_block * BSIZE:(first_block + sectors_per_track) * BSIZE]
@@ -592,7 +596,7 @@ def analyze_track(data: bytes, track_num: int, sectors_per_track: int) -> dict:
     entropy = round(shannon_entropy(track_data), 2)
 
     # M68K code detection
-    m68k_hits = []
+    m68k_hits: list[JsonDict] = []
     for off in range(0, len(track_data) - 1, 2):
         word = u16(track_data, off)
         if word in M68K_PATTERNS:
@@ -602,7 +606,7 @@ def analyze_track(data: bytes, track_num: int, sectors_per_track: int) -> dict:
     ascii_strings = scan_ascii_strings(track_data, 6)
 
     # Signatures
-    sigs = []
+    sigs: list[JsonDict] = []
     for pattern, name in SIGNATURES:
         idx = track_data.find(pattern)
         if idx >= 0:
@@ -626,7 +630,7 @@ def analyze_track(data: bytes, track_num: int, sectors_per_track: int) -> dict:
 # File extraction
 # ============================================================
 
-def extract_file(data: bytes, entry: dict, output_dir: str, is_ffs: bool):
+def extract_file(data: bytes, entry: JsonDict, output_dir: str, is_ffs: bool) -> None:
     """Extract a single file from the disk image."""
     if entry["is_directory"]:
         dir_path = os.path.join(output_dir, entry["full_path"])
@@ -659,11 +663,11 @@ def extract_file(data: bytes, entry: dict, output_dir: str, is_ffs: bool):
 # Main analysis
 # ============================================================
 
-def analyze_adf(adf_path: str, extract_dir: str = None,
-                include_tracks: bool = False, verbose: bool = False) -> dict:
+def analyze_adf(adf_path: str, extract_dir: str | None = None,
+                include_tracks: bool = False, verbose: bool = False) -> JsonDict:
     """Main analysis function."""
-    with open(adf_path, "rb") as f:
-        data = f.read()
+    with open(adf_path, "rb") as infile:
+        data = infile.read()
 
     file_size = len(data)
 
@@ -700,7 +704,7 @@ def analyze_adf(adf_path: str, extract_dir: str = None,
         dtype = boot["fs_description"] if is_dos else "Non-DOS"
         print(f"  Type: {dtype}, checksum {'OK' if boot['checksum_valid'] else 'FAIL'}", file=sys.stderr)
 
-    result = {
+    result: JsonDict = {
         "disk_info": {
             "path": os.path.basename(adf_path),
             "size": file_size,
@@ -812,7 +816,7 @@ def analyze_adf(adf_path: str, extract_dir: str = None,
     if include_tracks:
         if verbose:
             print("  Scanning tracks...", file=sys.stderr)
-        tracks = []
+        tracks: list[JsonDict] = []
         total_tracks = total_sectors // sectors_per_track
         for t in range(total_tracks):
             ta = analyze_track(data, t, sectors_per_track)
@@ -835,7 +839,7 @@ def analyze_adf(adf_path: str, extract_dir: str = None,
     other_sigs = [s for s in sigs if s["type"] != "OS_call"]
 
     # Deduplicate OS calls by LVO
-    lvo_counts = {}
+    lvo_counts: dict[int, int] = {}
     for s in os_calls:
         lvo = s["lvo"]
         lvo_counts[lvo] = lvo_counts.get(lvo, 0) + 1
@@ -844,7 +848,7 @@ def analyze_adf(adf_path: str, extract_dir: str = None,
     if lvo_counts:
         # Try to resolve LVO names from OS reference
         lvo_names = _load_lvo_names()
-        resolved = {}
+        resolved: JsonDict = {}
         for lvo, count in sorted(lvo_counts.items()):
             name = lvo_names.get(lvo, f"LVO_{-lvo}")
             resolved[str(lvo)] = {"count": count, "exec": name}
@@ -857,7 +861,7 @@ def analyze_adf(adf_path: str, extract_dir: str = None,
 # Output formatting
 # ============================================================
 
-def print_summary(result: dict):
+def print_summary(result: JsonDict) -> None:
     """Print human-readable summary."""
     info = result["disk_info"]
     boot = result["boot_block"]
@@ -934,7 +938,7 @@ def print_summary(result: dict):
 # CLI
 # ============================================================
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Analyze Amiga ADF disk images"
     )

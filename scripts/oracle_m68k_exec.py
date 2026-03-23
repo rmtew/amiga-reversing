@@ -21,8 +21,9 @@ import json
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, cast
 
-from machine68k import CPUType, Machine, Register
+from machine68k import CPUType, Machine, Register  # type: ignore[import-not-found]
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJ_ROOT))
@@ -33,21 +34,40 @@ from m68k.m68k_disasm import disassemble as disasm_bytes
 from m68k.m68k_compute import (predict_cc, predict_sp, _size_mask, _to_signed,
                                _size_from_bits, _RULE_HANDLERS, _compute_result,
                                evaluate_cc_test)
+from m68k_kb.runtime_types import ComputeInstructionRecord, MnemonicInstructionRecord
 
 
 # ── KB loader ─────────────────────────────────────────────────────────────
 
-def _load_kb():
+JsonDict = dict[str, Any]
+CpuCapture = dict[str, Any]
+FormInfo = tuple[str, int | None, int | None]
+DiscoveryItem = tuple[str, JsonDict]
+CcDiscoveryItem = tuple[str, JsonDict, FormInfo]
+RegisterDiscoveryItem = tuple[str, JsonDict, str]
+SetupFn = Any
+VerifyFn = Any
+
+
+def _load_kb() -> tuple[dict[str, JsonDict], list[JsonDict], JsonDict]:
     with open(KNOWLEDGE, encoding="utf-8") as f:
         data = json.load(f)
-    instructions = data.get("instructions", [])
+    instructions = cast(list[JsonDict], data.get("instructions", []))
     meta = data.get("_meta", {})
     return {inst["mnemonic"]: inst for inst in instructions}, instructions, meta
+
+
+def _compute_inst(inst: JsonDict) -> ComputeInstructionRecord:
+    return cast(ComputeInstructionRecord, inst)
+
+
+def _mnemonic_inst(inst: JsonDict) -> MnemonicInstructionRecord:
+    return cast(MnemonicInstructionRecord, inst)
 
 KB, KB_LIST, KB_META = _load_kb()
 
 
-def _instr_size(code_bytes):
+def _instr_size(code_bytes: bytes) -> int:
     """Get actual instruction size from assembled bytes using disassembler.
 
     Raises RuntimeError if disassembly fails — no silent fallback to
@@ -56,7 +76,7 @@ def _instr_size(code_bytes):
     instrs = disasm_bytes(code_bytes)
     if not instrs:
         raise RuntimeError(f"Disassembler returned no instructions for {code_bytes.hex()}")
-    return instrs[0].size
+    return int(instrs[0].size)
 
 
 # ── Machine68k wrapper ───────────────────────────────────────────────────
@@ -92,7 +112,7 @@ if _size_byte_count is None:
     raise RuntimeError("KB _meta missing size_byte_count — regenerate KB")
 
 
-def _mem_write(mem, addr, value, size_bytes):
+def _mem_write(mem: Any, addr: int, value: int, size_bytes: int) -> None:
     """Write a value to memory at the given size (1/2/4 bytes)."""
     if size_bytes == 1:
         mem.w8(addr, value & 0xFF)
@@ -102,7 +122,7 @@ def _mem_write(mem, addr, value, size_bytes):
         mem.w32(addr, value & 0xFFFFFFFF)
 
 
-def make_machine():
+def make_machine() -> Any:
     """Create a fresh machine68k instance with 64KiB RAM."""
     m = Machine(CPUType.M68000, 64)
     mem = m.mem
@@ -117,7 +137,7 @@ def make_machine():
 _CCR_MASK = CCR_C | CCR_V | CCR_Z | CCR_N | CCR_X
 
 
-def set_ccr(cpu, x=0, n=0, z=0, v=0, c=0):
+def set_ccr(cpu: Any, x: int = 0, n: int = 0, z: int = 0, v: int = 0, c: int = 0) -> None:
     """Set CCR flags in SR (preserve supervisor bits)."""
     sr = cpu.r_sr()
     sr &= ~_CCR_MASK & 0xFFFF  # clear CCR bits
@@ -129,7 +149,7 @@ def set_ccr(cpu, x=0, n=0, z=0, v=0, c=0):
     cpu.w_sr(sr)
 
 
-def read_ccr(cpu):
+def read_ccr(cpu: Any) -> dict[str, int]:
     """Read CCR flags from SR, return dict."""
     sr = cpu.r_sr()
     return {
@@ -141,7 +161,7 @@ def read_ccr(cpu):
     }
 
 
-def _reset_cpu(machine):
+def _reset_cpu(machine: Any) -> None:
     """Reset CPU to clean state."""
     cpu = machine.cpu
     for r in DATA_REGS:
@@ -152,7 +172,7 @@ def _reset_cpu(machine):
     set_ccr(cpu, x=0, n=0, z=0, v=0, c=0)
 
 
-def load_and_execute(machine, code_bytes):
+def load_and_execute(machine: Any, code_bytes: bytes) -> CpuCapture:
     """Load code at CODE_ADDR, execute one instruction, return new state.
 
     Uses instruction hook to capture state right after the test instruction
@@ -172,10 +192,10 @@ def load_and_execute(machine, code_bytes):
     # Capture state on the SECOND instruction hook call.
     # First call = about to execute test instruction (PC = CODE_ADDR).
     # Second call = test instruction done, about to execute next (state we want).
-    captured = {}
+    captured: CpuCapture = {}
     call_count = [0]
 
-    def on_instr(pc):
+    def on_instr(pc: int) -> None:
         call_count[0] += 1
         if call_count[0] == 2 and not captured:
             captured["pc"] = cpu.r_pc()
@@ -251,22 +271,22 @@ _TESTABLE_OP_TYPES = {inst.get("operation_type") for inst in KB_LIST
                       if inst.get("compute_formula")} - {None}
 
 
-def _has_nontrivial_cc(inst):
+def _has_nontrivial_cc(inst: JsonDict) -> bool:
     """Return True if instruction affects CC flags (not all unchanged/undefined)."""
     cc_sem = inst.get("cc_semantics", {})
-    rules = {v.get("rule") for v in cc_sem.values()}
+    rules = {cast(JsonDict, v).get("rule") for v in cast(JsonDict, cc_sem).values()}
     return bool(rules - {"unchanged", "undefined"})
 
 
-def _cc_rules_are_supported(inst):
+def _cc_rules_are_supported(inst: JsonDict) -> bool:
     """Return True if all CC rules for this instruction are in _RULE_HANDLERS.
 
     Raises RuntimeError if a flag_spec exists but has no 'rule' key —
     this indicates incomplete KB data that should be fixed upstream.
     """
-    cc_sem = inst.get("cc_semantics", {})
+    cc_sem = cast(JsonDict, inst.get("cc_semantics", {}))
     for flag, flag_spec in cc_sem.items():
-        rule = flag_spec.get("rule")
+        rule = cast(JsonDict, flag_spec).get("rule")
         if rule is None:
             raise RuntimeError(
                 f"{inst['mnemonic']}: flag {flag} has cc_semantics entry "
@@ -276,7 +296,7 @@ def _cc_rules_are_supported(inst):
     return True
 
 
-def _derive_form_type(inst):
+def _derive_form_type(inst: JsonDict) -> FormInfo | None:
     """Derive test form type from KB instruction forms and ea_modes.
 
     Returns (form_type, src_reg, dst_reg) or None.
@@ -287,11 +307,11 @@ def _derive_form_type(inst):
       "postinc_postinc"  — (An)+,(An)+ memory compare (CMPM)
       "dn_an"            — Dn,An (source=data reg, dest=addr reg)
     """
-    ea_modes = inst.get("ea_modes", {})
-    for form in inst.get("forms", []):
+    ea_modes = cast(JsonDict, inst.get("ea_modes", {}))
+    for form in cast(list[JsonDict], inst.get("forms", [])):
         if form.get("processor_020"):
             continue
-        ops = [o["type"] for o in form.get("operands", [])]
+        ops = [str(o["type"]) for o in cast(list[JsonDict], form.get("operands", []))]
 
         if ops == ["dn", "dn"]:
             return ("two_op", 0, 1)
@@ -300,39 +320,39 @@ def _derive_form_type(inst):
             return ("postinc_postinc", 0, 1)
         if ops == ["ea", "an"]:
             # Source from EA, dest is address register
-            src_modes = ea_modes.get("src", ea_modes.get("ea", []))
+            src_modes = cast(list[str], ea_modes.get("src", ea_modes.get("ea", [])))
             if "dn" in src_modes:
                 return ("dn_an", 0, 1)
         if ops == ["ea", "dn"]:
-            src_modes = ea_modes.get("src", ea_modes.get("ea", []))
+            src_modes = cast(list[str], ea_modes.get("src", ea_modes.get("ea", [])))
             if "dn" in src_modes:
                 return ("two_op", 0, 1)
         if ops == ["dn", "ea"]:
-            dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
+            dst_modes = cast(list[str], ea_modes.get("dst", ea_modes.get("ea", [])))
             if "dn" in dst_modes:
                 return ("two_op", 0, 1)
         if ops == ["ea", "ea"]:
-            src_modes = ea_modes.get("src", ea_modes.get("ea", []))
-            dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
+            src_modes = cast(list[str], ea_modes.get("src", ea_modes.get("ea", [])))
+            dst_modes = cast(list[str], ea_modes.get("dst", ea_modes.get("ea", [])))
             if "dn" in src_modes and "dn" in dst_modes:
                 return ("two_op", 0, 1)
         if ops == ["imm", "dn"]:
             return ("imm_dn", None, 1)
         if ops == ["imm", "ea"]:
-            dst_modes = ea_modes.get("dst", ea_modes.get("ea", []))
+            dst_modes = cast(list[str], ea_modes.get("dst", ea_modes.get("ea", [])))
             if "dn" in dst_modes:
                 return ("imm_dn", None, 1)
         if ops == ["dn"]:
             return ("single_op", None, 1)
         if ops == ["ea"]:
-            all_modes = ea_modes.get("ea", ea_modes.get("dst", ea_modes.get("src", [])))
+            all_modes = cast(list[str], ea_modes.get("ea", ea_modes.get("dst", ea_modes.get("src", []))))
             if "dn" in all_modes:
                 return ("single_op", None, 1)
 
     return None
 
 
-def discover_cc_testable_instructions():
+def discover_cc_testable_instructions() -> list[CcDiscoveryItem]:
     """Scan KB for instructions testable with register-to-register CC verification.
 
     An instruction is testable if:
@@ -345,7 +365,7 @@ def discover_cc_testable_instructions():
 
     Returns list of (mnemonic, inst, form_info) tuples.
     """
-    testable = []
+    testable: list[CcDiscoveryItem] = []
     for inst in KB_LIST:
         mnemonic = inst["mnemonic"]
         proc = inst.get("processor_min", "68000")
@@ -368,24 +388,26 @@ def discover_cc_testable_instructions():
     return testable
 
 
-def discover_sp_testable_instructions():
+def discover_sp_testable_instructions() -> list[DiscoveryItem]:
     """Scan KB for instructions with sp_effects that we can test.
 
     Returns list of (mnemonic, inst) tuples for instructions with non-empty
     sp_effects that are 68000 and have forms we can assemble.
     """
-    testable = []
+    testable: list[DiscoveryItem] = []
     for inst in KB_LIST:
         mnemonic = inst["mnemonic"]
         proc = inst.get("processor_min", "68000")
         if proc != "68000":
             continue
-        sp_effects = inst.get("sp_effects", [])
+        sp_effects = cast(list[JsonDict], inst.get("sp_effects", []))
         # Also include MOVEM-type instructions: no fixed sp_effects but
         # ea_modes include predec/postinc, which affect SP when used with A7.
         # Detected by reglist operand type in forms.
-        has_reglist = any("reglist" in [o["type"] for o in f.get("operands", [])]
-                         for f in inst.get("forms", []))
+        has_reglist = any(
+            "reglist" in [str(o["type"]) for o in cast(list[JsonDict], f.get("operands", []))]
+            for f in cast(list[JsonDict], inst.get("forms", []))
+        )
         if not sp_effects and not has_reglist:
             continue
         if inst.get("effects", {}).get("privileged"):
@@ -394,13 +416,13 @@ def discover_sp_testable_instructions():
     return testable
 
 
-def discover_ccr_op_testable_instructions():
+def discover_ccr_op_testable_instructions() -> list[DiscoveryItem]:
     """Scan KB for CCR/SR manipulation instructions testable for CC verification.
 
     These have operation_type 'ccr_op' or 'sr_op' and directly manipulate
     CCR flags via immediate or source operand bits.
     """
-    testable = []
+    testable: list[DiscoveryItem] = []
     for inst in KB_LIST:
         mnemonic = inst["mnemonic"]
         proc = inst.get("processor_min", "68000")
@@ -431,7 +453,7 @@ CCR_OP_IMM_VALUES = [
 ]
 
 
-def generate_ccr_op_tests(inst, tmpdir):
+def generate_ccr_op_tests(inst: JsonDict, tmpdir: str) -> Any:
     """Generate CC tests for CCR/SR manipulation instructions.
 
     These instructions take an immediate (or EA source for MOVE to CCR)
@@ -442,10 +464,10 @@ def generate_ccr_op_tests(inst, tmpdir):
     mnemonic = inst["mnemonic"]
     op_type = inst.get("operation_type")
 
-    for form in inst.get("forms", []):
+    for form in cast(list[JsonDict], inst.get("forms", [])):
         if form.get("processor_020"):
             continue
-        ops = [o["type"] for o in form.get("operands", [])]
+        ops = [str(o["type"]) for o in cast(list[JsonDict], form.get("operands", []))]
 
         if ops == ["imm", "ccr"]:
             # ANDI/ORI/EORI to CCR: e.g. "andi #$1F,ccr"
@@ -482,8 +504,8 @@ def generate_ccr_op_tests(inst, tmpdir):
 
         elif ops == ["ea", "ccr"]:
             # MOVE to CCR: source from EA — use Dn
-            ea_modes = inst.get("ea_modes", {})
-            src_modes = ea_modes.get("src", ea_modes.get("ea", []))
+            ea_modes = cast(JsonDict, inst.get("ea_modes", {}))
+            src_modes = cast(list[str], ea_modes.get("src", ea_modes.get("ea", [])))
             if "dn" not in src_modes:
                 continue
             for imm_val in CCR_OP_IMM_VALUES:
@@ -520,7 +542,7 @@ EXG_TEST_VALUES = [
 ]
 
 
-def discover_register_testable_instructions():
+def discover_register_testable_instructions() -> list[RegisterDiscoveryItem]:
     """Scan KB for instructions where register/PC results can be verified.
 
     Returns list of (mnemonic, inst, test_category) tuples.
@@ -534,7 +556,7 @@ def discover_register_testable_instructions():
       "movep"        — byte-striped register↔memory (MOVEP)
       "chk"          — bounds check, non-trapping path (CHK)
     """
-    testable = []
+    testable: list[RegisterDiscoveryItem] = []
     for inst in KB_LIST:
         mnemonic = inst["mnemonic"]
         proc = inst.get("processor_min", "68000")
@@ -542,21 +564,21 @@ def discover_register_testable_instructions():
             continue
         op_type = inst.get("operation_type", "")
         has_formula = inst.get("compute_formula") is not None
-        cc_sem = inst.get("cc_semantics", {})
-        rules = {v.get("rule") for v in cc_sem.values()}
+        cc_sem = cast(JsonDict, inst.get("cc_semantics", {}))
+        rules = {cast(JsonDict, v).get("rule") for v in cc_sem.values()}
         has_cc = bool(rules - {"unchanged", "undefined"})
         priv = inst.get("effects", {}).get("privileged", False)
         if priv:
             continue
-        forms = []
-        for f in inst.get("forms", []):
+        forms: list[list[str]] = []
+        for f in cast(list[JsonDict], inst.get("forms", [])):
             if not f.get("processor_020"):
-                forms.append([o["type"] for o in f.get("operands", [])])
-        ea_modes = inst.get("ea_modes", {})
+                forms.append([str(o["type"]) for o in cast(list[JsonDict], f.get("operands", []))])
+        ea_modes = cast(JsonDict, inst.get("ea_modes", {}))
 
         # An-destination: formula + [ea,an] + no CC + dn in src
         if has_formula and not has_cc and ["ea", "an"] in forms:
-            src_modes = ea_modes.get("src", ea_modes.get("ea", []))
+            src_modes = cast(list[str], ea_modes.get("src", ea_modes.get("ea", [])))
             if "dn" in src_modes and mnemonic in ("ADDA", "SUBA", "MOVEA"):
                 testable.append((mnemonic, inst, "an_dest"))
                 continue
@@ -583,8 +605,8 @@ def discover_register_testable_instructions():
             continue
 
         # BRA/JMP: unconditional flow
-        pc_effects = inst.get("pc_effects", {})
-        flow = pc_effects.get("flow", {})
+        pc_effects = cast(JsonDict, inst.get("pc_effects", {}))
+        flow = cast(JsonDict, pc_effects.get("flow", {}))
         if mnemonic == "BRA" and flow.get("type") == "branch" and not flow.get("conditional"):
             testable.append((mnemonic, inst, "branch"))
             continue
@@ -605,7 +627,7 @@ def discover_register_testable_instructions():
     return testable
 
 
-def generate_register_tests(mnemonic, inst, category, tmpdir):
+def generate_register_tests(mnemonic: str, inst: JsonDict, category: str, tmpdir: str) -> Any:
     """Generate register/flow verification tests for non-CC instructions.
 
     Yields (desc, code_bytes, setup_fn, verify_fn) tuples.
@@ -630,7 +652,7 @@ def generate_register_tests(mnemonic, inst, category, tmpdir):
         yield from _gen_chk_tests(inst, tmpdir)
 
 
-def _gen_an_dest_tests(mnemonic, inst, tmpdir):
+def _gen_an_dest_tests(mnemonic: str, inst: JsonDict, tmpdir: str) -> Any:
     """ADDA/SUBA/MOVEA Dn,An — verify An result via compute_formula.
 
     KB field 'source_sign_extend' (from PDF description) indicates .W source
@@ -655,18 +677,18 @@ def _gen_an_dest_tests(mnemonic, inst, tmpdir):
                 src_ext = _to_signed(src_masked, sz)
                 src_ext &= (1 << result_bits) - 1
                 _, predicted = _compute_result(
-                    inst, src_ext, dst_val & 0xFFFFFFFF,
+                    _compute_inst(inst), src_ext, dst_val & 0xFFFFFFFF,
                     (1 << result_bits) - 1, result_bits, {})
             else:
                 _, predicted = _compute_result(
-                    inst, src_val & mask, dst_val & mask, mask, bits, {})
+                    _compute_inst(inst), src_val & mask, dst_val & mask, mask, bits, {})
             desc = f"{mnemonic}.{sz} {val_desc}"
 
-            def setup(cpu, mem, _sv=src_val, _dv=dst_val):
+            def setup(cpu: Any, mem: Any, _sv: int = src_val, _dv: int = dst_val) -> None:
                 cpu.w_reg(DATA_REGS[0], _sv & 0xFFFFFFFF)
                 cpu.w_reg(ADDR_REGS[1], _dv & 0xFFFFFFFF)
 
-            def verify(cap, _pred=predicted):
+            def verify(cap: CpuCapture, _pred: int = predicted) -> tuple[bool, list[str]]:
                 a1 = cap["a"][1]
                 if a1 != _pred:
                     return False, [f"A1: pred=0x{_pred:08x} actual=0x{a1:08x}"]
@@ -675,16 +697,16 @@ def _gen_an_dest_tests(mnemonic, inst, tmpdir):
             yield (desc, code_bytes, setup, verify)
 
 
-def _gen_exg_tests(inst, tmpdir):
+def _gen_exg_tests(inst: JsonDict, tmpdir: str) -> Any:
     """EXG — verify registers are swapped (KB operation_type=swap)."""
     for val_a, val_b, val_desc in EXG_TEST_VALUES:
         # EXG Dx,Dy
         code = assemble("exg d0,d1", tmpdir)
         if code:
-            def setup_dd(cpu, mem, _a=val_a, _b=val_b):
+            def setup_dd(cpu: Any, mem: Any, _a: int = val_a, _b: int = val_b) -> None:
                 cpu.w_reg(DATA_REGS[0], _a)
                 cpu.w_reg(DATA_REGS[1], _b)
-            def verify_dd(cap, _a=val_a, _b=val_b):
+            def verify_dd(cap: CpuCapture, _a: int = val_a, _b: int = val_b) -> tuple[bool, list[str]]:
                 ok, details = True, []
                 if cap["d"][0] != _b:
                     ok = False
@@ -698,10 +720,10 @@ def _gen_exg_tests(inst, tmpdir):
         # EXG Ax,Ay
         code = assemble("exg a0,a1", tmpdir)
         if code:
-            def setup_aa(cpu, mem, _a=val_a, _b=val_b):
+            def setup_aa(cpu: Any, mem: Any, _a: int = val_a, _b: int = val_b) -> None:
                 cpu.w_reg(ADDR_REGS[0], _a)
                 cpu.w_reg(ADDR_REGS[1], _b)
-            def verify_aa(cap, _a=val_a, _b=val_b):
+            def verify_aa(cap: CpuCapture, _a: int = val_a, _b: int = val_b) -> tuple[bool, list[str]]:
                 ok, details = True, []
                 if cap["a"][0] != _b:
                     ok = False
@@ -715,10 +737,10 @@ def _gen_exg_tests(inst, tmpdir):
         # EXG Dx,Ay
         code = assemble("exg d0,a0", tmpdir)
         if code:
-            def setup_da(cpu, mem, _a=val_a, _b=val_b):
+            def setup_da(cpu: Any, mem: Any, _a: int = val_a, _b: int = val_b) -> None:
                 cpu.w_reg(DATA_REGS[0], _a)
                 cpu.w_reg(ADDR_REGS[0], _b)
-            def verify_da(cap, _a=val_a, _b=val_b):
+            def verify_da(cap: CpuCapture, _a: int = val_a, _b: int = val_b) -> tuple[bool, list[str]]:
                 ok, details = True, []
                 if cap["d"][0] != _b:
                     ok = False
@@ -730,14 +752,14 @@ def _gen_exg_tests(inst, tmpdir):
             yield (f"EXG D0,A0 {val_desc}", code, setup_da, verify_da)
 
 
-def _gen_lea_tests(inst, tmpdir):
+def _gen_lea_tests(inst: JsonDict, tmpdir: str) -> Any:
     """LEA ea,An — verify An = effective address."""
     # LEA (A0),A1 — A1 gets value of A0
     code = assemble("lea (a0),a1", tmpdir)
     if code:
-        def setup(cpu, mem):
+        def setup(cpu: Any, mem: Any) -> None:
             cpu.w_reg(ADDR_REGS[0], SCRATCH_ADDR)
-        def verify(cap):
+        def verify(cap: CpuCapture) -> tuple[bool, list[str]]:
             if cap["a"][1] != SCRATCH_ADDR:
                 return False, [f"A1: expected=0x{SCRATCH_ADDR:08x} actual=0x{cap['a'][1]:08x}"]
             return True, []
@@ -749,9 +771,9 @@ def _gen_lea_tests(inst, tmpdir):
         code = assemble(asm, tmpdir)
         if code:
             expected = (SCRATCH_ADDR + disp) & 0xFFFFFFFF
-            def setup_d(cpu, mem, _a=SCRATCH_ADDR):
+            def setup_d(cpu: Any, mem: Any, _a: int = SCRATCH_ADDR) -> None:
                 cpu.w_reg(ADDR_REGS[0], _a)
-            def verify_d(cap, _exp=expected):
+            def verify_d(cap: CpuCapture, _exp: int = expected) -> tuple[bool, list[str]]:
                 if cap["a"][1] != _exp:
                     return False, [f"A1: expected=0x{_exp:08x} actual=0x{cap['a'][1]:08x}"]
                 return True, []
@@ -760,16 +782,16 @@ def _gen_lea_tests(inst, tmpdir):
     # LEA $addr.L,A1 — absolute address
     code = assemble(f"lea ${SCRATCH_ADDR:x}.l,a1", tmpdir)
     if code:
-        def setup_abs(cpu, mem):
+        def setup_abs(cpu: Any, mem: Any) -> None:
             pass
-        def verify_abs(cap, _exp=SCRATCH_ADDR):
+        def verify_abs(cap: CpuCapture, _exp: int = SCRATCH_ADDR) -> tuple[bool, list[str]]:
             if cap["a"][1] != _exp:
                 return False, [f"A1: expected=0x{_exp:08x} actual=0x{cap['a'][1]:08x}"]
             return True, []
         yield ("LEA abs.L,A1", code, setup_abs, verify_abs)
 
 
-def _gen_move_from_sr_tests(inst, tmpdir):
+def _gen_move_from_sr_tests(inst: JsonDict, tmpdir: str) -> Any:
     """MOVE from SR — verify Dn gets SR value."""
     code = assemble("move sr,d0", tmpdir)
     if not code:
@@ -778,11 +800,11 @@ def _gen_move_from_sr_tests(inst, tmpdir):
     for ccr_state in INITIAL_CCR_STATES:
         initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
 
-        def setup(cpu, mem, _ccr=initial_ccr):
+        def setup(cpu: Any, mem: Any, _ccr: JsonDict = initial_ccr) -> None:
             set_ccr(cpu, x=_ccr["X"], n=_ccr["N"], z=_ccr["Z"],
                     v=_ccr["V"], c=_ccr["C"])
 
-        def verify(cap, _ccr=initial_ccr):
+        def verify(cap: CpuCapture, _ccr: JsonDict = initial_ccr) -> tuple[bool, list[str]]:
             sr = cap["d"][0] & 0xFFFF
             # Check CCR bits in the SR value match what we set
             actual_ccr = {
@@ -803,7 +825,7 @@ def _gen_move_from_sr_tests(inst, tmpdir):
         yield (f"MOVE SR,D0 ccr={ccr_state['desc']}", code, setup, verify)
 
 
-def _gen_nop_tests(inst, tmpdir):
+def _gen_nop_tests(inst: JsonDict, tmpdir: str) -> Any:
     """NOP — verify PC advances by instruction size."""
     code = assemble("nop", tmpdir)
     if not code:
@@ -811,10 +833,10 @@ def _gen_nop_tests(inst, tmpdir):
     instr_sz = _instr_size(code)
     expected_pc = CODE_ADDR + instr_sz
 
-    def setup(cpu, mem):
+    def setup(cpu: Any, mem: Any) -> None:
         pass
 
-    def verify(cap, _exp=expected_pc):
+    def verify(cap: CpuCapture, _exp: int = expected_pc) -> tuple[bool, list[str]]:
         if cap["pc"] != _exp:
             return False, [f"PC: expected=0x{_exp:08x} actual=0x{cap['pc']:08x}"]
         return True, []
@@ -822,7 +844,7 @@ def _gen_nop_tests(inst, tmpdir):
     yield ("NOP", code, setup, verify)
 
 
-def _gen_branch_tests(mnemonic, inst, tmpdir):
+def _gen_branch_tests(mnemonic: str, inst: JsonDict, tmpdir: str) -> Any:
     """BRA/JMP — verify PC goes to target."""
     if mnemonic == "BRA":
         # BRA forward: use .w to get a fixed-size encoding
@@ -833,41 +855,41 @@ def _gen_branch_tests(mnemonic, inst, tmpdir):
             # Target is after BRA + NOP
             target = CODE_ADDR + instrs[0].size + instrs[1].size
 
-            def setup(cpu, mem):
+            def setup_bra(cpu: Any, mem: Any) -> None:
                 pass
-            def verify(cap, _t=target):
+            def verify_bra(cap: CpuCapture, _t: int = target) -> tuple[bool, list[str]]:
                 if cap["pc"] != _t:
                     return False, [f"PC: expected=0x{_t:08x} actual=0x{cap['pc']:08x}"]
                 return True, []
-            yield ("BRA.W forward", code, setup, verify)
+            yield ("BRA.W forward", code, setup_bra, verify_bra)
 
     elif mnemonic == "JMP":
         # JMP (An) — jump to address in A0
         target = SCRATCH_ADDR
         code = assemble(f"jmp (a0)", tmpdir)
         if code:
-            def setup(cpu, mem, _t=target):
+            def setup_jmp(cpu: Any, mem: Any, _t: int = target) -> None:
                 cpu.w_reg(ADDR_REGS[0], _t)
                 mem.w16(_t, NOP_OPWORD)  # NOP at target
-            def verify(cap, _t=target):
+            def verify_jmp(cap: CpuCapture, _t: int = target) -> tuple[bool, list[str]]:
                 if cap["pc"] != _t:
                     return False, [f"PC: expected=0x{_t:08x} actual=0x{cap['pc']:08x}"]
                 return True, []
-            yield ("JMP (A0)", code, setup, verify)
+            yield ("JMP (A0)", code, setup_jmp, verify_jmp)
 
         # JMP abs.L
         code = assemble(f"jmp ${target:x}.l", tmpdir)
         if code:
-            def setup_abs(cpu, mem, _t=target):
+            def setup_abs(cpu: Any, mem: Any, _t: int = target) -> None:
                 mem.w16(_t, NOP_OPWORD)
-            def verify_abs(cap, _t=target):
+            def verify_abs(cap: CpuCapture, _t: int = target) -> tuple[bool, list[str]]:
                 if cap["pc"] != _t:
                     return False, [f"PC: expected=0x{_t:08x} actual=0x{cap['pc']:08x}"]
                 return True, []
             yield ("JMP abs.L", code, setup_abs, verify_abs)
 
 
-def _gen_movep_tests(inst, tmpdir):
+def _gen_movep_tests(inst: JsonDict, tmpdir: str) -> Any:
     """MOVEP — byte-striped register↔memory transfer.
 
     Uses KB 'transfer_layout' (stride, byte_order) to derive byte positions.
@@ -878,6 +900,7 @@ def _gen_movep_tests(inst, tmpdir):
     layout = inst.get("transfer_layout")
     if not layout:
         raise RuntimeError("MOVEP missing transfer_layout in KB — regenerate KB")
+    layout = cast(JsonDict, layout)
     stride = layout["stride"]
     byte_order = layout["byte_order"]
 
@@ -891,7 +914,7 @@ def _gen_movep_tests(inst, tmpdir):
         if not code:
             continue
 
-        n_bytes = size_bytes[sz]  # 2 for .w, 4 for .l
+        n_bytes = cast(dict[str, int], size_bytes)[sz]  # 2 for .w, 4 for .l
         bits = n_bytes * 8
 
         # Build test cases from KB layout parameters:
@@ -912,7 +935,7 @@ def _gen_movep_tests(inst, tmpdir):
                 raise RuntimeError(
                     f"MOVEP: unsupported byte_order '{byte_order}' in KB")
 
-            def setup(cpu, mem, _bytes=mem_bytes):
+            def setup(cpu: Any, mem: Any, _bytes: list[tuple[int, int]] = mem_bytes) -> None:
                 cpu.w_reg(ADDR_REGS[0], base)
                 cpu.w_reg(DATA_REGS[1], 0)
                 for off in range(n_bytes * stride):
@@ -920,7 +943,7 @@ def _gen_movep_tests(inst, tmpdir):
                 for off, b in _bytes:
                     mem.w8(base + off, b)
 
-            def verify(cap, _exp=val_masked, _bits=bits):
+            def verify(cap: CpuCapture, _exp: int = val_masked, _bits: int = bits) -> tuple[bool, list[str]]:
                 mask = (1 << _bits) - 1
                 actual = cap["d"][1] & mask
                 if actual != _exp:
@@ -932,7 +955,7 @@ def _gen_movep_tests(inst, tmpdir):
             yield (desc, code, setup, verify)
 
 
-def _gen_chk_tests(inst, tmpdir):
+def _gen_chk_tests(inst: JsonDict, tmpdir: str) -> Any:
     """CHK <ea>,Dn — non-trapping path only.
 
     Uses KB 'trap_condition' to determine which test values will NOT trap.
@@ -974,11 +997,11 @@ def _gen_chk_tests(inst, tmpdir):
         ]
 
         for bound, val, desc_str in test_cases:
-            def setup(cpu, mem, _bound=bound, _val=val, _mask=mask):
+            def setup(cpu: Any, mem: Any, _bound: int = bound, _val: int = val, _mask: int = mask) -> None:
                 cpu.w_reg(DATA_REGS[0], _bound & _mask)
                 cpu.w_reg(DATA_REGS[1], _val & _mask)
 
-            def verify(cap, _exp_pc=expected_pc):
+            def verify(cap: CpuCapture, _exp_pc: int = expected_pc) -> tuple[bool, list[str]]:
                 if cap["pc"] != _exp_pc:
                     return False, [f"PC: expected=0x{_exp_pc:08x} actual=0x{cap['pc']:08x}"]
                 return True, []
@@ -1006,7 +1029,7 @@ CC_TEST_CCR_STATES = [
 ]
 
 
-def discover_condition_testable_instructions():
+def discover_condition_testable_instructions() -> list[RegisterDiscoveryItem]:
     """Scan KB for Scc, Bcc, DBcc instructions.
 
     Returns list of (mnemonic, inst, category) tuples.
@@ -1016,7 +1039,7 @@ def discover_condition_testable_instructions():
     if not cc_test_defs:
         return []
 
-    testable = []
+    testable: list[RegisterDiscoveryItem] = []
     for inst in KB_LIST:
         mn = inst["mnemonic"]
         proc = inst.get("processor_min", "68000")
@@ -1031,7 +1054,7 @@ def discover_condition_testable_instructions():
     return testable
 
 
-def generate_condition_tests(mnemonic, inst, category, tmpdir):
+def generate_condition_tests(mnemonic: str, inst: JsonDict, category: str, tmpdir: str) -> Any:
     """Generate condition code test verification tests.
 
     Yields (desc, code_bytes, setup_fn, verify_fn, indiv_mnemonic) tuples.
@@ -1044,7 +1067,7 @@ def generate_condition_tests(mnemonic, inst, category, tmpdir):
         yield from _gen_dbcc_tests(inst, tmpdir)
 
 
-def _gen_scc_tests(inst, tmpdir):
+def _gen_scc_tests(inst: JsonDict, tmpdir: str) -> Any:
     """Scc Dn — if condition true, Dn.b=$FF; else Dn.b=$00."""
     cc_test_defs = KB_META["cc_test_definitions"]
     cc_aliases = KB_META.get("cc_aliases", {})
@@ -1073,16 +1096,16 @@ def _gen_scc_tests(inst, tmpdir):
 
         indiv = f"S{cc_name.upper()}"
         for ccr_state in states:
-            initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+            initial_ccr = cast(dict[str, int], {k: v for k, v in ccr_state.items() if k != "desc"})
             cond_met = evaluate_cc_test(test_expr, initial_ccr)
             expected_d0 = 0x000000FF if cond_met else 0x00000000
 
-            def setup(cpu, mem, _ccr=initial_ccr):
+            def setup(cpu: Any, mem: Any, _ccr: JsonDict = initial_ccr) -> None:
                 cpu.w_reg(DATA_REGS[0], 0x12345678)  # pre-fill to verify byte write
                 set_ccr(cpu, x=_ccr["X"], n=_ccr["N"], z=_ccr["Z"],
                         v=_ccr["V"], c=_ccr["C"])
 
-            def verify(cap, _exp=expected_d0):
+            def verify(cap: CpuCapture, _exp: int = expected_d0) -> tuple[bool, list[str]]:
                 # Scc only affects low byte, upper bytes unchanged
                 actual_lo = cap["d"][0] & 0xFF
                 exp_lo = _exp & 0xFF
@@ -1095,7 +1118,7 @@ def _gen_scc_tests(inst, tmpdir):
                    code, setup, verify, indiv)
 
 
-def _gen_bcc_tests(inst, tmpdir):
+def _gen_bcc_tests(inst: JsonDict, tmpdir: str) -> Any:
     """Bcc — if condition true, PC = target; else PC = next instruction."""
     cc_test_defs = KB_META["cc_test_definitions"]
     cc_aliases = KB_META.get("cc_aliases", {})
@@ -1132,15 +1155,15 @@ def _gen_bcc_tests(inst, tmpdir):
 
         indiv = f"B{cc_name.upper()}"
         for ccr_state in states:
-            initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+            initial_ccr = cast(dict[str, int], {k: v for k, v in ccr_state.items() if k != "desc"})
             cond_met = evaluate_cc_test(test_expr, initial_ccr)
             expected_pc = target_pc if cond_met else fallthrough_pc
 
-            def setup(cpu, mem, _ccr=initial_ccr):
+            def setup(cpu: Any, mem: Any, _ccr: JsonDict = initial_ccr) -> None:
                 set_ccr(cpu, x=_ccr["X"], n=_ccr["N"], z=_ccr["Z"],
                         v=_ccr["V"], c=_ccr["C"])
 
-            def verify(cap, _exp=expected_pc):
+            def verify(cap: CpuCapture, _exp: int = expected_pc) -> tuple[bool, list[str]]:
                 if cap["pc"] != _exp:
                     return False, [f"PC: expected=0x{_exp:08x} actual=0x{cap['pc']:08x}"]
                 return True, []
@@ -1151,7 +1174,7 @@ def _gen_bcc_tests(inst, tmpdir):
                    code, setup, verify, indiv)
 
 
-def _gen_dbcc_tests(inst, tmpdir):
+def _gen_dbcc_tests(inst: JsonDict, tmpdir: str) -> Any:
     """DBcc Dn,<label> — if cc false AND Dn-1 != -1, branch; else fall through.
 
     DBcc behavior:
@@ -1195,7 +1218,7 @@ def _gen_dbcc_tests(inst, tmpdir):
         # 3. Condition FALSE, Dn=0 → branch, Dn.w=-1... wait, Dn=0→Dn.w=0xFFFF=-1→fall through
         test_cases = []
         for ccr_state in CC_TEST_CCR_STATES[:4]:  # subset for each cc
-            initial_ccr = {k: v for k, v in ccr_state.items() if k != "desc"}
+            initial_ccr = cast(dict[str, int], {k: v for k, v in ccr_state.items() if k != "desc"})
             cond_met = evaluate_cc_test(test_expr, initial_ccr)
 
             if cond_met:
@@ -1209,12 +1232,16 @@ def _gen_dbcc_tests(inst, tmpdir):
 
         for initial_ccr, dn_val, expected_pc, expected_dn_w, desc_flag, scenario in test_cases:
 
-            def setup(cpu, mem, _ccr=initial_ccr, _dn=dn_val):
+            def setup(cpu: Any, mem: Any, _ccr: JsonDict = initial_ccr, _dn: int = dn_val) -> None:
                 cpu.w_reg(DATA_REGS[1], _dn & 0xFFFFFFFF)
                 set_ccr(cpu, x=_ccr["X"], n=_ccr["N"], z=_ccr["Z"],
                         v=_ccr["V"], c=_ccr["C"])
 
-            def verify(cap, _exp_pc=expected_pc, _exp_dn=expected_dn_w):
+            def verify(
+                cap: CpuCapture,
+                _exp_pc: int = expected_pc,
+                _exp_dn: int = expected_dn_w,
+            ) -> tuple[bool, list[str]]:
                 ok, details = True, []
                 if cap["pc"] != _exp_pc:
                     ok = False
@@ -1329,7 +1356,7 @@ IMM_BYTE_TEST_VALUES = [
 ]
 
 
-def _get_variant_props(inst, individual_mnemonic):
+def _get_variant_props(inst: JsonDict, individual_mnemonic: str) -> JsonDict:
     """Look up variant properties for an individual mnemonic from KB 'variants' array.
 
     Returns the variant dict (with 'direction', 'arithmetic' keys) or raises
@@ -1339,14 +1366,14 @@ def _get_variant_props(inst, individual_mnemonic):
     if variants is None:
         raise RuntimeError(
             f"{inst['mnemonic']}: missing 'variants' in KB — regenerate KB")
-    for v in variants:
+    for v in cast(list[JsonDict], variants):
         if v["mnemonic"].upper() == individual_mnemonic.upper():
             return v
     raise RuntimeError(
         f"{inst['mnemonic']}: no variant '{individual_mnemonic}' in KB variants {variants}")
 
 
-def _split_combined_mnemonic(mnemonic):
+def _split_combined_mnemonic(mnemonic: str) -> list[str]:
     """Split KB combined mnemonics like 'ASL, ASR' into individual mnemonics.
 
     Returns list of individual mnemonic strings.
@@ -1359,23 +1386,23 @@ def _split_combined_mnemonic(mnemonic):
 
 # ── CC test case generation ───────────────────────────────────────────────
 
-def _find_form_data_sizes(inst, sz):
+def _find_form_data_sizes(inst: JsonDict, sz: str) -> JsonDict | None:
     """Find data_sizes from KB form matching the given size, skipping 020+ forms.
 
     Returns the data_sizes dict from the matching form, or None if not found.
     """
-    for form in inst.get("forms", []):
+    for form in cast(list[JsonDict], inst.get("forms", [])):
         if form.get("processor_020"):
             continue
-        form_sizes = form.get("sizes", inst.get("sizes", []))
+        form_sizes = cast(list[str], form.get("sizes", inst.get("sizes", [])))
         if sz in form_sizes or not form_sizes:
             ds = form.get("data_sizes")
             if ds:
-                return ds
+                return cast(JsonDict, ds)
     return None
 
 
-def generate_cc_tests(inst, form_info, tmpdir):
+def generate_cc_tests(inst: JsonDict, form_info: FormInfo, tmpdir: str) -> Any:
     """Generate CC verification test cases for one instruction from KB data.
 
     For combined mnemonics (e.g. 'ASL, ASR'), generates tests for each
@@ -1389,7 +1416,7 @@ def generate_cc_tests(inst, form_info, tmpdir):
     """
     mnemonic = inst["mnemonic"]
     op_type = inst.get("operation_type")
-    sizes = inst.get("sizes", [])
+    sizes = cast(list[str], inst.get("sizes", []))
     form_type, src_reg, dst_reg = form_info
 
     is_shift_rotate = op_type in ("shift", "rotate", "rotate_extend")
@@ -1404,7 +1431,7 @@ def generate_cc_tests(inst, form_info, tmpdir):
 
     # For bit test, get bit_modulus from KB (register modulus for Dn tests)
     if is_bit_test:
-        bit_mod_data = inst.get("bit_modulus")
+        bit_mod_data = cast(JsonDict | None, inst.get("bit_modulus"))
         if bit_mod_data is None:
             raise RuntimeError(
                 f"{mnemonic}: missing 'bit_modulus' in KB — regenerate KB")
@@ -1430,7 +1457,7 @@ def generate_cc_tests(inst, form_info, tmpdir):
 
     for indiv_mnemonic in individual_mnemonics:
         # Skip 020+ individual mnemonics using KB variant processor_020 flag
-        variants = inst.get("variants", [])
+        variants = cast(list[JsonDict], inst.get("variants", []))
         variant_entry = next(
             (v for v in variants if v["mnemonic"].upper() == indiv_mnemonic.upper()),
             None)
@@ -1482,6 +1509,7 @@ def generate_cc_tests(inst, form_info, tmpdir):
             }
         elif is_bit_test:
             # Use register modulus for Dn-destination tests (from KB bit_modulus)
+            assert bit_mod_data is not None
             ctx = {"bit_modulus": bit_mod_data["register"]}
         else:
             ctx = {}
@@ -1555,9 +1583,18 @@ def generate_cc_tests(inst, form_info, tmpdir):
                     # that writes values to memory and sets address registers
                     test_ctx = dict(ctx)  # copy so per-test setup doesn't leak
                     if form_type == "postinc_postinc":
-                        sz_bytes = _size_byte_count[sz]
-                        def _setup_postinc(cpu, mem, _sv=src_val, _dv=dst_val,
-                                           _szb=sz_bytes, _sr=src_reg, _dr=dst_reg):
+                        sz_bytes = cast(dict[str, int], _size_byte_count)[sz]
+                        def _setup_postinc(
+                            cpu: Any,
+                            mem: Any,
+                            _sv: int = src_val,
+                            _dv: int = dst_val,
+                            _szb: int = sz_bytes,
+                            _sr: int | None = src_reg,
+                            _dr: int | None = dst_reg,
+                        ) -> None:
+                            assert _sr is not None
+                            assert _dr is not None
                             addr_src = SCRATCH_ADDR
                             addr_dst = SCRATCH_ADDR + _szb
                             _mem_write(mem, addr_src, _sv, _szb)
@@ -1566,8 +1603,16 @@ def generate_cc_tests(inst, form_info, tmpdir):
                             cpu.w_reg(ADDR_REGS[_dr], addr_dst)
                         test_ctx["setup"] = _setup_postinc
                     elif form_type == "dn_an":
-                        def _setup_dn_an(cpu, mem, _sv=src_val, _dv=dst_val,
-                                         _sr=src_reg, _dr=dst_reg):
+                        def _setup_dn_an(
+                            cpu: Any,
+                            mem: Any,
+                            _sv: int = src_val,
+                            _dv: int = dst_val,
+                            _sr: int | None = src_reg,
+                            _dr: int | None = dst_reg,
+                        ) -> None:
+                            assert _sr is not None
+                            assert _dr is not None
                             cpu.w_reg(DATA_REGS[_sr], _sv & 0xFFFFFFFF)
                             cpu.w_reg(ADDR_REGS[_dr], _dv & 0xFFFFFFFF)
                         test_ctx["setup"] = _setup_dn_an
@@ -1581,7 +1626,7 @@ def generate_cc_tests(inst, form_info, tmpdir):
 
 # ── SP test case generation ───────────────────────────────────────────────
 
-def generate_sp_tests(inst, tmpdir):
+def generate_sp_tests(inst: JsonDict, tmpdir: str) -> Any:
     """Generate SP verification test cases for one instruction from KB data.
 
     Uses predict_sp() for expected SP values where KB sp_effects exist.
@@ -1600,10 +1645,10 @@ def generate_sp_tests(inst, tmpdir):
         for asm, desc_suffix in [("pea (a0)", "ind"), ("pea 4(a0)", "disp")]:
             code = assemble(asm, tmpdir)
             if code:
-                def setup(cpu, mem, _a=SCRATCH_ADDR):
+                def setup_pea(cpu: Any, mem: Any, _a: int = SCRATCH_ADDR) -> None:
                     cpu.w_reg(Register.A0, _a)
-                pred_sp = predict_sp(inst, STACK_ADDR)
-                yield (asm, code, setup, pred_sp,
+                pred_sp = predict_sp(_mnemonic_inst(inst), STACK_ADDR)
+                yield (asm, code, setup_pea, pred_sp,
                        CODE_ADDR + _instr_size(code), f"pea {desc_suffix}", None)
 
     elif mnemonic == "JSR":
@@ -1611,10 +1656,10 @@ def generate_sp_tests(inst, tmpdir):
         asm = f"jsr ${target:x}"
         code = assemble(asm, tmpdir)
         if code:
-            def setup(cpu, mem, _t=target):
+            def setup_jsr(cpu: Any, mem: Any, _t: int = target) -> None:
                 mem.w16(_t, NOP_OPWORD)  # NOP at target (from KB)
-            pred_sp = predict_sp(inst, STACK_ADDR)
-            yield (asm, code, setup, pred_sp, target, "jsr abs", None)
+            pred_sp = predict_sp(_mnemonic_inst(inst), STACK_ADDR)
+            yield (asm, code, setup_jsr, pred_sp, target, "jsr abs", None)
 
     elif mnemonic == "BSR":
         asm = "bsr.w .t\nnop\n.t:"
@@ -1624,7 +1669,7 @@ def generate_sp_tests(inst, tmpdir):
             # remaining bytes are hunk padding, not real code.
             instrs = disasm_bytes(code)
             target = CODE_ADDR + instrs[0].size + instrs[1].size
-            pred_sp = predict_sp(inst, STACK_ADDR)
+            pred_sp = predict_sp(_mnemonic_inst(inst), STACK_ADDR)
             yield (asm, code, lambda cpu, mem: None, pred_sp, target,
                    "bsr.w forward", None)
 
@@ -1633,13 +1678,13 @@ def generate_sp_tests(inst, tmpdir):
         code = assemble(asm, tmpdir)
         if code:
             return_addr = SCRATCH_ADDR
-            def setup(cpu, mem, _ra=return_addr):
+            def setup_rts(cpu: Any, mem: Any, _ra: int = return_addr) -> None:
                 cpu.w_sp(STACK_ADDR - 4)
                 mem.w32(STACK_ADDR - 4, _ra)
                 mem.w16(_ra, NOP_OPWORD)  # NOP at return target (from KB)
             # RTS pops 4 bytes: SP goes from STACK_ADDR-4 to STACK_ADDR
-            pred_sp = predict_sp(inst, STACK_ADDR - 4)
-            yield (asm, code, setup, pred_sp, return_addr, "rts", None)
+            pred_sp = predict_sp(_mnemonic_inst(inst), STACK_ADDR - 4)
+            yield (asm, code, setup_rts, pred_sp, return_addr, "rts", None)
 
     elif mnemonic == "LINK":
         for displacement, desc in [(-8, "link a6,#-8"), (-256, "link a6,#-256"),
@@ -1647,7 +1692,7 @@ def generate_sp_tests(inst, tmpdir):
             asm = f"link a6,#{displacement}"
             code = assemble(asm, tmpdir)
             if code:
-                pred_sp = predict_sp(inst, STACK_ADDR, displacement=displacement)
+                pred_sp = predict_sp(_mnemonic_inst(inst), STACK_ADDR, displacement=displacement)
                 yield (asm, code, lambda cpu, mem: None, pred_sp,
                        CODE_ADDR + _instr_size(code), desc, None)
 
@@ -1657,27 +1702,27 @@ def generate_sp_tests(inst, tmpdir):
         if code:
             frame_ptr = STACK_ADDR - 100
             saved_a6 = 0x12345678
-            def setup(cpu, mem, _fp=frame_ptr, _sa=saved_a6):
+            def setup_unlk(cpu: Any, mem: Any, _fp: int = frame_ptr, _sa: int = saved_a6) -> None:
                 cpu.w_reg(Register.A6, _fp)
                 mem.w32(_fp, _sa)
             # sp_effects: [load_from_reg An, increment 4]
             # predict_sp resolves load_from_reg via reg_state
-            pred_sp = predict_sp(inst, STACK_ADDR,
+            pred_sp = predict_sp(_mnemonic_inst(inst), STACK_ADDR,
                                  reg_state={"A6": frame_ptr})
-            yield (asm, code, setup, pred_sp,
+            yield (asm, code, setup_unlk, pred_sp,
                    CODE_ADDR + _instr_size(code), "unlk a6", None)
 
     elif mnemonic == "MOVEM":
         # MOVEM push: reg-to-mem with -(A7) — SP decreases by N × size
         # MOVEM pop: mem-to-reg with (A7)+ — SP increases by N × size
         for sz in inst.get("sizes", []):
-            sz_bytes = _size_byte_count[sz]
+            sz_bytes = cast(dict[str, int], _size_byte_count)[sz]
             # Push 3 registers: D0-D2
             push_asm = f"movem.{sz} d0-d2,-(a7)"
             push_code = assemble(push_asm, tmpdir)
             if push_code:
                 n_regs = 3
-                def setup_push(cpu, mem):
+                def setup_push(cpu: Any, mem: Any) -> None:
                     cpu.w_reg(Register.D0, 0x11111111)
                     cpu.w_reg(Register.D1, 0x22222222)
                     cpu.w_reg(Register.D2, 0x33333333)
@@ -1692,7 +1737,7 @@ def generate_sp_tests(inst, tmpdir):
             if pop_code:
                 n_regs = 3
                 pop_base = STACK_ADDR - n_regs * sz_bytes
-                def setup_pop(cpu, mem, _base=pop_base, _szb=sz_bytes):
+                def setup_pop(cpu: Any, mem: Any, _base: int = pop_base, _szb: int = sz_bytes) -> None:
                     # Write 3 values below stack for popping
                     for i in range(3):
                         _mem_write(mem, _base + i * _szb, 0xAA + i, _szb)
@@ -1711,14 +1756,14 @@ def generate_sp_tests(inst, tmpdir):
             # Push a known CCR value (X=1, N=0, Z=1, V=0, C=1 = 0x15)
             test_ccr_word = _CCR_MASK & 0x0015  # X=1, Z=1, C=1
             # KB sp_effects: [increment 2, increment 4] — total 6 bytes
-            rtr_base = STACK_ADDR - predict_sp(inst, 0)  # how much RTR pops
-            def setup_rtr(cpu, mem, _ra=return_addr, _ccr=test_ccr_word,
-                          _base=rtr_base):
+            rtr_base = STACK_ADDR - predict_sp(_mnemonic_inst(inst), 0)  # how much RTR pops
+            def setup_rtr(cpu: Any, mem: Any, _ra: int = return_addr, _ccr: int = test_ccr_word,
+                          _base: int = rtr_base) -> None:
                 cpu.w_sp(_base)
                 mem.w16(_base, _ccr)           # CCR word
                 mem.w32(_base + 2, _ra)        # return address
                 mem.w16(_ra, NOP_OPWORD)       # NOP at return target
-            pred_sp = predict_sp(inst, rtr_base)
+            pred_sp = predict_sp(_mnemonic_inst(inst), rtr_base)
             # Predict CCR from the stacked value using KB ccr_bit_positions
             pred_ccr = {
                 "X": 1 if test_ccr_word & CCR_X else 0,
@@ -1732,7 +1777,7 @@ def generate_sp_tests(inst, tmpdir):
 
 # ── Main test runner ──────────────────────────────────────────────────────
 
-def run_tests(filter_mnemonic=None, verbose=False):
+def run_tests(filter_mnemonic: str | None = None, verbose: bool = False) -> bool:
     """Run execution verification tests."""
     total = 0
     passed = 0
@@ -1740,8 +1785,8 @@ def run_tests(filter_mnemonic=None, verbose=False):
     cc_mismatches = 0
     sp_mismatches = 0
     pc_mismatches = 0
-    failures = []
-    tested_mnemonics = set()
+    failures: list[tuple[str, str, str]] = []
+    tested_mnemonics: set[str] = set()
 
     machine = make_machine()
 
@@ -1760,7 +1805,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
                     continue
 
             # Track per-individual-mnemonic results for combined entries
-            sub_counts = {}  # {indiv_mnemonic: [count, pass]}
+            sub_counts: dict[str, list[int]] = {}
             form_type, src_reg, dst_reg = form_info
 
             for (asm_text, code_bytes, sz, src_val, dst_val,
@@ -1805,7 +1850,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
                         pred_src = 0  # formula doesn't use source value
                 else:
                     pred_src = src_val
-                predicted_cc = predict_cc(inst, sz, pred_src, dst_val, ccr_before, ctx)
+                predicted_cc = predict_cc(_compute_inst(inst), sz, pred_src, dst_val, ccr_before, ctx)
 
                 after = load_and_execute(machine, code_bytes)
 
@@ -1841,7 +1886,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
 
         # ── Phase 2: SP-effect verification (KB-driven discovery) ──
         sp_testable = discover_sp_testable_instructions()
-        sp_by_mnemonic = {}
+        sp_by_mnemonic: dict[str, list[int]] = {}
 
         for mnemonic, inst in sp_testable:
             if filter_mnemonic and filter_mnemonic.upper() != mnemonic.upper():
@@ -1934,7 +1979,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
                 ccr_before = read_ccr(cpu)
 
                 # Predict CC: src_val is the immediate/source, dst unused
-                predicted_cc = predict_cc(inst, "b", src_val, 0, ccr_before)
+                predicted_cc = predict_cc(_compute_inst(inst), "b", src_val, 0, ccr_before)
 
                 after = load_and_execute(machine, code_bytes)
 
@@ -1971,7 +2016,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
         if verbose:
             print(f"Register/flow-testable instructions: {len(reg_testable)}")
 
-        reg_by_mnemonic = {}
+        reg_by_mnemonic: dict[str, list[int]] = {}
         for mnemonic, inst, category in reg_testable:
             if filter_mnemonic and filter_mnemonic.upper() != mnemonic.upper():
                 continue
@@ -2013,7 +2058,7 @@ def run_tests(filter_mnemonic=None, verbose=False):
         if verbose:
             print(f"Condition-testable instructions: {len(cond_testable)}")
 
-        cond_by_mnemonic = {}
+        cond_by_mnemonic: dict[str, list[int]] = {}
         for mnemonic, inst, category in cond_testable:
             if filter_mnemonic:
                 filter_up = filter_mnemonic.upper()

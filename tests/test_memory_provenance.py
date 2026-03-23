@@ -1,7 +1,9 @@
 import pytest
 
 from m68k.memory_provenance import (MemoryRegionAddressSpace,
+                                    MemoryRegionDerivation,
                                     MemoryRegionDerivationKind,
+                                    MemoryRegionProvenance,
                                     field_pointer_source,
                                     provenance_base_displacement,
                                     provenance_field_pointer,
@@ -9,7 +11,7 @@ from m68k.memory_provenance import (MemoryRegionAddressSpace,
                                     require_base_displacement)
 
 
-def test_require_base_displacement_returns_register_and_displacement():
+def test_require_base_displacement_returns_register_and_displacement() -> None:
     provenance = provenance_base_displacement(
         MemoryRegionAddressSpace.APP, "a6", -0x7FF8)
 
@@ -17,24 +19,24 @@ def test_require_base_displacement_returns_register_and_displacement():
         provenance, expected_space=MemoryRegionAddressSpace.APP) == ("a6", -0x7FF8)
 
 
-def test_require_base_displacement_rejects_wrong_derivation():
+def test_require_base_displacement_rejects_wrong_derivation() -> None:
     provenance = provenance_named_base("dos.library")
 
     with pytest.raises(ValueError, match="base-displacement provenance"):
         require_base_displacement(provenance)
 
 
-def test_field_pointer_source_returns_pointer_origin():
+def test_field_pointer_source_returns_pointer_origin() -> None:
     provenance = provenance_field_pointer("a1", 20)
 
     assert field_pointer_source(provenance) == ("a1", 20)
 
 
-def test_field_pointer_source_rejects_missing_payload():
+def test_field_pointer_source_rejects_missing_payload() -> None:
     provenance = provenance_field_pointer("a1", 20)
-    broken = provenance.__class__(
+    broken = MemoryRegionProvenance(
         address_space=provenance.address_space,
-        derivation=provenance.derivation.__class__(
+        derivation=MemoryRegionDerivation(
             kind=MemoryRegionDerivationKind.FIELD_POINTER,
             base_register="a1",
             displacement=None,

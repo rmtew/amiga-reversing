@@ -3,17 +3,53 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Mapping, Protocol
 
-from m68k_kb.runtime_os import OsStruct, OsStructField
+
+class OsStructFieldLike(Protocol):
+    @property
+    def name(self) -> str: ...
+
+    @property
+    def type(self) -> str: ...
+
+    @property
+    def offset(self) -> int: ...
+
+    @property
+    def size(self) -> int: ...
+
+    @property
+    def struct(self) -> str | None: ...
+
+    @property
+    def pointer_struct(self) -> str | None: ...
+
+
+class OsStructLike(Protocol):
+    @property
+    def source(self) -> str: ...
+
+    @property
+    def base_offset(self) -> int: ...
+
+    @property
+    def size(self) -> int: ...
+
+    @property
+    def fields(self) -> tuple[OsStructFieldLike, ...]: ...
+
+    @property
+    def base_struct(self) -> str | None: ...
 
 
 @dataclass(frozen=True, slots=True)
 class ResolvedStructField:
     owner_struct: str
-    field: OsStructField
+    field: OsStructFieldLike
 
 
-def resolve_struct_field(structs: dict[str, OsStruct], struct_name: str, offset: int,
+def resolve_struct_field(structs: Mapping[str, OsStructLike], struct_name: str, offset: int,
                          active: frozenset[str] = frozenset()
                          ) -> ResolvedStructField | None:
     if struct_name in active:

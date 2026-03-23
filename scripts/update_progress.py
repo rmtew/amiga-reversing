@@ -8,14 +8,16 @@ with current counts.
 
 import json
 import sys
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+from typing import Any, TypeAlias
 
 PROJECT_ROOT = Path(__file__).parent.parent
 BIN_DIR = PROJECT_ROOT / "bin"
+EntityRecord = dict[str, Any]
 
 
-def parse_addr(addr):
+def parse_addr(addr: object) -> int:
     if isinstance(addr, int):
         return addr
     if isinstance(addr, str):
@@ -23,8 +25,8 @@ def parse_addr(addr):
     return 0
 
 
-def load_entities(entities_file):
-    entities = []
+def load_entities(entities_file: Path) -> list[EntityRecord]:
+    entities: list[EntityRecord] = []
     if not entities_file.exists():
         return entities
     with open(entities_file) as f:
@@ -39,7 +41,7 @@ def load_entities(entities_file):
     return entities
 
 
-def get_binary_size():
+def get_binary_size() -> int | None:
     bin_files = [f for f in BIN_DIR.glob("*")
                  if f.is_file() and f.name != ".gitkeep" and not f.name.startswith(".")]
     if len(bin_files) == 1:
@@ -47,7 +49,7 @@ def get_binary_size():
     return None
 
 
-def main():
+def main() -> None:
     import argparse
     parser = argparse.ArgumentParser(description="Update progress.md from entities.jsonl")
     parser.add_argument("--target-dir", "-t", default=".",
@@ -137,7 +139,7 @@ def main():
 
 ## Data Subtype Breakdown
 """
-    subtype_counts = defaultdict(int)
+    subtype_counts: defaultdict[str, int] = defaultdict(int)
     for e in data_ents:
         if e.get("subtype"):
             subtype_counts[e["subtype"]] += 1

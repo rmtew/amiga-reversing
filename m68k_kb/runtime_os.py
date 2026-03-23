@@ -70,7 +70,7 @@ class OsInput:
 @dataclass(frozen=True, slots=True)
 class OsOutput:
     name: str
-    reg: str
+    reg: str | None
     type: str | None = None
     i_struct: str | None = None
 

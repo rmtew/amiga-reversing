@@ -98,10 +98,10 @@ class SpEffectAction(StrEnum):
     LOAD_FROM_REG = 'load_from_reg'
     LOAD_FROM_STACK_TO_REG = 'load_from_stack_to_reg'
 
-OPWORD_BYTES = 2
+OPWORD_BYTES: int = 2
 DEFAULT_OPERAND_SIZE = 'w'
-SIZE_BYTE_COUNT = {'b': 1, 'w': 2, 'l': 4}
-EA_MODE_ENCODING = {'dn': [0, None],
+SIZE_BYTE_COUNT: dict[str, int] = {'b': 1, 'w': 2, 'l': 4}
+EA_MODE_ENCODING: dict[str, list[int | None]] = {'dn': [0, None],
  'an': [1, None],
  'ind': [2, None],
  'postinc': [3, None],
@@ -113,7 +113,7 @@ EA_MODE_ENCODING = {'dn': [0, None],
  'pcdisp': [7, 2],
  'pcindex': [7, 3],
  'imm': [7, 4]}
-EA_REVERSE = {(0, 0): 'dn',
+EA_REVERSE: dict[tuple[int, int], str] = {(0, 0): 'dn',
  (0, 1): 'dn',
  (0, 2): 'dn',
  (0, 3): 'dn',
@@ -174,7 +174,7 @@ EA_REVERSE = {(0, 0): 'dn',
  (7, 2): 'pcdisp',
  (7, 3): 'pcindex',
  (7, 4): 'imm'}
-EA_BRIEF_FIELDS = {'D/A': (15, 15, 1),
+EA_BRIEF_FIELDS: dict[str, tuple[int, int, int]] = {'D/A': (15, 15, 1),
  'REGISTER': (14, 12, 3),
  'W/L': (11, 11, 1),
  'SCALE': (10, 9, 2),
@@ -627,7 +627,7 @@ FLOW_TYPES = {'ABCD': FlowType.SEQUENTIAL,
  'cpSAVE': FlowType.SEQUENTIAL,
  'cpScc': FlowType.SEQUENTIAL,
  'cpTRAPcc': FlowType.TRAP}
-FLOW_CONDITIONAL = {'ABCD': False,
+FLOW_CONDITIONAL: dict[str, bool] = {'ABCD': False,
  'ADD': False,
  'ADDA': False,
  'ADDI': False,
@@ -1594,9 +1594,9 @@ PROCESSOR_MINS = {'abcd': Processor.M68000,
  'unlk': Processor.M68000,
  'unpk': Processor.M68020,
  'usp': Processor.M68000}
-PROCESSOR_020_VARIANTS = {'DIVS, DIVSL': frozenset({'DIVSL'}),
- 'DIVU, DIVUL': frozenset({'DIVUL'}),
- 'EXT, EXTB': frozenset({'EXTB'})}
+PROCESSOR_020_VARIANTS = {'DIVS, DIVSL': frozenset(('DIVSL',)),
+ 'DIVU, DIVUL': frozenset(('DIVUL',)),
+ 'EXT, EXTB': frozenset(('EXTB',))}
 LOOKUP_UPPER = {'ABCD': 'ABCD',
  'ADD': 'ADD',
  'ADDA': 'ADDA',
@@ -1738,7 +1738,7 @@ LOOKUP_UPPER = {'ABCD': 'ABCD',
  'TST': 'TST',
  'UNLK': 'UNLK',
  'UNPK': 'UNPK'}
-LOOKUP_CANONICAL = {'ABCD': 'ABCD',
+LOOKUP_CANONICAL: dict[str, str] = {'ABCD': 'ABCD',
  'ADD': 'ADD',
  'ADDA': 'ADDA',
  'ADDI': 'ADDI',
@@ -2074,7 +2074,7 @@ LOOKUP_CANONICAL = {'ABCD': 'ABCD',
  'TST': 'TST',
  'UNLK': 'UNLK',
  'UNPK': 'UNPK'}
-LOOKUP_NUMERIC_CC_PREFIXES = {'PB': 'PBcc', 'PDB': 'PDBcc', 'PS': 'PScc', 'PTRAP': 'PTRAPcc'}
+LOOKUP_NUMERIC_CC_PREFIXES: dict[str, str] = {'PB': 'PBcc', 'PDB': 'PDBcc', 'PS': 'PScc', 'PTRAP': 'PTRAPcc'}
 LOOKUP_CC_FAMILIES = {'b': ('Bcc',
        ('cc',
         'cs',

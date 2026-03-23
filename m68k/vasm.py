@@ -1,5 +1,7 @@
 """vasm assembler interface -- assemble M68K source via vasmm68k_mot."""
 
+from __future__ import annotations
+
 import os
 import subprocess
 from pathlib import Path
@@ -9,7 +11,12 @@ from .hunk_parser import parse_file
 VASM = Path(__file__).resolve().parent.parent / "tools" / "vasmm68k_mot.exe"
 
 
-def assemble(source, tmpdir, cpu_flag="-m68000", debug=False):
+def assemble(
+    source: str,
+    tmpdir: str | os.PathLike[str],
+    cpu_flag: str = "-m68000",
+    debug: bool = False,
+) -> bytes | None:
     """Assemble source with vasm, return code hunk data or None on failure.
 
     cpu_flag: vasm -m flag (e.g. "-m68000", "-m68851")

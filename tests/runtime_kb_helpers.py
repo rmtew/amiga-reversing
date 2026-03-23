@@ -4,6 +4,16 @@ import importlib
 import json
 from functools import lru_cache
 from pathlib import Path
+from types import ModuleType
+from typing import Any, Sequence, TypeVar, cast
+
+from kb.schemas import (
+    HardwareSymbolsPayload,
+    HunkFormatPayload,
+    M68kInstructionsPayload,
+    NamingRulesPayload,
+    OsReferencePayload,
+)
 
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
@@ -11,63 +21,67 @@ KNOWLEDGE = PROJ_ROOT / "knowledge"
 RUNTIME_PY = PROJ_ROOT / "m68k_kb"
 
 
-def _load_json(name: str) -> dict:
+JsonObject = dict[str, object]
+T = TypeVar("T")
+
+
+def _load_json(name: str) -> JsonObject:
     path = KNOWLEDGE / name
     with open(path, encoding="utf-8") as handle:
-        return json.load(handle)
+        return cast(JsonObject, json.load(handle))
 
 
 @lru_cache(maxsize=1)
-def load_canonical_m68k_kb() -> dict:
-    return _load_json("m68k_instructions.json")
+def load_canonical_m68k_kb() -> M68kInstructionsPayload:
+    return cast(M68kInstructionsPayload, _load_json("m68k_instructions.json"))
 
 
 @lru_cache(maxsize=1)
-def load_canonical_os_kb() -> dict:
-    return _load_json("amiga_os_reference.json")
+def load_canonical_os_kb() -> OsReferencePayload:
+    return cast(OsReferencePayload, _load_json("amiga_os_reference.json"))
 
 
 @lru_cache(maxsize=1)
-def load_canonical_hunk_kb() -> dict:
-    return _load_json("amiga_hunk_format.json")
+def load_canonical_hunk_kb() -> HunkFormatPayload:
+    return cast(HunkFormatPayload, _load_json("amiga_hunk_format.json"))
 
 
 @lru_cache(maxsize=1)
-def load_canonical_naming_rules() -> dict:
-    return _load_json("naming_rules.json")
+def load_canonical_naming_rules() -> NamingRulesPayload:
+    return cast(NamingRulesPayload, _load_json("naming_rules.json"))
 
 
 @lru_cache(maxsize=1)
-def load_canonical_hardware_symbols() -> dict:
-    return _load_json("amiga_hw_symbols.json")
+def load_canonical_hardware_symbols() -> HardwareSymbolsPayload:
+    return cast(HardwareSymbolsPayload, _load_json("amiga_hw_symbols.json"))
 
 
-def _load_runtime_module(module_name: str):
+def _load_runtime_module(module_name: str) -> ModuleType:
     return importlib.import_module(f"m68k_kb.{module_name}")
 
 
-def _require_attr(module: object, name: str):
+def _require_attr(module: object, name: str) -> object:
     if not hasattr(module, name):
         raise KeyError(f"runtime KB missing attribute {name!r}")
     return getattr(module, name)
 
 
-def _require_dict_attr(module: object, name: str) -> dict:
+def _require_dict_attr(module: object, name: str) -> dict[str, object]:
     value = _require_attr(module, name)
     if not isinstance(value, dict):
         raise KeyError(f"runtime KB missing dict attribute {name!r}")
-    return value
+    return cast(dict[str, object], value)
 
 
-def _require_sequence_attr(module: object, name: str):
+def _require_sequence_attr(module: object, name: str) -> Sequence[object]:
     value = _require_attr(module, name)
     if not isinstance(value, (list, tuple)):
         raise KeyError(f"runtime KB missing sequence attribute {name!r}")
-    return value
+    return cast(Sequence[object], value)
 
 
 @lru_cache(maxsize=1)
-def load_m68k_runtime_module():
+def load_m68k_runtime_module() -> ModuleType:
     module = _load_runtime_module("runtime_m68k")
     meta = _require_dict_attr(module, "META")
     required_attrs = (
@@ -97,7 +111,7 @@ def load_m68k_runtime_module():
 
 
 @lru_cache(maxsize=1)
-def load_m68k_decode_runtime_module():
+def load_m68k_decode_runtime_module() -> ModuleType:
     module = _load_runtime_module("runtime_m68k_decode")
     for name in (
         "OPWORD_BYTES", "ALIGN_MASK", "DEFAULT_OPERAND_SIZE", "SIZE_BYTE_COUNT",
@@ -114,7 +128,7 @@ def load_m68k_decode_runtime_module():
 
 
 @lru_cache(maxsize=1)
-def load_m68k_asm_runtime_module():
+def load_m68k_asm_runtime_module() -> ModuleType:
     module = _load_runtime_module("runtime_m68k_asm")
     for name in (
         "ENCODING_COUNTS", "ENCODING_MASKS", "FIELD_MAPS", "RAW_FIELDS", "LOOKUP_UPPER",
@@ -132,7 +146,7 @@ def load_m68k_asm_runtime_module():
 
 
 @lru_cache(maxsize=1)
-def load_m68k_analysis_runtime_module():
+def load_m68k_analysis_runtime_module() -> ModuleType:
     module = _load_runtime_module("runtime_m68k_analysis")
     for name in (
         "OPWORD_BYTES", "DEFAULT_OPERAND_SIZE", "SIZE_BYTE_COUNT",
@@ -151,7 +165,7 @@ def load_m68k_analysis_runtime_module():
 
 
 @lru_cache(maxsize=1)
-def load_m68k_compute_runtime_module():
+def load_m68k_compute_runtime_module() -> ModuleType:
     module = _load_runtime_module("runtime_m68k_compute")
     for name in (
         "OPERATION_TYPES", "COMPUTE_FORMULAS", "IMPLICIT_OPERANDS",
@@ -162,7 +176,7 @@ def load_m68k_compute_runtime_module():
 
 
 @lru_cache(maxsize=1)
-def load_m68k_executor_runtime_module():
+def load_m68k_executor_runtime_module() -> ModuleType:
     module = _load_runtime_module("runtime_m68k_executor")
     for name in (
         "FIELD_MAPS", "RAW_FIELDS", "OPERAND_MODE_TABLES", "REGISTER_FIELDS",
@@ -179,7 +193,7 @@ def load_m68k_executor_runtime_module():
 
 
 @lru_cache(maxsize=1)
-def load_os_runtime_kb():
+def load_os_runtime_kb() -> ModuleType:
     module = _load_runtime_module("runtime_os")
     for name in ("META", "STRUCTS", "CONSTANTS", "LIBRARIES"):
         _require_attr(module, name)
@@ -187,7 +201,7 @@ def load_os_runtime_kb():
 
 
 @lru_cache(maxsize=1)
-def load_hunk_runtime_kb():
+def load_hunk_runtime_kb() -> ModuleType:
     module = _load_runtime_module("runtime_hunk")
     for name in (
         "META", "HUNK_TYPES", "EXT_TYPES", "MEMORY_FLAGS", "MEMORY_TYPE_CODES",
@@ -199,7 +213,7 @@ def load_hunk_runtime_kb():
 
 
 @lru_cache(maxsize=1)
-def load_naming_runtime_kb():
+def load_naming_runtime_kb() -> ModuleType:
     module = _load_runtime_module("runtime_naming")
     for name in ("META", "PATTERNS", "TRIVIAL_FUNCTIONS", "GENERIC_PREFIX"):
         _require_attr(module, name)
@@ -207,7 +221,7 @@ def load_naming_runtime_kb():
 
 
 @lru_cache(maxsize=1)
-def load_hardware_runtime_kb():
+def load_hardware_runtime_kb() -> ModuleType:
     module = _load_runtime_module("runtime_hardware")
     for name in ("META", "REGISTER_DEFS"):
         _require_attr(module, name)

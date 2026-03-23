@@ -1,16 +1,26 @@
 from __future__ import annotations
 """Build disassembly-time substitution maps."""
 
+from collections.abc import Mapping, Sequence
+from typing import Protocol
+
 from m68k.instruction_kb import instruction_kb
 from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
 from m68k.instruction_primitives import extract_branch_target
+from m68k.m68k_disasm import Instruction
 from m68k.os_calls import LibraryCall, OsKb
 from m68k.registers import parse_reg_name
 from m68k.subroutine_ranges import find_containing_sub
+from disasm.types import EntityRecord
+
+
+class _InstructionBlock(Protocol):
+    @property
+    def instructions(self) -> Sequence[Instruction]: ...
 
 
 
-def _immediate_operand_token(inst) -> str:
+def _immediate_operand_token(inst: Instruction) -> str:
     if inst.operand_texts is None:
         raise ValueError(
             f"Instruction at ${inst.offset:06x} is missing operand_texts")
@@ -21,17 +31,22 @@ def _immediate_operand_token(inst) -> str:
     if not token.startswith("#"):
         raise ValueError(
             f"Instruction at ${inst.offset:06x} first operand is not immediate: {token!r}")
-    return token
+    return str(token)
 
 
-def _sorted_code_entities(hunk_entities: list[dict]) -> list[dict[str, int]]:
+def _sorted_code_entities(hunk_entities: list[EntityRecord]) -> list[dict[str, int]]:
     return sorted(
         [{"addr": int(e["addr"], 16), "end": int(e["end"], 16)}
          for e in hunk_entities if e["type"] == "code"],
         key=lambda s: s["addr"])
 
 
-def _call_instruction_index(*, blk, call: LibraryCall, sorted_code_ents: list[dict]) -> int | None:
+def _call_instruction_index(
+    *,
+    blk: _InstructionBlock,
+    call: LibraryCall,
+    sorted_code_ents: list[dict[str, int]],
+) -> int | None:
     if call.dispatch is not None:
         dispatch_sub = find_containing_sub(call.dispatch, sorted_code_ents)
         if dispatch_sub is None:
@@ -48,8 +63,8 @@ def _call_instruction_index(*, blk, call: LibraryCall, sorted_code_ents: list[di
     return None
 
 
-def build_lvo_substitutions(*, blocks: dict, lib_calls: list[LibraryCall],
-                            hunk_entities: list[dict]
+def build_lvo_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_calls: list[LibraryCall],
+                            hunk_entities: list[EntityRecord]
                             ) -> tuple[dict[str, dict[int, str]], dict[int, tuple[str, str]]]:
     lvo_equs: dict[str, dict[int, str]] = {}
     lvo_substitutions: dict[int, tuple[str, str]] = {}
@@ -93,7 +108,7 @@ def build_lvo_substitutions(*, blocks: dict, lib_calls: list[LibraryCall],
     return lvo_equs, lvo_substitutions
 
 
-def build_arg_substitutions(*, blocks: dict, lib_calls: list[LibraryCall], hunk_entities: list[dict],
+def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_calls: list[LibraryCall], hunk_entities: list[EntityRecord],
                             os_kb: OsKb) -> tuple[dict[str, int], dict[int, tuple[str, str]]]:
     arg_equs: dict[str, int] = {}
     arg_substitutions: dict[int, tuple[str, str]] = {}
@@ -102,7 +117,7 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[LibraryCall], hunk_
     all_consts = os_kb.CONSTANTS
     func_const_map: dict[str, dict[int, str]] = {}
     for func_name, const_names in const_domains.items():
-        vmap = {}
+        vmap: dict[int, str] = {}
         for cn in const_names:
             constant = all_consts.get(cn)
             cv = None if constant is None else constant.value
@@ -114,9 +129,10 @@ def build_arg_substitutions(*, blocks: dict, lib_calls: list[LibraryCall], hunk_
         func_name = call.function
         if not func_name or func_name.startswith("LVO_"):
             continue
-        vmap = func_const_map.get(func_name)
-        if not vmap:
+        vmap_opt = func_const_map.get(func_name)
+        if not vmap_opt:
             continue
+        vmap = vmap_opt
         lib = call.library
         library = os_kb.LIBRARIES.get(lib)
         if library is None:

@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import struct
+from collections.abc import Iterable
+from collections.abc import Mapping
 
 from m68k_kb import runtime_os
 from disasm.decode import decode_inst_for_emit
-from m68k.hunk_parser import HunkType
+from m68k.hunk_parser import Hunk, HunkType
 from m68k.strings import read_string_at
+from disasm.types import DisasmBlockLike, EntityRecord
 
 
-def discover_pc_relative_targets(blocks: dict, code: bytes) -> dict[int, str]:
+def discover_pc_relative_targets(blocks: Mapping[int, DisasmBlockLike], code: bytes) -> dict[int, str]:
     """Discover PC-relative operand targets in flow-verified blocks."""
     pc_targets, _ = discover_operand_targets(blocks, code)
     return pc_targets
 
 
-def discover_operand_targets(blocks: dict, code: bytes | None) -> tuple[dict[int, str], set[int]]:
+def discover_operand_targets(blocks: Mapping[int, DisasmBlockLike],
+                             code: bytes | None) -> tuple[dict[int, str], set[int]]:
     """Discover PC-relative and absolute targets from one decode pass."""
     instr_middles = set()
     for blk in blocks.values():
@@ -53,7 +57,7 @@ def discover_operand_targets(blocks: dict, code: bytes | None) -> tuple[dict[int
     return pc_targets, absolute_targets
 
 
-def discover_absolute_targets(blocks: dict, code_size: int) -> set[int]:
+def discover_absolute_targets(blocks: Mapping[int, DisasmBlockLike], code_size: int) -> set[int]:
     """Discover internal absolute-address operands in a block set."""
     _, targets = discover_operand_targets(blocks, None)
     return {target for target in targets if 0 <= target < code_size}
@@ -66,20 +70,24 @@ def filter_internal_absolute_data_targets(targets: set[int],
     return set(targets) - code_addrs - reserved_addrs
 
 
-def build_label_map(entities: list[dict], blocks: dict,
+def build_label_map(entities: list[EntityRecord], block_addrs: Iterable[int],
                     reloc_targets: set[int], internal_absolute_data_targets: set[int],
                     pc_targets: dict[int, str]) -> dict[int, str]:
     """Build label names from entities, blocks, relocations, and PC refs."""
-    labels = {}
+    labels: dict[int, str] = {}
 
     for ent in entities:
-        addr = int(ent["addr"], 16)
-        if ent.get("name"):
-            labels[addr] = ent["name"]
+        raw_addr = ent["addr"]
+        if not isinstance(raw_addr, str):
+            raise TypeError("entity addr must be a hex string")
+        addr = int(raw_addr, 16)
+        raw_name = ent.get("name")
+        if raw_name:
+            labels[addr] = raw_name
         elif ent["type"] == "code":
             labels[addr] = f"sub_{addr:04x}"
 
-    for addr in sorted(blocks):
+    for addr in sorted(block_addrs):
         if addr not in labels:
             labels[addr] = f"loc_{addr:04x}"
 
@@ -111,7 +119,7 @@ def apply_generic_data_label_promotions(labels: dict[int, str],
             pc_targets[addr] = promoted
 
 
-def add_hint_labels(labels: dict[int, str], hint_blocks: dict,
+def add_hint_labels(labels: dict[int, str], hint_blocks: dict[int, DisasmBlockLike],
                     code_addrs: set[int]) -> None:
     """Add hint-only labels without overriding core-derived labels."""
     for addr in sorted(hint_blocks):
@@ -128,7 +136,7 @@ def add_hint_labels(labels: dict[int, str], hint_blocks: dict,
                     labels[succ] = f"loc_{succ:04x}"
 
 
-def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
+def build_reloc_map(hunks: list[Hunk], hunk_idx: int) -> dict[int, int]:
     """Build offset->target map from absolute reloc entries for a hunk."""
     from m68k.hunk_parser import _HUNK_KB
 
@@ -138,7 +146,7 @@ def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
         if sem[1] == _HUNK_KB.RelocMode.ABSOLUTE and name in HunkType.__members__:
             abs_types.add(HunkType[name])
 
-    reloc_map = {}
+    reloc_map: dict[int, int] = {}
     for hunk in hunks:
         if hunk.index != hunk_idx:
             continue
@@ -149,11 +157,11 @@ def build_reloc_map(hunks, hunk_idx: int) -> dict[int, int]:
                 continue
             if rtype not in abs_types:
                 continue
-            sem = reloc_sem.get(rtype.name)
-            if sem is None:
+            if rtype.name not in reloc_sem:
                 raise KeyError(
                     f"relocation_semantics missing for {rtype.name}")
-            nbytes = sem[0]
+            sem_info = reloc_sem[rtype.name]
+            nbytes = sem_info[0]
             fmt = {4: ">I", 2: ">H"}.get(nbytes)
             if fmt is None:
                 raise ValueError(

@@ -1,4 +1,5 @@
 import struct
+from dataclasses import dataclass
 
 from m68k_kb import runtime_m68k_decode
 
@@ -10,9 +11,27 @@ def _xf(word: int, field_spec: tuple[int, int, int]) -> int:
     return (word >> bit_lo) & ((1 << width) - 1)
 
 
+@dataclass(frozen=True, slots=True)
+class FullExtensionInfo:
+    base_register: str | None
+    base_suppressed: bool
+    base_displacement: int | None
+    index_suppressed: bool
+    index_register: str | None
+    index_reg_num: int | None
+    index_is_addr: bool
+    index_size: str | None
+    index_scale: int | None
+    memory_indirect: bool
+    preindexed: bool
+    postindexed: bool
+    outer_displacement: int | None
+    base_target: int | None
+
+
 def parse_full_extension(ext: int, data: bytes, pos: int,
                          *, base_register: str | None,
-                         pc_offset: int | None) -> tuple[dict[str, object], int]:
+                         pc_offset: int | None) -> tuple[FullExtensionInfo, int]:
     fields = runtime_m68k_decode.EA_FULL_FIELDS
     iis = _xf(ext, fields["I/IS"])
     if iis == 4:
@@ -69,19 +88,19 @@ def parse_full_extension(ext: int, data: bytes, pos: int,
     if pc_offset is not None and not base_suppressed:
         base_target = pc_offset + runtime_m68k_decode.OPWORD_BYTES + (base_displacement or 0)
 
-    return {
-        "base_register": None if base_suppressed else base_register,
-        "base_suppressed": base_suppressed,
-        "base_displacement": base_displacement,
-        "index_suppressed": index_suppressed,
-        "index_register": None if index_suppressed else f"{'a' if index_is_addr else 'd'}{index_reg}",
-        "index_reg_num": None if index_suppressed else index_reg,
-        "index_is_addr": index_is_addr,
-        "index_size": None if index_suppressed else index_size,
-        "index_scale": None if index_suppressed else index_scale,
-        "memory_indirect": memory_indirect,
-        "preindexed": preindexed,
-        "postindexed": postindexed,
-        "outer_displacement": outer_displacement,
-        "base_target": base_target,
-    }, new_pos
+    return FullExtensionInfo(
+        base_register=None if base_suppressed else base_register,
+        base_suppressed=base_suppressed,
+        base_displacement=base_displacement,
+        index_suppressed=index_suppressed,
+        index_register=None if index_suppressed else f"{'a' if index_is_addr else 'd'}{index_reg}",
+        index_reg_num=None if index_suppressed else index_reg,
+        index_is_addr=index_is_addr,
+        index_size=None if index_suppressed else index_size,
+        index_scale=None if index_suppressed else index_scale,
+        memory_indirect=memory_indirect,
+        preindexed=preindexed,
+        postindexed=postindexed,
+        outer_displacement=outer_displacement,
+        base_target=base_target,
+    ), new_pos

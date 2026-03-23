@@ -1,16 +1,15 @@
-import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
-from parse_ndk import (
+from kb.ndk_parser import (
     parse_callback_typedefs,
     parse_clib_prototypes,
     reconcile_clib_callback_types,
 )
 
 
-def test_parse_clib_prototypes_preserves_function_pointer_args(tmp_path):
+def test_parse_clib_prototypes_preserves_function_pointer_args(
+    tmp_path: Path,
+) -> None:
     clib_dir = tmp_path / "clib"
     clib_dir.mkdir()
     (clib_dir / "exec_protos.h").write_text(
@@ -38,7 +37,7 @@ def test_parse_clib_prototypes_preserves_function_pointer_args(tmp_path):
     ]
 
 
-def test_parse_callback_typedefs_resolves_alias_chains(tmp_path):
+def test_parse_callback_typedefs_resolves_alias_chains(tmp_path: Path) -> None:
     utility_dir = tmp_path / "utility"
     utility_dir.mkdir()
     (utility_dir / "hooks.h").write_text(
@@ -58,7 +57,9 @@ def test_parse_callback_typedefs_resolves_alias_chains(tmp_path):
     }
 
 
-def test_parse_callback_typedefs_ignores_multiline_preprocessor_blocks(tmp_path):
+def test_parse_callback_typedefs_ignores_multiline_preprocessor_blocks(
+    tmp_path: Path,
+) -> None:
     utility_dir = tmp_path / "utility"
     utility_dir.mkdir()
     (utility_dir / "hooks.h").write_text(
@@ -77,7 +78,9 @@ def test_parse_callback_typedefs_ignores_multiline_preprocessor_blocks(tmp_path)
     assert parsed["HOOKFUNC"] == "unsigned long (*)()"
 
 
-def test_parse_clib_prototypes_resolves_callback_typedef_args(tmp_path):
+def test_parse_clib_prototypes_resolves_callback_typedef_args(
+    tmp_path: Path,
+) -> None:
     utility_dir = tmp_path / "utility"
     utility_dir.mkdir()
     (utility_dir / "hooks.h").write_text(
@@ -108,7 +111,9 @@ def test_parse_clib_prototypes_resolves_callback_typedef_args(tmp_path):
     ]
 
 
-def test_reconcile_clib_callback_types_updates_semantics_from_headers(tmp_path):
+def test_reconcile_clib_callback_types_updates_semantics_from_headers(
+    tmp_path: Path,
+) -> None:
     clib_dir = tmp_path / "clib"
     clib_dir.mkdir()
     (clib_dir / "exec_protos.h").write_text(
@@ -157,7 +162,9 @@ def test_reconcile_clib_callback_types_updates_semantics_from_headers(tmp_path):
     assert "semantic_note" not in new_function
 
 
-def test_reconcile_clib_callback_types_updates_semantics_via_typedefs(tmp_path):
+def test_reconcile_clib_callback_types_updates_semantics_via_typedefs(
+    tmp_path: Path,
+) -> None:
     utility_dir = tmp_path / "utility"
     utility_dir.mkdir()
     (utility_dir / "hooks.h").write_text(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import SimpleNamespace
+from typing import Protocol
 
 from m68k.instruction_kb import find_kb_entry
 from m68k.instruction_decode import DecodedOperands, decode_inst_operands
@@ -14,6 +15,14 @@ class DecodedInstructionForEmit:
     mnemonic: str
     size: str
     decoded: DecodedOperands
+
+
+class InstructionForEmitLike(Protocol):
+    raw: bytes
+    offset: int
+    kb_mnemonic: str | None
+    operand_size: str | None
+    decoded_operands: DecodedInstructionForEmit | None
 
 
 _INSTRUCTION_DECODE_CACHE: dict[tuple[str, bytes, int, str], DecodedInstructionForEmit] = {}
@@ -52,7 +61,7 @@ def decode_instruction_for_emit(inst_raw: bytes,
     return decode_inst_for_emit(inst)
 
 
-def decode_inst_for_emit(inst) -> DecodedInstructionForEmit:
+def decode_inst_for_emit(inst: InstructionForEmitLike) -> DecodedInstructionForEmit:
     """Decode and cache operand metadata on an Instruction object."""
     if inst.decoded_operands is not None:
         return inst.decoded_operands

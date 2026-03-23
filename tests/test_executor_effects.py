@@ -26,7 +26,7 @@ from m68k.os_calls import LibraryBaseTag
 from tests.platform_helpers import make_platform
 
 
-def _run(code):
+def _run(code: bytes) -> tuple[CPUState, AbstractMemory]:
     """Analyze code with propagation, return exit state of block 0."""
     result = analyze(code, propagate=True)
     cpu, mem = result["exit_states"][0]
@@ -35,21 +35,21 @@ def _run(code):
 
 # -- Binary ops: add, sub, and, or, xor ------------------------------
 
-def test_add_reg_reg():
+def test_add_reg_reg() -> None:
     """ADD.W D1,D0 with known values."""
     code = struct.pack('>HHH', 0x7005, 0x720A, 0xD041)  # moveq#5, moveq#10, add.w d1,d0
     code += struct.pack('>H', 0x4E75)  # rts
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 15
 
-def test_sub_reg_reg():
+def test_sub_reg_reg() -> None:
     """SUB.W D1,D0: 20 - 5 = 15."""
     code = struct.pack('>HHH', 0x7014, 0x7205, 0x9041)  # moveq#20, moveq#5, sub.w d1,d0
     code += struct.pack('>H', 0x4E75)
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 15
 
-def test_and_reg_reg():
+def test_and_reg_reg() -> None:
     """AND.W D1,D0: 0xFF & 0x0F = 0x0F."""
     code = b''
     code += struct.pack('>HH', 0x303C, 0x00FF)  # move.w #$FF,d0
@@ -59,7 +59,7 @@ def test_and_reg_reg():
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 0x0F
 
-def test_or_reg_reg():
+def test_or_reg_reg() -> None:
     """OR.W D1,D0: 0xF0 | 0x0F = 0xFF."""
     code = b''
     code += struct.pack('>HH', 0x303C, 0x00F0)  # move.w #$F0,d0
@@ -69,7 +69,7 @@ def test_or_reg_reg():
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 0xFF
 
-def test_eor_reg_reg():
+def test_eor_reg_reg() -> None:
     """EOR.W D1,D0: 0xFF ^ 0x0F = 0xF0."""
     code = b''
     code += struct.pack('>HH', 0x303C, 0x00FF)  # move.w #$FF,d0
@@ -80,21 +80,21 @@ def test_eor_reg_reg():
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 0xF0
 
-def test_addi():
+def test_addi() -> None:
     """ADDI.W #$10,D0."""
     code = struct.pack('>H', 0x7005)             # moveq #5,d0
     code += struct.pack('>HHH', 0x0640, 0x0010, 0x4E75)  # addi.w #$10,d0; rts
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 0x15
 
-def test_subi():
+def test_subi() -> None:
     """SUBI.W #3,D0."""
     code = struct.pack('>H', 0x700A)             # moveq #10,d0
     code += struct.pack('>HHH', 0x0440, 0x0003, 0x4E75)  # subi.w #3,d0; rts
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 7
 
-def test_addq():
+def test_addq() -> None:
     """ADDQ.L #4,A0."""
     # lea 6(pc),a0 at offset 0: a0 = 0 + 2 + 6 = 8
     code = struct.pack('>HH', 0x41FA, 0x0006)   # lea 6(pc),a0 -> a0=$08
@@ -103,7 +103,7 @@ def test_addq():
     cpu, _ = _run(code)
     assert cpu.a[0].concrete == 8 + 4
 
-def test_cmp_no_write():
+def test_cmp_no_write() -> None:
     """CMP.W D1,D0 should NOT modify D0."""
     code = struct.pack('>HHH', 0x7005, 0x720A, 0xB041)  # moveq#5, moveq#10, cmp.w d1,d0
     code += struct.pack('>H', 0x4E75)
@@ -112,7 +112,7 @@ def test_cmp_no_write():
     assert cpu.d[1].concrete == 10  # unchanged
 
 
-def test_cmp2_no_write_and_no_compute_formula_requirement():
+def test_cmp2_no_write_and_no_compute_formula_requirement() -> None:
     """CMP2.W (A0),D0 should analyze without forcing a generic compute formula."""
     code = b""
     code += struct.pack(">H", 0x7005)          # moveq #5,d0
@@ -127,14 +127,14 @@ def test_cmp2_no_write_and_no_compute_formula_requirement():
 
 # -- Unary ops --------------------------------------------------------
 
-def test_neg():
+def test_neg() -> None:
     """NEG.L D0: 0 - 5 = -5."""
     code = struct.pack('>HH', 0x7005, 0x4480)   # moveq #5,d0; neg.l d0
     code += struct.pack('>H', 0x4E75)
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == (-5) & 0xFFFFFFFF
 
-def test_not():
+def test_not() -> None:
     """NOT.L D0: ~0x0000000F = 0xFFFFFFF0."""
     code = struct.pack('>HH', 0x700F, 0x4680)   # moveq #$F,d0; not.l d0
     code += struct.pack('>H', 0x4E75)
@@ -144,25 +144,25 @@ def test_not():
 
 # -- Assign: MOVE, MOVEQ, CLR ----------------------------------------
 
-def test_moveq():
+def test_moveq() -> None:
     """MOVEQ #42,D0."""
     code = struct.pack('>HH', 0x702A, 0x4E75)
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 42
 
-def test_moveq_negative():
+def test_moveq_negative() -> None:
     """MOVEQ #-1,D0 -> sign-extended to $FFFFFFFF."""
     code = struct.pack('>HH', 0x70FF, 0x4E75)
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 0xFFFFFFFF
 
-def test_clr():
+def test_clr() -> None:
     """CLR.L D0 after MOVEQ."""
     code = struct.pack('>HHH', 0x702A, 0x4280, 0x4E75)
     cpu, _ = _run(code)
     assert cpu.d[0].concrete == 0
 
-def test_move_reg_reg():
+def test_move_reg_reg() -> None:
     """MOVE.L D0,D1."""
     code = struct.pack('>HHH', 0x702A, 0x2200, 0x4E75)  # moveq#42, move.l d0,d1, rts
     cpu, _ = _run(code)
@@ -171,7 +171,7 @@ def test_move_reg_reg():
 
 # -- LEA --------------------------------------------------------------
 
-def test_lea_pcdisp():
+def test_lea_pcdisp() -> None:
     """LEA d(PC),A0 computes address, not memory value."""
     # lea $10(pc),a0 at offset 0: a0 = 0 + 2 + $10 = $12
     code = struct.pack('>HH', 0x41FA, 0x0010)
@@ -183,7 +183,7 @@ def test_lea_pcdisp():
 
 # -- SWAP -------------------------------------------------------------
 
-def test_swap():
+def test_swap() -> None:
     """SWAP D0: exchange upper and lower words.
 
     SWAP's encoding has a REGISTER field but no MODE field, so the
@@ -200,7 +200,7 @@ def test_swap():
 
 # -- EXT --------------------------------------------------------------
 
-def test_ext_w():
+def test_ext_w() -> None:
     """EXT.W D0: sign-extend byte to word."""
     code = struct.pack('>H', 0x70FF)       # moveq #-1,d0 (=$FFFFFFFF)
     code += struct.pack('>HH', 0x7000 | 0x80, 0x4880)  # moveq #$80,d0; ext.w d0
@@ -217,7 +217,7 @@ def test_ext_w():
 
 # -- EXG --------------------------------------------------------------
 
-def test_exg_data():
+def test_exg_data() -> None:
     """EXG D0,D1."""
     code = struct.pack('>HHH', 0x700A, 0x7214, 0xC141)  # moveq#10, moveq#20, exg d0,d1
     code += struct.pack('>H', 0x4E75)
@@ -228,7 +228,7 @@ def test_exg_data():
 
 # -- ADDA/SUBA (source sign-extend) ----------------------------------
 
-def test_adda_w():
+def test_adda_w() -> None:
     """ADDA.W D0,A0: source word sign-extended to long before add."""
     code = b''
     code += struct.pack('>HH', 0x41FA, 0x0010)  # lea $10(pc),a0 -> a0=$12
@@ -243,7 +243,7 @@ def test_adda_w():
 
 # -- Rotate: should compute via KB ------------------------------------
 
-def test_rol_immediate():
+def test_rol_immediate() -> None:
     """ROL.L #2,D0: rotate left 2 bits."""
     code = b''
     code += struct.pack('>HI', 0x203C, 0x80000001)  # move.l #$80000001,d0
@@ -255,7 +255,7 @@ def test_rol_immediate():
     assert cpu.d[0].concrete == 0x00000006
 
 
-def test_ror_immediate():
+def test_ror_immediate() -> None:
     """ROR.L #1,D0: rotate right 1 bit."""
     code = b''
     code += struct.pack('>H', 0x7001)                # moveq #1,d0
@@ -269,7 +269,7 @@ def test_ror_immediate():
 
 # -- Divide: should compute via KB ------------------------------------
 
-def test_divu_w():
+def test_divu_w() -> None:
     """DIVU.W D1,D0: 35 / 7 = 5 remainder 0."""
     code = b''
     code += struct.pack('>H', 0x7023)                # moveq #35,d0
@@ -284,7 +284,7 @@ def test_divu_w():
 
 # -- Unknown operand: invalidate path ---------------------------------
 
-def test_shift_unknown_count_invalidates():
+def test_shift_unknown_count_invalidates() -> None:
     """LSL with unknown count should invalidate the destination."""
     code = b''
     code += struct.pack('>H', 0x7005)                # moveq #5,d0
@@ -297,7 +297,7 @@ def test_shift_unknown_count_invalidates():
         f"LSL with unknown count should invalidate, got {cpu.d[0]}")
 
 
-def test_multiply_unknown_operand_invalidates():
+def test_multiply_unknown_operand_invalidates() -> None:
     """MULU with unknown source should invalidate the destination."""
     code = b''
     code += struct.pack('>H', 0x7005)                # moveq #5,d0
@@ -311,7 +311,7 @@ def test_multiply_unknown_operand_invalidates():
 
 # -- Register preservation through calls ------------------------------
 
-def test_register_preserved_through_push_pop_call():
+def test_register_preserved_through_push_pop_call() -> None:
     """Register saved/restored around a call should survive on fallthrough.
 
     Pattern:
@@ -368,7 +368,7 @@ def test_register_preserved_through_push_pop_call():
         f"got {targets}")
 
 
-def test_library_base_survives_push_pop_exec_call():
+def test_library_base_survives_push_pop_exec_call() -> None:
     """Library base register preserved through push/pop around call.
 
     Pattern (common in Amiga code):
@@ -421,7 +421,7 @@ def test_library_base_survives_push_pop_exec_call():
         f"got {targets}")
 
 
-def test_base_register_survives_merge():
+def test_base_register_survives_merge() -> None:
     """App base register restored after merge kills it.
 
     When multiple paths converge and one has the base register unknown
@@ -490,7 +490,7 @@ def test_base_register_survives_merge():
 
 # -- Shift/rotate: currently invalidated, should compute --------------
 
-def test_lsl_immediate():
+def test_lsl_immediate() -> None:
     """LSL.W #2,D0: 5 << 2 = 20."""
     code = b''
     code += struct.pack('>H', 0x7005)       # moveq #5,d0
@@ -502,7 +502,7 @@ def test_lsl_immediate():
     assert cpu.d[0].concrete == 20, f"5 << 2 = 20, got {cpu.d[0].concrete}"
 
 
-def test_lsr_immediate():
+def test_lsr_immediate() -> None:
     """LSR.L #3,D0: 40 >> 3 = 5."""
     code = b''
     code += struct.pack('>H', 0x7028)       # moveq #40,d0
@@ -514,7 +514,7 @@ def test_lsr_immediate():
     assert cpu.d[0].concrete == 5
 
 
-def test_asr_immediate():
+def test_asr_immediate() -> None:
     """ASR.L #1,D0: -4 >> 1 = -2 (arithmetic, sign-preserving)."""
     code = b''
     code += struct.pack('>H', 0x70FC)       # moveq #-4,d0
@@ -526,7 +526,7 @@ def test_asr_immediate():
     assert cpu.d[0].concrete == (-2) & 0xFFFFFFFF
 
 
-def test_asl_immediate():
+def test_asl_immediate() -> None:
     """ASL.W #1,D0: 3 << 1 = 6."""
     code = b''
     code += struct.pack('>H', 0x7003)       # moveq #3,d0
@@ -540,7 +540,7 @@ def test_asl_immediate():
 
 # -- Multiply: currently invalidated, should compute ------------------
 
-def test_mulu_w():
+def test_mulu_w() -> None:
     """MULU.W D1,D0: 5 * 7 = 35 (unsigned word multiply -> long result)."""
     code = b''
     code += struct.pack('>H', 0x7005)       # moveq #5,d0
@@ -553,7 +553,7 @@ def test_mulu_w():
     assert cpu.d[0].concrete == 35
 
 
-def test_muls_w():
+def test_muls_w() -> None:
     """MULS.W D1,D0: -3 * 4 = -12 (signed word multiply -> long result)."""
     code = b''
     code += struct.pack('>H', 0x70FD)       # moveq #-3,d0
@@ -568,7 +568,7 @@ def test_muls_w():
 
 # -- Bit ops: currently invalidated, should compute -------------------
 
-def test_btst_reg():
+def test_btst_reg() -> None:
     """BTST D1,D0: test bit, should NOT modify D0."""
     code = b''
     code += struct.pack('>H', 0x70FF)       # moveq #-1,d0 ($FFFFFFFF)
@@ -581,7 +581,7 @@ def test_btst_reg():
     assert cpu.d[0].concrete == 0xFFFFFFFF
 
 
-def test_bclr_reg():
+def test_bclr_reg() -> None:
     """BCLR D1,D0: clear bit 3 of D0."""
     code = b''
     code += struct.pack('>H', 0x70FF)       # moveq #-1,d0 ($FFFFFFFF)
@@ -594,7 +594,7 @@ def test_bclr_reg():
     assert cpu.d[0].concrete == 0xFFFFFFF7
 
 
-def test_bset_reg():
+def test_bset_reg() -> None:
     """BSET D1,D0: set bit 0 of D0."""
     code = b''
     code += struct.pack('>H', 0x7000)       # moveq #0,d0
@@ -609,7 +609,7 @@ def test_bset_reg():
 
 # -- Summary overrides scratch invalidation ---------------------------
 
-def test_summary_preserves_scratch_register():
+def test_summary_preserves_scratch_register() -> None:
     """Summary-preserved registers survive even if in scratch set.
 
     Caller sets D0=42, BSRs to sub that doesn't touch D0.
@@ -650,7 +650,7 @@ def test_summary_preserves_scratch_register():
         f"D0 should be 42, got {cpu.d[0].concrete}")
 
 
-def test_summary_produced_value_propagates():
+def test_summary_produced_value_propagates() -> None:
     """Callee that always produces a concrete return value in D0.
 
     Sub computes D0=99 regardless of input. The summary should capture
@@ -684,7 +684,7 @@ def test_summary_produced_value_propagates():
         f"D0 should be 99, got {cpu.d[0].concrete}")
 
 
-def test_summary_produced_address_enables_dispatch():
+def test_summary_produced_address_enables_dispatch() -> None:
     """Callee produces a concrete code address in A0, caller dispatches.
 
     Sub always sets A0 = LEA target(pc),a0. After return, caller does
@@ -726,7 +726,7 @@ def test_summary_produced_address_enables_dispatch():
         f"got {targets}")
 
 
-def test_summary_produced_library_base_tag_propagates():
+def test_summary_produced_library_base_tag_propagates() -> None:
     """Callee that opens dos.library should return a tagged D0 via summary."""
     code = b""
     code += struct.pack(">HH", 0x6100, 0x0004)      # $00: bsr.w $06
@@ -748,7 +748,7 @@ def test_summary_produced_library_base_tag_propagates():
     assert cpu.d[0].tag.library_base == "dos.library"
 
 
-def test_summary_input_dependent_stays_unknown():
+def test_summary_input_dependent_stays_unknown() -> None:
     """Callee return value depends on input -- should NOT be in summary.
 
     Sub adds 1 to D0 and returns. Different callers get different results.
@@ -781,7 +781,7 @@ def test_summary_input_dependent_stays_unknown():
         f"D0 should be unknown (input-dependent return), got {cpu.d[0]}")
 
 
-def test_summary_unknown_return_stays_unknown():
+def test_summary_unknown_return_stays_unknown() -> None:
     """Callee clobbers D0 with an unknown value -- stays unknown.
 
     Sub reads D0 from memory (unknown address), producing an unknown
@@ -815,7 +815,7 @@ def test_summary_unknown_return_stays_unknown():
 
 # -- Multi-entry propagation ------------------------------------------
 
-def test_all_entry_points_get_exit_states():
+def test_all_entry_points_get_exit_states() -> None:
     """Every entry point should be seeded with initial state for propagation.
 
     Entry point 0 has a BSR to sub_a at $04.
@@ -859,7 +859,7 @@ def test_all_entry_points_get_exit_states():
 
 # -- Init memory join semantics ---------------------------------------
 
-def test_init_mem_value_survives_join():
+def test_init_mem_value_survives_join() -> None:
     """Init memory pointer survives merge of two paths.
 
     Two paths converge, neither touches the init mem slot.
@@ -905,7 +905,7 @@ def test_init_mem_value_survives_join():
         f"Expected ${target:04X} from jsr (a0) via init mem, got {targets}")
 
 
-def test_store_in_one_sub_load_in_another():
+def test_store_in_one_sub_load_in_another() -> None:
     """Value stored by one sub, loaded and dispatched in another.
 
     Sub A stores LEA-computed address to d(A6).
@@ -960,7 +960,7 @@ def test_store_in_one_sub_load_in_another():
         f"got {targets}")
 
 
-def test_local_write_overrides_init_mem():
+def test_local_write_overrides_init_mem() -> None:
     """Block-local write overrides init memory value.
 
     A block writes unknown to d(A6) then reads it. The read should get
@@ -994,7 +994,7 @@ def test_local_write_overrides_init_mem():
         f"got {cpu.a[0]}")
 
 
-def test_unknown_write_kills_init_mem_at_join():
+def test_unknown_write_kills_init_mem_at_join() -> None:
     """Explicit unknown write on one path must NOT be restored at join.
 
     Path A: writes unknown d0 to init mem slot 100(a6).
@@ -1042,7 +1042,7 @@ def test_unknown_write_kills_init_mem_at_join():
         f"got {cpu.a[0]}")
 
 
-def test_concrete_overwrite_on_one_path_kills_init_at_join():
+def test_concrete_overwrite_on_one_path_kills_init_at_join() -> None:
     """One path writes a different concrete value to an init mem slot.
 
     Path A: writes concrete 0x30 to slot (init had 0x20).
@@ -1099,7 +1099,7 @@ def test_concrete_overwrite_on_one_path_kills_init_at_join():
         f"${other_target:02X}), got {cpu.a[0]}")
 
 
-def test_both_paths_agree_on_non_init_value():
+def test_both_paths_agree_on_non_init_value() -> None:
     """Both paths write the same concrete value to an init mem slot.
 
     Both paths overwrite init value 0x20 with 0x30. After merge the
@@ -1147,7 +1147,7 @@ def test_both_paths_agree_on_non_init_value():
 
 # -- Extended arithmetic: ADDX, SUBX ---------------------------------
 
-def test_addx_reg_reg():
+def test_addx_reg_reg() -> None:
     """ADDX.B D1,D1: D1 = D1 + D1 + X. Classic bit-reverse building block."""
     # moveq #0,d1; moveq #1,d0 (sets X via prior add)
     # We can't easily set X flag, so test with known values where X=0
@@ -1167,7 +1167,7 @@ def test_addx_reg_reg():
     assert cpu.d[1].concrete == 8, f"D1 should be 8 (3+5+X=0), got {cpu.d[1].concrete}"
 
 
-def test_subx_reg_reg():
+def test_subx_reg_reg() -> None:
     """SUBX.L D0,D1: D1 = D1 - D0 - X."""
     code = b''
     code += struct.pack('>H', 0x7005)  # moveq #5,d0
@@ -1181,7 +1181,7 @@ def test_subx_reg_reg():
     assert cpu.d[1].concrete == 5, f"D1 should be 5 (10-5-X=0), got {cpu.d[1].concrete}"
 
 
-def test_addx_predecrement():
+def test_addx_predecrement() -> None:
     """ADDX.W -(A0),-(A1): memory-to-memory with predecrement."""
     # Set up: A0 points past source word, A1 points past dest word
     # Source word at $10: $0003. Dest word at $20: $0005.
@@ -1210,7 +1210,7 @@ def test_addx_predecrement():
     assert cpu.a[1].is_known and cpu.a[1].concrete == 0x20
 
 
-def test_trap_no_register_modification():
+def test_trap_no_register_modification() -> None:
     """TRAP instruction should not modify data/address registers."""
     code = b''
     # $00: moveq #42,d0
@@ -1226,14 +1226,21 @@ def test_trap_no_register_modification():
         f"D0 should be 42 (trap should not modify registers), got {cpu.d[0]}")
 
 
-def test_resolve_os_call_uses_typed_library_base_tag():
+def test_resolve_os_call_uses_typed_library_base_tag() -> None:
     inst = disassemble(assemble_instruction("jsr -30(a6)"))[0]
     cpu = CPUState()
     cpu.set_reg("an", 6, _unknown(tag=LibraryBaseTag(library_base="exec.library")))
     platform = make_platform()
     seen = {}
 
-    def fake_resolver(offset, lvo, a6_lib, cpu_state, code, platform=None):
+    def fake_resolver(
+        offset: int,
+        lvo: int | None,
+        a6_lib: str | None,
+        cpu_state: CPUState,
+        code: bytes,
+        platform: object = None,
+    ) -> object:
         seen["call"] = (offset, lvo, a6_lib)
         return object()
 
@@ -1245,7 +1252,7 @@ def test_resolve_os_call_uses_typed_library_base_tag():
     assert seen["call"] == (0, -30, "exec.library")
 
 
-def test_library_base_tag_survives_memory_store_and_reload():
+def test_library_base_tag_survives_memory_store_and_reload() -> None:
     mem = AbstractMemory()
     tagged = _unknown(tag=LibraryBaseTag(library_base="dos.library"))
     mem.write(0x1234, tagged, "l")
@@ -1255,7 +1262,7 @@ def test_library_base_tag_survives_memory_store_and_reload():
     assert loaded.tag.library_base == "dos.library"
 
 
-def test_link_unlk_apply_structured_sp_effects():
+def test_link_unlk_apply_structured_sp_effects() -> None:
     assert "LINK" in runtime_m68k_analysis.SP_EFFECTS_COMPLETE
     assert "UNLK" in runtime_m68k_analysis.SP_EFFECTS_COMPLETE
     assert "PEA" not in runtime_m68k_analysis.SP_EFFECTS_COMPLETE

@@ -1,6 +1,10 @@
 """Shared KB-driven table and pointer source recovery helpers."""
 
+from __future__ import annotations
+
 import struct
+from collections.abc import Sequence
+from typing import Literal, TypeAlias, TypedDict, cast
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
@@ -9,6 +13,61 @@ from .instruction_kb import instruction_kb
 from .instruction_decode import decode_inst_destination, decode_inst_operands, xf
 from . import address_reconstruction as _ar
 from . import value_transforms as _vt
+from .typing_protocols import DecodedOperandLike, InstructionLike, OperandNodeLike
+from .address_reconstruction import AddressReconstructionInstructionLike
+from .constant_evaluator import SizedInstructionLike
+
+
+DispatchPattern = Literal[
+    "memory_indirect_postindexed_long_pointer",
+    "memory_indirect_long_pointer",
+    "pc_memory_indirect_postindexed_long_pointer",
+    "pc_memory_indirect_long_pointer",
+]
+
+ShiftTransform: TypeAlias = tuple[Literal["shift"], str | None, str | None, int]
+LogicalTransform: TypeAlias = tuple[Literal["logical"], str, str | None, int]
+BitOpTransform: TypeAlias = tuple[Literal["bitop"], str | None, int]
+TestTransform: TypeAlias = tuple[Literal["test"], str | None, str | None]
+UnaryTransform: TypeAlias = tuple[Literal["unary"], str, str | None]
+SwapTransform: TypeAlias = tuple[Literal["swap"]]
+SignExtendTransform: TypeAlias = tuple[Literal["sign_extend"], str | None]
+MulDivTransform: TypeAlias = tuple[str, str | None, str | None, int]
+ValueTransform: TypeAlias = (
+    ShiftTransform
+    | LogicalTransform
+    | BitOpTransform
+    | TestTransform
+    | UnaryTransform
+    | SwapTransform
+    | SignExtendTransform
+    | MulDivTransform
+)
+
+
+class FullExtensionDispatchInfo(TypedDict):
+    table_addr: int
+    pattern: DispatchPattern
+    addend: int
+
+
+class PointerTableLoadInfo(TypedDict):
+    table_addr: int
+    stride: int
+    addend: int
+    transforms: tuple[ValueTransform, ...]
+
+
+class TableSourceInfo(TypedDict):
+    table_addr: int
+    field_offset: int
+    stride: int
+
+
+def _require_operand_nodes(inst: InstructionLike) -> tuple[OperandNodeLike, ...]:
+    nodes = inst.operand_nodes
+    assert nodes is not None, f"Instruction at ${inst.offset:06x} is missing operand nodes"
+    return tuple(nodes)
 
 
 def _read_code_long(code: bytes, addr: int, code_size: int) -> int | None:
@@ -16,11 +75,16 @@ def _read_code_long(code: bytes, addr: int, code_size: int) -> int | None:
     long_size = runtime_m68k_decode.SIZE_BYTE_COUNT["l"]
     if addr < 0 or addr + long_size > code_size or (addr & runtime_m68k_decode.ALIGN_MASK):
         return None
-    return struct.unpack_from(">I", code, addr)[0]
+    value = struct.unpack_from(">I", code, addr)[0]
+    return int(value)
 
 
-def _find_full_extension_long_pointer_dispatch(jump_operand, instructions,
-                                               code: bytes, code_size: int):
+def _find_full_extension_long_pointer_dispatch(
+    jump_operand: DecodedOperandLike | None,
+    instructions: Sequence[AddressReconstructionInstructionLike],
+    code: bytes,
+    code_size: int,
+) -> FullExtensionDispatchInfo | None:
     """Resolve inferable full-extension long-pointer dispatch source info."""
     if jump_operand is None:
         return None
@@ -32,6 +96,8 @@ def _find_full_extension_long_pointer_dispatch(jump_operand, instructions,
         return None
 
     if jump_operand.mode == "index":
+        if jump_operand.reg is None:
+            return None
         table_base = _ar.resolve_block_pc_base(instructions, jump_operand.reg)
         pointer_addr = (table_base + (jump_operand.base_displacement or 0)
                         if table_base is not None else None)
@@ -40,39 +106,46 @@ def _find_full_extension_long_pointer_dispatch(jump_operand, instructions,
                        if pointer_addr is not None else None)
             if pointer is None:
                 return None
-            return {
-                "table_addr": ((pointer + (jump_operand.outer_displacement or 0))
-                               & runtime_m68k_analysis.ADDR_MASK),
-                "pattern": "memory_indirect_postindexed_long_pointer",
-                "addend": 0,
-            }
+            return FullExtensionDispatchInfo(
+                table_addr=((pointer + (jump_operand.outer_displacement or 0))
+                            & runtime_m68k_analysis.ADDR_MASK),
+                pattern="memory_indirect_postindexed_long_pointer",
+                addend=0,
+            )
         if pointer_addr is None:
             return None
-        return {
-            "table_addr": pointer_addr,
-            "pattern": "memory_indirect_long_pointer",
-            "addend": jump_operand.outer_displacement or 0,
-        }
+        return FullExtensionDispatchInfo(
+            table_addr=pointer_addr,
+            pattern="memory_indirect_long_pointer",
+            addend=jump_operand.outer_displacement or 0,
+        )
 
     if jump_operand.postindexed:
+        assert jump_operand.value is not None
         pointer = _read_code_long(code, jump_operand.value, code_size)
         if pointer is None:
             return None
-        return {
-            "table_addr": ((pointer + (jump_operand.outer_displacement or 0))
-                           & runtime_m68k_analysis.ADDR_MASK),
-            "pattern": "pc_memory_indirect_postindexed_long_pointer",
-            "addend": 0,
-        }
-    return {
-        "table_addr": jump_operand.value,
-        "pattern": "pc_memory_indirect_long_pointer",
-        "addend": jump_operand.outer_displacement or 0,
-    }
+        return FullExtensionDispatchInfo(
+            table_addr=((pointer + (jump_operand.outer_displacement or 0))
+                        & runtime_m68k_analysis.ADDR_MASK),
+            pattern="pc_memory_indirect_postindexed_long_pointer",
+            addend=0,
+        )
+    assert jump_operand.value is not None
+    return FullExtensionDispatchInfo(
+        table_addr=jump_operand.value,
+        pattern="pc_memory_indirect_long_pointer",
+        addend=jump_operand.outer_displacement or 0,
+    )
 
 
-def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
-                            code: bytes, code_size: int) -> dict | None:
+def find_pointer_table_load(
+    instructions: Sequence[InstructionLike],
+    target_reg: int,
+    stop_before: int,
+    code: bytes,
+    code_size: int,
+) -> PointerTableLoadInfo | None:
     """Find a long pointer table load into An from indexed code-section data."""
     from . import static_values as _sv
 
@@ -80,7 +153,10 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
     current_mode = "an"
     current_reg = target_reg
     addend_offset = 0
-    transforms = []
+    transforms: list[ValueTransform] = []
+
+    sized_instructions = cast(Sequence[SizedInstructionLike], instructions)
+    ar_instructions = instructions
 
     for inst in reversed(instructions):
         if inst.offset >= stop_before:
@@ -103,8 +179,9 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
                 and ea_op.mode in ("dn", "an")):
             dst = decode_inst_destination(inst, mnemonic)
             if dst == (current_mode, current_reg):
+                assert ea_op.reg is not None
                 src_val = _sv._resolve_block_constant_reg(
-                    instructions, ea_op.mode, ea_op.reg, inst.offset)
+                    sized_instructions, ea_op.mode, ea_op.reg, inst.offset)
                 if src_val is not None:
                     addend_offset += src_val if op_type == runtime_m68k_analysis.OperationType.ADD else -src_val
                     continue
@@ -117,8 +194,8 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
         if (current_mode == "dn"
                 and op_type in ("shift", "rotate")
                 and decoded.imm_val is None
-                and len(inst.operand_nodes) == 2):
-            src_node, dst_node = inst.operand_nodes
+                and len(_require_operand_nodes(inst)) == 2):
+            src_node, dst_node = _require_operand_nodes(inst)
             if (src_node.kind == "register"
                     and dst_node.kind == "register"
                     and dst_node.register == f"d{current_reg}"
@@ -126,7 +203,7 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
                     and src_node.register.startswith("d")):
                 count_reg = int(src_node.register[1:])
                 count_val = _sv._resolve_block_constant_reg(
-                    instructions, "dn", count_reg, inst.offset)
+                    sized_instructions, "dn", count_reg, inst.offset)
                 if count_val is not None and count_val >= 0:
                     transforms.append(("shift", inst.opcode_text, inst.operand_size, count_val))
                     continue
@@ -151,8 +228,8 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
         if (current_mode == "dn"
                 and op_type == "bit_test"
                 and decoded.imm_val is None
-                and len(inst.operand_nodes) == 2):
-            src_node, dst_node = inst.operand_nodes
+                and len(_require_operand_nodes(inst)) == 2):
+            src_node, dst_node = _require_operand_nodes(inst)
             if (src_node.kind == "register"
                     and dst_node.kind == "register"
                     and dst_node.register == f"d{current_reg}"
@@ -160,7 +237,7 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
                     and src_node.register.startswith("d")):
                 count_reg = int(src_node.register[1:])
                 count_val = _sv._resolve_block_constant_reg(
-                    instructions, "dn", count_reg, inst.offset)
+                    sized_instructions, "dn", count_reg, inst.offset)
                 if count_val is not None:
                     transforms.append(("bitop", inst.opcode_text, count_val))
                     continue
@@ -179,8 +256,9 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
                 and ea_op.mode in ("dn", "an")):
             dst = decode_inst_destination(inst, mnemonic)
             if dst == (current_mode, current_reg):
+                assert ea_op.reg is not None
                 src_val = _sv._resolve_block_constant_reg(
-                    instructions, ea_op.mode, ea_op.reg, inst.offset)
+                    sized_instructions, ea_op.mode, ea_op.reg, inst.offset)
                 if src_val is not None:
                     transforms.append(("logical", op_type,
                                        inst.operand_size, src_val))
@@ -195,34 +273,35 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
             continue
         if (current_mode == "dn"
                 and op_type == runtime_m68k_analysis.OperationType.SWAP
-                and len(inst.operand_nodes) == 1
-                and inst.operand_nodes[0].kind == "register"
-                and inst.operand_nodes[0].register == f"d{current_reg}"):
+                and len(_require_operand_nodes(inst)) == 1
+                and _require_operand_nodes(inst)[0].kind == "register"
+                and _require_operand_nodes(inst)[0].register == f"d{current_reg}"):
             transforms.append(("swap",))
             continue
         if op_type == runtime_m68k_analysis.OperationType.SWAP:
-            partner = _vt._swap_partner(inst, current_mode, current_reg)
+            partner = _vt._swap_partner(cast(_vt.ExchangeInstructionLike, inst), current_mode, current_reg)
             if partner is not None:
                 current_mode, current_reg = partner
                 continue
         if (current_mode == "dn"
                 and op_type == runtime_m68k_analysis.OperationType.SIGN_EXTEND
-                and len(inst.operand_nodes) == 1
-                and inst.operand_nodes[0].kind == "register"
-                and inst.operand_nodes[0].register == f"d{current_reg}"):
+                and len(_require_operand_nodes(inst)) == 1
+                and _require_operand_nodes(inst)[0].kind == "register"
+                and _require_operand_nodes(inst)[0].register == f"d{current_reg}"):
             transforms.append(("sign_extend", inst.operand_size))
             continue
         if (current_mode == "dn"
                 and op_type in ("multiply", "divide")
-                and len(inst.operand_nodes) == 2):
-            src_node, dst_node = inst.operand_nodes
+                and len(_require_operand_nodes(inst)) == 2):
+            src_node, dst_node = _require_operand_nodes(inst)
             if (src_node.kind in ("register", "immediate")
                     and dst_node.kind == "register"
                     and dst_node.register == f"d{current_reg}"):
                 if src_node.kind == "register":
+                    assert src_node.register is not None
                     src_mode = "an" if src_node.register.startswith("a") else "dn"
                     src_val = _sv._resolve_block_constant_reg(
-                        instructions, src_mode, int(src_node.register[1:]), inst.offset)
+                        sized_instructions, src_mode, int(src_node.register[1:]), inst.offset)
                 else:
                     src_val = src_node.value
                 if src_val is None:
@@ -244,6 +323,7 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
             if inst.operand_size != "l":
                 return None
             current_mode = ea_op.mode
+            assert ea_op.reg is not None
             current_reg = ea_op.reg
             continue
 
@@ -254,36 +334,40 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
                 if not ea_op.memory_indirect:
                     return None
                 if ea_op.postindexed:
+                    assert ea_op.value is not None
                     pointer = _read_code_long(code, ea_op.value, code_size)
                     if pointer is None:
                         return None
-                    return {
-                        "table_addr": (pointer + (ea_op.outer_displacement or 0))
+                    return PointerTableLoadInfo(
+                        table_addr=(pointer + (ea_op.outer_displacement or 0))
                         & runtime_m68k_analysis.ADDR_MASK,
-                        "stride": long_size,
-                        "addend": addend_offset,
-                        "transforms": tuple(transforms),
-                    }
-                return {
-                    "table_addr": ea_op.value,
-                    "stride": long_size,
-                    "addend": (ea_op.outer_displacement or 0) + addend_offset,
-                    "transforms": tuple(transforms),
-                }
+                        stride=long_size,
+                        addend=addend_offset,
+                        transforms=tuple(transforms),
+                    )
+                assert ea_op.value is not None
+                return PointerTableLoadInfo(
+                    table_addr=ea_op.value,
+                    stride=long_size,
+                    addend=(ea_op.outer_displacement or 0) + addend_offset,
+                    transforms=tuple(transforms),
+                )
             if ea_op.memory_indirect:
                 return None
-            return {
-                "table_addr": ea_op.value,
-                "stride": long_size,
-                "addend": addend_offset,
-                "transforms": tuple(transforms),
-            }
+            assert ea_op.value is not None
+            return PointerTableLoadInfo(
+                table_addr=ea_op.value,
+                stride=long_size,
+                addend=addend_offset,
+                transforms=tuple(transforms),
+            )
 
         if ea_op.mode == "index":
             if ea_op.base_suppressed or ea_op.index_suppressed:
                 return None
+            assert ea_op.reg is not None
             lea_addr = _ar.resolve_block_pc_base(
-                [inst2 for inst2 in instructions if inst2.offset < inst.offset],
+                [inst2 for inst2 in ar_instructions if inst2.offset < inst.offset],
                 ea_op.reg,
             )
             if lea_addr is None:
@@ -296,36 +380,42 @@ def find_pointer_table_load(instructions, target_reg: int, stop_before: int,
                     pointer = _read_code_long(code, pointer_addr, code_size)
                     if pointer is None:
                         return None
-                    return {
-                        "table_addr": (pointer + (ea_op.outer_displacement or 0))
+                    return PointerTableLoadInfo(
+                        table_addr=(pointer + (ea_op.outer_displacement or 0))
                         & runtime_m68k_analysis.ADDR_MASK,
-                        "stride": long_size,
-                        "addend": addend_offset,
-                        "transforms": tuple(transforms),
-                    }
-                return {
-                    "table_addr": pointer_addr,
-                    "stride": long_size,
-                    "addend": (ea_op.outer_displacement or 0) + addend_offset,
-                    "transforms": tuple(transforms),
-                }
+                        stride=long_size,
+                        addend=addend_offset,
+                        transforms=tuple(transforms),
+                    )
+                return PointerTableLoadInfo(
+                    table_addr=pointer_addr,
+                    stride=long_size,
+                    addend=(ea_op.outer_displacement or 0) + addend_offset,
+                    transforms=tuple(transforms),
+                )
             if ea_op.memory_indirect:
                 return None
-            return {
-                "table_addr": lea_addr + ea_op.value,
-                "stride": long_size,
-                "addend": addend_offset,
-                "transforms": tuple(transforms),
-            }
+            assert ea_op.value is not None
+            return PointerTableLoadInfo(
+                table_addr=lea_addr + ea_op.value,
+                stride=long_size,
+                addend=addend_offset,
+                transforms=tuple(transforms),
+            )
 
         return None
 
     return None
 
 
-def find_table_source(instructions, index_mode: str,
-                      index_reg: int, stop_before: int) -> dict | None:
+def find_table_source(
+    instructions: Sequence[InstructionLike],
+    index_mode: str,
+    index_reg: int,
+    stop_before: int,
+) -> TableSourceInfo | None:
     """Find where an index register was loaded from code-section memory."""
+    ar_instructions = cast(list[AddressReconstructionInstructionLike], instructions)
     for inst in reversed(instructions):
         if inst.offset >= stop_before:
             continue
@@ -342,11 +432,12 @@ def find_table_source(instructions, index_mode: str,
         word_size = runtime_m68k_decode.SIZE_BYTE_COUNT["w"]
 
         if ea_op.mode == "pcdisp":
-            return {"table_addr": ea_op.value,
-                    "field_offset": 0, "stride": word_size}
+            assert ea_op.value is not None
+            return TableSourceInfo(table_addr=ea_op.value, field_offset=0, stride=word_size)
 
         if ea_op.mode in set(runtime_m68k_decode.REG_INDIRECT_MODES) | {"postinc"}:
             src_reg = ea_op.reg
+            assert src_reg is not None
             postinc_count = 0
             field_index = -1
 
@@ -366,24 +457,25 @@ def find_table_source(instructions, index_mode: str,
                         postinc_count += 1
 
             lea_addr = _ar.resolve_block_pc_base(
-                [inst2 for inst2 in instructions if inst2.offset < inst.offset],
+                [inst2 for inst2 in ar_instructions if inst2.offset < inst.offset],
                 src_reg,
             )
             if lea_addr is None:
                 return None
             disp = ea_op.value if ea_op.mode == "disp" else 0
+            assert disp is not None
             stride = (postinc_count * word_size
                       if postinc_count > 1 else word_size)
             field_off = (field_index * word_size
                          if field_index >= 0 else disp)
-            return {"table_addr": lea_addr,
-                    "field_offset": field_off,
-                    "stride": stride}
+            return TableSourceInfo(table_addr=lea_addr, field_offset=field_off, stride=stride)
 
         return None
 
+    return None
 
-def _is_adda_reg_src(inst, target_reg: int) -> tuple | None:
+
+def _is_adda_reg_src(inst: InstructionLike, target_reg: int) -> tuple[str, int] | None:
     """Check for KB-driven ADDA with register source to target_reg."""
     mi = instruction_kb(inst)
     if (runtime_m68k_analysis.OPERATION_TYPES.get(mi) != runtime_m68k_analysis.OperationType.ADD
@@ -407,7 +499,7 @@ def _is_adda_reg_src(inst, target_reg: int) -> tuple | None:
     return None
 
 
-def _is_adda_ind(inst, target_reg: int) -> bool:
+def _is_adda_ind(inst: InstructionLike, target_reg: int) -> bool:
     """Check for KB-driven ADDA with (An) source to the same target_reg."""
     mi = instruction_kb(inst)
     if (runtime_m68k_analysis.OPERATION_TYPES.get(mi) != runtime_m68k_analysis.OperationType.ADD

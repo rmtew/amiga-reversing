@@ -1,10 +1,17 @@
 """Shared KB-driven subroutine CFG and summary helpers."""
 
+from __future__ import annotations
+
+from collections.abc import Mapping
+
 from m68k_kb import runtime_m68k_analysis
 from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_primitives import extract_branch_target
-from .m68k_executor import _join_states, CallSummary
+from .m68k_executor import _join_states, CPUState, CallSummary, StatePair
 from .instruction_decode import decode_inst_destination
+from .os_calls import AppBaseInfo, PlatformState
+from .typing_protocols import SuccessorBlockLike
+from .abstract_values import _concrete
 
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
@@ -13,7 +20,11 @@ _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
-def find_sub_blocks(entry: int, blocks: dict, call_targets: set) -> set[int]:
+ExitStates = Mapping[int, StatePair]
+
+
+def find_sub_blocks(entry: int, blocks: Mapping[int, SuccessorBlockLike],
+                    call_targets: set[int]) -> set[int]:
     """Find all blocks owned by a subroutine starting at entry."""
     owned = set()
     work = [entry]
@@ -30,8 +41,8 @@ def find_sub_blocks(entry: int, blocks: dict, call_targets: set) -> set[int]:
 
 
 def cached_sub_blocks(entry: int,
-                      blocks: dict,
-                      call_targets: set,
+                      blocks: Mapping[int, SuccessorBlockLike],
+                      call_targets: set[int],
                       cache: dict[int, set[int]],
                       owner_map: dict[int, int] | None = None) -> set[int]:
     if entry not in cache:
@@ -43,10 +54,10 @@ def cached_sub_blocks(entry: int,
     return cache[entry]
 
 
-def _reg_modified_in_sub(blocks: dict, sub_entry: int,
+def _reg_modified_in_sub(blocks: Mapping[int, SuccessorBlockLike], sub_entry: int,
                          dispatch_addr: int,
                          reg_mode: str, reg_num: int,
-                         platform_ref: dict | None = None) -> bool:
+                         platform_ref: PlatformState | None = None) -> bool:
     """Check whether any path from sub entry to dispatch modifies a register."""
     visited = set()
     work = [sub_entry]
@@ -74,8 +85,6 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
                     callee_sum = (global_sums.get(call_target)
                                   if global_sums else None)
                     if callee_sum is not None:
-                        pkey = ("preserved_d" if reg_mode == "dn"
-                                else "preserved_a")
                         preserved_regs = (callee_sum.preserved_d
                                           if reg_mode == "dn"
                                           else callee_sum.preserved_a)
@@ -100,8 +109,8 @@ def _reg_modified_in_sub(blocks: dict, sub_entry: int,
     return False
 
 
-def _inline_summary(callee_entry: int, blocks: dict,
-                    call_targets: set, exit_states: dict) -> CallSummary | None:
+def _inline_summary(callee_entry: int, blocks: Mapping[int, SuccessorBlockLike],
+                    call_targets: set[int], exit_states: ExitStates) -> CallSummary | None:
     """Compute a joined concrete-exit summary for a callee."""
     owned = find_sub_blocks(callee_entry, blocks, call_targets)
 
@@ -140,6 +149,7 @@ def _inline_summary(callee_entry: int, blocks: dict,
     )
     sp_delta = 0
     if rts_cpu.sp.is_symbolic and rts_cpu.sp.sym_base == "SP_entry":
+        assert rts_cpu.sp.sym_offset is not None
         sp_delta = rts_cpu.sp.sym_offset
 
     return CallSummary(
@@ -151,8 +161,8 @@ def _inline_summary(callee_entry: int, blocks: dict,
     )
 
 
-def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
-                               call_targets: set, exit_states: dict) -> list[CallSummary]:
+def _inline_summaries_per_exit(callee_entry: int, blocks: Mapping[int, SuccessorBlockLike],
+                               call_targets: set[int], exit_states: ExitStates) -> list[CallSummary]:
     """Compute one concrete summary per RTS exit for a callee."""
     owned = find_sub_blocks(callee_entry, blocks, call_targets)
     summaries = []
@@ -186,6 +196,7 @@ def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
         )
         sp_delta = 0
         if cpu.sp.is_symbolic and cpu.sp.sym_base == "SP_entry":
+            assert cpu.sp.sym_offset is not None
             sp_delta = cpu.sp.sym_offset
 
         summaries.append(CallSummary(
@@ -199,13 +210,11 @@ def _inline_summaries_per_exit(callee_entry: int, blocks: dict,
     return summaries
 
 
-def restore_base_reg(cpu, platform: dict | None):
+def restore_base_reg(cpu: CPUState, platform: PlatformState | None) -> CPUState:
     """Restore configured base register if the current state lost it."""
     if platform:
         base_info = platform.app_base
         if base_info:
             if not cpu.a[base_info.reg_num].is_known:
-                from .m68k_executor import _concrete
                 cpu.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
     return cpu
-

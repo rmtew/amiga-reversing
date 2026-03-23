@@ -23,9 +23,12 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
-sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 PROJ_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJ_ROOT))
@@ -40,7 +43,15 @@ ORACLE_MAP = {
 
 # ── KB loader ─────────────────────────────────────────────────────────────
 
-def _load_kb():
+JsonDict = dict[str, Any]
+TestCase = tuple[str, str]
+BranchTestCase = tuple[str, str, int]
+AssembledCase = tuple[str, bytes, str, str, str, int]
+FailureCase = tuple[str, str, str, str, str | None]
+BatchInput = tuple[str, int]
+
+
+def _load_kb() -> tuple[list[JsonDict], JsonDict]:
     with open(KNOWLEDGE, encoding="utf-8") as f:
         data = json.load(f)
     return data["instructions"], data["_meta"]
@@ -56,7 +67,7 @@ EA_MODE_SIZES = KB_META["ea_mode_sizes"]
 # ── EA mode to assembly syntax ────────────────────────────────────────────
 # These are arbitrary valid operand values for testing — not from the PDF.
 
-def _ea_syntax(mode, size=None):
+def _ea_syntax(mode: str, size: str | None = None) -> str:
     """Generate assembly syntax for an EA mode."""
     if mode == "imm":
         return _imm_for_size(size)
@@ -74,7 +85,7 @@ def _ea_syntax(mode, size=None):
     }[mode]
 
 
-def _imm_for_size(size):
+def _imm_for_size(size: str | None) -> str:
     if size == "b":
         return "#$12"
     elif size == "l":
@@ -82,7 +93,7 @@ def _imm_for_size(size):
     return "#$1234"
 
 
-def _imm_for_constraint(constraint, size=None):
+def _imm_for_constraint(constraint: JsonDict | None, size: str | None = None) -> str:
     """Generate an immediate value satisfying the constraint's min/max range."""
     if constraint is None:
         return _imm_for_size(size)
@@ -103,17 +114,22 @@ SUPPORTED_EA_MODES = {"dn", "an", "ind", "postinc", "predec", "disp",
 UNSUPPORTED_OP_TYPES = {"reglist", "ctrl_reg", "rn", "bf_ea"}
 
 
-def _filter_020(modes, ea_020_set):
+def _filter_020(modes: Sequence[str], ea_020_set: set[str]) -> list[str]:
     """Remove 020+-only EA modes."""
     return [m for m in modes if m not in ea_020_set]
 
 
-def _filter_supported(modes):
+def _filter_supported(modes: Sequence[str]) -> list[str]:
     """Keep only EA modes our assembler supports."""
     return [m for m in modes if m in SUPPORTED_EA_MODES]
 
 
-def _filter_for_size(modes, sz, mem_size_only=None, bit_op_sizes=None):
+def _filter_for_size(
+    modes: Sequence[str],
+    sz: str | None,
+    mem_size_only: str | None = None,
+    bit_op_sizes: JsonDict | None = None,
+) -> list[str]:
     """Filter EA modes by size constraints from KB ea_mode_sizes."""
     result = []
     for mode in modes:
@@ -130,13 +146,17 @@ def _filter_for_size(modes, sz, mem_size_only=None, bit_op_sizes=None):
     return result
 
 
-def _mnemonic_variants(inst_mnemonic):
+def _mnemonic_variants(inst_mnemonic: str) -> list[str]:
     """Return base mnemonic aliases: 'ASL, ASR' -> ['asl', 'asr']."""
     return [p.strip().lower() for p in re.split(r"[ ,]+", inst_mnemonic)
             if p.strip()]
 
 
-def _form_mnemonics(inst_variants, dir_variants, form_syntax):
+def _form_mnemonics(
+    inst_variants: Sequence[str],
+    dir_variants: JsonDict | None,
+    form_syntax: str,
+) -> list[str] | None:
     """Resolve form syntax to concrete mnemonic list."""
     if not form_syntax:
         return [inst_variants[0]]
@@ -161,7 +181,7 @@ def _form_mnemonics(inst_variants, dir_variants, form_syntax):
 
 # ── KB-driven test generator ─────────────────────────────────────────────
 
-def generate_tests(inst):
+def generate_tests(inst: JsonDict) -> list[TestCase]:
     """Generate assembly test lines for one instruction from KB data.
 
     Returns list of (asm_line, description) tuples.
@@ -183,7 +203,7 @@ def generate_tests(inst):
     if inst.get("uses_label"):
         return []
 
-    tests = []
+    tests: list[TestCase] = []
 
     imm_range = constraints.get("immediate_range")
     dir_variants = constraints.get("direction_variants")
@@ -204,7 +224,7 @@ def generate_tests(inst):
 
     effective_sizes = sizes_68000 if sizes_68000 is not None else sizes
 
-    def _add_direction_variants(start_idx, primary_mn, extra_mns):
+    def _add_direction_variants(start_idx: int, primary_mn: str, extra_mns: Sequence[str]) -> None:
         """Duplicate tests for direction variants (asl/asr from asl tests)."""
         for variant in extra_mns:
             for asm, desc in tests[start_idx:]:
@@ -439,10 +459,10 @@ def generate_tests(inst):
 
 # ── MOVEM test generator (separate because of register list handling) ─────
 
-def _generate_movem_tests():
+def _generate_movem_tests() -> list[TestCase]:
     """Generate MOVEM tests using KB ea_modes_by_direction."""
-    tests = []
-    inst = None
+    tests: list[TestCase] = []
+    inst: JsonDict | None = None
     for i in KB_INSTRUCTIONS:
         if i["mnemonic"] == "MOVEM":
             inst = i
@@ -474,13 +494,13 @@ def _generate_movem_tests():
 
 # ── Branch test generator ────────────────────────────────────────────────
 
-def _generate_branch_tests():
+def _generate_branch_tests() -> list[BranchTestCase]:
     """Generate branch/DBcc tests from KB uses_label instructions.
 
     Tests use absolute target addresses with a fixed pc=0x1000.
     Returns list of (asm_line, description, pc) tuples.
     """
-    tests = []
+    tests: list[BranchTestCase] = []
     pc = 0x1000
 
     for inst in KB_INSTRUCTIONS:
@@ -598,7 +618,7 @@ def _generate_branch_tests():
 
 # ── Divergence checks ────────────────────────────────────────────────────
 
-def _build_imm_divergence_set(oracle_cfg):
+def _build_imm_divergence_set(oracle_cfg: JsonDict) -> set[str]:
     """Extract the set of mnemonics where this oracle diverges on imm routing.
 
     Reads encoding_behaviors from the oracle JSON.  Our assembler always
@@ -610,7 +630,7 @@ def _build_imm_divergence_set(oracle_cfg):
     - "auto_route" oracles (e.g. DevPac) route to immediate like us →
       affected_mnemonics agree with us, not_affected diverge.
     """
-    divergent = set()
+    divergent: set[str] = set()
     for behavior in oracle_cfg.get("encoding_behaviors", []):
         bid = behavior.get("id", "")
         if "imm" not in bid:
@@ -626,8 +646,13 @@ def _build_imm_divergence_set(oracle_cfg):
     return divergent
 
 
-def _check_known_divergence(mnemonic, asm, our_bytes, oracle_bytes,
-                            imm_divergence_set):
+def _check_known_divergence(
+    mnemonic: str,
+    asm: str,
+    our_bytes: bytes,
+    oracle_bytes: bytes,
+    imm_divergence_set: set[str],
+) -> str | None:
     """Check if mismatch is a known acceptable divergence.
 
     Returns a reason string if it's a known divergence, None otherwise.
@@ -643,7 +668,12 @@ def _check_known_divergence(mnemonic, asm, our_bytes, oracle_bytes,
     return None
 
 
-def _is_imm_routing_divergence(mnemonic, asm, our_bytes, oracle_bytes):
+def _is_imm_routing_divergence(
+    mnemonic: str,
+    asm: str,
+    our_bytes: bytes,
+    oracle_bytes: bytes,
+) -> bool:
     """Check if a mismatch is a known immediate routing divergence.
 
     We route ADD #imm -> ADDI (DevPac-style), some oracles keep the
@@ -671,7 +701,7 @@ def _is_imm_routing_divergence(mnemonic, asm, our_bytes, oracle_bytes):
     return True
 
 
-def _is_commutative_match(mnemonic, our_bytes, oracle_bytes):
+def _is_commutative_match(mnemonic: str, our_bytes: bytes, oracle_bytes: bytes) -> bool:
     """Check if a mismatch is due to commutative register assignment.
 
     For instructions whose KB operation field indicates commutativity
@@ -696,14 +726,18 @@ def _is_commutative_match(mnemonic, our_bytes, oracle_bytes):
     # Extract register values from our opword, swap them, rebuild
     our_word = struct.unpack(">H", our_bytes)[0]
     r0, r1 = reg_fields[0], reg_fields[1]
-    mask0 = ((1 << r0["width"]) - 1) << r0["bit_lo"]
-    mask1 = ((1 << r1["width"]) - 1) << r1["bit_lo"]
-    val0 = (our_word & mask0) >> r0["bit_lo"]
-    val1 = (our_word & mask1) >> r1["bit_lo"]
+    r0_width = int(r0["width"])
+    r1_width = int(r1["width"])
+    r0_bit_lo = int(r0["bit_lo"])
+    r1_bit_lo = int(r1["bit_lo"])
+    mask0 = ((1 << r0_width) - 1) << r0_bit_lo
+    mask1 = ((1 << r1_width) - 1) << r1_bit_lo
+    val0 = (our_word & mask0) >> r0_bit_lo
+    val1 = (our_word & mask1) >> r1_bit_lo
     # Rebuild with swapped register values
-    swapped = (our_word & ~mask0 & ~mask1) | (val1 << r0["bit_lo"]) | (val0 << r1["bit_lo"])
+    swapped = (our_word & ~mask0 & ~mask1) | (val1 << r0_bit_lo) | (val0 << r1_bit_lo)
     oracle_word = struct.unpack(">H", oracle_bytes)[0]
-    return swapped == oracle_word
+    return bool(swapped == oracle_word)
 
 
 # ── Hunk code extraction (for Amiga hunk format output) ──────────────────
@@ -713,7 +747,7 @@ HUNK_END_ID = 0x3F2
 HUNK_HEADER_ID = 0x3F3
 
 
-def _extract_hunk_code(data):
+def _extract_hunk_code(data: bytes) -> bytes | None:
     """Extract code bytes from an Amiga hunk executable.
 
     Returns the raw code bytes from the first HUNK_CODE section,
@@ -771,25 +805,25 @@ def _extract_hunk_code(data):
 class OracleDriver(abc.ABC):
     """Base class for oracle assembler drivers."""
 
-    def __init__(self, oracle_cfg, proj_root):
+    def __init__(self, oracle_cfg: JsonDict, proj_root: Path) -> None:
         self.cfg = oracle_cfg
         self.proj_root = proj_root
         driver = oracle_cfg["driver"]
         self.exe_path = proj_root / driver["executable_path"]
 
-    def setup(self):
+    def setup(self) -> None:
         """Called before test run. Override for pre-run setup."""
         pass
 
-    def teardown(self):
+    def teardown(self) -> None:
         """Called after test run. Override for cleanup."""
         pass
 
     @abc.abstractmethod
-    def assemble_one(self, text, pc=0):
+    def assemble_one(self, text: str, pc: int = 0) -> bytes | None:
         """Assemble one instruction, return bytes or None."""
 
-    def assemble_batch(self, items):
+    def assemble_batch(self, items: Sequence[BatchInput]) -> list[bytes | None] | None:
         """Assemble multiple (text, pc) items. Returns list of bytes|None.
 
         Default implementation calls assemble_one for each item.
@@ -797,34 +831,34 @@ class OracleDriver(abc.ABC):
         """
         return [self.assemble_one(text, pc) for text, pc in items]
 
-    def prepare_branch_text(self, asm_text, pc):
+    def prepare_branch_text(self, asm_text: str, pc: int) -> str:
         """Convert branch asm text for this oracle. Default: unchanged."""
         return asm_text
 
-    def smoke_test(self):
+    def smoke_test(self) -> bool:
         """Optional smoke test before main run. Returns True on success."""
         return True
 
     @property
-    def supports_batching(self):
+    def supports_batching(self) -> bool:
         return False
 
     @property
-    def batch_size(self):
+    def batch_size(self) -> int:
         return 0
 
 
 class VasmDriver(OracleDriver):
     """Direct invocation of vasm, raw binary output."""
 
-    def __init__(self, oracle_cfg, proj_root):
+    def __init__(self, oracle_cfg: JsonDict, proj_root: Path) -> None:
         super().__init__(oracle_cfg, proj_root)
         if sys.platform == "win32" and not self.exe_path.suffix:
             self.exe_path = self.exe_path.with_suffix(".exe")
         self.output_fmt = oracle_cfg["cli"]["output_formats"]["raw_binary"]
         self.no_opt = oracle_cfg["options"]["no_optimization"]
 
-    def assemble_one(self, text, pc=0):
+    def assemble_one(self, text: str, pc: int = 0) -> bytes | None:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".s", delete=False,
                                          encoding="utf-8") as f:
             if pc:
@@ -855,7 +889,7 @@ class VasmDriver(OracleDriver):
 class VamosDriver(OracleDriver):
     """Invocation via vamos (Amiga emulator), hunk output with sentinel batching."""
 
-    def __init__(self, oracle_cfg, proj_root):
+    def __init__(self, oracle_cfg: JsonDict, proj_root: Path) -> None:
         super().__init__(oracle_cfg, proj_root)
         self.cpu_select = oracle_cfg["options"]["cpu_select"]
         self.no_opt = oracle_cfg["options"]["no_optimization"]
@@ -868,7 +902,7 @@ class VamosDriver(OracleDriver):
         self._sentinel_bytes = struct.pack(">H", self._sentinel)
         self._opts_bak = None
 
-    def setup(self):
+    def setup(self) -> None:
         # Temporarily rename GenAm.opts to prevent auto-load errors under vamos
         opts_file = self.cfg.get("platform_notes", {}).get(
             "auto_config", {}).get("opts_file")
@@ -879,21 +913,21 @@ class VamosDriver(OracleDriver):
                 opts.rename(bak)
                 self._opts_bak = bak
 
-    def teardown(self):
+    def teardown(self) -> None:
         if self._opts_bak and self._opts_bak.exists():
             opts_name = self.cfg.get("platform_notes", {}).get(
                 "auto_config", {}).get("opts_file", "GenAm.opts")
             opts = self.exe_path.parent / opts_name
             self._opts_bak.rename(opts)
 
-    def _write_source(self, path, lines):
+    def _write_source(self, path: str, lines: Sequence[str]) -> None:
         with open(path, "wb") as f:
             f.write(f" {self.cpu_select}\n".encode("latin-1"))
             f.write(f" {self.no_opt}\n".encode("latin-1"))
             for line in lines:
                 f.write(f" {line}\n".encode("latin-1"))
 
-    def _run_vamos(self, src_path, out_path, timeout=15):
+    def _run_vamos(self, src_path: str, out_path: str, timeout: int = 15) -> subprocess.CompletedProcess[str]:
         src_name = os.path.basename(src_path)
         out_name = os.path.basename(out_path)
         return subprocess.run(
@@ -905,7 +939,7 @@ class VamosDriver(OracleDriver):
              self.quiet],
             capture_output=True, text=True, timeout=timeout)
 
-    def assemble_one(self, text, pc=0):
+    def assemble_one(self, text: str, pc: int = 0) -> bytes | None:
         src_name = f"_oracle_test_{os.getpid()}.s"
         out_name = f"_oracle_test_{os.getpid()}"
         src_path = os.path.join(self.win_temp, src_name)
@@ -926,7 +960,7 @@ class VamosDriver(OracleDriver):
                 except OSError:
                     pass
 
-    def assemble_batch(self, items):
+    def assemble_batch(self, items: Sequence[BatchInput]) -> list[bytes | None] | None:
         """Assemble multiple items in one invocation using sentinel splitting."""
         src_name = f"_oracle_batch_{os.getpid()}.s"
         out_name = f"_oracle_batch_{os.getpid()}"
@@ -947,7 +981,7 @@ class VamosDriver(OracleDriver):
             if code is None:
                 return None
             # Split on sentinel to recover per-instruction bytes
-            results = []
+            results: list[bytes | None] = []
             pos = 0
             for _ in texts:
                 sentinel_pos = code.find(self._sentinel_bytes, pos)
@@ -966,7 +1000,7 @@ class VamosDriver(OracleDriver):
                 except OSError:
                     pass
 
-    def prepare_branch_text(self, asm_text, pc):
+    def prepare_branch_text(self, asm_text: str, pc: int) -> str:
         """Convert $target to *+N syntax (GenAm can't use ORG)."""
         parts = asm_text.rsplit("$", 1)
         if len(parts) != 2:
@@ -976,7 +1010,7 @@ class VamosDriver(OracleDriver):
         star_expr = f"*+{offset}" if offset >= 0 else f"*-{-offset}"
         return parts[0] + star_expr
 
-    def smoke_test(self):
+    def smoke_test(self) -> bool:
         print("Smoke test: oracle assembly...")
         smoke = self.assemble_one("move.l d0,d1")
         if smoke is None:
@@ -990,12 +1024,12 @@ class VamosDriver(OracleDriver):
         return True
 
     @property
-    def supports_batching(self):
+    def supports_batching(self) -> bool:
         return True
 
     @property
-    def batch_size(self):
-        return self._batch_size
+    def batch_size(self) -> int:
+        return int(self._batch_size)
 
 
 DRIVER_TYPES = {
@@ -1006,7 +1040,7 @@ DRIVER_TYPES = {
 
 # ── Main test runner ──────────────────────────────────────────────────────
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Test KB-driven assembler against oracle")
     parser.add_argument("oracle", choices=sorted(ORACLE_MAP.keys()),
@@ -1026,7 +1060,7 @@ def main(argv=None):
     driver_type = oracle_cfg["driver"]["type"]
     driver = DRIVER_TYPES[driver_type](oracle_cfg, PROJ_ROOT)
 
-    if args.batch_size:
+    if args.batch_size and isinstance(driver, VamosDriver):
         driver._batch_size = args.batch_size
 
     oracle_name = oracle_cfg["_meta"]["description"]
@@ -1042,12 +1076,12 @@ def main(argv=None):
         driver.teardown()
 
 
-def _run_tests(driver, oracle_cfg, args):
+def _run_tests(driver: OracleDriver, oracle_cfg: JsonDict, args: Any) -> int:
     """Generate tests, run against oracle, report results."""
     t0 = time.time()
     imm_divergent = _build_imm_divergence_set(oracle_cfg)
 
-    results = {
+    results: JsonDict = {
         "passed": 0,
         "failed": 0,
         "errors": 0,
@@ -1060,7 +1094,7 @@ def _run_tests(driver, oracle_cfg, args):
 
     # ── Collect all tests ─────────────────────────────────────────────
     # Each entry: (mnemonic, asm_text, desc, pc)
-    all_tests = []
+    all_tests: list[tuple[str, str, str, int]] = []
 
     for inst in KB_INSTRUCTIONS:
         mnemonic = inst["mnemonic"]
@@ -1088,7 +1122,7 @@ def _run_tests(driver, oracle_cfg, args):
         all_tests = all_tests[:args.limit]
 
     # ── Assemble with our assembler (fast, no subprocess) ─────────────
-    assembled = []
+    assembled: list[AssembledCase] = []
     for mnemonic, asm, desc, pc in all_tests:
         try:
             our_bytes = assemble_instruction(asm, pc=pc)
@@ -1106,7 +1140,7 @@ def _run_tests(driver, oracle_cfg, args):
     # ── Run against oracle ────────────────────────────────────────────
     if driver.supports_batching:
         batch_sz = driver.batch_size
-        batch = []
+        batch: list[AssembledCase] = []
         for item in assembled:
             mnemonic, our_bytes, asm, desc, oracle_text, pc = item
             batch.append(item)
@@ -1138,7 +1172,7 @@ def _run_tests(driver, oracle_cfg, args):
     print(f"Time: {elapsed:.1f}s ({len(assembled)} instructions)")
 
     if results["failures"]:
-        by_mn = {}
+        by_mn: dict[str, list[tuple[str, str, str, str | None]]] = {}
         for mn, asm, desc, ours, oracle in results["failures"]:
             by_mn.setdefault(mn, []).append((asm, desc, ours, oracle))
         print(f"\nFailures ({len(results['failures'])} total):")
@@ -1155,7 +1189,7 @@ def _run_tests(driver, oracle_cfg, args):
     return 0 if (results["failed"] == 0 and results["errors"] == 0) else 1
 
 
-def _run_batch(driver, batch, results, args):
+def _run_batch(driver: OracleDriver, batch: Sequence[AssembledCase], results: JsonDict, args: Any) -> None:
     """Run a batch of tests against oracle and accumulate results."""
     items = [(oracle_text, pc) for _, _, _, _, oracle_text, pc in batch]
     oracle_results = driver.assemble_batch(items)
@@ -1174,7 +1208,15 @@ def _run_batch(driver, batch, results, args):
                      results, args)
 
 
-def _compare_one(mnemonic, our_bytes, asm, desc, oracle_bytes, results, args):
+def _compare_one(
+    mnemonic: str,
+    our_bytes: bytes,
+    asm: str,
+    desc: str,
+    oracle_bytes: bytes | None,
+    results: JsonDict,
+    args: Any,
+) -> None:
     """Compare one instruction's output against oracle result."""
     if oracle_bytes is None:
         if args.verbose:

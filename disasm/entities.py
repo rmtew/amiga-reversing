@@ -4,9 +4,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from disasm.types import EntityRecord
 
-def load_entities(path: str | Path) -> list[dict]:
-    entities: list[dict] = []
+def load_entities(path: str | Path) -> list[EntityRecord]:
+    entities: list[EntityRecord] = []
     with open(path, encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()

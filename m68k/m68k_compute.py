@@ -9,12 +9,55 @@ Used by:
   - Future: symbolic execution / static analysis engine
 """
 
+from collections.abc import Callable, Mapping, Sequence
+from typing import Literal, TypeAlias, TypedDict, cast
+
 from m68k_kb import runtime_m68k_compute
+from m68k_kb.runtime_types import (
+    CcrState,
+    ComputeFormula,
+    ComputeInstructionRecord,
+    KnownCcrState,
+    PredictedCcrState,
+    PrimaryDataSize,
+    RuntimeCcSemantics,
+    MnemonicInstructionRecord,
+)
+
+
+SizeCode: TypeAlias = Literal["b", "w", "l"]
+FlagName: TypeAlias = Literal["X", "N", "Z", "V", "C"]
+CcrInput: TypeAlias = KnownCcrState
+
+
+CcSemantics: TypeAlias = RuntimeCcSemantics
+
+
+class ComputeContext(TypedDict, total=False):
+    data_sizes: PrimaryDataSize
+    cc_result_bits: int
+    source_sign_extend: bool
+    implicit_operand: int
+    direction: Literal["L", "R"]
+    fill: str
+    count_modulus: int
+    extra_bits: int
+    signed: bool
+    bit_modulus: int
+    sign_extend_source_bits: int
+    _decimal_carry: int
+    _decimal_borrow: int
+
+
+RuleHandler: TypeAlias = Callable[
+    [int, int, int, int, int, int, runtime_m68k_compute.OperationType, CcrState, CcSemantics, str, ComputeContext],
+    int | None,
+]
 
 
 # -- Size utilities --------------------------------------------------------
 
-def _size_mask(sz):
+def _size_mask(sz: SizeCode) -> tuple[int, int]:
     """Return bit mask and bit count for operation size."""
     if sz == "b":
         return 0xFF, 8
@@ -24,7 +67,7 @@ def _size_mask(sz):
         return 0xFFFFFFFF, 32
 
 
-def _to_signed(value, sz):
+def _to_signed(value: int, sz: SizeCode) -> int:
     """Convert unsigned value to signed at given size."""
     mask, bits = _size_mask(sz)
     value &= mask
@@ -33,13 +76,20 @@ def _to_signed(value, sz):
     return value
 
 
-def _size_from_bits(bits):
-    return {8: "b", 16: "w", 32: "l"}[bits]
+def _size_from_bits(bits: int) -> SizeCode:
+    return cast(SizeCode, {8: "b", 16: "w", 32: "l"}[bits])
 
 
 # -- CC prediction from KB rules ------------------------------------------
 
-def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
+def predict_cc(
+    inst: ComputeInstructionRecord,
+    sz: SizeCode,
+    src_val: int,
+    dst_val: int,
+    initial_ccr: KnownCcrState,
+    ctx: ComputeContext | None = None,
+) -> PredictedCcrState:
     """Predict CC flags after instruction execution.
 
     Args:
@@ -121,7 +171,7 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
             mnemonic, src, dst, result_mask, result_bits, initial_ccr, ctx)
 
     # Predict each flag using KB cc_semantics rules
-    predicted = {}
+    predicted: PredictedCcrState = {}
     for flag in ["X", "N", "Z", "V", "C"]:
         flag_spec = cc_sem.get(flag)
         if flag_spec is None:
@@ -139,7 +189,7 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
     # KB overflow_undefined_flags: on overflow (V=1), real hardware preserves
     # these flags unchanged. The PDF marks them "undefined if overflow" and
     # the C flag is included per known 68000 errata. All driven from KB data.
-    overflow_undef = inst.get("overflow_undefined_flags")
+    overflow_undef = cast(Sequence[str] | None, inst.get("overflow_undefined_flags"))
     if overflow_undef and predicted.get("V") == 1:
         for flag in overflow_undef:
             predicted[flag] = initial_ccr.get(flag, 0)
@@ -156,14 +206,20 @@ def predict_cc(inst, sz, src_val, dst_val, initial_ccr, ctx=None):
 # specifies which one applies to each instruction and the operand order.
 
 
-def _resolve_term(term, src, dst, ccr, implicit):
+def _resolve_term(
+    term: runtime_m68k_compute.FormulaTerm | int,
+    src: int,
+    dst: int,
+    ccr: CcrState,
+    implicit: int | None,
+) -> int:
     """Resolve a formula operand term to its numeric value."""
     if term == runtime_m68k_compute.FormulaTerm.SOURCE:
         return src
     if term == runtime_m68k_compute.FormulaTerm.DESTINATION:
         return dst
     if term == runtime_m68k_compute.FormulaTerm.EXTEND:
-        return ccr.get("X", 0)
+        return ccr.get("X", 0) or 0
     if term == runtime_m68k_compute.FormulaTerm.IMPLICIT:
         if implicit is None:
             raise RuntimeError(
@@ -178,7 +234,7 @@ def _resolve_term(term, src, dst, ccr, implicit):
 # Universal math operators - these map formula 'op' names (from KB) to
 # Python functions. None of these are M68K-specific; they are standard
 # binary arithmetic/logic operations.
-_FORMULA_OPS = {
+_FORMULA_OPS: dict[runtime_m68k_compute.ComputeOp, Callable[..., int]] = {
     runtime_m68k_compute.ComputeOp.ADD:                lambda a, b: a + b,
     runtime_m68k_compute.ComputeOp.SUBTRACT:           lambda a, b: a - b,
     runtime_m68k_compute.ComputeOp.BITWISE_AND:        lambda a, b: a & b,
@@ -190,7 +246,11 @@ _FORMULA_OPS = {
 }
 
 
-def _compute_exchange(dst, range_a, range_b):
+def _compute_exchange(
+    dst: int,
+    range_a: tuple[int, int],
+    range_b: tuple[int, int],
+) -> int:
     """Compute bit-range exchange from KB formula (SWAP).
 
     The KB specifies exact bit ranges from the PDF Operation text:
@@ -207,7 +267,7 @@ def _compute_exchange(dst, range_a, range_b):
     return (lo_val << hi_bot) | (hi_val << lo_bot)
 
 
-def _compute_sign_extend(dst, mask, bits, ctx):
+def _compute_sign_extend(dst: int, mask: int, bits: int, ctx: ComputeContext) -> int:
     """Sign-extend from a narrower source width to the operation size.
 
     The KB formula has 'source_bits_by_size' mapping size->source width,
@@ -227,7 +287,14 @@ def _compute_sign_extend(dst, mask, bits, ctx):
     return val & mask
 
 
-def _compute_shift(src, dst, mask, bits, ccr, ctx):
+def _compute_shift(
+    src: int,
+    dst: int,
+    mask: int,
+    bits: int,
+    ccr: CcrState,
+    ctx: ComputeContext,
+) -> int:
     """Shift result. All parameters come from KB: direction and fill from
     variants, count_modulus from shift_count_modulus."""
     count = src % ctx["count_modulus"]
@@ -247,7 +314,14 @@ def _compute_shift(src, dst, mask, bits, ccr, ctx):
         return val >> count
 
 
-def _compute_rotate(src, dst, mask, bits, ccr, ctx):
+def _compute_rotate(
+    src: int,
+    dst: int,
+    mask: int,
+    bits: int,
+    ccr: CcrState,
+    ctx: ComputeContext,
+) -> int:
     """Rotate result. Direction from KB variants, count_modulus from KB."""
     count = src % ctx["count_modulus"]
     direction = ctx["direction"]
@@ -263,11 +337,18 @@ def _compute_rotate(src, dst, mask, bits, ccr, ctx):
         return ((val >> c) | (val << (bits - c))) & mask
 
 
-def _compute_rotate_extend(src, dst, mask, bits, ccr, ctx):
+def _compute_rotate_extend(
+    src: int,
+    dst: int,
+    mask: int,
+    bits: int,
+    ccr: CcrState,
+    ctx: ComputeContext,
+) -> int:
     """Rotate through X bit. Extra bits from KB rotate_extra_bits."""
     count = src % ctx["count_modulus"]
     direction = ctx["direction"]
-    x = ccr.get("X", 0)
+    x = ccr.get("X", 0) or 0
     val = dst & mask
     extra = ctx["extra_bits"]
     width = bits + extra
@@ -282,7 +363,14 @@ def _compute_rotate_extend(src, dst, mask, bits, ccr, ctx):
     return rotated & mask
 
 
-def _compute_multiply(src, dst, mask, bits, ccr, ctx):
+def _compute_multiply(
+    src: int,
+    dst: int,
+    mask: int,
+    bits: int,
+    ccr: CcrState,
+    ctx: ComputeContext,
+) -> int:
     """Multiply. Signedness from KB 'signed', operand widths from KB 'data_sizes'."""
     ds = ctx["data_sizes"]
     _kind, src_bits, dst_bits, _result_bits = ds
@@ -294,7 +382,14 @@ def _compute_multiply(src, dst, mask, bits, ccr, ctx):
         return src * dst
 
 
-def _compute_divide(src, dst, mask, bits, ccr, ctx):
+def _compute_divide(
+    src: int,
+    dst: int,
+    mask: int,
+    bits: int,
+    ccr: CcrState,
+    ctx: ComputeContext,
+) -> int:
     """Divide. Signedness from KB, truncation direction from KB compute_formula."""
     if src == 0:
         raise RuntimeError("Division by zero in test - fix test values")
@@ -309,7 +404,7 @@ def _compute_divide(src, dst, mask, bits, ccr, ctx):
         return dst // src
 
 
-def _bcd_add(a, b, x):
+def _bcd_add(a: int, b: int, x: int) -> tuple[int, int]:
     """Packed BCD addition: a + b + x -> (result, carry).
 
     Standard packed BCD algorithm - correct each nibble by adding 6 when
@@ -328,7 +423,7 @@ def _bcd_add(a, b, x):
     return ((high & 0xF) << 4) | (low & 0xF), carry
 
 
-def _bcd_subtract(a, b, x):
+def _bcd_subtract(a: int, b: int, x: int) -> tuple[int, int]:
     """Packed BCD subtraction: a - b - x -> (result, borrow).
 
     Standard packed BCD subtraction - correct each nibble by subtracting 6
@@ -347,13 +442,23 @@ def _bcd_subtract(a, b, x):
     return ((high & 0xF) << 4) | (low & 0xF), borrow
 
 
-def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
+def _evaluate_formula(
+    formula: ComputeFormula,
+    src: int,
+    dst: int,
+    mask: int,
+    bits: int,
+    ccr: CcrState,
+    ctx: ComputeContext,
+) -> int:
     """Evaluate a KB compute_formula to produce the operation result.
 
     The formula structure comes from the KB (extracted from PDF Operation text).
     This evaluator applies universal math operators - it contains no M68K knowledge.
     """
-    op, terms, range_a, range_b, _source_bits_by_size, _truncation = formula
+    op_raw, terms_raw, range_a, range_b, _source_bits_by_size, _truncation = formula
+    op = cast(runtime_m68k_compute.ComputeOp, op_raw)
+    terms = tuple(cast(runtime_m68k_compute.FormulaTerm | int, term) for term in terms_raw)
     implicit = ctx.get("implicit_operand")
 
     # BCD arithmetic - packed decimal, byte only
@@ -427,11 +532,21 @@ def _evaluate_formula(formula, src, dst, mask, bits, ccr, ctx):
     raise RuntimeError(f"Unknown compute_formula op: {op!r}")
 
 
-def _compute_result(mnemonic: str, src, dst, mask, bits, initial_ccr, ctx=None):
+def _compute_result(
+    mnemonic: str | ComputeInstructionRecord,
+    src: int,
+    dst: int,
+    mask: int,
+    bits: int,
+    initial_ccr: CcrState,
+    ctx: ComputeContext | None = None,
+) -> tuple[int, int]:
     """Compute the full (unmasked) and masked result using KB compute_formula.
 
     Raises RuntimeError if the instruction has no compute_formula in the KB.
     """
+    if not isinstance(mnemonic, str):
+        mnemonic = mnemonic["mnemonic"]
     formula = runtime_m68k_compute.COMPUTE_FORMULAS.get(mnemonic)
     if formula is None:
         op_type = runtime_m68k_compute.OPERATION_TYPES.get(mnemonic)
@@ -447,7 +562,7 @@ def _compute_result(mnemonic: str, src, dst, mask, bits, initial_ccr, ctx=None):
         implicit = runtime_m68k_compute.IMPLICIT_OPERANDS.get(mnemonic)
         if implicit is not None:
             ctx["implicit_operand"] = implicit
-    result_full = _evaluate_formula(formula, src, dst, mask, bits, initial_ccr, ctx)
+    result_full = _evaluate_formula(cast(ComputeFormula, formula), src, dst, mask, bits, initial_ccr, ctx)
     result = result_full & mask
     return result_full, result
 
@@ -457,29 +572,45 @@ def _compute_result(mnemonic: str, src, dst, mask, bits, initial_ccr, ctx=None):
 # Each callable receives: (result, result_full, src, dst, mask, bits,
 #                          op_type, initial_ccr, cc_sem, flag, ctx)
 
-def _rule_unchanged(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_unchanged(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                    op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                    cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return ccr.get(flag, 0)
 
-def _rule_cleared(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_cleared(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                  op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                  cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return 0
 
-def _rule_set(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_set(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+              op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+              cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return 1
 
-def _rule_result_negative(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_result_negative(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                          op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                          cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return (result >> (bits - 1)) & 1
 
-def _rule_msb_operand(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_msb_operand(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                      op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                      cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """MSB of operand before the operation (TAS: N reflects pre-set value)."""
     return (dst >> (bits - 1)) & 1
 
-def _rule_result_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_result_zero(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                      op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                      cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return 1 if result == 0 else 0
 
-def _rule_result_nonzero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_result_nonzero(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                         op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                         cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return 1 if result != 0 else 0
 
-def _rule_same_as_carry(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_same_as_carry(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                        op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                        cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     c_rule = cc_sem.get("C", {}).get("rule")
     if c_rule is None:
         raise RuntimeError(f"same_as_carry: no C rule in cc_semantics")
@@ -488,13 +619,19 @@ def _rule_same_as_carry(result, result_full, src, dst, mask, bits, op_type, ccr,
     return _apply_rule(c_rule, "C", result, result_full, src, dst, mask, bits,
                        op_type, ccr, cc_sem, ctx)
 
-def _rule_carry(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_carry(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return 1 if result_full > mask else 0
 
-def _rule_borrow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_borrow(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                 op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                 cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return 1 if result_full < 0 else 0
 
-def _rule_overflow_add(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_overflow_add(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                       op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                       cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Overflow for addition: same-sign operands produce different-sign result."""
     sz = _size_from_bits(bits)
     s_src = _to_signed(src, sz)
@@ -502,7 +639,9 @@ def _rule_overflow_add(result, result_full, src, dst, mask, bits, op_type, ccr, 
     s_result = _to_signed(result, sz)
     return 1 if (s_src >= 0) == (s_dst >= 0) and (s_result >= 0) != (s_src >= 0) else 0
 
-def _rule_overflow_sub(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_overflow_sub(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                       op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                       cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Overflow for subtraction/compare: different-sign operands, result sign differs from dst."""
     sz = _size_from_bits(bits)
     s_src = _to_signed(src, sz)
@@ -510,17 +649,23 @@ def _rule_overflow_sub(result, result_full, src, dst, mask, bits, op_type, ccr, 
     s_result = _to_signed(result, sz)
     return 1 if (s_src >= 0) != (s_dst >= 0) and (s_result >= 0) != (s_dst >= 0) else 0
 
-def _rule_overflow_neg(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_overflow_neg(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                       op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                       cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Overflow for negate: only overflows at most-negative value."""
     msb_val = 1 << (bits - 1)
     return 1 if dst == msb_val else 0
 
-def _rule_overflow_negx(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_overflow_negx(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                        op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                        cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Overflow for negate-with-extend: msb_val with X=0."""
     msb_val = 1 << (bits - 1)
     return 1 if dst == msb_val and ccr.get("X", 0) == 0 else 0
 
-def _rule_overflow_multiply(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_overflow_multiply(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                            op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                            cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Overflow for multiply: product doesn't fit in result_bits."""
     if ctx.get("signed", False):
         max_pos = (1 << (bits - 1)) - 1
@@ -529,7 +674,9 @@ def _rule_overflow_multiply(result, result_full, src, dst, mask, bits, op_type, 
     else:
         return 1 if result_full < 0 or result_full >= (1 << bits) else 0
 
-def _rule_bit_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_bit_zero(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                   op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                   cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Z flag for bit test: set if the tested bit of destination is zero.
     Bit modulus from KB bit_modulus field (parsed from PDF description)."""
     bit_mod = ctx.get("bit_modulus")
@@ -539,56 +686,73 @@ def _rule_bit_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_s
     bit_num = src % bit_mod
     return 1 if (dst >> bit_num) & 1 == 0 else 0
 
-def _rule_z_cleared_if_nonzero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_z_cleared_if_nonzero(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                               op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                               cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     if result != 0:
         return 0
     return ccr.get("Z", 0)
 
-def _rule_decimal_carry(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_decimal_carry(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                        op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                        cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """C flag for BCD addition: set if decimal carry was generated."""
     carry = ctx.get("_decimal_carry")
     if carry is None:
         raise RuntimeError("decimal_carry rule: missing _decimal_carry in ctx - BCD compute needed")
     return carry
 
-def _rule_decimal_borrow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_decimal_borrow(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                         op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                         cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """C flag for BCD subtraction: set if decimal borrow was generated."""
     borrow = ctx.get("_decimal_borrow")
     if borrow is None:
         raise RuntimeError("decimal_borrow rule: missing _decimal_borrow in ctx - BCD compute needed")
     return borrow
 
-def _rule_undefined(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_undefined(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                    op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                    cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     return None
 
-def _rule_imm_bit_cleared(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_imm_bit_cleared(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                          op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                          cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """ANDI to CCR/SR: flag = flag AND imm_bit. KB 'bit' gives the bit position."""
     bit_pos = cc_sem[flag]["bit"]
     if (src >> bit_pos) & 1 == 0:
         return 0
     return ccr.get(flag, 0)
 
-def _rule_imm_bit_set(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_imm_bit_set(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                      op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                      cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """ORI to CCR/SR: flag = flag OR imm_bit. KB 'bit' gives the bit position."""
     bit_pos = cc_sem[flag]["bit"]
     if (src >> bit_pos) & 1 == 1:
         return 1
     return ccr.get(flag, 0)
 
-def _rule_imm_bit_changed(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_imm_bit_changed(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                          op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                          cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """EORI to CCR/SR: flag = flag XOR imm_bit. KB 'bit' gives the bit position."""
     bit_pos = cc_sem[flag]["bit"]
+    assert bit_pos is not None
     if (src >> bit_pos) & 1 == 1:
-        return 1 - ccr.get(flag, 0)
-    return ccr.get(flag, 0)
+        return 1 - (ccr.get(flag, 0) or 0)
+    return ccr.get(flag, 0) or 0
 
-def _rule_source_bit(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_source_bit(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                     op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                     cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """MOVE to CCR: flag = specific bit of source operand. KB 'bit' gives position."""
     bit_pos = cc_sem[flag]["bit"]
     return (src >> bit_pos) & 1
 
 
-def _division_overflows(result_full, bits, ctx):
+def _division_overflows(result_full: int, bits: int, ctx: ComputeContext) -> bool:
     """Check if the mathematical quotient overflows the quotient bit width."""
     if ctx.get("signed", False):
         max_pos = (1 << (bits - 1)) - 1
@@ -598,26 +762,34 @@ def _division_overflows(result_full, bits, ctx):
         return result_full < 0 or result_full >= (1 << bits)
 
 
-def _rule_division_overflow(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_division_overflow(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                            op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                            cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """V flag for divide: set if quotient doesn't fit in quotient_bits."""
     return 1 if _division_overflows(result_full, bits, ctx) else 0
 
 
-def _rule_quotient_negative(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_quotient_negative(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                            op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                            cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """N flag for divide: MSB of quotient. Undefined if overflow or div-by-zero."""
     if _division_overflows(result_full, bits, ctx):
         return None  # undefined per spec
     return (result >> (bits - 1)) & 1
 
 
-def _rule_quotient_zero(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_quotient_zero(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                        op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                        cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Z flag for divide: set if quotient is zero. Undefined if overflow or div-by-zero."""
     if _division_overflows(result_full, bits, ctx):
         return None  # undefined per spec
     return 1 if result == 0 else 0
 
 
-def _rule_last_shifted_out(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_last_shifted_out(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                           op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                           cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Last bit shifted out of the operand. Handles zero_count sub-rule."""
     count = src % ctx["count_modulus"]
     if count == 0:
@@ -661,7 +833,9 @@ def _rule_last_shifted_out(result, result_full, src, dst, mask, bits, op_type, c
                 return 0
 
 
-def _rule_last_rotated_out(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_last_rotated_out(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                           op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                           cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """Last bit rotated out. Handles zero_count sub-rule."""
     count = src % ctx["count_modulus"]
     if count == 0:
@@ -698,7 +872,7 @@ def _rule_last_rotated_out(result, result_full, src, dst, mask, bits, op_type, c
             return (val >> (c - 1)) & 1
     elif op_type == "rotate_extend":
         # ROXL/ROXR: rotate through X in a wider field (KB rotate_extra_bits)
-        x = ccr.get("X", 0)
+        x = ccr.get("X", 0) or 0
         extra = ctx["extra_bits"]
         width = bits + extra
         c = count % width
@@ -715,7 +889,9 @@ def _rule_last_rotated_out(result, result_full, src, dst, mask, bits, op_type, c
         raise RuntimeError(f"last_rotated_out: unexpected op_type '{op_type}'")
 
 
-def _rule_msb_changed_during_shift(result, result_full, src, dst, mask, bits, op_type, ccr, cc_sem, flag, ctx):
+def _rule_msb_changed_during_shift(result: int, result_full: int, src: int, dst: int, mask: int, bits: int,
+                                   op_type: runtime_m68k_compute.OperationType, ccr: CcrState,
+                                   cc_sem: CcSemantics, flag: str, ctx: ComputeContext) -> int | None:
     """ASL V flag: set if MSB changed at any point during left shift.
     For right shifts (ASR), MSB is preserved at every step -> always 0.
     """
@@ -748,7 +924,7 @@ def _rule_msb_changed_during_shift(result, result_full, src, dst, mask, bits, op
     return 1
 
 
-_RULE_HANDLERS = {
+_RULE_HANDLERS: dict[str, RuleHandler] = {
     "unchanged":                _rule_unchanged,
     "cleared":                  _rule_cleared,
     "set":                      _rule_set,
@@ -783,8 +959,10 @@ _RULE_HANDLERS = {
 }
 
 
-def _apply_rule(rule, flag, result, result_full, src, dst, mask, bits,
-                op_type, initial_ccr, cc_sem, ctx=None):
+def _apply_rule(rule: str, flag: str, result: int, result_full: int, src: int, dst: int,
+                mask: int, bits: int, op_type: runtime_m68k_compute.OperationType,
+                initial_ccr: CcrState, cc_sem: CcSemantics,
+                ctx: ComputeContext | None = None) -> int | None:
     """Apply a CC semantic rule to predict a flag value.
 
     Raises RuntimeError for unhandled rules (no silent skip).
@@ -803,7 +981,8 @@ def _apply_rule(rule, flag, result, result_full, src, dst, mask, bits,
 
 # -- SP effect prediction --------------------------------------------------
 
-def predict_sp(inst, sp_before, displacement=0, reg_state=None):
+def predict_sp(inst: MnemonicInstructionRecord, sp_before: int, displacement: int = 0,
+               reg_state: Mapping[str, int] | None = None) -> int:
     """Predict SP after instruction execution from KB sp_effects.
 
     Args:
@@ -820,7 +999,8 @@ def predict_sp(inst, sp_before, displacement=0, reg_state=None):
         RuntimeError if load_from_reg is encountered without reg_state providing
         the required register value, or if an unknown action is encountered.
     """
-    sp_effects = runtime_m68k_compute.SP_EFFECTS.get(inst["mnemonic"], ())
+    mnemonic = inst["mnemonic"]
+    sp_effects = runtime_m68k_compute.SP_EFFECTS.get(mnemonic, ())
     if not sp_effects:
         return sp_before
 
@@ -828,8 +1008,10 @@ def predict_sp(inst, sp_before, displacement=0, reg_state=None):
     for effect in sp_effects:
         action, nbytes, aux = effect
         if action == runtime_m68k_compute.SpEffectAction.DECREMENT:
+            assert nbytes is not None
             sp -= nbytes
         elif action == runtime_m68k_compute.SpEffectAction.INCREMENT:
+            assert nbytes is not None
             sp += nbytes
         elif action == runtime_m68k_compute.SpEffectAction.ADJUST:
             sp += displacement
@@ -837,9 +1019,10 @@ def predict_sp(inst, sp_before, displacement=0, reg_state=None):
             pass  # copies SP to register, no SP change
         elif action == runtime_m68k_compute.SpEffectAction.LOAD_FROM_REG:
             reg = aux
+            assert reg is not None
             if reg_state is None:
                 raise RuntimeError(
-                    f"{inst['mnemonic']}: load_from_reg requires reg_state "
+                    f"{mnemonic}: load_from_reg requires reg_state "
                     f"(need value of '{reg}')"
                 )
             # Map KB generic register name (e.g. "An") to actual register
@@ -851,20 +1034,20 @@ def predict_sp(inst, sp_before, displacement=0, reg_state=None):
                     break
             if resolved is None:
                 raise RuntimeError(
-                    f"{inst['mnemonic']}: load_from_reg needs '{reg}' but "
+                    f"{mnemonic}: load_from_reg needs '{reg}' but "
                     f"reg_state has {list(reg_state.keys())}"
                 )
             sp = resolved
         else:
             raise RuntimeError(
-                f"{inst['mnemonic']}: unknown SP effect action '{action}'"
+                f"{mnemonic}: unknown SP effect action '{action}'"
             )
     return sp & 0xFFFFFFFF
 
 
 # -- Condition test evaluator ---------------------------------------------
 
-def evaluate_cc_test(test_expr, ccr):
+def evaluate_cc_test(test_expr: str, ccr: CcrInput) -> bool:
     """Evaluate a condition code test expression against CCR flag values.
 
     test_expr: Boolean flag expression from KB cc_test_definitions, e.g.
@@ -879,20 +1062,20 @@ def evaluate_cc_test(test_expr, ccr):
     return _eval_cc_or(test_expr, ccr)
 
 
-def _eval_cc_or(expr, ccr):
+def _eval_cc_or(expr: str, ccr: CcrInput) -> bool:
     """Evaluate OR-separated terms: A | B | C"""
     # Split on | not inside parens
     terms = _split_top_level(expr, '|')
     return any(_eval_cc_and(t.strip(), ccr) for t in terms)
 
 
-def _eval_cc_and(expr, ccr):
+def _eval_cc_and(expr: str, ccr: CcrInput) -> bool:
     """Evaluate AND-separated terms: A & B & C"""
     terms = _split_top_level(expr, '&')
     return all(_eval_cc_atom(t.strip(), ccr) for t in terms)
 
 
-def _eval_cc_atom(expr, ccr):
+def _eval_cc_atom(expr: str, ccr: CcrInput) -> bool:
     """Evaluate a single atom: flag name, !flag, or (sub-expression)."""
     expr = expr.strip()
     if expr.startswith('(') and expr.endswith(')'):
@@ -903,7 +1086,7 @@ def _eval_cc_atom(expr, ccr):
     return ccr.get(expr, 0) == 1
 
 
-def _split_top_level(expr, sep):
+def _split_top_level(expr: str, sep: str) -> list[str]:
     """Split expression on separator, respecting parentheses."""
     parts = []
     depth = 0

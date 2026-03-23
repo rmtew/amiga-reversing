@@ -1,5 +1,15 @@
 """Shared deterministic register and pointer transform helpers."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Protocol, TypeAlias
+
+from .typing_protocols import OperandNodeLike
+
+
+PointerTransform: TypeAlias = tuple[object, ...]
+
 
 def _apply_known_shift(opcode_text: str, operand_size: str,
                        value: int, count: int) -> int | None:
@@ -98,7 +108,7 @@ def _apply_known_swap(value: int) -> int:
     return ((value & 0xFFFF) << 16) | ((value >> 16) & 0xFFFF)
 
 
-def _node_reg_ref(node) -> tuple[str, int] | None:
+def _node_reg_ref(node: OperandNodeLike) -> tuple[str, int] | None:
     """Return canonical (mode, reg) for a typed register node."""
     if node.kind != "register" or not node.register:
         return None
@@ -112,7 +122,12 @@ def _node_reg_ref(node) -> tuple[str, int] | None:
     return None
 
 
-def _swap_partner(inst, current_mode: str, current_reg: int) -> tuple[str, int] | None:
+class ExchangeInstructionLike(Protocol):
+    @property
+    def operand_nodes(self) -> Sequence[OperandNodeLike]: ...
+
+
+def _swap_partner(inst: ExchangeInstructionLike, current_mode: str, current_reg: int) -> tuple[str, int] | None:
     """Return the pre-EXG register that feeds the tracked register."""
     if len(inst.operand_nodes) != 2:
         return None
@@ -194,38 +209,83 @@ def _apply_known_divide(opcode_text: str, operand_size: str,
     return None
 
 
-def _apply_pointer_transforms(value: int, transforms) -> int | None:
+def _apply_pointer_transforms(value: int, transforms: list[PointerTransform]) -> int | None:
     """Apply stored pointer transforms in execution order."""
-    out = value
+    out: int | None = value
     for kind, *args in reversed(transforms):
+        if out is None:
+            return None
         if kind == "shift":
-            opcode_text, operand_size, count = args
+            if (len(args) != 3
+                    or not isinstance(args[0], str)
+                    or not isinstance(args[1], str)
+                    or not isinstance(args[2], int)):
+                return None
+            opcode_text = args[0]
+            operand_size = args[1]
+            count = args[2]
             out = _apply_known_shift(opcode_text, operand_size, out, count)
         elif kind == "logical":
-            op_type, operand_size, imm = args
+            if (len(args) != 3
+                    or not isinstance(args[0], str)
+                    or not isinstance(args[1], str)
+                    or not isinstance(args[2], int)):
+                return None
+            op_type = args[0]
+            operand_size = args[1]
+            imm = args[2]
             out = _apply_known_logical(op_type, operand_size, out, imm)
         elif kind == "bitop":
-            opcode_text, bit = args
+            if (len(args) != 2
+                    or not isinstance(args[0], str)
+                    or not isinstance(args[1], int)):
+                return None
+            opcode_text = args[0]
+            bit = args[1]
             out = _apply_known_bitop(opcode_text, out, bit)
         elif kind == "test":
-            opcode_text, operand_size = args
+            if (len(args) != 2
+                    or not isinstance(args[0], str)
+                    or not isinstance(args[1], str)):
+                return None
+            opcode_text = args[0]
+            operand_size = args[1]
             out = _apply_known_test(opcode_text, operand_size, out)
         elif kind == "unary":
-            op_type, operand_size = args
+            if (len(args) != 2
+                    or not isinstance(args[0], str)
+                    or not isinstance(args[1], str)):
+                return None
+            op_type = args[0]
+            operand_size = args[1]
             out = _apply_known_unary(op_type, operand_size, out)
         elif kind == "swap":
             out = _apply_known_swap(out)
         elif kind == "sign_extend":
-            operand_size, = args
+            if len(args) != 1 or not isinstance(args[0], str):
+                return None
+            operand_size = args[0]
             out = _apply_known_sign_extend(operand_size, out)
         elif kind == "multiply":
-            opcode_text, operand_size, src = args
+            if (len(args) != 3
+                    or not isinstance(args[0], str)
+                    or not isinstance(args[1], str)
+                    or not isinstance(args[2], int)):
+                return None
+            opcode_text = args[0]
+            operand_size = args[1]
+            src = args[2]
             out = _apply_known_multiply(opcode_text, operand_size, out, src)
         elif kind == "divide":
-            opcode_text, operand_size, src = args
+            if (len(args) != 3
+                    or not isinstance(args[0], str)
+                    or not isinstance(args[1], str)
+                    or not isinstance(args[2], int)):
+                return None
+            opcode_text = args[0]
+            operand_size = args[1]
+            src = args[2]
             out = _apply_known_divide(opcode_text, operand_size, out, src)
         else:
-            return None
-        if out is None:
             return None
     return out

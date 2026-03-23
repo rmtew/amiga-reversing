@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from enum import IntEnum, StrEnum
 from typing import TypeAlias
+from .runtime_types import AsmSizeEncoding, BitField, BitModulus, BranchExtensionDisplacement, BranchInlineDisplacement, CcLookupFamily, ComputeFormula, ConditionFamily, DirectionFormValue, DirectionVariant, DisasmSizeEncoding, EaModeTable, FieldMaps, FieldSpec, ImmediateRange, OperandModeTable, OpmodeEntry, PrimaryDataSize, RawFieldMaps, RmFieldInfo, ShiftFieldInfo, ShiftVariantBehavior, SpEffect
 
 class SizeCode(IntEnum):
     BYTE = 0
@@ -116,27 +117,6 @@ class ShiftFill(StrEnum):
     ZERO = 'zero'
     SIGN = 'sign'
     ROTATE = 'rotate'
-
-BitField: TypeAlias = tuple[int, int, int]
-AsmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None]
-DisasmSizeEncoding: TypeAlias = tuple[int | None, int | None, int | None, int | None]
-ShiftFieldInfo: TypeAlias = tuple[BitField, tuple[str | None, ...], int]
-RmFieldInfo: TypeAlias = tuple[int, tuple[str | None, ...]]
-ConditionFamily: TypeAlias = tuple[str, str, tuple[str, ...], bool, tuple[str, ...]]
-DirectionVariant: TypeAlias = tuple[BitField, str, tuple[str, ...], dict[int, str]]
-ImmediateRange: TypeAlias = tuple[str | None, int | None, bool, int | None, int | None, int | None]
-BitModulus: TypeAlias = tuple[int, int]
-BranchInlineDisplacement: TypeAlias = tuple[str, BitField, int, int, int, int]
-BranchExtensionDisplacement: TypeAlias = tuple[int, int]
-EaModeTable: TypeAlias = tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]
-OperandModeTable: TypeAlias = tuple[str, dict[int, tuple[str, ...]]]
-OpmodeEntry: TypeAlias = tuple[str | None, str | None, bool | None, str | None, str | None, str | None, str | None]
-CcLookupFamily: TypeAlias = tuple[str, tuple[str, ...], bool]
-ComputeFormula: TypeAlias = tuple[ComputeOp, tuple[FormulaTerm | int, ...], tuple[int, int] | None, tuple[int, int] | None, tuple[tuple[str, int], ...], TruncationMode | None]
-PrimaryDataSize: TypeAlias = tuple[PrimaryDataSizeKind, int, int, int]
-SpEffect: TypeAlias = tuple[SpEffectAction, int | None, str | None]
-ShiftVariantBehavior: TypeAlias = tuple[str, ShiftDirection, ShiftFill, bool]
-DirectionFormValue: TypeAlias = tuple[str, tuple[int, ...]]
 
 META = {'condition_codes': ['t',
                      'f',
@@ -2777,104 +2757,62 @@ OPMODE_TABLES_LIST = {'ADD': [{'opmode': 0, 'size': 'b', 'operation': '< ea > + 
              'size': 'l',
              'description': 'Instruction is followed by long-word-sized operand'},
             {'opmode': 4, 'size': None, 'description': 'Instruction has no operand'}]}
-OPMODE_TABLES_BY_VALUE = {'ADD': {0: ('b', '< ea > + Dn → Dn', True, None, None, None, None),
-         1: ('w', '< ea > + Dn → Dn', True, None, None, None, None),
-         2: ('l', '< ea > + Dn → Dn', True, None, None, None, None),
-         4: ('b', 'Dn + < ea > → < ea >', False, None, None, None, None),
-         5: ('w', 'Dn + < ea > → < ea >', False, None, None, None, None),
-         6: ('l', 'Dn + < ea > → < ea >', False, None, None, None, None)},
- 'ADDA': {3: ('w',
-              'Word operation; the source operand is sign-extended to a long operand and',
-              True,
-              None,
-              None,
-              None,
-              None),
-          7: ('l', 'Long operation', True, None, None, None, None)},
- 'AND': {0: ('b', '< ea > Dn → Dn', True, None, None, None, None),
-         1: ('w', '< ea > Dn → Dn', True, None, None, None, None),
-         2: ('l', '< ea > Dn → Dn', True, None, None, None, None),
-         4: ('b', 'Dn Λ < ea > → < ea >', False, None, None, None, None),
-         5: ('w', 'Dn Λ < ea > → < ea >', False, None, None, None, None),
-         6: ('l', 'Dn Λ < ea > → < ea >', False, None, None, None, None)},
- 'CMP': {0: ('b', 'Dn – < ea >', True, None, None, None, None),
-         1: ('w', 'Dn – < ea >', True, None, None, None, None),
-         2: ('l', 'Dn – < ea >', True, None, None, None, None)},
- 'CMPA': {3: ('w',
-              'Word operation; the source operand is sign-extended to a long operand, and',
-              True,
-              None,
-              None,
-              None,
-              None),
-          7: ('l', 'Long operation', True, None, None, None, None)},
- 'EOR': {4: ('b', '< ea > ⊕ Dn → < ea >', False, None, None, None, None),
-         5: ('w', '< ea > ⊕ Dn → < ea >', False, None, None, None, None),
-         6: ('l', '< ea > ⊕ Dn → < ea >', False, None, None, None, None)},
- 'EXG': {8: (None, 'Data registers', None, None, None, 'dn', 'dn'),
-         9: (None, 'Address registers', None, None, None, 'an', 'an'),
-         17: (None, 'Data register and address register', None, None, None, 'dn', 'an')},
- 'EXT, EXTB': {2: ('b',
-                   'Sign-extend low-order byte of data register to word',
-                   None,
-                   None,
-                   None,
-                   None,
-                   None),
-               3: ('w',
-                   'Sign-extend low-order word of data register to long',
-                   None,
-                   None,
-                   None,
-                   None,
-                   None),
-               7: ('b',
-                   'Sign-extend low-order byte of data register to long',
-                   None,
-                   None,
-                   None,
-                   None,
-                   None)},
- 'MOVE16': {0: (None, None, None, '(Ay) +', '(xxx).L', None, None),
-            1: (None, None, None, '(xxx).L', '(Ay) +', None, None),
-            2: (None, None, None, '(Ay)', '(xxx).L', None, None),
-            3: (None, None, None, '(xxx).L', '(Ay)', None, None)},
- 'MOVEP': {4: ('w', 'Transfer word from memory to register', None, None, None, None, None),
-           5: ('l', 'Transfer long from memory to register', None, None, None, None, None),
-           6: ('w', 'Transfer word from register to memory', None, None, None, None, None),
-           7: ('l', 'Transfer long from register to memory', None, None, None, None, None)},
- 'OR': {0: ('b', '< ea > V Dn → Dn', True, None, None, None, None),
-        1: ('w', '< ea > V Dn → Dn', True, None, None, None, None),
-        2: ('l', '< ea > V Dn → Dn', True, None, None, None, None),
-        4: ('b', 'Dn V < ea > → < ea >', False, None, None, None, None),
-        5: ('w', 'Dn V < ea > → < ea >', False, None, None, None, None),
-        6: ('l', 'Dn V < ea > → < ea >', False, None, None, None, None)},
- 'PTRAPcc': {2: ('w', 'Instruction is followed by one operand word', None, None, None, None, None),
-             3: ('l', 'Instruction is followed by two operand words', None, None, None, None, None),
-             4: (None, 'Instruction has no following operand words', None, None, None, None, None)},
- 'SUB': {0: ('b', 'Dn – < ea > → Dn', True, None, None, None, None),
-         1: ('w', 'Dn – < ea > → Dn', True, None, None, None, None),
-         2: ('l', 'Dn – < ea > → Dn', True, None, None, None, None),
-         4: ('b', '< ea > – Dn → < ea >', False, None, None, None, None),
-         5: ('w', '< ea > – Dn → < ea >', False, None, None, None, None),
-         6: ('l', '< ea > – Dn → < ea >', False, None, None, None, None)},
- 'SUBA': {3: ('w',
-              'Word operation. The source operand is sign-extended to a long operand and',
-              True,
-              None,
-              None,
-              None,
-              None),
-          7: ('l', 'Long operation', True, None, None, None, None)},
- 'TRAPcc': {2: ('w', 'Instruction is followed by word-sized operand', None, None, None, None, None),
-            3: ('l',
-                'Instruction is followed by long-word-sized operand',
-                None,
-                None,
-                None,
-                None,
-                None),
-            4: (None, 'Instruction has no operand', None, None, None, None, None)}}
+OPMODE_TABLES_BY_VALUE: dict[str, dict[int, OpmodeEntry]] = {'ADD': {0: OpmodeEntry(size='b', description='< ea > + Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  1: OpmodeEntry(size='w', description='< ea > + Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  2: OpmodeEntry(size='l', description='< ea > + Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  4: OpmodeEntry(size='b', description='Dn + < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  5: OpmodeEntry(size='w', description='Dn + < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  6: OpmodeEntry(size='l', description='Dn + < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'ADDA': {3: OpmodeEntry(size='w', description='Word operation; the source operand is sign-extended to a long operand and', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  7: OpmodeEntry(size='l', description='Long operation', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'AND': {0: OpmodeEntry(size='b', description='< ea > Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  1: OpmodeEntry(size='w', description='< ea > Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  2: OpmodeEntry(size='l', description='< ea > Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  4: OpmodeEntry(size='b', description='Dn Λ < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  5: OpmodeEntry(size='w', description='Dn Λ < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  6: OpmodeEntry(size='l', description='Dn Λ < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'CMP': {0: OpmodeEntry(size='b', description='Dn – < ea >', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  1: OpmodeEntry(size='w', description='Dn – < ea >', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  2: OpmodeEntry(size='l', description='Dn – < ea >', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'CMPA': {3: OpmodeEntry(size='w', description='Word operation; the source operand is sign-extended to a long operand, and', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  7: OpmodeEntry(size='l', description='Long operation', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'EOR': {4: OpmodeEntry(size='b', description='< ea > ⊕ Dn → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  5: OpmodeEntry(size='w', description='< ea > ⊕ Dn → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  6: OpmodeEntry(size='l', description='< ea > ⊕ Dn → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'EXG': {8: OpmodeEntry(size=None, description='Data registers', ea_is_source=None, source=None, destination=None, rx_mode='dn', ry_mode='dn'),
+  9: OpmodeEntry(size=None, description='Address registers', ea_is_source=None, source=None, destination=None, rx_mode='an', ry_mode='an'),
+  17: OpmodeEntry(size=None, description='Data register and address register', ea_is_source=None, source=None, destination=None, rx_mode='dn', ry_mode='an')},
+ 'EXT, EXTB': {2: OpmodeEntry(size='b', description='Sign-extend low-order byte of data register to word', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  3: OpmodeEntry(size='w', description='Sign-extend low-order word of data register to long', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  7: OpmodeEntry(size='b', description='Sign-extend low-order byte of data register to long', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'MOVE16': {0: OpmodeEntry(size=None, description=None, ea_is_source=None, source='(Ay) +', destination='(xxx).L', rx_mode=None, ry_mode=None),
+  1: OpmodeEntry(size=None, description=None, ea_is_source=None, source='(xxx).L', destination='(Ay) +', rx_mode=None, ry_mode=None),
+  2: OpmodeEntry(size=None, description=None, ea_is_source=None, source='(Ay)', destination='(xxx).L', rx_mode=None, ry_mode=None),
+  3: OpmodeEntry(size=None, description=None, ea_is_source=None, source='(xxx).L', destination='(Ay)', rx_mode=None, ry_mode=None)},
+ 'MOVEP': {4: OpmodeEntry(size='w', description='Transfer word from memory to register', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  5: OpmodeEntry(size='l', description='Transfer long from memory to register', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  6: OpmodeEntry(size='w', description='Transfer word from register to memory', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  7: OpmodeEntry(size='l', description='Transfer long from register to memory', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'OR': {0: OpmodeEntry(size='b', description='< ea > V Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  1: OpmodeEntry(size='w', description='< ea > V Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  2: OpmodeEntry(size='l', description='< ea > V Dn → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  4: OpmodeEntry(size='b', description='Dn V < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  5: OpmodeEntry(size='w', description='Dn V < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  6: OpmodeEntry(size='l', description='Dn V < ea > → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'PTRAPcc': {2: OpmodeEntry(size='w', description='Instruction is followed by one operand word', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  3: OpmodeEntry(size='l', description='Instruction is followed by two operand words', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  4: OpmodeEntry(size=None, description='Instruction has no following operand words', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'SUB': {0: OpmodeEntry(size='b', description='Dn – < ea > → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  1: OpmodeEntry(size='w', description='Dn – < ea > → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  2: OpmodeEntry(size='l', description='Dn – < ea > → Dn', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  4: OpmodeEntry(size='b', description='< ea > – Dn → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  5: OpmodeEntry(size='w', description='< ea > – Dn → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None),
+  6: OpmodeEntry(size='l', description='< ea > – Dn → < ea >', ea_is_source=False, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'SUBA': {3: OpmodeEntry(size='w', description='Word operation. The source operand is sign-extended to a long operand and', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None),
+  7: OpmodeEntry(size='l', description='Long operation', ea_is_source=True, source=None, destination=None, rx_mode=None, ry_mode=None)},
+ 'TRAPcc': {2: OpmodeEntry(size='w', description='Instruction is followed by word-sized operand', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  3: OpmodeEntry(size='l', description='Instruction is followed by long-word-sized operand', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None),
+  4: OpmodeEntry(size=None, description='Instruction has no operand', ea_is_source=None, source=None, destination=None, rx_mode=None, ry_mode=None)}}
 FORM_OPERAND_TYPES = {'ABCD': (('dn', 'dn'), ('predec', 'predec')),
  'ADD': (('ea', 'dn'), ('dn', 'ea')),
  'ADDA': (('ea', 'an'),),
@@ -4567,6 +4505,6 @@ SHIFT_VARIANT_BEHAVIORS = {'ASL, ASR': (('ASL', ShiftDirection.LEFT, ShiftFill.Z
  'LSL, LSR': (('LSL', ShiftDirection.LEFT, ShiftFill.ZERO, False), ('LSR', ShiftDirection.RIGHT, ShiftFill.ZERO, False),),
  'ROL, ROR': (('ROL', ShiftDirection.LEFT, ShiftFill.ROTATE, False), ('ROR', ShiftDirection.RIGHT, ShiftFill.ROTATE, False),),
  'ROXL, ROXR': (('ROXL', ShiftDirection.LEFT, ShiftFill.ROTATE, False), ('ROXR', ShiftDirection.RIGHT, ShiftFill.ROTATE, False),)}
-PROCESSOR_020_VARIANTS = {'DIVS, DIVSL': frozenset({'DIVSL'}),
- 'DIVU, DIVUL': frozenset({'DIVUL'}),
- 'EXT, EXTB': frozenset({'EXTB'})}
+PROCESSOR_020_VARIANTS = {'DIVS, DIVSL': frozenset(('DIVSL',)),
+ 'DIVU, DIVUL': frozenset(('DIVUL',)),
+ 'EXT, EXTB': frozenset(('EXTB',))}

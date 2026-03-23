@@ -1,39 +1,56 @@
 """Test the shared analysis pipeline (m68k.analysis)."""
 
+from __future__ import annotations
+
 import struct
 import tempfile
 from pathlib import Path
+from typing import TypedDict, cast
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
 from m68k.analysis import (analyze_hunk, HunkAnalysis, AnalysisCacheError,
-                           detect_relocated_segments, _postinc_copy_regs,
-                           RelocatedSegment)
+                           detect_relocated_segments, _postinc_copy_regs)
+from m68k.analysis import RelocLike
 from m68k.decode_errors import DecodeError
 from m68k.hunk_parser import HunkType
+from m68k.indirect_core import IndirectSite
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze
-from m68k.os_calls import LibraryCall
+from m68k.os_calls import LibraryCall, RUNTIME_OS_KB
 from m68k_kb import runtime_os
 from m68k.ea_extension import parse_full_extension
 
 
-def _site_view(site):
+class _IndirectSiteView(TypedDict, total=False):
+    addr: int
+    mnemonic: str
+    flow_type: str
+    shape: str
+    region: str
+    status: str
+    target: int | None
+    detail: str
+    target_count: int
+
+
+def _site_view(site: IndirectSite) -> _IndirectSiteView:
     return {
         "addr": site.addr,
         "mnemonic": site.mnemonic,
-        "flow_type": site.flow_type,
+        "flow_type": str(site.flow_type),
         "shape": site.shape,
-        "region": site.region,
-        "status": site.status,
+        "region": str(site.region),
+        "status": str(site.status),
         "target": site.target,
         **({"detail": site.detail} if site.detail is not None else {}),
         **({"target_count": site.target_count} if site.target_count is not None else {}),
     }
 
 
-def _make_simple_hunk():
+def _make_simple_hunk() -> bytes:
     """Build a minimal code buffer with known structure for testing."""
     code = b''
     # Entry at $00: lea $10(pc),a0; moveq #0,d0; rts
@@ -49,16 +66,17 @@ def _make_simple_hunk():
 
 class _FakeReloc:
     """Minimal reloc object for testing."""
-    def __init__(self, reloc_type, offsets):
+    def __init__(self, reloc_type: HunkType, offsets: tuple[int, ...]) -> None:
         self.reloc_type = reloc_type
         self.offsets = offsets
 
 
-def test_analyze_hunk_returns_dataclass():
+def test_analyze_hunk_returns_dataclass() -> None:
     """analyze_hunk returns a HunkAnalysis with expected fields."""
     code = _make_simple_hunk()
     result = analyze_hunk(code, relocs=[], hunk_index=0,
                           print_fn=lambda *a: None)
+    assert result.os_kb is not None
     assert isinstance(result, HunkAnalysis)
     assert result.code is code
     assert result.hunk_index == 0
@@ -70,7 +88,7 @@ def test_analyze_hunk_returns_dataclass():
     assert 0 in result.blocks  # entry point block exists
 
 
-def test_analyze_hunk_finds_blocks():
+def test_analyze_hunk_finds_blocks() -> None:
     """analyze_hunk discovers basic blocks from entry point 0."""
     code = _make_simple_hunk()
     result = analyze_hunk(code, relocs=[], hunk_index=0,
@@ -81,7 +99,7 @@ def test_analyze_hunk_finds_blocks():
     assert len(entry_block.instructions) >= 1
 
 
-def test_analyze_hunk_propagates_state():
+def test_analyze_hunk_propagates_state() -> None:
     """analyze_hunk produces exit states with propagated register values."""
     code = _make_simple_hunk()
     result = analyze_hunk(code, relocs=[], hunk_index=0,
@@ -92,21 +110,24 @@ def test_analyze_hunk_propagates_state():
     assert cpu.d[0].is_known and cpu.d[0].concrete == 0
 
 
-def test_analyze_hunk_identifies_os_calls():
+def test_analyze_hunk_identifies_os_calls() -> None:
     """analyze_hunk's os_kb is populated from the OS knowledge base."""
     code = _make_simple_hunk()
     result = analyze_hunk(code, relocs=[], hunk_index=0,
                           print_fn=lambda *a: None)
+    assert result.os_kb is not None
     assert result.os_kb.STRUCTS
     assert result.os_kb.META.calling_convention.base_reg == "A6"
 
 
-def test_analyze_hunk_defers_per_caller_until_cheap_resolution_stabilizes(monkeypatch):
+def test_analyze_hunk_defers_per_caller_until_cheap_resolution_stabilizes(
+    monkeypatch: MonkeyPatch,
+) -> None:
     code = _make_simple_hunk()
-    real_runtime = []
-    real_per_caller = []
+    real_runtime: list[int] = []
+    real_per_caller: list[int] = []
 
-    def fake_runtime(*args, **kwargs):
+    def fake_runtime(*args: object, **kwargs: object) -> list[object]:
         real_runtime.append(1)
         if len(real_runtime) == 1:
             from m68k.indirect_analysis import IndirectResolution
@@ -115,7 +136,7 @@ def test_analyze_hunk_defers_per_caller_until_cheap_resolution_stabilizes(monkey
                                        kind=IndirectSiteStatus.RUNTIME)]
         return []
 
-    def fake_per_caller(*args, **kwargs):
+    def fake_per_caller(*args: object, **kwargs: object) -> list[object]:
         real_per_caller.append(1)
         return []
 
@@ -131,12 +152,14 @@ def test_analyze_hunk_defers_per_caller_until_cheap_resolution_stabilizes(monkey
     assert len(real_per_caller) == 1
 
 
-def test_analyze_hunk_skips_preclassified_external_sites_in_per_caller(monkeypatch):
+def test_analyze_hunk_skips_preclassified_external_sites_in_per_caller(
+    monkeypatch: MonkeyPatch,
+) -> None:
     code = _make_simple_hunk()
-    seen_skip_sets = []
+    seen_skip_sets: list[frozenset[int]] = []
 
-    def fake_per_caller(*args, **kwargs):
-        seen_skip_sets.append(kwargs["skip_site_addrs"])
+    def fake_per_caller(*args: object, **kwargs: object) -> list[object]:
+        seen_skip_sets.append(cast(frozenset[int], kwargs["skip_site_addrs"]))
         return []
 
     monkeypatch.setattr("m68k.analysis.detect_jump_tables", lambda *a, **k: [])
@@ -155,7 +178,7 @@ def test_analyze_hunk_skips_preclassified_external_sites_in_per_caller(monkeypat
     assert seen_skip_sets == [frozenset({4})]
 
 
-def test_save_load_roundtrip():
+def test_save_load_roundtrip() -> None:
     """HunkAnalysis can be saved and loaded with identical data."""
     code = _make_simple_hunk()
     ha = analyze_hunk(code, relocs=[], hunk_index=0,
@@ -166,6 +189,7 @@ def test_save_load_roundtrip():
         assert path.exists()
         assert path.stat().st_size > 0
 
+        assert ha.os_kb is not None
         ha2 = HunkAnalysis.load(path, ha.os_kb)
         assert len(ha2.blocks) == len(ha.blocks)
         assert len(ha2.exit_states) == len(ha.exit_states)
@@ -175,7 +199,7 @@ def test_save_load_roundtrip():
         assert ha2.os_kb is ha.os_kb  # re-attached, same object
 
 
-def test_load_rejects_wrong_version():
+def test_load_rejects_wrong_version() -> None:
     """Loading a cache with mismatched version raises AnalysisCacheError."""
     import pickle
     code = _make_simple_hunk()
@@ -191,10 +215,10 @@ def test_load_rejects_wrong_version():
             pickle.dump((999, saved_ha), f)
         import pytest
         with pytest.raises(AnalysisCacheError, match="version mismatch"):
-            HunkAnalysis.load(path, {})
+            HunkAnalysis.load(path, RUNTIME_OS_KB)
 
 
-def test_base_addr_resolves_absolute_targets():
+def test_base_addr_resolves_absolute_targets() -> None:
     """Analysis with non-zero base_addr resolves absolute branch targets.
 
     Models Bloodwych: code runs at $0400, uses absolute addresses.
@@ -226,7 +250,7 @@ def test_base_addr_resolves_absolute_targets():
         f"Expected block at $0410, got {sorted(hex(a) for a in ha.blocks)[:10]}")
 
 
-def test_base_addr_with_code_start():
+def test_base_addr_with_code_start() -> None:
     """Analysis with code_start skips bootstrap prefix.
 
     Models Bloodwych: first $5C bytes are bootstrap (copy loop),
@@ -255,13 +279,15 @@ def test_base_addr_with_code_start():
     assert cpu.d[0].is_known and cpu.d[0].concrete == 1
 
 
-def test_analyze_skips_invalid_full_extension_words():
+def test_analyze_skips_invalid_full_extension_words() -> None:
     result = analyze(bytes.fromhex("20312100"), propagate=False, entry_points=[0])
 
     assert result["blocks"] == {}
 
 
-def test_analyze_hunk_promotes_code_pointer_args_into_core_entries(monkeypatch):
+def test_analyze_hunk_promotes_code_pointer_args_into_core_entries(
+    monkeypatch: MonkeyPatch,
+) -> None:
     code = b""
     code += struct.pack(">HH", 0x4BFA, 0x0008)  # lea $0c(pc),a5
     code += struct.pack(">HH", 0x6100, 0x0008)  # bsr.w $0e
@@ -293,7 +319,7 @@ def test_analyze_hunk_promotes_code_pointer_args_into_core_entries(monkeypatch):
     assert 0x0A in ha.blocks
 
 
-def test_parse_full_extension_raises_decode_error_for_reserved_shape():
+def test_parse_full_extension_raises_decode_error_for_reserved_shape() -> None:
     with pytest.raises(DecodeError, match="Reserved full extension BD SIZE value"):
         parse_full_extension(
             0x2100,
@@ -304,7 +330,7 @@ def test_parse_full_extension_raises_decode_error_for_reserved_shape():
         )
 
 
-def test_analyze_hunk_prunes_inline_dispatch_speculative_blocks():
+def test_analyze_hunk_prunes_inline_dispatch_speculative_blocks() -> None:
     code = b''
     code += struct.pack('>H', 0x7000)          # [0x00] moveq #0,d0
     code += struct.pack('>HH', 0x4EFB, 0x0000)  # [0x02] jmp 0(pc,d0.w)
@@ -325,7 +351,7 @@ def test_analyze_hunk_prunes_inline_dispatch_speculative_blocks():
     assert 0x16 in result.blocks
 
 
-def test_analyze_hunk_reports_unresolved_indirect_sites():
+def test_analyze_hunk_reports_unresolved_indirect_sites() -> None:
     code = b""
     code += struct.pack(">H", 0x4E90)  # jsr (a0)
     code += struct.pack(">H", 0x4E75)  # rts
@@ -351,7 +377,9 @@ def test_analyze_hunk_reports_unresolved_indirect_sites():
     assert any("unresolved_indirect_core $0000: JSR ind" in line for line in lines)
 
 
-def test_analyze_hunk_reports_terminal_indirect_site_offset_not_block_start(monkeypatch):
+def test_analyze_hunk_reports_terminal_indirect_site_offset_not_block_start(
+    monkeypatch: MonkeyPatch,
+) -> None:
     code = b""
     pc = 0
     for text in (
@@ -385,7 +413,9 @@ def test_analyze_hunk_reports_terminal_indirect_site_offset_not_block_start(monk
     }]
 
 
-def test_analyze_hunk_marks_identified_library_call_as_external(monkeypatch):
+def test_analyze_hunk_marks_identified_library_call_as_external(
+    monkeypatch: MonkeyPatch,
+) -> None:
     code = b""
     pc = 0
     for text in (
@@ -426,7 +456,9 @@ def test_analyze_hunk_marks_identified_library_call_as_external(monkeypatch):
     }]
 
 
-def test_analyze_hunk_core_per_caller_does_not_promote_hint_only_target(monkeypatch):
+def test_analyze_hunk_core_per_caller_does_not_promote_hint_only_target(
+    monkeypatch: MonkeyPatch,
+) -> None:
     monkeypatch.setattr("m68k.analysis.scan_and_score", lambda *args, **kwargs: [])
 
     code = b""
@@ -442,7 +474,7 @@ def test_analyze_hunk_core_per_caller_does_not_promote_hint_only_target(monkeypa
     code += struct.pack(">HH", 0x4E71, 0x4E75)         # [0x1c] hint-only handler
     code += struct.pack(">I", 0x00000012)               # [0x20] reloc target -> hint caller
 
-    relocs = [_FakeReloc(HunkType.HUNK_RELOC32, [0x20])]
+    relocs: list[RelocLike] = [_FakeReloc(HunkType.HUNK_RELOC32, (0x20,))]
     result = analyze_hunk(code, relocs=relocs, hunk_index=0,
                           print_fn=lambda *a: None)
 
@@ -463,7 +495,7 @@ def test_analyze_hunk_core_per_caller_does_not_promote_hint_only_target(monkeypa
 
 # -- Auto-detect relocated segments -----------------------------------
 
-def test_detect_copy_and_jump():
+def test_detect_copy_and_jump() -> None:
     """Detect copy loop followed by JMP to destination.
 
     Bootstrap:
@@ -507,7 +539,7 @@ def test_detect_copy_and_jump():
         f"Expected base_addr=$400, got ${seg.base_addr:X}")
 
 
-def test_detect_no_copy_returns_empty():
+def test_detect_no_copy_returns_empty() -> None:
     """Normal hunk (no copy pattern) returns no relocated segments."""
     code = b''
     code += struct.pack('>H', 0x7000)  # moveq #0,d0
@@ -517,10 +549,12 @@ def test_detect_no_copy_returns_empty():
     assert segments == []
 
 
-def test_detect_relocated_segments_skips_analysis_without_bootstrap_signature(monkeypatch):
+def test_detect_relocated_segments_skips_analysis_without_bootstrap_signature(
+    monkeypatch: MonkeyPatch,
+) -> None:
     code = struct.pack(">HH", 0x7000, 0x4E75)
 
-    def _unexpected_analyze(*args, **kwargs):
+    def _unexpected_analyze(*args: object, **kwargs: object) -> None:
         raise AssertionError("plain code should not trigger relocation analysis")
 
     monkeypatch.setattr("m68k.analysis.analyze", _unexpected_analyze)
@@ -528,14 +562,14 @@ def test_detect_relocated_segments_skips_analysis_without_bootstrap_signature(mo
     assert detect_relocated_segments(code) == []
 
 
-def test_postinc_copy_detection_uses_decoded_operands_not_text():
+def test_postinc_copy_detection_uses_decoded_operands_not_text() -> None:
     inst = disassemble(assemble_instruction("move.b (a6)+,(a0)+"))[0]
     inst.text = "corrupted"
 
     assert _postinc_copy_regs(inst) == (6, 0)
 
 
-def _make_relocated_hunk():
+def _make_relocated_hunk() -> bytes:
     """Build a minimal relocated binary: bootstrap + payload.
 
     File layout:
@@ -568,7 +602,7 @@ def _make_relocated_hunk():
     return code
 
 
-def test_payload_at_runtime_address():
+def test_payload_at_runtime_address() -> None:
     """Payload blocks are at runtime addresses, not file offsets.
 
     The bootstrap copies the payload from file offset $1C to runtime
@@ -596,7 +630,7 @@ def test_payload_at_runtime_address():
             f"D0 at $0400 should be 42 (payload), got {cpu.d[0]}")
 
 
-def _make_two_stage_relocated_hunk():
+def _make_two_stage_relocated_hunk() -> bytes:
     """Build a two-stage relocated binary (models Bloodwych's bootstrap).
 
     Stage 1 (bootstrap $00-$1F):
@@ -650,7 +684,7 @@ def _make_two_stage_relocated_hunk():
     return code  # 56 bytes ($38)
 
 
-def test_payload_at_runtime_two_stage():
+def test_payload_at_runtime_two_stage() -> None:
     """Two-stage relocation: payload at runtime address.
 
     In the Bloodwych pattern (bootstrap -> TRAP -> handler copies
@@ -673,7 +707,7 @@ def test_payload_at_runtime_two_stage():
         f"Payload should NOT be at file offset $0034")
 
 
-def test_secondary_entries_are_core():
+def test_secondary_entries_are_core() -> None:
     """Secondary entries (handler stubs) stay at file offsets.
 
     The handler at $20 is in the bootstrap region (before the
@@ -693,7 +727,7 @@ def test_secondary_entries_are_core():
         f"Payload at $0400 (handler's JMP target) should be core")
 
 
-def _assert_no_hint_core_overlap(ha):
+def _assert_no_hint_core_overlap(ha: HunkAnalysis) -> None:
     """Assert no hint block overlaps any core block byte range."""
     core_addrs = set()
     for blk in ha.blocks.values():
@@ -706,7 +740,7 @@ def _assert_no_hint_core_overlap(ha):
                 f"overlaps with core at ${a:04X}")
 
 
-def test_hint_blocks_no_core_overlap():
+def test_hint_blocks_no_core_overlap() -> None:
     """Hint blocks must not overlap with core blocks.
 
     The overlap filter in analyze_hunk removes hints that span into
@@ -719,7 +753,7 @@ def test_hint_blocks_no_core_overlap():
         analyze_hunk(_make_two_stage_relocated_hunk(), []))
 
 
-def test_relocated_segments_stored():
+def test_relocated_segments_stored() -> None:
     """HunkAnalysis stores relocated segment info for gen_disasm."""
     code = _make_relocated_hunk()
     ha = analyze_hunk(code, [])
@@ -732,7 +766,7 @@ def test_relocated_segments_stored():
     assert seg.base_addr == 0x0400
 
 
-def test_non_relocated_has_empty_segments():
+def test_non_relocated_has_empty_segments() -> None:
     """Non-relocated hunk has empty relocated_segments."""
     code = _make_simple_hunk()
     ha = analyze_hunk(code, [])

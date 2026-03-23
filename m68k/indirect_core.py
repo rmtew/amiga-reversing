@@ -1,16 +1,22 @@
 """Shared KB-driven indirect target resolution helpers."""
 
+from __future__ import annotations
+
 import struct
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import TypeAlias
 
 from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
 
 from .instruction_kb import instruction_flow, instruction_kb
 from .instruction_primitives import extract_branch_target
+from .instruction_primitives import Operand
 from .operand_resolution import resolve_ea
 from .instruction_decode import decode_inst_operands
+from .typing_protocols import BasicBlockLike, CpuStateLike, InstructionLike, MemoryLike
 
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
 _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
@@ -45,7 +51,10 @@ class IndirectSite:
     target_count: int | None = None
 
 
-def decode_jump_ea(last):
+ExitState: TypeAlias = tuple[CpuStateLike, MemoryLike]
+
+
+def decode_jump_ea(last: InstructionLike) -> tuple[Operand | None, str | None]:
     """Decode unresolved indirect JMP/JSR EA operand from typed KB data."""
     ikb = instruction_kb(last)
 
@@ -70,31 +79,35 @@ def decode_jump_ea(last):
     return operand, ikb
 
 
-def _needed_registers(operand, unres_type: str) -> list[tuple[str, int]]:
+def _needed_registers(operand: Operand | None, unres_type: str) -> list[tuple[str, int]]:
     """Identify registers a typed indirect operand depends on."""
     if unres_type == _FLOW_RETURN or operand is None:
         return []
-    regs = []
+    regs: list[tuple[str, int]] = []
     if operand.mode in ("ind", "disp", "index", "postinc", "predec"):
+        if operand.reg is None:
+            assert operand.reg is not None, "Indirect operand missing base register"
         regs.append(("an", operand.reg))
     if operand.mode in ("index", "pcindex") and not operand.index_suppressed:
+        if operand.index_reg is None:
+            assert operand.index_reg is not None, "Indexed operand missing index register"
         idx_mode = "an" if operand.index_is_addr else "dn"
         regs.append((idx_mode, operand.index_reg))
     return regs
 
 
-def _is_runtime_indirect_operand(operand) -> bool:
+def _is_runtime_indirect_operand(operand: Operand | None) -> bool:
     """Return whether the typed operand still needs runtime resolution."""
     if operand is None:
         return False
     if operand.mode in runtime_m68k_decode.REG_INDIRECT_MODES:
         return True
-    return operand.mode == "pcindex"
+    return bool(operand.mode == "pcindex")
 
 
-def indirect_operand_shape(operand) -> str:
+def indirect_operand_shape(operand: Operand) -> str:
     """Render a stable searchable shape tag for an indirect operand."""
-    shape = operand.mode
+    shape: str = operand.mode
     if operand.mode in ("index", "pcindex"):
         if operand.memory_indirect:
             shape += ".memind"
@@ -110,8 +123,9 @@ def _is_valid_target(addr: int, code_size: int, align_mask: int) -> bool:
     return 0 <= addr < code_size and not (addr & align_mask)
 
 
-def _read_rts_target(cpu, mem) -> int | None:
+def _read_rts_target(cpu: CpuStateLike, mem: MemoryLike) -> int | None:
     """Read the return target from the post-RTS stack state."""
+    pre_sp: int | object
     if cpu.sp.is_known:
         pre_sp = (cpu.sp.concrete - runtime_m68k_analysis.RTS_SP_INC) & runtime_m68k_analysis.ADDR_MASK
     elif cpu.sp.is_symbolic:
@@ -120,13 +134,17 @@ def _read_rts_target(cpu, mem) -> int | None:
         return None
     ret_val = mem.read(pre_sp, runtime_m68k_analysis.ADDR_SIZE)
     if ret_val.is_known:
-        return ret_val.concrete
+        return int(ret_val.concrete)
     return None
 
 
-def _find_unresolved(blocks: dict, exit_states: dict, code_size: int) -> list[tuple]:
+def _find_unresolved(
+    blocks: Mapping[int, BasicBlockLike],
+    exit_states: Mapping[int, ExitState],
+    code_size: int,
+) -> list[tuple[int, runtime_m68k_analysis.FlowType]]:
     """Find blocks whose indirect jump/return target is still unresolved."""
-    unresolved = []
+    unresolved: list[tuple[int, runtime_m68k_analysis.FlowType]] = []
     for addr in sorted(blocks):
         block = blocks[addr]
         if not block.instructions:
@@ -159,7 +177,7 @@ def _find_unresolved(blocks: dict, exit_states: dict, code_size: int) -> list[tu
 
 
 def _try_resolve_block(unres_addr: int, unres_type: str,
-                       blocks: dict, cpu, mem,
+                       blocks: Mapping[int, BasicBlockLike], cpu: CpuStateLike, mem: MemoryLike,
                        code_size: int) -> int | None:
     """Try to resolve a single unresolved indirect block from a state."""
     if unres_type == _FLOW_RETURN:
@@ -176,14 +194,17 @@ def _try_resolve_block(unres_addr: int, unres_type: str,
     ea_val = resolve_ea(operand, cpu, runtime_m68k_analysis.ADDR_SIZE, mem)
     if ea_val is not None and ea_val.is_known:
         if _is_valid_target(ea_val.concrete, code_size, runtime_m68k_decode.ALIGN_MASK):
-            return ea_val.concrete
+            return int(ea_val.concrete)
     return None
 
 
-def find_indirect_control_sites(blocks: dict, exit_states: dict,
-                                code_size: int) -> list[IndirectSite]:
+def find_indirect_control_sites(
+    blocks: Mapping[int, BasicBlockLike],
+    exit_states: Mapping[int, ExitState],
+    code_size: int,
+) -> list[IndirectSite]:
     """Enumerate non-direct JMP/JSR sites and their current runtime state."""
-    sites = []
+    sites: list[IndirectSite] = []
     for block_addr in sorted(blocks):
         block = blocks[block_addr]
         if not block.instructions:
@@ -204,7 +225,7 @@ def find_indirect_control_sites(blocks: dict, exit_states: dict,
             target = _try_resolve_block(block_addr, ft, blocks, cpu, mem, code_size)
         sites.append(IndirectSite(
             addr=site_addr,
-            mnemonic=ikb,
+            mnemonic=ikb if ikb is not None else instruction_kb(last),
             flow_type=ft,
             shape=indirect_operand_shape(operand),
             status=(

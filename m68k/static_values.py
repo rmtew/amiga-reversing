@@ -1,9 +1,14 @@
 """Shared KB-driven static register/base value reconstruction helpers."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+from .constant_evaluator import SizedInstructionLike
 from . import constant_evaluator
 
 
-def _resolve_block_constant_reg(instructions, reg_mode: str, reg_num: int,
+def _resolve_block_constant_reg(instructions: Sequence[SizedInstructionLike], reg_mode: str, reg_num: int,
                                 stop_before: int) -> int | None:
     """Resolve a simple concrete register value from local deterministic writes."""
     return constant_evaluator.resolve_constant_reg(

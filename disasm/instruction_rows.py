@@ -8,28 +8,57 @@ from disasm.data_render import emit_data_region
 from disasm.operands import build_instruction_semantic_operands
 from disasm.types import (BlockRowContext, HunkDisassemblySession, ListingRow,
                           RowSourceContext, SemanticOperand)
+from m68k.m68k_disasm import Instruction
 
 
-def render_semantic_operands(operands) -> str:
+def render_semantic_operands(operands: tuple[SemanticOperand, ...]) -> str:
     return ",".join(op.text for op in operands)
 
 
-def make_row(kind: str, text: str, **kwargs) -> ListingRow:
-    row_id = kwargs.pop("row_id", None)
+def make_row(
+        kind: str,
+        text: str,
+        *,
+        row_id: str | None = None,
+        addr: int | None = None,
+        entity_addr: int | None = None,
+        verified_state: str | None = None,
+        bytes: bytes | None = None,
+        label: str | None = None,
+        opcode_or_directive: str | None = None,
+        operand_parts: tuple[SemanticOperand, ...] = (),
+        operand_text: str = "",
+        comment_parts: tuple[str, ...] = (),
+        comment_text: str = "",
+        source_context: RowSourceContext | None = None,
+) -> ListingRow:
     if row_id is None:
-        addr = kwargs.get("addr")
         row_id = f"{kind}:{addr:06x}" if isinstance(addr, int) else f"{kind}:{hash(text)}"
-    return ListingRow(row_id=row_id, kind=kind, text=text, **kwargs)
+    return ListingRow(
+        row_id=row_id,
+        kind=kind,
+        text=text,
+        addr=addr,
+        entity_addr=entity_addr,
+        verified_state=verified_state,
+        bytes=bytes,
+        label=label,
+        opcode_or_directive=opcode_or_directive,
+        operand_parts=operand_parts,
+        operand_text=operand_text,
+        comment_parts=comment_parts,
+        comment_text=comment_text,
+        source_context=source_context,
+    )
 
 
-def _instruction_opcode_text(inst) -> str:
-    if inst.opcode_text is None:
-        raise ValueError(
-            f"Instruction at ${inst.offset:06x} is missing opcode_text")
+def _instruction_opcode_text(inst: Instruction) -> str:
+    assert inst.opcode_text is not None, (
+        f"Instruction at ${inst.offset:06x} is missing opcode_text")
     return inst.opcode_text
 
 
-def make_instruction_row(text: str, inst, hunk_session: HunkDisassemblySession,
+def make_instruction_row(text: str, inst: Instruction, hunk_session: HunkDisassemblySession,
                          entity_addr: int,
                          verified_state: str,
                          source_context: RowSourceContext | None = None,
@@ -71,7 +100,7 @@ def make_text_rows(kind: str, text: str, entity_addr: int | None = None,
                    addr: int | None = None,
                    verified_state: str | None = None,
                    source_context: RowSourceContext | None = None) -> list[ListingRow]:
-    rows = []
+    rows: list[ListingRow] = []
     for idx, line in enumerate(text.splitlines(keepends=True)):
         stripped = line.rstrip("\n")
         label = None
@@ -85,7 +114,7 @@ def make_text_rows(kind: str, text: str, entity_addr: int | None = None,
             if parts:
                 opcode = parts[0]
                 operands = parts[1] if len(parts) > 1 else ""
-        operand_parts = ()
+        operand_parts: tuple[SemanticOperand, ...] = ()
         if operands:
             tokens = []
             start = 0
@@ -140,7 +169,7 @@ def emit_data_rows(code: bytes, start: int, end: int,
     )
 
 
-def render_instruction_text(inst, hunk_session: HunkDisassemblySession,
+def render_instruction_text(inst: Instruction, hunk_session: HunkDisassemblySession,
                             used_structs: set[str],
                             include_arg_subs: bool = True
                             ) -> tuple[str, str, tuple[str, ...]]:

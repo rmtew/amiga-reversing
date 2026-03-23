@@ -1,15 +1,18 @@
 """KB-driven canonical operand coverage using the vasm case generator."""
 
+from __future__ import annotations
+
 import tempfile
 from collections import defaultdict
 
 from m68k.instruction_kb import find_kb_entry
+from m68k.m68k_disasm import Instruction
 from m68k.m68k_disasm import disassemble
 from disasm.operands import build_instruction_semantic_operands
 from disasm.types import HunkDisassemblySession
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
-from tests.test_m68k_roundtrip import ALL_CASES, _batch_assemble
+from tests.test_m68k_roundtrip import ALL_CASES, Case, _batch_assemble
 
 
 def _coverage_session() -> HunkDisassemblySession:
@@ -47,20 +50,20 @@ def _coverage_session() -> HunkDisassemblySession:
     )
 
 
-def _seed_absolute_labels(session: HunkDisassemblySession, inst) -> None:
+def _seed_absolute_labels(session: HunkDisassemblySession, inst: Instruction) -> None:
     for node in inst.operand_nodes or ():
         target = getattr(node, "target", None)
         if isinstance(target, int):
             session.absolute_labels.setdefault(target, f"abs_{target:08x}")
 
 
-def test_kb_find_resolves_bare_mnemonic_via_asm_syntax_index():
+def test_kb_find_resolves_bare_mnemonic_via_asm_syntax_index() -> None:
     assert find_kb_entry("PFLUSHA") == "PFLUSH PFLUSHA"
 
 
-def test_kb_generated_cases_build_canonical_semantic_operands():
+def test_kb_generated_cases_build_canonical_semantic_operands() -> None:
     session = _coverage_session()
-    batches: dict[str, list] = defaultdict(list)
+    batches: dict[str, list[Case]] = defaultdict(list)
     for case in ALL_CASES:
         batches[case.cpu_flag].append(case)
 

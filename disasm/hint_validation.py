@@ -6,6 +6,7 @@ from m68k_kb import runtime_m68k_analysis
 from m68k_kb import runtime_m68k_decode
 
 from m68k.instruction_kb import instruction_flow
+from disasm.types import DisasmBlockLike
 from disasm.validation import (get_instruction_processor_min,
                                has_valid_branch_target,
                                is_valid_encoding)
@@ -17,7 +18,7 @@ _FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
 _FLOW_RETURN = runtime_m68k_analysis.FlowType.RETURN
 
 
-def hint_block_has_supported_terminal_flow(block) -> bool:
+def hint_block_has_supported_terminal_flow(block: DisasmBlockLike) -> bool:
     if not block.instructions:
         return False
     last = block.instructions[-1]
@@ -29,13 +30,15 @@ def hint_block_has_supported_terminal_flow(block) -> bool:
     return False
 
 
-def is_valid_hint_block(block) -> bool:
+def is_valid_hint_block(block: DisasmBlockLike) -> bool:
     if not hint_block_has_supported_terminal_flow(block):
         return False
 
     for inst in block.instructions:
         if (len(inst.raw) >= runtime_m68k_decode.OPWORD_BYTES
                 and struct.unpack_from(">H", inst.raw, 0)[0] == 0):
+            return False
+        if inst.kb_mnemonic is None or inst.operand_size is None:
             return False
         if not is_valid_encoding(inst.raw, inst.offset,
                                  inst.kb_mnemonic, inst.operand_size):

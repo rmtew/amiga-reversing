@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from disasm.instruction_rows import (emit_data_rows, make_instruction_row,
                                      make_text_rows, render_instruction_text)
-from disasm.types import BlockRowContext
+from disasm.types import BlockRowContext, HunkDisassemblySession, JumpTableRegion, ListingRow
 
 
-def emit_jump_table_rows(rows: list, hunk_session, pos: int, entity_addr: int,
-                         used_structs: set[str], emit_label) -> int:
-    jt = hunk_session.jump_table_regions[pos]
+def emit_jump_table_rows(
+    rows: list[ListingRow],
+    hunk_session: HunkDisassemblySession,
+    pos: int,
+    entity_addr: int,
+    used_structs: set[str],
+    emit_label: Callable[[int], None],
+) -> int:
+    jt: JumpTableRegion = hunk_session.jump_table_regions[pos]
     if jt.pattern == "pc_inline_dispatch":
         from m68k.m68k_disasm import _Decoder, _decode_one
 
@@ -27,7 +35,7 @@ def emit_jump_table_rows(rows: list, hunk_session, pos: int, entity_addr: int,
                 used_structs=used_structs,
                 include_arg_subs=False,
             ))
-        return jt.table_end
+        return int(jt.table_end)
 
     if jt.pattern == "string_dispatch_self_relative":
         chunk_pos = pos
@@ -60,7 +68,7 @@ def emit_jump_table_rows(rows: list, hunk_session, pos: int, entity_addr: int,
                 entity_addr,
                 BlockRowContext(kind="jump-table", verified_state="verified"),
             ))
-        return jt.table_end
+        return int(jt.table_end)
 
     chunk_pos = pos
     for entry in jt.entries:
@@ -98,4 +106,4 @@ def emit_jump_table_rows(rows: list, hunk_session, pos: int, entity_addr: int,
             entity_addr,
             BlockRowContext(kind="jump-table", verified_state="verified"),
         ))
-    return jt.table_end
+    return int(jt.table_end)
