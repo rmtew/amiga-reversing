@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
+
+from amiga_disk.models import DiskManifest
+from disasm.binary_source import BinarySource, resolve_target_binary_source
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -11,50 +15,63 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 @dataclass(frozen=True)
 class ProjectPaths:
     name: str
+    kind: Literal["binary"]
     target_dir: Path
     entities_path: Path
     output_path: Path | None
-    binary_path: Path
-    analysis_cache_path: Path
-    provenance: str
+    binary_source: BinarySource
 
 
-def _resolve_recorded_binary_path(target_dir: Path, project_root: Path) -> Path | None:
-    binary_path_file = target_dir / "binary_path.txt"
-    if not binary_path_file.exists():
-        return None
-    recorded = Path(binary_path_file.read_text().strip())
-    if recorded.exists():
-        return recorded
-    candidate = (project_root / recorded).resolve()
-    if candidate.exists():
-        return candidate
-    return None
-
-
-def resolve_project_paths(name: str, project_root: Path = PROJECT_ROOT) -> ProjectPaths:
+def resolve_project_dir(name: str, project_root: Path = PROJECT_ROOT) -> Path:
     target_dir = project_root / "targets" / name
-    if not target_dir.exists():
+    if target_dir.exists():
+        return target_dir
+    targets_dir = project_root / "targets"
+    if not targets_dir.exists():
         raise FileNotFoundError(f"Unknown target: {name}")
+    for disk_dir in targets_dir.iterdir():
+        if not disk_dir.is_dir():
+            continue
+        manifest_path = disk_dir / "manifest.json"
+        if not manifest_path.exists():
+            continue
+        manifest = DiskManifest.load(manifest_path)
+        if manifest.bootblock_target_name == name:
+            return project_root / Path(manifest.bootblock_target_path)
+        for imported_target in manifest.imported_targets:
+            if imported_target.target_name == name:
+                return project_root / Path(imported_target.target_path)
+    raise FileNotFoundError(f"Unknown target: {name}")
+
+
+def resolve_project_paths(
+    name: str,
+    project_root: Path = PROJECT_ROOT,
+    *,
+    require_entities: bool = True,
+) -> ProjectPaths:
+    target_dir = resolve_project_dir(name, project_root=project_root)
+    if (target_dir / "manifest.json").exists():
+        raise ValueError(f"Disk project {name} does not resolve to binary project paths")
 
     entities_path = target_dir / "entities.jsonl"
-    if not entities_path.exists():
+    if require_entities and not entities_path.exists():
         raise FileNotFoundError(f"Missing entities.jsonl for target: {name}")
 
     output_candidates = sorted(target_dir.glob("*.s"))
     output_path = output_candidates[0] if len(output_candidates) == 1 else None
 
-    binary_path = _resolve_recorded_binary_path(target_dir, project_root)
-    if binary_path is None:
+    binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
+    if binary_source is None:
         raise FileNotFoundError(
-            f"Unable to resolve binary for target {name}; add binary_path.txt")
+            f"Unable to resolve binary source for target {name}; add source_binary.json"
+        )
 
     return ProjectPaths(
         name=name,
+        kind="binary",
         target_dir=target_dir,
         entities_path=entities_path,
         output_path=output_path,
-        binary_path=binary_path,
-        analysis_cache_path=binary_path.with_suffix(".analysis"),
-        provenance="recorded",
+        binary_source=binary_source,
     )

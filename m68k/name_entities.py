@@ -243,6 +243,8 @@ def name_subroutines(entities: list[EntityMapping],
     # Aggregate OS calls by subroutine (from lib_calls)
     sub_os_calls: dict[int, list[str]] = {}
     for call in lib_calls:
+        if call.library == "unknown":
+            continue
         sub_addr = find_containing_sub(call.addr, sorted_sub_list)
         if sub_addr is not None:
             if sub_addr not in sub_os_calls:

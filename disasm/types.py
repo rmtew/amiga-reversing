@@ -1,20 +1,30 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NotRequired, Protocol, TypedDict
 
+from disasm.target_metadata import TargetMetadata
 from m68k.analysis import RelocatedSegment
 from m68k.indirect_core import IndirectSite
 from m68k.instruction_decode import DecodedBitfield
 from m68k.m68k_disasm import Instruction
+from m68k.m68k_executor import XRef
 from m68k.os_calls import CallArgumentAnnotation, OsKb, PlatformState, TypedMemoryRegion
 
 
 @dataclass(frozen=True, slots=True)
 class SymbolOperandMetadata:
     symbol: str
+
+
+@dataclass(frozen=True, slots=True)
+class StructFieldOperandMetadata:
+    symbol: str
+    owner_struct: str
+    field_symbol: str | None = None
+    context_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +74,7 @@ class FullIndexedOperandMetadata:
 
 SemanticOperandMetadata = (
     SymbolOperandMetadata
+    | StructFieldOperandMetadata
     | AppStructFieldOperandMetadata
     | RegisterListOperandMetadata
     | RegisterPairOperandMetadata
@@ -134,6 +145,18 @@ class DisasmBlockLike(Protocol):
     @property
     def instructions(self) -> Sequence[Instruction]: ...
 
+    @property
+    def predecessors(self) -> Sequence[int]: ...
+
+    @property
+    def xrefs(self) -> Sequence[XRef]: ...
+
+    @property
+    def is_entry(self) -> bool: ...
+
+    @property
+    def is_return(self) -> bool: ...
+
 
 class EntityRecord(TypedDict):
     addr: str
@@ -178,7 +201,7 @@ class JumpTableRegion:
 class HunkMetadata:
     code_addrs: set[int]
     hint_addrs: set[int]
-    hint_blocks: dict[int, DisasmBlockLike]
+    hint_blocks: Mapping[int, DisasmBlockLike]
     reloc_map: dict[int, int]
     reloc_target_set: set[int]
     pc_targets: dict[int, str]
@@ -203,8 +226,8 @@ class HunkDisassemblySession:
     code: bytes
     code_size: int
     entities: list[EntityRecord]
-    blocks: dict[int, DisasmBlockLike]
-    hint_blocks: dict[int, DisasmBlockLike]
+    blocks: Mapping[int, DisasmBlockLike]
+    hint_blocks: Mapping[int, DisasmBlockLike]
     code_addrs: set[int]
     hint_addrs: set[int]
     reloc_map: dict[int, int]
@@ -246,4 +269,7 @@ class DisassemblySession:
     output_path: Path | None
     entities: list[EntityRecord]
     hunk_sessions: list[HunkDisassemblySession]
+    target_metadata: TargetMetadata | None = None
+    source_kind: str | None = None
+    raw_address_model: str | None = None
     profile_stages: bool = False

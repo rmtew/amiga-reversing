@@ -35,7 +35,11 @@ from disasm.instruction_rows import (
     make_text_rows,
     render_instruction_text,
 )
-from disasm.operands import _operand_types_for_inst, build_instruction_semantic_operands
+from disasm.operands import (
+    _apply_field_value_domain_substitutions,
+    _operand_types_for_inst,
+    build_instruction_semantic_operands,
+)
 from disasm.types import (
     AppStructFieldOperandMetadata,
     BitfieldOperandMetadata,
@@ -43,6 +47,7 @@ from disasm.types import (
     HunkDisassemblySession,
     IndexedOperandMetadata,
     SemanticOperand,
+    StructFieldOperandMetadata,
     SymbolOperandMetadata,
 )
 from m68k.instruction_decode import DecodedBitfield
@@ -2015,8 +2020,12 @@ def test_build_instruction_semantic_operands_substitutes_struct_field() -> None:
     assert used_structs == {"InitStruct"}
     assert ops[0].kind == "base_displacement_symbol"
     assert ops[0].text == "IS_CODE(a1)"
-    assert isinstance(ops[0].metadata, SymbolOperandMetadata)
-    assert ops[0].metadata.symbol == "IS_CODE"
+    assert ops[0].metadata == StructFieldOperandMetadata(
+        symbol="IS_CODE",
+        owner_struct="InitStruct",
+        field_symbol="IS_CODE",
+        context_name=None,
+    )
 
 
 def test_render_instruction_text_uses_semantic_branch_substitution() -> None:
@@ -2225,7 +2234,12 @@ def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substit
     assert len(ops) == 2
     assert ops[0].kind == "base_displacement_symbol"
     assert ops[0].text == "MP_SIGTASK(a1)"
-    assert ops[0].metadata == SymbolOperandMetadata(symbol="MP_SIGTASK")
+    assert ops[0].metadata == StructFieldOperandMetadata(
+        symbol="MP_SIGTASK",
+        owner_struct="MP",
+        field_symbol="MP_SIGTASK",
+        context_name=None,
+    )
     assert used_structs == {"MP"}
 
 
@@ -2320,6 +2334,9 @@ def test_render_instruction_text_uses_app_region_struct_substitution() -> None:
             STRUCTS=runtime_os.STRUCTS,
             CONSTANTS={},
             LIBRARIES={},
+            FIELD_CONTEXT_VALUE_DOMAINS={},
+            FIELD_VALUE_DOMAINS={},
+            VALUE_DOMAINS={},
         ),
         base_addr=0,
         code_start=0,
@@ -2390,6 +2407,9 @@ def test_render_instruction_text_uses_inherited_pointee_base_field_substitution(
             STRUCTS=runtime_os.STRUCTS,
             CONSTANTS={},
             LIBRARIES={},
+            FIELD_CONTEXT_VALUE_DOMAINS={},
+            FIELD_VALUE_DOMAINS={},
+            VALUE_DOMAINS={},
         ),
         base_addr=0,
         code_start=0,
@@ -2521,4 +2541,148 @@ def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_
     assert comment == ""
     assert comment_parts == ()
     assert used_structs == set()
+
+
+def test_apply_field_value_domain_substitutions_uses_kb_constant() -> None:
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={0x0104: {"a1": TypedMemoryRegion(
+            struct="IO",
+            size=runtime_os.STRUCTS["IO"].size,
+            provenance=_prov_base(MemoryRegionAddressSpace.REGISTER, "a6", 100),
+            context_name="trackdisk.device",
+        )}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=runtime_os.STRUCTS,
+            CONSTANTS=runtime_os.CONSTANTS,
+            LIBRARIES={},
+            FIELD_CONTEXT_VALUE_DOMAINS=runtime_os.FIELD_CONTEXT_VALUE_DOMAINS,
+            FIELD_VALUE_DOMAINS=runtime_os.FIELD_VALUE_DOMAINS,
+            VALUE_DOMAINS=runtime_os.VALUE_DOMAINS,
+        ),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    operands = (
+        SemanticOperand(
+            kind="immediate",
+            text="#$0002",
+            value=2,
+        ),
+        SemanticOperand(
+            kind="base_displacement_symbol",
+            text="IO_COMMAND(a1)",
+            base_register="a1",
+            displacement=28,
+            metadata=StructFieldOperandMetadata(
+                symbol="IO_COMMAND",
+                owner_struct="IO",
+                field_symbol="IO_COMMAND",
+                context_name="trackdisk.device",
+            ),
+        ),
+    )
+
+    rewritten = _apply_field_value_domain_substitutions(operands, session)
+
+    assert rewritten[0].text == "#CMD_READ"
+    assert rewritten[1] == operands[1]
+
+
+def test_apply_field_value_domain_substitutions_rejects_unknown_kb_constant() -> None:
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={0x0104: {"a1": TypedMemoryRegion(
+            struct="IO",
+            size=runtime_os.STRUCTS["IO"].size,
+            provenance=_prov_base(MemoryRegionAddressSpace.REGISTER, "a6", 100),
+            context_name="trackdisk.device",
+        )}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=runtime_os.STRUCTS,
+            CONSTANTS=runtime_os.CONSTANTS,
+            LIBRARIES={},
+            FIELD_CONTEXT_VALUE_DOMAINS=runtime_os.FIELD_CONTEXT_VALUE_DOMAINS,
+            FIELD_VALUE_DOMAINS=runtime_os.FIELD_VALUE_DOMAINS,
+            VALUE_DOMAINS=runtime_os.VALUE_DOMAINS,
+        ),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    operands = (
+        SemanticOperand(
+            kind="immediate",
+            text="#$1234",
+            value=0x1234,
+        ),
+        SemanticOperand(
+            kind="base_displacement_symbol",
+            text="IO_COMMAND(a1)",
+            base_register="a1",
+            displacement=28,
+            metadata=StructFieldOperandMetadata(
+                symbol="IO_COMMAND",
+                owner_struct="IO",
+                field_symbol="IO_COMMAND",
+                context_name="trackdisk.device",
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="No KB value-domain match"):
+        _apply_field_value_domain_substitutions(operands, session)
 

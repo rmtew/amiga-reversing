@@ -37,6 +37,7 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
                         hunk_entities: list[EntityRecord],
                         ha: HunkAnalysisLike,
                         hf_hunks: list[Hunk],
+                        segment_start: int = 0,
                         typed_string_ranges: dict[int, int] | None = None,
                         reserved_absolute_addrs: set[int] | None = None,
                         absolute_labels: dict[int, str] | None = None) -> HunkMetadata:
@@ -76,13 +77,26 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
         for succ in blk.successors
         if succ != blk.end
     }
-    core_entries = set(blocks.keys()) | ha.call_targets | ha.branch_targets
+    segment_end = segment_start + code_size
+    core_entries = {
+        addr
+        for addr in (set(blocks.keys()) | ha.call_targets | ha.branch_targets)
+        if segment_start <= addr < segment_end
+    }
     for table in jt_list:
-        core_entries.update(table.targets)
+        core_entries.update(
+            target
+            for target in table.targets
+            if segment_start <= target < segment_end
+        )
     internal_targets = branch_targets | core_entries
 
     pc_targets = discover_pc_relative_targets(blocks, code)
-    internal_absolute_data_targets = discover_absolute_targets(blocks, code_size)
+    internal_absolute_data_targets = discover_absolute_targets(
+        blocks,
+        code_size,
+        segment_start=segment_start,
+    )
     internal_absolute_data_targets = filter_internal_absolute_data_targets(
         internal_absolute_data_targets, code_addrs, reserved_absolute_addrs)
     hint_pc = discover_pc_relative_targets(hint_blocks, code)
@@ -98,6 +112,24 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
     jump_table_target_sources: defaultdict[int, list[str]] = defaultdict(list)
     for table in jt_list:
         table_addr = table.addr
+        if not (segment_start <= table_addr < segment_end):
+            raise ValueError(
+                f"Jump table at 0x{table_addr:X} lies outside segment "
+                f"0x{segment_start:X}..0x{segment_end:X}"
+            )
+        if table.base_addr is not None and not (segment_start <= table.base_addr < segment_end):
+            raise ValueError(
+                f"Jump table base 0x{table.base_addr:X} lies outside segment "
+                f"0x{segment_start:X}..0x{segment_end:X}"
+            )
+        out_of_segment_targets = [
+            target for target in table.targets if not (segment_start <= target < segment_end)
+        ]
+        if out_of_segment_targets:
+            bad = ", ".join(f"0x{target:X}" for target in out_of_segment_targets)
+            raise ValueError(
+                f"Jump table at 0x{table_addr:X} has out-of-segment targets: {bad}"
+            )
         if table.pattern == "pc_inline_dispatch":
             dispatch_blk = blocks.get(table.dispatch_block)
             if dispatch_blk is None:

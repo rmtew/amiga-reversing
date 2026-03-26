@@ -32,6 +32,16 @@ class InstructionDecodeLike(Protocol):
     def operand_size(self) -> str | None: ...
 
 
+class DecodedInstructionForEmitLike(Protocol):
+    @property
+    def decoded(self) -> DecodedOperands: ...
+
+
+class InstructionImmediateLike(InstructionDecodeLike, Protocol):
+    @property
+    def decoded_operands(self) -> DecodedInstructionForEmitLike | None: ...
+
+
 @dataclass(slots=True)
 class DecodedOperands:
     operand_types: tuple[str, ...] = ()
@@ -831,6 +841,25 @@ def decode_inst_operands(inst: InstructionDecodeLike, mnemonic: str | None = Non
         inst.operand_size,
         inst.offset,
     )
+
+
+def decoded_immediate_value(decoded: DecodedOperands) -> int | None:
+    if decoded.imm_val is not None:
+        return int(decoded.imm_val)
+    ea_op = decoded.ea_op
+    if ea_op is not None and ea_op.mode == "imm" and ea_op.value is not None:
+        return int(ea_op.value)
+    return None
+
+
+def instruction_immediate_value(
+    inst: InstructionImmediateLike,
+    mnemonic: str | None = None,
+) -> int | None:
+    decoded_for_emit = inst.decoded_operands
+    if decoded_for_emit is not None:
+        return decoded_immediate_value(decoded_for_emit.decoded)
+    return decoded_immediate_value(decode_inst_operands(inst, mnemonic))
 
 
 def _decoded_register_mode(decoded: DecodedOperands, operand_types: tuple[str, ...]) -> str | None:

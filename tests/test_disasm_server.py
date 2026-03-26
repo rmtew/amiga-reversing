@@ -1,29 +1,96 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import cast
+from unittest.mock import Mock
 
 import pytest
 
 from disasm import server as disasm_server
+from disasm.projects import ProjectRecord
 from disasm.types import ListingRow
 
 
+def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
+    return ProjectRecord(
+        id=project_name,
+        name=project_name,
+        kind="binary",
+        target_dir=f"targets/{project_name}",
+        entities_path=f"targets/{project_name}/entities.jsonl",
+        output_path=None,
+        binary_path="bin/BLOODWYCH" if ready else None,
+        ready=ready,
+        last_opened=None,
+        manifest_path=None,
+        target_count=None,
+        source_path=None,
+        disk_type=None,
+        parent_project_id=None,
+        target_type="program",
+        created_at="2026-03-25T00:00:00+00:00",
+        updated_at="2026-03-25T01:00:00+00:00",
+    )
+
+
+def _disk_manifest_payload() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "disk_id": "demo_disk",
+        "source_path": "bin/demo.adf",
+        "source_sha256": "deadbeef",
+        "bootblock_target_name": "amiga_disk_demo_disk__amiga_raw_bootblock",
+        "bootblock_target_path": "targets/amiga_disk_demo_disk/targets/amiga_raw_bootblock",
+        "analysis": {
+            "disk_info": {
+                "path": "demo.adf",
+                "size": 901120,
+                "variant": "DD",
+                "total_sectors": 1760,
+                "sectors_per_track": 11,
+                "is_dos": True,
+            },
+            "boot_block": {
+                "magic_ascii": "DOS",
+                "is_dos": True,
+                "flags_byte": 1,
+                "fs_type": "FFS",
+                "fs_description": "DOS\\1 - Fast File System",
+                "checksum": "0x00000000",
+                "checksum_valid": True,
+                "rootblock_ptr": 880,
+                "bootcode_size": 1012,
+                "bootcode_has_code": False,
+                "bootcode_entropy": 0.0,
+            },
+        },
+        "imported_targets": [
+            {
+                "target_name": "amiga_disk_demo_disk__amiga_hunk_run_12345678",
+                "target_path": "targets/amiga_disk_demo_disk/targets/amiga_hunk_run_12345678",
+                "entry_path": "c/Run",
+                "binary_path": "bin/demo.adf::c/Run",
+                "target_type": "program",
+            }
+        ],
+    }
+
+
 def test_route_projects_returns_project_list(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(disasm_server, "list_projects",
-                        lambda: [{"id": "bloodwych", "name": "bloodwych"}])
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [_binary_project("bloodwych", ready=True)])
 
     payload = disasm_server.route_request("GET", "/api/projects", {})
 
     assert payload["ok"] is True
-    assert payload["data"] == [{"id": "bloodwych", "name": "bloodwych"}]
+    assert payload["data"] == [_binary_project("bloodwych", ready=True).to_dict()]
 
 
 def test_route_create_project(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "create_project",
-        lambda project_id: {"id": project_id, "name": project_id, "ready": False},
+        lambda project_id: _binary_project(project_id, ready=False),
     )
 
     payload = disasm_server.route_request("POST", "/api/projects", {}, {"id": "demo"})
@@ -37,7 +104,7 @@ def test_route_project_returns_project_and_session(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(
         disasm_server,
         "get_project",
-        lambda project_name: {"id": project_name, "name": project_name, "ready": True},
+        lambda project_name: _binary_project(project_name, ready=True),
     )
 
     payload = disasm_server.route_request("GET", "/api/projects/bloodwych", {})
@@ -47,13 +114,282 @@ def test_route_project_returns_project_and_session(monkeypatch: pytest.MonkeyPat
     assert payload["ok"] is True
     assert project["name"] == "bloodwych"
     assert "session" not in data
+    assert "disk_manifest" not in data
+
+
+def test_route_project_returns_disk_manifest_for_disk_project(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(_disk_manifest_payload()))
+
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: ProjectRecord(
+            id=project_name,
+            name="demo_disk",
+            kind="disk",
+            target_dir=str(tmp_path),
+            entities_path=None,
+            output_path=None,
+            binary_path=None,
+            ready=False,
+            last_opened=None,
+            manifest_path=str(manifest_path),
+            target_count=0,
+            source_path="bin/demo.adf",
+            disk_type="DOS",
+            parent_project_id=None,
+            target_type=None,
+            created_at="2026-03-25T00:00:00+00:00",
+            updated_at="2026-03-25T01:00:00+00:00",
+        ),
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/amiga_disk_demo_disk", {})
+
+    data = cast(dict[str, object], payload["data"])
+    project = cast(dict[str, object], data["project"])
+    disk_manifest = cast(dict[str, object], data["disk_manifest"])
+
+    assert payload["ok"] is True
+    assert project["kind"] == "disk"
+    assert disk_manifest["disk_id"] == "demo_disk"
+
+
+def test_route_listing_rejects_disk_project(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(_disk_manifest_payload()))
+    disk_project = ProjectRecord(
+        id="amiga_disk_demo_disk",
+        name="demo_disk",
+        kind="disk",
+        target_dir=str(tmp_path),
+        entities_path=None,
+        output_path=None,
+        binary_path=None,
+        ready=False,
+        last_opened=None,
+        manifest_path=str(manifest_path),
+        target_count=0,
+        source_path="bin/demo.adf",
+        disk_type="DOS",
+        parent_project_id=None,
+        target_type=None,
+        created_at="2026-03-25T00:00:00+00:00",
+        updated_at="2026-03-25T01:00:00+00:00",
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: disk_project)
+
+    with pytest.raises(ValueError, match="does not expose a disassembly listing"):
+        disasm_server.route_request("GET", "/api/projects/amiga_disk_demo_disk/listing", {})
+
+
+def test_route_listing_open_rejects_disk_project(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(_disk_manifest_payload()))
+    disk_project = ProjectRecord(
+        id="amiga_disk_demo_disk",
+        name="demo_disk",
+        kind="disk",
+        target_dir=str(tmp_path),
+        entities_path=None,
+        output_path=None,
+        binary_path=None,
+        ready=False,
+        last_opened=None,
+        manifest_path=str(manifest_path),
+        target_count=0,
+        source_path="bin/demo.adf",
+        disk_type="DOS",
+        parent_project_id=None,
+        target_type=None,
+        created_at="2026-03-25T00:00:00+00:00",
+        updated_at="2026-03-25T01:00:00+00:00",
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: disk_project)
+
+    with pytest.raises(ValueError, match="does not expose a disassembly listing"):
+        disasm_server.route_request("POST", "/api/projects/amiga_disk_demo_disk/listing/open", {}, {})
+
+
+def test_route_create_project_from_adf_media(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server,
+        "_start_project_create_job",
+        lambda body: {"job_id": "job-adf", "job_kind": "project_create", "status": "queued"},
+    )
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects",
+        {},
+        {"filename": "demo.adf", "media_base64": "ZGVtbw=="},
+    )
+    data = cast(dict[str, object], payload["data"])
+
+    assert payload["ok"] is True
+    assert data["job_id"] == "job-adf"
+    assert data["job_kind"] == "project_create"
+
+
+def test_route_create_project_from_executable_media(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server,
+        "_start_project_create_job",
+        lambda body: {"job_id": "job-exe", "job_kind": "project_create", "status": "queued"},
+    )
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects",
+        {},
+        {"filename": "bloodwych", "media_base64": "ZGVtbw=="},
+    )
+    data = cast(dict[str, object], payload["data"])
+
+    assert payload["ok"] is True
+    assert data["job_id"] == "job-exe"
+    assert data["job_kind"] == "project_create"
+
+
+def test_route_project_create_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server,
+        "_job_payload",
+        lambda job_id: {"job_id": job_id, "status": "building", "phase_id": "analyze_disk"},
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/create/status",
+        {"job_id": ["job-1"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+
+    assert payload["ok"] is True
+    assert data["phase_id"] == "analyze_disk"
+
+
+def test_route_delete_project(monkeypatch: pytest.MonkeyPatch) -> None:
+    deleted: list[str] = []
+    monkeypatch.setattr(disasm_server, "delete_project", lambda project_id: deleted.append(project_id))
+
+    payload = disasm_server.route_request("POST", "/api/projects/demo/delete", {})
+
+    assert payload["ok"] is True
+    assert deleted == ["demo"]
+
+
+def test_create_project_from_media_creates_executable_project(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target_dir = tmp_path / "targets" / "amiga_hunk_bloodwych"
+
+    def fake_create_project(project_id: str, project_root: Path) -> ProjectRecord:
+        assert project_root == tmp_path
+        target_dir.mkdir(parents=True, exist_ok=True)
+        (target_dir / "entities.jsonl").write_text("")
+        (target_dir / ".project.json").write_text(json.dumps({
+            "schema_version": 1,
+            "created_at": "2026-03-25T00:00:00+00:00",
+            "updated_at": "2026-03-25T00:00:00+00:00",
+        }))
+        return ProjectRecord(
+            id=project_id,
+            name=project_id,
+            kind="binary",
+            target_dir=str(target_dir),
+            entities_path=str(target_dir / "entities.jsonl"),
+            output_path=None,
+            binary_path=None,
+            ready=False,
+            last_opened=None,
+            manifest_path=None,
+            target_count=None,
+            source_path=None,
+            disk_type=None,
+            parent_project_id=None,
+            target_type="program",
+            created_at="2026-03-25T00:00:00+00:00",
+            updated_at="2026-03-25T00:00:00+00:00",
+        )
+
+    monkeypatch.setattr(disasm_server, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(
+        disasm_server,
+        "parse",
+        Mock(return_value=type("ParsedExecutable", (), {"is_executable": True})()),
+    )
+    monkeypatch.setattr(disasm_server, "create_project", fake_create_project)
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name, project_root: _binary_project(project_name, ready=True),
+    )
+
+    project = disasm_server._create_project_from_media({
+        "filename": "Bloodwych",
+        "media_base64": "ZGVtbw==",
+    })
+
+    assert project.id == "amiga_hunk_bloodwych"
+    assert (tmp_path / "bin" / "uploads" / "Bloodwych").read_bytes() == b"demo"
+    payload = json.loads((target_dir / "source_binary.json").read_text())
+    assert payload == {
+        "kind": "hunk_file",
+        "path": "bin/uploads/Bloodwych",
+    }
+
+
+def test_create_project_from_media_creates_disk_project(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(disasm_server, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(
+        disasm_server,
+        "create_disk_project",
+        lambda media_path, *, disk_id, project_root, progress_fn=None: type("Manifest", (), {"disk_id": disk_id})(),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name, project_root: ProjectRecord(
+            id=project_name,
+            name="bloodwych",
+            kind="disk",
+            target_dir="targets/amiga_disk_bloodwych",
+            entities_path=None,
+            output_path=None,
+            binary_path=None,
+            ready=False,
+            last_opened=None,
+            manifest_path="targets/amiga_disk_bloodwych/manifest.json",
+            target_count=0,
+            source_path="bin/uploads/Bloodwych.adf",
+            disk_type="DOS",
+            parent_project_id=None,
+            target_type=None,
+            created_at="2026-03-25T00:00:00+00:00",
+            updated_at="2026-03-25T01:00:00+00:00",
+        ),
+    )
+
+    project = disasm_server._create_project_from_media({
+        "filename": "Bloodwych.adf",
+        "media_base64": "ZGVtbw==",
+    })
+
+    assert project.id == "amiga_disk_bloodwych"
+    assert (tmp_path / "bin" / "uploads" / "Bloodwych.adf").read_bytes() == b"demo"
 
 
 def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "get_project",
-        lambda project_name: {"id": project_name, "name": project_name, "ready": False},
+        lambda project_name: _binary_project(project_name, ready=False),
     )
 
     payload = disasm_server.route_request(
@@ -72,7 +408,7 @@ def test_route_listing_raises_if_rows_not_loaded(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(
         disasm_server,
         "get_project",
-        lambda project_name: {"id": project_name, "name": project_name, "ready": True},
+        lambda project_name: _binary_project(project_name, ready=True),
     )
     with pytest.raises(ValueError, match="Canonical rows not loaded"):
         disasm_server.route_request("GET", "/api/projects/bloodwych/listing", {})
@@ -85,7 +421,7 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(
         disasm_server,
         "get_project",
-        lambda project_name: {"id": project_name, "name": project_name, "ready": True},
+        lambda project_name: _binary_project(project_name, ready=True),
     )
 
     payload = disasm_server.route_request(
@@ -105,7 +441,7 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
         "get_project",
-        lambda project_name: {"id": project_name, "name": project_name, "ready": True},
+        lambda project_name: _binary_project(project_name, ready=True),
     )
     monkeypatch.setattr(
         disasm_server,
@@ -128,7 +464,7 @@ def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         disasm_server,
         "_job_payload",
-        lambda job_id: {"job_id": job_id, "status": "building", "phase": "rows"},
+        lambda job_id: {"job_id": job_id, "status": "building", "phase_id": "emit_rows"},
     )
 
     payload = disasm_server.route_request(
@@ -140,6 +476,7 @@ def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert payload["ok"] is True
     assert data["status"] == "building"
+    assert data["phase_id"] == "emit_rows"
 
 
 def test_json_bytes_returns_valid_json() -> None:
@@ -149,22 +486,40 @@ def test_json_bytes_returns_valid_json() -> None:
 
 
 def test_resolve_static_response_serves_index() -> None:
-    content_type, body = disasm_server.resolve_static_response("/")
+    response = disasm_server.resolve_static_response("/")
 
-    assert content_type == "text/html; charset=utf-8"
-    assert b"Disassembly Projects" in body
+    assert response["content_type"] == "text/html; charset=utf-8"
+    assert response["headers"]["Cache-Control"] == "no-store"
+    assert b"Disassembly Projects" in response["body"]
 
 
 def test_resolve_static_response_serves_project_route() -> None:
-    content_type, body = disasm_server.resolve_static_response("/bloodwych")
+    response = disasm_server.resolve_static_response("/bloodwych")
 
-    assert content_type == "text/html; charset=utf-8"
-    assert b"Disassembly Projects" in body
+    assert response["content_type"] == "text/html; charset=utf-8"
+    assert response["headers"]["Cache-Control"] == "no-store"
+    assert b"Disassembly Projects" in response["body"]
+
+
+def test_resolve_static_response_serves_dotted_project_route() -> None:
+    response = disasm_server.resolve_static_response("/amiga_disk_search-for-the-king")
+
+    assert response["content_type"] == "text/html; charset=utf-8"
+    assert response["headers"]["Cache-Control"] == "no-store"
+    assert b"Disassembly Projects" in response["body"]
+
+
+def test_resolve_static_response_serves_app_js_with_no_store() -> None:
+    response = disasm_server.resolve_static_response("/app.js")
+
+    assert response["content_type"] == "application/javascript; charset=utf-8"
+    assert response["headers"]["Cache-Control"] == "no-store"
+    assert b"function renderDiskTargets(manifest)" in response["body"]
 
 
 def test_resolve_static_response_rejects_missing_file() -> None:
     with pytest.raises(FileNotFoundError, match="Unknown route"):
-        disasm_server.resolve_static_response("/missing.txt")
+        disasm_server.resolve_static_response("/assets/missing.txt")
 
 
 def test_route_get_entity_returns_annotation_view(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -8,7 +8,7 @@ Entity granularity: subroutine-level for code (not basic-block-level).
 Uncovered regions between subroutines are marked as 'unknown'.
 
 Usage:
-    python build_entities.py <binary_path> -t targets/genam
+    python build_entities.py <binary_path> -t targets/amiga_hunk_genam
     python build_entities.py <binary_path> --output entities.jsonl
 """
 
@@ -17,14 +17,28 @@ import json
 import sys
 from collections import defaultdict
 from collections.abc import MutableMapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from disasm.analysis_layout import (
+    resolved_analysis_start_offset,
+    resolved_entry_points,
+    resolved_raw_analysis_base_addr,
+    target_primary_entrypoint_offset,
+)
+from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
+from disasm.binary_source import BinarySource, HunkFileBinarySource
+from disasm.entry_seeds import apply_entry_seed_config, build_entry_seed_config
+from disasm.target_metadata import (
+    TargetMetadata,
+    load_target_metadata,
+    target_structure_spec,
+)
 from m68k.analysis import _RELOC_INFO, analyze_hunk, resolve_reloc_target
-from m68k.hunk_parser import HunkType, parse_file
+from m68k.hunk_parser import Hunk, HunkType, MemType, parse
 from m68k.indirect_core import IndirectSite
 from m68k.instruction_decode import decode_inst_operands
 from m68k.instruction_kb import instruction_kb
@@ -67,6 +81,153 @@ class ReferencedIndirectSite:
     target_count: int | None = None
 
 
+def _rebase_local_addr(addr: int, base_addr: int) -> int:
+    rebased = addr - base_addr
+    if rebased < 0:
+        raise ValueError(f"Cannot rebase address 0x{addr:X} below base 0x{base_addr:X}")
+    return rebased
+
+
+def _maybe_rebase_addr(addr: int, base_addr: int, code_size: int) -> int:
+    if base_addr <= addr < base_addr + code_size:
+        return _rebase_local_addr(addr, base_addr)
+    return addr
+
+
+def _rebase_instruction_block(block: BasicBlock, base_addr: int, code_size: int) -> BasicBlock:
+    return BasicBlock(
+        start=_rebase_local_addr(block.start, base_addr),
+        end=_rebase_local_addr(block.end, base_addr),
+        instructions=[
+            replace(inst, offset=_rebase_local_addr(inst.offset, base_addr))
+            for inst in block.instructions
+        ],
+        successors=[_maybe_rebase_addr(addr, base_addr, code_size) for addr in block.successors],
+        predecessors=[_maybe_rebase_addr(addr, base_addr, code_size) for addr in block.predecessors],
+        xrefs=[
+            XRef(
+                src=_maybe_rebase_addr(xref.src, base_addr, code_size),
+                dst=_maybe_rebase_addr(xref.dst, base_addr, code_size),
+                type=xref.type,
+                conditional=xref.conditional,
+            )
+            for xref in block.xrefs
+        ],
+        is_entry=block.is_entry,
+        is_return=block.is_return,
+    )
+
+
+def _rebase_raw_analysis(
+    blocks: dict[int, BasicBlock],
+    xrefs: list[XRef],
+    call_targets: set[int],
+    hint_blocks: dict[int, BasicBlock],
+    hint_reasons: dict[int, Any],
+    lib_calls: list[Any],
+    indirect_sites: list[IndirectSite],
+    *,
+    base_addr: int,
+    code_size: int,
+) -> tuple[
+    dict[int, BasicBlock],
+    list[XRef],
+    set[int],
+    dict[int, BasicBlock],
+    dict[int, Any],
+    list[Any],
+    list[IndirectSite],
+]:
+    rebased_blocks = {
+        _rebase_local_addr(start, base_addr): _rebase_instruction_block(block, base_addr, code_size)
+        for start, block in blocks.items()
+    }
+    rebased_xrefs = [
+        XRef(
+            src=_maybe_rebase_addr(xref.src, base_addr, code_size),
+            dst=_maybe_rebase_addr(xref.dst, base_addr, code_size),
+            type=xref.type,
+            conditional=xref.conditional,
+        )
+        for xref in xrefs
+    ]
+    rebased_call_targets = {
+        _maybe_rebase_addr(addr, base_addr, code_size) for addr in call_targets
+    }
+    rebased_hint_blocks = {
+        _rebase_local_addr(start, base_addr): _rebase_instruction_block(block, base_addr, code_size)
+        for start, block in hint_blocks.items()
+    }
+    rebased_hint_reasons = {
+        _maybe_rebase_addr(addr, base_addr, code_size): replace(
+            reason,
+            referenced_from=tuple(
+                _maybe_rebase_addr(ref, base_addr, code_size) for ref in reason.referenced_from
+            ),
+        )
+        for addr, reason in hint_reasons.items()
+    }
+    rebased_lib_calls = [
+        replace(
+            call,
+            addr=_maybe_rebase_addr(call.addr, base_addr, code_size),
+            block=_maybe_rebase_addr(call.block, base_addr, code_size),
+            dispatch=(
+                None if call.dispatch is None else _maybe_rebase_addr(call.dispatch, base_addr, code_size)
+            ),
+        )
+        for call in lib_calls
+    ]
+    rebased_indirect_sites = [
+        replace(
+            site,
+            addr=_maybe_rebase_addr(site.addr, base_addr, code_size),
+            target=None if site.target is None else _maybe_rebase_addr(site.target, base_addr, code_size),
+        )
+        for site in indirect_sites
+    ]
+    return (
+        rebased_blocks,
+        rebased_xrefs,
+        rebased_call_targets,
+        rebased_hint_blocks,
+        rebased_hint_reasons,
+        rebased_lib_calls,
+        rebased_indirect_sites,
+    )
+
+
+def _filter_pre_entry_blocks(
+    blocks: dict[int, BasicBlock],
+    entry_point: int | None,
+) -> dict[int, BasicBlock]:
+    if entry_point is None or entry_point <= 0:
+        return dict(blocks)
+    keep = {
+        addr
+        for addr, block in blocks.items()
+        if block.end > entry_point
+    }
+    filtered: dict[int, BasicBlock] = {}
+    for _addr, block in blocks.items():
+        if block.end <= entry_point:
+            continue
+        kept_instructions = [inst for inst in block.instructions if inst.offset >= entry_point]
+        if not kept_instructions:
+            continue
+        new_start = entry_point if block.start < entry_point else block.start
+        filtered[new_start] = replace(
+            block,
+            start=new_start,
+            instructions=kept_instructions,
+            is_entry=(block.is_entry or new_start == entry_point),
+            successors=[succ for succ in block.successors if succ in keep],
+            predecessors=[pred for pred in block.predecessors if pred in keep and pred >= entry_point],
+            xrefs=[xref for xref in block.xrefs if xref.src >= entry_point and xref.dst >= entry_point],
+        )
+    return filtered
+
+
 def fmt_addr(addr: int) -> str:
     return f"0x{addr:04X}"
 
@@ -75,6 +236,33 @@ def fmt_disp(offset: int) -> str:
     if offset < 0:
         return f"-0x{abs(offset):04X}"
     return f"0x{offset:04X}"
+
+
+def _structured_prefix_entities(
+    metadata: TargetMetadata | None,
+    hunk_idx: int,
+    *,
+    include_structure: bool,
+) -> list[JsonDict]:
+    if not include_structure:
+        return []
+    structure = target_structure_spec(metadata)
+    if structure is None:
+        return []
+    entities: list[JsonDict] = []
+    for region in structure.regions:
+        payload: JsonDict = {
+            "addr": fmt_addr(region.start),
+            "end": fmt_addr(region.end),
+            "type": "data",
+            "subtype": region.subtype,
+            "confidence": "tool-inferred",
+            "hunk": hunk_idx,
+        }
+        if region.struct_name is not None:
+            payload["struct"] = region.struct_name
+        entities.append(payload)
+    return entities
 
 
 def build_subroutine_map(blocks: dict[int, BasicBlock],
@@ -323,6 +511,24 @@ def _find_app_slot_reference(offset: int,
     return None
 
 
+def _os_input_reg_key(regs: tuple[str, ...]) -> str:
+    if not regs:
+        raise ValueError("OS input must have at least one register")
+    return "/".join(regs)
+
+
+def _typed_call_inputs_payload(inputs: tuple[Any, ...]) -> JsonDict:
+    payload: JsonDict = {}
+    for inp in inputs:
+        if not inp.type:
+            continue
+        info: JsonDict = {"type": inp.type}
+        if inp.i_struct:
+            info["i_struct"] = inp.i_struct
+        payload[_os_input_reg_key(inp.regs)] = info
+    return payload
+
+
 def collect_subroutine_app_slots(sub: SubroutineRange,
                                  blocks: dict[int, BasicBlock],
                                  slot_infos: tuple[AppSlotInfo, ...],
@@ -468,27 +674,49 @@ def summarize_entity_app_slots(entities: list[JsonDict]) -> None:
         _visit(addr, set())
 
 
-def build_entities(binary_path: str, output_path: str | None = None,
-                   base_addr: int = 0, code_start: int = 0) -> int:
+def build_entities_from_source(binary_source: BinarySource, output_path: str | None = None,
+                               base_addr: int = 0, code_start: int = 0) -> int:
     """Main pipeline: parse binary, run executor, generate entities."""
     if output_path is None:
         output_path = "entities.jsonl"
 
-    print(f"Parsing {binary_path}...")
-    hf = parse_file(binary_path)
+    print(f"Parsing {binary_source.display_path}...")
+    output_target_dir = Path(output_path).parent if output_path is not None else None
+    target_metadata = None if output_target_dir is None else load_target_metadata(output_target_dir)
+    if binary_source.kind == "raw_binary" and target_metadata is None:
+        raise ValueError(f"Missing target_metadata.json for raw binary target: {output_target_dir}")
+    if binary_source.parent_disk_id is not None and target_metadata is None:
+        raise ValueError(f"Missing target_metadata.json for internal target: {output_target_dir}")
+    seed_config = build_entry_seed_config(target_metadata)
+    if binary_source.kind == "raw_binary":
+        raw_bytes = binary_source.read_bytes()
+        hf_hunks = [
+            Hunk(
+                index=0,
+                hunk_type=int(HunkType.HUNK_CODE),
+                mem_type=int(MemType.ANY),
+                alloc_size=len(raw_bytes),
+                data=raw_bytes,
+            )
+        ]
+    else:
+        hf = parse(binary_source.read_bytes())
+        if not hf.is_executable:
+            print("ERROR: not an executable hunk file")
+            return 1
+        hf_hunks = hf.hunks
 
-    if not hf.is_executable:
-        print("ERROR: not an executable hunk file")
-        return 1
-
-    print(f"  {len(hf.hunks)} hunks")
-    for h in hf.hunks:
+    print(f"  {len(hf_hunks)} hunks")
+    for h in hf_hunks:
         print(f"    #{h.index}: {h.type_name} {len(h.data)} bytes, "
               f"{len(h.relocs)} reloc groups, {len(h.symbols)} symbols")
 
     all_entities: list[JsonDict] = []
 
-    for hunk in hf.hunks:
+    custom_entry_offset = target_primary_entrypoint_offset(target_metadata)
+    first_code_hunk_seen = False
+
+    for hunk in hf_hunks:
         if hunk.hunk_type != HunkType.HUNK_CODE:
             # DATA/BSS hunks become entities directly
             etype = "data" if hunk.hunk_type == HunkType.HUNK_DATA else "bss"
@@ -501,6 +729,7 @@ def build_entities(binary_path: str, output_path: str | None = None,
             })
             continue
 
+        include_structure = not first_code_hunk_seen
         code = hunk.data
         code_size = len(code)
 
@@ -508,11 +737,44 @@ def build_entities(binary_path: str, output_path: str | None = None,
               f"({code_size} bytes)...")
 
         # Run shared analysis pipeline
-        ha = analyze_hunk(code, cast(list[Any], hunk.relocs), hunk.index,
-                          base_addr=base_addr, code_start=code_start)
+        if binary_source.kind == "raw_binary":
+            analysis_start_offset = resolved_analysis_start_offset(binary_source, target_metadata)
+            entry_points = resolved_entry_points(binary_source, target_metadata, ())
+            ha = analyze_hunk(
+                code,
+                [],
+                hunk.index,
+                base_addr=resolved_raw_analysis_base_addr(binary_source, target_metadata),
+                code_start=analysis_start_offset,
+                entry_points=entry_points,
+                initial_state=seed_config.initial_state,
+            )
+        else:
+            entry_points = () if first_code_hunk_seen or custom_entry_offset is None else (custom_entry_offset,)
+            ha = analyze_hunk(code, cast(list[Any], hunk.relocs), hunk.index,
+                              base_addr=base_addr, code_start=code_start,
+                              entry_points=entry_points,
+                              initial_state=seed_config.initial_state)
+        first_code_hunk_seen = True
+        apply_entry_seed_config(ha.platform, seed_config)
 
         # Cache analysis for gen_disasm reuse
-        cache_path = Path(binary_path).with_suffix(".analysis")
+        cache_root = analysis_cache_root(
+            binary_source.analysis_cache_path,
+            seed_key=seed_config.seed_key,
+            base_addr=(
+                resolved_raw_analysis_base_addr(binary_source, target_metadata)
+                if binary_source.kind == "raw_binary"
+                else base_addr
+            ),
+            code_start=(
+                resolved_analysis_start_offset(binary_source, target_metadata)
+                if binary_source.kind == "raw_binary"
+                else code_start
+            ),
+            entry_points=entry_points,
+        )
+        cache_path = hunk_analysis_cache_path(cache_root, hunk.index)
         ha.save(cache_path)
         print(f"  Cached analysis to {cache_path.name}")
 
@@ -522,6 +784,51 @@ def build_entities(binary_path: str, output_path: str | None = None,
         hint_blocks = ha.hint_blocks
         hint_reasons = ha.hint_reasons
         lib_calls = ha.lib_calls
+        indirect_sites = ha.indirect_sites
+        if binary_source.kind == "raw_binary" and binary_source.address_model == "runtime_absolute":
+            raw_base_addr = binary_source.load_address
+            (
+                blocks,
+                xrefs,
+                call_targets,
+                hint_blocks,
+                hint_reasons,
+                lib_calls,
+                indirect_sites,
+            ) = _rebase_raw_analysis(
+                blocks,
+                xrefs,
+                call_targets,
+                hint_blocks,
+                hint_reasons,
+                lib_calls,
+                indirect_sites,
+                base_addr=raw_base_addr,
+                code_size=code_size,
+            )
+        entry_addr = (
+            binary_source.local_entrypoint
+            if binary_source.kind == "raw_binary"
+            else (0 if custom_entry_offset is None else custom_entry_offset)
+        )
+        blocks = _filter_pre_entry_blocks(blocks, entry_addr)
+        hint_blocks = _filter_pre_entry_blocks(hint_blocks, entry_addr)
+        xrefs = [
+            xref for xref in xrefs
+            if xref.src >= entry_addr and xref.dst >= entry_addr
+        ]
+        call_targets = {
+            addr for addr in call_targets
+            if addr >= entry_addr
+        }
+        lib_calls = [
+            call for call in lib_calls
+            if call.addr >= entry_addr
+        ]
+        indirect_sites = [
+            site for site in indirect_sites
+            if site.addr >= entry_addr
+        ]
         os_kb = ha.os_kb
         if os_kb is None:
             raise ValueError("OS KB is required for entity typing")
@@ -533,7 +840,7 @@ def build_entities(binary_path: str, output_path: str | None = None,
             ha.platform,
         )
         # Build subroutine map
-        subroutines = build_subroutine_map(blocks, call_targets, 0)
+        subroutines = build_subroutine_map(blocks, call_targets, entry_addr)
         stubs = sum(1 for s in subroutines if not s.reached)
         print(f"  {len(subroutines)} subroutines ({stubs} stubs - unreached)")
 
@@ -583,13 +890,7 @@ def build_entities(binary_path: str, output_path: str | None = None,
                 for c in calls:
                     entry: JsonDict = {"call": f"{c.library}/{c.function}"}
                     if c.inputs:
-                        inputs: JsonDict = {}
-                        for inp in c.inputs:
-                            if inp.reg and inp.type:
-                                info: JsonDict = {"type": inp.type}
-                                if inp.i_struct:
-                                    info["i_struct"] = inp.i_struct
-                                inputs[inp.reg] = info
+                        inputs = _typed_call_inputs_payload(c.inputs)
                         if inputs:
                             entry["inputs"] = inputs
                     out = c.output
@@ -611,11 +912,11 @@ def build_entities(binary_path: str, output_path: str | None = None,
                 )
                 if app_slots:
                     ent["app_slots"] = app_slot_entity_payloads(app_slots)
-            indirect_sites = collect_subroutine_indirect_sites(
-                sub, ha.indirect_sites)
-            if indirect_sites:
+            sub_indirect_sites = collect_subroutine_indirect_sites(
+                sub, indirect_sites)
+            if sub_indirect_sites:
                 ent["indirect_sites"] = indirect_site_entity_payloads(
-                    indirect_sites)
+                    sub_indirect_sites)
             all_entities.append(ent)
 
         # -- Hint entities --------------------------------------------
@@ -669,6 +970,14 @@ def build_entities(binary_path: str, output_path: str | None = None,
                 else:
                     hint_ent["hint_source"] = "scan"
                 all_entities.append(hint_ent)
+
+        all_entities.extend(
+            _structured_prefix_entities(
+                target_metadata,
+                hunk.index,
+                include_structure=include_structure,
+            )
+        )
 
         # Build reloc-derived data references for uncovered regions
         data_refs = build_reloc_references(
@@ -752,6 +1061,21 @@ def build_entities(binary_path: str, output_path: str | None = None,
     return 0
 
 
+def build_entities(binary_path: str, output_path: str | None = None,
+                   base_addr: int = 0, code_start: int = 0) -> int:
+    return build_entities_from_source(
+        HunkFileBinarySource(
+            kind="hunk_file",
+            path=Path(binary_path),
+            display_path=binary_path,
+            analysis_cache_path=Path(binary_path).with_suffix(".analysis"),
+        ),
+        output_path,
+        base_addr=base_addr,
+        code_start=code_start,
+    )
+
+
 def _remove_overlapping(entities: list[JsonDict]) -> list[JsonDict]:
     """Remove entities that overlap with earlier ones (sorted by addr)."""
     entities.sort(key=lambda e: int(e["addr"], 16))
@@ -779,7 +1103,7 @@ def main() -> int:
     parser.add_argument("--output", "-o",
                         help="Output path (default: <target-dir>/entities.jsonl)")
     parser.add_argument("--target-dir", "-t",
-                        help="Target output directory (e.g. targets/genam)")
+                        help="Target output directory (e.g. targets/amiga_hunk_genam)")
     parser.add_argument("--base-addr", type=lambda x: int(x, 0),
                         default=0,
                         help="Runtime base address (e.g. 0x400)")

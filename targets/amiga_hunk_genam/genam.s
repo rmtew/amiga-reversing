@@ -2,39 +2,13 @@
 ; Source: bin\GenAm
 ; 64920 bytes, 486 entities, 2840 blocks
 
-; LVO offsets: dos.library
-_LVODateStamp	EQU	-192
-_LVOExamine	EQU	-102
-_LVOUnLock	EQU	-90
-_LVOLock	EQU	-84
-_LVOSeek	EQU	-66
-_LVOOutput	EQU	-60
-_LVOInput	EQU	-54
-_LVOWrite	EQU	-48
-_LVORead	EQU	-42
-_LVOClose	EQU	-36
-_LVOOpen	EQU	-30
-
-; LVO offsets: exec.library
-_LVOOpenLibrary	EQU	-552
-_LVOCloseDevice	EQU	-450
-_LVOOpenDevice	EQU	-444
-_LVOCloseLibrary	EQU	-414
-_LVOSetSignal	EQU	-306
-_LVOAvailMem	EQU	-216
-_LVOFreeMem	EQU	-210
-_LVOAllocMem	EQU	-198
-
-; LVO offsets: timer.device
-_LVOGetSysTime	EQU	-66
-_LVOSubTime	EQU	-48
-
 ; OS function argument constants
 ACCESS_READ	EQU	-2
-CONU_STANDARD	EQU	0
 MEMF_PUBLIC	EQU	1
+MODE_OLDFILE	EQU	1005
 OFFSET_BEGINNING	EQU	-1
 OFFSET_CURRENT	EQU	0
+SIGBREAKF_CTRL_C	EQU	4096
 
 ; App memory offsets (base register A6)
 app_freemem_memoryblock	EQU	-2
@@ -49,6 +23,8 @@ app_timer_device_iorequest	EQU	4280
 AbsExecBase	EQU	$4
 
     INCLUDE "devices/timer.i"
+    INCLUDE "dos/dos_lib.i"
+    INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/io.i"
     INCLUDE "exec/libraries.i"
 
@@ -20074,7 +20050,7 @@ init_app:
     movea.l (sp)+,a3
     clr.b -1(a0,d0.l)
     movea.l a0,a4
-    moveq #MEMF_PUBLIC,d1 ; AllocMem: requirements
+    moveq #MEMF_PUBLIC,d1 ; AllocMem: attributes
     move.l #$1140,d0 ; AllocMem: byteSize
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
@@ -20179,8 +20155,8 @@ loc_aa1a:
     sf 256(a6) ; app+$100
     lea opendevice_devname(pc),a0 ; OpenDevice: devName
     moveq #0,d0
-    lea app_timer_device_iorequest(a6),a1 ; OpenDevice: ioRequest
-    moveq #CONU_STANDARD,d0 ; OpenDevice: unit
+    lea app_timer_device_iorequest(a6),a1 ; OpenDevice: iORequest
+    moveq #0,d0 ; OpenDevice: unitNumber
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOOpenDevice(a6) ; app-$1BC
@@ -20303,7 +20279,7 @@ loc_ab84:
 check_signals:
     movem.l d0-d2/a0-a2,-(sp)
     moveq #0,d0 ; SetSignal: newSignals
-    moveq #0,d1 ; SetSignal: signalSet
+    moveq #0,d1 ; SetSignal: signalMask
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOSetSignal(a6) ; app-$132
@@ -20314,7 +20290,7 @@ loc_ab98:
 loc_aba0:
     ori.b #$7f,277(a6) ; app+$115
     moveq #0,d0 ; SetSignal: newSignals
-    move.l #$1000,d1 ; SetSignal: signalSet
+    move.l #SIGBREAKF_CTRL_C,d1 ; SetSignal: signalMask
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOSetSignal(a6) ; app-$132
@@ -20448,7 +20424,7 @@ loc_ad08:
 call_datestamp:
     lea -12(sp),sp
     move.l sp,d1
-    move.l #$ffffff40,d0
+    move.l #_LVODateStamp,d0
     bsr.w dos_dispatch_b0d6
 loc_ad1c:
     move.l (sp),d0
@@ -20582,7 +20558,7 @@ alloc_memory_ae42:
     addq.l #4,d1
     move.l d1,-(sp)
     move.l d1,d0 ; AllocMem: byteSize
-    moveq #MEMF_PUBLIC,d1 ; AllocMem: requirements
+    moveq #MEMF_PUBLIC,d1 ; AllocMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
@@ -20708,7 +20684,7 @@ loc_af24:
 call_close:
     move.l a0,-(sp)
     move.l a0,d1
-    move.l #$3ed,d2
+    move.l #MODE_OLDFILE,d2
     moveq #_LVOOpen,d0
     bsr.w dos_dispatch_b0d6
 loc_af38:
@@ -20863,7 +20839,7 @@ loc_b050:
 call_seek_b054:
     move.l d3,-(sp)
     move.l 390(a6),d1 ; app+$186
-    moveq #OFFSET_CURRENT,d2
+    moveq #0,d2
     moveq #OFFSET_CURRENT,d3
     moveq #_LVOSeek,d0
     bsr.w dos_dispatch_b0d6
@@ -20875,7 +20851,7 @@ check_memory:
     bne.s loc_b09a
 loc_b06e:
     movem.l d1-d2/a0-a2,-(sp)
-    move.l #$20001,d1 ; AvailMem: requirements
+    move.l #$20001,d1 ; AvailMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAvailMem(a6) ; app-$D8

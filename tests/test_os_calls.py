@@ -6,6 +6,11 @@ from identified library calls.
 
 import struct
 from collections.abc import Iterable, Mapping
+from dataclasses import replace
+from types import SimpleNamespace
+from typing import cast
+
+import pytest
 
 from m68k.instruction_primitives import Operand
 from m68k.m68k_executor import BasicBlock, analyze
@@ -21,7 +26,10 @@ from m68k.os_calls import (
     LibraryCall,
     RegisterFact,
     TypedMemoryRegion,
+    _build_lvo_lookup,
+    _refined_named_base_struct,
     _region_from_typed_address,
+    _resolve_lvo,
     analyze_call_setups,
     app_memory_type_priority,
     build_app_memory_types,
@@ -29,6 +37,7 @@ from m68k.os_calls import (
     build_app_pointer_regions,
     build_app_slot_infos,
     build_app_struct_regions,
+    identify_library_calls,
     propagate_typed_memory_regions,
     refine_opened_base_calls,
     select_primary_app_memory_type,
@@ -74,7 +83,7 @@ def _prov_named(named_base: str) -> MemoryRegionProvenance:
 
 def _make_lib_call(addr: int, block: int, function: str, library: str = "dos.library",
                    lvo: int = -60, output: Mapping[str, str | None] | None = None,
-                   inputs: Iterable[Mapping[str, str | None]] | None = None) -> LibraryCall:
+                   inputs: Iterable[Mapping[str, object]] | None = None) -> LibraryCall:
     """Build a LibraryCall matching identify_library_calls output."""
     typed_output = None
     if output is not None:
@@ -90,16 +99,19 @@ def _make_lib_call(addr: int, block: int, function: str, library: str = "dos.lib
         )
     typed_inputs = tuple(
         runtime_os.OsInput(
-            name=input_name,
-            reg=input_reg,
-            type=inp.get("type"),
-            i_struct=inp.get("i_struct"),
-            semantic_kind=inp.get("semantic_kind"),
-            semantic_note=inp.get("semantic_note"),
+            name=cast(str, input_name),
+            regs=cast(tuple[str, ...], input_regs),
+            type=cast(str | None, inp.get("type")),
+            i_struct=cast(str | None, inp.get("i_struct")),
+            semantic_kind=cast(str | None, inp.get("semantic_kind")),
+            semantic_note=cast(str | None, inp.get("semantic_note")),
         )
         for inp in (inputs or ())
-        for input_name, input_reg in [(inp["name"], inp["reg"])]
-        if input_name is not None and input_reg is not None
+        for input_name, input_regs in [(
+            inp["name"],
+            tuple(inp["regs"]) if "regs" in inp else (inp["reg"],),
+        )]
+        if input_name is not None and all(reg is not None for reg in input_regs)
     )
     return LibraryCall(
         addr=addr,
@@ -851,6 +863,16 @@ def test_build_app_pointer_regions_refines_openlibrary_slot_to_concrete_struct()
     }
 
 
+def test_refined_named_base_struct_requires_kb_mapping() -> None:
+    os_kb = SimpleNamespace(
+        META=replace(runtime_os.META, named_base_structs={}),
+        STRUCTS=runtime_os.STRUCTS,
+    )
+
+    with pytest.raises(KeyError, match="dos\\.library.*LIB"):
+        _refined_named_base_struct(os_kb, "dos.library", "LIB")
+
+
 def test_propagate_typed_memory_regions_loads_concrete_named_base_from_app_slot() -> None:
     sentinel = 0x80000002
     code = b""
@@ -1168,6 +1190,40 @@ def test_refine_opened_base_calls_resolves_resource_call_from_app_slot() -> None
     assert refined[1].lvo == -6
 
 
+def test_identify_library_calls_resolves_direct_wrapper_call_per_caller() -> None:
+    code = b""
+    code += struct.pack(">H", 0x2F0E)               # $00 move.l a6,-(sp)
+    code += struct.pack(">I", 0x2C780004)           # $02 movea.l ($0004).w,a6
+    code += struct.pack(">HH", 0x6100, 0x000C)      # $06 bsr.w $14
+    code += struct.pack(">H", 0x2C5F)               # $0A movea.l (sp)+,a6
+    code += struct.pack(">H", 0x4E75)               # $0C rts
+    code += struct.pack(">HH", 0x6100, 0x0004)      # $0E bsr.w $14
+    code += struct.pack(">H", 0x4E75)               # $12 rts
+    code += struct.pack(">HH", 0x4EAE, 0xFDD8)      # $14 jsr -552(a6)
+    code += struct.pack(">H", 0x4E75)               # $18 rts
+
+    platform = make_platform()
+    result = analyze(code, propagate=True, entry_points=[0, 0x0E], platform=platform)
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    assert len(calls) == 1
+    call = calls[0]
+    assert call.addr == 0x00
+    assert call.block == 0x00
+    assert call.dispatch == 0x14
+    assert call.library == "exec.library"
+    assert call.function == "OpenLibrary"
+    assert call.lvo == -552
+
+
 def test_propagate_typed_memory_regions_handles_movea_pointee_load_to_a6() -> None:
     sentinel = 0x80000002
     code = b""
@@ -1192,6 +1248,30 @@ def test_propagate_typed_memory_regions_handles_movea_pointee_load_to_a6() -> No
         struct="DD",
         size=runtime_os.STRUCTS["DD"].size,
         provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 120),
+    )
+
+
+def test_propagate_typed_memory_regions_seeds_struct_typed_os_call_output_register() -> None:
+    code = b""
+    code += struct.pack(">HH", 0x4EAE, 0xFFA0)      # $00 jsr -96(a6)
+    code += struct.pack(">H", 0x2040)               # $04 movea.l d0,a0
+    code += struct.pack(">HH", 0x2068, 0x0016)      # $06 movea.l 22(a0),a0
+    code += struct.pack(">H", 0x4E75)               # $0A rts
+
+    result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
+    lib_calls = [_make_lib_call(
+        addr=0x00, block=0x00, function="FindResident", library="exec.library",
+        lvo=-96,
+        inputs=[{"name": "name", "reg": "A1", "type": "STRPTR"}],
+        output={"name": "resident", "reg": "D0", "type": "struct Resident *", "i_struct": "RT"},
+    )]
+
+    types = propagate_typed_memory_regions(result["blocks"], lib_calls, code, runtime_os, make_platform())
+
+    assert types[0x06]["a0"] == TypedMemoryRegion(
+        struct="RT",
+        size=runtime_os.STRUCTS["RT"].size,
+        provenance=MemoryRegionProvenance(address_space=MemoryRegionAddressSpace.REGISTER),
     )
 
 
@@ -1468,4 +1548,11 @@ def test_conditional_store_after_return() -> None:
     assert 100 in types, (
         f"Expected offset 100 from Output despite conditional store, "
         f"got {types}")
+
+
+def test_resolve_lvo_requires_known_kb_mapping() -> None:
+    lookup = _build_lvo_lookup(runtime_os)
+
+    with pytest.raises(KeyError, match=r"Missing KB LVO mapping for exec\.library:-9990"):
+        _resolve_lvo(-9990, "exec.library", lookup)
 

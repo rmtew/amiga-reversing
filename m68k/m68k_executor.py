@@ -51,6 +51,8 @@ from .os_calls import (
     OutputRegisterCallEffect,
     PlatformState,
 )
+from .registers import parse_reg_name
+from .typing_protocols import MemoryLike
 
 if TYPE_CHECKING:
     from .os_calls import CallEffect
@@ -62,6 +64,7 @@ __all__ = [
     "CPUState",
     "CallSummary",
     "Instruction",
+    "InstructionTrace",
     "XRef",
     "_concrete",
     "_resolve_operand",
@@ -69,6 +72,7 @@ __all__ = [
     "_unknown",
     "_write_operand",
     "analyze",
+    "collect_instruction_traces",
     "decode_instruction_ops",
     "propagate_states",
     "resolve_ea",
@@ -418,6 +422,60 @@ class BasicBlock:
     is_return: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class InstructionTrace:
+    block_start: int
+    incoming_source: int
+    instruction: Instruction
+    pre_cpu: CPUState
+    pre_mem: MemoryLike
+    post_cpu: CPUState
+    post_mem: MemoryLike
+
+
+@dataclass(frozen=True, slots=True)
+class _MemorySnapshot:
+    _bytes: dict[int, AbstractValue]
+    _tags: dict[TagKey, TagMap]
+    _sym: dict[SymbolicKey, AbstractValue]
+    _code_section: bytes | None
+    _code_base_addr: int
+
+    def read(self, addr: int | AbstractValue, size: str) -> AbstractValue:
+        nbytes = _SIZE_BYTE_COUNT[size]
+
+        if isinstance(addr, AbstractValue):
+            if addr.is_symbolic:
+                key = (addr.sym_base, addr.sym_offset, nbytes)
+                return self._sym.get(key, _unknown())
+            if addr.is_known:
+                addr = addr.concrete
+            else:
+                return _unknown()
+
+        result = 0
+        for i in range(nbytes):
+            byte_addr = addr + i
+            bv = self._bytes.get(byte_addr)
+            if bv is None or not bv.is_known:
+                code_offset = byte_addr - self._code_base_addr
+                if (
+                    bv is None
+                    and self._code_section is not None
+                    and 0 <= code_offset < len(self._code_section)
+                ):
+                    result = (result << 8) | self._code_section[code_offset]
+                    continue
+                tag = self._tags.get((addr, nbytes))
+                return _unknown(tag=tag)
+            result = (result << 8) | (bv.concrete & 0xFF)
+        tag = self._tags.get((addr, nbytes))
+        return _concrete(result, tag=tag)
+
+    def copy(self) -> _MemorySnapshot:
+        return self
+
+
 # -- Block discovery -------------------------------------------------------
 
 def discover_blocks(code: bytes, base_addr: int = 0,
@@ -582,7 +640,7 @@ class AbstractMemory:
     big-endian (M68K native).
     """
 
-    def __init__(self, code_section: bytes | None = None) -> None:
+    def __init__(self, code_section: bytes | None = None, code_base_addr: int = 0) -> None:
         self._bytes: dict[int, AbstractValue] = {}  # concrete addr -> byte
         self._tags: dict[TagKey, TagMap] = {}  # (addr, nbytes) -> tag dict
         # Symbolic store: (base_name, offset, nbytes) -> AbstractValue
@@ -591,6 +649,7 @@ class AbstractMemory:
         # When a concrete address is unmapped, falls back to code_section
         # if the address is within range.
         self._code_section: bytes | None = code_section
+        self._code_base_addr = code_base_addr
 
     def write(self, addr: int | AbstractValue, value: AbstractValue, size: str) -> None:
         """Write a value.  addr is int (concrete) or AbstractValue (symbolic)."""
@@ -637,9 +696,10 @@ class AbstractMemory:
             bv = self._bytes.get(addr + i)
             if bv is None or not bv.is_known:
                 # Fall back to code section for unmapped addresses
+                code_offset = addr + i - self._code_base_addr
                 if (bv is None and self._code_section is not None
-                        and 0 <= addr + i < len(self._code_section)):
-                    byte_val = self._code_section[addr + i]
+                        and 0 <= code_offset < len(self._code_section)):
+                    byte_val = self._code_section[code_offset]
                     result = (result << 8) | byte_val
                     continue
                 tag = self._tags.get((addr, nbytes))
@@ -650,7 +710,7 @@ class AbstractMemory:
 
     def copy(self) -> AbstractMemory:
         """Create an independent copy."""
-        m = AbstractMemory(self._code_section)
+        m = AbstractMemory(self._code_section, self._code_base_addr)
         m._bytes = dict(self._bytes)
         m._tags = dict(self._tags)
         m._sym = dict(self._sym)
@@ -891,6 +951,105 @@ def _join_states(
 
 def _incoming_state_signature(pred_dict: IncomingStates) -> frozenset[tuple[int, int, int]]:
     return frozenset((src, id(cpu), id(mem)) for src, (cpu, mem) in pred_dict.items())
+
+
+def _trace_state_signature(cpu: _CPUState, mem: AbstractMemory) -> tuple[object, ...]:
+    return (
+        tuple(cpu.d),
+        tuple(cpu.a),
+        cpu.sp,
+        tuple(sorted(mem._bytes.items())),
+        tuple(sorted(mem._sym.items())),
+    )
+
+
+def _build_initial_state(
+    code: bytes,
+    base_addr: int,
+    initial_state: _CPUState | None,
+    initial_mem: AbstractMemory | None,
+    platform: PlatformState | None,
+) -> tuple[_CPUState, AbstractMemory]:
+    if initial_state is None:
+        initial_state = CPUState()
+        if platform:
+            initial_state.sp = _symbolic("SP_entry", 0)
+            base_info = platform.app_base
+            if base_info:
+                initial_state.set_reg("an", base_info.reg_num, _concrete(base_info.concrete))
+            if platform.initial_register_tags is not None:
+                for reg_name, tag in platform.initial_register_tags.items():
+                    reg = parse_reg_name(reg_name)
+                    if reg is None:
+                        raise ValueError(f"Invalid initial register name: {reg_name}")
+                    mode, reg_num = reg
+                    existing = initial_state.get_reg(mode, reg_num)
+                    seeded = _concrete(existing.concrete, tag=tag) if existing.is_known else _unknown(tag=tag)
+                    initial_state.set_reg(mode, reg_num, seeded)
+    if initial_mem is None:
+        if platform and platform.initial_mem is not None:
+            initial_mem = platform.initial_mem.copy()
+        else:
+            initial_mem = AbstractMemory()
+    initial_mem._code_section = code
+    initial_mem._code_base_addr = base_addr
+    return initial_state, initial_mem
+
+
+def _normalize_watch_ranges(watch_ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    normalized = sorted((start, end) for start, end in watch_ranges if start < end)
+    if not normalized:
+        return []
+    merged = [normalized[0]]
+    for start, end in normalized[1:]:
+        last_start, last_end = merged[-1]
+        if start <= last_end:
+            merged[-1] = (last_start, max(last_end, end))
+            continue
+        merged.append((start, end))
+    return merged
+
+
+def _snapshot_memory(mem: AbstractMemory, watch_ranges: list[tuple[int, int]] | None) -> MemoryLike:
+    if watch_ranges is None:
+        return mem.copy()
+    normalized = _normalize_watch_ranges(watch_ranges)
+    bytes_map: dict[int, AbstractValue] = {}
+    tags: dict[TagKey, TagMap] = {}
+    for start, end in normalized:
+        for addr in range(start, end):
+            value = mem._bytes.get(addr)
+            if value is not None:
+                bytes_map[addr] = value
+        for (tag_addr, nbytes), tag in mem._tags.items():
+            if start <= tag_addr < end or (tag_addr < start < tag_addr + nbytes):
+                tags[(tag_addr, nbytes)] = tag
+    return _MemorySnapshot(
+        _bytes=bytes_map,
+        _tags=tags,
+        _sym=dict(mem._sym),
+        _code_section=mem._code_section,
+        _code_base_addr=mem._code_base_addr,
+    )
+
+
+def _seed_entry_states(
+    blocks: dict[int, BasicBlock],
+    base_addr: int,
+    initial_state: _CPUState,
+    initial_mem: AbstractMemory,
+) -> tuple[list[int], dict[int, IncomingStates]]:
+    seed_addrs: list[int] = []
+    incoming: dict[int, IncomingStates] = {}
+    if base_addr in blocks:
+        seed_addrs.append(base_addr)
+    for addr, blk in blocks.items():
+        if blk.is_entry and addr != base_addr and addr in blocks:
+            seed_addrs.append(addr)
+    for addr in seed_addrs:
+        if addr not in incoming:
+            incoming[addr] = {-1: (initial_state.copy(), initial_mem.copy())}
+    return seed_addrs, incoming
 
 
 def _parse_reg_from_text(reg_text: str) -> tuple[str, int] | None:
@@ -1336,12 +1495,9 @@ def _apply_pea(
 ) -> None:
     """Apply PEA: push effective address to stack."""
     assert d.ea_op is not None, f"{inst_kb}: missing EA operand for PEA"
-    # Validate EA mode against KB-allowed modes (catches internal bugs)
     pea_ea_modes = runtime_m68k_analysis.EA_MODE_TABLES.get(inst_kb, ((), (), ()))[2]
-    assert not pea_ea_modes or d.ea_op.mode in pea_ea_modes, (
-        f"PEA: EA mode {d.ea_op.mode!r} not in allowed modes "
-        f"{pea_ea_modes} (internal bug)"
-    )
+    if pea_ea_modes and d.ea_op.mode not in pea_ea_modes:
+        return
     # Compute the effective address (not the value at it)
     addr_val = resolve_ea(d.ea_op, cpu, "l")
     if addr_val is not None and (cpu.sp.is_known or cpu.sp.is_symbolic):
@@ -1367,8 +1523,8 @@ def _apply_assign(
     platform: PlatformState | None,
 ) -> None:
     """Apply MOVE/MOVEA/MOVEQ/CLR family."""
-    formula = runtime_m68k_analysis.COMPUTE_FORMULAS.get(inst_kb)
-    terms = formula[1] if formula is not None else ()
+    formula = runtime_m68k_analysis.COMPUTE_FORMULAS[inst_kb]
+    terms = formula[1]
     src_sign_ext = inst_kb in runtime_m68k_executor.SOURCE_SIGN_EXTEND
     mnemonic = inst_kb
     src_op = d.ea_op  # alias for assign handler
@@ -1857,6 +2013,7 @@ def _apply_instruction(inst: Instruction, inst_kb: str,
     if (
         op_type is not None
         and op_type not in (
+            runtime_m68k_executor.OperationType.BITFIELD,
             runtime_m68k_executor.OperationType.BOUNDS_CHECK,
             runtime_m68k_executor.OperationType.SWAP,
             runtime_m68k_executor.OperationType.CCR_OP,
@@ -1866,8 +2023,7 @@ def _apply_instruction(inst: Instruction, inst_kb: str,
     ):
         if mnemonic in runtime_m68k_analysis.SP_EFFECTS_COMPLETE:
             return
-        formula = runtime_m68k_analysis.COMPUTE_FORMULAS[mnemonic]
-        op = formula[0]
+        raise KeyError(mnemonic)
     if op_type == runtime_m68k_executor.OperationType.BOUNDS_CHECK:
         runtime_m68k_executor.BOUNDS_CHECKS[mnemonic]
         return
@@ -1884,7 +2040,7 @@ def _apply_instruction(inst: Instruction, inst_kb: str,
         return
 
     # PEA detection
-    if runtime_m68k_analysis.SP_EFFECTS.get(mnemonic) and op_type == runtime_m68k_executor.OperationType.SUB and d.ea_op:
+    if mnemonic == "PEA" and d.ea_op:
         _apply_pea(mnemonic, d, cpu, mem)
         return
 
@@ -1946,56 +2102,34 @@ def propagate_states(blocks: dict[int, BasicBlock],
 
     Returns dict mapping block_start -> (exit_cpu_state, exit_memory).
     """
-    if initial_state is None:
-        initial_state = CPUState()
-        if platform:
-            # Set initial SP as symbolic base for abstract stack tracking.
-            # SP_entry+0 at entry; push gives SP_entry-4, pop gives SP_entry+0.
-            # Symbolic SP survives joins (same base+offset -> keep).
-            initial_state.sp = _symbolic("SP_entry", 0)
-            # Set initial base register if discovered from prior pass
-            base_info = platform.app_base
-            if base_info:
-                initial_state.set_reg(
-                    "an", base_info.reg_num, _concrete(base_info.concrete))
-    if initial_mem is None:
-        # Use init-discovered memory if available (base-region contents
-        # from the init routine, e.g. library bases stored at d(An))
-        if platform and platform.initial_mem is not None:
-            initial_mem = platform.initial_mem.copy()
-        else:
-            initial_mem = AbstractMemory()
-    # Enable code-section reads: when a concrete address within the code
-    # range is read but not in tracked memory, fall back to the code bytes.
-    # This resolves indirect calls through data pointers, function tables,
-    # and dispatch structures without format-specific parsers.
-    initial_mem._code_section = code
+    _, exit_states = _propagate_state_maps(
+        blocks,
+        code,
+        base_addr=base_addr,
+        initial_state=initial_state,
+        initial_mem=initial_mem,
+        platform=platform,
+        summaries=summaries,
+    )
+    return exit_states
 
-    # Map block_start -> {source_key: (cpu_state, memory)}
-    # Keyed by source so each predecessor overwrites its previous
-    # contribution instead of accumulating across fixpoint iterations.
-    incoming: dict[int, IncomingStates] = {}
-    # Map block_start -> (exit_cpu_state, exit_memory) after execution
+
+def _propagate_state_maps(
+    blocks: dict[int, BasicBlock],
+    code: bytes,
+    *,
+    base_addr: int = 0,
+    initial_state: _CPUState | None = None,
+    initial_mem: AbstractMemory | None = None,
+    platform: PlatformState | None = None,
+    summaries: Mapping[int, CallSummary | None] | None = None,
+) -> tuple[dict[int, IncomingStates], dict[int, StatePair]]:
+    initial_state, initial_mem = _build_initial_state(code, base_addr, initial_state, initial_mem, platform)
+    incoming: dict[int, IncomingStates]
+    seed_addrs: list[int]
+    seed_addrs, incoming = _seed_entry_states(blocks, base_addr, initial_state, initial_mem)
     exit_states: dict[int, StatePair] = {}
     last_incoming_sig: dict[int, frozenset[tuple[object, int, int]]] = {}
-
-    # Seed all entry points with initial state.  The primary entry
-    # (base_addr) always gets seeded.  Additional entry points (from
-    # jump table targets, resolved indirect jumps, etc.) are also
-    # seeded so they produce exit states even when the control flow
-    # path from base_addr to them is unresolved.
-    seed_addrs = []
-    if base_addr in blocks:
-        seed_addrs.append(base_addr)
-    # Additional entry points from the blocks' is_entry flag
-    for addr, blk in blocks.items():
-        if blk.is_entry and addr != base_addr and addr in blocks:
-            seed_addrs.append(addr)
-    for addr in seed_addrs:
-        if addr not in incoming:
-            incoming[addr] = {-1: (initial_state.copy(),
-                                  initial_mem.copy())}
-
     work = deque(seed_addrs)
     visited = set()
     iterations = 0
@@ -2102,7 +2236,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
                 (exit_cpu, exit_mem)
             work.append(xref.dst)
 
-    return exit_states
+    return incoming, exit_states
 
 
 # -- Subroutine summaries -------------------------------------------------
@@ -2131,6 +2265,100 @@ def _compute_sub_blocks(blocks: dict[int, BasicBlock],
                 work.append(s)
         result[entry] = owned
     return result
+
+
+def collect_instruction_traces(
+    blocks: dict[int, BasicBlock],
+    code: bytes,
+    *,
+    base_addr: int = 0,
+    initial_state: _CPUState | None = None,
+    initial_mem: AbstractMemory | None = None,
+    platform: PlatformState | None = None,
+    summaries: Mapping[int, CallSummary | None] | None = None,
+    watch_ranges: list[tuple[int, int]] | None = None,
+) -> list[InstructionTrace]:
+    initial_state, initial_mem = _build_initial_state(code, base_addr, initial_state, initial_mem, platform)
+    seed_addrs, seed_incoming = _seed_entry_states(blocks, base_addr, initial_state, initial_mem)
+    traces: list[InstructionTrace] = []
+    work = deque(
+        (block_start, source, cpu.copy(), mem.copy())
+        for block_start in seed_addrs
+        for source, (cpu, mem) in seed_incoming[block_start].items()
+    )
+    seen: set[tuple[int, int, tuple[object, ...]]] = set()
+    iterations = 0
+    max_iterations = len(blocks) * 32
+    while work and iterations < max_iterations:
+        iterations += 1
+        block_start, source, cpu, mem = work.popleft()
+        if block_start not in blocks:
+            continue
+        state_sig = _trace_state_signature(cpu, mem)
+        if (block_start, source, state_sig) in seen:
+            continue
+        seen.add((block_start, source, state_sig))
+        block = blocks[block_start]
+        cpu.pc = block_start
+        for inst in block.instructions:
+            pre_cpu = cpu.copy()
+            pre_mem = _snapshot_memory(mem, watch_ranges)
+            traces.append(
+                InstructionTrace(
+                    block_start=block_start,
+                    incoming_source=source,
+                    instruction=inst,
+                    pre_cpu=pre_cpu,
+                    pre_mem=pre_mem,
+                    post_cpu=cpu.copy(),
+                    post_mem=_snapshot_memory(mem, watch_ranges),
+                )
+            )
+            _apply_instruction(inst, instruction_kb(inst), cpu, mem, code, base_addr, platform)
+            cpu.pc = inst.offset + inst.size
+            traces[-1] = InstructionTrace(
+                block_start=block_start,
+                incoming_source=source,
+                instruction=inst,
+                pre_cpu=pre_cpu,
+                pre_mem=pre_mem,
+                post_cpu=cpu.copy(),
+                post_mem=_snapshot_memory(mem, watch_ranges),
+            )
+
+        exit_cpu = cpu.copy()
+        exit_mem = mem.copy()
+        call_sp_push = 0
+        if block.instructions:
+            last = block.instructions[-1]
+            last_ikb = instruction_kb(last)
+            if runtime_m68k_analysis.FLOW_TYPES[last_ikb] == _FLOW_CALL:
+                for action, nbytes, _ in runtime_m68k_analysis.SP_EFFECTS.get(last_ikb, ()):
+                    if action == runtime_m68k_analysis.SpEffectAction.DECREMENT and nbytes is not None:
+                        call_sp_push += nbytes
+
+        call_dst = ft_dst = None
+        other_xrefs = []
+        for xref in block.xrefs:
+            if xref.type == "call":
+                call_dst = xref.dst
+            elif xref.type == "fallthrough":
+                ft_dst = xref.dst
+            else:
+                other_xrefs.append(xref)
+
+        if call_sp_push and ft_dst:
+            summary = summaries.get(call_dst) if summaries and call_dst is not None else None
+            ft_cpu = _call_fallthrough_state(exit_cpu, call_sp_push, summary, platform)
+            work.append((ft_dst, block_start, ft_cpu, exit_mem.copy()))
+            if call_dst is not None:
+                work.append((call_dst, block_start, exit_cpu.copy(), exit_mem.copy()))
+        elif ft_dst:
+            work.append((ft_dst, block_start, exit_cpu.copy(), exit_mem.copy()))
+
+        for xref in other_xrefs:
+            work.append((xref.dst, block_start, exit_cpu.copy(), exit_mem.copy()))
+    return traces
 
 
 def _compute_summary(entry: int, owned: set[int],
@@ -2496,7 +2724,8 @@ def compute_all_summaries(blocks: dict[int, BasicBlock],
 def analyze(code: bytes, base_addr: int = 0,
             entry_points: list[int] | None = None,
             propagate: bool = False,
-            platform: PlatformState | None = None) -> AnalysisResult:
+            platform: PlatformState | None = None,
+            initial_state: CPUState | None = None) -> AnalysisResult:
     """Analyze code and return structured results.
 
     Args:
@@ -2546,7 +2775,7 @@ def analyze(code: bytes, base_addr: int = 0,
             sums = platform.summary_cache
         result["exit_states"] = propagate_states(
             blocks, code, base_addr, platform=platform,
-            summaries=sums)
+            summaries=sums, initial_state=initial_state)
 
     return result
 

@@ -10,7 +10,7 @@ from disasm.types import HunkDisassemblySession
 
 
 def _bloodwych_hunk_session() -> HunkDisassemblySession:
-    return build_project_session("bloodwych").hunk_sessions[0]
+    return build_project_session("amiga_hunk_bloodwych").hunk_sessions[0]
 
 
 bloodwych_hunk_session = cast(

@@ -19,6 +19,7 @@ import os
 import re
 import sys
 from collections import defaultdict
+from pathlib import Path
 from typing import Any, cast
 
 from kb.paths import (
@@ -29,6 +30,7 @@ from kb.paths import (
 from kb.runtime_builder import build_runtime_artifacts
 
 JsonDict = dict[str, Any]
+FieldValueDomainContexts = dict[str, dict[str, str]]
 
 
 # =============================================================================
@@ -356,11 +358,45 @@ def parse_fd_file(path: str) -> JsonDict:
             if m:
                 name = m.group(1)
                 args = [a.strip() for a in m.group(2).split(",") if a.strip()]
-                regs = [r.strip().upper() for r in m.group(3).replace("/", ",").split(",") if r.strip()]
+                reg_text = m.group(3).strip()
+                comma_groups = [
+                    [reg.strip().upper() for reg in group.split("/") if reg.strip()]
+                    for group in reg_text.split(",")
+                    if group.strip()
+                ]
+                if not args:
+                    if comma_groups:
+                        raise ValueError(
+                            f"{path}: {name} has register spec {reg_text!r} but no arguments"
+                        )
+                    reg_groups = []
+                elif not comma_groups:
+                    raise ValueError(
+                        f"{path}: {name} has {len(args)} args but no register spec"
+                    )
+                elif len(comma_groups) == len(args):
+                    reg_groups = comma_groups
+                else:
+                    flat_regs = [reg.strip().upper() for reg in re.split(r"[,/]", reg_text) if reg.strip()]
+                    if not flat_regs:
+                        raise ValueError(
+                            f"{path}: {name} has {len(args)} args but no registers after parsing {reg_text!r}"
+                        )
+                    if len(flat_regs) % len(args) == 0:
+                        group_size = len(flat_regs) // len(args)
+                        reg_groups = [
+                            flat_regs[index:index + group_size]
+                            for index in range(0, len(flat_regs), group_size)
+                        ]
+                    else:
+                        raise ValueError(
+                            f"{path}: {name} has {len(args)} args but register spec {reg_text!r} "
+                            f"cannot be aligned to arguments"
+                        )
                 entry = {
                     "lvo": -bias,
                     "args": args,
-                    "regs": regs,
+                    "regs": reg_groups,
                 }
                 if not public:
                     entry["private"] = True
@@ -434,6 +470,8 @@ def parse_autodoc(path: str) -> dict[str, JsonDict]:
                 doc["notes"] = body
             elif section_name == "BUGS":
                 doc["bugs"] = body
+            elif section_name in ("EXAMPLE", "EXAMPLES"):
+                doc["examples"] = body
             elif section_name == "SEE ALSO":
                 doc["see_also"] = body
             elif section_name == "WARNING":
@@ -445,11 +483,148 @@ def parse_autodoc(path: str) -> dict[str, JsonDict]:
     return entries
 
 
+def _split_autodoc_input_sections(inputs_text: str) -> dict[str, str]:
+    sections: dict[str, list[str]] = {}
+    current_name = None
+    current_lines: list[str] = []
+    for raw_line in inputs_text.splitlines():
+        line = raw_line.rstrip()
+        match = None
+        if raw_line[:1] not in (" ", "\t"):
+            match = re.match(r"^([A-Za-z_]\w*)\s+-\s*(.*)$", line)
+        if match:
+            if current_name is not None:
+                sections[current_name] = current_lines
+            current_name = match.group(1)
+            current_lines = [match.group(2).strip()]
+            continue
+        if current_name is None:
+            continue
+        current_lines.append(line.strip())
+    if current_name is not None:
+        sections[current_name] = current_lines
+    return {
+        name: "\n".join(line for line in lines if line).strip()
+        for name, lines in sections.items()
+    }
+
+
+def _extract_input_constant_domains(
+    doc: JsonDict,
+    input_names: list[str],
+    resolved_consts: list[str],
+) -> dict[str, list[str]]:
+    input_domains: dict[str, list[str]] = {}
+    input_sections: dict[str, str] = {}
+    inputs_text = doc.get("inputs_text")
+    if isinstance(inputs_text, str) and inputs_text.strip():
+        input_sections = _split_autodoc_input_sections(inputs_text)
+
+    prose_snippets = [
+        snippet.strip()
+        for key in ("description", "notes", "bugs", "examples")
+        for value in [doc.get(key)]
+        if isinstance(value, str) and value.strip()
+        for paragraph in value.split("\n\n")
+        for normalized_paragraph in [re.sub(r"\s*\n\s*", " ", paragraph).strip()]
+        if normalized_paragraph
+        for snippet in re.split(r"(?<=[.!?])\s+", normalized_paragraph)
+        if snippet.strip()
+    ]
+    for input_name in input_names:
+        section_text = input_sections.get(input_name)
+        candidate_texts: list[str] = []
+        if section_text:
+            candidate_texts.append(section_text)
+        input_pattern = re.compile(
+            rf"(?:'|(?<![A-Za-z0-9_])){re.escape(input_name)}(?:'|(?![A-Za-z0-9_]))",
+            re.I,
+        )
+        candidate_texts.extend(
+            snippet
+            for snippet in prose_snippets
+            if input_pattern.search(snippet)
+        )
+        if not candidate_texts:
+            continue
+        found: set[str] = set()
+        for candidate_text in candidate_texts:
+            for i in range(0, len(resolved_consts), 500):
+                batch = resolved_consts[i:i + 500]
+                pattern = r'\b(' + '|'.join(re.escape(n) for n in batch) + r')\b'
+                for match in re.finditer(pattern, candidate_text):
+                    found.add(match.group(1))
+        if not found:
+            synopsis = doc.get("synopsis")
+            if isinstance(synopsis, str) and synopsis.strip():
+                found.update(_extract_example_constant_domains(doc, synopsis, input_name, resolved_consts))
+        if found:
+            input_domains[input_name] = sorted(found)
+    return input_domains
+
+
+def _extract_example_constant_domains(
+    doc: JsonDict,
+    synopsis: str,
+    input_name: str,
+    resolved_consts: list[str],
+) -> set[str]:
+    examples = doc.get("examples")
+    if not isinstance(examples, str) or not examples.strip():
+        return set()
+    lines = synopsis.strip().splitlines()
+    if not lines:
+        return set()
+    line1 = lines[0].strip()
+    func_match = re.match(r'(?:\w+\s*=\s*)?(\w+)\s*\(', line1)
+    if func_match is None:
+        return set()
+    sig_arg_text = _extract_synopsis_signature_arg_text(line1)
+    if sig_arg_text is None:
+        return set()
+    synopsis_arg_names = [part.strip() for part in _split_c_args(sig_arg_text)]
+    if input_name not in synopsis_arg_names:
+        return set()
+    arg_index = synopsis_arg_names.index(input_name)
+    found: set[str] = set()
+    for arg_text in _iter_call_arg_texts(examples, func_match.group(1)):
+        args = [part.strip() for part in _split_c_args(arg_text)]
+        if arg_index >= len(args):
+            continue
+        value_text = args[arg_index]
+        for i in range(0, len(resolved_consts), 500):
+            batch = resolved_consts[i:i + 500]
+            pattern = r'\b(' + '|'.join(re.escape(n) for n in batch) + r')\b'
+            for match in re.finditer(pattern, value_text):
+                found.add(match.group(1))
+    return found
+
+
+def _iter_call_arg_texts(text: str, func_name: str) -> list[str]:
+    arg_texts: list[str] = []
+    pattern = re.compile(rf'\b{re.escape(func_name)}\s*\(')
+    for match in pattern.finditer(text):
+        start = match.end()
+        depth = 1
+        current: list[str] = []
+        for ch in text[start:]:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    arg_texts.append("".join(current).strip())
+                    break
+            if depth > 0:
+                current.append(ch)
+    return arg_texts
+
+
 # =============================================================================
 # Synopsis parser ? structured inputs/outputs from autodoc synopsis
 # =============================================================================
 
-def parse_synopsis(synopsis: str, arg_names: list[str], arg_regs: list[str]) -> JsonDict:
+def parse_synopsis(synopsis: str, arg_names: list[str], arg_regs: list[list[str]]) -> JsonDict:
     """Parse autodoc SYNOPSIS text into structured input/output data."""
     result: JsonDict = {"inputs": [], "output": None}
     if not synopsis:
@@ -463,6 +638,12 @@ def parse_synopsis(synopsis: str, arg_names: list[str], arg_regs: list[str]) -> 
     line1 = lines[0].strip()
     ret_match = re.match(r'(\w+)\s*=\s*\w+\s*\(', line1)
     ret_name = ret_match.group(1) if ret_match else None
+    synopsis_arg_names = None
+    sig_arg_text = _extract_synopsis_signature_arg_text(line1)
+    if sig_arg_text is not None:
+        raw_arg_names = [part.strip() for part in _split_c_args(sig_arg_text)]
+        if len(raw_arg_names) == len(arg_names):
+            synopsis_arg_names = raw_arg_names
 
     # Parse line 2: register assignments
     ret_reg = None
@@ -521,8 +702,9 @@ def parse_synopsis(synopsis: str, arg_names: list[str], arg_regs: list[str]) -> 
 
     # Build structured inputs
     inputs = cast(list[JsonDict], result["inputs"])
-    for i, (aname, areg) in enumerate(zip(arg_names, arg_regs, strict=True)):
-        inp: JsonDict = {"name": aname, "reg": areg.upper()}
+    effective_arg_names = synopsis_arg_names or arg_names
+    for i, (aname, aregs) in enumerate(zip(effective_arg_names, arg_regs, strict=True)):
+        inp: JsonDict = {"name": aname, "regs": [reg.upper() for reg in aregs]}
         if i < len(arg_types_from_proto):
             inp["type"] = arg_types_from_proto[i]
         elif aname in type_map:
@@ -530,6 +712,25 @@ def parse_synopsis(synopsis: str, arg_names: list[str], arg_regs: list[str]) -> 
         inputs.append(inp)
 
     return result
+
+
+def _extract_synopsis_signature_arg_text(line: str) -> str | None:
+    match = re.match(r'.+?=\s*\w+\s*\(', line)
+    if match is None:
+        return None
+    start = match.end()
+    depth = 1
+    current: list[str] = []
+    for ch in line[start:]:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return "".join(current).strip()
+        if depth > 0:
+            current.append(ch)
+    return None
 
 
 def _normalized_type_string(type_str: str | None) -> str | None:
@@ -708,6 +909,42 @@ def _resolve_clib_library_name(stem: str, library_names: set[str]) -> str | None
     return candidates[0]
 
 
+def _map_clib_args_to_inputs(
+    inputs: list[JsonDict],
+    args: list[dict[str, str]],
+) -> dict[int, dict[str, str]]:
+    mapped: dict[int, dict[str, str]] = {}
+    used_arg_indexes: set[int] = set()
+
+    by_name = {arg["name"]: idx for idx, arg in enumerate(args)}
+    for index, inp in enumerate(inputs):
+        arg_index = by_name.get(cast(str, inp["name"]))
+        if arg_index is None:
+            continue
+        mapped[index] = args[arg_index]
+        used_arg_indexes.add(arg_index)
+
+    if len(inputs) != len(args):
+        return mapped
+
+    unmatched_input_indexes = [index for index in range(len(inputs)) if index not in mapped]
+    unmatched_arg_indexes = [index for index in range(len(args)) if index not in used_arg_indexes]
+    if len(unmatched_input_indexes) != 1 or len(unmatched_arg_indexes) != 1:
+        return mapped
+
+    unmatched_input_index = unmatched_input_indexes[0]
+    unmatched_arg_index = unmatched_arg_indexes[0]
+    positional_arg = args[unmatched_arg_index]
+    positional_type = _normalized_type_string(positional_arg["type"])
+    if _infer_input_semantic_kind(positional_type) != "code_ptr":
+        return mapped
+
+    mapped[unmatched_input_index] = positional_arg
+    used_arg_indexes.add(unmatched_arg_index)
+
+    return mapped
+
+
 def reconcile_clib_callback_types(output: JsonDict, include_h_dir: str) -> int:
     clib = parse_clib_prototypes(include_h_dir)
     library_names = set(output["libraries"])
@@ -723,9 +960,9 @@ def reconcile_clib_callback_types(output: JsonDict, include_h_dir: str) -> int:
             inputs = library["functions"][func_name].get("inputs", [])
             if not inputs or not args:
                 continue
-            by_name = {arg["name"]: arg for arg in args}
-            for inp in inputs:
-                parsed_arg = by_name.get(inp["name"])
+            mapped_args = _map_clib_args_to_inputs(inputs, args)
+            for index, inp in enumerate(inputs):
+                parsed_arg = mapped_args.get(index)
                 if parsed_arg is None:
                     continue
                 parsed_type = _normalized_type_string(parsed_arg["type"])
@@ -1358,7 +1595,7 @@ def resolve_constant_value(expr: str, all_constants: dict[str, object], depth: i
     - Decimal literals
     - Hex ($xxxx or 0x...)
     - Binary (%xxxx)
-    - Simple arithmetic: +, -, *, <<, >>, |, &, ~
+    - Simple arithmetic: +, -, *, <<, >>, |, !, &, ~
     - References to other constants
     - Parenthesized expressions
     """
@@ -1417,9 +1654,9 @@ def resolve_constant_value(expr: str, all_constants: dict[str, object], depth: i
             if val is not None:
                 return val
 
-    # Binary operators (lowest precedence first): |, &, <<, >>, +, -, *
+    # Binary operators (lowest precedence first): |/!, &, <<, >>, +, -, *
     # Split on operators respecting parentheses
-    for ops in [('|',), ('&',), ('<<', '>>'), ('+', '-'), ('*',)]:
+    for ops in [('|', '!'), ('&',), ('<<', '>>'), ('+', '-'), ('*',)]:
         pos = find_operator(expr, ops)
         if pos is not None:
             op_str, op_pos, op_len = pos
@@ -1428,7 +1665,7 @@ def resolve_constant_value(expr: str, all_constants: dict[str, object], depth: i
             lval = resolve_constant_value(left, all_constants, depth + 1)
             rval = resolve_constant_value(right, all_constants, depth + 1)
             if lval is not None and rval is not None:
-                if op_str == '|':
+                if op_str in {'|', '!'}:
                     return lval | rval
                 if op_str == '&':
                     return lval & rval
@@ -1508,6 +1745,160 @@ def evaluate_all_constants(raw_constants: dict[str, object]) -> dict[str, JsonDi
             break
 
     return result
+
+
+def _field_key(struct_name: str, field_name: str) -> str:
+    return f"{struct_name}.{field_name}"
+
+
+def _include_source_from_path(path: str) -> str:
+    normalized = path.replace("\\", "/")
+    marker = "/Include_I/"
+    idx = normalized.lower().find(marker.lower())
+    if idx == -1:
+        raise ValueError(f"Unable to derive include source from {path}")
+    return normalized[idx + len(marker):].upper()
+
+
+def _parse_bitdef_constants(
+        lines: list[str], evaluated_constants: dict[str, JsonDict]
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    prefix_constants: dict[str, list[str]] = defaultdict(list)
+    io_flags_prefix_constants: dict[str, list[str]] = defaultdict(list)
+    recent_comments: list[str] = []
+    for raw_line in lines:
+        stripped = raw_line.strip()
+        if stripped.startswith(("*", ";")):
+            comment = stripped.lstrip("*;").strip()
+            if comment:
+                recent_comments.append(comment)
+                if len(recent_comments) > 4:
+                    recent_comments.pop(0)
+            continue
+        match = re.match(r"\s+BITDEF\s+(\w+),(\w+),(\d+)", raw_line)
+        if not match:
+            recent_comments.clear()
+            continue
+        prefix = match.group(1)
+        name = match.group(2)
+        flag_name = f"{prefix}F_{name}"
+        if evaluated_constants[flag_name]["value"] is None:
+            raise ValueError(f"Unresolved BITDEF flag constant {flag_name}")
+        prefix_constants[prefix].append(flag_name)
+        if "IO_FLAGS" in " ".join(recent_comments):
+            io_flags_prefix_constants[prefix].append(flag_name)
+        recent_comments.clear()
+    return dict(prefix_constants), dict(io_flags_prefix_constants)
+
+
+def _parse_devcmd_constants(
+        lines: list[str], evaluated_constants: dict[str, JsonDict]
+) -> list[str]:
+    command_names: list[str] = []
+    for raw_line in lines:
+        match = re.match(r"\s+DEVCMD\s+(\w+)", raw_line)
+        if not match:
+            continue
+        command_name = match.group(1)
+        if evaluated_constants[command_name]["value"] is None:
+            raise ValueError(f"Unresolved DEVCMD constant {command_name}")
+        command_names.append(command_name)
+    return command_names
+
+
+def _parse_prefixed_constant_names(
+        lines: list[str], evaluated_constants: dict[str, JsonDict], prefix: str
+) -> list[str]:
+    result: list[str] = []
+    pattern = re.compile(rf"^\s*({re.escape(prefix)}\w*)\s+EQU\b")
+    for raw_line in lines:
+        match = pattern.match(raw_line)
+        if not match:
+            continue
+        constant_name = match.group(1)
+        if evaluated_constants[constant_name]["value"] is None:
+            raise ValueError(f"Unresolved constant {constant_name}")
+        result.append(constant_name)
+    return result
+
+
+def _parse_device_name(path: str, source: str, lines: list[str]) -> str | None:
+    candidates = {
+        match.group(1)
+        for line in lines
+        for match in [re.search(r"'([^']+\.device)'", line)]
+        if match is not None
+    }
+    if not candidates:
+        # Parser-asserted from NDK device include layout: DEVICES/<NAME>.I is the
+        # canonical include for <name>.device even when the file only carries a
+        # prose header ("clipboard.device structure definitions") and no literal
+        # '*.device' string.
+        if source.upper().startswith("DEVICES/"):
+            return f"{Path(path).stem.lower()}.device"
+        return None
+    if len(candidates) != 1:
+        raise ValueError(f"Ambiguous device names in include: {sorted(candidates)}")
+    return next(iter(candidates))
+
+
+def parse_include_value_domains(
+        path: str, evaluated_constants: dict[str, JsonDict]
+) -> tuple[dict[str, list[str]], dict[str, str], FieldValueDomainContexts]:
+    source = _include_source_from_path(path)
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        lines = [line.rstrip() for line in handle]
+
+    value_domains: dict[str, list[str]] = {}
+    field_value_domains: dict[str, str] = {}
+    field_context_value_domains: FieldValueDomainContexts = {}
+    prefix_constants, io_flags_prefix_constants = _parse_bitdef_constants(lines, evaluated_constants)
+
+    if source == "EXEC/IO.I":
+        command_domain_name = "exec.io.command"
+        command_names = _parse_devcmd_constants(lines, evaluated_constants)
+        if not command_names:
+            raise ValueError("EXEC/IO.I is missing standard device commands")
+        value_domains[command_domain_name] = command_names
+        field_value_domains[_field_key("IO", "IO_COMMAND")] = command_domain_name
+
+        io_flag_names = prefix_constants.get("IO")
+        if not io_flag_names:
+            raise ValueError("EXEC/IO.I is missing IO flag bit definitions")
+        flag_domain_name = "exec.io.flags"
+        value_domains[flag_domain_name] = io_flag_names
+        field_value_domains[_field_key("IO", "IO_FLAGS")] = flag_domain_name
+        return value_domains, field_value_domains, field_context_value_domains
+
+    source_upper = source.upper()
+    if not source_upper.startswith("DEVICES/"):
+        return value_domains, field_value_domains, field_context_value_domains
+    device_commands = _parse_devcmd_constants(lines, evaluated_constants)
+    if not device_commands:
+        return value_domains, field_value_domains, field_context_value_domains
+
+    # Parser-asserted from exec/io.i DEVINIT/DEVCMD semantics:
+    # device include DEVCMD values populate IO.IO_COMMAND for that device context.
+    device_name = _parse_device_name(path, source, lines)
+    if device_name is None:
+        raise ValueError(f"Device include {source} defines DEVCMD values but no '*.device' name string")
+
+    command_domain_name = f"{device_name}.io_command"
+    etd_commands = _parse_prefixed_constant_names(lines, evaluated_constants, "ETD_")
+    value_domains[command_domain_name] = device_commands + etd_commands
+    field_context_value_domains.setdefault(_field_key("IO", "IO_COMMAND"), {})[device_name] = command_domain_name
+
+    io_flag_prefixes = sorted(io_flags_prefix_constants)
+    if io_flag_prefixes:
+        if len(io_flag_prefixes) != 1:
+            raise ValueError(
+                f"Ambiguous IO flag prefixes for {device_name}: {io_flag_prefixes}"
+            )
+        flag_domain_name = f"{device_name}.io_flags"
+        value_domains[flag_domain_name] = io_flags_prefix_constants[io_flag_prefixes[0]]
+        field_context_value_domains.setdefault(_field_key("IO", "IO_FLAGS"), {})[device_name] = flag_domain_name
+
+    return value_domains, field_value_domains, field_context_value_domains
 
 
 # =============================================================================
@@ -1643,6 +2034,98 @@ def fd_stem_to_lib_name(fd_stem: str) -> str:
     return base + suffix
 
 
+def lib_name_to_fd_stem(lib_name: str) -> str:
+    """Convert canonical library/device/resource name back to FD stem."""
+    base_name = lib_name.rsplit(".", 1)[0]
+    for alias, canonical in FD_NAME_MAP.items():
+        if canonical == base_name:
+            return alias
+    return base_name
+
+
+def _canonical_include_relpath(lib_name: str, fd_stem: str) -> str:
+    base_name, kind = lib_name.rsplit(".", 1)
+    stem_lower = fd_stem.lower()
+    if kind == "device":
+        return f"devices/{base_name.lower()}.i"
+    if kind == "resource":
+        return f"resources/{base_name.lower()}.i"
+    if kind == "gadget":
+        return f"gadgets/{base_name.lower()}.i"
+    if kind == "datatype":
+        return f"datatypes/{base_name.lower()}.i"
+    return f"{base_name.lower()}/{stem_lower}_lib.i"
+
+
+def _native_include_candidates(include_dir: str, lib_name: str, fd_stem: str) -> list[tuple[str, str]]:
+    base_name, kind = lib_name.rsplit(".", 1)
+    stem_upper = fd_stem.upper()
+    if kind == "device":
+        return [(os.path.join(include_dir, "DEVICES", f"{base_name.upper()}.I"), f"devices/{base_name.lower()}.i")]
+    if kind == "resource":
+        return [(os.path.join(include_dir, "RESOURCES", f"{base_name.upper()}.I"), f"resources/{base_name.lower()}.i")]
+    if kind == "gadget":
+        return [(os.path.join(include_dir, "GADGETS", f"{base_name.upper()}.I"), f"gadgets/{base_name.lower()}.i")]
+    if kind == "datatype":
+        return [(os.path.join(include_dir, "DATATYPES", f"{base_name.upper()}.I"), f"datatypes/{base_name.lower()}.i")]
+    return [
+        (os.path.join(include_dir, base_name.upper(), f"{stem_upper}_LIB.I"), f"{base_name.lower()}/{fd_stem.lower()}_lib.i"),
+        (os.path.join(include_dir, "LIBRARIES", f"{stem_upper}_LIB.I"), f"{base_name.lower()}/{fd_stem.lower()}_lib.i"),
+    ]
+
+
+def build_os_include_kb(
+    include_dir: str,
+    fd_dir: str,
+    fd_data: dict[str, JsonDict],
+) -> JsonDict:
+    library_lvo_owners: dict[str, JsonDict] = {}
+    sources: list[JsonDict] = []
+
+    for lib_name in sorted(fd_data):
+        fd_stem = lib_name_to_fd_stem(lib_name)
+        native_match = None
+        for candidate_path, candidate_relpath in _native_include_candidates(include_dir, lib_name, fd_stem):
+            if os.path.isfile(candidate_path):
+                native_match = (candidate_path, candidate_relpath)
+                break
+        if native_match is not None:
+            source_path, include_path = native_match
+            source_file = source_path.replace(os.sep, "/")
+            library_lvo_owners[lib_name] = {
+                "kind": "native_include",
+                "include_path": include_path,
+                "comment_include_path": include_path,
+                "source_file": source_file,
+            }
+            sources.append({
+                "type": "official",
+                "file": source_file,
+                "description": f"Native Amiga NDK include file for {lib_name}",
+            })
+            continue
+
+        fd_path = os.path.join(fd_dir, f"{fd_stem.upper()}_LIB.FD")
+        if not os.path.isfile(fd_path):
+            raise ValueError(f"Missing FD file for library include ownership: {fd_path}")
+        library_lvo_owners[lib_name] = {
+            "kind": "fd_only",
+            "include_path": None,
+            "comment_include_path": _canonical_include_relpath(lib_name, fd_stem),
+            "source_file": fd_path.replace(os.sep, "/"),
+        }
+        sources.append({
+            "type": "official",
+            "file": fd_path.replace(os.sep, "/"),
+            "description": f"FD-derived LVO ownership for {lib_name}",
+        })
+
+    return {
+        "sources": sources,
+        "library_lvo_owners": library_lvo_owners,
+    }
+
+
 # =============================================================================
 # Autodoc -> library matching
 # =============================================================================
@@ -1740,6 +2223,7 @@ def main() -> None:
     raw_constants: dict[str, object] = {}
     raw_structs: dict[str, JsonDict] = {}
     raw_named_base_structs: dict[str, str] = {}
+    parsed_include_paths: list[str] = []
 
     include_subdirs = sorted([
         d for d in os.listdir(include_dir)
@@ -1769,8 +2253,11 @@ def main() -> None:
         for fname in sorted(os.listdir(subdir_path)):
             if fname.upper().endswith(".I"):
                 fpath = os.path.join(subdir_path, fname)
+                if _pass_num == 0:
+                    parsed_include_paths.append(fpath)
                 eoffset = 0
                 soffset: int | None = 0  # simulates SOFFSET for struct field constants
+                cmd_count: int | None = None
                 in_struct = False
                 with open(fpath, encoding="utf-8", errors="replace") as f:
                     for line in f:
@@ -1796,6 +2283,22 @@ def main() -> None:
                             bitnum = bm.group(3)
                             raw_constants[f"{prefix}B_{name}"] = bitnum
                             raw_constants[f"{prefix}F_{name}"] = f"(1<<{bitnum})"
+                            continue
+
+                        # DEVINIT [base] / DEVCMD name
+                        dm = re.match(r'\s+DEVINIT(?:\s+(\S+))?\s*$', line)
+                        if dm:
+                            base_expr = dm.group(1) or "CMD_NONSTD"
+                            resolved = resolve_constant_value(base_expr, raw_constants)
+                            cmd_count = resolved
+                            continue
+
+                        dm = re.match(r'\s+DEVCMD\s+(\w+)', line)
+                        if dm:
+                            if cmd_count is None:
+                                continue
+                            raw_constants[dm.group(1)] = str(cmd_count)
+                            cmd_count += 1
                             continue
 
                         # ENUM [base]
@@ -1929,6 +2432,9 @@ def main() -> None:
                 lib_name = fd_stem_to_lib_name(raw_name)
                 fd_data[lib_name] = result
     print(f"  {len(fd_data)} FD files parsed")
+    print("Building OS include ownership KB...")
+    include_kb = build_os_include_kb(include_dir, fd_dir, fd_data)
+    print(f"  {len(include_kb['library_lvo_owners'])} library include ownership entries")
     named_base_structs = derive_named_base_structs(
         fd_data,
         raw_structs,
@@ -2038,6 +2544,10 @@ def main() -> None:
             "version_map": VERSION_MAP,
             "lvo_slot_size": LVO_SLOT_SIZE,
             "named_base_structs": named_base_structs,
+            "value_domains": {},
+            "field_value_domains": {},
+            "field_context_value_domains": {},
+            "library_lvo_owners": include_kb["library_lvo_owners"],
             "version_fields_note": (
                 "Function version data is split: os_since is first known OS release, "
                 "while fd_version is the interface/library version marker from FD comments. "
@@ -2076,7 +2586,7 @@ def main() -> None:
             # Build inputs from FD args/regs
             if fd_func["args"]:
                 entry["inputs"] = [
-                    {"name": a, "reg": r}
+                    {"name": a, "regs": list(r)}
                     for a, r in zip(fd_func["args"], fd_func["regs"], strict=True)
                 ]
 
@@ -2135,8 +2645,12 @@ def main() -> None:
                                             "UBYTE *", "void *")
                 ]
                 if name_inputs:
+                    if len(name_inputs[0]["regs"]) != 1:
+                        raise ValueError(
+                            f"{lib_name}/{func_name}: returns_base name input must use one register"
+                        )
                     entry["returns_base"] = {
-                        "name_reg": name_inputs[0]["reg"],
+                        "name_reg": name_inputs[0]["regs"][0],
                         "base_reg": out_reg,
                     }
 
@@ -2166,8 +2680,12 @@ def main() -> None:
                         "result_reg": out_reg,
                     }
                     if size_inputs:
+                        if len(size_inputs[0]["regs"]) != 1:
+                            raise ValueError(
+                                f"{lib_name}/{func_name}: returns_memory size input must use one register"
+                            )
                         entry["returns_memory"]["size_reg"] = \
-                            size_inputs[0]["reg"]
+                            size_inputs[0]["regs"][0]
 
             os_since = fd_func.get("os_since")
             if oc_lib and func_name in oc_lib["functions"]:
@@ -2217,36 +2735,71 @@ def main() -> None:
     resolved_consts = {name for name, c in evaluated_constants.items()
                        if c.get("value") is not None
                        and re.match(r'^[A-Z][A-Z0-9_]+$', name)}
-    constant_domains: dict[str, list[str]] = {}
+    input_constant_domains: dict[str, dict[str, list[str]]] = {}
     if resolved_consts:
         # Build regex pattern (process in batches for regex size limits)
         sorted_names = sorted(resolved_consts, key=len, reverse=True)
-        batch_size = 500
         # Scan all autodocs for constant references
         for _lib_name, lib_autodocs in autodoc_data.items():
             for func_name, doc in lib_autodocs.items():
-                text_parts = []
-                for key in ("description", "inputs_text", "results_text",
-                             "notes"):
-                    val = doc.get(key)
-                    if val:
-                        text_parts.append(val)
-                if not text_parts:
-                    continue
-                full_text = "\n".join(text_parts)
-                found = set()
-                for i in range(0, len(sorted_names), batch_size):
-                    batch = sorted_names[i:i + batch_size]
-                    pattern = (r'\b(' + '|'.join(re.escape(n) for n in batch)
-                               + r')\b')
-                    for m in re.finditer(pattern, full_text):
-                        found.add(m.group(1))
-                if found:
-                    constant_domains[func_name] = sorted(found)
-    output["_meta"]["constant_domains"] = constant_domains
-    cd_count = sum(len(v) for v in constant_domains.values())
-    print(f"  {len(constant_domains)} functions with "
-          f"{cd_count} constant references")
+                input_names = [
+                    cast(str, inp["name"])
+                    for inp in output["libraries"].get(cast(str, doc["_lib_prefix"]), {}).get("functions", {}).get(func_name, {}).get("inputs", [])
+                    if "name" in inp
+                ]
+                if input_names:
+                    input_domains = _extract_input_constant_domains(
+                        doc,
+                        input_names,
+                        sorted_names,
+                    )
+                    if input_domains:
+                        input_constant_domains[func_name] = input_domains
+    output["_meta"].pop("constant_domains", None)
+    output["_meta"]["input_constant_domains"] = input_constant_domains
+    print("Building field value domains...")
+    value_domains: dict[str, list[str]] = {}
+    field_value_domains: dict[str, str] = {}
+    field_context_value_domains: FieldValueDomainContexts = {}
+    for include_path in sorted(set(parsed_include_paths)):
+        include_value_domains, include_field_domains, include_field_context_domains = (
+            parse_include_value_domains(include_path, evaluated_constants)
+        )
+        for domain_name, domain_constants in include_value_domains.items():
+            existing_domain_constants = value_domains.get(domain_name)
+            if existing_domain_constants is not None and existing_domain_constants != domain_constants:
+                raise ValueError(
+                    f"Conflicting value domain {domain_name}: {existing_domain_constants} vs {domain_constants}"
+                )
+            value_domains[domain_name] = domain_constants
+        for field_key, domain_name in include_field_domains.items():
+            existing_field_domain = field_value_domains.get(field_key)
+            if existing_field_domain is not None and existing_field_domain != domain_name:
+                raise ValueError(
+                    f"Conflicting field value domain for {field_key}: {existing_field_domain} vs {domain_name}"
+                )
+            field_value_domains[field_key] = domain_name
+        for field_key, contexts in include_field_context_domains.items():
+            merged = field_context_value_domains.setdefault(field_key, {})
+            for context_name, domain_name in contexts.items():
+                existing_context_domain = merged.get(context_name)
+                if existing_context_domain is not None and existing_context_domain != domain_name:
+                    raise ValueError(
+                        f"Conflicting field context value domain for {field_key}/{context_name}: "
+                        f"{existing_context_domain} vs {domain_name}"
+                    )
+                merged[context_name] = domain_name
+    output["_meta"]["value_domains"] = value_domains
+    output["_meta"]["field_value_domains"] = field_value_domains
+    output["_meta"]["field_context_value_domains"] = field_context_value_domains
+    input_cd_count = sum(len(v) for v in input_constant_domains.values())
+    print(f"  {len(input_constant_domains)} functions with "
+          f"{input_cd_count} input-specific constant domains")
+    print(
+        f"  {len(value_domains)} value domains, "
+        f"{len(field_value_domains)} field domains, "
+        f"{sum(len(v) for v in field_context_value_domains.values())} field-context domains"
+    )
 
     # ========================================================================
     # 6b. Build C-to-I struct name mapping

@@ -195,7 +195,15 @@ def load_m68k_executor_runtime_module() -> ModuleType:
 @lru_cache(maxsize=1)
 def load_os_runtime_kb() -> ModuleType:
     module = _load_runtime_module("runtime_os")
-    for name in ("META", "STRUCTS", "CONSTANTS", "LIBRARIES"):
+    for name in (
+        "META",
+        "VALUE_DOMAINS",
+        "FIELD_VALUE_DOMAINS",
+        "FIELD_CONTEXT_VALUE_DOMAINS",
+        "STRUCTS",
+        "CONSTANTS",
+        "LIBRARIES",
+    ):
         _require_attr(module, name)
     return module
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from pathlib import Path
 
+from disasm.target_metadata import TargetMetadata
 from disasm.types import (
     DisasmBlockLike,
     DisassemblySession,
@@ -37,19 +38,26 @@ def prepare_hunk_code(code: bytes, relocated_segments: list[RelocatedSegment]
 
 
 def build_session_object(*, target_name: str | None, binary_path: str | Path,
+                         analysis_cache_path: str | Path,
                          entities_path: str | Path, output_path: str | Path | None,
                          entities: list[EntityRecord],
                          hunk_sessions: list[HunkDisassemblySession],
-                         profile_stages: bool) -> DisassemblySession:
+                         profile_stages: bool,
+                         target_metadata: TargetMetadata | None = None,
+                         source_kind: str | None = None,
+                         raw_address_model: str | None = None) -> DisassemblySession:
     binary_path = Path(binary_path)
     return DisassemblySession(
         target_name=target_name,
         binary_path=binary_path,
         entities_path=Path(entities_path),
-        analysis_cache_path=binary_path.with_suffix(".analysis"),
+        analysis_cache_path=Path(analysis_cache_path),
         output_path=Path(output_path) if output_path else None,
         entities=entities,
         hunk_sessions=hunk_sessions,
+        target_metadata=target_metadata,
+        source_kind=source_kind,
+        raw_address_model=raw_address_model,
         profile_stages=profile_stages,
     )
 

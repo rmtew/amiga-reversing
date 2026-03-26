@@ -65,7 +65,6 @@ PDF  →  parser  →  JSON (knowledge base)  →  generated tools
 
 ### Verification
 - **Round-trip test is mandatory**: reassemble with vasm, binary-diff against original
-- Run `scripts/validate.py` after every batch of changes
 - Never mark an entity as `verified` unless it passes round-trip or type-specific checks
 
 ### Knowledge Files

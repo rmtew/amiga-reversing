@@ -2,11 +2,13 @@
   "meta": {
     "description": "Amiga disk image formats and filesystem structures for reverse engineering",
     "sources": [
-      "Laurent Clevy ADF FAQ (lclevy.free.fr/adflib/adf_info.html)",
-      "AmigaOS Wiki (wiki.amigaos.net)",
-      "OSDev Wiki FFS article",
-      "Amiga Developer CD Appendix C",
-      "keirf/Disk-Utilities GitHub"
+      "Amiga Hardware Reference Manual, 3rd edition (custom registers, MFM sync, DMA, CIA drive control)",
+      "Amiga ROM Kernel Reference Manual: Devices (trackdisk.device autodocs and floppy geometry)",
+      "Amiga ROM Kernel Reference Manual: Libraries (AmigaDOS filesystem structures and protection bits)",
+      "Amiga Developer CD 2.1 NDK include files and autodocs (trackdisk.i, ciab.i, dos/filehandler structures)",
+      "Motorola M68000 Family Programmer's Reference Manual opcode encodings used for non-DOS track triage signatures",
+      "EA IFF 85 and related IFF form specifications for embedded container signatures",
+      "keirf/Disk-Utilities used only as a cross-check for known custom formats"
     ]
   },
 
@@ -72,6 +74,123 @@
     "raw_track_size_bytes": 12800
   },
 
+  "non_dos_analysis": {
+    "description": "Heuristic triage for non-AmigaDOS sector images and DOS bootblocks with invalid filesystems",
+    "boot_ascii_min_length": 6,
+    "track_ascii_min_length": 6,
+    "max_boot_ascii_strings": 12,
+    "max_track_ascii_strings": 20,
+    "high_entropy_threshold": 7.8,
+    "max_high_entropy_tracks": 16,
+    "max_repeated_track_groups": 16,
+    "code_track_min_pattern_hits": 4,
+    "m68k_code_word_signatures": [
+      {"word": "0x4E75", "name": "RTS"},
+      {"word": "0x4E73", "name": "RTE"},
+      {"word": "0x4E71", "name": "NOP"},
+      {"word": "0x4E72", "name": "STOP"},
+      {"word": "0x4EF9", "name": "JMP_abs"},
+      {"word": "0x4EB9", "name": "JSR_abs"}
+    ]
+  },
+
+  "boot_loader_analysis": {
+    "description": "Bootblock-first loader analysis for custom and trackloaded disks",
+    "load_address": "0x70000",
+    "entry_offset": "0x0C",
+    "custom_disk_dma": {
+      "dsklen_length_mask": "0x3FFF",
+      "dsklen_length_unit_bytes": 2,
+      "description": "For DSKLEN-driven DMA sizing, bits 13-0 hold the transfer length in words; multiply by 2 for bytes"
+    },
+    "floppy_control": {
+      "cia_port_b_symbol": "ciaprb",
+      "initial_cylinder": 0,
+      "initial_head": 0,
+      "motor_bit": {"mask": "0x80", "active_low": true},
+      "drive_select_bits": [
+        {"drive": 3, "mask": "0x40", "active_low": true},
+        {"drive": 2, "mask": "0x20", "active_low": true},
+        {"drive": 1, "mask": "0x10", "active_low": true},
+        {"drive": 0, "mask": "0x08", "active_low": true}
+      ],
+      "side_bit": {"mask": "0x04", "zero_means_head": 0, "one_means_head": 1},
+      "direction_bit": {"mask": "0x02", "zero_means": "inward", "one_means": "outward"},
+      "step_bit": {"mask": "0x01", "active_low": true, "pulse_edge": "falling"}
+    },
+    "trackdisk_iostdreq_fields": {
+      "io_Command": 28,
+      "io_Length": 36,
+      "io_Data": 40,
+      "io_Offset": 44
+    },
+    "trackdisk_commands": {
+      "CMD_READ": {
+        "value": 2,
+        "description": "Read sectors (standard)"
+      },
+      "CMD_WRITE": {
+        "value": 3,
+        "description": "Write sectors (standard)"
+      },
+      "TD_RAWREAD": {
+        "value": 16,
+        "description": "Read raw MFM track data"
+      },
+      "TD_RAWWRITE": {
+        "value": 17,
+        "description": "Write raw MFM track data"
+      },
+      "TD_MOTOR": {
+        "value": 18,
+        "description": "Motor control (io_Length: 1=on, 0=off)"
+      },
+      "TD_SEEK": {
+        "value": 19,
+        "description": "Move heads (no read)"
+      }
+    },
+    "exec_library_vectors": {
+      "DoIO": {
+        "lvo": -456,
+        "description": "Synchronous device I/O using an IORequest in A1"
+      },
+      "OpenLibrary": {
+        "lvo": -552,
+        "description": "Open shared library by name in A1"
+      }
+    },
+    "trace_watch": {
+      "input_prefix_bytes_when_output_unknown": 64
+    },
+    "candidate_replay": {
+      "max_stage_bytes": 1024,
+      "max_candidate_spans": 4
+    },
+    "inference_limits": {
+      "hardware_access_group_gap_bytes": 16,
+      "decode_output_backscan_instructions": 16,
+      "decode_output_add_base_backscan_instructions": 4,
+      "wait_loop_search_bytes": 24,
+      "buffer_scan_search_bytes": 40
+    },
+    "tracked_hardware_register_symbols": [
+      "dskpt",
+      "dsklen",
+      "dskdat",
+      "dskdatr",
+      "dskbytr",
+      "dsksync",
+      "dmacon",
+      "dmaconr",
+      "intreq",
+      "intreqr",
+      "adkcon",
+      "adkconr",
+      "ciaprb"
+    ]
+  },
+
   "boot_block": {
     "description": "First 2 sectors (1024 bytes) of disk",
     "location": "blocks 0-1",
@@ -101,8 +220,20 @@
     "validation_note": "DOS magic alone does NOT guarantee a valid filesystem. Some custom-format disks have DOS bootblocks (for bootstrap code) but no valid root block. Always verify root block type=T_HEADER(2) and sec_type=ST_ROOT(1) before parsing filesystem.",
     "boot_entry": {
       "registers": {
-        "A6": "ExecBase",
-        "A1": "IOStdReq (open trackdisk.device)"
+        "A6": {
+          "kind": "library_base",
+          "library_name": "exec.library",
+          "struct_name": "LIB",
+          "context_name": null,
+          "note": "ExecBase"
+        },
+        "A1": {
+          "kind": "struct_ptr",
+          "library_name": null,
+          "struct_name": "IO",
+          "context_name": "trackdisk.device",
+          "note": "IOStdReq (open trackdisk.device)"
+        }
       },
       "entry_point": "offset 0x0C",
       "return": "D0=0 success (A0=jump address), non-zero=failure"
@@ -113,6 +244,7 @@
     "description": "AmigaDOS filesystem structures (OFS and FFS)",
     "block_size": 512,
     "date_format": {
+      "base_date": "1978-01-01",
       "days": "days since January 1, 1978",
       "mins": "minutes past midnight",
       "ticks": "1/50 second ticks"
@@ -134,6 +266,20 @@
       "ST_FILE": -3,
       "ST_SOFTLINK": 3,
       "ST_LINKDIR": 4
+    },
+
+    "protection_bits": {
+      "encoding_order": "HSPARWED",
+      "bits": [
+        {"char": "h", "mask": 128, "set_means_present": true},
+        {"char": "s", "mask": 64, "set_means_present": true},
+        {"char": "p", "mask": 32, "set_means_present": true},
+        {"char": "a", "mask": 16, "set_means_present": true},
+        {"char": "r", "mask": 8, "set_means_present": false},
+        {"char": "w", "mask": 4, "set_means_present": false},
+        {"char": "e", "mask": 2, "set_means_present": false},
+        {"char": "d", "mask": 1, "set_means_present": false}
+      ]
     },
 
     "root_block": {

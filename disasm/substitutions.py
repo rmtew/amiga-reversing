@@ -6,7 +6,10 @@ from collections.abc import Mapping, Sequence
 from typing import Protocol
 
 from disasm.types import EntityRecord
-from m68k.instruction_decode import decode_inst_destination, decode_inst_operands
+from m68k.instruction_decode import (
+    decode_inst_destination,
+    instruction_immediate_value,
+)
 from m68k.instruction_kb import instruction_kb
 from m68k.instruction_primitives import extract_branch_target
 from m68k.m68k_disasm import Instruction
@@ -95,10 +98,10 @@ def build_lvo_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
             for j in range(call_idx - 1, -1, -1):
                 prev = caller_blk.instructions[j]
                 prev_kb = instruction_kb(prev)
-                prev_dec = decode_inst_operands(prev, prev_kb)
-                if prev_dec.imm_val is None:
+                imm_val = instruction_immediate_value(prev, prev_kb)
+                if imm_val is None:
                     continue
-                pv = prev_dec.imm_val
+                pv = imm_val
                 pv_signed = pv - 0x100000000 if pv >= 0x80000000 else pv
                 if pv_signed == lvo:
                     imm_token = _immediate_operand_token(prev)
@@ -114,26 +117,38 @@ def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
     arg_equs: dict[str, int] = {}
     arg_substitutions: dict[int, tuple[str, str]] = {}
     sorted_code_ents = _sorted_code_entities(hunk_entities)
-    const_domains = os_kb.META.constant_domains
+    input_const_domains = os_kb.META.input_constant_domains
     all_consts = os_kb.CONSTANTS
-    func_const_map: dict[str, dict[int, str]] = {}
-    for func_name, const_names in const_domains.items():
-        vmap: dict[int, str] = {}
-        for cn in const_names:
-            constant = all_consts.get(cn)
-            cv = None if constant is None else constant.value
-            if cv is not None:
-                vmap[cv] = cn
-        if vmap:
-            func_const_map[func_name] = vmap
+    func_input_const_map: dict[str, dict[str, dict[int, tuple[str, ...]]]] = {}
+    for func_name, input_domains in input_const_domains.items():
+        per_input_map: dict[str, dict[int, tuple[str, ...]]] = {}
+        for input_name, const_names in input_domains.items():
+            vmap_lists: dict[int, list[str]] = {}
+            for cn in const_names:
+                constant = all_consts.get(cn)
+                if constant is None:
+                    raise KeyError(
+                        f"Missing constant {cn} for input domain {func_name}.{input_name}")
+                cv = constant.value
+                if cv is None:
+                    raise ValueError(
+                        f"Non-concrete constant {cn} in input domain {func_name}.{input_name}")
+                names = vmap_lists.setdefault(cv, [])
+                if cn not in names:
+                    names.append(cn)
+            if vmap_lists:
+                per_input_map[input_name] = {
+                    value: tuple(names) for value, names in vmap_lists.items()
+                }
+        if per_input_map:
+            func_input_const_map[func_name] = per_input_map
     for call in lib_calls:
         func_name = call.function
         if not func_name or func_name.startswith("LVO_"):
             continue
-        vmap_opt = func_const_map.get(func_name)
-        if not vmap_opt:
+        input_maps = func_input_const_map.get(func_name)
+        if not input_maps:
             continue
-        vmap = vmap_opt
         lib = call.library
         library = os_kb.LIBRARIES.get(lib)
         if library is None:
@@ -156,28 +171,35 @@ def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
         if call_idx is None:
             continue
         for inp in inputs:
-            reg = inp.reg.lower()
-            reg_mode, reg_n = parse_reg_name(reg)
-            for j in range(call_idx - 1, -1, -1):
-                prev = blk.instructions[j]
-                prev_kb = instruction_kb(prev)
-                prev_dec = decode_inst_operands(prev, prev_kb)
-                if prev_dec.imm_val is None:
-                    continue
-                dst = decode_inst_destination(prev, prev_kb)
-                if dst is None:
-                    continue
-                dst_mode, dst_num = dst
-                if dst_mode != reg_mode or dst_num != reg_n:
-                    continue
-                imm_val = prev_dec.imm_val
-                const_name = vmap.get(imm_val)
-                if const_name is None and imm_val >= 0x80000000:
-                    const_name = vmap.get(imm_val - 0x100000000)
-                if const_name:
-                    equ_val = imm_val - 0x100000000 if imm_val >= 0x80000000 else imm_val
-                    arg_equs[const_name] = equ_val
-                    imm_token = _immediate_operand_token(prev)
-                    arg_substitutions[prev.offset] = (imm_token, f"#{const_name}")
-                break
+            vmap = input_maps.get(inp.name)
+            if not vmap:
+                continue
+            for reg in inp.regs:
+                reg_mode, reg_n = parse_reg_name(reg.lower())
+                for j in range(call_idx - 1, -1, -1):
+                    prev = blk.instructions[j]
+                    prev_kb = instruction_kb(prev)
+                    imm_val = instruction_immediate_value(prev, prev_kb)
+                    if imm_val is None:
+                        continue
+                    dst = decode_inst_destination(prev, prev_kb)
+                    if dst is None:
+                        continue
+                    dst_mode, dst_num = dst
+                    if dst_mode != reg_mode or dst_num != reg_n:
+                        continue
+                    matched_const_names = vmap.get(imm_val)
+                    if matched_const_names is None and imm_val >= 0x80000000:
+                        matched_const_names = vmap.get(imm_val - 0x100000000)
+                    if matched_const_names:
+                        if len(matched_const_names) != 1:
+                            raise ValueError(
+                                f"Ambiguous input domain value for {func_name}.{inp.name}: "
+                                f"{imm_val} matches {list(matched_const_names)}")
+                        const_name = matched_const_names[0]
+                        equ_val = imm_val - 0x100000000 if imm_val >= 0x80000000 else imm_val
+                        arg_equs[const_name] = equ_val
+                        imm_token = _immediate_operand_token(prev)
+                        arg_substitutions[prev.offset] = (imm_token, f"#{const_name}")
+                    break
     return arg_equs, arg_substitutions

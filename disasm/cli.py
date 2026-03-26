@@ -108,7 +108,7 @@ def main() -> None:
     parser.add_argument("--output", "-o",
                         help="Output .s file path")
     parser.add_argument("--target-dir", "-t",
-                        help="Target output directory (e.g. targets/genam)")
+                        help="Target output directory (e.g. targets/amiga_hunk_genam)")
     parser.add_argument("--base-addr", type=lambda x: int(x, 0),
                         default=0,
                         help="Runtime base address (e.g. 0x400)")

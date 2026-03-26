@@ -162,7 +162,7 @@ class RuntimeM68kTables(TypedDict):
     move_fields: MoveFields
     movem_fields: dict[str, FieldSpec]
     cpid_field: tuple[int, int]
-    asm_syntax_index: dict[tuple[str, tuple[str, ...]], str]
+    asm_syntax_index: dict[tuple[str, tuple[str, ...]], tuple[str, tuple[str, ...]]]
     special_operand_types: tuple[str, ...]
     uses_labels: dict[str, bool]
     direction_form_values: dict[str, DirectionFormValue]
@@ -265,6 +265,7 @@ class M68kAsmRuntimePayload(TypedDict):
     LOOKUP_UPPER: dict[str, str]
     EA_MODE_ENCODING: dict[str, list[int]]
     EA_BRIEF_FIELDS: dict[str, FieldSpec]
+    DEFAULT_OPERAND_SIZE: str
     SIZE_BYTE_COUNT: dict[str, int]
     CONDITION_CODES: tuple[str, ...]
     CC_ALIASES: dict[str, str]
@@ -278,6 +279,7 @@ class M68kAsmRuntimePayload(TypedDict):
     FORM_OPERAND_TYPES: dict[str, tuple[tuple[str, ...], ...]]
     FORM_FLAGS_020: dict[str, tuple[bool, ...]]
     EA_MODE_TABLES: dict[str, tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]]
+    OPERAND_MODE_TABLES: dict[str, OperandModeTable]
     CC_FAMILIES: dict[str, CcFamilyRuntime]
     IMMEDIATE_RANGES: dict[str, ImmediateRange]
     DIRECTION_VARIANTS: dict[str, DirectionVariant]
@@ -286,7 +288,7 @@ class M68kAsmRuntimePayload(TypedDict):
     USES_LABELS: dict[str, bool]
     DIRECTION_FORM_VALUES: dict[str, DirectionFormValue]
     SPECIAL_OPERAND_TYPES: tuple[str, ...]
-    ASM_SYNTAX_INDEX: dict[tuple[str, tuple[str, ...]], str]
+    ASM_SYNTAX_INDEX: dict[tuple[str, tuple[str, ...]], tuple[str, tuple[str, ...]]]
 
 
 class M68kAnalysisRuntimePayload(TypedDict):
@@ -1578,7 +1580,7 @@ def _render_os_input(arg: OsInput) -> str:
     return (
         "OsInput("
         f"name={arg['name']!r}, "
-        f"reg={arg['reg']!r}, "
+        f"regs={tuple(arg['regs'])!r}, "
         f"type={arg.get('type')!r}, "
         f"i_struct={arg.get('i_struct')!r}, "
         f"semantic_kind={arg.get('semantic_kind')!r}, "
@@ -1667,7 +1669,8 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    absolute_symbols: tuple[AbsoluteSymbol, ...]",
         "    lvo_slot_size: int",
         "    named_base_structs: dict[str, str]",
-        "    constant_domains: dict[str, tuple[str, ...]]",
+        "    input_constant_domains: dict[str, dict[str, tuple[str, ...]]]",
+        "    library_lvo_owners: dict[str, object]",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsStructField:",
@@ -1697,7 +1700,7 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "@dataclass(frozen=True, slots=True)",
         "class OsInput:",
         "    name: str",
-        "    reg: str",
+        "    regs: tuple[str, ...]",
         "    type: str | None = None",
         "    i_struct: str | None = None",
         "    semantic_kind: str | None = None",
@@ -1750,8 +1753,15 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    ),",
         f"    lvo_slot_size={meta['lvo_slot_size']!r},",
         f"    named_base_structs={_render_py(dict(sorted(meta['named_base_structs'].items())))} ,",
-        f"    constant_domains={{{', '.join(f'{name!r}: {tuple(values)!r}' for name, values in sorted(meta['constant_domains'].items()))}}},",
+        f"    input_constant_domains={_render_py({func_name: {input_name: tuple(values) for input_name, values in sorted(input_domains.items())} for func_name, input_domains in sorted(meta['input_constant_domains'].items())})} ,",
+        f"    library_lvo_owners={_render_py(dict(sorted(meta['library_lvo_owners'].items())))} ,",
         ")",
+        "",
+        f"VALUE_DOMAINS = {{{', '.join(f'{name!r}: {tuple(values)!r}' for name, values in sorted(meta['value_domains'].items()))}}}",
+        "",
+        f"FIELD_VALUE_DOMAINS = {_render_py(dict(sorted(meta['field_value_domains'].items())))}",
+        "",
+        f"FIELD_CONTEXT_VALUE_DOMAINS = {_render_py({field: dict(sorted(contexts.items())) for field, contexts in sorted(meta['field_context_value_domains'].items())})}",
         "",
         "STRUCTS = {",
     ])
@@ -2356,12 +2366,25 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
     generic_types: set[str] = ea_mode_names | {"ea", "imm", "label", "reglist", "ctrl_reg",
                                                "rn", "bf_ea", "unknown", "dn_pair",
                                                "disp", "postinc", "predec"}
-    asm_syntax_index: dict[tuple[str, tuple[str, ...]], str] = {}
+    asm_syntax_index: dict[tuple[str, tuple[str, ...]], tuple[str, tuple[str, ...]]] = {}
     all_types: set[str] = set()
+    ea_alias_types = ("dn", "an")
     for key, kb_mnemonic in sorted(meta["asm_syntax_index"].items()):
         mnemonic, _, raw_operand_types = key.partition(":")
         operand_types: tuple[str, ...] = tuple(raw_operand_types.split(",")) if raw_operand_types else ()
-        asm_syntax_index[mnemonic, operand_types] = kb_mnemonic
+        asm_syntax_index[mnemonic, operand_types] = (kb_mnemonic, operand_types)
+        alias_variants: list[tuple[str, ...]] = [()]
+        for operand_type in operand_types:
+            if operand_type == "ea":
+                alias_variants = [
+                    variant + (alias_type,)
+                    for variant in alias_variants
+                    for alias_type in ea_alias_types
+                ]
+            else:
+                alias_variants = [variant + (operand_type,) for variant in alias_variants]
+        for alias_types in alias_variants:
+            asm_syntax_index.setdefault((mnemonic, alias_types), (kb_mnemonic, operand_types))
         all_types.update(operand_types)
     special_operand_types = tuple(sorted(all_types - generic_types))
     flow_types = {
@@ -2475,7 +2498,11 @@ def _build_os_runtime() -> OsRuntimePayload:
             "absolute_symbols": canonical["_meta"]["absolute_symbols"],
             "lvo_slot_size": canonical["_meta"]["lvo_slot_size"],
             "named_base_structs": canonical["_meta"]["named_base_structs"],
-            "constant_domains": canonical["_meta"]["constant_domains"],
+            "input_constant_domains": canonical["_meta"]["input_constant_domains"],
+            "value_domains": canonical["_meta"]["value_domains"],
+            "field_value_domains": canonical["_meta"]["field_value_domains"],
+            "field_context_value_domains": canonical["_meta"]["field_context_value_domains"],
+            "library_lvo_owners": canonical["_meta"]["library_lvo_owners"],
         },
         "STRUCTS": canonical["structs"],
         "CONSTANTS": canonical["constants"],
@@ -2616,6 +2643,7 @@ def _build_m68k_asm_runtime(runtime_payload: RuntimeM68kPayload) -> M68kAsmRunti
         "LOOKUP_UPPER": dict(sorted(lookup_upper.items())),
         "EA_MODE_ENCODING": meta["ea_mode_encoding"],
         "EA_BRIEF_FIELDS": tables["ea_brief_fields"],
+        "DEFAULT_OPERAND_SIZE": meta["default_operand_size"],
         "SIZE_BYTE_COUNT": meta["size_byte_count"],
         "CONDITION_CODES": tuple(meta["condition_codes"]),
         "CC_ALIASES": meta["cc_aliases"],
@@ -2629,6 +2657,7 @@ def _build_m68k_asm_runtime(runtime_payload: RuntimeM68kPayload) -> M68kAsmRunti
         "FORM_OPERAND_TYPES": tables["form_operand_types"],
         "FORM_FLAGS_020": tables["form_flags_020"],
         "EA_MODE_TABLES": tables["ea_mode_tables"],
+        "OPERAND_MODE_TABLES": tables["operand_mode_tables"],
         "CC_FAMILIES": tables["cc_families"],
         "IMMEDIATE_RANGES": tables["immediate_ranges"],
         "DIRECTION_VARIANTS": tables["direction_variants"],

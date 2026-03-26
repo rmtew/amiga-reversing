@@ -35,16 +35,13 @@ separately. See [RESOURCES.md](RESOURCES.md) for details.
 
 ```
 # Build entity database
-py scripts/build_entities.py bin/GenAm -t targets/genam
+py scripts/build_entities.py bin/GenAm -t targets/amiga_hunk_genam
 
 # Generate disassembly
-py scripts/gen_disasm.py bin/GenAm -t targets/genam
-
-# Validate entities
-py scripts/validate.py -t targets/genam
+py scripts/gen_disasm.py bin/GenAm -t targets/amiga_hunk_genam
 
 # Update progress dashboard
-py scripts/update_progress.py -t targets/genam
+py scripts/update_progress.py -t targets/amiga_hunk_genam
 
 # Run tests
 py -m pytest

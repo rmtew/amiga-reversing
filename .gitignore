@@ -29,6 +29,10 @@ targets/*
 !targets/*/
 targets/*/*
 !targets/*/*.s
-!targets/*/entities.jsonl
 !targets/*/benchmark.json
+!targets/*/binary_path.txt
+!targets/*/source_disk.json
+!targets/.disks/
+!targets/.disks/*/
+!targets/.disks/*/manifest.json
 *.analysis

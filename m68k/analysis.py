@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pickle
 import struct
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -522,7 +522,9 @@ def _discover_absolute_app_base(init_blocks: dict[int, BasicBlock],
 def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                  print_fn: PrintFn = print,
                  base_addr: int = 0,
-                 code_start: int = 0) -> HunkAnalysis:
+                 code_start: int = 0,
+                 entry_points: Sequence[int] = (),
+                 initial_state: CPUState | None = None) -> HunkAnalysis:
     """Run the complete analysis pipeline on a code hunk.
 
     Args:
@@ -585,8 +587,15 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
 
     # -- Phase 0: Init discovery --------------------------------------
     base_reg_num = platform.base_reg_num
+    resolved_entry_points = tuple(sorted(set(entry_points))) or (base_addr,)
+    resolved_entry_point = resolved_entry_points[0]
     init_result = analyze(
-        code, base_addr=base_addr, entry_points=[base_addr], propagate=True, platform=platform
+        code,
+        base_addr=base_addr,
+        entry_points=[resolved_entry_point],
+        propagate=True,
+        platform=platform,
+        initial_state=initial_state,
     )
     alloc_base = _SENTINEL_ALLOC_BASE
     alloc_limit = platform.next_alloc_sentinel
@@ -633,7 +642,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
             )
 
     # -- Phase 1: Core analysis with resolution loop ------------------
-    core_entries = {base_addr}
+    core_entries = set(resolved_entry_points)
     jt_call_targets: set[int] = set()
     jt_list: list[JumpTable] = []
     per_caller_entry_states: dict[int, list[ExitState]] = {}
@@ -771,6 +780,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                 entry_points=sorted(core_entries),
                 propagate=True,
                 platform=platform,
+                initial_state=initial_state,
             )
             if entries_converged:
                 break  # just re-analyzed with new memory
@@ -833,8 +843,9 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     def _stats(blks: dict[int, BasicBlock]) -> str:
         covered = sum(b.end - b.start for b in blks.values())
         n = sum(len(b.instructions) for b in blks.values())
+        coverage_ratio = 0.0 if code_size == 0 else 100 * covered / code_size
         return (f"{len(blks)} blocks, {n} instructions, "
-                f"{covered}/{code_size} ({100*covered/code_size:.1f}%)")
+                f"{covered}/{code_size} ({coverage_ratio:.1f}%)")
 
     print_fn(f"  Core: {_stats(blocks)}")
 
@@ -849,7 +860,11 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     hint_source: dict[int, str] = {}
     if hint_entries:
         hint_result = analyze(
-            code, base_addr=base_addr, entry_points=sorted(hint_entries), propagate=False
+            code,
+            base_addr=base_addr,
+            entry_points=sorted(hint_entries),
+            propagate=False,
+            initial_state=initial_state,
         )
         for a, b in hint_result["blocks"].items():
             if a not in blocks:
@@ -870,7 +885,11 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                     and c["addr"] not in hint_blocks}
     if scan_entries:
         scan_result = analyze(
-            code, base_addr=base_addr, entry_points=sorted(scan_entries), propagate=False
+            code,
+            base_addr=base_addr,
+            entry_points=sorted(scan_entries),
+            propagate=False,
+            initial_state=initial_state,
         )
         for a, b in scan_result["blocks"].items():
             if a not in blocks and a not in hint_blocks:
@@ -899,7 +918,11 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                 post_scan_entries.add(next_addr)
     if post_scan_entries:
         post_result = analyze(
-            code, base_addr=base_addr, entry_points=sorted(post_scan_entries), propagate=False
+            code,
+            base_addr=base_addr,
+            entry_points=sorted(post_scan_entries),
+            propagate=False,
+            initial_state=initial_state,
         )
         added = 0
         for a, b in post_result["blocks"].items():
@@ -963,7 +986,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     lib_calls = refine_opened_base_calls(blocks, lib_calls, code, os_kb, platform)
 
     if lib_calls:
-        resolved = [c for c in lib_calls if c.function]
+        resolved = [c for c in lib_calls if c.library != "unknown"]
         libs = {c.library for c in resolved}
         print_fn(f"  {len(lib_calls)} library calls identified "
                  f"({len(resolved)} resolved"
@@ -990,6 +1013,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     external_calls = {
         call.addr: call
         for call in lib_calls
+        if call.library != "unknown"
     }
     for site in indirect_sites:
         dispatch = jump_dispatch.get(site.addr)

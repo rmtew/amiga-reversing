@@ -19,12 +19,18 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "runtime_coverage: KB/runtime/assembler coverage-contract tests",
+]
 
 [tool.mypy]
 python_version = "3.14"
 strict = true
 follow_imports = "skip"
 files = [
+    "amiga_disk/__init__.py",
+    "amiga_disk/adf.py",
+    "amiga_disk/kb.py",
     "disasm/__init__.py",
     "disasm/api.py",
     "disasm/absolute_resolver.py",
@@ -113,6 +119,7 @@ files = [
     "scripts/benchmark_target.py",
     "scripts/disasm_server.py",
     "scripts/gen_disasm.py",
+    "scripts/import_adf.py",
     "scripts/oracle_m68k_asm.py",
     "scripts/oracle_m68k_exec.py",
     "scripts/parse_hunk_format.py",
@@ -122,7 +129,6 @@ files = [
     "scripts/parse_ndk.py",
     "scripts/precommit.py",
     "scripts/update_progress.py",
-    "scripts/validate.py",
     "disasm/types.py",
     "tests/conftest.py",
     "tests/os_kb_helpers.py",
@@ -143,6 +149,7 @@ files = [
     "tests/test_executor_operand_decode.py",
     "tests/test_executor_propagation.py",
     "tests/test_gen_disasm.py",
+    "tests/test_import_adf.py",
     "tests/test_indirect_resolution.py",
     "tests/test_m68k_roundtrip.py",
     "tests/test_memory_provenance.py",
@@ -155,6 +162,7 @@ files = [
 [tool.ruff]
 target-version = "py314"
 include = [
+    "amiga_disk/**/*.py",
     "disasm/**/*.py",
     "kb/**/*.py",
     "m68k/**/*.py",

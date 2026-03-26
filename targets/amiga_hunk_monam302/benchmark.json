@@ -1,13 +1,13 @@
 {
-  "target": "monam302",
+  "target": "amiga_hunk_monam302",
   "binary": "bin/MonAm302",
-  "command": "uv run scripts/gen_disasm.py bin/MonAm302 -t targets/monam302",
-  "measured_at": "2026-03-24T11:59:20+13:00",
+  "command": "uv run scripts/benchmark_target.py amiga_hunk_monam302",
+  "measured_at": "2026-03-26T17:29:51+13:00",
   "status": "ok",
-  "elapsed_seconds": 7.2,
-  "analysis_bytes": 5317203,
-  "entities_bytes": 112269,
-  "disasm_bytes": 359517,
+  "elapsed_seconds": 8.51,
+  "analysis_bytes": 5327729,
+  "entities_bytes": 112202,
+  "disasm_bytes": 358813,
   "analysis": {
     "code_bytes": 35548,
     "core_block_count": 1492,
@@ -36,5 +36,6 @@
     "named_entity_count": 42,
     "documented_entity_count": 0
   },
-  "error": null
+  "error": null,
+  "targets": null
 }

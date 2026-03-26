@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
+import struct
 
 from disasm.hint_validation import is_valid_hint_block
 from disasm.instruction_rows import (
@@ -11,7 +11,9 @@ from disasm.instruction_rows import (
     render_instruction_text,
 )
 from disasm.jump_tables import emit_jump_table_rows
+from disasm.os_include_kb import load_os_include_kb
 from disasm.session import build_disassembly_session
+from disasm.target_metadata import StructuredRegionSpec, target_structure_spec
 from disasm.text import ListingWindow, render_rows
 from disasm.text import listing_window as _listing_window
 from disasm.types import (
@@ -24,7 +26,9 @@ from disasm.types import (
 )
 from disasm.validation import has_valid_branch_target, is_valid_encoding
 from m68k.os_calls import AppBaseInfo
-from m68k_kb import runtime_hardware
+from m68k_kb import runtime_hardware, runtime_os
+
+_OS_INCLUDE_KB = load_os_include_kb()
 
 
 def _app_slot_equ_value(base_info: AppBaseInfo, offset: int) -> str:
@@ -36,8 +40,114 @@ def _app_slot_equ_value(base_info: AppBaseInfo, offset: int) -> str:
 
 def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
     rows: list[ListingRow] = []
-    for hunk_session in session.hunk_sessions:
-        rows.extend(_emit_hunk_rows(hunk_session, session.binary_path))
+    total_code_size = sum(hunk_session.code_size for hunk_session in session.hunk_sessions)
+    total_entities = sum(len(hunk_session.entities) for hunk_session in session.hunk_sessions)
+    total_blocks = sum(len(hunk_session.blocks) for hunk_session in session.hunk_sessions)
+    rows.append(make_row(
+        "comment",
+        "; Generated disassembly -- vasm Motorola syntax\n",
+        source_context=HeaderRowContext(section="header"),
+    ))
+    rows.append(make_row(
+        "comment",
+        "; Source: " + str(session.binary_path) + "\n",
+        source_context=HeaderRowContext(section="header"),
+    ))
+    rows.append(make_row(
+        "comment",
+        f"; {total_code_size} bytes, {total_entities} entities, {total_blocks} blocks\n",
+        source_context=HeaderRowContext(section="header"),
+    ))
+    rows.append(make_row("blank", "\n"))
+    rows.extend(_emit_target_structure_rows(session))
+    structure = target_structure_spec(session.target_metadata)
+    for index, hunk_session in enumerate(session.hunk_sessions):
+        if index > 0:
+            rows.append(make_row("blank", "\n"))
+        structured_regions = () if structure is None or index != 0 else structure.regions
+        rows.extend(
+            _emit_hunk_rows(
+                hunk_session,
+                include_header=len(session.hunk_sessions) > 1,
+                structured_regions=structured_regions,
+            )
+        )
+    return rows
+
+
+def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]:
+    metadata = session.target_metadata
+    if metadata is None:
+        return []
+    rows: list[ListingRow] = []
+    if metadata.bootblock is not None:
+        bootblock = metadata.bootblock
+        rows.append(make_row("comment", "; Boot block structure\n"))
+        rows.append(make_row("comment", f";   magic: {bootblock.magic_ascii!r}\n"))
+        rows.append(make_row("comment", f";   flags: 0x{bootblock.flags_byte:02X} ({bootblock.fs_description})\n"))
+        rows.append(make_row(
+            "comment",
+            f";   checksum: {bootblock.checksum} ({'valid' if bootblock.checksum_valid else 'invalid'})\n",
+        ))
+        rows.append(make_row("comment", f";   root block: {bootblock.rootblock_ptr}\n"))
+        rows.append(
+            make_row(
+                "comment",
+                f";   boot code: offset 0x{bootblock.bootcode_offset:X}, "
+                f"size {bootblock.bootcode_size} bytes\n",
+            )
+        )
+        if session.source_kind == "raw_binary" and session.raw_address_model == "runtime_absolute":
+            rows.append(
+                make_row(
+                    "comment",
+                    f";   execution context: load 0x{bootblock.load_address:X}, "
+                    f"entry 0x{bootblock.entrypoint:X}\n",
+                )
+            )
+        if metadata.entry_register_seeds:
+            registers = ", ".join(
+                f"{seed.register}={seed.note}" for seed in metadata.entry_register_seeds
+            )
+            rows.append(make_row("comment", f";   entry registers: {registers}\n"))
+        rows.append(make_row("blank", "\n"))
+    if metadata.resident is not None:
+        resident = metadata.resident
+        rows.append(make_row("comment", "; Resident structure\n"))
+        rows.append(make_row("comment", f";   matchword: 0x{resident.matchword:04X}\n"))
+        rows.append(make_row("comment", f";   version: {resident.version}, type: {resident.node_type_name}, priority: {resident.priority}\n"))
+        rows.append(make_row("comment", f";   flags: 0x{resident.flags:02X}, auto-init: {resident.auto_init}\n"))
+        if resident.name is not None:
+            rows.append(make_row("comment", f";   name: {resident.name}\n"))
+        if resident.id_string is not None:
+            rows.append(make_row("comment", f";   id string: {resident.id_string}\n"))
+        rows.append(make_row("comment", f";   init offset: 0x{resident.init_offset:X}\n"))
+        rows.append(make_row("blank", "\n"))
+    if metadata.library is not None:
+        library = metadata.library
+        rows.append(make_row("comment", "; Library structure\n"))
+        if metadata.entry_register_seeds:
+            registers = ", ".join(
+                f"{seed.register}={seed.note}" for seed in metadata.entry_register_seeds
+            )
+            rows.append(make_row("comment", f";   entry registers: {registers}\n"))
+        rows.append(make_row("comment", f";   name: {library.library_name}\n"))
+        rows.append(make_row("comment", f";   version: {library.version}\n"))
+        if library.id_string is not None:
+            rows.append(make_row("comment", f";   id string: {library.id_string}\n"))
+        if library.public_function_count is not None:
+            rows.append(make_row("comment", f";   public functions: {library.public_function_count}\n"))
+        if library.total_lvo_count is not None:
+            rows.append(make_row("comment", f";   total LVOs: {library.total_lvo_count}\n"))
+        functions = runtime_os.LIBRARIES.get(library.library_name)
+        if functions is not None:
+            public_names = [
+                name for lvo, name in sorted(functions.lvo_index.items(), key=lambda item: int(item[0]))
+                if functions.functions[name].private is False
+            ]
+            if public_names:
+                rows.append(make_row("comment", f";   exports: {', '.join(public_names[:12])}\n"))
+        rows.append(make_row("blank", "\n"))
     return rows
 
 
@@ -92,37 +202,43 @@ def _absolute_symbol_rows(used_absolute_addrs: set[int],
 
 
 def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
-                    binary_path: Path) -> list[ListingRow]:
+                    *,
+                    include_header: bool,
+                    structured_regions: tuple[StructuredRegionSpec, ...] = (),
+                    ) -> list[ListingRow]:
     rows: list[ListingRow] = []
     used_structs: set[str] = set()
-    rows.append(make_row(
-        "comment",
-        "; Generated disassembly -- vasm Motorola syntax\n",
-        source_context=HeaderRowContext(section="header"),
-    ))
-    rows.append(make_row(
-        "comment",
-        "; Source: " + str(binary_path) + "\n",
-        source_context=HeaderRowContext(section="header"),
-    ))
-    rows.append(make_row(
-        "comment",
-        f"; {hunk_session.code_size} bytes, {len(hunk_session.entities)} entities, "
-        f"{len(hunk_session.blocks)} blocks\n",
-        source_context=HeaderRowContext(section="header"),
-    ))
-    rows.append(make_row("blank", "\n"))
+    include_paths: set[str] = set()
+    if include_header:
+        rows.append(make_row(
+            "comment",
+            f"; Hunk {hunk_session.hunk_index}: {hunk_session.code_size} bytes, "
+            f"{len(hunk_session.entities)} entities, {len(hunk_session.blocks)} blocks\n",
+            source_context=HeaderRowContext(section="header"),
+        ))
+        rows.append(make_row("blank", "\n"))
 
     for lib_name in sorted(hunk_session.lvo_equs):
-        rows.append(make_row("comment", f"; LVO offsets: {lib_name}\n"))
-        by_lvo = hunk_session.lvo_equs[lib_name]
-        for lvo_val in sorted(by_lvo):
-            rows.append(make_row(
-                "directive",
-                f"{by_lvo[lvo_val]}\tEQU\t{lvo_val}\n",
-                opcode_or_directive="EQU",
-            ))
-        rows.append(make_row("blank", "\n"))
+        owner = _OS_INCLUDE_KB.library_lvo_owners.get(lib_name)
+        if owner is None:
+            raise ValueError(f"Missing KB library include owner for LVO symbols: {lib_name}")
+        if owner.kind == "native_include":
+            include_path = owner.include_path
+            if include_path is None:
+                raise ValueError(f"Missing native include path for LVO symbols: {lib_name}")
+            include_paths.add(include_path)
+        elif owner.kind == "fd_only":
+            rows.append(make_row("comment", f"; LVO offsets: {lib_name} (FD-derived)\n"))
+            by_lvo = hunk_session.lvo_equs[lib_name]
+            for lvo_val in sorted(by_lvo):
+                rows.append(make_row(
+                    "directive",
+                    f"{by_lvo[lvo_val]}\tEQU\t{lvo_val}\n",
+                    opcode_or_directive="EQU",
+                ))
+            rows.append(make_row("blank", "\n"))
+        else:
+            raise ValueError(f"Unknown OS include owner kind for {lib_name}: {owner.kind}")
 
     if hunk_session.arg_equs:
         rows.append(make_row("comment", "; OS function argument constants\n"))
@@ -191,6 +307,84 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             BlockRowContext(kind="data", verified_state=verified_state),
         ))
 
+    def emit_structured_region(region: StructuredRegionSpec, entity_addr: int | None = None) -> None:
+        by_offset = {
+            field.offset: field
+            for field in region.fields
+            if region.start <= field.offset < region.end
+        }
+        field_offsets = sorted(by_offset)
+        pos = region.start
+        for index, field_offset in enumerate(field_offsets):
+            if pos < field_offset:
+                emit_data(pos, field_offset, entity_addr)
+                pos = field_offset
+            boundary = region.end if index + 1 == len(field_offsets) else field_offsets[index + 1]
+            field = by_offset.get(pos)
+            assert field is not None, f"Missing structured field at 0x{pos:X}"
+            rows.extend(make_text_rows(
+                "label",
+                f"{field.label}:\n",
+                entity_addr=entity_addr,
+                addr=pos,
+            ))
+            if field.is_string:
+                raw = hunk_session.code[pos:boundary]
+                nul = raw.find(0)
+                if nul == -1:
+                    raise ValueError(f"Structured string field {field.label} is missing terminator")
+                text = raw[:nul].decode("latin-1")
+                escaped = text.replace('"', '\\"')
+                rows.extend(make_text_rows(
+                    "data",
+                    f'    dc.b    "{escaped}",0\n',
+                    entity_addr=entity_addr,
+                    addr=pos,
+                    verified_state="verified",
+                    source_context=BlockRowContext(kind="data", verified_state="verified"),
+                ))
+            elif field.size == 4:
+                value = struct.unpack_from(">I", hunk_session.code, pos)[0]
+                rendered = hunk_session.labels.get(value) if field.pointer else None
+                if rendered is None:
+                    rendered = f"${value:08x}"
+                rows.extend(make_text_rows(
+                    "data",
+                    f"    dc.l    {rendered}\n",
+                    entity_addr=entity_addr,
+                    addr=pos,
+                    verified_state="verified",
+                    source_context=BlockRowContext(kind="data", verified_state="verified"),
+                ))
+            elif field.size == 2:
+                value = struct.unpack_from(">H", hunk_session.code, pos)[0]
+                rendered = hunk_session.labels.get(value) if field.pointer else None
+                if rendered is None:
+                    rendered = f"${value:04x}"
+                rows.extend(make_text_rows(
+                    "data",
+                    f"    dc.w    {rendered}\n",
+                    entity_addr=entity_addr,
+                    addr=pos,
+                    verified_state="verified",
+                    source_context=BlockRowContext(kind="data", verified_state="verified"),
+                ))
+            elif field.size == 1:
+                value = hunk_session.code[pos]
+                rows.extend(make_text_rows(
+                    "data",
+                    f"    dc.b    ${value:02x}\n",
+                    entity_addr=entity_addr,
+                    addr=pos,
+                    verified_state="verified",
+                    source_context=BlockRowContext(kind="data", verified_state="verified"),
+                ))
+            else:
+                emit_data(pos, boundary, entity_addr)
+            pos = boundary
+        if pos < region.end:
+            emit_data(pos, region.end, entity_addr)
+
     emit_passes = [(0, hunk_session.code_size)]
     if hunk_session.relocated_segments:
         emit_passes = [
@@ -210,9 +404,15 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 f"\n    org ${hunk_session.reloc_base_addr:X}\n\n",
                 opcode_or_directive="org",
             ))
+        structured_by_start = {
+            region.start: region
+            for region in structured_regions
+            if pass_start <= region.start < pass_end
+        }
         pos = pass_start
         while pos < pass_end:
-            if pos in hunk_session.labels:
+            structured_region = structured_by_start.get(pos)
+            if pos in hunk_session.labels and structured_region is None:
                 emit_label(pos)
 
             current_entity: EntityRecord | None = entity_lookup.get(pos)
@@ -221,6 +421,11 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             else:
                 raw_addr = current_entity["addr"]
                 entity_addr = int(raw_addr, 16)
+
+            if structured_region is not None:
+                emit_structured_region(structured_region, entity_addr)
+                pos = structured_region.end
+                continue
 
             if pos in hunk_session.blocks:
                 blk = hunk_session.blocks[pos]
@@ -301,7 +506,8 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 break
         rows[insert_at:insert_at] = absolute_symbol_rows
 
-    includes = set(hardware_includes)
+    includes = set(include_paths)
+    includes.update(hardware_includes)
     if used_structs:
         for struct_name in sorted(used_structs):
             struct_def = hunk_session.os_kb.STRUCTS[struct_name]
@@ -345,5 +551,7 @@ def build_listing_window(binary_path: str, entities_path: str,
 
 
 def render_session_text(session: DisassemblySession) -> str:
-    return render_rows(emit_session_rows(session))
+    rendered = render_rows(emit_session_rows(session))
+    assert isinstance(rendered, str)
+    return rendered
 

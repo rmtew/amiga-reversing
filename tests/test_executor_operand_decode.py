@@ -17,6 +17,7 @@ from disasm.types import (
     RegisterListOperandMetadata,
     RegisterPairOperandMetadata,
 )
+from m68k import m68k_asm as asm_mod
 from m68k import m68k_executor as executor_mod
 from m68k.abstract_values import _concrete
 from m68k.instruction_decode import (
@@ -24,6 +25,7 @@ from m68k.instruction_decode import (
     DecodedOperands,
     decode_inst_destination,
     decode_inst_operands,
+    instruction_immediate_value,
 )
 from m68k.instruction_primitives import (
     Operand,
@@ -53,7 +55,12 @@ from m68k.m68k_executor import (
 )
 from m68k.operand_resolution import resolve_ea
 from m68k.typing_protocols import InstructionLike
-from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode, runtime_m68k_executor
+from m68k_kb import (
+    runtime_m68k_analysis,
+    runtime_m68k_asm,
+    runtime_m68k_decode,
+    runtime_m68k_executor,
+)
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
 
@@ -165,6 +172,120 @@ def test_decode_opcode_returns_structured_instruction_text(
     decoded = disasm_mod._decode_opcode(d, opcode, group, 0)
 
     assert isinstance(decoded, disasm_mod.DecodedInstructionText)
+
+
+def test_assemble_instruction_uses_kb_opmode_direction_for_cmp() -> None:
+    assert assemble_instruction("cmp.w d1,d0") == bytes.fromhex("b041")
+
+
+@_parametrize(
+    "asm",
+    [
+        "addi #1,d0",
+        "ori #1,d0",
+        "clr d0",
+        "cmp d1,d0",
+    ],
+)
+def test_assemble_instruction_uses_kb_default_operand_size_when_suffix_omitted(asm: str) -> None:
+    mnemonic, rest = asm.split(" ", 1)
+    assert assemble_instruction(asm) == assemble_instruction(f"{mnemonic}.w {rest}")
+
+
+@_parametrize(
+    "asm",
+    [
+        "move a0,sr",
+        "move a0,ccr",
+        "move sr,a0",
+        "move ccr,a0",
+    ],
+)
+def test_assemble_instruction_rejects_invalid_special_move_an_modes(asm: str) -> None:
+    with pytest.raises(ValueError, match="invalid .* EA mode an"):
+        assemble_instruction(asm)
+
+
+@_parametrize(
+    "asm",
+    [
+        "callm #3,a0",
+        "addi #1,a0",
+        "subi #1,a0",
+        "ori #1,a0",
+        "andi #1,a0",
+        "eori #1,a0",
+        "cmpi #1,a0",
+    ],
+)
+def test_assemble_instruction_rejects_invalid_immediate_target_an_modes(asm: str) -> None:
+    with pytest.raises(ValueError, match="invalid target EA mode an"):
+        assemble_instruction(asm)
+
+
+@_parametrize(
+    "asm",
+    [
+        "clr a0",
+        "neg a0",
+        "not a0",
+        "tas a0",
+        "pea d0",
+        "lea d0,a0",
+        "jsr d0",
+        "jmp d0",
+    ],
+)
+def test_assemble_instruction_rejects_invalid_single_ea_modes(asm: str) -> None:
+    with pytest.raises(ValueError, match="invalid target EA mode"):
+        assemble_instruction(asm)
+
+
+@_parametrize(
+    "asm",
+    [
+        "bset #1,a0",
+        "bclr #1,a0",
+        "bchg #1,a0",
+        "btst #1,a0",
+        "bset d0,a0",
+        "bclr d0,a0",
+        "bchg d0,a0",
+        "btst d0,a0",
+    ],
+)
+def test_assemble_instruction_rejects_invalid_bitop_target_an_modes(asm: str) -> None:
+    with pytest.raises(ValueError, match="invalid target EA mode an"):
+        assemble_instruction(asm)
+
+
+@_parametrize(
+    "asm",
+    [
+        "movem.w d0-d1,d0",
+        "movem.w d0-d1,a0",
+        "movem.w d0,d0-d1",
+        "movem.w a0,d0-d1",
+    ],
+)
+def test_assemble_instruction_rejects_invalid_movem_register_direct_modes(asm: str) -> None:
+    with pytest.raises(ValueError, match="invalid target EA mode"):
+        assemble_instruction(asm)
+
+
+@_parametrize(
+    "asm",
+    [
+        "chk.w a0,d1",
+        "mulu.w a0,d1",
+        "muls.w a0,d1",
+        "divu.w a0,d1",
+        "divs.w a0,d1",
+    ],
+)
+def test_assemble_instruction_rejects_invalid_ea_dn_source_an_modes(asm: str) -> None:
+    with pytest.raises(ValueError, match="invalid source EA mode an"):
+        assemble_instruction(asm)
 
 
 def test_decode_instruction_ops_uses_shared_kb_decoder_for_move_usp() -> None:
@@ -308,6 +429,29 @@ def test_decode_inst_operands_requires_runtime_form_operand_types() -> None:
         )
         with pytest.raises(KeyError, match="MOVEQ"):
             decode_inst_operands(inst, "MOVEQ")
+
+
+def test_assemble_instruction_requires_matching_asm_syntax_form() -> None:
+    asm_syntax_index = copy.deepcopy(runtime_m68k_asm.ASM_SYNTAX_INDEX)
+    form_operand_types = copy.deepcopy(runtime_m68k_asm.FORM_OPERAND_TYPES)
+    asm_syntax_index[("move", ("dn", "dn"))] = ("MOVE", ("dn", "dn"))
+    form_operand_types["MOVE"] = (("ea", "an"),)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            runtime_m68k_asm,
+            "ASM_SYNTAX_INDEX",
+            asm_syntax_index,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            runtime_m68k_asm,
+            "FORM_OPERAND_TYPES",
+            form_operand_types,
+            raising=False,
+        )
+        with pytest.raises(KeyError, match="ASM_SYNTAX_INDEX resolved"):
+            asm_mod._resolve_by_syntax_index("move", ["d0", "d1"])
 
 
 def test_decode_instruction_ops_requires_runtime_raw_fields_for_mnemonic() -> None:
@@ -489,6 +633,18 @@ def test_decode_instruction_ops_skips_immediate_word_before_full_extension_ea(
     assert decoded.ea_op.reg == 0
     assert decoded.ea_op.full_extension is True
     assert decoded.ea_op.base_displacement == 5141838
+
+
+def test_instruction_immediate_value_reads_moveq_immediate() -> None:
+    inst = disassemble(assemble_instruction("moveq #-1,d3"), max_cpu="68010")[0]
+
+    assert instruction_immediate_value(inst, "MOVEQ") == 0xFFFFFFFF
+
+
+def test_instruction_immediate_value_reads_long_immediate_ea_value() -> None:
+    inst = disassemble(assemble_instruction("move.l #$1000,d1"), max_cpu="68010")[0]
+
+    assert instruction_immediate_value(inst, "MOVE") == 0x1000
 
 
 def test_disassemble_special_move_uses_exact_kb_entry() -> None:

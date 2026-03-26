@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
+from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
@@ -90,3 +95,17 @@ def find_gap(gaps: tuple[AssemblerCoverageGap, ...], gap_id: str) -> AssemblerCo
         if gap.gap_id == gap_id:
             return gap
     return None
+
+
+def main() -> int:
+    gaps = audit_local_assembler_support()
+    if not gaps:
+        print("assembler coverage audit: ok")
+        return 0
+    for gap in gaps:
+        print(f"{gap.gap_id}: {gap.reason} :: {gap.sample}")
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

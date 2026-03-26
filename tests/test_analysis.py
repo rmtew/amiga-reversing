@@ -115,6 +115,14 @@ def test_analyze_hunk_propagates_state() -> None:
     assert cpu.d[0].is_known and cpu.d[0].concrete == 0
 
 
+def test_analyze_hunk_handles_zero_length_code() -> None:
+    result = analyze_hunk(b"", relocs=[], hunk_index=5, print_fn=lambda *a: None)
+
+    assert isinstance(result, HunkAnalysis)
+    assert result.code == b""
+    assert result.hunk_index == 5
+
+
 def test_analyze_hunk_identifies_os_calls() -> None:
     """analyze_hunk's os_kb is populated from the OS knowledge base."""
     code = _make_simple_hunk()
@@ -309,7 +317,7 @@ def test_analyze_hunk_promotes_code_pointer_args_into_core_entries(
         inputs=(
             runtime_os.OsInput(
                 name="userFunction",
-                reg="A5",
+                regs=("A5",),
                 type="void *",
                 semantic_kind="code_ptr",
             ),
@@ -459,6 +467,43 @@ def test_analyze_hunk_marks_identified_library_call_as_external(
         "detail": "exec.library::AllocMem",
         "target": None,
     }]
+
+
+def test_analyze_hunk_does_not_count_unknown_library_calls_as_resolved(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    code = b""
+    pc = 0
+    for text in (
+            "movea.l d0,a6",
+            "jsr -2(a6)",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    monkeypatch.setattr(
+        "m68k.analysis.identify_library_calls",
+        lambda *args, **kwargs: [LibraryCall(
+            addr=0x2,
+            block=0x0,
+            library="unknown",
+            function="LVO_2",
+            lvo=-2,
+        )],
+    )
+    lines: list[str] = []
+
+    analyze_hunk(
+        code,
+        relocs=[],
+        hunk_index=0,
+        print_fn=lines.append,
+    )
+
+    assert any("1 library calls identified (0 resolved, libraries: )" in line for line in lines)
+    assert any("Indirects: 1 sites (1 core_unresolved)" in line for line in lines)
+    assert any("unresolved_indirect_core $0002: JSR disp" in line for line in lines)
 
 
 def test_analyze_hunk_core_per_caller_does_not_promote_hint_only_target(

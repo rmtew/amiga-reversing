@@ -2,12 +2,20 @@
 
 import struct
 
+from _pytest.monkeypatch import MonkeyPatch
+
+from m68k.instruction_primitives import DecodedOps, Operand
+from m68k.m68k_disasm import Instruction
 from m68k.m68k_executor import (
     AbstractMemory,
     CPUState,
+    _apply_instruction,
+    _apply_pea,
     _concrete,
     _join_states,
     analyze,
+    collect_instruction_traces,
+    discover_blocks,
 )
 
 
@@ -35,6 +43,42 @@ def test_memory_copy() -> None:
     mem2.write(0x100, _concrete(99), "w")
     assert mem.read(0x100, "w").concrete == 42
     assert mem2.read(0x100, "w").concrete == 99
+
+
+def test_apply_pea_ignores_invalid_ea_mode() -> None:
+    cpu = CPUState()
+    cpu.sp = _concrete(0x1000)
+    mem = AbstractMemory()
+
+    _apply_pea(
+        "PEA",
+        DecodedOps(ea_op=Operand(mode="predec", reg=0, value=None)),
+        cpu,
+        mem,
+    )
+
+    assert cpu.sp.is_known and cpu.sp.concrete == 0x1000
+    assert not mem.read(0x1000, "l").is_known
+
+
+def test_apply_instruction_ignores_unsupported_compute_mnemonic(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "m68k.m68k_executor.decode_instruction_ops",
+        lambda inst, mnemonic, size: DecodedOps(),
+    )
+    inst = Instruction(
+        offset=0,
+        size=2,
+        opcode=0,
+        text="bfchg d0{0:1}",
+        raw=b"\x00\x00",
+        kb_mnemonic="BFCHG",
+        operand_size="l",
+    )
+
+    _apply_instruction(inst, "BFCHG", CPUState(), AbstractMemory(), b"\x00\x00", 0)
 
 
 def test_join_states() -> None:
@@ -161,6 +205,110 @@ def test_merge_point() -> None:
     cpu, _ = result["exit_states"][0x000C]
     assert cpu.d[0].is_known and cpu.d[0].concrete == 10
     assert not cpu.d[1].is_known
+
+
+def test_collect_instruction_traces_preserves_first_arrival_loop_state() -> None:
+    code = bytes.fromhex(
+        "41FA0018"
+        "43F900006000"
+        "303C0004"
+        "22D8"
+        "51C8FFFC"
+        "4EF900006000"
+        "33FC448900DFF07E"
+        "33FC801000DFF024"
+        "4E75"
+        "4E71"
+    )
+    blocks = discover_blocks(code, 0x40000, [0x40000])
+
+    traces = collect_instruction_traces(blocks, code, base_addr=0x40000)
+
+    copy_traces = [
+        trace for trace in traces
+        if trace.instruction.offset == 0x4000E and trace.incoming_source == 0x40000
+    ]
+    assert len(copy_traces) == 1
+    trace = copy_traces[0]
+    assert trace.pre_cpu.get_reg("an", 0).is_known
+    assert trace.pre_cpu.get_reg("an", 0).concrete == 0x4001A
+    assert trace.pre_cpu.get_reg("an", 1).is_known
+    assert trace.pre_cpu.get_reg("an", 1).concrete == 0x6000
+    assert trace.pre_cpu.get_reg("dn", 0).is_known
+    assert trace.pre_cpu.get_reg("dn", 0).concrete == 4
+
+
+def test_collect_instruction_traces_capture_post_memory_write() -> None:
+    code = bytes.fromhex(
+        "41F900001000"
+        "7001"
+        "2080"
+        "4E75"
+    )
+    blocks = discover_blocks(code, 0, [0])
+
+    traces = collect_instruction_traces(blocks, code, base_addr=0)
+
+    write_trace = next(trace for trace in traces if trace.instruction.offset == 0x0008)
+    assert not write_trace.pre_mem.read(0x1000, "l").is_known
+    assert write_trace.post_mem.read(0x1000, "l").is_known
+    assert write_trace.post_mem.read(0x1000, "l").concrete == 1
+
+
+def test_collect_instruction_traces_watch_ranges_capture_only_watched_memory() -> None:
+    code = bytes.fromhex(
+        "41F900001000"
+        "43F900002000"
+        "7001"
+        "2280"
+        "4E75"
+    )
+    blocks = discover_blocks(code, 0, [0])
+
+    traces = collect_instruction_traces(blocks, code, base_addr=0, watch_ranges=[(0x2000, 0x2004)])
+
+    write_trace = next(trace for trace in traces if trace.instruction.offset == 0x000E)
+    assert not write_trace.post_mem.read(0x1000, "l").is_known
+    assert write_trace.post_mem.read(0x2000, "l").is_known
+    assert write_trace.post_mem.read(0x2000, "l").concrete == 1
+
+
+def test_collect_instruction_traces_replay_loop_iterations_until_state_repeats() -> None:
+    code = bytes.fromhex(
+        "45F900001000"
+        "43F900002000"
+        "7003"
+        "22DA"
+        "51C8FFFC"
+        "4E75"
+    )
+    mem = AbstractMemory()
+    mem.write(0x1000, _concrete(0x01020304), "l")
+    mem.write(0x1004, _concrete(0x05060708), "l")
+    mem.write(0x1008, _concrete(0x090A0B0C), "l")
+    mem.write(0x100C, _concrete(0x0D0E0F10), "l")
+    blocks = discover_blocks(code, 0x7000, [0x7000])
+
+    traces = collect_instruction_traces(blocks, code, base_addr=0x7000, initial_mem=mem)
+
+    move_traces = [trace for trace in traces if trace.instruction.offset == 0x700E]
+    assert move_traces
+    assert any(trace.post_mem.read(0x200C, "l").is_known for trace in move_traces)
+    final_trace = next(trace for trace in reversed(move_traces) if trace.post_mem.read(0x200C, "l").is_known)
+    assert final_trace.post_mem.read(0x2000, "l").concrete == 0x01020304
+    assert final_trace.post_mem.read(0x2004, "l").concrete == 0x05060708
+    assert final_trace.post_mem.read(0x2008, "l").concrete == 0x090A0B0C
+    assert final_trace.post_mem.read(0x200C, "l").concrete == 0x0D0E0F10
+
+
+def test_abstract_memory_code_section_respects_base_addr() -> None:
+    mem = AbstractMemory(b"\x12\x34\x56\x78", code_base_addr=0x6000)
+
+    value = mem.read(0x6000, "l")
+
+    assert value.is_known
+    assert value.concrete == 0x12345678
+    assert not mem.read(0x2000, "l").is_known
 
 
 def test_propagation_exg_swap() -> None:

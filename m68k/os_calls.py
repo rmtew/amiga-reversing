@@ -68,6 +68,7 @@ def _read_named_base_seed(code: bytes, addr: int) -> str | None:
     name = read_string_at(code, addr)
     if name is None or not _is_named_base_seed(name):
         return None
+    assert isinstance(name, str)
     return name
 
 
@@ -91,6 +92,7 @@ def _base_disp_operand(op: Operand | None, base_reg: int) -> int | None:
     if op is None or op.mode != "disp" or op.reg != base_reg:
         return None
     assert op.value is not None, "Displacement operand missing value"
+    assert isinstance(op.value, int)
     return op.value
 
 
@@ -141,6 +143,15 @@ class AppBaseKind(StrEnum):
 class OsKb(Protocol):
     @property
     def META(self) -> OsMeta: ...
+
+    @property
+    def VALUE_DOMAINS(self) -> Mapping[str, tuple[str, ...]]: ...
+
+    @property
+    def FIELD_VALUE_DOMAINS(self) -> Mapping[str, str]: ...
+
+    @property
+    def FIELD_CONTEXT_VALUE_DOMAINS(self) -> Mapping[str, Mapping[str, str]]: ...
 
     @property
     def STRUCTS(self) -> Mapping[str, OsStructLike]: ...
@@ -236,7 +247,10 @@ def _refined_named_base_struct(os_kb: OsKb,
         return generic_struct
     specific_struct = os_kb.META.named_base_structs.get(named_base)
     if specific_struct is None:
-        return generic_struct
+        raise KeyError(
+            f"Named base {named_base} is missing a KB struct mapping "
+            f"(generic struct was {generic_struct})")
+    assert isinstance(specific_struct, str)
     if specific_struct not in os_kb.STRUCTS:
         raise KeyError(
             f"Named base {named_base} maps to unknown struct {specific_struct}")
@@ -383,6 +397,7 @@ class TypedMemoryRegion:
     size: int
     provenance: MemoryRegionProvenance
     struct_offset: int = 0
+    context_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -424,6 +439,8 @@ class PlatformState:
     next_alloc_sentinel: int
     os_call_resolver: Callable[..., CallEffect | None] | None
     app_base: AppBaseInfo | None = None
+    initial_register_regions: dict[str, TypedMemoryRegion] | None = None
+    initial_register_tags: dict[str, object] | None = None
     initial_mem: AbstractMemory | None = None
     pending_call_effect: CallEffect | None = None
     summary_cache: dict[int, CallSummary | None] | None = None
@@ -762,32 +779,33 @@ def collect_app_memory_type_usages(blocks: dict[int, BasicBlock],
             continue
 
         for inp in inputs:
-            reg = inp.reg.lower()
-            # Walk backward to find where this register was loaded
-            for i in range(call_idx - 1, -1, -1):
-                inst = block.instructions[i]
-                ikb, decoded = _decode_inst(inst)
+            for reg in _input_regs(inp):
+                reg_name = reg.lower()
+                # Walk backward to find where this register was loaded
+                for i in range(call_idx - 1, -1, -1):
+                    inst = block.instructions[i]
+                    ikb, decoded = _decode_inst(inst)
 
-                # Check if this instruction writes to the arg register
-                dst = decode_inst_destination(inst, ikb)
-                if not dst:
-                    continue
-                mode_str = "dn" if reg[0] == "d" else "an"
-                reg_num = int(reg[1])
-                if dst != (mode_str, reg_num):
-                    continue
+                    # Check if this instruction writes to the arg register
+                    dst = decode_inst_destination(inst, ikb)
+                    if not dst:
+                        continue
+                    mode_str = "dn" if reg_name[0] == "d" else "an"
+                    reg_num = int(reg_name[1])
+                    if dst != (mode_str, reg_num):
+                        continue
 
-                # Found the setter. Check if source is d(base_reg)
-                offset = _base_disp_operand(decoded.ea_op, base_reg)
-                if offset is not None:
-                    _record(offset, AppMemoryType(
-                        name=inp.name,
-                        function=call.function,
-                        type=inp.type,
-                        library=call.library,
-                        direction=AppMemoryDirection.BACKWARD,
-                    ))
-                break  # stop after finding the setter
+                    # Found the setter. Check if source is d(base_reg)
+                    offset = _base_disp_operand(decoded.ea_op, base_reg)
+                    if offset is not None:
+                        _record(offset, AppMemoryType(
+                            name=inp.name,
+                            function=call.function,
+                            type=inp.type,
+                            library=call.library,
+                            direction=AppMemoryDirection.BACKWARD,
+                        ))
+                    break
     return {offset: tuple(entries) for offset, entries in result.items()}
 
 
@@ -836,8 +854,14 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
 
         pending: list[_PendingCallInput] = []
         for inp in call.inputs:
-            reg_name = inp.reg.lower()
-            pending.append(_PendingCallInput(input=inp, arg_reg=reg_name, tracked_reg=reg_name))
+            for reg_name in (reg.lower() for reg in _input_regs(inp)):
+                pending.append(
+                    _PendingCallInput(
+                        input=inp,
+                        arg_reg=_input_reg_display(inp),
+                        tracked_reg=reg_name,
+                    )
+                )
 
         for i in range(call_idx - 1, -1, -1):
             if all(state.complete for state in pending):
@@ -856,14 +880,12 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
                 if dst_name != tracked_reg:
                     continue
                 inp = state.input
-                arg_reg = state.arg_reg
-                if dst_name == arg_reg:
-                    arg_annotations[inst.offset] = CallArgumentAnnotation(
-                        arg_name=inp.name,
-                        arg_reg=inp.reg,
-                        function=call.function,
-                        library=call.library,
-                    )
+                arg_annotations[inst.offset] = CallArgumentAnnotation(
+                    arg_name=inp.name,
+                    arg_reg=_input_reg_display(inp),
+                    function=call.function,
+                    library=call.library,
+                )
                 op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
                 if op_type == runtime_m68k_analysis.OperationType.MOVE:
                     src_name = _decoded_source_reg(decoded)
@@ -1099,6 +1121,9 @@ def _restore_platform_register_facts(result: dict[str, RegisterFact],
         concrete_val = platform.app_base.concrete
         reg_name = _address_reg_name(reg_num)
         result.setdefault(reg_name, RegisterFact(concrete=concrete_val))
+    if platform is not None and platform.initial_register_regions is not None:
+        for reg_name, region in platform.initial_register_regions.items():
+            result.setdefault(reg_name, RegisterFact(region=region))
 
 
 def _apply_region_fact_summary(current: dict[str, RegisterFact],
@@ -1140,6 +1165,72 @@ def _apply_region_fact_summary(current: dict[str, RegisterFact],
         )
 
 
+def _same_region_shape(left: TypedMemoryRegion, right: TypedMemoryRegion) -> bool:
+    return (
+        left.struct == right.struct
+        and left.size == right.size
+        and left.struct_offset == right.struct_offset
+        and left.context_name == right.context_name
+    )
+
+
+def _output_struct_region_facts(
+    lib_calls: list[LibraryCall],
+    os_kb: OsKb,
+) -> dict[int, dict[str, RegisterFact]]:
+    facts_by_call: dict[int, dict[str, RegisterFact]] = {}
+    for call in lib_calls:
+        output = call.output
+        if output is None or output.i_struct is None or output.reg is None:
+            continue
+        if call.library != "unknown":
+            library = os_kb.LIBRARIES.get(call.library)
+            if library is None:
+                raise KeyError(f"Unknown library {call.library}")
+            func = library.functions.get(call.function)
+            if func is None:
+                raise KeyError(f"Unknown function {call.library}:{call.function}")
+            if func.returns_base is not None:
+                continue
+        struct_name = output.i_struct
+        if struct_name not in os_kb.STRUCTS:
+            raise KeyError(f"Unknown output struct {struct_name}")
+        struct_def = os_kb.STRUCTS[struct_name]
+        reg_name = output.reg.lower()
+        region = TypedMemoryRegion(
+            struct=struct_name,
+            size=struct_def.size,
+            provenance=MemoryRegionProvenance(address_space=MemoryRegionAddressSpace.REGISTER),
+        )
+        output_facts = facts_by_call.setdefault(call.addr, {})
+        existing = output_facts.get(reg_name)
+        if existing is not None:
+            if existing.region is None or not _same_region_shape(existing.region, region):
+                raise ValueError(
+                    f"Conflicting output struct facts for call ${call.addr:06X} {reg_name}: "
+                    f"{existing.region} vs {region}"
+                )
+            continue
+        output_facts[reg_name] = RegisterFact(region=region)
+    return facts_by_call
+
+
+def _apply_output_struct_region_facts(
+    result: dict[str, RegisterFact],
+    output_facts: dict[str, RegisterFact] | None,
+) -> None:
+    if output_facts is None:
+        return
+    for reg_name, fact in output_facts.items():
+        if fact.region is None:
+            raise ValueError(f"Output struct fact for {reg_name} is missing region")
+        existing = result.get(reg_name)
+        result[reg_name] = RegisterFact(
+            region=fact.region,
+            concrete=None if existing is None else existing.concrete,
+        )
+
+
 def _apply_register_fact_summary(current: dict[str, RegisterFact],
                                  summary: CallSummary | None,
                                  region_summary: RegionSummary | None,
@@ -1155,6 +1246,16 @@ def _apply_register_fact_summary(current: dict[str, RegisterFact],
 def _signed_16(value: int) -> int:
     value &= 0xFFFF
     return value - 0x10000 if value & 0x8000 else value
+
+
+def _input_regs(inp: runtime_os.OsInput) -> tuple[str, ...]:
+    regs = inp.regs
+    assert isinstance(regs, tuple), "OS input regs must be a tuple"
+    return regs
+
+
+def _input_reg_display(inp: runtime_os.OsInput) -> str:
+    return "/".join(_input_regs(inp))
 
 
 def _signed_index_value(op: Operand, concrete_regs: dict[str, int]) -> int | None:
@@ -1486,26 +1587,27 @@ def build_app_struct_regions(blocks: dict[int, BasicBlock],
         for inp in call.inputs:
             if inp.i_struct is None:
                 continue
-            seed = _find_region_seed(
-                block, call.addr, inp.reg.lower(), inp.i_struct, os_kb, platform)
-            if seed is None:
-                continue
-            _seed_offset, _seed_reg, region = seed
-            provenance = region.provenance
-            if provenance.address_space != MemoryRegionAddressSpace.APP:
-                continue
-            prov_base_register, displacement = require_base_displacement(
-                provenance, expected_space=MemoryRegionAddressSpace.APP)
-            if prov_base_register != base_reg_name:
-                raise ValueError(
-                    f"App-relative region base mismatch: expected {base_reg_name}, "
-                    f"got {prov_base_register}")
-            existing = result.get(displacement)
-            if existing is not None and existing != region:
-                raise ValueError(
-                    f"Conflicting app struct regions at offset {displacement}: "
-                    f"{existing} vs {region}")
-            result[displacement] = region
+            for reg in _input_regs(inp):
+                seed = _find_region_seed(
+                    block, call.addr, reg.lower(), inp.i_struct, os_kb, platform)
+                if seed is None:
+                    continue
+                _seed_offset, _seed_reg, region = seed
+                provenance = region.provenance
+                if provenance.address_space != MemoryRegionAddressSpace.APP:
+                    continue
+                prov_base_register, displacement = require_base_displacement(
+                    provenance, expected_space=MemoryRegionAddressSpace.APP)
+                if prov_base_register != base_reg_name:
+                    raise ValueError(
+                        f"App-relative region base mismatch: expected {base_reg_name}, "
+                        f"got {prov_base_register}")
+                existing = result.get(displacement)
+                if existing is not None and existing != region:
+                    raise ValueError(
+                        f"Conflicting app struct regions at offset {displacement}: "
+                        f"{existing} vs {region}")
+                result[displacement] = region
     return result
 
 
@@ -1742,11 +1844,17 @@ def _find_string_seed(block: BasicBlock, call_addr: int, reg_name: str, code: by
         op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
         if ikb == "LEA" and decoded.ea_op is not None and decoded.ea_op.mode == "pcdisp":
             assert decoded.ea_op.value is not None, "pcdisp LEA operand missing value"
-            return read_string_at(code, decoded.ea_op.value)
+            assert isinstance(decoded.ea_op.value, int)
+            value = read_string_at(code, decoded.ea_op.value)
+            assert value is None or isinstance(value, str)
+            return value
         if op_type == runtime_m68k_analysis.OperationType.MOVE and decoded.ea_op is not None:
             op = decoded.ea_op
             if op.mode in {"absw", "absl"} and op.value is not None:
-                return read_string_at(code, op.value & 0xFFFFFFFF)
+                assert isinstance(op.value, int)
+                value = read_string_at(code, op.value & 0xFFFFFFFF)
+                assert value is None or isinstance(value, str)
+                return value
         return None
     return None
 
@@ -1997,6 +2105,7 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
     Returns: {inst_offset: {reg_name: TypedMemoryRegion}}
     """
     seed_regions: dict[int, dict[str, RegisterFact]] = {}
+    output_region_facts = _output_struct_region_facts(lib_calls, os_kb)
     for call in lib_calls:
         block = blocks.get(call.block)
         if not block:
@@ -2007,12 +2116,13 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
             struct_name = inp.i_struct
             if struct_name not in os_kb.STRUCTS:
                 raise KeyError(f"Unknown struct {struct_name}")
-            seed = _find_region_seed(
-                block, call.addr, inp.reg.lower(), struct_name, os_kb, platform)
-            if seed is None:
-                continue
-            seed_offset, seed_reg, region = seed
-            seed_regions.setdefault(seed_offset, {})[seed_reg] = RegisterFact(region=region)
+            for reg in _input_regs(inp):
+                seed = _find_region_seed(
+                    block, call.addr, reg.lower(), struct_name, os_kb, platform)
+                if seed is None:
+                    continue
+                seed_offset, seed_reg, region = seed
+                seed_regions.setdefault(seed_offset, {})[seed_reg] = RegisterFact(region=region)
     app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
     app_pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform)
 
@@ -2027,12 +2137,16 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
             raise RuntimeError(
                 f"Typed memory region propagation did not converge after {max_iterations} iterations")
         block_in: dict[int, dict[str, RegisterFact] | None] = dict.fromkeys(blocks)
-        if platform is not None and platform.app_base is not None:
-            reg_num = platform.app_base.reg_num
-            concrete_val = platform.app_base.concrete
-            init_fact = {
-                _address_reg_name(reg_num): RegisterFact(concrete=concrete_val)
-            }
+        init_fact: dict[str, RegisterFact] = {}
+        if platform is not None:
+            if platform.app_base is not None:
+                reg_num = platform.app_base.reg_num
+                concrete_val = platform.app_base.concrete
+                init_fact[_address_reg_name(reg_num)] = RegisterFact(concrete=concrete_val)
+            if platform.initial_register_regions is not None:
+                for reg_name, region in platform.initial_register_regions.items():
+                    init_fact.setdefault(reg_name, RegisterFact(region=region))
+        if init_fact:
             for addr, block in blocks.items():
                 if not block.predecessors:
                     block_in[addr] = dict(init_fact)
@@ -2055,12 +2169,10 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
                 ikb, decoded = _decode_inst(inst)
                 dst = decode_inst_destination(inst, ikb)
                 dst_name = None if dst is None else _reg_name(dst[0], dst[1])
-                if dst_name is None:
-                    continue
-                if seeded and dst_name in seeded:
-                    continue
-                _apply_register_update(
-                    current, ikb, decoded, dst_name, os_kb, app_struct_regions, app_pointer_regions, platform)
+                if dst_name is not None and not (seeded and dst_name in seeded):
+                    _apply_register_update(
+                        current, ikb, decoded, dst_name, os_kb, app_struct_regions, app_pointer_regions, platform)
+                _apply_output_struct_region_facts(current, output_region_facts.get(inst.offset))
 
             call_dst = None
             ft_dst = None
@@ -2175,13 +2287,7 @@ def _resolve_lvo(lvo: int, library: str, lvo_lookup: LvoLookup) -> LibraryCall:
             os_since=match.os_since,
             fd_version=match.fd_version,
         )
-    return LibraryCall(
-        addr=0,
-        block=0,
-        library=library,
-        function=f"LVO_{-lvo}",
-        lvo=lvo,
-    )
+    raise KeyError(f"Missing KB LVO mapping for {library}:{lvo}")
 
 
 def _find_sub_entry(block_addr: int, blocks: Mapping[int, BasicBlock],
@@ -2277,7 +2383,8 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
     # Deferred: indexed EA calls needing per-caller resolution.
     # List of (block_addr, inst_offset, library, index_reg_mode,
     #          index_reg_num, base_displacement)
-    deferred = []
+    deferred_indexed = []
+    deferred_direct = []
 
     for block_addr in sorted(blocks):
         block = blocks[block_addr]
@@ -2345,27 +2452,21 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                     ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
                 if a6_lib:
                     resolved = _resolve_lvo(disp, a6_lib, lvo_lookup)
+                    results.append(LibraryCall(
+                        addr=inst.offset,
+                        block=block_addr,
+                        library=resolved.library,
+                        function=resolved.function,
+                        lvo=resolved.lvo,
+                        inputs=resolved.inputs,
+                        output=resolved.output,
+                        no_return=resolved.no_return,
+                        dispatch=resolved.dispatch,
+                        os_since=resolved.os_since,
+                        fd_version=resolved.fd_version,
+                    ))
                 else:
-                    resolved = LibraryCall(
-                        addr=0,
-                        block=0,
-                        library="unknown",
-                        function=f"LVO_{-disp}",
-                        lvo=disp,
-                    )
-                results.append(LibraryCall(
-                    addr=inst.offset,
-                    block=block_addr,
-                    library=resolved.library,
-                    function=resolved.function,
-                    lvo=resolved.lvo,
-                    inputs=resolved.inputs,
-                    output=resolved.output,
-                    no_return=resolved.no_return,
-                    dispatch=resolved.dispatch,
-                    os_since=resolved.os_since,
-                    fd_version=resolved.fd_version,
-                ))
+                    deferred_direct.append((block_addr, inst.offset, disp))
                 continue
 
             # Pattern 2: JSR 0(A6,Dn.w) - indexed EA, LVO in index reg
@@ -2397,6 +2498,19 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                         lvo = disp_raw + v
                         if a6_lib:
                             resolved = _resolve_lvo(lvo, a6_lib, lvo_lookup)
+                            results.append(LibraryCall(
+                                addr=inst.offset,
+                                block=block_addr,
+                                library=resolved.library,
+                                function=resolved.function,
+                                lvo=resolved.lvo,
+                                inputs=resolved.inputs,
+                                output=resolved.output,
+                                no_return=resolved.no_return,
+                                dispatch=resolved.dispatch,
+                                os_since=resolved.os_since,
+                                fd_version=resolved.fd_version,
+                            ))
                         else:
                             resolved = LibraryCall(
                                 addr=0,
@@ -2405,31 +2519,77 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                                 function=f"LVO_{-lvo}",
                                 lvo=lvo,
                             )
-                        results.append(LibraryCall(
-                            addr=inst.offset,
-                            block=block_addr,
-                            library=resolved.library,
-                            function=resolved.function,
-                            lvo=resolved.lvo,
-                            inputs=resolved.inputs,
-                            output=resolved.output,
-                            no_return=resolved.no_return,
-                            dispatch=resolved.dispatch,
-                            os_since=resolved.os_since,
-                            fd_version=resolved.fd_version,
-                        ))
+                            results.append(LibraryCall(
+                                addr=inst.offset,
+                                block=block_addr,
+                                library=resolved.library,
+                                function=resolved.function,
+                                lvo=resolved.lvo,
+                                inputs=resolved.inputs,
+                                output=resolved.output,
+                                no_return=resolved.no_return,
+                                dispatch=resolved.dispatch,
+                                os_since=resolved.os_since,
+                                fd_version=resolved.fd_version,
+                            ))
                         continue
 
                 # Defer for per-caller resolution
-                deferred.append((block_addr, inst.offset, a6_lib,
-                                 idx_mode, idx_reg, idx_wl, disp_raw))
+                deferred_indexed.append((block_addr, inst.offset, a6_lib,
+                                         idx_mode, idx_reg, idx_wl, disp_raw))
+                continue
+
+    # Per-caller resolution for deferred direct A6 displacement calls.
+    for blk_addr, inst_addr, disp in deferred_direct:
+        sub_entry = _find_sub_entry(blk_addr, blocks, call_targets)
+        if sub_entry is None:
+            results.append(LibraryCall(
+                addr=inst_addr,
+                block=blk_addr,
+                library="unknown",
+                function=f"LVO_{-disp}",
+                lvo=disp,
+            ))
+            continue
+        callers = caller_map.get(sub_entry, [])
+        resolved_any = False
+        for caller_addr in callers:
+            if caller_addr not in exit_states:
+                continue
+            caller_cpu, _ = exit_states[caller_addr]
+            call_lib = _library_base_from_tag(caller_cpu.a[base_reg_num].tag)
+            if call_lib is None:
+                continue
+            resolved = _resolve_lvo(disp, call_lib, lvo_lookup)
+            results.append(LibraryCall(
+                addr=caller_addr,
+                block=caller_addr,
+                library=resolved.library,
+                function=resolved.function,
+                lvo=resolved.lvo,
+                inputs=resolved.inputs,
+                output=resolved.output,
+                no_return=resolved.no_return,
+                dispatch=inst_addr,
+                os_since=resolved.os_since,
+                fd_version=resolved.fd_version,
+            ))
+            resolved_any = True
+        if not resolved_any:
+            results.append(LibraryCall(
+                addr=inst_addr,
+                block=blk_addr,
+                library="unknown",
+                function=f"LVO_{-disp}",
+                lvo=disp,
+            ))
 
     # Per-caller resolution for deferred indexed-EA calls.
     # The callee block's index register is unknown (joined from
     # multiple callers), but each caller's exit state has the
     # concrete value.
     for (blk_addr, inst_addr, lib, idx_mode, idx_reg,
-         idx_wl, base_disp) in deferred:
+         idx_wl, base_disp) in deferred_indexed:
         sub_entry = _find_sub_entry(blk_addr, blocks, call_targets)
         if sub_entry is None:
             continue

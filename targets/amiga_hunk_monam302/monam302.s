@@ -2,44 +2,7 @@
 ; Source: bin\MonAm302
 ; 35548 bytes, 385 entities, 1492 blocks
 
-; LVO offsets: console.device
-_LVORawKeyConvert	EQU	-48
-
-; LVO offsets: dos.library
-_LVOUnLoadSeg	EQU	-156
-_LVOLoadSeg	EQU	-150
-_LVOCreateProc	EQU	-138
-_LVOIoErr	EQU	-132
-_LVOSeek	EQU	-66
-_LVOWrite	EQU	-48
-_LVORead	EQU	-42
-_LVOClose	EQU	-36
-_LVOOpen	EQU	-30
-
-; LVO offsets: exec.library
-_LVOOpenLibrary	EQU	-552
-_LVOTypeOfMem	EQU	-534
-_LVOCloseDevice	EQU	-450
-_LVOOpenDevice	EQU	-444
-_LVOCloseLibrary	EQU	-414
-_LVOReplyMsg	EQU	-378
-_LVOGetMsg	EQU	-372
-_LVORemPort	EQU	-360
-_LVOAddPort	EQU	-354
-_LVOFreeSignal	EQU	-336
-_LVOAllocSignal	EQU	-330
-_LVOSignal	EQU	-324
-_LVOWait	EQU	-318
-_LVOSetSignal	EQU	-306
-_LVOFindTask	EQU	-294
-_LVORemove	EQU	-252
-_LVOFreeMem	EQU	-210
-_LVOAllocMem	EQU	-198
-_LVOPermit	EQU	-138
-_LVOForbid	EQU	-132
-_LVOSupervisor	EQU	-30
-
-; LVO offsets: graphics.library
+; LVO offsets: graphics.library (FD-derived)
 _LVOSetDrMd	EQU	-354
 _LVOSetAPen	EQU	-342
 _LVOPolyDraw	EQU	-336
@@ -47,7 +10,7 @@ _LVORectFill	EQU	-306
 _LVOMove	EQU	-240
 _LVOText	EQU	-60
 
-; LVO offsets: intuition.library
+; LVO offsets: intuition.library (FD-derived)
 _LVOActivateWindow	EQU	-450
 _LVOSetPointer	EQU	-270
 _LVOScreenToFront	EQU	-252
@@ -58,10 +21,8 @@ _LVOCloseWindow	EQU	-72
 _LVOCloseScreen	EQU	-66
 
 ; OS function argument constants
-CONU_LIBRARY	EQU	-1
-CONU_STANDARD	EQU	0
-MEMF_CHIP	EQU	2
 MEMF_PUBLIC	EQU	1
+MODE_OLDFILE	EQU	1005
 OFFSET_BEGINNING	EQU	-1
 OFFSET_CURRENT	EQU	0
 OFFSET_END	EQU	1
@@ -94,6 +55,9 @@ app_polydraw_polytable	EQU	2164
 ; Absolute symbols
 AbsExecBase	EQU	$4
 
+    INCLUDE "devices/console.i"
+    INCLUDE "dos/dos_lib.i"
+    INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/io.i"
     INCLUDE "exec/ports.i"
     INCLUDE "graphics/gfxbase.i"
@@ -136,7 +100,7 @@ pcref_0072:
 loc_0094:
     movem.l d0/a0,sub_88ec
     move.l #$e1a,d0 ; AllocMem: byteSize
-    move.l #$10001,d1 ; AllocMem: requirements
+    move.l #$10001,d1 ; AllocMem: attributes
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
 loc_00b0:
@@ -189,9 +153,9 @@ loc_0128:
     bra.w loc_0448
 loc_012e:
     lea opendevice_devname,a0 ; OpenDevice: devName
-    moveq #CONU_LIBRARY,d0 ; OpenDevice: unit
-    lea app_console_device_iorequest(a6),a1 ; OpenDevice: ioRequest
-    moveq #CONU_STANDARD,d1 ; OpenDevice: flags
+    moveq #-1,d0 ; OpenDevice: unitNumber
+    lea app_console_device_iorequest(a6),a1 ; OpenDevice: iORequest
+    moveq #0,d1 ; OpenDevice: flags
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOOpenDevice(a6) ; app-$1BC
@@ -243,7 +207,7 @@ loc_01c4:
     move.w #$4e71,dat_15b2
     bra.s loc_01e8
 loc_01ce:
-    lea supervisor_userfunction(pc),a5 ; Supervisor: userFunction
+    lea supervisor_userfunc(pc),a5 ; Supervisor: userFunc
     moveq #0,d0
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
@@ -256,8 +220,8 @@ loc_01e8:
     bsr.w sub_0526
 loc_01ec:
     link a5,#-186
-    movea.l sp,a0 ; GetPrefs: preferences
-    move.l #$ba,d0 ; GetPrefs: size
+    movea.l sp,a0 ; GetPrefs: PrefBuffer
+    move.l #$ba,d0 ; GetPrefs: Size
     move.l a6,-(sp)
     movea.l app_intuition_base(a6),a6
     jsr _LVOGetPrefs(a6) ; app-$84
@@ -277,7 +241,7 @@ loc_0226:
     ori.w #$4,d2
     add.w d0,d0
 loc_022c:
-    lea openscreen_newscreen(pc),a0 ; OpenScreen: newScreen
+    lea openscreen_newscreen(pc),a0 ; OpenScreen: NewScreen
     move.w d1,ns_Width(a0)
     move.w d0,ns_Height(a0)
     move.w d2,ns_ViewModes(a0)
@@ -297,10 +261,10 @@ loc_025c:
     beq.w loc_03ea
 loc_0266:
     movea.l d0,a1
-    lea openwindow_newwindow(pc),a0 ; OpenWindow: newWindow
+    lea openwindow_newwindow(pc),a0 ; OpenWindow: NewWindow
     move.l a1,nw_Screen(a0)
     moveq #1,d1
-    add.b 30(a1),d1
+    add.b sc_BarHeight(a1),d1
     move.l pcref_0496(pc),nw_Width(a0)
     move.w d1,nw_TopEdge(a0)
     sub.w nw_Height(a0),6(a0)
@@ -440,7 +404,7 @@ loc_03ca:
 loc_03d8:
     movea.l (sp)+,a6
 loc_03da:
-    movea.l app_closescreen_screen(a6),a0 ; CloseScreen: screen
+    movea.l app_closescreen_screen(a6),a0 ; CloseScreen: Screen
     move.l a6,-(sp)
     movea.l app_intuition_base(a6),a6
     jsr _LVOCloseScreen(a6) ; app-$42
@@ -450,7 +414,7 @@ loc_03ea:
     move.b 309(a6),d0 ; app+$135
     beq.s loc_0400
 loc_03f0:
-    lea supervisor_userfunction(pc),a5 ; Supervisor: userFunction
+    lea supervisor_userfunc(pc),a5 ; Supervisor: userFunc
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOSupervisor(a6) ; app-$1E
@@ -3091,7 +3055,7 @@ loc_193c:
     move.l app_exec_base_0054(a6),dat_890c
     move.w 90(a6),dat_8910 ; app+$5A
     moveq #0,d0 ; SetSignal: newSignals
-    moveq #0,d1 ; SetSignal: signalSet
+    moveq #0,d1 ; SetSignal: signalMask
     move.b dat_895e(pc),d2
     bset d2,d1
     move.l a6,-(sp)
@@ -3118,7 +3082,7 @@ loc_199e:
     move.w 4(a0),(a1)
     bset #7,90(a6) ; app+$5A
     bra.w loc_1926
-supervisor_userfunction:
+supervisor_userfunc:
     movec cacr,d1 ; 68010+
     move.l d1,-(sp)
     bclr #0,d1
@@ -8040,7 +8004,7 @@ loc_413c:
     tst.b d7
     beq.s loc_415e
 loc_4140:
-    moveq #0,d1 ; SetSignal: signalSet
+    moveq #0,d1 ; SetSignal: signalMask
     move.b dat_895e(pc),d0
     bset d0,d1
     moveq #0,d0 ; SetSignal: newSignals
@@ -8129,7 +8093,7 @@ call_rawkeyconvert:
     move.w 26(a1),(a0)+
     movea.l 28(a1),a1
     move.l (a1),(a0)
-    movea.l (sp)+,a0 ; RawKeyConvert: events
+    movea.l (sp)+,a0 ; RawKeyConvert: event
     lea app_rawkeyconvert_buffer(a6),a1 ; RawKeyConvert: buffer
     clr.l (a1)
     moveq #4,d1 ; RawKeyConvert: length
@@ -11188,7 +11152,7 @@ loc_5614:
     moveq #0,d2
     movea.l dat_8956(pc),a0
     move.b 9(a0),d2 ; CreateProc: pri
-    move.l dat_88f6(pc),d3 ; CreateProc: segList
+    move.l dat_88f6(pc),d3 ; CreateProc: seglist
     moveq #80,d4
     add.l app_createproc_stacksize(a6),d4 ; CreateProc: stackSize
     move.l a6,-(sp)
@@ -11255,9 +11219,9 @@ loc_56e4:
 call_move:
     move.b d1,-(sp)
     mulu.w app_rectfill_xmax(a6),d2
-    add.w 14(a3),d2
+    add.w 14(a3),d2 ; Move: x
     add.w 16(a3),d3
-    add.w 218(a6),d3 ; app+$DA
+    add.w 218(a6),d3 ; Move: y
     move.w d2,d0 ; Move: x
     move.w d3,d1 ; Move: y
     movea.l a5,a1
@@ -11516,9 +11480,9 @@ loc_5946:
     bge.s loc_59ae
 loc_595a:
     mulu.w app_rectfill_xmax(a6),d2
-    add.w 14(a3),d2
+    add.w 14(a3),d2 ; Move: x
     add.w 16(a3),d3
-    add.w 218(a6),d3 ; app+$DA
+    add.w 218(a6),d3 ; Move: y
     move.w d2,d0 ; Move: x
     move.w d3,d1 ; Move: y
     move.l a6,-(sp)
@@ -14856,7 +14820,7 @@ loc_737c:
     movem.l d1/a0-a1/a6,-(sp)
     movea.l AbsExecBase,a6
     move.l a2,d0
-    move.w #$8000,d0
+    move.w #$8000,d0 ; TypeOfMem: address
     movea.l d0,a1 ; TypeOfMem: address
     jsr _LVOTypeOfMem(a6) ; app-$216
 loc_7390:
@@ -14906,16 +14870,16 @@ loc_73e2:
 call_seek:
     move.l d3,-(sp)
     move.l d3,d1 ; Seek: file
-    moveq #OFFSET_CURRENT,d2 ; Seek: position
-    moveq #OFFSET_END,d3 ; Seek: offset
+    moveq #0,d2 ; Seek: position
+    moveq #OFFSET_END,d3 ; Seek: mode
     move.l a6,-(sp)
     movea.l app_dos_base(a6),a6
     jsr _LVOSeek(a6) ; app-$42
 loc_73fe:
     movea.l (sp)+,a6
     move.l (sp),d1 ; Seek: file
-    moveq #OFFSET_CURRENT,d2 ; Seek: position
-    moveq #OFFSET_CURRENT,d3 ; Seek: offset
+    moveq #0,d2 ; Seek: position
+    moveq #OFFSET_CURRENT,d3 ; Seek: mode
     move.l a6,-(sp)
     movea.l app_dos_base(a6),a6
     jsr _LVOSeek(a6) ; app-$42
@@ -14923,8 +14887,8 @@ loc_7410:
     movea.l (sp)+,a6
     move.l d0,d4
     move.l (sp),d1 ; Seek: file
-    moveq #OFFSET_CURRENT,d2 ; Seek: position
-    moveq #OFFSET_BEGINNING,d3 ; Seek: offset
+    moveq #0,d2 ; Seek: position
+    moveq #OFFSET_BEGINNING,d3 ; Seek: mode
     move.l a6,-(sp)
     movea.l app_dos_base(a6),a6
     jsr _LVOSeek(a6) ; app-$42
@@ -15391,7 +15355,7 @@ loc_778c:
     suba.l a4,a4
     lea dat_88f6(pc),a5
     move.l (sp)+,d1 ; Open: name
-    move.l #$3ed,d2 ; Open: accessMode
+    move.l #MODE_OLDFILE,d2 ; Open: accessMode
     move.l a6,-(sp)
     movea.l app_dos_base(a6),a6
     jsr _LVOOpen(a6) ; app-$1E
@@ -15544,7 +15508,7 @@ loc_78c6:
 call_read_78ce:
     moveq #8,d0
     add.l d6,d0 ; AllocMem: byteSize
-    moveq #0,d1 ; AllocMem: requirements
+    moveq #0,d1 ; AllocMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
@@ -15841,7 +15805,7 @@ call_read_7b3e:
 loc_7b42:
     move.l d0,-(sp)
     move.l d4,d1 ; Read: file
-    lea 3080(a6),a0 ; app+$C08
+    lea 3080(a6),a0 ; Read: buffer
     move.l a0,d2 ; Read: buffer
     move.l #$200,d3 ; Read: length
     move.l a6,-(sp)
@@ -15889,7 +15853,7 @@ loc_7b96:
     rts
 call_read_7b98:
     move.l d4,d1 ; Read: file
-    lea 2472(a6),a0 ; app+$9A8
+    lea 2472(a6),a0 ; Read: buffer
     move.l a0,d2 ; Read: buffer
     moveq #4,d3 ; Read: length
     move.l a6,-(sp)
@@ -16008,7 +15972,7 @@ loc_7c5c:
     bne.s loc_7c84
 loc_7c66:
     move.l #dat_136d,d1 ; Open: name
-    move.l #$3ed,d2 ; Open: accessMode
+    move.l #MODE_OLDFILE,d2 ; Open: accessMode
     move.l a6,-(sp)
     movea.l app_dos_base(a6),a6
     jsr _LVOOpen(a6) ; app-$1E
@@ -16245,9 +16209,9 @@ loc_7e2e:
     bset #0,d0
     addq.l #2,d0
     move.l d0,1420(a6) ; app+$58C
-    asl.l #MEMF_CHIP,d0 ; AllocMem: byteSize
+    asl.l #2,d0 ; AllocMem: byteSize
     addq.l #4,d0
-    move.l #$10000,d1 ; AllocMem: requirements
+    move.l #$10000,d1 ; AllocMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
@@ -16504,7 +16468,7 @@ loc_7fe0:
     bsr.w sub_6a5a
 loc_7fe6:
     move.l #sub_81cb,d1 ; Open: name
-    move.l #$3ed,d2 ; Open: accessMode
+    move.l #MODE_OLDFILE,d2 ; Open: accessMode
     move.l a6,-(sp)
     movea.l app_dos_base(a6),a6
     jsr _LVOOpen(a6) ; app-$1E
@@ -16525,7 +16489,7 @@ loc_801a:
     moveq #28,d1
     bsr.w sub_6a5a
 loc_8020:
-    lea 2472(a6),a0 ; app+$9A8
+    lea 2472(a6),a0 ; Read: buffer
     move.l d4,d1 ; Read: file
     move.l a0,d2 ; Read: buffer
     moveq #8,d3 ; Read: length
@@ -16544,7 +16508,7 @@ loc_8046:
     beq.s loc_809a
 loc_804c:
     move.l d0,app_read_length(a6)
-    moveq #0,d1 ; AllocMem: requirements
+    moveq #0,d1 ; AllocMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
@@ -16554,7 +16518,7 @@ loc_805c:
     beq.s loc_809a
 loc_8062:
     move.l d0,app_freemem_memoryblock(a6)
-    movea.l d0,a4
+    movea.l d0,a4 ; Read: buffer
     move.l d4,d1 ; Read: file
     move.l a4,d2 ; Read: buffer
     move.l app_read_length(a6),d3 ; Read: length
@@ -16703,7 +16667,7 @@ loc_815c:
 alloc_memory_8160:
     addq.l #8,d0
     move.l d0,-(sp)
-    moveq #MEMF_PUBLIC,d1 ; AllocMem: requirements
+    moveq #MEMF_PUBLIC,d1 ; AllocMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6

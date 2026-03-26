@@ -268,13 +268,24 @@ class OsAbsoluteSymbol(TypedDict):
     note: str
 
 
+class OsIncludeOwner(TypedDict):
+    kind: str
+    include_path: str | None
+    comment_include_path: str | None
+    source_file: str
+
+
 class OsMeta(TypedDict):
     calling_convention: OsCallingConvention
     exec_base_addr: OsExecBaseAddress
     absolute_symbols: list[OsAbsoluteSymbol]
     lvo_slot_size: int
     named_base_structs: dict[str, str]
-    constant_domains: dict[str, list[str]]
+    input_constant_domains: dict[str, dict[str, list[str]]]
+    value_domains: dict[str, list[str]]
+    field_value_domains: dict[str, str]
+    field_context_value_domains: dict[str, dict[str, str]]
+    library_lvo_owners: dict[str, OsIncludeOwner]
 
 
 class OsStructField(TypedDict, total=False):
@@ -304,7 +315,7 @@ class OsConstant(TypedDict):
 
 class OsInput(TypedDict, total=False):
     name: str
-    reg: str
+    regs: list[str]
     type: str
     i_struct: str
     semantic_kind: str

@@ -55,10 +55,16 @@ def discover_operand_targets(blocks: Mapping[int, DisasmBlockLike],
     return pc_targets, absolute_targets
 
 
-def discover_absolute_targets(blocks: Mapping[int, DisasmBlockLike], code_size: int) -> set[int]:
+def discover_absolute_targets(
+    blocks: Mapping[int, DisasmBlockLike],
+    code_size: int,
+    *,
+    segment_start: int = 0,
+) -> set[int]:
     """Discover internal absolute-address operands in a block set."""
     _, targets = discover_operand_targets(blocks, None)
-    return {target for target in targets if 0 <= target < code_size}
+    segment_end = segment_start + code_size
+    return {target for target in targets if segment_start <= target < segment_end}
 
 
 def filter_internal_absolute_data_targets(targets: set[int],

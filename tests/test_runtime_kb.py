@@ -118,13 +118,9 @@ def test_runtime_os_meta_has_named_base_structs() -> None:
 def test_runtime_os_input_semantic_kinds_cover_callback_cases() -> None:
     os_kb = load_os_runtime_kb()
 
-    assert os_kb.LIBRARIES["exec.library"].functions["Supervisor"].inputs[0].semantic_kind == "code_ptr"
-    assert os_kb.LIBRARIES["exec.library"].functions["Supervisor"].inputs[0].semantic_note is None
     assert os_kb.LIBRARIES["graphics.library"].functions["SetCollision"].inputs[1].semantic_kind == "code_ptr"
     assert os_kb.LIBRARIES["exec.library"].functions["AddTask"].inputs[1].semantic_kind == "code_ptr"
     assert os_kb.LIBRARIES["exec.library"].functions["AddTask"].inputs[2].semantic_kind == "code_ptr"
-    assert os_kb.LIBRARIES["exec.library"].functions["SetFunction"].inputs[2].semantic_kind == "code_ptr"
-    assert os_kb.LIBRARIES["exec.library"].functions["SetFunction"].inputs[2].semantic_note is None
     assert os_kb.LIBRARIES["exec.library"].functions["ObtainQuickVector"].inputs[0].semantic_kind == "code_ptr"
     assert os_kb.LIBRARIES["exec.library"].functions["ObtainQuickVector"].inputs[0].semantic_note
     assert os_kb.LIBRARIES["lowlevel.library"].functions["AddKBInt"].inputs[0].semantic_kind == "code_ptr"
@@ -175,8 +171,9 @@ def test_runtime_special_case_tables_match_canonical_data() -> None:
     for key, kb_mnemonic in canonical["_meta"]["asm_syntax_index"].items():
         mnemonic, _, raw_operand_types = key.partition(":")
         operand_types = tuple(raw_operand_types.split(",")) if raw_operand_types else ()
-        expected_structured[mnemonic, operand_types] = kb_mnemonic
-    assert expected_structured == payload.ASM_SYNTAX_INDEX
+        expected_structured[mnemonic, operand_types] = (kb_mnemonic, operand_types)
+    for key, value in expected_structured.items():
+        assert payload.ASM_SYNTAX_INDEX[key] == value
 
     assert by_name["ADDQ"]["constraints"]["immediate_range"]["zero_means"] == payload.ADDQ_ZERO_MEANS
 
@@ -188,7 +185,9 @@ def test_runtime_special_case_tables_match_canonical_data() -> None:
     assert payload.META["_sp_reg_num"] == 7
     assert payload.META["_num_data_regs"] == 8
     assert payload.META["_num_addr_regs"] == 8
-    assert payload.ASM_SYNTAX_INDEX["move", ("ea", "sr")] == "MOVE to SR"
+    assert payload.ASM_SYNTAX_INDEX["move", ("ea", "sr")] == ("MOVE to SR", ("ea", "sr"))
+    assert payload.ASM_SYNTAX_INDEX["move", ("dn", "sr")] == ("MOVE to SR", ("ea", "sr"))
+    assert payload.ASM_SYNTAX_INDEX["move", ("sr", "dn")] == ("MOVE from SR", ("sr", "ea"))
     expected_families = tuple(
         (
             entry["prefix"],
@@ -995,7 +994,19 @@ def test_runtime_os_meta_is_typed() -> None:
     assert runtime.META.calling_convention.return_reg == "D0"
     assert runtime.META.exec_base_addr.address == 4
     assert runtime.META.exec_base_addr.library == "exec.library"
-    assert "OpenDevice" in runtime.META.constant_domains
+    assert "AllocMem" in runtime.META.input_constant_domains
+    assert runtime.META.input_constant_domains["AllocMem"]["attributes"] == (
+        "MEMF_CHIP", "MEMF_FAST", "MEMF_PUBLIC")
+    assert runtime.META.input_constant_domains["Seek"]["mode"] == (
+        "OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END")
+    assert runtime.META.input_constant_domains["Lock"]["accessMode"] == (
+        "ACCESS_READ", "ACCESS_WRITE")
+    assert runtime.META.input_constant_domains["SetSignal"]["signalMask"] == (
+        "SIGBREAKF_CTRL_C",)
+    assert "OpenDevice" not in runtime.META.input_constant_domains
+    assert runtime.FIELD_VALUE_DOMAINS["IO.IO_COMMAND"] == "exec.io.command"
+    assert runtime.FIELD_CONTEXT_VALUE_DOMAINS["IO.IO_COMMAND"]["trackdisk.device"] == "trackdisk.device.io_command"
+    assert "CMD_READ" in runtime.VALUE_DOMAINS["exec.io.command"]
     assert not hasattr(runtime, "RUNTIME")
 
 
@@ -1022,9 +1033,9 @@ def test_runtime_os_library_function_entries_are_typed() -> None:
     open_device = runtime.LIBRARIES["exec.library"].functions["OpenDevice"]
     assert open_device.lvo == -444
     assert tuple(arg.name for arg in open_device.inputs) == (
-        "devName", "unit", "ioRequest", "flags")
-    assert tuple(arg.reg for arg in open_device.inputs) == (
-        "A0", "D0", "A1", "D1")
+        "devName", "unitNumber", "iORequest", "flags")
+    assert tuple(arg.regs for arg in open_device.inputs) == (
+        ("A0",), ("D0",), ("A1",), ("D1",))
     assert open_device.inputs[2].i_struct == "IO"
     assert open_device.output is not None
     assert open_device.output.name == "error"

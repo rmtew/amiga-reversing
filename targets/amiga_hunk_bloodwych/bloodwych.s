@@ -1,6 +1,6 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: bin\Bloodwych439
-; 365540 bytes, 1031 entities, 3022 blocks
+; 365540 bytes, 1032 entities, 3023 blocks
 
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
@@ -16860,16 +16860,6 @@ loc_c0f8:
 sub_c0fa:
     moveq #-1,d0
     move.w d0,dat_c514
-    move.b d0,dat_ee83
-    move.b d0,dat_eee5
-    move.l #$b00040,dat_ee7e
-    move.l #$b00078,dat_eee0
-    clr.b dat_eece
-    move.w #$ba02,d0
-    move.w d0,dat_eeb6
-    move.w d0,dat_ef18
-    tst.w dat_ee30
-    beq.s loc_c168
 loc_c140:
     clr.w dat_c514
     move.w #$ffff,dat_eef2
@@ -16894,15 +16884,15 @@ loc_c190:
     move.w dat_eef2,d1
     lea dat_ee7c,a5
     and.w 20(a5),d1
-    bmi.s loc_c1f4
+    bmi.s sub_c1f4
 loc_c1a2:
     clr.b dat_ee2c
-    bsr.w sub_c1f6
+    bsr.w loc_c1f6
 loc_c1ac:
     bsr.w sub_c232
 loc_c1b0:
     lea dat_eede,a5
-    bsr.w sub_c1f6
+    bsr.w loc_c1f6
 loc_c1ba:
     bsr.w sub_c232
 loc_c1be:
@@ -16921,42 +16911,42 @@ loc_c1e0:
 loc_c1ee:
     clr.w 12(a5)
     bra.s loc_c190
-loc_c1f4:
+sub_c1f4:
     rts
-sub_c1f6:
+loc_c1f6:
     move.w 34(a5),36(a5)
     bclr #7,1(a5)
-    beq.s loc_c1f4
+    beq.s sub_c1f4
 loc_c204:
     move.w 20(a5),d0
-    bmi.s loc_c1f4
+    bmi.s sub_c1f4
 loc_c20a:
     cmpi.b #$3,d0
-    beq.s loc_c1f4
+    beq.s sub_c1f4
 loc_c210:
     bsr.w sub_c74c
 loc_c214:
-    bpl.s loc_c1f4
+    bpl.s sub_c1f4
 loc_c216:
     tst.b 7(a5)
-    bmi.s loc_c1f4
+    bmi.s sub_c1f4
 loc_c21c:
     bsr.w sub_c5f4
 loc_c220:
-    bpl.s loc_c1f4
+    bpl.s sub_c1f4
 loc_c222:
     bsr.w sub_c622
 loc_c226:
-    bpl.s loc_c1f4
+    bpl.s sub_c1f4
 loc_c228:
     bsr.w sub_c70c
 loc_c22c:
-    bpl.s loc_c1f4
+    bpl.s sub_c1f4
 loc_c22e:
     bra.w sub_c650
 sub_c232:
     move.w 20(a5),d0
-    bmi.s loc_c1f4
+    bmi.s sub_c1f4
 loc_c238:
     cmpi.b #$3,d0
     bne.s loc_c252
@@ -16971,7 +16961,7 @@ loc_c24e:
     move.w d0,12(a5)
 loc_c252:
     move.w 12(a5),d0
-    beq.s loc_c1f4
+    beq.s sub_c1f4
 loc_c258:
     asl.w #2,d0
     lea $0000c262,a0

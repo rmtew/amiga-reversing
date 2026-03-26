@@ -1,18 +1,31 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import sys
 from collections.abc import MutableMapping
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
+from _pytest.monkeypatch import MonkeyPatch
+
+from disasm.binary_source import RawBinarySource
+from disasm.target_metadata import (
+    BootBlockTargetMetadata,
+    ResidentTargetMetadata,
+    TargetMetadata,
+    write_target_metadata,
+)
 from m68k.indirect_core import IndirectSite, IndirectSiteStatus
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
+from m68k.m68k_executor import BasicBlock
 from m68k.name_entities import name_subroutines
-from m68k.os_calls import AppSlotInfo
-from m68k_kb import runtime_m68k_analysis
+from m68k.os_calls import AppSlotInfo, LibraryCall
+from m68k_kb import runtime_m68k_analysis, runtime_os
+from tests.os_kb_helpers import make_empty_os_kb
+from tests.platform_helpers import make_platform
 
 
 def test_build_entities_help_loads_cleanly() -> None:
@@ -26,6 +39,38 @@ def test_build_entities_help_loads_cleanly() -> None:
     )
     assert result.returncode == 0, result.stderr
     assert "Build entities.jsonl from hunk binary analysis" in result.stdout
+
+
+def test_structured_prefix_entities_only_emit_when_requested() -> None:
+    module = _load_build_entities_module()
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        resident=ResidentTargetMetadata(
+            offset=4,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=37,
+            node_type_name="NT_LIBRARY",
+            priority=0,
+            name="icon.library",
+            id_string="icon 37.1",
+            init_offset=0x44,
+            auto_init=True,
+        ),
+    )
+
+    assert module._structured_prefix_entities(metadata, 0, include_structure=False) == []
+    payloads = module._structured_prefix_entities(metadata, 0, include_structure=True)
+    assert payloads == [{
+        "addr": "0x0004",
+        "end": "0x001E",
+        "type": "data",
+        "subtype": "struct_instance",
+        "confidence": "tool-inferred",
+        "hunk": 0,
+        "struct": "RT",
+    }]
 
 
 def _load_build_entities_module() -> ModuleType:
@@ -68,6 +113,31 @@ def test_collect_subroutine_app_slots_uses_containing_struct_region() -> None:
             named_base="timer.device",
         ),
     )
+
+
+def test_os_input_reg_key_joins_grouped_registers() -> None:
+    module = _load_build_entities_module()
+
+    assert module._os_input_reg_key(("D0",)) == "D0"
+    assert module._os_input_reg_key(("D0", "D1")) == "D0/D1"
+
+
+def test_grouped_os_call_inputs_are_emitted_in_entity_payload() -> None:
+    module = _load_build_entities_module()
+    payload = module._typed_call_inputs_payload((
+        runtime_os.OsInput(
+            name="parm",
+            regs=("D0", "D1"),
+            type="DOUBLE",
+            i_struct=None,
+            semantic_kind=None,
+            semantic_note=None,
+        ),
+    ))
+
+    assert payload == {
+        "D0/D1": {"type": "DOUBLE"},
+    }
 
 
 def test_app_slot_entity_payloads_emit_struct_and_named_base() -> None:
@@ -200,3 +270,199 @@ def test_name_subroutines_uses_transitive_named_base_for_dispatch_wrapper() -> N
 
     assert named == 1
     assert entities[0]["name"] == "dos_dispatch"
+
+
+def test_name_subroutines_ignores_unknown_library_call_names() -> None:
+    entities: list[MutableMapping[str, object]] = [{
+        "addr": "0x0010",
+        "end": "0x0018",
+        "type": "code",
+    }]
+
+    named = name_subroutines(
+        entities,
+        {},
+        b"",
+        [LibraryCall(
+            addr=0x0012,
+            block=0x0010,
+            library="unknown",
+            function="LVO_48",
+            lvo=-48,
+        )],
+    )
+
+    assert named == 0
+    assert "name" not in entities[0]
+
+
+def test_build_entities_from_raw_binary_rebases_addresses_to_local_offsets(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "bootblock"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"\x00" * 0x0C + b"\x4E\x75")
+    output_path = target_dir / "entities.jsonl"
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="bootblock",
+            entry_register_seeds=(),
+            bootblock=BootBlockTargetMetadata(
+                magic_ascii="DOS",
+                flags_byte=0,
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=880,
+                bootcode_offset=0x0C,
+                bootcode_size=2,
+                load_address=0x70000,
+                entrypoint=0x7000C,
+            ),
+        ),
+    )
+    inst = disassemble(b"\x4E\x75")[0]
+    inst.offset = 0x000C
+    block = BasicBlock(
+        start=0x0000,
+        end=0x000E,
+        instructions=[inst],
+        is_entry=True,
+        is_return=True,
+    )
+    fake_analysis = SimpleNamespace(
+        blocks={0x0000: block},
+        xrefs=[],
+        call_targets=set(),
+        hint_blocks={},
+        hint_reasons={},
+        lib_calls=[],
+        os_kb=make_empty_os_kb(),
+        platform=make_platform(),
+        indirect_sites=[],
+        save=lambda path: None,
+    )
+    def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
+        assert kwargs["base_addr"] == 0x0C
+        assert kwargs["code_start"] == 0x0C
+        assert kwargs["entry_points"] == (0x0C,)
+        return fake_analysis
+
+    monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
+    monkeypatch.setattr(module, "build_app_slot_infos", lambda *args, **kwargs: ())
+    monkeypatch.setattr(module, "name_subroutines", lambda *args, **kwargs: 0)
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="local_offset",
+        load_address=0x70000,
+        entrypoint=0x7000C,
+        code_start_offset=0x0C,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+
+    result = module.build_entities_from_source(source, str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert payloads[0]["addr"] == "0x0000"
+    assert payloads[0]["end"] == "0x000C"
+    assert payloads[0]["type"] == "data"
+    assert payloads[0]["subtype"] == "struct_instance"
+    assert payloads[1]["addr"] == "0x000C"
+    assert payloads[1]["end"] == "0x000E"
+
+
+def test_build_entities_from_runtime_absolute_raw_binary_normalizes_to_local_offsets(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "absolute_raw"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"\x00" * 0x0C + b"\x4E\x75")
+    output_path = target_dir / "entities.jsonl"
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="bootblock",
+            entry_register_seeds=(),
+            bootblock=BootBlockTargetMetadata(
+                magic_ascii="DOS",
+                flags_byte=0,
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=880,
+                bootcode_offset=0x0C,
+                bootcode_size=2,
+                load_address=0x70000,
+                entrypoint=0x7000C,
+            ),
+        ),
+    )
+    inst = disassemble(b"\x4E\x75")[0]
+    inst.offset = 0x7000C
+    block = BasicBlock(
+        start=0x7000C,
+        end=0x7000E,
+        instructions=[inst],
+        is_entry=True,
+        is_return=True,
+    )
+    fake_analysis = SimpleNamespace(
+        blocks={0x7000C: block},
+        xrefs=[],
+        call_targets=set(),
+        hint_blocks={},
+        hint_reasons={},
+        lib_calls=[],
+        os_kb=make_empty_os_kb(),
+        platform=make_platform(),
+        indirect_sites=[],
+        save=lambda path: None,
+    )
+    def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
+        assert kwargs["base_addr"] == 0x7000C
+        assert kwargs["code_start"] == 0x0C
+        assert kwargs["entry_points"] == (0x7000C,)
+        return fake_analysis
+
+    monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
+    monkeypatch.setattr(module, "build_app_slot_infos", lambda *args, **kwargs: ())
+    monkeypatch.setattr(module, "name_subroutines", lambda *args, **kwargs: 0)
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x70000,
+        entrypoint=0x7000C,
+        code_start_offset=0x0C,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+
+    result = module.build_entities_from_source(source, str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert payloads[0]["addr"] == "0x0000"
+    assert payloads[0]["end"] == "0x000C"
+    assert payloads[0]["type"] == "data"
+    assert payloads[0]["subtype"] == "struct_instance"
+    assert payloads[1]["addr"] == "0x000C"
+    assert payloads[1]["end"] == "0x000E"

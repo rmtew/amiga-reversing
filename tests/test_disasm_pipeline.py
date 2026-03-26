@@ -3,7 +3,8 @@ from __future__ import annotations
 """Tests for the shared disassembly session/row pipeline."""
 
 import io
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -14,19 +15,33 @@ from _pytest.monkeypatch import MonkeyPatch
 from disasm import cli as gen_disasm_mod
 from disasm import data_render as data_render_mod
 from disasm import emitter as emitter_mod
-from disasm.analysis_loader import load_hunk_analysis
+from disasm.analysis_loader import (
+    analysis_cache_root,
+    hunk_analysis_cache_path,
+    load_hunk_analysis,
+)
 from disasm.api import listing_window_payload, serialize_row, session_metadata
+from disasm.binary_source import RawBinarySource
 from disasm.comments import build_instruction_comment_parts, render_comment_parts
-from disasm.emitter import emit_session_rows
+from disasm.emitter import emit_session_rows, render_session_text
 from disasm.entities import infer_target_name, load_entities
 from disasm.hint_validation import (
     hint_block_has_supported_terminal_flow,
     is_valid_hint_block,
 )
 from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
+from disasm.instruction_rows import render_instruction_text
 from disasm.jump_tables import emit_jump_table_rows
 from disasm.metadata import build_hunk_metadata
+from disasm.os_include_kb import load_os_include_kb
+from disasm.session import build_disassembly_session
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
+from disasm.target_metadata import (
+    BootBlockTargetMetadata,
+    EntryRegisterSeedMetadata,
+    ResidentTargetMetadata,
+    TargetMetadata,
+)
 from disasm.text import listing_window, render_rows
 from disasm.types import (
     AddressRowContext,
@@ -40,10 +55,11 @@ from disasm.types import (
 )
 from disasm.validation import get_instruction_processor_min, has_valid_branch_target
 from m68k.analysis import RelocatedSegment, RelocLike
-from m68k.hunk_parser import HunkType
+from m68k.hunk_parser import Hunk, HunkType, MemType
 from m68k.indirect_core import IndirectSite, IndirectSiteRegion, IndirectSiteStatus
 from m68k.jump_tables import JumpTable, JumpTableEntry, JumpTablePattern
-from m68k.m68k_disasm import Instruction
+from m68k.m68k_disasm import Instruction, disassemble
+from m68k.m68k_executor import BasicBlock, XRef
 from m68k.memory_provenance import MemoryRegionAddressSpace, MemoryRegionProvenance
 from m68k.os_calls import (
     AppBaseInfo,
@@ -60,6 +76,8 @@ from m68k_kb import runtime_m68k_analysis, runtime_os
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
 
+_OS_INCLUDE_KB = load_os_include_kb()
+
 
 @dataclass
 class _FakeBlock:
@@ -67,6 +85,21 @@ class _FakeBlock:
     end: int
     successors: tuple[int, ...]
     instructions: list[Instruction]
+    predecessors: tuple[int, ...] = ()
+    xrefs: list[XRef] = field(default_factory=list)
+    is_entry: bool = False
+    is_return: bool = False
+
+
+def test_os_include_kb_contains_device_include_mappings() -> None:
+    assert _OS_INCLUDE_KB.library_lvo_owners["timer.device"].include_path == "devices/timer.i"
+    assert _OS_INCLUDE_KB.library_lvo_owners["console.device"].include_path == "devices/console.i"
+
+
+def test_os_include_kb_loads_from_main_os_reference() -> None:
+    payload = json.loads(Path("knowledge/amiga_os_reference.json").read_text(encoding="utf-8"))
+    assert "library_lvo_owners" in payload["_meta"]
+    assert "exec.library" in payload["_meta"]["library_lvo_owners"]
 
 
 @dataclass
@@ -77,6 +110,20 @@ class _FakeReloc:
 
 def _block(start: int = 0, end: int = 1) -> DisasmBlockLike:
     return _FakeBlock(start=start, end=end, successors=(), instructions=[])
+
+
+def _instruction(*, offset: int, raw: bytes, mnemonic: str, operand_size: str, operand_texts: tuple[str, ...]) -> Instruction:
+    return Instruction(
+        offset=offset,
+        size=len(raw),
+        opcode=int.from_bytes(raw[:2], byteorder="big"),
+        text=mnemonic,
+        raw=raw,
+        opcode_text=mnemonic,
+        kb_mnemonic=mnemonic,
+        operand_size=operand_size,
+        operand_texts=operand_texts,
+    )
 
 
 def test_load_entities_reads_jsonl(tmp_path: Path) -> None:
@@ -159,7 +206,8 @@ def test_build_arg_substitutions_collects_immediate_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            constant_domains={"OpenLibrary": ("OL_TAG",)},
+            input_constant_domains={"OpenLibrary": {"name": ("OL_TAG",)}},
+            library_lvo_owners={},
         ),
         CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="1", value=1)},
         LIBRARIES={
@@ -168,7 +216,7 @@ def test_build_arg_substitutions_collects_immediate_constant() -> None:
                 functions={
                     "OpenLibrary": runtime_os.OsFunction(
                         lvo=-552,
-                        inputs=(runtime_os.OsInput(name="name", reg="d0"),),
+                        inputs=(runtime_os.OsInput(name="name", regs=("d0",)),),
                     )
                 },
             )
@@ -246,7 +294,8 @@ def test_build_arg_substitutions_collects_dispatch_call_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            constant_domains={"Seek": ("OFFSET_BEGINNING", "OFFSET_CURRENT")},
+            input_constant_domains={"Seek": {"mode": ("OFFSET_BEGINNING", "OFFSET_CURRENT")}},
+            library_lvo_owners={},
         ),
         CONSTANTS={
             "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
@@ -259,9 +308,9 @@ def test_build_arg_substitutions_collects_dispatch_call_constant() -> None:
                     "Seek": runtime_os.OsFunction(
                         lvo=-66,
                         inputs=(
-                            runtime_os.OsInput(name="arg1", reg="d1"),
-                            runtime_os.OsInput(name="arg2", reg="d2"),
-                            runtime_os.OsInput(name="mode", reg="d3"),
+                            runtime_os.OsInput(name="arg1", regs=("d1",)),
+                            runtime_os.OsInput(name="arg2", regs=("d2",)),
+                            runtime_os.OsInput(name="mode", regs=("d3",)),
                         ),
                     )
                 },
@@ -285,6 +334,185 @@ def test_build_arg_substitutions_collects_dispatch_call_constant() -> None:
 
     assert arg_equs == {"OFFSET_BEGINNING": -1}
     assert arg_substitutions == {0x12: ("#-1", "#OFFSET_BEGINNING")}
+
+
+def test_build_arg_substitutions_collects_long_immediate_constant() -> None:
+    setter = _instruction(
+        offset=0x10,
+        raw=b"\x22\x3c\x00\x00\x10\x00",
+        mnemonic="move",
+        operand_size="l",
+        operand_texts=("#$1000", "d1"),
+    )
+    call_inst = _instruction(
+        offset=0x16,
+        raw=b"\x4e\x75",
+        mnemonic="jsr",
+        operand_size="w",
+        operand_texts=("_LVOSetSignal(a6)",),
+    )
+    block = type("Block", (), {"instructions": [setter, call_inst]})()
+    os_kb = SimpleNamespace(
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            named_base_structs={},
+            input_constant_domains={"SetSignal": {"signalMask": ("SIGBREAKF_CTRL_C",)}},
+            library_lvo_owners={},
+        ),
+        CONSTANTS={
+            "SIGBREAKF_CTRL_C": runtime_os.OsConstant(raw="(1<<12)", value=0x1000),
+        },
+        LIBRARIES={
+            "exec.library": runtime_os.OsLibrary(
+                lvo_index={},
+                functions={
+                    "SetSignal": runtime_os.OsFunction(
+                        lvo=-306,
+                        inputs=(
+                            runtime_os.OsInput(name="newSignals", regs=("d0",)),
+                            runtime_os.OsInput(name="signalMask", regs=("d1",)),
+                        ),
+                    )
+                },
+            )
+        },
+    )
+
+    arg_equs, arg_substitutions = build_arg_substitutions(
+        blocks={0x10: block},
+        lib_calls=[LibraryCall(
+            addr=0x16,
+            block=0x10,
+            library="exec.library",
+            function="SetSignal",
+            lvo=-306,
+            dispatch=None,
+        )],
+        hunk_entities=[],
+        os_kb=os_kb,
+    )
+
+    assert arg_equs == {"SIGBREAKF_CTRL_C": 0x1000}
+    assert arg_substitutions == {0x10: ("#$1000", "#SIGBREAKF_CTRL_C")}
+
+
+def test_build_arg_substitutions_requires_declared_constant() -> None:
+    os_kb = SimpleNamespace(
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            named_base_structs={},
+            input_constant_domains={"OpenLibrary": {"name": ("OL_TAG",)}},
+            library_lvo_owners={},
+        ),
+        CONSTANTS={},
+        LIBRARIES={},
+    )
+
+    with pytest.raises(KeyError, match="Missing constant OL_TAG"):
+        build_arg_substitutions(
+            blocks={},
+            hunk_entities=[],
+            lib_calls=[],
+            os_kb=os_kb,
+        )
+
+
+def test_build_arg_substitutions_requires_concrete_constant_value() -> None:
+    os_kb = SimpleNamespace(
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            named_base_structs={},
+            input_constant_domains={"OpenLibrary": {"name": ("OL_TAG",)}},
+            library_lvo_owners={},
+        ),
+        CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="TAG_USER+1", value=None)},
+        LIBRARIES={},
+    )
+
+    with pytest.raises(ValueError, match="Non-concrete constant OL_TAG"):
+        build_arg_substitutions(
+            blocks={},
+            hunk_entities=[],
+            lib_calls=[],
+            os_kb=os_kb,
+        )
+
+
+def test_build_arg_substitutions_rejects_ambiguous_matched_function_domain_value() -> None:
+    setter = Instruction(
+        offset=0x10,
+        size=2,
+        opcode=0x76FF,
+        text="corrupted",
+        raw=b"\x76\xff",
+        kb_mnemonic="moveq",
+        operand_size="l",
+        operand_texts=("#-1", "d3"),
+    )
+    block = type("Block", (), {
+        "instructions": [
+            setter,
+            Instruction(
+                offset=0x20,
+                size=2,
+                opcode=0x4E75,
+                text="jsr     _LVOSeek(a6)",
+                raw=b"\x4E\x75",
+                kb_mnemonic="jsr",
+                operand_size="w",
+                operand_texts=("_LVOSeek(a6)",),
+            ),
+        ]
+    })()
+    os_kb = SimpleNamespace(
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            named_base_structs={},
+            input_constant_domains={"Seek": {"mode": ("OFFSET_BEGINNING", "OFFSET_ALIAS")}},
+            library_lvo_owners={},
+        ),
+        CONSTANTS={
+            "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
+            "OFFSET_ALIAS": runtime_os.OsConstant(raw="-1", value=-1),
+        },
+        LIBRARIES={
+            "dos.library": runtime_os.OsLibrary(
+                lvo_index={},
+                functions={
+                    "Seek": runtime_os.OsFunction(
+                        lvo=-66,
+                        inputs=(runtime_os.OsInput(name="mode", regs=("d3",)),),
+                    )
+                },
+            )
+        },
+    )
+
+    with pytest.raises(ValueError, match="Ambiguous input domain value for Seek.mode"):
+        build_arg_substitutions(
+            blocks={0x20: block},
+            hunk_entities=[],
+            lib_calls=[LibraryCall(
+                addr=0x20,
+                block=0x20,
+                library="dos.library",
+                function="Seek",
+                lvo=-66,
+            )],
+            os_kb=os_kb,
+        )
 
 
 def test_build_lvo_substitutions_collects_dispatch_call_lvo_constant() -> None:
@@ -356,7 +584,7 @@ def test_build_app_slot_symbols_disambiguates_duplicate_typed_slot_names() -> No
             library="timer.device",
             function="GetSysTime",
             lvo=-66,
-            inputs=(runtime_os.OsInput(name="dest", reg="A0", type="struct timeval *", i_struct="TIMEVAL"),),
+            inputs=(runtime_os.OsInput(name="dest", regs=("A0",), type="struct timeval *", i_struct="TIMEVAL"),),
         ),
         LibraryCall(
             addr=12,
@@ -364,7 +592,7 @@ def test_build_app_slot_symbols_disambiguates_duplicate_typed_slot_names() -> No
             library="timer.device",
             function="GetSysTime",
             lvo=-66,
-            inputs=(runtime_os.OsInput(name="dest", reg="A0", type="struct timeval *", i_struct="TIMEVAL"),),
+            inputs=(runtime_os.OsInput(name="dest", regs=("A0",), type="struct timeval *", i_struct="TIMEVAL"),),
         ),
         LibraryCall(
             addr=22,
@@ -373,8 +601,8 @@ def test_build_app_slot_symbols_disambiguates_duplicate_typed_slot_names() -> No
             function="SubTime",
             lvo=-48,
             inputs=(
-                runtime_os.OsInput(name="dest", reg="A0", type="struct timeval *", i_struct="TIMEVAL"),
-                runtime_os.OsInput(name="src", reg="A1", type="struct timeval *", i_struct="TIMEVAL"),
+                runtime_os.OsInput(name="dest", regs=("A0",), type="struct timeval *", i_struct="TIMEVAL"),
+                runtime_os.OsInput(name="src", regs=("A1",), type="struct timeval *", i_struct="TIMEVAL"),
             ),
         ),
     ]
@@ -431,7 +659,7 @@ def test_build_app_slot_symbols_prefers_backward_usage_name_for_single_slot() ->
             library="dos.library",
             function="Write",
             lvo=-48,
-            inputs=(runtime_os.OsInput(name="file", reg="D1", type="BPTR"),),
+            inputs=(runtime_os.OsInput(name="file", regs=("D1",), type="BPTR"),),
         ),
     ]
     blocks = {
@@ -472,7 +700,7 @@ def test_build_app_slot_symbols_preserves_first_equal_priority_usage() -> None:
             library="exec.library",
             function="OpenDevice",
             lvo=-444,
-            inputs=(runtime_os.OsInput(name="ioRequest", reg="A1", type="struct IORequest *", i_struct="IO"),),
+            inputs=(runtime_os.OsInput(name="ioRequest", regs=("A1",), type="struct IORequest *", i_struct="IO"),),
         ),
         LibraryCall(
             addr=12,
@@ -480,7 +708,7 @@ def test_build_app_slot_symbols_preserves_first_equal_priority_usage() -> None:
             library="exec.library",
             function="CloseDevice",
             lvo=-450,
-            inputs=(runtime_os.OsInput(name="ioRequest", reg="A1", type="struct IORequest *", i_struct="IO"),),
+            inputs=(runtime_os.OsInput(name="ioRequest", regs=("A1",), type="struct IORequest *", i_struct="IO"),),
         ),
     ]
     blocks = {
@@ -526,8 +754,8 @@ def test_build_app_slot_symbols_prefers_named_base_identity_for_struct_slot() ->
             function="OpenDevice",
             lvo=-444,
             inputs=(
-                runtime_os.OsInput(name="devName", reg="A0", type="STRPTR"),
-                runtime_os.OsInput(name="ioRequest", reg="A1", type="struct IORequest *", i_struct="IO"),
+                runtime_os.OsInput(name="devName", regs=("A0",), type="STRPTR"),
+                runtime_os.OsInput(name="ioRequest", regs=("A1",), type="struct IORequest *", i_struct="IO"),
             ),
         ),
     ]
@@ -617,7 +845,7 @@ def test_analyze_call_setups_names_pc_relative_struct_argument_targets() -> None
             library="intuition.library",
             function="OpenScreen",
             lvo=-198,
-            inputs=(runtime_os.OsInput(name="newScreen", reg="A0",
+            inputs=(runtime_os.OsInput(name="newScreen", regs=("A0",),
                                        type="struct NewScreen *", i_struct="NewScreen"),),
         ),
     ]
@@ -655,7 +883,7 @@ def test_analyze_call_setups_errors_on_conflicting_typed_names_for_same_segment_
             library="intuition.library",
             function="OpenScreen",
             lvo=-198,
-            inputs=(runtime_os.OsInput(name="newScreen", reg="A0",
+            inputs=(runtime_os.OsInput(name="newScreen", regs=("A0",),
                                        type="struct NewScreen *", i_struct="NewScreen"),),
         ),
         LibraryCall(
@@ -664,7 +892,7 @@ def test_analyze_call_setups_errors_on_conflicting_typed_names_for_same_segment_
             library="intuition.library",
             function="OpenWindow",
             lvo=-204,
-            inputs=(runtime_os.OsInput(name="newWindow", reg="A0",
+            inputs=(runtime_os.OsInput(name="newWindow", regs=("A0",),
                                        type="struct NewWindow *", i_struct="NewWindow"),),
         ),
     ]
@@ -738,6 +966,7 @@ def test_build_session_object_uses_binary_analysis_suffix(tmp_path: Path) -> Non
     session = build_session_object(
         target_name="demo",
         binary_path=binary_path,
+        analysis_cache_path=binary_path.with_suffix(".analysis"),
         entities_path=entities_path,
         output_path=output_path,
         entities=[],
@@ -898,9 +1127,47 @@ def test_build_hunk_metadata_preserves_string_dispatch_entry_offsets() -> None:
         JumpTableEntryRef(0x32, 0x80), JumpTableEntryRef(0x37, 0x90))
 
 
+def test_build_hunk_metadata_rejects_out_of_segment_jump_table_targets() -> None:
+    block = type("Block", (), {"start": 0x10, "end": 0x14, "successors": [], "instructions": []})()
+    ha = type("Analysis", (), {
+        "blocks": {0x10: block},
+        "hint_blocks": {},
+        "call_targets": set(),
+        "branch_targets": set(),
+        "jump_tables": [JumpTable(
+            addr=0x30,
+            pattern=JumpTablePattern.WORD_OFFSET,
+            targets=(0x80, 0x40000),
+            dispatch_sites=(0x10,),
+            dispatch_block=0x10,
+            base_addr=0x50,
+            table_end=0x34,
+        )],
+    })()
+
+    with pytest.raises(ValueError, match="out-of-segment targets"):
+        build_hunk_metadata(
+            code=b"\x00" * 0x100,
+            code_size=0x100,
+            hunk_index=0,
+            hunk_entities=[],
+            ha=ha,
+            hf_hunks=[],
+            reserved_absolute_addrs=set(),
+        )
+
+
 def test_load_hunk_analysis_uses_cache_when_present(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
-    binary_path = tmp_path / "demo.bin"
-    cache_path = binary_path.with_suffix(".analysis")
+    cache_path = hunk_analysis_cache_path(
+        analysis_cache_root(
+            tmp_path / "demo.analysis",
+            seed_key="default",
+            base_addr=0,
+            code_start=0,
+            entry_points=(),
+        ),
+        0,
+    )
     cache_path.write_text("cache", encoding="utf-8")
     sentinel = object()
     seen: dict[str, object] = {}
@@ -915,7 +1182,7 @@ def test_load_hunk_analysis_uses_cache_when_present(tmp_path: Path, monkeypatch:
     monkeypatch.setattr("disasm.analysis_loader.runtime_os", fake_os_kb)
 
     result = load_hunk_analysis(
-        binary_path=binary_path,
+        analysis_cache_path=tmp_path / "demo.analysis",
         code=b"\x00\x00",
         relocs=[],
         hunk_index=0,
@@ -928,7 +1195,6 @@ def test_load_hunk_analysis_uses_cache_when_present(tmp_path: Path, monkeypatch:
 
 
 def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
-    binary_path = tmp_path / "demo.bin"
     seen: dict[str, object] = {}
 
     class FakeAnalysis:
@@ -944,14 +1210,15 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path: Path, monkeypa
         hunk_index: int,
         base_addr: int,
         code_start: int,
+        entry_points: tuple[int, ...] = (),
     ) -> FakeAnalysis:
-        seen["args"] = (code, relocs, hunk_index, base_addr, code_start)
+        seen["args"] = (code, relocs, hunk_index, base_addr, code_start, entry_points)
         return sentinel
 
     monkeypatch.setattr("disasm.analysis_loader.analyze_hunk", fake_analyze_hunk)
 
     result = load_hunk_analysis(
-        binary_path=binary_path,
+        analysis_cache_path=tmp_path / "demo.analysis",
         code=b"\x01\x02",
         relocs=relocs,
         hunk_index=3,
@@ -960,13 +1227,30 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path: Path, monkeypa
     )
 
     assert cast(object, result) is sentinel
-    assert seen["args"] == (b"\x01\x02", relocs, 3, 0x400, 2)
-    assert seen["saved_path"] == binary_path.with_suffix(".analysis")
+    assert seen["args"] == (b"\x01\x02", relocs, 3, 0x400, 2, ())
+    assert seen["saved_path"] == hunk_analysis_cache_path(
+        analysis_cache_root(
+            tmp_path / "demo.analysis",
+            seed_key="default",
+            base_addr=0x400,
+            code_start=2,
+            entry_points=(),
+        ),
+        3,
+    )
 
 
 def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
-    binary_path = tmp_path / "demo.bin"
-    cache_path = binary_path.with_suffix(".analysis")
+    cache_path = hunk_analysis_cache_path(
+        analysis_cache_root(
+            tmp_path / "demo.analysis",
+            seed_key="default",
+            base_addr=0x400,
+            code_start=2,
+            entry_points=(),
+        ),
+        3,
+    )
     cache_path.write_text("stale", encoding="utf-8")
     seen: dict[str, object] = {}
 
@@ -988,8 +1272,9 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: Mo
         hunk_index: int,
         base_addr: int,
         code_start: int,
+        entry_points: tuple[int, ...] = (),
     ) -> FakeAnalysis:
-        seen["analyze"] = (code, relocs, hunk_index, base_addr, code_start)
+        seen["analyze"] = (code, relocs, hunk_index, base_addr, code_start, entry_points)
         return sentinel
 
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
@@ -998,7 +1283,7 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: Mo
     monkeypatch.setattr("disasm.analysis_loader.runtime_os", fake_os_kb)
 
     result = load_hunk_analysis(
-        binary_path=binary_path,
+        analysis_cache_path=tmp_path / "demo.analysis",
         code=b"\x01\x02",
         relocs=relocs,
         hunk_index=3,
@@ -1008,13 +1293,21 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: Mo
 
     assert cast(object, result) is sentinel
     assert seen["load"] == (cache_path, fake_os_kb)
-    assert seen["analyze"] == (b"\x01\x02", relocs, 3, 0x400, 2)
+    assert seen["analyze"] == (b"\x01\x02", relocs, 3, 0x400, 2, ())
     assert seen["saved_path"] == cache_path
 
 
 def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
-    binary_path = tmp_path / "demo.bin"
-    cache_path = binary_path.with_suffix(".analysis")
+    cache_path = hunk_analysis_cache_path(
+        analysis_cache_root(
+            tmp_path / "demo.analysis",
+            seed_key="default",
+            base_addr=0,
+            code_start=0,
+            entry_points=(),
+        ),
+        0,
+    )
     cache_path.write_text("broken", encoding="utf-8")
 
     def fake_load(path: Path, os_kb: object) -> object:
@@ -1025,13 +1318,66 @@ def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path: Path,
 
     with pytest.raises(ValueError, match="unexpected parse bug"):
         load_hunk_analysis(
-            binary_path=binary_path,
+            analysis_cache_path=tmp_path / "demo.analysis",
             code=b"\x01\x02",
             relocs=[],
             hunk_index=0,
             base_addr=0,
             code_start=0,
         )
+
+
+def test_load_hunk_analysis_uses_distinct_cache_files_per_hunk(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    cache_root = tmp_path / "demo.analysis"
+    seen_paths: list[Path] = []
+
+    class FakeAnalysis:
+        def save(self, path: Path) -> None:
+            seen_paths.append(path)
+
+    monkeypatch.setattr("disasm.analysis_loader.analyze_hunk", lambda *args, **kwargs: FakeAnalysis())
+
+    load_hunk_analysis(
+        analysis_cache_path=cache_root,
+        code=b"\x00",
+        relocs=[],
+        hunk_index=0,
+        base_addr=0,
+        code_start=0,
+    )
+    load_hunk_analysis(
+        analysis_cache_path=cache_root,
+        code=b"\x00",
+        relocs=[],
+        hunk_index=1,
+        base_addr=0,
+        code_start=0,
+    )
+
+    assert seen_paths == [
+        hunk_analysis_cache_path(
+            analysis_cache_root(
+                cache_root,
+                seed_key="default",
+                base_addr=0,
+                code_start=0,
+                entry_points=(),
+            ),
+            0,
+        ),
+        hunk_analysis_cache_path(
+            analysis_cache_root(
+                cache_root,
+                seed_key="default",
+                base_addr=0,
+                code_start=0,
+                entry_points=(),
+            ),
+            1,
+        ),
+    ]
 
 
 def test_render_rows_concatenates_listing_text() -> None:
@@ -1075,8 +1421,8 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii() -> No
         jump_table_regions={},
         jump_table_target_sources={},
         region_map={},
-        lvo_equs={},
-        lvo_substitutions={},
+        lvo_equs={"exec.library": {-456: "_LVODoIO"}},
+        lvo_substitutions={0: ("rts", "_LVODoIO(a6)")},
         arg_equs={},
         arg_substitutions={},
         app_offsets={},
@@ -1796,6 +2142,761 @@ def test_emit_session_rows_smoke_for_empty_hunk_session() -> None:
     assert rows[0].kind == "comment"
 
 
+def test_emit_session_rows_emits_file_header_once_for_multi_hunk_session() -> None:
+    def empty_hunk(index: int, size: int) -> HunkDisassemblySession:
+        return HunkDisassemblySession(
+            hunk_index=index,
+            code=b"\x00" * size,
+            code_size=size,
+            entities=[],
+            blocks={},
+            hint_blocks={},
+            code_addrs=set(),
+            hint_addrs=set(),
+            reloc_map={},
+            reloc_target_set=set(),
+            pc_targets={},
+            string_addrs=set(),
+            labels={},
+            jump_table_regions={},
+            jump_table_target_sources={},
+            region_map={},
+            lvo_equs={},
+            lvo_substitutions={},
+            arg_equs={},
+            arg_substitutions={},
+            app_offsets={},
+            arg_annotations={},
+            data_access_sizes={},
+            platform=make_platform(),
+            os_kb=make_empty_os_kb(),
+            base_addr=0,
+            code_start=0,
+            relocated_segments=[],
+            reloc_file_offset=0,
+            reloc_base_addr=0,
+        )
+
+    session = DisassemblySession(
+        target_name="demo",
+        binary_path=Path("bin/demo"),
+        entities_path=Path("targets/demo/entities.jsonl"),
+        analysis_cache_path=Path("bin/demo.analysis"),
+        output_path=None,
+        entities=[],
+        hunk_sessions=[empty_hunk(0, 316), empty_hunk(1, 504)],
+    )
+
+    rows = emit_session_rows(session)
+    comments = [row.text for row in rows if row.kind == "comment"]
+
+    assert comments.count("; Generated disassembly -- vasm Motorola syntax\n") == 1
+    assert comments.count("; Source: bin\\demo\n") == 1
+    assert "; 820 bytes, 0 entities, 0 blocks\n" in comments
+    assert "; Hunk 0: 316 bytes, 0 entities, 0 blocks\n" in comments
+    assert "; Hunk 1: 504 bytes, 0 entities, 0 blocks\n" in comments
+
+
+def test_emit_session_rows_includes_bootblock_structure_section() -> None:
+    session = DisassemblySession(
+        target_name="demo_bootblock",
+        binary_path=Path("targets/demo_bootblock/binary.bin"),
+        entities_path=Path("targets/demo_bootblock/entities.jsonl"),
+        analysis_cache_path=Path("targets/demo_bootblock/binary.analysis"),
+        output_path=None,
+        entities=[],
+        hunk_sessions=[
+                HunkDisassemblySession(
+                    hunk_index=0,
+                    code=b"DOS\x00" + b"\x00\x00\x00\x00" + b"\x00\x00\x03\x70" + b"\x4e\x75",
+                    code_size=14,
+                    entities=[],
+                    blocks={
+                        0x0C: _FakeBlock(
+                            start=0x0C,
+                            end=0x0E,
+                            successors=(),
+                            instructions=[
+                                _instruction(
+                                    offset=0x0C,
+                                    raw=b"\x4e\x75",
+                                    mnemonic="rts",
+                                    operand_size="w",
+                                    operand_texts=(),
+                                )
+                            ],
+                        )
+                    },
+                    hint_blocks={},
+                    code_addrs={0x0C, 0x0D},
+                    hint_addrs=set(),
+                    reloc_map={},
+                    reloc_target_set=set(),
+                    pc_targets={},
+                    string_addrs={0},
+                    labels={
+                        0: "boot_magic",
+                        4: "boot_checksum",
+                        8: "boot_root_block",
+                        0x0C: "boot_entry",
+                    },
+                jump_table_regions={},
+                jump_table_target_sources={},
+                region_map={},
+                lvo_equs={"exec.library": {-456: "_LVODoIO"}},
+                lvo_substitutions={0: ("rts", "_LVODoIO(a6)")},
+                arg_equs={},
+                arg_substitutions={},
+                app_offsets={},
+                arg_annotations={},
+                    data_access_sizes={4: 4, 8: 4},
+                    platform=make_platform(),
+                    os_kb=make_empty_os_kb(),
+                    base_addr=0,
+                    code_start=0x0C,
+                relocated_segments=[],
+                reloc_file_offset=0,
+                reloc_base_addr=0,
+            )
+        ],
+        target_metadata=TargetMetadata(
+            target_type="bootblock",
+            entry_register_seeds=(
+                EntryRegisterSeedMetadata(
+                    register="A6",
+                    kind="library_base",
+                    note="ExecBase",
+                    library_name="exec.library",
+                    struct_name="LIB",
+                    context_name=None,
+                ),
+                EntryRegisterSeedMetadata(
+                    register="A1",
+                    kind="struct_ptr",
+                    note="IOStdReq (open trackdisk.device)",
+                    library_name=None,
+                    struct_name="IO",
+                    context_name="trackdisk.device",
+                ),
+            ),
+            bootblock=BootBlockTargetMetadata(
+                magic_ascii="DOS",
+                flags_byte=0,
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=880,
+                bootcode_offset=0x0C,
+                bootcode_size=1012,
+                load_address=0x70000,
+                entrypoint=0x7000C,
+            ),
+        ),
+    )
+
+    rows = emit_session_rows(session)
+    rendered = "".join(row.text for row in rows)
+
+    assert "; Boot block structure\n" in rendered
+    assert ";   boot code: offset 0xC, size 1012 bytes\n" in rendered
+    assert ";   execution context:" not in rendered
+    assert 'INCLUDE "exec/exec_lib.i"\n' in rendered
+    assert "_LVODoIO\tEQU\t-456\n" not in rendered
+    assert "boot_entry:\n" in rendered
+
+
+def test_build_disassembly_session_for_local_offset_raw_bootblock_renders_local_labels(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "bootblock"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(
+        (b"DOS\x00" + b"\x00\x00\x00\x00" + b"\x00\x00\x03\x70")
+        + bytes.fromhex("43FA00184EAEFFA04A80670A20402068001670004E7570FF60FA")
+        + b"dos.library\x00",
+    )
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    target_metadata = TargetMetadata(
+        target_type="bootblock",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
+        bootblock=BootBlockTargetMetadata(
+            magic_ascii="DOS",
+            flags_byte=0,
+            fs_description="DOS\\0 - OFS",
+            checksum="0x00000000",
+            checksum_valid=True,
+            rootblock_ptr=880,
+            bootcode_offset=0x0C,
+            bootcode_size=1012,
+            load_address=0x70000,
+            entrypoint=0x7000C,
+        ),
+    )
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="local_offset",
+        load_address=0x70000,
+        entrypoint=0x7000C,
+        code_start_offset=0x0C,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+
+    rendered = render_session_text(build_disassembly_session(source, str(entities_path)))
+
+    assert "boot_magic:\n" in rendered
+    assert 'dc.b    "DOS",0\n' in rendered
+    assert "boot_checksum:\n" in rendered
+    assert "dc.l    $00000000\n" in rendered
+    assert "boot_root_block:\n" in rendered
+    assert "dc.l    $00000370\n" in rendered
+    assert "boot_entry:\n" in rendered
+    assert "dc.b    $43,$fa,$00,$18,$4e,$ae,$ff,$a0" not in rendered
+    assert "jsr _LVOFindResident(a6)" in rendered
+    assert "movea.l RT_INIT(a0),a0" in rendered
+    assert "movea.l d0,a0" in rendered
+    assert "moveq #0,d0" in rendered
+    assert ";   boot code: offset 0xC, size 1012 bytes\n" in rendered
+    assert ";   execution context:" not in rendered
+    assert "$70022" not in rendered
+    assert "$70020" not in rendered
+
+
+def test_build_disassembly_session_leaves_out_of_segment_absolute_jump_unlabeled(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "bootblock_abs_jump"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(
+        b"DOS\x00"
+        + bytes.fromhex("A382070F")
+        + bytes.fromhex("00000370")
+        + bytes.fromhex(
+            "48E7FFFE337C0002001C237C000400000028237C000054000024"
+            "237C00000400002C4EAEFE384EF900040000"
+        )
+        + b"\x00" * (1024 - 12 - 38)
+    )
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    target_metadata = TargetMetadata(
+        target_type="bootblock",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                register="A1",
+                kind="struct_ptr",
+                note="IOStdReq (open trackdisk.device)",
+                library_name=None,
+                struct_name="IO",
+                context_name="trackdisk.device",
+            ),
+        ),
+        bootblock=BootBlockTargetMetadata(
+            magic_ascii="DOS",
+            flags_byte=0,
+            fs_description="DOS\\0 - OFS",
+            checksum="0xA382070F",
+            checksum_valid=True,
+            rootblock_ptr=880,
+            bootcode_offset=0x0C,
+            bootcode_size=1012,
+            load_address=0x70000,
+            entrypoint=0x7000C,
+        ),
+    )
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="local_offset",
+        load_address=0x70000,
+        entrypoint=0x7000C,
+        code_start_offset=0x0C,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+
+    rendered = render_session_text(build_disassembly_session(source, str(entities_path)))
+
+    assert "move.w #CMD_READ,IO_COMMAND(a1)" in rendered
+    assert "move.l #$40000,IO_DATA(a1)" in rendered
+    assert "move.l #$5400,IO_LENGTH(a1)" in rendered
+    assert "move.l #$400,IO_OFFSET(a1)" in rendered
+    assert "jsr _LVODoIO(a6)" in rendered
+    assert "jmp $00040000" in rendered
+    assert "loc_40000" not in rendered
+
+
+def test_build_disassembly_session_for_runtime_absolute_raw_keeps_absolute_label_space(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "absolute_boot"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(
+        (b"DOS\x00" + b"\x00\x00\x00\x00" + b"\x00\x00\x03\x70")
+        + bytes.fromhex("43FA00184EAEFFA04A80670A20402068001670004E7570FF60FA")
+        + b"dos.library\x00",
+    )
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    target_metadata = TargetMetadata(
+        target_type="bootblock",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                register="A1",
+                kind="struct_ptr",
+                note="IOStdReq (open trackdisk.device)",
+                library_name=None,
+                struct_name="IO",
+                context_name="trackdisk.device",
+            ),
+        ),
+        bootblock=BootBlockTargetMetadata(
+            magic_ascii="DOS",
+            flags_byte=0,
+            fs_description="DOS\\0 - OFS",
+            checksum="0x00000000",
+            checksum_valid=True,
+            rootblock_ptr=880,
+            bootcode_offset=0x0C,
+            bootcode_size=1012,
+            load_address=0x70000,
+            entrypoint=0x7000C,
+        ),
+    )
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x70000,
+        entrypoint=0x7000C,
+        code_start_offset=0x0C,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+
+    rendered = render_session_text(build_disassembly_session(source, str(entities_path)))
+
+    assert "boot_magic:\n" in rendered
+    assert "boot_entry:\n" in rendered
+    assert "dc.b    $43,$fa,$00,$18,$4e,$ae,$ff,$a0" not in rendered
+    assert "movea.l d0,a0" in rendered
+    assert "moveq #0,d0" in rendered
+    assert ";   boot code: offset 0xC, size 1012 bytes\n" in rendered
+    assert ";   execution context: load 0x70000, entry 0x7000C\n" in rendered
+    assert "$70022" not in rendered
+    assert "$70020" not in rendered
+
+
+def test_build_disassembly_session_for_resident_library_uses_resident_init_entry(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "library"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "library.bin"
+    binary_path.write_bytes(b"fake")
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    target_metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        resident=ResidentTargetMetadata(
+            offset=0,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=37,
+            node_type_name="NT_LIBRARY",
+            priority=0,
+            name="icon.library",
+            id_string="icon 37.1",
+            init_offset=0x40,
+            auto_init=True,
+        ),
+    )
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    code = bytearray(0x42)
+    code[0:2] = bytes.fromhex("4afc")
+    code[2:6] = (0).to_bytes(4, byteorder="big")
+    code[6:10] = (0x42).to_bytes(4, byteorder="big")
+    code[10] = 0x80
+    code[11] = 37
+    code[12] = 9
+    code[14:18] = (0x20).to_bytes(4, byteorder="big")
+    code[18:22] = (0x30).to_bytes(4, byteorder="big")
+    code[22:26] = (0x40).to_bytes(4, byteorder="big")
+    code[0x20:0x2D] = b"icon.library\x00"
+    code[0x30:0x3A] = b"icon 37.1\x00"
+    code[0x40:0x42] = b"\x4e\x75"
+
+    def fake_parse(_data: bytes) -> SimpleNamespace:
+        return SimpleNamespace(
+            hunks=[
+                Hunk(
+                    index=0,
+                    hunk_type=int(HunkType.HUNK_CODE),
+                    mem_type=int(MemType.ANY),
+                    alloc_size=len(code),
+                    data=bytes(code),
+                )
+            ]
+        )
+
+    def fake_load_hunk_analysis(
+        *,
+        analysis_cache_path: Path,
+        code: bytes,
+        relocs: list[RelocLike],
+        hunk_index: int,
+        base_addr: int,
+        code_start: int,
+        entry_points: tuple[int, ...],
+        seed_key: str,
+        initial_state: object,
+    ) -> SimpleNamespace:
+        assert entry_points == (0x40,)
+        inst = disassemble(b"\x4e\x75")[0]
+        inst.offset = 0x40
+        block = BasicBlock(
+            start=0x40,
+            end=0x42,
+            instructions=[inst],
+            is_entry=True,
+        )
+        return SimpleNamespace(
+            blocks={0x40: block},
+            hint_blocks={},
+            jump_tables=[],
+            call_targets=set(),
+            branch_targets=set(),
+            lib_calls=[],
+            os_kb=runtime_os,
+            platform=make_platform(),
+            exit_states={},
+            relocated_segments=[],
+            indirect_sites=[],
+            xrefs=[],
+        )
+
+    monkeypatch.setattr("disasm.session.parse", fake_parse)
+    monkeypatch.setattr("disasm.session.load_hunk_analysis", fake_load_hunk_analysis)
+
+    rendered = render_session_text(build_disassembly_session(str(binary_path), str(entities_path)))
+
+    assert "resident_matchword:\n" in rendered
+    assert "resident_init_ptr:\n" in rendered
+    assert "resident_init:\n" in rendered
+    assert "rts\n" in rendered
+
+
+def test_build_disassembly_session_applies_resident_structure_only_to_first_code_hunk(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "library"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "library.bin"
+    binary_path.write_bytes(b"fake")
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    target_metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        resident=ResidentTargetMetadata(
+            offset=4,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=37,
+            node_type_name="NT_LIBRARY",
+            priority=0,
+            name="icon.library",
+            id_string="icon 37.1",
+            init_offset=0x44,
+            auto_init=True,
+        ),
+    )
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    first_code = bytearray(0x4A)
+    first_code[4:6] = bytes.fromhex("4afc")
+    first_code[6:10] = (4).to_bytes(4, byteorder="big")
+    first_code[10:14] = (0x4A).to_bytes(4, byteorder="big")
+    first_code[14] = 0x80
+    first_code[15] = 37
+    first_code[16] = 9
+    first_code[18:22] = (0x20).to_bytes(4, byteorder="big")
+    first_code[22:26] = (0x30).to_bytes(4, byteorder="big")
+    first_code[26:30] = (0x44).to_bytes(4, byteorder="big")
+    first_code[0x20:0x2D] = b"icon.library\x00"
+    first_code[0x30:0x3A] = b"icon 37.1\x00"
+    first_code[0x48:0x4A] = b"\x4e\x75"
+    second_code = b"\x4e\x75" * 10
+
+    def fake_parse(_data: bytes) -> SimpleNamespace:
+        return SimpleNamespace(
+            hunks=[
+                Hunk(
+                    index=0,
+                    hunk_type=int(HunkType.HUNK_CODE),
+                    mem_type=int(MemType.ANY),
+                    alloc_size=len(first_code),
+                    data=bytes(first_code),
+                ),
+                Hunk(
+                    index=1,
+                    hunk_type=int(HunkType.HUNK_CODE),
+                    mem_type=int(MemType.ANY),
+                    alloc_size=len(second_code),
+                    data=second_code,
+                ),
+            ]
+        )
+
+    def fake_load_hunk_analysis(
+        *,
+        analysis_cache_path: Path,
+        code: bytes,
+        relocs: list[RelocLike],
+        hunk_index: int,
+        base_addr: int,
+        code_start: int,
+        entry_points: tuple[int, ...],
+        seed_key: str,
+        initial_state: object,
+    ) -> SimpleNamespace:
+        if hunk_index == 0:
+            assert entry_points == (0x48,)
+            inst = disassemble(b"\x4e\x75")[0]
+            inst.offset = 0x48
+            block = BasicBlock(
+                start=0x48,
+                end=0x4A,
+                instructions=[inst],
+                is_entry=True,
+            )
+            return SimpleNamespace(
+                blocks={0x48: block},
+                hint_blocks={},
+                jump_tables=[],
+                call_targets=set(),
+                branch_targets=set(),
+                lib_calls=[],
+                os_kb=runtime_os,
+                platform=make_platform(),
+                exit_states={},
+                relocated_segments=[],
+                indirect_sites=[],
+                xrefs=[],
+            )
+        assert hunk_index == 1
+        assert entry_points == ()
+        inst = disassemble(b"\x4e\x75")[0]
+        inst.offset = 0
+        block = BasicBlock(
+            start=0,
+            end=2,
+            instructions=[inst],
+            is_entry=True,
+        )
+        return SimpleNamespace(
+            blocks={0: block},
+            hint_blocks={},
+            jump_tables=[],
+            call_targets=set(),
+            branch_targets=set(),
+            lib_calls=[],
+            os_kb=runtime_os,
+            platform=make_platform(),
+            exit_states={},
+            relocated_segments=[],
+            indirect_sites=[],
+            xrefs=[],
+        )
+
+    monkeypatch.setattr("disasm.session.parse", fake_parse)
+    monkeypatch.setattr("disasm.session.load_hunk_analysis", fake_load_hunk_analysis)
+
+    session = build_disassembly_session(str(binary_path), str(entities_path))
+    rendered = render_session_text(session)
+
+    assert rendered.count("resident_matchword:\n") == 1
+    assert "resident_matchword" not in session.hunk_sessions[1].labels.values()
+    assert "resident_init" not in session.hunk_sessions[1].labels.values()
+
+
+def test_emit_session_rows_emits_fd_only_lvo_equates() -> None:
+    session = DisassemblySession(
+        target_name="demo_graphics",
+        binary_path=Path("targets/demo_graphics/binary.bin"),
+        entities_path=Path("targets/demo_graphics/entities.jsonl"),
+        analysis_cache_path=Path("targets/demo_graphics/binary.analysis"),
+        output_path=None,
+        entities=[],
+        hunk_sessions=[
+            HunkDisassemblySession(
+                hunk_index=0,
+                code=b"\x4e\x75",
+                code_size=2,
+                entities=[],
+                blocks={
+                    0: _FakeBlock(
+                        start=0,
+                        end=2,
+                        successors=(),
+                        instructions=[
+                            _instruction(
+                                offset=0,
+                                raw=b"\x4e\x75",
+                                mnemonic="rts",
+                                operand_size="w",
+                                operand_texts=(),
+                            )
+                        ],
+                    )
+                },
+                hint_blocks={},
+                code_addrs={0, 1},
+                hint_addrs=set(),
+                reloc_map={},
+                reloc_target_set=set(),
+                pc_targets={},
+                string_addrs=set(),
+                labels={0: "loc_0000"},
+                jump_table_regions={},
+                jump_table_target_sources={},
+                region_map={},
+                lvo_equs={"graphics.library": {-30: "_LVOBltBitMap"}},
+                lvo_substitutions={},
+                arg_equs={},
+                arg_substitutions={},
+                app_offsets={},
+                arg_annotations={},
+                data_access_sizes={},
+                platform=make_platform(),
+                os_kb=make_empty_os_kb(),
+                base_addr=0,
+                code_start=0,
+                relocated_segments=[],
+                reloc_file_offset=0,
+                reloc_base_addr=0,
+            )
+        ],
+        target_metadata=None,
+    )
+
+    rendered = "".join(row.text for row in emit_session_rows(session))
+
+    assert "; LVO offsets: graphics.library (FD-derived)\n" in rendered
+    assert "_LVOBltBitMap\tEQU\t-30\n" in rendered
+
+
+def test_render_instruction_text_substitutes_field_domain_constant_for_trackdisk_io_command() -> None:
+    inst = Instruction(
+        offset=0x22,
+        size=6,
+        opcode=0x337C,
+        text="move.w",
+        raw=b"\x33\x7c\x00\x02\x00\x1c",
+        opcode_text="move.w",
+        kb_mnemonic="move",
+        operand_size="w",
+        operand_texts=("#$2", "$1c(a1)"),
+    )
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs={inst.offset},
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={
+            inst.offset: {
+                "a1": TypedMemoryRegion(
+                    struct="IO",
+                    size=runtime_os.STRUCTS["IO"].size,
+                    provenance=MemoryRegionProvenance(
+                        address_space=MemoryRegionAddressSpace.REGISTER,
+                    ),
+                    context_name="trackdisk.device",
+                )
+            }
+        },
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    text, _comment, _parts = render_instruction_text(inst, hunk_session, set())
+
+    assert text == "move.w #CMD_READ,IO_COMMAND(a1)"
+
+
 def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes() -> None:
     hunk_session = HunkDisassemblySession(
         hunk_index=0,
@@ -1858,6 +2959,64 @@ def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes(
     assert [row.text for row in equ_rows] == [
         "; Absolute symbols\n",
         "AbsExecBase\tEQU\t$4\n",
+        "\n",
+    ]
+
+
+def test_emit_hunk_rows_emits_fd_derived_lvo_equates(monkeypatch: MonkeyPatch) -> None:
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={"graphics.library": {-36: "_LVOText", -30: "_LVOBltBitMap"}},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    monkeypatch.setattr(
+        emitter_mod,
+        "_OS_INCLUDE_KB",
+        SimpleNamespace(
+            library_lvo_owners={
+                "graphics.library": SimpleNamespace(
+                    kind="fd_only",
+                    include_path=None,
+                    comment_include_path="graphics/graphics_lib.i",
+                    source_file="FD/GRAPHICS_LIB.FD",
+                )
+            }
+        ),
+    )
+
+    rows = emitter_mod._emit_hunk_rows(hunk_session, include_header=False)
+
+    assert [row.text for row in rows[:4]] == [
+        "; LVO offsets: graphics.library (FD-derived)\n",
+        "_LVOText\tEQU\t-36\n",
+        "_LVOBltBitMap\tEQU\t-30\n",
         "\n",
     ]
 
@@ -1926,7 +3085,7 @@ def test_session_metadata_summarizes_hunks() -> None:
                 arg_annotations={},
                 data_access_sizes={},
                 platform=make_platform(),
-        os_kb=make_empty_os_kb(),
+                os_kb=make_empty_os_kb(),
                 base_addr=0,
                 code_start=0,
                 relocated_segments=[],
