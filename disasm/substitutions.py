@@ -85,7 +85,7 @@ def build_lvo_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
         sym = f"_LVO{func}"
         lvo_equs.setdefault(lib, {})[lvo] = sym
         if call.dispatch is not None:
-            caller_blk = blocks.get(call.addr)
+            caller_blk = blocks.get(call.block)
             if not caller_blk:
                 continue
             call_idx = _call_instruction_index(
@@ -119,34 +119,38 @@ def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
     sorted_code_ents = _sorted_code_entities(hunk_entities)
     input_const_domains = os_kb.META.input_constant_domains
     all_consts = os_kb.CONSTANTS
-    func_input_const_map: dict[str, dict[str, dict[int, tuple[str, ...]]]] = {}
-    for func_name, input_domains in input_const_domains.items():
-        per_input_map: dict[str, dict[int, tuple[str, ...]]] = {}
-        for input_name, const_names in input_domains.items():
-            vmap_lists: dict[int, list[str]] = {}
-            for cn in const_names:
-                constant = all_consts.get(cn)
-                if constant is None:
-                    raise KeyError(
-                        f"Missing constant {cn} for input domain {func_name}.{input_name}")
-                cv = constant.value
-                if cv is None:
-                    raise ValueError(
-                        f"Non-concrete constant {cn} in input domain {func_name}.{input_name}")
-                names = vmap_lists.setdefault(cv, [])
-                if cn not in names:
-                    names.append(cn)
-            if vmap_lists:
-                per_input_map[input_name] = {
-                    value: tuple(names) for value, names in vmap_lists.items()
-                }
-        if per_input_map:
-            func_input_const_map[func_name] = per_input_map
+    func_input_const_map: dict[str, dict[str, dict[str, dict[int, tuple[str, ...]]]]] = {}
+    for library_name, library_domains in input_const_domains.items():
+        per_library_map: dict[str, dict[str, dict[int, tuple[str, ...]]]] = {}
+        for func_name, input_domains in library_domains.items():
+            per_input_map: dict[str, dict[int, tuple[str, ...]]] = {}
+            for input_name, const_names in input_domains.items():
+                vmap_lists: dict[int, list[str]] = {}
+                for cn in const_names:
+                    constant = all_consts.get(cn)
+                    if constant is None:
+                        raise KeyError(
+                            f"Missing constant {cn} for input domain {library_name}.{func_name}.{input_name}")
+                    cv = constant.value
+                    if cv is None:
+                        raise ValueError(
+                            f"Non-concrete constant {cn} in input domain {library_name}.{func_name}.{input_name}")
+                    names = vmap_lists.setdefault(cv, [])
+                    if cn not in names:
+                        names.append(cn)
+                if vmap_lists:
+                    per_input_map[input_name] = {
+                        value: tuple(names) for value, names in vmap_lists.items()
+                    }
+            if per_input_map:
+                per_library_map[func_name] = per_input_map
+        if per_library_map:
+            func_input_const_map[library_name] = per_library_map
     for call in lib_calls:
         func_name = call.function
         if not func_name or func_name.startswith("LVO_"):
             continue
-        input_maps = func_input_const_map.get(func_name)
+        input_maps = func_input_const_map.get(call.library, {}).get(func_name)
         if not input_maps:
             continue
         lib = call.library

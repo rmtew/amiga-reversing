@@ -33,6 +33,17 @@ JsonDict = dict[str, Any]
 FieldValueDomainContexts = dict[str, dict[str, str]]
 
 
+def canonicalize_json(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: canonicalize_json(value[key])
+            for key in sorted(value)
+        }
+    if isinstance(value, list):
+        return [canonicalize_json(item) for item in value]
+    return value
+
+
 # =============================================================================
 # TYPES.I parser ? extract type sizes from macro definitions
 # =============================================================================
@@ -132,10 +143,21 @@ def scan_type_macros(include_dir: str) -> dict[str, int]:
 
 def resolve_include_i_dir(ndk_root: str) -> str:
     candidates = [
+        os.path.join(ndk_root, "INCLUDES1.3", "INCLUDE.I"),
+        os.path.join(ndk_root, "NDK2.0-4", "INCLUDE"),
         os.path.join(ndk_root, "INCLUDES&LIBS", "INCLUDE_I"),
         os.path.join(ndk_root, "Include", "include_i"),
     ]
     existing = [path for path in candidates if os.path.isdir(path)]
+    if not existing:
+        recursive = [
+            str(path)
+            for path in Path(ndk_root).rglob("*")
+            if path.is_dir()
+            and path.name.lower() in {"include.i", "include_i", "include"}
+            and ((path / "exec").is_dir() or (path / "EXEC").is_dir())
+        ]
+        existing = sorted(set(recursive))
     if not existing:
         raise ValueError(
             f"Could not find NDK include_i directory under {ndk_root!r}"
@@ -520,30 +542,33 @@ def _extract_input_constant_domains(
     if isinstance(inputs_text, str) and inputs_text.strip():
         input_sections = _split_autodoc_input_sections(inputs_text)
 
-    prose_snippets = [
-        snippet.strip()
+    prose_paragraphs = [
+        normalized_paragraph
         for key in ("description", "notes", "bugs", "examples")
         for value in [doc.get(key)]
         if isinstance(value, str) and value.strip()
         for paragraph in value.split("\n\n")
         for normalized_paragraph in [re.sub(r"\s*\n\s*", " ", paragraph).strip()]
         if normalized_paragraph
-        for snippet in re.split(r"(?<=[.!?])\s+", normalized_paragraph)
-        if snippet.strip()
     ]
+    input_patterns = {
+        input_name: re.compile(
+            rf"(?:'|(?<![A-Za-z0-9_])){re.escape(input_name)}(?:'|(?![A-Za-z0-9_]))",
+            re.I,
+        )
+        for input_name in input_names
+    }
     for input_name in input_names:
         section_text = input_sections.get(input_name)
         candidate_texts: list[str] = []
         if section_text:
             candidate_texts.append(section_text)
-        input_pattern = re.compile(
-            rf"(?:'|(?<![A-Za-z0-9_])){re.escape(input_name)}(?:'|(?![A-Za-z0-9_]))",
-            re.I,
-        )
         candidate_texts.extend(
-            snippet
-            for snippet in prose_snippets
-            if input_pattern.search(snippet)
+            _extract_input_prose_spans(
+                prose_paragraphs,
+                input_name,
+                input_patterns,
+            )
         )
         if not candidate_texts:
             continue
@@ -561,6 +586,42 @@ def _extract_input_constant_domains(
         if found:
             input_domains[input_name] = sorted(found)
     return input_domains
+
+
+def _extract_input_prose_spans(
+    paragraphs: list[str],
+    input_name: str,
+    input_patterns: dict[str, re.Pattern[str]],
+) -> list[str]:
+    spans: list[str] = []
+    own_pattern = input_patterns[input_name]
+    for paragraph in paragraphs:
+        sentences = [
+            sentence.strip()
+            for sentence in re.split(r"(?<=[.!?])\s+", paragraph)
+            if sentence.strip()
+        ]
+        index = 0
+        while index < len(sentences):
+            sentence = sentences[index]
+            if not own_pattern.search(sentence):
+                index += 1
+                continue
+            span_sentences = [sentence]
+            index += 1
+            while index < len(sentences):
+                next_sentence = sentences[index]
+                mentioned_inputs = [
+                    name
+                    for name, pattern in input_patterns.items()
+                    if pattern.search(next_sentence)
+                ]
+                if mentioned_inputs and input_name not in mentioned_inputs:
+                    break
+                span_sentences.append(next_sentence)
+                index += 1
+            spans.append(" ".join(span_sentences))
+    return spans
 
 
 def _extract_example_constant_domains(
@@ -1335,11 +1396,16 @@ def parse_asm_include(path: str, type_sizes: dict[str, int], all_constants: dict
 
     # Track the source subpath (e.g. "exec/NODES.I")
     rel_parts = path.replace("\\", "/").split("/")
-    # Find INCLUDE_I in path
+    # Find INCLUDE_I / INCLUDE.I / INCLUDE in path
     try:
-        idx = [p.upper() for p in rel_parts].index("INCLUDE_I")
+        path_parts_upper = [p.upper() for p in rel_parts]
+        idx = next(
+            index
+            for index, part in enumerate(path_parts_upper)
+            if part in {"INCLUDE_I", "INCLUDE.I", "INCLUDE"}
+        )
         source = "/".join(rel_parts[idx + 1:])
-    except ValueError:
+    except StopIteration:
         source = os.path.basename(path)
 
     def finish_struct() -> None:
@@ -2176,6 +2242,270 @@ VERSION_MAP = {
     "36": "2.0", "37": "2.04", "39": "3.0", "40": "3.1", "44": "3.5",
 }
 
+COMPATIBILITY_VERSIONS = ("1.3", "2.0", "3.1", "3.5")
+
+
+def _compatibility_version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def _normalize_include_relpath(path: str) -> str:
+    return path.replace("\\", "/").lower()
+
+
+def _canonical_ndk_root_version(path: str) -> str | None:
+    base = os.path.basename(os.path.normpath(path)).upper()
+    if base == "NDK_1.3":
+        return "1.3"
+    if base == "NDK_2.0":
+        return "2.0"
+    if base == "NDK_3.1":
+        return "3.1"
+    if base == "NDK_3.5":
+        return "3.5"
+    return None
+
+
+def discover_compatibility_ndk_roots(primary_ndk_root: str) -> dict[str, str]:
+    parent = os.path.dirname(os.path.normpath(primary_ndk_root))
+    discovered: dict[str, str] = {}
+    for entry in sorted(os.listdir(parent)):
+        full_path = os.path.join(parent, entry)
+        if not os.path.isdir(full_path):
+            continue
+        version = _canonical_ndk_root_version(full_path)
+        if version is None:
+            continue
+        discovered[version] = full_path
+    return {
+        version: discovered[version]
+        for version in COMPATIBILITY_VERSIONS
+        if version in discovered
+    }
+
+
+def _find_include_source_file(root: str, rel_source: str) -> str | None:
+    norm_rel = _normalize_include_relpath(rel_source)
+    rel_parts = tuple(part for part in norm_rel.split("/") if part)
+    basename = rel_parts[-1]
+    candidates: list[str] = []
+    for candidate in Path(root).rglob(basename):
+        candidate_parts = tuple(part.lower() for part in candidate.parts)
+        if len(candidate_parts) < len(rel_parts):
+            continue
+        if candidate_parts[-len(rel_parts):] != rel_parts:
+            continue
+        if "include-strip" in str(candidate).lower():
+            continue
+        candidates.append(str(candidate))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda value: (len(value), value.lower()))
+    return candidates[0]
+
+
+def _find_exec_autodoc_file(root: str) -> str | None:
+    for candidate in Path(root).rglob("EXEC.DOC"):
+        candidate_str = str(candidate).lower()
+        if "autodocs" not in candidate_str and "\\doc" not in candidate_str and "/doc" not in candidate_str:
+            continue
+        return str(candidate)
+    return None
+
+
+def _scan_libdef_symbols(path: str) -> list[str]:
+    symbols: list[str] = []
+    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
+        match = re.match(r"\s+LIBDEF\s+(\w+)", line)
+        if match is not None:
+            symbols.append(match.group(1))
+    return symbols
+
+
+def _build_resident_autoinit_contract(ndk_roots: dict[str, str]) -> JsonDict:
+    doc_path = None
+    for version in ("2.0", "3.1", "3.5", "1.3"):
+        root = ndk_roots.get(version)
+        if root is None:
+            continue
+        candidate = _find_exec_autodoc_file(root)
+        if candidate is not None:
+            doc_path = candidate
+            break
+    if doc_path is None:
+        raise ValueError("Missing primary-source EXEC.DOC for resident autoinit contract")
+    exec_doc = Path(doc_path).read_text(encoding="utf-8", errors="replace")
+    exec_doc_lower = exec_doc.lower()
+    required_phrases = (
+        "rt_init pointer which points",
+        "four longwords",
+        "specific function offsets, terminated with -1l",
+        "pointer to data table in exec/initstruct format",
+    )
+    for phrase in required_phrases:
+        if phrase not in exec_doc_lower:
+            raise ValueError(f"EXEC.DOC is missing required resident autoinit phrase: {phrase!r}")
+    if (
+        "pointer to library initialization function, or null" not in exec_doc_lower
+        and "pointer to library initialization routine, or null" not in exec_doc_lower
+        and "pointer to library initialization routine, which will receive" not in exec_doc_lower
+    ):
+        raise ValueError("EXEC.DOC is missing resident autoinit init-function description")
+
+    library_prefixes: list[str] = []
+    device_prefixes: list[str] = []
+    for version in COMPATIBILITY_VERSIONS:
+        root = ndk_roots.get(version)
+        if root is None:
+            continue
+        libraries_path = _find_include_source_file(root, "exec/libraries.i")
+        io_path = _find_include_source_file(root, "exec/io.i")
+        if libraries_path is not None and not library_prefixes:
+            library_prefixes = _scan_libdef_symbols(libraries_path)
+        if libraries_path is not None and io_path is not None and not device_prefixes:
+            device_prefixes = library_prefixes + _scan_libdef_symbols(io_path)
+        if library_prefixes and device_prefixes:
+            break
+    if not library_prefixes:
+        raise ValueError("Missing primary-source exec/libraries.i standard vector definitions")
+    if not device_prefixes:
+        raise ValueError("Missing primary-source exec/io.i device vector definitions")
+    return {
+        "resident_autoinit_words": [
+            "base_size",
+            "vectors",
+            "structure_init",
+            "init_func",
+        ],
+        "resident_autoinit_supports_short_vectors": "(short format offsets are also acceptable)" in exec_doc_lower,
+        "resident_vector_prefixes": {
+            "library": library_prefixes,
+            "device": device_prefixes,
+        },
+    }
+
+
+def _scan_struct_layouts_from_include(
+    path: str,
+    type_sizes: dict[str, int],
+    all_constants: dict[str, object],
+) -> dict[str, list[dict[str, int | str]]]:
+    parsed = parse_asm_include(path, type_sizes, all_constants)
+    layouts: dict[str, list[dict[str, int | str]]] = {}
+    for struct_name, struct_def in cast(dict[str, JsonDict], parsed["structs"]).items():
+        offset_slots: dict[int, int] = {}
+        fields: list[dict[str, int | str]] = []
+        for field in cast(list[JsonDict], struct_def["fields"]):
+            offset = cast(int, field["offset"])
+            slot = offset_slots.get(offset, 0)
+            offset_slots[offset] = slot + 1
+            fields.append({
+                "name": cast(str, field["name"]),
+                "type": cast(str, field["type"]),
+                "offset": offset,
+                "slot": slot,
+            })
+        layouts[struct_name] = fields
+    return layouts
+
+
+def build_os_compatibility_kb(
+    ndk_roots: dict[str, str],
+    include_kb: JsonDict,
+    structs: dict[str, JsonDict],
+    all_constants: dict[str, object],
+) -> JsonDict:
+    include_min_versions: dict[str, str] = {}
+    struct_min_versions: dict[str, str] = {}
+    field_min_versions: dict[tuple[str, str], str] = {}
+    field_names_by_version: dict[tuple[str, str], dict[str, str]] = {}
+
+    include_paths = {
+        _normalize_include_relpath(cast(str, owner["include_path"]))
+        for owner in cast(dict[str, JsonDict], include_kb["library_lvo_owners"]).values()
+        if owner["include_path"] is not None
+    }
+    include_paths.update(
+        _normalize_include_relpath(cast(str, struct_def["source"]))
+        for struct_def in structs.values()
+    )
+
+    scanned_structs: dict[tuple[str, str], dict[str, list[dict[str, int | str]]]] = {}
+    for version, root in ndk_roots.items():
+        version_include_dir = resolve_include_i_dir(root)
+        version_type_sizes = scan_type_macros(version_include_dir)
+        for include_rel in include_paths:
+            include_path = _find_include_source_file(root, include_rel)
+            if include_path is None:
+                continue
+            include_min_versions.setdefault(include_rel, version)
+            scanned_structs[(version, include_rel)] = _scan_struct_layouts_from_include(
+                include_path,
+                version_type_sizes,
+                all_constants,
+            )
+
+    for struct_name, struct_def in structs.items():
+        source = _normalize_include_relpath(cast(str, struct_def["source"]))
+        struct_versions = [
+            version
+            for version in COMPATIBILITY_VERSIONS
+            if (version, source) in scanned_structs
+            and struct_name in scanned_structs[(version, source)]
+        ]
+        if not struct_versions:
+            raise ValueError(f"Missing compatibility availability for struct {struct_name} from {source}")
+        struct_min_versions[struct_name] = struct_versions[0]
+        field_slots: dict[int, int] = {}
+        for field in cast(list[JsonDict], struct_def["fields"]):
+            field_name = cast(str, field["name"])
+            field_offset = cast(int, field["offset"])
+            field_type = cast(str, field["type"])
+            field_slot = field_slots.get(field_offset, 0)
+            field_slots[field_offset] = field_slot + 1
+            names_by_version = {
+                version: cast(str, matches[0]["name"])
+                for version in COMPATIBILITY_VERSIONS
+                if (version, source) in scanned_structs
+                for matches in [[
+                    entry for entry in scanned_structs[(version, source)].get(struct_name, [])
+                    if entry["offset"] == field_offset
+                    and entry["slot"] == field_slot
+                    and entry["type"] == field_type
+                ]]
+                if matches
+            }
+            if not names_by_version:
+                raise ValueError(
+                    f"Missing compatibility availability for struct field {struct_name}.{field_name} from {source}"
+                )
+            first_version = min(names_by_version, key=_compatibility_version_key)
+            field_min_versions[(struct_name, field_name)] = first_version
+            field_names_by_version[(struct_name, field_name)] = names_by_version
+
+    for owner in cast(dict[str, JsonDict], include_kb["library_lvo_owners"]).values():
+        include_path = owner["include_path"]
+        owner["available_since"] = None if include_path is None else include_min_versions[_normalize_include_relpath(cast(str, include_path))]
+
+    for struct_name, struct_def in structs.items():
+        struct_def["available_since"] = struct_min_versions[struct_name]
+        for field in cast(list[JsonDict], struct_def["fields"]):
+            field["available_since"] = field_min_versions[(struct_name, cast(str, field["name"]))]
+            names_by_version = field_names_by_version[(struct_name, cast(str, field["name"]))]
+            if len(set(names_by_version.values())) > 1:
+                field["names_by_version"] = names_by_version
+            else:
+                field.pop("names_by_version", None)
+
+    resident_autoinit_contract = _build_resident_autoinit_contract(ndk_roots)
+    return {
+        "compatibility_versions": [version for version in COMPATIBILITY_VERSIONS if version in ndk_roots],
+        "include_min_versions": include_min_versions,
+        "resident_autoinit_words": resident_autoinit_contract["resident_autoinit_words"],
+        "resident_autoinit_supports_short_vectors": resident_autoinit_contract["resident_autoinit_supports_short_vectors"],
+        "resident_vector_prefixes": resident_autoinit_contract["resident_vector_prefixes"],
+    }
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -2196,7 +2526,7 @@ def main() -> None:
         os.makedirs(hardware_outdir, exist_ok=True)
     hardware_output = build_hardware_symbols_kb(include_dir)
     with open(args.hardware_outfile, "w", encoding="utf-8") as handle:
-        json.dump(hardware_output, handle, indent=2, ensure_ascii=False)
+        json.dump(canonicalize_json(hardware_output), handle, indent=2, ensure_ascii=False)
     print(f"Wrote {args.hardware_outfile} ({os.path.getsize(args.hardware_outfile):,} bytes)")
 
     if args.hardware_only:
@@ -2435,6 +2765,18 @@ def main() -> None:
     print("Building OS include ownership KB...")
     include_kb = build_os_include_kb(include_dir, fd_dir, fd_data)
     print(f"  {len(include_kb['library_lvo_owners'])} library include ownership entries")
+    compatibility_ndk_roots = discover_compatibility_ndk_roots(ndk_root)
+    print("Building compatibility availability KB...")
+    compatibility_kb = build_os_compatibility_kb(
+        compatibility_ndk_roots,
+        include_kb,
+        raw_structs,
+        raw_constants,
+    )
+    print(
+        f"  {len(compatibility_kb['compatibility_versions'])} NDK versions, "
+        f"{len(compatibility_kb['include_min_versions'])} include availability entries"
+    )
     named_base_structs = derive_named_base_structs(
         fd_data,
         raw_structs,
@@ -2543,6 +2885,11 @@ def main() -> None:
             ],
             "version_map": VERSION_MAP,
             "lvo_slot_size": LVO_SLOT_SIZE,
+            "compatibility_versions": compatibility_kb["compatibility_versions"],
+            "include_min_versions": compatibility_kb["include_min_versions"],
+            "resident_autoinit_words": compatibility_kb["resident_autoinit_words"],
+            "resident_autoinit_supports_short_vectors": compatibility_kb["resident_autoinit_supports_short_vectors"],
+            "resident_vector_prefixes": compatibility_kb["resident_vector_prefixes"],
             "named_base_structs": named_base_structs,
             "value_domains": {},
             "field_value_domains": {},
@@ -2735,12 +3082,12 @@ def main() -> None:
     resolved_consts = {name for name, c in evaluated_constants.items()
                        if c.get("value") is not None
                        and re.match(r'^[A-Z][A-Z0-9_]+$', name)}
-    input_constant_domains: dict[str, dict[str, list[str]]] = {}
+    input_constant_domains: dict[str, dict[str, dict[str, list[str]]]] = {}
     if resolved_consts:
         # Build regex pattern (process in batches for regex size limits)
         sorted_names = sorted(resolved_consts, key=len, reverse=True)
         # Scan all autodocs for constant references
-        for _lib_name, lib_autodocs in autodoc_data.items():
+        for lib_name, lib_autodocs in autodoc_data.items():
             for func_name, doc in lib_autodocs.items():
                 input_names = [
                     cast(str, inp["name"])
@@ -2754,7 +3101,7 @@ def main() -> None:
                         sorted_names,
                     )
                     if input_domains:
-                        input_constant_domains[func_name] = input_domains
+                        input_constant_domains.setdefault(lib_name, {})[func_name] = input_domains
     output["_meta"].pop("constant_domains", None)
     output["_meta"]["input_constant_domains"] = input_constant_domains
     print("Building field value domains...")
@@ -2792,9 +3139,14 @@ def main() -> None:
     output["_meta"]["value_domains"] = value_domains
     output["_meta"]["field_value_domains"] = field_value_domains
     output["_meta"]["field_context_value_domains"] = field_context_value_domains
-    input_cd_count = sum(len(v) for v in input_constant_domains.values())
-    print(f"  {len(input_constant_domains)} functions with "
-          f"{input_cd_count} input-specific constant domains")
+    input_cd_count = sum(
+        len(v)
+        for lib_domains in input_constant_domains.values()
+        for v in lib_domains.values()
+    )
+    input_cd_func_count = sum(len(lib_domains) for lib_domains in input_constant_domains.values())
+    print(f"  {input_cd_func_count} functions with "
+            f"{input_cd_count} input-specific constant domains")
     print(
         f"  {len(value_domains)} value domains, "
         f"{len(field_value_domains)} field domains, "
@@ -2919,7 +3271,7 @@ def main() -> None:
         os.makedirs(outdir, exist_ok=True)
 
     with open(args.outfile, "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
+        json.dump(canonicalize_json(output), f, indent=2, ensure_ascii=False)
 
     fsize = os.path.getsize(args.outfile)
     print(f"\nWrote {args.outfile} ({fsize:,} bytes)")

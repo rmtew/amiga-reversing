@@ -5,6 +5,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import cast
 
+from disasm.amiga_metadata import ResidentAutoinitMetadata
+
 
 def _json_object(value: object) -> dict[str, object]:
     assert isinstance(value, dict)
@@ -28,6 +30,7 @@ class ResidentInfo:
     id_string: str | None
     init_offset: int
     auto_init: bool
+    autoinit: ResidentAutoinitMetadata | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> ResidentInfo:
@@ -41,6 +44,7 @@ class ResidentInfo:
         id_string = payload.get("id_string")
         init_offset = payload["init_offset"]
         auto_init = payload["auto_init"]
+        autoinit = payload.get("autoinit")
         assert isinstance(offset, int)
         assert isinstance(flags, int)
         assert isinstance(version, int)
@@ -62,6 +66,7 @@ class ResidentInfo:
             id_string=id_string,
             init_offset=init_offset,
             auto_init=auto_init,
+            autoinit=None if autoinit is None else ResidentAutoinitMetadata.from_dict(_json_object(autoinit)),
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -1406,7 +1411,8 @@ class DiskManifest:
 
 
 type JsonDataclass = (
-    ResidentInfo
+    ResidentAutoinitMetadata
+    | ResidentInfo
     | LibraryInfo
     | FileContentInfo
     | DiskFileEntry

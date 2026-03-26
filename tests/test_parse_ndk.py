@@ -1,9 +1,12 @@
 from pathlib import Path
+from typing import cast
 
 from kb.ndk_parser import (
     _extract_input_constant_domains,
     _map_clib_args_to_inputs,
+    build_os_compatibility_kb,
     build_os_include_kb,
+    canonicalize_json,
     evaluate_all_constants,
     parse_callback_typedefs,
     parse_clib_prototypes,
@@ -604,6 +607,28 @@ def test_extract_input_constant_domains_uses_unquoted_named_description_lines() 
     }
 
 
+def test_extract_input_constant_domains_keeps_open_modes_from_same_paragraph() -> None:
+    doc = {
+        "description": (
+            "The named file is opened and a file handle returned. If the\n"
+            "accessMode is MODE_OLDFILE, an existing file is opened for reading\n"
+            "or writing. If the value is MODE_NEWFILE, a new file is created for\n"
+            "writing. MODE_READWRITE opens a file with an shared lock, but\n"
+            "creates it if it didn't exist.\n"
+        )
+    }
+
+    input_domains = _extract_input_constant_domains(
+        doc,
+        ["name", "accessMode"],
+        ["MODE_OLDFILE", "MODE_NEWFILE", "MODE_READWRITE"],
+    )
+
+    assert input_domains == {
+        "accessMode": ["MODE_NEWFILE", "MODE_OLDFILE", "MODE_READWRITE"],
+    }
+
+
 def test_extract_input_constant_domains_uses_examples_for_signal_masks() -> None:
     doc = {
         "synopsis": (
@@ -784,6 +809,305 @@ def test_build_os_include_kb_records_fd_only_ownership_when_native_missing(tmp_p
     assert owner["include_path"] is None
     assert owner["comment_include_path"] == "graphics/graphics_lib.i"
     assert owner["source_file"].endswith("/GRAPHICS_LIB.FD")
+
+
+def test_build_os_compatibility_kb_records_earliest_include_and_struct_versions(tmp_path: Path) -> None:
+    ndk_13 = tmp_path / "NDK_1.3" / "INCLUDES1.3" / "INCLUDE.I" / "EXEC"
+    ndk_31 = tmp_path / "NDK_3.1" / "INCLUDES&LIBS" / "INCLUDE_I" / "EXEC"
+    doc_31 = tmp_path / "NDK_3.1" / "DOCS" / "DOC"
+    ndk_13.mkdir(parents=True)
+    ndk_31.mkdir(parents=True)
+    doc_31.mkdir(parents=True)
+    resident_13 = "\n".join([
+        " STRUCTURE RT,0",
+        "    UWORD RT_MATCHWORD",
+        "    APTR  RT_INIT",
+        "    LABEL RT_SIZE",
+        "",
+    ])
+    resident_31 = "\n".join([
+        " STRUCTURE RT,0",
+        "    UWORD RT_MATCHWORD",
+        "    APTR  RT_BOOTINIT",
+        "    APTR  RT_NEWFIELD",
+        "    LABEL RT_SIZE",
+        "",
+    ])
+    libraries_13 = "\n".join([
+        "LIB_VECTSIZE EQU 6",
+        "LIB_BASE EQU $FFFFFFFA",
+        "LIB_USERDEF EQU LIB_BASE-(4*LIB_VECTSIZE)",
+        "LIBINIT MACRO",
+        " ENDM",
+        "LIBDEF MACRO",
+        " ENDM",
+        " LIBINIT LIB_BASE",
+        " LIBDEF LIB_OPEN",
+        " LIBDEF LIB_CLOSE",
+        " LIBDEF LIB_EXPUNGE",
+        " LIBDEF LIB_EXTFUNC",
+        " STRUCTURE LIB,0",
+        "    UWORD LIB_VERSION",
+        "    LABEL LIB_SIZE",
+        "",
+    ])
+    io_text = "\n".join([
+        " LIBINIT",
+        " LIBDEF DEV_BEGINIO",
+        " LIBDEF DEV_ABORTIO",
+        "",
+    ])
+    exec_doc = "\n".join([
+        "exec.library/InitResident",
+        "RTF_AUTOINIT set in rt_Flags, and an rt_Init pointer which points",
+        "to four longwords.",
+        "specific function offsets, terminated with -1L.",
+        "Pointer to data table in exec/InitStruct format for",
+        "initialization of Library or Device structure.",
+        "Pointer to library initialization function, or NULL.",
+        "(short format offsets are also acceptable)",
+        "",
+    ])
+    (ndk_13 / "resident.i").write_text(resident_13, encoding="ascii")
+    (ndk_31 / "resident.i").write_text(resident_31, encoding="ascii")
+    (ndk_13 / "libraries.i").write_text(libraries_13, encoding="ascii")
+    (ndk_31 / "libraries.i").write_text(libraries_13, encoding="ascii")
+    (ndk_13 / "io.i").write_text(io_text, encoding="ascii")
+    (ndk_31 / "io.i").write_text(io_text, encoding="ascii")
+    (ndk_13 / "exec_lib.i").write_text("EXEC_LIB\n", encoding="ascii")
+    (ndk_31 / "exec_lib.i").write_text("EXEC_LIB\n", encoding="ascii")
+    (doc_31 / "EXEC.DOC").write_text(exec_doc, encoding="ascii")
+    type_macros = "\n".join([
+        "UWORD MACRO",
+        "SOFFSET SET SOFFSET+2",
+        " ENDM",
+        "APTR MACRO",
+        "SOFFSET SET SOFFSET+4",
+        " ENDM",
+        "",
+    ])
+    (ndk_13 / "types.i").write_text(type_macros, encoding="ascii")
+    (ndk_31 / "types.i").write_text(type_macros, encoding="ascii")
+
+    include_kb = {
+        "library_lvo_owners": {
+            "exec.library": {
+                "kind": "native_include",
+                "include_path": "exec/exec_lib.i",
+                "comment_include_path": "exec/exec_lib.i",
+                "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/EXEC/EXEC_LIB.I",
+            }
+        }
+    }
+    structs = {
+        "RT": {
+            "source": "EXEC/RESIDENT.I",
+            "base_offset": 0,
+            "base_offset_symbol": None,
+            "size": 10,
+            "fields": [
+                {"name": "RT_MATCHWORD", "type": "UWORD", "offset": 0, "size": 2},
+                {"name": "RT_BOOTINIT", "type": "APTR", "offset": 2, "size": 4},
+                {"name": "RT_NEWFIELD", "type": "APTR", "offset": 6, "size": 4},
+            ],
+        },
+        "LIB": {
+            "source": "EXEC/LIBRARIES.I",
+            "base_offset": 0,
+            "base_offset_symbol": None,
+            "size": 2,
+            "fields": [
+                {"name": "LIB_VERSION", "type": "UWORD", "offset": 0, "size": 2},
+            ],
+        },
+    }
+
+    payload = build_os_compatibility_kb(
+        {"1.3": str(tmp_path / "NDK_1.3"), "3.1": str(tmp_path / "NDK_3.1")},
+        include_kb,
+        structs,
+        {},
+    )
+
+    payload_versions = cast(list[str], payload["compatibility_versions"])
+    include_min_versions = cast(dict[str, str], payload["include_min_versions"])
+    owner = include_kb["library_lvo_owners"]["exec.library"]
+    rt_struct = structs["RT"]
+    rt_fields = cast(list[dict[str, object]], rt_struct["fields"])
+
+    assert payload_versions == ["1.3", "3.1"]
+    assert include_min_versions["exec/resident.i"] == "1.3"
+    assert include_min_versions["exec/libraries.i"] == "1.3"
+    assert owner["available_since"] == "1.3"
+    assert rt_struct["available_since"] == "1.3"
+    assert rt_fields[0]["available_since"] == "1.3"
+    assert "names_by_version" not in rt_fields[0]
+    assert rt_fields[1]["available_since"] == "1.3"
+    assert cast(dict[str, str], rt_fields[1]["names_by_version"]) == {
+        "1.3": "RT_INIT",
+        "3.1": "RT_BOOTINIT",
+    }
+    assert rt_fields[2]["available_since"] == "3.1"
+
+
+def test_build_os_compatibility_kb_records_resident_autoinit_contract(tmp_path: Path) -> None:
+    ndk_13 = tmp_path / "NDK_1.3" / "INCLUDES1.3" / "INCLUDE.I" / "EXEC"
+    ndk_20 = tmp_path / "NDK_2.0" / "NDK2.0-4" / "INCLUDE" / "EXEC"
+    doc_20 = tmp_path / "NDK_2.0" / "NDK2.0-4" / "DOC"
+    ndk_13.mkdir(parents=True)
+    ndk_20.mkdir(parents=True)
+    doc_20.mkdir(parents=True)
+    resident_text = "\n".join([
+        " STRUCTURE RT,0",
+        "    UWORD RT_MATCHWORD",
+        "    APTR  RT_INIT",
+        "    LABEL RT_SIZE",
+        "",
+        "    BITDEF RT,AUTOINIT,7",
+        "",
+    ])
+    libraries_text = "\n".join([
+        "LIB_VECTSIZE EQU 6",
+        "LIB_BASE EQU $FFFFFFFA",
+        "LIB_USERDEF EQU LIB_BASE-(4*LIB_VECTSIZE)",
+        "LIBINIT MACRO",
+        " ENDM",
+        "LIBDEF MACRO",
+        " ENDM",
+        " LIBINIT LIB_BASE",
+        " LIBDEF LIB_OPEN",
+        " LIBDEF LIB_CLOSE",
+        " LIBDEF LIB_EXPUNGE",
+        " LIBDEF LIB_EXTFUNC",
+        "",
+    ])
+    io_text = "\n".join([
+        " LIBINIT",
+        " LIBDEF DEV_BEGINIO",
+        " LIBDEF DEV_ABORTIO",
+        "",
+    ])
+    exec_doc = "\n".join([
+        "exec.library/InitResident",
+        "AUTOINIT FEATURE",
+        "An automatic method of library/device base and vector table",
+        "initialization is also provided by InitResident().",
+        "RTF_AUTOINIT set in rt_Flags, and an rt_Init pointer which points",
+        "to four longwords.  These four longwords will be used in a call",
+        "to MakeLibrary();",
+        "",
+        "- The size of your library/device base structure including initial",
+        "  Library or Device structure.",
+        "- A pointer to a longword table of standard, then library",
+        "  specific function offsets, terminated with -1L.",
+        "  (short format offsets are also acceptable)",
+        "- Pointer to data table in exec/InitStruct format for",
+        "  initialization of Library or Device structure.",
+        "- Pointer to library initialization function, or NULL.",
+        "",
+        "exec.library/MakeLibrary",
+        "vectors - pointer to an array of function pointers or function",
+        "displacements. If the first word of the array is -1, then",
+        "the array contains relative word displacements (based off",
+        "of vectors); otherwise, the array contains absolute",
+        "function pointers. The vector list is terminated by a -1",
+        "(of the same size as the pointers).",
+        "",
+        "exec.library/MakeFunctions",
+        "functionArray - pointer to an array of function pointers or",
+        "function displacements. If funcDispBase is zero, the array",
+        "is assumed to contain absolute pointers. If funcDispBase is not zero,",
+        "then the array is assumed to contain word displacements to functions.",
+        "In both cases, the array is terminated by a -1 (of the same size as the",
+        "actual entry).",
+        "",
+    ])
+    for root in (ndk_13, ndk_20):
+        (root / "resident.i").write_text(resident_text, encoding="ascii")
+        (root / "libraries.i").write_text(libraries_text, encoding="ascii")
+        (root / "io.i").write_text(io_text, encoding="ascii")
+    (doc_20 / "EXEC.DOC").write_text(exec_doc, encoding="ascii")
+    type_macros = "\n".join([
+        "UWORD MACRO",
+        "SOFFSET SET SOFFSET+2",
+        " ENDM",
+        "APTR MACRO",
+        "SOFFSET SET SOFFSET+4",
+        " ENDM",
+    ])
+    (ndk_13 / "types.i").write_text(type_macros, encoding="ascii")
+    (ndk_20 / "types.i").write_text(type_macros, encoding="ascii")
+    include_kb = {
+        "library_lvo_owners": {
+            "exec.library": {
+                "kind": "include",
+                "include_path": "exec/libraries.i",
+                "comment_include_path": None,
+                "source_file": str(ndk_20 / "libraries.i"),
+            }
+        }
+    }
+    structs = {
+        "RT": {
+            "source": "EXEC/RESIDENT.I",
+            "base_offset": 0,
+            "base_offset_symbol": None,
+            "size": 6,
+            "fields": [
+                {"name": "RT_MATCHWORD", "type": "UWORD", "offset": 0, "size": 2},
+                {"name": "RT_INIT", "type": "APTR", "offset": 2, "size": 4},
+            ],
+        }
+    }
+
+    payload = build_os_compatibility_kb(
+        {"1.3": str(tmp_path / "NDK_1.3"), "2.0": str(tmp_path / "NDK_2.0")},
+        include_kb,
+        structs,
+        {
+            "LIB_VECTSIZE": "6",
+            "LIB_BASE": "$FFFFFFFA",
+            "LIB_USERDEF": "$FFFFFFE2",
+        },
+    )
+
+    assert cast(list[str], payload["resident_autoinit_words"]) == [
+        "base_size",
+        "vectors",
+        "structure_init",
+        "init_func",
+    ]
+    assert cast(bool, payload["resident_autoinit_supports_short_vectors"]) is True
+    assert cast(dict[str, list[str]], payload["resident_vector_prefixes"]) == {
+        "device": [
+            "LIB_OPEN",
+            "LIB_CLOSE",
+            "LIB_EXPUNGE",
+            "LIB_EXTFUNC",
+            "DEV_BEGINIO",
+            "DEV_ABORTIO",
+        ],
+        "library": [
+            "LIB_OPEN",
+            "LIB_CLOSE",
+            "LIB_EXPUNGE",
+            "LIB_EXTFUNC",
+        ],
+    }
+
+
+def test_canonicalize_json_sorts_nested_dict_keys() -> None:
+    payload = {
+        "z": {"b": 2, "a": 1},
+        "a": [{"y": 2, "x": 1}],
+    }
+
+    canonical = canonicalize_json(payload)
+
+    assert list(canonical) == ["a", "z"]
+    assert list(cast(dict[str, object], canonical["z"])) == ["a", "b"]
+    nested = cast(list[object], canonical["a"])
+    assert list(cast(dict[str, object], nested[0])) == ["x", "y"]
 
 
 def test_parse_fd_file_preserves_register_groups(tmp_path: Path) -> None:

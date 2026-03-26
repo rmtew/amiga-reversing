@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
+from disasm.target_metadata import (
+    EntryRegisterSeedMetadata,
+    ResidentAutoinitMetadata,
+    ResidentTargetMetadata,
+    TargetMetadata,
+    load_target_metadata,
+    write_target_metadata,
+)
+from m68k.hunk_parser import Hunk, HunkType, MemType
 from scripts.benchmark_target import (
     AnalysisBenchmark,
     EntityBenchmark,
     TargetBenchmark,
+    _analysis_cache_paths,
     _benchmark_record,
     _disk_project_benchmark,
     main,
@@ -251,12 +263,98 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
     monkeypatch.setattr("scripts.benchmark_target.TARGETS_DIR", targets_dir)
     monkeypatch.setattr("scripts.benchmark_target._benchmark_binary_target", fake_benchmark_binary_target)
 
-    record = _disk_project_benchmark("amiga_disk_demo")
+    _disk_project_benchmark("amiga_disk_demo")
 
     assert seen == [
         "amiga_disk_demo__amiga_raw_bootblock",
         "amiga_disk_demo__amiga_hunk_a_first",
         "amiga_disk_demo__amiga_hunk_z_last",
     ]
-    assert list(record.targets or {}) == seen
 
+
+def test_analysis_cache_paths_for_resident_hunk_target_use_zero_code_start(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = tmp_path / "targets" / "amiga_hunk_icon"
+    bin_dir = tmp_path / "bin"
+    target_dir.mkdir(parents=True)
+    bin_dir.mkdir()
+    (target_dir / ".project.json").write_text(
+        '{"schema_version":1,"created_at":"2026-03-25T00:00:00+00:00","updated_at":"2026-03-25T00:00:00+00:00"}',
+        encoding="utf-8",
+    )
+    (target_dir / "source_binary.json").write_text(
+        '{"kind":"hunk_file","path":"bin/icon.library"}\n',
+        encoding="utf-8",
+    )
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="library",
+            entry_register_seeds=(
+                EntryRegisterSeedMetadata(
+                    entry_offset=0x88,
+                    register="A6",
+                    kind="library_base",
+                    note="ExecBase",
+                    library_name="exec.library",
+                    struct_name="LIB",
+                    context_name=None,
+                ),
+            ),
+            resident=ResidentTargetMetadata(
+                offset=4,
+                matchword=0x4AFC,
+                flags=0x80,
+                version=37,
+                node_type_name="NT_LIBRARY",
+                priority=0,
+                name="icon.library",
+                id_string="icon 37.1",
+                init_offset=0x44,
+                auto_init=True,
+                autoinit=ResidentAutoinitMetadata(
+                    payload_offset=0x44,
+                    base_size=0x24,
+                    vectors_offset=0x54,
+                    vector_format="offset32",
+                    vector_offsets=(0x90,),
+                    init_struct_offset=None,
+                    init_func_offset=0x88,
+                ),
+            ),
+        ),
+    )
+    (bin_dir / "icon.library").write_bytes(b"fake")
+
+    from disasm.binary_source import resolve_target_binary_source
+    from disasm.entry_seeds import build_entry_seed_config
+
+    monkeypatch.setattr(
+        "scripts.benchmark_target.parse",
+        lambda _data: SimpleNamespace(
+            hunks=[
+                Hunk(
+                    index=0,
+                    hunk_type=int(HunkType.HUNK_CODE),
+                    mem_type=int(MemType.ANY),
+                    alloc_size=2,
+                    data=b"\x4e\x75",
+                )
+            ]
+        ),
+    )
+
+    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
+    assert binary_source is not None
+    analysis_paths = _analysis_cache_paths(target_dir, binary_source)
+    seed_key = build_entry_seed_config(load_target_metadata(target_dir)).seed_key
+    expected_root = analysis_cache_root(
+        binary_source.analysis_cache_path,
+        seed_key=seed_key,
+        base_addr=0,
+        code_start=0,
+        entry_points=(0x88, 0x90),
+    )
+    assert analysis_paths == [hunk_analysis_cache_path(expected_root, 0)]

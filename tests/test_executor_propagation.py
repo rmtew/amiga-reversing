@@ -273,6 +273,24 @@ def test_collect_instruction_traces_watch_ranges_capture_only_watched_memory() -
     assert write_trace.post_mem.read(0x2000, "l").concrete == 1
 
 
+def test_collect_instruction_traces_watch_offsets_limit_recorded_instructions() -> None:
+    code = bytes.fromhex(
+        "7001"      # $0000 moveq #1,d0
+        "7202"      # $0002 moveq #2,d1
+        "D041"      # $0004 add.w d1,d0
+        "4E75"      # $0006 rts
+    )
+    blocks = discover_blocks(code, 0, [0])
+
+    traces = collect_instruction_traces(blocks, code, base_addr=0, watch_offsets={0x0004})
+
+    assert [trace.instruction.offset for trace in traces] == [0x0004]
+    trace = traces[0]
+    assert trace.pre_cpu.get_reg("dn", 0).concrete == 1
+    assert trace.pre_cpu.get_reg("dn", 1).concrete == 2
+    assert trace.post_cpu.get_reg("dn", 0).concrete == 3
+
+
 def test_collect_instruction_traces_replay_loop_iterations_until_state_repeats() -> None:
     code = bytes.fromhex(
         "45F900001000"

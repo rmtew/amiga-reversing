@@ -7,16 +7,21 @@ import sys
 from collections.abc import MutableMapping
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
+from typing import cast
 
+import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from disasm.binary_source import RawBinarySource
 from disasm.target_metadata import (
     BootBlockTargetMetadata,
+    EntryRegisterSeedMetadata,
+    ResidentAutoinitMetadata,
     ResidentTargetMetadata,
     TargetMetadata,
     write_target_metadata,
 )
+from m68k.hunk_parser import Hunk, HunkType, MemType
 from m68k.indirect_core import IndirectSite, IndirectSiteStatus
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
@@ -56,7 +61,7 @@ def test_structured_prefix_entities_only_emit_when_requested() -> None:
             name="icon.library",
             id_string="icon 37.1",
             init_offset=0x44,
-            auto_init=True,
+            auto_init=False,
         ),
     )
 
@@ -296,6 +301,58 @@ def test_name_subroutines_ignores_unknown_library_call_names() -> None:
     assert "name" not in entities[0]
 
 
+def test_name_subroutines_uses_explicit_library_call_owner_sub() -> None:
+    entities: list[MutableMapping[str, object]] = [{
+        "addr": "0x0010",
+        "end": "0x0018",
+        "type": "code",
+    }, {
+        "addr": "0x0030",
+        "end": "0x0038",
+        "type": "code",
+    }]
+
+    named = name_subroutines(
+        entities,
+        {},
+        b"",
+        [LibraryCall(
+            addr=0x0032,
+            block=0x0030,
+            owner_sub=0x0010,
+            library="dos.library",
+            function="Open",
+            lvo=-30,
+        )],
+    )
+
+    assert named == 1
+    assert entities[0]["name"] == "call_open"
+    assert "name" not in entities[1]
+
+
+def test_name_subroutines_errors_when_library_call_owner_sub_missing() -> None:
+    entities: list[MutableMapping[str, object]] = [{
+        "addr": "0x0010",
+        "end": "0x0018",
+        "type": "code",
+    }]
+
+    with pytest.raises(ValueError, match="missing owner_sub"):
+        name_subroutines(
+            entities,
+            {},
+            b"",
+            [LibraryCall(
+                addr=0x0012,
+                block=0x0010,
+                library="dos.library",
+                function="Open",
+                lvo=-30,
+            )],
+        )
+
+
 def test_build_entities_from_raw_binary_rebases_addresses_to_local_offsets(
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
@@ -466,3 +523,99 @@ def test_build_entities_from_runtime_absolute_raw_binary_normalizes_to_local_off
     assert payloads[0]["subtype"] == "struct_instance"
     assert payloads[1]["addr"] == "0x000C"
     assert payloads[1]["end"] == "0x000E"
+
+
+def test_build_entities_uses_all_structured_entrypoints_for_autoinit_resident(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "library"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "library.bin"
+    binary_path.write_bytes(b"fake")
+    output_path = target_dir / "entities.jsonl"
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="library",
+            entry_register_seeds=(
+                EntryRegisterSeedMetadata(
+                    entry_offset=0x88,
+                    register="A6",
+                    kind="library_base",
+                    note="ExecBase",
+                    library_name="exec.library",
+                    struct_name="LIB",
+                    context_name=None,
+                ),
+                EntryRegisterSeedMetadata(
+                    entry_offset=0x90,
+                    register="A6",
+                    kind="library_base",
+                    note="icon.library base",
+                    library_name="icon.library",
+                    struct_name="LIB",
+                    context_name=None,
+                ),
+            ),
+            resident=ResidentTargetMetadata(
+                offset=4,
+                matchword=0x4AFC,
+                flags=0x80,
+                version=37,
+                node_type_name="NT_LIBRARY",
+                priority=0,
+                name="icon.library",
+                id_string="icon 37.1",
+                init_offset=0x44,
+                auto_init=True,
+                autoinit=ResidentAutoinitMetadata(
+                    payload_offset=0x44,
+                    base_size=0x24,
+                    vectors_offset=0x54,
+                    vector_format="offset32",
+                    vector_offsets=(0x90,),
+                    init_struct_offset=None,
+                    init_func_offset=0x88,
+                ),
+            ),
+        ),
+    )
+
+    hunk = Hunk(
+        index=0,
+        hunk_type=int(HunkType.HUNK_CODE),
+        mem_type=int(MemType.ANY),
+        alloc_size=2,
+        data=b"\x4e\x75",
+    )
+    monkeypatch.setattr(module, "parse", lambda _data: SimpleNamespace(is_executable=True, hunks=[hunk]))
+    seen: dict[str, object] = {}
+    fake_analysis = SimpleNamespace(
+        blocks={0x88: BasicBlock(start=0x88, end=0x8A, instructions=[], is_entry=True)},
+        xrefs=[],
+        call_targets=set(),
+        hint_blocks={},
+        hint_reasons={},
+        lib_calls=[],
+        os_kb=make_empty_os_kb(),
+        platform=make_platform(),
+        indirect_sites=[],
+        save=lambda path: None,
+    )
+
+    def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
+        seen["entry_points"] = kwargs["entry_points"]
+        seen["entry_initial_states"] = kwargs["entry_initial_states"]
+        return fake_analysis
+
+    monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
+    monkeypatch.setattr(module, "build_app_slot_infos", lambda *args, **kwargs: ())
+    monkeypatch.setattr(module, "name_subroutines", lambda *args, **kwargs: 0)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    assert seen["entry_points"] == (0x88, 0x90)
+    assert set(cast(dict[int, object], seen["entry_initial_states"])) == {0x88, 0x90}

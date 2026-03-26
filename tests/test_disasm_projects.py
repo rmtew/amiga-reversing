@@ -495,20 +495,22 @@ def test_build_project_session_supports_raw_binary_target(tmp_path: Path) -> Non
     }))
     (target_dir / "target_metadata.json").write_text(json.dumps({
         "target_type": "bootblock",
-        "entry_register_seeds": [
-            {
-                "register": "A6",
-                "kind": "library_base",
-                "note": "ExecBase",
-                "library_name": "exec.library",
-                "struct_name": "LIB",
+            "entry_register_seeds": [
+                {
+                    "entry_offset": None,
+                    "register": "A6",
+                    "kind": "library_base",
+                    "note": "ExecBase",
+                    "library_name": "exec.library",
+                    "struct_name": "LIB",
                 "context_name": None,
-            },
-            {
-                "register": "A1",
-                "kind": "struct_ptr",
-                "note": "IOStdReq",
-                "library_name": None,
+                },
+                {
+                    "entry_offset": None,
+                    "register": "A1",
+                    "kind": "struct_ptr",
+                    "note": "IOStdReq",
+                    "library_name": None,
                 "struct_name": "IO",
                 "context_name": "trackdisk.device",
             },

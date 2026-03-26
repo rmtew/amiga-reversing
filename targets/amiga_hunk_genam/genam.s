@@ -1,10 +1,12 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: bin\GenAm
 ; 64920 bytes, 486 entities, 2840 blocks
+; OS compatibility floor: 2.0
 
 ; OS function argument constants
 ACCESS_READ	EQU	-2
 MEMF_PUBLIC	EQU	1
+MODE_NEWFILE	EQU	1006
 MODE_OLDFILE	EQU	1005
 OFFSET_BEGINNING	EQU	-1
 OFFSET_CURRENT	EQU	0
@@ -12,9 +14,11 @@ SIGBREAKF_CTRL_C	EQU	4096
 
 ; App memory offsets (base register A6)
 app_freemem_memoryblock	EQU	-2
+app_seek_file	EQU	390
 app_open_file	EQU	2390
 app_dos_base	EQU	3286
 app_output_file	EQU	3290
+app_write_length	EQU	3566
 app_subtime_src	EQU	4264
 app_subtime_dest	EQU	4272
 app_timer_device_iorequest	EQU	4280
@@ -120,7 +124,7 @@ loc_0124:
     moveq #0,d0
     jsr sub_8e7a
 loc_012c:
-    jsr sub_4590
+    jsr call_open
 loc_0132:
     bne.w loc_016c
 loc_0136:
@@ -461,7 +465,7 @@ loc_0466:
     moveq #14,d0
     jsr sub_8e7a
 loc_046e:
-    jsr sub_916a
+    jsr call_close
 loc_0474:
     jsr call_closedevice
 loc_047a:
@@ -9031,7 +9035,7 @@ loc_458c:
     moveq #0,d0
 loc_458e:
     rts
-sub_4590:
+call_open:
     tst.b 2388(a6) ; app+$954
     beq.s loc_45c6
 loc_4596:
@@ -17666,10 +17670,10 @@ loc_915e:
 loc_9162:
     bsr.w sub_919e
 loc_9166:
-    bsr.s sub_916a
+    bsr.s call_close
 loc_9168:
     rts
-sub_916a:
+call_close:
     tst.l app_open_file(a6)
     beq.s loc_9168
 loc_9170:
@@ -18205,7 +18209,7 @@ sub_979e:
     moveq #40,d0
     jmp loc_846e
 loc_97a6:
-    tst.l 390(a6) ; app+$186
+    tst.l app_seek_file(a6)
     bne.s loc_97c2
 loc_97ac:
     movem.l d1-d2/a0-a2,-(sp)
@@ -18214,7 +18218,7 @@ loc_97ac:
 loc_97b8:
     bne.s sub_979e
 loc_97ba:
-    move.l d2,390(a6) ; app+$186
+    move.l d2,app_seek_file(a6)
     movem.l (sp)+,d1-d2/a0-a2
 loc_97c2:
     rts
@@ -18251,7 +18255,7 @@ loc_97f6:
     subq.b #1,d2
     bsr.w sub_9812
 loc_97fe:
-    bsr.w call_open
+    bsr.w call_open_b002
 loc_9802:
     lea 1818(a6),a0 ; app+$71A
     rts
@@ -18282,7 +18286,7 @@ loc_9834:
     beq.s loc_9856
 loc_983a:
     lea 1736(a6),a0 ; app+$6C8
-    bsr.w call_open
+    bsr.w call_open_b002
 loc_9842:
     beq.w loc_985e
 loc_9846:
@@ -18334,12 +18338,12 @@ loc_98a8:
 loc_98ac:
     rts
 sub_98ae:
-    move.l 390(a6),d2 ; app+$186
+    move.l app_seek_file(a6),d2
     beq.s loc_98bc
 loc_98b4:
     bsr.w call_close_afb8
 loc_98b8:
-    clr.l 390(a6) ; app+$186
+    clr.l app_seek_file(a6)
 loc_98bc:
     rts
 sub_98be:
@@ -19971,28 +19975,28 @@ loc_a872:
     move.l d0,app_output_file(a6)
     move.l d0,d1
 loc_a878:
-    lea 3574(a6),a0 ; app+$DF6
-    move.l a0,d2
+    lea 3574(a6),a0 ; Write: buffer
+    move.l a0,d2 ; Write: buffer
     moveq #0,d3
-    move.w 3566(a6),d3 ; app+$DEE
+    move.w app_write_length(a6),d3 ; Write: length
     moveq #_LVOWrite,d0
     bsr.w dos_dispatch_b0d6
 loc_a88a:
     move.l (sp)+,d3
     bsr.w check_signals
 loc_a890:
-    clr.w 3566(a6) ; app+$DEE
+    clr.w app_write_length(a6)
     lea 3574(a6),a0 ; app+$DF6
     move.l a0,3568(a6) ; app+$DF0
     rts
 sub_a89e:
-    cmpi.w #$82,3566(a6) ; app+$DEE
+    cmpi.w #$82,app_write_length(a6)
     beq.s loc_a8bc
 loc_a8a6:
     movea.l 3568(a6),a0 ; app+$DF0
     move.b d1,(a0)+
     move.l a0,3568(a6) ; app+$DF0
-    addq.w #1,3566(a6) ; app+$DEE
+    addq.w #1,app_write_length(a6)
     cmp.b #$a,d1
     beq.s call_output
 loc_a8ba:
@@ -20029,7 +20033,7 @@ pcref_a8de:
 call_write:
     move.l d1,-(sp)
     exg
-    move.l a0,d2
+    move.l a0,d2 ; Write: buffer
     moveq #_LVOWrite,d0
     bsr.w dos_dispatch_b0d6
 loc_a8f8:
@@ -20041,7 +20045,7 @@ loc_a900:
     cmp.l app_output_file(a6),d3
     beq.s loc_a90e
 loc_a906:
-    move.l d3,d1
+    move.l d3,d1 ; Close: file
     moveq #_LVOClose,d0
     bsr.w dos_dispatch_b0d6
 loc_a90e:
@@ -20128,9 +20132,9 @@ loc_a9de:
     moveq #_LVOInput,d0
     bsr.w dos_dispatch_b0d6
 loc_a9e6:
-    move.l d0,d1
-    move.l (sp),d2
-    move.l #$100,d3
+    move.l d0,d1 ; Read: file
+    move.l (sp),d2 ; Read: buffer
+    move.l #$100,d3 ; Read: length
     moveq #_LVORead,d0
     bsr.w dos_dispatch_b0d6
 loc_a9f6:
@@ -20237,8 +20241,8 @@ loc_ab28:
 sub_ab2a:
     rts
 loc_ab2c:
-    move.l a0,d1
-    move.l #$3ee,d2
+    move.l a0,d1 ; Open: name
+    move.l #MODE_NEWFILE,d2 ; Open: accessMode
     move.l d3,-(sp)
     moveq #0,d3
     moveq #_LVOOpen,d0
@@ -20382,10 +20386,10 @@ loc_aca8:
     tst.b 3110(a6) ; app+$C26
     beq.s loc_acc2
 loc_acae:
-    lea str_ac8d(pc),a0
-    move.l a0,d2
-    moveq #21,d3
-    move.l app_output_file(a6),d1
+    lea str_ac8d(pc),a0 ; Write: buffer
+    move.l a0,d2 ; Write: buffer
+    moveq #21,d3 ; Write: length
+    move.l app_output_file(a6),d1 ; Write: file
     moveq #_LVOWrite,d0
     bsr.w dos_dispatch_b0d6
 loc_acc0:
@@ -20412,18 +20416,18 @@ call_input:
     moveq #_LVOInput,d0
     bsr.w dos_dispatch_b0d6
 loc_acfa:
-    move.l d0,d1
+    move.l d0,d1 ; Read: file
     clr.w -(sp)
-    move.l sp,d2
-    moveq #1,d3
+    move.l sp,d2 ; Read: buffer
+    moveq #1,d3 ; Read: length
     moveq #_LVORead,d0
     bsr.w dos_dispatch_b0d6
 loc_ad08:
     move.b (sp)+,d1
     rts
 call_datestamp:
-    lea -12(sp),sp
-    move.l sp,d1
+    lea -12(sp),sp ; DateStamp: ds
+    move.l sp,d1 ; DateStamp: ds
     move.l #_LVODateStamp,d0
     bsr.w dos_dispatch_b0d6
 loc_ad1c:
@@ -20661,7 +20665,7 @@ loc_aefc:
     rts
 sub_aefe:
     tst.b 266(a6) ; app+$10A
-    beq.s call_close
+    beq.s call_close_af28
 loc_af04:
     lea 4328(a6),a2 ; app+$10E8
     move.l a0,-(sp)
@@ -20673,18 +20677,18 @@ loc_af0e:
     lea str_9656(pc),a2
     bsr.w sub_45ce
 loc_af1a:
-    bsr.w call_close
+    bsr.w call_close_af28
 loc_af1e:
     movea.l (sp)+,a0
     tst.l d4
-    beq.s call_close
+    beq.s call_close_af28
 loc_af24:
     neg.l d1
     rts
-call_close:
+call_close_af28:
     move.l a0,-(sp)
-    move.l a0,d1
-    move.l #MODE_OLDFILE,d2
+    move.l a0,d1 ; Open: name
+    move.l #MODE_OLDFILE,d2 ; Open: accessMode
     moveq #_LVOOpen,d0
     bsr.w dos_dispatch_b0d6
 loc_af38:
@@ -20703,7 +20707,7 @@ loc_af4e:
     rts
 loc_af52:
     move.l d4,-(sp)
-    moveq #ACCESS_READ,d2
+    moveq #ACCESS_READ,d2 ; Lock: accessMode
     moveq #_LVOLock,d0
     bsr.w dos_dispatch_b0d6
 loc_af5c:
@@ -20724,7 +20728,7 @@ loc_af78:
     bsr.w dos_dispatch_b0d6
 loc_af7e:
     move.l d0,-(sp)
-    move.l d4,d1
+    move.l d4,d1 ; UnLock: lock
     moveq #_LVOUnLock,d0
     bsr.w dos_dispatch_b0d6
 loc_af88:
@@ -20746,7 +20750,7 @@ loc_afa4:
     move.l 124(a0),d1
     bne.s loc_afb6
 loc_afac:
-    move.l d4,d1
+    move.l d4,d1 ; Close: file
     moveq #_LVOClose,d0
     bsr.w dos_dispatch_b0d6
 loc_afb4:
@@ -20754,16 +20758,16 @@ loc_afb4:
 loc_afb6:
     rts
 call_close_afb8:
-    move.l d2,d1
+    move.l d2,d1 ; Close: file
     moveq #_LVOClose,d0
     bsr.w dos_dispatch_b0d6
 loc_afc0:
     rts
 call_read:
     move.l d3,-(sp)
-    move.l d1,d3
-    move.l d2,d1
-    move.l a0,d2
+    move.l d1,d3 ; Read: length
+    move.l d2,d1 ; Read: file
+    move.l a0,d2 ; Read: buffer
     moveq #_LVORead,d0
     bsr.w dos_dispatch_b0d6
 loc_afd0:
@@ -20789,14 +20793,14 @@ sub_aff2:
     bra.s call_close_afb8
 call_read_aff6:
     exg
-    move.l a0,d2
+    move.l a0,d2 ; Read: buffer
     moveq #_LVORead,d0
     bsr.w dos_dispatch_b0d6
 loc_b000:
     rts
-call_open:
-    move.l a0,d1
-    move.l #$3ee,d2
+call_open_b002:
+    move.l a0,d1 ; Open: name
+    move.l #MODE_NEWFILE,d2 ; Open: accessMode
     move.l d3,-(sp)
     moveq #-1,d3
     moveq #_LVOOpen,d0
@@ -20817,9 +20821,9 @@ call_write_b024:
     beq.s loc_b040
 loc_b028:
     movem.l d1-d3,-(sp)
-    move.l d1,d3
-    move.l 390(a6),d1 ; app+$186
-    move.l a0,d2
+    move.l d1,d3 ; Write: length
+    move.l app_seek_file(a6),d1 ; Write: file
+    move.l a0,d2 ; Write: buffer
     moveq #_LVOWrite,d0
     bsr.w dos_dispatch_b0d6
 loc_b03a:
@@ -20829,8 +20833,8 @@ loc_b040:
     rts
 call_seek:
     move.l d3,-(sp)
-    moveq #OFFSET_BEGINNING,d3
-    move.l 390(a6),d1 ; app+$186
+    moveq #OFFSET_BEGINNING,d3 ; Seek: mode
+    move.l app_seek_file(a6),d1 ; Seek: file
     moveq #_LVOSeek,d0
     bsr.w dos_dispatch_b0d6
 loc_b050:
@@ -20838,9 +20842,9 @@ loc_b050:
     rts
 call_seek_b054:
     move.l d3,-(sp)
-    move.l 390(a6),d1 ; app+$186
-    moveq #0,d2
-    moveq #OFFSET_CURRENT,d3
+    move.l app_seek_file(a6),d1 ; Seek: file
+    moveq #0,d2 ; Seek: position
+    moveq #OFFSET_CURRENT,d3 ; Seek: mode
     moveq #_LVOSeek,d0
     bsr.w dos_dispatch_b0d6
 loc_b064:
@@ -20876,7 +20880,7 @@ loc_b09e:
 openlibrary_libname:
     dc.b    "dos.library",0
 sub_b0ac:
-    bsr.w call_close
+    bsr.w call_close_af28
 loc_b0b0:
     tst.l d4
     beq.s loc_b0d4

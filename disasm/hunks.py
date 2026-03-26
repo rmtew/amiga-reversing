@@ -15,7 +15,13 @@ from disasm.types import (
 )
 from m68k.analysis import RelocatedSegment
 from m68k.indirect_core import IndirectSite
-from m68k.os_calls import CallArgumentAnnotation, OsKb, PlatformState, TypedMemoryRegion
+from m68k.os_calls import (
+    CallArgumentAnnotation,
+    LibraryCall,
+    OsKb,
+    PlatformState,
+    TypedMemoryRegion,
+)
 
 
 def prepare_hunk_code(code: bytes, relocated_segments: list[RelocatedSegment]
@@ -98,7 +104,8 @@ def build_hunk_session(*,
                        reserved_absolute_addrs: set[int] | None = None,
                        app_struct_regions: dict[int, TypedMemoryRegion] | None = None,
                        hardware_base_regs: dict[int, dict[str, int]] | None = None,
-                       unresolved_indirects: dict[int, IndirectSite] | None = None) -> HunkDisassemblySession:
+                       unresolved_indirects: dict[int, IndirectSite] | None = None,
+                       lib_calls: list[LibraryCall] | None = None) -> HunkDisassemblySession:
     return HunkDisassemblySession(
         hunk_index=hunk_index,
         code=code,
@@ -115,6 +122,7 @@ def build_hunk_session(*,
         labels=labels,
         jump_table_regions=jump_table_regions,
         jump_table_target_sources=jump_table_target_sources,
+        lib_calls=tuple([] if lib_calls is None else lib_calls),
         region_map=region_map,
         lvo_equs=lvo_equs,
         lvo_substitutions=lvo_substitutions,

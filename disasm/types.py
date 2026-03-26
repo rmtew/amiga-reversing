@@ -11,7 +11,13 @@ from m68k.indirect_core import IndirectSite
 from m68k.instruction_decode import DecodedBitfield
 from m68k.m68k_disasm import Instruction
 from m68k.m68k_executor import XRef
-from m68k.os_calls import CallArgumentAnnotation, OsKb, PlatformState, TypedMemoryRegion
+from m68k.os_calls import (
+    CallArgumentAnnotation,
+    LibraryCall,
+    OsKb,
+    PlatformState,
+    TypedMemoryRegion,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -258,6 +264,7 @@ class HunkDisassemblySession:
     app_struct_regions: AppStructRegionMap = field(default_factory=dict)
     hardware_base_regs: HardwareBaseRegMap = field(default_factory=dict)
     unresolved_indirects: dict[int, IndirectSite] = field(default_factory=dict)
+    lib_calls: tuple[LibraryCall, ...] = field(default_factory=tuple)
 
 
 @dataclass

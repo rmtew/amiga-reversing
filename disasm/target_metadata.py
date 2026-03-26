@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import cast
 
+from disasm.amiga_metadata import ResidentAutoinitMetadata
 from m68k_kb import runtime_os
 
 TARGET_METADATA_FILE_NAME = "target_metadata.json"
@@ -77,6 +79,7 @@ class BootBlockTargetMetadata:
 
 @dataclass(frozen=True, slots=True)
 class EntryRegisterSeedMetadata:
+    entry_offset: int | None
     register: str
     kind: str
     note: str
@@ -86,12 +89,14 @@ class EntryRegisterSeedMetadata:
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> EntryRegisterSeedMetadata:
+        entry_offset = payload["entry_offset"]
         register = payload["register"]
         kind = payload["kind"]
         note = payload["note"]
         library_name = payload["library_name"]
         struct_name = payload["struct_name"]
         context_name = payload["context_name"]
+        assert entry_offset is None or isinstance(entry_offset, int)
         assert isinstance(register, str)
         assert isinstance(kind, str)
         assert isinstance(note, str)
@@ -99,6 +104,7 @@ class EntryRegisterSeedMetadata:
         assert struct_name is None or isinstance(struct_name, str)
         assert context_name is None or isinstance(context_name, str)
         return cls(
+            entry_offset=entry_offset,
             register=register,
             kind=kind,
             note=note,
@@ -125,6 +131,7 @@ class ResidentTargetMetadata:
     id_string: str | None
     init_offset: int
     auto_init: bool
+    autoinit: ResidentAutoinitMetadata | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> ResidentTargetMetadata:
@@ -138,6 +145,7 @@ class ResidentTargetMetadata:
         id_string = payload["id_string"]
         init_offset = payload["init_offset"]
         auto_init = payload["auto_init"]
+        autoinit = payload["autoinit"]
         assert isinstance(offset, int)
         assert isinstance(matchword, int)
         assert isinstance(flags, int)
@@ -159,6 +167,7 @@ class ResidentTargetMetadata:
             id_string=id_string,
             init_offset=init_offset,
             auto_init=auto_init,
+            autoinit=None if autoinit is None else ResidentAutoinitMetadata.from_dict(_json_object(autoinit)),
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -266,6 +275,50 @@ class StructuredEntrypointSpec:
     label: str
 
 
+def _symbol_label(symbol: str) -> str:
+    token = symbol
+    token = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", token)
+    token = re.sub(r"([A-Za-z])([0-9])", r"\1_\2", token)
+    token = re.sub(r"[^A-Za-z0-9]+", "_", token)
+    return token.strip("_").lower()
+
+
+def _resident_vector_entrypoints(metadata: TargetMetadata, resident: ResidentTargetMetadata) -> tuple[StructuredEntrypointSpec, ...]:
+    autoinit = resident.autoinit
+    if autoinit is None:
+        raise ValueError("Auto-init resident is missing autoinit payload metadata")
+    resident_name = resident.name
+    if resident_name is None:
+        raise ValueError("Resident target is missing resident name for vector mapping")
+    prefixes = runtime_os.META.resident_vector_prefixes.get(metadata.target_type)
+    if prefixes is None:
+        raise ValueError(f"Missing KB resident vector prefix metadata for target type {metadata.target_type}")
+    entrypoints: list[StructuredEntrypointSpec] = []
+    if autoinit.init_func_offset is not None:
+        entrypoints.append(
+            StructuredEntrypointSpec(
+                offset=autoinit.init_func_offset,
+                label=f"{metadata.target_type}_init",
+            )
+        )
+    kb_library = runtime_os.LIBRARIES.get(resident_name)
+    for index, offset in enumerate(autoinit.vector_offsets):
+        if index < len(prefixes):
+            symbol = prefixes[index]
+        else:
+            if kb_library is None:
+                raise ValueError(
+                    f"Missing KB library entrypoint mapping for {resident_name} slot {index}"
+                )
+            lvo = -(index + 1) * runtime_os.META.lvo_slot_size
+            function_name = kb_library.lvo_index.get(str(lvo))
+            if function_name is None:
+                raise ValueError(f"Missing KB LVO mapping for {resident_name}:{lvo}")
+            symbol = function_name
+        entrypoints.append(StructuredEntrypointSpec(offset=offset, label=_symbol_label(symbol)))
+    return tuple(entrypoints)
+
+
 def target_structure_spec(metadata: TargetMetadata | None) -> TargetStructureSpec | None:
     if metadata is None:
         return None
@@ -302,32 +355,57 @@ def target_structure_spec(metadata: TargetMetadata | None) -> TargetStructureSpe
             "RT_IDSTRING": ("resident_idstring_ptr", True),
             "RT_INIT": ("resident_init_ptr", True),
         }
-        return TargetStructureSpec(
-            analysis_start_offset=None,
-            entrypoints=(
-                StructuredEntrypointSpec(
-                    offset=resident.offset + resident.init_offset,
-                    label="resident_init",
+        regions = [
+            StructuredRegionSpec(
+                start=resident.offset,
+                end=resident.offset + resident_struct.size,
+                subtype="struct_instance",
+                struct_name="RT",
+                fields=tuple(
+                    StructuredFieldSpec(
+                        offset=resident.offset + field.offset,
+                        label=field_labels[field.name][0],
+                        size=(field.size if field.size > 0 else None),
+                        pointer=field_labels[field.name][1],
+                    )
+                    for field in resident_struct.fields
+                    if field.name in field_labels
                 ),
-            ),
-            regions=(
+            )
+        ]
+        if resident.auto_init:
+            if resident.autoinit is None:
+                raise ValueError("Resident auto-init metadata is missing payload details")
+            autoinit = resident.autoinit
+            entrypoints = _resident_vector_entrypoints(metadata, resident)
+            regions.append(
                 StructuredRegionSpec(
-                    start=resident.offset,
-                    end=resident.offset + resident_struct.size,
+                    start=autoinit.payload_offset,
+                    end=autoinit.payload_offset + 16,
                     subtype="struct_instance",
-                    struct_name="RT",
-                    fields=tuple(
-                        StructuredFieldSpec(
-                            offset=resident.offset + field.offset,
-                            label=field_labels[field.name][0],
-                            size=(field.size if field.size > 0 else None),
-                            pointer=field_labels[field.name][1],
-                        )
-                        for field in resident_struct.fields
-                        if field.name in field_labels
+                    fields=(
+                        StructuredFieldSpec(offset=autoinit.payload_offset, label="resident_base_size", size=4),
+                        StructuredFieldSpec(offset=autoinit.payload_offset + 4, label="resident_vectors_ptr", size=4, pointer=True),
+                        StructuredFieldSpec(offset=autoinit.payload_offset + 8, label="resident_initstruct_ptr", size=4, pointer=True),
+                        StructuredFieldSpec(offset=autoinit.payload_offset + 12, label="resident_initfunc_ptr", size=4, pointer=True),
                     ),
-                ),
+                )
+            )
+            return TargetStructureSpec(
+                analysis_start_offset=entrypoints[0].offset,
+                entrypoints=entrypoints,
+                regions=tuple(regions),
+            )
+        entrypoints = (
+            StructuredEntrypointSpec(
+                offset=resident.offset + resident.init_offset,
+                label="resident_init",
             ),
+        )
+        return TargetStructureSpec(
+            analysis_start_offset=entrypoints[0].offset,
+            entrypoints=entrypoints,
+            regions=tuple(regions),
         )
     return None
 

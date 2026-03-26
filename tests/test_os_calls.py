@@ -8,12 +8,22 @@ import struct
 from collections.abc import Iterable, Mapping
 from dataclasses import replace
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
+from m68k.abstract_values import _unknown
 from m68k.instruction_primitives import Operand
-from m68k.m68k_executor import BasicBlock, analyze
+from m68k.m68k_asm import assemble_instruction
+from m68k.m68k_disasm import disassemble
+from m68k.m68k_executor import (
+    AbstractMemory,
+    BasicBlock,
+    CPUState,
+    InstructionTrace,
+    analyze,
+)
 from m68k.memory_provenance import (
     MemoryRegionAddressSpace,
     MemoryRegionDerivation,
@@ -23,6 +33,7 @@ from m68k.memory_provenance import (
 from m68k.os_calls import (
     AppMemoryDirection,
     AppMemoryType,
+    LibraryBaseTag,
     LibraryCall,
     RegisterFact,
     TypedMemoryRegion,
@@ -1216,12 +1227,325 @@ def test_identify_library_calls_resolves_direct_wrapper_call_per_caller() -> Non
 
     assert len(calls) == 1
     call = calls[0]
-    assert call.addr == 0x00
+    assert call.addr == 0x06
     assert call.block == 0x00
     assert call.dispatch == 0x14
     assert call.library == "exec.library"
     assert call.function == "OpenLibrary"
     assert call.lvo == -552
+
+
+def test_identify_library_calls_uses_entry_initial_states() -> None:
+    code = b""
+    code += b"\x4e\x71" * 0x44
+    code += struct.pack(">HH", 0x4EAE, 0xFDD8)      # $88 jsr -552(a6)
+    code += struct.pack(">H", 0x4E75)               # $8C rts
+    code += struct.pack(">HH", 0x4EAE, 0xFFBE)      # $8E jsr -66(a6)
+    code += struct.pack(">H", 0x4E75)               # $92 rts
+
+    init_state = CPUState()
+    init_state.set_reg("an", 6, _unknown(tag=LibraryBaseTag(library_base="exec.library")))
+    vector_state = CPUState()
+    vector_state.set_reg("an", 6, _unknown(tag=LibraryBaseTag(library_base="icon.library")))
+    platform = make_platform()
+    result = analyze(
+        code,
+        propagate=True,
+        entry_points=[0x88, 0x8E],
+        platform=platform,
+        entry_initial_states={0x88: init_state, 0x8E: vector_state},
+    )
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+        entry_initial_states={0x88: init_state, 0x8E: vector_state},
+    )
+
+    assert {(call.addr, call.library, call.function, call.lvo) for call in calls} == {
+        (0x88, "exec.library", "OpenLibrary", -552),
+        (0x8E, "icon.library", "iconPrivate6", -66),
+    }
+
+
+def test_identify_library_calls_does_not_reuse_caller_a6_after_local_overwrite() -> None:
+    code = b""
+    code += struct.pack(">HH", 0x6100, 0x000A)      # $00 bsr.w $0C
+    code += struct.pack(">H", 0x4E75)               # $04 rts
+    code += b"\x4e\x71" * 3                         # $06 padding
+    code += struct.pack(">H", 0x2F0E)               # $0C move.l a6,-(sp)
+    code += struct.pack(">HH", 0x2C6E, 0x0022)      # $0E movea.l 34(a6),a6
+    code += struct.pack(">HH", 0x4EAE, 0xFF2E)      # $12 jsr -210(a6)
+    code += struct.pack(">H", 0x2C5F)               # $16 movea.l (sp)+,a6
+    code += struct.pack(">H", 0x4E75)               # $18 rts
+
+    vector_state = CPUState()
+    vector_state.set_reg("an", 6, _unknown(tag=LibraryBaseTag(library_base="icon.library")))
+    platform = make_platform()
+    result = analyze(
+        code,
+        propagate=True,
+        entry_points=[0, 0x0C],
+        platform=platform,
+        entry_initial_states={0x0C: vector_state},
+    )
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+        entry_initial_states={0x0C: vector_state},
+    )
+
+    assert any(
+        call.addr == 0x12 and call.block == 0x0C and call.library == "unknown" and call.lvo == -210
+        for call in calls
+    )
+
+
+def test_identify_library_calls_ignores_unreached_blocks_without_traces() -> None:
+    code = b"\x4e\x75\x4e\x71\x4e\xae\xff\xa0"
+    entry_block = BasicBlock(start=0, end=2, instructions=[disassemble(code, 0)[0]], is_entry=True)
+    unreached_block = BasicBlock(
+        start=4,
+        end=8,
+        instructions=[disassemble(code[4:], 4)[0]],
+        is_entry=False,
+    )
+    calls = identify_library_calls(
+        {0: entry_block, 4: unreached_block},
+        code,
+        runtime_os,
+        {},
+        set(),
+        make_platform(),
+    )
+
+    assert calls == []
+
+
+def test_identify_library_calls_defers_shared_indexed_dispatch_to_real_call_sites() -> None:
+    code = b""
+    code += struct.pack(">H", 0x70E2)               # $00 moveq #-30,d0
+    code += struct.pack(">HH", 0x6100, 0x0012)      # $02 bsr.w $16
+    code += struct.pack(">H", 0x7000)               # $06 moveq #0,d0
+    code += struct.pack(">H", 0x4E75)               # $08 rts
+    code += struct.pack(">H", 0x70DC)               # $0A moveq #-36,d0
+    code += struct.pack(">HH", 0x6100, 0x0008)      # $0C bsr.w $16
+    code += struct.pack(">H", 0x7000)               # $10 moveq #0,d0
+    code += struct.pack(">H", 0x4E75)               # $12 rts
+    code += b"\x4e\x71"                             # $14 padding
+    code += struct.pack(">HH", 0x2C6E, 0x0064)      # $16 movea.l 100(a6),a6
+    code += assemble_instruction("jsr 0(a6,d0.w)") # $1A jsr 0(a6,d0.w)
+    code += struct.pack(">H", 0x4E75)               # $1E rts
+
+    sentinel = 0x80000000
+    init_mem = AbstractMemory()
+    init_mem.write(
+        sentinel + 100,
+        _unknown(tag=LibraryBaseTag(library_base="dos.library")),
+        "l",
+    )
+    platform = make_platform(
+        app_base=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
+    result = analyze(
+        code,
+        propagate=True,
+        entry_points=[0, 0x0A],
+        platform=platform,
+    )
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    assert {(call.addr, call.block, call.library, call.function, call.dispatch) for call in calls} == {
+        (0x02, 0x00, "dos.library", "Open", 0x1A),
+        (0x0C, 0x0A, "dos.library", "Close", 0x1A),
+    }
+
+
+def test_identify_library_calls_recovers_caller_index_from_local_block_when_traces_missing(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    code = b""
+    code += struct.pack(">H", 0x70E2)               # $00 moveq #-30,d0
+    code += struct.pack(">HH", 0x6100, 0x0012)      # $02 bsr.w $16
+    code += struct.pack(">H", 0x7000)               # $06 moveq #0,d0
+    code += struct.pack(">H", 0x4E75)               # $08 rts
+    code += struct.pack(">H", 0x70DC)               # $0A moveq #-36,d0
+    code += struct.pack(">HH", 0x6100, 0x0008)      # $0C bsr.w $16
+    code += struct.pack(">H", 0x7000)               # $10 moveq #0,d0
+    code += struct.pack(">H", 0x4E75)               # $12 rts
+    code += b"\x4e\x71"                             # $14 padding
+    code += struct.pack(">HH", 0x2C6E, 0x0064)      # $16 movea.l 100(a6),a6
+    code += assemble_instruction("jsr 0(a6,d0.w)") # $1A jsr 0(a6,d0.w)
+    code += struct.pack(">H", 0x4E75)               # $1E rts
+
+    sentinel = 0x80000000
+    init_mem = AbstractMemory()
+    init_mem.write(
+        sentinel + 100,
+        _unknown(tag=LibraryBaseTag(library_base="dos.library")),
+        "l",
+    )
+    platform = make_platform(
+        app_base=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
+    result = analyze(
+        code,
+        propagate=True,
+        entry_points=[0, 0x0A],
+        platform=platform,
+    )
+
+    from m68k import m68k_executor
+
+    real_collect = m68k_executor.collect_instruction_traces
+
+    def without_caller_traces(*args: Any, **kwargs: Any) -> list[InstructionTrace]:
+        traces = real_collect(*args, **kwargs)
+        return [
+            trace for trace in traces
+            if trace.instruction.offset not in {0x02, 0x0C}
+        ]
+
+    monkeypatch.setattr(m68k_executor, "collect_instruction_traces", without_caller_traces)
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    assert {(call.addr, call.block, call.library, call.function, call.dispatch) for call in calls} == {
+        (0x02, 0x00, "dos.library", "Open", 0x1A),
+        (0x0C, 0x0A, "dos.library", "Close", 0x1A),
+    }
+
+
+def test_identify_library_calls_keeps_direct_execbase_calls_without_traces(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    code = b""
+    code += struct.pack(">HH", 0x2C78, 0x0004)      # $00 movea.l ($0004).w,a6
+    code += struct.pack(">HH", 0x4EAE, 0xFF2E)      # $04 jsr -210(a6)
+    code += struct.pack(">H", 0x4E75)               # $08 rts
+
+    platform = make_platform()
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+    from m68k import m68k_executor
+
+    monkeypatch.setattr(m68k_executor, "collect_instruction_traces", lambda *args, **kwargs: [])
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    assert len(calls) == 1
+    call = calls[0]
+    assert call.addr == 0x04
+    assert call.library == "exec.library"
+    assert call.function == "FreeMem"
+
+
+def test_identify_library_calls_does_not_collect_traces_for_simple_direct_execbase_call(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    code = b""
+    code += struct.pack(">HH", 0x2C78, 0x0004)      # $00 movea.l ($0004).w,a6
+    code += struct.pack(">HH", 0x4EAE, 0xFF2E)      # $04 jsr -210(a6)
+    code += struct.pack(">H", 0x4E75)               # $08 rts
+
+    platform = make_platform()
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+    from m68k import m68k_executor
+
+    def should_not_collect(*args: object, **kwargs: object) -> list[InstructionTrace]:
+        raise AssertionError("collect_instruction_traces should not be called")
+
+    monkeypatch.setattr(m68k_executor, "collect_instruction_traces", should_not_collect)
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    assert len(calls) == 1
+    assert calls[0].function == "FreeMem"
+
+
+def test_identify_library_calls_keeps_direct_app_slot_base_calls_without_traces(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    code = b""
+    code += struct.pack(">HH", 0x2C6E, 0x0004)      # $00 movea.l 4(a6),a6
+    code += struct.pack(">HH", 0x4EAE, 0xFFB8)      # $04 jsr -72(a6)
+    code += struct.pack(">H", 0x4E75)               # $08 rts
+
+    sentinel = 0x80000000
+    init_mem = AbstractMemory()
+    init_mem.write(
+        sentinel + 4,
+        _unknown(tag=LibraryBaseTag(library_base="intuition.library")),
+        "l",
+    )
+    platform = make_platform(
+        app_base=(6, sentinel),
+        initial_mem=init_mem,
+        scratch_regs=(),
+    )
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+    from m68k import m68k_executor
+
+    monkeypatch.setattr(m68k_executor, "collect_instruction_traces", lambda *args, **kwargs: [])
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    assert len(calls) == 1
+    call = calls[0]
+    assert call.addr == 0x04
+    assert call.library == "intuition.library"
+    assert call.function == "CloseWindow"
 
 
 def test_propagate_typed_memory_regions_handles_movea_pointee_load_to_a6() -> None:

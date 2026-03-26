@@ -1,6 +1,7 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: bin\Bloodwych439
 ; 365540 bytes, 1032 entities, 3023 blocks
+; OS compatibility floor: 1.3
 
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"

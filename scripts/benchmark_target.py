@@ -105,7 +105,7 @@ def _analysis_cache_paths(target_dir: Path, binary_source: Any) -> list[Path]:
     custom_entry_points = resolved_entry_points(binary_source, target_metadata, ())
     first_code_hunk_seen = False
     analysis_paths: list[Path] = []
-    code_start = resolved_analysis_start_offset(binary_source, target_metadata)
+    code_start = 0
     base_addr = 0
     for hunk in hunk_file.hunks:
         if hunk.type_name != "CODE":

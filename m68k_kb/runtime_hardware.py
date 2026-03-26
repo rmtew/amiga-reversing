@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from .runtime_types import HardwareRegisterDef
 
-META = {'source': 'NDK hardware includes',
+META = {'files': {'cia': {'path': 'hardware/cia.i', 'version': 'cia.i 39.1 (18.9.92)'},
+           'custom': {'path': 'hardware/custom.i', 'version': 'custom.i 39.1 (18.9.92)'}},
  'include_dir': 'hardware/',
- 'files': {'custom': {'path': 'hardware/custom.i', 'version': 'custom.i 39.1 (18.9.92)'},
-           'cia': {'path': 'hardware/cia.i', 'version': 'cia.i 39.1 (18.9.92)'}}}
+ 'source': 'NDK hardware includes'}
 REGISTER_DEFS: dict[int, HardwareRegisterDef] = {14675968: {'symbol': 'bltddat',
             'aliases': (),
             'family': 'custom',

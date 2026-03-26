@@ -994,16 +994,18 @@ def test_runtime_os_meta_is_typed() -> None:
     assert runtime.META.calling_convention.return_reg == "D0"
     assert runtime.META.exec_base_addr.address == 4
     assert runtime.META.exec_base_addr.library == "exec.library"
-    assert "AllocMem" in runtime.META.input_constant_domains
-    assert runtime.META.input_constant_domains["AllocMem"]["attributes"] == (
+    assert "exec.library" in runtime.META.input_constant_domains
+    assert runtime.META.input_constant_domains["exec.library"]["AllocMem"]["attributes"] == (
         "MEMF_CHIP", "MEMF_FAST", "MEMF_PUBLIC")
-    assert runtime.META.input_constant_domains["Seek"]["mode"] == (
+    assert runtime.META.input_constant_domains["dos.library"]["Seek"]["mode"] == (
         "OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END")
-    assert runtime.META.input_constant_domains["Lock"]["accessMode"] == (
+    assert runtime.META.input_constant_domains["dos.library"]["Lock"]["accessMode"] == (
         "ACCESS_READ", "ACCESS_WRITE")
-    assert runtime.META.input_constant_domains["SetSignal"]["signalMask"] == (
+    assert runtime.META.input_constant_domains["dos.library"]["Open"]["accessMode"] == (
+        "MODE_NEWFILE", "MODE_OLDFILE", "MODE_READWRITE")
+    assert runtime.META.input_constant_domains["exec.library"]["SetSignal"]["signalMask"] == (
         "SIGBREAKF_CTRL_C",)
-    assert "OpenDevice" not in runtime.META.input_constant_domains
+    assert "OpenDevice" not in runtime.META.input_constant_domains["exec.library"]
     assert runtime.FIELD_VALUE_DOMAINS["IO.IO_COMMAND"] == "exec.io.command"
     assert runtime.FIELD_CONTEXT_VALUE_DOMAINS["IO.IO_COMMAND"]["trackdisk.device"] == "trackdisk.device.io_command"
     assert "CMD_READ" in runtime.VALUE_DOMAINS["exec.io.command"]

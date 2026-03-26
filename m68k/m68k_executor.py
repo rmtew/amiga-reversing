@@ -716,6 +716,10 @@ class AbstractMemory:
         m._sym = dict(self._sym)
         return m
 
+    def iter_tags(self) -> tuple[tuple[TagKey, TagMap], ...]:
+        """Return tagged concrete memory entries."""
+        return tuple(self._tags.items())
+
     def known_ranges(self) -> list[tuple[int, int]]:
         """Return sorted list of (start, end) ranges with known bytes."""
         if not self._bytes:
@@ -1038,6 +1042,7 @@ def _seed_entry_states(
     base_addr: int,
     initial_state: _CPUState,
     initial_mem: AbstractMemory,
+    entry_initial_states: Mapping[int, _CPUState] | None = None,
 ) -> tuple[list[int], dict[int, IncomingStates]]:
     seed_addrs: list[int] = []
     incoming: dict[int, IncomingStates] = {}
@@ -1047,8 +1052,13 @@ def _seed_entry_states(
         if blk.is_entry and addr != base_addr and addr in blocks:
             seed_addrs.append(addr)
     for addr in seed_addrs:
+        seed_state = (
+            entry_initial_states[addr]
+            if entry_initial_states is not None and addr in entry_initial_states
+            else initial_state
+        )
         if addr not in incoming:
-            incoming[addr] = {-1: (initial_state.copy(), initial_mem.copy())}
+            incoming[addr] = {-1: (seed_state.copy(), initial_mem.copy())}
     return seed_addrs, incoming
 
 
@@ -2083,6 +2093,7 @@ def _apply_instruction(inst: Instruction, inst_kb: str,
 def propagate_states(blocks: dict[int, BasicBlock],
                      code: bytes, base_addr: int = 0,
                      initial_state: _CPUState | None = None,
+                     entry_initial_states: Mapping[int, _CPUState] | None = None,
                      initial_mem: AbstractMemory | None = None,
                      platform: PlatformState | None = None,
                      summaries: Mapping[int, CallSummary | None] | None = None,
@@ -2107,6 +2118,7 @@ def propagate_states(blocks: dict[int, BasicBlock],
         code,
         base_addr=base_addr,
         initial_state=initial_state,
+        entry_initial_states=entry_initial_states,
         initial_mem=initial_mem,
         platform=platform,
         summaries=summaries,
@@ -2120,6 +2132,7 @@ def _propagate_state_maps(
     *,
     base_addr: int = 0,
     initial_state: _CPUState | None = None,
+    entry_initial_states: Mapping[int, _CPUState] | None = None,
     initial_mem: AbstractMemory | None = None,
     platform: PlatformState | None = None,
     summaries: Mapping[int, CallSummary | None] | None = None,
@@ -2127,7 +2140,13 @@ def _propagate_state_maps(
     initial_state, initial_mem = _build_initial_state(code, base_addr, initial_state, initial_mem, platform)
     incoming: dict[int, IncomingStates]
     seed_addrs: list[int]
-    seed_addrs, incoming = _seed_entry_states(blocks, base_addr, initial_state, initial_mem)
+    seed_addrs, incoming = _seed_entry_states(
+        blocks,
+        base_addr,
+        initial_state,
+        initial_mem,
+        entry_initial_states=entry_initial_states,
+    )
     exit_states: dict[int, StatePair] = {}
     last_incoming_sig: dict[int, frozenset[tuple[object, int, int]]] = {}
     work = deque(seed_addrs)
@@ -2273,13 +2292,21 @@ def collect_instruction_traces(
     *,
     base_addr: int = 0,
     initial_state: _CPUState | None = None,
+    entry_initial_states: Mapping[int, _CPUState] | None = None,
     initial_mem: AbstractMemory | None = None,
     platform: PlatformState | None = None,
     summaries: Mapping[int, CallSummary | None] | None = None,
     watch_ranges: list[tuple[int, int]] | None = None,
+    watch_offsets: set[int] | None = None,
 ) -> list[InstructionTrace]:
     initial_state, initial_mem = _build_initial_state(code, base_addr, initial_state, initial_mem, platform)
-    seed_addrs, seed_incoming = _seed_entry_states(blocks, base_addr, initial_state, initial_mem)
+    seed_addrs, seed_incoming = _seed_entry_states(
+        blocks,
+        base_addr,
+        initial_state,
+        initial_mem,
+        entry_initial_states=entry_initial_states,
+    )
     traces: list[InstructionTrace] = []
     work = deque(
         (block_start, source, cpu.copy(), mem.copy())
@@ -2301,30 +2328,24 @@ def collect_instruction_traces(
         block = blocks[block_start]
         cpu.pc = block_start
         for inst in block.instructions:
-            pre_cpu = cpu.copy()
-            pre_mem = _snapshot_memory(mem, watch_ranges)
-            traces.append(
-                InstructionTrace(
-                    block_start=block_start,
-                    incoming_source=source,
-                    instruction=inst,
-                    pre_cpu=pre_cpu,
-                    pre_mem=pre_mem,
-                    post_cpu=cpu.copy(),
-                    post_mem=_snapshot_memory(mem, watch_ranges),
-                )
-            )
+            should_record = watch_offsets is None or inst.offset in watch_offsets
+            pre_cpu = cpu.copy() if should_record else None
+            pre_mem = _snapshot_memory(mem, watch_ranges) if should_record else None
             _apply_instruction(inst, instruction_kb(inst), cpu, mem, code, base_addr, platform)
             cpu.pc = inst.offset + inst.size
-            traces[-1] = InstructionTrace(
-                block_start=block_start,
-                incoming_source=source,
-                instruction=inst,
-                pre_cpu=pre_cpu,
-                pre_mem=pre_mem,
-                post_cpu=cpu.copy(),
-                post_mem=_snapshot_memory(mem, watch_ranges),
-            )
+            if should_record:
+                assert pre_cpu is not None and pre_mem is not None
+                traces.append(
+                    InstructionTrace(
+                        block_start=block_start,
+                        incoming_source=source,
+                        instruction=inst,
+                        pre_cpu=pre_cpu,
+                        pre_mem=pre_mem,
+                        post_cpu=cpu.copy(),
+                        post_mem=_snapshot_memory(mem, watch_ranges),
+                    )
+                )
 
         exit_cpu = cpu.copy()
         exit_mem = mem.copy()
@@ -2725,7 +2746,8 @@ def analyze(code: bytes, base_addr: int = 0,
             entry_points: list[int] | None = None,
             propagate: bool = False,
             platform: PlatformState | None = None,
-            initial_state: CPUState | None = None) -> AnalysisResult:
+            initial_state: CPUState | None = None,
+            entry_initial_states: Mapping[int, CPUState] | None = None) -> AnalysisResult:
     """Analyze code and return structured results.
 
     Args:
@@ -2775,7 +2797,10 @@ def analyze(code: bytes, base_addr: int = 0,
             sums = platform.summary_cache
         result["exit_states"] = propagate_states(
             blocks, code, base_addr, platform=platform,
-            summaries=sums, initial_state=initial_state)
+            summaries=sums,
+            initial_state=initial_state,
+            entry_initial_states=entry_initial_states,
+        )
 
     return result
 

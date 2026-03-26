@@ -273,6 +273,7 @@ class OsIncludeOwner(TypedDict):
     include_path: str | None
     comment_include_path: str | None
     source_file: str
+    available_since: str | None
 
 
 class OsMeta(TypedDict):
@@ -280,8 +281,13 @@ class OsMeta(TypedDict):
     exec_base_addr: OsExecBaseAddress
     absolute_symbols: list[OsAbsoluteSymbol]
     lvo_slot_size: int
+    compatibility_versions: list[str]
+    include_min_versions: dict[str, str]
+    resident_autoinit_words: list[str]
+    resident_autoinit_supports_short_vectors: bool
+    resident_vector_prefixes: dict[str, list[str]]
     named_base_structs: dict[str, str]
-    input_constant_domains: dict[str, dict[str, list[str]]]
+    input_constant_domains: dict[str, dict[str, dict[str, list[str]]]]
     value_domains: dict[str, list[str]]
     field_value_domains: dict[str, str]
     field_context_value_domains: dict[str, dict[str, str]]
@@ -293,6 +299,8 @@ class OsStructField(TypedDict, total=False):
     type: str
     offset: int
     size: int
+    available_since: str
+    names_by_version: dict[str, str]
     size_symbol: str
     struct: str
     c_type: str
@@ -304,6 +312,7 @@ class OsStructDef(TypedDict, total=False):
     base_offset: int
     base_offset_symbol: str | None
     size: int
+    available_since: str
     fields: list[OsStructField]
     base_struct: str
 

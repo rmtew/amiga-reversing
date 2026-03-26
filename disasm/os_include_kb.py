@@ -19,6 +19,7 @@ class OsIncludeOwner:
     include_path: str | None
     comment_include_path: str | None
     source_file: str
+    available_since: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,14 +40,17 @@ def load_os_include_kb(project_root: Path = PROJECT_ROOT) -> OsIncludeKb:
         include_path = owner_payload["include_path"]
         comment_include_path = owner_payload["comment_include_path"]
         source_file = owner_payload["source_file"]
+        available_since = owner_payload["available_since"]
         assert isinstance(kind, str)
         assert include_path is None or isinstance(include_path, str)
         assert comment_include_path is None or isinstance(comment_include_path, str)
         assert isinstance(source_file, str)
+        assert available_since is None or isinstance(available_since, str)
         library_lvo_owners[library_name] = OsIncludeOwner(
             kind=kind,
             include_path=include_path,
             comment_include_path=comment_include_path,
             source_file=source_file,
+            available_since=available_since,
         )
     return OsIncludeKb(library_lvo_owners=library_lvo_owners)

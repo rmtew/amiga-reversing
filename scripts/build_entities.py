@@ -27,11 +27,14 @@ from disasm.analysis_layout import (
     resolved_analysis_start_offset,
     resolved_entry_points,
     resolved_raw_analysis_base_addr,
-    target_primary_entrypoint_offset,
 )
 from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
 from disasm.binary_source import BinarySource, HunkFileBinarySource
-from disasm.entry_seeds import apply_entry_seed_config, build_entry_seed_config
+from disasm.entry_seeds import (
+    apply_entry_seed_config,
+    build_entry_seed_config,
+    scoped_entry_initial_states,
+)
 from disasm.target_metadata import (
     TargetMetadata,
     load_target_metadata,
@@ -713,7 +716,11 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
 
     all_entities: list[JsonDict] = []
 
-    custom_entry_offset = target_primary_entrypoint_offset(target_metadata)
+    custom_entry_points = (
+        ()
+        if binary_source.kind == "raw_binary"
+        else resolved_entry_points(binary_source, target_metadata, ())
+    )
     first_code_hunk_seen = False
 
     for hunk in hf_hunks:
@@ -740,6 +747,7 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
         if binary_source.kind == "raw_binary":
             analysis_start_offset = resolved_analysis_start_offset(binary_source, target_metadata)
             entry_points = resolved_entry_points(binary_source, target_metadata, ())
+            entry_initial_states = scoped_entry_initial_states(seed_config, entry_points)
             ha = analyze_hunk(
                 code,
                 [],
@@ -748,13 +756,16 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
                 code_start=analysis_start_offset,
                 entry_points=entry_points,
                 initial_state=seed_config.initial_state,
+                entry_initial_states=entry_initial_states,
             )
         else:
-            entry_points = () if first_code_hunk_seen or custom_entry_offset is None else (custom_entry_offset,)
+            entry_points = () if first_code_hunk_seen else custom_entry_points
+            entry_initial_states = scoped_entry_initial_states(seed_config, entry_points)
             ha = analyze_hunk(code, cast(list[Any], hunk.relocs), hunk.index,
                               base_addr=base_addr, code_start=code_start,
                               entry_points=entry_points,
-                              initial_state=seed_config.initial_state)
+                              initial_state=seed_config.initial_state,
+                              entry_initial_states=entry_initial_states)
         first_code_hunk_seen = True
         apply_entry_seed_config(ha.platform, seed_config)
 
@@ -809,7 +820,7 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
         entry_addr = (
             binary_source.local_entrypoint
             if binary_source.kind == "raw_binary"
-            else (0 if custom_entry_offset is None else custom_entry_offset)
+            else (0 if not custom_entry_points else custom_entry_points[0])
         )
         blocks = _filter_pre_entry_blocks(blocks, entry_addr)
         hint_blocks = _filter_pre_entry_blocks(hint_blocks, entry_addr)

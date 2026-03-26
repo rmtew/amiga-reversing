@@ -20,6 +20,9 @@ class EntrySeedConfig:
     initial_state: CPUState | None
     initial_register_regions: dict[str, TypedMemoryRegion]
     initial_register_tags: dict[str, object]
+    entry_initial_states: dict[int, CPUState]
+    entry_register_regions: dict[int, dict[str, TypedMemoryRegion]]
+    entry_register_tags: dict[int, dict[str, object]]
     seed_key: str
 
 
@@ -58,21 +61,17 @@ def _build_region(kind: str,
     )
 
 
-def build_entry_seed_config(metadata: TargetMetadata | None) -> EntrySeedConfig:
-    if metadata is None or not metadata.entry_register_seeds:
-        return EntrySeedConfig(
-            initial_state=None,
-            initial_register_regions={},
-            initial_register_tags={},
-            seed_key="default",
-        )
-
+def _build_seed_state(seeds: tuple[object, ...]) -> tuple[
+    CPUState | None,
+    dict[str, TypedMemoryRegion],
+    dict[str, object],
+]:
     initial_state = CPUState()
     initial_register_regions: dict[str, TypedMemoryRegion] = {}
     initial_register_tags: dict[str, object] = {}
     used_initial_state = False
 
-    for seed in metadata.entry_register_seeds:
+    for seed in seeds:
         register_name = _normalize_register_name(seed.register)
         region = _build_region(
             seed.kind,
@@ -102,10 +101,54 @@ def build_entry_seed_config(metadata: TargetMetadata | None) -> EntrySeedConfig:
                 initial_state.set_reg(mode, reg_num, _unknown(tag=tag))
             used_initial_state = True
 
+    return (
+        initial_state if used_initial_state else None,
+        initial_register_regions,
+        initial_register_tags,
+    )
+
+
+def build_entry_seed_config(metadata: TargetMetadata | None) -> EntrySeedConfig:
+    if metadata is None or not metadata.entry_register_seeds:
+        return EntrySeedConfig(
+            initial_state=None,
+            initial_register_regions={},
+            initial_register_tags={},
+            entry_initial_states={},
+            entry_register_regions={},
+            entry_register_tags={},
+            seed_key="default",
+        )
+
+    global_seeds = tuple(
+        seed for seed in metadata.entry_register_seeds if seed.entry_offset is None
+    )
+    entry_seed_groups: dict[int, list[object]] = {}
+    for seed in metadata.entry_register_seeds:
+        if seed.entry_offset is None:
+            continue
+        entry_seed_groups.setdefault(seed.entry_offset, []).append(seed)
+
+    initial_state, initial_register_regions, initial_register_tags = _build_seed_state(global_seeds)
+    entry_initial_states: dict[int, CPUState] = {}
+    entry_register_regions: dict[int, dict[str, TypedMemoryRegion]] = {}
+    entry_register_tags: dict[int, dict[str, object]] = {}
+    for entry_offset, group in entry_seed_groups.items():
+        entry_state, entry_regions, entry_tags = _build_seed_state(tuple(group))
+        if entry_state is not None:
+            entry_initial_states[entry_offset] = entry_state
+        if entry_regions:
+            entry_register_regions[entry_offset] = entry_regions
+        if entry_tags:
+            entry_register_tags[entry_offset] = entry_tags
+
     return EntrySeedConfig(
-        initial_state=initial_state if used_initial_state else None,
+        initial_state=initial_state,
         initial_register_regions=initial_register_regions,
         initial_register_tags=initial_register_tags,
+        entry_initial_states=entry_initial_states,
+        entry_register_regions=entry_register_regions,
+        entry_register_tags=entry_register_tags,
         seed_key=target_metadata_seed_key(metadata),
     )
 
@@ -121,3 +164,22 @@ def apply_entry_seed_config(platform: PlatformState, seed_config: EntrySeedConfi
         if seed_config.initial_register_tags
         else None
     )
+    platform.entry_register_regions = (
+        {
+            entry: dict(regions)
+            for entry, regions in seed_config.entry_register_regions.items()
+        }
+        if seed_config.entry_register_regions
+        else None
+    )
+
+
+def scoped_entry_initial_states(
+    seed_config: EntrySeedConfig,
+    entry_points: tuple[int, ...],
+) -> dict[int, CPUState]:
+    return {
+        entry: seed_config.entry_initial_states[entry]
+        for entry in entry_points
+        if entry in seed_config.entry_initial_states
+    }

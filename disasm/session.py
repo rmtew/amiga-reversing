@@ -19,7 +19,11 @@ from disasm.data_access import collect_data_access_sizes
 from disasm.decode import DecodedInstructionForEmit
 from disasm.discovery import apply_generic_data_label_promotions
 from disasm.entities import infer_target_name, load_entities
-from disasm.entry_seeds import apply_entry_seed_config, build_entry_seed_config
+from disasm.entry_seeds import (
+    apply_entry_seed_config,
+    build_entry_seed_config,
+    scoped_entry_initial_states,
+)
 from disasm.hardware_symbols import collect_hardware_base_regs
 from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
 from disasm.metadata import HunkAnalysisLike, build_hunk_metadata
@@ -372,6 +376,7 @@ def _build_hunk_session_data(
     apply_target_structure: bool,
 ) -> HunkDisassemblySession:
     seed_config = build_entry_seed_config(target_metadata)
+    entry_initial_states = scoped_entry_initial_states(seed_config, entry_points)
     code = hunk.data
     code_size = len(code)
     hunk_entities = [e for e in entities if e.get("hunk") == hunk.index]
@@ -386,6 +391,7 @@ def _build_hunk_session_data(
             code_start=code_start,
             entry_points=entry_points,
             initial_state=seed_config.initial_state,
+            entry_initial_states=entry_initial_states,
         )
     else:
         ha = load_hunk_analysis(
@@ -398,6 +404,7 @@ def _build_hunk_session_data(
             entry_points=entry_points,
             seed_key=seed_config.seed_key,
             initial_state=seed_config.initial_state,
+            entry_initial_states=entry_initial_states,
         )
     entry_point = entry_points[0] if entry_points else None
     blocks = _filter_pre_entry_blocks(ha.blocks, entry_point)
@@ -585,6 +592,7 @@ def _build_hunk_session_data(
         absolute_labels=metadata.absolute_labels,
         jump_table_regions=metadata.jump_table_regions,
         jump_table_target_sources=metadata.jump_table_target_sources,
+        lib_calls=lib_calls,
         region_map=region_map,
         app_struct_regions=app_struct_regions,
         hardware_base_regs=hardware_base_regs,

@@ -38,6 +38,7 @@ from amiga_disk.models import (
     TrackloaderAnalysis,
     TrackSpan,
 )
+from disasm.target_metadata import target_structure_spec
 from m68k.hunk_parser import Hunk, HunkFile, HunkType, MemType
 from m68k_kb import runtime_os
 
@@ -277,7 +278,7 @@ def test_classify_file_content_classifies_library_targets_from_resident_structur
     code[14:18] = (0x20).to_bytes(4, byteorder="big")
     code[18:22] = (0x30).to_bytes(4, byteorder="big")
     code[22:26] = (0x40).to_bytes(4, byteorder="big")
-    code[10] = 0x80
+    code[10] = 0x00
     code[11] = 37
     code[12] = 9
     code[0x20:0x2D] = b"icon.library\x00"
@@ -311,6 +312,80 @@ def test_classify_file_content_classifies_library_targets_from_resident_structur
     assert metadata.resident is not None
     assert metadata.resident.offset == 0
     assert metadata.resident.matchword == runtime_os.CONSTANTS["RTC_MATCHWORD"].value
+
+
+def test_classify_file_content_extracts_autoinit_library_entrypoints(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    code = bytearray(0x120)
+    code[0:2] = bytes.fromhex("4afc")
+    code[2:6] = (0).to_bytes(4, byteorder="big")
+    code[6:10] = (0x120).to_bytes(4, byteorder="big")
+    code[10] = 0x80
+    code[11] = 37
+    code[12] = 9
+    code[13] = 0
+    code[14:18] = (0x20).to_bytes(4, byteorder="big")
+    code[18:22] = (0x30).to_bytes(4, byteorder="big")
+    code[22:26] = (0x40).to_bytes(4, byteorder="big")
+    code[0x20:0x2D] = b"icon.library\x00"
+    code[0x30:0x3A] = b"icon 37.1\x00"
+    code[0x40:0x44] = (0x24).to_bytes(4, byteorder="big")
+    code[0x44:0x48] = (0x50).to_bytes(4, byteorder="big")
+    code[0x48:0x4C] = (0).to_bytes(4, byteorder="big")
+    code[0x4C:0x50] = (0x90).to_bytes(4, byteorder="big")
+    for index, target in enumerate((0xA0, 0xA8, 0xB0, 0xB8, 0xC0)):
+        start = 0x50 + index * 4
+        code[start:start + 4] = target.to_bytes(4, byteorder="big")
+    code[0x64:0x68] = (0xFFFFFFFF).to_bytes(4, byteorder="big", signed=False)
+
+    hunk_file = HunkFile()
+    hunk_file.file_type = int(HunkType.HUNK_HEADER)
+    hunk_file.hunks = [
+        Hunk(
+            index=0,
+            hunk_type=int(HunkType.HUNK_CODE),
+            mem_type=int(MemType.ANY),
+            alloc_size=len(code),
+            data=bytes(code),
+        )
+    ]
+    monkeypatch.setattr("amiga_disk.adf.parse", lambda _data: hunk_file)
+    kb = load_disk_kb()
+
+    content = _classify_file_content(kb, b"\x00\x00\x03\xf3demo")
+
+    assert content.target_type == "library"
+    assert content.resident is not None
+    assert content.resident.autoinit is not None
+    assert content.resident.autoinit.payload_offset == 0x40
+    assert content.resident.autoinit.vectors_offset == 0x50
+    assert content.resident.autoinit.vector_offsets == (0xA0, 0xA8, 0xB0, 0xB8, 0xC0)
+    assert content.resident.autoinit.init_func_offset == 0x90
+    metadata = _target_metadata_for_content(content)
+    structure = target_structure_spec(metadata)
+    assert structure is not None
+    assert structure.analysis_start_offset == 0x90
+    assert [seed.entry_offset for seed in metadata.entry_register_seeds] == [0x90, 0xA0, 0xA8, 0xB0, 0xB8, 0xC0]
+    assert metadata.entry_register_seeds[0].library_name == "exec.library"
+    assert all(seed.register == "A6" for seed in metadata.entry_register_seeds)
+    assert all(seed.library_name == "icon.library" for seed in metadata.entry_register_seeds[1:])
+    assert [entry.label for entry in structure.entrypoints] == [
+        "library_init",
+        "lib_open",
+        "lib_close",
+        "lib_expunge",
+        "lib_extfunc",
+        "icon_private_1",
+    ]
+    assert [entry.offset for entry in structure.entrypoints] == [
+        0x90,
+        0xA0,
+        0xA8,
+        0xB0,
+        0xB8,
+        0xC0,
+    ]
 
 
 def test_classify_file_content_defaults_to_program_without_resident(

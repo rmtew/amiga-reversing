@@ -240,18 +240,21 @@ def name_subroutines(entities: list[EntityMapping],
             for _, text in refs:
                 sub_strings[sub_addr].append(text)
 
-    # Aggregate OS calls by subroutine (from lib_calls)
+    # Aggregate OS calls by explicit owning subroutine.
     sub_os_calls: dict[int, list[str]] = {}
     for call in lib_calls:
         if call.library == "unknown":
             continue
-        sub_addr = find_containing_sub(call.addr, sorted_sub_list)
-        if sub_addr is not None:
-            if sub_addr not in sub_os_calls:
-                sub_os_calls[sub_addr] = []
-            lib = call.library
-            func = call.function
-            sub_os_calls[sub_addr].append(f"{lib}/{func}")
+        sub_addr = call.owner_sub
+        if sub_addr < 0:
+            raise ValueError(
+                f"LibraryCall {call.library}/{call.function} at 0x{call.addr:X} "
+                "is missing owner_sub")
+        if sub_addr not in sub_os_calls:
+            sub_os_calls[sub_addr] = []
+        lib = call.library
+        func = call.function
+        sub_os_calls[sub_addr].append(f"{lib}/{func}")
 
     # Detect dispatch subroutines: subs containing per-caller dispatch
     # instructions (identified by the "dispatch" field in lib_calls).

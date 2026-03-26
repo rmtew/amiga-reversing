@@ -37,6 +37,7 @@ from amiga_disk.models import (
     TrackloaderAnalysis,
     TrackSpan,
 )
+from disasm.amiga_metadata import ResidentAutoinitMetadata
 from disasm.binary_source import write_source_descriptor
 from disasm.project_ids import (
     bootblock_local_target_id,
@@ -791,6 +792,93 @@ def _find_resident_info(hunk_file: HunkFile) -> ResidentInfo | None:
     return None
 
 
+def _parse_resident_autoinit_info(
+    hunk_file: HunkFile,
+    resident: ResidentInfo,
+    target_type: str,
+) -> ResidentAutoinitMetadata | None:
+    if not resident.auto_init:
+        return None
+    code_hunks = [hunk for hunk in hunk_file.hunks if hunk.type_name == "CODE"]
+    if not code_hunks:
+        raise DiskAnalysisError("Resident auto-init target is missing CODE hunk")
+    if target_type not in runtime_os.META.resident_vector_prefixes:
+        raise DiskAnalysisError(f"Missing KB resident vector metadata for target type {target_type}")
+    code = code_hunks[0].data
+    payload_offset = resident.init_offset
+    if payload_offset < 0 or payload_offset + 16 > len(code):
+        raise DiskAnalysisError(
+            f"Resident auto-init payload at 0x{payload_offset:X} lies outside first CODE hunk"
+        )
+    payload_words = runtime_os.META.resident_autoinit_words
+    if payload_words != ("base_size", "vectors", "structure_init", "init_func"):
+        raise DiskAnalysisError(f"Unexpected resident autoinit word layout {payload_words!r}")
+    base_size = _read_u32_be(code, payload_offset)
+    vectors_offset = _read_u32_be(code, payload_offset + 4)
+    init_struct_offset = _read_u32_be(code, payload_offset + 8)
+    init_func_offset = _read_u32_be(code, payload_offset + 12)
+    if base_size <= 0:
+        raise DiskAnalysisError("Resident auto-init payload is missing library/device base size")
+    if vectors_offset <= 0 or vectors_offset >= len(code):
+        raise DiskAnalysisError(
+            f"Resident auto-init vector table at 0x{vectors_offset:X} lies outside first CODE hunk"
+        )
+    vector_offsets: list[int] = []
+    vector_format = "offset32"
+    first_word = _read_u16_be(code, vectors_offset)
+    if first_word == 0xFFFF:
+        if not runtime_os.META.resident_autoinit_supports_short_vectors:
+            raise DiskAnalysisError("Resident auto-init short vector tables are missing KB support")
+        vector_format = "disp16"
+        table_offset = vectors_offset + 2
+        while True:
+            if table_offset + 2 > len(code):
+                raise DiskAnalysisError("Resident auto-init short vector table is unterminated")
+            disp = int.from_bytes(code[table_offset:table_offset + 2], byteorder="big", signed=True)
+            table_offset += 2
+            if disp == -1:
+                break
+            target_offset = vectors_offset + disp
+            if target_offset < 0 or target_offset >= len(code):
+                raise DiskAnalysisError(
+                    f"Resident auto-init vector target 0x{target_offset:X} lies outside first CODE hunk"
+                )
+            vector_offsets.append(target_offset)
+    else:
+        table_offset = vectors_offset
+        while True:
+            if table_offset + 4 > len(code):
+                raise DiskAnalysisError("Resident auto-init vector table is unterminated")
+            target_offset = _read_u32_be(code, table_offset)
+            table_offset += 4
+            if target_offset == 0xFFFFFFFF:
+                break
+            if target_offset < 0 or target_offset >= len(code):
+                raise DiskAnalysisError(
+                    f"Resident auto-init vector target 0x{target_offset:X} lies outside first CODE hunk"
+                )
+            vector_offsets.append(target_offset)
+    init_struct = None if init_struct_offset == 0 else init_struct_offset
+    if init_struct is not None and not (0 <= init_struct < len(code)):
+        raise DiskAnalysisError(
+            f"Resident auto-init init-struct pointer 0x{init_struct:X} lies outside first CODE hunk"
+        )
+    init_func = None if init_func_offset == 0 else init_func_offset
+    if init_func is not None and not (0 <= init_func < len(code)):
+        raise DiskAnalysisError(
+            f"Resident auto-init init function 0x{init_func:X} lies outside first CODE hunk"
+        )
+    return ResidentAutoinitMetadata(
+        payload_offset=payload_offset,
+        base_size=base_size,
+        vectors_offset=vectors_offset,
+        vector_format=vector_format,
+        vector_offsets=tuple(vector_offsets),
+        init_struct_offset=init_struct,
+        init_func_offset=init_func,
+    )
+
+
 def _library_info_from_resident(resident: ResidentInfo | None) -> LibraryInfo | None:
     if resident is None or resident.node_type != _os_const("NT_LIBRARY") or resident.name is None:
         return None
@@ -813,10 +901,13 @@ def _classify_hunk_target(hunk_file: HunkFile) -> tuple[str, ResidentInfo | None
     if resident is None:
         return "program", None, None
     if resident.node_type == _os_const("NT_LIBRARY"):
+        resident = ResidentInfo(**{**resident.to_dict(), "autoinit": _parse_resident_autoinit_info(hunk_file, resident, "library")})
         return "library", resident, _library_info_from_resident(resident)
     if resident.node_type == _os_const("NT_DEVICE"):
+        resident = ResidentInfo(**{**resident.to_dict(), "autoinit": _parse_resident_autoinit_info(hunk_file, resident, "device")})
         return "device", resident, None
     if resident.node_type == _os_const("NT_RESOURCE"):
+        resident = ResidentInfo(**{**resident.to_dict(), "autoinit": _parse_resident_autoinit_info(hunk_file, resident, "resource")})
         return "resource", resident, None
     return "program", resident, None
 
@@ -1093,6 +1184,7 @@ def _target_metadata_for_content(content: FileContentInfo) -> TargetMetadata:
     resident = None
     library = None
     entry_register_seeds: list[EntryRegisterSeedMetadata] = []
+    library_name: str | None = None
     if content.resident is not None:
         resident_matchword = runtime_os.CONSTANTS["RTC_MATCHWORD"].value
         resident = ResidentTargetMetadata(
@@ -1106,8 +1198,14 @@ def _target_metadata_for_content(content: FileContentInfo) -> TargetMetadata:
             id_string=content.resident.id_string,
             init_offset=content.resident.init_offset,
             auto_init=content.resident.auto_init,
+            autoinit=(
+                None
+                if content.resident.autoinit is None
+                else content.resident.autoinit
+            ),
         )
     if content.library is not None:
+        library_name = content.library.library_name
         library = LibraryTargetMetadata(
             library_name=content.library.library_name,
             id_string=content.library.id_string,
@@ -1115,14 +1213,46 @@ def _target_metadata_for_content(content: FileContentInfo) -> TargetMetadata:
             public_function_count=content.library.public_function_count,
             total_lvo_count=content.library.total_lvo_count,
         )
+    if resident is not None and resident.auto_init:
+        autoinit = resident.autoinit
+        if autoinit is None:
+            raise DiskAnalysisError("Auto-init resident is missing autoinit metadata")
+        if autoinit.init_func_offset is not None:
+            entry_register_seeds.append(
+                EntryRegisterSeedMetadata(
+                    entry_offset=autoinit.init_func_offset,
+                    register="A6",
+                    kind="library_base",
+                    library_name=runtime_os.META.exec_base_addr.library,
+                    struct_name="LIB",
+                    context_name=None,
+                    note="ExecBase",
+                )
+            )
+        if library_name is None:
+            raise DiskAnalysisError("Auto-init resident library target is missing library metadata")
+        for vector_offset in autoinit.vector_offsets:
+            entry_register_seeds.append(
+                EntryRegisterSeedMetadata(
+                    entry_offset=vector_offset,
+                    register="A6",
+                    kind="library_base",
+                    library_name=library_name,
+                    struct_name="LIB",
+                    context_name=None,
+                    note=f"{library_name} base",
+                )
+            )
+    elif library_name is not None:
         entry_register_seeds.append(
             EntryRegisterSeedMetadata(
+                entry_offset=None,
                 register="A6",
                 kind="library_base",
-                library_name=content.library.library_name,
+                library_name=library_name,
                 struct_name="LIB",
                 context_name=None,
-                note=f"{content.library.library_name} base",
+                note=f"{library_name} base",
             )
         )
     target_type = content.target_type
@@ -1197,6 +1327,7 @@ def create_disk_project(
                 target_type="bootblock",
                 entry_register_seeds=tuple(
                     EntryRegisterSeedMetadata(
+                        entry_offset=None,
                         register=seed.register,
                         kind=seed.kind,
                         library_name=seed.library_name,

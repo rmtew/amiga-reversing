@@ -1,6 +1,7 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: bin\MonAm302
 ; 35548 bytes, 385 entities, 1492 blocks
+; OS compatibility floor: 2.0
 
 ; LVO offsets: graphics.library (FD-derived)
 _LVOSetDrMd	EQU	-354
@@ -22,6 +23,7 @@ _LVOCloseScreen	EQU	-66
 
 ; OS function argument constants
 MEMF_PUBLIC	EQU	1
+MODE_NEWFILE	EQU	1006
 MODE_OLDFILE	EQU	1005
 OFFSET_BEGINNING	EQU	-1
 OFFSET_CURRENT	EQU	0
@@ -67,7 +69,7 @@ AbsExecBase	EQU	$4
 
     section code,code
 
-init_app:
+memtask:
     bra.w loc_0094
     dc.l    $4d4f4e20
     dc.l    dat_0024
@@ -80,7 +82,7 @@ dat_0010:
 pcref_0014:
     dcb.b   4,0
 pcref_0018:
-    dc.l    init_app
+    dc.l    memtask
     dcb.b   4,0
 dat_0020:
     dcb.b   4,0
@@ -276,7 +278,7 @@ loc_028e:
     move.l d0,app_closewindow_window(a6)
     beq.w loc_03da
 loc_0298:
-    movea.l #init_app,a0
+    movea.l #memtask,a0
     jsr call_setpointer
 loc_02a4:
     bsr.w sub_3e98
@@ -310,7 +312,7 @@ loc_0302:
     lea 1464(a6),a3 ; app+$5B8
     bsr.w call_close_7fb8
 loc_030a:
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 loc_030e:
     bsr.w sub_09b8
 loc_0312:
@@ -377,7 +379,7 @@ loc_0390:
 loc_0396:
     lea -1(a0),a4
     bra.w loc_554e
-call_closedevice:
+sub_039e:
     bsr.w call_close_752c
 loc_03a2:
     movea.l 182(a6),sp ; app+$B6
@@ -524,7 +526,7 @@ sub_0526:
     rts
 sub_0528:
     rts
-sub_052a:
+call_rectfill:
     lea 1464(a6),a3 ; app+$5B8
     move.w #$1,10(a3)
     move.w 238(a6),12(a3) ; app+$EE
@@ -536,7 +538,7 @@ hint_053f:
 hint_0544:
 ; --- unverified ---
     movem.l d1/a3,-(sp)
-    bsr.s sub_052a
+    bsr.s call_rectfill
 hint_054a:
     dc.b    $51,$ee,$00,$e5,$4c,$df,$08,$02
 hint_0552:
@@ -695,7 +697,7 @@ hint_060e:
 hint_0616:
 ; --- unverified ---
     move.w d1,-(sp)
-    bsr.w sub_052a
+    bsr.w call_rectfill
 hint_061c:
 ; --- unverified ---
     move.w (sp)+,d1
@@ -716,7 +718,7 @@ hint_0636:
 ; --- unverified ---
     move.l a3,-(sp)
     lea 1464(a6),a3 ; app+$5B8
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 hint_0640:
 ; --- unverified ---
     lea 1856(a6),a3 ; app+$740
@@ -732,7 +734,7 @@ hint_0664:
 ; --- unverified ---
     st d7
     st d4
-    bsr.w sub_5b56
+    bsr.w call_setapen
 hint_066c:
 ; --- unverified ---
     move.b 53(a3),-(sp)
@@ -1018,7 +1020,7 @@ hint_0812:
 ; --- unverified ---
     eori.b #$c,53(a3)
     move.b 53(a3),dat_002a
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 hint_0824:
 ; --- unverified ---
     bra.w graphics_dispatch
@@ -1408,7 +1410,7 @@ hint_0b14:
 ; --- unverified ---
     sf d7
     st d4
-    bsr.w sub_5b56
+    bsr.w call_setapen
 hint_0b1c:
     dc.b    $26,$5f
 hint_0b1e:
@@ -1428,7 +1430,7 @@ hint_0b38:
 ; --- unverified ---
     st d7
     st d4
-    bra.w sub_5b56
+    bra.w call_setapen
 hint_0b40:
 ; --- unverified ---
     move.w #$78a,d3
@@ -1604,12 +1606,12 @@ sub_0c62:
     beq.s loc_0c60
 hint_0c66:
 ; --- unverified ---
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 hint_0c6a:
 ; --- unverified ---
     sf d4
     sf d7
-    bsr.w sub_5b56
+    bsr.w call_setapen
 hint_0c72:
 ; --- unverified ---
     clr.w 4(a3)
@@ -1779,7 +1781,7 @@ hint_0d9a:
     move.w d7,-(sp)
     sf d4
     sf d7
-    bsr.w sub_5b56
+    bsr.w call_setapen
 hint_0da4:
 ; --- unverified ---
     move.w (sp)+,d7
@@ -1804,7 +1806,7 @@ hint_0dd8:
 hint_0de0:
 ; --- unverified ---
     st d4
-    bra.w sub_5b56
+    bra.w call_setapen
 sub_0de6:
     move.l a3,-(sp)
     lea 1782(a6),a3 ; app+$6F6
@@ -1977,7 +1979,7 @@ hint_0f2c:
 ; --- unverified ---
     sf d4
     sf d7
-    bsr.w sub_5b56
+    bsr.w call_setapen
 hint_0f34:
 ; --- unverified ---
     movea.l 68(a3),a0
@@ -2057,13 +2059,13 @@ loc_0f9e:
     move.l a0,-(sp)
     sf d4
     sf d7
-    bsr.w sub_5b56
+    bsr.w call_setapen
 loc_0fa8:
     movea.l (sp),a0
     cmpi.b #$3,8(a0)
     bcc.s loc_0fb6
 loc_0fb2:
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 loc_0fb6:
     movea.l (sp)+,a0
     moveq #-1,d0
@@ -2080,7 +2082,7 @@ loc_0fcc:
     st d4
     cmpa.l 222(a6),a3 ; app+$DE
     seq d7
-    bsr.w sub_5b56
+    bsr.w call_setapen
 loc_0fd8:
     bra.w graphics_dispatch
 sub_0fdc:
@@ -2460,11 +2462,11 @@ hint_12d4:
 hint_12d8:
 ; --- unverified ---
     moveq #61,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_12de:
 ; --- unverified ---
     moveq #36,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_12e4:
 ; --- unverified ---
     move.l d7,d2
@@ -2520,7 +2522,7 @@ hint_132c:
 ; --- unverified ---
     sf d4
     sf d7
-    bsr.w sub_5b56
+    bsr.w call_setapen
 hint_1334:
 ; --- unverified ---
     lea 22(a3),a0
@@ -2546,7 +2548,7 @@ hint_135c:
     clr.b (a0)
     st d4
     st d7
-    bra.w sub_5b56
+    bra.w call_setapen
 dat_136c:
     dc.w    $0000
     dc.b    $00,$00
@@ -2589,7 +2591,7 @@ hint_1446:
     dc.b    $00
     dc.b    $00
 dat_1448:
-    dc.l    init_app
+    dc.l    memtask
     dcb.b   12,0
 dat_1458:
     dcb.b   44,0
@@ -2898,7 +2900,7 @@ loc_17e8:
 loc_17ec:
     bsr.w sub_5ede
 loc_17f0:
-    bsr.w sub_052a
+    bsr.w call_rectfill
 loc_17f4:
     move.w (sp)+,d1
     cmp.w #$1d,d1
@@ -3040,7 +3042,7 @@ loc_1926:
     beq.s loc_193c
 loc_192a:
     move.l a3,-(sp)
-    bsr.w sub_052a
+    bsr.w call_rectfill
 loc_1930:
     moveq #37,d1
     bsr.w sub_6a5a
@@ -7774,7 +7776,7 @@ hint_3fbe:
 hint_3fc2:
 ; --- unverified ---
     move.b d4,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_3fc8:
 ; --- unverified ---
     addq.b #1,d4
@@ -8331,7 +8333,7 @@ loc_4462:
 loc_4466:
     bsr.s call_unloadseg
 loc_4468:
-    bra.w call_closedevice
+    bra.w sub_039e
 call_unloadseg:
     move.l dat_88f6(pc),d1
     beq.s loc_4494
@@ -8522,7 +8524,7 @@ hint_459a:
 hint_45a0:
 ; --- unverified ---
     move.b d1,2959(a6) ; app+$B8F
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_45a8:
 ; --- unverified ---
     bsr.w sub_19d4
@@ -8668,7 +8670,7 @@ hint_467e:
     dc.b    $0b,$8c
 hint_4684:
 ; --- unverified ---
-    bsr.w sub_052a
+    bsr.w call_rectfill
 hint_4688:
 ; --- unverified ---
     st 229(a6) ; app+$E5
@@ -8713,7 +8715,7 @@ hint_46d4:
     bra.w hint_47f6
 hint_46d8:
 ; --- unverified ---
-    bra.w sub_052a
+    bra.w call_rectfill
 hint_46dc:
     dc.b    $d5,$c6
 dat_46de:
@@ -9216,7 +9218,7 @@ hint_49b4:
     dc.b    $72,$48
 hint_49b6:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_49ba:
 ; --- unverified ---
     subq.w #1,10(a3)
@@ -9254,7 +9256,7 @@ hint_49ea:
 hint_49f2:
 ; --- unverified ---
     move.b d0,1412(a6) ; app+$584
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_49fa:
 ; --- unverified ---
     bsr.w sub_19d4
@@ -9465,7 +9467,7 @@ hint_4b7c:
 ; --- unverified ---
     lea dat_0024(pc),a0
     moveq #84,d4
-    bsr.w call_ioerr_7442
+    bsr.w call_ioerr
 hint_4b86:
 ; --- unverified ---
     bne.s hint_4b8e
@@ -9499,7 +9501,7 @@ hint_4ba8:
     dc.b    $72,$59
 hint_4baa:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_4bae:
 ; --- unverified ---
     subq.w #1,10(a3)
@@ -9530,7 +9532,7 @@ hint_4bd0:
 hint_4bd6:
 ; --- unverified ---
     move.w d1,-(sp)
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_4bdc:
 ; --- unverified ---
     bsr.w sub_19d4
@@ -9917,7 +9919,7 @@ hint_4e5e:
 hint_4e60:
 ; --- unverified ---
     movea.l d5,a0
-    bsr.w call_ioerr_7442
+    bsr.w call_ioerr
 hint_4e66:
 ; --- unverified ---
     bne.s hint_4e72
@@ -9974,7 +9976,7 @@ hint_4eac:
 hint_4eb2:
 ; --- unverified ---
     move.w d1,-(sp)
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_4eb8:
 ; --- unverified ---
     bsr.w sub_19d0
@@ -10109,7 +10111,7 @@ hint_4f7a:
 hint_4f80:
 ; --- unverified ---
     moveq #63,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_4f86:
     dc.b    $45,$ec,$00,$0c
 hint_4f8a:
@@ -10118,7 +10120,7 @@ hint_4f8a:
     beq.s hint_4f94
 hint_4f8e:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_4f92:
 ; --- unverified ---
     bra.s hint_4f8a
@@ -10178,7 +10180,7 @@ hint_4fd6:
 hint_4fe4:
 ; --- unverified ---
     moveq #45,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_4fea:
 ; --- unverified ---
     move.l (sp),d2
@@ -10218,7 +10220,7 @@ hint_5018:
 hint_501c:
 ; --- unverified ---
     moveq #44,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_5022:
 ; --- unverified ---
     moveq #4,d1
@@ -10226,7 +10228,7 @@ hint_5022:
 hint_5026:
 ; --- unverified ---
     moveq #44,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_502c:
 ; --- unverified ---
     moveq #0,d1
@@ -10274,7 +10276,7 @@ hint_506a:
 hint_506e:
 ; --- unverified ---
     moveq #45,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_5074:
 ; --- unverified ---
     move.l 24(a2),d2
@@ -10324,7 +10326,7 @@ hint_50ae:
     beq.s hint_50c2
 hint_50b4:
 ; --- unverified ---
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 hint_50b8:
 ; --- unverified ---
     movem.l (sp)+,d2-d7/a2-a5
@@ -10853,7 +10855,7 @@ hint_53e8:
     dc.b    $74,$08
 hint_53ea:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_53ee:
 ; --- unverified ---
     bra.s hint_53c2
@@ -10938,7 +10940,7 @@ hint_5456:
 hint_5458:
 ; --- unverified ---
     moveq #9,d1
-    bra.w sub_58ba
+    bra.w call_write
 hint_545e:
 ; --- unverified ---
     lea str_8843(pc),a0
@@ -11095,14 +11097,14 @@ loc_558c:
     clr.b -(a0)
     movem.l d4-d7/a3-a5,-(sp)
     move.l a3,-(sp)
-    bsr.w sub_052a
+    bsr.w call_rectfill
 loc_5598:
     movea.l (sp)+,a0
     bsr.w call_close_7780
 loc_559e:
     bsr.w alloc_memory
 loc_55a2:
-    bsr.w sub_052a
+    bsr.w call_rectfill
 loc_55a6:
     movem.l (sp)+,d4-d7/a3-a5
     movea.l a4,a0
@@ -11184,7 +11186,7 @@ sub_5690:
     bsr.s sub_565e
 loc_5692:
     sf 20(a3)
-call_rectfill:
+call_rectfill_5696:
     move.w 8(a3),d3
     move.l a2,-(sp)
     moveq #0,d0 ; SetAPen: pen
@@ -11403,13 +11405,13 @@ loc_58a6:
 sub_58aa:
 ; --- unverified ---
     addi.b #$30,d1
-    bra.w sub_58ba
+    bra.w call_write
 hint_58b2:
 ; --- unverified ---
     movem.l d0-d3/d7/a0-a2,-(sp)
     st d3
     bra.s loc_58c0
-sub_58ba:
+call_write:
     movem.l d0-d3/d7/a0-a2,-(sp)
     sf d3
 loc_58c0:
@@ -11693,7 +11695,7 @@ sub_5af6:
     bsr.w sub_6a6a
 loc_5b00:
     moveq #32,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 loc_5b06:
     move.w (sp)+,10(a3)
     rts
@@ -11725,7 +11727,7 @@ loc_5b3a:
     moveq #0,d7
     st d4
     st 20(a3)
-sub_5b56:
+call_setapen:
     move.l a4,-(sp)
     movea.l a3,a4
     lea 1464(a6),a3 ; app+$5B8
@@ -11949,11 +11951,11 @@ loc_5d5e:
 sub_5d9c:
     movem.l d4-d7,-(sp)
     pea pcref_5dcc(pc)
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 loc_5da8:
     sf d7
     sf d4
-    bsr.w sub_5b56
+    bsr.w call_setapen
 loc_5db0:
     clr.w 4(a3)
     lea 1856(a6),a3 ; app+$740
@@ -11962,7 +11964,7 @@ loc_5db0:
 loc_5dc0:
     st d7
     st d4
-    bsr.w sub_5b56
+    bsr.w call_setapen
 loc_5dc8:
     bra.w graphics_dispatch
 pcref_5dcc:
@@ -12065,7 +12067,7 @@ hint_5eac:
 ; --- unverified ---
     move.l a2,-(sp)
     lea 1464(a6),a3 ; app+$5B8
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 hint_5eb6:
     dc.b    $47,$ee,$07,$40,$41,$eb,$00,$16,$70,$19
 hint_5ec0:
@@ -12082,7 +12084,7 @@ hint_5ed6:
 ; --- unverified ---
     st d7
     st d4
-    bra.w sub_5b56
+    bra.w call_setapen
 sub_5ede:
     lea 1486(a6),a3 ; app+$5CE
     moveq #6,d2
@@ -12110,7 +12112,7 @@ loc_5f06:
     cmpa.l 222(a6),a3 ; app+$DE
     seq d7
     st d4
-    bsr.w sub_5b56
+    bsr.w call_setapen
 loc_5f14:
     bsr.s graphics_dispatch
 loc_5f16:
@@ -12610,7 +12612,7 @@ hint_6256:
 hint_625a:
 ; --- unverified ---
     moveq #61,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6260:
 ; --- unverified ---
     bra.w sub_6a82
@@ -12619,11 +12621,11 @@ hint_6264:
 hint_626a:
 ; --- unverified ---
     moveq #100,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6270:
 ; --- unverified ---
     move.b d7,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6276:
 ; --- unverified ---
     bsr.s hint_6256
@@ -12667,11 +12669,11 @@ hint_62a6:
 hint_62aa:
 ; --- unverified ---
     moveq #97,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_62b0:
 ; --- unverified ---
     move.b d7,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_62b6:
 ; --- unverified ---
     bsr.s hint_6256
@@ -12756,7 +12758,7 @@ hint_633e:
 hint_6344:
 ; --- unverified ---
     moveq #62,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_634a:
 ; --- unverified ---
     move.l 338(a6),d2 ; app+$152
@@ -12822,11 +12824,11 @@ hint_63ca:
 hint_63d0:
 ; --- unverified ---
     moveq #102,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_63d6:
 ; --- unverified ---
     moveq #112,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_63dc:
 ; --- unverified ---
     move.b d7,d1
@@ -12849,7 +12851,7 @@ hint_6422:
     dc.b    $72,$2d
 hint_6424:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6428:
     dc.b    $32,$19,$00
 hint_642b:
@@ -12883,7 +12885,7 @@ hint_6452:
 hint_645e:
 ; --- unverified ---
     moveq #46,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6464:
     dc.b    $3f,$07,$7e,$07
 hint_6468:
@@ -12897,7 +12899,7 @@ hint_6472:
 ; --- unverified ---
     move.w (sp)+,d7
     moveq #101,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_647a:
 ; --- unverified ---
     lea 1436(a6),a1 ; app+$59C
@@ -12908,7 +12910,7 @@ hint_6486:
     dc.b    $72,$2d
 hint_6488:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
     dc.b    $f2,$00,$a8,$00
 sub_6490:
 ; --- unverified ---
@@ -12946,12 +12948,12 @@ hint_64c6:
 hint_64d6:
 ; --- unverified ---
     moveq #109,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_64dc:
 ; --- unverified ---
     moveq #48,d1
     add.b d7,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_64e4:
 ; --- unverified ---
     bsr.w hint_6256
@@ -12978,7 +12980,7 @@ hint_6504:
 hint_6510:
 ; --- unverified ---
     move.b d2,d1
-    bra.w sub_58ba
+    bra.w call_write
 hint_6516:
 ; --- unverified ---
     tst.b (a1)
@@ -13086,11 +13088,11 @@ hint_668a:
 hint_668c:
 ; --- unverified ---
     move.b (a0)+,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6692:
 ; --- unverified ---
     move.b (a0)+,d1
-    bra.w sub_58ba
+    bra.w call_write
 hint_6698:
 ; --- unverified ---
     addq.l #2,a0
@@ -13116,7 +13118,7 @@ hint_66ba:
     dc.b    $72,$55
 hint_66bc:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_66c0:
 ; --- unverified ---
     moveq #77,d1
@@ -13126,7 +13128,7 @@ hint_66c8:
     dc.b    $72,$49
 hint_66ca:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_66ce:
     dc.b    $74,$04
 hint_66d0:
@@ -13146,7 +13148,7 @@ hint_66de:
 hint_66e0:
 ; --- unverified ---
     move.b (a0)+,d1
-    bra.w sub_58ba
+    bra.w call_write
 hint_66e6:
 ; --- unverified ---
     addq.l #1,a0
@@ -13219,7 +13221,7 @@ hint_6754:
     dc.b    $72,$3e
 hint_6756:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_675a:
 ; --- unverified ---
     bsr.w hint_69f0
@@ -13507,7 +13509,7 @@ hint_6928:
     beq.s hint_6936
 hint_692e:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6932:
 ; --- unverified ---
     addq.w #1,d3
@@ -13596,7 +13598,7 @@ hint_69d2:
 hint_69e4:
 ; --- unverified ---
     move.b (a0)+,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_69ea:
 ; --- unverified ---
     dbf d2,hint_69e4
@@ -13649,7 +13651,7 @@ hint_6a44:
     dc.b    $34,$1f,$72,$20
 hint_6a48:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6a4c:
 ; --- unverified ---
     dbf d2,hint_6a2a
@@ -13660,7 +13662,7 @@ hint_6a52:
 ; --- unverified ---
     addq.l #2,a2
     moveq #42,d1
-    bra.w sub_58ba
+    bra.w call_write
 sub_6a5a:
     lea str_8217(pc),a0
 loc_6a5e:
@@ -13676,7 +13678,7 @@ sub_6a6a:
     move.b (a0)+,d1
     beq.s loc_6a74
 loc_6a6e:
-    bsr.w sub_58ba
+    bsr.w call_write
 loc_6a72:
     bra.s sub_6a6a
 loc_6a74:
@@ -13694,19 +13696,19 @@ loc_6a80:
     rts
 sub_6a82:
     moveq #32,d1
-    bra.w sub_58ba
+    bra.w call_write
 sub_6a88:
 ; --- unverified ---
     moveq #42,d1
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_6a8e:
 ; --- unverified ---
     moveq #42,d1
-    bra.w sub_58ba
+    bra.w call_write
 hint_6a94:
 ; --- unverified ---
     moveq #10,d1
-    bra.w sub_58ba
+    bra.w call_write
 hint_6a9a:
 ; --- unverified ---
     move.w d2,-(sp)
@@ -13732,13 +13734,13 @@ hint_6ab2:
 ; --- unverified ---
     andi.w #$f,d2
     move.b pcref_6abe(pc,d2.w),d1
-    bra.w sub_58ba
+    bra.w call_write
 pcref_6abe:
     dc.b    "0123456789ABCD"
     dc.b    $45,$46
 sub_6ace:
 ; --- unverified ---
-    lea sub_58ba(pc),a2
+    lea call_write(pc),a2
     lea pcref_6b28(pc),a0
     moveq #-1,d2
     moveq #3,d0
@@ -14845,7 +14847,7 @@ loc_73b0:
     rts
 sub_73b6:
     dc.b    $22,$08,$24,$3c,$00,$00,$03,$ee
-call_ioerr:
+dos_dispatch:
     move.l a6,-(sp)
     movea.l app_dos_base(a6),a6
     jsr _LVOOpen(a6) ; app-$1E
@@ -14866,7 +14868,7 @@ loc_73dc:
 loc_73e2:
     move.l a5,d1
     move.l #$3ed,d2
-    bra.s call_ioerr
+    bra.s dos_dispatch
 call_seek:
     move.l d3,-(sp)
     move.l d3,d1 ; Seek: file
@@ -14908,7 +14910,7 @@ loc_743c:
     movea.l (sp)+,a6
     move.l (sp)+,d3
     rts
-call_ioerr_7442:
+call_ioerr:
     move.l d3,-(sp)
     move.l d3,d1 ; Write: file
     move.l a0,d2 ; Write: buffer
@@ -14985,7 +14987,7 @@ loc_74cc:
     move.l 372(a6),d3 ; app+$174
     lea 3080(a6),a0 ; app+$C08
     move.l d0,d4
-    bsr.w call_ioerr_7442
+    bsr.w call_ioerr
 loc_74de:
     beq.s loc_74e6
 loc_74e0:
@@ -14998,7 +15000,7 @@ call_ioerr_74ec:
     bsr.s call_close_752c
 loc_74f0:
     move.l (sp),d1 ; Open: name
-    move.l #$3ee,d2 ; Open: accessMode
+    move.l #MODE_NEWFILE,d2 ; Open: accessMode
     move.l a6,-(sp)
     movea.l app_dos_base(a6),a6
     jsr _LVOOpen(a6) ; app-$1E
@@ -15376,7 +15378,7 @@ loc_77c0:
 loc_77c4:
     beq.s loc_77cc
 loc_77c6:
-    bsr.w sub_7bd0
+    bsr.w call_seek_7bd0
 loc_77ca:
     bra.s loc_77c0
 loc_77cc:
@@ -15389,7 +15391,7 @@ loc_77d4:
 loc_77da:
     sub.l d5,d0
     addq.l #1,d0
-    bsr.w sub_7bd0
+    bsr.w call_seek_7bd0
 loc_77e2:
     bsr.w call_read_7b98
 loc_77e6:
@@ -15452,14 +15454,14 @@ loc_7864:
     beq.w loc_77e2
 loc_7868:
     addq.l #1,d0
-    bsr.w sub_7bd0
+    bsr.w call_seek_7bd0
 loc_786e:
     bra.s loc_7860
 loc_7870:
     bsr.w call_read_7b98
 loc_7874:
     andi.l #$3fffffff,d0
-    bsr.w sub_7bd0
+    bsr.w call_seek_7bd0
 loc_787e:
     bra.w loc_77e2
 loc_7882:
@@ -15549,7 +15551,7 @@ loc_791a:
     lea -16(sp),sp
     asl.l #2,d0
     move.l d0,(sp)
-    bsr.w call_seek_7bb6
+    bsr.w dos_dispatch_7bb6
 loc_7926:
     move.l d0,4(sp)
     add.l d0,(sp)
@@ -15581,7 +15583,7 @@ loc_796c:
 loc_7970:
     bsr.w sub_7a0c
 loc_7974:
-    bsr.w call_seek_7bb6
+    bsr.w dos_dispatch_7bb6
 loc_7978:
     move.l d0,44(a3)
     sub.l (sp),d0
@@ -15596,7 +15598,7 @@ loc_7992:
     bra.s loc_79fa
 loc_7998:
     moveq #9,d0
-    bsr.w sub_7bd0
+    bsr.w call_seek_7bd0
 loc_799e:
     bsr.w call_read_7b3e
 loc_79a2:
@@ -15801,7 +15803,7 @@ loc_7b3a:
 loc_7b3c:
     rts
 call_read_7b3e:
-    bsr.w call_seek_7bb6
+    bsr.w dos_dispatch_7bb6
 loc_7b42:
     move.l d0,-(sp)
     move.l d4,d1 ; Read: file
@@ -15864,7 +15866,7 @@ loc_7bac:
     move.l d0,d1
     move.l 2472(a6),d0 ; app+$9A8
     rts
-call_seek_7bb6:
+dos_dispatch_7bb6:
     moveq #0,d2
     moveq #0,d3
 loc_7bba:
@@ -15879,7 +15881,7 @@ sub_7bca:
     moveq #-1,d3
     move.l d0,d2
     bra.s loc_7bba
-sub_7bd0:
+call_seek_7bd0:
     moveq #0,d3
     move.l d0,d2
     asl.l #2,d2
@@ -15892,7 +15894,7 @@ hint_7be0:
     beq.s hint_7bee
 hint_7be4:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_7be8:
 ; --- unverified ---
     subq.b #1,d2
@@ -15931,7 +15933,7 @@ hint_7c1a:
     beq.s hint_7c26
 hint_7c1e:
 ; --- unverified ---
-    bsr.w sub_58ba
+    bsr.w call_write
 hint_7c22:
 ; --- unverified ---
     dbf d3,hint_7c1a
@@ -16639,7 +16641,7 @@ hint_812a:
 hint_8130:
 ; --- unverified ---
     moveq #0,d6
-    bsr.w call_rectfill
+    bsr.w call_rectfill_5696
 hint_8136:
 ; --- unverified ---
     clr.l 10(a3)

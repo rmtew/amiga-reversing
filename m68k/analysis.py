@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pickle
 import struct
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -49,6 +49,7 @@ from .os_calls import (
     OsKb,
     PlatformState,
     analyze_call_setups,
+    collect_library_call_site_addrs,
     get_platform_config,
     identify_library_calls,
     refine_opened_base_calls,
@@ -249,6 +250,30 @@ def _prune_inline_dispatch_blocks(blocks: dict[int, BasicBlock], exit_states: di
     for block in blocks.values():
         block.successors = [succ for succ in block.successors if succ not in remove_addrs]
         block.predecessors = [pred for pred in block.predecessors if pred not in remove_addrs]
+
+
+def _abstract_value_key(val: AbstractValue) -> tuple[object, ...]:
+    return (
+        val.is_known,
+        val.concrete if val.is_known else None,
+        val.sym_base,
+        val.sym_offset,
+        val.label,
+        repr(val.tag),
+    )
+
+def _entry_state_key(cpu: CPUState, mem: AbstractMemory) -> tuple[object, ...]:
+    reg_sig = tuple(
+        _abstract_value_key(val)
+        for val in (*cpu.d, *cpu.a)
+    )
+    mem_sig = tuple(
+        sorted((addr, _abstract_value_key(val)) for addr, val in mem._bytes.items())
+    )
+    tag_sig = tuple(
+        sorted((repr(key), repr(tag)) for key, tag in mem._tags.items())
+    )
+    return reg_sig, mem_sig, tag_sig
 
 
 # -- Relocated segment detection ---------------------------------------
@@ -524,7 +549,8 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                  base_addr: int = 0,
                  code_start: int = 0,
                  entry_points: Sequence[int] = (),
-                 initial_state: CPUState | None = None) -> HunkAnalysis:
+                 initial_state: CPUState | None = None,
+                 entry_initial_states: Mapping[int, CPUState] | None = None) -> HunkAnalysis:
     """Run the complete analysis pipeline on a code hunk.
 
     Args:
@@ -596,6 +622,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
         propagate=True,
         platform=platform,
         initial_state=initial_state,
+        entry_initial_states=entry_initial_states,
     )
     alloc_base = _SENTINEL_ALLOC_BASE
     alloc_limit = platform.next_alloc_sentinel
@@ -650,29 +677,6 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     last_runtime_resolutions: list[IndirectResolution] = []
     last_per_caller_resolutions: list[IndirectResolution] = []
     last_backward_resolutions: list[IndirectResolution] = []
-
-    def _abstract_value_key(val: AbstractValue) -> tuple[object, ...]:
-        return (
-            val.is_known,
-            val.concrete if val.is_known else None,
-            val.sym_base,
-            val.sym_offset,
-            val.label,
-            repr(val.tag),
-        )
-
-    def _entry_state_key(cpu: CPUState, mem: AbstractMemory) -> tuple[object, ...]:
-        reg_sig = tuple(
-            _abstract_value_key(val)
-            for val in (*cpu.d, *cpu.a)
-        )
-        mem_sig = tuple(
-            sorted((addr, _abstract_value_key(val)) for addr, val in mem._bytes.items())
-        )
-        tag_sig = tuple(
-            sorted((repr(key), repr(tag)) for key, tag in mem._tags.items())
-        )
-        return reg_sig, mem_sig, tag_sig
 
     def _record_indirect_entry_states(resolution: IndirectResolution) -> None:
         target = resolution.target
@@ -733,9 +737,15 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
             assert result is not None, "Core analysis result missing before per-caller resolution"
         """Run expensive per-caller resolution after cheaper passes stabilize."""
         nonlocal last_per_caller_resolutions
+        skip_site_addrs = collect_library_call_site_addrs(
+            result["blocks"], RUNTIME_OS_KB)
         preclassified_calls = identify_library_calls(
             result["blocks"], code, RUNTIME_OS_KB,
-            result.get("exit_states", {}), result["call_targets"], platform)
+            result.get("exit_states", {}), result["call_targets"], platform,
+            initial_state=initial_state,
+            entry_initial_states=entry_initial_states,
+            base_addr=base_addr,
+        )
         preclassified_calls = refine_opened_base_calls(
             result["blocks"], preclassified_calls, code, RUNTIME_OS_KB, platform)
         callback_setups = analyze_call_setups(
@@ -755,7 +765,6 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
         if added:
             last_per_caller_resolutions = []
             return added
-        skip_site_addrs = frozenset(call.addr for call in preclassified_calls)
         last_per_caller_resolutions = resolve_per_caller(
             result["blocks"],
             result.get("exit_states", {}),
@@ -781,6 +790,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                 propagate=True,
                 platform=platform,
                 initial_state=initial_state,
+                entry_initial_states=entry_initial_states,
             )
             if entries_converged:
                 break  # just re-analyzed with new memory
@@ -865,6 +875,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
             entry_points=sorted(hint_entries),
             propagate=False,
             initial_state=initial_state,
+            entry_initial_states=entry_initial_states,
         )
         for a, b in hint_result["blocks"].items():
             if a not in blocks:
@@ -890,6 +901,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
             entry_points=sorted(scan_entries),
             propagate=False,
             initial_state=initial_state,
+            entry_initial_states=entry_initial_states,
         )
         for a, b in scan_result["blocks"].items():
             if a not in blocks and a not in hint_blocks:
@@ -923,6 +935,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
             entry_points=sorted(post_scan_entries),
             propagate=False,
             initial_state=initial_state,
+            entry_initial_states=entry_initial_states,
         )
         added = 0
         for a, b in post_result["blocks"].items():
@@ -982,7 +995,10 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     # -- Phase 3: OS call identification ------------------------------
     os_kb = RUNTIME_OS_KB
     lib_calls = identify_library_calls(
-        blocks, code, os_kb, exit_states, call_targets, platform)
+        blocks, code, os_kb, exit_states, call_targets, platform,
+        initial_state=initial_state,
+        entry_initial_states=entry_initial_states,
+        base_addr=base_addr)
     lib_calls = refine_opened_base_calls(blocks, lib_calls, code, os_kb, platform)
 
     if lib_calls:

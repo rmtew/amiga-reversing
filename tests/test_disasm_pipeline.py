@@ -25,6 +25,7 @@ from disasm.binary_source import RawBinarySource
 from disasm.comments import build_instruction_comment_parts, render_comment_parts
 from disasm.emitter import emit_session_rows, render_session_text
 from disasm.entities import infer_target_name, load_entities
+from disasm.entry_seeds import build_entry_seed_config
 from disasm.hint_validation import (
     hint_block_has_supported_terminal_flow,
     is_valid_hint_block,
@@ -39,6 +40,7 @@ from disasm.substitutions import build_arg_substitutions, build_lvo_substitution
 from disasm.target_metadata import (
     BootBlockTargetMetadata,
     EntryRegisterSeedMetadata,
+    ResidentAutoinitMetadata,
     ResidentTargetMetadata,
     TargetMetadata,
 )
@@ -52,6 +54,7 @@ from disasm.types import (
     JumpTableRegion,
     ListingRow,
     SemanticOperand,
+    StructFieldOperandMetadata,
 )
 from disasm.validation import get_instruction_processor_min, has_valid_branch_target
 from m68k.analysis import RelocatedSegment, RelocLike
@@ -173,6 +176,46 @@ def test_build_lvo_substitutions_collects_direct_jsr_substitution() -> None:
     assert lvo_substitutions == {0x20: ("-552(", "_LVOOpenLibrary(")}
 
 
+def test_build_lvo_substitutions_collects_dispatch_call_lvo_from_call_site() -> None:
+    setter = Instruction(
+        offset=0x12,
+        size=2,
+        opcode=0x70E2,
+        text="corrupted",
+        raw=b"\x70\xe2",
+        kb_mnemonic="moveq",
+        operand_size="l",
+        operand_texts=("#-30", "d0"),
+    )
+    call_inst = Instruction(
+        offset=0x14,
+        size=4,
+        opcode=0x6100,
+        text="corrupted",
+        raw=b"\x61\x00\x00\x2a",
+        kb_mnemonic="bsr",
+        operand_size="w",
+        operand_texts=("$0040",),
+    )
+    block = type("Block", (), {"instructions": [setter, call_inst]})()
+
+    lvo_equs, lvo_substitutions = build_lvo_substitutions(
+        blocks={0x10: block},
+        lib_calls=[LibraryCall(
+            addr=0x14,
+            block=0x10,
+            library="dos.library",
+            function="Open",
+            lvo=-30,
+            dispatch=0x42,
+        )],
+        hunk_entities=[{"addr": "0040", "end": "0050", "type": "code"}],
+    )
+
+    assert lvo_equs == {"dos.library": {-30: "_LVOOpen"}}
+    assert lvo_substitutions == {0x12: ("#-30", "#_LVOOpen")}
+
+
 def test_build_arg_substitutions_collects_immediate_constant() -> None:
     setter = Instruction(
         offset=0x10,
@@ -206,7 +249,7 @@ def test_build_arg_substitutions_collects_immediate_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"OpenLibrary": {"name": ("OL_TAG",)}},
+            input_constant_domains={"dos.library": {"OpenLibrary": {"name": ("OL_TAG",)}}},
             library_lvo_owners={},
         ),
         CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="1", value=1)},
@@ -294,7 +337,7 @@ def test_build_arg_substitutions_collects_dispatch_call_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"Seek": {"mode": ("OFFSET_BEGINNING", "OFFSET_CURRENT")}},
+            input_constant_domains={"dos.library": {"Seek": {"mode": ("OFFSET_BEGINNING", "OFFSET_CURRENT")}}},
             library_lvo_owners={},
         ),
         CONSTANTS={
@@ -359,7 +402,7 @@ def test_build_arg_substitutions_collects_long_immediate_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"SetSignal": {"signalMask": ("SIGBREAKF_CTRL_C",)}},
+            input_constant_domains={"exec.library": {"SetSignal": {"signalMask": ("SIGBREAKF_CTRL_C",)}}},
             library_lvo_owners={},
         ),
         CONSTANTS={
@@ -399,6 +442,71 @@ def test_build_arg_substitutions_collects_long_immediate_constant() -> None:
     assert arg_substitutions == {0x10: ("#$1000", "#SIGBREAKF_CTRL_C")}
 
 
+def test_build_arg_substitutions_collects_open_mode_constant() -> None:
+    setter = _instruction(
+        offset=0x10,
+        raw=b"\x24\x3c\x00\x00\x03\xed",
+        mnemonic="move",
+        operand_size="l",
+        operand_texts=("#$3ed", "d2"),
+    )
+    call_inst = _instruction(
+        offset=0x12,
+        raw=b"\x4e\x75",
+        mnemonic="jsr",
+        operand_size="w",
+        operand_texts=("_LVOOpen(a6)",),
+    )
+    block = type("Block", (), {"instructions": [setter, call_inst]})()
+    os_kb = SimpleNamespace(
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            named_base_structs={},
+            input_constant_domains={"dos.library": {"Open": {"accessMode": ("MODE_OLDFILE", "MODE_NEWFILE", "MODE_READWRITE")}}},
+            library_lvo_owners={},
+        ),
+        CONSTANTS={
+            "MODE_OLDFILE": runtime_os.OsConstant(raw="1005", value=0x3ED),
+            "MODE_NEWFILE": runtime_os.OsConstant(raw="1006", value=0x3EE),
+            "MODE_READWRITE": runtime_os.OsConstant(raw="1004", value=0x3EC),
+        },
+        LIBRARIES={
+            "dos.library": runtime_os.OsLibrary(
+                lvo_index={},
+                functions={
+                    "Open": runtime_os.OsFunction(
+                        lvo=-30,
+                        inputs=(
+                            runtime_os.OsInput(name="name", regs=("d1",)),
+                            runtime_os.OsInput(name="accessMode", regs=("d2",)),
+                        ),
+                    )
+                },
+            )
+        },
+    )
+
+    arg_equs, arg_substitutions = build_arg_substitutions(
+        blocks={0x10: block},
+        lib_calls=[LibraryCall(
+            addr=0x12,
+            block=0x10,
+            library="dos.library",
+            function="Open",
+            lvo=-30,
+            dispatch=None,
+        )],
+        hunk_entities=[],
+        os_kb=os_kb,
+    )
+
+    assert arg_equs == {"MODE_OLDFILE": 0x3ED}
+    assert arg_substitutions == {0x10: ("#$3ed", "#MODE_OLDFILE")}
+
+
 def test_build_arg_substitutions_requires_declared_constant() -> None:
     os_kb = SimpleNamespace(
         META=runtime_os.OsMeta(
@@ -407,7 +515,7 @@ def test_build_arg_substitutions_requires_declared_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"OpenLibrary": {"name": ("OL_TAG",)}},
+            input_constant_domains={"dos.library": {"OpenLibrary": {"name": ("OL_TAG",)}}},
             library_lvo_owners={},
         ),
         CONSTANTS={},
@@ -431,7 +539,7 @@ def test_build_arg_substitutions_requires_concrete_constant_value() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"OpenLibrary": {"name": ("OL_TAG",)}},
+            input_constant_domains={"dos.library": {"OpenLibrary": {"name": ("OL_TAG",)}}},
             library_lvo_owners={},
         ),
         CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="TAG_USER+1", value=None)},
@@ -480,7 +588,7 @@ def test_build_arg_substitutions_rejects_ambiguous_matched_function_domain_value
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"Seek": {"mode": ("OFFSET_BEGINNING", "OFFSET_ALIAS")}},
+            input_constant_domains={"dos.library": {"Seek": {"mode": ("OFFSET_BEGINNING", "OFFSET_ALIAS")}}},
             library_lvo_owners={},
         ),
         CONSTANTS={
@@ -565,6 +673,9 @@ def test_build_app_slot_symbols_prefers_initial_mem_and_typed_slots() -> None:
             (0x1020, 4): LibraryBaseTag(library_base="dos.library"),
         }
 
+        def iter_tags(self) -> tuple[tuple[tuple[int, int], object], ...]:
+            return tuple(self._tags.items())
+
     app_offsets = build_app_slot_symbols(
         blocks={},
         lib_calls=[],
@@ -574,6 +685,54 @@ def test_build_app_slot_symbols_prefers_initial_mem_and_typed_slots() -> None:
     )
 
     assert app_offsets == {0x20: "app_dos_base"}
+
+
+def test_build_app_slot_symbols_ignores_non_app_relative_library_tags_for_dynamic_base() -> None:
+    class FakeInitMem:
+        _tags = {
+            (0x02C00CD8, 4): LibraryBaseTag(library_base="dos.library"),
+            (0x03700CD8, 4): LibraryBaseTag(library_base="dos.library"),
+            (0x04200CD8, 4): LibraryBaseTag(library_base="dos.library"),
+            (0x80300CD8, 4): LibraryBaseTag(library_base="dos.library"),
+        }
+
+        def iter_tags(self) -> tuple[tuple[tuple[int, int], object], ...]:
+            return tuple(self._tags.items())
+
+    app_offsets = build_app_slot_symbols(
+        blocks={},
+        lib_calls=[],
+        code=b"",
+        os_kb=runtime_os,
+        platform=make_platform(app_base=(6, 0x80300002), initial_mem=FakeInitMem()),
+    )
+
+    assert app_offsets == {0x0CD6: "app_dos_base"}
+
+
+def test_build_app_slot_symbols_accepts_only_signed_word_slots_for_absolute_base() -> None:
+    class FakeInitMem:
+        _tags = {
+            (0x00007FFC, 4): LibraryBaseTag(library_base="dos.library"),
+            (0x00010000, 4): LibraryBaseTag(library_base="dos.library"),
+        }
+
+        def iter_tags(self) -> tuple[tuple[tuple[int, int], object], ...]:
+            return tuple(self._tags.items())
+
+    app_offsets = build_app_slot_symbols(
+        blocks={},
+        lib_calls=[],
+        code=b"",
+        os_kb=runtime_os,
+        platform=make_platform(app_base=AppBaseInfo(
+            kind=AppBaseKind.ABSOLUTE,
+            reg_num=6,
+            concrete=0x00008000,
+        ), initial_mem=FakeInitMem()),
+    )
+
+    assert app_offsets == {-4: "app_dos_base"}
 
 
 def test_build_app_slot_symbols_disambiguates_duplicate_typed_slot_names() -> None:
@@ -1211,6 +1370,7 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path: Path, monkeypa
         base_addr: int,
         code_start: int,
         entry_points: tuple[int, ...] = (),
+        entry_initial_states: object | None = None,
     ) -> FakeAnalysis:
         seen["args"] = (code, relocs, hunk_index, base_addr, code_start, entry_points)
         return sentinel
@@ -1273,6 +1433,7 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: Mo
         base_addr: int,
         code_start: int,
         entry_points: tuple[int, ...] = (),
+        entry_initial_states: object | None = None,
     ) -> FakeAnalysis:
         seen["analyze"] = (code, relocs, hunk_index, base_addr, code_start, entry_points)
         return sentinel
@@ -2263,6 +2424,7 @@ def test_emit_session_rows_includes_bootblock_structure_section() -> None:
             target_type="bootblock",
             entry_register_seeds=(
                 EntryRegisterSeedMetadata(
+                    entry_offset=None,
                     register="A6",
                     kind="library_base",
                     note="ExecBase",
@@ -2271,6 +2433,7 @@ def test_emit_session_rows_includes_bootblock_structure_section() -> None:
                     context_name=None,
                 ),
                 EntryRegisterSeedMetadata(
+                    entry_offset=None,
                     register="A1",
                     kind="struct_ptr",
                     note="IOStdReq (open trackdisk.device)",
@@ -2298,6 +2461,7 @@ def test_emit_session_rows_includes_bootblock_structure_section() -> None:
     rendered = "".join(row.text for row in rows)
 
     assert "; Boot block structure\n" in rendered
+    assert "; OS compatibility floor: 1.3\n" in rendered
     assert ";   boot code: offset 0xC, size 1012 bytes\n" in rendered
     assert ";   execution context:" not in rendered
     assert 'INCLUDE "exec/exec_lib.i"\n' in rendered
@@ -2322,6 +2486,7 @@ def test_build_disassembly_session_for_local_offset_raw_bootblock_renders_local_
         target_type="bootblock",
         entry_register_seeds=(
             EntryRegisterSeedMetadata(
+                entry_offset=None,
                 register="A6",
                 kind="library_base",
                 note="ExecBase",
@@ -2361,6 +2526,7 @@ def test_build_disassembly_session_for_local_offset_raw_bootblock_renders_local_
     rendered = render_session_text(build_disassembly_session(source, str(entities_path)))
 
     assert "boot_magic:\n" in rendered
+    assert "; OS compatibility floor: 1.3\n" in rendered
     assert 'dc.b    "DOS",0\n' in rendered
     assert "boot_checksum:\n" in rendered
     assert "dc.l    $00000000\n" in rendered
@@ -2400,6 +2566,7 @@ def test_build_disassembly_session_leaves_out_of_segment_absolute_jump_unlabeled
         target_type="bootblock",
         entry_register_seeds=(
             EntryRegisterSeedMetadata(
+                entry_offset=None,
                 register="A6",
                 kind="library_base",
                 note="ExecBase",
@@ -2408,6 +2575,7 @@ def test_build_disassembly_session_leaves_out_of_segment_absolute_jump_unlabeled
                 context_name=None,
             ),
             EntryRegisterSeedMetadata(
+                entry_offset=None,
                 register="A1",
                 kind="struct_ptr",
                 note="IOStdReq (open trackdisk.device)",
@@ -2472,6 +2640,7 @@ def test_build_disassembly_session_for_runtime_absolute_raw_keeps_absolute_label
         target_type="bootblock",
         entry_register_seeds=(
             EntryRegisterSeedMetadata(
+                entry_offset=None,
                 register="A6",
                 kind="library_base",
                 note="ExecBase",
@@ -2480,6 +2649,7 @@ def test_build_disassembly_session_for_runtime_absolute_raw_keeps_absolute_label
                 context_name=None,
             ),
             EntryRegisterSeedMetadata(
+                entry_offset=None,
                 register="A1",
                 kind="struct_ptr",
                 note="IOStdReq (open trackdisk.device)",
@@ -2529,6 +2699,123 @@ def test_build_disassembly_session_for_runtime_absolute_raw_keeps_absolute_label
     assert "$70020" not in rendered
 
 
+def test_build_entry_seed_config_scopes_autoinit_library_a6_by_entrypoint() -> None:
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                entry_offset=0x88,
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0x90,
+                register="A6",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
+        resident=ResidentTargetMetadata(
+            offset=4,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=37,
+            node_type_name="NT_LIBRARY",
+            priority=0,
+            name="icon.library",
+            id_string="icon 37.1",
+            init_offset=0x44,
+            auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x44,
+                base_size=0x24,
+                vectors_offset=0x54,
+                vector_format="offset32",
+                vector_offsets=(0x90,),
+                init_struct_offset=None,
+                init_func_offset=0x88,
+            ),
+        ),
+    )
+
+    seed_config = build_entry_seed_config(metadata)
+
+    assert seed_config.initial_state is None
+    assert seed_config.initial_register_regions == {}
+    assert seed_config.entry_initial_states.keys() == {0x88, 0x90}
+    assert seed_config.entry_register_regions[0x88]["a6"].context_name is None
+    assert seed_config.entry_register_regions[0x90]["a6"].provenance.derivation is not None
+    assert seed_config.entry_register_regions[0x90]["a6"].provenance.derivation.named_base == "icon.library"
+    assert seed_config.entry_initial_states[0x88].a[6].tag == LibraryBaseTag(
+        library_base="exec.library",
+        struct_name="LIB",
+    )
+    assert seed_config.entry_initial_states[0x90].a[6].tag == LibraryBaseTag(
+        library_base="icon.library",
+        struct_name="LIB",
+    )
+
+
+def test_emit_hunk_rows_rewrites_struct_field_names_for_compatibility_floor() -> None:
+    custom_struct = SimpleNamespace(
+        source="exec/libraries.i",
+        base_offset=0,
+        base_offset_symbol=None,
+        size=34,
+        fields=(
+            SimpleNamespace(
+                name="LIB_OPENCOUNT",
+                type="UWORD",
+                offset=32,
+                size=2,
+                available_since="1.3",
+                names_by_version={"1.3": "LIB_OPENCNT", "3.1": "LIB_OPENCOUNT"},
+            ),
+        ),
+        available_since="1.3",
+    )
+    row = ListingRow(
+        row_id="instruction:000000",
+        kind="instruction",
+        text="    move.w LIB_OPENCOUNT(a6),d0\n",
+        addr=0,
+        opcode_or_directive="move.w",
+        operand_parts=(
+            SemanticOperand(
+                kind="struct_field",
+                text="LIB_OPENCOUNT(a6)",
+                base_register="a6",
+                displacement=32,
+                metadata=StructFieldOperandMetadata(
+                    symbol="LIB_OPENCOUNT",
+                    owner_struct="LIB",
+                    field_symbol="LIB_OPENCOUNT",
+                ),
+            ),
+            SemanticOperand(kind="register", text="d0", register="d0"),
+        ),
+        operand_text="LIB_OPENCOUNT(a6),d0",
+    )
+
+    rewritten = emitter_mod._apply_compatibility_field_names(
+        [row],
+        cast(HunkDisassemblySession, SimpleNamespace(
+            os_kb=SimpleNamespace(STRUCTS={"LIB": custom_struct}),
+        )),
+        "1.3",
+    )
+
+    assert rewritten[0].text == "    move.w LIB_OPENCNT(a6),d0\n"
+    assert rewritten[0].operand_text == "LIB_OPENCNT(a6),d0"
+
+
 def test_build_disassembly_session_for_resident_library_uses_resident_init_entry(
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
@@ -2541,7 +2828,26 @@ def test_build_disassembly_session_for_resident_library_uses_resident_init_entry
     entities_path.write_text("", encoding="utf-8")
     target_metadata = TargetMetadata(
         target_type="library",
-        entry_register_seeds=(),
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                entry_offset=0x90,
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0xA0,
+                register="A6",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
         resident=ResidentTargetMetadata(
             offset=0,
             matchword=0x4AFC,
@@ -2553,13 +2859,22 @@ def test_build_disassembly_session_for_resident_library_uses_resident_init_entry
             id_string="icon 37.1",
             init_offset=0x40,
             auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x40,
+                base_size=0x24,
+                vectors_offset=0x50,
+                vector_format="offset32",
+                vector_offsets=(0xA0,),
+                init_struct_offset=None,
+                init_func_offset=0x90,
+            ),
         ),
     )
     (target_dir / "target_metadata.json").write_text(
         json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    code = bytearray(0x42)
+    code = bytearray(0xA2)
     code[0:2] = bytes.fromhex("4afc")
     code[2:6] = (0).to_bytes(4, byteorder="big")
     code[6:10] = (0x42).to_bytes(4, byteorder="big")
@@ -2571,7 +2886,14 @@ def test_build_disassembly_session_for_resident_library_uses_resident_init_entry
     code[22:26] = (0x40).to_bytes(4, byteorder="big")
     code[0x20:0x2D] = b"icon.library\x00"
     code[0x30:0x3A] = b"icon 37.1\x00"
-    code[0x40:0x42] = b"\x4e\x75"
+    code[0x40:0x44] = (0x24).to_bytes(4, byteorder="big")
+    code[0x44:0x48] = (0x50).to_bytes(4, byteorder="big")
+    code[0x48:0x4C] = (0).to_bytes(4, byteorder="big")
+    code[0x4C:0x50] = (0x90).to_bytes(4, byteorder="big")
+    code[0x50:0x54] = (0xA0).to_bytes(4, byteorder="big")
+    code[0x54:0x58] = (0xFFFFFFFF).to_bytes(4, byteorder="big", signed=False)
+    code[0x90:0x92] = b"\x4e\x75"
+    code[0xA0:0xA2] = b"\x4e\x75"
 
     def fake_parse(_data: bytes) -> SimpleNamespace:
         return SimpleNamespace(
@@ -2597,18 +2919,21 @@ def test_build_disassembly_session_for_resident_library_uses_resident_init_entry
         entry_points: tuple[int, ...],
         seed_key: str,
         initial_state: object,
+        entry_initial_states: object | None = None,
     ) -> SimpleNamespace:
-        assert entry_points == (0x40,)
+        assert entry_points == (0x90, 0xA0)
+        assert isinstance(entry_initial_states, dict)
+        assert set(entry_initial_states) == {0x90, 0xA0}
         inst = disassemble(b"\x4e\x75")[0]
-        inst.offset = 0x40
+        inst.offset = 0x90
         block = BasicBlock(
-            start=0x40,
-            end=0x42,
+            start=0x90,
+            end=0x92,
             instructions=[inst],
             is_entry=True,
         )
         return SimpleNamespace(
-            blocks={0x40: block},
+            blocks={0x90: block},
             hint_blocks={},
             jump_tables=[],
             call_targets=set(),
@@ -2629,7 +2954,8 @@ def test_build_disassembly_session_for_resident_library_uses_resident_init_entry
 
     assert "resident_matchword:\n" in rendered
     assert "resident_init_ptr:\n" in rendered
-    assert "resident_init:\n" in rendered
+    assert "library_init:\n" in rendered
+    assert "lib_open:\n" in rendered
     assert "rts\n" in rendered
 
 
@@ -2645,7 +2971,26 @@ def test_build_disassembly_session_applies_resident_structure_only_to_first_code
     entities_path.write_text("", encoding="utf-8")
     target_metadata = TargetMetadata(
         target_type="library",
-        entry_register_seeds=(),
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                entry_offset=0x88,
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0x90,
+                register="A6",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
         resident=ResidentTargetMetadata(
             offset=4,
             matchword=0x4AFC,
@@ -2657,13 +3002,22 @@ def test_build_disassembly_session_applies_resident_structure_only_to_first_code
             id_string="icon 37.1",
             init_offset=0x44,
             auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x44,
+                base_size=0x24,
+                vectors_offset=0x54,
+                vector_format="offset32",
+                vector_offsets=(0x90,),
+                init_struct_offset=None,
+                init_func_offset=0x88,
+            ),
         ),
     )
     (target_dir / "target_metadata.json").write_text(
         json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    first_code = bytearray(0x4A)
+    first_code = bytearray(0x92)
     first_code[4:6] = bytes.fromhex("4afc")
     first_code[6:10] = (4).to_bytes(4, byteorder="big")
     first_code[10:14] = (0x4A).to_bytes(4, byteorder="big")
@@ -2675,7 +3029,14 @@ def test_build_disassembly_session_applies_resident_structure_only_to_first_code
     first_code[26:30] = (0x44).to_bytes(4, byteorder="big")
     first_code[0x20:0x2D] = b"icon.library\x00"
     first_code[0x30:0x3A] = b"icon 37.1\x00"
-    first_code[0x48:0x4A] = b"\x4e\x75"
+    first_code[0x44:0x48] = (0x24).to_bytes(4, byteorder="big")
+    first_code[0x48:0x4C] = (0x54).to_bytes(4, byteorder="big")
+    first_code[0x4C:0x50] = (0).to_bytes(4, byteorder="big")
+    first_code[0x50:0x54] = (0x88).to_bytes(4, byteorder="big")
+    first_code[0x54:0x58] = (0x90).to_bytes(4, byteorder="big")
+    first_code[0x58:0x5C] = (0xFFFFFFFF).to_bytes(4, byteorder="big", signed=False)
+    first_code[0x88:0x8A] = b"\x4e\x75"
+    first_code[0x90:0x92] = b"\x4e\x75"
     second_code = b"\x4e\x75" * 10
 
     def fake_parse(_data: bytes) -> SimpleNamespace:
@@ -2709,19 +3070,22 @@ def test_build_disassembly_session_applies_resident_structure_only_to_first_code
         entry_points: tuple[int, ...],
         seed_key: str,
         initial_state: object,
+        entry_initial_states: object | None = None,
     ) -> SimpleNamespace:
         if hunk_index == 0:
-            assert entry_points == (0x48,)
-            inst = disassemble(b"\x4e\x75")[0]
-            inst.offset = 0x48
-            block = BasicBlock(
-                start=0x48,
-                end=0x4A,
-                instructions=[inst],
-                is_entry=True,
-            )
-            return SimpleNamespace(
-                blocks={0x48: block},
+                assert entry_points == (0x88, 0x90)
+                assert isinstance(entry_initial_states, dict)
+                assert set(entry_initial_states) == {0x88, 0x90}
+                inst = disassemble(b"\x4e\x75")[0]
+                inst.offset = 0x88
+                block = BasicBlock(
+                    start=0x88,
+                    end=0x8A,
+                    instructions=[inst],
+                    is_entry=True,
+                )
+                return SimpleNamespace(
+                    blocks={0x88: block},
                 hint_blocks={},
                 jump_tables=[],
                 call_targets=set(),
@@ -2736,6 +3100,7 @@ def test_build_disassembly_session_applies_resident_structure_only_to_first_code
             )
         assert hunk_index == 1
         assert entry_points == ()
+        assert entry_initial_states == {}
         inst = disassemble(b"\x4e\x75")[0]
         inst.offset = 0
         block = BasicBlock(
@@ -3011,7 +3376,7 @@ def test_emit_hunk_rows_emits_fd_derived_lvo_equates(monkeypatch: MonkeyPatch) -
         ),
     )
 
-    rows = emitter_mod._emit_hunk_rows(hunk_session, include_header=False)
+    rows, _compat_floor = emitter_mod._emit_hunk_rows(hunk_session, include_header=False)
 
     assert [row.text for row in rows[:4]] == [
         "; LVO offsets: graphics.library (FD-derived)\n",

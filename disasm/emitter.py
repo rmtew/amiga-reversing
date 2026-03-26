@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import struct
+from dataclasses import replace
+from pathlib import Path
 
 from disasm.hint_validation import is_valid_hint_block
 from disasm.instruction_rows import (
@@ -11,6 +13,12 @@ from disasm.instruction_rows import (
     render_instruction_text,
 )
 from disasm.jump_tables import emit_jump_table_rows
+from disasm.os_compat import (
+    collect_used_struct_fields,
+    infer_emit_compatibility_floor,
+    max_compatibility_version,
+    select_struct_field_name,
+)
 from disasm.os_include_kb import load_os_include_kb
 from disasm.session import build_disassembly_session
 from disasm.target_metadata import StructuredRegionSpec, target_structure_spec
@@ -23,6 +31,7 @@ from disasm.types import (
     HeaderRowContext,
     HunkDisassemblySession,
     ListingRow,
+    StructFieldOperandMetadata,
 )
 from disasm.validation import has_valid_branch_target, is_valid_encoding
 from m68k.os_calls import AppBaseInfo
@@ -58,20 +67,29 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
         f"; {total_code_size} bytes, {total_entities} entities, {total_blocks} blocks\n",
         source_context=HeaderRowContext(section="header"),
     ))
-    rows.append(make_row("blank", "\n"))
-    rows.extend(_emit_target_structure_rows(session))
+    compatibility_floors: list[str] = []
+    body_rows: list[ListingRow] = []
+    body_rows.extend(_emit_target_structure_rows(session))
     structure = target_structure_spec(session.target_metadata)
     for index, hunk_session in enumerate(session.hunk_sessions):
         if index > 0:
-            rows.append(make_row("blank", "\n"))
+            body_rows.append(make_row("blank", "\n"))
         structured_regions = () if structure is None or index != 0 else structure.regions
-        rows.extend(
-            _emit_hunk_rows(
-                hunk_session,
-                include_header=len(session.hunk_sessions) > 1,
-                structured_regions=structured_regions,
-            )
+        hunk_rows, hunk_floor = _emit_hunk_rows(
+            hunk_session,
+            include_header=len(session.hunk_sessions) > 1,
+            structured_regions=structured_regions,
+            session=session,
         )
+        compatibility_floors.append(hunk_floor)
+        body_rows.extend(hunk_rows)
+    rows.append(make_row(
+        "comment",
+        f"; OS compatibility floor: {max_compatibility_version(compatibility_floors)}\n",
+        source_context=HeaderRowContext(section="header"),
+    ))
+    rows.append(make_row("blank", "\n"))
+    rows.extend(body_rows)
     return rows
 
 
@@ -205,10 +223,21 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     *,
                     include_header: bool,
                     structured_regions: tuple[StructuredRegionSpec, ...] = (),
-                    ) -> list[ListingRow]:
+                    session: DisassemblySession | None = None,
+                    ) -> tuple[list[ListingRow], str]:
     rows: list[ListingRow] = []
     used_structs: set[str] = set()
     include_paths: set[str] = set()
+    if session is None:
+        session = DisassemblySession(
+            target_name=None,
+            binary_path=Path("."),
+            entities_path=Path("."),
+            analysis_cache_path=Path("."),
+            output_path=None,
+            entities=[],
+            hunk_sessions=[hunk_session],
+        )
     if include_header:
         rows.append(make_row(
             "comment",
@@ -495,6 +524,18 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 emit_data(pos, data_end, entity_addr)
                 pos = data_end
 
+    compat_floor = infer_emit_compatibility_floor(
+        session,
+        include_paths={
+            *include_paths,
+            *(
+                hunk_session.os_kb.STRUCTS[struct_name].source.lower()
+                for struct_name in sorted(used_structs)
+            ),
+        },
+        struct_fields=collect_used_struct_fields(rows),
+    )
+    rows = _apply_compatibility_field_names(rows, hunk_session, compat_floor)
     used_absolute_addrs = _collect_used_absolute_addrs(rows, hunk_session)
     absolute_symbol_rows, hardware_includes = _absolute_symbol_rows(
         used_absolute_addrs, hunk_session)
@@ -505,13 +546,15 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 insert_at = idx
                 break
         rows[insert_at:insert_at] = absolute_symbol_rows
-
     includes = set(include_paths)
+    os_includes = set(include_paths)
     includes.update(hardware_includes)
     if used_structs:
         for struct_name in sorted(used_structs):
             struct_def = hunk_session.os_kb.STRUCTS[struct_name]
-            includes.add(struct_def.source.lower())
+            os_include = struct_def.source.lower()
+            includes.add(os_include)
+            os_includes.add(os_include)
     if includes:
         insert_at = 0
         for idx, row in enumerate(rows):
@@ -520,6 +563,14 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 break
         include_rows = []
         for inc in sorted(includes):
+            if inc in os_includes:
+                include_since = hunk_session.os_kb.META.include_min_versions.get(inc.lower())
+                if include_since is None:
+                    raise ValueError(f"Missing KB include compatibility for {inc}")
+                if hunk_session.os_kb.META.compatibility_versions.index(include_since) > hunk_session.os_kb.META.compatibility_versions.index(compat_floor):
+                    raise ValueError(
+                        f"Include {inc} requires OS {include_since}, above compatibility floor {compat_floor}"
+                    )
             include_rows.append(make_row(
                 "directive",
                 f'    INCLUDE "{inc}"\n',
@@ -528,7 +579,60 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         include_rows.append(make_row("blank", "\n"))
         rows[insert_at:insert_at] = include_rows
 
-    return rows
+    return rows, compat_floor
+
+
+def _apply_compatibility_field_names(
+    rows: list[ListingRow],
+    hunk_session: HunkDisassemblySession,
+    compatibility_floor: str,
+) -> list[ListingRow]:
+    rewritten: list[ListingRow] = []
+    for row in rows:
+        updated_operands = list(row.operand_parts)
+        changed = False
+        for index, operand in enumerate(updated_operands):
+            metadata = operand.metadata
+            if not isinstance(metadata, StructFieldOperandMetadata):
+                continue
+            field_symbol = metadata.field_symbol
+            if field_symbol is None:
+                continue
+            struct_def = hunk_session.os_kb.STRUCTS.get(metadata.owner_struct)
+            if struct_def is None:
+                raise ValueError(
+                    f"Missing KB struct for compatibility rendering: {metadata.owner_struct}"
+                )
+            field_def = next((field for field in struct_def.fields if field.name == field_symbol), None)
+            if field_def is None:
+                raise ValueError(
+                    f"Missing KB struct field for compatibility rendering: "
+                    f"{metadata.owner_struct}.{field_symbol}"
+                )
+            compat_name = select_struct_field_name(field_def, compatibility_floor)
+            if compat_name == field_symbol:
+                continue
+            updated_operands[index] = replace(
+                operand,
+                text=operand.text.replace(field_symbol, compat_name),
+                metadata=replace(metadata, symbol=compat_name, field_symbol=compat_name),
+            )
+            changed = True
+        if not changed:
+            rewritten.append(row)
+            continue
+        operand_parts = tuple(updated_operands)
+        operand_text = ",".join(part.text for part in operand_parts)
+        text = row.text
+        if row.operand_text:
+            text = text.replace(row.operand_text, operand_text, 1)
+        rewritten.append(replace(
+            row,
+            operand_parts=operand_parts,
+            operand_text=operand_text,
+            text=text,
+        ))
+    return rewritten
 
 
 def build_listing_rows(binary_path: str, entities_path: str,

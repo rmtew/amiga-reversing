@@ -179,6 +179,7 @@ def test_analyze_hunk_skips_preclassified_external_sites_in_per_caller(
     monkeypatch.setattr("m68k.analysis._prune_inline_dispatch_blocks", lambda *a, **k: None)
     monkeypatch.setattr("m68k.analysis.resolve_indirect_targets", lambda *a, **k: [])
     monkeypatch.setattr("m68k.analysis.resolve_backward_slice", lambda *a, **k: [])
+    monkeypatch.setattr("m68k.analysis.collect_library_call_site_addrs", lambda *a, **k: frozenset({4}))
     monkeypatch.setattr("m68k.analysis.identify_library_calls", lambda *a, **k: [
         LibraryCall(addr=4, block=0, library="exec.library",
                     function="FindTask", lvo=-294)

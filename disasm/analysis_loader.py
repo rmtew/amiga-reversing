@@ -58,6 +58,7 @@ def load_hunk_analysis(
     entry_points: Sequence[int] = (),
     seed_key: str = "default",
     initial_state: CPUState | None = None,
+    entry_initial_states: dict[int, CPUState] | None = None,
 ) -> HunkAnalysis:
     cache_root = analysis_cache_root(
         analysis_cache_path,
@@ -80,6 +81,7 @@ def load_hunk_analysis(
             base_addr=base_addr,
             code_start=code_start,
             entry_points=entry_points,
+            entry_initial_states=entry_initial_states,
         )
     else:
         analysis = analyze_hunk(
@@ -90,6 +92,7 @@ def load_hunk_analysis(
             code_start=code_start,
             entry_points=entry_points,
             initial_state=initial_state,
+            entry_initial_states=entry_initial_states,
         )
     analysis.save(cache_path)
     return analysis
