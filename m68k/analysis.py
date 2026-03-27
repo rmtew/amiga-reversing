@@ -12,11 +12,13 @@ from __future__ import annotations
 import pickle
 import struct
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, TypedDict
 
+from disasm.phase_timing import PhaseTimer
 from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode
 
 from . import indirect_core
@@ -550,7 +552,8 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                  code_start: int = 0,
                  entry_points: Sequence[int] = (),
                  initial_state: CPUState | None = None,
-                 entry_initial_states: Mapping[int, CPUState] | None = None) -> HunkAnalysis:
+                 entry_initial_states: Mapping[int, CPUState] | None = None,
+                 phase_timer: PhaseTimer | None = None) -> HunkAnalysis:
     """Run the complete analysis pipeline on a code hunk.
 
     Args:
@@ -615,15 +618,16 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     base_reg_num = platform.base_reg_num
     resolved_entry_points = tuple(sorted(set(entry_points))) or (base_addr,)
     resolved_entry_point = resolved_entry_points[0]
-    init_result = analyze(
-        code,
-        base_addr=base_addr,
-        entry_points=[resolved_entry_point],
-        propagate=True,
-        platform=platform,
-        initial_state=initial_state,
-        entry_initial_states=entry_initial_states,
-    )
+    with phase_timer.phase("analysis.init") if phase_timer is not None else nullcontext():
+        init_result = analyze(
+            code,
+            base_addr=base_addr,
+            entry_points=[resolved_entry_point],
+            propagate=True,
+            platform=platform,
+            initial_state=initial_state,
+            entry_initial_states=entry_initial_states,
+        )
     alloc_base = _SENTINEL_ALLOC_BASE
     alloc_limit = platform.next_alloc_sentinel
     discovered_dynamic_base = None
@@ -783,20 +787,25 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     result: AnalysisResult | None = None
     for store_pass in range(5):
         for _ in range(10):
-            result = analyze(
-                code,
-                base_addr=base_addr,
-                entry_points=sorted(core_entries),
-                propagate=True,
-                platform=platform,
-                initial_state=initial_state,
-                entry_initial_states=entry_initial_states,
-            )
+            with phase_timer.phase("analysis.core") if phase_timer is not None else nullcontext():
+                result = analyze(
+                    code,
+                    base_addr=base_addr,
+                    entry_points=sorted(core_entries),
+                    propagate=True,
+                    platform=platform,
+                    initial_state=initial_state,
+                    entry_initial_states=entry_initial_states,
+                )
             if entries_converged:
                 break  # just re-analyzed with new memory
-            if _resolve_cheap_entries():
+            with phase_timer.phase("analysis.core") if phase_timer is not None else nullcontext():
+                added_cheap = _resolve_cheap_entries()
+            if added_cheap:
                 continue
-            if not _resolve_per_caller_entries():
+            with phase_timer.phase("analysis.per_caller") if phase_timer is not None else nullcontext():
+                added_per_caller = _resolve_per_caller_entries()
+            if not added_per_caller:
                 entries_converged = True
                 break
 
@@ -808,22 +817,23 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
         if platform_init_mem is None:
             break
 
-        new_stores = 0
-        if result is None:
-            assert result is not None, "Core analysis result missing before store pass"
-        for _addr, (_cpu, mem) in result.get("exit_states", {}).items():
-            for mem_addr, val in mem._bytes.items():
-                if not (alloc_base <= mem_addr < alloc_limit):
-                    continue
-                if mem_addr in platform_init_mem._bytes:
-                    continue
-                if not val.is_known:
-                    continue
-                platform_init_mem._bytes[mem_addr] = val
-                new_stores += 1
-            for key, tag in mem._tags.items():
-                if key not in platform_init_mem._tags:
-                    platform_init_mem._tags[key] = tag
+        with phase_timer.phase("analysis.store_pass") if phase_timer is not None else nullcontext():
+            new_stores = 0
+            if result is None:
+                assert result is not None, "Core analysis result missing before store pass"
+            for _addr, (_cpu, mem) in result.get("exit_states", {}).items():
+                for mem_addr, val in mem._bytes.items():
+                    if not (alloc_base <= mem_addr < alloc_limit):
+                        continue
+                    if mem_addr in platform_init_mem._bytes:
+                        continue
+                    if not val.is_known:
+                        continue
+                    platform_init_mem._bytes[mem_addr] = val
+                    new_stores += 1
+                for key, tag in mem._tags.items():
+                    if key not in platform_init_mem._tags:
+                        platform_init_mem._tags[key] = tag
 
         if new_stores == 0:
             break
@@ -869,14 +879,15 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     hint_blocks: dict[int, BasicBlock] = {}
     hint_source: dict[int, str] = {}
     if hint_entries:
-        hint_result = analyze(
-            code,
-            base_addr=base_addr,
-            entry_points=sorted(hint_entries),
-            propagate=False,
-            initial_state=initial_state,
-            entry_initial_states=entry_initial_states,
-        )
+        with phase_timer.phase("analysis.hint_scan") if phase_timer is not None else nullcontext():
+            hint_result = analyze(
+                code,
+                base_addr=base_addr,
+                entry_points=sorted(hint_entries),
+                propagate=False,
+                initial_state=initial_state,
+                entry_initial_states=entry_initial_states,
+            )
         for a, b in hint_result["blocks"].items():
             if a not in blocks:
                 hint_blocks[a] = b
@@ -889,20 +900,22 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     # a bigger candidate can consume code that should be a separate sub.
     scan_blocks = dict(blocks)
     scan_blocks.update(hint_blocks)
-    scan_candidates = scan_and_score(scan_blocks, code, reloc_targets,
-                                     call_targets)
+    with phase_timer.phase("analysis.hint_scan") if phase_timer is not None else nullcontext():
+        scan_candidates = scan_and_score(scan_blocks, code, reloc_targets,
+                                         call_targets)
     scan_entries = {c["addr"] for c in scan_candidates
                     if c["addr"] not in blocks
                     and c["addr"] not in hint_blocks}
     if scan_entries:
-        scan_result = analyze(
-            code,
-            base_addr=base_addr,
-            entry_points=sorted(scan_entries),
-            propagate=False,
-            initial_state=initial_state,
-            entry_initial_states=entry_initial_states,
-        )
+        with phase_timer.phase("analysis.hint_scan") if phase_timer is not None else nullcontext():
+            scan_result = analyze(
+                code,
+                base_addr=base_addr,
+                entry_points=sorted(scan_entries),
+                propagate=False,
+                initial_state=initial_state,
+                entry_initial_states=entry_initial_states,
+            )
         for a, b in scan_result["blocks"].items():
             if a not in blocks and a not in hint_blocks:
                 hint_blocks[a] = b
@@ -929,14 +942,15 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                     and next_addr not in post_scan_entries):
                 post_scan_entries.add(next_addr)
     if post_scan_entries:
-        post_result = analyze(
-            code,
-            base_addr=base_addr,
-            entry_points=sorted(post_scan_entries),
-            propagate=False,
-            initial_state=initial_state,
-            entry_initial_states=entry_initial_states,
-        )
+        with phase_timer.phase("analysis.hint_scan") if phase_timer is not None else nullcontext():
+            post_result = analyze(
+                code,
+                base_addr=base_addr,
+                entry_points=sorted(post_scan_entries),
+                propagate=False,
+                initial_state=initial_state,
+                entry_initial_states=entry_initial_states,
+            )
         added = 0
         for a, b in post_result["blocks"].items():
             if a not in blocks and a not in hint_blocks:
@@ -994,12 +1008,13 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
 
     # -- Phase 3: OS call identification ------------------------------
     os_kb = RUNTIME_OS_KB
-    lib_calls = identify_library_calls(
-        blocks, code, os_kb, exit_states, call_targets, platform,
-        initial_state=initial_state,
-        entry_initial_states=entry_initial_states,
-        base_addr=base_addr)
-    lib_calls = refine_opened_base_calls(blocks, lib_calls, code, os_kb, platform)
+    with phase_timer.phase("analysis.os_calls") if phase_timer is not None else nullcontext():
+        lib_calls = identify_library_calls(
+            blocks, code, os_kb, exit_states, call_targets, platform,
+            initial_state=initial_state,
+            entry_initial_states=entry_initial_states,
+            base_addr=base_addr)
+        lib_calls = refine_opened_base_calls(blocks, lib_calls, code, os_kb, platform)
 
     if lib_calls:
         resolved = [c for c in lib_calls if c.library != "unknown"]

@@ -22,17 +22,21 @@ from disasm.analysis_layout import (
 from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
 from disasm.emitter import emit_session_rows
 from disasm.entry_seeds import build_entry_seed_config
+from disasm.os_include_kb import load_os_include_kb
+from disasm.phase_timing import PhaseTimer
 from disasm.project_ids import target_output_stem
 from disasm.project_paths import resolve_project_paths
 from disasm.session import build_disassembly_session
 from disasm.target_metadata import load_target_metadata
 from disasm.text import render_rows
+from disasm.types import AppStructFieldOperandMetadata, StructFieldOperandMetadata
 from m68k.analysis import HunkAnalysis
 from m68k.hunk_parser import parse
 from m68k_kb import runtime_os
 from scripts.build_entities import build_entities_from_source
 
 TARGETS_DIR = ROOT / "targets"
+_OS_INCLUDE_KB = load_os_include_kb()
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +72,66 @@ class EntityBenchmark:
 
 
 @dataclass(frozen=True, slots=True)
+class AnalysisTimingBenchmark:
+    init_seconds: float
+    core_seconds: float
+    per_caller_seconds: float
+    store_pass_seconds: float
+    hint_scan_seconds: float
+    os_call_seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class EntitiesTimingBenchmark:
+    parse_source_seconds: float
+    analysis: AnalysisTimingBenchmark
+    naming_seconds: float
+    write_seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class SessionTimingBenchmark:
+    load_analysis_seconds: float
+    metadata_seconds: float
+    substitutions_seconds: float
+    build_seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class TimingBenchmark:
+    entities: EntitiesTimingBenchmark
+    session: SessionTimingBenchmark
+    emit_seconds: float
+    render_seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryLvoBenchmark:
+    included: int
+    inserted: int
+
+
+@dataclass(frozen=True, slots=True)
+class LvoBenchmark:
+    included_count: int
+    inserted_count: int
+    by_library: dict[str, LibraryLvoBenchmark]
+
+
+@dataclass(frozen=True, slots=True)
+class SymbolUsageBenchmark:
+    immediate_constant_count: int
+    struct_field_count: int
+    app_struct_field_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class DisasmBenchmark:
+    lvo: LvoBenchmark
+    symbols: SymbolUsageBenchmark
+
+
+@dataclass(frozen=True, slots=True)
 class TargetBenchmark:
     target: str
     binary: str
@@ -78,8 +142,10 @@ class TargetBenchmark:
     analysis_bytes: int | None
     entities_bytes: int | None
     disasm_bytes: int | None
+    timing: TimingBenchmark | None
     analysis: AnalysisBenchmark | None
     entities: EntityBenchmark | None
+    disasm: DisasmBenchmark | None
     error: str | None = None
     targets: dict[str, TargetBenchmark] | None = None
 
@@ -178,6 +244,117 @@ def _entities_benchmark(entities_path: Path) -> EntityBenchmark | None:
     )
 
 
+def _disasm_benchmark(session: Any, rows: Sequence[Any]) -> DisasmBenchmark:
+    lvo_by_library: dict[str, LibraryLvoBenchmark] = {}
+    lvo_included_count = 0
+    lvo_inserted_count = 0
+    for hunk_session in session.hunk_sessions:
+        for library_name, library_equs in hunk_session.lvo_equs.items():
+            owner = _OS_INCLUDE_KB.library_lvo_owners.get(library_name)
+            if owner is None:
+                raise ValueError(f"Missing KB library include owner for benchmark LVOs: {library_name}")
+            count = len(library_equs)
+            existing = lvo_by_library.get(library_name, LibraryLvoBenchmark(included=0, inserted=0))
+            if owner.kind == "native_include":
+                lvo_included_count += count
+                lvo_by_library[library_name] = LibraryLvoBenchmark(
+                    included=existing.included + count,
+                    inserted=existing.inserted,
+                )
+            elif owner.kind == "fd_only":
+                lvo_inserted_count += count
+                lvo_by_library[library_name] = LibraryLvoBenchmark(
+                    included=existing.included,
+                    inserted=existing.inserted + count,
+                )
+            else:
+                raise ValueError(f"Unknown OS include owner kind for benchmark LVOs: {library_name}: {owner.kind}")
+    struct_field_count = 0
+    app_struct_field_count = 0
+    for row in rows:
+        for operand in row.operand_parts:
+            metadata = operand.metadata
+            if isinstance(metadata, StructFieldOperandMetadata):
+                struct_field_count += 1
+            elif isinstance(metadata, AppStructFieldOperandMetadata):
+                if metadata.field_symbol is None:
+                    continue
+                app_struct_field_count += 1
+    immediate_constant_count = sum(len(hunk_session.arg_substitutions) for hunk_session in session.hunk_sessions)
+    return DisasmBenchmark(
+        lvo=LvoBenchmark(
+            included_count=lvo_included_count,
+            inserted_count=lvo_inserted_count,
+            by_library=dict(sorted(lvo_by_library.items())),
+        ),
+        symbols=SymbolUsageBenchmark(
+            immediate_constant_count=immediate_constant_count,
+            struct_field_count=struct_field_count,
+            app_struct_field_count=app_struct_field_count,
+        ),
+    )
+
+
+def _analysis_timing(timer: PhaseTimer) -> AnalysisTimingBenchmark:
+    return AnalysisTimingBenchmark(
+        init_seconds=round(timer.value("analysis.init"), 4),
+        core_seconds=round(timer.value("analysis.core"), 4),
+        per_caller_seconds=round(timer.value("analysis.per_caller"), 4),
+        store_pass_seconds=round(timer.value("analysis.store_pass"), 4),
+        hint_scan_seconds=round(timer.value("analysis.hint_scan"), 4),
+        os_call_seconds=round(timer.value("analysis.os_calls"), 4),
+    )
+
+
+def _timing_benchmark(timer: PhaseTimer, emit_seconds: float, render_seconds: float) -> TimingBenchmark:
+    return TimingBenchmark(
+        entities=EntitiesTimingBenchmark(
+            parse_source_seconds=round(timer.value("entities.parse_source"), 4),
+            analysis=_analysis_timing(timer),
+            naming_seconds=round(timer.value("entities.naming"), 4),
+            write_seconds=round(timer.value("entities.write"), 4),
+        ),
+        session=SessionTimingBenchmark(
+            load_analysis_seconds=round(timer.value("session.load_analysis"), 4),
+            metadata_seconds=round(timer.value("session.metadata"), 4),
+            substitutions_seconds=round(timer.value("session.substitutions"), 4),
+            build_seconds=round(timer.value("session.build"), 4),
+        ),
+        emit_seconds=round(emit_seconds, 4),
+        render_seconds=round(render_seconds, 4),
+    )
+
+
+def _sum_analysis_timing(records: Sequence[TargetBenchmark]) -> AnalysisTimingBenchmark:
+    return AnalysisTimingBenchmark(
+        init_seconds=round(sum((record.timing.entities.analysis.init_seconds if record.timing else 0.0) for record in records), 4),
+        core_seconds=round(sum((record.timing.entities.analysis.core_seconds if record.timing else 0.0) for record in records), 4),
+        per_caller_seconds=round(sum((record.timing.entities.analysis.per_caller_seconds if record.timing else 0.0) for record in records), 4),
+        store_pass_seconds=round(sum((record.timing.entities.analysis.store_pass_seconds if record.timing else 0.0) for record in records), 4),
+        hint_scan_seconds=round(sum((record.timing.entities.analysis.hint_scan_seconds if record.timing else 0.0) for record in records), 4),
+        os_call_seconds=round(sum((record.timing.entities.analysis.os_call_seconds if record.timing else 0.0) for record in records), 4),
+    )
+
+
+def _sum_timing(records: Sequence[TargetBenchmark]) -> TimingBenchmark:
+    return TimingBenchmark(
+        entities=EntitiesTimingBenchmark(
+            parse_source_seconds=round(sum((record.timing.entities.parse_source_seconds if record.timing else 0.0) for record in records), 4),
+            analysis=_sum_analysis_timing(records),
+            naming_seconds=round(sum((record.timing.entities.naming_seconds if record.timing else 0.0) for record in records), 4),
+            write_seconds=round(sum((record.timing.entities.write_seconds if record.timing else 0.0) for record in records), 4),
+        ),
+        session=SessionTimingBenchmark(
+            load_analysis_seconds=round(sum((record.timing.session.load_analysis_seconds if record.timing else 0.0) for record in records), 4),
+            metadata_seconds=round(sum((record.timing.session.metadata_seconds if record.timing else 0.0) for record in records), 4),
+            substitutions_seconds=round(sum((record.timing.session.substitutions_seconds if record.timing else 0.0) for record in records), 4),
+            build_seconds=round(sum((record.timing.session.build_seconds if record.timing else 0.0) for record in records), 4),
+        ),
+        emit_seconds=round(sum((record.timing.emit_seconds if record.timing else 0.0) for record in records), 4),
+        render_seconds=round(sum((record.timing.render_seconds if record.timing else 0.0) for record in records), 4),
+    )
+
+
 def _benchmark_record(
     target: str,
     binary_display_path: str,
@@ -188,6 +365,8 @@ def _benchmark_record(
     disasm_path: Path,
     error: str | None = None,
     *,
+    timing: TimingBenchmark | None = None,
+    disasm: DisasmBenchmark | None = None,
     targets: dict[str, TargetBenchmark] | None = None,
 ) -> TargetBenchmark:
     command = f"uv run scripts/benchmark_target.py {target}"
@@ -201,8 +380,10 @@ def _benchmark_record(
         analysis_bytes=sum(path.stat().st_size for path in analysis_paths if path.exists()) or None,
         entities_bytes=entities_path.stat().st_size if entities_path.exists() else None,
         disasm_bytes=disasm_path.stat().st_size if disasm_path.exists() else None,
+        timing=timing,
         analysis=_analysis_benchmark(analysis_paths),
         entities=_entities_benchmark(entities_path),
+        disasm=disasm,
         error=error,
         targets=targets,
     )
@@ -225,11 +406,21 @@ def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchm
     disasm_path.unlink(missing_ok=True)
 
     start = time.perf_counter()
+    phase_timer = PhaseTimer()
     try:
-        build_entities_from_source(paths.binary_source, str(entities_path))
-        session = build_disassembly_session(paths.binary_source, str(entities_path), str(disasm_path))
+        build_entities_from_source(paths.binary_source, str(entities_path), phase_timer=phase_timer)
+        session = build_disassembly_session(
+            paths.binary_source,
+            str(entities_path),
+            str(disasm_path),
+            phase_timer=phase_timer,
+        )
+        emit_started = time.perf_counter()
         rows = emit_session_rows(session)
+        emit_elapsed = time.perf_counter() - emit_started
+        render_started = time.perf_counter()
         disasm_path.write_text(render_rows(rows), encoding="utf-8")
+        render_elapsed = time.perf_counter() - render_started
         elapsed = time.perf_counter() - start
         missing_analysis_paths = [path for path in analysis_paths if not path.exists()]
         if missing_analysis_paths:
@@ -248,6 +439,8 @@ def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchm
             analysis_paths,
             entities_path,
             disasm_path,
+            timing=_timing_benchmark(phase_timer, emit_elapsed, render_elapsed),
+            disasm=_disasm_benchmark(session, rows),
         )
     except Exception as exc:
         elapsed = time.perf_counter() - start
@@ -296,8 +489,40 @@ def _disk_project_benchmark(target: str) -> TargetBenchmark:
         analysis_bytes=sum(record.analysis_bytes or 0 for record in child_records.values()) or None,
         entities_bytes=sum(record.entities_bytes or 0 for record in child_records.values()) or None,
         disasm_bytes=sum(record.disasm_bytes or 0 for record in child_records.values()) or None,
+        timing=_sum_timing(list(child_records.values())),
         analysis=None,
         entities=None,
+        disasm=DisasmBenchmark(
+            lvo=LvoBenchmark(
+                included_count=sum((record.disasm.lvo.included_count if record.disasm else 0) for record in child_records.values()),
+                inserted_count=sum((record.disasm.lvo.inserted_count if record.disasm else 0) for record in child_records.values()),
+                by_library={
+                    library_name: LibraryLvoBenchmark(
+                        included=sum(
+                            child.disasm.lvo.by_library.get(library_name, LibraryLvoBenchmark(0, 0)).included
+                            for child in child_records.values()
+                            if child.disasm is not None
+                        ),
+                        inserted=sum(
+                            child.disasm.lvo.by_library.get(library_name, LibraryLvoBenchmark(0, 0)).inserted
+                            for child in child_records.values()
+                            if child.disasm is not None
+                        ),
+                    )
+                    for library_name in sorted({
+                        library_name
+                        for child in child_records.values()
+                        if child.disasm is not None
+                        for library_name in child.disasm.lvo.by_library
+                    })
+                },
+            ),
+            symbols=SymbolUsageBenchmark(
+                immediate_constant_count=sum((record.disasm.symbols.immediate_constant_count if record.disasm else 0) for record in child_records.values()),
+                struct_field_count=sum((record.disasm.symbols.struct_field_count if record.disasm else 0) for record in child_records.values()),
+                app_struct_field_count=sum((record.disasm.symbols.app_struct_field_count if record.disasm else 0) for record in child_records.values()),
+            ),
+        ),
         error=None if not failures else "; ".join(
             f"{record.target}: {record.error or record.status}" for record in failures
         ),

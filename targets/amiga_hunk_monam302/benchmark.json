@@ -2,12 +2,35 @@
   "target": "amiga_hunk_monam302",
   "binary": "bin/MonAm302",
   "command": "uv run scripts/benchmark_target.py amiga_hunk_monam302",
-  "measured_at": "2026-03-27T11:27:40+13:00",
+  "measured_at": "2026-03-27T13:43:27+13:00",
   "status": "ok",
-  "elapsed_seconds": 8.4,
+  "elapsed_seconds": 7.89,
   "analysis_bytes": 5328070,
   "entities_bytes": 112320,
   "disasm_bytes": 359154,
+  "timing": {
+    "entities": {
+      "parse_source_seconds": 0.0002,
+      "analysis": {
+        "init_seconds": 0.2996,
+        "core_seconds": 1.9383,
+        "per_caller_seconds": 2.4067,
+        "store_pass_seconds": 0.0298,
+        "hint_scan_seconds": 0.4687,
+        "os_call_seconds": 0.4233
+      },
+      "naming_seconds": 0.0026,
+      "write_seconds": 0.0033
+    },
+    "session": {
+      "load_analysis_seconds": 0.1086,
+      "metadata_seconds": 0.8995,
+      "substitutions_seconds": 0.0243,
+      "build_seconds": 0.0001
+    },
+    "emit_seconds": 0.4731,
+    "render_seconds": 0.0041
+  },
   "analysis": {
     "code_bytes": 35548,
     "core_block_count": 1492,
@@ -35,6 +58,39 @@
     "unknown_entity_count": 123,
     "named_entity_count": 45,
     "documented_entity_count": 0
+  },
+  "disasm": {
+    "lvo": {
+      "included_count": 31,
+      "inserted_count": 14,
+      "by_library": {
+        "console.device": {
+          "included": 1,
+          "inserted": 0
+        },
+        "dos.library": {
+          "included": 9,
+          "inserted": 0
+        },
+        "exec.library": {
+          "included": 21,
+          "inserted": 0
+        },
+        "graphics.library": {
+          "included": 0,
+          "inserted": 6
+        },
+        "intuition.library": {
+          "included": 0,
+          "inserted": 8
+        }
+      }
+    },
+    "symbols": {
+      "immediate_constant_count": 8,
+      "struct_field_count": 18,
+      "app_struct_field_count": 4
+    }
   },
   "error": null,
   "targets": null

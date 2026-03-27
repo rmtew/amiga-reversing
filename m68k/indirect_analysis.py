@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Mapping
 from dataclasses import dataclass
+from time import perf_counter
 
 from m68k_kb import runtime_m68k_analysis
 
@@ -21,6 +22,12 @@ from .m68k_executor import (
     propagate_states,
 )
 from .os_calls import PlatformState
+from .per_caller_trace import (
+    cpu_signature,
+    get_per_caller_trace,
+    register_projection,
+    state_signature,
+)
 from .typing_protocols import InstructionLike
 
 _MAX_FORK_EXITS = 16
@@ -91,6 +98,35 @@ def _terminal_site_addr(blocks: Mapping[int, BasicBlock], block_addr: int) -> in
     if not block.instructions:
         raise KeyError(f"missing terminal instruction for block ${block_addr:06x}")
     return int(block.instructions[-1].offset)
+
+
+def _trace_needed_regs(
+    cpu: CPUState,
+    needed_regs: list[tuple[str, int]],
+) -> dict[str, tuple[object, ...]]:
+    if not needed_regs:
+        return {}
+    return dict(register_projection(cpu, needed_regs))
+
+
+def _record_site_resolution(
+    site_target_states: dict[int, list[StatePair]],
+    site_target_state_keys: dict[int, set[tuple[object, ...]]],
+    site_target_caller: dict[int, int | None],
+    target: int,
+    caller_addr: int | None,
+    entry_state_list: EntryStateList | EntryStates = (),
+) -> None:
+    if target not in site_target_caller:
+        site_target_caller[target] = caller_addr
+    state_list = site_target_states.setdefault(target, [])
+    seen_keys = site_target_state_keys.setdefault(target, set())
+    for cpu, mem in entry_state_list:
+        key = state_signature(cpu, mem)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        state_list.append((cpu.copy(), mem.copy()))
 
 
 def _cpu_object_signature(cpu: CPUState) -> CpuObjectSignature:
@@ -183,9 +219,18 @@ def collect_call_entry_states(blocks: Mapping[int, BasicBlock],
         return []
     if state_cache is None:
         state_cache = {}
+    trace = get_per_caller_trace()
     cache_key = (source_addr, trail)
     cached_states = state_cache.get(cache_key)
     if cached_states is not None:
+        if trace is not None:
+            trace.event(
+                "collect_call_entry_states",
+                source_addr=source_addr,
+                trail=sorted(trail),
+                cache_hit=True,
+                state_count=len(cached_states),
+            )
         return cached_states
 
     if owned_entries is None:
@@ -308,6 +353,18 @@ def collect_call_entry_states(blocks: Mapping[int, BasicBlock],
     for entry_cpu, entry_mem in (seed_entry_states or {}).get(sub_entry, []):
         _collect(entry_cpu, entry_mem)
     state_cache[cache_key] = states
+    if trace is not None:
+        trace.event(
+            "collect_call_entry_states",
+            source_addr=source_addr,
+            sub_entry=sub_entry,
+            trail=sorted(trail),
+            cache_hit=False,
+            caller_count=len(callers),
+            seed_state_count=len((seed_entry_states or {}).get(sub_entry, [])),
+            state_count=len(states),
+            unique_state_signatures=len({repr(state_signature(cpu, mem)) for cpu, mem in states}),
+        )
     return states
 
 
@@ -321,6 +378,7 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
     unresolved = _find_unresolved_sites(blocks, exit_states, code_size)
     if not unresolved:
         return []
+    trace = get_per_caller_trace()
 
     call_targets = set()
     for block in blocks.values():
@@ -383,6 +441,7 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
                           info: SubroutineInfo,
                           init_cpu: CPUState,
                           caller_mem: AbstractMemory) -> CallerContext:
+        started = perf_counter()
         init_cpu = subroutine_summary.restore_base_reg(init_cpu.copy(), platform)
         pass1_exits = propagate_states(
             info.expanded if info.nested_callees else info.sub_dict,
@@ -398,6 +457,16 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
                     callee_entry, blocks, call_targets, pass1_exits)
                 if isum is not None:
                     inline_sums[callee_entry] = isum
+        if trace is not None:
+            trace.event(
+                "build_caller_ctx",
+                entry=entry,
+                nested_callee_count=len(info.nested_callees),
+                pass1_exit_count=len(pass1_exits),
+                inline_summary_count=len(inline_sums),
+                elapsed_seconds=round(perf_counter() - started, 6),
+                init_state_signature=repr(state_signature(init_cpu, caller_mem)),
+            )
         return CallerContext(
             init_cpu=init_cpu,
             caller_mem=caller_mem,
@@ -653,6 +722,11 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
 
     resolved: list[IndirectResolution] = []
     for unres_addr, unres_type in unresolved:
+        site_started = perf_counter()
+        site_target_states: dict[int, list[StatePair]] = {}
+        site_target_state_keys: dict[int, set[tuple[object, ...]]] = {}
+        site_target_caller: dict[int, int | None] = {}
+
         if _terminal_site_addr(blocks, unres_addr) in skip_site_addrs:
             continue
         sub_entry = block_owner.get(unres_addr)
@@ -667,14 +741,23 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
         info = _sub_info(sub_entry)
         callers = info.callers
         entry_states: EntryStateList = synthetic_entry_states.get(sub_entry, [])
-        if not callers and not entry_states:
-            continue
-
         operand = None
         if unres_type == _FLOW_JUMP:
             last = blocks[unres_addr].instructions[-1]
             operand, _ = indirect_core.decode_jump_ea(last)
         needed_regs = indirect_core._needed_registers(operand, unres_type)
+        if trace is not None:
+            trace.event(
+                "site_start",
+                source_addr=unres_addr,
+                source_type=unres_type.name,
+                sub_entry=sub_entry,
+                caller_count=len(callers),
+                seed_entry_count=len(entry_states),
+                needed_regs=[f"{mode}{num}" for mode, num in needed_regs],
+            )
+        if not callers and not entry_states:
+            continue
 
         sub_dict = info.sub_dict
 
@@ -725,18 +808,29 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
                     target = indirect_core._try_resolve_block(
                         unres_addr, unres_type, blocks, test_cpu, merged_mem, code_size)
                     if target is not None:
-                        call_entry_states: EntryStates = ()
+                        target_states: EntryStateList = []
                         if source_ft == _FLOW_CALL:
                             target_states = _call_entry_states(unres_addr)
                             if not target_states:
                                 target_states = [(test_cpu, merged_mem.copy())]
-                            call_entry_states = tuple(
-                                (cpu.copy(), mem.copy()) for cpu, mem in target_states)
-                        resolved.append(_indirect_resolution(
-                            target, _terminal_site_addr(blocks, unres_addr),
-                            indirect_core.IndirectSiteStatus.PER_CALLER,
-                            caller_addr=caller_addr,
-                            entry_states=call_entry_states))
+                        _record_site_resolution(
+                            site_target_states,
+                            site_target_state_keys,
+                            site_target_caller,
+                            target,
+                            caller_addr,
+                            target_states,
+                        )
+                        if trace is not None:
+                            trace.event(
+                                "site_resolution",
+                                source_addr=unres_addr,
+                                caller_addr=caller_addr,
+                                path="fast",
+                                target=target,
+                                caller_state_signature=repr(cpu_signature(caller_cpu)),
+                                needed_regs=_trace_needed_regs(test_cpu, needed_regs),
+                            )
             for entry_cpu, entry_mem in entry_states:
                 test_cpu = merged_cpu.copy()
                 for mode, num in unknown_regs:
@@ -746,11 +840,24 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
                 target = indirect_core._try_resolve_block(
                     unres_addr, unres_type, blocks, test_cpu, merged_mem or entry_mem, code_size)
                 if target is not None:
-                    resolved.append(_indirect_resolution(
-                        target, _terminal_site_addr(blocks, unres_addr),
-                        indirect_core.IndirectSiteStatus.PER_CALLER,
-                        entry_states=(((entry_cpu.copy(), entry_mem.copy()),)
-                                      if source_ft == _FLOW_CALL else ())))
+                    _record_site_resolution(
+                        site_target_states,
+                        site_target_state_keys,
+                        site_target_caller,
+                        target,
+                        None,
+                        (((entry_cpu, entry_mem),) if source_ft == _FLOW_CALL else ()),
+                    )
+                    if trace is not None:
+                        trace.event(
+                            "site_resolution",
+                            source_addr=unres_addr,
+                            caller_addr=None,
+                            path="fast-seed",
+                            target=target,
+                            caller_state_signature=repr(state_signature(entry_cpu, entry_mem)),
+                            needed_regs=_trace_needed_regs(test_cpu, needed_regs),
+                        )
         else:
             source_ft = None
             last_inst = blocks[unres_addr].instructions[-1]
@@ -765,12 +872,24 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
                     target = indirect_core._try_resolve_block(
                         unres_addr, unres_type, blocks, cpu, mem, code_size)
                     if target is not None:
-                        resolved.append(_indirect_resolution(
-                            target, _terminal_site_addr(blocks, unres_addr),
-                            indirect_core.IndirectSiteStatus.PER_CALLER,
-                            caller_addr=caller_addr,
-                            entry_states=(((cpu.copy(), mem.copy()),)
-                                          if source_ft == _FLOW_CALL else ())))
+                        _record_site_resolution(
+                            site_target_states,
+                            site_target_state_keys,
+                            site_target_caller,
+                            target,
+                            caller_addr,
+                            (((cpu, mem),) if source_ft == _FLOW_CALL else ()),
+                        )
+                        if trace is not None:
+                            trace.event(
+                                "site_resolution",
+                                source_addr=unres_addr,
+                                caller_addr=caller_addr,
+                                path="full",
+                                target=target,
+                                caller_state_signature=repr(state_signature(cpu, mem)),
+                                needed_regs=_trace_needed_regs(cpu, needed_regs),
+                            )
             for entry_cpu, entry_mem in entry_states:
                 ctx = _build_caller_ctx(sub_entry, info, entry_cpu, entry_mem)
                 for cpu, mem in _states_from_ctx(
@@ -778,11 +897,44 @@ def resolve_per_caller(blocks: Mapping[int, BasicBlock],
                     target = indirect_core._try_resolve_block(
                         unres_addr, unres_type, blocks, cpu, mem, code_size)
                     if target is not None:
-                        resolved.append(_indirect_resolution(
-                            target, _terminal_site_addr(blocks, unres_addr),
-                            indirect_core.IndirectSiteStatus.PER_CALLER,
-                            entry_states=(((cpu.copy(), mem.copy()),)
-                                          if source_ft == _FLOW_CALL else ())))
+                        _record_site_resolution(
+                            site_target_states,
+                            site_target_state_keys,
+                            site_target_caller,
+                            target,
+                            None,
+                            (((cpu, mem),) if source_ft == _FLOW_CALL else ()),
+                        )
+                        if trace is not None:
+                            trace.event(
+                                "site_resolution",
+                                source_addr=unres_addr,
+                                caller_addr=None,
+                                path="full-seed",
+                                target=target,
+                                caller_state_signature=repr(state_signature(cpu, mem)),
+                                needed_regs=_trace_needed_regs(cpu, needed_regs),
+                            )
+        site_resolutions = [
+            _indirect_resolution(
+                target,
+                _terminal_site_addr(blocks, unres_addr),
+                indirect_core.IndirectSiteStatus.PER_CALLER,
+                caller_addr=site_target_caller[target],
+                entry_states=tuple(site_target_states.get(target, ())),
+            )
+            for target in sorted(site_target_states)
+        ]
+        resolved.extend(site_resolutions)
+        if trace is not None:
+            trace.event(
+                "site_done",
+                source_addr=unres_addr,
+                elapsed_seconds=round(perf_counter() - site_started, 6),
+                resolution_count=len(site_resolutions),
+                unique_target_count=len({item.target for item in site_resolutions}),
+                fast_path=use_fast_path,
+            )
 
     return resolved
 

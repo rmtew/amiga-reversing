@@ -1,6 +1,7 @@
 """Build canonical post-analysis disassembly sessions."""
 
 from collections.abc import Mapping
+from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -27,6 +28,7 @@ from disasm.entry_seeds import (
 from disasm.hardware_symbols import collect_hardware_base_regs
 from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
 from disasm.metadata import HunkAnalysisLike, build_hunk_metadata
+from disasm.phase_timing import PhaseTimer
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.target_metadata import (
     TargetMetadata,
@@ -242,7 +244,8 @@ def _filter_pre_entry_blocks(
 def build_disassembly_session(binary_source: str | BinarySource, entities_path: str,
                               output_path: str | None = None,
                               base_addr: int = 0, code_start: int = 0,
-                              profile_stages: bool = False) -> DisassemblySession:
+                              profile_stages: bool = False,
+                              phase_timer: PhaseTimer | None = None) -> DisassemblySession:
     source = (
         HunkFileBinarySource(
             kind="hunk_file",
@@ -285,6 +288,7 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
             code_start=resolved_analysis_start_offset(source, target_metadata),
             entry_points=resolved_entry_points(source, target_metadata, ()),
             profile_stages=profile_stages,
+            phase_timer=phase_timer,
         )
 
     hf = parse(source.read_bytes())
@@ -304,6 +308,7 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
             entry_points=(custom_entry_points if not first_code_hunk_seen else ()),
             target_metadata=target_metadata,
             apply_target_structure=not first_code_hunk_seen,
+            phase_timer=phase_timer,
         ))
         first_code_hunk_seen = True
 
@@ -336,6 +341,7 @@ def _build_code_session(
     code_start: int,
     entry_points: tuple[int, ...],
     profile_stages: bool,
+    phase_timer: PhaseTimer | None,
 ) -> DisassemblySession:
     hunk_session = _build_hunk_session_data(
         source=source,
@@ -347,6 +353,7 @@ def _build_code_session(
         entry_points=entry_points,
         target_metadata=target_metadata,
         apply_target_structure=True,
+        phase_timer=phase_timer,
     )
     return build_session_object(
         target_name=target_name,
@@ -374,6 +381,7 @@ def _build_hunk_session_data(
     entry_points: tuple[int, ...],
     target_metadata: TargetMetadata | None,
     apply_target_structure: bool,
+    phase_timer: PhaseTimer | None,
 ) -> HunkDisassemblySession:
     seed_config = build_entry_seed_config(target_metadata)
     entry_initial_states = scoped_entry_initial_states(seed_config, entry_points)
@@ -382,30 +390,32 @@ def _build_hunk_session_data(
     hunk_entities = [e for e in entities if e.get("hunk") == hunk.index]
     hunk_entities.sort(key=lambda e: int(e["addr"], 16))
 
-    if source.kind == "raw_binary":
-        ha = analyze_hunk(
-            code,
-            [],
-            hunk.index,
-            base_addr=base_addr,
-            code_start=code_start,
-            entry_points=entry_points,
-            initial_state=seed_config.initial_state,
-            entry_initial_states=entry_initial_states,
-        )
-    else:
-        ha = load_hunk_analysis(
-            analysis_cache_path=source.analysis_cache_path,
-            code=code,
-            relocs=hunk.relocs,
-            hunk_index=hunk.index,
-            base_addr=base_addr,
-            code_start=code_start,
-            entry_points=entry_points,
-            seed_key=seed_config.seed_key,
-            initial_state=seed_config.initial_state,
-            entry_initial_states=entry_initial_states,
-        )
+    with phase_timer.phase("session.load_analysis") if phase_timer is not None else nullcontext():
+        if source.kind == "raw_binary":
+            ha = analyze_hunk(
+                code,
+                [],
+                hunk.index,
+                base_addr=base_addr,
+                code_start=code_start,
+                entry_points=entry_points,
+                initial_state=seed_config.initial_state,
+                entry_initial_states=entry_initial_states,
+                phase_timer=phase_timer,
+            )
+        else:
+            ha = load_hunk_analysis(
+                analysis_cache_path=source.analysis_cache_path,
+                code=code,
+                relocs=hunk.relocs,
+                hunk_index=hunk.index,
+                base_addr=base_addr,
+                code_start=code_start,
+                entry_points=entry_points,
+                seed_key=seed_config.seed_key,
+                initial_state=seed_config.initial_state,
+                entry_initial_states=entry_initial_states,
+            )
     entry_point = entry_points[0] if entry_points else None
     blocks = _filter_pre_entry_blocks(ha.blocks, entry_point)
     hint_blocks: Mapping[int, DisasmBlockLike] = _filter_pre_entry_blocks(ha.hint_blocks, entry_point)
@@ -423,62 +433,64 @@ def _build_hunk_session_data(
     code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = (
         prepare_hunk_code(code, relocated_segments)
     )
-    absolute_resolution = resolve_absolute_labels(platform=platform)
-    call_setup_analysis = analyze_call_setups(
-        blocks=blocks,
-        lib_calls=lib_calls,
-        os_kb=os_kb,
-        code=code,
-        platform=platform,
-    )
-    metadata = build_hunk_metadata(
-        code=code,
-        code_size=code_size,
-        hunk_index=hunk.index,
-        hunk_entities=hunk_entities,
-        ha=cast(
-            HunkAnalysisLike,
-            SimpleNamespace(
-                blocks=blocks,
-                hint_blocks=hint_blocks,
-                jump_tables=ha.jump_tables,
-                call_targets={
-                    addr for addr in ha.call_targets
-                    if entry_point is None or addr >= entry_point
-                },
-                branch_targets={
-                    addr for addr in ha.branch_targets
-                    if entry_point is None or addr >= entry_point
-                },
+    with phase_timer.phase("session.metadata") if phase_timer is not None else nullcontext():
+        absolute_resolution = resolve_absolute_labels(platform=platform)
+        call_setup_analysis = analyze_call_setups(
+            blocks=blocks,
+            lib_calls=lib_calls,
+            os_kb=os_kb,
+            code=code,
+            platform=platform,
+        )
+        metadata = build_hunk_metadata(
+            code=code,
+            code_size=code_size,
+            hunk_index=hunk.index,
+            hunk_entities=hunk_entities,
+            ha=cast(
+                HunkAnalysisLike,
+                SimpleNamespace(
+                    blocks=blocks,
+                    hint_blocks=hint_blocks,
+                    jump_tables=ha.jump_tables,
+                    call_targets={
+                        addr for addr in ha.call_targets
+                        if entry_point is None or addr >= entry_point
+                    },
+                    branch_targets={
+                        addr for addr in ha.branch_targets
+                        if entry_point is None or addr >= entry_point
+                    },
+                ),
             ),
-        ),
-        hf_hunks=hf_hunks,
-        segment_start=base_addr,
-        typed_string_ranges=call_setup_analysis.string_ranges,
-        reserved_absolute_addrs=absolute_resolution.reserved_absolute_addrs,
-        absolute_labels=absolute_resolution.absolute_labels,
-    )
-    region_map = propagate_typed_memory_regions(blocks, lib_calls, code, os_kb, platform)
-    app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
-    hardware_base_regs = collect_hardware_base_regs(blocks, code, platform)
-    lvo_equs, lvo_substitutions = build_lvo_substitutions(
-        blocks=blocks,
-        lib_calls=lib_calls,
-        hunk_entities=hunk_entities,
-    )
-    arg_equs, arg_substitutions = build_arg_substitutions(
-        blocks=blocks,
-        lib_calls=lib_calls,
-        hunk_entities=hunk_entities,
-        os_kb=os_kb,
-    )
-    app_offsets = build_app_slot_symbols(
-        blocks=blocks,
-        lib_calls=lib_calls,
-        code=code,
-        os_kb=os_kb,
-        platform=platform,
-    )
+            hf_hunks=hf_hunks,
+            segment_start=base_addr,
+            typed_string_ranges=call_setup_analysis.string_ranges,
+            reserved_absolute_addrs=absolute_resolution.reserved_absolute_addrs,
+            absolute_labels=absolute_resolution.absolute_labels,
+        )
+        region_map = propagate_typed_memory_regions(blocks, lib_calls, code, os_kb, platform)
+        app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
+        hardware_base_regs = collect_hardware_base_regs(blocks, code, platform)
+    with phase_timer.phase("session.substitutions") if phase_timer is not None else nullcontext():
+        lvo_equs, lvo_substitutions = build_lvo_substitutions(
+            blocks=blocks,
+            lib_calls=lib_calls,
+            hunk_entities=hunk_entities,
+        )
+        arg_equs, arg_substitutions = build_arg_substitutions(
+            blocks=blocks,
+            lib_calls=lib_calls,
+            hunk_entities=hunk_entities,
+            os_kb=os_kb,
+        )
+        app_offsets = build_app_slot_symbols(
+            blocks=blocks,
+            lib_calls=lib_calls,
+            code=code,
+            os_kb=os_kb,
+            platform=platform,
+        )
     labels = metadata.labels
     apply_generic_data_label_promotions(
         labels,
@@ -573,45 +585,46 @@ def _build_hunk_session_data(
         code_size=code_size,
         apply_structure=apply_target_structure,
     )
-    return build_hunk_session(
-        hunk_index=hunk.index,
-        code=code,
-        code_size=code_size,
-        entities=hunk_entities,
-        blocks=blocks,
-        hint_blocks=hint_blocks,
-        code_addrs=metadata.code_addrs,
-        hint_addrs=metadata.hint_addrs,
-        reloc_map=metadata.reloc_map,
-        reloc_target_set=metadata.reloc_target_set,
-        reserved_absolute_addrs=metadata.reserved_absolute_addrs,
-        pc_targets=metadata.pc_targets,
-        string_addrs=metadata.string_addrs,
-        string_ranges=metadata.string_ranges,
-        labels=labels,
-        absolute_labels=metadata.absolute_labels,
-        jump_table_regions=metadata.jump_table_regions,
-        jump_table_target_sources=metadata.jump_table_target_sources,
-        lib_calls=lib_calls,
-        region_map=region_map,
-        app_struct_regions=app_struct_regions,
-        hardware_base_regs=hardware_base_regs,
-        lvo_equs=lvo_equs,
-        lvo_substitutions=lvo_substitutions,
-        arg_equs=arg_equs,
-        arg_substitutions=arg_substitutions,
-        app_offsets=app_offsets,
-        arg_annotations=arg_annotations,
-        data_access_sizes=data_access_sizes,
-        platform=platform,
-        os_kb=os_kb,
-        base_addr=base_addr,
-        code_start=code_start,
-        relocated_segments=relocated_segments,
-        reloc_file_offset=reloc_file_offset,
-        reloc_base_addr=reloc_base_addr,
-        unresolved_indirects=unresolved_indirects,
-    )
+    with phase_timer.phase("session.build") if phase_timer is not None else nullcontext():
+        return build_hunk_session(
+            hunk_index=hunk.index,
+            code=code,
+            code_size=code_size,
+            entities=hunk_entities,
+            blocks=blocks,
+            hint_blocks=hint_blocks,
+            code_addrs=metadata.code_addrs,
+            hint_addrs=metadata.hint_addrs,
+            reloc_map=metadata.reloc_map,
+            reloc_target_set=metadata.reloc_target_set,
+            reserved_absolute_addrs=metadata.reserved_absolute_addrs,
+            pc_targets=metadata.pc_targets,
+            string_addrs=metadata.string_addrs,
+            string_ranges=metadata.string_ranges,
+            labels=labels,
+            absolute_labels=metadata.absolute_labels,
+            jump_table_regions=metadata.jump_table_regions,
+            jump_table_target_sources=metadata.jump_table_target_sources,
+            lib_calls=lib_calls,
+            region_map=region_map,
+            app_struct_regions=app_struct_regions,
+            hardware_base_regs=hardware_base_regs,
+            lvo_equs=lvo_equs,
+            lvo_substitutions=lvo_substitutions,
+            arg_equs=arg_equs,
+            arg_substitutions=arg_substitutions,
+            app_offsets=app_offsets,
+            arg_annotations=arg_annotations,
+            data_access_sizes=data_access_sizes,
+            platform=platform,
+            os_kb=os_kb,
+            base_addr=base_addr,
+            code_start=code_start,
+            relocated_segments=relocated_segments,
+            reloc_file_offset=reloc_file_offset,
+            reloc_base_addr=reloc_base_addr,
+            unresolved_indirects=unresolved_indirects,
+        )
 
 
 

@@ -17,6 +17,7 @@ import json
 import sys
 from collections import defaultdict
 from collections.abc import MutableMapping
+from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
@@ -35,6 +36,7 @@ from disasm.entry_seeds import (
     build_entry_seed_config,
     scoped_entry_initial_states,
 )
+from disasm.phase_timing import PhaseTimer
 from disasm.target_metadata import (
     TargetMetadata,
     load_target_metadata,
@@ -678,7 +680,8 @@ def summarize_entity_app_slots(entities: list[JsonDict]) -> None:
 
 
 def build_entities_from_source(binary_source: BinarySource, output_path: str | None = None,
-                               base_addr: int = 0, code_start: int = 0) -> int:
+                               base_addr: int = 0, code_start: int = 0,
+                               phase_timer: PhaseTimer | None = None) -> int:
     """Main pipeline: parse binary, run executor, generate entities."""
     if output_path is None:
         output_path = "entities.jsonl"
@@ -691,23 +694,24 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
     if binary_source.parent_disk_id is not None and target_metadata is None:
         raise ValueError(f"Missing target_metadata.json for internal target: {output_target_dir}")
     seed_config = build_entry_seed_config(target_metadata)
-    if binary_source.kind == "raw_binary":
-        raw_bytes = binary_source.read_bytes()
-        hf_hunks = [
-            Hunk(
-                index=0,
-                hunk_type=int(HunkType.HUNK_CODE),
-                mem_type=int(MemType.ANY),
-                alloc_size=len(raw_bytes),
-                data=raw_bytes,
-            )
-        ]
-    else:
-        hf = parse(binary_source.read_bytes())
-        if not hf.is_executable:
-            print("ERROR: not an executable hunk file")
-            return 1
-        hf_hunks = hf.hunks
+    with phase_timer.phase("entities.parse_source") if phase_timer is not None else nullcontext():
+        if binary_source.kind == "raw_binary":
+            raw_bytes = binary_source.read_bytes()
+            hf_hunks = [
+                Hunk(
+                    index=0,
+                    hunk_type=int(HunkType.HUNK_CODE),
+                    mem_type=int(MemType.ANY),
+                    alloc_size=len(raw_bytes),
+                    data=raw_bytes,
+                )
+            ]
+        else:
+            hf = parse(binary_source.read_bytes())
+            if not hf.is_executable:
+                print("ERROR: not an executable hunk file")
+                return 1
+            hf_hunks = hf.hunks
 
     print(f"  {len(hf_hunks)} hunks")
     for h in hf_hunks:
@@ -757,6 +761,7 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
                 entry_points=entry_points,
                 initial_state=seed_config.initial_state,
                 entry_initial_states=entry_initial_states,
+                phase_timer=phase_timer,
             )
         else:
             entry_points = () if first_code_hunk_seen else custom_entry_points
@@ -765,7 +770,8 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
                               base_addr=base_addr, code_start=code_start,
                               entry_points=entry_points,
                               initial_state=seed_config.initial_state,
-                              entry_initial_states=entry_initial_states)
+                              entry_initial_states=entry_initial_states,
+                              phase_timer=phase_timer)
         first_code_hunk_seen = True
         apply_entry_seed_config(ha.platform, seed_config)
 
@@ -1021,12 +1027,13 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
         summarize_entity_app_slots(hunk_entities)
 
         # Name subroutines from OS calls, string references, call graph
-        named = name_subroutines(
-            cast(list[MutableMapping[str, object]], hunk_entities),
-            blocks,
-            code,
-            lib_calls,
-        )
+        with phase_timer.phase("entities.naming") if phase_timer is not None else nullcontext():
+            named = name_subroutines(
+                cast(list[MutableMapping[str, object]], hunk_entities),
+                blocks,
+                code,
+                lib_calls,
+            )
         if named:
             print(f"  Named {named} subroutines")
 
@@ -1037,7 +1044,10 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
     all_entities.sort(key=_addr_int)
 
     # Write output
-    with open(output_path, "w") as f:
+    with (
+        phase_timer.phase("entities.write") if phase_timer is not None else nullcontext(),
+        open(output_path, "w") as f,
+    ):
         for ent in all_entities:
             f.write(json.dumps(ent, separators=(",", ":")) + "\n")
 

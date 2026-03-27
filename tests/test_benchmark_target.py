@@ -17,8 +17,16 @@ from disasm.target_metadata import (
 from m68k.hunk_parser import Hunk, HunkType, MemType
 from scripts.benchmark_target import (
     AnalysisBenchmark,
+    AnalysisTimingBenchmark,
+    DisasmBenchmark,
+    EntitiesTimingBenchmark,
     EntityBenchmark,
+    LibraryLvoBenchmark,
+    LvoBenchmark,
+    SessionTimingBenchmark,
+    SymbolUsageBenchmark,
     TargetBenchmark,
+    TimingBenchmark,
     _analysis_cache_paths,
     _benchmark_record,
     _disk_project_benchmark,
@@ -91,12 +99,14 @@ def test_benchmark_record_uses_target_command_and_sizes(
     assert record.analysis_bytes == 10
     assert record.entities_bytes == 20
     assert record.disasm_bytes == 30
+    assert record.timing is None
     assert record.analysis is not None
     assert record.analysis.core_block_count == 2
     assert record.analysis.library_call_count == 6
     assert record.entities is not None
     assert record.entities.entity_count == 7
     assert record.entities.named_entity_count == 4
+    assert record.disasm is None
     assert record.error is None
 
 
@@ -254,8 +264,46 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
             analysis_bytes=1,
             entities_bytes=1,
             disasm_bytes=1,
+            timing=TimingBenchmark(
+                entities=EntitiesTimingBenchmark(
+                    parse_source_seconds=0.1,
+                    analysis=AnalysisTimingBenchmark(
+                        init_seconds=0.2,
+                        core_seconds=0.3,
+                        per_caller_seconds=0.4,
+                        store_pass_seconds=0.5,
+                        hint_scan_seconds=0.6,
+                        os_call_seconds=0.7,
+                    ),
+                    naming_seconds=0.8,
+                    write_seconds=0.9,
+                ),
+                session=SessionTimingBenchmark(
+                    load_analysis_seconds=1.0,
+                    metadata_seconds=1.1,
+                    substitutions_seconds=1.2,
+                    build_seconds=1.3,
+                ),
+                emit_seconds=0.3,
+                render_seconds=0.4,
+            ),
             analysis=None,
             entities=None,
+            disasm=DisasmBenchmark(
+                lvo=LvoBenchmark(
+                    included_count=2,
+                    inserted_count=1,
+                    by_library={
+                        "dos.library": LibraryLvoBenchmark(included=2, inserted=0),
+                        "foo.library": LibraryLvoBenchmark(included=0, inserted=1),
+                    },
+                ),
+                symbols=SymbolUsageBenchmark(
+                    immediate_constant_count=5,
+                    struct_field_count=6,
+                    app_struct_field_count=7,
+                ),
+            ),
             error=None,
             targets=None,
         )
@@ -263,13 +311,51 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
     monkeypatch.setattr("scripts.benchmark_target.TARGETS_DIR", targets_dir)
     monkeypatch.setattr("scripts.benchmark_target._benchmark_binary_target", fake_benchmark_binary_target)
 
-    _disk_project_benchmark("amiga_disk_demo")
+    record = _disk_project_benchmark("amiga_disk_demo")
 
     assert seen == [
         "amiga_disk_demo__amiga_raw_bootblock",
         "amiga_disk_demo__amiga_hunk_a_first",
         "amiga_disk_demo__amiga_hunk_z_last",
     ]
+    assert record.timing == TimingBenchmark(
+        entities=EntitiesTimingBenchmark(
+            parse_source_seconds=0.3,
+            analysis=AnalysisTimingBenchmark(
+                init_seconds=0.6,
+                core_seconds=0.9,
+                per_caller_seconds=1.2,
+                store_pass_seconds=1.5,
+                hint_scan_seconds=1.8,
+                os_call_seconds=2.1,
+            ),
+            naming_seconds=2.4,
+            write_seconds=2.7,
+        ),
+        session=SessionTimingBenchmark(
+            load_analysis_seconds=3.0,
+            metadata_seconds=3.3,
+            substitutions_seconds=3.6,
+            build_seconds=3.9,
+        ),
+        emit_seconds=0.9,
+        render_seconds=1.2,
+    )
+    assert record.disasm == DisasmBenchmark(
+        lvo=LvoBenchmark(
+            included_count=6,
+            inserted_count=3,
+            by_library={
+                "dos.library": LibraryLvoBenchmark(included=6, inserted=0),
+                "foo.library": LibraryLvoBenchmark(included=0, inserted=3),
+            },
+        ),
+        symbols=SymbolUsageBenchmark(
+            immediate_constant_count=15,
+            struct_field_count=18,
+            app_struct_field_count=21,
+        ),
+    )
 
 
 def test_analysis_cache_paths_for_resident_hunk_target_use_zero_code_start(
