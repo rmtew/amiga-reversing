@@ -10,6 +10,10 @@ from collections.abc import Iterator, Mapping
 from pathlib import Path
 from typing import Literal, TypedDict, cast
 
+from kb.os_reference import (
+    load_split_os_reference_payloads,
+    merge_os_reference_payloads,
+)
 from kb.schemas import (
     HardwareSymbolsPayload,
     HunkFormatPayload,
@@ -23,10 +27,13 @@ from kb.schemas import (
     NamingPattern,
     NamingRulesMeta,
     NamingRulesPayload,
+    OsAbsoluteSymbol,
+    OsCallingConvention,
     OsConstant,
+    OsExecBaseAddress,
     OsFunction,
+    OsIncludeOwner,
     OsInput,
-    OsMeta,
     OsOutput,
     OsReferencePayload,
     OsStructDef,
@@ -409,8 +416,25 @@ class OsRuntimeLibrary(TypedDict):
     functions: dict[str, OsFunction]
 
 
+class OsRuntimeMeta(TypedDict):
+    calling_convention: OsCallingConvention
+    exec_base_addr: OsExecBaseAddress
+    absolute_symbols: list[OsAbsoluteSymbol]
+    lvo_slot_size: int
+    compatibility_versions: list[str]
+    include_min_versions: dict[str, str]
+    resident_autoinit_words: list[str]
+    resident_autoinit_supports_short_vectors: bool
+    resident_vector_prefixes: dict[str, list[str]]
+    named_base_structs: dict[str, str]
+    library_lvo_owners: dict[str, OsIncludeOwner]
+
+
 class OsRuntimePayload(TypedDict):
-    META: OsMeta
+    META: OsRuntimeMeta
+    VALUE_DOMAINS: dict[str, tuple[str, ...]]
+    API_INPUT_VALUE_DOMAINS: dict[str, dict[str, dict[str, str]]]
+    STRUCT_FIELD_VALUE_DOMAINS: dict[str, dict[str | None, str]]
     STRUCTS: dict[str, OsStructDef]
     CONSTANTS: dict[str, OsConstant]
     LIBRARIES: dict[str, OsRuntimeLibrary]
@@ -440,7 +464,15 @@ def _load_m68k_instructions_payload() -> M68kInstructionsPayload:
 
 
 def _load_os_reference_payload() -> OsReferencePayload:
-    return cast(OsReferencePayload, _load_json("amiga_os_reference.json"))
+    includes, other, corrections = load_split_os_reference_payloads()
+    return cast(
+        OsReferencePayload,
+        merge_os_reference_payloads(
+            includes=includes,
+            other=other,
+            corrections=corrections,
+        ),
+    )
 
 
 def _load_hunk_format_payload() -> HunkFormatPayload:
@@ -1653,18 +1685,27 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    base_reg: str",
         "    return_reg: str",
         "    note: str",
+        "    seed_origin: str",
+        "    review_status: str",
+        "    citation: str",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class ExecBaseAddress:",
         "    address: int",
         "    library: str",
         "    note: str",
+        "    seed_origin: str",
+        "    review_status: str",
+        "    citation: str",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class AbsoluteSymbol:",
         "    address: int",
         "    name: str",
         "    note: str",
+        "    seed_origin: str",
+        "    review_status: str",
+        "    citation: str",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsMeta:",
@@ -1678,7 +1719,6 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    resident_autoinit_supports_short_vectors: bool = False",
         "    resident_vector_prefixes: dict[str, tuple[str, ...]] = field(default_factory=dict)",
         "    named_base_structs: dict[str, str] = field(default_factory=dict)",
-        "    input_constant_domains: dict[str, dict[str, dict[str, tuple[str, ...]]]] = field(default_factory=dict)",
         "    library_lvo_owners: dict[str, object] = field(default_factory=dict)",
         "",
         "@dataclass(frozen=True, slots=True)",
@@ -1753,13 +1793,13 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    functions: dict[str, OsFunction]",
         "",
         "META = OsMeta(",
-        f"    calling_convention=CallingConvention(scratch_regs={tuple(meta['calling_convention']['scratch_regs'])!r}, preserved_regs={tuple(meta['calling_convention']['preserved_regs'])!r}, base_reg={meta['calling_convention']['base_reg']!r}, return_reg={meta['calling_convention']['return_reg']!r}, note={meta['calling_convention']['note']!r}),",
-        f"    exec_base_addr=ExecBaseAddress(address={meta['exec_base_addr']['address']!r}, library={meta['exec_base_addr']['library']!r}, note={meta['exec_base_addr']['note']!r}),",
+        f"    calling_convention=CallingConvention(scratch_regs={tuple(meta['calling_convention']['scratch_regs'])!r}, preserved_regs={tuple(meta['calling_convention']['preserved_regs'])!r}, base_reg={meta['calling_convention']['base_reg']!r}, return_reg={meta['calling_convention']['return_reg']!r}, note={meta['calling_convention']['note']!r}, seed_origin={meta['calling_convention']['seed_origin']!r}, review_status={meta['calling_convention']['review_status']!r}, citation={meta['calling_convention']['citation']!r}),",
+        f"    exec_base_addr=ExecBaseAddress(address={meta['exec_base_addr']['address']!r}, library={meta['exec_base_addr']['library']!r}, note={meta['exec_base_addr']['note']!r}, seed_origin={meta['exec_base_addr']['seed_origin']!r}, review_status={meta['exec_base_addr']['review_status']!r}, citation={meta['exec_base_addr']['citation']!r}),",
         "    absolute_symbols=(",
     ]
     for symbol in meta["absolute_symbols"]:
         lines.append(
-            f"        AbsoluteSymbol(address={symbol['address']!r}, name={symbol['name']!r}, note={symbol['note']!r}),"
+            f"        AbsoluteSymbol(address={symbol['address']!r}, name={symbol['name']!r}, note={symbol['note']!r}, seed_origin={symbol['seed_origin']!r}, review_status={symbol['review_status']!r}, citation={symbol['citation']!r}),"
         )
     lines.extend([
         "    ),",
@@ -1770,15 +1810,14 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         f"    resident_autoinit_supports_short_vectors={_render_py(meta['resident_autoinit_supports_short_vectors'])} ,",
         f"    resident_vector_prefixes={_render_py({kind: tuple(names) for kind, names in sorted(meta['resident_vector_prefixes'].items())})} ,",
         f"    named_base_structs={_render_py(dict(sorted(meta['named_base_structs'].items())))} ,",
-        f"    input_constant_domains={_render_py({library: {func_name: {input_name: tuple(values) for input_name, values in sorted(input_domains.items())} for func_name, input_domains in sorted(lib_domains.items())} for library, lib_domains in sorted(meta['input_constant_domains'].items())})} ,",
         f"    library_lvo_owners={_render_py(dict(sorted(meta['library_lvo_owners'].items())))} ,",
         ")",
         "",
-        f"VALUE_DOMAINS = {{{', '.join(f'{name!r}: {tuple(values)!r}' for name, values in sorted(meta['value_domains'].items()))}}}",
+        f"VALUE_DOMAINS = {_render_py(payload['VALUE_DOMAINS'])}",
         "",
-        f"FIELD_VALUE_DOMAINS = {_render_py(dict(sorted(meta['field_value_domains'].items())))}",
+        f"API_INPUT_VALUE_DOMAINS = {_render_py(payload['API_INPUT_VALUE_DOMAINS'])}",
         "",
-        f"FIELD_CONTEXT_VALUE_DOMAINS = {_render_py({field: dict(sorted(contexts.items())) for field, contexts in sorted(meta['field_context_value_domains'].items())})}",
+        f"STRUCT_FIELD_VALUE_DOMAINS = {_render_py(payload['STRUCT_FIELD_VALUE_DOMAINS'])}",
         "",
         "STRUCTS = {",
     ])
@@ -2508,6 +2547,18 @@ def _build_os_runtime() -> OsRuntimePayload:
             "lvo_index": library_data["lvo_index"],
             "functions": funcs,
         }
+    api_input_value_domains: dict[str, dict[str, dict[str, str]]] = {}
+    for api_binding in canonical["_meta"]["api_input_value_bindings"]:
+        library_name = api_binding["library"]
+        function_name = api_binding["function"]
+        input_name = api_binding["input"]
+        domain_name = api_binding["domain"]
+        api_input_value_domains.setdefault(library_name, {}).setdefault(function_name, {})[input_name] = domain_name
+    struct_field_value_domains: dict[str, dict[str | None, str]] = {}
+    for field_binding in canonical["_meta"]["struct_field_value_bindings"]:
+        field_key = f"{field_binding['struct']}.{field_binding['field']}"
+        context_name = field_binding.get("context_name")
+        struct_field_value_domains.setdefault(field_key, {})[context_name] = field_binding["domain"]
     return {
         "META": {
             "calling_convention": canonical["_meta"]["calling_convention"],
@@ -2520,11 +2571,25 @@ def _build_os_runtime() -> OsRuntimePayload:
             "resident_autoinit_supports_short_vectors": canonical["_meta"]["resident_autoinit_supports_short_vectors"],
             "resident_vector_prefixes": canonical["_meta"]["resident_vector_prefixes"],
             "named_base_structs": canonical["_meta"]["named_base_structs"],
-            "input_constant_domains": canonical["_meta"]["input_constant_domains"],
-            "value_domains": canonical["_meta"]["value_domains"],
-            "field_value_domains": canonical["_meta"]["field_value_domains"],
-            "field_context_value_domains": canonical["_meta"]["field_context_value_domains"],
             "library_lvo_owners": canonical["_meta"]["library_lvo_owners"],
+        },
+        "VALUE_DOMAINS": {
+            name: tuple(values)
+            for name, values in sorted(canonical["_meta"]["value_domains"].items())
+        },
+        "API_INPUT_VALUE_DOMAINS": {
+            library_name: {
+                function_name: dict(sorted(input_domains.items()))
+                for function_name, input_domains in sorted(functions.items())
+            }
+            for library_name, functions in sorted(api_input_value_domains.items())
+        },
+        "STRUCT_FIELD_VALUE_DOMAINS": {
+            field_key: dict(sorted(
+                contexts.items(),
+                key=lambda item: "" if item[0] is None else item[0],
+            ))
+            for field_key, contexts in sorted(struct_field_value_domains.items())
         },
         "STRUCTS": canonical["structs"],
         "CONSTANTS": canonical["constants"],

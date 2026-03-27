@@ -254,18 +254,27 @@ class OsCallingConvention(TypedDict):
     base_reg: str
     return_reg: str
     note: str
+    seed_origin: str
+    review_status: str
+    citation: str
 
 
 class OsExecBaseAddress(TypedDict):
     address: int
     library: str
     note: str
+    seed_origin: str
+    review_status: str
+    citation: str
 
 
 class OsAbsoluteSymbol(TypedDict):
     address: int
     name: str
     note: str
+    seed_origin: str
+    review_status: str
+    citation: str
 
 
 class OsIncludeOwner(TypedDict):
@@ -274,6 +283,39 @@ class OsIncludeOwner(TypedDict):
     comment_include_path: str | None
     source_file: str
     available_since: str | None
+
+
+class OsApiInputValueBinding(TypedDict, total=False):
+    library: str
+    function: str
+    input: str
+    domain: str
+    available_since: str
+    seed_origin: str
+    review_status: str
+    citation: str
+
+
+class OsApiInputSemanticAssertion(TypedDict):
+    library: str
+    function: str
+    input: str
+    semantic_kind: str
+    semantic_note: str
+    seed_origin: str
+    review_status: str
+    citation: str
+
+
+class OsStructFieldValueBinding(TypedDict, total=False):
+    struct: str
+    field: str
+    domain: str
+    context_name: str
+    available_since: str
+    seed_origin: str
+    review_status: str
+    citation: str
 
 
 class OsMeta(TypedDict):
@@ -287,10 +329,10 @@ class OsMeta(TypedDict):
     resident_autoinit_supports_short_vectors: bool
     resident_vector_prefixes: dict[str, list[str]]
     named_base_structs: dict[str, str]
-    input_constant_domains: dict[str, dict[str, dict[str, list[str]]]]
     value_domains: dict[str, list[str]]
-    field_value_domains: dict[str, str]
-    field_context_value_domains: dict[str, dict[str, str]]
+    api_input_value_bindings: list[OsApiInputValueBinding]
+    api_input_semantic_assertions: list[OsApiInputSemanticAssertion]
+    struct_field_value_bindings: list[OsStructFieldValueBinding]
     library_lvo_owners: dict[str, OsIncludeOwner]
 
 

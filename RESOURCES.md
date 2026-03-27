@@ -25,7 +25,8 @@ below.
 
 - **Directory:** Available at any path; configure in parser invocation
 - **Used by:** `scripts/parse_ndk.py` (extracts OS function signatures, structs,
-  constants into `knowledge/amiga_os_reference.json`)
+constants into `knowledge/amiga_ndk_includes_parsed.json` and
+  `knowledge/amiga_ndk_other_parsed.json`)
 - **Contents needed:** FD files, autodocs, and include files (especially `.i` asm
   headers for struct/constant definitions)
 - **Source:** Commodore/Hyperion NDK 3.1. Available on the ADCD 2.1 disc

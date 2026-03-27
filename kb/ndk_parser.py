@@ -9,7 +9,8 @@ Parses:
 - OS_CHANGES: version tagging (1.3 -> 2.04 -> 2.1 -> 3.0 -> 3.1 transitions)
 
 Outputs:
-- knowledge/amiga_os_reference.json
+- knowledge/amiga_ndk_includes_parsed.json
+- knowledge/amiga_ndk_other_parsed.json
 - knowledge/amiga_hw_symbols.json
 """
 
@@ -25,12 +26,12 @@ from typing import Any, cast
 from kb.paths import (
     AMIGA_HW_REGISTERS_JSON,
     AMIGA_HW_SYMBOLS_JSON,
-    AMIGA_OS_REFERENCE_JSON,
+    AMIGA_OS_REFERENCE_INCLUDES_PARSED_JSON,
+    AMIGA_OS_REFERENCE_OTHER_PARSED_JSON,
 )
 from kb.runtime_builder import build_runtime_artifacts
 
 JsonDict = dict[str, Any]
-FieldValueDomainContexts = dict[str, dict[str, str]]
 
 
 def canonicalize_json(value: Any) -> Any:
@@ -531,154 +532,40 @@ def _split_autodoc_input_sections(inputs_text: str) -> dict[str, str]:
     }
 
 
-def _extract_input_constant_domains(
-    doc: JsonDict,
-    input_names: list[str],
-    resolved_consts: list[str],
-) -> dict[str, list[str]]:
-    input_domains: dict[str, list[str]] = {}
-    input_sections: dict[str, str] = {}
-    inputs_text = doc.get("inputs_text")
-    if isinstance(inputs_text, str) and inputs_text.strip():
-        input_sections = _split_autodoc_input_sections(inputs_text)
-
-    prose_paragraphs = [
-        normalized_paragraph
-        for key in ("description", "notes", "bugs", "examples")
-        for value in [doc.get(key)]
-        if isinstance(value, str) and value.strip()
-        for paragraph in value.split("\n\n")
-        for normalized_paragraph in [re.sub(r"\s*\n\s*", " ", paragraph).strip()]
-        if normalized_paragraph
-    ]
-    input_patterns = {
-        input_name: re.compile(
-            rf"(?:'|(?<![A-Za-z0-9_])){re.escape(input_name)}(?:'|(?![A-Za-z0-9_]))",
-            re.I,
-        )
-        for input_name in input_names
+def _api_input_value_binding(
+    library: str,
+    function: str,
+    input_name: str,
+    domain: str,
+    *,
+    available_since: str = "1.0",
+) -> JsonDict:
+    return {
+        "library": library,
+        "function": function,
+        "input": input_name,
+        "domain": domain,
+        "available_since": available_since,
     }
-    for input_name in input_names:
-        section_text = input_sections.get(input_name)
-        candidate_texts: list[str] = []
-        if section_text:
-            candidate_texts.append(section_text)
-        candidate_texts.extend(
-            _extract_input_prose_spans(
-                prose_paragraphs,
-                input_name,
-                input_patterns,
-            )
-        )
-        if not candidate_texts:
-            continue
-        found: set[str] = set()
-        for candidate_text in candidate_texts:
-            for i in range(0, len(resolved_consts), 500):
-                batch = resolved_consts[i:i + 500]
-                pattern = r'\b(' + '|'.join(re.escape(n) for n in batch) + r')\b'
-                for match in re.finditer(pattern, candidate_text):
-                    found.add(match.group(1))
-        if not found:
-            synopsis = doc.get("synopsis")
-            if isinstance(synopsis, str) and synopsis.strip():
-                found.update(_extract_example_constant_domains(doc, synopsis, input_name, resolved_consts))
-        if found:
-            input_domains[input_name] = sorted(found)
-    return input_domains
 
 
-def _extract_input_prose_spans(
-    paragraphs: list[str],
-    input_name: str,
-    input_patterns: dict[str, re.Pattern[str]],
-) -> list[str]:
-    spans: list[str] = []
-    own_pattern = input_patterns[input_name]
-    for paragraph in paragraphs:
-        sentences = [
-            sentence.strip()
-            for sentence in re.split(r"(?<=[.!?])\s+", paragraph)
-            if sentence.strip()
-        ]
-        index = 0
-        while index < len(sentences):
-            sentence = sentences[index]
-            if not own_pattern.search(sentence):
-                index += 1
-                continue
-            span_sentences = [sentence]
-            index += 1
-            while index < len(sentences):
-                next_sentence = sentences[index]
-                mentioned_inputs = [
-                    name
-                    for name, pattern in input_patterns.items()
-                    if pattern.search(next_sentence)
-                ]
-                if mentioned_inputs and input_name not in mentioned_inputs:
-                    break
-                span_sentences.append(next_sentence)
-                index += 1
-            spans.append(" ".join(span_sentences))
-    return spans
-
-
-def _extract_example_constant_domains(
-    doc: JsonDict,
-    synopsis: str,
-    input_name: str,
-    resolved_consts: list[str],
-) -> set[str]:
-    examples = doc.get("examples")
-    if not isinstance(examples, str) or not examples.strip():
-        return set()
-    lines = synopsis.strip().splitlines()
-    if not lines:
-        return set()
-    line1 = lines[0].strip()
-    func_match = re.match(r'(?:\w+\s*=\s*)?(\w+)\s*\(', line1)
-    if func_match is None:
-        return set()
-    sig_arg_text = _extract_synopsis_signature_arg_text(line1)
-    if sig_arg_text is None:
-        return set()
-    synopsis_arg_names = [part.strip() for part in _split_c_args(sig_arg_text)]
-    if input_name not in synopsis_arg_names:
-        return set()
-    arg_index = synopsis_arg_names.index(input_name)
-    found: set[str] = set()
-    for arg_text in _iter_call_arg_texts(examples, func_match.group(1)):
-        args = [part.strip() for part in _split_c_args(arg_text)]
-        if arg_index >= len(args):
-            continue
-        value_text = args[arg_index]
-        for i in range(0, len(resolved_consts), 500):
-            batch = resolved_consts[i:i + 500]
-            pattern = r'\b(' + '|'.join(re.escape(n) for n in batch) + r')\b'
-            for match in re.finditer(pattern, value_text):
-                found.add(match.group(1))
-    return found
-
-
-def _iter_call_arg_texts(text: str, func_name: str) -> list[str]:
-    arg_texts: list[str] = []
-    pattern = re.compile(rf'\b{re.escape(func_name)}\s*\(')
-    for match in pattern.finditer(text):
-        start = match.end()
-        depth = 1
-        current: list[str] = []
-        for ch in text[start:]:
-            if ch == "(":
-                depth += 1
-            elif ch == ")":
-                depth -= 1
-                if depth == 0:
-                    arg_texts.append("".join(current).strip())
-                    break
-            if depth > 0:
-                current.append(ch)
-    return arg_texts
+def _struct_field_value_binding(
+    owner_struct: str,
+    field_name: str,
+    domain: str,
+    *,
+    context_name: str | None = None,
+    available_since: str = "1.0",
+) -> JsonDict:
+    binding: JsonDict = {
+        "struct": owner_struct,
+        "field": field_name,
+        "domain": domain,
+        "available_since": available_since,
+    }
+    if context_name is not None:
+        binding["context_name"] = context_name
+    return binding
 
 
 # =============================================================================
@@ -1042,67 +929,11 @@ def reconcile_clib_callback_types(output: JsonDict, include_h_dir: str) -> int:
     return updates
 
 
-_INPUT_SEMANTIC_ASSERTIONS: dict[tuple[str, str, str], dict[str, str]] = {
-    ("exec.library", "AddTask", "initPC"): {
-        "semantic_kind": "code_ptr",
-        "semantic_note": (
-            "Parser-authored: exec.library/AddTask uses initPC as the new task "
-            "entry point. NDK synopsis types it as APTR, so direct parse cannot "
-            "distinguish code from generic pointer data."
-        ),
-    },
-    ("exec.library", "AddTask", "finalPC"): {
-        "semantic_kind": "code_ptr",
-        "semantic_note": (
-            "Parser-authored: exec.library/AddTask uses finalPC as the task exit "
-            "handler entry point. NDK synopsis types it as APTR, so direct parse "
-            "cannot preserve callback semantics."
-        ),
-    },
-    ("exec.library", "ObtainQuickVector", "interruptCode"): {
-        "semantic_kind": "code_ptr",
-        "semantic_note": (
-            "Parser-authored: exec.library/ObtainQuickVector autodoc says the "
-            "function installs the code pointer into a quick interrupt vector. "
-            "NDK synopsis types it as APTR, so direct parse loses callback semantics."
-        ),
-    },
-    ("lowlevel.library", "AddKBInt", "intRoutine"): {
-        "semantic_kind": "code_ptr",
-        "semantic_note": (
-            "Parser-authored: lowlevel.library/AddKBInt autodoc says intRoutine is "
-            "called from the keyboard interrupt context. NDK synopsis types it as APTR, "
-            "so direct parse cannot preserve callback semantics."
-        ),
-    },
-    ("lowlevel.library", "AddTimerInt", "intRoutine"): {
-        "semantic_kind": "code_ptr",
-        "semantic_note": (
-            "Parser-authored: lowlevel.library/AddTimerInt autodoc says intRoutine is "
-            "called from timer interrupt context. NDK synopsis types it as APTR, "
-            "so direct parse cannot preserve callback semantics."
-        ),
-    },
-    ("lowlevel.library", "AddVBlankInt", "intRoutine"): {
-        "semantic_kind": "code_ptr",
-        "semantic_note": (
-            "Parser-authored: lowlevel.library/AddVBlankInt autodoc says intRoutine is "
-            "called from vertical blank interrupt context. NDK synopsis types it as APTR, "
-            "so direct parse cannot preserve callback semantics."
-        ),
-    },
-}
-
-
-def _apply_input_semantics(lib_name: str, func_name: str, entry: JsonDict) -> None:
+def _apply_input_semantics(entry: JsonDict) -> None:
     for inp in entry.get("inputs", []):
         semantic_kind = _infer_input_semantic_kind(inp.get("type"))
         if semantic_kind is not None:
             inp["semantic_kind"] = semantic_kind
-        assertion = _INPUT_SEMANTIC_ASSERTIONS.get((lib_name, func_name, inp["name"]))
-        if assertion is not None:
-            inp["semantic_kind"] = assertion["semantic_kind"]
-            inp["semantic_note"] = assertion["semantic_note"]
 
 
 # =============================================================================
@@ -1908,16 +1739,15 @@ def _parse_device_name(path: str, source: str, lines: list[str]) -> str | None:
     return next(iter(candidates))
 
 
-def parse_include_value_domains(
+def parse_include_value_bindings(
         path: str, evaluated_constants: dict[str, JsonDict]
-) -> tuple[dict[str, list[str]], dict[str, str], FieldValueDomainContexts]:
+) -> tuple[dict[str, list[str]], list[JsonDict]]:
     source = _include_source_from_path(path)
     with open(path, encoding="utf-8", errors="replace") as handle:
         lines = [line.rstrip() for line in handle]
 
     value_domains: dict[str, list[str]] = {}
-    field_value_domains: dict[str, str] = {}
-    field_context_value_domains: FieldValueDomainContexts = {}
+    field_bindings: list[JsonDict] = []
     prefix_constants, io_flags_prefix_constants = _parse_bitdef_constants(lines, evaluated_constants)
 
     if source == "EXEC/IO.I":
@@ -1926,22 +1756,22 @@ def parse_include_value_domains(
         if not command_names:
             raise ValueError("EXEC/IO.I is missing standard device commands")
         value_domains[command_domain_name] = command_names
-        field_value_domains[_field_key("IO", "IO_COMMAND")] = command_domain_name
+        field_bindings.append(_struct_field_value_binding("IO", "IO_COMMAND", command_domain_name))
 
         io_flag_names = prefix_constants.get("IO")
         if not io_flag_names:
             raise ValueError("EXEC/IO.I is missing IO flag bit definitions")
         flag_domain_name = "exec.io.flags"
         value_domains[flag_domain_name] = io_flag_names
-        field_value_domains[_field_key("IO", "IO_FLAGS")] = flag_domain_name
-        return value_domains, field_value_domains, field_context_value_domains
+        field_bindings.append(_struct_field_value_binding("IO", "IO_FLAGS", flag_domain_name))
+        return value_domains, field_bindings
 
     source_upper = source.upper()
     if not source_upper.startswith("DEVICES/"):
-        return value_domains, field_value_domains, field_context_value_domains
+        return value_domains, field_bindings
     device_commands = _parse_devcmd_constants(lines, evaluated_constants)
     if not device_commands:
-        return value_domains, field_value_domains, field_context_value_domains
+        return value_domains, field_bindings
 
     # Parser-asserted from exec/io.i DEVINIT/DEVCMD semantics:
     # device include DEVCMD values populate IO.IO_COMMAND for that device context.
@@ -1952,7 +1782,14 @@ def parse_include_value_domains(
     command_domain_name = f"{device_name}.io_command"
     etd_commands = _parse_prefixed_constant_names(lines, evaluated_constants, "ETD_")
     value_domains[command_domain_name] = device_commands + etd_commands
-    field_context_value_domains.setdefault(_field_key("IO", "IO_COMMAND"), {})[device_name] = command_domain_name
+    field_bindings.append(
+        _struct_field_value_binding(
+            "IO",
+            "IO_COMMAND",
+            command_domain_name,
+            context_name=device_name,
+        )
+    )
 
     io_flag_prefixes = sorted(io_flags_prefix_constants)
     if io_flag_prefixes:
@@ -1962,9 +1799,16 @@ def parse_include_value_domains(
             )
         flag_domain_name = f"{device_name}.io_flags"
         value_domains[flag_domain_name] = io_flags_prefix_constants[io_flag_prefixes[0]]
-        field_context_value_domains.setdefault(_field_key("IO", "IO_FLAGS"), {})[device_name] = flag_domain_name
+        field_bindings.append(
+            _struct_field_value_binding(
+                "IO",
+                "IO_FLAGS",
+                flag_domain_name,
+                context_name=device_name,
+            )
+        )
 
-    return value_domains, field_value_domains, field_context_value_domains
+    return value_domains, field_bindings
 
 
 # =============================================================================
@@ -2513,7 +2357,14 @@ def main() -> None:
     )
     parser.add_argument("ndk_root", help="Path to NDK root directory")
     parser.add_argument("--os-changes", help="Path to OS_CHANGES directory")
-    parser.add_argument("--outfile", default=str(AMIGA_OS_REFERENCE_JSON))
+    parser.add_argument(
+        "--includes-parsed-outfile",
+        default=str(AMIGA_OS_REFERENCE_INCLUDES_PARSED_JSON),
+    )
+    parser.add_argument(
+        "--other-parsed-outfile",
+        default=str(AMIGA_OS_REFERENCE_OTHER_PARSED_JSON),
+    )
     parser.add_argument("--hardware-outfile", default=str(AMIGA_HW_SYMBOLS_JSON))
     parser.add_argument("--hardware-only", action="store_true")
     args = parser.parse_args()
@@ -2841,49 +2692,9 @@ def main() -> None:
     # ========================================================================
     print("Building output...")
 
-    output = {
+    includes_output = {
         "_meta": {
-            "source": "NDK 3.1 + OS_CHANGES",
-            "ndk_path": ndk_root,
             "type_sizes": dict(sorted(type_sizes.items())),
-            "calling_convention": {
-                "scratch_regs": ["D0", "D1", "A0", "A1"],
-                "preserved_regs": ["D2", "D3", "D4", "D5", "D6", "D7",
-                                   "A2", "A3", "A4", "A5", "A6"],
-                "base_reg": "A6",
-                "return_reg": "D0",
-                "note": (
-                    "Parser-asserted: Amiga library calling convention from "
-                    "ROM Kernel Reference Manual, Libraries 3rd Ed, Ch7. "
-                    "D0-D1/A0-A1 are scratch (caller-saved). "
-                    "D2-D7/A2-A5 are preserved (callee-saved). "
-                    "A6 holds library base on entry, must be preserved. "
-                    "A7(SP) is stack pointer."
-                ),
-            },
-            "exec_base_addr": {
-                "address": 4,
-                "library": "exec.library",
-                "note": (
-                    "Parser-asserted: ExecBase pointer stored at absolute "
-                    "address $4. ROM Kernel Reference Manual, Exec chapter. "
-                    "All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6. "
-                    "The pointer is to the exec.library base structure."
-                ),
-            },
-            "absolute_symbols": [
-                {
-                    "address": 4,
-                    "name": "AbsExecBase",
-                    "note": (
-                        "Parser-asserted: ExecBase pointer stored at absolute "
-                        "address $4. ROM Kernel Reference Manual, Exec chapter. "
-                        "All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6. "
-                        "The pointer is to the exec.library base structure."
-                    ),
-                },
-            ],
-            "version_map": VERSION_MAP,
             "lvo_slot_size": LVO_SLOT_SIZE,
             "compatibility_versions": compatibility_kb["compatibility_versions"],
             "include_min_versions": compatibility_kb["include_min_versions"],
@@ -2892,9 +2703,20 @@ def main() -> None:
             "resident_vector_prefixes": compatibility_kb["resident_vector_prefixes"],
             "named_base_structs": named_base_structs,
             "value_domains": {},
-            "field_value_domains": {},
-            "field_context_value_domains": {},
+            "api_input_value_bindings": [],
+            "api_input_semantic_assertions": [],
+            "struct_field_value_bindings": [],
             "library_lvo_owners": include_kb["library_lvo_owners"],
+        },
+        "libraries": {},
+        "structs": {},
+        "constants": {},
+    }
+    other_output = {
+        "_meta": {
+            "source": "NDK autodocs and OS_CHANGES",
+            "ndk_path": ndk_root,
+            "version_map": VERSION_MAP,
             "version_fields_note": (
                 "Function version data is split: os_since is first known OS release, "
                 "while fd_version is the interface/library version marker from FD comments. "
@@ -2912,10 +2734,13 @@ def main() -> None:
 
     # --- Build libraries ---
     for lib_name, fd_info in sorted(fd_data.items()):
-        lib_entry = {
+        includes_lib_entry = {
             "base": fd_info["base"],
             "functions": {},
             "lvo_index": {},
+        }
+        other_lib_entry: JsonDict = {
+            "functions": {},
         }
 
         # Get OS_CHANGES version info for this library
@@ -2926,13 +2751,14 @@ def main() -> None:
         autodocs = autodoc_data.get(lib_name, {})
 
         for func_name, fd_func in fd_info["functions"].items():
-            entry = {
+            includes_entry = {
                 "lvo": fd_func["lvo"],
             }
+            other_entry: JsonDict = {}
 
             # Build inputs from FD args/regs
             if fd_func["args"]:
-                entry["inputs"] = [
+                includes_entry["inputs"] = [
                     {"name": a, "regs": list(r)}
                     for a, r in zip(fd_func["args"], fd_func["regs"], strict=True)
                 ]
@@ -2947,24 +2773,25 @@ def main() -> None:
                         doc["synopsis"], fd_func["args"], fd_func["regs"]
                     )
                     if parsed["inputs"]:
-                        entry["inputs"] = parsed["inputs"]
+                        other_entry["inputs"] = parsed["inputs"]
                     if parsed["output"]:
-                        entry["output"] = parsed["output"]
+                        other_entry["output"] = parsed["output"]
 
                 if "description" in doc:
-                    entry["description"] = doc["description"]
+                    other_entry["description"] = doc["description"]
                 if "notes" in doc:
-                    entry["notes"] = doc["notes"]
+                    other_entry["notes"] = doc["notes"]
                 if "bugs" in doc:
-                    entry["bugs"] = doc["bugs"]
+                    other_entry["bugs"] = doc["bugs"]
                 if "warning" in doc:
-                    entry["warning"] = doc["warning"]
+                    other_entry["warning"] = doc["warning"]
 
                 # No-return detection
                 if check_no_return(doc):
-                    entry["no_return"] = True
+                    other_entry["no_return"] = True
 
-            _apply_input_semantics(lib_name, func_name, entry)
+            _apply_input_semantics(includes_entry)
+            _apply_input_semantics(other_entry)
 
             # Detect functions that return a library/device/resource base.
             # Criteria (from autodoc-parsed output type + input signature):
@@ -2976,7 +2803,7 @@ def main() -> None:
             # OpenLibrary/OldOpenLibrary return library base in D0,
             # OpenResource returns resource base in D0. The name string
             # input tells us which library/resource is being opened.
-            func_output = entry.get("output", {})
+            func_output = other_entry.get("output", {})
             out_type = func_output.get("type", "")
             out_name = func_output.get("name", "")
             out_reg = func_output.get("reg")
@@ -2986,7 +2813,7 @@ def main() -> None:
             ):
                 # Find the name-string input register
                 name_inputs = [
-                    inp for inp in entry.get("inputs", [])
+                    inp for inp in other_entry.get("inputs", [])
                     if "name" in inp.get("name", "").lower()
                     and inp.get("type") in ("STRPTR", "APTR", "char *",
                                             "UBYTE *", "void *")
@@ -2996,7 +2823,7 @@ def main() -> None:
                         raise ValueError(
                             f"{lib_name}/{func_name}: returns_base name input must use one register"
                         )
-                    entry["returns_base"] = {
+                    other_entry["returns_base"] = {
                         "name_reg": name_inputs[0]["regs"][0],
                         "base_reg": out_reg,
                     }
@@ -3008,7 +2835,7 @@ def main() -> None:
             # Parser-asserted: ROM Kernel Manual, Memory Allocation chapter.
             # AllocMem returns memory block in D0, AllocVec likewise.
             # The size input register carries the allocation size.
-            if out_reg and not entry.get("returns_base"):
+            if out_reg and not other_entry.get("returns_base"):
                 is_alloc_return = False
                 if func_name.startswith("Alloc") and out_type in (
                         "void *", "APTR", "UBYTE *", "BYTE *",
@@ -3019,11 +2846,11 @@ def main() -> None:
                 if is_alloc_return:
                     # Find the size input register (byteSize, memSize, etc.)
                     size_inputs = [
-                        inp for inp in entry.get("inputs", [])
+                        inp for inp in other_entry.get("inputs", [])
                         if "size" in inp.get("name", "").lower()
                         or "bytesize" in inp.get("name", "").lower()
                     ]
-                    entry["returns_memory"] = {
+                    other_entry["returns_memory"] = {
                         "result_reg": out_reg,
                     }
                     if size_inputs:
@@ -3031,7 +2858,7 @@ def main() -> None:
                             raise ValueError(
                                 f"{lib_name}/{func_name}: returns_memory size input must use one register"
                             )
-                        entry["returns_memory"]["size_reg"] = \
+                        other_entry["returns_memory"]["size_reg"] = \
                             size_inputs[0]["regs"][0]
 
             os_since = fd_func.get("os_since")
@@ -3039,26 +2866,29 @@ def main() -> None:
                 os_since = oc_lib["functions"][func_name]
 
             if os_since:
-                entry["os_since"] = os_since
+                other_entry["os_since"] = os_since
             else:
-                entry["os_since"] = "1.0"
+                other_entry["os_since"] = "1.0"
             if fd_func.get("fd_version"):
-                entry["fd_version"] = fd_func["fd_version"]
+                includes_entry["fd_version"] = fd_func["fd_version"]
 
             # Private flag (only if true)
             if fd_func.get("private"):
-                entry["private"] = True
+                includes_entry["private"] = True
 
-            lib_entry["functions"][func_name] = entry
-            lib_entry["lvo_index"][str(fd_func["lvo"])] = func_name
+            includes_lib_entry["functions"][func_name] = includes_entry
+            if other_entry:
+                other_lib_entry["functions"][func_name] = other_entry
+            includes_lib_entry["lvo_index"][str(fd_func["lvo"])] = func_name
 
-        output["libraries"][lib_name] = lib_entry
+        includes_output["libraries"][lib_name] = includes_lib_entry
+        other_output["libraries"][lib_name] = other_lib_entry
 
     # Add functions from OS_CHANGES that are in libraries we have but not in our FD
     if os_version_map:
         for oc_lib_name, oc_lib_info in os_version_map["libraries"].items():
-            if oc_lib_name in output["libraries"]:
-                lib = output["libraries"][oc_lib_name]
+            if oc_lib_name in other_output["libraries"]:
+                lib = other_output["libraries"][oc_lib_name]
                 for func_name, ver in oc_lib_info["functions"].items():
                     if func_name not in lib["functions"]:
                         lib["functions"][func_name] = {
@@ -3067,90 +2897,61 @@ def main() -> None:
                         }
 
     # --- Build structs ---
-    output["structs"] = raw_structs
+    includes_output["structs"] = raw_structs
 
     # --- Build constants ---
-    output["constants"] = evaluated_constants
+    includes_output["constants"] = evaluated_constants
 
-    # ========================================================================
-    # 6a. Constant domains ? map functions to relevant constants
-    # ========================================================================
-    # Scan autodoc text (description, inputs, results, notes) for
-    # references to known constants.  Data-driven from NDK autodocs
-    # and the parsed constants dict.
-    print("Building constant domains...")
-    resolved_consts = {name for name, c in evaluated_constants.items()
-                       if c.get("value") is not None
-                       and re.match(r'^[A-Z][A-Z0-9_]+$', name)}
-    input_constant_domains: dict[str, dict[str, dict[str, list[str]]]] = {}
-    if resolved_consts:
-        # Build regex pattern (process in batches for regex size limits)
-        sorted_names = sorted(resolved_consts, key=len, reverse=True)
-        # Scan all autodocs for constant references
-        for lib_name, lib_autodocs in autodoc_data.items():
-            for func_name, doc in lib_autodocs.items():
-                input_names = [
-                    cast(str, inp["name"])
-                    for inp in output["libraries"].get(cast(str, doc["_lib_prefix"]), {}).get("functions", {}).get(func_name, {}).get("inputs", [])
-                    if "name" in inp
-                ]
-                if input_names:
-                    input_domains = _extract_input_constant_domains(
-                        doc,
-                        input_names,
-                        sorted_names,
-                    )
-                    if input_domains:
-                        input_constant_domains.setdefault(lib_name, {})[func_name] = input_domains
-    output["_meta"].pop("constant_domains", None)
-    output["_meta"]["input_constant_domains"] = input_constant_domains
-    print("Building field value domains...")
-    value_domains: dict[str, list[str]] = {}
-    field_value_domains: dict[str, str] = {}
-    field_context_value_domains: FieldValueDomainContexts = {}
+    print("Building value domains and bindings...")
+    parsed_value_domains: dict[str, list[str]] = {}
+    struct_field_value_bindings: list[JsonDict] = []
     for include_path in sorted(set(parsed_include_paths)):
-        include_value_domains, include_field_domains, include_field_context_domains = (
-            parse_include_value_domains(include_path, evaluated_constants)
+        include_value_domains, include_field_bindings = (
+            parse_include_value_bindings(include_path, evaluated_constants)
         )
         for domain_name, domain_constants in include_value_domains.items():
-            existing_domain_constants = value_domains.get(domain_name)
+            existing_domain_constants = parsed_value_domains.get(domain_name)
             if existing_domain_constants is not None and existing_domain_constants != domain_constants:
                 raise ValueError(
                     f"Conflicting value domain {domain_name}: {existing_domain_constants} vs {domain_constants}"
                 )
-            value_domains[domain_name] = domain_constants
-        for field_key, domain_name in include_field_domains.items():
-            existing_field_domain = field_value_domains.get(field_key)
-            if existing_field_domain is not None and existing_field_domain != domain_name:
-                raise ValueError(
-                    f"Conflicting field value domain for {field_key}: {existing_field_domain} vs {domain_name}"
-                )
-            field_value_domains[field_key] = domain_name
-        for field_key, contexts in include_field_context_domains.items():
-            merged = field_context_value_domains.setdefault(field_key, {})
-            for context_name, domain_name in contexts.items():
-                existing_context_domain = merged.get(context_name)
-                if existing_context_domain is not None and existing_context_domain != domain_name:
-                    raise ValueError(
-                        f"Conflicting field context value domain for {field_key}/{context_name}: "
-                        f"{existing_context_domain} vs {domain_name}"
-                    )
-                merged[context_name] = domain_name
-    output["_meta"]["value_domains"] = value_domains
-    output["_meta"]["field_value_domains"] = field_value_domains
-    output["_meta"]["field_context_value_domains"] = field_context_value_domains
-    input_cd_count = sum(
-        len(v)
-        for lib_domains in input_constant_domains.values()
-        for v in lib_domains.values()
+            parsed_value_domains[domain_name] = domain_constants
+        struct_field_value_bindings.extend(include_field_bindings)
+    struct_binding_keys: set[tuple[str, str, str | None]] = set()
+    for field_binding in struct_field_value_bindings:
+        struct_name = cast(str, field_binding["struct"])
+        field_name = cast(str, field_binding["field"])
+        domain_name = cast(str, field_binding["domain"])
+        context_name = cast(str | None, field_binding.get("context_name"))
+        struct_def = includes_output["structs"].get(struct_name)
+        if struct_def is None:
+            raise ValueError(f"Struct field value binding references missing struct {struct_name}")
+        if domain_name not in parsed_value_domains:
+            raise ValueError(
+                f"Struct field value binding references missing value domain {domain_name}"
+            )
+        if not any(cast(str, field["name"]) == field_name for field in struct_def["fields"]):
+            raise ValueError(
+                f"Struct field value binding references missing field {struct_name}.{field_name}"
+            )
+        struct_binding_key = (struct_name, field_name, context_name)
+        if struct_binding_key in struct_binding_keys:
+            raise ValueError(f"Duplicate struct field value binding for {struct_binding_key}")
+        struct_binding_keys.add(struct_binding_key)
+    includes_output["_meta"]["value_domains"] = parsed_value_domains
+    includes_output["_meta"]["api_input_value_bindings"] = []
+    includes_output["_meta"]["struct_field_value_bindings"] = sorted(
+        struct_field_value_bindings,
+        key=lambda binding: (
+            cast(str, binding["struct"]),
+            cast(str, binding["field"]),
+            cast(str, binding.get("context_name", "")),
+        ),
     )
-    input_cd_func_count = sum(len(lib_domains) for lib_domains in input_constant_domains.values())
-    print(f"  {input_cd_func_count} functions with "
-            f"{input_cd_count} input-specific constant domains")
     print(
-        f"  {len(value_domains)} value domains, "
-        f"{len(field_value_domains)} field domains, "
-        f"{sum(len(v) for v in field_context_value_domains.values())} field-context domains"
+        f"  {len(parsed_value_domains)} value domains, "
+        "0 API input bindings, "
+        f"{len(struct_field_value_bindings)} struct field bindings"
     )
 
     # ========================================================================
@@ -3205,7 +3006,7 @@ def main() -> None:
         # When a function input/output type is "struct Foo *", add
         # "i_struct": "BAR" if Foo -> BAR is in the mapping.
         enriched = 0
-        for lib in output["libraries"].values():
+        for lib in other_output["libraries"].values():
             for func in lib["functions"].values():
                 for inp in func.get("inputs", []):
                     i_ref = _resolve_struct_ref(
@@ -3222,59 +3023,75 @@ def main() -> None:
                         enriched += 1
         print(f"  {enriched} function signature types enriched with i_struct")
 
-        callback_updates = reconcile_clib_callback_types(output, include_h_dir)
+        callback_updates = (
+            reconcile_clib_callback_types(includes_output, include_h_dir)
+            + reconcile_clib_callback_types(other_output, include_h_dir)
+        )
         print(f"  {callback_updates} callback input types reconciled from clib headers")
 
-    output["_meta"]["struct_name_map"] = c_to_i_map
+    includes_output["_meta"]["struct_name_map"] = c_to_i_map
+    other_output["_meta"]["struct_name_map"] = c_to_i_map
 
     # ========================================================================
     # 7. Summary
     # ========================================================================
-    total_funcs = sum(len(v["functions"]) for v in output["libraries"].values())
+    merged_libraries = json.loads(json.dumps(includes_output["libraries"]))
+    for lib_name, other_library in other_output["libraries"].items():
+        merged_library = merged_libraries[lib_name]
+        for func_name, function_overlay in other_library["functions"].items():
+            if func_name not in merged_library["functions"]:
+                merged_library["functions"][func_name] = function_overlay
+                continue
+            merged_library["functions"][func_name].update(function_overlay)
+
+    total_funcs = sum(len(v["functions"]) for v in merged_libraries.values())
     documented = sum(
-        1 for lib in output["libraries"].values()
+        1 for lib in merged_libraries.values()
         for f in lib["functions"].values()
         if "description" in f
     )
     no_return_count = sum(
-        1 for lib in output["libraries"].values()
+        1 for lib in merged_libraries.values()
         for f in lib["functions"].values()
         if f.get("no_return")
     )
     with_types = sum(
-        1 for lib in output["libraries"].values()
+        1 for lib in merged_libraries.values()
         for f in lib["functions"].values()
         if any("type" in inp for inp in f.get("inputs", []))
     )
     structs_with_offsets = sum(
-        1 for s in output["structs"].values()
+        1 for s in includes_output["structs"].values()
         if s.get("fields") and any("offset" in field for field in s["fields"])
     )
-    constants_resolved = sum(1 for v in output["constants"].values() if v["value"] is not None)
+    constants_resolved = sum(1 for v in includes_output["constants"].values() if v["value"] is not None)
 
     print(f"\n{'=' * 60}")
-    print(f"Libraries/devices/resources: {len(output['libraries'])}")
+    print(f"Libraries/devices/resources: {len(merged_libraries)}")
     print(f"Total functions:             {total_funcs}")
     print(f"  With documentation:        {documented}")
     print(f"  With typed inputs:         {with_types}")
     print(f"  No-return functions:       {no_return_count}")
-    print(f"Structs:                     {len(output['structs'])}")
+    print(f"Structs:                     {len(includes_output['structs'])}")
     print(f"  With computed offsets:      {structs_with_offsets}")
-    print(f"Constants:                   {len(output['constants'])}")
+    print(f"Constants:                   {len(includes_output['constants'])}")
     print(f"  Resolved to values:        {constants_resolved}")
 
     # ========================================================================
     # 8. Write output
     # ========================================================================
-    outdir = os.path.dirname(args.outfile)
-    if outdir and not os.path.isdir(outdir):
-        os.makedirs(outdir, exist_ok=True)
+    for outpath in (args.includes_parsed_outfile, args.other_parsed_outfile):
+        outdir = os.path.dirname(outpath)
+        if outdir and not os.path.isdir(outdir):
+            os.makedirs(outdir, exist_ok=True)
 
-    with open(args.outfile, "w", encoding="utf-8") as f:
-        json.dump(canonicalize_json(output), f, indent=2, ensure_ascii=False)
+    with open(args.includes_parsed_outfile, "w", encoding="utf-8") as f:
+        json.dump(canonicalize_json(includes_output), f, indent=2, ensure_ascii=False)
+    with open(args.other_parsed_outfile, "w", encoding="utf-8") as f:
+        json.dump(canonicalize_json(other_output), f, indent=2, ensure_ascii=False)
 
-    fsize = os.path.getsize(args.outfile)
-    print(f"\nWrote {args.outfile} ({fsize:,} bytes)")
+    print(f"\nWrote {args.includes_parsed_outfile} ({os.path.getsize(args.includes_parsed_outfile):,} bytes)")
+    print(f"Wrote {args.other_parsed_outfile} ({os.path.getsize(args.other_parsed_outfile):,} bytes)")
     for runtime_out in build_runtime_artifacts():
         print(f"Wrote {runtime_out}")
 

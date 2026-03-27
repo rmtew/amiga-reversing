@@ -77,6 +77,7 @@ def main(argv: list[str]) -> int:
     steps: list[list[str]] = [
         ["uv", "run", "ruff", "check"],
         ["uv", "run", "mypy"],
+        ["uv", "run", "python", "scripts/check_mojibake.py"],
     ]
     if _needs_runtime_coverage(changed_files):
         steps.append(["uv", "run", "pytest", "-q", "-m", "runtime_coverage"])

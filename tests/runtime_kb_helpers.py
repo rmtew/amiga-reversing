@@ -8,6 +8,10 @@ from pathlib import Path
 from types import ModuleType
 from typing import TypeVar, cast
 
+from kb.os_reference import (
+    load_split_os_reference_payloads,
+    merge_os_reference_payloads,
+)
 from kb.schemas import (
     HardwareSymbolsPayload,
     HunkFormatPayload,
@@ -38,7 +42,30 @@ def load_canonical_m68k_kb() -> M68kInstructionsPayload:
 
 @lru_cache(maxsize=1)
 def load_canonical_os_kb() -> OsReferencePayload:
-    return cast(OsReferencePayload, _load_json("amiga_os_reference.json"))
+    includes, other, corrections = load_split_os_reference_payloads()
+    return cast(
+        OsReferencePayload,
+        merge_os_reference_payloads(
+            includes=includes,
+            other=other,
+            corrections=corrections,
+        ),
+    )
+
+
+@lru_cache(maxsize=1)
+def load_canonical_os_kb_includes_parsed() -> OsReferencePayload:
+    return cast(OsReferencePayload, _load_json("amiga_ndk_includes_parsed.json"))
+
+
+@lru_cache(maxsize=1)
+def load_canonical_os_kb_other_parsed() -> OsReferencePayload:
+    return cast(OsReferencePayload, _load_json("amiga_ndk_other_parsed.json"))
+
+
+@lru_cache(maxsize=1)
+def load_canonical_os_kb_corrections() -> OsReferencePayload:
+    return cast(OsReferencePayload, _load_json("amiga_ndk_corrections.json"))
 
 
 @lru_cache(maxsize=1)
@@ -198,8 +225,8 @@ def load_os_runtime_kb() -> ModuleType:
     for name in (
         "META",
         "VALUE_DOMAINS",
-        "FIELD_VALUE_DOMAINS",
-        "FIELD_CONTEXT_VALUE_DOMAINS",
+        "API_INPUT_VALUE_DOMAINS",
+        "STRUCT_FIELD_VALUE_DOMAINS",
         "STRUCTS",
         "CONSTANTS",
         "LIBRARIES",

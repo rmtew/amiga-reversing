@@ -10,8 +10,8 @@ def make_empty_os_kb() -> OsKb:
     return SimpleNamespace(
         META=runtime_os.META,
         VALUE_DOMAINS={},
-        FIELD_VALUE_DOMAINS={},
-        FIELD_CONTEXT_VALUE_DOMAINS={},
+        API_INPUT_VALUE_DOMAINS={},
+        STRUCT_FIELD_VALUE_DOMAINS={},
         STRUCTS={},
         CONSTANTS={},
         LIBRARIES={},

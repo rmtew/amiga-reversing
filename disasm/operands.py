@@ -412,12 +412,14 @@ def _field_domain_constant_name(field_metadata: StructFieldOperandMetadata,
                                 ) -> str | None:
     field_key = f"{field_metadata.owner_struct}.{field_metadata.field_symbol}"
     domain_names: list[str] = []
-    context_domains = hunk_session.os_kb.FIELD_CONTEXT_VALUE_DOMAINS.get(field_key)
-    if context_domains is not None and field_metadata.context_name is not None:
-        context_domain_name = context_domains.get(field_metadata.context_name)
+    field_domains = hunk_session.os_kb.STRUCT_FIELD_VALUE_DOMAINS.get(field_key)
+    if field_domains is None:
+        return None
+    if field_metadata.context_name is not None:
+        context_domain_name = field_domains.get(field_metadata.context_name)
         if context_domain_name is not None:
             domain_names.append(context_domain_name)
-    base_domain_name = hunk_session.os_kb.FIELD_VALUE_DOMAINS.get(field_key)
+    base_domain_name = field_domains.get(None)
     if base_domain_name is not None:
         domain_names.append(base_domain_name)
     for domain_name in domain_names:

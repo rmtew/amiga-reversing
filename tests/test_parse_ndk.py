@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import cast
 
 from kb.ndk_parser import (
-    _extract_input_constant_domains,
     _map_clib_args_to_inputs,
     build_os_compatibility_kb,
     build_os_include_kb,
@@ -11,10 +10,12 @@ from kb.ndk_parser import (
     parse_callback_typedefs,
     parse_clib_prototypes,
     parse_fd_file,
-    parse_include_value_domains,
+    parse_include_value_bindings,
     parse_synopsis,
     reconcile_clib_callback_types,
 )
+from kb.os_reference import load_os_reference_payload
+from kb.paths import AMIGA_OS_REFERENCE_CORRECTIONS_JSON
 
 
 def test_parse_clib_prototypes_preserves_function_pointer_args(
@@ -361,7 +362,7 @@ def test_reconcile_clib_callback_types_updates_semantics_via_typedefs(
     assert callback["semantic_kind"] == "code_ptr"
 
 
-def test_parse_include_value_domains_extracts_exec_io_domains(tmp_path: Path) -> None:
+def test_parse_include_value_bindings_extracts_exec_io_domains(tmp_path: Path) -> None:
     exec_dir = tmp_path / "Include_I" / "Exec"
     exec_dir.mkdir(parents=True)
     include_path = exec_dir / "IO.I"
@@ -392,7 +393,7 @@ def test_parse_include_value_domains_extracts_exec_io_domains(tmp_path: Path) ->
         "IOF_QUICK": "(1<<0)",
     })
 
-    value_domains, field_domains, field_contexts = parse_include_value_domains(
+    value_domains, field_bindings = parse_include_value_bindings(
         str(include_path),
         constants,
     )
@@ -405,14 +406,13 @@ def test_parse_include_value_domains_extracts_exec_io_domains(tmp_path: Path) ->
         "CMD_NONSTD",
     ]
     assert value_domains["exec.io.flags"] == ["IOF_QUICK"]
-    assert field_domains == {
-        "IO.IO_COMMAND": "exec.io.command",
-        "IO.IO_FLAGS": "exec.io.flags",
-    }
-    assert field_contexts == {}
+    assert field_bindings == [
+        {"struct": "IO", "field": "IO_COMMAND", "domain": "exec.io.command", "available_since": "1.0"},
+        {"struct": "IO", "field": "IO_FLAGS", "domain": "exec.io.flags", "available_since": "1.0"},
+    ]
 
 
-def test_parse_include_value_domains_extracts_trackdisk_context_domains(tmp_path: Path) -> None:
+def test_parse_include_value_bindings_extracts_trackdisk_context_domains(tmp_path: Path) -> None:
     devices_dir = tmp_path / "Include_I" / "Devices"
     devices_dir.mkdir(parents=True)
     include_path = devices_dir / "TRACKDISK.I"
@@ -444,12 +444,11 @@ def test_parse_include_value_domains_extracts_trackdisk_context_domains(tmp_path
         "IOTDF_WORDSYNC": "(1<<5)",
     })
 
-    value_domains, field_domains, field_contexts = parse_include_value_domains(
+    value_domains, field_bindings = parse_include_value_bindings(
         str(include_path),
         constants,
     )
 
-    assert field_domains == {}
     assert value_domains["trackdisk.device.io_command"] == [
         "TD_MOTOR",
         "TD_RAWREAD",
@@ -457,13 +456,25 @@ def test_parse_include_value_domains_extracts_trackdisk_context_domains(tmp_path
         "ETD_RAWREAD",
     ]
     assert value_domains["trackdisk.device.io_flags"] == ["IOTDF_WORDSYNC"]
-    assert field_contexts == {
-        "IO.IO_COMMAND": {"trackdisk.device": "trackdisk.device.io_command"},
-        "IO.IO_FLAGS": {"trackdisk.device": "trackdisk.device.io_flags"},
-    }
+    assert field_bindings == [
+        {
+            "struct": "IO",
+            "field": "IO_COMMAND",
+            "domain": "trackdisk.device.io_command",
+            "context_name": "trackdisk.device",
+            "available_since": "1.0",
+        },
+        {
+            "struct": "IO",
+            "field": "IO_FLAGS",
+            "domain": "trackdisk.device.io_flags",
+            "context_name": "trackdisk.device",
+            "available_since": "1.0",
+        },
+    ]
 
 
-def test_parse_include_value_domains_extracts_generic_device_context_domains(tmp_path: Path) -> None:
+def test_parse_include_value_bindings_extracts_generic_device_context_domains(tmp_path: Path) -> None:
     devices_dir = tmp_path / "Include_I" / "Devices"
     devices_dir.mkdir(parents=True)
     include_path = devices_dir / "TIMER.I"
@@ -486,197 +497,189 @@ def test_parse_include_value_domains_extracts_generic_device_context_domains(tmp
         "IOTRF_QUICK": "(1<<0)",
     })
 
-    value_domains, field_domains, field_contexts = parse_include_value_domains(
+    value_domains, field_bindings = parse_include_value_bindings(
         str(include_path),
         constants,
     )
 
-    assert field_domains == {}
     assert value_domains["timer.device.io_command"] == ["TR_ADDREQUEST"]
     assert value_domains["timer.device.io_flags"] == ["IOTRF_QUICK"]
-    assert field_contexts == {
-        "IO.IO_COMMAND": {"timer.device": "timer.device.io_command"},
-        "IO.IO_FLAGS": {"timer.device": "timer.device.io_flags"},
+    assert field_bindings == [
+        {
+            "struct": "IO",
+            "field": "IO_COMMAND",
+            "domain": "timer.device.io_command",
+            "context_name": "timer.device",
+            "available_since": "1.0",
+        },
+        {
+            "struct": "IO",
+            "field": "IO_FLAGS",
+            "domain": "timer.device.io_flags",
+            "context_name": "timer.device",
+            "available_since": "1.0",
+        },
+    ]
+
+
+def test_corrections_json_exposes_explicit_api_value_bindings() -> None:
+    corrections = load_os_reference_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
+    calling_convention = corrections["_meta"]["calling_convention"]
+    exec_base_addr = corrections["_meta"]["exec_base_addr"]
+    absolute_symbols = corrections["_meta"]["absolute_symbols"]
+    value_domains = corrections["_meta"]["value_domains"]
+    bindings = corrections["_meta"]["api_input_value_bindings"]
+    semantic_assertions = corrections["_meta"]["api_input_semantic_assertions"]
+
+    assert calling_convention == {
+        "scratch_regs": ["D0", "D1", "A0", "A1"],
+        "preserved_regs": ["D2", "D3", "D4", "D5", "D6", "D7", "A2", "A3", "A4", "A5", "A6"],
+        "base_reg": "A6",
+        "return_reg": "D0",
+        "note": "Parser-asserted: Amiga library calling convention from ROM Kernel Reference Manual, Libraries 3rd Ed, Ch7. D0-D1/A0-A1 are scratch (caller-saved). D2-D7/A2-A5 are preserved (callee-saved). A6 holds library base on entry, must be preserved. A7(SP) is stack pointer.",
+        "seed_origin": "primary_doc",
+        "review_status": "seeded",
+        "citation": "ROM Kernel Reference Manual, Libraries 3rd Ed, Chapter 7",
     }
-
-
-def test_extract_input_constant_domains_uses_input_sections_when_available() -> None:
-    doc = {
-        "inputs_text": (
-            "handle - file handle\n\n"
-            "mode - OFFSET_BEGINNING, OFFSET_CURRENT or OFFSET_END\n\n"
-            "flags - ignored here\n"
-        )
+    assert exec_base_addr == {
+        "address": 4,
+        "library": "exec.library",
+        "note": "Parser-asserted: ExecBase pointer stored at absolute address $4. ROM Kernel Reference Manual, Exec chapter. All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6. The pointer is to the exec.library base structure.",
+        "seed_origin": "primary_doc",
+        "review_status": "seeded",
+        "citation": "ROM Kernel Reference Manual, Exec chapter",
     }
-
-    input_domains = _extract_input_constant_domains(
-        doc,
-        ["handle", "mode", "flags"],
-        ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END", "CONFLAG_DEFAULT"],
-    )
-
-    assert input_domains == {
-        "mode": ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
+    assert absolute_symbols == [
+        {
+            "address": 4,
+            "name": "AbsExecBase",
+            "note": "Parser-asserted: ExecBase pointer stored at absolute address $4. ROM Kernel Reference Manual, Exec chapter. All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6. The pointer is to the exec.library base structure.",
+            "seed_origin": "primary_doc",
+            "review_status": "seeded",
+            "citation": "ROM Kernel Reference Manual, Exec chapter",
+        },
+    ]
+    assert value_domains == {
+        "exec.allocmem.attributes": ["MEMF_CHIP", "MEMF_FAST", "MEMF_PUBLIC"],
+        "exec.signal_mask": ["SIGBREAKF_CTRL_C"],
+        "dos.seek.mode": ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
+        "dos.lock.access_mode": ["ACCESS_READ", "ACCESS_WRITE"],
+        "dos.open.access_mode": ["MODE_NEWFILE", "MODE_OLDFILE", "MODE_READWRITE"],
     }
-
-
-def test_extract_input_constant_domains_uses_named_description_paragraphs() -> None:
-    doc = {
-        "description": (
-            "Seek() sets the file position.\n\n"
-            "'mode' can be OFFSET_BEGINNING, OFFSET_CURRENT or OFFSET_END.\n"
-            "It specifies the relative start position.\n"
-        )
-    }
-
-    input_domains = _extract_input_constant_domains(
-        doc,
-        ["file", "position", "mode"],
-        ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
-    )
-
-    assert input_domains == {
-        "mode": ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
-    }
-
-
-def test_extract_input_constant_domains_handles_wrapped_named_description_sentence() -> None:
-    doc = {
-        "description": (
-            "Seek() sets the read/write cursor for the file 'file' to the\n"
-            "position 'position'. This position is used by both Read() and\n"
-            "Write() as a place to start reading or writing. The result is the\n"
-            "current absolute position in the file, or -1 if an error occurs, in\n"
-            "which case IoErr() can be used to find more information. 'mode' can\n"
-            "be OFFSET_BEGINNING, OFFSET_CURRENT or OFFSET_END. It is used to\n"
-            "specify the relative start position.\n"
-        )
-    }
-
-    input_domains = _extract_input_constant_domains(
-        doc,
-        ["file", "position", "mode"],
-        ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
-    )
-
-    assert input_domains == {
-        "mode": ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
-    }
-
-
-def test_extract_input_constant_domains_attaches_nested_input_section_constants_to_attributes() -> None:
-    doc = {
-        "inputs_text": (
-            "byteSize - requested size\n\n"
-            "attributes -\n"
-            "    requirements\n\n"
-            "\tMEMF_CHIP:\tchip memory\n\n"
-            "\tMEMF_FAST:\tfast memory\n\n"
-            "\tMEMF_PUBLIC:\tpublic memory\n"
-        )
-    }
-
-    input_domains = _extract_input_constant_domains(
-        doc,
-        ["byteSize", "attributes"],
-        ["MEMF_CHIP", "MEMF_FAST", "MEMF_PUBLIC"],
-    )
-
-    assert input_domains == {
-        "attributes": ["MEMF_CHIP", "MEMF_FAST", "MEMF_PUBLIC"],
-    }
-
-
-def test_extract_input_constant_domains_uses_unquoted_named_description_lines() -> None:
-    doc = {
-        "description": (
-            "If the accessMode is ACCESS_READ, the lock is a shared read lock;\n"
-            "if the accessMode is ACCESS_WRITE then it is an exclusive write\n"
-            "lock.\n"
-        )
-    }
-
-    input_domains = _extract_input_constant_domains(
-        doc,
-        ["name", "accessMode"],
-        ["ACCESS_READ", "ACCESS_WRITE"],
-    )
-
-    assert input_domains == {
-        "accessMode": ["ACCESS_READ", "ACCESS_WRITE"],
-    }
-
-
-def test_extract_input_constant_domains_keeps_open_modes_from_same_paragraph() -> None:
-    doc = {
-        "description": (
-            "The named file is opened and a file handle returned. If the\n"
-            "accessMode is MODE_OLDFILE, an existing file is opened for reading\n"
-            "or writing. If the value is MODE_NEWFILE, a new file is created for\n"
-            "writing. MODE_READWRITE opens a file with an shared lock, but\n"
-            "creates it if it didn't exist.\n"
-        )
-    }
-
-    input_domains = _extract_input_constant_domains(
-        doc,
-        ["name", "accessMode"],
-        ["MODE_OLDFILE", "MODE_NEWFILE", "MODE_READWRITE"],
-    )
-
-    assert input_domains == {
-        "accessMode": ["MODE_NEWFILE", "MODE_OLDFILE", "MODE_READWRITE"],
-    }
-
-
-def test_extract_input_constant_domains_uses_examples_for_signal_masks() -> None:
-    doc = {
-        "synopsis": (
-            "oldSignals = SetSignal(newSignals, signalMask)\n"
-            "D0                 D0          D1\n"
-        ),
-        "inputs_text": (
-            "newSignals - the new values for the signals specified in\n"
-            "             signalMask.\n"
-            "signalMask - the set of signals to be affected.\n"
-        ),
-        "description": "This function can query or modify the current task's signals.",
-        "examples": (
-            "SetSignal(0L,SIGBREAKF_CTRL_C);\n"
-            "if(SetSignal(0L,SIGBREAKF_CTRL_C) & SIGBREAKF_CTRL_C)\n"
-        ),
-    }
-
-    input_domains = _extract_input_constant_domains(
-        doc,
-        ["newSignals", "signalMask"],
-        ["SIGBREAKF_CTRL_C"],
-    )
-
-    assert input_domains == {
-        "signalMask": ["SIGBREAKF_CTRL_C"],
-    }
-
-
-def test_extract_input_constant_domains_does_not_infer_open_device_domains_from_generic_docs() -> None:
-    doc = {
-        "inputs_text": (
-            "devName - requested device name\n\n"
-            "unitNumber - the unit number to open on that device. If the device does\n"
-            "not have separate units, send a zero.\n\n"
-            "iORequest - request block to initialize\n\n"
-            "flags - additional driver specific information. This is sometimes\n"
-            "used to request opening a device with exclusive access.\n"
-        )
-    }
-
-    input_domains = _extract_input_constant_domains(
-        doc,
-        ["devName", "unitNumber", "iORequest", "flags"],
-        ["CONFLAG_DEFAULT", "CONU_STANDARD", "CMD_WRITE"],
-    )
-
-    assert input_domains == {}
+    assert bindings == [
+        {
+            "library": "dos.library",
+            "function": "Lock",
+            "input": "accessMode",
+            "domain": "dos.lock.access_mode",
+            "available_since": "1.0",
+            "seed_origin": "include",
+            "review_status": "seeded",
+            "citation": "dos/dosextens.i Open() access mode constants",
+        },
+        {
+            "library": "dos.library",
+            "function": "Open",
+            "input": "accessMode",
+            "domain": "dos.open.access_mode",
+            "available_since": "1.0",
+            "seed_origin": "include",
+            "review_status": "seeded",
+            "citation": "dos/dosextens.i Open() access mode constants",
+        },
+        {
+            "library": "dos.library",
+            "function": "Seek",
+            "input": "mode",
+            "domain": "dos.seek.mode",
+            "available_since": "1.0",
+            "seed_origin": "include",
+            "review_status": "seeded",
+            "citation": "dos/dos.i Seek() mode constants",
+        },
+        {
+            "library": "exec.library",
+            "function": "AllocMem",
+            "input": "attributes",
+            "domain": "exec.allocmem.attributes",
+            "available_since": "1.0",
+            "seed_origin": "include",
+            "review_status": "seeded",
+            "citation": "exec/memory.i MEMF_* constants",
+        },
+        {
+            "library": "exec.library",
+            "function": "SetSignal",
+            "input": "signalMask",
+            "domain": "exec.signal_mask",
+            "available_since": "1.0",
+            "seed_origin": "include",
+            "review_status": "seeded",
+            "citation": "exec/signals.i SIGBREAKF_* constants",
+        },
+    ]
+    assert semantic_assertions == [
+        {
+            "library": "exec.library",
+            "function": "AddTask",
+            "input": "finalPC",
+            "semantic_kind": "code_ptr",
+            "semantic_note": "Parser-authored: exec.library/AddTask uses finalPC as the task exit handler entry point. NDK synopsis types it as APTR, so direct parse cannot preserve callback semantics.",
+            "seed_origin": "autodoc",
+            "review_status": "seeded",
+            "citation": "exec.library autodoc AddTask",
+        },
+        {
+            "library": "exec.library",
+            "function": "AddTask",
+            "input": "initPC",
+            "semantic_kind": "code_ptr",
+            "semantic_note": "Parser-authored: exec.library/AddTask uses initPC as the new task entry point. NDK synopsis types it as APTR, so direct parse cannot distinguish code from generic pointer data.",
+            "seed_origin": "autodoc",
+            "review_status": "seeded",
+            "citation": "exec.library autodoc AddTask",
+        },
+        {
+            "library": "exec.library",
+            "function": "ObtainQuickVector",
+            "input": "interruptCode",
+            "semantic_kind": "code_ptr",
+            "semantic_note": "Parser-authored: exec.library/ObtainQuickVector autodoc says the function installs the code pointer into a quick interrupt vector. NDK synopsis types it as APTR, so direct parse loses callback semantics.",
+            "seed_origin": "autodoc",
+            "review_status": "seeded",
+            "citation": "exec.library autodoc ObtainQuickVector",
+        },
+        {
+            "library": "lowlevel.library",
+            "function": "AddKBInt",
+            "input": "intRoutine",
+            "semantic_kind": "code_ptr",
+            "semantic_note": "Parser-authored: lowlevel.library/AddKBInt autodoc says intRoutine is called from the keyboard interrupt context. NDK synopsis types it as APTR, so direct parse cannot preserve callback semantics.",
+            "seed_origin": "autodoc",
+            "review_status": "seeded",
+            "citation": "lowlevel.library autodoc AddKBInt",
+        },
+        {
+            "library": "lowlevel.library",
+            "function": "AddTimerInt",
+            "input": "intRoutine",
+            "semantic_kind": "code_ptr",
+            "semantic_note": "Parser-authored: lowlevel.library/AddTimerInt autodoc says intRoutine is called from timer interrupt context. NDK synopsis types it as APTR, so direct parse cannot preserve callback semantics.",
+            "seed_origin": "autodoc",
+            "review_status": "seeded",
+            "citation": "lowlevel.library autodoc AddTimerInt",
+        },
+        {
+            "library": "lowlevel.library",
+            "function": "AddVBlankInt",
+            "input": "intRoutine",
+            "semantic_kind": "code_ptr",
+            "semantic_note": "Parser-authored: lowlevel.library/AddVBlankInt autodoc says intRoutine is called from vertical blank interrupt context. NDK synopsis types it as APTR, so direct parse cannot preserve callback semantics.",
+            "seed_origin": "autodoc",
+            "review_status": "seeded",
+            "citation": "lowlevel.library autodoc AddVBlankInt",
+        },
+    ]
 
 
 def test_parse_synopsis_prefers_prototype_argument_names_over_fd_names() -> None:
@@ -693,35 +696,6 @@ def test_parse_synopsis_prefers_prototype_argument_names_over_fd_names() -> None
     )
 
     assert [inp["name"] for inp in parsed["inputs"]] == ["file", "position", "mode"]
-
-
-def test_input_constant_domains_follow_synopsis_prototype_argument_names() -> None:
-    parsed = parse_synopsis(
-        "\n".join([
-            "LONG = Seek(file, position, mode)",
-            "          D0    D1    D2        D3",
-            "BPTR file;",
-            "LONG position;",
-            "LONG mode;",
-        ]),
-        ["file", "position", "offset"],
-        [["d1"], ["d2"], ["d3"]],
-    )
-    input_domains = _extract_input_constant_domains(
-        {
-            "inputs_text": (
-                "file - file handle\n\n"
-                "position - byte offset\n\n"
-                "mode - OFFSET_BEGINNING, OFFSET_CURRENT or OFFSET_END\n"
-            )
-        },
-        [str(inp["name"]) for inp in parsed["inputs"]],
-        ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
-    )
-
-    assert input_domains == {
-        "mode": ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
-    }
 
 
 def test_parse_synopsis_ignores_trailing_signature_annotations() -> None:

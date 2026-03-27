@@ -1,0 +1,191 @@
+{
+  "_meta": {
+    "calling_convention": {
+      "base_reg": "A6",
+      "citation": "ROM Kernel Reference Manual, Libraries 3rd Ed, Chapter 7",
+      "note": "Parser-asserted: Amiga library calling convention from ROM Kernel Reference Manual, Libraries 3rd Ed, Ch7. D0-D1/A0-A1 are scratch (caller-saved). D2-D7/A2-A5 are preserved (callee-saved). A6 holds library base on entry, must be preserved. A7(SP) is stack pointer.",
+      "preserved_regs": [
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6"
+      ],
+      "return_reg": "D0",
+      "scratch_regs": [
+        "D0",
+        "D1",
+        "A0",
+        "A1"
+      ],
+      "seed_origin": "primary_doc",
+      "review_status": "seeded"
+    },
+    "exec_base_addr": {
+      "address": 4,
+      "citation": "ROM Kernel Reference Manual, Exec chapter",
+      "library": "exec.library",
+      "note": "Parser-asserted: ExecBase pointer stored at absolute address $4. ROM Kernel Reference Manual, Exec chapter. All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6. The pointer is to the exec.library base structure.",
+      "seed_origin": "primary_doc",
+      "review_status": "seeded"
+    },
+    "absolute_symbols": [
+      {
+        "address": 4,
+        "citation": "ROM Kernel Reference Manual, Exec chapter",
+        "name": "AbsExecBase",
+        "note": "Parser-asserted: ExecBase pointer stored at absolute address $4. ROM Kernel Reference Manual, Exec chapter. All Amiga programs load ExecBase via MOVEA.L ($0004).W,A6. The pointer is to the exec.library base structure.",
+        "seed_origin": "primary_doc",
+        "review_status": "seeded"
+      }
+    ],
+    "value_domains": {
+      "dos.lock.access_mode": [
+        "ACCESS_READ",
+        "ACCESS_WRITE"
+      ],
+      "dos.open.access_mode": [
+        "MODE_NEWFILE",
+        "MODE_OLDFILE",
+        "MODE_READWRITE"
+      ],
+      "dos.seek.mode": [
+        "OFFSET_BEGINNING",
+        "OFFSET_CURRENT",
+        "OFFSET_END"
+      ],
+      "exec.allocmem.attributes": [
+        "MEMF_CHIP",
+        "MEMF_FAST",
+        "MEMF_PUBLIC"
+      ],
+      "exec.signal_mask": [
+        "SIGBREAKF_CTRL_C"
+      ]
+    },
+    "api_input_value_bindings": [
+      {
+        "available_since": "1.0",
+        "citation": "dos/dosextens.i Open() access mode constants",
+        "domain": "dos.lock.access_mode",
+        "function": "Lock",
+        "input": "accessMode",
+        "library": "dos.library",
+        "seed_origin": "include",
+        "review_status": "seeded"
+      },
+      {
+        "available_since": "1.0",
+        "citation": "dos/dosextens.i Open() access mode constants",
+        "domain": "dos.open.access_mode",
+        "function": "Open",
+        "input": "accessMode",
+        "library": "dos.library",
+        "seed_origin": "include",
+        "review_status": "seeded"
+      },
+      {
+        "available_since": "1.0",
+        "citation": "dos/dos.i Seek() mode constants",
+        "domain": "dos.seek.mode",
+        "function": "Seek",
+        "input": "mode",
+        "library": "dos.library",
+        "seed_origin": "include",
+        "review_status": "seeded"
+      },
+      {
+        "available_since": "1.0",
+        "citation": "exec/memory.i MEMF_* constants",
+        "domain": "exec.allocmem.attributes",
+        "function": "AllocMem",
+        "input": "attributes",
+        "library": "exec.library",
+        "seed_origin": "include",
+        "review_status": "seeded"
+      },
+      {
+        "available_since": "1.0",
+        "citation": "exec/signals.i SIGBREAKF_* constants",
+        "domain": "exec.signal_mask",
+        "function": "SetSignal",
+        "input": "signalMask",
+        "library": "exec.library",
+        "seed_origin": "include",
+        "review_status": "seeded"
+      }
+    ],
+    "api_input_semantic_assertions": [
+      {
+        "citation": "exec.library autodoc AddTask",
+        "function": "AddTask",
+        "input": "finalPC",
+        "library": "exec.library",
+        "semantic_kind": "code_ptr",
+        "semantic_note": "Parser-authored: exec.library/AddTask uses finalPC as the task exit handler entry point. NDK synopsis types it as APTR, so direct parse cannot preserve callback semantics.",
+        "seed_origin": "autodoc",
+        "review_status": "seeded"
+      },
+      {
+        "citation": "exec.library autodoc AddTask",
+        "function": "AddTask",
+        "input": "initPC",
+        "library": "exec.library",
+        "semantic_kind": "code_ptr",
+        "semantic_note": "Parser-authored: exec.library/AddTask uses initPC as the new task entry point. NDK synopsis types it as APTR, so direct parse cannot distinguish code from generic pointer data.",
+        "seed_origin": "autodoc",
+        "review_status": "seeded"
+      },
+      {
+        "citation": "exec.library autodoc ObtainQuickVector",
+        "function": "ObtainQuickVector",
+        "input": "interruptCode",
+        "library": "exec.library",
+        "semantic_kind": "code_ptr",
+        "semantic_note": "Parser-authored: exec.library/ObtainQuickVector autodoc says the function installs the code pointer into a quick interrupt vector. NDK synopsis types it as APTR, so direct parse loses callback semantics.",
+        "seed_origin": "autodoc",
+        "review_status": "seeded"
+      },
+      {
+        "citation": "lowlevel.library autodoc AddKBInt",
+        "function": "AddKBInt",
+        "input": "intRoutine",
+        "library": "lowlevel.library",
+        "semantic_kind": "code_ptr",
+        "semantic_note": "Parser-authored: lowlevel.library/AddKBInt autodoc says intRoutine is called from the keyboard interrupt context. NDK synopsis types it as APTR, so direct parse cannot preserve callback semantics.",
+        "seed_origin": "autodoc",
+        "review_status": "seeded"
+      },
+      {
+        "citation": "lowlevel.library autodoc AddTimerInt",
+        "function": "AddTimerInt",
+        "input": "intRoutine",
+        "library": "lowlevel.library",
+        "semantic_kind": "code_ptr",
+        "semantic_note": "Parser-authored: lowlevel.library/AddTimerInt autodoc says intRoutine is called from timer interrupt context. NDK synopsis types it as APTR, so direct parse cannot preserve callback semantics.",
+        "seed_origin": "autodoc",
+        "review_status": "seeded"
+      },
+      {
+        "citation": "lowlevel.library autodoc AddVBlankInt",
+        "function": "AddVBlankInt",
+        "input": "intRoutine",
+        "library": "lowlevel.library",
+        "semantic_kind": "code_ptr",
+        "semantic_note": "Parser-authored: lowlevel.library/AddVBlankInt autodoc says intRoutine is called from vertical blank interrupt context. NDK synopsis types it as APTR, so direct parse cannot preserve callback semantics.",
+        "seed_origin": "autodoc",
+        "review_status": "seeded"
+      }
+    ],
+    "struct_field_value_bindings": []
+  },
+  "libraries": {},
+  "structs": {},
+  "constants": {}
+}

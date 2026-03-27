@@ -12,6 +12,10 @@ from _pytest.monkeypatch import MonkeyPatch
 
 from kb import runtime_builder
 from kb.ndk_parser import parse_fd_file
+from kb.os_reference import (
+    merge_os_reference_payloads,
+    normalize_os_reference_corrections,
+)
 from m68k import m68k_asm
 from m68k.os_structs import resolve_struct_field
 from tests.runtime_kb_helpers import (
@@ -21,6 +25,9 @@ from tests.runtime_kb_helpers import (
     load_canonical_m68k_kb,
     load_canonical_naming_rules,
     load_canonical_os_kb,
+    load_canonical_os_kb_corrections,
+    load_canonical_os_kb_includes_parsed,
+    load_canonical_os_kb_other_parsed,
     load_hardware_runtime_kb,
     load_hunk_runtime_kb,
     load_m68k_analysis_runtime_module,
@@ -103,6 +110,37 @@ def test_runtime_kb_generation_is_deterministic() -> None:
     assert before == middle == after
 
 
+def test_canonical_os_kb_is_strict_merge_of_parsed_and_extensions() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+    other = load_canonical_os_kb_other_parsed()
+    corrections = load_canonical_os_kb_corrections()
+    merged = load_canonical_os_kb()
+
+    assert merge_os_reference_payloads(
+        includes=includes,
+        other=other,
+        corrections=corrections,
+    ) == merged
+
+
+def test_os_reference_corrections_only_carry_correction_data() -> None:
+    corrections = normalize_os_reference_corrections(load_canonical_os_kb_corrections())
+
+    assert corrections["libraries"] == {}
+    assert corrections["structs"] == {}
+    assert corrections["constants"] == {}
+    assert corrections["_meta"]["api_input_value_bindings"]
+    assert set(corrections["_meta"]) == {
+        "calling_convention",
+        "exec_base_addr",
+        "absolute_symbols",
+        "value_domains",
+        "api_input_value_bindings",
+        "api_input_semantic_assertions",
+        "struct_field_value_bindings",
+    }
+
+
 def test_runtime_os_meta_has_named_base_structs() -> None:
     os_kb = load_os_runtime_kb()
 
@@ -118,6 +156,12 @@ def test_runtime_os_meta_has_named_base_structs() -> None:
 def test_runtime_os_input_semantic_kinds_cover_callback_cases() -> None:
     os_kb = load_os_runtime_kb()
 
+    assert os_kb.META.calling_convention.seed_origin == "primary_doc"
+    assert os_kb.META.calling_convention.review_status == "seeded"
+    assert os_kb.META.exec_base_addr.seed_origin == "primary_doc"
+    assert os_kb.META.exec_base_addr.review_status == "seeded"
+    assert os_kb.META.absolute_symbols[0].seed_origin == "primary_doc"
+    assert os_kb.META.absolute_symbols[0].review_status == "seeded"
     assert os_kb.LIBRARIES["graphics.library"].functions["SetCollision"].inputs[1].semantic_kind == "code_ptr"
     assert os_kb.LIBRARIES["exec.library"].functions["AddTask"].inputs[1].semantic_kind == "code_ptr"
     assert os_kb.LIBRARIES["exec.library"].functions["AddTask"].inputs[2].semantic_kind == "code_ptr"
@@ -126,6 +170,20 @@ def test_runtime_os_input_semantic_kinds_cover_callback_cases() -> None:
     assert os_kb.LIBRARIES["lowlevel.library"].functions["AddKBInt"].inputs[0].semantic_kind == "code_ptr"
     assert os_kb.LIBRARIES["lowlevel.library"].functions["AddTimerInt"].inputs[0].semantic_kind == "code_ptr"
     assert os_kb.LIBRARIES["lowlevel.library"].functions["AddVBlankInt"].inputs[0].semantic_kind == "code_ptr"
+
+
+def test_os_reference_corrections_reject_unknown_correction_status() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+    other = load_canonical_os_kb_other_parsed()
+    corrections = copy.deepcopy(load_canonical_os_kb_corrections())
+    corrections["_meta"]["api_input_value_bindings"][0]["seed_origin"] = "unknown"
+
+    with pytest.raises(ValueError, match="api_input_value_binding extension uses unknown seed_origin"):
+        merge_os_reference_payloads(
+            includes=includes,
+            other=other,
+            corrections=corrections,
+        )
 
 
 def test_runtime_hardware_matches_canonical_hardware_symbols() -> None:
@@ -994,20 +1052,18 @@ def test_runtime_os_meta_is_typed() -> None:
     assert runtime.META.calling_convention.return_reg == "D0"
     assert runtime.META.exec_base_addr.address == 4
     assert runtime.META.exec_base_addr.library == "exec.library"
-    assert "exec.library" in runtime.META.input_constant_domains
-    assert runtime.META.input_constant_domains["exec.library"]["AllocMem"]["attributes"] == (
-        "MEMF_CHIP", "MEMF_FAST", "MEMF_PUBLIC")
-    assert runtime.META.input_constant_domains["dos.library"]["Seek"]["mode"] == (
-        "OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END")
-    assert runtime.META.input_constant_domains["dos.library"]["Lock"]["accessMode"] == (
-        "ACCESS_READ", "ACCESS_WRITE")
-    assert runtime.META.input_constant_domains["dos.library"]["Open"]["accessMode"] == (
-        "MODE_NEWFILE", "MODE_OLDFILE", "MODE_READWRITE")
-    assert runtime.META.input_constant_domains["exec.library"]["SetSignal"]["signalMask"] == (
-        "SIGBREAKF_CTRL_C",)
-    assert "OpenDevice" not in runtime.META.input_constant_domains["exec.library"]
-    assert runtime.FIELD_VALUE_DOMAINS["IO.IO_COMMAND"] == "exec.io.command"
-    assert runtime.FIELD_CONTEXT_VALUE_DOMAINS["IO.IO_COMMAND"]["trackdisk.device"] == "trackdisk.device.io_command"
+    assert runtime.API_INPUT_VALUE_DOMAINS["exec.library"]["AllocMem"]["attributes"] == (
+        "exec.allocmem.attributes")
+    assert runtime.API_INPUT_VALUE_DOMAINS["dos.library"]["Seek"]["mode"] == "dos.seek.mode"
+    assert runtime.API_INPUT_VALUE_DOMAINS["dos.library"]["Lock"]["accessMode"] == (
+        "dos.lock.access_mode")
+    assert runtime.API_INPUT_VALUE_DOMAINS["dos.library"]["Open"]["accessMode"] == (
+        "dos.open.access_mode")
+    assert runtime.API_INPUT_VALUE_DOMAINS["exec.library"]["SetSignal"]["signalMask"] == (
+        "exec.signal_mask")
+    assert "OpenDevice" not in runtime.API_INPUT_VALUE_DOMAINS["exec.library"]
+    assert runtime.STRUCT_FIELD_VALUE_DOMAINS["IO.IO_COMMAND"][None] == "exec.io.command"
+    assert runtime.STRUCT_FIELD_VALUE_DOMAINS["IO.IO_COMMAND"]["trackdisk.device"] == "trackdisk.device.io_command"
     assert "CMD_READ" in runtime.VALUE_DOMAINS["exec.io.command"]
     assert not hasattr(runtime, "RUNTIME")
 

@@ -2968,14 +2968,14 @@ def _sp_effects_complete(operation: str) -> bool:
         return True
 
     represented_patterns = (
-        r"\*?S?SP\s*[\u2013\u2014â€“-]\s*(\d+)\s*â†’\s*\*?S?[Ss][Pp]",
-        r"S?SP\s*\+\s*(\d+)\s*â†’\s*S?[Ss][Pp]",
-        r"S?SP\s*\+\s*([a-z_]\w*)\s*â†’\s*S?[Ss][Pp]",
-        r"S?SP\s*\+\s*(\d+)\s*\+\s*([a-z_]\w*)\s*â†’\s*S?[Ss][Pp]",
-        r"An\s*â†’\s*SP",
-        r"\(SP\)\s*â†’\s*An",
-        r"SP\s*â†’\s*An",
-        r"An\s*â†’\s*\(SP\)",
+        r"\*?S?SP\s*[\u2013\u2014-]\s*(\d+)\s*\u2192\s*\*?S?[Ss][Pp]",
+        r"S?SP\s*\+\s*(\d+)\s*\u2192\s*S?[Ss][Pp]",
+        r"S?SP\s*\+\s*([a-z_]\w*)\s*\u2192\s*S?[Ss][Pp]",
+        r"S?SP\s*\+\s*(\d+)\s*\+\s*([a-z_]\w*)\s*\u2192\s*S?[Ss][Pp]",
+        r"An\s*\u2192\s*SP",
+        r"\(SP\)\s*\u2192\s*An",
+        r"SP\s*\u2192\s*An",
+        r"An\s*\u2192\s*\(SP\)",
     )
     for clause in clauses:
         if not clause:

@@ -117,14 +117,20 @@ def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
     arg_equs: dict[str, int] = {}
     arg_substitutions: dict[int, tuple[str, str]] = {}
     sorted_code_ents = _sorted_code_entities(hunk_entities)
-    input_const_domains = os_kb.META.input_constant_domains
+    input_value_domains = os_kb.API_INPUT_VALUE_DOMAINS
     all_consts = os_kb.CONSTANTS
     func_input_const_map: dict[str, dict[str, dict[str, dict[int, tuple[str, ...]]]]] = {}
-    for library_name, library_domains in input_const_domains.items():
+    for library_name, library_domains in input_value_domains.items():
         per_library_map: dict[str, dict[str, dict[int, tuple[str, ...]]]] = {}
         for func_name, input_domains in library_domains.items():
             per_input_map: dict[str, dict[int, tuple[str, ...]]] = {}
-            for input_name, const_names in input_domains.items():
+            for input_name, domain_name in input_domains.items():
+                const_names = os_kb.VALUE_DOMAINS.get(domain_name)
+                if const_names is None:
+                    raise KeyError(
+                        f"Missing value domain {domain_name} for input binding "
+                        f"{library_name}.{func_name}.{input_name}"
+                    )
                 vmap_lists: dict[int, list[str]] = {}
                 for cn in const_names:
                     constant = all_consts.get(cn)

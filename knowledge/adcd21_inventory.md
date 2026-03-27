@@ -8,7 +8,7 @@ Mounted at: `D:/`
 |------|-------------|--------|
 | `NDK/NDK_1.3/` | NDK 1.3 — includes (C/asm headers), autodocs | Superseded by 3.1 parse |
 | `NDK/NDK_2.0/` | NDK 2.0 — includes, FD, autodocs | Not explored |
-| `NDK/NDK_3.1/` | NDK 3.1 — FD files, autodocs, includes | **Parsed** → `amiga_os_reference.json` (1114 functions, 43 libs, 150 structs, 2078 constants) |
+| `NDK/NDK_3.1/` | NDK 3.1 — FD files, autodocs, includes | **Parsed** → `amiga_ndk_includes_parsed.json` + `amiga_ndk_other_parsed.json` |
 | `NDK/NDK_3.5/` | NDK 3.5 — docs, examples, includes, tools, tutorials | Not explored — may have new libs (Reaction, etc.) |
 | `NDK/DEVELOPER_KITS` | Index/readme for NDK section | Not read |
 
@@ -20,7 +20,7 @@ Mounted at: `D:/`
 
 | Path | Description | Status |
 |------|-------------|--------|
-| `EXTRAS/DEVELOPMENT/OS_CHANGES/` | API change logs (1.3→2.04, 2.04→2.1, 2.1→3.0, 3.0→3.1) | **Parsed** → version tags in `amiga_os_reference.json` (624 functions tagged) |
+| `EXTRAS/DEVELOPMENT/OS_CHANGES/` | API change logs (1.3→2.04, 2.04→2.1, 2.1→3.0, 3.0→3.1) | **Parsed** → version tags in `amiga_ndk_other_parsed.json` |
 | `EXTRAS/IFF/IFF_FORMS/` | IFF format specifications (ILBM, 8SVX, ANIM, etc.) | **Parsed** → `amiga_iff_formats.json` (4 FORMs, 20 chunks, 60 fields, 134 registry entries) |
 | `EXTRAS/IFF/OLD_IFF_PACKAGES/` | Original EA IFF 85 specs (ILBM, 8SVX, SMUS, FTXT) | **Read** — used as source for ILBM/8SVX struct definitions |
 | `EXTRAS/IFF/TEST_FILES/` | Sample IFF files | Low priority |

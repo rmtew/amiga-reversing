@@ -24,7 +24,10 @@ The remaining code is reachable only through runtime-dependent dispatch
 - [ ] Refine OS version tagging (570 "1.3" functions -> 1.0/1.1/1.2/1.3)
 - [ ] Complete hardware register bit definitions (104/245 done)
 - [ ] Extend NDK-derived hardware symbol coverage beyond `hardware/custom.i` and `hardware/cia.i` if targets use additional include-backed hardware families, so rendering stays source-accurate without falling back to generic absolute symbols
-- [ ] Extend NDK-derived field-value domains beyond the current strict `exec/io.i` + `devices/trackdisk.i` command/flag mapping so typed immediate substitution covers more device/library structs without ad hoc renderer rules
+- [ ] Extend the new explicit OS value-domain KB beyond current exact constant-set bindings so domains can also express flags/bitmasks, composition rules, and non-immediate selector contexts without falling back to autodoc prose heuristics
+- [ ] Split `knowledge/amiga_ndk_other_parsed.json` more explicitly into deterministic structured sources vs looser seeded enrichment if we want clearer provenance than the current `includes_parsed + other_parsed + corrections` model
+- [ ] Review entries in `knowledge/amiga_ndk_corrections.json` and promote `review_status` from `seeded` to `validated` only when a human has explicitly checked the cited source
+- [ ] Add a seed-generation/review flow for corrections so autodoc-derived candidates can be proposed without being silently treated as validated KB
 - [ ] Replace the hand-maintained `knowledge/amiga_os_include_files.json` with NDK-derived include ownership for library LVO symbols so emitter include selection stays fully source-derived
 - [ ] Verify HUNK_OVERLAY format against ADCD primary source
 
@@ -82,6 +85,7 @@ The remaining code is reachable only through runtime-dependent dispatch
 - [ ] Tighten the remaining resident/library/device structured-entrypoint work now that bootblocks and resident auto-init vectors are modeled: finish Exec init/vector executable-layout parsing from primary-source metadata for any still-missing formal entry code, make emitted/exported entry labels version-aware from the OS KB, and add whole-target regressions that pin real exported handler coverage/naming on resident binaries
 - [ ] Add Add Project UI flow for manual raw-binary targets that requires user-supplied load address and entrypoint, using the new strict `source_binary.json` raw-binary source kind
 - [ ] Auto-create non-DOS loader stage targets only when bootloader analysis can materialize concrete stage bytes plus load address and entrypoint, so inferred-only regions stay honest
+- [ ] Keep the mojibake check in `scripts/check_mojibake.py` tight and data-oriented; if more broken encodings appear, extend the explicit pattern list with focused regression tests rather than broad punctuation bans
 - [ ] Continue the remaining M68K/disasm audit slices beyond the assembler coverage work:
   - decoder/disassembler runtime-form consistency in `m68k/instruction_decode.py` and `m68k/m68k_disasm.py`
   - unsupported special-form implementation vs runtime-shape cleanup in `kb/runtime_builder.py`

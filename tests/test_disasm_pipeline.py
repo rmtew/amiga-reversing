@@ -78,6 +78,7 @@ from m68k.os_calls import (
 from m68k_kb import runtime_m68k_analysis, runtime_os
 from tests.os_kb_helpers import make_empty_os_kb
 from tests.platform_helpers import make_platform
+from tests.runtime_kb_helpers import load_canonical_os_kb
 
 _OS_INCLUDE_KB = load_os_include_kb()
 
@@ -100,7 +101,7 @@ def test_os_include_kb_contains_device_include_mappings() -> None:
 
 
 def test_os_include_kb_loads_from_main_os_reference() -> None:
-    payload = json.loads(Path("knowledge/amiga_os_reference.json").read_text(encoding="utf-8"))
+    payload = load_canonical_os_kb()
     assert "library_lvo_owners" in payload["_meta"]
     assert "exec.library" in payload["_meta"]["library_lvo_owners"]
 
@@ -249,9 +250,10 @@ def test_build_arg_substitutions_collects_immediate_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"dos.library": {"OpenLibrary": {"name": ("OL_TAG",)}}},
             library_lvo_owners={},
         ),
+        API_INPUT_VALUE_DOMAINS={"dos.library": {"OpenLibrary": {"name": "test.openlibrary.name"}}},
+        VALUE_DOMAINS={"test.openlibrary.name": ("OL_TAG",)},
         CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="1", value=1)},
         LIBRARIES={
             "dos.library": runtime_os.OsLibrary(
@@ -337,9 +339,10 @@ def test_build_arg_substitutions_collects_dispatch_call_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"dos.library": {"Seek": {"mode": ("OFFSET_BEGINNING", "OFFSET_CURRENT")}}},
             library_lvo_owners={},
         ),
+        API_INPUT_VALUE_DOMAINS={"dos.library": {"Seek": {"mode": "test.seek.mode"}}},
+        VALUE_DOMAINS={"test.seek.mode": ("OFFSET_BEGINNING", "OFFSET_CURRENT")},
         CONSTANTS={
             "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
             "OFFSET_CURRENT": runtime_os.OsConstant(raw="0", value=0),
@@ -402,9 +405,10 @@ def test_build_arg_substitutions_collects_long_immediate_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"exec.library": {"SetSignal": {"signalMask": ("SIGBREAKF_CTRL_C",)}}},
             library_lvo_owners={},
         ),
+        API_INPUT_VALUE_DOMAINS={"exec.library": {"SetSignal": {"signalMask": "test.exec.signal_mask"}}},
+        VALUE_DOMAINS={"test.exec.signal_mask": ("SIGBREAKF_CTRL_C",)},
         CONSTANTS={
             "SIGBREAKF_CTRL_C": runtime_os.OsConstant(raw="(1<<12)", value=0x1000),
         },
@@ -465,9 +469,10 @@ def test_build_arg_substitutions_collects_open_mode_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"dos.library": {"Open": {"accessMode": ("MODE_OLDFILE", "MODE_NEWFILE", "MODE_READWRITE")}}},
             library_lvo_owners={},
         ),
+        API_INPUT_VALUE_DOMAINS={"dos.library": {"Open": {"accessMode": "test.open.access_mode"}}},
+        VALUE_DOMAINS={"test.open.access_mode": ("MODE_OLDFILE", "MODE_NEWFILE", "MODE_READWRITE")},
         CONSTANTS={
             "MODE_OLDFILE": runtime_os.OsConstant(raw="1005", value=0x3ED),
             "MODE_NEWFILE": runtime_os.OsConstant(raw="1006", value=0x3EE),
@@ -515,9 +520,10 @@ def test_build_arg_substitutions_requires_declared_constant() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"dos.library": {"OpenLibrary": {"name": ("OL_TAG",)}}},
             library_lvo_owners={},
         ),
+        API_INPUT_VALUE_DOMAINS={"dos.library": {"OpenLibrary": {"name": "test.openlibrary.name"}}},
+        VALUE_DOMAINS={"test.openlibrary.name": ("OL_TAG",)},
         CONSTANTS={},
         LIBRARIES={},
     )
@@ -539,9 +545,10 @@ def test_build_arg_substitutions_requires_concrete_constant_value() -> None:
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"dos.library": {"OpenLibrary": {"name": ("OL_TAG",)}}},
             library_lvo_owners={},
         ),
+        API_INPUT_VALUE_DOMAINS={"dos.library": {"OpenLibrary": {"name": "test.openlibrary.name"}}},
+        VALUE_DOMAINS={"test.openlibrary.name": ("OL_TAG",)},
         CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="TAG_USER+1", value=None)},
         LIBRARIES={},
     )
@@ -588,9 +595,10 @@ def test_build_arg_substitutions_rejects_ambiguous_matched_function_domain_value
             absolute_symbols=(),
             lvo_slot_size=runtime_os.META.lvo_slot_size,
             named_base_structs={},
-            input_constant_domains={"dos.library": {"Seek": {"mode": ("OFFSET_BEGINNING", "OFFSET_ALIAS")}}},
             library_lvo_owners={},
         ),
+        API_INPUT_VALUE_DOMAINS={"dos.library": {"Seek": {"mode": "test.seek.mode"}}},
+        VALUE_DOMAINS={"test.seek.mode": ("OFFSET_BEGINNING", "OFFSET_ALIAS")},
         CONSTANTS={
             "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
             "OFFSET_ALIAS": runtime_os.OsConstant(raw="-1", value=-1),
