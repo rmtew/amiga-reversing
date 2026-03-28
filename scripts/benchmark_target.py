@@ -18,6 +18,7 @@ from disasm.analysis_layout import (
     resolved_analysis_start_offset,
     resolved_entry_points,
     resolved_raw_analysis_base_addr,
+    target_seeded_entrypoint_offsets,
 )
 from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
 from disasm.emitter import emit_session_rows
@@ -159,12 +160,14 @@ def _analysis_cache_paths(target_dir: Path, binary_source: Any) -> list[Path]:
     seed_config = build_entry_seed_config(target_metadata)
     if binary_source.kind == "raw_binary":
         entry_points = resolved_entry_points(binary_source, target_metadata, ())
+        extra_entry_points = target_seeded_entrypoint_offsets(target_metadata, hunk_index=0)
         cache_root = analysis_cache_root(
             binary_source.analysis_cache_path,
             seed_key=seed_config.seed_key,
             base_addr=resolved_raw_analysis_base_addr(binary_source, target_metadata),
             code_start=resolved_analysis_start_offset(binary_source, target_metadata),
             entry_points=entry_points,
+            extra_entry_points=extra_entry_points,
         )
         return [hunk_analysis_cache_path(cache_root, 0)]
     hunk_file = parse(binary_source.read_bytes())
@@ -177,12 +180,14 @@ def _analysis_cache_paths(target_dir: Path, binary_source: Any) -> list[Path]:
         if hunk.type_name != "CODE":
             continue
         entry_points = custom_entry_points if not first_code_hunk_seen else ()
+        extra_entry_points = target_seeded_entrypoint_offsets(target_metadata, hunk_index=hunk.index)
         cache_root = analysis_cache_root(
             binary_source.analysis_cache_path,
             seed_key=seed_config.seed_key,
             base_addr=base_addr,
             code_start=code_start,
             entry_points=entry_points,
+            extra_entry_points=extra_entry_points,
         )
         analysis_paths.append(hunk_analysis_cache_path(cache_root, hunk.index))
         first_code_hunk_seen = True

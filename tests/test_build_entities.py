@@ -18,6 +18,8 @@ from disasm.target_metadata import (
     EntryRegisterSeedMetadata,
     ResidentAutoinitMetadata,
     ResidentTargetMetadata,
+    SeededCodeEntrypointMetadata,
+    SeededEntityMetadata,
     TargetMetadata,
     write_target_metadata,
 )
@@ -76,6 +78,221 @@ def test_structured_prefix_entities_only_emit_when_requested() -> None:
         "hunk": 0,
         "struct": "RT",
     }]
+
+
+def test_apply_seeded_entities_merges_name_and_inserts_data_range() -> None:
+    module = _load_build_entities_module()
+
+    entities = [
+        {
+            "addr": "0x0010",
+            "end": "0x0020",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+        }
+    ]
+    seeded = (
+        SeededEntityMetadata(
+            addr=0x0010,
+            end=0x0020,
+            hunk=0,
+            type="code",
+            name="check_keyboard",
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-code-range",
+        ),
+        SeededEntityMetadata(
+            addr=0x0100,
+            end=0x1100,
+            hunk=0,
+            type="data",
+            subtype="level_data",
+            name="map_data_keep",
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-data-range",
+        ),
+    )
+
+    merged = module._apply_seeded_entities(entities, seeded, hunk_idx=0)
+    merged.sort(key=lambda ent: int(ent["addr"], 16))
+
+    assert merged == [
+        {
+            "addr": "0x0010",
+            "end": "0x0020",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+            "name": "check_keyboard",
+        },
+        {
+            "addr": "0x0100",
+            "end": "0x1100",
+            "type": "data",
+            "subtype": "level_data",
+            "confidence": "seeded",
+            "hunk": 0,
+            "name": "map_data_keep",
+        },
+    ]
+
+
+def test_apply_seeded_entities_allows_label_only_overlay_on_existing_entity() -> None:
+    module = _load_build_entities_module()
+
+    entities = [
+        {
+            "addr": "0x05D6",
+            "end": "0x0630",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+        }
+    ]
+    seeded = (
+        SeededEntityMetadata(
+            addr=0x05D6,
+            hunk=0,
+            type="code",
+            name="check_keyboard",
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-code-range",
+        ),
+    )
+
+    merged = module._apply_seeded_entities(entities, seeded, hunk_idx=0)
+
+    assert merged == [
+        {
+            "addr": "0x05D6",
+            "end": "0x0630",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+            "name": "check_keyboard",
+        }
+    ]
+
+
+def test_apply_seeded_entities_rejects_overlapping_insert() -> None:
+    module = _load_build_entities_module()
+
+    entities = [
+        {
+            "addr": "0x0010",
+            "end": "0x0020",
+            "type": "code",
+            "confidence": "verified",
+            "hunk": 0,
+        }
+    ]
+    seeded = (
+        SeededEntityMetadata(
+            addr=0x0018,
+            end=0x0028,
+            hunk=0,
+            type="data",
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-overlap",
+        ),
+    )
+
+    with pytest.raises(ValueError, match="overlaps existing entity"):
+        module._apply_seeded_entities(entities, seeded, hunk_idx=0)
+
+
+def test_apply_seeded_entities_replaces_fully_contained_tool_inferred_entities() -> None:
+    module = _load_build_entities_module()
+
+    entities = [
+        {
+            "addr": "0x0100",
+            "end": "0x0140",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+            "name": "sub_0100",
+        },
+        {
+            "addr": "0x0180",
+            "end": "0x01C0",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+            "name": "sub_0180",
+        },
+    ]
+    seeded = (
+        SeededEntityMetadata(
+            addr=0x0000,
+            end=0x0200,
+            hunk=0,
+            type="data",
+            subtype="level_data",
+            name="map_data_keep",
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-data-range",
+        ),
+    )
+
+    merged = module._apply_seeded_entities(entities, seeded, hunk_idx=0)
+
+    assert merged == [
+        {
+            "addr": "0x0000",
+            "end": "0x0200",
+            "type": "data",
+            "subtype": "level_data",
+            "confidence": "seeded",
+            "hunk": 0,
+            "name": "map_data_keep",
+        },
+    ]
+
+
+def test_apply_seeded_code_entrypoints_name_matching_code_entities() -> None:
+    module = _load_build_entities_module()
+
+    entities = [
+        {
+            "addr": "0x05D6",
+            "end": "0x0630",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+        }
+    ]
+    seeded = (
+        SeededCodeEntrypointMetadata(
+            addr=0x05D6,
+            hunk=0,
+            name="check_keyboard",
+            comment="entry seed",
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-entry",
+        ),
+    )
+
+    merged = module._apply_seeded_code_entrypoints(entities, seeded, hunk_idx=0)
+
+    assert merged == [
+        {
+            "addr": "0x05D6",
+            "end": "0x0630",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+            "name": "check_keyboard",
+            "comment": "entry seed",
+        }
+    ]
 
 
 def _load_build_entities_module() -> ModuleType:
@@ -407,6 +624,7 @@ def test_build_entities_from_raw_binary_rebases_addresses_to_local_offsets(
         assert kwargs["base_addr"] == 0x0C
         assert kwargs["code_start"] == 0x0C
         assert kwargs["entry_points"] == (0x0C,)
+        assert kwargs["extra_entry_points"] == ()
         return fake_analysis
 
     monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
@@ -493,6 +711,7 @@ def test_build_entities_from_runtime_absolute_raw_binary_normalizes_to_local_off
         assert kwargs["base_addr"] == 0x7000C
         assert kwargs["code_start"] == 0x0C
         assert kwargs["entry_points"] == (0x7000C,)
+        assert kwargs["extra_entry_points"] == ()
         return fake_analysis
 
     monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
@@ -607,6 +826,7 @@ def test_build_entities_uses_all_structured_entrypoints_for_autoinit_resident(
 
     def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
         seen["entry_points"] = kwargs["entry_points"]
+        seen["extra_entry_points"] = kwargs["extra_entry_points"]
         seen["entry_initial_states"] = kwargs["entry_initial_states"]
         return fake_analysis
 
@@ -618,4 +838,100 @@ def test_build_entities_uses_all_structured_entrypoints_for_autoinit_resident(
 
     assert result == 0
     assert seen["entry_points"] == (0x88, 0x90)
+    assert seen["extra_entry_points"] == ()
     assert set(cast(dict[int, object], seen["entry_initial_states"])) == {0x88, 0x90}
+
+
+def test_build_entities_passes_seeded_code_entrypoints_as_additive_hunk_seeds(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"fake")
+    output_path = target_dir / "entities.jsonl"
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_code_entrypoints=(
+                SeededCodeEntrypointMetadata(
+                    addr=0x0123,
+                    name="seeded_entry",
+                    hunk=0,
+                    seed_origin="primary_doc",
+                    review_status="seeded",
+                    citation="seeded:demo-entry",
+                ),
+            ),
+        ),
+    )
+    hunk = Hunk(
+        index=0,
+        hunk_type=int(HunkType.HUNK_CODE),
+        mem_type=int(MemType.ANY),
+        alloc_size=2,
+        data=b"\x4e\x75",
+    )
+    monkeypatch.setattr(module, "parse", lambda _data: SimpleNamespace(is_executable=True, hunks=[hunk]))
+    seen: dict[str, object] = {}
+    fake_analysis = SimpleNamespace(
+        blocks={0: BasicBlock(start=0, end=2, instructions=[], is_entry=True)},
+        xrefs=[],
+        call_targets=set(),
+        hint_blocks={},
+        hint_reasons={},
+        lib_calls=[],
+        os_kb=make_empty_os_kb(),
+        platform=make_platform(),
+        indirect_sites=[],
+        save=lambda path: None,
+    )
+
+    def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
+        seen["entry_points"] = kwargs["entry_points"]
+        seen["extra_entry_points"] = kwargs["extra_entry_points"]
+        return fake_analysis
+
+    monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
+    monkeypatch.setattr(module, "build_app_slot_infos", lambda *args, **kwargs: ())
+    monkeypatch.setattr(module, "name_subroutines", lambda *args, **kwargs: 0)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    assert seen["entry_points"] == ()
+    assert seen["extra_entry_points"] == (0x0123,)
+
+
+def test_apply_seeded_code_entrypoints_uses_role_as_comment_when_comment_missing() -> None:
+    module = _load_build_entities_module()
+
+    entities = [
+        {
+            "addr": "0x0123",
+            "end": "0x0130",
+            "type": "code",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+        }
+    ]
+    seeded = (
+        SeededCodeEntrypointMetadata(
+            addr=0x0123,
+            name="seeded_entry",
+            hunk=0,
+            role="keyboard input routine",
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-entry",
+        ),
+    )
+
+    merged = module._apply_seeded_code_entrypoints(entities, seeded, hunk_idx=0)
+
+    assert merged[0]["name"] == "seeded_entry"
+    assert merged[0]["comment"] == "keyboard input routine"

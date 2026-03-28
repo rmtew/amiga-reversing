@@ -22,6 +22,8 @@ _LVOCloseWindow	EQU	-72
 _LVOCloseScreen	EQU	-66
 
 ; OS function argument constants
+MEMF_ANY	EQU	0
+MEMF_CLEAR	EQU	65536
 MEMF_PUBLIC	EQU	1
 MODE_NEWFILE	EQU	1006
 MODE_OLDFILE	EQU	1005
@@ -102,7 +104,7 @@ pcref_0072:
 loc_0094:
     movem.l d0/a0,sub_88ec
     move.l #$e1a,d0 ; AllocMem: byteSize
-    move.l #$10001,d1 ; AllocMem: attributes
+    move.l #MEMF_PUBLIC|MEMF_CLEAR,d1 ; AllocMem: attributes
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
 loc_00b0:
@@ -15510,7 +15512,7 @@ loc_78c6:
 call_read_78ce:
     moveq #8,d0
     add.l d6,d0 ; AllocMem: byteSize
-    moveq #0,d1 ; AllocMem: attributes
+    moveq #MEMF_ANY,d1 ; AllocMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
@@ -16213,7 +16215,7 @@ loc_7e2e:
     move.l d0,1420(a6) ; app+$58C
     asl.l #2,d0 ; AllocMem: byteSize
     addq.l #4,d0
-    move.l #$10000,d1 ; AllocMem: attributes
+    move.l #MEMF_CLEAR,d1 ; AllocMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
@@ -16510,7 +16512,7 @@ loc_8046:
     beq.s loc_809a
 loc_804c:
     move.l d0,app_read_length(a6)
-    moveq #0,d1 ; AllocMem: attributes
+    moveq #MEMF_ANY,d1 ; AllocMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6

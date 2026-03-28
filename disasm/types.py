@@ -37,6 +37,8 @@ class StructFieldOperandMetadata:
 class AppStructFieldOperandMetadata:
     base_symbol: str
     field_symbol: str | None = None
+    owner_struct: str | None = None
+    context_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +62,9 @@ class IndexedOperandMetadata:
     index_register: str
     index_size: str
     symbol: str | None = None
+    owner_struct: str | None = None
+    field_symbol: str | None = None
+    context_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +81,9 @@ class FullIndexedOperandMetadata:
     base_displacement: int | None
     outer_displacement: int | None
     symbol: str | None = None
+    owner_struct: str | None = None
+    field_symbol: str | None = None
+    context_name: str | None = None
 
 
 SemanticOperandMetadata = (
@@ -258,6 +266,7 @@ class HunkDisassemblySession:
     relocated_segments: list[RelocatedSegment]
     reloc_file_offset: int
     reloc_base_addr: int
+    addr_comments: dict[int, str] = field(default_factory=dict)
     string_ranges: dict[int, int] = field(default_factory=dict)
     absolute_labels: dict[int, str] = field(default_factory=dict)
     reserved_absolute_addrs: set[int] = field(default_factory=set)

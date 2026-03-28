@@ -38,6 +38,7 @@ from kb.schemas import (
     OsReferencePayload,
     OsStructDef,
     OsStructField,
+    OsValueDomain,
 )
 from m68k_kb.runtime_types import (
     BitModulus,
@@ -432,7 +433,7 @@ class OsRuntimeMeta(TypedDict):
 
 class OsRuntimePayload(TypedDict):
     META: OsRuntimeMeta
-    VALUE_DOMAINS: dict[str, tuple[str, ...]]
+    VALUE_DOMAINS: dict[str, OsValueDomain]
     API_INPUT_VALUE_DOMAINS: dict[str, dict[str, dict[str, str]]]
     STRUCT_FIELD_VALUE_DOMAINS: dict[str, dict[str | None, str]]
     STRUCTS: dict[str, OsStructDef]
@@ -1609,7 +1610,23 @@ def _render_os_struct(struct_def: OsStructDef) -> str:
 
 
 def _render_os_constant(constant: OsConstant) -> str:
-    return f"OsConstant(raw={constant['raw']!r}, value={constant['value']!r})"
+    return (
+        f"OsConstant(raw={constant['raw']!r}, value={constant['value']!r}, "
+        f"available_since={constant['available_since']!r})"
+    )
+
+
+def _render_os_value_domain(domain: OsValueDomain) -> str:
+    return (
+        "OsValueDomain("
+        f"kind={domain['kind']!r}, "
+        f"members={tuple(domain['members'])!r}, "
+        f"zero_name={domain.get('zero_name')!r}, "
+        f"exact_match_policy={domain['exact_match_policy']!r}, "
+        f"composition={domain.get('composition')!r}, "
+        f"remainder_policy={domain.get('remainder_policy')!r}"
+        ")"
+    )
 
 
 def _render_os_input(arg: OsInput) -> str:
@@ -1748,6 +1765,16 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "class OsConstant:",
         "    raw: str",
         "    value: int | None",
+        "    available_since: str = '1.0'",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsValueDomain:",
+        "    kind: str",
+        "    members: tuple[str, ...]",
+        "    zero_name: str | None",
+        "    exact_match_policy: str",
+        "    composition: str | None",
+        "    remainder_policy: str | None",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsInput:",
@@ -1792,7 +1819,7 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    lvo_index: dict[str, str]",
         "    functions: dict[str, OsFunction]",
         "",
-        "META = OsMeta(",
+        "META: OsMeta = OsMeta(",
         f"    calling_convention=CallingConvention(scratch_regs={tuple(meta['calling_convention']['scratch_regs'])!r}, preserved_regs={tuple(meta['calling_convention']['preserved_regs'])!r}, base_reg={meta['calling_convention']['base_reg']!r}, return_reg={meta['calling_convention']['return_reg']!r}, note={meta['calling_convention']['note']!r}, seed_origin={meta['calling_convention']['seed_origin']!r}, review_status={meta['calling_convention']['review_status']!r}, citation={meta['calling_convention']['citation']!r}),",
         f"    exec_base_addr=ExecBaseAddress(address={meta['exec_base_addr']['address']!r}, library={meta['exec_base_addr']['library']!r}, note={meta['exec_base_addr']['note']!r}, seed_origin={meta['exec_base_addr']['seed_origin']!r}, review_status={meta['exec_base_addr']['review_status']!r}, citation={meta['exec_base_addr']['citation']!r}),",
         "    absolute_symbols=(",
@@ -1813,27 +1840,32 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         f"    library_lvo_owners={_render_py(dict(sorted(meta['library_lvo_owners'].items())))} ,",
         ")",
         "",
-        f"VALUE_DOMAINS = {_render_py(payload['VALUE_DOMAINS'])}",
+        "VALUE_DOMAINS: dict[str, OsValueDomain] = {",
+    ])
+    for name, domain in sorted(payload["VALUE_DOMAINS"].items()):
+        lines.append(f"    {name!r}: {_render_os_value_domain(domain)},")
+    lines.extend([
+        "}",
         "",
-        f"API_INPUT_VALUE_DOMAINS = {_render_py(payload['API_INPUT_VALUE_DOMAINS'])}",
+        f"API_INPUT_VALUE_DOMAINS: dict[str, dict[str, dict[str, str]]] = {_render_py(payload['API_INPUT_VALUE_DOMAINS'])}",
         "",
-        f"STRUCT_FIELD_VALUE_DOMAINS = {_render_py(payload['STRUCT_FIELD_VALUE_DOMAINS'])}",
+        f"STRUCT_FIELD_VALUE_DOMAINS: dict[str, dict[str | None, str]] = {_render_py(payload['STRUCT_FIELD_VALUE_DOMAINS'])}",
         "",
-        "STRUCTS = {",
+        "STRUCTS: dict[str, OsStruct] = {",
     ])
     for name, struct_def in sorted(structs.items()):
         lines.append(f"    {name!r}: {_render_os_struct(struct_def)},")
     lines.extend([
         "}",
         "",
-        "CONSTANTS = {",
+        "CONSTANTS: dict[str, OsConstant] = {",
     ])
     for name, constant in sorted(constants.items()):
         lines.append(f"    {name!r}: {_render_os_constant(constant)},")
     lines.extend([
         "}",
         "",
-        "LIBRARIES = {",
+        "LIBRARIES: dict[str, OsLibrary] = {",
     ])
     for name, library in sorted(libraries.items()):
         lines.append(f"    {name!r}: OsLibrary(")
@@ -2574,8 +2606,15 @@ def _build_os_runtime() -> OsRuntimePayload:
             "library_lvo_owners": canonical["_meta"]["library_lvo_owners"],
         },
         "VALUE_DOMAINS": {
-            name: tuple(values)
-            for name, values in sorted(canonical["_meta"]["value_domains"].items())
+            name: {
+                "kind": domain["kind"],
+                "members": list(domain["members"]),
+                "zero_name": domain.get("zero_name"),
+                "exact_match_policy": domain["exact_match_policy"],
+                "composition": domain.get("composition"),
+                "remainder_policy": domain.get("remainder_policy"),
+            }
+            for name, domain in sorted(canonical["_meta"]["value_domains"].items())
         },
         "API_INPUT_VALUE_DOMAINS": {
             library_name: {

@@ -21,8 +21,14 @@ import struct
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Protocol
 
+from disasm.target_metadata import (
+    AppSlotRegionMetadata,
+    CustomStructMetadata,
+    TargetMetadata,
+)
 from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode, runtime_os
 from m68k_kb.runtime_os import (
     OsConstant,
@@ -30,6 +36,7 @@ from m68k_kb.runtime_os import (
     OsLibrary,
     OsMeta,
     OsOutput,
+    OsValueDomain,
 )
 
 from .instruction_decode import (
@@ -152,7 +159,7 @@ class OsKb(Protocol):
     def META(self) -> OsMeta: ...
 
     @property
-    def VALUE_DOMAINS(self) -> Mapping[str, tuple[str, ...]]: ...
+    def VALUE_DOMAINS(self) -> Mapping[str, OsValueDomain]: ...
 
     @property
     def API_INPUT_VALUE_DOMAINS(self) -> Mapping[str, Mapping[str, Mapping[str, str]]]: ...
@@ -241,6 +248,79 @@ class _PendingCallInput:
 
 
 RUNTIME_OS_KB: OsKb = runtime_os
+
+
+def _validate_custom_struct(os_kb: OsKb,
+                            custom_struct: CustomStructMetadata,
+                            available_structs: set[str] | None = None) -> None:
+    allowed_structs = set(os_kb.STRUCTS) if available_structs is None else available_structs
+    if custom_struct.size < 0:
+        raise ValueError(f"Custom struct {custom_struct.name} has negative size")
+    if custom_struct.base_offset < 0 or custom_struct.base_offset > custom_struct.size:
+        raise ValueError(
+            f"Custom struct {custom_struct.name} has invalid base_offset {custom_struct.base_offset}")
+    if custom_struct.base_struct is not None:
+        if custom_struct.base_struct == custom_struct.name:
+            raise ValueError(f"Custom struct {custom_struct.name} cannot inherit from itself")
+        if custom_struct.base_struct not in allowed_structs:
+            raise KeyError(
+                f"Custom struct {custom_struct.name} references unknown base struct {custom_struct.base_struct}")
+    for field in custom_struct.fields:
+        if field.offset < 0 or field.size < 0 or field.offset + field.size > custom_struct.size:
+            raise ValueError(
+                f"Custom struct field {custom_struct.name}.{field.name} lies outside struct bounds")
+        if field.struct is not None and field.struct not in allowed_structs:
+            raise KeyError(
+                f"Custom struct field {custom_struct.name}.{field.name} references unknown struct {field.struct}")
+        if field.pointer_struct is not None and field.pointer_struct not in allowed_structs:
+            raise KeyError(
+                f"Custom struct field {custom_struct.name}.{field.name} references unknown pointer struct {field.pointer_struct}")
+
+
+def _validate_app_slot_region(slot: AppSlotRegionMetadata, os_kb: OsKb) -> None:
+    declared = int(slot.struct_name is not None) + int(slot.pointer_struct is not None)
+    if declared != 1:
+        raise ValueError(
+            f"App slot offset {slot.offset} must declare exactly one of struct_name or pointer_struct")
+    if slot.struct_name is not None and slot.struct_name not in os_kb.STRUCTS:
+        raise KeyError(f"Unknown custom app slot struct {slot.struct_name}")
+    if slot.pointer_struct is not None and slot.pointer_struct not in os_kb.STRUCTS:
+        raise KeyError(f"Unknown custom app slot pointer struct {slot.pointer_struct}")
+
+
+def build_target_local_os_kb(os_kb: OsKb,
+                             target_metadata: TargetMetadata | None = None) -> OsKb:
+    if target_metadata is None:
+        return os_kb
+    merged_structs = dict(os_kb.STRUCTS)
+    target_struct_names = set(merged_structs)
+    target_struct_names.update(custom_struct.name for custom_struct in target_metadata.custom_structs)
+    for custom_struct in target_metadata.custom_structs:
+        _validate_custom_struct(
+            SimpleNamespace(STRUCTS=merged_structs),
+            custom_struct,
+            available_structs=target_struct_names,
+        )
+        existing = merged_structs.get(custom_struct.name)
+        if existing is not None:
+            if existing != custom_struct:
+                raise ValueError(
+                    f"Target metadata custom struct conflicts with existing struct {custom_struct.name}"
+                )
+            continue
+        merged_structs[custom_struct.name] = custom_struct
+    merged_kb = SimpleNamespace(
+        META=os_kb.META,
+        VALUE_DOMAINS=os_kb.VALUE_DOMAINS,
+        API_INPUT_VALUE_DOMAINS=os_kb.API_INPUT_VALUE_DOMAINS,
+        STRUCT_FIELD_VALUE_DOMAINS=os_kb.STRUCT_FIELD_VALUE_DOMAINS,
+        STRUCTS=merged_structs,
+        CONSTANTS=os_kb.CONSTANTS,
+        LIBRARIES=os_kb.LIBRARIES,
+    )
+    for slot in target_metadata.app_slot_regions:
+        _validate_app_slot_region(slot, merged_kb)
+    return merged_kb
 
 
 def _sanitize_app_name(name: str) -> str:
@@ -1079,16 +1159,83 @@ def _concrete_facts(facts: dict[str, RegisterFact]) -> dict[str, int]:
 
 
 def _merge_register_facts(existing: dict[str, RegisterFact] | None,
-                          incoming: dict[str, RegisterFact]
+                          incoming: dict[str, RegisterFact],
+                          os_kb: OsKb,
                           ) -> tuple[dict[str, RegisterFact], bool]:
     if existing is None:
         return dict(incoming), True
-    merged = {
-        reg: fact
-        for reg, fact in existing.items()
-        if reg in incoming and incoming[reg] == fact
-    }
+    merged: dict[str, RegisterFact] = {}
+    for reg, fact in existing.items():
+        incoming_fact = incoming.get(reg)
+        if incoming_fact is None:
+            continue
+        merged_fact = _merge_register_fact(fact, incoming_fact, os_kb)
+        if merged_fact is not None:
+            merged[reg] = merged_fact
     return merged, merged != existing
+
+
+def _struct_lineage(os_kb: OsKb, struct_name: str) -> tuple[str, ...]:
+    lineage: list[str] = []
+    seen: set[str] = set()
+    current: str | None = struct_name
+    while current is not None:
+        if current in seen:
+            raise ValueError(f"Cyclic struct inheritance detected for {struct_name}")
+        seen.add(current)
+        lineage.append(current)
+        current = os_kb.STRUCTS[current].base_struct
+    return tuple(lineage)
+
+
+def _common_region_struct(os_kb: OsKb,
+                          left: TypedMemoryRegion,
+                          right: TypedMemoryRegion) -> str | None:
+    if left.context_name != right.context_name or left.struct_offset != right.struct_offset:
+        return None
+    right_lineage = set(_struct_lineage(os_kb, right.struct))
+    for candidate in _struct_lineage(os_kb, left.struct):
+        if candidate not in right_lineage:
+            continue
+        struct_def = os_kb.STRUCTS[candidate]
+        if left.struct_offset < struct_def.size:
+            return candidate
+    return None
+
+
+def _merged_region_fact(left: RegisterFact,
+                        right: RegisterFact,
+                        os_kb: OsKb) -> TypedMemoryRegion | None:
+    left_region = left.region
+    right_region = right.region
+    if left_region is None or right_region is None:
+        return None
+    common_struct = _common_region_struct(os_kb, left_region, right_region)
+    if common_struct is None:
+        return None
+    struct_def = os_kb.STRUCTS[common_struct]
+    provenance = left_region.provenance
+    if left_region != right_region:
+        provenance = MemoryRegionProvenance(address_space=MemoryRegionAddressSpace.REGISTER)
+    return TypedMemoryRegion(
+        struct=common_struct,
+        size=struct_def.size,
+        provenance=provenance,
+        struct_offset=left_region.struct_offset,
+        context_name=left_region.context_name,
+    )
+
+
+def _merge_register_fact(existing: RegisterFact,
+                         incoming: RegisterFact,
+                         os_kb: OsKb) -> RegisterFact | None:
+    if existing == incoming:
+        return existing
+    region = _merged_region_fact(existing, incoming, os_kb)
+    concrete = existing.concrete if existing.concrete == incoming.concrete else None
+    if region is None and concrete is None:
+        return None
+    return RegisterFact(region=region, concrete=concrete)
 
 
 def _summary_register_facts(current: dict[str, RegisterFact],
@@ -1598,11 +1745,13 @@ def _apply_register_update(current: dict[str, RegisterFact],
 def build_app_struct_regions(blocks: dict[int, BasicBlock],
                              lib_calls: list[LibraryCall],
                              os_kb: OsKb,
-                             platform: PlatformState | None = None
+                             platform: PlatformState | None = None,
+                             target_metadata: TargetMetadata | None = None,
                              ) -> dict[int, TypedMemoryRegion]:
     """Build persistent app-relative typed regions from OS call inputs."""
     if platform is None or platform.app_base is None:
         return {}
+    os_kb = build_target_local_os_kb(os_kb, target_metadata)
     base_reg_num = platform.app_base.reg_num
     base_reg_name = _address_reg_name(base_reg_num)
     result: dict[int, TypedMemoryRegion] = {}
@@ -1634,6 +1783,25 @@ def build_app_struct_regions(blocks: dict[int, BasicBlock],
                         f"Conflicting app struct regions at offset {displacement}: "
                         f"{existing} vs {region}")
                 result[displacement] = region
+    if target_metadata is not None:
+        for slot in target_metadata.app_slot_regions:
+            if slot.struct_name is None:
+                continue
+            struct_def = os_kb.STRUCTS.get(slot.struct_name)
+            if struct_def is None:
+                raise KeyError(f"Unknown custom app slot struct {slot.struct_name}")
+            region = TypedMemoryRegion(
+                struct=slot.struct_name,
+                size=struct_def.size,
+                provenance=provenance_base_displacement(
+                    MemoryRegionAddressSpace.APP, base_reg_name, slot.offset),
+            )
+            existing = result.get(slot.offset)
+            if existing is not None and existing != region:
+                raise ValueError(
+                    f"Conflicting app struct regions at offset {slot.offset}: "
+                    f"{existing} vs {region}")
+            result[slot.offset] = region
     return result
 
 
@@ -1641,7 +1809,8 @@ def build_app_slot_symbols(blocks: dict[int, BasicBlock],
                            lib_calls: list[LibraryCall],
                            code: bytes,
                            os_kb: OsKb,
-                           platform: PlatformState) -> dict[int, str]:
+                           platform: PlatformState,
+                           target_metadata: TargetMetadata | None = None) -> dict[int, str]:
     raw_app_offsets: dict[int, str] = {}
     base_info = platform.app_base
     init_mem = platform.initial_mem
@@ -1673,6 +1842,11 @@ def build_app_slot_symbols(blocks: dict[int, BasicBlock],
                 grouped_candidates.setdefault(sym, []).append(naming.offset)
         for offset, naming in naming_by_offset.items():
             raw_app_offsets[offset] = _choose_app_slot_symbol(naming, grouped_candidates)
+    if target_metadata is not None:
+        for slot in target_metadata.app_slot_regions:
+            if slot.symbol is None:
+                continue
+            raw_app_offsets[slot.offset] = slot.symbol
 
     grouped: dict[str, list[int]] = {}
     for offset, symbol in raw_app_offsets.items():
@@ -1692,14 +1866,16 @@ def build_app_slot_infos(blocks: dict[int, BasicBlock],
                          lib_calls: list[LibraryCall],
                          code: bytes,
                          os_kb: OsKb,
-                         platform: PlatformState) -> tuple[AppSlotInfo, ...]:
+                         platform: PlatformState,
+                         target_metadata: TargetMetadata | None = None) -> tuple[AppSlotInfo, ...]:
     base_info = platform.app_base
     if base_info is None:
         return ()
-    symbols = build_app_slot_symbols(blocks, lib_calls, code, os_kb, platform)
+    os_kb = build_target_local_os_kb(os_kb, target_metadata)
+    symbols = build_app_slot_symbols(blocks, lib_calls, code, os_kb, platform, target_metadata)
     usages = collect_app_memory_type_usages(blocks, lib_calls, base_reg=base_info.reg_num)
-    regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
-    pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform)
+    regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform, target_metadata)
+    pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform, target_metadata)
     named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
     infos: list[AppSlotInfo] = []
     for offset, symbol in sorted(symbols.items()):
@@ -1757,10 +1933,12 @@ def build_app_pointer_regions(blocks: dict[int, BasicBlock],
                               lib_calls: list[LibraryCall],
                               code: bytes,
                               os_kb: OsKb,
-                              platform: PlatformState | None = None
+                              platform: PlatformState | None = None,
+                              target_metadata: TargetMetadata | None = None,
                               ) -> dict[int, TypedMemoryRegion]:
     if platform is None or platform.app_base is None:
         return {}
+    os_kb = build_target_local_os_kb(os_kb, target_metadata)
     base_reg_name = _address_reg_name(platform.app_base.reg_num)
     named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
     pointer_structs = build_app_slot_pointer_structs(blocks, lib_calls, os_kb, platform)
@@ -1783,6 +1961,88 @@ def build_app_pointer_regions(blocks: dict[int, BasicBlock],
                 f"Conflicting app pointer regions at offset {offset}: "
                 f"{existing} vs {region}")
         result[offset] = region
+    if target_metadata is not None:
+        for slot in target_metadata.app_slot_regions:
+            if slot.pointer_struct is None:
+                continue
+            custom_struct_def = os_kb.STRUCTS.get(slot.pointer_struct)
+            if custom_struct_def is None:
+                raise KeyError(f"Unknown custom app pointer struct {slot.pointer_struct}")
+            region = TypedMemoryRegion(
+                struct=slot.pointer_struct,
+                size=custom_struct_def.size,
+                provenance=provenance_base_displacement(
+                    MemoryRegionAddressSpace.APP, base_reg_name, slot.offset),
+            )
+            existing = result.get(slot.offset)
+            if existing is not None and existing != region:
+                raise ValueError(
+                    f"Conflicting app pointer regions at offset {slot.offset}: "
+                    f"{existing} vs {region}")
+            result[slot.offset] = region
+    return result
+
+
+def _typed_app_pointer_region(base_register: str,
+                              displacement: int,
+                              region: TypedMemoryRegion) -> TypedMemoryRegion:
+    return TypedMemoryRegion(
+        struct=region.struct,
+        size=region.size,
+        provenance=provenance_base_displacement(
+            MemoryRegionAddressSpace.APP, base_register, displacement),
+        struct_offset=region.struct_offset,
+        context_name=region.context_name,
+    )
+
+
+def _merge_app_pointer_regions(existing: dict[int, TypedMemoryRegion],
+                               incoming: dict[int, TypedMemoryRegion]) -> dict[int, TypedMemoryRegion]:
+    merged = dict(existing)
+    for offset, region in incoming.items():
+        prior = merged.get(offset)
+        if prior is not None and prior != region:
+            raise ValueError(
+                f"Conflicting app pointer regions at offset {offset}: "
+                f"{prior} vs {region}")
+        merged[offset] = region
+    return merged
+
+
+def _collect_app_pointer_regions_from_store_facts(
+        blocks: dict[int, BasicBlock],
+        facts_by_inst: dict[int, dict[str, TypedMemoryRegion]],
+        platform: PlatformState | None,
+) -> dict[int, TypedMemoryRegion]:
+    if platform is None or platform.app_base is None:
+        return {}
+    base_reg = platform.app_base.reg_num
+    base_register = _address_reg_name(base_reg)
+    result: dict[int, TypedMemoryRegion] = {}
+    for block in blocks.values():
+        for inst in block.instructions:
+            facts = facts_by_inst.get(inst.offset)
+            if not facts:
+                continue
+            ikb, decoded = _decode_inst(inst)
+            if runtime_m68k_analysis.OPERATION_TYPES.get(ikb) != runtime_m68k_analysis.OperationType.MOVE:
+                continue
+            src_name = _decoded_source_reg(decoded)
+            if src_name is None:
+                continue
+            src_region = facts.get(src_name)
+            if src_region is None:
+                continue
+            displacement = _base_disp_operand(decoded.dst_op, base_reg)
+            if displacement is None:
+                continue
+            region = _typed_app_pointer_region(base_register, displacement, src_region)
+            existing = result.get(displacement)
+            if existing is not None and existing != region:
+                raise ValueError(
+                    f"Conflicting app pointer regions at offset {displacement}: "
+                    f"{existing} vs {region}")
+            result[displacement] = region
     return result
 
 
@@ -2075,15 +2335,17 @@ def refine_opened_base_calls(blocks: dict[int, BasicBlock],
                              lib_calls: list[LibraryCall],
                              code: bytes,
                              os_kb: OsKb,
-                             platform: PlatformState | None = None) -> list[LibraryCall]:
+                             platform: PlatformState | None = None,
+                             target_metadata: TargetMetadata | None = None) -> list[LibraryCall]:
     """Resolve unknown direct base calls through named opened bases."""
     if platform is None or platform.app_base is None:
         return lib_calls
-    app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
+    os_kb = build_target_local_os_kb(os_kb, target_metadata)
+    app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform, target_metadata)
     named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
     if not named_bases:
         return lib_calls
-    region_map = propagate_typed_memory_regions(blocks, lib_calls, code, os_kb, platform)
+    region_map = propagate_typed_memory_regions(blocks, lib_calls, code, os_kb, platform, target_metadata)
     lvo_lookup = _build_lvo_lookup(os_kb)
     base_reg_name = _address_reg_name(platform.app_base.reg_num)
     refined: list[LibraryCall] = []
@@ -2140,7 +2402,8 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
                                    lib_calls: list[LibraryCall],
                                    code: bytes,
                                    os_kb: OsKb,
-                                   platform: PlatformState | None = None
+                                   platform: PlatformState | None = None,
+                                   target_metadata: TargetMetadata | None = None,
                                    ) -> dict[int, dict[str, TypedMemoryRegion]]:
     """Propagate KB-typed memory regions through register values.
 
@@ -2151,6 +2414,7 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
     Returns: {inst_offset: {reg_name: TypedMemoryRegion}}
     """
     seed_regions: dict[int, dict[str, RegisterFact]] = {}
+    os_kb = build_target_local_os_kb(os_kb, target_metadata)
     output_region_facts = _output_struct_region_facts(lib_calls, os_kb)
     for call in lib_calls:
         block = blocks.get(call.block)
@@ -2169,13 +2433,14 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
                     continue
                 seed_offset, seed_reg, region = seed
                 seed_regions.setdefault(seed_offset, {})[seed_reg] = RegisterFact(region=region)
-    app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
-    app_pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform)
+    app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform, target_metadata)
+    base_app_pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform, target_metadata)
+    app_pointer_regions = dict(base_app_pointer_regions)
 
     exec_summaries = None if platform is None else platform.summary_cache
     region_summaries: dict[int, RegionSummary] = {}
 
-    max_iterations = max(1, len(blocks) + len(_call_targets(blocks)))
+    max_iterations = max(2, (len(blocks) + len(_call_targets(blocks))) * 2)
     iterations = 0
     while True:
         iterations += 1
@@ -2238,7 +2503,7 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
                     other_succs.append(xref.dst)
 
             if call_dst is not None and call_dst in blocks:
-                merged, changed = _merge_register_facts(block_in[call_dst], current)
+                merged, changed = _merge_register_facts(block_in[call_dst], current, os_kb)
                 if changed:
                     block_in[call_dst] = merged
                     worklist.append(call_dst)
@@ -2250,7 +2515,7 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
                 region_summary = None if call_dst is None else region_summaries.get(call_dst)
                 fallthrough = _apply_register_fact_summary(
                     current, summary, region_summary, os_kb, platform)
-                merged, changed = _merge_register_facts(block_in[ft_dst], fallthrough)
+                merged, changed = _merge_register_facts(block_in[ft_dst], fallthrough, os_kb)
                 if changed:
                     block_in[ft_dst] = merged
                     worklist.append(ft_dst)
@@ -2258,16 +2523,21 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
             for succ in other_succs:
                 if succ not in blocks:
                     continue
-                merged, changed = _merge_register_facts(block_in[succ], current)
+                merged, changed = _merge_register_facts(block_in[succ], current, os_kb)
                 if changed:
                     block_in[succ] = merged
                     worklist.append(succ)
 
         new_region_summaries = _compute_region_summaries(
             blocks, facts_by_inst, exec_summaries)
-        if new_region_summaries == region_summaries:
+        learned_app_pointer_regions = _collect_app_pointer_regions_from_store_facts(
+            blocks, facts_by_inst, platform)
+        next_app_pointer_regions = _merge_app_pointer_regions(
+            base_app_pointer_regions, learned_app_pointer_regions)
+        if new_region_summaries == region_summaries and next_app_pointer_regions == app_pointer_regions:
             return facts_by_inst
         region_summaries = new_region_summaries
+        app_pointer_regions = next_app_pointer_regions
 
 
 @dataclass(frozen=True, slots=True)

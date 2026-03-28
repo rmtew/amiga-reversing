@@ -219,6 +219,26 @@ def test_emit_data_word_format_stops_at_unknown_access() -> None:
     assert "$41" in output and "$42" in output
 
 
+def test_emit_data_region_emits_addr_comment_before_interior_label() -> None:
+    data = bytes([0x4A, 0xFB, 0x00, 0x00])
+    f = io.StringIO()
+
+    emit_data_region(
+        f,
+        data,
+        0,
+        len(data),
+        {2: "check_keyboard"},
+        {},
+        set(),
+        addr_comments={2: "keyboard input routine: seeded note"},
+    )
+
+    output = f.getvalue()
+    assert "; keyboard input routine: seeded note" in output
+    assert "check_keyboard:" in output
+
+
 def test_emit_data_raw_chunk_stops_before_later_word_access() -> None:
     """Raw-byte chunking must not swallow a later structured word region."""
     import io
@@ -2362,6 +2382,7 @@ def test_render_instruction_text_uses_app_region_struct_substitution() -> None:
     assert ops[0].metadata == AppStructFieldOperandMetadata(
         base_symbol="app_timer_device_iorequest",
         field_symbol="IO_DEVICE",
+        owner_struct="IO",
     )
 
 
@@ -2681,4 +2702,209 @@ def test_apply_field_value_domain_substitutions_rejects_unknown_kb_constant() ->
 
     with pytest.raises(ValueError, match="No KB value-domain match"):
         _apply_field_value_domain_substitutions(operands, session)
+
+
+def test_apply_field_value_domain_substitutions_uses_kb_constant_for_app_struct_field() -> None:
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={100: "app_trackdisk_ioreq"},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(app_base=(6, 0)),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=runtime_os.STRUCTS,
+            CONSTANTS=runtime_os.CONSTANTS,
+            LIBRARIES={},
+            STRUCT_FIELD_VALUE_DOMAINS=runtime_os.STRUCT_FIELD_VALUE_DOMAINS,
+            VALUE_DOMAINS=runtime_os.VALUE_DOMAINS,
+        ),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        app_struct_regions={
+            100: TypedMemoryRegion(
+                struct="IO",
+                size=runtime_os.STRUCTS["IO"].size,
+                provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 100),
+                context_name="trackdisk.device",
+            )
+        },
+    )
+
+    operands = (
+        SemanticOperand(
+            kind="immediate",
+            text="#$0002",
+            value=2,
+        ),
+        SemanticOperand(
+            kind="base_displacement_symbol",
+            text="app_trackdisk_ioreq+IO_COMMAND(a6)",
+            base_register="a6",
+            displacement=128,
+            metadata=AppStructFieldOperandMetadata(
+                base_symbol="app_trackdisk_ioreq",
+                field_symbol="IO_COMMAND",
+                owner_struct="IO",
+                context_name="trackdisk.device",
+            ),
+        ),
+    )
+
+    rewritten = _apply_field_value_domain_substitutions(operands, session)
+
+    assert rewritten[0].text == "#CMD_READ"
+    assert rewritten[1] == operands[1]
+
+
+def test_apply_field_value_domain_substitutions_uses_kb_constant_for_indexed_struct_field() -> None:
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            STRUCTS=runtime_os.STRUCTS,
+            CONSTANTS=runtime_os.CONSTANTS,
+            LIBRARIES={},
+            STRUCT_FIELD_VALUE_DOMAINS=runtime_os.STRUCT_FIELD_VALUE_DOMAINS,
+            VALUE_DOMAINS=runtime_os.VALUE_DOMAINS,
+        ),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    operands = (
+        SemanticOperand(
+            kind="immediate",
+            text="#$0002",
+            value=2,
+        ),
+        SemanticOperand(
+            kind="base_displacement_symbol",
+            text="IO_COMMAND(a1,d0.w)",
+            base_register="a1",
+            displacement=28,
+            metadata=IndexedOperandMetadata(
+                index_register="d0",
+                index_size="w",
+                symbol="IO_COMMAND",
+                owner_struct="IO",
+                field_symbol="IO_COMMAND",
+                context_name="trackdisk.device",
+            ),
+        ),
+    )
+
+    rewritten = _apply_field_value_domain_substitutions(operands, session)
+
+    assert rewritten[0].text == "#CMD_READ"
+    assert rewritten[1] == operands[1]
+
+
+def test_apply_field_value_domain_substitutions_uses_kb_constant_for_dospacket_type() -> None:
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=SimpleNamespace(
+            META=runtime_os.META,
+            CONSTANTS=runtime_os.CONSTANTS,
+            LIBRARIES={},
+            STRUCT_FIELD_VALUE_DOMAINS=runtime_os.STRUCT_FIELD_VALUE_DOMAINS,
+            VALUE_DOMAINS=runtime_os.VALUE_DOMAINS,
+        ),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    operands = (
+        SemanticOperand(kind="immediate", text="#$3ec", value=0x3EC),
+        SemanticOperand(
+            kind="base_displacement_symbol",
+            text="dp_Type(a1)",
+            base_register="a1",
+            displacement=8,
+            metadata=StructFieldOperandMetadata(
+                symbol="dp_Type",
+                owner_struct="DosPacket",
+                field_symbol="dp_Type",
+                context_name=None,
+            ),
+        ),
+    )
+
+    rewritten = _apply_field_value_domain_substitutions(operands, session)
+
+    assert rewritten[0].text == "#ACTION_FINDUPDATE"
+    assert rewritten[1] == operands[1]
 

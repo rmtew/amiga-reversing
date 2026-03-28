@@ -96,10 +96,16 @@ def _emit_chunk_with_strings(handle: TextIO, code: bytes, start: int, end: int,
 def emit_data_region(handle: TextIO, code: bytes, start: int, end: int,
                      labels: dict[int, str], reloc_map: dict[int, int],
                      string_addrs: set[int], indent: str = "    ",
-                     access_sizes: dict[int, int] | None = None) -> None:
+                     access_sizes: dict[int, int] | None = None,
+                     addr_comments: dict[int, str] | None = None) -> None:
+    if addr_comments is None:
+        addr_comments = {}
     pos = start
     while pos < end:
         if pos != start and pos in labels:
+            comment = addr_comments.get(pos)
+            if comment is not None:
+                handle.write(f"; {comment}\n")
             handle.write(f"{labels[pos]}:\n")
 
         if pos in reloc_map and pos + 4 <= end:

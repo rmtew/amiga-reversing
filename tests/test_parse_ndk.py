@@ -3,9 +3,11 @@ from typing import cast
 
 from kb.ndk_parser import (
     _map_clib_args_to_inputs,
+    build_fd_function_min_versions,
     build_os_compatibility_kb,
     build_os_include_kb,
     canonicalize_json,
+    collect_raw_constants_from_include_dir,
     evaluate_all_constants,
     parse_callback_typedefs,
     parse_clib_prototypes,
@@ -13,6 +15,8 @@ from kb.ndk_parser import (
     parse_include_value_bindings,
     parse_synopsis,
     reconcile_clib_callback_types,
+    scan_fd_function_names,
+    scan_type_macros,
 )
 from kb.os_reference import load_os_reference_payload
 from kb.paths import AMIGA_OS_REFERENCE_CORRECTIONS_JSON
@@ -398,14 +402,24 @@ def test_parse_include_value_bindings_extracts_exec_io_domains(tmp_path: Path) -
         constants,
     )
 
-    assert value_domains["exec.io.command"] == [
-        "CMD_INVALID",
-        "CMD_RESET",
-        "CMD_READ",
-        "CMD_WRITE",
-        "CMD_NONSTD",
-    ]
-    assert value_domains["exec.io.flags"] == ["IOF_QUICK"]
+    assert value_domains["exec.io.command"] == {
+        "kind": "enum",
+        "members": [
+            "CMD_INVALID",
+            "CMD_RESET",
+            "CMD_READ",
+            "CMD_WRITE",
+            "CMD_NONSTD",
+        ],
+        "exact_match_policy": "error",
+    }
+    assert value_domains["exec.io.flags"] == {
+        "kind": "flags",
+        "members": ["IOF_QUICK"],
+        "exact_match_policy": "error",
+        "composition": "bit_or",
+        "remainder_policy": "error",
+    }
     assert field_bindings == [
         {"struct": "IO", "field": "IO_COMMAND", "domain": "exec.io.command", "available_since": "1.0"},
         {"struct": "IO", "field": "IO_FLAGS", "domain": "exec.io.flags", "available_since": "1.0"},
@@ -449,13 +463,23 @@ def test_parse_include_value_bindings_extracts_trackdisk_context_domains(tmp_pat
         constants,
     )
 
-    assert value_domains["trackdisk.device.io_command"] == [
-        "TD_MOTOR",
-        "TD_RAWREAD",
-        "ETD_READ",
-        "ETD_RAWREAD",
-    ]
-    assert value_domains["trackdisk.device.io_flags"] == ["IOTDF_WORDSYNC"]
+    assert value_domains["trackdisk.device.io_command"] == {
+        "kind": "enum",
+        "members": [
+            "TD_MOTOR",
+            "TD_RAWREAD",
+            "ETD_READ",
+            "ETD_RAWREAD",
+        ],
+        "exact_match_policy": "error",
+    }
+    assert value_domains["trackdisk.device.io_flags"] == {
+        "kind": "flags",
+        "members": ["IOTDF_WORDSYNC"],
+        "exact_match_policy": "error",
+        "composition": "bit_or",
+        "remainder_policy": "error",
+    }
     assert field_bindings == [
         {
             "struct": "IO",
@@ -502,8 +526,18 @@ def test_parse_include_value_bindings_extracts_generic_device_context_domains(tm
         constants,
     )
 
-    assert value_domains["timer.device.io_command"] == ["TR_ADDREQUEST"]
-    assert value_domains["timer.device.io_flags"] == ["IOTRF_QUICK"]
+    assert value_domains["timer.device.io_command"] == {
+        "kind": "enum",
+        "members": ["TR_ADDREQUEST"],
+        "exact_match_policy": "error",
+    }
+    assert value_domains["timer.device.io_flags"] == {
+        "kind": "flags",
+        "members": ["IOTRF_QUICK"],
+        "exact_match_policy": "error",
+        "composition": "bit_or",
+        "remainder_policy": "error",
+    }
     assert field_bindings == [
         {
             "struct": "IO",
@@ -560,11 +594,108 @@ def test_corrections_json_exposes_explicit_api_value_bindings() -> None:
         },
     ]
     assert value_domains == {
-        "exec.allocmem.attributes": ["MEMF_CHIP", "MEMF_FAST", "MEMF_PUBLIC"],
-        "exec.signal_mask": ["SIGBREAKF_CTRL_C"],
-        "dos.seek.mode": ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
-        "dos.lock.access_mode": ["ACCESS_READ", "ACCESS_WRITE"],
-        "dos.open.access_mode": ["MODE_NEWFILE", "MODE_OLDFILE", "MODE_READWRITE"],
+        "exec.allocmem.attributes": {
+            "kind": "flags",
+            "members": [
+                "MEMF_ANY",
+                "MEMF_PUBLIC",
+                "MEMF_CHIP",
+                "MEMF_FAST",
+                "MEMF_LOCAL",
+                "MEMF_24BITDMA",
+                "MEMF_KICK",
+                "MEMF_NO_EXPUNGE",
+                "MEMF_CLEAR",
+                "MEMF_LARGEST",
+                "MEMF_REVERSE",
+                "MEMF_TOTAL",
+            ],
+            "exact_match_policy": "error",
+            "composition": "bit_or",
+            "remainder_policy": "error",
+        },
+        "exec.signal_mask": {
+            "kind": "flags",
+            "members": [
+                "SIGBREAKF_CTRL_C",
+                "SIGBREAKF_CTRL_D",
+                "SIGBREAKF_CTRL_E",
+                "SIGBREAKF_CTRL_F",
+            ],
+            "exact_match_policy": "error",
+            "composition": "bit_or",
+            "remainder_policy": "error",
+        },
+        "dos.seek.mode": {
+            "kind": "enum",
+            "members": ["OFFSET_BEGINNING", "OFFSET_CURRENT", "OFFSET_END"],
+            "exact_match_policy": "error",
+        },
+        "dos.lock.access_mode": {
+            "kind": "enum",
+            "members": ["ACCESS_READ", "ACCESS_WRITE"],
+            "exact_match_policy": "error",
+        },
+        "dos.open.access_mode": {
+            "kind": "enum",
+            "members": ["MODE_NEWFILE", "MODE_OLDFILE", "MODE_READWRITE"],
+            "exact_match_policy": "error",
+        },
+        "dos.packet.action": {
+            "kind": "enum",
+            "members": [
+                "ACTION_NIL",
+                "ACTION_GET_BLOCK",
+                "ACTION_SET_MAP",
+                "ACTION_DIE",
+                "ACTION_EVENT",
+                "ACTION_CURRENT_VOLUME",
+                "ACTION_LOCATE_OBJECT",
+                "ACTION_RENAME_DISK",
+                "ACTION_FREE_LOCK",
+                "ACTION_DELETE_OBJECT",
+                "ACTION_RENAME_OBJECT",
+                "ACTION_MORE_CACHE",
+                "ACTION_COPY_DIR",
+                "ACTION_WAIT_CHAR",
+                "ACTION_SET_PROTECT",
+                "ACTION_CREATE_DIR",
+                "ACTION_EXAMINE_OBJECT",
+                "ACTION_EXAMINE_NEXT",
+                "ACTION_DISK_INFO",
+                "ACTION_INFO",
+                "ACTION_FLUSH",
+                "ACTION_SET_COMMENT",
+                "ACTION_PARENT",
+                "ACTION_TIMER",
+                "ACTION_INHIBIT",
+                "ACTION_DISK_TYPE",
+                "ACTION_DISK_CHANGE",
+                "ACTION_SET_DATE",
+                "ACTION_FINDUPDATE",
+                "ACTION_FINDINPUT",
+                "ACTION_FINDOUTPUT",
+                "ACTION_END",
+                "ACTION_SEEK",
+                "ACTION_SET_FILE_SIZE",
+                "ACTION_READ_RETURN",
+                "ACTION_WRITE_RETURN",
+                "ACTION_IS_FILESYSTEM",
+                "ACTION_FH_FROM_LOCK",
+                "ACTION_CHANGE_MODE",
+                "ACTION_COPY_DIR_FH",
+                "ACTION_PARENT_FH",
+                "ACTION_EXAMINE_ALL",
+                "ACTION_EXAMINE_FH",
+                "ACTION_EXAMINE_ALL_END",
+                "ACTION_SET_OWNER",
+                "ACTION_CHANGE_SIGNAL",
+                "ACTION_SCREEN_MODE",
+                "ACTION_ADD_NOTIFY",
+                "ACTION_REMOVE_NOTIFY",
+            ],
+            "exact_match_policy": "error",
+        },
     }
     assert bindings == [
         {
@@ -609,6 +740,16 @@ def test_corrections_json_exposes_explicit_api_value_bindings() -> None:
         },
         {
             "library": "exec.library",
+            "function": "AvailMem",
+            "input": "attributes",
+            "domain": "exec.allocmem.attributes",
+            "available_since": "1.0",
+            "seed_origin": "include",
+            "review_status": "seeded",
+            "citation": "exec/memory.i MEMF_* constants",
+        },
+        {
+            "library": "exec.library",
             "function": "SetSignal",
             "input": "signalMask",
             "domain": "exec.signal_mask",
@@ -617,6 +758,18 @@ def test_corrections_json_exposes_explicit_api_value_bindings() -> None:
             "review_status": "seeded",
             "citation": "exec/signals.i SIGBREAKF_* constants",
         },
+    ]
+    assert corrections["_meta"]["struct_field_value_bindings"] == [
+        {
+            "struct": "DosPacket",
+            "field": "dp_Type",
+            "context_name": None,
+            "domain": "dos.packet.action",
+            "available_since": "1.3",
+            "seed_origin": "include",
+            "review_status": "seeded",
+            "citation": "dos/dosextens.i DosPacket dp_Type ACTION_* constants",
+        }
     ]
     assert semantic_assertions == [
         {
@@ -788,9 +941,13 @@ def test_build_os_include_kb_records_fd_only_ownership_when_native_missing(tmp_p
 def test_build_os_compatibility_kb_records_earliest_include_and_struct_versions(tmp_path: Path) -> None:
     ndk_13 = tmp_path / "NDK_1.3" / "INCLUDES1.3" / "INCLUDE.I" / "EXEC"
     ndk_31 = tmp_path / "NDK_3.1" / "INCLUDES&LIBS" / "INCLUDE_I" / "EXEC"
+    fd_13 = tmp_path / "NDK_1.3" / "FD"
+    fd_31 = tmp_path / "NDK_3.1" / "FD"
     doc_31 = tmp_path / "NDK_3.1" / "DOCS" / "DOC"
     ndk_13.mkdir(parents=True)
     ndk_31.mkdir(parents=True)
+    fd_13.mkdir(parents=True)
+    fd_31.mkdir(parents=True)
     doc_31.mkdir(parents=True)
     resident_13 = "\n".join([
         " STRUCTURE RT,0",
@@ -862,6 +1019,25 @@ def test_build_os_compatibility_kb_records_earliest_include_and_struct_versions(
     ])
     (ndk_13 / "types.i").write_text(type_macros, encoding="ascii")
     (ndk_31 / "types.i").write_text(type_macros, encoding="ascii")
+    exec_fd_13 = "\n".join([
+        "##base _SysBase",
+        "##bias 30",
+        "##public",
+        "OpenLibrary(name,version)(a1,d0)",
+        "##end",
+        "",
+    ])
+    exec_fd_31 = "\n".join([
+        "##base _SysBase",
+        "##bias 30",
+        "##public",
+        "OpenLibrary(name,version)(a1,d0)",
+        "OpenResource(name)(a1)",
+        "##end",
+        "",
+    ])
+    (fd_13 / "EXEC_LIB.FD").write_text(exec_fd_13, encoding="ascii")
+    (fd_31 / "EXEC_LIB.FD").write_text(exec_fd_31, encoding="ascii")
 
     include_kb = {
         "library_lvo_owners": {
@@ -900,18 +1076,27 @@ def test_build_os_compatibility_kb_records_earliest_include_and_struct_versions(
         {"1.3": str(tmp_path / "NDK_1.3"), "3.1": str(tmp_path / "NDK_3.1")},
         include_kb,
         structs,
-        {},
+        {
+            "LIB_VERSION": "0",
+            "RT_NEWFIELD": "0",
+        },
     )
 
     payload_versions = cast(list[str], payload["compatibility_versions"])
+    function_min_versions = cast(dict[str, str], payload["_function_min_versions"])
     include_min_versions = cast(dict[str, str], payload["include_min_versions"])
+    constant_min_versions = cast(dict[str, str], payload["_constant_min_versions"])
     owner = include_kb["library_lvo_owners"]["exec.library"]
     rt_struct = structs["RT"]
     rt_fields = cast(list[dict[str, object]], rt_struct["fields"])
 
     assert payload_versions == ["1.3", "3.1"]
+    assert function_min_versions["exec.library/OpenLibrary"] == "1.3"
+    assert function_min_versions["exec.library/OpenResource"] == "3.1"
     assert include_min_versions["exec/resident.i"] == "1.3"
     assert include_min_versions["exec/libraries.i"] == "1.3"
+    assert constant_min_versions["LIB_VERSION"] == "1.3"
+    assert constant_min_versions["RT_NEWFIELD"] == "3.1"
     assert owner["available_since"] == "1.3"
     assert rt_struct["available_since"] == "1.3"
     assert rt_fields[0]["available_since"] == "1.3"
@@ -922,6 +1107,99 @@ def test_build_os_compatibility_kb_records_earliest_include_and_struct_versions(
         "3.1": "RT_BOOTINIT",
     }
     assert rt_fields[2]["available_since"] == "3.1"
+
+
+def test_build_fd_function_min_versions_records_earliest_fd_presence(tmp_path: Path) -> None:
+    fd_13 = tmp_path / "NDK_1.3" / "FD"
+    fd_31 = tmp_path / "NDK_3.1" / "FD"
+    fd_13.mkdir(parents=True)
+    fd_31.mkdir(parents=True)
+    (fd_13 / "EXEC_LIB.FD").write_text(
+        "\n".join([
+            "##base _SysBase",
+            "##bias 30",
+            "##public",
+            "OpenLibrary(name,version)(a1,d0)",
+            "##end",
+            "",
+        ]),
+        encoding="ascii",
+    )
+    (fd_31 / "EXEC_LIB.FD").write_text(
+        "\n".join([
+            "##base _SysBase",
+            "##bias 30",
+            "##public",
+            "OpenLibrary(name,version)(a1,d0)",
+            "OpenResource(name)(a1)",
+            "##end",
+            "",
+        ]),
+        encoding="ascii",
+    )
+
+    payload = build_fd_function_min_versions(
+        {"1.3": str(tmp_path / "NDK_1.3"), "3.1": str(tmp_path / "NDK_3.1")}
+    )
+
+    assert payload[("exec.library", "OpenLibrary")] == "1.3"
+    assert payload[("exec.library", "OpenResource")] == "3.1"
+
+
+def test_collect_raw_constants_from_include_dir_records_generated_constants(tmp_path: Path) -> None:
+    exec_dir = tmp_path / "INCLUDE_I" / "EXEC"
+    exec_dir.mkdir(parents=True)
+    (exec_dir / "types.i").write_text(
+        "\n".join([
+            "UWORD MACRO",
+            "SOFFSET SET SOFFSET+2",
+            " ENDM",
+            "APTR MACRO",
+            "SOFFSET SET SOFFSET+4",
+            " ENDM",
+            "",
+        ]),
+        encoding="ascii",
+    )
+    (exec_dir / "resident.i").write_text(
+        "\n".join([
+            " STRUCTURE RT,0",
+            "    UWORD RT_MATCHWORD",
+            "    APTR  RT_INIT",
+            "    LABEL RT_SIZE",
+            "",
+        ]),
+        encoding="ascii",
+    )
+
+    raw_constants, parsed_include_paths = collect_raw_constants_from_include_dir(
+        str(tmp_path / "INCLUDE_I"),
+        scan_type_macros(str(tmp_path / "INCLUDE_I")),
+    )
+
+    assert raw_constants["RT"] == "0"
+    assert raw_constants["RT_MATCHWORD"] == "0"
+    assert raw_constants["RT_INIT"] == "2"
+    assert raw_constants["RT_SIZE"] == "6"
+    assert str(exec_dir / "resident.i") in parsed_include_paths
+
+
+def test_scan_fd_function_names_handles_legacy_fd_signatures_without_args(tmp_path: Path) -> None:
+    fd_path = tmp_path / "EXEC_LIB.FD"
+    fd_path.write_text(
+        "\n".join([
+            "##base _SysBase",
+            "##bias 30",
+            "##public",
+            "RawDoFmt()(A0/A1/A2/A3)",
+            "OpenLibrary(name,version)(a1,d0)",
+            "##end",
+            "",
+        ]),
+        encoding="ascii",
+    )
+
+    assert scan_fd_function_names(str(fd_path)) == ["RawDoFmt", "OpenLibrary"]
 
 
 def test_build_os_compatibility_kb_records_resident_autoinit_contract(tmp_path: Path) -> None:

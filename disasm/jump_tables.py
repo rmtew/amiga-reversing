@@ -56,6 +56,7 @@ def emit_jump_table_rows(
                     hunk_session.code, chunk_pos, entry_addr,
                     hunk_session.labels, hunk_session.reloc_map,
                     hunk_session.string_addrs, hunk_session.data_access_sizes,
+                    hunk_session.addr_comments,
                     entity_addr,
                     BlockRowContext(kind="jump-table", verified_state="verified"),
                 ))
@@ -74,6 +75,7 @@ def emit_jump_table_rows(
                 hunk_session.code, chunk_pos, jt.table_end,
                 hunk_session.labels, hunk_session.reloc_map,
                 hunk_session.string_addrs, hunk_session.data_access_sizes,
+                hunk_session.addr_comments,
                 entity_addr,
                 BlockRowContext(kind="jump-table", verified_state="verified"),
             ))
@@ -88,6 +90,7 @@ def emit_jump_table_rows(
                 hunk_session.code, chunk_pos, entry_addr,
                 hunk_session.labels, hunk_session.reloc_map,
                 hunk_session.string_addrs, hunk_session.data_access_sizes,
+                hunk_session.addr_comments,
                 entity_addr,
                 BlockRowContext(kind="jump-table", verified_state="verified"),
             ))
@@ -112,6 +115,7 @@ def emit_jump_table_rows(
             hunk_session.code, chunk_pos, jt.table_end,
             hunk_session.labels, hunk_session.reloc_map,
             hunk_session.string_addrs, hunk_session.data_access_sizes,
+            hunk_session.addr_comments,
             entity_addr,
             BlockRowContext(kind="jump-table", verified_state="verified"),
         ))

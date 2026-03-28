@@ -28,6 +28,7 @@ from disasm.analysis_layout import (
     resolved_analysis_start_offset,
     resolved_entry_points,
     resolved_raw_analysis_base_addr,
+    target_seeded_entrypoint_offsets,
 )
 from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
 from disasm.binary_source import BinarySource, HunkFileBinarySource
@@ -38,8 +39,10 @@ from disasm.entry_seeds import (
 )
 from disasm.phase_timing import PhaseTimer
 from disasm.target_metadata import (
+    SeededCodeEntrypointMetadata,
+    SeededEntityMetadata,
     TargetMetadata,
-    load_target_metadata,
+    load_required_target_metadata,
     target_structure_spec,
 )
 from m68k.analysis import _RELOC_INFO, analyze_hunk, resolve_reloc_target
@@ -50,7 +53,7 @@ from m68k.instruction_kb import instruction_kb
 from m68k.instruction_primitives import Operand
 from m68k.m68k_executor import BasicBlock, XRef
 from m68k.name_entities import name_subroutines
-from m68k.os_calls import AppSlotInfo, build_app_slot_infos
+from m68k.os_calls import AppSlotInfo, build_app_slot_infos, build_target_local_os_kb
 from m68k_kb import runtime_m68k_decode
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -268,6 +271,144 @@ def _structured_prefix_entities(
             payload["struct"] = region.struct_name
         entities.append(payload)
     return entities
+
+
+def _entity_range(entity: JsonDict) -> tuple[int, int]:
+    return int(cast(str, entity["addr"]), 16), int(cast(str, entity["end"]), 16)
+
+
+def _ranges_overlap(start_a: int, end_a: int, start_b: int, end_b: int) -> bool:
+    return start_a < end_b and end_a > start_b
+
+
+def _merge_seeded_entity(existing: JsonDict, seeded: SeededEntityMetadata) -> JsonDict:
+    merged = dict(existing)
+    if seeded.end is not None and fmt_addr(seeded.end) != merged["end"]:
+        raise ValueError(
+            f"Seeded entity at {fmt_addr(seeded.addr)} conflicts with existing end {merged['end']}"
+        )
+    if seeded.type is not None and seeded.type != merged["type"]:
+        raise ValueError(
+            f"Seeded entity at {fmt_addr(seeded.addr)} conflicts with existing type {merged['type']}"
+        )
+    existing_subtype = cast(str | None, merged.get("subtype"))
+    if seeded.subtype is not None and existing_subtype is not None and seeded.subtype != existing_subtype:
+        raise ValueError(
+            f"Seeded entity at {fmt_addr(seeded.addr)} conflicts with existing subtype {existing_subtype}"
+        )
+    if seeded.name is not None:
+        merged["name"] = seeded.name
+    if seeded.comment is not None:
+        merged["comment"] = seeded.comment
+    if seeded.subtype is not None:
+        merged["subtype"] = seeded.subtype
+    return merged
+
+
+def _seeded_entity_payload(seeded: SeededEntityMetadata) -> JsonDict:
+    if seeded.end is None:
+        raise ValueError(f"Seeded entity at {fmt_addr(seeded.addr)} is missing end")
+    if seeded.type is None:
+        raise ValueError(f"Seeded entity at {fmt_addr(seeded.addr)} is missing type")
+    payload: JsonDict = {
+        "addr": fmt_addr(seeded.addr),
+        "end": fmt_addr(seeded.end),
+        "type": seeded.type,
+        "confidence": "seeded",
+        "hunk": seeded.hunk,
+    }
+    if seeded.subtype is not None:
+        payload["subtype"] = seeded.subtype
+    if seeded.name is not None:
+        payload["name"] = seeded.name
+    if seeded.comment is not None:
+        payload["comment"] = seeded.comment
+    return payload
+
+
+def _apply_seeded_entities(
+    entities: list[JsonDict],
+    seeded_entities: tuple[SeededEntityMetadata, ...],
+    *,
+    hunk_idx: int,
+) -> list[JsonDict]:
+    if not seeded_entities:
+        return list(entities)
+    merged = list(entities)
+    for seeded in seeded_entities:
+        if seeded.hunk != hunk_idx:
+            continue
+        match_index = next(
+            (
+                index
+                for index, entity in enumerate(merged)
+                if int(cast(str, entity["addr"]), 16) == seeded.addr
+            ),
+            None,
+        )
+        if match_index is not None:
+            merged[match_index] = _merge_seeded_entity(merged[match_index], seeded)
+            continue
+        if seeded.end is None:
+            raise ValueError(
+                f"Seeded entity at {fmt_addr(seeded.addr)} is missing end and does not match an existing entity"
+            )
+        seeded_payload = _seeded_entity_payload(seeded)
+        seeded_start, seeded_end = _entity_range(seeded_payload)
+        replace_indices: list[int] = []
+        for index, entity in enumerate(merged):
+            entity_start, entity_end = _entity_range(entity)
+            if _ranges_overlap(seeded_start, seeded_end, entity_start, entity_end):
+                if cast(str, entity.get("confidence", "tool-inferred")) in {"tool-inferred", "hint"}:
+                    replace_indices.append(index)
+                    continue
+                raise ValueError(
+                    f"Seeded entity {fmt_addr(seeded_start)}..{fmt_addr(seeded_end)} overlaps "
+                    f"existing entity {entity['addr']}..{entity['end']}"
+                )
+        for index in reversed(replace_indices):
+            merged.pop(index)
+        merged.append(seeded_payload)
+    return merged
+
+
+def _apply_seeded_code_entrypoints(
+    entities: list[JsonDict],
+    seeded_entrypoints: tuple[SeededCodeEntrypointMetadata, ...],
+    *,
+    hunk_idx: int,
+) -> list[JsonDict]:
+    if not seeded_entrypoints:
+        return list(entities)
+    merged = list(entities)
+    for seeded in seeded_entrypoints:
+        if seeded.hunk != hunk_idx:
+            continue
+        match_index = next(
+            (
+                index
+                for index, entity in enumerate(merged)
+                if int(cast(str, entity["addr"]), 16) == seeded.addr
+            ),
+            None,
+        )
+        if match_index is None:
+            continue
+        entity = dict(merged[match_index])
+        if entity["type"] != "code":
+            raise ValueError(
+                f"Seeded code entrypoint at {fmt_addr(seeded.addr)} matches non-code entity {entity['type']}"
+            )
+        entity["name"] = seeded.name
+        comment = seeded.comment
+        if comment is None and seeded.role is not None:
+            comment = seeded.role
+        elif comment is not None and seeded.role is not None:
+            comment = f"{seeded.role}: {comment}"
+        if comment is not None:
+            entity["comment"] = comment
+        merged[match_index] = entity
+    return merged
 
 
 def build_subroutine_map(blocks: dict[int, BasicBlock],
@@ -688,12 +829,14 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
 
     print(f"Parsing {binary_source.display_path}...")
     output_target_dir = Path(output_path).parent if output_path is not None else None
-    target_metadata = None if output_target_dir is None else load_target_metadata(output_target_dir)
-    if binary_source.kind == "raw_binary" and target_metadata is None:
-        raise ValueError(f"Missing target_metadata.json for raw binary target: {output_target_dir}")
-    if binary_source.parent_disk_id is not None and target_metadata is None:
-        raise ValueError(f"Missing target_metadata.json for internal target: {output_target_dir}")
+    target_metadata = load_required_target_metadata(
+        target_dir=output_target_dir,
+        source_kind=binary_source.kind,
+        parent_disk_id=binary_source.parent_disk_id,
+    )
     seed_config = build_entry_seed_config(target_metadata)
+    seeded_entities = () if target_metadata is None else target_metadata.seeded_entities
+    seeded_code_entrypoints = () if target_metadata is None else target_metadata.seeded_code_entrypoints
     with phase_timer.phase("entities.parse_source") if phase_timer is not None else nullcontext():
         if binary_source.kind == "raw_binary":
             raw_bytes = binary_source.read_bytes()
@@ -751,6 +894,7 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
         if binary_source.kind == "raw_binary":
             analysis_start_offset = resolved_analysis_start_offset(binary_source, target_metadata)
             entry_points = resolved_entry_points(binary_source, target_metadata, ())
+            extra_entry_points = target_seeded_entrypoint_offsets(target_metadata, hunk_index=hunk.index)
             entry_initial_states = scoped_entry_initial_states(seed_config, entry_points)
             ha = analyze_hunk(
                 code,
@@ -759,16 +903,19 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
                 base_addr=resolved_raw_analysis_base_addr(binary_source, target_metadata),
                 code_start=analysis_start_offset,
                 entry_points=entry_points,
+                extra_entry_points=extra_entry_points,
                 initial_state=seed_config.initial_state,
                 entry_initial_states=entry_initial_states,
                 phase_timer=phase_timer,
             )
         else:
             entry_points = () if first_code_hunk_seen else custom_entry_points
+            extra_entry_points = target_seeded_entrypoint_offsets(target_metadata, hunk_index=hunk.index)
             entry_initial_states = scoped_entry_initial_states(seed_config, entry_points)
             ha = analyze_hunk(code, cast(list[Any], hunk.relocs), hunk.index,
                               base_addr=base_addr, code_start=code_start,
                               entry_points=entry_points,
+                              extra_entry_points=extra_entry_points,
                               initial_state=seed_config.initial_state,
                               entry_initial_states=entry_initial_states,
                               phase_timer=phase_timer)
@@ -790,6 +937,7 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
                 else code_start
             ),
             entry_points=entry_points,
+            extra_entry_points=extra_entry_points,
         )
         cache_path = hunk_analysis_cache_path(cache_root, hunk.index)
         ha.save(cache_path)
@@ -849,12 +997,14 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
         os_kb = ha.os_kb
         if os_kb is None:
             raise ValueError("OS KB is required for entity typing")
+        os_kb = build_target_local_os_kb(os_kb, target_metadata)
         slot_infos = build_app_slot_infos(
             blocks,
             lib_calls,
             code,
             os_kb,
             ha.platform,
+            target_metadata,
         )
         # Build subroutine map
         subroutines = build_subroutine_map(blocks, call_targets, entry_addr)
@@ -1012,6 +1162,16 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
 
         # Remove reloc entities that overlap with subroutines or each other
         all_entities = _remove_overlapping(all_entities)
+        all_entities = _apply_seeded_entities(
+            all_entities,
+            seeded_entities,
+            hunk_idx=hunk.index,
+        )
+        all_entities = _apply_seeded_code_entrypoints(
+            all_entities,
+            seeded_code_entrypoints,
+            hunk_idx=hunk.index,
+        )
 
         # Fill gaps to cover entire hunk
         gap_ents = fill_gaps(

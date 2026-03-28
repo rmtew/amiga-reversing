@@ -524,13 +524,70 @@ function renderListingRows(rows) {
     return '<div class="empty listing-empty">No disassembly available.</div>';
   }
   return rows.map((row) => `
-    <div class="listing-row listing-row-${escapeHtml(row.kind)}">
+    <div
+      class="listing-row listing-row-${escapeHtml(row.kind)}"
+      data-row-addr="${row.addr === null || row.addr === undefined ? "" : escapeHtml(String(row.addr))}"
+      data-row-kind="${escapeHtml(row.kind)}"
+      data-row-code="${escapeHtml(renderListingCode(row))}"
+    >
       <span class="listing-offset">${escapeHtml(formatRowOffset(row.addr))}</span>
       <span class="listing-bytes">${escapeHtml(formatRowBytes(row.bytes))}</span>
       <span class="listing-code">${escapeHtml(renderListingCode(row))}</span>
       <span class="listing-comment">${escapeHtml(renderListingComment(row))}</span>
     </div>
   `).join("");
+}
+
+async function loadListingWindow(projectId, addr = null, before = 24, after = 80) {
+  const params = new URLSearchParams();
+  if (addr !== null && addr !== undefined) {
+    params.set("addr", String(addr));
+  }
+  params.set("before", String(before));
+  params.set("after", String(after));
+  const listing = await fetchJson(
+    `/api/projects/${encodeURIComponent(projectId)}/listing?${params.toString()}`
+  );
+  const viewport = document.getElementById("listing-viewport");
+  if (!viewport) {
+    return listing;
+  }
+  viewport.innerHTML = renderListingRows(listing.rows);
+  return listing;
+}
+
+function normalizeJumpText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "");
+}
+
+function selectBestListingRow(viewport, addr, matchText = null) {
+  const rows = Array.from(viewport.querySelectorAll(`[data-row-addr="${String(addr)}"]`));
+  if (!rows.length) {
+    return null;
+  }
+  const labelRows = rows.filter((row) => String(row.dataset.rowCode || "").trim().endsWith(":"));
+  if (matchText) {
+    const wanted = normalizeJumpText(matchText);
+    const matched = rows.find((row) => normalizeJumpText(row.dataset.rowCode || "").includes(wanted));
+    if (matched) {
+      return matched;
+    }
+    if (labelRows.length) {
+      return labelRows[0];
+    }
+  }
+  return labelRows[0] || rows[0];
+}
+
+function scrollRowIntoView(viewport, addr, block = "center", matchText = null) {
+  const row = selectBestListingRow(viewport, addr, matchText);
+  if (!row) {
+    return false;
+  }
+  row.scrollIntoView({block, behavior: "smooth"});
+  return true;
 }
 
 function formatFileKind(entry) {
@@ -711,6 +768,22 @@ function renderDiskProject(projectData) {
   });
 }
 
+async function jumpToListingAddr(projectId, addr, matchText = null) {
+  const viewport = document.getElementById("listing-viewport");
+  if (!viewport) {
+    return;
+  }
+  if (!scrollRowIntoView(viewport, addr, "center", matchText)) {
+    await loadListingWindow(projectId, addr, 200, 200);
+  }
+  const row = selectBestListingRow(viewport, addr, matchText);
+  if (!row) {
+    return;
+  }
+  row.classList.add("listing-row-focus");
+  window.setTimeout(() => row.classList.remove("listing-row-focus"), 1200);
+}
+
 async function renderProject(projectId) {
   if (state.homeDropCleanup) {
     state.homeDropCleanup();
@@ -724,15 +797,17 @@ async function renderProject(projectId) {
         <div class="project-details" id="project-details">Loading project...</div>
         <button id="exit-project" type="button">Project</button>
       </div>
-      <div class="listing-viewport" id="listing-viewport">
-        ${renderProgressOverlay({
-          job_kind: "listing",
-          phase_id: "build_session",
-          progress_mode: "indeterminate",
-          progress_current: 0,
-          progress_total: 0,
-          progress_percent: 0,
-        }, "Loading project")}
+      <div class="project-workspace">
+        <div class="listing-viewport" id="listing-viewport">
+          ${renderProgressOverlay({
+            job_kind: "listing",
+            phase_id: "build_session",
+            progress_mode: "indeterminate",
+            progress_current: 0,
+            progress_total: 0,
+            progress_percent: 0,
+          }, "Loading project")}
+        </div>
       </div>
     </section>
   `;
@@ -790,13 +865,10 @@ async function renderProject(projectId) {
       (currentJob) => setViewportOverlay(renderProgressOverlay(currentJob)),
     );
     setViewportOverlay(loadingRowsOverlay());
-    const listing = await fetchJson(
-      `/api/projects/${encodeURIComponent(projectId)}/listing?before=0&after=${encodeURIComponent(String(jobState.total_rows || 0))}`
-    );
+    await loadListingWindow(projectId, null, 0, Number(jobState.total_rows || 0));
     if (token !== state.loadingToken) {
       return;
     }
-    document.getElementById("listing-viewport").innerHTML = renderListingRows(listing.rows);
   } catch (error) {
     if (String(error.message || error) === "stale") {
       return;

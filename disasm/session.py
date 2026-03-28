@@ -13,6 +13,7 @@ from disasm.analysis_layout import (
     resolved_entry_points,
     resolved_raw_analysis_base_addr,
     target_primary_entrypoint_offset,
+    target_seeded_entrypoint_offsets,
 )
 from disasm.analysis_loader import load_hunk_analysis
 from disasm.binary_source import BinarySource, HunkFileBinarySource
@@ -32,7 +33,7 @@ from disasm.phase_timing import PhaseTimer
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.target_metadata import (
     TargetMetadata,
-    load_target_metadata,
+    load_required_target_metadata,
     target_structure_spec,
 )
 from disasm.types import (
@@ -53,6 +54,7 @@ from m68k.os_calls import (
     analyze_call_setups,
     build_app_slot_symbols,
     build_app_struct_regions,
+    build_target_local_os_kb,
     propagate_typed_memory_regions,
 )
 
@@ -241,6 +243,69 @@ def _filter_pre_entry_blocks(
         )
     return filtered
 
+
+def _filter_hint_blocks_against_seeded_entities(
+    hint_blocks: Mapping[int, DisasmBlockLike],
+    target_metadata: TargetMetadata | None,
+    *,
+    hunk_index: int,
+) -> dict[int, DisasmBlockLike]:
+    if target_metadata is None or not target_metadata.seeded_entities:
+        return dict(hint_blocks)
+    seeded_ranges = [
+        (entity.addr, entity.end)
+        for entity in target_metadata.seeded_entities
+        if entity.hunk == hunk_index and entity.end is not None and entity.type != "code"
+    ]
+    if not seeded_ranges:
+        return dict(hint_blocks)
+    filtered: dict[int, DisasmBlockLike] = {}
+    for addr, block in hint_blocks.items():
+        if any(block.start < end and block.end > start for start, end in seeded_ranges):
+            continue
+        filtered[addr] = block
+    return filtered
+
+
+def _seeded_code_note(*, comment: str | None, role: str | None = None) -> str | None:
+    if comment is not None and role is not None:
+        return f"{role}: {comment}"
+    return comment if comment is not None else role
+
+
+def _apply_seeded_code_annotations(
+    *,
+    target_metadata: TargetMetadata | None,
+    hunk_index: int,
+    code_size: int,
+    labels: dict[int, str],
+    addr_comments: dict[int, str],
+) -> None:
+    if target_metadata is None:
+        return
+    for seeded_entrypoint in target_metadata.seeded_code_entrypoints:
+        if seeded_entrypoint.hunk != hunk_index:
+            continue
+        if not (0 <= seeded_entrypoint.addr < code_size):
+            raise ValueError(
+                f"Seeded code entrypoint 0x{seeded_entrypoint.addr:X} lies outside code size 0x{code_size:X}"
+            )
+        labels[seeded_entrypoint.addr] = seeded_entrypoint.name
+        note = _seeded_code_note(comment=seeded_entrypoint.comment, role=seeded_entrypoint.role)
+        if note is not None:
+            addr_comments[seeded_entrypoint.addr] = note
+    for seeded_label in target_metadata.seeded_code_labels:
+        if seeded_label.hunk != hunk_index:
+            continue
+        if not (0 <= seeded_label.addr < code_size):
+            raise ValueError(
+                f"Seeded code label 0x{seeded_label.addr:X} lies outside code size 0x{code_size:X}"
+            )
+        labels[seeded_label.addr] = seeded_label.name
+        note = _seeded_code_note(comment=seeded_label.comment)
+        if note is not None:
+            addr_comments[seeded_label.addr] = note
+
 def build_disassembly_session(binary_source: str | BinarySource, entities_path: str,
                               output_path: str | None = None,
                               base_addr: int = 0, code_start: int = 0,
@@ -259,11 +324,11 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
     entities: list[EntityRecord] = load_entities(entities_path)
     target_dir = Path(entities_path).parent if Path(entities_path).parent.exists() else None
     target_name = infer_target_name(target_dir, entities_path)
-    target_metadata = None if target_dir is None else load_target_metadata(target_dir)
-    if source.kind == "raw_binary" and target_metadata is None:
-        raise ValueError(f"Missing target_metadata.json for raw binary target: {target_dir}")
-    if source.parent_disk_id is not None and target_metadata is None:
-        raise ValueError(f"Missing target_metadata.json for internal target: {target_dir}")
+    target_metadata = load_required_target_metadata(
+        target_dir=target_dir,
+        source_kind=source.kind,
+        parent_disk_id=source.parent_disk_id,
+    )
     hunk_sessions: list[HunkDisassemblySession] = []
 
     if source.kind == "raw_binary":
@@ -287,6 +352,7 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
             base_addr=resolved_raw_analysis_base_addr(source, target_metadata),
             code_start=resolved_analysis_start_offset(source, target_metadata),
             entry_points=resolved_entry_points(source, target_metadata, ()),
+            extra_entry_points=target_seeded_entrypoint_offsets(target_metadata, hunk_index=0),
             profile_stages=profile_stages,
             phase_timer=phase_timer,
         )
@@ -306,6 +372,7 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
             base_addr=base_addr,
             code_start=code_start,
             entry_points=(custom_entry_points if not first_code_hunk_seen else ()),
+            extra_entry_points=target_seeded_entrypoint_offsets(target_metadata, hunk_index=hunk.index),
             target_metadata=target_metadata,
             apply_target_structure=not first_code_hunk_seen,
             phase_timer=phase_timer,
@@ -340,6 +407,7 @@ def _build_code_session(
     base_addr: int,
     code_start: int,
     entry_points: tuple[int, ...],
+    extra_entry_points: tuple[int, ...],
     profile_stages: bool,
     phase_timer: PhaseTimer | None,
 ) -> DisassemblySession:
@@ -351,6 +419,7 @@ def _build_code_session(
         base_addr=base_addr,
         code_start=code_start,
         entry_points=entry_points,
+        extra_entry_points=extra_entry_points,
         target_metadata=target_metadata,
         apply_target_structure=True,
         phase_timer=phase_timer,
@@ -379,6 +448,7 @@ def _build_hunk_session_data(
     base_addr: int,
     code_start: int,
     entry_points: tuple[int, ...],
+    extra_entry_points: tuple[int, ...],
     target_metadata: TargetMetadata | None,
     apply_target_structure: bool,
     phase_timer: PhaseTimer | None,
@@ -399,6 +469,7 @@ def _build_hunk_session_data(
                 base_addr=base_addr,
                 code_start=code_start,
                 entry_points=entry_points,
+                extra_entry_points=extra_entry_points,
                 initial_state=seed_config.initial_state,
                 entry_initial_states=entry_initial_states,
                 phase_timer=phase_timer,
@@ -412,6 +483,7 @@ def _build_hunk_session_data(
                 base_addr=base_addr,
                 code_start=code_start,
                 entry_points=entry_points,
+                extra_entry_points=extra_entry_points,
                 seed_key=seed_config.seed_key,
                 initial_state=seed_config.initial_state,
                 entry_initial_states=entry_initial_states,
@@ -419,9 +491,16 @@ def _build_hunk_session_data(
     entry_point = entry_points[0] if entry_points else None
     blocks = _filter_pre_entry_blocks(ha.blocks, entry_point)
     hint_blocks: Mapping[int, DisasmBlockLike] = _filter_pre_entry_blocks(ha.hint_blocks, entry_point)
+    hint_blocks = _filter_hint_blocks_against_seeded_entities(
+        hint_blocks,
+        target_metadata,
+        hunk_index=hunk.index,
+    )
     lib_calls = [call for call in ha.lib_calls if entry_point is None or call.addr >= entry_point]
     os_kb = ha.os_kb
-    assert os_kb is not None, f"Analysis for hunk {hunk.index} did not provide an OS KB"
+    if os_kb is None:
+        raise ValueError(f"Analysis for hunk {hunk.index} did not provide an OS KB")
+    os_kb = build_target_local_os_kb(os_kb, target_metadata)
     platform = ha.platform
     apply_entry_seed_config(platform, seed_config)
     exit_states = {
@@ -469,8 +548,10 @@ def _build_hunk_session_data(
             reserved_absolute_addrs=absolute_resolution.reserved_absolute_addrs,
             absolute_labels=absolute_resolution.absolute_labels,
         )
-        region_map = propagate_typed_memory_regions(blocks, lib_calls, code, os_kb, platform)
-        app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform)
+        region_map = propagate_typed_memory_regions(
+            blocks, lib_calls, code, os_kb, platform, target_metadata)
+        app_struct_regions = build_app_struct_regions(
+            blocks, lib_calls, os_kb, platform, target_metadata)
         hardware_base_regs = collect_hardware_base_regs(blocks, code, platform)
     with phase_timer.phase("session.substitutions") if phase_timer is not None else nullcontext():
         lvo_equs, lvo_substitutions = build_lvo_substitutions(
@@ -490,6 +571,7 @@ def _build_hunk_session_data(
             code=code,
             os_kb=os_kb,
             platform=platform,
+            target_metadata=target_metadata,
         )
     labels = metadata.labels
     apply_generic_data_label_promotions(
@@ -585,6 +667,14 @@ def _build_hunk_session_data(
         code_size=code_size,
         apply_structure=apply_target_structure,
     )
+    addr_comments: dict[int, str] = {}
+    _apply_seeded_code_annotations(
+        target_metadata=target_metadata,
+        hunk_index=hunk.index,
+        code_size=code_size,
+        labels=labels,
+        addr_comments=addr_comments,
+    )
     with phase_timer.phase("session.build") if phase_timer is not None else nullcontext():
         return build_hunk_session(
             hunk_index=hunk.index,
@@ -602,6 +692,7 @@ def _build_hunk_session_data(
             string_addrs=metadata.string_addrs,
             string_ranges=metadata.string_ranges,
             labels=labels,
+            addr_comments=addr_comments,
             absolute_labels=metadata.absolute_labels,
             jump_table_regions=metadata.jump_table_regions,
             jump_table_target_sources=metadata.jump_table_target_sources,

@@ -5,6 +5,7 @@
 
 ; OS function argument constants
 ACCESS_READ	EQU	-2
+MEMF_LARGEST	EQU	131072
 MEMF_PUBLIC	EQU	1
 MODE_NEWFILE	EQU	1006
 MODE_OLDFILE	EQU	1005
@@ -15,6 +16,8 @@ SIGBREAKF_CTRL_C	EQU	4096
 ; App memory offsets (base register A6)
 app_freemem_memoryblock	EQU	-2
 app_seek_file	EQU	390
+app_node_list_head	EQU	422
+app_current_node	EQU	426
 app_open_file	EQU	2390
 app_dos_base	EQU	3286
 app_output_file	EQU	3290
@@ -8956,7 +8959,7 @@ loc_44e4:
     tst.b 568(a6) ; app+$238
     bne.s loc_44fa
 loc_44f6:
-    clr.l 422(a6) ; app+$1A6
+    clr.l app_node_list_head(a6)
 loc_44fa:
     bsr.w sub_79a6
 loc_44fe:
@@ -18552,7 +18555,7 @@ sub_9a30:
     beq.s hint_9a50
 hint_9a36:
 ; --- unverified ---
-    movea.l 426(a6),a1 ; app+$1AA
+    movea.l app_current_node(a6),a1
     tst.b 568(a6) ; app+$238
     bne.s hint_9a50
 hint_9a40:
@@ -18563,7 +18566,7 @@ hint_9a50:
     rts
 hint_9a54:
 ; --- unverified ---
-    movea.l 426(a6),a1 ; app+$1AA
+    movea.l app_current_node(a6),a1
     cmpi.w #$3eb,18(a1)
     beq.w sub_845a
 hint_9a62:
@@ -18586,7 +18589,7 @@ hint_9a74:
     beq.s hint_9a8c
 hint_9a7a:
 ; --- unverified ---
-    movea.l 426(a6),a1 ; app+$1AA
+    movea.l app_current_node(a6),a1
     cmpi.w #$3eb,18(a1)
     beq.s hint_9a8c
 hint_9a86:
@@ -18596,8 +18599,8 @@ hint_9a8c:
     moveq #0,d0
     rts
 loc_9a90:
-    movea.l 426(a6),a0 ; app+$1AA
-    cmpi.w #$3eb,18(a0)
+    movea.l app_current_node(a6),a0
+    cmpi.w #$3eb,genam_node_type(a0)
     beq.w sub_845a
 loc_9a9e:
     add.l d1,588(a6) ; app+$24C
@@ -18617,11 +18620,11 @@ loc_9abc:
     movem.l (sp)+,a1-a2
     move.l a0,(a1)
     clr.l (a0)
-    move.l a2,4(a0)
-    clr.l 20(a0)
-    clr.l 28(a0)
-    clr.l 24(a0)
-    move.l #$3e9,16(a0)
+    move.l a2,genam_node_descriptor(a0)
+    clr.l genam_node_size(a0)
+    clr.l genam_node_stamp(a0)
+    clr.l genam_node_aux_ptr(a0)
+    move.l #$3e9,genam_node_flags(a0)
     tst.l 406(a6) ; app+$196
     beq.s loc_9afe
 loc_9ae2:
@@ -18634,12 +18637,12 @@ loc_9af0:
     add.w d0,d0
     add.w d0,d0
     lea pcref_9ba2(pc),a2
-    move.l 0(a2,d0.w),16(a0)
+    move.l 0(a2,d0.w),genam_node_flags(a0)
 loc_9afe:
-    clr.l 8(a0)
+    clr.l genam_node_data_start(a0)
     movea.l a0,a1
 loc_9b04:
-    move.l a1,426(a6) ; app+$1AA
+    move.l a1,app_current_node(a6)
     rts
 loc_9b0a:
     bsr.s sub_9b24
@@ -18652,10 +18655,10 @@ loc_9b16:
     lea 1448(a6),a0 ; app+$5A8
     move.l a0,588(a6) ; app+$24C
 loc_9b1e:
-    move.l a1,426(a6) ; app+$1AA
+    move.l a1,app_current_node(a6)
     rts
 sub_9b24:
-    lea 422(a6),a0 ; app+$1A6
+    lea app_node_list_head(a6),a0
     move.b 14(a1),d0
 loc_9b2c:
     tst.l (a0)
@@ -18709,13 +18712,13 @@ pcref_9ba2:
 loc_9bc6:
     move.l a4,-(sp)
     movea.l 410(a6),a4 ; app+$19A
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_9bd0:
     tst.l (a3)
     beq.s loc_9c20
 loc_9bd4:
     movea.l (a3),a3
-    move.l 20(a3),d1
+    move.l genam_node_size(a3),d1
     beq.s loc_9c24
 loc_9bdc:
     move.l d1,d0
@@ -18725,33 +18728,33 @@ loc_9be4:
     andi.b #$fc,d1
     addq.l #4,d1
 loc_9bea:
-    move.l d1,20(a3)
+    move.l d1,genam_node_size(a3)
     tst.l 410(a6) ; app+$19A
     beq.s loc_9c02
 loc_9bf4:
-    move.w 16(a3),d0
+    move.w genam_node_flags(a3),d0
     bsr.w alloc_memory
 loc_9bfc:
     bne.w loc_90ec
 loc_9c00:
     bra.s loc_9c10
 loc_9c02:
-    cmpi.w #$3eb,18(a3)
+    cmpi.w #$3eb,genam_node_type(a3)
     beq.s loc_9c24
 loc_9c0a:
     addq.l #8,d1
     bsr.w sub_90ba
 loc_9c10:
-    move.l a0,8(a3)
-    move.l a0,12(a3)
-    adda.l 20(a3),a0
+    move.l a0,genam_node_data_start(a3)
+    move.l a0,genam_node_data_cursor(a3)
+    adda.l genam_node_size(a3),a0
     clr.l -(a0)
     bra.s loc_9bd0
 loc_9c20:
     movea.l (sp)+,a4
     rts
 loc_9c24:
-    clr.l 12(a3)
+    clr.l genam_node_data_cursor(a3)
     bra.s loc_9bd0
 loc_9c2a:
     move.b d0,d1
@@ -18761,18 +18764,18 @@ loc_9c32:
     moveq #46,d1
     bra.w loc_9288
 loc_9c38:
-    movea.l 426(a6),a1 ; app+$1AA
-    cmpi.w #$3eb,18(a1)
+    movea.l app_current_node(a6),a1
+    cmpi.w #$3eb,genam_node_type(a1)
     rts
 loc_9c44:
     movea.l 414(a6),a4 ; app+$19E
     tst.b 260(a6) ; app+$104
     beq.s loc_9c9e
 loc_9c4e:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_9c52:
     movea.l (a3),a3
-    movea.l 4(a3),a0
+    movea.l genam_node_descriptor(a3),a0
     move.b 14(a0),d6
     movea.l 318(a6),a1 ; app+$13E
     lea loc_9d02(pc),a2
@@ -18794,7 +18797,7 @@ loc_9c7c:
     move.l #$3f0,(a4)+
     lea loc_9d2a(pc),a2
     movea.l 318(a6),a1 ; app+$13E
-    movea.l 4(a3),a0
+    movea.l genam_node_descriptor(a3),a0
     bsr.w sub_8cf6
 loc_9c96:
     clr.l (a4)
@@ -18806,10 +18809,10 @@ loc_9c9e:
     tst.b 297(a6) ; app+$129
     beq.s loc_9cbe
 loc_9ca4:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_9ca8:
     movea.l (a3),a3
-    movea.l 4(a3),a0
+    movea.l genam_node_descriptor(a3),a0
     move.b 14(a0),d6
     lea loc_8c00(pc),a2
     bsr.w sub_8c9a
@@ -18817,18 +18820,18 @@ loc_9cba:
     tst.l (a3)
     bne.s loc_9ca8
 loc_9cbe:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_9cc2:
     movea.l (a3),a3
-    tst.l 24(a3)
+    tst.l genam_node_aux_ptr(a3)
     beq.s loc_9cfc
 loc_9cca:
     moveq #0,d3
-    lea 422(a6),a2 ; app+$1A6
+    lea app_node_list_head(a6),a2
     moveq #1,d6
 loc_9cd2:
     movea.l (a2),a2
-    movea.l 4(a2),a0
+    movea.l genam_node_descriptor(a2),a0
     move.b 14(a0),d3
     bsr.w sub_a164
 loc_9ce0:
@@ -18839,8 +18842,8 @@ loc_9ce6:
     bne.s loc_9cf8
 loc_9ce8:
     movea.l 4(a0),a1
-    adda.l 8(a3),a1
-    move.l 8(a2),d1
+    adda.l genam_node_data_start(a3),a1
+    move.l genam_node_data_start(a2),d1
     add.l d1,(a1)
     bra.s loc_9ce2
 loc_9cf8:
@@ -18945,10 +18948,10 @@ loc_9dc8:
     bsr.w loc_a0ee
 loc_9dce:
     moveq #0,d1
-    lea 422(a6),a0 ; app+$1A6
+    lea app_node_list_head(a6),a0
 loc_9dd4:
     movea.l (a0),a0
-    tst.l 20(a0)
+    tst.l genam_node_size(a0)
     bne.s loc_9de0
 loc_9ddc:
     bsr.s sub_9d80
@@ -18970,10 +18973,10 @@ loc_9df2:
     subq.l #1,d1
     bsr.w loc_a0ee
 loc_9dfa:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_9dfe:
     movea.l (a3),a3
-    move.l 20(a3),d1
+    move.l genam_node_size(a3),d1
     bne.s loc_9e0e
 loc_9e06:
     movea.l a3,a0
@@ -18983,7 +18986,7 @@ loc_9e0c:
 loc_9e0e:
     lsr.l #2,d1
     swap d1
-    or.w 16(a3),d1
+    or.w genam_node_flags(a3),d1
     swap d1
     bsr.w loc_a0ee
 loc_9e1c:
@@ -18997,7 +19000,7 @@ loc_9e24:
 loc_9e2a:
     bsr.w sub_a42e
 loc_9e2e:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
     bra.s loc_9e64
 loc_9e34:
     move.l #$3e7,d1
@@ -19022,10 +19025,10 @@ loc_9e50:
 loc_9e5c:
     bsr.w sub_a1d0
 loc_9e60:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_9e64:
     movea.l (a3),a3
-    tst.l 20(a3)
+    tst.l genam_node_size(a3)
     bne.s loc_9e76
 loc_9e6c:
     movea.l a3,a0
@@ -19037,13 +19040,13 @@ loc_9e76:
     beq.s loc_9e94
 loc_9e7e:
     move.l #$3e8,d1
-    movea.l 4(a3),a1
+    movea.l genam_node_descriptor(a3),a1
     lea 22(a1),a1
     move.b (a1)+,d0
     subq.b #1,d0
     bsr.w sub_a1d0
 loc_9e94:
-    lea 20(a3),a0
+    lea genam_node_size(a3),a0
     move.l (a0),d0
     lsr.l #2,d0
     move.l d0,(a0)
@@ -19051,18 +19054,18 @@ loc_9e94:
     moveq #8,d1
     bsr.w sub_8422
 loc_9ea6:
-    cmpi.w #$3eb,18(a3)
+    cmpi.w #$3eb,genam_node_type(a3)
     beq.s loc_9ebe
 loc_9eae:
-    movea.l 8(a3),a0
-    move.l 20(a3),d1
+    movea.l genam_node_data_start(a3),a0
+    move.l genam_node_size(a3),d1
     add.l d1,d1
     add.l d1,d1
     bsr.w sub_8422
 loc_9ebe:
     bsr.w sub_a110
 loc_9ec2:
-    tst.l 24(a3)
+    tst.l genam_node_aux_ptr(a3)
     beq.w loc_9f6c
 loc_9eca:
     moveq #1,d6
@@ -19084,7 +19087,7 @@ loc_9ef2:
 sub_9ef4:
     moveq #0,d3
     move.l d1,-(sp)
-    pea 422(a6) ; app+$1A6
+    pea app_node_list_head(a6)
     clr.l -(sp)
 loc_9efe:
     movea.l 4(sp),a0
@@ -19150,7 +19153,7 @@ loc_9f74:
     move.l #$3ef,d1
     bsr.w loc_a0ee
 loc_9f7e:
-    movea.l 4(a3),a0
+    movea.l genam_node_descriptor(a3),a0
     move.b 14(a0),d3
     movea.l 318(a6),a1 ; app+$13E
     lea loc_a11a(pc),a2
@@ -19171,12 +19174,12 @@ loc_9fac:
     bsr.w call_seek_b054
 loc_9fb4:
     movem.l (sp)+,d2/a0-a1
-    move.l d0,32(a3)
+    move.l d0,genam_node_extra_long(a3)
 loc_9fbc:
     tst.b 260(a6) ; app+$104
     beq.s loc_9fe6
 loc_9fc2:
-    movea.l 4(a3),a0
+    movea.l genam_node_descriptor(a3),a0
     move.b 14(a0),d6
     move.l #$3f0,d1
     bsr.w loc_a0ee
@@ -19199,10 +19202,10 @@ loc_9ff8:
     tst.l (a3)
     bne.w loc_9e64
 loc_9ffe:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_a002:
     movea.l (a3),a3
-    tst.l 20(a3)
+    tst.l genam_node_size(a3)
     bne.s loc_a028
 loc_a00a:
     movea.l a3,a0
@@ -19478,8 +19481,8 @@ loc_a1fa:
     lea 1448(a6),a0 ; app+$5A8
     bra.w sub_8422
 sub_a208:
-    movea.l 426(a6),a0 ; app+$1AA
-    lea 24(a0),a0
+    movea.l app_current_node(a6),a0
+    lea genam_node_aux_ptr(a0),a0
     tst.l (a0)
     beq.s loc_a220
 loc_a214:
@@ -19749,10 +19752,10 @@ sub_a3f4:
     tst.b 260(a6) ; app+$104
     beq.s loc_a42c
 loc_a3fa:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_a3fe:
     movea.l (a3),a3
-    tst.l 20(a3)
+    tst.l genam_node_size(a3)
     bne.s loc_a40e
 loc_a406:
     movea.l a3,a0
@@ -19760,7 +19763,7 @@ loc_a406:
 loc_a40c:
     beq.s loc_a428
 loc_a40e:
-    move.w 18(a3),d0
+    move.w genam_node_type(a3),d0
     cmp.w #$3ea,d0
     beq.s loc_a424
 loc_a418:
@@ -19847,10 +19850,10 @@ sub_a4e4:
     beq.s loc_a520
 loc_a4ea:
     moveq #0,d2
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_a4f0:
     movea.l (a3),a3
-    tst.l 20(a3)
+    tst.l genam_node_size(a3)
     bne.s loc_a500
 loc_a4f8:
     movea.l a3,a0
@@ -19858,14 +19861,14 @@ loc_a4f8:
 loc_a4fe:
     beq.s loc_a51a
 loc_a500:
-    move.w 18(a3),d0
+    move.w genam_node_type(a3),d0
     cmp.w d0,d3
     bne.s loc_a51a
 loc_a508:
     moveq #0,d1
     move.b d2,d1
     ror.b #8,d1
-    add.l 32(a3),d1
+    add.l genam_node_extra_long(a3),d1
     move.b d2,-(sp)
     bsr.w loc_a0ee
 loc_a518:
@@ -19878,10 +19881,10 @@ loc_a520:
     rts
 loc_a522:
     moveq #0,d2
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_a528:
     movea.l (a3),a3
-    tst.l 20(a3)
+    tst.l genam_node_size(a3)
     bne.s loc_a538
 loc_a530:
     movea.l a3,a0
@@ -19890,7 +19893,7 @@ loc_a536:
     beq.s loc_a54a
 loc_a538:
     lea loc_a550(pc),a2
-    movea.l 4(a3),a0
+    movea.l genam_node_descriptor(a3),a0
     move.b 14(a0),d6
     bsr.w sub_8c9a
 loc_a548:
@@ -20855,7 +20858,7 @@ check_memory:
     bne.s loc_b09a
 loc_b06e:
     movem.l d1-d2/a0-a2,-(sp)
-    move.l #$20001,d1 ; AvailMem: attributes
+    move.l #MEMF_PUBLIC|MEMF_LARGEST,d1 ; AvailMem: attributes
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAvailMem(a6) ; app-$D8
@@ -22305,7 +22308,7 @@ sub_f832:
     beq.s hint_f860
 hint_f838:
 ; --- unverified ---
-    movea.l 426(a6),a1 ; app+$1AA
+    movea.l app_current_node(a6),a1
     tst.b 568(a6) ; app+$238
     bne.s hint_f854
 hint_f842:
@@ -22330,12 +22333,12 @@ hint_f864:
     moveq #-1,d0
     rts
 loc_f868:
-    movea.l 426(a6),a0 ; app+$1AA
-    btst #1,16(a0)
+    movea.l app_current_node(a6),a0
+    btst #1,genam_node_flags(a0)
     bne.w loc_f884
 loc_f876:
     add.l d1,588(a6) ; app+$24C
-    bset #0,16(a0)
+    bset #0,genam_node_flags(a0)
     beq.s loc_f88a
 loc_f882:
     rts
@@ -22361,21 +22364,21 @@ loc_f8b0:
     movem.l (sp)+,a1-a2
     move.l a0,(a1)
     clr.l (a0)
-    clr.b 16(a0)
-    clr.l 22(a0)
-    move.l a2,4(a0)
-    clr.l 18(a0)
-    clr.l 26(a0)
+    clr.b genam_node_flags(a0)
+    clr.l genam_node_signature(a0)
+    move.l a2,genam_node_descriptor(a0)
+    clr.l genam_node_type(a0)
+    clr.l genam_node_position(a0)
     movea.l d2,a2
     cmpi.l #$4425353,22(a2)
     bne.s loc_f8de
 loc_f8d8:
-    bset #1,16(a0)
+    bset #1,genam_node_flags(a0)
 loc_f8de:
-    clr.l 8(a0)
+    clr.l genam_node_data_start(a0)
     movea.l a0,a1
 loc_f8e4:
-    move.l a1,426(a6) ; app+$1AA
+    move.l a1,app_current_node(a6)
     rts
 loc_f8ea:
     bsr.w sub_9b24
@@ -22388,7 +22391,7 @@ loc_f8fa:
     lea 1448(a6),a0 ; app+$5A8
     move.l a0,588(a6) ; app+$24C
 loc_f902:
-    move.l a1,426(a6) ; app+$1AA
+    move.l a1,app_current_node(a6)
     tst.l 406(a6) ; app+$196
     beq.s loc_f92a
 loc_f90c:
@@ -22419,31 +22422,31 @@ loc_f94e:
     move.l a5,12(a1)
     rts
 loc_f954:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_f958:
     tst.l (a3)
     beq.s loc_f980
 loc_f95c:
     movea.l (a3),a3
-    move.l 18(a3),d1
+    move.l genam_node_type(a3),d1
     beq.s loc_f97e
 loc_f964:
-    btst #1,16(a3)
+    btst #1,genam_node_flags(a3)
     bne.s loc_f97e
 loc_f96c:
     addq.l #8,d1
     bsr.w sub_90ba
 loc_f972:
-    move.l a0,8(a3)
-    move.l a0,12(a3)
-    adda.l 18(a3),a0
+    move.l a0,genam_node_data_start(a3)
+    move.l a0,genam_node_data_cursor(a3)
+    adda.l genam_node_type(a3),a0
 loc_f97e:
     bra.s loc_f958
 loc_f980:
     rts
 loc_f982:
-    movea.l 426(a6),a1 ; app+$1AA
-    btst #1,16(a1)
+    movea.l app_current_node(a6),a1
+    btst #1,genam_node_flags(a1)
     eori.b
     rts
 loc_f992:
@@ -22506,20 +22509,20 @@ loc_f9f4:
     subq.l #1,d2
     bsr.w sub_fa74
 loc_f9fe:
-    lea 422(a6),a3 ; app+$1A6
+    lea app_node_list_head(a6),a3
 loc_fa02:
     movea.l (a3),a3
-    move.l 18(a3),d3
+    move.l genam_node_type(a3),d3
     beq.s loc_fa6c
 loc_fa0a:
-    btst #1,16(a3)
+    btst #1,genam_node_flags(a3)
     bne.s loc_fa6c
 loc_fa12:
-    move.l 22(a3),d2
-    btst #2,16(a3)
+    move.l genam_node_signature(a3),d2
+    btst #2,genam_node_flags(a3)
     beq.s loc_fa22
 loc_fa1e:
-    move.l 30(a3),d2
+    move.l genam_node_extra_word(a3),d2
 loc_fa22:
     add.l d3,d2
     moveq #3,d5
@@ -22532,12 +22535,12 @@ loc_fa2e:
 loc_fa38:
     moveq #1,d5
 loc_fa3a:
-    movea.l 8(a3),a2
-    move.l 22(a3),d6
-    btst #2,16(a3)
+    movea.l genam_node_data_start(a3),a2
+    move.l genam_node_signature(a3),d6
+    btst #2,genam_node_flags(a3)
     beq.s loc_fa4e
 loc_fa4a:
-    move.l 30(a3),d6
+    move.l genam_node_extra_word(a3),d6
 loc_fa4e:
     moveq #28,d2
     cmp.l d2,d3
@@ -22554,7 +22557,7 @@ loc_fa5e:
     moveq #10,d0
     sub.w d5,d0
     move.w d0,d5
-    move.l 22(a3),d6
+    move.l genam_node_signature(a3),d6
     moveq #0,d2
     bsr.s sub_fa74
 loc_fa6c:

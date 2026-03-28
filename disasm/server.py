@@ -581,7 +581,6 @@ def route_request(method: str, path: str, query: dict[str, list[str]],
                     cast(AnnotationPatchInput, body or {}),
                 ),
             }
-
     raise FileNotFoundError(f"Unknown route: {path}")
 
 

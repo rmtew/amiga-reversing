@@ -34,11 +34,13 @@ def analysis_cache_root(
     base_addr: int,
     code_start: int,
     entry_points: Sequence[int],
+    extra_entry_points: Sequence[int] = (),
 ) -> Path:
     cache_root = Path(cache_path)
     layout_payload = (
         f"base={base_addr:X};code_start={code_start:X};"
-        f"entry_points={','.join(f'{entry:X}' for entry in entry_points)}"
+        f"entry_points={','.join(f'{entry:X}' for entry in entry_points)};"
+        f"extra_entry_points={','.join(f'{entry:X}' for entry in extra_entry_points)}"
     )
     layout_key = hashlib.sha1(layout_payload.encode("utf-8")).hexdigest()[:12]
     cache_root = cache_root.with_name(f"{cache_root.name}.{layout_key}")
@@ -56,6 +58,7 @@ def load_hunk_analysis(
     base_addr: int,
     code_start: int,
     entry_points: Sequence[int] = (),
+    extra_entry_points: Sequence[int] = (),
     seed_key: str = "default",
     initial_state: CPUState | None = None,
     entry_initial_states: dict[int, CPUState] | None = None,
@@ -66,6 +69,7 @@ def load_hunk_analysis(
         base_addr=base_addr,
         code_start=code_start,
         entry_points=entry_points,
+        extra_entry_points=extra_entry_points,
     )
     cache_path = hunk_analysis_cache_path(cache_root, hunk_index)
     if cache_path.exists():
@@ -81,6 +85,7 @@ def load_hunk_analysis(
             base_addr=base_addr,
             code_start=code_start,
             entry_points=entry_points,
+            extra_entry_points=extra_entry_points,
             entry_initial_states=entry_initial_states,
         )
     else:
@@ -91,6 +96,7 @@ def load_hunk_analysis(
             base_addr=base_addr,
             code_start=code_start,
             entry_points=entry_points,
+            extra_entry_points=extra_entry_points,
             initial_state=initial_state,
             entry_initial_states=entry_initial_states,
         )

@@ -187,6 +187,14 @@ def _collect_used_absolute_addrs(rows: list[ListingRow],
     return used
 
 
+def _struct_include_source(hunk_session: HunkDisassemblySession,
+                           struct_name: str) -> str | None:
+    include_path = hunk_session.os_kb.STRUCTS[struct_name].source.lower()
+    if include_path not in hunk_session.os_kb.META.include_min_versions:
+        return None
+    return include_path
+
+
 def _absolute_symbol_rows(used_absolute_addrs: set[int],
                           hunk_session: HunkDisassemblySession
                           ) -> tuple[list[ListingRow], set[str]]:
@@ -310,6 +318,14 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
 
     def emit_label(addr: int) -> None:
         lbl = hunk_session.labels[addr]
+        addr_comment = hunk_session.addr_comments.get(addr)
+        if addr_comment is not None:
+            rows.extend(make_text_rows(
+                "comment",
+                f"; {addr_comment}\n",
+                entity_addr=addr,
+                addr=addr,
+            ))
         sources = hunk_session.jump_table_target_sources.get(addr)
         if sources:
             comment = ", ".join(sources)
@@ -332,7 +348,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         rows.extend(emit_data_rows(
             hunk_session.code, start, stop, hunk_session.labels,
             hunk_session.reloc_map, hunk_session.string_addrs,
-            hunk_session.data_access_sizes, entity_addr,
+            hunk_session.data_access_sizes, hunk_session.addr_comments, entity_addr,
             BlockRowContext(kind="data", verified_state=verified_state),
         ))
 
@@ -529,8 +545,9 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         include_paths={
             *include_paths,
             *(
-                hunk_session.os_kb.STRUCTS[struct_name].source.lower()
+                include_path
                 for struct_name in sorted(used_structs)
+                if (include_path := _struct_include_source(hunk_session, struct_name)) is not None
             ),
         },
         struct_fields=collect_used_struct_fields(rows),
@@ -551,8 +568,9 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
     includes.update(hardware_includes)
     if used_structs:
         for struct_name in sorted(used_structs):
-            struct_def = hunk_session.os_kb.STRUCTS[struct_name]
-            os_include = struct_def.source.lower()
+            os_include = _struct_include_source(hunk_session, struct_name)
+            if os_include is None:
+                continue
             includes.add(os_include)
             os_includes.add(os_include)
     if includes:

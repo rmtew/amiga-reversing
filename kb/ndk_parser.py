@@ -568,6 +568,26 @@ def _struct_field_value_binding(
     return binding
 
 
+def _enum_value_domain(members: list[str]) -> JsonDict:
+    return {
+        "kind": "enum",
+        "members": members,
+        "exact_match_policy": "error",
+    }
+
+
+def _flags_value_domain(
+    members: list[str],
+) -> JsonDict:
+    return {
+        "kind": "flags",
+        "members": members,
+        "exact_match_policy": "error",
+        "composition": "bit_or",
+        "remainder_policy": "error",
+    }
+
+
 # =============================================================================
 # Synopsis parser ? structured inputs/outputs from autodoc synopsis
 # =============================================================================
@@ -1644,6 +1664,151 @@ def evaluate_all_constants(raw_constants: dict[str, object]) -> dict[str, JsonDi
     return result
 
 
+def collect_raw_constants_from_include_dir(
+    include_dir: str,
+    type_sizes: dict[str, int],
+) -> tuple[dict[str, object], list[str]]:
+    raw_constants: dict[str, object] = {}
+    parsed_include_paths: list[str] = []
+    include_subdirs = sorted([
+        d for d in os.listdir(include_dir)
+        if os.path.isdir(os.path.join(include_dir, d))
+    ])
+    sized_types = sorted(
+        (t for t, s in type_sizes.items()
+         if s > 0 and t not in ("STRUCT", "ALIGNWORD", "ALIGNLONG")),
+        key=len,
+        reverse=True,
+    )
+    type_alt = "|".join(re.escape(t) for t in sized_types)
+    sim_type_re = re.compile(rf'\s+({type_alt})\s+(\w+)') if sized_types else None
+
+    for pass_num in range(2):
+        for subdir in include_subdirs:
+            subdir_path = os.path.join(include_dir, subdir)
+            for fname in sorted(os.listdir(subdir_path)):
+                if not fname.upper().endswith(".I"):
+                    continue
+                fpath = os.path.join(subdir_path, fname)
+                if pass_num == 0:
+                    parsed_include_paths.append(fpath)
+                eoffset = 0
+                soffset: int | None = 0
+                cmd_count: int | None = None
+                in_struct = False
+                with open(fpath, encoding="utf-8", errors="replace") as f:
+                    for line in f:
+                        line = line.rstrip()
+
+                        cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
+                        if cm:
+                            raw_constants[cm.group(1)] = cm.group(2).strip()
+                            continue
+
+                        cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
+                        if cm and not cm.group(1).endswith("_I") and cm.group(1) not in ("SOFFSET", "EOFFSET"):
+                            raw_constants[cm.group(1)] = cm.group(2).strip()
+                            continue
+
+                        bm = re.match(r'\s+BITDEF\s+(\w+),(\w+),(\d+)', line)
+                        if bm:
+                            prefix = bm.group(1)
+                            name = bm.group(2)
+                            bitnum = bm.group(3)
+                            raw_constants[f"{prefix}B_{name}"] = bitnum
+                            raw_constants[f"{prefix}F_{name}"] = f"(1<<{bitnum})"
+                            continue
+
+                        dm = re.match(r'\s+DEVINIT(?:\s+(\S+))?\s*$', line)
+                        if dm:
+                            base_expr = dm.group(1) or "CMD_NONSTD"
+                            cmd_count = resolve_constant_value(base_expr, raw_constants)
+                            continue
+
+                        dm = re.match(r'\s+DEVCMD\s+(\w+)', line)
+                        if dm:
+                            if cmd_count is None:
+                                continue
+                            raw_constants[dm.group(1)] = str(cmd_count)
+                            cmd_count += 1
+                            continue
+
+                        enm = re.match(r'\s+ENUM(?:\s+(\S+))?\s*$', line)
+                        if enm:
+                            base_str = enm.group(1)
+                            if base_str:
+                                try:
+                                    eoffset = int(base_str)
+                                except ValueError:
+                                    hm = re.match(r'^\$([0-9a-fA-F]+)$', base_str)
+                                    eoffset = int(hm.group(1), 16) if hm else 0
+                            else:
+                                eoffset = 0
+                            continue
+
+                        em = re.match(r'\s+EITEM\s+(\w+)', line)
+                        if em:
+                            raw_constants[em.group(1)] = str(eoffset)
+                            eoffset += 1
+                            continue
+
+                        sm = re.match(r'\s+STRUCTURE\s+(\w+),(\w+)', line)
+                        if sm:
+                            struct_name = sm.group(1)
+                            init_str = sm.group(2)
+                            raw_constants[struct_name] = "0"
+                            try:
+                                soffset = int(init_str)
+                            except ValueError:
+                                if init_str in raw_constants:
+                                    try:
+                                        soffset = int(cast(str, raw_constants[init_str]))
+                                    except (ValueError, TypeError):
+                                        soffset = None
+                                else:
+                                    soffset = None
+                            in_struct = True
+                            continue
+
+                        if in_struct and soffset is not None and sim_type_re:
+                            tm = sim_type_re.match(line)
+                            if tm:
+                                raw_constants[tm.group(2)] = str(soffset)
+                                soffset += type_sizes[tm.group(1)]
+                                continue
+
+                            ssm = re.match(r'\s+STRUCT\s+(\w+),(\w+)', line)
+                            if ssm:
+                                raw_constants[ssm.group(1)] = str(soffset)
+                                size_str = ssm.group(2)
+                                try:
+                                    soffset += int(size_str)
+                                except ValueError:
+                                    if size_str in raw_constants:
+                                        try:
+                                            soffset += int(cast(str, raw_constants[size_str]))
+                                        except (ValueError, TypeError):
+                                            in_struct = False
+                                    else:
+                                        in_struct = False
+                                continue
+
+                            lm = re.match(r'\s+LABEL\s+(\w+)', line)
+                            if lm:
+                                raw_constants[lm.group(1)] = str(soffset)
+                                continue
+
+                            if re.match(r'\s+ALIGNWORD\b', line):
+                                soffset = (soffset + 1) & ~1
+                                continue
+
+                            if re.match(r'\s+ALIGNLONG\b', line):
+                                soffset = (soffset + 3) & ~3
+                                continue
+
+    return raw_constants, parsed_include_paths
+
+
 def _field_key(struct_name: str, field_name: str) -> str:
     return f"{struct_name}.{field_name}"
 
@@ -1741,12 +1906,12 @@ def _parse_device_name(path: str, source: str, lines: list[str]) -> str | None:
 
 def parse_include_value_bindings(
         path: str, evaluated_constants: dict[str, JsonDict]
-) -> tuple[dict[str, list[str]], list[JsonDict]]:
+) -> tuple[dict[str, JsonDict], list[JsonDict]]:
     source = _include_source_from_path(path)
     with open(path, encoding="utf-8", errors="replace") as handle:
         lines = [line.rstrip() for line in handle]
 
-    value_domains: dict[str, list[str]] = {}
+    value_domains: dict[str, JsonDict] = {}
     field_bindings: list[JsonDict] = []
     prefix_constants, io_flags_prefix_constants = _parse_bitdef_constants(lines, evaluated_constants)
 
@@ -1755,14 +1920,14 @@ def parse_include_value_bindings(
         command_names = _parse_devcmd_constants(lines, evaluated_constants)
         if not command_names:
             raise ValueError("EXEC/IO.I is missing standard device commands")
-        value_domains[command_domain_name] = command_names
+        value_domains[command_domain_name] = _enum_value_domain(command_names)
         field_bindings.append(_struct_field_value_binding("IO", "IO_COMMAND", command_domain_name))
 
         io_flag_names = prefix_constants.get("IO")
         if not io_flag_names:
             raise ValueError("EXEC/IO.I is missing IO flag bit definitions")
         flag_domain_name = "exec.io.flags"
-        value_domains[flag_domain_name] = io_flag_names
+        value_domains[flag_domain_name] = _flags_value_domain(io_flag_names)
         field_bindings.append(_struct_field_value_binding("IO", "IO_FLAGS", flag_domain_name))
         return value_domains, field_bindings
 
@@ -1781,7 +1946,7 @@ def parse_include_value_bindings(
 
     command_domain_name = f"{device_name}.io_command"
     etd_commands = _parse_prefixed_constant_names(lines, evaluated_constants, "ETD_")
-    value_domains[command_domain_name] = device_commands + etd_commands
+    value_domains[command_domain_name] = _enum_value_domain(device_commands + etd_commands)
     field_bindings.append(
         _struct_field_value_binding(
             "IO",
@@ -1798,7 +1963,9 @@ def parse_include_value_bindings(
                 f"Ambiguous IO flag prefixes for {device_name}: {io_flag_prefixes}"
             )
         flag_domain_name = f"{device_name}.io_flags"
-        value_domains[flag_domain_name] = io_flags_prefix_constants[io_flag_prefixes[0]]
+        value_domains[flag_domain_name] = _flags_value_domain(
+            io_flags_prefix_constants[io_flag_prefixes[0]]
+        )
         field_bindings.append(
             _struct_field_value_binding(
                 "IO",
@@ -2128,6 +2295,52 @@ def discover_compatibility_ndk_roots(primary_ndk_root: str) -> dict[str, str]:
     }
 
 
+def _find_fd_dir(root: str) -> str | None:
+    root_path = Path(root)
+    for candidate in (
+        root_path / "INCLUDES&LIBS" / "FD",
+        root_path / "FD",
+        root_path / "LIBS" / "FD",
+    ):
+        if candidate.is_dir():
+            return str(candidate)
+    matches = [path for path in root_path.rglob("*.FD") if path.is_file()]
+    if not matches:
+        return None
+    return str(matches[0].parent)
+
+
+def build_fd_function_min_versions(ndk_roots: dict[str, str]) -> dict[tuple[str, str], str]:
+    function_min_versions: dict[tuple[str, str], str] = {}
+    for version in COMPATIBILITY_VERSIONS:
+        root = ndk_roots.get(version)
+        if root is None:
+            continue
+        fd_dir = _find_fd_dir(root)
+        if fd_dir is None:
+            continue
+        for fd_path in sorted(Path(fd_dir).glob("*_LIB.FD")):
+            fd_stem = fd_path.stem.removesuffix("_LIB").lower()
+            lib_name = fd_stem_to_lib_name(fd_stem)
+            for function_name in scan_fd_function_names(str(fd_path)):
+                function_min_versions.setdefault((lib_name, function_name), version)
+    return function_min_versions
+
+
+def scan_fd_function_names(path: str) -> list[str]:
+    names: list[str] = []
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line or line.startswith(("*", "##")):
+                continue
+            match = re.match(r"^([A-Za-z_]\w*)", line)
+            if match is None:
+                continue
+            names.append(match.group(1))
+    return names
+
+
 def _find_include_source_file(root: str, rel_source: str) -> str | None:
     norm_rel = _normalize_include_relpath(rel_source)
     rel_parts = tuple(part for part in norm_rel.split("/") if part)
@@ -2260,6 +2473,8 @@ def build_os_compatibility_kb(
     all_constants: dict[str, object],
 ) -> JsonDict:
     include_min_versions: dict[str, str] = {}
+    function_min_versions = build_fd_function_min_versions(ndk_roots)
+    constant_min_versions: dict[str, str] = {}
     struct_min_versions: dict[str, str] = {}
     field_min_versions: dict[tuple[str, str], str] = {}
     field_names_by_version: dict[tuple[str, str], dict[str, str]] = {}
@@ -2278,6 +2493,13 @@ def build_os_compatibility_kb(
     for version, root in ndk_roots.items():
         version_include_dir = resolve_include_i_dir(root)
         version_type_sizes = scan_type_macros(version_include_dir)
+        version_raw_constants, _ = collect_raw_constants_from_include_dir(
+            version_include_dir,
+            version_type_sizes,
+        )
+        for constant_name in sorted(version_raw_constants):
+            if constant_name in all_constants:
+                constant_min_versions.setdefault(constant_name, version)
         for include_rel in include_paths:
             include_path = _find_include_source_file(root, include_rel)
             if include_path is None:
@@ -2348,6 +2570,11 @@ def build_os_compatibility_kb(
         "resident_autoinit_words": resident_autoinit_contract["resident_autoinit_words"],
         "resident_autoinit_supports_short_vectors": resident_autoinit_contract["resident_autoinit_supports_short_vectors"],
         "resident_vector_prefixes": resident_autoinit_contract["resident_vector_prefixes"],
+        "_function_min_versions": {
+            f"{library}/{function}": version
+            for (library, function), version in sorted(function_min_versions.items())
+        },
+        "_constant_min_versions": dict(sorted(constant_min_versions.items())),
     }
 
 
@@ -2412,159 +2639,14 @@ def main() -> None:
     ])
     print(f"  Subdirectories: {', '.join(include_subdirs)}")
 
-    # Build regex for struct field type matching from discovered type macros
-    _sized_types = sorted(
-        (t for t, s in type_sizes.items()
-         if s > 0 and t not in ("STRUCT", "ALIGNWORD", "ALIGNLONG")),
-        key=len, reverse=True,
-    )
-    _type_alt = "|".join(re.escape(t) for t in _sized_types)
-    sim_type_re = re.compile(rf'\s+({_type_alt})\s+(\w+)') if _sized_types else None
-
     # First pass: collect all constants (needed for struct offset resolution).
     # This also simulates STRUCTURE macros to extract field-name constants
     # (e.g. LN_SUCC EQU 0, LN_SIZE EQU 14) which are generated at assembly
     # time by the macros in TYPES.I.
-    # We run two iterations because struct initial offsets may reference
-    # constants from other files (e.g. EXECBASE.I uses LIB_SIZE from
-    # LIBRARIES.I, but is alphabetically first).
-    for _pass_num in range(2):
-      for subdir in include_subdirs:
-        subdir_path = os.path.join(include_dir, subdir)
-        for fname in sorted(os.listdir(subdir_path)):
-            if fname.upper().endswith(".I"):
-                fpath = os.path.join(subdir_path, fname)
-                if _pass_num == 0:
-                    parsed_include_paths.append(fpath)
-                eoffset = 0
-                soffset: int | None = 0  # simulates SOFFSET for struct field constants
-                cmd_count: int | None = None
-                in_struct = False
-                with open(fpath, encoding="utf-8", errors="replace") as f:
-                    for line in f:
-                        line = line.rstrip()
-
-                        # EQU constants
-                        cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
-                        if cm:
-                            raw_constants[cm.group(1)] = cm.group(2).strip()
-                            continue
-
-                        # SET constants
-                        cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
-                        if cm and not cm.group(1).endswith("_I") and cm.group(1) not in ("SOFFSET", "EOFFSET"):
-                            raw_constants[cm.group(1)] = cm.group(2).strip()
-                            continue
-
-                        # BITDEF prefix,name,bitnum
-                        bm = re.match(r'\s+BITDEF\s+(\w+),(\w+),(\d+)', line)
-                        if bm:
-                            prefix = bm.group(1)
-                            name = bm.group(2)
-                            bitnum = bm.group(3)
-                            raw_constants[f"{prefix}B_{name}"] = bitnum
-                            raw_constants[f"{prefix}F_{name}"] = f"(1<<{bitnum})"
-                            continue
-
-                        # DEVINIT [base] / DEVCMD name
-                        dm = re.match(r'\s+DEVINIT(?:\s+(\S+))?\s*$', line)
-                        if dm:
-                            base_expr = dm.group(1) or "CMD_NONSTD"
-                            resolved = resolve_constant_value(base_expr, raw_constants)
-                            cmd_count = resolved
-                            continue
-
-                        dm = re.match(r'\s+DEVCMD\s+(\w+)', line)
-                        if dm:
-                            if cmd_count is None:
-                                continue
-                            raw_constants[dm.group(1)] = str(cmd_count)
-                            cmd_count += 1
-                            continue
-
-                        # ENUM [base]
-                        enm = re.match(r'\s+ENUM(?:\s+(\S+))?\s*$', line)
-                        if enm:
-                            base_str = enm.group(1)
-                            if base_str:
-                                try:
-                                    eoffset = int(base_str)
-                                except ValueError:
-                                    hm = re.match(r'^\$([0-9a-fA-F]+)$', base_str)
-                                    eoffset = int(hm.group(1), 16) if hm else 0
-                            else:
-                                eoffset = 0
-                            continue
-
-                        # EITEM label
-                        em = re.match(r'\s+EITEM\s+(\w+)', line)
-                        if em:
-                            raw_constants[em.group(1)] = str(eoffset)
-                            eoffset += 1
-                            continue
-
-                        # --- Struct macro simulation ---
-                        # STRUCTURE Name,InitOffset -> sets SOFFSET, emits Name EQU 0
-                        sm = re.match(r'\s+STRUCTURE\s+(\w+),(\w+)', line)
-                        if sm:
-                            struct_name = sm.group(1)
-                            init_str = sm.group(2)
-                            raw_constants[struct_name] = "0"
-                            try:
-                                soffset = int(init_str)
-                            except ValueError:
-                                # Try resolving from already-collected constants
-                                if init_str in raw_constants:
-                                    try:
-                                        soffset = int(cast(str, raw_constants[init_str]))
-                                    except (ValueError, TypeError):
-                                        soffset = None
-                                else:
-                                    soffset = None
-                            in_struct = True
-                            continue
-
-                        if in_struct and soffset is not None and sim_type_re:
-                            # Type macros: NAME EQU SOFFSET; SOFFSET += size
-                            tm = sim_type_re.match(line)
-                            if tm:
-                                raw_constants[tm.group(2)] = str(soffset)
-                                soffset += type_sizes[tm.group(1)]
-                                continue
-
-                            # STRUCT name,size
-                            ssm = re.match(r'\s+STRUCT\s+(\w+),(\w+)', line)
-                            if ssm:
-                                raw_constants[ssm.group(1)] = str(soffset)
-                                size_str = ssm.group(2)
-                                try:
-                                    soffset += int(size_str)
-                                except ValueError:
-                                    # Try resolving from already-collected constants
-                                    if size_str in raw_constants:
-                                        try:
-                                            soffset += int(cast(str, raw_constants[size_str]))
-                                        except (ValueError, TypeError):
-                                            in_struct = False
-                                    else:
-                                        in_struct = False
-                                continue
-
-                            # LABEL name
-                            lm = re.match(r'\s+LABEL\s+(\w+)', line)
-                            if lm:
-                                raw_constants[lm.group(1)] = str(soffset)
-                                continue
-
-                            # ALIGNWORD
-                            if re.match(r'\s+ALIGNWORD\b', line):
-                                soffset = (soffset + 1) & ~1
-                                continue
-
-                            # ALIGNLONG
-                            if re.match(r'\s+ALIGNLONG\b', line):
-                                soffset = (soffset + 3) & ~3
-                                continue
+    raw_constants, parsed_include_paths = collect_raw_constants_from_include_dir(
+        include_dir,
+        type_sizes,
+    )
 
     print(f"  Raw constants collected: {len(raw_constants)}")
 
@@ -2861,7 +2943,10 @@ def main() -> None:
                         other_entry["returns_memory"]["size_reg"] = \
                             size_inputs[0]["regs"][0]
 
-            os_since = fd_func.get("os_since")
+            os_since = compatibility_kb["_function_min_versions"].get(f"{lib_name}/{func_name}")
+            explicit_fd_os_since = fd_func.get("os_since")
+            if explicit_fd_os_since:
+                os_since = explicit_fd_os_since
             if oc_lib and func_name in oc_lib["functions"]:
                 os_since = oc_lib["functions"][func_name]
 
@@ -2869,6 +2954,7 @@ def main() -> None:
                 other_entry["os_since"] = os_since
             else:
                 other_entry["os_since"] = "1.0"
+            includes_entry["available_since"] = cast(str, other_entry["os_since"])
             if fd_func.get("fd_version"):
                 includes_entry["fd_version"] = fd_func["fd_version"]
 
@@ -2900,22 +2986,29 @@ def main() -> None:
     includes_output["structs"] = raw_structs
 
     # --- Build constants ---
-    includes_output["constants"] = evaluated_constants
+    includes_output["constants"] = {
+        name: {
+            "raw": entry["raw"],
+            "value": entry["value"],
+            "available_since": compatibility_kb["_constant_min_versions"].get(name, "1.0"),
+        }
+        for name, entry in evaluated_constants.items()
+    }
 
     print("Building value domains and bindings...")
-    parsed_value_domains: dict[str, list[str]] = {}
+    parsed_value_domains: dict[str, JsonDict] = {}
     struct_field_value_bindings: list[JsonDict] = []
     for include_path in sorted(set(parsed_include_paths)):
         include_value_domains, include_field_bindings = (
             parse_include_value_bindings(include_path, evaluated_constants)
         )
-        for domain_name, domain_constants in include_value_domains.items():
-            existing_domain_constants = parsed_value_domains.get(domain_name)
-            if existing_domain_constants is not None and existing_domain_constants != domain_constants:
+        for domain_name, domain_data in include_value_domains.items():
+            existing_domain_data = parsed_value_domains.get(domain_name)
+            if existing_domain_data is not None and existing_domain_data != domain_data:
                 raise ValueError(
-                    f"Conflicting value domain {domain_name}: {existing_domain_constants} vs {domain_constants}"
+                    f"Conflicting value domain {domain_name}: {existing_domain_data} vs {domain_data}"
                 )
-            parsed_value_domains[domain_name] = domain_constants
+            parsed_value_domains[domain_name] = domain_data
         struct_field_value_bindings.extend(include_field_bindings)
     struct_binding_keys: set[tuple[str, str, str | None]] = set()
     for field_binding in struct_field_value_bindings:

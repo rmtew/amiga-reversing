@@ -551,6 +551,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
                  base_addr: int = 0,
                  code_start: int = 0,
                  entry_points: Sequence[int] = (),
+                 extra_entry_points: Sequence[int] = (),
                  initial_state: CPUState | None = None,
                  entry_initial_states: Mapping[int, CPUState] | None = None,
                  phase_timer: PhaseTimer | None = None) -> HunkAnalysis:
@@ -579,12 +580,14 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     # labelisation and eventual position-independent conversion.
     relocated_segments: list[RelocatedSegment] = []
     bootstrap_blocks: dict[int, BasicBlock] = {}
+    analysis_window_origin = code_start
     if base_addr == 0 and code_start == 0:
         segments = detect_relocated_segments(code)
         if segments:
             seg = segments[0]
             src = seg.file_offset
             dst = seg.base_addr
+            analysis_window_origin = src
             relocated_segments.append(RelocatedSegment(file_offset=src, base_addr=dst))
             # Analyze bootstrap (file offsets) separately from payload.
             # Use only the bootstrap slice so the executor can't follow
@@ -617,6 +620,18 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
     # -- Phase 0: Init discovery --------------------------------------
     base_reg_num = platform.base_reg_num
     resolved_entry_points = tuple(sorted(set(entry_points))) or (base_addr,)
+    resolved_extra_entry_points: tuple[int, ...] = ()
+    if extra_entry_points:
+        resolved: set[int] = set()
+        window_end = analysis_window_origin + code_size
+        for entry_offset in extra_entry_points:
+            if not analysis_window_origin <= entry_offset < window_end:
+                raise ValueError(
+                    f"Extra entrypoint 0x{entry_offset:X} lies outside analysis window "
+                    f"0x{analysis_window_origin:X}..0x{window_end:X}"
+                )
+            resolved.add(base_addr + (entry_offset - analysis_window_origin))
+        resolved_extra_entry_points = tuple(sorted(resolved))
     resolved_entry_point = resolved_entry_points[0]
     with phase_timer.phase("analysis.init") if phase_timer is not None else nullcontext():
         init_result = analyze(
@@ -674,6 +689,7 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
 
     # -- Phase 1: Core analysis with resolution loop ------------------
     core_entries = set(resolved_entry_points)
+    core_entries.update(resolved_extra_entry_points)
     jt_call_targets: set[int] = set()
     jt_list: list[JumpTable] = []
     per_caller_entry_states: dict[int, list[ExitState]] = {}
@@ -1017,10 +1033,10 @@ def analyze_hunk(code: bytes, relocs: list[RelocLike], hunk_index: int = 0,
         lib_calls = refine_opened_base_calls(blocks, lib_calls, code, os_kb, platform)
 
     if lib_calls:
-        resolved = [c for c in lib_calls if c.library != "unknown"]
-        libs = {c.library for c in resolved}
+        resolved_calls: list[LibraryCall] = [call for call in lib_calls if call.library != "unknown"]
+        libs = {call.library for call in resolved_calls}
         print_fn(f"  {len(lib_calls)} library calls identified "
-                 f"({len(resolved)} resolved"
+                 f"({len(resolved_calls)} resolved"
                  f", libraries: {', '.join(sorted(libs))})")
 
     indirect_sites = indirect_core.find_indirect_control_sites(

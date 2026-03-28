@@ -197,13 +197,13 @@ def merge_os_reference_payloads(
         merged_meta["absolute_symbols"] = correction_meta["absolute_symbols"]
 
     merged_value_domains = dict(parsed_meta["value_domains"])
-    for domain_name, constant_names in correction_meta.get("value_domains", {}).items():
+    for domain_name, domain_data in correction_meta.get("value_domains", {}).items():
         existing = merged_value_domains.get(domain_name)
-        if existing is not None and existing != constant_names:
+        if existing is not None and existing != domain_data:
             raise ValueError(
-                f"Conflicting OS value domain {domain_name}: {existing} vs {constant_names}"
+                f"Conflicting OS value domain {domain_name}: {existing} vs {domain_data}"
             )
-        merged_value_domains[domain_name] = constant_names
+        merged_value_domains[domain_name] = domain_data
     merged_meta["value_domains"] = merged_value_domains
 
     api_binding_keys: set[tuple[str, str, str]] = set()
@@ -321,5 +321,62 @@ def merge_os_reference_payloads(
             raise ValueError(
                 f"OS struct field binding references missing value domain {binding['domain']}"
             )
+
+    for domain_name, domain_data in merged_meta["value_domains"].items():
+        domain_kind = domain_data.get("kind")
+        if domain_kind not in {"enum", "flags"}:
+            raise ValueError(
+                f"OS value domain {domain_name} uses unsupported kind {domain_kind!r}"
+            )
+        domain_members = domain_data.get("members")
+        if not isinstance(domain_members, list) or not domain_members:
+            raise ValueError(
+                f"OS value domain {domain_name} is missing non-empty members"
+            )
+        for constant_name in domain_members:
+            if constant_name not in merged["constants"]:
+                raise ValueError(
+                    f"OS value domain {domain_name} references missing constant {constant_name}"
+                )
+        zero_name = domain_data.get("zero_name")
+        if zero_name is not None and zero_name not in merged["constants"]:
+            raise ValueError(
+                f"OS value domain {domain_name} references missing zero_name constant {zero_name}"
+            )
+        if "exact_match_policy" not in domain_data:
+            raise ValueError(
+                f"OS value domain {domain_name} is missing exact_match_policy"
+            )
+        exact_match_policy = domain_data["exact_match_policy"]
+        if exact_match_policy not in {"error", "canonical_by_member_order"}:
+            raise ValueError(
+                f"OS value domain {domain_name} uses unsupported exact_match_policy "
+                f"{exact_match_policy!r}"
+            )
+        composition = domain_data.get("composition")
+        if domain_kind == "enum":
+            if composition is not None:
+                raise ValueError(
+                    f"Enum OS value domain {domain_name} must not define composition"
+                )
+            if "remainder_policy" in domain_data:
+                raise ValueError(
+                    f"Enum OS value domain {domain_name} must not define remainder_policy"
+                )
+        else:
+            if composition != "bit_or":
+                raise ValueError(
+                    f"Flag OS value domain {domain_name} must define composition='bit_or'"
+                )
+            if "remainder_policy" not in domain_data:
+                raise ValueError(
+                    f"Flag OS value domain {domain_name} is missing remainder_policy"
+                )
+            remainder_policy = domain_data["remainder_policy"]
+            if remainder_policy not in {"error", "append_hex"}:
+                raise ValueError(
+                    f"OS value domain {domain_name} uses unsupported remainder_policy "
+                    f"{remainder_policy!r}"
+                )
 
     return merged

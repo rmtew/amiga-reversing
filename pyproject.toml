@@ -130,7 +130,6 @@ files = [
     "scripts/precommit.py",
     "scripts/update_progress.py",
     "disasm/types.py",
-    "tests/conftest.py",
     "tests/os_kb_helpers.py",
     "tests/platform_helpers.py",
     "tests/runtime_kb_helpers.py",
@@ -173,6 +172,9 @@ include = [
 [tool.ruff.lint]
 select = ["E9", "F", "B", "UP", "I", "C4", "PT", "PIE", "RET", "SIM", "RUF013", "RUF020", "RUF100"]
 ignore = ["PT018"]
+
+[tool.uv]
+exclude-newer = "7 days"
 
 [tool.uv.sources]
 machine68k = { path = "resources/machine68k/dist/machine68k-0.4.2.dev0+g61600df53.d20260308-cp314-cp314-win_amd64.whl" }

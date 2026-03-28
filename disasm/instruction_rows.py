@@ -158,11 +158,12 @@ def make_text_rows(kind: str, text: str, entity_addr: int | None = None,
 def emit_data_rows(code: bytes, start: int, end: int,
                    labels: dict[int, str], reloc_map: dict[int, int],
                    string_addrs: set[int], access_sizes: dict[int, int],
+                   addr_comments: dict[int, str],
                    entity_addr: int | None,
                    source_context: BlockRowContext) -> list[ListingRow]:
     buf = io.StringIO()
     emit_data_region(buf, code, start, end, labels, reloc_map, string_addrs,
-                     access_sizes=access_sizes)
+                     access_sizes=access_sizes, addr_comments=addr_comments)
     return make_text_rows(
         "data",
         buf.getvalue(),

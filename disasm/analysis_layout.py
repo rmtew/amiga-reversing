@@ -11,6 +11,20 @@ def target_structure_entrypoint_offsets(target_metadata: TargetMetadata | None) 
     return tuple(entry.offset for entry in structure.entrypoints)
 
 
+def target_seeded_entrypoint_offsets(
+    target_metadata: TargetMetadata | None,
+    *,
+    hunk_index: int = 0,
+) -> tuple[int, ...]:
+    if target_metadata is None:
+        return ()
+    return tuple(
+        entrypoint.addr
+        for entrypoint in target_metadata.seeded_code_entrypoints
+        if entrypoint.hunk == hunk_index
+    )
+
+
 def target_primary_entrypoint_offset(target_metadata: TargetMetadata | None) -> int | None:
     entrypoints = target_structure_entrypoint_offsets(target_metadata)
     if not entrypoints:
@@ -60,7 +74,7 @@ def resolved_entry_points(
 ) -> tuple[int, ...]:
     if source.kind == "raw_binary":
         structure_entries = target_structure_entrypoint_offsets(target_metadata)
-        local_entry_offsets = structure_entries or (source.local_entrypoint,)
+        local_entry_offsets = tuple(dict.fromkeys(structure_entries or (source.local_entrypoint,)))
         if local_entry_offsets[0] != source.local_entrypoint:
             raise ValueError(
                 f"Raw target structure entrypoint 0x{local_entry_offsets[0]:X} does not match "

@@ -46,28 +46,119 @@
       }
     ],
     "value_domains": {
-      "dos.lock.access_mode": [
-        "ACCESS_READ",
-        "ACCESS_WRITE"
-      ],
-      "dos.open.access_mode": [
-        "MODE_NEWFILE",
-        "MODE_OLDFILE",
-        "MODE_READWRITE"
-      ],
-      "dos.seek.mode": [
-        "OFFSET_BEGINNING",
-        "OFFSET_CURRENT",
-        "OFFSET_END"
-      ],
-      "exec.allocmem.attributes": [
-        "MEMF_CHIP",
-        "MEMF_FAST",
-        "MEMF_PUBLIC"
-      ],
-      "exec.signal_mask": [
-        "SIGBREAKF_CTRL_C"
-      ]
+      "dos.lock.access_mode": {
+        "kind": "enum",
+        "members": [
+          "ACCESS_READ",
+          "ACCESS_WRITE"
+        ],
+        "exact_match_policy": "error"
+      },
+      "dos.open.access_mode": {
+        "kind": "enum",
+        "members": [
+          "MODE_NEWFILE",
+          "MODE_OLDFILE",
+          "MODE_READWRITE"
+        ],
+        "exact_match_policy": "error"
+      },
+      "dos.packet.action": {
+        "kind": "enum",
+        "members": [
+          "ACTION_NIL",
+          "ACTION_GET_BLOCK",
+          "ACTION_SET_MAP",
+          "ACTION_DIE",
+          "ACTION_EVENT",
+          "ACTION_CURRENT_VOLUME",
+          "ACTION_LOCATE_OBJECT",
+          "ACTION_RENAME_DISK",
+          "ACTION_FREE_LOCK",
+          "ACTION_DELETE_OBJECT",
+          "ACTION_RENAME_OBJECT",
+          "ACTION_MORE_CACHE",
+          "ACTION_COPY_DIR",
+          "ACTION_WAIT_CHAR",
+          "ACTION_SET_PROTECT",
+          "ACTION_CREATE_DIR",
+          "ACTION_EXAMINE_OBJECT",
+          "ACTION_EXAMINE_NEXT",
+          "ACTION_DISK_INFO",
+          "ACTION_INFO",
+          "ACTION_FLUSH",
+          "ACTION_SET_COMMENT",
+          "ACTION_PARENT",
+          "ACTION_TIMER",
+          "ACTION_INHIBIT",
+          "ACTION_DISK_TYPE",
+          "ACTION_DISK_CHANGE",
+          "ACTION_SET_DATE",
+          "ACTION_FINDUPDATE",
+          "ACTION_FINDINPUT",
+          "ACTION_FINDOUTPUT",
+          "ACTION_END",
+          "ACTION_SEEK",
+          "ACTION_SET_FILE_SIZE",
+          "ACTION_READ_RETURN",
+          "ACTION_WRITE_RETURN",
+          "ACTION_IS_FILESYSTEM",
+          "ACTION_FH_FROM_LOCK",
+          "ACTION_CHANGE_MODE",
+          "ACTION_COPY_DIR_FH",
+          "ACTION_PARENT_FH",
+          "ACTION_EXAMINE_ALL",
+          "ACTION_EXAMINE_FH",
+          "ACTION_EXAMINE_ALL_END",
+          "ACTION_SET_OWNER",
+          "ACTION_CHANGE_SIGNAL",
+          "ACTION_SCREEN_MODE",
+          "ACTION_ADD_NOTIFY",
+          "ACTION_REMOVE_NOTIFY"
+        ],
+        "exact_match_policy": "error"
+      },
+      "dos.seek.mode": {
+        "kind": "enum",
+        "members": [
+          "OFFSET_BEGINNING",
+          "OFFSET_CURRENT",
+          "OFFSET_END"
+        ],
+        "exact_match_policy": "error"
+      },
+      "exec.allocmem.attributes": {
+        "kind": "flags",
+        "members": [
+          "MEMF_ANY",
+          "MEMF_PUBLIC",
+          "MEMF_CHIP",
+          "MEMF_FAST",
+          "MEMF_LOCAL",
+          "MEMF_24BITDMA",
+          "MEMF_KICK",
+          "MEMF_NO_EXPUNGE",
+          "MEMF_CLEAR",
+          "MEMF_LARGEST",
+          "MEMF_REVERSE",
+          "MEMF_TOTAL"
+        ],
+        "exact_match_policy": "error",
+        "composition": "bit_or",
+        "remainder_policy": "error"
+      },
+      "exec.signal_mask": {
+        "kind": "flags",
+        "members": [
+          "SIGBREAKF_CTRL_C",
+          "SIGBREAKF_CTRL_D",
+          "SIGBREAKF_CTRL_E",
+          "SIGBREAKF_CTRL_F"
+        ],
+        "exact_match_policy": "error",
+        "composition": "bit_or",
+        "remainder_policy": "error"
+      }
     },
     "api_input_value_bindings": [
       {
@@ -105,6 +196,16 @@
         "citation": "exec/memory.i MEMF_* constants",
         "domain": "exec.allocmem.attributes",
         "function": "AllocMem",
+        "input": "attributes",
+        "library": "exec.library",
+        "seed_origin": "include",
+        "review_status": "seeded"
+      },
+      {
+        "available_since": "1.0",
+        "citation": "exec/memory.i MEMF_* constants",
+        "domain": "exec.allocmem.attributes",
+        "function": "AvailMem",
         "input": "attributes",
         "library": "exec.library",
         "seed_origin": "include",
@@ -183,7 +284,18 @@
         "review_status": "seeded"
       }
     ],
-    "struct_field_value_bindings": []
+    "struct_field_value_bindings": [
+      {
+        "available_since": "1.3",
+        "citation": "dos/dosextens.i DosPacket dp_Type ACTION_* constants",
+        "context_name": null,
+        "domain": "dos.packet.action",
+        "field": "dp_Type",
+        "review_status": "seeded",
+        "seed_origin": "include",
+        "struct": "DosPacket"
+      }
+    ]
   },
   "libraries": {},
   "structs": {},

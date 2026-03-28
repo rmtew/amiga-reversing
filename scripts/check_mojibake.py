@@ -62,6 +62,8 @@ def tracked_text_files() -> list[Path]:
 def find_mojibake() -> list[str]:
     failures: list[str] = []
     for path in tracked_text_files():
+        if not path.exists():
+            continue
         try:
             raw = path.read_bytes()
             text = raw.decode("utf-8")

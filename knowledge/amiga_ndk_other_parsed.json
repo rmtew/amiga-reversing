@@ -647,7 +647,7 @@
         "ReadBattClock": {
           "description": "This routine reads the time from the clock chip and returns it\nas the number of seconds from 01-jan-1978.",
           "notes": "If the clock chip returns an invalid date, the clock chip is\nreset and 0 is returned.",
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "AmigaTime",
             "reg": null,
@@ -657,7 +657,7 @@
         "ResetBattClock": {
           "description": "This routine does whatever is neeeded to put the clock chip\ninto a working and usable state and also sets the date on the\nclock chip to 01-Jan-1978.",
           "notes": "",
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "WriteBattClock": {
           "description": "This routine writes the time given in AmigaTime to the clock\nchip.",
@@ -671,13 +671,13 @@
             }
           ],
           "notes": "",
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "battclockPrivate1": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "battclockPrivate2": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         }
       }
     },
@@ -686,7 +686,7 @@
         "ObtainBattSemaphore": {
           "description": "Aquires exclusive access to the system nonvolatile ram.",
           "notes": "",
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "ReadBattMem": {
           "description": "Read a bitstring from nonvolatile ram.",
@@ -714,7 +714,7 @@
             }
           ],
           "notes": "The battery-backed memory is checksummed. If a checksum error\nis detected, all bits in the battery-backed memory are\nsilently set to zero.\n\nBits in the battery-backed memory that do not exist are read\nas zero.\n\nPartial byte reads (less than 8 bits) result in the bits read\nbeing put in the low-order bits of the destination byte.",
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "Error",
             "reg": "D0",
@@ -724,7 +724,7 @@
         "ReleaseBattSemaphore": {
           "description": "Relinquish exclusive access to the system nonvolatile ram.",
           "notes": "",
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "WriteBattMem": {
           "description": "Write a bitstring to the nonvolatile ram.",
@@ -752,7 +752,7 @@
             }
           ],
           "notes": "The battery-backed memory is checksummed. If a checksum error\nis detected, all bits in the battery-backed memory are\nsilently set to zero.\n\nPartial byte writes (less than 8 bits) result in the bits\nwritten being read from the low-order bits of the source byte.",
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "Error",
             "reg": "D0",
@@ -775,7 +775,7 @@
               "type": "struct GlyphEngine *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "3.1"
         },
         "ObtainInfoA": {
           "description": "This function accepts a tagList whose tag field elements are\nvalid for inquiry, and whose associated data fields are\npointers to the destination in which to place the requested\ndata.\n\nTag items that refer to data indirectly (OT_Indirect is set)\nreturn pointers that may be allocated or cached by the\nlibrary.  This data must be treated as read-only data.  When\nthe application is done with the data acquired via ObtainInfoA,\nit must perform a ReleaseInfoA to allow the library to release\nthe data.",
@@ -796,7 +796,7 @@
               "type": "struct TagItem *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "error",
             "reg": "A0",
@@ -805,7 +805,7 @@
         },
         "OpenEngine": {
           "description": "This function establishes a context for access to the bullet\nlibrary.  This context remains valid until it is closed via\nCloseEngine.  Each specific context isolates the specification\nof the various font attributes from other contexts concurrently\naccessing the bullet library.  A context can be shared among\ndifferent tasks.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "i_struct": "GlyphEngine",
             "name": "engineHandle",
@@ -832,7 +832,7 @@
               "type": "struct TagItem *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "error",
             "reg": "A0",
@@ -858,7 +858,7 @@
               "type": "struct TagItem *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "error",
             "reg": "A0",
@@ -866,7 +866,7 @@
           }
         },
         "bulletPrivate1": {
-          "os_since": "1.0"
+          "os_since": "3.1"
         }
       }
     },
@@ -885,7 +885,7 @@
             }
           ],
           "notes": "This function may be called from within a task, or from a level 1\nor level 2 interrupt.\n\nIt is highly recommended that you call this function\nbefore accessing credit-card memory, as well as checking\nthe return value.  If it is a return value of FALSE, you\nshould stop accessing credit-card memory.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -912,7 +912,7 @@
             }
           ],
           "notes": "This function may be called from within a task, or from a level 1\nor level 2 interrupt.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -922,7 +922,7 @@
         "CardChangeCount": {
           "description": "This function returns the card change count.  The\ncounter is incremented by one for every removal, and\nfor every successful insertion (a card which is inserted\nlong enough to be debounced before it is removed again).",
           "notes": "This function may be called from a task, or any level interrupt.\n\n   SEE ALSO",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "count",
             "reg": "D0",
@@ -932,7 +932,7 @@
         "CardForceChange": {
           "description": "This function is not intended for general use.  Its\npurpose is to force a credit-card change as if\nthe user had removed, or inserted a card.\n\nThis function is intended to be used by a utility program\nwhich needs to force the current card owner to release\nownership of the card, thereby allowing the utility an\nopportunity to own the credit-card.",
           "notes": "This function should only be called from a task.\n\n   SEE ALSO",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -942,7 +942,7 @@
         "CardInterface": {
           "description": "This function is used to determine the type of credit-card\n(hardware) interface available.  For the most part the\ncard.resource hides the hardware details from devices within its\nfunction calls.  However should we need to provide a work-around\nbecause of differences, or limitations imposed by future interface\nhardware, this function must be used to identify which interface\nis available.",
           "notes": "In general only I/O devices (e.g., a device which interfaces\nwith a modem card) would need to provide work-arounds,\nor alternative code.  An example would be a change in the way\ninterrupt requests from the card are handled.  Specific details\nwill be provided as need in the future.  I/O devices) should abort\nproperly if this function returns a value which is unknown.\n\nCurrent implementations (see card.h/i) -\n\nCARD_INTERFACE_AMIGA_0\n-------------------------------------------------------------\n\nThe card slot can be configured for use as an I/O interface\nby using the CardMiscControl() function.\n\nThe card slot inhibits writes to cards which do not negate\nthe WP status bit.  This can be overridden by using the\nCardMiscControl() function.\n\nChanges in the interrupt request line are latched by a gate-array,\nand have to be obtained via the status change mechanism provided\nwhen you call the OwnCard() function.  The interrupt is cleared\nwhen you return from the status change interrupt.  A level 2\ninterrupt is generated.  Usually you will want to clear the\ninterrupt on the card at this time, and Signal() a task.  The IRQ\nline is the same as the RDY/BSY line.\n\nChanges in BVD1, WP, and RDY/BSY are also latched by the gate-array,\nand are obtainable via the status change mechanism provided by\nthe OwnCard() function.  A level 2 interrupt is generated.\n\nChanges in BVD2 (also used for digital audio) have to be\nmonitored via polling.  Generally this will cause no problem.\nMonitoring changes in BVD1 & BVD2 to monitor for low battery\ncondition can be handled by a low priority tool which periodically\nchecks the condition of both lines using the ReadCardStatus()\nfunction.\n\nAs of card.resource V39 (check VERSION in resource base), the\nCardMiscControl() function can be used to enable/disable\nstatus change interrupts for changes in BVD1, BVD2, and the\nRDY/BSY status line.  Status change interrupts for WR\n(Write-protect enable/disable) are always enabled.  The default\nstate of enabled/disabled status change interrupts noted above\nare unchanged, and automatically reset to the defaults when\na card is removed, or when even a task releases ownership\nof the card.\n\nSome PC oriented eight (8) bit cards may require you read\nodd-byte I/O address registers at the corresponding even-byte\naddress plus 64K.  There is sufficient I/O address space\nprovided that exceeding I/O address space should not be a problem.\n\nYour code should wait at least 1 millisecond for Vpp to stabilize\nafter voltage change (see CardProgramVoltage()).",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "return",
             "reg": "D0",
@@ -969,7 +969,7 @@
             }
           ],
           "notes": "This function may be called from within a task, or from a level 1\nor level 2 interrupt.\n\n!!!IMPORTANT!!!\n\nYou should ALWAYS try to enable digital audio for I/O cards\nas this will also configure the card socket for the I/O\ninterface (if supported).\n\nNot all cards will connect the write-enable line (e.g.,\nsome I/O cards).  On some machines (e.g., the A600) it will\nnot be possible to write to such cards unless you disable\nwrite-protection by using this function.\n\n!!!NEW!!!\n\nFor card.resource V39 (check resource base for VERSION before\nusing), new bits have been defined which let you enable/disable\nparticular status change interrupts.  See CardInterface() for\ndefaults.  These new bits are backwards compatable with V37\nfor which only the CARDB_DISABLE_WP, and CARDB_ENABLE_DIGAUDIO\nbits were defined.  These new bits allow you to enable, or\ndisable specific status change interrupts including BVD1/SC,\nBVD2/DA, and BSY/IRQ.  The defaults for these status change\ninterrupts are unchanged from V37, and WR (Write-protect) status\nchange interrupts are always enabled as they use to be.\n\nAn example of use:\n\nCARD_INTF_SETCLR!CARD_INTF_BVD1\n\nWould enable BVD1/SC status change interrupts, and not change\nthe enable/disable state for BVD2/DA or BSY/IRQ status change\ninterrupts.  If the change was made successfully, the\nCARD_INTB_BVD1 bit would be set in register D0 when this function\nreturns.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "control_bits",
             "reg": "D0",
@@ -996,7 +996,7 @@
             }
           ],
           "notes": "This function may be called from within a task, or from a level 1\nor level 2 interrupt.\n\n       !!!WARNING!!!\n\nFlash-ROM programming requires careful coding to prevent\nleaving the Erase command on too long.  Failure to observe\nthe maximum time between the Erase command, and the Erase-Verify\ncommand can make a Flash-ROM card unusable.  Some Flash-ROM cards\nmay provide an internal watch-dog timer which protects the card.\n\nBecause of the relatively long time (e.g., 10ms) between Erase, and\nErase-Verify which must be observed, the need for such critical\ntiming can be problematic on a multi-tasking machine.\n\nVendors of Flash-ROM's recommend a high priority interrupt\ngenerated by a 10ms timer be used to turn off Erase.  On the\nAmiga this can be accomplished by using a CIA-B interval timer.\nThe timer.device also provides a mechanism for generating a low\npriority interrupt.  The timer.device is easier to use than CIA\ninterval timers, though not as accurate or as safe.\n\nEven if the Flash-ROM card provides an internal watch-dog timer,\nimplementation of the code during Erase should assume that\nthe Flash-ROM does not.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "success",
             "reg": "A1",
@@ -1016,7 +1016,7 @@
             }
           ],
           "notes": "This function may be called from within a task, or from a level 1\nor level 2 interrupt.\n\n***IMPORTANT***\n\nIt is the responsibility of the card owner to reset\nconfigurable cards, or any other type of card such as\nsome I/O cards before calling ReleaseCard() if the owner\nhas made use of that card such that it is no longer in its\nreset state (unless you are releasing the card because it\nhas been removed).\n\nIf the card manufacturer indicates that a certain amount\nof time must elapse between end of reset, and completion\nof card initialization, you should wait at least that long\nbefore releasing the card (unless you are releasing the card\nbecause it has been removed).",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "success",
             "reg": "A1",
@@ -1043,7 +1043,7 @@
             }
           ],
           "notes": "This function should only be called from a task.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "success",
             "reg": "A1",
@@ -1084,7 +1084,7 @@
             }
           ],
           "notes": "This function can be called multiple times (adjusting the \"size\"\nargument) to read a tuple of variable length, or unknown size.\n\nYour supplied buffered is used by this function for working\nstorage - the contents of it will be modified even if this\nfunction fails to find the tuple you want a copy of.\n\nThis function should NOT be used to find/copy tuples of type :\n\n- CISTPL_LONGLINK_A\n- CISTPL_LONGLINK_C\n- CISTPL_NO_LINK\n- CISTPL_LINKTARGET\n- CISTPL_NULL\n- CISTPL_END\n\nThese tuples are automatically handled for you by this function.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -1111,7 +1111,7 @@
             }
           ],
           "notes": "Some cards may not have a size specified in the device\ntuple.  An example would be an I/O card.  The size would be\nreturned as one (1) in this case.\n\nYou should not call this function with a partial CISTPL_DEVICE\ntuple, or the return values may be junk.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "return",
             "reg": "A0",
@@ -1131,7 +1131,7 @@
             }
           ],
           "notes": "This function may be called from within a task, or from a level 1\nor level 2 interrupt.\n\nIt is highly recommended that you call this function\nafter accessing credit-card memory, as well as checking\nthe return value.  If it is a return value of FALSE, you\nshould stop accessing credit-card memory, and conclude\nthat the card was removed before this function was called.\n\nOn some machines it is possible that the credit-card will be\nremoved before you receive the removed interrupt.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -1141,7 +1141,7 @@
         "GetCardMap": {
           "description": "Obtain pointer to a CardMemoryMap structure.  The structure\nis READ only.\n\nDevices should never assume credit-card memory appears\nat any particular place in memory.  By using this function\nto obtain pointers to the base memory locations of the various\ncredit-card memory types, your device will continue to work\nproperly should credit cards appear in different memory\nlocations in future hardware.",
           "notes": "If any pointer in the structure is NULL, it means this type\nof credit-card memory is not being made available.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "i_struct": "CardMemoryMap",
             "name": "pointer",
@@ -1162,7 +1162,7 @@
             }
           ],
           "notes": "This function is being made public so developers can test\ntest that their execute-in-place credit-cards meet the\nrequirements for an Amiga execute-in-place card.  In general\nthere is no reason for devices, or applications to use this\nfunction.\n\nAmiga execute-in-place software is identified via a tuple code\nreserved for manufacturer specific use, therefore the manufacturer\nof the card may freely use the CISTPL_VERS_1, or CISTPL_VERS_2\ntuples to place identification information on the credit-card.\n\nNo attempt has been made to make use of the MS-DOS execute-in-place\nmethod; it is believed that most manufacturers of Amiga\nexecute-in-place software will prefer a simple, and small\nscheme for running their execute-in-place code.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "i_struct": "RT",
             "name": "result",
@@ -1183,7 +1183,7 @@
             }
           ],
           "notes": "This function should only be called from a task.\n\n  \tCardHandle interrupts are called with a pointer to your data\nin A1, and a pointer to your code in A5.  With the exception\nof status change interrupts, D0-D1, A0-A1, and A5-A6 may be\ntreated as scratch registers.  Status change interrupts are\nalso called with meaningful data in D0, and expect D0 be\npreserved upon RTS from your code.  No other registers are\nguaranteed to contain initialized data.  All other registers\nmust be preserved.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "i_struct": "CardHandle",
             "name": "return",
@@ -1194,7 +1194,7 @@
         "ReadCardStatus": {
           "description": "Returns current state of the credit card status register.\n\nSee card.h/i for bit definitions.\n\nNote that the meaning of the returned status bits may vary\ndepending on the type of card inserted in the slot, and\nmode of operation.  Interpretation of the bits is left\nup to the application.",
           "notes": "This function may be called from within a task, or from any level\ninterrupt.",
-          "os_since": "1.0",
+          "os_since": "3.1",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -1221,7 +1221,7 @@
             }
           ],
           "notes": "This function should only be called from a task.",
-          "os_since": "1.0"
+          "os_since": "3.1"
         }
       }
     },
@@ -1247,7 +1247,7 @@
             }
           ],
           "notes": "The CIA resources are special in that there is more than one\nof them in the system. Because of this, the C language stubs\nin amiga.lib for the CIA resources require an extra parameter\nto specify which CIA resource to use. The synopsys for the\namiga.lib stubs is as follows:\n\noldMask = AbleICR( Resource, mask )\nD0                 A6        D0\n\nWORD AbleICR( struct Library *, WORD );",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldMask",
             "reg": "D0",
@@ -1280,7 +1280,7 @@
             }
           ],
           "notes": "A processor interrupt may be generated immediatly if this call\nis successful.\n\nIn general, it is probably best to only call this function\nwhile DISABLED so that the resource to which the interrupt\nhandler is being attached may be set to a known state before\nthe handler is called. You MUST NOT change the state of the\nresource before attaching your handler to it.\n\nThe CIA resources are special in that there is more than one\nof them in the system. Because of this, the C language stubs\nin amiga.lib for the CIA resources require an extra parameter\nto specify which CIA resource to use. The synopsys for the\namiga.lib stubs is as follows:\n\ninterrupt = AddICRVector( Resource, iCRBit, interrupt )\nD0                        A6        D0      A1\n\nstruct Interrupt *AddICRVector( struct Library *, WORD,\n\tstruct Interrupt *);\n\n***WARNING***\n\nNever assume that any of the CIA hardware is free for use.\nAlways use the AddICRVector() function to obtain ownership\nof the CIA hardware registers your code will use.\n\nNote that there are two (2) interval timers per CIA.  If\nyour application needs one of the interval timers, you\ncan try to obtain any one of the four (4) until AddICRVector()\nsucceeds.  If all four interval timers are in-use, your\napplication should exit cleanly.\n\nIf you just want ownership of a CIA hardware timer, or register,\nbut do not want interrupts generated, use the AddICRVector()\nfunction to obtain ownership, and use the AbleICR() function\nto turn off (or on) interrupts as needed.\n\nNote that CIA-B generates level 6 interrupts (which can degrade\nsystem performance by blocking lower priority interrupts).  As\nusual, interrupt handling code should be optimized for speed.\n\nAlways call RemICRVector() when your code exits to release\nownership of any CIA hardware obtained with AddICRVector().",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "interrupt",
             "reg": "D0",
@@ -1315,7 +1315,7 @@
             }
           ],
           "notes": "The CIA resources are special in that there is more than one\nof them in the system. Because of this, the C language stubs\nin amiga.lib for the CIA resources require an extra parameter\nto specify which CIA resource to use. The synopsys for the\namiga.lib stubs is as follows:\n\nRemICRVector( Resource, iCRBit, interrupt )\n              A6        D0      A1\n\nvoid RemICRVector( struct Library *, WORD, struct Interrupt *);",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetICR": {
           "description": "This function provides a means of reseting, causing, and\nsampling 8520 CIA interrupt control registers.",
@@ -1337,7 +1337,7 @@
             }
           ],
           "notes": "The CIA resources are special in that there is more than one\nof them in the system. Because of this, the C language stubs\nin amiga.lib for the CIA resources require an extra parameter\nto specify which CIA resource to use. The synopsys for the\namiga.lib stubs is as follows:\n\noldMask = SetICR( Resource, mask )\nD0                A6        D0\n\nWORD SetICR( struct Library *, WORD );\n\n***WARNING***\n\nNever read the contents of the CIA interrupt control registers\ndirectly.  Reading the contents of one of the CIA interrupt\ncontrol registers clears the register.  This can result in\ninterrupts being missed by critical operating system code, and\nother applications.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldMask",
             "reg": "D0",
@@ -1997,7 +1997,7 @@
             }
           ],
           "notes": "This function is available for historical reasons.  It is\npreferred that input events be fed to the system via the\nWriteEvent command of the input.device.\n\nThis function is different from standard device commands in\nthat it is a function in the console device library vectors.\nIn order to obtain a valid library base pointer for the\nconsole device (a.k.a. ConsoleDevice) call\nOpenDevice(\"console.device\", -1, IOStdReq, 0),\nand then grab the io_Device pointer field out of the IOStdReq\nand use as ConsoleDevice.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "events",
             "reg": "A0",
@@ -2039,7 +2039,7 @@
             }
           ],
           "notes": "This function is different from standard device commands in\nthat it is a function in the console device library vectors.\nIn order to obtain a valid library base pointer for the\nconsole device (a.k.a. ConsoleDevice) call\nOpenDevice(\"console.device\", -1, IOStdReq, 0),\nand then grab the io_Device pointer field out of the IOStdReq\nand use as ConsoleDevice.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "actual",
             "reg": "D0",
@@ -2134,7 +2134,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -2153,7 +2153,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "GetUnit": {
           "description": "This routine allocates the disk to a driver.  It is either\nimmediately available, or the request is saved until the disk\nis available.  When it is available, your unitPointer is\nsent back to you (via ReplyMsg).  You may then reattempt the\nGetUnit.\n\nAllocating the disk allows you to use the disk's resources.\nRemember however that there are four units to the disk; you are\nonly one of them.  Please be polite to the other units (by never\nselecting them, and by not leaving interrupts enabled, etc.).\n\nWhen you are done, please leave the disk in the following state:\n    dmacon dma bit ON\n    dsklen dma bit OFF (write a #DSKDMAOFF to dsklen)\n    adkcon disk bits -- any way you want\n    entena:disk sync and disk block interrupts -- Both DISABLED\n    CIA resource index interrupt -- DISABLED\n    8520 outputs -- doesn't matter, because all bits will be\n\tset to inactive by the resource.\n    8520 data direction regs -- restore to original state.\n\nNOTE: GetUnit() does NOT turn on the interrupts for you.\n      You must use AbleICR (for the index interrupt) or intena\n      (for the diskbyte and diskblock interrupts) to turn them\n      on.  You should turn them off before calling GiveUnit,\n      as stated above.",
@@ -2167,7 +2167,7 @@
               "type": "struct DiskResourceUnit *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "i_struct": "DISCRESOURCEUNIT",
             "name": "lastDriver",
@@ -2186,7 +2186,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "idtype",
             "reg": "D0",
@@ -2196,7 +2196,7 @@
         "GiveUnit": {
           "bugs": "In pre-V36, GiveUnit didn't check if you owned the unit.  A patch\nfor this was part of 1.3.1 SetPatch.  Fixed in V36.",
           "description": "This routine frees the disk after a driver is done with it.\nIf others are waiting, it will notify them.",
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "ReadUnitID": {
           "description": "Rereads the drive id for a specific unit (for handling drives\nthat change ID according to what sort of disk is in them.  You\nMUST have done a GetUnit before calling this function!",
@@ -2209,7 +2209,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "idtype",
             "reg": "D0",
@@ -2246,7 +2246,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "A0",
@@ -2332,7 +2332,7 @@
             }
           ],
           "notes": "As of V36, OpenDiskFont() will automatically attempt to\n       construct a font for you if:\n\n               You have requested a font size which does not exist\n               as a designed font, and\n\n               You have not set the DESIGNED bit in the ta_Flags\n               field of the TextAttr, or TTextAttr struct.\n\n       Constructed fonts are created by scaling a designed font.\n       A designed font is one which typically resides on disk,\n       or in ROM (e.g., a font which has been designed by hand\n       using a drawing tool).  Designed fonts generally look better\n       than fonts constructed by the font scaler, but designed\n       fonts also require disk space for each font size.\n\n       Always set the DESIGNED bit if you do not want constructed fonts,\n       or use AvailFonts() to find out which font sizes already exist.\n\n       As of V37 the diskfont.library supported built-in outline\n       fonts.  Then in V38 the outline font engine was moved to\n       a new library, \"bullet.library.\"",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "font",
             "reg": "D0",
@@ -2745,7 +2745,7 @@
               "type": "BPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -2791,7 +2791,7 @@
               "type": "STRPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "lock",
             "reg": "D0",
@@ -2851,7 +2851,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "MP",
             "name": "process",
@@ -2870,7 +2870,7 @@
               "type": "BPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldLock",
             "reg": "D0",
@@ -2889,7 +2889,7 @@
               "type": "struct DateStamp *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "DateStamp",
             "name": "ds",
@@ -2928,7 +2928,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DeleteFile": {
           "description": "This attempts to delete the file or directory specified by 'name'.\nAn error is returned if the deletion fails. Note that all the files\nwithin a directory must be deleted before the directory itself can\nbe deleted.",
@@ -2942,7 +2942,7 @@
               "type": "STRPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -2989,7 +2989,7 @@
               "type": "STRPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "MP",
             "name": "process",
@@ -3071,7 +3071,7 @@
               "type": "BPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "lock",
             "reg": "D0",
@@ -3259,7 +3259,7 @@
               "type": "struct FileInfoBlock *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -3285,7 +3285,7 @@
               "type": "struct FileInfoBlock *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -3344,7 +3344,7 @@
               "type": "BPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -3362,7 +3362,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FGetC": {
           "bugs": "In V36, after an EOF was read, EOF would always be returned from\nFGetC() from then on.  Starting in V37, it tries to read from the\nhandler again each time (unless UnGetC(fh,-1) was called).",
@@ -4082,7 +4082,7 @@
               "type": "struct InfoData *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -4117,7 +4117,7 @@
         },
         "Input": {
           "description": "Input() is used to identify the initial input stream allocated when\nthe program was initiated.  Never close the filehandle returned by\nInput!",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "file",
             "reg": "D0",
@@ -4193,7 +4193,7 @@
         },
         "IoErr": {
           "description": "Most I/O routines return zero to indicate an error. When this\nhappens (or whatever the defined error return for the routine)\nthis routine may be called to determine more information. It is\nalso used in some routines to pass back a secondary result.\n\nNote: there is no guarantee as to the value returned from IoErr()\nafter a successful operation, unless to specified by the routine.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -4230,7 +4230,7 @@
               "type": "BPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -4249,7 +4249,7 @@
               "type": "STRPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "seglist",
             "reg": "D0",
@@ -4275,7 +4275,7 @@
               "type": "LONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "lock",
             "reg": "D0",
@@ -4702,7 +4702,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "file",
             "reg": "D0",
@@ -4730,7 +4730,7 @@
         },
         "Output": {
           "description": "Output() is used to identify the initial output stream allocated\nwhen the program was initiated.  Never close the filehandle returned\nby Output().",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "file",
             "reg": "D0",
@@ -4748,7 +4748,7 @@
               "type": "BPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "newlock",
             "reg": "D0",
@@ -4932,7 +4932,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "actualLength",
             "reg": "D0",
@@ -5172,7 +5172,7 @@
               "type": "STRPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -5324,7 +5324,7 @@
               "type": "LONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldPosition",
             "reg": "D0",
@@ -5437,7 +5437,7 @@
               "type": "STRPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -5710,7 +5710,7 @@
               "type": "LONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -5978,7 +5978,7 @@
               "type": "BPTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -5997,7 +5997,7 @@
             }
           ],
           "notes": "passing zero to UnLock() is harmless",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "UnLockDosList": {
           "description": "Unlocks the access on the Dos Device List.  You MUST pass the same\nflags you used to lock the list.",
@@ -6179,7 +6179,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -6221,7 +6221,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "returnedLength",
             "reg": "D0",
@@ -6255,10 +6255,10 @@
           }
         },
         "dosPrivate1": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "dosPrivate2": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "dosPrivate3": {
           "os_since": "2.0"
@@ -6293,7 +6293,7 @@
             }
           ],
           "notes": "AbortIO() does NOT Remove() the IORequest from your ReplyPort, OR\nwait for it to complete.  After an AbortIO() you must wait normally\nfor the reply message before actually reusing the request.\n\nIf a request has already completed when AbortIO() is called, no\naction is taken.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AddDevice": {
           "description": "This function adds a new device to the system device list, making\nit available to other programs.  The device must be ready to be\nopened at this time.",
@@ -6307,7 +6307,7 @@
               "type": "struct Device *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AddHead": {
           "description": "Add a node to the head of a doubly linked list. Assembly\nprogrammers may prefer to use the ADDHEAD macro from\n\"exec/lists.i\".",
@@ -6329,7 +6329,7 @@
               "type": "struct Node *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "This function does not arbitrate for access to the list.  The\ncalling task must be the owner of the involved list."
         },
         "AddIntServer": {
@@ -6352,7 +6352,7 @@
               "type": "struct Interrupt *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "Some compilers or assemblers may optimize code in unexpected ways,\naffecting the conditions codes returned from the function.  Watch\nout for a \"MOVEM\" instruction (which does not affect the condition\ncodes) turning into \"MOVE\" (which does)."
         },
         "AddLibrary": {
@@ -6367,7 +6367,7 @@
               "type": "struct Library *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AddMemHandler": {
           "description": "This function adds a low memory handler to the system.  The handler\nis described in the Interrupt structure.  Due to multitasking\nissues, the handler must be ready to run the moment this function\ncall is made.  (The handler may be called before the call returns)",
@@ -6440,7 +6440,7 @@
             }
           ],
           "notes": "A point of confusion is that clearing a MsgPort structure to all\nzeros is not enough to prepare it for use.  As mentioned in the\nExec chapter of the ROM Kernel Manual, the List for the MsgPort\nmust be initialized.  This is automatically handled by AddPort(),\nand amiga.lib/CreatePort.  This initialization can be done manually\nwith amiga.lib/NewList or the assembly NEWLIST macro.\n\nDo not AddPort an active port.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AddResource": {
           "description": "This function adds a new resource to the system and makes it\navailable to other users.  The resource must be ready to be called\nat this time.\n\nResources currently have no system-imposed structure, however they\nmust start with a standard named node (LN_SIZE), and should with\na standard Library node (LIB_SIZE).",
@@ -6453,7 +6453,7 @@
               "type": "APTR"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AddSemaphore": {
           "bugs": "Does not work in Exec <V36.  Instead use this code:\n\n    #include <exec/execbase.h>\n    #include <exec/nodes.h>\n    extern struct ExecBase *SysBase;\n\t...\n    void LocalAddSemaphore(s)\n    struct SignalSemaphore *s;\n    {\n\ts->ss_Link.ln_Type=NT_SIGNALSEM;\n\tInitSemaphore(s);\n\tForbid();\n\tEnqueue(&SysBase->SemaphoreList,s);\n\tPermit();\n    }",
@@ -6490,7 +6490,7 @@
               "type": "struct Node *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "This function does not arbitrate for access to the list.  The\ncalling task must be the owner of the involved list."
         },
         "AddTask": {
@@ -6518,7 +6518,7 @@
               "type": "APTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "Tasks are a low-level building block, and are unable to call\ndos.library, or any system function that might call dos.library.\nSee the AmigaDOS CreateProc() for information on Processes."
         },
         "Alert": {
@@ -6533,7 +6533,7 @@
             }
           ],
           "notes": "Much more needs to be said about this function and its implications.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AllocAbs": {
           "description": "This function attempts to allocate memory at a given absolute\nmemory location.  Often this is used by boot-surviving entities\nsuch as recoverable ram-disks.\tIf the memory is already being\nused, or if there is not enough memory to satisfy the request,\nAllocAbs will return NULL.\n\nThis block may not be exactly the same as the requested block\nbecause of rounding, but if the return value is non-zero, the block\nis guaranteed to contain the requested range.",
@@ -6554,7 +6554,7 @@
             }
           ],
           "notes": "If the free list is corrupt, the system will panic with alert\nAN_MemCorrupt, $01000005.\n\nThe 8 bytes past the end of an AllocAbs will be changed by Exec\nrelinking the next block of memory.  Generally you can't trust\nthe first 8 bytes of anything you AllocAbs.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "memoryBlock",
             "reg": "D0",
@@ -6578,7 +6578,7 @@
               "type": "struct MemList *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "ML",
             "name": "memList",
@@ -6608,7 +6608,7 @@
             }
           ],
           "notes": "If the free list is corrupt, the system will panic with alert\nAN_MemCorrupt, $01000005.\n\nThis function may not be called from interrupts.\n\nA DOS process will have its pr_Result2 field set to\nERROR_NO_FREE_STORE if the memory allocation fails.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "memoryBlock",
             "reg": "D0",
@@ -6661,7 +6661,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "signalNum",
             "reg": "D0",
@@ -6680,7 +6680,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "trapNum",
             "reg": "D0",
@@ -6738,7 +6738,7 @@
             }
           ],
           "notes": "If the free list is corrupt, the system will panic with alert\nAN_MemCorrupt, $01000005.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "memoryBlock",
             "reg": "D0",
@@ -6801,7 +6801,7 @@
             }
           ],
           "notes": "For V36 Exec, AvailMem(MEMF_LARGEST) does a consistency check on\nthe memory list.  Alert AN_MemoryInsane will be pulled if any mismatch\nis noted.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "size",
             "reg": "D0",
@@ -6941,7 +6941,7 @@
             }
           ],
           "notes": "When setting up the Interrupt structure, set the node type to\nNT_INTERRUPT, or NT_UNKOWN.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CheckIO": {
           "description": "This function determines the current state of an I/O request and\nreturns FALSE if the I/O has not yet completed.  This function\neffectively hides the internals of the I/O completion mechanism.\n\nCheckIO() will NOT remove the returned IORequest from the reply port.\nThis is best performed with WaitIO(). If the request has already\ncompleted, WaitIO() will return quickly. Use of the Remove()\nfunction is dangerous, since other tasks may still be adding things\nto your message port; a Disable() would be required.\n\nThis function should NOT be used to busy loop (looping until IO is\ncomplete).  WaitIO() is provided for that purpose.",
@@ -6956,7 +6956,7 @@
             }
           ],
           "notes": "CheckIO can hang if called on an IORequest that has never been used.\nThis occurs if LN_TYPE of the IORequest is set to \"NT_MESSAGE\".\nInstead simply set LN_TYPE to 0.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "IO",
             "name": "result",
@@ -6988,7 +6988,7 @@
               "type": "struct IORequest *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CloseLibrary": {
           "description": "This function informs the system that access to the given library\nhas been concluded.  The user must not reference the library or any\nfunction in the library after this close.\n\nStarting with V36, it is safe to pass a NULL instead of\na library pointer.",
@@ -7003,7 +7003,7 @@
             }
           ],
           "notes": "Library writers must pass a SegList pointer or NULL back from their\nopen point.  This value is used by the system, and not visible as\na return code from CloseLibrary.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ColdReboot": {
           "description": "Reboot the machine.  All external memory and periperals will be\nRESET, and the machine will start its power up diagnostics.\n\nThis function never returns.",
@@ -7153,7 +7153,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Debug": {
           "bugs": "In ROMWack, calling this function in SUPERVISOR state would have\ncaused the a5 register to be trashed and the user stack pointer to\nbe trashed.  As of V39 (and the instroduction of SAD) this is no\nlonger the case.  However, calling this function in Supervisor\nstate is a bit \"tricky\" at best...\n\nNote that due to a bug, pre-V40 SAD had the command\ncodes wrong.  See the SAD autodoc for more details.",
@@ -7168,7 +7168,7 @@
             }
           ],
           "notes": "The Debug() call may be made when the system is in a questionable\nstate; if you have a SetFunction() patch, make few assumptions, be\nprepared for Supervisor mode, and be aware of differences in the\nMotorola stack frames on the 68000,'10,'20,'30,'40 (etc.)",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DeleteIORequest": {
           "description": "Frees up an IO request as allocated by CreateIORequest().",
@@ -7214,7 +7214,7 @@
         "Disable": {
           "description": "Prevents interrupts from being handled by the system, until a\nmatching Enable() is executed.  Disable() implies Forbid().\n\nDO NOT USE THIS CALL WITHOUT GOOD JUSTIFICATION.  THIS CALL IS\nVERY DANGEROUS!",
           "notes": "This call is guaranteed to preserve all registers.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DoIO": {
           "description": "This function requests a device driver to perform the I/O command\nspecified in the I/O request.  This function will always wait until\nthe I/O request is fully complete.\n\nDoIO() handles all the details, including Quick I/O, waiting for\nthe request, and removing the reply message, etc..",
@@ -7228,7 +7228,7 @@
               "type": "struct IORequest *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -7238,7 +7238,7 @@
         "Enable": {
           "description": "Allow system interrupts to again occur normally, after a matching\nDisable() has been executed.",
           "notes": "This call is guaranteed to preserve all registers.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Enqueue": {
           "description": "Insert or append a node into a system queue.  The insert is\nperformed based on the node priority -- it will keep the list\nproperly sorted.  New nodes will be inserted in front of the first\nnode with a lower priority.   Hence a FIFO queue for nodes of equal\npriority",
@@ -7260,7 +7260,7 @@
               "type": "struct Node *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "This function does not arbitrate for access to the list.  The\ncalling task must be the owner of the involved list."
         },
         "FindName": {
@@ -7283,7 +7283,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "LN",
             "name": "node",
@@ -7303,7 +7303,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "MP",
             "name": "port",
@@ -7323,7 +7323,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "RT",
             "name": "resident",
@@ -7363,7 +7363,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "task",
             "reg": "D0",
@@ -7373,7 +7373,7 @@
         "Forbid": {
           "description": "Prevents other tasks from being scheduled to run by the dispatcher,\nuntil a matching Permit() is executed, or this task is scheduled to\nWait().  Interrupts are NOT disabled.\n\nDO NOT USE THIS CALL WITHOUT GOOD JUSTIFICATION.  THIS CALL IS\nDANGEROUS!",
           "notes": "This call is guaranteed to preserve all registers.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "In the event of a task entering a Wait() after a Forbid(), the system\n\"breaks\" the forbidden state and runs normally until the task which\ncalled Forbid() is rescheduled.  If caution is not taken, this can\ncause subtle bugs, since any device or DOS call will (in effect)\ncause your task to wait.\n\nForbid() is not useful or safe from within interrupt code\n(All interrupts are always higher priority than tasks, and\ninterrupts are allowed to break a Forbid())."
         },
         "FreeEntry": {
@@ -7388,7 +7388,7 @@
               "type": "struct MemList *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeMem": {
           "description": "Free a region of memory, returning it to the system pool from which\nit came.  Freeing partial blocks back into the system pool is\nunwise.",
@@ -7409,7 +7409,7 @@
             }
           ],
           "notes": "If a block of memory is freed twice, the system will Guru. The\nAlert is AN_FreeTwice ($01000009).   If you pass the wrong pointer,\nyou will probably see AN_MemCorrupt $01000005.  Future versions may\nadd more sanity checks to the memory lists.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreePooled": {
           "description": "Deallocates memory allocated by AllocPooled().  The size of the\nallocation *MUST* match the size given to AllocPooled().\nThe reason the pool functions do not track individual allocation\nsizes is because many of the uses of pools have small allocation\nsizes and the tracking of the size would be a large overhead.\n\nOnly memory allocated by AllocPooled() may be freed with this\nfunction!\n\nDoing a DeletePool() on the pool will free all of the puddles\nand thus all of the allocations done with AllocPooled() in that\npool.  (No need to FreePooled() each allocation)",
@@ -7451,7 +7451,7 @@
             }
           ],
           "notes": "Starting with V37, an attempt to free signal -1 is harmless.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "Signals may not be allocated or freed from exception handling code."
         },
         "FreeTrap": {
@@ -7465,7 +7465,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "Traps may not be allocated or freed from exception handling code."
         },
         "FreeVec": {
@@ -7485,7 +7485,7 @@
         "GetCC": {
           "description": "The 68000 processor has a \"MOVE SR,<ea>\" instruction which gets a\ncopy of the processor condition codes.\n\nOn the 68010,20 and 30 CPUs, \"MOVE SR,<ea>\" is privileged.  User\ncode will trap if it is attempted.  These processors need to use\nthe \"MOVE CCR,<ea>\" instruction instead.\n\nThis function provides a means of obtaining the CPU condition codes\nin a manner that will make upgrades transparent.  This function is\nVERY short and quick.",
           "notes": "This call is guaranteed to preserve all registers.  This function\nmay be implemented as code right in the jump table.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "conditions",
             "reg": "D0",
@@ -7504,7 +7504,7 @@
               "type": "struct MsgPort *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "MN",
             "name": "message",
@@ -7530,7 +7530,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitResident": {
           "description": "Initialize a ROMTag.  ROMTags are used to link system modules\ntogether.  Each disk based device or library must contain a\nROMTag structure in the first code hunk.\n\nOnce the validity of the ROMTag is verified, the RT_INIT pointer\nis jumped to  with the following registers:\n\tD0 = 0\n\tA0 = segList\n \tA6 = ExecBase",
@@ -7551,7 +7551,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "object",
             "reg": "D0",
@@ -7597,7 +7597,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Insert": {
           "description": "Insert a node into a doubly linked list AFTER a given node\nposition.  Insertion at the head of a list is possible by passing a\nzero value for listNode, though the AddHead function is slightly\nfaster for that special case.",
@@ -7627,7 +7627,7 @@
               "type": "struct Node *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "This function does not arbitrate for access to the list.  The\ncalling task must be the owner of the involved list."
         },
         "MakeFunctions": {
@@ -7655,7 +7655,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "tableSize",
             "reg": "D0",
@@ -7702,7 +7702,7 @@
             }
           ],
           "notes": "Starting with V36, the library base is longword adjusted.  The\nlib_PosSize and lib_NegSize fields of the library structure are\nadjusted to match.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "library",
             "reg": "D0",
@@ -7784,7 +7784,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "LIB",
             "name": "library",
@@ -7832,7 +7832,7 @@
             }
           ],
           "notes": "All calls to OpenDevice should have matching calls to CloseDevice!\n\nDevices on disk cannot be opened until after DOS has been\nstarted.\n\nAs of V36 tasks can safely call OpenDevice, though DOS may open\nsystem requesters (e.g., asking the user to insert the Workbench\ndisk if DEVS: is not online).  You must call this function from a\nDOS Process if you want to turn off DOS requesters.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -7860,7 +7860,7 @@
             }
           ],
           "notes": "All calls to OpenLibrary should have matching calls to CloseLibrary!\n\nLibraries on disk cannot be opened until after DOS has been\nstarted.\n\nAs of V36 tasks can safely call OpenLibrary, though DOS may open\nsystem requesters (e.g., asking the user to insert the Workbench\ndisk if LIBS: is not online).  You must call this function from a\nDOS Process if you want to turn off DOS requesters.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "LIB",
             "name": "library",
@@ -7884,7 +7884,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "resource",
             "reg": "D0",
@@ -7898,7 +7898,7 @@
         "Permit": {
           "description": "Allow other tasks to be scheduled to run by the dispatcher, after a\nmatching Forbid() has been executed.",
           "notes": "This call is guaranteed to preserve all registers.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Procure": {
           "bugs": "Before V39, Procure() and Vacate() used a different semaphore\nsystem that was very broken.  This new system is only available\nas of V39 even though the LVOs are the same.",
@@ -7921,7 +7921,7 @@
               "type": "struct SemaphoreMessage *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "PutMsg": {
           "description": "This function attaches a message to the end of a given message port.\nIt provides a fast, non-copying message sending mechanism.\n\nMessages can be attached to only one port at a time.  The message\nbody can be of any size or form.  Because messages are not copied,\ncooperating tasks share the same message memory.  The sender task\nmust not recycle the message until it has been replied by the\nreceiver.  Of course this depends on the message handling conventions\nsetup by the involved tasks.  If the ReplyPort field is non-zero,\nwhen the message is replied by the receiver, it will be sent back to\nthat port.\n\nAny one of the following actions can be set to occur when a message\nis put:\n\n\t1. no special action\n\t2. signal a given task (specified by MP_SIGTASK)\n\t3. cause a software interrupt (specified by MP_SIGTASK)\n\nThe action is selected depending on the value found in the MP_FLAGS\nof the destination port.",
@@ -7943,7 +7943,7 @@
               "type": "struct Message *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RawDoFmt": {
           "description": "perform \"C\"-language-like formatting of a data stream, outputting\nthe result a character at a time.  Where % formatting commands are\nfound in the FormatString, they will be replaced with the\ncorresponding element in the DataStream.  %% must be used in the\nstring if a % is desired in the output.\n\nUnder V36, RawDoFmt() returns a pointer to the end of the DataStream\n(The next argument that would have been processed).  This allows\nmultiple formatting passes to be made using the same data.",
@@ -7979,7 +7979,7 @@
               "type": "APTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "NextData",
             "reg": "D0",
@@ -8028,7 +8028,7 @@
               "type": "struct Device *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RemHead": {
           "description": "Get a pointer to the head node and remove it from the list.\nAssembly programmers may prefer to use the REMHEAD macro from\n\"exec/lists.i\".",
@@ -8042,7 +8042,7 @@
               "type": "struct List *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "LN",
             "name": "node",
@@ -8071,7 +8071,7 @@
               "type": "struct Interrupt *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RemLibrary": {
           "description": "This function calls the library's EXPUNGE vector, which requests\nthat a library delete itself.  The library may refuse to do this if\nit is busy or currently open. This is not typically called by user\ncode.\n\nThere are certain, limited circumstances where it may be\nappropriate to attempt to specifically flush a certain Library.\nExample:\n\n /* Attempts to flush the named library out of memory. */\n #include <exec/types.h>\n #include <exec/execbase.h>\n\n void FlushLibrary(name)\n STRPTR name;\n {\n struct Library *result;\n\n    Forbid();\n    if(result=(struct Library *)FindName(&SysBase->LibList,name))\n\tRemLibrary(result);\n    Permit();\n }",
@@ -8085,7 +8085,7 @@
               "type": "struct Library *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RemMemHandler": {
           "description": "This function removes the low memory handler from the system.\nThis function can be called from within a handler.  If removing\noneself, it is important that the handler returns MEM_ALL_DONE.",
@@ -8114,7 +8114,7 @@
               "type": "struct MsgPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RemResource": {
           "description": "This function removes an existing resource from the system resource\nlist.  There must be no outstanding users of the resource.",
@@ -8127,7 +8127,7 @@
               "type": "APTR"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RemSemaphore": {
           "description": "This function removes a signal semaphore structure from the\nsystem's signal semaphore list.  Subsequent attempts to\nrendezvous by name with this semaphore will fail.",
@@ -8155,7 +8155,7 @@
               "type": "struct List *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "LN",
             "name": "node",
@@ -8176,7 +8176,7 @@
               "type": "struct Task *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Remove": {
           "description": "Unlink a node from whatever list it is in.  Nodes that are not part\nof a list must not be passed to this function!  Assembly programmers\nmay prefer to use the REMOVE macro from \"exec/lists.i\".",
@@ -8190,7 +8190,7 @@
               "type": "struct Node *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "warning": "This function does not arbitrate for access to the list.  The\ncalling task must be the owner of the involved list."
         },
         "ReplyMsg": {
@@ -8205,7 +8205,7 @@
               "type": "struct Message *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SendIO": {
           "description": "This function requests the device driver start processing the given\nI/O request.  The device will return control without waiting for\nthe I/O to complete.\n\nThe io_Flags field of the IORequest will be set to zero before the\nrequest is sent.  See BeginIO() for more details.",
@@ -8219,7 +8219,7 @@
               "type": "struct IORequest *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetExcept": {
           "description": "This function defines which of the task's signals will cause a\nprivate task exception.  When any of the signals occurs the task's\nexception handler will be dispatched.  If the signal occurred prior\nto calling SetExcept, the exception will happen immediately.\n\nThe user function pointed to by the task's tc_ExceptCode gets\ncalled as:\n\n    newExcptSet = <exceptCode>(signals, exceptData),SysBase\n    D0\t\t\t       D0\tA1\t    A6\n\n    signals - The set of signals that caused this exception.  These\n\tSignals have been disabled from the current set of signals\n\tthat can cause an exception.\n\n    exceptData - A copy of the task structure tc_ExceptData field.\n\n    newExcptSet - The set of signals in NewExceptSet will be re-\n\tenabled for exception generation.  Usually this will be the\n\tsame as the Signals that caused the exception.",
@@ -8239,7 +8239,7 @@
               "type": "ULONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldSignals",
             "reg": "D0",
@@ -8274,7 +8274,7 @@
             }
           ],
           "notes": "SetFunction cannot be used on non-standard libraries like pre-V36\ndos.library.  Here you must manually Forbid(), preserve all 6\noriginal bytes, set the new vector, SumLibrary(), then Permit().",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldFunc",
             "reg": "D0",
@@ -8301,7 +8301,7 @@
               "type": "struct Interrupt *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "IS",
             "name": "oldInterrupt",
@@ -8327,7 +8327,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldSR",
             "reg": "D0",
@@ -8352,7 +8352,7 @@
               "type": "ULONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldSignals",
             "reg": "D0",
@@ -8377,7 +8377,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldPriority",
             "reg": "D0",
@@ -8402,7 +8402,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "StackSwap": {
           "description": "This function will, in an EXEC supported manner, swap the\nstack of your task with the given values in StackSwap.\nThe StackSwapStruct structure will then contain the values\nof the old stack such that the old stack can be restored.\nThis function is new in V37.",
@@ -8443,11 +8443,11 @@
             }
           ],
           "notes": "An alert will occur if the checksum fails.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SuperState": {
           "description": "Enter supervisor mode while running on the user's stack. The user\nstill has access to user stack variables.  Be careful though, the\nuser stack must be large enough to accommodate space for all\ninterrupt data -- this includes all possible nesting of interrupts.\nThis function does nothing when called from supervisor state.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "oldSysStack",
             "reg": "D0",
@@ -8466,7 +8466,7 @@
               "type": "unsigned long (*)()"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "A5",
@@ -8484,7 +8484,7 @@
               "type": "APTR"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "attributes",
             "reg": "D0",
@@ -8503,7 +8503,7 @@
               "type": "APTR"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Vacate": {
           "bugs": "Before V39, Procure() and Vacate() used a different semaphore\nsystem that was very broken.  This new system is only available\nas of V39 even though the LVOs are the same.",
@@ -8526,7 +8526,7 @@
               "type": "struct SemaphoreMessage *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Wait": {
           "description": "This function will cause the current task to suspend waiting for\none or more signals.  When one or more of the specified signals\noccurs, the task will return to the ready state, and those signals\nwill be cleared.\n\nIf a signal occurred prior to calling Wait(), the wait condition will\nbe immediately satisfied, and the task will continue to run without\ndelay.",
@@ -8539,7 +8539,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "signals",
             "reg": "D0",
@@ -8558,7 +8558,7 @@
               "type": "struct IORequest *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -8578,7 +8578,7 @@
               "type": "struct MsgPort *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "MN",
             "name": "message",
@@ -8587,7 +8587,7 @@
           }
         },
         "execPrivate1": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "execPrivate10": {
           "os_since": "3"
@@ -8608,28 +8608,28 @@
           "os_since": "3"
         },
         "execPrivate2": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "execPrivate3": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "execPrivate4": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "execPrivate5": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "execPrivate6": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "execPrivate7": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "execPrivate8": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "execPrivate9": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         }
       }
     },
@@ -9563,7 +9563,7 @@
               "type": "struct RastPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AddBob": {
           "bugs": "",
@@ -9586,7 +9586,7 @@
               "type": "struct RastPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AddFont": {
           "bugs": "",
@@ -9602,7 +9602,7 @@
             }
           ],
           "notes": "This function will set the tf_Accessors to 0.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AddVSprite": {
           "bugs": "",
@@ -9624,7 +9624,7 @@
               "type": "struct RastPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AllocBitMap": {
           "bugs": "",
@@ -9712,7 +9712,7 @@
             }
           ],
           "notes": "In order to assure proper alignment of display memory, the\nAllocBitMap() function should be used instead of AllocRaster\nwhen you wish to allocate display memory (rasters which are\nattached to a ViewPort or Screen).",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "planeptr",
             "reg": "D0",
@@ -9764,7 +9764,7 @@
             }
           ],
           "notes": "Unlike the other rect-region primitives, AndRectRegion() cannot\nfail.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AndRegionRegion": {
           "bugs": "",
@@ -9787,7 +9787,7 @@
               "type": "struct Region *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -9814,7 +9814,7 @@
               "type": "struct RastPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AreaDraw": {
           "bugs": "",
@@ -9843,7 +9843,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -9890,7 +9890,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -9910,7 +9910,7 @@
               "type": "struct RastPort *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -9944,7 +9944,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -9972,7 +9972,7 @@
               "type": "struct TextAttr *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AskSoftStyle": {
           "bugs": "",
@@ -9987,7 +9987,7 @@
               "type": "struct RastPort *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "enable",
             "reg": "D0",
@@ -10034,7 +10034,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "gotit",
             "reg": "D0",
@@ -10158,7 +10158,7 @@
             }
           ],
           "notes": "o   This function may use the blitter.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "planecnt",
             "reg": "D0"
@@ -10232,7 +10232,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "BltClear": {
           "bugs": "SEE ALSO",
@@ -10260,7 +10260,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "BltMaskBitMapRastPort": {
           "bugs": "",
@@ -10337,7 +10337,7 @@
               "type": "PLANEPTR"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "BltPattern": {
           "description": "Blit using drawmode,areafill pattern, and mask\n       at position rectangle (xl,yl) (maxx,maxy).",
@@ -10392,7 +10392,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "BltTemplate": {
           "description": "This function draws the image in the template into the\nRastPort in the current color and drawing mode at the\nspecified position.  The template is assumed not to overlap\nthe destination.\nIf the template falls outside the RastPort boundary, it is\ntruncated to that boundary.\n\nNote: the SrcTemplate pointer should point to the \"nearest\" word\n   (rounded down) of the template mask. Fine alignment of the mask\n   is achieved by setting the SrcX bit offseet within the range\n   of 0 to 15 decimal.",
@@ -10455,7 +10455,7 @@
             }
           ],
           "notes": "o   This function may use the blitter.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CBump": {
           "bugs": "",
@@ -10470,13 +10470,13 @@
               "type": "struct UCopList *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CMove": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CWait": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CalcIVG": {
           "description": "To calculate the maximum number of blank lines above a viewport needed to\nload all the copper instructions, after accounting for the viewport\nbandwidth and size.",
@@ -10569,7 +10569,7 @@
               "type": "PLANEPTR"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ChangeVPBitMap": {
           "bugs": "",
@@ -10616,7 +10616,7 @@
             }
           ],
           "notes": "o   This function may use the blitter.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ClearRectRegion": {
           "bugs": "",
@@ -10639,7 +10639,7 @@
               "type": "struct Rectangle *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -10659,7 +10659,7 @@
               "type": "struct Region *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ClearScreen": {
           "description": "Clear a rectangular swath from the current position to the\nright edge of the rastPort with ClearEOL, then clear the rest\nof the screen from just beneath the swath to the bottom of\nthe rastPort.\nClearing consists of setting the color of the swath to zero,\nor, if the DrawMode is 2, to the BgPen.",
@@ -10674,7 +10674,7 @@
             }
           ],
           "notes": "o   This function may use the blitter.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ClipBlit": {
           "bugs": "",
@@ -10744,7 +10744,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CloseFont": {
           "bugs": "",
@@ -10759,7 +10759,7 @@
               "type": "struct TextFont *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CloseMonitor": {
           "bugs": "",
@@ -10828,11 +10828,11 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DisownBlitter": {
           "description": "Free blitter up for use by other blitter users.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DisposeRegion": {
           "bugs": "",
@@ -10847,7 +10847,7 @@
               "type": "struct Region *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DoCollision": {
           "bugs": "",
@@ -10862,7 +10862,7 @@
               "type": "struct RastPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Draw": {
           "bugs": "",
@@ -10891,7 +10891,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DrawEllipse": {
           "bugs": "",
@@ -10935,7 +10935,7 @@
             }
           ],
           "notes": "this routine does not clip the ellipse to a non-layered rastport.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DrawGList": {
           "bugs": "MUSTDRAW isn't implemented yet.",
@@ -10958,7 +10958,7 @@
               "type": "struct ViewPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "EraseRect": {
           "bugs": "",
@@ -11132,7 +11132,7 @@
             }
           ],
           "notes": "In order to use Flood, the destination RastPort must\nhave a valid TmpRas raster whose size is as large as\nthat of the RastPort.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -11191,7 +11191,7 @@
               "type": "struct ColorMap *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeCopList": {
           "bugs": "",
@@ -11206,7 +11206,7 @@
               "type": "struct CopList *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeCprList": {
           "bugs": "",
@@ -11221,7 +11221,7 @@
               "type": "struct cprlist *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeDBufInfo": {
           "bugs": "",
@@ -11266,7 +11266,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeRaster": {
           "bugs": "",
@@ -11295,7 +11295,7 @@
             }
           ],
           "notes": "Width and height should be the same values with which you\n       called AllocRaster in the first place.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeSprite": {
           "bugs": "",
@@ -11309,7 +11309,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeSpriteData": {
           "description": "",
@@ -11338,7 +11338,7 @@
               "type": "struct ViewPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "GetAPen": {
           "bugs": "",
@@ -11422,7 +11422,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "ColorMap",
             "name": "cm",
@@ -11553,7 +11553,7 @@
               "type": "BOOL"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -11620,7 +11620,7 @@
             }
           ],
           "notes": "Intuition's DisplayBeep() changes color 0. Reading Color 0 during a\nDisplayBeep() will lead to incorrect results.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "value",
             "reg": "D0",
@@ -11650,7 +11650,7 @@
               "type": "WORD"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Sprite_Number",
             "reg": "D0",
@@ -11765,7 +11765,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitBitMap": {
           "bugs": "",
@@ -11801,7 +11801,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitGMasks": {
           "bugs": "",
@@ -11815,7 +11815,7 @@
               "type": "struct AnimOb *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitGels": {
           "bugs": "",
@@ -11844,7 +11844,7 @@
               "type": "struct GelsInfo *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitMasks": {
           "bugs": "",
@@ -11858,7 +11858,7 @@
               "type": "struct VSprite *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitRastPort": {
           "bugs": "",
@@ -11874,7 +11874,7 @@
             }
           ],
           "notes": "The struct Rastport describes a control structure\n       for a write-able raster. The RastPort structure\n       describes how a complete single playfield display\n       will be written into. A RastPort structure is\n       referenced whenever any drawing or filling\n       operations are to be performed on a section of\n       memory.\n\n       The section of memory which is being used in this\n       way may or may not be presently a part of the\n       current actual onscreen display memory. The name\n       of the actual memory section which is linked to\n       the RastPort is referred to here as a \"raster\" or\n       as a bitmap.\n\n       NOTE: Calling the routine InitRastPort only\n       establishes various defaults. It does NOT\n       establish where, in memory, the rasters are\n       located. To do graphics with this RastPort the user\nmust set up the BitMap pointer in the RastPort.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitTmpRas": {
           "bugs": "Would be nice if RastPorts could share one TmpRas.",
@@ -11903,7 +11903,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitVPort": {
           "bugs": "",
@@ -11918,7 +11918,7 @@
               "type": "struct ViewPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitView": {
           "bugs": "",
@@ -11933,7 +11933,7 @@
               "type": "struct View *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "LoadRGB32": {
           "bugs": "",
@@ -11984,7 +11984,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "LoadView": {
           "bugs": "",
@@ -12000,7 +12000,7 @@
             }
           ],
           "notes": "Even though a LoadView(NULL) is performed, display DMA will still be\nactive.  Sprites will continue to be displayed after a LoadView(NULL)\nunless an OFF_SPRITE is subsequently performed.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "LockLayerRom": {
           "description": "Return when the layer is locked and no other task may\nalter the ClipRect structure in the Layer structure.\nThis call does not destroy any registers.\nThis call nests so that callers in this chain will not lock\nthemselves out.\nDo not have the Layer locked during a call to intuition.\nThere is a potential deadlock problem here, if intuition\nneeds to get other locks as well.\nHaving the layer locked prevents other tasks from using the\nlayer library functions, most notably intuition itself. So\nbe brief.\nlayers.library's LockLayer is identical to LockLayerRom.",
@@ -12014,7 +12014,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "MakeVPort": {
           "bugs": "In V37 and earlier, narrow Viewports (whose righthand edge is\nless than 3/4 of the way across the display) do not work properly.",
@@ -12037,7 +12037,7 @@
               "type": "struct ViewPort *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -12091,7 +12091,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "MoveSprite": {
           "bugs": "Sprites really appear one pixel to the left of the position you specify.\nThis bug affects the apparent display position of the sprite on the\nscreen,\tbut does not affect the numeric position relative to the\nviewport or view. This behaviour only applies to SimpleSprites,\nnot to ExtSprites.",
@@ -12128,7 +12128,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "MrgCop": {
           "bugs": "",
@@ -12143,7 +12143,7 @@
               "type": "struct View *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -12153,7 +12153,7 @@
         "NewRegion": {
           "bugs": "",
           "description": "Create a Region structure, initialize it to empty, and return\na pointer it.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "region",
             "reg": "D0"
@@ -12290,7 +12290,7 @@
               "type": "struct TextAttr *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "TextFont",
             "name": "font",
@@ -12347,7 +12347,7 @@
               "type": "struct Rectangle *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -12375,7 +12375,7 @@
               "type": "struct Region *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -12384,7 +12384,7 @@
         },
         "OwnBlitter": {
           "description": "If blitter is available return immediately with the blitter\nlocked for your exclusive use. If the blitter is not available\nput task to sleep. It will be awakened as soon as the blitter\nis available. When the task first owns the blitter the blitter\nmay still be finishing up a blit for the previous owner. You\nmust do a WaitBlit before actually using the blitter registers.\n\nCalls to OwnBlitter() do not nest. If a task that owns the\nblitter calls OwnBlitter() again, a lockup will result.\n(Same situation if the task calls a system function\nthat tries to own the blitter).",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "PolyDraw": {
           "bugs": "",
@@ -12413,7 +12413,7 @@
               "type": "WORD *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "QBSBlit": {
           "bugs": "",
@@ -12429,7 +12429,7 @@
             }
           ],
           "notes": "QBlit(), and QBSBlit() have been rewritten for V39.  Queued\n       blits are now handled in FIFO order.  Tasks trying to\n       OwnBlitter() are now given a fair share of the total\n       blitter time available.  QBSBlit() are no longer queued\n       separately from nodes added by QBlit().  This fixes the\n       ordering dependencies listed under BUGS in prior autodoc\n       notes.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "QBlit": {
           "bugs": "QBlit(), and QBSBlit() have been rewritten for V39 due to\nvarious long standing bugs in earlier versions of this code.",
@@ -12445,7 +12445,7 @@
             }
           ],
           "notes": "Code which uses QBlit(), or QBSBlit() should make use of\nthe pointer to a cleanup routine in the bltnode structure.\nThe cleanup routine may be called on the context of an\ninterrupt, therefore the routine may set a flag, and signal\na task, but it may not call FreeMem() directly.  Use of\nthe cleanup routine is the only safe way to signal that\nyour bltnode has completed.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ReadPixel": {
           "bugs": "",
@@ -12474,7 +12474,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "penno",
             "reg": "D0",
@@ -12640,7 +12640,7 @@
             }
           ],
           "notes": "The following relation MUST be true:\n\t(xmax >= xmin) and (ymax >= ymin)",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ReleasePen": {
           "bugs": "",
@@ -12677,7 +12677,7 @@
               "type": "struct TextFont *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RemIBob": {
           "bugs": "",
@@ -12708,7 +12708,7 @@
               "type": "struct ViewPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RemVSprite": {
           "bugs": "",
@@ -12722,7 +12722,7 @@
               "type": "struct VSprite *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ScalerDiv": {
           "description": "Calculate the expression (factor*numerator/denominator) such\nthat the result is the same as the width of the destination\nresult of BitMapScale when the factor here is the width of\nthe source, and the numerator and denominator are the\nXDestFactor and XSrcFactor for BitMapScale.",
@@ -12810,7 +12810,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ScrollRasterBF": {
           "bugs": "",
@@ -12882,7 +12882,7 @@
               "type": "struct ViewPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetABPenDrMd": {
           "bugs": "",
@@ -12941,7 +12941,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetBPen": {
           "bugs": "",
@@ -12963,7 +12963,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetChipRev": {
           "description": "Enables the features of the requested Chip Set if available,\nand updates the graphics database accordingly.",
@@ -13012,7 +13012,7 @@
               "type": "struct GelsInfo *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetDrMd": {
           "bugs": "",
@@ -13034,7 +13034,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetFont": {
           "bugs": "Calling SetFont() on in-code TextFonts (ie fonts not\nOpenFont()ed) will result in a loss of 24 bytes from\nthe system as of V36.\nThis can be resolved by calling StripFont().",
@@ -13058,7 +13058,7 @@
             }
           ],
           "notes": "This function had previously been documented that it would\naccept a null font.  This practice is discouraged.\no   Use of a RastPort with a null font with text routines has\n    always been incorrect and risked the guru.\no   Keeping an obsolete font pointer in the RastPort is no more\n    dangerous than keeping a zero one there.\no   SetFont(rp, 0) causes spurious low memory accesses under\n    some system software releases.\n\nAs of V36, the following Amiga font variants are no longer\ndirectly supported:\n    fonts with NULL tf_CharSpace and non-NULL tf_CharKern.\n    fonts with non-NULL tf_CharSpace and NULL tf_CharKern.\n    fonts with NULL tf_CharSpace and NULL tf_CharKern with\n\ta tf_CharLoc size component greater than tf_XSize.\nAttempts to SetFont these one of these font variants will\ncause the system to modify your font to make it acceptable.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetMaxPen": {
           "bugs": "",
@@ -13237,7 +13237,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetRGB4CM": {
           "bugs": "",
@@ -13279,7 +13279,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetRPAttrsA": {
           "os_since": "3"
@@ -13304,7 +13304,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetSoftStyle": {
           "bugs": "",
@@ -13333,7 +13333,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "newStyle",
             "reg": "D0",
@@ -13381,7 +13381,7 @@
               "type": "struct RastPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "StripFont": {
           "inputs": [
@@ -13409,7 +13409,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Text": {
           "bugs": "For V34 and earlier:\no   The maximum string length (in pixels) is limited to\n    (1024 - 16 = 1008) pixels wide.\no   A text string whose last character(s) have a\n    tf_CharLoc size component that extends to the right of\n    the rightmost of the initial and final CP positions\n    will be (inappropriately) clipped.",
@@ -13440,7 +13440,7 @@
             }
           ],
           "notes": "o   This function may use the blitter.\no   Changing the text direction with RastPort->TxSpacing is\n    not supported.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "TextExtent": {
           "description": "This function determines a more complete metric of the space\nthat a text string would render into than the TextLength()\nfunction.",
@@ -13575,7 +13575,7 @@
             }
           ],
           "notes": "Prior to V36, the result length occupied only the low word of\nd0 and was not sign extended into the high word.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "length",
             "reg": "D0",
@@ -13583,7 +13583,7 @@
           }
         },
         "UCopperListInit": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "UnlockLayerRom": {
           "bugs": "",
@@ -13598,12 +13598,12 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "VBeamPos": {
           "bugs": "SEE ALSO",
           "description": "Get the vertical beam position from the hardware.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "pos",
             "reg": "D0",
@@ -13650,17 +13650,17 @@
               "type": "struct ViewPort *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "WaitBlit": {
           "bugs": "When examining bits with the CPU right after a blit, or when freeing\ntemporary memory used by the blitter, a WaitBlit() may be required.\n\nNote that many graphics calls fire up the blitter, and let it run.\nThe CPU does not need to wait for the blitter to finish before\nreturning.\n\nBecause of a bug in Agnus (prior to all revisions of fat Agnus)\n \tthis code may return too soon when the blitter has, in fact, not\nstarted the blit yet, even though BltSize has been written.\n\nThis most often occurs in a heavily loaded system with extended memory,\nHIRES, and 4 bitplanes.\n\nWaitBlit currently tries to avoid this Agnus problem by testing\nthe BUSY bit multiple times to make sure the blitter has started.\nIf the blitter is BUSY at first check, this function busy waits.\n\nThis initial hardware bug was fixed as of the first \"Fat Agnus\" chip,\nas used in all A500 and A2000 computers.\n\nBecause of a different bug in Agnus (currently all revisions thru ECS)\n \tthis code may return too soon when the blitter has, in fact, not\nstopped the blit yet, even though blitter busy has been cleared.\n\nThis most often occurs in a heavily loaded system with extended memory,\nin PRODUCTIVITY mode, and 2 bitplanes.\n\nWaitBlit currently tries to avoid this Agnus problem by testing\nthe BUSY bit multiple times to make sure the blitter has really\nwritten its final word of destination data.",
           "description": "WaitBlit returns when the blitter is idle. This function should\nnormally only be used when dealing with the blitter in a\nsynchronous manner, such as when using OwnBlitter and DisownBlitter.\nWaitBlit does not wait for all blits queued up using QBlit or\nQBSBlit. You should call WaitBlit if you are just about to modify or\nfree some memory that the blitter may be using.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "WaitTOF": {
           "bugs": "",
           "description": "Wait  for vertical blank to occur and all vertical blank\n       interrupt routines to complete before returning to caller.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "WeighTAMatch": {
           "os_since": "2.0"
@@ -13749,7 +13749,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "error",
             "reg": "D0",
@@ -13894,7 +13894,7 @@
               "type": "struct Rectangle *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -13921,7 +13921,7 @@
               "type": "struct Region *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -13929,10 +13929,10 @@
           }
         },
         "graphicsPrivate1": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "graphicsPrivate2": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "graphicsPrivate3": {
           "os_since": "2.0"
@@ -13986,7 +13986,7 @@
               "type": "ULONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -14012,7 +14012,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -14057,7 +14057,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "value",
             "reg": "D0",
@@ -14077,7 +14077,7 @@
               "type": "struct DiskObject *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeFreeList": {
           "bugs": "None",
@@ -14092,7 +14092,7 @@
               "type": "struct FreeList *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "GetDefDiskObject": {
           "bugs": "None",
@@ -14126,7 +14126,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "DiskObject",
             "name": "diskobj",
@@ -14173,7 +14173,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -14221,7 +14221,7 @@
             }
           ],
           "notes": "It is recommended that if you wish to copy an icon from one place\nto another than you use GetDiskObject() and PutDiskObject()\nand do not copy them directly.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "status",
             "reg": "D0",
@@ -14229,25 +14229,25 @@
           }
         },
         "iconPrivate1": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "iconPrivate2": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "iconPrivate3": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "iconPrivate4": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "iconPrivate5": {
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "iconPrivate6": {
-          "os_since": "1.0"
+          "os_since": "3.1"
         },
         "iconPrivate7": {
-          "os_since": "1.0"
+          "os_since": "3.1"
         }
       }
     },
@@ -15521,7 +15521,7 @@
               "type": "UWORD"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "RealPosition",
             "reg": "D0",
@@ -15555,7 +15555,7 @@
               "type": "ULONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "MemBlock",
             "reg": "D0",
@@ -15601,7 +15601,7 @@
           }
         },
         "AlohaWorkbench": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "AutoRequest": {
           "bugs": "The requester no longer devolves into a call to DisplayAlert()\nif there is not enough memory for the requester.",
@@ -15665,7 +15665,7 @@
             }
           ],
           "notes": "When DOS brings up AutoRequests() on your process (eg.\n\"Please insert volume XXX in any drive\", they normally come\nup on the Workbench screen.  If you set your Process pr_WindowPtr\nfield to point to one of your windows, then DOS will bring its\nrequesters up on the same screen as that window.  A pr_WindowPtr\nof -1 prevents requesters from coming up at all.\n(Some FileSystem requesters cannot be redirected or supressed).",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Response",
             "reg": "D0"
@@ -15685,7 +15685,7 @@
             }
           ],
           "notes": "WARNING: You should only perform simple graphics refreshing\noperations between BeginRefresh() and EndRefresh().  These include\nany graphics.library drawing functions or the simple Intuition\nrendering functions (DrawImage(), PrintIText(), DrawBorder(), and\nso on).  In particular, do not call RefreshGadgets(), RefreshGList(),\nRefreshWindowFrame(), etc., since any of the complex Intuition\nfunctions run the risk of creating a deadlock.  Also avoid any\nother high-level calls in Intuition or ones that might invoke\nIntuition.  This means no calling SetPointer(), no calling\nLockIBase(), no dos.library functions (since an EasyRequest()\nmight result), etc.  Keep it simple.\n\nBy the time the application receives its IDCMP_REFRESHWINDWOW\nmessage, Intuition has already repaired any damaged regions\nof the window border or the gadgets in the window, so attempts\nto redraw gadgets or borders are as unnecessary as they are\ndangerous.\n\nANOTHER WARNING: The concept of multiple refresh passes using\nEndRefresh( w, FALSE ) is not completely sound without further\nprotection.  The reason is that between two sessions, more\ndamage can occur to your window.  Your final EndRefresh( w, TRUE )\nwill dispose of all damage, including the new, and your\ninitial refreshing pass will never get the chance to refresh\nthe new damage.\n\nTo avoid this, you must protect your session using LockLayerInfo()\nwhich will prevent Intuition from performing window operations\nor anything else which might cause further damage from occurring.\nAgain, while holding the LayerInfo lock make no Intuition\nfunction calls dealing with gadgets; just render.\n\nYou can, however, call InstallClipRegion() for the different\nrefresh passes, if you have two clip regions.\n\nSIMILAR WARNING: Your program and Intuition \"share\" your window\nlayer's DamageList.  BeginRefresh() helps arbitrate this\nsharing, but the lower-level function layers.library/BeginUpdate()\ndoes not.  It isn't really supported to use BeginUpdate() on\na window's layer, but if you do--for whatever reason--it is\ncritical that you first acquire the LayerInfo lock as in\nthe above example: even if you only have one pass of refresh\nrendering to do.  Otherwise, the refreshing of your window's\nborders and gadgets can be incomplete, and the problem might\noccur only under certain conditions of task priority and\nsystem load.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "BuildEasyRequestArgs": {
           "bugs": "Does not put up alternative alert.\nSee also BUGS listed for EasyRequestArgs().",
@@ -15781,7 +15781,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "ReqWindow",
             "reg": "D0"
@@ -15872,7 +15872,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Response",
             "reg": "D0",
@@ -15892,7 +15892,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ClearPointer": {
           "bugs": "",
@@ -15907,7 +15907,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CloseScreen": {
           "bugs": "",
@@ -15922,7 +15922,7 @@
               "type": "struct Screen *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -15942,13 +15942,13 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CloseWorkBench": {
           "bugs": "The name of this function is improperly spelled.  It ought\nto have been CloseWorkbench().\n\nIt might be more convenient to have it return TRUE if the\nWorkbench wasn't opened when called.  The idea as it is now\nis probably this: if you want to free up the memory of the\nWorkbench screen when your program begins, you can call\nCloseWorkBench().  The return value of that call indicates\nwhether you should call OpenWorkBench() when your program\nexits: if FALSE, that means either the the Workbench existed\nbut you could not close it, or that it wasn't around to\nbegin with, and you should not try to re-open it.\n\nWe would prefer that you provide a user selection to attempt\nto open or close the Workbench screen from within your application,\nrather than your making assumptions like these.",
           "description": "This routine attempts to close the Workbench screen:\n       -   Test whether or not any applications have opened windows on the\n           Workbench, and return FALSE if so.  Otherwise ...\n       -   Clean up all special buffers\n       -   Close the Workbench screen\n       -   Make the Workbench program mostly inactive (it will still\n           monitor disk activity)\n       -   Return TRUE",
           "notes": "This routine has been drastically rewritten for V36.\nIt is much more solid, although we haven't eliminated\nall the problem cases yet.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -15974,7 +15974,7 @@
               "type": "ULONG *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DisplayAlert": {
           "bugs": "If the system is worse off than you think, the level of your alert\nmay become DEADEND_ALERT without you ever knowing about it.  This\nwill NOT happen due simply to low memory.  Rather, the alert\ndisplay will be skipped, and FALSE will be returned.\n\nThe left and right button clicks satisfying the alerts are\nunfortunately passed to\tthe normal applications, because of\nsome internal system input buffering.",
@@ -16002,7 +16002,7 @@
               "type": "UWORD"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Response",
             "reg": "D0",
@@ -16023,7 +16023,7 @@
             }
           ],
           "notes": "Since this function changes color zero of the affected screen(s),\nsurprising results could occur if the screen's owner reading\ncolors or perhaps cycling them.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DisposeObject": {
           "bugs": "",
@@ -16113,7 +16113,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "IsDouble",
             "reg": "D0",
@@ -16155,7 +16155,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DrawImage": {
           "bugs": "",
@@ -16193,7 +16193,7 @@
             }
           ],
           "notes": "Intuition always has and will continue to assume there are\nat least as many planes of data pointed to by ImageData as there\nare '1' bits in the PlanePick field.  Please ensure that\nthis is so.  (See the intuition.h include file for full details\non using PlanePick).",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DrawImageState": {
           "bugs": "",
@@ -16306,7 +16306,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "EndRequest": {
           "bugs": "",
@@ -16329,7 +16329,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "EraseImage": {
           "bugs": "",
@@ -16409,7 +16409,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FreeScreenBuffer": {
           "bugs": "",
@@ -16472,7 +16472,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "GadgetMouse": {
           "bugs": "Useless, since equivalent information is now passed to every\nfunction that might have a use for this.\n\n    SEE ALSO",
@@ -16557,7 +16557,7 @@
               "type": "WORD"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "Preferences",
             "name": "Prefs",
@@ -16600,7 +16600,7 @@
               "type": "WORD"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "Preferences",
             "name": "Prefs",
@@ -16706,7 +16706,7 @@
               "type": "struct Requester *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "IntuiTextLength": {
           "bugs": "Would do better to take a RastPort as argument, so that a NULL in\nthe Font pointer would lead automatically to the font for the\nintended target RastPort, rather than the system default font.",
@@ -16721,7 +16721,7 @@
               "type": "struct IntuiText *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Length",
             "reg": "D0",
@@ -16729,7 +16729,7 @@
           }
         },
         "Intuition": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ItemAddress": {
           "bugs": "",
@@ -16751,7 +16751,7 @@
               "type": "UWORD"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "MenuItem",
             "name": "Item",
@@ -16794,7 +16794,7 @@
               "type": "ULONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Lock",
             "reg": "D0",
@@ -16894,7 +16894,7 @@
               "type": "struct Screen *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "failure",
             "reg": "D0",
@@ -16921,7 +16921,7 @@
               "type": "ULONG"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -16989,7 +16989,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "MoveScreen": {
           "bugs": "",
@@ -17018,7 +17018,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "MoveWindow": {
           "bugs": "",
@@ -17047,7 +17047,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "MoveWindowInFrontOf": {
           "bugs": "Doesn't respect backdrop windows.",
@@ -17240,7 +17240,7 @@
               "type": "struct Requester *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "OffMenu": {
           "bugs": "",
@@ -17262,7 +17262,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "OnGadget": {
           "bugs": "Traditional gadgets are rendered very simply.  This can result\nin incomplete clearing away of the ghosting pattern when\nOnGadget() is used.  For example, a button whose imagery consists\nof an IntuiText inside a rectangular Border doesn't have the\nbutton interior cleared by OnGadget().  This is because OnGadget()\nclears the GFLG_DISABLED flag then redraws the gadget.  Redrawing\nthis gadget consists of redrawing the border and text.  Nothing\nredraws the field.\n\nThe solution to this type of problem is to either use a gadget\nwhose imagery is a struct Image that covers the whole select area,\nor to manually remove the gadget, erase the gadget's select area\n(say using EraseRect()), then clear the GFLG_DISABLED flag,\nadd the gadget back to the window, and refresh it.",
@@ -17290,7 +17290,7 @@
               "type": "struct Requester *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "OnMenu": {
           "bugs": "",
@@ -17312,10 +17312,10 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "OpenIntuition": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "OpenScreen": {
           "bugs": "",
@@ -17331,7 +17331,7 @@
             }
           ],
           "notes": "By default, AmigaDOS requesters related to your process are put on\nthe Workbench screen (these are messages like \"Disk Full\").  If\nyou wish them to show up on custom screens, DOS must be told.\nThis fragment shows the procedure.  More information is available\nin the AmigaDOS manuals.  Sample code fragment:\n\n#include \"libraries/dosextens.h\"\n\t...\nstruct Process\t*process;\nstruct Window\t*window;\nAPTR\t\ttemp;\n\t...\n\tprocess = (struct Process *) FindTask(NULL);\n\ttemp = process->pr_WindowPtr;\t(save old value)\n\tprocess->pr_WindowPtr = (APTR) window;\n\t( use a pointer to any open window on your screen )\n\t\t...\n\tyour code goes here\n\t\t...\n\tprocess->pr_WindowPtr = temp;\n\t( restore value BEFORE CloseWindow() )\n\tCloseWindow(window);\n\nA VERY IMPORTANT NOTE about the Screen->BitMap.  In the future,\nbitmaps will need to grow.  The embedded instance of a bitmap\nin the screen will no longer be large enough to hold the whole\ndescription of the bitmap.\n\nYOU ARE STRONGLY URGED to use Screen->RastPort.BitMap in place of\n&Screen->BitMap whenever and whereever possible.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "Screen",
             "name": "Screen",
@@ -17380,7 +17380,7 @@
             }
           ],
           "notes": "Regarding Public Screens, you can specify a window to be a\n\"visitor window\" on a public screen in one of several ways.\nIn each case, you must be sure not to specify a NewWindow\ntype of CUSTOMSCREEN.  You should use the value PUBLICSCREEN.\n\nThere are actually several ways you can specify which screen\nyou want a visitor window to be opened on:\n\n    1) Specify the name of the public screen WA_PubScreenName,\n    or a NULL pointer, in ti_Data.  The name might have been\n    provided by the user.  A NULL pointer means to use the\n    default public screen.\n\n    If the named screen cannot be found, the default public screen\n    will be used if the Boolean attribute WA_PubScreenFallBack\n    is TRUE.\n\n    2) Specify a pointer to a public screen using the\n    WA_PubScreen tag item.  The WA_PubScreenFallBack\n    attribute has no effect.  You can specify the default\n    public screen by providing a NULL pointer.\n\n    You can also specify the pointer by setting NewWindow.Type\n    to PUBLICSCREEN, and specifying the public screen pointer\n    in NewWindow.Screen.  The WA_PubScreen tag item has precedent\n    over this technique.\n\n    Unless NULL, the screen pointer provided MUST be a valid\n    public screen.  You may ensure this several ways:\n\n    - Be the owner of the screen.\n    - Have a window already open on the screen.\n    - Use LockPubScreen() to prevent the screen from closing.\n    - specifying the WFLG_VISITOR bit in NewWindow.Flags is not\n      supported.\n\n    It is anticipated that the last will be the most common method\n    of opening public screens because you often want to examine\n    properties of the screen your window will be using in order\n    to compensate for differences in dimension, depth, and font.\n\n    The standard sequence for this method is as follows:\n    LockPubScreen()\t- obtain a pointer and a promise\n    layout window\t- adapt your window to the screen you will use\n    OpenWindow()\t- using the pointer you specify\n    UnlockPubScreen()\t- once your window is open, you can let go\n\t\t\t  of the lock on the public screen\n    ... normal window even processing ...\n    CloseWindow().\n\nRegarding \"service\" windows, such as those opened for a system\nrequester or file requester associated with a given \"client\"window.\nThese windows should NOT be \"visitor\" windows.  Open them\nusing NewWindow.Type = CUSTOMSCREEN and NewWindow.Screen\nequal to the screen of the client window (window->WScreen).\nYou can also use WA_CustomScreen, which has precedence.\n\nThis ensures that the requester service window will be allowed to\nopen on the same screen as the client window, even if that\nscreen is not a public screen, or has private status.\n\nThis has an implication for service/client protocol: when you\npass a window pointer to any system requester routine or\nto a routine which creates some other other service window,\nyou MUST keep your window open until the client window\nis closed.\n\nIf a requester service will allow a NULL client window, this\nshould indicate to open the service window on the default public\nscreen (probably Workbench).  The correct way to get a pointer\nto this screen is to call LockPubScreen( NULL ).  In this\ncase, you want to open as a visitor window, which means you\nshould use either PUBLICSCREEN or WA_PubScreen, described above.\nYou should call UnlockPubScreen() after your visitor window is open.\n\nAs of V36, gadgets in the right and bottom border\n(specified with GACT_RIGHTBORDER and GACT_BOTTOMBORDER) only\ncontribute to the dimensions of the borders if they are also\nGFLG_RELRIGHT and GFLG_RELBOTTOM, respectively.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "Window",
             "name": "Window",
@@ -17420,7 +17420,7 @@
         "OpenWorkBench": {
           "bugs": "The name of this routine is spelled wrong: it ought to have been\nOpenWorkbench().\n\n    SEE ALSO",
           "description": "This routine attempts to reopen the Workbench.  The actions taken are:\n    - general good stuff and nice things, and then return a non-null\n      pointer to the Workbench screen.\n    - find that something has gone wrong, and return NULL\n\nThe return value, if not NULL, is indeed the address of the Workbench\nscreen, although you should not use it as such.  This is because the\nWorkbench may be closed by other programs, which can invalidate\nthe address at any time.  We suggest that you regard the return\nvalue as a ULONG indication that the routine has succeeded, if\nyou pay any attention to it at all.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "WBScreen",
             "reg": "D0",
@@ -17490,7 +17490,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "PubScreenStatus": {
           "bugs": "",
@@ -17614,7 +17614,7 @@
               "type": "struct Requester *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "RefreshWindowFrame": {
           "bugs": "SEE ALSO",
@@ -17649,7 +17649,7 @@
         "RemakeDisplay": {
           "bugs": "",
           "description": "This is the big one.\n\nThis procedure remakes the entire View structure for the\nIntuition display.  It does the equivalent of MakeScreen() for\nevery screen in the system, and then it calls the internal\nequivalent of RethinkDisplay().\n\nWARNING:  This routine can take many milliseconds to run, so\ndo not use it lightly.\n\nCalling MakeScreen() followed by RethinkDisplay() is typically\na more efficient method for affecting changes to a single\nscreen's ViewPort.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "failure",
             "reg": "D0",
@@ -17730,7 +17730,7 @@
             }
           ],
           "notes": "New with V37: If one of the gadgets you wish to remove\nis the active gadget, this routine will wait for the user\nto release the mouse button before deactivating and removing\nthe gadget.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Position",
             "reg": "D0",
@@ -17757,7 +17757,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "Request": {
           "bugs": "It turns out that the return code of this function is not\nalways correct under V34 and prior.  If your requester does\nnot have an ENDGADGET, then you can examine window->FirstRequest\nto see if your requester successfully opened.  (A requester with\nan ENDGADGET can go away all by itself before you get the chance\nto look).  Under V36 and higher, the return code from this routine\nis fine.\n\nThere is a maximum of 8 requesters that are supported in\na window that can be changed in size, position, or depth.",
@@ -17780,7 +17780,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -17818,7 +17818,7 @@
         "RethinkDisplay": {
           "bugs": "In V35 and earlier, an interlaced screen coming to the front\nmay not trigger a complete remake as required when the global\ninterlace state is changed.  In some cases, this can be compensated\nfor by setting the viewport DHeight field to 0 for hidden screens.",
           "description": "This function performs the Intuition global display reconstruction.\nThis includes rethinking about all of the  ViewPorts and their\nrelationship to one another and reconstructing the entire display\nbased on the results of this rethinking.\n\nSpecifically, and omitting many internal details, the operation\nconsists of this:\n\n    Determine which ViewPorts are invisible and set their VP_HIDE\n    ViewPort Mode flag. VP_HIDE flags are also set for screens that\n    may not be simultaneously displayed with the frontmost (V36).\n\n    If a change to a viewport height, or changing interlace or\n    monitor scan rates require, MakeVPort() is called for specific\n    screen viewports.  After this phase, the intermediate Copper lists\n    for each screen's viewport are correctly set up.\n\n    MrgCop() and LoadView() are then called to get these Copper lists\n    in action, thus establishing the new state of the Intuition\n    display.\n\nYou may perform a MakeScreen() on your Custom Screen before calling\nthis routine.  The results will be incorporated in the new display, but\nchanging the INTERLACE ViewPort mode for one screens must be reflected\nin the Intuition View, which is left to Intuition.\n\nWARNING:  This routine can take several milliseconds to run, so\ndo not use it lightly.\n\nNew for V36: This routine is substantially changed to support\nnew screen modes.  In particular, if screen rearrangement has\ncaused a change in interlace mode or scan rate, this routine\nwill remake the copper lists for each screen's viewport.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "failure",
             "reg": "D0",
@@ -17919,7 +17919,7 @@
               "type": "struct Screen *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ScreenToFront": {
           "bugs": "",
@@ -17934,7 +17934,7 @@
               "type": "struct Screen *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ScrollWindowRaster": {
           "bugs": "",
@@ -18041,7 +18041,7 @@
               "type": "struct Requester *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "success",
             "reg": "D0",
@@ -18147,7 +18147,7 @@
               "type": "struct Menu *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -18229,7 +18229,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SetPrefs": {
           "bugs": "",
@@ -18259,7 +18259,7 @@
             }
           ],
           "notes": "Unless you are responding to a user's explicit request to\nchange Preferences (for example, you are writing a Preferences\neditor), you should probably avoid using this function.\nThe user's Preferences should be respected, not overridden.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "Preferences",
             "name": "Prefs",
@@ -18335,7 +18335,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ShowTitle": {
           "bugs": "SEE ALSO",
@@ -18357,7 +18357,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SizeWindow": {
           "bugs": "",
@@ -18386,7 +18386,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SysReqHandler": {
           "bugs": "",
@@ -18474,7 +18474,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "UnlockPubScreen": {
           "bugs": "",
@@ -18506,7 +18506,7 @@
         "ViewAddress": {
           "bugs": "",
           "description": "Returns the address of the Intuition View structure.  If you\nwant to use any of the graphics, text, or animation primitives\nin your window and that primitive requires a pointer to a view,\nthis routine will return the address of the view for you.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "View",
             "name": "view",
@@ -18527,7 +18527,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "ViewPort",
             "name": "ViewPort",
@@ -18538,7 +18538,7 @@
         "WBenchToBack": {
           "bugs": "",
           "description": "Causes the Workbench screen, if it's currently opened, to go behind\nall other screens.  This does not 'move' the screen up or down,\ninstead only affects the depth-arrangement of the screens.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -18548,7 +18548,7 @@
         "WBenchToFront": {
           "bugs": "",
           "description": "Causes the Workbench Screen, if it's currently opened, to come to\nthe foreground.  This does not 'move' the screen up or down, instead\nonly affects the depth-arrangement of the screen.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -18596,7 +18596,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "Success",
             "reg": "D0",
@@ -18616,7 +18616,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "WindowToFront": {
           "bugs": "",
@@ -18631,7 +18631,7 @@
               "type": "struct Window *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ZipWindow": {
           "bugs": "OpenWindow() assumes that the proper default \"other\" dimensions\nare \"full size.\"",
@@ -18796,7 +18796,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -18823,7 +18823,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -18899,7 +18899,7 @@
               "type": "struct BitMap *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -18967,7 +18967,7 @@
               "type": "bm2]"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -19043,7 +19043,7 @@
               "type": "struct BitMap *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -19111,7 +19111,7 @@
               "type": "bm2]"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -19138,7 +19138,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -19158,7 +19158,7 @@
               "type": "struct Layer_Info *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "DoHookClipRects": {
           "description": "This function will call the given hook for each cliprect in the\nlayer that can be rendered into.  This is how the backfill hook\nin Layers is implemented.  This means that hidden simple-refresh\ncliprects will be ignored.  It will call the SuperBitMap cliprects,\nsmart refresh off-screen cliprects, and all on screen cliprects.\nIf the rect parameter is not NULL, the cliprects are bounded to\nthe rectangle given.",
@@ -19212,7 +19212,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "FattenLayerInfo": {
           "bugs": "",
@@ -19227,7 +19227,7 @@
               "type": "struct Layer_Info *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InitLayers": {
           "bugs": "",
@@ -19242,7 +19242,7 @@
               "type": "struct Layer_Info *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "InstallClipRegion": {
           "bugs": "If the system runs out of memory during normal layer operations,\nthe ClipRect list may get swept away and not restored.\nAs soon as there is enough memory and the layer library\ngets called again the ClipRect list will be rebuilt.",
@@ -19265,7 +19265,7 @@
               "type": "struct Region *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "Region",
             "name": "oldclipregion",
@@ -19296,7 +19296,7 @@
             }
           ],
           "notes": "The RastPort you are passed back is the same one passed to the\nfunction.  You should *not* use \"layered\" rendering functions\non this RastPort.  Generally, you will wish to do BitMap operations\nsuch as BltBitMap().  The callback is a raw, low-level rendering\ncall-back.  If you need to call a rendering operation with a\nRastPort, make sure you use a copy of the RastPort and NULL the\nLayer pointer.",
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "i_struct": "HOOK",
             "name": "oldhook",
@@ -19354,7 +19354,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "LockLayerInfo": {
           "bugs": "",
@@ -19369,7 +19369,7 @@
               "type": "struct Layer_Info *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "LockLayers": {
           "bugs": "",
@@ -19384,7 +19384,7 @@
               "type": "struct Layer_Info *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "MoveLayer": {
           "bugs": "May not handle (dx,dy) which attempts to move the layer outside the\nlayer's RastPort->BitMap bounds .",
@@ -19420,7 +19420,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -19448,7 +19448,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "A0",
@@ -19496,7 +19496,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -19506,7 +19506,7 @@
         "NewLayerInfo": {
           "bugs": "",
           "description": "Allocate memory required for full Layer_Info structure.\nInitialize Layer_Info structure in preparation to use\nother layer operations on this list of layers.\nMake the Layer_Info unlocked (open).",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "Layer_Info",
             "name": "result",
@@ -19548,7 +19548,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SizeLayer": {
           "bugs": "",
@@ -19584,7 +19584,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -19595,7 +19595,7 @@
           "os_since": "3"
         },
         "SwapBitsRastPortClipRect": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "ThinLayerInfo": {
           "bugs": "",
@@ -19610,7 +19610,7 @@
               "type": "struct Layer_Info *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "UnlockLayer": {
           "bugs": "",
@@ -19625,7 +19625,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "UnlockLayerInfo": {
           "description": "After the operation is complete that required a LockLayerInfo,\nunlock the LayerInfo structure so that  other tasks may\naffect the layers.",
@@ -19639,7 +19639,7 @@
               "type": "struct Layer_Info *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "UnlockLayers": {
           "bugs": "",
@@ -19654,7 +19654,7 @@
               "type": "struct Layer_Info *"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "UpfrontLayer": {
           "bugs": "",
@@ -19676,7 +19676,7 @@
               "type": "struct Layer *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -19709,7 +19709,7 @@
               "type": "long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "i_struct": "Layer",
             "name": "layer",
@@ -20471,10 +20471,10 @@
     "mathffp.library": {
       "functions": {
         "SPAbs": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPAdd": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPCeil": {
           "bugs": "None.",
@@ -20496,13 +20496,13 @@
           }
         },
         "SPCmp": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPDiv": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPFix": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPFloor": {
           "bugs": "None.",
@@ -20533,7 +20533,7 @@
               "type": "inet inum"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "fnum",
             "reg": "D0",
@@ -20541,16 +20541,16 @@
           }
         },
         "SPMul": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPNeg": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPSub": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPTst": {
-          "os_since": "1.0"
+          "os_since": "1.3"
         }
       }
     },
@@ -20569,7 +20569,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20597,7 +20597,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20645,7 +20645,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "c",
             "reg": "D0",
@@ -20673,7 +20673,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20693,7 +20693,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20732,7 +20732,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20760,7 +20760,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20780,7 +20780,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20808,7 +20808,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20828,7 +20828,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "c",
             "reg": "D0",
@@ -20852,7 +20852,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20872,7 +20872,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20892,7 +20892,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20912,7 +20912,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20932,7 +20932,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20952,7 +20952,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20971,7 +20971,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -20991,7 +20991,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21011,7 +21011,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21039,7 +21039,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "z",
             "reg": "D0",
@@ -21059,7 +21059,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21086,7 +21086,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21106,7 +21106,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21126,7 +21126,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21146,7 +21146,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21166,7 +21166,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21186,7 +21186,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21209,7 +21209,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21235,7 +21235,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21254,7 +21254,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21280,7 +21280,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "c",
             "reg": "D0",
@@ -21306,7 +21306,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21325,7 +21325,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21344,7 +21344,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21363,7 +21363,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21389,7 +21389,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21408,7 +21408,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21434,7 +21434,7 @@
               "type": "z"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21453,7 +21453,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "c",
             "reg": "D0",
@@ -21476,7 +21476,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21495,7 +21495,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21514,7 +21514,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21533,7 +21533,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21552,7 +21552,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21571,7 +21571,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21590,7 +21590,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21609,7 +21609,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21628,7 +21628,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21654,7 +21654,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "z",
             "reg": "D0",
@@ -21673,7 +21673,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21699,7 +21699,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21718,7 +21718,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21737,7 +21737,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21756,7 +21756,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21775,7 +21775,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21794,7 +21794,7 @@
               "type": "y"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "x",
             "reg": "D0",
@@ -21815,27 +21815,27 @@
         },
         "SPAtan": {
           "bugs": "None\n\nSEE ALSO\n\nSPTan()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPCos": {
           "bugs": "None\n\nSEE ALSO\n\nSPAcos()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPCosh": {
           "bugs": "None\n\nSEE ALSO\n\nSPSinh()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPExp": {
           "bugs": "None\n\nSEE ALSO\n\nSPLog()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPFieee": {
           "bugs": "None\n\nSEE ALSO\n\nSPTieee()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPLog": {
           "bugs": "None\n\nSEE ALSO\n\nSPExp()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPLog10": {
           "bugs": "None\n\nSEE ALSO\n\nSPExp(), SpLog()",
@@ -21843,35 +21843,35 @@
         },
         "SPPow": {
           "bugs": "None\n\nSEE ALSO\n\nSPExp(), SPLog()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPSin": {
           "bugs": "None\n\nSEE ALSO\n\nSPAsin()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPSincos": {
           "bugs": "None\n\nSEE ALSO\n\nSPSin(), SPCos()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPSinh": {
           "bugs": "None\n\nSEE ALSO\n\nSPCosh()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPSqrt": {
           "bugs": "None\n\nSEE ALSO\n\nSPPow(), SPMul()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPTan": {
           "bugs": "None\n\nSEE ALSO\n\nSPAtan()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPTanh": {
           "bugs": "None\n\nSEE ALSO\n\nSPSinh(), SPCosh()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "SPTieee": {
           "bugs": "None\n\nSEE ALSO\n\nSPFieee()",
-          "os_since": "1.0"
+          "os_since": "1.3"
         }
       }
     },
@@ -21896,7 +21896,7 @@
               "type": "UBYTE *"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "CurrentUser",
             "reg": "D0",
@@ -21915,7 +21915,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "2.0"
         }
       }
     },
@@ -22153,7 +22153,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "allocated",
             "reg": "D0",
@@ -22171,7 +22171,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "WritePotgo": {
           "description": "The WritePotgo routine sets and clears bits in the hardware\npotgo register.  Only those bits specified by the mask are\naffected -- it is improper to set bits in the mask that you\nhave not successfully allocated.  The bits in the high byte\nare saved to be maintained when other users write to the\npotgo register.  The START bit is not saved, it is written\nonly explicitly as the result of a call to this routine with\nthe START bit set: other users will not restart it.",
@@ -22191,7 +22191,7 @@
               "type": "unsigned long"
             }
           ],
-          "os_since": "1.0"
+          "os_since": "1.3"
         }
       }
     },
@@ -22625,7 +22625,7 @@
             }
           ],
           "notes": "This function may be called from interrupts.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         },
         "CmpTime": {
           "bugs": "Older version of this document had the sense of the return\ncodes wrong; the code hasn't changed but the document has.",
@@ -22649,7 +22649,7 @@
             }
           ],
           "notes": "This function may be called from interrupts.",
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "result",
             "reg": "D0",
@@ -22669,7 +22669,7 @@
             }
           ],
           "notes": "This function may be called from interrupts.",
-          "os_since": "1.0"
+          "os_since": "2.0"
         },
         "ReadEClock": {
           "description": "This routine calculates the current 64 bit value of the E-Clock\nand stores it in the destination EClockVal structure. The count\nrate of the E-Clock is also returned.\n\nA0 will be left unchanged\n\nThis is a low overhead function designed so that very short\nintervals may be timed.",
@@ -22684,7 +22684,7 @@
             }
           ],
           "notes": "This function may be called from interrupts.",
-          "os_since": "1.0",
+          "os_since": "2.0",
           "output": {
             "name": "E_Freq",
             "reg": "D0",
@@ -22712,7 +22712,7 @@
             }
           ],
           "notes": "This function may be called from interrupts.",
-          "os_since": "1.0"
+          "os_since": "1.3"
         }
       }
     },
@@ -22750,7 +22750,7 @@
               "type": "outLength"
             }
           ],
-          "os_since": "1.0",
+          "os_since": "1.3",
           "output": {
             "name": "rtnCode",
             "reg": "D0",

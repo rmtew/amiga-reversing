@@ -10,6 +10,7 @@ from disasm.target_metadata import (
     EntryRegisterSeedMetadata,
     ResidentAutoinitMetadata,
     ResidentTargetMetadata,
+    SeededCodeEntrypointMetadata,
     TargetMetadata,
     load_target_metadata,
     write_target_metadata,
@@ -442,5 +443,74 @@ def test_analysis_cache_paths_for_resident_hunk_target_use_zero_code_start(
         base_addr=0,
         code_start=0,
         entry_points=(0x88, 0x90),
+        extra_entry_points=(),
+    )
+    assert analysis_paths == [hunk_analysis_cache_path(expected_root, 0)]
+
+
+def test_analysis_cache_paths_include_seeded_code_entrypoints_for_hunk_targets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = tmp_path / "targets" / "amiga_hunk_demo"
+    bin_dir = tmp_path / "bin"
+    target_dir.mkdir(parents=True)
+    bin_dir.mkdir()
+    (target_dir / ".project.json").write_text(
+        '{"schema_version":1,"created_at":"2026-03-25T00:00:00+00:00","updated_at":"2026-03-25T00:00:00+00:00"}',
+        encoding="utf-8",
+    )
+    (target_dir / "source_binary.json").write_text(
+        '{"kind":"hunk_file","path":"bin/demo.bin"}\n',
+        encoding="utf-8",
+    )
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_code_entrypoints=(
+                SeededCodeEntrypointMetadata(
+                    addr=0x05D6,
+                    name="check_keyboard",
+                    hunk=0,
+                    seed_origin="primary_doc",
+                    review_status="seeded",
+                    citation="seeded:demo-entry",
+                ),
+            ),
+        ),
+    )
+    (bin_dir / "demo.bin").write_bytes(b"fake")
+
+    from disasm.binary_source import resolve_target_binary_source
+    from disasm.entry_seeds import build_entry_seed_config
+
+    monkeypatch.setattr(
+        "scripts.benchmark_target.parse",
+        lambda _data: SimpleNamespace(
+            hunks=[
+                Hunk(
+                    index=0,
+                    hunk_type=int(HunkType.HUNK_CODE),
+                    mem_type=int(MemType.ANY),
+                    alloc_size=2,
+                    data=b"\x4e\x75",
+                )
+            ]
+        ),
+    )
+
+    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
+    assert binary_source is not None
+    analysis_paths = _analysis_cache_paths(target_dir, binary_source)
+    seed_key = build_entry_seed_config(load_target_metadata(target_dir)).seed_key
+    expected_root = analysis_cache_root(
+        binary_source.analysis_cache_path,
+        seed_key=seed_key,
+        base_addr=0,
+        code_start=0,
+        entry_points=(),
+        extra_entry_points=(0x05D6,),
     )
     assert analysis_paths == [hunk_analysis_cache_path(expected_root, 0)]

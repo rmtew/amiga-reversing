@@ -285,6 +285,15 @@ class OsIncludeOwner(TypedDict):
     available_since: str | None
 
 
+class OsValueDomain(TypedDict, total=False):
+    kind: str
+    members: list[str]
+    zero_name: str | None
+    exact_match_policy: str
+    composition: str | None
+    remainder_policy: str | None
+
+
 class OsApiInputValueBinding(TypedDict, total=False):
     library: str
     function: str
@@ -329,7 +338,7 @@ class OsMeta(TypedDict):
     resident_autoinit_supports_short_vectors: bool
     resident_vector_prefixes: dict[str, list[str]]
     named_base_structs: dict[str, str]
-    value_domains: dict[str, list[str]]
+    value_domains: dict[str, OsValueDomain]
     api_input_value_bindings: list[OsApiInputValueBinding]
     api_input_semantic_assertions: list[OsApiInputSemanticAssertion]
     struct_field_value_bindings: list[OsStructFieldValueBinding]
@@ -362,6 +371,7 @@ class OsStructDef(TypedDict, total=False):
 class OsConstant(TypedDict):
     raw: str
     value: int | None
+    available_since: str
 
 
 class OsInput(TypedDict, total=False):

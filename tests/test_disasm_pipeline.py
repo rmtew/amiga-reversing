@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -35,13 +35,15 @@ from disasm.instruction_rows import render_instruction_text
 from disasm.jump_tables import emit_jump_table_rows
 from disasm.metadata import build_hunk_metadata
 from disasm.os_include_kb import load_os_include_kb
-from disasm.session import build_disassembly_session
+from disasm.session import _apply_seeded_code_annotations, build_disassembly_session
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.target_metadata import (
     BootBlockTargetMetadata,
     EntryRegisterSeedMetadata,
     ResidentAutoinitMetadata,
     ResidentTargetMetadata,
+    SeededCodeEntrypointMetadata,
+    SeededCodeLabelMetadata,
     TargetMetadata,
 )
 from disasm.text import listing_window, render_rows
@@ -158,6 +160,75 @@ def test_infer_target_name_falls_back_to_entities_parent(tmp_path: Path) -> None
     assert infer_target_name(None, entities_path) == "demo"
 
 
+def test_apply_seeded_code_annotations_adds_labels_and_notes() -> None:
+    labels: dict[int, str] = {}
+    comments: dict[int, str] = {}
+    metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        seeded_code_labels=(
+            SeededCodeLabelMetadata(
+                addr=0x10,
+                name="named_label",
+                hunk=0,
+                comment="seeded note",
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="demo",
+            ),
+        ),
+        seeded_code_entrypoints=(
+            SeededCodeEntrypointMetadata(
+                addr=0x20,
+                name="entry_name",
+                hunk=0,
+                role="input routine",
+                comment="seeded comment",
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="demo",
+            ),
+        ),
+    )
+
+    _apply_seeded_code_annotations(
+        target_metadata=metadata,
+        hunk_index=0,
+        code_size=0x40,
+        labels=labels,
+        addr_comments=comments,
+    )
+
+    assert labels == {0x10: "named_label", 0x20: "entry_name"}
+    assert comments == {0x10: "seeded note", 0x20: "input routine: seeded comment"}
+
+
+def test_apply_seeded_code_annotations_rejects_out_of_bounds_label() -> None:
+    metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        seeded_code_labels=(
+            SeededCodeLabelMetadata(
+                addr=0x40,
+                name="named_label",
+                hunk=0,
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="demo",
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="Seeded code label 0x40 lies outside code size 0x40"):
+        _apply_seeded_code_annotations(
+            target_metadata=metadata,
+            hunk_index=0,
+            code_size=0x40,
+            labels={},
+            addr_comments={},
+        )
+
+
 def test_build_lvo_substitutions_collects_direct_jsr_substitution() -> None:
     call = LibraryCall(
         addr=0x20,
@@ -253,7 +324,7 @@ def test_build_arg_substitutions_collects_immediate_constant() -> None:
             library_lvo_owners={},
         ),
         API_INPUT_VALUE_DOMAINS={"dos.library": {"OpenLibrary": {"name": "test.openlibrary.name"}}},
-        VALUE_DOMAINS={"test.openlibrary.name": ("OL_TAG",)},
+        VALUE_DOMAINS={"test.openlibrary.name": runtime_os.OsValueDomain(kind="enum", members=("OL_TAG",), zero_name=None, exact_match_policy="error", composition=None, remainder_policy=None)},
         CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="1", value=1)},
         LIBRARIES={
             "dos.library": runtime_os.OsLibrary(
@@ -342,7 +413,7 @@ def test_build_arg_substitutions_collects_dispatch_call_constant() -> None:
             library_lvo_owners={},
         ),
         API_INPUT_VALUE_DOMAINS={"dos.library": {"Seek": {"mode": "test.seek.mode"}}},
-        VALUE_DOMAINS={"test.seek.mode": ("OFFSET_BEGINNING", "OFFSET_CURRENT")},
+        VALUE_DOMAINS={"test.seek.mode": runtime_os.OsValueDomain(kind="enum", members=("OFFSET_BEGINNING", "OFFSET_CURRENT"), zero_name=None, exact_match_policy="error", composition=None, remainder_policy=None)},
         CONSTANTS={
             "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
             "OFFSET_CURRENT": runtime_os.OsConstant(raw="0", value=0),
@@ -408,7 +479,7 @@ def test_build_arg_substitutions_collects_long_immediate_constant() -> None:
             library_lvo_owners={},
         ),
         API_INPUT_VALUE_DOMAINS={"exec.library": {"SetSignal": {"signalMask": "test.exec.signal_mask"}}},
-        VALUE_DOMAINS={"test.exec.signal_mask": ("SIGBREAKF_CTRL_C",)},
+        VALUE_DOMAINS={"test.exec.signal_mask": runtime_os.OsValueDomain(kind="flags", members=("SIGBREAKF_CTRL_C",), zero_name=None, exact_match_policy="error", composition="bit_or", remainder_policy="error")},
         CONSTANTS={
             "SIGBREAKF_CTRL_C": runtime_os.OsConstant(raw="(1<<12)", value=0x1000),
         },
@@ -472,7 +543,7 @@ def test_build_arg_substitutions_collects_open_mode_constant() -> None:
             library_lvo_owners={},
         ),
         API_INPUT_VALUE_DOMAINS={"dos.library": {"Open": {"accessMode": "test.open.access_mode"}}},
-        VALUE_DOMAINS={"test.open.access_mode": ("MODE_OLDFILE", "MODE_NEWFILE", "MODE_READWRITE")},
+        VALUE_DOMAINS={"test.open.access_mode": runtime_os.OsValueDomain(kind="enum", members=("MODE_OLDFILE", "MODE_NEWFILE", "MODE_READWRITE"), zero_name=None, exact_match_policy="error", composition=None, remainder_policy=None)},
         CONSTANTS={
             "MODE_OLDFILE": runtime_os.OsConstant(raw="1005", value=0x3ED),
             "MODE_NEWFILE": runtime_os.OsConstant(raw="1006", value=0x3EE),
@@ -512,6 +583,152 @@ def test_build_arg_substitutions_collects_open_mode_constant() -> None:
     assert arg_substitutions == {0x10: ("#$3ed", "#MODE_OLDFILE")}
 
 
+def test_build_arg_substitutions_collects_composed_flag_constants() -> None:
+    setter = _instruction(
+        offset=0x10,
+        raw=b"\x22\x3c\x00\x00\x00\x03",
+        mnemonic="move",
+        operand_size="l",
+        operand_texts=("#3", "d1"),
+    )
+    call_inst = _instruction(
+        offset=0x16,
+        raw=b"\x4e\x75",
+        mnemonic="jsr",
+        operand_size="w",
+        operand_texts=("_LVOAllocMem(a6)",),
+    )
+    block = type("Block", (), {"instructions": [setter, call_inst]})()
+    os_kb = SimpleNamespace(
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            named_base_structs={},
+            library_lvo_owners={},
+        ),
+        API_INPUT_VALUE_DOMAINS={"exec.library": {"AllocMem": {"attributes": "test.alloc.attributes"}}},
+        VALUE_DOMAINS={
+            "test.alloc.attributes": runtime_os.OsValueDomain(
+                kind="flags",
+                members=("MEMF_PUBLIC", "MEMF_CHIP", "MEMF_FAST"),
+                zero_name=None,
+                exact_match_policy="error",
+                composition="bit_or",
+                remainder_policy="error",
+            )
+        },
+        CONSTANTS={
+            "MEMF_PUBLIC": runtime_os.OsConstant(raw="(1<<0)", value=0x1),
+            "MEMF_CHIP": runtime_os.OsConstant(raw="(1<<1)", value=0x2),
+            "MEMF_FAST": runtime_os.OsConstant(raw="(1<<2)", value=0x4),
+        },
+        LIBRARIES={
+            "exec.library": runtime_os.OsLibrary(
+                lvo_index={},
+                functions={
+                    "AllocMem": runtime_os.OsFunction(
+                        lvo=-198,
+                        inputs=(
+                            runtime_os.OsInput(name="byteSize", regs=("d0",)),
+                            runtime_os.OsInput(name="attributes", regs=("d1",)),
+                        ),
+                    )
+                },
+            )
+        },
+    )
+
+    arg_equs, arg_substitutions = build_arg_substitutions(
+        blocks={0x10: block},
+        lib_calls=[LibraryCall(
+            addr=0x16,
+            block=0x10,
+            library="exec.library",
+            function="AllocMem",
+            lvo=-198,
+            dispatch=None,
+        )],
+        hunk_entities=[],
+        os_kb=os_kb,
+    )
+
+    assert arg_equs == {"MEMF_PUBLIC": 0x1, "MEMF_CHIP": 0x2}
+    assert arg_substitutions == {0x10: ("#3", "#MEMF_PUBLIC|MEMF_CHIP")}
+
+
+def test_build_arg_substitutions_collects_availmem_flag_constants() -> None:
+    setter = _instruction(
+        offset=0x10,
+        raw=b"\x22\x3c\x00\x02\x00\x01",
+        mnemonic="move",
+        operand_size="l",
+        operand_texts=("#$20001", "d1"),
+    )
+    call_inst = _instruction(
+        offset=0x16,
+        raw=b"\x4e\x75",
+        mnemonic="jsr",
+        operand_size="w",
+        operand_texts=("_LVOAvailMem(a6)",),
+    )
+    block = type("Block", (), {"instructions": [setter, call_inst]})()
+    os_kb = SimpleNamespace(
+        META=runtime_os.OsMeta(
+            calling_convention=runtime_os.META.calling_convention,
+            exec_base_addr=runtime_os.META.exec_base_addr,
+            absolute_symbols=(),
+            lvo_slot_size=runtime_os.META.lvo_slot_size,
+            named_base_structs={},
+            library_lvo_owners={},
+        ),
+        API_INPUT_VALUE_DOMAINS={"exec.library": {"AvailMem": {"attributes": "test.alloc.attributes"}}},
+        VALUE_DOMAINS={
+            "test.alloc.attributes": runtime_os.OsValueDomain(
+                kind="flags",
+                members=("MEMF_PUBLIC", "MEMF_LARGEST"),
+                zero_name=None,
+                exact_match_policy="error",
+                composition="bit_or",
+                remainder_policy="error",
+            )
+        },
+        CONSTANTS={
+            "MEMF_PUBLIC": runtime_os.OsConstant(raw="(1<<0)", value=0x1),
+            "MEMF_LARGEST": runtime_os.OsConstant(raw="(1<<17)", value=0x20000),
+        },
+        LIBRARIES={
+            "exec.library": runtime_os.OsLibrary(
+                lvo_index={},
+                functions={
+                    "AvailMem": runtime_os.OsFunction(
+                        lvo=-216,
+                        inputs=(runtime_os.OsInput(name="attributes", regs=("d1",)),),
+                    )
+                },
+            )
+        },
+    )
+
+    arg_equs, arg_substitutions = build_arg_substitutions(
+        blocks={0x10: block},
+        lib_calls=[LibraryCall(
+            addr=0x16,
+            block=0x10,
+            library="exec.library",
+            function="AvailMem",
+            lvo=-216,
+            dispatch=None,
+        )],
+        hunk_entities=[],
+        os_kb=os_kb,
+    )
+
+    assert arg_equs == {"MEMF_PUBLIC": 0x1, "MEMF_LARGEST": 0x20000}
+    assert arg_substitutions == {0x10: ("#$20001", "#MEMF_PUBLIC|MEMF_LARGEST")}
+
+
 def test_build_arg_substitutions_requires_declared_constant() -> None:
     os_kb = SimpleNamespace(
         META=runtime_os.OsMeta(
@@ -523,7 +740,7 @@ def test_build_arg_substitutions_requires_declared_constant() -> None:
             library_lvo_owners={},
         ),
         API_INPUT_VALUE_DOMAINS={"dos.library": {"OpenLibrary": {"name": "test.openlibrary.name"}}},
-        VALUE_DOMAINS={"test.openlibrary.name": ("OL_TAG",)},
+        VALUE_DOMAINS={"test.openlibrary.name": runtime_os.OsValueDomain(kind="enum", members=("OL_TAG",), zero_name=None, exact_match_policy="error", composition=None, remainder_policy=None)},
         CONSTANTS={},
         LIBRARIES={},
     )
@@ -548,7 +765,7 @@ def test_build_arg_substitutions_requires_concrete_constant_value() -> None:
             library_lvo_owners={},
         ),
         API_INPUT_VALUE_DOMAINS={"dos.library": {"OpenLibrary": {"name": "test.openlibrary.name"}}},
-        VALUE_DOMAINS={"test.openlibrary.name": ("OL_TAG",)},
+        VALUE_DOMAINS={"test.openlibrary.name": runtime_os.OsValueDomain(kind="enum", members=("OL_TAG",), zero_name=None, exact_match_policy="error", composition=None, remainder_policy=None)},
         CONSTANTS={"OL_TAG": runtime_os.OsConstant(raw="TAG_USER+1", value=None)},
         LIBRARIES={},
     )
@@ -598,7 +815,7 @@ def test_build_arg_substitutions_rejects_ambiguous_matched_function_domain_value
             library_lvo_owners={},
         ),
         API_INPUT_VALUE_DOMAINS={"dos.library": {"Seek": {"mode": "test.seek.mode"}}},
-        VALUE_DOMAINS={"test.seek.mode": ("OFFSET_BEGINNING", "OFFSET_ALIAS")},
+        VALUE_DOMAINS={"test.seek.mode": runtime_os.OsValueDomain(kind="enum", members=("OFFSET_BEGINNING", "OFFSET_ALIAS"), zero_name=None, exact_match_policy="error", composition=None, remainder_policy=None)},
         CONSTANTS={
             "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
             "OFFSET_ALIAS": runtime_os.OsConstant(raw="-1", value=-1),
@@ -616,7 +833,7 @@ def test_build_arg_substitutions_rejects_ambiguous_matched_function_domain_value
         },
     )
 
-    with pytest.raises(ValueError, match="Ambiguous input domain value for Seek.mode"):
+    with pytest.raises(ValueError, match="Input domain resolution failed for Seek.mode"):
         build_arg_substitutions(
             blocks={0x20: block},
             hunk_entities=[],
@@ -1378,9 +1595,11 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path: Path, monkeypa
         base_addr: int,
         code_start: int,
         entry_points: tuple[int, ...] = (),
+        extra_entry_points: tuple[int, ...] = (),
         entry_initial_states: object | None = None,
     ) -> FakeAnalysis:
         seen["args"] = (code, relocs, hunk_index, base_addr, code_start, entry_points)
+        seen["extra_entry_points"] = extra_entry_points
         return sentinel
 
     monkeypatch.setattr("disasm.analysis_loader.analyze_hunk", fake_analyze_hunk)
@@ -1396,6 +1615,7 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path: Path, monkeypa
 
     assert cast(object, result) is sentinel
     assert seen["args"] == (b"\x01\x02", relocs, 3, 0x400, 2, ())
+    assert seen["extra_entry_points"] == ()
     assert seen["saved_path"] == hunk_analysis_cache_path(
         analysis_cache_root(
             tmp_path / "demo.analysis",
@@ -1403,6 +1623,7 @@ def test_load_hunk_analysis_runs_analysis_without_cache(tmp_path: Path, monkeypa
             base_addr=0x400,
             code_start=2,
             entry_points=(),
+            extra_entry_points=(),
         ),
         3,
     )
@@ -1441,9 +1662,11 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: Mo
         base_addr: int,
         code_start: int,
         entry_points: tuple[int, ...] = (),
+        extra_entry_points: tuple[int, ...] = (),
         entry_initial_states: object | None = None,
     ) -> FakeAnalysis:
         seen["analyze"] = (code, relocs, hunk_index, base_addr, code_start, entry_points)
+        seen["extra_entry_points"] = extra_entry_points
         return sentinel
 
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
@@ -1463,6 +1686,7 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: Mo
     assert cast(object, result) is sentinel
     assert seen["load"] == (cache_path, fake_os_kb)
     assert seen["analyze"] == (b"\x01\x02", relocs, 3, 0x400, 2, ())
+    assert seen["extra_entry_points"] == ()
     assert seen["saved_path"] == cache_path
 
 
@@ -1474,6 +1698,7 @@ def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path: Path,
             base_addr=0,
             code_start=0,
             entry_points=(),
+            extra_entry_points=(),
         ),
         0,
     )
@@ -2517,7 +2742,7 @@ def test_build_disassembly_session_for_local_offset_raw_bootblock_renders_local_
         ),
     )
     (target_dir / "target_metadata.json").write_text(
-        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        json.dumps(asdict(target_metadata), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     source = RawBinarySource(
@@ -2606,7 +2831,7 @@ def test_build_disassembly_session_leaves_out_of_segment_absolute_jump_unlabeled
         ),
     )
     (target_dir / "target_metadata.json").write_text(
-        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        json.dumps(asdict(target_metadata), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     source = RawBinarySource(
@@ -2680,7 +2905,7 @@ def test_build_disassembly_session_for_runtime_absolute_raw_keeps_absolute_label
         ),
     )
     (target_dir / "target_metadata.json").write_text(
-        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        json.dumps(asdict(target_metadata), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     source = RawBinarySource(
@@ -2879,7 +3104,7 @@ def test_build_disassembly_session_for_resident_library_uses_resident_init_entry
         ),
     )
     (target_dir / "target_metadata.json").write_text(
-        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        json.dumps(asdict(target_metadata), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     code = bytearray(0xA2)
@@ -2925,11 +3150,13 @@ def test_build_disassembly_session_for_resident_library_uses_resident_init_entry
         base_addr: int,
         code_start: int,
         entry_points: tuple[int, ...],
+        extra_entry_points: tuple[int, ...],
         seed_key: str,
         initial_state: object,
         entry_initial_states: object | None = None,
     ) -> SimpleNamespace:
         assert entry_points == (0x90, 0xA0)
+        assert extra_entry_points == ()
         assert isinstance(entry_initial_states, dict)
         assert set(entry_initial_states) == {0x90, 0xA0}
         inst = disassemble(b"\x4e\x75")[0]
@@ -3022,7 +3249,7 @@ def test_build_disassembly_session_applies_resident_structure_only_to_first_code
         ),
     )
     (target_dir / "target_metadata.json").write_text(
-        json.dumps(target_metadata.to_dict(), indent=2, sort_keys=True) + "\n",
+        json.dumps(asdict(target_metadata), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     first_code = bytearray(0x92)
@@ -3076,12 +3303,14 @@ def test_build_disassembly_session_applies_resident_structure_only_to_first_code
         base_addr: int,
         code_start: int,
         entry_points: tuple[int, ...],
+        extra_entry_points: tuple[int, ...],
         seed_key: str,
         initial_state: object,
         entry_initial_states: object | None = None,
     ) -> SimpleNamespace:
         if hunk_index == 0:
                 assert entry_points == (0x88, 0x90)
+                assert extra_entry_points == ()
                 assert isinstance(entry_initial_states, dict)
                 assert set(entry_initial_states) == {0x88, 0x90}
                 inst = disassemble(b"\x4e\x75")[0]
@@ -3108,6 +3337,7 @@ def test_build_disassembly_session_applies_resident_structure_only_to_first_code
             )
         assert hunk_index == 1
         assert entry_points == ()
+        assert extra_entry_points == ()
         assert entry_initial_states == {}
         inst = disassemble(b"\x4e\x75")[0]
         inst.offset = 0

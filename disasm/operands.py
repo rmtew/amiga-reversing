@@ -11,6 +11,7 @@ from disasm.hardware_symbols import (
     render_hardware_absolute,
     render_hardware_relative,
 )
+from disasm.os_value_domains import resolve_value_domain_expression
 from disasm.types import (
     AppStructFieldOperandMetadata,
     BitfieldOperandMetadata,
@@ -331,7 +332,11 @@ def _app_struct_field_metadata(base_register: str, displacement: int,
             raise ValueError(
                 f"Missing app symbol for struct region at offset {region_offset}")
         if displacement == region_offset:
-            return AppStructFieldOperandMetadata(base_symbol=app_symbol)
+            return AppStructFieldOperandMetadata(
+                base_symbol=app_symbol,
+                owner_struct=region.struct,
+                context_name=region.context_name,
+            )
         field_info = resolve_struct_field(
             hunk_session.os_kb.STRUCTS,
             region.struct,
@@ -344,6 +349,8 @@ def _app_struct_field_metadata(base_register: str, displacement: int,
         return AppStructFieldOperandMetadata(
             base_symbol=app_symbol,
             field_symbol=field_info.field.name,
+            owner_struct=field_info.owner_struct,
+            context_name=region.context_name,
         )
     return None
 
@@ -387,6 +394,8 @@ def _operand_symbol(metadata: SemanticOperandMetadata | None) -> str | None:
             assert isinstance(metadata.base_symbol, str)
             return metadata.base_symbol
         return f"{metadata.base_symbol}+{metadata.field_symbol}"
+    if isinstance(metadata, (IndexedOperandMetadata, FullIndexedOperandMetadata)):
+        return metadata.symbol
     return None
 
 
@@ -406,40 +415,43 @@ def _base_disp_text(base_register: str, displacement: int, token: str,
     return token
 
 
-def _field_domain_constant_name(field_metadata: StructFieldOperandMetadata,
+def _field_domain_constant_name(*,
+                                owner_struct: str,
+                                field_symbol: str,
+                                context_name: str | None,
                                 immediate_value: int,
                                 hunk_session: HunkDisassemblySession,
                                 ) -> str | None:
-    field_key = f"{field_metadata.owner_struct}.{field_metadata.field_symbol}"
+    field_key = f"{owner_struct}.{field_symbol}"
     domain_names: list[str] = []
     field_domains = hunk_session.os_kb.STRUCT_FIELD_VALUE_DOMAINS.get(field_key)
     if field_domains is None:
         return None
-    if field_metadata.context_name is not None:
-        context_domain_name = field_domains.get(field_metadata.context_name)
+    if context_name is not None:
+        context_domain_name = field_domains.get(context_name)
         if context_domain_name is not None:
             domain_names.append(context_domain_name)
     base_domain_name = field_domains.get(None)
     if base_domain_name is not None:
         domain_names.append(base_domain_name)
     for domain_name in domain_names:
-        domain_constants = hunk_session.os_kb.VALUE_DOMAINS.get(domain_name)
-        if domain_constants is None:
-            raise KeyError(f"Missing value domain {domain_name}")
-        matches: list[str] = []
-        for constant_name in domain_constants:
-            constant = hunk_session.os_kb.CONSTANTS.get(constant_name)
-            if constant is None:
-                raise KeyError(f"Missing constant {constant_name}")
-            if constant.value == immediate_value:
-                matches.append(constant_name)
-        if not matches:
+        resolved = resolve_value_domain_expression(
+            hunk_session.os_kb,
+            domain_name,
+            immediate_value,
+        )
+        if resolved is None:
             continue
-        if len(matches) != 1:
-            raise ValueError(
-                f"Ambiguous value-domain match for {field_key}={immediate_value}: {matches}"
-            )
-        return matches[0]
+        return str(resolved.text)
+    if (
+        domain_names
+        and immediate_value == 0
+        and all(
+            hunk_session.os_kb.VALUE_DOMAINS[domain_name].kind == "flags"
+            for domain_name in domain_names
+        )
+    ):
+        return None
     if domain_names:
         raise ValueError(
             f"No KB value-domain match for {field_key}={immediate_value} "
@@ -456,12 +468,25 @@ def _apply_field_value_domain_substitutions(
         (
             operand.metadata
             for operand in operands
-            if isinstance(operand.metadata, StructFieldOperandMetadata)
+            if isinstance(
+                operand.metadata,
+                (
+                    StructFieldOperandMetadata,
+                    AppStructFieldOperandMetadata,
+                    IndexedOperandMetadata,
+                    FullIndexedOperandMetadata,
+                ),
+            )
             and operand.metadata.field_symbol is not None
         ),
         None,
     )
     if field_metadata is None:
+        return operands
+    owner_struct = getattr(field_metadata, "owner_struct", None)
+    field_symbol = field_metadata.field_symbol
+    assert field_symbol is not None
+    if owner_struct is None:
         return operands
     rewritten: list[SemanticOperand] = []
     for operand in operands:
@@ -469,7 +494,12 @@ def _apply_field_value_domain_substitutions(
             rewritten.append(operand)
             continue
         constant_name = _field_domain_constant_name(
-            field_metadata, operand.value, hunk_session)
+            owner_struct=owner_struct,
+            field_symbol=field_symbol,
+            context_name=getattr(field_metadata, "context_name", None),
+            immediate_value=operand.value,
+            hunk_session=hunk_session,
+        )
         if constant_name is None:
             rewritten.append(operand)
             continue
@@ -1096,8 +1126,10 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             operand_value = displacement
             symbol = None
             if decoded_operand.index_suppressed:
-                symbol = _struct_field_symbol(inst.offset, base_register, displacement,
-                                              hunk_session, used_structs)
+                field_metadata = _struct_field_metadata(
+                    inst.offset, base_register, displacement, hunk_session, used_structs)
+                symbol = None if field_metadata is None else field_metadata.field_symbol
+                app_field_metadata = None
                 if symbol is None:
                     app_field_metadata = _app_struct_field_metadata(
                         base_register, displacement, hunk_session, used_structs)
@@ -1109,6 +1141,21 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
                 semantic_metadata = replace(
                     semantic_metadata,
                     symbol=symbol,
+                    owner_struct=(
+                        field_metadata.owner_struct
+                        if field_metadata is not None
+                        else None if app_field_metadata is None else app_field_metadata.owner_struct
+                    ),
+                    field_symbol=(
+                        field_metadata.field_symbol
+                        if field_metadata is not None
+                        else None if app_field_metadata is None else app_field_metadata.field_symbol
+                    ),
+                    context_name=(
+                        field_metadata.context_name
+                        if field_metadata is not None
+                        else None if app_field_metadata is None else app_field_metadata.context_name
+                    ),
                 )
             custom = _hardware_relative_text(
                 hunk_session, inst.offset, base_register, displacement, node.text, decoded_operand)

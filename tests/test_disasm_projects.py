@@ -17,6 +17,22 @@ from disasm.projects import (
     list_projects,
     mark_project_opened,
 )
+from disasm.session import _filter_hint_blocks_against_seeded_entities
+from disasm.target_metadata import (
+    EntryRegisterSeedMetadata,
+    SeededCodeEntrypointMetadata,
+    SeededCodeLabelMetadata,
+    SeededEntityMetadata,
+    TargetMetadata,
+    load_required_target_metadata,
+    load_target_metadata,
+    require_target_metadata,
+    validate_target_seeded_metadata,
+    write_target_corrections_metadata,
+    write_target_metadata,
+    write_target_seeded_metadata,
+)
+from m68k.m68k_executor import BasicBlock
 
 
 def _disk_manifest_payload() -> dict[str, object]:
@@ -67,6 +83,342 @@ def _disk_manifest_payload() -> dict[str, object]:
             }
         ],
     }
+
+
+def test_load_target_metadata_merges_seeded_metadata_file(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+        ),
+    )
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x05D6,
+                    end=0x0630,
+                    type="code",
+                    name="check_keyboard",
+                    hunk=0,
+                    seed_origin="primary_doc",
+                    review_status="seeded",
+                    citation="seeded:demo-code-range",
+                    source_id="demo_seed",
+                    source_path="seeded/demo_source.txt",
+                    source_locator="DemoCodeRange",
+                ),
+            ),
+            seeded_code_labels=(
+                SeededCodeLabelMetadata(
+                    addr=0x1234,
+                    name="code_label",
+                    hunk=0,
+                    seed_origin="primary_doc",
+                    review_status="seeded",
+                    citation="seeded:demo-label",
+                    source_id="demo_seed",
+                    source_path="seeded/demo_source.txt",
+                    source_locator="DemoCodeLabel",
+                ),
+            ),
+            seeded_code_entrypoints=(
+                SeededCodeEntrypointMetadata(
+                    addr=0x2345,
+                    name="code_entry",
+                    hunk=0,
+                    role="demo role",
+                    seed_origin="primary_doc",
+                    review_status="seeded",
+                    citation="seeded:demo-entry",
+                    source_id="demo_seed",
+                    source_path="seeded/demo_source.txt",
+                    source_locator="DemoCodeEntry",
+                ),
+            ),
+        ),
+    )
+
+    loaded = load_target_metadata(target_dir)
+
+    assert loaded is not None
+    assert loaded.seeded_entities == (
+        SeededEntityMetadata(
+            addr=0x05D6,
+            end=0x0630,
+            type="code",
+            name="check_keyboard",
+            hunk=0,
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-code-range",
+            source_id="demo_seed",
+            source_path="seeded/demo_source.txt",
+            source_locator="DemoCodeRange",
+        ),
+    )
+    assert loaded.seeded_code_labels == (
+        SeededCodeLabelMetadata(
+            addr=0x1234,
+            name="code_label",
+            hunk=0,
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-label",
+            source_id="demo_seed",
+            source_path="seeded/demo_source.txt",
+            source_locator="DemoCodeLabel",
+        ),
+    )
+    assert loaded.seeded_code_entrypoints == (
+        SeededCodeEntrypointMetadata(
+            addr=0x2345,
+            name="code_entry",
+            hunk=0,
+            role="demo role",
+            seed_origin="primary_doc",
+            review_status="seeded",
+            citation="seeded:demo-entry",
+            source_id="demo_seed",
+            source_path="seeded/demo_source.txt",
+            source_locator="DemoCodeEntry",
+        ),
+    )
+
+
+def test_load_target_metadata_allows_manual_seeded_entity_override(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x0100,
+                    end=0x0200,
+                    type="data",
+                    name="map_data_keep",
+                    hunk=0,
+                    seed_origin="manual_analysis",
+                    review_status="seeded",
+                    citation="manual",
+                ),
+            ),
+        ),
+    )
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x0100,
+                    end=0x0200,
+                    type="data",
+                    hunk=0,
+                    seed_origin="primary_doc",
+                    review_status="seeded",
+                    citation="seeded:demo-data-range",
+                    source_id="demo_seed",
+                    source_path="seeded/demo_source.txt",
+                    source_locator="DemoDataRange",
+                ),
+            ),
+        ),
+    )
+
+    loaded = load_target_metadata(target_dir)
+
+    assert loaded is not None
+    assert loaded.seeded_entities == (
+        SeededEntityMetadata(
+            addr=0x0100,
+            end=0x0200,
+            type="data",
+            name="map_data_keep",
+            hunk=0,
+            seed_origin="manual_analysis",
+            review_status="seeded",
+            citation="manual",
+            source_id="demo_seed",
+            source_path="seeded/demo_source.txt",
+            source_locator="DemoDataRange",
+        ),
+    )
+
+
+def test_load_target_metadata_applies_corrections_over_generated_seeded(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_code_labels=(
+                SeededCodeLabelMetadata(
+                    addr=0x0100,
+                    name="generated_label",
+                    hunk=0,
+                    seed_origin="primary_doc",
+                    review_status="seeded",
+                    citation="generated",
+                    source_id="source",
+                    source_path="source.asm",
+                    source_locator="GeneratedLabel",
+                ),
+            ),
+        ),
+    )
+    write_target_corrections_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_code_labels=(
+                SeededCodeLabelMetadata(
+                    addr=0x0100,
+                    name="reviewed_label",
+                    hunk=0,
+                    seed_origin="manual_analysis",
+                    review_status="validated",
+                    citation="reviewed",
+                ),
+            ),
+        ),
+    )
+
+    loaded = load_target_metadata(target_dir)
+
+    assert loaded is not None
+    assert loaded.seeded_code_labels == (
+        SeededCodeLabelMetadata(
+            addr=0x0100,
+            name="reviewed_label",
+            hunk=0,
+            seed_origin="manual_analysis",
+            review_status="validated",
+            citation="reviewed",
+            source_id="source",
+            source_path="source.asm",
+            source_locator="GeneratedLabel",
+        ),
+    )
+
+
+def test_filter_hint_blocks_against_seeded_entities_drops_overlapping_hint_blocks() -> None:
+    hint_blocks = {
+        0x5B40: BasicBlock(start=0x5B40, end=0x5B68, instructions=[]),
+        0x5B80: BasicBlock(start=0x5B80, end=0x5B90, instructions=[]),
+    }
+    metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        seeded_entities=(
+            SeededEntityMetadata(
+                addr=0x5B4C,
+                end=0x5B64,
+                hunk=0,
+                name="tan_gem_teleport_locations",
+                type="data",
+                seed_origin="primary_doc",
+                review_status="seeded",
+                citation="seeded:demo-overlap",
+            ),
+        ),
+    )
+
+    filtered = _filter_hint_blocks_against_seeded_entities(hint_blocks, metadata, hunk_index=0)
+
+    assert set(filtered) == {0x5B80}
+
+
+def test_validate_target_seeded_metadata_rejects_entry_register_seeds() -> None:
+    with pytest.raises(ValueError, match="must not contain entry_register_seeds"):
+        validate_target_seeded_metadata(
+            TargetMetadata(
+                target_type="program",
+                entry_register_seeds=(
+                    EntryRegisterSeedMetadata(
+                        entry_offset=None,
+                        register="A6",
+                        kind="library_base",
+                        note="ExecBase",
+                        library_name="exec.library",
+                        struct_name="LIB",
+                        context_name=None,
+                    ),
+                ),
+            )
+        )
+
+
+def test_load_target_metadata_rejects_non_object_root(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    (target_dir / "target_metadata.json").write_text("[]", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Bad target_metadata.json"):
+        load_target_metadata(target_dir)
+
+
+def test_load_target_metadata_rejects_non_string_target_type(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(
+            {
+                "target_type": 123,
+                "entry_register_seeds": [],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "app_slot_regions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Bad target_metadata.json"):
+        load_target_metadata(target_dir)
+
+
+def test_require_target_metadata_rejects_missing_raw_binary_metadata() -> None:
+    with pytest.raises(ValueError, match="Missing target_metadata.json for raw binary target"):
+        require_target_metadata(
+            None,
+            target_dir=Path("targets/demo"),
+            source_kind="raw_binary",
+            parent_disk_id=None,
+        )
+
+
+def test_require_target_metadata_rejects_missing_internal_target_metadata() -> None:
+    with pytest.raises(ValueError, match="Missing target_metadata.json for internal target"):
+        require_target_metadata(
+            None,
+            target_dir=Path("targets/demo"),
+            source_kind="hunk_file",
+            parent_disk_id="demo_disk",
+        )
+
+
+def test_load_required_target_metadata_allows_missing_optional_hunk_metadata(tmp_path: Path) -> None:
+    assert load_required_target_metadata(
+        target_dir=tmp_path,
+        source_kind="hunk_file",
+        parent_disk_id=None,
+    ) is None
 
 
 def _dos_magic_non_dos_manifest_payload() -> dict[str, object]:
@@ -529,7 +881,31 @@ def test_build_project_session_supports_raw_binary_target(tmp_path: Path) -> Non
         },
         "resident": None,
         "library": None,
+        "custom_structs": [],
+        "app_slot_regions": [],
     }))
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="bootblock",
+            entry_register_seeds=(),
+            seeded_code_entrypoints=(
+                SeededCodeEntrypointMetadata(
+                    addr=0x0E,
+                    name="post_boot_entry",
+                    hunk=0,
+                    comment="seeded keyboard stub",
+                    role="input routine",
+                    seed_origin="primary_doc",
+                    review_status="seeded",
+                    citation="seeded:demo-entry",
+                    source_id="demo",
+                    source_path="demo.md",
+                    source_locator="L1",
+                ),
+            ),
+        ),
+    )
 
     session = build_project_session("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root)
 
@@ -537,6 +913,8 @@ def test_build_project_session_supports_raw_binary_target(tmp_path: Path) -> Non
     assert session.hunk_sessions[0].base_addr == 0x0C
     assert session.hunk_sessions[0].code_start == 0x0C
     assert session.hunk_sessions[0].labels[0x0C] == "boot_entry"
+    assert session.hunk_sessions[0].labels[0x0E] == "post_boot_entry"
+    assert session.hunk_sessions[0].addr_comments[0x0E] == "input routine: seeded keyboard stub"
 
 
 def test_build_project_session_requires_metadata_for_raw_binary_target(tmp_path: Path) -> None:
@@ -575,6 +953,49 @@ def test_build_project_session_requires_metadata_for_raw_binary_target(tmp_path:
 
     with pytest.raises(ValueError, match="Missing target_metadata.json"):
         build_project_session("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root)
+
+
+def test_build_project_session_rejects_custom_metadata_without_provenance(tmp_path: Path) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "amiga_hunk_demo"
+    target_dir.mkdir(parents=True)
+    (target_dir / ".project.json").write_text(json.dumps({
+        "schema_version": 1,
+        "created_at": "2026-03-25T00:00:00+00:00",
+        "updated_at": "2026-03-25T00:00:00+00:00",
+    }))
+    (target_dir / "entities.jsonl").write_text("")
+    (target_dir / "binary.bin").write_bytes(b"\x4e\x75")
+    (target_dir / "source_binary.json").write_text(json.dumps({
+        "kind": "raw_binary",
+        "address_model": "local_offset",
+        "path": "targets/amiga_hunk_demo/binary.bin",
+        "load_address": 0,
+        "entrypoint": 0,
+        "code_start_offset": 0,
+    }))
+    (target_dir / "target_metadata.json").write_text(json.dumps({
+        "target_type": "program",
+        "entry_register_seeds": [],
+        "bootblock": None,
+        "resident": None,
+        "library": None,
+        "custom_structs": [
+            {
+                "name": "SeededNode",
+                "size": 4,
+                "fields": [],
+                "source": "target_metadata",
+                "base_offset": 0,
+                "base_struct": None,
+                "available_since": "1.0",
+            }
+        ],
+        "app_slot_regions": [],
+    }))
+
+    with pytest.raises(ValueError, match="Bad target_metadata.json"):
+        build_project_session("amiga_hunk_demo", project_root=project_root)
 
 
 def test_create_project_creates_entities_file(tmp_path: Path) -> None:

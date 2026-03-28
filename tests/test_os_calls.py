@@ -13,6 +13,12 @@ from typing import Any, cast
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
+from disasm.target_metadata import (
+    AppSlotRegionMetadata,
+    CustomStructFieldMetadata,
+    CustomStructMetadata,
+    TargetMetadata,
+)
 from m68k.abstract_values import _unknown
 from m68k.instruction_primitives import Operand
 from m68k.m68k_asm import assemble_instruction
@@ -38,6 +44,7 @@ from m68k.os_calls import (
     RegisterFact,
     TypedMemoryRegion,
     _build_lvo_lookup,
+    _merge_register_facts,
     _refined_named_base_struct,
     _region_from_typed_address,
     _resolve_lvo,
@@ -48,6 +55,7 @@ from m68k.os_calls import (
     build_app_pointer_regions,
     build_app_slot_infos,
     build_app_struct_regions,
+    build_target_local_os_kb,
     identify_library_calls,
     propagate_typed_memory_regions,
     refine_opened_base_calls,
@@ -874,6 +882,236 @@ def test_build_app_pointer_regions_refines_openlibrary_slot_to_concrete_struct()
     }
 
 
+def test_build_app_pointer_regions_supports_target_metadata_custom_pointer_slot() -> None:
+    platform = make_platform(app_base=(6, 0x80000002), scratch_regs=())
+    target_metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        custom_structs=(
+            CustomStructMetadata(
+                name="GenAmNode",
+                size=36,
+                fields=(
+                    CustomStructFieldMetadata(name="node_type", type="WORD", offset=18, size=2),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+            ),
+        ),
+        app_slot_regions=(
+            AppSlotRegionMetadata(
+                offset=426,
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+                symbol="app_current_node",
+                pointer_struct="GenAmNode",
+            ),
+        ),
+    )
+
+    regions = build_app_pointer_regions({}, [], b"", runtime_os, platform, target_metadata)
+
+    assert regions == {
+        426: TypedMemoryRegion(
+            struct="GenAmNode",
+            size=36,
+            provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 426),
+        )
+    }
+
+
+def test_build_app_struct_regions_supports_target_metadata_custom_slot_struct() -> None:
+    platform = make_platform(app_base=(6, 0x80000002), scratch_regs=())
+    target_metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        custom_structs=(
+            CustomStructMetadata(
+                name="GenAmNode",
+                size=36,
+                fields=(
+                    CustomStructFieldMetadata(
+                        name="list_next", type="LONG", offset=0, size=4, pointer_struct="GenAmNode"),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+            ),
+            CustomStructMetadata(
+                name="GenAmNodeListHead",
+                size=4,
+                fields=(
+                    CustomStructFieldMetadata(
+                        name="head", type="LONG", offset=0, size=4, pointer_struct="GenAmNode"),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+            ),
+        ),
+        app_slot_regions=(
+            AppSlotRegionMetadata(
+                offset=422,
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+                symbol="app_node_list_head",
+                struct_name="GenAmNodeListHead",
+            ),
+        ),
+    )
+
+    regions = build_app_struct_regions({}, [], runtime_os, platform, target_metadata)
+
+    assert regions == {
+        422: TypedMemoryRegion(
+            struct="GenAmNodeListHead",
+            size=4,
+            provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 422),
+        )
+    }
+
+
+def test_merge_register_facts_preserves_common_base_struct_region() -> None:
+    os_kb = SimpleNamespace(
+        STRUCTS={
+            "GenAmNode": CustomStructMetadata(
+                name="GenAmNode",
+                size=36,
+                fields=(
+                    CustomStructFieldMetadata(
+                        name="genam_node_next", type="LONG", offset=0, size=4, pointer_struct="GenAmNode"),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+            ),
+            "GenAmNodeListHead": CustomStructMetadata(
+                name="GenAmNodeListHead",
+                size=4,
+                fields=(
+                    CustomStructFieldMetadata(
+                        name="genam_node_list_head", type="LONG", offset=0, size=4, pointer_struct="GenAmNode"),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+                base_struct="GenAmNode",
+            ),
+        },
+    )
+
+    merged, changed = _merge_register_facts(
+        {
+            "a3": RegisterFact(
+                region=TypedMemoryRegion(
+                    struct="GenAmNodeListHead",
+                    size=4,
+                    provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 422),
+                ),
+            )
+        },
+        {
+            "a3": RegisterFact(
+                region=TypedMemoryRegion(
+                    struct="GenAmNode",
+                    size=36,
+                    provenance=_prov_ptr("a3", 0),
+                ),
+            )
+        },
+        os_kb,
+    )
+
+    assert changed
+    assert merged == {
+        "a3": RegisterFact(
+            region=TypedMemoryRegion(
+                struct="GenAmNode",
+                size=36,
+                provenance=MemoryRegionProvenance(
+                    address_space=MemoryRegionAddressSpace.REGISTER),
+            ),
+        )
+    }
+
+
+def test_build_target_local_os_kb_rejects_custom_field_out_of_bounds() -> None:
+    target_metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        custom_structs=(
+            CustomStructMetadata(
+                name="BadNode",
+                size=4,
+                fields=(
+                    CustomStructFieldMetadata(name="bad", type="LONG", offset=2, size=4),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="BadNode\\.bad lies outside struct bounds"):
+        build_target_local_os_kb(runtime_os, target_metadata)
+
+
+def test_build_target_local_os_kb_rejects_unknown_custom_base_struct() -> None:
+    target_metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        custom_structs=(
+            CustomStructMetadata(
+                name="BadNode",
+                size=4,
+                fields=(),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+                base_struct="MissingBase",
+            ),
+        ),
+    )
+
+    with pytest.raises(KeyError, match="unknown base struct MissingBase"):
+        build_target_local_os_kb(runtime_os, target_metadata)
+
+
+def test_build_target_local_os_kb_rejects_ambiguous_app_slot_region() -> None:
+    target_metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        custom_structs=(
+            CustomStructMetadata(
+                name="GenAmNode",
+                size=36,
+                fields=(),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+            ),
+        ),
+        app_slot_regions=(
+            AppSlotRegionMetadata(
+                offset=422,
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+                symbol="bad_slot",
+                struct_name="GenAmNode",
+                pointer_struct="GenAmNode",
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="must declare exactly one of struct_name or pointer_struct"):
+        build_target_local_os_kb(runtime_os, target_metadata)
+
+
 def test_refined_named_base_struct_requires_kb_mapping() -> None:
     os_kb = SimpleNamespace(
         META=replace(runtime_os.META, named_base_structs={}),
@@ -1002,6 +1240,35 @@ def test_propagate_typed_memory_regions_loads_pointee_from_app_region_access() -
     assert types[0x0C]["a0"] == TypedMemoryRegion(
         struct="DD",
         size=runtime_os.STRUCTS["DD"].size,
+        provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 120),
+    )
+
+
+def test_propagate_typed_memory_regions_learns_app_pointer_slot_from_typed_register_store() -> None:
+    sentinel = 0x80000002
+    code = b"".join((
+        assemble_instruction("move.l a1,120(a6)"),
+        assemble_instruction("movea.l 120(a6),a0"),
+        assemble_instruction("move.w 18(a0),d0"),
+        assemble_instruction("rts"),
+    ))
+    platform = make_platform(app_base=(6, sentinel), scratch_regs=())
+    platform.initial_register_regions = {
+        "a1": TypedMemoryRegion(
+            struct="DosPacket",
+            size=runtime_os.STRUCTS["DosPacket"].size,
+            provenance=MemoryRegionProvenance(
+                address_space=MemoryRegionAddressSpace.REGISTER,
+            ),
+        )
+    }
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+    types = propagate_typed_memory_regions(result["blocks"], [], code, runtime_os, platform)
+
+    assert types[0x08]["a0"] == TypedMemoryRegion(
+        struct="DosPacket",
+        size=runtime_os.STRUCTS["DosPacket"].size,
         provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 120),
     )
 

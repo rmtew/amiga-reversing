@@ -123,6 +123,15 @@ def test_canonical_os_kb_is_strict_merge_of_parsed_and_extensions() -> None:
     ) == merged
 
 
+def test_includes_parsed_os_kb_inlines_constant_availability() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+
+    assert "function_min_versions" not in includes["_meta"]
+    assert "constant_min_versions" not in includes["_meta"]
+    constant = includes["constants"]["A2024FIFTEENHERTZ_KEY"]
+    assert constant["available_since"] == "2.0"
+
+
 def test_os_reference_corrections_only_carry_correction_data() -> None:
     corrections = normalize_os_reference_corrections(load_canonical_os_kb_corrections())
 
@@ -179,6 +188,34 @@ def test_os_reference_corrections_reject_unknown_correction_status() -> None:
     corrections["_meta"]["api_input_value_bindings"][0]["seed_origin"] = "unknown"
 
     with pytest.raises(ValueError, match="api_input_value_binding extension uses unknown seed_origin"):
+        merge_os_reference_payloads(
+            includes=includes,
+            other=other,
+            corrections=corrections,
+        )
+
+
+def test_os_reference_merge_rejects_missing_exact_match_policy() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+    other = load_canonical_os_kb_other_parsed()
+    corrections = copy.deepcopy(load_canonical_os_kb_corrections())
+    del corrections["_meta"]["value_domains"]["exec.signal_mask"]["exact_match_policy"]
+
+    with pytest.raises(ValueError, match="exec.signal_mask is missing exact_match_policy"):
+        merge_os_reference_payloads(
+            includes=includes,
+            other=other,
+            corrections=corrections,
+        )
+
+
+def test_os_reference_merge_rejects_missing_flag_remainder_policy() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+    other = load_canonical_os_kb_other_parsed()
+    corrections = copy.deepcopy(load_canonical_os_kb_corrections())
+    del corrections["_meta"]["value_domains"]["exec.signal_mask"]["remainder_policy"]
+
+    with pytest.raises(ValueError, match="exec.signal_mask is missing remainder_policy"):
         merge_os_reference_payloads(
             includes=includes,
             other=other,
@@ -1054,6 +1091,8 @@ def test_runtime_os_meta_is_typed() -> None:
     assert runtime.META.exec_base_addr.library == "exec.library"
     assert runtime.API_INPUT_VALUE_DOMAINS["exec.library"]["AllocMem"]["attributes"] == (
         "exec.allocmem.attributes")
+    assert runtime.API_INPUT_VALUE_DOMAINS["exec.library"]["AvailMem"]["attributes"] == (
+        "exec.allocmem.attributes")
     assert runtime.API_INPUT_VALUE_DOMAINS["dos.library"]["Seek"]["mode"] == "dos.seek.mode"
     assert runtime.API_INPUT_VALUE_DOMAINS["dos.library"]["Lock"]["accessMode"] == (
         "dos.lock.access_mode")
@@ -1064,7 +1103,14 @@ def test_runtime_os_meta_is_typed() -> None:
     assert "OpenDevice" not in runtime.API_INPUT_VALUE_DOMAINS["exec.library"]
     assert runtime.STRUCT_FIELD_VALUE_DOMAINS["IO.IO_COMMAND"][None] == "exec.io.command"
     assert runtime.STRUCT_FIELD_VALUE_DOMAINS["IO.IO_COMMAND"]["trackdisk.device"] == "trackdisk.device.io_command"
-    assert "CMD_READ" in runtime.VALUE_DOMAINS["exec.io.command"]
+    assert runtime.STRUCT_FIELD_VALUE_DOMAINS["DosPacket.dp_Type"][None] == "dos.packet.action"
+    assert runtime.VALUE_DOMAINS["exec.io.command"].kind == "enum"
+    assert "CMD_READ" in runtime.VALUE_DOMAINS["exec.io.command"].members
+    assert runtime.VALUE_DOMAINS["exec.io.command"].exact_match_policy == "error"
+    assert "ACTION_FINDUPDATE" in runtime.VALUE_DOMAINS["dos.packet.action"].members
+    assert runtime.VALUE_DOMAINS["exec.signal_mask"].kind == "flags"
+    assert runtime.VALUE_DOMAINS["exec.signal_mask"].composition == "bit_or"
+    assert runtime.VALUE_DOMAINS["exec.signal_mask"].remainder_policy == "error"
     assert not hasattr(runtime, "RUNTIME")
 
 

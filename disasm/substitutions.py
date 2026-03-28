@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
+from disasm.os_value_domains import resolve_value_domain_expression
 from disasm.types import EntityRecord
 from m68k.instruction_decode import (
     decode_inst_destination,
@@ -118,45 +119,32 @@ def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
     arg_substitutions: dict[int, tuple[str, str]] = {}
     sorted_code_ents = _sorted_code_entities(hunk_entities)
     input_value_domains = os_kb.API_INPUT_VALUE_DOMAINS
-    all_consts = os_kb.CONSTANTS
-    func_input_const_map: dict[str, dict[str, dict[str, dict[int, tuple[str, ...]]]]] = {}
     for library_name, library_domains in input_value_domains.items():
-        per_library_map: dict[str, dict[str, dict[int, tuple[str, ...]]]] = {}
         for func_name, input_domains in library_domains.items():
-            per_input_map: dict[str, dict[int, tuple[str, ...]]] = {}
             for input_name, domain_name in input_domains.items():
-                const_names = os_kb.VALUE_DOMAINS.get(domain_name)
-                if const_names is None:
+                domain = os_kb.VALUE_DOMAINS.get(domain_name)
+                if domain is None:
                     raise KeyError(
                         f"Missing value domain {domain_name} for input binding "
                         f"{library_name}.{func_name}.{input_name}"
                     )
-                vmap_lists: dict[int, list[str]] = {}
-                for cn in const_names:
-                    constant = all_consts.get(cn)
+                for constant_name in domain.members:
+                    constant = os_kb.CONSTANTS.get(constant_name)
                     if constant is None:
                         raise KeyError(
-                            f"Missing constant {cn} for input domain {library_name}.{func_name}.{input_name}")
-                    cv = constant.value
-                    if cv is None:
+                            f"Missing constant {constant_name} for input domain "
+                            f"{library_name}.{func_name}.{input_name}"
+                        )
+                    if constant.value is None:
                         raise ValueError(
-                            f"Non-concrete constant {cn} in input domain {library_name}.{func_name}.{input_name}")
-                    names = vmap_lists.setdefault(cv, [])
-                    if cn not in names:
-                        names.append(cn)
-                if vmap_lists:
-                    per_input_map[input_name] = {
-                        value: tuple(names) for value, names in vmap_lists.items()
-                    }
-            if per_input_map:
-                per_library_map[func_name] = per_input_map
-        if per_library_map:
-            func_input_const_map[library_name] = per_library_map
+                            f"Non-concrete constant {constant_name} in input domain "
+                            f"{library_name}.{func_name}.{input_name}"
+                        )
     for call in lib_calls:
         func_name = call.function
         if not func_name or func_name.startswith("LVO_"):
             continue
-        input_maps = func_input_const_map.get(call.library, {}).get(func_name)
+        input_maps = input_value_domains.get(call.library, {}).get(func_name)
         if not input_maps:
             continue
         lib = call.library
@@ -181,9 +169,10 @@ def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
         if call_idx is None:
             continue
         for inp in inputs:
-            vmap = input_maps.get(inp.name)
-            if not vmap:
+            input_domain_name_opt = input_maps.get(inp.name)
+            if input_domain_name_opt is None:
                 continue
+            input_domain_name = input_domain_name_opt
             for reg in inp.regs:
                 reg_mode, reg_n = parse_reg_name(reg.lower())
                 for j in range(call_idx - 1, -1, -1):
@@ -198,18 +187,34 @@ def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
                     dst_mode, dst_num = dst
                     if dst_mode != reg_mode or dst_num != reg_n:
                         continue
-                    matched_const_names = vmap.get(imm_val)
-                    if matched_const_names is None and imm_val >= 0x80000000:
-                        matched_const_names = vmap.get(imm_val - 0x100000000)
-                    if matched_const_names:
-                        if len(matched_const_names) != 1:
-                            raise ValueError(
-                                f"Ambiguous input domain value for {func_name}.{inp.name}: "
-                                f"{imm_val} matches {list(matched_const_names)}")
-                        const_name = matched_const_names[0]
-                        equ_val = imm_val - 0x100000000 if imm_val >= 0x80000000 else imm_val
-                        arg_equs[const_name] = equ_val
-                        imm_token = _immediate_operand_token(prev)
-                        arg_substitutions[prev.offset] = (imm_token, f"#{const_name}")
+                    domain_value = imm_val if imm_val < 0x80000000 else imm_val - 0x100000000
+                    try:
+                        resolved = resolve_value_domain_expression(
+                            os_kb,
+                            input_domain_name,
+                            domain_value,
+                        )
+                    except ValueError as exc:
+                        raise ValueError(
+                            f"Input domain resolution failed for {func_name}.{inp.name}="
+                            f"{domain_value} (domain: {input_domain_name}): {exc}"
+                        ) from exc
+                    if resolved is None:
+                        domain = os_kb.VALUE_DOMAINS[input_domain_name]
+                        if domain.kind == "flags" and domain_value == 0:
+                            break
+                        raise ValueError(
+                            f"No KB value-domain match for {func_name}.{inp.name}="
+                            f"{domain_value} "
+                            f"(domain: {input_domain_name})"
+                        )
+                    for const_name in resolved.names:
+                        const_value = os_kb.CONSTANTS[const_name].value
+                        assert const_value is not None, (
+                            f"Value-domain constant unexpectedly non-concrete: {const_name}"
+                        )
+                        arg_equs[const_name] = const_value
+                    imm_token = _immediate_operand_token(prev)
+                    arg_substitutions[prev.offset] = (imm_token, f"#{resolved.text}")
                     break
     return arg_equs, arg_substitutions
