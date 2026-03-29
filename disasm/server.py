@@ -89,7 +89,10 @@ class StaticResponse(TypedDict):
 
 _MISSING = object()
 _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
-_PROJECT_API_CALL_CACHE: dict[str, dict[int, dict[str, object]]] = {}
+type ApiCallRowKey = tuple[int, int]
+
+
+_PROJECT_API_CALL_CACHE: dict[str, dict[ApiCallRowKey, dict[str, object]]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_LOCK = threading.Lock()
 
@@ -136,14 +139,14 @@ def _api_input_override(
     return overrides.get((library, function, input_name))
 
 
-def _project_api_call_rows(project_name: str) -> dict[int, dict[str, object]]:
+def _project_api_call_rows(project_name: str) -> dict[ApiCallRowKey, dict[str, object]]:
     session = build_project_session(project_name)
-    calls_by_addr: dict[int, dict[str, object]] = {}
+    calls_by_addr: dict[ApiCallRowKey, dict[str, object]] = {}
     for hunk in session.hunk_sessions:
         for call in hunk.lib_calls:
             function = call.function
             library = call.library
-            calls_by_addr[call.addr] = {
+            calls_by_addr[(hunk.hunk_index, call.addr)] = {
                 "library": library,
                 "function": function,
                 "inputs": [
@@ -174,8 +177,20 @@ def _annotate_api_calls(
     rows: list[SerializedRow] = []
     for row in payload["rows"]:
         addr = row["addr"]
-        if isinstance(addr, int) and addr in call_rows:
-            rows.append(cast(SerializedRow, {**row, "api_call": call_rows[addr]}))
+        source_context = row["source_context"]
+        hunk_index = source_context.get("hunk_index")
+        if (
+            row["kind"] == "instruction"
+            and isinstance(hunk_index, int)
+            and isinstance(addr, int)
+            and (hunk_index, addr) in call_rows
+        ):
+            rows.append(
+                cast(
+                    SerializedRow,
+                    {**row, "api_call": call_rows[(hunk_index, addr)]},
+                )
+            )
         else:
             rows.append(row)
     return {**payload, "rows": rows}

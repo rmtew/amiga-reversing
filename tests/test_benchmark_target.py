@@ -253,8 +253,11 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
 
     seen: list[str] = []
 
+    seen_write_output: list[bool] = []
+
     def fake_benchmark_binary_target(target: str, *, write_output: bool) -> object:
         seen.append(target)
+        seen_write_output.append(write_output)
         return TargetBenchmark(
             target=target,
             binary=f"bin/{target}",
@@ -319,6 +322,7 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
         "amiga_disk_demo__amiga_hunk_a_first",
         "amiga_disk_demo__amiga_hunk_z_last",
     ]
+    assert seen_write_output == [True, True, True]
     assert record.timing == TimingBenchmark(
         entities=EntitiesTimingBenchmark(
             parse_source_seconds=0.3,

@@ -481,7 +481,7 @@ def _disk_project_benchmark(target: str) -> TargetBenchmark:
     started = time.perf_counter()
     child_records: dict[str, TargetBenchmark] = {}
     for child_target in child_targets:
-        child_records[child_target] = _benchmark_binary_target(child_target, write_output=False)
+        child_records[child_target] = _benchmark_binary_target(child_target, write_output=True)
     elapsed = time.perf_counter() - started
     failures = [record for record in child_records.values() if record.status != "ok"]
     record = TargetBenchmark(

@@ -2,34 +2,34 @@
   "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5",
   "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf",
   "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5",
-  "measured_at": "2026-03-29T14:42:22+13:00",
+  "measured_at": "2026-03-29T17:38:31+13:00",
   "status": "ok",
-  "elapsed_seconds": 16.08,
-  "analysis_bytes": 12999838,
-  "entities_bytes": 38117,
-  "disasm_bytes": 1704044,
+  "elapsed_seconds": 18.04,
+  "analysis_bytes": 12717625,
+  "entities_bytes": 31381,
+  "disasm_bytes": 1673970,
   "timing": {
     "entities": {
-      "parse_source_seconds": 0.0391,
+      "parse_source_seconds": 0.03,
       "analysis": {
-        "init_seconds": 1.5109,
-        "core_seconds": 1.0086,
-        "per_caller_seconds": 1.0127,
+        "init_seconds": 1.6303,
+        "core_seconds": 1.0198,
+        "per_caller_seconds": 2.0579,
         "store_pass_seconds": 0.0,
-        "hint_scan_seconds": 2.8129,
-        "os_call_seconds": 0.4803
+        "hint_scan_seconds": 3.1206,
+        "os_call_seconds": 0.5377
       },
-      "naming_seconds": 0.0082,
-      "write_seconds": 0.0048
+      "naming_seconds": 0.009,
+      "write_seconds": 0.004
     },
     "session": {
-      "load_analysis_seconds": 1.4847,
-      "metadata_seconds": 1.5005,
-      "substitutions_seconds": 0.0018,
-      "build_seconds": 0.0011
+      "load_analysis_seconds": 1.7158,
+      "metadata_seconds": 1.5319,
+      "substitutions_seconds": 0.0021,
+      "build_seconds": 0.0015
     },
-    "emit_seconds": 2.2632,
-    "render_seconds": 0.0197
+    "emit_seconds": 2.5229,
+    "render_seconds": 0.0209
   },
   "analysis": null,
   "entities": null,
@@ -46,7 +46,7 @@
     },
     "symbols": {
       "immediate_constant_count": 2,
-      "struct_field_count": 1,
+      "struct_field_count": 11,
       "app_struct_field_count": 0
     }
   },
@@ -56,33 +56,33 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_raw_bootblock",
       "binary": "targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_raw_bootblock/binary.bin",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_raw_bootblock",
-      "measured_at": "2026-03-29T14:42:06+13:00",
+      "measured_at": "2026-03-29T17:38:13+13:00",
       "status": "ok",
-      "elapsed_seconds": 0.11,
+      "elapsed_seconds": 0.09,
       "analysis_bytes": 6077,
       "entities_bytes": 772,
       "disasm_bytes": 1040,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0078,
+          "parse_source_seconds": 0.0005,
           "analysis": {
-            "init_seconds": 0.0012,
+            "init_seconds": 0.0014,
             "core_seconds": 0.0014,
-            "per_caller_seconds": 0.0057,
+            "per_caller_seconds": 0.0047,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0696,
-            "os_call_seconds": 0.0048
+            "hint_scan_seconds": 0.0657,
+            "os_call_seconds": 0.0043
           },
           "naming_seconds": 0.0001,
-          "write_seconds": 0.0005
+          "write_seconds": 0.0004
         },
         "session": {
-          "load_analysis_seconds": 0.0432,
+          "load_analysis_seconds": 0.0387,
           "metadata_seconds": 0.0009,
           "substitutions_seconds": 0.0,
           "build_seconds": 0.0
         },
-        "emit_seconds": 0.001,
+        "emit_seconds": 0.0011,
         "render_seconds": 0.0007
       },
       "analysis": {
@@ -137,34 +137,34 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_c__stack_dcbff2ae",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::c/stack",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_c__stack_dcbff2ae",
-      "measured_at": "2026-03-29T14:42:06+13:00",
+      "measured_at": "2026-03-29T17:38:13+13:00",
       "status": "ok",
-      "elapsed_seconds": 0.14,
-      "analysis_bytes": 68957,
+      "elapsed_seconds": 0.12,
+      "analysis_bytes": 68592,
       "entities_bytes": 1144,
-      "disasm_bytes": 7011,
+      "disasm_bytes": 7068,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0059,
+          "parse_source_seconds": 0.0052,
           "analysis": {
-            "init_seconds": 0.0095,
-            "core_seconds": 0.0217,
-            "per_caller_seconds": 0.0075,
+            "init_seconds": 0.0102,
+            "core_seconds": 0.0162,
+            "per_caller_seconds": 0.0072,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0031,
-            "os_call_seconds": 0.0066
+            "hint_scan_seconds": 0.0029,
+            "os_call_seconds": 0.0063
           },
           "naming_seconds": 0.0002,
           "write_seconds": 0.0006
         },
         "session": {
-          "load_analysis_seconds": 0.0388,
-          "metadata_seconds": 0.0116,
+          "load_analysis_seconds": 0.0312,
+          "metadata_seconds": 0.0114,
           "substitutions_seconds": 0.0001,
           "build_seconds": 0.0
         },
-        "emit_seconds": 0.0104,
-        "render_seconds": 0.0008
+        "emit_seconds": 0.0111,
+        "render_seconds": 0.0007
       },
       "analysis": {
         "code_bytes": 820,
@@ -172,13 +172,13 @@
         "core_instruction_count": 204,
         "core_covered_bytes": 562,
         "core_coverage_ratio": 0.6854,
-        "hint_block_count": 18,
-        "hint_instruction_count": 49,
-        "hint_covered_bytes": 156,
-        "hint_coverage_ratio": 0.1902,
+        "hint_block_count": 16,
+        "hint_instruction_count": 48,
+        "hint_covered_bytes": 148,
+        "hint_coverage_ratio": 0.1805,
         "xref_count": 60,
         "jump_table_count": 0,
-        "indirect_site_count": 22,
+        "indirect_site_count": 23,
         "call_target_count": 0,
         "branch_target_count": 18,
         "library_call_count": 0,
@@ -213,60 +213,60 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::king",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec",
-      "measured_at": "2026-03-29T14:42:20+13:00",
+      "measured_at": "2026-03-29T17:38:29+13:00",
       "status": "ok",
-      "elapsed_seconds": 13.49,
-      "analysis_bytes": 12271832,
-      "entities_bytes": 21166,
-      "disasm_bytes": 1623654,
+      "elapsed_seconds": 15.42,
+      "analysis_bytes": 11971435,
+      "entities_bytes": 14430,
+      "disasm_bytes": 1593326,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0084,
+          "parse_source_seconds": 0.008,
           "analysis": {
-            "init_seconds": 1.4263,
-            "core_seconds": 0.8643,
-            "per_caller_seconds": 0.6368,
+            "init_seconds": 1.5355,
+            "core_seconds": 0.8742,
+            "per_caller_seconds": 1.4593,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 2.6715,
-            "os_call_seconds": 0.3732
+            "hint_scan_seconds": 2.979,
+            "os_call_seconds": 0.423
           },
-          "naming_seconds": 0.0069,
-          "write_seconds": 0.0016
+          "naming_seconds": 0.0079,
+          "write_seconds": 0.0011
         },
         "session": {
-          "load_analysis_seconds": 1.1518,
-          "metadata_seconds": 1.399,
-          "substitutions_seconds": 0.0013,
-          "build_seconds": 0.0009
+          "load_analysis_seconds": 1.4242,
+          "metadata_seconds": 1.4256,
+          "substitutions_seconds": 0.0014,
+          "build_seconds": 0.0012
         },
-        "emit_seconds": 2.1532,
-        "render_seconds": 0.0152
+        "emit_seconds": 2.4107,
+        "render_seconds": 0.0166
       },
       "analysis": {
         "code_bytes": 173550,
-        "core_block_count": 7471,
-        "core_instruction_count": 15125,
-        "core_covered_bytes": 45926,
-        "core_coverage_ratio": 0.2646,
-        "hint_block_count": 14648,
-        "hint_instruction_count": 40738,
-        "hint_covered_bytes": 124330,
-        "hint_coverage_ratio": 0.7164,
-        "xref_count": 10178,
+        "core_block_count": 5022,
+        "core_instruction_count": 12764,
+        "core_covered_bytes": 39420,
+        "core_coverage_ratio": 0.2271,
+        "hint_block_count": 14058,
+        "hint_instruction_count": 40826,
+        "hint_covered_bytes": 124752,
+        "hint_coverage_ratio": 0.7188,
+        "xref_count": 7197,
         "jump_table_count": 2,
-        "indirect_site_count": 164,
-        "call_target_count": 610,
-        "branch_target_count": 3080,
+        "indirect_site_count": 165,
+        "call_target_count": 455,
+        "branch_target_count": 1918,
         "library_call_count": 19,
         "resolved_library_call_count": 10,
         "library_count": 1
       },
       "entities": {
-        "entity_count": 100,
-        "code_entity_count": 66,
+        "entity_count": 65,
+        "code_entity_count": 42,
         "data_entity_count": 1,
         "bss_entity_count": 0,
-        "unknown_entity_count": 33,
+        "unknown_entity_count": 22,
         "named_entity_count": 1,
         "documented_entity_count": 0
       },
@@ -294,34 +294,34 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_l__disk-validator_0c36e39c",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::l/Disk-Validator",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_l__disk-validator_0c36e39c",
-      "measured_at": "2026-03-29T14:42:21+13:00",
+      "measured_at": "2026-03-29T17:38:30+13:00",
       "status": "ok",
       "elapsed_seconds": 0.18,
-      "analysis_bytes": 140218,
+      "analysis_bytes": 137906,
       "entities_bytes": 2984,
-      "disasm_bytes": 14928,
+      "disasm_bytes": 15057,
       "timing": {
         "entities": {
           "parse_source_seconds": 0.0051,
           "analysis": {
-            "init_seconds": 0.0155,
-            "core_seconds": 0.0414,
-            "per_caller_seconds": 0.0088,
+            "init_seconds": 0.0189,
+            "core_seconds": 0.04,
+            "per_caller_seconds": 0.0086,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0073,
-            "os_call_seconds": 0.0086
+            "hint_scan_seconds": 0.0071,
+            "os_call_seconds": 0.0078
           },
-          "naming_seconds": 0.0002,
-          "write_seconds": 0.0007
+          "naming_seconds": 0.0001,
+          "write_seconds": 0.0005
         },
         "session": {
-          "load_analysis_seconds": 0.019,
-          "metadata_seconds": 0.0287,
+          "load_analysis_seconds": 0.0192,
+          "metadata_seconds": 0.0285,
           "substitutions_seconds": 0.0,
           "build_seconds": 0.0
         },
-        "emit_seconds": 0.0214,
-        "render_seconds": 0.0011
+        "emit_seconds": 0.0229,
+        "render_seconds": 0.0008
       },
       "analysis": {
         "code_bytes": 1812,
@@ -329,13 +329,13 @@
         "core_instruction_count": 386,
         "core_covered_bytes": 1266,
         "core_coverage_ratio": 0.6987,
-        "hint_block_count": 71,
-        "hint_instruction_count": 167,
-        "hint_covered_bytes": 482,
-        "hint_coverage_ratio": 0.266,
+        "hint_block_count": 60,
+        "hint_instruction_count": 159,
+        "hint_covered_bytes": 456,
+        "hint_coverage_ratio": 0.2517,
         "xref_count": 111,
         "jump_table_count": 0,
-        "indirect_site_count": 46,
+        "indirect_site_count": 47,
         "call_target_count": 0,
         "branch_target_count": 34,
         "library_call_count": 0,
@@ -370,50 +370,50 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_libs__icon.library_8bc90c0c",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::libs/icon.library",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_libs__icon.library_8bc90c0c",
-      "measured_at": "2026-03-29T14:42:21+13:00",
+      "measured_at": "2026-03-29T17:38:31+13:00",
       "status": "ok",
-      "elapsed_seconds": 0.7,
-      "analysis_bytes": 367397,
+      "elapsed_seconds": 0.87,
+      "analysis_bytes": 368038,
       "entities_bytes": 9429,
-      "disasm_bytes": 41642,
+      "disasm_bytes": 41732,
       "timing": {
         "entities": {
           "parse_source_seconds": 0.006,
           "analysis": {
-            "init_seconds": 0.0334,
-            "core_seconds": 0.0553,
-            "per_caller_seconds": 0.2341,
+            "init_seconds": 0.0327,
+            "core_seconds": 0.0539,
+            "per_caller_seconds": 0.441,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0492,
-            "os_call_seconds": 0.0271
+            "hint_scan_seconds": 0.0499,
+            "os_call_seconds": 0.0251
           },
-          "naming_seconds": 0.0004,
-          "write_seconds": 0.0009
+          "naming_seconds": 0.0003,
+          "write_seconds": 0.0008
         },
         "session": {
-          "load_analysis_seconds": 0.1364,
-          "metadata_seconds": 0.0281,
-          "substitutions_seconds": 0.0002,
+          "load_analysis_seconds": 0.1061,
+          "metadata_seconds": 0.0292,
+          "substitutions_seconds": 0.0003,
           "build_seconds": 0.0001
         },
-        "emit_seconds": 0.0556,
-        "render_seconds": 0.0011
+        "emit_seconds": 0.055,
+        "render_seconds": 0.0012
       },
       "analysis": {
         "code_bytes": 4680,
-        "core_block_count": 199,
-        "core_instruction_count": 632,
-        "core_covered_bytes": 1996,
-        "core_coverage_ratio": 0.4265,
-        "hint_block_count": 264,
-        "hint_instruction_count": 830,
-        "hint_covered_bytes": 2550,
-        "hint_coverage_ratio": 0.5449,
-        "xref_count": 265,
+        "core_block_count": 195,
+        "core_instruction_count": 638,
+        "core_covered_bytes": 2032,
+        "core_coverage_ratio": 0.4342,
+        "hint_block_count": 261,
+        "hint_instruction_count": 828,
+        "hint_covered_bytes": 2538,
+        "hint_coverage_ratio": 0.5423,
+        "xref_count": 261,
         "jump_table_count": 0,
         "indirect_site_count": 32,
-        "call_target_count": 34,
-        "branch_target_count": 41,
+        "call_target_count": 30,
+        "branch_target_count": 43,
         "library_call_count": 5,
         "resolved_library_call_count": 2,
         "library_count": 1
@@ -440,7 +440,7 @@
         },
         "symbols": {
           "immediate_constant_count": 0,
-          "struct_field_count": 0,
+          "struct_field_count": 10,
           "app_struct_field_count": 0
         }
       },
@@ -451,49 +451,49 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_loadwb_f71d84f8",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::loadwb",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_loadwb_f71d84f8",
-      "measured_at": "2026-03-29T14:42:22+13:00",
+      "measured_at": "2026-03-29T17:38:31+13:00",
       "status": "ok",
-      "elapsed_seconds": 0.44,
-      "analysis_bytes": 145357,
+      "elapsed_seconds": 0.5,
+      "analysis_bytes": 165577,
       "entities_bytes": 2622,
-      "disasm_bytes": 15769,
+      "disasm_bytes": 15747,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0059,
+          "parse_source_seconds": 0.0052,
           "analysis": {
-            "init_seconds": 0.025,
-            "core_seconds": 0.0245,
-            "per_caller_seconds": 0.1198,
+            "init_seconds": 0.0316,
+            "core_seconds": 0.0341,
+            "per_caller_seconds": 0.1371,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0122,
-            "os_call_seconds": 0.06
+            "hint_scan_seconds": 0.016,
+            "os_call_seconds": 0.0712
           },
           "naming_seconds": 0.0004,
-          "write_seconds": 0.0005
+          "write_seconds": 0.0006
         },
         "session": {
-          "load_analysis_seconds": 0.0955,
-          "metadata_seconds": 0.0322,
-          "substitutions_seconds": 0.0002,
-          "build_seconds": 0.0001
+          "load_analysis_seconds": 0.0964,
+          "metadata_seconds": 0.0363,
+          "substitutions_seconds": 0.0003,
+          "build_seconds": 0.0002
         },
-        "emit_seconds": 0.0216,
-        "render_seconds": 0.0008
+        "emit_seconds": 0.0221,
+        "render_seconds": 0.0009
       },
       "analysis": {
         "code_bytes": 1880,
-        "core_block_count": 167,
-        "core_instruction_count": 444,
-        "core_covered_bytes": 1474,
-        "core_coverage_ratio": 0.784,
+        "core_block_count": 161,
+        "core_instruction_count": 441,
+        "core_covered_bytes": 1462,
+        "core_coverage_ratio": 0.7777,
         "hint_block_count": 33,
         "hint_instruction_count": 98,
         "hint_covered_bytes": 342,
         "hint_coverage_ratio": 0.1819,
-        "xref_count": 233,
+        "xref_count": 224,
         "jump_table_count": 0,
         "indirect_site_count": 33,
-        "call_target_count": 21,
+        "call_target_count": 15,
         "branch_target_count": 50,
         "library_call_count": 17,
         "resolved_library_call_count": 1,

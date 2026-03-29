@@ -9,7 +9,7 @@ import pytest
 
 from disasm import server as disasm_server
 from disasm.projects import ProjectRecord
-from disasm.types import ListingRow
+from disasm.types import BlockRowContext, ListingRow
 
 
 def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
@@ -467,12 +467,20 @@ def test_route_listing_keeps_view_annotations_empty_for_monam(monkeypatch: pytes
 
 
 def test_route_listing_adds_api_call_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [ListingRow(row_id="r0", kind="instruction", text="jsr _LVOSetPointer(a6)\n", addr=0x814E)]
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="jsr _LVOSetPointer(a6)\n",
+            addr=0x814E,
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+        )
+    ]
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
     disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
-        0x814E: {
+        (0, 0x814E): {
             "library": "intuition.library",
             "function": "SetPointer",
             "inputs": [
@@ -508,6 +516,100 @@ def test_route_listing_adds_api_call_metadata(monkeypatch: pytest.MonkeyPatch) -
                 "source": "parsed NDK",
             }
         ],
+    }
+
+
+def test_route_listing_does_not_attach_api_call_metadata_to_label_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="label",
+            text="loc_0010:\n",
+            addr=0x10,
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="jsr _LVOSetPointer(a6)\n",
+            addr=0x10,
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+        ),
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
+        (0, 0x10): {
+            "library": "intuition.library",
+            "function": "SetPointer",
+            "inputs": [],
+        }
+    }
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/bloodwych/listing", {})
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert rows_data[0]["api_call"] is None
+    assert rows_data[1]["api_call"] == {
+        "library": "intuition.library",
+        "function": "SetPointer",
+        "inputs": [],
+    }
+
+
+def test_route_listing_does_not_cross_apply_api_call_metadata_between_hunks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="moveq #1,d0\n",
+            addr=0x10,
+            source_context=BlockRowContext(kind="core-block", hunk_index=1),
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="jsr _LVOOpenLibrary(a6)\n",
+            addr=0x10,
+            source_context=BlockRowContext(kind="core-block", hunk_index=3),
+        ),
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
+        (3, 0x10): {
+            "library": "exec.library",
+            "function": "OpenLibrary",
+            "inputs": [],
+        }
+    }
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/bloodwych/listing", {})
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert rows_data[0]["api_call"] is None
+    assert rows_data[1]["api_call"] == {
+        "library": "exec.library",
+        "function": "OpenLibrary",
+        "inputs": [],
     }
 
 

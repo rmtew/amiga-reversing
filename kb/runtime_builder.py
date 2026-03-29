@@ -425,9 +425,11 @@ class OsRuntimeMeta(TypedDict):
     compatibility_versions: list[str]
     include_min_versions: dict[str, str]
     resident_autoinit_words: list[str]
+    resident_autoinit_word_stream_formats: dict[str, str]
     resident_autoinit_supports_short_vectors: bool
     resident_vector_prefixes: dict[str, list[str]]
     named_base_structs: dict[str, str]
+    typed_data_stream_formats: dict[str, object]
     library_lvo_owners: dict[str, OsIncludeOwner]
 
 
@@ -1733,9 +1735,11 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    compatibility_versions: tuple[str, ...] = ()",
         "    include_min_versions: dict[str, str] = field(default_factory=dict)",
         "    resident_autoinit_words: tuple[str, ...] = ()",
+        "    resident_autoinit_word_stream_formats: dict[str, str] = field(default_factory=dict)",
         "    resident_autoinit_supports_short_vectors: bool = False",
         "    resident_vector_prefixes: dict[str, tuple[str, ...]] = field(default_factory=dict)",
         "    named_base_structs: dict[str, str] = field(default_factory=dict)",
+        "    typed_data_stream_formats: dict[str, object] = field(default_factory=dict)",
         "    library_lvo_owners: dict[str, object] = field(default_factory=dict)",
         "",
         "@dataclass(frozen=True, slots=True)",
@@ -1834,9 +1838,11 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         f"    compatibility_versions={tuple(meta['compatibility_versions'])!r},",
         f"    include_min_versions={_render_py(dict(sorted(meta['include_min_versions'].items())))} ,",
         f"    resident_autoinit_words={_render_py(tuple(meta['resident_autoinit_words']))} ,",
+        f"    resident_autoinit_word_stream_formats={_render_py(dict(sorted(meta['resident_autoinit_word_stream_formats'].items())))} ,",
         f"    resident_autoinit_supports_short_vectors={_render_py(meta['resident_autoinit_supports_short_vectors'])} ,",
         f"    resident_vector_prefixes={_render_py({kind: tuple(names) for kind, names in sorted(meta['resident_vector_prefixes'].items())})} ,",
         f"    named_base_structs={_render_py(dict(sorted(meta['named_base_structs'].items())))} ,",
+        f"    typed_data_stream_formats={_render_py(dict(sorted(meta.get('typed_data_stream_formats', {}).items())))} ,",
         f"    library_lvo_owners={_render_py(dict(sorted(meta['library_lvo_owners'].items())))} ,",
         ")",
         "",
@@ -2600,9 +2606,14 @@ def _build_os_runtime() -> OsRuntimePayload:
             "compatibility_versions": canonical["_meta"]["compatibility_versions"],
             "include_min_versions": canonical["_meta"]["include_min_versions"],
             "resident_autoinit_words": canonical["_meta"]["resident_autoinit_words"],
+            "resident_autoinit_word_stream_formats": canonical["_meta"]["resident_autoinit_word_stream_formats"],
             "resident_autoinit_supports_short_vectors": canonical["_meta"]["resident_autoinit_supports_short_vectors"],
             "resident_vector_prefixes": canonical["_meta"]["resident_vector_prefixes"],
             "named_base_structs": canonical["_meta"]["named_base_structs"],
+            "typed_data_stream_formats": cast(
+                dict[str, object],
+                canonical["_meta"].get("typed_data_stream_formats", {}),
+            ),
             "library_lvo_owners": canonical["_meta"]["library_lvo_owners"],
         },
         "VALUE_DOMAINS": {

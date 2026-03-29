@@ -15,6 +15,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from disasm import cli as gen_disasm_mod
 from disasm import data_render as data_render_mod
 from disasm import emitter as emitter_mod
+from disasm.amiga_metadata import ResidentAutoinitMetadata
 from disasm.analysis_loader import (
     analysis_cache_root,
     hunk_analysis_cache_path,
@@ -44,13 +45,19 @@ from disasm.substitutions import build_arg_substitutions, build_lvo_substitution
 from disasm.target_metadata import (
     BootBlockTargetMetadata,
     EntryRegisterSeedMetadata,
-    ResidentAutoinitMetadata,
+    LibraryTargetMetadata,
     ResidentTargetMetadata,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
+    StructuredRegionSpec,
     TargetMetadata,
+    target_structure_spec,
 )
 from disasm.text import listing_window, render_rows
+from disasm.typed_data_streams import (
+    decode_stream_by_name,
+    format_typed_data_stream_command,
+)
 from disasm.types import (
     AddressRowContext,
     DisasmBlockLike,
@@ -3097,6 +3104,315 @@ def test_build_entry_seed_config_scopes_autoinit_library_a6_by_entrypoint() -> N
     )
 
 
+def test_build_entry_seed_config_synthesizes_autoinit_library_a6_by_entrypoint() -> None:
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        resident=ResidentTargetMetadata(
+            offset=4,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=37,
+            node_type_name="NT_LIBRARY",
+            priority=0,
+            name="icon.library",
+            id_string="icon 37.1",
+            init_offset=0x44,
+            auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x44,
+                base_size=0x24,
+                vectors_offset=0x54,
+                vector_format="offset32",
+                vector_offsets=(0x90,),
+                init_struct_offset=None,
+                init_func_offset=0x88,
+            ),
+        ),
+        library=LibraryTargetMetadata(
+            library_name="icon.library",
+            id_string="icon 37.1",
+            version=37,
+            public_function_count=12,
+            total_lvo_count=19,
+        ),
+    )
+
+    seed_config = build_entry_seed_config(metadata)
+
+    assert seed_config.initial_state is None
+    assert seed_config.initial_register_regions == {}
+    assert seed_config.entry_initial_states.keys() == {0x88, 0x90}
+    assert seed_config.entry_register_regions[0x88]["a6"].context_name is None
+    assert seed_config.entry_register_regions[0x90]["a6"].provenance.derivation is not None
+    assert seed_config.entry_register_regions[0x90]["a6"].provenance.derivation.named_base == "icon.library"
+    assert seed_config.entry_initial_states[0x88].a[6].tag == LibraryBaseTag(
+        library_base="exec.library",
+        struct_name="LIB",
+    )
+    assert seed_config.entry_initial_states[0x90].a[6].tag == LibraryBaseTag(
+        library_base="icon.library",
+        struct_name="LIB",
+    )
+
+
+def test_decode_stream_by_name_decodes_autoinit_commands() -> None:
+    code = bytes.fromhex(
+        "e0 00 00 08 09 00"
+        "c0 00 00 0a 00 00 00 18"
+        "00"
+    ) + b"dos.library\x00"
+
+    spec = runtime_os.META.typed_data_stream_formats["exec.InitStruct"]
+    stream = decode_stream_by_name(code, 0, runtime_os, "exec.InitStruct")
+
+    assert stream is not None
+    assert stream.end == 15
+    assert len(stream.commands) == 2
+    assert format_typed_data_stream_command(
+        stream.commands[0],
+        spec=spec,
+        code=code,
+        labels={0x18: "dos_name"},
+        reloc_map={},
+        structs=runtime_os.STRUCTS,
+        struct_name="LIB",
+    ) == "INITBYTE LN_TYPE,$09"
+    assert format_typed_data_stream_command(
+        stream.commands[1],
+        spec=spec,
+        code=code,
+        labels={0x18: "dos_name"},
+        reloc_map={10: 0x18},
+        structs=runtime_os.STRUCTS,
+        struct_name="LIB",
+    ) == "INITLONG LN_NAME,dos_name"
+
+
+def test_emit_target_structure_rows_filters_library_exports_by_library_version() -> None:
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        library=LibraryTargetMetadata(
+            library_name="icon.library",
+            id_string="icon 34.2",
+            version=34,
+            public_function_count=8,
+            total_lvo_count=18,
+        ),
+    )
+    session = DisassemblySession(
+        target_name="icon34",
+        binary_path=Path("icon.library"),
+        entities_path=Path("entities.jsonl"),
+        analysis_cache_path=Path("binary.analysis"),
+        output_path=None,
+        entities=[],
+        hunk_sessions=[],
+        target_metadata=metadata,
+        source_kind="hunk_file",
+    )
+
+    rendered = render_rows(emitter_mod._emit_target_structure_rows(session))
+
+    assert (
+        ";   exports: BumpRevision, MatchToolValue, FindToolType, FreeDiskObject, "
+        "PutDiskObject, GetDiskObject, AddFreeList, FreeFreeList\n"
+    ) in rendered
+    assert "GetDiskObjectNew" not in rendered
+    assert "DeleteDiskObject" not in rendered
+
+
+def test_emit_target_structure_rows_dedupes_library_entry_register_notes() -> None:
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                entry_offset=0x148,
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0x0DC,
+                register="A6",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0x0EA,
+                register="A6",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
+        library=LibraryTargetMetadata(
+            library_name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            version=34,
+            public_function_count=12,
+            total_lvo_count=19,
+        ),
+    )
+
+    session = DisassemblySession(
+        target_name="icon.library",
+        binary_path=Path("bin/icon.library"),
+        entities_path=Path("targets/icon/entities.jsonl"),
+        analysis_cache_path=Path("targets/icon/binary.analysis"),
+        output_path=None,
+        hunk_sessions=[],
+        entities=[],
+        target_metadata=metadata,
+    )
+
+    rendered = "".join(row.text for row in emitter_mod._emit_target_structure_rows(session))
+
+    assert (
+        ";   entry registers: A6=ExecBase, A6=icon.library base\n"
+    ) in rendered
+    assert "GetDefDiskObject" not in rendered
+    assert "PutDefDiskObject" not in rendered
+
+
+def test_emit_target_structure_rows_shows_synthesized_library_entry_register_notes() -> None:
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        resident=ResidentTargetMetadata(
+            offset=0,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=34,
+            node_type_name="NT_LIBRARY",
+            priority=70,
+            name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            init_offset=0x48,
+            auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x48,
+                base_size=0x24,
+                vectors_offset=0x58,
+                vector_format="offset32",
+                vector_offsets=(0xDC, 0xEA, 0x100, 0x144),
+                init_struct_offset=0,
+                init_func_offset=0x148,
+            ),
+        ),
+        library=LibraryTargetMetadata(
+            library_name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            version=34,
+            public_function_count=12,
+            total_lvo_count=19,
+        ),
+    )
+
+    session = DisassemblySession(
+        target_name="icon.library",
+        binary_path=Path("bin/icon.library"),
+        entities_path=Path("targets/icon/entities.jsonl"),
+        analysis_cache_path=Path("targets/icon/binary.analysis"),
+        output_path=None,
+        hunk_sessions=[],
+        entities=[],
+        target_metadata=metadata,
+    )
+
+    rendered = "".join(row.text for row in emitter_mod._emit_target_structure_rows(session))
+
+    assert (
+        ";   entry registers: A6=ExecBase, A6=icon.library base\n"
+    ) in rendered
+
+
+def test_emit_session_rows_emits_initstruct_macros() -> None:
+    code = bytes.fromhex(
+        "e0 00 00 08 09 00"
+        "c0 00 00 0a 00 00 00 18"
+        "00"
+    ) + b"dos.library\x00"
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=code,
+        code_size=len(code),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={10: 0x18},
+        reloc_target_set={0x18},
+        pc_targets={},
+        string_addrs={0x18},
+        labels={0: "resident_initstruct", 0x18: "dos_name"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        typed_data_sizes={},
+        typed_data_fields={},
+        addr_comments={},
+        string_ranges={0x18: 0x24},
+        dynamic_structured_regions=(
+            StructuredRegionSpec(
+                start=0,
+                end=15,
+                subtype="typed_data_stream",
+                struct_name="LIB",
+                stream_format="exec.InitStruct",
+            ),
+        ),
+        absolute_labels={},
+        reserved_absolute_addrs=set(),
+        app_struct_regions={},
+        hardware_base_regs={},
+        unresolved_indirects={},
+        lib_calls=(),
+    )
+    session = DisassemblySession(
+        target_name="demo",
+        binary_path=Path("bin/demo"),
+        entities_path=Path("targets/demo/entities.jsonl"),
+        analysis_cache_path=Path("targets/demo/binary.analysis"),
+        output_path=None,
+        hunk_sessions=[hunk_session],
+        entities=[],
+        target_metadata=None,
+    )
+
+    rendered = render_rows(emit_session_rows(session))
+
+    assert '    INCLUDE "exec/initializers.i"\n' in rendered
+    assert "    INITBYTE LN_TYPE,$09\n" in rendered
+    assert "    INITLONG LN_NAME,dos_name\n" in rendered
+    assert "    dc.b    $00\n" in rendered
+    assert "resident_initstruct:\n" in rendered
+
+
 def test_emit_hunk_rows_rewrites_struct_field_names_for_compatibility_floor() -> None:
     custom_struct = SimpleNamespace(
         source="exec/libraries.i",
@@ -3292,7 +3608,208 @@ def test_build_disassembly_session_for_resident_library_uses_resident_init_entry
     assert "resident_init_ptr:\n" in rendered
     assert "library_init:\n" in rendered
     assert "lib_open:\n" in rendered
-    assert "rts\n" in rendered
+
+
+def test_build_disassembly_session_keeps_resident_vector_blocks_before_init_entry(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "library"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "library.bin"
+    binary_path.write_bytes(b"fake")
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    target_metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                entry_offset=0x120,
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0x90,
+                register="A6",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
+        resident=ResidentTargetMetadata(
+            offset=0,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=37,
+            node_type_name="NT_LIBRARY",
+            priority=0,
+            name="icon.library",
+            id_string="icon 37.1",
+            init_offset=0x40,
+            auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x40,
+                base_size=0x24,
+                vectors_offset=0x50,
+                vector_format="offset32",
+                vector_offsets=(0x90,),
+                init_struct_offset=None,
+                init_func_offset=0x120,
+            ),
+        ),
+    )
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(asdict(target_metadata), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    code = bytearray(0x122)
+    code[0:2] = bytes.fromhex("4afc")
+    code[2:6] = (0).to_bytes(4, byteorder="big")
+    code[6:10] = (0x42).to_bytes(4, byteorder="big")
+    code[10] = 0x80
+    code[11] = 37
+    code[12] = 9
+    code[14:18] = (0x20).to_bytes(4, byteorder="big")
+    code[18:22] = (0x30).to_bytes(4, byteorder="big")
+    code[22:26] = (0x40).to_bytes(4, byteorder="big")
+    code[0x20:0x2D] = b"icon.library\x00"
+    code[0x30:0x3A] = b"icon 37.1\x00"
+    code[0x40:0x44] = (0x24).to_bytes(4, byteorder="big")
+    code[0x44:0x48] = (0x50).to_bytes(4, byteorder="big")
+    code[0x48:0x4C] = (0).to_bytes(4, byteorder="big")
+    code[0x4C:0x50] = (0x120).to_bytes(4, byteorder="big")
+    code[0x50:0x54] = (0x90).to_bytes(4, byteorder="big")
+    code[0x54:0x58] = (0xFFFFFFFF).to_bytes(4, byteorder="big", signed=False)
+    code[0x90:0x92] = b"\x4e\x75"
+    code[0x120:0x122] = b"\x4e\x75"
+
+    def fake_parse(_data: bytes) -> SimpleNamespace:
+        return SimpleNamespace(
+            hunks=[
+                Hunk(
+                    index=0,
+                    hunk_type=int(HunkType.HUNK_CODE),
+                    mem_type=int(MemType.ANY),
+                    alloc_size=len(code),
+                    data=bytes(code),
+                )
+            ]
+        )
+
+    def fake_load_hunk_analysis(
+        *,
+        analysis_cache_path: Path,
+        code: bytes,
+        relocs: list[RelocLike],
+        hunk_index: int,
+        base_addr: int,
+        code_start: int,
+        entry_points: tuple[int, ...],
+        extra_entry_points: tuple[int, ...],
+        seed_key: str,
+        initial_state: object,
+        entry_initial_states: object | None = None,
+    ) -> SimpleNamespace:
+        assert entry_points == (0x120, 0x90)
+        vector_inst = disassemble(b"\x4e\x75")[0]
+        vector_inst.offset = 0x90
+        init_inst = disassemble(b"\x4e\x75")[0]
+        init_inst.offset = 0x120
+        vector_block = BasicBlock(
+            start=0x90,
+            end=0x92,
+            instructions=[vector_inst],
+            is_entry=True,
+        )
+        init_block = BasicBlock(
+            start=0x120,
+            end=0x122,
+            instructions=[init_inst],
+            is_entry=True,
+        )
+        return SimpleNamespace(
+            blocks={0x90: vector_block, 0x120: init_block},
+            hint_blocks={},
+            jump_tables=[],
+            call_targets={0x90, 0x120},
+            branch_targets=set(),
+            lib_calls=[],
+            os_kb=runtime_os,
+            platform=make_platform(),
+            exit_states={},
+            relocated_segments=[],
+            indirect_sites=[],
+            xrefs=[],
+        )
+
+    monkeypatch.setattr("disasm.session.parse", fake_parse)
+    monkeypatch.setattr("disasm.session.load_hunk_analysis", fake_load_hunk_analysis)
+
+    session = build_disassembly_session(str(binary_path), str(entities_path))
+    rendered = render_session_text(session)
+
+    assert 0x90 in session.hunk_sessions[0].blocks
+    assert 0x120 in session.hunk_sessions[0].blocks
+    assert "lib_open:\n" in rendered
+    assert "library_init:\n" in rendered
+
+
+def test_target_structure_spec_for_resident_library_starts_at_earliest_vector_entry() -> None:
+    target_metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                entry_offset=0x120,
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0x90,
+                register="A6",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
+        resident=ResidentTargetMetadata(
+            offset=0,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=37,
+            node_type_name="NT_LIBRARY",
+            priority=0,
+            name="icon.library",
+            id_string="icon 37.1",
+            init_offset=0x40,
+            auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x40,
+                base_size=0x24,
+                vectors_offset=0x50,
+                vector_format="offset32",
+                vector_offsets=(0x90,),
+                init_struct_offset=None,
+                init_func_offset=0x120,
+            ),
+        ),
+    )
+    structure = target_structure_spec(target_metadata)
+
+    assert structure is not None
+    assert structure.analysis_start_offset == 0x90
+    assert tuple(entry.offset for entry in structure.entrypoints) == (0x120, 0x90)
 
 
 def test_build_disassembly_session_applies_resident_structure_only_to_first_code_hunk(

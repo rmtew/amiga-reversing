@@ -9,6 +9,7 @@ from kb.ndk_parser import (
     canonicalize_json,
     collect_raw_constants_from_include_dir,
     evaluate_all_constants,
+    parse_asm_include,
     parse_callback_typedefs,
     parse_clib_prototypes,
     parse_fd_file,
@@ -1329,6 +1330,9 @@ def test_build_os_compatibility_kb_records_resident_autoinit_contract(tmp_path: 
         "structure_init",
         "init_func",
     ]
+    assert cast(dict[str, str], payload["resident_autoinit_word_stream_formats"]) == {
+        "structure_init": "exec.InitStruct",
+    }
     assert cast(bool, payload["resident_autoinit_supports_short_vectors"]) is True
     assert cast(dict[str, list[str]], payload["resident_vector_prefixes"]) == {
         "device": [
@@ -1346,6 +1350,132 @@ def test_build_os_compatibility_kb_records_resident_autoinit_contract(tmp_path: 
             "LIB_EXTFUNC",
         ],
     }
+
+def test_parse_asm_include_extracts_typed_data_stream_format_from_initializers(
+    tmp_path: Path,
+) -> None:
+    include_dir = tmp_path / "INCLUDE_I" / "EXEC"
+    include_dir.mkdir(parents=True)
+    include_path = include_dir / "INITIALIZERS.I"
+    include_path.write_text(
+        "\n".join([
+            "** Macros for creating InitStruct() tables",
+            "",
+            "INITBYTE MACRO ; &offset,&value",
+            "        IFLE    (\\1)-255",
+            "        DC.B    $a0,\\1",
+            "        DC.B    \\2,0",
+            "        MEXIT",
+            "        ENDC",
+            "        DC.B    $e0,0",
+            "        DC.W    \\1",
+            "        DC.B    \\2,0",
+            "        ENDM",
+            "",
+            "INITWORD MACRO ; &offset,&value",
+            "        IFLE    (\\1)-255",
+            "        DC.B    $90,\\1",
+            "        DC.W    \\2",
+            "        MEXIT",
+            "        ENDC",
+            "        DC.B    $d0,0",
+            "        DC.W    \\1",
+            "        DC.W    \\2",
+            "        ENDM",
+            "",
+            "INITLONG MACRO ; &offset,&value",
+            "        IFLE    (\\1)-255",
+            "        DC.B    $80,\\1",
+            "        DC.L    \\2",
+            "        MEXIT",
+            "        ENDC",
+            "        DC.B    $c0,0",
+            "        DC.W    \\1",
+            "        DC.L    \\2",
+            "        ENDM",
+            "",
+            "INITSTRUCT MACRO ; &size,&offset,&value,&count",
+            "        DS.W    0",
+            "        IFC     '\\4',''",
+            "COUNT\\@ SET    0",
+            "        ENDC",
+            "        IFNC    '\\4',''",
+            "COUNT\\@ SET    \\4",
+            "        ENDC",
+            "CMD\\@   SET     (((\\1)<<4)!COUNT\\@)",
+            "        IFLE    (\\2)-255",
+            "        DC.B    (CMD\\@)!$80",
+            "        DC.B    \\2",
+            "        MEXIT",
+            "        ENDC",
+            "        DC.B    CMD\\@!$0C0",
+            "        DC.B    (((\\2)>>16)&$0FF)",
+            "        DC.W    ((\\2)&$0FFFF)",
+            "        ENDM",
+            "",
+        ]),
+        encoding="ascii",
+    )
+
+    payload = parse_asm_include(str(include_path), {}, {})
+
+    stream = cast(dict[str, object], payload["typed_data_stream_formats"]["exec.InitStruct"])
+    command_byte = cast(dict[str, object], stream["command_byte"])
+    constructors = cast(list[dict[str, object]], stream["constructors"])
+
+    assert cast(str, stream["include_path"]) == "exec/initializers.i"
+    assert cast(int, stream["alignment"]) == 2
+    assert cast(int, stream["terminator_opcode"]) == 0
+    assert cast(dict[str, int], command_byte["destination_modes"]) == {
+        "next_count": 0,
+        "next_repeat": 1,
+        "byte_offset_count": 2,
+        "long_offset_count": 3,
+    }
+    assert constructors == [
+        {
+            "name": "INITBYTE",
+            "unit_size": 1,
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "opcode": 0xA0,
+        },
+        {
+            "name": "INITBYTE",
+            "unit_size": 1,
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "opcode": 0xE0,
+        },
+        {
+            "name": "INITWORD",
+            "unit_size": 2,
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "opcode": 0x90,
+        },
+        {
+            "name": "INITWORD",
+            "unit_size": 2,
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "opcode": 0xD0,
+        },
+        {
+            "name": "INITLONG",
+            "unit_size": 4,
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "opcode": 0x80,
+        },
+        {
+            "name": "INITLONG",
+            "unit_size": 4,
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "opcode": 0xC0,
+        },
+    ]
 
 
 def test_canonicalize_json_sorts_nested_dict_keys() -> None:

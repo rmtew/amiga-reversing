@@ -487,11 +487,13 @@ def discover_blocks(code: bytes, base_addr: int = 0,
     """
     if entry_points is None:
         entry_points = [base_addr]
+    explicit_entry_points = set(entry_points)
 
     # Demand-driven disassembly: decode instructions as we follow flow,
     # rather than disassembling the entire code section upfront.
     # This handles mixed code/data sections where linear disassembly fails.
     instr_map: dict[int, Instruction] = {}  # addr -> Instruction (cache)
+    instruction_interiors: set[int] = set()
 
     def _disasm_at(addr: int) -> Instruction | None:
         """Disassemble one instruction at addr, caching the result."""
@@ -507,7 +509,11 @@ def discover_blocks(code: bytes, base_addr: int = 0,
         except (DecodeError, struct.error):
             return None
         instr_map[addr] = inst
+        instruction_interiors.update(range(addr + 1, addr + inst.size))
         return inst
+
+    def _is_mid_instruction_target(addr: int) -> bool:
+        return addr in instruction_interiors and addr not in instr_map
 
     # Pass 1: Follow control flow to discover block boundary addresses.
     # We only record block_starts here - edges are derived in pass 2.
@@ -517,6 +523,8 @@ def discover_blocks(code: bytes, base_addr: int = 0,
 
     while work:
         addr = work.pop()
+        if addr not in explicit_entry_points and _is_mid_instruction_target(addr):
+            continue
         if addr in visited:
             continue
         visited.add(addr)
@@ -540,7 +548,7 @@ def discover_blocks(code: bytes, base_addr: int = 0,
 
             if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL):
                 target = _extract_branch_target(inst, pc)
-                if target is not None:
+                if target is not None and not _is_mid_instruction_target(target):
                     block_starts.add(target)
                     if target not in visited:
                         work.append(target)
@@ -551,6 +559,11 @@ def discover_blocks(code: bytes, base_addr: int = 0,
                 break
 
             break  # return, trap, etc.
+
+    block_starts = {
+        addr for addr in block_starts
+        if addr in explicit_entry_points or not _is_mid_instruction_target(addr)
+    }
 
     # Pass 2: Build blocks and derive edges from each block's last instruction.
     sorted_starts = sorted(block_starts)
@@ -598,7 +611,7 @@ def discover_blocks(code: bytes, base_addr: int = 0,
 
         elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL):
             target = _extract_branch_target(last_inst, last_inst.offset)
-            if target is not None:
+            if target is not None and not _is_mid_instruction_target(target):
                 block.successors.append(target)
                 block.xrefs.append(XRef(
                     src=last_inst.offset, dst=target,

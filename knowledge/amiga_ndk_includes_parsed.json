@@ -51,6 +51,7 @@
       "exec/devices.i": "1.3",
       "exec/exec_lib.i": "1.3",
       "exec/execbase.i": "1.3",
+      "exec/initializers.i": "1.3",
       "exec/interrupts.i": "1.3",
       "exec/io.i": "1.3",
       "exec/libraries.i": "1.3",
@@ -1123,6 +1124,89 @@
         ],
         "remainder_policy": "error"
       }
+    },
+    "typed_data_stream_formats": {
+      "exec.InitStruct": {
+        "include_path": "exec/initializers.i",
+        "available_since": "1.3",
+        "alignment": 2,
+        "terminator_opcode": 0,
+        "command_byte": {
+          "destination_shift": 6,
+          "destination_mask": 3,
+          "size_shift": 4,
+          "size_mask": 3,
+          "count_mask": 15,
+          "invalid_size_value": 3,
+          "destination_modes": {
+            "next_count": 0,
+            "next_repeat": 1,
+            "byte_offset_count": 2,
+            "long_offset_count": 3
+          },
+          "source_sizes": {
+            "0": 4,
+            "1": 2,
+            "2": 1
+          }
+        },
+        "constructors": [
+          {
+            "name": "INITBYTE",
+            "unit_size": 1,
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "opcode": 160
+          },
+          {
+            "name": "INITBYTE",
+            "unit_size": 1,
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "opcode": 224
+          },
+          {
+            "name": "INITWORD",
+            "unit_size": 2,
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "opcode": 144
+          },
+          {
+            "name": "INITWORD",
+            "unit_size": 2,
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "opcode": 208
+          },
+          {
+            "name": "INITLONG",
+            "unit_size": 4,
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "opcode": 128
+          },
+          {
+            "name": "INITLONG",
+            "unit_size": 4,
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "opcode": 192
+          }
+        ],
+        "generic_constructor": {
+          "name": "INITSTRUCT",
+          "size_param_encoding": {
+            "4": 0,
+            "2": 1,
+            "1": 2
+          },
+          "count_bias": 1
+        }
+      }
+    },
+    "resident_autoinit_word_stream_formats": {
+      "structure_init": "exec.InitStruct"
     }
   },
   "constants": {

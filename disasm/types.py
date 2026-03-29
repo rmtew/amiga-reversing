@@ -143,6 +143,7 @@ class HeaderRowContext:
 @dataclass(frozen=True, slots=True)
 class BlockRowContext:
     kind: str
+    hunk_index: int
     verified_state: str | None = None
 
 

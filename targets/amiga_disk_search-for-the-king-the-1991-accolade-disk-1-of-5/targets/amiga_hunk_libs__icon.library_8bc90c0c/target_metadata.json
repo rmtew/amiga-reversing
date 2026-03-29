@@ -1,0 +1,226 @@
+{
+  "bootblock": null,
+  "entry_register_seeds": [
+    {
+      "context_name": null,
+      "entry_offset": 328,
+      "kind": "library_base",
+      "library_name": "exec.library",
+      "note": "ExecBase",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 220,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 234,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 256,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 324,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 410,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 424,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 442,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 460,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 478,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 492,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 506,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 518,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 536,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 460,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 550,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 564,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 578,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": null,
+      "entry_offset": 592,
+      "kind": "library_base",
+      "library_name": "icon.library",
+      "note": "icon.library base",
+      "register": "A6",
+      "struct_name": "LIB"
+    }
+  ],
+  "library": {
+    "id_string": "icon 34.2 (22 Jun 1988)\r\n",
+    "library_name": "icon.library",
+    "public_function_count": 12,
+    "total_lvo_count": 19,
+    "version": 34
+  },
+  "resident": {
+    "auto_init": true,
+    "autoinit": {
+      "base_size": 46,
+      "init_func_offset": 328,
+      "init_struct_offset": 164,
+      "payload_offset": 72,
+      "vector_format": "offset32",
+      "vector_offsets": [
+        220,
+        234,
+        256,
+        324,
+        410,
+        424,
+        442,
+        460,
+        478,
+        492,
+        506,
+        518,
+        536,
+        460,
+        550,
+        564,
+        578,
+        592
+      ],
+      "vectors_offset": 88
+    },
+    "flags": 128,
+    "id_string": "icon 34.2 (22 Jun 1988)\r\n",
+    "init_offset": 72,
+    "matchword": 19196,
+    "name": "icon.library",
+    "node_type_name": "library",
+    "offset": 4,
+    "priority": 70,
+    "version": 34
+  },
+  "target_type": "library",
+  "custom_structs": [],
+  "app_slot_regions": []
+}

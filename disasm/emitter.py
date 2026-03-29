@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import struct
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
+from typing import Any, cast
 
 from disasm.hint_validation import is_valid_hint_block
 from disasm.instruction_rows import (
@@ -21,9 +23,18 @@ from disasm.os_compat import (
 )
 from disasm.os_include_kb import load_os_include_kb
 from disasm.session import build_disassembly_session
-from disasm.target_metadata import StructuredRegionSpec, target_structure_spec
+from disasm.target_metadata import (
+    EntryRegisterSeedMetadata,
+    StructuredRegionSpec,
+    effective_entry_register_seeds,
+    target_structure_spec,
+)
 from disasm.text import ListingWindow, render_rows
 from disasm.text import listing_window as _listing_window
+from disasm.typed_data_streams import (
+    decode_stream_by_name,
+    try_render_typed_data_stream_macro,
+)
 from disasm.types import (
     BlockRowContext,
     DisassemblySession,
@@ -45,6 +56,45 @@ def _app_slot_equ_value(base_info: AppBaseInfo, offset: int) -> str:
         addr = (base_info.concrete + offset) & 0xFFFFFFFF
         return f"${addr:X}"
     return str(offset)
+
+
+def _fd_version_value(raw_version: str | None) -> int | None:
+    if raw_version is None:
+        return None
+    digits = "".join(ch for ch in raw_version if ch.isdigit())
+    if not digits:
+        return None
+    return int(digits)
+
+
+def _unique_entry_register_notes(
+    entry_register_seeds: tuple[EntryRegisterSeedMetadata, ...],
+) -> tuple[str, ...]:
+    seen: set[str] = set()
+    notes: list[str] = []
+    for seed in entry_register_seeds:
+        rendered = f"{seed.register}={seed.note}"
+        if rendered in seen:
+            continue
+        seen.add(rendered)
+        notes.append(rendered)
+    return tuple(notes)
+
+
+def _library_export_names(library_name: str, library_version: int) -> list[str]:
+    functions = runtime_os.LIBRARIES.get(library_name)
+    if functions is None:
+        return []
+    public_names: list[str] = []
+    for _lvo, name in sorted(functions.lvo_index.items(), key=lambda item: int(item[0])):
+        function = functions.functions[name]
+        if function.private:
+            continue
+        fd_version = _fd_version_value(function.fd_version)
+        if fd_version is not None and fd_version > library_version:
+            continue
+        public_names.append(name)
+    return public_names
 
 
 def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
@@ -75,7 +125,7 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
         if index > 0:
             body_rows.append(make_row("blank", "\n"))
         target_regions = () if structure is None or index != 0 else structure.regions
-        structured_regions = target_regions
+        structured_regions = target_regions + hunk_session.dynamic_structured_regions
         hunk_rows, hunk_floor = _emit_hunk_rows(
             hunk_session,
             include_header=len(session.hunk_sessions) > 1,
@@ -99,6 +149,7 @@ def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]
     if metadata is None:
         return []
     rows: list[ListingRow] = []
+    entry_register_seeds = effective_entry_register_seeds(metadata)
     if metadata.bootblock is not None:
         bootblock = metadata.bootblock
         rows.append(make_row("comment", "; Boot block structure\n"))
@@ -124,9 +175,9 @@ def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]
                     f"entry 0x{bootblock.entrypoint:X}\n",
                 )
             )
-        if metadata.entry_register_seeds:
+        if entry_register_seeds:
             registers = ", ".join(
-                f"{seed.register}={seed.note}" for seed in metadata.entry_register_seeds
+                f"{seed.register}={seed.note}" for seed in entry_register_seeds
             )
             rows.append(make_row("comment", f";   entry registers: {registers}\n"))
         rows.append(make_row("blank", "\n"))
@@ -145,9 +196,9 @@ def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]
     if metadata.library is not None:
         library = metadata.library
         rows.append(make_row("comment", "; Library structure\n"))
-        if metadata.entry_register_seeds:
+        if entry_register_seeds:
             registers = ", ".join(
-                f"{seed.register}={seed.note}" for seed in metadata.entry_register_seeds
+                _unique_entry_register_notes(entry_register_seeds)
             )
             rows.append(make_row("comment", f";   entry registers: {registers}\n"))
         rows.append(make_row("comment", f";   name: {library.library_name}\n"))
@@ -158,14 +209,9 @@ def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]
             rows.append(make_row("comment", f";   public functions: {library.public_function_count}\n"))
         if library.total_lvo_count is not None:
             rows.append(make_row("comment", f";   total LVOs: {library.total_lvo_count}\n"))
-        functions = runtime_os.LIBRARIES.get(library.library_name)
-        if functions is not None:
-            public_names = [
-                name for lvo, name in sorted(functions.lvo_index.items(), key=lambda item: int(item[0]))
-                if functions.functions[name].private is False
-            ]
-            if public_names:
-                rows.append(make_row("comment", f";   exports: {', '.join(public_names[:12])}\n"))
+        public_names = _library_export_names(library.library_name, library.version)
+        if public_names:
+            rows.append(make_row("comment", f";   exports: {', '.join(public_names[:12])}\n"))
         rows.append(make_row("blank", "\n"))
     return rows
 
@@ -190,7 +236,7 @@ def _collect_used_absolute_addrs(rows: list[ListingRow],
 
 def _struct_include_source(hunk_session: HunkDisassemblySession,
                            struct_name: str) -> str | None:
-    include_path = hunk_session.os_kb.STRUCTS[struct_name].source.lower()
+    include_path = str(hunk_session.os_kb.STRUCTS[struct_name].source).lower()
     if include_path not in hunk_session.os_kb.META.include_min_versions:
         return None
     return include_path
@@ -364,10 +410,63 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             hunk_session.data_access_sizes, hunk_session.typed_data_sizes,
             hunk_session.typed_data_fields, hunk_session.os_kb,
             hunk_session.addr_comments, entity_addr,
-            BlockRowContext(kind="data", verified_state=verified_state),
+            BlockRowContext(
+                kind="data",
+                hunk_index=hunk_session.hunk_index,
+                verified_state=verified_state,
+            ),
         ))
 
     def emit_structured_region(region: StructuredRegionSpec, entity_addr: int | None = None) -> None:
+        if region.subtype == "typed_data_stream" and region.stream_format is not None:
+            spec = hunk_session.os_kb.META.typed_data_stream_formats.get(region.stream_format)
+            if spec is None:
+                emit_data(region.start, region.end, entity_addr)
+                return
+            stream = decode_stream_by_name(
+                hunk_session.code,
+                region.start,
+                hunk_session.os_kb,
+                region.stream_format,
+            )
+            if stream is None:
+                emit_data(region.start, region.end, entity_addr)
+                return
+            stream_spec = cast(Mapping[str, Any], spec)
+            include_paths.add(str(stream_spec["include_path"]))
+            rows.extend(make_text_rows(
+                "label",
+                f"{hunk_session.labels.get(region.start, 'typed_data_stream')}:\n",
+                entity_addr=entity_addr,
+                addr=region.start,
+            ))
+            for command in stream.commands:
+                macro = try_render_typed_data_stream_macro(
+                    command,
+                    spec=spec,
+                    code=hunk_session.code,
+                    labels=hunk_session.labels,
+                    reloc_map=hunk_session.reloc_map,
+                    structs=hunk_session.os_kb.STRUCTS,
+                    struct_name=region.struct_name,
+                )
+                if macro is None:
+                    emit_data(command.start, command.end, entity_addr)
+                    continue
+                rows.extend(make_text_rows(
+                    "directive",
+                    f"    {macro}\n",
+                    entity_addr=entity_addr,
+                    addr=command.start,
+                    verified_state="verified",
+                    source_context=BlockRowContext(
+                        kind="data",
+                        hunk_index=hunk_session.hunk_index,
+                        verified_state="verified",
+                    ),
+                ))
+            emit_data(stream.end - 1, stream.end, entity_addr)
+            return
         by_offset = {
             field.offset: field
             for field in region.fields
@@ -401,7 +500,11 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     entity_addr=entity_addr,
                     addr=pos,
                     verified_state="verified",
-                    source_context=BlockRowContext(kind="data", verified_state="verified"),
+                    source_context=BlockRowContext(
+                        kind="data",
+                        hunk_index=hunk_session.hunk_index,
+                        verified_state="verified",
+                    ),
                 ))
             elif field.size == 4:
                 value = struct.unpack_from(">I", hunk_session.code, pos)[0]
@@ -414,7 +517,11 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     entity_addr=entity_addr,
                     addr=pos,
                     verified_state="verified",
-                    source_context=BlockRowContext(kind="data", verified_state="verified"),
+                    source_context=BlockRowContext(
+                        kind="data",
+                        hunk_index=hunk_session.hunk_index,
+                        verified_state="verified",
+                    ),
                 ))
             elif field.size == 2:
                 value = struct.unpack_from(">H", hunk_session.code, pos)[0]
@@ -427,7 +534,11 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     entity_addr=entity_addr,
                     addr=pos,
                     verified_state="verified",
-                    source_context=BlockRowContext(kind="data", verified_state="verified"),
+                    source_context=BlockRowContext(
+                        kind="data",
+                        hunk_index=hunk_session.hunk_index,
+                        verified_state="verified",
+                    ),
                 ))
             elif field.size == 1:
                 value = hunk_session.code[pos]
@@ -437,7 +548,11 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     entity_addr=entity_addr,
                     addr=pos,
                     verified_state="verified",
-                    source_context=BlockRowContext(kind="data", verified_state="verified"),
+                    source_context=BlockRowContext(
+                        kind="data",
+                        hunk_index=hunk_session.hunk_index,
+                        verified_state="verified",
+                    ),
                 ))
             else:
                 emit_data(pos, boundary, entity_addr)
@@ -505,7 +620,10 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                         inst, hunk_session, used_structs, include_arg_subs=True)
                     rows.append(make_instruction_row(
                         text, inst, hunk_session, entity_addr, "verified",
-                        source_context=BlockRowContext(kind="core-block"),
+                        source_context=BlockRowContext(
+                            kind="core-block",
+                            hunk_index=hunk_session.hunk_index,
+                        ),
                         comment_text=comment,
                         comment_parts=comment_parts,
                         used_structs=used_structs,
@@ -541,6 +659,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                         text, inst, hunk_session, entity_addr, "unverified",
                         source_context=BlockRowContext(
                             kind="hint-block",
+                            hunk_index=hunk_session.hunk_index,
                             verified_state="unverified",
                         ),
                         comment_text=comment,

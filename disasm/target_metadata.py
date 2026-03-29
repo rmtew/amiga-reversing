@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import cast
 
 from disasm.amiga_metadata import ResidentAutoinitMetadata
-from m68k.os_structs import OsStructFieldLike, OsStructLike
 from m68k_kb import runtime_os
 
 TARGET_METADATA_FILE_NAME = "target_metadata.json"
@@ -201,7 +200,7 @@ class LibraryTargetMetadata:
         )
 
 @dataclass(frozen=True, slots=True)
-class CustomStructFieldMetadata(OsStructFieldLike):
+class CustomStructFieldMetadata:
     name: str
     type: str
     offset: int
@@ -237,7 +236,7 @@ class CustomStructFieldMetadata(OsStructFieldLike):
         )
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class CustomStructMetadata(OsStructLike):
+class CustomStructMetadata:
     name: str
     size: int
     fields: tuple[CustomStructFieldMetadata, ...]
@@ -588,6 +587,7 @@ class StructuredRegionSpec:
     end: int
     subtype: str
     struct_name: str | None = None
+    stream_format: str | None = None
     fields: tuple[StructuredFieldSpec, ...] = ()
 
 
@@ -646,6 +646,83 @@ def _resident_vector_entrypoints(metadata: TargetMetadata, resident: ResidentTar
             symbol = function_name
         entrypoints.append(StructuredEntrypointSpec(offset=offset, label=_symbol_label(symbol)))
     return tuple(entrypoints)
+
+
+def _library_base_struct_name(library_name: str) -> str:
+    struct_name = runtime_os.META.named_base_structs.get(library_name)
+    if struct_name is None:
+        return "LIB"
+    if struct_name not in runtime_os.STRUCTS:
+        raise ValueError(
+            f"KB named base struct for {library_name} points to unknown struct {struct_name}"
+        )
+    return cast(str, struct_name)
+
+
+def effective_entry_register_seeds(
+    metadata: TargetMetadata | None,
+) -> tuple[EntryRegisterSeedMetadata, ...]:
+    if metadata is None:
+        return ()
+    if metadata.entry_register_seeds:
+        return metadata.entry_register_seeds
+
+    resident = metadata.resident
+    library = metadata.library
+    if resident is not None and resident.auto_init:
+        autoinit = resident.autoinit
+        if autoinit is None:
+            raise ValueError("Resident auto-init metadata is missing payload details")
+        library_name = (
+            library.library_name
+            if library is not None
+            else resident.name
+        )
+        if library_name is None:
+            raise ValueError("Resident auto-init metadata is missing library name")
+        vector_struct_name = _library_base_struct_name(library_name)
+        seeds: list[EntryRegisterSeedMetadata] = []
+        if autoinit.init_func_offset is not None:
+            seeds.append(
+                EntryRegisterSeedMetadata(
+                    entry_offset=autoinit.init_func_offset,
+                    register="A6",
+                    kind="library_base",
+                    library_name=runtime_os.META.exec_base_addr.library,
+                    struct_name="LIB",
+                    context_name=None,
+                    note="ExecBase",
+                )
+            )
+        for vector_offset in autoinit.vector_offsets:
+            seeds.append(
+                EntryRegisterSeedMetadata(
+                    entry_offset=vector_offset,
+                    register="A6",
+                    kind="library_base",
+                    library_name=library_name,
+                    struct_name=vector_struct_name,
+                    context_name=None,
+                    note=f"{library_name} base",
+                )
+            )
+        return tuple(seeds)
+
+    if library is not None:
+        library_name = library.library_name
+        return (
+            EntryRegisterSeedMetadata(
+                entry_offset=None,
+                register="A6",
+                kind="library_base",
+                library_name=library_name,
+                struct_name=_library_base_struct_name(library_name),
+                context_name=None,
+                note=f"{library_name} base",
+            ),
+        )
+
+    return ()
 
 
 def target_structure_spec(metadata: TargetMetadata | None) -> TargetStructureSpec | None:
@@ -721,7 +798,7 @@ def target_structure_spec(metadata: TargetMetadata | None) -> TargetStructureSpe
                 )
             )
             return TargetStructureSpec(
-                analysis_start_offset=entrypoints[0].offset,
+                analysis_start_offset=min(entrypoint.offset for entrypoint in entrypoints),
                 entrypoints=entrypoints,
                 regions=tuple(regions),
             )
@@ -1091,10 +1168,11 @@ def load_target_metadata(target_dir: Path) -> TargetMetadata | None:
 
 
 def target_metadata_seed_key(metadata: TargetMetadata | None) -> str:
-    if metadata is None or not metadata.entry_register_seeds:
+    seeds = effective_entry_register_seeds(metadata)
+    if not seeds:
         return "default"
     payload = json.dumps(
-        [asdict(seed) for seed in metadata.entry_register_seeds],
+        [asdict(seed) for seed in seeds],
         sort_keys=True,
         separators=(",", ":"),
     )

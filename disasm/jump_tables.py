@@ -25,6 +25,7 @@ def emit_jump_table_rows(
     emit_label: Callable[[int], None],
 ) -> int:
     jt: JumpTableRegion = hunk_session.jump_table_regions[pos]
+    hunk_index = getattr(hunk_session, "hunk_index", 0)
     if jt.pattern == "pc_inline_dispatch":
         from m68k.m68k_disasm import _decode_one, _Decoder
 
@@ -37,10 +38,14 @@ def emit_jump_table_rows(
             if inst is None:
                 break
             text, _comment, _comment_parts = render_instruction_text(
-                inst, hunk_session, used_structs, include_arg_subs=False)
+                inst, hunk_session, used_structs, include_arg_subs=False
+            )
             rows.append(make_instruction_row(
                 text, inst, hunk_session, entity_addr, "verified",
-                source_context=BlockRowContext(kind="jump-table-inline"),
+                source_context=BlockRowContext(
+                    kind="jump-table-inline",
+                    hunk_index=hunk_index,
+                ),
                 used_structs=used_structs,
                 include_arg_subs=False,
             ))
@@ -59,7 +64,11 @@ def emit_jump_table_rows(
                     hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
                     hunk_session.addr_comments,
                     entity_addr,
-                    BlockRowContext(kind="jump-table", verified_state="verified"),
+                    BlockRowContext(
+                        kind="jump-table",
+                        hunk_index=hunk_index,
+                        verified_state="verified",
+                    ),
                 ))
             tgt_label = hunk_session.labels[tgt]
             rows.extend(make_text_rows(
@@ -68,18 +77,25 @@ def emit_jump_table_rows(
                 entity_addr=entity_addr,
                 addr=entry_addr,
                 verified_state="verified",
-                source_context=BlockRowContext(kind="jump-table"),
+                source_context=BlockRowContext(
+                    kind="jump-table",
+                    hunk_index=hunk_index,
+                ),
             ))
             chunk_pos = entry_addr + 2
         if chunk_pos < jt.table_end:
-                rows.extend(emit_data_rows(
-                    hunk_session.code, chunk_pos, jt.table_end,
-                    hunk_session.labels, hunk_session.reloc_map,
-                    hunk_session.string_addrs, hunk_session.data_access_sizes,
-                    hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
-                    hunk_session.addr_comments,
-                    entity_addr,
-                    BlockRowContext(kind="jump-table", verified_state="verified"),
+            rows.extend(emit_data_rows(
+                hunk_session.code, chunk_pos, jt.table_end,
+                hunk_session.labels, hunk_session.reloc_map,
+                hunk_session.string_addrs, hunk_session.data_access_sizes,
+                hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
+                hunk_session.addr_comments,
+                entity_addr,
+                BlockRowContext(
+                    kind="jump-table",
+                    hunk_index=hunk_index,
+                    verified_state="verified",
+                ),
             ))
         return int(jt.table_end)
 
@@ -95,7 +111,11 @@ def emit_jump_table_rows(
                 hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
                 hunk_session.addr_comments,
                 entity_addr,
-                BlockRowContext(kind="jump-table", verified_state="verified"),
+                BlockRowContext(
+                    kind="jump-table",
+                    hunk_index=hunk_index,
+                    verified_state="verified",
+                ),
             ))
         if entry_addr in hunk_session.labels and entry_addr != pos:
             emit_label(entry_addr)
@@ -110,7 +130,10 @@ def emit_jump_table_rows(
             entity_addr=entity_addr,
             addr=entry_addr,
             verified_state="verified",
-            source_context=BlockRowContext(kind="jump-table"),
+            source_context=BlockRowContext(
+                kind="jump-table",
+                hunk_index=hunk_index,
+            ),
         ))
         chunk_pos = entry_addr + 2
     if chunk_pos < jt.table_end:
@@ -121,6 +144,10 @@ def emit_jump_table_rows(
             hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
             hunk_session.addr_comments,
             entity_addr,
-            BlockRowContext(kind="jump-table", verified_state="verified"),
+            BlockRowContext(
+                kind="jump-table",
+                hunk_index=hunk_index,
+                verified_state="verified",
+            ),
         ))
     return int(jt.table_end)

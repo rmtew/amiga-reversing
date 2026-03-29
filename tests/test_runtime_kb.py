@@ -1112,6 +1112,14 @@ def test_runtime_os_meta_is_typed() -> None:
     assert runtime.VALUE_DOMAINS["exec.signal_mask"].kind == "flags"
     assert runtime.VALUE_DOMAINS["exec.signal_mask"].composition == "bit_or"
     assert runtime.VALUE_DOMAINS["exec.signal_mask"].remainder_policy == "error"
+    initstruct = runtime.META.typed_data_stream_formats["exec.InitStruct"]
+    assert runtime.META.resident_autoinit_word_stream_formats == {
+        "structure_init": "exec.InitStruct"
+    }
+    assert runtime.META.include_min_versions["exec/initializers.i"] == "1.3"
+    assert initstruct["include_path"] == "exec/initializers.i"
+    assert initstruct["available_since"] == "1.3"
+    assert initstruct["constructors"][0]["name"] == "INITBYTE"
     assert not hasattr(runtime, "RUNTIME")
 
 

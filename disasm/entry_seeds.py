@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from disasm.target_metadata import TargetMetadata, target_metadata_seed_key
+from disasm.target_metadata import (
+    TargetMetadata,
+    effective_entry_register_seeds,
+    target_metadata_seed_key,
+)
 from m68k.abstract_values import _concrete, _unknown
 from m68k.m68k_executor import CPUState
 from m68k.memory_provenance import (
@@ -109,7 +113,8 @@ def _build_seed_state(seeds: tuple[object, ...]) -> tuple[
 
 
 def build_entry_seed_config(metadata: TargetMetadata | None) -> EntrySeedConfig:
-    if metadata is None or not metadata.entry_register_seeds:
+    seeds = effective_entry_register_seeds(metadata)
+    if not seeds:
         return EntrySeedConfig(
             initial_state=None,
             initial_register_regions={},
@@ -120,11 +125,9 @@ def build_entry_seed_config(metadata: TargetMetadata | None) -> EntrySeedConfig:
             seed_key="default",
         )
 
-    global_seeds = tuple(
-        seed for seed in metadata.entry_register_seeds if seed.entry_offset is None
-    )
+    global_seeds = tuple(seed for seed in seeds if seed.entry_offset is None)
     entry_seed_groups: dict[int, list[object]] = {}
-    for seed in metadata.entry_register_seeds:
+    for seed in seeds:
         if seed.entry_offset is None:
             continue
         entry_seed_groups.setdefault(seed.entry_offset, []).append(seed)

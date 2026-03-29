@@ -31,10 +31,12 @@ from disasm.metadata import HunkAnalysisLike, build_hunk_metadata
 from disasm.phase_timing import PhaseTimer
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.target_metadata import (
+    StructuredRegionSpec,
     TargetMetadata,
     load_required_target_metadata,
     target_structure_spec,
 )
+from disasm.typed_data_streams import decode_stream_by_name
 from disasm.types import (
     DisasmBlockLike,
     DisassemblySession,
@@ -59,6 +61,7 @@ from m68k.os_calls import (
     build_target_local_os_kb,
     propagate_typed_memory_regions,
 )
+from m68k_kb import runtime_os
 
 __all__ = [
     "DisassemblySession",
@@ -292,6 +295,12 @@ def _filter_pre_entry_blocks(
     return filtered
 
 
+def _analysis_entry_floor(entry_points: tuple[int, ...]) -> int | None:
+    if not entry_points:
+        return None
+    return min(entry_points)
+
+
 def _filter_hint_blocks_against_seeded_entities(
     hint_blocks: Mapping[int, DisasmBlockLike],
     target_metadata: TargetMetadata | None,
@@ -402,6 +411,58 @@ def _refresh_library_call_signatures(
             )
         )
     return refreshed
+
+
+def _dynamic_structured_regions(
+    *,
+    target_metadata: TargetMetadata | None,
+    hunk_index: int,
+    reloc_map: dict[int, int],
+    labels: dict[int, str],
+    code: bytes,
+) -> tuple[StructuredRegionSpec, ...]:
+    if (
+        target_metadata is None
+        or hunk_index != 0
+        or target_metadata.resident is None
+        or not target_metadata.resident.auto_init
+        or target_metadata.resident.autoinit is None
+    ):
+        return ()
+    autoinit = target_metadata.resident.autoinit
+    library_name = (
+        target_metadata.library.library_name
+        if target_metadata.library is not None
+        else target_metadata.resident.name
+    )
+    struct_name = (
+        runtime_os.META.named_base_structs.get(library_name, "LIB")
+        if library_name is not None
+        else "LIB"
+    )
+    stream_regions: list[StructuredRegionSpec] = []
+    for index, word_name in enumerate(runtime_os.META.resident_autoinit_words):
+        stream_format = runtime_os.META.resident_autoinit_word_stream_formats.get(word_name)
+        if stream_format is None:
+            continue
+        ptr_addr = autoinit.payload_offset + (index * 4)
+        stream_addr = reloc_map.get(ptr_addr)
+        if stream_addr is None or stream_addr == 0:
+            continue
+        stream = decode_stream_by_name(code, stream_addr, runtime_os, stream_format)
+        if stream is None:
+            continue
+        labels.setdefault(stream.start, f"resident_{word_name}")
+        stream_regions.append(
+            StructuredRegionSpec(
+                start=stream.start,
+                end=stream.end,
+                subtype="typed_data_stream",
+                struct_name=struct_name,
+                stream_format=stream_format,
+            )
+        )
+    return tuple(stream_regions)
 
 
 def build_disassembly_session(
@@ -606,7 +667,7 @@ def _build_hunk_session_data(
                 initial_state=seed_config.initial_state,
                 entry_initial_states=entry_initial_states,
             )
-    entry_point = entry_points[0] if entry_points else None
+    entry_point = _analysis_entry_floor(entry_points)
     blocks = _filter_pre_entry_blocks(ha.blocks, entry_point)
     hint_blocks: Mapping[int, DisasmBlockLike] = _filter_pre_entry_blocks(
         ha.hint_blocks, entry_point
@@ -728,6 +789,13 @@ def _build_hunk_session_data(
         and (entry_point is None or site.addr >= entry_point)
     }
     hint_blocks = metadata.hint_blocks
+    dynamic_structured_regions = _dynamic_structured_regions(
+        target_metadata=target_metadata,
+        hunk_index=hunk.index,
+        reloc_map=metadata.reloc_map,
+        labels=labels,
+        code=code,
+    )
     if source.kind == "raw_binary" and source.address_model == "runtime_absolute":
         blocks = _rebase_block_map(blocks, base_addr, code_size)
         hint_blocks = _rebase_block_map(metadata.hint_blocks, base_addr, code_size)
@@ -763,6 +831,14 @@ def _build_hunk_session_data(
             _rebase_local_addr(addr, base_addr): site
             for addr, site in unresolved_indirects.items()
         }
+        dynamic_structured_regions = tuple(
+            replace(
+                region,
+                start=_rebase_local_addr(region.start, base_addr),
+                end=_rebase_local_addr(region.end, base_addr),
+            )
+            for region in dynamic_structured_regions
+        )
         labels = {
             _maybe_rebase_addr(addr, base_addr, code_size): label
             for addr, label in labels.items()
@@ -881,7 +957,7 @@ def _build_hunk_session_data(
             jump_table_target_sources=metadata.jump_table_target_sources,
             lib_calls=tuple(lib_calls),
             region_map=region_map,
-            dynamic_structured_regions=(),
+            dynamic_structured_regions=dynamic_structured_regions,
             app_struct_regions=app_struct_regions,
             hardware_base_regs=hardware_base_regs,
             lvo_equs=lvo_equs,

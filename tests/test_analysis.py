@@ -293,10 +293,48 @@ def test_base_addr_with_code_start() -> None:
     assert cpu.d[0].is_known and cpu.d[0].concrete == 1
 
 
+def test_code_start_preserves_local_entry_offsets_for_hunk_analysis() -> None:
+    code = b"\x00" * 0x10 + struct.pack(">HH", 0x7001, 0x4E75)
+
+    ha = analyze_hunk(
+        code,
+        [],
+        hunk_index=0,
+        code_start=0x10,
+        entry_points=(0x10,),
+        print_fn=lambda *_: None,
+    )
+
+    assert 0x10 in ha.blocks
+    cpu, _ = ha.exit_states[0x10]
+    assert cpu.d[0].is_known and cpu.d[0].concrete == 1
+
+
 def test_analyze_skips_invalid_full_extension_words() -> None:
     result = analyze(bytes.fromhex("20312100"), propagate=False, entry_points=[0])
 
     assert result["blocks"] == {}
+
+
+def test_analyze_ignores_targets_into_known_instruction_interiors() -> None:
+    code = bytes.fromhex(
+        "156effe0003d"  # [0x00] move.b -32(a6),61(a2)
+        "256effe20048"  # [0x06] move.l -30(a6),72(a2)
+        "4e75"          # [0x0c] rts
+        "4e71"          # [0x0e] nop
+        "4eb900000004"  # [0x10] jsr $00000004 (mid-instruction)
+        "4e75"          # [0x16] rts
+    )
+
+    result = analyze(code, propagate=False, entry_points=[0, 0x10])
+
+    assert 0x04 not in result["blocks"]
+    assert 0x04 not in result["call_targets"]
+    assert [inst.text for inst in result["blocks"][0].instructions] == [
+        "move.b  -32(a6),61(a2)",
+        "move.l  -30(a6),72(a2)",
+        "rts",
+    ]
 
 
 def test_analyze_hunk_promotes_code_pointer_args_into_core_entries(

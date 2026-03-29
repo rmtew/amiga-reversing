@@ -33,6 +33,16 @@ targets/*/*
 !targets/*/benchmark.json
 !targets/*/binary_path.txt
 !targets/*/source_disk.json
+!targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/
+targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/*
+!targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/
+targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/*
+!targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/.project.json
+!targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/source_binary.json
+!targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/target_metadata.json
+!targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/libs__icon.library_8bc90c0c.s
+!targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/benchmark.json
+targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/binary.analysis*
 !targets/.disks/
 !targets/.disks/*/
 !targets/.disks/*/manifest.json

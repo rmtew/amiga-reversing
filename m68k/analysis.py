@@ -125,7 +125,7 @@ def resolve_reloc_target(reloc: RelocLike, offset: int, data: bytes) -> int | No
 
 # -- Analysis result ------------------------------------------------------
 
-_CACHE_VERSION = 17  # bump when cached analysis semantics/fields change
+_CACHE_VERSION = 18  # bump when cached analysis semantics/fields change
 
 
 class AnalysisCacheError(Exception):
@@ -681,6 +681,8 @@ def analyze_hunk(
 
     if code_start > 0:
         code = code[code_start:]
+        if base_addr == 0:
+            base_addr = code_start
     code_size = len(code)
     # Collect reloc targets
     reloc_targets = set()

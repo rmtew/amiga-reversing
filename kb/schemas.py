@@ -338,6 +338,41 @@ class OsStructFieldValueBinding(TypedDict, total=False):
     citation: str
 
 
+class OsTypedDataStreamCommandByte(TypedDict):
+    destination_shift: int
+    destination_mask: int
+    size_shift: int
+    size_mask: int
+    count_mask: int
+    invalid_size_value: int
+    destination_modes: dict[str, int]
+    source_sizes: dict[str, int]
+
+
+class OsTypedDataStreamConstructor(TypedDict):
+    name: str
+    unit_size: int
+    count: int
+    destination_mode: str
+    opcode: int
+
+
+class OsTypedDataStreamGenericConstructor(TypedDict):
+    name: str
+    size_param_encoding: dict[str, int]
+    count_bias: int
+
+
+class OsTypedDataStreamFormat(TypedDict):
+    include_path: str
+    available_since: str
+    alignment: int
+    terminator_opcode: int
+    command_byte: OsTypedDataStreamCommandByte
+    constructors: list[OsTypedDataStreamConstructor]
+    generic_constructor: OsTypedDataStreamGenericConstructor
+
+
 class OsMeta(TypedDict):
     calling_convention: OsCallingConvention
     exec_base_addr: OsExecBaseAddress
@@ -346,6 +381,7 @@ class OsMeta(TypedDict):
     compatibility_versions: list[str]
     include_min_versions: dict[str, str]
     resident_autoinit_words: list[str]
+    resident_autoinit_word_stream_formats: dict[str, str]
     resident_autoinit_supports_short_vectors: bool
     resident_vector_prefixes: dict[str, list[str]]
     named_base_structs: dict[str, str]
@@ -354,6 +390,7 @@ class OsMeta(TypedDict):
     api_input_type_overrides: list[OsApiInputTypeOverride]
     api_input_semantic_assertions: list[OsApiInputSemanticAssertion]
     struct_field_value_bindings: list[OsStructFieldValueBinding]
+    typed_data_stream_formats: dict[str, OsTypedDataStreamFormat]
     library_lvo_owners: dict[str, OsIncludeOwner]
 
 

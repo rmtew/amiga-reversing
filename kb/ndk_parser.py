@@ -34,6 +34,178 @@ from kb.runtime_builder import build_runtime_artifacts
 JsonDict = dict[str, Any]
 
 
+def _parse_macro_definitions(path: str) -> dict[str, list[str]]:
+    macros: dict[str, list[str]] = {}
+    current_macro: str | None = None
+    macro_body: list[str] = []
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        for raw_line in handle:
+            line = raw_line.rstrip()
+            match = re.match(r"^\s*(\w+)\s+MACRO\b", line)
+            if match:
+                current_macro = match.group(1)
+                macro_body = []
+                continue
+            if current_macro is None:
+                continue
+            if re.match(r"^\s+ENDM\b", line):
+                macros[current_macro] = macro_body[:]
+                current_macro = None
+                macro_body = []
+                continue
+            macro_body.append(line)
+    return macros
+
+
+def _normalize_macro_body(lines: list[str]) -> str:
+    return re.sub(r"\s+", "", "\n".join(lines))
+
+
+def _derive_typed_stream_name(include_text: str, source: str) -> str | None:
+    match = re.search(r"Macros\s+for\s+creating\s+([A-Za-z0-9_]+)\(\)\s+tables", include_text)
+    if match is not None:
+        return f"{source.split('/', 1)[0]}.{match.group(1)}"
+    return None
+
+
+def _canonical_stream_symbol(token: str) -> str:
+    if token.upper().startswith("INIT") and len(token) > 4:
+        return "Init" + token[4:].title()
+    return token.title()
+
+
+def _parser_asserted_typed_stream_defaults() -> JsonDict:
+    # Parser-asserted semantics for InitStruct-style stream macros.
+    # Macro bodies expose constructor opcodes and bit placement, but not the
+    # stream terminator/alignment contract or the semantic meaning of mode 0/1.
+    # Those come from the documented Exec InitStruct contract.
+    return {
+        "alignment": 2,
+        "terminator_opcode": 0,
+        "next_count_mode": 0,
+        "next_repeat_mode": 1,
+        "count_bias": 1,
+    }
+
+
+def _parse_typed_stream_constructors(macros: dict[str, list[str]], path: str) -> list[JsonDict]:
+    constructors: list[JsonDict] = []
+    for macro_name, body_lines in macros.items():
+        body = "\n".join(body_lines)
+        short_match = re.search(r"DC\.B\s+\$([0-9A-Fa-f]+)\s*,\s*\\1\b", body)
+        long_match = re.search(r"DC\.B\s+\$([0-9A-Fa-f]+)\s*,\s*0\b", body)
+        value_size_match = re.search(r"DC\.([BWL])\s+\\2\b", body)
+        if short_match is None or long_match is None or value_size_match is None:
+            continue
+        unit_size = {
+            "B": 1,
+            "W": 2,
+            "L": 4,
+        }[value_size_match.group(1)]
+        constructors.extend(
+            (
+                {
+                    "name": macro_name,
+                    "unit_size": unit_size,
+                    "count": 1,
+                    "destination_mode": "byte_offset_count",
+                    "opcode": int(short_match.group(1), 16),
+                },
+                {
+                    "name": macro_name,
+                    "unit_size": unit_size,
+                    "count": 1,
+                    "destination_mode": "long_offset_count",
+                    "opcode": int(long_match.group(1), 16),
+                },
+            )
+        )
+    if not constructors:
+        raise ValueError(f"{path}: unable to extract typed stream constructors from include macros")
+    return constructors
+
+
+def _parse_generic_typed_stream_macro(
+    macros: dict[str, list[str]],
+    *,
+    constructors: list[JsonDict],
+    path: str,
+) -> tuple[str, JsonDict]:
+    asserted = _parser_asserted_typed_stream_defaults()
+    for macro_name, body_lines in macros.items():
+        normalized = _normalize_macro_body(body_lines)
+        shift_match = re.search(r"CMD\\@SET\(\(\(\\1\)<<(\d+)\)!COUNT\\@\)", normalized)
+        if shift_match is None:
+            continue
+        short_match = re.search(r"DC\.B\(CMD\\@\)!\$([0-9A-Fa-f]+)", normalized)
+        long_match = re.search(r"DC\.BCMD\\@!\$([0-9A-Fa-f]+)", normalized)
+        if short_match is None or long_match is None:
+            continue
+        size_shift = int(shift_match.group(1))
+        size_mask = 0b11
+        destination_shift = size_shift + 2
+        destination_mask = 0b11
+        byte_offset_opcodes = [
+            int(constructor["opcode"])
+            for constructor in constructors
+            if constructor["destination_mode"] == "byte_offset_count"
+        ]
+        long_offset_opcodes = [
+            int(constructor["opcode"])
+            for constructor in constructors
+            if constructor["destination_mode"] == "long_offset_count"
+        ]
+        short_dest_bits = min(
+            (opcode >> destination_shift) & destination_mask
+            for opcode in byte_offset_opcodes
+        )
+        long_dest_bits = min(
+            (opcode >> destination_shift) & destination_mask
+            for opcode in long_offset_opcodes
+        )
+        source_sizes = {
+            str((int(constructor["opcode"]) >> size_shift) & size_mask): int(constructor["unit_size"])
+            for constructor in constructors
+            if constructor["destination_mode"] == "byte_offset_count"
+        }
+        if len(source_sizes) != 3:
+            raise ValueError(f"{path}: unable to derive typed stream source-size encodings")
+        size_param_encoding = {
+            str(constructor["unit_size"]): (
+                int(constructor["opcode"]) >> size_shift
+            ) & size_mask
+            for constructor in constructors
+        }
+        return (
+            macro_name,
+            {
+                "alignment": asserted["alignment"],
+                "terminator_opcode": asserted["terminator_opcode"],
+                "command_byte": {
+                    "destination_shift": destination_shift,
+                    "destination_mask": destination_mask,
+                    "size_shift": size_shift,
+                    "size_mask": size_mask,
+                    "count_mask": (1 << size_shift) - 1,
+                    "invalid_size_value": max(int(key) for key in source_sizes) + 1,
+                    "destination_modes": {
+                        "next_count": asserted["next_count_mode"],
+                        "next_repeat": asserted["next_repeat_mode"],
+                        "byte_offset_count": short_dest_bits,
+                        "long_offset_count": long_dest_bits,
+                    },
+                    "source_sizes": source_sizes,
+                },
+                "generic_constructor": {
+                    "name": macro_name,
+                    "size_param_encoding": size_param_encoding,
+                    "count_bias": asserted["count_bias"],
+                },
+            },
+        )
+    raise ValueError(f"{path}: unable to extract generic typed stream macro semantics")
+
+
 def canonicalize_json(value: Any) -> Any:
     if isinstance(value, dict):
         return {
@@ -1259,6 +1431,13 @@ def parse_asm_include(path: str, type_sizes: dict[str, int], all_constants: dict
     except StopIteration:
         source = os.path.basename(path)
 
+    typed_data_stream_formats: dict[str, JsonDict] = {}
+    normalized_source = source.replace("\\", "/").lower()
+    typed_data_stream_formats = parse_typed_data_stream_formats_from_macros(
+        path,
+        normalized_source,
+    )
+
     def finish_struct() -> None:
         nonlocal current_struct, current_fields, current_offset
         nonlocal current_base_offset, current_base_offset_symbol
@@ -1434,6 +1613,7 @@ def parse_asm_include(path: str, type_sizes: dict[str, int], all_constants: dict
         "structs": structs,
         "constants": constants,
         "named_base_structs": named_base_structs,
+        "typed_data_stream_formats": typed_data_stream_formats,
     }
 
 
@@ -2427,6 +2607,16 @@ def _build_resident_autoinit_contract(ndk_roots: dict[str, str]) -> JsonDict:
         raise ValueError("Missing primary-source exec/libraries.i standard vector definitions")
     if not device_prefixes:
         raise ValueError("Missing primary-source exec/io.i device vector definitions")
+    stream_format_match = re.search(
+        r"pointer to data table in ([a-z0-9_]+)/([a-z0-9_]+) format",
+        exec_doc_lower,
+    )
+    if stream_format_match is None:
+        raise ValueError("EXEC.DOC is missing resident autoinit stream-format binding")
+    stream_format_name = (
+        f"{stream_format_match.group(1)}."
+        f"{_canonical_stream_symbol(stream_format_match.group(2))}"
+    )
     return {
         "resident_autoinit_words": [
             "base_size",
@@ -2434,6 +2624,9 @@ def _build_resident_autoinit_contract(ndk_roots: dict[str, str]) -> JsonDict:
             "structure_init",
             "init_func",
         ],
+        "resident_autoinit_word_stream_formats": {
+            "structure_init": stream_format_name,
+        },
         "resident_autoinit_supports_short_vectors": "(short format offsets are also acceptable)" in exec_doc_lower,
         "resident_vector_prefixes": {
             "library": library_prefixes,
@@ -2466,11 +2659,47 @@ def _scan_struct_layouts_from_include(
     return layouts
 
 
+def parse_typed_data_stream_formats_from_macros(
+    path: str,
+    source: str,
+) -> dict[str, JsonDict]:
+    macros = _parse_macro_definitions(path)
+    if not macros:
+        return {}
+    include_text = Path(path).read_text(encoding="utf-8", errors="replace")
+    stream_name = _derive_typed_stream_name(include_text, source)
+    if stream_name is None:
+        return {}
+    constructors = _parse_typed_stream_constructors(macros, path)
+    generic_macro_name, generic_data = _parse_generic_typed_stream_macro(
+        macros,
+        constructors=constructors,
+        path=path,
+    )
+
+    return {
+        stream_name: {
+            "include_path": source,
+            "available_since": "1.0",
+            "alignment": generic_data["alignment"],
+            "terminator_opcode": generic_data["terminator_opcode"],
+            "command_byte": generic_data["command_byte"],
+            "constructors": constructors,
+            "generic_constructor": {
+                "name": generic_macro_name,
+                "size_param_encoding": generic_data["generic_constructor"]["size_param_encoding"],
+                "count_bias": generic_data["generic_constructor"]["count_bias"],
+            },
+        }
+    }
+
+
 def build_os_compatibility_kb(
     ndk_roots: dict[str, str],
     include_kb: JsonDict,
     structs: dict[str, JsonDict],
     all_constants: dict[str, object],
+    typed_data_stream_formats: dict[str, JsonDict] | None = None,
 ) -> JsonDict:
     include_min_versions: dict[str, str] = {}
     function_min_versions = build_fd_function_min_versions(ndk_roots)
@@ -2488,6 +2717,11 @@ def build_os_compatibility_kb(
         _normalize_include_relpath(cast(str, struct_def["source"]))
         for struct_def in structs.values()
     )
+    if typed_data_stream_formats is not None:
+        include_paths.update(
+            _normalize_include_relpath(cast(str, format_data["include_path"]))
+            for format_data in typed_data_stream_formats.values()
+        )
 
     scanned_structs: dict[tuple[str, str], dict[str, list[dict[str, int | str]]]] = {}
     for version, root in ndk_roots.items():
@@ -2568,6 +2802,7 @@ def build_os_compatibility_kb(
         "compatibility_versions": [version for version in COMPATIBILITY_VERSIONS if version in ndk_roots],
         "include_min_versions": include_min_versions,
         "resident_autoinit_words": resident_autoinit_contract["resident_autoinit_words"],
+        "resident_autoinit_word_stream_formats": resident_autoinit_contract["resident_autoinit_word_stream_formats"],
         "resident_autoinit_supports_short_vectors": resident_autoinit_contract["resident_autoinit_supports_short_vectors"],
         "resident_vector_prefixes": resident_autoinit_contract["resident_vector_prefixes"],
         "_function_min_versions": {
@@ -2631,6 +2866,7 @@ def main() -> None:
     raw_constants: dict[str, object] = {}
     raw_structs: dict[str, JsonDict] = {}
     raw_named_base_structs: dict[str, str] = {}
+    raw_typed_data_stream_formats: dict[str, JsonDict] = {}
     parsed_include_paths: list[str] = []
 
     include_subdirs = sorted([
@@ -2677,6 +2913,14 @@ def main() -> None:
                             f"Conflicting named base struct for {base_name}: "
                             f"{existing} vs {struct_name}")
                     raw_named_base_structs[base_name] = struct_name
+                for format_name, format_data in result["typed_data_stream_formats"].items():
+                    existing_format = raw_typed_data_stream_formats.get(format_name)
+                    if existing_format is not None and existing_format != format_data:
+                        raise ValueError(
+                            f"Conflicting typed data stream format for {format_name}: "
+                            f"{existing_format} vs {format_data}"
+                        )
+                    raw_typed_data_stream_formats[format_name] = format_data
 
     annotate_embedded_structs(raw_structs)
 
@@ -2705,6 +2949,7 @@ def main() -> None:
         include_kb,
         raw_structs,
         raw_constants,
+        raw_typed_data_stream_formats,
     )
     print(
         f"  {len(compatibility_kb['compatibility_versions'])} NDK versions, "
@@ -2715,6 +2960,12 @@ def main() -> None:
         raw_structs,
         raw_named_base_structs,
     )
+    for typed_stream_format in raw_typed_data_stream_formats.values():
+        include_path = cast(str, typed_stream_format["include_path"]).lower()
+        typed_stream_format["available_since"] = compatibility_kb["include_min_versions"].get(
+            include_path,
+            "1.0",
+        )
 
     # ========================================================================
     # 4. Parse autodocs
@@ -2778,16 +3029,18 @@ def main() -> None:
         "_meta": {
             "type_sizes": dict(sorted(type_sizes.items())),
             "lvo_slot_size": LVO_SLOT_SIZE,
-            "compatibility_versions": compatibility_kb["compatibility_versions"],
-            "include_min_versions": compatibility_kb["include_min_versions"],
-            "resident_autoinit_words": compatibility_kb["resident_autoinit_words"],
-            "resident_autoinit_supports_short_vectors": compatibility_kb["resident_autoinit_supports_short_vectors"],
+              "compatibility_versions": compatibility_kb["compatibility_versions"],
+              "include_min_versions": compatibility_kb["include_min_versions"],
+              "resident_autoinit_words": compatibility_kb["resident_autoinit_words"],
+              "resident_autoinit_word_stream_formats": compatibility_kb["resident_autoinit_word_stream_formats"],
+              "resident_autoinit_supports_short_vectors": compatibility_kb["resident_autoinit_supports_short_vectors"],
             "resident_vector_prefixes": compatibility_kb["resident_vector_prefixes"],
             "named_base_structs": named_base_structs,
             "value_domains": {},
             "api_input_value_bindings": [],
             "api_input_semantic_assertions": [],
             "struct_field_value_bindings": [],
+            "typed_data_stream_formats": raw_typed_data_stream_formats,
             "library_lvo_owners": include_kb["library_lvo_owners"],
         },
         "libraries": {},

@@ -8,23 +8,28 @@ from kb.os_reference import (
     merge_os_reference_payloads,
 )
 from kb.schemas import (
+    OsAbsoluteSymbol,
+    OsCallingConvention,
     OsConstant,
+    OsExecBaseAddress,
     OsFunction,
-    OsIncludeOwner,
     OsInput,
+    OsLibrary,
     OsOutput,
     OsReferencePayload,
     OsReturnsBase,
     OsReturnsMemory,
     OsStructDef,
     OsStructField,
+    OsTypedDataStreamFormat,
+    OsValueDomain,
 )
 from m68k import analysis as m68k_analysis
 from m68k import os_calls as m68k_os_calls
 from m68k_kb import runtime_os
 
 
-def _calling_convention(payload: dict[str, object]) -> runtime_os.CallingConvention:
+def _calling_convention(payload: OsCallingConvention) -> runtime_os.CallingConvention:
     return runtime_os.CallingConvention(
         scratch_regs=tuple(payload["scratch_regs"]),
         preserved_regs=tuple(payload["preserved_regs"]),
@@ -37,9 +42,9 @@ def _calling_convention(payload: dict[str, object]) -> runtime_os.CallingConvent
     )
 
 
-def _exec_base(payload: dict[str, object]) -> runtime_os.ExecBaseAddress:
+def _exec_base(payload: OsExecBaseAddress) -> runtime_os.ExecBaseAddress:
     return runtime_os.ExecBaseAddress(
-        address=int(payload["address"]),
+        address=payload["address"],
         library=str(payload["library"]),
         note=str(payload["note"]),
         seed_origin=str(payload["seed_origin"]),
@@ -48,9 +53,9 @@ def _exec_base(payload: dict[str, object]) -> runtime_os.ExecBaseAddress:
     )
 
 
-def _absolute_symbol(payload: dict[str, object]) -> runtime_os.AbsoluteSymbol:
+def _absolute_symbol(payload: OsAbsoluteSymbol) -> runtime_os.AbsoluteSymbol:
     return runtime_os.AbsoluteSymbol(
-        address=int(payload["address"]),
+        address=payload["address"],
         name=str(payload["name"]),
         note=str(payload["note"]),
         seed_origin=str(payload["seed_origin"]),
@@ -94,7 +99,7 @@ def _constant(payload: OsConstant) -> runtime_os.OsConstant:
     )
 
 
-def _value_domain(name: str, payload: dict[str, object]) -> runtime_os.OsValueDomain:
+def _value_domain(name: str, payload: OsValueDomain) -> runtime_os.OsValueDomain:
     return runtime_os.OsValueDomain(
         kind=str(payload["kind"]),
         members=tuple(payload["members"]),
@@ -161,7 +166,7 @@ def _function(payload: OsFunction) -> runtime_os.OsFunction:
     )
 
 
-def _library(payload: dict[str, object]) -> runtime_os.OsLibrary:
+def _library(payload: OsLibrary) -> runtime_os.OsLibrary:
     functions = payload["functions"]
     return runtime_os.OsLibrary(
         lvo_index=dict(payload["lvo_index"]),
@@ -172,16 +177,16 @@ def _library(payload: dict[str, object]) -> runtime_os.OsLibrary:
 def build_runtime_os_kb_from_payload(payload: OsReferencePayload) -> object:
     meta = payload["_meta"]
     api_input_value_domains: dict[str, dict[str, dict[str, str]]] = {}
-    for binding in meta["api_input_value_bindings"]:
-        api_input_value_domains.setdefault(binding["library"], {}).setdefault(
-            binding["function"], {}
-        )[binding["input"]] = binding["domain"]
+    for api_binding in meta["api_input_value_bindings"]:
+        api_input_value_domains.setdefault(api_binding["library"], {}).setdefault(
+            api_binding["function"], {}
+        )[api_binding["input"]] = api_binding["domain"]
     struct_field_value_domains: dict[str, dict[str | None, str]] = {}
-    for binding in meta["struct_field_value_bindings"]:
-        field_key = f"{binding['struct']}.{binding['field']}"
+    for field_binding in meta["struct_field_value_bindings"]:
+        field_key = f"{field_binding['struct']}.{field_binding['field']}"
         struct_field_value_domains.setdefault(field_key, {})[
-            binding.get("context_name")
-        ] = binding["domain"]
+            field_binding.get("context_name")
+        ] = field_binding["domain"]
     return SimpleNamespace(
         META=runtime_os.OsMeta(
             calling_convention=_calling_convention(meta["calling_convention"]),
@@ -193,6 +198,7 @@ def build_runtime_os_kb_from_payload(payload: OsReferencePayload) -> object:
             compatibility_versions=tuple(meta["compatibility_versions"]),
             include_min_versions=dict(meta["include_min_versions"]),
             resident_autoinit_words=tuple(meta["resident_autoinit_words"]),
+            resident_autoinit_word_stream_formats=dict(meta["resident_autoinit_word_stream_formats"]),
             resident_autoinit_supports_short_vectors=meta[
                 "resident_autoinit_supports_short_vectors"
             ],
@@ -201,10 +207,11 @@ def build_runtime_os_kb_from_payload(payload: OsReferencePayload) -> object:
                 for key, values in meta["resident_vector_prefixes"].items()
             },
             named_base_structs=dict(meta["named_base_structs"]),
-            library_lvo_owners={
-                key: cast(OsIncludeOwner, value)
-                for key, value in meta["library_lvo_owners"].items()
-            },
+            typed_data_stream_formats=cast(
+                dict[str, OsTypedDataStreamFormat],
+                dict(meta.get("typed_data_stream_formats", {})),
+            ),
+            library_lvo_owners=dict(meta["library_lvo_owners"]),
         ),
         VALUE_DOMAINS={
             name: _value_domain(name, domain)
@@ -227,10 +234,13 @@ def build_runtime_os_kb_from_payload(payload: OsReferencePayload) -> object:
 
 def load_live_os_reference_payload() -> OsReferencePayload:
     includes, other, corrections = load_split_os_reference_payloads()
-    return merge_os_reference_payloads(
-        includes=includes,
-        other=other,
-        corrections=corrections,
+    return cast(
+        OsReferencePayload,
+        merge_os_reference_payloads(
+            includes=includes,
+            other=other,
+            corrections=corrections,
+        ),
     )
 
 
