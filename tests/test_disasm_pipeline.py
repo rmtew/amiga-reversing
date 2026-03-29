@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -30,12 +30,16 @@ from disasm.hint_validation import (
     hint_block_has_supported_terminal_flow,
     is_valid_hint_block,
 )
-from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
 from disasm.instruction_rows import render_instruction_text
 from disasm.jump_tables import emit_jump_table_rows
 from disasm.metadata import build_hunk_metadata
 from disasm.os_include_kb import load_os_include_kb
-from disasm.session import _apply_seeded_code_annotations, build_disassembly_session
+from disasm.session import (
+    _apply_seeded_code_annotations,
+    _prepare_hunk_code,
+    _refresh_library_call_signatures,
+    build_disassembly_session,
+)
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.target_metadata import (
     BootBlockTargetMetadata,
@@ -70,7 +74,6 @@ from m68k.os_calls import (
     AppBaseInfo,
     AppBaseKind,
     CallArgumentAnnotation,
-    CallSetupAnalysis,
     LibraryBaseTag,
     LibraryCall,
     TypedMemoryRegion,
@@ -1250,13 +1253,102 @@ def test_analyze_call_setups_names_pc_relative_struct_argument_targets() -> None
         platform=make_platform(),
     )
 
-    assert result == CallSetupAnalysis(
-        arg_annotations={0: CallArgumentAnnotation("newScreen", "A0", "OpenScreen", "intuition.library")},
-        segment_data_symbols={0x000A: "openscreen_newscreen"},
-        segment_code_symbols={},
-        code_entry_points=(),
-        string_ranges={},
+    assert result.arg_annotations == {
+        0: CallArgumentAnnotation("newScreen", "A0", "OpenScreen", "intuition.library")
+    }
+    assert result.segment_data_symbols == {0x000A: "openscreen_newscreen"}
+    assert result.segment_struct_regions == {0x000A: "NewScreen"}
+    assert result.segment_code_symbols == {}
+    assert result.code_entry_points == ()
+    assert result.string_ranges == {}
+    assert result.typed_data_fields[0x000A] == ("NewScreen", "ns_LeftEdge", None)
+    assert result.typed_data_sizes[0x000A] == 2
+    assert result.typed_data_sizes[0x000C] == 2
+    assert result.typed_data_sizes[0x001A] == 4
+    assert result.typed_data_comments[0x000A] == "NewScreen.ns_LeftEdge"
+    assert result.typed_data_comments[0x000C] == "NewScreen.ns_TopEdge"
+    assert result.typed_data_comments[0x001A] == "NewScreen.ns_Font"
+
+
+def test_refresh_library_call_signatures_uses_current_os_kb_inputs() -> None:
+    call = LibraryCall(
+        addr=0x12,
+        block=0x10,
+        library="intuition.library",
+        function="SetPointer",
+        lvo=-270,
+        inputs=(runtime_os.OsInput(name="pointer", regs=("A1",), type="UWORD *", i_struct=None),),
     )
+    updated_input = runtime_os.OsInput(
+        name="pointer",
+        regs=("A1",),
+        type="struct SimpleSprite *",
+        i_struct="SimpleSprite",
+    )
+    updated_function = replace(
+        runtime_os.LIBRARIES["intuition.library"].functions["SetPointer"],
+        inputs=(updated_input,),
+    )
+    updated_library = replace(
+        runtime_os.LIBRARIES["intuition.library"],
+        functions={
+            **runtime_os.LIBRARIES["intuition.library"].functions,
+            "SetPointer": updated_function,
+        },
+    )
+    updated_os_kb = make_empty_os_kb()
+    updated_os_kb = SimpleNamespace(
+        META=updated_os_kb.META,
+        VALUE_DOMAINS=updated_os_kb.VALUE_DOMAINS,
+        API_INPUT_VALUE_DOMAINS=updated_os_kb.API_INPUT_VALUE_DOMAINS,
+        STRUCT_FIELD_VALUE_DOMAINS=updated_os_kb.STRUCT_FIELD_VALUE_DOMAINS,
+        STRUCTS=updated_os_kb.STRUCTS,
+        CONSTANTS=updated_os_kb.CONSTANTS,
+        LIBRARIES={
+            **runtime_os.LIBRARIES,
+            "intuition.library": updated_library,
+        },
+    )
+
+    refreshed = _refresh_library_call_signatures([call], updated_os_kb)
+
+    assert refreshed[0].inputs[0].type == "struct SimpleSprite *"
+    assert refreshed[0].inputs[0].i_struct == "SimpleSprite"
+
+
+def test_analyze_call_setups_extnewscreen_includes_inherited_fields() -> None:
+    lib_calls = [
+        LibraryCall(
+            addr=4,
+            block=0,
+            library="intuition.library",
+            function="OpenScreen",
+            lvo=-198,
+            inputs=(runtime_os.OsInput(name="newScreen", regs=("A0",),
+                                       type="struct ExtNewScreen *", i_struct="ExtNewScreen"),),
+        ),
+    ]
+    blocks = {
+        0: type("Block", (), {"instructions": [
+            Instruction(offset=0, size=4, opcode=0x41FA, text="lea 8(pc),a0", raw=b"\x41\xFA\x00\x08",
+                        kb_mnemonic="LEA", operand_size="l"),
+            Instruction(offset=4, size=2, opcode=0x4E75, text="rts", raw=b"\x4E\x75",
+                        kb_mnemonic="RTS", operand_size="w"),
+        ]})(),
+    }
+
+    result = analyze_call_setups(
+        blocks=blocks,
+        lib_calls=lib_calls,
+        os_kb=runtime_os,
+        code=b"\x00" * 64,
+        platform=make_platform(),
+    )
+
+    assert result.segment_struct_regions == {0x000A: "ExtNewScreen"}
+    assert result.typed_data_sizes[0x000A] == 2
+    assert result.typed_data_comments[0x000A] == "NewScreen.ns_LeftEdge"
+    assert result.typed_data_comments[0x002A] == "ExtNewScreen.ens_Extension"
 
 
 def test_analyze_call_setups_errors_on_conflicting_typed_names_for_same_segment_address() -> None:
@@ -1330,7 +1422,7 @@ def test_build_hunk_metadata_masks_hints_inside_typed_string_ranges() -> None:
 
 
 def test_prepare_hunk_code_relocates_payload_segment() -> None:
-    code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = prepare_hunk_code(
+    code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = _prepare_hunk_code(
         b"\xAA\xBB\x11\x22",
         [RelocatedSegment(file_offset=2, base_addr=6)],
     )
@@ -1342,12 +1434,12 @@ def test_prepare_hunk_code_relocates_payload_segment() -> None:
     assert reloc_base_addr == 6
 
 
-def test_build_session_object_uses_binary_analysis_suffix(tmp_path: Path) -> None:
+def test_disassembly_session_uses_binary_analysis_suffix(tmp_path: Path) -> None:
     binary_path = tmp_path / "demo.bin"
     entities_path = tmp_path / "entities.jsonl"
     output_path = tmp_path / "demo.s"
 
-    session = build_session_object(
+    session = DisassemblySession(
         target_name="demo",
         binary_path=binary_path,
         analysis_cache_path=binary_path.with_suffix(".analysis"),
@@ -1364,10 +1456,10 @@ def test_build_session_object_uses_binary_analysis_suffix(tmp_path: Path) -> Non
     assert session.profile_stages is True
 
 
-def test_build_hunk_session_preserves_metadata_and_analysis_fields() -> None:
+def test_hunk_disassembly_session_preserves_metadata_and_analysis_fields() -> None:
     block = _block()
     hint_block = _block(2, 3)
-    session = build_hunk_session(
+    session = HunkDisassemblySession(
         hunk_index=1,
         code=b"\x00\x01",
         code_size=2,
@@ -1398,6 +1490,8 @@ def test_build_hunk_session_preserves_metadata_and_analysis_fields() -> None:
         app_offsets={0x20: "app_dos_base"},
         arg_annotations={0x30: CallArgumentAnnotation("name", "D0", "OpenLibrary", "dos.library")},
         data_access_sizes={0x40: 2},
+        typed_data_sizes={},
+        typed_data_fields={},
         platform=make_platform(app_base=(6, 0x1000)),
         os_kb=make_empty_os_kb(),
         base_addr=0x400,
@@ -1405,6 +1499,13 @@ def test_build_hunk_session_preserves_metadata_and_analysis_fields() -> None:
         relocated_segments=[RelocatedSegment(file_offset=0, base_addr=0)],
         reloc_file_offset=0,
         reloc_base_addr=0,
+        string_ranges={},
+        dynamic_structured_regions=(),
+        absolute_labels={},
+        reserved_absolute_addrs=set(),
+        app_struct_regions={},
+        hardware_base_regs={},
+        unresolved_indirects={},
     )
 
     assert session.hunk_index == 1
@@ -1563,7 +1664,7 @@ def test_load_hunk_analysis_uses_cache_when_present(tmp_path: Path, monkeypatch:
 
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
     fake_os_kb = make_empty_os_kb()
-    monkeypatch.setattr("disasm.analysis_loader.runtime_os", fake_os_kb)
+    monkeypatch.setattr("disasm.analysis_loader.m68k_analysis.RUNTIME_OS_KB", fake_os_kb)
 
     result = load_hunk_analysis(
         analysis_cache_path=tmp_path / "demo.analysis",
@@ -1672,7 +1773,7 @@ def test_load_hunk_analysis_rebuilds_stale_cache(tmp_path: Path, monkeypatch: Mo
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
     monkeypatch.setattr("disasm.analysis_loader.analyze_hunk", fake_analyze_hunk)
     fake_os_kb = make_empty_os_kb()
-    monkeypatch.setattr("disasm.analysis_loader.runtime_os", fake_os_kb)
+    monkeypatch.setattr("disasm.analysis_loader.m68k_analysis.RUNTIME_OS_KB", fake_os_kb)
 
     result = load_hunk_analysis(
         analysis_cache_path=tmp_path / "demo.analysis",
@@ -1708,7 +1809,7 @@ def test_load_hunk_analysis_does_not_hide_non_cache_value_errors(tmp_path: Path,
         raise ValueError("unexpected parse bug")
 
     monkeypatch.setattr("disasm.analysis_loader.HunkAnalysis.load", fake_load)
-    monkeypatch.setattr("disasm.analysis_loader.runtime_os", make_empty_os_kb())
+    monkeypatch.setattr("disasm.analysis_loader.m68k_analysis.RUNTIME_OS_KB", make_empty_os_kb())
 
     with pytest.raises(ValueError, match="unexpected parse bug"):
         load_hunk_analysis(

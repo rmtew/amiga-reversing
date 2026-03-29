@@ -489,6 +489,98 @@ def test_analyze_call_setups_tracks_internal_absolute_strptr_segment_range() -> 
     assert setup.string_ranges == {0x000A: 0x0015}
 
 
+def test_analyze_call_setups_tracks_setpointer_payload_through_wrapper() -> None:
+    code = b""
+    code += struct.pack(">HI", 0x207C, 0x0000001C)  # $00 movea.l #$1C,a0
+    code += struct.pack(">HH", 0x6100, 0x0004)      # $06 bsr.w $0E
+    code += struct.pack(">H", 0x4E75)               # $0A rts
+    code += struct.pack(">H", 0x4E71)               # $0C nop
+    code += assemble_instruction("movem.w (a0)+,d0-d3")
+    code += assemble_instruction("exg d0,d1")
+    code += assemble_instruction("movea.l a0,a1")
+    code += struct.pack(">HH", 0x4EAE, 0xFEF2)      # $16 jsr -270(a6)
+    code += struct.pack(">H", 0x4E75)               # $1A rts
+    code += b"\x00\x01\x00\x02\x00\x03\x00\x04\xAA\xBB\xCC\xDD"  # $1C source, payload starts at $24
+
+    result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
+    lib_calls = [_make_lib_call(
+        addr=0x16,
+        block=0x0C,
+        function="SetPointer",
+        library="intuition.library",
+        lvo=-270,
+        inputs=[
+            {"name": "window", "reg": "A0", "type": "struct Window *", "i_struct": "Window"},
+            {"name": "pointer", "reg": "A1", "type": "struct SimpleSprite *", "i_struct": "SimpleSprite"},
+            {"name": "height", "reg": "D0", "type": "long"},
+            {"name": "width", "reg": "D1", "type": "long"},
+            {"name": "xOffset", "reg": "D2", "type": "long"},
+            {"name": "yOffset", "reg": "D3", "type": "long"},
+        ],
+    )]
+
+    setup = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, make_platform())
+
+    assert setup.arg_annotations[0x00].arg_name == "pointer"
+    assert setup.arg_annotations[0x00].arg_reg == "A0"
+    assert setup.segment_data_symbols == {}
+    assert setup.segment_struct_regions[0x0024] == "SimpleSprite"
+    assert setup.typed_data_sizes[0x001C] == 2
+    assert setup.typed_data_sizes[0x001E] == 2
+    assert setup.typed_data_sizes[0x0020] == 2
+    assert setup.typed_data_sizes[0x0022] == 2
+    assert setup.typed_data_sizes[0x0024] == 4
+    assert setup.typed_data_sizes[0x0028] == 2
+    assert setup.typed_data_sizes[0x002A] == 2
+    assert setup.typed_data_sizes[0x002C] == 2
+    assert setup.typed_data_sizes[0x002E] == 2
+    assert setup.typed_data_comments[0x001C] == "SetPointer.width"
+    assert setup.typed_data_comments[0x001E] == "SetPointer.height"
+    assert setup.typed_data_comments[0x0020] == "SetPointer.xOffset"
+    assert setup.typed_data_comments[0x0022] == "SetPointer.yOffset"
+    assert setup.typed_data_comments[0x0024] == "SimpleSprite.ss_posctldata"
+    assert setup.typed_data_comments[0x002E] == "SimpleSprite.ss_num"
+
+
+def test_analyze_call_setups_skips_setpointer_words_that_overlap_code() -> None:
+    code = b""
+    code += struct.pack(">HI", 0x207C, 0x00000016)  # $00 movea.l #$16,a0
+    code += struct.pack(">HH", 0x6100, 0x0004)      # $06 bsr.w $0E
+    code += struct.pack(">H", 0x4E75)               # $0A rts
+    code += struct.pack(">H", 0x4E71)               # $0C nop
+    code += assemble_instruction("movem.w (a0)+,d0-d3")
+    code += assemble_instruction("movea.l a0,a1")
+    code += struct.pack(">HH", 0x4EAE, 0xFEF2)      # $14 jsr -270(a6)
+    code += struct.pack(">H", 0x4E75)               # $18 rts
+    code += struct.pack(">HH", 0x0011, 0x0022)      # $1A non-code trailing words
+    code += struct.pack(">I", 0xAABBCCDD)           # $1E payload
+
+    result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
+    lib_calls = [_make_lib_call(
+        addr=0x14,
+        block=0x0C,
+        function="SetPointer",
+        library="intuition.library",
+        lvo=-270,
+        inputs=[
+            {"name": "window", "reg": "A0", "type": "struct Window *", "i_struct": "Window"},
+            {"name": "pointer", "reg": "A1", "type": "UWORD *"},
+            {"name": "height", "reg": "D0", "type": "long"},
+            {"name": "width", "reg": "D1", "type": "long"},
+            {"name": "xOffset", "reg": "D2", "type": "long"},
+            {"name": "yOffset", "reg": "D3", "type": "long"},
+        ],
+    )]
+
+    setup = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, make_platform())
+
+    assert setup.segment_data_symbols == {}
+    assert 0x0016 not in setup.typed_data_comments
+    assert 0x0018 not in setup.typed_data_comments
+    assert setup.typed_data_comments[0x001A] == "SetPointer.xOffset"
+    assert setup.typed_data_comments[0x001C] == "SetPointer.yOffset"
+
+
 def test_propagate_typed_memory_regions_tracks_struct_typed_register_and_resolves_nested_fields() -> None:
     sentinel = 0x80000002
     code = b""
@@ -581,6 +673,47 @@ def test_propagate_typed_memory_regions_tracks_struct_typed_register_and_resolve
     assert device is not None
     assert device.owner_struct == "IO"
     assert device.field.name == "IO_DEVICE"
+
+
+def test_propagate_typed_memory_regions_tracks_setpointer_payload_through_wrapper() -> None:
+    code = b""
+    code += assemble_instruction("movea.l #$0000001A,a0")
+    code += struct.pack(">HH", 0x6100, 0x0006)
+    code += assemble_instruction("move.l (a1),d0")
+    code += assemble_instruction("rts")
+    code += assemble_instruction("movem.w (a0)+,d0-d3")
+    code += assemble_instruction("movea.l a0,a1")
+    code += assemble_instruction("jsr -270(a6)")
+    code += assemble_instruction("rts")
+    code += b"\x00\x01\x00\x02\x00\x03\x00\x04\xAA\xBB\xCC\xDD"
+
+    result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
+    lib_calls = [_make_lib_call(
+        addr=0x14,
+        block=0x0E,
+        function="SetPointer",
+        library="intuition.library",
+        lvo=-270,
+        inputs=[
+            {"name": "window", "reg": "A0", "type": "struct Window *", "i_struct": "Window"},
+            {"name": "pointer", "reg": "A1", "type": "UWORD *"},
+            {"name": "height", "reg": "D0", "type": "long"},
+            {"name": "width", "reg": "D1", "type": "long"},
+            {"name": "xOffset", "reg": "D2", "type": "long"},
+            {"name": "yOffset", "reg": "D3", "type": "long"},
+        ],
+    )]
+
+    types = propagate_typed_memory_regions(result["blocks"], lib_calls, code, runtime_os, make_platform())
+
+    assert types[0x0A]["a1"] == TypedMemoryRegion(
+        struct="__segment_data__",
+        size=len(code) - 0x22,
+        provenance=MemoryRegionProvenance(
+            address_space=MemoryRegionAddressSpace.SEGMENT,
+            segment_addr=0x22,
+        ),
+    )
 
 
 def test_propagate_typed_memory_regions_survives_past_call_fallthrough() -> None:

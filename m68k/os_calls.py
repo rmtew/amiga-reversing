@@ -142,6 +142,7 @@ _SENTINEL_SP = 0x7F000000
 _SENTINEL_ALLOC_BASE = 0x80000000
 _SENTINEL_ALLOC_STEP = 0x00100000  # 1MB per allocation
 _FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
+_OPAQUE_SEGMENT_REGION_STRUCT = "__segment_data__"
 
 
 class AppMemoryDirection(StrEnum):
@@ -447,6 +448,309 @@ def _finalize_segment_symbols(symbol_candidates: dict[int, set[str]]) -> dict[in
     return resolved
 
 
+def _trace_segment_seed(block: BasicBlock,
+                        call_addr: int,
+                        reg_name: str,
+                        code: bytes,
+                        *,
+                        base_addr: int = 0) -> tuple[int, int] | None:
+    call_idx = None
+    for i, inst in enumerate(block.instructions):
+        if inst.offset == call_addr:
+            call_idx = i
+            break
+    if call_idx is None:
+        return None
+    tracked_reg = reg_name
+    for i in range(call_idx - 1, -1, -1):
+        inst = block.instructions[i]
+        ikb, decoded = _decode_inst(inst)
+        dst = decode_inst_destination(inst, ikb)
+        dst_name = None if dst is None else _reg_name(dst[0], dst[1])
+        if dst_name != tracked_reg:
+            continue
+        op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
+        if op_type == runtime_m68k_analysis.OperationType.MOVE or ikb == "MOVEA":
+            src_name = _decoded_source_reg(decoded)
+            if src_name is not None:
+                tracked_reg = src_name
+                continue
+            address = _segment_seed_addr(decoded.ea_op, len(code), base_addr=base_addr)
+            if address is not None:
+                return inst.offset, address
+        return None
+    return None
+
+
+@dataclass(frozen=True, slots=True)
+class LeadingWordPointerWrapper:
+    source_reg: str
+    payload_reg: str
+    payload_offset: int
+    consumed_word_args: tuple[str, ...]
+
+
+def _parse_movem_registers(text: str) -> tuple[str, ...]:
+    regs: list[str] = []
+    for part in text.lower().split("/"):
+        item = part.strip()
+        if not item:
+            continue
+        match = re.fullmatch(r"([da])([0-7])-([da])([0-7])", item)
+        if match:
+            start_kind, start_idx, end_kind, end_idx = match.groups()
+            if start_kind != end_kind:
+                raise ValueError(f"Mixed MOVEM register range {text!r}")
+            start = int(start_idx)
+            end = int(end_idx)
+            step = 1 if start <= end else -1
+            for reg in range(start, end + step, step):
+                regs.append(f"{start_kind}{reg}")
+            continue
+        match = re.fullmatch(r"([da])([0-7])", item)
+        if match:
+            kind, idx = match.groups()
+            regs.append(f"{kind}{idx}")
+    return tuple(regs)
+
+
+def _leading_word_pointer_wrapper(call: LibraryCall,
+                                  block: BasicBlock,
+                                  call_addr: int) -> LeadingWordPointerWrapper | None:
+    call_idx = None
+    for i, inst in enumerate(block.instructions):
+        if inst.offset == call_addr:
+            call_idx = i
+            break
+    if call_idx is None:
+        return None
+    reg_to_input = {
+        reg.lower(): inp
+        for inp in call.inputs
+        for reg in _input_regs(inp)
+    }
+    movem_regs: tuple[str, ...] | None = None
+    source_reg: str | None = None
+    reg_sources: dict[str, int] = {}
+    payload_reg: str | None = None
+    for inst in block.instructions[:call_idx]:
+        ikb, decoded = _decode_inst(inst)
+        if ikb == "MOVEM" and inst.operand_size == "w":
+            op = decoded.ea_op
+            if op is None or op.mode != "postinc" or op.reg is None:
+                continue
+            operand_texts = inst.operand_texts or ()
+            parsed_regs: tuple[str, ...] = ()
+            for text in operand_texts:
+                regs = _parse_movem_registers(text)
+                if regs:
+                    parsed_regs = regs
+                    break
+            if not parsed_regs or any(not reg.startswith("d") for reg in parsed_regs):
+                continue
+            source_reg = _address_reg_name(op.reg)
+            movem_regs = parsed_regs
+            reg_sources = {reg: index for index, reg in enumerate(parsed_regs)}
+            continue
+        if movem_regs is None:
+            continue
+        if ikb == "EXG":
+            operand_texts = inst.operand_texts or ()
+            src_name = operand_texts[0].lower() if len(operand_texts) >= 1 else None
+            dst_name = operand_texts[1].lower() if len(operand_texts) >= 2 else None
+            if src_name in reg_sources and dst_name in reg_sources:
+                reg_sources[src_name], reg_sources[dst_name] = reg_sources[dst_name], reg_sources[src_name]
+            continue
+        if ikb == "MOVEA":
+            src_name = _decoded_source_reg(decoded)
+            dst = decode_inst_destination(inst, ikb)
+            dst_name = None if dst is None else _reg_name(dst[0], dst[1])
+            if src_name == source_reg and dst_name is not None:
+                payload_reg = dst_name
+    if source_reg is None or movem_regs is None or payload_reg is None:
+        return None
+    assert movem_regs is not None
+    payload_input = reg_to_input.get(payload_reg)
+    if payload_input is None:
+        return None
+    consumed_word_args = [""] * len(movem_regs)
+    for reg_name, source_index in reg_sources.items():
+        inp = reg_to_input.get(reg_name)
+        if inp is None:
+            continue
+        consumed_word_args[source_index] = f"{call.function}.{inp.name}"
+    return LeadingWordPointerWrapper(
+        source_reg=source_reg,
+        payload_reg=payload_reg,
+        payload_offset=len(movem_regs) * 2,
+        consumed_word_args=tuple(consumed_word_args),
+    )
+
+
+def _apply_leading_word_wrapper_segment_seeds(blocks: dict[int, BasicBlock],
+                                              lib_calls: list[LibraryCall],
+                                              code: bytes,
+                                              *,
+                                              base_addr: int = 0,
+                                              arg_annotations: dict[int, CallArgumentAnnotation],
+                                              segment_data_name_candidates: dict[int, set[str]],
+                                              segment_struct_candidates: dict[int, set[str]],
+                                              typed_data_sizes: dict[int, int],
+                                              typed_data_comments: dict[int, str],
+                                              typed_data_fields: dict[int, tuple[str, str, str | None]],
+                                              os_kb: OsKb) -> None:
+    code_ranges = tuple(
+        (inst.offset, inst.offset + inst.size)
+        for block in blocks.values()
+        for inst in block.instructions
+    )
+
+    def overlaps_code(addr: int, size: int) -> bool:
+        return any(addr < stop and start < addr + size for start, stop in code_ranges)
+
+    for call in lib_calls:
+        wrapper_block = blocks.get(call.block)
+        if wrapper_block is None:
+            continue
+        wrapper_entry = call.block
+        wrapper = _leading_word_pointer_wrapper(call, wrapper_block, call.addr)
+        if wrapper is None:
+            continue
+        payload_input = next(
+            (inp for inp in call.inputs if wrapper.payload_reg in tuple(reg.lower() for reg in _input_regs(inp))),
+            None,
+        )
+        for block in blocks.values():
+            for xref in block.xrefs:
+                if xref.type != "call" or xref.dst != wrapper_entry:
+                    continue
+                traced = _trace_segment_seed(block, xref.src, wrapper.source_reg, code, base_addr=base_addr)
+                if traced is None:
+                    continue
+                seed_offset, source_addr = traced
+                if payload_input is not None:
+                    arg_annotations[seed_offset] = CallArgumentAnnotation(
+                        arg_name=payload_input.name,
+                        arg_reg=wrapper.source_reg.upper(),
+                        function=call.function,
+                        library=call.library,
+                    )
+                for index, comment in enumerate(wrapper.consumed_word_args):
+                    if not comment:
+                        continue
+                    addr = source_addr + (index * 2)
+                    if overlaps_code(addr, 2):
+                        continue
+                    typed_data_sizes[addr] = 2
+                    typed_data_comments[addr] = comment
+                if payload_input is not None and payload_input.i_struct is not None:
+                    payload_addr = source_addr + wrapper.payload_offset
+                    if not overlaps_code(payload_addr, 4):
+                        segment_struct_candidates.setdefault(payload_addr, set()).add(payload_input.i_struct)
+                        _apply_segment_struct_typed_overlay(
+                            address=payload_addr,
+                            struct_name=payload_input.i_struct,
+                            os_kb=os_kb,
+                            typed_data_sizes=typed_data_sizes,
+                            typed_data_comments=typed_data_comments,
+                            typed_data_fields=typed_data_fields,
+                        )
+
+
+def _leading_word_wrapper_seed_regions(blocks: dict[int, BasicBlock],
+                                       lib_calls: list[LibraryCall],
+                                       code: bytes,
+                                       *,
+                                       base_addr: int = 0) -> dict[int, dict[str, RegisterFact]]:
+    seed_regions: dict[int, dict[str, RegisterFact]] = {}
+    code_size = len(code)
+    for call in lib_calls:
+        wrapper_block = blocks.get(call.block)
+        if wrapper_block is None:
+            continue
+        wrapper = _leading_word_pointer_wrapper(call, wrapper_block, call.addr)
+        if wrapper is None:
+            continue
+        wrapper_entry = call.block
+        for block in blocks.values():
+            for xref in block.xrefs:
+                if xref.type != "call" or xref.dst != wrapper_entry:
+                    continue
+                traced = _trace_segment_seed(block, xref.src, wrapper.source_reg, code, base_addr=base_addr)
+                if traced is None:
+                    continue
+                _seed_offset, source_addr = traced
+                seed_regions.setdefault(xref.src, {})[wrapper.source_reg] = RegisterFact(
+                    region=_segment_data_region(source_addr, code_size),
+                )
+    return seed_regions
+
+
+def _augment_region_summaries_with_leading_word_wrapper(
+        blocks: dict[int, BasicBlock],
+        lib_calls: list[LibraryCall],
+        summaries: dict[int, RegionSummary],
+) -> dict[int, RegionSummary]:
+    result = dict(summaries)
+    for call in lib_calls:
+        block = blocks.get(call.block)
+        if block is None:
+            continue
+        wrapper = _leading_word_pointer_wrapper(call, block, call.addr)
+        if wrapper is None:
+            continue
+        summary = result.get(call.block, RegionSummary())
+        produced = tuple(
+            (reg_name, region)
+            for reg_name, region in summary.produced
+            if reg_name != wrapper.payload_reg
+        )
+        transfers = list(summary.region_offset_transfers)
+        transfer = RegionOffsetTransfer(
+            dst_reg=wrapper.payload_reg,
+            src_reg=wrapper.source_reg,
+            offset=wrapper.payload_offset,
+        )
+        if transfer not in transfers:
+            transfers.append(transfer)
+        result[call.block] = RegionSummary(
+            produced=produced,
+            field_pointer_transfers=summary.field_pointer_transfers,
+            region_offset_transfers=tuple(transfers),
+        )
+    return result
+
+
+def _apply_segment_struct_typed_overlay(*,
+                                        address: int,
+                                        struct_name: str,
+                                        os_kb: OsKb,
+                                        typed_data_sizes: dict[int, int],
+                                        typed_data_comments: dict[int, str],
+                                        typed_data_fields: dict[int, tuple[str, str, str | None]],
+                                        context_name: str | None = None) -> None:
+    seen: set[str] = set()
+
+    def visit(name: str) -> None:
+        if name in seen:
+            return
+        seen.add(name)
+        struct_def = os_kb.STRUCTS.get(name)
+        if struct_def is None:
+            return
+        if struct_def.base_struct is not None:
+            visit(struct_def.base_struct)
+        for field in struct_def.fields:
+            if field.size <= 0:
+                continue
+            field_addr = address + field.offset
+            typed_data_sizes.setdefault(field_addr, field.size)
+            typed_data_comments.setdefault(field_addr, f"{name}.{field.name}")
+            typed_data_fields.setdefault(field_addr, (name, field.name, context_name))
+
+    visit(struct_name)
+
+
 def _absolute_app_slot_addr(base_info: AppBaseInfo, offset: int) -> int:
     assert base_info.kind == AppBaseKind.ABSOLUTE, (
         "Absolute app slot address requires absolute app base")
@@ -490,6 +794,10 @@ class CallArgumentAnnotation:
 class CallSetupAnalysis:
     arg_annotations: dict[int, CallArgumentAnnotation]
     segment_data_symbols: dict[int, str]
+    segment_struct_regions: dict[int, str]
+    typed_data_sizes: dict[int, int]
+    typed_data_comments: dict[int, str]
+    typed_data_fields: dict[int, tuple[str, str, str | None]]
     segment_code_symbols: dict[int, str]
     code_entry_points: tuple[int, ...]
     string_ranges: dict[int, int]
@@ -525,9 +833,17 @@ class FieldPointerTransfer:
 
 
 @dataclass(frozen=True, slots=True)
+class RegionOffsetTransfer:
+    dst_reg: str
+    src_reg: str
+    offset: int
+
+
+@dataclass(frozen=True, slots=True)
 class RegionSummary:
     produced: tuple[tuple[str, TypedMemoryRegion], ...] = ()
     field_pointer_transfers: tuple[FieldPointerTransfer, ...] = ()
+    region_offset_transfers: tuple[RegionOffsetTransfer, ...] = ()
 
 
 @dataclass(slots=True)
@@ -940,6 +1256,10 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
     """Analyze library call setup instructions once for comments and typed labels."""
     arg_annotations: dict[int, CallArgumentAnnotation] = {}
     segment_data_name_candidates: dict[int, set[str]] = {}
+    segment_struct_candidates: dict[int, set[str]] = {}
+    typed_data_sizes: dict[int, int] = {}
+    typed_data_comments: dict[int, str] = {}
+    typed_data_fields: dict[int, tuple[str, str, str | None]] = {}
     segment_code_name_candidates: dict[int, set[str]] = {}
     string_ranges: dict[int, int] = {}
 
@@ -1032,16 +1352,44 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
                         address = region.provenance.segment_addr
                         if address is None:
                             raise ValueError(
-                                f"Segment provenance missing address for {call.function}:{inp.name}")
+                            f"Segment provenance missing address for {call.function}:{inp.name}")
                         segment_data_name_candidates.setdefault(address, set()).add(symbol)
+                        segment_struct_candidates.setdefault(address, set()).add(inp.i_struct)
+                        _apply_segment_struct_typed_overlay(
+                            address=address,
+                            struct_name=inp.i_struct,
+                            os_kb=os_kb,
+                            typed_data_sizes=typed_data_sizes,
+                            typed_data_comments=typed_data_comments,
+                            typed_data_fields=typed_data_fields,
+                        )
                 state.complete = True
 
+    _apply_leading_word_wrapper_segment_seeds(
+        blocks,
+        lib_calls,
+        code,
+        base_addr=base_addr,
+        arg_annotations=arg_annotations,
+        segment_data_name_candidates=segment_data_name_candidates,
+        segment_struct_candidates=segment_struct_candidates,
+        typed_data_sizes=typed_data_sizes,
+        typed_data_comments=typed_data_comments,
+        typed_data_fields=typed_data_fields,
+        os_kb=os_kb,
+    )
+
     segment_data_symbols = _finalize_segment_symbols(segment_data_name_candidates)
+    segment_struct_regions = _finalize_segment_symbols(segment_struct_candidates)
     segment_code_symbols = _finalize_segment_symbols(segment_code_name_candidates)
 
     return CallSetupAnalysis(
         arg_annotations=arg_annotations,
         segment_data_symbols=segment_data_symbols,
+        segment_struct_regions=segment_struct_regions,
+        typed_data_sizes=typed_data_sizes,
+        typed_data_comments=typed_data_comments,
+        typed_data_fields=typed_data_fields,
         segment_code_symbols=segment_code_symbols,
         code_entry_points=tuple(sorted(segment_code_symbols)),
         string_ranges=string_ranges,
@@ -1193,6 +1541,10 @@ def _common_region_struct(os_kb: OsKb,
                           right: TypedMemoryRegion) -> str | None:
     if left.context_name != right.context_name or left.struct_offset != right.struct_offset:
         return None
+    if _is_opaque_segment_region(left) or _is_opaque_segment_region(right):
+        if left == right:
+            return left.struct
+        return None
     right_lineage = set(_struct_lineage(os_kb, right.struct))
     for candidate in _struct_lineage(os_kb, left.struct):
         if candidate not in right_lineage:
@@ -1213,13 +1565,13 @@ def _merged_region_fact(left: RegisterFact,
     common_struct = _common_region_struct(os_kb, left_region, right_region)
     if common_struct is None:
         return None
-    struct_def = os_kb.STRUCTS[common_struct]
+    size = left_region.size if _is_opaque_segment_region(left_region) else os_kb.STRUCTS[common_struct].size
     provenance = left_region.provenance
     if left_region != right_region:
         provenance = MemoryRegionProvenance(address_space=MemoryRegionAddressSpace.REGISTER)
     return TypedMemoryRegion(
         struct=common_struct,
-        size=struct_def.size,
+        size=size,
         provenance=provenance,
         struct_offset=left_region.struct_offset,
         context_name=left_region.context_name,
@@ -1306,27 +1658,39 @@ def _apply_region_fact_summary(current: dict[str, RegisterFact],
                                ) -> None:
     if region_summary is None:
         return
-    for transfer in region_summary.field_pointer_transfers:
+    for transfer in region_summary.region_offset_transfers:
         src_fact = current.get(transfer.src_reg)
         if src_fact is None or src_fact.region is None:
             continue
+        offset_region = _offset_region(src_fact.region, transfer.offset)
+        if offset_region is None:
+            continue
+        existing = result.get(transfer.dst_reg)
+        result[transfer.dst_reg] = RegisterFact(
+            region=offset_region,
+            concrete=None if existing is None else existing.concrete,
+        )
+    for field_transfer in region_summary.field_pointer_transfers:
+        src_fact = current.get(field_transfer.src_reg)
+        if src_fact is None or src_fact.region is None:
+            continue
         field_info = _resolve_region_field(
-            os_kb, src_fact.region, transfer.displacement)
+            os_kb, src_fact.region, field_transfer.displacement)
         if field_info is None:
             continue
         pointer_struct = field_info.field.pointer_struct
         if pointer_struct is None:
             raise ValueError(
-                f"Region transfer {transfer.src_reg}+{transfer.displacement} missing pointer struct")
+                f"Region transfer {field_transfer.src_reg}+{field_transfer.displacement} missing pointer struct")
         struct_def = os_kb.STRUCTS[pointer_struct]
-        result[transfer.dst_reg] = RegisterFact(
+        result[field_transfer.dst_reg] = RegisterFact(
             region=TypedMemoryRegion(
                 struct=pointer_struct,
                 size=struct_def.size,
                 provenance=MemoryRegionProvenance(
                     address_space=MemoryRegionAddressSpace.REGISTER,
                     derivation=field_pointer_derivation(
-                        transfer.src_reg, transfer.displacement),
+                        field_transfer.src_reg, field_transfer.displacement),
                 ),
             ),
         )
@@ -1464,6 +1828,8 @@ def _effective_index_offset(op: Operand | None, concrete_regs: dict[str, int]) -
 
 def _resolve_region_field(os_kb: OsKb, region: TypedMemoryRegion,
                           displacement: int) -> ResolvedStructField | None:
+    if _is_opaque_segment_region(region):
+        return None
     field_offset = region.struct_offset + displacement
     if field_offset < 0:
         return None
@@ -1710,6 +2076,48 @@ def _set_register_fact(current: dict[str, RegisterFact], reg_name: str,
         current.pop(reg_name, None)
         return
     current[reg_name] = RegisterFact(region=region, concrete=concrete)
+
+
+def _is_opaque_segment_region(region: TypedMemoryRegion) -> bool:
+    return region.struct == _OPAQUE_SEGMENT_REGION_STRUCT
+
+
+def _segment_data_region(address: int, code_size: int) -> TypedMemoryRegion:
+    return TypedMemoryRegion(
+        struct=_OPAQUE_SEGMENT_REGION_STRUCT,
+        size=code_size - address,
+        provenance=MemoryRegionProvenance(
+            address_space=MemoryRegionAddressSpace.SEGMENT,
+            segment_addr=address,
+        ),
+    )
+
+
+def _offset_region(region: TypedMemoryRegion, offset: int) -> TypedMemoryRegion | None:
+    if offset < 0:
+        return None
+    if _is_opaque_segment_region(region):
+        segment_addr = region.provenance.segment_addr
+        if segment_addr is None or offset > region.size:
+            return None
+        return TypedMemoryRegion(
+            struct=region.struct,
+            size=region.size - offset,
+            provenance=MemoryRegionProvenance(
+                address_space=MemoryRegionAddressSpace.SEGMENT,
+                segment_addr=segment_addr + offset,
+            ),
+            context_name=region.context_name,
+        )
+    if offset > region.size:
+        return None
+    return TypedMemoryRegion(
+        struct=region.struct,
+        size=region.size,
+        provenance=region.provenance,
+        struct_offset=region.struct_offset + offset,
+        context_name=region.context_name,
+    )
 
 
 def _apply_register_update(current: dict[str, RegisterFact],
@@ -2433,6 +2841,13 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
                     continue
                 seed_offset, seed_reg, region = seed
                 seed_regions.setdefault(seed_offset, {})[seed_reg] = RegisterFact(region=region)
+    wrapper_seed_regions = _leading_word_wrapper_seed_regions(
+        blocks,
+        lib_calls,
+        code,
+    )
+    for seed_offset, seeds in wrapper_seed_regions.items():
+        seed_regions.setdefault(seed_offset, {}).update(seeds)
     app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform, target_metadata)
     base_app_pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform, target_metadata)
     app_pointer_regions = dict(base_app_pointer_regions)
@@ -2530,6 +2945,8 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
 
         new_region_summaries = _compute_region_summaries(
             blocks, facts_by_inst, exec_summaries)
+        new_region_summaries = _augment_region_summaries_with_leading_word_wrapper(
+            blocks, lib_calls, new_region_summaries)
         learned_app_pointer_regions = _collect_app_pointer_regions_from_store_facts(
             blocks, facts_by_inst, platform)
         next_app_pointer_regions = _merge_app_pointer_regions(

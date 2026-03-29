@@ -1711,8 +1711,8 @@ loc_1024:
     move.w (a0)+,d0
     move.l 4(a0,d0.w),d6
     move.l 0(a0,d0.w),d0
-    exg
-    exg
+    exg d0,d2
+    exg d6,d3
 loc_1032:
     lea pcref_0ea2(pc),a1
     add.w d1,d1
@@ -1988,7 +1988,7 @@ loc_11f4:
 loc_11f8:
     neg.l d0
 loc_11fa:
-    exg
+    exg d0,d2
     cmp.b d0,d0
     rts
 loc_1200:
@@ -2171,7 +2171,7 @@ loc_13b8:
     moveq #0,d2
     moveq #2,d3
     moveq #1,d0
-    exg
+    exg d0,d7
     jmp 0(pc,d0.w) ; unresolved_indirect_core:pcindex.brief
     bra.w loc_140e
     bra.s loc_138e
@@ -5701,7 +5701,7 @@ hint_2c4c:
 hint_2c54:
 ; --- unverified ---
     ori.b #$8,d6
-    exg
+    exg d4,d2
     bra.s hint_2c3e
 hint_2c5c:
 ; --- unverified ---
@@ -8802,7 +8802,7 @@ loc_43d2:
     bra.w loc_8486
 sub_43d8: ; jt: pcref_439e
     move.b (a4)+,d0
-    exg
+    exg d0,d1
     cmp.b #$2b,d0
     beq.s loc_43ea
 loc_43e2:
@@ -11097,7 +11097,7 @@ hint_54f6:
     movea.l a0,a4
     move.b (a4)+,d1
     andi.b #$1,d2
-    exg
+    exg d0,d2
     bra.w hint_53bc
 hint_5506:
 ; --- unverified ---
@@ -14090,7 +14090,7 @@ hint_6a42:
 hint_6a44:
 ; --- unverified ---
     moveq #10,d0
-    exg
+    exg d0,d1
     cmp.b d3,d0
     bne.s hint_6a52
 hint_6a4c:
@@ -17416,10 +17416,10 @@ loc_8f22:
 loc_8f26:
     st d2
     addi.b #$30,d3
-    exg
+    exg d3,d1
     jsr (a2)
 loc_8f30:
-    exg
+    exg d3,d1
 loc_8f32:
     dbf d0,loc_8f10
 loc_8f36:
@@ -19014,7 +19014,7 @@ loc_9e44:
     bne.s loc_9e44
 loc_9e48:
     subq.l #1,a1
-    exg
+    exg d0,a1
     sub.l a1,d0
     bra.s loc_9e5c
 loc_9e50:
@@ -20035,7 +20035,7 @@ pcref_a8de:
     dc.b    $ff,$1b,$5b,$30,$6d,$00,$00
 call_write:
     move.l d1,-(sp)
-    exg
+    exg d3,d1
     move.l a0,d2 ; Write: buffer
     moveq #_LVOWrite,d0
     bsr.w dos_dispatch_b0d6
@@ -20539,7 +20539,7 @@ alloc_memory:
     rol.w #3,d0 ; AllocMem: byteSize
     andi.l #$6,d0
     ori.l #$10001,d0
-    exg
+    exg d0,d1
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6) ; app-$C6
@@ -20795,7 +20795,7 @@ sub_aff2:
     move.l d3,d2
     bra.s call_close_afb8
 call_read_aff6:
-    exg
+    exg d3,d1
     move.l a0,d2 ; Read: buffer
     moveq #_LVORead,d0
     bsr.w dos_dispatch_b0d6

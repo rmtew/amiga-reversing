@@ -145,6 +145,7 @@ def test_os_reference_corrections_only_carry_correction_data() -> None:
         "absolute_symbols",
         "value_domains",
         "api_input_value_bindings",
+        "api_input_type_overrides",
         "api_input_semantic_assertions",
         "struct_field_value_bindings",
     }

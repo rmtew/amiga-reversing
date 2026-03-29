@@ -2046,7 +2046,7 @@ loc_19c6:
     movea.l a4,a2
     bsr.w sub_6660
 loc_19ce:
-    exg
+    exg a2,a4
     move.b 17(a2),d0
     andi.w #$7,d0
     subq.w #1,d0
@@ -2608,10 +2608,10 @@ loc_1f24:
     bsr.w sub_6660
 loc_1f2e:
     move.w d1,d0
-    exg
+    exg a4,a1
     bsr.s sub_1edc
 loc_1f34:
-    exg
+    exg a4,a1
 loc_1f36:
     dbf d7,loc_1f16
 loc_1f3a:
@@ -2685,10 +2685,10 @@ loc_1fba:
     bsr.w sub_6660
 loc_1fc4:
     move.w d1,d0
-    exg
+    exg a4,a1
     bsr.s sub_1f8c
 loc_1fca:
-    exg
+    exg a4,a1
 loc_1fcc:
     dbf d7,loc_1fac
 loc_1fd0:
@@ -2829,7 +2829,7 @@ loc_20da:
     moveq #5,d0
     jsr sub_88be
 loc_20e2:
-    exg
+    exg a1,a4
     move.w 6(a4),d0
     move.w 32(a4),d7
     bsr.s sub_20b8
@@ -2911,10 +2911,10 @@ loc_2176:
     bsr.w sub_6660
 loc_217e:
     move.b 0(a0,d7.w),d5
-    exg
+    exg a4,a1
     bsr.s sub_2128
 loc_2186:
-    exg
+    exg a4,a1
     move.b d5,0(a0,d7.w)
     dbf d7,loc_2176
 loc_2190:
@@ -2967,7 +2967,7 @@ loc_21ec:
     andi.w #$f,d0
     bsr.w loc_4066
 loc_21fc:
-    exg
+    exg a2,a5
     tst.w d1
     bmi.s loc_2192
 loc_2202:
@@ -3453,7 +3453,7 @@ loc_267a:
 loc_267e:
     rts
 dat_2680:
-    dc.l    entry_point
+    dc.l    $00000000
 sub_2684:
     move.w d0,-(sp)
     move.l #$d000c,dat_d92a
@@ -7747,7 +7747,7 @@ loc_575a:
     beq.s loc_5792
 loc_575e:
     move.b #$ff,(a1)
-    exg
+    exg a3,a2
     dbf d2,loc_5714
 loc_5768:
     rts
@@ -10330,12 +10330,12 @@ hint_74c4:
     move.l 28(a5),8(sp)
     move.l a6,12(sp)
     bset #7,1(a6,d0.w)
-    exg
+    exg a5,a1
     bsr.w sub_8498
 hint_74de:
 ; --- unverified ---
     bset #7,1(a6,d0.w)
-    exg
+    exg a5,a1
     bra.w loc_09f6
 hint_74ea:
     dcb.b   4,0
@@ -11585,7 +11585,7 @@ loc_8194:
     swap d4
     move.w d2,d4
     movem.l d3-d6,-(sp)
-    exg
+    exg d4,d5
     add.w 8(a5),d5
     move.b 24(a5,d6.w),d0
     andi.w #$f,d0
@@ -13091,10 +13091,10 @@ loc_925a:
 loc_925e:
     rts
 loc_9260:
-    exg
+    exg d5,d7
     bsr.w sub_849c
 loc_9266:
-    exg
+    exg d5,d7
     move.w 0(a6,d0.w),d1
 loc_926c:
     clr.b -19(a3)
@@ -15477,10 +15477,10 @@ loc_adb0:
     movea.l a6,a2
     bsr.s sub_ad66
 loc_adb4:
-    exg
+    exg d0,d1
     bsr.s sub_ad6c
 loc_adb8:
-    exg
+    exg d0,d1
     movea.l a2,a6
 loc_adbc:
     ror.l d4,d0
@@ -16364,7 +16364,7 @@ loc_b6a4:
     move.l (a1)+,d0
     bsr.w sub_ad66
 loc_b6ac:
-    exg
+    exg d0,d1
     bsr.w sub_ad66
 loc_b6b2:
     move.w d1,23998(a0)
@@ -16411,7 +16411,7 @@ loc_b70a:
     move.l (a1)+,d0
     bsr.w sub_ad66
 loc_b712:
-    exg
+    exg d0,d1
     bsr.w sub_ad66
 loc_b718:
     move.l d1,d2
@@ -16457,7 +16457,7 @@ loc_b772:
     move.l (a1)+,d0
     bsr.w sub_ad66
 loc_b77a:
-    exg
+    exg d0,d1
     bsr.w sub_ad66
 loc_b780:
     tst.w dat_b4be
@@ -19946,7 +19946,7 @@ dat_ee78:
 dat_ee7c:
     dc.b    $00,$00
 dat_ee7e:
-    dc.l    entry_point
+    dc.l    $00000000
 dat_ee82:
     dc.b    $00
 dat_ee83:
@@ -19961,7 +19961,7 @@ dat_ee86:
     dc.b    $ff,$ff
 dat_ee94:
     dc.l    $ffffffff
-    dc.l    entry_point
+    dc.l    $00000000
     dcb.b   6,0
 dat_eea2:
     dc.l    $ffffffff
@@ -19987,7 +19987,7 @@ dat_eed6:
 dat_eede:
     dc.b    $01,$00
 dat_eee0:
-    dc.l    entry_point
+    dc.l    $00000000
 dat_eee4:
     dc.b    $00
 dat_eee5:
@@ -19999,7 +19999,7 @@ dat_eef2:
 dat_eef6:
     dc.w    $ffff
     dc.b    $ff,$ff
-    dc.l    entry_point
+    dc.l    $00000000
     dcb.b   6,0
 dat_ef04:
     dc.b    $ff,$ff,$ff,$ff

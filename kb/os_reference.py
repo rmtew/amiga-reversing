@@ -18,6 +18,7 @@ EXTENSION_META_KEYS = frozenset({
     "absolute_symbols",
     "value_domains",
     "api_input_value_bindings",
+    "api_input_type_overrides",
     "api_input_semantic_assertions",
     "struct_field_value_bindings",
 })
@@ -65,6 +66,14 @@ def normalize_os_reference_corrections(corrections: OsReferencePayload) -> OsRef
                         binding["library"],
                         binding["function"],
                         binding["input"],
+                    ),
+                ),
+                "api_input_type_overrides": sorted(
+                    correction_meta.get("api_input_type_overrides", []),
+                    key=lambda override: (
+                        override["library"],
+                        override["function"],
+                        override["input"],
                     ),
                 ),
                 "api_input_semantic_assertions": sorted(
@@ -222,6 +231,22 @@ def merge_os_reference_payloads(
     merged_api_bindings.extend(extension_api_bindings)
     merged_meta["api_input_value_bindings"] = merged_api_bindings
 
+    type_override_keys: set[tuple[str, str, str]] = set()
+    merged_type_overrides: list[JsonObject] = []
+    extension_type_overrides = correction_meta.get("api_input_type_overrides", [])
+    for override in extension_type_overrides:
+        _require_correction_status(
+            cast(JsonObject, override),
+            "api_input_type_override extension",
+        )
+    for override in extension_type_overrides:
+        override_key = (override["library"], override["function"], override["input"])
+        if override_key in type_override_keys:
+            raise ValueError(f"Duplicate OS API input type override {override_key}")
+        type_override_keys.add(override_key)
+        merged_type_overrides.append(cast(JsonObject, override))
+    merged_meta["api_input_type_overrides"] = merged_type_overrides
+
     semantic_assertion_keys: set[tuple[str, str, str]] = set()
     merged_semantic_assertions = list(parsed_meta["api_input_semantic_assertions"])
     extension_semantic_assertions = correction_meta.get("api_input_semantic_assertions", [])
@@ -285,6 +310,27 @@ def merge_os_reference_payloads(
                 if "name" not in input_entry:
                     continue
                 inputs_by_key[(library_name, function_name, input_entry["name"])] = input_entry
+
+    for override in merged_meta["api_input_type_overrides"]:
+        override_key = (override["library"], override["function"], override["input"])
+        input_entry = inputs_by_key.get(override_key)
+        if input_entry is None:
+            raise ValueError(
+                "OS API input type override references missing input "
+                f"{override['library']}/{override['function']}.{override['input']}"
+            )
+        if "type" not in override:
+            raise ValueError(f"OS API input type override missing type {override_key}")
+        input_entry["type"] = override["type"]
+        if "i_struct" in override:
+            if override["i_struct"] not in merged["structs"]:
+                raise ValueError(
+                    "OS API input type override references missing struct "
+                    f"{override['i_struct']}"
+                )
+            input_entry["i_struct"] = override["i_struct"]
+        else:
+            input_entry.pop("i_struct", None)
 
     for assertion in merged_meta["api_input_semantic_assertions"]:
         assertion_key = (assertion["library"], assertion["function"], assertion["input"])

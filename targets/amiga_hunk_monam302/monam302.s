@@ -73,19 +73,16 @@ AbsExecBase	EQU	$4
 
 memtask:
     bra.w loc_0094
-    dc.l    $4d4f4e20
-    dc.l    dat_0024
-    dc.b    $00,$00
-    dc.w    $0054
+    dc.w    $4d4f ; SetPointer.xOffset
+    dc.w    $4e20 ; SetPointer.yOffset
+    dc.l    dat_0024 ; SimpleSprite.ss_posctldata
+    dc.w    $0000 ; SimpleSprite.ss_height
+    dc.w    $0054 ; SimpleSprite.ss_x
 dat_0010:
-    dc.w    $0000
-    dc.b    $00
-    dc.b    $00
+    dc.w    $0000 ; SimpleSprite.ss_y
+    dc.w    $0000 ; SimpleSprite.ss_num
 pcref_0014:
-    dcb.b   4,0
 pcref_0018:
-    dc.l    memtask
-    dcb.b   4,0
 dat_0020:
     dcb.b   4,0
 dat_0024:
@@ -280,7 +277,7 @@ loc_028e:
     move.l d0,app_closewindow_window(a6)
     beq.w loc_03da
 loc_0298:
-    movea.l #memtask,a0
+    movea.l #memtask,a0 ; SetPointer: pointer
     jsr call_setpointer
 loc_02a4:
     bsr.w sub_3e98
@@ -488,21 +485,44 @@ loc_0482:
 sub_048c:
     dc.b    "topaz",0
 openscreen_newscreen:
-    dcb.b   4,0
+    dc.w    $0000 ; NewScreen.ns_LeftEdge
+    dc.w    $0000 ; NewScreen.ns_TopEdge
 pcref_0496:
-    dc.w    $0280,$00c8
-    dc.b    $00,$01,$00,$01
-    dc.w    $8000
-    dc.b    $10,$0f
-    dcb.b   4,0
-    dc.l    dat_04fa
-    dcb.b   8,0
-    dc.l    dat_04b6
+    dc.w    $0280 ; NewScreen.ns_Width
+    dc.w    $00c8 ; NewScreen.ns_Height
+    dc.w    $0001 ; NewScreen.ns_Depth
+    dc.b    $00
+    dc.b    $01
+    dc.w    $8000 ; NewScreen.ns_ViewModes
+    dc.w    $100f ; NewScreen.ns_Type
+    dc.l    0 ; NewScreen.ns_Font
+    dc.l    dat_04fa ; NewScreen.ns_DefaultTitle
+    dc.l    0 ; NewScreen.ns_Gadgets
+    dc.l    0 ; NewScreen.ns_CustomBitMap
+    dc.l    dat_04b6 ; ExtNewScreen.ens_Extension
 dat_04b6:
     dc.b    $80,$00,$00,$2c
 dat_04ba:
     dc.b    $00,$00,$00,$01
 openwindow_newwindow:
+    dc.w    $0000 ; NewWindow.nw_LeftEdge
+    dc.w    $0000 ; NewWindow.nw_TopEdge
+    dc.w    $0280 ; NewWindow.nw_Width
+    dc.w    $00c8 ; NewWindow.nw_Height
+    dc.b    $00
+    dc.b    $01
+    dc.l    $00000400 ; NewWindow.nw_IDCMPFlags
+    dc.l    $00021940 ; NewWindow.nw_Flags
+    dc.l    0 ; NewWindow.nw_FirstGadget
+    dc.l    0 ; NewWindow.nw_CheckMark
+    dc.l    0 ; NewWindow.nw_Title
+    dc.l    0 ; NewWindow.nw_Screen
+    dc.l    0 ; NewWindow.nw_BitMap
+    dc.w    $0000 ; NewWindow.nw_MinWidth
+    dc.w    $0000 ; NewWindow.nw_MinHeight
+    dc.w    $0000 ; NewWindow.nw_MaxWidth
+    dc.w    $0000 ; NewWindow.nw_MaxHeight
+    dc.w    $000f ; NewWindow.nw_Type
 dat_04fa:
     dc.b    $6e,$41
 sub_04fe:
@@ -2593,7 +2613,7 @@ hint_1446:
     dc.b    $00
     dc.b    $00
 dat_1448:
-    dc.l    memtask
+    dc.l    $00000000
     dcb.b   12,0
 dat_1458:
     dcb.b   44,0
@@ -3731,7 +3751,7 @@ hint_1ea6:
 ; --- unverified ---
     st 332(a6) ; app+$14C
     movem.l 334(a6),d0-d1 ; app+$14E
-    exg
+    exg d0,d1
     movem.l d0-d1,334(a6) ; app+$14E
     rts
 hint_1eba:
@@ -8953,7 +8973,7 @@ hint_4802:
     bsr.w hint_46dc
 hint_480c:
 ; --- unverified ---
-    exg
+    exg a2,a1
     suba.l a2,a1
     cmpa.l #$a,a1
     beq.s hint_4820
@@ -10053,7 +10073,7 @@ hint_4f1e:
     bne.s hint_4f1e
 hint_4f22:
 ; --- unverified ---
-    exg
+    exg d4,a4
     sub.l a4,d4
     subq.w #1,d4
     rts
@@ -13771,10 +13791,10 @@ loc_6afa:
 loc_6afe:
     st d2
     addi.b #$30,d3
-    exg
+    exg d3,d1
     jsr (a2)
 loc_6b08:
-    exg
+    exg d3,d1
 loc_6b0a:
     dbf d0,loc_6ae8
 loc_6b0e:
@@ -14097,7 +14117,7 @@ loc_6df2:
 loc_6df6:
     move.w (a0)+,d0
     move.l 0(a0,d0.w),d0
-    exg
+    exg d0,d2
 loc_6dfe:
     lea pcref_6bea(pc),a1
     add.w d1,d1
@@ -14343,7 +14363,7 @@ loc_6f50:
 loc_6f54:
     neg.l d0
 loc_6f56:
-    exg
+    exg d0,d2
     cmp.b d0,d0
     rts
 loc_6f5c:
@@ -14512,7 +14532,7 @@ loc_7088:
     ext.w d7
     moveq #0,d2
     moveq #1,d0
-    exg
+    exg d0,d7
     jmp 0(pc,d0.w) ; unresolved_indirect_core:pcindex.brief
     bra.s loc_7112
     bra.s loc_70c6
@@ -15734,11 +15754,11 @@ loc_7aa2:
     move.l (a1),d0
     beq.s loc_7ab0
 loc_7aa6:
-    exg
+    exg d0,a1
     cmp.l 48(a1),d1
     bcc.s loc_7aa2
 loc_7aae:
-    exg
+    exg d0,a1
 loc_7ab0:
     move.l d0,(a0)
     move.l a0,(a1)
@@ -16138,7 +16158,7 @@ loc_7db4:
     adda.w d0,a1
 loc_7db6:
     move.l a1,(a4)+
-    exg
+    exg a3,a1
 loc_7dba:
     subq.l #1,d1
     bcc.s loc_7dae
@@ -16263,7 +16283,7 @@ sub_7e88:
     bvc.s loc_7ea8
 loc_7e96:
     movem.l d0/d2,-(sp)
-    exg
+    exg d2,d0
     bsr.w sub_6f0e
 loc_7ea0:
     move.l d0,d6
@@ -16392,11 +16412,11 @@ hint_7f50:
     lea 384(a6),a0 ; app+$180
     move.b #$6c,(a0)+
     move.l d0,d1
-    exg
+    exg a4,a0
     bsr.w hint_1bbe
 hint_7f60:
 ; --- unverified ---
-    exg
+    exg a4,a0
     clr.b (a0)
     move.l a0,d1
     lea 380(a6),a0 ; app+$17C
@@ -16659,7 +16679,7 @@ hint_8144:
     rts
 call_setpointer:
     movem.w (a0)+,d0-d3
-    exg
+    exg d0,d1
     movea.l a0,a1 ; SetPointer: pointer
     movea.l app_closewindow_window(a6),a0 ; SetPointer: window
     move.l a6,-(sp)

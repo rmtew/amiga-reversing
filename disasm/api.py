@@ -33,6 +33,20 @@ class SerializedOperand(TypedDict):
     metadata: dict[str, object]
 
 
+class SerializedApiInput(TypedDict):
+    name: str
+    regs: list[str]
+    type: str | None
+    i_struct: str | None
+    source: str
+
+
+class SerializedApiCall(TypedDict):
+    library: str
+    function: str
+    inputs: list[SerializedApiInput]
+
+
 class SerializedRow(TypedDict):
     row_id: str
     kind: str
@@ -48,6 +62,8 @@ class SerializedRow(TypedDict):
     comment_parts: list[str]
     comment_text: str
     source_context: dict[str, object]
+    view_annotations: list[str]
+    api_call: SerializedApiCall | None
 
 
 class SessionHunkMetadata(TypedDict):
@@ -127,6 +143,8 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         "comment_parts": list(row.comment_parts),
         "comment_text": row.comment_text,
         "source_context": _row_source_context_dict(row.source_context),
+        "view_annotations": [],
+        "api_call": None,
     }
 
 

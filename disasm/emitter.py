@@ -74,7 +74,8 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
     for index, hunk_session in enumerate(session.hunk_sessions):
         if index > 0:
             body_rows.append(make_row("blank", "\n"))
-        structured_regions = () if structure is None or index != 0 else structure.regions
+        target_regions = () if structure is None or index != 0 else structure.regions
+        structured_regions = target_regions
         hunk_rows, hunk_floor = _emit_hunk_rows(
             hunk_session,
             include_header=len(session.hunk_sessions) > 1,
@@ -319,7 +320,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
     def emit_label(addr: int) -> None:
         lbl = hunk_session.labels[addr]
         addr_comment = hunk_session.addr_comments.get(addr)
-        if addr_comment is not None:
+        if addr_comment is not None and addr not in hunk_session.typed_data_sizes:
             rows.extend(make_text_rows(
                 "comment",
                 f"; {addr_comment}\n",
@@ -345,10 +346,24 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
 
     def emit_data(start: int, stop: int, entity_addr: int | None = None,
                   verified_state: str = "verified") -> None:
+        start_comment = hunk_session.addr_comments.get(start)
+        if (
+            start_comment is not None
+            and start not in hunk_session.labels
+            and start not in hunk_session.typed_data_sizes
+        ):
+            rows.extend(make_text_rows(
+                "comment",
+                f"; {start_comment}\n",
+                entity_addr=entity_addr,
+                addr=start,
+            ))
         rows.extend(emit_data_rows(
             hunk_session.code, start, stop, hunk_session.labels,
             hunk_session.reloc_map, hunk_session.string_addrs,
-            hunk_session.data_access_sizes, hunk_session.addr_comments, entity_addr,
+            hunk_session.data_access_sizes, hunk_session.typed_data_sizes,
+            hunk_session.typed_data_fields, hunk_session.os_kb,
+            hunk_session.addr_comments, entity_addr,
             BlockRowContext(kind="data", verified_state=verified_state),
         ))
 
@@ -497,6 +512,15 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                         include_arg_subs=True,
                     ))
                 pos = blk.end
+            elif pos in hunk_session.typed_data_sizes:
+                data_end = pos + 1
+                while (data_end < pass_end
+                       and data_end not in hunk_session.blocks
+                       and data_end not in hunk_session.hint_blocks
+                       and data_end not in hunk_session.labels):
+                    data_end += 1
+                emit_data(pos, data_end, entity_addr)
+                pos = data_end
             elif pos in hunk_session.code_addrs:
                 pos += 1
             elif pos in hunk_session.hint_blocks:

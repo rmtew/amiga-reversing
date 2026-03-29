@@ -47,7 +47,6 @@ files = [
     "disasm/entities.py",
     "disasm/hardware_symbols.py",
     "disasm/hint_validation.py",
-    "disasm/hunks.py",
     "disasm/instruction_rows.py",
     "disasm/jump_tables.py",
     "disasm/metadata.py",

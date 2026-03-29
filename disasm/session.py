@@ -27,7 +27,6 @@ from disasm.entry_seeds import (
     scoped_entry_initial_states,
 )
 from disasm.hardware_symbols import collect_hardware_base_regs
-from disasm.hunks import build_hunk_session, build_session_object, prepare_hunk_code
 from disasm.metadata import HunkAnalysisLike, build_hunk_metadata
 from disasm.phase_timing import PhaseTimer
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
@@ -43,14 +42,17 @@ from disasm.types import (
     HunkDisassemblySession,
     JumpTableEntryRef,
     JumpTableRegion,
+    TypedDataFieldInfo,
 )
-from m68k.analysis import analyze_hunk
+from m68k.analysis import RelocatedSegment, analyze_hunk
 from m68k.hunk_parser import Hunk, HunkType, MemType, parse
 from m68k.indirect_core import IndirectSiteStatus
 from m68k.instruction_primitives import Operand
 from m68k.m68k_disasm import DecodedOperandNode
 from m68k.m68k_executor import BasicBlock
 from m68k.os_calls import (
+    LibraryCall,
+    OsKb,
     analyze_call_setups,
     build_app_slot_symbols,
     build_app_struct_regions,
@@ -64,6 +66,27 @@ __all__ = [
     "HunkDisassemblySession",
     "build_disassembly_session",
 ]
+
+
+def _prepare_hunk_code(
+    code: bytes,
+    relocated_segments: list[RelocatedSegment],
+) -> tuple[bytes, int, list[RelocatedSegment], int, int]:
+    code_size = len(code)
+    reloc_file_offset = 0
+    reloc_base_addr = 0
+    if relocated_segments:
+        seg = relocated_segments[0]
+        reloc_file_offset = seg.file_offset
+        reloc_base_addr = seg.base_addr
+        payload_size = code_size - reloc_file_offset
+        runtime_size = reloc_base_addr + payload_size
+        runtime_code = bytearray(runtime_size)
+        runtime_code[:reloc_file_offset] = code[:reloc_file_offset]
+        runtime_code[reloc_base_addr:] = code[reloc_file_offset:]
+        code = bytes(runtime_code)
+        code_size = runtime_size
+    return code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr
 
 
 def _rebase_local_addr(addr: int, base_addr: int) -> int:
@@ -94,7 +117,9 @@ def _rebase_block_map(
                     decoded_operands=(
                         None
                         if instruction.decoded_operands is None
-                        else _rebase_decoded_for_emit(instruction.decoded_operands, base_addr, code_size)
+                        else _rebase_decoded_for_emit(
+                            instruction.decoded_operands, base_addr, code_size
+                        )
                     ),
                     operand_nodes=(
                         None
@@ -107,8 +132,14 @@ def _rebase_block_map(
                 )
                 for instruction in block.instructions
             ],
-            successors=[_maybe_rebase_addr(successor, base_addr, code_size) for successor in block.successors],
-            predecessors=[_maybe_rebase_addr(predecessor, base_addr, code_size) for predecessor in block.predecessors],
+            successors=[
+                _maybe_rebase_addr(successor, base_addr, code_size)
+                for successor in block.successors
+            ],
+            predecessors=[
+                _maybe_rebase_addr(predecessor, base_addr, code_size)
+                for predecessor in block.predecessors
+            ],
             xrefs=list(block.xrefs),
             is_entry=block.is_entry,
             is_return=block.is_return,
@@ -123,7 +154,9 @@ def _rebase_operand_value(
         return operand
     if operand.mode not in ("pcdisp", "pcindex", "absw", "absl"):
         return operand
-    return replace(operand, value=_maybe_rebase_addr(operand.value, base_addr, code_size))
+    return replace(
+        operand, value=_maybe_rebase_addr(operand.value, base_addr, code_size)
+    )
 
 
 def _rebase_decoded_operand_node(
@@ -133,7 +166,11 @@ def _rebase_decoded_operand_node(
     if target is not None:
         target = _maybe_rebase_addr(target, base_addr, code_size)
     value = node.value
-    if value is not None and node.kind in ("branch_target", "pc_relative_target", "absolute_target"):
+    if value is not None and node.kind in (
+        "branch_target",
+        "pc_relative_target",
+        "absolute_target",
+    ):
         value = _maybe_rebase_addr(value, base_addr, code_size)
     return replace(node, target=target, value=value)
 
@@ -167,8 +204,13 @@ def _rebase_jump_table_regions(
                 )
                 for entry in region.entries
             ),
-            targets=tuple(_maybe_rebase_addr(target, base_addr, code_size) for target in region.targets),
-            base_addr=None if region.base_addr is None else _maybe_rebase_addr(region.base_addr, base_addr, code_size),
+            targets=tuple(
+                _maybe_rebase_addr(target, base_addr, code_size)
+                for target in region.targets
+            ),
+            base_addr=None
+            if region.base_addr is None
+            else _maybe_rebase_addr(region.base_addr, base_addr, code_size),
             base_label=region.base_label,
         )
     return rebased
@@ -219,16 +261,14 @@ def _filter_pre_entry_blocks(
 ) -> dict[int, BasicBlock]:
     if entry_point is None or entry_point <= 0:
         return dict(blocks)
-    keep = {
-        addr
-        for addr, block in blocks.items()
-        if block.end > entry_point
-    }
+    keep = {addr for addr, block in blocks.items() if block.end > entry_point}
     filtered: dict[int, BasicBlock] = {}
     for _addr, block in blocks.items():
         if block.end <= entry_point:
             continue
-        kept_instructions = [inst for inst in block.instructions if inst.offset >= entry_point]
+        kept_instructions = [
+            inst for inst in block.instructions if inst.offset >= entry_point
+        ]
         if not kept_instructions:
             continue
         new_start = entry_point if block.start < entry_point else block.start
@@ -238,8 +278,16 @@ def _filter_pre_entry_blocks(
             instructions=kept_instructions,
             is_entry=(block.is_entry or new_start == entry_point),
             successors=[succ for succ in block.successors if succ in keep],
-            predecessors=[pred for pred in block.predecessors if pred in keep and pred >= entry_point],
-            xrefs=[xref for xref in block.xrefs if xref.src >= entry_point and xref.dst >= entry_point],
+            predecessors=[
+                pred
+                for pred in block.predecessors
+                if pred in keep and pred >= entry_point
+            ],
+            xrefs=[
+                xref
+                for xref in block.xrefs
+                if xref.src >= entry_point and xref.dst >= entry_point
+            ],
         )
     return filtered
 
@@ -255,7 +303,9 @@ def _filter_hint_blocks_against_seeded_entities(
     seeded_ranges = [
         (entity.addr, entity.end)
         for entity in target_metadata.seeded_entities
-        if entity.hunk == hunk_index and entity.end is not None and entity.type != "code"
+        if entity.hunk == hunk_index
+        and entity.end is not None
+        and entity.type != "code"
     ]
     if not seeded_ranges:
         return dict(hint_blocks)
@@ -291,7 +341,9 @@ def _apply_seeded_code_annotations(
                 f"Seeded code entrypoint 0x{seeded_entrypoint.addr:X} lies outside code size 0x{code_size:X}"
             )
         labels[seeded_entrypoint.addr] = seeded_entrypoint.name
-        note = _seeded_code_note(comment=seeded_entrypoint.comment, role=seeded_entrypoint.role)
+        note = _seeded_code_note(
+            comment=seeded_entrypoint.comment, role=seeded_entrypoint.role
+        )
         if note is not None:
             addr_comments[seeded_entrypoint.addr] = note
     for seeded_label in target_metadata.seeded_code_labels:
@@ -306,11 +358,61 @@ def _apply_seeded_code_annotations(
         if note is not None:
             addr_comments[seeded_label.addr] = note
 
-def build_disassembly_session(binary_source: str | BinarySource, entities_path: str,
-                              output_path: str | None = None,
-                              base_addr: int = 0, code_start: int = 0,
-                              profile_stages: bool = False,
-                              phase_timer: PhaseTimer | None = None) -> DisassemblySession:
+
+def _derived_segment_struct_comments(call_setup_analysis: object) -> dict[int, str]:
+    comments: dict[int, str] = {}
+    segment_struct_regions = cast(
+        dict[int, str], getattr(call_setup_analysis, "segment_struct_regions", {})
+    )
+    typed_data_comments = cast(
+        dict[int, str], getattr(call_setup_analysis, "typed_data_comments", {})
+    )
+    typed_data_sizes = cast(
+        dict[int, int], getattr(call_setup_analysis, "typed_data_sizes", {})
+    )
+    for start, struct_name in sorted(segment_struct_regions.items()):
+        if start in typed_data_comments or start in typed_data_sizes:
+            continue
+        comments[start] = f"Derived data interpretation: {struct_name}"
+    return comments
+
+
+def _refresh_library_call_signatures(
+    lib_calls: list[LibraryCall],
+    os_kb: OsKb,
+) -> list[LibraryCall]:
+    refreshed: list[LibraryCall] = []
+    for call in lib_calls:
+        library = os_kb.LIBRARIES.get(call.library)
+        if library is None:
+            refreshed.append(call)
+            continue
+        function = library.functions.get(call.function)
+        if function is None:
+            refreshed.append(call)
+            continue
+        refreshed.append(
+            replace(
+                call,
+                inputs=function.inputs,
+                output=function.output,
+                no_return=function.no_return,
+                os_since=function.os_since,
+                fd_version=function.fd_version,
+            )
+        )
+    return refreshed
+
+
+def build_disassembly_session(
+    binary_source: str | BinarySource,
+    entities_path: str,
+    output_path: str | None = None,
+    base_addr: int = 0,
+    code_start: int = 0,
+    profile_stages: bool = False,
+    phase_timer: PhaseTimer | None = None,
+) -> DisassemblySession:
     source = (
         HunkFileBinarySource(
             kind="hunk_file",
@@ -322,7 +424,9 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
         else binary_source
     )
     entities: list[EntityRecord] = load_entities(entities_path)
-    target_dir = Path(entities_path).parent if Path(entities_path).parent.exists() else None
+    target_dir = (
+        Path(entities_path).parent if Path(entities_path).parent.exists() else None
+    )
     target_name = infer_target_name(target_dir, entities_path)
     target_metadata = load_required_target_metadata(
         target_dir=target_dir,
@@ -352,7 +456,9 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
             base_addr=resolved_raw_analysis_base_addr(source, target_metadata),
             code_start=resolved_analysis_start_offset(source, target_metadata),
             entry_points=resolved_entry_points(source, target_metadata, ()),
-            extra_entry_points=target_seeded_entrypoint_offsets(target_metadata, hunk_index=0),
+            extra_entry_points=target_seeded_entrypoint_offsets(
+                target_metadata, hunk_index=0
+            ),
             profile_stages=profile_stages,
             phase_timer=phase_timer,
         )
@@ -364,22 +470,26 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
     for hunk in hf.hunks:
         if hunk.hunk_type != HunkType.HUNK_CODE:
             continue
-        hunk_sessions.append(_build_hunk_session_data(
-            source=source,
-            entities=entities,
-            hunk=hunk,
-            hf_hunks=hf.hunks,
-            base_addr=base_addr,
-            code_start=code_start,
-            entry_points=(custom_entry_points if not first_code_hunk_seen else ()),
-            extra_entry_points=target_seeded_entrypoint_offsets(target_metadata, hunk_index=hunk.index),
-            target_metadata=target_metadata,
-            apply_target_structure=not first_code_hunk_seen,
-            phase_timer=phase_timer,
-        ))
+        hunk_sessions.append(
+            _build_hunk_session_data(
+                source=source,
+                entities=entities,
+                hunk=hunk,
+                hf_hunks=hf.hunks,
+                base_addr=base_addr,
+                code_start=code_start,
+                entry_points=(custom_entry_points if not first_code_hunk_seen else ()),
+                extra_entry_points=target_seeded_entrypoint_offsets(
+                    target_metadata, hunk_index=hunk.index
+                ),
+                target_metadata=target_metadata,
+                apply_target_structure=not first_code_hunk_seen,
+                phase_timer=phase_timer,
+            )
+        )
         first_code_hunk_seen = True
 
-    return build_session_object(
+    return DisassemblySession(
         target_name=target_name,
         binary_path=Path(source.display_path),
         analysis_cache_path=source.analysis_cache_path,
@@ -389,7 +499,9 @@ def build_disassembly_session(binary_source: str | BinarySource, entities_path: 
         hunk_sessions=hunk_sessions,
         target_metadata=target_metadata,
         source_kind=source.kind,
-        raw_address_model=(None if source.kind != "raw_binary" else source.address_model),
+        raw_address_model=(
+            None if source.kind != "raw_binary" else source.address_model
+        ),
         profile_stages=profile_stages,
     )
 
@@ -424,7 +536,7 @@ def _build_code_session(
         apply_target_structure=True,
         phase_timer=phase_timer,
     )
-    return build_session_object(
+    return DisassemblySession(
         target_name=target_name,
         binary_path=Path(source.display_path),
         analysis_cache_path=source.analysis_cache_path,
@@ -434,7 +546,9 @@ def _build_code_session(
         hunk_sessions=[hunk_session],
         target_metadata=target_metadata,
         source_kind=source.kind,
-        raw_address_model=(None if source.kind != "raw_binary" else source.address_model),
+        raw_address_model=(
+            None if source.kind != "raw_binary" else source.address_model
+        ),
         profile_stages=profile_stages,
     )
 
@@ -460,7 +574,11 @@ def _build_hunk_session_data(
     hunk_entities = [e for e in entities if e.get("hunk") == hunk.index]
     hunk_entities.sort(key=lambda e: int(e["addr"], 16))
 
-    with phase_timer.phase("session.load_analysis") if phase_timer is not None else nullcontext():
+    with (
+        phase_timer.phase("session.load_analysis")
+        if phase_timer is not None
+        else nullcontext()
+    ):
         if source.kind == "raw_binary":
             ha = analyze_hunk(
                 code,
@@ -490,17 +608,22 @@ def _build_hunk_session_data(
             )
     entry_point = entry_points[0] if entry_points else None
     blocks = _filter_pre_entry_blocks(ha.blocks, entry_point)
-    hint_blocks: Mapping[int, DisasmBlockLike] = _filter_pre_entry_blocks(ha.hint_blocks, entry_point)
+    hint_blocks: Mapping[int, DisasmBlockLike] = _filter_pre_entry_blocks(
+        ha.hint_blocks, entry_point
+    )
     hint_blocks = _filter_hint_blocks_against_seeded_entities(
         hint_blocks,
         target_metadata,
         hunk_index=hunk.index,
     )
-    lib_calls = [call for call in ha.lib_calls if entry_point is None or call.addr >= entry_point]
+    lib_calls = [
+        call for call in ha.lib_calls if entry_point is None or call.addr >= entry_point
+    ]
     os_kb = ha.os_kb
     if os_kb is None:
         raise ValueError(f"Analysis for hunk {hunk.index} did not provide an OS KB")
     os_kb = build_target_local_os_kb(os_kb, target_metadata)
+    lib_calls = _refresh_library_call_signatures(lib_calls, os_kb)
     platform = ha.platform
     apply_entry_seed_config(platform, seed_config)
     exit_states = {
@@ -510,9 +633,13 @@ def _build_hunk_session_data(
     }
     relocated_segments = ha.relocated_segments
     code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = (
-        prepare_hunk_code(code, relocated_segments)
+        _prepare_hunk_code(code, relocated_segments)
     )
-    with phase_timer.phase("session.metadata") if phase_timer is not None else nullcontext():
+    with (
+        phase_timer.phase("session.metadata")
+        if phase_timer is not None
+        else nullcontext()
+    ):
         absolute_resolution = resolve_absolute_labels(platform=platform)
         call_setup_analysis = analyze_call_setups(
             blocks=blocks,
@@ -533,11 +660,13 @@ def _build_hunk_session_data(
                     hint_blocks=hint_blocks,
                     jump_tables=ha.jump_tables,
                     call_targets={
-                        addr for addr in ha.call_targets
+                        addr
+                        for addr in ha.call_targets
                         if entry_point is None or addr >= entry_point
                     },
                     branch_targets={
-                        addr for addr in ha.branch_targets
+                        addr
+                        for addr in ha.branch_targets
                         if entry_point is None or addr >= entry_point
                     },
                 ),
@@ -549,11 +678,17 @@ def _build_hunk_session_data(
             absolute_labels=absolute_resolution.absolute_labels,
         )
         region_map = propagate_typed_memory_regions(
-            blocks, lib_calls, code, os_kb, platform, target_metadata)
+            blocks, lib_calls, code, os_kb, platform, target_metadata
+        )
         app_struct_regions = build_app_struct_regions(
-            blocks, lib_calls, os_kb, platform, target_metadata)
+            blocks, lib_calls, os_kb, platform, target_metadata
+        )
         hardware_base_regs = collect_hardware_base_regs(blocks, code, platform)
-    with phase_timer.phase("session.substitutions") if phase_timer is not None else nullcontext():
+    with (
+        phase_timer.phase("session.substitutions")
+        if phase_timer is not None
+        else nullcontext()
+    ):
         lvo_equs, lvo_substitutions = build_lvo_substitutions(
             blocks=blocks,
             lib_calls=lib_calls,
@@ -580,6 +715,9 @@ def _build_hunk_session_data(
         metadata.generic_data_label_addrs,
         call_setup_analysis.segment_data_symbols,
     )
+    for addr, symbol in call_setup_analysis.segment_data_symbols.items():
+        if addr not in labels:
+            labels[addr] = symbol
     for addr, symbol in call_setup_analysis.segment_code_symbols.items():
         labels[addr] = symbol
     data_access_sizes = collect_data_access_sizes(blocks, exit_states)
@@ -631,18 +769,27 @@ def _build_hunk_session_data(
         }
         metadata = replace(
             metadata,
-            code_addrs={_rebase_local_addr(addr, base_addr) for addr in metadata.code_addrs},
-            hint_addrs={_rebase_local_addr(addr, base_addr) for addr in metadata.hint_addrs},
+            code_addrs={
+                _rebase_local_addr(addr, base_addr) for addr in metadata.code_addrs
+            },
+            hint_addrs={
+                _rebase_local_addr(addr, base_addr) for addr in metadata.hint_addrs
+            },
             hint_blocks=hint_blocks,
             pc_targets={
                 _maybe_rebase_addr(addr, base_addr, code_size): label
                 for addr, label in metadata.pc_targets.items()
             },
-            string_addrs={_rebase_local_addr(addr, base_addr) for addr in metadata.string_addrs},
-            generic_data_label_addrs={
-                _maybe_rebase_addr(addr, base_addr, code_size) for addr in metadata.generic_data_label_addrs
+            string_addrs={
+                _rebase_local_addr(addr, base_addr) for addr in metadata.string_addrs
             },
-            jump_table_regions=_rebase_jump_table_regions(metadata.jump_table_regions, base_addr, code_size),
+            generic_data_label_addrs={
+                _maybe_rebase_addr(addr, base_addr, code_size)
+                for addr in metadata.generic_data_label_addrs
+            },
+            jump_table_regions=_rebase_jump_table_regions(
+                metadata.jump_table_regions, base_addr, code_size
+            ),
             jump_table_target_sources={
                 _maybe_rebase_addr(addr, base_addr, code_size): sources
                 for addr, sources in metadata.jump_table_target_sources.items()
@@ -675,29 +822,66 @@ def _build_hunk_session_data(
         labels=labels,
         addr_comments=addr_comments,
     )
-    with phase_timer.phase("session.build") if phase_timer is not None else nullcontext():
-        return build_hunk_session(
+    typed_data_comments = dict(call_setup_analysis.typed_data_comments)
+    typed_data_fields = {
+        addr: TypedDataFieldInfo(
+            owner_struct=owner, field_symbol=field, context_name=context_name
+        )
+        for addr, (
+            owner,
+            field,
+            context_name,
+        ) in call_setup_analysis.typed_data_fields.items()
+    }
+    derived_struct_comments = _derived_segment_struct_comments(call_setup_analysis)
+    typed_data_sizes = dict(call_setup_analysis.typed_data_sizes)
+    if source.kind == "raw_binary" and source.address_model == "runtime_absolute":
+        typed_data_comments = {
+            _rebase_local_addr(addr, base_addr): comment
+            for addr, comment in typed_data_comments.items()
+        }
+        typed_data_fields = {
+            _rebase_local_addr(addr, base_addr): info
+            for addr, info in typed_data_fields.items()
+        }
+        derived_struct_comments = {
+            _rebase_local_addr(addr, base_addr): comment
+            for addr, comment in derived_struct_comments.items()
+        }
+    for addr, comment in typed_data_comments.items():
+        addr_comments[addr] = comment
+    if source.kind == "raw_binary" and source.address_model == "runtime_absolute":
+        typed_data_sizes = {
+            _rebase_local_addr(addr, base_addr): size
+            for addr, size in typed_data_sizes.items()
+        }
+    for addr, comment in derived_struct_comments.items():
+        addr_comments.setdefault(addr, comment)
+    with (
+        phase_timer.phase("session.build") if phase_timer is not None else nullcontext()
+    ):
+        return HunkDisassemblySession(
             hunk_index=hunk.index,
             code=code,
             code_size=code_size,
             entities=hunk_entities,
-            blocks=blocks,
-            hint_blocks=hint_blocks,
+            blocks=dict(blocks),
+            hint_blocks=dict(hint_blocks),
             code_addrs=metadata.code_addrs,
             hint_addrs=metadata.hint_addrs,
             reloc_map=metadata.reloc_map,
             reloc_target_set=metadata.reloc_target_set,
-            reserved_absolute_addrs=metadata.reserved_absolute_addrs,
             pc_targets=metadata.pc_targets,
             string_addrs=metadata.string_addrs,
-            string_ranges=metadata.string_ranges,
             labels=labels,
             addr_comments=addr_comments,
             absolute_labels=metadata.absolute_labels,
+            reserved_absolute_addrs=metadata.reserved_absolute_addrs,
             jump_table_regions=metadata.jump_table_regions,
             jump_table_target_sources=metadata.jump_table_target_sources,
-            lib_calls=lib_calls,
+            lib_calls=tuple(lib_calls),
             region_map=region_map,
+            dynamic_structured_regions=(),
             app_struct_regions=app_struct_regions,
             hardware_base_regs=hardware_base_regs,
             lvo_equs=lvo_equs,
@@ -707,6 +891,8 @@ def _build_hunk_session_data(
             app_offsets=app_offsets,
             arg_annotations=arg_annotations,
             data_access_sizes=data_access_sizes,
+            typed_data_sizes=typed_data_sizes,
+            typed_data_fields=typed_data_fields,
             platform=platform,
             os_kb=os_kb,
             base_addr=base_addr,
@@ -714,9 +900,6 @@ def _build_hunk_session_data(
             relocated_segments=relocated_segments,
             reloc_file_offset=reloc_file_offset,
             reloc_base_addr=reloc_base_addr,
+            string_ranges=metadata.string_ranges,
             unresolved_indirects=unresolved_indirects,
         )
-
-
-
-

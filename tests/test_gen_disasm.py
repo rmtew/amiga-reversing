@@ -30,6 +30,7 @@ from disasm.discovery import (
     discover_pc_relative_targets,
     filter_internal_absolute_data_targets,
 )
+from disasm.emitter import _emit_hunk_rows
 from disasm.instruction_rows import (
     make_instruction_row,
     make_text_rows,
@@ -49,6 +50,7 @@ from disasm.types import (
     SemanticOperand,
     StructFieldOperandMetadata,
     SymbolOperandMetadata,
+    TypedDataFieldInfo,
 )
 from m68k.instruction_decode import DecodedBitfield
 from m68k.instruction_kb import find_kb_entry
@@ -262,6 +264,222 @@ def test_emit_data_long_format() -> None:
                      access_sizes=access_sizes)
     output = f.getvalue()
     assert "dc.l" in output, f"Expected dc.l in output, got:\n{output}"
+
+
+def test_emit_data_region_uses_kb_constant_for_typed_field_value() -> None:
+    f = io.StringIO()
+    emit_data_region(
+        f,
+        struct.pack(">H", 2),
+        0,
+        2,
+        {},
+        {},
+        set(),
+        typed_sizes={0: 2},
+        typed_fields={0: TypedDataFieldInfo("IO", "IO_COMMAND", "trackdisk.device")},
+        os_kb=SimpleNamespace(
+            VALUE_DOMAINS=runtime_os.VALUE_DOMAINS,
+            CONSTANTS=runtime_os.CONSTANTS,
+            STRUCT_FIELD_VALUE_DOMAINS=runtime_os.STRUCT_FIELD_VALUE_DOMAINS,
+            STRUCTS=runtime_os.STRUCTS,
+        ),
+        addr_comments={0: "IO.IO_COMMAND"},
+    )
+    output = f.getvalue()
+    assert "dc.w    CMD_READ ; IO.IO_COMMAND" in output
+
+
+def test_emit_data_region_typed_nonpointer_long_does_not_resolve_label() -> None:
+    f = io.StringIO()
+    emit_data_region(
+        f,
+        struct.pack(">I", 0x00000400),
+        0,
+        4,
+        {0x0400: "loc_0400"},
+        {},
+        set(),
+        typed_sizes={0: 4},
+        typed_fields={0: TypedDataFieldInfo("NewWindow", "nw_IDCMPFlags", None)},
+        os_kb=SimpleNamespace(
+            VALUE_DOMAINS=runtime_os.VALUE_DOMAINS,
+            CONSTANTS=runtime_os.CONSTANTS,
+            STRUCT_FIELD_VALUE_DOMAINS=runtime_os.STRUCT_FIELD_VALUE_DOMAINS,
+            STRUCTS=runtime_os.STRUCTS,
+        ),
+        addr_comments={0: "NewWindow.nw_IDCMPFlags"},
+    )
+    output = f.getvalue()
+    assert "dc.l    $00000400 ; NewWindow.nw_IDCMPFlags" in output
+    assert "loc_0400" not in output
+
+
+def test_emit_data_region_typed_null_pointer_does_not_resolve_zero_label() -> None:
+    f = io.StringIO()
+    emit_data_region(
+        f,
+        struct.pack(">I", 0),
+        0,
+        4,
+        {0: "memtask"},
+        {},
+        set(),
+        typed_sizes={0: 4},
+        typed_fields={0: TypedDataFieldInfo("NewWindow", "nw_FirstGadget", None)},
+        os_kb=SimpleNamespace(
+            VALUE_DOMAINS=runtime_os.VALUE_DOMAINS,
+            CONSTANTS=runtime_os.CONSTANTS,
+            STRUCT_FIELD_VALUE_DOMAINS=runtime_os.STRUCT_FIELD_VALUE_DOMAINS,
+            STRUCTS=runtime_os.STRUCTS,
+        ),
+        addr_comments={0: "NewWindow.nw_FirstGadget"},
+    )
+    output = f.getvalue()
+    assert "dc.l    0 ; NewWindow.nw_FirstGadget" in output
+    assert "memtask" not in output
+
+
+def test_emit_hunk_rows_emits_typed_data_comments() -> None:
+    code = struct.pack(">HHIHHH", 0x1234, 0x5678, 0x00080010, 0x0018, 0x0001, 0x0002)
+    hunk = HunkDisassemblySession(
+        hunk_index=0,
+        code=code,
+        code_size=len(code),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x000C: "dat_000c"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        typed_data_sizes={0x0000: 2, 0x0002: 2, 0x0004: 4, 0x0008: 2, 0x000A: 2, 0x000C: 2},
+        addr_comments={
+            0x0000: "SetPointer.xOffset",
+            0x0002: "SetPointer.yOffset",
+            0x0004: "SimpleSprite.ss_posctldata",
+            0x0008: "SimpleSprite.ss_height",
+            0x000A: "SimpleSprite.ss_x",
+            0x000C: "SimpleSprite.ss_y",
+        },
+    )
+
+    rows, _compat = _emit_hunk_rows(hunk, include_header=False)
+    rendered = "".join(row.text for row in rows)
+
+    assert "dc.w    $1234 ; SetPointer.xOffset" in rendered
+    assert rendered.count("SetPointer.xOffset") == 1
+    assert "dc.w    $5678 ; SetPointer.yOffset" in rendered
+    assert "dc.l    $00080010 ; SimpleSprite.ss_posctldata" in rendered
+    assert "dc.w    $0018 ; SimpleSprite.ss_height" in rendered
+    assert "dc.w    $0001 ; SimpleSprite.ss_x" in rendered
+    assert "dat_000c:\n    dc.w    $0002 ; SimpleSprite.ss_y" in rendered
+    assert rendered.count("SimpleSprite.ss_y") == 1
+
+
+def test_emit_hunk_rows_typed_data_overrides_hint_bytes() -> None:
+    code = struct.pack(">HH", 0x1234, 0x5678)
+    hunk = HunkDisassemblySession(
+        hunk_index=0,
+        code=code,
+        code_size=len(code),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs={0, 1, 2, 3},
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x0000: "typed_data"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        typed_data_sizes={0x0000: 2, 0x0002: 2},
+        addr_comments={0x0000: "Foo.left", 0x0002: "Foo.top"},
+    )
+
+    rows, _compat = _emit_hunk_rows(hunk, include_header=False)
+    rendered = "".join(row.text for row in rows)
+
+    assert "typed_data:\n" in rendered
+    assert "dc.w    $1234 ; Foo.left" in rendered
+    assert "dc.w    $5678 ; Foo.top" in rendered
+
+
+def test_render_instruction_text_preserves_exg_registers() -> None:
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    for asm_text in ("exg d0,d1", "exg a0,a1", "exg d0,a1"):
+        inst = disassemble(assemble_instruction(asm_text), 0)[0]
+        text, _comment, _comment_parts = render_instruction_text(inst, session, set())
+        assert text == asm_text
 
 
 # -- String detection in data regions ---------------------------------

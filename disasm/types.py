@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NotRequired, Protocol, TypedDict
 
-from disasm.target_metadata import TargetMetadata
+from disasm.target_metadata import StructuredRegionSpec, TargetMetadata
 from m68k.analysis import RelocatedSegment
 from m68k.indirect_core import IndirectSite
 from m68k.instruction_decode import DecodedBitfield
@@ -86,6 +86,13 @@ class FullIndexedOperandMetadata:
     context_name: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class TypedDataFieldInfo:
+    owner_struct: str
+    field_symbol: str
+    context_name: str | None = None
+
+
 SemanticOperandMetadata = (
     SymbolOperandMetadata
     | StructFieldOperandMetadata
@@ -96,6 +103,7 @@ SemanticOperandMetadata = (
     | IndexedOperandMetadata
     | FullIndexedOperandMetadata
 )
+
 
 @dataclass(frozen=True)
 class SemanticOperand:
@@ -225,6 +233,7 @@ class HunkMetadata:
     jump_table_target_sources: dict[int, tuple[str, ...]]
     labels: dict[int, str]
     string_ranges: dict[int, int] = field(default_factory=dict)
+    dynamic_structured_regions: tuple[StructuredRegionSpec, ...] = ()
     absolute_labels: dict[int, str] = field(default_factory=dict)
     reserved_absolute_addrs: set[int] = field(default_factory=set)
 
@@ -266,8 +275,11 @@ class HunkDisassemblySession:
     relocated_segments: list[RelocatedSegment]
     reloc_file_offset: int
     reloc_base_addr: int
+    typed_data_sizes: dict[int, int] = field(default_factory=dict)
+    typed_data_fields: dict[int, TypedDataFieldInfo] = field(default_factory=dict)
     addr_comments: dict[int, str] = field(default_factory=dict)
     string_ranges: dict[int, int] = field(default_factory=dict)
+    dynamic_structured_regions: tuple[StructuredRegionSpec, ...] = ()
     absolute_labels: dict[int, str] = field(default_factory=dict)
     reserved_absolute_addrs: set[int] = field(default_factory=set)
     app_struct_regions: AppStructRegionMap = field(default_factory=dict)

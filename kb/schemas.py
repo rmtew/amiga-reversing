@@ -316,6 +316,17 @@ class OsApiInputSemanticAssertion(TypedDict):
     citation: str
 
 
+class OsApiInputTypeOverride(TypedDict, total=False):
+    library: str
+    function: str
+    input: str
+    type: str
+    i_struct: str
+    seed_origin: str
+    review_status: str
+    citation: str
+
+
 class OsStructFieldValueBinding(TypedDict, total=False):
     struct: str
     field: str
@@ -340,6 +351,7 @@ class OsMeta(TypedDict):
     named_base_structs: dict[str, str]
     value_domains: dict[str, OsValueDomain]
     api_input_value_bindings: list[OsApiInputValueBinding]
+    api_input_type_overrides: list[OsApiInputTypeOverride]
     api_input_semantic_assertions: list[OsApiInputSemanticAssertion]
     struct_field_value_bindings: list[OsStructFieldValueBinding]
     library_lvo_owners: dict[str, OsIncludeOwner]

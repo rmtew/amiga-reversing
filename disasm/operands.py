@@ -269,6 +269,33 @@ def _same_register_name(expected: str, actual: str | None) -> bool:
     return {expected, actual} == {"a7", "sp"}
 
 
+def _register_spec_from_name(name: str) -> RegisterSpec | None:
+    token = name.lower()
+    if token == "sp":
+        return RegisterSpec("an", 7)
+    if len(token) != 2:
+        return None
+    prefix, suffix = token[0], token[1]
+    if prefix not in {"d", "a"} or not suffix.isdigit():
+        return None
+    reg = int(suffix)
+    if not 0 <= reg <= 7:
+        return None
+    return RegisterSpec("an" if prefix == "a" else "dn", reg)
+
+
+def _register_specs_from_nodes(inst: Instruction) -> list[OperandSpec]:
+    specs: list[OperandSpec] = []
+    for node in inst.operand_nodes or ():
+        if node.kind != "register" or node.register is None:
+            return []
+        spec = _register_spec_from_name(node.register)
+        if spec is None:
+            return []
+        specs.append(spec)
+    return specs
+
+
 def _apply_instruction_text_substitutions(text: str, inst_offset: int,
                                           hunk_session: HunkDisassemblySession,
                                           include_arg_subs: bool) -> str:
@@ -567,6 +594,10 @@ def _decoded_operand_specs(inst: Instruction, hunk_session: HunkDisassemblySessi
     operand_types = _operand_types_for_inst(inst, meta)
     if operand_types == ():
         return []
+    if decoded.ea_op is None and decoded.dst_op is None and decoded.reg_num is None and decoded.imm_val is None:
+        register_specs = _register_specs_from_nodes(inst)
+        if len(register_specs) == len(operand_types):
+            return register_specs
     ea_op = decoded.ea_op
     dst_op = decoded.dst_op
     reg_num = decoded.reg_num

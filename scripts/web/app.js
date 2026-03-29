@@ -3,7 +3,22 @@ const state = {
   projectData: null,
   loadingToken: 0,
   homeDropCleanup: null,
+  typeCatalog: null,
+  listingRows: [],
+  navigation: {
+    overlayOpen: false,
+    selectedClass: "typed-data",
+    selectedIndex: 0,
+    windowStart: 0,
+    originEntry: null,
+    currentPreviewEntry: null,
+    historyBack: [],
+    historyForward: [],
+  },
 };
+
+const NAVIGATION_WINDOW_SIZE = 14;
+const NAVIGATION_WINDOW_MARGIN = 3;
 
 const JOB_PHASE_LABELS = {
   listing: {
@@ -519,11 +534,45 @@ function renderListingComment(row) {
   return "";
 }
 
+function renderListingAnnotations(row) {
+  if (!Array.isArray(row.view_annotations) || !row.view_annotations.length) {
+    return "";
+  }
+  return row.view_annotations
+    .map((note) => `<span class="project-badge" title="${escapeHtml(note)}">${escapeHtml(note)}</span>`)
+    .join("");
+}
+
+function renderApiEditButton(row, rowIndex) {
+  if (!row.api_call) {
+    return "";
+  }
+  return ` <button class="listing-api-edit" type="button" data-api-edit="1" data-row-index="${rowIndex}" title="Edit API argument types">Edit API</button>`;
+}
+
+function renderApiTypeBadges(row) {
+  if (!row.api_call || !Array.isArray(row.api_call.inputs)) {
+    return "";
+  }
+  const highlighted = row.api_call.inputs.filter((input) => input.i_struct || input.source !== "parsed NDK");
+  if (!highlighted.length) {
+    return "";
+  }
+  return highlighted
+    .map((input) => {
+      const label = `${input.regs.join("/")} ${input.i_struct || input.type || input.name}`;
+      const title = `${input.name}: ${input.type || "(untyped)"}\nsource: ${input.source}`;
+      const sourceClass = `project-badge-source-${String(input.source || "unknown").toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}`;
+      return `<span class="project-badge ${sourceClass}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
+    })
+    .join("");
+}
+
 function renderListingRows(rows) {
   if (!rows.length) {
     return '<div class="empty listing-empty">No disassembly available.</div>';
   }
-  return rows.map((row) => `
+  return rows.map((row, rowIndex) => `
     <div
       class="listing-row listing-row-${escapeHtml(row.kind)}"
       data-row-addr="${row.addr === null || row.addr === undefined ? "" : escapeHtml(String(row.addr))}"
@@ -533,9 +582,453 @@ function renderListingRows(rows) {
       <span class="listing-offset">${escapeHtml(formatRowOffset(row.addr))}</span>
       <span class="listing-bytes">${escapeHtml(formatRowBytes(row.bytes))}</span>
       <span class="listing-code">${escapeHtml(renderListingCode(row))}</span>
-      <span class="listing-comment">${escapeHtml(renderListingComment(row))}</span>
+      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderApiTypeBadges(row)}${(renderListingAnnotations(row) || renderApiTypeBadges(row)) ? " " : ""}${renderApiEditButton(row, rowIndex)}</span>
     </div>
   `).join("");
+}
+
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+function isLabelRow(row) {
+  return Boolean(row.label) || renderListingCode(row).trim().endsWith(":");
+}
+
+function rowHasSegmentReference(row) {
+  if (!Array.isArray(row.operand_parts)) {
+    return false;
+  }
+  return row.operand_parts.some((operand) => operand.segment_addr !== null && operand.segment_addr !== undefined);
+}
+
+function rowHasTypedData(row) {
+  return row.kind !== "instruction" && Boolean(row.comment_text);
+}
+
+function rowHasComment(row) {
+  return Boolean(row.comment_text) || (Array.isArray(row.view_annotations) && row.view_annotations.length > 0);
+}
+
+function summarizeNavigationRow(row, jumpClass) {
+  if (jumpClass === "api-calls" && row.api_call) {
+    return `${row.api_call.function} (${row.api_call.library})`;
+  }
+  if (jumpClass === "typed-data" && row.comment_text) {
+    return row.comment_text;
+  }
+  if (jumpClass === "labels") {
+    return renderListingCode(row).trim();
+  }
+  return renderListingCode(row).trim() || row.comment_text || row.kind;
+}
+
+function buildNavigationEntries(rows) {
+  const groups = {
+    "typed-data": [],
+    "relocations": [],
+    "api-calls": [],
+    "labels": [],
+    "comments": [],
+  };
+  rows.forEach((row, rowIndex) => {
+    if (row.addr === null || row.addr === undefined) {
+      return;
+    }
+    if (rowHasTypedData(row)) {
+      groups["typed-data"].push({
+        addr: row.addr,
+        rowIndex,
+        summary: summarizeNavigationRow(row, "typed-data"),
+        matchText: renderListingCode(row),
+      });
+    }
+    if (rowHasSegmentReference(row)) {
+      groups.relocations.push({
+        addr: row.addr,
+        rowIndex,
+        summary: summarizeNavigationRow(row, "relocations"),
+        matchText: renderListingCode(row),
+      });
+    }
+    if (row.api_call) {
+      groups["api-calls"].push({
+        addr: row.addr,
+        rowIndex,
+        summary: summarizeNavigationRow(row, "api-calls"),
+        matchText: renderListingCode(row),
+      });
+    }
+    if (isLabelRow(row)) {
+      groups.labels.push({
+        addr: row.addr,
+        rowIndex,
+        summary: summarizeNavigationRow(row, "labels"),
+        matchText: renderListingCode(row),
+      });
+    }
+    if (rowHasComment(row)) {
+      groups.comments.push({
+        addr: row.addr,
+        rowIndex,
+        summary: summarizeNavigationRow(row, "comments"),
+        matchText: renderListingCode(row),
+      });
+    }
+  });
+  return groups;
+}
+
+function currentNavigationEntries() {
+  const groups = buildNavigationEntries(state.listingRows || []);
+  return groups[state.navigation.selectedClass] || [];
+}
+
+function clampNavigationWindow(entries, requestedStart) {
+  const maxStart = Math.max(entries.length - NAVIGATION_WINDOW_SIZE, 0);
+  return Math.max(0, Math.min(maxStart, requestedStart));
+}
+
+function syncNavigationWindow() {
+  const entries = currentNavigationEntries();
+  if (!entries.length) {
+    state.navigation.windowStart = 0;
+    state.navigation.selectedIndex = 0;
+    return;
+  }
+  const maxIndex = entries.length - 1;
+  state.navigation.selectedIndex = Math.max(0, Math.min(maxIndex, state.navigation.selectedIndex));
+  let windowStart = clampNavigationWindow(entries, state.navigation.windowStart);
+  const windowEnd = windowStart + NAVIGATION_WINDOW_SIZE - 1;
+  if (state.navigation.selectedIndex < windowStart + NAVIGATION_WINDOW_MARGIN) {
+    windowStart = clampNavigationWindow(
+      entries,
+      state.navigation.selectedIndex - NAVIGATION_WINDOW_MARGIN,
+    );
+  } else if (state.navigation.selectedIndex > windowEnd - NAVIGATION_WINDOW_MARGIN) {
+    windowStart = clampNavigationWindow(
+      entries,
+      state.navigation.selectedIndex - NAVIGATION_WINDOW_SIZE + NAVIGATION_WINDOW_MARGIN + 1,
+    );
+  }
+  state.navigation.windowStart = windowStart;
+}
+
+function captureViewportAnchor() {
+  const viewport = document.getElementById("listing-viewport");
+  if (!viewport) {
+    return null;
+  }
+  const rows = Array.from(viewport.querySelectorAll(".listing-row[data-row-addr]"));
+  const threshold = 120;
+  const visible = rows.find((row) => row.getBoundingClientRect().top >= threshold);
+  const candidate = visible || rows[0] || null;
+  if (!candidate) {
+    return null;
+  }
+  const addrText = candidate.dataset.rowAddr;
+  const addr = addrText === "" || addrText === undefined ? null : Number(addrText);
+  if (addr === null || Number.isNaN(addr)) {
+    return null;
+  }
+  return {
+    addr,
+    matchText: candidate.dataset.rowCode || null,
+  };
+}
+
+function renderNavigationOverlay() {
+  const existing = document.getElementById("navigation-overlay");
+  if (!state.navigation.overlayOpen) {
+    existing?.remove();
+    return;
+  }
+  const app = document.getElementById("app");
+  if (!app) {
+    return;
+  }
+  const entries = currentNavigationEntries();
+  syncNavigationWindow();
+  const selectedClass = state.navigation.selectedClass;
+  const windowStart = state.navigation.windowStart;
+  const windowEntries = entries.slice(windowStart, windowStart + NAVIGATION_WINDOW_SIZE);
+  const classOptions = [
+    ["typed-data", "Typed Data"],
+    ["relocations", "Relocations"],
+    ["api-calls", "API Calls"],
+    ["labels", "Labels"],
+    ["comments", "Comments"],
+  ];
+  const html = `
+    <div class="navigation-overlay" id="navigation-overlay">
+      <div class="navigation-panel">
+        <div class="navigation-header">
+          <div class="navigation-title">Navigate</div>
+          <button type="button" class="navigation-close" data-navigation-close="1">Close</button>
+        </div>
+        <label class="navigation-class-label">
+          <span>Jump Class</span>
+          <select class="navigation-class-select" data-navigation-class="1">
+            ${classOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === selectedClass ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}
+          </select>
+        </label>
+        <div class="navigation-summary">${entries.length} entries</div>
+        <div class="navigation-list" tabindex="0" data-navigation-list="1">
+          ${entries.length
+            ? windowEntries.map((entry, windowIndex) => {
+              const index = windowStart + windowIndex;
+              return `
+              <button
+                type="button"
+                class="navigation-item${index === state.navigation.selectedIndex ? " active" : ""}"
+                data-navigation-index="${index}"
+              >
+                <span class="navigation-item-addr">${escapeHtml(formatRowOffset(entry.addr))}</span>
+                <span class="navigation-item-text">${escapeHtml(entry.summary)}</span>
+              </button>
+            `;
+            }).join("")
+            : '<div class="navigation-empty">No entries in this class.</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    app.insertAdjacentHTML("beforeend", html);
+  }
+  bindNavigationOverlay();
+}
+
+function syncNavigationListFocus() {
+  const list = document.querySelector("[data-navigation-list='1']");
+  const selected = document.querySelector(".navigation-item.active");
+  if (!(list instanceof HTMLElement)) {
+    return;
+  }
+  list.focus();
+}
+
+async function previewNavigationEntry(entry) {
+  if (!entry || !state.project) {
+    return;
+  }
+  state.navigation.currentPreviewEntry = entry;
+  await jumpToListingAddr(state.project, entry.addr, entry.matchText || null);
+}
+
+async function moveNavigationSelection(delta) {
+  const entries = currentNavigationEntries();
+  if (!entries.length) {
+    return;
+  }
+  const nextIndex = Math.max(0, Math.min(entries.length - 1, state.navigation.selectedIndex + delta));
+  if (nextIndex === state.navigation.selectedIndex && state.navigation.currentPreviewEntry) {
+    return;
+  }
+  state.navigation.selectedIndex = nextIndex;
+  renderNavigationOverlay();
+  syncNavigationListFocus();
+  await previewNavigationEntry(entries[nextIndex]);
+}
+
+async function setNavigationClass(value) {
+  state.navigation.selectedClass = value;
+  state.navigation.selectedIndex = 0;
+  state.navigation.windowStart = 0;
+  renderNavigationOverlay();
+  syncNavigationListFocus();
+  const [first] = currentNavigationEntries();
+  await previewNavigationEntry(first || null);
+}
+
+function commitNavigationPreview() {
+  const origin = state.navigation.originEntry;
+  const current = state.navigation.currentPreviewEntry;
+  if (!origin || !current || origin.addr === current.addr) {
+    return;
+  }
+  state.navigation.historyBack.push(origin);
+  state.navigation.historyForward = [];
+}
+
+function closeNavigationOverlay() {
+  commitNavigationPreview();
+  state.navigation.overlayOpen = false;
+  state.navigation.originEntry = null;
+  state.navigation.currentPreviewEntry = null;
+  renderNavigationOverlay();
+}
+
+async function openNavigationOverlay() {
+  state.navigation.overlayOpen = true;
+  state.navigation.originEntry = captureViewportAnchor();
+  state.navigation.windowStart = 0;
+  renderNavigationOverlay();
+  syncNavigationListFocus();
+  const entries = currentNavigationEntries();
+  if (!entries.length) {
+    return;
+  }
+  const originAddr = state.navigation.originEntry?.addr ?? null;
+  const initialIndex = originAddr === null ? 0 : Math.max(0, entries.findIndex((entry) => entry.addr >= originAddr));
+  state.navigation.selectedIndex = initialIndex < 0 ? 0 : initialIndex;
+  renderNavigationOverlay();
+  syncNavigationListFocus();
+  await previewNavigationEntry(entries[state.navigation.selectedIndex]);
+}
+
+async function navigateHistory(direction) {
+  const sourceStack = direction === "back" ? state.navigation.historyBack : state.navigation.historyForward;
+  const targetStack = direction === "back" ? state.navigation.historyForward : state.navigation.historyBack;
+  const target = sourceStack.pop();
+  if (!target || !state.project) {
+    return;
+  }
+  const current = captureViewportAnchor();
+  if (current) {
+    targetStack.push(current);
+  }
+  await jumpToListingAddr(state.project, target.addr, target.matchText || null);
+}
+
+function bindNavigationOverlay() {
+  const overlay = document.getElementById("navigation-overlay");
+  if (!overlay) {
+    return;
+  }
+  overlay.querySelector("[data-navigation-close='1']")?.addEventListener("click", () => {
+    closeNavigationOverlay();
+  });
+  overlay.querySelector("[data-navigation-class='1']")?.addEventListener("change", (event) => {
+    void setNavigationClass(event.target.value);
+  });
+  overlay.querySelectorAll("[data-navigation-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.navigation.selectedIndex = Number(button.dataset.navigationIndex);
+      renderNavigationOverlay();
+      syncNavigationListFocus();
+      void previewNavigationEntry(currentNavigationEntries()[state.navigation.selectedIndex]);
+    });
+  });
+}
+
+async function ensureTypeCatalog(projectId) {
+  if (state.typeCatalog !== null) {
+    return state.typeCatalog;
+  }
+  state.typeCatalog = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/api/type-catalog`);
+  return state.typeCatalog;
+}
+
+function renderApiEditDialog(projectId, row) {
+  const apiCall = row.api_call;
+  if (!apiCall) {
+    return "";
+  }
+  const editableInputs = apiCall.inputs.filter((input) => (input.type || "").includes("*") && !(input.type || "").includes("**"));
+  if (!editableInputs.length) {
+    return "";
+  }
+  const rowsHtml = editableInputs.map((input, index) => `
+    <div class="api-edit-row">
+      <div class="api-edit-summary">${escapeHtml(input.regs.join("/"))} ${escapeHtml(input.name)} <span class="project-badge project-badge-source-${escapeHtml(String(input.source || "unknown").toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"))}">${escapeHtml(input.source)}</span></div>
+      <div class="api-edit-current">${escapeHtml(input.type || "(untyped)")}</div>
+      <input class="api-edit-input" list="api-struct-catalog" data-input-name="${escapeHtml(input.name)}" value="${escapeHtml(input.i_struct || "")}" placeholder="Select struct name">
+      <button type="button" class="api-edit-apply" data-input-name="${escapeHtml(input.name)}">Apply</button>
+    </div>
+  `).join("");
+  return `
+    <dialog class="api-edit-dialog" open>
+      <form method="dialog" class="api-edit-panel">
+        <div class="api-edit-title">${escapeHtml(apiCall.library)} / ${escapeHtml(apiCall.function)}</div>
+        <div class="api-edit-subtitle">Pick an existing struct. The backend applies pointer decoration for single-pointer args only.</div>
+        ${rowsHtml}
+        <div class="api-edit-actions">
+          <button type="button" class="api-edit-close">Close</button>
+        </div>
+      </form>
+    </dialog>
+  `;
+}
+
+async function refreshListingAfterApiEdit(projectId, addr) {
+  state.navigation.overlayOpen = false;
+  const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
+    method: "POST",
+  });
+  const jobState = await waitForAsyncJob(
+    (jobId) => `/api/projects/${encodeURIComponent(projectId)}/listing/status?job_id=${encodeURIComponent(jobId)}`,
+    job,
+    null,
+    (currentJob) => setViewportOverlay(renderProgressOverlay(currentJob, "Refreshing listing")),
+  );
+  setViewportOverlay(loadingRowsOverlay());
+  await loadListingWindow(projectId, null, 0, Number(jobState.total_rows || 0));
+  if (addr !== null && addr !== undefined) {
+    await jumpToListingAddr(projectId, addr);
+  }
+}
+
+async function openApiEditDialog(projectId, row) {
+  const catalog = await ensureTypeCatalog(projectId);
+  const viewport = document.getElementById("listing-viewport");
+  if (!viewport) {
+    return;
+  }
+  const existing = document.querySelector(".api-edit-dialog");
+  if (existing) {
+    existing.remove();
+  }
+  viewport.insertAdjacentHTML("beforeend", `
+    <datalist id="api-struct-catalog">
+      ${catalog.map((entry) => `<option value="${escapeHtml(entry.name)}">${escapeHtml(entry.name)} (${escapeHtml(entry.source)}, ${escapeHtml(String(entry.size))} bytes)</option>`).join("")}
+    </datalist>
+    ${renderApiEditDialog(projectId, row)}
+  `);
+  const dialog = document.querySelector(".api-edit-dialog");
+  if (!dialog) {
+    return;
+  }
+  dialog.querySelector(".api-edit-close")?.addEventListener("click", () => dialog.remove());
+  dialog.querySelectorAll(".api-edit-apply").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const inputName = button.dataset.inputName;
+      const input = dialog.querySelector(`.api-edit-input[data-input-name="${CSS.escape(inputName)}"]`);
+      const structName = input?.value?.trim();
+      if (!structName) {
+        window.alert("Select a struct name first.");
+        return;
+      }
+      await fetchJson(
+        `/api/projects/${encodeURIComponent(projectId)}/api/functions/${encodeURIComponent(row.api_call.library)}/${encodeURIComponent(row.api_call.function)}/inputs/${encodeURIComponent(inputName)}/struct`,
+        {
+          method: "PATCH",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({struct_name: structName}),
+        },
+      );
+      dialog.remove();
+      await refreshListingAfterApiEdit(projectId, row.addr);
+    });
+  });
+}
+
+function bindListingApiEditors(projectId, rows) {
+  const viewport = document.getElementById("listing-viewport");
+  if (!viewport) {
+    return;
+  }
+  viewport.querySelectorAll("[data-api-edit='1']").forEach((button, index) => {
+    button.addEventListener("click", () => {
+      const rowIndex = Number(button.dataset.rowIndex);
+      void openApiEditDialog(projectId, rows[rowIndex]);
+    });
+  });
 }
 
 async function loadListingWindow(projectId, addr = null, before = 24, after = 80) {
@@ -552,7 +1045,10 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
   if (!viewport) {
     return listing;
   }
+  state.listingRows = listing.rows;
   viewport.innerHTML = renderListingRows(listing.rows);
+  bindListingApiEditors(projectId, listing.rows);
+  renderNavigationOverlay();
   return listing;
 }
 
@@ -795,7 +1291,12 @@ async function renderProject(projectId) {
       <div class="project-bar">
         <div class="project-title" id="project-title">${escapeHtml(projectId)}</div>
         <div class="project-details" id="project-details">Loading project...</div>
-        <button id="exit-project" type="button">Project</button>
+        <div class="project-actions">
+          <button id="navigation-back" type="button" title="Back">Back</button>
+          <button id="navigation-forward" type="button" title="Forward">Forward</button>
+          <button id="open-navigation" type="button" title="Navigate">Navigate</button>
+          <button id="exit-project" type="button">Project</button>
+        </div>
       </div>
       <div class="project-workspace">
         <div class="listing-viewport" id="listing-viewport">
@@ -814,6 +1315,9 @@ async function renderProject(projectId) {
 
   const token = ++state.loadingToken;
   state.project = projectId;
+  state.listingRows = [];
+  state.navigation.overlayOpen = false;
+  renderNavigationOverlay();
   fetchJson(`/api/projects/${encodeURIComponent(projectId)}/open`, {method: "POST"})
     .catch(() => null);
   try {
@@ -838,6 +1342,15 @@ async function renderProject(projectId) {
       }
       window.history.pushState({}, "", "/");
       void route();
+    });
+    document.getElementById("open-navigation")?.addEventListener("click", () => {
+      void openNavigationOverlay();
+    });
+    document.getElementById("navigation-back")?.addEventListener("click", () => {
+      void navigateHistory("back");
+    });
+    document.getElementById("navigation-forward")?.addEventListener("click", () => {
+      void navigateHistory("forward");
     });
 
     if (projectData.project.kind === "disk") {
@@ -902,6 +1415,73 @@ async function route() {
 
 window.addEventListener("popstate", () => {
   void route();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (!state.project) {
+    return;
+  }
+  if (event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && event.key === "ArrowLeft") {
+    event.preventDefault();
+    void navigateHistory("back");
+    return;
+  }
+  if (event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && event.key === "ArrowRight") {
+    event.preventDefault();
+    void navigateHistory("forward");
+    return;
+  }
+  if (isEditableTarget(event.target)) {
+    return;
+  }
+  if (!state.navigation.overlayOpen) {
+    if (!event.altKey && !event.ctrlKey && !event.metaKey && (event.key === "n" || event.key === "N")) {
+      event.preventDefault();
+      void openNavigationOverlay();
+    }
+    return;
+  }
+  if (event.key === "Escape" || event.key === "Enter") {
+    event.preventDefault();
+    closeNavigationOverlay();
+    return;
+  }
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    void moveNavigationSelection(1);
+    return;
+  }
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    void moveNavigationSelection(-1);
+    return;
+  }
+  if (event.key === "PageDown") {
+    event.preventDefault();
+    void moveNavigationSelection(10);
+    return;
+  }
+  if (event.key === "PageUp") {
+    event.preventDefault();
+    void moveNavigationSelection(-10);
+    return;
+  }
+  if (event.key === "Home") {
+    event.preventDefault();
+    state.navigation.selectedIndex = 0;
+    renderNavigationOverlay();
+    syncNavigationListFocus();
+    void previewNavigationEntry(currentNavigationEntries()[0]);
+    return;
+  }
+  if (event.key === "End") {
+    event.preventDefault();
+    const entries = currentNavigationEntries();
+    state.navigation.selectedIndex = Math.max(entries.length - 1, 0);
+    renderNavigationOverlay();
+    syncNavigationListFocus();
+    void previewNavigationEntry(entries[state.navigation.selectedIndex]);
+  }
 });
 
 void route();

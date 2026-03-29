@@ -435,6 +435,169 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
     assert payload["ok"] is True
     assert data["anchor_addr"] == 0x10
     assert rows_data[0]["row_id"] == "r0"
+    assert rows_data[0]["view_annotations"] == []
+
+
+def test_route_listing_keeps_view_annotations_empty_for_monam(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id="r0", kind="label", text="setpointer_pointer:\n", addr=0x0008),
+        ListingRow(row_id="r1", kind="instruction", text="movea.l #memtask,a0\n", addr=0x0298),
+        ListingRow(row_id="r2", kind="label", text="call_setpointer:\n", addr=0x8146),
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["amiga_hunk_monam302"] = rows
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/amiga_hunk_monam302/listing",
+        {"before": ["5"], "after": ["7"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert payload["ok"] is True
+    assert rows_data[0]["view_annotations"] == []
+    assert rows_data[1]["view_annotations"] == []
+    assert rows_data[2]["view_annotations"] == []
+
+
+def test_route_listing_adds_api_call_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [ListingRow(row_id="r0", kind="instruction", text="jsr _LVOSetPointer(a6)\n", addr=0x814E)]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
+        0x814E: {
+            "library": "intuition.library",
+            "function": "SetPointer",
+            "inputs": [
+                {
+                    "name": "pointer",
+                    "regs": ["A1"],
+                    "type": "UWORD *",
+                    "i_struct": None,
+                    "source": "parsed NDK",
+                }
+            ],
+        }
+    }
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/bloodwych/listing", {})
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert rows_data[0]["api_call"] == {
+        "library": "intuition.library",
+        "function": "SetPointer",
+        "inputs": [
+            {
+                "name": "pointer",
+                "regs": ["A1"],
+                "type": "UWORD *",
+                "i_struct": None,
+                "source": "parsed NDK",
+            }
+        ],
+    }
+
+
+def test_route_type_catalog_returns_known_structs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server,
+        "load_live_os_reference_payload",
+        lambda: {
+            "_meta": {"api_input_type_overrides": []},
+            "libraries": {},
+            "constants": {},
+            "structs": {
+                "SimpleSprite": {"source": "GRAPHICS/SPRITE.I", "size": 12, "fields": []},
+                "Window": {"source": "INTUITION/INTUITION.I", "size": 34, "fields": []},
+            },
+        },
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/bloodwych/api/type-catalog", {})
+    data = cast(list[dict[str, object]], payload["data"])
+
+    assert payload["ok"] is True
+    assert data[0]["name"] == "SimpleSprite"
+    assert data[0]["source"] == "GRAPHICS/SPRITE.I"
+
+
+def test_route_patch_api_input_struct_writes_global_override(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    corrections_path = tmp_path / "amiga_ndk_corrections.json"
+    corrections_path.write_text(json.dumps({
+        "_meta": {
+            "absolute_symbols": [],
+            "api_input_semantic_assertions": [],
+            "api_input_type_overrides": [],
+            "api_input_value_bindings": [],
+            "struct_field_value_bindings": [],
+            "value_domains": {},
+        },
+        "libraries": {},
+        "structs": {},
+        "constants": {},
+    }))
+    monkeypatch.setattr(disasm_server, "_OS_CORRECTIONS_PATH", corrections_path)
+    monkeypatch.setattr(disasm_server, "install_live_runtime_os_kb", lambda: None)
+    monkeypatch.setattr(
+        disasm_server,
+        "load_live_os_reference_payload",
+        lambda: {
+            "_meta": {"api_input_type_overrides": []},
+            "constants": {},
+            "structs": {
+                "SimpleSprite": {"source": "GRAPHICS/SPRITE.I", "size": 12, "fields": []},
+            },
+            "libraries": {
+                "intuition.library": {
+                    "functions": {
+                        "SetPointer": {
+                            "inputs": [
+                                {"name": "pointer", "type": "UWORD *"},
+                            ]
+                        }
+                    }
+                }
+            },
+        },
+    )
+
+    payload = disasm_server.route_request(
+        "PATCH",
+        "/api/projects/bloodwych/api/functions/intuition.library/SetPointer/inputs/pointer/struct",
+        {},
+        {"struct_name": "SimpleSprite"},
+    )
+    data = cast(dict[str, object], payload["data"])
+    persisted = json.loads(corrections_path.read_text())
+
+    assert payload["ok"] is True
+    assert data["type"] == "struct SimpleSprite *"
+    overrides = persisted["_meta"]["api_input_type_overrides"]
+    assert overrides == [{
+        "citation": "User-edited via disasm UI",
+        "function": "SetPointer",
+        "i_struct": "SimpleSprite",
+        "input": "pointer",
+        "library": "intuition.library",
+        "review_status": "validated",
+        "seed_origin": "manual",
+        "type": "struct SimpleSprite *",
+    }]
 
 
 def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -458,6 +621,34 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert payload["ok"] is True
     assert data["job_id"] == "job-1"
+
+
+def test_start_listing_job_ignores_stale_ready_job_without_rows() -> None:
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._ASYNC_JOBS["stale-job"] = {
+        "job_id": "stale-job",
+        "job_kind": "listing",
+        "project_id": "bloodwych",
+        "result_project_id": "bloodwych",
+        "status": "ready",
+        "phase_id": "done",
+        "phase_index": 2,
+        "phase_count": 2,
+        "progress_mode": "determinate",
+        "progress_current": 2,
+        "progress_total": 2,
+        "progress_percent": 100,
+        "total_rows": 10,
+        "error": None,
+        "created_at": 1.0,
+        "finished_at": 1.0,
+    }
+
+    payload = disasm_server._start_listing_job("bloodwych")
+
+    assert payload["job_id"] != "stale-job"
+    assert payload["status"] in {"queued", "building"}
 
 
 def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> None:

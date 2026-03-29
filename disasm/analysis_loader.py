@@ -6,9 +6,9 @@ import hashlib
 from collections.abc import Sequence
 from pathlib import Path
 
+from m68k import analysis as m68k_analysis
 from m68k.analysis import AnalysisCacheError, HunkAnalysis, RelocLike, analyze_hunk
 from m68k.m68k_executor import CPUState
-from m68k_kb import runtime_os
 
 
 def hunk_analysis_cache_path(cache_path: str | Path, hunk_index: int) -> Path:
@@ -21,7 +21,7 @@ def analysis_cache_is_current(cache_path: str | Path) -> bool:
     if not cache_path.exists():
         return False
     try:
-        HunkAnalysis.load(cache_path, runtime_os)
+        HunkAnalysis.load(cache_path, m68k_analysis.RUNTIME_OS_KB)
     except AnalysisCacheError:
         return False
     return True
@@ -74,7 +74,7 @@ def load_hunk_analysis(
     cache_path = hunk_analysis_cache_path(cache_root, hunk_index)
     if cache_path.exists():
         try:
-            return HunkAnalysis.load(cache_path, runtime_os)
+            return HunkAnalysis.load(cache_path, m68k_analysis.RUNTIME_OS_KB)
         except AnalysisCacheError:
             pass
     if initial_state is None:
