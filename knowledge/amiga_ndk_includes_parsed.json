@@ -79,6 +79,8 @@
       "graphics/text.i": "1.3",
       "graphics/view.i": "1.3",
       "hardware/blit.i": "1.3",
+      "hardware/cia.i": "1.3",
+      "hardware/custom.i": "1.3",
       "intuition/cghooks.i": "2.0",
       "intuition/classes.i": "2.0",
       "intuition/classusr.i": "2.0",
@@ -450,12 +452,61 @@
       "utility.library": "UtilityBase"
     },
     "resident_autoinit_supports_short_vectors": true,
+    "resident_autoinit_word_stream_formats": {
+      "structure_init": "exec.InitStruct"
+    },
     "resident_autoinit_words": [
       "base_size",
       "vectors",
       "structure_init",
       "init_func"
     ],
+    "resident_entry_register_seeds": {
+      "device": {
+        "DEV_ABORTIO": [
+          {
+            "kind": "struct_ptr",
+            "register": "A1",
+            "struct_name": "IOStdReq"
+          }
+        ],
+        "DEV_BEGINIO": [
+          {
+            "kind": "struct_ptr",
+            "register": "A1",
+            "struct_name": "IOStdReq"
+          }
+        ],
+        "init": [
+          {
+            "kind": "library_base",
+            "named_base_source": "current_target",
+            "register": "D0"
+          },
+          {
+            "kind": "library_base",
+            "named_base_name": "exec.library",
+            "named_base_source": "fixed",
+            "register": "A6"
+          }
+        ]
+      },
+      "library": {
+        "init": [
+          {
+            "kind": "library_base",
+            "named_base_source": "current_target",
+            "register": "D0"
+          },
+          {
+            "kind": "library_base",
+            "named_base_name": "exec.library",
+            "named_base_source": "fixed",
+            "register": "A6"
+          }
+        ]
+      }
+    },
     "resident_vector_prefixes": {
       "device": [
         "LIB_OPEN",
@@ -982,6 +1033,86 @@
       "WORD": 2,
       "WORKBENCH_NAME": 0
     },
+    "typed_data_stream_formats": {
+      "exec.InitStruct": {
+        "alignment": 2,
+        "available_since": "1.3",
+        "command_byte": {
+          "count_mask": 15,
+          "destination_mask": 3,
+          "destination_modes": {
+            "byte_offset_count": 2,
+            "long_offset_count": 3,
+            "next_count": 0,
+            "next_repeat": 1
+          },
+          "destination_shift": 6,
+          "invalid_size_value": 3,
+          "size_mask": 3,
+          "size_shift": 4,
+          "source_sizes": {
+            "0": 4,
+            "1": 2,
+            "2": 1
+          }
+        },
+        "constructors": [
+          {
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "name": "INITBYTE",
+            "opcode": 160,
+            "unit_size": 1
+          },
+          {
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "name": "INITBYTE",
+            "opcode": 224,
+            "unit_size": 1
+          },
+          {
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "name": "INITWORD",
+            "opcode": 144,
+            "unit_size": 2
+          },
+          {
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "name": "INITWORD",
+            "opcode": 208,
+            "unit_size": 2
+          },
+          {
+            "count": 1,
+            "destination_mode": "byte_offset_count",
+            "name": "INITLONG",
+            "opcode": 128,
+            "unit_size": 4
+          },
+          {
+            "count": 1,
+            "destination_mode": "long_offset_count",
+            "name": "INITLONG",
+            "opcode": 192,
+            "unit_size": 4
+          }
+        ],
+        "generic_constructor": {
+          "count_bias": 1,
+          "name": "INITSTRUCT",
+          "size_param_encoding": {
+            "1": 2,
+            "2": 1,
+            "4": 0
+          }
+        },
+        "include_path": "exec/initializers.i",
+        "terminator_opcode": 0
+      }
+    },
     "value_domains": {
       "clipboard.device.io_command": {
         "exact_match_policy": "error",
@@ -1124,89 +1255,6 @@
         ],
         "remainder_policy": "error"
       }
-    },
-    "typed_data_stream_formats": {
-      "exec.InitStruct": {
-        "include_path": "exec/initializers.i",
-        "available_since": "1.3",
-        "alignment": 2,
-        "terminator_opcode": 0,
-        "command_byte": {
-          "destination_shift": 6,
-          "destination_mask": 3,
-          "size_shift": 4,
-          "size_mask": 3,
-          "count_mask": 15,
-          "invalid_size_value": 3,
-          "destination_modes": {
-            "next_count": 0,
-            "next_repeat": 1,
-            "byte_offset_count": 2,
-            "long_offset_count": 3
-          },
-          "source_sizes": {
-            "0": 4,
-            "1": 2,
-            "2": 1
-          }
-        },
-        "constructors": [
-          {
-            "name": "INITBYTE",
-            "unit_size": 1,
-            "count": 1,
-            "destination_mode": "byte_offset_count",
-            "opcode": 160
-          },
-          {
-            "name": "INITBYTE",
-            "unit_size": 1,
-            "count": 1,
-            "destination_mode": "long_offset_count",
-            "opcode": 224
-          },
-          {
-            "name": "INITWORD",
-            "unit_size": 2,
-            "count": 1,
-            "destination_mode": "byte_offset_count",
-            "opcode": 144
-          },
-          {
-            "name": "INITWORD",
-            "unit_size": 2,
-            "count": 1,
-            "destination_mode": "long_offset_count",
-            "opcode": 208
-          },
-          {
-            "name": "INITLONG",
-            "unit_size": 4,
-            "count": 1,
-            "destination_mode": "byte_offset_count",
-            "opcode": 128
-          },
-          {
-            "name": "INITLONG",
-            "unit_size": 4,
-            "count": 1,
-            "destination_mode": "long_offset_count",
-            "opcode": 192
-          }
-        ],
-        "generic_constructor": {
-          "name": "INITSTRUCT",
-          "size_param_encoding": {
-            "4": 0,
-            "2": 1,
-            "1": 2
-          },
-          "count_bias": 1
-        }
-      }
-    },
-    "resident_autoinit_word_stream_formats": {
-      "structure_init": "exec.InitStruct"
     }
   },
   "constants": {

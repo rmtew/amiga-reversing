@@ -57,8 +57,9 @@ from m68k.os_calls import (
     build_app_struct_regions,
     build_target_local_os_kb,
     identify_library_calls,
+    infer_named_base_extension_structs,
     propagate_typed_memory_regions,
-    refine_opened_base_calls,
+    refine_library_calls,
     select_primary_app_memory_type,
     trace_return_stores,
 )
@@ -448,10 +449,10 @@ def test_open_device_annotates_iorequest_on_a1_not_flags() -> None:
 def test_analyze_call_setups_tracks_zero_terminated_strptr_segment_range() -> None:
     code = b""
     code += struct.pack(">HH", 0x41FA, 0x0008)      # $00 lea $0A(pc),a0
-    code += struct.pack(">HH", 0x6100, 0x0008)      # $04 bsr.w $0E
+    code += struct.pack(">HH", 0x6100, 0x0010)      # $04 bsr.w $18
     code += struct.pack(">H", 0x4E75)               # $08 rts
     code += b"con.device\x00"                       # $0A
-    code += struct.pack(">H", 0x4E75)               # $15 rts
+    code += struct.pack(">HH", 0x4E71, 0x4E75)      # $15 nop; $17 rts
 
     result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
     lib_calls = [_make_lib_call(
@@ -469,11 +470,11 @@ def test_analyze_call_setups_tracks_zero_terminated_strptr_segment_range() -> No
 
 def test_analyze_call_setups_tracks_internal_absolute_strptr_segment_range() -> None:
     code = b""
-    code += struct.pack(">HI", 0x41F9, 0x0000000A)   # $00 lea $0000000A,a0
-    code += struct.pack(">HH", 0x6100, 0x0008)       # $06 bsr.w $10
-    code += b"con.device\x00"                        # $0A
-    code += struct.pack(">H", 0x4E75)                # $15 rts
-    code += struct.pack(">H", 0x4E75)                # $17 rts
+    code += struct.pack(">HI", 0x41F9, 0x0000000C)   # $00 lea $0000000C,a0
+    code += struct.pack(">HH", 0x6100, 0x0010)       # $06 bsr.w $18
+    code += struct.pack(">H", 0x4E75)                # $0A rts
+    code += b"con.device\x00"                        # $0C
+    code += struct.pack(">HH", 0x4E71, 0x4E75)       # $17 nop; $19 rts
 
     result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
     lib_calls = [_make_lib_call(
@@ -485,8 +486,29 @@ def test_analyze_call_setups_tracks_internal_absolute_strptr_segment_range() -> 
     )]
 
     setup = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, make_platform())
-    assert setup.segment_data_symbols == {0x000A: "opendevice_devname"}
-    assert setup.string_ranges == {0x000A: 0x0015}
+    assert setup.segment_data_symbols == {0x000C: "opendevice_devname"}
+    assert setup.string_ranges == {0x000C: 0x0017}
+
+
+def test_analyze_call_setups_skips_strptr_range_that_overlaps_core_code() -> None:
+    code = b""
+    code += struct.pack(">HH", 0x41FA, 0x0004)      # $00 lea $08(pc),a0
+    code += struct.pack(">HH", 0x6100, 0x0008)      # $04 bsr.w $0E
+    code += b"con.device\x00"                       # $08
+    code += struct.pack(">H", 0x4E75)               # $13 rts
+
+    result = analyze(code, propagate=True, entry_points=[0], platform=make_platform())
+    lib_calls = [_make_lib_call(
+        addr=0x04, block=0x00, function="OpenDevice", library="exec.library",
+        lvo=-444,
+        inputs=[
+            {"name": "devName", "reg": "A0", "type": "STRPTR"},
+        ],
+    )]
+
+    setup = analyze_call_setups(result["blocks"], lib_calls, runtime_os, code, make_platform())
+    assert setup.segment_data_symbols == {}
+    assert setup.string_ranges == {}
 
 
 def test_analyze_call_setups_tracks_setpointer_payload_through_wrapper() -> None:
@@ -1395,15 +1417,59 @@ def test_propagate_typed_memory_regions_learns_app_pointer_slot_from_typed_regis
             ),
         )
     }
+    analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+
+def test_infer_named_base_extension_structs_from_library_base_stores() -> None:
+    code = b""
+    code += struct.pack(">H", 0x2440)           # $00 movea.l d0,a2
+    code += struct.pack(">HH", 0x2548, 0x002A)  # $02 move.l a0,42(a2)
+    code += struct.pack(">H", 0x4E75)           # $06 rts
+
+    platform = make_platform()
+    platform.initial_register_regions = {
+        "d0": TypedMemoryRegion(
+            struct="LIB",
+            size=runtime_os.STRUCTS["LIB"].size,
+            provenance=_prov_named("icon.library"),
+        ),
+        "a0": TypedMemoryRegion(
+            struct="DosLibrary",
+            size=runtime_os.STRUCTS["DosLibrary"].size,
+            provenance=_prov_named("dos.library"),
+        ),
+    }
     result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+    region_map = propagate_typed_memory_regions(result["blocks"], [], code, runtime_os, platform)
 
-    types = propagate_typed_memory_regions(result["blocks"], [], code, runtime_os, platform)
-
-    assert types[0x08]["a0"] == TypedMemoryRegion(
-        struct="DosPacket",
-        size=runtime_os.STRUCTS["DosPacket"].size,
-        provenance=_prov_base(MemoryRegionAddressSpace.APP, "a6", 120),
+    assert region_map[0x02]["a2"] == TypedMemoryRegion(
+        struct="LIB",
+        size=runtime_os.STRUCTS["LIB"].size,
+        provenance=_prov_named("icon.library"),
     )
+
+    inferred_structs, overrides = infer_named_base_extension_structs(
+        result["blocks"],
+        region_map,
+        runtime_os,
+    )
+    assert overrides["icon.library"] == "InferredIconLibraryBase"
+    inferred_os_kb = build_target_local_os_kb(
+        runtime_os,
+        extra_custom_structs=inferred_structs,
+        named_base_struct_overrides=overrides,
+    )
+
+    inferred_field = resolve_struct_field(
+        inferred_os_kb.STRUCTS,
+        inferred_os_kb.META.named_base_structs["icon.library"],
+        42,
+    )
+    assert inferred_field is not None
+    assert inferred_field.owner_struct == "InferredIconLibraryBase"
+    assert inferred_field.field.name == "dos_library_base"
+    assert inferred_field.field.pointer_struct == "DosLibrary"
+    assert inferred_field.field.named_base == "dos.library"
 
 
 def test_build_app_named_bases_reads_constant_device_name() -> None:
@@ -1432,7 +1498,7 @@ def test_build_app_named_bases_reads_constant_device_name() -> None:
     assert bases == {100: "timer.device"}
 
 
-def test_refine_opened_base_calls_resolves_timer_device_from_open_device_seed() -> None:
+def test_refine_library_calls_resolves_timer_device_from_open_device_seed() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x41FA, 0x001C)      # $00 lea $1E(pc),a0
@@ -1462,7 +1528,7 @@ def test_refine_opened_base_calls_resolves_timer_device_from_open_device_seed() 
         ),
     ]
 
-    refined = refine_opened_base_calls(result["blocks"], lib_calls, code, runtime_os, platform)
+    refined = refine_library_calls(result["blocks"], lib_calls, code, runtime_os, platform)
 
     assert refined[1].library == "timer.device"
     assert refined[1].function == "GetSysTime"
@@ -1532,7 +1598,7 @@ def test_build_app_slot_infos_infers_pointer_struct_for_openlibrary_store() -> N
     assert info.named_base == "dos.library"
 
 
-def test_refine_opened_base_calls_resolves_library_call_from_app_slot() -> None:
+def test_refine_library_calls_resolves_library_call_from_app_slot() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43FA, 0x001C)      # $00 lea $1E(pc),a1
@@ -1562,14 +1628,14 @@ def test_refine_opened_base_calls_resolves_library_call_from_app_slot() -> None:
         ),
     ]
 
-    refined = refine_opened_base_calls(result["blocks"], lib_calls, code, runtime_os, platform)
+    refined = refine_library_calls(result["blocks"], lib_calls, code, runtime_os, platform)
 
     assert refined[1].library == "dos.library"
     assert refined[1].function == "Write"
     assert refined[1].lvo == -48
 
 
-def test_refine_opened_base_calls_resolves_resource_call_from_app_slot() -> None:
+def test_refine_library_calls_resolves_resource_call_from_app_slot() -> None:
     sentinel = 0x80000002
     code = b""
     code += struct.pack(">HH", 0x43FA, 0x0016)      # $00 lea $18(pc),a1
@@ -1594,7 +1660,7 @@ def test_refine_opened_base_calls_resolves_resource_call_from_app_slot() -> None
         ),
     ]
 
-    refined = refine_opened_base_calls(result["blocks"], lib_calls, code, runtime_os, platform)
+    refined = refine_library_calls(result["blocks"], lib_calls, code, runtime_os, platform)
 
     assert refined[1].library == "misc.resource"
     assert refined[1].function == "AllocMiscResource"
@@ -1707,6 +1773,93 @@ def test_identify_library_calls_does_not_reuse_caller_a6_after_local_overwrite()
     assert any(
         call.addr == 0x12 and call.block == 0x0C and call.library == "unknown" and call.lvo == -210
         for call in calls
+    )
+
+
+def test_refine_library_calls_resolves_named_base_loaded_from_typed_field() -> None:
+    code = b""
+    code += struct.pack(">H", 0x2F0E)               # $00 move.l a6,-(sp)
+    code += struct.pack(">HH", 0x2C6E, 0x0022)      # $02 movea.l 34(a6),a6
+    code += struct.pack(">HH", 0x4EAE, 0xFF2E)      # $06 jsr -210(a6)
+    code += struct.pack(">H", 0x2C5F)               # $0A movea.l (sp)+,a6
+    code += struct.pack(">H", 0x4E75)               # $0C rts
+
+    vector_state = CPUState()
+    vector_state.set_reg("an", 6, _unknown(tag=LibraryBaseTag(library_base="icon.library")))
+    platform = make_platform()
+    result = analyze(
+        code,
+        propagate=True,
+        entry_points=[0],
+        platform=platform,
+        entry_initial_states={0x00: vector_state},
+    )
+    lib_calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+        entry_initial_states={0x00: vector_state},
+    )
+    target_metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        custom_structs=(
+            CustomStructMetadata(
+                name="InferredIconLibraryBase",
+                size=46,
+                fields=(
+                    CustomStructFieldMetadata(
+                        name="exec_library_base",
+                        type="APTR",
+                        offset=34,
+                        size=4,
+                        pointer_struct="LIB",
+                        named_base="exec.library",
+                    ),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="test",
+                base_struct="LIB",
+                base_offset=runtime_os.STRUCTS["LIB"].size,
+            ),
+        ),
+    )
+    os_kb = build_target_local_os_kb(
+        runtime_os,
+        target_metadata,
+        named_base_struct_overrides={"icon.library": "InferredIconLibraryBase"},
+    )
+    platform.initial_register_regions = {
+        "a6": TypedMemoryRegion(
+            struct="InferredIconLibraryBase",
+            size=os_kb.STRUCTS["InferredIconLibraryBase"].size,
+            provenance=_prov_named("icon.library"),
+        )
+    }
+    region_map = propagate_typed_memory_regions(
+        result["blocks"], lib_calls, code, os_kb, platform, target_metadata
+    )
+
+    refined = refine_library_calls(
+        result["blocks"],
+        lib_calls,
+        code,
+        os_kb,
+        platform,
+        target_metadata=target_metadata,
+        region_map=region_map,
+    )
+
+    assert any(
+        call.addr == 0x06
+        and call.library == "exec.library"
+        and call.function == "FreeMem"
+        and call.lvo == -210
+        for call in refined
     )
 
 

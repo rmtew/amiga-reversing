@@ -15,6 +15,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from disasm import cli as gen_disasm_mod
 from disasm import data_render as data_render_mod
 from disasm import emitter as emitter_mod
+from disasm import session as session_mod
 from disasm.amiga_metadata import ResidentAutoinitMetadata
 from disasm.analysis_loader import (
     analysis_cache_root,
@@ -38,12 +39,15 @@ from disasm.os_include_kb import load_os_include_kb
 from disasm.session import (
     _apply_seeded_code_annotations,
     _prepare_hunk_code,
+    _prepare_hunk_sizes,
     _refresh_library_call_signatures,
     build_disassembly_session,
 )
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.target_metadata import (
     BootBlockTargetMetadata,
+    CustomStructFieldMetadata,
+    CustomStructMetadata,
     EntryRegisterSeedMetadata,
     LibraryTargetMetadata,
     ResidentTargetMetadata,
@@ -51,6 +55,7 @@ from disasm.target_metadata import (
     SeededCodeLabelMetadata,
     StructuredRegionSpec,
     TargetMetadata,
+    effective_entry_register_seeds,
     target_structure_spec,
 )
 from disasm.text import listing_window, render_rows
@@ -68,15 +73,21 @@ from disasm.types import (
     ListingRow,
     SemanticOperand,
     StructFieldOperandMetadata,
+    TypedDataFieldInfo,
 )
 from disasm.validation import get_instruction_processor_min, has_valid_branch_target
 from m68k.analysis import RelocatedSegment, RelocLike
-from m68k.hunk_parser import Hunk, HunkType, MemType
+from m68k.hunk_parser import Hunk, HunkType, MemType, Reloc
 from m68k.indirect_core import IndirectSite, IndirectSiteRegion, IndirectSiteStatus
 from m68k.jump_tables import JumpTable, JumpTableEntry, JumpTablePattern
+from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import Instruction, disassemble
 from m68k.m68k_executor import BasicBlock, XRef
-from m68k.memory_provenance import MemoryRegionAddressSpace, MemoryRegionProvenance
+from m68k.memory_provenance import (
+    MemoryRegionAddressSpace,
+    MemoryRegionProvenance,
+    provenance_named_base,
+)
 from m68k.os_calls import (
     AppBaseInfo,
     AppBaseKind,
@@ -86,6 +97,7 @@ from m68k.os_calls import (
     TypedMemoryRegion,
     analyze_call_setups,
     build_app_slot_symbols,
+    build_target_local_os_kb,
 )
 from m68k_kb import runtime_m68k_analysis, runtime_os
 from tests.os_kb_helpers import make_empty_os_kb
@@ -122,6 +134,7 @@ def test_os_include_kb_loads_from_main_os_reference() -> None:
 class _FakeReloc:
     reloc_type: HunkType
     offsets: tuple[int, ...]
+    target_hunk: int = 0
 
 
 def _block(start: int = 0, end: int = 1) -> DisasmBlockLike:
@@ -1441,6 +1454,18 @@ def test_prepare_hunk_code_relocates_payload_segment() -> None:
     assert reloc_base_addr == 6
 
 
+def test_prepare_hunk_sizes_rebases_relocated_runtime_window() -> None:
+    stored_size, alloc_size = _prepare_hunk_sizes(
+        stored_size=9968,
+        alloc_size=9968,
+        reloc_file_offset=490,
+        reloc_base_addr=0,
+    )
+
+    assert stored_size == 9478
+    assert alloc_size == 9478
+
+
 def test_disassembly_session_uses_binary_analysis_suffix(tmp_path: Path) -> None:
     binary_path = tmp_path / "demo.bin"
     entities_path = tmp_path / "entities.jsonl"
@@ -2173,6 +2198,75 @@ def test_build_instruction_comment_parts_appends_unresolved_indirect_marker() ->
     assert parts == ("unresolved_indirect_core:pcindex.brief",)
 
 
+def test_build_instruction_comment_parts_suppresses_unresolved_marker_for_refined_lib_call() -> None:
+    inst = Instruction(
+        offset=0x20,
+        size=4,
+        opcode=0x4EAE,
+        text="jsr -210(a6)",
+        raw=b"\x4e\xae\xff\x2e",
+        kb_mnemonic="jsr",
+        operand_size="l",
+        operand_texts=("-210(a6)",),
+    )
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs={0x20},
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        unresolved_indirects={
+            0x20: IndirectSite(
+                addr=0x20,
+                mnemonic="JSR",
+                flow_type=runtime_m68k_analysis.FlowType.CALL,
+                shape="disp",
+                target=None,
+                region=IndirectSiteRegion.CORE,
+                status=IndirectSiteStatus.UNRESOLVED,
+            )
+        },
+        lib_calls=(
+            LibraryCall(
+                addr=0x20,
+                block=0x20,
+                library="exec.library",
+                function="FreeMem",
+                lvo=-210,
+            ),
+        ),
+    )
+
+    parts = build_instruction_comment_parts(inst, hunk_session, operand_parts=())
+
+    assert parts == ()
+
+
 def test_get_instruction_processor_min_reports_base_68000_instruction() -> None:
     inst = Instruction(
         offset=0x10,
@@ -2699,6 +2793,235 @@ def test_emit_session_rows_emits_file_header_once_for_multi_hunk_session() -> No
     assert "; Hunk 1: 504 bytes, 0 entities, 0 blocks\n" in comments
 
 
+def test_emit_hunk_rows_uses_real_section_kind_and_bss_space() -> None:
+    data_hunk = HunkDisassemblySession(
+        hunk_index=0,
+        hunk_type=int(HunkType.HUNK_DATA),
+        mem_type=int(MemType.FAST),
+        section_name="assets",
+        code=b"\x11\x22\x33\x44",
+        code_size=4,
+        alloc_size=4,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    bss_hunk = replace(
+        data_hunk,
+        hunk_index=1,
+        hunk_type=int(HunkType.HUNK_BSS),
+        mem_type=int(MemType.CHIP),
+        section_name="work",
+        code=b"",
+        code_size=0,
+        alloc_size=12,
+        stored_size=0,
+        labels={0: "work_area"},
+    )
+
+    data_rows, _data_floor, _data_preamble = emitter_mod._emit_hunk_rows(
+        data_hunk,
+        include_header=False,
+    )
+    bss_rows, _bss_floor, _bss_preamble = emitter_mod._emit_hunk_rows(
+        bss_hunk,
+        include_header=False,
+    )
+
+    assert data_rows[0].text == "    section assets,data,fast\n"
+    assert any(row.kind == "data" for row in data_rows)
+    assert bss_rows[0].text == "    section work,bss,chip\n"
+    assert any(row.text == "work_area:\n" for row in bss_rows)
+    assert any(row.text == "    ds.b 12\n" for row in bss_rows)
+
+
+def test_emit_hunk_rows_splits_bss_space_at_interior_labels() -> None:
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        hunk_type=int(HunkType.HUNK_BSS),
+        mem_type=int(MemType.ANY),
+        section_name="bss",
+        code=b"",
+        code_size=0,
+        alloc_size=12,
+        stored_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0: "bss_start", 4: "bss_mid", 8: "bss_end"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    rows, _compat_floor, _preamble = emitter_mod._emit_hunk_rows(
+        hunk_session,
+        include_header=False,
+    )
+
+    assert rows[0].text == "    section bss,bss\n"
+    assert [row.text for row in rows if row.kind == "label"] == [
+        "bss_start:\n",
+        "bss_mid:\n",
+        "bss_end:\n",
+    ]
+    assert [row.text for row in rows if row.kind == "directive"] == [
+        "    ds.b 4\n",
+        "    ds.b 4\n",
+        "    ds.b 4\n",
+    ]
+
+
+def test_emit_hunk_rows_emits_databss_tail_for_shortened_data_hunk() -> None:
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        hunk_type=int(HunkType.HUNK_DATA),
+        mem_type=int(MemType.ANY),
+        section_name="data",
+        code=b"\x11\x22\x33\x44",
+        code_size=4,
+        alloc_size=8,
+        stored_size=4,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    rows, _floor, _preamble = emitter_mod._emit_hunk_rows(
+        hunk_session,
+        include_header=False,
+    )
+
+    assert [row.text for row in rows] == [
+        "    section data,data\n",
+        "\n",
+        "    dc.b    $11,$22,$33,$44\n",
+        "    ds.b 4\n",
+    ]
+
+
+def test_emit_hunk_rows_splits_databss_tail_at_interior_labels() -> None:
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        hunk_type=int(HunkType.HUNK_DATA),
+        mem_type=int(MemType.ANY),
+        section_name="data",
+        code=b"\x11\x22\x33\x44",
+        code_size=4,
+        alloc_size=12,
+        stored_size=4,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={8: "tail_mid"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    rows, _floor, _preamble = emitter_mod._emit_hunk_rows(
+        hunk_session,
+        include_header=False,
+    )
+
+    assert [row.text for row in rows] == [
+        "    section data,data\n",
+        "\n",
+        "    dc.b    $11,$22,$33,$44\n",
+        "    ds.b 4\n",
+        "tail_mid:\n",
+        "    ds.b 4\n",
+    ]
+
+
 def test_emit_session_rows_includes_bootblock_structure_section() -> None:
     session = DisassemblySession(
         target_name="demo_bootblock",
@@ -3175,6 +3498,7 @@ def test_decode_stream_by_name_decodes_autoinit_commands() -> None:
         code=code,
         labels={0x18: "dos_name"},
         reloc_map={},
+        reloc_labels={},
         structs=runtime_os.STRUCTS,
         struct_name="LIB",
     ) == "INITBYTE LN_TYPE,$09"
@@ -3184,6 +3508,7 @@ def test_decode_stream_by_name_decodes_autoinit_commands() -> None:
         code=code,
         labels={0x18: "dos_name"},
         reloc_map={10: 0x18},
+        reloc_labels={10: "dos_name"},
         structs=runtime_os.STRUCTS,
         struct_name="LIB",
     ) == "INITLONG LN_NAME,dos_name"
@@ -3277,9 +3602,7 @@ def test_emit_target_structure_rows_dedupes_library_entry_register_notes() -> No
 
     rendered = "".join(row.text for row in emitter_mod._emit_target_structure_rows(session))
 
-    assert (
-        ";   entry registers: A6=ExecBase, A6=icon.library base\n"
-    ) in rendered
+    assert ";   entry registers:" not in rendered
     assert "GetDefDiskObject" not in rendered
     assert "PutDefDiskObject" not in rendered
 
@@ -3331,9 +3654,335 @@ def test_emit_target_structure_rows_shows_synthesized_library_entry_register_not
 
     rendered = "".join(row.text for row in emitter_mod._emit_target_structure_rows(session))
 
-    assert (
-        ";   entry registers: A6=ExecBase, A6=icon.library base\n"
-    ) in rendered
+    assert ";   entry registers:" not in rendered
+
+
+def test_emit_session_rows_emits_entry_register_notes_at_entry_labels() -> None:
+    inst = Instruction(
+        offset=0x0,
+        size=2,
+        opcode=0x4E75,
+        text="rts",
+        raw=b"\x4e\x75",
+        opcode_text="rts",
+        kb_mnemonic="rts",
+        operand_size="l",
+        operand_texts=(),
+    )
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                entry_offset=0x0,
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0x0,
+                register="D0",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
+    )
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={0x0: _FakeBlock(0x0, 0x2, (), [inst])},
+        hint_blocks={},
+        code_addrs={0x0, 0x1},
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x0: "library_init"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    session = DisassemblySession(
+        target_name="icon.library",
+        binary_path=Path("bin/icon.library"),
+        entities_path=Path("targets/icon/entities.jsonl"),
+        analysis_cache_path=Path("targets/icon/binary.analysis"),
+        output_path=None,
+        hunk_sessions=[hunk_session],
+        entities=[],
+        target_metadata=metadata,
+    )
+
+    rendered = emitter_mod.render_session_text(session)
+
+    assert "; entry registers: A6=ExecBase, D0=icon.library base\nlibrary_init:\n" in rendered
+
+
+def test_target_structure_spec_filters_resident_library_vector_names_by_library_version() -> None:
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        resident=ResidentTargetMetadata(
+            offset=0,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=34,
+            node_type_name="NT_LIBRARY",
+            priority=70,
+            name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            init_offset=0x48,
+            auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x48,
+                base_size=0x24,
+                vectors_offset=0x58,
+                vector_format="offset32",
+                vector_offsets=tuple(0x100 + (index * 2) for index in range(23)),
+                init_struct_offset=0,
+                init_func_offset=0x148,
+            ),
+        ),
+        library=LibraryTargetMetadata(
+            library_name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            version=34,
+            public_function_count=12,
+            total_lvo_count=19,
+        ),
+    )
+
+    structure = target_structure_spec(metadata)
+
+    assert structure is not None
+    labels = [entry.label for entry in structure.entrypoints]
+    assert "put_disk_object" in labels
+    assert "bump_revision" in labels
+    assert "get_def_disk_object" not in labels
+    assert "put_def_disk_object" not in labels
+    assert "get_disk_object_new" not in labels
+    assert "delete_disk_object" not in labels
+    assert "icon_private_8" in labels
+    assert "icon_private_9" in labels
+    assert "icon_private_10" in labels
+    assert "icon_private_11" in labels
+
+
+def test_effective_entry_register_seeds_include_kb_typed_vector_inputs() -> None:
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        resident=ResidentTargetMetadata(
+            offset=0,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=34,
+            node_type_name="NT_LIBRARY",
+            priority=70,
+            name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            init_offset=0x48,
+            auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x48,
+                base_size=0x24,
+                vectors_offset=0x58,
+                vector_format="offset32",
+                vector_offsets=(
+                    0x74, 0x78, 0x7C, 0x80, 0x84, 0x88, 0x8C, 0x90, 0x94,
+                    0x98, 0x9C, 0xA0, 0xA4, 0xA8, 0xAC, 0xB0, 0xB4, 0xB8, 0xBC,
+                ),
+                init_struct_offset=0,
+                init_func_offset=0xDC,
+            ),
+        ),
+        library=LibraryTargetMetadata(
+            library_name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            version=34,
+            public_function_count=12,
+            total_lvo_count=19,
+        ),
+    )
+
+    seeds = effective_entry_register_seeds(metadata)
+
+    assert any(
+        seed.entry_offset == 0xDC
+        and seed.register == "D0"
+        and seed.kind == "library_base"
+        and seed.library_name == "icon.library"
+        and seed.struct_name == "LIB"
+        for seed in seeds
+    )
+    assert any(
+        seed.entry_offset == 0xA8
+        and seed.register == "A1"
+        and seed.kind == "struct_ptr"
+        and seed.struct_name == "DiskObject"
+        for seed in seeds
+    )
+    assert not any(
+        seed.entry_offset == 0x74
+        and seed.register == "D0"
+        and seed.kind == "struct_ptr"
+        for seed in seeds
+    )
+
+
+def test_effective_entry_register_seeds_merges_explicit_and_synthesized_resident_inputs() -> None:
+    metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(
+            EntryRegisterSeedMetadata(
+                entry_offset=0xDC,
+                register="A6",
+                kind="library_base",
+                note="ExecBase",
+                library_name="exec.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+            EntryRegisterSeedMetadata(
+                entry_offset=0x74,
+                register="A6",
+                kind="library_base",
+                note="icon.library base",
+                library_name="icon.library",
+                struct_name="LIB",
+                context_name=None,
+            ),
+        ),
+        resident=ResidentTargetMetadata(
+            offset=0,
+            matchword=0x4AFC,
+            flags=0x80,
+            version=34,
+            node_type_name="NT_LIBRARY",
+            priority=70,
+            name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            init_offset=0x48,
+            auto_init=True,
+            autoinit=ResidentAutoinitMetadata(
+                payload_offset=0x48,
+                base_size=0x24,
+                vectors_offset=0x58,
+                vector_format="offset32",
+                vector_offsets=(0x74,),
+                init_struct_offset=0,
+                init_func_offset=0xDC,
+            ),
+        ),
+        library=LibraryTargetMetadata(
+            library_name="icon.library",
+            id_string="icon 34.2 (22 Jun 1988)\r\n",
+            version=34,
+            public_function_count=12,
+            total_lvo_count=19,
+        ),
+    )
+
+    seeds = effective_entry_register_seeds(metadata)
+
+    assert any(
+        seed.entry_offset == 0xDC
+        and seed.register == "A6"
+        and seed.library_name == "exec.library"
+        for seed in seeds
+    )
+    assert any(
+        seed.entry_offset == 0x74
+        and seed.register == "A6"
+        and seed.library_name == "icon.library"
+        for seed in seeds
+    )
+    assert any(
+        seed.entry_offset == 0xDC
+        and seed.register == "D0"
+        and seed.kind == "library_base"
+        and seed.library_name == "icon.library"
+        and seed.struct_name == "LIB"
+        for seed in seeds
+    )
+
+
+def test_apply_named_base_struct_overrides_rewrites_seeded_register_regions() -> None:
+    platform = make_platform()
+    icon_region = TypedMemoryRegion(
+        struct="LIB",
+        size=runtime_os.STRUCTS["LIB"].size,
+        provenance=provenance_named_base("icon.library"),
+    )
+    platform.entry_register_regions = {
+        0x148: {
+            "d0": icon_region,
+            "a2": TypedMemoryRegion(
+                struct="LIB",
+                size=runtime_os.STRUCTS["LIB"].size,
+                provenance=MemoryRegionProvenance(
+                    address_space=MemoryRegionAddressSpace.REGISTER,
+                ),
+            ),
+        }
+    }
+    platform.initial_register_regions = {"d0": icon_region}
+    target_metadata = TargetMetadata(
+        target_type="library",
+        entry_register_seeds=(),
+        custom_structs=(
+            CustomStructMetadata(
+                name="InferredIconLibraryBase",
+                size=46,
+                fields=(
+                    CustomStructFieldMetadata(
+                        name="exec_library_base",
+                        type="APTR",
+                        offset=34,
+                        size=4,
+                        pointer_struct="LIB",
+                    ),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="test",
+                base_struct="LIB",
+                base_offset=runtime_os.STRUCTS["LIB"].size,
+            ),
+        ),
+    )
+    os_kb = build_target_local_os_kb(
+        runtime_os,
+        target_metadata,
+        named_base_struct_overrides={"icon.library": "InferredIconLibraryBase"},
+    )
+    session_mod._apply_named_base_struct_overrides(platform, os_kb)
+
+    assert platform.initial_register_regions["d0"].struct == "InferredIconLibraryBase"
+    assert platform.entry_register_regions[0x148]["d0"].struct == "InferredIconLibraryBase"
+    assert platform.entry_register_regions[0x148]["a2"].struct == "LIB"
 
 
 def test_emit_session_rows_emits_initstruct_macros() -> None:
@@ -4173,15 +4822,11 @@ def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes(
     ]
 
     used = emitter_mod._collect_used_absolute_addrs(rows, hunk_session)
-    equ_rows, includes = emitter_mod._absolute_symbol_rows(used, hunk_session)
+    equ_defs, includes = emitter_mod._absolute_symbol_defs(used, hunk_session)
 
     assert used == {0x00000004, 0x00DFF09A, 0x00BFE001}
     assert includes == {"hardware/cia.i", "hardware/custom.i"}
-    assert [row.text for row in equ_rows] == [
-        "; Absolute symbols\n",
-        "AbsExecBase\tEQU\t$4\n",
-        "\n",
-    ]
+    assert equ_defs == {"AbsExecBase": 0x00000004}
 
 
 def test_emit_hunk_rows_emits_fd_derived_lvo_equates(monkeypatch: MonkeyPatch) -> None:
@@ -4232,14 +4877,106 @@ def test_emit_hunk_rows_emits_fd_derived_lvo_equates(monkeypatch: MonkeyPatch) -
         ),
     )
 
-    rows, _compat_floor = emitter_mod._emit_hunk_rows(hunk_session, include_header=False)
+    rows, _compat_floor, preamble = emitter_mod._emit_hunk_rows(hunk_session, include_header=False)
 
-    assert [row.text for row in rows[:4]] == [
-        "; LVO offsets: graphics.library (FD-derived)\n",
-        "_LVOText\tEQU\t-36\n",
-        "_LVOBltBitMap\tEQU\t-30\n",
+    assert [row.text for row in rows[:2]] == [
+        "    section code,code\n",
         "\n",
     ]
+    assert preamble["fd_only_lvo_equs"] == {
+        "graphics.library": {
+            -36: "_LVOText",
+            -30: "_LVOBltBitMap",
+        }
+    }
+
+
+def test_emit_session_rows_dedupes_preamble_before_first_hunk() -> None:
+    hunk0 = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        reloc_target_hunks={},
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=build_target_local_os_kb(
+            runtime_os,
+            extra_custom_structs=(
+                CustomStructMetadata(
+                    name="InferredIconLibraryBase",
+                    size=46,
+                    fields=(
+                        CustomStructFieldMetadata(
+                            name="exec_library_base",
+                            type="APTR",
+                            offset=34,
+                            size=4,
+                            pointer_struct="ExecBase",
+                            named_base="exec.library",
+                        ),
+                    ),
+                    seed_origin="manual_analysis",
+                    review_status="seeded",
+                    citation="test",
+                    base_struct="LIB",
+                    base_offset=runtime_os.STRUCTS["LIB"].size,
+                ),
+            ),
+        ),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        lvo_equs={"exec.library": {-198: "_LVOAllocMem"}},
+        region_map={
+            0x100: {
+                "a2": TypedMemoryRegion(
+                    struct="InferredIconLibraryBase",
+                    size=46,
+                    provenance=provenance_named_base("icon.library"),
+                )
+            }
+        },
+    )
+    hunk1 = replace(
+        hunk0,
+        hunk_index=1,
+    )
+    rendered = emitter_mod.render_session_text(
+        DisassemblySession(
+            target_name="demo",
+            binary_path=Path("demo.bin"),
+            entities_path=Path("entities.jsonl"),
+            analysis_cache_path=Path("analysis"),
+            output_path=None,
+            entities=[],
+            hunk_sessions=[hunk0, hunk1],
+        )
+    )
+
+    assert rendered.count('    INCLUDE "exec/exec_lib.i"\n') == 1
+    assert rendered.count("exec_library_base\tEQU\t34\n") == 1
+    first_section = rendered.index("    section code,code\n")
+    assert rendered.index('    INCLUDE "exec/exec_lib.i"\n') < first_section
+    assert rendered.index("exec_library_base\tEQU\t34\n") < first_section
 
 
 def test_serialize_row_preserves_structured_fields() -> None:
@@ -4428,6 +5165,586 @@ def test_emit_data_region_renders_relocated_longword_label() -> None:
     )
 
     assert output.getvalue() == "    dc.l    target_label\n"
+
+
+def test_emit_data_region_renders_cross_hunk_relocated_longword_label() -> None:
+    output = io.StringIO()
+
+    data_render_mod.emit_data_region(
+        output,
+        code=b"\x00\x00\x00\x20",
+        start=0,
+        end=4,
+        labels={},
+        reloc_map={0: 0x20},
+        string_addrs=set(),
+        reloc_labels={0: "hunk_3_sub_0020"},
+    )
+
+    assert output.getvalue() == "    dc.l    hunk_3_sub_0020\n"
+
+
+def test_build_hunk_metadata_excludes_cross_hunk_reloc_targets_from_local_labels() -> None:
+    metadata = build_hunk_metadata(
+        code=(0x03FE).to_bytes(4, "big"),
+        code_size=4,
+        hunk_index=0,
+        hunk_entities=[],
+        ha=SimpleNamespace(
+            blocks={},
+            hint_blocks={},
+            jump_tables=[],
+            call_targets=set(),
+            branch_targets=set(),
+        ),
+        hf_hunks=[
+            Hunk(
+                index=0,
+                hunk_type=int(HunkType.HUNK_CODE),
+                mem_type=int(MemType.ANY),
+                alloc_size=4,
+                data=(0x03FE).to_bytes(4, "big"),
+                relocs=[
+                    Reloc(
+                        reloc_type=HunkType.HUNK_RELOC32,
+                        target_hunk=1,
+                        offsets=(0,),
+                    )
+                ],
+            )
+        ],
+    )
+
+    assert metadata.reloc_target_hunks == {0: 1}
+    assert metadata.reloc_target_set == set()
+    assert 0x03FE not in metadata.labels
+
+
+def test_session_cross_hunk_labels_are_synthesized_and_uniquified() -> None:
+    source = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0x40,
+        entities=[],
+        blocks={0x0000: _block(0x0000, 0x0002)},
+        hint_blocks={},
+        code_addrs={0x0000, 0x0001},
+        hint_addrs=set(),
+        reloc_map={0x0014: 0x0000, 0x003E: 0x0018},
+        reloc_target_set=set(),
+        reloc_target_hunks={0x0014: 1, 0x003E: 1},
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x0000: "loc_0000"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    target = HunkDisassemblySession(
+        hunk_index=1,
+        code=b"",
+        code_size=0x40,
+        entities=[],
+        blocks={0x0000: _block(0x0000, 0x0002), 0x0018: _block(0x0018, 0x001A)},
+        hint_blocks={},
+        code_addrs={0x0000, 0x0001, 0x0018, 0x0019},
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        reloc_target_hunks={},
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x0000: "loc_0000"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    session_mod._ensure_cross_hunk_target_labels([source, target])
+    session_mod._apply_session_unique_labels([source, target])
+    session_mod._apply_cross_hunk_reloc_labels([source, target])
+
+    assert source.labels[0x0000] == "hunk_0_loc_0000"
+    assert target.labels[0x0000] == "hunk_1_loc_0000"
+    assert target.labels[0x0018] == "loc_0018"
+    assert source.reloc_labels == {
+        0x0014: "hunk_1_loc_0000",
+        0x003E: "loc_0018",
+    }
+
+
+def test_refresh_session_memory_cells_propagates_named_base_across_hunks() -> None:
+    store_inst = disassemble(assemble_instruction("move.l a6,$00000192"))[0]
+    load_inst = disassemble(b"\x2c\x79\x00\x00\x01\x92")[0]
+    call_inst = disassemble(b"\x4e\xae\xff\x3a")[0]
+
+    exec_region = TypedMemoryRegion(
+        struct="ExecBase",
+        size=runtime_os.STRUCTS["ExecBase"].size,
+        provenance=provenance_named_base("exec.library"),
+    )
+    source_blocks: dict[int, DisasmBlockLike] = {0: _block(0, len(store_inst.raw))}
+    source = HunkDisassemblySession(
+        hunk_index=0,
+        code=store_inst.raw,
+        code_size=len(store_inst.raw),
+        entities=[],
+        blocks=source_blocks,
+        hint_blocks={},
+        code_addrs=set(range(len(store_inst.raw))),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        reloc_target_hunks={},
+        pc_targets={},
+        string_addrs=set(),
+        labels={0: "store_exec_base"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={0: {"a6": exec_region}},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    source_blocks[0] = replace(cast(_FakeBlock, source_blocks[0]), instructions=[store_inst])
+
+    target_block = _FakeBlock(
+        start=0,
+        end=len(load_inst.raw) + len(call_inst.raw),
+        successors=(),
+        instructions=[load_inst, replace(call_inst, offset=len(load_inst.raw))],
+    )
+    target = HunkDisassemblySession(
+        hunk_index=1,
+        code=load_inst.raw + call_inst.raw,
+        code_size=len(load_inst.raw) + len(call_inst.raw),
+        entities=[],
+        blocks={0: target_block},
+        hint_blocks={},
+        code_addrs=set(range(len(load_inst.raw) + len(call_inst.raw))),
+        hint_addrs=set(),
+        reloc_map={2: 0x0192},
+        reloc_target_set={0x0192},
+        reloc_target_hunks={2: 0},
+        pc_targets={},
+        string_addrs=set(),
+        labels={0: "target_entry", 0x0192: "sub_0192"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        lib_calls=(LibraryCall(
+            addr=len(load_inst.raw),
+            block=0,
+            library="unknown",
+            function="LVO_-198",
+            lvo=-198,
+        ),),
+    )
+
+    session_mod._refresh_session_memory_cells([source, target])
+
+    assert source.labels[0x0192] == "exec_library_base"
+    derivation = target.region_map[len(load_inst.raw)]["a6"].provenance.derivation
+    assert derivation is not None
+    assert derivation.named_base == "exec.library"
+    assert target.lib_calls[0].library == "exec.library"
+    assert target.lib_calls[0].function == "AllocMem"
+
+
+def test_refresh_session_memory_cells_propagates_typed_field_across_hunks() -> None:
+    store_inst = disassemble(assemble_instruction("move.w 20(a2),$00000180"))[0]
+
+    code = bytearray(0x182)
+    code[0x180:0x182] = b"\x00\x22"
+    target = HunkDisassemblySession(
+        hunk_index=1,
+        code=bytes(code),
+        code_size=len(code),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        reloc_target_hunks={},
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    source_blocks: dict[int, DisasmBlockLike] = {0: _block(0, len(store_inst.raw))}
+    source = HunkDisassemblySession(
+        hunk_index=0,
+        code=store_inst.raw,
+        code_size=len(store_inst.raw),
+        entities=[],
+        blocks=source_blocks,
+        hint_blocks={},
+        code_addrs=set(range(len(store_inst.raw))),
+        hint_addrs=set(),
+        reloc_map={4: 0x0180},
+        reloc_target_set=set(),
+        reloc_target_hunks={4: 1},
+        pc_targets={},
+        string_addrs=set(),
+        labels={0: "store_version"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={
+            0: {
+                    "a2": TypedMemoryRegion(
+                        struct="LIB",
+                        size=runtime_os.STRUCTS["LIB"].size,
+                        provenance=provenance_named_base("icon.library"),
+                        context_name="icon.library",
+                    )
+                }
+            },
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    source_blocks[0] = replace(cast(_FakeBlock, source_blocks[0]), instructions=[store_inst])
+
+    session_mod._refresh_session_memory_cells([source, target])
+
+    assert target.typed_data_sizes[0x0180] == 2
+    assert target.typed_data_fields[0x0180] == TypedDataFieldInfo(
+        owner_struct="LIB",
+        field_symbol="LIB_VERSION",
+        context_name="icon.library",
+    )
+    assert target.addr_comments[0x0180] == "LIB.LIB_VERSION"
+
+
+def test_refresh_session_memory_cells_normalizes_session_os_kb() -> None:
+    source = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        reloc_target_hunks={},
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=build_target_local_os_kb(
+            runtime_os,
+            extra_custom_structs=(
+                CustomStructMetadata(
+                    name="InferredIconLibraryBase",
+                    size=46,
+                    fields=(
+                        CustomStructFieldMetadata(
+                            name="exec_library_base",
+                            type="APTR",
+                            offset=34,
+                            size=4,
+                            pointer_struct="ExecBase",
+                            named_base="exec.library",
+                        ),
+                    ),
+                    seed_origin="manual_analysis",
+                    review_status="seeded",
+                    citation="test",
+                    base_struct="LIB",
+                    base_offset=runtime_os.STRUCTS["LIB"].size,
+                ),
+            ),
+            named_base_struct_overrides={"icon.library": "InferredIconLibraryBase"},
+        ),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    target = HunkDisassemblySession(
+        hunk_index=1,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        reloc_target_hunks={},
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    session_mod._refresh_session_memory_cells([source, target])
+
+    assert source.os_kb is target.os_kb
+    assert "InferredIconLibraryBase" in target.os_kb.STRUCTS
+    assert target.os_kb.META.named_base_structs["icon.library"] == "InferredIconLibraryBase"
+
+
+def test_cross_hunk_control_entrypoints_collects_inbound_jsr_targets() -> None:
+    source = Hunk(
+        index=0,
+        hunk_type=int(HunkType.HUNK_CODE),
+        mem_type=int(MemType.ANY),
+        alloc_size=6,
+        data=b"\x4e\xb9\x00\x00\x00\x08",
+        relocs=[
+            Reloc(
+                reloc_type=HunkType.HUNK_RELOC32,
+                target_hunk=1,
+                offsets=(2,),
+            )
+        ],
+    )
+    target = Hunk(
+        index=1,
+        hunk_type=int(HunkType.HUNK_CODE),
+        mem_type=int(MemType.ANY),
+        alloc_size=16,
+        data=b"\x4e\x75" + b"\x00" * 14,
+    )
+
+    assert session_mod._cross_hunk_control_entrypoints([source, target]) == {1: (0x0008,)}
+
+
+def test_disambiguate_generated_label_avoids_app_offset_collision() -> None:
+    assert (
+        session_mod._disambiguate_generated_label(
+            labels={},
+            app_offsets={0x22: "exec_library_base"},
+            os_kb=runtime_os,
+            addr=0x018E,
+            symbol="exec_library_base",
+        )
+        == "exec_library_base_ptr"
+    )
+
+
+def test_rename_reserved_generated_labels_avoids_target_local_field_collision() -> None:
+    os_kb = build_target_local_os_kb(
+        runtime_os,
+        extra_custom_structs=(
+            CustomStructMetadata(
+                name="InferredIconLibraryBase",
+                size=46,
+                fields=(
+                    CustomStructFieldMetadata(
+                        name="exec_library_base",
+                        type="APTR",
+                        offset=34,
+                        size=4,
+                        pointer_struct="ExecBase",
+                        named_base="exec.library",
+                    ),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="test",
+                base_struct="LIB",
+                base_offset=runtime_os.STRUCTS["LIB"].size,
+            ),
+        ),
+        named_base_struct_overrides={"icon.library": "InferredIconLibraryBase"},
+    )
+    labels = {0x0192: "exec_library_base"}
+
+    session_mod._rename_reserved_generated_labels(
+        labels=labels,
+        entities=[],
+        app_offsets={},
+        os_kb=os_kb,
+    )
+
+    assert labels[0x0192] == "exec_library_base_ptr"
+
+
+def test_target_local_struct_equ_rows_emit_custom_field_offsets() -> None:
+    os_kb = build_target_local_os_kb(
+        runtime_os,
+        extra_custom_structs=(
+            CustomStructMetadata(
+                name="InferredIconLibraryBase",
+                size=46,
+                fields=(
+                    CustomStructFieldMetadata(
+                        name="exec_library_base",
+                        type="APTR",
+                        offset=34,
+                        size=4,
+                        pointer_struct="ExecBase",
+                        named_base="exec.library",
+                    ),
+                ),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="test",
+                base_struct="LIB",
+                base_offset=runtime_os.STRUCTS["LIB"].size,
+            ),
+        ),
+        named_base_struct_overrides={"icon.library": "InferredIconLibraryBase"},
+    )
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        reloc_target_hunks={},
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={
+            0x100: {
+                "a2": TypedMemoryRegion(
+                    struct="InferredIconLibraryBase",
+                    size=46,
+                    provenance=provenance_named_base("icon.library"),
+                )
+            }
+        },
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=os_kb,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    equs = emitter_mod._target_local_struct_equ_defs(hunk_session)
+
+    assert equs == {"exec_library_base": 34}
 
 
 def test_emit_data_region_renders_zero_fill_run() -> None:

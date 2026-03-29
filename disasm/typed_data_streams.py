@@ -142,12 +142,15 @@ def _resolve_typed_data_stream_values(
     code: bytes,
     labels: dict[int, str],
     reloc_map: dict[int, int],
+    reloc_labels: dict[int, str],
 ) -> list[str]:
     values: list[str] = []
     for pos in range(command.data_start, command.data_end, command.unit_size):
         chunk = code[pos : pos + command.unit_size]
         if command.unit_size == 4:
-            if pos in reloc_map and reloc_map[pos] in labels:
+            if pos in reloc_labels:
+                values.append(reloc_labels[pos])
+            elif pos in reloc_map and reloc_map[pos] in labels:
                 values.append(labels[reloc_map[pos]])
             else:
                 values.append(f"${int.from_bytes(chunk, byteorder='big'):08x}")
@@ -179,6 +182,7 @@ def try_render_typed_data_stream_macro(
     code: bytes,
     labels: dict[int, str],
     reloc_map: dict[int, int],
+    reloc_labels: dict[int, str],
     structs: object,
     struct_name: str | None,
 ) -> str | None:
@@ -206,6 +210,7 @@ def try_render_typed_data_stream_macro(
             code=code,
             labels=labels,
             reloc_map=reloc_map,
+            reloc_labels=reloc_labels,
         )
         return f"{constructor['name']} {dest},{values[0]}"
     return None
@@ -218,6 +223,7 @@ def format_typed_data_stream_command(
     code: bytes,
     labels: dict[int, str],
     reloc_map: dict[int, int],
+    reloc_labels: dict[int, str],
     structs: object,
     struct_name: str | None,
 ) -> str:
@@ -227,6 +233,7 @@ def format_typed_data_stream_command(
         code=code,
         labels=labels,
         reloc_map=reloc_map,
+        reloc_labels=reloc_labels,
         structs=structs,
         struct_name=struct_name,
     )
@@ -242,6 +249,7 @@ def format_typed_data_stream_command(
         code=code,
         labels=labels,
         reloc_map=reloc_map,
+        reloc_labels=reloc_labels,
     )
     generic = spec["generic_constructor"]
     size_encoding = generic["size_param_encoding"][str(command.unit_size)]

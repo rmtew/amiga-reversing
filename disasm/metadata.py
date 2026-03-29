@@ -10,6 +10,7 @@ from disasm.discovery import (
     add_hint_labels,
     build_label_map,
     build_reloc_map,
+    build_reloc_target_hunk_map,
     discover_absolute_targets,
     discover_pc_relative_targets,
     filter_internal_absolute_data_targets,
@@ -69,7 +70,12 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
     }
 
     reloc_map = build_reloc_map(hf_hunks, hunk_index)
-    reloc_target_set = set(reloc_map.values())
+    reloc_target_hunks = build_reloc_target_hunk_map(hf_hunks, hunk_index)
+    reloc_target_set = {
+        target
+        for offset, target in reloc_map.items()
+        if reloc_target_hunks.get(offset, hunk_index) == hunk_index
+    }
 
     branch_targets = {
         succ
@@ -201,6 +207,7 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
         hint_blocks=hint_blocks,
         reloc_map=reloc_map,
         reloc_target_set=reloc_target_set,
+        reloc_target_hunks=reloc_target_hunks,
         reserved_absolute_addrs=reserved_absolute_addrs,
         pc_targets=pc_targets,
         string_addrs=string_addrs,

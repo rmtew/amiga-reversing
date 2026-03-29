@@ -27,11 +27,13 @@ The remaining code is reachable only through runtime-dependent dispatch
 - [ ] Review entries in `knowledge/amiga_ndk_corrections.json` and promote `review_status` from `seeded` to `validated` only when a human has explicitly checked the cited source
 - [ ] Add a seed-generation/review flow for corrections so autodoc-derived candidates can be proposed without being silently treated as validated KB
 - [ ] Verify HUNK_OVERLAY format against ADCD primary source
+- [ ] Add primary-source sample/fixture coverage for `HUNK_OVERLAY`; `vasm` hunk output has no overlay support, so this needs a different oracle or a vetted real sample
 
 ## Future Work
 
 ### M68K KB / Executor
 - [ ] Add full upstream `RTE` stack/PC/SR semantics extraction to the M68K parser/runtime tables if a target needs it; keep this spec-driven, not executor-hardcoded
+- [ ] Extend the new PDF-driven compare-swap KB semantics through full `CAS2` decode/disasm/executor support; current decoded operand model cleanly supports single-`CAS`, but `CAS2` still needs first-class paired-memory operand modeling
 
 ### M68K Assembler Coverage Audit
 - [ ] Keep the new `runtime_coverage` pytest slice as the coverage contract for KB/runtime/assembler changes

@@ -81,6 +81,74 @@ def test_apply_instruction_ignores_unsupported_compute_mnemonic(
     _apply_instruction(inst, "BFCHG", CPUState(), AbstractMemory(), b"\x00\x00", 0)
 
 
+def test_apply_instruction_applies_compare_swap_success_from_kb(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "m68k.m68k_executor.decode_instruction_ops",
+        lambda inst, mnemonic, size: DecodedOps(
+            operand_types=("dn", "dn", "ea"),
+            ea_op=Operand(mode="ind", reg=0, value=None),
+            compare_reg=0,
+            update_reg=1,
+        ),
+    )
+    inst = Instruction(
+        offset=0,
+        size=4,
+        opcode=0,
+        text="cas.b d0,d1,(a0)",
+        raw=b"\x00\x00\x00\x00",
+        kb_mnemonic="CAS CAS2",
+        operand_size="b",
+    )
+    cpu = CPUState()
+    cpu.set_reg("an", 0, _concrete(0x1000))
+    cpu.set_reg("dn", 0, _concrete(0xAA))
+    cpu.set_reg("dn", 1, _concrete(0x55))
+    mem = AbstractMemory()
+    mem.write(0x1000, _concrete(0xAA), "b")
+
+    _apply_instruction(inst, "CAS CAS2", cpu, mem, b"\x00\x00\x00\x00", 0)
+
+    assert mem.read(0x1000, "b").is_known and mem.read(0x1000, "b").concrete == 0x55
+    assert cpu.d[0].is_known and cpu.d[0].concrete == 0xAA
+
+
+def test_apply_instruction_applies_compare_swap_failure_from_kb(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "m68k.m68k_executor.decode_instruction_ops",
+        lambda inst, mnemonic, size: DecodedOps(
+            operand_types=("dn", "dn", "ea"),
+            ea_op=Operand(mode="ind", reg=0, value=None),
+            compare_reg=0,
+            update_reg=1,
+        ),
+    )
+    inst = Instruction(
+        offset=0,
+        size=4,
+        opcode=0,
+        text="cas.b d0,d1,(a0)",
+        raw=b"\x00\x00\x00\x00",
+        kb_mnemonic="CAS CAS2",
+        operand_size="b",
+    )
+    cpu = CPUState()
+    cpu.set_reg("an", 0, _concrete(0x1000))
+    cpu.set_reg("dn", 0, _concrete(0x10))
+    cpu.set_reg("dn", 1, _concrete(0x55))
+    mem = AbstractMemory()
+    mem.write(0x1000, _concrete(0xAA), "b")
+
+    _apply_instruction(inst, "CAS CAS2", cpu, mem, b"\x00\x00\x00\x00", 0)
+
+    assert mem.read(0x1000, "b").is_known and mem.read(0x1000, "b").concrete == 0xAA
+    assert cpu.d[0].is_known and cpu.d[0].concrete == 0xAA
+
+
 def test_join_states() -> None:
     """Test state joining at merge points."""
     cpu1 = CPUState()

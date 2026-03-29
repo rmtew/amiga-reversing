@@ -60,7 +60,8 @@ def emit_jump_table_rows(
                 rows.extend(emit_data_rows(
                     hunk_session.code, chunk_pos, entry_addr,
                     hunk_session.labels, hunk_session.reloc_map,
-                    hunk_session.string_addrs, hunk_session.data_access_sizes,
+                    hunk_session.string_addrs, hunk_session.reloc_labels,
+                    hunk_session.data_access_sizes,
                     hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
                     hunk_session.addr_comments,
                     entity_addr,
@@ -87,7 +88,8 @@ def emit_jump_table_rows(
             rows.extend(emit_data_rows(
                 hunk_session.code, chunk_pos, jt.table_end,
                 hunk_session.labels, hunk_session.reloc_map,
-                hunk_session.string_addrs, hunk_session.data_access_sizes,
+                hunk_session.string_addrs, hunk_session.reloc_labels,
+                hunk_session.data_access_sizes,
                 hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
                 hunk_session.addr_comments,
                 entity_addr,
@@ -107,7 +109,8 @@ def emit_jump_table_rows(
             rows.extend(emit_data_rows(
                 hunk_session.code, chunk_pos, entry_addr,
                 hunk_session.labels, hunk_session.reloc_map,
-                hunk_session.string_addrs, hunk_session.data_access_sizes,
+                hunk_session.string_addrs, hunk_session.reloc_labels,
+                hunk_session.data_access_sizes,
                 hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
                 hunk_session.addr_comments,
                 entity_addr,
@@ -140,7 +143,8 @@ def emit_jump_table_rows(
         rows.extend(emit_data_rows(
             hunk_session.code, chunk_pos, jt.table_end,
             hunk_session.labels, hunk_session.reloc_map,
-            hunk_session.string_addrs, hunk_session.data_access_sizes,
+            hunk_session.string_addrs, hunk_session.reloc_labels,
+            hunk_session.data_access_sizes,
             hunk_session.typed_data_sizes, hunk_session.typed_data_fields, hunk_session.os_kb,
             hunk_session.addr_comments,
             entity_addr,

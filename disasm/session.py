@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from contextlib import nullcontext
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -46,22 +46,41 @@ from disasm.types import (
     JumpTableRegion,
     TypedDataFieldInfo,
 )
-from m68k.analysis import RelocatedSegment, analyze_hunk
+from m68k.analysis import (
+    HunkAnalysis,
+    RelocatedSegment,
+    analyze_hunk,
+    resolve_reloc_target,
+)
 from m68k.hunk_parser import Hunk, HunkType, MemType, parse
 from m68k.indirect_core import IndirectSiteStatus
+from m68k.instruction_decode import decode_inst_operands
+from m68k.instruction_kb import instruction_kb
 from m68k.instruction_primitives import Operand
-from m68k.m68k_disasm import DecodedOperandNode
+from m68k.m68k_disasm import DecodedOperandNode, Instruction, disassemble
 from m68k.m68k_executor import BasicBlock
+from m68k.memory_provenance import MemoryRegionDerivationKind, provenance_named_base
 from m68k.os_calls import (
     LibraryCall,
     OsKb,
+    PlatformState,
+    TypedMemoryRegion,
     analyze_call_setups,
     build_app_slot_symbols,
     build_app_struct_regions,
     build_target_local_os_kb,
+    get_platform_config,
+    infer_named_base_extension_structs,
     propagate_typed_memory_regions,
+    refine_library_calls,
 )
-from m68k_kb import runtime_os
+from m68k.os_structs import resolve_struct_field
+from m68k_kb import runtime_hunk, runtime_m68k_analysis, runtime_os
+
+_FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
+_FLOW_CALL = runtime_m68k_analysis.FlowType.CALL
+_FLOW_JUMP = runtime_m68k_analysis.FlowType.JUMP
+_OPERAND_SIZE_BYTES = {"b": 1, "w": 2, "l": 4}
 
 __all__ = [
     "DisassemblySession",
@@ -92,6 +111,23 @@ def _prepare_hunk_code(
     return code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr
 
 
+def _prepare_hunk_sizes(
+    *,
+    stored_size: int,
+    alloc_size: int,
+    reloc_file_offset: int,
+    reloc_base_addr: int,
+) -> tuple[int, int]:
+    if reloc_file_offset == 0 and reloc_base_addr == 0:
+        return stored_size, alloc_size
+    runtime_stored_size = max(0, reloc_base_addr + (stored_size - reloc_file_offset))
+    runtime_alloc_size = max(0, reloc_base_addr + (alloc_size - reloc_file_offset))
+    assert runtime_alloc_size >= runtime_stored_size, (
+        f"Runtime alloc size {runtime_alloc_size} < runtime stored size {runtime_stored_size}"
+    )
+    return runtime_stored_size, runtime_alloc_size
+
+
 def _rebase_local_addr(addr: int, base_addr: int) -> int:
     rebased = addr - base_addr
     assert rebased >= 0
@@ -102,6 +138,118 @@ def _maybe_rebase_addr(addr: int, base_addr: int, code_size: int) -> int:
     if base_addr <= addr < base_addr + code_size:
         return _rebase_local_addr(addr, base_addr)
     return addr
+
+
+def _with_refined_named_base_structs(
+    region: TypedMemoryRegion,
+    os_kb: OsKb,
+) -> TypedMemoryRegion:
+    derivation = region.provenance.derivation
+    if derivation is None or derivation.kind is not MemoryRegionDerivationKind.NAMED_BASE:
+        return region
+    named_base = derivation.named_base
+    if named_base is None:
+        return region
+    struct_name = os_kb.META.named_base_structs.get(named_base)
+    if struct_name is None or struct_name == region.struct:
+        return region
+    struct_def = os_kb.STRUCTS.get(struct_name)
+    if struct_def is None:
+        return region
+    return TypedMemoryRegion(
+        struct=struct_name,
+        size=struct_def.size,
+        provenance=region.provenance,
+        struct_offset=region.struct_offset,
+        context_name=region.context_name,
+    )
+
+
+def _apply_named_base_struct_overrides(platform: PlatformState, os_kb: OsKb) -> None:
+    if platform.initial_register_regions:
+        platform.initial_register_regions = {
+            reg: _with_refined_named_base_structs(region, os_kb)
+            for reg, region in platform.initial_register_regions.items()
+        }
+    if platform.entry_register_regions:
+        platform.entry_register_regions = {
+            entry: {
+                reg: _with_refined_named_base_structs(region, os_kb)
+                for reg, region in regions.items()
+            }
+            for entry, regions in platform.entry_register_regions.items()
+        }
+
+
+def _session_os_kb_score(os_kb: OsKb) -> tuple[int, int]:
+    return (len(os_kb.STRUCTS), len(os_kb.META.named_base_structs))
+
+
+def _normalize_session_os_kb(hunk_sessions: list[HunkDisassemblySession]) -> None:
+    if not hunk_sessions:
+        return
+    session_os_kb = max(
+        (hunk_session.os_kb for hunk_session in hunk_sessions),
+        key=_session_os_kb_score,
+    )
+    session_structs = session_os_kb.STRUCTS
+    session_named_bases = session_os_kb.META.named_base_structs
+    for hunk_session in hunk_sessions:
+        assert set(hunk_session.os_kb.STRUCTS).issubset(session_structs), (
+            f"hunk {hunk_session.hunk_index} has non-session structs"
+        )
+        for named_base, struct_name in hunk_session.os_kb.META.named_base_structs.items():
+            assert session_named_bases.get(named_base) == struct_name, (
+                f"hunk {hunk_session.hunk_index} named-base mismatch for {named_base}"
+            )
+        if hunk_session.os_kb is session_os_kb:
+            continue
+        hunk_session.os_kb = session_os_kb
+        _apply_named_base_struct_overrides(hunk_session.platform, session_os_kb)
+
+
+def _cross_hunk_control_entrypoints(hunks: list[Hunk]) -> dict[int, tuple[int, ...]]:
+    targets_by_hunk: dict[int, set[int]] = {}
+    for hunk in hunks:
+        if hunk.hunk_type != HunkType.HUNK_CODE:
+            continue
+        for reloc in hunk.relocs:
+            target_hunk = reloc.target_hunk
+            if target_hunk == hunk.index:
+                continue
+            reloc_name = HunkType(reloc.reloc_type).name
+            reloc_info = runtime_hunk.RELOCATION_SEMANTICS.get(reloc_name)
+            if reloc_info is None or reloc_info[1] is not runtime_hunk.RelocMode.ABSOLUTE:
+                continue
+            reloc_size = reloc_info[0]
+            for offset in reloc.offsets:
+                target = resolve_reloc_target(reloc, offset, hunk.data)
+                if target is None:
+                    continue
+                inst_start = offset - runtime_m68k_analysis.OPWORD_BYTES
+                inst_end = offset + reloc_size
+                if inst_start < 0 or inst_end > len(hunk.data):
+                    continue
+                try:
+                    instructions = disassemble(
+                        hunk.data[inst_start:inst_end],
+                        base_offset=inst_start,
+                    )
+                except Exception:
+                    continue
+                if len(instructions) != 1:
+                    continue
+                inst = instructions[0]
+                if inst.offset != inst_start or inst.kb_mnemonic is None:
+                    continue
+                flow = runtime_m68k_analysis.FLOW_TYPES[instruction_kb(inst)]
+                if flow not in (_FLOW_BRANCH, _FLOW_CALL, _FLOW_JUMP):
+                    continue
+                targets_by_hunk.setdefault(target_hunk, set()).add(target)
+    return {
+        hunk_index: tuple(sorted(targets))
+        for hunk_index, targets in targets_by_hunk.items()
+    }
 
 
 def _rebase_block_map(
@@ -465,6 +613,518 @@ def _dynamic_structured_regions(
     return tuple(stream_regions)
 
 
+def _apply_cross_hunk_reloc_labels(
+    hunk_sessions: list[HunkDisassemblySession],
+) -> None:
+    sessions_by_index = {session.hunk_index: session for session in hunk_sessions}
+    for hunk_session in hunk_sessions:
+        reloc_labels: dict[int, str] = {}
+        for offset, target in hunk_session.reloc_map.items():
+            target_hunk = hunk_session.reloc_target_hunks.get(offset)
+            if target_hunk is None or target_hunk == hunk_session.hunk_index:
+                continue
+            target_session = sessions_by_index.get(target_hunk)
+            if target_session is None:
+                continue
+            label = target_session.labels.get(target)
+            if label is None:
+                continue
+            reloc_labels[offset] = label
+        hunk_session.reloc_labels = reloc_labels
+
+
+def _default_cross_hunk_target_label(
+    hunk_session: HunkDisassemblySession,
+    addr: int,
+    *,
+    prefer_code: bool = False,
+) -> str:
+    for entity in hunk_session.entities:
+        raw_addr = entity.get("addr")
+        if not isinstance(raw_addr, str) or int(raw_addr, 16) != addr:
+            continue
+        raw_name = entity.get("name")
+        if raw_name:
+            return raw_name
+        if entity.get("type") == "code":
+            return f"sub_{addr:04x}"
+        break
+    if prefer_code:
+        return f"sub_{addr:04x}" if addr not in hunk_session.blocks else f"loc_{addr:04x}"
+    if addr in hunk_session.blocks:
+        return f"loc_{addr:04x}"
+    if addr in hunk_session.hint_blocks:
+        return f"hint_{addr:04x}"
+    if addr in hunk_session.jump_table_regions:
+        return f"jt_{addr:04x}"
+    if addr in hunk_session.string_addrs:
+        return f"str_{addr:04x}"
+    if addr in hunk_session.code_addrs:
+        return f"loc_{addr:04x}"
+    return f"dat_{addr:04x}"
+
+
+def _reloc_target_prefers_code_label(
+    hunk_session: HunkDisassemblySession,
+    reloc_offset: int,
+) -> bool:
+    for block_set in (hunk_session.blocks, hunk_session.hint_blocks):
+        for block in block_set.values():
+            for inst in block.instructions:
+                ext_start = inst.offset + runtime_m68k_analysis.OPWORD_BYTES
+                if not (ext_start <= reloc_offset < inst.offset + inst.size):
+                    continue
+                if inst.kb_mnemonic is None:
+                    return False
+                flow = runtime_m68k_analysis.FLOW_TYPES[instruction_kb(inst)]
+                return flow in (_FLOW_BRANCH, _FLOW_CALL, _FLOW_JUMP)
+    return False
+
+
+def _ensure_cross_hunk_target_labels(
+    hunk_sessions: list[HunkDisassemblySession],
+) -> None:
+    sessions_by_index = {session.hunk_index: session for session in hunk_sessions}
+    for hunk_session in hunk_sessions:
+        for offset, target in hunk_session.reloc_map.items():
+            target_hunk = hunk_session.reloc_target_hunks.get(offset)
+            if target_hunk is None or target_hunk == hunk_session.hunk_index:
+                continue
+            target_session = sessions_by_index.get(target_hunk)
+            if target_session is None or target in target_session.labels:
+                continue
+            target_session.labels[target] = _default_cross_hunk_target_label(
+                target_session,
+                target,
+                prefer_code=_reloc_target_prefers_code_label(hunk_session, offset),
+            )
+
+
+def _apply_session_unique_labels(
+    hunk_sessions: list[HunkDisassemblySession],
+) -> None:
+    name_counts: dict[str, int] = {}
+    for hunk_session in hunk_sessions:
+        for label in hunk_session.labels.values():
+            name_counts[label] = name_counts.get(label, 0) + 1
+    used: set[str] = set()
+    for hunk_session in sorted(hunk_sessions, key=lambda session: session.hunk_index):
+        rewritten: dict[int, str] = {}
+        for addr, label in sorted(hunk_session.labels.items()):
+            candidate = label
+            if name_counts.get(label, 0) > 1:
+                candidate = f"hunk_{hunk_session.hunk_index}_{label}"
+            suffix = 2
+            while candidate in used:
+                candidate = f"hunk_{hunk_session.hunk_index}_{suffix}_{label}"
+                suffix += 1
+            rewritten[addr] = candidate
+            used.add(candidate)
+        hunk_session.labels = rewritten
+
+
+def _decoded_source_register(inst: Instruction) -> str | None:
+    ikb = instruction_kb(inst)
+    decoded = decode_inst_operands(inst, ikb)
+    source = decoded.ea_op
+    if source is None or source.mode not in {"dn", "an"} or source.reg is None:
+        return None
+    prefix = "a" if source.mode == "an" else "d"
+    return f"{prefix}{source.reg}"
+
+
+@dataclass(frozen=True, slots=True)
+class _SessionMemoryCellFact:
+    typed_size: int | None = None
+    typed_field: TypedDataFieldInfo | None = None
+    addr_comment: str | None = None
+    pointer_region: TypedMemoryRegion | None = None
+
+
+def _merge_session_memory_cell_fact(
+    existing: _SessionMemoryCellFact | None,
+    candidate: _SessionMemoryCellFact,
+) -> _SessionMemoryCellFact | None:
+    if existing is None or existing == candidate:
+        return candidate
+    typed_size = (
+        existing.typed_size
+        if existing.typed_size == candidate.typed_size
+        else (
+            existing.typed_size
+            if candidate.typed_size is None
+            else candidate.typed_size if existing.typed_size is None else None
+        )
+    )
+    typed_field = (
+        existing.typed_field
+        if existing.typed_field == candidate.typed_field
+        else (
+            existing.typed_field
+            if candidate.typed_field is None
+            else candidate.typed_field if existing.typed_field is None else None
+        )
+    )
+    addr_comment = (
+        existing.addr_comment
+        if existing.addr_comment == candidate.addr_comment
+        else (
+            existing.addr_comment
+            if candidate.addr_comment is None
+            else candidate.addr_comment if existing.addr_comment is None else None
+        )
+    )
+    if existing.pointer_region is None or existing.pointer_region == candidate.pointer_region:
+        pointer_region = candidate.pointer_region
+    elif candidate.pointer_region is None:
+        pointer_region = existing.pointer_region
+    else:
+        pointer_region = None
+    if (
+        typed_size is None
+        and typed_field is None
+        and addr_comment is None
+        and pointer_region is None
+    ):
+        return None
+    return _SessionMemoryCellFact(
+        typed_size=typed_size,
+        typed_field=typed_field,
+        addr_comment=addr_comment,
+        pointer_region=pointer_region,
+    )
+
+
+def _absolute_operand_target(
+    hunk_session: HunkDisassemblySession,
+    inst: Instruction,
+    operand: Operand | None,
+) -> tuple[int, int] | None:
+    if operand is None or operand.mode not in {"absw", "absl"} or operand.value is None:
+        return None
+    target_addr = (operand.value & 0xFFFF) if operand.mode == "absw" else operand.value
+    target_hunk = hunk_session.hunk_index
+    for ext_off in range(
+        inst.offset + runtime_m68k_analysis.OPWORD_BYTES,
+        inst.offset + inst.size,
+    ):
+        reloc_target = hunk_session.reloc_map.get(ext_off)
+        if reloc_target != target_addr:
+            continue
+        target_hunk = hunk_session.reloc_target_hunks.get(ext_off, target_hunk)
+        break
+    return target_hunk, target_addr
+
+
+def _source_memory_cell_fact(
+    hunk_session: HunkDisassemblySession,
+    inst: Instruction,
+    current: dict[int, dict[int, _SessionMemoryCellFact]],
+) -> _SessionMemoryCellFact | None:
+    source_register = _decoded_source_register(inst)
+    if source_register is not None:
+        region = hunk_session.region_map.get(inst.offset, {}).get(source_register)
+        if region is None:
+            return None
+        return _SessionMemoryCellFact(pointer_region=region)
+    ikb = instruction_kb(inst)
+    decoded = decode_inst_operands(inst, ikb)
+    source = decoded.ea_op
+    if source is None:
+        return None
+    source_target = _absolute_operand_target(hunk_session, inst, source)
+    if source_target is not None:
+        source_hunk, source_addr = source_target
+        return current.get(source_hunk, {}).get(source_addr)
+    if source.mode == "ind":
+        if source.reg is None:
+            return None
+        base_register = f"a{source.reg}"
+        displacement = 0
+    elif source.mode == "disp":
+        if source.reg is None or source.value is None:
+            return None
+        base_register = f"a{source.reg}"
+        displacement = source.value
+    else:
+        return None
+    base_region = hunk_session.region_map.get(inst.offset, {}).get(base_register)
+    if base_region is None:
+        return None
+    resolved = resolve_struct_field(
+        hunk_session.os_kb.STRUCTS,
+        base_region.struct,
+        base_region.struct_offset + displacement,
+    )
+    if resolved is None:
+        return None
+    pointer_region = None
+    if resolved.field.pointer_struct is not None:
+        struct_name = resolved.field.pointer_struct
+        named_base = resolved.field.named_base
+        if named_base is not None:
+            struct_name = hunk_session.os_kb.META.named_base_structs.get(
+                named_base,
+                struct_name,
+            )
+        struct_def = hunk_session.os_kb.STRUCTS.get(struct_name)
+        if struct_def is not None:
+            provenance = (
+                provenance_named_base(named_base)
+                if named_base is not None
+                else base_region.provenance
+            )
+            pointer_region = TypedMemoryRegion(
+                struct=struct_name,
+                size=struct_def.size,
+                provenance=provenance,
+            )
+    operand_size = inst.operand_size
+    typed_size = None if operand_size is None else _OPERAND_SIZE_BYTES.get(operand_size)
+    return _SessionMemoryCellFact(
+        typed_size=typed_size,
+        typed_field=TypedDataFieldInfo(
+            owner_struct=resolved.owner_struct,
+            field_symbol=resolved.field.name,
+            context_name=base_region.context_name,
+        ),
+        addr_comment=f"{resolved.owner_struct}.{resolved.field.name}",
+        pointer_region=pointer_region,
+    )
+
+
+def _store_target_for_instruction(
+    hunk_session: HunkDisassemblySession,
+    inst: Instruction,
+) -> tuple[int, int] | None:
+    ikb = instruction_kb(inst)
+    if ikb == "MOVEA":
+        return None
+    decoded = decode_inst_operands(inst, ikb)
+    return _absolute_operand_target(hunk_session, inst, decoded.dst_op)
+
+
+def _session_pointer_cell_symbol(region: TypedMemoryRegion, addr: int) -> str:
+    derivation = region.provenance.derivation
+    if derivation is not None and derivation.kind is MemoryRegionDerivationKind.NAMED_BASE:
+        named_base = derivation.named_base
+        if named_base is not None:
+            return f"{named_base.replace('.', '_').lower()}_base"
+    stem = "".join(
+        ch.lower() if ch.isalnum() else "_"
+        for ch in region.struct
+    ).strip("_")
+    if stem:
+        suffix = "base" if stem.endswith(("library", "device", "resource")) else "ptr"
+        return f"{stem}_{suffix}"
+    return f"dat_{addr:04x}"
+
+
+def _is_default_generated_label(label: str) -> bool:
+    return label.startswith(("sub_", "loc_", "dat_", "hint_", "jt_"))
+
+
+def _reserved_generated_label_names(
+    *,
+    labels: Mapping[int, str],
+    app_offsets: Mapping[int, str],
+    os_kb: OsKb,
+    addr: int,
+) -> set[str]:
+    reserved = set(app_offsets.values())
+    reserved.update(
+        field.name
+        for struct in os_kb.STRUCTS.values()
+        if str(struct.source).lower() not in os_kb.META.include_min_versions
+        for field in struct.fields
+        if field.size > 0 and field.offset >= struct.base_offset
+    )
+    reserved.update(
+        label
+        for label_addr, label in labels.items()
+        if label_addr != addr
+    )
+    return reserved
+
+
+def _disambiguate_generated_label(
+    *,
+    labels: Mapping[int, str],
+    app_offsets: Mapping[int, str],
+    os_kb: OsKb,
+    addr: int,
+    symbol: str,
+) -> str:
+    reserved = _reserved_generated_label_names(
+        labels=labels,
+        app_offsets=app_offsets,
+        os_kb=os_kb,
+        addr=addr,
+    )
+    candidate = symbol
+    if candidate in reserved:
+        candidate = f"{symbol}_ptr"
+    suffix = 2
+    while candidate in reserved:
+        candidate = f"{symbol}_ptr_{suffix}"
+        suffix += 1
+    return candidate
+
+
+def _rename_reserved_generated_labels(
+    *,
+    labels: dict[int, str],
+    entities: list[EntityRecord],
+    app_offsets: Mapping[int, str],
+    os_kb: OsKb,
+) -> None:
+    explicit_names = {
+        raw_name
+        for entity in entities
+        if (raw_name := entity.get("name"))
+    }
+    for addr, label in list(labels.items()):
+        if label in explicit_names:
+            continue
+        renamed = _disambiguate_generated_label(
+            labels=labels,
+            app_offsets=app_offsets,
+            os_kb=os_kb,
+            addr=addr,
+            symbol=label,
+        )
+        if renamed != label:
+            labels[addr] = renamed
+
+
+def _seeded_session_memory_cells(
+    hunk_sessions: list[HunkDisassemblySession],
+) -> dict[int, dict[int, _SessionMemoryCellFact]]:
+    result: dict[int, dict[int, _SessionMemoryCellFact]] = {}
+    for hunk_session in hunk_sessions:
+        seeded = result.setdefault(hunk_session.hunk_index, {})
+        all_addrs = (
+            set(hunk_session.typed_data_sizes)
+            | set(hunk_session.typed_data_fields)
+            | set(hunk_session.addr_comments)
+        )
+        for addr in all_addrs:
+            seeded[addr] = _SessionMemoryCellFact(
+                typed_size=hunk_session.typed_data_sizes.get(addr),
+                typed_field=hunk_session.typed_data_fields.get(addr),
+                addr_comment=hunk_session.addr_comments.get(addr),
+            )
+    return result
+
+
+def _collect_session_memory_cells(
+    hunk_sessions: list[HunkDisassemblySession],
+    current: dict[int, dict[int, _SessionMemoryCellFact]],
+) -> dict[int, dict[int, _SessionMemoryCellFact]]:
+    result = {
+        hunk_index: dict(cells)
+        for hunk_index, cells in current.items()
+    }
+    changed = True
+    while changed:
+        changed = False
+        for hunk_session in hunk_sessions:
+            for block in hunk_session.blocks.values():
+                for inst in block.instructions:
+                    operand_size = inst.operand_size
+                    typed_size = (
+                        None if operand_size is None else _OPERAND_SIZE_BYTES.get(operand_size)
+                    )
+                    if typed_size is None:
+                        continue
+                    source_fact = _source_memory_cell_fact(hunk_session, inst, result)
+                    if source_fact is None:
+                        continue
+                    if source_fact.typed_size is None:
+                        source_fact = replace(source_fact, typed_size=typed_size)
+                    target = _store_target_for_instruction(hunk_session, inst)
+                    if target is None:
+                        continue
+                    target_hunk, target_addr = target
+                    existing = result.setdefault(target_hunk, {}).get(target_addr)
+                    merged = _merge_session_memory_cell_fact(existing, source_fact)
+                    if merged is None or merged == existing:
+                        continue
+                    result[target_hunk][target_addr] = merged
+                    changed = True
+    return result
+
+
+def _refresh_session_memory_cells(
+    hunk_sessions: list[HunkDisassemblySession],
+) -> None:
+    _normalize_session_os_kb(hunk_sessions)
+    current = _seeded_session_memory_cells(hunk_sessions)
+    memory_cells = _collect_session_memory_cells(hunk_sessions, current)
+    if not memory_cells:
+        return
+    for hunk_session in hunk_sessions:
+        cell_facts = memory_cells.get(hunk_session.hunk_index)
+        blocks = {
+            addr: cast(BasicBlock, block)
+            for addr, block in hunk_session.blocks.items()
+        }
+        absolute_pointer_regions = {
+            (cell_hunk, addr): fact.pointer_region
+            for cell_hunk, cells in memory_cells.items()
+            for addr, fact in cells.items()
+            if fact.pointer_region is not None
+        }
+        if cell_facts:
+            for addr, fact in cell_facts.items():
+                if fact.pointer_region is not None:
+                    existing_label = hunk_session.labels.get(addr)
+                    symbol = _session_pointer_cell_symbol(fact.pointer_region, addr)
+                    if existing_label is None or _is_default_generated_label(existing_label):
+                        hunk_session.labels[addr] = _disambiguate_generated_label(
+                            labels=hunk_session.labels,
+                            app_offsets=hunk_session.app_offsets,
+                            os_kb=hunk_session.os_kb,
+                            addr=addr,
+                            symbol=symbol,
+                        )
+                if fact.typed_size is not None:
+                    hunk_session.typed_data_sizes[addr] = fact.typed_size
+                if fact.typed_field is not None:
+                    hunk_session.typed_data_fields[addr] = fact.typed_field
+                if fact.addr_comment is not None:
+                    hunk_session.addr_comments[addr] = fact.addr_comment
+        hunk_session.region_map = propagate_typed_memory_regions(
+            blocks,
+            list(hunk_session.lib_calls),
+            hunk_session.code,
+            hunk_session.os_kb,
+            hunk_session.platform,
+            absolute_pointer_regions=absolute_pointer_regions,
+            hunk_index=hunk_session.hunk_index,
+            reloc_target_hunks=hunk_session.reloc_target_hunks,
+        )
+        hunk_session.lib_calls = tuple(refine_library_calls(
+            blocks,
+            list(hunk_session.lib_calls),
+            hunk_session.code,
+            hunk_session.os_kb,
+            hunk_session.platform,
+            region_map=hunk_session.region_map,
+        ))
+        hunk_session.lvo_equs, hunk_session.lvo_substitutions = build_lvo_substitutions(
+            blocks=dict(hunk_session.blocks),
+            lib_calls=list(hunk_session.lib_calls),
+            hunk_entities=hunk_session.entities,
+        )
+        hunk_session.arg_equs, hunk_session.arg_substitutions = build_arg_substitutions(
+            blocks=dict(hunk_session.blocks),
+            lib_calls=list(hunk_session.lib_calls),
+            hunk_entities=hunk_session.entities,
+            os_kb=hunk_session.os_kb,
+        )
+
+
 def build_disassembly_session(
     binary_source: str | BinarySource,
     entities_path: str,
@@ -526,29 +1186,46 @@ def build_disassembly_session(
 
     hf = parse(source.read_bytes())
     custom_entry_points = resolved_entry_points(source, target_metadata, ())
+    cross_hunk_entry_points = _cross_hunk_control_entrypoints(hf.hunks)
     first_code_hunk_seen = False
 
     for hunk in hf.hunks:
-        if hunk.hunk_type != HunkType.HUNK_CODE:
+        if hunk.hunk_type == HunkType.HUNK_CODE:
+            extra_entry_points = set(target_seeded_entrypoint_offsets(
+                target_metadata, hunk_index=hunk.index
+            ))
+            extra_entry_points.update(cross_hunk_entry_points.get(hunk.index, ()))
+            hunk_sessions.append(
+                _build_hunk_session_data(
+                    source=source,
+                    entities=entities,
+                    hunk=hunk,
+                    hf_hunks=hf.hunks,
+                    base_addr=base_addr,
+                    code_start=code_start,
+                    entry_points=(custom_entry_points if not first_code_hunk_seen else ()),
+                    extra_entry_points=tuple(sorted(extra_entry_points)),
+                    target_metadata=target_metadata,
+                    apply_target_structure=not first_code_hunk_seen,
+                    phase_timer=phase_timer,
+                )
+            )
+            first_code_hunk_seen = True
+            continue
+        if hunk.hunk_type not in (HunkType.HUNK_DATA, HunkType.HUNK_BSS):
             continue
         hunk_sessions.append(
-            _build_hunk_session_data(
-                source=source,
+            _build_noncode_hunk_session(
                 entities=entities,
                 hunk=hunk,
                 hf_hunks=hf.hunks,
-                base_addr=base_addr,
-                code_start=code_start,
-                entry_points=(custom_entry_points if not first_code_hunk_seen else ()),
-                extra_entry_points=target_seeded_entrypoint_offsets(
-                    target_metadata, hunk_index=hunk.index
-                ),
-                target_metadata=target_metadata,
-                apply_target_structure=not first_code_hunk_seen,
-                phase_timer=phase_timer,
             )
         )
-        first_code_hunk_seen = True
+
+    _refresh_session_memory_cells(hunk_sessions)
+    _ensure_cross_hunk_target_labels(hunk_sessions)
+    _apply_session_unique_labels(hunk_sessions)
+    _apply_cross_hunk_reloc_labels(hunk_sessions)
 
     return DisassemblySession(
         target_name=target_name,
@@ -597,6 +1274,10 @@ def _build_code_session(
         apply_target_structure=True,
         phase_timer=phase_timer,
     )
+    _refresh_session_memory_cells([hunk_session])
+    _ensure_cross_hunk_target_labels([hunk_session])
+    _apply_session_unique_labels([hunk_session])
+    _apply_cross_hunk_reloc_labels([hunk_session])
     return DisassemblySession(
         target_name=target_name,
         binary_path=Path(source.display_path),
@@ -696,12 +1377,61 @@ def _build_hunk_session_data(
     code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = (
         _prepare_hunk_code(code, relocated_segments)
     )
+    stored_size, alloc_size = _prepare_hunk_sizes(
+        stored_size=hunk.stored_size,
+        alloc_size=hunk.alloc_size,
+        reloc_file_offset=reloc_file_offset,
+        reloc_base_addr=reloc_base_addr,
+    )
     with (
         phase_timer.phase("session.metadata")
         if phase_timer is not None
         else nullcontext()
     ):
         absolute_resolution = resolve_absolute_labels(platform=platform)
+        region_map = propagate_typed_memory_regions(
+            blocks,
+            lib_calls,
+            code,
+            os_kb,
+            platform,
+            target_metadata,
+            hunk_index=hunk.index,
+            reloc_target_hunks=ha.reloc_target_hunks if hasattr(ha, "reloc_target_hunks") else None,
+        )
+        inferred_structs, inferred_named_base_overrides = infer_named_base_extension_structs(
+            blocks,
+            region_map,
+            os_kb,
+        )
+        if inferred_structs or inferred_named_base_overrides:
+            os_kb = build_target_local_os_kb(
+                os_kb,
+                target_metadata,
+                extra_custom_structs=inferred_structs,
+                named_base_struct_overrides=inferred_named_base_overrides,
+            )
+            lib_calls = _refresh_library_call_signatures(lib_calls, os_kb)
+            _apply_named_base_struct_overrides(platform, os_kb)
+            region_map = propagate_typed_memory_regions(
+                blocks,
+                lib_calls,
+                code,
+                os_kb,
+                platform,
+                target_metadata,
+                hunk_index=hunk.index,
+                reloc_target_hunks=ha.reloc_target_hunks if hasattr(ha, "reloc_target_hunks") else None,
+            )
+        lib_calls = refine_library_calls(
+            blocks,
+            lib_calls,
+            code,
+            os_kb,
+            platform,
+            target_metadata,
+            region_map=region_map,
+        )
         call_setup_analysis = analyze_call_setups(
             blocks=blocks,
             lib_calls=lib_calls,
@@ -737,9 +1467,6 @@ def _build_hunk_session_data(
             typed_string_ranges=call_setup_analysis.string_ranges,
             reserved_absolute_addrs=absolute_resolution.reserved_absolute_addrs,
             absolute_labels=absolute_resolution.absolute_labels,
-        )
-        region_map = propagate_typed_memory_regions(
-            blocks, lib_calls, code, os_kb, platform, target_metadata
         )
         app_struct_regions = build_app_struct_regions(
             blocks, lib_calls, os_kb, platform, target_metadata
@@ -781,6 +1508,12 @@ def _build_hunk_session_data(
             labels[addr] = symbol
     for addr, symbol in call_setup_analysis.segment_code_symbols.items():
         labels[addr] = symbol
+    _rename_reserved_generated_labels(
+        labels=labels,
+        entities=hunk_entities,
+        app_offsets=app_offsets,
+        os_kb=os_kb,
+    )
     data_access_sizes = collect_data_access_sizes(blocks, exit_states)
     unresolved_indirects = {
         site.addr: site
@@ -938,8 +1671,14 @@ def _build_hunk_session_data(
     ):
         return HunkDisassemblySession(
             hunk_index=hunk.index,
+            hunk_type=hunk.hunk_type,
+            mem_type=hunk.mem_type,
+            mem_attrs=hunk.mem_attrs,
+            section_name=hunk.name,
             code=code,
             code_size=code_size,
+            alloc_size=alloc_size,
+            stored_size=stored_size,
             entities=hunk_entities,
             blocks=dict(blocks),
             hint_blocks=dict(hint_blocks),
@@ -947,6 +1686,7 @@ def _build_hunk_session_data(
             hint_addrs=metadata.hint_addrs,
             reloc_map=metadata.reloc_map,
             reloc_target_set=metadata.reloc_target_set,
+            reloc_target_hunks=metadata.reloc_target_hunks,
             pc_targets=metadata.pc_targets,
             string_addrs=metadata.string_addrs,
             labels=labels,
@@ -979,3 +1719,83 @@ def _build_hunk_session_data(
             string_ranges=metadata.string_ranges,
             unresolved_indirects=unresolved_indirects,
         )
+
+
+def _build_noncode_hunk_session(
+    *,
+    entities: list[EntityRecord],
+    hunk: Hunk,
+    hf_hunks: list[Hunk],
+) -> HunkDisassemblySession:
+    hunk_entities = [e for e in entities if e.get("hunk") == hunk.index]
+    hunk_entities.sort(key=lambda e: int(e["addr"], 16))
+    metadata = build_hunk_metadata(
+        code=hunk.data,
+        code_size=len(hunk.data),
+        hunk_index=hunk.index,
+        hunk_entities=hunk_entities,
+        ha=cast(
+            HunkAnalysisLike,
+            HunkAnalysis(
+                code=hunk.data,
+                hunk_index=hunk.index,
+                blocks={},
+                exit_states={},
+                xrefs=[],
+                call_targets=set(),
+                branch_targets=set(),
+                jump_tables=[],
+                hint_blocks={},
+                hint_reasons={},
+                lib_calls=[],
+                platform=get_platform_config(),
+                reloc_targets=set(),
+                reloc_refs=(),
+                relocated_segments=[],
+                os_kb=runtime_os,
+            ),
+        ),
+        hf_hunks=hf_hunks,
+    )
+    labels = metadata.labels
+    return HunkDisassemblySession(
+        hunk_index=hunk.index,
+        hunk_type=hunk.hunk_type,
+        mem_type=hunk.mem_type,
+        mem_attrs=hunk.mem_attrs,
+        section_name=hunk.name,
+        code=hunk.data,
+        code_size=len(hunk.data),
+        alloc_size=hunk.alloc_size,
+        stored_size=hunk.stored_size,
+        entities=hunk_entities,
+        blocks={},
+        hint_blocks={},
+        code_addrs=metadata.code_addrs,
+        hint_addrs=metadata.hint_addrs,
+        reloc_map=metadata.reloc_map,
+        reloc_target_set=metadata.reloc_target_set,
+        pc_targets=metadata.pc_targets,
+        string_addrs=metadata.string_addrs,
+        labels=labels,
+        jump_table_regions=metadata.jump_table_regions,
+        jump_table_target_sources=metadata.jump_table_target_sources,
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=get_platform_config(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        absolute_labels=metadata.absolute_labels,
+        reserved_absolute_addrs=metadata.reserved_absolute_addrs,
+        reloc_target_hunks=metadata.reloc_target_hunks,
+    )

@@ -53,7 +53,7 @@ from .os_calls import (
     collect_library_call_site_addrs,
     get_platform_config,
     identify_library_calls,
-    refine_opened_base_calls,
+    refine_library_calls,
 )
 from .os_calls import (
     RUNTIME_OS_KB as _OS_CALLS_RUNTIME_OS_KB,
@@ -100,6 +100,49 @@ _RELOC_ABS_FMT = {4: ">I", 2: ">H"}
 _RELOC_REL_FMT = {4: ">i", 2: ">h", 1: ">b"}
 
 
+def _hint_followup_entries(
+    hint_blocks: Mapping[int, BasicBlock],
+    known_entries: set[int],
+    *,
+    code_size: int,
+) -> set[int]:
+    entries: set[int] = set()
+    for block in hint_blocks.values():
+        if not block.instructions:
+            continue
+        last = block.instructions[-1]
+        flow_type, conditional = instruction_flow(last)
+        if flow_type not in (_FLOW_BRANCH, _FLOW_CALL, _FLOW_JUMP):
+            continue
+        for succ in block.successors:
+            if succ == block.end and conditional:
+                continue
+            if succ == block.end and flow_type is _FLOW_CALL:
+                continue
+            if not (0 <= succ < code_size):
+                continue
+            if succ in known_entries:
+                continue
+            entries.add(succ)
+        for xref in block.xrefs:
+            if xref.src != last.offset or xref.type not in ("branch", "jump", "call"):
+                continue
+            if not (0 <= xref.dst < code_size):
+                continue
+            if xref.dst in known_entries:
+                continue
+            entries.add(xref.dst)
+        for node in last.operand_nodes or ():
+            if node.target is None:
+                continue
+            if not (0 <= node.target < code_size):
+                continue
+            if node.target in known_entries:
+                continue
+            entries.add(node.target)
+    return entries
+
+
 def resolve_reloc_target(reloc: RelocLike, offset: int, data: bytes) -> int | None:
     """Resolve a relocation offset to its target address."""
     info = _RELOC_INFO.get(reloc.reloc_type)
@@ -125,7 +168,7 @@ def resolve_reloc_target(reloc: RelocLike, offset: int, data: bytes) -> int | No
 
 # -- Analysis result ------------------------------------------------------
 
-_CACHE_VERSION = 18  # bump when cached analysis semantics/fields change
+_CACHE_VERSION = 19  # bump when cached analysis semantics/fields change
 
 
 class AnalysisCacheError(Exception):
@@ -859,7 +902,7 @@ def analyze_hunk(
             entry_initial_states=entry_initial_states,
             base_addr=base_addr,
         )
-        preclassified_calls = refine_opened_base_calls(
+        preclassified_calls = refine_library_calls(
             result["blocks"], preclassified_calls, code, RUNTIME_OS_KB, platform
         )
         callback_setups = analyze_call_setups(
@@ -1071,6 +1114,40 @@ def analyze_hunk(
         for e in scan_entries:
             hint_source[e] = "scan"
 
+    while True:
+        known_hint_entries = set(blocks) | set(hint_blocks)
+        followup_entries = _hint_followup_entries(
+            hint_blocks,
+            known_hint_entries,
+            code_size=code_size,
+        )
+        if not followup_entries:
+            break
+        with (
+            phase_timer.phase("analysis.hint_scan")
+            if phase_timer is not None
+            else nullcontext()
+        ):
+            followup_result = analyze(
+                code,
+                base_addr=base_addr,
+                entry_points=sorted(followup_entries),
+                propagate=False,
+                initial_state=initial_state,
+                entry_initial_states=entry_initial_states,
+            )
+        added_any = False
+        for a, b in followup_result["blocks"].items():
+            if a not in blocks and a not in hint_blocks:
+                hint_blocks[a] = b
+                added_any = True
+        for e in followup_entries:
+            if e in hint_blocks:
+                hint_source[e] = "scan"
+                scan_entries.add(e)
+        if not added_any:
+            break
+
     # Post-scan: seed at addresses immediately after each hint block
     # that ends with a flow-terminating instruction (RTS, BRA, JMP).
     # These are adjacent code regions that the main scanner missed
@@ -1181,7 +1258,7 @@ def analyze_hunk(
             entry_initial_states=entry_initial_states,
             base_addr=base_addr,
         )
-        lib_calls = refine_opened_base_calls(blocks, lib_calls, code, os_kb, platform)
+    lib_calls = refine_library_calls(blocks, lib_calls, code, os_kb, platform)
 
     if lib_calls:
         resolved_calls: list[LibraryCall] = [

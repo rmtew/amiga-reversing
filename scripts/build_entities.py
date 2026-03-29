@@ -236,6 +236,18 @@ def _filter_pre_entry_blocks(
     return filtered
 
 
+def _filter_hunk_local_call_targets(
+    call_targets: set[int],
+    *,
+    entry_addr: int,
+    code_size: int,
+) -> set[int]:
+    return {
+        addr for addr in call_targets
+        if entry_addr <= addr < code_size
+    }
+
+
 def fmt_addr(addr: int) -> str:
     return f"0x{addr:04X}"
 
@@ -513,6 +525,8 @@ def build_reloc_references(hunks: list[Any], code_size: int,
         if hunk.hunk_type != HunkType.HUNK_CODE:
             continue
         for reloc in hunk.relocs:
+            if reloc.target_hunk != hunk.index:
+                continue
             info = _RELOC_INFO.get(reloc.reloc_type)
             if info is None:
                 continue
@@ -982,10 +996,11 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
             xref for xref in xrefs
             if xref.src >= entry_addr and xref.dst >= entry_addr
         ]
-        call_targets = {
-            addr for addr in call_targets
-            if addr >= entry_addr
-        }
+        call_targets = _filter_hunk_local_call_targets(
+            call_targets,
+            entry_addr=entry_addr,
+            code_size=code_size,
+        )
         lib_calls = [
             call for call in lib_calls
             if call.addr >= entry_addr

@@ -36,6 +36,7 @@ from kb.schemas import (
     OsInput,
     OsOutput,
     OsReferencePayload,
+    OsResidentEntryRegisterSeed,
     OsStructDef,
     OsStructField,
     OsValueDomain,
@@ -45,6 +46,7 @@ from m68k_kb.runtime_types import (
     BoundsCheck,
     BranchExtensionDisplacement,
     BranchInlineDisplacement,
+    CompareSwapVariant,
     CompatibilityNote,
     ComputeFormula,
     ConditionFamily,
@@ -129,6 +131,7 @@ class RuntimeM68kTables(TypedDict):
     cc_families: dict[str, CcFamilyRuntime]
     immediate_ranges: dict[str, ImmediateRange]
     compute_formulas: dict[str, ComputeFormula]
+    compare_swap_effects: dict[str, tuple[CompareSwapVariant, ...]]
     bounds_checks: dict[str, BoundsCheck]
     sp_effects: dict[str, tuple[SpEffect, ...]]
     sp_effects_complete: tuple[str, ...]
@@ -359,6 +362,7 @@ class M68kExecutorRuntimePayload(TypedDict):
     DEST_REG_FIELD: dict[str, FieldSpec]
     OPERATION_TYPES: dict[str, str | None]
     OPERATION_CLASSES: dict[str, str | None]
+    COMPARE_SWAP_EFFECTS: dict[str, tuple[CompareSwapVariant, ...]]
     SOURCE_SIGN_EXTEND: tuple[str, ...]
     BOUNDS_CHECKS: dict[str, BoundsCheck]
     BIT_MODULI: dict[str, BitModulus]
@@ -410,6 +414,7 @@ class HunkRuntimePayload(TypedDict):
     RELOC_FORMATS: dict[str, RelocFormatDef]
     RELOCATION_SEMANTICS: dict[str, tuple[int, str]]
     HUNK_CONTENT_FORMATS: dict[str, HunkContentFormatDef]
+    HUNKEXE_SUPPORTED_RELOCATION_TYPES: tuple[str, ...]
 
 
 class OsRuntimeLibrary(TypedDict):
@@ -428,6 +433,7 @@ class OsRuntimeMeta(TypedDict):
     resident_autoinit_word_stream_formats: dict[str, str]
     resident_autoinit_supports_short_vectors: bool
     resident_vector_prefixes: dict[str, list[str]]
+    resident_entry_register_seeds: dict[str, dict[str, list[OsResidentEntryRegisterSeed]]]
     named_base_structs: dict[str, str]
     typed_data_stream_formats: dict[str, object]
     library_lvo_owners: dict[str, OsIncludeOwner]
@@ -553,6 +559,8 @@ def _write_runtime_constants_python(path: Path, payload: Mapping[str, object], *
         runtime_type_imports.append("PrimaryDataSize")
     if "COMPUTE_FORMULAS" in payload:
         runtime_type_imports.append("ComputeFormula")
+    if "COMPARE_SWAP_EFFECTS" in payload:
+        runtime_type_imports.append("CompareSwapVariant")
     if "SP_EFFECTS" in payload:
         runtime_type_imports.append("SpEffect")
     if "DIRECTION_FORM_VALUES" in payload:
@@ -742,6 +750,8 @@ def _write_runtime_constants_python(path: Path, payload: Mapping[str, object], *
             lines.append(f"{name} = {_render_operation_class_table(cast(dict[str, str | None], value))}")
         elif name == "COMPUTE_FORMULAS":
             lines.append(f"{name} = {_render_compute_formulas(cast(dict[str, ComputeFormula], value))}")
+        elif name == "COMPARE_SWAP_EFFECTS":
+            lines.append(f"{name} = {_render_compare_swap_effects(cast(dict[str, tuple[CompareSwapVariant, ...]], value))}")
         elif name == "SP_EFFECTS":
             lines.append(f"{name} = {_render_sp_effects(cast(dict[str, tuple[SpEffect, ...]], value))}")
         elif name == "PRIMARY_DATA_SIZES":
@@ -994,6 +1004,24 @@ def _render_sp_effects(table: dict[str, tuple[tuple[str, int | None, str | None]
     return f"{{{rendered}}}"
 
 
+def _render_compare_swap_effects(table: dict[str, tuple[CompareSwapVariant, ...]]) -> str:
+    entries = []
+    for key, variants in sorted(table.items()):
+        rendered_variants = []
+        for operand_types, compare_pairs, success_writes, failure_writes in variants:
+            rendered_variants.append(
+                "("
+                f"{operand_types!r}, "
+                f"{compare_pairs!r}, "
+                f"{success_writes!r}, "
+                f"{failure_writes!r}"
+                ")"
+            )
+        entries.append(f"{key!r}: ({', '.join(rendered_variants)}{',' if len(variants) == 1 else ''})")
+    rendered = ",\n ".join(entries)
+    return f"{{{rendered}}}"
+
+
 def _render_shift_variant_behaviors(table: dict[str, tuple[tuple[str, str, str, bool], ...]]) -> str:
     entries = []
     for key, value in table.items():
@@ -1017,7 +1045,7 @@ def _write_m68k_runtime_python(path: Path, payload: RuntimeM68kPayload, *, heade
             "",
             "from enum import IntEnum, StrEnum",
             "from typing import TypeAlias",
-            "from .runtime_types import AsmSizeEncoding, BitField, BitModulus, BranchExtensionDisplacement, BranchInlineDisplacement, CcLookupFamily, ComputeFormula, ConditionFamily, DirectionFormValue, DirectionVariant, DisasmSizeEncoding, EaModeTable, FieldMaps, FieldSpec, ImmediateRange, OperandModeTable, OpmodeEntry, PrimaryDataSize, RawFieldMaps, RmFieldInfo, ShiftFieldInfo, ShiftVariantBehavior, SpEffect",
+            "from .runtime_types import AsmSizeEncoding, BitField, BitModulus, BranchExtensionDisplacement, BranchInlineDisplacement, CcLookupFamily, CompareSwapVariant, ComputeFormula, ConditionFamily, DirectionFormValue, DirectionVariant, DisasmSizeEncoding, EaModeTable, FieldMaps, FieldSpec, ImmediateRange, OperandModeTable, OpmodeEntry, PrimaryDataSize, RawFieldMaps, RmFieldInfo, ShiftFieldInfo, ShiftVariantBehavior, SpEffect",
             "",
             "class SizeCode(IntEnum):",
             "    BYTE = 0",
@@ -1146,6 +1174,7 @@ def _write_m68k_runtime_python(path: Path, payload: RuntimeM68kPayload, *, heade
             f"CC_FAMILIES = {_render_py(tables['cc_families'])}",
             f"IMMEDIATE_RANGES = {_render_py(tables['immediate_ranges'])}",
             f"COMPUTE_FORMULAS = {_render_compute_formulas(tables['compute_formulas'])}",
+            f"COMPARE_SWAP_EFFECTS = {_render_compare_swap_effects(tables['compare_swap_effects'])}",
             f"SP_EFFECTS = {_render_sp_effects(tables['sp_effects'])}",
             f"IMPLICIT_OPERANDS = {_render_py(tables['implicit_operands'])}",
             f"BIT_MODULI = {_render_py(tables['bit_moduli'])}",
@@ -1531,6 +1560,8 @@ def _write_m68k_analysis_runtime_python(path: Path, payload: M68kAnalysisRuntime
             lines.append(f"{name} = {_render_operation_class_table(cast(dict[str, str | None], value))}")
         elif name == "COMPUTE_FORMULAS":
             lines.append(f"{name} = {_render_compute_formulas(cast(dict[str, ComputeFormula], value))}")
+        elif name == "COMPARE_SWAP_EFFECTS":
+            lines.append(f"{name} = {_render_compare_swap_effects(cast(dict[str, tuple[CompareSwapVariant, ...]], value))}")
         elif name == "SP_EFFECTS":
             lines.append(f"{name} = {_render_sp_effects(cast(dict[str, tuple[SpEffect, ...]], value))}")
         elif name == "PROCESSOR_020_VARIANTS":
@@ -1568,6 +1599,7 @@ def _write_hunk_runtime_python(path: Path, payload: HunkRuntimePayload, *, heade
         f"RELOC_FORMATS = {_render_py(payload['RELOC_FORMATS'])}",
         f"RELOCATION_SEMANTICS = {_render_hunk_relocation_semantics(payload['RELOCATION_SEMANTICS'])}",
         f"HUNK_CONTENT_FORMATS = {_render_py(payload['HUNK_CONTENT_FORMATS'])}",
+        f"HUNKEXE_SUPPORTED_RELOCATION_TYPES = {_render_py(payload['HUNKEXE_SUPPORTED_RELOCATION_TYPES'])}",
         "",
     ]
     path.write_text("\n".join(lines), encoding="utf-8")
@@ -1738,6 +1770,7 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    resident_autoinit_word_stream_formats: dict[str, str] = field(default_factory=dict)",
         "    resident_autoinit_supports_short_vectors: bool = False",
         "    resident_vector_prefixes: dict[str, tuple[str, ...]] = field(default_factory=dict)",
+        "    resident_entry_register_seeds: dict[str, dict[str, tuple[dict[str, object], ...]]] = field(default_factory=dict)",
         "    named_base_structs: dict[str, str] = field(default_factory=dict)",
         "    typed_data_stream_formats: dict[str, object] = field(default_factory=dict)",
         "    library_lvo_owners: dict[str, object] = field(default_factory=dict)",
@@ -1754,6 +1787,7 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    struct: str | None = None",
         "    c_type: str | None = None",
         "    pointer_struct: str | None = None",
+        "    named_base: str | None = None",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsStruct:",
@@ -1841,6 +1875,7 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         f"    resident_autoinit_word_stream_formats={_render_py(dict(sorted(meta['resident_autoinit_word_stream_formats'].items())))} ,",
         f"    resident_autoinit_supports_short_vectors={_render_py(meta['resident_autoinit_supports_short_vectors'])} ,",
         f"    resident_vector_prefixes={_render_py({kind: tuple(names) for kind, names in sorted(meta['resident_vector_prefixes'].items())})} ,",
+        f"    resident_entry_register_seeds={_render_py({target_type: {role: tuple(specs) for role, specs in sorted(role_map.items())} for target_type, role_map in sorted(meta['resident_entry_register_seeds'].items())})} ,",
         f"    named_base_structs={_render_py(dict(sorted(meta['named_base_structs'].items())))} ,",
         f"    typed_data_stream_formats={_render_py(dict(sorted(meta.get('typed_data_stream_formats', {}).items())))} ,",
         f"    library_lvo_owners={_render_py(dict(sorted(meta['library_lvo_owners'].items())))} ,",
@@ -2093,6 +2128,7 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
         if inst.get("constraints", {}).get("immediate_range")
     }
     compute_formulas: dict[str, ComputeFormula] = {}
+    compare_swap_effects: dict[str, tuple[CompareSwapVariant, ...]] = {}
     bounds_checks: dict[str, BoundsCheck] = {}
     sp_effects: dict[str, tuple[SpEffect, ...]] = {}
     sp_effects_complete: set[str] = set()
@@ -2126,6 +2162,17 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
                 cast(tuple[int, int], tuple(formula["range_b"])) if "range_b" in formula else None,
                 tuple((size, bits) for size, bits in source_bits_by_size.items()) if source_bits_by_size else (),
                 formula.get("truncation"),
+            )
+        raw_compare_swap_effects = cast(list[JsonObject] | None, inst.get("compare_swap_effects"))
+        if raw_compare_swap_effects:
+            compare_swap_effects[mnemonic] = tuple(
+                (
+                    tuple(cast(list[str], variant["operand_types"])),
+                    tuple((left, right) for left, right in cast(list[tuple[str, str]], variant["compare_pairs"])),
+                    tuple((left, right) for left, right in cast(list[tuple[str, str]], variant["success_writes"])),
+                    tuple((left, right) for left, right in cast(list[tuple[str, str]], variant["failure_writes"])),
+                )
+                for variant in raw_compare_swap_effects
             )
         raw_bounds_check = inst.get("bounds_check")
         bounds_checks[mnemonic] = None if raw_bounds_check is None else (
@@ -2510,6 +2557,7 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
             "cc_families": dict(sorted(cc_families.items())),
               "immediate_ranges": dict(sorted(immediate_ranges.items())),
               "compute_formulas": dict(sorted(compute_formulas.items())),
+              "compare_swap_effects": dict(sorted(compare_swap_effects.items())),
               "bounds_checks": dict(sorted(bounds_checks.items())),
               "sp_effects": dict(sorted(sp_effects.items())),
               "sp_effects_complete": tuple(sorted(sp_effects_complete)),
@@ -2609,6 +2657,7 @@ def _build_os_runtime() -> OsRuntimePayload:
             "resident_autoinit_word_stream_formats": canonical["_meta"]["resident_autoinit_word_stream_formats"],
             "resident_autoinit_supports_short_vectors": canonical["_meta"]["resident_autoinit_supports_short_vectors"],
             "resident_vector_prefixes": canonical["_meta"]["resident_vector_prefixes"],
+            "resident_entry_register_seeds": canonical["_meta"]["resident_entry_register_seeds"],
             "named_base_structs": canonical["_meta"]["named_base_structs"],
             "typed_data_stream_formats": cast(
                 dict[str, object],
@@ -2934,6 +2983,7 @@ def _build_m68k_executor_runtime(runtime_payload: RuntimeM68kPayload) -> M68kExe
         "DEST_REG_FIELD": tables["dest_reg_field"],
         "OPERATION_TYPES": tables["operation_types"],
         "OPERATION_CLASSES": tables["operation_classes"],
+        "COMPARE_SWAP_EFFECTS": tables["compare_swap_effects"],
         "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
         "BOUNDS_CHECKS": tables["bounds_checks"],
         "BIT_MODULI": tables["bit_moduli"],
@@ -2973,6 +3023,9 @@ def _build_hunk_runtime() -> HunkRuntimePayload:
             for name, entry in canonical["relocation_semantics"].items()
         },
         "HUNK_CONTENT_FORMATS": canonical["hunk_content_formats"],
+        "HUNKEXE_SUPPORTED_RELOCATION_TYPES": tuple(
+            canonical["hunkexe_supported_relocation_types"]
+        ),
     }
 
 

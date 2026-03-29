@@ -3527,6 +3527,66 @@ def _extract_compute_formula(inst: Any) -> Any:
                 inst["compute_formula"]["op"] = "subtract_decimal"
 
 
+def _extract_compare_swap_effects(inst: Any) -> None:
+    """Extract structured compare-swap effects from PDF description text.
+
+    The CAS/CAS2 pages describe two conditional write behaviors:
+    - CAS: compare memory against Dc, write Du to memory on success, else write
+      memory back to Dc.
+    - CAS2: compare two memory operands against Dc1/Dc2, write Du1/Du2 to
+      memory on success, else write memory operands back to Dc1/Dc2.
+
+    This structure is carried in the KB so executor semantics are derived from
+    the PDF-derived instruction model rather than hardcoded by mnemonic.
+    """
+    if inst.get("operation_type") != "compare_swap":
+        return
+
+    description = str(inst.get("description", ""))
+    forms = cast(list[JsonDict], inst.get("forms", []))
+    if not description or not forms:
+        return
+
+    effects: list[JsonDict] = []
+    has_single_desc = bool(re.search(
+        r"writes the update operand \(Du\) to the effective address operand.*?"
+        r"writes the effective address operand to the compare operand \(Dc\)",
+        description,
+        re.IGNORECASE,
+    ))
+    has_double_desc = bool(re.search(
+        r"writes the update operands \(Du1 and Du2\) to the memory operands \(Rn1 and Rn2\).*?"
+        r"writes the memory operands \(Rn1 and Rn2\) to the compare oper-\s*ands \(Dc1 and Dc2\)",
+        description,
+        re.IGNORECASE,
+    ))
+
+    for form in forms:
+        operand_types = tuple(
+            str(op["type"])
+            for op in cast(list[JsonDict], form.get("operands", []))
+        )
+        if operand_types == ("dn", "dn", "ea"):
+            assert has_single_desc, "CAS description missing single-operand compare-swap semantics"
+            effects.append({
+                "operand_types": list(operand_types),
+                "compare_pairs": [["destination", "compare"]],
+                "success_writes": [["destination", "update"]],
+                "failure_writes": [["compare", "destination"]],
+            })
+        elif operand_types == ("dn_pair", "dn_pair", "unknown"):
+            assert has_double_desc, "CAS2 description missing dual-operand compare-swap semantics"
+            effects.append({
+                "operand_types": list(operand_types),
+                "compare_pairs": [["destination1", "compare1"], ["destination2", "compare2"]],
+                "success_writes": [["destination1", "update1"], ["destination2", "update2"]],
+                "failure_writes": [["compare1", "destination1"], ["compare2", "destination2"]],
+            })
+
+    if effects:
+        inst["compare_swap_effects"] = effects
+
+
 def _extract_bit_modulus(inst: Any) -> Any:
     """Extract bit number modulus from PDF description text for bit test instructions.
 
@@ -4181,6 +4241,8 @@ def apply_operation_types(kb_data: list[JsonDict]) -> tuple[int, Any]:
             _extract_compute_formula(inst)
             if "compute_formula" in inst:
                 formula_count += 1
+            if op_type == "compare_swap":
+                _extract_compare_swap_effects(inst)
             # Extract shift fill behavior from Description (Track A)
             if op_type in ("shift", "rotate", "rotate_extend"):
                 _extract_shift_fill(inst)

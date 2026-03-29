@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
+from disasm.os_compat import CompatibilityReport
 from disasm.target_metadata import (
     EntryRegisterSeedMetadata,
     ResidentAutoinitMetadata,
@@ -15,6 +17,7 @@ from disasm.target_metadata import (
     load_target_metadata,
     write_target_metadata,
 )
+from disasm.types import BlockRowContext, ListingRow, SemanticOperand
 from m68k.hunk_parser import Hunk, HunkType, MemType
 from scripts.benchmark_target import (
     AnalysisBenchmark,
@@ -29,7 +32,9 @@ from scripts.benchmark_target import (
     TargetBenchmark,
     TimingBenchmark,
     _analysis_cache_paths,
+    _benchmark_binary_target,
     _benchmark_record,
+    _disasm_benchmark,
     _disk_project_benchmark,
     main,
 )
@@ -108,6 +113,7 @@ def test_benchmark_record_uses_target_command_and_sizes(
     assert record.entities.entity_count == 7
     assert record.entities.named_entity_count == 4
     assert record.disasm is None
+    assert record.compatibility_floor is None
     assert record.error is None
 
 
@@ -138,6 +144,54 @@ def test_benchmark_record_sums_analysis_cache_sizes(
     )
 
     assert record.analysis_bytes == 25
+
+
+def test_benchmark_binary_target_writes_compatibility_export(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    entities_path = target_dir / "entities.jsonl"
+    disasm_path = target_dir / "demo.s"
+
+    monkeypatch.setattr(
+        "scripts.benchmark_target.resolve_project_paths",
+        lambda target, project_root, require_entities=False: SimpleNamespace(
+            target_dir=target_dir,
+            binary_source=SimpleNamespace(display_path="bin/demo"),
+            entities_path=entities_path,
+            output_path=disasm_path,
+        ),
+    )
+    monkeypatch.setattr("scripts.benchmark_target._analysis_cache_paths", lambda target_dir, binary_source: [])
+    monkeypatch.setattr(
+        "scripts.benchmark_target.build_entities_from_source",
+        lambda binary_source, entities_path, phase_timer=None: Path(entities_path).write_text("", encoding="utf-8"),
+    )
+    monkeypatch.setattr(
+        "scripts.benchmark_target.build_disassembly_session",
+        lambda *args, **kwargs: SimpleNamespace(hunk_sessions=()),
+    )
+    monkeypatch.setattr(
+        "scripts.benchmark_target.emit_session_rows",
+        lambda session: [ListingRow(row_id="row", kind="comment", text="; demo\n")],
+    )
+    monkeypatch.setattr(
+        "scripts.benchmark_target.build_emit_compatibility_report",
+        lambda session, *, rows: CompatibilityReport(floor="1.3", dependencies=()),
+    )
+    monkeypatch.setattr("scripts.benchmark_target.render_rows", lambda rows: "; demo\n")
+    monkeypatch.setattr("scripts.benchmark_target._disasm_benchmark", lambda session, rows: None)
+
+    record = _benchmark_binary_target("demo", write_output=True)
+
+    assert record.status == "ok"
+    assert record.compatibility_floor == "1.3"
+    assert json.loads((target_dir / "compatibility.json").read_text(encoding="ascii")) == {
+        "floor": "1.3",
+        "dependencies": [],
+    }
 
 
 def test_precommit_benchmark_targets_include_file_and_disk_sources(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -306,8 +360,13 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
                     immediate_constant_count=5,
                     struct_field_count=6,
                     app_struct_field_count=7,
+                    raw_absolute_branch_target_count=0,
+                    raw_absolute_call_target_count=0,
+                    raw_absolute_known_code_branch_target_count=0,
+                    raw_absolute_known_code_call_target_count=0,
                 ),
             ),
+            compatibility_floor="1.3" if target.endswith("bootblock") else "2.0",
             error=None,
             targets=None,
         )
@@ -359,8 +418,63 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
             immediate_constant_count=15,
             struct_field_count=18,
             app_struct_field_count=21,
+            raw_absolute_branch_target_count=0,
+            raw_absolute_call_target_count=0,
+            raw_absolute_known_code_branch_target_count=0,
+            raw_absolute_known_code_call_target_count=0,
         ),
     )
+    assert record.compatibility_floor == "2.0"
+
+
+def test_disasm_benchmark_counts_raw_absolute_control_flow_operands() -> None:
+    session = SimpleNamespace(
+        hunk_sessions=[
+            SimpleNamespace(
+                hunk_index=0,
+                lvo_equs={},
+                arg_substitutions={},
+                blocks={0x40: object()},
+                hint_blocks={0x4480: object()},
+            )
+        ]
+    )
+    rows = [
+        ListingRow(
+            row_id="i1",
+            kind="instruction",
+            text="    bsr.w $4480\n",
+            operand_parts=(
+                SemanticOperand(kind="call_target", text="$4480", segment_addr=0x4480),
+            ),
+            source_context=BlockRowContext(kind="hint", hunk_index=0),
+        ),
+        ListingRow(
+            row_id="i2",
+            kind="instruction",
+            text="    bcs.s $43f0\n",
+            operand_parts=(
+                SemanticOperand(kind="branch_target", text="$43f0", segment_addr=0x43F0),
+            ),
+            source_context=BlockRowContext(kind="hint", hunk_index=0),
+        ),
+        ListingRow(
+            row_id="i3",
+            kind="instruction",
+            text="    bra.s loc_0040\n",
+            operand_parts=(
+                SemanticOperand(kind="branch_target", text="loc_0040"),
+            ),
+            source_context=BlockRowContext(kind="hint", hunk_index=0),
+        ),
+    ]
+
+    benchmark = _disasm_benchmark(session, rows)
+
+    assert benchmark.symbols.raw_absolute_call_target_count == 1
+    assert benchmark.symbols.raw_absolute_branch_target_count == 1
+    assert benchmark.symbols.raw_absolute_known_code_call_target_count == 1
+    assert benchmark.symbols.raw_absolute_known_code_branch_target_count == 0
 
 
 def test_analysis_cache_paths_for_resident_hunk_target_use_zero_code_start(

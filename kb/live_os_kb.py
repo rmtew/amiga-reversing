@@ -206,6 +206,13 @@ def build_runtime_os_kb_from_payload(payload: OsReferencePayload) -> object:
                 key: tuple(values)
                 for key, values in meta["resident_vector_prefixes"].items()
             },
+            resident_entry_register_seeds={
+                target_type: {
+                    role: tuple(dict(spec) for spec in specs)
+                    for role, specs in role_map.items()
+                }
+                for target_type, role_map in meta["resident_entry_register_seeds"].items()
+            },
             named_base_structs=dict(meta["named_base_structs"]),
             typed_data_stream_formats=cast(
                 dict[str, OsTypedDataStreamFormat],

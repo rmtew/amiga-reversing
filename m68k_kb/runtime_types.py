@@ -24,6 +24,12 @@ BitModulus: TypeAlias = tuple[int, bool]
 EaModeTable: TypeAlias = tuple[str, dict[int, tuple[str, ...]]]
 OperandModeTable: TypeAlias = tuple[str, dict[int, tuple[str, ...]]]
 ComputeFormula: TypeAlias = tuple[str, tuple[str | int, ...], tuple[int, int] | None, tuple[int, int] | None, tuple[tuple[str, int], ...], str | None]
+CompareSwapVariant: TypeAlias = tuple[
+    tuple[str, ...],
+    tuple[tuple[str, str], ...],
+    tuple[tuple[str, str], ...],
+    tuple[tuple[str, str], ...],
+]
 SpEffect: TypeAlias = tuple[str, int | None, str | None]
 BoundsCheck: TypeAlias = tuple[str, int, int, str | None, bool, bool] | None
 MoveFields: TypeAlias = tuple[FieldSpec, FieldSpec, FieldSpec, FieldSpec]

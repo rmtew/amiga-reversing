@@ -42,11 +42,14 @@ class Operand:
 
 @dataclass
 class DecodedOps:
+    operand_types: tuple[str, ...] = ()
     ea_op: Operand | None = None
     dst_op: Operand | None = None
     reg_num: int | None = None
     ea_is_source: bool | None = None
     imm_val: int | None = None
+    compare_reg: int | None = None
+    update_reg: int | None = None
     opcode: int = 0
 
 
@@ -204,11 +207,14 @@ def decode_instruction_ops(
             return decoded_ops
         decoded = decoded_obj.decoded
         decoded_ops.opcode = int(struct.unpack_from(">H", inst.raw, 0)[0]) if len(inst.raw) >= runtime_m68k_analysis.OPWORD_BYTES else 0
+        decoded_ops.operand_types = decoded.operand_types
         decoded_ops.ea_op = decoded.ea_op
         decoded_ops.dst_op = decoded.dst_op
         decoded_ops.reg_num = decoded.reg_num
         decoded_ops.ea_is_source = decoded.ea_is_source
         decoded_ops.imm_val = decoded.imm_val
+        decoded_ops.compare_reg = decoded.compare_reg
+        decoded_ops.update_reg = decoded.update_reg
         return decoded_ops
 
     if len(inst.raw) < runtime_m68k_analysis.OPWORD_BYTES:
@@ -229,11 +235,14 @@ def decode_instruction_ops(
     decoded = decode_instruction_operands(
         inst.raw, mnemonic, runtime_m68k_analysis.OPWORD_BYTES, runtime_m68k_analysis.SIZE_BYTE_COUNT, size, inst.offset
     )
+    decoded_ops.operand_types = decoded.operand_types
     decoded_ops.ea_op = decoded.ea_op
     decoded_ops.dst_op = decoded.dst_op
     decoded_ops.reg_num = decoded.reg_num
     decoded_ops.ea_is_source = decoded.ea_is_source
     decoded_ops.imm_val = decoded.imm_val
+    decoded_ops.compare_reg = decoded.compare_reg
+    decoded_ops.update_reg = decoded.update_reg
     _DECODED_OPS_CACHE[cache_key] = decoded_ops
     return decoded_ops
 

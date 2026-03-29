@@ -1350,6 +1350,26 @@ def test_build_os_compatibility_kb_records_resident_autoinit_contract(tmp_path: 
             "LIB_EXTFUNC",
         ],
     }
+    resident_entry_register_seeds = cast(
+        dict[str, dict[str, list[dict[str, object]]]],
+        payload["resident_entry_register_seeds"],
+    )
+    assert resident_entry_register_seeds["library"]["init"] == [
+        {
+            "register": "D0",
+            "kind": "library_base",
+            "named_base_source": "current_target",
+        },
+        {
+            "register": "A6",
+            "kind": "library_base",
+            "named_base_source": "fixed",
+            "named_base_name": "exec.library",
+        },
+    ]
+    assert resident_entry_register_seeds["device"]["DEV_BEGINIO"] == [
+        {"register": "A1", "kind": "struct_ptr", "struct_name": "IOStdReq"},
+    ]
 
 def test_parse_asm_include_extracts_typed_data_stream_format_from_initializers(
     tmp_path: Path,

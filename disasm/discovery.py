@@ -138,6 +138,16 @@ def add_hint_labels(labels: dict[int, str], hint_blocks: dict[int, DisasmBlockLi
                     labels[succ] = f"hint_{succ:04x}"
                 elif succ in code_addrs:
                     labels[succ] = f"loc_{succ:04x}"
+        if not blk.instructions:
+            continue
+        for node in blk.instructions[-1].operand_nodes or ():
+            target = node.target
+            if target is None or target in labels:
+                continue
+            if target in hint_blocks:
+                labels[target] = f"hint_{target:04x}"
+            elif target in code_addrs:
+                labels[target] = f"loc_{target:04x}"
 
 
 def build_reloc_map(hunks: list[Hunk], hunk_idx: int) -> dict[int, int]:
@@ -175,3 +185,29 @@ def build_reloc_map(hunks: list[Hunk], hunk_idx: int) -> dict[int, int]:
                     target = struct.unpack_from(fmt, hunk.data, offset)[0]
                     reloc_map[offset] = target
     return reloc_map
+
+
+def build_reloc_target_hunk_map(hunks: list[Hunk], hunk_idx: int) -> dict[int, int]:
+    """Build offset->target_hunk map from absolute reloc entries for a hunk."""
+    from m68k.hunk_parser import _HUNK_KB
+
+    reloc_sem = _HUNK_KB.RELOCATION_SEMANTICS
+    abs_types = set()
+    for name, sem in reloc_sem.items():
+        if sem[1] == _HUNK_KB.RelocMode.ABSOLUTE and name in HunkType.__members__:
+            abs_types.add(HunkType[name])
+
+    reloc_target_hunks: dict[int, int] = {}
+    for hunk in hunks:
+        if hunk.index != hunk_idx:
+            continue
+        for reloc in hunk.relocs:
+            try:
+                rtype = HunkType(reloc.reloc_type)
+            except ValueError:
+                continue
+            if rtype not in abs_types:
+                continue
+            for offset in reloc.offsets:
+                reloc_target_hunks[offset] = reloc.target_hunk
+    return reloc_target_hunks

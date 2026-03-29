@@ -242,6 +242,7 @@ def load_hunk_runtime_kb() -> ModuleType:
         "META", "HUNK_TYPES", "EXT_TYPES", "MEMORY_FLAGS", "MEMORY_TYPE_CODES",
         "EXT_TYPE_CATEGORIES", "COMPATIBILITY_NOTES", "RELOC_FORMATS",
         "RELOCATION_SEMANTICS", "HUNK_CONTENT_FORMATS",
+        "HUNKEXE_SUPPORTED_RELOCATION_TYPES",
     ):
         _require_attr(module, name)
     return module

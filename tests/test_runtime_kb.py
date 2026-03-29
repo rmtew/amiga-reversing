@@ -669,6 +669,25 @@ def _runtime_module_attrs() -> dict[str, object]:
     }
 
 
+def test_runtime_builder_emits_compare_swap_effects() -> None:
+    runtime = load_m68k_executor_runtime_module()
+
+    assert runtime.COMPARE_SWAP_EFFECTS["CAS CAS2"] == (
+        (
+            ("dn", "dn", "ea"),
+            (("destination", "compare"),),
+            (("destination", "update"),),
+            (("compare", "destination"),),
+        ),
+        (
+            ("dn_pair", "dn_pair", "unknown"),
+            (("destination1", "compare1"), ("destination2", "compare2")),
+            (("destination1", "update1"), ("destination2", "update2")),
+            (("compare1", "destination1"), ("compare2", "destination2")),
+        ),
+    )
+
+
 def _fake_module(**attrs: object) -> type[object]:
     return type("FakeModule", (), dict(attrs))
 
@@ -1060,6 +1079,7 @@ def test_runtime_loader_requires_hunk_types(monkeypatch: MonkeyPatch) -> None:
         "RELOC_FORMATS": {},
         "RELOCATION_SEMANTICS": {},
         "HUNK_CONTENT_FORMATS": {},
+        "HUNKEXE_SUPPORTED_RELOCATION_TYPES": (),
     }
     fake_module = _fake_module(**attrs)
 
@@ -1116,7 +1136,22 @@ def test_runtime_os_meta_is_typed() -> None:
     assert runtime.META.resident_autoinit_word_stream_formats == {
         "structure_init": "exec.InitStruct"
     }
+    assert runtime.META.resident_entry_register_seeds["library"]["init"] == (
+        {
+            "register": "D0",
+            "kind": "library_base",
+            "named_base_source": "current_target",
+        },
+        {
+            "register": "A6",
+            "kind": "library_base",
+            "named_base_source": "fixed",
+            "named_base_name": "exec.library",
+        },
+    )
     assert runtime.META.include_min_versions["exec/initializers.i"] == "1.3"
+    assert "hardware/custom.i" in runtime.META.include_min_versions
+    assert "hardware/cia.i" in runtime.META.include_min_versions
     assert initstruct["include_path"] == "exec/initializers.i"
     assert initstruct["available_since"] == "1.3"
     assert initstruct["constructors"][0]["name"] == "INITBYTE"
@@ -1255,6 +1290,13 @@ def test_runtime_hunk_and_naming_match_canonical_payloads() -> None:
         for name, entry in hunk_canonical["relocation_semantics"].items()
     } == hunk_runtime.RELOCATION_SEMANTICS
     assert hunk_canonical["hunk_content_formats"] == hunk_runtime.HUNK_CONTENT_FORMATS
+    assert hunk_runtime.HUNK_CONTENT_FORMATS["HUNK_DEBUG"]["sub_formats"]["LINE"]["fields"][0] == {
+        "name": "base_offset",
+        "type": "ULONG",
+    }
+    assert tuple(hunk_canonical["hunkexe_supported_relocation_types"]) == (
+        hunk_runtime.HUNKEXE_SUPPORTED_RELOCATION_TYPES
+    )
     assert not hasattr(hunk_runtime, "RUNTIME")
 
     naming_runtime = load_naming_runtime_kb()

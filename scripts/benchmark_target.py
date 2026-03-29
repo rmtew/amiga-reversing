@@ -23,6 +23,7 @@ from disasm.analysis_layout import (
 from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
 from disasm.emitter import emit_session_rows
 from disasm.entry_seeds import build_entry_seed_config
+from disasm.os_compat import build_emit_compatibility_report, max_compatibility_version
 from disasm.os_include_kb import load_os_include_kb
 from disasm.phase_timing import PhaseTimer
 from disasm.project_ids import target_output_stem
@@ -124,6 +125,10 @@ class SymbolUsageBenchmark:
     immediate_constant_count: int
     struct_field_count: int
     app_struct_field_count: int
+    raw_absolute_branch_target_count: int
+    raw_absolute_call_target_count: int
+    raw_absolute_known_code_branch_target_count: int
+    raw_absolute_known_code_call_target_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,6 +152,7 @@ class TargetBenchmark:
     analysis: AnalysisBenchmark | None
     entities: EntityBenchmark | None
     disasm: DisasmBenchmark | None
+    compatibility_floor: str | None = None
     error: str | None = None
     targets: dict[str, TargetBenchmark] | None = None
 
@@ -276,7 +282,18 @@ def _disasm_benchmark(session: Any, rows: Sequence[Any]) -> DisasmBenchmark:
                 raise ValueError(f"Unknown OS include owner kind for benchmark LVOs: {library_name}: {owner.kind}")
     struct_field_count = 0
     app_struct_field_count = 0
+    raw_absolute_branch_target_count = 0
+    raw_absolute_call_target_count = 0
+    raw_absolute_known_code_branch_target_count = 0
+    raw_absolute_known_code_call_target_count = 0
+    code_targets_by_hunk = {
+        hunk_session.hunk_index: set(hunk_session.blocks) | set(hunk_session.hint_blocks)
+        for hunk_session in session.hunk_sessions
+    }
     for row in rows:
+        hunk_index = None
+        if row.source_context is not None and hasattr(row.source_context, "hunk_index"):
+            hunk_index = row.source_context.hunk_index
         for operand in row.operand_parts:
             metadata = operand.metadata
             if isinstance(metadata, StructFieldOperandMetadata):
@@ -285,6 +302,14 @@ def _disasm_benchmark(session: Any, rows: Sequence[Any]) -> DisasmBenchmark:
                 if metadata.field_symbol is None:
                     continue
                 app_struct_field_count += 1
+            if operand.kind == "branch_target" and operand.text.startswith("$"):
+                raw_absolute_branch_target_count += 1
+                if hunk_index is not None and operand.segment_addr in code_targets_by_hunk.get(hunk_index, ()):
+                    raw_absolute_known_code_branch_target_count += 1
+            elif operand.kind == "call_target" and operand.text.startswith("$"):
+                raw_absolute_call_target_count += 1
+                if hunk_index is not None and operand.segment_addr in code_targets_by_hunk.get(hunk_index, ()):
+                    raw_absolute_known_code_call_target_count += 1
     immediate_constant_count = sum(len(hunk_session.arg_substitutions) for hunk_session in session.hunk_sessions)
     return DisasmBenchmark(
         lvo=LvoBenchmark(
@@ -296,6 +321,10 @@ def _disasm_benchmark(session: Any, rows: Sequence[Any]) -> DisasmBenchmark:
             immediate_constant_count=immediate_constant_count,
             struct_field_count=struct_field_count,
             app_struct_field_count=app_struct_field_count,
+            raw_absolute_branch_target_count=raw_absolute_branch_target_count,
+            raw_absolute_call_target_count=raw_absolute_call_target_count,
+            raw_absolute_known_code_branch_target_count=raw_absolute_known_code_branch_target_count,
+            raw_absolute_known_code_call_target_count=raw_absolute_known_code_call_target_count,
         ),
     )
 
@@ -370,6 +399,7 @@ def _benchmark_record(
     disasm_path: Path,
     error: str | None = None,
     *,
+    compatibility_floor: str | None = None,
     timing: TimingBenchmark | None = None,
     disasm: DisasmBenchmark | None = None,
     targets: dict[str, TargetBenchmark] | None = None,
@@ -389,6 +419,7 @@ def _benchmark_record(
         analysis=_analysis_benchmark(analysis_paths),
         entities=_entities_benchmark(entities_path),
         disasm=disasm,
+        compatibility_floor=compatibility_floor,
         error=error,
         targets=targets,
     )
@@ -398,17 +429,23 @@ def _default_disasm_path(target_dir: Path, target: str) -> Path:
     return target_dir / f"{target_output_stem(target_dir.name)}.s"
 
 
+def _compatibility_export_path(target_dir: Path) -> Path:
+    return target_dir / "compatibility.json"
+
+
 def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchmark:
     paths = resolve_project_paths(target, project_root=ROOT, require_entities=False)
     target_dir = paths.target_dir
     analysis_paths = _analysis_cache_paths(target_dir, paths.binary_source)
     entities_path = paths.entities_path
     disasm_path = paths.output_path or _default_disasm_path(target_dir, target)
+    compatibility_path = _compatibility_export_path(target_dir)
 
     for analysis_path in analysis_paths:
         analysis_path.unlink(missing_ok=True)
     entities_path.unlink(missing_ok=True)
     disasm_path.unlink(missing_ok=True)
+    compatibility_path.unlink(missing_ok=True)
 
     start = time.perf_counter()
     phase_timer = PhaseTimer()
@@ -425,6 +462,11 @@ def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchm
         emit_elapsed = time.perf_counter() - emit_started
         render_started = time.perf_counter()
         disasm_path.write_text(render_rows(rows), encoding="utf-8")
+        compatibility_report = build_emit_compatibility_report(session, rows=rows)
+        compatibility_path.write_text(
+            json.dumps(asdict(compatibility_report), indent=2) + "\n",
+            encoding="ascii",
+        )
         render_elapsed = time.perf_counter() - render_started
         elapsed = time.perf_counter() - start
         missing_analysis_paths = [path for path in analysis_paths if not path.exists()]
@@ -436,6 +478,8 @@ def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchm
             raise FileNotFoundError(f"missing benchmark output {entities_path}")
         if not disasm_path.exists():
             raise FileNotFoundError(f"missing benchmark output {disasm_path}")
+        if not compatibility_path.exists():
+            raise FileNotFoundError(f"missing benchmark output {compatibility_path}")
         record = _benchmark_record(
             target,
             paths.binary_source.display_path,
@@ -444,6 +488,7 @@ def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchm
             analysis_paths,
             entities_path,
             disasm_path,
+            compatibility_floor=compatibility_report.floor,
             timing=_timing_benchmark(phase_timer, emit_elapsed, render_elapsed),
             disasm=_disasm_benchmark(session, rows),
         )
@@ -526,8 +571,17 @@ def _disk_project_benchmark(target: str) -> TargetBenchmark:
                 immediate_constant_count=sum((record.disasm.symbols.immediate_constant_count if record.disasm else 0) for record in child_records.values()),
                 struct_field_count=sum((record.disasm.symbols.struct_field_count if record.disasm else 0) for record in child_records.values()),
                 app_struct_field_count=sum((record.disasm.symbols.app_struct_field_count if record.disasm else 0) for record in child_records.values()),
+                raw_absolute_branch_target_count=sum((record.disasm.symbols.raw_absolute_branch_target_count if record.disasm else 0) for record in child_records.values()),
+                raw_absolute_call_target_count=sum((record.disasm.symbols.raw_absolute_call_target_count if record.disasm else 0) for record in child_records.values()),
+                raw_absolute_known_code_branch_target_count=sum((record.disasm.symbols.raw_absolute_known_code_branch_target_count if record.disasm else 0) for record in child_records.values()),
+                raw_absolute_known_code_call_target_count=sum((record.disasm.symbols.raw_absolute_known_code_call_target_count if record.disasm else 0) for record in child_records.values()),
             ),
         ),
+        compatibility_floor=max_compatibility_version(
+            record.compatibility_floor
+            for record in child_records.values()
+            if record.compatibility_floor is not None
+        ) if any(record.compatibility_floor is not None for record in child_records.values()) else None,
         error=None if not failures else "; ".join(
             f"{record.target}: {record.error or record.status}" for record in failures
         ),

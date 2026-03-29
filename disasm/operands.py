@@ -169,6 +169,26 @@ def _reloc_target(inst: Instruction, hunk_session: HunkDisassemblySession, value
     return None
 
 
+def _reloc_label(inst: Instruction,
+                 hunk_session: HunkDisassemblySession,
+                 value: int) -> str | None:
+    for ext_off in range(inst.offset + runtime_m68k_decode.OPWORD_BYTES,
+                         inst.offset + inst.size):
+        target = hunk_session.reloc_map.get(ext_off)
+        if target != value:
+            continue
+        cross_hunk = hunk_session.reloc_labels.get(ext_off)
+        if cross_hunk is not None:
+            return cross_hunk
+        target_hunk = hunk_session.reloc_target_hunks.get(ext_off, hunk_session.hunk_index)
+        if target_hunk != hunk_session.hunk_index:
+            continue
+        local = hunk_session.labels.get(target)
+        if local is not None:
+            return local
+    return None
+
+
 def _absolute_label_or_text(segment_addr: int,
                             hunk_session: HunkDisassemblySession,
                             token: str,
@@ -178,6 +198,9 @@ def _absolute_label_or_text(segment_addr: int,
         text = render_hardware_absolute(segment_addr)
         assert isinstance(text, str)
         return text
+    reloc_label = _reloc_label(inst, hunk_session, segment_addr)
+    if reloc_label is not None:
+        return reloc_label
     label = hunk_session.absolute_labels.get(segment_addr)
     if label is not None and segment_addr in hunk_session.reserved_absolute_addrs:
         assert isinstance(label, str)
@@ -348,7 +371,7 @@ def _app_struct_field_metadata(base_register: str, displacement: int,
     base_info = hunk_session.platform.app_base
     if base_info is None:
         return None
-    if base_register != f"a{base_info.reg_num}":
+    if not _same_register_name(base_register, f"a{base_info.reg_num}"):
         return None
     for region_offset, region in hunk_session.app_struct_regions.items():
         region_end = region_offset + region.size
@@ -387,7 +410,7 @@ def _app_offset_symbol(base_register: str, displacement: int,
     base_info = hunk_session.platform.app_base
     if not (hunk_session.app_offsets and base_info):
         return None
-    if base_register != f"a{base_info.reg_num}":
+    if not _same_register_name(base_register, f"a{base_info.reg_num}"):
         return None
     value = hunk_session.app_offsets.get(displacement)
     assert value is None or isinstance(value, str)
@@ -892,7 +915,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             and flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL)):
         segment_addr = node.target
         assert segment_addr is not None, f"Typed branch target missing for {_instruction_ref(inst)}"
-        label = labels.get(segment_addr)
+        label = _reloc_label(inst, hunk_session, segment_addr) or labels.get(segment_addr)
         text = label if label is not None else node.text
         return SemanticOperand(
             kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
@@ -905,7 +928,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
     if isinstance(spec, LabelSpec) and node.kind == "branch_target":
         segment_addr = node.target
         assert segment_addr is not None, f"Typed branch target missing for {_instruction_ref(inst)}"
-        label = labels.get(segment_addr)
+        label = _reloc_label(inst, hunk_session, segment_addr) or labels.get(segment_addr)
         text = label if label is not None else node.text
         return SemanticOperand(
             kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
@@ -980,6 +1003,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             text = node.text.lower()
         elif op_mode == "imm" and node.kind == "immediate":
             operand_value = op_value
+            kind = "immediate"
             same_encoded_value = False
             if node.value is not None and operand_value is not None:
                 for bits in (8, 16, 32):
@@ -993,19 +1017,21 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
                     f"decoded {operand_value}, node {node.value}")
             target = _reloc_target(
                 inst, hunk_session, operand_value) if operand_value is not None else None
-            label = labels.get(target) if target is not None else None
+            label = (
+                _reloc_label(inst, hunk_session, operand_value)
+                if target is not None and operand_value is not None
+                else None
+            )
             if label is not None:
                 kind = "immediate_symbol"
                 segment_addr = target
                 semantic_metadata = SymbolOperandMetadata(symbol=label)
                 text = f"#{label}"
-            else:
-                kind = "immediate"
         elif op_mode == "ind" and node.kind == "indirect":
             base_register = _address_base_name(_require_operand_reg(decoded_operand, inst))
             assert isinstance(node.metadata, DecodedBaseRegisterNodeMetadata), (
                 f"Typed indirect metadata missing for {_instruction_ref(inst)}")
-            if node.metadata.base_register != base_register:
+            if not _same_register_name(base_register, node.metadata.base_register):
                 raise ValueError(
                     f"Typed indirect mismatch for {_instruction_ref(inst)}: "
                     f"decoded {base_register}, node {node.metadata.base_register}")
@@ -1018,7 +1044,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             base_register = _address_base_name(_require_operand_reg(decoded_operand, inst))
             assert isinstance(node.metadata, DecodedBaseRegisterNodeMetadata), (
                 f"Typed postincrement metadata missing for {_instruction_ref(inst)}")
-            if node.metadata.base_register != base_register:
+            if not _same_register_name(base_register, node.metadata.base_register):
                 raise ValueError(
                     f"Typed postincrement mismatch for {_instruction_ref(inst)}: "
                     f"decoded {base_register}, node {node.metadata.base_register}")
@@ -1027,7 +1053,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             base_register = _address_base_name(_require_operand_reg(decoded_operand, inst))
             assert isinstance(node.metadata, DecodedBaseRegisterNodeMetadata), (
                 f"Typed predecrement metadata missing for {_instruction_ref(inst)}")
-            if node.metadata.base_register != base_register:
+            if not _same_register_name(base_register, node.metadata.base_register):
                 raise ValueError(
                     f"Typed predecrement mismatch for {_instruction_ref(inst)}: "
                     f"decoded {base_register}, node {node.metadata.base_register}")
@@ -1037,7 +1063,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             displacement = _require_operand_value(decoded_operand, inst)
             assert isinstance(node.metadata, DecodedBaseDisplacementNodeMetadata), (
                 f"Typed base displacement metadata missing for {_instruction_ref(inst)}")
-            if node.metadata.base_register != base_register:
+            if not _same_register_name(base_register, node.metadata.base_register):
                 raise ValueError(
                     f"Typed base displacement mismatch for {_instruction_ref(inst)}: "
                     f"decoded {base_register}, node {node.metadata.base_register}")
@@ -1113,7 +1139,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             base_register = _address_base_name(_require_operand_reg(decoded_operand, inst))
             displacement = _require_operand_value(decoded_operand, inst)
             if isinstance(node.metadata, DecodedIndexedNodeMetadata):
-                if node.metadata.base_register != base_register:
+                if not _same_register_name(base_register, node.metadata.base_register):
                     raise ValueError(
                         f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
                         f"decoded {base_register}, node {node.metadata.base_register}")
@@ -1123,7 +1149,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
                         f"decoded {displacement}, node {node.metadata.displacement}")
                 semantic_metadata = _index_metadata(decoded_operand, inst)
                 indexed_metadata = semantic_metadata
-                if node.metadata.index_register != indexed_metadata.index_register:
+                if not _same_register_name(indexed_metadata.index_register, node.metadata.index_register):
                     raise ValueError(
                         f"Typed indexed operand mismatch for {_instruction_ref(inst)}: "
                         f"decoded {indexed_metadata.index_register}, node {node.metadata.index_register}")
@@ -1243,7 +1269,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
                 f"Typed PC-indexed metadata missing for {_instruction_ref(inst)}")
             semantic_metadata = _index_metadata(decoded_operand, inst)
             indexed_metadata = semantic_metadata
-            if node.metadata.index_register != indexed_metadata.index_register:
+            if not _same_register_name(indexed_metadata.index_register, node.metadata.index_register):
                 raise ValueError(
                     f"Typed PC-indexed operand mismatch for {_instruction_ref(inst)}: "
                     f"decoded {indexed_metadata.index_register}, node {node.metadata.index_register}")
@@ -1360,7 +1386,7 @@ def _build_decoded_semantic_operand(inst: Instruction, token: str, spec: Operand
         if branch_target is None:
             raise ValueError(
                 f"Decoded label operand missing branch target for {_instruction_ref(inst)}")
-        label = labels.get(branch_target)
+        label = _reloc_label(inst, hunk_session, branch_target) or labels.get(branch_target)
         text = label if label is not None else token
         return SemanticOperand(
             kind="call_target" if flow_type == _FLOW_CALL else "branch_target",
@@ -1374,7 +1400,9 @@ def _build_decoded_semantic_operand(inst: Instruction, token: str, spec: Operand
         value = spec.value
         target = branch_target if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL) else _reloc_target(
             inst, hunk_session, value)
-        label = labels.get(target) if target is not None else None
+        label = _reloc_label(inst, hunk_session, target) if target is not None else None
+        if label is None and target is not None:
+            label = labels.get(target)
         if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_CALL) and label is not None:
             text = label
             kind = "call_target" if flow_type == _FLOW_CALL else "branch_target"
@@ -1537,7 +1565,7 @@ def _build_decoded_semantic_operand(inst: Instruction, token: str, spec: Operand
             and branch_target is not None):
         segment_addr = branch_target
         operand_value = branch_target if operand_value is None else operand_value
-        label = labels.get(branch_target)
+        label = _reloc_label(inst, hunk_session, branch_target) or labels.get(branch_target)
         if label is not None and op_mode not in ("pcdisp", "pcindex"):
             text = label
         kind = "call_target" if flow_type == _FLOW_CALL else "branch_target"

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import IntEnum, StrEnum
 from typing import TypeAlias
-from .runtime_types import AsmSizeEncoding, BitField, BitModulus, BranchExtensionDisplacement, BranchInlineDisplacement, CcLookupFamily, ComputeFormula, ConditionFamily, DirectionFormValue, DirectionVariant, DisasmSizeEncoding, EaModeTable, FieldMaps, FieldSpec, ImmediateRange, OperandModeTable, OpmodeEntry, PrimaryDataSize, RawFieldMaps, RmFieldInfo, ShiftFieldInfo, ShiftVariantBehavior, SpEffect
+from .runtime_types import AsmSizeEncoding, BitField, BitModulus, BranchExtensionDisplacement, BranchInlineDisplacement, CcLookupFamily, CompareSwapVariant, ComputeFormula, ConditionFamily, DirectionFormValue, DirectionVariant, DisasmSizeEncoding, EaModeTable, FieldMaps, FieldSpec, ImmediateRange, OperandModeTable, OpmodeEntry, PrimaryDataSize, RawFieldMaps, RmFieldInfo, ShiftFieldInfo, ShiftVariantBehavior, SpEffect
 
 class SizeCode(IntEnum):
     BYTE = 0
@@ -2130,6 +2130,7 @@ COMPUTE_FORMULAS = {'ABCD': (ComputeOp.ADD_DECIMAL, (FormulaTerm.SOURCE, Formula
  'TRAP': (ComputeOp.ASSIGN, (FormulaTerm.SOURCE,), None, None, (), None),
  'TST': (ComputeOp.TEST, (FormulaTerm.DESTINATION,), None, None, (), None),
  'UNPK': (ComputeOp.ADD, (FormulaTerm.SOURCE, FormulaTerm.DESTINATION), None, None, (), None)}
+COMPARE_SWAP_EFFECTS = {'CAS CAS2': ((('dn', 'dn', 'ea'), (('destination', 'compare'),), (('destination', 'update'),), (('compare', 'destination'),)), (('dn_pair', 'dn_pair', 'unknown'), (('destination1', 'compare1'), ('destination2', 'compare2')), (('destination1', 'update1'), ('destination2', 'update2')), (('compare1', 'destination1'), ('compare2', 'destination2'))))}
 SP_EFFECTS = {'BSR': ((SpEffectAction.DECREMENT, 4, None),),
  'ILLEGAL': ((SpEffectAction.DECREMENT, 2, None),),
  'JSR': ((SpEffectAction.DECREMENT, 4, None),),

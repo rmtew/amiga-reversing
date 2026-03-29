@@ -1638,12 +1638,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -1838,12 +1838,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -2047,12 +2047,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -2468,12 +2468,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -2989,12 +2989,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -7498,6 +7498,70 @@
         ]
       },
       "operation_type": "compare_swap",
+      "compare_swap_effects": [
+        {
+          "operand_types": [
+            "dn",
+            "dn",
+            "ea"
+          ],
+          "compare_pairs": [
+            [
+              "destination",
+              "compare"
+            ]
+          ],
+          "success_writes": [
+            [
+              "destination",
+              "update"
+            ]
+          ],
+          "failure_writes": [
+            [
+              "compare",
+              "destination"
+            ]
+          ]
+        },
+        {
+          "operand_types": [
+            "dn_pair",
+            "dn_pair",
+            "unknown"
+          ],
+          "compare_pairs": [
+            [
+              "destination1",
+              "compare1"
+            ],
+            [
+              "destination2",
+              "compare2"
+            ]
+          ],
+          "success_writes": [
+            [
+              "destination1",
+              "update1"
+            ],
+            [
+              "destination2",
+              "update2"
+            ]
+          ],
+          "failure_writes": [
+            [
+              "compare1",
+              "destination1"
+            ],
+            [
+              "compare2",
+              "destination2"
+            ]
+          ]
+        }
+      ],
       "size_encoding": {
         "field": "SIZE",
         "values": [
@@ -7506,12 +7570,12 @@
             "bits": 1
           },
           {
-            "size": "l",
-            "bits": 3
-          },
-          {
             "size": "w",
             "bits": 2
+          },
+          {
+            "size": "l",
+            "bits": 3
           }
         ]
       }
@@ -7697,12 +7761,12 @@
         "field": "SIZE",
         "values": [
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 3
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -7980,12 +8044,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -8172,12 +8236,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -8752,12 +8816,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -8937,12 +9001,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -9220,12 +9284,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -10558,12 +10622,12 @@
         "field": "SIZE",
         "values": [
           {
-            "size": "l",
-            "bits": 1
-          },
-          {
             "size": "w",
             "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 1
           }
         ]
       }
@@ -10975,12 +11039,12 @@
         "field": "SIZE",
         "values": [
           {
-            "size": "l",
-            "bits": 1
-          },
-          {
             "size": "w",
             "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 1
           }
         ]
       }
@@ -11353,12 +11417,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -13284,12 +13348,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -13470,12 +13534,12 @@
             "bits": 1
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 3
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -13649,12 +13713,12 @@
         "field": "SIZE",
         "values": [
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 3
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -14879,12 +14943,12 @@
         "field": "SIZE",
         "values": [
           {
-            "size": "l",
-            "bits": 1
-          },
-          {
             "size": "w",
             "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 1
           }
         ]
       },
@@ -15635,12 +15699,12 @@
         "field": "SIZE",
         "values": [
           {
-            "size": "l",
-            "bits": 1
-          },
-          {
             "size": "w",
             "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 1
           }
         ]
       }
@@ -16021,12 +16085,12 @@
         "field": "SIZE",
         "values": [
           {
-            "size": "l",
-            "bits": 1
-          },
-          {
             "size": "w",
             "bits": 0
+          },
+          {
+            "size": "l",
+            "bits": 1
           }
         ]
       }
@@ -16399,12 +16463,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -16594,12 +16658,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -16954,12 +17018,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -17375,12 +17439,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -18256,12 +18320,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -18592,12 +18656,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -20281,12 +20345,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -20486,12 +20550,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -20695,12 +20759,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -21809,12 +21873,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }
@@ -24436,12 +24500,12 @@
             "bits": 0
           },
           {
-            "size": "l",
-            "bits": 2
-          },
-          {
             "size": "w",
             "bits": 1
+          },
+          {
+            "size": "l",
+            "bits": 2
           }
         ]
       }

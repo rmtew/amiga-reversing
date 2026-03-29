@@ -23,7 +23,7 @@ from disasm.target_metadata import (
     TargetMetadata,
     write_target_metadata,
 )
-from m68k.hunk_parser import Hunk, HunkType, MemType
+from m68k.hunk_parser import Hunk, HunkType, MemType, Reloc
 from m68k.indirect_core import IndirectSite, IndirectSiteStatus
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
@@ -78,6 +78,40 @@ def test_structured_prefix_entities_only_emit_when_requested() -> None:
         "hunk": 0,
         "struct": "RT",
     }]
+
+
+def test_build_reloc_references_ignores_cross_hunk_targets() -> None:
+    module = _load_build_entities_module()
+    hunk = Hunk(
+        index=0,
+        hunk_type=int(HunkType.HUNK_CODE),
+        mem_type=int(MemType.ANY),
+        alloc_size=4,
+        data=(0x03FE).to_bytes(4, "big"),
+        relocs=[
+            Reloc(
+                reloc_type=HunkType.HUNK_RELOC32,
+                target_hunk=1,
+                offsets=(0,),
+            )
+        ],
+    )
+
+    refs = module.build_reloc_references([hunk], code_size=0x284, subroutines=[])
+
+    assert refs == []
+
+
+def test_filter_hunk_local_call_targets_excludes_cross_hunk_offsets() -> None:
+    module = _load_build_entities_module()
+
+    filtered = module._filter_hunk_local_call_targets(
+        {0x10, 0x03FE},
+        entry_addr=0,
+        code_size=0x284,
+    )
+
+    assert filtered == {0x10}
 
 
 def test_apply_seeded_entities_merges_name_and_inserts_data_range() -> None:

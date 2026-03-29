@@ -373,6 +373,15 @@ class OsTypedDataStreamFormat(TypedDict):
     generic_constructor: OsTypedDataStreamGenericConstructor
 
 
+class OsResidentEntryRegisterSeed(TypedDict, total=False):
+    register: str
+    kind: str
+    struct_name: str
+    named_base_source: str
+    named_base_name: str
+    context_name: str
+
+
 class OsMeta(TypedDict):
     calling_convention: OsCallingConvention
     exec_base_addr: OsExecBaseAddress
@@ -384,6 +393,7 @@ class OsMeta(TypedDict):
     resident_autoinit_word_stream_formats: dict[str, str]
     resident_autoinit_supports_short_vectors: bool
     resident_vector_prefixes: dict[str, list[str]]
+    resident_entry_register_seeds: dict[str, dict[str, list[OsResidentEntryRegisterSeed]]]
     named_base_structs: dict[str, str]
     value_domains: dict[str, OsValueDomain]
     api_input_value_bindings: list[OsApiInputValueBinding]
@@ -492,6 +502,7 @@ class HunkFormatPayload(TypedDict):
     reloc_formats: dict[str, RelocFormatDef]
     relocation_semantics: dict[str, HunkRelocationSemantic]
     hunk_content_formats: dict[str, HunkContentFormatDef]
+    hunkexe_supported_relocation_types: list[str]
 
 
 class HardwareRegister(TypedDict):

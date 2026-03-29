@@ -208,6 +208,7 @@ class CustomStructFieldMetadata:
     available_since: str = "1.0"
     struct: str | None = None
     pointer_struct: str | None = None
+    named_base: str | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> CustomStructFieldMetadata:
@@ -218,6 +219,7 @@ class CustomStructFieldMetadata:
         available_since = payload["available_since"]
         struct_name = payload["struct"]
         pointer_struct = payload["pointer_struct"]
+        named_base = payload.get("named_base")
         assert isinstance(name, str)
         assert isinstance(field_type, str)
         assert isinstance(offset, int)
@@ -225,6 +227,7 @@ class CustomStructFieldMetadata:
         assert isinstance(available_since, str)
         assert struct_name is None or isinstance(struct_name, str)
         assert pointer_struct is None or isinstance(pointer_struct, str)
+        assert named_base is None or isinstance(named_base, str)
         return cls(
             name=name,
             type=field_type,
@@ -233,6 +236,7 @@ class CustomStructFieldMetadata:
             available_since=available_since,
             struct=struct_name,
             pointer_struct=pointer_struct,
+            named_base=named_base,
         )
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -612,6 +616,29 @@ def _symbol_label(symbol: str) -> str:
     return token.strip("_").lower()
 
 
+def _fd_version_value(raw_version: str | None) -> int | None:
+    if raw_version is None:
+        return None
+    digits = "".join(ch for ch in raw_version if ch.isdigit())
+    return None if not digits else int(digits)
+
+
+def _library_private_label_stem(library_name: str) -> str:
+    stem = library_name
+    for suffix in (".library", ".device", ".resource"):
+        if stem.lower().endswith(suffix):
+            stem = stem[: -len(suffix)]
+            break
+    return _symbol_label(stem)
+
+
+def _private_vector_ordinal(function_name: str, *, stem: str) -> int | None:
+    match = re.fullmatch(rf"{re.escape(stem)}Private(\d+)", function_name, re.IGNORECASE)
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
 def _resident_vector_entrypoints(metadata: TargetMetadata, resident: ResidentTargetMetadata) -> tuple[StructuredEntrypointSpec, ...]:
     autoinit = resident.autoinit
     if autoinit is None:
@@ -631,6 +658,13 @@ def _resident_vector_entrypoints(metadata: TargetMetadata, resident: ResidentTar
             )
         )
     kb_library = runtime_os.LIBRARIES.get(resident_name)
+    library_version = (
+        metadata.library.version
+        if metadata.library is not None and metadata.library.library_name == resident_name
+        else resident.version
+    )
+    private_label_stem = _library_private_label_stem(resident_name)
+    next_private_ordinal = 1
     for index, offset in enumerate(autoinit.vector_offsets):
         if index < len(prefixes):
             symbol = prefixes[index]
@@ -642,8 +676,19 @@ def _resident_vector_entrypoints(metadata: TargetMetadata, resident: ResidentTar
             lvo = -(index + 1) * runtime_os.META.lvo_slot_size
             function_name = kb_library.lvo_index.get(str(lvo))
             if function_name is None:
-                raise ValueError(f"Missing KB LVO mapping for {resident_name}:{lvo}")
-            symbol = function_name
+                symbol = f"{private_label_stem}_private_{next_private_ordinal}"
+                next_private_ordinal += 1
+            else:
+                function = kb_library.functions[function_name]
+                fd_version = _fd_version_value(function.fd_version)
+                if fd_version is not None and fd_version > library_version:
+                    symbol = f"{private_label_stem}_private_{next_private_ordinal}"
+                    next_private_ordinal += 1
+                else:
+                    symbol = function_name
+                    private_ordinal = _private_vector_ordinal(function_name, stem=private_label_stem)
+                    if private_ordinal is not None:
+                        next_private_ordinal = max(next_private_ordinal, private_ordinal + 1)
         entrypoints.append(StructuredEntrypointSpec(offset=offset, label=_symbol_label(symbol)))
     return tuple(entrypoints)
 
@@ -659,14 +704,133 @@ def _library_base_struct_name(library_name: str) -> str:
     return cast(str, struct_name)
 
 
-def effective_entry_register_seeds(
-    metadata: TargetMetadata | None,
-) -> tuple[EntryRegisterSeedMetadata, ...]:
-    if metadata is None:
-        return ()
-    if metadata.entry_register_seeds:
-        return metadata.entry_register_seeds
+def _entry_seed_note(
+    *,
+    kind: str,
+    library_name: str | None,
+    struct_name: str | None,
+) -> str:
+    if kind == "library_base":
+        if library_name == runtime_os.META.exec_base_addr.library:
+            return "ExecBase"
+        assert library_name is not None
+        return f"{library_name} base"
+    if kind == "struct_ptr":
+        assert struct_name is not None
+        return f"{struct_name} *"
+    raise ValueError(f"Unsupported entry seed kind: {kind}")
 
+
+def _resident_entry_seed_specs(
+    target_type: str,
+    role: str,
+) -> tuple[dict[str, object], ...]:
+    role_map = runtime_os.META.resident_entry_register_seeds.get(target_type, {})
+    return cast(tuple[dict[str, object], ...], tuple(role_map.get(role, ())))
+
+
+def _materialize_resident_entry_seed_specs(
+    *,
+    target_type: str,
+    role: str,
+    entry_offset: int,
+    current_library_name: str,
+    current_struct_name: str,
+) -> list[EntryRegisterSeedMetadata]:
+    materialized: list[EntryRegisterSeedMetadata] = []
+    for spec in _resident_entry_seed_specs(target_type, role):
+        register = cast(str, spec["register"])
+        kind = cast(str, spec["kind"])
+        struct_name = cast(str | None, spec.get("struct_name"))
+        context_name = cast(str | None, spec.get("context_name"))
+        library_name: str | None = None
+        resolved_struct_name = struct_name
+        if kind == "library_base":
+            named_base_source = cast(str, spec["named_base_source"])
+            if named_base_source == "current_target":
+                library_name = current_library_name
+                resolved_struct_name = current_struct_name
+            elif named_base_source == "fixed":
+                library_name = cast(str, spec["named_base_name"])
+                resolved_struct_name = _library_base_struct_name(library_name)
+            else:
+                raise ValueError(
+                    f"Unsupported resident entry seed named_base_source: {named_base_source}"
+                )
+        materialized.append(
+            EntryRegisterSeedMetadata(
+                entry_offset=entry_offset,
+                register=register,
+                kind=kind,
+                note=_entry_seed_note(
+                    kind=kind,
+                    library_name=library_name,
+                    struct_name=resolved_struct_name,
+                ),
+                library_name=library_name,
+                struct_name=resolved_struct_name,
+                context_name=context_name,
+            )
+        )
+    return materialized
+
+
+def _vector_slot_function(
+    *,
+    resident_name: str,
+    library_version: int,
+    index: int,
+) -> tuple[str | None, object | None]:
+    prefixes = runtime_os.META.resident_vector_prefixes.get("library")
+    kb_library = runtime_os.LIBRARIES.get(resident_name)
+    if prefixes is not None and index < len(prefixes):
+        return prefixes[index], None
+    if kb_library is None:
+        return None, None
+    lvo = -(index + 1) * runtime_os.META.lvo_slot_size
+    function_name = kb_library.lvo_index.get(str(lvo))
+    if function_name is None:
+        return None, None
+    function = kb_library.functions[function_name]
+    fd_version = _fd_version_value(function.fd_version)
+    if fd_version is not None and fd_version > library_version:
+        return None, None
+    return function_name, function
+
+
+def _function_input_entry_seeds(
+    *,
+    entry_offset: int,
+    inputs: tuple[object, ...],
+) -> list[EntryRegisterSeedMetadata]:
+    seeds: list[EntryRegisterSeedMetadata] = []
+    for inp in inputs:
+        struct_name = cast(str | None, inp.i_struct)
+        if struct_name is None:
+            continue
+        regs = cast(tuple[str, ...], inp.regs)
+        for register in regs:
+            seeds.append(
+                EntryRegisterSeedMetadata(
+                    entry_offset=entry_offset,
+                    register=register,
+                    kind="struct_ptr",
+                    note=_entry_seed_note(
+                        kind="struct_ptr",
+                        library_name=None,
+                        struct_name=struct_name,
+                    ),
+                    library_name=None,
+                    struct_name=struct_name,
+                    context_name=None,
+                )
+            )
+    return seeds
+
+
+def _synthesized_entry_register_seeds(
+    metadata: TargetMetadata,
+) -> tuple[EntryRegisterSeedMetadata, ...]:
     resident = metadata.resident
     library = metadata.library
     if resident is not None and resident.auto_init:
@@ -683,18 +847,21 @@ def effective_entry_register_seeds(
         vector_struct_name = _library_base_struct_name(library_name)
         seeds: list[EntryRegisterSeedMetadata] = []
         if autoinit.init_func_offset is not None:
-            seeds.append(
-                EntryRegisterSeedMetadata(
+            seeds.extend(
+                _materialize_resident_entry_seed_specs(
+                    target_type=metadata.target_type,
+                    role="init",
                     entry_offset=autoinit.init_func_offset,
-                    register="A6",
-                    kind="library_base",
-                    library_name=runtime_os.META.exec_base_addr.library,
-                    struct_name="LIB",
-                    context_name=None,
-                    note="ExecBase",
+                    current_library_name=library_name,
+                    current_struct_name=vector_struct_name,
                 )
             )
-        for vector_offset in autoinit.vector_offsets:
+        library_version = (
+            library.version
+            if library is not None and library.library_name == library_name
+            else resident.version
+        )
+        for index, vector_offset in enumerate(autoinit.vector_offsets):
             seeds.append(
                 EntryRegisterSeedMetadata(
                     entry_offset=vector_offset,
@@ -706,7 +873,40 @@ def effective_entry_register_seeds(
                     note=f"{library_name} base",
                 )
             )
-        return tuple(seeds)
+            role_name, function = _vector_slot_function(
+                resident_name=library_name,
+                library_version=library_version,
+                index=index,
+            )
+            if role_name is not None:
+                seeds.extend(
+                    _materialize_resident_entry_seed_specs(
+                        target_type=metadata.target_type,
+                        role=role_name,
+                        entry_offset=vector_offset,
+                        current_library_name=library_name,
+                        current_struct_name=vector_struct_name,
+                    )
+                )
+            if function is not None:
+                seeds.extend(
+                    _function_input_entry_seeds(
+                        entry_offset=vector_offset,
+                        inputs=cast(tuple[object, ...], function.inputs),
+                    )
+                )
+        deduped: dict[tuple[object, ...], EntryRegisterSeedMetadata] = {}
+        for seed in seeds:
+            key = (
+                seed.entry_offset,
+                seed.register,
+                seed.kind,
+                seed.library_name,
+                seed.struct_name,
+                seed.context_name,
+            )
+            deduped.setdefault(key, seed)
+        return tuple(deduped.values())
 
     if library is not None:
         library_name = library.library_name
@@ -723,6 +923,41 @@ def effective_entry_register_seeds(
         )
 
     return ()
+
+
+def effective_entry_register_seeds(
+    metadata: TargetMetadata | None,
+) -> tuple[EntryRegisterSeedMetadata, ...]:
+    if metadata is None:
+        return ()
+    explicit = metadata.entry_register_seeds
+    synthesized = _synthesized_entry_register_seeds(metadata)
+    if not explicit:
+        return synthesized
+    if not synthesized:
+        return explicit
+    merged: dict[tuple[object, ...], EntryRegisterSeedMetadata] = {}
+    for seed in explicit:
+        key = (
+            seed.entry_offset,
+            seed.register,
+            seed.kind,
+            seed.library_name,
+            seed.struct_name,
+            seed.context_name,
+        )
+        merged.setdefault(key, seed)
+    for seed in synthesized:
+        key = (
+            seed.entry_offset,
+            seed.register,
+            seed.kind,
+            seed.library_name,
+            seed.struct_name,
+            seed.context_name,
+        )
+        merged.setdefault(key, seed)
+    return tuple(merged.values())
 
 
 def target_structure_spec(metadata: TargetMetadata | None) -> TargetStructureSpec | None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import struct
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -26,6 +27,7 @@ from disasm.discovery import (
     add_hint_labels,
     apply_generic_data_label_promotions,
     build_label_map,
+    build_reloc_target_hunk_map,
     discover_absolute_targets,
     discover_pc_relative_targets,
     filter_internal_absolute_data_targets,
@@ -52,10 +54,24 @@ from disasm.types import (
     SymbolOperandMetadata,
     TypedDataFieldInfo,
 )
+from m68k.hunk_parser import (
+    Hunk,
+    HunkParseError,
+    HunkType,
+    MemType,
+    Reloc,
+    parse,
+    parse_file,
+)
 from m68k.instruction_decode import DecodedBitfield
 from m68k.instruction_kb import find_kb_entry
 from m68k.m68k_asm import assemble_instruction
-from m68k.m68k_disasm import Instruction, _canonical_mnemonic, disassemble
+from m68k.m68k_disasm import (
+    DecodedOperandNode,
+    Instruction,
+    _canonical_mnemonic,
+    disassemble,
+)
 from m68k.m68k_executor import BasicBlock, analyze
 from m68k.memory_provenance import (
     MemoryRegionAddressSpace,
@@ -78,6 +94,9 @@ _INIT_STRUCTS = {
         fields=(runtime_os.OsStructField("IS_CODE", "UWORD", 18, 2),),
     ),
 }
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_HUNK_FIXTURES = _PROJECT_ROOT / "tests" / "fixtures" / "hunk"
 
 
 def _prov_base(address_space: MemoryRegionAddressSpace, base_register: str,
@@ -384,7 +403,7 @@ def test_emit_hunk_rows_emits_typed_data_comments() -> None:
         },
     )
 
-    rows, _compat = _emit_hunk_rows(hunk, include_header=False)
+    rows, _compat, _preamble = _emit_hunk_rows(hunk, include_header=False)
     rendered = "".join(row.text for row in rows)
 
     assert "dc.w    $1234 ; SetPointer.xOffset" in rendered
@@ -434,7 +453,7 @@ def test_emit_hunk_rows_typed_data_overrides_hint_bytes() -> None:
         addr_comments={0x0000: "Foo.left", 0x0002: "Foo.top"},
     )
 
-    rows, _compat = _emit_hunk_rows(hunk, include_header=False)
+    rows, _compat, _preamble = _emit_hunk_rows(hunk, include_header=False)
     rendered = "".join(row.text for row in rows)
 
     assert "typed_data:\n" in rendered
@@ -994,6 +1013,37 @@ def test_add_hint_labels_adds_hint_block_and_successor_labels() -> None:
 
     assert labels[0x200] == "hint_0200"
     assert labels[0x220] == "loc_0220"
+
+
+def test_add_hint_labels_adds_call_target_labels_from_operand_nodes() -> None:
+    """Hint call targets get labels even when they are not block successors."""
+    hint_block = BasicBlock(
+        start=0x200, end=0x204,
+        instructions=[
+            Instruction(
+                offset=0x200,
+                size=4,
+                opcode=0x6100,
+                text="bsr.w   $220",
+                raw=b"\x61\x00\x00\x1c",
+                opcode_text="bsr.w",
+                kb_mnemonic="BSR",
+                operand_texts=("$220",),
+                operand_nodes=(
+                    DecodedOperandNode(kind="branch_target", text="$220", target=0x220),
+                ),
+            )
+        ],
+        successors=[0x204],
+        is_entry=True,
+    )
+    target_block = BasicBlock(start=0x220, end=0x222, instructions=[], successors=[], is_entry=True)
+    labels: dict[int, str] = {}
+
+    add_hint_labels(labels, {0x200: hint_block, 0x220: target_block}, code_addrs=set())
+
+    assert labels[0x200] == "hint_0200"
+    assert labels[0x220] == "hint_0220"
 
 
 def test_render_instruction_text_substitutes_absolute_code_operand() -> None:
@@ -1955,6 +2005,299 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
     assert ops[0].segment_addr == 0x400
     assert ops[0].text == "#loc_0400"
     assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_uses_cross_hunk_reloc_label_for_absolute_call() -> None:
+    inst = Instruction(offset=0x0012, size=6, opcode=0x4EB9,
+                       text="jsr     $00000030",
+                       raw=struct.pack(">HI", 0x4EB9, 0x00000030),
+                       kb_mnemonic="jsr", operand_size="l",
+                       operand_texts=("$00000030",))
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0x20,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={0x0014: 0x30},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x30: "sub_0030"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        reloc_target_hunks={0x0014: 1},
+        reloc_labels={0x0014: "dat_0030"},
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert len(ops) == 1
+    assert ops[0].kind == "call_target"
+    assert ops[0].text == "dat_0030"
+
+
+def test_build_reloc_target_hunk_map_records_absolute_reloc_owners() -> None:
+    hunks = [
+        Hunk(
+            index=0,
+            hunk_type=int(HunkType.HUNK_CODE),
+            mem_type=int(MemType.ANY),
+            alloc_size=4,
+            data=(0x30).to_bytes(4, "big"),
+            relocs=[
+                Reloc(
+                    reloc_type=HunkType.HUNK_RELOC32,
+                    target_hunk=1,
+                    offsets=(0,),
+                )
+            ],
+        )
+    ]
+
+    assert build_reloc_target_hunk_map(hunks, 0) == {0: 1}
+
+
+def test_parse_object_hunk_block_reads_extended_mem_attrs() -> None:
+    raw_type = (3 << 30) | int(HunkType.HUNK_DATA)
+    blob = b"".join(
+        (
+            struct.pack(">I", int(HunkType.HUNK_UNIT)),
+            struct.pack(">I", 0),
+            struct.pack(">I", raw_type),
+            struct.pack(">I", 0x1234),
+            struct.pack(">I", 1),
+            struct.pack(">I", 0x11223344),
+            struct.pack(">I", int(HunkType.HUNK_END)),
+        )
+    )
+
+    hf = parse(blob)
+
+    assert len(hf.hunks) == 1
+    assert hf.hunks[0].hunk_type == int(HunkType.HUNK_DATA)
+    assert hf.hunks[0].mem_type == int(MemType.EXTENDED)
+    assert hf.hunks[0].mem_attrs == 0x1234
+    assert hf.hunks[0].data == b"\x11\x22\x33\x44"
+
+
+def test_parse_executable_data_hunk_preserves_stored_size_vs_alloc_size() -> None:
+    blob = b"".join(
+        (
+            struct.pack(">I", int(HunkType.HUNK_HEADER)),
+            struct.pack(">I", 0),
+            struct.pack(">III", 1, 0, 0),
+            struct.pack(">I", 2),
+            struct.pack(">I", int(HunkType.HUNK_DATA)),
+            struct.pack(">I", 1),
+            struct.pack(">I", 0x11223344),
+            struct.pack(">I", int(HunkType.HUNK_END)),
+        )
+    )
+
+    hf = parse(blob)
+
+    assert hf.is_executable
+    assert len(hf.hunks) == 1
+    assert hf.hunks[0].hunk_type == int(HunkType.HUNK_DATA)
+    assert hf.hunks[0].alloc_size == 8
+    assert hf.hunks[0].stored_size == 4
+    assert hf.hunks[0].data == b"\x11\x22\x33\x44"
+
+
+def test_parse_executable_rejects_non_hunkexe_relocation_type() -> None:
+    blob = b"".join(
+        (
+            struct.pack(">I", int(HunkType.HUNK_HEADER)),
+            struct.pack(">I", 0),
+            struct.pack(">III", 1, 0, 0),
+            struct.pack(">I", 1),
+            struct.pack(">I", int(HunkType.HUNK_CODE)),
+            struct.pack(">I", 1),
+            struct.pack(">I", 0x4E75),
+            struct.pack(">I", int(HunkType.HUNK_ABSRELOC16)),
+            struct.pack(">I", 1),
+            struct.pack(">I", 0),
+            struct.pack(">I", 0),
+            struct.pack(">I", 0),
+            struct.pack(">I", int(HunkType.HUNK_END)),
+        )
+    )
+
+    with pytest.raises(HunkParseError, match="not supported by vasm hunkexe: HUNK_ABSRELOC16"):
+        parse(blob)
+
+
+def test_vasm_hunk_oracle_preserves_section_types_names_and_mem_flags() -> None:
+    hf = parse_file(_HUNK_FIXTURES / "vasm_hunk_object.o")
+
+    assert hf.is_object
+    assert hf.unit_name == "vasm_hunk_object.s"
+    assert [(h.hunk_type, h.mem_type, h.name) for h in hf.hunks] == [
+        (int(HunkType.HUNK_CODE), int(MemType.ANY), "code"),
+        (int(HunkType.HUNK_DATA), int(MemType.CHIP), "data_c"),
+        (int(HunkType.HUNK_BSS), int(MemType.FAST), "bss_f"),
+    ]
+    assert [(s.name, s.value) for s in hf.hunks[0].symbols] == [("start_label", 0)]
+    assert hf.hunks[1].relocs == [
+        Reloc(
+            reloc_type=HunkType.HUNK_RELOC32,
+            target_hunk=0,
+            offsets=(0,),
+        )
+    ]
+    assert hf.hunks[2].alloc_size == 8
+    assert hf.hunks[2].stored_size == 0
+    assert hf.hunks[2].data == b""
+
+
+def test_vasm_hunk_oracle_preserves_extended_mem_attrs() -> None:
+    hf = parse_file(_HUNK_FIXTURES / "vasm_hunk_extended_mem.o")
+
+    assert hf.is_object
+    assert len(hf.hunks) == 1
+    assert hf.hunks[0].hunk_type == int(HunkType.HUNK_DATA)
+    assert hf.hunks[0].mem_type == int(MemType.EXTENDED)
+    assert hf.hunks[0].mem_attrs == 0x01234567
+    assert hf.hunks[0].name == "ext_data"
+
+
+def test_vasm_hunkexe_oracle_preserves_databss_and_short_relocs() -> None:
+    hf = parse_file(_HUNK_FIXTURES / "vasm_hunkexe_databss.exe")
+
+    assert hf.is_executable
+    assert len(hf.hunks) == 2
+    assert hf.hunks[0].hunk_type == int(HunkType.HUNK_CODE)
+    assert hf.hunks[0].stored_size == 4
+    assert hf.hunks[0].alloc_size == 12
+    assert hf.hunks[1].hunk_type == int(HunkType.HUNK_DATA)
+    assert hf.hunks[1].stored_size == 4
+    assert hf.hunks[1].alloc_size == 8
+    assert hf.hunks[1].relocs == [
+        Reloc(
+            reloc_type=HunkType.HUNK_RELOC32SHORT,
+            target_hunk=0,
+            offsets=(0,),
+        )
+    ]
+
+
+def test_parse_multi_unit_object_file_preserves_units() -> None:
+    blob = (
+        (_HUNK_FIXTURES / "vasm_hunk_object.o").read_bytes()
+        + (_HUNK_FIXTURES / "vasm_hunk_extended_mem.o").read_bytes()
+    )
+
+    hf = parse(blob)
+
+    assert hf.is_object
+    assert len(hf.units) == 2
+    assert [unit.name for unit in hf.units] == [
+        "vasm_hunk_object.s",
+        "vasm_hunk_extended_mem.s",
+    ]
+    assert [len(unit.hunks) for unit in hf.units] == [3, 1]
+    assert [(h.hunk_type, h.mem_type, h.name) for h in hf.hunks] == [
+        (int(HunkType.HUNK_CODE), int(MemType.ANY), "code"),
+        (int(HunkType.HUNK_DATA), int(MemType.CHIP), "data_c"),
+        (int(HunkType.HUNK_BSS), int(MemType.FAST), "bss_f"),
+        (int(HunkType.HUNK_DATA), int(MemType.EXTENDED), "ext_data"),
+    ]
+    with pytest.raises(AssertionError, match="unit_name is ambiguous"):
+        _ = hf.unit_name
+
+
+def test_parse_indexed_library_block_preserves_hunks_and_index() -> None:
+    lib_payload = b"".join(
+        (
+            struct.pack(">I", int(HunkType.HUNK_CODE)),
+            struct.pack(">I", 1),
+            struct.pack(">I", 0x4E75),
+            struct.pack(">I", int(HunkType.HUNK_END)),
+        )
+    )
+    assert len(lib_payload) == 16
+    string_table = b"\x00unit1\x00sym\x00\x00"
+    assert len(string_table) == 12
+    index_payload = b"".join(
+        (
+            struct.pack(">H", len(string_table)),
+            string_table,
+            struct.pack(">H", 1),   # unit name offset
+            struct.pack(">H", 2),   # first hunk offset in longs from HUNK_LIB start
+            struct.pack(">H", 1),   # hunk count
+            struct.pack(">H", 0),   # empty hunk name
+            struct.pack(">H", int(HunkType.HUNK_CODE)),
+            struct.pack(">H", 1),   # one reference
+            struct.pack(">H", 7),   # "sym"
+            struct.pack(">H", 1),   # one definition
+            struct.pack(">H", 7),   # "sym"
+            struct.pack(">H", 0),   # value low16
+            struct.pack(">B", 0),   # abs hi8
+            struct.pack(">B", 1),   # EXT_DEF low6, definition bit clear
+        )
+    )
+    assert len(index_payload) == 36
+    blob = b"".join(
+        (
+            struct.pack(">I", int(HunkType.HUNK_LIB)),
+            struct.pack(">I", len(lib_payload) // 4),
+            lib_payload,
+            struct.pack(">I", int(HunkType.HUNK_INDEX)),
+            struct.pack(">I", len(index_payload) // 4),
+            index_payload,
+        )
+    )
+
+    hf = parse(blob)
+
+    assert hf.is_library
+    assert len(hf.library_blocks) == 1
+    assert len(hf.hunks) == 1
+    assert hf.hunks[0].hunk_type == int(HunkType.HUNK_CODE)
+    assert hf.hunks[0].container_offset_longs == 2
+    index = hf.library_blocks[0].index
+    assert index is not None
+    assert index.string_table == string_table
+    assert len(index.units) == 1
+    assert index.units[0].name_offset == 1
+    assert index.units[0].first_hunk_long_offset == 2
+    assert len(index.units[0].hunk_entries) == 1
+    assert index.units[0].hunk_entries[0].hunk_type == int(HunkType.HUNK_CODE)
+    assert index.units[0].hunk_entries[0].ref_name_offsets == (7,)
+    assert index.units[0].hunk_entries[0].definitions[0].name_offset == 7
+
+
+def test_vasm_hunk_oracle_decodes_line_debug() -> None:
+    hf = parse_file(_HUNK_FIXTURES / "vasm_hunk_linedebug.o")
+
+    assert hf.is_object
+    assert len(hf.hunks) == 1
+    assert hf.hunks[0].debug_data
+    assert hf.hunks[0].debug_line is not None
+    assert hf.hunks[0].debug_line.filename.endswith("vasm_hunk_linedebug.s")
+    assert hf.hunks[0].debug_line.base_offset == 0
+    assert len(hf.hunks[0].debug_line.entries) >= 1
+    assert hf.hunks[0].debug_line.entries[0].line >= 1
+    assert hf.hunks[0].debug_line.entries[0].offset == 0
 
 
 def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch() -> None:

@@ -26,6 +26,9 @@ class OsStructFieldLike(Protocol):
     @property
     def pointer_struct(self) -> str | None: ...
 
+    @property
+    def named_base(self) -> str | None: ...
+
 
 class OsStructLike(Protocol):
     @property

@@ -2,34 +2,34 @@
   "target": "amiga_hunk_genam",
   "binary": "bin/GenAm",
   "command": "uv run scripts/benchmark_target.py amiga_hunk_genam",
-  "measured_at": "2026-03-29T14:43:54+13:00",
+  "measured_at": "2026-03-30T12:10:44+13:00",
   "status": "ok",
-  "elapsed_seconds": 73.19,
-  "analysis_bytes": 11612202,
+  "elapsed_seconds": 71.63,
+  "analysis_bytes": 11629683,
   "entities_bytes": 115153,
-  "disasm_bytes": 495067,
+  "disasm_bytes": 494351,
   "timing": {
     "entities": {
       "parse_source_seconds": 0.0002,
       "analysis": {
-        "init_seconds": 0.3975,
-        "core_seconds": 8.8331,
-        "per_caller_seconds": 42.0553,
-        "store_pass_seconds": 0.2381,
-        "hint_scan_seconds": 0.739,
-        "os_call_seconds": 17.411
+        "init_seconds": 0.3789,
+        "core_seconds": 7.7606,
+        "per_caller_seconds": 39.2145,
+        "store_pass_seconds": 0.2078,
+        "hint_scan_seconds": 1.1336,
+        "os_call_seconds": 15.9278
       },
-      "naming_seconds": 0.0042,
-      "write_seconds": 0.0042
+      "naming_seconds": 0.0037,
+      "write_seconds": 0.0034
     },
     "session": {
-      "load_analysis_seconds": 0.2936,
-      "metadata_seconds": 1.0716,
-      "substitutions_seconds": 0.0091,
+      "load_analysis_seconds": 0.1669,
+      "metadata_seconds": 0.9417,
+      "substitutions_seconds": 0.0084,
       "build_seconds": 0.0001
     },
-    "emit_seconds": 0.5896,
-    "render_seconds": 0.005
+    "emit_seconds": 0.5768,
+    "render_seconds": 0.0225
   },
   "analysis": {
     "code_bytes": 64920,
@@ -38,9 +38,9 @@
     "core_covered_bytes": 20152,
     "core_coverage_ratio": 0.3104,
     "hint_block_count": 2804,
-    "hint_instruction_count": 7039,
-    "hint_covered_bytes": 21812,
-    "hint_coverage_ratio": 0.336,
+    "hint_instruction_count": 7147,
+    "hint_covered_bytes": 22198,
+    "hint_coverage_ratio": 0.3419,
     "xref_count": 4245,
     "jump_table_count": 6,
     "indirect_site_count": 40,
@@ -80,10 +80,15 @@
     },
     "symbols": {
       "immediate_constant_count": 10,
-      "struct_field_count": 73,
-      "app_struct_field_count": 11
+      "struct_field_count": 2,
+      "app_struct_field_count": 11,
+      "raw_absolute_branch_target_count": 0,
+      "raw_absolute_call_target_count": 0,
+      "raw_absolute_known_code_branch_target_count": 0,
+      "raw_absolute_known_code_call_target_count": 0
     }
   },
+  "compatibility_floor": "2.0",
   "error": null,
   "targets": null
 }

@@ -24,7 +24,6 @@ from disasm.os_compat import (
 from disasm.os_include_kb import load_os_include_kb
 from disasm.session import build_disassembly_session
 from disasm.target_metadata import (
-    EntryRegisterSeedMetadata,
     StructuredRegionSpec,
     effective_entry_register_seeds,
     target_structure_spec,
@@ -45,6 +44,7 @@ from disasm.types import (
     StructFieldOperandMetadata,
 )
 from disasm.validation import has_valid_branch_target, is_valid_encoding
+from m68k.hunk_parser import HunkType, MemType
 from m68k.os_calls import AppBaseInfo
 from m68k_kb import runtime_hardware, runtime_os
 
@@ -67,12 +67,18 @@ def _fd_version_value(raw_version: str | None) -> int | None:
     return int(digits)
 
 
-def _unique_entry_register_notes(
-    entry_register_seeds: tuple[EntryRegisterSeedMetadata, ...],
+def _entry_register_notes_for_offset(
+    session: DisassemblySession | None,
+    hunk_session: HunkDisassemblySession,
+    addr: int,
 ) -> tuple[str, ...]:
-    seen: set[str] = set()
+    if session is None or session.target_metadata is None or hunk_session.hunk_index != 0:
+        return ()
     notes: list[str] = []
-    for seed in entry_register_seeds:
+    seen: set[str] = set()
+    for seed in effective_entry_register_seeds(session.target_metadata):
+        if seed.entry_offset != addr:
+            continue
         rendered = f"{seed.register}={seed.note}"
         if rendered in seen:
             continue
@@ -97,9 +103,55 @@ def _library_export_names(library_name: str, library_version: int) -> list[str]:
     return public_names
 
 
+def _section_kind_name(hunk_type: int) -> str:
+    if hunk_type == int(HunkType.HUNK_CODE):
+        return "code"
+    if hunk_type == int(HunkType.HUNK_DATA):
+        return "data"
+    if hunk_type == int(HunkType.HUNK_BSS):
+        return "bss"
+    raise ValueError(f"Unsupported hunk type for section emission: {hunk_type}")
+
+
+def _default_section_name(hunk_type: int, mem_type: int) -> str:
+    kind = _section_kind_name(hunk_type)
+    if mem_type == int(MemType.CHIP):
+        return f"{kind}_c"
+    if mem_type == int(MemType.FAST):
+        return f"{kind}_f"
+    return kind
+
+
+def _section_mem_operand(hunk_session: HunkDisassemblySession) -> str | None:
+    if hunk_session.mem_type == int(MemType.ANY):
+        return None
+    if hunk_session.mem_type == int(MemType.CHIP):
+        return "chip"
+    if hunk_session.mem_type == int(MemType.FAST):
+        return "fast"
+    if hunk_session.mem_type == int(MemType.EXTENDED):
+        assert hunk_session.mem_attrs is not None, (
+            f"hunk {hunk_session.hunk_index} has EXTENDED mem type without mem_attrs"
+        )
+        return f"${hunk_session.mem_attrs:X}"
+    raise ValueError(f"Unknown mem type for hunk {hunk_session.hunk_index}: {hunk_session.mem_type}")
+
+
+def _section_directive_text(hunk_session: HunkDisassemblySession) -> str:
+    section_name = hunk_session.section_name or _default_section_name(
+        hunk_session.hunk_type,
+        hunk_session.mem_type,
+    )
+    kind = _section_kind_name(hunk_session.hunk_type)
+    mem_operand = _section_mem_operand(hunk_session)
+    if mem_operand is None:
+        return f"    section {section_name},{kind}\n"
+    return f"    section {section_name},{kind},{mem_operand}\n"
+
+
 def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
     rows: list[ListingRow] = []
-    total_code_size = sum(hunk_session.code_size for hunk_session in session.hunk_sessions)
+    total_code_size = sum(hunk_session.alloc_size or hunk_session.code_size for hunk_session in session.hunk_sessions)
     total_entities = sum(len(hunk_session.entities) for hunk_session in session.hunk_sessions)
     total_blocks = sum(len(hunk_session.blocks) for hunk_session in session.hunk_sessions)
     rows.append(make_row(
@@ -118,6 +170,12 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
         source_context=HeaderRowContext(section="header"),
     ))
     compatibility_floors: list[str] = []
+    fd_only_lvo_equs: dict[str, dict[int, str]] = {}
+    arg_equs: dict[str, str] = {}
+    app_offset_equs: dict[str, str] = {}
+    target_local_struct_equs: dict[str, int] = {}
+    absolute_symbol_equs: dict[str, int] = {}
+    include_paths: set[str] = set()
     body_rows: list[ListingRow] = []
     body_rows.extend(_emit_target_structure_rows(session))
     structure = target_structure_spec(session.target_metadata)
@@ -126,13 +184,21 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
             body_rows.append(make_row("blank", "\n"))
         target_regions = () if structure is None or index != 0 else structure.regions
         structured_regions = target_regions + hunk_session.dynamic_structured_regions
-        hunk_rows, hunk_floor = _emit_hunk_rows(
+        hunk_rows, hunk_floor, hunk_preamble = _emit_hunk_rows(
             hunk_session,
             include_header=len(session.hunk_sessions) > 1,
             structured_regions=structured_regions,
             session=session,
         )
         compatibility_floors.append(hunk_floor)
+        include_paths.update(hunk_preamble["includes"])
+        for lib_name, by_lvo in hunk_preamble["fd_only_lvo_equs"].items():
+            existing = fd_only_lvo_equs.setdefault(lib_name, {})
+            existing.update(by_lvo)
+        arg_equs.update(hunk_preamble["arg_equs"])
+        app_offset_equs.update(hunk_preamble["app_offset_equs"])
+        target_local_struct_equs.update(hunk_preamble["target_local_struct_equs"])
+        absolute_symbol_equs.update(hunk_preamble["absolute_symbol_equs"])
         body_rows.extend(hunk_rows)
     rows.append(make_row(
         "comment",
@@ -140,6 +206,69 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
         source_context=HeaderRowContext(section="header"),
     ))
     rows.append(make_row("blank", "\n"))
+    if fd_only_lvo_equs:
+        for lib_name in sorted(fd_only_lvo_equs):
+            rows.append(make_row("comment", f"; LVO offsets: {lib_name} (FD-derived)\n"))
+            for lvo_val in sorted(fd_only_lvo_equs[lib_name]):
+                rows.append(make_row(
+                    "directive",
+                    f"{fd_only_lvo_equs[lib_name][lvo_val]}\tEQU\t{lvo_val}\n",
+                    opcode_or_directive="EQU",
+                ))
+            rows.append(make_row("blank", "\n"))
+    if arg_equs:
+        rows.append(make_row("comment", "; OS function argument constants\n"))
+        for name in sorted(arg_equs):
+            rows.append(make_row(
+                "directive",
+                f"{name}\tEQU\t{arg_equs[name]}\n",
+                opcode_or_directive="EQU",
+            ))
+        rows.append(make_row("blank", "\n"))
+    if app_offset_equs:
+        base_info = session.hunk_sessions[0].platform.app_base
+        assert base_info is not None, "app_offsets present but platform.app_base is missing"
+        if base_info.kind.name == "ABSOLUTE":
+            comment = (
+                f"; App memory addresses (base register A{base_info.reg_num} "
+                f"anchored at ${base_info.concrete:X})\n"
+            )
+        else:
+            comment = f"; App memory offsets (base register A{base_info.reg_num})\n"
+        rows.append(make_row("comment", comment))
+        for name in sorted(app_offset_equs):
+            rows.append(make_row(
+                "directive",
+                f"{name}\tEQU\t{app_offset_equs[name]}\n",
+                opcode_or_directive="EQU",
+            ))
+        rows.append(make_row("blank", "\n"))
+    if target_local_struct_equs:
+        rows.append(make_row("comment", "; Target-local struct fields\n"))
+        for name in sorted(target_local_struct_equs):
+            rows.append(make_row(
+                "directive",
+                f"{name}\tEQU\t{target_local_struct_equs[name]}\n",
+                opcode_or_directive="EQU",
+            ))
+        rows.append(make_row("blank", "\n"))
+    if absolute_symbol_equs:
+        rows.append(make_row("comment", "; Absolute symbols\n"))
+        for name in sorted(absolute_symbol_equs, key=lambda symbol: absolute_symbol_equs[symbol]):
+            rows.append(make_row(
+                "directive",
+                f"{name}\tEQU\t${absolute_symbol_equs[name]:X}\n",
+                opcode_or_directive="EQU",
+            ))
+        rows.append(make_row("blank", "\n"))
+    if include_paths:
+        for inc in sorted(include_paths):
+            rows.append(make_row(
+                "directive",
+                f'    INCLUDE "{inc}"\n',
+                opcode_or_directive="INCLUDE",
+            ))
+        rows.append(make_row("blank", "\n"))
     rows.extend(body_rows)
     return rows
 
@@ -149,7 +278,6 @@ def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]
     if metadata is None:
         return []
     rows: list[ListingRow] = []
-    entry_register_seeds = effective_entry_register_seeds(metadata)
     if metadata.bootblock is not None:
         bootblock = metadata.bootblock
         rows.append(make_row("comment", "; Boot block structure\n"))
@@ -175,11 +303,6 @@ def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]
                     f"entry 0x{bootblock.entrypoint:X}\n",
                 )
             )
-        if entry_register_seeds:
-            registers = ", ".join(
-                f"{seed.register}={seed.note}" for seed in entry_register_seeds
-            )
-            rows.append(make_row("comment", f";   entry registers: {registers}\n"))
         rows.append(make_row("blank", "\n"))
     if metadata.resident is not None:
         resident = metadata.resident
@@ -196,11 +319,6 @@ def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]
     if metadata.library is not None:
         library = metadata.library
         rows.append(make_row("comment", "; Library structure\n"))
-        if entry_register_seeds:
-            registers = ", ".join(
-                _unique_entry_register_notes(entry_register_seeds)
-            )
-            rows.append(make_row("comment", f";   entry registers: {registers}\n"))
         rows.append(make_row("comment", f";   name: {library.library_name}\n"))
         rows.append(make_row("comment", f";   version: {library.version}\n"))
         if library.id_string is not None:
@@ -242,12 +360,35 @@ def _struct_include_source(hunk_session: HunkDisassemblySession,
     return include_path
 
 
-def _absolute_symbol_rows(used_absolute_addrs: set[int],
-                          hunk_session: HunkDisassemblySession
-                          ) -> tuple[list[ListingRow], set[str]]:
-    equ_rows: list[ListingRow] = []
+def _target_local_struct_equ_defs(
+    hunk_session: HunkDisassemblySession,
+) -> dict[str, int]:
+    used_structs = {
+        region.struct
+        for regs in hunk_session.region_map.values()
+        for region in regs.values()
+    }
+    used_structs.update(region.struct for region in hunk_session.app_struct_regions.values())
+    equs: dict[str, int] = {}
+    for struct_name in sorted(used_structs):
+        struct_def = hunk_session.os_kb.STRUCTS.get(struct_name)
+        if struct_def is None:
+            continue
+        if _struct_include_source(hunk_session, struct_name) is not None:
+            continue
+        for field in struct_def.fields:
+            if field.size <= 0 or field.offset < struct_def.base_offset:
+                continue
+            equs.setdefault(field.name, field.offset)
+    return equs
+
+
+def _absolute_symbol_defs(
+    used_absolute_addrs: set[int],
+    hunk_session: HunkDisassemblySession,
+) -> tuple[dict[str, int], set[str]]:
     include_paths: set[str] = set()
-    equ_defs: list[tuple[int, str]] = []
+    equ_defs: dict[str, int] = {}
     for addr in sorted(used_absolute_addrs):
         register = runtime_hardware.REGISTER_DEFS.get(addr)
         if register is not None and register["include"]:
@@ -261,17 +402,8 @@ def _absolute_symbol_rows(used_absolute_addrs: set[int],
         label = hunk_session.absolute_labels.get(addr)
         if label is None:
             raise ValueError(f"Missing absolute label for used address ${addr:08X}")
-        equ_defs.append((addr, label))
-    if equ_defs:
-        equ_rows.append(make_row("comment", "; Absolute symbols\n"))
-        for addr, name in equ_defs:
-            equ_rows.append(make_row(
-                "directive",
-                f"{name}\tEQU\t${addr:X}\n",
-                opcode_or_directive="EQU",
-            ))
-        equ_rows.append(make_row("blank", "\n"))
-    return equ_rows, include_paths
+        equ_defs.setdefault(label, addr)
+    return equ_defs, include_paths
 
 
 def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
@@ -279,7 +411,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     include_header: bool,
                     structured_regions: tuple[StructuredRegionSpec, ...] = (),
                     session: DisassemblySession | None = None,
-                    ) -> tuple[list[ListingRow], str]:
+                    ) -> tuple[list[ListingRow], str, dict[str, Any]]:
     rows: list[ListingRow] = []
     used_structs: set[str] = set()
     include_paths: set[str] = set()
@@ -296,69 +428,16 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
     if include_header:
         rows.append(make_row(
             "comment",
-            f"; Hunk {hunk_session.hunk_index}: {hunk_session.code_size} bytes, "
+            f"; Hunk {hunk_session.hunk_index}: "
+            f"{hunk_session.alloc_size or hunk_session.code_size} bytes, "
             f"{len(hunk_session.entities)} entities, {len(hunk_session.blocks)} blocks\n",
             source_context=HeaderRowContext(section="header"),
         ))
         rows.append(make_row("blank", "\n"))
 
-    for lib_name in sorted(hunk_session.lvo_equs):
-        owner = _OS_INCLUDE_KB.library_lvo_owners.get(lib_name)
-        if owner is None:
-            raise ValueError(f"Missing KB library include owner for LVO symbols: {lib_name}")
-        if owner.kind == "native_include":
-            include_path = owner.include_path
-            if include_path is None:
-                raise ValueError(f"Missing native include path for LVO symbols: {lib_name}")
-            include_paths.add(include_path)
-        elif owner.kind == "fd_only":
-            rows.append(make_row("comment", f"; LVO offsets: {lib_name} (FD-derived)\n"))
-            by_lvo = hunk_session.lvo_equs[lib_name]
-            for lvo_val in sorted(by_lvo):
-                rows.append(make_row(
-                    "directive",
-                    f"{by_lvo[lvo_val]}\tEQU\t{lvo_val}\n",
-                    opcode_or_directive="EQU",
-                ))
-            rows.append(make_row("blank", "\n"))
-        else:
-            raise ValueError(f"Unknown OS include owner kind for {lib_name}: {owner.kind}")
-
-    if hunk_session.arg_equs:
-        rows.append(make_row("comment", "; OS function argument constants\n"))
-        for name in sorted(hunk_session.arg_equs):
-            rows.append(make_row(
-                "directive",
-                f"{name}\tEQU\t{hunk_session.arg_equs[name]}\n",
-                opcode_or_directive="EQU",
-            ))
-        rows.append(make_row("blank", "\n"))
-
-    base_info = hunk_session.platform.app_base
-    if hunk_session.app_offsets:
-        assert base_info is not None, "app_offsets present but platform.app_base is missing"
-        if base_info.kind.name == "ABSOLUTE":
-            comment = (
-                f"; App memory addresses (base register A{base_info.reg_num} "
-                f"anchored at ${base_info.concrete:X})\n"
-            )
-        else:
-            comment = f"; App memory offsets (base register A{base_info.reg_num})\n"
-        rows.append(make_row(
-            "comment",
-            comment,
-        ))
-        for off in sorted(hunk_session.app_offsets):
-            rows.append(make_row(
-                "directive",
-                f"{hunk_session.app_offsets[off]}\tEQU\t{_app_slot_equ_value(base_info, off)}\n",
-                opcode_or_directive="EQU",
-            ))
-        rows.append(make_row("blank", "\n"))
-
     rows.append(make_row(
         "section",
-        "    section code,code\n",
+        _section_directive_text(hunk_session),
         opcode_or_directive="section",
     ))
     rows.append(make_row("blank", "\n"))
@@ -370,6 +449,14 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             rows.extend(make_text_rows(
                 "comment",
                 f"; {addr_comment}\n",
+                entity_addr=addr,
+                addr=addr,
+            ))
+        entry_register_notes = _entry_register_notes_for_offset(session, hunk_session, addr)
+        if entry_register_notes:
+            rows.extend(make_text_rows(
+                "comment",
+                f"; entry registers: {', '.join(entry_register_notes)}\n",
                 entity_addr=addr,
                 addr=addr,
             ))
@@ -407,6 +494,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         rows.extend(emit_data_rows(
             hunk_session.code, start, stop, hunk_session.labels,
             hunk_session.reloc_map, hunk_session.string_addrs,
+            hunk_session.reloc_labels,
             hunk_session.data_access_sizes, hunk_session.typed_data_sizes,
             hunk_session.typed_data_fields, hunk_session.os_kb,
             hunk_session.addr_comments, entity_addr,
@@ -416,6 +504,98 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 verified_state=verified_state,
             ),
         ))
+
+    def emit_bss() -> None:
+        bss_labels = sorted(hunk_session.labels)
+        if not bss_labels:
+            rows.extend(make_text_rows(
+                "directive",
+                f"    ds.b {hunk_session.alloc_size}\n",
+                verified_state="verified",
+                source_context=BlockRowContext(
+                    kind="data",
+                    hunk_index=hunk_session.hunk_index,
+                    verified_state="verified",
+                ),
+            ))
+            return
+        assert all(0 <= addr <= hunk_session.alloc_size for addr in bss_labels), (
+            f"BSS hunk {hunk_session.hunk_index} has labels outside alloc size {hunk_session.alloc_size}: {bss_labels}"
+        )
+        if bss_labels[0] != 0:
+            bss_labels.insert(0, 0)
+        for index, addr in enumerate(bss_labels):
+            if addr in hunk_session.labels:
+                emit_label(addr)
+            next_addr = bss_labels[index + 1] if index + 1 < len(bss_labels) else hunk_session.alloc_size
+            if next_addr <= addr:
+                continue
+            rows.extend(make_text_rows(
+                "directive",
+                f"    ds.b {next_addr - addr}\n",
+                entity_addr=addr,
+                addr=addr,
+                verified_state="verified",
+                source_context=BlockRowContext(
+                    kind="data",
+                    hunk_index=hunk_session.hunk_index,
+                    verified_state="verified",
+                ),
+            ))
+
+    def emit_databss_tail() -> None:
+        tail_size = hunk_session.alloc_size - hunk_session.stored_size
+        if tail_size <= 0:
+            return
+        tail_labels = sorted(
+            addr for addr in hunk_session.labels
+            if hunk_session.stored_size <= addr < hunk_session.alloc_size
+        )
+        if not tail_labels:
+            rows.extend(make_text_rows(
+                "directive",
+                f"    ds.b {tail_size}\n",
+                verified_state="verified",
+                source_context=BlockRowContext(
+                    kind="data",
+                    hunk_index=hunk_session.hunk_index,
+                    verified_state="verified",
+                ),
+            ))
+            return
+        cursor = hunk_session.stored_size
+        for addr in tail_labels:
+            assert cursor <= addr <= hunk_session.alloc_size, (
+                f"Hunk {hunk_session.hunk_index} has invalid databss tail label {addr}"
+            )
+            if addr > cursor:
+                rows.extend(make_text_rows(
+                    "directive",
+                    f"    ds.b {addr - cursor}\n",
+                    entity_addr=cursor,
+                    addr=cursor,
+                    verified_state="verified",
+                    source_context=BlockRowContext(
+                        kind="data",
+                        hunk_index=hunk_session.hunk_index,
+                        verified_state="verified",
+                    ),
+                ))
+            emit_label(addr)
+            cursor = addr
+        if cursor < hunk_session.alloc_size:
+            rows.extend(make_text_rows(
+                "directive",
+                f"    ds.b {hunk_session.alloc_size - cursor}\n",
+                entity_addr=cursor,
+                addr=cursor,
+                verified_state="verified",
+                source_context=BlockRowContext(
+                    kind="data",
+                    hunk_index=hunk_session.hunk_index,
+                    verified_state="verified",
+                ),
+            ))
 
     def emit_structured_region(region: StructuredRegionSpec, entity_addr: int | None = None) -> None:
         if region.subtype == "typed_data_stream" and region.stream_format is not None:
@@ -447,6 +627,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     code=hunk_session.code,
                     labels=hunk_session.labels,
                     reloc_map=hunk_session.reloc_map,
+                    reloc_labels=hunk_session.reloc_labels,
                     structs=hunk_session.os_kb.STRUCTS,
                     struct_name=region.struct_name,
                 )
@@ -560,7 +741,11 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         if pos < region.end:
             emit_data(pos, region.end, entity_addr)
 
-    emit_passes = [(0, hunk_session.code_size)]
+    if hunk_session.hunk_type == int(HunkType.HUNK_BSS):
+        emit_bss()
+        emit_passes: list[tuple[int, int]] = []
+    else:
+        emit_passes = [(0, hunk_session.code_size)]
     if hunk_session.relocated_segments:
         emit_passes = [
             (0, hunk_session.reloc_file_offset),
@@ -683,31 +868,23 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 emit_data(pos, data_end, entity_addr)
                 pos = data_end
 
-    compat_floor = infer_emit_compatibility_floor(
-        session,
-        include_paths={
-            *include_paths,
-            *(
-                include_path
-                for struct_name in sorted(used_structs)
-                if (include_path := _struct_include_source(hunk_session, struct_name)) is not None
-            ),
-        },
-        struct_fields=collect_used_struct_fields(rows),
-    )
-    rows = _apply_compatibility_field_names(rows, hunk_session, compat_floor)
+    if hunk_session.hunk_type != int(HunkType.HUNK_BSS):
+        emit_databss_tail()
+
     used_absolute_addrs = _collect_used_absolute_addrs(rows, hunk_session)
-    absolute_symbol_rows, hardware_includes = _absolute_symbol_rows(
+    absolute_symbol_equs, hardware_includes = _absolute_symbol_defs(
         used_absolute_addrs, hunk_session)
-    if absolute_symbol_rows:
-        insert_at = 0
-        for idx, row in enumerate(rows):
-            if row.kind == "section":
-                insert_at = idx
-                break
-        rows[insert_at:insert_at] = absolute_symbol_rows
+    for lib_name in sorted(hunk_session.lvo_equs):
+        owner = _OS_INCLUDE_KB.library_lvo_owners.get(lib_name)
+        if owner is None:
+            raise ValueError(f"Missing KB library include owner for LVO symbols: {lib_name}")
+        if owner.kind == "native_include":
+            include_path = owner.include_path
+            assert include_path, f"Missing native include path for LVO symbols: {lib_name}"
+            include_paths.add(include_path)
+            continue
+        assert owner.kind == "fd_only", f"Unknown OS include owner kind for {lib_name}: {owner.kind}"
     includes = set(include_paths)
-    os_includes = set(include_paths)
     includes.update(hardware_includes)
     if used_structs:
         for struct_name in sorted(used_structs):
@@ -715,32 +892,40 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             if os_include is None:
                 continue
             includes.add(os_include)
-            os_includes.add(os_include)
-    if includes:
-        insert_at = 0
-        for idx, row in enumerate(rows):
-            if row.kind == "section":
-                insert_at = idx
-                break
-        include_rows = []
-        for inc in sorted(includes):
-            if inc in os_includes:
-                include_since = hunk_session.os_kb.META.include_min_versions.get(inc.lower())
-                if include_since is None:
-                    raise ValueError(f"Missing KB include compatibility for {inc}")
-                if hunk_session.os_kb.META.compatibility_versions.index(include_since) > hunk_session.os_kb.META.compatibility_versions.index(compat_floor):
-                    raise ValueError(
-                        f"Include {inc} requires OS {include_since}, above compatibility floor {compat_floor}"
-                    )
-            include_rows.append(make_row(
-                "directive",
-                f'    INCLUDE "{inc}"\n',
-                opcode_or_directive="INCLUDE",
-            ))
-        include_rows.append(make_row("blank", "\n"))
-        rows[insert_at:insert_at] = include_rows
+    compat_floor = infer_emit_compatibility_floor(
+        session,
+        include_paths=includes,
+        struct_fields=collect_used_struct_fields(rows),
+    )
+    rows = _apply_compatibility_field_names(rows, hunk_session, compat_floor)
+    for inc in sorted(includes):
+        include_since = hunk_session.os_kb.META.include_min_versions.get(inc.lower())
+        if include_since is None:
+            raise ValueError(f"Missing KB include compatibility for {inc}")
+        if hunk_session.os_kb.META.compatibility_versions.index(include_since) > hunk_session.os_kb.META.compatibility_versions.index(compat_floor):
+            raise ValueError(
+                f"Include {inc} requires OS {include_since}, above compatibility floor {compat_floor}"
+            )
+    base_info = hunk_session.platform.app_base
+    app_offset_equs: dict[str, str] = {}
+    if hunk_session.app_offsets:
+        assert base_info is not None, "app_offsets present but platform.app_base is missing"
+        for off in sorted(hunk_session.app_offsets):
+            app_offset_equs[hunk_session.app_offsets[off]] = _app_slot_equ_value(base_info, off)
 
-    return rows, compat_floor
+    preamble = {
+        "includes": includes,
+        "fd_only_lvo_equs": {
+            lib_name: dict(hunk_session.lvo_equs[lib_name])
+            for lib_name in sorted(hunk_session.lvo_equs)
+            if _OS_INCLUDE_KB.library_lvo_owners[lib_name].kind == "fd_only"
+        },
+        "arg_equs": dict(hunk_session.arg_equs),
+        "app_offset_equs": app_offset_equs,
+        "target_local_struct_equs": _target_local_struct_equ_defs(hunk_session),
+        "absolute_symbol_equs": absolute_symbol_equs,
+    }
+    return rows, compat_floor, preamble
 
 
 def _apply_compatibility_field_names(

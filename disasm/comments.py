@@ -6,6 +6,16 @@ from disasm.validation import get_instruction_processor_min
 from m68k.m68k_disasm import Instruction
 
 
+def _has_resolved_library_call(
+    hunk_session: HunkDisassemblySession,
+    inst: Instruction,
+) -> bool:
+    return any(
+        call.addr == inst.offset and call.library != "unknown"
+        for call in hunk_session.lib_calls
+    )
+
+
 def format_app_offset_comment(operand_parts: tuple[SemanticOperand, ...], base_reg: int) -> str | None:
     """Generate a hex offset comment for unnamed d(base_reg) references."""
     base_name = f"a{base_reg}"
@@ -71,7 +81,7 @@ def build_instruction_comment_parts(inst: Instruction,
                 break
 
     unresolved = hunk_session.unresolved_indirects.get(inst.offset)
-    if unresolved is not None:
+    if unresolved is not None and not _has_resolved_library_call(hunk_session, inst):
         parts.append(
             f"unresolved_indirect_{unresolved.region}:{unresolved.shape}")
 

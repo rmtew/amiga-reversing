@@ -237,6 +237,7 @@ class HunkMetadata:
     dynamic_structured_regions: tuple[StructuredRegionSpec, ...] = ()
     absolute_labels: dict[int, str] = field(default_factory=dict)
     reserved_absolute_addrs: set[int] = field(default_factory=set)
+    reloc_target_hunks: dict[int, int] = field(default_factory=dict)
 
 
 type InstructionRegionMap = dict[int, dict[str, TypedMemoryRegion]]
@@ -283,10 +284,29 @@ class HunkDisassemblySession:
     dynamic_structured_regions: tuple[StructuredRegionSpec, ...] = ()
     absolute_labels: dict[int, str] = field(default_factory=dict)
     reserved_absolute_addrs: set[int] = field(default_factory=set)
+    reloc_target_hunks: dict[int, int] = field(default_factory=dict)
+    reloc_labels: dict[int, str] = field(default_factory=dict)
     app_struct_regions: AppStructRegionMap = field(default_factory=dict)
     hardware_base_regs: HardwareBaseRegMap = field(default_factory=dict)
     unresolved_indirects: dict[int, IndirectSite] = field(default_factory=dict)
     lib_calls: tuple[LibraryCall, ...] = field(default_factory=tuple)
+    hunk_type: int = 1001
+    mem_type: int = 0
+    mem_attrs: int | None = None
+    section_name: str = ""
+    alloc_size: int = 0
+    stored_size: int = 0
+
+    def __post_init__(self) -> None:
+        if self.stored_size == 0:
+            self.stored_size = len(self.code)
+        assert self.stored_size <= len(self.code), (
+            f"Hunk {self.hunk_index} stored_size {self.stored_size} exceeds code bytes {len(self.code)}"
+        )
+        if self.alloc_size != 0:
+            assert self.alloc_size >= self.stored_size, (
+                f"Hunk {self.hunk_index} alloc_size {self.alloc_size} < stored_size {self.stored_size}"
+            )
 
 
 @dataclass

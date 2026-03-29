@@ -159,6 +159,15 @@ def parse_doshunks_h(path: str) -> JsonDict:
                     "note": "Wire format entries are parser-asserted from "
                             "the reference implementation with line citations",
                 },
+                {
+                    "file": "ROM Kernel Reference Manual: DOS, chapter 11.7",
+                    "type": "official",
+                    "description": "Official AmigaDOS indexed link library "
+                                   "format for HUNK_LIB and HUNK_INDEX",
+                    "provides": ["hunk_content_formats"],
+                    "note": "Wire format entries are parser-asserted from "
+                            "chapter 11.7 line citations",
+                },
             ],
             "note": "Parsed from NDK 3.1 by parse_hunk_format.py",
             # Fundamental constants derived from parsed data
@@ -401,6 +410,7 @@ def parse_doshunks_h(path: str) -> JsonDict:
                     "magic": 0x4C494E45,
                     "magic_text": "LINE",
                     "fields": [
+                        {"name": "base_offset", "type": "ULONG"},
                         {"name": "magic", "type": "ULONG",
                          "value": "0x4C494E45"},
                         {"name": "filename", "type": "BSTR",
@@ -412,8 +422,9 @@ def parse_doshunks_h(path: str) -> JsonDict:
                               "note": "SRD (start of routine data) offset"},
                          ]},
                     ],
-                    "citation": "amiga_hunk_format.md line 175; used by "
-                                "vasm and DevPac GenAm for source-level debug",
+                    "citation": "vasm output_hunk.c lines 740-751 and "
+                                "amiga_hunk_format.md line 175; base offset, "
+                                "LINE magic, filename and line/offset pairs",
                 },
             },
             "citation": "LOADSEG.ASM lines 274-282: GetLong loop to skip",
@@ -447,6 +458,55 @@ def parse_doshunks_h(path: str) -> JsonDict:
             "fields": [],
             "citation": "LOADSEG.ASM lines 285-287: sets limit flag, returns",
         },
+        "HUNK_LIB": {
+            "description": "Indexed library payload block containing stripped object hunks",
+            "fields": [
+                {"name": "length_longs", "type": "ULONG",
+                 "note": "Length of the HUNK_LIB payload in longwords"},
+                {"name": "payload", "type": "UBYTE[]",
+                 "note": "Sequence of stripped CODE/DATA/BSS hunks and auxiliary "
+                         "hunks; HUNK_UNIT and HUNK_NAME shall be absent"},
+            ],
+            "citation": "ROM Kernel Reference Manual: DOS chapter 11.7.1 "
+                        "lines 8323-8395 (table 11.30)",
+        },
+        "HUNK_INDEX": {
+            "description": "Indexed library string table and per-unit/per-hunk symbol index",
+            "fields": [
+                {"name": "length_longs", "type": "ULONG",
+                 "note": "Length of the HUNK_INDEX payload in longwords"},
+                {"name": "string_table_size_bytes", "type": "UWORD",
+                 "note": "Length of the string table in bytes; shall be even"},
+                {"name": "string_table", "type": "UBYTE[]",
+                 "note": "NUL-terminated strings indexed by byte offset"},
+                {"name": "units", "type": "ARRAY",
+                 "note": "Repeated until the end of the hunk payload"},
+            ],
+            "unit_fields": [
+                {"name": "unit_name_offset", "type": "UWORD"},
+                {"name": "first_hunk_long_offset", "type": "UWORD"},
+                {"name": "hunk_count", "type": "UWORD"},
+            ],
+            "hunk_fields": [
+                {"name": "hunk_name_offset", "type": "UWORD"},
+                {"name": "mem_type_and_hunk_type", "type": "UWORD",
+                 "note": "Bits 15-14 = memory type, bits 13-0 = abbreviated hunk type"},
+                {"name": "ref_count", "type": "UWORD"},
+                {"name": "ref_name_offsets", "type": "UWORD[]"},
+                {"name": "def_count", "type": "UWORD"},
+                {"name": "definitions", "type": "ARRAY"},
+            ],
+            "definition_fields": [
+                {"name": "name_offset", "type": "UWORD"},
+                {"name": "value_low16", "type": "UWORD"},
+                {"name": "abs_value_hi8", "type": "UBYTE"},
+                {"name": "definition_and_sign_and_type", "type": "UBYTE",
+                 "note": "Bit 7 shall be 0, bit 6 is EXT_ABS sign/high bits flag, "
+                         "bits 5-0 are abbreviated definition type"},
+            ],
+            "citation": "ROM Kernel Reference Manual: DOS chapter 11.7.2 "
+                        "lines 8397-8464 (table 11.31)",
+        },
     }
 
     # Valid hunk types in load files — from LOADSEG.ASM switch table.
@@ -463,6 +523,16 @@ def parse_doshunks_h(path: str) -> JsonDict:
         "(HUNK_NAME through HUNK_BREAK). Note: RELOC16/RELOC8/EXT/"
         "HEADER/OVERLAY/BREAK all fall through to lssFail (line 290-298), "
         "meaning they are recognized but rejected."
+    )
+
+    output["hunkexe_supported_relocation_types"] = [
+        "HUNK_RELOC32",
+        "HUNK_RELOC32SHORT",
+        "HUNK_RELRELOC32",
+    ]
+    meta["hunkexe_relocation_citation"] = (
+        "ext/vasm/doc/output_hunk.texi: The hunkexe module supports "
+        "absolute and relative 32-bit relocations only."
     )
 
     return output

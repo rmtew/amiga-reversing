@@ -778,6 +778,69 @@ def _join_values(a: AbstractValue, b: AbstractValue) -> AbstractValue:
     return _unknown(tag=tag)
 
 
+def _compare_swap_variant(
+    mnemonic: str,
+    operand_types: tuple[str, ...],
+) -> tuple[
+    tuple[str, ...],
+    tuple[tuple[str, str], ...],
+    tuple[tuple[str, str], ...],
+    tuple[tuple[str, str], ...],
+]:
+    variants = runtime_m68k_executor.COMPARE_SWAP_EFFECTS[mnemonic]
+    for variant in variants:
+        if variant[0] == operand_types:
+            return variant
+    raise AssertionError(
+        f"runtime KB missing compare-swap variant for {mnemonic} operand types {operand_types!r}"
+    )
+
+
+def _apply_compare_swap(
+    d: DecodedOps,
+    mnemonic: str,
+    cpu: CPUState,
+    mem: AbstractMemory,
+    size: str,
+    size_bytes: int,
+) -> None:
+    operand_types, compare_pairs, success_writes, failure_writes = _compare_swap_variant(
+        mnemonic,
+        d.operand_types,
+    )
+    assert operand_types == ("dn", "dn", "ea"), (
+        f"compare-swap execution only supports single CAS today, got {operand_types!r}"
+    )
+    assert d.ea_op is not None, "CAS destination EA missing"
+    assert d.compare_reg is not None, "CAS compare register missing"
+    assert d.update_reg is not None, "CAS update register missing"
+    assert compare_pairs == (("destination", "compare"),), (
+        f"Unexpected compare-swap compare pairs for {mnemonic}: {compare_pairs!r}"
+    )
+    assert success_writes == (("destination", "update"),), (
+        f"Unexpected compare-swap success writes for {mnemonic}: {success_writes!r}"
+    )
+    assert failure_writes == (("compare", "destination"),), (
+        f"Unexpected compare-swap failure writes for {mnemonic}: {failure_writes!r}"
+    )
+
+    destination = _resolve_operand(d.ea_op, cpu, mem, size, size_bytes)
+    compare = cpu.get_reg("dn", d.compare_reg)
+    update = cpu.get_reg("dn", d.update_reg)
+    if destination is None:
+        destination = _UNKNOWN
+
+    if destination.is_known and compare.is_known:
+        if destination.concrete == compare.concrete:
+            _write_operand(d.ea_op, cpu, mem, update, size, size_bytes)
+        else:
+            cpu.set_reg("dn", d.compare_reg, destination)
+        return
+
+    _write_operand(d.ea_op, cpu, mem, _join_values(destination, update), size, size_bytes)
+    cpu.set_reg("dn", d.compare_reg, _join_values(compare, destination))
+
+
 def _join_states(
     states: list[StatePair],
     init_mem: AbstractMemory | None = None,
@@ -2032,6 +2095,9 @@ def _apply_instruction(inst: Instruction, inst_kb: str,
 
     # Flow-control stops here
     if flow_type in (_FLOW_BRANCH, _FLOW_JUMP, _FLOW_RETURN, _FLOW_CALL, _FLOW_TRAP):
+        return
+    if op_type == runtime_m68k_executor.OperationType.COMPARE_SWAP:
+        _apply_compare_swap(d, mnemonic, cpu, mem, size, size_bytes)
         return
     if (
         op_type is not None

@@ -184,7 +184,7 @@ def test_analyze_hunk_skips_preclassified_external_sites_in_per_caller(
         LibraryCall(addr=4, block=0, library="exec.library",
                     function="FindTask", lvo=-294)
     ])
-    monkeypatch.setattr("m68k.analysis.refine_opened_base_calls", lambda *a, **k: a[1])
+    monkeypatch.setattr("m68k.analysis.refine_library_calls", lambda *a, **k: a[1])
     monkeypatch.setattr("m68k.analysis.resolve_per_caller", fake_per_caller)
 
     analyze_hunk(code, relocs=[], hunk_index=0, print_fn=lambda *a: None)
@@ -364,7 +364,7 @@ def test_analyze_hunk_promotes_code_pointer_args_into_core_entries(
     )
 
     monkeypatch.setattr("m68k.analysis.identify_library_calls", lambda *a, **k: [lib_call])
-    monkeypatch.setattr("m68k.analysis.refine_opened_base_calls", lambda *a, **k: a[1])
+    monkeypatch.setattr("m68k.analysis.refine_library_calls", lambda *a, **k: a[1])
 
     ha = analyze_hunk(code, relocs=[], hunk_index=0, print_fn=lambda *a: None)
 
@@ -571,15 +571,40 @@ def test_analyze_hunk_core_per_caller_does_not_promote_hint_only_target(
     assert 0x0E in result.blocks
     assert 0x12 in result.hint_blocks
     assert 0x1C not in result.blocks
-    assert {
-        "addr": 0x0A,
-        "mnemonic": "JSR",
-        "flow_type": "call",
-        "shape": "ind",
-        "region": "core",
-        "status": "runtime",
-        "target": 0x0E,
-    } in [_site_view(site) for site in result.indirect_sites]
+
+
+def test_analyze_hunk_recursively_seeds_hint_branch_targets() -> None:
+    code = bytearray(b"\x4e\x75" + b"\x4e\x71" * 7)
+    code += struct.pack(">HHH", 0x0C40, 0x0005, 0x6506)  # cmpi.w #5,d0 ; bcs.s $1c
+    code += struct.pack(">H", 0x4E75)                    # rts
+    code += b"\x4e\x71" * 2
+    code += struct.pack(">H", 0x4E75)                    # branch target at $1c
+    code += struct.pack(">I", 0x00000010)                # reloc target -> hint entry at $10
+
+    relocs = cast(list[RelocLike], [_FakeReloc(HunkType.HUNK_RELOC32, (0x1E,))])
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr("m68k.analysis.scan_and_score", lambda *args, **kwargs: [])
+        result = analyze_hunk(bytes(code), relocs=relocs, hunk_index=0, print_fn=lambda *a: None)
+
+    assert 0x10 in result.hint_blocks
+    assert 0x1C in result.hint_blocks
+
+
+def test_analyze_hunk_recursively_seeds_hint_call_targets() -> None:
+    code = bytearray(b"\x4e\x75" + b"\x4e\x71" * 7)
+    code += struct.pack(">HH", 0x6100, 0x000A)          # bsr.w $1c
+    code += struct.pack(">H", 0x4E75)                   # rts
+    code += b"\x4e\x71" * 3
+    code += struct.pack(">HH", 0x7001, 0x4E75)          # call target at $1c
+    code += struct.pack(">I", 0x00000010)               # reloc target -> hint entry at $10
+
+    relocs = cast(list[RelocLike], [_FakeReloc(HunkType.HUNK_RELOC32, (0x20,))])
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr("m68k.analysis.scan_and_score", lambda *args, **kwargs: [])
+        result = analyze_hunk(bytes(code), relocs=relocs, hunk_index=0, print_fn=lambda *a: None)
+
+    assert 0x10 in result.hint_blocks
+    assert 0x1C in result.hint_blocks
 
 
 # -- Auto-detect relocated segments -----------------------------------

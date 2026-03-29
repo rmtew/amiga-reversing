@@ -20,6 +20,7 @@ import os
 import re
 import sys
 from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast
 
@@ -2632,6 +2633,52 @@ def _build_resident_autoinit_contract(ndk_roots: dict[str, str]) -> JsonDict:
             "library": library_prefixes,
             "device": device_prefixes,
         },
+        "resident_entry_register_seeds": {
+            "library": {
+                "init": [
+                    {
+                        "register": "D0",
+                        "kind": "library_base",
+                        "named_base_source": "current_target",
+                    },
+                    {
+                        "register": "A6",
+                        "kind": "library_base",
+                        "named_base_source": "fixed",
+                        "named_base_name": "exec.library",
+                    },
+                ],
+            },
+            "device": {
+                "init": [
+                    {
+                        "register": "D0",
+                        "kind": "library_base",
+                        "named_base_source": "current_target",
+                    },
+                    {
+                        "register": "A6",
+                        "kind": "library_base",
+                        "named_base_source": "fixed",
+                        "named_base_name": "exec.library",
+                    },
+                ],
+                "DEV_BEGINIO": [
+                    {
+                        "register": "A1",
+                        "kind": "struct_ptr",
+                        "struct_name": "IOStdReq",
+                    },
+                ],
+                "DEV_ABORTIO": [
+                    {
+                        "register": "A1",
+                        "kind": "struct_ptr",
+                        "struct_name": "IOStdReq",
+                    },
+                ],
+            },
+        },
     }
 
 
@@ -2700,6 +2747,7 @@ def build_os_compatibility_kb(
     structs: dict[str, JsonDict],
     all_constants: dict[str, object],
     typed_data_stream_formats: dict[str, JsonDict] | None = None,
+    extra_include_paths: Iterable[str] = (),
 ) -> JsonDict:
     include_min_versions: dict[str, str] = {}
     function_min_versions = build_fd_function_min_versions(ndk_roots)
@@ -2722,6 +2770,7 @@ def build_os_compatibility_kb(
             _normalize_include_relpath(cast(str, format_data["include_path"]))
             for format_data in typed_data_stream_formats.values()
         )
+    include_paths.update(_normalize_include_relpath(path) for path in extra_include_paths)
 
     scanned_structs: dict[tuple[str, str], dict[str, list[dict[str, int | str]]]] = {}
     for version, root in ndk_roots.items():
@@ -2805,6 +2854,7 @@ def build_os_compatibility_kb(
         "resident_autoinit_word_stream_formats": resident_autoinit_contract["resident_autoinit_word_stream_formats"],
         "resident_autoinit_supports_short_vectors": resident_autoinit_contract["resident_autoinit_supports_short_vectors"],
         "resident_vector_prefixes": resident_autoinit_contract["resident_vector_prefixes"],
+        "resident_entry_register_seeds": resident_autoinit_contract["resident_entry_register_seeds"],
         "_function_min_versions": {
             f"{library}/{function}": version
             for (library, function), version in sorted(function_min_versions.items())
@@ -2950,6 +3000,10 @@ def main() -> None:
         raw_structs,
         raw_constants,
         raw_typed_data_stream_formats,
+        (
+            cast(str, file_info["path"])
+            for file_info in cast(dict[str, JsonDict], hardware_output["_meta"]["files"]).values()
+        ),
     )
     print(
         f"  {len(compatibility_kb['compatibility_versions'])} NDK versions, "
@@ -3035,6 +3089,7 @@ def main() -> None:
               "resident_autoinit_word_stream_formats": compatibility_kb["resident_autoinit_word_stream_formats"],
               "resident_autoinit_supports_short_vectors": compatibility_kb["resident_autoinit_supports_short_vectors"],
             "resident_vector_prefixes": compatibility_kb["resident_vector_prefixes"],
+            "resident_entry_register_seeds": compatibility_kb["resident_entry_register_seeds"],
             "named_base_structs": named_base_structs,
             "value_domains": {},
             "api_input_value_bindings": [],

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .runtime_types import OpmodeEntry, PrimaryDataSize, ShiftVariantBehavior, FieldMaps, RawFieldMaps, BranchInlineDisplacement, BranchExtensionDisplacement
+from .runtime_types import OpmodeEntry, PrimaryDataSize, CompareSwapVariant, ShiftVariantBehavior, FieldMaps, RawFieldMaps, BranchInlineDisplacement, BranchExtensionDisplacement
 
 from enum import StrEnum
 
@@ -1030,6 +1030,7 @@ OPERATION_CLASSES = {'ABCD': None,
  'cpSAVE': None,
  'cpScc': None,
  'cpTRAPcc': None}
+COMPARE_SWAP_EFFECTS = {'CAS CAS2': ((('dn', 'dn', 'ea'), (('destination', 'compare'),), (('destination', 'update'),), (('compare', 'destination'),)), (('dn_pair', 'dn_pair', 'unknown'), (('destination1', 'compare1'), ('destination2', 'compare2')), (('destination1', 'update1'), ('destination2', 'update2')), (('compare1', 'destination1'), ('compare2', 'destination2'))))}
 SOURCE_SIGN_EXTEND = ('ADDA', 'CMPA', 'MOVEA', 'SUBA')
 BOUNDS_CHECKS = {'ABCD': None,
  'ADD': None,

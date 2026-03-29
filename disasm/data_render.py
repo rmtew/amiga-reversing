@@ -181,6 +181,7 @@ def iter_data_region_lines(
     labels: dict[int, str],
     reloc_map: dict[int, int],
     string_addrs: set[int],
+    reloc_labels: dict[int, str] | None = None,
     indent: str = "    ",
     access_sizes: dict[int, int] | None = None,
     typed_sizes: dict[int, int] | None = None,
@@ -188,6 +189,8 @@ def iter_data_region_lines(
     os_kb: _TypedFieldValueKb | None = None,
     addr_comments: dict[int, str] | None = None,
 ) -> list[tuple[int, str]]:
+    if reloc_labels is None:
+        reloc_labels = {}
     if addr_comments is None:
         addr_comments = {}
     if typed_sizes is None:
@@ -210,6 +213,8 @@ def iter_data_region_lines(
             is_pointer_like = _typed_field_is_pointer_like(os_kb, typed_fields.get(pos))
             if target == 0 and is_pointer_like:
                 rendered = "0"
+            elif pos in reloc_labels:
+                rendered = reloc_labels[pos]
             elif target in labels:
                 rendered = labels[target]
             else:
@@ -261,6 +266,8 @@ def iter_data_region_lines(
                 )
                 if val == 0 and is_pointer_like:
                     rendered = "0"
+                elif pos in reloc_labels:
+                    rendered = reloc_labels[pos]
                 elif val in labels and is_pointer_like:
                     rendered = labels[val]
                 else:
@@ -359,6 +366,7 @@ def emit_data_region(
     labels: dict[int, str],
     reloc_map: dict[int, int],
     string_addrs: set[int],
+    reloc_labels: dict[int, str] | None = None,
     indent: str = "    ",
     access_sizes: dict[int, int] | None = None,
     typed_sizes: dict[int, int] | None = None,
@@ -373,6 +381,7 @@ def emit_data_region(
         labels,
         reloc_map,
         string_addrs,
+        reloc_labels,
         indent=indent,
         access_sizes=access_sizes,
         typed_sizes=typed_sizes,

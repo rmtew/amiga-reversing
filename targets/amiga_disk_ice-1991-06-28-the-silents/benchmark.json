@@ -2,34 +2,34 @@
   "target": "amiga_disk_ice-1991-06-28-the-silents",
   "binary": "bin/Ice (1991-06-28)(The Silents).adf",
   "command": "uv run scripts/benchmark_target.py amiga_disk_ice-1991-06-28-the-silents",
-  "measured_at": "2026-03-29T14:42:06+13:00",
+  "measured_at": "2026-03-30T12:08:42+13:00",
   "status": "ok",
-  "elapsed_seconds": 0.13,
+  "elapsed_seconds": 0.1,
   "analysis_bytes": 5234,
   "entities_bytes": 737,
-  "disasm_bytes": 1042,
+  "disasm_bytes": 971,
   "timing": {
     "entities": {
-      "parse_source_seconds": 0.0067,
+      "parse_source_seconds": 0.0001,
       "analysis": {
-        "init_seconds": 0.0013,
-        "core_seconds": 0.001,
-        "per_caller_seconds": 0.0052,
+        "init_seconds": 0.0012,
+        "core_seconds": 0.0008,
+        "per_caller_seconds": 0.0086,
         "store_pass_seconds": 0.0,
-        "hint_scan_seconds": 0.0616,
-        "os_call_seconds": 0.0045
+        "hint_scan_seconds": 0.0587,
+        "os_call_seconds": 0.0036
       },
       "naming_seconds": 0.0001,
-      "write_seconds": 0.0005
+      "write_seconds": 0.0006
     },
     "session": {
-      "load_analysis_seconds": 0.036,
-      "metadata_seconds": 0.001,
+      "load_analysis_seconds": 0.0381,
+      "metadata_seconds": 0.0027,
       "substitutions_seconds": 0.0,
       "build_seconds": 0.0
     },
     "emit_seconds": 0.0012,
-    "render_seconds": 0.0006
+    "render_seconds": 0.0023
   },
   "analysis": null,
   "entities": null,
@@ -47,43 +47,48 @@
     "symbols": {
       "immediate_constant_count": 0,
       "struct_field_count": 4,
-      "app_struct_field_count": 0
+      "app_struct_field_count": 0,
+      "raw_absolute_branch_target_count": 1,
+      "raw_absolute_call_target_count": 0,
+      "raw_absolute_known_code_branch_target_count": 0,
+      "raw_absolute_known_code_call_target_count": 0
     }
   },
+  "compatibility_floor": "1.3",
   "error": null,
   "targets": {
     "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootblock": {
       "target": "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootblock",
       "binary": "targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootblock/binary.bin",
       "command": "uv run scripts/benchmark_target.py amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootblock",
-      "measured_at": "2026-03-29T14:42:06+13:00",
+      "measured_at": "2026-03-30T12:08:42+13:00",
       "status": "ok",
       "elapsed_seconds": 0.1,
       "analysis_bytes": 5234,
       "entities_bytes": 737,
-      "disasm_bytes": 1042,
+      "disasm_bytes": 971,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0067,
+          "parse_source_seconds": 0.0001,
           "analysis": {
-            "init_seconds": 0.0013,
-            "core_seconds": 0.001,
-            "per_caller_seconds": 0.0052,
+            "init_seconds": 0.0012,
+            "core_seconds": 0.0008,
+            "per_caller_seconds": 0.0086,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0616,
-            "os_call_seconds": 0.0045
+            "hint_scan_seconds": 0.0587,
+            "os_call_seconds": 0.0036
           },
           "naming_seconds": 0.0001,
-          "write_seconds": 0.0005
+          "write_seconds": 0.0006
         },
         "session": {
-          "load_analysis_seconds": 0.036,
-          "metadata_seconds": 0.001,
+          "load_analysis_seconds": 0.0381,
+          "metadata_seconds": 0.0027,
           "substitutions_seconds": 0.0,
           "build_seconds": 0.0
         },
         "emit_seconds": 0.0012,
-        "render_seconds": 0.0006
+        "render_seconds": 0.0023
       },
       "analysis": {
         "code_bytes": 1012,
@@ -127,9 +132,14 @@
         "symbols": {
           "immediate_constant_count": 0,
           "struct_field_count": 4,
-          "app_struct_field_count": 0
+          "app_struct_field_count": 0,
+          "raw_absolute_branch_target_count": 1,
+          "raw_absolute_call_target_count": 0,
+          "raw_absolute_known_code_branch_target_count": 0,
+          "raw_absolute_known_code_call_target_count": 0
         }
       },
+      "compatibility_floor": "1.3",
       "error": null,
       "targets": null
     }

@@ -19,13 +19,14 @@ from __future__ import annotations
 import re
 import struct
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass, replace
 from enum import StrEnum
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Protocol
 
 from disasm.target_metadata import (
     AppSlotRegionMetadata,
+    CustomStructFieldMetadata,
     CustomStructMetadata,
     TargetMetadata,
 )
@@ -50,8 +51,8 @@ from .instruction_kb import find_kb_entry, instruction_flow, instruction_kb
 from .instruction_primitives import Operand, extract_branch_target
 from .memory_provenance import (
     MemoryRegionAddressSpace,
+    MemoryRegionDerivationKind,
     MemoryRegionProvenance,
-    field_pointer_derivation,
     field_pointer_source,
     provenance_base_displacement,
     provenance_field_pointer,
@@ -290,13 +291,30 @@ def _validate_app_slot_region(slot: AppSlotRegionMetadata, os_kb: OsKb) -> None:
 
 
 def build_target_local_os_kb(os_kb: OsKb,
-                             target_metadata: TargetMetadata | None = None) -> OsKb:
-    if target_metadata is None:
+                             target_metadata: TargetMetadata | None = None,
+                             *,
+                             extra_custom_structs: tuple[CustomStructMetadata, ...] = (),
+                             named_base_struct_overrides: Mapping[str, str] | None = None,
+                             ) -> OsKb:
+    if target_metadata is None and not extra_custom_structs and not named_base_struct_overrides:
         return os_kb
     merged_structs = dict(os_kb.STRUCTS)
     target_struct_names = set(merged_structs)
-    target_struct_names.update(custom_struct.name for custom_struct in target_metadata.custom_structs)
-    for custom_struct in target_metadata.custom_structs:
+    custom_structs = ()
+    if target_metadata is not None:
+        custom_structs = target_metadata.custom_structs
+    all_custom_structs = custom_structs + extra_custom_structs
+    target_struct_names.update(custom_struct.name for custom_struct in all_custom_structs)
+    merged_kb = SimpleNamespace(
+        META=os_kb.META,
+        VALUE_DOMAINS=os_kb.VALUE_DOMAINS,
+        API_INPUT_VALUE_DOMAINS=os_kb.API_INPUT_VALUE_DOMAINS,
+        STRUCT_FIELD_VALUE_DOMAINS=os_kb.STRUCT_FIELD_VALUE_DOMAINS,
+        STRUCTS=merged_structs,
+        CONSTANTS=os_kb.CONSTANTS,
+        LIBRARIES=os_kb.LIBRARIES,
+    )
+    for custom_struct in all_custom_structs:
         _validate_custom_struct(
             SimpleNamespace(STRUCTS=merged_structs),
             custom_struct,
@@ -310,22 +328,233 @@ def build_target_local_os_kb(os_kb: OsKb,
                 )
             continue
         merged_structs[custom_struct.name] = custom_struct
-    merged_kb = SimpleNamespace(
-        META=os_kb.META,
-        VALUE_DOMAINS=os_kb.VALUE_DOMAINS,
-        API_INPUT_VALUE_DOMAINS=os_kb.API_INPUT_VALUE_DOMAINS,
-        STRUCT_FIELD_VALUE_DOMAINS=os_kb.STRUCT_FIELD_VALUE_DOMAINS,
-        STRUCTS=merged_structs,
-        CONSTANTS=os_kb.CONSTANTS,
-        LIBRARIES=os_kb.LIBRARIES,
-    )
-    for slot in target_metadata.app_slot_regions:
-        _validate_app_slot_region(slot, merged_kb)
+    merged_named_base_structs = dict(os_kb.META.named_base_structs)
+    if named_base_struct_overrides is not None:
+        for named_base, struct_name in named_base_struct_overrides.items():
+            if struct_name not in merged_structs:
+                raise KeyError(
+                    f"Named base override {named_base} references unknown struct {struct_name}"
+                )
+            merged_named_base_structs[named_base] = struct_name
+    if merged_named_base_structs != os_kb.META.named_base_structs:
+        meta = os_kb.META
+        if is_dataclass(meta):
+            merged_kb.META = replace(meta, named_base_structs=merged_named_base_structs)
+        elif hasattr(meta, "__dict__"):
+            merged_kb.META = SimpleNamespace(**{**meta.__dict__, "named_base_structs": merged_named_base_structs})
+        else:
+            raise TypeError("Unsupported META container for named_base_structs override")
+    if target_metadata is not None:
+        for slot in target_metadata.app_slot_regions:
+            _validate_app_slot_region(slot, merged_kb)
     return merged_kb
 
 
 def _sanitize_app_name(name: str) -> str:
     return re.sub(r'[^a-z0-9]+', '_', name.lower())
+
+
+def _named_base_inferred_struct_name(named_base: str) -> str:
+    stem = "".join(part.capitalize() for part in _sanitize_app_name(named_base).split("_") if part)
+    return f"Inferred{stem}Base"
+
+
+def _named_base_field_name_from_region(region: TypedMemoryRegion | None, fallback_offset: int) -> str:
+    if region is not None:
+        derivation = region.provenance.derivation
+        if derivation is not None and derivation.kind is MemoryRegionDerivationKind.NAMED_BASE:
+            named_base = derivation.named_base
+            if named_base is not None:
+                return f"{_sanitize_app_name(named_base)}_base"
+        stem = _sanitize_app_name(region.struct)
+        if stem:
+            suffix = "base" if stem.endswith(("library", "device", "resource")) else "ptr"
+            return f"{stem}_{suffix}"
+    return f"field_{fallback_offset:04x}"
+
+
+def _fixed_base_operand(op: Operand | None) -> tuple[str, int] | None:
+    if op is None:
+        return None
+    if op.mode == "ind":
+        assert op.reg is not None, "Indirect operand missing base register"
+        return _address_reg_name(op.reg), 0
+    if op.mode == "disp":
+        assert op.reg is not None and op.value is not None, (
+            "Displacement operand missing register or value")
+        return _address_reg_name(op.reg), op.value
+    if (
+        op.mode == "index"
+        and not op.memory_indirect
+        and not op.base_suppressed
+        and op.index_suppressed
+    ):
+        assert op.reg is not None, "Indexed operand missing base register"
+        return _address_reg_name(op.reg), 0 if op.base_displacement is None else op.base_displacement
+    return None
+
+
+@dataclass(slots=True)
+class _InferredNamedBaseField:
+    offset: int
+    size: int
+    field_type: str
+    name: str
+    pointer_struct: str | None = None
+    named_base: str | None = None
+
+
+def _merge_inferred_named_base_field(
+    existing: _InferredNamedBaseField | None,
+    candidate: _InferredNamedBaseField,
+) -> _InferredNamedBaseField:
+    if existing is None:
+        return candidate
+    size = max(existing.size, candidate.size)
+    pointer_struct = existing.pointer_struct or candidate.pointer_struct
+    if (
+        existing.pointer_struct is not None
+        and candidate.pointer_struct is not None
+        and existing.pointer_struct != candidate.pointer_struct
+    ):
+        pointer_struct = None
+    named_base = existing.named_base or candidate.named_base
+    if (
+        existing.named_base is not None
+        and candidate.named_base is not None
+        and existing.named_base != candidate.named_base
+    ):
+        named_base = None
+    field_type = existing.field_type if existing.size >= candidate.size else candidate.field_type
+    if pointer_struct is not None:
+        field_type = "APTR"
+    name = existing.name
+    if name.startswith("field_") and not candidate.name.startswith("field_"):
+        name = candidate.name
+    return _InferredNamedBaseField(
+        offset=existing.offset,
+        size=size,
+        field_type=field_type,
+        name=name,
+        pointer_struct=pointer_struct,
+        named_base=named_base,
+    )
+
+
+def infer_named_base_extension_structs(
+    blocks: dict[int, BasicBlock],
+    facts_by_inst: dict[int, dict[str, TypedMemoryRegion]],
+    os_kb: OsKb,
+) -> tuple[tuple[CustomStructMetadata, ...], dict[str, str]]:
+    size_map = {"b": 1, "w": 2, "l": 4}
+    inferred_fields: dict[str, dict[int, _InferredNamedBaseField]] = {}
+    base_structs: dict[str, str] = {}
+    for block in blocks.values():
+        for inst in block.instructions:
+            facts = facts_by_inst.get(inst.offset)
+            if not facts:
+                continue
+            ikb, decoded = _decode_inst(inst)
+            operand_size = inst.operand_size
+            if operand_size is None:
+                continue
+            byte_size = size_map.get(operand_size)
+            if byte_size is None:
+                continue
+            src_name = _decoded_source_reg(decoded)
+            src_region = None if src_name is None else facts.get(src_name)
+            for op, is_store in ((decoded.ea_op, False), (decoded.dst_op, True)):
+                access = _fixed_base_operand(op)
+                if access is None:
+                    continue
+                base_register, displacement = access
+                base_region = facts.get(base_register)
+                if base_region is None or _is_opaque_segment_region(base_region):
+                    continue
+                derivation = base_region.provenance.derivation
+                if derivation is None or derivation.kind is not MemoryRegionDerivationKind.NAMED_BASE:
+                    continue
+                named_base = derivation.named_base
+                if named_base is None:
+                    continue
+                field_offset = base_region.struct_offset + displacement
+                if field_offset < 0:
+                    continue
+                known_field = resolve_struct_field(os_kb.STRUCTS, base_region.struct, field_offset)
+                if known_field is not None:
+                    continue
+                base_structs.setdefault(named_base, base_region.struct)
+                field_type = {1: "UBYTE", 2: "UWORD", 4: "ULONG"}[byte_size]
+                pointer_struct = None
+                pointer_named_base = None
+                field_name = f"field_{field_offset:04x}"
+                if is_store and byte_size == 4 and src_region is not None:
+                    pointer_struct = src_region.struct
+                    src_derivation = src_region.provenance.derivation
+                    if (
+                        src_derivation is not None
+                        and src_derivation.kind is MemoryRegionDerivationKind.NAMED_BASE
+                    ):
+                        pointer_named_base = src_derivation.named_base
+                    field_type = "APTR"
+                    field_name = _named_base_field_name_from_region(src_region, field_offset)
+                fields_for_base = inferred_fields.setdefault(named_base, {})
+                candidate = _InferredNamedBaseField(
+                    offset=field_offset,
+                    size=byte_size,
+                    field_type=field_type,
+                    name=field_name,
+                    pointer_struct=pointer_struct,
+                    named_base=pointer_named_base,
+                )
+                fields_for_base[field_offset] = _merge_inferred_named_base_field(
+                    fields_for_base.get(field_offset),
+                    candidate,
+                )
+    custom_structs: list[CustomStructMetadata] = []
+    named_base_overrides: dict[str, str] = {}
+    for named_base, fields_by_offset in sorted(inferred_fields.items()):
+        if not fields_by_offset:
+            continue
+        base_struct = base_structs[named_base]
+        base_struct_def = os_kb.STRUCTS[base_struct]
+        seen_names: set[str] = set()
+        rendered_fields: list[CustomStructFieldMetadata] = []
+        for offset, field in sorted(fields_by_offset.items()):
+            field_name = field.name
+            if field_name in seen_names:
+                field_name = f"{field_name}_{offset:04x}"
+            seen_names.add(field_name)
+            rendered_fields.append(
+                    CustomStructFieldMetadata(
+                        name=field_name,
+                        type=field.field_type,
+                        offset=offset,
+                        size=field.size,
+                        pointer_struct=field.pointer_struct,
+                        named_base=field.named_base,
+                    )
+                )
+        struct_size = max(
+            base_struct_def.size,
+            max(field.offset + field.size for field in rendered_fields),
+        )
+        struct_name = _named_base_inferred_struct_name(named_base)
+        custom_structs.append(
+            CustomStructMetadata(
+                name=struct_name,
+                size=struct_size,
+                fields=tuple(rendered_fields),
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation=f"Inferred from typed named-base accesses for {named_base}",
+                source="target_metadata",
+                base_offset=base_struct_def.size,
+                base_struct=base_struct,
+            )
+        )
+        named_base_overrides[named_base] = struct_name
+    return tuple(custom_structs), named_base_overrides
 
 
 def _refined_named_base_struct(os_kb: OsKb,
@@ -1262,6 +1491,12 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
     typed_data_fields: dict[int, tuple[str, str, str | None]] = {}
     segment_code_name_candidates: dict[int, set[str]] = {}
     string_ranges: dict[int, int] = {}
+    code_addrs = {
+        addr
+        for block in blocks.values()
+        for inst in block.instructions
+        for addr in range(inst.offset, inst.offset + inst.size)
+    }
 
     for call in lib_calls:
         if not call.inputs:
@@ -1339,6 +1574,9 @@ def analyze_call_setups(blocks: dict[int, BasicBlock],
                         state.complete = True
                         continue
                     _text, end = string_span
+                    if any(addr in code_addrs for addr in range(address, end)):
+                        state.complete = True
+                        continue
                     existing_end = string_ranges.get(address)
                     if existing_end is not None and existing_end != end:
                         raise ValueError(
@@ -1678,21 +1916,17 @@ def _apply_region_fact_summary(current: dict[str, RegisterFact],
             os_kb, src_fact.region, field_transfer.displacement)
         if field_info is None:
             continue
-        pointer_struct = field_info.field.pointer_struct
-        if pointer_struct is None:
+        region = _region_from_pointer_field(
+            field_info=field_info,
+            os_kb=os_kb,
+            base_register=field_transfer.src_reg,
+            displacement=field_transfer.displacement,
+        )
+        if region is None:
             raise ValueError(
                 f"Region transfer {field_transfer.src_reg}+{field_transfer.displacement} missing pointer struct")
-        struct_def = os_kb.STRUCTS[pointer_struct]
         result[field_transfer.dst_reg] = RegisterFact(
-            region=TypedMemoryRegion(
-                struct=pointer_struct,
-                size=struct_def.size,
-                provenance=MemoryRegionProvenance(
-                    address_space=MemoryRegionAddressSpace.REGISTER,
-                    derivation=field_pointer_derivation(
-                        field_transfer.src_reg, field_transfer.displacement),
-                ),
-            ),
+            region=region,
         )
     for reg_name, region in region_summary.produced:
         existing = result.get(reg_name)
@@ -1877,6 +2111,49 @@ def _region_from_library_base_tag(tag: LibraryBaseTag,
     )
 
 
+def _region_from_pointer_field(
+    *,
+    field_info: ResolvedStructField,
+    os_kb: OsKb,
+    base_register: str,
+    displacement: int,
+    source_is_app: bool = False,
+    pointee_offset: int = 0,
+) -> TypedMemoryRegion | None:
+    pointer_struct = field_info.field.pointer_struct
+    if pointer_struct is None:
+        return None
+    named_base = field_info.field.named_base
+    struct_name = pointer_struct
+    if named_base is not None:
+        specific_struct = os_kb.META.named_base_structs.get(named_base)
+        if specific_struct is not None:
+            if specific_struct not in os_kb.STRUCTS:
+                raise KeyError(
+                    f"Named base {named_base} maps to unknown struct {specific_struct}"
+                )
+            struct_name = specific_struct
+    if struct_name is None:
+        return None
+    struct_def = os_kb.STRUCTS[struct_name]
+    if pointee_offset < 0 or pointee_offset >= struct_def.size:
+        return None
+    if named_base is not None:
+        provenance = provenance_named_base(named_base)
+    elif source_is_app:
+        provenance = provenance_base_displacement(
+            MemoryRegionAddressSpace.APP, base_register, displacement
+        )
+    else:
+        provenance = provenance_field_pointer(base_register, displacement)
+    return TypedMemoryRegion(
+        struct=struct_name,
+        size=struct_def.size,
+        provenance=provenance,
+        struct_offset=pointee_offset,
+    )
+
+
 def _region_from_typed_address(current: dict[str, RegisterFact],
                                op: Operand | None,
                                os_kb: OsKb,
@@ -1954,18 +2231,12 @@ def _region_from_typed_address(current: dict[str, RegisterFact],
     field_info = _resolve_region_field(os_kb, base_fact.region, pointer_field_offset)
     if field_info is None:
         return None
-    pointer_struct = field_info.field.pointer_struct
-    if pointer_struct is None:
-        return None
-    struct_def = os_kb.STRUCTS[pointer_struct]
-    if pointee_offset < 0 or pointee_offset >= struct_def.size:
-        return None
-    return TypedMemoryRegion(
-        struct=pointer_struct,
-        size=struct_def.size,
-        provenance=provenance_field_pointer(
-            _address_reg_name(reg), pointer_field_offset),
-        struct_offset=pointee_offset,
+    return _region_from_pointer_field(
+        field_info=field_info,
+        os_kb=os_kb,
+        base_register=_address_reg_name(reg),
+        displacement=pointer_field_offset,
+        pointee_offset=pointee_offset,
     )
 
 
@@ -1990,12 +2261,31 @@ def _field_offset_from_source_operand(op: Operand | None) -> tuple[str, int] | N
 
 
 def _pointee_region_from_load(current: dict[str, RegisterFact],
+                              inst: Instruction,
+                              hunk_index: int,
                               decoded: DecodedOperands,
-                              dst_name: str,
                               os_kb: OsKb,
                               app_struct_regions: dict[int, TypedMemoryRegion],
                               app_pointer_regions: dict[int, TypedMemoryRegion],
+                              absolute_pointer_regions: dict[tuple[int, int], TypedMemoryRegion],
+                              reloc_target_hunks: dict[int, int] | None,
                               platform: PlatformState | None) -> TypedMemoryRegion | None:
+    source_op = decoded.ea_op
+    if source_op is not None and source_op.mode in {"absw", "absl"} and source_op.value is not None:
+        absolute_addr = (source_op.value & 0xFFFF) if source_op.mode == "absw" else source_op.value
+        target_hunk = hunk_index
+        if reloc_target_hunks is not None:
+            for ext_off in range(
+                inst.offset + runtime_m68k_analysis.OPWORD_BYTES,
+                inst.offset + inst.size,
+            ):
+                resolved_hunk = reloc_target_hunks.get(ext_off)
+                if resolved_hunk is not None:
+                    target_hunk = resolved_hunk
+                    break
+        absolute_region = absolute_pointer_regions.get((target_hunk, absolute_addr))
+        if absolute_region is not None:
+            return absolute_region
     src_info = _field_offset_from_source_operand(decoded.ea_op)
     if src_info is None:
         src_info = _effective_index_offset(decoded.ea_op, _concrete_facts(current))
@@ -2022,18 +2312,12 @@ def _pointee_region_from_load(current: dict[str, RegisterFact],
         field_info = _resolve_region_field(os_kb, base_fact.region, displacement)
         if field_info is None:
             return None
-    pointer_struct = field_info.field.pointer_struct
-    if pointer_struct is None:
-        return None
-    struct_def = os_kb.STRUCTS[pointer_struct]
-    provenance = (provenance_base_displacement(
-        MemoryRegionAddressSpace.APP, base_register, displacement)
-        if source_is_app
-        else provenance_field_pointer(base_register, displacement))
-    return TypedMemoryRegion(
-        struct=pointer_struct,
-        size=struct_def.size,
-        provenance=provenance,
+    return _region_from_pointer_field(
+        field_info=field_info,
+        os_kb=os_kb,
+        base_register=base_register,
+        displacement=displacement,
+        source_is_app=source_is_app,
     )
 
 
@@ -2121,12 +2405,16 @@ def _offset_region(region: TypedMemoryRegion, offset: int) -> TypedMemoryRegion 
 
 
 def _apply_register_update(current: dict[str, RegisterFact],
+                           inst: Instruction,
+                           hunk_index: int,
                            ikb: str | None,
                            decoded: DecodedOperands,
                            dst_name: str,
                            os_kb: OsKb,
                            app_struct_regions: dict[int, TypedMemoryRegion],
                            app_pointer_regions: dict[int, TypedMemoryRegion],
+                           absolute_pointer_regions: dict[tuple[int, int], TypedMemoryRegion],
+                           reloc_target_hunks: dict[int, int] | None,
                            platform: PlatformState | None) -> None:
     op_type = None if ikb is None else runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
     concrete = _updated_concrete_value(current, ikb, decoded, dst_name)
@@ -2137,7 +2425,17 @@ def _apply_register_update(current: dict[str, RegisterFact],
         return
     if op_type == runtime_m68k_analysis.OperationType.MOVE or ikb == "MOVEA":
         pointee_region = _pointee_region_from_load(
-            current, decoded, dst_name, os_kb, app_struct_regions, app_pointer_regions, platform)
+            current,
+            inst,
+            hunk_index,
+            decoded,
+            os_kb,
+            app_struct_regions,
+            app_pointer_regions,
+            absolute_pointer_regions,
+            reloc_target_hunks,
+            platform,
+        )
         if pointee_region is not None:
             _set_register_fact(current, dst_name, region=pointee_region, concrete=concrete)
             return
@@ -2739,23 +3037,27 @@ def _block_containing_instruction(blocks: dict[int, BasicBlock], addr: int) -> B
     return None
 
 
-def refine_opened_base_calls(blocks: dict[int, BasicBlock],
-                             lib_calls: list[LibraryCall],
-                             code: bytes,
-                             os_kb: OsKb,
-                             platform: PlatformState | None = None,
-                             target_metadata: TargetMetadata | None = None) -> list[LibraryCall]:
-    """Resolve unknown direct base calls through named opened bases."""
-    if platform is None or platform.app_base is None:
-        return lib_calls
+def refine_library_calls(blocks: dict[int, BasicBlock],
+                         lib_calls: list[LibraryCall],
+                         code: bytes,
+                         os_kb: OsKb,
+                         platform: PlatformState | None = None,
+                         target_metadata: TargetMetadata | None = None,
+                         region_map: dict[int, dict[str, TypedMemoryRegion]] | None = None) -> list[LibraryCall]:
+    """Resolve unknown LVO calls from propagated named-base and app-slot facts."""
     os_kb = build_target_local_os_kb(os_kb, target_metadata)
-    app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform, target_metadata)
-    named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
-    if not named_bases:
-        return lib_calls
-    region_map = propagate_typed_memory_regions(blocks, lib_calls, code, os_kb, platform, target_metadata)
     lvo_lookup = _build_lvo_lookup(os_kb)
-    base_reg_name = _address_reg_name(platform.app_base.reg_num)
+    app_struct_regions: dict[int, TypedMemoryRegion] = {}
+    named_bases: dict[int, str] = {}
+    base_reg_name: str | None = None
+    if platform is not None and platform.app_base is not None:
+        app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform, target_metadata)
+        named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
+        base_reg_name = _address_reg_name(platform.app_base.reg_num)
+    if region_map is None:
+        region_map = propagate_typed_memory_regions(
+            blocks, lib_calls, code, os_kb, platform, target_metadata
+        )
     refined: list[LibraryCall] = []
     for call in lib_calls:
         if call.library != "unknown" or call.lvo is None:
@@ -2763,23 +3065,36 @@ def refine_opened_base_calls(blocks: dict[int, BasicBlock],
             continue
         resolved_call = None
         region = region_map.get(call.addr, {}).get("a6")
-        if region is not None and region.struct == "DD":
-            provenance = region.provenance
-            base_disp = require_base_displacement(
-                provenance, expected_space=MemoryRegionAddressSpace.APP)
-            if base_disp[0] == base_reg_name:
-                resolved = _resolve_app_struct_field(app_struct_regions, base_disp[1], os_kb)
-                if resolved is not None:
-                    region_offset, _parent_region, _field_displacement, field_info = resolved
-                    if field_info.field.name == "IO_DEVICE":
-                        device_name = named_bases.get(region_offset)
-                        if device_name is not None:
-                            resolved_call = _resolve_lvo(call.lvo, device_name, lvo_lookup)
-        if resolved_call is None:
+        if region is not None:
+            derivation = region.provenance.derivation
+            if (
+                derivation is not None
+                and derivation.kind is MemoryRegionDerivationKind.NAMED_BASE
+                and derivation.named_base is not None
+            ):
+                resolved_call = _resolve_lvo(call.lvo, derivation.named_base, lvo_lookup)
+            elif (
+                base_reg_name is not None
+                and region.struct == "DD"
+                and region.provenance.address_space == MemoryRegionAddressSpace.APP
+            ):
+                base_disp = require_base_displacement(
+                    region.provenance, expected_space=MemoryRegionAddressSpace.APP
+                )
+                if base_disp[0] == base_reg_name:
+                    resolved = _resolve_app_struct_field(app_struct_regions, base_disp[1], os_kb)
+                    if resolved is not None:
+                        region_offset, _parent_region, _field_displacement, field_info = resolved
+                        if field_info.field.name == "IO_DEVICE":
+                            device_name = named_bases.get(region_offset)
+                            if device_name is not None:
+                                resolved_call = _resolve_lvo(call.lvo, device_name, lvo_lookup)
+        if resolved_call is None and base_reg_name is not None:
             block = _block_containing_instruction(blocks, call.addr)
             if block is None:
                 refined.append(call)
                 continue
+            assert platform is not None and platform.app_base is not None
             slot_offset = _find_app_slot_seed(block, call.addr, "a6", platform.app_base.reg_num)
             if slot_offset is None:
                 refined.append(call)
@@ -2789,6 +3104,9 @@ def refine_opened_base_calls(blocks: dict[int, BasicBlock],
                 refined.append(call)
                 continue
             resolved_call = _resolve_lvo(call.lvo, base_name, lvo_lookup)
+        if resolved_call is None:
+            refined.append(call)
+            continue
         refined.append(LibraryCall(
             addr=call.addr,
             block=call.block,
@@ -2812,6 +3130,9 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
                                    os_kb: OsKb,
                                    platform: PlatformState | None = None,
                                    target_metadata: TargetMetadata | None = None,
+                                   absolute_pointer_regions: dict[tuple[int, int], TypedMemoryRegion] | None = None,
+                                   hunk_index: int = 0,
+                                   reloc_target_hunks: dict[int, int] | None = None,
                                    ) -> dict[int, dict[str, TypedMemoryRegion]]:
     """Propagate KB-typed memory regions through register values.
 
@@ -2846,6 +3167,8 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
         lib_calls,
         code,
     )
+    if absolute_pointer_regions is None:
+        absolute_pointer_regions = {}
     for seed_offset, seeds in wrapper_seed_regions.items():
         seed_regions.setdefault(seed_offset, {}).update(seeds)
     app_struct_regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform, target_metadata)
@@ -2903,7 +3226,19 @@ def propagate_typed_memory_regions(blocks: dict[int, BasicBlock],
                 dst_name = None if dst is None else _reg_name(dst[0], dst[1])
                 if dst_name is not None and not (seeded and dst_name in seeded):
                     _apply_register_update(
-                        current, ikb, decoded, dst_name, os_kb, app_struct_regions, app_pointer_regions, platform)
+                        current,
+                        inst,
+                        hunk_index,
+                        ikb,
+                        decoded,
+                        dst_name,
+                        os_kb,
+                        app_struct_regions,
+                        app_pointer_regions,
+                        absolute_pointer_regions,
+                        reloc_target_hunks,
+                        platform,
+                    )
                 _apply_output_struct_region_facts(current, output_region_facts.get(inst.offset))
 
             call_dst = None
