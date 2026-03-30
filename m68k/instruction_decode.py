@@ -560,6 +560,13 @@ def decode_instruction_operands(inst_raw: bytes, mnemonic: str,
         else:
             result.ea_op = Operand(mode="predec", reg=src_reg, value=None)
             result.dst_op = Operand(mode="predec", reg=dst_reg, value=None)
+    if operand_types in {("imm", "ccr"), ("imm", "sr")}:
+        if len(inst_raw) < opword_bytes + 2:
+            raise ValueError(f"{mnemonic} immediate word missing")
+        imm = struct.unpack_from(">H", inst_raw, opword_bytes)[0]
+        if size == "b":
+            imm &= 0xFF
+        result.imm_val = imm
     if mnemonic in {"CHK2", "CMP2"} and operand_types == ("ea", "rn"):
         if runtime_m68k_decode.ENCODING_COUNTS[mnemonic] < 2 or len(inst_raw) < opword_bytes + 2:
             raise ValueError(f"{mnemonic} extension word missing")

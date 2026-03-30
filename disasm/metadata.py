@@ -178,6 +178,8 @@ def build_hunk_metadata(*, code: bytes, code_size: int, hunk_index: int,
         if base is not None and base not in labels:
             labels[base] = f"loc_{base:04x}"
         for entry in region.entries:
+            if entry.entry_addr not in labels:
+                labels[entry.entry_addr] = f"jtent_{entry.entry_addr:04x}"
             if entry.target not in labels:
                 labels[entry.target] = f"loc_{entry.target:04x}"
 

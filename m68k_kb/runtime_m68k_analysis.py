@@ -1466,6 +1466,7 @@ AN_SIZES = {'ABCD': (),
  'cpSAVE': (),
  'cpScc': (),
  'cpTRAPcc': ()}
+SIZES_68000 = {'BRA': ('b', 'w'), 'BSR': ('b', 'w'), 'Bcc': ('b', 'w'), 'CHK': ('w',), 'LINK': ('w',)}
 PROCESSOR_MINS = {'abcd': Processor.M68000,
  'add': Processor.M68000,
  'adda': Processor.M68000,

@@ -439,6 +439,36 @@ def test_app_slot_entity_payloads_format_negative_offsets() -> None:
     }]
 
 
+def test_app_slot_entity_payloads_emit_parser_buffer_metadata() -> None:
+    module = _load_build_entities_module()
+
+    payloads = module.app_slot_entity_payloads((
+        module.ReferencedAppSlot(
+            offset=0x0228,
+            symbol="app_option_source_buffer",
+            struct=None,
+            size=None,
+            pointer_struct=None,
+            named_base=None,
+            storage_kind="pointer",
+            semantic_type="source_text_buffer",
+            parser_role="option_source",
+            parser_routine="sub_ab00",
+            parse_order=0,
+        ),
+    ))
+
+    assert payloads == [{
+        "offset": "0x0228",
+        "symbol": "app_option_source_buffer",
+        "storage_kind": "pointer",
+        "semantic_type": "source_text_buffer",
+        "parser_role": "option_source",
+        "parser_routine": "sub_ab00",
+        "parse_order": 0,
+    }]
+
+
 def test_summarize_entity_app_slots_adds_direct_and_transitive_summaries() -> None:
     module = _load_build_entities_module()
     entities = [

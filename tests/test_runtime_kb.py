@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import cast
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
+from disasm.assembler_profiles import load_assembler_profile
 from kb import runtime_builder
 from kb.ndk_parser import parse_fd_file
 from kb.os_reference import (
@@ -18,6 +20,7 @@ from kb.os_reference import (
 )
 from m68k import m68k_asm
 from m68k.os_structs import resolve_struct_field
+from scripts.oracle_m68k_asm import ORACLE_MAP, PROJ_ROOT, VamosDriver
 from tests.runtime_kb_helpers import (
     RUNTIME_PY,
     load_canonical_hardware_symbols,
@@ -85,6 +88,68 @@ def test_source_modules_use_ascii_only_text() -> None:
         text = path.read_text(encoding="utf-8")
         if any(ord(ch) > 127 for ch in text):
             raise AssertionError(f"{path} contains non-ASCII source text")
+
+
+def test_assembler_profiles_load_from_kb() -> None:
+    vasm = load_assembler_profile("vasm")
+    devpac = load_assembler_profile("devpac")
+
+    assert vasm.render.header_generated_syntax == "vasm Motorola syntax"
+    assert vasm.render.directives.section == "section"
+    assert vasm.render.current_location_token == "*"
+    assert vasm.render.omit_zero_pc_index_displacement is False
+    assert vasm.render.auto_align_dc_w is False
+    assert vasm.render.auto_align_dc_l is False
+    assert vasm.local_include_root is None
+    assert vasm.output_file_option == "-o <filename>"
+    assert devpac.render.header_generated_syntax == "GenAm Motorola syntax"
+    assert devpac.render.directives.section == "SECTION"
+    assert devpac.render.current_location_token == "*"
+    assert devpac.render.omit_zero_pc_index_displacement is False
+    assert devpac.render.require_label_anchor_for_self_relative_data is True
+    assert devpac.render.auto_align_dc_w is True
+    assert devpac.render.auto_align_dc_l is True
+    assert devpac.local_include_root == "ext/amiga_includes/ndk_2.0/include"
+    assert devpac.output_file_option == "TO <filename>"
+
+
+def test_vendored_amiga_includes_are_lf_only() -> None:
+    root = Path("ext/amiga_includes")
+    for path in root.rglob("*"):
+        if path.is_file():
+            assert b"\r\n" not in path.read_bytes(), str(path)
+
+
+def test_devpac_oracle_driver_stages_local_includes_and_passes_incdir(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    oracle_cfg = json.loads(ORACLE_MAP["devpac"].read_text(encoding="utf-8"))
+    monkeypatch.setenv("TEMP", str(tmp_path))
+    recorded: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        recorded.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    driver = VamosDriver(oracle_cfg, PROJ_ROOT)
+    driver.setup()
+    try:
+        assert driver._include_arg is not None
+        staged = tmp_path / driver._include_arg.removeprefix("TMP:").rstrip("/\\")
+        assert staged.is_dir()
+        assert (staged / "exec" / "types.i").is_file()
+
+        src = tmp_path / "probe.s"
+        out = tmp_path / "probe.o"
+        src.write_text(" dc.b 0\n", encoding="latin-1")
+        driver._run_vamos(str(src), str(out))
+
+        assert recorded
+        cmd = recorded[-1]
+        assert cmd[-2:] == ["INCDIR", driver._include_arg]
+    finally:
+        driver.teardown()
 
 
 def test_runtime_kb_generation_is_deterministic() -> None:

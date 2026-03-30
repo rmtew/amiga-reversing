@@ -1,6 +1,6 @@
-; Generated disassembly -- vasm Motorola syntax
+; Generated disassembly -- GenAm Motorola syntax
 ; Source: bin\GenAm
-; 64920 bytes, 486 entities, 2840 blocks
+; 64920 bytes, 489 entities, 2840 blocks
 ; OS compatibility floor: 2.0
 
 ; OS function argument constants
@@ -17,10 +17,13 @@ SIGBREAKF_CTRL_C	EQU	4096
 app_current_node	EQU	426
 app_dos_base	EQU	3286
 app_freemem_memoryblock	EQU	-2
+app_input_source_buffer	EQU	560
 app_node_list_head	EQU	422
 app_open_file	EQU	2390
+app_option_source_buffer	EQU	552
 app_output_file	EQU	3290
 app_seek_file	EQU	390
+app_startup_options_buffer	EQU	556
 app_subtime_dest	EQU	4272
 app_subtime_src	EQU	4264
 app_timer_device_iorequest	EQU	4280
@@ -33,19 +36,20 @@ genam_node_list_head	EQU	0
 AbsExecBase	EQU	$4
 
     INCLUDE "devices/timer.i"
+    INCLUDE "devices/timer_lib.i"
     INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/io.i"
     INCLUDE "exec/libraries.i"
 
-    section code,code
+    SECTION code,code
 
 entry_point:
     bra.s loc_0036
-    dc.b    $94,$4f
-    dc.l    $7a3085c2
-    dc.b    "$VER: GenAm 3.18 (2.8.94)",0
-    dc.b    "(C) HiSoft 1985-1997"
+    DC.B    $94,$4f
+    DC.L    $7a3085c2
+    DC.B    "$VER: GenAm 3.18 (2.8.94)",0
+    DC.B    "(C) HiSoft 1985-1997"
 loc_0036:
     jsr init_app
 loc_003c:
@@ -53,7 +57,7 @@ loc_003c:
 loc_0042:
     move.l sp,564(a6) ; app+$234
     subq.l #4,564(a6) ; app+$234
-    movea.l #sub_a664,a0
+    movea.l #dat_a664,a0
     lea app_freemem_memoryblock(a6),a1
     moveq #63,d0
 loc_0056:
@@ -100,22 +104,22 @@ loc_00c8:
     sf 2113(a6) ; app+$841
     sf 2114(a6) ; app+$842
     st 2115(a6) ; app+$843
-    jsr sub_ab0e
+    jsr parse_startup_options_buffer
 loc_00e2:
     sf 258(a6) ; app+$102
-    jsr sub_ab00
+    jsr parse_option_source_buffer
 loc_00ec:
     sf 258(a6) ; app+$102
     lea 2016(a6),a0 ; app+$7E0
     tst.b (a0)
     beq.s loc_0110
 loc_00f8:
-    jsr sub_b0ac
+    jsr load_text_file_buffer
 loc_00fe:
     beq.w loc_0174
 loc_0102:
-    move.l a0,560(a6) ; app+$230
-    jsr sub_ab08
+    move.l a0,app_input_source_buffer(a6)
+    jsr parse_input_source_buffer
 loc_010c:
     bne.w loc_0170
 loc_0110:
@@ -185,11 +189,11 @@ loc_01a0:
 sub_01a6:
     move.w 536(a6),-(sp) ; app+$218
     clr.w 536(a6) ; app+$218
-    jsr sub_ab00
+    jsr parse_option_source_buffer
 loc_01b4:
     bne.s loc_0178
 loc_01b6:
-    jsr sub_ab08
+    jsr parse_input_source_buffer
 loc_01bc:
     bne.s loc_0170
 loc_01be:
@@ -241,7 +245,7 @@ loc_0212:
     sf 2112(a6) ; app+$840
     st 2113(a6) ; app+$841
     st 2114(a6) ; app+$842
-    jsr sub_ab0e
+    jsr parse_startup_options_buffer
 loc_0224:
     sf 258(a6) ; app+$102
     lea 1448(a6),a0 ; app+$5A8
@@ -331,12 +335,12 @@ loc_0300:
     st 2113(a6) ; app+$841
     sf 2114(a6) ; app+$842
     st 2115(a6) ; app+$843
-    jsr sub_ab0e
+    jsr parse_startup_options_buffer
 loc_0316:
     sf 2113(a6) ; app+$841
-    jsr sub_ab00
+    jsr parse_option_source_buffer
 loc_0320:
-    jsr sub_ab08
+    jsr parse_input_source_buffer
 loc_0326:
     sf 258(a6) ; app+$102
     jsr sub_ab2a
@@ -641,9 +645,7 @@ loc_0634:
     cmp.b d0,d0
     rts
 hint_063a:
-; --- unverified ---
-    moveq #-1,d0
-    rts
+    DC.B    $70,$ff,$4e,$75
 loc_063e:
     tst.b 257(a6) ; app+$101
     beq.s loc_064e
@@ -672,8 +674,8 @@ loc_0674:
 loc_067e:
     moveq #70,d0
     jmp loc_846e
-    dc.b    $4a,$fb
-    dc.b    "include_longmac",0
+    DC.B    $4a,$fb
+    DC.B    "include_longmac",0
 sub_0698:
     tst.b 277(a6) ; app+$115
     beq.w loc_06c6
@@ -795,35 +797,21 @@ loc_07b8:
     moveq #-1,d0
     rts
 hint_07bc:
-; --- unverified ---
-    st 275(a6) ; app+$113
-    tst.b 568(a6) ; app+$238
-    beq.s hint_07da
+    DC.B    $50,$ee,$01,$13,$4a,$2e,$02,$38,$67,$14
 hint_07c6:
-; --- unverified ---
-    cmp.b #$2b,d1
-    beq.s hint_07e4
+    DC.B    $b2,$3c,$00,$2b,$67,$18
 hint_07cc:
-; --- unverified ---
-    cmp.b #$2d,d1
-    beq.s hint_07de
+    DC.B    $b2,$3c,$00,$2d,$67,$0c
 hint_07d2:
-; --- unverified ---
-    moveq #10,d1
-    st 256(a6) ; app+$100
-    rts
+    DC.B    $72,$0a,$50,$ee,$01,$00,$4e,$75
 hint_07da:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_07de:
-; --- unverified ---
-    subq.b #1,2106(a6) ; app+$83A
-    bra.s hint_07e8
+    DC.B    $53,$2e,$08,$3a,$60,$04
 hint_07e4:
-    dc.b    $52,$2e,$08,$3a
+    DC.B    $52,$2e,$08,$3a
 hint_07e8:
-    dc.b    $5a,$ee,$01,$00,$12,$1c
+    DC.B    $5a,$ee,$01,$00,$12,$1c
 sub_07ee:
     rts
 sub_07f0:
@@ -1008,17 +996,12 @@ loc_09a4:
     jsr sub_92a0
 loc_09ae:
     bra.s loc_0996
-sub_09b0:
-; --- unverified ---
-    st 275(a6) ; app+$113
-    moveq #10,d1
-    tst.b 568(a6) ; app+$238
-    beq.s hint_09c4
+hint_09b0:
+    DC.B    $50,$ee,$01,$13,$72,$0a,$4a,$2e,$02,$38,$67,$08
 hint_09bc:
-    dc.b    $51,$ee,$01,$00,$50,$ee,$08,$3a
+    DC.B    $51,$ee,$01,$00,$50,$ee,$08,$3a
 hint_09c4:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 sub_09c6:
     rts
 loc_09c8:
@@ -1077,7 +1060,7 @@ loc_0a40:
     subq.l #1,a4
     move.l a4,-(sp)
     moveq #0,d2
-    movea.l #sub_b21e,a0
+    movea.l #dat_b21e,a0
     movea.l #dat_cd3c,a1
     movea.l #dat_ba08,a2
     moveq #0,d1
@@ -1125,7 +1108,7 @@ loc_0ab2:
     move.w d2,d1
     add.w d1,d1
     add.w d1,d2
-    movea.l #sub_e070,a0
+    movea.l #dat_e070,a0
     adda.w d2,a0
     tst.w 2(a0)
     beq.s loc_0ae8
@@ -1419,36 +1402,23 @@ loc_0d38:
     sub.w d0,328(a6) ; app+$148
     add.l d0,314(a6) ; app+$13A
     rts
-sub_0d4c:
-; --- unverified ---
-    movea.l 4(a2),a1
-    cmpi.w #$98,328(a6) ; app+$148
-    bcc.s hint_0d66
+hint_0d4c:
+    DC.B    $22,$6a,$00,$04,$0c,$6e,$00,$98,$01,$48,$64,$0e
 hint_0d58:
-; --- unverified ---
-    movem.l d3/a0-a1,-(sp)
-    jsr sub_90a8
+    DC.B    $48,$e7,$10,$c0,$4e,$b9
+    DC.L    sub_90a8
 hint_0d62:
-    dc.b    $4c,$df,$03,$08
+    DC.B    $4c,$df,$03,$08
 hint_0d66:
-    dc.b    $24,$6e,$01,$3a,$22,$8a,$22,$4a,$70,$00,$24,$80,$25,$40,$00,$04
-    dc.b    $25,$44,$00,$08,$15,$43,$00,$0d,$35,$40,$00,$14,$15,$40,$00,$0c
-    dc.b    $15,$6e,$01,$46,$00,$0e,$25,$40,$00,$10,$45,$ea,$00,$16,$10,$28
-    dc.b    $00,$05,$20,$50,$14,$c0
+    DC.B    $24,$6e,$01,$3a,$22,$8a,$22,$4a,$70,$00,$24,$80,$25,$40,$00,$04
+    DC.B    $25,$44,$00,$08,$15,$43,$00,$0d,$35,$40,$00,$14,$15,$40,$00,$0c
+    DC.B    $15,$6e,$01,$46,$00,$0e,$25,$40,$00,$10,$45,$ea,$00,$16,$10,$28
+    DC.B    $00,$05,$20,$50,$14,$c0
 hint_0d9c:
-; --- unverified ---
-    move.b (a0)+,(a2)+
-    subq.b #1,d0
-    bne.s hint_0d9c
+    DC.B    $14,$d8,$53,$00,$66,$fa
 hint_0da2:
-; --- unverified ---
-    move.l a2,d0
-    sub.l a1,d0
-    addq.l #1,d0
-    bclr #0,d0
-    sub.w d0,328(a6) ; app+$148
-    add.l d0,314(a6) ; app+$13A
-    rts
+    DC.B    $20,$0a,$90,$89,$52,$80,$08,$80,$00,$00,$91,$6e,$01,$48,$d1,$ae
+    DC.B    $01,$3a,$4e,$75
 sub_0db6:
     bsr.s sub_0dcc
 loc_0db8:
@@ -1524,36 +1494,56 @@ loc_0e50:
 loc_0e62:
     moveq #18,d0
     bra.w loc_8482
-    dc.b    $11,$2b,$12,$2d,$04,$2a,$05,$2f,$02,$28,$03,$29,$13,$7e,$08,$3d
-    dc.b    $0e,$26,$ea,$21,$10,$5e,$0f,$7c,$fe,$24,$fa,$25,$f8,$40,$f4,$27
-    dc.b    $f4,$22,$00
+    DC.B    $11,$2b,$12,$2d,$04,$2a,$05,$2f,$02,$28,$03,$29,$13,$7e,$08,$3d
+    DC.B    $0e,$26,$ea,$21,$10,$5e,$0f,$7c,$fe,$24,$fa,$25,$f8,$40,$f4,$27
+    DC.B    $f4,$22,$00
 pcref_0e8b:
-    dcb.b   4,0
-    dc.b    $04,$04,$16,$16,$14,$14,$14,$14,$14,$14,$12
+    DCB.B   4,0
+    DC.B    $04,$04,$16,$16,$14,$14,$14,$14,$14,$14,$12
 jt_0e9a:
-    dc.w    sub_20b4-pcref_0ea2
-    dc.w    sub_10a4-pcref_0ea2
-    dc.w    sub_2bc0-pcref_0ea2
-    dc.w    loc_2ca2-pcref_0ea2
+    DC.W    sub_20b4-pcref_0ea2
+jtent_0e9c:
+    DC.W    sub_10a4-pcref_0ea2
+jtent_0e9e:
+    DC.W    sub_2bc0-pcref_0ea2
+jtent_0ea0:
+    DC.W    loc_2ca2-pcref_0ea2
 pcref_0ea2:
-    dc.w    sub_10da-pcref_0ea2
-    dc.w    sub_10f8-pcref_0ea2
-    dc.w    sub_1120-pcref_0ea2
-    dc.w    sub_1124-pcref_0ea2
-    dc.w    sub_1128-pcref_0ea2
-    dc.w    sub_1150-pcref_0ea2
-    dc.w    sub_1156-pcref_0ea2
-    dc.w    sub_115c-pcref_0ea2
-    dc.w    sub_1162-pcref_0ea2
-    dc.w    sub_1168-pcref_0ea2
-    dc.w    sub_1114-pcref_0ea2
-    dc.w    sub_1118-pcref_0ea2
-    dc.w    sub_111c-pcref_0ea2
-    dc.w    sub_1050-pcref_0ea2
-    dc.w    sub_1096-pcref_0ea2
-    dc.w    sub_116e-pcref_0ea2
-    dc.w    sub_117a-pcref_0ea2
-    dc.w    sub_1178-pcref_0ea2
+    DC.W    sub_10da-pcref_0ea2
+jtent_0ea4:
+    DC.W    sub_10f8-pcref_0ea2
+jtent_0ea6:
+    DC.W    sub_1120-pcref_0ea2
+jtent_0ea8:
+    DC.W    sub_1124-pcref_0ea2
+jtent_0eaa:
+    DC.W    sub_1128-pcref_0ea2
+jtent_0eac:
+    DC.W    sub_1150-pcref_0ea2
+jtent_0eae:
+    DC.W    sub_1156-pcref_0ea2
+jtent_0eb0:
+    DC.W    sub_115c-pcref_0ea2
+jtent_0eb2:
+    DC.W    sub_1162-pcref_0ea2
+jtent_0eb4:
+    DC.W    sub_1168-pcref_0ea2
+jtent_0eb6:
+    DC.W    sub_1114-pcref_0ea2
+jtent_0eb8:
+    DC.W    sub_1118-pcref_0ea2
+jtent_0eba:
+    DC.W    sub_111c-pcref_0ea2
+jtent_0ebc:
+    DC.W    sub_1050-pcref_0ea2
+jtent_0ebe:
+    DC.W    sub_1096-pcref_0ea2
+jtent_0ec0:
+    DC.W    sub_116e-pcref_0ea2
+jtent_0ec2:
+    DC.W    sub_117a-pcref_0ea2
+jtent_0ec4:
+    DC.W    sub_1178-pcref_0ea2
 sub_0ec6:
     lea 1576(a6),a0 ; app+$628
     move.w (a0),d0
@@ -1997,10 +1987,8 @@ loc_11fa:
 loc_1200:
     moveq #61,d0
     rts
-sub_1204:
-; --- unverified ---
-    movea.l a4,a0
-    rts
+hint_1204:
+    DC.B    $20,$4c,$4e,$75
 sub_1208:
     moveq #0,d7
     ext.w d1
@@ -2040,13 +2028,13 @@ loc_1246:
     moveq #0,d2
     bra.w loc_1324
 pcref_1252:
-    dcb.b   33,0
-    dc.b    $ea,$f4,$00,$fe,$fa,$0e,$f4,$02,$03,$04,$11,$00,$12,$01,$05,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$f2,$08,$ee,$00,$f8
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$10,$01,$00
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$0f,$00,$13,$00
+    DCB.B   33,0
+    DC.B    $ea,$f4,$00,$fe,$fa,$0e,$f4,$02,$03,$04,$11,$00,$12,$01,$05,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$f2,$08,$ee,$00,$f8
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$10,$01,$00
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$0f,$00,$13,$00
 loc_12d2:
     lea 1134(a6),a0 ; app+$46E
     bsr.w sub_76b8
@@ -2175,7 +2163,7 @@ loc_13b8:
     moveq #2,d3
     moveq #1,d0
     exg d0,d7
-    jmp 0(pc,d0.w) ; unresolved_indirect_core:pcindex.brief
+    jmp *+2(pc,d0.w) ; unresolved_indirect_core:pcindex.brief
     bra.w loc_140e
     bra.s loc_138e
     bra.w loc_13e6
@@ -2239,14 +2227,14 @@ loc_143e:
     moveq #23,d0
     bra.s loc_1436
 pcref_1442:
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$0a,$0b,$0c,$0d,$0e,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$0a,$0b,$0c,$0d,$0e,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$0a,$0b,$0c,$0d,$0e,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$0a,$0b,$0c,$0d,$0e,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 sub_14c2:
     movea.l (a0),a1
     subq.l #4,sp
@@ -2493,93 +2481,53 @@ loc_16dc:
     moveq #0,d0
     rts
 hint_16e0:
-; --- unverified ---
-    movea.l (sp),a0
-    addq.l #2,(sp)
-    bra.s hint_16ec
+    DC.B    $20,$57,$54,$97,$60,$06
 hint_16e6:
-    dc.b    $20,$57,$54,$97,$3a,$c6
+    DC.B    $20,$57,$54,$97,$3a,$c6
 hint_16ec:
-; --- unverified ---
-    move.w (a0),d0
-    move.w d0,-(sp)
-    btst #6,d0
-    beq.s hint_16fe
+    DC.B    $30,$10,$3f,$00,$08,$00,$00,$06,$67,$08
 hint_16f6:
-; --- unverified ---
-    bsr.w sub_1872
+    DC.B    $61,$00,$01,$7a
 hint_16fa:
-; --- unverified ---
-    move.w (sp)+,d0
-    bra.s hint_1704
+    DC.B    $30,$1f,$60,$06
 hint_16fe:
-; --- unverified ---
-    bsr.w hint_187e
+    DC.B    $61,$00,$01,$7e
 hint_1702:
-    dc.b    $30,$1f
+    DC.B    $30,$1f
 hint_1704:
-    dc.b    $20,$6e,$02,$4c,$8b,$50
+    DC.B    $20,$6e,$02,$4c,$8b,$50
 hint_170a:
-; --- unverified ---
-    cmp.b #$30,d5
-    bcs.s hint_1738
+    DC.B    $ba,$3c,$00,$30,$65,$28
 hint_1710:
-; --- unverified ---
-    cmp.b #$3a,d5
-    bcs.s hint_172a
+    DC.B    $ba,$3c,$00,$3a,$65,$14
 hint_1716:
-; --- unverified ---
-    cmp.b #$3c,d5
-    beq.s hint_1732
+    DC.B    $ba,$3c,$00,$3c,$67,$16
 hint_171c:
-; --- unverified ---
-    btst #6,d5
-    bne.s hint_1748
+    DC.B    $08,$05,$00,$06,$66,$26
 hint_1722:
-; --- unverified ---
-    btst #6,d0
-    beq.s hint_1742
+    DC.B    $08,$00,$00,$06,$67,$1a
 hint_1728:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_172a:
-; --- unverified ---
-    btst #5,d0
-    beq.s hint_1742
+    DC.B    $08,$00,$00,$05,$67,$12
 hint_1730:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_1732:
-; --- unverified ---
-    tst.b d0
-    bpl.s hint_1742
+    DC.B    $4a,$00,$6a,$0c
 hint_1736:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_1738:
-; --- unverified ---
-    move.b d5,d2
-    lsr.b #3,d2
-    btst d2,d0
-    beq.s hint_1742
+    DC.B    $14,$05,$e6,$0a,$05,$00,$67,$02
 hint_1740:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_1742:
-; --- unverified ---
-    moveq #17,d0
-    bra.w loc_8486
+    DC.B    $70,$11,$60,$00
+hint_1746:
+    DC.B    $6d,$40
 hint_1748:
-; --- unverified ---
-    andi.w #$bf,d5
-    move.w d5,d2
-    rol.w #8,d2
-    and.w d2,d0
-    beq.s hint_1742
+    DC.B    $02,$45,$00,$bf,$34,$05,$e1,$5a,$c0,$42,$67,$ee
 hint_1754:
-; --- unverified ---
-    movea.l (sp)+,a0
-    jmp 2(a0) ; unresolved_indirect_hint:disp
+    DC.B    $20,$5f,$4e,$e8,$00,$02
 sub_175a:
     moveq #37,d0
     bra.w loc_8482
@@ -2592,28 +2540,20 @@ loc_1764:
     bne.s sub_175a
 loc_1768:
     rts
-sub_176a:
-; --- unverified ---
-    bsr.s sub_177e
+hint_176a:
+    DC.B    $61,$12
 hint_176c:
-; --- unverified ---
-    bne.s hint_177a
+    DC.B    $66,$0c
 hint_176e:
-; --- unverified ---
-    tst.b d0
-    bne.s hint_1778
+    DC.B    $4a,$00,$66,$06
 hint_1772:
-; --- unverified ---
-    moveq #16,d0
-    bsr.w loc_8486
+    DC.B    $70,$10,$61,$00,$6d,$10
 hint_1778:
-    dc.b    $b0,$00
+    DC.B    $b0,$00
 hint_177a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_177c:
-; --- unverified ---
-    bra.s hint_1772
+    DC.B    $60,$f4
 sub_177e:
     move.b d1,d0
     movea.l a4,a0
@@ -2655,7 +2595,7 @@ loc_17ca:
     andi.b #$1,d0
     moveq #0,d1
     move.b (a0)+,d1
-    movea.l #sub_a764,a1
+    movea.l #dat_a764,a1
     tst.b 0(a1,d1.w)
     beq.s loc_181a
 loc_17de:
@@ -2723,1261 +2663,646 @@ loc_1866:
     move.b -1(a4),d1
     moveq #-1,d0
     rts
-sub_1872:
-; --- unverified ---
-    tst.b 281(a6) ; app+$119
-    beq.s hint_187e
+hint_1872:
+    DC.B    $4a,$2e,$01,$19,$67,$06
 hint_1878:
-; --- unverified ---
-    st 282(a6) ; app+$11A
-    bra.s hint_1882
+    DC.B    $50,$ee,$01,$1a,$60,$04
 hint_187e:
-    dc.b    $51,$ee,$01,$1a
+    DC.B    $51,$ee,$01,$1a
 hint_1882:
-; --- unverified ---
-    bsr.w sub_177e
+    DC.B    $61,$00,$fe,$fa
 hint_1886:
-; --- unverified ---
-    bne.s hint_18a0
+    DC.B    $66,$18
 hint_1888:
-    dc.b    $7a,$00,$8a,$02
+    DC.B    $7a,$00,$8a,$02
 hint_188c:
-; --- unverified ---
-    tst.b d0
-    beq.s hint_189e
+    DC.B    $4a,$00,$67,$0e
 hint_1890:
-; --- unverified ---
-    ori.b #$8,d5
-    cmpi.b #$1,569(a6) ; app+$239
-    beq.w loc_844a
+    DC.B    $00,$05,$00,$08,$0c,$2e,$00,$01,$02,$39,$67,$00,$6b,$ae
 hint_189e:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_18a0:
-; --- unverified ---
-    movea.l a4,a2
-    cmp.b #$28,d1
-    beq.w hint_1a3c
+    DC.B    $24,$4c,$b2,$3c,$00,$28,$67,$00,$01,$94
 hint_18aa:
-; --- unverified ---
-    cmp.b #$2d,d1
-    beq.w hint_1a78
+    DC.B    $b2,$3c,$00,$2d,$67,$00,$01,$c8
 hint_18b2:
-; --- unverified ---
-    cmp.b #$23,d1
-    beq.w hint_1a9a
+    DC.B    $b2,$3c,$00,$23,$67,$00,$01,$e2
 hint_18ba:
-; --- unverified ---
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$43,d1
-    beq.s hint_1908
+    DC.B    $48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$43,$67,$42
 hint_18c6:
-; --- unverified ---
-    cmp.b #$53,d1
-    beq.s hint_18f4
+    DC.B    $b2,$3c,$00,$53,$67,$28
 hint_18cc:
-; --- unverified ---
-    cmp.b #$55,d1
-    bne.s hint_192a
+    DC.B    $b2,$3c,$00,$55,$66,$58
 hint_18d2:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$53,d1
-    bne.s hint_192a
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$53,$66,$4a
 hint_18e0:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$50,d1
-    bne.s hint_192a
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$50,$66,$3c
 hint_18ee:
-; --- unverified ---
-    moveq #4,d5
-    bra.w hint_1cfe
+    DC.B    $7a,$04,$60,$00,$04,$0c
 hint_18f4:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$52,d1
-    bne.s hint_192a
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$52,$66,$28
 hint_1902:
-; --- unverified ---
-    moveq #2,d5
-    bra.w hint_1cfe
+    DC.B    $7a,$02,$60,$00,$03,$f8
 hint_1908:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$43,d1
-    bne.s hint_192a
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$43,$66,$14
 hint_1916:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$52,d1
-    bne.s hint_192a
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$52,$66,$06
 hint_1924:
-; --- unverified ---
-    moveq #1,d5
-    bra.w hint_1cfe
+    DC.B    $7a,$01,$60,$00,$03,$d6
 hint_192a:
-    dc.b    $28,$4a,$12,$2c,$ff,$ff
+    DC.B    $28,$4a,$12,$2c,$ff,$ff
 hint_1930:
-; --- unverified ---
-    bsr.w sub_0db6
+    DC.B    $61,$00,$f4,$84
 hint_1934:
-; --- unverified ---
-    cmp.b #$28,d1
-    beq.w hint_1b08
+    DC.B    $b2,$3c,$00,$28,$67,$00,$01,$ce
 hint_193c:
-; --- unverified ---
-    cmp.b #$2e,d1
-    beq.s hint_1988
+    DC.B    $b2,$3c,$00,$2e,$67,$46
 hint_1942:
-; --- unverified ---
-    cmp.b #$5c,d1
-    beq.s hint_1988
+    DC.B    $b2,$3c,$00,$5c,$67,$40
 hint_1948:
-; --- unverified ---
-    tst.b 284(a6) ; app+$11C
-    bne.s hint_19a0
+    DC.B    $4a,$2e,$01,$1c,$66,$52
 hint_194e:
-; --- unverified ---
-    btst #2,271(a6) ; app+$10F
-    beq.s hint_197e
+    DC.B    $08,$2e,$00,$02,$01,$0f,$67,$28
 hint_1956:
-; --- unverified ---
-    movea.w d2,a0
-    cmpa.l d2,a0
-    bne.s hint_197e
+    DC.B    $30,$42,$b1,$c2,$66,$22
 hint_195c:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_197e
+    DC.B    $4a,$04,$66,$1e
 hint_1960:
-; --- unverified ---
-    cmp.b #$1,d3
-    beq.s hint_197e
+    DC.B    $b6,$3c,$00,$01,$67,$18
 hint_1966:
-; --- unverified ---
-    bsr.w sub_8dce
+    DC.B    $61,$00,$74,$66
 hint_196a:
-; --- unverified ---
-    bne.s hint_197e
+    DC.B    $66,$12
 hint_196c:
-; --- unverified ---
-    move.w d2,(a5)+
-    bset #15,d4
-    bsr.w hint_19ea
+    DC.B    $3a,$c2,$08,$c4,$00,$0f,$61,$00,$00,$76
 hint_1976:
-; --- unverified ---
-    moveq #56,d5
-    moveq #14,d0
-    bra.w hint_8808
+    DC.B    $7a,$38,$70,$0e,$60,$00,$6e,$8c
 hint_197e:
-; --- unverified ---
-    tst.b 282(a6) ; app+$11A
-    beq.s hint_19c2
+    DC.B    $4a,$2e,$01,$1a,$67,$3e
 hint_1984:
-; --- unverified ---
-    bra.w hint_1c16
+    DC.B    $60,$00,$02,$90
 hint_1988:
-; --- unverified ---
-    move.b (a4),d0
-    ext.w d0
-    move.b 126(a6,d0.w),d0
-    cmp.b #$4c,d0
-    beq.s hint_19b8
+    DC.B    $10,$14,$48,$80,$10,$36,$00,$7e,$b0,$3c,$00,$4c,$67,$22
 hint_1996:
-; --- unverified ---
-    cmp.b #$57,d0
-    bne.s hint_19c2
+    DC.B    $b0,$3c,$00,$57,$66,$26
 hint_199c:
-    dc.b    $52,$8c,$12,$1c
+    DC.B    $52,$8c,$12,$1c
 hint_19a0:
-; --- unverified ---
-    moveq #56,d5
-    tst.b 568(a6) ; app+$238
-    beq.s hint_19b4
+    DC.B    $7a,$38,$4a,$2e,$02,$38,$67,$0c
 hint_19a8:
-; --- unverified ---
-    bsr.w hint_78b6
+    DC.B    $61,$00,$5f,$0c
 hint_19ac:
-; --- unverified ---
-    bclr #14,d4
-    bsr.w hint_19ea
+    DC.B    $08,$84,$00,$0e,$61,$00,$00,$38
 hint_19b4:
-; --- unverified ---
-    move.w d2,(a5)+
-    rts
+    DC.B    $3a,$c2,$4e,$75
 hint_19b8:
-; --- unverified ---
-    addq.l #1,a4
-    move.b (a4)+,d1
-    bclr #15,d4
-    bra.s hint_19c6
+    DC.B    $52,$8c,$12,$1c,$08,$84,$00,$0f,$60,$04
 hint_19c2:
-    dc.b    $08,$c4,$00,$0f
+    DC.B    $08,$c4,$00,$0f
 hint_19c6:
-; --- unverified ---
-    moveq #57,d5
-    tst.b 568(a6) ; app+$238
-    beq.s hint_19e6
+    DC.B    $7a,$39,$4a,$2e,$02,$38,$67,$18
 hint_19ce:
-; --- unverified ---
-    tst.w d3
-    bpl.s hint_19d8
+    DC.B    $4a,$43,$6a,$06
 hint_19d2:
-; --- unverified ---
-    jmp sub_98fc
+    DC.B    $4e,$f9
+    DC.L    dat_98fc
 hint_19d8:
-; --- unverified ---
-    bsr.s hint_19ea
+    DC.B    $61,$10
 hint_19da:
-; --- unverified ---
-    cmp.b #$1,d3
-    bne.s hint_19e6
+    DC.B    $b6,$3c,$00,$01,$66,$06
 hint_19e0:
-; --- unverified ---
-    jsr dat_9962
+    DC.B    $4e,$b9
+    DC.L    dat_9962
 hint_19e6:
-; --- unverified ---
-    move.l d2,(a5)+
-    rts
+    DC.B    $2a,$c2,$4e,$75
 hint_19ea:
-; --- unverified ---
-    tst.b 571(a6) ; app+$23B
-    bne.s hint_1a34
+    DC.B    $4a,$2e,$02,$3b,$66,$44
 hint_19f0:
-; --- unverified ---
-    cmpi.b #$1,569(a6) ; app+$239
-    beq.s hint_1a04
+    DC.B    $0c,$2e,$00,$01,$02,$39,$67,$0c
 hint_19f8:
-; --- unverified ---
-    tst.b 287(a6) ; app+$11F
-    beq.s hint_1a04
+    DC.B    $4a,$2e,$01,$1f,$67,$06
 hint_19fe:
-; --- unverified ---
-    btst #0,d2
-    bne.s hint_1a36
+    DC.B    $08,$02,$00,$00,$66,$32
 hint_1a04:
-; --- unverified ---
-    btst #15,d4
-    beq.s hint_1a34
+    DC.B    $08,$04,$00,$0f,$67,$2a
 hint_1a0a:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_1a34
+    DC.B    $b6,$3c,$00,$02,$66,$24
 hint_1a10:
-; --- unverified ---
-    tst.b 285(a6) ; app+$11D
-    beq.s hint_1a34
+    DC.B    $4a,$2e,$01,$1d,$67,$1e
 hint_1a16:
-; --- unverified ---
-    move.w 540(a6),d0 ; app+$21C
-    cmp.w #$2,d0
-    bcs.s hint_1a2e
+    DC.B    $30,$2e,$02,$1c,$b0,$7c,$00,$02,$65,$0e
 hint_1a20:
-; --- unverified ---
-    cmp.w #$4,d0
-    bcc.s hint_1a2e
+    DC.B    $b0,$7c,$00,$04,$64,$08
 hint_1a26:
-; --- unverified ---
-    cmp.l #$4,d2
-    beq.s hint_1a34
+    DC.B    $b4,$bc,$00,$00,$00,$04,$67,$06
 hint_1a2e:
-; --- unverified ---
-    moveq #82,d0
-    bsr.w loc_8486
+    DC.B    $70,$52,$61,$00,$6a,$54
 hint_1a34:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_1a36:
-; --- unverified ---
-    moveq #35,d0
-    bra.w loc_8486
+    DC.B    $70,$23,$60,$00
+hint_1a3a:
+    DC.B    $6a,$4c
 hint_1a3c:
-; --- unverified ---
-    move.b (a4)+,d1
-    tst.b 289(a6) ; app+$121
-    bne.w hint_4f2a
+    DC.B    $12,$1c,$4a,$2e,$01,$21,$66,$00,$34,$e6
 hint_1a46:
-; --- unverified ---
-    bsr.w sub_176a
+    DC.B    $61,$00,$fd,$22
 hint_1a4a:
-; --- unverified ---
-    bne.w hint_192a
+    DC.B    $66,$00,$fe,$de
 hint_1a4e:
-; --- unverified ---
-    move.b d2,d4
-    cmp.b #$29,d1
-    beq.s hint_1a66
+    DC.B    $18,$02,$b2,$3c,$00,$29,$67,$10
 hint_1a56:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_845e
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$6a,$02
 hint_1a5e:
-; --- unverified ---
-    clr.l -(sp)
-    moveq #2,d3
-    bra.w hint_1b70
+    DC.B    $42,$a7,$76,$02,$60,$00,$01,$0c
 hint_1a66:
-; --- unverified ---
-    move.b (a4)+,d1
-    moveq #16,d5
-    cmp.b #$2b,d1
-    bne.s hint_1a74
+    DC.B    $12,$1c,$7a,$10,$b2,$3c,$00,$2b,$66,$04
 hint_1a70:
-    dc.b    $7a,$18,$12,$1c
+    DC.B    $7a,$18,$12,$1c
 hint_1a74:
-; --- unverified ---
-    or.b d4,d5
-    rts
+    DC.B    $8a,$04,$4e,$75
 hint_1a78:
-; --- unverified ---
-    cmpi.b #$28,(a4)+
-    bne.w hint_192a
+    DC.B    $0c,$1c,$00,$28,$66,$00,$fe,$ac
 hint_1a80:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_176a
+    DC.B    $12,$1c,$61,$00,$fc,$e6
 hint_1a86:
-; --- unverified ---
-    bne.w hint_192a
+    DC.B    $66,$00,$fe,$a2
 hint_1a8a:
-; --- unverified ---
-    cmp.b #$29,d1
-    bne.w hint_845e
+    DC.B    $b2,$3c,$00,$29,$66,$00,$69,$ce
 hint_1a92:
-; --- unverified ---
-    move.b (a4)+,d1
-    moveq #32,d5
-    or.b d2,d5
-    rts
+    DC.B    $12,$1c,$7a,$20,$8a,$02,$4e,$75
 hint_1a9a:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_1a9c:
-; --- unverified ---
-    bsr.w sub_0db6
+    DC.B    $61,$00,$f3,$18
 hint_1aa0:
-; --- unverified ---
-    moveq #60,d5
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_1ad0
+    DC.B    $7a,$3c,$10,$2e,$02,$39,$67,$28
 hint_1aa8:
-; --- unverified ---
-    subq.b #1,d0
-    beq.s hint_1ae8
+    DC.B    $53,$00,$67,$3c
 hint_1aac:
-; --- unverified ---
-    subq.b #1,d0
-    beq.s hint_1ad0
+    DC.B    $53,$00,$67,$20
 hint_1ab0:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_1acc
+    DC.B    $4a,$2e,$02,$38,$67,$16
 hint_1ab6:
-; --- unverified ---
-    tst.w d3
-    bpl.s hint_1ac0
+    DC.B    $4a,$43,$6a,$06
 hint_1aba:
-; --- unverified ---
-    jmp sub_98fc
+    DC.B    $4e,$f9
+    DC.L    dat_98fc
 hint_1ac0:
-; --- unverified ---
-    cmp.b #$1,d3
-    bne.s hint_1acc
+    DC.B    $b6,$3c,$00,$01,$66,$06
 hint_1ac6:
-; --- unverified ---
-    jsr dat_9962
+    DC.B    $4e,$b9
+    DC.L    dat_9962
 hint_1acc:
-; --- unverified ---
-    move.l d2,(a5)+
-    rts
+    DC.B    $2a,$c2,$4e,$75
 hint_1ad0:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_1ae4
+    DC.B    $4a,$2e,$02,$38,$67,$0e
 hint_1ad6:
-; --- unverified ---
-    tst.w d3
-    bpl.s hint_1ae0
+    DC.B    $4a,$43,$6a,$06
 hint_1ada:
-; --- unverified ---
-    jmp dat_9938
+    DC.B    $4e,$f9
+    DC.L    dat_9938
 hint_1ae0:
-; --- unverified ---
-    bsr.w hint_789c
+    DC.B    $61,$00,$5d,$ba
 hint_1ae4:
-; --- unverified ---
-    move.w d2,(a5)+
-    rts
+    DC.B    $3a,$c2,$4e,$75
 hint_1ae8:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_1ae4
+    DC.B    $4a,$2e,$02,$38,$67,$f6
 hint_1aee:
-; --- unverified ---
-    tst.w d3
-    bmi.s hint_1afe
+    DC.B    $4a,$43,$6b,$0c
 hint_1af2:
-; --- unverified ---
-    bsr.w sub_788c
+    DC.B    $61,$00,$5d,$98
 hint_1af6:
-; --- unverified ---
-    andi.w #$ff,d2
-    move.w d2,(a5)+
-    rts
+    DC.B    $02,$42,$00,$ff,$3a,$c2,$4e,$75
 hint_1afe:
-    dc.b    $1a,$fc
+    DC.B    $1a,$fc
 hint_1b00:
-    dc.b    $00,$00
+    DC.B    $00,$00
+    DC.B    $4e,$f9
+    DC.L    dat_9954
 hint_1b08:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.l d2,-(sp)
-    bsr.w sub_177e
+    DC.B    $12,$1c,$2f,$02,$61,$00,$fc,$70
 hint_1b10:
-; --- unverified ---
-    bne.w hint_1bec
+    DC.B    $66,$00,$00,$da
 hint_1b14:
-; --- unverified ---
-    bsr.w hint_176e
+    DC.B    $61,$00,$fc,$58
 hint_1b18:
-; --- unverified ---
-    cmp.b #$29,d1
-    bne.s hint_1b68
+    DC.B    $b2,$3c,$00,$29,$66,$4a
 hint_1b1e:
-; --- unverified ---
-    btst #1,271(a6) ; app+$10F
-    beq.s hint_1b4a
+    DC.B    $08,$2e,$00,$01,$01,$0f,$67,$24
 hint_1b26:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_1b4a
+    DC.B    $4a,$04,$66,$20
 hint_1b2a:
-; --- unverified ---
-    tst.l (sp)
-    bne.s hint_1b4a
+    DC.B    $4a,$97,$66,$1c
 hint_1b2e:
-; --- unverified ---
-    moveq #16,d5
-    or.b d2,d5
-    move.l (sp)+,d2
-    bsr.w sub_8dce
+    DC.B    $7a,$10,$8a,$02,$24,$1f,$61,$00,$72,$98
 hint_1b38:
-; --- unverified ---
-    bne.s hint_1b42
+    DC.B    $66,$08
 hint_1b3a:
-; --- unverified ---
-    move.b (a4)+,d1
-    moveq #13,d0
-    bra.w hint_8808
+    DC.B    $12,$1c,$70,$0d,$60,$00,$6c,$c8
 hint_1b42:
-    dc.b    $2f,$02,$14,$05,$02,$02,$00,$07
+    DC.B    $2f,$02,$14,$05,$02,$02,$00,$07
 hint_1b4a:
-; --- unverified ---
-    moveq #40,d5
-    or.b d2,d5
-    move.l (sp)+,d2
-    move.b (a4)+,d1
-    tst.w d3
-    bpl.s hint_1b5c
+    DC.B    $7a,$28,$8a,$02,$24,$1f,$12,$1c,$4a,$43,$6a,$06
 hint_1b56:
-; --- unverified ---
-    jmp dat_991c
+    DC.B    $4e,$f9
+    DC.L    dat_991c
 hint_1b5c:
-; --- unverified ---
-    move.w d2,(a5)+
-    tst.b 568(a6) ; app+$238
-    bne.w hint_78b6
+    DC.B    $3a,$c2,$4a,$2e,$02,$38,$66,$00,$5d,$52
 hint_1b66:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_1b68:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$68,$f4
 hint_1b70:
-; --- unverified ---
-    moveq #48,d5
-    or.b d2,d5
-    move.b (a4)+,d1
-    bsr.w sub_177e
+    DC.B    $7a,$30,$8a,$02,$12,$1c,$61,$00,$fc,$06
 hint_1b7a:
-; --- unverified ---
-    bne.w hint_845e
+    DC.B    $66,$00,$68,$e2
 hint_1b7e:
-; --- unverified ---
-    lsl.b #3,d0
-    or.b d2,d0
-    lsl.b #4,d0
-    swap d3
-    move.b d0,d3
-    move.l (sp)+,d2
-    cmp.b #$2e,d1
-    beq.s hint_1b96
+    DC.B    $e7,$08,$80,$02,$e9,$08,$48,$43,$16,$00,$24,$1f,$b2,$3c,$00,$2e
+    DC.B    $67,$06
 hint_1b90:
-; --- unverified ---
-    cmp.b #$5c,d1
-    bne.s hint_1bb2
+    DC.B    $b2,$3c,$00,$5c,$66,$1c
 hint_1b96:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$57,d1
-    beq.s hint_1bb0
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$57,$67,$0c
 hint_1ba4:
-; --- unverified ---
-    cmp.b #$4c,d1
-    bne.w hint_8466
+    DC.B    $b2,$3c,$00,$4c,$66,$00,$68,$bc
 hint_1bac:
-    dc.b    $00,$03,$00,$08
+    DC.B    $00,$03,$00,$08
 hint_1bb0:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_1bb2:
-; --- unverified ---
-    tst.b 289(a6) ; app+$121
-    beq.s hint_1bc8
+    DC.B    $4a,$2e,$01,$21,$67,$10
 hint_1bb8:
-; --- unverified ---
-    cmp.b #$2a,d1
-    bne.s hint_1bc8
+    DC.B    $b2,$3c,$00,$2a,$66,$0a
 hint_1bbe:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5740
+    DC.B    $12,$1c,$61,$00,$3b,$7e
 hint_1bc4:
-    dc.b    $d0,$00,$86,$00
+    DC.B    $d0,$00,$86,$00
 hint_1bc8:
-; --- unverified ---
-    cmp.b #$29,d1
-    bne.w loc_0fb2
+    DC.B    $b2,$3c,$00,$29,$66,$00,$f3,$e4
 hint_1bd0:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.b d3,(a5)+
-    swap d3
-    tst.w d3
-    bpl.s hint_1be0
+    DC.B    $12,$1c,$1a,$c3,$48,$43,$4a,$43,$6a,$06
 hint_1bda:
-; --- unverified ---
-    jmp dat_9946
+    DC.B    $4e,$f9
+    DC.L    dat_9946
 hint_1be0:
-; --- unverified ---
-    move.b d2,(a5)+
-    tst.b 568(a6) ; app+$238
-    bne.w hint_78b0
+    DC.B    $1a,$c2,$4a,$2e,$02,$38,$66,$00,$5c,$c8
 hint_1bea:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_1bec:
-; --- unverified ---
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$50,d1
-    bne.w hint_845e
+    DC.B    $48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$50,$66,$00,$68,$66
 hint_1bfa:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$43,d1
-    bne.w hint_845e
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$43,$66,$00,$68,$56
 hint_1c0a:
-; --- unverified ---
-    move.l (sp)+,d2
-    move.b (a4)+,d1
-    cmp.b #$29,d1
-    bne.s hint_1c58
+    DC.B    $24,$1f,$12,$1c,$b2,$3c,$00,$29,$66,$44
 hint_1c14:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_1c16:
-; --- unverified ---
-    moveq #58,d5
-    tst.b 568(a6) ; app+$238
-    beq.s hint_1c54
+    DC.B    $7a,$3a,$4a,$2e,$02,$38,$67,$36
 hint_1c1e:
-; --- unverified ---
-    tst.w d3
-    bpl.s hint_1c28
+    DC.B    $4a,$43,$6a,$06
 hint_1c22:
-; --- unverified ---
-    jmp loc_98ee
+    DC.B    $4e,$f9
+    DC.L    loc_98ee
 hint_1c28:
-; --- unverified ---
-    cmp.b #$2,d3
-    beq.s hint_1c48
+    DC.B    $b6,$3c,$00,$02,$67,$1a
 hint_1c2e:
-; --- unverified ---
-    bclr #15,d4
-    bsr.w hint_19ea
+    DC.B    $08,$84,$00,$0f,$61,$00,$fd,$b6
 hint_1c36:
-; --- unverified ---
-    sub.l 572(a6),d2 ; app+$23C
-    move.l a5,d0
-    sub.l 588(a6),d0 ; app+$24C
-    sub.l d0,d2
-    move.w d2,(a5)+
-    bra.w sub_78bc
+    DC.B    $94,$ae,$02,$3c,$20,$0d,$90,$ae,$02,$4c,$94,$80,$3a,$c2,$60,$00
+    DC.B    $5c,$76
 hint_1c48:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_1c2e
+    DC.B    $4a,$2e,$01,$07,$66,$e0
 hint_1c4e:
-; --- unverified ---
-    moveq #33,d0
-    bsr.w loc_8486
+    DC.B    $70,$21,$61,$00,$68,$34
 hint_1c54:
-; --- unverified ---
-    move.w d2,(a5)+
-    rts
+    DC.B    $3a,$c2,$4e,$75
 hint_1c58:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_845e
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$68,$00
 hint_1c60:
-; --- unverified ---
-    moveq #59,d5
-    move.l d2,-(sp)
-    move.b (a4)+,d1
-    bsr.w sub_177e
+    DC.B    $7a,$3b,$2f,$02,$12,$1c,$61,$00,$fb,$16
 hint_1c6a:
-; --- unverified ---
-    bne.w hint_845e
+    DC.B    $66,$00,$67,$f2
 hint_1c6e:
-; --- unverified ---
-    lsl.b #3,d0
-    or.b d2,d0
-    lsl.b #4,d0
-    move.b d0,d4
-    cmp.b #$2e,d1
-    beq.s hint_1c82
+    DC.B    $e7,$08,$80,$02,$e9,$08,$18,$00,$b2,$3c,$00,$2e,$67,$06
 hint_1c7c:
-; --- unverified ---
-    cmp.b #$5c,d1
-    bne.s hint_1c9e
+    DC.B    $b2,$3c,$00,$5c,$66,$1c
 hint_1c82:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$57,d1
-    beq.s hint_1c9c
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$57,$67,$0c
 hint_1c90:
-; --- unverified ---
-    cmp.b #$4c,d1
-    bne.w hint_8466
+    DC.B    $b2,$3c,$00,$4c,$66,$00,$67,$d0
 hint_1c98:
-    dc.b    $00,$04,$00,$08
+    DC.B    $00,$04,$00,$08
 hint_1c9c:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_1c9e:
-; --- unverified ---
-    move.l (sp)+,d2
-    tst.b 289(a6) ; app+$121
-    beq.s hint_1cb6
+    DC.B    $24,$1f,$4a,$2e,$01,$21,$67,$10
 hint_1ca6:
-; --- unverified ---
-    cmp.b #$2a,d1
-    bne.s hint_1cb6
+    DC.B    $b2,$3c,$00,$2a,$66,$0a
 hint_1cac:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5740
+    DC.B    $12,$1c,$61,$00,$3a,$90
 hint_1cb2:
-    dc.b    $d0,$00,$88,$00
+    DC.B    $d0,$00,$88,$00
 hint_1cb6:
-; --- unverified ---
-    move.b d4,(a5)+
-    tst.b 568(a6) ; app+$238
-    beq.s hint_1cf0
+    DC.B    $1a,$c4,$4a,$2e,$02,$38,$67,$32
 hint_1cbe:
-; --- unverified ---
-    tst.w d3
-    bmi.s hint_1ce2
+    DC.B    $4a,$43,$6b,$20
 hint_1cc2:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_1cce
+    DC.B    $4a,$2e,$01,$07,$66,$06
 hint_1cc8:
-; --- unverified ---
-    cmp.b #$2,d3
-    beq.s hint_1cea
+    DC.B    $b6,$3c,$00,$02,$67,$1c
 hint_1cce:
-; --- unverified ---
-    sub.l 572(a6),d2 ; app+$23C
-    move.l a5,d0
-    sub.l 588(a6),d0 ; app+$24C
-    sub.l d0,d2
-    addq.l #1,d2
-    bsr.w hint_78b0
+    DC.B    $94,$ae,$02,$3c,$20,$0d,$90,$ae,$02,$4c,$94,$80,$52,$82,$61,$00
+    DC.B    $5b,$d2
 hint_1ce0:
-; --- unverified ---
-    bra.s hint_1cf0
+    DC.B    $60,$0e
 hint_1ce2:
-; --- unverified ---
-    jsr dat_98e0
+    DC.B    $4e,$b9
+    DC.L    dat_98e0
 hint_1ce8:
-; --- unverified ---
-    bra.s hint_1cf2
+    DC.B    $60,$08
 hint_1cea:
-; --- unverified ---
-    moveq #33,d0
-    bsr.w loc_8486
+    DC.B    $70,$21,$61,$00,$67,$98
 hint_1cf0:
-    dc.b    $1a,$c2
+    DC.B    $1a,$c2
 hint_1cf2:
-; --- unverified ---
-    cmp.b #$29,d1
-    bne.w loc_0fb2
+    DC.B    $b2,$3c,$00,$29,$66,$00,$f2,$ba
 hint_1cfa:
-; --- unverified ---
-    move.b (a4)+,d1
-    rts
+    DC.B    $12,$1c,$4e,$75
 hint_1cfe:
-; --- unverified ---
-    moveq #0,d1
-    move.b (a4)+,d1
-    movea.l #sub_a764,a1
-    tst.b 0(a1,d1.w)
-    beq.w hint_192a
+    DC.B    $72,$00,$12,$1c,$22,$7c
+    DC.L    dat_a764
+    DC.B    $4a,$31,$10,$00,$67,$00,$fc,$1c
 hint_1d10:
-; --- unverified ---
-    bset #6,d5
+    DC.B    $08,$c5,$00,$06
 str_1d14:
-    rts
+    DC.B    $4e,$75
 hint_1d16:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$32,$02
 hint_1d1a:
-; --- unverified ---
-    bra.s hint_1d20
+    DC.B    $60,$04
 hint_1d1c:
-; --- unverified ---
-    bsr.w hint_2372
+    DC.B    $61,$00,$06,$54
 hint_1d20:
-; --- unverified ---
-    bsr.w hint_187e
+    DC.B    $61,$00,$fb,$5c
 hint_1d24:
-; --- unverified ---
-    move.b d5,d0
-    andi.w #$78,d0
-    beq.s hint_1d38
+    DC.B    $10,$05,$02,$40,$00,$78,$67,$0c
 hint_1d2c:
-; --- unverified ---
-    cmp.b #$20,d0
-    bne.w hint_1742
+    DC.B    $b0,$3c,$00,$20,$66,$00,$fa,$10
 hint_1d34:
-    dc.b    $00,$06,$00,$08
+    DC.B    $00,$06,$00,$08
 hint_1d38:
-; --- unverified ---
-    andi.w #$7,d5
-    or.w d5,d6
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $02,$45,$00,$07,$8c,$45,$b2,$3c,$00,$2c,$66,$00,$67,$1e
 hint_1d46:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d0,-(sp)
-    bsr.w hint_187e
+    DC.B    $12,$1c,$3f,$00,$61,$00,$fb,$32
 hint_1d4e:
-; --- unverified ---
-    move.b d5,d0
-    andi.w #$78,d0
-    cmp.w (sp)+,d0
-    bne.w hint_1742
+    DC.B    $10,$05,$02,$40,$00,$78,$b0,$5f,$66,$00,$f9,$ea
 hint_1d5a:
-; --- unverified ---
-    andi.w #$7,d5
-    ror.w #7,d5
-    or.w d5,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $02,$45,$00,$07,$ee,$5d,$8c,$45,$3a,$c6,$4e,$75
 hint_1d66:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$61,$00,$f0,$4c
 hint_1d6c:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.s hint_1dd6
+    DC.B    $b2,$3c,$00,$2c,$66,$64
 hint_1d72:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_1dd6
+    DC.B    $4a,$04,$66,$60
 hint_1d76:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_1dd6
+    DC.B    $b6,$3c,$00,$02,$66,$5a
 hint_1d7c:
-; --- unverified ---
-    cmp.l #$9,d2
-    bcc.s hint_1dea
+    DC.B    $b4,$bc,$00,$00,$00,$09,$64,$66
 hint_1d84:
-; --- unverified ---
-    tst.l d2
-    ble.s hint_1dea
+    DC.B    $4a,$82,$6f,$62
 hint_1d88:
-; --- unverified ---
-    subq.l #2,a5
-    bsr.w sub_8dce
+    DC.B    $55,$8d,$61,$00,$70,$42
 hint_1d8e:
-; --- unverified ---
-    bne.s hint_1dd4
+    DC.B    $66,$44
 hint_1d90:
-; --- unverified ---
-    andi.w #$4000,d6
-    bchg #14,d6
-    lsr.w #6,d6
-    ori.w #$5000,d6
-    bsr.w hint_4f1a
+    DC.B    $02,$46,$40,$00,$08,$46,$00,$0e,$ec,$4e,$00,$46,$50,$00,$61,$00
+    DC.B    $31,$7a
 hint_1da2:
-; --- unverified ---
-    cmp.b #$8,d2
-    bne.s hint_1daa
+    DC.B    $b4,$3c,$00,$08,$66,$02
 hint_1da8:
-    dc.b    $74,$00
+    DC.B    $74,$00
 hint_1daa:
-; --- unverified ---
-    ror.w #7,d2
-    or.w d2,d6
-    move.b (a4)+,d1
-    bsr.w hint_16e6
-    dc.b    $00,$3f
-sub_1db6:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_1dca
+    DC.B    $ee,$5a,$8c,$42,$12,$1c,$61,$00,$f9,$34
+    DC.B    $00,$3f
+hint_1db6:
+    DC.B    $4a,$2e,$02,$38,$67,$0e
 hint_1dbc:
-    dc.b    $70,$00,$10,$2e,$02,$39,$10,$3b,$00,$0c,$d1,$6e,$01,$94
+    DC.B    $70,$00,$10,$2e,$02,$39,$10,$3b,$00,$0c,$d1,$6e,$01,$94
 hint_1dca:
-; --- unverified ---
-    moveq #16,d0
-    bra.w hint_8808
+    DC.B    $70,$10,$60,$00,$6a,$3a
 pcref_1dd0:
-    dc.b    $02,$02,$02,$04
+    DC.B    $02,$02,$02,$04
 hint_1dd4:
-    dc.b    $54,$8d
+    DC.B    $54,$8d
 hint_1dd6:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_1dd8:
-; --- unverified ---
-    bsr.w hint_1aa0
+    DC.B    $61,$00,$fc,$c6
 hint_1ddc:
-; --- unverified ---
-    bra.w hint_1e9c
+    DC.B    $60,$00,$00,$be
 hint_1de0:
-; --- unverified ---
-    btst #14,d6
-    bne.s hint_1dd6
+    DC.B    $08,$06,$00,$0e,$66,$f0
 hint_1de6:
-; --- unverified ---
-    neg.l d2
-    bra.s hint_1dd6
+    DC.B    $44,$82,$60,$ec
 hint_1dea:
-; --- unverified ---
-    btst #1,270(a6) ; app+$10E
-    beq.s hint_1dd6
+    DC.B    $08,$2e,$00,$01,$01,$0e,$67,$e4
 hint_1df2:
-; --- unverified ---
-    btst #14,d6
-    bne.s hint_1dfa
+    DC.B    $08,$06,$00,$0e,$66,$02
 hint_1df8:
-    dc.b    $44,$82
+    DC.B    $44,$82
 hint_1dfa:
-; --- unverified ---
-    movea.w d2,a0
-    cmpa.l d2,a0
-    bne.s hint_1de0
+    DC.B    $30,$42,$b1,$c2,$66,$e0
 hint_1e00:
-; --- unverified ---
-    movem.l d2/d6,-(sp)
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $48,$e7,$22,$00,$b2,$3c,$00,$2c,$66,$00,$66,$58
 hint_1e0c:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_4f1a
+    DC.B    $12,$1c,$61,$00,$31,$0a
 hint_1e12:
-; --- unverified ---
-    movem.l d1/a4,-(sp)
-    bsr.w sub_177e
+    DC.B    $48,$e7,$40,$08,$61,$00,$f9,$66
 hint_1e1a:
-; --- unverified ---
-    bne.w hint_1e5e
+    DC.B    $66,$00,$00,$42
 hint_1e1e:
-; --- unverified ---
-    tst.b d0
-    beq.w hint_1e5e
+    DC.B    $4a,$00,$67,$00,$00,$3c
 hint_1e24:
-; --- unverified ---
-    subq.l #2,a5
-    bsr.w sub_8dce
+    DC.B    $55,$8d,$61,$00,$6f,$a6
 hint_1e2a:
-; --- unverified ---
-    bne.s hint_1e5c
+    DC.B    $66,$30
 hint_1e2c:
-; --- unverified ---
-    addq.w #8,sp
-    bsr.w hint_188c
+    DC.B    $50,$4f,$61,$00,$fa,$5c
 hint_1e32:
-; --- unverified ---
-    ext.w d2
-    move.w #$41e8,d6
-    or.w d2,d6
-    ror.w #7,d2
-    or.w d2,d6
-    move.w d6,(a5)+
-    movem.l (sp)+,d2/d6
-    move.w d2,(a5)+
-    moveq #0,d0
-    cmpi.b #$3,569(a6) ; app+$239
-    bne.s hint_1e52
+    DC.B    $48,$82,$3c,$3c,$41,$e8,$8c,$42,$ee,$5a,$8c,$42,$3a,$c6,$4c,$df
+    DC.B    $00,$44,$3a,$c2,$70,$00,$0c,$2e,$00,$03,$02,$39,$66,$02
 hint_1e50:
-    dc.b    $70,$02
+    DC.B    $70,$02
 hint_1e52:
-; --- unverified ---
-    add.w d0,404(a6) ; app+$194
-    moveq #21,d0
-    bra.w hint_8808
+    DC.B    $d1,$6e,$01,$94,$70,$15,$60,$00,$69,$ae
 hint_1e5c:
-    dc.b    $54,$4d
+    DC.B    $54,$4d
 hint_1e5e:
-; --- unverified ---
-    movem.l (sp)+,d1/a4
-    movem.l (sp)+,d2/d6
-    btst #14,d6
-    bne.s hint_1e6e
+    DC.B    $4c,$df,$10,$02,$4c,$df,$00,$44,$08,$06,$00,$0e,$66,$02
 hint_1e6c:
-    dc.b    $44,$82
+    DC.B    $44,$82
 hint_1e6e:
-; --- unverified ---
-    bra.w hint_1dd8
+    DC.B    $60,$00,$ff,$68
 hint_1e72:
-; --- unverified ---
-    addq.l #2,a5
-    cmp.b #$23,d1
-    bne.s hint_1e8e
+    DC.B    $54,$8d,$b2,$3c,$00,$23,$66,$14
 hint_1e7a:
-; --- unverified ---
-    btst #4,271(a6) ; app+$10F
-    bne.w hint_1d66
+    DC.B    $08,$2e,$00,$04,$01,$0f,$66,$00,$fe,$e4
 hint_1e84:
-; --- unverified ---
-    btst #1,270(a6) ; app+$10E
-    bne.w hint_1d66
+    DC.B    $08,$2e,$00,$01,$01,$0e,$66,$00,$fe,$da
 hint_1e8e:
-; --- unverified ---
-    bsr.w sub_1872
+    DC.B    $61,$00,$f9,$e2
 hint_1e92:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$65,$ca
 hint_1e9a:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_1e9c:
-; --- unverified ---
-    move.w d5,-(sp)
-    bsr.w hint_187e
+    DC.B    $3f,$05,$61,$00,$f9,$de
 hint_1ea2:
-; --- unverified ---
-    move.w (sp)+,d4
-    movea.l 588(a6),a0 ; app+$24C
-    move.b d5,d2
-    andi.b #$78,d2
-    cmp.b #$8,d2
-    beq.w hint_1f00
+    DC.B    $38,$1f,$20,$6e,$02,$4c,$14,$05,$02,$02,$00,$78,$b4,$3c,$00,$08
+    DC.B    $67,$00,$00,$4c
 hint_1eb6:
-; --- unverified ---
-    cmp.b #$3c,d4
-    beq.s hint_1eec
+    DC.B    $b8,$3c,$00,$3c,$67,$30
 hint_1ebc:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$30,$5c
 hint_1ec0:
-; --- unverified ---
-    move.w d6,(a0)
-    tst.b d2
-    bne.s hint_1ed6
+    DC.B    $30,$86,$4a,$02,$66,$10
 hint_1ec6:
-; --- unverified ---
-    add.b d5,d5
-    or.b d5,(a0)+
-    cmp.b #$40,d4
-    bcc.w hint_1742
+    DC.B    $da,$05,$8b,$18,$b8,$3c,$00,$40,$64,$00,$f8,$72
 hint_1ed2:
-; --- unverified ---
-    or.b d4,(a0)
-    rts
+    DC.B    $89,$10,$4e,$75
 hint_1ed6:
-; --- unverified ---
-    move.b d4,d0
-    andi.b #$78,d0
-    bne.w hint_1742
+    DC.B    $10,$04,$02,$00,$00,$78,$66,$00,$f8,$64
 hint_1ee0:
-; --- unverified ---
-    add.b d4,d4
-    addq.b #1,d4
-    or.b d4,(a0)+
-    or.b d5,(a0)
-    moveq #60,d0
-    bra.s hint_1efc
+    DC.B    $d8,$04,$52,$04,$89,$18,$8b,$10,$70,$3c,$60,$10
 hint_1eec:
-; --- unverified ---
-    ror.w #5,d6
-    andi.w #$700,d6
-    bsr.w hint_4f1a
+    DC.B    $ea,$5e,$02,$46,$07,$00,$61,$00,$30,$26
 hint_1ef6:
-    dc.b    $8c,$05,$30,$86,$70,$3d
+    DC.B    $8c,$05,$30,$86,$70,$3d
 hint_1efc:
-; --- unverified ---
-    bra.w hint_170a
+    DC.B    $60,$00,$f8,$0c
 hint_1f00:
-; --- unverified ---
-    ori.b #$c0,d6
-    or.b d4,d6
-    andi.w #$7,d5
-    ror.w #7,d5
-    or.w d5,d6
-    cmpi.b #$3,569(a6) ; app+$239
-    bne.s hint_1f1a
+    DC.B    $00,$06,$00,$c0,$8c,$04,$02,$45,$00,$07,$ee,$5d,$8c,$45,$0c,$2e
+    DC.B    $00,$03,$02,$39,$66,$04
 hint_1f16:
-    dc.b    $08,$c6,$00,$08
+    DC.B    $08,$c6,$00,$08
 hint_1f1a:
-; --- unverified ---
-    move.w d6,(a0)
-    move.w d4,d5
-    cmp.b #$40,d5
-    bcc.w hint_1742
+    DC.B    $30,$86,$3a,$04,$ba,$3c,$00,$40,$64,$00,$f8,$1e
 hint_1f26:
-; --- unverified ---
-    cmpi.b #$1,569(a6) ; app+$239
-    beq.w loc_844a
+    DC.B    $0c,$2e,$00,$01,$02,$39,$67,$00,$65,$1c
 hint_1f30:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_1f32:
-; --- unverified ---
-    cmpi.b #$3,569(a6) ; app+$239
-    bne.s hint_1f3e
+    DC.B    $0c,$2e,$00,$03,$02,$39,$66,$04
 hint_1f3a:
-    dc.b    $00,$46,$01,$00
+    DC.B    $00,$46,$01,$00
 hint_1f3e:
-; --- unverified ---
-    bsr.w hint_16e6
-    dc.b    $00,$ff
-sub_1f44:
-; --- unverified ---
-    movem.l d3-d4,-(sp)
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $61,$00,$f7,$a6
+    DC.B    $00,$ff
+hint_1f44:
+    DC.B    $48,$e7,$18,$00,$b2,$3c,$00,$2c,$66,$00,$65,$14
 hint_1f50:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_176a
+    DC.B    $12,$1c,$61,$00,$f8,$16
 hint_1f56:
-; --- unverified ---
-    movem.l (sp)+,d3-d4
-    bne.w hint_1772
+    DC.B    $4c,$df,$00,$18,$66,$00,$f8,$16
 hint_1f5e:
-; --- unverified ---
-    add.b d2,d2
-    movea.l 588(a6),a0 ; app+$24C
-    or.b d2,(a0)
-    bsr.s hint_1f26
+    DC.B    $d4,$02,$20,$6e,$02,$4c,$85,$10,$61,$be
 hint_1f68:
-; --- unverified ---
-    btst #3,270(a6) ; app+$10E
-    beq.s hint_1fb2
+    DC.B    $08,$2e,$00,$03,$01,$0e,$67,$42
 hint_1f70:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_1fb2
+    DC.B    $4a,$04,$66,$3e
 hint_1f74:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_1fb2
+    DC.B    $b6,$3c,$00,$02,$66,$38
 hint_1f7a:
-; --- unverified ---
-    move.w (a0),d3
-    andi.w #$1ff,d3
-    cmp.w #$1fc,d3
-    bne.s hint_1fb2
+    DC.B    $36,$10,$02,$43,$01,$ff,$b6,$7c,$01,$fc,$66,$2c
 hint_1f86:
-; --- unverified ---
-    move.l 2(a0),d0
-    movea.w d0,a1
-    cmp.l a1,d0
-    bne.s hint_1fb2
+    DC.B    $20,$28,$00,$02,$32,$40,$b0,$89,$66,$22
 hint_1f90:
-; --- unverified ---
-    movem.l d0/a0,-(sp)
-    move.l d0,d2
-    subq.w #2,a5
-    bsr.w sub_8dce
+    DC.B    $48,$e7,$80,$80,$24,$00,$55,$4d,$61,$00,$6e,$34
 hint_1f9c:
-; --- unverified ---
-    movem.l (sp)+,d0/a0
-    bne.s hint_1fb0
+    DC.B    $4c,$df,$01,$01,$66,$0e
 hint_1fa2:
-; --- unverified ---
-    bclr #0,(a0)
-    move.w d0,2(a0)
-    moveq #23,d0
-    bra.w hint_8808
+    DC.B    $08,$90,$00,$00,$31,$40,$00,$02,$70,$17,$60,$00,$68,$5a
 hint_1fb0:
-    dc.b    $54,$4d
+    DC.B    $54,$4d
 hint_1fb2:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_1fb4:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$2f,$64
 hint_1fb8:
-; --- unverified ---
-    move.w d6,(a5)+
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $3a,$c6,$b2,$3c,$00,$23,$66,$00,$64,$aa
 hint_1fc2:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_1a9c
+    DC.B    $12,$1c,$61,$00,$fa,$d6
 hint_1fc8:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$64,$94
 hint_1fd0:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_16e0
-    dc.b    $00,$3d,$4e,$75,$0c,$2e,$00,$14,$01,$21,$6d,$d2,$61,$00,$2f,$36
-    dc.b    $3a,$c6,$b2,$3c,$00,$23,$66,$00,$64,$7c,$12,$1c,$61,$00,$fa,$a8
-    dc.b    $b2,$3c,$00,$2c,$66,$00,$64,$66,$12,$1c,$61,$00,$f6,$de,$00,$7d
-    dc.b    $4e,$75
-sub_2008:
-; --- unverified ---
-    move.b 569(a6),d0 ; app+$239
-    beq.w hint_20ca
+    DC.B    $12,$1c,$61,$00,$f7,$0c
+    DC.B    $00,$3d,$4e,$75,$0c,$2e,$00,$14,$01,$21,$6d,$d2,$61,$00,$2f,$36
+    DC.B    $3a,$c6,$b2,$3c,$00,$23,$66,$00,$64,$7c,$12,$1c,$61,$00,$fa,$a8
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$64,$66,$12,$1c,$61,$00,$f6,$de,$00,$7d
+    DC.B    $4e,$75
+hint_2008:
+    DC.B    $10,$2e,$02,$39,$67,$00,$00,$bc
 hint_2010:
-; --- unverified ---
-    cmp.b #$1,d0
-    beq.s hint_2064
+    DC.B    $b0,$3c,$00,$01,$67,$4e
 hint_2016:
-; --- unverified ---
-    cmp.b #$2,d0
-    beq.w hint_20b0
+    DC.B    $b0,$3c,$00,$02,$67,$00,$00,$94
 hint_201e:
-; --- unverified ---
-    tst.b 292(a6) ; app+$124
-    bne.w hint_20b0
+    DC.B    $4a,$2e,$01,$24,$66,$00,$00,$8c
 hint_2026:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.s hint_205c
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$2e
 hint_202e:
-    dc.b    $50,$c6
+    DC.B    $50,$c6
 hint_2030:
-; --- unverified ---
-    move.w d6,(a5)+
-    bsr.w sub_16a8
+    DC.B    $3a,$c6,$61,$00,$f6,$74
 hint_2036:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_2058
+    DC.B    $4a,$2e,$02,$38,$67,$1c
 hint_203c:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_2058
+    DC.B    $4a,$04,$66,$18
 hint_2040:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_2052
+    DC.B    $b6,$3c,$00,$02,$66,$0c
 hint_2046:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_2052
+    DC.B    $4a,$2e,$01,$07,$66,$06
 hint_204c:
-; --- unverified ---
-    moveq #30,d0
-    bsr.w loc_8486
+    DC.B    $70,$1e,$61,$00,$64,$36
 hint_2052:
-    dc.b    $94,$ae,$02,$3c,$55,$82
+    DC.B    $94,$ae,$02,$3c,$55,$82
 hint_2058:
-; --- unverified ---
-    move.l d2,(a5)+
-    rts
+    DC.B    $2a,$c2,$4e,$75
 hint_205c:
-; --- unverified ---
-    moveq #5,d0
-    bsr.w sign_extended_operand
+    DC.B    $70,$05,$61,$00,$65,$2c
 hint_2062:
-; --- unverified ---
-    bra.s hint_20b0
+    DC.B    $60,$4c
 hint_2064:
-; --- unverified ---
-    bsr.w hint_2130
+    DC.B    $61,$00,$00,$ca
 hint_2068:
-; --- unverified ---
-    beq.s hint_2098
+    DC.B    $67,$2e
 hint_206a:
-; --- unverified ---
-    lsr.w #8,d6
-    move.b d6,(a5)+
-    tst.w d3
-    bmi.w dat_98e0
+    DC.B    $e0,$4e,$1a,$c6,$4a,$43,$6b,$00,$78,$6e
 hint_2074:
-; --- unverified ---
-    tst.l d2
-    bne.s hint_20a8
+    DC.B    $4a,$82,$66,$30
 hint_2078:
-; --- unverified ---
-    cmp.b #$61,d6
-    beq.s hint_209e
+    DC.B    $bc,$3c,$00,$61,$67,$20
 hint_207e:
-; --- unverified ---
-    btst #6,271(a6) ; app+$10F
-    bne.s hint_208e
+    DC.B    $08,$2e,$00,$06,$01,$0f,$66,$08
 hint_2086:
-; --- unverified ---
-    moveq #83,d0
-    bsr.w loc_8486
+    DC.B    $70,$53,$61,$00,$63,$fc
 hint_208c:
-; --- unverified ---
-    bra.s hint_2094
+    DC.B    $60,$06
 hint_208e:
-; --- unverified ---
-    moveq #18,d0
-    bsr.w hint_8808
+    DC.B    $70,$12,$61,$00,$67,$76
 hint_2094:
-    dc.b    $2a,$6e,$02,$4c
+    DC.B    $2a,$6e,$02,$4c
 hint_2098:
-; --- unverified ---
-    move.w #$4e71,(a5)+
-    rts
+    DC.B    $3a,$fc,$4e,$71,$4e,$75
 hint_209e:
-; --- unverified ---
-    move.b #$ff,(a5)+
-    moveq #63,d0
-    bra.w loc_8486
+    DC.B    $1a,$fc,$00,$ff,$70,$3f,$60,$00,$63,$e0
 hint_20a8:
-; --- unverified ---
-    bsr.w hint_78b0
+    DC.B    $61,$00,$58,$06
 hint_20ac:
-; --- unverified ---
-    move.b d2,(a5)+
-    rts
+    DC.B    $1a,$c2,$4e,$75
 hint_20b0:
-; --- unverified ---
-    bsr.w hint_2130
+    DC.B    $61,$00,$00,$7e
 sub_20b4: ; jt: pcref_0ea2
     beq.s loc_20c6
 loc_20b6:
@@ -3993,302 +3318,154 @@ loc_20c6:
     addq.l #4,a5
     rts
 hint_20ca:
-; --- unverified ---
-    tst.b 300(a6) ; app+$12C
-    bmi.s hint_2064
+    DC.B    $4a,$2e,$01,$2c,$6b,$94
 hint_20d0:
-; --- unverified ---
-    bne.w hint_2026
+    DC.B    $66,$00,$ff,$54
 hint_20d4:
-; --- unverified ---
-    btst #0,271(a6) ; app+$10F
-    beq.s hint_20b0
+    DC.B    $08,$2e,$00,$00,$01,$0f,$67,$d4
 hint_20dc:
-; --- unverified ---
-    bsr.w sub_0db6
+    DC.B    $61,$00,$ec,$d8
 hint_20e0:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_212a
+    DC.B    $4a,$04,$66,$46
 hint_20e4:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_20f0
+    DC.B    $4a,$2e,$01,$07,$66,$06
 hint_20ea:
-; --- unverified ---
-    cmp.b #$2,d3
-    beq.s hint_212a
+    DC.B    $b6,$3c,$00,$02,$67,$3a
 hint_20f0:
-; --- unverified ---
-    move.l d2,-(sp)
-    sub.l 572(a6),d2 ; app+$23C
-    subq.l #4,d2
-    beq.s hint_2128
+    DC.B    $2f,$02,$94,$ae,$02,$3c,$59,$82,$67,$2e
 hint_20fa:
-; --- unverified ---
-    bpl.s hint_20fe
+    DC.B    $6a,$02
 hint_20fc:
-    dc.b    $54,$82
+    DC.B    $54,$82
 hint_20fe:
-; --- unverified ---
-    move.b d2,d0
-    ext.w d0
-    ext.l d0
-    cmp.l d0,d2
-    bne.s hint_2128
+    DC.B    $10,$02,$48,$80,$48,$c0,$b4,$80,$66,$20
 hint_2108:
-; --- unverified ---
-    bsr.w sub_8dce
+    DC.B    $61,$00,$6c,$c4
 hint_210c:
-; --- unverified ---
-    bne.s hint_211a
+    DC.B    $66,$0c
 hint_210e:
-; --- unverified ---
-    addq.l #4,sp
-    or.b d2,d6
-    move.w d6,(a5)+
-    moveq #12,d0
-    bra.w hint_8808
+    DC.B    $58,$8f,$8c,$02,$3a,$c6,$70,$0c,$60,$00,$66,$f0
 hint_211a:
-; --- unverified ---
-    btst #5,271(a6) ; app+$10F
-    beq.s hint_2128
+    DC.B    $08,$2e,$00,$05,$01,$0f,$67,$06
 hint_2122:
-; --- unverified ---
-    moveq #17,d0
-    bsr.w hint_8808
+    DC.B    $70,$11,$61,$00,$66,$e2
 hint_2128:
-    dc.b    $24,$1f
+    DC.B    $24,$1f
 hint_212a:
-; --- unverified ---
-    pea sub_20b4(pc)
-    bra.s hint_2134
+    DC.B    $48,$7a,$ff,$88,$60,$04
 hint_2130:
-; --- unverified ---
-    bsr.w sub_0db6
+    DC.B    $61,$00,$ec,$84
 hint_2134:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    bne.s hint_214a
+    DC.B    $4a,$2e,$02,$38,$66,$10
 hint_213a:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_216c
+    DC.B    $4a,$04,$66,$2e
 hint_213e:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_216c
+    DC.B    $b6,$3c,$00,$02,$66,$28
 hint_2144:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_216c
+    DC.B    $4a,$2e,$01,$07,$66,$22
 hint_214a:
-; --- unverified ---
-    tst.w d3
-    bmi.s hint_216c
+    DC.B    $4a,$43,$6b,$1e
 hint_214e:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_215a
+    DC.B    $4a,$2e,$01,$07,$66,$06
 hint_2154:
-; --- unverified ---
-    cmp.b #$2,d3
-    beq.s hint_2172
+    DC.B    $b6,$3c,$00,$02,$67,$18
 hint_215a:
-; --- unverified ---
-    btst #0,d2
-    beq.s hint_2166
+    DC.B    $08,$02,$00,$00,$67,$06
 hint_2160:
-; --- unverified ---
-    moveq #35,d0
-    bsr.w loc_8486
+    DC.B    $70,$23,$61,$00,$63,$22
 hint_2166:
-    dc.b    $94,$ae,$02,$3c,$55,$82
+    DC.B    $94,$ae,$02,$3c,$55,$82
 hint_216c:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    rts
+    DC.B    $4a,$2e,$02,$38,$4e,$75
 hint_2172:
-; --- unverified ---
-    moveq #33,d0
-    bsr.w loc_8486
+    DC.B    $70,$21,$61,$00,$63,$10
 hint_2178:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    rts
+    DC.B    $4a,$2e,$02,$38,$4e,$75
 hint_217e:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $b2,$3c,$00,$23,$66,$00,$62,$e6
 hint_2186:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$61,$00,$f5,$42
 hint_218c:
-; --- unverified ---
-    tst.l d2
-    bmi.s hint_219e
+    DC.B    $4a,$82,$6b,$0e
 hint_2190:
-; --- unverified ---
-    cmp.l #$8,d2
-    bcc.s hint_219e
+    DC.B    $b4,$bc,$00,$00,$00,$08,$64,$06
 hint_2198:
-; --- unverified ---
-    or.b d2,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $8c,$02,$3a,$c6,$4e,$75
 hint_219e:
-; --- unverified ---
-    move.w d6,(a5)+
-    moveq #29,d0
-    bra.w loc_8486
+    DC.B    $3a,$c6,$70,$1d,$60,$00,$62,$e2
 hint_21a6:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$0f,$84
 hint_21b0:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    beq.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$67,$00,$0f,$7a
 hint_21ba:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$62,$8a
 hint_21c2:
-; --- unverified ---
-    bsr.w loc_1760
+    DC.B    $61,$00,$f5,$9c
 hint_21c6:
-; --- unverified ---
-    andi.w #$ff,d2
-    ror.w #4,d2
-    move.w d2,d5
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $02,$42,$00,$ff,$e8,$5a,$3a,$02,$b2,$3c,$00,$2c,$66,$00,$62,$8e
 hint_21d6:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_2258
+    DC.B    $12,$1c,$61,$7e
 hint_21da:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d5,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$31,$45,$00,$02,$4e,$75
 hint_21e4:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$0f,$46
 hint_21ee:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    beq.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$67,$00,$0f,$3c
 hint_21f8:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$62,$4c
 hint_2200:
-; --- unverified ---
-    move.w d6,(a5)+
-    addq.l #2,a5
-    bsr.w hint_16e0
+    DC.B    $3a,$c6,$54,$8d,$61,$00,$f4,$da
 hint_2208:
-; --- unverified ---
-    ori.w #$7a00,-(a5)
-    bsr.s hint_2266
+    DC.B    $00,$65,$7a,$00,$61,$58
 hint_220e:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$62,$4e
 hint_2216:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$f5,$46
 hint_221c:
-; --- unverified ---
-    andi.w #$ff,d2
-    ror.w #4,d2
-    or.w d2,d5
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d5,2(a0)
-    rts
+    DC.B    $02,$42,$00,$ff,$e8,$5a,$8a,$42,$20,$6e,$02,$4c,$31,$45,$00,$02
+    DC.B    $4e,$75
 hint_222e:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$0e,$fc
 hint_2238:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    beq.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$67,$00,$0e,$f2
 hint_2242:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$62,$02
 hint_224a:
-; --- unverified ---
-    moveq #0,d5
-    bsr.s hint_2258
+    DC.B    $7a,$00,$61,$0a
 hint_224e:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d5,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$31,$45,$00,$02,$4e,$75
 hint_2258:
-; --- unverified ---
-    move.w d6,(a5)+
-    addq.l #2,a5
-    move.w d5,-(sp)
-    bsr.w hint_16e0
+    DC.B    $3a,$c6,$54,$8d,$3f,$05,$61,$00,$f4,$80
 hint_2262:
-    dc.b    $00,$25,$3a,$1f
+    DC.B    $00,$25,$3a,$1f
 hint_2266:
-; --- unverified ---
-    cmp.b #$7b,d1
-    bne.s loc_2286
+    DC.B    $b2,$3c,$00,$7b,$66,$1a
 hint_226c:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_177e
+    DC.B    $12,$1c,$61,$00,$f5,$0e
 hint_2272:
-; --- unverified ---
-    bne.s hint_228c
+    DC.B    $66,$18
 hint_2274:
-; --- unverified ---
-    tst.b d0
-    bne.s loc_2286
+    DC.B    $4a,$00,$66,$0e
 hint_2278:
-; --- unverified ---
-    bset #11,d5
-    andi.w #$ff,d2
-    lsl.w #6,d2
-    or.w d2,d5
-    bra.s hint_22ae
+    DC.B    $08,$c5,$00,$0b,$02,$42,$00,$ff,$ed,$4a,$8a,$42,$60,$28
 loc_2286:
     moveq #85,d0
     bra.w loc_8482
 hint_228c:
-; --- unverified ---
-    bsr.w sub_16cc
+    DC.B    $61,$00,$f4,$3e
 hint_2290:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_22ae
+    DC.B    $4a,$2e,$02,$38,$67,$18
 hint_2296:
-; --- unverified ---
-    tst.l d2
-    bmi.s hint_22a2
+    DC.B    $4a,$82,$6b,$08
 hint_229a:
-; --- unverified ---
-    cmp.l #$20,d2
-    bcs.s hint_22a6
+    DC.B    $b4,$bc,$00,$00,$00,$20,$65,$04
 hint_22a2:
-; --- unverified ---
-    bsr.w sub_78c6
+    DC.B    $61,$00,$56,$22
 hint_22a6:
-    dc.b    $ed,$4a,$02,$42,$07,$c0,$8a,$42
+    DC.B    $ed,$4a,$02,$42,$07,$c0,$8a,$42
 hint_22ae:
-; --- unverified ---
-    cmp.b #$3a,d1
-    bne.s loc_2286
-    dc.b    $12,$1c
+    DC.B    $b2,$3c,$00,$3a,$66,$d2
+    DC.B    $12,$1c
 loc_22b6:
     bsr.w sub_177e
 loc_22ba:
@@ -4330,1290 +3507,638 @@ loc_22f4:
     bsr.w sub_78c6
 loc_22f8:
     bra.s loc_22ea
-    dc.b    $50,$ee,$02,$3b,$b2,$3c,$00
-    dc.b    "#g",$22,"a",0
-    dc.b    $f4,$5a,$2f,$0c,$b2,$3c,$00,$2c,$66,$00,$61,$52,$12,$1c,$d4,$02
-    dc.b    $52,$02,$42,$67,$1a,$c2,$1a,$c6,$61,$00,$f3,$c0,$00,$fd,$60,$20
-    dc.b    $3a,$c6,$12,$1c,$61,$00,$ea,$8a,$2f,$0c,$3f,$02,$61,$00,$f7,$b4
-    dc.b    $b2,$3c,$00,$2c,$66,$00,$61,$26,$12,$1c,$61,$00,$f3,$9e,$00,$7d
+    DC.B    $50,$ee,$02,$3b,$b2,$3c,$00
+    DC.B    "#g",'"',"a",0
+    DC.B    $f4,$5a,$2f,$0c,$b2,$3c,$00,$2c,$66,$00,$61,$52,$12,$1c,$d4,$02
+    DC.B    $52,$02,$42,$67,$1a,$c2,$1a,$c6,$61,$00,$f3,$c0,$00,$fd,$60,$20
+    DC.B    $3a,$c6,$12,$1c,$61,$00,$ea,$8a,$2f,$0c,$3f,$02,$61,$00,$f7,$b4
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$61,$26,$12,$1c,$61,$00,$f3,$9e,$00,$7d
 hint_2346:
-; --- unverified ---
-    move.w (sp)+,d2
-    movea.l (sp)+,a2
-    andi.w #$38,d5
-    bne.s hint_2356
+    DC.B    $34,$1f,$24,$5f,$02,$45,$00,$38,$66,$06
 hint_2350:
-; --- unverified ---
-    moveq #3,d0
-    bra.w hint_2ff2
+    DC.B    $70,$03,$60,$00,$0c,$9e
 hint_2356:
-; --- unverified ---
-    cmp.w #$8,d2
-    bcs.s hint_2372
+    DC.B    $b4,$7c,$00,$08,$65,$16
 hint_235c:
-; --- unverified ---
-    tst.b 286(a6) ; app+$11E
-    beq.s hint_2372
+    DC.B    $4a,$2e,$01,$1e,$67,$10
 hint_2362:
-; --- unverified ---
-    movea.l a2,a4
-    bpl.s hint_236c
+    DC.B    $28,$4a,$6a,$06
 hint_2366:
-; --- unverified ---
-    moveq #106,d0
-    bra.w loc_8486
+    DC.B    $70,$6a,$60,$00,$61,$1c
 hint_236c:
-; --- unverified ---
-    moveq #9,d0
-    bsr.w sign_extended_operand
+    DC.B    $70,$09,$61,$00,$62,$1c
 hint_2372:
-; --- unverified ---
-    moveq #1,d0
-    bra.w hint_2ff2
+    DC.B    $70,$01,$60,$00,$0c,$7c
 hint_2378:
-; --- unverified ---
-    st 571(a6) ; app+$23B
-    cmp.b #$23,d1
-    beq.s hint_23a4
+    DC.B    $50,$ee,$02,$3b,$b2,$3c,$00,$23,$67,$22
 hint_2382:
-; --- unverified ---
-    bsr.w loc_1760
+    DC.B    $61,$00,$f3,$dc
 hint_2386:
-; --- unverified ---
-    move.l a4,-(sp)
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $2f,$0c,$b2,$3c,$00,$2c,$66,$00,$60,$d4
 hint_2390:
-; --- unverified ---
-    move.b (a4)+,d1
-    add.b d2,d2
-    addq.b #1,d2
-    clr.w -(sp)
-    move.b d2,(a5)+
-    move.b d6,(a5)+
-    bsr.w hint_16e0
-    dc.b    $00,$3d,$60,$a2
+    DC.B    $12,$1c,$d4,$02,$52,$02,$42,$67,$1a,$c2,$1a,$c6,$61,$00,$f3,$42
+    DC.B    $00,$3d,$60,$a2
 hint_23a4:
-; --- unverified ---
-    move.w d6,(a5)+
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $3a,$c6,$12,$1c,$61,$00,$ea,$0c
 hint_23ac:
-; --- unverified ---
-    move.l a4,-(sp)
-    move.w d2,-(sp)
-    bsr.w hint_1ae8
+    DC.B    $2f,$0c,$3f,$02,$61,$00,$f7,$36
 hint_23b4:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$60,$a8
 hint_23bc:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_16e0
-    dc.b    $00,$3d,$60,$80
+    DC.B    $12,$1c,$61,$00,$f3,$20
+    DC.B    $00,$3d,$60,$80
 hint_23c6:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$0d,$64
 hint_23d0:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    beq.s hint_23da
+    DC.B    $4a,$2e,$02,$39,$67,$04
 hint_23d6:
-; --- unverified ---
-    bsr.w loc_844a
+    DC.B    $61,$00,$60,$72
 hint_23da:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $b2,$3c,$00,$23,$66,$00,$60,$8a
 hint_23e2:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d6,(a5)+
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$3a,$c6,$61,$00,$e9,$ce
 hint_23ea:
-; --- unverified ---
-    bsr.w hint_1ae8
+    DC.B    $61,$00,$f6,$fc
 hint_23ee:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$60,$6e
 hint_23f6:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_16e0
+    DC.B    $12,$1c,$61,$00,$f2,$e6
 hint_23fc:
-; --- unverified ---
-    ori.w #$4e75,-(a4)
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $00,$64,$4e,$75,$0c,$2e,$00,$14,$01,$21,$6d,$00,$0d,$2a
 hint_240a:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    beq.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$67,$00,$0d,$20
 hint_2414:
-; --- unverified ---
-    moveq #0,d0
-    move.b 569(a6),d0 ; app+$239
-    add.w d0,d0
-    or.w pcref_2454(pc,d0.w),d6
-    bsr.w loc_1760
+    DC.B    $70,$00,$10,$2e,$02,$39,$d0,$40,$8c,$7b,$00,$36,$61,$00,$f3,$3e
 hint_2424:
-; --- unverified ---
-    moveq #0,d5
-    move.b d2,d5
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $7a,$00,$1a,$02,$b2,$3c,$00,$2c,$66,$00,$60,$34
 hint_2430:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$f3,$2c
 hint_2436:
-; --- unverified ---
-    andi.w #$ff,d2
-    lsl.w #6,d2
-    or.w d2,d5
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $02,$42,$00,$ff,$ed,$4a,$8a,$42,$b2,$3c,$00,$2c,$66,$00,$60,$1e
 hint_2446:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d5,-(sp)
-    bsr.w hint_16e6
+    DC.B    $12,$1c,$3f,$05,$61,$00,$f2,$9a
 hint_244e:
-; --- unverified ---
-    ori.b
-    rts
+    DC.B    $00,$3c,$3a,$df,$4e,$75
 pcref_2454:
-    dc.b    $04,$00,$02,$00,$04,$00,$06,$00
+    DC.B    $04,$00,$02,$00,$04,$00,$06,$00
 hint_245c:
-; --- unverified ---
-    moveq #86,d0
-    bra.w loc_8482
+    DC.B    $70,$56,$60,$00,$60,$22
 hint_2462:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$0c,$c8
 hint_246c:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    beq.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$67,$00,$0c,$be
 hint_2476:
-; --- unverified ---
-    moveq #0,d0
-    move.b 569(a6),d0 ; app+$239
-    cmp.b #$1,d0
-    beq.w loc_844a
+    DC.B    $70,$00,$10,$2e,$02,$39,$b0,$3c,$00,$01,$67,$00,$5f,$c8
 hint_2484:
-; --- unverified ---
-    cmp.b #$3,d0
-    bne.s hint_248e
+    DC.B    $b0,$3c,$00,$03,$66,$04
 hint_248a:
-    dc.b    $08,$c6,$00,$09
+    DC.B    $08,$c6,$00,$09
 hint_248e:
-; --- unverified ---
-    move.w d6,(a5)+
-    moveq #0,d5
-    moveq #0,d6
-    bsr.w loc_1760
+    DC.B    $3a,$c6,$7a,$00,$7c,$00,$61,$00,$f2,$ca
 hint_2498:
-; --- unverified ---
-    or.b d2,d5
-    cmp.b #$3a,d1
-    bne.s hint_245c
+    DC.B    $8a,$02,$b2,$3c,$00,$3a,$66,$bc
 hint_24a0:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$f2,$bc
 hint_24a6:
-; --- unverified ---
-    or.b d2,d6
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $8c,$02,$b2,$3c,$00,$2c,$66,$00,$5f,$b4
 hint_24b0:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_24e4
+    DC.B    $12,$1c,$61,$30
 hint_24b4:
-; --- unverified ---
-    or.w d2,d5
-    cmp.b #$3a,d1
-    bne.s hint_245c
+    DC.B    $8a,$42,$b2,$3c,$00,$3a,$66,$a0
 hint_24bc:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_24e4
+    DC.B    $12,$1c,$61,$00,$00,$24
 hint_24c2:
-; --- unverified ---
-    or.w d2,d6
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $8c,$42,$b2,$3c,$00,$2c,$66,$00,$5f,$98
 hint_24cc:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_24f0
+    DC.B    $12,$1c,$61,$20
 hint_24d0:
-; --- unverified ---
-    or.w d2,d5
-    cmp.b #$3a,d1
-    bne.s hint_245c
+    DC.B    $8a,$42,$b2,$3c,$00,$3a,$66,$84
 hint_24d8:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_24f0
+    DC.B    $12,$1c,$61,$14
 hint_24dc:
-; --- unverified ---
-    or.w d2,d6
-    move.w d5,(a5)+
-    move.w d6,(a5)+
-    rts
+    DC.B    $8c,$42,$3a,$c5,$3a,$c6,$4e,$75
 hint_24e4:
-; --- unverified ---
-    bsr.w loc_1760
+    DC.B    $61,$00,$f2,$7a
 hint_24e8:
-; --- unverified ---
-    andi.w #$ff,d2
-    lsl.w #6,d2
-    rts
+    DC.B    $02,$42,$00,$ff,$ed,$4a,$4e,$75
 hint_24f0:
-; --- unverified ---
-    cmp.b #$28,d1
-    bne.s hint_2516
+    DC.B    $b2,$3c,$00,$28,$66,$20
 hint_24f6:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_177e
+    DC.B    $12,$1c,$61,$00,$f2,$84
 hint_24fc:
-; --- unverified ---
-    bne.s hint_2516
+    DC.B    $66,$18
 hint_24fe:
-; --- unverified ---
-    andi.w #$ff,d2
-    tst.b d0
-    beq.s hint_250a
+    DC.B    $02,$42,$00,$ff,$4a,$00,$67,$04
 hint_2506:
-    dc.b    $00,$02,$00,$08
+    DC.B    $00,$02,$00,$08
 hint_250a:
-; --- unverified ---
-    ror.w #4,d2
-    cmp.b #$29,d1
-    bne.s hint_2516
+    DC.B    $e8,$5a,$b2,$3c,$00,$29,$66,$04
 hint_2512:
-; --- unverified ---
-    move.b (a4)+,d1
-    rts
+    DC.B    $12,$1c,$4e,$75
 hint_2516:
-; --- unverified ---
-    bra.w loc_8432
+    DC.B    $60,$00
+hint_2518:
+    DC.B    $5f,$1a
 hint_251a:
-; --- unverified ---
-    moveq #4,d7
-    cmp.b #$23,d1
-    bne.s hint_2534
+    DC.B    $7e,$04,$b2,$3c,$00,$23,$66,$12
 hint_2522:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$61,$00,$f1,$a6
 hint_2528:
-; --- unverified ---
-    move.l d2,d7
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $2e,$02,$b2,$3c,$00,$2c,$66,$00,$5f,$32
 hint_2532:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_2534:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_2596
+    DC.B    $b2,$3c,$00,$09,$67,$5c
 hint_253a:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_2596
+    DC.B    $b2,$3c,$00,$20,$67,$56
 hint_2540:
-; --- unverified ---
-    cmp.b #$a,d1
-    beq.s hint_2596
+    DC.B    $b2,$3c,$00,$0a,$67,$50
 hint_2546:
-; --- unverified ---
-    lea 1134(a6),a0 ; app+$46E
-    bsr.w sub_76b8
+    DC.B    $41,$ee,$04,$6e,$61,$00,$51,$6c
 hint_254e:
-; --- unverified ---
-    bne.w loc_8432
+    DC.B    $66,$00,$5e,$e2
 hint_2552:
-; --- unverified ---
-    moveq #2,d6
-    cmp.b #$2e,d1
-    bne.s hint_257a
+    DC.B    $7c,$02,$b2,$3c,$00,$2e,$66,$20
 hint_255a:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$42,d1
-    beq.s hint_257c
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$42,$67,$14
 hint_2568:
-; --- unverified ---
-    cmp.b #$57,d1
-    beq.s hint_257c
+    DC.B    $b2,$3c,$00,$57,$67,$0e
 hint_256e:
-; --- unverified ---
-    moveq #4,d6
-    cmp.b #$4c,d1
-    bne.w loc_844a
+    DC.B    $7c,$04,$b2,$3c,$00,$4c,$66,$00,$5e,$d4
 hint_2578:
-; --- unverified ---
-    bra.s hint_257c
+    DC.B    $60,$02
 hint_257a:
-    dc.b    $53,$8c
+    DC.B    $53,$8c
 hint_257c:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.l d7,d4
-    add.l d6,d7
-    movem.l d1/d7,-(sp)
-    bsr.s hint_2598
+    DC.B    $12,$1c,$28,$07,$de,$86,$48,$e7,$41,$00,$61,$10
 hint_2588:
-; --- unverified ---
-    movem.l (sp)+,d1/d7
-    cmp.b #$2c,d1
-    bne.s hint_2596
+    DC.B    $4c,$df,$00,$82,$b2,$3c,$00,$2c,$66,$04
 hint_2592:
-; --- unverified ---
-    move.b (a4)+,d1
-    bra.s hint_2546
+    DC.B    $12,$1c,$60,$b0
 hint_2596:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2598:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    bne.s hint_25c8
+    DC.B    $4a,$2e,$02,$38,$66,$2a
 hint_259e:
-; --- unverified ---
-    bsr.w sub_0bce
+    DC.B    $61,$00,$e6,$2e
 hint_25a2:
-; --- unverified ---
-    beq.w loc_8436
+    DC.B    $67,$00,$5e,$92
 hint_25a6:
-; --- unverified ---
-    moveq #2,d3
-    move.b 6(a0),d0
-    cmp.b 278(a6),d0 ; app+$116
-    beq.s hint_25ba
+    DC.B    $76,$02,$10,$28,$00,$06,$b0,$2e,$01,$16,$67,$08
 hint_25b2:
-; --- unverified ---
-    lea 362(a6),a2 ; app+$16A
-    bra.w sub_0cb6
+    DC.B    $45,$ee,$01,$6a,$60,$00,$e6,$fe
 hint_25ba:
-; --- unverified ---
-    lea 346(a6),a2 ; app+$15A
-    tst.l (a2)
-    bne.w sub_0d4c
+    DC.B    $45,$ee,$01,$5a,$4a,$92,$66,$00,$e7,$8a
 hint_25c4:
-; --- unverified ---
-    bra.w loc_8442
+    DC.B    $60,$00,$5e,$7c
 hint_25c8:
-; --- unverified ---
-    bsr.w sub_0bce
+    DC.B    $61,$00,$e6,$04
 hint_25cc:
-; --- unverified ---
-    bne.w loc_843a
+    DC.B    $66,$00,$5e,$6c
 hint_25d0:
-; --- unverified ---
-    bset #6,12(a1)
-    bne.w loc_8436
+    DC.B    $08,$e9,$00,$06,$00,$0c,$66,$00,$5e,$5e
 hint_25da:
-; --- unverified ---
-    cmpi.b #$2,13(a1)
-    bne.w loc_8436
+    DC.B    $0c,$29,$00,$02,$00,$0d,$66,$00,$5e,$54
 hint_25e4:
-; --- unverified ---
-    cmp.l 8(a1),d4
-    bne.w loc_843e
+    DC.B    $b8,$a9,$00,$08,$66,$00,$5e,$54
 hint_25ec:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_25ee:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w hint_274e
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$01,$58
 hint_25f8:
-; --- unverified ---
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_2610
+    DC.B    $10,$2e,$02,$39,$67,$12
 hint_25fe:
-; --- unverified ---
-    cmp.b #$2,d0
-    beq.s hint_2610
+    DC.B    $b0,$3c,$00,$02,$67,$0c
 hint_2604:
-; --- unverified ---
-    cmp.b #$3,d0
-    bne.w loc_844a
+    DC.B    $b0,$3c,$00,$03,$66,$00,$5e,$40
 hint_260c:
-    dc.b    $08,$86
+    DC.B    $08,$86
 hint_260e:
-    dc.b    $00,$07
+    DC.B    $00,$07
 hint_2610:
-; --- unverified ---
-    bsr.w hint_16e6
+    DC.B    $61,$00,$f0,$d4
+    DC.B    $00,$fd,$b2,$3c
 hint_2618:
-; --- unverified ---
-    ori.b #$0,24134(a4)
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $00,$2c,$66,$00,$5e,$46,$12,$1c,$61,$00,$f1,$3e
 hint_2624:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    add.b d2,d2
-    or.b d2,(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$d4,$02,$85,$10,$4e,$75
 hint_262e:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$0a,$fc
 hint_2638:
-; --- unverified ---
-    move.w d6,d5
-    bclr #11,d6
-    moveq #0,d0
-    move.b 569(a6),d0 ; app+$239
-    add.w d0,d0
-    or.w pcref_2672(pc,d0.w),d6
-    move.w d6,(a5)+
-    andi.w #$800,d5
-    move.w d5,(a5)+
-    bsr.w hint_16e0
+    DC.B    $3a,$06,$08,$86,$00,$0b,$70,$00,$10,$2e,$02,$39,$d0,$40,$8c,$7b
+    DC.B    $00,$2a,$3a,$c6,$02,$45,$08,$00,$3a,$c5,$61,$00,$f0,$8c
 hint_2656:
-; --- unverified ---
-    ori.w #$b23c,-(a4)
-    ori.b #$0,24068(a4)
-    move.b (a4)+,d1
-    bsr.w hint_4a3c
+    DC.B    $00,$64,$b2,$3c,$00,$2c,$66,$00,$5e,$04,$12,$1c,$61,$00,$23,$d8
 hint_2666:
-; --- unverified ---
-    asl.b #4,d2
-    movea.l 588(a6),a0 ; app+$24C
-    or.b d2,2(a0)
-    rts
+    DC.B    $e9,$02,$20,$6e,$02,$4c,$85,$28,$00,$02,$4e,$75
 pcref_2672:
-; --- unverified ---
-    andi.b #$0,d0
-    andi.b #$0,d0
-    moveq #0,d5
-    bra.s hint_2682
+    DC.B    $02,$00,$00,$00,$02,$00,$04,$00,$7a,$00,$60,$04
 hint_267e:
-; --- unverified ---
-    move.w #$800,d5
+    DC.B    $3a,$3c,$08,$00
 hint_2682:
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$0a,$a8
 hint_268c:
-; --- unverified ---
-    bsr.w hint_2350
+    DC.B    $61,$00,$fc,$c2
 hint_2690:
-; --- unverified ---
-    move.w d6,(a5)+
-    move.w d5,(a5)+
-    bsr.w hint_16e0
+    DC.B    $3a,$c6,$3a,$c5,$61,$00
+hint_2696:
+    DC.B    $f0,$4a
+    DC.B    $00,$fd,$b2,$3c
 hint_269c:
-; --- unverified ---
-    ori.b #$0,24002(a4)
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $00,$2c,$66,$00,$5d,$c2,$12,$1c,$61,$00,$f0,$ba
 hint_26a8:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    cmp.b #$3a,d1
-    bne.s hint_26c8
+    DC.B    $20,$6e,$02,$4c,$b2,$3c,$00,$3a,$66,$16
 hint_26b2:
-; --- unverified ---
-    move.b (a4)+,d1
-    or.b d2,3(a0)
-    bsr.w loc_1760
+    DC.B    $12,$1c,$85,$28,$00,$03,$61,$00,$f0,$a6
 hint_26bc:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    lsl.b #4,d2
-    or.b d2,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$e9,$0a,$85,$28,$00,$02,$4e,$75
 hint_26c8:
-; --- unverified ---
-    moveq #37,d0
-    bra.w loc_8486
+    DC.B    $70,$25,$60,$00,$5d,$ba
 hint_26ce:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.s hint_274e
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$78
 hint_26d6:
-; --- unverified ---
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_274e
+    DC.B    $10,$2e,$02,$39,$67,$72
 hint_26dc:
-; --- unverified ---
-    cmp.b #$2,d0
-    beq.s hint_274e
+    DC.B    $b0,$3c,$00,$02,$67,$6c
 hint_26e2:
-; --- unverified ---
-    cmp.b #$3,d0
-    bne.w loc_844a
+    DC.B    $b0,$3c,$00,$03,$66,$00,$5d,$62
 hint_26ea:
-; --- unverified ---
-    btst #8,d6
-    sne d5
-    ext.w d5
-    andi.w #$800,d5
-    btst #14,d6
-    seq d6
-    ext.w d6
-    andi.w #$40,d6
-    ori.w #$4c00,d6
-    move.w d6,(a5)+
-    move.w d5,(a5)+
-    bsr.w hint_16e0
+    DC.B    $08,$06,$00,$08,$56,$c5,$48,$85,$02,$45,$08,$00,$08,$06,$00,$0e
+    DC.B    $57,$c6,$48,$86,$02,$46,$00,$40,$00,$46,$4c,$00,$3a,$c6,$3a,$c5
+    DC.B    $61,$00
+hint_270c:
+    DC.B    $ef,$d4
+    DC.B    $00,$fd,$b2,$3c,$00,$2c,$66,$00,$5d,$4c
 hint_2718:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$f0,$44
 hint_271e:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    cmp.b #$3a,d1
-    beq.s hint_2734
+    DC.B    $20,$6e,$02,$4c,$b2,$3c,$00,$3a,$67,$0c
 hint_2728:
-; --- unverified ---
-    or.b d2,3(a0)
-    lsl.b #4,d2
-    or.b d2,2(a0)
-    rts
+    DC.B    $85,$28,$00,$03,$e9,$0a,$85,$28,$00,$02,$4e,$75
 hint_2734:
-; --- unverified ---
-    move.b (a4)+,d1
-    or.b d2,3(a0)
-    bsr.w loc_1760
+    DC.B    $12,$1c,$85,$28,$00,$03,$61,$00,$f0,$24
 hint_273e:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    lsl.b #4,d2
-    bset #2,d2
-    or.b d2,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$e9,$0a,$08,$c2,$00,$02,$85,$28,$00,$02,$4e,$75
 hint_274e:
-; --- unverified ---
-    bsr.w hint_16e6
-    dc.b    $00,$fd
+    DC.B    $61,$00,$ef,$96
+    DC.B    $00,$fd
 hint_2754:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$5d,$08
 hint_275c:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$f0,$00
 hint_2762:
-    dc.b    $20,$6e,$02,$4c,$d4,$02,$85,$10
+    DC.B    $20,$6e,$02,$4c,$d4,$02,$85,$10
 hint_276a:
-; --- unverified ---
-    moveq #2,d0
-    bra.w hint_2ff2
+    DC.B    $70,$02,$60,$00,$08,$84
 hint_2770:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$27,$a8
 hint_2774:
-; --- unverified ---
-    move.w d6,(a5)+
-    bsr.w sub_1872
+    DC.B    $3a,$c6,$61,$00,$f0,$fa
 hint_277a:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$5c,$e2
 hint_2782:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d5,-(sp)
-    bsr.w hint_187e
+    DC.B    $12,$1c,$3f,$05,$61,$00,$f0,$f6
 hint_278a:
-; --- unverified ---
-    move.w (sp)+,d4
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d5,d0
-    andi.b #$78,d0
-    beq.s hint_27e2
+    DC.B    $38,$1f,$20,$6e,$02,$4c,$30,$05,$02,$00,$00,$78,$67,$4a
 hint_2798:
-; --- unverified ---
-    cmp.b #$8,d0
-    beq.s hint_27f2
+    DC.B    $b0,$3c,$00,$08,$67,$54
 hint_279e:
-; --- unverified ---
-    cmp.b #$3c,d4
-    beq.s hint_2818
+    DC.B    $b8,$3c,$00,$3c,$67,$74
 hint_27a4:
-; --- unverified ---
-    move.b d4,d0
-    andi.b #$78,d0
-    cmp.b #$18,d0
-    bne.s hint_27de
+    DC.B    $10,$04,$02,$00,$00,$78,$b0,$3c,$00,$18,$66,$2e
 hint_27b0:
-; --- unverified ---
-    move.b d5,d0
-    andi.b #$78,d0
-    cmp.b #$18,d0
-    bne.s hint_27de
+    DC.B    $10,$05,$02,$00,$00,$78,$b0,$3c,$00,$18,$66,$22
 hint_27bc:
-; --- unverified ---
-    move.w #$b108,d6
-    bsr.w hint_4f1a
+    DC.B    $3c,$3c,$b1,$08,$61,$00,$27,$58
 hint_27c4:
-; --- unverified ---
-    move.b d4,d0
-    andi.b #$7,d0
-    or.b d0,d6
-    move.b d5,d0
-    andi.w #$7,d0
-    ror.w #7,d0
-    or.w d0,d6
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d6,(a0)
-    rts
+    DC.B    $10,$04,$02,$00,$00,$07,$8c,$00,$10,$05,$02,$40,$00,$07,$ee,$58
+    DC.B    $8c,$40,$20,$6e,$02,$4c,$30,$86,$4e,$75
 hint_27de:
-; --- unverified ---
-    bra.w hint_1742
+    DC.B    $60,$00
+hint_27e0:
+    DC.B    $ef,$62
 hint_27e2:
-; --- unverified ---
-    add.b d5,d5
-    or.b d5,(a0)
-    move.w d4,d5
-    or.w d5,(a0)
-    move.w #$ff,d0
-    bra.w hint_170a
+    DC.B    $da,$05,$8b,$10,$3a,$04,$8b,$50,$30,$3c,$00,$ff,$60,$00,$ef,$1a
 hint_27f2:
-; --- unverified ---
-    andi.b #$7,d5
-    add.b d5,d5
-    cmpi.b #$3,569(a6) ; app+$239
-    bne.s hint_2802
+    DC.B    $02,$05,$00,$07,$da,$05,$0c,$2e,$00,$03,$02,$39,$66,$02
 hint_2800:
-    dc.b    $52,$05
+    DC.B    $52,$05
 hint_2802:
-; --- unverified ---
-    or.b d5,(a0)
-    move.w d4,d5
-    ori.w #$c0,d4
-    or.w d4,(a0)
-    move.w #$ff,d0
-    bsr.w hint_170a
+    DC.B    $8b,$10,$3a,$04,$00,$44,$00,$c0,$89,$50,$30,$3c,$00,$ff,$61,$00
+    DC.B    $ee,$f8
 hint_2814:
-; --- unverified ---
-    bra.w hint_1f26
+    DC.B    $60,$00,$f7,$10
 hint_2818:
-; --- unverified ---
-    move.w #$c00,d6
-    bsr.w hint_4f1a
+    DC.B    $3c,$3c,$0c,$00,$61,$00,$26,$fc
 hint_2820:
-; --- unverified ---
-    or.w d5,d6
-    move.w d6,(a0)
-    moveq #61,d0
-    bra.w hint_170a
+    DC.B    $8c,$45,$30,$86,$70,$3d,$60,$00,$ee,$e2
 hint_282a:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$26,$ee
 hint_282e:
-; --- unverified ---
-    bsr.s hint_2846
+    DC.B    $61,$16
 hint_2830:
-; --- unverified ---
-    or.b d5,d6
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $8c,$05,$b2,$3c,$00,$2c,$66,$00,$5c,$2a
 hint_283a:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_2846
+    DC.B    $12,$1c,$61,$08
 hint_283e:
-; --- unverified ---
-    ror.w #7,d5
-    or.w d5,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $ee,$5d,$8c,$45,$3a,$c6,$4e,$75
 hint_2846:
-; --- unverified ---
-    bsr.w hint_187e
+    DC.B    $61,$00,$f0,$36
 hint_284a:
-; --- unverified ---
-    move.b d5,d0
-    andi.b #$78,d0
-    cmp.b #$18,d0
-    bne.w hint_1742
+    DC.B    $10,$05,$02,$00,$00,$78,$b0,$3c,$00,$18,$66,$00,$ee,$ec
 hint_2858:
-; --- unverified ---
-    andi.w #$7,d5
-    rts
+    DC.B    $02,$45,$00,$07,$4e,$75
 hint_285e:
-; --- unverified ---
-    bsr.w hint_6ad2
+    DC.B    $61,$00,$42,$72
 hint_2862:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$5b,$fa
 hint_286a:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.l d2,d5
-    bsr.w hint_6ad2
+    DC.B    $12,$1c,$2a,$02,$61,$00,$42,$62
 hint_2872:
-; --- unverified ---
-    move.l d2,d0
-    beq.s hint_288e
+    DC.B    $20,$02,$67,$18
 hint_2876:
-; --- unverified ---
-    bmi.s hint_28b4
+    DC.B    $6b,$3c
 hint_2878:
-; --- unverified ---
-    move.l d2,-(sp)
-    move.l 572(a6),d2 ; app+$23C
-    move.l (sp),d0
-    bsr.w sub_11b2
+    DC.B    $2f,$02,$24,$2e,$02,$3c,$20,$17,$61,$00,$e9,$30
 hint_2884:
-; --- unverified ---
-    move.l (sp)+,d2
-    tst.l d0
-    beq.s hint_288e
+    DC.B    $24,$1f,$4a,$80,$67,$04
 hint_288a:
-    dc.b    $90,$82,$44,$80
+    DC.B    $90,$82,$44,$80
 hint_288e:
-; --- unverified ---
-    add.l d5,d0
-    move.l d0,d4
-    beq.s hint_28a4
+    DC.B    $d0,$85,$28,$00,$67,$10
 hint_2894:
-; --- unverified ---
-    cmp.l #$80,d0
-    bcc.s hint_28b4
+    DC.B    $b0,$bc,$00,$00,$00,$80,$64,$18
 hint_289c:
-; --- unverified ---
-    move.b #$0,(a5)+
-    subq.b #1,d0
-    bne.s hint_289c
+    DC.B    $1a,$fc,$00,$00,$53,$00,$66,$f8
 hint_28a4:
-; --- unverified ---
-    add.l 572(a6),d4 ; app+$23C
-    lea 1000(a6),a0 ; app+$3E8
-    tst.l (a0)
-    bne.w loc_0c84
+    DC.B    $d8,$ae,$02,$3c,$41,$ee,$03,$e8,$4a,$90,$66,$00,$e3,$d4
 hint_28b2:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_28b4:
-; --- unverified ---
-    moveq #29,d0
-    bra.w loc_8486
+    DC.B    $70,$1d,$60,$00,$5b,$ce
 hint_28ba:
-; --- unverified ---
-    lea -1(a4),a1
-    cmp.b #$a,d1
-    beq.s hint_28de
+    DC.B    $43,$ec,$ff,$ff,$b2,$3c,$00,$0a,$67,$1a
 hint_28c4:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$a,d1
-    bne.s hint_28c4
+    DC.B    $12,$1c,$b2,$3c,$00,$0a,$66,$f8
 hint_28cc:
-; --- unverified ---
-    move.l a4,d2
-    sub.l a1,d2
-    subq.w #1,d2
-    tst.b 568(a6) ; app+$238
-    beq.s hint_28de
+    DC.B    $24,$0c,$94,$89,$53,$42,$4a,$2e,$02,$38,$67,$06
 hint_28d8:
-; --- unverified ---
-    bsr.w hint_96ec
+    DC.B    $61,$00,$6e,$12
 hint_28dc:
-    dc.b    $72,$0a
+    DC.B    $72,$0a
 hint_28de:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_28e0:
-; --- unverified ---
-    bsr.w loc_1760
+    DC.B    $61,$00,$ee,$7e
 hint_28e4:
-; --- unverified ---
-    or.b d2,d6
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $8c,$02,$b2,$3c,$00,$2c,$66,$00,$5b,$76
 hint_28ee:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_276a
+    DC.B    $12,$1c,$61,$00,$fe,$78
 hint_28f4:
-; --- unverified ---
-    bra.w hint_20b0
+    DC.B    $60,$00,$f7,$ba
 hint_28f8:
-; --- unverified ---
-    move.w d1,-(sp)
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_2906
+    DC.B    $3f,$01,$10,$2e,$02,$39,$67,$06
 hint_2900:
-; --- unverified ---
-    cmp.b #$1,d0
-    beq.s hint_2916
+    DC.B    $b0,$3c,$00,$01,$67,$10
 hint_2906:
-; --- unverified ---
-    bsr.w loc_0c64
+    DC.B    $61,$00,$e3,$5c
 hint_290a:
-; --- unverified ---
-    move.b 569(a6),d0 ; app+$239
-    bne.s hint_2912
+    DC.B    $10,$2e,$02,$39,$66,$02
 hint_2910:
-    dc.b    $70,$02
+    DC.B    $70,$02
 hint_2912:
-; --- unverified ---
-    move.w (sp)+,d1
-    rts
+    DC.B    $32,$1f,$4e,$75
 hint_2916:
-; --- unverified ---
-    lea 1000(a6),a0 ; app+$3E8
-    tst.l (a0)
-    beq.s hint_2926
+    DC.B    $41,$ee,$03,$e8,$4a,$90,$67,$08
 hint_291e:
-; --- unverified ---
-    move.l 572(a6),d4 ; app+$23C
-    bsr.w loc_0c84
+    DC.B    $28,$2e,$02,$3c,$61,$00,$e3,$60
 hint_2926:
-; --- unverified ---
-    move.b 569(a6),d0 ; app+$239
-    bra.s hint_2912
+    DC.B    $10,$2e,$02,$39,$60,$e6
 hint_292c:
-; --- unverified ---
-    bsr.s hint_28f8
+    DC.B    $61,$ca
 hint_292e:
-; --- unverified ---
-    bsr.w hint_6ad2
+    DC.B    $61,$00,$41,$a2
 hint_2932:
-; --- unverified ---
-    cmp.b #$2c,d1
-    beq.s hint_293e
+    DC.B    $b2,$3c,$00,$2c,$67,$06
 hint_2938:
-; --- unverified ---
-    move.l d2,-(sp)
-    moveq #0,d2
-    bra.s hint_2946
+    DC.B    $2f,$02,$74,$00,$60,$08
 hint_293e:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.l d2,-(sp)
-    bsr.w hint_6ad2
+    DC.B    $12,$1c,$2f,$02,$61,$00,$41,$8e
 hint_2946:
-    dc.b    $76,$00,$41,$fa,$01,$8e,$22,$02,$16,$2e,$02,$39,$16,$30,$30,$00
-    dc.b    $28,$1f
+    DC.B    $76,$00,$41,$fa,$01,$8e,$22,$02,$16,$2e,$02,$39,$16,$30,$30,$00
+    DC.B    $28,$1f
 hint_2958:
-; --- unverified ---
-    clr.l 386(a6) ; app+$182
-    tst.b 259(a6) ; app+$103
-    beq.s hint_2968
+    DC.B    $42,$ae,$01,$82,$4a,$2e,$01,$03,$67,$06
 hint_2962:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    bne.s hint_297e
+    DC.B    $4a,$2e,$02,$38,$66,$16
 hint_2968:
-; --- unverified ---
-    lsl.l d3,d4
-    bpl.w hint_2974
+    DC.B    $e7,$ac,$6a,$00,$00,$08
 hint_296e:
-; --- unverified ---
-    moveq #84,d0
-    bra.w loc_8482
+    DC.B    $70,$54,$60,$00,$5b,$10
 hint_2974:
-    dc.b    $2d,$44,$01,$8e
+    DC.B    $2d,$44,$01,$8e
 pcref_2978:
-; --- unverified ---
-    move.b -1(a4),d1
-    rts
+    DC.B    $12,$2c,$ff,$ff,$4e,$75
 hint_297e:
-; --- unverified ---
-    move.b #$ff,2107(a6) ; app+$83B
-    move.l 572(a6),2108(a6) ; app+$23C
-    bsr.w sub_972e
+    DC.B    $1d,$7c,$00,$ff,$08,$3b,$2d,$6e,$02,$3c,$08,$3c,$61,$00,$6d,$a2
 hint_298e:
-; --- unverified ---
-    beq.s hint_2968
+    DC.B    $67,$d8
 hint_2990:
-; --- unverified ---
-    clr.l 398(a6) ; app+$18E
-    subq.l #1,d4
-    bcs.s pcref_2978
+    DC.B    $42,$ae,$01,$8e,$53,$84,$65,$e0
 hint_2998:
-; --- unverified ---
-    pea pcref_2978(pc)
-    subq.b #1,d3
-    bcs.s hint_29ca
+    DC.B    $48,$7a,$ff,$de,$53,$03,$65,$2a
 hint_29a0:
-; --- unverified ---
-    beq.s hint_29b6
+    DC.B    $67,$14
 hint_29a2:
-; --- unverified ---
-    move.l d1,(a5)+
-    moveq #4,d5
-    bsr.s hint_29de
+    DC.B    $2a,$c1,$7a,$04,$61,$36
 hint_29a8:
-; --- unverified ---
-    dbf d4,hint_29a2
+    DC.B    $51,$cc,$ff,$f8
 hint_29ac:
-; --- unverified ---
-    subi.l #$10000,d4
-    bcc.s hint_29a2
+    DC.B    $04,$84,$00,$01,$00,$00,$64,$ee
 hint_29b4:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_29b6:
-; --- unverified ---
-    move.w d1,(a5)+
-    moveq #2,d5
-    bsr.s hint_29de
+    DC.B    $3a,$c1,$7a,$02,$61,$22
 hint_29bc:
-; --- unverified ---
-    dbf d4,hint_29b6
+    DC.B    $51,$cc,$ff,$f8
 hint_29c0:
-; --- unverified ---
-    subi.l #$10000,d4
-    bcc.s hint_29b6
+    DC.B    $04,$84,$00,$01,$00,$00,$64,$ee
 hint_29c8:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_29ca:
-; --- unverified ---
-    move.b d1,(a5)+
-    moveq #1,d5
-    bsr.s hint_29de
+    DC.B    $1a,$c1,$7a,$01,$61,$0e
 hint_29d0:
-; --- unverified ---
-    dbf d4,hint_29ca
+    DC.B    $51,$cc,$ff,$f8
 hint_29d4:
-; --- unverified ---
-    subi.l #$10000,d4
-    bcc.s hint_29ca
+    DC.B    $04,$84,$00,$01,$00,$00,$64,$ee
 hint_29dc:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_29de:
-; --- unverified ---
-    move.l d1,-(sp)
-    move.l d5,d1
-    move.l 572(a6),d2 ; app+$23C
-    add.l 398(a6),d2 ; app+$18E
-    bsr.w loc_970e
+    DC.B    $2f,$01,$22,$05,$24,$2e,$02,$3c,$d4,$ae,$01,$8e,$61,$00,$6d,$22
 hint_29ee:
-; --- unverified ---
-    add.l d5,398(a6) ; app+$18E
-    move.l (sp)+,d1
-    movea.l 588(a6),a5 ; app+$24C
-    rts
+    DC.B    $db,$ae,$01,$8e,$22,$1f,$2a,$6e,$02,$4c,$4e,$75
 hint_29fa:
-; --- unverified ---
-    bsr.w hint_28f8
+    DC.B    $61,$00,$fe,$fc
 hint_29fe:
-; --- unverified ---
-    cmp.b #$1,d0
-    beq.w hint_2a62
+    DC.B    $b0,$3c,$00,$01,$67,$00,$00,$5e
 hint_2a06:
-; --- unverified ---
-    cmp.b #$3,d0
-    beq.s hint_2a26
+    DC.B    $b0,$3c,$00,$03,$67,$1a
 hint_2a0c:
-; --- unverified ---
-    cmp.b #$2,d0
-    beq.s hint_2a1a
+    DC.B    $b0,$3c,$00,$02,$67,$08
 hint_2a12:
-; --- unverified ---
-    bsr.w hint_5b16
+    DC.B    $61,$00,$31,$02
 hint_2a16:
-; --- unverified ---
-    bsr.s hint_2a32
+    DC.B    $61,$1a
 hint_2a18:
-; --- unverified ---
-    bra.s hint_2a12
+    DC.B    $60,$f8
 hint_2a1a:
-; --- unverified ---
-    bsr.w sub_0db6
+    DC.B    $61,$00,$e3,$9a
 hint_2a1e:
-; --- unverified ---
-    bsr.w hint_1ad0
+    DC.B    $61,$00,$f0,$b0
 hint_2a22:
-; --- unverified ---
-    bsr.s hint_2a32
+    DC.B    $61,$0e
 hint_2a24:
-; --- unverified ---
-    bra.s hint_2a1a
+    DC.B    $60,$f4
 hint_2a26:
-; --- unverified ---
-    bsr.w sub_0db6
+    DC.B    $61,$00,$e3,$8e
 hint_2a2a:
-; --- unverified ---
-    bsr.w hint_1ab0
+    DC.B    $61,$00,$f0,$84
 hint_2a2e:
-; --- unverified ---
-    bsr.s hint_2a32
+    DC.B    $61,$02
 hint_2a30:
-; --- unverified ---
-    bra.s hint_2a26
+    DC.B    $60,$f4
 hint_2a32:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.s hint_2a5e
+    DC.B    $b2,$3c,$00,$2c,$66,$26
 hint_2a38:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$9,d1
-    beq.s hint_2a48
+    DC.B    $12,$1c,$b2,$3c,$00,$09,$67,$08
 hint_2a40:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_2a48
+    DC.B    $b2,$3c,$00,$20,$67,$02
 hint_2a46:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2a48:
-; --- unverified ---
-    moveq #11,d0
-    bsr.w sign_extended_operand
+    DC.B    $70,$0b,$61,$00,$5b,$40
 hint_2a4e:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$9,d1
-    beq.s hint_2a4e
+    DC.B    $12,$1c,$b2,$3c,$00,$09,$67,$f8
 hint_2a56:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_2a4e
+    DC.B    $b2,$3c,$00,$20,$67,$f2
 hint_2a5c:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2a5e:
-; --- unverified ---
-    addq.l #4,sp
-    rts
+    DC.B    $58,$8f,$4e,$75
 hint_2a62:
-; --- unverified ---
-    cmp.b #$27,d1
-    beq.s hint_2a8c
+    DC.B    $b2,$3c,$00,$27,$67,$24
 hint_2a68:
-; --- unverified ---
-    cmp.b #$22,d1
-    beq.s hint_2a8c
+    DC.B    $b2,$3c,$00,$22,$67,$1e
 hint_2a6e:
-; --- unverified ---
-    bsr.w sub_0db6
+    DC.B    $61,$00,$e3,$46
 hint_2a72:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_2a80
+    DC.B    $4a,$2e,$02,$38,$67,$08
 hint_2a78:
-; --- unverified ---
-    tst.w d3
-    bmi.s hint_2a86
+    DC.B    $4a,$43,$6b,$0a
 hint_2a7c:
-; --- unverified ---
-    bsr.w sub_788c
+    DC.B    $61,$00,$4e,$0e
 hint_2a80:
-    dc.b    $1a,$c2
+    DC.B    $1a,$c2
 hint_2a82:
-; --- unverified ---
-    bsr.s hint_2a32
+    DC.B    $61,$ae
 hint_2a84:
-; --- unverified ---
-    bra.s hint_2a62
+    DC.B    $60,$dc
 hint_2a86:
-; --- unverified ---
-    bsr.w dat_9954
+    DC.B    $61,$00,$6e,$cc
 hint_2a8a:
-; --- unverified ---
-    bra.s hint_2a82
+    DC.B    $60,$f6
 hint_2a8c:
-    dc.b    $16,$01,$48,$e7,$00,$0c
+    DC.B    $16,$01,$48,$e7,$00,$0c
 hint_2a92:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$a,d1
-    beq.s hint_2ad0
+    DC.B    $12,$1c,$b2,$3c,$00,$0a,$67,$36
 hint_2a9a:
-; --- unverified ---
-    cmp.b d3,d1
-    bne.s hint_2aa4
+    DC.B    $b2,$03,$66,$06
 hint_2a9e:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b d1,d3
-    bne.s hint_2aa8
+    DC.B    $12,$1c,$b6,$01,$66,$04
 hint_2aa4:
-; --- unverified ---
-    move.b d1,(a5)+
-    bra.s hint_2a92
+    DC.B    $1a,$c1,$60,$ea
 hint_2aa8:
-; --- unverified ---
-    cmp.b #$a,d1
-    beq.s hint_2ac8
+    DC.B    $b2,$3c,$00,$0a,$67,$1a
 hint_2aae:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_2ac8
+    DC.B    $b2,$3c,$00,$09,$67,$14
 hint_2ab4:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_2ac8
+    DC.B    $b2,$3c,$00,$20,$67,$0e
 hint_2aba:
-; --- unverified ---
-    cmp.b #$2c,d1
-    beq.s hint_2ac8
+    DC.B    $b2,$3c,$00,$2c,$67,$08
 hint_2ac0:
-; --- unverified ---
-    movem.l (sp)+,a4-a5
-    move.b d3,d1
-    bra.s hint_2a6e
+    DC.B    $4c,$df,$30,$00,$12,$03,$60,$a6
 hint_2ac8:
-; --- unverified ---
-    addq.l #8,sp
-    bsr.w hint_2a32
+    DC.B    $50,$8f,$61,$00,$ff,$66
 hint_2ace:
-; --- unverified ---
-    bra.s hint_2a62
+    DC.B    $60,$92
 hint_2ad0:
-; --- unverified ---
-    addq.l #8,sp
-    moveq #55,d0
-    bra.w loc_8486
+    DC.B    $50,$8f,$70,$37,$60,$00,$59,$b0
 pcref_2ad8:
-; --- unverified ---
-    btst d0,d0
-    btst d0,d2
-    bsr.w hint_28f8
+    DC.B    $01,$00,$01,$02,$61,$00,$fe,$1a
 hint_2ae0:
-; --- unverified ---
-    ext.w d0
-    move.b pcref_2ad8(pc,d0.w),d6
-    bsr.w hint_6ad2
+    DC.B    $48,$80,$1c,$3b,$00,$f4,$61,$00,$3f,$ea
 hint_2aea:
-; --- unverified ---
-    tst.l d2
-    beq.s hint_2af8
+    DC.B    $4a,$82,$67,$0a
 hint_2aee:
-; --- unverified ---
-    move.l d2,d4
-    move.b d6,d3
-    moveq #0,d1
-    bra.w hint_2958
+    DC.B    $28,$02,$16,$06,$72,$00,$60,$00,$fe,$62
 hint_2af8:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2afa:
-; --- unverified ---
-    st 277(a6) ; app+$115
-    moveq #10,d1
-    rts
+    DC.B    $50,$ee,$01,$15,$72,$0a,$4e,$75
 hint_2b02:
-; --- unverified ---
-    lea 1000(a6),a0 ; app+$3E8
-    tst.l (a0)
-    beq.s hint_2b0c
+    DC.B    $41,$ee,$03,$e8,$4a,$90,$67,$02
 hint_2b0a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2b0c:
-; --- unverified ---
-    moveq #41,d0
-    bra.w loc_8482
+    DC.B    $70,$29,$60,$00
+hint_2b10:
+    DC.B    $59,$72
 hint_2b12:
-; --- unverified ---
-    bsr.s hint_2b02
+    DC.B    $61,$ee
 hint_2b14:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    bne.s hint_2b4a
+    DC.B    $4a,$2e,$02,$38,$66,$30
 hint_2b1a:
-; --- unverified ---
-    move.l a0,-(sp)
-    bsr.w hint_6ab2
+    DC.B    $2f,$08,$61,$00,$3f,$94
 hint_2b20:
-; --- unverified ---
-    movea.l (sp)+,a0
-    movem.l d2-d3,-(sp)
-    bsr.w sub_0bce
+    DC.B    $20,$5f,$48,$e7,$30,$00,$61,$00,$e0,$a6
 hint_2b2a:
-; --- unverified ---
-    movem.l (sp)+,d4-d5
-    beq.w loc_8436
+    DC.B    $4c,$df,$00,$30,$67,$00,$59,$06
 hint_2b32:
-; --- unverified ---
-    move.b d5,d3
-    pea pcref_2b7a(pc)
-    lea 362(a6),a2 ; app+$16A
-    subq.b #2,d5
-    beq.w sub_0cb6
+    DC.B    $16,$05,$48,$7a,$00,$44,$45,$ee,$01,$6a,$55,$05,$67,$00,$e1,$76
 hint_2b42:
-; --- unverified ---
-    lea 354(a6),a2 ; app+$162
-    bra.w sub_0cb6
+    DC.B    $45,$ee,$01,$62,$60,$00,$e1,$6e
 hint_2b4a:
-; --- unverified ---
-    bsr.w sub_0bce
+    DC.B    $61,$00,$e0,$82
 hint_2b4e:
-; --- unverified ---
-    bne.w loc_844e
+    DC.B    $66,$00,$58,$fe
 hint_2b52:
-; --- unverified ---
-    btst #6,12(a1)
-    bne.w loc_8436
+    DC.B    $08,$29,$00,$06,$00,$0c,$66,$00,$58,$dc
 hint_2b5c:
-; --- unverified ---
-    move.l a1,-(sp)
-    bsr.w sub_16a8
+    DC.B    $2f,$09,$61,$00,$eb,$48
 hint_2b62:
-; --- unverified ---
-    movea.l (sp)+,a1
-    cmp.l 8(a1),d2
-    bne.w loc_843e
+    DC.B    $22,$5f,$b4,$a9,$00,$08,$66,$00,$58,$d4
 hint_2b6c:
-; --- unverified ---
-    cmp.b 13(a1),d3
-    bne.w loc_8436
+    DC.B    $b6,$29,$00,$0d,$66,$00,$58,$c4
 hint_2b74:
-    dc.b    $08,$e9,$00,$06,$00,$0c
+    DC.B    $08,$e9,$00,$06,$00,$0c
 pcref_2b7a:
-    dc.b    $12,$2c,$ff,$ff
+    DC.B    $12,$2c,$ff,$ff
 hint_2b7e:
-; --- unverified ---
-    move.b #$3d,2107(a6) ; app+$83B
-    move.l d2,2108(a6) ; app+$83C
-    rts
+    DC.B    $1d,$7c,$00,$3d,$08,$3b,$2d,$42,$08,$3c,$4e,$75
 hint_2b8a:
-; --- unverified ---
-    moveq #45,d0
-    bra.w loc_8486
+    DC.B    $70,$2d,$60,$00,$58,$f8
 hint_2b90:
-; --- unverified ---
-    moveq #46,d0
-    bra.w loc_8486
+    DC.B    $70,$2e,$60,$00,$58,$f2
 hint_2b96:
-; --- unverified ---
-    bsr.w hint_2b02
+    DC.B    $61,$00,$ff,$6a
 hint_2b9a:
-; --- unverified ---
-    bsr.w sub_177e
+    DC.B    $61,$00,$eb,$e2
 hint_2b9e:
-; --- unverified ---
-    bne.s hint_2b90
+    DC.B    $66,$f0
 hint_2ba0:
-; --- unverified ---
-    swap d2
-    move.w d0,d2
-    swap d2
-    andi.l #$ff00ff,d2
-    movea.l 362(a6),a2 ; app+$16A
-    lea 1000(a6),a0 ; app+$3E8
-    movem.l d2/a3-a5,-(sp)
-    tst.b 568(a6) ; app+$238
-    bne.s sub_2bd4
-    dc.b    $61,$00
+    DC.B    $48,$42,$34,$00,$48,$42,$02,$82,$00,$ff,$00,$ff,$24,$6e,$01,$6a
+    DC.B    $41,$ee,$03,$e8,$48,$e7,$20,$1c,$4a,$2e,$02,$38,$66,$16
+    DC.B    $61,$00
 sub_2bc0: ; jt: pcref_0ea2
     adda.l a0,a7
     movem.l (sp)+,d4/a3-a5
@@ -5624,823 +4149,419 @@ loc_2bca:
 loc_2bd0:
     moveq #10,d1
     rts
-sub_2bd4:
-; --- unverified ---
-    bsr.w sub_0b88
+hint_2bd4:
+    DC.B    $61,$00,$df,$b2
 hint_2bd8:
-; --- unverified ---
-    movem.l (sp)+,d4/a3-a5
-    bne.w loc_843a
+    DC.B    $4c,$df,$38,$10,$66,$00,$58,$5c
 hint_2be0:
-; --- unverified ---
-    cmpi.b #$4,13(a1)
-    bne.w loc_8436
+    DC.B    $0c,$29,$00,$04,$00,$0d,$66,$00,$58,$4e
 hint_2bea:
-; --- unverified ---
-    cmp.l 8(a1),d4
-    bne.w loc_8436
+    DC.B    $b8,$a9,$00,$08,$66,$00,$58,$46
 hint_2bf2:
-; --- unverified ---
-    bset #6,12(a1)
-    bne.w loc_8436
+    DC.B    $08,$e9,$00,$06,$00,$0c,$66,$00,$58,$3c
 hint_2bfc:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_2c00:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$58,$44
 hint_2c08:
-; --- unverified ---
-    move.w #$a,d1
-    rts
+    DC.B    $32,$3c,$00,$0a,$4e,$75
 hint_2c0e:
-; --- unverified ---
-    bsr.w hint_2350
+    DC.B    $61,$00,$f7,$40
 hint_2c12:
-; --- unverified ---
-    bsr.w sub_177e
+    DC.B    $61,$00,$eb,$6a
 hint_2c16:
-; --- unverified ---
-    bne.s hint_2c5c
+    DC.B    $66,$44
 hint_2c18:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$58,$44
 hint_2c20:
-; --- unverified ---
-    move.b (a4)+,d1
-    movem.w d0/d2,-(sp)
-    bsr.w sub_177e
+    DC.B    $12,$1c,$48,$a7,$a0,$00,$61,$00,$eb,$56
 hint_2c2a:
-; --- unverified ---
-    movem.w (sp)+,d3-d4
-    bne.s hint_2c5c
+    DC.B    $4c,$9f,$00,$18,$66,$2c
 hint_2c30:
-; --- unverified ---
-    cmp.b d0,d3
-    beq.s hint_2c4c
+    DC.B    $b6,$00,$67,$18
 hint_2c34:
-; --- unverified ---
-    ori.b #$88,d6
-    tst.b d3
-    beq.s hint_2c3e
+    DC.B    $00,$06,$00,$88,$4a,$03,$67,$02
 hint_2c3c:
-    dc.b    $c9,$42
+    DC.B    $c9,$42
 hint_2c3e:
-; --- unverified ---
-    or.b d2,d6
-    andi.w #$7,d4
-    ror.w #7,d4
-    or.w d4,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $8c,$02,$02,$44,$00,$07,$ee,$5c,$8c,$44,$3a,$c6,$4e,$75
 hint_2c4c:
-; --- unverified ---
-    ori.b #$40,d6
-    tst.b d0
-    beq.s hint_2c3e
+    DC.B    $00,$06,$00,$40,$4a,$00,$67,$ea
 hint_2c54:
-; --- unverified ---
-    ori.b #$8,d6
-    exg d4,d2
-    bra.s hint_2c3e
+    DC.B    $00,$06,$00,$08,$c9,$42,$60,$e2
 hint_2c5c:
-; --- unverified ---
-    addq.l #2,a5
-    moveq #46,d0
-    bra.w loc_8486
+    DC.B    $54,$8d,$70,$2e,$60,$00,$58,$24
 hint_2c64:
-; --- unverified ---
-    bsr.w hint_1f26
+    DC.B    $61,$00,$f2,$c0
 hint_2c68:
-; --- unverified ---
-    cmpi.b #$3,569(a6) ; app+$239
-    bne.s hint_2c74
+    DC.B    $0c,$2e,$00,$03,$02,$39,$66,$04
 hint_2c70:
-    dc.b    $00,$06,$00,$40
+    DC.B    $00,$06,$00,$40
 hint_2c74:
-; --- unverified ---
-    bsr.w loc_1760
+    DC.B    $61,$00,$ea,$ea
 hint_2c78:
-; --- unverified ---
-    or.b d2,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $8c,$02,$3a,$c6,$4e,$75
 hint_2c7e:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$04,$ac
 hint_2c88:
-; --- unverified ---
-    bsr.w hint_2350
+    DC.B    $61,$00,$f6,$c6
 sub_2c8c:
     bsr.w loc_1760
 loc_2c90:
     or.b d2,d6
     move.w d6,(a5)+
     rts
-    dc.b    $10,$2e,$02,$39,$67,$f0,$b0,$3c,$00,$02,$67,$ea
+    DC.B    $10,$2e,$02,$39,$67,$f0,$b0,$3c,$00,$02,$67,$ea
 loc_2ca2: ; jt: pcref_0ea2
     cmp.b #$3,d0
     bne.w loc_844a
 loc_2caa:
     bset #6,d6
     bra.s sub_2c8c
-sub_2cb0:
-; --- unverified ---
-    moveq #10,d1
-    moveq #56,d0
-    bra.w loc_8486
+hint_2cb0:
+    DC.B    "r",$0a,"p8`",0
+    DC.B    $57,$d0
 hint_2cb8:
-    dc.b    $41,$ee,$0c,$24
+    DC.B    $41,$ee,$0c,$24
 hint_2cbc:
-; --- unverified ---
-    cmp.b #$a,d1
-    beq.s hint_2cfe
+    DC.B    $b2,$3c,$00,$0a,$67,$3c
 hint_2cc2:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_2cfe
+    DC.B    $b2,$3c,$00,$09,$67,$36
 hint_2cc8:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_2cfe
+    DC.B    $b2,$3c,$00,$20,$67,$30
 hint_2cce:
-; --- unverified ---
-    subi.b #$30,d1
-    bcs.s hint_2d00
+    DC.B    $04,$01,$00,$30,$65,$2c
 hint_2cd4:
-; --- unverified ---
-    cmp.b #$8,d1
-    bcc.s hint_2d00
+    DC.B    $b2,$3c,$00,$08,$64,$26
 hint_2cda:
-; --- unverified ---
-    moveq #7,d0
-    sub.b d1,d0
-    move.b (a4)+,d1
-    cmp.b #$2b,d1
-    beq.s hint_2cf0
+    DC.B    $70,$07,$90,$01,$12,$1c,$b2,$3c,$00,$2b,$67,$0a
 hint_2ce6:
-; --- unverified ---
-    cmp.b #$2d,d1
-    bne.s hint_2d00
+    DC.B    $b2,$3c,$00,$2d,$66,$14
 hint_2cec:
-; --- unverified ---
-    bclr d0,(a0)
-    bra.s hint_2cf2
+    DC.B    $01,$90,$60,$02
 hint_2cf0:
-    dc.b    $01,$d0
+    DC.B    $01,$d0
 hint_2cf2:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$2c,d1
-    bne.s hint_2cfe
+    DC.B    $12,$1c,$b2,$3c,$00,$2c,$66,$04
 hint_2cfa:
-; --- unverified ---
-    move.b (a4)+,d1
-    bra.s hint_2cbc
+    DC.B    $12,$1c,$60,$be
 hint_2cfe:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2d00:
-; --- unverified ---
-    moveq #76,d0
-    bra.w loc_8486
+    DC.B    $70,$4c,$60,$00
+hint_2d04:
+    DC.B    $57,$82
 hint_2d06:
-; --- unverified ---
-    bsr.w hint_6ad2
+    DC.B    $61,$00,$3d,$ca
 hint_2d0a:
-; --- unverified ---
-    tst.l d2
-    beq.w loc_0c44
+    DC.B    $4a,$82,$67,$00,$df,$36
 hint_2d10:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_2d1c
+    DC.B    $b2,$3c,$00,$09,$67,$06
 hint_2d16:
-; --- unverified ---
-    cmp.b #$20,d1
-    bne.s hint_2d20
+    DC.B    $b2,$3c,$00,$20,$66,$04
 hint_2d1c:
-; --- unverified ---
-    move.b (a4)+,d1
-    bra.s hint_2d10
+    DC.B    $12,$1c,$60,$f0
 hint_2d20:
-; --- unverified ---
-    bsr.w loc_0a38
+    DC.B    $61,$00,$dd,$16
 hint_2d24:
-; --- unverified ---
-    lea pcref_2d2e(pc),a0
-    move.l a0,378(a6) ; app+$17A
-    moveq #10,d1
+    DC.B    $41,$fa,$00,$08,$2d,$48,$01,$7a,$72,$0a
 pcref_2d2e:
-    rts
+    DC.B    $4e,$75
 hint_2d30:
-; --- unverified ---
-    tst.b 283(a6) ; app+$11B
-    bne.w sub_845a
+    DC.B    $4a,$2e,$01,$1b,$66,$00,$57,$24
 hint_2d38:
-; --- unverified ---
-    lea 1000(a6),a0 ; app+$3E8
-    moveq #0,d3
-    bsr.w sub_7818
+    DC.B    $41,$ee,$03,$e8,$76,$00,$61,$00,$4a,$d8
 hint_2d42:
-; --- unverified ---
-    lea 1006(a6),a0 ; app+$3EE
-    clr.b 266(a6) ; app+$10A
-    jsr sub_afde
+    DC.B    $41,$ee,$03,$ee,$42,$2e,$01,$0a,$4e,$b9
+    DC.L    sub_afde
 hint_2d50:
-; --- unverified ---
-    bne.w hint_2dd8
+    DC.B    $66,$00,$00,$86
 hint_2d54:
-; --- unverified ---
-    move.l d3,394(a6) ; app+$18A
-    move.l d2,398(a6) ; app+$18E
-    beq.s hint_2dc6
+    DC.B    $2d,$43,$01,$8a,$2d,$42,$01,$8e,$67,$68
 hint_2d5e:
-; --- unverified ---
-    cmp.l #$ffffffff,d2
-    bne.s hint_2d90
+    DC.B    $b4,$bc,$ff,$ff,$ff,$ff,$66,$2a
 hint_2d66:
-; --- unverified ---
-    movea.l 418(a6),a0 ; app+$1A2
-    move.l 12(a0),d1
-    movea.l 8(a0),a0
-    sub.l a0,d1
-    move.l d1,398(a6) ; app+$18E
-    tst.b 568(a6) ; app+$238
-    beq.s hint_2dc6
+    DC.B    $20,$6e,$01,$a2,$22,$28,$00,$0c,$20,$68,$00,$08,$92,$88,$2d,$41
+    DC.B    $01,$8e,$4a,$2e,$02,$38,$67,$48
 hint_2d7e:
-; --- unverified ---
-    tst.b 259(a6) ; app+$103
-    beq.s hint_2dc6
+    DC.B    $4a,$2e,$01,$03,$67,$42
 hint_2d84:
-; --- unverified ---
-    move.l 572(a6),d2 ; app+$23C
-    bsr.w sub_9772
+    DC.B    $24,$2e,$02,$3c,$61,$00,$69,$e8
 hint_2d8c:
-; --- unverified ---
-    bra.w hint_2dc6
+    DC.B    $60,$00,$00,$38
 hint_2d90:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_2dc6
+    DC.B    $4a,$2e,$02,$38,$67,$30
 hint_2d96:
-; --- unverified ---
-    tst.b 259(a6) ; app+$103
-    beq.s hint_2dc6
+    DC.B    $4a,$2e,$01,$03,$67,$2a
 hint_2d9c:
-; --- unverified ---
-    move.l d2,d1
-    bsr.w sub_90ba
+    DC.B    $22,$02,$61,$00,$63,$1a
 hint_2da2:
-; --- unverified ---
-    move.l a0,-(sp)
-    move.l 398(a6),d1 ; app+$18E
-    move.l 394(a6),d3 ; app+$18A
-    jsr call_read_aff6
+    DC.B    $2f,$08,$22,$2e,$01,$8e,$26,$2e,$01,$8a,$4e,$b9
+    DC.L    call_read_aff6
 hint_2db2:
-; --- unverified ---
-    move.l 398(a6),d1 ; app+$18E
-    movea.l (sp),a0
-    move.l 572(a6),d2 ; app+$23C
-    bsr.w sub_9772
+    DC.B    $22,$2e,$01,$8e,$20,$57,$24,$2e,$02,$3c,$61,$00,$69,$b4
 hint_2dc0:
-; --- unverified ---
-    movea.l (sp)+,a0
-    bsr.w hint_90ce
+    DC.B    $20,$5f,$61,$00,$63,$0a
 hint_2dc6:
-; --- unverified ---
-    move.l 394(a6),d3 ; app+$18A
-    clr.l 394(a6) ; app+$18A
-    jsr sub_aff2
+    DC.B    $26,$2e,$01,$8a,$42,$ae,$01,$8a,$4e,$b9
+    DC.L    sub_aff2
 hint_2dd4:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_2dd8:
-; --- unverified ---
-    moveq #26,d0
-    bra.w loc_8486
+    DC.B    $70,$1a,$60,$00
+hint_2ddc:
+    DC.B    $56,$aa
 hint_2dde:
-; --- unverified ---
-    lea 2098(a6),a3 ; app+$832
-    st 299(a6) ; app+$12B
-    bra.w loc_4698
+    DC.B    $47,$ee,$08,$32,$50,$ee,$01,$2b,$60,$00,$18,$b0
+    DC.B    $41,$ee,$03,$e8,$76,$0b,$61,$00,$4a,$26
 hint_2df4:
-; --- unverified ---
-    st 266(a6) ; app+$10A
-    bsr.w sub_8856
+    DC.B    $50,$ee,$01,$0a,$61,$00,$5a,$5c
 hint_2dfc:
-; --- unverified ---
-    bne.w loc_846e
+    DC.B    $66,$00,$56,$70
 hint_2e00:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_2e04:
-; --- unverified ---
-    bsr.w hint_16e6
+    DC.B    $61,$00,$e8,$e0
 hint_2e08:
-; --- unverified ---
-    ori.w #$4a2e,-(a4)
-    andi.b #$0,$563a4e75
-    st 571(a6) ; app+$23B
-    bsr.w hint_16e6
+    DC.B    $00,$64,$4a,$2e,$02,$39,$66,$00,$56,$3a,$4e,$75,$50,$ee,$02,$3b
+    DC.B    $61,$00,$e8,$cc
 hint_2e1c:
-    dc.b    $00,$64,$51,$ee,$02,$3b,$b2,$3c,$00,$2c,$66,$00,$56,$3a
+    DC.B    $00,$64,$51,$ee,$02,$3b,$b2,$3c,$00,$2c,$66,$00,$56,$3a
 hint_2e2a:
-; --- unverified ---
-    movem.l d3-d4,-(sp)
-    move.b (a4)+,d1
-    bsr.w sub_177e
+    DC.B    $48,$e7,$18,$00,$12,$1c,$61,$00,$e9,$4c
 hint_2e34:
-; --- unverified ---
-    movem.l (sp)+,d3-d4
-    bne.w hint_1772
+    DC.B    $4c,$df,$00,$18,$66,$00,$e9,$38
 hint_2e3c:
-; --- unverified ---
-    tst.b d0
-    beq.w hint_1772
+    DC.B    $4a,$00,$67,$00,$e9,$32
 hint_2e42:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    add.b d2,d2
-    or.b d2,(a0)
-    bsr.w hint_2350
+    DC.B    $20,$6e,$02,$4c,$d4,$02,$85,$10,$61,$00,$f5,$04
 pcref_2e4e:
-; --- unverified ---
-    btst #2,270(a6) ; app+$10E
-    beq.s hint_2ec0
+    DC.B    $08,$2e,$00,$02,$01,$0e,$67,$6a
 hint_2e56:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_2ec0
+    DC.B    $4a,$04,$66,$66
 hint_2e5a:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_2ec0
+    DC.B    $b6,$3c,$00,$02,$66,$60
 hint_2e60:
-; --- unverified ---
-    move.w (a0),d3
-    andi.w #$38,d3
-    cmp.b #$28,d3
-    bne.s hint_2ec0
+    DC.B    $36,$10,$02,$43,$00,$38,$b6,$3c,$00,$28,$66,$54
 hint_2e6c:
-; --- unverified ---
-    move.w 2(a0),d0
-    beq.s hint_2ec0
+    DC.B    $30,$28,$00,$02,$67,$4e
 hint_2e72:
-; --- unverified ---
-    cmp.w #$8,d0
-    bgt.s hint_2ec0
+    DC.B    $b0,$7c,$00,$08,$6e,$48
 hint_2e78:
-; --- unverified ---
-    cmp.w #$fff8,d0
-    blt.s hint_2ec0
+    DC.B    $b0,$7c,$ff,$f8,$6d,$42
 hint_2e7e:
-; --- unverified ---
-    move.w (a0),d3
-    andi.w #$7,d3
-    add.w d3,d3
-    cmp.b d3,d2
-    bne.s hint_2ec0
+    DC.B    $36,$10,$02,$43,$00,$07,$d6,$43,$b4,$03,$66,$36
 hint_2e8a:
-; --- unverified ---
-    movem.l d0/a0,-(sp)
-    move.l d0,d2
-    subq.w #2,a5
-    bsr.w sub_8dce
+    DC.B    $48,$e7,$80,$80,$24,$00,$55,$4d,$61,$00,$5f,$3a
 hint_2e96:
-; --- unverified ---
-    movem.l (sp)+,d0/a0
-    bne.s hint_2ebe
+    DC.B    $4c,$df,$01,$01,$66,$22
 hint_2e9c:
-; --- unverified ---
-    lsr.w #1,d3
-    tst.w d0
-    bpl.s hint_2ea8
+    DC.B    $e2,$4b,$4a,$40,$6a,$06
 hint_2ea2:
-    dc.b    $08,$c3,$00,$08,$44,$40
+    DC.B    $08,$c3,$00,$08,$44,$40
 hint_2ea8:
-; --- unverified ---
-    andi.w #$7,d0
-    ror.w #7,d0
-    or.w d0,d3
-    ori.w #$5048,d3
-    move.w d3,(a0)
-    moveq #22,d0
-    bra.w hint_8808
+    DC.B    $02,$40,$00,$07,$ee,$58,$86,$40,$00,$43,$50,$48,$30,$83,$70,$16
+    DC.B    $60,$00,$59,$4e
 hint_2ebc:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2ebe:
-    dc.b    $54,$4d
+    DC.B    $54,$4d
 hint_2ec0:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2ec2:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.s hint_2f12
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$48
 hint_2eca:
-; --- unverified ---
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_2f1a
+    DC.B    $10,$2e,$02,$39,$67,$4a
 hint_2ed0:
-; --- unverified ---
-    cmp.b #$2,d0
-    beq.s hint_2f1a
+    DC.B    $b0,$3c,$00,$02,$67,$44
 hint_2ed6:
-; --- unverified ---
-    cmp.b #$3,d0
-    bne.w loc_844a
+    DC.B    $b0,$3c,$00,$03,$66,$00,$55,$6e
 hint_2ede:
-; --- unverified ---
-    move.w #$4808,d6
-    bsr.w sub_176a
+    DC.B    $3c,$3c,$48,$08,$61,$00,$e8,$86
 hint_2ee6:
-; --- unverified ---
-    or.b d2,d6
-    move.w d6,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $8c,$02,$3a,$c6,$b2,$3c,$00,$2c,$66,$00,$55,$72
 hint_2ef2:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $12,$1c,$b2,$3c,$00,$23,$66,$00,$55,$70
 hint_2efc:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$61,$00,$de,$b6
 hint_2f02:
-; --- unverified ---
-    bsr.w hint_1ab0
+    DC.B    $61,$00,$eb,$ac
 hint_2f06:
-; --- unverified ---
-    btst #0,d2
-    bne.s hint_2f4a
+    DC.B    $08,$02,$00,$00,$66,$3e
 hint_2f0c:
-; --- unverified ---
-    tst.l d2
-    bgt.s hint_2f4a
+    DC.B    $4a,$82,$6e,$3a
 hint_2f10:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2f12:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$55,$32
 hint_2f1a:
-; --- unverified ---
-    bsr.w sub_176a
+    DC.B    $61,$00,$e8,$4e
 hint_2f1e:
-; --- unverified ---
-    or.b d2,d6
-    move.w d6,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $8c,$02,$3a,$c6,$b2,$3c,$00,$2c,$66,$00,$55,$3a
 hint_2f2a:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $12,$1c,$b2,$3c,$00,$23,$66,$00,$55,$38
 hint_2f34:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$61,$00,$de,$7e
 hint_2f3a:
-; --- unverified ---
-    bsr.w hint_1ad0
+    DC.B    $61,$00,$eb,$94
 hint_2f3e:
-; --- unverified ---
-    btst #0,d2
-    bne.s hint_2f4a
+    DC.B    $08,$02,$00,$00,$66,$06
 hint_2f44:
-; --- unverified ---
-    tst.w d2
-    bgt.s hint_2f4a
+    DC.B    $4a,$42,$6e,$02
 hint_2f48:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2f4a:
-; --- unverified ---
-    moveq #3,d0
-    bra.w sign_extended_operand
+    DC.B    $70,$03,$60,$00,$56,$3e
 hint_2f50:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$61,$00,$e7,$78
 hint_2f56:
-; --- unverified ---
-    bsr.w sub_788c
+    DC.B    $61,$00,$49,$34
 hint_2f5a:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_2f70
+    DC.B    $4a,$2e,$02,$38,$67,$10
 hint_2f60:
-; --- unverified ---
-    tst.b 2389(a6) ; app+$955
-    beq.s hint_2f70
+    DC.B    $4a,$2e,$09,$55,$67,$0a
 hint_2f66:
-; --- unverified ---
-    move.w d1,-(sp)
-    move.b d2,d1
-    bsr.w sub_917c
+    DC.B    $3f,$01,$12,$02,$61,$00,$62,$10
 hint_2f6e:
-    dc.b    $32,$1f
+    DC.B    $32,$1f
 hint_2f70:
-; --- unverified ---
-    cmp.b #$2c,d1
-    beq.s hint_2f50
+    DC.B    $b2,$3c,$00,$2c,$67,$da
 hint_2f76:
-; --- unverified ---
-    st 275(a6) ; app+$113
-    rts
+    DC.B    $50,$ee,$01,$13,$4e,$75
 hint_2f7c:
-; --- unverified ---
-    bsr.w hint_6ad2
+    DC.B    $61,$00,$3b,$54
 hint_2f80:
-; --- unverified ---
-    cmp.l #$26,d2
-    bcs.w hint_4814
+    DC.B    $b4,$bc,$00,$00,$00,$26,$65,$00,$18,$8c
 hint_2f8a:
-; --- unverified ---
-    cmp.l #$ff,d2
-    bcc.w hint_4814
+    DC.B    $b4,$bc,$00,$00,$00,$ff,$64,$00,$18,$82
 hint_2f94:
-; --- unverified ---
-    move.w d2,2914(a6) ; app+$B62
-    st 275(a6) ; app+$113
-    rts
+    DC.B    $3d,$42,$0b,$62,$50,$ee,$01,$13,$4e,$75
 hint_2f9e:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $b2,$3c,$00,$23,$66,$00,$54,$c6
 hint_2fa6:
-; --- unverified ---
-    move.b (a4)+,d1
+    DC.B    $12,$1c
 hint_2fa8:
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$1f,$70
 hint_2fac:
-; --- unverified ---
-    move.w d6,(a5)+
-    bsr.w hint_1a9c
+    DC.B    $3a,$c6,$61,$00,$ea,$ec
 hint_2fb2:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$54,$aa
 hint_2fba:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_16e0
-    dc.b    $03,$3d,$4e,$75
-sub_2fc4:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    addq.l #1,a0
-    subq.b #1,d5
-    beq.s hint_2fe2
+    DC.B    $12,$1c,$61,$00,$e7,$22
+    DC.B    $03,$3d,$4e,$75
+hint_2fc4:
+    DC.B    $20,$6e,$02,$4c,$52,$88,$53,$05,$67,$14
 hint_2fce:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_2fda
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_2fd4:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$54,$ae
 hint_2fda:
-; --- unverified ---
-    move.b #$7c,(a0)
-    moveq #2,d0
-    bra.s hint_2ff2
+    DC.B    $10,$bc,$00,$7c,$70,$02,$60,$10
 hint_2fe2:
-; --- unverified ---
-    move.b #$3c,(a0)+
-    cmpi.b #$3,569(a6) ; app+$239
-    beq.w loc_844a
+    DC.B    $10,$fc,$00,$3c,$0c,$2e,$00,$03,$02,$39,$67,$00,$54,$5c
 hint_2ff0:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_2ff2:
-; --- unverified ---
-    cmp.b 569(a6),d0 ; app+$239
-    beq.s hint_3004
+    DC.B    $b0,$2e,$02,$39,$67,$0c
 hint_2ff8:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$54,$4c
 hint_3000:
-    dc.b    $1d,$40,$02,$39
+    DC.B    $1d,$40,$02,$39
 hint_3004:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_3006:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d6,d0
-    move.w #$200,d6
-    cmp.w #$c000,d0
-    beq.s hint_2fa8
+    DC.B    $12,$1c,$30,$06,$3c,$3c,$02,$00,$b0,$7c,$c0,$00,$67,$94
 hint_3014:
-; --- unverified ---
-    moveq #0,d6
-    cmp.w #$8000,d0
-    beq.s hint_2fa8
+    DC.B    $7c,$00,$b0,$7c,$80,$00,$67,$8c
 hint_301c:
-; --- unverified ---
-    move.w #$a00,d6
-    bra.s hint_2fa8
+    DC.B    $3c,$3c,$0a,$00,$60,$86
 hint_3022:
-; --- unverified ---
-    cmp.b #$23,d1
-    beq.s hint_3006
+    DC.B    $b2,$3c,$00,$23,$67,$de
 hint_3028:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$1e,$f0
 hint_302c:
-; --- unverified ---
-    move.w d6,(a5)+
-    bsr.w sub_1872
+    DC.B    $3a,$c6,$61,$00,$e8,$42
 hint_3032:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$54,$2a
 hint_303a:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.b d5,d0
-    andi.b #$78,d0
-    bne.w hint_3086
+    DC.B    $12,$1c,$10,$05,$02,$00,$00,$78,$66,$00,$00,$42
 hint_3046:
-; --- unverified ---
-    add.b d5,d5
-    addq.b #1,d5
-    or.b d5,-2(a5)
-    bsr.w hint_187e
+    DC.B    $da,$05,$52,$05,$8b,$2d,$ff,$fe,$61,$00,$e8,$2e
 hint_3052:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    move.w #$3c,d0
-    move.b d5,d2
-    andi.b #$78,d2
-    bne.s hint_3080
+    DC.B    $20,$6e,$02,$4c,$30,$3c,$00,$3c,$14,$05,$02,$02,$00,$78,$66,$1e
 hint_3062:
-; --- unverified ---
-    move.w #$fd,d0
-    btst #13,d6
-    bne.s hint_3080
+    DC.B    $30,$3c,$00,$fd,$08,$06,$00,$0d,$66,$14
 hint_306c:
-; --- unverified ---
-    move.b (a0),d0
-    lsr.b #1,d0
-    andi.w #$7,d0
-    or.w d0,(a0)
-    add.b d5,d5
-    andi.w #$f0ff,(a0)
-    or.b d5,(a0)
-    rts
+    DC.B    $10,$10,$e2,$08,$02,$40,$00,$07,$81,$50,$da,$05,$02,$50,$f0,$ff
+    DC.B    $8b,$10,$4e,$75
 hint_3080:
-; --- unverified ---
-    or.w d5,(a0)
-    bra.w hint_170a
+    DC.B    $8b,$50,$60,$00
+hint_3084:
+    DC.B    $e6,$86
 hint_3086:
-; --- unverified ---
-    btst #13,d6
-    bne.w hint_1742
+    DC.B    $08,$06,$00,$0d,$66,$00,$e6,$b6
 hint_308e:
-; --- unverified ---
-    move.w #$fd,d0
-    bsr.w hint_1704
+    DC.B    $30,$3c,$00,$fd,$61,$00,$e6,$70
 hint_3096:
-; --- unverified ---
-    bsr.w loc_1760
+    DC.B    $61,$00,$e6,$c8
 hint_309a:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    add.b d2,d2
-    or.b d2,(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$d4,$02,$85,$10,$4e,$75
 hint_30a4:
-    dc.b    $22,$4c,$41,$fa,$00,$ba
+    DC.B    $22,$4c,$41,$fa,$00,$ba
 hint_30aa:
-; --- unverified ---
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b (a0)+,d1
-    bne.w hint_3144
+    DC.B    $48,$81,$12,$36,$10,$7e,$b2,$18,$66,$00,$00,$90
 hint_30b6:
-; --- unverified ---
-    move.b (a4)+,d1
-    tst.b (a0)
-    bne.s hint_30aa
+    DC.B    $12,$1c,$4a,$10,$66,$ee
 hint_30bc:
-; --- unverified ---
-    subi.b #$30,d1
-    bcs.s sub_3132
+    DC.B    $04,$01,$00,$30,$65,$70
 hint_30c2:
-; --- unverified ---
-    cmp.b #$a,d1
-    bcc.s sub_3132
+    DC.B    $b2,$3c,$00,$0a,$64,$6a
 hint_30c8:
-; --- unverified ---
-    moveq #0,d2
-    move.b d1,d2
-    mulu.w #$a,d2
-    move.b (a4)+,d1
-    subi.b #$30,d1
-    bcs.s sub_3132
+    DC.B    $74,$00,$14,$01,$c4,$fc,$00,$0a,$12,$1c,$04,$01,$00,$30,$65,$5a
 hint_30d8:
-; --- unverified ---
-    cmp.b #$a,d1
-    bcc.s sub_3132
+    DC.B    $b2,$3c,$00,$0a,$64,$54
 hint_30de:
-; --- unverified ---
-    ext.w d1
-    add.w d1,d2
-    move.b (a4)+,d1
-    mulu.w #$a,d2
-    subi.b #$30,d1
-    bcs.s sub_3132
+    DC.B    $48,$81,$d4,$41,$12,$1c,$c4,$fc,$00,$0a,$04,$01,$00,$30,$65,$44
 hint_30ee:
-; --- unverified ---
-    cmp.b #$a,d1
-    bcc.s sub_3132
+    DC.B    $b2,$3c,$00,$0a,$64,$3e
 hint_30f4:
-; --- unverified ---
-    ext.w d1
-    add.w d1,d2
-    move.b (a4)+,d1
-    tst.w d2
-    beq.s hint_313a
+    DC.B    $48,$81,$d4,$41,$12,$1c,$4a,$42,$67,$3c
 hint_30fe:
-; --- unverified ---
-    cmp.w #$8,d2
-    beq.s hint_3138
+    DC.B    $b4,$7c,$00,$08,$67,$34
 hint_3104:
-; --- unverified ---
-    cmp.w #$a,d2
-    beq.s hint_313a
+    DC.B    $b4,$7c,$00,$0a,$67,$30
 hint_310a:
-; --- unverified ---
-    cmp.w #$14,d2
-    beq.s hint_313a
+    DC.B    $b4,$7c,$00,$14,$67,$2a
 hint_3110:
-; --- unverified ---
-    cmp.w #$1e,d2
-    beq.s hint_313a
+    DC.B    $b4,$7c,$00,$1e,$67,$24
 hint_3116:
-; --- unverified ---
-    cmp.w #$14c,d2
-    beq.s hint_315e
+    DC.B    $b4,$7c,$01,$4c,$67,$42
 hint_311c:
-; --- unverified ---
-    cmp.w #$28,d2
-    beq.s hint_3128
+    DC.B    $b4,$7c,$00,$28,$67,$06
 hint_3122:
-; --- unverified ---
-    cmp.w #$3c,d2
-    bne.s sub_3132
+    DC.B    $b4,$7c,$00,$3c,$66,$0a
 hint_3128:
-; --- unverified ---
-    move.b d2,289(a6) ; app+$121
-    st 290(a6) ; app+$122
-    rts
+    DC.B    $1d,$42,$01,$21,$50,$ee,$01,$22,$4e,$75
 sub_3132:
     moveq #34,d0
     bra.w loc_8486
 hint_3138:
-    dc.b    $74,$00
+    DC.B    $74,$00
 hint_313a:
-; --- unverified ---
-    move.b d2,289(a6) ; app+$121
-    sf 290(a6) ; app+$122
-    rts
+    DC.B    $1d,$42,$01,$21,$51,$ee,$01,$22,$4e,$75
 hint_3144:
-    dc.b    $28,$49,$12,$2c,$ff,$ff,$41,$fa,$00,$1b
+    DC.B    $28,$49,$12,$2c,$ff,$ff,$41,$fa,$00,$1b
 hint_314e:
-; --- unverified ---
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b (a0)+,d1
-    bne.s sub_3132
+    DC.B    $48,$81,$12,$36,$10,$7e,$b2,$18,$66,$da
 hint_3158:
-; --- unverified ---
-    move.b (a4)+,d1
-    tst.b (a0)
-    bne.s hint_314e
+    DC.B    $12,$1c,$4a,$10,$66,$f0
 hint_315e:
-; --- unverified ---
-    moveq #32,d2
-    bra.s hint_313a
+    DC.B    $74,$20,$60,$d8
 str_3162:
-    dc.b    "MC68",0
+    DC.B    "MC68",0
 str_3167:
-    dc.b    "CPU32",0
-    dc.b    $00
+    DC.B    "CPU32",0
+    DC.B    $00
 sub_316e:
     moveq #0,d2
 loc_3170:
@@ -6526,1202 +4647,613 @@ loc_320c:
 loc_3214:
     moveq #0,d0
     rts
-    dc.b    $61,$00,$1d,$00,$b2,$3c,$00,$23,$66,$00,$52,$48,$12,$1c,$61,$00
-    dc.b    $e4,$a4,$61,$16,$ee,$5a,$8c,$42,$b2,$3c,$00,$2c,$66,$00,$52,$2c
-    dc.b    $12,$1c,$61,$00,$e4,$aa,$00,$3f,$4e,$75
-sub_3242:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_3258
+    DC.B    $61,$00,$1d,$00,$b2,$3c,$00,$23,$66,$00,$52,$48,$12,$1c,$61,$00
+    DC.B    $e4,$a4,$61,$16,$ee,$5a,$8c,$42,$b2,$3c,$00,$2c,$66,$00,$52,$2c
+    DC.B    $12,$1c,$61,$00,$e4,$aa,$00,$3f,$4e,$75
+hint_3242:
+    DC.B    $4a,$2e,$02,$38,$67,$10
 hint_3248:
-; --- unverified ---
-    tst.l d2
-    beq.s hint_325a
+    DC.B    $4a,$82,$67,$0e
 hint_324c:
-; --- unverified ---
-    cmp.l #$8,d2
-    bhi.s hint_3260
+    DC.B    $b4,$bc,$00,$00,$00,$08,$62,$0c
 hint_3254:
-; --- unverified ---
-    bne.s hint_3258
+    DC.B    $66,$02
 hint_3256:
-    dc.b    $74,$00
+    DC.B    $74,$00
 hint_3258:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_325a:
-; --- unverified ---
-    tst.b 288(a6) ; app+$120
-    bne.s hint_3258
+    DC.B    $4a,$2e,$01,$20,$66,$f8
 hint_3260:
-; --- unverified ---
-    moveq #29,d0
-    bra.w loc_8486
+    DC.B    $70,$1d,$60,$00,$52,$22
 hint_3266:
-; --- unverified ---
-    bsr.w hint_4e06
+    DC.B    $61,$00,$1b,$9e
 hint_326a:
-; --- unverified ---
-    move.w 540(a6),d2 ; app+$21C
-    cmp.w #$3,d2
-    beq.s hint_3294
+    DC.B    $34,$2e,$02,$1c,$b4,$7c,$00,$03,$67,$20
 hint_3274:
-; --- unverified ---
-    btst #1,d2
-    bne.s hint_329c
+    DC.B    $08,$02,$00,$01,$66,$22
 hint_327a:
-; --- unverified ---
-    cmp.w #$5,d2
-    beq.s hint_329c
+    DC.B    $b4,$7c,$00,$05,$67,$1c
 hint_3280:
-; --- unverified ---
-    tst.w d2
-    bne.s hint_3296
+    DC.B    $4a,$42,$66,$12
 hint_3284:
-; --- unverified ---
-    bsr.w sub_79da
+    DC.B    $61,$00,$47,$54
 hint_3288:
-; --- unverified ---
-    movea.l a4,a0
-    move.b -1(a4),d1
-    bsr.w loc_78e8
+    DC.B    $20,$4c,$12,$2c,$ff,$ff,$61,$00,$46,$58
 hint_3292:
-    dc.b    $72,$0a
+    DC.B    $72,$0a
 hint_3294:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_3296:
-; --- unverified ---
-    moveq #6,d0
-    bra.w sign_extended_operand
+    DC.B    $70,$06,$60,$00,$52,$f2
 hint_329c:
-; --- unverified ---
-    lea 430(a6),a2 ; app+$1AE
-    bsr.w hint_4dae
+    DC.B    $45,$ee,$01,$ae,$61,$00,$1b,$0c
 hint_32a4:
-; --- unverified ---
-    sf 275(a6) ; app+$113
-    rts
+    DC.B    $51,$ee,$01,$13,$4e,$75
 hint_32aa:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$61,$00,$db,$08
 hint_32b0:
-; --- unverified ---
-    tst.b d4
-    bne.w hint_3336
+    DC.B    $4a,$04,$66,$00,$00,$82
 hint_32b6:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_3336
+    DC.B    $b6,$3c,$00,$02,$66,$7a
 hint_32bc:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.s hint_3336
+    DC.B    $b2,$3c,$00,$2c,$66,$74
 hint_32c2:
-; --- unverified ---
-    move.l d2,d4
-    move.l a4,-(sp)
-    move.b (a4)+,d1
-    bsr.w sub_177e
+    DC.B    $28,$02,$2f,$0c,$12,$1c,$61,$00,$e4,$b4
 hint_32cc:
-; --- unverified ---
-    bne.s hint_3330
+    DC.B    $66,$62
 hint_32ce:
-; --- unverified ---
-    tst.b d0
-    bne.s hint_3302
+    DC.B    $4a,$00,$66,$30
 hint_32d2:
-; --- unverified ---
-    move.l d4,d0
-    ext.w d0
-    ext.l d0
-    cmp.l d0,d4
-    bne.s hint_3330
+    DC.B    $20,$04,$48,$80,$48,$c0,$b8,$80,$66,$54
 hint_32dc:
-; --- unverified ---
-    btst #3,271(a6) ; app+$10F
-    beq.w hint_3330
+    DC.B    $08,$2e,$00,$03,$01,$0f,$67,$00,$00,$4c
 hint_32e6:
-; --- unverified ---
-    subq.l #2,a5
-    bsr.w sub_8dce
+    DC.B    $55,$8d,$61,$00,$5a,$e4
 hint_32ec:
-; --- unverified ---
-    bne.s hint_332e
+    DC.B    $66,$40
 hint_32ee:
-; --- unverified ---
-    addq.l #4,sp
-    ori.b #$38,d2
-    add.b d2,d2
-    lsl.w #8,d2
-    or.b d4,d2
-    move.w d2,(a5)+
-    moveq #15,d0
-    bra.w hint_8808
+    DC.B    $58,$8f,$00,$02,$00,$38,$d4,$02,$e1,$4a,$84,$04,$3a,$c2,$70,$0f
+    DC.B    $60,$00,$55,$08
 hint_3302:
-; --- unverified ---
-    movea.w d4,a0
-    cmp.l a0,d4
-    bne.s hint_3330
+    DC.B    $30,$44,$b8,$88,$66,$28
 hint_3308:
-; --- unverified ---
-    btst #3,270(a6) ; app+$10E
-    beq.w hint_3330
+    DC.B    $08,$2e,$00,$03,$01,$0e,$67,$00,$00,$20
 hint_3312:
-; --- unverified ---
-    subq.l #2,a5
-    bsr.w sub_8dce
+    DC.B    $55,$8d,$61,$00,$5a,$b8
 hint_3318:
-; --- unverified ---
-    bne.s hint_332e
+    DC.B    $66,$14
 hint_331a:
-; --- unverified ---
-    addq.l #4,sp
-    add.b d2,d2
-    lsl.w #8,d2
-    ori.w #$307c,d2
-    move.w d2,(a5)+
-    move.w d4,(a5)+
-    moveq #23,d0
-    bra.w hint_8808
+    DC.B    $58,$8f,$d4,$02,$e1,$4a,$00,$42,$30,$7c,$3a,$c2,$3a,$c4,$70,$17
+    DC.B    $60,$00,$54,$dc
 hint_332e:
-    dc.b    $54,$8d
+    DC.B    $54,$8d
 hint_3330:
-    dc.b    $28,$5f,$72,$2c,$24,$04
+    DC.B    $28,$5f,$72,$2c,$24,$04
 hint_3336:
-; --- unverified ---
-    bsr.w hint_1aa0
+    DC.B    $61,$00,$e7,$68
 hint_333a:
-; --- unverified ---
-    bra.s hint_3376
+    DC.B    $60,$3a
 pcref_333c:
-; --- unverified ---
-    move.w d0,d0
-    move.b d0,d0
-    move.w d0,d0
-    move.l d0,d0
-    moveq #0,d0
-    move.b 569(a6),d0 ; app+$239
-    add.b d0,d0
-    or.w pcref_333c(pc,d0.w),d6
-    move.w d6,(a5)+
-    cmp.b #$6,d0
-    bne.s hint_3372
+    DC.B    $30,$00,$10,$00,$30,$00,$20,$00,$70,$00,$10,$2e,$02,$39,$d0,$00
+    DC.B    $8c,$7b,$00,$ee,$3a,$c6,$b0,$3c,$00,$06,$66,$1a
 hint_3358:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.s hint_3372
+    DC.B    $b2,$3c,$00,$23,$66,$14
 hint_335e:
-; --- unverified ---
-    btst #3,271(a6) ; app+$10F
-    bne.w hint_32aa
+    DC.B    $08,$2e,$00,$03,$01,$0f,$66,$00,$ff,$44
 hint_3368:
-; --- unverified ---
-    btst #3,270(a6) ; app+$10E
-    bne.w hint_32aa
+    DC.B    $08,$2e,$00,$03,$01,$0e,$66,$00,$ff,$3a
 hint_3372:
-; --- unverified ---
-    bsr.w sub_1872
+    DC.B    $61,$00,$e4,$fe
 hint_3376:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$50,$e6
 hint_337e:
-; --- unverified ---
-    move.b (a4)+,d1
-    btst #6,d5
-    bne.w hint_3432
+    DC.B    $12,$1c,$08,$05,$00,$06,$66,$00,$00,$ac
 hint_3388:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    or.w d5,(a0)
-    bsr.w hint_187e
+    DC.B    $20,$6e,$02,$4c,$8b,$50,$61,$00,$e4,$ee
 hint_3392:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    btst #6,d5
-    bne.s hint_33c2
+    DC.B    $20,$6e,$02,$4c,$08,$05,$00,$06,$66,$26
 hint_339c:
-; --- unverified ---
-    move.w d5,d2
-    move.w d5,d0
-    andi.b #$7,d0
-    add.b d0,d0
-    or.b d0,(a0)
-    andi.w #$38,d5
-    add.w d5,d5
-    add.w d5,d5
-    add.w d5,d5
-    or.w d5,(a0)
-    andi.w #$3f,d2
-    cmp.w #$3a,d2
-    bcc.w hint_1742
+    DC.B    $34,$05,$30,$05,$02,$00,$00,$07,$d0,$00,$81,$10,$02,$45,$00,$38
+    DC.B    $da,$45,$da,$45,$da,$45,$8b,$50,$02,$42,$00,$3f,$b4,$7c,$00,$3a
+    DC.B    $64,$00,$e3,$84
 hint_33c0:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_33c2:
-; --- unverified ---
-    move.w (a0),d4
-    lsr.b #1,d5
-    bcs.s hint_33f4
+    DC.B    $38,$10,$e2,$0d,$65,$2c
 hint_33c8:
-; --- unverified ---
-    lsr.b #1,d5
-    bcs.s hint_341c
+    DC.B    $e2,$0d,$65,$50
 hint_33cc:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_33d8
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_33d2:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$50,$b0
 hint_33d8:
-; --- unverified ---
-    move.b d4,d0
-    andi.b #$38,d0
-    cmp.b #$8,d0
-    bne.w hint_1742
+    DC.B    $10,$04,$02,$00,$00,$38,$b0,$3c,$00,$08,$66,$00,$e3,$5e
 hint_33e6:
-; --- unverified ---
-    andi.w #$7,d4
-    ori.w #$4e60,d4
-    move.w d4,(a0)
-    bra.w hint_2350
+    DC.B    $02,$44,$00,$07,$00,$44,$4e,$60,$30,$84,$60,$00,$ef,$5e
 hint_33f4:
-; --- unverified ---
-    move.w #$44c0,d6
-    cmpi.b #$3,569(a6) ; app+$239
-    bne.s hint_3404
+    DC.B    $3c,$3c,$44,$c0,$0c,$2e,$00,$03,$02,$39,$66,$04
 hint_3400:
-; --- unverified ---
-    bsr.w loc_844a
+    DC.B    $61,$00,$50,$48
 hint_3404:
-; --- unverified ---
-    andi.w #$3f,d4
-    move.b d4,d0
-    andi.b #$38,d0
-    cmp.b #$8,d0
-    beq.w hint_1742
+    DC.B    $02,$44,$00,$3f,$10,$04,$02,$00,$00,$38,$b0,$3c,$00,$08,$67,$00
+    DC.B    $e3,$2e
 hint_3416:
-; --- unverified ---
-    or.w d4,d6
-    move.w d6,(a0)
-    rts
+    DC.B    $8c,$44,$30,$86,$4e,$75
 hint_341c:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_3428
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_3422:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$50,$60
 hint_3428:
-; --- unverified ---
-    bsr.w hint_276a
+    DC.B    $61,$00,$f3,$40
 hint_342c:
-; --- unverified ---
-    move.w #$46c0,d6
-    bra.s hint_3404
+    DC.B    $3c,$3c,$46,$c0,$60,$d2
 hint_3432:
-; --- unverified ---
-    movea.l 588(a6),a2 ; app+$24C
-    lsr.b #1,d5
-    bcs.s sub_3474
+    DC.B    $24,$6e,$02,$4c,$e2,$0d,$65,$3a
 hint_343a:
-; --- unverified ---
-    lsr.b #1,d5
-    bcs.s hint_345a
+    DC.B    $e2,$0d,$65,$1c
 hint_343e:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_344a
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_3444:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$50,$3e
 hint_344a:
-; --- unverified ---
-    bsr.w sub_176a
+    DC.B    $61,$00,$e3,$1e
 hint_344e:
-; --- unverified ---
-    move.w #$4e68,d6
-    or.b d2,d6
-    move.w d6,(a2)
-    bra.w hint_2350
+    DC.B    $3c,$3c,$4e,$68,$8c,$02,$34,$86,$60,$00,$ee,$f8
 hint_345a:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_3466
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_3460:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$50,$22
 hint_3466:
-; --- unverified ---
-    move.w #$40c0,(a2)
-    bsr.w hint_16e0
-    dc.b    $00,$3d,$60,$00,$f2,$f8
-sub_3474:
-; --- unverified ---
-    tst.b 289(a6) ; app+$121
-    bne.s hint_3482
+    DC.B    $34,$bc,$40,$c0,$61,$00,$e2,$74
+    DC.B    $00,$3d,$60,$00,$f2,$f8
+hint_3474:
+    DC.B    $4a,$2e,$01,$21,$66,$08
 hint_347a:
-; --- unverified ---
-    bsr.s hint_3466
+    DC.B    $61,$ea
 hint_347c:
-; --- unverified ---
-    moveq #4,d0
-    bra.w sign_extended_operand
+    DC.B    $70,$04,$60,$00,$51,$0c
 hint_3482:
-; --- unverified ---
-    move.w #$42c0,(a2)
-    bsr.w hint_16e0
-    dc.b    $00,$3d
-sub_348c:
-; --- unverified ---
-    cmpi.b #$3,569(a6) ; app+$239
-    beq.w loc_844a
+    DC.B    $34,$bc,$42,$c0,$61,$00,$e2,$58
+    DC.B    $00,$3d
+hint_348c:
+    DC.B    $0c,$2e,$00,$03,$02,$39,$67,$00,$4f,$b6
 hint_3496:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_3498:
-; --- unverified ---
-    tst.b 289(a6) ; app+$121
-    beq.w sub_3132
+    DC.B    $4a,$2e,$01,$21,$67,$00,$fc,$94
 hint_34a0:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_34ac
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_34a6:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$4f,$dc
 hint_34ac:
-; --- unverified ---
-    bsr.w hint_2350
+    DC.B    $61,$00,$ee,$a2
 hint_34b0:
-; --- unverified ---
-    bsr.w sub_177e
+    DC.B    $61,$00,$e2,$cc
 hint_34b4:
-; --- unverified ---
-    bne.s hint_34dc
+    DC.B    $66,$26
 hint_34b6:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$4f,$a6
 hint_34be:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w #$4e7b,(a5)+
-    lsl.b #3,d0
-    or.b d0,d2
-    andi.w #$f,d2
-    ror.w #4,d2
-    move.w d2,d3
-    bsr.s hint_3508
+    DC.B    $12,$1c,$3a,$fc,$4e,$7b,$e7,$08,$84,$00,$02,$42,$00,$0f,$e8,$5a
+    DC.B    $36,$02,$61,$36
 hint_34d2:
-; --- unverified ---
-    bne.w hint_845e
+    DC.B    $66,$00,$4f,$8a
 hint_34d6:
-; --- unverified ---
-    or.w d3,d2
-    move.w d2,(a5)+
-    rts
+    DC.B    $84,$43,$3a,$c2,$4e,$75
 hint_34dc:
-; --- unverified ---
-    bsr.s hint_3508
+    DC.B    $61,$2a
 hint_34de:
-; --- unverified ---
-    bne.w hint_845e
+    DC.B    $66,$00,$4f,$7e
 hint_34e2:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$4f,$7a
 hint_34ea:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d2,d3
-    bsr.w sub_177e
+    DC.B    $12,$1c,$36,$02,$61,$00,$e2,$8e
 hint_34f2:
-; --- unverified ---
-    bne.w hint_845e
+    DC.B    $66,$00,$4f,$6a
 hint_34f6:
-; --- unverified ---
-    move.w d6,(a5)+
-    lsl.b #3,d0
-    or.b d0,d2
-    andi.w #$f,d2
-    ror.w #4,d2
-    or.w d2,d3
-    move.w d3,(a5)+
-    rts
+    DC.B    $3a,$c6,$e7,$08,$84,$00,$02,$42,$00,$0f,$e8,$5a,$86,$42,$3a,$c3
+    DC.B    $4e,$75
 hint_3508:
-    dc.b    $10,$01,$48,$80,$10,$36,$00,$7e,$41,$fa,$00,$b4,$74,$00
+    DC.B    $10,$01,$48,$80,$10,$36,$00,$7e,$41,$fa,$00,$b4,$74,$00
 hint_3516:
-; --- unverified ---
-    move.b (a0)+,d2
-    beq.w hint_35c2
+    DC.B    $14,$18,$67,$00,$00,$a8
 hint_351c:
-; --- unverified ---
-    cmp.b (a0),d0
-    bne.w hint_35ba
+    DC.B    $b0,$10,$66,$00,$00,$9a
 hint_3522:
-    dc.b    $48,$e7,$a0,$88,$52,$88
+    DC.B    $48,$e7,$a0,$88,$52,$88
 hint_3528:
-; --- unverified ---
-    move.b (a4)+,d0
-    ext.w d0
-    move.b 126(a6,d0.w),d0
-    cmp.b (a0)+,d0
-    bne.w hint_35b6
+    DC.B    $10,$1c,$48,$80,$10,$36,$00,$7e,$b0,$18,$66,$00,$00,$82
 hint_3536:
-; --- unverified ---
-    subq.b #1,d2
-    bne.s hint_3528
+    DC.B    $53,$02,$66,$ee
 hint_353a:
-; --- unverified ---
-    lea 16(sp),sp
-    move.b (a0)+,d2
-    lsl.w #8,d2
-    move.b (a0)+,d2
-    move.b (a4)+,d1
-    move.b 289(a6),d0 ; app+$121
-    beq.s hint_356a
+    DC.B    $4f,$ef,$00,$10,$14,$18,$e1,$4a,$14,$18,$12,$1c,$10,$2e,$01,$21
+    DC.B    $67,$1e
 hint_354c:
-; --- unverified ---
-    cmp.b #$28,d0
-    beq.s hint_358e
+    DC.B    $b0,$3c,$00,$28,$67,$3c
 hint_3552:
-; --- unverified ---
-    cmp.b #$3c,d0
-    beq.s hint_3574
+    DC.B    $b0,$3c,$00,$3c,$67,$1c
 hint_3558:
-; --- unverified ---
-    cmp.b #$20,d0
-    beq.s hint_3564
+    DC.B    $b0,$3c,$00,$20,$67,$06
 hint_355e:
-; --- unverified ---
-    cmp.b #$a,d0
-    bne.s hint_35a2
+    DC.B    $b0,$3c,$00,$0a,$66,$3e
 hint_3564:
-; --- unverified ---
-    cmp.b #$2,d2
-    bcs.s hint_3570
+    DC.B    $b4,$3c,$00,$02,$65,$06
 hint_356a:
-; --- unverified ---
-    moveq #34,d0
-    bsr.w loc_8486
+    DC.B    $70,$22,$61,$00,$4f,$18
 hint_3570:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_3574:
-; --- unverified ---
-    cmp.w #$803,d2
-    beq.s hint_356a
+    DC.B    $b4,$7c,$08,$03,$67,$f0
 hint_357a:
-; --- unverified ---
-    cmp.w #$804,d2
-    beq.s hint_356a
+    DC.B    $b4,$7c,$08,$04,$67,$ea
 hint_3580:
-; --- unverified ---
-    cmp.w #$805,d2
-    beq.s hint_356a
+    DC.B    $b4,$7c,$08,$05,$67,$e4
 hint_3586:
-; --- unverified ---
-    cmp.w #$802,d2
-    bne.s hint_3570
+    DC.B    $b4,$7c,$08,$02,$66,$e4
 hint_358c:
-; --- unverified ---
-    bra.s hint_356a
+    DC.B    $60,$dc
 hint_358e:
-; --- unverified ---
-    cmp.w #$8,d2
-    beq.s hint_356a
+    DC.B    $b4,$7c,$00,$08,$67,$d6
 hint_3594:
-; --- unverified ---
-    cmp.w #$808,d2
-    beq.s hint_356a
+    DC.B    $b4,$7c,$08,$08,$67,$d0
 hint_359a:
-; --- unverified ---
-    cmp.w #$802,d2
-    bne.s hint_3570
+    DC.B    $b4,$7c,$08,$02,$66,$d0
 hint_35a0:
-; --- unverified ---
-    bra.s hint_356a
+    DC.B    $60,$c8
 hint_35a2:
-; --- unverified ---
-    cmp.w #$805,d2
-    bcc.s hint_356a
+    DC.B    $b4,$7c,$08,$05,$64,$c2
 hint_35a8:
-; --- unverified ---
-    cmp.w #$800,d2
-    bcc.s hint_3570
+    DC.B    $b4,$7c,$08,$00,$64,$c2
 hint_35ae:
-; --- unverified ---
-    cmp.w #$3,d2
-    bcs.s hint_3570
+    DC.B    $b4,$7c,$00,$03,$65,$bc
 hint_35b4:
-; --- unverified ---
-    bra.s hint_356a
+    DC.B    $60,$b4
 hint_35b6:
-    dc.b    $4c,$df,$11,$05
+    DC.B    $4c,$df,$11,$05
 hint_35ba:
-; --- unverified ---
-    lea 3(a0,d2.w),a0
-    bra.w hint_3516
+    DC.B    $41,$f0,$20,$03,$60,$00,$ff,$56
 hint_35c2:
-; --- unverified ---
-    moveq #-1,d0
-    rts
+    DC.B    $70,$ff,$4e,$75
 pcref_35c6:
-    dc.b    $02,$53,$46,$43,$00,$00,$02,$44,$46,$43,$00,$01,$03,$43
-    dc.b    $41,$43,$52,$00,$02,$02,$55,$53,$50,$08,$00,$02,$56,$42,$52,$08
-    dc.b    $01,$03,$43,$41,$41,$52,$08,$02,$02,$4d,$53,$50,$08,$03,$02,$49
-    dc.b    $53,$50,$08,$04,$01,$54,$43,$00,$03,$03
-    dc.b    "ITT0",0
-    dc.b    $04,$03
-    dc.b    "ITT1",0
-    dc.b    $05,$03
-    dc.b    "DTT0",0
-    dc.b    $06,$03
-    dc.b    "DTT1",0
-    dc.b    $07,$04,$4d,$4d
-sub_361c:
-    dc.b    $55,$53,$52,$08,$05,$02,$55,$52,$50,$08,$06,$02,$53,$52,$50,$08
-    dc.b    $07,$04
-    dc.b    "BUSCR",0
-    dc.b    $08,$02,$50,$43,$52,$08,$08,$00,$10,$2e,$02,$39,$67,$12,$b0,$3c
-    dc.b    $00,$02,$67,$0c
+    DC.B    $02,$53,$46,$43,$00,$00,$02,$44,$46,$43,$00,$01,$03,$43
+    DC.B    $41,$43,$52,$00,$02,$02,$55,$53,$50,$08,$00,$02,$56,$42,$52,$08
+    DC.B    $01,$03,$43,$41,$41,$52,$08,$02,$02,$4d,$53,$50,$08,$03,$02,$49
+    DC.B    $53,$50,$08,$04,$01,$54,$43,$00,$03,$03
+    DC.B    "ITT0",0
+    DC.B    $04,$03
+    DC.B    "ITT1",0
+    DC.B    $05,$03
+    DC.B    "DTT0",0
+    DC.B    $06,$03
+    DC.B    "DTT1",0
+    DC.B    $07,$04,$4d,$4d
+hint_361c:
+    DC.B    $55,$53,$52,$08,$05,$02,$55,$52,$50,$08,$06,$02,$53,$52,$50,$08
+    DC.B    $07,$04
+    DC.B    "BUSCR",0
+    DC.B    $08,$02,$50,$43,$52,$08,$08,$00,$10,$2e,$02,$39,$67,$12,$b0,$3c
+    DC.B    $00,$02,$67,$0c
 hint_3648:
-; --- unverified ---
-    cmp.b #$3,d0
-    bne.w loc_844a
+    DC.B    $b0,$3c,$00,$03,$66,$00,$4d,$fc
 hint_3650:
-    dc.b    $00,$06,$00,$40
+    DC.B    $00,$06,$00,$40
 hint_3654:
-; --- unverified ---
-    bsr.s hint_36c8
+    DC.B    $61,$72
 hint_3656:
-; --- unverified ---
-    bne.w hint_36a2
+    DC.B    $66,$00,$00,$4a
 hint_365a:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$4e,$02
 hint_3662:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d6,(a5)+
-    move.w d4,(a5)+
-    bsr.w hint_187e
+    DC.B    $12,$1c,$3a,$c6,$3a,$c4,$61,$00,$e2,$14
 hint_366c:
-; --- unverified ---
-    cmp.w #$40,d5
-    bcc.w hint_1742
+    DC.B    $ba,$7c,$00,$40,$64,$00,$e0,$d0
 hint_3674:
-; --- unverified ---
-    move.b d5,d2
-    andi.b #$38,d2
-    cmp.b #$20,d2
-    bne.s hint_369c
+    DC.B    $14,$05,$02,$02,$00,$38,$b4,$3c,$00,$20,$66,$1c
 hint_3680:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_369c
+    DC.B    $4a,$2e,$02,$38,$67,$16
 hint_3686:
-    dc.b    $20,$6e,$02,$4c,$20,$10,$74,$00,$76,$0f
+    DC.B    $20,$6e,$02,$4c,$20,$10,$74,$00,$76,$0f
 hint_3690:
-; --- unverified ---
-    lsl.w #1,d0
-    roxr.w #1,d2
-    dbf d3,hint_3690
+    DC.B    $e3,$48,$e2,$52,$51,$cb,$ff,$fa
 hint_3698:
-    dc.b    $31,$42,$00,$02
+    DC.B    $31,$42,$00,$02
 hint_369c:
-; --- unverified ---
-    moveq #52,d0
-    bra.w hint_1704
+    DC.B    $70,$34,$60,$00,$e0,$64
 hint_36a2:
-; --- unverified ---
-    ori.w #$400,d6
-    move.w d6,(a5)+
-    addq.l #2,a5
-    bsr.w hint_16e0
+    DC.B    $00,$46,$04,$00,$3a,$c6,$54,$8d,$61,$00,$e0,$34
 hint_36ae:
-; --- unverified ---
-    ori.w #$b23c,44(a4)
-    bne.w hint_8462
+    DC.B    $00,$6c,$b2,$3c,$00,$2c,$66,$00,$4d,$ac
 hint_36b8:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_36c8
+    DC.B    $12,$1c,$61,$0c
 hint_36bc:
-; --- unverified ---
-    bne.s hint_3736
+    DC.B    $66,$78
 hint_36be:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d4,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$31,$44,$00,$02,$4e,$75
 hint_36c8:
-; --- unverified ---
-    moveq #0,d4
-    bsr.w sub_177e
+    DC.B    $78,$00,$61,$00,$e0,$b2
 hint_36ce:
-; --- unverified ---
-    beq.s hint_3718
+    DC.B    $67,$48
 hint_36d0:
-; --- unverified ---
-    lea 1134(a6),a0 ; app+$46E
-    movem.l d1/a4,-(sp)
-    bsr.w sub_76b8
+    DC.B    $41,$ee,$04,$6e,$48,$e7,$40,$08,$61,$00,$3f,$de
 hint_36dc:
-; --- unverified ---
-    bne.s hint_3712
+    DC.B    $66,$34
 hint_36de:
-; --- unverified ---
-    movea.l 362(a6),a2 ; app+$16A
-    movem.l d1/d3/a3-a5,-(sp)
-    bsr.w sub_0b88
+    DC.B    $24,$6e,$01,$6a,$48,$e7,$50,$1c,$61,$00,$d4,$a0
 hint_36ea:
-; --- unverified ---
-    movem.l (sp)+,d1/d3/a3-a5
-    bne.s hint_3712
+    DC.B    $4c,$df,$38,$0a,$66,$22
 hint_36f0:
-; --- unverified ---
-    cmpi.b #$5,13(a1)
-    bne.s hint_3712
+    DC.B    $0c,$29,$00,$05,$00,$0d,$66,$1a
 hint_36f8:
-; --- unverified ---
-    move.l 8(a1),d4
-    tst.b 568(a6) ; app+$238
-    beq.s hint_370a
+    DC.B    $28,$29,$00,$08,$4a,$2e,$02,$38,$67,$08
 hint_3702:
-; --- unverified ---
-    btst #6,12(a1)
-    beq.s hint_3710
+    DC.B    $08,$29,$00,$06,$00,$0c,$67,$06
 hint_370a:
-; --- unverified ---
-    addq.l #8,sp
-    moveq #0,d0
-    rts
+    DC.B    $50,$8f,$70,$00,$4e,$75
 hint_3710:
-    dc.b    $70,$ff
+    DC.B    $70,$ff
 hint_3712:
-; --- unverified ---
-    movem.l (sp)+,d1/a4
-    rts
+    DC.B    $4c,$df,$10,$02,$4e,$75
 hint_3718:
-; --- unverified ---
-    lsl.b #3,d0
-    add.b d2,d0
-    cmp.b #$2d,d1
-    beq.s hint_373c
+    DC.B    $e7,$08,$d0,$02,$b2,$3c,$00,$2d,$67,$1a
 hint_3722:
-    dc.b    $01,$c4
+    DC.B    $01,$c4
 hint_3724:
-; --- unverified ---
-    cmp.b #$2f,d1
-    beq.s hint_372e
+    DC.B    $b2,$3c,$00,$2f,$67,$04
 hint_372a:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_372e:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_177e
+    DC.B    $12,$1c,$61,$00,$e0,$4c
 hint_3734:
-; --- unverified ---
-    beq.s hint_3718
+    DC.B    $67,$e2
 hint_3736:
-; --- unverified ---
-    moveq #57,d0
-    bra.w loc_8482
+    DC.B    $70,$39,$60,$00,$4d,$48
 hint_373c:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$38,d1
-    bcc.s hint_375a
+    DC.B    $12,$1c,$b2,$3c,$00,$38,$64,$16
 hint_3744:
-; --- unverified ---
-    cmp.b #$30,d1
-    bcs.s hint_375a
+    DC.B    $b2,$3c,$00,$30,$65,$10
 hint_374a:
-; --- unverified ---
-    move.b d0,d3
-    andi.b #$8,d0
-    subi.b #$30,d1
-    add.b d1,d0
-    move.b (a4)+,d1
-    bra.s hint_3768
+    DC.B    $16,$00,$02,$00,$00,$08,$04,$01,$00,$30,$d0,$01,$12,$1c,$60,$0e
 hint_375a:
-; --- unverified ---
-    move.w d0,-(sp)
-    bsr.w sub_177e
+    DC.B    $3f,$00,$61,$00,$e0,$20
 hint_3760:
-; --- unverified ---
-    bne.s hint_3736
+    DC.B    $66,$d4
 hint_3762:
-    dc.b    $e7,$08,$d0,$02,$36,$1f
+    DC.B    $e7,$08,$d0,$02,$36,$1f
 hint_3768:
-; --- unverified ---
-    cmp.b d3,d0
-    bcs.s hint_3736
+    DC.B    $b0,$03,$65,$ca
 hint_376c:
-    dc.b    $52,$00
+    DC.B    $52,$00
 hint_376e:
-; --- unverified ---
-    bset d3,d4
-    addq.b #1,d3
-    cmp.b d0,d3
-    bne.s hint_376e
+    DC.B    $07,$c4,$52,$03,$b6,$00,$66,$f8
 hint_3776:
-; --- unverified ---
-    bra.s hint_3724
+    DC.B    $60,$ac
 hint_3778:
-; --- unverified ---
-    bsr.w hint_16e6
+    DC.B    $61,$00
+hint_377a:
+    DC.B    $df,$6c
+    DC.B    $00,$ff,$48,$e7,$18,$00,$b2,$3c,$00,$2c,$66,$00,$4c,$da
 hint_378a:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_176a
+    DC.B    $12,$1c,$61,$00,$df,$dc
 hint_3790:
-; --- unverified ---
-    movem.l (sp)+,d3-d4
-    add.b d2,d2
-    movea.l 588(a6),a0 ; app+$24C
-    or.b d2,(a0)
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_37b0
+    DC.B    $4c,$df,$00,$18,$d4,$02,$20,$6e,$02,$4c,$85,$10,$10,$2e,$02,$39
+    DC.B    $67,$0e
 hint_37a2:
-; --- unverified ---
-    cmp.b #$3,d0
-    beq.s hint_37b6
+    DC.B    $b0,$3c,$00,$03,$67,$0e
 hint_37a8:
-; --- unverified ---
-    cmp.b #$2,d0
-    bne.w loc_844a
+    DC.B    $b0,$3c,$00,$02,$66,$00,$4c,$9c
 hint_37b0:
-; --- unverified ---
-    ori.b #$10,(a0)
-    rts
+    DC.B    $00,$10,$00,$10,$4e,$75
 hint_37b6:
-; --- unverified ---
-    btst #3,270(a6) ; app+$10E
-    beq.s hint_3800
+    DC.B    $08,$2e,$00,$03,$01,$0e,$67,$42
 hint_37be:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_3800
+    DC.B    $4a,$04,$66,$3e
 hint_37c2:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_3800
+    DC.B    $b6,$3c,$00,$02,$66,$38
 hint_37c8:
-; --- unverified ---
-    move.w (a0),d3
-    andi.w #$3f,d3
-    cmp.b #$3c,d3
-    bne.s hint_3800
+    DC.B    $36,$10,$02,$43,$00,$3f,$b6,$3c,$00,$3c,$66,$2c
 hint_37d4:
-; --- unverified ---
-    move.l 2(a0),d0
-    movea.w d0,a1
-    cmp.l a1,d0
-    bne.s hint_3800
+    DC.B    $20,$28,$00,$02,$32,$40,$b0,$89,$66,$22
 hint_37de:
-; --- unverified ---
-    movem.l d0/a0,-(sp)
-    move.l d0,d2
-    subq.w #2,a5
-    bsr.w sub_8dce
+    DC.B    $48,$e7,$80,$80,$24,$00,$55,$4d,$61,$00,$55,$e6
 hint_37ea:
-; --- unverified ---
-    movem.l (sp)+,d0/a0
-    bne.s hint_37fe
+    DC.B    $4c,$df,$01,$01,$66,$0e
 hint_37f0:
-; --- unverified ---
-    ori.b #$10,(a0)
-    move.w d0,2(a0)
-    moveq #23,d0
-    bra.w hint_8808
+    DC.B    $00,$10,$00,$10,$31,$40,$00,$02,$70,$17,$60,$00,$50,$0c
 hint_37fe:
-    dc.b    $54,$4d
+    DC.B    $54,$4d
 hint_3800:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_3802:
-; --- unverified ---
-    move.b 569(a6),d0 ; app+$239
-    cmp.b #$1,d0
-    beq.w loc_844a
+    DC.B    $10,$2e,$02,$39,$b0,$3c,$00,$01,$67,$00,$4c,$3e
 hint_380e:
-; --- unverified ---
-    cmp.b #$3,d0
-    bne.s hint_3818
+    DC.B    $b0,$3c,$00,$03,$66,$04
 hint_3814:
-    dc.b    $00,$06,$00,$40
+    DC.B    $00,$06,$00,$40
 hint_3818:
-; --- unverified ---
-    bsr.w sub_177e
+    DC.B    $61,$00,$df,$64
 hint_381c:
-; --- unverified ---
-    bne.s hint_3842
+    DC.B    $66,$24
 hint_381e:
-; --- unverified ---
-    tst.b d0
-    bne.w hint_385c
+    DC.B    $4a,$00,$66,$00,$00,$3a
 hint_3824:
-; --- unverified ---
-    ori.b #$80,d6
-    andi.w #$7,d2
-    ror.w #7,d2
-    or.w d2,d6
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $00,$06,$00,$80,$02,$42,$00,$07,$ee,$5a,$8c,$42,$b2,$3c,$00,$2c
+    DC.B    $66,$00,$4c,$2c
 hint_3838:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_3862
+    DC.B    $12,$1c,$61,$26
 hint_383c:
-; --- unverified ---
-    move.w d6,(a5)+
-    move.w d3,(a5)+
-    rts
+    DC.B    $3a,$c6,$3a,$c3,$4e,$75
 hint_3842:
-; --- unverified ---
-    bsr.s hint_3862
+    DC.B    $61,$1e
 hint_3844:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$4c,$18
 hint_384c:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$df,$10
 hint_3852:
-; --- unverified ---
-    andi.w #$7,d2
-    ror.w #7,d2
-    or.w d2,d6
-    bra.s hint_383c
+    DC.B    $02,$42,$00,$07,$ee,$5a,$8c,$42,$60,$e0
 hint_385c:
-; --- unverified ---
-    moveq #47,d0
-    bra.w loc_8486
+    DC.B    $70,$2f,$60,$00
+hint_3860:
+    DC.B    $4c,$26
 hint_3862:
-; --- unverified ---
-    moveq #0,d2
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.s hint_38a6
+    DC.B    $74,$00,$0c,$2e,$00,$14,$01,$21,$6d,$3a
 hint_386c:
-; --- unverified ---
-    cmp.b #$28,d1
-    bne.s hint_38ac
+    DC.B    $b2,$3c,$00,$28,$66,$3a
 hint_3872:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d2,d3
-    bsr.w sub_176a
+    DC.B    $12,$1c,$36,$02,$61,$00,$de,$f2
 hint_387a:
-; --- unverified ---
-    bne.s hint_3892
+    DC.B    $66,$16
 hint_387c:
-; --- unverified ---
-    or.b d2,d6
-    cmp.b #$2c,d1
-    bne.s hint_38c4
+    DC.B    $8c,$02,$b2,$3c,$00,$2c,$66,$40
 hint_3884:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16a8
+    DC.B    $12,$1c,$61,$00,$de,$20
 hint_388a:
-; --- unverified ---
-    bsr.w hint_78b6
+    DC.B    $61,$00,$40,$2a
 hint_388e:
-; --- unverified ---
-    move.w d2,d3
-    bra.s hint_38c4
+    DC.B    $36,$02,$60,$32
 hint_3892:
-; --- unverified ---
-    bsr.w sub_16a8
+    DC.B    $61,$00,$de,$14
 hint_3896:
-; --- unverified ---
-    bsr.w hint_78b6
+    DC.B    $61,$00,$40,$1e
 hint_389a:
-; --- unverified ---
-    move.w d2,d3
-    cmp.b #$2c,d1
-    bne.s hint_385c
+    DC.B    $36,$02,$b2,$3c,$00,$2c,$66,$ba
 hint_38a2:
-; --- unverified ---
-    bra.w hint_38ba
+    DC.B    $60,$00,$00,$16
 hint_38a6:
-; --- unverified ---
-    cmp.b #$28,d1
-    beq.s hint_38ba
+    DC.B    $b2,$3c,$00,$28,$67,$0e
 hint_38ac:
-; --- unverified ---
-    bsr.w sub_16a8
+    DC.B    $61,$00,$dd,$fa
 hint_38b0:
-; --- unverified ---
-    bsr.w hint_78b6
+    DC.B    $61,$00,$40,$04
 hint_38b4:
-; --- unverified ---
-    cmp.b #$28,d1
-    bne.s hint_385c
+    DC.B    $b2,$3c,$00,$28,$66,$a2
 hint_38ba:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d2,d3
-    bsr.w sub_176a
+    DC.B    $12,$1c,$36,$02,$61,$00,$de,$aa
 hint_38c2:
-    dc.b    $8c,$02
+    DC.B    $8c,$02
 hint_38c4:
-; --- unverified ---
-    cmp.b #$29,d1
-    bne.s hint_385c
+    DC.B    $b2,$3c,$00,$29,$66,$92
 hint_38ca:
-; --- unverified ---
-    move.b (a4)+,d1
-    rts
+    DC.B    $12,$1c,$4e,$75
 hint_38ce:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $b2,$3c,$00,$23,$66,$00,$4b,$96
 hint_38d6:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$61,$00,$d4,$dc
 hint_38dc:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_3910
+    DC.B    $4a,$2e,$02,$38,$67,$2e
 hint_38e2:
-; --- unverified ---
-    bsr.w hint_78d8
+    DC.B    $61,$00,$3f,$f4
 hint_38e6:
-; --- unverified ---
-    tst.w d3
-    bmi.s hint_392c
+    DC.B    $4a,$43,$6b,$42
 hint_38ea:
-; --- unverified ---
-    move.b d2,d0
-    ext.w d0
-    ext.l d0
-    cmp.l d0,d2
-    beq.s hint_3910
+    DC.B    $10,$02,$48,$80,$48,$c0,$b4,$80,$67,$1c
 hint_38f4:
-; --- unverified ---
-    cmp.l #$100,d2
-    bcs.s hint_3902
+    DC.B    $b4,$bc,$00,$00,$01,$00,$65,$06
 hint_38fc:
-; --- unverified ---
-    bsr.w sub_8456
+    DC.B    $61,$00,$4b,$58
 hint_3900:
-; --- unverified ---
-    bra.s hint_3910
+    DC.B    $60,$0e
 hint_3902:
-; --- unverified ---
-    cmpi.b #$3,569(a6) ; app+$239
-    beq.s hint_3910
+    DC.B    $0c,$2e,$00,$03,$02,$39,$67,$06
 hint_390a:
-; --- unverified ---
-    moveq #1,d0
-    bsr.w sign_extended_operand
+    DC.B    $70,$01,$61,$00,$4c,$7e
 hint_3910:
-; --- unverified ---
-    move.b d2,d6
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $1c,$02,$b2,$3c,$00,$2c,$66,$00,$4b,$4a
 hint_391a:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$de,$42
 hint_3920:
-; --- unverified ---
-    add.b d2,d2
-    moveq #112,d0
-    or.b d2,d0
-    move.b d0,(a5)+
-    move.b d6,(a5)+
-    rts
+    DC.B    $d4,$02,$70,$70,$80,$02,$1a,$c0,$1a,$c6,$4e,$75
 hint_392c:
-; --- unverified ---
-    move.l d2,-(sp)
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $2f,$02,$b2,$3c,$00,$2c,$66,$00,$4b,$2e
 hint_3936:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$de,$26
 hint_393c:
-; --- unverified ---
-    add.b d2,d2
-    moveq #112,d0
-    or.b d2,d0
-    move.b d0,(a5)+
-    move.l (sp)+,d2
-    bra.w dat_9954
+    DC.B    $d4,$02,$70,$70,$80,$02,$1a,$c0,$24,$1f,$60,$00,$60,$0c
 hint_394a:
-; --- unverified ---
-    cmpi.b #$a,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$0a,$01,$21,$6d,$00,$f7,$e0
 hint_3954:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_3960
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_395a:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$4b,$28
 hint_3960:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$15,$b8
 hint_3964:
-; --- unverified ---
-    move.w d6,(a5)+
-    bsr.w sub_177e
+    DC.B    $3a,$c6,$61,$00,$de,$16
 hint_396a:
-; --- unverified ---
-    bne.s hint_3984
+    DC.B    $66,$18
 hint_396c:
-; --- unverified ---
-    moveq #1,d3
-    bsr.s hint_39ac
+    DC.B    $76,$01,$61,$3c
 hint_3970:
-; --- unverified ---
-    move.w d3,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $3a,$c3,$b2,$3c,$00,$2c,$66,$00,$4a,$ea
 hint_397a:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_16e0
+    DC.B    $12,$1c,$61,$00,$dd,$62
 hint_3980:
-    dc.b    $00,$3c,$4e,$75
+    DC.B    $00,$3c,$4e,$75
 hint_3984:
-; --- unverified ---
-    addq.l #2,a5
-    bsr.w hint_16e0
+    DC.B    $54,$8d,$61,$00,$dd,$58
 hint_398a:
-; --- unverified ---
-    ori.b
-    ori.b #$0,19152(a4)
-    move.b (a4)+,d1
-    bsr.w sub_177e
+    DC.B    $00,$3c,$b2,$3c,$00,$2c,$66,$00,$4a,$d0,$12,$1c,$61,$00,$dd,$e6
 hint_399a:
-; --- unverified ---
-    bne.w hint_2b90
+    DC.B    $66,$00,$f1,$f4
 hint_399e:
-; --- unverified ---
-    moveq #0,d3
-    bsr.s hint_39ac
+    DC.B    $76,$00,$61,$0a
 hint_39a2:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d3,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$31,$43,$00,$02,$4e,$75
 hint_39ac:
-; --- unverified ---
-    add.b d2,d2
-    tst.b d0
-    sne d0
-    andi.b #$10,d0
-    or.b d0,d3
-    or.b d2,d3
-    ror.w #5,d3
-    rts
+    DC.B    $d4,$02,$4a,$00,$56,$c0,$02,$00,$00,$10,$86,$00,$86,$02,$ea,$5b
+    DC.B    $4e,$75
 hint_39be:
-; --- unverified ---
-    bsr.w hint_2372
+    DC.B    $61,$00,$e9,$b2
 hint_39c2:
-; --- unverified ---
-    bsr.w hint_16e6
-    dc.b    $00,$3d,$4e,$75
-sub_39ca:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_39d6
+    DC.B    $61,$00,$dd,$22
+    DC.B    $00,$3d,$4e,$75
+hint_39ca:
+    DC.B    $b2,$3c,$00,$09,$67,$06
 hint_39d0:
-; --- unverified ---
-    cmp.b #$20,d1
-    bne.s hint_39da
+    DC.B    $b2,$3c,$00,$20,$66,$04
 hint_39d6:
-; --- unverified ---
-    move.b (a4)+,d1
-    bra.s sub_39ca
+    DC.B    $12,$1c,$60,$f0
 hint_39da:
-; --- unverified ---
-    moveq #0,d2
-    cmp.b #$a,d1
-    beq.s hint_39f2
+    DC.B    $74,$00,$b2,$3c,$00,$0a,$67,$10
 hint_39e2:
-; --- unverified ---
-    cmp.b #$2a,d1
-    beq.s hint_39f2
+    DC.B    $b2,$3c,$00,$2a,$67,$0a
 hint_39e8:
-; --- unverified ---
-    cmp.b #$3b,d1
-    beq.s hint_39f2
+    DC.B    $b2,$3c,$00,$3b,$67,$04
 hint_39ee:
-; --- unverified ---
-    bsr.w hint_6ad2
+    DC.B    $61,$00,$30,$e2
 hint_39f2:
-; --- unverified ---
-    move.l d2,-(sp)
-    bsr.w sub_79cc
+    DC.B    $2f,$02,$61,$00,$3f,$d6
 hint_39f8:
-    dc.b    $24,$1f,$43,$ee,$02,$56,$2d,$49,$01,$42,$23,$42,$00,$08,$42,$29
-    dc.b    $00,$0e,$2d,$42,$02,$3c,$41,$ee,$05,$a8,$2d,$48,$02,$4c,$1d,$7c
-    dc.b    $00,$02,$01,$08,$50,$ee,$01,$1b,$12,$2c,$ff,$ff
+    DC.B    $24,$1f,$43,$ee,$02,$56,$2d,$49,$01,$42,$23,$42,$00,$08,$42,$29
+    DC.B    $00,$0e,$2d,$42,$02,$3c,$41,$ee,$05,$a8,$2d,$48,$02,$4c,$1d,$7c
+    DC.B    $00,$02,$01,$08,$50,$ee,$01,$1b,$12,$2c,$ff,$ff
 sub_3a24:
     rts
 hint_3a26:
-; --- unverified ---
-    bsr.w hint_6ad2
+    DC.B    $61,$00,$30,$aa
 hint_3a2a:
-; --- unverified ---
-    move.l d2,-(sp)
-    bsr.w hint_999e
+    DC.B    $2f,$02,$61,$00,$5f,$70
 hint_3a30:
-; --- unverified ---
-    movem.l (sp)+,d2
-    bne.s hint_3a66
+    DC.B    $4c,$df,$00,$04,$66,$30
 hint_3a36:
-; --- unverified ---
-    move.l d2,572(a6) ; app+$23C
-    lea pcref_9884(pc),a0
-    move.l a0,378(a6) ; app+$17A
-    move.b -1(a4),d1
-    st 274(a6) ; app+$112
-    sf 284(a6) ; app+$11C
-    move.b #$e,264(a6) ; app+$108
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_3a64
+    DC.B    $2d,$42,$02,$3c,$41,$fa,$5e,$48,$2d,$48,$01,$7a,$12,$2c,$ff,$ff
+    DC.B    $50,$ee,$01,$12,$51,$ee,$01,$1c,$1d,$7c,$00,$0e,$01,$08,$10,$2e
+    DC.B    $02,$39,$67,$0a
 hint_3a5a:
-; --- unverified ---
-    cmp.b #$3,d0
-    beq.s hint_3a64
+    DC.B    $b0,$3c,$00,$03,$67,$04
 hint_3a60:
-    dc.b    $50,$ee,$01,$1c
+    DC.B    $50,$ee,$01,$1c
 hint_3a64:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_3a66:
-; --- unverified ---
-    moveq #69,d0
-    bra.w loc_8486
-sub_3a6c:
+    DC.B    $70,$45,$60,$00,$4a,$1c
+; parser: Shared option-stream tokenizer used by command-line, startup-option, and FROM-source wrappers.
+tokenize_option_stream:
     move.b (a4)+,d1
     beq.s loc_3a90
 loc_3a70:
     cmp.b #$20,d1
-    beq.s sub_3a6c
+    beq.s tokenize_option_stream
 loc_3a76:
     cmp.b #$a,d1
     beq.s loc_3a90
@@ -7734,13 +5266,13 @@ loc_3a82:
 loc_3a8a:
     bsr.w sub_3b98
 loc_3a8e:
-    beq.s sub_3a6c
+    beq.s tokenize_option_stream
 loc_3a90:
     rts
 loc_3a92:
     bsr.w sub_3e98
 loc_3a96:
-    bra.s sub_3a6c
+    bra.s tokenize_option_stream
 loc_3a98:
     movem.l d1/a4,-(sp)
     ext.w d1
@@ -7763,7 +5295,7 @@ loc_3ab6:
     bsr.w sub_3ac2
 loc_3abe:
     subq.w #1,a4
-    bra.s sub_3a6c
+    bra.s tokenize_option_stream
 sub_3ac2:
     tst.b 2112(a6) ; app+$840
     beq.w loc_432c
@@ -7935,34 +5467,60 @@ loc_3c02:
 loc_3c0e:
     bra.w loc_3d00
 pcref_3c12:
-    dc.w    loc_3d00-*
-    dc.w    loc_3c86-*
-    dc.w    loc_3c5c-*
-    dc.w    loc_3c68-*
-    dc.w    loc_3e06-*
-    dc.w    loc_3d00-*
-    dc.w    loc_3c9c-*
-    dc.w    loc_3d68-*
-    dc.w    loc_3d4a-*
-    dc.w    loc_3d00-*
-    dc.w    loc_3d00-*
-    dc.w    loc_3cb0-*
-    dc.w    loc_3c80-*
-    dc.w    loc_3d00-*
-    dc.w    sub_3d78-*
-    dc.w    loc_3dbc-*
-    dc.w    loc_3c62-*
-    dc.w    loc_3d00-*
-    dc.w    loc_3c4a-*
-    dc.w    loc_3d04-*
-    dc.w    loc_3d00-*
-    dc.w    sub_3e98-*
-    dc.w    loc_3d72-*
-    dc.w    loc_3c7a-*
-    dc.w    loc_3d00-*
-    dc.w    loc_3cf8-*
-    dc.w    loc_ac46-*
-    dc.b    $4e,$75
+    DC.W    loc_3d00-pcref_3c12
+jtent_3c14:
+    DC.W    loc_3c86-jtent_3c14
+jtent_3c16:
+    DC.W    loc_3c5c-jtent_3c16
+jtent_3c18:
+    DC.W    loc_3c68-jtent_3c18
+jtent_3c1a:
+    DC.W    loc_3e06-jtent_3c1a
+jtent_3c1c:
+    DC.W    loc_3d00-jtent_3c1c
+jtent_3c1e:
+    DC.W    loc_3c9c-jtent_3c1e
+jtent_3c20:
+    DC.W    loc_3d68-jtent_3c20
+jtent_3c22:
+    DC.W    loc_3d4a-jtent_3c22
+jtent_3c24:
+    DC.W    loc_3d00-jtent_3c24
+jtent_3c26:
+    DC.W    loc_3d00-jtent_3c26
+jtent_3c28:
+    DC.W    loc_3cb0-jtent_3c28
+jtent_3c2a:
+    DC.W    loc_3c80-jtent_3c2a
+jtent_3c2c:
+    DC.W    loc_3d00-jtent_3c2c
+jtent_3c2e:
+    DC.W    sub_3d78-jtent_3c2e
+jtent_3c30:
+    DC.W    loc_3dbc-jtent_3c30
+jtent_3c32:
+    DC.W    loc_3c62-jtent_3c32
+jtent_3c34:
+    DC.W    loc_3d00-jtent_3c34
+jtent_3c36:
+    DC.W    loc_3c4a-jtent_3c36
+jtent_3c38:
+    DC.W    loc_3d04-jtent_3c38
+jtent_3c3a:
+    DC.W    loc_3d00-jtent_3c3a
+jtent_3c3c:
+    DC.W    sub_3e98-jtent_3c3c
+jtent_3c3e:
+    DC.W    loc_3d72-jtent_3c3e
+jtent_3c40:
+    DC.W    loc_3c7a-jtent_3c40
+jtent_3c42:
+    DC.W    loc_3d00-jtent_3c42
+jtent_3c44:
+    DC.W    loc_3cf8-jtent_3c44
+jtent_3c46:
+    DC.W    $7000
+    DC.B    $4e,$75
 loc_3c4a: ; jt: pcref_3c12
     lea 255(a6),a1 ; app+$FF
 loc_3c4e:
@@ -8264,21 +5822,12 @@ loc_3eb4:
     bsr.w loc_4334
 loc_3eb8:
     bra.s loc_3eae
-sub_3eba:
-; --- unverified ---
-    move.l a4,-(sp)
-    clr.w 536(a6) ; app+$218
-    bsr.s hint_3ece
+hint_3eba:
+    DC.B    $2f,$0c,$42,$6e,$02,$18,$61,$0c
 hint_3ec2:
-; --- unverified ---
-    movea.l (sp)+,a4
-    addq.w #1,536(a6) ; app+$218
-    sf 258(a6) ; app+$102
-    rts
+    DC.B    $28,$5f,$52,$6e,$02,$18,$51,$ee,$01,$02,$4e,$75
 hint_3ece:
-; --- unverified ---
-    move.l sp,564(a6) ; app+$234
-    bra.w loc_4334
+    DC.B    $2d,$4f,$02,$34,$60,$00,$04,$60
 sub_3ed6:
     lea pcref_3f3c(pc),a0
     moveq #0,d2
@@ -8333,176 +5882,241 @@ loc_3f26:
     lea -2(a1,d0.w),a0
     movea.l a2,a4
     move.b (a4)+,d1
-    lea 925(pc),a2
+    lea *+927(pc),a2
     cmpa.l a2,a0
     rts
 pcref_3f3c:
-    dc.b    $05,$41,$4c,$49,$4e,$4b
-    dc.w    sub_4200-*
-    dc.b    $09
-    dc.b    "ALLOWZERO"
-    dc.w    sub_42a2-*
-    dc.b    $05,$41,$4d,$49,$47,$41
-    dc.w    sub_41f8-*
-    dc.b    $06
-    dc.b    "AUTOPC"
-    dc.w    sub_424e-*
-    dc.b    $03,$42,$44,$4c
-    dc.w    sub_423c-*
-    dc.b    $03,$42,$44,$57
-    dc.w    sub_4236-*
-    dc.b    $03,$42,$52,$42
-    dc.w    sub_4218-*
-    dc.b    $03,$42,$52,$4c
-    dc.w    loc_4224-*
-    dc.b    $03,$42,$52,$53
-    dc.w    sub_4218-*
-    dc.b    $03,$42,$52,$57
-    dc.w    sub_421e-*
-    dc.b    $04,$43,$41,$53,$45
-    dc.w    sub_4162-*
-    dc.b    $06
-    dc.b    "CHKBIT"
-    dc.w    sub_428e-*
-    dc.b    $06
-    dc.b    "CHKIMM"
-    dc.w    sub_4276-*
-    dc.b    $05,$43,$48,$4b,$50,$43
-    dc.w    sub_425a-*
-    dc.b    $01,$44
-    dc.w    sub_4178-*
-    dc.b    $05,$44,$45,$42,$55,$47
-    dc.w    sub_4178-*
-    dc.b    $04,$45,$56,$45,$4e
-    dc.w    sub_4282-*
-    dc.b    $04,$46,$52,$4f,$4d
-    dc.w    sub_431a-*
-    dc.b    $06
-    dc.b    "GENSYM"
-    dc.w    sub_4168-*
-    dc.b    $04,$48,$43,$4c,$4e
-    dc.w    sub_42ba-*
-    dc.b    $06
-    dc.b    "HEADER"
-    dc.w    loc_42e8-*
-    dc.b    $06
-    dc.b    "INCDIR"
-    dc.w    sub_42f6-*
-    dc.b    $07
-    dc.b    "INCONCE"
-    dc.w    sub_42ae-*
-    dc.b    $07
-    dc.b    "LATTICE"
-    dc.w    sub_41d8-*
-    dc.b    $04,$4c,$49,$4e,$45
-    dc.w    sub_42c4-*
-    dc.b    $04,$4c,$49,$53,$54
-    dc.w    sub_41b6-*
-    dc.b    $05,$4c,$49,$53,$54,$31
-    dc.w    sub_41c2-*
-    dc.b    $08
-    dc.b    "LOCALDOT"
-    dc.w    sub_426e-*
-    dc.b    $06
-    dc.b    "LOCALU"
-    dc.w    sub_4266-*
-    dc.b    $06
-    dc.b    "LOWMEM"
-    dc.w    sub_430e-*
-    dc.b    $03,$4d,$45,$58
-    dc.w    sub_41da-*
-    dc.b    $0b
-    dc.b    "NOALLOWZERO"
-    dc.w    sub_42a8-*
-    dc.b    $08
-    dc.b    "NOAUTOPC"
-    dc.w    sub_4254-*
-    dc.b    $06
-    dc.b    "NOCASE"
-    dc.w    sub_4172-*
-    dc.b    $08
-    dc.b    "NOCHKBIT"
-    dc.w    sub_4294-*
-    dc.b    $08
-    dc.b    "NOCHKIMM"
-    dc.w    sub_427c-*
-    dc.b    $07
-    dc.b    "NOCHKPC"
-    dc.w    sub_4260-*
-    dc.b    $07
-    dc.b    "NOCODES"
-    dc.w    sub_4186-*
-    dc.b    $07
-    dc.b    "NODEBUG"
-    dc.w    sub_418c-*
-    dc.b    $06
-    dc.b    "NOEVEN"
-    dc.w    sub_4288-*
-    dc.b    $06
-    dc.b    "NOHCLN"
-    dc.w    sub_42ce-*
-    dc.b    $09
-    dc.b    "NOINCONCE"
-    dc.w    sub_42b4-*
-    dc.b    $06
-    dc.b    "NOLINE"
-    dc.w    sub_42ce-*
-    dc.b    $06
-    dc.b    "NOLIST"
-    dc.w    sub_41bc-*
-    dc.b    $07
-    dc.b    "NOLIST1"
-    dc.w    sub_41c8-*
-    dc.b    $05,$4e,$4f,$4d,$45,$58
-    dc.w    sub_41e0-*
-    dc.b    $08
-    dc.b    "NOSYMTAB"
-    dc.w    sub_41b0-*
-    dc.b    $09
-    dc.b    "NOTRACEIF"
-    dc.w    sub_41d4-*
-    dc.b    $06
-    dc.b    "NOTYPE"
-    dc.w    sub_4198-*
-    dc.b    $06
-    dc.b    "NOWARN"
-    dc.w    sub_41a4-*
-    dc.b    $03,$4f,$44,$4c
-    dc.w    sub_4248-*
-    dc.b    $03,$4f,$44,$57
-    dc.w    sub_4242-*
-    dc.b    $03,$4f,$4c,$44
-    dc.w    sub_41e6-*
-    dc.b    $05,$51,$55,$49,$45,$54
-    dc.w    sub_4314-*
-    dc.b    $04,$53,$52,$45,$43
-    dc.w    sub_41fc-*
-    dc.b    $05,$53,$55,$50,$45,$52
-    dc.w    sub_41ec-*
-    dc.b    $06
-    dc.b    "SYMTAB"
-    dc.w    sub_41aa-*
-    dc.b    $02,$54,$4f
-    dc.w    sub_42d4-*
-    dc.b    $07
-    dc.b    "TRACEIF"
-    dc.w    sub_41ce-*
-    dc.b    $04,$54,$59,$50,$45
-    dc.w    sub_4192-*
-    dc.b    $04,$55,$53,$45,$52
-    dc.w    sub_41f2-*
-    dc.b    $04,$57,$41,$52,$4e
-    dc.w    sub_419e-*
-    dc.b    $07
-    dc.b    "WARNBIT"
-    dc.w    sub_429a-*
-    dc.b    $04,$57,$49,$54,$48
-    dc.w    sub_4322-*
-    dc.b    $06
-    dc.b    "XDEBUG"
-    dc.w    sub_4180-*
-    dc.b    $00
-    dc.b    $00
+    DC.B    $05,$41,$4c,$49,$4e,$4b
+jtent_3f42:
+    DC.W    sub_4200-jtent_3f42
+    DC.B    $09
+    DC.B    "ALLOWZERO"
+jtent_3f4e:
+    DC.W    sub_42a2-jtent_3f4e
+    DC.B    $05,$41,$4d,$49,$47,$41
+jtent_3f56:
+    DC.W    sub_41f8-jtent_3f56
+    DC.B    $06
+    DC.B    "AUTOPC"
+jtent_3f5f:
+    DC.B    $02,$ef
+    DC.B    $03,$42,$44,$4c
+jtent_3f65:
+    DC.B    $02,$d7
+    DC.B    $03,$42,$44,$57
+jtent_3f6b:
+    DC.B    $02,$cb
+    DC.B    $03,$42,$52,$42
+jtent_3f71:
+    DC.B    $02,$a7
+    DC.B    $03,$42,$52,$4c
+jtent_3f77:
+    DC.B    $02,$ad
+    DC.B    $03,$42,$52,$53
+jtent_3f7d:
+    DC.B    $02,$9b
+    DC.B    $03,$42,$52,$57
+jtent_3f83:
+    DC.B    $02,$9b
+    DC.B    $04,$43,$41,$53,$45
+jtent_3f8a:
+    DC.W    sub_4162-jtent_3f8a
+    DC.B    $06
+    DC.B    "CHKBIT"
+jtent_3f93:
+    DC.B    $02,$fb
+    DC.B    $06
+    DC.B    "CHKIMM"
+jtent_3f9c:
+    DC.W    sub_4276-jtent_3f9c
+    DC.B    $05,$43,$48,$4b,$50,$43
+jtent_3fa4:
+    DC.W    sub_425a-jtent_3fa4
+    DC.B    $01,$44
+jtent_3fa8:
+    DC.W    sub_4178-jtent_3fa8
+    DC.B    $05,$44,$45,$42,$55,$47
+jtent_3fb0:
+    DC.W    sub_4178-jtent_3fb0
+    DC.B    $04,$45,$56,$45,$4e
+jtent_3fb7:
+    DC.B    $02,$cb
+    DC.B    $04,$46,$52,$4f,$4d
+jtent_3fbe:
+    DC.W    sub_431a-jtent_3fbe
+    DC.B    $06
+    DC.B    "GENSYM"
+jtent_3fc7:
+    DC.B    $01,$a1
+    DC.B    $04,$48,$43,$4c,$4e
+jtent_3fce:
+    DC.W    sub_42ba-jtent_3fce
+    DC.B    $06
+    DC.B    "HEADER"
+jtent_3fd7:
+    DC.B    $03,$11
+    DC.B    $06
+    DC.B    "INCDIR"
+jtent_3fe0:
+    DC.W    sub_42f6-jtent_3fe0
+    DC.B    $07
+    DC.B    "INCONCE"
+jtent_3fea:
+    DC.W    sub_42ae-jtent_3fea
+    DC.B    $07
+    DC.B    "LATTICE"
+jtent_3ff4:
+    DC.W    sub_41d8-jtent_3ff4
+    DC.B    $04,$4c,$49,$4e,$45
+jtent_3ffb:
+    DC.B    $02,$c9
+    DC.B    $04,$4c,$49,$53,$54
+jtent_4002:
+    DC.W    sub_41b6-jtent_4002
+    DC.B    $05,$4c,$49,$53,$54,$31
+jtent_400a:
+    DC.W    sub_41c2-jtent_400a
+    DC.B    $08
+    DC.B    "LOCALDOT"
+jtent_4015:
+    DC.B    $02,$59
+    DC.B    $06
+    DC.B    "LOCALU"
+jtent_401e:
+    DC.W    sub_4266-jtent_401e
+    DC.B    $06
+    DC.B    "LOWMEM"
+jtent_4027:
+    DC.B    $02,$e7
+    DC.B    $03,$4d,$45,$58
+jtent_402d:
+    DC.B    $01,$ad
+    DC.B    $0b
+    DC.B    "NOALLOWZERO"
+jtent_403b:
+    DC.B    $02,$6d
+    DC.B    $08
+    DC.B    "NOAUTOPC"
+jtent_4046:
+    DC.W    sub_4254-jtent_4046
+    DC.B    $06
+    DC.B    "NOCASE"
+jtent_404f:
+    DC.B    $01,$23
+    DC.B    $08
+    DC.B    "NOCHKBIT"
+jtent_405a:
+    DC.W    sub_4294-jtent_405a
+    DC.B    $08
+    DC.B    "NOCHKIMM"
+jtent_4065:
+    DC.B    $02,$17
+    DC.B    $07
+    DC.B    "NOCHKPC"
+jtent_406f:
+    DC.B    $01,$f1
+    DC.B    $07
+    DC.B    "NOCODES"
+jtent_4079:
+    DC.B    $01,$0d
+    DC.B    $07
+    DC.B    "NODEBUG"
+jtent_4083:
+    DC.B    $01,$09
+    DC.B    $06
+    DC.B    "NOEVEN"
+jtent_408c:
+    DC.W    sub_4288-jtent_408c
+    DC.B    $06
+    DC.B    "NOHCLN"
+jtent_4095:
+    DC.B    $02,$39
+    DC.B    $09
+    DC.B    "NOINCONCE"
+jtent_40a1:
+    DC.B    $02,$13
+    DC.B    $06
+    DC.B    "NOLINE"
+jtent_40aa:
+    DC.W    sub_42ce-jtent_40aa
+    DC.B    $06
+    DC.B    "NOLIST"
+jtent_40b3:
+    DC.B    $01,$09
+    DC.B    $07
+    DC.B    "NOLIST1"
+jtent_40bd:
+    DC.B    $01,$0b
+    DC.B    $05,$4e,$4f,$4d,$45,$58
+jtent_40c5:
+    DC.B    $01,$1b
+    DC.B    $08
+    DC.B    "NOSYMTAB"
+jtent_40d0:
+    DC.W    sub_41b0-jtent_40d0
+    DC.B    $09
+    DC.B    "NOTRACEIF"
+jtent_40dc:
+    DC.W    sub_41d4-jtent_40dc
+    DC.B    $06
+    DC.B    "NOTYPE"
+jtent_40e5:
+    DC.B    $00,$b3
+    DC.B    $06
+    DC.B    "NOWARN"
+jtent_40ee:
+    DC.W    sub_41a4-jtent_40ee
+    DC.B    $03,$4f,$44,$4c
+jtent_40f4:
+    DC.W    sub_4248-jtent_40f4
+    DC.B    $03,$4f,$44,$57
+jtent_40fa:
+    DC.W    sub_4242-jtent_40fa
+    DC.B    $03,$4f,$4c,$44
+jtent_4100:
+    DC.W    sub_41e6-jtent_4100
+    DC.B    $05,$51,$55,$49,$45,$54
+jtent_4108:
+    DC.W    sub_4314-jtent_4108
+    DC.B    $04,$53,$52,$45,$43
+jtent_410f:
+    DC.B    $00,$ed
+    DC.B    $05,$53,$55,$50,$45,$52
+jtent_4117:
+    DC.B    $00,$d5
+    DC.B    $06
+    DC.B    "SYMTAB"
+jtent_4120:
+    DC.W    sub_41aa-jtent_4120
+    DC.B    $02,$54,$4f
+jtent_4125:
+    DC.B    $01,$af
+    DC.B    $07
+    DC.B    "TRACEIF"
+jtent_412f:
+    DC.B    $00,$9f
+    DC.B    $04,$54,$59,$50,$45
+jtent_4136:
+    DC.W    sub_4192-jtent_4136
+    DC.B    $04,$55,$53,$45,$52
+jtent_413d:
+    DC.B    $00,$b5
+    DC.B    $04,$57,$41,$52,$4e
+jtent_4144:
+    DC.W    sub_419e-jtent_4144
+    DC.B    $07
+    DC.B    "WARNBIT"
+jtent_414e:
+    DC.W    sub_429a-jtent_414e
+    DC.B    $04,$57,$49,$54,$48
+jtent_4155:
+    DC.B    $01,$cd
+    DC.B    $06
+    DC.B    "XDEBUG"
+jtent_415e:
+    DC.W    sub_4180-jtent_415e
+    DC.B    $00
+    DC.B    $00
 sub_4162: ; jt: pcref_3f3c
     sf 254(a6) ; app+$FE
     rts
@@ -8778,28 +6392,42 @@ loc_4398:
     moveq #58,d0
     bra.w loc_8482
 pcref_439e:
-    dc.w    sub_4438-pcref_439e
-    dc.b    $00,$00
-    dc.w    sub_445e-pcref_439e
-    dc.w    sub_43ec-pcref_439e
-    dc.w    sub_4448-pcref_439e
-    dcb.b   6,0
-    dc.w    sub_4440-pcref_439e
-    dcb.b   4,0
-    dc.w    sub_4490-pcref_439e
-    dc.w    sub_4402-pcref_439e
-    dc.b    $00,$00
-    dc.w    sub_4504-pcref_439e
-    dc.w    sub_440a-pcref_439e
-    dcb.b   4,0
-    dc.w    sub_4420-pcref_439e
-    dc.w    sub_43fa-pcref_439e
-    dc.w    sub_4450-pcref_439e
-    dc.b    $00,$00
-    dc.w    sub_4428-pcref_439e
-    dc.w    sub_4430-pcref_439e
-    dc.w    sub_43d8-pcref_439e
-    dc.b    $00,$00
+    DC.W    sub_4438-pcref_439e
+    DC.B    $00,$00
+jtent_43a2:
+    DC.W    sub_445e-pcref_439e
+jtent_43a4:
+    DC.W    sub_43ec-pcref_439e
+jtent_43a6:
+    DC.W    sub_4448-pcref_439e
+    DCB.B   6,0
+jtent_43ae:
+    DC.W    sub_4440-pcref_439e
+    DCB.B   4,0
+jtent_43b4:
+    DC.W    sub_4490-pcref_439e
+jtent_43b6:
+    DC.W    sub_4402-pcref_439e
+    DC.B    $00,$00
+jtent_43ba:
+    DC.W    sub_4504-pcref_439e
+jtent_43bc:
+    DC.W    sub_440a-pcref_439e
+    DCB.B   4,0
+jtent_43c2:
+    DC.W    sub_4420-pcref_439e
+jtent_43c4:
+    DC.W    sub_43fa-pcref_439e
+jtent_43c6:
+    DC.W    sub_4450-pcref_439e
+    DC.B    $00,$00
+jtent_43ca:
+    DC.W    sub_4428-pcref_439e
+jtent_43cc:
+    DC.W    sub_4430-pcref_439e
+jtent_43ce:
+    DC.W    sub_43d8-pcref_439e
+    DC.B    $00,$00
 loc_43d2:
     moveq #64,d0
     bra.w loc_8486
@@ -9069,8 +6697,8 @@ loc_45c2:
 loc_45c6:
     rts
 str_45c8:
-    dc.b    ".lst",0
-    dc.b    $00
+    DC.B    ".lst",0
+    DC.B    $00
 sub_45ce:
     bsr.s sub_45e2
 loc_45d0:
@@ -9306,1034 +6934,536 @@ loc_474c:
 loc_4754:
     move.b (a4)+,d1
     bra.s loc_470c
-sub_4758:
-; --- unverified ---
-    lea 1736(a6),a0 ; app+$6C8
-    moveq #0,d2
-    tst.b (a0)
-    beq.s hint_4766
+hint_4758:
+    DC.B    $41,$ee,$06,$c8,$74,$00,$4a,$10,$67,$04
 hint_4762:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_4766:
-; --- unverified ---
-    cmp.b #$a,d1
-    beq.s hint_4786
+    DC.B    $b2,$3c,$00,$0a,$67,$1a
 hint_476c:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_4786
+    DC.B    $b2,$3c,$00,$09,$67,$14
 hint_4772:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_4786
+    DC.B    $b2,$3c,$00,$20,$67,$0e
 hint_4778:
-; --- unverified ---
-    move.b d1,(a0)+
-    move.b (a4)+,d1
-    addq.b #1,d2
-    cmp.b #$52,d2
-    bne.s hint_4766
+    DC.B    $10,$c1,$12,$1c,$52,$02,$b4,$3c,$00,$52,$66,$e2
 hint_4784:
-    dc.b    $72,$0a
+    DC.B    $72,$0a
 hint_4786:
-; --- unverified ---
-    clr.b (a0)
-    rts
+    DC.B    $42,$10,$4e,$75
 hint_478a:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$e9,$a0
 hint_4794:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    beq.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$67,$00,$e9,$96
 hint_479e:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$3c,$a6
 hint_47a6:
-; --- unverified ---
-    bsr.w hint_1d20
+    DC.B    $61,$00,$d5,$78
 hint_47aa:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$3c,$b2
 hint_47b2:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $12,$1c,$b2,$3c,$00,$23,$66,$00,$3c,$b0
 hint_47bc:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$61,$00,$c5,$f6
 hint_47c2:
-; --- unverified ---
-    bra.w hint_1ad0
+    DC.B    $60,$00,$d3,$0c
 hint_47c6:
-; --- unverified ---
-    bsr.w hint_2350
+    DC.B    $61,$00,$db,$88
 hint_47ca:
-; --- unverified ---
-    st 571(a6) ; app+$23B
-    bsr.w hint_16e6
+    DC.B    $50,$ee,$02,$3b,$61,$00,$cf,$16
 hint_47d2:
-; --- unverified ---
-    ori.w #$4e75,-(a4)
-    tst.b 568(a6) ; app+$238
-    beq.s hint_47e6
+    DC.B    $00,$64,$4e,$75,$4a,$2e,$02,$38,$67,$0a
 hint_47dc:
-; --- unverified ---
-    bset #0,3108(a6) ; app+$C24
-    bsr.w sub_ab50
+    DC.B    $08,$ee,$00,$00,$0c,$24,$61,$00,$63,$6c
 hint_47e6:
-; --- unverified ---
-    moveq #10,d1
-    st 275(a6) ; app+$113
-    rts
+    DC.B    $72,$0a,$50,$ee,$01,$13,$4e,$75
 hint_47ee:
-; --- unverified ---
-    bclr #0,3108(a6) ; app+$C24
-    rts
+    DC.B    $08,$ae,$00,$00,$0c,$24,$4e,$75
 hint_47f6:
-; --- unverified ---
-    bsr.w hint_6ad2
+    DC.B    $61,$00,$22,$da
 hint_47fa:
-; --- unverified ---
-    cmp.l #$c,d2
-    bcs.s hint_4814
+    DC.B    $b4,$bc,$00,$00,$00,$0c,$65,$12
 hint_4802:
-; --- unverified ---
-    cmp.l #$ff,d2
-    bcc.s hint_4814
+    DC.B    $b4,$bc,$00,$00,$00,$ff,$64,$0a
 hint_480a:
-; --- unverified ---
-    move.w d2,2916(a6) ; app+$B64
-    st 275(a6) ; app+$113
-    rts
+    DC.B    $3d,$42,$0b,$64,$50,$ee,$01,$13,$4e,$75
 hint_4814:
-; --- unverified ---
-    moveq #75,d0
-    bra.w loc_8486
+    DC.B    $70,$4b,$60,$00
+hint_4818:
+    DC.B    $3c,$6e
 hint_481a:
-; --- unverified ---
-    moveq #0,d2
-    subi.b #$30,d1
-    bcs.s hint_486e
+    DC.B    $74,$00,$04,$01,$00,$30,$65,$4c
 hint_4822:
-; --- unverified ---
-    cmp.b #$a,d1
-    bcc.s hint_486e
+    DC.B    $b2,$3c,$00,$0a,$64,$46
 hint_4828:
-; --- unverified ---
-    move.b d1,d2
-    move.b (a4)+,d1
-    cmp.b #$a,d1
-    beq.s hint_4856
+    DC.B    $14,$01,$12,$1c,$b2,$3c,$00,$0a,$67,$24
 hint_4832:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_4856
+    DC.B    $b2,$3c,$00,$09,$67,$1e
 hint_4838:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_4856
+    DC.B    $b2,$3c,$00,$20,$67,$18
 hint_483e:
-; --- unverified ---
-    subi.b #$30,d1
-    bcs.s hint_486e
+    DC.B    $04,$01,$00,$30,$65,$2a
 hint_4844:
-; --- unverified ---
-    cmp.b #$a,d1
-    bcc.s hint_486e
+    DC.B    $b2,$3c,$00,$0a,$64,$24
 hint_484a:
-    dc.b    $c4,$fc,$00,$0a,$02,$41,$00,$0f,$d4,$41,$12,$1c
+    DC.B    $c4,$fc,$00,$0a,$02,$41,$00,$0f,$d4,$41,$12,$1c
 hint_4856:
-; --- unverified ---
-    moveq #-4,d0
-    subq.l #2,d2
-    beq.s hint_4874
+    DC.B    $70,$fc,$55,$82,$67,$18
 hint_485c:
-; --- unverified ---
-    moveq #-6,d0
-    subq.l #6,d2
-    beq.s hint_4874
+    DC.B    $70,$fa,$5d,$82,$67,$12
 hint_4862:
-; --- unverified ---
-    moveq #0,d0
-    subq.l #2,d2
-    beq.s hint_4874
+    DC.B    $70,$00,$55,$82,$67,$0c
 hint_4868:
-; --- unverified ---
-    moveq #-2,d0
-    subq.l #6,d2
-    beq.s hint_4874
+    DC.B    $70,$fe,$5d,$82,$67,$06
 hint_486e:
-; --- unverified ---
-    moveq #90,d0
-    bra.w loc_8486
+    DC.B    $70,$5a,$60,$00,$3c,$14
 hint_4874:
-; --- unverified ---
-    move.b d0,303(a6) ; app+$12F
-    rts
+    DC.B    $1d,$40,$01,$2f,$4e,$75
 hint_487a:
-; --- unverified ---
-    bsr.w hint_2b02
+    DC.B    $61,$00,$e2,$86
 hint_487e:
-; --- unverified ---
-    bsr.w hint_36c8
+    DC.B    $61,$00,$ee,$48
 hint_4882:
-; --- unverified ---
-    bne.w hint_3736
+    DC.B    $66,$00,$ee,$b2
 hint_4886:
-; --- unverified ---
-    moveq #0,d2
-    move.w d4,d2
-    movea.l 362(a6),a2 ; app+$16A
-    lea 1000(a6),a0 ; app+$3E8
-    movem.l d2/a3-a5,-(sp)
-    tst.b 568(a6) ; app+$238
-    bne.s hint_48b4
+    DC.B    $74,$00,$34,$04,$24,$6e,$01,$6a,$41,$ee,$03,$e8,$48,$e7,$20,$1c
+    DC.B    $4a,$2e,$02,$38,$66,$18
 hint_489c:
-; --- unverified ---
-    bsr.w sub_0b88
+    DC.B    $61,$00,$c2,$ea
 hint_48a0:
-; --- unverified ---
-    movem.l (sp)+,d4/a3-a5
-    beq.w loc_8436
+    DC.B    $4c,$df,$38,$10,$67,$00,$3b,$90
 hint_48a8:
-; --- unverified ---
-    moveq #5,d3
-    bsr.w sub_0cba
+    DC.B    $76,$05,$61,$00,$c4,$0e
 hint_48ae:
-; --- unverified ---
-    move.b -1(a4),d1
-    rts
+    DC.B    $12,$2c,$ff,$ff,$4e,$75
 hint_48b4:
-; --- unverified ---
-    bsr.w sub_0b88
+    DC.B    $61,$00,$c2,$d2
 hint_48b8:
-; --- unverified ---
-    movem.l (sp)+,d4/a3-a5
-    bne.w loc_843a
+    DC.B    $4c,$df,$38,$10,$66,$00,$3b,$7c
 hint_48c0:
-; --- unverified ---
-    cmpi.b #$5,13(a1)
-    bne.w loc_8436
+    DC.B    $0c,$29,$00,$05,$00,$0d,$66,$00,$3b,$6e
 hint_48ca:
-; --- unverified ---
-    cmp.l 8(a1),d4
-    bne.w loc_8436
+    DC.B    $b8,$a9,$00,$08,$66,$00,$3b,$66
 hint_48d2:
-; --- unverified ---
-    bset #6,12(a1)
-    bne.w loc_8436
+    DC.B    $08,$e9,$00,$06,$00,$0c,$66,$00,$3b,$5c
 hint_48dc:
-; --- unverified ---
-    bra.s hint_48ae
+    DC.B    $60,$d0
 pcref_48de:
-; --- unverified ---
-    btst d0,d0
-    btst d0,d2
-    lea 1000(a6),a0 ; app+$3E8
-    moveq #0,d0
-    move.b 569(a6),d0 ; app+$239
-    cmp.b #$1,d0
-    beq.s hint_4902
+    DC.B    $01,$00,$01,$02,$41,$ee,$03,$e8,$70,$00,$10,$2e,$02,$39,$b0,$3c
+    DC.B    $00,$01,$67,$10
 hint_48f2:
-; --- unverified ---
-    btst #0,2125(a6) ; app+$84D
-    beq.s hint_4902
+    DC.B    $08,$2e,$00,$00,$08,$4d,$67,$08
 hint_48fa:
-    dc.b    $24,$2e,$08,$46,$d5,$ae,$08,$4a
+    DC.B    $24,$2e,$08,$46,$d5,$ae,$08,$4a
 hint_4902:
-; --- unverified ---
-    tst.l (a0)
-    bne.s hint_492c
+    DC.B    $4a,$90,$66,$26
 hint_4906:
-; --- unverified ---
-    bsr.w sub_16cc
+    DC.B    $61,$00,$cd,$c4
 hint_490a:
-; --- unverified ---
-    moveq #0,d0
-    move.b 569(a6),d0 ; app+$239
-    move.b pcref_48de(pc,d0.w),d0
-    lsl.l d0,d2
-    tst.b 2118(a6) ; app+$846
-    bpl.s hint_491e
+    DC.B    $70,$00,$10,$2e,$02,$39,$10,$3b,$00,$cc,$e1,$aa,$4a,$2e,$08,$46
+    DC.B    $6a,$02
 hint_491c:
-    dc.b    $44,$82
+    DC.B    $44,$82
 hint_491e:
-; --- unverified ---
-    move.l 2122(a6),d0 ; app+$84A
-    add.l d2,2122(a6) ; app+$84A
-    move.l d0,d2
-    bra.w hint_2b7e
+    DC.B    $20,$2e,$08,$4a,$d5,$ae,$08,$4a,$24,$00,$60,$00,$e2,$54
 hint_492c:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    bne.s hint_497a
+    DC.B    $4a,$2e,$02,$38,$66,$48
 hint_4932:
-; --- unverified ---
-    move.l a0,-(sp)
-    bsr.w sub_16cc
+    DC.B    $2f,$08,$61,$00,$cd,$96
 hint_4938:
-; --- unverified ---
-    movea.l (sp)+,a0
-    bne.s hint_49aa
+    DC.B    $20,$5f,$66,$6e
 hint_493c:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_49aa
+    DC.B    $4a,$04,$66,$6a
 hint_4940:
-; --- unverified ---
-    move.l d2,d5
-    bsr.w sub_0bce
+    DC.B    $2a,$02,$61,$00,$c2,$8a
 hint_4946:
-; --- unverified ---
-    beq.w loc_8436
+    DC.B    $67,$00,$3a,$ee
 hint_494a:
-; --- unverified ---
-    lea 362(a6),a2 ; app+$16A
-    moveq #2,d3
-    move.l 2122(a6),d4 ; app+$84A
-    move.b 6(a0),d0
-    cmp.b 278(a6),d0 ; app+$116
-    beq.s hint_496a
+    DC.B    $45,$ee,$01,$6a,$76,$02,$28,$2e,$08,$4a,$10,$28,$00,$06,$b0,$2e
+    DC.B    $01,$16,$67,$0c
 hint_495e:
-; --- unverified ---
-    bsr.w sub_0cb6
+    DC.B    $61,$00,$c3,$56
 hint_4962:
-; --- unverified ---
-    move.l d5,d2
-    move.b -1(a4),d1
-    bra.s hint_490a
+    DC.B    $24,$05,$12,$2c,$ff,$ff,$60,$a0
 hint_496a:
-; --- unverified ---
-    lea 346(a6),a2 ; app+$15A
-    tst.l (a2)
-    beq.w loc_8442
+    DC.B    $45,$ee,$01,$5a,$4a,$92,$67,$00,$3a,$d0
 hint_4974:
-; --- unverified ---
-    bsr.w sub_0d4c
+    DC.B    $61,$00,$c3,$d6
 hint_4978:
-; --- unverified ---
-    bra.s hint_4962
+    DC.B    $60,$e8
 hint_497a:
-; --- unverified ---
-    bsr.w sub_0bce
+    DC.B    $61,$00,$c2,$52
 hint_497e:
-; --- unverified ---
-    bne.w loc_844e
+    DC.B    $66,$00,$3a,$ce
 hint_4982:
-; --- unverified ---
-    cmpi.b #$2,13(a1)
-    bne.w loc_844e
+    DC.B    $0c,$29,$00,$02,$00,$0d,$66,$00,$3a,$c4
 hint_498c:
-; --- unverified ---
-    move.l 8(a1),d0
-    cmp.l 2122(a6),d0 ; app+$84A
-    bne.w loc_843e
+    DC.B    $20,$29,$00,$08,$b0,$ae,$08,$4a,$66,$00,$3a,$a8
 hint_4998:
-; --- unverified ---
-    bset #6,12(a1)
-    bne.w loc_8436
+    DC.B    $08,$e9,$00,$06,$00,$0c,$66,$00,$3a,$96
 hint_49a2:
-; --- unverified ---
-    bsr.w sub_16cc
+    DC.B    $61,$00,$cd,$28
 hint_49a6:
-; --- unverified ---
-    bra.w hint_490a
+    DC.B    $60,$00,$ff,$62
 hint_49aa:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_49ac:
-; --- unverified ---
-    bsr.w hint_6ac8
+    DC.B    $61,$00,$21,$1a
 hint_49b0:
-; --- unverified ---
-    tst.l d2
-    bmi.w hint_3a66
+    DC.B    $4a,$82,$6b,$00,$f0,$b2
 hint_49b6:
-; --- unverified ---
-    move.l d2,-(sp)
-    bsr.w hint_99b8
+    DC.B    $2f,$02,$61,$00,$4f,$fe
 hint_49bc:
-; --- unverified ---
-    movem.l (sp)+,d2
-    bne.w hint_3a66
+    DC.B    $4c,$df,$00,$04,$66,$00,$f0,$a4
 hint_49c4:
-; --- unverified ---
-    clr.l 386(a6) ; app+$182
-    sub.l 572(a6),d2 ; app+$23C
-    move.l d2,398(a6) ; app+$18E
-    move.b -1(a4),d1
-    rts
+    DC.B    $42,$ae,$01,$82,$94,$ae,$02,$3c,$2d,$42,$01,$8e,$12,$2c,$ff,$ff
+    DC.B    $4e,$75
 hint_49d6:
-; --- unverified ---
-    sub.l d1,d2
-    bcs.s hint_49e8
+    DC.B    $94,$81,$65,$0e
 hint_49da:
-; --- unverified ---
-    beq.s hint_49e6
+    DC.B    $67,$0a
 hint_49dc:
-; --- unverified ---
-    move.l d2,d4
-    moveq #0,d3
-    moveq #0,d1
-    bsr.w hint_2958
+    DC.B    $28,$02,$76,$00,$72,$00,$61,$00,$df,$74
 hint_49e6:
-    dc.b    $70,$00
+    DC.B    $70,$00
 hint_49e8:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_49ea:
-; --- unverified ---
-    clr.l 2122(a6) ; app+$84A
-    moveq #10,d1
-    rts
+    DC.B    $42,$ae,$08,$4a,$72,$0a,$4e,$75
 hint_49f2:
-; --- unverified ---
-    bsr.w sub_16cc
+    DC.B    $61,$00,$cc,$d8
 hint_49f6:
-; --- unverified ---
-    bne.s hint_49ea
+    DC.B    $66,$f2
 hint_49f8:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_49ea
+    DC.B    $4a,$04,$66,$ee
 hint_49fc:
-; --- unverified ---
-    move.l d2,2122(a6) ; app+$84A
-    bra.w hint_2b7e
+    DC.B    $2d,$42,$08,$4a,$60,$00,$e1,$7c
 hint_4a04:
-; --- unverified ---
-    cmpi.b #$a,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$0a,$01,$21,$6d,$00,$e7,$26
 hint_4a0e:
-; --- unverified ---
-    move.w d6,(a5)+
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $3a,$c6,$b2,$3c,$00,$23,$66,$00,$3a,$54
 hint_4a18:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$61,$00,$c3,$9a
 hint_4a1e:
-; --- unverified ---
-    bra.w hint_1ad0
+    DC.B    $60,$00,$d0,$b0
 hint_4a22:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$e7,$08
 hint_4a2c:
-; --- unverified ---
-    bsr.s hint_4a3c
+    DC.B    $61,$0e
 hint_4a2e:
-; --- unverified ---
-    or.w d2,d6
-    move.w d6,(a5)+
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $8c,$42,$3a,$c6,$4a,$2e,$02,$39,$66,$00,$3a,$12
 hint_4a3a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4a3c:
-; --- unverified ---
-    bsr.w sub_177e
+    DC.B    $61,$00,$cd,$40
 hint_4a40:
-; --- unverified ---
-    bne.s hint_4a50
+    DC.B    $66,$0e
 hint_4a42:
-; --- unverified ---
-    andi.w #$7,d2
-    andi.w #$1,d0
-    lsl.w #3,d0
-    or.w d0,d2
-    rts
+    DC.B    $02,$42,$00,$07,$02,$40,$00,$01,$e7,$48,$84,$40,$4e,$75
 hint_4a50:
-; --- unverified ---
-    moveq #46,d0
-    bra.w loc_8486
+    DC.B    $70,$2e,$60,$00,$3a,$32
 hint_4a56:
-; --- unverified ---
-    bsr.w hint_2372
+    DC.B    $61,$00,$d9,$1a
 hint_4a5a:
-; --- unverified ---
-    st 571(a6) ; app+$23B
-    bsr.w hint_16e6
-    dc.b    $00,$3d,$4e,$75,$61,$1c
-    dc.b    "DATA",0
-    dc.b    $00,$61,$14,$42,$53,$53,$00,$61,$0e
-    dc.b    "TEXT",0
-    dc.b    $00,$61,$06,$43,$4f
-sub_4a80:
-    dc.b    $44,$45,$00,$00,$20,$5f,$43,$ee,$04,$6e,$61,$00,$4b,$e8
+    DC.B    $50,$ee,$02,$3b,$61,$00,$cc,$86
+    DC.B    $00,$3d,$4e,$75,$61,$1c
+    DC.B    "DATA",0
+    DC.B    $00,$61,$14,$42,$53,$53,$00,$61,$0e
+    DC.B    "TEXT",0
+    DC.B    $00,$61,$06,$43,$4f
+hint_4a80:
+    DC.B    $44,$45,$00,$00,$20,$5f,$43,$ee,$04,$6e,$61,$00,$4b,$e8
 hint_4a8e:
-    dc.b    $12,$fc,$00,$0a
+    DC.B    $12,$fc,$00,$0a
 hint_4a92:
-; --- unverified ---
-    movem.l d1/a4,-(sp)
-    lea 1134(a6),a4 ; app+$46E
-    move.b (a4)+,d1
-    bsr.s hint_4b18
+    DC.B    $48,$e7,$40,$08,$49,$ee,$04,$6e,$12,$1c,$61,$7a
 hint_4a9e:
-; --- unverified ---
-    movem.l (sp)+,d1/a4
-    rts
+    DC.B    $4c,$df,$10,$02,$4e,$75
 hint_4aa4:
-    dc.b    $41,$ee,$04,$6e,$10,$c1
+    DC.B    $41,$ee,$04,$6e,$10,$c1
 hint_4aaa:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$9,d1
-    beq.s hint_4afe
+    DC.B    $12,$1c,$b2,$3c,$00,$09,$67,$4c
 hint_4ab2:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_4afe
+    DC.B    $b2,$3c,$00,$20,$67,$46
 hint_4ab8:
-; --- unverified ---
-    cmp.b #$2c,d1
-    beq.s hint_4ac8
+    DC.B    $b2,$3c,$00,$2c,$67,$0a
 hint_4abe:
-; --- unverified ---
-    cmp.b #$a,d1
-    beq.s hint_4afe
+    DC.B    $b2,$3c,$00,$0a,$67,$3a
 hint_4ac4:
-; --- unverified ---
-    move.b d1,(a0)+
-    bra.s hint_4aaa
+    DC.B    $10,$c1,$60,$e2
 hint_4ac8:
-; --- unverified ---
-    move.b (a4)+,d0
-    lea str_4b04(pc),a1
-    subi.b #$30,d0
-    bcs.s hint_4b12
+    DC.B    $10,$1c,$43,$fa,$00,$38,$04,$00,$00,$30,$65,$3e
 hint_4ad4:
-; --- unverified ---
-    beq.s hint_4ae6
+    DC.B    $67,$10
 hint_4ad6:
-; --- unverified ---
-    lea 49(pc),a1
-    subq.b #1,d0
-    beq.s hint_4ae6
+    DC.B    $43,$fa,$00,$31,$53,$00,$67,$08
 hint_4ade:
-; --- unverified ---
-    lea str_4b0e(pc),a1
-    subq.b #1,d0
-    bne.s hint_4b12
+    DC.B    $43,$fa,$00,$2e,$53,$00,$66,$2c
 hint_4ae6:
-; --- unverified ---
-    move.b #$2c,(a0)+
-    btst #1,541(a6) ; app+$21D
-    bne.s hint_4af6
+    DC.B    $10,$fc,$00,$2c,$08,$2e,$00,$01,$02,$1d,$66,$04
 hint_4af2:
-    dc.b    $41,$ee,$04,$6e
+    DC.B    $41,$ee,$04,$6e
 hint_4af6:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_4af8:
-; --- unverified ---
-    move.b (a1)+,(a0)+
-    bne.s hint_4af8
+    DC.B    $10,$d9,$66,$fc
 hint_4afc:
-    dc.b    $53,$88
+    DC.B    $53,$88
 hint_4afe:
-; --- unverified ---
-    move.b #$a,(a0)
-    bra.s hint_4a92
+    DC.B    $10,$bc,$00,$0a,$60,$8e
 str_4b04:
-    dc.b    $43,$4f
-sub_4b06:
-    dc.b    $44,$45,$00
-    dc.b    "DATA",0
+    DC.B    $43,$4f
+hint_4b06:
+    DC.B    $44,$45,$00
+    DC.B    "DATA",0
 str_4b0e:
-    dc.b    $42,$53,$53,$00
+    DC.B    $42,$53,$53,$00
 hint_4b12:
-; --- unverified ---
-    moveq #102,d0
-    bra.w loc_8482
+    DC.B    $70,$66,$60,$00,$39,$6c
 hint_4b18:
-; --- unverified ---
-    bsr.w sub_79cc
+    DC.B    $61,$00,$2e,$b2
 hint_4b1c:
-; --- unverified ---
-    move.b -1(a4),d1
-    moveq #1,d3
-    bsr.w sub_7952
+    DC.B    $12,$2c,$ff,$ff,$76,$01,$61,$00,$2e,$2e
 hint_4b26:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_4b2a:
-; --- unverified ---
-    bsr.w hint_2b02
+    DC.B    $61,$00,$df,$d6
 hint_4b2e:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    bne.s hint_4b7c
+    DC.B    $4a,$2e,$02,$38,$66,$48
 hint_4b34:
-; --- unverified ---
-    move.l a0,-(sp)
-    bsr.w hint_6ab2
+    DC.B    $2f,$08,$61,$00,$1f,$7a
 hint_4b3a:
-; --- unverified ---
-    movea.l (sp)+,a0
-    movem.l d2-d3,-(sp)
-    bsr.w sub_0bce
+    DC.B    $20,$5f,$48,$e7,$30,$00,$61,$00,$c0,$8c
 hint_4b44:
-; --- unverified ---
-    movem.l (sp)+,d4-d5
-    bne.s hint_4b5a
+    DC.B    $4c,$df,$00,$30,$66,$10
 hint_4b4a:
-; --- unverified ---
-    btst #7,12(a1)
-    beq.w loc_8436
+    DC.B    $08,$29,$00,$07,$00,$0c,$67,$00,$38,$e4
 hint_4b54:
-; --- unverified ---
-    move.b d5,d3
-    move.l d4,d2
-    bra.s hint_4b9c
+    DC.B    $16,$05,$24,$04,$60,$42
 hint_4b5a:
-; --- unverified ---
-    pea pcref_4b72(pc)
-    move.b d5,d3
-    lea 362(a6),a2 ; app+$16A
-    subq.b #2,d5
-    beq.w sub_0cb6
+    DC.B    $48,$7a,$00,$16,$16,$05,$45,$ee,$01,$6a,$55,$05,$67,$00,$c1,$4e
 hint_4b6a:
-; --- unverified ---
-    lea 354(a6),a2 ; app+$162
-    bra.w sub_0cb6
+    DC.B    $45,$ee,$01,$62,$60,$00,$c1,$46
 pcref_4b72:
-; --- unverified ---
-    bset #7,12(a1)
-    bra.w pcref_2b7a
+    DC.B    $08,$e9,$00,$07
+hint_4b76:
+    DC.B    $00,$0c,$60,$00,$e0,$00
 hint_4b7c:
-; --- unverified ---
-    bsr.w sub_0bce
+    DC.B    $61,$00,$c0,$50
 hint_4b80:
-; --- unverified ---
-    bne.w loc_844e
+    DC.B    $66,$00,$38,$cc
 hint_4b84:
-; --- unverified ---
-    btst #7,12(a1)
-    beq.w loc_844e
+    DC.B    $08,$29,$00,$07,$00,$0c,$67,$00,$38,$c2
 hint_4b8e:
-; --- unverified ---
-    move.l a1,-(sp)
-    bsr.w sub_16a8
+    DC.B    $2f,$09,$61,$00,$cb,$16
 hint_4b94:
-    dc.b    $22,$5f,$08,$e9,$00,$06,$00,$0c
+    DC.B    $22,$5f,$08,$e9,$00,$06,$00,$0c
 hint_4b9c:
-; --- unverified ---
-    move.l d2,8(a1)
-    cmp.b 13(a1),d3
-    bne.w loc_8436
+    DC.B    $23,$42,$00,$08,$b6,$29,$00,$0d,$66,$00,$38,$90
 hint_4ba8:
-; --- unverified ---
-    bra.w hint_2b7e
+    DC.B    $60,$00,$df,$d4
 hint_4bac:
-; --- unverified ---
-    cmp.b #$23,d1
-    beq.s hint_4c0e
+    DC.B    $b2,$3c,$00,$23,$67,$5c
 hint_4bb2:
-; --- unverified ---
-    addq.l #2,a5
-    bsr.w sub_1872
+    DC.B    $54,$8d,$61,$00,$cc,$bc
 hint_4bb8:
-; --- unverified ---
-    move.b d5,d0
-    andi.b #$78,d0
-    beq.s hint_4bec
+    DC.B    $10,$05,$02,$00,$00,$78,$67,$2c
 hint_4bc0:
-; --- unverified ---
-    move.w d6,d2
-    andi.w #$18,d2
-    lsl.w #6,d2
-    andi.w #$ff00,d6
-    ori.w #$c0,d6
-    or.w d2,d6
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d6,(a0)
-    bsr.w hint_276a
+    DC.B    $34,$06,$02,$42,$00,$18,$ed,$4a,$02,$46,$ff,$00,$00,$46,$00,$c0
+    DC.B    $8c,$42,$20,$6e,$02,$4c,$30,$86,$61,$00,$db,$90
 hint_4bdc:
-; --- unverified ---
-    moveq #60,d0
-    bra.w hint_1704
+    DC.B    $70,$3c,$60,$00,$cb,$24
 hint_4be2:
-; --- unverified ---
-    ori.w #$200,d6
-    or.b d5,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $00,$46,$02,$00,$8c,$05,$3a,$c6,$4e,$75
 hint_4bec:
-; --- unverified ---
-    movea.l 588(a6),a5 ; app+$24C
-    bsr.w hint_4f1a
+    DC.B    $2a,$6e,$02,$4c,$61,$00,$03,$28
 hint_4bf4:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.s hint_4be2
+    DC.B    $b2,$3c,$00,$2c,$66,$e8
 hint_4bfa:
-; --- unverified ---
-    ori.b #$20,d6
-    move.w d6,(a5)
-    add.b d5,d5
-    or.b d5,(a5)+
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $00,$06,$00,$20,$3a,$86,$da,$05,$8b,$1d,$12,$1c,$61,$00,$cb,$58
 hint_4c0a:
-; --- unverified ---
-    or.b d2,(a5)+
-    rts
+    DC.B    $85,$1d,$4e,$75
 hint_4c0e:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$61,$00,$ca,$ba
 hint_4c14:
-; --- unverified ---
-    bsr.w sub_3242
+    DC.B    $61,$00,$e6,$2c
 hint_4c18:
-; --- unverified ---
-    ror.w #7,d2
-    or.w d2,d6
-    bsr.w hint_4f1a
+    DC.B    $ee,$5a,$8c,$42,$61,$00,$02,$fc
 hint_4c20:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$38,$3c
 hint_4c28:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$cb,$34
 hint_4c2e:
-; --- unverified ---
-    or.b d2,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $8c,$02,$3a,$c6,$4e,$75
 hint_4c34:
-; --- unverified ---
-    bsr.w sub_16cc
+    DC.B    $61,$00,$ca,$96
 hint_4c38:
-; --- unverified ---
-    cmp.l #$ff,d2
-    bcc.w hint_4814
+    DC.B    $b4,$bc,$00,$00,$00,$ff,$64,$00,$fb,$d4
 hint_4c42:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_4c58
+    DC.B    $4a,$2e,$02,$38,$67,$10
 hint_4c48:
-; --- unverified ---
-    tst.b 2389(a6) ; app+$955
-    beq.s hint_4c58
+    DC.B    $4a,$2e,$09,$55,$67,$0a
 hint_4c4e:
-    dc.b    $38,$02
+    DC.B    $38,$02
 hint_4c50:
-; --- unverified ---
-    bsr.w sub_8e8c
+    DC.B    $61,$00,$42,$3a
 hint_4c54:
-; --- unverified ---
-    subq.w #1,d4
-    bne.s hint_4c50
+    DC.B    $53,$44,$66,$f8
 hint_4c58:
-; --- unverified ---
-    move.b -1(a4),d1
-    st 275(a6) ; app+$113
-    rts
+    DC.B    $12,$2c,$ff,$ff,$50,$ee,$01,$13,$4e,$75
 hint_4c62:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_4c6e
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_4c68:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$38,$1a
 hint_4c6e:
-; --- unverified ---
-    move.w d6,(a5)+
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $3a,$c6,$b2,$3c,$00,$23,$66,$00,$37,$f4
 hint_4c78:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$61,$00,$c1,$3a
 hint_4c7e:
-; --- unverified ---
-    bsr.w hint_1ad0
+    DC.B    $61,$00,$ce,$50
 hint_4c82:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$37,$c2
 hint_4c8a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4c8c:
-; --- unverified ---
-    bsr.w hint_276a
+    DC.B    $61,$00,$da,$dc
 hint_4c90:
-; --- unverified ---
-    bsr.w loc_1760
+    DC.B    $61,$00,$ca,$ce
 hint_4c94:
-; --- unverified ---
-    or.b d2,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $8c,$02,$3a,$c6,$4e,$75
 hint_4c9a:
-; --- unverified ---
-    bsr.w hint_2372
+    DC.B    $61,$00,$d6,$d6
 hint_4c9e:
-; --- unverified ---
-    bsr.w hint_16e6
-    dc.b    $00,$3d,$4e,$75
-sub_4ca6:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $61,$00,$ca,$46
+    DC.B    $00,$3d,$4e,$75
+hint_4ca6:
+    DC.B    $4a,$2e,$02,$39,$66,$00,$37,$9e
 hint_4cae:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $b2,$3c,$00,$23,$66,$00,$37,$b6
 hint_4cb6:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16a8
+    DC.B    $12,$1c,$61,$00,$c9,$ee
 hint_4cbc:
-; --- unverified ---
-    bsr.w hint_78d8
+    DC.B    $61,$00,$2c,$1a
 hint_4cc0:
-; --- unverified ---
-    or.b d2,d6
-    move.w d6,(a5)+
-    cmp.l #$10,d2
-    bcc.s hint_4cce
+    DC.B    $8c,$02,$3a,$c6,$b4,$bc,$00,$00,$00,$10,$64,$02
 hint_4ccc:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4cce:
-; --- unverified ---
-    moveq #29,d0
-    bra.w loc_8486
+    DC.B    $70,$1d,$60,$00,$37,$b4
 hint_4cd4:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$e4,$56
 hint_4cde:
-; --- unverified ---
-    bsr.w hint_2350
+    DC.B    $61,$00,$d6,$70
 hint_4ce2:
-; --- unverified ---
-    move.w #$4c40,(a5)+
-    move.w d6,(a5)+
-    bsr.w hint_16e0
+    DC.B    $3a,$fc,$4c,$40,$3a,$c6,$61,$00
+hint_4cea:
+    DC.B    $c9,$f6
+    DC.B    $00,$fd,$b2,$3c,$00,$2c,$66,$00,$37,$6e
 hint_4cf6:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$ca,$66
 hint_4cfc:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    cmp.b #$3a,d1
-    beq.s hint_4d12
+    DC.B    $20,$6e,$02,$4c,$b2,$3c,$00,$3a,$67,$0c
 hint_4d06:
-; --- unverified ---
-    or.b d2,3(a0)
-    lsl.b #4,d2
-    or.b d2,2(a0)
-    rts
+    DC.B    $85,$28,$00,$03,$e9,$0a,$85,$28,$00,$02,$4e,$75
 hint_4d12:
-; --- unverified ---
-    move.b (a4)+,d1
-    or.b d2,3(a0)
-    bsr.w loc_1760
+    DC.B    $12,$1c,$85,$28,$00,$03,$61,$00,$ca,$46
 hint_4d1c:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    lsl.b #4,d2
-    or.b d2,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$e9,$0a,$85,$28,$00,$02,$4e,$75
 hint_4d28:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    blt.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$6d,$00,$e4,$02
 hint_4d32:
-    dc.b    $3a,$c6
+    DC.B    $3a,$c6
 hint_4d34:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    addq.l #1,a0
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_4d7a
+    DC.B    $20,$6e,$02,$4c,$52,$88,$10,$2e,$02,$39,$67,$3a
 hint_4d40:
-; --- unverified ---
-    cmp.b #$3,d0
-    beq.s hint_4d64
+    DC.B    $b0,$3c,$00,$03,$67,$1e
 hint_4d46:
-; --- unverified ---
-    cmp.b #$2,d0
-    bne.w loc_844a
+    DC.B    $b0,$3c,$00,$02,$66,$00,$36,$fe
 hint_4d4e:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $b2,$3c,$00,$23,$66,$00,$37,$16
 hint_4d56:
-; --- unverified ---
-    move.b (a4)+,d1
-    ori.b #$2,(a0)
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$00,$10,$00,$02,$61,$00,$c0,$58
 hint_4d60:
-; --- unverified ---
-    bra.w hint_1ad0
+    DC.B    $60,$00,$cd,$6e
 hint_4d64:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $b2,$3c,$00,$23,$66,$00,$37,$00
 hint_4d6c:
-; --- unverified ---
-    move.b (a4)+,d1
-    ori.b #$3,(a0)
-    bsr.w sub_0db6
+    DC.B    $12,$1c,$00,$10,$00,$03,$61,$00,$c0,$42
 hint_4d76:
-; --- unverified ---
-    bra.w hint_1ab0
+    DC.B    $60,$00,$cd,$38
 hint_4d7a:
-; --- unverified ---
-    cmp.b #$23,d1
-    beq.s hint_4d4e
+    DC.B    $b2,$3c,$00,$23,$67,$ce
 hint_4d80:
-; --- unverified ---
-    ori.b #$4,(a0)
-    rts
+    DC.B    $00,$10,$00,$04,$4e,$75
 hint_4d86:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$01,$92
 hint_4d8a:
-; --- unverified ---
-    bsr.w hint_16e6
-    dc.b    $00,$3d,$4e,$75,$0c,$2e,$00,$14,$01,$21,$6d,$ec,$61,$00,$01,$7e
-    dc.b    $61,$00,$c9,$46,$00,$ff,$4e,$75
-sub_4da6:
-    dc.b    $45,$ee,$0b,$82
+    DC.B    $61,$00,$c9,$5a
+    DC.B    $00,$3d,$4e,$75,$0c,$2e,$00,$14,$01,$21,$6d,$ec,$61,$00,$01,$7e
+    DC.B    $61,$00,$c9,$46,$00,$ff,$4e,$75
+hint_4da6:
+    DC.B    $45,$ee,$0b,$82
 hint_4daa:
-    dc.b    $50,$ee,$01,$13
+    DC.B    $50,$ee,$01,$13
 hint_4dae:
-; --- unverified ---
-    moveq #0,d2
-    moveq #10,d3
-    tst.b 568(a6) ; app+$238
-    bne.s hint_4dc0
+    DC.B    $74,$00,$76,$0a,$4a,$2e,$02,$38,$66,$08
 hint_4db8:
-; --- unverified ---
-    tst.b (a2)
-    beq.s hint_4dc0
+    DC.B    $4a,$12,$67,$04
 hint_4dbc:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_4dc0:
-; --- unverified ---
-    cmp.b #$27,d1
-    bne.s hint_4dca
+    DC.B    $b2,$3c,$00,$27,$66,$04
 hint_4dc6:
-    dc.b    $76,$27
+    DC.B    $76,$27
 hint_4dc8:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_4dca:
-; --- unverified ---
-    cmp.b d1,d3
-    beq.s hint_4de2
+    DC.B    $b6,$01,$67,$14
 hint_4dce:
-; --- unverified ---
-    cmp.b #$a,d1
-    beq.s hint_4dea
+    DC.B    $b2,$3c,$00,$0a,$67,$16
 hint_4dd4:
-; --- unverified ---
-    move.b d1,(a2)+
-    addq.b #1,d2
-    cmp.b #$50,d2
-    bne.s hint_4dc8
+    DC.B    $14,$c1,$52,$02,$b4,$3c,$00,$50,$66,$ea
 hint_4dde:
-; --- unverified ---
-    moveq #10,d1
-    bra.s hint_4dea
+    DC.B    $72,$0a,$60,$08
 hint_4de2:
-; --- unverified ---
-    cmp.b #$a,d3
-    beq.s hint_4dea
+    DC.B    $b6,$3c,$00,$0a,$67,$02
 hint_4de8:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_4dea:
-; --- unverified ---
-    clr.b (a2)
-    rts
+    DC.B    $42,$12,$4e,$75
 hint_4dee:
-; --- unverified ---
-    lea 3027(a6),a2 ; app+$BD3
-    bra.s hint_4daa
+    DC.B    $45,$ee,$0b,$d3,$60,$b6
 hint_4df4:
-; --- unverified ---
-    bsr.w sub_176a
+    DC.B    $61,$00,$c9,$74
 hint_4df8:
-; --- unverified ---
-    or.b d2,d6
-    move.w d6,(a5)+
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $8c,$02,$3a,$c6,$4a,$2e,$02,$39,$66,$00,$36,$48
 hint_4e04:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4e06:
-; --- unverified ---
-    cmpi.w #$3,540(a6) ; app+$21C
-    beq.s hint_4e10
+    DC.B    $0c,$6e,$00,$03,$02,$1c,$67,$02
 hint_4e0e:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4e10:
-; --- unverified ---
-    addq.l #4,sp
-    moveq #10,d1
-    rts
+    DC.B    $58,$8f,$72,$0a,$4e,$75
 hint_4e16:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_4e06
+    DC.B    $12,$1c,$61,$ec
 hint_4e1a:
-; --- unverified ---
-    lea 1000(a6),a0 ; app+$3E8
-    bsr.w sub_76b8
+    DC.B    $41,$ee,$03,$e8,$61,$00,$28,$98
 hint_4e22:
-; --- unverified ---
-    bne.w loc_8486
+    DC.B    $66,$00,$36,$62
 hint_4e26:
-; --- unverified ---
-    move.w d1,-(sp)
-    bsr.s hint_4e34
+    DC.B    $3f,$01,$61,$0a
 hint_4e2a:
-; --- unverified ---
-    move.w (sp)+,d1
-    cmp.b #$2c,d1
-    beq.s hint_4e16
+    DC.B    $32,$1f,$b2,$3c,$00,$2c,$67,$e4
 hint_4e32:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4e34:
-; --- unverified ---
-    move.b 6(a0),d0
-    cmp.b 278(a6),d0 ; app+$116
-    beq.w loc_8442
+    DC.B    $10,$28,$00,$06,$b0,$2e,$01,$16,$67,$00,$36,$04
 hint_4e40:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s loc_4e60
+    DC.B    $4a,$2e,$02,$38,$67,$1a
 hint_4e46:
-; --- unverified ---
-    bsr.w sub_0bce
+    DC.B    $61,$00,$bd,$86
 hint_4e4a:
-; --- unverified ---
-    bne.s loc_4e62
+    DC.B    $66,$16
 sub_4e4c:
     move.b 12(a1),d0
     andi.b #$90,d0
@@ -10347,4377 +7477,2224 @@ loc_4e62:
     moveq #44,d0
     bra.w loc_8486
 hint_4e68:
-; --- unverified ---
-    moveq #43,d0
-    bra.w loc_8482
+    DC.B    $70,$2b,$60,$00
+hint_4e6c:
+    DC.B    $36,$16
 hint_4e6e:
-; --- unverified ---
-    move.b (a4)+,d1
-    bra.s hint_4e76
+    DC.B    $12,$1c,$60,$04
 hint_4e72:
-; --- unverified ---
-    moveq #44,d5
-    bsr.s hint_4e06
+    DC.B    $7a,$2c,$61,$90
 hint_4e76:
-; --- unverified ---
-    lea 1000(a6),a0 ; app+$3E8
-    bsr.w sub_76b8
+    DC.B    $41,$ee,$03,$e8,$61,$00,$28,$3c
 hint_4e7e:
-; --- unverified ---
-    bne.w loc_8486
+    DC.B    $66,$00,$36,$06
 hint_4e82:
-; --- unverified ---
-    move.b 6(a0),d0
-    cmp.b 278(a6),d0 ; app+$116
-    beq.s hint_4e68
+    DC.B    $10,$28,$00,$06,$b0,$2e,$01,$16,$67,$dc
 hint_4e8c:
-; --- unverified ---
-    moveq #1,d3
-    cmpi.b #$3,569(a6) ; app+$239
-    bne.s hint_4e98
+    DC.B    $76,$01,$0c,$2e,$00,$03,$02,$39,$66,$02
 hint_4e96:
-    dc.b    $76,$02
+    DC.B    $76,$02
 hint_4e98:
-; --- unverified ---
-    move.w d1,-(sp)
-    move.w d3,-(sp)
-    bsr.w sub_0bce
+    DC.B    $3f,$01,$3f,$03,$61,$00,$bd,$30
 hint_4ea0:
-; --- unverified ---
-    movem.w (sp)+,d3
-    beq.s hint_4eb0
+    DC.B    $4c,$9f,$00,$08,$67,$0a
 hint_4ea6:
-; --- unverified ---
-    movea.l 358(a6),a1 ; app+$166
-    moveq #0,d4
-    bsr.w sub_0cba
+    DC.B    $22,$6e,$01,$66,$78,$00,$61,$00,$be,$0c
 hint_4eb0:
-; --- unverified ---
-    bsr.s hint_4ec4
+    DC.B    $61,$12
 hint_4eb2:
-; --- unverified ---
-    move.w (sp)+,d1
-    move.b d1,d5
-    cmp.b #$2c,d1
-    beq.s hint_4e6e
+    DC.B    $32,$1f,$1a,$01,$b2,$3c,$00,$2c,$67,$b2
 hint_4ebc:
-; --- unverified ---
-    cmp.b #$3d,d1
-    beq.s hint_4e6e
+    DC.B    $b2,$3c,$00,$3d,$67,$ac
 hint_4ec2:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4ec4:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.s hint_4f12
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$46
 hint_4ecc:
-; --- unverified ---
-    cmp.b 13(a1),d3
-    bne.s hint_4f12
+    DC.B    $b6,$29,$00,$0d,$66,$40
 hint_4ed2:
-; --- unverified ---
-    btst #5,12(a1)
-    bne.s hint_4f12
+    DC.B    $08,$29,$00,$05,$00,$0c,$66,$38
 hint_4eda:
-; --- unverified ---
-    btst #7,12(a1)
-    bne.s hint_4f12
+    DC.B    $08,$29,$00,$07,$00,$0c,$66,$30
 hint_4ee2:
-; --- unverified ---
-    move.b 23(a1),d0
-    cmp.b 278(a6),d0 ; app+$116
-    beq.s hint_4f12
+    DC.B    $10,$29,$00,$17,$b0,$2e,$01,$16,$67,$26
 hint_4eec:
-; --- unverified ---
-    bset #4,12(a1)
-    bne.s hint_4f10
+    DC.B    $08,$e9,$00,$04,$00,$0c,$66,$1c
 hint_4ef4:
-; --- unverified ---
-    movea.l 318(a6),a0 ; app+$13E
-    cmp.b #$2c,d5
-    beq.s hint_4f06
+    DC.B    $20,$6e,$01,$3e,$ba,$3c,$00,$2c,$67,$08
 hint_4efe:
-; --- unverified ---
-    bset #2,12(a1)
-    bra.s hint_4f0a
+    DC.B    $08,$e9,$00,$02,$00,$0c,$60,$04
 hint_4f06:
-    dc.b    $52,$68,$00,$14
+    DC.B    $52,$68,$00,$14
 hint_4f0a:
-    dc.b    $33,$68,$00,$14,$00,$14
+    DC.B    $33,$68,$00,$14,$00,$14
 hint_4f10:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4f12:
-; --- unverified ---
-    move.w #$2b,d0
-    bra.w loc_8486
+    DC.B    $30,$3c,$00,$2b,$60,$00,$35,$6e
 hint_4f1a:
-; --- unverified ---
-    moveq #0,d0
-    move.b 569(a6),d0 ; app+$239
-    or.b pcref_4f26(pc,d0.w),d6
-    rts
+    DC.B    $70,$00,$10,$2e,$02,$39,$8c,$3b,$00,$04,$4e,$75
 pcref_4f26:
-    dc.b    $40,$00,$40,$80
+    DC.B    $40,$00,$40,$80
 hint_4f2a:
-; --- unverified ---
-    move.l a5,2158(a6) ; app+$86E
-    cmp.b #$5b,d1
-    beq.w hint_4fdc
+    DC.B    $2d,$4d,$08,$6e,$b2,$3c,$00,$5b,$67,$00,$00,$a8
 hint_4f36:
-; --- unverified ---
-    moveq #0,d7
-    lea 2126(a6),a3 ; app+$84E
-    lea 2208(a6),a0 ; app+$8A0
-    move.l a0,2368(a6) ; app+$940
-    pea -1(a4)
-    bsr.w hint_53ae
+    DC.B    $7e,$00,$47,$ee,$08,$4e,$41,$ee,$08,$a0,$2d,$48,$09,$40,$48,$6c
+    DC.B    $ff,$ff,$61,$00,$04,$64
 hint_4f4c:
-; --- unverified ---
-    movea.l (sp)+,a2
-    bne.w hint_56b8
+    DC.B    $24,$5f,$66,$00,$07,$68
 hint_4f52:
-; --- unverified ---
-    btst #0,d7
-    bne.s hint_4f8c
+    DC.B    $08,$07,$00,$00,$66,$34
 hint_4f58:
-; --- unverified ---
-    cmp.b #$29,d1
-    bne.w hint_500e
+    DC.B    $b2,$3c,$00,$29,$66,$00,$00,$b0
 hint_4f60:
-; --- unverified ---
-    btst #1,d7
-    beq.w hint_5026
+    DC.B    $08,$07,$00,$01,$67,$00,$00,$c0
 hint_4f68:
-; --- unverified ---
-    tst.b 9(a3)
-    bne.w hint_5026
+    DC.B    $4a,$2b,$00,$09,$66,$00,$00,$b8
 hint_4f70:
-; --- unverified ---
-    move.b 8(a3),d0
-    bmi.w hint_5026
+    DC.B    $10,$2b,$00,$08,$6b,$00,$00,$b0
 hint_4f78:
-; --- unverified ---
-    moveq #16,d5
-    or.b d0,d5
-    move.b (a4)+,d1
-    cmp.b #$2b,d1
-    bne.s hint_4f8a
+    DC.B    $7a,$10,$8a,$00,$12,$1c,$b2,$3c,$00,$2b,$66,$06
 hint_4f84:
-    dc.b    $08,$c5,$00,$03,$12,$1c
+    DC.B    $08,$c5,$00,$03,$12,$1c
 hint_4f8a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_4f8c:
-; --- unverified ---
-    cmp.b #$2c,d1
-    beq.w hint_5014
+    DC.B    $b2,$3c,$00,$2c,$67,$00,$00,$82
 hint_4f94:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$2e,d1
-    bne.w hint_4fac
+    DC.B    $12,$1c,$b2,$3c,$00,$2e,$66,$00,$00,$10
 hint_4f9e:
-; --- unverified ---
-    move.l (a3),d2
-    move.w 4(a3),d3
-    move.b 6(a3),d4
-    bra.w hint_1988
+    DC.B    $24,$13,$36,$2b,$00,$04,$18,$2b,$00,$06,$60,$00,$c9,$de
 hint_4fac:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.w hint_4fca
+    DC.B    $b2,$3c,$00,$09,$67,$00,$00,$18
 hint_4fb4:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.w hint_4fca
+    DC.B    $b2,$3c,$00,$20,$67,$00,$00,$10
 hint_4fbc:
-; --- unverified ---
-    cmp.b #$2c,d1
-    beq.s hint_4fca
+    DC.B    $b2,$3c,$00,$2c,$67,$08
 hint_4fc2:
-; --- unverified ---
-    cmp.b #$a,d1
-    bne.w hint_192a
+    DC.B    $b2,$3c,$00,$0a,$66,$00,$c9,$62
 hint_4fca:
-; --- unverified ---
-    movea.l a2,a4
-    move.b -1(a4),d1
-    bsr.w sub_1208
+    DC.B    $28,$4a,$12,$2c,$ff,$ff,$61,$00,$c2,$36
 hint_4fd4:
-; --- unverified ---
-    bsr.w hint_1930
+    DC.B    $61,$00,$c9,$5a
 hint_4fd8:
-; --- unverified ---
-    bra.w sub_1208
+    DC.B    $60,$00,$c2,$2e
 hint_4fdc:
-    dc.b    $7e,$00,$47,$ee,$08,$4e
+    DC.B    $7e,$00,$47,$ee,$08,$4e
 hint_4fe2:
-; --- unverified ---
-    swap d7
-    bset #7,d7
-    bne.w hint_56b8
+    DC.B    $48,$47,$08,$c7,$00,$07,$66,$00,$06,$ce
 hint_4fec:
-    dc.b    $47,$ee,$08,$5e,$41,$ee,$08,$f0,$2d,$48,$09,$40,$12,$1c
+    DC.B    $47,$ee,$08,$5e,$41,$ee,$08,$f0,$2d,$48,$09,$40,$12,$1c
 hint_4ffa:
-; --- unverified ---
-    cmp.b #$5d,d1
-    beq.s hint_5034
+    DC.B    $b2,$3c,$00,$5d,$67,$34
 hint_5000:
-; --- unverified ---
-    cmp.b #$29,d1
-    beq.s hint_5026
+    DC.B    $b2,$3c,$00,$29,$67,$20
 hint_5006:
-; --- unverified ---
-    bsr.w hint_53ae
+    DC.B    $61,$00,$03,$a6
 hint_500a:
-; --- unverified ---
-    bne.w hint_56b8
+    DC.B    $66,$00,$06,$ac
 hint_500e:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.s hint_4ffa
+    DC.B    $b2,$3c,$00,$2c,$66,$e6
 hint_5014:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$5b,d1
-    bne.s hint_5006
+    DC.B    $12,$1c,$b2,$3c,$00,$5b,$66,$ea
 hint_501c:
-; --- unverified ---
-    tst.b 14(a3)
-    bgt.s hint_4fe2
+    DC.B    $4a,$2b,$00,$0e,$6e,$c0
 hint_5022:
-; --- unverified ---
-    bra.w hint_56b8
+    DC.B    $60,$00,$06,$94
 hint_5026:
-; --- unverified ---
-    tst.b 14(a3)
-    ble.w hint_56b8
+    DC.B    $4a,$2b,$00,$0e,$6f,$00,$06,$8c
 hint_502e:
-; --- unverified ---
-    move.b (a4)+,d1
-    bra.w hint_504e
+    DC.B    $12,$1c,$60,$00,$00,$1c
 hint_5034:
-; --- unverified ---
-    tst.b 14(a3)
-    bge.w hint_56b8
+    DC.B    $4a,$2b,$00,$0e,$6c,$00,$06,$7e
 hint_503c:
-; --- unverified ---
-    swap d7
-    lea 2126(a6),a3 ; app+$84E
-    lea 2208(a6),a0 ; app+$8A0
-    move.l a0,2368(a6) ; app+$940
-    move.b (a4)+,d1
-    bra.s hint_500e
+    DC.B    $48,$47,$47,$ee,$08,$4e,$41,$ee,$08,$a0,$2d,$48,$09,$40,$12,$1c
+    DC.B    $60,$c0
 hint_504e:
-; --- unverified ---
-    tst.b 14(a3)
-    bge.s hint_5062
+    DC.B    $4a,$2b,$00,$0e,$6c,$0e
 hint_5054:
-    dc.b    $48,$47,$47,$ee,$08,$4e,$41,$ee,$08,$a0,$2d,$48,$09,$40
+    DC.B    $48,$47,$47,$ee,$08,$4e,$41,$ee,$08,$a0,$2d,$48,$09,$40
 hint_5062:
-; --- unverified ---
-    move.l d7,d2
-    andi.l #$70007,d2
-    move.l d2,d0
-    swap d0
-    lsl.w #3,d0
-    or.w d2,d0
-    add.w d0,d0
-    add.w d0,d0
-    moveq #48,d5
-    btst #3,d7
-    beq.s hint_5080
+    DC.B    $24,$07,$02,$82,$00,$07,$00,$07,$20,$02,$48,$40,$e7,$48,$80,$42
+    DC.B    $d0,$40,$d0,$40,$7a,$30,$08,$07,$00,$03,$67,$02
 hint_507e:
-    dc.b    $7a,$3b
+    DC.B    $7a,$3b
 hint_5080:
-; --- unverified ---
-    btst #23,d7
-    beq.w hint_5552
+    DC.B    $08,$07,$00,$17,$67,$00,$04,$cc
 hint_5088:
-; --- unverified ---
-    move.b 289(a6),d4 ; app+$121
-    cmp.b #$20,d4
-    beq.w sub_3132
+    DC.B    $18,$2e,$01,$21,$b8,$3c,$00,$20,$67,$00,$e0,$a0
 hint_5094:
-; --- unverified ---
-    move.w #$1d0,d4
-    move.l pcref_50ba(pc,d0.w),d2
-    or.w d2,d4
-    swap d2
-    move.l a5,-(sp)
-    move.w d4,(a5)+
-    jsr pcref_50ba(pc,d2.w) ; unresolved_indirect_hint:pcindex.brief
+    DC.B    $38,$3c,$01,$d0,$24,$3b,$00,$20,$88,$42,$48,$42,$2f,$0d,$3a,$c4
+    DC.B    $4e,$bb,$20,$14
 hint_50a8:
-; --- unverified ---
-    movea.l (sp)+,a0
-    btst #6,d4
-    beq.s hint_50b4
+    DC.B    $20,$5f,$08,$04,$00,$06,$67,$04
 hint_50b0:
-    dc.b    $08,$84,$00,$02
+    DC.B    $08,$84,$00,$02
 hint_50b4:
-; --- unverified ---
-    move.w d4,(a0)
-    moveq #0,d0
-    rts
+    DC.B    $30,$84,$70,$00,$4e,$75
 pcref_50ba:
-    dc.b    $01,$20,$00,$01,$01,$20,$00,$01,$01,$00,$00,$01,$01,$00,$00,$01
-    dc.b    $01,$20,$00,$01,$01,$20,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $01,$20,$00,$05,$01,$20,$00,$05,$01,$00,$00,$05,$01,$00,$00,$05
-    dc.b    $01,$20,$00,$05,$01,$20,$00,$05,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $01,$20,$00,$05,$01,$20,$00,$05,$01,$00,$00,$05,$01,$00,$00,$05
-    dc.b    $01,$20,$00,$05,$01,$20,$00,$05,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $01,$20,$00,$05,$01,$20,$00,$05,$01,$00,$00,$05,$01,$00,$00,$05
-    dc.b    $01,$20,$00,$05,$01,$20,$00,$05,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $01,$62,$00,$01,$01,$62,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $01,$62,$00,$01,$01,$62,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $01,$62,$00,$01,$01,$62,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $01,$62,$00,$01,$01,$62,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00
-    dc.b    $08,$87,$00,$01,$08,$c7,$00,$02,$70,$08,$d0,$2e,$08,$56,$1d,$40
-    dc.b    $08,$58,$1d,$6e,$08,$57,$08,$69,$51,$ee,$08,$5a,$51,$ee,$08,$5b
-    dc.b    $47,$ee,$08,$5e,$41,$ee,$08,$f0,$2d,$48,$09,$40,$08,$07,$00,$10
-    dc.b    $67,$04
+    DC.B    $01,$20,$00,$01,$01,$20,$00,$01,$01,$00,$00,$01,$01,$00,$00,$01
+    DC.B    $01,$20,$00,$01,$01,$20,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $01,$20,$00,$05,$01,$20,$00,$05,$01,$00,$00,$05,$01,$00,$00,$05
+    DC.B    $01,$20,$00,$05,$01,$20,$00,$05,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $01,$20,$00,$05,$01,$20,$00,$05,$01,$00,$00,$05,$01,$00,$00,$05
+    DC.B    $01,$20,$00,$05,$01,$20,$00,$05,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $01,$20,$00,$05,$01,$20,$00,$05,$01,$00,$00,$05,$01,$00,$00,$05
+    DC.B    $01,$20,$00,$05,$01,$20,$00,$05,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $01,$62,$00,$01,$01,$62,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $01,$62,$00,$01,$01,$62,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $01,$62,$00,$01,$01,$62,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $01,$62,$00,$01,$01,$62,$00,$01,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00,$05,$fe,$00,$00
+    DC.B    $08,$87,$00,$01,$08,$c7,$00,$02,$70,$08,$d0,$2e,$08,$56,$1d,$40
+    DC.B    $08,$58,$1d,$6e,$08,$57,$08,$69,$51,$ee,$08,$5a,$51,$ee,$08,$5b
+    DC.B    $47,$ee,$08,$5e,$41,$ee,$08,$f0,$2d,$48,$09,$40,$08,$07,$00,$10
+    DC.B    $67,$04
 hint_51ec:
-; --- unverified ---
-    bsr.w hint_5274
+    DC.B    $61,$00,$00,$86
 hint_51f0:
-; --- unverified ---
-    btst #17,d7
-    beq.s hint_51fa
+    DC.B    $08,$07,$00,$11,$67,$04
 hint_51f6:
-; --- unverified ---
-    bsr.w hint_525e
+    DC.B    $61,$00,$00,$66
 hint_51fa:
-; --- unverified ---
-    lea 2126(a6),a3 ; app+$84E
-    lea 2208(a6),a0 ; app+$8A0
-    move.l a0,2368(a6) ; app+$940
-    btst #2,d7
-    beq.s hint_5210
+    DC.B    $47,$ee,$08,$4e,$41,$ee,$08,$a0,$2d,$48,$09,$40,$08,$07,$00,$02
+    DC.B    $67,$04
 hint_520c:
-; --- unverified ---
-    bsr.w hint_530a
+    DC.B    $61,$00,$00,$fc
 hint_5210:
-; --- unverified ---
-    btst #0,d7
-    beq.s hint_521a
+    DC.B    $08,$07,$00,$00,$67,$04
 hint_5216:
-; --- unverified ---
-    bsr.w hint_5334
+    DC.B    $61,$00,$01,$1c
 hint_521a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_521c:
-; --- unverified ---
-    lea 2142(a6),a3 ; app+$85E
-    lea 2288(a6),a0 ; app+$8F0
-    move.l a0,2368(a6) ; app+$940
-    btst #16,d7
-    beq.s hint_5232
+    DC.B    $47,$ee,$08,$5e,$41,$ee,$08,$f0,$2d,$48,$09,$40,$08,$07,$00,$10
+    DC.B    $67,$04
 hint_522e:
-; --- unverified ---
-    bsr.w hint_5274
+    DC.B    $61,$00,$00,$44
 hint_5232:
-; --- unverified ---
-    btst #17,d7
-    beq.s hint_523c
+    DC.B    $08,$07,$00,$11,$67,$04
 hint_5238:
-; --- unverified ---
-    bsr.w hint_525e
+    DC.B    $61,$00,$00,$24
 hint_523c:
-; --- unverified ---
-    btst #18,d7
-    beq.s hint_5246
+    DC.B    $08,$07,$00,$12,$67,$04
 hint_5242:
-; --- unverified ---
-    bsr.w hint_530a
+    DC.B    $61,$00,$00,$c6
 hint_5246:
-; --- unverified ---
-    lea 2126(a6),a3 ; app+$84E
-    lea 2208(a6),a0 ; app+$8A0
-    move.l a0,2368(a6) ; app+$940
-    btst #0,d7
-    beq.s hint_525c
+    DC.B    $47,$ee,$08,$4e,$41,$ee,$08,$a0,$2d,$48,$09,$40,$08,$07,$00,$00
+    DC.B    $67,$04
 hint_5258:
-; --- unverified ---
-    bsr.w hint_5334
+    DC.B    $61,$00,$00,$da
 hint_525c:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_525e:
-; --- unverified ---
-    tst.b 9(a3)
-    bne.s hint_5272
+    DC.B    $4a,$2b,$00,$09,$66,$0e
 hint_5264:
-; --- unverified ---
-    bclr #7,d4
-    btst #3,d7
-    bne.s hint_5272
+    DC.B    $08,$84,$00,$07,$08,$07,$00,$03,$66,$04
 hint_526e:
-    dc.b    $8a,$2b,$00,$08
+    DC.B    $8a,$2b,$00,$08
 hint_5272:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5274:
-; --- unverified ---
-    move.l (a3),d2
-    move.w 4(a3),d3
-    btst #7,271(a6) ; app+$10F
-    beq.s hint_52c2
+    DC.B    $24,$13,$36,$2b,$00,$04,$08,$2e,$00,$07,$01,$0f,$67,$40
 hint_5282:
-; --- unverified ---
-    cmp.b #$1,d3
-    bne.s hint_52a4
+    DC.B    $b6,$3c,$00,$01,$66,$1c
 hint_5288:
-; --- unverified ---
-    move.l d2,-(sp)
-    sub.l 572(a6),d2 ; app+$23C
-    move.l 2158(a6),d0 ; app+$86E
-    sub.l 588(a6),d0 ; app+$24C
-    sub.l d0,d2
-    movea.w d2,a0
-    cmpa.l d2,a0
-    movem.l (sp)+,d2
-    bne.s hint_52c2
+    DC.B    $2f,$02,$94,$ae,$02,$3c,$20,$2e,$08,$6e,$90,$ae,$02,$4c,$94,$80
+    DC.B    $30,$42,$b1,$c2,$4c,$df,$00,$04,$66,$20
 hint_52a2:
-; --- unverified ---
-    bra.s hint_52aa
+    DC.B    $60,$06
 hint_52a4:
-; --- unverified ---
-    movea.w d2,a0
-    cmpa.l d2,a0
-    bne.s hint_52c2
+    DC.B    $30,$42,$b1,$c2,$66,$18
 hint_52aa:
-; --- unverified ---
-    tst.b 6(a3)
-    bne.s hint_52c2
+    DC.B    $4a,$2b,$00,$06,$66,$12
 hint_52b0:
-; --- unverified ---
-    bsr.w sub_8dce
+    DC.B    $61,$00,$3b,$1c
 hint_52b4:
-; --- unverified ---
-    bne.s hint_52c2
+    DC.B    $66,$0c
 hint_52b6:
-; --- unverified ---
-    move.b #$1,7(a3)
-    moveq #19,d0
-    bsr.w hint_8808
+    DC.B    $17,$7c,$00,$01,$00,$07,$70,$13,$61,$00,$35,$48
 hint_52c2:
-; --- unverified ---
-    move.b 7(a3),d0
-    cmp.b #$3,d0
-    beq.w hint_5694
+    DC.B    $10,$2b,$00,$07,$b0,$3c,$00,$03,$67,$00,$03,$c8
 hint_52ce:
-; --- unverified ---
-    subq.b #1,d0
-    beq.s hint_52f6
+    DC.B    $53,$00,$67,$24
 hint_52d2:
-; --- unverified ---
-    bpl.s hint_52da
+    DC.B    $6a,$06
 hint_52d4:
-; --- unverified ---
-    tst.b 301(a6) ; app+$12D
-    bne.s hint_52f6
+    DC.B    $4a,$2e,$01,$2d,$66,$1c
 hint_52da:
-; --- unverified ---
-    ori.b #$30,d4
-    btst #3,d7
-    beq.w hint_1ab0
+    DC.B    $00,$04,$00,$30,$08,$07,$00,$03,$67,$00,$c7,$cc
 hint_52e6:
-; --- unverified ---
-    tst.b 9(a3)
-    bne.w hint_1ab0
+    DC.B    $4a,$2b,$00,$09,$66,$00,$c7,$c4
 hint_52ee:
-; --- unverified ---
-    bset #0,d5
-    bra.w hint_5706
+    DC.B    $08,$c5,$00,$00,$60,$00,$04,$12
 hint_52f6:
-; --- unverified ---
-    bset #5,d4
-    bclr #4,d4
-    btst #3,d7
-    beq.w hint_1ad0
+    DC.B    $08,$c4,$00,$05,$08,$84,$00,$04,$08,$07,$00,$03,$67,$00,$c7,$cc
 hint_5306:
-; --- unverified ---
-    bra.w hint_56c4
+    DC.B    $60,$00,$03,$bc
 hint_530a:
-; --- unverified ---
-    tst.b 11(a3)
-    bne.s hint_5332
+    DC.B    $4a,$2b,$00,$0b,$66,$22
 hint_5310:
-    dc.b    $08,$84,$00,$06,$70,$0f,$c0,$2b,$00,$0a,$e8,$58,$88,$40,$70,$01
-    dc.b    $c0,$2b,$00,$0c,$ea,$58,$88,$40,$70,$03,$c0,$2b,$00,$0d,$ee,$58
-    dc.b    $88,$40
+    DC.B    $08,$84,$00,$06,$70,$0f,$c0,$2b,$00,$0a,$e8,$58,$88,$40,$70,$01
+    DC.B    $c0,$2b,$00,$0c,$ea,$58,$88,$40,$70,$03,$c0,$2b,$00,$0d,$ee,$58
+    DC.B    $88,$40
 hint_5332:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5334:
-; --- unverified ---
-    bset #1,d4
-    move.l (a3),d2
-    move.w 4(a3),d3
-    move.b 7(a3),d0
-    bne.s hint_5386
+    DC.B    $08,$c4,$00,$01,$24,$13,$36,$2b,$00,$04,$10,$2b,$00,$07,$66,$42
 hint_5344:
-; --- unverified ---
-    btst #0,270(a6) ; app+$10E
-    beq.s hint_5386
+    DC.B    $08,$2e,$00,$00,$01,$0e,$67,$3a
 hint_534c:
-; --- unverified ---
-    move.l d2,-(sp)
-    sub.l 572(a6),d2 ; app+$23C
-    move.l 2158(a6),d0 ; app+$86E
-    sub.l 588(a6),d0 ; app+$24C
-    sub.l d0,d2
-    movea.w d2,a0
-    cmpa.l d2,a0
-    movem.l (sp)+,d2
-    bne.s hint_5386
+    DC.B    $2f,$02,$94,$ae,$02,$3c,$20,$2e,$08,$6e,$90,$ae,$02,$4c,$94,$80
+    DC.B    $30,$42,$b1,$c2,$4c,$df,$00,$04,$66,$20
 hint_5366:
-; --- unverified ---
-    bra.s hint_536e
+    DC.B    $60,$06
 hint_5368:
-; --- unverified ---
-    movea.w d2,a0
-    cmpa.l d2,a0
-    bne.s hint_5386
+    DC.B    $30,$42,$b1,$c2,$66,$18
 hint_536e:
-; --- unverified ---
-    tst.b 6(a3)
-    bne.s hint_5386
+    DC.B    $4a,$2b,$00,$06,$66,$12
 hint_5374:
-; --- unverified ---
-    bsr.w sub_8dce
+    DC.B    $61,$00,$3a,$58
 hint_5378:
-; --- unverified ---
-    bne.s hint_5386
+    DC.B    $66,$0c
 hint_537a:
-; --- unverified ---
-    move.b #$1,7(a3)
-    moveq #20,d0
-    bsr.w hint_8808
+    DC.B    $17,$7c,$00,$01,$00,$07,$70,$14,$61,$00,$34,$84
 hint_5386:
-; --- unverified ---
-    move.b 7(a3),d0
-    cmp.b #$3,d0
-    beq.w hint_5694
+    DC.B    $10,$2b,$00,$07,$b0,$3c,$00,$03,$67,$00,$03,$04
 hint_5392:
-; --- unverified ---
-    subq.b #1,d0
-    beq.s hint_53a6
+    DC.B    $53,$00,$67,$10
 hint_5396:
-; --- unverified ---
-    bpl.s hint_539e
+    DC.B    $6a,$06
 hint_5398:
-; --- unverified ---
-    tst.b 302(a6) ; app+$12E
-    bne.s hint_53a6
+    DC.B    $4a,$2e,$01,$2e,$66,$08
 hint_539e:
-; --- unverified ---
-    bset #0,d4
-    bra.w hint_1ab0
+    DC.B    $08,$c4,$00,$00,$60,$00,$c7,$0c
 hint_53a6:
-    dc.b    $08,$84
+    DC.B    $08,$84
 hint_53a8:
-    dc.b    $00,$00
+    DC.B    $00,$00
+    DC.B    $60,$00,$c7,$24
 hint_53ae:
-; --- unverified ---
-    moveq #0,d3
-    clr.l 1134(a6) ; app+$46E
-    bsr.w sub_177e
+    DC.B    $76,$00,$42,$ae,$04,$6e,$61,$00,$c3,$c8
 hint_53b8:
-; --- unverified ---
-    bne.w hint_5462
+    DC.B    $66,$00,$00,$a8
 hint_53bc:
-; --- unverified ---
-    add.b d0,d0
-    add.b d0,d0
-    add.b d0,d0
-    add.b d2,d0
-    cmp.b #$2e,d1
-    beq.s hint_540a
+    DC.B    $d0,$00,$d0,$00,$d0,$00,$d0,$02,$b2,$3c,$00,$2e,$67,$40
 hint_53ca:
-; --- unverified ---
-    cmp.b #$2a,d1
-    beq.s hint_5404
+    DC.B    $b2,$3c,$00,$2a,$67,$34
 hint_53d0:
-; --- unverified ---
-    cmp.b #$8,d0
-    bcc.s hint_53f0
+    DC.B    $b0,$3c,$00,$08,$64,$1a
 hint_53d6:
-; --- unverified ---
-    move.b d0,10(a3)
-    move.b d3,11(a3)
-    sf 12(a3)
-    sf 13(a3)
-    bset #2,d7
-    bne.w hint_56b8
+    DC.B    $17,$40,$00,$0a,$17,$43,$00,$0b,$51,$eb,$00,$0c,$51,$eb,$00,$0d
+    DC.B    $08,$c7,$00,$02,$66,$00,$02,$cc
 hint_53ee:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_53f0:
-; --- unverified ---
-    subq.b #8,d0
-    move.b d0,8(a3)
-    move.b d3,9(a3)
-    bset #1,d7
-    bne.w hint_56b8
+    DC.B    $51,$00,$17,$40,$00,$08,$17,$43,$00,$09,$08,$c7,$00,$01,$66,$00
+    DC.B    $02,$b8
 hint_5402:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5404:
-    dc.b    $51,$eb
+    DC.B    $51,$eb
 hint_5406:
-    dc.b    $00,$0c
+    DC.B    $00,$0c
+    DC.B    $60,$3c
 hint_540a:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    sf 12(a3)
-    cmp.b #$57,d1
-    beq.s hint_5428
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$51,$eb,$00,$0c,$b2,$3c,$00,$57
+    DC.B    $67,$0c
 hint_541c:
-; --- unverified ---
-    addq.b #1,12(a3)
-    cmp.b #$4c,d1
-    bne.w hint_56b8
+    DC.B    $52,$2b,$00,$0c,$b2,$3c,$00,$4c,$66,$00,$02,$92
 hint_5428:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$2a,d1
-    beq.s hint_5446
+    DC.B    $12,$1c,$b2,$3c,$00,$2a,$67,$16
 hint_5430:
-; --- unverified ---
-    move.b d0,10(a3)
-    sf 13(a3)
-    move.b d3,11(a3)
-    bset #2,d7
-    bne.w hint_56b8
+    DC.B    $17,$40,$00,$0a,$51,$eb,$00,$0d,$17,$43,$00,$0b,$08,$c7,$00,$02
+    DC.B    $66,$00,$02,$76
 hint_5444:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5446:
-; --- unverified ---
-    move.b d3,11(a3)
-    move.b d0,10(a3)
-    move.b (a4)+,d1
-    bsr.w hint_5740
+    DC.B    $17,$43,$00,$0b,$17,$40,$00,$0a,$12,$1c,$61,$00,$02,$ee
 hint_5454:
-; --- unverified ---
-    move.b d0,13(a3)
-    bset #2,d7
-    bne.w hint_56b8
+    DC.B    $17,$40,$00,$0d,$08,$c7,$00,$02,$66,$00,$02,$5a
 hint_5460:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5462:
-; --- unverified ---
-    move.l 1134(a6),d0 ; app+$46E
-    beq.w hint_5506
+    DC.B    $20,$2e,$04,$6e,$67,$00,$00,$9e
 hint_546a:
-; --- unverified ---
-    lea -1(a4),a0
-    move.b 1139(a6),d0 ; app+$473
-    subq.b #2,d0
-    beq.w hint_54d6
+    DC.B    $41,$ec,$ff,$ff,$10,$2e,$04,$73,$55,$00,$67,$00,$00,$60
 hint_5478:
-; --- unverified ---
-    subq.b #1,d0
-    bne.w hint_5506
+    DC.B    $53,$00,$66,$00,$00,$8a
 hint_547e:
-; --- unverified ---
-    move.b (a0)+,d0
-    ext.w d0
-    move.b 126(a6,d0.w),d0
-    cmp.b #$5a,d0
-    bne.w hint_5506
+    DC.B    $10,$18,$48,$80,$10,$36,$00,$7e,$b0,$3c,$00,$5a,$66,$00,$00,$7a
 hint_548e:
-; --- unverified ---
-    move.b (a0)+,d0
-    ext.w d0
-    move.b 126(a6,d0.w),d0
-    subi.b #$44,d0
-    sne d2
-    beq.s hint_54e8
+    DC.B    $10,$18,$48,$80,$10,$36,$00,$7e,$04,$00,$00,$44,$56,$c2,$67,$4a
 hint_549e:
-; --- unverified ---
-    addq.b #3,d0
-    beq.s hint_54e8
+    DC.B    $56,$00,$67,$46
 hint_54a2:
-; --- unverified ---
-    cmp.b #$f,d0
-    bne.w hint_5506
+    DC.B    $b0,$3c,$00,$0f,$66,$00,$00,$5e
 hint_54aa:
-    dc.b    $50,$c3
+    DC.B    $50,$c3
 hint_54ac:
-; --- unverified ---
-    move.b (a0)+,d0
-    ext.w d0
-    move.b 126(a6,d0.w),d0
-    cmp.b #$43,d0
-    bne.s hint_5506
+    DC.B    $10,$18,$48,$80,$10,$36,$00,$7e,$b0,$3c,$00,$43,$66,$4c
 hint_54ba:
-; --- unverified ---
-    movea.l a0,a4
-    move.b (a4)+,d1
-    st 8(a3)
-    move.b d3,9(a3)
-    ori.l #$80008,d7
-    bset #1,d7
-    bne.w hint_56b8
+    DC.B    $28,$48,$12,$1c,$50,$eb,$00,$08,$17,$43,$00,$09,$00,$87,$00,$08
+    DC.B    $00,$08,$08,$c7,$00,$01,$66,$00,$01,$e6
 hint_54d4:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_54d6:
-; --- unverified ---
-    move.b (a0)+,d0
-    ext.w d0
-    move.b 126(a6,d0.w),d0
-    moveq #0,d3
-    cmp.b #$50,d0
-    beq.s hint_54ac
+    DC.B    $10,$18,$48,$80,$10,$36,$00,$7e,$76,$00,$b0,$3c,$00,$50,$67,$c6
 hint_54e6:
-; --- unverified ---
-    bra.s hint_5506
+    DC.B    $60,$1e
 hint_54e8:
-; --- unverified ---
-    move.b (a0)+,d0
-    subi.b #$30,d0
-    bcs.s hint_5506
+    DC.B    $10,$18,$04,$00,$00,$30,$65,$16
 hint_54f0:
-; --- unverified ---
-    cmp.b #$8,d0
-    bcc.s hint_5506
+    DC.B    $b0,$3c,$00,$08,$64,$10
 hint_54f6:
-; --- unverified ---
-    st d3
-    movea.l a0,a4
-    move.b (a4)+,d1
-    andi.b #$1,d2
-    exg d0,d2
-    bra.w hint_53bc
+    DC.B    $50,$c3,$28,$48,$12,$1c,$02,$02,$00,$01,$c1,$42,$60,$00,$fe,$b8
 hint_5506:
-; --- unverified ---
-    move.l a3,-(sp)
-    bsr.w sub_0db6
+    DC.B    $2f,$0b,$61,$00,$b8,$ac
 hint_550c:
-; --- unverified ---
-    movea.l (sp)+,a3
-    move.l d2,(a3)
-    move.w d3,4(a3)
-    move.b d4,6(a3)
-    moveq #0,d0
-    cmp.b #$2e,d1
-    bne.s hint_5544
+    DC.B    $26,$5f,$26,$82,$37,$43,$00,$04,$17,$44,$00,$06,$70,$00,$b2,$3c
+    DC.B    $00,$2e,$66,$24
 hint_5520:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    moveq #1,d0
-    cmp.b #$57,d1
-    beq.s hint_5542
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$70,$01,$b2,$3c,$00,$57,$67,$12
 hint_5530:
-; --- unverified ---
-    moveq #2,d0
-    cmp.b #$4c,d1
-    beq.s hint_5542
+    DC.B    $70,$02,$b2,$3c,$00,$4c,$67,$0a
 hint_5538:
-; --- unverified ---
-    moveq #3,d0
-    cmp.b #$42,d1
-    bne.w hint_56b8
+    DC.B    $70,$03,$b2,$3c,$00,$42,$66,$00,$01,$78
 hint_5542:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_5544:
-; --- unverified ---
-    move.b d0,7(a3)
-    bset #0,d7
-    bne.w hint_56b8
+    DC.B    $17,$40,$00,$07,$08,$c7,$00,$00,$66,$00,$01,$6a
 hint_5550:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5552:
-; --- unverified ---
-    move.w #$1d0,d4
-    move.l pcref_556e(pc,d0.w),d0
-    or.w d0,d4
-    swap d0
-    move.l a5,-(sp)
-    move.w d4,(a5)+
-    jsr pcref_5576(pc,d0.w) ; unresolved_indirect_hint:pcindex.brief
+    DC.B    $38,$3c,$01,$d0,$20,$3b,$00,$16,$88,$40,$48,$40,$2f,$0d,$3a,$c4
+    DC.B    $4e,$bb,$00,$12
 hint_5566:
-; --- unverified ---
-    movea.l (sp)+,a0
-    btst #6,d4
-    beq.s hint_5572
+    DC.B    $20,$5f,$08,$04,$00,$06,$67,$04
 pcref_556e:
-    dc.b    $08,$84,$00,$02
+    DC.B    $08,$84,$00,$02
 hint_5572:
-; --- unverified ---
-    move.w d4,(a0)
-    rts
+    DC.B    $30,$84,$4e,$75
 pcref_5576:
-    dc.b    $00,$18,$00,$00,$00,$34,$00,$00,$00,$ba,$00,$00,$00,$ba,$00,$00
-    dc.b    $00,$78,$00,$00,$00,$ba,$00,$00,$4a,$2b,$00,$09,$66,$00,$00,$9c
-    dc.b    $4a,$2b,$00,$08,$6a,$00,$00,$94
+    DC.B    $00,$18,$00,$00,$00,$34,$00,$00,$00,$ba,$00,$00,$00,$ba,$00,$00
+    DC.B    $00,$78,$00,$00,$00,$ba,$00,$00,$4a,$2b,$00,$09,$66,$00,$00,$9c
+    DC.B    $4a,$2b,$00,$08,$6a,$00,$00,$94
 hint_559e:
-; --- unverified ---
-    moveq #58,d5
-    subq.l #2,a5
-    addq.l #8,sp
-    move.w #$fffe,(a5)+
-    rts
+    DC.B    $7a,$3a,$55,$8d,$50,$8f,$3a,$fc,$ff,$fe,$4e,$75
 hint_55aa:
-; --- unverified ---
-    tst.b 9(a3)
-    bne.w hint_5630
+    DC.B    $4a,$2b,$00,$09,$66,$00,$00,$80
 hint_55b2:
-; --- unverified ---
-    cmpi.b #$2,7(a3)
-    beq.w hint_5630
+    DC.B    $0c,$2b,$00,$02,$00,$07,$67,$00,$00,$76
 hint_55bc:
-; --- unverified ---
-    subq.l #2,a5
-    addq.l #8,sp
-    move.l (a3),d2
-    move.w 4(a3),d3
-    move.b 6(a3),d4
-    bclr #0,d5
-    btst #3,d7
-    bne.w hint_56c4
+    DC.B    $55,$8d,$50,$8f,$24,$13,$36,$2b,$00,$04,$18,$2b,$00,$06,$08,$85
+    DC.B    $00,$00,$08,$07,$00,$03,$66,$00,$00,$f0
 hint_55d6:
-; --- unverified ---
-    moveq #40,d5
-    or.b 8(a3),d5
-    tst.w d3
-    bmi.w dat_991c
+    DC.B    $7a,$28,$8a,$2b,$00,$08,$4a,$43,$6b,$00,$43,$3c
 hint_55e2:
-; --- unverified ---
-    move.w d2,(a5)+
-    tst.b 568(a6) ; app+$238
-    bne.w hint_78b6
+    DC.B    $3a,$c2,$4a,$2e,$02,$38,$66,$00,$22,$cc
 hint_55ec:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_55ee:
-; --- unverified ---
-    tst.b 9(a3)
-    bne.s hint_5630
+    DC.B    $4a,$2b,$00,$09,$66,$3c
 hint_55f4:
-; --- unverified ---
-    tst.b 11(a3)
-    bne.s hint_5630
+    DC.B    $4a,$2b,$00,$0b,$66,$36
 hint_55fa:
-; --- unverified ---
-    btst #3,d7
-    bne.s hint_5630
+    DC.B    $08,$07,$00,$03,$66,$30
 hint_5600:
-; --- unverified ---
-    clr.b 3(a3)
-    bsr.s hint_560e
+    DC.B    $42,$2b,$00,$03,$61,$08
 hint_5606:
-; --- unverified ---
-    addq.w #4,sp
-    movea.l (sp)+,a0
-    move.w d4,(a0)
-    rts
+    DC.B    $58,$4f,$20,$5f,$30,$84,$4e,$75
 hint_560e:
-    dc.b    $8a,$2b,$00,$08
+    DC.B    $8a,$2b,$00,$08
 hint_5612:
-; --- unverified ---
-    moveq #15,d4
-    and.b 10(a3),d4
-    ror.w #4,d4
-    tst.b 12(a3)
-    beq.s hint_5624
+    DC.B    $78,$0f,$c8,$2b,$00,$0a,$e8,$5c,$4a,$2b,$00,$0c,$67,$04
 hint_5620:
-    dc.b    $08,$c4,$00,$0b
+    DC.B    $08,$c4,$00,$0b
 hint_5624:
-; --- unverified ---
-    moveq #3,d0
-    and.b 13(a3),d0
-    ror.w #7,d0
-    or.w d0,d4
-    rts
+    DC.B    $70,$03,$c0,$2b,$00,$0d,$ee,$58,$88,$40,$4e,$75
 hint_5630:
-; --- unverified ---
-    cmpi.b #$3,7(a3)
-    bne.s hint_5698
+    DC.B    $0c,$2b,$00,$03,$00,$07,$66,$60
 hint_5638:
-; --- unverified ---
-    move.l (a3),d2
-    move.w 4(a3),d3
-    btst #2,d7
-    beq.w hint_5694
+    DC.B    $24,$13,$36,$2b,$00,$04,$08,$07,$00,$02,$67,$00,$00,$50
 hint_5646:
-; --- unverified ---
-    btst #1,d7
-    beq.w hint_5694
+    DC.B    $08,$07,$00,$01,$67,$00,$00,$48
 hint_564e:
-; --- unverified ---
-    btst #3,d7
-    bne.w hint_5660
+    DC.B    $08,$07,$00,$03,$66,$00,$00,$0c
 hint_5656:
-; --- unverified ---
-    bsr.s hint_560e
+    DC.B    $61,$b6
 hint_5658:
-; --- unverified ---
-    bsr.w hint_78aa
+    DC.B    $61,$00,$22,$50
 hint_565c:
-; --- unverified ---
-    move.b d2,d4
-    bra.s hint_5606
+    DC.B    $18,$02,$60,$a6
 hint_5660:
-; --- unverified ---
-    bsr.s hint_5612
+    DC.B    $61,$b0
 hint_5662:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_5692
+    DC.B    $4a,$2e,$02,$38,$67,$2a
 hint_5668:
-; --- unverified ---
-    cmp.b #$2,d3
-    beq.s hint_5686
+    DC.B    $b6,$3c,$00,$02,$67,$18
 hint_566e:
-; --- unverified ---
-    move.l (a3),d2
-    sub.l 572(a6),d2 ; app+$23C
-    move.l 2158(a6),d0 ; app+$86E
-    sub.l 588(a6),d0 ; app+$24C
-    sub.l d0,d2
-    bsr.w hint_78b0
+    DC.B    $24,$13,$94,$ae,$02,$3c,$20,$2e,$08,$6e,$90,$ae,$02,$4c,$94,$80
+    DC.B    $61,$00,$22,$30
 hint_5682:
-; --- unverified ---
-    move.b d2,d4
-    bra.s hint_5606
+    DC.B    $18,$02,$60,$80
 hint_5686:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_566e
+    DC.B    $4a,$2e,$01,$07,$66,$e2
 hint_568c:
-; --- unverified ---
-    moveq #33,d0
-    bsr.w loc_8486
+    DC.B    $70,$21,$61,$00,$2d,$f6
 hint_5692:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5694:
-; --- unverified ---
-    bra.w hint_56b8
+    DC.B    $60,$00
+hint_5696:
+    DC.B    $00,$22
 hint_5698:
-; --- unverified ---
-    btst #0,d7
-    beq.s hint_56a2
+    DC.B    $08,$07,$00,$00,$67,$04
 hint_569e:
-; --- unverified ---
-    bsr.w hint_5274
+    DC.B    $61,$00,$fb,$d4
 hint_56a2:
-; --- unverified ---
-    btst #2,d7
-    beq.s hint_56ac
+    DC.B    $08,$07,$00,$02,$67,$04
 hint_56a8:
-; --- unverified ---
-    bsr.w hint_530a
+    DC.B    $61,$00,$fc,$60
 hint_56ac:
-; --- unverified ---
-    btst #1,d7
-    beq.s hint_56b6
+    DC.B    $08,$07,$00,$01,$67,$04
 hint_56b2:
-; --- unverified ---
-    bsr.w hint_525e
+    DC.B    $61,$00,$fb,$aa
 hint_56b6:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_56b8:
-; --- unverified ---
-    moveq #91,d0
-    bra.w loc_8482
+    DC.B    $70,$5b,$60,$00,$2d,$c6
 hint_56be:
-; --- unverified ---
-    moveq #68,d0
-    bra.w loc_8482
+    DC.B    $70,$44,$60,$00,$2d,$c0
 hint_56c4:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_5702
+    DC.B    $4a,$2e,$02,$38,$67,$38
 hint_56ca:
-; --- unverified ---
-    tst.w d3
-    bmi.w loc_98ee
+    DC.B    $4a,$43,$6b,$00,$42,$20
 hint_56d0:
-; --- unverified ---
-    cmp.b #$2,d3
-    beq.s hint_56f6
+    DC.B    $b6,$3c,$00,$02,$67,$20
 hint_56d6:
-; --- unverified ---
-    move.w d4,-(sp)
-    bclr #15,d4
-    bsr.w hint_19ea
+    DC.B    $3f,$04,$08,$84,$00,$0f,$61,$00,$c3,$0c
 hint_56e0:
-; --- unverified ---
-    move.w (sp)+,d4
-    sub.l 572(a6),d2 ; app+$23C
-    move.l 2158(a6),d0 ; app+$86E
-    sub.l 588(a6),d0 ; app+$24C
-    sub.l d0,d2
-    move.w d2,(a5)+
-    bra.w sub_78bc
+    DC.B    $38,$1f,$94,$ae,$02,$3c,$20,$2e,$08,$6e,$90,$ae,$02,$4c,$94,$80
+    DC.B    $3a,$c2,$60,$00,$21,$c8
 hint_56f6:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_56d6
+    DC.B    $4a,$2e,$01,$07,$66,$da
 hint_56fc:
-; --- unverified ---
-    moveq #33,d0
-    bsr.w loc_8486
+    DC.B    $70,$21,$61,$00,$2d,$86
 hint_5702:
-; --- unverified ---
-    move.w d2,(a5)+
-    rts
+    DC.B    $3a,$c2,$4e,$75
 hint_5706:
-; --- unverified ---
-    move.w d4,-(sp)
-    tst.b 568(a6) ; app+$238
-    beq.s hint_573a
+    DC.B    $3f,$04,$4a,$2e,$02,$38,$67,$2c
 hint_570e:
-; --- unverified ---
-    tst.w d3
-    bmi.w hint_56be
+    DC.B    $4a,$43,$6b,$00,$ff,$ac
 hint_5714:
-; --- unverified ---
-    move.b 6(a3),d4
-    bne.s hint_573a
+    DC.B    $18,$2b,$00,$06,$66,$20
 hint_571a:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_572c
+    DC.B    $b6,$3c,$00,$02,$66,$0c
 hint_5720:
-; --- unverified ---
-    tst.b 263(a6) ; app+$107
-    bne.s hint_572c
+    DC.B    $4a,$2e,$01,$07,$66,$06
 hint_5726:
-; --- unverified ---
-    moveq #30,d0
-    bsr.w loc_8486
+    DC.B    $70,$1e,$61,$00,$2d,$5c
 hint_572c:
-    dc.b    $94,$ae,$02,$3c,$20,$2e,$08,$6e,$90,$ae,$02,$4c,$94,$80
+    DC.B    $94,$ae,$02,$3c,$20,$2e,$08,$6e,$90,$ae,$02,$4c,$94,$80
 hint_573a:
-; --- unverified ---
-    move.l d2,(a5)+
-    move.w (sp)+,d4
-    rts
+    DC.B    $2a,$c2,$38,$1f,$4e,$75
 hint_5740:
-; --- unverified ---
-    movem.l d2-d4/a2-a3,-(sp)
-    bsr.w loc_0dd0
+    DC.B    $48,$e7,$38,$30,$61,$00,$b6,$8a
 hint_5748:
-; --- unverified ---
-    tst.w d3
-    bmi.s hint_5774
+    DC.B    $4a,$43,$6b,$28
 hint_574c:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_577a
+    DC.B    $4a,$2e,$02,$38,$67,$28
 hint_5752:
-; --- unverified ---
-    cmp.b #$2,d3
-    bne.s hint_5774
+    DC.B    $b6,$3c,$00,$02,$66,$1c
 hint_5758:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_5774
+    DC.B    $4a,$04,$66,$18
 hint_575c:
-; --- unverified ---
-    tst.l d2
-    bmi.s hint_5774
+    DC.B    $4a,$82,$6b,$14
 hint_5760:
-; --- unverified ---
-    cmp.l #$9,d2
-    bcc.s hint_5774
+    DC.B    $b4,$bc,$00,$00,$00,$09,$64,$0c
 hint_5768:
-; --- unverified ---
-    move.b 23(pc,d2.w),d0
-    bmi.s hint_5774
+    DC.B    $10,$3b,$20,$17,$6b,$06
 hint_576e:
-; --- unverified ---
-    movem.l (sp)+,d2-d4/a2-a3
-    rts
+    DC.B    $4c,$df,$0c,$1c,$4e,$75
 hint_5774:
-; --- unverified ---
-    moveq #92,d0
-    bsr.w loc_8486
+    DC.B    $70,$5c,$61,$00,$2d,$0e
 hint_577a:
-; --- unverified ---
-    movem.l (sp)+,d2-d4/a2-a3
-    moveq #0,d0
-    rts
+    DC.B    $4c,$df,$0c,$1c,$70,$00,$4e,$75
 hint_5782:
-    dc.b    $00,$01,$ff,$02
-    dc.b    $ff,$ff,$ff,$03
+    DC.B    $00,$01,$ff,$02
+    DC.B    $ff,$ff,$ff,$03
 hint_578a:
-; --- unverified ---
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    bra.s hint_5796
+    DC.B    $48,$81,$12,$36,$10,$7e,$60,$04
 hint_5792:
-    dc.b    $41,$f1,$20,$00
+    DC.B    $41,$f1,$20,$00
 hint_5796:
-; --- unverified ---
-    movea.l a0,a1
-    move.w (a0)+,d2
-    beq.s hint_57d4
+    DC.B    $22,$48,$34,$18,$67,$38
 hint_579c:
-; --- unverified ---
-    cmp.b (a0)+,d1
-    bcs.s hint_57d4
+    DC.B    $b2,$18,$65,$34
 hint_57a0:
-; --- unverified ---
-    bne.s hint_5792
+    DC.B    $66,$f0
 hint_57a2:
-    dc.b    $48,$e7,$40,$08
+    DC.B    $48,$e7,$40,$08
 hint_57a6:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b (a0)+,d1
-    beq.s hint_57a6
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$18,$67,$f4
 hint_57b2:
-; --- unverified ---
-    tst.b -(a0)
-    beq.s hint_57bc
+    DC.B    $4a,$20,$67,$06
 hint_57b6:
-; --- unverified ---
-    movem.l (sp)+,d1/a4
-    bra.s hint_5792
+    DC.B    $4c,$df,$10,$02,$60,$d6
 hint_57bc:
-; --- unverified ---
-    lea sub_a764(pc),a0
-    tst.b 0(a0,d1.w)
-    beq.s hint_57b6
+    DC.B    $41,$fa,$4f,$a6,$4a,$30,$10,$00,$67,$f0
 hint_57c6:
-; --- unverified ---
-    addq.l #8,sp
-    move.w -2(a1,d2.w),d2
-    move.b -1(a4),d1
-    moveq #0,d0
-    rts
+    DC.B    $50,$8f,$34,$31,$20,$fe,$12,$2c,$ff,$ff,$70,$00,$4e,$75
 hint_57d4:
-; --- unverified ---
-    move.b -1(a4),d1
-    moveq #-1,d0
-    rts
+    DC.B    $12,$2c,$ff,$ff,$70,$ff,$4e,$75
 hint_57dc:
-; --- unverified ---
-    lea pcref_5868(pc),a0
-    bsr.s hint_5828
+    DC.B    $41,$fa,$00,$8a,$61,$46
 hint_57e2:
-; --- unverified ---
-    beq.s hint_5808
+    DC.B    $67,$24
 hint_57e4:
-; --- unverified ---
-    lea str_586c(pc),a0
-    bsr.s hint_5828
+    DC.B    $41,$fa,$00,$86,$61,$3e
 hint_57ea:
-; --- unverified ---
-    beq.s hint_5802
+    DC.B    $67,$16
 hint_57ec:
-; --- unverified ---
-    lea 137(pc),a0
-    bsr.s hint_5828
+    DC.B    $41,$fa,$00,$89,$61,$36
 hint_57f2:
-; --- unverified ---
-    bne.s hint_5822
+    DC.B    $66,$2e
 hint_57f4:
-    dc.b    $1d,$40,$01,$33
+    DC.B    $1d,$40,$01,$33
 hint_57f8:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.s hint_5820
+    DC.B    $b2,$3c,$00,$2c,$66,$22
 hint_57fe:
-; --- unverified ---
-    move.b (a4)+,d1
-    bra.s hint_57dc
+    DC.B    $12,$1c,$60,$da
 hint_5802:
-    dc.b    $1d,$40
+    DC.B    $1d,$40
 hint_5804:
-    dc.b    $01,$32
+    DC.B    $01,$32
+    DC.B    $60,$f0
 hint_5808:
-; --- unverified ---
-    bsr.w sub_16cc
+    DC.B    $61,$00,$be,$c2
 hint_580c:
-; --- unverified ---
-    tst.l d2
-    bmi.s hint_5822
+    DC.B    $4a,$82,$6b,$12
 hint_5810:
-; --- unverified ---
-    cmp.l #$8,d2
-    bcc.s hint_5822
+    DC.B    $b4,$bc,$00,$00,$00,$08,$64,$0a
 hint_5818:
-; --- unverified ---
-    ror.w #7,d2
-    move.w d2,304(a6) ; app+$130
-    bra.s hint_57f8
+    DC.B    $ee,$5a,$3d,$42,$01,$30,$60,$d8
 hint_5820:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5822:
-; --- unverified ---
-    moveq #58,d0
-    bra.w loc_8482
+    DC.B    $70,$3a,$60,$00
+hint_5826:
+    DC.B    $2c,$5c
 hint_5828:
-    dc.b    $43,$ec,$ff,$ff
+    DC.B    $43,$ec,$ff,$ff
 hint_582c:
-; --- unverified ---
-    move.b (a1)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    move.b (a0)+,d0
-    beq.s hint_583e
+    DC.B    $12,$19,$48,$81,$12,$36,$10,$7e,$10,$18,$67,$06
 hint_5838:
-; --- unverified ---
-    cmp.b d0,d1
-    beq.s hint_582c
+    DC.B    $b2,$00,$67,$f0
 hint_583c:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_583e:
-; --- unverified ---
-    cmp.b #$3d,d1
-    bne.s hint_583c
+    DC.B    $b2,$3c,$00,$3d,$66,$f8
 hint_5844:
-; --- unverified ---
-    movea.l a1,a4
-    move.b (a4)+,d1
-    tst.b (a0)
-    bpl.s hint_5850
+    DC.B    $28,$49,$12,$1c,$4a,$10,$6a,$04
 hint_584c:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_5850:
-    dc.b    $70,$00,$48,$81,$12,$36,$10,$7e
+    DC.B    $70,$00,$48,$81,$12,$36,$10,$7e
 hint_5858:
-; --- unverified ---
-    move.b (a0)+,d2
-    beq.s hint_5822
+    DC.B    $14,$18,$67,$c6
 hint_585c:
-; --- unverified ---
-    addq.b #1,d0
-    cmp.b d1,d2
-    bne.s hint_5858
+    DC.B    $52,$00,$b4,$01,$66,$f6
 hint_5862:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b d0,d0
-    rts
+    DC.B    $12,$1c,$b0,$00,$4e,$75
 pcref_5868:
-    dc.b    $49,$44,$00,$ff
+    DC.B    $49,$44,$00,$ff
 str_586c:
-; --- unverified ---
-    addq.w #1,sp
-    subq.w #2,a6
-    neg.b d0
-    link a0,#19802
-    ori.w #$5245,(a0)
-    chk.l d0,d1
-    addq.w #4,d4
-    subq.b #1,d0
-    bsr.w hint_2b02
+    DC.B    "ROUND",0
+    DC.B    "NPMZ",0
+    DC.B    "PREC",0
+    DC.B    $58,$44,$53,$00,$61,$00,$d2,$80
 hint_5884:
-; --- unverified ---
-    move.b 569(a6),d3 ; app+$239
-    bne.s hint_5890
+    DC.B    $16,$2e,$02,$39,$66,$06
 hint_588a:
-    dc.b    $1d,$7c,$00,$07,$02,$39
+    DC.B    $1d,$7c,$00,$07,$02,$39
 hint_5890:
-; --- unverified ---
-    cmp.b #$4,d3
-    bcs.w hint_2b14
+    DC.B    $b6,$3c,$00,$04,$65,$00,$d2,$7e
 hint_5898:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    bne.s hint_58f0
+    DC.B    $4a,$2e,$02,$38,$66,$52
 hint_589e:
-; --- unverified ---
-    move.l a0,-(sp)
-    bsr.w hint_5f9c
+    DC.B    $2f,$08,$61,$00,$06,$fa
 hint_58a4:
-; --- unverified ---
-    movea.l (sp)+,a0
-    bne.w loc_8482
+    DC.B    $20,$5f,$66,$00,$2b,$da
 hint_58aa:
-; --- unverified ---
-    movem.l d2-d3,-(sp)
-    bsr.w sub_0bce
+    DC.B    $48,$e7,$30,$00,$61,$00,$b3,$1e
 hint_58b2:
-; --- unverified ---
-    movem.l (sp)+,d2-d3
-    beq.w loc_8436
+    DC.B    $4c,$df,$00,$0c,$67,$00,$2b,$7e
 hint_58ba:
-; --- unverified ---
-    lea 362(a6),a2 ; app+$16A
-    move.l d2,-(sp)
-    move.b 569(a6),d3 ; app+$239
-    addi.b #$b,d3
-    bsr.w sub_0cb6
+    DC.B    $45,$ee,$01,$6a,$2f,$02,$16,$2e,$02,$39,$06,$03,$00,$0b,$61,$00
+    DC.B    $b3,$ec
 hint_58cc:
-; --- unverified ---
-    movea.l (sp)+,a2
-    move.l (a2),8(a1)
-    move.b 4(a2),14(a1)
-    move.b 5(a2),15(a1)
-    move.l 6(a2),16(a1)
-    move.w 10(a2),20(a1)
-    move.b -1(a4),d1
-    rts
+    DC.B    "$_#R",0
+    DC.B    $08,$13,$6a,$00,$04,$00,$0e,$13,$6a,$00,$05,$00,$0f,$23,$6a,$00
+    DC.B    $06,$00,$10,$33,$6a,$00,$0a,$00,$14,$12,$2c,$ff,$ff,$4e,$75
 hint_58f0:
-; --- unverified ---
-    bsr.w sub_0bce
+    DC.B    $61,$00,$b2,$dc
 hint_58f4:
-; --- unverified ---
-    bne.w loc_844e
+    DC.B    $66,$00,$2b,$58
 hint_58f8:
-; --- unverified ---
-    btst #6,12(a1)
-    bne.w loc_8436
+    DC.B    $08,$29,$00,$06,$00,$0c,$66,$00,$2b,$36
 hint_5902:
-; --- unverified ---
-    move.b 569(a6),d3 ; app+$239
-    move.l a1,-(sp)
-    bsr.w hint_5f9c
+    DC.B    $16,$2e,$02,$39,$2f,$09,$61,$00,$06,$92
 hint_590c:
-; --- unverified ---
-    movea.l (sp)+,a1
-    bne.w loc_8482
+    DC.B    $22,$5f,$66,$00,$2b,$72
 hint_5912:
-; --- unverified ---
-    movea.l d2,a0
-    move.l 8(a1),d0
-    cmp.l (a0),d0
-    bne.s hint_5958
+    DC.B    " B )",0
+    DC.B    $08,$b0,$90,$66,$3c
 hint_591c:
-; --- unverified ---
-    move.b 14(a1),d0
-    cmp.b 4(a0),d0
-    bne.s hint_5958
+    DC.B    $10,$29,$00,$0e,$b0,$28,$00,$04,$66,$32
 hint_5926:
-; --- unverified ---
-    move.b 15(a1),d0
-    cmp.b 5(a0),d0
-    bne.s hint_5958
+    DC.B    $10,$29,$00,$0f,$b0,$28,$00,$05,$66,$28
 hint_5930:
-; --- unverified ---
-    move.l 16(a1),d0
-    cmp.l 6(a0),d0
-    bne.s hint_5958
+    DC.B    $20,$29,$00,$10,$b0,$a8,$00,$06,$66,$1e
 hint_593a:
-; --- unverified ---
-    move.w 20(a1),d0
-    cmp.w 10(a0),d0
-    bne.s hint_5958
+    DC.B    $30,$29,$00,$14,$b0,$68,$00,$0a,$66,$14
 hint_5944:
-; --- unverified ---
-    cmp.b 13(a1),d3
-    bne.w loc_8436
+    DC.B    $b6,$29,$00,$0d,$66,$00,$2a,$ec
 hint_594c:
-; --- unverified ---
-    bset #6,12(a1)
-    move.b -1(a4),d1
-    rts
+    DC.B    $08,$e9,$00,$06,$00,$0c,$12,$2c,$ff,$ff,$4e,$75
 hint_5958:
-; --- unverified ---
-    bra.w loc_843e
+    DC.B    $60,$00
+hint_595a:
+    DC.B    $2a,$e4
 hint_595c:
-; --- unverified ---
-    or.w 304(a6),d6 ; app+$130
-    bra.w hint_61c6
+    DC.B    $8c,$6e,$01,$30,$60,$00,$08,$64
 hint_5964:
-; --- unverified ---
-    move.w d6,d5
-    move.w #$f048,d6
-    or.w 304(a6),d6 ; app+$130
-    swap d5
-    move.w d6,d5
-    swap d5
-    bra.w hint_620e
+    DC.B    $3a,$06,$3c,$3c,$f0,$48,$8c,$6e,$01,$30,$48,$45,$3a,$06,$48,$45
+    DC.B    $60,$00,$08,$98
 hint_5978:
-; --- unverified ---
-    move.w #$f000,d6
-    or.w 304(a6),d6 ; app+$130
-    move.w d6,(a5)+
-    bsr.w hint_5f20
+    DC.B    $3c,$3c,$f0,$00,$8c,$6e,$01,$30,$3a,$c6,$61,$00,$05,$9c
 hint_5986:
-; --- unverified ---
-    bne.s hint_59a8
+    DC.B    $66,$20
 hint_5988:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$2a,$d4
 hint_5990:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d2,d3
-    bsr.w hint_5f20
+    DC.B    $12,$1c,$36,$02,$61,$00,$05,$8a
 hint_5998:
-; --- unverified ---
-    bne.w hint_5a28
+    DC.B    $66,$00,$00,$8e
 hint_599c:
-; --- unverified ---
-    lsl.w #3,d3
-    or.w d3,d2
-    lsl.w #7,d2
-    move.w d2,(a5)+
-    bra.w hint_5d68
+    DC.B    $e7,$4b,$84,$43,$ef,$4a,$3a,$c2,$60,$00,$03,$c2
 hint_59a8:
-; --- unverified ---
-    lea pcref_5ac2(pc),a0
-    bsr.w hint_578a
+    DC.B    $41,$fa,$01,$18,$61,$00,$fd,$dc
 hint_59b0:
-; --- unverified ---
-    beq.s hint_59e2
+    DC.B    $67,$30
 hint_59b2:
-; --- unverified ---
-    move.w #$4000,d5
-    bsr.w hint_5f7c
+    DC.B    $3a,$3c,$40,$00,$61,$00,$05,$c4
 hint_59ba:
-; --- unverified ---
-    move.w d5,(a5)+
-    bsr.w hint_5b04
+    DC.B    $3a,$c5,$61,$00,$01,$46
 hint_59c0:
-; --- unverified ---
-    moveq #-3,d0
-    bsr.w hint_1704
+    DC.B    $70,$fd,$61,$00,$bd,$40
 hint_59c6:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$2a,$96
 hint_59ce:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f20
+    DC.B    $12,$1c,$61,$00,$05,$4e
 hint_59d4:
-; --- unverified ---
-    bne.s hint_5a02
+    DC.B    $66,$2c
 hint_59d6:
-; --- unverified ---
-    lsl.w #7,d2
-    movea.l 588(a6),a0 ; app+$24C
-    or.w d2,2(a0)
-    rts
+    DC.B    $ef,$4a,$20,$6e,$02,$4c,$85,$68,$00,$02,$4e,$75
 hint_59e2:
-; --- unverified ---
-    bsr.w hint_2350
+    DC.B    $61,$00,$c9,$6c
 hint_59e6:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$2a,$76
 hint_59ee:
-; --- unverified ---
-    move.b (a4)+,d1
-    ror.w #6,d2
-    ori.w #$a000,d2
-    move.w d2,(a5)+
-    bsr.w hint_5aa0
+    DC.B    $12,$1c,$ec,$5a,$00,$42,$a0,$00,$3a,$c2,$61,$00,$00,$a6
 hint_59fc:
-; --- unverified ---
-    moveq #61,d0
-    bra.w hint_1704
+    DC.B    $70,$3d,$60,$00,$bd,$04
 hint_5a02:
-; --- unverified ---
-    lea pcref_5ac2(pc),a0
-    bsr.w hint_578a
+    DC.B    $41,$fa,$00,$be,$61,$00,$fd,$82
 hint_5a0a:
-; --- unverified ---
-    bne.s hint_5a22
+    DC.B    $66,$16
 hint_5a0c:
-; --- unverified ---
-    bsr.w hint_5aa4
+    DC.B    $61,$00,$00,$96
 hint_5a10:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    ror.w #6,d2
-    bset #15,d2
-    move.w d2,2(a0)
-    bra.w hint_2350
+    DC.B    $20,$6e,$02,$4c,$ec,$5a,$08,$c2,$00,$0f,$31,$42,$00,$02,$60,$00
+    DC.B    $c9,$30
 hint_5a22:
-; --- unverified ---
-    moveq #87,d0
-    bra.w loc_8486
+    DC.B    $70,$57,$60,$00
+hint_5a26:
+    DC.B    $2a,$60
 hint_5a28:
-; --- unverified ---
-    move.w #$6000,d5
-    bsr.w hint_5f7c
+    DC.B    $3a,$3c,$60,$00,$61,$00,$05,$4e
 hint_5a30:
-; --- unverified ---
-    lsl.w #7,d3
-    or.w d3,d5
-    move.w d5,(a5)+
-    bsr.w hint_5b04
+    DC.B    $ef,$4b,$8a,$43,$3a,$c5,$61,$00,$00,$cc
 hint_5a3a:
-; --- unverified ---
-    moveq #61,d0
-    bsr.w hint_1704
+    DC.B    $70,$3d,$61,$00,$bc,$c6
 hint_5a40:
-; --- unverified ---
-    cmpi.b #$5,569(a6) ; app+$239
-    beq.s hint_5a4a
+    DC.B    $0c,$2e,$00,$05,$02,$39,$67,$02
 hint_5a48:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5a4a:
-; --- unverified ---
-    cmp.b #$7b,d1
-    bne.s hint_5a48
+    DC.B    $b2,$3c,$00,$7b,$66,$f8
 hint_5a50:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$23,d1
-    beq.s hint_5a7e
+    DC.B    $12,$1c,$b2,$3c,$00,$23,$67,$26
 hint_5a58:
-; --- unverified ---
-    bsr.w sub_177e
+    DC.B    $61,$00,$bd,$24
 hint_5a5c:
-; --- unverified ---
-    bne.s hint_5a9a
+    DC.B    $66,$3c
 hint_5a5e:
-; --- unverified ---
-    tst.b d0
-    bne.s hint_5a9a
+    DC.B    $4a,$00,$66,$38
 hint_5a62:
-    dc.b    $02,$42,$00,$07,$e9,$0a,$08,$c2,$00,$0c
+    DC.B    $02,$42,$00,$07,$e9,$0a,$08,$c2,$00,$0c
 hint_5a6c:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    or.w d2,2(a0)
-    cmp.b #$7d,d1
-    bne.s hint_5a9a
+    DC.B    $20,$6e,$02,$4c,$85,$68,$00,$02,$b2,$3c,$00,$7d,$66,$20
 hint_5a7a:
-; --- unverified ---
-    move.b (a4)+,d1
-    rts
+    DC.B    $12,$1c,$4e,$75
 hint_5a7e:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$61,$00,$bc,$4a
 hint_5a84:
-; --- unverified ---
-    cmp.l #$ffffffc0,d2
-    blt.s hint_5a9a
+    DC.B    $b4,$bc,$ff,$ff,$ff,$c0,$6d,$0e
 hint_5a8c:
-; --- unverified ---
-    cmp.l #$3f,d2
-    bgt.s hint_5a9a
+    DC.B    $b4,$bc,$00,$00,$00,$3f,$6e,$06
 hint_5a94:
-; --- unverified ---
-    andi.w #$7f,d2
-    bra.s hint_5a6c
+    DC.B    $02,$42,$00,$7f,$60,$d2
 hint_5a9a:
-; --- unverified ---
-    moveq #97,d0
-    bra.w loc_8486
+    DC.B    $70,$61,$60,$00
+hint_5a9e:
+    DC.B    $29,$e8
 hint_5aa0:
-; --- unverified ---
-    bsr.w hint_5b04
+    DC.B    $61,$00,$00,$62
 hint_5aa4:
-; --- unverified ---
-    moveq #56,d0
-    and.w d5,d0
-    subq.w #8,d0
-    beq.s hint_5aae
+    DC.B    $70,$38,$c0,$45,$51,$40,$67,$02
 hint_5aac:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5aae:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    btst #2,2(a0)
-    beq.s hint_5abc
+    DC.B    $20,$6e,$02,$4c,$08,$28,$00,$02,$00,$02,$67,$02
 hint_5aba:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5abc:
-; --- unverified ---
-    moveq #95,d0
-    bra.w loc_8486
+    DC.B    $70,$5f,$60,$00,$29,$c6
 pcref_5ac2:
-    dc.b    $00,$0c
-    dc.b    "CONTROL",0
-    dc.b    $00,$04,$00,$0a,$46,$50
-    dc.b    $43,$52,$00,$00,$00,$04,$00,$0a
-    dc.b    "FPIAR",0
-    dc.b    $00,$01,$00,$0a
-    dc.b    "FPSR",0
-    dc.b    $00,$00,$02,$00,$0a
-    dc.b    "IADDR",0
-    dc.b    $00,$01,$00,$0c,$53,$54,$41,$54
+    DC.B    $00,$0c
+    DC.B    "CONTROL",0
+    DC.B    $00,$04,$00,$0a,$46,$50
+    DC.B    $43,$52,$00,$00,$00,$04,$00,$0a
+    DC.B    "FPIAR",0
+    DC.B    $00,$01,$00,$0a
+    DC.B    "FPSR",0
+    DC.B    $00,$00,$02,$00,$0a
+    DC.B    "IADDR",0
+    DC.B    $00,$01,$00,$0c,$53,$54,$41,$54
 hint_5afc:
-    dc.b    $55,$53,$00,$00,$00,$02,$00,$00
+    DC.B    $55,$53,$00,$00,$00,$02,$00,$00
 hint_5b04:
-    dc.b    $b2,$3c
+    DC.B    $b2,$3c
+    DC.B    $00,$23,$66,$30
 hint_5b0a:
-; --- unverified ---
-    move.b 569(a6),d3 ; app+$239
-    cmp.b #$4,d3
-    bcs.s hint_5b3a
+    DC.B    $16,$2e,$02,$39,$b6,$3c,$00,$04,$65,$26
 hint_5b14:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_5b16:
-; --- unverified ---
-    move.b 569(a6),d3 ; app+$239
-    bsr.w hint_5f9c
+    DC.B    $16,$2e,$02,$39,$61,$00,$04,$80
 hint_5b1e:
-; --- unverified ---
-    bne.w loc_8482
+    DC.B    $66,$00,$29,$62
 hint_5b22:
-; --- unverified ---
-    addi.b #$f5,d3
-    move.b d3,d0
-    move.b 569(a6),d3 ; app+$239
-    movea.l d2,a0
-    bsr.w hint_b168
+    DC.B    $06,$03,$00,$f5,$10,$03,$16,$2e,$02
+    DC.B    "9 Ba",0
+    DC.B    $56,$38
 hint_5b32:
-; --- unverified ---
-    bne.s hint_5b54
+    DC.B    $66,$20
 hint_5b34:
-; --- unverified ---
-    moveq #60,d5
-    bra.w hint_6188
+    DC.B    $7a,$3c,$60,$00,$06,$50
 hint_5b3a:
-; --- unverified ---
-    bsr.w hint_187e
+    DC.B    $61,$00,$bd,$42
 hint_5b3e:
-; --- unverified ---
-    cmp.w #$10,d5
-    bcc.s hint_5b54
+    DC.B    $ba,$7c,$00,$10,$64,$10
 hint_5b44:
-; --- unverified ---
-    moveq #78,d0
-    move.b 569(a6),d2 ; app+$239
-    btst d2,d0
-    bne.s hint_5b54
+    DC.B    $70,$4e,$14,$2e,$02,$39,$05,$00,$66,$06
 hint_5b4e:
-; --- unverified ---
-    moveq #94,d0
-    bsr.w loc_8486
+    DC.B    $70,$5e,$61,$00,$29,$34
 hint_5b54:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5b56:
-; --- unverified ---
-    move.w #$f000,d6
-    or.w 304(a6),d6 ; app+$130
-    move.w d6,(a5)+
-    move.b 569(a6),d0 ; app+$239
-    cmp.b #$3,d0
-    beq.w hint_5c84
+    DC.B    $3c,$3c,$f0,$00,$8c,$6e,$01,$30,$3a,$c6,$10,$2e,$02,$39,$b0,$3c
+    DC.B    $00,$03,$67,$00,$01,$1a
 hint_5b6c:
-; --- unverified ---
-    bsr.w hint_5d68
+    DC.B    $61,$00,$01,$fa
 hint_5b70:
-; --- unverified ---
-    move.w #$e000,d5
-    bsr.w hint_5c44
+    DC.B    $3a,$3c,$e0,$00,$61,$00,$00,$ce
 hint_5b78:
-; --- unverified ---
-    bne.s hint_5ba4
+    DC.B    $66,$2a
 hint_5b7a:
-; --- unverified ---
-    move.w d5,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $3a,$c5,$b2,$3c,$00,$2c,$66,$00,$28,$e0
 hint_5b84:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5b04
+    DC.B    $12,$1c,$61,$00,$ff,$7c
 hint_5b8a:
-; --- unverified ---
-    moveq #52,d0
-    bsr.w hint_1704
+    DC.B    $70,$34,$61,$00,$bb,$76
 hint_5b90:
-; --- unverified ---
-    bsr.w hint_5c22
+    DC.B    $61,$00,$00,$90
 hint_5b94:
-; --- unverified ---
-    beq.s hint_5ba2
+    DC.B    $67,$0c
 hint_5b96:
-; --- unverified ---
-    move.w 2(a0),d5
-    bsr.w hint_5c30
+    DC.B    $3a,$28,$00,$02,$61,$00,$00,$94
 hint_5b9e:
-    dc.b    $31,$45,$00,$02
+    DC.B    $31,$45,$00,$02
 hint_5ba2:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5ba4:
-; --- unverified ---
-    bsr.w hint_5f68
+    DC.B    $61,$00,$03,$c2
 hint_5ba8:
-; --- unverified ---
-    bne.s hint_5bd4
+    DC.B    $66,$2a
 hint_5baa:
-; --- unverified ---
-    bset #11,d5
-    lsl.b #4,d2
-    or.b d2,d5
-    move.w d5,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $08,$c5,$00,$0b,$e9,$0a,$8a,$02,$3a,$c5,$b2,$3c,$00,$2c,$66,$00
+    DC.B    $28,$a8
 hint_5bbc:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5b04
+    DC.B    $12,$1c,$61,$00,$ff,$44
 hint_5bc2:
-; --- unverified ---
-    moveq #52,d0
-    bsr.w hint_1704
+    DC.B    $70,$34,$61,$00,$bb,$3e
 hint_5bc8:
-; --- unverified ---
-    bsr.s hint_5c22
+    DC.B    $61,$58
 hint_5bca:
-; --- unverified ---
-    beq.s hint_5bd2
+    DC.B    $67,$06
 hint_5bcc:
-    dc.b    $08,$e8,$00,$04,$00,$02
+    DC.B    $08,$e8,$00,$04,$00,$02
 hint_5bd2:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5bd4:
-; --- unverified ---
-    move.w #$d000,(a5)+
-    bsr.w hint_5b04
+    DC.B    $3a,$fc,$d0,$00,$61,$00,$ff,$2a
 hint_5bdc:
-; --- unverified ---
-    moveq #125,d0
-    bsr.w hint_1704
+    DC.B    $70,$7d,$61,$00,$bb,$24
 hint_5be2:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$28,$7a
 hint_5bea:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f68
+    DC.B    $12,$1c,$61,$00,$03,$7a
 hint_5bf0:
-; --- unverified ---
-    bne.s hint_5c06
+    DC.B    $66,$14
 hint_5bf2:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    andi.w #$f,d2
-    lsl.w #4,d2
-    bset #11,d2
-    or.w d2,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$02,$42,$00,$0f,$e9,$4a,$08,$c2,$00,$0b,$85,$68
+    DC.B    $00,$02,$4e,$75
 hint_5c06:
-; --- unverified ---
-    move.w #$d000,d5
-    bsr.w hint_5c44
+    DC.B    $3a,$3c,$d0,$00,$61,$00,$00,$38
 hint_5c0e:
-; --- unverified ---
-    bne.s hint_5c1c
+    DC.B    $66,$0c
 hint_5c10:
-; --- unverified ---
-    bsr.s hint_5c30
+    DC.B    $61,$1e
 hint_5c12:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d5,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$31,$45,$00,$02,$4e,$75
 hint_5c1c:
-; --- unverified ---
-    moveq #57,d0
-    bra.w loc_8486
+    DC.B    $70,$39,$60,$00,$28,$66
 hint_5c22:
-; --- unverified ---
-    moveq #56,d0
-    and.w d5,d0
-    movea.l 588(a6),a0 ; app+$24C
-    cmp.w #$20,d0
-    rts
+    DC.B    $70,$38,$c0,$45,$20,$6e,$02,$4c,$b0,$7c,$00,$20,$4e,$75
 hint_5c30:
-    dc.b    $10,$05,$e0,$4d,$74,$07
+    DC.B    $10,$05,$e0,$4d,$74,$07
 hint_5c36:
-; --- unverified ---
-    roxr.b #1,d0
-    roxl.w #1,d5
-    dbf d2,hint_5c36
+    DC.B    $e2,$10,$e3,$55,$51,$ca,$ff,$fa
 hint_5c3e:
-; --- unverified ---
-    bset #12,d5
-    rts
+    DC.B    $08,$c5,$00,$0c,$4e,$75
 hint_5c44:
-; --- unverified ---
-    bsr.w hint_5f20
+    DC.B    $61,$00,$02,$da
 hint_5c48:
-; --- unverified ---
-    beq.s hint_5c4c
+    DC.B    $67,$02
 hint_5c4a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5c4c:
-    dc.b    $36,$02,$05,$c5
+    DC.B    $36,$02,$05,$c5
 hint_5c50:
-; --- unverified ---
-    cmp.b #$2f,d1
-    bne.s hint_5c5e
+    DC.B    $b2,$3c,$00,$2f,$66,$08
 hint_5c56:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$61,$00,$02,$ba
 hint_5c5c:
-; --- unverified ---
-    bra.s hint_5c4c
+    DC.B    $60,$ee
 hint_5c5e:
-; --- unverified ---
-    cmp.b #$2d,d1
-    bne.s hint_5c80
+    DC.B    $b2,$3c,$00,$2d,$66,$1c
 hint_5c64:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$61,$00,$02,$ac
 hint_5c6a:
-; --- unverified ---
-    cmp.w d3,d2
-    blt.s hint_5c7a
+    DC.B    $b4,$43,$6d,$0c
 hint_5c6e:
-; --- unverified ---
-    bset d3,d5
-    addq.w #1,d3
-    cmp.w d2,d3
-    ble.s hint_5c6e
+    DC.B    $07,$c5,$52,$43,$b6,$42,$6f,$f8
 hint_5c76:
-; --- unverified ---
-    move.w d2,d3
-    bra.s hint_5c50
+    DC.B    $36,$02,$60,$d6
 hint_5c7a:
-; --- unverified ---
-    moveq #57,d0
-    bra.w loc_8482
+    DC.B    $70,$39,$60,$00,$28,$04
 hint_5c80:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_5c84:
-; --- unverified ---
-    move.w #$a000,d5
-    lea pcref_5ac2(pc),a0
-    bsr.w hint_578a
+    DC.B    $3a,$3c,$a0,$00,$41,$fa,$fe,$38,$61,$00,$fa,$fc
 hint_5c90:
-; --- unverified ---
-    bne.s hint_5cc4
+    DC.B    $66,$32
 hint_5c92:
-; --- unverified ---
-    ror.w #6,d2
-    or.w d2,d5
-    cmp.b #$2f,d1
-    bne.s hint_5cae
+    DC.B    $ec,$5a,$8a,$42,$b2,$3c,$00,$2f,$66,$12
 hint_5c9c:
-; --- unverified ---
-    move.b (a4)+,d1
-    lea pcref_5ac2(pc),a0
-    bsr.w hint_578a
+    DC.B    $12,$1c,$41,$fa,$fe,$22,$61,$00,$fa,$e6
 hint_5ca6:
-; --- unverified ---
-    beq.s hint_5c92
+    DC.B    $67,$ea
 hint_5ca8:
-; --- unverified ---
-    moveq #57,d0
-    bra.w loc_8486
+    DC.B    $70,$39,$60,$00,$27,$da
 hint_5cae:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$27,$ae
 hint_5cb6:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d5,(a5)+
-    bsr.w hint_5b04
+    DC.B    $12,$1c,$3a,$c5,$61,$00,$fe,$48
 hint_5cbe:
-; --- unverified ---
-    moveq #-1,d0
-    bra.w hint_1704
+    DC.B    $70,$ff,$60,$00,$ba,$42
 hint_5cc4:
-; --- unverified ---
-    move.w d5,(a5)+
-    bsr.w hint_5b04
+    DC.B    $3a,$c5,$61,$00,$fe,$3c
 hint_5cca:
-; --- unverified ---
-    moveq #-1,d0
-    bsr.w hint_1704
+    DC.B    $70,$ff,$61,$00,$ba,$36
 hint_5cd0:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$27,$8c
 hint_5cd8:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w #$8000,d5
-    lea pcref_5ac2(pc),a0
-    bsr.w hint_578a
+    DC.B    $12,$1c,$3a,$3c,$80,$00,$41,$fa,$fd,$e2,$61,$00,$fa,$a6
 hint_5ce6:
-; --- unverified ---
-    bne.s hint_5ca8
+    DC.B    $66,$c0
 hint_5ce8:
-; --- unverified ---
-    ror.w #6,d2
-    or.w d2,d5
-    cmp.b #$2f,d1
-    bne.s hint_5d00
+    DC.B    $ec,$5a,$8a,$42,$b2,$3c,$00,$2f,$66,$0e
 hint_5cf2:
-; --- unverified ---
-    move.b (a4)+,d1
-    lea pcref_5ac2(pc),a0
-    bsr.w hint_578a
+    DC.B    $12,$1c,$41,$fa,$fd,$cc,$61,$00,$fa,$90
 hint_5cfc:
-; --- unverified ---
-    beq.s hint_5ce8
+    DC.B    $67,$ea
 hint_5cfe:
-; --- unverified ---
-    bra.s hint_5ca8
+    DC.B    $60,$a8
 hint_5d00:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    move.w d5,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$31,$45,$00,$02,$4e,$75
 hint_5d0a:
-; --- unverified ---
-    or.w 304(a6),d6 ; app+$130
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_5d18
+    DC.B    $8c,$6e,$01,$30,$10,$2e,$02,$39,$67,$04
 hint_5d14:
-; --- unverified ---
-    bsr.w hint_5d68
+    DC.B    $61,$00,$00,$52
 hint_5d18:
-; --- unverified ---
-    move.w d6,(a5)+
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $3a,$c6,$b2,$3c,$00,$23,$66,$00,$27,$4a
 hint_5d22:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$61,$00,$b9,$a6
 hint_5d28:
-; --- unverified ---
-    tst.l d2
-    bmi.s hint_5d34
+    DC.B    $4a,$82,$6b,$08
 hint_5d2c:
-; --- unverified ---
-    cmp.l #$40,d2
-    bcs.s hint_5d3a
+    DC.B    $b4,$bc,$00,$00,$00,$40,$65,$06
 hint_5d34:
-; --- unverified ---
-    moveq #29,d0
-    bsr.w loc_8486
+    DC.B    $70,$1d,$61,$00,$27,$4e
 hint_5d3a:
-; --- unverified ---
-    andi.w #$3f,d2
-    ori.w #$5c00,d2
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $02,$42,$00,$3f,$00,$42,$5c,$00,$b2,$3c,$00,$2c,$66,$00,$27,$1a
 hint_5d4a:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d2,d3
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$36,$02,$61,$00,$01,$c4
 hint_5d52:
-; --- unverified ---
-    lsl.w #7,d2
-    or.w d2,d3
-    move.w d3,(a5)+
-    rts
+    DC.B    $ef,$4a,$86,$42,$3a,$c3,$4e,$75
 hint_5d5a:
-; --- unverified ---
-    or.w 304(a6),d6 ; app+$130
-    swap d6
-    clr.w d6
-    move.l d6,(a5)+
-    moveq #10,d1
-    rts
+    DC.B    $8c,$6e,$01
+    DC.B    "0HFBF*"
+    DC.B    $c6,$72,$0a,$4e,$75
 hint_5d68:
-; --- unverified ---
-    cmpi.b #$7,569(a6) ; app+$239
-    beq.s hint_5d7e
+    DC.B    $0c,$2e,$00,$07,$02,$39,$67,$0e
 hint_5d70:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$26,$d4
 hint_5d78:
-    dc.b    $1d,$7c,$00,$07,$02,$39
+    DC.B    $1d,$7c,$00,$07,$02,$39
 hint_5d7e:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5d80:
-; --- unverified ---
-    cmpi.b #$3c,289(a6) ; app+$121
-    beq.w hint_5d94
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$67,$00,$00,$0c
 hint_5d8a:
-; --- unverified ---
-    cmpi.b #$28,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$28,$01,$21,$66,$00,$d3,$a0
 hint_5d94:
-; --- unverified ---
-    move.w d6,d5
-    move.w #$f000,d6
-    or.w 304(a6),d6 ; app+$130
-    swap d5
-    move.w d6,d5
-    swap d5
-    bsr.w hint_5f20
+    DC.B    $3a,$06,$3c,$3c,$f0,$00,$8c,$6e,$01,$30,$48,$45,$3a,$06,$48,$45
+    DC.B    $61,$00,$01,$7a
 hint_5da8:
-; --- unverified ---
-    bne.s hint_5dc8
+    DC.B    $66,$1e
 hint_5daa:
-; --- unverified ---
-    ror.w #6,d2
-    or.w d2,d5
-    rol.w #6,d2
-    bsr.s hint_5d68
+    DC.B    $ec,$5a,$8a,$42,$ed,$5a,$61,$b6
 hint_5db2:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.s hint_5dbe
+    DC.B    $b2,$3c,$00,$2c,$66,$06
 hint_5db8:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$61,$00,$01,$58
 hint_5dbe:
-; --- unverified ---
-    move.w d6,(a5)+
-    rol.w #7,d2
-    or.w d2,d5
-    move.w d5,(a5)+
-    rts
+    DC.B    $3a,$c6,$ef,$5a,$8a,$42,$3a,$c5,$4e,$75
 hint_5dc8:
-; --- unverified ---
-    bset #14,d5
-    bsr.w hint_5f7c
+    DC.B    $08,$c5,$00,$0e,$61,$00,$01,$ae
 hint_5dd0:
-; --- unverified ---
-    move.l d5,(a5)+
-    bsr.w hint_5b04
+    DC.B    $2a,$c5,$61,$00,$fd,$30
 hint_5dd6:
-; --- unverified ---
-    moveq #-3,d0
-    bsr.w hint_1704
+    DC.B    $70,$fd,$61,$00,$b9,$2a
 hint_5ddc:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$26,$80
 hint_5de4:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$61,$00,$01,$2c
 hint_5dea:
-; --- unverified ---
-    lsl.w #7,d2
-    movea.l 588(a6),a0 ; app+$24C
-    or.w d2,2(a0)
-    rts
+    DC.B    $ef,$4a,$20,$6e,$02,$4c,$85,$68,$00,$02,$4e,$75
 hint_5df6:
-; --- unverified ---
-    or.w 304(a6),d6 ; app+$130
-    tst.b 293(a6) ; app+$125
-    beq.s hint_5e06
+    DC.B    $8c,$6e,$01,$30,$4a,$2e,$01,$25,$67,$06
 hint_5e00:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$26,$82
 hint_5e06:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$26,$3e
 hint_5e0e:
-; --- unverified ---
-    bsr.w hint_16e6
+    DC.B    $61,$00,$b8,$d6
 hint_5e12:
-; --- unverified ---
-    ori.w #$4e75,-29586(a4)
-    btst d0,46(a0,d4.l)
-    btst d0,-(a5)
-    beq.s hint_5e26
+    DC.B    $00,$6c,$4e,$75,$8c,$6e,$01,$30,$4a,$2e,$01,$25,$67,$06
 hint_5e20:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$26,$62
 hint_5e26:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$26,$1e
 hint_5e2e:
-; --- unverified ---
-    bsr.w hint_16e6
+    DC.B    $61,$00,$b8,$b6
 hint_5e32:
-; --- unverified ---
-    ori.b #$75,6(a4,d3.l)
-    move.w #$f040,d6
-    or.w 304(a6),d6 ; app+$130
-    swap d5
-    move.w d6,d5
-    swap d5
-    bra.w hint_669c
+    DC.B    $00,$34,$4e,$75,$3a,$06,$3c,$3c,$f0,$40,$8c,$6e,$01,$30,$48,$45
+    DC.B    $3a,$06,$48,$45,$60,$00,$08,$54
 hint_5e4a:
-; --- unverified ---
-    or.w 304(a6),d6 ; app+$130
-    move.w d6,(a5)+
-    moveq #48,d5
-    bsr.w hint_5f20
+    DC.B    $8c,$6e,$01,$30,$3a,$c6,$7a,$30,$61,$00,$00,$cc
 hint_5e56:
-; --- unverified ---
-    bne.s hint_5e86
+    DC.B    $66,$2e
 hint_5e58:
-; --- unverified ---
-    ror.w #6,d2
-    or.w d2,d5
-    bsr.w hint_5d68
+    DC.B    $ec,$5a,$8a,$42,$61,$00,$ff,$0a
 hint_5e60:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$25,$fc
 hint_5e68:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$61,$00,$00,$a8
 hint_5e6e:
-; --- unverified ---
-    or.w d2,d5
-    cmp.b #$3a,d1
-    bne.w hint_245c
+    DC.B    $8a,$42,$b2,$3c,$00,$3a,$66,$00,$c5,$e6
 hint_5e78:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$61,$00,$00,$98
 hint_5e7e:
-; --- unverified ---
-    lsl.w #7,d2
-    or.w d2,d5
-    move.w d5,(a5)+
-    rts
+    DC.B    $ef,$4a,$8a,$42,$3a,$c5,$4e,$75
 hint_5e86:
-; --- unverified ---
-    bset #14,d5
-    bsr.w hint_5f7c
+    DC.B    $08,$c5,$00,$0e,$61,$00,$00,$f0
 hint_5e8e:
-; --- unverified ---
-    move.w d5,(a5)+
-    bsr.w hint_5b04
+    DC.B    $3a,$c5,$61,$00,$fc,$72
 hint_5e94:
-; --- unverified ---
-    moveq #-3,d0
-    bsr.w hint_1704
+    DC.B    $70,$fd,$61,$00,$b8,$6c
 hint_5e9a:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$25,$c2
 hint_5ea2:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$61,$00,$00,$6e
 hint_5ea8:
-; --- unverified ---
-    move.w d2,d5
-    cmp.b #$3a,d1
-    bne.w hint_245c
+    DC.B    $3a,$02,$b2,$3c,$00,$3a,$66,$00,$c5,$ac
 hint_5eb2:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5f14
+    DC.B    $12,$1c,$61,$00,$00,$5e
 hint_5eb8:
-; --- unverified ---
-    lsl.w #7,d2
-    or.w d2,d5
-    movea.l 588(a6),a0 ; app+$24C
-    or.w d5,2(a0)
-    rts
+    DC.B    $ef,$4a,$8a,$42,$20,$6e,$02,$4c,$8b,$68,$00,$02,$4e,$75
 hint_5ec6:
-; --- unverified ---
-    move.w d6,d5
-    move.w #$f078,d6
-    or.w 304(a6),d6 ; app+$130
-    swap d5
-    move.w d6,d5
-    swap d5
-    move.l d5,(a5)+
-    bra.w hint_4d34
+    DC.B    $3a,$06,$3c,$3c,$f0,$78,$8c,$6e,$01,$30,$48,$45,$3a,$06,$48,$45
+    DC.B    $2a,$c5,$60,$00,$ee,$5a
 hint_5edc:
-; --- unverified ---
-    move.w d6,d5
-    move.w #$f000,d6
-    or.w 304(a6),d6 ; app+$130
-    swap d5
-    move.w d6,d5
-    swap d5
-    bsr.w hint_5f20
+    DC.B    $3a,$06,$3c,$3c,$f0,$00,$8c,$6e,$01,$30,$48,$45,$3a,$06,$48,$45
+    DC.B    $61,$00,$00,$32
 hint_5ef0:
-; --- unverified ---
-    bne.s hint_5f00
+    DC.B    $66,$0e
 hint_5ef2:
-; --- unverified ---
-    ror.w #6,d2
-    or.w d2,d5
-    bsr.w hint_5d68
+    DC.B    $ec,$5a,$8a,$42,$61,$00,$fe,$70
 hint_5efa:
-; --- unverified ---
-    move.w d6,(a5)+
-    move.w d5,(a5)+
-    rts
+    DC.B    $3a,$c6,$3a,$c5,$4e,$75
 hint_5f00:
-; --- unverified ---
-    bset #14,d5
-    bsr.w hint_5f7c
+    DC.B    $08,$c5,$00,$0e,$61,$00,$00,$76
 hint_5f08:
-; --- unverified ---
-    move.l d5,(a5)+
-    bsr.w hint_5b04
+    DC.B    $2a,$c5,$61,$00,$fb,$f8
 hint_5f0e:
-; --- unverified ---
-    moveq #-3,d0
-    bra.w hint_1704
+    DC.B    $70,$fd,$60,$00,$b7,$f2
 hint_5f14:
-; --- unverified ---
-    bsr.s hint_5f20
+    DC.B    $61,$0a
 hint_5f16:
-; --- unverified ---
-    bne.s hint_5f1a
+    DC.B    $66,$02
 hint_5f18:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5f1a:
-; --- unverified ---
-    moveq #87,d0
-    bra.w loc_8482
+    DC.B    $70,$57,$60,$00
+hint_5f1e:
+    DC.B    $25,$64
 hint_5f20:
-; --- unverified ---
-    move.b d1,d0
-    movea.l a4,a0
-    ext.w d0
-    move.b 126(a6,d0.w),d0
-    cmp.b #$46,d0
-    bne.s hint_5f64
+    DC.B    $10,$01,$20,$4c,$48,$80,$10,$36,$00,$7e,$b0,$3c,$00,$46,$66,$34
 hint_5f30:
-; --- unverified ---
-    move.b (a0)+,d0
-    ext.w d0
-    move.b 126(a6,d0.w),d0
-    cmp.b #$50,d0
-    bne.s hint_5f64
+    DC.B    $10,$18,$48,$80,$10,$36,$00,$7e,$b0,$3c,$00,$50,$66,$26
 hint_5f3e:
-; --- unverified ---
-    move.b (a0)+,d2
-    subi.b #$30,d2
-    bcs.s hint_5f64
+    DC.B    $14,$18,$04,$02,$00,$30,$65,$1e
 hint_5f46:
-; --- unverified ---
-    cmp.b #$8,d2
-    bcc.s hint_5f64
+    DC.B    $b4,$3c,$00,$08,$64,$18
 hint_5f4c:
-; --- unverified ---
-    ext.w d2
-    moveq #0,d0
-    move.b (a0)+,d0
-    lea sub_a764(pc),a1
-    tst.b 0(a1,d0.w)
-    beq.s hint_5f64
+    DC.B    $48,$82,$70,$00,$10,$18,$43,$fa,$48,$10,$4a,$31,$00,$00,$67,$08
 hint_5f5c:
-; --- unverified ---
-    move.b d0,d1
-    movea.l a0,a4
-    cmp.b d0,d0
-    rts
+    DC.B    $12,$00,$28,$48,$b0,$00,$4e,$75
 hint_5f64:
-; --- unverified ---
-    moveq #-1,d0
-    rts
+    DC.B    $70,$ff,$4e,$75
 hint_5f68:
-; --- unverified ---
-    bsr.w sub_177e
+    DC.B    $61,$00,$b8,$14
 hint_5f6c:
-; --- unverified ---
-    bne.s hint_5f7a
+    DC.B    $66,$0c
 hint_5f6e:
-; --- unverified ---
-    tst.b d0
-    beq.s hint_5f7a
+    DC.B    $4a,$00,$67,$08
 hint_5f72:
-    dc.b    $28,$48,$12,$2c,$ff,$ff,$70,$ff
+    DC.B    $28,$48,$12,$2c,$ff,$ff,$70,$ff
 hint_5f7a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5f7c:
-; --- unverified ---
-    moveq #0,d0
-    move.b 569(a6),d0 ; app+$239
-    beq.w loc_844a
+    DC.B    $70,$00,$10,$2e,$02,$39,$67,$00,$24,$c6
 hint_5f86:
-; --- unverified ---
-    add.w d0,d0
-    or.w pcref_5f8c(pc,d0.w),d5
+    DC.B    $d0,$40,$8a,$7b,$00,$02
 pcref_5f8c:
-    rts
+    DC.B    $4e,$75
 hint_5f8e:
-    dc.b    $18,$00,$10,$00,$00,$00,$14,$00,$0c,$00
+    DC.B    $18,$00,$10,$00,$00,$00,$14,$00,$0c,$00
 hint_5f98:
-    dc.b    $04,$00,$08,$00
+    DC.B    $04,$00,$08,$00
 hint_5f9c:
-    dc.b    $41,$ee
+    DC.B    $41,$ee
+    DC.B    $08,$7e,$78,$00,$42,$a0,$42,$a0,$42,$a0,$48,$83,$b2,$3c,$00,$24
+    DC.B    $67,$00,$01,$4c
 hint_5fb2:
-; --- unverified ---
-    cmp.b #$3a,d1
-    beq.w hint_60fc
+    DC.B    $b2,$3c,$00,$3a,$67,$00,$01,$44
 hint_5fba:
-; --- unverified ---
-    cmp.b #$2d,d1
-    beq.w hint_5fe2
+    DC.B    $b2,$3c,$00,$2d,$67,$00,$00,$22
 hint_5fc2:
-; --- unverified ---
-    cmp.b #$30,d1
-    bcs.s hint_5fce
+    DC.B    $b2,$3c,$00,$30,$65,$06
 hint_5fc8:
-; --- unverified ---
-    cmp.b #$3a,d1
-    bcs.s hint_5ffe
+    DC.B    $b2,$3c,$00,$3a,$65,$30
 hint_5fce:
-; --- unverified ---
-    bsr.w sub_1208
+    DC.B    $61,$00,$b2,$38
 hint_5fd2:
-; --- unverified ---
-    cmp.b #$f,d3
-    bcs.s hint_5ffa
+    DC.B    $b6,$3c,$00,$0f,$65,$22
 hint_5fd8:
-; --- unverified ---
-    cmp.b #$13,d3
-    bcc.s hint_5ffa
+    DC.B    $b6,$3c,$00,$13,$64,$1c
 hint_5fde:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_5fe2:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_5f9c
+    DC.B    $12,$1c,$61,$b6
 hint_5fe6:
-; --- unverified ---
-    bne.s hint_5ff8
+    DC.B    $66,$10
 hint_5fe8:
-; --- unverified ---
-    movea.l d2,a0
-    addi.b #$f5,d3
-    bsr.w sub_b1fa
+    DC.B    $20,$42,$06,$03,$00,$f5,$61,$00,$52,$0a
 hint_5ff2:
-    dc.b    $04,$03,$00,$f5,$4a,$00
+    DC.B    $04,$03,$00,$f5,$4a,$00
 hint_5ff8:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_5ffa:
-; --- unverified ---
-    moveq #100,d0
-    rts
+    DC.B    $70,$64,$4e,$75
 hint_5ffe:
-    dc.b    $3f,$03,$56,$88,$50,$c2,$76,$01,$78,$ff,$7a,$00,$7c,$00
+    DC.B    $3f,$03,$56,$88,$50,$c2,$76,$01,$78,$ff,$7a,$00,$7c,$00
 hint_600c:
-; --- unverified ---
-    subi.b #$30,d1
-    bne.s hint_6020
+    DC.B    $04,$01,$00,$30,$66,$0e
 hint_6012:
-; --- unverified ---
-    tst.b d5
-    bne.s hint_6020
+    DC.B    $4a,$05,$66,$0a
 hint_6016:
-; --- unverified ---
-    cmp.b #$1,d3
-    beq.s hint_6030
+    DC.B    $b6,$3c,$00,$01,$67,$14
 hint_601c:
-; --- unverified ---
-    subq.w #1,d4
-    bra.s hint_6030
+    DC.B    $53,$44,$60,$10
 hint_6020:
-; --- unverified ---
-    bsr.w hint_60e2
+    DC.B    $61,$00,$00,$c0
 hint_6024:
-; --- unverified ---
-    st d5
-    cmp.b #$ff,d3
-    bne.s hint_602e
+    DC.B    $50,$c5,$b6,$3c,$00,$ff,$66,$02
 hint_602c:
-    dc.b    $76,$00
+    DC.B    $76,$00
 hint_602e:
-    dc.b    $d8,$43
+    DC.B    $d8,$43
 hint_6030:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$2e,d1
-    bne.s hint_6042
+    DC.B    $12,$1c,$b2,$3c,$00,$2e,$66,$0a
 hint_6038:
-; --- unverified ---
-    cmp.b #$1,d3
-    bne.s hint_608c
+    DC.B    $b6,$3c,$00,$01,$66,$4e
 hint_603e:
-; --- unverified ---
-    move.b d5,d3
-    bra.s hint_6030
+    DC.B    $16,$05,$60,$ee
 hint_6042:
-; --- unverified ---
-    cmp.b #$30,d1
-    bcs.s hint_604e
+    DC.B    $b2,$3c,$00,$30,$65,$06
 hint_6048:
-; --- unverified ---
-    cmp.b #$3a,d1
-    bcs.s hint_600c
+    DC.B    $b2,$3c,$00,$3a,$65,$be
 hint_604e:
-; --- unverified ---
-    cmp.b #$45,d1
-    beq.s hint_605a
+    DC.B    $b2,$3c,$00,$45,$67,$06
 hint_6054:
-; --- unverified ---
-    cmp.b #$65,d1
-    bne.s hint_608c
+    DC.B    $b2,$3c,$00,$65,$66,$32
 hint_605a:
-; --- unverified ---
-    moveq #0,d3
-    move.b (a4)+,d1
-    cmp.b #$2d,d1
-    seq d2
-    bne.s hint_6068
+    DC.B    $76,$00,$12,$1c,$b2,$3c,$00,$2d,$57,$c2,$66,$02
 hint_6066:
-    dc.b    $12,$1c
+    DC.B    $12,$1c
 hint_6068:
-; --- unverified ---
-    cmp.b #$30,d1
-    bcs.s hint_6084
+    DC.B    $b2,$3c,$00,$30,$65,$16
 hint_606e:
-; --- unverified ---
-    cmp.b #$3a,d1
-    bcc.s hint_6084
+    DC.B    $b2,$3c,$00,$3a,$64,$10
 hint_6074:
-; --- unverified ---
-    subi.b #$30,d1
-    andi.w #$ff,d1
-    mulu.w #$a,d3
-    add.w d1,d3
-    bra.s hint_6066
+    DC.B    $04,$01,$00,$30,$02,$41,$00,$ff,$c6,$fc,$00,$0a,$d6,$41,$60,$e2
 hint_6084:
-; --- unverified ---
-    tst.b d2
-    beq.s hint_608a
+    DC.B    $4a,$02,$67,$02
 hint_6088:
-    dc.b    $44,$43
+    DC.B    $44,$43
 hint_608a:
-    dc.b    $d8,$43
+    DC.B    $d8,$43
 hint_608c:
-; --- unverified ---
-    lea 2162(a6),a0 ; app+$872
-    moveq #0,d6
-    tst.b d5
-    beq.s hint_60cc
+    DC.B    $41,$ee,$08,$72,$7c,$00,$4a,$05,$67,$36
 hint_6096:
-; --- unverified ---
-    tst.w d4
-    bpl.s hint_60a0
+    DC.B    $4a,$44,$6a,$06
 hint_609a:
-    dc.b    $08,$d0,$00,$06,$44,$44
+    DC.B    $08,$d0,$00,$06,$44,$44
 hint_60a0:
-; --- unverified ---
-    st d2
-    andi.l #$ffff,d4
-    divu.w #$3e8,d4
-    move.w d4,d5
-    clr.w d4
-    swap d4
-    divu.w #$64,d4
-    bsr.s hint_60e0
+    DC.B    $50,$c2,$02,$84,$00,$00,$ff,$ff,$88,$fc,$03,$e8,$3a,$04,$42,$44
+    DC.B    $48,$44,$88,$fc,$00,$64,$61,$28
 hint_60b8:
-; --- unverified ---
-    clr.w d4
-    swap d4
-    divu.w #$a,d4
-    bsr.s hint_60e0
+    DC.B    $42,$44,$48,$44,$88,$fc,$00,$0a,$61,$1e
 hint_60c2:
-; --- unverified ---
-    clr.w d4
-    swap d4
-    bsr.s hint_60e0
+    DC.B    $42,$44,$48,$44,$61,$18
 hint_60c8:
-    dc.b    $12,$2c,$ff,$ff
+    DC.B    $12,$2c,$ff,$ff
 hint_60cc:
-; --- unverified ---
-    lea 2162(a6),a0 ; app+$872
-    move.w (sp)+,d3
-    bsr.w hint_b12c
+    DC.B    $41,$ee,$08,$72,$36,$1f,$61,$00,$50,$58
 hint_60d6:
-; --- unverified ---
-    addi.w #$b,d3
-    move.l a0,d2
-    tst.w d0
-    rts
+    DC.B    $06,$43,$00,$0b,$24,$08,$4a,$40,$4e,$75
 hint_60e0:
-    dc.b    $12,$04
+    DC.B    $12,$04
 hint_60e2:
-; --- unverified ---
-    tst.b d2
-    beq.s hint_60ee
+    DC.B    $4a,$02,$67,$08
 hint_60e6:
-; --- unverified ---
-    or.b d1,(a0)+
-    addq.b #1,d6
-    not.b d2
-    rts
+    DC.B    $83,$18,$52,$06,$46,$02,$4e,$75
 hint_60ee:
-; --- unverified ---
-    cmp.b #$9,d6
-    beq.s hint_60fa
+    DC.B    $bc,$3c,$00,$09,$67,$06
 hint_60f4:
-    dc.b    $e9,$49,$83,$10,$46,$02
+    DC.B    $e9,$49,$83,$10,$46,$02
 hint_60fa:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_60fc:
-    dc.b    $24,$4c,$43,$fa,$b3,$42
+    DC.B    $24,$4c,$43,$fa,$b3,$42
 hint_6102:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    bmi.s hint_6114
+    DC.B    $12,$1c,$48,$81,$6b,$0c
 hint_6108:
-; --- unverified ---
-    move.b 0(a1,d1.w),d2
-    bmi.s hint_6114
+    DC.B    $14,$31,$10,$00,$6b,$06
 hint_610e:
-; --- unverified ---
-    moveq #4,d0
-    bsr.s hint_613a
+    DC.B    $70,$04,$61,$28
 hint_6112:
-; --- unverified ---
-    bra.s hint_6102
+    DC.B    $60,$ee
 hint_6114:
-; --- unverified ---
-    moveq #0,d0
-    move.b 25(pc,d3.w),d0
-    beq.s hint_6130
+    DC.B    $70,$00,$10,$3b,$30,$19,$67,$14
 hint_611c:
-    dc.b    $74,$00
+    DC.B    $74,$00
 hint_611e:
-; --- unverified ---
-    move.w d0,-(sp)
-    cmp.w #$20,d0
-    blt.s hint_6128
+    DC.B    $3f,$00,$b0,$7c,$00,$20,$6d,$02
 hint_6126:
-    dc.b    $70,$10
+    DC.B    $70,$10
 hint_6128:
-; --- unverified ---
-    sub.w d0,(sp)
-    bsr.s hint_613a
+    DC.B    $91,$57,$61,$0e
 hint_612c:
-; --- unverified ---
-    move.w (sp)+,d0
-    bne.s hint_611e
+    DC.B    $30,$1f,$66,$ee
 hint_6130:
-; --- unverified ---
-    bra.s hint_60d6
+    DC.B    $60,$a4
 hint_6132:
-    dc.b    "XP@ ",0
-    dc.b    $40,$00,$00
+    DC.B    "XP@ ",0
+    DC.B    $40,$00,$00
 hint_613a:
-; --- unverified ---
-    move.l a1,-(sp)
-    tst.w d0
-    beq.s hint_615a
+    DC.B    $2f,$09,$4a,$40,$67,$1a
 hint_6140:
-    dc.b    $48,$40,$42,$40,$d1,$00,$48,$40
+    DC.B    $48,$40,$42,$40,$d1,$00,$48,$40
 hint_6148:
-; --- unverified ---
-    lea 2174(a6),a0 ; app+$87E
-    movea.l a0,a1
-    addx.l -(a0),-(a1)
-    addx.l -(a0),-(a1)
-    addx.l -(a0),-(a1)
-    bcs.s hint_617e
+    DC.B    $41,$ee,$08,$7e,$22,$48,$d3,$88,$d3,$88,$d3,$88,$65,$28
 hint_6156:
-; --- unverified ---
-    subq.w #1,d0
-    bne.s hint_6148
+    DC.B    $53,$40,$66,$ee
 hint_615a:
-; --- unverified ---
-    addx.b d0,d0
-    ext.w d2
-    ext.l d2
-    lea 2174(a6),a0 ; app+$87E
-    move.l -(a0),d0
-    addx.l d2,d0
-    move.l d0,(a0)
-    moveq #0,d2
-    move.l -(a0),d0
-    addx.l d2,d0
-    move.l d0,(a0)
-    move.l -(a0),d0
-    addx.l d2,d0
-    bcs.s hint_617e
+    DC.B    $d1,$00,$48,$82,$48,$c2,$41,$ee,$08,$7e,$20,$20,$d1,$82,$20,$80
+    DC.B    $74,$00,$20,$20,$d1,$82,$20,$80,$20,$20,$d1,$82,$65,$06
 hint_6178:
-; --- unverified ---
-    move.l d0,(a0)
-    movea.l (sp)+,a1
-    rts
+    DC.B    $20,$80,$22,$5f,$4e,$75
 hint_617e:
-; --- unverified ---
-    moveq #93,d0
-    bsr.w loc_8486
+    DC.B    $70,$5d,$61,$00,$23,$04
 hint_6184:
-; --- unverified ---
-    movea.l (sp)+,a1
-    rts
+    DC.B    $22,$5f,$4e,$75
 hint_6188:
-; --- unverified ---
-    movea.l d2,a0
-    ext.w d3
-    move.b 19(pc,d3.w),d0
-    bmi.s hint_619a
+    DC.B    $20,$42,$48,$83,$10,$3b,$30,$13,$6b,$08
 hint_6192:
-; --- unverified ---
-    move.w (a0)+,(a5)+
-    subq.b #1,d0
-    bne.s hint_6192
+    DC.B    $3a,$d8,$53,$00,$66,$fa
 hint_6198:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_619a:
-; --- unverified ---
-    moveq #0,d0
-    move.b (a0)+,d0
-    move.w d0,(a5)+
-    rts
-    dc.b    $ff,$01
+    DC.B    $70,$00,$10,$18,$3a,$c0,$4e,$75
+    DC.B    $ff,$01
 hint_61a4:
-; --- unverified ---
-    andi.b #$2,d4
-    addi.b #$2e,d0
-    btst d0,-(a3)
-    bne.s hint_61ba
+    DC.B    $02,$04,$06,$02,$06,$00,$4a,$2e,$01,$23,$66,$0a
 hint_61b0:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$cf,$7a
 hint_61ba:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_61c6
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_61c0:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$22,$c2
 hint_61c6:
-; --- unverified ---
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_61e2
+    DC.B    $10,$2e,$02,$39,$67,$16
 hint_61cc:
-; --- unverified ---
-    cmp.b #$2,d0
-    beq.s hint_61e2
+    DC.B    $b0,$3c,$00,$02,$67,$10
 hint_61d2:
-; --- unverified ---
-    cmp.b #$3,d0
-    bne.w loc_844a
+    DC.B    $b0,$3c,$00,$03,$66,$00,$22,$72
 hint_61da:
-; --- unverified ---
-    bset #6,d6
-    bra.w hint_2030
+    DC.B    $08,$c6,$00,$06,$60,$00,$be,$50
 hint_61e2:
-; --- unverified ---
-    bra.w hint_20b0
+    DC.B    $60,$00
+hint_61e4:
+    DC.B    $be,$cc
 hint_61e6:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_61f6
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_61ec:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$cf,$3e
 hint_61f6:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6202
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_61fc:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$22,$86
 hint_6202:
-    dc.b    $3a,$06,$3c,$3c,$f0,$48,$48,$45,$3a,$06,$48,$45
+    DC.B    $3a,$06,$3c,$3c,$f0,$48,$48,$45,$3a,$06,$48,$45
 hint_620e:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$22,$36
 hint_6216:
-; --- unverified ---
-    bsr.w loc_1760
+    DC.B    $61,$00,$b5,$48
 hint_621a:
-; --- unverified ---
-    swap d5
-    or.b d2,d5
-    swap d5
-    move.l d5,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $48,$45,$8a,$02,$48,$45,$2a,$c5,$b2,$3c,$00,$2c,$66,$00,$22,$3a
 hint_622a:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_2130
+    DC.B    $12,$1c,$61,$00,$bf,$02
 hint_6230:
-; --- unverified ---
-    bne.s hint_6236
+    DC.B    $66,$04
 hint_6232:
-; --- unverified ---
-    addq.l #2,a5
-    rts
+    DC.B    $54,$8d,$4e,$75
 hint_6236:
-; --- unverified ---
-    subq.l #2,d2
-    tst.w d3
-    bmi.w loc_98ee
+    DC.B    $55,$82,$4a,$43,$6b,$00,$36,$b2
 hint_623e:
-; --- unverified ---
-    bsr.w sub_78bc
+    DC.B    $61,$00,$16,$7c
 hint_6242:
-; --- unverified ---
-    move.w d2,(a5)+
-    rts
+    DC.B    $3a,$c2,$4e,$75
 hint_6246:
-; --- unverified ---
-    cmpi.b #$3c,289(a6) ; app+$121
-    beq.s hint_6258
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$67,$0a
 hint_624e:
-; --- unverified ---
-    cmpi.b #$28,289(a6) ; app+$121
-    bne.w hint_626a
+    DC.B    $0c,$2e,$00,$28,$01,$21,$66,$00,$00,$14
 hint_6258:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6264
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_625e:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$22,$24
 hint_6264:
-; --- unverified ---
-    move.w #$f518,(a5)+
-    rts
+    DC.B    $3a,$fc,$f5,$18,$4e,$75
 hint_626a:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_627a
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_6270:
-; --- unverified ---
-    cmpi.b #$1e,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$1e,$01,$21,$66,$00,$ce,$ba
 hint_627a:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6286
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_6280:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$22,$02
 hint_6286:
-; --- unverified ---
-    move.w d6,(a5)+
-    move.w #$2400,(a5)+
-    rts
+    DC.B    $3a,$c6,$3a,$fc,$24,$00,$4e,$75
 hint_628e:
-; --- unverified ---
-    cmpi.b #$3c,289(a6) ; app+$121
-    beq.s hint_62a0
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$67,$0a
 hint_6296:
-; --- unverified ---
-    cmpi.b #$28,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$28,$01,$21,$66,$00,$ce,$94
 hint_62a0:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_62ac
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_62a6:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$21,$dc
 hint_62ac:
-    dc.b    $3a,$c6
+    DC.B    $3a,$c6
 hint_62ae:
-; --- unverified ---
-    bsr.w hint_187e
+    DC.B    $61,$00,$b5,$ce
 hint_62b2:
-; --- unverified ---
-    move.b d5,d0
-    andi.b #$38,d0
-    cmp.b #$10,d0
-    bne.s hint_62cc
+    DC.B    $10,$05,$02,$00,$00,$38,$b0,$3c,$00,$10,$66,$0e
 hint_62be:
-; --- unverified ---
-    andi.b #$7,d5
-    movea.l 588(a6),a0 ; app+$24C
-    or.w (a0),d5
-    move.w d5,(a0)
-    rts
+    DC.B    $02,$05,$00,$07,$20,$6e,$02,$4c,$8a,$50,$30,$85,$4e,$75
 hint_62cc:
-; --- unverified ---
-    moveq #104,d0
-    bra.w loc_8486
+    DC.B    $70,$68,$60,$00
+hint_62d0:
+    DC.B    $21,$b6
 hint_62d2:
-; --- unverified ---
-    cmpi.b #$3c,289(a6) ; app+$121
-    beq.s hint_62e4
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$67,$0a
 hint_62da:
-; --- unverified ---
-    cmpi.b #$28,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$28,$01,$21,$66,$00,$ce,$50
 hint_62e4:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_62f0
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_62ea:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$21,$98
 hint_62f0:
-; --- unverified ---
-    move.w d6,(a5)+
-    rts
+    DC.B    $3a,$c6,$4e,$75
 hint_62f4:
-; --- unverified ---
-    cmpi.b #$3c,289(a6) ; app+$121
-    beq.s hint_6306
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$67,$0a
 hint_62fc:
-; --- unverified ---
-    cmpi.b #$28,289(a6) ; app+$121
-    bne.w hint_6318
+    DC.B    $0c,$2e,$00,$28,$01,$21,$66,$00,$00,$14
 hint_6306:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6312
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_630c:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$21,$76
 hint_6312:
-; --- unverified ---
-    move.w #$f508,d6
-    bra.s hint_62ac
+    DC.B    $3c,$3c,$f5,$08,$60,$94
 hint_6318:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_6328
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_631e:
-; --- unverified ---
-    cmpi.b #$1e,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$1e,$01,$21,$66,$00,$ce,$0c
 hint_6328:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6334
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_632e:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$21,$54
 hint_6334:
-    dc.b    $34,$3c,$30,$00
+    DC.B    $34,$3c,$30,$00
 hint_6338:
-; --- unverified ---
-    move.w d6,(a5)+
-    bsr.w hint_6398
+    DC.B    $3a,$c6,$61,$00,$00,$5c
 hint_633e:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$21,$1e
 hint_6346:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $12,$1c,$b2,$3c,$00,$23,$66,$00,$21,$1c
 hint_6350:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d2,-(sp)
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$3f,$02,$61,$00,$b3,$76
 hint_6358:
-    dc.b    $36,$1f,$4a,$2e,$01,$23,$56,$c0,$02,$80,$00,$00,$00,$08,$00,$00
-    dc.b    $00,$07,$4a,$82,$6b,$04
+    DC.B    $36,$1f,$4a,$2e,$01,$23,$56,$c0,$02,$80,$00,$00,$00,$08,$00,$00
+    DC.B    $00,$07,$4a,$82,$6b,$04
 hint_636e:
-; --- unverified ---
-    cmp.l d0,d2
-    ble.s hint_637a
+    DC.B    $b4,$80,$6f,$08
 hint_6372:
-; --- unverified ---
-    moveq #89,d0
-    bsr.w loc_8486
+    DC.B    $70,$59,$61,$00,$21,$10
 hint_6378:
-    dc.b    $74,$00
+    DC.B    $74,$00
 hint_637a:
-; --- unverified ---
-    lsl.w #5,d2
-    or.w d3,d2
-    cmp.b #$2c,d1
-    beq.s hint_6388
+    DC.B    $eb,$4a,$84,$43,$b2,$3c,$00,$2c,$67,$04
 hint_6384:
-; --- unverified ---
-    move.w d2,(a5)+
-    rts
+    DC.B    $3a,$c2,$4e,$75
 hint_6388:
-; --- unverified ---
-    move.b (a4)+,d1
-    bset #11,d2
-    move.w d2,(a5)+
-    bsr.w hint_16e0
+    DC.B    $12,$1c,$08,$c2,$00,$0b,$3a,$c2,$61,$00,$b3,$4e
 hint_6394:
-    dc.b    $00,$24,$4e,$75
+    DC.B    $00,$24,$4e,$75
 hint_6398:
-; --- unverified ---
-    cmp.b #$23,d1
-    beq.s hint_640c
+    DC.B    $b2,$3c,$00,$23,$67,$6e
 hint_639e:
-; --- unverified ---
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$53,d1
-    beq.s hint_63ea
+    DC.B    $48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$53,$67,$40
 hint_63aa:
-; --- unverified ---
-    cmp.b #$44,d1
-    bne.s hint_6406
+    DC.B    $b2,$3c,$00,$44,$66,$56
 hint_63b0:
-; --- unverified ---
-    move.b (a4)+,d1
-    subi.b #$30,d1
-    bcs.s hint_6406
+    DC.B    $12,$1c,$04,$01,$00,$30,$65,$4e
 hint_63b8:
-; --- unverified ---
-    cmp.b #$8,d1
-    bcs.s hint_63e0
+    DC.B    $b2,$3c,$00,$08,$65,$22
 hint_63be:
-; --- unverified ---
-    cmp.b #$16,d1
-    beq.s hint_63ca
+    DC.B    $b2,$3c,$00,$16,$67,$06
 hint_63c4:
-; --- unverified ---
-    cmp.b #$36,d1
-    bne.s hint_6406
+    DC.B    $b2,$3c,$00,$36,$66,$3c
 hint_63ca:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$43,d1
-    beq.s hint_63d8
+    DC.B    $12,$1c,$b2,$3c,$00,$43,$67,$06
 hint_63d2:
-; --- unverified ---
-    cmp.b #$63,d1
-    bne.s hint_6406
+    DC.B    $b2,$3c,$00,$63,$66,$2e
 hint_63d8:
-    dc.b    $00,$42,$00,$01
+    DC.B    $00,$42,$00,$01
 hint_63dc:
-; --- unverified ---
-    move.b (a4)+,d1
-    rts
+    DC.B    $12,$1c,$4e,$75
 hint_63e0:
-; --- unverified ---
-    bset #3,d1
-    or.b d1,d2
-    move.b (a4)+,d1
-    rts
+    DC.B    $08,$c1,$00,$03,$84,$01,$12,$1c,$4e,$75
 hint_63ea:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$46,d1
-    beq.s hint_63f8
+    DC.B    $12,$1c,$b2,$3c,$00,$46,$67,$06
 hint_63f2:
-; --- unverified ---
-    cmp.b #$66,d1
-    bne.s hint_6406
+    DC.B    $b2,$3c,$00,$66,$66,$0e
 hint_63f8:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$43,d1
-    beq.s hint_63dc
+    DC.B    $12,$1c,$b2,$3c,$00,$43,$67,$dc
 hint_6400:
-; --- unverified ---
-    cmp.b #$63,d1
-    beq.s hint_63dc
+    DC.B    $b2,$3c,$00,$63,$67,$d6
 hint_6406:
-; --- unverified ---
-    moveq #89,d0
-    bra.w loc_8482
+    DC.B    $70,$59,$60,$00,$20,$78
 hint_640c:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d2,-(sp)
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$3f,$02,$61,$00,$b2,$ba
 hint_6414:
-    dc.b    $4a,$2e,$01,$23,$56,$c0,$02,$80,$00,$00,$00,$08,$00,$00,$00,$07
-    dc.b    $4a,$82,$6b,$04
+    DC.B    $4a,$2e,$01,$23,$56,$c0,$02,$80,$00,$00,$00,$08,$00,$00,$00,$07
+    DC.B    $4a,$82,$6b,$04
 hint_6428:
-; --- unverified ---
-    cmp.l d0,d2
-    ble.s hint_6434
+    DC.B    $b4,$80,$6f,$08
 hint_642c:
-; --- unverified ---
-    moveq #89,d0
-    bsr.w loc_8486
+    DC.B    $70,$59,$61,$00,$20,$56
 hint_6432:
-    dc.b    $74,$00
+    DC.B    $74,$00
 hint_6434:
-; --- unverified ---
-    or.w (sp)+,d2
-    bset #4,d2
-    rts
+    DC.B    $84,$5f,$08,$c2,$00,$04,$4e,$75
 hint_643c:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_644c
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_6442:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$cc,$e8
 hint_644c:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6458
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_6452:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$20,$30
 hint_6458:
-; --- unverified ---
-    move.w #$3400,d2
-    bra.w hint_6338
+    DC.B    $34,$3c,$34,$00,$60,$00,$fe,$da
 hint_6460:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_6470
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_6466:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$cc,$c4
 hint_6470:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_647c
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_6476:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$20,$0c
 hint_647c:
-; --- unverified ---
-    move.w d6,(a5)+
-    move.w #$a000,(a5)+
-    bsr.w hint_16e0
+    DC.B    $3a,$c6,$3a,$fc,$a0,$00,$61,$00,$b2,$5c
 hint_6486:
-    dc.b    $00,$fc,$4e,$75,$4a,$2e,$01,$23,$66,$0a
+    DC.B    $00,$fc,$4e,$75,$4a,$2e,$01,$23,$66,$0a
 hint_6490:
-; --- unverified ---
-    cmpi.b #$1e,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$1e,$01,$21,$66,$00,$cc,$9a
 hint_649a:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_64a6
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_64a0:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1f,$e2
 hint_64a6:
-; --- unverified ---
-    move.w #$f000,(a5)+
-    move.w d6,d2
-    bsr.w hint_6398
+    DC.B    $3a,$fc,$f0,$00,$34,$06,$61,$00,$fe,$ea
 hint_64b0:
-; --- unverified ---
-    move.w d2,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $3a,$c2,$b2,$3c,$00,$2c,$66,$00,$1f,$aa
 hint_64ba:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_16e0
+    DC.B    $12,$1c,$61,$00,$b2,$22
 hint_64c0:
-; --- unverified ---
-    ori.b #$75,-(a4)
-    cmpi.b #$1e,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $00,$24,$4e,$75,$0c,$2e,$00,$1e,$01,$21,$66,$00,$cc,$66
 hint_64ce:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_64da
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_64d4:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1f,$ae
 hint_64da:
-; --- unverified ---
-    move.w #$f000,(a5)+
-    move.w #$100,d2
-    bra.s hint_652c
+    DC.B    $3a,$fc,$f0,$00,$34,$3c,$01,$00,$60,$48
 hint_64e4:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_64f4
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_64ea:
-; --- unverified ---
-    cmpi.b #$1e,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$1e,$01,$21,$66,$00,$cc,$40
 hint_64f4:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6500
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_64fa:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1f,$88
 hint_6500:
-; --- unverified ---
-    move.w #$f000,(a5)+
-    bsr.s hint_655e
+    DC.B    $3a,$fc,$f0,$00,$61,$58
 hint_6506:
-; --- unverified ---
-    bne.s hint_652a
+    DC.B    $66,$22
 hint_6508:
-; --- unverified ---
-    bset #9,d2
-    move.w d2,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $08,$c2,$00,$09,$3a,$c2,$b2,$3c,$00,$2c,$66,$00,$1f,$4e
 hint_6516:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_5b04
+    DC.B    $12,$1c,$61,$00,$f5,$ea
 hint_651c:
-; --- unverified ---
-    moveq #63,d0
-    tst.b 291(a6) ; app+$123
-    bne.s hint_6526
+    DC.B    $70,$3f,$4a,$2e,$01,$23,$66,$02
 hint_6524:
-    dc.b    $70,$24
+    DC.B    $70,$24
 hint_6526:
-; --- unverified ---
-    bra.w hint_1704
+    DC.B    $60,$00,$b1,$dc
 hint_652a:
-    dc.b    $74,$00
+    DC.B    $74,$00
 hint_652c:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    beq.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$67,$00,$1f,$18
 hint_6534:
-; --- unverified ---
-    move.w d2,(a5)+
-    bsr.w hint_5b04
+    DC.B    $3a,$c2,$61,$00,$f5,$cc
 hint_653a:
-; --- unverified ---
-    moveq #36,d0
-    bsr.w hint_1704
+    DC.B    $70,$24,$61,$00,$b1,$c6
 hint_6540:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$1f,$1c
 hint_6548:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.s hint_655e
+    DC.B    $12,$1c,$61,$12
 hint_654c:
-; --- unverified ---
-    bne.s hint_6558
+    DC.B    $66,$0a
 hint_654e:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    or.w d2,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$85,$68,$00,$02,$4e,$75
 hint_6558:
-; --- unverified ---
-    moveq #88,d0
-    bra.w loc_8486
+    DC.B    $70,$58,$60,$00,$1f,$2a
 hint_655e:
-; --- unverified ---
-    lea pcref_65ae(pc),a0
-    bsr.w hint_578a
+    DC.B    $41,$fa,$00,$4e,$61,$00,$f2,$26
 hint_6566:
-; --- unverified ---
-    bne.s hint_65ac
+    DC.B    $66,$44
 hint_6568:
-; --- unverified ---
-    move.b d2,d0
-    bpl.s hint_658a
+    DC.B    $10,$02,$6a,$1e
 hint_656c:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_657c
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_6572:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$cb,$b8
 hint_657c:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6588
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_6582:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1f,$00
 hint_6588:
-; --- unverified ---
-    bra.s hint_659a
+    DC.B    $60,$10
 hint_658a:
-; --- unverified ---
-    btst #6,d0
-    beq.s hint_659a
+    DC.B    $08,$00,$00,$06,$67,$0a
 hint_6590:
-; --- unverified ---
-    cmpi.b #$1e,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$1e,$01,$21,$66,$00,$cb,$9a
 hint_659a:
-; --- unverified ---
-    clr.b d2
-    add.w d2,d2
-    add.w d2,d2
-    andi.b #$3f,d0
-    cmp.b 569(a6),d0 ; app+$239
-    bne.w loc_844a
+    DC.B    $42,$02,$d4,$42,$d4,$42,$02,$00,$00,$3f,$b0,$2e,$02,$39,$66,$00
+    DC.B    $1e,$a0
 hint_65ac:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 pcref_65ae:
-    dc.b    $00,$08,$41,$43,$00,$00,$17,$82,$00,$08,$42,$41,$43,$00,$1d,$82
-    dc.b    $00,$08,$42,$41,$44,$00,$1c,$82,$00,$08,$43,$41
-    dc.b    $4c,$00,$14,$81,$00,$08,$43,$52,$50,$00,$13,$04,$00,$08,$44,$52
-    dc.b    $50,$00,$11,$84,$00,$0a
-    dc.b    "MMUSR",0
-    dc.b    $18,$02,$00,$0a
-    dc.b    "PCSR",0
-    dc.b    $00,$19,$82,$00,$08,$50,$53,$52,$00,$18,$02,$00,$08,$53,$43,$43
-    dc.b    $00,$16,$81,$00,$08,$53,$52,$50,$00,$12,$04,$00,$08,$54,$43,$00
-    dc.b    $00,$10,$03,$00,$08,$54,$54,$30,$00,$02,$43,$00,$08,$54,$54,$31
-    dc.b    $00,$03,$43,$00,$08,$56,$41,$4c,$00,$2b,$81,$00,$00,$4a,$2e,$01
-    dc.b    $23,$66,$0a,$0c,$2e,$00,$14,$01,$21,$66,$00,$ca,$f8,$4a,$2e,$01
-    dc.b    $25,$67,$06,$70,$65,$61,$00,$1e,$40,$61,$00,$b0,$9c,$00,$6c,$4e
-    dc.b    $75,$4a,$2e,$01,$23,$66,$0a,$0c,$2e,$00,$14,$01,$21,$66,$00,$ca
-    dc.b    $d4,$4a,$2e,$01,$25,$67,$06,$70,$65,$61,$00,$1e,$1c,$61,$00,$b0
-    dc.b    $78,$00,$34,$4e,$75,$4a,$2e,$01,$23,$66,$0a,$0c,$2e,$00,$14,$01
-    dc.b    $21,$66,$00,$ca,$b0,$4a,$2e,$01,$25,$67,$06,$70,$65,$61,$00,$1d
-    dc.b    $f8,$3a,$06,$3c,$3c,$f0,$40,$48,$45,$3a,$06,$48,$45
+    DC.B    $00,$08,$41,$43,$00,$00,$17,$82,$00,$08,$42,$41,$43,$00,$1d,$82
+    DC.B    $00,$08,$42,$41,$44,$00,$1c,$82,$00,$08,$43,$41
+    DC.B    $4c,$00,$14,$81,$00,$08,$43,$52,$50,$00,$13,$04,$00,$08,$44,$52
+    DC.B    $50,$00,$11,$84,$00,$0a
+    DC.B    "MMUSR",0
+    DC.B    $18,$02,$00,$0a
+    DC.B    "PCSR",0
+    DC.B    $00,$19,$82,$00,$08,$50,$53,$52,$00,$18,$02,$00,$08,$53,$43,$43
+    DC.B    $00,$16,$81,$00,$08,$53,$52,$50,$00,$12,$04,$00,$08,$54,$43,$00
+    DC.B    $00,$10,$03,$00,$08,$54,$54,$30,$00,$02,$43,$00,$08,$54,$54,$31
+    DC.B    $00,$03,$43,$00,$08,$56,$41,$4c,$00,$2b,$81,$00,$00,$4a,$2e,$01
+    DC.B    $23,$66,$0a,$0c,$2e,$00,$14,$01,$21,$66,$00,$ca,$f8,$4a,$2e,$01
+    DC.B    $25,$67,$06,$70,$65,$61,$00,$1e,$40,$61,$00,$b0,$9c,$00,$6c,$4e
+    DC.B    $75,$4a,$2e,$01,$23,$66,$0a,$0c,$2e,$00,$14,$01,$21,$66,$00,$ca
+    DC.B    $d4,$4a,$2e,$01,$25,$67,$06,$70,$65,$61,$00,$1e,$1c,$61,$00,$b0
+    DC.B    $78,$00,$34,$4e,$75,$4a,$2e,$01,$23,$66,$0a,$0c,$2e,$00,$14,$01
+    DC.B    $21,$66,$00,$ca,$b0,$4a,$2e,$01,$25,$67,$06,$70,$65,$61,$00,$1d
+    DC.B    $f8,$3a,$06,$3c,$3c,$f0,$40,$48,$45,$3a,$06,$48,$45
 hint_669c:
-; --- unverified ---
-    move.l d5,(a5)+
-    bsr.w hint_2372
+    DC.B    $2a,$c5,$61,$00,$bc,$d2
 hint_66a2:
-; --- unverified ---
-    st 571(a6) ; app+$23B
-    bsr.w hint_16e0
-    dc.b    $00,$3d,$4e,$75
+    DC.B    $50,$ee,$02,$3b,$61,$00,$b0,$38
+    DC.B    $00,$3d,$4e,$75
 hint_66ae:
-; --- unverified ---
-    btst #15,d6
-    beq.w hint_66e2
+    DC.B    $08,$06,$00,$0f,$67,$00,$00,$2e
 hint_66b6:
-; --- unverified ---
-    cmpi.b #$28,289(a6) ; app+$121
-    bne.w hint_6700
+    DC.B    $0c,$2e,$00,$28,$01,$21,$66,$00,$00,$42
 hint_66c0:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_66cc
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_66c6:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1d,$bc
 hint_66cc:
-; --- unverified ---
-    btst #9,d6
-    bne.s hint_66da
+    DC.B    $08,$06,$00,$09,$66,$08
 hint_66d2:
-; --- unverified ---
-    move.w #$f548,d6
-    bra.w hint_62ac
+    DC.B    $3c,$3c,$f5,$48,$60,$00,$fb,$d4
 hint_66da:
-; --- unverified ---
-    move.w #$f568,d6
-    bra.w hint_62ac
+    DC.B    $3c,$3c,$f5,$68,$60,$00,$fb,$cc
 hint_66e2:
-; --- unverified ---
-    cmpi.b #$3c,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$66,$00,$ca,$48
 hint_66ec:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_66f8
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_66f2:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1d,$90
 hint_66f8:
-; --- unverified ---
-    ori.w #$f588,d6
-    bra.w hint_62ac
+    DC.B    $00,$46,$f5,$88,$60,$00,$fb,$ae
 hint_6700:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_6710
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_6706:
-; --- unverified ---
-    cmpi.b #$1e,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$1e,$01,$21,$66,$00,$ca,$24
 hint_6710:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_671c
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_6716:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1d,$6c
 hint_671c:
-; --- unverified ---
-    tst.b 569(a6) ; app+$239
-    bne.w loc_844a
+    DC.B    $4a,$2e,$02,$39,$66,$00,$1d,$28
 hint_6724:
-; --- unverified ---
-    move.w #$f000,(a5)+
-    move.w d6,d2
-    bsr.w hint_6398
+    DC.B    $3a,$fc,$f0,$00,$34,$06,$61,$00,$fc,$6c
 hint_672e:
-; --- unverified ---
-    move.w d2,(a5)+
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $3a,$c2,$b2,$3c,$00,$2c,$66,$00,$1d,$2c
 hint_6738:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_16e0
+    DC.B    $12,$1c,$61,$00,$af,$a4
 hint_673e:
-; --- unverified ---
-    ori.b #$3c,-(a4)
-    ori.b #$0,7452(a4)
-    move.b (a4)+,d1
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $00,$24,$b2,$3c,$00,$2c,$66,$00,$1d,$1c,$12,$1c,$b2,$3c,$00,$23
+    DC.B    $66,$00,$1d,$1a
 hint_6752:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w sub_16cc
+    DC.B    $12,$1c,$61,$00,$af,$76
 hint_6758:
-; --- unverified ---
-    tst.l d2
-    bmi.s hint_6764
+    DC.B    $4a,$82,$6b,$08
 hint_675c:
-; --- unverified ---
-    cmp.l #$8,d2
-    bcs.s hint_676c
+    DC.B    $b4,$bc,$00,$00,$00,$08,$65,$08
 hint_6764:
-; --- unverified ---
-    moveq #29,d0
-    bsr.w loc_8486
+    DC.B    $70,$1d,$61,$00,$1d,$1e
 hint_676a:
-    dc.b    $74,$00
+    DC.B    $74,$00
 hint_676c:
-; --- unverified ---
-    ror.w #6,d2
-    cmp.b #$2c,d1
-    bne.s hint_6788
+    DC.B    $ec,$5a,$b2,$3c,$00,$2c,$66,$14
 hint_6774:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w d2,d3
-    bsr.w sub_176a
+    DC.B    $12,$1c,$36,$02,$61,$00,$af,$f0
 hint_677c:
-    dc.b    $08,$c3,$00,$08,$02,$42,$00,$07,$eb,$4a,$84,$43
+    DC.B    $08,$c3,$00,$08,$02,$42,$00,$07,$eb,$4a,$84,$43
 hint_6788:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    or.w d2,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$85,$68,$00,$02,$4e,$75
 hint_6792:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_67a2
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_6798:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$c9,$92
 hint_67a2:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_67ae
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_67a8:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1c,$da
 hint_67ae:
-; --- unverified ---
-    move.w #$f078,(a5)+
-    move.w d6,(a5)+
-    bra.w hint_4d34
+    DC.B    $3a,$fc,$f0,$78,$3a,$c6,$60,$00,$e5,$7e
 hint_67b8:
-; --- unverified ---
-    tst.b 291(a6) ; app+$123
-    bne.s hint_67c8
+    DC.B    $4a,$2e,$01,$23,$66,$0a
 hint_67be:
-; --- unverified ---
-    cmpi.b #$14,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$14,$01,$21,$66,$00,$c9,$6c
 hint_67c8:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_67d4
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_67ce:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1c,$b4
 hint_67d4:
-; --- unverified ---
-    move.w #$f000,(a5)+
-    bsr.w sub_177e
+    DC.B    $3a,$fc,$f0,$00,$61,$00,$af,$a4
 hint_67dc:
-; --- unverified ---
-    bne.s hint_6802
+    DC.B    $66,$24
 hint_67de:
-; --- unverified ---
-    tst.b d0
-    beq.s hint_67fc
+    DC.B    $4a,$00,$67,$1a
 hint_67e2:
-    dc.b    $36,$3c,$2c,$00,$86,$02,$3a,$c3
+    DC.B    $36,$3c,$2c,$00,$86,$02,$3a,$c3
 hint_67ea:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$1c,$72
 hint_67f2:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w hint_16e0
+    DC.B    $12,$1c,$61,$00,$ae,$ea
 hint_67f8:
-    dc.b    $00,$24,$4e,$75
+    DC.B    $00,$24,$4e,$75
 hint_67fc:
-; --- unverified ---
-    moveq #14,d0
-    bra.w loc_8486
+    DC.B    $70,$0e,$60,$00,$1c,$86
 hint_6802:
-; --- unverified ---
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$56,d1
-    bne.s hint_67fc
+    DC.B    $48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$56,$66,$ee
 hint_680e:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$41,d1
-    bne.s hint_67fc
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$41,$66,$e0
 hint_681c:
-; --- unverified ---
-    move.b (a4)+,d1
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    cmp.b #$4c,d1
-    bne.s hint_67fc
+    DC.B    $12,$1c,$48,$81,$12,$36,$10,$7e,$b2,$3c,$00,$4c,$66,$d2
 hint_682a:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w #$2800,(a5)+
-    bra.s hint_67ea
+    DC.B    $12,$1c,$3a,$fc,$28,$00,$60,$b8
 hint_6832:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$66,$00,$c8,$f8
 hint_683c:
-; --- unverified ---
-    move.w d6,(a5)+
-    rts
+    DC.B    $3a,$c6,$4e,$75
 hint_6840:
-; --- unverified ---
-    cmpi.b #$3c,289(a6) ; app+$121
-    beq.w hint_6854
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$67,$00,$00,$0c
 hint_684a:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$66,$00,$c8,$e0
 hint_6854:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_6860
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_685a:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1c,$28
 hint_6860:
-; --- unverified ---
-    cmp.b #$23,d1
-    bne.w hint_846a
+    DC.B    $b2,$3c,$00,$23,$66,$00,$1c,$04
 hint_6868:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.w #$f800,(a5)+
-    move.w d6,(a5)+
-    bsr.w hint_1a9c
+    DC.B    $12,$1c,$3a,$fc,$f8,$00,$3a,$c6,$61,$00,$b2,$2a
 hint_6874:
-; --- unverified ---
-    bra.w hint_276a
+    DC.B    $60,$00,$be,$f4
 hint_6878:
-; --- unverified ---
-    cmpi.b #$20,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$20,$01,$21,$66,$00,$c8,$b2
 hint_6882:
-; --- unverified ---
-    bsr.w hint_4f1a
+    DC.B    $61,$00,$e6,$96
 hint_6886:
-; --- unverified ---
-    move.w #$f800,(a5)+
-    move.w d6,(a5)+
-    bsr.w hint_16e0
+    DC.B    $3a,$fc,$f8,$00,$3a,$c6,$61,$00,$ae,$52
 hint_6890:
-    dc.b    $00,$65,$20,$6e,$02,$4c,$30,$10,$02,$00,$00,$38,$66,$18
+    DC.B    $00,$65,$20,$6e,$02,$4c,$30,$10,$02,$00,$00,$38,$66,$18
 hint_689e:
-; --- unverified ---
-    cmp.b #$3a,d1
-    bne.w hint_245c
+    DC.B    $b2,$3c,$00,$3a,$66,$00,$bb,$b8
 hint_68a6:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$ae,$b6
 hint_68ac:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    or.b d2,3(a0)
-    bra.s hint_68bc
+    DC.B    $20,$6e,$02,$4c,$85,$28,$00,$03,$60,$06
 hint_68b6:
-    dc.b    $08,$e8,$00,$00,$00,$02
+    DC.B    $08,$e8,$00,$00,$00,$02
 hint_68bc:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$1b,$a0
 hint_68c4:
-; --- unverified ---
-    move.b (a4)+,d1
-    bsr.w loc_1760
+    DC.B    $12,$1c,$61,$00,$ae,$98
 hint_68ca:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    lsl.b #4,d2
-    or.b d2,2(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$e9,$0a,$85,$28,$00,$02,$4e,$75
 hint_68d6:
-; --- unverified ---
-    cmpi.b #$3c,289(a6) ; app+$121
-    beq.s hint_68e8
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$67,$0a
 hint_68de:
-; --- unverified ---
-    cmpi.b #$28,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$28,$01,$21,$66,$00,$c8,$4c
 hint_68e8:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_68f4
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_68ee:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$1b,$94
 hint_68f4:
-; --- unverified ---
-    lea pcref_6912(pc),a0
-    bsr.w hint_578a
+    DC.B    $41,$fa,$00,$1c,$61,$00,$ee,$90
 hint_68fc:
-; --- unverified ---
-    or.w d2,d6
-    move.w d6,(a5)+
-    rts
+    DC.B    $8c,$42,$3a,$c6,$4e,$75
 hint_6902:
-; --- unverified ---
-    bsr.s hint_68d6
+    DC.B    $61,$d2
 hint_6904:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$1b,$58
 hint_690c:
-; --- unverified ---
-    move.b (a4)+,d1
-    bra.w hint_62ae
+    DC.B    $12,$1c,$60,$00,$f9,$9e
 pcref_6912:
-    dc.b    $00,$08,$42,$43,$00,$00,$00,$c0,$00,$08,$44,$43,$00,$00,$00,$40
-    dc.b    $00,$08,$49,$43,$00,$00,$00,$80,$00,$08,$4e,$43
-    dcb.b   6,0
-    dc.b    $0c,$2e,$00,$3c,$01,$21,$67,$00,$00,$0c
+    DC.B    $00,$08,$42,$43,$00,$00,$00,$c0,$00,$08,$44,$43,$00,$00,$00,$40
+    DC.B    $00,$08,$49,$43,$00,$00,$00,$80,$00,$08,$4e,$43
+    DCB.B   6,0
+    DC.B    $0c,$2e,$00,$3c,$01,$21,$67,$00,$00,$0c
 hint_693e:
-; --- unverified ---
-    cmpi.b #$28,289(a6) ; app+$121
-    bne.w sub_3132
+    DC.B    $0c,$2e,$00,$28,$01,$21,$66,$00,$c7,$ec
 hint_6948:
-; --- unverified ---
-    move.w d6,(a5)+
-    bsr.w hint_187e
+    DC.B    $3a,$c6,$61,$00,$af,$32
 hint_694e:
-; --- unverified ---
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $b2,$3c,$00,$2c,$66,$00,$1b,$0e
 hint_6956:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.b d5,d0
-    andi.b #$3f,d0
-    cmp.b #$39,d0
-    beq.s hint_69ce
+    DC.B    $12,$1c,$10,$05,$02,$00,$00,$3f,$b0,$3c,$00,$39,$67,$6a
 hint_6964:
-; --- unverified ---
-    andi.b #$30,d0
-    cmp.b #$10,d0
-    bne.w hint_845e
+    DC.B    $02,$00,$00,$30,$b0,$3c,$00,$10,$66,$00,$1a,$f0
 hint_6970:
-; --- unverified ---
-    move.w d5,-(sp)
-    bsr.w hint_187e
+    DC.B    $3f,$05,$61,$00,$af,$0a
 hint_6976:
-; --- unverified ---
-    move.w d5,d0
-    andi.b #$38,d0
-    cmp.b #$18,d0
-    bne.s hint_69b2
+    DC.B    $30,$05,$02,$00,$00,$38,$b0,$3c,$00,$18,$66,$30
 hint_6982:
-; --- unverified ---
-    move.b d5,d0
-    andi.w #$7,d0
-    ror.w #4,d0
-    ori.w #$8000,d0
-    move.w d0,(a5)+
-    move.w (sp)+,d5
-    bset #5,d5
-    btst #3,d5
-    beq.w hint_845e
+    DC.B    $10,$05,$02,$40,$00,$07,$e8,$58,$00,$40,$80,$00,$3a,$c0,$3a,$1f
+    DC.B    $08,$c5,$00,$05,$08,$05,$00,$03,$67,$00,$1a,$c2
 hint_699e:
-    dc.b    $02,$45,$00,$27
+    DC.B    $02,$45,$00,$27
 hint_69a2:
-; --- unverified ---
-    movea.l 588(a6),a0 ; app+$24C
-    move.w (a0),d0
-    andi.w #$ffc0,d0
-    or.w d0,d5
-    move.w d5,(a0)
-    rts
+    DC.B    $20,$6e,$02,$4c,$30,$10,$02,$40,$ff,$c0,$8a,$40,$30,$85,$4e,$75
 hint_69b2:
-; --- unverified ---
-    move.w d5,d0
-    andi.w #$3f,d0
-    cmp.b #$39,d0
-    bne.w hint_845e
+    DC.B    $30,$05,$02,$40,$00,$3f,$b0,$3c,$00,$39,$66,$00,$1a,$a0
 hint_69c0:
-; --- unverified ---
-    move.w (sp)+,d5
-    btst #3,d5
-    beq.s hint_69a2
+    DC.B    $3a,$1f,$08,$05,$00,$03,$67,$da
 hint_69c8:
-; --- unverified ---
-    andi.w #$7,d5
-    bra.s hint_69a2
+    DC.B    $02,$45,$00,$07,$60,$d4
 hint_69ce:
-; --- unverified ---
-    bsr.w hint_187e
+    DC.B    $61,$00,$ae,$ae
 hint_69d2:
-; --- unverified ---
-    move.w d5,d0
-    andi.w #$38,d0
-    cmp.b #$10,d0
-    bne.s hint_69e8
+    DC.B    $30,$05,$02,$40,$00,$38,$b0,$3c,$00,$10,$66,$0a
 hint_69de:
-    dc.b    $70,$18
+    DC.B    $70,$18
 hint_69e0:
-; --- unverified ---
-    andi.w #$7,d5
-    or.w d0,d5
-    bra.s hint_69a2
+    DC.B    $02,$45,$00,$07,$8a,$40,$60,$ba
 hint_69e8:
-; --- unverified ---
-    cmp.b #$18,d0
-    bne.w hint_845e
+    DC.B    $b0,$3c,$00,$18,$66,$00,$1a,$70
 hint_69f0:
-; --- unverified ---
-    moveq #8,d0
-    bra.s hint_69e0
+    DC.B    $70,$08,$60,$ec
 hint_69f4:
-; --- unverified ---
-    moveq #55,d0
-    bra.w loc_8482
+    DC.B    $70,$37,$60,$00
+hint_69f8:
+    DC.B    $1a,$8a
 hint_69fa:
-; --- unverified ---
-    move.b d1,d2
-    cmp.b #$22,d1
-    beq.s hint_6a08
+    DC.B    $14,$01,$b2,$3c,$00,$22,$67,$06
 hint_6a02:
-; --- unverified ---
-    cmp.b #$27,d1
-    bne.s hint_69f4
+    DC.B    $b2,$3c,$00,$27,$66,$ec
 hint_6a08:
-    dc.b    $24,$4c
+    DC.B    $24,$4c
 hint_6a0a:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$a,d1
-    beq.s hint_69f4
+    DC.B    $12,$1c,$b2,$3c,$00,$0a,$67,$e2
 hint_6a12:
-; --- unverified ---
-    cmp.b d2,d1
-    bne.s hint_6a0a
+    DC.B    $b2,$02,$66,$f4
 hint_6a16:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b d2,d1
-    beq.s hint_6a0a
+    DC.B    $12,$1c,$b2,$02,$67,$ee
 hint_6a1c:
-; --- unverified ---
-    move.l a4,d4
-    sub.l a2,d4
-    subq.w #1,d4
-    cmp.b #$2c,d1
-    bne.w hint_8462
+    DC.B    $28,$0c,$98,$8a,$53,$44,$b2,$3c,$00,$2c,$66,$00,$1a,$3a
 hint_6a2a:
-; --- unverified ---
-    move.b (a4)+,d1
-    move.b d1,d3
-    cmp.b #$27,d1
-    beq.s hint_6a3a
+    DC.B    $12,$1c,$16,$01,$b2,$3c,$00,$27,$67,$06
 hint_6a34:
-; --- unverified ---
-    cmp.b #$22,d1
-    bne.s hint_69f4
+    DC.B    $b2,$3c,$00,$22,$66,$ba
 hint_6a3a:
-; --- unverified ---
-    subq.w #1,d4
-    bcs.s hint_6a44
+    DC.B    $53,$44,$65,$06
 hint_6a3e:
-; --- unverified ---
-    cmpm.b (a4)+,(a2)+
-    beq.s hint_6a3a
+    DC.B    $b5,$0c,$67,$f8
 hint_6a42:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6a44:
-; --- unverified ---
-    moveq #10,d0
-    exg d0,d1
-    cmp.b d3,d0
-    bne.s hint_6a52
+    DC.B    $70,$0a,$c1,$41,$b0,$03,$66,$06
 hint_6a4c:
-    dc.b    $52,$8c,$12,$1c,$70,$00
+    DC.B    $52,$8c,$12,$1c,$70,$00
 hint_6a52:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6a54:
-; --- unverified ---
-    bsr.s hint_69fa
+    DC.B    $61,$a4
 hint_6a56:
-; --- unverified ---
-    seq d0
-    bra.w hint_6b32
+    DC.B    $57,$c0,$60,$00,$00,$d8
 hint_6a5c:
-; --- unverified ---
-    bsr.s hint_69fa
+    DC.B    $61,$9c
 hint_6a5e:
-; --- unverified ---
-    sne d0
-    bra.w hint_6b32
+    DC.B    $56,$c0,$60,$00,$00,$d0
 hint_6a64:
-; --- unverified ---
-    bsr.w sub_14c2
+    DC.B    $61,$00,$aa,$5c
 hint_6a68:
-; --- unverified ---
-    beq.s hint_6a88
+    DC.B    $67,$1e
 hint_6a6a:
-; --- unverified ---
-    bsr.w sub_0bce
+    DC.B    $61,$00,$a1,$62
 hint_6a6e:
-; --- unverified ---
-    bne.s hint_6a88
+    DC.B    $66,$18
 hint_6a70:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_6a88
+    DC.B    $4a,$2e,$02,$38,$67,$12
 hint_6a76:
-; --- unverified ---
-    move.b 12(a1),d0
-    btst #7,d0
-    beq.s hint_6a88
+    DC.B    $10,$29,$00,$0c,$08,$00,$00,$07,$67,$08
 hint_6a80:
-    dc.b    $02,$00,$00,$40,$b0,$3c,$00,$40
+    DC.B    $02,$00,$00,$40,$b0,$3c,$00,$40
 hint_6a88:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6a8a:
-; --- unverified ---
-    lea 1000(a6),a0 ; app+$3E8
-    bsr.w sub_76b8
+    DC.B    $41,$ee,$03,$e8,$61,$00,$0c,$28
 hint_6a92:
-; --- unverified ---
-    bne.w loc_8486
+    DC.B    $66,$00,$19,$f2
 hint_6a96:
-; --- unverified ---
-    bsr.s hint_6a64
+    DC.B    $61,$cc
 hint_6a98:
-; --- unverified ---
-    seq d0
-    bra.w hint_6b32
+    DC.B    $57,$c0,$60,$00,$00,$96
 hint_6a9e:
-; --- unverified ---
-    lea 1000(a6),a0 ; app+$3E8
-    bsr.w sub_76b8
+    DC.B    $41,$ee,$03,$e8,$61,$00,$0c,$14
 hint_6aa6:
-; --- unverified ---
-    bne.w loc_8486
+    DC.B    $66,$00,$19,$de
 hint_6aaa:
-; --- unverified ---
-    bsr.s hint_6a64
+    DC.B    $61,$b8
 hint_6aac:
-; --- unverified ---
-    sne d0
-    bra.w hint_6b32
+    DC.B    $56,$c0,$60,$00,$00,$82
 hint_6ab2:
-; --- unverified ---
-    st 344(a6) ; app+$158
-    bsr.w sub_0db6
+    DC.B    $50,$ee,$01,$58,$61,$00,$a2,$fe
 hint_6aba:
-; --- unverified ---
-    sf 344(a6) ; app+$158
-    tst.w d3
-    bmi.s hint_6aee
+    DC.B    $51,$ee,$01,$58,$4a,$43,$6b,$2c
 hint_6ac2:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_6aee
+    DC.B    $4a,$04,$66,$28
 hint_6ac6:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6ac8:
-; --- unverified ---
-    bsr.s hint_6ab2
+    DC.B    $61,$e8
 hint_6aca:
-; --- unverified ---
-    cmp.b #$2,d3
-    beq.s hint_6aee
+    DC.B    $b6,$3c,$00,$02,$67,$1e
 hint_6ad0:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6ad2:
-; --- unverified ---
-    st 344(a6) ; app+$158
-    bsr.w sub_0db6
+    DC.B    $50,$ee,$01,$58,$61,$00,$a2,$de
 hint_6ada:
-; --- unverified ---
-    sf 344(a6) ; app+$158
-    tst.w d3
-    bmi.s hint_6aee
+    DC.B    $51,$ee,$01,$58,$4a,$43,$6b,$0c
 hint_6ae2:
-; --- unverified ---
-    cmp.b #$1,d3
-    beq.s hint_6aee
+    DC.B    $b6,$3c,$00,$01,$67,$06
 hint_6ae8:
-; --- unverified ---
-    tst.b d4
-    bne.s hint_6aee
+    DC.B    $4a,$04,$66,$02
 hint_6aec:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6aee:
-; --- unverified ---
-    moveq #62,d0
-    bra.w loc_8482
+    DC.B    $70,$3e,$60,$00,$19,$90
 hint_6af4:
-; --- unverified ---
-    bsr.s hint_6ad2
+    DC.B    $61,$dc
 hint_6af6:
-; --- unverified ---
-    move.b #$3d,2107(a6) ; app+$83B
-    move.l d2,2108(a6) ; app+$83C
-    rts
+    DC.B    $1d,$7c,$00,$3d,$08,$3b,$2d,$42,$08,$3c,$4e,$75
 hint_6b02:
-; --- unverified ---
-    moveq #51,d0
-    bra.w loc_8482
+    DC.B    $70,$33,$60,$00,$19,$7c
 loc_6b08:
     move.w #$34,d0
     bra.w loc_846e
 hint_6b10:
-; --- unverified ---
-    bsr.s hint_6af4
+    DC.B    $61,$e2
 hint_6b12:
-; --- unverified ---
-    sgt d0
-    bra.s hint_6b32
+    DC.B    $5e,$c0,$60,$1c
 hint_6b16:
-; --- unverified ---
-    bsr.s hint_6af4
+    DC.B    $61,$dc
 hint_6b18:
-; --- unverified ---
-    sge d0
-    bra.s hint_6b32
+    DC.B    $5c,$c0,$60,$16
 hint_6b1c:
-; --- unverified ---
-    bsr.s hint_6af4
+    DC.B    $61,$d6
 hint_6b1e:
-; --- unverified ---
-    slt d0
-    bra.s hint_6b32
+    DC.B    $5d,$c0,$60,$10
 hint_6b22:
-; --- unverified ---
-    bsr.s hint_6af4
+    DC.B    $61,$d0
 hint_6b24:
-; --- unverified ---
-    sle d0
-    bra.s hint_6b32
+    DC.B    $5f,$c0,$60,$0a
 hint_6b28:
-; --- unverified ---
-    bsr.s hint_6af4
+    DC.B    $61,$ca
 hint_6b2a:
-; --- unverified ---
-    seq d0
-    bra.s hint_6b32
+    DC.B    $57,$c0,$60,$04
 hint_6b2e:
-; --- unverified ---
-    bsr.s hint_6af4
+    DC.B    $61,$c4
 hint_6b30:
-    dc.b    $56,$c0
+    DC.B    $56,$c0
 hint_6b32:
-; --- unverified ---
-    addq.w #1,2174(a6) ; app+$87E
-    tst.b d0
-    beq.s hint_6b42
+    DC.B    $52,$6e,$08,$7e,$4a,$00,$67,$08
 hint_6b3a:
-; --- unverified ---
-    bsr.w hint_6cac
+    DC.B    $61,$00,$01,$70
 hint_6b3e:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_6b42:
-; --- unverified ---
-    bsr.w hint_6cac
+    DC.B    $61,$00,$01,$68
 hint_6b46:
-; --- unverified ---
-    bsr.w sub_07f0
+    DC.B    $61,$00,$9c,$a8
 hint_6b4a:
-    dc.b    $3e,$2e,$08,$7e
+    DC.B    $3e,$2e,$08,$7e
 hint_6b4e:
-; --- unverified ---
-    bsr.w loc_06ac
+    DC.B    $61,$00,$9b,$5c
 hint_6b52:
-; --- unverified ---
-    bne.s loc_6b08
+    DC.B    $66,$b4
 hint_6b54:
-; --- unverified ---
-    bsr.s hint_6bca
+    DC.B    $61,$74
 hint_6b56:
-; --- unverified ---
-    beq.s hint_6bc4
+    DC.B    $67,$6c
 hint_6b58:
-; --- unverified ---
-    tst.l d2
-    beq.s hint_6b74
+    DC.B    $4a,$82,$67,$18
 hint_6b5c:
-; --- unverified ---
-    cmp.l #$454c5345,d1 ; 'ELSE'
-    bne.s hint_6bc4
+    DC.B    $b2,$bc
+    DC.B    "ELSEf`"
 hint_6b64:
-; --- unverified ---
-    cmp.l #$49460000,d2
-    bne.s hint_6bc4
+    DC.B    $b4,$bc,$49,$46,$00,$00,$66,$58
 hint_6b6c:
-; --- unverified ---
-    cmp.w 2174(a6),d7 ; app+$87E
-    beq.s hint_6b3a
+    DC.B    $be,$6e,$08,$7e,$67,$c8
 hint_6b72:
-; --- unverified ---
-    bra.s hint_6bc4
+    DC.B    $60,$50
 hint_6b74:
-; --- unverified ---
-    cmp.l #$454c5345,d1 ; 'ELSE'
-    beq.s hint_6b6c
+    DC.B    $b2,$bc,$45,$4c,$53,$45,$67,$f0
 hint_6b7c:
-; --- unverified ---
-    cmp.l #$454e4443,d1 ; 'ENDC'
-    beq.s hint_6b96
+    DC.B    $b2,$bc,$45,$4e,$44,$43,$67,$12
 hint_6b84:
-; --- unverified ---
-    cmp.l #$454e444d,d1 ; 'ENDM'
-    bne.s hint_6baa
+    DC.B    $b2,$bc,$45,$4e,$44,$4d,$66,$1e
 hint_6b8c:
-; --- unverified ---
-    tst.b 257(a6) ; app+$101
-    beq.s hint_6bc4
+    DC.B    $4a,$2e,$01,$01,$67,$32
 hint_6b92:
-; --- unverified ---
-    bra.w hint_7294
+    DC.B    $60,$00,$07,$00
 hint_6b96:
-; --- unverified ---
-    move.w 2174(a6),d0 ; app+$87E
-    subq.w #1,2174(a6) ; app+$87E
-    cmp.w d0,d7
-    bne.s hint_6bc4
+    DC.B    $30,$2e,$08,$7e,$53,$6e,$08,$7e,$be,$40,$66,$22
 hint_6ba2:
-; --- unverified ---
-    bra.s hint_6b3a
+    DC.B    $60,$96
 hint_6ba4:
-; --- unverified ---
-    bsr.w hint_6c86
+    DC.B    $61,$00
+hint_6ba6:
+    DC.B    $00,$e0
 hint_6ba8:
-; --- unverified ---
-    bra.s hint_6bc4
+    DC.B    $60,$1a
 hint_6baa:
-; --- unverified ---
-    swap d1
-    cmp.w #$4946,d1
-    bne.s hint_6bc4
+    DC.B    $48,$41,$b2,$7c,$49,$46,$66,$12
 hint_6bb2:
-    dc.b    $48,$41,$41,$fa,$08,$b2
+    DC.B    $48,$41,$41,$fa,$08,$b2
 hint_6bb8:
-; --- unverified ---
-    move.w (a0)+,d0
-    beq.s hint_6bc4
+    DC.B    $30,$18,$67,$08
 hint_6bbc:
-; --- unverified ---
-    cmp.w d0,d1
-    bne.s hint_6bb8
+    DC.B    $b2,$40,$66,$f8
 hint_6bc0:
-    dc.b    $52,$6e,$08,$7e
+    DC.B    $52,$6e,$08,$7e
 hint_6bc4:
-; --- unverified ---
-    bsr.w sub_07f0
+    DC.B    $61,$00,$9c,$2a
 hint_6bc8:
-; --- unverified ---
-    bra.s hint_6b4e
+    DC.B    $60,$84
 hint_6bca:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$a,d1
-    beq.w hint_6c66
+    DC.B    $12,$1c,$b2,$3c,$00,$0a,$67,$00,$00,$94
 hint_6bd4:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_6c08
+    DC.B    $b2,$3c,$00,$09,$67,$2e
 hint_6bda:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_6c08
+    DC.B    $b2,$3c,$00,$20,$67,$28
 hint_6be0:
-; --- unverified ---
-    cmp.b #$2a,d1
-    beq.w hint_6c66
+    DC.B    $b2,$3c,$00,$2a,$67,$00,$00,$80
 hint_6be8:
-; --- unverified ---
-    cmp.b #$3b,d1
-    beq.s hint_6c66
+    DC.B    $b2,$3c,$00,$3b,$67,$78
 hint_6bee:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$a,d1
-    beq.s hint_6c66
+    DC.B    $12,$1c,$b2,$3c,$00,$0a,$67,$70
 hint_6bf6:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_6c08
+    DC.B    $b2,$3c,$00,$09,$67,$0c
 hint_6bfc:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_6c08
+    DC.B    $b2,$3c,$00,$20,$67,$06
 hint_6c02:
-; --- unverified ---
-    cmp.b #$3a,d1
-    bne.s hint_6bee
+    DC.B    $b2,$3c,$00,$3a,$66,$e6
 hint_6c08:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$a,d1
-    beq.s hint_6c66
+    DC.B    $12,$1c,$b2,$3c,$00,$0a,$67,$56
 hint_6c10:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_6c08
+    DC.B    $b2,$3c,$00,$09,$67,$f2
 hint_6c16:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_6c08
+    DC.B    $b2,$3c,$00,$20,$67,$ec
 hint_6c1c:
-; --- unverified ---
-    cmp.b #$2a,d1
-    beq.s hint_6c66
+    DC.B    $b2,$3c,$00,$2a,$67,$44
 hint_6c22:
-; --- unverified ---
-    cmp.b #$3b,d1
-    beq.s hint_6c66
+    DC.B    $b2,$3c,$00,$3b,$67,$3e
 hint_6c28:
-; --- unverified ---
-    lea 1448(a6),a0 ; app+$5A8
-    clr.l -(a0)
-    clr.l -(a0)
-    moveq #7,d0
-    bra.s hint_6c4e
+    DC.B    $41,$ee,$05,$a8,$42,$a0,$42,$a0,$70,$07,$60,$1a
 hint_6c34:
-; --- unverified ---
-    move.b (a4)+,d1
-    cmp.b #$a,d1
-    beq.s hint_6c5e
+    DC.B    $12,$1c,$b2,$3c,$00,$0a,$67,$22
 hint_6c3c:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_6c5e
+    DC.B    $b2,$3c,$00,$09,$67,$1c
 hint_6c42:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_6c5e
+    DC.B    $b2,$3c,$00,$20,$67,$16
 hint_6c48:
-; --- unverified ---
-    cmp.b #$2e,d1
-    beq.s hint_6c5e
+    DC.B    $b2,$3c,$00,$2e,$67,$10
 hint_6c4e:
-; --- unverified ---
-    ext.w d1
-    move.b 126(a6,d1.w),d1
-    move.b d1,(a0)+
-    dbf d0,hint_6c34
+    DC.B    $48,$81,$12,$36,$10,$7e,$10,$c1,$51,$c8,$ff,$dc
 hint_6c5a:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_6c5e:
-    dc.b    $4c,$ee,$00,$06,$05,$a0,$70,$ff
+    DC.B    $4c,$ee,$00,$06,$05,$a0,$70,$ff
 hint_6c66:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6c68:
-; --- unverified ---
-    move.w 2174(a6),d0 ; app+$87E
-    beq.s hint_6c86
+    DC.B    $30,$2e,$08,$7e,$67,$18
 hint_6c6e:
-; --- unverified ---
-    tst.b 257(a6) ; app+$101
-    beq.s hint_6c7e
+    DC.B    $4a,$2e,$01,$01,$67,$0a
 hint_6c74:
-; --- unverified ---
-    movea.l 2178(a6),a2 ; app+$882
-    cmp.w 14(a2),d0
-    beq.s hint_6c86
+    DC.B    $24,$6e,$08,$82,$b0,$6a,$00,$0e,$67,$08
 hint_6c7e:
-; --- unverified ---
-    subq.w #1,2174(a6) ; app+$87E
-    bra.w hint_6b3a
+    DC.B    $53,$6e,$08,$7e,$60,$00,$fe,$b6
 hint_6c86:
-; --- unverified ---
-    moveq #48,d0
-    bra.w loc_8486
+    DC.B    $70,$30,$60,$00
+hint_6c8a:
+    DC.B    $17,$fc
 hint_6c8c:
-; --- unverified ---
-    move.w 2174(a6),d0 ; app+$87E
-    beq.s hint_6ca6
+    DC.B    $30,$2e,$08,$7e,$67,$14
 hint_6c92:
-; --- unverified ---
-    tst.b 257(a6) ; app+$101
-    beq.s hint_6ca2
+    DC.B    $4a,$2e,$01,$01,$67,$0a
 hint_6c98:
-; --- unverified ---
-    movea.l 2178(a6),a2 ; app+$882
-    cmp.w 14(a2),d0
-    beq.s hint_6ca6
+    DC.B    $24,$6e,$08,$82,$b0,$6a,$00,$0e,$67,$04
 hint_6ca2:
-; --- unverified ---
-    bra.w hint_6b42
+    DC.B    $60,$00,$fe,$9e
 hint_6ca6:
-; --- unverified ---
-    moveq #49,d0
-    bra.w loc_8486
+    DC.B    $70,$31,$60,$00
+hint_6caa:
+    DC.B    $17,$dc
 hint_6cac:
-; --- unverified ---
-    tst.b 294(a6) ; app+$126
-    beq.s hint_6cd4
+    DC.B    $4a,$2e,$01,$26,$67,$22
 hint_6cb2:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    bne.s hint_6cd4
+    DC.B    $4a,$2e,$02,$38,$66,$1c
 hint_6cb8:
-; --- unverified ---
-    tst.b 257(a6) ; app+$101
-    beq.s hint_6cc4
+    DC.B    $4a,$2e,$01,$01,$67,$06
 hint_6cbe:
-; --- unverified ---
-    tst.b 279(a6) ; app+$117
-    beq.s hint_6cd4
+    DC.B    $4a,$2e,$01,$17,$67,$10
 hint_6cc4:
-; --- unverified ---
-    move.w 2174(a6),d0 ; app+$87E
-    addi.b #$30,d0
-    move.b d0,2107(a6) ; app+$83B
-    bra.w sub_92a0
+    DC.B    $30,$2e,$08,$7e,$06,$00,$00,$30,$1d,$40,$08,$3b,$60,$00,$25,$ce
 hint_6cd4:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6cd6:
-; --- unverified ---
-    move.l #$1388,d1
-    move.w d1,334(a6) ; app+$14E
-    bsr.w sub_90ba
+    DC.B    $22,$3c,$00,$00,$13,$88,$3d,$41,$01,$4e,$61,$00,$23,$d8
 hint_6ce4:
-; --- unverified ---
-    move.l a0,330(a6) ; app+$14A
-    rts
+    DC.B    $2d,$48,$01,$4a,$4e,$75
 hint_6cea:
-; --- unverified ---
-    moveq #54,d0
-    bra.w loc_8486
+    DC.B    $70,$36,$60,$00
+hint_6cee:
+    DC.B    $17,$98
 hint_6cf0:
-; --- unverified ---
-    tst.b 257(a6) ; app+$101
-    bne.s hint_6cea
+    DC.B    $4a,$2e,$01,$01,$66,$f4
 hint_6cf6:
-; --- unverified ---
-    tst.l 2192(a6) ; app+$890
-    bne.s hint_6cea
+    DC.B    $4a,$ae,$08,$90,$66,$ee
 hint_6cfc:
-; --- unverified ---
-    bsr.w hint_2b02
+    DC.B    $61,$00,$be,$04
 hint_6d00:
-; --- unverified ---
-    movea.l 370(a6),a2 ; app+$172
-    movem.l a4-a5,-(sp)
-    bsr.w sub_0b88
+    DC.B    $24,$6e,$01,$72,$48,$e7,$00,$0c,$61,$00,$9e,$7e
 hint_6d0c:
-; --- unverified ---
-    sne d0
-    movem.l (sp)+,a4-a5
-    tst.b 568(a6) ; app+$238
-    bne.w hint_6e06
+    DC.B    $56,$c0,$4c,$df,$30,$00,$4a,$2e,$02,$38,$66,$00,$00,$ee
 hint_6d1a:
-; --- unverified ---
-    tst.b d0
-    beq.w loc_8436
+    DC.B    $4a,$00,$67,$00,$17,$18
 hint_6d20:
-; --- unverified ---
-    moveq #8,d3
-    clr.l d4
-    bsr.w sub_0cba
+    DC.B    $76,$08,$42,$84,$61,$00,$9f,$94
 hint_6d28:
-; --- unverified ---
-    pea 8(a1)
-    move.b 569(a6),d0 ; app+$239
-    beq.s hint_6d3e
+    DC.B    $48,$69,$00,$08,$10,$2e,$02,$39,$67,$0c
 hint_6d32:
-; --- unverified ---
-    cmp.b #$1,d0
-    beq.s hint_6d3e
+    DC.B    $b0,$3c,$00,$01,$67,$06
 hint_6d38:
-    dc.b    $08,$e9,$00,$03,$00,$0c
+    DC.B    $08,$e9,$00,$03,$00,$0c
 hint_6d3e:
-; --- unverified ---
-    movea.l 330(a6),a0 ; app+$14A
-    cmpi.w #$110,334(a6) ; app+$14E
-    bcc.s hint_6d4c
+    DC.B    $20,$6e,$01,$4a,$0c,$6e,$01,$10,$01,$4e,$64,$02
 hint_6d4a:
-; --- unverified ---
-    bsr.s hint_6cd6
+    DC.B    $61,$8a
 hint_6d4c:
-    dc.b    $22,$5f,$22,$88,$42,$a8,$00,$08,$43,$e8,$00,$10,$20,$89,$21,$49
-    dc.b    $00,$04,$21,$48,$00,$0c,$2d,$49,$01,$4a,$04,$6e,$00,$10,$01,$4e
-    dc.b    $26,$48
+    DC.B    $22,$5f,$22,$88,$42,$a8,$00,$08,$43,$e8,$00,$10,$20,$89,$21,$49
+    DC.B    $00,$04,$21,$48,$00,$0c,$2d,$49,$01,$4a,$04,$6e,$00,$10,$01,$4e
+    DC.B    $26,$48
 hint_6d6e:
-; --- unverified ---
-    bsr.w loc_07f8
+    DC.B    $61,$00,$9a,$88
 hint_6d72:
-; --- unverified ---
-    bsr.w sub_0698
+    DC.B    $61,$00,$99,$24
 hint_6d76:
-; --- unverified ---
-    bne.w loc_6b08
+    DC.B    $66,$00,$fd,$90
 hint_6d7a:
-; --- unverified ---
-    bsr.s hint_6dac
+    DC.B    $61,$30
 hint_6d7c:
-; --- unverified ---
-    bsr.w hint_6bca
+    DC.B    $61,$00,$fe,$4c
 hint_6d80:
-; --- unverified ---
-    beq.s hint_6d6e
+    DC.B    $67,$ec
 hint_6d82:
-; --- unverified ---
-    cmp.l #$454e444d,d1 ; 'ENDM'
-    bne.s hint_6d6e
+    DC.B    $b2,$bc,$45,$4e,$44,$4d,$66,$e4
 hint_6d8a:
-; --- unverified ---
-    tst.l d2
-    bne.s hint_6d6e
+    DC.B    $4a,$82,$66,$e0
 hint_6d8e:
-; --- unverified ---
-    movea.l 12(a3),a0
-    move.l 330(a6),4(a0) ; app+$14A
-    moveq #10,d1
-    btst #0,333(a6) ; app+$14D
-    beq.s hint_6daa
+    DC.B    $20,$6b,$00,$0c,$21,$6e,$01,$4a,$00,$04,$72,$0a,$08,$2e,$00,$00
+    DC.B    $01,$4d,$67,$08
 hint_6da2:
-    dc.b    $53,$6e,$01,$4e,$52,$ae,$01,$4a
+    DC.B    $53,$6e,$01,$4e,$52,$ae,$01,$4a
 hint_6daa:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_6dac:
-; --- unverified ---
-    cmpi.w #$102,334(a6) ; app+$14E
-    bcc.s hint_6de8
+    DC.B    $0c,$6e,$01,$02,$01,$4e,$64,$34
 hint_6db4:
-; --- unverified ---
-    movea.l 12(a3),a0
-    move.l 330(a6),4(a0) ; app+$14A
-    bsr.w hint_6cd6
+    DC.B    $20,$6b,$00,$0c,$21,$6e,$01,$4a,$00,$04,$61,$00,$ff,$16
 hint_6dc2:
-    dc.b    $22,$6b,$00,$0c,$23,$48,$00,$08,$27,$48,$00,$0c,$43,$e8,$00,$0c
-    dc.b    $20,$89,$42,$a8,$00,$04,$42,$a8,$00,$08,$70,$0c,$d0,$c0,$d1,$ae
-    dc.b    $01,$4a,$91,$6e,$01,$4e
+    DC.B    $22,$6b,$00,$0c,$23,$48,$00,$08,$27,$48,$00,$0c,$43,$e8,$00,$0c
+    DC.B    $20,$89,$42,$a8,$00,$04,$42,$a8,$00,$08,$70,$0c,$d0,$c0,$d1,$ae
+    DC.B    $01,$4a,$91,$6e,$01,$4e
 hint_6de8:
-    dc.b    $20,$6e,$01,$4a,$22,$4c,$72,$0a
+    DC.B    $20,$6e,$01,$4a,$22,$4c,$72,$0a
 hint_6df0:
-; --- unverified ---
-    move.b (a1)+,d0
-    move.b d0,(a0)+
-    cmp.b d0,d1
-    bne.s hint_6df0
+    DC.B    $10,$19,$10,$c0,$b2,$00,$66,$f8
 hint_6df8:
-; --- unverified ---
-    move.l a0,330(a6) ; app+$14A
-    move.l a1,d2
-    sub.l a4,d2
-    sub.w d2,334(a6) ; app+$14E
-    rts
+    DC.B    $2d,$48,$01,$4a,$24,$09,$94,$8c,$95,$6e,$01,$4e,$4e,$75
 hint_6e06:
-; --- unverified ---
-    tst.b d0
-    bne.w loc_843a
+    DC.B    $4a,$00,$66,$00,$16,$30
 hint_6e0c:
-; --- unverified ---
-    cmpi.b #$8,13(a1)
-    bne.w loc_8436
+    DC.B    $0c,$29,$00,$08,$00,$0d,$66,$00,$16,$22
 hint_6e16:
-; --- unverified ---
-    bset #6,12(a1)
-    bne.w loc_8436
+    DC.B    $08,$e9,$00,$06,$00,$0c,$66,$00,$16,$18
 hint_6e20:
-; --- unverified ---
-    bsr.w loc_08dc
+    DC.B    $61,$00,$9a,$ba
 hint_6e24:
-; --- unverified ---
-    bsr.w sub_0698
+    DC.B    $61,$00,$98,$72
 hint_6e28:
-; --- unverified ---
-    bne.w loc_6b08
+    DC.B    $66,$00,$fc,$de
 hint_6e2c:
-; --- unverified ---
-    bsr.w hint_6bca
+    DC.B    $61,$00,$fd,$9c
 hint_6e30:
-; --- unverified ---
-    beq.s hint_6e20
+    DC.B    $67,$ee
 hint_6e32:
-; --- unverified ---
-    cmp.l #$454e444d,d1 ; 'ENDM'
-    bne.s hint_6e20
+    DC.B    $b2,$bc,$45,$4e,$44,$4d,$66,$e6
 hint_6e3a:
-; --- unverified ---
-    tst.l d2
-    bne.s hint_6e20
+    DC.B    $4a,$82,$66,$e2
 hint_6e3e:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 sub_6e42:
     move.l #$1f40,d1
     move.w d1,2182(a6) ; app+$886
@@ -15242,224 +10219,126 @@ loc_7278:
     move.w 8(a2),d1
     move.l a0,-(sp)
     bra.w loc_71c4
-sub_7284:
-; --- unverified ---
-    tst.b 257(a6) ; app+$101
-    beq.s hint_72de
+hint_7284:
+    DC.B    $4a,$2e,$01,$01,$67,$54
 hint_728a:
-    dc.b    $24,$6e,$08,$82,$3d,$6a,$00,$0e,$08,$7e
+    DC.B    $24,$6e,$08,$82,$3d,$6a,$00,$0e,$08,$7e
 hint_7294:
-; --- unverified ---
-    tst.b 257(a6) ; app+$101
-    beq.s hint_72de
+    DC.B    $4a,$2e,$01,$01,$67,$44
 hint_729a:
-; --- unverified ---
-    tst.b 279(a6) ; app+$117
-    bne.s hint_72a4
+    DC.B    $4a,$2e,$01,$17,$66,$04
 hint_72a0:
-    dc.b    $50,$ee,$01,$13
+    DC.B    $50,$ee,$01,$13
 hint_72a4:
-; --- unverified ---
-    subq.w #1,2200(a6) ; app+$898
-    movea.l 2178(a6),a2 ; app+$882
-    move.l a2,d0
-    sub.l 2184(a6),d0 ; app+$888
-    sub.w d0,2182(a6) ; app+$886
-    move.l a2,2184(a6) ; app+$888
-    move.w 14(a2),d0
-    cmp.w 2174(a6),d0 ; app+$87E
-    beq.s hint_72ce
+    DC.B    $53,$6e,$08,$98,$24,$6e,$08,$82,$20,$0a,$90,$ae,$08,$88,$91,$6e
+    DC.B    $08,$86,$2d,$4a,$08,$88,$30,$2a,$00,$0e,$b0,$6e,$08,$7e,$67,$0a
 hint_72c4:
-; --- unverified ---
-    move.w d0,2174(a6) ; app+$87E
-    moveq #10,d0
-    bsr.w sign_extended_operand
+    DC.B    $3d,$40,$08,$7e,$70,$0a,$61,$00,$12,$c0
 hint_72ce:
-; --- unverified ---
-    move.l (a2),d0
-    move.l d0,2178(a6) ; app+$882
-    bne.s hint_72da
+    DC.B    $20,$12,$2d,$40,$08,$82,$66,$04
 hint_72d6:
-    dc.b    $51,$ee,$01,$01
+    DC.B    $51,$ee,$01,$01
 hint_72da:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_72de:
-; --- unverified ---
-    moveq #53,d0
-    bra.w loc_8486
+    DC.B    $70,$35,$60,$00,$11,$a4
 hint_72e4:
-; --- unverified ---
-    moveq #59,d0
-    bra.w loc_846e
+    DC.B    $70,$3b,$60,$00
+hint_72e8:
+    DC.B    $11,$86
+    DC.B    $28,$2e,$02,$3c,$41,$ee,$03,$e8,$4a,$90,$67,$04
 hint_72f6:
-; --- unverified ---
-    bsr.w loc_0c84
+    DC.B    $61,$00,$99,$8c
 hint_72fa:
-; --- unverified ---
-    tst.l 2192(a6) ; app+$890
-    bne.w hint_7336
+    DC.B    $4a,$ae,$08,$90,$66,$00,$00,$36
 hint_7302:
-; --- unverified ---
-    bsr.w hint_6ad2
+    DC.B    $61,$00,$f7,$ce
 hint_7306:
-; --- unverified ---
-    move.l d2,2188(a6) ; app+$88C
-    bgt.s hint_733c
+    DC.B    $2d,$42,$08,$8c,$6e,$30
 hint_730c:
-; --- unverified ---
-    bsr.w sub_07f0
+    DC.B    $61,$00,$94,$e2
 hint_7310:
-; --- unverified ---
-    bsr.w loc_06ac
+    DC.B    $61,$00,$93,$9a
 hint_7314:
-; --- unverified ---
-    bne.w loc_6b08
+    DC.B    $66,$00,$f7,$f2
 hint_7318:
-; --- unverified ---
-    bsr.w hint_6bca
+    DC.B    $61,$00,$f8,$b0
 hint_731c:
-; --- unverified ---
-    beq.s hint_730c
+    DC.B    $67,$ee
 hint_731e:
-; --- unverified ---
-    tst.l d2
-    bne.s hint_730c
+    DC.B    $4a,$82,$66,$ea
 hint_7322:
-; --- unverified ---
-    cmp.l #$52455054,d1 ; 'REPT'
-    beq.s hint_7336
+    DC.B    $b2,$bc,$52,$45,$50,$54,$67,$0c
 hint_732a:
-; --- unverified ---
-    cmp.l #$454e4452,d1 ; 'ENDR'
-    bne.s hint_730c
+    DC.B    $b2,$bc,$45,$4e,$44,$52,$66,$da
 hint_7332:
-; --- unverified ---
-    moveq #10,d1
-    rts
+    DC.B    $72,$0a,$4e,$75
 hint_7336:
-; --- unverified ---
-    moveq #71,d0
-    bra.w loc_8486
+    DC.B    $70,$47,$60,$00
+hint_733a:
+    DC.B    $11,$4c
 hint_733c:
-; --- unverified ---
-    movea.l 330(a6),a0 ; app+$14A
-    cmpi.w #$110,334(a6) ; app+$14E
-    bcc.s hint_734c
+    DC.B    $20,$6e,$01,$4a,$0c,$6e,$01,$10,$01,$4e,$64,$04
 hint_7348:
-; --- unverified ---
-    bsr.w hint_6cd6
+    DC.B    $61,$00,$f9,$8c
 hint_734c:
-    dc.b    $2d,$48,$08,$90,$3f,$2e,$01,$4e,$42,$a8,$00,$08,$43,$e8,$00,$10
-    dc.b    $20,$89,$21,$49,$00,$04,$21,$48,$00,$0c,$2d,$49,$01,$4a,$04,$6e
-    dc.b    $00,$10,$01,$4e,$26,$48
+    DC.B    $2d,$48,$08,$90,$3f,$2e,$01,$4e,$42,$a8,$00,$08,$43,$e8,$00,$10
+    DC.B    $20,$89,$21,$49,$00,$04,$21,$48,$00,$0c,$2d,$49,$01,$4a,$04,$6e
+    DC.B    $00,$10,$01,$4e,$26,$48
 hint_7372:
-; --- unverified ---
-    bsr.w sub_07f0
+    DC.B    $61,$00,$94,$7c
 hint_7376:
-; --- unverified ---
-    clr.l 2192(a6) ; app+$890
-    bsr.w loc_06ac
+    DC.B    $42,$ae,$08,$90,$61,$00,$93,$30
 hint_737e:
-; --- unverified ---
-    bne.w loc_6b08
+    DC.B    $66,$00,$f7,$88
 hint_7382:
-; --- unverified ---
-    move.l a3,2192(a6) ; app+$890
-    bsr.w hint_6dac
+    DC.B    $2d,$4b,$08,$90,$61,$00,$fa,$24
 hint_738a:
-; --- unverified ---
-    bsr.w hint_6bca
+    DC.B    $61,$00,$f8,$3e
 hint_738e:
-; --- unverified ---
-    beq.s hint_7372
+    DC.B    $67,$e2
 hint_7390:
-; --- unverified ---
-    cmp.l #$454e4452,d1 ; 'ENDR'
-    bne.s hint_7372
+    DC.B    $b2,$bc,$45,$4e,$44,$52,$66,$da
 hint_7398:
-; --- unverified ---
-    tst.l d2
-    bne.s hint_7372
+    DC.B    $4a,$82,$66,$d6
 hint_739c:
-; --- unverified ---
-    bsr.w sub_07f0
+    DC.B    $61,$00,$94,$52
 hint_73a0:
-; --- unverified ---
-    st 275(a6) ; app+$113
-    movea.l 12(a3),a0
-    move.l 330(a6),4(a0) ; app+$14A
-    btst #0,333(a6) ; app+$14D
-    beq.s hint_73ca
+    DC.B    $50,$ee,$01,$13,$20,$6b,$00,$0c,$21,$6e,$01,$4a,$00,$04,$08,$2e
+    DC.B    $00,$00,$01,$4d,$67,$14
 hint_73b6:
-; --- unverified ---
-    subq.w #1,334(a6) ; app+$14E
-    addq.l #1,330(a6) ; app+$14A
-    tst.b 257(a6) ; app+$101
-    beq.s hint_73ca
+    DC.B    $53,$6e,$01,$4e,$52,$ae,$01,$4a,$4a,$2e,$01,$01,$67,$06
 hint_73c4:
-    dc.b    $3d,$6e,$08,$98,$08,$9a
+    DC.B    $3d,$6e,$08,$98,$08,$9a
 hint_73ca:
-; --- unverified ---
-    subq.l #1,2188(a6) ; app+$88C
-    bcs.s hint_740c
+    DC.B    $53,$ae,$08,$8c,$65,$3c
 hint_73d0:
-    dc.b    $2d,$4b,$08,$90,$43,$eb,$00,$10,$2d,$49,$08,$94
+    DC.B    $2d,$4b,$08,$90,$43,$eb,$00,$10,$2d,$49,$08,$94
 hint_73dc:
-; --- unverified ---
-    bsr.w loc_06ac
+    DC.B    $61,$00,$92,$ce
 hint_73e0:
-; --- unverified ---
-    bne.w loc_6b08
+    DC.B    $66,$00,$f7,$26
 hint_73e4:
-; --- unverified ---
-    movem.l a3-a4,-(sp)
-    bsr.w hint_6bca
+    DC.B    $48,$e7,$00,$18,$61,$00,$f7,$e0
 hint_73ec:
-; --- unverified ---
-    movem.l (sp)+,a3-a4
-    beq.s hint_73fe
+    DC.B    $4c,$df,$18,$00,$67,$0c
 hint_73f2:
-; --- unverified ---
-    cmp.l #$454e4452,d1 ; 'ENDR'
-    bne.s hint_73fe
+    DC.B    $b2,$bc,$45,$4e,$44,$52,$66,$04
 hint_73fa:
-; --- unverified ---
-    tst.l d2
-    beq.s hint_73ca
+    DC.B    $4a,$82,$67,$cc
 hint_73fe:
-; --- unverified ---
-    st 275(a6) ; app+$113
-    move.l a3,-(sp)
-    bsr.w loc_09c8
+    DC.B    $50,$ee,$01,$13,$2f,$0b,$61,$00,$95,$c2
 hint_7408:
-; --- unverified ---
-    movea.l (sp)+,a3
-    bra.s hint_73dc
+    DC.B    $26,$5f,$60,$d0
 hint_740c:
-; --- unverified ---
-    move.w (sp)+,d0
-    move.w 334(a6),d2 ; app+$14E
-    tst.l 8(a3)
-    beq.s hint_741a
+    DC.B    $30,$1f,$34,$2e,$01,$4e,$4a,$ab,$00,$08,$67,$02
 hint_7418:
-    dc.b    $70,$00
+    DC.B    $70,$00
 hint_741a:
-; --- unverified ---
-    sub.w d0,d2
-    sub.w d2,334(a6) ; app+$14E
-    ext.l d2
-    add.l d2,330(a6) ; app+$14A
-    clr.l 2192(a6) ; app+$890
-    lea pcref_9884(pc),a0
-    move.l a0,378(a6) ; app+$17A
-    moveq #10,d1
-    rts
+    DC.B    $94,$40,$95,$6e,$01,$4e,$48,$c2,$d5,$ae,$01,$4a,$42,$ae,$08,$90
+    DC.B    $41,$fa,$24,$58,$2d,$48,$01,$7a,$72,$0a,$4e,$75
 hint_7436:
-; --- unverified ---
-    moveq #72,d0
-    bra.w loc_8486
+    DC.B    $70,$48,$60,$00,$10,$4c
 sub_743c:
     movea.l 2192(a6),a1 ; app+$890
     movea.l 2196(a6),a0 ; app+$894
@@ -15481,15 +10360,15 @@ loc_745c:
     moveq #0,d0
     rts
 str_7468:
-    dc.b    "NEEQC",0
-    dc.b    $4e,$43,$44,$00
-    dc.b    "NDGTGELTLE",0
-    dc.b    $00
+    DC.B    "NEEQC",0
+    DC.B    $4e,$43,$44,$00
+    DC.B    "NDGTGELTLE",0
+    DC.B    $00
 loc_747e:
     move.l d2,-(sp)
     bra.w loc_0ae8
 pcref_7484:
-    dc.b    $00,$00,$0d,$fe,$00,$00
+    DC.B    $00,$00,$0d,$fe,$00,$00
 loc_748a:
     lea pcref_7484(pc),a0
     tst.b 568(a6) ; app+$238
@@ -15619,89 +10498,54 @@ loc_7574:
     move.w (sp)+,d1
     rts
 pcref_7578:
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $fe,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$01,$ff,$04,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$03,$ff,$ff,$ff
-    dc.b    $05,$ff,$ff,$fd,$ff,$ff,$ff,$02,$07,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$01,$ff,$04,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$03,$ff,$ff,$ff
-    dc.b    $05,$ff,$ff,$fd,$ff,$ff,$ff,$02,$07,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-sub_75f8:
-; --- unverified ---
-    tst.b 293(a6) ; app+$125
-    beq.s hint_7604
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $fe,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$01,$ff,$04,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$03,$ff,$ff,$ff
+    DC.B    $05,$ff,$ff,$fd,$ff,$ff,$ff,$02,$07,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$01,$ff,$04,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$03,$ff,$ff,$ff
+    DC.B    $05,$ff,$ff,$fd,$ff,$ff,$ff,$02,$07,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+hint_75f8:
+    DC.B    $4a,$2e,$01,$25,$67,$06
 hint_75fe:
-; --- unverified ---
-    moveq #101,d0
-    bsr.w loc_8486
+    DC.B    $70,$65,$61,$00,$0e,$84
 hint_7604:
-; --- unverified ---
-    move.w d6,(a5)+
-    moveq #10,d1
-    rts
+    DC.B    $3a,$c6,$72,$0a,$4e,$75
 hint_760a:
-    dc.b    $20,$6e
+    DC.B    $20,$6e
 hint_760c:
-    dc.b    $01,$7a
+    DC.B    $01,$7a
+    DC.B    $42,$ae,$01,$7a,$4e,$d0
 pcref_7614:
+    DC.B    $b2,$3c,$00,$0a,$67,$1e
 hint_761a:
-; --- unverified ---
-    cmp.b #$9,d1
-    beq.s hint_7638
+    DC.B    $b2,$3c,$00,$09,$67,$18
 hint_7620:
-; --- unverified ---
-    cmp.b #$20,d1
-    beq.s hint_7638
+    DC.B    $b2,$3c,$00,$20,$67,$12
 hint_7626:
-; --- unverified ---
-    cmp.b #$2a,d1
-    beq.s hint_7638
+    DC.B    $b2,$3c,$00,$2a,$67,$0c
 hint_762c:
-; --- unverified ---
-    cmp.b #$3b,d1
-    beq.s hint_7638
+    DC.B    $b2,$3c,$00,$3b,$67,$06
 hint_7632:
-; --- unverified ---
-    moveq #14,d0
-    bsr.w loc_8486
+    DC.B    $70,$0e,$61,$00,$0e,$50
 hint_7638:
-; --- unverified ---
-    tst.l 378(a6) ; app+$17A
-    bne.s hint_760a
+    DC.B    $4a,$ae,$01,$7a,$66,$cc
 hint_763e:
-; --- unverified ---
-    tst.l 398(a6) ; app+$18E
-    beq.s hint_765e
+    DC.B    $4a,$ae,$01,$8e,$67,$1a
 hint_7644:
-; --- unverified ---
-    move.l 398(a6),d1 ; app+$18E
-    clr.l 398(a6) ; app+$18E
-    add.l d1,572(a6) ; app+$23C
-    tst.l d1
-    bmi.s hint_7658
+    DC.B    $22,$2e,$01,$8e,$42,$ae,$01,$8e,$d3,$ae,$02,$3c,$4a,$81,$6b,$04
 hint_7654:
-    dc.b    $d3,$ae,$02,$24
+    DC.B    $d3,$ae,$02,$24
 hint_7658:
-; --- unverified ---
-    clr.l 386(a6) ; app+$182
-    rts
+    DC.B    $42,$ae,$01,$82,$4e,$75
 hint_765e:
-; --- unverified ---
-    move.l a5,d1
-    sub.l 588(a6),d1 ; app+$24C
-    move.l d1,386(a6) ; app+$182
-    beq.s hint_767e
+    DC.B    $22,$0d,$92,$ae,$02,$4c,$2d,$41,$01,$82,$67,$14
 hint_766a:
-; --- unverified ---
-    move.l 572(a6),d2 ; app+$23C
-    add.l d1,572(a6) ; app+$23C
-    add.l d1,548(a6) ; app+$224
-    tst.b 568(a6) ; app+$238
-    bne.w loc_970e
+    DC.B    $24,$2e,$02,$3c,$d3,$ae,$02,$3c,$d3,$ae,$02,$24,$4a,$2e,$02,$38
+    DC.B    $66,$00,$20,$92
 hint_767e:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 sub_7680:
     bsr.s sub_76b8
 loc_7682:
@@ -15735,7 +10579,7 @@ loc_76a2:
     rts
 sub_76b8:
     andi.w #$ff,d1
-    lea sub_a764(pc),a2
+    lea dat_a764(pc),a2
     tst.b 0(a2,d1.w)
     beq.s loc_76f4
 loc_76c6:
@@ -15977,45 +10821,26 @@ loc_7880:
 loc_7886:
     bra.s loc_7854
 pcref_7888:
-    dc.b    $ff,$ff,$ff,$00
-sub_788c:
-; --- unverified ---
-    move.l d2,d0
-    and.l pcref_7888(pc),d0
-    beq.s hint_78d8
+    DC.B    $ff,$ff,$ff,$00
+hint_788c:
+    DC.B    $20,$02,$c0,$ba,$ff,$f8,$67,$44
 hint_7894:
-; --- unverified ---
-    cmp.l pcref_7888(pc),d0
-    beq.s hint_78d8
+    DC.B    $b0,$ba,$ff,$f2,$67,$3e
 hint_789a:
-; --- unverified ---
-    bra.s sub_78c6
+    DC.B    $60,$2a
 hint_789c:
-; --- unverified ---
-    move.l d2,d0
-    swap d0
-    tst.w d0
-    beq.s hint_78d8
+    DC.B    $20,$02
+    DC.B    "H@J@g4"
 hint_78a4:
-; --- unverified ---
-    addq.w #1,d0
-    beq.s hint_78d8
+    DC.B    $52,$40,$67,$30
 hint_78a8:
-; --- unverified ---
-    bra.s sub_78c6
+    DC.B    $60,$1c
 hint_78aa:
-; --- unverified ---
-    cmp.b #$1,d3
-    beq.s sub_78cc
+    DC.B    $b6,$3c,$00,$01,$67,$1c
 hint_78b0:
-; --- unverified ---
-    move.b d2,d0
-    ext.w d0
-    bra.s loc_78be
+    DC.B    $10,$02,$48,$80,$60,$08
 hint_78b6:
-; --- unverified ---
-    cmp.b #$1,d3
-    beq.s sub_78cc
+    DC.B    $b6,$3c,$00,$01,$67,$10
 sub_78bc:
     move.w d2,d0
 loc_78be:
@@ -16027,21 +10852,14 @@ loc_78c4:
 sub_78c6:
     moveq #29,d0
     bra.w loc_8486
-sub_78cc:
-; --- unverified ---
-    moveq #30,d0
-    tst.b 263(a6) ; app+$107
-    beq.w loc_8486
+hint_78cc:
+    DC.B    $70,$1e,$4a,$2e,$01,$07,$67,$00,$0b,$b2
 hint_78d6:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_78d8:
-; --- unverified ---
-    cmp.b #$1,d3
-    beq.s sub_78cc
+    DC.B    $b6,$3c,$00,$01,$67,$ee
 hint_78de:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 loc_78e0:
     movea.l a4,a0
     lea 1407(a6),a4 ; app+$57F
@@ -16058,7 +10876,7 @@ loc_78f8:
     movea.l (sp)+,a4
     rts
 pcref_78fc:
-    dc.b    "TEXT",$0a,0
+    DC.B    "TEXT",$0a,0
 sub_7902:
     clr.l 346(a6) ; app+$15A
     lea 1000(a6),a0 ; app+$3E8
@@ -16184,124 +11002,121 @@ sub_7a20:
     movea.l (sp)+,a0
     rts
 str_7a30:
-    dc.b    "line malformed",0
-    dc.b    "out of memory",0
-    dc.b    "undefined symbol",0
-    dc.b    "additional symbol on pass 2",0
-    dc.b    "symbol defined twice",0
-    dc.b    "phasing error",0
-    dc.b    "local not allowed",0
-    dc.b    "INTERNAL:invalid hashing",0
-    dc.b    "instruction not recognised",0
-    dc.b    "invalid size",0
-    dc.b    "duplicate MODULE name",0
-    dc.b    "forward reference",0
-    dc.b    "invalid section name, TEXT assumed",0
-    dc.b    "garbage following instruction",0
-    dc.b    "addressing mode not recognised",0
-    dc.b    "address register expected",0
-    dc.b    "addressing mode not allowed",0
-    dc.b    "expression mismatch",0
-    dc.b    "missing close bracket",0
-    dc.b    "imported label not allowed",0
-    dc.b    "illegal type combination",0
-    dc.b    "invalid number",0
-    dc.b    "number too large",0
-    dc.b    "misuse of label",0
-    dc.b    "include file read error",0
-    dc.b    "file not found",0
-    dc.b    "header file not found",0
-    dc.b    "repeated include file",0
-    dc.b    "data too large",0
-    dc.b    "relative not allowed",0
-    dc.b    "comma expected",0
-    dc.b    ".W or .L expected as index size",0
-    dc.b    "absolute not allowed",0
-    dc.b    "wrong processor",0
-    dc.b    "odd address",0
-    dc.b    "immediate data expected",0
-    dc.b    "data register expected",0
-    dc.b    "BSS or OFFSET section cannot contain data",0
-    dc.b    "during writing binary file",0
-    dc.b    "cannot create binary file",0
-    dc.b    "symbol expected",0
-    dc.b    "XREFs not allowed within brackets",0
-    dc.b    "cannot import symbol",0
-    dc.b    "cannot export symbol",0
-    dc.b    "not yet implemented",0
-    dc.b    "register expected",0
-    dc.b    "invalid MOVEP addressing mode",0
-    dc.b    "spurious ENDC",0
-    dc.b    "spurious ELSE",0
-    dc.b    "missing ENDC",0
-    dc.b    "invalid IF expression, ignored",0
-    dc.b    "source expired prematurely",0
-    dc.b    "spurious ENDM or MEXIT",0
-    dc.b    "cannot nest MACRO definitions or define in REPTs",0
-    dc.b    "missing quote",0
-    dc.b    "user error",0
-    dc.b    "invalid register list",0
-    dc.b    "invalid option",0
-    dc.b    "fatally bad conditional",0
-    dc.b    "relocation not allowed",0
-    dc.b    "division by zero",0
-    dc.b    "absolute expression MUST evaluate",0
-    dc.b    "illegal BSR.S",0
-    dc.b    "option must be at start",0
-    dc.b    "INTERNAL:invalid optimisation",0
-    dc.b    "can only assemble executable code to memory",0
-    dc.b    "program buffer full",0
-    dc.b    "linker format restriction",0
-    dc.b    "ORG/RORG not allowed",0
-    dc.b    "INTERNAL:invalid multi-line macro call",0
-    dc.b    "cannot nest repeat loops",0
-    dc.b    "spurious ENDR",0
-    dc.b    "invalid numeric expansion",0
-    dc.b    "during listing output",0
-    dc.b    "invalid printer parameter",0
-    dc.b    "invalid FORMAT parameter",0
-    dc.b    "INTERNAL:bad section",0
-    dc.b    "INTERNAL:macro memory",0
-    dc.b    "assembly interrupted",0
-    dc.b    "invalid section type",0
-    dc.b    "in command-line symbol",0
-    dc.b    "# probably missing",0
-    dc.b    "short branch cannot be 0 bytes",0
-    dc.b    "DCB or DS count must not be negative",0
-    dc.b    "invalid bitfield specification",0
-    dc.b    "colon (:) expected",0
-    dc.b    "floating-point register expected",0
-    dc.b    "MMU register expected",0
-    dc.b    "invalid MMU function code",0
-    dc.b    "invalid radix",0
-    dc.b    "invalid 68020 addressing mode",0
-    dc.b    "invalid index scale",0
-    dc.b    "hex floating point number too large",0
-    dc.b    "invalid opcode size for data/address register",0
-    dc.b    "only FPIAR allowed",0
-    dc.b    "maths co-processor required",0
-    dc.b    "invalid k-factor",0
-    dc.b    "floating point constant not allowed",0
-    dc.b    "floating point constant too large",0
-    dc.b    "bad floating point expression",0
-    dc.b    "privileged instruction",0
-    dc.b    "invalid section specified",0
-    dc.b    "invalid pre-assembled file",0
-    dc.b    "only (An) allowed for this instruction",0
-    dc.b    "INTERNAL:memory list corrupt",0
-    dc.b    "bit number shoul"
-sub_840c:
-; --- unverified ---
-    bcc.s loc_842e
+    DC.B    "line malformed",0
+    DC.B    "out of memory",0
+    DC.B    "undefined symbol",0
+    DC.B    "additional symbol on pass 2",0
+    DC.B    "symbol defined twice",0
+    DC.B    "phasing error",0
+    DC.B    "local not allowed",0
+    DC.B    "INTERNAL:invalid hashing",0
+    DC.B    "instruction not recognised",0
+    DC.B    "invalid size",0
+    DC.B    "duplicate MODULE name",0
+    DC.B    "forward reference",0
+    DC.B    "invalid section name, TEXT assumed",0
+    DC.B    "garbage following instruction",0
+    DC.B    "addressing mode not recognised",0
+    DC.B    "address register expected",0
+    DC.B    "addressing mode not allowed",0
+    DC.B    "expression mismatch",0
+    DC.B    "missing close bracket",0
+    DC.B    "imported label not allowed",0
+    DC.B    "illegal type combination",0
+    DC.B    "invalid number",0
+    DC.B    "number too large",0
+    DC.B    "misuse of label",0
+    DC.B    "include file read error",0
+    DC.B    "file not found",0
+    DC.B    "header file not found",0
+    DC.B    "repeated include file",0
+    DC.B    "data too large",0
+    DC.B    "relative not allowed",0
+    DC.B    "comma expected",0
+    DC.B    ".W or .L expected as index size",0
+    DC.B    "absolute not allowed",0
+    DC.B    "wrong processor",0
+    DC.B    "odd address",0
+    DC.B    "immediate data expected",0
+    DC.B    "data register expected",0
+    DC.B    "BSS or OFFSET section cannot contain data",0
+    DC.B    "during writing binary file",0
+    DC.B    "cannot create binary file",0
+    DC.B    "symbol expected",0
+    DC.B    "XREFs not allowed within brackets",0
+    DC.B    "cannot import symbol",0
+    DC.B    "cannot export symbol",0
+    DC.B    "not yet implemented",0
+    DC.B    "register expected",0
+    DC.B    "invalid MOVEP addressing mode",0
+    DC.B    "spurious ENDC",0
+    DC.B    "spurious ELSE",0
+    DC.B    "missing ENDC",0
+    DC.B    "invalid IF expression, ignored",0
+    DC.B    "source expired prematurely",0
+    DC.B    "spurious ENDM or MEXIT",0
+    DC.B    "cannot nest MACRO definitions or define in REPTs",0
+    DC.B    "missing quote",0
+    DC.B    "user error",0
+    DC.B    "invalid register list",0
+    DC.B    "invalid option",0
+    DC.B    "fatally bad conditional",0
+    DC.B    "relocation not allowed",0
+    DC.B    "division by zero",0
+    DC.B    "absolute expression MUST evaluate",0
+    DC.B    "illegal BSR.S",0
+    DC.B    "option must be at start",0
+    DC.B    "INTERNAL:invalid optimisation",0
+    DC.B    "can only assemble executable code to memory",0
+    DC.B    "program buffer full",0
+    DC.B    "linker format restriction",0
+    DC.B    "ORG/RORG not allowed",0
+    DC.B    "INTERNAL:invalid multi-line macro call",0
+    DC.B    "cannot nest repeat loops",0
+    DC.B    "spurious ENDR",0
+    DC.B    "invalid numeric expansion",0
+    DC.B    "during listing output",0
+    DC.B    "invalid printer parameter",0
+    DC.B    "invalid FORMAT parameter",0
+    DC.B    "INTERNAL:bad section",0
+    DC.B    "INTERNAL:macro memory",0
+    DC.B    "assembly interrupted",0
+    DC.B    "invalid section type",0
+    DC.B    "in command-line symbol",0
+    DC.B    "# probably missing",0
+    DC.B    "short branch cannot be 0 bytes",0
+    DC.B    "DCB or DS count must not be negative",0
+    DC.B    "invalid bitfield specification",0
+    DC.B    "colon (:) expected",0
+    DC.B    "floating-point register expected",0
+    DC.B    "MMU register expected",0
+    DC.B    "invalid MMU function code",0
+    DC.B    "invalid radix",0
+    DC.B    "invalid 68020 addressing mode",0
+    DC.B    "invalid index scale",0
+    DC.B    "hex floating point number too large",0
+    DC.B    "invalid opcode size for data/address register",0
+    DC.B    "only FPIAR allowed",0
+    DC.B    "maths co-processor required",0
+    DC.B    "invalid k-factor",0
+    DC.B    "floating point constant not allowed",0
+    DC.B    "floating point constant too large",0
+    DC.B    "bad floating point expression",0
+    DC.B    "privileged instruction",0
+    DC.B    "invalid section specified",0
+    DC.B    "invalid pre-assembled file",0
+    DC.B    "only (An) allowed for this instruction",0
+    DC.B    "INTERNAL:memory list corrupt",0
+    DC.B    "bit number shoul"
+hint_840c:
+    DC.B    $64,$20
 hint_840e:
-    dc.b    $62,$65
+    DC.B    $62,$65
 hint_8410:
-; --- unverified ---
-    move.l ([543584114,a0],d2.l*4,543324532),d0
-    bcs.w sub_f446
+    DC.B    " 0-7 for byte",0
+    DC.B    $70,$28
 hint_8420:
-; --- unverified ---
-    bra.s loc_846e
+    DC.B    $60,$4c
 sub_8422:
     bsr.w call_write_b024
 loc_8426:
@@ -16340,29 +11155,19 @@ loc_844e:
 loc_8452:
     moveq #33,d0
     bra.s loc_8486
-sub_8456:
-; --- unverified ---
-    moveq #29,d0
-    bra.s loc_8486
+hint_8456:
+    DC.B    $70,$1d,$60,$2c
 sub_845a:
     moveq #38,d0
     bra.s loc_8486
 hint_845e:
-; --- unverified ---
-    moveq #15,d0
-    bra.s loc_8482
+    DC.B    $70,$0f,$60,$20
 hint_8462:
-; --- unverified ---
-    moveq #31,d0
-    bra.s loc_8482
+    DC.B    $70,$1f,$60,$1c
 hint_8466:
-; --- unverified ---
-    moveq #32,d0
-    bra.s loc_8482
+    DC.B    $70,$20,$60,$18
 hint_846a:
-; --- unverified ---
-    moveq #36,d0
-    bra.s loc_8482
+    DC.B    $70,$24,$60,$14
 loc_846e:
     sf 2389(a6) ; app+$955
     move.b #$14,570(a6) ; app+$23A
@@ -16517,74 +11322,55 @@ loc_85b6:
     move.w #$8000,d2
     bra.w loc_84b8
 str_85c2:
-    dc.b    "sign extended operand",0
-    dc.b    "relative cannot be relocated",0
-    dc.b    "invalid LINK displacement",0
-    dc.b    "68010 instruction, converted to MOVE SR",0
-    dc.b    "size should be .W",0
-    dc.b    "directive ignored",0
-    dc.b    "misuse of register list",0
-    dc.b    "no ORG specified",0
-    dc.b    "bit number should be 0-7 for byte",0
-    dc.b    "missing ENDC at end of macro",0
-    dc.b    "trailing comma at end of DC directive",0
-    dc.b    "branch made short",0
-    dc.b    "offset removed",0
-    dc.b    "short word addressing used",0
-    dc.b    "MOVEQ substituted",0
-    dc.b    "quick form used",0
-    dc.b    "branch could be short",0
-    dc.b    "short branch converted to NOP",0
-    dc.b    "base displacement shortened",0
-    dc.b    "outer displacement shortened",0
-    dc.b    "ADD/SUB converted to LEA"
-sub_87cc:
-    dc.b    $00
-    dc.b    "LEA con"
+    DC.B    "sign extended operand",0
+    DC.B    "relative cannot be relocated",0
+    DC.B    "invalid LINK displacement",0
+    DC.B    "68010 instruction, converted to MOVE SR",0
+    DC.B    "size should be .W",0
+    DC.B    "directive ignored",0
+    DC.B    "misuse of register list",0
+    DC.B    "no ORG specified",0
+    DC.B    "bit number should be 0-7 for byte",0
+    DC.B    "missing ENDC at end of macro",0
+    DC.B    "trailing comma at end of DC directive",0
+    DC.B    "branch made short",0
+    DC.B    "offset removed",0
+    DC.B    "short word addressing used",0
+    DC.B    "MOVEQ substituted",0
+    DC.B    "quick form used",0
+    DC.B    "branch could be short",0
+    DC.B    "short branch converted to NOP",0
+    DC.B    "base displacement shortened",0
+    DC.B    "outer displacement shortened",0
+    DC.B    "ADD/SUB converted to LEA"
+hint_87cc:
+    DC.B    $00
+    DC.B    "LEA con"
 hint_87d4:
-; --- unverified ---
-    moveq #101,d3
-    moveq #116,d1
-    bcs.s hint_883e
+    DC.B    "verted"
 hint_87da:
-; --- unverified ---
-    movea.l (16708,a4,d6.l*8),a0
-    neg.w (a1)
-    move.l (a3),21826(sp)
-    subq.b #8,d0
-    movea.l a4,sp
-    movea.l -(a3),a0
-    ble.s loc_885c
+    DC.B    " to ADDQ/SUBQ",0
+    DC.B    ".L con"
 hint_87ee:
-; --- unverified ---
-    moveq #101,d3
-    moveq #116,d1
-    bcs.s loc_8858
+    DC.B    "verted"
 hint_87f4:
-    dc.b    " to .W",0
-    dc.b    $00,$02,$02,$02,$04,$00,$ff,$00,$02,$02,$00,$02,$02
+    DC.B    " to .W",0
+    DC.B    $00,$02,$02,$02,$04,$00,$ff,$00,$02,$02,$00,$02,$02
 hint_8808:
-    dc.b    $4a,$2e,$02,$38,$67,$2c
+    DC.B    $4a,$2e,$02,$38,$67,$2c
 hint_880e:
-    dc.b    $48,$a7,$c0,$00,$04,$40,$00,$0c,$10,$3b,$00,$e4,$6b,$0a
+    DC.B    $48,$a7,$c0,$00,$04,$40,$00,$0c,$10,$3b,$00,$e4,$6b,$0a
 hint_881c:
-    dc.b    $48,$80,$d1,$6e,$01,$94,$52,$6e,$01,$92
+    DC.B    $48,$80,$d1,$6e,$01,$94,$52,$6e,$01,$92
 hint_8826:
-; --- unverified ---
-    move.w (sp),d0
-    subi.w #$c,d0
-    move.w 272(a6),d1 ; app+$110
-    btst d0,d1
-    movem.w (sp)+,d0-d1
-    bne.w sign_extended_operand
+    DC.B    $30,$17,$04,$40,$00,$0c,$32,$2e,$01,$10,$01,$01,$4c,$9f,$00,$03
+    DC.B    $66,$00,$fd,$54
 hint_883a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_883c:
-; --- unverified ---
-    moveq #67,d0
+    DC.B    $70,$43
 hint_883e:
-    bra.w loc_846e
+    DC.B    $60,$00,$fc,$2e
 sub_8842:
     movem.l a3-a5,-(sp)
     movea.l 370(a6),a2 ; app+$172
@@ -17229,96 +12015,42 @@ loc_8dc0:
 loc_8dc8:
     move.l d0,2372(a6) ; app+$944
     rts
-sub_8dce:
-; --- unverified ---
-    move.l a5,d0
-    sub.l 588(a6),d0 ; app+$24C
-    add.l 548(a6),d0 ; app+$224
-    tst.b 568(a6) ; app+$238
-    bne.s hint_8e22
+hint_8dce:
+    DC.B    $20,$0d,$90,$ae,$02,$4c,$d0,$ae,$02,$24,$4a,$2e,$02,$38,$66,$44
 hint_8dde:
-; --- unverified ---
-    move.l d0,-(sp)
-    movea.l 2380(a6),a0 ; app+$94C
-    addq.l #4,a0
-    move.w (a0)+,d0
-    cmp.w #$190,d0
-    beq.s hint_8dfe
+    DC.B    $2f,$00,$20,$6e,$09,$4c,$58,$88,$30,$18,$b0,$7c,$01,$90,$67,$10
 hint_8dee:
-; --- unverified ---
-    move.l (sp)+,0(a0,d0.w)
-    move.l d2,4(a0,d0.w)
-    addq.w #8,d0
-    move.w d0,-(a0)
-    moveq #0,d0
-    rts
+    DC.B    $21,$9f,$00,$00,$21,$82,$00,$04,$50,$40,$31,$00,$70,$00,$4e,$75
 hint_8dfe:
-; --- unverified ---
-    movem.l d1-d2/a1-a2,-(sp)
-    move.l #$196,d1
-    bsr.w sub_90ba
+    DC.B    $48,$e7
+    DC.B    "``",'"',"<",0
+    DC.B    $00,$01,$96,$61,$00,$02,$b0
 hint_8e0c:
-; --- unverified ---
-    movea.l 2380(a6),a1 ; app+$94C
-    move.l a0,(a1)
-    move.l a0,2380(a6) ; app+$94C
-    clr.l (a0)+
-    clr.w (a0)+
-    moveq #0,d0
-    movem.l (sp)+,d1-d2/a1-a2
-    bra.s hint_8dee
+    DC.B    $22,$6e,$09,$4c,$22,$88,$2d,$48,$09,$4c,$42,$98,$42,$58,$70,$00
+    DC.B    $4c,$df,$06,$06,$60,$cc
 hint_8e22:
-; --- unverified ---
-    cmp.l 2372(a6),d0 ; app+$944
-    bne.s hint_8e5a
+    DC.B    $b0,$ae,$09,$44,$66,$32
 hint_8e28:
-; --- unverified ---
-    movea.l 2380(a6),a0 ; app+$94C
-    addq.l #4,a0
-    move.w (a0)+,d0
-    cmp.l 4(a0,d0.w),d2
-    beq.s hint_8e40
+    DC.B    $20,$6e,$09,$4c,$58,$88,$30,$18,$b4,$b0,$00,$04,$67,$0a
 hint_8e36:
-; --- unverified ---
-    move.w d0,-(sp)
-    moveq #65,d0
-    bsr.w loc_8486
+    DC.B    $3f,$00,$70,$41,$61,$00,$f6,$4a
 hint_8e3e:
-    dc.b    $30,$1f
+    DC.B    $30,$1f
 hint_8e40:
-; --- unverified ---
-    addq.w #8,d0
-    cmp.w #$190,d0
-    beq.s hint_8e5c
+    DC.B    $50,$40,$b0,$7c,$01,$90,$67,$14
 hint_8e48:
-; --- unverified ---
-    move.w d0,-2(a0)
-    adda.w d0,a0
-    cmpa.l 2384(a6),a0 ; app+$950
-    beq.s hint_8e70
+    DC.B    $31,$40,$ff,$fe,$d0,$c0,$b1,$ee,$09,$50,$67,$1c
 hint_8e54:
-    dc.b    "-P",$09,"Dp",0
+    DC.B    "-P",$09,"Dp",0
 hint_8e5a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_8e5c:
-; --- unverified ---
-    movea.l 2380(a6),a0 ; app+$94C
-    tst.l (a0)
-    beq.s hint_8e70
+    DC.B    $20,$6e,$09,$4c,$4a,$90,$67,$0c
 hint_8e64:
-; --- unverified ---
-    movea.l (a0),a0
-    move.l a0,2380(a6) ; app+$94C
-    addq.w #6,a0
-    moveq #0,d0
-    bra.s hint_8e48
+    DC.B    " P-H",$09,"L\Hp",0
+    DC.B    $60,$d8
 hint_8e70:
-; --- unverified ---
-    moveq #-1,d0
-    move.l d0,2372(a6) ; app+$944
-    moveq #0,d0
-    rts
+    DC.B    $70,$ff,$2d,$40,$09,$44,$70,$00,$4e,$75
 sub_8e7a:
     lea pcref_93fe(pc),a0
     tst.w d0
@@ -17366,7 +12098,7 @@ sub_8ebe:
     move.b pcref_8ec8(pc,d1.w),d1
     bra.s sub_8e98
 pcref_8ec8:
-    dc.b    "0123456789ABCDEF"
+    DC.B    "0123456789ABCDEF"
 sub_8ed8:
     moveq #6,d3
     moveq #0,d2
@@ -17425,9 +12157,9 @@ loc_8f36:
     addi.b #$30,d1
     jmp (a2)
 pcref_8f3c:
-    dc.b    $3b,$9a,$ca,$00,$05,$f5,$e1,$00,$00,$98,$96,$80,$00,$0f,$42,$40
-    dc.b    $00,$01,$86,$a0,$00,$00,$27,$10,$00,$00,$03,$e8,$00,$00,$00,$64
-    dc.b    $00,$00,$00,$0a
+    DC.B    $3b,$9a,$ca,$00,$05,$f5,$e1,$00,$00,$98,$96,$80,$00,$0f,$42,$40
+    DC.B    $00,$01,$86,$a0,$00,$00,$27,$10,$00,$00,$03,$e8,$00,$00,$00,$64
+    DC.B    $00,$00,$00,$0a
 sub_8f60:
     moveq #20,d0
     bsr.w sub_8e7a
@@ -17438,16 +12170,12 @@ loc_8f66:
 loc_8f72:
     moveq #9,d3
     lea loc_8f98(pc),a2
-    lea sub_8f80(pc),a4
+    lea pcref_8f80(pc),a4
     bra.w sub_8a26
-sub_8f80:
-; --- unverified ---
-    cmpi.b #$2,13(a3)
-    beq.s loc_8f90
+pcref_8f80:
+    DC.B    $0c,$2b,$00,$02,$00,$0d,$67,$08
 hint_8f88:
-; --- unverified ---
-    move.b 14(a3),d0
-    bra.w loc_9786
+    DC.B    $10,$2b,$00,$0e,$60,$00,$07,$f8
 loc_8f90:
     bsr.w sub_8e96
 loc_8f94:
@@ -17586,7 +12314,7 @@ loc_9096:
 loc_9098:
     rts
 str_909a:
-    dc.b    "?RA?rl??????O",0
+    DC.B    "?RA?rl??????O",0
 sub_90a8:
     move.l #$2800,d1
     move.w d1,328(a6) ; app+$148
@@ -17605,27 +12333,17 @@ loc_90c2:
     addq.w #4,a0
     rts
 hint_90ce:
-    dc.b    $59,$48,$43,$ee,$01,$36
+    DC.B    $59,$48,$43,$ee,$01,$36
 hint_90d4:
-; --- unverified ---
-    move.l (a1),d0
-    beq.s hint_90e6
+    DC.B    $20,$11,$67,$0e
 hint_90d8:
-; --- unverified ---
-    cmpa.l d0,a0
-    beq.s hint_90e0
+    DC.B    $b1,$c0,$67,$04
 hint_90dc:
-; --- unverified ---
-    movea.l d0,a1
-    bra.s hint_90d4
+    DC.B    $22,$40,$60,$f4
 hint_90e0:
-; --- unverified ---
-    move.l (a0),(a1)
-    bra.w free_memory
+    DC.B    $22,$90,$60,$00,$1d,$82
 hint_90e6:
-; --- unverified ---
-    moveq #105,d0
-    bra.w loc_846e
+    DC.B    $70,$69,$60,$00,$f3,$84
 loc_90ec:
     moveq #2,d0
     bra.w loc_846e
@@ -18002,51 +12720,51 @@ loc_93f8:
     movem.l (sp)+,d7/a3
     rts
 pcref_93fe:
-    dc.b    "GenAm Macro Assembler Copyright "
-    dc.b    $a9
-    dc.b    " HiSoft 1985-1997"
-    dc.b    $0a
-    dc.b    "All Rights Reserved - version 3.18"
-    dc.b    $0a,$0a,$00
-    dc.b    "Pass 1"
-    dc.b    $0a,$00
-    dc.b    "Pass 2"
-    dc.b    $0a,$00
-    dc.b    " errors found"
-    dc.b    $0a,$00
-    dc.b    " error found"
-    dc.b    $0a,$00
-    dc.b    " lines assembled into ",0
-    dc.b    "Error: ",0
-    dc.b    "Locals:"
-    dc.b    $0a,$00
-    dc.b    "Warning: ",0
-    dc.b    " at line ",0
-    dc.b    "Could not open file ",0
-    dc.b    " in file ",0
-    dc.b    " bytes, ",0
-    dc.b    " optimisations saving ",0
-    dc.b    " bytes"
-    dc.b    $0a,$00
-    dc.b    "  Page ",0
-    dc.b    "HiSoft GenAm 680x0 Macro Assembler v3.18   ",0
-    dc.b    " relocatable",0
-    dc.b    " position-independent",0
-    dc.b    $20,$63,$6f,$64,$65,$0a,$00,$0a,$09
-    dc.b    "GLOBAL SYMBOLS"
-    dc.b    $0a,$0a,$00,$0a,$09
-    dc.b    "MODULE ",0
-    dc.b    " absolute",0
-    dc.b    "Bad arguments"
-    dc.b    $0a,$00
-    dc.b    "Error in WITH file",0
-    dc.b    "WITH file not found",0
-    dc.b    "Could not open listing device"
-    dc.b    $0a,$00
-    dc.b    "Assembling ",0
-    dc.b    " in assembly options",0
-    dc.b    "Main file already included in header file"
-    dc.b    $0a,$00
+    DC.B    "GenAm Macro Assembler Copyright "
+    DC.B    $a9
+    DC.B    " HiSoft 1985-1997"
+    DC.B    $0a
+    DC.B    "All Rights Reserved - version 3.18"
+    DC.B    $0a,$0a,$00
+    DC.B    "Pass 1"
+    DC.B    $0a,$00
+    DC.B    "Pass 2"
+    DC.B    $0a,$00
+    DC.B    " errors found"
+    DC.B    $0a,$00
+    DC.B    " error found"
+    DC.B    $0a,$00
+    DC.B    " lines assembled into ",0
+    DC.B    "Error: ",0
+    DC.B    "Locals:"
+    DC.B    $0a,$00
+    DC.B    "Warning: ",0
+    DC.B    " at line ",0
+    DC.B    "Could not open file ",0
+    DC.B    " in file ",0
+    DC.B    " bytes, ",0
+    DC.B    " optimisations saving ",0
+    DC.B    " bytes"
+    DC.B    $0a,$00
+    DC.B    "  Page ",0
+    DC.B    "HiSoft GenAm 680x0 Macro Assembler v3.18   ",0
+    DC.B    " relocatable",0
+    DC.B    " position-independent",0
+    DC.B    $20,$63,$6f,$64,$65,$0a,$00,$0a,$09
+    DC.B    "GLOBAL SYMBOLS"
+    DC.B    $0a,$0a,$00,$0a,$09
+    DC.B    "MODULE ",0
+    DC.B    " absolute",0
+    DC.B    "Bad arguments"
+    DC.B    $0a,$00
+    DC.B    "Error in WITH file",0
+    DC.B    "WITH file not found",0
+    DC.B    "Could not open listing device"
+    DC.B    $0a,$00
+    DC.B    "Assembling ",0
+    DC.B    " in assembly options",0
+    DC.B    "Main file already included in header file"
+    DC.B    $0a,$00
 gen_symbol:
     pea sub_9292(pc)
     tst.b 265(a6) ; app+$109
@@ -18066,22 +12784,19 @@ loc_9650:
     lea str_9656(pc),a0
     rts
 str_9656:
-    dc.b    $2e,$67,$73,$00
+    DC.B    $2e,$67,$73,$00
 str_965a:
-    dc.b    "Gen symbol",0
-    dc.b    $00
+    DC.B    "Gen symbol",0
+    DC.B    $00
 loc_9666:
     btst #2,541(a6) ; app+$21D
     bne.w loc_f9b0
 loc_9670:
     bra.w loc_a3a8
 hint_9674:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w hint_f9d2
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$63,$56
 hint_967e:
-; --- unverified ---
-    bra.w hint_a3de
+    DC.B    $60,$00,$0d,$5e
 sub_9682:
     cmpi.w #$3,540(a6) ; app+$21C
     beq.s loc_9690
@@ -18127,16 +12842,11 @@ loc_96e6:
 loc_96ea:
     rts
 hint_96ec:
-; --- unverified ---
-    tst.b 259(a6) ; app+$103
-    beq.s loc_96ea
+    DC.B    $4a,$2e,$01,$03,$67,$f8
 hint_96f2:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w loc_f82e
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$61,$34
 hint_96fc:
-; --- unverified ---
-    bra.w loc_9a2c
+    DC.B    $60,$00,$03,$2e
 sub_9700:
     btst #2,541(a6) ; app+$21D
     bne.w loc_f830
@@ -18187,13 +12897,10 @@ loc_9768:
     movea.l 588(a6),a5 ; app+$24C
     move.l a5,592(a6) ; app+$250
     rts
-sub_9772:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w hint_9a62
+hint_9772:
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$02,$e8
 hint_977c:
-; --- unverified ---
-    bra.w hint_9a54
+    DC.B    $60,$00,$02,$d6
 sub_9780:
     tst.b 283(a6) ; app+$11B
     bne.s loc_9794
@@ -18321,7 +13028,7 @@ loc_9876:
 loc_9880:
     bra.w loc_9b40
 pcref_9884:
-    dc.b    $42,$ae,$01,$82
+    DC.B    $42,$ae,$01,$82
 loc_9888:
     rts
 loc_988a:
@@ -18348,147 +13055,84 @@ loc_98b8:
     clr.l app_seek_file(a6)
 loc_98bc:
     rts
-sub_98be:
-    dc.b    $2f,$02
+hint_98be:
+    DC.B    $2f,$02
 hint_98c0:
-; --- unverified ---
-    move.l #$113e,d0
-    sub.l d0,d1
-    bcc.s hint_98ce
+    DC.B    $20,$3c,$00,$00,$11,$3e,$92,$80,$64,$04
 hint_98ca:
-    dc.b    $d0,$81,$72,$00
+    DC.B    $d0,$81,$72,$00
 hint_98ce:
-; --- unverified ---
-    movea.l a6,a0
-    move.l d1,-(sp)
-    move.l d0,d1
-    bsr.w sub_8422
+    DC.B    $20,$4e,$2f,$01,$22,$00,$61,$00,$eb,$4c
 hint_98d8:
-; --- unverified ---
-    move.l (sp)+,d1
-    bne.s hint_98c0
+    DC.B    $22,$1f,$66,$e4
 hint_98dc:
-; --- unverified ---
-    move.l (sp)+,d2
-    rts
+    DC.B    $24,$1f,$4e,$75
 dat_98e0:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w sub_f9a6
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$60,$be
 hint_98ea:
-; --- unverified ---
-    bra.w hint_a356
+    DC.B    $60,$00,$0a,$6a
 loc_98ee:
     btst #2,541(a6) ; app+$21D
     bne.w loc_f9a2
 loc_98f8:
     bra.w loc_a2ca
-sub_98fc:
-; --- unverified ---
-    tst.b 274(a6) ; app+$112
-    bne.s hint_991a
+dat_98fc:
+    DC.B    $4a,$2e,$01,$12,$66,$18
 hint_9902:
-; --- unverified ---
-    cmp.b #$1,d3
-    bne.s hint_990c
+    DC.B    $b6,$3c,$00,$01,$66,$04
 hint_9908:
-    dc.b    $50,$ee,$01,$14
+    DC.B    $50,$ee,$01,$14
 hint_990c:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w hint_f99e
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$60,$8a
 hint_9916:
-; --- unverified ---
-    bra.w hint_a2b6
+    DC.B    $60,$00,$09,$9e
 hint_991a:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 dat_991c:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w loc_f9a2
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$60,$7e
 hint_9926:
-; --- unverified ---
-    bra.w sub_a2d6
+    DC.B    $60,$00,$09,$ae
 hint_992a:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w loc_f9a2
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$60,$70
 hint_9934:
-; --- unverified ---
-    bra.w loc_a2ca
+    DC.B    $60,$00,$09,$94
 dat_9938:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w loc_f9a2
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$60,$62
 hint_9942:
-; --- unverified ---
-    bra.w loc_a2ca
+    DC.B    $60,$00,$09,$86
 dat_9946:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w sub_f9a6
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$60,$58
 hint_9950:
-; --- unverified ---
-    bra.w hint_a32e
+    DC.B    $60,$00,$09,$dc
 dat_9954:
-; --- unverified ---
-    btst #2,541(a6) ; app+$21D
-    bne.w sub_f9a6
+    DC.B    $08,$2e,$00,$02,$02,$1d,$66,$00,$60,$4a
 hint_995e:
-; --- unverified ---
-    bra.w hint_a35e
+    DC.B    $60,$00,$09,$fe
 dat_9962:
-; --- unverified ---
-    tst.b 262(a6) ; app+$106
-    beq.s hint_996e
+    DC.B    $4a,$2e,$01,$06,$67,$06
 hint_9968:
-; --- unverified ---
-    moveq #60,d0
-    bra.w loc_8486
+    DC.B    $70,$3c,$60,$00,$eb,$1a
 hint_996e:
-; --- unverified ---
-    tst.b 274(a6) ; app+$112
-    bne.s hint_999c
+    DC.B    $4a,$2e,$01,$12,$66,$28
 hint_9974:
-; --- unverified ---
-    movem.l d1-d2,-(sp)
-    st 276(a6) ; app+$114
-    move.l a5,d0
-    sub.l 588(a6),d0 ; app+$24C
-    add.l 572(a6),d0 ; app+$23C
-    pea pcref_9998(pc)
-    btst #2,541(a6) ; app+$21D
-    bne.w sub_f99c
+    DC.B    $48,$e7,$60,$00,$50,$ee,$01,$14,$20,$0d,$90,$ae,$02,$4c,$d0,$ae
+    DC.B    $02,$3c,$48,$7a,$00,$10,$08,$2e,$00,$02,$02,$1d,$66,$00,$60,$0a
 hint_9994:
-; --- unverified ---
-    bra.w hint_a2aa
+    DC.B    $60,$00,$09,$14
 pcref_9998:
-    dc.b    $4c,$df,$00,$06
+    DC.B    $4c,$df,$00,$06
 hint_999c:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_999e:
-; --- unverified ---
-    moveq #0,d0
-    move.b 326(a6),d0 ; app+$146
-    move.l d2,d1
-    sub.l 572(a6),d1 ; app+$23C
-    btst #2,541(a6) ; app+$21D
-    bne.w sub_f832
+    DC.B    $70,$00,$10,$2e,$01,$46,$22,$02,$92,$ae,$02,$3c,$08,$2e,$00,$02
+    DC.B    $02,$1d,$66,$00,$5e,$80
 hint_99b4:
-; --- unverified ---
-    bra.w sub_9a30
+    DC.B    $60,$00,$00,$7a
 hint_99b8:
-; --- unverified ---
-    moveq #0,d0
-    move.b 326(a6),d0 ; app+$146
-    move.l 572(a6),d1 ; app+$23C
-    btst #2,541(a6) ; app+$21D
-    bne.w hint_f864
+    DC.B    $70,$00,$10,$2e,$01,$46,$22,$2e,$02,$3c,$08,$2e,$00,$02,$02,$1d
+    DC.B    $66,$00,$5e,$9a
 hint_99cc:
-; --- unverified ---
-    bra.w hint_9a6e
+    DC.B    $60,$00,$00,$a0
 sub_99d0:
     moveq #-1,d0
     move.l a1,-(sp)
@@ -18548,55 +13192,32 @@ loc_9a2c:
     rts
 loc_9a2e:
     rts
-sub_9a30:
-; --- unverified ---
-    tst.b 259(a6) ; app+$103
-    beq.s hint_9a50
+hint_9a30:
+    DC.B    $4a,$2e,$01,$03,$67,$1a
 hint_9a36:
-; --- unverified ---
-    movea.l app_current_node(a6),a1
-    tst.b 568(a6) ; app+$238
-    bne.s hint_9a50
+    DC.B    $22,$6e,$01,$aa,$4a,$2e,$02,$38,$66,$10
 hint_9a40:
-    dc.b    $22,$2e,$02,$3c,$92,$a9,$00,$1c,$d3,$a9,$00,$14,$23,$42,$00,$1c
+    DC.B    $22,$2e,$02,$3c,$92,$a9,$00,$1c,$d3,$a9,$00,$14,$23,$42,$00,$1c
 hint_9a50:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_9a54:
-; --- unverified ---
-    movea.l app_current_node(a6),a1
-    cmpi.w #$3eb,18(a1)
-    beq.w sub_845a
+    DC.B    $22,$6e,$01,$aa,$0c,$69,$03,$eb,$00,$12,$67,$00,$e9,$fa
 hint_9a62:
-    dc.b    $d3,$ae,$02,$4c
+    DC.B    $d3,$ae,$02,$4c
 hint_9a66:
-; --- unverified ---
-    move.b (a0)+,(a5)+
-    subq.l #1,d1
-    bne.s hint_9a66
+    DC.B    $1a,$d8,$53,$81,$66,$fa
 hint_9a6c:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_9a6e:
-; --- unverified ---
-    tst.b 568(a6) ; app+$238
-    beq.s hint_9a8c
+    DC.B    $4a,$2e,$02,$38,$67,$18
 hint_9a74:
-; --- unverified ---
-    tst.b 259(a6) ; app+$103
-    beq.s hint_9a8c
+    DC.B    $4a,$2e,$01,$03,$67,$12
 hint_9a7a:
-; --- unverified ---
-    movea.l app_current_node(a6),a1
-    cmpi.w #$3eb,18(a1)
-    beq.s hint_9a8c
+    DC.B    $22,$6e,$01,$aa,$0c,$69,$03,$eb,$00,$12,$67,$06
 hint_9a86:
-    dc.b    $94,$81,$d5,$ae,$02,$4c
+    DC.B    $94,$81,$d5,$ae,$02,$4c
 hint_9a8c:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 loc_9a90:
     movea.l app_current_node(a6),a0
     cmpi.w #$3eb,18(a0)
@@ -18694,20 +13315,20 @@ loc_9b64:
     moveq #77,d0
     bra.w loc_846e
 pcref_9b6a:
-    dc.b    $03,$42,$53,$53,$04,$43,$4f,$44,$45,$04,$44,$41,$54,$41,$05,$42
-    dc.b    $53,$53,$5f,$43,$05,$42,$53,$53,$5f,$46,$06
-    dc.b    "CODE_C"
-    dc.b    $06
-    dc.b    "CODE_F"
-    dc.b    $06
-    dc.b    "DATA_C"
-    dc.b    $06
-    dc.b    "DATA_F",0
-    dc.b    $00
+    DC.B    $03,$42,$53,$53,$04,$43,$4f,$44,$45,$04,$44,$41,$54,$41,$05,$42
+    DC.B    $53,$53,$5f,$43,$05,$42,$53,$53,$5f,$46,$06
+    DC.B    "CODE_C"
+    DC.B    $06
+    DC.B    "CODE_F"
+    DC.B    $06
+    DC.B    "DATA_C"
+    DC.B    $06
+    DC.B    "DATA_F",0
+    DC.B    $00
 pcref_9ba2:
-    dc.b    $00,$00,$03,$eb,$00,$00,$03,$e9,$00,$00,$03,$ea,$40,$00,$03,$eb
-    dc.b    $80,$00,$03,$eb,$40,$00,$03,$e9,$80,$00,$03,$e9,$40,$00,$03,$ea
-    dc.b    $80,$00,$03,$ea
+    DC.B    $00,$00,$03,$eb,$00,$00,$03,$e9,$00,$00,$03,$ea,$40,$00,$03,$eb
+    DC.B    $80,$00,$03,$eb,$40,$00,$03,$e9,$80,$00,$03,$e9,$40,$00,$03,$ea
+    DC.B    $80,$00,$03,$ea
 loc_9bc6:
     move.l a4,-(sp)
     movea.l 410(a6),a4 ; app+$19A
@@ -19541,42 +14162,27 @@ loc_a284:
 loc_a288:
     moveq #68,d0
     bra.w loc_8486
-sub_a28e:
-    dc.b    $d4,$ae,$02,$3c,$d4,$8d,$94,$ae,$02,$4c
+hint_a28e:
+    DC.B    $d4,$ae,$02,$3c,$d4,$8d,$94,$ae,$02,$4c
 hint_a298:
-; --- unverified ---
-    tst.b 259(a6) ; app+$103
-    beq.s hint_a2a8
+    DC.B    $4a,$2e,$01,$03,$67,$0a
 hint_a29e:
-; --- unverified ---
-    bsr.w sub_a208
+    DC.B    $61,$00,$ff,$68
 hint_a2a2:
-    dc.b    $30,$80,$21,$42,$00,$04
+    DC.B    $30,$80,$21,$42,$00,$04
 hint_a2a8:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_a2aa:
-; --- unverified ---
-    move.l d0,d2
-    move.w #$100,d0
-    or.b 326(a6),d0 ; app+$146
-    bra.s hint_a298
+    DC.B    $24,$00,$30,$3c,$01,$00,$80,$2e,$01,$46,$60,$e2
 hint_a2b6:
-; --- unverified ---
-    move.l d2,(a5)+
-    bsr.s sub_a250
+    DC.B    $2a,$c2,$61,$96
 hint_a2ba:
-; --- unverified ---
-    bpl.s hint_a2c4
+    DC.B    $6a,$08
 hint_a2bc:
-; --- unverified ---
-    ori.w #$100,d0
-    moveq #-4,d2
-    bra.s sub_a28e
+    DC.B    $00,$40,$01,$00,$74,$fc,$60,$ca
 hint_a2c4:
-; --- unverified ---
-    bsr.w sub_a36c
-    dc.b    $02,$fc
+    DC.B    $61,$00,$00,$a6
+    DC.B    $02,$fc
 loc_a2ca:
     move.w d2,(a5)+
     bsr.s sub_a250
@@ -19584,103 +14190,60 @@ loc_a2ce:
     bmi.s loc_a288
 loc_a2d0:
     bsr.w sub_a36c
-    dc.b    $04,$fe
-sub_a2d6:
-; --- unverified ---
-    cmpi.w #$3,540(a6) ; app+$21C
-    bne.w hint_a312
+    DC.B    $04,$fe
+hint_a2d6:
+    DC.B    $0c,$6e,$00,$03,$02,$1c,$66,$00,$00,$34
 hint_a2e0:
-; --- unverified ---
-    move.w d2,(a5)+
-    cmp.b #$1,d3
-    beq.s loc_a288
+    DC.B    $3a,$c2,$b6,$3c,$00,$01,$67,$a0
 hint_a2e8:
-; --- unverified ---
-    movea.l 2368(a6),a0 ; app+$940
-    move.w (a0)+,d0
-    cmp.w #$2b2b,d0
-    bne.s loc_a288
+    DC.B    $20,$6e,$09,$40,$30,$18,$b0,$7c,$2b,$2b,$66,$94
 hint_a2f4:
-; --- unverified ---
-    move.w (a0)+,d0
-    bpl.s loc_a288
+    DC.B    $30,$18,$6a,$90
 hint_a2f8:
-    dc.b    $0c,$50,$2d,$2d
+    DC.B    $0c,$50,$2d,$2d
 hint_a2fc:
-; --- unverified ---
-    bne.s loc_a288
+    DC.B    $66,$8a
 hint_a2fe:
-; --- unverified ---
-    tst.b 2(a0)
-    bpl.s loc_a288
+    DC.B    $4a,$28,$00,$02,$6a,$84
 hint_a304:
-; --- unverified ---
-    cmp.b 3(a0),d0
-    bne.s hint_a2fc
+    DC.B    $b0,$28,$00,$03,$66,$f2
 hint_a30a:
-; --- unverified ---
-    tst.w 4(a0)
-    bne.s hint_a2fc
+    DC.B    $4a,$68,$00,$04,$66,$ec
 hint_a310:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_a312:
-; --- unverified ---
-    cmp.b #$1,d3
-    bne.s loc_a2ca
+    DC.B    $b6,$3c,$00,$01,$66,$b2
 hint_a318:
-; --- unverified ---
-    move.w d2,(a5)+
-    bsr.w sub_a250
+    DC.B    $3a,$c2,$61,$00,$ff,$34
 hint_a31e:
-; --- unverified ---
-    bmi.s sub_a324
+    DC.B    $6b,$04
 hint_a320:
-; --- unverified ---
-    bsr.s sub_a36c
-    dc.b    $07,$fe
-sub_a324:
-; --- unverified ---
-    ori.w #$2800,d0
-    moveq #-2,d2
-    bra.w sub_a28e
+    DC.B    $61,$4a
+    DC.B    $07,$fe
+hint_a324:
+    DC.B    $00,$40,$28,$00,$74,$fe,$60,$00,$ff,$62
 hint_a32e:
-; --- unverified ---
-    cmpi.w #$3,540(a6) ; app+$21C
-    beq.w loc_a288
+    DC.B    $0c,$6e,$00,$03,$02,$1c,$67,$00,$ff,$52
 hint_a338:
-; --- unverified ---
-    cmp.b #$1,d3
-    bne.s hint_a35e
+    DC.B    $b6,$3c,$00,$01,$66,$20
 hint_a33e:
-; --- unverified ---
-    move.b d2,(a5)+
-    bsr.w sub_a250
+    DC.B    $1a,$c2,$61,$00,$ff,$0e
 hint_a344:
-; --- unverified ---
-    bmi.w sub_a34c
+    DC.B    $6b,$00,$00,$06
 hint_a348:
-; --- unverified ---
-    bsr.s sub_a36c
-    dc.b    $08,$ff
-sub_a34c:
-; --- unverified ---
-    ori.w #$2900,d0
-    moveq #-1,d2
-    bra.w sub_a28e
+    DC.B    $61,$22
+    DC.B    $08,$ff
+hint_a34c:
+    DC.B    $00,$40,$29,$00,$74,$ff,$60,$00,$ff,$3a
 hint_a356:
-    dc.b    $94,$ae,$02,$4c,$d4,$8d,$55,$82
+    DC.B    $94,$ae,$02,$4c,$d4,$8d,$55,$82
 hint_a35e:
-; --- unverified ---
-    move.b d2,(a5)+
-    bsr.w sub_a250
+    DC.B    $1a,$c2,$61,$00,$fe,$ee
 hint_a364:
-; --- unverified ---
-    bmi.w loc_a288
+    DC.B    $6b,$00,$ff,$22
 hint_a368:
-; --- unverified ---
-    bsr.s sub_a36c
-    dc.b    $05,$ff
+    DC.B    $61,$02
+    DC.B    $05,$ff
 sub_a36c:
     tst.b 259(a6) ; app+$103
     beq.s loc_a392
@@ -19717,36 +14280,29 @@ loc_a3b4:
     lea pcref_a3c9(pc),a0
     rts
 str_a3ba:
-    dc.b    "Amiga linkable",0
+    DC.B    "Amiga linkable",0
 pcref_a3c9:
-    dc.b    $2e,$6f,$00
+    DC.B    $2e,$6f,$00
 str_a3cc:
-    dc.b    "Amiga execut"
-sub_a3d8:
-; --- unverified ---
-    bsr.s loc_a43c
+    DC.B    "Amiga execut"
+hint_a3d8:
+    DC.B    $61,$62
 hint_a3da:
-    dc.b    $6c,$65
+    DC.B    $6c,$65
 hint_a3dc:
-    dc.b    $00
+    DC.B    $00
 pcref_a3dd:
-    dc.b    $00
+    DC.B    $00
 hint_a3de:
-    dc.b    $2f,$08
+    DC.B    $2f,$08
 hint_a3e0:
-; --- unverified ---
-    move.b (a0)+,(a1)+
-    bne.s hint_a3e0
+    DC.B    $12,$d8,$66,$fc
 hint_a3e4:
-    dc.b    $13,$7c,$00,$2c,$ff,$ff,$20,$5f
+    DC.B    $13,$7c,$00,$2c,$ff,$ff,$20,$5f
 hint_a3ec:
-; --- unverified ---
-    move.b (a0)+,(a1)+
-    bne.s hint_a3ec
+    DC.B    $12,$d8,$66,$fc
 hint_a3f0:
-; --- unverified ---
-    subq.l #1,a1
-    rts
+    DC.B    $53,$89,$4e,$75
 sub_a3f4:
     tst.b 260(a6) ; app+$104
     beq.s loc_a42c
@@ -19912,60 +14468,60 @@ loc_a550:
 loc_a560:
     movea.l (sp)+,a0
     rts
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dcb.b   23,0
-    dc.b    $01
-    dcb.b   31,0
-    dc.b    $01
-    dcb.b   8,0
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01
-    dcb.b   26,0
-    dc.b    $01,$01,$01,$01,$00,$01
-    dcb.b   26,0
-    dc.b    $01,$01,$01,$01,$01
-sub_a664:
-    dc.b    $80,$81,$82,$83,$84,$85,$86,$87,$88,$89,$8a,$8b,$8c,$8d,$8e,$8f
-    dc.b    $90,$91,$92,$93,$94,$95,$96,$97,$98,$99,$9a,$9b,$9c,$9d,$9e,$9f
-    dc.b    $a0,$a1,$a2,$a3,$a4,$a5,$a6,$a7,$a8,$a9,$aa,$ab,$ac,$ad,$ae,$af
-    dc.b    $b0,$b1,$b2,$b3,$b4,$b5,$b6,$b7,$b8,$b9,$ba,$bb,$bc,$bd,$be,$bf
-    dc.b    $c0,$c1,$c2,$c3,$c4,$c5,$c6,$c7,$c8,$c9,$ca,$cb,$cc,$cd,$ce,$cf
-    dc.b    $d0,$d1,$d2,$d3,$d4,$d5,$d6,$d7,$d8,$d9,$da,$db,$dc,$dd,$de,$df
-    dc.b    $c0,$c1,$c2,$c3,$c4,$c5,$c6,$c7,$c8,$c9,$ca,$cb,$cc,$cd,$ce,$cf
-    dc.b    $d0,$d1,$d2,$d3,$d4,$d5,$d6,$f7,$d8,$d9,$da,$db,$dc,$dd,$de,$ff
-    dc.b    $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$0a,$0b,$0c,$0d,$0e,$0f
-    dc.b    $10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$1a,$1b,$1c,$1d,$1e,$1f
-    dc.b    " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLM"
-sub_a732:
-    dc.b    $4e,$4f
-    dc.b    "PQRSTUVWXYZ[\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~"
-    dc.b    $7f
-sub_a764:
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $ff,$01
-    dcb.b   10,0
-    dc.b    $01,$01,$01,$01,$01
-    dcb.b   28,0
-    dc.b    $01,$01,$01,$01,$00,$01
-    dcb.b   26,0
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-    dc.b    $01,$01,$01,$01,$01
-    dcb.b   23,0
-    dc.b    $01
-    dcb.b   31,0
-    dc.b    $01
-    dcb.b   8,0
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DCB.B   23,0
+    DC.B    $01
+    DCB.B   31,0
+    DC.B    $01
+    DCB.B   8,0
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$00,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01
+    DCB.B   26,0
+    DC.B    $01,$01,$01,$01,$00,$01
+    DCB.B   26,0
+    DC.B    $01,$01,$01,$01,$01
+dat_a664:
+    DC.B    $80,$81,$82,$83,$84,$85,$86,$87,$88,$89,$8a,$8b,$8c,$8d,$8e,$8f
+    DC.B    $90,$91,$92,$93,$94,$95,$96,$97,$98,$99,$9a,$9b,$9c,$9d,$9e,$9f
+    DC.B    $a0,$a1,$a2,$a3,$a4,$a5,$a6,$a7,$a8,$a9,$aa,$ab,$ac,$ad,$ae,$af
+    DC.B    $b0,$b1,$b2,$b3,$b4,$b5,$b6,$b7,$b8,$b9,$ba,$bb,$bc,$bd,$be,$bf
+    DC.B    $c0,$c1,$c2,$c3,$c4,$c5,$c6,$c7,$c8,$c9,$ca,$cb,$cc,$cd,$ce,$cf
+    DC.B    $d0,$d1,$d2,$d3,$d4,$d5,$d6,$d7,$d8,$d9,$da,$db,$dc,$dd,$de,$df
+    DC.B    $c0,$c1,$c2,$c3,$c4,$c5,$c6,$c7,$c8,$c9,$ca,$cb,$cc,$cd,$ce,$cf
+    DC.B    $d0,$d1,$d2,$d3,$d4,$d5,$d6,$f7,$d8,$d9,$da,$db,$dc,$dd,$de,$ff
+    DC.B    $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$0a,$0b,$0c,$0d,$0e,$0f
+    DC.B    $10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$1a,$1b,$1c,$1d,$1e,$1f
+    DC.B    " !",'"',"#$%&","'","()*+,-./0123456789:;<=>?@ABCDEFGHIJKLM"
+hint_a732:
+    DC.B    $4e,$4f
+    DC.B    "PQRSTUVWXYZ[\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~"
+    DC.B    $7f
+dat_a764:
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $ff,$01
+    DCB.B   10,0
+    DC.B    $01,$01,$01,$01,$01
+    DCB.B   28,0
+    DC.B    $01,$01,$01,$01,$00,$01
+    DCB.B   26,0
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+    DC.B    $01,$01,$01,$01,$01
+    DCB.B   23,0
+    DC.B    $01
+    DCB.B   31,0
+    DC.B    $01
+    DCB.B   8,0
 call_output:
     move.l d3,-(sp)
     move.l app_output_file(a6),d1
@@ -20029,9 +14585,9 @@ loc_a8da:
     addq.l #2,sp
     rts
 pcref_a8de:
-    dc.b    $1b
-    dc.b    "[33;7m"
-    dc.b    $ff,$1b,$5b,$30,$6d,$00,$00
+    DC.B    $1b
+    DC.B    "[33;7m"
+    DC.B    $ff,$1b,$5b,$30,$6d,$00,$00
 call_write:
     move.l d1,-(sp)
     exg d3,d1
@@ -20058,7 +14614,7 @@ init_app:
     movea.l a0,a4
     moveq #MEMF_PUBLIC,d1 ; AllocMem: attributes
     move.l #$1140,d0 ; AllocMem: byteSize
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOAllocMem(a6) ; app-$C6
 loc_a928:
     tst.l d0
@@ -20074,7 +14630,7 @@ loc_a930:
     lea openlibrary_libname(pc),a1 ; OpenLibrary: libName
     moveq #0,d0 ; OpenLibrary: version
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOOpenLibrary(a6) ; app-$228
 loc_a94c:
     movea.l (sp)+,a6
@@ -20083,7 +14639,7 @@ loc_a94c:
 loc_a952:
     lea app_freemem_memoryblock(a6),a1 ; FreeMem: memoryBlock
     move.l #$1140,d0 ; FreeMem: byteSize
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOFreeMem(a6) ; app-$D2
 loc_a964:
     moveq #127,d0
@@ -20091,7 +14647,7 @@ loc_a964:
 loc_a968:
     move.l d0,app_dos_base(a6)
     clr.b 3572(a6) ; app+$DF4
-    move.l a4,552(a6) ; app+$228
+    move.l a4,app_option_source_buffer(a6)
     move.l sp,3294(a6) ; app+$CDE
     move.l #$1140,3562(a6) ; app+$DEA
     move.l a3,-(sp)
@@ -20117,12 +14673,12 @@ loc_a9b8:
     moveq #0,d0
     rts
 open_device:
-    movea.l 552(a6),a0 ; app+$228
+    movea.l app_option_source_buffer(a6),a0
     move.b (a0),d0
     cmp.b #$3f,d0
     bne.s loc_aa08
 loc_a9c8:
-    lea str_aab6(pc),a0
+    lea genam_option_template(pc),a0
     bsr.w sub_9292
 loc_a9d0:
     bsr.w call_output
@@ -20144,13 +14700,13 @@ loc_a9f6:
     ble.w loc_aaae
 loc_a9fe:
     movea.l (sp)+,a0
-    move.l a0,552(a6) ; app+$228
+    move.l a0,app_option_source_buffer(a6)
     clr.b -1(a0,d0.w)
 loc_aa08:
     sf 2112(a6) ; app+$840
     sf 2113(a6) ; app+$841
     sf 2114(a6) ; app+$842
-    jsr sub_ab00
+    jsr parse_option_source_buffer
 loc_aa1a:
     clr.b 1818(a6) ; app+$71A
     clr.b 539(a6) ; app+$21B
@@ -20164,7 +14720,7 @@ loc_aa1a:
     lea app_timer_device_iorequest(a6),a1 ; OpenDevice: iORequest
     moveq #0,d0 ; OpenDevice: unitNumber
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOOpenDevice(a6) ; app-$1BC
 loc_aa4c:
     movea.l (sp)+,a6
@@ -20183,53 +14739,56 @@ loc_aa6e:
     movea.l (sp)+,a6
 loc_aa70:
     move.w #$3,540(a6) ; app+$21C
-    clr.l 556(a6) ; app+$22C
-    clr.l 560(a6) ; app+$230
+    clr.l app_startup_options_buffer(a6)
+    clr.l app_input_source_buffer(a6)
     tst.l 418(a6) ; app+$1A2
     bne.s loc_aa9c
 loc_aa84:
-    lea str_aaf4(pc),a0
-    bsr.w sub_b0ac
+    lea genam_opts_filename(pc),a0
+    bsr.w load_text_file_buffer
 loc_aa8c:
     bne.s loc_aa98
 loc_aa8e:
-    lea str_aae9(pc),a0
-    bsr.w sub_b0ac
+    lea genam_devpac_env_path(pc),a0
+    bsr.w load_text_file_buffer
 loc_aa96:
     beq.s loc_aa9c
 loc_aa98:
-    move.l a0,556(a6) ; app+$22C
+    move.l a0,app_startup_options_buffer(a6)
 loc_aa9c:
     moveq #0,d0
     rts
 opendevice_devname:
-    dc.b    "timer.device",0
-    dc.b    $00
+    DC.B    "timer.device",0
+    DC.B    $00
 loc_aaae:
     bsr.w sub_90f2
 loc_aab2:
     bra.w cleanup_app
-str_aab6:
-    dc.b    "FROM/A,TO/K,WITH/K,INCDIR/K/M,HEADER/K/M,QUIET/S: ",0
-str_aae9:
-    dc.b    "ENV:devpac/"
-str_aaf4:
-    dc.b    "genam.opts",0
-    dc.b    $00
-sub_ab00:
-    movea.l 552(a6),a4 ; app+$228
+genam_option_template:
+    DC.B    "FROM/A,TO/K,WITH/K,INCDIR/K/M,HEADER/K/M,QUIET/S: ",0
+genam_devpac_env_path:
+    DC.B    "ENV:devpac/"
+genam_opts_filename:
+    DC.B    "genam.opts",0
+    DC.B    $00
+; parser: Parse the current command-line or interactive option text buffer from app+$228.
+parse_option_source_buffer:
+    movea.l app_option_source_buffer(a6),a4
     bra.w loc_ab16
-sub_ab08:
-    move.l 560(a6),d0 ; app+$230
+; parser: Parse the loaded FROM source text buffer from app+$230.
+parse_input_source_buffer:
+    move.l app_input_source_buffer(a6),d0
     bra.s loc_ab12
-sub_ab0e:
-    move.l 556(a6),d0 ; app+$22C
+; parser: Parse the startup options buffer from app+$22C.
+parse_startup_options_buffer:
+    move.l app_startup_options_buffer(a6),d0
 loc_ab12:
     beq.s loc_ab28
 loc_ab14:
     movea.l d0,a4
 loc_ab16:
-    jsr sub_3a6c
+    jsr tokenize_option_stream
 loc_ab1c:
     bne.w loc_ab28
 loc_ab20:
@@ -20256,7 +14815,7 @@ loc_ab3e:
 loc_ab46:
     move.l d0,app_open_file(a6)
 loc_ab4a:
-    eori.b
+    eori.b #$4,ccr
     rts
 sub_ab50:
     tst.b 2389(a6) ; app+$955
@@ -20287,7 +14846,7 @@ check_signals:
     moveq #0,d0 ; SetSignal: newSignals
     moveq #0,d1 ; SetSignal: signalMask
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOSetSignal(a6) ; app-$132
 loc_ab98:
     movea.l (sp)+,a6
@@ -20298,7 +14857,7 @@ loc_aba0:
     moveq #0,d0 ; SetSignal: newSignals
     move.l #SIGBREAKF_CTRL_C,d1 ; SetSignal: signalMask
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOSetSignal(a6) ; app-$132
 loc_abb8:
     movea.l (sp)+,a6
@@ -20356,7 +14915,7 @@ loc_ac26:
     bsr.w sub_8f08
 loc_ac44:
     lea -6(a3),a0
-    dc.b    $61,$00,$e6,$48
+    DC.B    $61,$00,$e6,$48
 loc_ac4c:
     lea 14(sp),sp
     lea str_ac84(pc),a0
@@ -20364,7 +14923,7 @@ loc_ac4c:
 loc_ac58:
     lea app_timer_device_iorequest(a6),a1 ; CloseDevice: ioRequest
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOCloseDevice(a6) ; app-$1C2
 loc_ac66:
     movea.l (sp)+,a6
@@ -20374,14 +14933,14 @@ loc_ac6c:
     move.b d1,(a3)+
     rts
 str_ac70:
-    dc.b    " bytes used",0
+    DC.B    " bytes used",0
 str_ac7c:
-    dc.b    ", took ",0
+    DC.B    ", took ",0
 str_ac84:
-    dc.b    " seconds",0
+    DC.B    " seconds",0
 str_ac8d:
-    dc.b    "Press any key to exit",0
-    dc.b    $00
+    DC.B    "Press any key to exit",0
+    DC.B    $00
 cleanup_app:
     bsr.w call_output
 loc_aca8:
@@ -20400,14 +14959,14 @@ loc_acc2:
     movea.l 3294(a6),sp ; app+$CDE
     movea.l app_dos_base(a6),a1 ; CloseLibrary: library
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOCloseLibrary(a6) ; app-$19E
 loc_acd4:
     movea.l (sp)+,a6
     move.b 570(a6),d4 ; app+$23A
     lea app_freemem_memoryblock(a6),a1 ; FreeMem: memoryBlock
     move.l #$1140,d0 ; FreeMem: byteSize
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOFreeMem(a6) ; app-$D2
 loc_acec:
     move.b d4,d0
@@ -20528,10 +15087,10 @@ sub_adca:
     move.b d0,(a3)+
     rts
 pcref_add2:
-    dc.b    $1f,$1c,$1f,$1e,$1f,$1e,$1f,$1f,$1e
+    DC.B    $1f,$1c,$1f,$1e,$1f,$1e,$1f,$1f,$1e
 pcref_addb:
-    dc.b    $1f,$1e,$1f
-    dc.b    "JanFebMarAprMayJunJulAugSepOctNovDec"
+    DC.B    $1f,$1e,$1f
+    DC.B    "JanFebMarAprMayJunJulAugSepOctNovDec"
 alloc_memory:
     addq.l #8,d1
     movem.l d1/a1,-(sp)
@@ -20540,7 +15099,7 @@ alloc_memory:
     ori.l #$10001,d0
     exg d0,d1
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOAllocMem(a6) ; app-$C6
 loc_ae22:
     movea.l (sp)+,a6
@@ -20566,7 +15125,7 @@ alloc_memory_ae42:
     move.l d1,d0 ; AllocMem: byteSize
     moveq #MEMF_PUBLIC,d1 ; AllocMem: attributes
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOAllocMem(a6) ; app-$C6
 loc_ae54:
     movea.l (sp)+,a6
@@ -20584,7 +15143,7 @@ free_memory:
     move.l -(a1),d0 ; FreeMem: byteSize
     sub.l d0,3562(a6) ; app+$DEA
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOFreeMem(a6) ; app-$D2
 loc_ae78:
     movea.l (sp)+,a6
@@ -20601,7 +15160,7 @@ loc_ae8e:
     movea.l (sp)+,a1
     move.b #$b,(a1)
     tst.l d4
-    eori.b
+    eori.b #$4,ccr
     rts
 sub_ae9c:
     movem.l d1/a0,-(sp)
@@ -20788,7 +15347,7 @@ loc_afe4:
     move.l d1,d2
     move.l d4,d3
     movem.l (sp)+,d4
-    eori.b
+    eori.b #$4,ccr
     rts
 sub_aff2:
     move.l d3,d2
@@ -20859,7 +15418,7 @@ loc_b06e:
     movem.l d1-d2/a0-a2,-(sp)
     move.l #MEMF_PUBLIC|MEMF_LARGEST,d1 ; AvailMem: attributes
     move.l a6,-(sp)
-    movea.l AbsExecBase,a6
+    movea.l AbsExecBase.w,a6
     jsr _LVOAvailMem(a6) ; app-$D8
 loc_b082:
     movea.l (sp)+,a6
@@ -20880,8 +15439,9 @@ loc_b09a:
 loc_b09e:
     bra.s loc_b096
 openlibrary_libname:
-    dc.b    "dos.library",0
-sub_b0ac:
+    DC.B    "dos.library",0
+; loader: Load a text file into memory and NUL-terminate it for later tokenisation.
+load_text_file_buffer:
     bsr.w call_close_af28
 loc_b0b0:
     tst.l d4
@@ -20922,1431 +15482,1375 @@ loc_b0f0:
 loc_b0f8:
     movea.l (sp)+,a6
     rts
-sub_b0fc:
-; --- unverified ---
-    tst.b 3572(a6) ; app+$DF4
-    bne.s hint_b124
+hint_b0fc:
+    DC.B    $4a,$2e,$0d,$f4,$66,$22
 hint_b102:
-; --- unverified ---
-    movem.l d0/a0,-(sp)
-    movea.l AbsExecBase,a0
-    move.b 297(a0),d0
-    btst #4,d0
-    beq.s hint_b126
+    DC.B    $48,$e7,$80,$80,$20,$78,$00,$04,$10,$28,$01,$29,$08,$00,$00,$04
+    DC.B    $67,$12
 hint_b114:
-; --- unverified ---
-    btst #1,d0
-    beq.s hint_b126
+    DC.B    $08,$00,$00,$01,$67,$0c
 hint_b11a:
-    dc.b    $1d,$7c,$00,$01,$0d,$f4,$4c,$df,$01,$01
+    DC.B    $1d,$7c,$00,$01,$0d,$f4,$4c,$df,$01,$01
 hint_b124:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
 hint_b126:
-; --- unverified ---
-    moveq #96,d0
-    bra.w loc_846e
+    DC.B    $70,$60,$60,$00,$d3,$44
 hint_b12c:
-; --- unverified ---
-    tst.w d5
-    beq.s sub_b166
+    DC.B    $4a,$45,$67,$36
 hint_b130:
-; --- unverified ---
-    bsr.s sub_b0fc
-    dc.b    $f2,$3c,$88
-    dcb.b   5,0
-    dc.b    $ba,$7c,$00,$0a,$64,$00,$00,$56,$ca,$fc,$03,$e8,$08,$10,$00,$06
-    dc.b    $67,$02,$44,$45,$f2,$3c,$50,$80,$00,$01,$f2,$05,$50,$92,$f2,$10
-    dc.b    $4c,$00,$f2,$00,$04,$23,$60,$00,$00,$1e,$4e,$75
-sub_b166:
-    dc.b    $70,$05
+    DC.B    $61,$ca
+    DC.B    $f2,$3c,$88
+    DCB.B   5,0
+    DC.B    $ba,$7c,$00,$0a,$64,$00,$00,$56,$ca,$fc,$03,$e8,$08,$10,$00,$06
+    DC.B    $67,$02,$44,$45,$f2,$3c,$50,$80,$00,$01,$f2,$05,$50,$92,$f2,$10
+    DC.B    $4c,$00,$f2,$00,$04,$23,$60,$00,$00,$1e,$4e,$75
+hint_b166:
+    DC.B    $70,$05
 hint_b168:
-; --- unverified ---
-    move.w d0,-(sp)
-    bsr.s sub_b0fc
-    dc.b    $f2,$3c,$88
-    dcb.b   5,0
-    dc.b    $30,$1f,$48,$80,$c0,$fc,$00,$06,$61,$00,$00,$20,$30,$03,$d0,$40
-    dc.b    $d0,$43,$d0,$40,$61,$00,$00,$18,$f2,$00,$a8,$00
-sub_b190:
-; --- unverified ---
-    btst #6,d0
-    beq.s hint_b19a
+    DC.B    $3f,$00,$61,$90
+    DC.B    $f2,$3c,$88
+    DCB.B   5,0
+    DC.B    $30,$1f,$48,$80,$c0,$fc,$00,$06,$61,$00,$00,$20,$30,$03,$d0,$40
+    DC.B    $d0,$43,$d0,$40,$61,$00,$00,$18,$f2,$00,$a8,$00
+hint_b190:
+    DC.B    $08,$00,$00,$06,$67,$04
 hint_b196:
-; --- unverified ---
-    moveq #99,d0
-    rts
+    DC.B    $70,$63,$4e,$75
 hint_b19a:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_b19e:
-; --- unverified ---
-    jmp pcref_b1ca(pc,d0.w) ; unresolved_indirect_hint:pcindex.brief
-    dc.b    $4e,$fb,$00,$fc,$f2,$10,$78,$00,$4e,$75,$f2,$10,$70,$00,$4e,$75
-    dc.b    $f2,$10,$60,$00,$4e,$75,$f2,$10,$74,$00,$4e,$75,$f2,$10,$6c,$00
-    dc.b    $4e,$75,$f2,$10,$64,$00,$4e,$75
+    DC.B    $4e,$fb,$00,$2a
+    DC.B    $4e,$fb,$00,$fc,$f2,$10,$78,$00,$4e,$75,$f2,$10,$70,$00,$4e,$75
+    DC.B    $f2,$10,$60,$00,$4e,$75,$f2,$10,$74,$00,$4e,$75,$f2,$10,$6c,$00
+    DC.B    $4e,$75,$f2,$10,$64,$00,$4e,$75
 pcref_b1ca:
-    dc.b    $f2,$10,$68,$00,$4e,$75,$f2,$10,$58,$00,$4e,$75,$f2,$10,$50,$00
-    dc.b    $4e,$75,$f2,$10,$40,$00,$4e,$75,$f2,$10,$54,$00,$4e,$75,$f2,$10
-    dc.b    $4c,$00,$4e,$75,$f2,$10,$44,$00,$4e,$75,$f2,$10,$48,$00,$4e,$75
-sub_b1fa:
-; --- unverified ---
-    move.w d3,-(sp)
-    bsr.w sub_b0fc
-    dc.b    $f2,$3c,$88
-    dcb.b   5,0
-    dc.b    $36,$1f,$48,$83,$30,$03,$d0,$40,$d0,$43,$d0,$40,$61,$88,$f2,$00
-    dc.b    $00,$1a,$60,$00,$ff,$6c
-sub_b21e:
-    dcb.b   5,0
-    dc.b    $6e,$00,$76,$00,$d6,$00,$fc,$00,$ee,$01,$62,$01,$84,$00,$86,$01
-    dc.b    $d0,$01,$dc,$01,$ce,$01,$d8,$02,$46,$02,$52,$02,$b8,$03,$26,$00
-    dc.b    $1c,$00,$80,$00,$34,$00,$36,$00,$a2,$00,$e0,$03,$8a,$00,$98,$03
-    dc.b    $52,$01,$e4
-    dc.b    $00,$f6,$00,$f2,$03,$8c,$01,$02,$01,$0c,$01,$08,$01,$56,$02,$34
-    dc.b    $01,$48,$01,$ce,$01,$5e,$01,$5c,$01,$5c,$01,$6a,$01,$ca,$01,$d4
-    dc.b    $01,$fc,$02,$38,$02,$5a,$02,$3e,$03,$f0,$02,$64,$02,$48,$00,$00
-    dc.b    $02,$50,$02,$78,$02,$68,$02,$6c,$02,$c0,$02,$d0,$04,$1c,$04,$6e
-    dc.b    $02,$fc,$04,$98,$03,$3e,$02,$c4,$02,$c0,$02,$dc,$03,$1e,$03,$8a
-    dc.b    $03,$a2,$03,$3a,$04,$fa,$04,$7e,$03,$90,$05,$22,$03,$a2,$03,$ac
-    dc.b    $03,$c8,$03,$b2,$03,$ba,$03,$e4,$04,$0c,$03,$ee,$03,$f0,$04,$3a
-    dc.b    $04,$14,$03,$fa,$04,$de,$04,$14,$04,$2a,$04,$26,$05,$46,$04,$42
-    dc.b    $04,$3e,$05,$24,$04,$4e,$04,$a2,$05,$7e,$04,$8c,$04,$ac,$04,$b6
-    dc.b    $05,$6a,$04,$c0,$04,$ee,$05,$d8,$05,$6e,$05,$0e,$05,$12,$05,$6e
-    dc.b    $05,$ca,$05,$ce,$05,$ee,$05,$80,$05,$da,$05,$e2,$00,$00,$06,$04
-    dc.b    $05,$ea,$06,$38,$05,$86,$06,$02,$06,$52,$06,$06,$06,$56,$06,$56
-    dc.b    $06,$60,$06,$40,$06,$50,$06,$68,$06,$5e,$06,$50,$00,$00,$06,$6a
-    dc.b    $06,$64,$06,$a2,$06,$66,$06,$70,$06,$ce,$06,$7c,$06,$5c,$06,$6e
-    dc.b    $06,$bc,$06,$d8,$06,$82,$06,$9a,$06,$ce,$07,$22,$06,$ce
-    dcb.b   6,0
-    dc.b    $06,$e4,$06,$d8
-    dcb.b   4,0
-    dc.b    $06,$ee,$06,$d0,$07,$00,$06,$f2,$07,$06,$07,$06,$00,$00,$07,$3a
-    dcb.b   4,0
-    dc.b    $07,$20
-    dcb.b   14,0
-    dc.b    $07,$22
-    dcb.b   4,0
-    dc.b    $07,$2c
-    dcb.b   4,0
-    dc.b    $07,$3e,$07,$4a,$00,$02,$00,$04,$07,$2e,$00,$00,$07,$8a,$07,$3e
-    dc.b    $07,$56,$07,$48,$07,$40,$07,$62,$07,$68,$07,$6a,$07,$50,$00,$00
-    dc.b    $07,$84,$07,$9c,$07,$ac,$07,$66,$07,$70,$07,$64,$07,$7c,$00,$00
-    dc.b    $07,$ba,$00,$00,$07,$9e,$07,$7c,$07,$d0,$07,$c6,$07,$d4,$07,$be
-    dc.b    $00,$00,$07,$e2,$07,$c2,$07,$d2,$07,$ea,$07,$e2,$07,$ea,$07,$fc
-    dc.b    $07,$e4,$00,$00,$08,$04,$08,$1a,$08,$3a,$08,$28,$08,$4a,$00,$00
-    dc.b    $08,$60,$08,$2a,$08,$32,$08,$56,$08,$b4,$08,$4e,$08,$36,$08,$4a
-    dc.b    $08,$66,$08,$64,$08,$50,$08,$86,$08,$84,$08,$8e,$08,$b6,$08,$c2
-    dc.b    $08,$b0,$08,$c6,$08,$b6,$08,$b8,$08,$c8,$08,$cc,$09,$20,$08,$e8
-    dc.b    $08,$de,$08,$d2,$00,$00,$09,$22,$08,$dc,$09,$2c,$09,$1e,$09,$36
-    dc.b    $09,$38,$09,$1a,$09,$8c,$00,$00,$09,$a2,$09,$26,$09,$36,$09,$58
-    dc.b    $09,$36,$09,$42,$09,$3a
-    dcb.b   4,0
-    dc.b    $09,$48,$09,$9a,$09,$a8,$09,$be,$00,$00,$09,$6e,$09,$c6
-    dcb.b   6,0
-    dc.b    $09,$a6,$09,$98,$09,$b0,$09,$aa
-    dcb.b   4,0
-    dc.b    $0a,$04,$09,$c8,$09,$b2,$09,$d6,$09,$fc,$09,$e2,$09,$c8,$0a,$04
-    dc.b    $0a,$16,$00,$00,$09,$fe
-    dcb.b   6,0
-    dc.b    $0a,$0c,$0a,$18,$0a,$26,$0a,$2c,$0a,$34,$0a,$36,$0a,$38,$0a,$3a
-    dc.b    $0a,$44,$0a,$6e,$0a,$70,$0a,$a0,$00,$00,$0a,$18,$0a,$28,$0a,$44
-    dc.b    $0a,$46,$0a,$20,$0a,$28,$0a,$a6,$0a,$8a,$0a,$a2,$0a,$b4,$0a,$b6
-    dc.b    $0a,$b8,$0a,$ba,$0a,$c4,$0a,$72,$0a,$c0,$0a,$ac,$0a,$e2,$00,$00
-    dc.b    $0a,$ce,$0b,$06,$00,$00,$0b,$06,$0a,$fe,$0b,$0e,$0b,$1a
-    dcb.b   10,0
-    dc.b    $0b,$1e
-    dcb.b   4,0
-    dc.b    $0b
-    dcb.b   25,0
-    dc.b    $0b,$0c,$0b,$48
-    dcb.b   4,0
-    dc.b    $0b,$0e,$00,$00,$0b,$14
-    dcb.b   4,0
-    dc.b    $0b,$06,$00,$00,$0b,$14
-    dcb.b   16,0
-    dc.b    $0b,$1e,$0b,$38,$0b,$32,$0b,$2e,$00,$00,$0b,$28
-    dcb.b   8,0
-    dc.b    $0b,$36,$0b,$38,$0b,$46,$0b,$50
-    dcb.b   16,0
-    dc.b    $0b,$66,$0b,$52,$0b,$68,$0b,$76,$0b,$70,$0b,$70,$0b,$7a
-    dcb.b   8,0
-    dc.b    $0b,$8a,$0b,$80
-    dcb.b   4,0
-    dc.b    $0b,$a6
-    dcb.b   12,0
-    dc.b    $0b,$a2,$0b,$9e,$0b,$8a
-    dcb.b   32,0
-    dc.b    $0b,$a2,$0b,$a4,$0b,$ae,$00,$00,$0b,$b6
-    dcb.b   6,0
-    dc.b    $0b,$a8
-    dcb.b   10,0
-    dc.b    $0b,$a2
-    dcb.b   4,0
-    dc.b    $0b,$ae,$0b,$b0
-    dcb.b   4,0
-    dc.b    $0b,$c4
-    dcb.b   8,0
-    dc.b    $0b,$c8,$0b,$d0,$0c,$06,$0b,$ec,$00,$00,$0b,$ba,$00,$00,$0b,$e0
-    dc.b    $00,$00,$0b,$d2,$0c,$18,$0c,$1a
-    dcb.b   4,0
-    dc.b    $0c,$06,$0b,$f2,$0c,$1e,$0c,$06,$00,$00,$0c,$22,$0c,$32,$0c,$3a
-    dc.b    $0c,$52,$0c,$30,$0c,$8a,$00,$00,$0c,$94,$0c,$12,$00,$00,$0c,$1a
-    dc.b    $0c,$34,$0c,$40,$0c,$38,$0c,$70,$00,$00,$0c,$48,$0c,$8e,$0c,$6c
-    dc.b    $0c,$d8,$00,$00,$0c,$9a
-    dcb.b   8,0
-    dc.b    $0c,$ac,$00,$00,$0c,$96,$0c,$9a,$0c,$ba,$0c,$ba,$0c,$ae,$0c,$9c
-    dcb.b   4,0
-    dc.b    $0c,$c2,$00,$00,$0c,$da
-    dcb.b   4,0
-    dc.b    $0c,$a2,$0c,$ba,$0c,$cc,$0d,$06,$0c,$ec,$0d,$18,$0c,$ee,$00,$00
-    dc.b    $0c,$d2,$0c,$da,$00,$00,$0d,$0e,$0d,$00,$00,$00,$0d,$22,$00,$00
-    dc.b    $0d,$06,$0d,$22,$0d,$34,$00,$00,$0d,$22,$0d,$1a,$0d,$24,$00,$00
-    dc.b    $0d,$1e
-    dcb.b   18,0
-    dc.b    $0d,$3a,$0d,$3a,$0d,$3c,$0d,$28,$00,$00,$0d,$54,$00,$00,$0d,$42
-    dc.b    $0d,$58,$0d,$56,$0d,$4e,$0d,$60,$0d,$bc
-    dcb.b   8,0
-    dc.b    $0d,$54,$0d,$6e,$0d,$86,$0d,$6a
-    dcb.b   36,0
-    dc.b    $0d,$9e,$0d,$a0,$0d,$a2,$0d,$a6,$0d,$a8,$0d,$ac,$0d,$ba,$0d,$c4
-    dc.b    $0d,$72,$00,$00,$0d,$a8,$0d,$ec,$0d,$ea,$0d,$ce
-    dcb.b   4,0
-    dc.b    $0d,$ee
-    dcb.b   28,0
-    dc.b    $0d,$d2,$0d,$dc,$0e,$02,$0d,$e8,$00,$00,$0d,$fc
-    dcb.b   6,0
-    dc.b    $0e,$00,$0e,$00,$00,$00,$0e,$1a
-    dcb.b   8,0
-    dc.b    $0e,$06
-    dcb.b   4,0
-    dc.b    $0e,$14,$0e,$16,$0e,$18
-    dcb.b   4,0
-    dc.b    $0e,$7a
-    dcb.b   12,0
-    dc.b    $0e,$36
-    dcb.b   18,0
-    dc.b    $0e,$30,$0e,$5c
-    dcb.b   6,0
-    dc.b    $0e,$42,$00,$00,$0e,$3e
-    dcb.b   4,0
-    dc.b    $0e,$66
-    dcb.b   4,0
-    dc.b    $0e,$6e
-    dcb.b   40,0
-    dc.b    $0e,$70
-    dcb.b   8,0
-    dc.b    $0e,$9a,$0e,$86,$0e,$a6,$0e,$c2,$00,$00,$0e,$76,$00,$00,$0e,$9e
-    dc.b    $00,$00,$0e,$8a,$0e,$d2,$0e,$d4
-    dcb.b   4,0
-    dc.b    $0e,$d6
-    dcb.b   4,0
-    dc.b    $0e,$cc,$00,$00,$0e,$dc,$0e,$c8,$0e,$fe,$0e,$d0,$00,$0a,$00,$00
-    dc.b    $0e,$e6,$0f,$0a,$0e,$e0,$0e,$ec
-    dcb.b   6,0
-    dc.b    $0f,$08,$00,$00,$0f,$02,$00,$00,$0e,$ec,$0e,$fa,$00,$00,$0f,$10
-    dcb.b   6,0
-    dc.b    $0f,$18
-    dcb.b   22,0
-    dc.b    $0e,$fe
-    dcb.b   14,0
-    dc.b    $0f,$0a,$0f,$52,$0f,$0e,$0f,$30,$0f,$22,$0f,$1e,$0f,$44,$0f,$3e
-    dc.b    $0f,$54,$0f,$5a
-    dcb.b   4,0
-    dc.b    $0f,$76,$00,$02
-    dcb.b   12,0
-    dc.b    $0f,$5c,$0f,$7c,$0f,$60,$0f,$62
-    dcb.b   32,0
-    dc.b    $0f,$80,$0f,$74
-    dcb.b   4,0
-    dc.b    $0f,$86,$0f,$76,$00,$00,$0f,$76,$0f,$da,$0f,$8e
-    dcb.b   4,0
-    dc.b    $0f,$9c,$00,$00,$0f,$a0,$0f,$aa
-    dcb.b   8,0
-    dc.b    $0f,$c8
-    dcb.b   4,0
-    dc.b    $0f,$a4
-    dcb.b   10,0
+    DC.B    $f2,$10,$68,$00,$4e,$75,$f2,$10,$58,$00,$4e,$75,$f2,$10,$50,$00
+    DC.B    $4e,$75,$f2,$10,$40,$00,$4e,$75,$f2,$10,$54,$00,$4e,$75,$f2,$10
+    DC.B    $4c,$00,$4e,$75,$f2,$10,$44,$00,$4e,$75,$f2,$10,$48,$00,$4e,$75
+hint_b1fa:
+    DC.B    $3f,$03,$61,$00,$fe,$fe
+    DC.B    $f2,$3c,$88
+    DCB.B   5,0
+    DC.B    $36,$1f,$48,$83,$30,$03,$d0,$40,$d0,$43,$d0,$40,$61,$88,$f2,$00
+    DC.B    $00,$1a,$60,$00,$ff,$6c
+dat_b21e:
+    DCB.B   5,0
+    DC.B    $6e,$00,$76,$00,$d6,$00,$fc,$00,$ee,$01,$62,$01,$84,$00,$86,$01
+    DC.B    $d0,$01,$dc,$01,$ce,$01,$d8,$02,$46,$02,$52,$02,$b8,$03,$26,$00
+    DC.B    $1c,$00,$80,$00,$34,$00,$36,$00,$a2,$00,$e0,$03,$8a,$00,$98,$03
+    DC.B    $52,$01,$e4
+    DC.B    $00,$f6,$00,$f2,$03,$8c,$01,$02,$01,$0c,$01,$08,$01,$56,$02,$34
+    DC.B    $01,$48,$01,$ce,$01,$5e,$01,$5c,$01,$5c,$01,$6a,$01,$ca,$01,$d4
+    DC.B    $01,$fc,$02,$38,$02,$5a,$02,$3e,$03,$f0,$02,$64,$02,$48,$00,$00
+    DC.B    $02,$50,$02,$78,$02,$68,$02,$6c,$02,$c0,$02,$d0,$04,$1c,$04,$6e
+    DC.B    $02,$fc,$04,$98,$03,$3e,$02,$c4,$02,$c0,$02,$dc,$03,$1e,$03,$8a
+    DC.B    $03,$a2,$03,$3a,$04,$fa,$04,$7e,$03,$90,$05,$22,$03,$a2,$03,$ac
+    DC.B    $03,$c8,$03,$b2,$03,$ba,$03,$e4,$04,$0c,$03,$ee,$03,$f0,$04,$3a
+    DC.B    $04,$14,$03,$fa,$04,$de,$04,$14,$04,$2a,$04,$26,$05,$46,$04,$42
+    DC.B    $04,$3e,$05,$24,$04,$4e,$04,$a2,$05,$7e,$04,$8c,$04,$ac,$04,$b6
+    DC.B    $05,$6a,$04,$c0,$04,$ee,$05,$d8,$05,$6e,$05,$0e,$05,$12,$05,$6e
+    DC.B    $05,$ca,$05,$ce,$05,$ee,$05,$80,$05,$da,$05,$e2,$00,$00,$06,$04
+    DC.B    $05,$ea,$06,$38,$05,$86,$06,$02,$06,$52,$06,$06,$06,$56,$06,$56
+    DC.B    $06,$60,$06,$40,$06,$50,$06,$68,$06,$5e,$06,$50,$00,$00,$06,$6a
+    DC.B    $06,$64,$06,$a2,$06,$66,$06,$70,$06,$ce,$06,$7c,$06,$5c,$06,$6e
+    DC.B    $06,$bc,$06,$d8,$06,$82,$06,$9a,$06,$ce,$07,$22,$06,$ce
+    DCB.B   6,0
+    DC.B    $06,$e4,$06,$d8
+    DCB.B   4,0
+    DC.B    $06,$ee,$06,$d0,$07,$00,$06,$f2,$07,$06,$07,$06,$00,$00,$07,$3a
+    DCB.B   4,0
+    DC.B    $07,$20
+    DCB.B   14,0
+    DC.B    $07,$22
+    DCB.B   4,0
+    DC.B    $07,$2c
+    DCB.B   4,0
+    DC.B    $07,$3e,$07,$4a,$00,$02,$00,$04,$07,$2e,$00,$00,$07,$8a,$07,$3e
+    DC.B    $07,$56,$07,$48,$07,$40,$07,$62,$07,$68,$07,$6a,$07,$50,$00,$00
+    DC.B    $07,$84,$07,$9c,$07,$ac,$07,$66,$07,$70,$07,$64,$07,$7c,$00,$00
+    DC.B    $07,$ba,$00,$00,$07,$9e,$07,$7c,$07,$d0,$07,$c6,$07,$d4,$07,$be
+    DC.B    $00,$00,$07,$e2,$07,$c2,$07,$d2,$07,$ea,$07,$e2,$07,$ea,$07,$fc
+    DC.B    $07,$e4,$00,$00,$08,$04,$08,$1a,$08,$3a,$08,$28,$08,$4a,$00,$00
+    DC.B    $08,$60,$08,$2a,$08,$32,$08,$56,$08,$b4,$08,$4e,$08,$36,$08,$4a
+    DC.B    $08,$66,$08,$64,$08,$50,$08,$86,$08,$84,$08,$8e,$08,$b6,$08,$c2
+    DC.B    $08,$b0,$08,$c6,$08,$b6,$08,$b8,$08,$c8,$08,$cc,$09,$20,$08,$e8
+    DC.B    $08,$de,$08,$d2,$00,$00,$09,$22,$08,$dc,$09,$2c,$09,$1e,$09,$36
+    DC.B    $09,$38,$09,$1a,$09,$8c,$00,$00,$09,$a2,$09,$26,$09,$36,$09,$58
+    DC.B    $09,$36,$09,$42,$09,$3a
+    DCB.B   4,0
+    DC.B    $09,$48,$09,$9a,$09,$a8,$09,$be,$00,$00,$09,$6e,$09,$c6
+    DCB.B   6,0
+    DC.B    $09,$a6,$09,$98,$09,$b0,$09,$aa
+    DCB.B   4,0
+    DC.B    $0a,$04,$09,$c8,$09,$b2,$09,$d6,$09,$fc,$09,$e2,$09,$c8,$0a,$04
+    DC.B    $0a,$16,$00,$00,$09,$fe
+    DCB.B   6,0
+    DC.B    $0a,$0c,$0a,$18,$0a,$26,$0a,$2c,$0a,$34,$0a,$36,$0a,$38,$0a,$3a
+    DC.B    $0a,$44,$0a,$6e,$0a,$70,$0a,$a0,$00,$00,$0a,$18,$0a,$28,$0a,$44
+    DC.B    $0a,$46,$0a,$20,$0a,$28,$0a,$a6,$0a,$8a,$0a,$a2,$0a,$b4,$0a,$b6
+    DC.B    $0a,$b8,$0a,$ba,$0a,$c4,$0a,$72,$0a,$c0,$0a,$ac,$0a,$e2,$00,$00
+    DC.B    $0a,$ce,$0b,$06,$00,$00,$0b,$06,$0a,$fe,$0b,$0e,$0b,$1a
+    DCB.B   10,0
+    DC.B    $0b,$1e
+    DCB.B   4,0
+    DC.B    $0b
+    DCB.B   25,0
+    DC.B    $0b,$0c,$0b,$48
+    DCB.B   4,0
+    DC.B    $0b,$0e,$00,$00,$0b,$14
+    DCB.B   4,0
+    DC.B    $0b,$06,$00,$00,$0b,$14
+    DCB.B   16,0
+    DC.B    $0b,$1e,$0b,$38,$0b,$32,$0b,$2e,$00,$00,$0b,$28
+    DCB.B   8,0
+    DC.B    $0b,$36,$0b,$38,$0b,$46,$0b,$50
+    DCB.B   16,0
+    DC.B    $0b,$66,$0b,$52,$0b,$68,$0b,$76,$0b,$70,$0b,$70,$0b,$7a
+    DCB.B   8,0
+    DC.B    $0b,$8a,$0b,$80
+    DCB.B   4,0
+    DC.B    $0b,$a6
+    DCB.B   12,0
+    DC.B    $0b,$a2,$0b,$9e,$0b,$8a
+    DCB.B   32,0
+    DC.B    $0b,$a2,$0b,$a4,$0b,$ae,$00,$00,$0b,$b6
+    DCB.B   6,0
+    DC.B    $0b,$a8
+    DCB.B   10,0
+    DC.B    $0b,$a2
+    DCB.B   4,0
+    DC.B    $0b,$ae,$0b,$b0
+    DCB.B   4,0
+    DC.B    $0b,$c4
+    DCB.B   8,0
+    DC.B    $0b,$c8,$0b,$d0,$0c,$06,$0b,$ec,$00,$00,$0b,$ba,$00,$00,$0b,$e0
+    DC.B    $00,$00,$0b,$d2,$0c,$18,$0c,$1a
+    DCB.B   4,0
+    DC.B    $0c,$06,$0b,$f2,$0c,$1e,$0c,$06,$00,$00,$0c,$22,$0c,$32,$0c,$3a
+    DC.B    $0c,$52,$0c,$30,$0c,$8a,$00,$00,$0c,$94,$0c,$12,$00,$00,$0c,$1a
+    DC.B    $0c,$34,$0c,$40,$0c,$38,$0c,$70,$00,$00,$0c,$48,$0c,$8e,$0c,$6c
+    DC.B    $0c,$d8,$00,$00,$0c,$9a
+    DCB.B   8,0
+    DC.B    $0c,$ac,$00,$00,$0c,$96,$0c,$9a,$0c,$ba,$0c,$ba,$0c,$ae,$0c,$9c
+    DCB.B   4,0
+    DC.B    $0c,$c2,$00,$00,$0c,$da
+    DCB.B   4,0
+    DC.B    $0c,$a2,$0c,$ba,$0c,$cc,$0d,$06,$0c,$ec,$0d,$18,$0c,$ee,$00,$00
+    DC.B    $0c,$d2,$0c,$da,$00,$00,$0d,$0e,$0d,$00,$00,$00,$0d,$22,$00,$00
+    DC.B    $0d,$06,$0d,$22,$0d,$34,$00,$00,$0d,$22,$0d,$1a,$0d,$24,$00,$00
+    DC.B    $0d,$1e
+    DCB.B   18,0
+    DC.B    $0d,$3a,$0d,$3a,$0d,$3c,$0d,$28,$00,$00,$0d,$54,$00,$00,$0d,$42
+    DC.B    $0d,$58,$0d,$56,$0d,$4e,$0d,$60,$0d,$bc
+    DCB.B   8,0
+    DC.B    $0d,$54,$0d,$6e,$0d,$86,$0d,$6a
+    DCB.B   36,0
+    DC.B    $0d,$9e,$0d,$a0,$0d,$a2,$0d,$a6,$0d,$a8,$0d,$ac,$0d,$ba,$0d,$c4
+    DC.B    $0d,$72,$00,$00,$0d,$a8,$0d,$ec,$0d,$ea,$0d,$ce
+    DCB.B   4,0
+    DC.B    $0d,$ee
+    DCB.B   28,0
+    DC.B    $0d,$d2,$0d,$dc,$0e,$02,$0d,$e8,$00,$00,$0d,$fc
+    DCB.B   6,0
+    DC.B    $0e,$00,$0e,$00,$00,$00,$0e,$1a
+    DCB.B   8,0
+    DC.B    $0e,$06
+    DCB.B   4,0
+    DC.B    $0e,$14,$0e,$16,$0e,$18
+    DCB.B   4,0
+    DC.B    $0e,$7a
+    DCB.B   12,0
+    DC.B    $0e,$36
+    DCB.B   18,0
+    DC.B    $0e,$30,$0e,$5c
+    DCB.B   6,0
+    DC.B    $0e,$42,$00,$00,$0e,$3e
+    DCB.B   4,0
+    DC.B    $0e,$66
+    DCB.B   4,0
+    DC.B    $0e,$6e
+    DCB.B   40,0
+    DC.B    $0e,$70
+    DCB.B   8,0
+    DC.B    $0e,$9a,$0e,$86,$0e,$a6,$0e,$c2,$00,$00,$0e,$76,$00,$00,$0e,$9e
+    DC.B    $00,$00,$0e,$8a,$0e,$d2,$0e,$d4
+    DCB.B   4,0
+    DC.B    $0e,$d6
+    DCB.B   4,0
+    DC.B    $0e,$cc,$00,$00,$0e,$dc,$0e,$c8,$0e,$fe,$0e,$d0,$00,$0a,$00,$00
+    DC.B    $0e,$e6,$0f,$0a,$0e,$e0,$0e,$ec
+    DCB.B   6,0
+    DC.B    $0f,$08,$00,$00,$0f,$02,$00,$00,$0e,$ec,$0e,$fa,$00,$00,$0f,$10
+    DCB.B   6,0
+    DC.B    $0f,$18
+    DCB.B   22,0
+    DC.B    $0e,$fe
+    DCB.B   14,0
+    DC.B    $0f,$0a,$0f,$52,$0f,$0e,$0f,$30,$0f,$22,$0f,$1e,$0f,$44,$0f,$3e
+    DC.B    $0f,$54,$0f,$5a
+    DCB.B   4,0
+    DC.B    $0f,$76,$00,$02
+    DCB.B   12,0
+    DC.B    $0f,$5c,$0f,$7c,$0f,$60,$0f,$62
+    DCB.B   32,0
+    DC.B    $0f,$80,$0f,$74
+    DCB.B   4,0
+    DC.B    $0f,$86,$0f,$76,$00,$00,$0f,$76,$0f,$da,$0f,$8e
+    DCB.B   4,0
+    DC.B    $0f,$9c,$00,$00,$0f,$a0,$0f,$aa
+    DCB.B   8,0
+    DC.B    $0f,$c8
+    DCB.B   4,0
+    DC.B    $0f,$a4
+    DCB.B   10,0
 pcref_b8bc:
-    dcb.b   8,0
-    dc.b    $0f,$e0
-    dcb.b   35,0
-    dc.b    $0e,$0f,$d0,$0f,$d8
-    dcb.b   5,0
-    dc.b    $10,$0f,$d2
-    dcb.b   4,0
-    dc.b    $0f,$d4,$00,$00,$0f,$ce,$0f,$e4,$0f,$de
-    dcb.b   6,0
-    dc.b    $0f,$d6,$0f,$e8,$00,$00,$10,$34,$10,$1a,$10,$0a,$10,$02,$10,$54
-    dc.b    $00,$00,$10,$5e,$0f,$e2,$0f,$fe
-    dcb.b   4,0
-    dc.b    $10,$44,$10,$68,$00,$00,$10,$64
-    dcb.b   12,0
-    dc.b    $10,$7e
-    dcb.b   4,0
-    dc.b    $10,$6a,$10,$50
-    dcb.b   4,0
-    dc.b    $10,$72,$10,$80,$10,$b8,$10,$c2,$10,$c4,$10,$c6,$10,$c8,$10,$ca
-    dc.b    $00,$00,$10,$5c,$10,$76
-    dcb.b   16,0
-    dc.b    $10,$8a
-    dcb.b   12,0
-    dc.b    $10,$8c
-    dcb.b   8,0
-    dc.b    $10,$ea,$10,$d2,$10,$ec,$10,$ee,$00,$00,$10,$be,$00,$00,$10,$e8
-    dc.b    $00,$00,$10,$da,$10,$fc,$11,$18
-    dcb.b   8,0
-    dc.b    $10,$f4,$00,$00,$10,$fe
-    dcb.b   8,0
-    dc.b    $11,$1c
-    dcb.b   42,0
-    dc.b    $11,$34
-    dcb.b   38,0
+    DCB.B   8,0
+    DC.B    $0f,$e0
+    DCB.B   35,0
+    DC.B    $0e,$0f,$d0,$0f,$d8
+    DCB.B   5,0
+    DC.B    $10,$0f,$d2
+    DCB.B   4,0
+    DC.B    $0f,$d4,$00,$00,$0f,$ce,$0f,$e4,$0f,$de
+    DCB.B   6,0
+    DC.B    $0f,$d6,$0f,$e8,$00,$00,$10,$34,$10,$1a,$10,$0a,$10,$02,$10,$54
+    DC.B    $00,$00,$10,$5e,$0f,$e2,$0f,$fe
+    DCB.B   4,0
+    DC.B    $10,$44,$10,$68,$00,$00,$10,$64
+    DCB.B   12,0
+    DC.B    $10,$7e
+    DCB.B   4,0
+    DC.B    $10,$6a,$10,$50
+    DCB.B   4,0
+    DC.B    $10,$72,$10,$80,$10,$b8,$10,$c2,$10,$c4,$10,$c6,$10,$c8,$10,$ca
+    DC.B    $00,$00,$10,$5c,$10,$76
+    DCB.B   16,0
+    DC.B    $10,$8a
+    DCB.B   12,0
+    DC.B    $10,$8c
+    DCB.B   8,0
+    DC.B    $10,$ea,$10,$d2,$10,$ec,$10,$ee,$00,$00,$10,$be,$00,$00,$10,$e8
+    DC.B    $00,$00,$10,$da,$10,$fc,$11,$18
+    DCB.B   8,0
+    DC.B    $10,$f4,$00,$00,$10,$fe
+    DCB.B   8,0
+    DC.B    $11,$1c
+    DCB.B   42,0
+    DC.B    $11,$34
+    DCB.B   38,0
 dat_ba08:
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$03,$40,$03,$42,$06,$d2,$ff,$ff,$07,$12
-    dc.b    $07,$46,$07,$4c,$ff,$ff,$ff,$ff,$ff,$ff,$00,$02,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$00,$04,$00,$06,$00,$08,$00,$0a,$00,$0c,$00,$0e,$ff,$ff
-    dc.b    $ff,$ff,$00,$10,$00,$12,$ff,$ff,$00,$14,$00,$16,$00,$18,$00,$1a
-    dc.b    $00,$1c,$ff,$ff,$00,$1e,$00,$20,$00,$22,$00,$24,$ff,$ff,$ff,$ff
-    dc.b    $00,$26,$ff,$ff,$ff,$ff,$ff,$ff,$01,$1a,$01,$20,$ff,$ff,$01,$22
-    dc.b    $ff,$ff,$00,$04,$00,$06,$00,$08,$00,$0a,$00,$0c,$00,$0e,$ff,$ff
-    dc.b    $ff,$ff,$00,$10,$00,$12,$ff,$ff,$00,$14,$00,$16,$00,$18,$00,$1a
-    dc.b    $00,$1c,$ff,$ff,$00,$1e,$00,$20,$00,$22,$00,$24,$ff,$ff,$ff,$ff
-    dc.b    $00,$26,$00,$28,$ff,$ff,$00,$2a,$01,$1a,$01,$20,$00,$30,$01,$22
-    dc.b    $00,$32,$00,$34,$00,$36,$00,$38,$01,$1c,$00,$2c,$00,$3a,$00,$3c
-    dc.b    $00,$3e,$00,$40,$00,$2e,$00,$42,$ff,$ff,$00,$44,$00,$46,$00,$48
-    dc.b    $00,$9a,$00,$4a,$01,$1e,$ff,$ff,$ff,$ff,$01,$24,$00,$9c,$ff,$ff
-    dc.b    $ff,$ff,$00,$28,$ff,$ff,$00,$2a,$ff,$ff,$01,$32,$00,$30,$ff,$ff
-    dc.b    $00,$32,$00,$34,$00,$36,$00,$38,$01,$1c,$00,$2c,$00,$3a,$00,$3c
-    dc.b    $00,$3e,$00,$40,$00,$2e,$00,$42,$00,$4c,$00,$44,$00,$46,$00,$48
-    dc.b    $00,$9a,$00,$4a,$01,$1e,$00,$4e,$00,$50,$01,$24,$00,$9c,$00,$52
-    dc.b    $00,$54,$00,$56,$00,$58,$00,$5a,$01,$26,$01,$32,$00,$5c,$00,$5e
-    dc.b    $00,$60,$00,$62,$01,$28,$00,$68,$01,$46,$00,$6a,$00,$6c,$00,$64
-    dc.b    $00,$6e,$01,$48,$01,$50,$01,$52,$00,$4c,$00,$70,$01,$2a,$00,$72
-    dc.b    $01,$54,$00,$66,$ff,$ff,$00,$4e,$00,$50,$ff,$ff,$ff,$ff,$00,$52
-    dc.b    $00,$54,$00,$56,$00,$58,$00,$5a,$01,$26,$ff,$ff,$00,$5c,$00,$5e
-    dc.b    $00,$60,$00,$62,$01,$28,$00,$68,$01,$46,$00,$6a,$00,$6c,$00,$64
-    dc.b    $00,$6e,$01,$48,$01,$50,$01,$52,$01,$56,$00,$70,$01,$2a,$00,$72
-    dc.b    $01,$54,$00,$66,$00,$74,$00,$76,$00,$78,$00,$7a,$00,$7c,$01,$5e
-    dc.b    $00,$7e,$01,$6a,$00,$80,$01,$64,$01,$6c,$00,$82,$00,$84,$00,$86
-    dc.b    $00,$88,$01,$66,$01,$68,$00,$8a,$00,$8c,$00,$8e,$00,$90,$01,$6e
-    dc.b    $00,$92,$ff,$ff,$ff,$ff,$00,$94,$01,$56,$ff,$ff,$00,$96,$ff,$ff
-    dc.b    $00,$98,$ff,$ff,$00,$74,$00,$76,$00,$78,$00,$7a,$00,$7c,$01,$5e
-    dc.b    $00,$7e,$01,$6a,$00,$80,$01,$64,$01,$6c,$00,$82,$00,$84,$00,$86
-    dc.b    $00,$88,$01,$66,$01,$68,$00,$8a,$00,$8c,$00,$8e,$00,$90,$01,$6e
-    dc.b    $00,$92,$00,$b0,$01,$60,$00,$94,$00,$b2,$00,$9e,$00,$96,$00,$a8
-    dc.b    $00,$98,$00,$a0,$00,$b6,$00,$aa,$00,$a2,$01,$70,$00,$b4,$01,$40
-    dc.b    $00,$a4,$01,$72,$01,$62,$00,$a6,$00,$b8,$00,$ac,$00,$ba,$ff,$ff
-    dc.b    $01,$42,$00,$bc,$01,$74,$00,$ae,$ff,$ff,$ff,$ff,$01,$44,$ff,$ff
-    dc.b    $ff,$ff,$00,$b0,$01,$60,$01,$76,$00,$b2,$00,$9e,$ff,$ff,$00,$a8
-    dc.b    $ff,$ff,$00,$a0,$00,$b6,$00,$aa,$00,$a2,$01,$70,$00,$b4,$01,$40
-    dc.b    $00,$a4,$01,$72,$01,$62,$00,$a6,$00,$b8,$00,$ac,$00,$ba,$01,$58
-    dc.b    $01,$42,$00,$bc,$01,$74,$00,$ae,$00,$be,$00,$c0,$01,$44,$00,$c2
-    dc.b    $00,$c4,$00,$c6,$00,$d4,$01,$76,$01,$5a,$01,$5c,$00,$d6,$00,$c8
-    dc.b    $00,$ca,$01,$78,$01,$7a,$01,$7c,$01,$96,$00,$cc,$00,$ce,$00,$d0
-    dc.b    $00,$d8,$00,$d2,$01,$98,$01,$9a,$00,$da,$00,$dc,$ff,$ff,$01,$58
-    dc.b    $01,$9c,$ff,$ff,$ff,$ff,$ff,$ff,$00,$be,$00,$c0,$01,$9e,$00,$c2
-    dc.b    $00,$c4,$00,$c6,$00,$d4,$01,$a0,$01,$5a,$01,$5c,$00,$d6,$00,$c8
-    dc.b    $00,$ca,$01,$78,$01,$7a,$01,$7c,$01,$96,$00,$cc,$00,$ce,$00,$d0
-    dc.b    $00,$d8,$00,$d2,$01,$98,$01,$9a,$00,$da,$00,$dc,$00,$de,$00,$e0
-    dc.b    $01,$9c,$00,$e2,$00,$e4,$00,$e6,$00,$e8,$01,$a2,$01,$9e,$01,$dc
-    dc.b    $00,$ea,$00,$ec,$00,$ee,$01,$a0,$00,$f0,$ff,$ff,$01,$de,$01,$a4
-    dc.b    $00,$f2,$00,$f4,$00,$f6,$00,$f8,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$01,$a6,$01,$e0,$00,$de,$00,$e0
-    dc.b    $ff,$ff,$00,$e2,$00,$e4,$00,$e6,$00,$e8,$01,$a2,$ff,$ff,$01,$dc
-    dc.b    $00,$ea,$00,$ec,$00,$ee,$01,$c6,$00,$f0,$01,$c8,$01,$de,$01,$a4
-    dc.b    $00,$f2,$00,$f4,$00,$f6,$00,$f8,$00,$fa,$00,$fc,$00,$fe,$01,$00
-    dc.b    $01,$02,$01,$04,$01,$06,$01,$08,$01,$a6,$01,$e0,$01,$e2,$01,$0a
-    dc.b    $01,$0c,$01,$0e,$01,$ee,$01,$10,$01,$e4,$01,$12,$01,$14,$01,$16
-    dc.b    $ff,$ff,$01,$18,$ff,$ff,$01,$c6,$01,$34,$01,$c8,$01,$36,$01,$38
-    dc.b    $01,$d8,$ff,$ff,$01,$3a,$01,$da,$00,$fa,$00,$fc,$00,$fe,$01,$00
-    dc.b    $01,$02,$01,$04,$01,$06,$01,$08,$01,$3c,$01,$3e,$01,$e2,$01,$0a
-    dc.b    $01,$0c,$01,$0e,$01,$ee,$01,$10,$01,$e4,$01,$12,$01,$14,$01,$16
-    dc.b    $01,$2a,$01,$18,$01,$e6,$01,$4a,$01,$34,$01,$2c,$01,$36,$01,$38
-    dc.b    $01,$d8,$01,$2e,$01,$3a,$01,$da,$01,$e8,$01,$30,$02,$18,$02,$26
-    dc.b    $01,$30,$01,$4c,$01,$4e,$ff,$ff,$01,$3c,$01,$3e,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$01,$ea,$02,$28,$01,$ec,$ff,$ff,$ff,$ff,$ff,$ff,$02,$2a
-    dc.b    $01,$2a,$02,$2c,$01,$e6,$01,$4a,$ff,$ff,$01,$2c,$ff,$ff,$02,$2e
-    dc.b    $ff,$ff,$01,$2e,$ff,$ff,$02,$30,$01,$e8,$01,$30,$02,$18,$02,$26
-    dc.b    $01,$30,$01,$4c,$01,$4e,$01,$7e,$02,$36,$01,$80,$01,$82,$01,$84
-    dc.b    $01,$86,$01,$ea,$02,$28,$01,$ec,$01,$88,$01,$8a,$01,$8c,$02,$2a
-    dc.b    $01,$8e,$02,$2c,$01,$90,$02,$38,$01,$92,$02,$3e,$01,$94,$02,$2e
-    dc.b    $01,$a8,$01,$aa,$01,$ac,$02,$30,$02,$32,$02,$40,$02,$46,$01,$ae
-    dc.b    $02,$48,$02,$34,$02,$4a,$01,$7e,$02,$36,$01,$80,$01,$82,$01,$84
-    dc.b    $01,$86,$01,$b0,$01,$b2,$ff,$ff,$01,$88,$01,$8a,$01,$8c,$02,$52
-    dc.b    $01,$8e,$02,$3a,$01,$90,$02,$38,$01,$92,$02,$3e,$01,$94,$02,$3c
-    dc.b    $01,$a8,$01,$aa,$01,$ac,$02,$54,$02,$32,$02,$40,$02,$46,$01,$ae
-    dc.b    $02,$48,$02,$34,$02,$4a,$02,$5a,$01,$b4,$01,$b6,$01,$b8,$ff,$ff
-    dc.b    $02,$0e,$01,$b0,$01,$b2,$01,$ba,$02,$10,$01,$bc,$01,$be,$02,$52
-    dc.b    $02,$70,$02,$3a,$01,$c0,$01,$c2,$01,$c4,$01,$ca,$01,$cc,$02,$3c
-    dc.b    $01,$ce,$02,$12,$02,$14,$02,$54,$02,$5c,$01,$d0,$02,$16,$02,$72
-    dc.b    $02,$5e,$01,$d2,$01,$d4,$02,$5a,$01,$b4,$01,$b6,$01,$b8,$01,$d6
-    dc.b    $02,$0e,$ff,$ff,$ff,$ff,$01,$ba,$02,$10,$01,$bc,$01,$be,$02,$74
-    dc.b    $02,$70,$ff,$ff,$01,$c0,$01,$c2,$01,$c4,$01,$ca,$01,$cc,$02,$7c
-    dc.b    $01,$ce,$02,$12,$02,$14,$02,$42,$02,$5c,$01,$d0,$02,$16,$02,$72
-    dc.b    $02,$5e,$01,$d2,$01,$d4,$ff,$ff,$02,$7e,$ff,$ff,$01,$f0,$01,$d6
-    dc.b    $01,$f2,$01,$f4,$01,$f6,$01,$f8,$01,$fa,$02,$44,$01,$fc,$02,$74
-    dc.b    $02,$94,$01,$fe,$02,$00,$02,$02,$02,$04,$02,$96,$02,$06,$02,$7c
-    dc.b    $02,$08,$02,$0a,$02,$0c,$02,$42,$02,$1a,$02,$1c,$02,$1e,$ff,$ff
-    dc.b    $02,$20,$02,$56,$ff,$ff,$02,$58,$02,$7e,$02,$22,$01,$f0,$02,$24
-    dc.b    $01,$f2,$01,$f4,$01,$f6,$01,$f8,$01,$fa,$02,$44,$01,$fc,$ff,$ff
-    dc.b    $02,$94,$01,$fe,$02,$00,$02,$02,$02,$04,$02,$96,$02,$06,$02,$4c
-    dc.b    $02,$08,$02,$0a,$02,$0c,$02,$4e,$02,$1a,$02,$1c,$02,$1e,$02,$50
-    dc.b    $02,$20,$02,$56,$02,$76,$02,$58,$02,$90,$02,$22,$02,$98,$02,$24
-    dc.b    $02,$60,$02,$62,$02,$64,$02,$b2,$02,$78,$02,$7a,$02,$66,$02,$9a
-    dc.b    $02,$68,$02,$92,$02,$9c,$02,$6a,$02,$ca,$ff,$ff,$ff,$ff,$02,$4c
-    dc.b    $ff,$ff,$ff,$ff,$02,$6c,$02,$4e,$ff,$ff,$ff,$ff,$02,$6e,$02,$50
-    dc.b    $ff,$ff,$ff,$ff,$02,$76,$ff,$ff,$02,$90,$ff,$ff,$02,$98,$ff,$ff
-    dc.b    $02,$60,$02,$62,$02,$64,$02,$b2,$02,$78,$02,$7a,$02,$66,$02,$9a
-    dc.b    $02,$68,$02,$92,$02,$9c,$02,$6a,$02,$ca,$02,$80,$02,$82,$02,$84
-    dc.b    $02,$b4,$02,$9e,$02,$6c,$02,$86,$02,$b8,$02,$88,$02,$6e,$02,$a0
-    dc.b    $02,$8a,$02,$a4,$02,$a6,$02,$a8,$02,$aa,$02,$a2,$02,$c2,$02,$8c
-    dc.b    $02,$b6,$ff,$ff,$02,$ba,$02,$8e,$02,$ac,$02,$bc,$02,$cc,$02,$be
-    dc.b    $02,$b4,$02,$ae,$02,$b0,$ff,$ff,$ff,$ff,$02,$80,$02,$82,$02,$84
-    dc.b    $02,$b4,$02,$9e,$02,$d2,$02,$86,$02,$b8,$02,$88,$02,$c0,$02,$a0
-    dc.b    $02,$8a,$02,$a4,$02,$a6,$02,$a8,$02,$aa,$02,$a2,$02,$c2,$02,$8c
-    dc.b    $02,$b6,$02,$c4,$02,$ba,$02,$8e,$02,$ac,$02,$bc,$02,$cc,$02,$be
-    dc.b    $02,$b4,$02,$ae,$02,$b0,$02,$b6,$02,$ce,$02,$d4,$02,$d6,$02,$c6
-    dc.b    $02,$c8,$02,$da,$02,$d2,$02,$dc,$02,$de,$02,$d0,$02,$c0,$02,$e0
-    dc.b    $02,$e4,$02,$e6,$02,$ea,$02,$ee,$02,$f6,$02,$f8,$02,$d8,$03,$04
-    dc.b    $02,$e8,$02,$c4,$03,$06,$03,$08,$ff,$ff,$ff,$ff,$03,$12,$02,$e2
-    dc.b    $00,$ae,$02,$ec,$ff,$ff,$02,$b6,$02,$ce,$02,$d4,$02,$d6,$02,$c6
-    dc.b    $02,$c8,$02,$da,$03,$14,$02,$dc,$02,$de,$02,$d0,$02,$f0,$02,$e0
-    dc.b    $02,$e4,$02,$e6,$02,$ea,$02,$ee,$02,$f6,$02,$f8,$02,$d8,$03,$04
-    dc.b    $02,$e8,$03,$0a,$03,$06,$03,$08,$02,$f2,$02,$f4,$03,$12,$02,$e2
-    dc.b    $00,$ae,$02,$ec,$00,$fe,$03,$16,$02,$fa,$01,$04,$01,$06,$01,$08
-    dc.b    $03,$20,$03,$0c,$03,$14,$02,$fc,$02,$fe,$01,$0e,$02,$f0,$03,$00
-    dc.b    $03,$0e,$03,$22,$ff,$ff,$03,$02,$03,$10,$01,$18,$03,$24,$03,$26
-    dc.b    $03,$2a,$03,$0a,$ff,$ff,$03,$28,$02,$f2,$02,$f4,$03,$2c,$03,$2e
-    dc.b    $03,$30,$ff,$ff,$00,$fe,$03,$16,$02,$fa,$01,$04,$01,$06,$01,$08
-    dc.b    $03,$20,$03,$0c,$03,$18,$02,$fc,$02,$fe,$01,$0e,$03,$32,$03,$00
-    dc.b    $03,$0e,$03,$22,$03,$1a,$03,$02,$03,$10,$01,$18,$03,$24,$03,$26
-    dc.b    $03,$2a,$03,$34,$03,$1c,$03,$28,$03,$36,$03,$38,$03,$2c,$03,$2e
-    dc.b    $03,$30,$03,$1e,$03,$3a,$03,$3c,$03,$3e,$03,$44,$ff,$ff,$03,$4e
-    dc.b    $03,$50,$03,$52,$03,$18,$03,$54,$03,$56,$03,$58,$03,$32,$03,$46
-    dc.b    $03,$5a,$03,$5e,$03,$1a,$ff,$ff,$03,$6c,$03,$6e,$03,$70,$03,$72
-    dc.b    $ff,$ff,$03,$34,$03,$1c,$03,$7c,$03,$36,$03,$38,$03,$48,$03,$60
-    dc.b    $03,$5c,$03,$1e,$03,$3a,$03,$3c,$03,$3e,$03,$44,$03,$4a,$03,$4e
-    dc.b    $03,$50,$03,$52,$03,$4c,$03,$54,$03,$56,$03,$58,$03,$62,$03,$64
-    dc.b    $03,$5a,$03,$5e,$ff,$ff,$03,$66,$03,$6c,$03,$6e,$03,$70,$03,$72
-    dc.b    $03,$74,$03,$5a,$03,$78,$03,$7c,$03,$7a,$03,$5c,$03,$48,$03,$60
-    dc.b    $03,$5c,$03,$68,$03,$6a,$03,$7e,$03,$86,$03,$8c,$03,$4a,$03,$88
-    dc.b    $03,$76,$03,$80,$03,$4c,$03,$8e,$03,$92,$03,$82,$03,$62,$03,$64
-    dc.b    $03,$94,$03,$96,$03,$84,$03,$66,$03,$8a,$03,$98,$03,$9a,$03,$9c
-    dc.b    $03,$74,$03,$5a,$03,$78,$03,$9e,$03,$7a,$03,$5c,$ff,$ff,$03,$a0
-    dc.b    $03,$90,$03,$68,$03,$6a,$03,$7e,$03,$86,$03,$8c,$03,$a2,$03,$88
-    dc.b    $03,$76,$03,$80,$03,$a6,$03,$8e,$03,$92,$03,$82,$03,$a4,$ff,$ff
-    dc.b    $03,$94,$03,$96,$03,$84,$03,$b0,$03,$8a,$03,$98,$03,$9a,$03,$9c
-    dc.b    $03,$b2,$03,$a8,$03,$aa,$03,$9e,$03,$ac,$03,$c6,$03,$b4,$03,$a0
-    dc.b    $03,$90,$03,$ae,$03,$b6,$03,$b8,$03,$c8,$03,$ca,$03,$a2,$03,$cc
-    dc.b    $03,$e2,$03,$e4,$03,$a6,$03,$ba,$03,$e6,$03,$be,$03,$a4,$03,$c0
-    dc.b    $03,$ea,$03,$bc,$03,$e8,$03,$b0,$03,$c2,$03,$f0,$03,$c4,$ff,$ff
-    dc.b    $03,$b2,$03,$a8,$03,$aa,$03,$ec,$03,$ac,$03,$c6,$03,$b4,$03,$ee
-    dc.b    $ff,$ff,$03,$ae,$03,$b6,$03,$b8,$03,$c8,$03,$ca,$ff,$ff,$03,$cc
-    dc.b    $03,$e2,$03,$e4,$03,$f2,$03,$ba,$03,$e6,$03,$be,$03,$f4,$03,$c0
-    dc.b    $03,$ea,$03,$bc,$03,$e8,$03,$f6,$03,$c2,$03,$f0,$03,$c4,$03,$ce
-    dc.b    $03,$d0,$03,$d2,$03,$f8,$03,$ec,$03,$fe,$03,$fa,$03,$d4,$03,$ee
-    dc.b    $03,$d6,$03,$d8,$04,$00,$04,$02,$03,$da,$03,$dc,$03,$de,$03,$e0
-    dc.b    $04,$04,$04,$06,$03,$f2,$04,$08,$ff,$ff,$04,$12,$03,$f4,$03,$fc
-    dc.b    $04,$14,$04,$0a,$04,$16,$03,$f6,$04,$1e,$ff,$ff,$ff,$ff,$03,$ce
-    dc.b    $03,$d0,$03,$d2,$03,$f8,$ff,$ff,$03,$fe,$03,$fa,$03,$d4,$ff,$ff
-    dc.b    $03,$d6,$03,$d8,$04,$00,$04,$02,$03,$da,$03,$dc,$03,$de,$03,$e0
-    dc.b    $04,$04,$04,$06,$04,$0c,$04,$08,$04,$0e,$04,$12,$04,$18,$03,$fc
-    dc.b    $04,$14,$04,$0a,$04,$16,$04,$20,$04,$1e,$04,$1a,$04,$24,$04,$34
-    dc.b    $04,$28,$04,$4c,$04,$2a,$04,$2e,$04,$26,$04,$1c,$04,$10,$04,$2c
-    dc.b    $04,$30,$04,$4e,$04,$22,$ff,$ff,$ff,$ff,$04,$50,$04,$32,$04,$52
-    dc.b    $04,$54,$04,$56,$04,$0c,$ff,$ff,$04,$0e,$04,$58,$04,$18,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$04,$20,$04,$68,$04,$1a,$04,$24,$04,$34
-    dc.b    $04,$28,$04,$4c,$04,$2a,$04,$2e,$04,$26,$04,$1c,$04,$10,$04,$2c
-    dc.b    $04,$30,$04,$4e,$04,$22,$04,$36,$04,$38,$04,$50,$04,$32,$04,$52
-    dc.b    $04,$54,$04,$56,$04,$5a,$04,$42,$04,$3a,$04,$58,$04,$44,$04,$3c
-    dc.b    $04,$46,$04,$5e,$04,$3e,$04,$40,$04,$68,$04,$48,$04,$70,$04,$4a
-    dc.b    $04,$72,$04,$5c,$04,$62,$04,$64,$04,$66,$04,$6a,$04,$74,$04,$6c
-    dc.b    $04,$60,$04,$76,$ff,$ff,$04,$36,$04,$38,$04,$7c,$04,$7e,$04,$6e
-    dc.b    $04,$80,$ff,$ff,$04,$5a,$04,$42,$04,$3a,$04,$86,$04,$44,$04,$3c
-    dc.b    $04,$46,$04,$5e,$04,$3e,$04,$40,$04,$88,$04,$48,$04,$70,$04,$4a
-    dc.b    $04,$72,$04,$5c,$04,$62,$04,$64,$04,$66,$04,$6a,$04,$74,$04,$6c
-    dc.b    $04,$60,$04,$76,$04,$78,$04,$8a,$04,$8c,$04,$7c,$04,$7e,$04,$6e
-    dc.b    $04,$80,$04,$82,$04,$8e,$04,$84,$04,$7a,$04,$86,$04,$90,$04,$92
-    dc.b    $04,$94,$04,$96,$ff,$ff,$ff,$ff,$04,$88,$04,$9a,$04,$9e,$04,$a2
-    dc.b    $04,$a6,$04,$c6,$04,$c8,$04,$ca,$04,$cc,$04,$aa,$04,$ce,$04,$d0
-    dc.b    $ff,$ff,$04,$98,$04,$78,$04,$8a,$04,$8c
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$03,$40,$03,$42,$06,$d2,$ff,$ff,$07,$12
+    DC.B    $07,$46,$07,$4c,$ff,$ff,$ff,$ff,$ff,$ff,$00,$02,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$00,$04,$00,$06,$00,$08,$00,$0a,$00,$0c,$00,$0e,$ff,$ff
+    DC.B    $ff,$ff,$00,$10,$00,$12,$ff,$ff,$00,$14,$00,$16,$00,$18,$00,$1a
+    DC.B    $00,$1c,$ff,$ff,$00,$1e,$00,$20,$00,$22,$00,$24,$ff,$ff,$ff,$ff
+    DC.B    $00,$26,$ff,$ff,$ff,$ff,$ff,$ff,$01,$1a,$01,$20,$ff,$ff,$01,$22
+    DC.B    $ff,$ff,$00,$04,$00,$06,$00,$08,$00,$0a,$00,$0c,$00,$0e,$ff,$ff
+    DC.B    $ff,$ff,$00,$10,$00,$12,$ff,$ff,$00,$14,$00,$16,$00,$18,$00,$1a
+    DC.B    $00,$1c,$ff,$ff,$00,$1e,$00,$20,$00,$22,$00,$24,$ff,$ff,$ff,$ff
+    DC.B    $00,$26,$00,$28,$ff,$ff,$00,$2a,$01,$1a,$01,$20,$00,$30,$01,$22
+    DC.B    $00,$32,$00,$34,$00,$36,$00,$38,$01,$1c,$00,$2c,$00,$3a,$00,$3c
+    DC.B    $00,$3e,$00,$40,$00,$2e,$00,$42,$ff,$ff,$00,$44,$00,$46,$00,$48
+    DC.B    $00,$9a,$00,$4a,$01,$1e,$ff,$ff,$ff,$ff,$01,$24,$00,$9c,$ff,$ff
+    DC.B    $ff,$ff,$00,$28,$ff,$ff,$00,$2a,$ff,$ff,$01,$32,$00,$30,$ff,$ff
+    DC.B    $00,$32,$00,$34,$00,$36,$00,$38,$01,$1c,$00,$2c,$00,$3a,$00,$3c
+    DC.B    $00,$3e,$00,$40,$00,$2e,$00,$42,$00,$4c,$00,$44,$00,$46,$00,$48
+    DC.B    $00,$9a,$00,$4a,$01,$1e,$00,$4e,$00,$50,$01,$24,$00,$9c,$00,$52
+    DC.B    $00,$54,$00,$56,$00,$58,$00,$5a,$01,$26,$01,$32,$00,$5c,$00,$5e
+    DC.B    $00,$60,$00,$62,$01,$28,$00,$68,$01,$46,$00,$6a,$00,$6c,$00,$64
+    DC.B    $00,$6e,$01,$48,$01,$50,$01,$52,$00,$4c,$00,$70,$01,$2a,$00,$72
+    DC.B    $01,$54,$00,$66,$ff,$ff,$00,$4e,$00,$50,$ff,$ff,$ff,$ff,$00,$52
+    DC.B    $00,$54,$00,$56,$00,$58,$00,$5a,$01,$26,$ff,$ff,$00,$5c,$00,$5e
+    DC.B    $00,$60,$00,$62,$01,$28,$00,$68,$01,$46,$00,$6a,$00,$6c,$00,$64
+    DC.B    $00,$6e,$01,$48,$01,$50,$01,$52,$01,$56,$00,$70,$01,$2a,$00,$72
+    DC.B    $01,$54,$00,$66,$00,$74,$00,$76,$00,$78,$00,$7a,$00,$7c,$01,$5e
+    DC.B    $00,$7e,$01,$6a,$00,$80,$01,$64,$01,$6c,$00,$82,$00,$84,$00,$86
+    DC.B    $00,$88,$01,$66,$01,$68,$00,$8a,$00,$8c,$00,$8e,$00,$90,$01,$6e
+    DC.B    $00,$92,$ff,$ff,$ff,$ff,$00,$94,$01,$56,$ff,$ff,$00,$96,$ff,$ff
+    DC.B    $00,$98,$ff,$ff,$00,$74,$00,$76,$00,$78,$00,$7a,$00,$7c,$01,$5e
+    DC.B    $00,$7e,$01,$6a,$00,$80,$01,$64,$01,$6c,$00,$82,$00,$84,$00,$86
+    DC.B    $00,$88,$01,$66,$01,$68,$00,$8a,$00,$8c,$00,$8e,$00,$90,$01,$6e
+    DC.B    $00,$92,$00,$b0,$01,$60,$00,$94,$00,$b2,$00,$9e,$00,$96,$00,$a8
+    DC.B    $00,$98,$00,$a0,$00,$b6,$00,$aa,$00,$a2,$01,$70,$00,$b4,$01,$40
+    DC.B    $00,$a4,$01,$72,$01,$62,$00,$a6,$00,$b8,$00,$ac,$00,$ba,$ff,$ff
+    DC.B    $01,$42,$00,$bc,$01,$74,$00,$ae,$ff,$ff,$ff,$ff,$01,$44,$ff,$ff
+    DC.B    $ff,$ff,$00,$b0,$01,$60,$01,$76,$00,$b2,$00,$9e,$ff,$ff,$00,$a8
+    DC.B    $ff,$ff,$00,$a0,$00,$b6,$00,$aa,$00,$a2,$01,$70,$00,$b4,$01,$40
+    DC.B    $00,$a4,$01,$72,$01,$62,$00,$a6,$00,$b8,$00,$ac,$00,$ba,$01,$58
+    DC.B    $01,$42,$00,$bc,$01,$74,$00,$ae,$00,$be,$00,$c0,$01,$44,$00,$c2
+    DC.B    $00,$c4,$00,$c6,$00,$d4,$01,$76,$01,$5a,$01,$5c,$00,$d6,$00,$c8
+    DC.B    $00,$ca,$01,$78,$01,$7a,$01,$7c,$01,$96,$00,$cc,$00,$ce,$00,$d0
+    DC.B    $00,$d8,$00,$d2,$01,$98,$01,$9a,$00,$da,$00,$dc,$ff,$ff,$01,$58
+    DC.B    $01,$9c,$ff,$ff,$ff,$ff,$ff,$ff,$00,$be,$00,$c0,$01,$9e,$00,$c2
+    DC.B    $00,$c4,$00,$c6,$00,$d4,$01,$a0,$01,$5a,$01,$5c,$00,$d6,$00,$c8
+    DC.B    $00,$ca,$01,$78,$01,$7a,$01,$7c,$01,$96,$00,$cc,$00,$ce,$00,$d0
+    DC.B    $00,$d8,$00,$d2,$01,$98,$01,$9a,$00,$da,$00,$dc,$00,$de,$00,$e0
+    DC.B    $01,$9c,$00,$e2,$00,$e4,$00,$e6,$00,$e8,$01,$a2,$01,$9e,$01,$dc
+    DC.B    $00,$ea,$00,$ec,$00,$ee,$01,$a0,$00,$f0,$ff,$ff,$01,$de,$01,$a4
+    DC.B    $00,$f2,$00,$f4,$00,$f6,$00,$f8,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$01,$a6,$01,$e0,$00,$de,$00,$e0
+    DC.B    $ff,$ff,$00,$e2,$00,$e4,$00,$e6,$00,$e8,$01,$a2,$ff,$ff,$01,$dc
+    DC.B    $00,$ea,$00,$ec,$00,$ee,$01,$c6,$00,$f0,$01,$c8,$01,$de,$01,$a4
+    DC.B    $00,$f2,$00,$f4,$00,$f6,$00,$f8,$00,$fa,$00,$fc,$00,$fe,$01,$00
+    DC.B    $01,$02,$01,$04,$01,$06,$01,$08,$01,$a6,$01,$e0,$01,$e2,$01,$0a
+    DC.B    $01,$0c,$01,$0e,$01,$ee,$01,$10,$01,$e4,$01,$12,$01,$14,$01,$16
+    DC.B    $ff,$ff,$01,$18,$ff,$ff,$01,$c6,$01,$34,$01,$c8,$01,$36,$01,$38
+    DC.B    $01,$d8,$ff,$ff,$01,$3a,$01,$da,$00,$fa,$00,$fc,$00,$fe,$01,$00
+    DC.B    $01,$02,$01,$04,$01,$06,$01,$08,$01,$3c,$01,$3e,$01,$e2,$01,$0a
+    DC.B    $01,$0c,$01,$0e,$01,$ee,$01,$10,$01,$e4,$01,$12,$01,$14,$01,$16
+    DC.B    $01,$2a,$01,$18,$01,$e6,$01,$4a,$01,$34,$01,$2c,$01,$36,$01,$38
+    DC.B    $01,$d8,$01,$2e,$01,$3a,$01,$da,$01,$e8,$01,$30,$02,$18,$02,$26
+    DC.B    $01,$30,$01,$4c,$01,$4e,$ff,$ff,$01,$3c,$01,$3e,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$01,$ea,$02,$28,$01,$ec,$ff,$ff,$ff,$ff,$ff,$ff,$02,$2a
+    DC.B    $01,$2a,$02,$2c,$01,$e6,$01,$4a,$ff,$ff,$01,$2c,$ff,$ff,$02,$2e
+    DC.B    $ff,$ff,$01,$2e,$ff,$ff,$02,$30,$01,$e8,$01,$30,$02,$18,$02,$26
+    DC.B    $01,$30,$01,$4c,$01,$4e,$01,$7e,$02,$36,$01,$80,$01,$82,$01,$84
+    DC.B    $01,$86,$01,$ea,$02,$28,$01,$ec,$01,$88,$01,$8a,$01,$8c,$02,$2a
+    DC.B    $01,$8e,$02,$2c,$01,$90,$02,$38,$01,$92,$02,$3e,$01,$94,$02,$2e
+    DC.B    $01,$a8,$01,$aa,$01,$ac,$02,$30,$02,$32,$02,$40,$02,$46,$01,$ae
+    DC.B    $02,$48,$02,$34,$02,$4a,$01,$7e,$02,$36,$01,$80,$01,$82,$01,$84
+    DC.B    $01,$86,$01,$b0,$01,$b2,$ff,$ff,$01,$88,$01,$8a,$01,$8c,$02,$52
+    DC.B    $01,$8e,$02,$3a,$01,$90,$02,$38,$01,$92,$02,$3e,$01,$94,$02,$3c
+    DC.B    $01,$a8,$01,$aa,$01,$ac,$02,$54,$02,$32,$02,$40,$02,$46,$01,$ae
+    DC.B    $02,$48,$02,$34,$02,$4a,$02,$5a,$01,$b4,$01,$b6,$01,$b8,$ff,$ff
+    DC.B    $02,$0e,$01,$b0,$01,$b2,$01,$ba,$02,$10,$01,$bc,$01,$be,$02,$52
+    DC.B    $02,$70,$02,$3a,$01,$c0,$01,$c2,$01,$c4,$01,$ca,$01,$cc,$02,$3c
+    DC.B    $01,$ce,$02,$12,$02,$14,$02,$54,$02,$5c,$01,$d0,$02,$16,$02,$72
+    DC.B    $02,$5e,$01,$d2,$01,$d4,$02,$5a,$01,$b4,$01,$b6,$01,$b8,$01,$d6
+    DC.B    $02,$0e,$ff,$ff,$ff,$ff,$01,$ba,$02,$10,$01,$bc,$01,$be,$02,$74
+    DC.B    $02,$70,$ff,$ff,$01,$c0,$01,$c2,$01,$c4,$01,$ca,$01,$cc,$02,$7c
+    DC.B    $01,$ce,$02,$12,$02,$14,$02,$42,$02,$5c,$01,$d0,$02,$16,$02,$72
+    DC.B    $02,$5e,$01,$d2,$01,$d4,$ff,$ff,$02,$7e,$ff,$ff,$01,$f0,$01,$d6
+    DC.B    $01,$f2,$01,$f4,$01,$f6,$01,$f8,$01,$fa,$02,$44,$01,$fc,$02,$74
+    DC.B    $02,$94,$01,$fe,$02,$00,$02,$02,$02,$04,$02,$96,$02,$06,$02,$7c
+    DC.B    $02,$08,$02,$0a,$02,$0c,$02,$42,$02,$1a,$02,$1c,$02,$1e,$ff,$ff
+    DC.B    $02,$20,$02,$56,$ff,$ff,$02,$58,$02,$7e,$02,$22,$01,$f0,$02,$24
+    DC.B    $01,$f2,$01,$f4,$01,$f6,$01,$f8,$01,$fa,$02,$44,$01,$fc,$ff,$ff
+    DC.B    $02,$94,$01,$fe,$02,$00,$02,$02,$02,$04,$02,$96,$02,$06,$02,$4c
+    DC.B    $02,$08,$02,$0a,$02,$0c,$02,$4e,$02,$1a,$02,$1c,$02,$1e,$02,$50
+    DC.B    $02,$20,$02,$56,$02,$76,$02,$58,$02,$90,$02,$22,$02,$98,$02,$24
+    DC.B    $02,$60,$02,$62,$02,$64,$02,$b2,$02,$78,$02,$7a,$02,$66,$02,$9a
+    DC.B    $02,$68,$02,$92,$02,$9c,$02,$6a,$02,$ca,$ff,$ff,$ff,$ff,$02,$4c
+    DC.B    $ff,$ff,$ff,$ff,$02,$6c,$02,$4e,$ff,$ff,$ff,$ff,$02,$6e,$02,$50
+    DC.B    $ff,$ff,$ff,$ff,$02,$76,$ff,$ff,$02,$90,$ff,$ff,$02,$98,$ff,$ff
+    DC.B    $02,$60,$02,$62,$02,$64,$02,$b2,$02,$78,$02,$7a,$02,$66,$02,$9a
+    DC.B    $02,$68,$02,$92,$02,$9c,$02,$6a,$02,$ca,$02,$80,$02,$82,$02,$84
+    DC.B    $02,$b4,$02,$9e,$02,$6c,$02,$86,$02,$b8,$02,$88,$02,$6e,$02,$a0
+    DC.B    $02,$8a,$02,$a4,$02,$a6,$02,$a8,$02,$aa,$02,$a2,$02,$c2,$02,$8c
+    DC.B    $02,$b6,$ff,$ff,$02,$ba,$02,$8e,$02,$ac,$02,$bc,$02,$cc,$02,$be
+    DC.B    $02,$b4,$02,$ae,$02,$b0,$ff,$ff,$ff,$ff,$02,$80,$02,$82,$02,$84
+    DC.B    $02,$b4,$02,$9e,$02,$d2,$02,$86,$02,$b8,$02,$88,$02,$c0,$02,$a0
+    DC.B    $02,$8a,$02,$a4,$02,$a6,$02,$a8,$02,$aa,$02,$a2,$02,$c2,$02,$8c
+    DC.B    $02,$b6,$02,$c4,$02,$ba,$02,$8e,$02,$ac,$02,$bc,$02,$cc,$02,$be
+    DC.B    $02,$b4,$02,$ae,$02,$b0,$02,$b6,$02,$ce,$02,$d4,$02,$d6,$02,$c6
+    DC.B    $02,$c8,$02,$da,$02,$d2,$02,$dc,$02,$de,$02,$d0,$02,$c0,$02,$e0
+    DC.B    $02,$e4,$02,$e6,$02,$ea,$02,$ee,$02,$f6,$02,$f8,$02,$d8,$03,$04
+    DC.B    $02,$e8,$02,$c4,$03,$06,$03,$08,$ff,$ff,$ff,$ff,$03,$12,$02,$e2
+    DC.B    $00,$ae,$02,$ec,$ff,$ff,$02,$b6,$02,$ce,$02,$d4,$02,$d6,$02,$c6
+    DC.B    $02,$c8,$02,$da,$03,$14,$02,$dc,$02,$de,$02,$d0,$02,$f0,$02,$e0
+    DC.B    $02,$e4,$02,$e6,$02,$ea,$02,$ee,$02,$f6,$02,$f8,$02,$d8,$03,$04
+    DC.B    $02,$e8,$03,$0a,$03,$06,$03,$08,$02,$f2,$02,$f4,$03,$12,$02,$e2
+    DC.B    $00,$ae,$02,$ec,$00,$fe,$03,$16,$02,$fa,$01,$04,$01,$06,$01,$08
+    DC.B    $03,$20,$03,$0c,$03,$14,$02,$fc,$02,$fe,$01,$0e,$02,$f0,$03,$00
+    DC.B    $03,$0e,$03,$22,$ff,$ff,$03,$02,$03,$10,$01,$18,$03,$24,$03,$26
+    DC.B    $03,$2a,$03,$0a,$ff,$ff,$03,$28,$02,$f2,$02,$f4,$03,$2c,$03,$2e
+    DC.B    $03,$30,$ff,$ff,$00,$fe,$03,$16,$02,$fa,$01,$04,$01,$06,$01,$08
+    DC.B    $03,$20,$03,$0c,$03,$18,$02,$fc,$02,$fe,$01,$0e,$03,$32,$03,$00
+    DC.B    $03,$0e,$03,$22,$03,$1a,$03,$02,$03,$10,$01,$18,$03,$24,$03,$26
+    DC.B    $03,$2a,$03,$34,$03,$1c,$03,$28,$03,$36,$03,$38,$03,$2c,$03,$2e
+    DC.B    $03,$30,$03,$1e,$03,$3a,$03,$3c,$03,$3e,$03,$44,$ff,$ff,$03,$4e
+    DC.B    $03,$50,$03,$52,$03,$18,$03,$54,$03,$56,$03,$58,$03,$32,$03,$46
+    DC.B    $03,$5a,$03,$5e,$03,$1a,$ff,$ff,$03,$6c,$03,$6e,$03,$70,$03,$72
+    DC.B    $ff,$ff,$03,$34,$03,$1c,$03,$7c,$03,$36,$03,$38,$03,$48,$03,$60
+    DC.B    $03,$5c,$03,$1e,$03,$3a,$03,$3c,$03,$3e,$03,$44,$03,$4a,$03,$4e
+    DC.B    $03,$50,$03,$52,$03,$4c,$03,$54,$03,$56,$03,$58,$03,$62,$03,$64
+    DC.B    $03,$5a,$03,$5e,$ff,$ff,$03,$66,$03,$6c,$03,$6e,$03,$70,$03,$72
+    DC.B    $03,$74,$03,$5a,$03,$78,$03,$7c,$03,$7a,$03,$5c,$03,$48,$03,$60
+    DC.B    $03,$5c,$03,$68,$03,$6a,$03,$7e,$03,$86,$03,$8c,$03,$4a,$03,$88
+    DC.B    $03,$76,$03,$80,$03,$4c,$03,$8e,$03,$92,$03,$82,$03,$62,$03,$64
+    DC.B    $03,$94,$03,$96,$03,$84,$03,$66,$03,$8a,$03,$98,$03,$9a,$03,$9c
+    DC.B    $03,$74,$03,$5a,$03,$78,$03,$9e,$03,$7a,$03,$5c,$ff,$ff,$03,$a0
+    DC.B    $03,$90,$03,$68,$03,$6a,$03,$7e,$03,$86,$03,$8c,$03,$a2,$03,$88
+    DC.B    $03,$76,$03,$80,$03,$a6,$03,$8e,$03,$92,$03,$82,$03,$a4,$ff,$ff
+    DC.B    $03,$94,$03,$96,$03,$84,$03,$b0,$03,$8a,$03,$98,$03,$9a,$03,$9c
+    DC.B    $03,$b2,$03,$a8,$03,$aa,$03,$9e,$03,$ac,$03,$c6,$03,$b4,$03,$a0
+    DC.B    $03,$90,$03,$ae,$03,$b6,$03,$b8,$03,$c8,$03,$ca,$03,$a2,$03,$cc
+    DC.B    $03,$e2,$03,$e4,$03,$a6,$03,$ba,$03,$e6,$03,$be,$03,$a4,$03,$c0
+    DC.B    $03,$ea,$03,$bc,$03,$e8,$03,$b0,$03,$c2,$03,$f0,$03,$c4,$ff,$ff
+    DC.B    $03,$b2,$03,$a8,$03,$aa,$03,$ec,$03,$ac,$03,$c6,$03,$b4,$03,$ee
+    DC.B    $ff,$ff,$03,$ae,$03,$b6,$03,$b8,$03,$c8,$03,$ca,$ff,$ff,$03,$cc
+    DC.B    $03,$e2,$03,$e4,$03,$f2,$03,$ba,$03,$e6,$03,$be,$03,$f4,$03,$c0
+    DC.B    $03,$ea,$03,$bc,$03,$e8,$03,$f6,$03,$c2,$03,$f0,$03,$c4,$03,$ce
+    DC.B    $03,$d0,$03,$d2,$03,$f8,$03,$ec,$03,$fe,$03,$fa,$03,$d4,$03,$ee
+    DC.B    $03,$d6,$03,$d8,$04,$00,$04,$02,$03,$da,$03,$dc,$03,$de,$03,$e0
+    DC.B    $04,$04,$04,$06,$03,$f2,$04,$08,$ff,$ff,$04,$12,$03,$f4,$03,$fc
+    DC.B    $04,$14,$04,$0a,$04,$16,$03,$f6,$04,$1e,$ff,$ff,$ff,$ff,$03,$ce
+    DC.B    $03,$d0,$03,$d2,$03,$f8,$ff,$ff,$03,$fe,$03,$fa,$03,$d4,$ff,$ff
+    DC.B    $03,$d6,$03,$d8,$04,$00,$04,$02,$03,$da,$03,$dc,$03,$de,$03,$e0
+    DC.B    $04,$04,$04,$06,$04,$0c,$04,$08,$04,$0e,$04,$12,$04,$18,$03,$fc
+    DC.B    $04,$14,$04,$0a,$04,$16,$04,$20,$04,$1e,$04,$1a,$04,$24,$04,$34
+    DC.B    $04,$28,$04,$4c,$04,$2a,$04,$2e,$04,$26,$04,$1c,$04,$10,$04,$2c
+    DC.B    $04,$30,$04,$4e,$04,$22,$ff,$ff,$ff,$ff,$04,$50,$04,$32,$04,$52
+    DC.B    $04,$54,$04,$56,$04,$0c,$ff,$ff,$04,$0e,$04,$58,$04,$18,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$04,$20,$04,$68,$04,$1a,$04,$24,$04,$34
+    DC.B    $04,$28,$04,$4c,$04,$2a,$04,$2e,$04,$26,$04,$1c,$04,$10,$04,$2c
+    DC.B    $04,$30,$04,$4e,$04,$22,$04,$36,$04,$38,$04,$50,$04,$32,$04,$52
+    DC.B    $04,$54,$04,$56,$04,$5a,$04,$42,$04,$3a,$04,$58,$04,$44,$04,$3c
+    DC.B    $04,$46,$04,$5e,$04,$3e,$04,$40,$04,$68,$04,$48,$04,$70,$04,$4a
+    DC.B    $04,$72,$04,$5c,$04,$62,$04,$64,$04,$66,$04,$6a,$04,$74,$04,$6c
+    DC.B    $04,$60,$04,$76,$ff,$ff,$04,$36,$04,$38,$04,$7c,$04,$7e,$04,$6e
+    DC.B    $04,$80,$ff,$ff,$04,$5a,$04,$42,$04,$3a,$04,$86,$04,$44,$04,$3c
+    DC.B    $04,$46,$04,$5e,$04,$3e,$04,$40,$04,$88,$04,$48,$04,$70,$04,$4a
+    DC.B    $04,$72,$04,$5c,$04,$62,$04,$64,$04,$66,$04,$6a,$04,$74,$04,$6c
+    DC.B    $04,$60,$04,$76,$04,$78,$04,$8a,$04,$8c,$04,$7c,$04,$7e,$04,$6e
+    DC.B    $04,$80,$04,$82,$04,$8e,$04,$84,$04,$7a,$04,$86,$04,$90,$04,$92
+    DC.B    $04,$94,$04,$96,$ff,$ff,$ff,$ff,$04,$88,$04,$9a,$04,$9e,$04,$a2
+    DC.B    $04,$a6,$04,$c6,$04,$c8,$04,$ca,$04,$cc,$04,$aa,$04,$ce,$04,$d0
+    DC.B    $ff,$ff,$04,$98,$04,$78,$04,$8a,$04,$8c
 pcref_c4e2:
-    dc.b    $04,$9c,$04,$a0,$04,$a4,$04,$a8,$04,$82,$04,$8e,$04,$84,$04,$7a
-    dc.b    $04,$ac,$04,$90,$04,$92,$04,$94,$04,$96,$04,$ae,$04,$b2,$ff,$ff
-    dc.b    $04,$9a,$04,$9e,$04,$a2,$04,$a6,$04,$c6,$04,$c8,$04,$ca,$04,$cc
-    dc.b    $04,$aa,$04,$ce,$04,$d0,$04,$d8,$04,$98,$04,$b0,$04,$b4,$04,$f4
-    dc.b    $04,$9c,$04,$a0,$04,$a4,$04,$a8,$04,$b6,$04,$b8,$04,$ba,$04,$dc
-    dc.b    $04,$ac,$04,$d2,$04,$bc,$04,$da,$04,$be,$04,$ae,$04,$b2,$04,$c0
-    dc.b    $04,$e0,$04,$e4,$04,$e8,$04,$ec,$04,$f6,$04,$f8,$04,$c2,$04,$de
-    dc.b    $04,$f0,$04,$d4,$04,$c4,$04,$d8,$04,$d6,$04,$b0,$04,$b4,$04,$f4
-    dc.b    $04,$e2,$04,$e6,$04,$ea,$04,$ee,$04,$b6,$04,$b8,$04,$ba,$04,$dc
-    dc.b    $04,$f2,$04,$d2,$04,$bc,$04,$da,$04,$be,$04,$fa,$04,$fc,$04,$c0
-    dc.b    $04,$e0,$04,$e4,$04,$e8,$04,$ec,$04,$f6,$04,$f8,$04,$c2,$04,$de
-    dc.b    $04,$f0,$04,$d4,$04,$c4,$04,$fe,$04,$d6,$05,$00,$05,$02,$05,$06
-    dc.b    $04,$e2,$04,$e6,$04,$ea,$04,$ee,$05,$04,$05,$08,$05,$0a,$05,$0c
-    dc.b    $04,$f2,$05,$0e,$05,$1a,$ff,$ff,$05,$20,$04,$fa,$04,$fc,$ff,$ff
-    dc.b    $05,$1c,$05,$22,$05,$1e,$02,$e6,$02,$f0,$02,$f6,$05,$24,$05,$26
-    dc.b    $05,$10,$05,$28,$05,$2a,$04,$fe,$05,$2c,$05,$00,$05,$02,$05,$06
-    dc.b    $05,$12,$05,$2e,$02,$f2,$02,$f4,$05,$04,$05,$08,$05,$0a,$05,$0c
-    dc.b    $05,$14,$05,$0e,$05,$1a,$05,$16,$05,$20,$05,$30,$05,$32,$05,$18
-    dc.b    $05,$1c,$05,$22,$05,$1e,$02,$e6,$02,$f0,$02,$f6,$05,$24,$05,$26
-    dc.b    $05,$10,$05,$28,$05,$2a,$05,$34,$05,$2c,$05,$36,$05,$38,$05,$3a
-    dc.b    $05,$12,$05,$2e,$02,$f2,$02,$f4,$05,$3c,$05,$3e,$05,$40,$05,$42
-    dc.b    $05,$14,$05,$48,$05,$4a,$05,$16,$05,$4c,$05,$30,$05,$32,$05,$18
-    dc.b    $05,$4e,$05,$50,$05,$44,$05,$52,$05,$54,$05,$56,$05,$46,$05,$58
-    dc.b    $05,$5a,$05,$5c,$05,$5e,$05,$34,$05,$60,$05,$36,$05,$38,$05,$3a
-    dc.b    $05,$66,$05,$74,$ff,$ff,$05,$62,$05,$3c,$05,$3e,$05,$40,$05,$42
-    dc.b    $05,$76,$05,$48,$05,$4a,$05,$64,$05,$4c,$05,$78,$05,$70,$05,$68
-    dc.b    $05,$4e,$05,$50,$05,$44,$05,$52,$05,$54,$05,$56,$05,$46,$05,$58
-    dc.b    $05,$5a,$05,$5c,$05,$5e,$05,$6a,$05,$60,$05,$72,$05,$82,$05,$84
-    dc.b    $05,$66,$05,$74,$05,$6c,$05,$62,$05,$7a,$05,$7e,$05,$86,$05,$88
-    dc.b    $05,$76,$05,$8a,$05,$6e,$05,$64,$03,$d0,$05,$78,$05,$70,$05,$68
-    dc.b    $05,$8c,$05,$90,$05,$b0,$05,$7c,$05,$80,$05,$94,$05,$b2,$05,$96
-    dc.b    $05,$8e,$05,$b4,$05,$b6,$05,$6a,$05,$98,$05,$72,$05,$82,$05,$84
-    dc.b    $05,$92,$05,$b8,$05,$6c,$05,$9a,$05,$7a,$05,$7e,$05,$86,$05,$88
-    dc.b    $05,$9c,$05,$8a,$05,$6e,$ff,$ff,$03,$d0,$05,$ba,$05,$9e,$05,$bc
-    dc.b    $05,$8c,$05,$90,$05,$b0,$05,$7c,$05,$80,$05,$94,$05,$b2,$05,$96
-    dc.b    $05,$8e,$05,$b4,$05,$b6,$05,$c2,$05,$98,$05,$a0,$05,$a2,$05,$be
-    dc.b    $05,$92,$05,$b8,$05,$a8,$05,$9a,$05,$aa,$05,$ca,$05,$a4,$05,$c0
-    dc.b    $05,$9c,$05,$ac,$05,$cc,$05,$ae,$05,$a6,$05,$ba,$05,$9e,$05,$bc
-    dc.b    $05,$c4,$05,$c6,$05,$ce,$05,$d0,$05,$d2,$05,$d4,$05,$d6,$05,$d8
-    dc.b    $05,$da,$05,$dc,$05,$e4,$05,$c2,$05,$e6,$05,$a0,$05,$a2,$05,$be
-    dc.b    $05,$e8,$05,$de,$05,$a8,$05,$e0,$05,$aa,$05,$ca,$05,$a4,$05,$c0
-    dc.b    $05,$e2,$05,$ac,$05,$cc,$05,$ae,$05,$a6,$05,$c8,$05,$f0,$05,$fa
-    dc.b    $05,$fe,$06,$00,$05,$ce,$05,$d0,$05,$d2,$05,$d4,$05,$d6,$05,$d8
-    dc.b    $05,$da,$05,$dc,$05,$e4,$05,$ea,$05,$e6,$05,$f2,$05,$fc,$06,$02
-    dc.b    $05,$e8,$05,$de,$05,$ec,$05,$e0,$05,$f4,$06,$04,$06,$06,$06,$08
-    dc.b    $05,$e2,$06,$0a,$05,$ee,$05,$f6,$06,$12,$05,$c8,$05,$f0,$05,$fa
-    dc.b    $05,$fe,$06,$00,$06,$0e,$05,$f8,$06,$14,$06,$16,$06,$18,$06,$1a
-    dc.b    $06,$0c,$06,$1c,$06,$1e,$05,$ea,$06,$20,$05,$f2,$05,$fc,$06,$02
-    dc.b    $06,$22,$06,$10,$05,$ec,$06,$24,$05,$f4,$06,$04,$06,$06,$06,$08
-    dc.b    $06,$26,$06,$0a,$05,$ee,$05,$f6,$06,$12,$06,$28,$06,$2a,$06,$2c
-    dc.b    $06,$3c,$06,$3e,$06,$0e,$05,$f8,$06,$14,$06,$16,$06,$18,$06,$1a
-    dc.b    $06,$0c,$06,$1c,$06,$1e,$06,$40,$06,$20,$06,$42,$ff,$ff,$06,$64
-    dc.b    $06,$22,$06,$10,$06,$2e,$06,$24,$ff,$ff,$06,$44,$06,$48,$06,$4c
-    dc.b    $06,$26,$06,$50,$06,$54,$06,$66,$06,$58,$06,$28,$06,$2a,$06,$2c
-    dc.b    $06,$3c,$06,$3e,$06,$30,$06,$5c,$06,$32,$06,$46,$06,$4a,$06,$4e
-    dc.b    $06,$60,$06,$52,$06,$56,$06,$40,$06,$5a,$06,$42,$06,$34,$06,$64
-    dc.b    $ff,$ff,$06,$36,$06,$38,$06,$5e,$06,$3a,$06,$44,$06,$48,$06,$4c
-    dc.b    $06,$62,$06,$50,$06,$54,$06,$66,$06,$58,$06,$6c,$06,$6e,$06,$70
-    dc.b    $06,$72,$06,$74,$06,$30,$06,$5c,$06,$32,$06,$46,$06,$4a,$06,$4e
-    dc.b    $06,$60,$06,$52,$06,$56,$06,$68,$06,$5a,$06,$76,$06,$34,$06,$78
-    dc.b    $06,$6a,$06,$36,$06,$38,$06,$5e,$06,$3a,$06,$7a,$06,$7c,$06,$7e
-    dc.b    $06,$62,$06,$80,$06,$82,$06,$84,$06,$86,$06,$6c,$06,$6e,$06,$70
-    dc.b    $06,$72,$06,$74,$06,$88,$ff,$ff,$06,$8a,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$06,$92,$06,$9a,$06,$68,$ff,$ff,$06,$76,$ff,$ff,$06,$78
-    dc.b    $06,$6a,$06,$8e,$06,$94,$06,$90,$ff,$ff,$06,$7a,$06,$7c,$06,$7e
-    dc.b    $06,$9c,$06,$80,$06,$82,$06,$84,$06,$86,$06,$96,$06,$9e,$06,$a0
-    dc.b    $06,$a2,$06,$98,$06,$88,$00,$fe,$06,$8a,$02,$fa,$01,$04,$01,$06
-    dc.b    $01,$08,$06,$92,$06,$9a,$06,$aa,$01,$0a,$02,$fe,$01,$0e,$06,$b8
-    dc.b    $03,$00,$06,$8e,$06,$94,$06,$90,$03,$02,$06,$a4,$06,$8c,$06,$ba
-    dc.b    $06,$9c,$06,$bc,$06,$ac,$06,$ae,$06,$a6,$06,$96,$06,$9e,$06,$a0
-    dc.b    $06,$a2,$06,$98,$06,$b0,$00,$fe,$06,$a8,$02,$fa,$01,$04,$01,$06
-    dc.b    $01,$08,$06,$b4,$06,$b2,$06,$aa,$01,$0a,$02,$fe,$01,$0e,$06,$b8
-    dc.b    $03,$00,$06,$be,$06,$c2,$06,$c6,$03,$02,$06,$a4,$06,$8c,$06,$ba
-    dc.b    $06,$b6,$06,$bc,$06,$ac,$06,$ae,$06,$a6,$06,$c8,$06,$ca,$06,$cc
-    dc.b    $06,$c0,$06,$c4,$06,$b0,$06,$ce,$06,$a8,$06,$d0,$06,$d4,$06,$da
-    dc.b    $06,$dc,$06,$b4,$06,$b2,$06,$d6,$06,$de,$06,$e0,$06,$e2,$06,$e4
-    dc.b    $06,$e6,$06,$be,$06,$c2,$06,$c6,$06,$e8,$06,$d8,$06,$ea,$06,$ec
-    dc.b    $06,$b6,$07,$00,$ff,$ff,$ff,$ff,$07,$02,$06,$c8,$06,$ca,$06,$cc
-    dc.b    $06,$c0,$06,$c4,$07,$04,$06,$ce,$07,$06,$06,$d0,$06,$d4,$06,$da
-    dc.b    $06,$dc,$07,$08,$07,$0a,$06,$d6,$06,$de,$06,$e0,$06,$e2,$06,$e4
-    dc.b    $06,$e6,$06,$ee,$06,$f0,$06,$f2,$06,$e8,$06,$d8,$06,$ea,$06,$ec
-    dc.b    $06,$f4,$07,$00,$06,$f6,$06,$f8,$07,$02,$07,$0c,$07,$0e,$06,$fa
-    dc.b    $06,$fc,$06,$fe,$07,$04,$07,$10,$07,$06,$07,$14,$07,$16,$07,$18
-    dc.b    $07,$1a,$07,$08,$07,$0a,$07,$1c,$07,$22,$07,$24,$07,$3a,$07,$1e
-    dc.b    $07,$26,$06,$ee,$06,$f0,$06,$f2,$07,$20,$07,$28,$07,$3c,$ff,$ff
-    dc.b    $06,$f4,$ff,$ff,$06,$f6,$06,$f8,$ff,$ff,$07,$0c,$07,$0e,$06,$fa
-    dc.b    $06,$fc,$06,$fe,$07,$3e,$07,$10,$07,$40,$07,$14,$07,$16,$07,$18
-    dc.b    $07,$1a,$07,$42,$03,$0a,$07,$1c,$07,$22,$07,$24,$07,$3a,$07,$1e
-    dc.b    $07,$26,$07,$2a,$07,$2c,$07,$2e,$07,$20,$07,$28,$07,$3c,$07,$30
-    dc.b    $07,$44,$07,$32,$03,$0c,$07,$48,$07,$34,$07,$4a,$07,$4e,$07,$50
-    dc.b    $07,$52,$07,$54,$07,$3e,$07,$36,$07,$40,$07,$56,$07,$58,$07,$38
-    dc.b    $07,$5a,$07,$42,$03,$0a,$07,$6c,$07,$82,$07,$66,$07,$84,$07,$68
-    dc.b    $07,$6e,$07,$2a,$07,$2c,$07,$2e,$07,$6a,$07,$62,$07,$70,$07,$30
-    dc.b    $07,$44,$07,$32,$03,$0c,$07,$48,$07,$34,$07,$4a,$07,$4e,$07,$50
-    dc.b    $07,$52,$07,$54,$07,$5c,$07,$36,$07,$64,$07,$56,$07,$58,$07,$38
-    dc.b    $07,$5a,$07,$5e,$07,$86,$07,$6c,$07,$82,$07,$66,$07,$84,$07,$68
-    dc.b    $07,$6e,$07,$60,$07,$72,$07,$74,$07,$6a,$07,$62,$07,$70,$07,$7a
-    dc.b    $07,$88,$07,$7c,$07,$8a,$07,$76,$07,$94,$07,$96,$07,$7e,$07,$98
-    dc.b    $07,$80,$07,$78,$07,$5c,$07,$8c,$07,$64,$07,$b8,$07,$9c,$ff,$ff
-    dc.b    $ff,$ff,$07,$5e,$07,$86,$ff,$ff,$07,$ba,$07,$bc,$07,$be,$07,$9a
-    dc.b    $07,$8e,$07,$60,$07,$72,$07,$74,$07,$90,$07,$92,$07,$9e,$07,$7a
-    dc.b    $07,$88,$07,$7c,$07,$8a,$07,$76,$07,$94,$07,$96,$07,$7e,$07,$98
-    dc.b    $07,$80,$07,$78,$07,$a0,$07,$8c,$ff,$ff,$07,$b8,$07,$9c,$07,$a4
-    dc.b    $07,$a8,$07,$ac,$07,$b0,$07,$b4,$07,$ba,$07,$bc,$07,$be,$07,$9a
-    dc.b    $07,$8e,$07,$c6,$07,$a2,$07,$d4,$07,$90,$07,$92,$07,$9e,$07,$a6
-    dc.b    $07,$aa,$07,$ae,$07,$b2,$07,$b6,$07,$d6,$07,$c0,$07,$ca,$07,$d0
-    dc.b    $07,$c8,$07,$d8,$07,$a0,$ff,$ff,$07,$c2,$07,$cc,$07,$da,$07,$a4
-    dc.b    $07,$a8,$07,$ac,$07,$b0,$07,$b4,$07,$c4,$07,$ce,$07,$d2,$07,$e2
-    dc.b    $07,$e4,$07,$c6,$07,$a2,$07,$d4,$07,$de,$07,$dc,$07,$e6,$07,$a6
-    dc.b    $07,$aa,$07,$ae,$07,$b2,$07,$b6,$07,$d6,$07,$c0,$07,$ca,$07,$d0
-    dc.b    $07,$c8,$07,$d8,$07,$e8,$07,$e0,$07,$c2,$07,$cc,$07,$da,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$c4,$07,$ce,$07,$d2,$07,$e2
-    dc.b    $07,$e4,$ff,$ff,$ff,$ff,$ff,$ff,$07,$de,$07,$dc,$07,$e6,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$07,$e8,$07,$e0,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $04,$9c,$04,$a0,$04,$a4,$04,$a8,$04,$82,$04,$8e,$04,$84,$04,$7a
+    DC.B    $04,$ac,$04,$90,$04,$92,$04,$94,$04,$96,$04,$ae,$04,$b2,$ff,$ff
+    DC.B    $04,$9a,$04,$9e,$04,$a2,$04,$a6,$04,$c6,$04,$c8,$04,$ca,$04,$cc
+    DC.B    $04,$aa,$04,$ce,$04,$d0,$04,$d8,$04,$98,$04,$b0,$04,$b4,$04,$f4
+    DC.B    $04,$9c,$04,$a0,$04,$a4,$04,$a8,$04,$b6,$04,$b8,$04,$ba,$04,$dc
+    DC.B    $04,$ac,$04,$d2,$04,$bc,$04,$da,$04,$be,$04,$ae,$04,$b2,$04,$c0
+    DC.B    $04,$e0,$04,$e4,$04,$e8,$04,$ec,$04,$f6,$04,$f8,$04,$c2,$04,$de
+    DC.B    $04,$f0,$04,$d4,$04,$c4,$04,$d8,$04,$d6,$04,$b0,$04,$b4,$04,$f4
+    DC.B    $04,$e2,$04,$e6,$04,$ea,$04,$ee,$04,$b6,$04,$b8,$04,$ba,$04,$dc
+    DC.B    $04,$f2,$04,$d2,$04,$bc,$04,$da,$04,$be,$04,$fa,$04,$fc,$04,$c0
+    DC.B    $04,$e0,$04,$e4,$04,$e8,$04,$ec,$04,$f6,$04,$f8,$04,$c2,$04,$de
+    DC.B    $04,$f0,$04,$d4,$04,$c4,$04,$fe,$04,$d6,$05,$00,$05,$02,$05,$06
+    DC.B    $04,$e2,$04,$e6,$04,$ea,$04,$ee,$05,$04,$05,$08,$05,$0a,$05,$0c
+    DC.B    $04,$f2,$05,$0e,$05,$1a,$ff,$ff,$05,$20,$04,$fa,$04,$fc,$ff,$ff
+    DC.B    $05,$1c,$05,$22,$05,$1e,$02,$e6,$02,$f0,$02,$f6,$05,$24,$05,$26
+    DC.B    $05,$10,$05,$28,$05,$2a,$04,$fe,$05,$2c,$05,$00,$05,$02,$05,$06
+    DC.B    $05,$12,$05,$2e,$02,$f2,$02,$f4,$05,$04,$05,$08,$05,$0a,$05,$0c
+    DC.B    $05,$14,$05,$0e,$05,$1a,$05,$16,$05,$20,$05,$30,$05,$32,$05,$18
+    DC.B    $05,$1c,$05,$22,$05,$1e,$02,$e6,$02,$f0,$02,$f6,$05,$24,$05,$26
+    DC.B    $05,$10,$05,$28,$05,$2a,$05,$34,$05,$2c,$05,$36,$05,$38,$05,$3a
+    DC.B    $05,$12,$05,$2e,$02,$f2,$02,$f4,$05,$3c,$05,$3e,$05,$40,$05,$42
+    DC.B    $05,$14,$05,$48,$05,$4a,$05,$16,$05,$4c,$05,$30,$05,$32,$05,$18
+    DC.B    $05,$4e,$05,$50,$05,$44,$05,$52,$05,$54,$05,$56,$05,$46,$05,$58
+    DC.B    $05,$5a,$05,$5c,$05,$5e,$05,$34,$05,$60,$05,$36,$05,$38,$05,$3a
+    DC.B    $05,$66,$05,$74,$ff,$ff,$05,$62,$05,$3c,$05,$3e,$05,$40,$05,$42
+    DC.B    $05,$76,$05,$48,$05,$4a,$05,$64,$05,$4c,$05,$78,$05,$70,$05,$68
+    DC.B    $05,$4e,$05,$50,$05,$44,$05,$52,$05,$54,$05,$56,$05,$46,$05,$58
+    DC.B    $05,$5a,$05,$5c,$05,$5e,$05,$6a,$05,$60,$05,$72,$05,$82,$05,$84
+    DC.B    $05,$66,$05,$74,$05,$6c,$05,$62,$05,$7a,$05,$7e,$05,$86,$05,$88
+    DC.B    $05,$76,$05,$8a,$05,$6e,$05,$64,$03,$d0,$05,$78,$05,$70,$05,$68
+    DC.B    $05,$8c,$05,$90,$05,$b0,$05,$7c,$05,$80,$05,$94,$05,$b2,$05,$96
+    DC.B    $05,$8e,$05,$b4,$05,$b6,$05,$6a,$05,$98,$05,$72,$05,$82,$05,$84
+    DC.B    $05,$92,$05,$b8,$05,$6c,$05,$9a,$05,$7a,$05,$7e,$05,$86,$05,$88
+    DC.B    $05,$9c,$05,$8a,$05,$6e,$ff,$ff,$03,$d0,$05,$ba,$05,$9e,$05,$bc
+    DC.B    $05,$8c,$05,$90,$05,$b0,$05,$7c,$05,$80,$05,$94,$05,$b2,$05,$96
+    DC.B    $05,$8e,$05,$b4,$05,$b6,$05,$c2,$05,$98,$05,$a0,$05,$a2,$05,$be
+    DC.B    $05,$92,$05,$b8,$05,$a8,$05,$9a,$05,$aa,$05,$ca,$05,$a4,$05,$c0
+    DC.B    $05,$9c,$05,$ac,$05,$cc,$05,$ae,$05,$a6,$05,$ba,$05,$9e,$05,$bc
+    DC.B    $05,$c4,$05,$c6,$05,$ce,$05,$d0,$05,$d2,$05,$d4,$05,$d6,$05,$d8
+    DC.B    $05,$da,$05,$dc,$05,$e4,$05,$c2,$05,$e6,$05,$a0,$05,$a2,$05,$be
+    DC.B    $05,$e8,$05,$de,$05,$a8,$05,$e0,$05,$aa,$05,$ca,$05,$a4,$05,$c0
+    DC.B    $05,$e2,$05,$ac,$05,$cc,$05,$ae,$05,$a6,$05,$c8,$05,$f0,$05,$fa
+    DC.B    $05,$fe,$06,$00,$05,$ce,$05,$d0,$05,$d2,$05,$d4,$05,$d6,$05,$d8
+    DC.B    $05,$da,$05,$dc,$05,$e4,$05,$ea,$05,$e6,$05,$f2,$05,$fc,$06,$02
+    DC.B    $05,$e8,$05,$de,$05,$ec,$05,$e0,$05,$f4,$06,$04,$06,$06,$06,$08
+    DC.B    $05,$e2,$06,$0a,$05,$ee,$05,$f6,$06,$12,$05,$c8,$05,$f0,$05,$fa
+    DC.B    $05,$fe,$06,$00,$06,$0e,$05,$f8,$06,$14,$06,$16,$06,$18,$06,$1a
+    DC.B    $06,$0c,$06,$1c,$06,$1e,$05,$ea,$06,$20,$05,$f2,$05,$fc,$06,$02
+    DC.B    $06,$22,$06,$10,$05,$ec,$06,$24,$05,$f4,$06,$04,$06,$06,$06,$08
+    DC.B    $06,$26,$06,$0a,$05,$ee,$05,$f6,$06,$12,$06,$28,$06,$2a,$06,$2c
+    DC.B    $06,$3c,$06,$3e,$06,$0e,$05,$f8,$06,$14,$06,$16,$06,$18,$06,$1a
+    DC.B    $06,$0c,$06,$1c,$06,$1e,$06,$40,$06,$20,$06,$42,$ff,$ff,$06,$64
+    DC.B    $06,$22,$06,$10,$06,$2e,$06,$24,$ff,$ff,$06,$44,$06,$48,$06,$4c
+    DC.B    $06,$26,$06,$50,$06,$54,$06,$66,$06,$58,$06,$28,$06,$2a,$06,$2c
+    DC.B    $06,$3c,$06,$3e,$06,$30,$06,$5c,$06,$32,$06,$46,$06,$4a,$06,$4e
+    DC.B    $06,$60,$06,$52,$06,$56,$06,$40,$06,$5a,$06,$42,$06,$34,$06,$64
+    DC.B    $ff,$ff,$06,$36,$06,$38,$06,$5e,$06,$3a,$06,$44,$06,$48,$06,$4c
+    DC.B    $06,$62,$06,$50,$06,$54,$06,$66,$06,$58,$06,$6c,$06,$6e,$06,$70
+    DC.B    $06,$72,$06,$74,$06,$30,$06,$5c,$06,$32,$06,$46,$06,$4a,$06,$4e
+    DC.B    $06,$60,$06,$52,$06,$56,$06,$68,$06,$5a,$06,$76,$06,$34,$06,$78
+    DC.B    $06,$6a,$06,$36,$06,$38,$06,$5e,$06,$3a,$06,$7a,$06,$7c,$06,$7e
+    DC.B    $06,$62,$06,$80,$06,$82,$06,$84,$06,$86,$06,$6c,$06,$6e,$06,$70
+    DC.B    $06,$72,$06,$74,$06,$88,$ff,$ff,$06,$8a,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$06,$92,$06,$9a,$06,$68,$ff,$ff,$06,$76,$ff,$ff,$06,$78
+    DC.B    $06,$6a,$06,$8e,$06,$94,$06,$90,$ff,$ff,$06,$7a,$06,$7c,$06,$7e
+    DC.B    $06,$9c,$06,$80,$06,$82,$06,$84,$06,$86,$06,$96,$06,$9e,$06,$a0
+    DC.B    $06,$a2,$06,$98,$06,$88,$00,$fe,$06,$8a,$02,$fa,$01,$04,$01,$06
+    DC.B    $01,$08,$06,$92,$06,$9a,$06,$aa,$01,$0a,$02,$fe,$01,$0e,$06,$b8
+    DC.B    $03,$00,$06,$8e,$06,$94,$06,$90,$03,$02,$06,$a4,$06,$8c,$06,$ba
+    DC.B    $06,$9c,$06,$bc,$06,$ac,$06,$ae,$06,$a6,$06,$96,$06,$9e,$06,$a0
+    DC.B    $06,$a2,$06,$98,$06,$b0,$00,$fe,$06,$a8,$02,$fa,$01,$04,$01,$06
+    DC.B    $01,$08,$06,$b4,$06,$b2,$06,$aa,$01,$0a,$02,$fe,$01,$0e,$06,$b8
+    DC.B    $03,$00,$06,$be,$06,$c2,$06,$c6,$03,$02,$06,$a4,$06,$8c,$06,$ba
+    DC.B    $06,$b6,$06,$bc,$06,$ac,$06,$ae,$06,$a6,$06,$c8,$06,$ca,$06,$cc
+    DC.B    $06,$c0,$06,$c4,$06,$b0,$06,$ce,$06,$a8,$06,$d0,$06,$d4,$06,$da
+    DC.B    $06,$dc,$06,$b4,$06,$b2,$06,$d6,$06,$de,$06,$e0,$06,$e2,$06,$e4
+    DC.B    $06,$e6,$06,$be,$06,$c2,$06,$c6,$06,$e8,$06,$d8,$06,$ea,$06,$ec
+    DC.B    $06,$b6,$07,$00,$ff,$ff,$ff,$ff,$07,$02,$06,$c8,$06,$ca,$06,$cc
+    DC.B    $06,$c0,$06,$c4,$07,$04,$06,$ce,$07,$06,$06,$d0,$06,$d4,$06,$da
+    DC.B    $06,$dc,$07,$08,$07,$0a,$06,$d6,$06,$de,$06,$e0,$06,$e2,$06,$e4
+    DC.B    $06,$e6,$06,$ee,$06,$f0,$06,$f2,$06,$e8,$06,$d8,$06,$ea,$06,$ec
+    DC.B    $06,$f4,$07,$00,$06,$f6,$06,$f8,$07,$02,$07,$0c,$07,$0e,$06,$fa
+    DC.B    $06,$fc,$06,$fe,$07,$04,$07,$10,$07,$06,$07,$14,$07,$16,$07,$18
+    DC.B    $07,$1a,$07,$08,$07,$0a,$07,$1c,$07,$22,$07,$24,$07,$3a,$07,$1e
+    DC.B    $07,$26,$06,$ee,$06,$f0,$06,$f2,$07,$20,$07,$28,$07,$3c,$ff,$ff
+    DC.B    $06,$f4,$ff,$ff,$06,$f6,$06,$f8,$ff,$ff,$07,$0c,$07,$0e,$06,$fa
+    DC.B    $06,$fc,$06,$fe,$07,$3e,$07,$10,$07,$40,$07,$14,$07,$16,$07,$18
+    DC.B    $07,$1a,$07,$42,$03,$0a,$07,$1c,$07,$22,$07,$24,$07,$3a,$07,$1e
+    DC.B    $07,$26,$07,$2a,$07,$2c,$07,$2e,$07,$20,$07,$28,$07,$3c,$07,$30
+    DC.B    $07,$44,$07,$32,$03,$0c,$07,$48,$07,$34,$07,$4a,$07,$4e,$07,$50
+    DC.B    $07,$52,$07,$54,$07,$3e,$07,$36,$07,$40,$07,$56,$07,$58,$07,$38
+    DC.B    $07,$5a,$07,$42,$03,$0a,$07,$6c,$07,$82,$07,$66,$07,$84,$07,$68
+    DC.B    $07,$6e,$07,$2a,$07,$2c,$07,$2e,$07,$6a,$07,$62,$07,$70,$07,$30
+    DC.B    $07,$44,$07,$32,$03,$0c,$07,$48,$07,$34,$07,$4a,$07,$4e,$07,$50
+    DC.B    $07,$52,$07,$54,$07,$5c,$07,$36,$07,$64,$07,$56,$07,$58,$07,$38
+    DC.B    $07,$5a,$07,$5e,$07,$86,$07,$6c,$07,$82,$07,$66,$07,$84,$07,$68
+    DC.B    $07,$6e,$07,$60,$07,$72,$07,$74,$07,$6a,$07,$62,$07,$70,$07,$7a
+    DC.B    $07,$88,$07,$7c,$07,$8a,$07,$76,$07,$94,$07,$96,$07,$7e,$07,$98
+    DC.B    $07,$80,$07,$78,$07,$5c,$07,$8c,$07,$64,$07,$b8,$07,$9c,$ff,$ff
+    DC.B    $ff,$ff,$07,$5e,$07,$86,$ff,$ff,$07,$ba,$07,$bc,$07,$be,$07,$9a
+    DC.B    $07,$8e,$07,$60,$07,$72,$07,$74,$07,$90,$07,$92,$07,$9e,$07,$7a
+    DC.B    $07,$88,$07,$7c,$07,$8a,$07,$76,$07,$94,$07,$96,$07,$7e,$07,$98
+    DC.B    $07,$80,$07,$78,$07,$a0,$07,$8c,$ff,$ff,$07,$b8,$07,$9c,$07,$a4
+    DC.B    $07,$a8,$07,$ac,$07,$b0,$07,$b4,$07,$ba,$07,$bc,$07,$be,$07,$9a
+    DC.B    $07,$8e,$07,$c6,$07,$a2,$07,$d4,$07,$90,$07,$92,$07,$9e,$07,$a6
+    DC.B    $07,$aa,$07,$ae,$07,$b2,$07,$b6,$07,$d6,$07,$c0,$07,$ca,$07,$d0
+    DC.B    $07,$c8,$07,$d8,$07,$a0,$ff,$ff,$07,$c2,$07,$cc,$07,$da,$07,$a4
+    DC.B    $07,$a8,$07,$ac,$07,$b0,$07,$b4,$07,$c4,$07,$ce,$07,$d2,$07,$e2
+    DC.B    $07,$e4,$07,$c6,$07,$a2,$07,$d4,$07,$de,$07,$dc,$07,$e6,$07,$a6
+    DC.B    $07,$aa,$07,$ae,$07,$b2,$07,$b6,$07,$d6,$07,$c0,$07,$ca,$07,$d0
+    DC.B    $07,$c8,$07,$d8,$07,$e8,$07,$e0,$07,$c2,$07,$cc,$07,$da,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$c4,$07,$ce,$07,$d2,$07,$e2
+    DC.B    $07,$e4,$ff,$ff,$ff,$ff,$ff,$ff,$07,$de,$07,$dc,$07,$e6,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$07,$e8,$07,$e0,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 dat_cd3c:
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dcb.b   6,0
-    dc.b    $01,$68,$01,$6a,$05,$c4,$00,$00,$06,$2e,$06,$ca,$06,$d4,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff
-    dcb.b   48,0
-    dc.b    $ff,$ff,$00,$00,$ff,$ff,$00,$24,$00,$28,$ff,$ff,$00,$2a,$ff,$ff
-    dcb.b   49,0
-    dc.b    $04,$00,$00,$00,$04,$00,$24,$00,$28,$00,$06,$00,$2a,$00,$06,$00
-    dc.b    $06,$00,$06,$00,$06,$00,$26,$00,$04,$00,$06,$00,$06,$00,$06,$00
-    dc.b    $06,$00,$04,$00,$06,$ff,$ff,$00,$06,$00,$06,$00,$06,$00,$12,$00
-    dc.b    $06,$00,$26,$ff,$ff,$ff,$ff,$00,$2c,$00,$12,$ff,$ff,$ff,$ff,$00
-    dc.b    $04,$ff,$ff,$00,$04,$ff,$ff,$00,$32,$00,$06,$ff,$ff,$00,$06,$00
-    dc.b    $06,$00,$06,$00,$06,$00,$26,$00,$04,$00,$06,$00,$06,$00,$06,$00
-    dc.b    $06,$00,$04,$00,$06,$00,$08,$00,$06,$00,$06,$00,$06,$00,$12,$00
-    dc.b    $06,$00,$26,$00,$08,$00,$08,$00,$2c,$00,$12,$00,$08,$00,$08,$00
-    dc.b    $08,$00,$08,$00,$08,$00,$2e,$00,$32,$00,$08,$00,$0a,$00,$0a,$00
-    dc.b    $0a,$00,$2e,$00,$0c,$00,$38,$00,$0c,$00,$0c,$00,$0a,$00,$0c,$00
-    dc.b    $3a,$00,$3e,$00,$40,$00,$08,$00,$0c,$00,$38,$00,$0c,$00,$42,$00
-    dc.b    $0a,$ff,$ff,$00,$08,$00,$08,$ff,$ff,$ff,$ff,$00,$08,$00,$08,$00
-    dc.b    $08,$00,$08,$00,$08,$00,$2e,$ff,$ff,$00,$08,$00,$0a,$00,$0a,$00
-    dc.b    $0a,$00,$2e,$00,$0c,$00,$38,$00,$0c,$00,$0c,$00,$0a,$00,$0c,$00
-    dc.b    $3a,$00,$3e,$00,$40,$00,$44,$00,$0c,$00,$38,$00,$0c,$00,$42,$00
-    dc.b    $0a,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00,$48,$00,$0e,$00
-    dc.b    $4e,$00,$0e,$00,$4c,$00,$50,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00
-    dc.b    $4c,$00,$4c,$00,$0e,$00,$0e,$00,$0e,$00,$10,$00,$52,$00,$10,$ff
-    dc.b    $ff,$ff,$ff,$00,$10,$00,$44,$ff,$ff,$00,$10,$ff,$ff,$00,$10,$ff
-    dc.b    $ff,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00,$48,$00,$0e,$00
-    dc.b    $4e,$00,$0e,$00,$4c,$00,$50,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00
-    dc.b    $4c,$00,$4c,$00,$0e,$00,$0e,$00,$0e,$00,$10,$00,$52,$00,$10,$00
-    dc.b    $18,$00,$4a,$00,$10,$00,$18,$00,$14,$00,$10,$00,$16,$00,$10,$00
-    dc.b    $14,$00,$1a,$00,$16,$00,$14,$00,$54,$00,$18,$00,$36,$00,$14,$00
-    dc.b    $56,$00,$4a,$00,$14,$00,$1a,$00,$16,$00,$1a,$ff,$ff,$00,$36,$00
-    dc.b    $1a,$00,$58,$00,$16,$ff,$ff,$ff,$ff,$00,$36,$ff,$ff,$ff,$ff,$00
-    dc.b    $18,$00,$4a,$00,$58,$00,$18,$00,$14,$ff,$ff,$00,$16,$ff,$ff,$00
-    dc.b    $14,$00,$1a,$00,$16,$00,$14,$00,$54,$00,$18,$00,$36,$00,$14,$00
-    dc.b    $56,$00,$4a,$00,$14,$00,$1a,$00,$16,$00,$1a,$00,$46,$00,$36,$00
-    dc.b    $1a,$00,$58,$00,$16,$00,$1c,$00,$1c,$00,$36,$00,$1c,$00,$1c,$00
-    dc.b    $1c,$00,$1e,$00,$58,$00,$46,$00,$46,$00,$1e,$00,$1c,$00,$1c,$00
-    dc.b    $5a,$00,$5c,$00,$5e,$00,$62,$00,$1c,$00,$1c,$00,$1c,$00,$1e,$00
-    dc.b    $1c,$00,$64,$00,$68,$00,$1e,$00,$1e,$ff,$ff,$00,$46,$00,$6a,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$00,$1c,$00,$1c,$00,$6c,$00,$1c,$00,$1c,$00
-    dc.b    $1c,$00,$1e,$00,$6e,$00,$46,$00,$46,$00,$1e,$00,$1c,$00,$1c,$00
-    dc.b    $5a,$00,$5c,$00,$5e,$00,$62,$00,$1c,$00,$1c,$00,$1c,$00,$1e,$00
-    dc.b    $1c,$00,$64,$00,$68,$00,$1e,$00,$1e,$00,$20,$00,$20,$00,$6a,$00
-    dc.b    $20,$00,$20,$00,$20,$00,$20,$00,$70,$00,$6c,$00,$7e,$00,$20,$00
-    dc.b    $20,$00,$20,$00,$6e,$00,$20,$ff,$ff,$00,$80,$00,$72,$00,$20,$00
-    dc.b    $20,$00,$20,$00,$20,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$00,$72,$00,$82,$00,$20,$00,$20,$ff,$ff,$00
-    dc.b    $20,$00,$20,$00,$20,$00,$20,$00,$70,$ff,$ff,$00,$7e,$00,$20,$00
-    dc.b    $20,$00,$20,$00,$78,$00,$20,$00,$78,$00,$80,$00,$72,$00,$20,$00
-    dc.b    $20,$00,$20,$00,$20,$00,$22,$00,$22,$00,$22,$00,$22,$00,$22,$00
-    dc.b    $22,$00,$22,$00,$22,$00,$72,$00,$82,$00,$84,$00,$22,$00,$22,$00
-    dc.b    $22,$00,$8a,$00,$22,$00,$84,$00,$22,$00,$22,$00,$22,$ff,$ff,$00
-    dc.b    $22,$ff,$ff,$00,$78,$00,$34,$00,$78,$00,$34,$00,$34,$00,$7c,$ff
-    dc.b    $ff,$00,$34,$00,$7c,$00,$22,$00,$22,$00,$22,$00,$22,$00,$22,$00
-    dc.b    $22,$00,$22,$00,$22,$00,$34,$00,$34,$00,$84,$00,$22,$00,$22,$00
-    dc.b    $22,$00,$8a,$00,$22,$00,$84,$00,$22,$00,$22,$00,$22,$00,$30,$00
-    dc.b    $22,$00,$86,$00,$3c,$00,$34,$00,$30,$00,$34,$00,$34,$00,$7c,$00
-    dc.b    $30,$00,$34,$00,$7c,$00,$86,$00,$3c,$00,$90,$00,$94,$00,$30,$00
-    dc.b    $3c,$00,$3c,$ff,$ff,$00,$34,$00,$34,$ff,$ff,$ff,$ff,$ff,$ff,$00
-    dc.b    $88,$00,$96,$00,$88,$ff,$ff,$ff,$ff,$ff,$ff,$00,$98,$00,$30,$00
-    dc.b    $9a,$00,$86,$00,$3c,$ff,$ff,$00,$30,$ff,$ff,$00,$9c,$ff,$ff,$00
-    dc.b    $30,$ff,$ff,$00,$9e,$00,$86,$00,$3c,$00,$90,$00,$94,$00,$30,$00
-    dc.b    $3c,$00,$3c,$00,$60,$00,$a2,$00,$60,$00,$60,$00,$60,$00,$60,$00
-    dc.b    $88,$00,$96,$00,$88,$00,$60,$00,$60,$00,$60,$00,$98,$00,$60,$00
-    dc.b    $9a,$00,$60,$00,$a4,$00,$60,$00,$a8,$00,$60,$00,$9c,$00,$74,$00
-    dc.b    $74,$00,$74,$00,$9e,$00,$a0,$00,$aa,$00,$ae,$00,$74,$00,$b0,$00
-    dc.b    $a0,$00,$b2,$00,$60,$00,$a2,$00,$60,$00,$60,$00,$60,$00,$60,$00
-    dc.b    $74,$00,$74,$ff,$ff,$00,$60,$00,$60,$00,$60,$00,$b6,$00,$60,$00
-    dc.b    $a6,$00,$60,$00,$a4,$00,$60,$00,$a8,$00,$60,$00,$a6,$00,$74,$00
-    dc.b    $74,$00,$74,$00,$b8,$00,$a0,$00,$aa,$00,$ae,$00,$74,$00,$b0,$00
-    dc.b    $a0,$00,$b2,$00,$bc,$00,$76,$00,$76,$00,$76,$ff,$ff,$00,$8e,$00
-    dc.b    $74,$00,$74,$00,$76,$00,$8e,$00,$76,$00,$76,$00,$b6,$00,$c2,$00
-    dc.b    $a6,$00,$76,$00,$76,$00,$76,$00,$7a,$00,$7a,$00,$a6,$00,$7a,$00
-    dc.b    $8e,$00,$8e,$00,$b8,$00,$be,$00,$7a,$00,$8e,$00,$c4,$00,$be,$00
-    dc.b    $7a,$00,$7a,$00,$bc,$00,$76,$00,$76,$00,$76,$00,$7a,$00,$8e,$ff
-    dc.b    $ff,$ff,$ff,$00,$76,$00,$8e,$00,$76,$00,$76,$00,$c6,$00,$c2,$ff
-    dc.b    $ff,$00,$76,$00,$76,$00,$76,$00,$7a,$00,$7a,$00,$ca,$00,$7a,$00
-    dc.b    $8e,$00,$8e,$00,$ac,$00,$be,$00,$7a,$00,$8e,$00,$c4,$00,$be,$00
-    dc.b    $7a,$00,$7a,$ff,$ff,$00,$cc,$ff,$ff,$00,$8c,$00,$7a,$00,$8c,$00
-    dc.b    $8c,$00,$8c,$00,$8c,$00,$8c,$00,$ac,$00,$8c,$00,$c6,$00,$d2,$00
-    dc.b    $8c,$00,$8c,$00,$8c,$00,$8c,$00,$d4,$00,$8c,$00,$ca,$00,$8c,$00
-    dc.b    $8c,$00,$8c,$00,$ac,$00,$92,$00,$92,$00,$92,$ff,$ff,$00,$92,$00
-    dc.b    $ba,$ff,$ff,$00,$ba,$00,$cc,$00,$92,$00,$8c,$00,$92,$00,$8c,$00
-    dc.b    $8c,$00,$8c,$00,$8c,$00,$8c,$00,$ac,$00,$8c,$ff,$ff,$00,$d2,$00
-    dc.b    $8c,$00,$8c,$00,$8c,$00,$8c,$00,$d4,$00,$8c,$00,$b4,$00,$8c,$00
-    dc.b    $8c,$00,$8c,$00,$b4,$00,$92,$00,$92,$00,$92,$00,$b4,$00,$92,$00
-    dc.b    $ba,$00,$c8,$00,$ba,$00,$d0,$00,$92,$00,$d6,$00,$92,$00,$c0,$00
-    dc.b    $c0,$00,$c0,$00,$de,$00,$c8,$00,$c8,$00,$c0,$00,$d6,$00,$c0,$00
-    dc.b    $d0,$00,$d6,$00,$c0,$00,$ec,$ff,$ff,$ff,$ff,$00,$b4,$ff,$ff,$ff
-    dc.b    $ff,$00,$c0,$00,$b4,$ff,$ff,$ff,$ff,$00,$c0,$00,$b4,$ff,$ff,$ff
-    dc.b    $ff,$00,$c8,$ff,$ff,$00,$d0,$ff,$ff,$00,$d6,$ff,$ff,$00,$c0,$00
-    dc.b    $c0,$00,$c0,$00,$de,$00,$c8,$00,$c8,$00,$c0,$00,$d6,$00,$c0,$00
-    dc.b    $d0,$00,$d6,$00,$c0,$00,$ec,$00,$ce,$00,$ce,$00,$ce,$00,$e0,$00
-    dc.b    $d8,$00,$c0,$00,$ce,$00,$e2,$00,$ce,$00,$c0,$00,$d8,$00,$ce,$00
-    dc.b    $da,$00,$da,$00,$dc,$00,$dc,$00,$d8,$00,$e8,$00,$ce,$00,$e0,$ff
-    dc.b    $ff,$00,$e2,$00,$ce,$00,$dc,$00,$e2,$00,$ee,$00,$e6,$00,$e8,$00
-    dc.b    $dc,$00,$dc,$ff,$ff,$ff,$ff,$00,$ce,$00,$ce,$00,$ce,$00,$e0,$00
-    dc.b    $d8,$00,$f2,$00,$ce,$00,$e2,$00,$ce,$00,$e6,$00,$d8,$00,$ce,$00
-    dc.b    $da,$00,$da,$00,$dc,$00,$dc,$00,$d8,$00,$e8,$00,$ce,$00,$e0,$00
-    dc.b    $ea,$00,$e2,$00,$ce,$00,$dc,$00,$e2,$00,$ee,$00,$e6,$00,$e8,$00
-    dc.b    $dc,$00,$dc,$00,$ea,$00,$f0,$00,$f4,$00,$f6,$00,$ea,$00,$ea,$00
-    dc.b    $f8,$00,$f2,$00,$fa,$00,$fc,$00,$f0,$00,$e6,$00,$fe,$01,$00,$01
-    dc.b    $02,$01,$06,$01,$08,$01,$0c,$01,$0e,$00,$f6,$01,$12,$01,$02,$00
-    dc.b    $ea,$01,$14,$01,$16,$ff,$ff,$ff,$ff,$01,$1c,$00,$fe,$01,$0c,$01
-    dc.b    $06,$ff,$ff,$00,$ea,$00,$f0,$00,$f4,$00,$f6,$00,$ea,$00,$ea,$00
-    dc.b    $f8,$01,$1e,$00,$fa,$00,$fc,$00,$f0,$01,$0a,$00,$fe,$01,$00,$01
-    dc.b    $02,$01,$06,$01,$08,$01,$0c,$01,$0e,$00,$f6,$01,$12,$01,$02,$01
-    dc.b    $18,$01,$14,$01,$16,$01,$0a,$01,$0a,$01,$1c,$00,$fe,$01,$0c,$01
-    dc.b    $06,$01,$10,$01,$20,$01,$10,$01,$10,$01,$10,$01,$10,$01,$24,$01
-    dc.b    $18,$01,$1e,$01,$10,$01,$10,$01,$10,$01,$0a,$01,$10,$01,$1a,$01
-    dc.b    $2c,$ff,$ff,$01,$10,$01,$1a,$01,$10,$01,$2e,$01,$34,$01,$36,$01
-    dc.b    $18,$ff,$ff,$01,$34,$01,$0a,$01,$0a,$01,$38,$01,$3a,$01,$3c,$ff
-    dc.b    $ff,$01,$10,$01,$20,$01,$10,$01,$10,$01,$10,$01,$10,$01,$24,$01
-    dc.b    $18,$01,$22,$01,$10,$01,$10,$01,$10,$01,$3e,$01,$10,$01,$1a,$01
-    dc.b    $2c,$01,$22,$01,$10,$01,$1a,$01,$10,$01,$2e,$01,$34,$01,$36,$01
-    dc.b    $42,$01,$22,$01,$34,$01,$48,$01,$58,$01,$38,$01,$3a,$01,$3c,$01
-    dc.b    $22,$01,$5e,$01,$64,$01,$66,$01,$6c,$ff,$ff,$01,$72,$01,$74,$01
-    dc.b    $76,$01,$22,$01,$78,$01,$7a,$01,$7c,$01,$3e,$01,$70,$01,$7e,$01
-    dc.b    $80,$01,$22,$ff,$ff,$01,$8a,$01,$8c,$01,$8e,$01,$90,$ff,$ff,$01
-    dc.b    $42,$01,$22,$01,$9a,$01,$48,$01,$58,$01,$70,$01,$84,$01,$7e,$01
-    dc.b    $22,$01,$5e,$01,$64,$01,$66,$01,$6c,$01,$70,$01,$72,$01,$74,$01
-    dc.b    $76,$01,$70,$01,$78,$01,$7a,$01,$7c,$01,$84,$01,$86,$01,$7e,$01
-    dc.b    $80,$ff,$ff,$01,$88,$01,$8a,$01,$8c,$01,$8e,$01,$90,$01,$94,$01
-    dc.b    $86,$01,$98,$01,$9a,$01,$98,$01,$88,$01,$70,$01,$84,$01,$7e,$01
-    dc.b    $88,$01,$88,$01,$9c,$01,$9e,$01,$a2,$01,$70,$01,$a0,$01,$94,$01
-    dc.b    $9c,$01,$70,$01,$a6,$01,$a8,$01,$9c,$01,$84,$01,$86,$01,$aa,$01
-    dc.b    $ac,$01,$9c,$01,$88,$01,$a0,$01,$ae,$01,$b0,$01,$b2,$01,$94,$01
-    dc.b    $86,$01,$98,$01,$b4,$01,$98,$01,$88,$ff,$ff,$01,$b8,$01,$a6,$01
-    dc.b    $88,$01,$88,$01,$9c,$01,$9e,$01,$a2,$01,$b8,$01,$a0,$01,$94,$01
-    dc.b    $9c,$01,$ba,$01,$a6,$01,$a8,$01,$9c,$01,$b8,$ff,$ff,$01,$aa,$01
-    dc.b    $ac,$01,$9c,$01,$be,$01,$a0,$01,$ae,$01,$b0,$01,$b2,$01,$be,$01
-    dc.b    $ba,$01,$bc,$01,$b4,$01,$bc,$01,$c6,$01,$be,$01,$b8,$01,$a6,$01
-    dc.b    $bc,$01,$c0,$01,$c0,$01,$c8,$01,$ca,$01,$b8,$01,$ca,$01,$ce,$01
-    dc.b    $d0,$01,$ba,$01,$c0,$01,$d2,$01,$c4,$01,$b8,$01,$c4,$01,$d4,$01
-    dc.b    $c0,$01,$d2,$01,$be,$01,$c4,$01,$d8,$01,$c4,$ff,$ff,$01,$be,$01
-    dc.b    $ba,$01,$bc,$01,$d6,$01,$bc,$01,$c6,$01,$be,$01,$d6,$ff,$ff,$01
-    dc.b    $bc,$01,$c0,$01,$c0,$01,$c8,$01,$ca,$ff,$ff,$01,$ca,$01,$ce,$01
-    dc.b    $d0,$01,$da,$01,$c0,$01,$d2,$01,$c4,$01,$dc,$01,$c4,$01,$d4,$01
-    dc.b    $c0,$01,$d2,$01,$de,$01,$c4,$01,$d8,$01,$c4,$01,$cc,$01,$cc,$01
-    dc.b    $cc,$01,$e0,$01,$d6,$01,$e4,$01,$e2,$01,$cc,$01,$d6,$01,$cc,$01
-    dc.b    $cc,$01,$e6,$01,$e8,$01,$cc,$01,$cc,$01,$cc,$01,$cc,$01,$ea,$01
-    dc.b    $ec,$01,$da,$01,$ee,$ff,$ff,$01,$f2,$01,$dc,$01,$e2,$01,$f4,$01
-    dc.b    $ee,$01,$f6,$01,$de,$01,$fc,$ff,$ff,$ff,$ff,$01,$cc,$01,$cc,$01
-    dc.b    $cc,$01,$e0,$ff,$ff,$01,$e4,$01,$e2,$01,$cc,$ff,$ff,$01,$cc,$01
-    dc.b    $cc,$01,$e6,$01,$e8,$01,$cc,$01,$cc,$01,$cc,$01,$cc,$01,$ea,$01
-    dc.b    $ec,$01,$f0,$01,$ee,$01,$f0,$01,$f2,$01,$fa,$01,$e2,$01,$f4,$01
-    dc.b    $ee,$01,$f6,$01,$fe,$01,$fc,$01,$fa,$02,$00,$02,$06,$02,$02,$02
-    dc.b    $0e,$02,$02,$02,$04,$02,$00,$01,$fa,$01,$f0,$02,$02,$02,$04,$02
-    dc.b    $10,$01,$fe,$ff,$ff,$ff,$ff,$02,$12,$02,$04,$02,$14,$02,$16,$02
-    dc.b    $18,$01,$f0,$ff,$ff,$01,$f0,$02,$1e,$01,$fa,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$01,$fe,$02,$28,$01,$fa,$02,$00,$02,$06,$02,$02,$02
-    dc.b    $0e,$02,$02,$02,$04,$02,$00,$01,$fa,$01,$f0,$02,$02,$02,$04,$02
-    dc.b    $10,$01,$fe,$02,$08,$02,$08,$02,$12,$02,$04,$02,$14,$02,$16,$02
-    dc.b    $18,$02,$20,$02,$0c,$02,$08,$02,$1e,$02,$0c,$02,$08,$02,$0c,$02
-    dc.b    $22,$02,$08,$02,$08,$02,$28,$02,$0c,$02,$32,$02,$0c,$02,$34,$02
-    dc.b    $20,$02,$24,$02,$24,$02,$24,$02,$2a,$02,$36,$02,$2a,$02,$22,$02
-    dc.b    $38,$ff,$ff,$02,$08,$02,$08,$02,$40,$02,$42,$02,$2a,$02,$44,$ff
-    dc.b    $ff,$02,$20,$02,$0c,$02,$08,$02,$48,$02,$0c,$02,$08,$02,$0c,$02
-    dc.b    $22,$02,$08,$02,$08,$02,$4a,$02,$0c,$02,$32,$02,$0c,$02,$34,$02
-    dc.b    $20,$02,$24,$02,$24,$02,$24,$02,$2a,$02,$36,$02,$2a,$02,$22,$02
-    dc.b    $38,$02,$3e,$02,$4c,$02,$4e,$02,$40,$02,$42,$02,$2a,$02,$44,$02
-    dc.b    $46,$02,$52,$02,$46,$02,$3e,$02,$48,$02,$5a,$02,$5c,$02,$5e,$02
-    dc.b    $60,$ff,$ff,$ff,$ff,$02,$4a,$02,$62,$02,$64,$02,$66,$02,$68,$02
-    dc.b    $74,$02,$76,$02,$78,$02,$7a,$02,$6a,$02,$7c,$02,$7e,$ff,$ff,$02
-    dc.b    $60,$02,$3e,$02,$4c,$02,$4e,$02,$62,$02,$64,$02,$66,$02,$68,$02
-    dc.b    $46,$02,$52,$02,$46,$02,$3e,$02,$6a,$02,$5a,$02,$5c,$02,$5e,$02
-    dc.b    $60,$02,$6c,$02,$6e,$ff,$ff,$02,$62,$02,$64,$02,$66,$02,$68,$02
-    dc.b    $74,$02,$76,$02,$78,$02,$7a,$02,$6a,$02,$7c,$02,$7e,$02,$82,$02
-    dc.b    $60,$02,$6c,$02,$6e,$02,$90,$02,$62,$02,$64,$02,$66,$02,$68,$02
-    dc.b    $70,$02,$70,$02,$70,$02,$84,$02,$6a,$02,$80,$02,$70,$02,$82,$02
-    dc.b    $70,$02,$6c,$02,$6e,$02,$70,$02,$86,$02,$88,$02,$8a,$02,$8c,$02
-    dc.b    $92,$02,$94,$02,$70,$02,$84,$02,$8e,$02,$80,$02,$70,$02,$82,$02
-    dc.b    $80,$02,$6c,$02,$6e,$02,$90,$02,$86,$02,$88,$02,$8a,$02,$8c,$02
-    dc.b    $70,$02,$70,$02,$70,$02,$84,$02,$8e,$02,$80,$02,$70,$02,$82,$02
-    dc.b    $70,$02,$96,$02,$9a,$02,$70,$02,$86,$02,$88,$02,$8a,$02,$8c,$02
-    dc.b    $92,$02,$94,$02,$70,$02,$84,$02,$8e,$02,$80,$02,$70,$02,$9c,$02
-    dc.b    $80,$02,$a0,$02,$a2,$02,$a4,$02,$86,$02,$88,$02,$8a,$02,$8c,$02
-    dc.b    $a2,$02,$a6,$02,$b2,$02,$b8,$02,$8e,$02,$d2,$02,$da,$ff,$ff,$02
-    dc.b    $e4,$02,$96,$02,$9a,$ff,$ff,$02,$de,$02,$e8,$02,$de,$02,$fa,$02
-    dc.b    $fc,$02,$fe,$03,$00,$03,$04,$02,$d4,$03,$0e,$03,$10,$02,$9c,$03
-    dc.b    $12,$02,$a0,$02,$a2,$02,$a4,$02,$d4,$03,$14,$02,$fc,$02,$fc,$02
-    dc.b    $a2,$02,$a6,$02,$b2,$02,$b8,$02,$d4,$02,$d2,$02,$da,$02,$d4,$02
-    dc.b    $e4,$03,$26,$03,$28,$02,$d4,$02,$de,$02,$e8,$02,$de,$02,$fa,$02
-    dc.b    $fc,$02,$fe,$03,$00,$03,$04,$02,$d4,$03,$0e,$03,$10,$03,$2a,$03
-    dc.b    $12,$03,$2c,$03,$2e,$03,$30,$02,$d4,$03,$14,$02,$fc,$02,$fc,$03
-    dc.b    $32,$03,$3c,$03,$3e,$03,$44,$02,$d4,$03,$52,$03,$54,$02,$d4,$03
-    dc.b    $56,$03,$26,$03,$28,$02,$d4,$03,$78,$03,$7a,$03,$44,$03,$7c,$03
-    dc.b    $80,$03,$88,$03,$44,$03,$94,$03,$9a,$03,$9c,$03,$a2,$03,$2a,$03
-    dc.b    $ac,$03,$2c,$03,$2e,$03,$30,$03,$ae,$03,$b6,$ff,$ff,$03,$ac,$03
-    dc.b    $32,$03,$3c,$03,$3e,$03,$44,$03,$ba,$03,$52,$03,$54,$03,$ac,$03
-    dc.b    $56,$03,$be,$03,$b2,$03,$ae,$03,$78,$03,$7a,$03,$44,$03,$7c,$03
-    dc.b    $80,$03,$88,$03,$44,$03,$94,$03,$9a,$03,$9c,$03,$a2,$03,$b0,$03
-    dc.b    $ac,$03,$b2,$03,$c8,$03,$ca,$03,$ae,$03,$b6,$03,$b0,$03,$ac,$03
-    dc.b    $c0,$03,$c2,$03,$cc,$03,$ce,$03,$ba,$03,$d2,$03,$b0,$03,$ac,$03
-    dc.b    $da,$03,$be,$03,$b2,$03,$ae,$03,$d2,$03,$d4,$03,$e2,$03,$c0,$03
-    dc.b    $c2,$03,$d6,$03,$e6,$03,$d6,$03,$d2,$03,$e8,$03,$ea,$03,$b0,$03
-    dc.b    $d6,$03,$b2,$03,$c8,$03,$ca,$03,$d4,$03,$ec,$03,$b0,$03,$d8,$03
-    dc.b    $c0,$03,$c2,$03,$cc,$03,$ce,$03,$d8,$03,$d2,$03,$b0,$ff,$ff,$03
-    dc.b    $da,$03,$ee,$03,$d8,$03,$f2,$03,$d2,$03,$d4,$03,$e2,$03,$c0,$03
-    dc.b    $c2,$03,$d6,$03,$e6,$03,$d6,$03,$d2,$03,$e8,$03,$ea,$03,$f6,$03
-    dc.b    $d6,$03,$dc,$03,$dc,$03,$f4,$03,$d4,$03,$ec,$03,$e0,$03,$d8,$03
-    dc.b    $e0,$03,$fc,$03,$dc,$03,$f4,$03,$d8,$03,$e0,$04,$06,$03,$e0,$03
-    dc.b    $dc,$03,$ee,$03,$d8,$03,$f2,$03,$f8,$03,$f8,$04,$0a,$04,$0c,$04
-    dc.b    $0e,$04,$10,$04,$12,$04,$14,$04,$1a,$04,$1a,$04,$24,$03,$f6,$04
-    dc.b    $26,$03,$dc,$03,$dc,$03,$f4,$04,$28,$04,$1a,$03,$e0,$04,$1e,$03
-    dc.b    $e0,$03,$fc,$03,$dc,$03,$f4,$04,$1e,$03,$e0,$04,$06,$03,$e0,$03
-    dc.b    $dc,$03,$f8,$04,$2c,$04,$30,$04,$34,$04,$36,$04,$0a,$04,$0c,$04
-    dc.b    $0e,$04,$10,$04,$12,$04,$14,$04,$1a,$04,$1a,$04,$24,$04,$2a,$04
-    dc.b    $26,$04,$2c,$04,$30,$04,$3a,$04,$28,$04,$1a,$04,$2a,$04,$1e,$04
-    dc.b    $2e,$04,$3c,$04,$40,$04,$44,$04,$1e,$04,$46,$04,$2a,$04,$2e,$04
-    dc.b    $4c,$03,$f8,$04,$2c,$04,$30,$04,$34,$04,$36,$04,$48,$04,$2e,$04
-    dc.b    $4e,$04,$50,$04,$54,$04,$68,$04,$46,$04,$6a,$04,$6c,$04,$2a,$04
-    dc.b    $6e,$04,$2c,$04,$30,$04,$3a,$04,$72,$04,$48,$04,$2a,$04,$76,$04
-    dc.b    $2e,$04,$3c,$04,$40,$04,$44,$04,$78,$04,$46,$04,$2a,$04,$2e,$04
-    dc.b    $4c,$04,$7a,$04,$7c,$04,$7e,$04,$8a,$04,$8c,$04,$48,$04,$2e,$04
-    dc.b    $4e,$04,$50,$04,$54,$04,$68,$04,$46,$04,$6a,$04,$6c,$04,$8e,$04
-    dc.b    $6e,$04,$90,$ff,$ff,$04,$c6,$04,$72,$04,$48,$04,$80,$04,$76,$ff
-    dc.b    $ff,$04,$b6,$04,$b8,$04,$ba,$04,$78,$04,$bc,$04,$be,$04,$ca,$04
-    dc.b    $c0,$04,$7a,$04,$7c,$04,$7e,$04,$8a,$04,$8c,$04,$80,$04,$c2,$04
-    dc.b    $80,$04,$b6,$04,$b8,$04,$ba,$04,$c4,$04,$bc,$04,$be,$04,$8e,$04
-    dc.b    $c0,$04,$90,$04,$80,$04,$c6,$ff,$ff,$04,$80,$04,$80,$04,$c2,$04
-    dc.b    $80,$04,$b6,$04,$b8,$04,$ba,$04,$c4,$04,$bc,$04,$be,$04,$ca,$04
-    dc.b    $c0,$04,$ce,$04,$d0,$04,$d6,$04,$f4,$04,$f6,$04,$80,$04,$c2,$04
-    dc.b    $80,$04,$b6,$04,$b8,$04,$ba,$04,$c4,$04,$bc,$04,$be,$04,$cc,$04
-    dc.b    $c0,$04,$f8,$04,$80,$04,$fa,$04,$cc,$04,$80,$04,$80,$04,$c2,$04
-    dc.b    $80,$04,$fe,$05,$06,$05,$08,$04,$c4,$05,$0c,$05,$16,$05,$1c,$05
-    dc.b    $1e,$04,$ce,$04,$d0,$04,$d6,$04,$f4,$04,$f6,$05,$20,$ff,$ff,$05
-    dc.b    $20,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$05,$48,$05,$52,$04,$cc,$ff
-    dc.b    $ff,$04,$f8,$ff,$ff,$04,$fa,$04,$cc,$05,$34,$05,$4a,$05,$34,$ff
-    dc.b    $ff,$04,$fe,$05,$06,$05,$08,$05,$56,$05,$0c,$05,$16,$05,$1c,$05
-    dc.b    $1e,$05,$4a,$05,$5c,$05,$62,$05,$8c,$05,$4a,$05,$20,$05,$26,$05
-    dc.b    $20,$05,$26,$05,$26,$05,$26,$05,$26,$05,$48,$05,$52,$05,$98,$05
-    dc.b    $26,$05,$26,$05,$26,$05,$a0,$05,$26,$05,$34,$05,$4a,$05,$34,$05
-    dc.b    $26,$05,$96,$05,$26,$05,$a4,$05,$56,$05,$a8,$05,$98,$05,$9a,$05
-    dc.b    $96,$05,$4a,$05,$5c,$05,$62,$05,$8c,$05,$4a,$05,$9a,$05,$26,$05
-    dc.b    $96,$05,$26,$05,$26,$05,$26,$05,$26,$05,$9c,$05,$9a,$05,$98,$05
-    dc.b    $26,$05,$26,$05,$26,$05,$a0,$05,$26,$05,$aa,$05,$ac,$05,$b2,$05
-    dc.b    $26,$05,$96,$05,$26,$05,$a4,$05,$9c,$05,$a8,$05,$98,$05,$9a,$05
-    dc.b    $96,$05,$b8,$05,$bc,$05,$be,$05,$aa,$05,$ac,$05,$9a,$05,$c0,$05
-    dc.b    $96,$05,$c2,$05,$c8,$05,$cc,$05,$ce,$05,$9c,$05,$9a,$05,$ca,$05
-    dc.b    $d6,$05,$da,$05,$de,$05,$e0,$05,$e4,$05,$aa,$05,$ac,$05,$b2,$05
-    dc.b    $ec,$05,$ca,$06,$04,$06,$14,$05,$9c,$06,$18,$ff,$ff,$ff,$ff,$06
-    dc.b    $1a,$05,$b8,$05,$bc,$05,$be,$05,$aa,$05,$ac,$06,$1c,$05,$c0,$06
-    dc.b    $1e,$05,$c2,$05,$c8,$05,$cc,$05,$ce,$06,$20,$06,$22,$05,$ca,$05
-    dc.b    $d6,$05,$da,$05,$de,$05,$e0,$05,$e4,$06,$16,$06,$16,$06,$16,$05
-    dc.b    $ec,$05,$ca,$06,$04,$06,$14,$06,$16,$06,$18,$06,$16,$06,$16,$06
-    dc.b    $1a,$06,$24,$06,$26,$06,$16,$06,$16,$06,$16,$06,$1c,$06,$2c,$06
-    dc.b    $1e,$06,$3c,$06,$3e,$06,$40,$06,$42,$06,$20,$06,$22,$06,$64,$06
-    dc.b    $6c,$06,$6e,$06,$76,$06,$66,$06,$72,$06,$16,$06,$16,$06,$16,$06
-    dc.b    $66,$06,$72,$06,$7c,$ff,$ff,$06,$16,$ff,$ff,$06,$16,$06,$16,$ff
-    dc.b    $ff,$06,$24,$06,$26,$06,$16,$06,$16,$06,$16,$06,$80,$06,$2c,$06
-    dc.b    $82,$06,$3c,$06,$3e,$06,$40,$06,$42,$06,$92,$06,$8c,$06,$64,$06
-    dc.b    $6c,$06,$6e,$06,$76,$06,$66,$06,$72,$06,$74,$06,$74,$06,$74,$06
-    dc.b    $66,$06,$72,$06,$7c,$06,$74,$06,$a6,$06,$74,$06,$8c,$06,$cc,$06
-    dc.b    $74,$06,$ce,$06,$d6,$06,$dc,$06,$e0,$06,$e2,$06,$80,$06,$74,$06
-    dc.b    $82,$06,$e4,$06,$ec,$06,$74,$06,$ee,$06,$92,$06,$8c,$06,$f8,$07
-    dc.b    $00,$06,$f6,$07,$02,$06,$f6,$06,$f8,$06,$74,$06,$74,$06,$74,$06
-    dc.b    $f6,$06,$f4,$06,$f8,$06,$74,$06,$a6,$06,$74,$06,$8c,$06,$cc,$06
-    dc.b    $74,$06,$ce,$06,$d6,$06,$dc,$06,$e0,$06,$e2,$06,$f2,$06,$74,$06
-    dc.b    $f4,$06,$e4,$06,$ec,$06,$74,$06,$ee,$06,$f2,$07,$08,$06,$f8,$07
-    dc.b    $00,$06,$f6,$07,$02,$06,$f6,$06,$f8,$06,$f2,$06,$fa,$06,$fa,$06
-    dc.b    $f6,$06,$f4,$06,$f8,$06,$fe,$07,$0a,$06,$fe,$07,$0e,$06,$fa,$07
-    dc.b    $22,$07,$24,$06,$fe,$07,$2a,$06,$fe,$06,$fa,$06,$f2,$07,$1c,$06
-    dc.b    $f4,$07,$3c,$07,$2c,$ff,$ff,$ff,$ff,$06,$f2,$07,$08,$ff,$ff,$07
-    dc.b    $3e,$07,$50,$07,$5e,$07,$2a,$07,$1c,$06,$f2,$06,$fa,$06,$fa,$07
-    dc.b    $1c,$07,$1c,$07,$2c,$06,$fe,$07,$0a,$06,$fe,$07,$0e,$06,$fa,$07
-    dc.b    $22,$07,$24,$06,$fe,$07,$2a,$06,$fe,$06,$fa,$07,$2e,$07,$1c,$ff
-    dc.b    $ff,$07,$3c,$07,$2c,$07,$30,$07,$32,$07,$34,$07,$36,$07,$38,$07
-    dc.b    $3e,$07,$50,$07,$5e,$07,$2a,$07,$1c,$07,$6a,$07,$2e,$07,$72,$07
-    dc.b    $1c,$07,$1c,$07,$2c,$07,$30,$07,$32,$07,$34,$07,$36,$07,$38,$07
-    dc.b    $76,$07,$68,$07,$6c,$07,$6e,$07,$6a,$07,$7a,$07,$2e,$ff,$ff,$07
-    dc.b    $68,$07,$6c,$07,$7c,$07,$30,$07,$32,$07,$34,$07,$36,$07,$38,$07
-    dc.b    $68,$07,$6c,$07,$6e,$07,$88,$07,$8c,$07,$6a,$07,$2e,$07,$72,$07
-    dc.b    $7e,$07,$7c,$07,$96,$07,$30,$07,$32,$07,$34,$07,$36,$07,$38,$07
-    dc.b    $76,$07,$68,$07,$6c,$07,$6e,$07,$6a,$07,$7a,$07,$c2,$07,$7e,$07
-    dc.b    $68,$07,$6c,$07,$7c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07
-    dc.b    $68,$07,$6c,$07,$6e,$07,$88,$07,$8c,$ff,$ff,$ff,$ff,$ff,$ff,$07
-    dc.b    $7e,$07,$7c,$07,$96,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$c2,$07,$7e,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-    dc.b    $ff
-sub_e070:
-    dcb.b   8,0
-    dc.b    $0d,$fe
-    dcb.b   286,0
-    dc.b    $0c,$e6,$00,$02
-    dcb.b   8,0
-    dc.b    $0d,$c8
-    dcb.b   130,0
-    dc.b    $4e,$1a
-    dcb.b   116,0
-    dc.b    $80,$00,$13,$0e,$80,$00,$00,$00
-sub_e2a6:
-    dcb.b   90,0
-    dc.b    $2b,$ce
-    dcb.b   26,0
-    dc.b    $51,$c0,$2d,$42,$80
-    dcb.b   37,0
-    dc.b    $50,$c0,$2d,$42,$80
-    dcb.b   49,0
-    dc.b    $51,$f8,$30,$14,$80
-    dcb.b   49,0
-    dc.b    $50,$f8,$30,$14,$80
-    dcb.b   31,0
-    dc.b    $d0,$00,$01,$5e,$80,$00,$c0,$00,$13,$0e,$80,$00,$e1,$00,$2e,$98
-    dc.b    $80,$00,$e0,$00,$2e,$98,$80,$00,$64,$00,$02,$f4
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DCB.B   6,0
+    DC.B    $01,$68,$01,$6a,$05,$c4,$00,$00,$06,$2e,$06,$ca,$06,$d4,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff
+    DCB.B   48,0
+    DC.B    $ff,$ff,$00,$00,$ff,$ff,$00,$24,$00,$28,$ff,$ff,$00,$2a,$ff,$ff
+    DCB.B   49,0
+    DC.B    $04,$00,$00,$00,$04,$00,$24,$00,$28,$00,$06,$00,$2a,$00,$06,$00
+    DC.B    $06,$00,$06,$00,$06,$00,$26,$00,$04,$00,$06,$00,$06,$00,$06,$00
+    DC.B    $06,$00,$04,$00,$06,$ff,$ff,$00,$06,$00,$06,$00,$06,$00,$12,$00
+    DC.B    $06,$00,$26,$ff,$ff,$ff,$ff,$00,$2c,$00,$12,$ff,$ff,$ff,$ff,$00
+    DC.B    $04,$ff,$ff,$00,$04,$ff,$ff,$00,$32,$00,$06,$ff,$ff,$00,$06,$00
+    DC.B    $06,$00,$06,$00,$06,$00,$26,$00,$04,$00,$06,$00,$06,$00,$06,$00
+    DC.B    $06,$00,$04,$00,$06,$00,$08,$00,$06,$00,$06,$00,$06,$00,$12,$00
+    DC.B    $06,$00,$26,$00,$08,$00,$08,$00,$2c,$00,$12,$00,$08,$00,$08,$00
+    DC.B    $08,$00,$08,$00,$08,$00,$2e,$00,$32,$00,$08,$00,$0a,$00,$0a,$00
+    DC.B    $0a,$00,$2e,$00,$0c,$00,$38,$00,$0c,$00,$0c,$00,$0a,$00,$0c,$00
+    DC.B    $3a,$00,$3e,$00,$40,$00,$08,$00,$0c,$00,$38,$00,$0c,$00,$42,$00
+    DC.B    $0a,$ff,$ff,$00,$08,$00,$08,$ff,$ff,$ff,$ff,$00,$08,$00,$08,$00
+    DC.B    $08,$00,$08,$00,$08,$00,$2e,$ff,$ff,$00,$08,$00,$0a,$00,$0a,$00
+    DC.B    $0a,$00,$2e,$00,$0c,$00,$38,$00,$0c,$00,$0c,$00,$0a,$00,$0c,$00
+    DC.B    $3a,$00,$3e,$00,$40,$00,$44,$00,$0c,$00,$38,$00,$0c,$00,$42,$00
+    DC.B    $0a,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00,$48,$00,$0e,$00
+    DC.B    $4e,$00,$0e,$00,$4c,$00,$50,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00
+    DC.B    $4c,$00,$4c,$00,$0e,$00,$0e,$00,$0e,$00,$10,$00,$52,$00,$10,$ff
+    DC.B    $ff,$ff,$ff,$00,$10,$00,$44,$ff,$ff,$00,$10,$ff,$ff,$00,$10,$ff
+    DC.B    $ff,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00,$48,$00,$0e,$00
+    DC.B    $4e,$00,$0e,$00,$4c,$00,$50,$00,$0e,$00,$0e,$00,$0e,$00,$0e,$00
+    DC.B    $4c,$00,$4c,$00,$0e,$00,$0e,$00,$0e,$00,$10,$00,$52,$00,$10,$00
+    DC.B    $18,$00,$4a,$00,$10,$00,$18,$00,$14,$00,$10,$00,$16,$00,$10,$00
+    DC.B    $14,$00,$1a,$00,$16,$00,$14,$00,$54,$00,$18,$00,$36,$00,$14,$00
+    DC.B    $56,$00,$4a,$00,$14,$00,$1a,$00,$16,$00,$1a,$ff,$ff,$00,$36,$00
+    DC.B    $1a,$00,$58,$00,$16,$ff,$ff,$ff,$ff,$00,$36,$ff,$ff,$ff,$ff,$00
+    DC.B    $18,$00,$4a,$00,$58,$00,$18,$00,$14,$ff,$ff,$00,$16,$ff,$ff,$00
+    DC.B    $14,$00,$1a,$00,$16,$00,$14,$00,$54,$00,$18,$00,$36,$00,$14,$00
+    DC.B    $56,$00,$4a,$00,$14,$00,$1a,$00,$16,$00,$1a,$00,$46,$00,$36,$00
+    DC.B    $1a,$00,$58,$00,$16,$00,$1c,$00,$1c,$00,$36,$00,$1c,$00,$1c,$00
+    DC.B    $1c,$00,$1e,$00,$58,$00,$46,$00,$46,$00,$1e,$00,$1c,$00,$1c,$00
+    DC.B    $5a,$00,$5c,$00,$5e,$00,$62,$00,$1c,$00,$1c,$00,$1c,$00,$1e,$00
+    DC.B    $1c,$00,$64,$00,$68,$00,$1e,$00,$1e,$ff,$ff,$00,$46,$00,$6a,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$00,$1c,$00,$1c,$00,$6c,$00,$1c,$00,$1c,$00
+    DC.B    $1c,$00,$1e,$00,$6e,$00,$46,$00,$46,$00,$1e,$00,$1c,$00,$1c,$00
+    DC.B    $5a,$00,$5c,$00,$5e,$00,$62,$00,$1c,$00,$1c,$00,$1c,$00,$1e,$00
+    DC.B    $1c,$00,$64,$00,$68,$00,$1e,$00,$1e,$00,$20,$00,$20,$00,$6a,$00
+    DC.B    $20,$00,$20,$00,$20,$00,$20,$00,$70,$00,$6c,$00,$7e,$00,$20,$00
+    DC.B    $20,$00,$20,$00,$6e,$00,$20,$ff,$ff,$00,$80,$00,$72,$00,$20,$00
+    DC.B    $20,$00,$20,$00,$20,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$00,$72,$00,$82,$00,$20,$00,$20,$ff,$ff,$00
+    DC.B    $20,$00,$20,$00,$20,$00,$20,$00,$70,$ff,$ff,$00,$7e,$00,$20,$00
+    DC.B    $20,$00,$20,$00,$78,$00,$20,$00,$78,$00,$80,$00,$72,$00,$20,$00
+    DC.B    $20,$00,$20,$00,$20,$00,$22,$00,$22,$00,$22,$00,$22,$00,$22,$00
+    DC.B    $22,$00,$22,$00,$22,$00,$72,$00,$82,$00,$84,$00,$22,$00,$22,$00
+    DC.B    $22,$00,$8a,$00,$22,$00,$84,$00,$22,$00,$22,$00,$22,$ff,$ff,$00
+    DC.B    $22,$ff,$ff,$00,$78,$00,$34,$00,$78,$00,$34,$00,$34,$00,$7c,$ff
+    DC.B    $ff,$00,$34,$00,$7c,$00,$22,$00,$22,$00,$22,$00,$22,$00,$22,$00
+    DC.B    $22,$00,$22,$00,$22,$00,$34,$00,$34,$00,$84,$00,$22,$00,$22,$00
+    DC.B    $22,$00,$8a,$00,$22,$00,$84,$00,$22,$00,$22,$00,$22,$00,$30,$00
+    DC.B    $22,$00,$86,$00,$3c,$00,$34,$00,$30,$00,$34,$00,$34,$00,$7c,$00
+    DC.B    $30,$00,$34,$00,$7c,$00,$86,$00,$3c,$00,$90,$00,$94,$00,$30,$00
+    DC.B    $3c,$00,$3c,$ff,$ff,$00,$34,$00,$34,$ff,$ff,$ff,$ff,$ff,$ff,$00
+    DC.B    $88,$00,$96,$00,$88,$ff,$ff,$ff,$ff,$ff,$ff,$00,$98,$00,$30,$00
+    DC.B    $9a,$00,$86,$00,$3c,$ff,$ff,$00,$30,$ff,$ff,$00,$9c,$ff,$ff,$00
+    DC.B    $30,$ff,$ff,$00,$9e,$00,$86,$00,$3c,$00,$90,$00,$94,$00,$30,$00
+    DC.B    $3c,$00,$3c,$00,$60,$00,$a2,$00,$60,$00,$60,$00,$60,$00,$60,$00
+    DC.B    $88,$00,$96,$00,$88,$00,$60,$00,$60,$00,$60,$00,$98,$00,$60,$00
+    DC.B    $9a,$00,$60,$00,$a4,$00,$60,$00,$a8,$00,$60,$00,$9c,$00,$74,$00
+    DC.B    $74,$00,$74,$00,$9e,$00,$a0,$00,$aa,$00,$ae,$00,$74,$00,$b0,$00
+    DC.B    $a0,$00,$b2,$00,$60,$00,$a2,$00,$60,$00,$60,$00,$60,$00,$60,$00
+    DC.B    $74,$00,$74,$ff,$ff,$00,$60,$00,$60,$00,$60,$00,$b6,$00,$60,$00
+    DC.B    $a6,$00,$60,$00,$a4,$00,$60,$00,$a8,$00,$60,$00,$a6,$00,$74,$00
+    DC.B    $74,$00,$74,$00,$b8,$00,$a0,$00,$aa,$00,$ae,$00,$74,$00,$b0,$00
+    DC.B    $a0,$00,$b2,$00,$bc,$00,$76,$00,$76,$00,$76,$ff,$ff,$00,$8e,$00
+    DC.B    $74,$00,$74,$00,$76,$00,$8e,$00,$76,$00,$76,$00,$b6,$00,$c2,$00
+    DC.B    $a6,$00,$76,$00,$76,$00,$76,$00,$7a,$00,$7a,$00,$a6,$00,$7a,$00
+    DC.B    $8e,$00,$8e,$00,$b8,$00,$be,$00,$7a,$00,$8e,$00,$c4,$00,$be,$00
+    DC.B    $7a,$00,$7a,$00,$bc,$00,$76,$00,$76,$00,$76,$00,$7a,$00,$8e,$ff
+    DC.B    $ff,$ff,$ff,$00,$76,$00,$8e,$00,$76,$00,$76,$00,$c6,$00,$c2,$ff
+    DC.B    $ff,$00,$76,$00,$76,$00,$76,$00,$7a,$00,$7a,$00,$ca,$00,$7a,$00
+    DC.B    $8e,$00,$8e,$00,$ac,$00,$be,$00,$7a,$00,$8e,$00,$c4,$00,$be,$00
+    DC.B    $7a,$00,$7a,$ff,$ff,$00,$cc,$ff,$ff,$00,$8c,$00,$7a,$00,$8c,$00
+    DC.B    $8c,$00,$8c,$00,$8c,$00,$8c,$00,$ac,$00,$8c,$00,$c6,$00,$d2,$00
+    DC.B    $8c,$00,$8c,$00,$8c,$00,$8c,$00,$d4,$00,$8c,$00,$ca,$00,$8c,$00
+    DC.B    $8c,$00,$8c,$00,$ac,$00,$92,$00,$92,$00,$92,$ff,$ff,$00,$92,$00
+    DC.B    $ba,$ff,$ff,$00,$ba,$00,$cc,$00,$92,$00,$8c,$00,$92,$00,$8c,$00
+    DC.B    $8c,$00,$8c,$00,$8c,$00,$8c,$00,$ac,$00,$8c,$ff,$ff,$00,$d2,$00
+    DC.B    $8c,$00,$8c,$00,$8c,$00,$8c,$00,$d4,$00,$8c,$00,$b4,$00,$8c,$00
+    DC.B    $8c,$00,$8c,$00,$b4,$00,$92,$00,$92,$00,$92,$00,$b4,$00,$92,$00
+    DC.B    $ba,$00,$c8,$00,$ba,$00,$d0,$00,$92,$00,$d6,$00,$92,$00,$c0,$00
+    DC.B    $c0,$00,$c0,$00,$de,$00,$c8,$00,$c8,$00,$c0,$00,$d6,$00,$c0,$00
+    DC.B    $d0,$00,$d6,$00,$c0,$00,$ec,$ff,$ff,$ff,$ff,$00,$b4,$ff,$ff,$ff
+    DC.B    $ff,$00,$c0,$00,$b4,$ff,$ff,$ff,$ff,$00,$c0,$00,$b4,$ff,$ff,$ff
+    DC.B    $ff,$00,$c8,$ff,$ff,$00,$d0,$ff,$ff,$00,$d6,$ff,$ff,$00,$c0,$00
+    DC.B    $c0,$00,$c0,$00,$de,$00,$c8,$00,$c8,$00,$c0,$00,$d6,$00,$c0,$00
+    DC.B    $d0,$00,$d6,$00,$c0,$00,$ec,$00,$ce,$00,$ce,$00,$ce,$00,$e0,$00
+    DC.B    $d8,$00,$c0,$00,$ce,$00,$e2,$00,$ce,$00,$c0,$00,$d8,$00,$ce,$00
+    DC.B    $da,$00,$da,$00,$dc,$00,$dc,$00,$d8,$00,$e8,$00,$ce,$00,$e0,$ff
+    DC.B    $ff,$00,$e2,$00,$ce,$00,$dc,$00,$e2,$00,$ee,$00,$e6,$00,$e8,$00
+    DC.B    $dc,$00,$dc,$ff,$ff,$ff,$ff,$00,$ce,$00,$ce,$00,$ce,$00,$e0,$00
+    DC.B    $d8,$00,$f2,$00,$ce,$00,$e2,$00,$ce,$00,$e6,$00,$d8,$00,$ce,$00
+    DC.B    $da,$00,$da,$00,$dc,$00,$dc,$00,$d8,$00,$e8,$00,$ce,$00,$e0,$00
+    DC.B    $ea,$00,$e2,$00,$ce,$00,$dc,$00,$e2,$00,$ee,$00,$e6,$00,$e8,$00
+    DC.B    $dc,$00,$dc,$00,$ea,$00,$f0,$00,$f4,$00,$f6,$00,$ea,$00,$ea,$00
+    DC.B    $f8,$00,$f2,$00,$fa,$00,$fc,$00,$f0,$00,$e6,$00,$fe,$01,$00,$01
+    DC.B    $02,$01,$06,$01,$08,$01,$0c,$01,$0e,$00,$f6,$01,$12,$01,$02,$00
+    DC.B    $ea,$01,$14,$01,$16,$ff,$ff,$ff,$ff,$01,$1c,$00,$fe,$01,$0c,$01
+    DC.B    $06,$ff,$ff,$00,$ea,$00,$f0,$00,$f4,$00,$f6,$00,$ea,$00,$ea,$00
+    DC.B    $f8,$01,$1e,$00,$fa,$00,$fc,$00,$f0,$01,$0a,$00,$fe,$01,$00,$01
+    DC.B    $02,$01,$06,$01,$08,$01,$0c,$01,$0e,$00,$f6,$01,$12,$01,$02,$01
+    DC.B    $18,$01,$14,$01,$16,$01,$0a,$01,$0a,$01,$1c,$00,$fe,$01,$0c,$01
+    DC.B    $06,$01,$10,$01,$20,$01,$10,$01,$10,$01,$10,$01,$10,$01,$24,$01
+    DC.B    $18,$01,$1e,$01,$10,$01,$10,$01,$10,$01,$0a,$01,$10,$01,$1a,$01
+    DC.B    $2c,$ff,$ff,$01,$10,$01,$1a,$01,$10,$01,$2e,$01,$34,$01,$36,$01
+    DC.B    $18,$ff,$ff,$01,$34,$01,$0a,$01,$0a,$01,$38,$01,$3a,$01,$3c,$ff
+    DC.B    $ff,$01,$10,$01,$20,$01,$10,$01,$10,$01,$10,$01,$10,$01,$24,$01
+    DC.B    $18,$01,$22,$01,$10,$01,$10,$01,$10,$01,$3e,$01,$10,$01,$1a,$01
+    DC.B    $2c,$01,$22,$01,$10,$01,$1a,$01,$10,$01,$2e,$01,$34,$01,$36,$01
+    DC.B    $42,$01,$22,$01,$34,$01,$48,$01,$58,$01,$38,$01,$3a,$01,$3c,$01
+    DC.B    $22,$01,$5e,$01,$64,$01,$66,$01,$6c,$ff,$ff,$01,$72,$01,$74,$01
+    DC.B    $76,$01,$22,$01,$78,$01,$7a,$01,$7c,$01,$3e,$01,$70,$01,$7e,$01
+    DC.B    $80,$01,$22,$ff,$ff,$01,$8a,$01,$8c,$01,$8e,$01,$90,$ff,$ff,$01
+    DC.B    $42,$01,$22,$01,$9a,$01,$48,$01,$58,$01,$70,$01,$84,$01,$7e,$01
+    DC.B    $22,$01,$5e,$01,$64,$01,$66,$01,$6c,$01,$70,$01,$72,$01,$74,$01
+    DC.B    $76,$01,$70,$01,$78,$01,$7a,$01,$7c,$01,$84,$01,$86,$01,$7e,$01
+    DC.B    $80,$ff,$ff,$01,$88,$01,$8a,$01,$8c,$01,$8e,$01,$90,$01,$94,$01
+    DC.B    $86,$01,$98,$01,$9a,$01,$98,$01,$88,$01,$70,$01,$84,$01,$7e,$01
+    DC.B    $88,$01,$88,$01,$9c,$01,$9e,$01,$a2,$01,$70,$01,$a0,$01,$94,$01
+    DC.B    $9c,$01,$70,$01,$a6,$01,$a8,$01,$9c,$01,$84,$01,$86,$01,$aa,$01
+    DC.B    $ac,$01,$9c,$01,$88,$01,$a0,$01,$ae,$01,$b0,$01,$b2,$01,$94,$01
+    DC.B    $86,$01,$98,$01,$b4,$01,$98,$01,$88,$ff,$ff,$01,$b8,$01,$a6,$01
+    DC.B    $88,$01,$88,$01,$9c,$01,$9e,$01,$a2,$01,$b8,$01,$a0,$01,$94,$01
+    DC.B    $9c,$01,$ba,$01,$a6,$01,$a8,$01,$9c,$01,$b8,$ff,$ff,$01,$aa,$01
+    DC.B    $ac,$01,$9c,$01,$be,$01,$a0,$01,$ae,$01,$b0,$01,$b2,$01,$be,$01
+    DC.B    $ba,$01,$bc,$01,$b4,$01,$bc,$01,$c6,$01,$be,$01,$b8,$01,$a6,$01
+    DC.B    $bc,$01,$c0,$01,$c0,$01,$c8,$01,$ca,$01,$b8,$01,$ca,$01,$ce,$01
+    DC.B    $d0,$01,$ba,$01,$c0,$01,$d2,$01,$c4,$01,$b8,$01,$c4,$01,$d4,$01
+    DC.B    $c0,$01,$d2,$01,$be,$01,$c4,$01,$d8,$01,$c4,$ff,$ff,$01,$be,$01
+    DC.B    $ba,$01,$bc,$01,$d6,$01,$bc,$01,$c6,$01,$be,$01,$d6,$ff,$ff,$01
+    DC.B    $bc,$01,$c0,$01,$c0,$01,$c8,$01,$ca,$ff,$ff,$01,$ca,$01,$ce,$01
+    DC.B    $d0,$01,$da,$01,$c0,$01,$d2,$01,$c4,$01,$dc,$01,$c4,$01,$d4,$01
+    DC.B    $c0,$01,$d2,$01,$de,$01,$c4,$01,$d8,$01,$c4,$01,$cc,$01,$cc,$01
+    DC.B    $cc,$01,$e0,$01,$d6,$01,$e4,$01,$e2,$01,$cc,$01,$d6,$01,$cc,$01
+    DC.B    $cc,$01,$e6,$01,$e8,$01,$cc,$01,$cc,$01,$cc,$01,$cc,$01,$ea,$01
+    DC.B    $ec,$01,$da,$01,$ee,$ff,$ff,$01,$f2,$01,$dc,$01,$e2,$01,$f4,$01
+    DC.B    $ee,$01,$f6,$01,$de,$01,$fc,$ff,$ff,$ff,$ff,$01,$cc,$01,$cc,$01
+    DC.B    $cc,$01,$e0,$ff,$ff,$01,$e4,$01,$e2,$01,$cc,$ff,$ff,$01,$cc,$01
+    DC.B    $cc,$01,$e6,$01,$e8,$01,$cc,$01,$cc,$01,$cc,$01,$cc,$01,$ea,$01
+    DC.B    $ec,$01,$f0,$01,$ee,$01,$f0,$01,$f2,$01,$fa,$01,$e2,$01,$f4,$01
+    DC.B    $ee,$01,$f6,$01,$fe,$01,$fc,$01,$fa,$02,$00,$02,$06,$02,$02,$02
+    DC.B    $0e,$02,$02,$02,$04,$02,$00,$01,$fa,$01,$f0,$02,$02,$02,$04,$02
+    DC.B    $10,$01,$fe,$ff,$ff,$ff,$ff,$02,$12,$02,$04,$02,$14,$02,$16,$02
+    DC.B    $18,$01,$f0,$ff,$ff,$01,$f0,$02,$1e,$01,$fa,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$01,$fe,$02,$28,$01,$fa,$02,$00,$02,$06,$02,$02,$02
+    DC.B    $0e,$02,$02,$02,$04,$02,$00,$01,$fa,$01,$f0,$02,$02,$02,$04,$02
+    DC.B    $10,$01,$fe,$02,$08,$02,$08,$02,$12,$02,$04,$02,$14,$02,$16,$02
+    DC.B    $18,$02,$20,$02,$0c,$02,$08,$02,$1e,$02,$0c,$02,$08,$02,$0c,$02
+    DC.B    $22,$02,$08,$02,$08,$02,$28,$02,$0c,$02,$32,$02,$0c,$02,$34,$02
+    DC.B    $20,$02,$24,$02,$24,$02,$24,$02,$2a,$02,$36,$02,$2a,$02,$22,$02
+    DC.B    $38,$ff,$ff,$02,$08,$02,$08,$02,$40,$02,$42,$02,$2a,$02,$44,$ff
+    DC.B    $ff,$02,$20,$02,$0c,$02,$08,$02,$48,$02,$0c,$02,$08,$02,$0c,$02
+    DC.B    $22,$02,$08,$02,$08,$02,$4a,$02,$0c,$02,$32,$02,$0c,$02,$34,$02
+    DC.B    $20,$02,$24,$02,$24,$02,$24,$02,$2a,$02,$36,$02,$2a,$02,$22,$02
+    DC.B    $38,$02,$3e,$02,$4c,$02,$4e,$02,$40,$02,$42,$02,$2a,$02,$44,$02
+    DC.B    $46,$02,$52,$02,$46,$02,$3e,$02,$48,$02,$5a,$02,$5c,$02,$5e,$02
+    DC.B    $60,$ff,$ff,$ff,$ff,$02,$4a,$02,$62,$02,$64,$02,$66,$02,$68,$02
+    DC.B    $74,$02,$76,$02,$78,$02,$7a,$02,$6a,$02,$7c,$02,$7e,$ff,$ff,$02
+    DC.B    $60,$02,$3e,$02,$4c,$02,$4e,$02,$62,$02,$64,$02,$66,$02,$68,$02
+    DC.B    $46,$02,$52,$02,$46,$02,$3e,$02,$6a,$02,$5a,$02,$5c,$02,$5e,$02
+    DC.B    $60,$02,$6c,$02,$6e,$ff,$ff,$02,$62,$02,$64,$02,$66,$02,$68,$02
+    DC.B    $74,$02,$76,$02,$78,$02,$7a,$02,$6a,$02,$7c,$02,$7e,$02,$82,$02
+    DC.B    $60,$02,$6c,$02,$6e,$02,$90,$02,$62,$02,$64,$02,$66,$02,$68,$02
+    DC.B    $70,$02,$70,$02,$70,$02,$84,$02,$6a,$02,$80,$02,$70,$02,$82,$02
+    DC.B    $70,$02,$6c,$02,$6e,$02,$70,$02,$86,$02,$88,$02,$8a,$02,$8c,$02
+    DC.B    $92,$02,$94,$02,$70,$02,$84,$02,$8e,$02,$80,$02,$70,$02,$82,$02
+    DC.B    $80,$02,$6c,$02,$6e,$02,$90,$02,$86,$02,$88,$02,$8a,$02,$8c,$02
+    DC.B    $70,$02,$70,$02,$70,$02,$84,$02,$8e,$02,$80,$02,$70,$02,$82,$02
+    DC.B    $70,$02,$96,$02,$9a,$02,$70,$02,$86,$02,$88,$02,$8a,$02,$8c,$02
+    DC.B    $92,$02,$94,$02,$70,$02,$84,$02,$8e,$02,$80,$02,$70,$02,$9c,$02
+    DC.B    $80,$02,$a0,$02,$a2,$02,$a4,$02,$86,$02,$88,$02,$8a,$02,$8c,$02
+    DC.B    $a2,$02,$a6,$02,$b2,$02,$b8,$02,$8e,$02,$d2,$02,$da,$ff,$ff,$02
+    DC.B    $e4,$02,$96,$02,$9a,$ff,$ff,$02,$de,$02,$e8,$02,$de,$02,$fa,$02
+    DC.B    $fc,$02,$fe,$03,$00,$03,$04,$02,$d4,$03,$0e,$03,$10,$02,$9c,$03
+    DC.B    $12,$02,$a0,$02,$a2,$02,$a4,$02,$d4,$03,$14,$02,$fc,$02,$fc,$02
+    DC.B    $a2,$02,$a6,$02,$b2,$02,$b8,$02,$d4,$02,$d2,$02,$da,$02,$d4,$02
+    DC.B    $e4,$03,$26,$03,$28,$02,$d4,$02,$de,$02,$e8,$02,$de,$02,$fa,$02
+    DC.B    $fc,$02,$fe,$03,$00,$03,$04,$02,$d4,$03,$0e,$03,$10,$03,$2a,$03
+    DC.B    $12,$03,$2c,$03,$2e,$03,$30,$02,$d4,$03,$14,$02,$fc,$02,$fc,$03
+    DC.B    $32,$03,$3c,$03,$3e,$03,$44,$02,$d4,$03,$52,$03,$54,$02,$d4,$03
+    DC.B    $56,$03,$26,$03,$28,$02,$d4,$03,$78,$03,$7a,$03,$44,$03,$7c,$03
+    DC.B    $80,$03,$88,$03,$44,$03,$94,$03,$9a,$03,$9c,$03,$a2,$03,$2a,$03
+    DC.B    $ac,$03,$2c,$03,$2e,$03,$30,$03,$ae,$03,$b6,$ff,$ff,$03,$ac,$03
+    DC.B    $32,$03,$3c,$03,$3e,$03,$44,$03,$ba,$03,$52,$03,$54,$03,$ac,$03
+    DC.B    $56,$03,$be,$03,$b2,$03,$ae,$03,$78,$03,$7a,$03,$44,$03,$7c,$03
+    DC.B    $80,$03,$88,$03,$44,$03,$94,$03,$9a,$03,$9c,$03,$a2,$03,$b0,$03
+    DC.B    $ac,$03,$b2,$03,$c8,$03,$ca,$03,$ae,$03,$b6,$03,$b0,$03,$ac,$03
+    DC.B    $c0,$03,$c2,$03,$cc,$03,$ce,$03,$ba,$03,$d2,$03,$b0,$03,$ac,$03
+    DC.B    $da,$03,$be,$03,$b2,$03,$ae,$03,$d2,$03,$d4,$03,$e2,$03,$c0,$03
+    DC.B    $c2,$03,$d6,$03,$e6,$03,$d6,$03,$d2,$03,$e8,$03,$ea,$03,$b0,$03
+    DC.B    $d6,$03,$b2,$03,$c8,$03,$ca,$03,$d4,$03,$ec,$03,$b0,$03,$d8,$03
+    DC.B    $c0,$03,$c2,$03,$cc,$03,$ce,$03,$d8,$03,$d2,$03,$b0,$ff,$ff,$03
+    DC.B    $da,$03,$ee,$03,$d8,$03,$f2,$03,$d2,$03,$d4,$03,$e2,$03,$c0,$03
+    DC.B    $c2,$03,$d6,$03,$e6,$03,$d6,$03,$d2,$03,$e8,$03,$ea,$03,$f6,$03
+    DC.B    $d6,$03,$dc,$03,$dc,$03,$f4,$03,$d4,$03,$ec,$03,$e0,$03,$d8,$03
+    DC.B    $e0,$03,$fc,$03,$dc,$03,$f4,$03,$d8,$03,$e0,$04,$06,$03,$e0,$03
+    DC.B    $dc,$03,$ee,$03,$d8,$03,$f2,$03,$f8,$03,$f8,$04,$0a,$04,$0c,$04
+    DC.B    $0e,$04,$10,$04,$12,$04,$14,$04,$1a,$04,$1a,$04,$24,$03,$f6,$04
+    DC.B    $26,$03,$dc,$03,$dc,$03,$f4,$04,$28,$04,$1a,$03,$e0,$04,$1e,$03
+    DC.B    $e0,$03,$fc,$03,$dc,$03,$f4,$04,$1e,$03,$e0,$04,$06,$03,$e0,$03
+    DC.B    $dc,$03,$f8,$04,$2c,$04,$30,$04,$34,$04,$36,$04,$0a,$04,$0c,$04
+    DC.B    $0e,$04,$10,$04,$12,$04,$14,$04,$1a,$04,$1a,$04,$24,$04,$2a,$04
+    DC.B    $26,$04,$2c,$04,$30,$04,$3a,$04,$28,$04,$1a,$04,$2a,$04,$1e,$04
+    DC.B    $2e,$04,$3c,$04,$40,$04,$44,$04,$1e,$04,$46,$04,$2a,$04,$2e,$04
+    DC.B    $4c,$03,$f8,$04,$2c,$04,$30,$04,$34,$04,$36,$04,$48,$04,$2e,$04
+    DC.B    $4e,$04,$50,$04,$54,$04,$68,$04,$46,$04,$6a,$04,$6c,$04,$2a,$04
+    DC.B    $6e,$04,$2c,$04,$30,$04,$3a,$04,$72,$04,$48,$04,$2a,$04,$76,$04
+    DC.B    $2e,$04,$3c,$04,$40,$04,$44,$04,$78,$04,$46,$04,$2a,$04,$2e,$04
+    DC.B    $4c,$04,$7a,$04,$7c,$04,$7e,$04,$8a,$04,$8c,$04,$48,$04,$2e,$04
+    DC.B    $4e,$04,$50,$04,$54,$04,$68,$04,$46,$04,$6a,$04,$6c,$04,$8e,$04
+    DC.B    $6e,$04,$90,$ff,$ff,$04,$c6,$04,$72,$04,$48,$04,$80,$04,$76,$ff
+    DC.B    $ff,$04,$b6,$04,$b8,$04,$ba,$04,$78,$04,$bc,$04,$be,$04,$ca,$04
+    DC.B    $c0,$04,$7a,$04,$7c,$04,$7e,$04,$8a,$04,$8c,$04,$80,$04,$c2,$04
+    DC.B    $80,$04,$b6,$04,$b8,$04,$ba,$04,$c4,$04,$bc,$04,$be,$04,$8e,$04
+    DC.B    $c0,$04,$90,$04,$80,$04,$c6,$ff,$ff,$04,$80,$04,$80,$04,$c2,$04
+    DC.B    $80,$04,$b6,$04,$b8,$04,$ba,$04,$c4,$04,$bc,$04,$be,$04,$ca,$04
+    DC.B    $c0,$04,$ce,$04,$d0,$04,$d6,$04,$f4,$04,$f6,$04,$80,$04,$c2,$04
+    DC.B    $80,$04,$b6,$04,$b8,$04,$ba,$04,$c4,$04,$bc,$04,$be,$04,$cc,$04
+    DC.B    $c0,$04,$f8,$04,$80,$04,$fa,$04,$cc,$04,$80,$04,$80,$04,$c2,$04
+    DC.B    $80,$04,$fe,$05,$06,$05,$08,$04,$c4,$05,$0c,$05,$16,$05,$1c,$05
+    DC.B    $1e,$04,$ce,$04,$d0,$04,$d6,$04,$f4,$04,$f6,$05,$20,$ff,$ff,$05
+    DC.B    $20,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$05,$48,$05,$52,$04,$cc,$ff
+    DC.B    $ff,$04,$f8,$ff,$ff,$04,$fa,$04,$cc,$05,$34,$05,$4a,$05,$34,$ff
+    DC.B    $ff,$04,$fe,$05,$06,$05,$08,$05,$56,$05,$0c,$05,$16,$05,$1c,$05
+    DC.B    $1e,$05,$4a,$05,$5c,$05,$62,$05,$8c,$05,$4a,$05,$20,$05,$26,$05
+    DC.B    $20,$05,$26,$05,$26,$05,$26,$05,$26,$05,$48,$05,$52,$05,$98,$05
+    DC.B    $26,$05,$26,$05,$26,$05,$a0,$05,$26,$05,$34,$05,$4a,$05,$34,$05
+    DC.B    $26,$05,$96,$05,$26,$05,$a4,$05,$56,$05,$a8,$05,$98,$05,$9a,$05
+    DC.B    $96,$05,$4a,$05,$5c,$05,$62,$05,$8c,$05,$4a,$05,$9a,$05,$26,$05
+    DC.B    $96,$05,$26,$05,$26,$05,$26,$05,$26,$05,$9c,$05,$9a,$05,$98,$05
+    DC.B    $26,$05,$26,$05,$26,$05,$a0,$05,$26,$05,$aa,$05,$ac,$05,$b2,$05
+    DC.B    $26,$05,$96,$05,$26,$05,$a4,$05,$9c,$05,$a8,$05,$98,$05,$9a,$05
+    DC.B    $96,$05,$b8,$05,$bc,$05,$be,$05,$aa,$05,$ac,$05,$9a,$05,$c0,$05
+    DC.B    $96,$05,$c2,$05,$c8,$05,$cc,$05,$ce,$05,$9c,$05,$9a,$05,$ca,$05
+    DC.B    $d6,$05,$da,$05,$de,$05,$e0,$05,$e4,$05,$aa,$05,$ac,$05,$b2,$05
+    DC.B    $ec,$05,$ca,$06,$04,$06,$14,$05,$9c,$06,$18,$ff,$ff,$ff,$ff,$06
+    DC.B    $1a,$05,$b8,$05,$bc,$05,$be,$05,$aa,$05,$ac,$06,$1c,$05,$c0,$06
+    DC.B    $1e,$05,$c2,$05,$c8,$05,$cc,$05,$ce,$06,$20,$06,$22,$05,$ca,$05
+    DC.B    $d6,$05,$da,$05,$de,$05,$e0,$05,$e4,$06,$16,$06,$16,$06,$16,$05
+    DC.B    $ec,$05,$ca,$06,$04,$06,$14,$06,$16,$06,$18,$06,$16,$06,$16,$06
+    DC.B    $1a,$06,$24,$06,$26,$06,$16,$06,$16,$06,$16,$06,$1c,$06,$2c,$06
+    DC.B    $1e,$06,$3c,$06,$3e,$06,$40,$06,$42,$06,$20,$06,$22,$06,$64,$06
+    DC.B    $6c,$06,$6e,$06,$76,$06,$66,$06,$72,$06,$16,$06,$16,$06,$16,$06
+    DC.B    $66,$06,$72,$06,$7c,$ff,$ff,$06,$16,$ff,$ff,$06,$16,$06,$16,$ff
+    DC.B    $ff,$06,$24,$06,$26,$06,$16,$06,$16,$06,$16,$06,$80,$06,$2c,$06
+    DC.B    $82,$06,$3c,$06,$3e,$06,$40,$06,$42,$06,$92,$06,$8c,$06,$64,$06
+    DC.B    $6c,$06,$6e,$06,$76,$06,$66,$06,$72,$06,$74,$06,$74,$06,$74,$06
+    DC.B    $66,$06,$72,$06,$7c,$06,$74,$06,$a6,$06,$74,$06,$8c,$06,$cc,$06
+    DC.B    $74,$06,$ce,$06,$d6,$06,$dc,$06,$e0,$06,$e2,$06,$80,$06,$74,$06
+    DC.B    $82,$06,$e4,$06,$ec,$06,$74,$06,$ee,$06,$92,$06,$8c,$06,$f8,$07
+    DC.B    $00,$06,$f6,$07,$02,$06,$f6,$06,$f8,$06,$74,$06,$74,$06,$74,$06
+    DC.B    $f6,$06,$f4,$06,$f8,$06,$74,$06,$a6,$06,$74,$06,$8c,$06,$cc,$06
+    DC.B    $74,$06,$ce,$06,$d6,$06,$dc,$06,$e0,$06,$e2,$06,$f2,$06,$74,$06
+    DC.B    $f4,$06,$e4,$06,$ec,$06,$74,$06,$ee,$06,$f2,$07,$08,$06,$f8,$07
+    DC.B    $00,$06,$f6,$07,$02,$06,$f6,$06,$f8,$06,$f2,$06,$fa,$06,$fa,$06
+    DC.B    $f6,$06,$f4,$06,$f8,$06,$fe,$07,$0a,$06,$fe,$07,$0e,$06,$fa,$07
+    DC.B    $22,$07,$24,$06,$fe,$07,$2a,$06,$fe,$06,$fa,$06,$f2,$07,$1c,$06
+    DC.B    $f4,$07,$3c,$07,$2c,$ff,$ff,$ff,$ff,$06,$f2,$07,$08,$ff,$ff,$07
+    DC.B    $3e,$07,$50,$07,$5e,$07,$2a,$07,$1c,$06,$f2,$06,$fa,$06,$fa,$07
+    DC.B    $1c,$07,$1c,$07,$2c,$06,$fe,$07,$0a,$06,$fe,$07,$0e,$06,$fa,$07
+    DC.B    $22,$07,$24,$06,$fe,$07,$2a,$06,$fe,$06,$fa,$07,$2e,$07,$1c,$ff
+    DC.B    $ff,$07,$3c,$07,$2c,$07,$30,$07,$32,$07,$34,$07,$36,$07,$38,$07
+    DC.B    $3e,$07,$50,$07,$5e,$07,$2a,$07,$1c,$07,$6a,$07,$2e,$07,$72,$07
+    DC.B    $1c,$07,$1c,$07,$2c,$07,$30,$07,$32,$07,$34,$07,$36,$07,$38,$07
+    DC.B    $76,$07,$68,$07,$6c,$07,$6e,$07,$6a,$07,$7a,$07,$2e,$ff,$ff,$07
+    DC.B    $68,$07,$6c,$07,$7c,$07,$30,$07,$32,$07,$34,$07,$36,$07,$38,$07
+    DC.B    $68,$07,$6c,$07,$6e,$07,$88,$07,$8c,$07,$6a,$07,$2e,$07,$72,$07
+    DC.B    $7e,$07,$7c,$07,$96,$07,$30,$07,$32,$07,$34,$07,$36,$07,$38,$07
+    DC.B    $76,$07,$68,$07,$6c,$07,$6e,$07,$6a,$07,$7a,$07,$c2,$07,$7e,$07
+    DC.B    $68,$07,$6c,$07,$7c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07
+    DC.B    $68,$07,$6c,$07,$6e,$07,$88,$07,$8c,$ff,$ff,$ff,$ff,$ff,$ff,$07
+    DC.B    $7e,$07,$7c,$07,$96,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$c2,$07,$7e,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DC.B    $ff
+dat_e070:
+    DCB.B   8,0
+    DC.B    $0d,$fe
+    DCB.B   286,0
+    DC.B    $0c,$e6,$00,$02
+    DCB.B   8,0
+    DC.B    $0d,$c8
+    DCB.B   130,0
+    DC.B    $4e,$1a
+    DCB.B   116,0
+    DC.B    $80,$00,$13,$0e,$80,$00,$00,$00
+hint_e2a6:
+    DCB.B   90,0
+    DC.B    $2b,$ce
+    DCB.B   26,0
+    DC.B    $51,$c0,$2d,$42,$80
+    DCB.B   37,0
+    DC.B    $50,$c0,$2d,$42,$80
+    DCB.B   49,0
+    DC.B    $51,$f8,$30,$14,$80
+    DCB.B   49,0
+    DC.B    $50,$f8,$30,$14,$80
+    DCB.B   31,0
+    DC.B    $d0,$00,$01,$5e,$80,$00,$c0,$00,$13,$0e,$80,$00,$e1,$00,$2e,$98
+    DC.B    $80,$00,$e0,$00,$2e,$98,$80,$00,$64,$00,$02,$f4
 hint_e3f2:
-    dc.b    $80
-    dcb.b   13,0
-    dc.b    $65,$00,$02,$f4
+    DC.B    $80
+    DCB.B   13,0
+    DC.B    $65,$00,$02,$f4
 hint_e404:
-; --- unverified ---
-    or.b d0,d0
-    beq.w hint_e6fc
+    DC.B    $80,$00,$67,$00,$02,$f4
 hint_e40a:
-    dc.b    $80
-    dcb.b   37,0
-    dc.b    $6c,$00,$02,$f4
+    DC.B    $80
+    DCB.B   37,0
+    DC.B    $6c,$00,$02,$f4
 hint_e434:
-    dc.b    $80
-    dcb.b   7,0
-    dc.b    $6e,$00,$02,$f4,$80,$00,$62,$00,$02,$f4,$80
-    dcb.b   7,0
-    dc.b    $6f,$00,$02,$f4
+    DC.B    $80
+    DCB.B   7,0
+    DC.B    $6e,$00,$02,$f4,$80,$00,$62,$00,$02,$f4,$80
+    DCB.B   7,0
+    DC.B    $6f,$00,$02,$f4
 hint_e452:
-; --- unverified ---
-    or.b d0,d0
-    bls.w hint_e74a
+    DC.B    $80,$00,$63,$00,$02,$f4
 hint_e458:
-; --- unverified ---
-    or.b d0,d0
-    blt.w hint_e750
+    DC.B    $80,$00,$6d,$00,$02,$f4
 hint_e45e:
-; --- unverified ---
-    or.b d0,d0
-    bmi.w hint_e756
+    DC.B    $80,$00,$6b,$00,$02,$f4
 hint_e464:
-; --- unverified ---
-    or.b d0,d0
-    bne.w hint_e75c
+    DC.B    $80,$00,$66,$00,$02,$f4
 hint_e46a:
-; --- unverified ---
-    or.b d0,d0
-    bpl.w hint_e762
+    DC.B    $80,$00,$6a,$00,$02,$f4
 hint_e470:
-; --- unverified ---
-    or.b d0,d0
-    bra.w hint_e768
+    DC.B    $80,$00,$60,$00,$02,$f4
 hint_e476:
-    dc.b    $80
-    dcb.b   7,0
-    dc.b    $61,$00,$02,$f4,$80,$00,$00,$00,$2d,$5a
-    dcb.b   8,0
-    dc.b    $68,$00
-    dc.b    $02,$f4,$80,$00,$69,$00,$02,$f4,$80
-    dcb.b   13,0
-    dc.b    $08,$c0,$06,$ec,$80,$00,$41,$80,$08,$da,$80
-    dcb.b   7,0
-    dc.b    $42,$00,$30,$72,$80,$00,$b0,$00,$0a,$5c,$80
-    dcb.b   49,0
-    dc.b    $51,$c8,$0b,$cc,$80
-    dcb.b   43,0
-    dc.b    $50,$c8,$0b,$cc,$80
-    dcb.b   9,0
-    dc.b    $0c,$18
-    dcb.b   16,0
-    dc.b    $0d,$e6,$40,$00,$b0,$00,$13,$0e,$80,$00,$00,$00,$0d,$fe
-    dcb.b   8,0
-    dc.b    $c1,$00,$0e,$fa,$80,$00,$48,$80,$0f,$50,$80
-    dcb.b   43,0
-    dc.b    $f0,$80,$3c,$48,$80,$01
-    dcb.b   30,0
-    dc.b    $f0,$8f,$3c,$48,$80,$01
-    dcb.b   158,0
-    dc.b    $41,$22,$80,$01
-    dcb.b   49,0
-    dc.b    $0f,$41,$22,$80,$01
-    dcb.b   44,0
-    dc.b    $4d,$40
-    dcb.b   4,0
-    dc.b    $4d,$76,$00,$00
-sub_e6ca:
-    dcb.b   26,0
+    DC.B    $80
+    DCB.B   7,0
+    DC.B    $61,$00,$02,$f4,$80,$00,$00,$00,$2d,$5a
+    DCB.B   8,0
+    DC.B    $68,$00
+    DC.B    $02,$f4,$80,$00,$69,$00,$02,$f4,$80
+    DCB.B   13,0
+    DC.B    $08,$c0,$06,$ec,$80,$00,$41,$80,$08,$da,$80
+    DCB.B   7,0
+    DC.B    $42,$00,$30,$72,$80,$00,$b0,$00,$0a,$5c,$80
+    DCB.B   49,0
+    DC.B    $51,$c8,$0b,$cc,$80
+    DCB.B   43,0
+    DC.B    $50,$c8,$0b,$cc,$80
+    DCB.B   9,0
+    DC.B    $0c,$18
+    DCB.B   16,0
+    DC.B    $0d,$e6,$40,$00,$b0,$00,$13,$0e,$80,$00,$00,$00,$0d,$fe
+    DCB.B   8,0
+    DC.B    $c1,$00,$0e,$fa,$80,$00,$48,$80,$0f,$50,$80
+    DCB.B   43,0
+    DC.B    $f0,$80,$3c,$48,$80,$01
+    DCB.B   30,0
+    DC.B    $f0,$8f,$3c,$48,$80,$01
+    DCB.B   158,0
+    DC.B    $41,$22,$80,$01
+    DCB.B   49,0
+    DC.B    $0f,$41,$22,$80,$01
+    DCB.B   44,0
+    DC.B    $4d,$40
+    DCB.B   4,0
+    DC.B    $4d,$76,$00,$00
+hint_e6ca:
+    DCB.B   26,0
 hint_e6e4:
-    dc.b    $0f,$f2
-    dcb.b   14,0
-    dc.b    $4e,$c0
+    DC.B    $0f,$f2
+    DCB.B   14,0
+    DC.B    $4e,$c0
 hint_e6f6:
-    dc.b    $10,$f0,$80,$00,$4e,$80
+    DC.B    $10,$f0,$80,$00,$4e,$80
 hint_e6fc:
-    dc.b    $10,$f0,$80,$00,$41,$c0,$11,$00,$80
-    dcb.b   25,0
-    dc.b    $e1,$08,$2e,$98,$80,$00,$e0,$08
+    DC.B    $10,$f0,$80,$00,$41,$c0,$11,$00,$80
+    DCB.B   25,0
+    DC.B    $e1,$08,$2e,$98,$80,$00,$e0,$08
 hint_e726:
-    dc.b    $2e,$98,$80
-    dcb.b   27,0
+    DC.B    $2e,$98,$80
+    DCB.B   27,0
 hint_e744:
-    dcb.b   6,0
+    DCB.B   6,0
 hint_e74a:
-    dcb.b   4,0
-    dc.b    $44,$00
+    DCB.B   4,0
+    DC.B    $44,$00
 hint_e750:
-    dc.b    $30,$72,$80
-    dc.b    $00
-    dc.b    $00
-    dc.b    $00
+    DC.B    $30,$72,$80
+    DC.B    $00
+    DC.B    $00
+    DC.B    $00
 hint_e756:
-    dcb.b   4,0
-    dc.b    $4e,$71
+    DCB.B   4,0
+    DC.B    $4e,$71
 hint_e75c:
-    dc.b    $58,$f0,$80,$00,$46,$00
+    DC.B    $58,$f0,$80,$00,$46,$00
 hint_e762:
-    dc.b    $30,$72,$80
-    dc.b    $00
-    dc.b    $00
-    dc.b    $00
+    DC.B    $30,$72,$80
+    DC.B    $00
+    DC.B    $00
+    DC.B    $00
 hint_e768:
-    dcb.b   6,0
-    dc.b    $26,$22,$40,$00,$00,$00,$1d,$12
-    dcb.b   4,0
-    dc.b    $12,$8a,$80
-    dcb.b   73,0
-    dc.b    $48,$40,$2a,$b2,$80
-    dcb.b   111,0
-    dc.b    $2b,$66
-    dcb.b   14,0
-    dc.b    $e1,$18,$2e,$98,$80,$00,$e0,$18,$2e,$98,$80
-    dcb.b   19,0
-    dc.b    $4e,$74,$2c,$f0,$80,$00,$4e,$73
+    DCB.B   6,0
+    DC.B    $26,$22,$40,$00,$00,$00,$1d,$12
+    DCB.B   4,0
+    DC.B    $12,$8a,$80
+    DCB.B   73,0
+    DC.B    $48,$40,$2a,$b2,$80
+    DCB.B   111,0
+    DC.B    $2b,$66
+    DCB.B   14,0
+    DC.B    $e1,$18,$2e,$98,$80,$00,$e0,$18,$2e,$98,$80
+    DCB.B   19,0
+    DC.B    $4e,$74,$2c,$f0,$80,$00,$4e,$73
 hint_e870:
-    dc.b    $58,$e4,$80,$00,$06,$c0,$2d,$0e,$80,$00,$4e,$77
+    DC.B    $58,$e4,$80,$00,$06,$c0,$2d,$0e,$80,$00,$4e,$77
 hint_e87c:
-; --- unverified ---
-    svc 0(a0,a0.w)
-    rts
+    DC.B    $58,$f0,$80,$00,$4e,$75
 hint_e882:
-    dc.b    $58,$f0,$80
-    dcb.b   7,0
-    dc.b    $54,$c0,$2d,$42,$80,$00,$55,$c0,$2d,$42,$80
-    dcb.b   7,0
-    dc.b    $57,$c0,$2d,$42,$80,$00,$00,$00,$2e,$16,$00,$00,$5c,$c0,$2d,$42
-    dc.b    $80,$00,$5e,$c0,$2d,$42,$80,$00,$52,$c0,$2d,$42,$80,$00,$5f,$c0
-    dc.b    $2d,$42,$80,$00,$53,$c0,$2d,$42,$80,$00,$5d,$c0,$2d,$42,$80,$00
-    dc.b    $5b,$c0,$2d,$42,$80,$00,$56,$c0,$2d,$42,$80,$00,$00,$00,$2f,$20
-    dc.b    $40,$00,$5a,$c0,$2d,$42,$80
-    dcb.b   7,0
-    dc.b    $90,$00,$01,$5e,$80,$00,$58,$c0,$2d,$42,$80,$00,$59,$c0,$2d,$42
-    dc.b    $80
-    dcb.b   7,0
-    dc.b    $4a,$c0,$2f,$86,$80
-    dcb.b   7,0
-    dc.b    $54,$f8,$30,$14,$80,$00,$55,$f8,$30,$14,$80
-    dcb.b   7,0
-    dc.b    $57,$f8,$30,$14,$80
-    dcb.b   7,0
-    dc.b    $5c,$f8,$30,$14,$80,$00,$5e,$f8,$30,$14,$80,$00,$52,$f8,$30,$14
-    dc.b    $80,$00,$5f,$f8,$30,$14,$80,$00,$53,$f8,$30,$14,$80,$00,$5d,$f8
-    dc.b    $30,$14,$80,$00,$5b,$f8,$30,$14,$80,$00,$56,$f8,$30,$14,$80
-    dcb.b   7,0
-    dc.b    $5a,$f8,$30,$14,$80
-    dcb.b   13,0
-    dc.b    $50,$f8,$30,$14,$80
-    dcb.b   7,0
-    dc.b    $4a,$00
-    dc.b    $30,$7e,$80,$00,$00,$00,$30,$92,$40,$00,$58,$f8,$30,$14,$80,$00
-    dc.b    $59,$f8,$30,$14,$80
-    dcb.b   25,0
-    dc.b    $c1,$00,$00,$08,$80,$00,$d0,$c0,$02,$1e,$80,$00,$06,$00,$02,$a0
-    dc.b    $80,$00,$50,$00,$15,$04,$80,$00,$d1,$00,$00,$02,$80,$00,$02,$00
-    dc.b    $12,$8a,$80,$00,$08,$40,$06,$64,$80,$00,$08,$80,$06,$64,$80
-    dcb.b   43,0
-    dc.b    $4a,$fa,$4b,$1e,$80,$00,$48,$48,$04,$6a,$80,$00,$08,$c0,$06,$64
-    dc.b    $80,$00,$08,$00,$05,$e6,$80
-    dcb.b   13,0
-    dc.b    $0c,$fc,$07,$4e,$80,$00,$08,$c0,$09,$1a,$80
-    dcb.b   8,0
-    dc.b    $c0,$09,$1a,$80,$00,$b0,$c0,$02,$1e,$80,$00,$0c,$00,$02,$c6,$80
-    dc.b    $00,$b1,$08,$0b,$16,$80,$00,$00,$00,$0b,$4a
-    dcb.b   4,0
-    dc.b    $2d,$68
-    dcb.b   22,0
-    dc.b    $2d,$52,$00,$00,$54,$c8,$0b,$cc,$80,$00,$55,$c8,$0b,$cc,$80,$00
-    dc.b    $57,$c8,$0b,$cc,$80,$00,$5c,$c8,$0b,$cc,$80,$00,$5e,$c8,$0b,$cc
-    dc.b    $80,$00,$52,$c8,$0b,$cc,$80,$00,$5f,$c8,$0b,$cc,$80,$00,$53,$c8
-    dc.b    $0b,$cc,$80,$00,$5d,$c8,$0b,$cc,$80,$00,$5b,$c8,$0b,$cc,$80,$00
-    dc.b    $56,$c8,$0b,$cc,$80,$00,$5a,$c8,$0b,$cc,$80,$00,$51,$c8,$0b,$cc
-    dc.b    $80,$00,$58,$c8,$0b,$cc,$80,$00,$59,$c8,$0b,$cc,$80,$00,$81,$c0
-    dc.b    $09,$ba,$80,$00,$80,$c0,$09,$ba,$80,$00,$00,$00,$4f,$78,$40,$00
-    dc.b    $00,$00,$4f,$54
-    dcb.b   10,0
-    dc.b    $55,$80
-    dcb.b   4,0
-    dc.b    $57,$22,$00,$00,$0a,$00,$12,$8a,$80
-    dcb.b   9,0
-    dc.b    $0e,$82
-    dcb.b   4,0
-    dc.b    $0e,$ec,$80,$00,$49,$c0,$0f,$6a,$80,$00,$48,$80,$0f,$82,$80,$00
-    dc.b    $00,$18,$40,$80,$80,$01
-    dcb.b   7,0
-    dc.b    $22,$40,$80,$80,$01,$00,$00,$0f,$9c,$40
-    dcb.b   13,0
-    dc.b    $f0,$81,$3c,$48,$80,$01,$f0,$93,$3c,$48,$80,$01,$f0,$96,$3c,$48
-    dc.b    $80,$01,$f0,$92,$3c,$48,$80,$01,$f0,$95,$3c,$48,$80,$01,$f0,$94
-    dc.b    $3c,$48,$80,$01,$f0,$8e,$3c,$48,$80,$01
-    dcb.b   24,0
-    dc.b    $f0,$87,$3c,$48,$80,$01
-    dcb.b   6,0
-    dc.b    $f0,$90,$3c,$48,$80,$01
-    dcb.b   6,0
-    dc.b    $f0,$9f,$3c,$48,$80,$01
-    dcb.b   18,0
-    dc.b    $f0,$88,$3c,$48,$80,$01,$00,$38,$40,$80,$80,$01,$00,$1d,$40,$80
-    dc.b    $80,$01
-    dcb.b   20,0
-    dc.b    $3c,$50,$80,$01
-    dcb.b   37,0
-    dc.b    $0f,$3c,$50,$80,$01
-    dcb.b   13,0
-    dc.b    $20,$40,$80,$80,$01
-    dcb.b   32,0
-    dc.b    $3b,$6c,$00,$01
-    dcb.b   13,0
-    dc.b    $01,$40,$80,$80,$01
-    dcb.b   7,0
-    dc.b    $21,$40,$80,$80,$01
-    dcb.b   7,0
-    dc.b    $23,$40,$80,$80,$01,$00,$1a,$40,$80,$80,$01,$f0,$80,$40,$46,$80
-    dc.b    $01,$00,$00,$3a,$c8,$40
-    dcb.b   8,0
-    dc.b    $25,$40,$80,$80,$01
-    dcb.b   37,0
-    dc.b    $01,$41,$22,$80,$01,$00,$13,$41,$22,$80,$01,$00,$16,$41,$22,$80
-    dc.b    $01,$00,$12,$41,$22,$80,$01,$00,$0e,$40,$80,$80,$01,$00,$15,$41
-    dc.b    $22,$80,$01,$00,$14,$41,$22,$80,$01
-    dcb.b   13,0
-    dc.b    $0e,$41,$22,$80,$01
-    dcb.b   25,0
-    dc.b    $07,$41,$22,$80,$01
-    dcb.b   13,0
-    dc.b    $10,$41,$22,$80,$01
-    dcb.b   13,0
-    dc.b    $1f,$41,$22,$80,$01
-    dcb.b   7,0
-    dc.b    $28,$40,$80,$80,$01
-    dcb.b   19,0
-    dc.b    $08,$41,$22,$80,$01,$00,$0f,$40,$80,$80,$01
-    dcb.b   13,0
-    dc.b    $3a,$41,$c8,$80,$01
-    dcb.b   8,0
-    dc.b    $15,$52
-    dcb.b   4,0
-    dc.b    $4e,$14
-    dcb.b   4,0
-    dc.b    $4e,$02
-    dcb.b   4,0
-    dc.b    $4d,$fc
-    dcb.b   4,0
-    dc.b    $4e,$0e
-    dcb.b   4,0
-    dc.b    $4e,$08
-    dcb.b   4,0
-    dc.b    $4d,$48
-    dcb.b   4,0
-    dc.b    $4d,$8a
-    dcb.b   4,0
-    dc.b    $4e,$1a
-    dcb.b   26,0
-    dc.b    $4e,$50,$11,$ae,$80,$00,$00,$00,$ea,$a8,$40,$00,$00,$00,$12,$68
-    dc.b    $40
-    dcb.b   33,0
-    dc.b    $16,$30,$80,$00,$c1,$c0,$09,$ba,$80,$00,$c0,$c0,$09,$ba,$80,$00
-    dc.b    $48,$00,$1c,$aa,$80,$00,$40,$00,$30,$72,$80
-    dcb.b   25,0
-    dc.b    $81,$40,$2a,$76,$80,$00,$00,$00,$2a,$c2,$40,$00,$f0,$87,$44,$96
-    dc.b    $80,$ff,$f0,$86,$44,$96,$80,$ff,$f0,$81,$44,$96,$80,$ff,$f0,$80
-    dc.b    $44,$96,$80,$ff,$f0,$8f,$44,$96,$80,$ff,$f0,$8e,$44,$96,$80,$ff
-    dc.b    $f0,$8d,$44,$96,$80,$ff,$f0,$8c,$44,$96,$80,$ff,$f0,$8b,$44,$96
-    dc.b    $80,$ff,$f0,$8a,$44,$96,$80,$ff,$f0,$83,$44,$96,$80,$ff,$f0,$82
-    dc.b    $44,$96,$80,$ff,$f0,$85,$44,$96,$80,$ff,$f0,$84,$44,$96,$80,$ff
-    dc.b    $f0,$89,$44,$96,$80,$ff,$f0,$88,$44,$96,$80,$ff
-    dcb.b   56,0
-    dc.b    $2a,$e2,$40
-    dcb.b   26,0
-    dc.b    $07,$49,$60,$80,$ff,$00,$06,$49,$60,$80,$ff
-    dcb.b   7,0
-    dc.b    $01,$49,$60,$80,$ff,$00,$00,$49,$60,$80,$ff,$00,$0f,$49,$60,$80
-    dc.b    $ff,$00,$0e,$49,$60,$80,$ff,$00,$0d,$49,$60,$80,$ff,$00,$0c,$49
-    dc.b    $60,$80,$ff,$00,$0b,$49,$60,$80,$ff,$00,$0a,$49,$60,$80,$ff,$00
-    dc.b    $03,$49,$60,$80,$ff,$00,$02,$49,$60,$80,$ff,$00,$05,$49,$60,$80
-    dc.b    $ff,$00,$04,$49,$60,$80,$ff,$00,$09,$49,$60,$80,$ff,$00,$08,$49
-    dc.b    $60,$80,$ff
-    dcb.b   26,0
-    dc.b    $55,$d6
-    dcb.b   10,0
-    dc.b    $2c,$98,$00,$00,$e1,$10,$2e,$98,$80,$00,$e0,$10,$2e,$98,$80
-    dcb.b   13,0
-    dc.b    $81,$00,$00,$08,$80
-    dcb.b   7,0
-    dc.b    $4e,$72,$2f,$4e,$80,$00,$90,$c0,$02,$1e,$80,$00,$04,$00,$02,$a0
-    dc.b    $80,$00,$51,$00,$15,$04,$80
-    dcb.b   7,0
-    dc.b    $91,$00,$00,$02,$80,$00,$48,$40,$2f,$78,$80,$00,$08,$00,$4b,$64
-    dc.b    $80,$00,$00,$00,$4b,$64,$80
-    dcb.b   9,0
-    dc.b    $2d,$60,$00,$00,$5a,$f8,$30,$14,$80,$00,$4e,$40,$2f,$92,$80,$00
-    dc.b    $4e,$58,$30,$e0,$80,$00,$81,$80,$2a,$76,$80,$00,$00,$00,$31,$04
-    dc.b    $40,$00,$00,$00,$31,$5e,$40,$00,$ea,$c0,$05,$1a,$80,$00,$ec,$c0
-    dc.b    $05,$1a,$80
-    dcb.b   7,0
-    dc.b    $ed,$c0,$04,$d0,$80,$00,$ef,$c0,$04,$92,$80,$00,$ee,$c0,$05,$1a
-    dc.b    $80,$00,$e8,$c0,$05,$1a,$80,$00,$06,$c0,$06,$b2,$80,$00,$00,$00
-    dc.b    $08,$06,$80,$00,$f4,$18,$4b,$c2,$80,$00,$f4,$08,$4b,$ee,$80,$00
-    dc.b    $f4,$10,$4b,$ee,$80
-    dcb.b   15,0
-    dc.b    $2d,$90,$80,$00,$4c,$40,$09,$6a,$80,$00,$4c,$40,$09,$66,$80
-    dcb.b   9,0
-    dc.b    $4f,$54
-    dcb.b   9,0
-    dc.b    $1c,$40,$80,$80,$01,$00,$0c,$40,$80,$80,$01,$00,$0a,$40,$80,$80
-    dc.b    $01,$f0,$97,$3c,$48,$80,$01,$f0,$9c,$3c,$48,$80,$01,$f0,$99,$3c
-    dc.b    $48,$80,$01,$f0,$9d,$3c,$48,$80,$01,$f0,$9a,$3c,$48,$80,$01,$f0
-    dc.b    $9b,$3c,$48,$80,$01,$f0,$83,$3c,$48,$80,$01,$f0,$86,$3c,$48,$80
-    dc.b    $01,$f0,$82,$3c,$48,$80,$01,$f0,$85,$3c,$48,$80,$01,$f0,$84,$3c
-    dc.b    $48,$80,$01,$f0,$91,$3c,$48,$80,$01,$f0,$9e,$3c,$48,$80,$01,$f0
-    dc.b    $89,$3c,$48,$80,$01,$f0,$8b,$3c,$48,$80,$01,$f0,$8a,$3c,$48,$80
-    dc.b    $01,$f0,$8d,$3c,$48,$80,$01,$f0,$8c,$3c,$48,$80,$01,$00,$19,$40
-    dc.b    $80,$80,$01,$00,$5c,$40,$6c,$80,$01,$00,$66,$40,$6c,$80,$01,$00
-    dc.b    $01,$3c,$50,$80,$01,$00,$13,$3c,$50,$80,$01,$00,$16,$3c,$50,$80
-    dc.b    $01,$00,$12,$3c,$50,$80,$01,$00,$15,$3c,$50,$80,$01,$00,$14,$3c
-    dc.b    $50,$80,$01,$00,$0e,$3c,$50,$80,$01
-    dcb.b   25,0
-    dc.b    $07,$3c,$50,$80,$01
-    dcb.b   7,0
-    dc.b    $10,$3c,$50,$80,$01
-    dcb.b   7,0
-    dc.b    $1f,$3c,$50,$80,$01
-    dcb.b   19,0
-    dc.b    $08,$3c,$50,$80,$01,$00,$64,$40,$6c,$80,$01
-    dcb.b   7,0
-    dc.b    $67,$40,$6c,$80,$01,$00,$5e,$40,$6c,$80,$01
-    dcb.b   7,0
-    dc.b    $6c,$40,$6c,$80,$01,$00,$10,$40,$80,$80,$01
-    dcb.b   25,0
-    dc.b    $16,$40,$80,$80,$01,$00,$14,$40,$80,$80,$01,$00,$00,$3c,$64,$80
-    dc.b    $01
-    dcb.b   13,0
-    dc.b    $58,$40,$6c,$80,$01,$00,$62,$40,$6c,$80,$01,$f1,$00,$41,$02,$80
-    dc.b    $01
-    dcb.b   7,0
-    dc.b    $60,$40,$6c,$80,$01
-    dcb.b   7,0
-    dc.b    $17,$41,$22,$80,$01
-    dcb.b   13,0
-    dc.b    $02,$40,$80,$80,$01
-    dcb.b   7,0
-    dc.b    $63,$40,$6c,$80,$01,$00,$5a,$40,$6c,$80,$01,$00,$1c,$41,$22,$80
-    dc.b    $01,$00,$19,$41,$22,$80,$01,$00,$1d,$41,$22,$80,$01,$00,$1a,$41
-    dc.b    $22,$80,$01,$00,$1b,$41,$22,$80,$01,$00,$03,$41,$22,$80,$01,$00
-    dc.b    $06,$41,$22,$80,$01,$00,$02,$41,$22,$80,$01,$00,$05,$41,$22,$80
-    dc.b    $01,$00,$04,$41,$22,$80,$01,$00,$04,$40,$80,$80,$01,$00,$11,$41
-    dc.b    $22,$80,$01,$00,$1e,$41,$22,$80,$01
-    dcb.b   7,0
-    dc.b    $68,$40,$6c,$80,$01,$00,$09,$41,$22,$80,$01,$00,$0b,$41,$22,$80
-    dc.b    $01,$00,$0a,$41,$22,$80,$01,$00,$0d,$41,$22,$80,$01,$00,$0c,$41
-    dc.b    $22,$80,$01,$00,$09,$40,$80,$80,$01
-    dcb.b   62,0
-    dc.b    $4f,$dc
-    dcb.b   4,0
-    dc.b    $55,$70
-    dcb.b   14,0
-    dc.b    $20,$40,$1a,$64,$80,$00,$4e,$7a,$17,$84,$80,$00,$48,$80,$19,$28
-    dc.b    $80,$00,$01,$08,$1a,$ee,$80,$00,$70,$00,$1b,$ba,$80,$00,$0e,$00
-    dc.b    $1c,$36,$80
-    dcb.b   26,0
-    dc.b    $07,$44,$d2,$80,$ff,$00,$06,$44,$d2,$80,$ff,$00,$01,$44,$d2,$80
-    dc.b    $ff,$00,$00,$44,$d2,$80,$ff,$00,$0f,$44,$d2,$80,$ff,$00,$0e,$44
-    dc.b    $d2,$80,$ff,$00,$0d,$44,$d2,$80,$ff,$00,$0c,$44,$d2,$80,$ff,$00
-    dc.b    $0b,$44,$d2,$80,$ff,$00,$0a,$44,$d2,$80,$ff,$00,$03,$44,$d2,$80
-    dc.b    $ff,$00,$02,$44,$d2,$80,$ff,$00,$05,$44,$d2,$80,$ff,$00,$04,$44
-    dc.b    $d2,$80,$ff,$00,$09,$44,$d2,$80,$ff,$00,$08,$44,$d2,$80,$ff
-    dcb.b   13,0
-    dc.b    $40,$49,$9a,$80,$ff,$00,$00,$49,$9a,$80,$ff,$f0,$00,$47,$d0,$80
-    dc.b    $ff
-    dcb.b   6,0
-    dc.b    $f1,$00,$49,$3c,$80,$ff
-    dcb.b   20,0
-    dc.b    $2b,$06,$40,$00,$4e,$70,$58,$e4,$80
-    dcb.b   9,0
-    dc.b    $2c,$de,$40
-    dcb.b   13,0
-    dc.b    $0c,$00,$4b,$64,$80,$00,$04,$00,$4b,$64,$80,$00,$08,$00,$2f,$c0
-    dc.b    $80,$00,$00,$00,$2f,$c0,$80,$00,$4e,$76,$58,$f0,$80,$00,$eb,$c0
-    dc.b    $04,$d0,$80,$00,$e9,$c0,$04,$d0,$80
-    dcb.b   7,0
-    dc.b    $f4,$38,$4b,$c2,$80,$00,$f4,$28,$4b,$ee,$80,$00,$f4,$30,$4b,$ee
-    dc.b    $80,$00,$00,$00,$4f,$78,$40,$00,$00,$00
-sub_f446:
-    dc.b    $0e,$76,$00,$00,$00,$0d,$40,$80,$80,$01,$f0,$98,$3c,$48
+    DC.B    $58,$f0,$80
+    DCB.B   7,0
+    DC.B    $54,$c0,$2d,$42,$80,$00,$55,$c0,$2d,$42,$80
+    DCB.B   7,0
+    DC.B    $57,$c0,$2d,$42,$80,$00,$00,$00,$2e,$16,$00,$00,$5c,$c0,$2d,$42
+    DC.B    $80,$00,$5e,$c0,$2d,$42,$80,$00,$52,$c0,$2d,$42,$80,$00,$5f,$c0
+    DC.B    $2d,$42,$80,$00,$53,$c0,$2d,$42,$80,$00,$5d,$c0,$2d,$42,$80,$00
+    DC.B    $5b,$c0,$2d,$42,$80,$00,$56,$c0,$2d,$42,$80,$00,$00,$00,$2f,$20
+    DC.B    $40,$00,$5a,$c0,$2d,$42,$80
+    DCB.B   7,0
+    DC.B    $90,$00,$01,$5e,$80,$00,$58,$c0,$2d,$42,$80,$00,$59,$c0,$2d,$42
+    DC.B    $80
+    DCB.B   7,0
+    DC.B    $4a,$c0,$2f,$86,$80
+    DCB.B   7,0
+    DC.B    $54,$f8,$30,$14,$80,$00,$55,$f8,$30,$14,$80
+    DCB.B   7,0
+    DC.B    $57,$f8,$30,$14,$80
+    DCB.B   7,0
+    DC.B    $5c,$f8,$30,$14,$80,$00,$5e,$f8,$30,$14,$80,$00,$52,$f8,$30,$14
+    DC.B    $80,$00,$5f,$f8,$30,$14,$80,$00,$53,$f8,$30,$14,$80,$00,$5d,$f8
+    DC.B    $30,$14,$80,$00,$5b,$f8,$30,$14,$80,$00,$56,$f8,$30,$14,$80
+    DCB.B   7,0
+    DC.B    $5a,$f8,$30,$14,$80
+    DCB.B   13,0
+    DC.B    $50,$f8,$30,$14,$80
+    DCB.B   7,0
+    DC.B    $4a,$00
+    DC.B    $30,$7e,$80,$00,$00,$00,$30,$92,$40,$00,$58,$f8,$30,$14,$80,$00
+    DC.B    $59,$f8,$30,$14,$80
+    DCB.B   25,0
+    DC.B    $c1,$00,$00,$08,$80,$00,$d0,$c0,$02,$1e,$80,$00,$06,$00,$02,$a0
+    DC.B    $80,$00,$50,$00,$15,$04,$80,$00,$d1,$00,$00,$02,$80,$00,$02,$00
+    DC.B    $12,$8a,$80,$00,$08,$40,$06,$64,$80,$00,$08,$80,$06,$64,$80
+    DCB.B   43,0
+    DC.B    $4a,$fa,$4b,$1e,$80,$00,$48,$48,$04,$6a,$80,$00,$08,$c0,$06,$64
+    DC.B    $80,$00,$08,$00,$05,$e6,$80
+    DCB.B   13,0
+    DC.B    $0c,$fc,$07,$4e,$80,$00,$08,$c0,$09,$1a,$80
+    DCB.B   8,0
+    DC.B    $c0,$09,$1a,$80,$00,$b0,$c0,$02,$1e,$80,$00,$0c,$00,$02,$c6,$80
+    DC.B    $00,$b1,$08,$0b,$16,$80,$00,$00,$00,$0b,$4a
+    DCB.B   4,0
+    DC.B    $2d,$68
+    DCB.B   22,0
+    DC.B    $2d,$52,$00,$00,$54,$c8,$0b,$cc,$80,$00,$55,$c8,$0b,$cc,$80,$00
+    DC.B    $57,$c8,$0b,$cc,$80,$00,$5c,$c8,$0b,$cc,$80,$00,$5e,$c8,$0b,$cc
+    DC.B    $80,$00,$52,$c8,$0b,$cc,$80,$00,$5f,$c8,$0b,$cc,$80,$00,$53,$c8
+    DC.B    $0b,$cc,$80,$00,$5d,$c8,$0b,$cc,$80,$00,$5b,$c8,$0b,$cc,$80,$00
+    DC.B    $56,$c8,$0b,$cc,$80,$00,$5a,$c8,$0b,$cc,$80,$00,$51,$c8,$0b,$cc
+    DC.B    $80,$00,$58,$c8,$0b,$cc,$80,$00,$59,$c8,$0b,$cc,$80,$00,$81,$c0
+    DC.B    $09,$ba,$80,$00,$80,$c0,$09,$ba,$80,$00,$00,$00,$4f,$78,$40,$00
+    DC.B    $00,$00,$4f,$54
+    DCB.B   10,0
+    DC.B    $55,$80
+    DCB.B   4,0
+    DC.B    $57,$22,$00,$00,$0a,$00,$12,$8a,$80
+    DCB.B   9,0
+    DC.B    $0e,$82
+    DCB.B   4,0
+    DC.B    $0e,$ec,$80,$00,$49,$c0,$0f,$6a,$80,$00,$48,$80,$0f,$82,$80,$00
+    DC.B    $00,$18,$40,$80,$80,$01
+    DCB.B   7,0
+    DC.B    $22,$40,$80,$80,$01,$00,$00,$0f,$9c,$40
+    DCB.B   13,0
+    DC.B    $f0,$81,$3c,$48,$80,$01,$f0,$93,$3c,$48,$80,$01,$f0,$96,$3c,$48
+    DC.B    $80,$01,$f0,$92,$3c,$48,$80,$01,$f0,$95,$3c,$48,$80,$01,$f0,$94
+    DC.B    $3c,$48,$80,$01,$f0,$8e,$3c,$48,$80,$01
+    DCB.B   24,0
+    DC.B    $f0,$87,$3c,$48,$80,$01
+    DCB.B   6,0
+    DC.B    $f0,$90,$3c,$48,$80,$01
+    DCB.B   6,0
+    DC.B    $f0,$9f,$3c,$48,$80,$01
+    DCB.B   18,0
+    DC.B    $f0,$88,$3c,$48,$80,$01,$00,$38,$40,$80,$80,$01,$00,$1d,$40,$80
+    DC.B    $80,$01
+    DCB.B   20,0
+    DC.B    $3c,$50,$80,$01
+    DCB.B   37,0
+    DC.B    $0f,$3c,$50,$80,$01
+    DCB.B   13,0
+    DC.B    $20,$40,$80,$80,$01
+    DCB.B   32,0
+    DC.B    $3b,$6c,$00,$01
+    DCB.B   13,0
+    DC.B    $01,$40,$80,$80,$01
+    DCB.B   7,0
+    DC.B    $21,$40,$80,$80,$01
+    DCB.B   7,0
+    DC.B    $23,$40,$80,$80,$01,$00,$1a,$40,$80,$80,$01,$f0,$80,$40,$46,$80
+    DC.B    $01,$00,$00,$3a,$c8,$40
+    DCB.B   8,0
+    DC.B    $25,$40,$80,$80,$01
+    DCB.B   37,0
+    DC.B    $01,$41,$22,$80,$01,$00,$13,$41,$22,$80,$01,$00,$16,$41,$22,$80
+    DC.B    $01,$00,$12,$41,$22,$80,$01,$00,$0e,$40,$80,$80,$01,$00,$15,$41
+    DC.B    $22,$80,$01,$00,$14,$41,$22,$80,$01
+    DCB.B   13,0
+    DC.B    $0e,$41,$22,$80,$01
+    DCB.B   25,0
+    DC.B    $07,$41,$22,$80,$01
+    DCB.B   13,0
+    DC.B    $10,$41,$22,$80,$01
+    DCB.B   13,0
+    DC.B    $1f,$41,$22,$80,$01
+    DCB.B   7,0
+    DC.B    $28,$40,$80,$80,$01
+    DCB.B   19,0
+    DC.B    $08,$41,$22,$80,$01,$00,$0f,$40,$80,$80,$01
+    DCB.B   13,0
+    DC.B    $3a,$41,$c8,$80,$01
+    DCB.B   8,0
+    DC.B    $15,$52
+    DCB.B   4,0
+    DC.B    $4e,$14
+    DCB.B   4,0
+    DC.B    $4e,$02
+    DCB.B   4,0
+    DC.B    $4d,$fc
+    DCB.B   4,0
+    DC.B    $4e,$0e
+    DCB.B   4,0
+    DC.B    $4e,$08
+    DCB.B   4,0
+    DC.B    $4d,$48
+    DCB.B   4,0
+    DC.B    $4d,$8a
+    DCB.B   4,0
+    DC.B    $4e,$1a
+    DCB.B   26,0
+    DC.B    $4e,$50,$11,$ae,$80,$00,$00,$00,$ea,$a8,$40,$00,$00,$00,$12,$68
+    DC.B    $40
+    DCB.B   33,0
+    DC.B    $16,$30,$80,$00,$c1,$c0,$09,$ba,$80,$00,$c0,$c0,$09,$ba,$80,$00
+    DC.B    $48,$00,$1c,$aa,$80,$00,$40,$00,$30,$72,$80
+    DCB.B   25,0
+    DC.B    $81,$40,$2a,$76,$80,$00,$00,$00,$2a,$c2,$40,$00,$f0,$87,$44,$96
+    DC.B    $80,$ff,$f0,$86,$44,$96,$80,$ff,$f0,$81,$44,$96,$80,$ff,$f0,$80
+    DC.B    $44,$96,$80,$ff,$f0,$8f,$44,$96,$80,$ff,$f0,$8e,$44,$96,$80,$ff
+    DC.B    $f0,$8d,$44,$96,$80,$ff,$f0,$8c,$44,$96,$80,$ff,$f0,$8b,$44,$96
+    DC.B    $80,$ff,$f0,$8a,$44,$96,$80,$ff,$f0,$83,$44,$96,$80,$ff,$f0,$82
+    DC.B    $44,$96,$80,$ff,$f0,$85,$44,$96,$80,$ff,$f0,$84,$44,$96,$80,$ff
+    DC.B    $f0,$89,$44,$96,$80,$ff,$f0,$88,$44,$96,$80,$ff
+    DCB.B   56,0
+    DC.B    $2a,$e2,$40
+    DCB.B   26,0
+    DC.B    $07,$49,$60,$80,$ff,$00,$06,$49,$60,$80,$ff
+    DCB.B   7,0
+    DC.B    $01,$49,$60,$80,$ff,$00,$00,$49,$60,$80,$ff,$00,$0f,$49,$60,$80
+    DC.B    $ff,$00,$0e,$49,$60,$80,$ff,$00,$0d,$49,$60,$80,$ff,$00,$0c,$49
+    DC.B    $60,$80,$ff,$00,$0b,$49,$60,$80,$ff,$00,$0a,$49,$60,$80,$ff,$00
+    DC.B    $03,$49,$60,$80,$ff,$00,$02,$49,$60,$80,$ff,$00,$05,$49,$60,$80
+    DC.B    $ff,$00,$04,$49,$60,$80,$ff,$00,$09,$49,$60,$80,$ff,$00,$08,$49
+    DC.B    $60,$80,$ff
+    DCB.B   26,0
+    DC.B    $55,$d6
+    DCB.B   10,0
+    DC.B    $2c,$98,$00,$00,$e1,$10,$2e,$98,$80,$00,$e0,$10,$2e,$98,$80
+    DCB.B   13,0
+    DC.B    $81,$00,$00,$08,$80
+    DCB.B   7,0
+    DC.B    $4e,$72,$2f,$4e,$80,$00,$90,$c0,$02,$1e,$80,$00,$04,$00,$02,$a0
+    DC.B    $80,$00,$51,$00,$15,$04,$80
+    DCB.B   7,0
+    DC.B    $91,$00,$00,$02,$80,$00,$48,$40,$2f,$78,$80,$00,$08,$00,$4b,$64
+    DC.B    $80,$00,$00,$00,$4b,$64,$80
+    DCB.B   9,0
+    DC.B    $2d,$60,$00,$00,$5a,$f8,$30,$14,$80,$00,$4e,$40,$2f,$92,$80,$00
+    DC.B    $4e,$58,$30,$e0,$80,$00,$81,$80,$2a,$76,$80,$00,$00,$00,$31,$04
+    DC.B    $40,$00,$00,$00,$31,$5e,$40,$00,$ea,$c0,$05,$1a,$80,$00,$ec,$c0
+    DC.B    $05,$1a,$80
+    DCB.B   7,0
+    DC.B    $ed,$c0,$04,$d0,$80,$00,$ef,$c0,$04,$92,$80,$00,$ee,$c0,$05,$1a
+    DC.B    $80,$00,$e8,$c0,$05,$1a,$80,$00,$06,$c0,$06,$b2,$80,$00,$00,$00
+    DC.B    $08,$06,$80,$00,$f4,$18,$4b,$c2,$80,$00,$f4,$08,$4b,$ee,$80,$00
+    DC.B    $f4,$10,$4b,$ee,$80
+    DCB.B   15,0
+    DC.B    $2d,$90,$80,$00,$4c,$40,$09,$6a,$80,$00,$4c,$40,$09,$66,$80
+    DCB.B   9,0
+    DC.B    $4f,$54
+    DCB.B   9,0
+    DC.B    $1c,$40,$80,$80,$01,$00,$0c,$40,$80,$80,$01,$00,$0a,$40,$80,$80
+    DC.B    $01,$f0,$97,$3c,$48,$80,$01,$f0,$9c,$3c,$48,$80,$01,$f0,$99,$3c
+    DC.B    $48,$80,$01,$f0,$9d,$3c,$48,$80,$01,$f0,$9a,$3c,$48,$80,$01,$f0
+    DC.B    $9b,$3c,$48,$80,$01,$f0,$83,$3c,$48,$80,$01,$f0,$86,$3c,$48,$80
+    DC.B    $01,$f0,$82,$3c,$48,$80,$01,$f0,$85,$3c,$48,$80,$01,$f0,$84,$3c
+    DC.B    $48,$80,$01,$f0,$91,$3c,$48,$80,$01,$f0,$9e,$3c,$48,$80,$01,$f0
+    DC.B    $89,$3c,$48,$80,$01,$f0,$8b,$3c,$48,$80,$01,$f0,$8a,$3c,$48,$80
+    DC.B    $01,$f0,$8d,$3c,$48,$80,$01,$f0,$8c,$3c,$48,$80,$01,$00,$19,$40
+    DC.B    $80,$80,$01,$00,$5c,$40,$6c,$80,$01,$00,$66,$40,$6c,$80,$01,$00
+    DC.B    $01,$3c,$50,$80,$01,$00,$13,$3c,$50,$80,$01,$00,$16,$3c,$50,$80
+    DC.B    $01,$00,$12,$3c,$50,$80,$01,$00,$15,$3c,$50,$80,$01,$00,$14,$3c
+    DC.B    $50,$80,$01,$00,$0e,$3c,$50,$80,$01
+    DCB.B   25,0
+    DC.B    $07,$3c,$50,$80,$01
+    DCB.B   7,0
+    DC.B    $10,$3c,$50,$80,$01
+    DCB.B   7,0
+    DC.B    $1f,$3c,$50,$80,$01
+    DCB.B   19,0
+    DC.B    $08,$3c,$50,$80,$01,$00,$64,$40,$6c,$80,$01
+    DCB.B   7,0
+    DC.B    $67,$40,$6c,$80,$01,$00,$5e,$40,$6c,$80,$01
+    DCB.B   7,0
+    DC.B    $6c,$40,$6c,$80,$01,$00,$10,$40,$80,$80,$01
+    DCB.B   25,0
+    DC.B    $16,$40,$80,$80,$01,$00,$14,$40,$80,$80,$01,$00,$00,$3c,$64,$80
+    DC.B    $01
+    DCB.B   13,0
+    DC.B    $58,$40,$6c,$80,$01,$00,$62,$40,$6c,$80,$01,$f1,$00,$41,$02,$80
+    DC.B    $01
+    DCB.B   7,0
+    DC.B    $60,$40,$6c,$80,$01
+    DCB.B   7,0
+    DC.B    $17,$41,$22,$80,$01
+    DCB.B   13,0
+    DC.B    $02,$40,$80,$80,$01
+    DCB.B   7,0
+    DC.B    $63,$40,$6c,$80,$01,$00,$5a,$40,$6c,$80,$01,$00,$1c,$41,$22,$80
+    DC.B    $01,$00,$19,$41,$22,$80,$01,$00,$1d,$41,$22,$80,$01,$00,$1a,$41
+    DC.B    $22,$80,$01,$00,$1b,$41,$22,$80,$01,$00,$03,$41,$22,$80,$01,$00
+    DC.B    $06,$41,$22,$80,$01,$00,$02,$41,$22,$80,$01,$00,$05,$41,$22,$80
+    DC.B    $01,$00,$04,$41,$22,$80,$01,$00,$04,$40,$80,$80,$01,$00,$11,$41
+    DC.B    $22,$80,$01,$00,$1e,$41,$22,$80,$01
+    DCB.B   7,0
+    DC.B    $68,$40,$6c,$80,$01,$00,$09,$41,$22,$80,$01,$00,$0b,$41,$22,$80
+    DC.B    $01,$00,$0a,$41,$22,$80,$01,$00,$0d,$41,$22,$80,$01,$00,$0c,$41
+    DC.B    $22,$80,$01,$00,$09,$40,$80,$80,$01
+    DCB.B   62,0
+    DC.B    $4f,$dc
+    DCB.B   4,0
+    DC.B    $55,$70
+    DCB.B   14,0
+    DC.B    $20,$40,$1a,$64,$80,$00,$4e,$7a,$17,$84,$80,$00,$48,$80,$19,$28
+    DC.B    $80,$00,$01,$08,$1a,$ee,$80,$00,$70,$00,$1b,$ba,$80,$00,$0e,$00
+    DC.B    $1c,$36,$80
+    DCB.B   26,0
+    DC.B    $07,$44,$d2,$80,$ff,$00,$06,$44,$d2,$80,$ff,$00,$01,$44,$d2,$80
+    DC.B    $ff,$00,$00,$44,$d2,$80,$ff,$00,$0f,$44,$d2,$80,$ff,$00,$0e,$44
+    DC.B    $d2,$80,$ff,$00,$0d,$44,$d2,$80,$ff,$00,$0c,$44,$d2,$80,$ff,$00
+    DC.B    $0b,$44,$d2,$80,$ff,$00,$0a,$44,$d2,$80,$ff,$00,$03,$44,$d2,$80
+    DC.B    $ff,$00,$02,$44,$d2,$80,$ff,$00,$05,$44,$d2,$80,$ff,$00,$04,$44
+    DC.B    $d2,$80,$ff,$00,$09,$44,$d2,$80,$ff,$00,$08,$44,$d2,$80,$ff
+    DCB.B   13,0
+    DC.B    $40,$49,$9a,$80,$ff,$00,$00,$49,$9a,$80,$ff,$f0,$00,$47,$d0,$80
+    DC.B    $ff
+    DCB.B   6,0
+    DC.B    $f1,$00,$49,$3c,$80,$ff
+    DCB.B   20,0
+    DC.B    $2b,$06,$40,$00,$4e,$70,$58,$e4,$80
+    DCB.B   9,0
+    DC.B    $2c,$de,$40
+    DCB.B   13,0
+    DC.B    $0c,$00,$4b,$64,$80,$00,$04,$00,$4b,$64,$80,$00,$08,$00,$2f,$c0
+    DC.B    $80,$00,$00,$00,$2f,$c0,$80,$00,$4e,$76,$58,$f0,$80,$00,$eb,$c0
+    DC.B    $04,$d0,$80,$00,$e9,$c0,$04,$d0,$80
+    DCB.B   7,0
+    DC.B    $f4,$38,$4b,$c2,$80,$00,$f4,$28,$4b,$ee,$80,$00,$f4,$30,$4b,$ee
+    DC.B    $80,$00,$00,$00,$4f,$78,$40,$00,$00,$00
+hint_f446:
+    DC.B    $0e,$76,$00,$00,$00,$0d,$40,$80,$80,$01,$f0,$98,$3c,$48
 hint_f454:
-    dc.b    $80,$01,$00,$17,$3c,$50,$80,$01,$00,$1c,$3c,$50,$80,$01,$00,$19
-    dc.b    $3c,$50,$80,$01,$00,$1d,$3c,$50,$80,$01,$00,$1a,$3c,$50,$80,$01
-    dc.b    $00,$1b,$3c,$50,$80,$01,$00,$03,$3c,$50,$80,$01,$00,$06,$3c,$50
-    dc.b    $80,$01,$00,$02,$3c,$50,$80,$01,$00,$05,$3c,$50,$80,$01,$00,$04
-    dc.b    $3c,$50,$80,$01,$00,$11,$3c,$50,$80,$01,$00,$1e,$3c,$50,$80,$01
-    dc.b    $00,$09,$3c,$50,$80,$01,$00,$0b,$3c,$50,$80,$01,$00,$0a,$3c,$50
-    dc.b    $80,$01,$00,$0d,$3c,$50,$80,$01,$00,$0c,$3c,$50,$80,$01,$00,$44
-    dc.b    $40,$80,$80,$01,$00,$45,$40,$6c,$80,$01
-    dcb.b   19,0
-    dc.b    $03,$40,$80,$80,$01,$00,$15,$40,$80,$80,$01
-    dcb.b   12,0
-    dc.b    $c0,$00,$3e,$42,$80,$01,$00,$00,$0f,$a4,$40
-    dcb.b   8,0
-    dc.b    $26,$40,$80,$80,$01
-    dcb.b   19,0
-    dc.b    $40,$40,$80,$80,$01,$00,$18,$41,$22,$80,$01,$00,$41,$40,$6c,$80
-    dc.b    $01
-    dcb.b   14,0
-    dc.b    $41,$b2,$80,$01
-    dcb.b   31,0
-    dc.b    $0f,$41,$b2,$80,$01
-    dcb.b   20,0
-    dc.b    $10,$1c,$80,$00,$00,$00,$10,$ca,$40
-    dcb.b   13,0
-    dc.b    $01,$c0,$4b,$2c,$80
-    dcb.b   9,0
-    dc.b    $15,$52,$80,$00,$f6,$00,$4c,$20,$80,$00,$00,$00,$ec,$9c,$40,$00
-    dc.b    $00,$00,$2a,$da,$40,$00,$00,$00,$1c,$b6
-    dcb.b   4,0
-    dc.b    $2a,$44,$40,$00
-    dc.b    $f0,$00,$45,$e0,$80,$ff,$22,$00,$47,$76,$80,$ff,$20,$00,$47,$76
-    dc.b    $80,$ff
-    dcb.b   12,0
-    dc.b    $82,$00,$49,$9a,$80,$ff,$80,$00,$49,$9a,$80,$ff
-    dcb.b   48,0
-    dc.b    $f0,$00,$4a,$a4,$80,$ff
-    dcb.b   14,0
-    dc.b    $30,$da,$40,$00,$00,$00,$0b,$a6,$40,$00,$00,$18,$3c,$50,$80,$01
-    dc.b    $00,$08,$40,$80,$80,$01,$00,$1e,$40,$80,$80,$01,$00,$1f,$40,$80
-    dc.b    $80,$01,$00,$05,$40,$80,$80,$01,$f0,$00,$3f,$f6,$80,$01
-    dcb.b   7,0
-    dc.b    $24,$40,$80,$80,$01,$00,$27,$40,$80,$80,$01,$f0,$00,$41,$36,$80
-    dc.b    $01,$00,$12,$40,$80,$80,$01,$00,$01,$41,$b2,$80,$01,$00,$13,$41
-    dc.b    $b2,$80,$01,$00,$16,$41,$b2,$80,$01,$00,$12,$41,$b2,$80,$01,$00
-    dc.b    $15,$41,$b2,$80,$01,$00,$14,$41,$b2,$80,$01,$00,$0e,$41,$b2,$80
-    dc.b    $01
-    dcb.b   25,0
-    dc.b    $07,$41,$b2,$80,$01
-    dcb.b   7,0
-    dc.b    $10,$41,$b2,$80,$01
-    dcb.b   7,0
-    dc.b    $1f,$41,$b2,$80,$01
-    dcb.b   19,0
-    dc.b    $08,$41,$b2,$80,$01,$00,$11,$40,$80,$80,$01,$4a,$fc,$58,$f0,$80
-    dc.b    $00,$00,$00,$10,$d6,$40
-    dcb.b   9,0
-    dc.b    $13,$90,$40,$00,$f0,$00,$45,$32,$80,$ff,$f5,$00,$45,$7a,$80,$ff
-    dc.b    $f0,$00,$47,$4c,$80,$ff,$f0,$00,$47,$28,$80,$ff,$f0,$00,$47,$b0
-    dc.b    $80,$ff
-    dcb.b   7,0
-    dc.b    $07,$4a,$7e,$80,$ff,$00,$06,$4a,$7e,$80,$ff,$00,$01,$4a,$7e,$80
-    dc.b    $ff,$00,$00,$4a,$7e,$80,$ff,$00,$0f,$4a,$7e,$80,$ff,$00,$0e,$4a
-    dc.b    $7e,$80,$ff,$00,$0d,$4a,$7e,$80,$ff,$00,$0c,$4a,$7e,$80,$ff,$00
-    dc.b    $0b,$4a,$7e,$80,$ff,$00,$0a,$4a,$7e,$80,$ff,$00,$03,$4a,$7e,$80
-    dc.b    $ff,$00,$02,$4a,$7e,$80,$ff,$00,$05,$4a,$7e,$80,$ff,$00,$04,$4a
-    dc.b    $7e,$80,$ff,$00,$09,$4a,$7e,$80,$ff,$00,$08,$4a,$7e,$80,$ff,$00
-    dc.b    $00,$2c,$d6,$40,$00,$00,$00,$2e,$04,$00,$00,$f1,$40,$40,$e2,$80
-    dc.b    $01,$00,$17,$41,$b2,$80,$01,$00,$1c,$41,$b2,$80,$01,$00,$19,$41
-    dc.b    $b2,$80,$01,$00,$1d,$41,$b2,$80,$01,$00,$1a,$41,$b2,$80,$01,$00
-    dc.b    $1b,$41,$b2,$80,$01,$00,$03,$41,$b2,$80,$01,$00,$06,$41,$b2,$80
-    dc.b    $01,$00,$02,$41,$b2,$80,$01,$00,$05,$41,$b2,$80,$01,$00,$04,$41
-    dc.b    $b2,$80,$01,$00,$11,$41,$b2,$80,$01,$00,$1e,$41,$b2,$80,$01,$00
-    dc.b    $09,$41,$b2,$80,$01,$00,$0b,$41,$b2,$80,$01,$00,$0a,$41,$b2,$80
-    dc.b    $01,$00,$0d,$41,$b2,$80,$01,$00,$0c,$41,$b2,$80,$01,$00,$00,$12
-    dc.b    $3e,$40,$00,$f5,$10,$45,$be,$80,$ff,$f1,$40,$49,$18,$80,$ff,$00
-    dc.b    $18,$41,$b2,$80,$01
+    DC.B    $80,$01,$00,$17,$3c,$50,$80,$01,$00,$1c,$3c,$50,$80,$01,$00,$19
+    DC.B    $3c,$50,$80,$01,$00,$1d,$3c,$50,$80,$01,$00,$1a,$3c,$50,$80,$01
+    DC.B    $00,$1b,$3c,$50,$80,$01,$00,$03,$3c,$50,$80,$01,$00,$06,$3c,$50
+    DC.B    $80,$01,$00,$02,$3c,$50,$80,$01,$00,$05,$3c,$50,$80,$01,$00,$04
+    DC.B    $3c,$50,$80,$01,$00,$11,$3c,$50,$80,$01,$00,$1e,$3c,$50,$80,$01
+    DC.B    $00,$09,$3c,$50,$80,$01,$00,$0b,$3c,$50,$80,$01,$00,$0a,$3c,$50
+    DC.B    $80,$01,$00,$0d,$3c,$50,$80,$01,$00,$0c,$3c,$50,$80,$01,$00,$44
+    DC.B    $40,$80,$80,$01,$00,$45,$40,$6c,$80,$01
+    DCB.B   19,0
+    DC.B    $03,$40,$80,$80,$01,$00,$15,$40,$80,$80,$01
+    DCB.B   12,0
+    DC.B    $c0,$00,$3e,$42,$80,$01,$00,$00,$0f,$a4,$40
+    DCB.B   8,0
+    DC.B    $26,$40,$80,$80,$01
+    DCB.B   19,0
+    DC.B    $40,$40,$80,$80,$01,$00,$18,$41,$22,$80,$01,$00,$41,$40,$6c,$80
+    DC.B    $01
+    DCB.B   14,0
+    DC.B    $41,$b2,$80,$01
+    DCB.B   31,0
+    DC.B    $0f,$41,$b2,$80,$01
+    DCB.B   20,0
+    DC.B    $10,$1c,$80,$00,$00,$00,$10,$ca,$40
+    DCB.B   13,0
+    DC.B    $01,$c0,$4b,$2c,$80
+    DCB.B   9,0
+    DC.B    $15,$52,$80,$00,$f6,$00,$4c,$20,$80,$00,$00,$00,$ec,$9c,$40,$00
+    DC.B    $00,$00,$2a,$da,$40,$00,$00,$00,$1c,$b6
+    DCB.B   4,0
+    DC.B    $2a,$44,$40,$00
+    DC.B    $f0,$00,$45,$e0,$80,$ff,$22,$00,$47,$76,$80,$ff,$20,$00,$47,$76
+    DC.B    $80,$ff
+    DCB.B   12,0
+    DC.B    $82,$00,$49,$9a,$80,$ff,$80,$00,$49,$9a,$80,$ff
+    DCB.B   48,0
+    DC.B    $f0,$00,$4a,$a4,$80,$ff
+    DCB.B   14,0
+    DC.B    $30,$da,$40,$00,$00,$00,$0b,$a6,$40,$00,$00,$18,$3c,$50,$80,$01
+    DC.B    $00,$08,$40,$80,$80,$01,$00,$1e,$40,$80,$80,$01,$00,$1f,$40,$80
+    DC.B    $80,$01,$00,$05,$40,$80,$80,$01,$f0,$00,$3f,$f6,$80,$01
+    DCB.B   7,0
+    DC.B    $24,$40,$80,$80,$01,$00,$27,$40,$80,$80,$01,$f0,$00,$41,$36,$80
+    DC.B    $01,$00,$12,$40,$80,$80,$01,$00,$01,$41,$b2,$80,$01,$00,$13,$41
+    DC.B    $b2,$80,$01,$00,$16,$41,$b2,$80,$01,$00,$12,$41,$b2,$80,$01,$00
+    DC.B    $15,$41,$b2,$80,$01,$00,$14,$41,$b2,$80,$01,$00,$0e,$41,$b2,$80
+    DC.B    $01
+    DCB.B   25,0
+    DC.B    $07,$41,$b2,$80,$01
+    DCB.B   7,0
+    DC.B    $10,$41,$b2,$80,$01
+    DCB.B   7,0
+    DC.B    $1f,$41,$b2,$80,$01
+    DCB.B   19,0
+    DC.B    $08,$41,$b2,$80,$01,$00,$11,$40,$80,$80,$01,$4a,$fc,$58,$f0,$80
+    DC.B    $00,$00,$00,$10,$d6,$40
+    DCB.B   9,0
+    DC.B    $13,$90,$40,$00,$f0,$00,$45,$32,$80,$ff,$f5,$00,$45,$7a,$80,$ff
+    DC.B    $f0,$00,$47,$4c,$80,$ff,$f0,$00,$47,$28,$80,$ff,$f0,$00,$47,$b0
+    DC.B    $80,$ff
+    DCB.B   7,0
+    DC.B    $07,$4a,$7e,$80,$ff,$00,$06,$4a,$7e,$80,$ff,$00,$01,$4a,$7e,$80
+    DC.B    $ff,$00,$00,$4a,$7e,$80,$ff,$00,$0f,$4a,$7e,$80,$ff,$00,$0e,$4a
+    DC.B    $7e,$80,$ff,$00,$0d,$4a,$7e,$80,$ff,$00,$0c,$4a,$7e,$80,$ff,$00
+    DC.B    $0b,$4a,$7e,$80,$ff,$00,$0a,$4a,$7e,$80,$ff,$00,$03,$4a,$7e,$80
+    DC.B    $ff,$00,$02,$4a,$7e,$80,$ff,$00,$05,$4a,$7e,$80,$ff,$00,$04,$4a
+    DC.B    $7e,$80,$ff,$00,$09,$4a,$7e,$80,$ff,$00,$08,$4a,$7e,$80,$ff,$00
+    DC.B    $00,$2c,$d6,$40,$00,$00,$00,$2e,$04,$00,$00,$f1,$40,$40,$e2,$80
+    DC.B    $01,$00,$17,$41,$b2,$80,$01,$00,$1c,$41,$b2,$80,$01,$00,$19,$41
+    DC.B    $b2,$80,$01,$00,$1d,$41,$b2,$80,$01,$00,$1a,$41,$b2,$80,$01,$00
+    DC.B    $1b,$41,$b2,$80,$01,$00,$03,$41,$b2,$80,$01,$00,$06,$41,$b2,$80
+    DC.B    $01,$00,$02,$41,$b2,$80,$01,$00,$05,$41,$b2,$80,$01,$00,$04,$41
+    DC.B    $b2,$80,$01,$00,$11,$41,$b2,$80,$01,$00,$1e,$41,$b2,$80,$01,$00
+    DC.B    $09,$41,$b2,$80,$01,$00,$0b,$41,$b2,$80,$01,$00,$0a,$41,$b2,$80
+    DC.B    $01,$00,$0d,$41,$b2,$80,$01,$00,$0c,$41,$b2,$80,$01,$00,$00,$12
+    DC.B    $3e,$40,$00,$f5,$10,$45,$be,$80,$ff,$f1,$40,$49,$18,$80,$ff,$00
+    DC.B    $18,$41,$b2,$80,$01
 loc_f82e:
     rts
 loc_f830:
     rts
-sub_f832:
-; --- unverified ---
-    tst.b 259(a6) ; app+$103
-    beq.s hint_f860
+hint_f832:
+    DC.B    $4a,$2e,$01,$03,$67,$28
 hint_f838:
-; --- unverified ---
-    movea.l app_current_node(a6),a1
-    tst.b 568(a6) ; app+$238
-    bne.s hint_f854
+    DC.B    $22,$6e,$01,$aa,$4a,$2e,$02,$38,$66,$12
 hint_f842:
-; --- unverified ---
-    move.l 572(a6),d1 ; app+$23C
-    sub.l 26(a1),d1
-    add.l d1,18(a1)
-    move.l d2,26(a1)
-    bra.s hint_f860
+    DC.B    $22,$2e,$02,$3c,$92,$a9,$00,$1a,$d3,$a9,$00,$12,$23,$42,$00,$1a
+    DC.B    $60,$0c
 hint_f854:
-; --- unverified ---
-    bset #0,16(a1)
-    bne.s hint_f860
+    DC.B    $08,$e9,$00,$00,$00,$10,$66,$04
 hint_f85c:
-    dc.b    $23,$42,$00,$16
+    DC.B    $23,$42,$00,$16
 hint_f860:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    DC.B    $70,$00,$4e,$75
 hint_f864:
-; --- unverified ---
-    moveq #-1,d0
-    rts
+    DC.B    $70,$ff,$4e,$75
 loc_f868:
     movea.l app_current_node(a6),a0
     btst #1,16(a0)
@@ -22462,27 +16966,22 @@ loc_f980:
 loc_f982:
     movea.l app_current_node(a6),a1
     btst #1,16(a1)
-    eori.b
+    eori.b #$4,ccr
     rts
 loc_f992:
     bsr.w loc_97a6
 loc_f996:
     bra.w loc_f9da
-    dc.b    $4e,$75
-sub_f99c:
-; --- unverified ---
-    rts
+    DC.B    $4e,$75
+hint_f99c:
+    DC.B    $4e,$75
 hint_f99e:
-; --- unverified ---
-    move.l d2,(a5)+
-    rts
+    DC.B    $2a,$c2,$4e,$75
 loc_f9a2:
     move.w d2,(a5)+
     rts
-sub_f9a6:
-; --- unverified ---
-    move.b d2,(a5)+
-    rts
+hint_f9a6:
+    DC.B    $1a,$c2,$4e,$75
 loc_f9aa:
     lea str_f9b6(pc),a0
     rts
@@ -22490,19 +16989,17 @@ loc_f9b0:
     lea str_f9bf(pc),a0
     rts
 str_f9b6:
-    dc.b    "S-record",0
+    DC.B    "S-record",0
 str_f9bf:
-    dc.b    $2e,$6d,$78,$00
+    DC.B    $2e,$6d,$78,$00
 str_f9c3:
-    dc.b    "HISOFT DEVPAC"
-sub_f9d0:
-    dc.b    $00,$00
+    DC.B    "HISOFT DEVPAC"
+hint_f9d0:
+    DC.B    $00,$00
 hint_f9d2:
-    dc.b    $12,$d8,$66,$fc
+    DC.B    $12,$d8,$66,$fc
 hint_f9d6:
-; --- unverified ---
-    subq.l #1,a1
-    rts
+    DC.B    $53,$89,$4e,$75
 loc_f9da:
     bsr.w sub_a110
 loc_f9de:
@@ -22651,10 +17148,10 @@ sub_fae8:
     move.b str_fb06(pc,d1.w),(a4)+
     rts
 pcref_faf2:
-    dc.b    $00,$02,$10,$02,$08,$03,$00,$04,$00,$01,$00,$01,$00,$01,$00,$04
-    dc.b    $08,$03,$10,$02
+    DC.B    $00,$02,$10,$02,$08,$03,$00,$04,$00,$01,$00,$01,$00,$01,$00,$04
+    DC.B    $08,$03,$10,$02
 str_fb06:
-    dc.b    "0123456789ABCDEF"
+    DC.B    "0123456789ABCDEF"
 sub_fb16:
     bsr.w loc_97a6
 loc_fb1a:
@@ -22933,7 +17430,7 @@ loc_fd78:
     add.l d2,4(a1)
     add.l d2,(a1)
     bra.s sub_fd54
-    dc.b    $70,$05,$60,$02
+    DC.B    $70,$05,$60,$02
 loc_fd8c:
     moveq #27,d0
 loc_fd8e:

@@ -2,34 +2,34 @@
   "target": "amiga_hunk_monam302",
   "binary": "bin/MonAm302",
   "command": "uv run scripts/benchmark_target.py amiga_hunk_monam302",
-  "measured_at": "2026-03-30T12:10:56+13:00",
+  "measured_at": "2026-03-30T21:11:17+13:00",
   "status": "ok",
-  "elapsed_seconds": 11.4,
+  "elapsed_seconds": 11.99,
   "analysis_bytes": 5424219,
-  "entities_bytes": 106233,
-  "disasm_bytes": 360741,
+  "entities_bytes": 96837,
+  "disasm_bytes": 297690,
   "timing": {
     "entities": {
       "parse_source_seconds": 0.0002,
       "analysis": {
-        "init_seconds": 0.2593,
-        "core_seconds": 1.7188,
-        "per_caller_seconds": 2.2101,
-        "store_pass_seconds": 0.0269,
-        "hint_scan_seconds": 0.5001,
-        "os_call_seconds": 0.0509
+        "init_seconds": 0.2872,
+        "core_seconds": 1.773,
+        "per_caller_seconds": 2.3266,
+        "store_pass_seconds": 0.0289,
+        "hint_scan_seconds": 0.5335,
+        "os_call_seconds": 0.0544
       },
-      "naming_seconds": 0.0019,
-      "write_seconds": 0.003
+      "naming_seconds": 0.0022,
+      "write_seconds": 0.0031
     },
     "session": {
-      "load_analysis_seconds": 0.0973,
-      "metadata_seconds": 1.4223,
-      "substitutions_seconds": 0.0217,
-      "build_seconds": 0.0001
+      "load_analysis_seconds": 0.1142,
+      "metadata_seconds": 1.4735,
+      "substitutions_seconds": 0.0225,
+      "build_seconds": 0.0003
     },
-    "emit_seconds": 0.4312,
-    "render_seconds": 0.0165
+    "emit_seconds": 0.3988,
+    "render_seconds": 0.016
   },
   "analysis": {
     "code_bytes": 35548,
@@ -52,10 +52,10 @@
   },
   "entities": {
     "entity_count": 346,
-    "code_entity_count": 243,
+    "code_entity_count": 135,
     "data_entity_count": 1,
     "bss_entity_count": 0,
-    "unknown_entity_count": 102,
+    "unknown_entity_count": 210,
     "named_entity_count": 45,
     "documented_entity_count": 0
   },
@@ -90,7 +90,7 @@
       "immediate_constant_count": 12,
       "struct_field_count": 18,
       "app_struct_field_count": 4,
-      "raw_absolute_branch_target_count": 28,
+      "raw_absolute_branch_target_count": 0,
       "raw_absolute_call_target_count": 0,
       "raw_absolute_known_code_branch_target_count": 0,
       "raw_absolute_known_code_call_target_count": 0

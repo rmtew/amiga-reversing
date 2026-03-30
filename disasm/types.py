@@ -296,6 +296,7 @@ class HunkDisassemblySession:
     section_name: str = ""
     alloc_size: int = 0
     stored_size: int = 0
+    assembler_profile_name: str = "vasm"
 
     def __post_init__(self) -> None:
         if self.stored_size == 0:
@@ -322,3 +323,4 @@ class DisassemblySession:
     source_kind: str | None = None
     raw_address_model: str | None = None
     profile_stages: bool = False
+    assembler_profile_name: str = "vasm"

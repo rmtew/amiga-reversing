@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import struct
 
-from disasm.types import DisasmBlockLike
+from disasm.assembler_profiles import load_assembler_profile
+from disasm.operands import (
+    build_instruction_semantic_operands,
+    instruction_operands_render_completely,
+)
+from disasm.types import DisasmBlockLike, HunkDisassemblySession
 from disasm.validation import (
     get_instruction_processor_min,
     has_valid_branch_target,
@@ -27,9 +32,15 @@ def hint_block_has_supported_terminal_flow(block: DisasmBlockLike) -> bool:
     return bool(flow_type == _FLOW_CALL and not conditional)
 
 
-def is_valid_hint_block(block: DisasmBlockLike) -> bool:
+def is_valid_hint_block(
+    block: DisasmBlockLike,
+    hunk_session: HunkDisassemblySession | None = None,
+) -> bool:
     if not hint_block_has_supported_terminal_flow(block):
         return False
+    assembler_profile = load_assembler_profile(
+        hunk_session.assembler_profile_name if hunk_session is not None else "vasm"
+    )
 
     for inst in block.instructions:
         if (len(inst.raw) >= runtime_m68k_decode.OPWORD_BYTES
@@ -44,4 +55,24 @@ def is_valid_hint_block(block: DisasmBlockLike) -> bool:
             return False
         if get_instruction_processor_min(inst) != "68000":
             return False
+        if hunk_session is not None:
+            if not instruction_operands_render_completely(
+                inst,
+                hunk_session,
+                include_arg_subs=False,
+            ):
+                return False
+            try:
+                operands = build_instruction_semantic_operands(
+                    inst,
+                    hunk_session,
+                    include_arg_subs=False,
+                )
+            except (AssertionError, ValueError, IndexError, struct.error):
+                return False
+            if any(
+                operand.kind in assembler_profile.render.unsupported_hint_operand_kinds
+                for operand in operands
+            ):
+                return False
     return True

@@ -340,5 +340,6 @@ def build_project_session(
         paths.binary_source,
         str(paths.entities_path),
         str(paths.output_path) if paths.output_path else None,
+        assembler_profile_name="vasm",
         profile_stages=profile_stages,
     )

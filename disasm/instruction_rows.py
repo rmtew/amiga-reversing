@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from disasm.assembler_profiles import VASM_PROFILE, AssemblerProfile
 from disasm.comments import build_instruction_comment_parts, render_comment_parts
 from disasm.data_render import iter_data_region_lines
 from disasm.operands import build_instruction_semantic_operands
@@ -187,6 +188,7 @@ def emit_data_rows(
     addr_comments: dict[int, str],
     entity_addr: int | None,
     source_context: BlockRowContext,
+    assembler_profile: AssemblerProfile = VASM_PROFILE,
 ) -> list[ListingRow]:
     rows: list[ListingRow] = []
     for line_addr, line in iter_data_region_lines(
@@ -198,11 +200,12 @@ def emit_data_rows(
         string_addrs,
         reloc_labels,
         access_sizes=access_sizes,
-        typed_sizes=typed_data_sizes,
-        typed_fields=typed_data_fields,
-        os_kb=os_kb,
-        addr_comments=addr_comments,
-    ):
+            typed_sizes=typed_data_sizes,
+            typed_fields=typed_data_fields,
+            os_kb=os_kb,
+            addr_comments=addr_comments,
+            assembler_profile=assembler_profile,
+        ):
         stripped = line.lstrip()
         if line.startswith(";"):
             kind = "comment"

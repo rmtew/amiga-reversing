@@ -2650,6 +2650,7 @@ BOUNDS_CHECKS = {'ABCD': None,
  'cpScc': None,
  'cpTRAPcc': None}
 SHIFT_COUNT_MODULI = {'ASL, ASR': 64, 'LSL, LSR': 64, 'ROL, ROR': 64, 'ROXL, ROXR': 64}
+SIZES_68000 = {'BRA': ('b', 'w'), 'BSR': ('b', 'w'), 'Bcc': ('b', 'w'), 'CHK': ('w',), 'LINK': ('w',)}
 OPMODE_TABLES_LIST = {'ADD': [{'opmode': 0, 'size': 'b', 'operation': '< ea > + Dn → Dn', 'ea_is_source': True},
          {'opmode': 1, 'size': 'w', 'operation': '< ea > + Dn → Dn', 'ea_is_source': True},
          {'opmode': 2, 'size': 'l', 'operation': '< ea > + Dn → Dn', 'ea_is_source': True},

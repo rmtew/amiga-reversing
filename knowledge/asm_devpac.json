@@ -7,6 +7,7 @@
     "test_date": "2026-03-13"
   },
   "syntax_family": "motorola",
+  "local_include_root": "ext/amiga_includes/ndk_2.0/include",
   "cli": {
     "executable": "GenAm",
     "usage": "GenAm FROM/A TO/K WITH/K INCDIR/K/M HEADER/K/M QUIET/S",
@@ -21,13 +22,41 @@
     "cpu_select": "OPT P=68000",
     "no_optimization": "OPT O-",
     "quiet": "QUIET",
-    "output_file": "-o <filename>"
+    "output_file": "TO <filename>",
+    "output_file_short": "-O<filename>"
   },
   "driver": {
     "type": "vamos",
-    "executable_path": "resources/Amiga_Devpac_3_18/GenAm",
+    "executable_path": "bin/GenAm",
     "batch_size": 50,
     "sentinel_word": "0xA5A5"
+  },
+  "render_profile": {
+    "assembler_id": "devpac",
+    "header_generated_syntax": "GenAm Motorola syntax",
+    "comment_prefix": ";",
+    "blank_line": "",
+    "line_ending": "lf",
+    "string_delimiters": ["\"", "'"],
+    "current_location_token": "*",
+    "omit_zero_pc_index_displacement": false,
+    "require_label_anchor_for_self_relative_data": true,
+    "auto_align_dc_w": true,
+    "auto_align_dc_l": true,
+    "unsupported_hint_operand_kinds": [
+      "memory_indirect_indexed",
+      "pc_memory_indirect_indexed"
+    ],
+    "directives": {
+      "include": "INCLUDE",
+      "section": "SECTION",
+      "equ": "EQU",
+      "dc_b": "DC.B",
+      "dc_w": "DC.W",
+      "dc_l": "DC.L",
+      "ds_b": "DS.B",
+      "dcb_b": "DCB.B"
+    }
   },
   "platform_notes": {
     "return_codes": {

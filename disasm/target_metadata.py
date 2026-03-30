@@ -24,6 +24,12 @@ TARGET_METADATA_REVIEW_STATUS_VALUES = frozenset({
     "seeded",
     "validated",
 })
+APP_SLOT_STORAGE_KIND_VALUES = frozenset({
+    "struct_instance",
+    "struct_pointer",
+    "pointer",
+    "scalar",
+})
 
 
 def _json_object(value: object, *, what: str = "JSON value") -> dict[str, object]:
@@ -300,6 +306,11 @@ class AppSlotRegionMetadata:
     symbol: str | None = None
     struct_name: str | None = None
     pointer_struct: str | None = None
+    storage_kind: str | None = None
+    semantic_type: str | None = None
+    parser_role: str | None = None
+    parser_routine: str | None = None
+    parse_order: int | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> AppSlotRegionMetadata:
@@ -310,6 +321,11 @@ class AppSlotRegionMetadata:
         symbol = payload["symbol"]
         struct_name = payload["struct_name"]
         pointer_struct = payload["pointer_struct"]
+        storage_kind = payload.get("storage_kind")
+        semantic_type = payload.get("semantic_type")
+        parser_role = payload.get("parser_role")
+        parser_routine = payload.get("parser_routine")
+        parse_order = payload.get("parse_order")
         assert isinstance(offset, int)
         assert isinstance(seed_origin, str)
         assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
@@ -319,6 +335,13 @@ class AppSlotRegionMetadata:
         assert symbol is None or isinstance(symbol, str)
         assert struct_name is None or isinstance(struct_name, str)
         assert pointer_struct is None or isinstance(pointer_struct, str)
+        assert storage_kind is None or (
+            isinstance(storage_kind, str) and storage_kind in APP_SLOT_STORAGE_KIND_VALUES
+        )
+        assert semantic_type is None or isinstance(semantic_type, str)
+        assert parser_role is None or isinstance(parser_role, str)
+        assert parser_routine is None or isinstance(parser_routine, str)
+        assert parse_order is None or isinstance(parse_order, int)
         return cls(
             offset=offset,
             seed_origin=seed_origin,
@@ -327,6 +350,11 @@ class AppSlotRegionMetadata:
             symbol=symbol,
             struct_name=struct_name,
             pointer_struct=pointer_struct,
+            storage_kind=storage_kind,
+            semantic_type=semantic_type,
+            parser_role=parser_role,
+            parser_routine=parser_routine,
+            parse_order=parse_order,
         )
 
 @dataclass(frozen=True, slots=True)

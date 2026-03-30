@@ -8,7 +8,11 @@ from typing import cast
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from disasm.operands import build_instruction_semantic_operands
+from disasm import operands as operands_mod
+from disasm.operands import (
+    build_instruction_semantic_operands,
+    instruction_operands_render_completely,
+)
 from disasm.types import (
     BitfieldOperandMetadata,
     FullIndexedOperandMetadata,
@@ -16,6 +20,7 @@ from disasm.types import (
     IndexedOperandMetadata,
     RegisterListOperandMetadata,
     RegisterPairOperandMetadata,
+    SemanticOperand,
 )
 from m68k import m68k_asm as asm_mod
 from m68k import m68k_executor as executor_mod
@@ -697,6 +702,14 @@ def test_resolve_kb_mnemonic_uses_opcode_not_operand_text() -> None:
 def test_resolve_kb_mnemonic_prefers_specialized_kb_entry() -> None:
     opcode = int.from_bytes(assemble_instruction("andi.b #$1f,ccr")[:2], "big")
     assert _resolve_kb_mnemonic(opcode, "andi.b") == "ANDI to CCR"
+
+
+def test_build_instruction_semantic_operands_supports_immediate_to_ccr() -> None:
+    inst = disassemble(assemble_instruction("andi.b #$1f,ccr"), max_cpu="68010")[0]
+
+    ops = build_instruction_semantic_operands(inst, _operand_session())
+
+    assert [op.text for op in ops] == ["#$1f", "ccr"]
 
 
 def test_resolve_kb_mnemonic_matches_kb_alias_token() -> None:
@@ -1660,4 +1673,30 @@ def test_resolve_ea_handles_full_extension_base_suppressed_indexed_form() -> Non
     assert ea is not None
     assert ea.is_known
     assert ea.concrete == 12
+
+
+def test_instruction_operands_render_completely_for_valid_instruction() -> None:
+    inst = disassemble(assemble_instruction("ori.b #$12,d0"), max_cpu="68010")[0]
+    inst.kb_mnemonic = "ori"
+    inst.operand_size = "b"
+
+    assert instruction_operands_render_completely(inst, _operand_session())
+
+
+def test_instruction_operands_render_completely_rejects_dropped_operand_text(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    inst = disassemble(assemble_instruction("ori.b #$12,d0"), max_cpu="68010")[0]
+    inst.kb_mnemonic = "ori"
+    inst.operand_size = "b"
+
+    monkeypatch.setattr(
+        operands_mod,
+        "build_instruction_semantic_operands",
+        lambda *args, **kwargs: (
+            SemanticOperand(kind="immediate", text=""),
+            SemanticOperand(kind="register", text="d0", register="d0"),
+        ),
+    )
+    assert not instruction_operands_render_completely(inst, _operand_session())
 

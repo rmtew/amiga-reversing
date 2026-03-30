@@ -895,8 +895,8 @@ def test_build_os_include_kb_records_native_include_ownership(tmp_path: Path) ->
 
     owner = payload["library_lvo_owners"]["exec.library"]
     assert owner["kind"] == "native_include"
-    assert owner["include_path"] == "exec/exec_lib.i"
-    assert owner["comment_include_path"] == "exec/exec_lib.i"
+    assert owner["canonical_include_path"] == "exec/exec_lib.i"
+    assert owner["assembler_include_path"] == "exec/exec_lib.i"
 
 
 def test_build_os_include_kb_records_fd_only_ownership_when_native_missing(tmp_path: Path) -> None:
@@ -934,8 +934,8 @@ def test_build_os_include_kb_records_fd_only_ownership_when_native_missing(tmp_p
 
     owner = payload["library_lvo_owners"]["graphics.library"]
     assert owner["kind"] == "fd_only"
-    assert owner["include_path"] is None
-    assert owner["comment_include_path"] == "graphics/graphics_lib.i"
+    assert owner["canonical_include_path"] is None
+    assert owner["assembler_include_path"] == "graphics/graphics_lib.i"
     assert owner["source_file"].endswith("/GRAPHICS_LIB.FD")
 
 
@@ -1044,8 +1044,8 @@ def test_build_os_compatibility_kb_records_earliest_include_and_struct_versions(
         "library_lvo_owners": {
             "exec.library": {
                 "kind": "native_include",
-                "include_path": "exec/exec_lib.i",
-                "comment_include_path": "exec/exec_lib.i",
+                "canonical_include_path": "exec/exec_lib.i",
+                "assembler_include_path": "exec/exec_lib.i",
                 "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/EXEC/EXEC_LIB.I",
             }
         }
@@ -1294,8 +1294,8 @@ def test_build_os_compatibility_kb_records_resident_autoinit_contract(tmp_path: 
         "library_lvo_owners": {
             "exec.library": {
                 "kind": "include",
-                "include_path": "exec/libraries.i",
-                "comment_include_path": None,
+                "canonical_include_path": "exec/libraries.i",
+                "assembler_include_path": None,
                 "source_file": str(ndk_20 / "libraries.i"),
             }
         }

@@ -239,6 +239,11 @@ class AppSlotInfo:
     size: int | None = None
     pointer_struct: str | None = None
     named_base: str | None = None
+    storage_kind: str | None = None
+    semantic_type: str | None = None
+    parser_role: str | None = None
+    parser_routine: str | None = None
+    parse_order: int | None = None
 
 
 @dataclass(slots=True)
@@ -281,9 +286,29 @@ def _validate_custom_struct(os_kb: OsKb,
 
 def _validate_app_slot_region(slot: AppSlotRegionMetadata, os_kb: OsKb) -> None:
     declared = int(slot.struct_name is not None) + int(slot.pointer_struct is not None)
-    if declared != 1:
+    inferred_storage_kind = None
+    if slot.struct_name is not None:
+        inferred_storage_kind = "struct_instance"
+    elif slot.pointer_struct is not None:
+        inferred_storage_kind = "struct_pointer"
+    storage_kind = inferred_storage_kind if slot.storage_kind is None else slot.storage_kind
+    if storage_kind in {"struct_instance", "struct_pointer"}:
+        if declared != 1:
+            raise ValueError(
+                f"App slot offset {slot.offset} must declare exactly one of struct_name or pointer_struct")
+        if storage_kind != inferred_storage_kind:
+            raise ValueError(
+                f"App slot offset {slot.offset} storage_kind {storage_kind} conflicts with declared slot type"
+            )
+    elif storage_kind in {"pointer", "scalar"}:
+        if declared != 0:
+            raise ValueError(
+                f"App slot offset {slot.offset} storage_kind {storage_kind} must not declare struct_name or pointer_struct"
+            )
+    elif declared != 0:
         raise ValueError(
-            f"App slot offset {slot.offset} must declare exactly one of struct_name or pointer_struct")
+            f"App slot offset {slot.offset} must declare storage_kind when not using a typed struct slot"
+        )
     if slot.struct_name is not None and slot.struct_name not in os_kb.STRUCTS:
         raise KeyError(f"Unknown custom app slot struct {slot.struct_name}")
     if slot.pointer_struct is not None and slot.pointer_struct not in os_kb.STRUCTS:
@@ -2583,11 +2608,15 @@ def build_app_slot_infos(blocks: dict[int, BasicBlock],
     regions = build_app_struct_regions(blocks, lib_calls, os_kb, platform, target_metadata)
     pointer_regions = build_app_pointer_regions(blocks, lib_calls, code, os_kb, platform, target_metadata)
     named_bases = build_app_named_bases(blocks, lib_calls, code, os_kb, platform)
+    metadata_by_offset = {} if target_metadata is None else {
+        slot.offset: slot for slot in target_metadata.app_slot_regions
+    }
     infos: list[AppSlotInfo] = []
     for offset, symbol in sorted(symbols.items()):
         region = regions.get(offset)
         named_base = named_bases.get(offset)
         pointer_region = pointer_regions.get(offset)
+        slot_metadata = metadata_by_offset.get(offset)
         infos.append(AppSlotInfo(
             offset=offset,
             symbol=symbol,
@@ -2596,6 +2625,11 @@ def build_app_slot_infos(blocks: dict[int, BasicBlock],
             size=None if region is None else region.size,
             pointer_struct=None if pointer_region is None else pointer_region.struct,
             named_base=named_base,
+            storage_kind=None if slot_metadata is None else slot_metadata.storage_kind,
+            semantic_type=None if slot_metadata is None else slot_metadata.semantic_type,
+            parser_role=None if slot_metadata is None else slot_metadata.parser_role,
+            parser_routine=None if slot_metadata is None else slot_metadata.parser_routine,
+            parse_order=None if slot_metadata is None else slot_metadata.parse_order,
         ))
     return tuple(infos)
 

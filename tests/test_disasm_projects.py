@@ -19,6 +19,7 @@ from disasm.projects import (
 )
 from disasm.session import _filter_hint_blocks_against_seeded_entities
 from disasm.target_metadata import (
+    AppSlotRegionMetadata,
     EntryRegisterSeedMetadata,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
@@ -254,6 +255,41 @@ def test_load_target_metadata_allows_manual_seeded_entity_override(tmp_path: Pat
             source_locator="DemoDataRange",
         ),
     )
+
+
+def test_load_target_metadata_preserves_extended_app_slot_metadata(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            app_slot_regions=(
+                AppSlotRegionMetadata(
+                    offset=552,
+                    seed_origin="manual_analysis",
+                    review_status="seeded",
+                    citation="manual",
+                    symbol="app_option_source_buffer",
+                    storage_kind="pointer",
+                    semantic_type="source_text_buffer",
+                    parser_role="option_source",
+                    parser_routine="sub_ab00",
+                    parse_order=0,
+                ),
+            ),
+        ),
+    )
+
+    loaded = load_target_metadata(target_dir)
+
+    assert loaded is not None
+    assert loaded.app_slot_regions[0].storage_kind == "pointer"
+    assert loaded.app_slot_regions[0].semantic_type == "source_text_buffer"
+    assert loaded.app_slot_regions[0].parser_role == "option_source"
+    assert loaded.app_slot_regions[0].parser_routine == "sub_ab00"
+    assert loaded.app_slot_regions[0].parse_order == 0
 
 
 def test_load_target_metadata_applies_corrections_over_generated_seeded(tmp_path: Path) -> None:

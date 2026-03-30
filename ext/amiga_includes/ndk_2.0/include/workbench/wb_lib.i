@@ -1,0 +1,9 @@
+_LVOwbPrivate1	EQU	-30
+_LVOwbPrivate2	EQU	-36
+_LVOwbPrivate3	EQU	-42
+_LVOAddAppWindowA	EQU	-48
+_LVORemoveAppWindow	EQU	-54
+_LVOAddAppIconA	EQU	-60
+_LVORemoveAppIcon	EQU	-66
+_LVOAddAppMenuItemA	EQU	-72
+_LVORemoveAppMenuItem	EQU	-78

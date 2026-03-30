@@ -140,303 +140,303 @@
     },
     "library_lvo_owners": {
       "amigaguide.library": {
+        "assembler_include_path": "amigaguide/amigaguide_lib.i",
         "available_since": null,
-        "comment_include_path": "amigaguide/amigaguide_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/AMIGAGUIDE_LIB.FD"
       },
       "asl.library": {
+        "assembler_include_path": "asl/asl_lib.i",
         "available_since": null,
-        "comment_include_path": "asl/asl_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/ASL_LIB.FD"
       },
       "battclock.resource": {
+        "assembler_include_path": "resources/battclock_lib.i",
         "available_since": "2.0",
-        "comment_include_path": "resources/battclock.i",
-        "include_path": "resources/battclock.i",
+        "canonical_include_path": "resources/battclock.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/RESOURCES/BATTCLOCK.I"
       },
       "battmem.resource": {
+        "assembler_include_path": "resources/battmem_lib.i",
         "available_since": "2.0",
-        "comment_include_path": "resources/battmem.i",
-        "include_path": "resources/battmem.i",
+        "canonical_include_path": "resources/battmem.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/RESOURCES/BATTMEM.I"
       },
       "bullet.library": {
+        "assembler_include_path": "bullet/bullet_lib.i",
         "available_since": null,
-        "comment_include_path": "bullet/bullet_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/BULLET_LIB.FD"
       },
       "card.resource": {
+        "assembler_include_path": "resources/cardres_lib.i",
         "available_since": "3.1",
-        "comment_include_path": "resources/card.i",
-        "include_path": "resources/card.i",
+        "canonical_include_path": "resources/card.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/RESOURCES/CARD.I"
       },
       "cia.resource": {
+        "assembler_include_path": "resources/cia_lib.i",
         "available_since": "1.3",
-        "comment_include_path": "resources/cia.i",
-        "include_path": "resources/cia.i",
+        "canonical_include_path": "resources/cia.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/RESOURCES/CIA.I"
       },
       "colorwheel.gadget": {
+        "assembler_include_path": "gadgets/colorwheel_lib.i",
         "available_since": "3.1",
-        "comment_include_path": "gadgets/colorwheel.i",
-        "include_path": "gadgets/colorwheel.i",
+        "canonical_include_path": "gadgets/colorwheel.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/GADGETS/COLORWHEEL.I"
       },
       "commodities.library": {
+        "assembler_include_path": "commodities/commodities_lib.i",
         "available_since": null,
-        "comment_include_path": "commodities/commodities_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/COMMODITIES_LIB.FD"
       },
       "console.device": {
+        "assembler_include_path": "devices/console_lib.i",
         "available_since": "1.3",
-        "comment_include_path": "devices/console.i",
-        "include_path": "devices/console.i",
+        "canonical_include_path": "devices/console.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/DEVICES/CONSOLE.I"
       },
       "datatypes.library": {
+        "assembler_include_path": "datatypes/datatypes_lib.i",
         "available_since": null,
-        "comment_include_path": "datatypes/datatypes_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/DATATYPES_LIB.FD"
       },
       "disk.resource": {
+        "assembler_include_path": "resources/disk_lib.i",
         "available_since": "1.3",
-        "comment_include_path": "resources/disk.i",
-        "include_path": "resources/disk.i",
+        "canonical_include_path": "resources/disk.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/RESOURCES/DISK.I"
       },
       "diskfont.library": {
+        "assembler_include_path": "diskfont/diskfont_lib.i",
         "available_since": null,
-        "comment_include_path": "diskfont/diskfont_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/DISKFONT_LIB.FD"
       },
       "dos.library": {
+        "assembler_include_path": "dos/dos_lib.i",
         "available_since": "2.0",
-        "comment_include_path": "dos/dos_lib.i",
-        "include_path": "dos/dos_lib.i",
+        "canonical_include_path": "dos/dos_lib.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/DOS/DOS_LIB.I"
       },
       "dtclass.library": {
+        "assembler_include_path": "dtclass/dtclass_lib.i",
         "available_since": null,
-        "comment_include_path": "dtclass/dtclass_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/DTCLASS_LIB.FD"
       },
       "exec.library": {
+        "assembler_include_path": "exec/exec_lib.i",
         "available_since": "1.3",
-        "comment_include_path": "exec/exec_lib.i",
-        "include_path": "exec/exec_lib.i",
+        "canonical_include_path": "exec/exec_lib.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/EXEC/EXEC_LIB.I"
       },
       "expansion.library": {
+        "assembler_include_path": "expansion/expansion_lib.i",
         "available_since": null,
-        "comment_include_path": "expansion/expansion_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/EXPANSION_LIB.FD"
       },
       "gadtools.library": {
+        "assembler_include_path": "gadtools/gadtools_lib.i",
         "available_since": null,
-        "comment_include_path": "gadtools/gadtools_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/GADTOOLS_LIB.FD"
       },
       "graphics.library": {
+        "assembler_include_path": "graphics/graphics_lib.i",
         "available_since": null,
-        "comment_include_path": "graphics/graphics_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/GRAPHICS_LIB.FD"
       },
       "icon.library": {
+        "assembler_include_path": "icon/icon_lib.i",
         "available_since": null,
-        "comment_include_path": "icon/icon_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/ICON_LIB.FD"
       },
       "iffparse.library": {
+        "assembler_include_path": "iffparse/iffparse_lib.i",
         "available_since": null,
-        "comment_include_path": "iffparse/iffparse_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/IFFPARSE_LIB.FD"
       },
       "input.device": {
+        "assembler_include_path": "devices/input_lib.i",
         "available_since": "1.3",
-        "comment_include_path": "devices/input.i",
-        "include_path": "devices/input.i",
+        "canonical_include_path": "devices/input.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/DEVICES/INPUT.I"
       },
       "intuition.library": {
+        "assembler_include_path": "intuition/intuition_lib.i",
         "available_since": null,
-        "comment_include_path": "intuition/intuition_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/INTUITION_LIB.FD"
       },
       "keymap.library": {
+        "assembler_include_path": "keymap/keymap_lib.i",
         "available_since": null,
-        "comment_include_path": "keymap/keymap_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/KEYMAP_LIB.FD"
       },
       "layers.library": {
+        "assembler_include_path": "layers/layers_lib.i",
         "available_since": null,
-        "comment_include_path": "layers/layers_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/LAYERS_LIB.FD"
       },
       "locale.library": {
+        "assembler_include_path": "locale/locale_lib.i",
         "available_since": null,
-        "comment_include_path": "locale/locale_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/LOCALE_LIB.FD"
       },
       "lowlevel.library": {
+        "assembler_include_path": "lowlevel/lowlevel_lib.i",
         "available_since": null,
-        "comment_include_path": "lowlevel/lowlevel_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/LOWLEVEL_LIB.FD"
       },
       "mathffp.library": {
+        "assembler_include_path": "mathffp/mathffp_lib.i",
         "available_since": null,
-        "comment_include_path": "mathffp/mathffp_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/MATHFFP_LIB.FD"
       },
       "mathieeedoubbas.library": {
+        "assembler_include_path": "mathieeedoubbas/mathieeedoubbas_lib.i",
         "available_since": null,
-        "comment_include_path": "mathieeedoubbas/mathieeedoubbas_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/MATHIEEEDOUBBAS_LIB.FD"
       },
       "mathieeedoubtrans.library": {
+        "assembler_include_path": "mathieeedoubtrans/mathieeedoubtrans_lib.i",
         "available_since": null,
-        "comment_include_path": "mathieeedoubtrans/mathieeedoubtrans_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/MATHIEEEDOUBTRANS_LIB.FD"
       },
       "mathieeesingbas.library": {
+        "assembler_include_path": "mathieeesingbas/mathieeesingbas_lib.i",
         "available_since": null,
-        "comment_include_path": "mathieeesingbas/mathieeesingbas_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/MATHIEEESINGBAS_LIB.FD"
       },
       "mathieeesingtrans.library": {
+        "assembler_include_path": "mathieeesingtrans/mathieeesingtrans_lib.i",
         "available_since": null,
-        "comment_include_path": "mathieeesingtrans/mathieeesingtrans_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/MATHIEEESINGTRANS_LIB.FD"
       },
       "mathtrans.library": {
+        "assembler_include_path": "mathtrans/mathtrans_lib.i",
         "available_since": null,
-        "comment_include_path": "mathtrans/mathtrans_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/MATHTRANS_LIB.FD"
       },
       "misc.resource": {
+        "assembler_include_path": "resources/misc_lib.i",
         "available_since": "1.3",
-        "comment_include_path": "resources/misc.i",
-        "include_path": "resources/misc.i",
+        "canonical_include_path": "resources/misc.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/RESOURCES/MISC.I"
       },
       "nonvolatile.library": {
+        "assembler_include_path": "nonvolatile/nonvolatile_lib.i",
         "available_since": null,
-        "comment_include_path": "nonvolatile/nonvolatile_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/NONVOLATILE_LIB.FD"
       },
       "potgo.resource": {
+        "assembler_include_path": "resources/potgo_lib.i",
         "available_since": "1.3",
-        "comment_include_path": "resources/potgo.i",
-        "include_path": "resources/potgo.i",
+        "canonical_include_path": "resources/potgo.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/RESOURCES/POTGO.I"
       },
       "ramdrive.device": {
+        "assembler_include_path": "devices/ramdrive_lib.i",
         "available_since": null,
-        "comment_include_path": "devices/ramdrive.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/RAMDRIVE_LIB.FD"
       },
       "realtime.library": {
+        "assembler_include_path": "realtime/realtime_lib.i",
         "available_since": null,
-        "comment_include_path": "realtime/realtime_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/REALTIME_LIB.FD"
       },
       "rexxsyslib.library": {
+        "assembler_include_path": "rexxsyslib/rexxsyslib_lib.i",
         "available_since": null,
-        "comment_include_path": "rexxsyslib/rexxsyslib_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/REXXSYSLIB_LIB.FD"
       },
       "timer.device": {
+        "assembler_include_path": "devices/timer_lib.i",
         "available_since": "1.3",
-        "comment_include_path": "devices/timer.i",
-        "include_path": "devices/timer.i",
+        "canonical_include_path": "devices/timer.i",
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/DEVICES/TIMER.I"
       },
       "translator.library": {
+        "assembler_include_path": "translator/translator_lib.i",
         "available_since": null,
-        "comment_include_path": "translator/translator_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/TRANSLATOR_LIB.FD"
       },
       "utility.library": {
+        "assembler_include_path": "utility/utility_lib.i",
         "available_since": null,
-        "comment_include_path": "utility/utility_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/UTILITY_LIB.FD"
       },
       "workbench.library": {
+        "assembler_include_path": "workbench/wb_lib.i",
         "available_since": null,
-        "comment_include_path": "workbench/wb_lib.i",
-        "include_path": null,
+        "canonical_include_path": null,
         "kind": "fd_only",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/FD/WB_LIB.FD"
       }

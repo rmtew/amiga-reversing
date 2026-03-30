@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Protocol, TextIO
 
 from disasm.ascii import is_printable_ascii
+from disasm.assembler_profiles import VASM_PROFILE, AssemblerProfile
 from disasm.os_value_domains import resolve_value_domain_expression
 from disasm.types import TypedDataFieldInfo
 from m68k.os_structs import OsStructFieldLike, OsStructLike
@@ -96,29 +97,87 @@ def _try_read_string(code: bytes, pos: int, end: int) -> str | None:
     return None
 
 
-def _string_line(text: str, indent: str) -> str:
-    parts: list[str] = []
+def _string_line(text: str, indent: str, *, assembler_profile: AssemblerProfile) -> str:
+    return render_string_data_line(
+        text,
+        indent=indent,
+        assembler_profile=assembler_profile,
+        null_terminated=True,
+    )
+
+
+def _quoted_string_token(text: str, delimiter: str) -> str:
+    return f"{delimiter}{text}{delimiter}"
+
+
+def _string_tokens(
+    text: str,
+    *,
+    assembler_profile: AssemblerProfile,
+    null_terminated: bool,
+) -> list[str]:
+    tokens: list[str] = []
     current: list[str] = []
+    delimiters = assembler_profile.render.string_delimiters
+
+    def flush_current() -> None:
+        if not current:
+            return
+        chunk = "".join(current)
+        delimiter = next(
+            (candidate for candidate in delimiters if candidate not in chunk),
+            delimiters[0],
+        )
+        escaped_chunk = chunk.replace(delimiter, delimiter * 2)
+        tokens.append(_quoted_string_token(escaped_chunk, delimiter))
+        current.clear()
+
     for ch in text:
-        if is_printable_ascii(ord(ch)) and ch != '"':
-            current.append(ch)
-        else:
-            if current:
-                parts.append('"' + "".join(current) + '"')
-                current = []
-            parts.append(f"${ord(ch):02x}")
-    if current:
-        parts.append('"' + "".join(current) + '"')
-    parts.append("0")
-    return f"{indent}dc.b    {','.join(parts)}\n"
+        if not is_printable_ascii(ord(ch)):
+            flush_current()
+            tokens.append(f"${ord(ch):02x}")
+            continue
+        if ch in delimiters:
+            flush_current()
+            delimiter = next(
+                candidate for candidate in delimiters if candidate != ch
+            )
+            tokens.append(_quoted_string_token(ch, delimiter))
+            continue
+        current.append(ch)
+
+    flush_current()
+    if null_terminated:
+        tokens.append("0")
+    return tokens
 
 
-def _hex_byte_lines(data: bytes, indent: str) -> list[str]:
+def render_string_data_line(
+    text: str,
+    *,
+    indent: str,
+    assembler_profile: AssemblerProfile,
+    null_terminated: bool,
+) -> str:
+    tokens = _string_tokens(
+        text,
+        assembler_profile=assembler_profile,
+        null_terminated=null_terminated,
+    )
+    return (
+        f"{indent}{assembler_profile.render.directives.dc_b}    "
+        f"{','.join(tokens)}\n"
+    )
+
+
+def _hex_byte_lines(
+    data: bytes, indent: str, *, assembler_profile: AssemblerProfile
+) -> list[str]:
     lines: list[str] = []
     for i in range(0, len(data), 16):
         row = data[i : i + 16]
         hex_vals = ",".join(f"${b:02x}" for b in row)
-        lines.append(f"{indent}dc.b    {hex_vals}\n")
+        lines.append(f"{indent}{assembler_profile.render.directives.dc_b}    {hex_vals}\n")
     return lines
 
 
@@ -133,7 +192,12 @@ def _safe_string_span(
 
 
 def _chunk_with_strings_lines(
-    code: bytes, start: int, end: int, indent: str
+    code: bytes,
+    start: int,
+    end: int,
+    indent: str,
+    *,
+    assembler_profile: AssemblerProfile = VASM_PROFILE,
 ) -> list[tuple[int, str]]:
     lines: list[tuple[int, str]] = []
     pos = start
@@ -156,22 +220,51 @@ def _chunk_with_strings_lines(
 
         if hex_start < run_start:
             for offset, line in enumerate(
-                _hex_byte_lines(code[hex_start:run_start], indent)
+                _hex_byte_lines(
+                    code[hex_start:run_start],
+                    indent,
+                    assembler_profile=assembler_profile,
+                )
             ):
                 lines.append((hex_start + offset * 16, line))
 
         text = code[run_start:run_end].decode("ascii")
         if null_term:
-            lines.append((run_start, _string_line(text, indent)))
+            lines.append((
+                run_start,
+                _string_line(text, indent, assembler_profile=assembler_profile),
+            ))
             pos += 1
         else:
-            lines.append((run_start, f'{indent}dc.b    "{text}"\n'))
+            lines.append((
+                run_start,
+                render_string_data_line(
+                    text,
+                    indent=indent,
+                    assembler_profile=assembler_profile,
+                    null_terminated=False,
+                ),
+            ))
         hex_start = pos
 
     if hex_start < end:
-        for offset, line in enumerate(_hex_byte_lines(code[hex_start:end], indent)):
+        for offset, line in enumerate(
+            _hex_byte_lines(code[hex_start:end], indent, assembler_profile=assembler_profile)
+        ):
             lines.append((hex_start + offset * 16, line))
     return lines
+
+
+def _byte_line_for_range(
+    code: bytes,
+    start: int,
+    end: int,
+    indent: str,
+    *,
+    assembler_profile: AssemblerProfile = VASM_PROFILE,
+) -> tuple[int, str]:
+    vals = ",".join(f"${byte:02x}" for byte in code[start:end])
+    return start, f"{indent}{assembler_profile.render.directives.dc_b}    {vals}\n"
 
 
 def iter_data_region_lines(
@@ -188,6 +281,7 @@ def iter_data_region_lines(
     typed_fields: dict[int, TypedDataFieldInfo] | None = None,
     os_kb: _TypedFieldValueKb | None = None,
     addr_comments: dict[int, str] | None = None,
+    assembler_profile: AssemblerProfile = VASM_PROFILE,
 ) -> list[tuple[int, str]]:
     if reloc_labels is None:
         reloc_labels = {}
@@ -209,6 +303,18 @@ def iter_data_region_lines(
         typed_size = typed_sizes.get(pos)
 
         if pos in reloc_map and pos + 4 <= end:
+            if assembler_profile.render.auto_align_dc_l and pos % 2 != 0:
+                lines.append(
+                    _byte_line_for_range(
+                        code,
+                        pos,
+                        pos + 4,
+                        indent,
+                        assembler_profile=assembler_profile,
+                    )
+                )
+                pos += 4
+                continue
             target = reloc_map[pos]
             is_pointer_like = _typed_field_is_pointer_like(os_kb, typed_fields.get(pos))
             if target == 0 and is_pointer_like:
@@ -229,14 +335,20 @@ def iter_data_region_lines(
                     rendered = resolved_text
             comment = addr_comments.get(pos)
             suffix = f" ; {comment}" if comment else ""
-            lines.append((pos, f"{indent}dc.l    {rendered}{suffix}\n"))
+            lines.append((
+                pos,
+                f"{indent}{assembler_profile.render.directives.dc_l}    {rendered}{suffix}\n",
+            ))
             pos += 4
             continue
 
         if pos in string_addrs:
             text = _try_read_string(code, pos, end)
             if text:
-                lines.append((pos, _string_line(text, indent)))
+                lines.append((
+                    pos,
+                    _string_line(text, indent, assembler_profile=assembler_profile),
+                ))
                 pos += len(text) + 1
                 continue
 
@@ -249,7 +361,10 @@ def iter_data_region_lines(
                 reloc_map=reloc_map,
             )
             if string_end is not None:
-                lines.append((pos, _string_line(text, indent)))
+                lines.append((
+                    pos,
+                    _string_line(text, indent, assembler_profile=assembler_profile),
+                ))
                 pos = string_end
                 continue
 
@@ -260,6 +375,18 @@ def iter_data_region_lines(
         )
         if asize is not None:
             if asize == 4 and pos + 4 <= end:
+                if assembler_profile.render.auto_align_dc_l and pos % 2 != 0:
+                    lines.append(
+                        _byte_line_for_range(
+                            code,
+                            pos,
+                            pos + 4,
+                            indent,
+                            assembler_profile=assembler_profile,
+                        )
+                    )
+                    pos += 4
+                    continue
                 val = struct.unpack_from(">I", code, pos)[0]
                 is_pointer_like = _typed_field_is_pointer_like(
                     os_kb, typed_fields.get(pos)
@@ -281,10 +408,25 @@ def iter_data_region_lines(
                         rendered = resolved_text
                 comment = addr_comments.get(pos)
                 suffix = f" ; {comment}" if comment else ""
-                lines.append((pos, f"{indent}dc.l    {rendered}{suffix}\n"))
+                lines.append((
+                    pos,
+                    f"{indent}{assembler_profile.render.directives.dc_l}    {rendered}{suffix}\n",
+                ))
                 pos += 4
                 continue
             if asize == 2 and pos + 2 <= end:
+                if assembler_profile.render.auto_align_dc_w and pos % 2 != 0:
+                    lines.append(
+                        _byte_line_for_range(
+                            code,
+                            pos,
+                            pos + 2,
+                            indent,
+                            assembler_profile=assembler_profile,
+                        )
+                    )
+                    pos += 2
+                    continue
                 word_end = pos + 2
                 while (
                     typed_sizes.get(word_end) is None
@@ -318,7 +460,10 @@ def iter_data_region_lines(
                     comment = addr_comments.get(row_start) if row_start == pos else None
                     suffix = f" ; {comment}" if comment else ""
                     lines.append(
-                        (row_start, f"{indent}dc.w    {','.join(vals)}{suffix}\n")
+                        (
+                            row_start,
+                            f"{indent}{assembler_profile.render.directives.dc_w}    {','.join(vals)}{suffix}\n",
+                        )
                     )
                 pos = word_end
                 continue
@@ -331,7 +476,10 @@ def iter_data_region_lines(
                 zero_end += 1
             count = zero_end - pos
             if count >= 4:
-                lines.append((pos, f"{indent}dcb.b   {count},0\n"))
+                lines.append((
+                    pos,
+                    f"{indent}{assembler_profile.render.directives.dcb_b}   {count},0\n",
+                ))
                 pos = zero_end
                 continue
 
@@ -353,7 +501,15 @@ def iter_data_region_lines(
                 break
             chunk_end += 1
 
-        lines.extend(_chunk_with_strings_lines(code, pos, chunk_end, indent))
+        lines.extend(
+            _chunk_with_strings_lines(
+                code,
+                pos,
+                chunk_end,
+                indent,
+                assembler_profile=assembler_profile,
+            )
+        )
         pos = chunk_end
     return lines
 
@@ -373,6 +529,7 @@ def emit_data_region(
     typed_fields: dict[int, TypedDataFieldInfo] | None = None,
     os_kb: _TypedFieldValueKb | None = None,
     addr_comments: dict[int, str] | None = None,
+    assembler_profile: AssemblerProfile = VASM_PROFILE,
 ) -> None:
     for _addr, line in iter_data_region_lines(
         code,
@@ -388,5 +545,6 @@ def emit_data_region(
         typed_fields=typed_fields,
         os_kb=os_kb,
         addr_comments=addr_comments,
+        assembler_profile=assembler_profile,
     ):
         handle.write(line)

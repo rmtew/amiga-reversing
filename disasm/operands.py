@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 """Build semantic operands from decoded instruction operands."""
+import struct
 from dataclasses import dataclass, replace
 
+from disasm.assembler_profiles import load_assembler_profile
 from disasm.decode import DecodedInstructionForEmit, decode_inst_for_emit
 from disasm.hardware_symbols import (
     hardware_absolute_addr,
@@ -179,12 +181,14 @@ def _reloc_label(inst: Instruction,
             continue
         cross_hunk = hunk_session.reloc_labels.get(ext_off)
         if cross_hunk is not None:
+            assert isinstance(cross_hunk, str)
             return cross_hunk
         target_hunk = hunk_session.reloc_target_hunks.get(ext_off, hunk_session.hunk_index)
         if target_hunk != hunk_session.hunk_index:
             continue
         local = hunk_session.labels.get(target)
         if local is not None:
+            assert isinstance(local, str)
             return local
     return None
 
@@ -218,6 +222,23 @@ def _absolute_label_or_text(segment_addr: int,
             f"Missing absolute symbol metadata for {_instruction_ref(inst)} operand {token!r} "
             f"targeting ${segment_addr:08X}")
     return token.lower()
+
+
+def _absolute_text_with_size(
+    label: str,
+    decoded_op: Operand,
+    hunk_session: HunkDisassemblySession,
+    segment_addr: int,
+) -> str:
+    profile = load_assembler_profile(hunk_session.assembler_profile_name)
+    if profile.render.assembler_id != "devpac":
+        return label
+    if segment_addr not in hunk_session.absolute_labels:
+        return label
+    suffix = ".w" if decoded_op.mode == "absw" else ".l"
+    if label.lower().endswith((".w", ".l")):
+        return label
+    return f"{label}{suffix}"
 
 
 def _hardware_base_addr(hunk_session: HunkDisassemblySession,
@@ -417,17 +438,66 @@ def _app_offset_symbol(base_register: str, displacement: int,
     return value
 
 
-def _pc_relative_text(label: str | None, decoded_op: Operand, token: str) -> str:
-    if label is None:
-        return token
+def _signed_relative_expr(current_token: str, delta: int) -> str:
+    if delta == 0:
+        return current_token
+    sign = "+" if delta > 0 else "-"
+    return f"{current_token}{sign}{abs(delta)}"
+
+
+def _pc_relative_text(label: str | None,
+                      decoded_op: Operand,
+                      token: str,
+                      inst: Instruction,
+                      hunk_session: HunkDisassemblySession) -> str:
+    render_profile = load_assembler_profile(hunk_session.assembler_profile_name).render
+    if render_profile.assembler_id != "devpac":
+        if decoded_op.mode == "pcdisp":
+            return f"{label}(pc)" if label is not None else token
+        index_reg = decoded_op.index_reg
+        assert index_reg is not None, f"PC-index operand missing index register: {token!r}"
+        prefix = "a" if decoded_op.index_is_addr else "d"
+        index_size = decoded_op.index_size
+        assert index_size, f"PC-index operand missing index size: {token!r}"
+        index_text = f"{prefix}{index_reg}.{index_size}"
+        scale = decoded_op.index_scale
+        if scale not in (None, 1):
+            index_text = f"{index_text}*{scale}"
+        return f"{label}(pc,{index_text})" if label is not None else token
     if decoded_op.mode == "pcdisp":
-        return f"{label}(pc)"
+        if label is not None:
+            return f"{label}(pc)"
+        target = decoded_op.value
+        if render_profile.current_location_token is not None and isinstance(target, int):
+            return (
+                f"{_signed_relative_expr(render_profile.current_location_token, target - inst.offset)}"
+                "(pc)"
+            )
+        return token
     index_reg = decoded_op.index_reg
     assert index_reg is not None, f"PC-index operand missing index register: {token!r}"
     prefix = "a" if decoded_op.index_is_addr else "d"
     index_size = decoded_op.index_size
     assert index_size, f"PC-index operand missing index size: {token!r}"
-    return f"{label}(pc,{prefix}{index_reg}.{index_size})"
+    index_text = f"{prefix}{index_reg}.{index_size}"
+    scale = decoded_op.index_scale
+    if scale not in (None, 1):
+        index_text = f"{index_text}*{scale}"
+    displacement = decoded_op.value
+    if label is not None:
+        return f"{label}(pc,{index_text})"
+    if (
+        render_profile.omit_zero_pc_index_displacement
+        and isinstance(displacement, int)
+        and displacement == inst.offset + 2
+    ):
+        return f"(pc,{index_text})"
+    if render_profile.current_location_token is not None and isinstance(displacement, int):
+        return (
+            f"{_signed_relative_expr(render_profile.current_location_token, displacement - inst.offset)}"
+            f"(pc,{index_text})"
+        )
+    return token
 
 
 def _operand_symbol(metadata: SemanticOperandMetadata | None) -> str | None:
@@ -445,6 +515,7 @@ def _operand_symbol(metadata: SemanticOperandMetadata | None) -> str | None:
             return metadata.base_symbol
         return f"{metadata.base_symbol}+{metadata.field_symbol}"
     if isinstance(metadata, (IndexedOperandMetadata, FullIndexedOperandMetadata)):
+        assert metadata.symbol is None or isinstance(metadata.symbol, str)
         return metadata.symbol
     return None
 
@@ -724,9 +795,15 @@ def _decoded_operand_specs(inst: Instruction, hunk_session: HunkDisassemblySessi
     if operand_types == ("ea", "ccr"):
         assert ea_op is not None, f"Decoded ea/ccr shape incomplete for {_instruction_ref(inst)}"
         return [DecodedOperandSpec(ea_op), SpecialRegisterSpec("ccr")]
+    if operand_types == ("imm", "ccr"):
+        assert imm_val is not None, f"Decoded imm/ccr shape incomplete for {_instruction_ref(inst)}"
+        return [ImmediateSpec(imm_val), SpecialRegisterSpec("ccr")]
     if operand_types == ("ea", "sr"):
         assert ea_op is not None, f"Decoded ea/sr shape incomplete for {_instruction_ref(inst)}"
         return [DecodedOperandSpec(ea_op), SpecialRegisterSpec("sr")]
+    if operand_types == ("imm", "sr"):
+        assert imm_val is not None, f"Decoded imm/sr shape incomplete for {_instruction_ref(inst)}"
+        return [ImmediateSpec(imm_val), SpecialRegisterSpec("sr")]
     if operand_types == ("sr", "ea"):
         assert ea_op is not None, f"Decoded sr/ea shape incomplete for {_instruction_ref(inst)}"
         return [SpecialRegisterSpec("sr"), DecodedOperandSpec(ea_op)]
@@ -1113,7 +1190,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             assert segment_addr is not None, (
                 f"Typed absolute target missing value for {_instruction_ref(inst)}")
             label = _absolute_label_or_text(segment_addr, hunk_session, node.text, inst)
-            text = label
+            text = _absolute_text_with_size(label, decoded_operand, hunk_session, segment_addr)
             if flow_type == _FLOW_CALL and operand_index == 0:
                 kind = "call_target"
             elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
@@ -1128,7 +1205,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
                     f"Typed PC-relative target mismatch for {_instruction_ref(inst)}: "
                     f"decoded {segment_addr}, node {node.target}")
             label = labels.get(segment_addr)
-            text = _pc_relative_text(label, decoded_operand, node.text)
+            text = _pc_relative_text(label, decoded_operand, node.text, inst, hunk_session)
             if flow_type == _FLOW_CALL and operand_index == 0:
                 kind = "call_target"
             elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
@@ -1279,7 +1356,7 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
                     f"decoded {indexed_metadata.index_size}, node {node.metadata.index_size}")
             operand_value = op_value
             label = labels.get(segment_addr) if segment_addr is not None else None
-            text = _pc_relative_text(label, decoded_operand, node.text)
+            text = _pc_relative_text(label, decoded_operand, node.text, inst, hunk_session)
             kind = "pc_relative_indexed"
         elif op_mode == "pcindex" and node.kind == "pc_memory_indirect_indexed":
             segment_addr = node.target
@@ -1459,7 +1536,7 @@ def _build_decoded_semantic_operand(inst: Instruction, token: str, spec: Operand
         if segment_addr is None:
             raise ValueError(f"Decoded absolute operand missing value for {_instruction_ref(inst)}")
         label = _absolute_label_or_text(segment_addr, hunk_session, token, inst)
-        text = label
+        text = _absolute_text_with_size(label, decoded_operand, hunk_session, segment_addr)
         if flow_type == _FLOW_CALL and operand_index == 0:
             kind = "call_target"
         elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
@@ -1470,7 +1547,7 @@ def _build_decoded_semantic_operand(inst: Instruction, token: str, spec: Operand
         segment_addr = _require_operand_value(decoded_operand, inst)
         operand_value = segment_addr
         label = labels.get(segment_addr)
-        text = _pc_relative_text(label, decoded_operand, token)
+        text = _pc_relative_text(label, decoded_operand, token, inst, hunk_session)
         if flow_type == _FLOW_CALL and operand_index == 0:
             kind = "call_target"
         elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
@@ -1481,7 +1558,7 @@ def _build_decoded_semantic_operand(inst: Instruction, token: str, spec: Operand
         segment_addr = op_value
         operand_value = op_value
         label = labels.get(segment_addr) if segment_addr is not None else None
-        text = _pc_relative_text(label, decoded_operand, token)
+        text = _pc_relative_text(label, decoded_operand, token, inst, hunk_session)
         if flow_type == _FLOW_CALL and operand_index == 0:
             kind = "call_target"
         elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
@@ -1612,4 +1689,27 @@ def build_instruction_semantic_operands(
         for idx, (token, spec) in enumerate(zip(tokens, specs, strict=True))
     )
     return _apply_field_value_domain_substitutions(operands, hunk_session)
+
+
+def instruction_operands_render_completely(
+    inst: Instruction,
+    hunk_session: HunkDisassemblySession,
+    *,
+    used_structs: set[str] | None = None,
+    include_arg_subs: bool = True,
+) -> bool:
+    try:
+        meta = decode_inst_for_emit(inst)
+        specs = _decoded_operand_specs(inst, hunk_session, meta)
+        operands = build_instruction_semantic_operands(
+            inst,
+            hunk_session,
+            used_structs=used_structs,
+            include_arg_subs=include_arg_subs,
+        )
+    except (AssertionError, ValueError, IndexError, struct.error):
+        return False
+    if len(operands) != len(specs):
+        return False
+    return not (specs and any(not operand.text.strip() for operand in operands))
 

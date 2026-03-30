@@ -31,6 +31,30 @@
     "type": "direct",
     "executable_path": "tools/vasmm68k_mot"
   },
+  "render_profile": {
+    "assembler_id": "vasm",
+    "header_generated_syntax": "vasm Motorola syntax",
+    "comment_prefix": ";",
+    "blank_line": "",
+    "line_ending": "crlf",
+    "string_delimiters": ["\"", "'"],
+    "current_location_token": "*",
+    "omit_zero_pc_index_displacement": false,
+    "require_label_anchor_for_self_relative_data": false,
+    "auto_align_dc_w": false,
+    "auto_align_dc_l": false,
+    "directives": {
+      "include": "INCLUDE",
+      "section": "section",
+      "equ": "EQU",
+      "dc_b": "dc.b",
+      "dc_w": "dc.w",
+      "dc_l": "dc.l",
+      "ds_b": "ds.b",
+      "dcb_b": "dcb.b"
+    },
+    "include_adapters": {}
+  },
   "platform_notes": {},
   "encoding_behaviors": [
     {

@@ -21,6 +21,7 @@ from disasm.analysis_layout import (
     target_seeded_entrypoint_offsets,
 )
 from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
+from disasm.assembler_profiles import load_assembler_profile
 from disasm.emitter import emit_session_rows
 from disasm.entry_seeds import build_entry_seed_config
 from disasm.os_compat import build_emit_compatibility_report, max_compatibility_version
@@ -429,6 +430,12 @@ def _default_disasm_path(target_dir: Path, target: str) -> Path:
     return target_dir / f"{target_output_stem(target_dir.name)}.s"
 
 
+def _assembler_profile_for_target(target_dir: Path) -> str:
+    if target_dir.name == "amiga_hunk_genam":
+        return "devpac"
+    return "vasm"
+
+
 def _compatibility_export_path(target_dir: Path) -> Path:
     return target_dir / "compatibility.json"
 
@@ -449,19 +456,25 @@ def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchm
 
     start = time.perf_counter()
     phase_timer = PhaseTimer()
+    assembler_profile_name = _assembler_profile_for_target(target_dir)
     try:
         build_entities_from_source(paths.binary_source, str(entities_path), phase_timer=phase_timer)
         session = build_disassembly_session(
             paths.binary_source,
             str(entities_path),
             str(disasm_path),
+            assembler_profile_name=assembler_profile_name,
             phase_timer=phase_timer,
         )
         emit_started = time.perf_counter()
         rows = emit_session_rows(session)
         emit_elapsed = time.perf_counter() - emit_started
         render_started = time.perf_counter()
-        disasm_path.write_text(render_rows(rows), encoding="utf-8")
+        assembler_profile = load_assembler_profile(
+            getattr(session, "assembler_profile_name", assembler_profile_name)
+        )
+        newline = "\n" if assembler_profile.render.line_ending == "lf" else "\r\n"
+        disasm_path.write_text(render_rows(rows), encoding="utf-8", newline=newline)
         compatibility_report = build_emit_compatibility_report(session, rows=rows)
         compatibility_path.write_text(
             json.dumps(asdict(compatibility_report), indent=2) + "\n",

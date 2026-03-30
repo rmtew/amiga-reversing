@@ -1267,6 +1267,31 @@ def test_build_target_local_os_kb_rejects_ambiguous_app_slot_region() -> None:
         build_target_local_os_kb(runtime_os, target_metadata)
 
 
+def test_build_target_local_os_kb_allows_pointer_semantic_app_slot_region() -> None:
+    target_metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        app_slot_regions=(
+            AppSlotRegionMetadata(
+                offset=552,
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="seeded test fixture",
+                symbol="app_option_source_buffer",
+                storage_kind="pointer",
+                semantic_type="source_text_buffer",
+                parser_role="option_source",
+                parser_routine="sub_ab00",
+                parse_order=0,
+            ),
+        ),
+    )
+
+    merged = build_target_local_os_kb(runtime_os, target_metadata)
+
+    assert merged.STRUCTS["LIB"] == runtime_os.STRUCTS["LIB"]
+
+
 def test_refined_named_base_struct_requires_kb_mapping() -> None:
     os_kb = SimpleNamespace(
         META=replace(runtime_os.META, named_base_structs={}),

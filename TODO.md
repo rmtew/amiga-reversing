@@ -16,7 +16,6 @@ The remaining code is reachable only through runtime-dependent dispatch
 
 ## Round-Trip Validation
 
-- [ ] GenAm self-assembly: disassemble -> reassemble with GenAm via vamos -> binary diff
 - [ ] Re-run round-trip validation for fresh GenAm / Bloodwych output after the shared-analysis and renderer refactors, then classify any remaining binary diffs as formatting churn vs real semantic regressions
 
 ## Knowledge Base: Amiga Platform
@@ -36,7 +35,6 @@ The remaining code is reachable only through runtime-dependent dispatch
 - [ ] Extend the new PDF-driven compare-swap KB semantics through full `CAS2` decode/disasm/executor support; current decoded operand model cleanly supports single-`CAS`, but `CAS2` still needs first-class paired-memory operand modeling
 
 ### M68K Assembler Coverage Audit
-- [ ] Keep the new `runtime_coverage` pytest slice as the coverage contract for KB/runtime/assembler changes
 - [ ] Make the audit comprehensive over canonical runtime forms, not just one representative sample per form
 - [ ] Add explicit alias coverage on top of canonical-form coverage so runtime syntax aliases are tested separately from canonical forms
 - [ ] Generate multiple valid EA samples per canonical `ea` form from KB `EA_MODE_TABLES`, not just the first working mode

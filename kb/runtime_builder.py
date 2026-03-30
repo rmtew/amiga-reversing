@@ -144,6 +144,7 @@ class RuntimeM68kTables(TypedDict):
     operation_classes: dict[str, str | None]
     source_sign_extend: tuple[str, ...]
     shift_count_moduli: dict[str, int]
+    sizes_68000: dict[str, tuple[str, ...]]
     opmode_tables_list: dict[str, list[M68kOpmodeEntry]]
     opmode_tables_by_value: dict[str, dict[int, OpmodeEntry]]
     form_operand_types: dict[str, tuple[tuple[str, ...], ...]]
@@ -257,6 +258,7 @@ class M68kDisasmRuntimePayload(TypedDict):
     OPERATION_CLASSES: dict[str, str | None]
     SOURCE_SIGN_EXTEND: tuple[str, ...]
     SHIFT_COUNT_MODULI: dict[str, int]
+    SIZES_68000: dict[str, tuple[str, ...]]
     PROCESSOR_MINS: dict[str, str]
     OPMODE_TABLES_BY_VALUE: dict[str, dict[int, OpmodeEntry]]
     CONDITION_FAMILIES: tuple[ConditionFamily, ...]
@@ -332,6 +334,7 @@ class M68kAnalysisRuntimePayload(TypedDict):
     SP_EFFECTS_COMPLETE: tuple[str, ...]
     EA_MODE_TABLES: dict[str, tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]]
     AN_SIZES: dict[str, tuple[str, ...]]
+    SIZES_68000: dict[str, tuple[str, ...]]
     PROCESSOR_MINS: dict[str, str]
     PROCESSOR_020_VARIANTS: dict[str, frozenset[str]]
     LOOKUP_UPPER: dict[str, str]
@@ -1186,6 +1189,7 @@ def _write_m68k_runtime_python(path: Path, payload: RuntimeM68kPayload, *, heade
             f"SOURCE_SIGN_EXTEND = {_render_py(tables['source_sign_extend'])}",
             f"BOUNDS_CHECKS = {_render_py(tables['bounds_checks'])}",
             f"SHIFT_COUNT_MODULI = {_render_py(tables['shift_count_moduli'])}",
+            f"SIZES_68000 = {_render_py(tables['sizes_68000'])}",
             f"OPMODE_TABLES_LIST = {_render_py(tables['opmode_tables_list'])}",
             f"OPMODE_TABLES_BY_VALUE: dict[str, dict[int, OpmodeEntry]] = {_render_opmode_tables_by_value(tables['opmode_tables_by_value'])}",
             f"FORM_OPERAND_TYPES = {_render_py(tables['form_operand_types'])}",
@@ -1687,6 +1691,18 @@ def _render_os_output(arg: OsOutput) -> str:
     )
 
 
+def _render_os_include_owner(owner: OsIncludeOwner) -> str:
+    return (
+        "OsIncludeOwner("
+        f"kind={owner['kind']!r}, "
+        f"canonical_include_path={owner.get('canonical_include_path')!r}, "
+        f"assembler_include_path={owner.get('assembler_include_path')!r}, "
+        f"source_file={owner['source_file']!r}, "
+        f"available_since={owner.get('available_since')!r}"
+        ")"
+    )
+
+
 def _render_os_function(func: OsFunction) -> str:
     inputs = ", ".join(_render_os_input(arg) for arg in func.get("inputs", ()))
     if func.get("inputs"):
@@ -1773,7 +1789,15 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    resident_entry_register_seeds: dict[str, dict[str, tuple[dict[str, object], ...]]] = field(default_factory=dict)",
         "    named_base_structs: dict[str, str] = field(default_factory=dict)",
         "    typed_data_stream_formats: dict[str, object] = field(default_factory=dict)",
-        "    library_lvo_owners: dict[str, object] = field(default_factory=dict)",
+        "    library_lvo_owners: dict[str, OsIncludeOwner] = field(default_factory=dict)",
+        "",
+        "@dataclass(frozen=True, slots=True)",
+        "class OsIncludeOwner:",
+        "    kind: str",
+        "    canonical_include_path: str | None",
+        "    assembler_include_path: str | None",
+        "    source_file: str",
+        "    available_since: str | None = None",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsStructField:",
@@ -1878,7 +1902,14 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         f"    resident_entry_register_seeds={_render_py({target_type: {role: tuple(specs) for role, specs in sorted(role_map.items())} for target_type, role_map in sorted(meta['resident_entry_register_seeds'].items())})} ,",
         f"    named_base_structs={_render_py(dict(sorted(meta['named_base_structs'].items())))} ,",
         f"    typed_data_stream_formats={_render_py(dict(sorted(meta.get('typed_data_stream_formats', {}).items())))} ,",
-        f"    library_lvo_owners={_render_py(dict(sorted(meta['library_lvo_owners'].items())))} ,",
+        (
+            "    library_lvo_owners={"
+            + ", ".join(
+                f"{name!r}: {_render_os_include_owner(owner)}"
+                for name, owner in sorted(meta["library_lvo_owners"].items())
+            )
+            + "} ,"
+        ),
         ")",
         "",
         "VALUE_DOMAINS: dict[str, OsValueDomain] = {",
@@ -2141,6 +2172,7 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
     operation_classes = {}
     source_sign_extend = set()
     shift_count_moduli: dict[str, int] = {}
+    sizes_68000: dict[str, tuple[str, ...]] = {}
     shift_variant_behaviors: dict[str, tuple[ShiftVariantBehavior, ...]] = {}
     processor_020_variants: dict[str, frozenset[str]] = {}
     for inst in instructions:
@@ -2152,6 +2184,9 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
             source_sign_extend.add(mnemonic)
         if "shift_count_modulus" in inst:
             shift_count_moduli[mnemonic] = inst["shift_count_modulus"]
+        constraint_sizes_68000 = inst.get("constraints", {}).get("sizes_68000")
+        if constraint_sizes_68000:
+            sizes_68000[mnemonic] = tuple(cast(list[str], constraint_sizes_68000))
         formula = inst.get("compute_formula")
         if formula:
             source_bits_by_size = formula.get("source_bits_by_size")
@@ -2570,6 +2605,7 @@ def _build_m68k_runtime() -> RuntimeM68kPayload:
               "operation_classes": dict(sorted(operation_classes.items())),
               "source_sign_extend": tuple(sorted(source_sign_extend)),
               "shift_count_moduli": dict(sorted(shift_count_moduli.items())),
+              "sizes_68000": dict(sorted(sizes_68000.items())),
               "opmode_tables_list": dict(sorted(opmode_tables_list.items())),
             "opmode_tables_by_value": dict(sorted(opmode_tables_by_value.items())),
             "form_operand_types": dict(sorted(form_operand_types.items())),
@@ -2795,6 +2831,7 @@ def _build_m68k_disasm_runtime(runtime_payload: RuntimeM68kPayload) -> M68kDisas
         "OPERATION_CLASSES": tables["operation_classes"],
         "SOURCE_SIGN_EXTEND": tables["source_sign_extend"],
         "SHIFT_COUNT_MODULI": tables["shift_count_moduli"],
+        "SIZES_68000": tables["sizes_68000"],
         "PROCESSOR_MINS": tables["processor_mins"],
         "OPMODE_TABLES_BY_VALUE": tables["opmode_tables_by_value"],
         "CONDITION_FAMILIES": tables["condition_families"],
@@ -2944,6 +2981,7 @@ def _build_m68k_analysis_runtime(runtime_payload: RuntimeM68kPayload) -> M68kAna
         "SP_EFFECTS_COMPLETE": tables["sp_effects_complete"],
         "EA_MODE_TABLES": tables["ea_mode_tables"],
         "AN_SIZES": tables["an_sizes"],
+        "SIZES_68000": tables["sizes_68000"],
         "PROCESSOR_MINS": tables["processor_mins"],
         "PROCESSOR_020_VARIANTS": tables["processor_020_variants"],
         "LOOKUP_UPPER": dict(sorted(lookup_upper.items())),

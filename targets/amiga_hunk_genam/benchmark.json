@@ -2,34 +2,34 @@
   "target": "amiga_hunk_genam",
   "binary": "bin/GenAm",
   "command": "uv run scripts/benchmark_target.py amiga_hunk_genam",
-  "measured_at": "2026-03-30T12:10:44+13:00",
+  "measured_at": "2026-03-30T21:11:05+13:00",
   "status": "ok",
-  "elapsed_seconds": 71.63,
-  "analysis_bytes": 11629683,
-  "entities_bytes": 115153,
-  "disasm_bytes": 494351,
+  "elapsed_seconds": 81.27,
+  "analysis_bytes": 11630913,
+  "entities_bytes": 113446,
+  "disasm_bytes": 410754,
   "timing": {
     "entities": {
       "parse_source_seconds": 0.0002,
       "analysis": {
-        "init_seconds": 0.3789,
-        "core_seconds": 7.7606,
-        "per_caller_seconds": 39.2145,
-        "store_pass_seconds": 0.2078,
-        "hint_scan_seconds": 1.1336,
-        "os_call_seconds": 15.9278
+        "init_seconds": 0.3928,
+        "core_seconds": 8.0499,
+        "per_caller_seconds": 46.327,
+        "store_pass_seconds": 0.208,
+        "hint_scan_seconds": 0.861,
+        "os_call_seconds": 17.9892
       },
-      "naming_seconds": 0.0037,
-      "write_seconds": 0.0034
+      "naming_seconds": 0.0042,
+      "write_seconds": 0.0036
     },
     "session": {
-      "load_analysis_seconds": 0.1669,
-      "metadata_seconds": 0.9417,
-      "substitutions_seconds": 0.0084,
+      "load_analysis_seconds": 0.1682,
+      "metadata_seconds": 0.9617,
+      "substitutions_seconds": 0.0085,
       "build_seconds": 0.0001
     },
-    "emit_seconds": 0.5768,
-    "render_seconds": 0.0225
+    "emit_seconds": 0.6367,
+    "render_seconds": 0.0245
   },
   "analysis": {
     "code_bytes": 64920,
@@ -51,12 +51,12 @@
     "library_count": 3
   },
   "entities": {
-    "entity_count": 486,
-    "code_entity_count": 376,
-    "data_entity_count": 0,
+    "entity_count": 489,
+    "code_entity_count": 320,
+    "data_entity_count": 3,
     "bss_entity_count": 0,
-    "unknown_entity_count": 110,
-    "named_entity_count": 29,
+    "unknown_entity_count": 166,
+    "named_entity_count": 37,
     "documented_entity_count": 0
   },
   "disasm": {

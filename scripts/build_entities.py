@@ -77,6 +77,11 @@ class ReferencedAppSlot:
     size: int | None
     pointer_struct: str | None
     named_base: str | None
+    storage_kind: str | None = None
+    semantic_type: str | None = None
+    parser_role: str | None = None
+    parser_routine: str | None = None
+    parse_order: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -721,6 +726,11 @@ def collect_subroutine_app_slots(sub: SubroutineRange,
                         size=info.size,
                         pointer_struct=info.pointer_struct,
                         named_base=info.named_base,
+                        storage_kind=info.storage_kind,
+                        semantic_type=info.semantic_type,
+                        parser_role=info.parser_role,
+                        parser_routine=info.parser_routine,
+                        parse_order=info.parse_order,
                     ),
                 )
     return tuple(referenced[offset] for offset in sorted(referenced))
@@ -733,6 +743,11 @@ def app_slot_entity_payloads(app_slots: tuple[ReferencedAppSlot, ...]) -> list[J
             "offset": fmt_disp(slot.offset),
             "symbol": slot.symbol,
             **({"named_base": slot.named_base} if slot.named_base is not None else {}),
+            **({"storage_kind": slot.storage_kind} if slot.storage_kind is not None else {}),
+            **({"semantic_type": slot.semantic_type} if slot.semantic_type is not None else {}),
+            **({"parser_role": slot.parser_role} if slot.parser_role is not None else {}),
+            **({"parser_routine": slot.parser_routine} if slot.parser_routine is not None else {}),
+            **({"parse_order": slot.parse_order} if slot.parse_order is not None else {}),
         }
         if slot.struct is not None:
             payload["kind"] = "struct_instance"
@@ -1128,7 +1143,7 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
                 hint_ent: JsonDict = {
                     "addr": fmt_addr(region["addr"]),
                     "end": fmt_addr(region["end"]),
-                    "type": "code",
+                    "type": "unknown",
                     "confidence": "hint",
                     "hunk": hunk.index,
                     "block_count": region["block_count"],
@@ -1234,18 +1249,18 @@ def build_entities_from_source(binary_source: BinarySource, output_path: str | N
     hint_ents = [e for e in all_entities
                  if e.get("confidence") == "hint"]
     core_code = [e for e in core_ents if e["type"] == "code"]
-    hint_code = [e for e in hint_ents if e["type"] == "code"]
+    hint_regions = hint_ents
 
     print("\nSummary:")
     print(f"  Core: {len(core_code)} subroutines, "
           f"{sum(1 for e in core_code if e.get('name'))} named")
-    if hint_code:
+    if hint_regions:
         by_src: defaultdict[str, int] = defaultdict(int)
-        for e in hint_code:
+        for e in hint_regions:
             by_src[e.get("hint_source", "-")] += 1
         src_str = ", ".join(f"{c} {s}"
                             for s, c in sorted(by_src.items()))
-        print(f"  Hints: {len(hint_code)} regions ({src_str})")
+        print(f"  Hints: {len(hint_regions)} regions ({src_str})")
     gap_count = sum(1 for e in all_entities
                     if e.get("type") == "unknown"
                     and e.get("confidence") != "hint")

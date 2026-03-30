@@ -6,7 +6,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
-from disasm.hint_validation import is_valid_hint_block
+from disasm.assembler_profiles import load_assembler_profile
+from disasm.data_render import render_string_data_line
 from disasm.instruction_rows import (
     emit_data_rows,
     make_instruction_row,
@@ -137,7 +138,9 @@ def _section_mem_operand(hunk_session: HunkDisassemblySession) -> str | None:
     raise ValueError(f"Unknown mem type for hunk {hunk_session.hunk_index}: {hunk_session.mem_type}")
 
 
-def _section_directive_text(hunk_session: HunkDisassemblySession) -> str:
+def _section_directive_text(
+    hunk_session: HunkDisassemblySession, *, section_directive: str
+) -> str:
     section_name = hunk_session.section_name or _default_section_name(
         hunk_session.hunk_type,
         hunk_session.mem_type,
@@ -145,18 +148,23 @@ def _section_directive_text(hunk_session: HunkDisassemblySession) -> str:
     kind = _section_kind_name(hunk_session.hunk_type)
     mem_operand = _section_mem_operand(hunk_session)
     if mem_operand is None:
-        return f"    section {section_name},{kind}\n"
-    return f"    section {section_name},{kind},{mem_operand}\n"
+        return f"    {section_directive} {section_name},{kind}\n"
+    return f"    {section_directive} {section_name},{kind},{mem_operand}\n"
 
 
 def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
+    assembler_profile = load_assembler_profile(session.assembler_profile_name)
+    blank_line_text = assembler_profile.render.blank_line + "\n"
     rows: list[ListingRow] = []
     total_code_size = sum(hunk_session.alloc_size or hunk_session.code_size for hunk_session in session.hunk_sessions)
     total_entities = sum(len(hunk_session.entities) for hunk_session in session.hunk_sessions)
     total_blocks = sum(len(hunk_session.blocks) for hunk_session in session.hunk_sessions)
     rows.append(make_row(
         "comment",
-        "; Generated disassembly -- vasm Motorola syntax\n",
+        (
+            f"{assembler_profile.render.comment_prefix} Generated disassembly -- "
+            f"{assembler_profile.render.header_generated_syntax}\n"
+        ),
         source_context=HeaderRowContext(section="header"),
     ))
     rows.append(make_row(
@@ -205,26 +213,29 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
         f"; OS compatibility floor: {max_compatibility_version(compatibility_floors)}\n",
         source_context=HeaderRowContext(section="header"),
     ))
-    rows.append(make_row("blank", "\n"))
+    rows.append(make_row("blank", blank_line_text))
     if fd_only_lvo_equs:
         for lib_name in sorted(fd_only_lvo_equs):
             rows.append(make_row("comment", f"; LVO offsets: {lib_name} (FD-derived)\n"))
             for lvo_val in sorted(fd_only_lvo_equs[lib_name]):
                 rows.append(make_row(
                     "directive",
-                    f"{fd_only_lvo_equs[lib_name][lvo_val]}\tEQU\t{lvo_val}\n",
-                    opcode_or_directive="EQU",
+                    (
+                        f"{fd_only_lvo_equs[lib_name][lvo_val]}\t"
+                        f"{assembler_profile.render.directives.equ}\t{lvo_val}\n"
+                    ),
+                    opcode_or_directive=assembler_profile.render.directives.equ,
                 ))
-            rows.append(make_row("blank", "\n"))
+            rows.append(make_row("blank", blank_line_text))
     if arg_equs:
         rows.append(make_row("comment", "; OS function argument constants\n"))
         for name in sorted(arg_equs):
             rows.append(make_row(
                 "directive",
-                f"{name}\tEQU\t{arg_equs[name]}\n",
-                opcode_or_directive="EQU",
+                f"{name}\t{assembler_profile.render.directives.equ}\t{arg_equs[name]}\n",
+                opcode_or_directive=assembler_profile.render.directives.equ,
             ))
-        rows.append(make_row("blank", "\n"))
+        rows.append(make_row("blank", blank_line_text))
     if app_offset_equs:
         base_info = session.hunk_sessions[0].platform.app_base
         assert base_info is not None, "app_offsets present but platform.app_base is missing"
@@ -239,36 +250,49 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
         for name in sorted(app_offset_equs):
             rows.append(make_row(
                 "directive",
-                f"{name}\tEQU\t{app_offset_equs[name]}\n",
-                opcode_or_directive="EQU",
+                f"{name}\t{assembler_profile.render.directives.equ}\t{app_offset_equs[name]}\n",
+                opcode_or_directive=assembler_profile.render.directives.equ,
             ))
-        rows.append(make_row("blank", "\n"))
+        rows.append(make_row("blank", blank_line_text))
     if target_local_struct_equs:
         rows.append(make_row("comment", "; Target-local struct fields\n"))
         for name in sorted(target_local_struct_equs):
             rows.append(make_row(
                 "directive",
-                f"{name}\tEQU\t{target_local_struct_equs[name]}\n",
-                opcode_or_directive="EQU",
+                (
+                    f"{name}\t{assembler_profile.render.directives.equ}\t"
+                    f"{target_local_struct_equs[name]}\n"
+                ),
+                opcode_or_directive=assembler_profile.render.directives.equ,
             ))
-        rows.append(make_row("blank", "\n"))
+        rows.append(make_row("blank", blank_line_text))
     if absolute_symbol_equs:
         rows.append(make_row("comment", "; Absolute symbols\n"))
         for name in sorted(absolute_symbol_equs, key=lambda symbol: absolute_symbol_equs[symbol]):
             rows.append(make_row(
                 "directive",
-                f"{name}\tEQU\t${absolute_symbol_equs[name]:X}\n",
-                opcode_or_directive="EQU",
+                (
+                    f"{name}\t{assembler_profile.render.directives.equ}\t"
+                    f"${absolute_symbol_equs[name]:X}\n"
+                ),
+                opcode_or_directive=assembler_profile.render.directives.equ,
             ))
-        rows.append(make_row("blank", "\n"))
+        rows.append(make_row("blank", blank_line_text))
     if include_paths:
         for inc in sorted(include_paths):
+            adapter = assembler_profile.render.include_adapters.get(inc)
+            if adapter is not None:
+                for line in adapter.prelude_lines:
+                    rows.append(make_row(
+                        "directive",
+                        f"{line}\n",
+                    ))
             rows.append(make_row(
                 "directive",
-                f'    INCLUDE "{inc}"\n',
-                opcode_or_directive="INCLUDE",
+                f'    {assembler_profile.render.directives.include} "{inc}"\n',
+                opcode_or_directive=assembler_profile.render.directives.include,
             ))
-        rows.append(make_row("blank", "\n"))
+        rows.append(make_row("blank", blank_line_text))
     rows.extend(body_rows)
     return rows
 
@@ -347,7 +371,20 @@ def _collect_used_absolute_addrs(rows: list[ListingRow],
             label = hunk_session.absolute_labels.get(operand.segment_addr)
             if label is None:
                 continue
-            if operand.text in {label, f"#{label}"}:
+            text = operand.text.strip()
+            sized_forms = {
+                label,
+                f"#{label}",
+                f"{label}.w",
+                f"{label}.l",
+                f"#{label}.w",
+                f"#{label}.l",
+                f"({label}).w",
+                f"({label}).l",
+                f"#({label}).w",
+                f"#({label}).l",
+            }
+            if text in sized_forms:
                 used.add(operand.segment_addr)
     return used
 
@@ -425,6 +462,8 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             entities=[],
             hunk_sessions=[hunk_session],
         )
+    assembler_profile = load_assembler_profile(session.assembler_profile_name)
+    blank_line_text = assembler_profile.render.blank_line + "\n"
     if include_header:
         rows.append(make_row(
             "comment",
@@ -433,14 +472,17 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             f"{len(hunk_session.entities)} entities, {len(hunk_session.blocks)} blocks\n",
             source_context=HeaderRowContext(section="header"),
         ))
-        rows.append(make_row("blank", "\n"))
+        rows.append(make_row("blank", blank_line_text))
 
     rows.append(make_row(
         "section",
-        _section_directive_text(hunk_session),
-        opcode_or_directive="section",
+        _section_directive_text(
+            hunk_session,
+            section_directive=assembler_profile.render.directives.section,
+        ),
+        opcode_or_directive=assembler_profile.render.directives.section,
     ))
-    rows.append(make_row("blank", "\n"))
+    rows.append(make_row("blank", blank_line_text))
 
     def emit_label(addr: int) -> None:
         lbl = hunk_session.labels[addr]
@@ -503,6 +545,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 hunk_index=hunk_session.hunk_index,
                 verified_state=verified_state,
             ),
+            assembler_profile,
         ))
 
     def emit_bss() -> None:
@@ -510,7 +553,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         if not bss_labels:
             rows.extend(make_text_rows(
                 "directive",
-                f"    ds.b {hunk_session.alloc_size}\n",
+                f"    {assembler_profile.render.directives.ds_b} {hunk_session.alloc_size}\n",
                 verified_state="verified",
                 source_context=BlockRowContext(
                     kind="data",
@@ -532,7 +575,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 continue
             rows.extend(make_text_rows(
                 "directive",
-                f"    ds.b {next_addr - addr}\n",
+                f"    {assembler_profile.render.directives.ds_b} {next_addr - addr}\n",
                 entity_addr=addr,
                 addr=addr,
                 verified_state="verified",
@@ -554,7 +597,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         if not tail_labels:
             rows.extend(make_text_rows(
                 "directive",
-                f"    ds.b {tail_size}\n",
+                f"    {assembler_profile.render.directives.ds_b} {tail_size}\n",
                 verified_state="verified",
                 source_context=BlockRowContext(
                     kind="data",
@@ -571,7 +614,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             if addr > cursor:
                 rows.extend(make_text_rows(
                     "directive",
-                    f"    ds.b {addr - cursor}\n",
+                    f"    {assembler_profile.render.directives.ds_b} {addr - cursor}\n",
                     entity_addr=cursor,
                     addr=cursor,
                     verified_state="verified",
@@ -586,7 +629,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         if cursor < hunk_session.alloc_size:
             rows.extend(make_text_rows(
                 "directive",
-                f"    ds.b {hunk_session.alloc_size - cursor}\n",
+                f"    {assembler_profile.render.directives.ds_b} {hunk_session.alloc_size - cursor}\n",
                 entity_addr=cursor,
                 addr=cursor,
                 verified_state="verified",
@@ -674,10 +717,14 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 if nul == -1:
                     raise ValueError(f"Structured string field {field.label} is missing terminator")
                 text = raw[:nul].decode("latin-1")
-                escaped = text.replace('"', '\\"')
                 rows.extend(make_text_rows(
                     "data",
-                    f'    dc.b    "{escaped}",0\n',
+                    render_string_data_line(
+                        text,
+                        indent="    ",
+                        assembler_profile=assembler_profile,
+                        null_terminated=True,
+                    ),
                     entity_addr=entity_addr,
                     addr=pos,
                     verified_state="verified",
@@ -694,7 +741,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     rendered = f"${value:08x}"
                 rows.extend(make_text_rows(
                     "data",
-                    f"    dc.l    {rendered}\n",
+                    f"    {assembler_profile.render.directives.dc_l}    {rendered}\n",
                     entity_addr=entity_addr,
                     addr=pos,
                     verified_state="verified",
@@ -711,7 +758,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                     rendered = f"${value:04x}"
                 rows.extend(make_text_rows(
                     "data",
-                    f"    dc.w    {rendered}\n",
+                    f"    {assembler_profile.render.directives.dc_w}    {rendered}\n",
                     entity_addr=entity_addr,
                     addr=pos,
                     verified_state="verified",
@@ -725,7 +772,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 value = hunk_session.code[pos]
                 rows.extend(make_text_rows(
                     "data",
-                    f"    dc.b    ${value:02x}\n",
+                    f"    {assembler_profile.render.directives.dc_b}    ${value:02x}\n",
                     entity_addr=entity_addr,
                     addr=pos,
                     verified_state="verified",
@@ -753,9 +800,31 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         ]
 
     entity_lookup: dict[int, EntityRecord] = {}
+    entity_ranges: list[tuple[int, int, EntityRecord]] = []
     for entity in hunk_session.entities:
         raw_addr = entity["addr"]
-        entity_lookup[int(raw_addr, 16)] = entity
+        start = int(raw_addr, 16)
+        entity_lookup[start] = entity
+        raw_end = entity.get("end")
+        if raw_end is None:
+            continue
+        end = int(raw_end, 16)
+        if end <= start:
+            continue
+        entity_ranges.append((start, end, entity))
+
+    entity_ranges.sort(key=lambda item: item[0])
+
+    def entity_for_addr(addr: int) -> EntityRecord | None:
+        entity = entity_lookup.get(addr)
+        if entity is not None:
+            return entity
+        for start, end, candidate in entity_ranges:
+            if start > addr:
+                break
+            if start <= addr < end:
+                return candidate
+        return None
 
     for pass_idx, (pass_start, pass_end) in enumerate(emit_passes):
         if pass_idx == 1:
@@ -775,7 +844,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             if pos in hunk_session.labels and structured_region is None:
                 emit_label(pos)
 
-            current_entity: EntityRecord | None = entity_lookup.get(pos)
+            current_entity = entity_for_addr(pos)
             if current_entity is None:
                 entity_addr = pos
             else:
@@ -825,39 +894,41 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 emit_data(pos, data_end, entity_addr)
                 pos = data_end
             elif pos in hunk_session.code_addrs:
-                pos += 1
+                data_end = pos + 1
+                while (data_end < pass_end
+                       and data_end not in hunk_session.blocks
+                       and data_end not in hunk_session.hint_blocks
+                       and data_end not in hunk_session.labels):
+                    if data_end not in hunk_session.code_addrs:
+                        break
+                    data_end += 1
+                emit_data(pos, data_end, entity_addr, verified_state="unverified")
+                pos = data_end
             elif pos in hunk_session.hint_blocks:
                 blk = hunk_session.hint_blocks[pos]
-                valid_hint = is_valid_hint_block(blk)
-                if not valid_hint:
-                    emit_data(pos, blk.end, entity_addr, verified_state="unverified")
-                    pos = blk.end
-                    continue
-
-                rows.append(make_row("comment", "; --- unverified ---\n"))
-                for inst in blk.instructions:
-                    if inst.offset != pos and inst.offset in hunk_session.labels:
-                        emit_label(inst.offset)
-                    text, comment, comment_parts = render_instruction_text(
-                        inst, hunk_session, used_structs, include_arg_subs=False)
-                    rows.append(make_instruction_row(
-                        text, inst, hunk_session, entity_addr, "unverified",
-                        source_context=BlockRowContext(
-                            kind="hint-block",
-                            hunk_index=hunk_session.hunk_index,
-                            verified_state="unverified",
-                        ),
-                        comment_text=comment,
-                        comment_parts=comment_parts,
-                        used_structs=used_structs,
-                        include_arg_subs=False,
-                    ))
+                emit_data(pos, blk.end, entity_addr, verified_state="unverified")
                 pos = blk.end
             elif pos in hunk_session.hint_addrs:
-                pos += 1
+                data_end = pos + 1
+                while (data_end < pass_end
+                       and data_end not in hunk_session.blocks
+                       and data_end not in hunk_session.hint_blocks
+                       and data_end not in hunk_session.labels):
+                    if data_end not in hunk_session.hint_addrs:
+                        break
+                    data_end += 1
+                emit_data(pos, data_end, entity_addr, verified_state="unverified")
+                pos = data_end
             elif pos in hunk_session.jump_table_regions:
                 pos = emit_jump_table_rows(
-                    rows, hunk_session, pos, entity_addr, used_structs, emit_label)
+                    rows,
+                    hunk_session,
+                    pos,
+                    entity_addr,
+                    used_structs,
+                    emit_label,
+                    assembler_profile,
+                )
             else:
                 data_end = pos + 1
                 while (data_end < pass_end
@@ -879,26 +950,36 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         if owner is None:
             raise ValueError(f"Missing KB library include owner for LVO symbols: {lib_name}")
         if owner.kind == "native_include":
-            include_path = owner.include_path
-            assert include_path, f"Missing native include path for LVO symbols: {lib_name}"
-            include_paths.add(include_path)
+            canonical_include_path = owner.canonical_include_path
+            assert canonical_include_path, f"Missing canonical include path for LVO symbols: {lib_name}"
+            include_paths.add(canonical_include_path)
+            if session.assembler_profile_name == "devpac" and owner.assembler_include_path:
+                include_paths.add(owner.assembler_include_path)
             continue
         assert owner.kind == "fd_only", f"Unknown OS include owner kind for {lib_name}: {owner.kind}"
     includes = set(include_paths)
+    compatibility_includes = set(hardware_includes)
     includes.update(hardware_includes)
+    for lib_name in sorted(hunk_session.lvo_equs):
+        owner = _OS_INCLUDE_KB.library_lvo_owners[lib_name]
+        if owner.kind == "native_include":
+            canonical_include_path = owner.canonical_include_path
+            assert canonical_include_path, f"Missing canonical include path for LVO symbols: {lib_name}"
+            compatibility_includes.add(canonical_include_path)
     if used_structs:
         for struct_name in sorted(used_structs):
             os_include = _struct_include_source(hunk_session, struct_name)
             if os_include is None:
                 continue
             includes.add(os_include)
+            compatibility_includes.add(os_include)
     compat_floor = infer_emit_compatibility_floor(
         session,
-        include_paths=includes,
+        include_paths=compatibility_includes,
         struct_fields=collect_used_struct_fields(rows),
     )
     rows = _apply_compatibility_field_names(rows, hunk_session, compat_floor)
-    for inc in sorted(includes):
+    for inc in sorted(compatibility_includes):
         include_since = hunk_session.os_kb.META.include_min_versions.get(inc.lower())
         if include_since is None:
             raise ValueError(f"Missing KB include compatibility for {inc}")
@@ -987,6 +1068,7 @@ def build_listing_rows(binary_path: str, entities_path: str,
     session = build_disassembly_session(
         binary_path, entities_path, None,
         base_addr=base_addr, code_start=code_start,
+        assembler_profile_name="vasm",
     )
     return emit_session_rows(session)
 

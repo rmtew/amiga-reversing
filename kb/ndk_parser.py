@@ -2305,13 +2305,13 @@ def _canonical_include_relpath(lib_name: str, fd_stem: str) -> str:
     base_name, kind = lib_name.rsplit(".", 1)
     stem_lower = fd_stem.lower()
     if kind == "device":
-        return f"devices/{base_name.lower()}.i"
+        return f"devices/{stem_lower}_lib.i"
     if kind == "resource":
-        return f"resources/{base_name.lower()}.i"
+        return f"resources/{stem_lower}_lib.i"
     if kind == "gadget":
-        return f"gadgets/{base_name.lower()}.i"
+        return f"gadgets/{stem_lower}_lib.i"
     if kind == "datatype":
-        return f"datatypes/{base_name.lower()}.i"
+        return f"datatypes/{stem_lower}_lib.i"
     return f"{base_name.lower()}/{stem_lower}_lib.i"
 
 
@@ -2319,13 +2319,25 @@ def _native_include_candidates(include_dir: str, lib_name: str, fd_stem: str) ->
     base_name, kind = lib_name.rsplit(".", 1)
     stem_upper = fd_stem.upper()
     if kind == "device":
-        return [(os.path.join(include_dir, "DEVICES", f"{base_name.upper()}.I"), f"devices/{base_name.lower()}.i")]
+        return [
+            (os.path.join(include_dir, "DEVICES", f"{stem_upper}_LIB.I"), f"devices/{fd_stem.lower()}_lib.i"),
+            (os.path.join(include_dir, "DEVICES", f"{base_name.upper()}.I"), f"devices/{base_name.lower()}.i"),
+        ]
     if kind == "resource":
-        return [(os.path.join(include_dir, "RESOURCES", f"{base_name.upper()}.I"), f"resources/{base_name.lower()}.i")]
+        return [
+            (os.path.join(include_dir, "RESOURCES", f"{stem_upper}_LIB.I"), f"resources/{fd_stem.lower()}_lib.i"),
+            (os.path.join(include_dir, "RESOURCES", f"{base_name.upper()}.I"), f"resources/{base_name.lower()}.i"),
+        ]
     if kind == "gadget":
-        return [(os.path.join(include_dir, "GADGETS", f"{base_name.upper()}.I"), f"gadgets/{base_name.lower()}.i")]
+        return [
+            (os.path.join(include_dir, "GADGETS", f"{stem_upper}_LIB.I"), f"gadgets/{fd_stem.lower()}_lib.i"),
+            (os.path.join(include_dir, "GADGETS", f"{base_name.upper()}.I"), f"gadgets/{base_name.lower()}.i"),
+        ]
     if kind == "datatype":
-        return [(os.path.join(include_dir, "DATATYPES", f"{base_name.upper()}.I"), f"datatypes/{base_name.lower()}.i")]
+        return [
+            (os.path.join(include_dir, "DATATYPES", f"{stem_upper}_LIB.I"), f"datatypes/{fd_stem.lower()}_lib.i"),
+            (os.path.join(include_dir, "DATATYPES", f"{base_name.upper()}.I"), f"datatypes/{base_name.lower()}.i"),
+        ]
     return [
         (os.path.join(include_dir, base_name.upper(), f"{stem_upper}_LIB.I"), f"{base_name.lower()}/{fd_stem.lower()}_lib.i"),
         (os.path.join(include_dir, "LIBRARIES", f"{stem_upper}_LIB.I"), f"{base_name.lower()}/{fd_stem.lower()}_lib.i"),
@@ -2342,18 +2354,19 @@ def build_os_include_kb(
 
     for lib_name in sorted(fd_data):
         fd_stem = lib_name_to_fd_stem(lib_name)
+        assembler_include_path = _canonical_include_relpath(lib_name, fd_stem)
         native_match = None
         for candidate_path, candidate_relpath in _native_include_candidates(include_dir, lib_name, fd_stem):
             if os.path.isfile(candidate_path):
                 native_match = (candidate_path, candidate_relpath)
                 break
         if native_match is not None:
-            source_path, include_path = native_match
+            source_path, canonical_include_path = native_match
             source_file = source_path.replace(os.sep, "/")
             library_lvo_owners[lib_name] = {
                 "kind": "native_include",
-                "include_path": include_path,
-                "comment_include_path": include_path,
+                "canonical_include_path": canonical_include_path,
+                "assembler_include_path": assembler_include_path,
                 "source_file": source_file,
             }
             sources.append({
@@ -2368,8 +2381,8 @@ def build_os_include_kb(
             raise ValueError(f"Missing FD file for library include ownership: {fd_path}")
         library_lvo_owners[lib_name] = {
             "kind": "fd_only",
-            "include_path": None,
-            "comment_include_path": _canonical_include_relpath(lib_name, fd_stem),
+            "canonical_include_path": None,
+            "assembler_include_path": assembler_include_path,
             "source_file": fd_path.replace(os.sep, "/"),
         }
         sources.append({
@@ -2757,9 +2770,9 @@ def build_os_compatibility_kb(
     field_names_by_version: dict[tuple[str, str], dict[str, str]] = {}
 
     include_paths = {
-        _normalize_include_relpath(cast(str, owner["include_path"]))
+        _normalize_include_relpath(cast(str, owner["canonical_include_path"]))
         for owner in cast(dict[str, JsonDict], include_kb["library_lvo_owners"]).values()
-        if owner["include_path"] is not None
+        if owner["canonical_include_path"] is not None
     }
     include_paths.update(
         _normalize_include_relpath(cast(str, struct_def["source"]))
@@ -2833,8 +2846,8 @@ def build_os_compatibility_kb(
             field_names_by_version[(struct_name, field_name)] = names_by_version
 
     for owner in cast(dict[str, JsonDict], include_kb["library_lvo_owners"]).values():
-        include_path = owner["include_path"]
-        owner["available_since"] = None if include_path is None else include_min_versions[_normalize_include_relpath(cast(str, include_path))]
+        canonical_include_path = owner["canonical_include_path"]
+        owner["available_since"] = None if canonical_include_path is None else include_min_versions[_normalize_include_relpath(cast(str, canonical_include_path))]
 
     for struct_name, struct_def in structs.items():
         struct_def["available_since"] = struct_min_versions[struct_name]

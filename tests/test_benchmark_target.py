@@ -32,6 +32,7 @@ from scripts.benchmark_target import (
     TargetBenchmark,
     TimingBenchmark,
     _analysis_cache_paths,
+    _assembler_profile_for_target,
     _benchmark_binary_target,
     _benchmark_record,
     _disasm_benchmark,
@@ -192,6 +193,11 @@ def test_benchmark_binary_target_writes_compatibility_export(
         "floor": "1.3",
         "dependencies": [],
     }
+
+
+def test_assembler_profile_for_target_uses_devpac_for_genam(tmp_path: Path) -> None:
+    assert _assembler_profile_for_target(tmp_path / "amiga_hunk_genam") == "devpac"
+    assert _assembler_profile_for_target(tmp_path / "amiga_hunk_demo") == "vasm"
 
 
 def test_precommit_benchmark_targets_include_file_and_disk_sources(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

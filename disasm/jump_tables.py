@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from disasm.assembler_profiles import VASM_PROFILE, AssemblerProfile
 from disasm.instruction_rows import (
     emit_data_rows,
     make_instruction_row,
@@ -16,6 +17,45 @@ from disasm.types import (
 )
 
 
+def _has_emitted_target_label(
+    hunk_session: HunkDisassemblySession,
+    target: int,
+) -> bool:
+    entity_addrs = {
+        int(entity["addr"], 16)
+        for entity in hunk_session.entities
+        if isinstance(entity.get("addr"), str)
+    }
+    return (
+        target in hunk_session.blocks
+        or target in hunk_session.hint_blocks
+        or target in entity_addrs
+        or target in hunk_session.generic_data_label_addrs
+        or target in hunk_session.string_addrs
+        or target in hunk_session.jump_table_regions
+    )
+
+
+def _has_renderable_target_label(
+    hunk_session: HunkDisassemblySession,
+    target: int,
+    assembler_profile: AssemblerProfile,
+) -> bool:
+    if not assembler_profile.render.require_label_anchor_for_self_relative_data:
+        return target in hunk_session.labels
+    return _has_emitted_target_label(hunk_session, target)
+
+
+def _unaligned_dc_w_bytes_line(
+    value: int,
+    assembler_profile: AssemblerProfile,
+) -> str:
+    return (
+        f"    {assembler_profile.render.directives.dc_b}    "
+        f"${(value >> 8) & 0xFF:02x},${value & 0xFF:02x}\n"
+    )
+
+
 def emit_jump_table_rows(
     rows: list[ListingRow],
     hunk_session: HunkDisassemblySession,
@@ -23,6 +63,7 @@ def emit_jump_table_rows(
     entity_addr: int,
     used_structs: set[str],
     emit_label: Callable[[int], None],
+    assembler_profile: AssemblerProfile = VASM_PROFILE,
 ) -> int:
     jt: JumpTableRegion = hunk_session.jump_table_regions[pos]
     hunk_index = getattr(hunk_session, "hunk_index", 0)
@@ -70,11 +111,38 @@ def emit_jump_table_rows(
                         hunk_index=hunk_index,
                         verified_state="verified",
                     ),
+                    assembler_profile,
                 ))
-            tgt_label = hunk_session.labels[tgt]
+            if (
+                assembler_profile.render.require_label_anchor_for_self_relative_data
+                and entry_addr in hunk_session.labels
+                and entry_addr != pos
+            ):
+                emit_label(entry_addr)
+            target_has_label = _has_renderable_target_label(hunk_session, tgt, assembler_profile)
+            tgt_expr = hunk_session.labels[tgt] if target_has_label else f"${(tgt - entry_addr) & 0xFFFF:04x}"
+            entry_label = hunk_session.labels.get(entry_addr)
+            if assembler_profile.render.auto_align_dc_w and entry_addr % 2 != 0:
+                line = _unaligned_dc_w_bytes_line((tgt - entry_addr) & 0xFFFF, assembler_profile)
+            elif assembler_profile.render.require_label_anchor_for_self_relative_data:
+                assert entry_label is not None, (
+                    f"Missing jump-table entry label for ${entry_addr:04x}"
+                )
+                if target_has_label:
+                    line = (
+                        f"    {assembler_profile.render.directives.dc_w}    "
+                        f"{tgt_expr}-{entry_label}\n"
+                    )
+                else:
+                    line = (
+                        f"    {assembler_profile.render.directives.dc_w}    "
+                        f"{tgt_expr}\n"
+                    )
+            else:
+                line = f"    {assembler_profile.render.directives.dc_w}    {tgt_expr}-*\n"
             rows.extend(make_text_rows(
                 "data",
-                f"    dc.w    {tgt_label}-*\n",
+                line,
                 entity_addr=entity_addr,
                 addr=entry_addr,
                 verified_state="verified",
@@ -98,6 +166,7 @@ def emit_jump_table_rows(
                     hunk_index=hunk_index,
                     verified_state="verified",
                 ),
+                assembler_profile,
             ))
         return int(jt.table_end)
 
@@ -119,14 +188,43 @@ def emit_jump_table_rows(
                     hunk_index=hunk_index,
                     verified_state="verified",
                 ),
+                assembler_profile,
             ))
         if entry_addr in hunk_session.labels and entry_addr != pos:
             emit_label(entry_addr)
-        tgt_label = hunk_session.labels[tgt]
-        if jt.base_addr is None:
-            line = f"    dc.w    {tgt_label}-*\n"
+        target_has_label = _has_renderable_target_label(hunk_session, tgt, assembler_profile)
+        tgt_expr = hunk_session.labels[tgt] if target_has_label else f"${(tgt - entry_addr) & 0xFFFF:04x}"
+        entry_label = hunk_session.labels.get(entry_addr)
+        if assembler_profile.render.auto_align_dc_w and entry_addr % 2 != 0:
+            line = _unaligned_dc_w_bytes_line((tgt - entry_addr) & 0xFFFF, assembler_profile)
+        elif jt.base_addr is None:
+            if assembler_profile.render.require_label_anchor_for_self_relative_data:
+                assert entry_label is not None, (
+                    f"Missing jump-table entry label for ${entry_addr:04x}"
+                )
+                if target_has_label:
+                    line = (
+                        f"    {assembler_profile.render.directives.dc_w}    "
+                        f"{tgt_expr}-{entry_label}\n"
+                    )
+                else:
+                    line = (
+                        f"    {assembler_profile.render.directives.dc_w}    "
+                        f"{tgt_expr}\n"
+                    )
+            else:
+                line = f"    {assembler_profile.render.directives.dc_w}    {tgt_expr}-*\n"
         else:
-            line = f"    dc.w    {tgt_label}-{jt.base_label}\n"
+            if target_has_label:
+                line = (
+                    f"    {assembler_profile.render.directives.dc_w}    "
+                    f"{tgt_expr}-{jt.base_label}\n"
+                )
+            else:
+                line = (
+                    f"    {assembler_profile.render.directives.dc_w}    "
+                    f"{tgt_expr}\n"
+                )
         rows.extend(make_text_rows(
             "data",
             line,
@@ -153,5 +251,6 @@ def emit_jump_table_rows(
                 hunk_index=hunk_index,
                 verified_state="verified",
             ),
+            assembler_profile,
         ))
     return int(jt.table_end)

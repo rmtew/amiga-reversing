@@ -44,7 +44,7 @@ hunk_0_loc_0028:
     move.l #$3000,d1
     jsr -306(a6) ; unresolved_indirect_core:disp
 hunk_0_loc_0040:
-    lea sub_01ea(pc),a1
+    lea 424(pc),a1
     moveq #0,d0
     jsr -552(a6) ; unresolved_indirect_core:disp
 hunk_0_loc_004a:
@@ -239,7 +239,7 @@ hunk_0_loc_0028:
     move.l #$3000,d1
     jsr -306(a6) ; unresolved_indirect_core:disp
 hunk_0_loc_0040:
-    lea sub_01ea(pc),a1
+    lea 424(pc),a1
     moveq #0,d0
     jsr -552(a6) ; unresolved_indirect_core:disp
 hunk_0_loc_004a:
@@ -408,7 +408,7 @@ hunk_0_loc_01e2:
     move.l (sp)+,d0
     movem.l (sp)+,d1-d6/a0-a6
     rts
-sub_01ea:
+    dc.b    $00,$26
 hunk_0_loc_01ec:
     lea 7964(a4),a2
     adda.w d3,a2
@@ -514,25 +514,12 @@ hunk_0_loc_02fa:
     andi.b #$fe,-15992(a4)
     rts
 hunk_0_hint_0302:
-; --- unverified ---
-    link a5,#0
-    move.l a6,-(sp)
-    moveq #0,d0
-    movea.l 8(a5),a0
-    move.l 12(a5),d0
-    andi.b #$1,d0
-    movea.l a4,a6
-    adda.l d0,a6
-    move.b #$1,-15856(a6)
-    moveq #2,d1
-    sub.b d0,d1
-    move.b d1,d0
-    bsr.w hint_0a14
+    dc.b    $4e,$55,$00,$00,$2f,$0e,$70,$00,$20,$6d,$00,$08,$20,$2d,$00,$0c
+    dc.l    hunk_0_loc_0218
+    dc.b    $2c,$4c,$dd,$c0,$1d,$7c,$00,$01,$c2,$10,$72,$02,$92,$00,$10,$01
+    dc.b    $61,$00,$06,$ec
 hint_032a:
-; --- unverified ---
-    movea.l (sp)+,a6
-    unlk a5
-    rts
+    dc.b    ",_N]Nu"
 hunk_0_loc_0330:
     link a5,#0
     move.w 8(a5),d0
@@ -944,10 +931,10 @@ hunk_0_loc_0792:
     cmpi.b #$0,-15855(a4)
     beq.w hunk_0_loc_07a4
 hunk_0_loc_079c:
-    ori.b
+    ori.b #$1,ccr
     bra.w hunk_0_loc_07a8
 hunk_0_loc_07a4:
-    andi.b
+    andi.b #$fe,ccr
 hunk_0_loc_07a8:
     rts
 hunk_0_loc_07aa:
@@ -1178,14 +1165,9 @@ hunk_0_loc_0a0e:
     movem.l (sp)+,d0-d6/a0-a3/a6
     rts
 hint_0a14:
-; --- unverified ---
-    movem.l d0/a0,-(sp)
-    lea -15856(a4),a0
-    subq.l #1,d0
-    adda.l d0,a0
-    move.b #$0,(a0)
-    movem.l (sp)+,d0/a0
-    rts
+    dc.b    $48,$e7,$80,$80,$41,$ec,$c2,$10,$53,$80,$d1,$c0,$10,$bc,$00,$00
+    dc.b    $4c,$df,$01,$01
+    dc.b    $4e,$75
 hunk_0_loc_0a2a:
     movea.l 4(sp),a0
     movea.l 8(sp),a1
@@ -1218,7 +1200,7 @@ hunk_0_loc_0a5e:
     movem.l (sp)+,a2-a3
     rts
     dc.b    $4e,$75,$4e,$75
-sub_0a6a:
+hunk_0_loc_0a6a:
     movem.l d5-d7/a2-a3,-(sp)
     move.w 24(sp),d7
     movea.l 26(sp),a3
@@ -1768,283 +1750,126 @@ hint_0ef6:
     dc.b    "!2&m",0
     dc.b    $08
 hint_0f02:
-; --- unverified ---
-    cmpi.w #$20,10374(a4)
-    bge.w hint_0fde
+    dc.b    $0c,$6c,$00,$20,$28,$86,$6c,$00,$00,$d4
 hunk_0_hint_0f0c:
-; --- unverified ---
-    move.b (a3),d0
-    moveq #32,d1
-    cmp.b d1,d0
-    beq.s hint_0f20
+    dc.b    $10,$13,$72,$20,$b0,$01,$67,$0c
 hint_0f14:
-; --- unverified ---
-    moveq #9,d1
-    cmp.b d1,d0
-    beq.s hint_0f20
+    dc.b    $72,$09,$b0,$01,$67,$06
 hint_0f1a:
-; --- unverified ---
-    moveq #10,d1
-    cmp.b d1,d0
-    bne.s hint_0f24
+    dc.b    $72,$0a,$b0,$01,$66,$04
 hint_0f20:
-; --- unverified ---
-    addq.l #1,a3
-    bra.s hunk_0_hint_0f0c
+    dc.b    $52,$8b,$60,$e8
 hint_0f24:
-; --- unverified ---
-    move.b (a3),d0
-    beq.w hint_0fde
+    dc.b    $10,$13,$67,$00,$00,$b6
 hint_0f2a:
-; --- unverified ---
-    move.w 10374(a4),d1
-    ext.l d1
-    asl.l #2,d1
-    addq.w #1,10374(a4)
-    lea 10380(a4),a0
-    adda.l d1,a0
-    movea.l a0,a2
-    moveq #34,d1
-    cmp.b d1,d0
-    bne.s hint_0fb6
+    dc.b    $32,$2c,$28,$86,$48,$c1,$e5,$81,$52,$6c,$28,$86,$41,$ec,$28,$8c
+    dc.b    $d1,$c1,$24,$48,$72,$22,$b0,$01,$66,$72
 hint_0f44:
     dc.b    $52,$8b,$20,$4b,$24,$88,$2b,$48,$ff,$ee
 hint_0f4e:
-; --- unverified ---
-    move.b (a3),d0
-    moveq #34,d1
-    cmp.b d1,d0
-    beq.s hint_0fa6
+    dc.b    $10,$13,$72,$22,$b0,$01,$67,$50
 hint_0f56:
-; --- unverified ---
-    moveq #42,d1
-    cmp.b d1,d0
-    bne.s hint_0f9a
+    dc.b    $72,$2a,$b0,$01,$66,$3e
 hint_0f5c:
-; --- unverified ---
-    addq.l #1,a3
-    moveq #0,d0
-    move.b (a3),d0
-    subi.w #$45,d0
-    beq.s hint_0f70
+    dc.b    $52,$8b,$70,$00,$10,$13,$04,$40,$00,$45,$67,$08
 hint_0f68:
-; --- unverified ---
-    subi.w #$9,d0
-    beq.s hint_0f7e
+    dc.b    $04,$40,$00,$09,$67,$10
 hint_0f6e:
-; --- unverified ---
-    bra.s hint_0f8c
+    dc.b    $60,$1c
 hint_0f70:
-; --- unverified ---
-    movea.l -18(a5),a0
-    move.b #$17,(a0)+
-    move.l a0,-18(a5)
-    bra.s hint_0f96
+    dc.b    $20,$6d,$ff,$ee,$10,$fc,$00,$17,$2b,$48,$ff,$ee,$60,$18
 hint_0f7e:
-; --- unverified ---
-    movea.l -18(a5),a0
-    move.b #$a,(a0)+
-    move.l a0,-18(a5)
-    bra.s hint_0f96
+    dc.b    $20,$6d,$ff,$ee,$10,$fc,$00,$0a,$2b,$48,$ff,$ee,$60,$0a
 hint_0f8c:
     dc.b    $20,$6d,$ff,$ee,$10,$d3,$2b,$48,$ff,$ee
 hint_0f96:
-; --- unverified ---
-    addq.l #1,a3
-    bra.s hint_0f4e
+    dc.b    $52,$8b,$60,$b4
 hint_0f9a:
-; --- unverified ---
-    movea.l -18(a5),a0
-    move.b (a3)+,(a0)+
-    move.l a0,-18(a5)
-    bra.s hint_0f4e
+    dc.b    $20,$6d,$ff,$ee,$10,$db,$2b,$48,$ff,$ee,$60,$a8
 hint_0fa6:
-; --- unverified ---
-    addq.l #1,a3
-    movea.l -18(a5),a0
-    clr.b (a0)+
-    move.l a0,-18(a5)
-    bra.w hint_0f02
+    dc.b    $52,$8b,$20,$6d,$ff,$ee,$42,$18,$2b,$48,$ff,$ee,$60,$00,$ff,$4e
 hint_0fb6:
     dc.b    $24,$8b
 hint_0fb8:
-; --- unverified ---
-    move.b (a3),d0
-    beq.s hint_0fd2
+    dc.b    $10,$13,$67,$16
 hint_0fbc:
-; --- unverified ---
-    moveq #32,d1
-    cmp.b d1,d0
-    beq.s hint_0fd2
+    dc.b    $72,$20,$b0,$01,$67,$10
 hint_0fc2:
-; --- unverified ---
-    moveq #9,d1
-    cmp.b d1,d0
-    beq.s hint_0fd2
+    dc.b    $72,$09,$b0,$01,$67,$0a
 hint_0fc8:
-; --- unverified ---
-    moveq #10,d1
-    cmp.b d1,d0
-    beq.s hint_0fd2
+    dc.b    $72,$0a,$b0,$01,$67,$04
 hint_0fce:
-; --- unverified ---
-    addq.l #1,a3
-    bra.s hint_0fb8
+    dc.b    $52,$8b,$60,$e6
 hint_0fd2:
-; --- unverified ---
-    tst.b (a3)
-    bne.s hint_0fd8
+    dc.b    $4a,$13,$66,$02
 hint_0fd6:
-; --- unverified ---
-    bra.s hint_0fde
+    dc.b    $60,$06
 hint_0fd8:
-; --- unverified ---
-    clr.b (a3)+
-    bra.w hint_0f02
+    dc.b    $42,$1b,$60,$00,$ff,$26
 hint_0fde:
-; --- unverified ---
-    move.w 10374(a4),d0
-    bne.s hint_0fea
+    dc.b    $30,$2c,$28,$86,$66,$06
 hint_0fe4:
-; --- unverified ---
-    movea.l -15340(a4),a0
-    bra.s hint_0fee
+    dc.b    $20,$6c,$c4,$14,$60,$04
 hint_0fea:
     dc.b    $41,$ec,$28,$8c
 hint_0fee:
-; --- unverified ---
-    move.l a0,10376(a4)
-    tst.w d0
-    bne.w hint_1076
+    dc.b    $29,$48,$28,$88,$4a,$40,$66,$00,$00,$80
 hint_0ff8:
-; --- unverified ---
-    lea str_1134(pc),a1
-    lea 10316(a4),a6
-    move.l (a1)+,(a6)+
-    move.l (a1)+,(a6)+
-    move.l (a1)+,(a6)+
-    move.l (a1)+,(a6)+
-    move.w (a1),(a6)
-    movea.l -15340(a4),a1
-    movea.l 36(a1),a0
-    subq.w #2,sp
-    moveq #40,d0
-    move.w d0,-(sp)
-    move.l 4(a0),-(sp)
-    pea 10316(a4)
-    jsr hunk_0_loc_131a(pc)
+    dc.b    $43,$fa,$01,$3a,$4d,$ec,$28,$4c,$2c,$d9,$2c,$d9,$2c,$d9,$2c,$d9
+    dc.b    $3c,$91,$22,$6c,$c4,$14,$20,$69,$00
+    dc.b    "$UOp(?",0
+    dc.b    $2f,$28,$00,$04,$48,$6c,$28,$4c,$4e,$ba,$02,$f8
 hint_1024:
-; --- unverified ---
-    lea 12(sp),sp
-    lea 10316(a4),a0
-    move.l a0,d1
-    move.l #$3ee,d2
-    movea.l 10796(a4),a6
-    jsr -30(a6) ; unresolved_indirect_hint:disp
+    dc.b    $4f,$ef,$00,$0c,$41,$ec,$28,$4c,$22,$08,$24,$3c,$00,$00,$03,$ee
+    dc.b    $2c,$6c,$2a,$2c,$4e,$ae,$ff,$e2
 hint_103c:
-; --- unverified ---
-    move.l d0,10078(a4)
-    move.l d0,10084(a4)
-    moveq #16,d1
-    move.w d1,10082(a4)
-    move.l d0,10090(a4)
-    move.w d1,10088(a4)
-    asl.l #2,d0
-    move.l d0,-14(a5)
-    suba.l a1,a1
-    movea.l AbsExecBase,a6
-    jsr -294(a6) ; unresolved_indirect_hint:disp
+    dc.b    ")@","'","^)@","'","dr"
+    dc.b    $10
+    dc.b    "9A","'","b)@","'","j9A","'","h"
+    dc.b    $e5,$80,$2b,$40,$ff,$f2,$93,$c9,$2c,$78,$00,$04,$4e,$ae,$fe,$da
 hint_1062:
-; --- unverified ---
-    movea.l -14(a5),a0
-    movea.l d0,a1
-    move.l 8(a0),164(a1)
-    moveq #0,d7
-    move.l d0,-10(a5)
-    bra.s hint_10b6
+    dc.b    $20,$6d,$ff,$f2
+    dc.b    '"',"@#h",0
+    dc.b    $08,$00,$a4,$7e,$00,$2b,$40,$ff,$f6,$60,$40
 hint_1076:
-; --- unverified ---
-    movea.l 10796(a4),a6
-    jsr -54(a6) ; unresolved_indirect_hint:disp
+    dc.b    $2c,$6c,$2a,$2c,$4e,$ae,$ff,$ca
 hint_107e:
-; --- unverified ---
-    move.l d0,10078(a4)
-    movea.l 10796(a4),a6
-    jsr -60(a6) ; unresolved_indirect_hint:disp
+    dc.b    ")@","'","^,l*,N"
+    dc.b    $ae,$ff,$c4
 hint_108a:
-; --- unverified ---
-    move.l d0,10084(a4)
-    lea pcref_1146(pc),a0
-    move.l a0,d1
-    move.l #$3ed,d2
-    jsr -30(a6) ; unresolved_indirect_hint:disp
+    dc.b    $29,$40,$27,$64,$41,$fa,$00,$b6,$22,$08,$24,$3c,$00,$00,$03,$ed
+    dc.b    $4e,$ae,$ff,$e2
 hint_109e:
-; --- unverified ---
-    move.l d0,10090(a4)
-    tst.l d0
-    bne.s hint_10b4
+    dc.b    $29,$40,$27,$6a,$4a,$80,$66,$0e
 hint_10a6:
-; --- unverified ---
-    lea str_1148(pc),a0
-    move.l a0,d1
-    jsr -30(a6) ; unresolved_indirect_hint:disp
+    dc.b    $41,$fa,$00,$a0,$22,$08,$4e,$ae,$ff,$e2
 hint_10b0:
     dc.b    $29,$40,$27,$6a
 hint_10b4:
     dc.b    $7e,$10
 hint_10b6:
-; --- unverified ---
-    move.l d7,d0
-    ori.w #$8001,d0
-    or.w d0,10076(a4)
-    move.l d7,d0
-    ori.w #$8002,d0
-    or.w d0,10082(a4)
-    ori.w #$8003,10088(a4)
-    tst.w -15672(a4)
-    beq.s hint_10da
+    dc.b    $20,$07,$00,$40,$80,$01,$81,$6c,$27,$5c,$20,$07,$00,$40,$80,$02
+    dc.b    $81,$6c,$27,$62,$00,$6c,$80,$03,$27,$68,$4a,$6c,$c2,$c8,$67,$04
 hint_10d6:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hint_10de
+    dc.b    $70,$00,$60,$04
 hint_10da:
     dc.b    $30,$3c,$80,$00
 hint_10de:
-; --- unverified ---
-    move.l d0,d7
+    dc.b    $2e,$00
 hunk_0_loc_10e0:
-    clr.w -15724(a4)
-    move.l d7,d0
-    ori.w #$1,d0
-    move.w d0,-15726(a4)
-    move.w #$1,-15700(a4)
-    move.l d7,d0
-    ori.w #$2,d0
-    move.w d0,-15702(a4)
-    move.w #$2,-15676(a4)
-    move.l d7,d0
-    ori.w #$80,d0
-    move.w d0,-15678(a4)
-    lea pcref_116c(pc),a0
-    move.l a0,-15352(a4)
-    subq.w #2,sp
-    move.l 10376(a4),-(sp)
-    move.w 10374(a4),-(sp)
-    jsr sub_115a(pc)
+    dc.b    $42,$6c,$c2,$94,$20,$07,$00,$40,$00,$01,$39,$40,$c2,$92,$39,$7c
+    dc.b    $00,$01,$c2,$ac,$20,$07,$00,$40,$00,$02,$39,$40,$c2,$aa,$39,$7c
+    dc.b    $00,$02,$c2,$c4,$20,$07,$00,$40,$00,$80,$39,$40,$c2,$c2,$41,$fa
+    dc.b    $00,$5c,$29,$48,$c4,$08,$55,$4f,$2f,$2c,$28,$88,$3f,$2c,$28,$86
+    dc.b    $4e,$ba,$00,$38
 hunk_0_hint_1124:
-; --- unverified ---
-    clr.w (sp)
-    jsr hunk_0_loc_1e2a(pc)
+    dc.b    $42,$57,$4e,$ba,$0d,$02
 hint_112a:
-; --- unverified ---
-    movem.l -40(a5),d2/d7/a2-a3/a6
-    unlk a5
-    rts
+    dc.b    $4c,$ed,$4c,$84,$ff,$d8,$4e,$5d,$4e,$75
 str_1134:
     dc.b    $63,$6f
 hint_1136:
-; --- unverified ---
-    bgt.s hint_1172
+    dc.b    $6e,$3a
 hunk_0_hint_1138:
     dc.b    "10/10/320/80/",0
 pcref_1146:
@@ -2053,9 +1878,9 @@ str_1148:
     dc.b    $4e,$49
     dc.b    $4c,$3a
     dcb.b   14,0
-sub_115a:
-; --- unverified ---
-    jmp open_dos
+pcref_115a:
+    dc.b    $4e,$f9
+    dcb.b   4,0
 hint_1160:
     dcb.b   12,0
 pcref_116c:
@@ -2445,41 +2270,24 @@ hunk_0_hint_1454:
     dc.b    $00,$00
 hint_1456:
     dc.b    $48,$e7
+    dc.b    $01,$10,$26,$6f,$00,$0c,$3e,$2f,$00,$10
 hunk_0_hint_1462:
-; --- unverified ---
-    moveq #0,d0
-    move.b (a3),d0
-    cmp.w d7,d0
-    bne.s hint_146e
+    dc.b    $70,$00,$10,$13,$b0,$47,$66,$04
 hunk_0_hint_146a:
-; --- unverified ---
-    move.l a3,d0
-    bra.s hint_1476
+    dc.b    $20,$0b,$60,$08
 hint_146e:
-; --- unverified ---
-    move.b (a3)+,d0
-    tst.b d0
-    bne.s hunk_0_hint_1462
+    dc.b    $10,$1b,$4a,$00,$66,$ee
 hint_1474:
     dc.b    $70,$00
 hint_1476:
-; --- unverified ---
-    movem.l (sp)+,d7/a3
-    rts
+    dc.b    $4c,$df
+hunk_0_hint_1478:
+    dc.b    $08,$80,$4e,$75
 hunk_0_hint_147c:
-; --- unverified ---
-    movem.l d7/a3,-(sp)
-    movea.l 12(sp),a3
-    move.w 16(sp),d7
-    subq.w #2,sp
-    move.w d7,-(sp)
-    move.l a3,-(sp)
-    bsr.s hint_1456
+    dc.b    $48,$e7,$01,$10,$26,$6f,$00,$0c,$3e,$2f,$00,$10,$55,$4f,$3f,$07
+    dc.b    $2f,$0b,$61,$c6
 hunk_0_hint_1490:
-; --- unverified ---
-    addq.w #8,sp
-    movem.l (sp)+,d7/a3
-    rts
+    dc.b    $50,$4f,$4c,$df,$08,$80,$4e,$75
 hunk_0_loc_1498:
     movem.l d7/a2-a3,-(sp)
     movea.l 16(sp),a3
@@ -2520,10 +2328,7 @@ hunk_0_loc_14dc:
     movea.l (sp)+,a3
     rts
 hint_14e2:
-; --- unverified ---
-    clr.l d0
-    move.w 8(sp),d0
-    bra.s hunk_0_loc_14ee
+    dc.b    $42,$80,$30,$2f,$00,$08,$60,$04
 loc_14ea:
     move.l 8(sp),d0
 hunk_0_loc_14ee:
@@ -2581,16 +2386,11 @@ hint_1550:
 pcref_1552:
     dc.b    "0123456789ab"
 hint_155e:
-; --- unverified ---
-    bls.s $15c4
+    dc.b    $63,$64
 hint_1560:
-; --- unverified ---
-    bcs.s hint_15c8
+    dc.b    $65,$66
 hint_1562:
-; --- unverified ---
-    clr.l d0
-    move.w 8(sp),d0
-    bra.s hunk_0_loc_156e
+    dc.b    $42,$80,$30,$2f,$00,$08,$60,$04
 hunk_0_loc_156a:
     move.l 8(sp),d0
 hunk_0_loc_156e:
@@ -2618,46 +2418,29 @@ hint_1596:
     dc.b    $4e,$55,$ff,$f8,$48,$e7,$01,$30,$26,$6d,$00,$08,$24,$6d,$00,$0c
     dc.b    $7e,$00
 hint_15a8:
-; --- unverified ---
-    tst.b (a3)
-    beq.s hint_15d4
+    dc.b    $4a,$13,$67,$28
 hint_15ac:
     dc.b    $2b,$4a,$ff,$fc
 hint_15b0:
-; --- unverified ---
-    movea.l -4(a5),a0
-    move.b (a0),d0
-    beq.s hint_15c2
+    dc.b    $20,$6d,$ff,$fc,$10,$10,$67,$0a
 hint_15b8:
-; --- unverified ---
-    cmp.b (a3),d0
-    beq.s hint_15c2
+    dc.b    $b0,$13,$67,$06
 hint_15bc:
     dc.b    $52,$ad,$ff,$fc
 hint_15c0:
-; --- unverified ---
-    bra.s hint_15b0
+    dc.b    $60,$ee
 hint_15c2:
     dc.b    $20,$6d,$ff,$fc,$4a,$10
 hint_15c8:
-; --- unverified ---
-    bne.s hint_15ce
+    dc.b    $66,$04
 hint_15ca:
-; --- unverified ---
-    move.l d7,d0
-    bra.s hint_15d6
+    dc.b    $20,$07,$60,$08
 hint_15ce:
-; --- unverified ---
-    addq.w #1,d7
-    addq.l #1,a3
-    bra.s hint_15a8
+    dc.b    $52,$47,$52,$8b,$60,$d4
 hint_15d4:
     dc.b    $20,$07
 hint_15d6:
-; --- unverified ---
-    movem.l (sp)+,d7/a2-a3
-    unlk a5
-    rts
+    dc.b    $4c,$df,$0c,$80,$4e,$5d,$4e,$75
 hunk_0_loc_15de:
     link a5,#-8
     movem.l d7/a2-a3,-(sp)
@@ -2693,18 +2476,11 @@ hunk_0_loc_1616:
     unlk a5
     rts
 hint_161e:
-; --- unverified ---
-    movem.l a2-a3,-(sp)
-    movea.l 12(sp),a3
-    movea.l 16(sp),a2
-    move.l a2,-(sp)
-    move.l a3,-(sp)
-    bsr.w hint_1596
+    dc.b    $48,$e7,$00,$30,$26,$6f,$00,$0c,$24,$6f
+sub_1628:
+    dc.b    $00,$10,$2f,$0a,$2f,$0b,$61,$00,$ff,$66
 hint_1632:
-; --- unverified ---
-    addq.w #8,sp
-    movem.l (sp)+,a2-a3
-    rts
+    dc.b    $50,$4f,$4c,$df,$0c,$00,$4e,$75
 loc_163a:
     movem.l a2-a3,-(sp)
     movea.l 12(sp),a3
@@ -3148,30 +2924,20 @@ loc_1a16:
 hint_1a1a:
     dc.b    $48,$e7,$00,$32,$26,$6c,$29,$14
 hint_1a22:
-; --- unverified ---
-    move.l a3,d0
+    dc.b    $20,$0b
 sub_1a24:
-    beq.s hint_1a3a
+    dc.b    $67,$14
 hint_1a26:
-; --- unverified ---
-    movea.l (a3),a2
-    movea.l a3,a1
-    move.l 8(a1),d0
-    movea.l AbsExecBase,a6
-    jsr -210(a6) ; unresolved_indirect_hint:disp
+    dc.b    "$S",'"',"K )",0
+    dc.b    $08,$2c,$78,$00,$04,$4e,$ae,$ff,$2e
 hint_1a36:
-; --- unverified ---
-    movea.l a2,a3
+    dc.b    $26,$4a
 sub_1a38:
-    bra.s hint_1a22
+    dc.b    $60,$e8
 hint_1a3a:
-; --- unverified ---
-    suba.l a0,a0
-    move.l a0,10520(a4)
-    move.l a0,10516(a4)
-    movem.l (sp)+,a2-a3/a6
+    dc.b    $91,$c8,$29,$48,$29,$18,$29,$48,$29,$14,$4c,$df,$4c,$00
 sub_1a48:
-    rts
+    dc.b    $4e,$75
 hunk_0_loc_1a4a:
     movem.l d7/a2-a3,-(sp)
     move.w 16(sp),d7
@@ -3668,7 +3434,7 @@ hunk_0_loc_1e58:
     move.w d6,-(sp)
     move.l 12(a3),-(sp)
     move.w 20(a3),-(sp)
-    jsr sub_0a6a(pc)
+    jsr hunk_0_loc_0a6a(pc)
 loc_1e66:
     addq.w #8,sp
 hunk_0_loc_1e68:
@@ -4513,6 +4279,7 @@ hunk_1_loc_00b4:
 hunk_1_loc_00c0:
     pea ($0002).w
     jsr loc_217a(pc)
+    dc.b    $58,$4f,$0c,$80,$00,$00,$04,$e8,$64,$24
 hunk_1_loc_00d2:
     pea pcref_0438(pc)
     jsr hunk_1_loc_2192(pc)
@@ -4916,6 +4683,7 @@ hunk_1_loc_04c1:
     dc.b    $0a,$0a,$59
 hunk_1_loc_04ca:
     dc.b    $6f
+    dc.b    $75
 hunk_1_loc_04cc:
     movea.l 24953(a5),a0
 hunk_1_loc_04d0:
@@ -4953,8 +4721,10 @@ hunk_1_loc_053a:
     dc.b    $73,$74,$20
 loc_0541:
     move.w ([858923106,a2],d3.w*4,31092),d2
+    dc.b    $65,$73
 loc_054d:
     movea.l 26144(sp),a0
+    dc.b    $63,$68,$69
 hunk_1_loc_0554:
     moveq #32,d0
     moveq #97,d1
@@ -4989,6 +4759,8 @@ hunk_1_loc_0593:
 hunk_1_loc_0597:
     move.l d0,-(a4)
     ori.b #$0,d0
+    dc.b    $0a,$0a
+    dc.b    "You need "
 hunk_1_loc_05a8:
     bsr.s hunk_1_loc_061e
 hunk_1_loc_05aa:
@@ -5004,6 +4776,7 @@ loc_05c3:
     dc.b    $69,$70
 hunk_1_loc_05c5:
     movea.l ([8289,a2]),a0
+    dc.b    $6e
 hunk_1_loc_05cc:
     bcc.s hunk_1_loc_05ee
 hunk_1_loc_05ce:
@@ -5035,25 +4808,22 @@ hunk_1_loc_0609:
 hunk_1_loc_061c:
     dc.b    $49,$4e
 hunk_1_loc_061e:
-    chk.l d0,d3
+    chk.l d0,d3 ; 68020+
 str_0620:
     move.l usp,sp
     dc.b    $77
 hint_0623:
-; --- unverified ---
-    movea.l a4,a0
-    ble.s hunk_1_loc_0688
+    dc.b    $20,$4c,$6f,$61
 hint_0627:
-; --- unverified ---
-    bcc.s $692
+    dc.b    $64,$69
 hint_0629:
-; --- unverified ---
-    bgt.s $692
+    dc.b    $6e,$67
 loc_062b:
     move.l 11776(a6),d7
     dc.b    $00
 hunk_1_loc_0630:
     moveq #101,d1
+    dc.b    $73
 loc_0633:
     dc.b    $69,$64
 hunk_1_loc_0635:
@@ -5071,6 +4841,7 @@ hunk_1_loc_064f:
     bgt.s $6b8
 hunk_1_loc_0651:
     movea.l (31087,a4,d6.l*8),a0
+    dc.b    $75,$72,$73
 hunk_1_loc_065a:
     bcs.s hunk_1_loc_06c8
 hunk_1_loc_065c:
@@ -5107,6 +4878,7 @@ loc_06a5:
     bvs.s hunk_1_loc_0720
 loc_06ad:
     bgt.s $6d6
+    dc.b    "t here."
 hunk_1_loc_06b6:
     ori.b #$68,d0
     dc.b    $61,$3f
@@ -5117,6 +4889,7 @@ hunk_1_loc_06bf:
     bvc.s $700
 hunk_1_loc_06c1:
     ori.w #$6865,(a4)
+    dc.b    $20,$25,$73
 hunk_1_loc_06c8:
     movea.l 29472(a1),a0
     bsr.s hunk_1_loc_06ee
@@ -5126,8 +4899,11 @@ hunk_1_loc_06d0:
     dc.b    $6e,$63
 hunk_1_loc_06d2:
     bcs.s hunk_1_loc_0744
+    dc.b    $74,$2e,$00,$00
+    dc.b    "You can"
 hunk_1_loc_06df:
     move.l 117(a4,d2.w),29541(a3)
+    dc.b    $20
 hunk_1_loc_06e6:
     bsr.s $708
 hunk_1_loc_06e8:
@@ -5145,7 +4921,8 @@ hunk_1_loc_06f4:
 hunk_1_loc_06f8:
     move.l d0,d7
 str_06fa:
-    chk.l -(sp),d4
+    chk.l -(sp),d4 ; 68020+
+    dc.b    "m not sure to wha"
 hunk_1_loc_070d:
     moveq #32,d2
     dc.b    $79,$6f,$75,$27,$72
@@ -5179,24 +4956,24 @@ hunk_1_loc_0736:
     dc.b    $73,$20,$69,$73,$6e
 hunk_1_loc_073f:
     move.l 115(a4,d2.w),30066(a3)
+    dc.b    $65
 hunk_1_loc_0746:
     movea.l 97(sp,d6.l),a0
     moveq #32,d2
     bsr.s $7ba
 hunk_1_loc_074e:
     bge.s hunk_1_loc_0770
-    dc.b    "you're r"
+    dc.b    "you","'","re r"
 hunk_1_hint_0758:
-; --- unverified ---
-    bcs.s hunk_1_loc_07c0
+    dc.b    $65,$66
 hint_075a:
-; --- unverified ---
-    bcs.s hunk_1_loc_07ce
+    dc.b    $65,$72
     dc.b    $72,$69,$6e
 loc_075f:
     dc.b    $67
 hunk_1_loc_0760:
     dc.b    $20
+    dc.b    $74,$6f,$2e
 hunk_1_loc_0764:
     eori.b #$6f,d0
     dc.b    $75,$27
@@ -5250,12 +5027,10 @@ hunk_1_loc_07c9:
     ori.b #$6c,25953(a0)
     dc.b    $73
 hunk_1_hint_07d2:
-; --- unverified ---
-    bcs.s hunk_1_loc_07f4
+    dc.b    $65,$20
 hunk_1_hint_07d4:
-; --- unverified ---
-    bsr.s hunk_1_loc_0844
-    dc.b    "swer "y" "
+    dc.b    $61,$6e
+    dc.b    "swer ",'"',"y",'"'," "
 hint_07df:
     dc.b    $6f,$72
 hint_07e1:
@@ -5309,9 +5084,11 @@ hunk_1_loc_0832:
     dc.b    $6e,$67
 hunk_1_loc_0834:
     movea.l 24932(a5),a0
+    dc.b    $65
 loc_0839:
     move.l -(a0),d7
     subq.w #3,30060(sp)
+    dc.b    $64
 hunk_1_loc_0840:
     movea.l $6f75206c,a0
 hunk_1_loc_0846:
@@ -5354,6 +5131,7 @@ hunk_1_loc_0884:
     dc.b    $69
 loc_0885:
     dc.b    $65
+    dc.b    $00
 loc_0887:
     ori.w #$7564,-(a3)
 loc_088b:
@@ -5374,6 +5152,8 @@ loc_08a1:
     dc.b    $3a
 loc_08b3:
     dc.b    $20,$00
+    dc.b    $00,$20,$2a,$2a,$00
+    dc.b    "index.dat"
 hunk_1_loc_08c3:
     ori.w #$6200,67(a2,d0.w)
     subq.b #1,67(a0,d0.w)
@@ -5409,6 +5189,7 @@ hint_092f:
     dc.b    $1d,$cc,$29
 hunk_1_loc_0937:
     moveq #0,d6
+    dc.b    $00,$99,$ac
     dc.b    $1d,$f0,$29,$7c
     dc.l    dat_9a40
     dc.b    $1d,$e8,$29,$7c
@@ -5671,6 +5452,7 @@ hunk_1_loc_0b9e:
     subq.w #2,sp
     move.w -13104(a4),-(sp)
     jsr loc_2168(pc)
+    dc.b    $58,$4f,$20,$40,$08,$28,$00,$00,$00,$1e,$67,$56
 hunk_1_loc_0bb4:
     tst.w -32572(a4)
     bne.s hunk_1_loc_0c0a
@@ -6492,16 +6274,9 @@ hunk_1_loc_12ba:
     move.l (sp)+,d7
     rts
 hunk_1_hint_12c4:
-; --- unverified ---
-    subq.w #2,sp
-    clr.l -(sp)
-    move.l -32752(a4),-(sp)
-    move.w 7622(a4),-(sp)
-    jsr hunk_1_loc_2054(pc)
+    dc.b    $55,$4f,$42,$a7,$2f,$2c,$80,$10,$3f,$2c,$1d,$c6,$4e,$ba,$0d,$82
 hint_12d4:
-; --- unverified ---
-    lea 12(sp),sp
-    rts
+    dc.b    $4f,$ef,$00,$0c,$4e,$75
 hunk_1_loc_12da:
     move.l d7,-(sp)
     move.w 8(sp),d7
@@ -7355,6 +7130,7 @@ hunk_1_loc_1a28:
 hunk_1_loc_1a32:
     move.l d0,d6
     move.w 6978(a4),d0
+    dc.b    $32,$2c,$1b,$40,$74,$01,$39,$42,$1b,$40
 hunk_1_loc_1a42:
     move.w d2,6978(a4)
     move.w d0,36(sp)
@@ -7978,6 +7754,12 @@ hunk_1_loc_1fdc:
     jmp hunk_36_loc_1220
 hunk_1_loc_1fe2:
     jmp hunk_24_loc_00f2
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_002c
+    dc.b    $4e,$f9
+    dc.l    hunk_28_loc_0000
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_012a
 loc_1ffa:
     jmp hunk_23_loc_015e
 pcref_2000:
@@ -8184,6 +7966,7 @@ hunk_3_loc_0046:
     move.l d0,d0
 pcref_004a:
     eori.b #$2a,d0
+    dc.b    " ERR OPENI"
     dc.b    "NG DISK FILE"
 hunk_3_loc_0064:
     move.w -(a0),d5
@@ -8220,6 +8003,7 @@ hunk_3_loc_00a4:
 hunk_3_loc_00a8:
     moveq #104,d2
     movea.l 105(a4,d6.l),a0
+    dc.b    $73
 loc_00af:
     movea.l -(sp),a0
     bsr.s hunk_3_loc_0120
@@ -8227,6 +8011,7 @@ loc_00b3:
     dc.b    $65
 hunk_3_loc_00b4:
     dc.b    $20
+    dc.b    "version.",0
 hunk_3_str_00be:
     dc.b    "Game Loa"
 hunk_3_loc_00c6:
@@ -8265,6 +8050,7 @@ hunk_3_loc_0100:
 loc_0109:
     ori.b #$3e,11520(sp)
     cmpi.w #$43f,72(a0,d0.w)
+    dc.b    $6d,$00,$08,$3f,$07,$4e,$ba,$0d,$08
 hunk_3_loc_011e:
     addq.w #8,sp
 hunk_3_loc_0120:
@@ -8312,37 +8098,18 @@ hunk_3_loc_016c:
 hint_0178:
     dc.b    $48,$e7,$03,$10,$26,$6f,$00,$10,$3e,$2f,$00,$14,$20,$4b
 hint_0186:
-; --- unverified ---
-    tst.b (a0)+
-    bne.s hint_0186
+    dc.b    $4a,$18,$66,$fc
 hunk_3_hint_018a:
-; --- unverified ---
-    subq.l #1,a0
-    suba.l a3,a0
-    move.l a0,d6
-    move.l d6,d0
-    addq.w #1,d0
-    move.w d0,-(sp)
-    move.l a3,-(sp)
-    move.w d7,-(sp)
-    jsr hunk_3_loc_0e24(pc)
+    dc.b    $53,$88,$91,$cb,$2c,$08,$20,$06,$52,$40,$3f,$00,$2f,$0b,$3f,$07
+    dc.b    $4e,$ba,$0c,$88
 hint_019e:
-; --- unverified ---
-    addq.w #8,sp
-    move.l d6,d1
-    addq.w #1,d1
-    cmp.w d1,d0
-    bne.s hunk_3_hint_01ac
+    dc.b    $50,$4f,$22,$06,$52,$41,$b0,$41,$66,$04
 hunk_3_hint_01a8:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hint_01ae
+    dc.b    $70,$00,$60,$02
 hunk_3_hint_01ac:
     dc.b    $70,$ff
 hint_01ae:
-; --- unverified ---
-    movem.l (sp)+,d6-d7/a3
-    rts
+    dc.b    $4c,$df,$08,$c0,$4e,$75
 hunk_3_loc_01b4:
     link a5,#-12
     movem.l d2/d4-d7/a2-a3,-(sp)
@@ -9948,21 +9715,12 @@ hunk_4_loc_0202:
     movea.l (sp)+,a3
     rts
 hint_0206:
-; --- unverified ---
-    link a5,#-20
-    moveq #10,d0
-    move.w d0,-(sp)
-    pea -17(a5)
-    move.l 8(a5),-(sp)
-    jsr pcref_0428(pc)
+    dc.b    $4e,$55,$ff,$ec,$70,$0a,$3f,$00,$48,$6d,$ff,$ef,$2f,$2d,$00,$08
+    dc.b    $4e,$ba,$02,$10
 hunk_4_hint_021a:
-; --- unverified ---
-    pea -17(a5)
-    bsr.s hunk_4_loc_01d4
+    dc.b    $48,$6d,$ff,$ef,$61,$b4
 hunk_4_hint_0220:
-; --- unverified ---
-    unlk a5
-    rts
+    dc.b    $4e,$5d,$4e,$75
 hunk_4_loc_0224:
     link a5,#0
     move.l 8(a5),-(sp)
@@ -10160,56 +9918,33 @@ hunk_4_loc_03c2:
     unlk a5
     rts
 hint_03ca:
-; --- unverified ---
-    link a5,#-12
-    movem.l a2-a3,-(sp)
-    clr.w -10(a5)
-    lea 12(a5),a3
-    movea.l 8(a5),a2
-    pea -6756(a4)
-    jsr hunk_4_loc_043a(pc)
+    dc.b    $4e,$55,$ff,$f4,$48,$e7,$00,$30,$42,$6d,$ff,$f6,$47,$ed,$00,$0c
+    dc.b    $24,$6d,$00,$08,$48,$6c,$e5,$9c,$4e,$ba,$00,$56
 hunk_4_hint_03e6:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hunk_4_hint_040c
+    dc.b    $58,$4f,$60,$22
 hunk_4_hint_03ea:
-; --- unverified ---
-    move.l a2,-(sp)
-    pea -5358(a4)
-    jsr pcref_041c(pc)
+    dc.b    $2f,$0a,$48,$6c,$eb,$12,$4e,$ba,$00,$2a
 hint_03f4:
-; --- unverified ---
-    addq.w #8,sp
-    move.w -10(a5),d1
-    addq.w #1,d1
-    tst.l d0
-    beq.s hunk_4_hint_0404
+    dc.b    $50,$4f,$32,$2d,$ff,$f6,$52,$41,$4a,$80,$67,$04
 hunk_4_hint_0400:
-; --- unverified ---
-    move.l d1,d0
-    bra.s hint_0412
+    dc.b    $20,$01,$60,$0e
 hunk_4_hint_0404:
     dc.b    $24,$53,$58,$8b,$3b,$41,$ff,$f6
 hunk_4_hint_040c:
-; --- unverified ---
-    move.l a2,d0
-    bne.s hunk_4_hint_03ea
+    dc.b    $20,$0a,$66,$da
 hunk_4_hint_0410:
     dc.b    $70,$00
 hint_0412:
-; --- unverified ---
-    movem.l (sp)+,a2-a3
-    unlk a5
-    rts
+    dc.b    $4c,$df,$0c,$00,$4e,$5d,$4e,$75
     dc.b    $00,$00
 pcref_041c:
-; --- unverified ---
-    jmp hunk_0_loc_0c14
+    dc.b    $4e,$f9
+    dc.l    hunk_0_loc_0c14
 hunk_4_loc_0422:
     jmp hunk_36_loc_1d24
 pcref_0428:
-; --- unverified ---
-    jmp hunk_36_loc_1d62
+    dc.b    $4e,$f9
+    dc.l    hunk_36_loc_1d62
 hunk_4_loc_042e:
     jmp sub_1628
 hunk_4_loc_0434:
@@ -10226,7 +9961,7 @@ hunk_5_loc_0000:
 hunk_5_loc_0004:
     rts
 str_0006:
-    dc.b    "There's no mailbox here.",0
+    dc.b    "There","'","s no mailbox here.",0
     dc.b    $00
 str_0020:
     dc.b    "(Try Ctrl-Am"
@@ -10236,38 +9971,37 @@ hunk_5_hint_002e:
     dc.b    $61,$2d
     dc.b    "Amiga."
 hunk_5_hint_0036:
-; --- unverified ---
-    move.l d0,-(a4)
+    dc.b    $29,$00
 hunk_5_str_0038:
-    addq.w #1,105(a2,d7.w)
-    bvs.s hint_00ac
+    dc.b    "Rrriin"
 hint_003e:
     dc.b    $67,$00,$4f,$4b
 hint_0042:
     dc.b    $2c,$20
-    dc.b    "you've won.",0
+    dc.b    "you","'","ve won.",0
 hunk_5_str_0050:
     dc.b    "Hey, no fair!"
 hint_005d:
     dc.b    $00,$54,$68,$69
-    dc.b    "s isn't the thing that needs to be pulled.",0
+    dc.b    "s isn","'","t the thing that needs to be pulled.",0
 str_008c:
-    dc.b    "You can't"
+    dc.b    "You can","'","t"
 hint_0095:
     dc.b    $20,$70,$61,$67,$65
 hint_009a:
     dc.b    $20,$00,$2e,$00,$25
+    dc.b    "r prob"
 hint_00a5:
     dc.b    $61
 hint_00a6:
     dc.b    $62
 hint_00a7:
-; --- unverified ---
-    bge.s hint_0122
+    dc.b    $6c,$79
 hint_00a9:
-; --- unverified ---
-    movea.l -(a4),a0
-    ble.s hunk_5_hint_0112
+    dc.b    $20,$64,$6f
+hint_00ac:
+    dc.b    $65
+    dc.b    $73
 hint_00ae:
     dc.b    $6e,$27
 hint_00b0:
@@ -10278,17 +10012,14 @@ hint_00c6:
 hunk_5_hint_00cc:
     dc.b    " is no"
 hint_00d2:
-; --- unverified ---
-    moveq #32,d2
-    moveq #104,d2
-    bcs.s hunk_5_hint_00f8
+    dc.b    $74,$20,$74,$68,$65
+hint_00d7:
+    dc.b    $20
 hint_00d8:
     dc.b    $62,$65
+    dc.b    $73
 hunk_5_hint_00db:
-; --- unverified ---
-    moveq #32,d2
-    moveq #108,d0
-    bsr.s hint_0144
+    dc.b    "t plac"
 hint_00e1:
     dc.b    $65,$20
 hint_00e3:
@@ -10320,39 +10051,38 @@ hint_0114:
     dc.b    " of TH"
     dc.b    $4f,$53,$45,$2c,$20
 hint_011f:
-; --- unverified ---
-    bvc.s hint_0196
+    dc.b    $68,$75
 hint_0121:
-; --- unverified ---
-    bvc.s hunk_5_hint_0162
+    dc.b    $68
+hint_0122:
+    dc.b    $3f
 hint_0123:
-; --- unverified ---
-    ori.w #$6f75,(a1)+
+    dc.b    $00,$59,$6f,$75
 hint_0127:
-    movea.l -(a2),a0
-    bge.s hint_019a
+    dc.b    $20,$62,$6c
+hint_012a:
+    dc.b    $6f
+    dc.b    $77
 hunk_5_hint_012c:
     dc.b    " on ",0
     dc.b    $00,$2e,$20,$00,$00,$57,$68,$61,$74
 hint_013a:
-; --- unverified ---
-    movea.l -(a4),a0
-    ble.s hunk_5_hint_015e
+    dc.b    $20,$64,$6f,$20
     dc.b    $79
 hint_013f:
-; --- unverified ---
-    ble.s hint_01b6
+    dc.b    $6f,$75
 hint_0141:
-; --- unverified ---
-    movea.l 105(a4,d6.l),a0
-    bgt.s hint_01b2
+    dc.b    $20,$74,$68
+hint_0144:
+    dc.b    $69,$6e
+hint_0146:
+    dc.b    $6b
 hint_0147:
-    dc.b    " you're"
+    dc.b    " you","'","re"
 hunk_5_hint_014e:
     dc.b    $20
 hint_014f:
-; --- unverified ---
-    bcc.s hint_01c0
+    dc.b    $64,$6f
 hint_0151:
     dc.b    $69
 hunk_5_hint_0152:
@@ -10374,15 +10104,22 @@ hunk_5_hint_015e:
 hunk_5_hint_0160:
     dc.b    $72
 hint_0161:
-; --- unverified ---
-    movea.l 26214(sp),a0
+    dc.b    $20
+hunk_5_hint_0162:
+    dc.b    $6f,$66
+hunk_5_hint_0164:
+    dc.b    $66
 hint_0165:
-    bvs.s hint_01ca
+    dc.b    $69
+hunk_5_hint_0166:
+    dc.b    $63
 hint_0167:
-; --- unverified ---
-    bcs.s hunk_5_hint_01a8
+    dc.b    $65
+hunk_5_hint_0168:
+    dc.b    $3f
 hint_0169:
     dc.b    $00,$44,$6f,$65
+    dc.b    $73,$6e
 hint_016f:
     dc.b    $27
 hunk_5_hint_0170:
@@ -10392,21 +10129,18 @@ hint_0177:
 hint_0179:
     dc.b    $20,$64,$6f,$20
 hint_017d:
-; --- unverified ---
-    blt.s hint_01f4
+    dc.b    $6d,$75
 hint_017f:
     dc.b    $63,$68
 hint_0181:
-; --- unverified ---
-    movea.l -(sp),a0
-    ble.s hint_01f4
+    dc.b    $20,$67,$6f,$6f
 hint_0185:
     dc.b    $64,$2e
 hint_0187:
     dc.b    $00
     dc.b    "You can"
 hint_018f:
-    dc.b    "'t make"
+    dc.b    "'","t make"
 hint_0196:
     dc.b    $20
 hint_0197:
@@ -10425,6 +10159,7 @@ hunk_5_hint_01a8:
     dc.b    $6d,$61
 hint_01aa:
     dc.b    $6b
+    dc.b    $65
 hunk_5_hint_01ac:
     dc.b    $20
 hint_01ad:
@@ -10432,11 +10167,11 @@ hint_01ad:
 hint_01b0:
     dc.b    $74,$68
 hint_01b2:
-; --- unverified ---
-    bvs.s $222
+    dc.b    $69,$6e
 hint_01b4:
-; --- unverified ---
-    beq.s hunk_5_hint_01d6
+    dc.b    $67
+hint_01b5:
+    dc.b    $20
 hint_01b6:
     dc.b    $66
 hint_01b7:
@@ -10447,20 +10182,22 @@ hint_01b9:
     dc.b    $20,$00
 hint_01bb:
     dc.b    $00,$59,$6f
+    dc.b    $75,$00
 hint_01c0:
     dc.b    $20
 hunk_5_hint_01c1:
     dc.b    $63
+    dc.b    $61
 hint_01c3:
-; --- unverified ---
-    bgt.s $1ec
+    dc.b    $6e,$27
 hint_01c5:
-; --- unverified ---
-    moveq #32,d2
-    blt.s hunk_5_hint_022a
+    dc.b    $74,$20,$6d
+hint_01c8:
+    dc.b    $61
 hint_01c9:
-; --- unverified ---
-    bmi.s hint_0230
+    dc.b    $6b
+hint_01ca:
+    dc.b    $65
 hint_01cb:
     dc.b    $20
 hint_01cc:
@@ -10481,38 +10218,36 @@ hunk_5_hint_01d6:
     dc.b    $72,$65,$61,$6c
 hint_01da:
     dc.b    $6c
+    dc.b    $79
 hint_01dc:
-; --- unverified ---
-    movea.l -(a4),a0
-    ble.s $24e
+    dc.b    $20,$64,$6f,$6e
 hint_01e0:
-; --- unverified ---
-    move.l 110(a4,d2.w),25957(a3)
-    bcc.s hunk_5_hint_0208
+    dc.b    "'","t need "
 hunk_5_hint_01e8:
     dc.b    $74
 hint_01e9:
     dc.b    $6f,$20
 hint_01eb:
     dc.b    $62
+    dc.b    $75
     dc.b    "y anyth"
 hint_01f4:
-; --- unverified ---
-    bvs.s hint_0264
+    dc.b    $69,$6e
 hint_01f6:
-; --- unverified ---
-    beq.s hint_0218
+    dc.b    $67,$20
 hunk_5_hint_01f8:
     dc.b    $68,$65
 hunk_5_hint_01fa:
     dc.b    $72,$65,$2e
 hint_01fd:
     dc.b    $00
-    dc.b    "s isn't"
+    dc.b    $54,$68,$69
+    dc.b    "s isn","'","t"
 hunk_5_hint_0208:
     dc.b    $20,$74,$68
 hint_020b:
     dc.b    $65
+    dc.b    $20
 hint_020d:
     dc.b    $72,$69
 hint_020f:
@@ -10520,15 +10255,15 @@ hint_020f:
 hint_0211:
     dc.b    $74,$20
 hint_0213:
-; --- unverified ---
-    moveq #105,d2
-    blt.s hint_027c
+    dc.b    $74,$69,$6d,$65
 hint_0217:
-; --- unverified ---
-    movea.l 29216(sp),a0
-    moveq #108,d0
+    dc.b    $20
+hint_0218:
+    dc.b    $6f,$72
+hunk_5_hint_021a:
+    dc.b    $20,$70,$6c
 hint_021d:
-    bsr.s hunk_5_hint_0282
+    dc.b    $61,$63
 hint_021f:
     dc.b    $65
 hunk_5_hint_0220:
@@ -10537,6 +10272,7 @@ hint_0221:
     dc.b    $00,$4f,$68
 hint_0224:
     dc.b    $20
+    dc.b    $79,$65
 hint_0227:
     dc.b    $61,$68
 hint_0229:
@@ -10550,9 +10286,9 @@ hint_022f:
 hint_0230:
     dc.b    $20
 hint_0231:
-; --- unverified ---
-    movea.l -(a1),a1
-    bgt.s hunk_5_hint_02a8
+    dc.b    $22
+hunk_5_hint_0232:
+    dc.b    $61,$6e,$73
     dc.b    $77,$65,$72
 hunk_5_hint_0238:
     dc.b    $22,$20,$54,$48
@@ -10573,13 +10309,12 @@ hint_024f:
     dc.b    $2e,$2e
 hint_0251:
     dc.b    $2e,$74
-    dc.b    "s ain't just "
+    dc.b    $68,$69
+    dc.b    "s ain","'","t just "
 hunk_5_hint_0262:
-; --- unverified ---
-    bsr.s hint_02d2
+    dc.b    $61,$6e
 hint_0264:
-; --- unverified ---
-    ble.s hint_02da
+    dc.b    $6f,$74
 hunk_5_hint_0266:
     dc.b    $68,$65
 hint_0268:
@@ -10587,8 +10322,7 @@ hint_0268:
 hint_026e:
     dc.b    $20,$44,$6f,$6d
 hunk_5_hint_0272:
-; --- unverified ---
-    bcs.s hint_0294
+    dc.b    $65,$20
 hunk_5_hint_0274:
     dc.b    $67,$61
 hint_0276:
@@ -10597,23 +10331,23 @@ hunk_5_hint_0278:
     dc.b    $21
 hint_0279:
     dc.b    $00
+    dc.b    $53,$74
 hint_027c:
     dc.b    $61,$79
     dc.b    $20,$77,$69,$74
 hunk_5_hint_0282:
     dc.b    $68,$69
 hint_0284:
-; --- unverified ---
-    bgt.s hunk_5_hint_02a6
+    dc.b    $6e
+hint_0285:
+    dc.b    $20
 hunk_5_hint_0286:
-; --- unverified ---
-    moveq #104,d2
-    bcs.s hint_02aa
+    dc.b    $74,$68,$65,$20
 hunk_5_hint_028a:
     dc.b    $6c,$61
+    dc.b    $77,$2e,$00,$00,$59
 hint_0291:
-; --- unverified ---
-    ble.s hunk_5_hint_0308
+    dc.b    $6f,$75
 hint_0293:
     dc.b    $27
 hint_0294:
@@ -10624,6 +10358,7 @@ hint_029b:
     dc.b    $20
 hint_029c:
     dc.b    $74,$6f,$20,$73,$61
+    dc.b    $79
 hint_02a2:
     dc.b    $20,$77,$68,$61
 hunk_5_hint_02a6:
@@ -10633,22 +10368,15 @@ hunk_5_hint_02a8:
 hint_02aa:
     dc.b    " turn over.",0
 hunk_5_str_02b6:
-    dc.b    "It's n"
+    dc.b    "It","'","s n"
 hint_02bc:
-; --- unverified ---
-    ble.s hint_0332
+    dc.b    $6f,$74
 hint_02be:
-; --- unverified ---
-    movea.l -(a1),a0
-    movea.l -(a3),a0
-    ble.s hint_0332
+    dc.b    " a con"
 hint_02c4:
-; --- unverified ---
-    moveq #97,d2
-    bvs.s hunk_5_str_0336
+    dc.b    $74,$61,$69,$6e
 hint_02c8:
-; --- unverified ---
-    bcs.s hunk_5_str_033c
+    dc.b    $65,$72
 hint_02ca:
     dc.b    $2e,$00
 str_02cc:
@@ -10663,16 +10391,19 @@ hint_02d3:
     dc.b    $20
 hunk_5_hint_02d4:
     dc.b    $66
+    dc.b    $69
 hint_02d6:
     dc.b    $72,$73,$74,$2e
 hint_02da:
     dc.b    $00,$00,$49
 hint_02dd:
     dc.b    $20
+    dc.b    $64
 hint_02df:
     dc.b    $6f
 hint_02e0:
     dc.b    $6e
+    dc.b    $27
 hunk_5_hint_02e2:
     dc.b    $74,$20,$62,$65
 hint_02e6:
@@ -10683,8 +10414,7 @@ hunk_5_loc_02ea:
     bcs.s hunk_5_loc_030c
     dc.b    $79
 hint_02ed:
-; --- unverified ---
-    ble.s hunk_5_loc_0364
+    dc.b    $6f,$75
 hint_02ef:
     dc.b    $27,$72
 hint_02f1:
@@ -10703,33 +10433,30 @@ hint_0304:
     dc.b    $20
 hint_0305:
     dc.b    $74,$72
+    dc.b    $79
 hunk_5_hint_0308:
     dc.b    $2e
 hint_0309:
     dc.b    $00
+    dc.b    $49,$74
 hunk_5_loc_030c:
+    dc.b    "s molec"
     dc.b    "ular sta"
 hint_031b:
-; --- unverified ---
-    moveq #101,d2
-    movea.l 30067(a5),a0
-    moveq #32,d2
-    bhi.s hunk_5_loc_038a
+    dc.b    "te must be"
 hint_0325:
     dc.b    $20,$6c,$69,$71
     dc.b    "uid.",0
 str_032e:
     dc.b    $46,$69,$6c,$6c
 hint_0332:
-; --- unverified ---
-    bcs.s hunk_5_loc_0398
+    dc.b    $65,$64
 hunk_5_hint_0334:
     dc.b    $2e,$00
 hunk_5_str_0336:
     dc.b    $66,$65
 hunk_5_hint_0338:
-; --- unverified ---
-    bcs.s hunk_5_loc_03a6
+    dc.b    $65,$6c
     dc.b    $73,$00
 hunk_5_str_033c:
     dc.b    $43,$61,$72
@@ -10740,9 +10467,12 @@ hint_0347:
     dc.b    $74,$27
     dc.b    $73,$20,$73,$6c,$69
 hint_034e:
-; --- unverified ---
-    moveq #112,d0
-    bcs.s hint_03c4
+    dc.b    $70
+hint_034f:
+    dc.b    $70,$65
+hint_0351:
+    dc.b    $72
+    dc.b    "y when "
     dc.b    "wet.",0
 str_035e:
     dc.b    $53,$65
@@ -10785,7 +10515,7 @@ hunk_5_loc_0388:
 hunk_5_loc_038a:
     move.l d0,d7
 str_038c:
-    chk.l -(a0),d4
+    chk.l -(a0),d4 ; 68020+
     bmi.s $3fe
 hunk_5_loc_0390:
     dc.b    $6f,$77
@@ -10819,6 +10549,7 @@ hunk_5_loc_03cc:
     dc.b    $75,$73,$65,$64
 hunk_5_loc_03d4:
     move.l d0,d7
+    dc.b    $49,$6e,$20
 loc_03d9:
     moveq #104,d2
     dc.b    $65,$20
@@ -10828,20 +10559,21 @@ loc_03df:
     blt.s hunk_5_loc_0450
 hunk_5_loc_03e1:
     moveq #116,d1
+    dc.b    $61,$6c
 loc_03e5:
     movea.l ([1685266543,sp],26144),a0
     dc.b    "your m"
 hint_03f5:
     dc.b    $6f,$74
 hint_03f7:
-; --- unverified ---
-    bvc.s hunk_5_loc_045e
+    dc.b    $68,$65
     dc.b    $72,$2e,$2e,$2e
 loc_03fd:
     eori.w #$6f75,$206d6967
     dc.b    $68
 hunk_5_loc_0406:
     dc.b    $74
+    dc.b    $20,$70
 hunk_5_loc_0409:
     ble.s hunk_5_loc_0476
 hunk_5_loc_040b:
@@ -10851,6 +10583,7 @@ hunk_5_loc_0411:
     dc.b    $6f
 hunk_5_loc_0412:
     dc.b    $6e
+    dc.b    $65
 hunk_5_loc_0414:
     move.l 101(a3,d2.w),31077(a3)
 hunk_5_loc_041a:
@@ -10870,19 +10603,13 @@ str_0434:
     dc.b    $6f,$6e
     dc.b    $73
 hunk_5_hint_043c:
-; --- unverified ---
-    bvs.s hint_04a2
+    dc.b    $69,$64
 hint_043e:
-; --- unverified ---
-    bcs.s hunk_5_loc_04b2
+    dc.b    $65,$72
 hunk_5_hint_0440:
-; --- unverified ---
-    movea.l 29728(a1),a0
-    moveq #101,d0
-    bcs.s hunk_5_loc_04b4
+    dc.b    " it peel"
 hunk_5_hint_0448:
-; --- unverified ---
-    bcs.s hunk_5_loc_04ae
+    dc.b    $65,$64
 hint_044a:
     dc.b    $2e,$00
 hunk_5_loc_044c:
@@ -10891,6 +10618,7 @@ hunk_5_loc_0450:
     dc.b    $6d
 hunk_5_loc_0451:
     dc.b    $69
+    dc.b    $67
 hunk_5_loc_0453:
     dc.b    $68,$74
 hunk_5_loc_0455:
@@ -10901,6 +10629,7 @@ loc_045b:
     dc.b    $65
 hunk_5_loc_045e:
     dc.b    $74
+    dc.b    $20,$62,$61
 hunk_5_loc_0462:
     dc.b    $63,$6b
 hunk_5_loc_0464:
@@ -10913,12 +10642,14 @@ str_046a:
 hunk_5_loc_0471:
     movea.l a1,a0
     movea.l ([25632,a3]),a0
+    dc.b    $73,$6f,$2e,$00,$00
 str_047e:
+    dc.b    $4e,$6f
     dc.b    $77
 hunk_5_loc_0481:
     move.l d0,d7
     ori.b #$6f,-(a2)
-    dc.b    "u're welcome.",$22,0
+    dc.b    "u","'","re welcome.",'"',0
 str_0496:
     dc.b    "Who do you t"
 hint_04a2:
@@ -10962,11 +10693,13 @@ hunk_5_loc_04d9:
     dc.b    $65
 hunk_5_loc_04dc:
     dc.b    $6c
+    dc.b    $6c
 hunk_5_loc_04de:
     move.l -(a2),d0
     dc.b    $66
 loc_04e1:
     dc.b    $69
+    dc.b    $78
 hunk_5_loc_04e3:
     move.l -(a0),d1
     addq.w #2,a0
@@ -11032,89 +10765,44 @@ hunk_5_loc_0572:
 hunk_5_loc_0576:
     rts
 hint_0578:
-; --- unverified ---
-    pea str_0020(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$a6,$4e,$ba,$05,$42
 hint_0580:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hunk_5_hint_0586:
-; --- unverified ---
-    pea hunk_5_str_0038(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$b0,$4e,$ba,$05,$34
 hint_058e:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_0594:
-; --- unverified ---
-    pea -1366(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$aa,$4e,$ba,$05,$26
 hint_059c:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_05a0:
-; --- unverified ---
-    pea hunk_5_str_0050(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$ae,$4e,$ba,$05,$1a
 hint_05a8:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_05ae:
-; --- unverified ---
-    pea -1362(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$ae,$4e,$ba,$05,$0c
 hint_05b6:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_05bc:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,32(a0)
-    bne.s hint_05e4
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$66,$1c
 hint_05c8:
-; --- unverified ---
-    pea ($ffff).w
-    pea -1330(pc)
-    pea pcref_0a42(pc)
-    pea str_008c(pc)
-    jsr hunk_5_loc_0ab4(pc)
+    dc.b    $48,$78,$ff,$ff,$48,$7a,$fa,$ce,$48,$7a,$04,$70,$48,$7a,$fa,$b6
+    dc.b    $4e,$ba,$04,$da
 hint_05dc:
-; --- unverified ---
-    lea 16(sp),sp
-    moveq #1,d0
-    bra.s hint_060a
+    dc.b    $4f,$ef,$00,$10,$70,$01,$60,$26
 hint_05e4:
-; --- unverified ---
-    cmpi.w #$d5,-32674(a4)
-    beq.s hunk_5_hint_05fe
+    dc.b    $0c,$6c,$00,$d5,$80,$5e,$67,$12
 hint_05ec:
-; --- unverified ---
-    pea pcref_0a54(pc)
-    pea -1364(pc)
-    jsr hunk_5_loc_0ab4(pc)
+    dc.b    $48,$7a,$04,$66,$48,$7a,$fa,$ac,$4e,$ba,$04,$be
 hint_05f8:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_060a
+    dc.b    $50,$4f,$70,$01,$60,$0c
 hunk_5_hint_05fe:
-; --- unverified ---
-    pea -1336(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$c8,$4e,$ba,$04,$bc
 hunk_5_hint_0606:
     dc.b    $58,$4f,$70,$01
 hint_060a:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hunk_5_loc_060c:
     move.w -32674(a4),-(sp)
     jsr hunk_5_loc_0a8a(pc)
@@ -11150,114 +10838,55 @@ hunk_5_loc_064c:
 hunk_5_loc_064e:
     rts
 hint_0650:
-; --- unverified ---
-    pea str_010c(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$ba,$4e,$ba,$04,$6a
 hunk_5_hint_0658:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    rts
+    dc.b    $58,$4f,$70,$00,$4e,$75
 hint_065e:
-; --- unverified ---
-    moveq #1,d0
-    rts
+    dc.b    $70,$01,$4e,$75
 hint_0662:
-; --- unverified ---
-    pea -1344(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$c0,$4e,$ba,$04,$58
 hint_066a:
-; --- unverified ---
-    clr.w (sp)
-    jsr pcref_0a96(pc)
+    dc.b    $42,$57,$4e,$ba,$04,$28
 hint_0670:
-; --- unverified ---
-    pea -1344(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$c0,$4e,$ba,$04,$4a
 hint_0678:
-; --- unverified ---
-    jsr pcref_0a66(pc)
+    dc.b    $4e,$ba,$03,$ec
 hint_067c:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    rts
+    dc.b    $50,$4f,$70,$01,$4e,$75
 hint_0682:
-; --- unverified ---
-    pea -1358(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$b2,$4e,$ba,$04,$38
 hint_068a:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_0690:
-; --- unverified ---
-    pea -1320(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$d8,$4e,$ba,$04,$2a
 hint_0698:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    rts
+    dc.b    $58,$4f,$70,$00,$4e,$75
 hint_069e:
-; --- unverified ---
-    tst.w -32584(a4)
-    bne.s hint_06d8
+    dc.b    $4a,$6c,$80,$b8,$66,$34
 hint_06a4:
-; --- unverified ---
-    move.l 6484(a4),-(sp)
-    moveq #14,d0
-    move.w d0,-(sp)
-    jsr pcref_0a78(pc)
+    dc.b    $2f,$2c,$19,$54,$70,$0e,$3f,$00,$4e,$ba,$03,$ca
 hunk_5_hint_06b0:
-; --- unverified ---
-    addq.w #6,sp
-    move.w d0,-32584(a4)
-    bne.s hint_06c6
+    dc.b    $5c,$4f,$39,$40,$80,$b8,$66,$0e
 hint_06b8:
-; --- unverified ---
-    pea -1330(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$ce,$4e,$ba,$04,$02
 hint_06c0:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #2,d0
-    bra.s hunk_5_loc_070a
+    dc.b    $58,$4f,$70,$02,$60,$44
 hint_06c6:
-; --- unverified ---
-    moveq #2,d0
-    move.w d0,-(sp)
-    move.w -32584(a4),-(sp)
-    jsr pcref_0aae(pc)
+    dc.b    $70,$02,$3f,$00,$3f,$2c,$80,$b8,$4e,$ba,$03,$de
 hint_06d2:
-; --- unverified ---
-    jsr pcref_0a60(pc)
+    dc.b    $4e,$ba,$03,$8c
 hint_06d6:
     dc.b    $58,$4f
 hint_06d8:
-; --- unverified ---
-    tst.w -32672(a4)
-    beq.s hint_06f4
+    dc.b    $4a,$6c,$80,$60,$67,$16
 hint_06de:
-; --- unverified ---
-    move.w -32674(a4),-(sp)
-    move.w -32672(a4),-(sp)
-    move.w #$1ff,d0
-    move.w d0,-(sp)
-    jsr hunk_5_loc_0a4e(pc)
+    dc.b    $3f,$2c,$80,$5e,$3f,$2c,$80,$60,$30,$3c,$01,$ff,$3f,$00,$4e,$ba
+    dc.b    $03,$60
 hunk_5_hint_06f0:
-; --- unverified ---
-    addq.w #6,sp
-    bra.s hunk_5_loc_0708
+    dc.b    $5c,$4f,$60,$14
 hint_06f4:
-; --- unverified ---
-    moveq #26,d0
-    move.w d0,-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1ff,d1
-    move.w d1,-(sp)
-    jsr hunk_5_loc_0a4e(pc)
+    dc.b    $70,$1a,$3f,$00,$3f,$2c,$80,$5e,$32,$3c,$01,$ff,$3f,$01,$4e,$ba
+    dc.b    $03,$4a
 hint_0706:
     dc.b    $5c,$4f
 hunk_5_loc_0708:
@@ -11265,317 +10894,160 @@ hunk_5_loc_0708:
 hunk_5_loc_070a:
     rts
 hint_070c:
-; --- unverified ---
-    tst.w -32672(a4)
-    beq.s hint_0734
+    dc.b    $4a,$6c,$80,$60,$67,$22
 hint_0712:
-; --- unverified ---
-    moveq #26,d0
-    cmp.w -32672(a4),d0
-    beq.s hint_0734
+    dc.b    $70,$1a,$b0,$6c,$80,$60,$67,$1a
 hunk_5_hint_071a:
-; --- unverified ---
-    pea -1406(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$82,$4e,$ba,$03,$a0
 hint_0722:
-; --- unverified ---
-    jsr pcref_0a9c(pc)
+    dc.b    $4e,$ba,$03,$78
 hint_0726:
-; --- unverified ---
-    pea -1676(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$f9,$74,$4e,$ba,$03,$94
 hint_072e:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #2,d0
-    bra.s hint_0762
+    dc.b    $50,$4f,$70,$02,$60,$2e
 hint_0734:
-; --- unverified ---
-    tst.w -32584(a4)
-    beq.s hint_074c
+    dc.b    $4a,$6c,$80,$b8,$67,$12
 hunk_5_hint_073a:
-; --- unverified ---
-    movea.l 7644(a4),a0
-    adda.w #$26,a0
-    move.l a0,-(sp)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $20,$6c,$1d,$dc,$d0,$fc,$00,$26,$2f,$08,$4e,$ba,$03,$7a
 hint_0748:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_0756
+    dc.b    $58,$4f,$60,$0a
 hint_074c:
-; --- unverified ---
-    pea -1426(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$6e,$4e,$ba,$03,$6e
 hint_0754:
     dc.b    $58,$4f
 hint_0756:
-; --- unverified ---
-    pea hint_01c0(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$68,$4e,$ba,$03,$64
 hint_075e:
     dc.b    $58,$4f,$70,$00
 hint_0762:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_0764:
-; --- unverified ---
-    pea -1428(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$6c,$4e,$ba
+hint_076a:
+    dc.b    $03,$56
 hint_076c:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #2,d0
-    rts
+    dc.b    $58,$4f,$70,$02,$4e,$75
 hint_0772:
-; --- unverified ---
-    pea -1398(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$8a,$4e,$ba,$03,$48
 hint_077a:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_077e:
-; --- unverified ---
-    pea -1374(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$a2,$4e,$ba,$03,$3c
 hint_0786:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_078c:
-; --- unverified ---
-    moveq #49,d0
-    move.w d0,-(sp)
-    jsr pcref_0aa8(pc)
+    dc.b    $70,$31,$3f,$00,$4e,$ba,$03,$16
 hint_0794:
-; --- unverified ---
-    pea hunk_5_str_0240(pc)
-    jsr pcref_0a90(pc)
+    dc.b    $48,$7a,$fa,$aa,$4e,$ba,$02,$f6
 hint_079c:
-; --- unverified ---
-    move.w #$5,6990(a4)
-    pea pcref_024c(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $39,$7c,$00,$05,$1b,$4e,$48,$7a,$fa,$a8,$4e,$ba,$03,$18
 hint_07aa:
-; --- unverified ---
-    lea 10(sp),sp
-    moveq #1,d0
-    rts
+    dc.b    $4f,$ef,$00,$0a,$70,$01,$4e,$75
 hint_07b2:
-; --- unverified ---
-    pea -1338(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$c6,$4e,$ba,$03,$08
 hint_07ba:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hunk_5_hint_07c0:
-; --- unverified ---
-    tst.w -32674(a4)
-    beq.s hint_07e0
+    dc.b    $4a,$6c,$80,$5e,$67,$1a
 hunk_5_hint_07c6:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_0a48(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$02,$7c
 hint_07ce:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    beq.s hunk_5_hint_07da
+    dc.b    $58,$4f,$4a,$40,$67,$06
 hunk_5_hint_07d4:
-; --- unverified ---
-    jsr pcref_0a66(pc)
+    dc.b    $4e,$ba,$02,$90
 hint_07d8:
-; --- unverified ---
-    bra.s hint_07ea
+    dc.b    $60,$10
 hunk_5_hint_07da:
-; --- unverified ---
-    jsr pcref_0a84(pc)
+    dc.b    $4e,$ba
+hint_07dc:
+    dc.b    $02,$a8
+    dc.b    $60,$0a
 hint_07e0:
-; --- unverified ---
-    pea -1362(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$ae,$4e,$ba,$02,$da
 hint_07e8:
     dc.b    $58,$4f
 hint_07ea:
-; --- unverified ---
-    moveq #1,d0
-    rts
+    dc.b    $70,$01,$4e,$75
 hint_07ee:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #3,32(a0)
-    bne.s hint_080a
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$03,$00,$20,$66,$10
 hint_07fa:
-; --- unverified ---
-    pea hunk_5_str_02b6(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$ba,$4e,$ba,$02,$c0
 hint_0802:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.w hint_0896
+    dc.b    $58,$4f,$70,$01,$60,$00,$00,$8e
 hint_080a:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #0,32(a0)
-    bne.s hint_0824
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$00,$00,$20,$66,$0e
 hint_0816:
-; --- unverified ---
-    pea str_02cc(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$b4,$4e,$ba,$02,$a4
 hint_081e:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_0896
+    dc.b    $58,$4f,$70,$01,$60,$72
 hint_0824:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_0a48(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$02,$1e
 hint_082c:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_0840
+    dc.b    $58,$4f,$4a,$40,$66,$0e
 hint_0832:
-; --- unverified ---
-    pea -1368(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$a8,$4e,$ba,$02,$88
 hint_083a:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_0896
+    dc.b    $58,$4f,$70,$01,$60,$56
 hint_0840:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #0,31(a0)
-    beq.s hint_085a
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$00,$00,$1f,$67,$0e
 hint_084c:
-; --- unverified ---
-    pea -1358(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$b2,$4e,$ba,$02,$6e
 hint_0854:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_0896
+    dc.b    $58,$4f,$70,$01,$60,$3c
 hint_085a:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #3,31(a0)
-    bne.s hint_0874
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$03,$00,$1f,$66,$0e
 hint_0866:
-; --- unverified ---
-    pea -1374(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$a2,$4e,$ba,$02,$54
 hint_086e:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_0896
+    dc.b    $58,$4f,$70,$01,$60,$22
 hint_0874:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    move.l 7640(a4),-(sp)
-    jsr pcref_0a6c(pc)
+    dc.b    $2f,$2c,$1d,$d4,$2f,$2c,$1d,$d8,$4e,$ba,$01,$ee
 hint_0880:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    bclr #2,32(a0)
-    pea str_032e(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $20,$6c,$1d,$d8,$08,$a8,$00,$02,$00,$20,$48,$7a,$fa,$a2,$4e,$ba
+    dc.b    $02,$30
 hint_0892:
     dc.b    $4f,$ef,$00,$0c
 hint_0896:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_0898:
-; --- unverified ---
-    pea hunk_5_str_0336(pc)
-    jsr hint_0a3c(pc)
+    dc.b    $48,$7a,$fa,$9c,$4e,$ba,$01,$9e
 hint_08a0:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_08a6:
-; --- unverified ---
-    pea hunk_5_str_033c(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$94,$4e,$ba,$02,$14
 hint_08ae:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_08b4:
-; --- unverified ---
-    moveq #71,d0
-    cmp.w -32674(a4),d0
-    bne.s hint_08c8
+    dc.b    $70,$47,$b0,$6c,$80,$5e,$66,$0c
 hint_08bc:
-; --- unverified ---
-    pea str_035e(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$a0,$4e,$ba,$01,$fe
 hint_08c4:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_08d2
+    dc.b    $58,$4f,$60,$0a
 hint_08c8:
-; --- unverified ---
-    pea str_038c(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$c2,$4e,$ba,$01,$f2
 hint_08d0:
     dc.b    $58,$4f
 hint_08d2:
-; --- unverified ---
-    moveq #1,d0
-    rts
+    dc.b    $70,$01,$4e,$75
 hint_08d6:
-; --- unverified ---
-    tst.w -32672(a4)
-    bne.s hint_08f4
+    dc.b    $4a,$6c,$80,$60,$66,$18
 hint_08dc:
-; --- unverified ---
-    move.w #$5,6990(a4)
-    pea str_03ac(pc)
-    jsr hunk_5_loc_0ab4(pc)
+    dc.b    $39,$7c,$00,$05,$1b,$4e,$48,$7a,$fa,$c8,$4e,$ba,$01,$cc
 hint_08ea:
-; --- unverified ---
-    addq.w #4,sp
-    clr.w 7524(a4)
-    moveq #2,d0
-    bra.s hint_090a
+    dc.b    $58,$4f,$42,$6c,$1d,$64,$70,$02,$60,$16
 hint_08f4:
-; --- unverified ---
-    move.w -32674(a4),-(sp)
-    move.w -32672(a4),-(sp)
-    move.w #$201,d0
-    move.w d0,-(sp)
-    jsr hunk_5_loc_0a4e(pc)
+    dc.b    $3f,$2c,$80,$5e,$3f,$2c,$80,$60,$30,$3c,$02,$01,$3f,$00,$4e,$ba
+    dc.b    $01,$4a
 hint_0906:
     dc.b    $5c,$4f,$70,$01
 hint_090a:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_090c:
-; --- unverified ---
-    moveq #36,d0
-    move.w d0,-(sp)
-    jsr pcref_0aa8(pc)
+    dc.b    $70,$24,$3f,$00,$4e,$ba,$01,$96
 hint_0914:
-; --- unverified ---
-    pea -1360(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$b0,$4e,$ba,$01,$a6
 hint_091c:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    rts
+    dc.b    $5c,$4f,$70,$01,$4e,$75
 hunk_5_loc_0922:
     pea -1358(pc)
     jsr hunk_5_loc_0ac0(pc)
@@ -11584,171 +11056,84 @@ hunk_5_loc_092a:
     moveq #1,d0
     rts
 hint_0930:
-; --- unverified ---
-    move.w #$5,6990(a4)
-    pea str_0420(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $39,$7c,$00,$05,$1b,$4e,$48,$7a,$fa,$e8,$4e,$ba,$01,$84
 hint_093e:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_0944:
-; --- unverified ---
-    pea str_0434(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$ee,$4e,$ba,$01,$76
 hint_094c:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_0952:
-; --- unverified ---
-    pea hunk_5_loc_044c(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$f8,$4e,$ba,$01,$68
 hint_095a:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_0960:
-; --- unverified ---
-    pea str_046a(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fb,$08,$4e,$ba,$01,$5a
 hint_0968:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_096e:
-; --- unverified ---
-    pea str_047e(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fb,$0e,$4e,$ba,$01,$4c
 hint_0976:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_097c:
-; --- unverified ---
-    pea str_0484(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fb,$06,$4e,$ba,$01,$3e
 hint_0984:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_098a:
-; --- unverified ---
-    moveq #71,d0
-    cmp.w -32674(a4),d0
-    bne.s hint_09a6
+    dc.b    $70,$47,$b0,$6c,$80,$5e,$66,$14
 hint_0992:
-; --- unverified ---
-    moveq #45,d0
-    move.w d0,-(sp)
-    jsr pcref_0aa8(pc)
+    dc.b    $70,$2d,$3f,$00,$4e,$ba,$01,$10
 hint_099a:
-; --- unverified ---
-    pea str_0496(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$fa,$4e,$ba,$01,$20
 hint_09a2:
-; --- unverified ---
-    addq.w #6,sp
-    bra.s hint_09aa
+    dc.b    $5c,$4f,$60,$04
 hint_09a6:
-; --- unverified ---
-    jsr pcref_0aba(pc)
+    dc.b    $4e,$ba,$01,$12
 hint_09aa:
-; --- unverified ---
-    moveq #1,d0
-    rts
+    dc.b    $70,$01,$4e,$75
 hint_09ae:
-; --- unverified ---
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1b9,d0
-    move.w d0,-(sp)
-    jsr hunk_5_loc_0a4e(pc)
+    dc.b    $3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c,$01,$b9,$3f,$00,$4e,$ba
+    dc.b    $00,$90
 hunk_5_hint_09c0:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    rts
+    dc.b    $5c,$4f,$70,$01,$4e,$75
 hint_09c6:
-; --- unverified ---
-    move.w #$3,6990(a4)
-    pea str_04a8(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $39,$7c,$00,$03,$1b,$4e,$48,$7a,$fa,$da,$4e,$ba,$00,$ee
 hint_09d4:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_09da:
-; --- unverified ---
-    pea str_04d4(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $48,$7a,$fa,$f8,$4e,$ba,$00,$e0
 hint_09e2:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_09e8:
-; --- unverified ---
-    move.w #$5,6990(a4)
-    pea str_04ec(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $39,$7c,$00,$05,$1b,$4e,$48,$7a,$fa,$fc,$4e,$ba,$00,$cc
 hint_09f6:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_09fc:
-; --- unverified ---
-    moveq #14,d0
-    move.w d0,-(sp)
-    move.w -32674(a4),-(sp)
-    jsr pcref_0aa2(pc)
+    dc.b    $70,$0e,$3f,$00,$3f,$2c,$80,$5e,$4e,$ba,$00,$9c
 hint_0a08:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    beq.s hint_0a22
+    dc.b    $58,$4f,$4a,$40,$67,$14
 hint_0a0e:
-; --- unverified ---
-    move.w #$5,6990(a4)
-    pea str_0504(pc)
-    jsr hunk_5_loc_0ac0(pc)
+    dc.b    $39,$7c,$00,$05,$1b,$4e,$48,$7a,$fa,$ee,$4e,$ba,$00,$a6
 hint_0a1c:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_0a38
+    dc.b    $58,$4f,$70,$01,$60,$16
 hint_0a22:
-; --- unverified ---
-    move.w -32674(a4),-(sp)
-    moveq #26,d0
-    move.w d0,-(sp)
-    move.w #$1e0,d1
-    move.w d1,-(sp)
-    jsr hunk_5_loc_0a4e(pc)
+    dc.b    $3f,$2c,$80,$5e,$70,$1a,$3f,$00,$32,$3c,$01,$e0,$3f,$01,$4e,$ba
+    dc.b    $00,$1c
 hint_0a34:
     dc.b    $5c,$4f,$70,$01
 hint_0a38:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_0a3a:
     dc.b    $00,$00
 hint_0a3c:
     dc.b    $4e,$f9
     dc.l    hunk_8_loc_1148
 pcref_0a42:
-; --- unverified ---
-    jmp hunk_4_loc_002c
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_002c
 pcref_0a48:
-; --- unverified ---
-    jmp hunk_1_loc_18a0
+    dc.b    $4e,$f9
+    dc.l    hunk_1_loc_18a0
 hunk_5_loc_0a4e:
     jmp hunk_1_loc_1352
 pcref_0a54:
@@ -11757,50 +11142,50 @@ pcref_0a54:
 hunk_5_loc_0a5a:
     jmp hunk_8_loc_0708
 pcref_0a60:
-; --- unverified ---
-    jmp hunk_8_loc_1a42
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1a42
 pcref_0a66:
-; --- unverified ---
-    jmp hunk_8_loc_19f4
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_19f4
 pcref_0a6c:
-; --- unverified ---
-    jmp hunk_8_loc_053c
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_053c
 hunk_5_loc_0a72:
     jmp hunk_6_loc_1528
 pcref_0a78:
-; --- unverified ---
-    jmp hunk_8_loc_076a
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_076a
 pcref_0a7e:
-; --- unverified ---
-    jmp hunk_4_loc_0042
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_0042
 pcref_0a84:
-; --- unverified ---
-    jmp hunk_8_loc_1a00
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1a00
 hunk_5_loc_0a8a:
     jmp hunk_31_loc_3774
 pcref_0a90:
-; --- unverified ---
-    jmp hunk_31_loc_2da4
+    dc.b    $4e,$f9
+    dc.l    hunk_31_loc_2da4
 pcref_0a96:
-; --- unverified ---
-    jmp hunk_4_loc_00c6
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_00c6
 pcref_0a9c:
-; --- unverified ---
-    jmp hunk_4_loc_009a
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_009a
 pcref_0aa2:
-; --- unverified ---
-    jmp hunk_31_loc_3684
+    dc.b    $4e,$f9
+    dc.l    hunk_31_loc_3684
 pcref_0aa8:
-; --- unverified ---
-    jmp hunk_31_loc_392a
+    dc.b    $4e,$f9
+    dc.l    hunk_31_loc_392a
 pcref_0aae:
-; --- unverified ---
-    jmp hunk_1_loc_16ee
+    dc.b    $4e,$f9
+    dc.l    hunk_1_loc_16ee
 hunk_5_loc_0ab4:
     jmp hunk_4_loc_02e8
 pcref_0aba:
-; --- unverified ---
-    jmp hunk_6_loc_1220
+    dc.b    $4e,$f9
+    dc.l    hunk_6_loc_1220
 hunk_5_loc_0ac0:
     jmp hunk_4_loc_01d4
     dc.b    $70,$61
@@ -11834,12 +11219,9 @@ hunk_6_loc_0028:
 str_002a:
     dc.b    $77,$61
 hunk_6_hint_002c:
-; --- unverified ---
-    bvs.s $a2
+    dc.b    $69,$74
 hunk_6_hint_002e:
-; --- unverified ---
-    movea.l -(a6),a0
-    ble.s hint_00a4
+    dc.b    $20,$66,$6f,$72
 hint_0032:
     dc.b    $20,$74,$68,$61
 hunk_6_hint_0036:
@@ -11871,7 +11253,7 @@ hunk_6_loc_00c6:
 str_014e:
     dc.b    "               HELP SCREEN 1               ",0
 str_017a:
-    dc.b    "NEED MORE? GET LES' CLUE BOOK, CALL HIS HINT LINE, OR CONN"
+    dc.b    "NEED MORE? GET LES","'"," CLUE BOOK, CALL HIS HINT LINE, OR CONN"
 hunk_6_loc_01b4:
     dc.b    "ECT UP TO HIS BULLETIN BOARD."
     dc.b    $0a,$43,$4f
@@ -11879,14 +11261,14 @@ hunk_6_loc_01d4:
     link a3,#21836
     addq.b #2,-(a0)
     addq.w #2,a0
-    chk.l -(a0),d2
+    chk.l -(a0),d2 ; 68020+
     dc.b    $44,$4f
     dc.b    "CUMENTATION TO FIND OUT HOW!",0
     dc.b    $00
 str_01fe:
     dc.b    "               HELP SCREEN 2               ",0
 str_022a:
-    dc.b    "I can't. I don't remember what I was doing.",0
+    dc.b    "I can","'","t. I don","'","t remember what I was doing.",0
 str_0256:
     dc.b    "What do you think this is...a text adventure?",0
 dat_0284:
@@ -11955,6 +11337,7 @@ hunk_6_loc_035d:
 hunk_6_loc_035f:
     moveq #101,d3
     ori.w #$2e,86(a3,d0.w)
+    dc.b    $65,$72
 hunk_6_loc_0369:
     dc.b    $62,$20
 hunk_6_loc_036b:
@@ -11968,7 +11351,10 @@ hunk_6_loc_0374:
 hunk_6_loc_0378:
     addq.w #3,d5
     link a4,#20306
+    dc.b    $59,$2e,$00,$00
 str_0382:
+    dc.b    "LOOK",0
+    dc.b    $00,$46,$69
 hunk_6_loc_038a:
     bgt.s hunk_6_loc_03f0
 hunk_6_loc_038c:
@@ -11977,6 +11363,7 @@ hunk_6_loc_038c:
 hunk_6_loc_0398:
     move.l d0,d7
     eori.w #$5f6c,([27392,a6],1232349043)
+    dc.b    " too da"
 loc_03ad:
     moveq #107,d1
     movea.l (29541,a4,d6.l*8),a0
@@ -12054,7 +11441,10 @@ hunk_6_loc_046d:
     dc.b    $6e
 hunk_6_loc_0474:
     dc.b    $20
+    dc.b    $00
 str_0476:
+    dc.b    $25,$72,$2e,$00
+    dc.b    "Sittin"
 hunk_6_loc_0480:
     beq.s hunk_6_loc_04a2
 hunk_6_loc_0482:
@@ -12076,6 +11466,7 @@ hunk_6_loc_04a2:
     dc.b    $64
 hunk_6_loc_04a3:
     dc.b    $65
+    dc.b    $20
 hunk_6_loc_04a5:
     ori.w #$6f75,$2e000025
     moveq #32,d1
@@ -12085,7 +11476,7 @@ hunk_6_loc_04b1:
     bge.s $524
     dc.b    "sed.",0
 str_04ba:
-    dc.b    "I don't kn"
+    dc.b    "I don","'","t kn"
 hunk_6_loc_04c4:
     dc.b    $6f,$77
 hunk_6_loc_04c6:
@@ -12208,7 +11599,9 @@ hunk_6_loc_05c8:
     dc.b    "w keys"
 hunk_6_loc_05d0:
     movea.l (28015,a4,d6.l*8),a0
+    dc.b    $76,$65
 hunk_6_loc_05d8:
+    dc.b    $20
     dc.b    $4c,$65,$73
 hunk_6_loc_05dc:
     movea.l 28192(sp),a0
@@ -12224,6 +11617,7 @@ str_05ec:
     dc.b    $63
 hunk_6_loc_05f1:
     dc.b    $61
+    dc.b    $6e
 loc_05f3:
     move.l 103(a4,d2.w),25972(a3)
 hunk_6_loc_05f9:
@@ -12233,7 +11627,9 @@ loc_0601:
     dc.b    $6e,$00,$00
 hunk_6_loc_0604:
     dc.b    $20
+    dc.b    $25,$72,$2e,$00,$00
 str_060a:
+    dc.b    $54,$72
     dc.b    $79,$20
 hint_060e:
     dc.b    $6d,$6f
@@ -12245,13 +11641,14 @@ hunk_6_loc_0614:
     bcs.s $688
 hunk_6_loc_061c:
     bne.s hunk_6_loc_063e
+    dc.b    $74,$68,$65,$72,$65
 loc_0623:
     dc.b    " with the arrow keys or the"
 hunk_6_loc_063e:
     movea.l 28533(a5),a0
     dc.b    $73,$65,$2e,$00
 str_0646:
-    dc.b    "You can't"
+    dc.b    "You can","'","t"
 hunk_6_loc_064f:
     movea.l -(a4),a0
     dc.b    $6f,$20
@@ -12323,6 +11720,7 @@ hunk_6_loc_06cf:
     moveq #115,d1
     moveq #46,d2
     ori.w #$6869,(a4)
+    dc.b    $73,$20
 hunk_6_loc_06d9:
     bvs.s hunk_6_loc_074e
 hunk_6_loc_06db:
@@ -12340,8 +11738,10 @@ hunk_6_loc_06f0:
 hunk_6_loc_06f2:
     movea.l 101(a4,d6.l),a0
     movea.l 28514(a2),a0
+    dc.b    $21
 hunk_6_loc_06fb:
     ori.w #$6f75,(a1)+
+    dc.b    "r weak ar"
 hunk_6_loc_0708:
     bls.s $772
 hunk_6_loc_070a:
@@ -12399,6 +11799,7 @@ hunk_6_loc_075c:
     dc.b    $6e
 loc_075d:
     dc.b    $27
+    dc.b    "t have "
 loc_0765:
     move.l 0(a2,d2.l),89(a2)
     ble.s $7e2
@@ -12442,10 +11843,10 @@ hunk_6_loc_07aa:
     dc.b    $73,$6e
 hunk_6_loc_07b0:
     move.l 104(a4,d2.w),24950(a3)
+    dc.b    $65,$20,$65,$6e,$6f
     dc.b    $75
 hunk_6_hint_07bc:
-; --- unverified ---
-    beq.s loc_0826
+    dc.b    $67,$68
 hint_07be:
     dc.b    " room.",0
     dc.b    $00,$44,$6f,$6e,$65
@@ -12464,7 +11865,9 @@ hunk_6_hint_07d4:
 hunk_6_loc_07d8:
     moveq #32,d2
     move.l 111(a2,d2.w),28192(a2)
+    dc.b    $25,$72,$2e,$00
 str_07e4:
+    dc.b    $25,$72,$20,$69,$73
 loc_07e9:
     movea.l -(a1),a0
 loc_07eb:
@@ -12489,13 +11892,12 @@ hunk_6_loc_0809:
     dc.b    $61,$6e
     dc.b    $79
 hint_080c:
-; --- unverified ---
-    moveq #104,d2
-    bvs.s hunk_6_loc_087e
+    dc.b    $74,$68,$69,$6e
 hunk_6_loc_0810:
     beq.s hunk_6_loc_0832
 hunk_6_loc_0812:
     bne.s hunk_6_loc_0886
+    dc.b    $6f,$6d,$20
 hunk_6_loc_0817:
     move.l 0(a2,d2.l),37(a2)
     moveq #32,d1
@@ -12509,6 +11911,7 @@ hunk_6_loc_0825:
     bvc.s $88a
 hunk_6_loc_0829:
     moveq #101,d3
+    dc.b    $20
 hunk_6_loc_082c:
     move.l 0(a2,d2.l),9586(a2)
 hunk_6_loc_0832:
@@ -12547,6 +11950,7 @@ hunk_6_loc_086c:
     bcs.s $88e
 hunk_6_loc_086e:
     subq.w #7,(sp)+
+    dc.b    "_ to ___",'"'
 hunk_6_loc_0879:
     move.l d0,d7
     ori.w #$6976,-(sp)
@@ -12639,6 +12043,7 @@ hunk_6_loc_091a:
     movea.l 28532(a6),a0
     movea.l 28524(a0),a0
 hunk_6_loc_0922:
+    dc.b    $64
 loc_0923:
     dc.b    $69,$6e
 loc_0925:
@@ -12706,6 +12111,7 @@ hunk_6_loc_09ae:
     dc.b    $6e
 hunk_6_loc_09af:
     dc.b    $27
+    dc.b    "t think"
 loc_09b7:
     move.l -(a5),d0
     moveq #32,d1
@@ -12713,8 +12119,7 @@ loc_09b7:
 hunk_6_hint_09c0:
     dc.b    $20,$65
 hint_09c2:
-; --- unverified ---
-    bgt.s $a2e
+    dc.b    $6e,$6a
 hint_09c4:
     dc.b    $6f,$79
 hunk_6_loc_09c6:
@@ -12738,6 +12143,7 @@ loc_09e3:
 loc_09e9:
     move.l 110(a3,d2.w),28532(a3)
     movea.l 28524(a0),a0
+    dc.b    $64
 hunk_6_loc_09f4:
     bvs.s hunk_6_loc_0a64
 hunk_6_loc_09f6:
@@ -12755,16 +12161,19 @@ hunk_6_loc_0a02:
     move.l 119(a4,d2.w),25953(a3)
     moveq #32,d1
     move.l 0(a2,d2.l),19557(a2)
+    dc.b    "s is no"
     dc.b    $77
 hunk_6_loc_0a18:
     movea.l ([29289,sp]),a0
+    dc.b    $6e
 loc_0a1f:
     dc.b    $67,$20
 loc_0a21:
     move.l 0(a2,d2.l),73(a2)
+    dc.b    $20,$74,$68,$69,$6e
 hunk_6_loc_0a2c:
     bmi.s hunk_6_loc_0a4e
-    dc.b    "you've got Les co"
+    dc.b    "you","'","ve got Les co"
 hint_0a3f:
     dc.b    $6e,$66
 hunk_6_loc_0a41:
@@ -12778,6 +12187,7 @@ hunk_6_loc_0a4b:
     dc.b    $61
 hunk_6_loc_0a4e:
     dc.b    $74
+    dc.b    $20,$6f,$74
 hunk_6_loc_0a52:
     dc.b    $68,$65
 hunk_6_loc_0a54:
@@ -12795,6 +12205,7 @@ hunk_6_loc_0a68:
     bvs.s hunk_6_loc_0ade
 hunk_6_loc_0a6a:
     movea.l 28206(sp),a0
+    dc.b    $00,$00
 hunk_6_loc_0a70:
     subq.w #4,29984(sp)
     dc.b    $63,$61
@@ -12804,11 +12215,9 @@ hunk_6_loc_0a78:
     moveq #32,d2
     dc.b    $73
 hint_0a7b:
-; --- unverified ---
-    bvc.s hunk_6_loc_0ade
+    dc.b    $68,$61
 hint_0a7d:
-; --- unverified ---
-    bmi.s hunk_6_loc_0ae4
+    dc.b    $6b,$65
 hint_0a7f:
     dc.b    " it if"
     dc.b    $20
@@ -12826,9 +12235,11 @@ hunk_6_loc_0a95:
     dc.b    $69,$74
 loc_0a97:
     move.l d0,d7
+    dc.b    $00
 hunk_6_loc_0a9a:
     dc.b    $48,$65
     movea.l 97(a3,d6.l),a0
+    dc.b    $6b
 hunk_6_loc_0aa1:
     bcs.s hunk_6_loc_0b16
 hunk_6_loc_0aa3:
@@ -12856,6 +12267,7 @@ hunk_6_loc_0ac3:
     dc.b    $65
 hunk_6_loc_0ac6:
     dc.b    $74
+    dc.b    $74
     dc.b    $79,$20,$65,$6d,$70
 hunk_6_loc_0acd:
     moveq #121,d2
@@ -12874,6 +12286,7 @@ loc_0add:
 loc_0ae1:
     moveq #101,d1
     move.l 115(a3,d2.w),28525(a3)
+    dc.b    $65,$74
 hunk_6_loc_0aeb:
     bvc.s hunk_6_loc_0b56
 loc_0aed:
@@ -12938,6 +12351,7 @@ hunk_6_loc_0b3f:
 hunk_6_loc_0b43:
     moveq #111,d2
     movea.l 101(a4,d6.l),a0
+    dc.b    $20
 hunk_6_loc_0b4a:
     beq.s hunk_6_loc_0bbe
 hunk_6_loc_0b4c:
@@ -12950,6 +12364,7 @@ pcref_0b52:
     dc.b    $28,$77,$69,$74
 hunk_6_loc_0b56:
     bvc.s hunk_6_loc_0b78
+    dc.b    "his han"
 hunk_6_loc_0b5f:
     bcc.s hunk_6_loc_0bd4
 hunk_6_loc_0b61:
@@ -12976,6 +12391,7 @@ hunk_6_loc_0b7c:
     dc.b    $73,$74,$2e
 loc_0b81:
     ori.b #$73,26990(a0)
+    dc.b    $67
 hunk_6_loc_0b88:
     movea.l 28268(sp),a0
 hunk_6_loc_0b8c:
@@ -12984,9 +12400,7 @@ hunk_6_loc_0b8e:
     dc.b    $68,$69
     dc.b    $73
 hint_0b91:
-; --- unverified ---
-    movea.l 24942(a0),a0
-    bcc.s hunk_6_loc_0c0a
+    dc.b    " hands"
 hunk_6_loc_0b97:
     move.l a2,-(a4)
     ori.b #$20,-(a5)
@@ -13049,6 +12463,7 @@ hunk_6_loc_0be8:
     bcs.s hunk_6_loc_0c5c
 hunk_6_loc_0bee:
     bcs.s hunk_6_loc_0c54
+    dc.b    $2e
 loc_0bf1:
     ori.w #$7572,32(a4,d6.l)
     moveq #104,d2
@@ -13091,7 +12506,7 @@ loc_0c3b:
     ori.w #$6c79,-(a6)
     dc.b    $00
 str_0c40:
-    dc.b    "It's not"
+    dc.b    "It","'","s not"
 hunk_6_loc_0c48:
     movea.l ([27756,a2]),a0
     dc.b    "y nece"
@@ -13135,11 +12550,9 @@ loc_0cc1:
     ori.b #$6f,-(a2)
     dc.b    $75
 hint_0cc6:
-; --- unverified ---
-    movea.l -(a1),a0
-    bvs.s hunk_6_loc_0d38
+    dc.b    $20,$61,$69,$6e
 hint_0cca:
-    dc.b    "'t nothi"
+    dc.b    "'","t nothi"
 hint_0cd2:
     dc.b    $6e,$27
 hint_0cd4:
@@ -13181,6 +12594,7 @@ str_0d0c:
     dc.b    $66,$65
 hunk_6_loc_0d0e:
     bcs.s hunk_6_loc_0d7c
+    dc.b    $73
 loc_0d11:
     ori.w #$6173,101(a4,d7.w)
     dc.b    $73
@@ -13205,7 +12619,9 @@ hunk_6_loc_0d32:
 hunk_6_loc_0d34:
     ori.b #$4f,d0
 hunk_6_loc_0d38:
+    dc.b    $55,$20,$68
 loc_0d3b:
+    dc.b    $65
 hunk_6_loc_0d3c:
     bsr.s hunk_6_loc_0db0
 hunk_6_loc_0d3e:
@@ -13219,9 +12635,12 @@ loc_0d51:
     move.l -(a5),d2
     movea.l d0,a3
     movea.l $6f752c20,a0
+    dc.b    $74,$6f,$6f,$2e
 loc_0d5f:
     ori.w #$6f74,11776(a6)
+    dc.b    $00
 str_0d66:
+    dc.b    "OK. Put "
     dc.b    $79,$6f,$75,$72,$20
 loc_0d73:
     bge.s $dde
@@ -13229,6 +12648,7 @@ loc_0d75:
     moveq #115,d0
     movea.l 32(a5,d7.w),a0
     moveq #111,d2
+    dc.b    $20
 hunk_6_loc_0d7e:
     moveq #104,d2
     bcs.s hunk_6_loc_0da2
@@ -13247,6 +12667,7 @@ loc_0d93:
     dc.b    "sy playing"
 loc_0d9d:
     movea.l 105(a4,d6.l),a0
+    dc.b    $73
 hunk_6_loc_0da2:
     movea.l -(sp),a0
     dc.b    $61,$6d
@@ -13265,15 +12686,13 @@ hunk_6_loc_0db0:
     dc.b    "s nothing.",0
     dc.b    $00
 str_0dc6:
-    dc.b    " doesn't appear "
+    dc.b    " doesn","'","t appear "
 hunk_6_loc_0dd6:
     moveq #111,d2
     movea.l ([29728,sp],29807),a0
     dc.b    " talk "
 hunk_6_hint_0de6:
-; --- unverified ---
-    moveq #105,d1
-    beq.s hunk_6_hint_0e52
+    dc.b    $72,$69,$67,$68
 hint_0dea:
     dc.b    $74,$20,$6e,$6f
 hunk_6_loc_0dee:
@@ -13303,12 +12722,9 @@ hunk_6_loc_0e18:
     ori.b #$20,d0
     dc.b    $73,$69,$6e
 hint_0e1f:
-; --- unverified ---
-    bls.s hint_0e86
+    dc.b    $63,$65
 hint_0e21:
-; --- unverified ---
-    moveq #101,d1
-    bge.s hunk_6_loc_0e9e
+    dc.b    $72,$65,$6c,$79
     dc.b    $20
 hunk_6_loc_0e26:
     dc.b    $64,$6f
@@ -13316,15 +12732,13 @@ hunk_6_loc_0e26:
 hint_0e29:
     dc.b    $62,$74
 hint_0e2b:
-; --- unverified ---
-    move.l -(a5),d0
-    moveq #32,d1
-    bvs.s hunk_6_loc_0ea4
+    dc.b    " %r is"
     dc.b    $20,$6c,$69,$73,$74
 hunk_6_loc_0e36:
     bcs.s hunk_6_loc_0ea6
 hunk_6_loc_0e38:
     bvs.s $ea8
+    dc.b    $67
 loc_0e3b:
     move.l d0,d7
     ori.b #$20,-(a5)
@@ -13333,8 +12747,7 @@ loc_0e3b:
 str_0e50:
     dc.b    $28,$74
 hunk_6_hint_0e52:
-; --- unverified ---
-    ble.s hunk_6_loc_0e74
+    dc.b    $6f,$20
 hint_0e54:
     dc.b    $00,$00,$25,$72,$29,$0a
 hunk_6_loc_0e5a:
@@ -13346,12 +12759,14 @@ hunk_6_loc_0e5a:
 hunk_6_loc_0e6a:
     move.l d0,d0
 str_0e6c:
-    chk.l -(a0),d0
+    chk.l -(a0),d0 ; 68020+
     dc.b    $6c
 loc_0e6f:
     dc.b    $69
+    dc.b    $74
 loc_0e71:
     moveq #108,d2
+    dc.b    $65
 hunk_6_loc_0e74:
     movea.l -(a3),a0
 hunk_6_loc_0e76:
@@ -13377,6 +12792,7 @@ loc_0e97:
 loc_0e9f:
     moveq #32,d2
     blt.s hunk_6_loc_0f04
+    dc.b    $6b
 hunk_6_loc_0ea4:
     dc.b    $65,$73
 hunk_6_loc_0ea6:
@@ -13584,32 +13000,17 @@ hunk_6_loc_107c:
 loc_1082:
     rts
 hint_1084:
-; --- unverified ---
-    pea str_022a(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f1,$a4,$4e,$ba,$1d,$72
 hint_108c:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #2,d0
-    rts
+    dc.b    $58,$4f,$70,$02,$4e,$75
 hint_1092:
-; --- unverified ---
-    pea str_0256(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f1,$c2,$4e,$ba,$1d,$64
 hint_109a:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_10a0:
-; --- unverified ---
-    pea str_0256(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f1,$b4,$4e,$ba,$1d,$56
 hint_10a8:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hunk_6_loc_10ae:
     moveq #0,d0
     move.w d0,-32730(a4)
@@ -13686,129 +13087,71 @@ hunk_6_loc_1148:
     clr.b 7398(a4)
     rts
 hint_1164:
-; --- unverified ---
-    bsr.s hunk_6_loc_112a
+    dc.b    $61,$c4
 hint_1166:
-; --- unverified ---
-    clr.w -(sp)
-    moveq #1,d0
-    move.w d0,-(sp)
-    jsr sub_2da8(pc)
+    dc.b    $42,$67,$70,$01,$3f,$00,$4e,$ba,$1c,$3a
 hint_1170:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_117e
+    dc.b    $58,$4f,$4a,$40,$66,$08
 hint_1176:
-; --- unverified ---
-    move.w #$1,-32730(a4)
-    bra.s hint_1182
+    dc.b    $39,$7c,$00,$01,$80,$26,$60,$04
 hint_117e:
     dc.b    $42,$6c,$80,$26
 hint_1182:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1184:
-; --- unverified ---
-    clr.w -(sp)
-    moveq #1,d0
-    move.w d0,-(sp)
-    move.w #$1c6,d1
-    move.w d1,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $42,$67,$70,$01,$3f,$00,$32,$3c
+hint_118c:
+    dc.b    $01,$c6,$3f,$01,$4e,$ba,$1b,$4a
 hint_1194:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    rts
+    dc.b    $5c,$4f,$70,$01,$4e,$75
 hint_119a:
-; --- unverified ---
-    jsr pcref_2d96(pc)
+    dc.b    $4e,$ba,$1b,$fa
 hint_119e:
-; --- unverified ---
-    bsr.w hint_11a6
+    dc.b    $61,$00,$00,$06
 hint_11a2:
     dc.b    $70,$01
 hint_11a4:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_11a6:
-; --- unverified ---
-    move.w 7002(a4),-(sp)
-    pea hunk_6_str_0340(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $3f,$2c,$1b,$5a,$48,$7a,$f1,$94,$4e,$ba,$1c,$28
 hint_11b2:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    cmp.w 7002(a4),d0
-    beq.s hint_11c6
+    dc.b    $5c,$4f,$70,$01,$b0,$6c
+hint_11b8:
+    dc.b    $1b,$5a,$67,$0a
 hint_11bc:
-; --- unverified ---
-    pea pcref_0362(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f1,$a4,$4e,$ba,$1c,$3a
 hint_11c4:
-; --- unverified ---
-    addq.w #4,sp
+    dc.b    $58,$4f
 hint_11c6:
-    pea pcref_0364(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f1,$9c,$4e,$ba,$1c,$30
 hint_11ce:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hunk_6_hint_11d4:
-; --- unverified ---
-    pea str_0366(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f1,$90,$4e,$ba,$1c,$22
 hint_11dc:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #2,d0
-    rts
+    dc.b    $58,$4f,$70,$02,$4e,$75
 hint_11e2:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cc4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba
+hint_11e8:
+    dc.b    $1a,$dc
 hint_11ea:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    beq.s hint_11fe
+    dc.b    $58,$4f,$4a,$40,$67,$0e
 hint_11f0:
-; --- unverified ---
-    pea str_0376(pc)
-    jsr pcref_2ce2(pc)
+    dc.b    $48,$7a,$f1,$84,$4e,$ba,$1a,$ec
 hint_11f8:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_121e
+    dc.b    $58,$4f,$70,$01,$60,$20
 hint_11fe:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr loc_2dba(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$1b,$b6
 hint_1206:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    beq.s hint_121a
+    dc.b    $58,$4f,$4a,$40,$67,$0e
 hint_120c:
-; --- unverified ---
-    pea str_0382(pc)
-    jsr pcref_2ce2(pc)
+    dc.b    $48,$7a,$f1,$74,$4e,$ba,$1a,$d0
 hint_1214:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_121e
+    dc.b    $58,$4f,$70,$01,$60,$04
 hint_121a:
-; --- unverified ---
-    bsr.w hunk_6_loc_1220
+    dc.b    $61,$00,$00,$04
 hint_121e:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hunk_6_loc_1220:
     pea -3738(pc)
     jsr loc_2dfc(pc)
@@ -13819,384 +13162,191 @@ hunk_6_loc_1228:
 dat_122e:
     dc.b    $42,$a7,$48,$7a,$f1,$68,$4e,$ba,$1b,$36,$50,$4f
 hint_123a:
-; --- unverified ---
-    cmpi.w #$191,-32732(a4)
-    bne.s hint_124c
+    dc.b    $0c,$6c,$01,$91,$80,$24,$66,$0a
 hint_1242:
     dc.b    $20,$6c,$19,$54,$08,$a8,$00,$05
 hint_124a:
     dc.b    $00,$20
 hint_124c:
-; --- unverified ---
-    tst.w -32724(a4)
-    bne.s hint_125c
+    dc.b    $4a,$6c,$80,$2c,$66,$0a
 hint_1252:
-; --- unverified ---
-    jsr pcref_2dcc(pc)
+    dc.b    $4e,$ba,$1b,$78
 hint_1256:
-; --- unverified ---
-    jsr pcref_2df6(pc)
+    dc.b    $4e,$ba,$1b,$9e
 hint_125a:
-; --- unverified ---
-    bra.s hint_1266
+    dc.b    $60,$0a
 hint_125c:
-; --- unverified ---
-    pea str_03a2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f1,$44,$4e,$ba,$1b,$9a
 hint_1264:
     dc.b    $58,$4f
 hint_1266:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1268:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #4,31(a0)
-    bne.s hint_12a0
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$04,$00,$1f,$66,$2c
 hint_1274:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_1286
+    dc.b    $4a,$6c,$80,$5e,$66,$0c
 hint_127a:
-; --- unverified ---
-    pea hunk_6_loc_03b8(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$f1,$3c,$4e,$ba,$1b,$34
 hint_1282:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_129c
+    dc.b    $58,$4f,$60,$16
 hint_1286:
-; --- unverified ---
-    pea str_03c4(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$f1,$3c,$4e,$ba,$1b,$28
 hint_128e:
-; --- unverified ---
-    jsr pcref_2c9a(pc)
+    dc.b    $4e,$ba,$1a,$0a
 hint_1292:
-; --- unverified ---
-    pea pcref_0364(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f0,$d0,$4e,$ba,$1b,$64
 hint_129a:
     dc.b    $50,$4f
 hint_129c:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hint_12b6
+    dc.b    $70,$00,$60,$16
 hint_12a0:
-; --- unverified ---
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1a1,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c,$01,$a1,$3f,$00,$4e,$ba
+    dc.b    $1a,$2c
 hint_12b2:
     dc.b    $5c,$4f,$70,$01
 hint_12b6:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_12b8:
-; --- unverified ---
-    link a5,#-4
-    move.l a3,-(sp)
-    tst.w -32672(a4)
-    beq.s hint_12ea
+    dc.b    $4e,$55,$ff,$fc,$2f,$0b,$4a,$6c,$80,$60,$67,$26
 hunk_6_hint_12c4:
-; --- unverified ---
-    move.l 7640(a4),-(sp)
-    move.l 7636(a4),-(sp)
-    jsr hunk_6_loc_2d9c(pc)
+    dc.b    $2f,$2c,$1d,$d8,$2f,$2c,$1d,$d4,$4e,$ba,$1a,$ce
 hint_12d0:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    bne.s hint_12ea
+    dc.b    $50,$4f,$4a,$40,$66,$14
 hint_12d6:
-; --- unverified ---
-    pea pcref_2d06(pc)
-    pea hunk_6_loc_03d8(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$1a,$2e,$48,$7a,$f0,$fc,$4e,$ba,$1a,$f8
 hint_12e2:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #2,d0
-    bra.w hint_14c8
+    dc.b    $50,$4f,$70,$02,$60,$00,$01,$e0
 hint_12ea:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    move.w (a0),d0
-    muls.w #$c,d0
-    movea.l 7648(a4),a1
-    adda.l d0,a1
-    movea.l a1,a3
-    tst.l 8(a3)
-    beq.s hint_1378
+    dc.b    $20,$6c,$1d,$d4,$30,$10,$c1,$fc,$00,$0c,$22,$6c,$1d,$e0,$d3,$c0
+    dc.b    $26,$49,$4a,$ab,$00,$08,$67,$76
 hint_1302:
-; --- unverified ---
-    tst.w 6(a3)
-    beq.s hint_1326
+    dc.b    $4a,$6b,$00,$06,$67,$1e
 hint_1308:
-; --- unverified ---
-    pea 7124(a4)
-    move.l -32748(a4),-(sp)
-    move.w 6(a3),-(sp)
-    jsr sub_2d0c(pc)
+    dc.b    $48,$6c,$1b,$d4,$2f,$2c,$80,$14,$3f,$2b,$00,$06,$4e,$ba,$19,$f6
 hint_1318:
-; --- unverified ---
-    lea 10(sp),sp
-    tst.w d0
-    beq.s hint_132a
+    dc.b    $4f,$ef,$00,$0a,$4a,$40,$67,$0a
 hint_1320:
-; --- unverified ---
-    moveq #2,d0
-    bra.w hint_14c8
+    dc.b    $70,$02,$60,$00,$01,$a4
 hint_1326:
     dc.b    $42,$2c,$1b,$d4
 hint_132a:
     dc.b    $20,$6c,$1d,$d4,$d0,$fc,$00,$26,$43,$ec,$1b,$84
 hint_1336:
-; --- unverified ---
-    move.b (a0)+,(a1)+
-    bne.s hint_1336
+    dc.b    $12,$d8,$66,$fc
 hint_133a:
     dc.b    $70,$01,$39,$40,$1b,$82,$39,$40,$1c,$da,$20,$6c,$1d,$d4,$32,$10
     dc.b    $c3,$fc,$00,$0c,$20,$6c,$1d,$e0
 hint_1352:
-; --- unverified ---
-    adda.l d1,a0
-    move.l 8(a0),7382(a4)
-    lea -32684(a4),a0
-    move.l a0,7394(a4)
-    move.b #$1,7392(a4)
-    clr.w -(sp)
-    move.w d0,-(sp)
-    jsr sub_2da8(pc)
+    dc.b    $d1,$c1,$29,$68,$00,$08,$1c,$d6,$41,$ec,$80,$54,$29,$48,$1c,$e2
+    dc.b    $19,$7c,$00,$01,$1c,$e0,$42,$67,$3f,$00,$4e,$ba,$1a,$3a
 hint_1370:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.w hint_14c8
+    dc.b    $58,$4f,$70,$01,$60,$00,$01,$52
 hint_1378:
-; --- unverified ---
-    tst.w 6(a3)
-    bne.w hint_141a
+    dc.b    $4a,$6b,$00,$06,$66,$00,$00,$9c
 hint_1380:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr hunk_6_loc_2d48(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$19,$c2
 hint_1388:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    beq.s hunk_6_hint_13be
+    dc.b    "XOJ@g0"
 hint_138e:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,30(a0)
-    bne.s hunk_6_hint_13be
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$1e,$66,$24
 hint_139a:
-; --- unverified ---
-    move.w #$1,-32720(a4)
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$192,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $39,$7c,$00,$01,$80,$30,$3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c
+    dc.b    $01,$92,$3f,$00,$4e,$ba,$19,$2c
 hint_13b2:
-; --- unverified ---
-    addq.w #6,sp
-    clr.w -32720(a4)
-    moveq #1,d0
-    bra.w hint_14c8
+    dc.b    $5c,$4f,$42,$6c,$80,$30,$70,$01,$60,$00,$01,$0c
 hunk_6_hint_13be:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #4,32(a0)
-    beq.s hint_1408
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$04,$00,$20,$67,$3e
 hint_13ca:
-; --- unverified ---
-    pea pcref_2d06(pc)
-    pea hunk_6_str_03e8(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$19,$3a,$48,$7a,$f0,$18,$4e,$ba,$1a,$04
 hint_13d6:
-; --- unverified ---
-    addq.w #8,sp
-    movea.l 7636(a4),a0
-    btst #0,32(a0)
-    beq.s hunk_6_hint_13f0
+    dc.b    $50,$4f,$20,$6c,$1d,$d4,$08,$28,$00,$00,$00,$20,$67,$0c
 hint_13e4:
-; --- unverified ---
-    pea hunk_6_loc_03f0(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f0,$0a,$4e,$ba,$1a,$12
 hint_13ec:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_13fa
+    dc.b    $58,$4f,$60,$0a
 hunk_6_hint_13f0:
-; --- unverified ---
-    pea str_03f6(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$f0,$04,$4e,$ba,$1a,$06
 hunk_6_hint_13f8:
     dc.b    $58,$4f
 hint_13fa:
-; --- unverified ---
-    pea pcref_0364(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ef,$68,$4e,$ba,$19,$fc
 hunk_6_hint_1402:
-; --- unverified ---
-    addq.w #4,sp
-    bra.w hint_14c6
+    dc.b    $58,$4f,$60,$00,$00,$c0
 hint_1408:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_03fe(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$18,$ae,$48,$7a,$ef,$f0,$4e,$ba,$19,$c6
 hint_1414:
-; --- unverified ---
-    addq.w #8,sp
-    bra.w hint_14c6
+    dc.b    $50,$4f,$60,$00,$00,$ae
 hint_141a:
-; --- unverified ---
-    clr.l -(sp)
-    move.l -32748(a4),-(sp)
-    move.w 6(a3),-(sp)
-    jsr sub_2d0c(pc)
+    dc.b    $42,$a7,$2f,$2c,$80,$14,$3f,$2b,$00,$06,$4e,$ba,$18,$e6
 hint_1428:
-; --- unverified ---
-    lea 10(sp),sp
-    move.w d0,4(sp)
-    subq.w #1,d0
-    bne.s hunk_6_hint_143e
+    dc.b    $4f,$ef,$00,$0a,$3f,$40,$00,$04,$53,$40,$66,$0a
 hint_1434:
-; --- unverified ---
-    pea hunk_6_loc_0420(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ef,$ea,$4e,$ba,$19,$c2
 hint_143c:
     dc.b    $58,$4f
 hunk_6_hint_143e:
-; --- unverified ---
-    moveq #2,d0
-    cmp.w 4(sp),d0
-    bne.s hint_1450
+    dc.b    $70,$02,$b0,$6f,$00,$04,$66,$0a
 hunk_6_hint_1446:
-; --- unverified ---
-    pea hunk_6_str_0432(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ef,$ea,$4e,$ba,$19,$b0
 hint_144e:
     dc.b    $58,$4f
 hint_1450:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,32(a0)
-    beq.s hint_148a
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$67,$2e
 hunk_6_hint_145c:
-; --- unverified ---
-    moveq #26,d0
-    cmp.w (a0),d0
-    beq.s hint_148a
+    dc.b    $70,$1a,$b0,$50,$67,$28
 hunk_6_hint_1462:
-; --- unverified ---
-    move.w 6(a0),d0
-    beq.s hint_148a
+    dc.b    $30,$28,$00,$06,$67,$22
 hint_1468:
-; --- unverified ---
-    muls.w #$3a,d0
-    movea.l 7632(a4),a0
-    adda.l d0,a0
-    move.l a0,-(sp)
-    jsr pcref_2cee(pc)
+    dc.b    $c1,$fc,$00,$3a,$20,$6c,$1d,$d0,$d1,$c0,$2f,$08,$4e,$ba,$18,$78
 hunk_6_hint_1478:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    beq.s hint_148a
+    dc.b    $58,$4f,$4a,$40,$67,$0c
 hint_147e:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    move.w (a0),-(sp)
-    jsr pcref_2dea(pc)
+    dc.b    $20,$6c,$1d,$d4,$3f,$10,$4e,$ba,$19,$64
 hunk_6_hint_1488:
     dc.b    $54,$4f
 hint_148a:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #3,32(a0)
-    bne.s hint_149e
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$03,$00,$20,$66,$08
 hint_1496:
-; --- unverified ---
-    btst #7,32(a0)
-    beq.s hint_14c6
+    dc.b    $08,$28,$00,$07,$00,$20,$67,$28
 hint_149e:
-; --- unverified ---
-    btst #6,30(a0)
-    bne.s hint_14c6
+    dc.b    $08,$28,$00,$06,$00,$1e,$66,$20
 hint_14a6:
     dc.b    $39,$7c,$00,$01,$80,$30,$3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c
 hint_14b6:
     dc.b    $01,$92
+    dc.b    $3f,$00,$4e,$ba,$18,$20
 hint_14be:
-; --- unverified ---
-    clr.w -32720(a4)
-    moveq #1,d0
-    bra.s hint_14c8
+    dc.b    $42,$6c,$80,$30,$70,$01,$60,$02
 hint_14c6:
     dc.b    $70,$01
 hint_14c8:
-; --- unverified ---
-    movea.l -8(a5),a3
-    unlk a5
-    rts
+    dc.b    $26,$6d,$ff,$f8,$4e,$5d,$4e,$75
 hint_14d0:
-; --- unverified ---
-    link a5,#-4
-    pea str_0446(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $4e,$55,$ff,$fc,$48,$7a,$ef,$70,$4e,$ba,$19,$22
 hint_14dc:
-; --- unverified ---
-    move.l 6488(a4),(sp)
-    jsr loc_2d72(pc)
+    dc.b    $2e,$ac,$19,$58,$4e,$ba,$18,$90
 hint_14e4:
-; --- unverified ---
-    addq.w #4,sp
-    move.w d0,-2(a5)
-    beq.s hint_14fa
+    dc.b    $58,$4f,$3b,$40,$ff,$fe,$67,$0e
 hint_14ec:
-; --- unverified ---
-    move.l 6488(a4),-(sp)
-    jsr hunk_6_loc_2c94(pc)
+    dc.b    $2f,$2c,$19,$58,$4e,$ba,$17,$a2
 hint_14f4:
     dc.b    $58,$4f,$3b,$40,$ff,$fe
 hint_14fa:
-; --- unverified ---
-    tst.w d0
-    beq.s hint_151a
+    dc.b    $4a,$40,$67,$1c
 hint_14fe:
-; --- unverified ---
-    move.w d0,-(sp)
-    move.l 6488(a4),-(sp)
-    jsr loc_2dae(pc)
+    dc.b    $3f,$00,$2f,$2c,$19,$58,$4e,$ba,$18,$a8
 hint_1508:
-; --- unverified ---
-    addq.w #6,sp
-    tst.w d0
-    beq.s hint_1524
+    dc.b    $5c,$4f,$4a,$40,$67,$16
 hint_150e:
-; --- unverified ---
-    pea pcref_0364(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ee,$54,$4e,$ba,$18,$e8
 hint_1516:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_1524
+    dc.b    $58,$4f,$60,$0a
 hint_151a:
-; --- unverified ---
-    pea str_0450(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ef,$34,$4e,$ba,$18,$dc
 hint_1522:
     dc.b    $58,$4f
 hint_1524:
-; --- unverified ---
-    unlk a5
-    rts
+    dc.b    $4e,$5d,$4e,$75
 hunk_6_loc_1528:
     link a5,#-4
     movea.l 7636(a4),a0
@@ -14406,115 +13556,57 @@ hunk_6_loc_16f2:
     unlk a5
     rts
 hint_16f6:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #7,32(a0)
-    bne.s hint_170a
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$07,$00,$20,$66,$08
 hint_1702:
-; --- unverified ---
-    btst #7,33(a0)
-    beq.s hint_1716
+    dc.b    $08,$28,$00,$07,$00,$21,$67,$0c
 hint_170a:
-; --- unverified ---
-    pea str_04de(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ed,$d2,$4e,$ba,$16,$ec
 hint_1712:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_1720
+    dc.b    $58,$4f,$60,$0a
 hint_1716:
-; --- unverified ---
-    pea hunk_6_str_04f2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ed,$da,$4e,$ba,$16,$e0
 hint_171e:
     dc.b    $58,$4f
 hint_1720:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1722:
-; --- unverified ---
-    pea str_051e(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ed,$fa,$4e,$ba,$16,$d4
 hunk_6_hint_172a:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_1730:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_1744
+    dc.b    $4a,$6c,$80,$5e,$66,$0e
 hint_1736:
-; --- unverified ---
-    pea str_053e(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ee,$06,$4e,$ba,$16,$c0
 hint_173e:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_17a0
+    dc.b    $58,$4f,$70,$01,$60,$5c
 hint_1744:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    move.l 6488(a4),-(sp)
-    jsr hunk_6_loc_2d9c(pc)
+    dc.b    $2f,$2c,$1d,$d4,$2f,$2c,$19,$58,$4e,$ba,$16,$4e
 hunk_6_hint_1750:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    beq.s hint_176c
+    dc.b    $50,$4f,$4a,$40,$67,$16
 hint_1756:
-; --- unverified ---
-    clr.w -(sp)
-    moveq #11,d0
-    move.w d0,-(sp)
-    move.w #$1b0,d1
-    move.w d1,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $42,$67,$70,$0b,$3f,$00,$32,$3c,$01,$b0,$3f,$01,$4e,$ba,$15,$78
 hint_1766:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.s hint_17a0
+    dc.b    $5c,$4f,$70,$01,$60,$34
 hint_176c:
-; --- unverified ---
-    move.l 6488(a4),-(sp)
-    move.l 7636(a4),-(sp)
-    jsr hunk_6_loc_2d9c(pc)
+    dc.b    $2f,$2c,$19,$58,$2f,$2c,$1d,$d4,$4e,$ba,$16,$26
 hint_1778:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    beq.s hint_1794
+    dc.b    $50,$4f,$4a,$40,$67,$16
 hint_177e:
-; --- unverified ---
-    clr.w -(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$197,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $42,$67,$3f,$2c,$80,$5e,$30,$3c,$01,$97,$3f,$00,$4e,$ba,$15,$50
 hint_178e:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.s hint_17a0
+    dc.b    $5c,$4f,$70,$01,$60,$0c
 hint_1794:
-; --- unverified ---
-    pea str_0558(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ed,$c2,$4e,$ba
+hint_179a:
+    dc.b    $16,$62
 hint_179c:
     dc.b    $58,$4f,$70,$02
 hint_17a0:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_17a2:
-; --- unverified ---
-    move.w #$1,-32718(a4)
-    bsr.w hunk_6_loc_17b0
+    dc.b    $39,$7c,$00,$01,$80,$32,$61,$00,$00,$06
 hint_17ac:
-; --- unverified ---
-    moveq #1,d0
-    rts
+    dc.b    $70,$01,$4e,$75
 hunk_6_loc_17b0:
     link a5,#-32
     movem.l d2/d7/a2-a3,-(sp)
@@ -14568,7 +13660,7 @@ hunk_6_loc_1834:
     clr.l -(sp)
     move.l -32748(a4),-(sp)
     move.w d0,-(sp)
-    jsr sub_2d0c(pc)
+    jsr hunk_6_loc_2d0c(pc)
 hunk_6_loc_1840:
     lea 10(sp),sp
     moveq #1,d1
@@ -14749,6 +13841,7 @@ hunk_6_loc_19d8:
     jsr sub_2dc0(pc)
 hunk_6_loc_19de:
     move.l 6484(a4),-(sp)
+    dc.b    $2f,$00,$4e,$ba,$13,$68
 hunk_6_loc_19e8:
     lea 10(sp),sp
 hunk_6_loc_19ec:
@@ -14831,2636 +13924,1299 @@ hunk_6_loc_1aa8:
     unlk a5
     rts
 hint_1ab2:
-; --- unverified ---
-    clr.w -32728(a4)
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1af,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $42,$6c,$80,$28,$3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c,$01,$af
+    dc.b    $3f,$00,$4e,$ba,$12,$16
 hint_1ac8:
-; --- unverified ---
-    addq.w #6,sp
-    rts
+    dc.b    $5c,$4f,$4e,$75
 hint_1acc:
-; --- unverified ---
-    move.w #$1,-32728(a4)
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1af,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $39,$7c,$00,$01,$80,$28,$3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c
+    dc.b    $01,$af,$3f,$00,$4e,$ba,$11,$fa
 hint_1ae4:
-; --- unverified ---
-    addq.w #6,sp
-    rts
+    dc.b    $5c,$4f,$4e,$75
 hint_1ae8:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_1afc
+    dc.b    $4a,$6c,$80,$5e,$66,$0e
 hint_1aee:
-; --- unverified ---
-    pea str_05be(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$ce,$4e,$ba,$13,$08
 hint_1af6:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_1b58
+    dc.b    $58,$4f,$70,$01,$60,$5c
 hint_1afc:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #7,32(a0)
-    bne.s hint_1b40
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$07,$00,$20,$66,$38
 hint_1b08:
-; --- unverified ---
-    pea str_05ec(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$e2,$4e,$ba,$12,$ee
 hint_1b10:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w -32728(a4)
-    beq.s hint_1b24
+    dc.b    $58,$4f,$4a,$6c,$80,$28,$67,$0c
 hint_1b18:
-; --- unverified ---
-    pea hunk_6_pcref_05fc(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$e2,$4e,$ba,$12,$de
 hint_1b20:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_1b2e
+    dc.b    $58,$4f,$60,$0a
 hint_1b24:
-; --- unverified ---
-    pea pcref_0600(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$da,$4e,$ba,$12,$d2
 hint_1b2c:
     dc.b    $58,$4f
 hint_1b2e:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea hunk_6_loc_0604(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$11,$88,$48,$7a,$ea,$d0,$4e,$ba,$12,$a0
 hint_1b3a:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_1b58
+    dc.b    $50,$4f,$70,$01,$60,$18
 hint_1b40:
-; --- unverified ---
-    jsr pcref_2cb2(pc)
+    dc.b    $4e,$ba,$11,$70
 hint_1b44:
-; --- unverified ---
-    tst.w d0
-    bne.s hint_1b4c
+    dc.b    $4a,$40,$66,$04
 hint_1b48:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_1b58
+    dc.b    $70,$01,$60,$0c
 hint_1b4c:
-; --- unverified ---
-    pea str_060a(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$ea,$bc,$4e,$ba,$12,$86
 hint_1b54:
     dc.b    $58,$4f,$70,$01
 hint_1b58:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1b5a:
-; --- unverified ---
-    tst.w -32674(a4)
-    beq.s hint_1b76
+    dc.b    $4a,$6c,$80,$5e,$67,$16
 hint_1b60:
-; --- unverified ---
-    moveq #11,d0
-    cmp.w -32674(a4),d0
-    beq.s hint_1b76
+    dc.b    $70,$0b,$b0,$6c,$80,$5e,$67,$0e
 hint_1b68:
-; --- unverified ---
-    pea str_0646(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$dc,$4e,$ba,$12,$8e
 hint_1b70:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_1ba6
+    dc.b    $58,$4f,$70,$01,$60,$30
 hint_1b76:
-; --- unverified ---
-    move.l 6484(a4),-(sp)
-    move.l 6488(a4),-(sp)
-    jsr hunk_6_loc_2d9c(pc)
+    dc.b    $2f,$2c,$19,$54,$2f,$2c,$19,$58,$4e,$ba,$12,$1c
 hint_1b82:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    beq.s hint_1b96
+    dc.b    $50,$4f,$4a,$40,$67,$0e
 hint_1b88:
-; --- unverified ---
-    pea str_0668(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$de,$4e,$ba,$12,$6e
 hint_1b90:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_1ba6
+    dc.b    $58,$4f,$70,$01,$60,$10
 hint_1b96:
-; --- unverified ---
-    move.l 6484(a4),-(sp)
-    move.l 6488(a4),-(sp)
-    jsr loc_2d4e(pc)
+    dc.b    $2f,$2c,$19,$54,$2f,$2c,$19,$58,$4e,$ba,$11,$ae
 hint_1ba2:
     dc.b    $50,$4f,$70,$01
 hint_1ba6:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1ba8:
-; --- unverified ---
-    link a5,#-4
-    move.w #$1,-2(a5)
-    move.w -32674(a4),d0
-    moveq #12,d1
-    cmp.w d1,d0
-    beq.s hint_1bc0
+    dc.b    $4e,$55,$ff,$fc,$3b,$7c,$00,$01,$ff,$fe,$30,$2c,$80,$5e,$72,$0c
+    dc.b    $b0,$41,$67,$04
 hint_1bbc:
-; --- unverified ---
-    tst.w d0
-    bne.s hint_1bce
+    dc.b    $4a,$40,$66,$0e
 hint_1bc0:
-; --- unverified ---
-    pea str_0684(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$c2,$4e,$ba,$12,$36
 hint_1bc8:
-; --- unverified ---
-    moveq #1,d0
-    bra.w hint_1c72
+    dc.b    $70,$01,$60,$00,$00,$a6
 hint_1bce:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #7,32(a0)
-    bne.s hint_1bee
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$07,$00,$20,$66,$14
 hint_1bda:
-; --- unverified ---
-    tst.w -32672(a4)
-    bne.s hint_1bee
+    dc.b    $4a,$6c,$80,$60,$66,$0e
 hint_1be0:
-; --- unverified ---
-    pea hunk_6_str_06a4(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$ea,$c2,$4e,$ba,$11,$ce
 hint_1be8:
-; --- unverified ---
-    moveq #1,d0
-    bra.w hint_1c72
+    dc.b    $70,$01,$60,$00,$00,$86
 hint_1bee:
-; --- unverified ---
-    jsr pcref_2cb2(pc)
+    dc.b    $4e,$ba,$10,$c2
 hint_1bf2:
-; --- unverified ---
-    tst.w d0
-    bne.s hint_1bfa
+    dc.b    $4a,$40,$66,$04
 hint_1bf6:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_1c72
+    dc.b    $70,$01,$60,$78
 hint_1bfa:
-; --- unverified ---
-    tst.w -32672(a4)
-    beq.s hint_1c12
+    dc.b    $4a,$6c,$80,$60,$67,$12
 hint_1c00:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #7,32(a0)
-    beq.s hint_1c12
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$07,$00,$20,$67,$06
 hint_1c0c:
     dc.b    $70,$00,$3b,$40,$ff,$fe
 hint_1c12:
-; --- unverified ---
-    tst.w -2(a5)
-    beq.s hint_1c26
+    dc.b    $4a,$6d,$ff,$fe,$67,$0e
 hint_1c18:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr loc_2dba(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$11,$9c
 hint_1c20:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    beq.s hint_1c3a
+    dc.b    $58,$4f,$4a,$40,$67,$14
 hint_1c26:
-; --- unverified ---
-    tst.w -2(a5)
-    bne.s hint_1c68
+    dc.b    $4a,$6d,$ff,$fe,$66,$3c
 hint_1c2c:
-; --- unverified ---
-    move.l 7640(a4),-(sp)
-    jsr loc_2dba(pc)
+    dc.b    $2f,$2c,$1d,$d8,$4e,$ba,$11,$88
 hint_1c34:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_1c68
+    dc.b    "XOJ@f."
 hint_1c3a:
-; --- unverified ---
-    pea str_06b2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$76,$4e,$ba,$11,$bc
 hint_1c42:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w -2(a5)
-    beq.s hint_1c54
+    dc.b    $58,$4f,$4a,$6d,$ff,$fe,$67,$0a
 hint_1c4a:
-; --- unverified ---
-    clr.w -(sp)
-    jsr hunk_6_loc_2d84(pc)
+    dc.b    $42,$67,$4e,$ba,$11,$36
 hint_1c50:
-; --- unverified ---
-    addq.w #2,sp
-    bra.s hint_1c5c
+    dc.b    $54,$4f,$60,$08
 hint_1c54:
-; --- unverified ---
-    clr.w -(sp)
-    jsr pcref_2cd6(pc)
+    dc.b    $42,$67,$4e,$ba,$10,$7e
 hint_1c5a:
     dc.b    $54,$4f
 hint_1c5c:
-; --- unverified ---
-    pea str_06be(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$60,$4e,$ba,$11,$9a
 hint_1c64:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_1c72
+    dc.b    $70,$01,$60,$0a
 hint_1c68:
-; --- unverified ---
-    pea hunk_6_loc_06d4(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$ea,$6a,$4e,$ba,$11,$6a
 hint_1c70:
     dc.b    $70,$01
 hint_1c72:
-; --- unverified ---
-    unlk a5
-    rts
+    dc.b    $4e,$5d,$4e,$75
 hint_1c76:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_1c8a
+    dc.b    $4a,$6c,$80,$5e,$66,$0e
 hint_1c7c:
-; --- unverified ---
-    pea hunk_6_loc_06fc(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$7e,$4e,$ba,$11,$7a
 hint_1c84:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_1c96
+    dc.b    $58,$4f,$70,$01,$60,$0c
 hint_1c8a:
-; --- unverified ---
-    pea hunk_6_loc_06fc(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$ea,$70,$4e,$ba,$11,$6c
 hint_1c92:
     dc.b    $58,$4f,$70,$01
 hint_1c96:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1c98:
-; --- unverified ---
-    pea hunk_6_str_0730(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$ea,$96,$4e,$ba,$11,$3a
 hint_1ca0:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_1ca6:
-; --- unverified ---
-    jsr sub_2d54(pc)
+    dc.b    $4e,$ba,$10,$ac
 hint_1caa:
-; --- unverified ---
-    tst.w d0
-    bne.s hint_1cb2
+    dc.b    $4a,$40,$66,$04
 hint_1cae:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hint_1cb4
+    dc.b    $70,$00,$60,$02
 hint_1cb2:
     dc.b    $70,$01
 hint_1cb4:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1cb6:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cc4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$10,$08
 hint_1cbe:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    beq.s hint_1cf2
+    dc.b    "XOJ@g."
 hint_1cc4:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #7,31(a0)
-    beq.s hint_1ce4
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$07,$00,$1f,$67,$14
 hint_1cd0:
-; --- unverified ---
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$19c,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c,$01,$9c,$3f,$00,$4e,$ba
+    dc.b    $0f,$fc
 hint_1ce2:
     dc.b    $5c,$4f
 hint_1ce4:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cf4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$10,$0a
 hint_1cec:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_1d02
+    dc.b    $58,$4f,$70,$01,$60,$10
 hint_1cf2:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0754(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0f,$c4,$48,$7a,$ea,$5c,$4e,$ba,$10,$dc
 hint_1cfe:
     dc.b    $50,$4f,$70,$00
 hint_1d02:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1d04:
-; --- unverified ---
-    jsr pcref_2ce8(pc)
+    dc.b    $4e,$ba,$0f,$e2
 hint_1d08:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    dc.b    $70,$00,$4e,$75
 hint_1d0c:
-; --- unverified ---
-    link a5,#-8
-    move.l d2,-(sp)
-    movea.l 7640(a4),a0
-    btst #7,32(a0)
-    beq.s hint_1d38
+    dc.b    $4e,$55,$ff,$f8,$2f,$02,$20,$6c,$1d,$d8,$08,$28,$00,$07,$00,$20
+    dc.b    $67,$1a
 hint_1d1e:
-; --- unverified ---
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1a3,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c,$01,$a3,$3f,$00,$4e,$ba
+    dc.b    $0f,$ae
 hint_1d30:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.w hint_1e40
+    dc.b    $5c,$4f,$70,$01,$60,$00,$01,$0a
 hint_1d38:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #3,32(a0)
-    beq.s hint_1d50
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$03,$00,$20,$67,$0c
 hint_1d44:
-; --- unverified ---
-    movea.l 7636(a4),a1
-    btst #0,31(a1)
-    beq.s hint_1d6a
+    dc.b    $22,$6c,$1d,$d4,$08,$29,$00,$00,$00,$1f,$67,$1a
 hint_1d50:
-; --- unverified ---
-    pea pcref_2d60(pc)
-    pea pcref_2cb8(pc)
-    pea str_076a(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$10,$0e,$48,$7a,$0f,$62,$48,$7a,$ea,$10,$4e,$ba,$10,$7a
 hint_1d60:
-; --- unverified ---
-    lea 12(sp),sp
-    moveq #1,d0
-    bra.w hint_1e40
+    dc.b    $4f,$ef,$00,$0c,$70,$01,$60,$00,$00,$d8
 hint_1d6a:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #0,32(a0)
-    bne.s hint_1d8a
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$00,$00,$20,$66,$14
 hint_1d76:
-; --- unverified ---
-    pea pcref_2da2(pc)
-    pea str_0782(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$10,$2a,$48,$7a,$ea,$06,$4e,$ba,$10,$58
 hint_1d82:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.w hint_1e40
+    dc.b    $50,$4f,$70,$01,$60,$00,$00,$b8
 hint_1d8a:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    move.l 7640(a4),-(sp)
-    jsr hunk_6_loc_2d9c(pc)
+    dc.b    $2f,$2c,$1d,$d4,$2f,$2c,$1d,$d8,$4e,$ba,$10,$08
 hunk_6_hint_1d96:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    beq.s hint_1dac
+    dc.b    $50,$4f,$4a,$40,$67,$10
 hint_1d9c:
-; --- unverified ---
-    pea str_0792(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$e9,$f4,$4e,$ba,$10,$36
 hint_1da4:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    bra.w hint_1e40
+    dc.b    $58,$4f,$70,$00,$60,$00,$00,$96
 hint_1dac:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2d8a(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$0f,$d8
 hint_1db4:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    move.w (a0),d1
-    movea.l 7648(a4),a0
-    move.l 7640(a4),(sp)
-    move.w d0,8(sp)
-    move.w d1,10(sp)
-    move.l a0,12(sp)
-    jsr pcref_2d8a(pc)
+    dc.b    $20,$6c,$1d,$d8,$32,$10,$20,$6c,$1d,$e0,$2e,$ac,$1d,$d8,$3f,$40
+    dc.b    $00,$08,$3f,$41,$00,$0a,$2f,$48,$00,$0c,$4e,$ba,$0f,$ba
 hint_1dd2:
-; --- unverified ---
-    addq.w #4,sp
-    move.w 6(sp),d1
-    moveq #12,d2
-    muls.w d2,d1
-    movea.l 8(sp),a0
-    adda.l d1,a0
-    move.w 2(a0),d1
-    sub.w d0,d1
-    movea.l 7640(a4),a0
-    move.w (a0),d0
-    muls.w d2,d0
-    movea.l 7648(a4),a0
-    adda.l d0,a0
-    add.w 4(a0),d1
-    move.w 4(sp),d0
-    cmp.w d1,d0
-    ble.s hint_1e12
+    dc.b    "XO2/",0
+    dc.b    $06,$74,$0c,$c3,$c2,$20,$6f,$00,$08,$d1,$c1,$32,$28,$00,$02,$92
+    dc.b    $40,$20,$6c,$1d,$d8,$30,$10,$c1,$c2,$20,$6c,$1d,$e0,$d1,$c0,$d2
+    dc.b    $68,$00,$04,$30,$2f,$00,$04,$b0,$41,$6f,$10
 hint_1e02:
-; --- unverified ---
-    pea pcref_2da2(pc)
-    pea str_07a8(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0f,$9e,$48,$7a,$e9,$a0,$4e,$ba,$0f,$cc
 hint_1e0e:
-; --- unverified ---
-    moveq #2,d0
-    bra.s hint_1e40
+    dc.b    $70,$02,$60,$2e
 hint_1e12:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cc4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$0e,$ac
 hint_1e1a:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_1e2c
+    dc.b    $58,$4f,$4a,$40,$66,$0c
 hint_1e20:
-; --- unverified ---
-    jsr sub_2d54(pc)
+    dc.b    $4e,$ba,$0f,$32
 hint_1e24:
-; --- unverified ---
-    tst.w d0
-    bne.s hint_1e2c
+    dc.b    $4a,$40,$66,$04
 hint_1e28:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hint_1e40
+    dc.b    $70,$00,$60,$14
 hint_1e2c:
-; --- unverified ---
-    move.l 7640(a4),-(sp)
-    move.l 7636(a4),-(sp)
-    jsr pcref_2dde(pc)
+    dc.b    $2f,$2c,$1d,$d8,$2f,$2c,$1d,$d4,$4e,$ba,$0f,$a8
 hint_1e38:
-; --- unverified ---
-    pea -5748(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e9,$8c,$4e,$ba,$0f,$be
 hint_1e40:
-; --- unverified ---
-    move.l -12(a5),d2
-    unlk a5
-    rts
+    dc.b    $24,$2d,$ff,$f4,$4e,$5d,$4e,$75
 hint_1e48:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #7,32(a0)
-    beq.s hint_1e60
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$07,$00,$20,$67,$0c
 hint_1e54:
-; --- unverified ---
-    movea.l 7636(a4),a1
-    btst #0,31(a1)
-    beq.s hint_1e78
+    dc.b    $22,$6c,$1d,$d4,$08,$29,$00,$00,$00,$1f,$67,$18
 hint_1e60:
-; --- unverified ---
-    pea pcref_2d60(pc)
-    pea pcref_2cb8(pc)
-    pea str_07cc(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0e,$fe,$48,$7a,$0e,$52,$48,$7a,$e9,$62,$4e,$ba,$0f,$6a
 hint_1e70:
-; --- unverified ---
-    lea 12(sp),sp
-    moveq #0,d0
-    bra.s hint_1ea6
+    dc.b    $4f,$ef,$00,$0c,$70,$00,$60,$2e
 hint_1e78:
-; --- unverified ---
-    move.l 7640(a4),-(sp)
-    move.l 7636(a4),-(sp)
-    jsr hunk_6_loc_2d9c(pc)
+    dc.b    $2f,$2c,$1d,$d8,$2f,$2c,$1d,$d4,$4e,$ba,$0f,$1a
 hint_1e84:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    beq.s hint_1ea2
+    dc.b    $50,$4f,$4a,$40,$67,$18
 hint_1e8a:
-; --- unverified ---
-    pea pcref_2d60(pc)
-    pea pcref_2d06(pc)
-    pea str_07e4(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0e,$d4,$48,$7a,$0e,$76,$48,$7a,$e9,$50,$4e,$ba,$0f,$40
 hint_1e9a:
-; --- unverified ---
-    lea 12(sp),sp
-    moveq #0,d0
-    bra.s hint_1ea6
+    dc.b    $4f,$ef,$00,$0c,$70,$00,$60,$04
 hint_1ea2:
-; --- unverified ---
-    jsr pcref_2cca(pc)
+    dc.b    $4e,$ba,$0e,$26
 hint_1ea6:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1ea8:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #3,32(a0)
-    bne.s hint_1ed8
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$03,$00,$20,$66,$24
 hint_1eb4:
-; --- unverified ---
-    btst #7,32(a0)
-    bne.s hint_1ed8
+    dc.b    $08,$28,$00,$07,$00,$20,$66,$1c
 hint_1ebc:
-; --- unverified ---
-    btst #6,32(a0)
-    bne.s hint_1ed8
+    dc.b    $08,$28,$00,$06,$00,$20,$66,$14
 hint_1ec4:
-; --- unverified ---
-    pea pcref_2d60(pc)
-    pea str_07fa(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0e,$9a,$48,$7a,$e9,$30,$4e,$ba,$0f,$0a
 hint_1ed0:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #0,d0
-    bra.w hint_1f56
+    dc.b    $50,$4f,$70,$00,$60,$00,$00,$80
 hint_1ed8:
-; --- unverified ---
-    move.l 7640(a4),-(sp)
-    jsr hunk_6_loc_2d48(pc)
+    dc.b    $2f,$2c,$1d,$d8,$4e,$ba,$0e,$6a
 hint_1ee0:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_1f04
+    dc.b    $58,$4f,$4a,$40,$66,$1e
 hint_1ee6:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #6,32(a0)
-    bne.s hint_1f04
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$06,$00,$20,$66,$12
 hint_1ef2:
-; --- unverified ---
-    pea pcref_2da2(pc)
-    pea str_0782(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0e,$ae,$48,$7a,$e8,$8a,$4e,$ba,$0e,$dc
 hint_1efe:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #0,d0
-    bra.s hint_1f56
+    dc.b    $50,$4f,$70,$00,$60,$52
 hint_1f04:
-; --- unverified ---
-    move.l 7640(a4),-(sp)
-    move.l 7636(a4),-(sp)
-    jsr hunk_6_loc_2d9c(pc)
+    dc.b    $2f,$2c,$1d,$d8,$2f,$2c,$1d,$d4,$4e,$ba,$0e,$8e
 hint_1f10:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    bne.s hint_1f50
+    dc.b    "POJ@f:"
 hint_1f16:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    btst #6,32(a0)
-    beq.s hint_1f38
+    dc.b    $20,$6c,$1d,$d8,$08,$28,$00,$06,$00,$20,$67,$16
 hint_1f22:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea pcref_2da2(pc)
-    pea str_081c(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0d,$94,$48,$7a,$0e,$7a,$48,$7a,$e8,$f0,$4e,$ba,$0e,$a8
 hint_1f32:
-; --- unverified ---
-    lea 12(sp),sp
-    bra.s hint_1f4c
+    dc.b    $4f,$ef,$00,$0c,$60,$14
 hint_1f38:
-; --- unverified ---
-    pea pcref_2d60(pc)
-    pea pcref_2d06(pc)
-    pea str_0830(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0e,$26,$48,$7a,$0d,$c8,$48,$7a,$e8,$ee,$4e,$ba,$0e,$92
 hint_1f48:
     dc.b    $4f,$ef,$00,$0c
 hint_1f4c:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hint_1f56
+    dc.b    $70,$00,$60,$06
 hint_1f50:
-; --- unverified ---
-    jsr sub_2d54(pc)
+    dc.b    $4e,$ba,$0e,$02
 hint_1f54:
     dc.b    $70,$01
 hint_1f56:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1f58:
-; --- unverified ---
-    moveq #21,d0
-    cmp.w -32672(a4),d0
-    bne.s hint_1f74
+    dc.b    $70,$15,$b0,$6c,$80,$60,$66,$14
 hint_1f60:
     dc.b    $42,$67,$3f,$2c,$80,$5e,$30,$3c,$01,$98,$3f,$00
 hint_1f6c:
-; --- unverified ---
-    jsr pcref_2cdc(pc)
+    dc.b    $4e,$ba,$0d,$6e
 hint_1f70:
-; --- unverified ---
-    addq.w #6,sp
-    bra.s hint_1f80
+    dc.b    $5c,$4f,$60,$0c
 hint_1f74:
-; --- unverified ---
-    pea str_0840(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$ca,$4e,$ba,$0e,$82
 hint_1f7c:
     dc.b    $58,$4f,$70,$00
 hint_1f80:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_1f82:
-; --- unverified ---
-    tst.w -32672(a4)
-    bne.s hint_1fcc
+    dc.b    $4a,$6c,$80,$60,$66,$44
 hint_1f88:
-; --- unverified ---
-    move.l 6484(a4),-(sp)
-    moveq #14,d0
-    move.w d0,-(sp)
-    jsr pcref_2d5a(pc)
+    dc.b    $2f,$2c,$19,$54,$70,$0e,$3f,$00,$4e,$ba,$0d,$c8
 hint_1f94:
-; --- unverified ---
-    addq.w #6,sp
-    move.w d0,-32584(a4)
-    bne.s hint_1fa4
+    dc.b    $5c,$4f,$39,$40,$80,$b8,$66,$08
 hint_1f9c:
-; --- unverified ---
-    jsr pcref_2cfa(pc)
+    dc.b    $4e,$ba,$0d,$5c
 hint_1fa0:
-; --- unverified ---
-    moveq #2,d0
-    bra.s hunk_6_loc_2012
+    dc.b    $70,$02,$60,$6e
 hint_1fa4:
-; --- unverified ---
-    moveq #2,d0
-    move.w d0,-(sp)
-    move.w -32584(a4),-(sp)
-    jsr sub_2dc6(pc)
+    dc.b    $70,$02,$3f,$00,$3f,$2c,$80,$b8,$4e,$ba,$0e,$18
 hint_1fb0:
-; --- unverified ---
-    jsr sub_2d36(pc)
+    dc.b    $4e,$ba,$0d,$84
 hint_1fb4:
-; --- unverified ---
-    moveq #26,d0
-    move.w d0,(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1db,d1
-    move.w d1,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $70,$1a,$3e,$80,$3f,$2c,$80,$5e,$32,$3c,$01,$db,$3f,$01,$4e,$ba
+    dc.b    $0d,$18
 hint_1fc6:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hunk_6_loc_2012
+    dc.b    $50,$4f,$70,$01,$60,$46
 hint_1fcc:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,32(a0)
-    bne.s hint_1fea
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$66,$12
 hint_1fd8:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0846(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0c,$de,$48,$7a,$e8,$68,$4e,$ba,$0d,$f6
     dc.b    $50,$4f
 hunk_6_loc_1fe6:
     moveq #2,d0
     bra.s hunk_6_loc_2012
 hint_1fea:
-; --- unverified ---
-    moveq #2,d0
-    move.w d0,-(sp)
-    move.w -32674(a4),-(sp)
-    jsr sub_2dc6(pc)
+    dc.b    $70,$02,$3f,$00,$3f,$2c,$80,$5e,$4e,$ba,$0d,$d2
 hint_1ff6:
-; --- unverified ---
-    move.w -32674(a4),-32584(a4)
-    moveq #26,d0
-    move.w d0,(sp)
-    move.w -32672(a4),-(sp)
-    move.w #$1db,d1
-    move.w d1,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $39,$6c,$80,$5e,$80,$b8,$70,$1a,$3e,$80,$3f,$2c,$80,$60,$32,$3c
+    dc.b    $01,$db,$3f,$01,$4e,$ba,$0c,$d0
 hint_200e:
     dc.b    $50,$4f,$70,$01
 hunk_6_loc_2012:
     rts
 hint_2014:
-; --- unverified ---
-    tst.w -32672(a4)
-    bne.s hint_2026
+    dc.b    $4a,$6c,$80,$60,$66,$0c
 hint_201a:
-; --- unverified ---
-    pea str_0864(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$48,$4e,$ba,$0d,$dc
 hint_2022:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_203a
+    dc.b    $58,$4f,$60,$14
 hint_2026:
-; --- unverified ---
-    move.w -32674(a4),-(sp)
-    move.w -32672(a4),-(sp)
-    move.w #$1db,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$2c,$80,$5e,$3f,$2c,$80,$60,$30,$3c,$01,$db,$3f,$00,$4e,$ba
+    dc.b    $0c,$a6
 hint_2038:
     dc.b    $5c,$4f
 hint_203a:
-; --- unverified ---
-    moveq #1,d0
-    rts
+    dc.b    $70,$01,$4e,$75
 hint_203e:
-; --- unverified ---
-    pea str_087c(pc)
-    jsr pcref_2d66(pc)
+    dc.b    $48,$7a,$e8,$3c,$4e,$ba,$0d,$22
 hint_2046:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_204a:
-; --- unverified ---
-    pea str_0882(pc)
-    jsr pcref_2d66(pc)
+    dc.b    $48,$7a,$e8,$36,$4e,$ba,$0d,$16
 hint_2052:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_2056:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #3,31(a0)
-    bne.s hint_2074
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$03,$00,$1f,$66,$12
 hint_2062:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0888(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0c,$54,$48,$7a,$e8,$20,$4e,$ba,$0d,$6c
 hint_206e:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #2,d0
-    bra.s hint_20bc
+    dc.b    $50,$4f,$70,$02,$60,$48
 hint_2074:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cc4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$0c,$4a
 hint_207c:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_2090
+    dc.b    $58,$4f,$4a,$40,$66,$0e
 hint_2082:
-; --- unverified ---
-    pea str_08a2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$1e,$4e,$ba,$0d,$74
 hint_208a:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #2,d0
-    bra.s hint_20bc
+    dc.b    $58,$4f,$70,$02,$60,$2c
 hint_2090:
-; --- unverified ---
-    move.l 7640(a4),-(sp)
-    jsr pcref_2cbe(pc)
+    dc.b    $2f,$2c,$1d,$d8,$4e,$ba,$0c,$28
 hint_2098:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_20b0
+    dc.b    $58,$4f,$4a,$40,$66,$12
 hint_209e:
-; --- unverified ---
-    pea pcref_2da2(pc)
-    pea hunk_6_str_08bc(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0d,$02,$48,$7a,$e8,$18,$4e,$ba,$0d,$30
 hint_20aa:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #2,d0
-    bra.s hint_20bc
+    dc.b    $50,$4f,$70,$02,$60,$0c
 hint_20b0:
-; --- unverified ---
-    pea -6380(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e7,$14,$4e,$ba,$0d,$46
 hint_20b8:
     dc.b    $58,$4f,$70,$01
 hint_20bc:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_20be:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #1,32(a0)
-    bne.s hint_20dc
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$01,$00,$20,$66,$12
 hint_20ca:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_08d2(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0b,$ec,$48,$7a,$e8,$02,$4e,$ba,$0d,$04
 hint_20d6:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_2134
+    dc.b    $50,$4f,$70,$01,$60,$58
 hint_20dc:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cc4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$0b,$e2
 hint_20e4:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_20fc
+    dc.b    $58,$4f,$4a,$40,$66,$12
 hint_20ea:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea hunk_6_loc_0914(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0b,$cc,$48,$7a,$e8,$24,$4e,$ba,$0c,$e4
 hint_20f6:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #0,d0
-    bra.s hint_2134
+    dc.b    $50,$4f,$70,$00,$60,$38
 hint_20fc:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #3,31(a0)
-    beq.s hint_2120
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$03,$00,$1f,$67,$18
 hint_2108:
-; --- unverified ---
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1cc,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c,$01,$cc,$3f,$00,$4e,$ba
+    dc.b    $0b,$c4
 hint_211a:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.s hint_2134
+    dc.b    $5c,$4f,$70,$01,$60,$14
 hint_2120:
-; --- unverified ---
-    pea str_092c(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$0a,$4e,$ba,$0c,$d6
 hint_2128:
-; --- unverified ---
-    move.l 7636(a4),(sp)
-    jsr pcref_2d90(pc)
+    dc.b    $2e,$ac,$1d,$d4,$4e,$ba,$0c,$62
 hint_2130:
     dc.b    $58,$4f,$70,$01
 hint_2134:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_2136:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #3,31(a0)
-    bne.s hint_2150
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$03,$00,$1f,$66,$0e
 hint_2142:
-; --- unverified ---
-    pea str_0934(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e7,$f0,$4e,$ba,$0c,$b4
 hint_214a:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    bra.s hint_21a2
+    dc.b    $58,$4f,$70,$00,$60,$52
 hint_2150:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #1,32(a0)
-    bne.s hint_216e
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$01,$00,$20,$66,$12
 hint_215c:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0964(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0b,$5a,$48,$7a,$e8,$02,$4e,$ba,$0c,$72
 hint_2168:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #0,d0
-    bra.s hint_21a2
+    dc.b    $50,$4f,$70,$00,$60,$34
 hint_216e:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cc4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$0b,$50
 hint_2176:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_218e
+    dc.b    $58,$4f,$4a,$40,$66,$12
 hint_217c:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea hunk_6_loc_0914(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0b,$3a,$48,$7a,$e7,$92,$4e,$ba,$0c,$52
 hint_2188:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #0,d0
-    bra.s hint_21a2
+    dc.b    $50,$4f,$70,$00,$60,$14
 hint_218e:
-; --- unverified ---
-    pea str_098a(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e7,$fa,$4e,$ba,$0c,$68
 hint_2196:
-; --- unverified ---
-    move.l 7636(a4),(sp)
-    jsr pcref_2d90(pc)
+    dc.b    $2e,$ac,$1d,$d4,$4e,$ba,$0b,$f4
 hint_219e:
     dc.b    $58,$4f,$70,$01
 hint_21a2:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_21a4:
-; --- unverified ---
-    tst.w -32672(a4)
-    beq.s hint_21ce
+    dc.b    $4a,$6c,$80,$60,$67,$24
 hint_21aa:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #1,32(a0)
-    bne.s hint_21ce
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$01,$00,$20,$66,$18
 hint_21b6:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea pcref_2d60(pc)
-    pea str_09aa(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0b,$00,$48,$7a,$0b,$a4,$48,$7a,$e7,$ea,$4e,$ba,$0c,$14
 hint_21c6:
-; --- unverified ---
-    lea 12(sp),sp
-    moveq #1,d0
-    bra.s hint_21e2
+    dc.b    $4f,$ef,$00,$0c,$70,$01,$60,$14
 hint_21ce:
-; --- unverified ---
-    pea str_09cc(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e7,$fc,$4e,$ba,$0c,$28
 hint_21d6:
-; --- unverified ---
-    move.l 7636(a4),(sp)
-    jsr pcref_2d90(pc)
+    dc.b    $2e,$ac,$1d,$d4,$4e,$ba,$0b,$b4
 hint_21de:
     dc.b    $58,$4f,$70,$01
 hint_21e2:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_21e4:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cc4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$0a,$da
 hint_21ec:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_2200
+    dc.b    $58,$4f,$4a,$40,$66,$0e
 hint_21f2:
-; --- unverified ---
-    pea str_09d2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e7,$de,$4e,$ba,$0c,$04
 hint_21fa:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #2,d0
-    bra.s hint_2234
+    dc.b    $58,$4f,$70,$02,$60,$34
 hint_2200:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #5,31(a0)
-    bne.s hint_221c
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$05,$00,$1f,$66,$10
 hint_220c:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_09fc(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0a,$aa,$48,$7a,$e7,$ea,$4e,$ba,$0b,$c2
 hint_2218:
-; --- unverified ---
-    addq.w #8,sp
-    bra.s hint_2234
+    dc.b    $50,$4f,$60,$18
 hint_221c:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0a0e(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0a,$9a,$48,$7a,$e7,$ec,$4e,$ba,$0b,$b2
 hint_2228:
     dc.b    $50,$4f,$20,$6c,$1d,$d4,$08,$e8,$00,$07,$00,$1f
 hint_2234:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_2236:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_2248
+    dc.b    $4a,$6c,$80,$5e,$66,$0c
 hint_223c:
-; --- unverified ---
-    pea hunk_6_str_0a26(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e7,$e8,$4e,$ba,$0b,$ba
 hint_2244:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_2252
+    dc.b    $58,$4f,$60,$0a
 hint_2248:
-; --- unverified ---
-    pea str_0a5c(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$12,$4e,$ba,$0b,$ae
 hint_2250:
     dc.b    $58,$4f
 hint_2252:
-; --- unverified ---
-    moveq #1,d0
-    rts
+    dc.b    $70,$01,$4e,$75
 hint_2256:
-; --- unverified ---
-    link a5,#-4
-    movea.l 7636(a4),a0
-    btst #7,33(a0)
-    bne.s hint_2276
+    dc.b    $4e,$55,$ff,$fc,$20,$6c,$1d,$d4,$08,$28,$00,$07,$00,$21,$66,$10
 hint_2266:
-; --- unverified ---
-    pea hunk_6_loc_0a70(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$08,$4e,$ba,$0b,$90
 hint_226e:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.w hint_22fe
+    dc.b    $58,$4f,$70,$01,$60,$00,$00,$8a
 hint_2276:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #3,32(a0)
-    bne.s hint_2294
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$03,$00,$20,$66,$12
 hint_2282:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea hunk_6_loc_0a9a(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$0a,$34,$48,$7a,$e8,$12,$4e,$ba,$0b,$4c
 hint_228e:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_22fe
+    dc.b    $50,$4f,$70,$01,$60,$6a
 hint_2294:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr loc_2d72(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$0a,$d8
 hint_229c:
-; --- unverified ---
-    addq.w #4,sp
-    move.w d0,0(sp)
-    movea.l 7636(a4),a0
-    btst #0,32(a0)
-    bne.s hint_22ce
+    dc.b    "XO?@",0
+    dc.b    $00,$20,$6c,$1d,$d4,$08,$28,$00,$00,$00,$20,$66,$20
 hint_22ae:
-; --- unverified ---
-    tst.w d0
-    bne.s hint_22c0
+    dc.b    $4a,$40,$66,$0e
 hint_22b2:
-; --- unverified ---
-    pea str_0abc(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$08,$4e,$ba,$0b,$44
 hint_22ba:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_22fe
+    dc.b    $58,$4f,$70,$01,$60,$3e
 hint_22c0:
-; --- unverified ---
-    pea str_0ad8(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$16,$4e,$ba,$0b,$36
 hint_22c8:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_22fe
+    dc.b    $58,$4f,$70,$01,$60,$30
 hint_22ce:
-; --- unverified ---
-    tst.w 0(sp)
-    bne.s hint_22e4
+    dc.b    $4a,$6f,$00,$00,$66,$10
 hint_22d4:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0b00(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$09,$e2,$48,$7a,$e8,$26,$4e,$ba,$0a,$fa
 hint_22e0:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_22fe
+    dc.b    $70,$01,$60,$1a
 hint_22e4:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0b2c(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$09,$d2,$48,$7a,$e8,$42,$4e,$ba,$0a,$ea
 hint_22f0:
-; --- unverified ---
-    move.l 6484(a4),(sp)
-    move.l 7636(a4),-(sp)
-    jsr pcref_2d78(pc)
+    dc.b    $2e,$ac,$19,$54,$2f,$2c,$1d,$d4,$4e,$ba,$0a,$7e
 hint_22fc:
     dc.b    $70,$01
 hint_22fe:
-; --- unverified ---
-    unlk a5
-    rts
+    dc.b    $4e,$5d,$4e,$75
 hint_2302:
-; --- unverified ---
-    tst.w -32672(a4)
-    bne.s hint_233e
+    dc.b    $4a,$6c,$80,$60,$66,$36
 hint_2308:
-; --- unverified ---
-    move.l 6488(a4),-(sp)
-    moveq #18,d0
-    move.w d0,-(sp)
-    jsr pcref_2d5a(pc)
+    dc.b    $2f,$2c,$19,$58,$70,$12,$3f,$00,$4e,$ba,$0a,$48
 hint_2314:
-; --- unverified ---
-    addq.w #6,sp
-    move.w d0,-32672(a4)
-    bne.s hint_2328
+    dc.b    $5c,$4f,$39,$40,$80,$60,$66,$0c
 hint_231c:
-; --- unverified ---
-    pea pcref_0b52(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$34,$4e,$ba,$0a,$da
 hint_2324:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_233e
+    dc.b    $58,$4f,$60,$16
 hint_2328:
-; --- unverified ---
-    move.w d0,-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1ca,d1
-    move.w d1,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$00,$3f,$2c,$80,$5e,$32,$3c,$01,$ca,$3f,$01,$4e,$ba,$09,$a6
 hint_2338:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.s hint_235c
+    dc.b    $5c,$4f,$70,$01,$60,$1e
 hint_233e:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #0,32(a0)
-    beq.s hint_2358
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$00,$00,$20,$67,$0e
 hint_234a:
-; --- unverified ---
-    pea str_0b64(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$18,$4e,$ba,$0a,$ac
 hint_2352:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_235c
+    dc.b    $58,$4f,$70,$01,$60,$04
 hint_2358:
-; --- unverified ---
-    jsr pcref_2d42(pc)
+    dc.b    $4e,$ba,$09,$e8
 hint_235c:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_235e:
-; --- unverified ---
-    tst.w -32672(a4)
-    bne.s hint_239a
+    dc.b    $4a,$6c,$80,$60,$66,$36
 hint_2364:
-; --- unverified ---
-    move.l 6488(a4),-(sp)
-    moveq #18,d0
-    move.w d0,-(sp)
-    jsr pcref_2d5a(pc)
+    dc.b    $2f,$2c,$19,$58,$70,$12,$3f,$00,$4e,$ba,$09,$ec
 hint_2370:
-; --- unverified ---
-    addq.w #6,sp
-    move.w d0,-32672(a4)
-    bne.s hint_2384
+    dc.b    $5c,$4f,$39,$40,$80,$60,$66,$0c
 hint_2378:
-; --- unverified ---
-    pea pcref_0b82(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e8,$08,$4e,$ba,$0a,$7e
 hint_2380:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_239a
+    dc.b    $58,$4f,$60,$16
 hint_2384:
-; --- unverified ---
-    move.w d0,-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1cb,d1
-    move.w d1,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$00,$3f,$2c,$80,$5e,$32,$3c,$01,$cb,$3f,$01,$4e,$ba,$09,$4a
 hint_2394:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.s hint_23bc
+    dc.b    $5c,$4f,$70,$01,$60,$22
 hint_239a:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #1,31(a0)
-    bne.s hint_23b8
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$01,$00,$1f,$66,$12
 hint_23a6:
-; --- unverified ---
-    pea pcref_2d06(pc)
-    pea str_0b9a(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$09,$5e,$48,$7a,$e7,$ee,$4e,$ba,$0a,$28
 hint_23b2:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_23bc
+    dc.b    $50,$4f,$70,$01,$60,$04
 hint_23b8:
-; --- unverified ---
-    jsr pcref_2d42(pc)
+    dc.b    $4e,$ba,$09,$88
 hint_23bc:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_23be:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #3,32(a0)
-    bne.s hint_23fe
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$03,$00,$20,$66,$34
 hint_23ca:
-; --- unverified ---
-    btst #4,32(a0)
-    bne.s hint_23fe
+    dc.b    $08,$28,$00,$04,$00,$20,$66,$2c
 hint_23d2:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_23e4
+    dc.b    $4a,$6c,$80,$5e,$66,$0c
 hint_23d8:
-; --- unverified ---
-    pea str_0bac(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$e7,$d2,$4e,$ba,$09,$d6
 hint_23e0:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_23fa
+    dc.b    $58,$4f,$60,$16
 hint_23e4:
-; --- unverified ---
-    pea str_0bb8(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$e7,$d2,$4e,$ba,$09,$ca
 hint_23ec:
-; --- unverified ---
-    jsr pcref_2c9a(pc)
+    dc.b    $4e,$ba,$08,$ac
 hint_23f0:
-; --- unverified ---
-    pea pcref_0364(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$df,$72,$4e,$ba,$0a,$06
 hint_23f8:
     dc.b    $50,$4f
 hint_23fa:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_2466
+    dc.b    $70,$01,$60,$68
 hint_23fe:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #0,32(a0)
-    bne.s hint_2418
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$00,$00,$20,$66,$0e
 hint_240a:
-; --- unverified ---
-    pea str_03f6(pc)
-    jsr pcref_2d7e(pc)
+    dc.b    $48,$7a,$df,$ea,$4e,$ba,$09,$6e
 hint_2412:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_2466
+    dc.b    $58,$4f,$70,$01,$60,$4e
 hint_2418:
-; --- unverified ---
-    pea str_0bc2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e7,$a8,$4e,$ba,$09,$de
 hint_2420:
-; --- unverified ---
-    addq.w #4,sp
-    movea.l 7636(a4),a0
-    bclr #0,32(a0)
-    btst #1,33(a0)
-    beq.s hint_243a
+    dc.b    $58,$4f,$20,$6c,$1d,$d4,$08,$a8,$00,$00,$00,$20,$08,$28,$00,$01
+    dc.b    $00,$21,$67,$06
 hint_2434:
     dc.b    $70,$00,$39,$40,$1e,$e6
 hint_243a:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #2,33(a0)
-    beq.s hint_244c
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$02,$00,$21,$67,$06
 hint_2446:
     dc.b    $70,$00,$39,$40,$1e,$e8
 hint_244c:
-; --- unverified ---
-    btst #3,33(a0)
-    beq.s hint_245a
+    dc.b    $08,$28,$00,$03,$00,$21,$67,$06
 hint_2454:
     dc.b    $70,$00,$39,$40,$1e,$ea
 hint_245a:
-; --- unverified ---
-    btst #4,33(a0)
-    beq.s hint_2466
+    dc.b    $08,$28,$00,$04,$00,$21,$67,$04
 hint_2462:
     dc.b    $42,$6c,$1e,$ec
 hint_2466:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_2468:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #3,32(a0)
-    bne.s hint_24ac
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$03,$00,$20,$66,$38
 hint_2474:
-; --- unverified ---
-    btst #4,32(a0)
-    bne.s hint_24ac
+    dc.b    $08,$28,$00,$04,$00,$20,$66,$30
 hint_247c:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_248e
+    dc.b    $4a,$6c,$80,$5e,$66,$0c
 hint_2482:
-; --- unverified ---
-    pea str_0bca(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$e7,$46,$4e,$ba,$09,$2c
 hint_248a:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_24a6
+    dc.b    $58,$4f,$60,$18
 hint_248e:
-; --- unverified ---
-    pea str_0bd6(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$e7,$46,$4e,$ba,$09,$20
 hint_2496:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0476(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$08,$20,$48,$7a,$df,$da,$4e,$ba,$09,$38
 hint_24a2:
     dc.b    $4f,$ef,$00,$0c
 hint_24a6:
-; --- unverified ---
-    moveq #1,d0
-    bra.w hint_255c
+    dc.b    $70,$01,$60,$00,$00,$b2
 hint_24ac:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #0,32(a0)
-    beq.s hunk_6_hint_24c8
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$00,$00,$20,$67,$10
 hint_24b8:
-; --- unverified ---
-    pea hunk_6_loc_03f0(pc)
-    jsr pcref_2d7e(pc)
+    dc.b    $48,$7a,$df,$36,$4e,$ba,$08,$c0
 hint_24c0:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.w hint_255c
+    dc.b    $58,$4f,$70,$01,$60,$00,$00,$96
 hunk_6_hint_24c8:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #1,31(a0)
-    beq.s hint_24e2
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$01,$00,$1f,$67,$0e
 hint_24d4:
-; --- unverified ---
-    pea str_0bdc(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e7,$06,$4e,$ba,$09,$22
 hint_24dc:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_255c
+    dc.b    $58,$4f,$70,$01,$60,$7a
 hint_24e2:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    bset #0,32(a0)
-    btst #4,32(a0)
-    bne.s hint_2520
+    dc.b    $20,$6c,$1d,$d4,$08,$e8,$00,$00,$00,$20,$08,$28,$00,$04,$00,$20
+    dc.b    $66,$2c
 hint_24f4:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,30(a0)
-    bne.s hint_2514
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$1e,$66,$14
 hint_2500:
-; --- unverified ---
-    clr.w -(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$192,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $42,$67,$3f,$2c,$80,$5e,$30,$3c,$01,$92,$3f,$00,$4e,$ba,$07,$ce
 hint_2510:
-; --- unverified ---
-    addq.w #6,sp
-    bra.s hint_255c
+    dc.b    $5c,$4f,$60,$48
 hint_2514:
-; --- unverified ---
-    pea str_0bea(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$d4,$4e,$ba,$08,$e2
 hint_251c:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_255c
+    dc.b    $58,$4f,$60,$3c
 hint_2520:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #1,33(a0)
-    beq.s hint_2532
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$01,$00,$21,$67,$06
 hint_252c:
     dc.b    $70,$01,$39,$40,$1e,$e6
 hint_2532:
-; --- unverified ---
-    btst #2,33(a0)
-    beq.s hint_2540
+    dc.b    $08,$28,$00,$02,$00,$21,$67,$06
 hint_253a:
     dc.b    $70,$01,$39,$40,$1e,$e8
 hint_2540:
-; --- unverified ---
-    btst #3,33(a0)
-    beq.s hint_254e
+    dc.b    $08,$28,$00,$03,$00,$21,$67,$06
 hint_2548:
     dc.b    $70,$01,$39,$40,$1e,$ea
 hint_254e:
-; --- unverified ---
-    btst #4,33(a0)
-    beq.s hint_255c
+    dc.b    $08,$28,$00,$04,$00,$21,$67,$06
 hint_2556:
     dc.b    $39,$7c,$00,$01,$1e,$ec
 hint_255c:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_255e:
-; --- unverified ---
-    tst.w -32672(a4)
-    beq.s hint_257c
+    dc.b    $4a,$6c,$80,$60,$67,$18
 hint_2564:
-; --- unverified ---
-    move.w -32672(a4),-(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1da,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$2c,$80,$60,$3f,$2c,$80,$5e,$30,$3c,$01,$da,$3f,$00,$4e,$ba
+    dc.b    $07,$68
 hint_2576:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.s hint_25a6
+    dc.b    $5c,$4f,$70,$01,$60,$2a
 hint_257c:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_258e
+    dc.b    $4a,$6c,$80,$5e,$66,$0c
 hint_2582:
-; --- unverified ---
-    pea str_0bf2(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$e6,$6e,$4e,$ba,$08,$2c
 hint_258a:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_25a4
+    dc.b    $58,$4f,$60,$16
 hint_258e:
-; --- unverified ---
-    pea hunk_6_str_0bfe(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$e6,$6e,$4e,$ba,$08,$20
 hint_2596:
-; --- unverified ---
-    jsr pcref_2c9a(pc)
+    dc.b    $4e,$ba,$07,$02
 hint_259a:
-; --- unverified ---
-    pea pcref_0364(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$dd,$c8,$4e,$ba,$08,$5c
 hint_25a2:
     dc.b    $50,$4f
 hint_25a4:
     dc.b    $70,$00
 hint_25a6:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_25a8:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0c06(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$07,$0e,$48,$7a,$e6,$58,$4e,$ba,$08,$26
 hint_25b4:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #2,d0
-    rts
+    dc.b    $50,$4f,$70,$02,$4e,$75
 hint_25ba:
-; --- unverified ---
-    pea str_0c18(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$5c,$4e,$ba,$08,$3c
 hint_25c2:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_25c8:
-; --- unverified ---
-    bsr.s hint_25ba
+    dc.b    $61,$f0
 hint_25ca:
-; --- unverified ---
-    moveq #1,d0
-    rts
+    dc.b    $70,$01,$4e,$75
 hint_25ce:
-; --- unverified ---
-    jsr pcref_2d42(pc)
+    dc.b    $4e,$ba,$07,$72
 hint_25d2:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_25d4:
-; --- unverified ---
-    pea str_0c32(pc)
-    jsr pcref_2ca6(pc)
+    dc.b    $48,$7a,$e6,$5c,$4e,$ba,$06,$cc
 hint_25dc:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_25e2:
-; --- unverified ---
-    pea str_0c38(pc)
-    jsr pcref_2ca6(pc)
+    dc.b    $48,$7a,$e6,$54,$4e,$ba,$06,$be
 hint_25ea:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_25f0:
-; --- unverified ---
-    pea hunk_6_loc_0c3c(pc)
-    jsr pcref_2ca6(pc)
+    dc.b    $48,$7a,$e6,$4a,$4e,$ba,$06,$b0
 hint_25f8:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_25fe:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #4,32(a0)
-    bne.s hint_2612
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$04,$00,$20,$66,$08
 hint_260a:
-; --- unverified ---
-    jsr pcref_2d42(pc)
+    dc.b    $4e,$ba,$07,$36
 hint_260e:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_2638
+    dc.b    $70,$01,$60,$26
 hint_2612:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #0,32(a0)
-    beq.s hint_262c
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$00,$00,$20,$67,$0e
 hint_261e:
-; --- unverified ---
-    pea hunk_6_loc_03f0(pc)
-    jsr pcref_2d7e(pc)
+    dc.b    $48,$7a,$dd,$d0,$4e,$ba,$07,$5a
 hint_2626:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    bra.s hint_2638
+    dc.b    $58,$4f,$70,$00,$60,$0c
 hint_262c:
-; --- unverified ---
-    pea str_0c40(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a
+hint_262e:
+    dc.b    $e6,$12,$4e,$ba,$07,$ca
 hint_2634:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
+    dc.b    $58,$4f,$70,$01
 hint_2638:
-    rts
+    dc.b    $4e,$75
 hint_263a:
-; --- unverified ---
-    pea hunk_6_loc_0c5c(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$20,$4e,$ba,$07,$bc
 hint_2642:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_2648:
-; --- unverified ---
-    pea str_0c66(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$1c,$4e,$ba,$07,$ae
 hint_2650:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_2654:
-; --- unverified ---
-    pea hunk_6_loc_0c86(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$30,$4e,$ba,$07,$a2
 hint_265c:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_2662:
-; --- unverified ---
-    pea hunk_6_loc_0caa(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$46,$4e,$ba,$07,$94
 hint_266a:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_2670:
-; --- unverified ---
-    pea str_0cbc(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$4a,$4e,$ba,$07,$86
 hint_2678:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_267e:
-; --- unverified ---
-    pea str_0cc2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$42,$4e,$ba,$07,$78
 hint_2686:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_268c:
-; --- unverified ---
-    pea str_0ce8(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$5a,$4e,$ba,$07,$6a
 hint_2694:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_269a:
-; --- unverified ---
-    pea str_0d0c(pc)
-    jsr pcref_2cac(pc)
+    dc.b    $48,$7a,$e6,$70,$4e,$ba,$06,$0c
 hint_26a2:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_26a8:
-; --- unverified ---
-    pea str_0d12(pc)
-    jsr pcref_2cac(pc)
+    dc.b    $48,$7a,$e6,$68,$4e,$ba,$05,$fe
 hint_26b0:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_26b6:
-; --- unverified ---
-    pea str_0d1a(pc)
-    jsr pcref_2cac(pc)
+    dc.b    $48,$7a,$e6,$62,$4e,$ba,$05,$f0
 hint_26be:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_26c4:
-; --- unverified ---
-    tst.w -32674(a4)
-    beq.s hint_26dc
+    dc.b    $4a,$6c,$80,$5e,$67,$12
 hint_26ca:
-; --- unverified ---
-    pea pcref_2d06(pc)
-    pea str_0d22(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$06,$3a,$48,$7a,$e6,$52,$4e,$ba,$07,$04
 hint_26d6:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_26e8
+    dc.b    $50,$4f,$70,$01,$60,$0c
 hint_26dc:
-; --- unverified ---
-    pea hunk_6_loc_0d36(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$58,$4e,$ba,$07,$1a
 hint_26e4:
     dc.b    $58,$4f,$70,$01
 hint_26e8:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_26ea:
-; --- unverified ---
-    pea str_0d50(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$64,$4e,$ba,$07,$0c
 hint_26f2:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_26f8:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,32(a0)
-    bne.s hint_2712
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$66,$0e
 hint_2704:
-; --- unverified ---
-    pea str_0d60(pc)
-    jsr pcref_2ca6(pc)
+    dc.b    $48,$7a,$e6,$5a,$4e,$ba,$05,$9c
 hint_270c:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_271e
+    dc.b    $58,$4f,$70,$01,$60,$0c
 hint_2712:
-; --- unverified ---
-    pea str_0d66(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$52,$4e,$ba,$06,$e4
 hint_271a:
     dc.b    $58,$4f,$70,$01
 hint_271e:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_2720:
-; --- unverified ---
-    pea hunk_6_loc_0d8a(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$68,$4e,$ba,$06,$d6
 hint_2728:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_272c:
-; --- unverified ---
-    jsr sub_2d54(pc)
+    dc.b    $4e,$ba,$06,$26
 hint_2730:
-; --- unverified ---
-    tst.w d0
-    bne.s hint_2738
+    dc.b    $4a,$40,$66,$04
 hint_2734:
-; --- unverified ---
-    moveq #2,d0
-    bra.s hint_2748
+    dc.b    $70,$02,$60,$10
 hint_2738:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0daa(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$05,$7e,$48,$7a,$e6,$6c,$4e,$ba,$06,$96
 hint_2744:
     dc.b    $50,$4f,$70,$01
 hint_2748:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_274a:
-; --- unverified ---
-    tst.w -32584(a4)
-    bne.s hint_279a
+    dc.b    $4a,$6c,$80,$b8,$66,$4a
 hint_2750:
-; --- unverified ---
-    moveq #26,d0
-    cmp.w -32674(a4),d0
-    bne.s hint_279a
+    dc.b    $70,$1a,$b0,$6c,$80,$5e,$66,$42
 hint_2758:
-; --- unverified ---
-    move.l 6484(a4),-(sp)
-    moveq #14,d0
-    move.w d0,-(sp)
-    jsr pcref_2d5a(pc)
+    dc.b    $2f,$2c,$19,$54,$70,$0e,$3f,$00,$4e,$ba,$05,$f8
 hint_2764:
-; --- unverified ---
-    addq.w #6,sp
-    move.w d0,-32584(a4)
-    bne.s hint_2774
+    dc.b    $5c,$4f,$39,$40,$80,$b8,$66,$08
 hint_276c:
-; --- unverified ---
-    jsr pcref_2cfa(pc)
+    dc.b    $4e,$ba,$05,$8c
 hint_2770:
-; --- unverified ---
-    moveq #2,d0
-    bra.s hint_27c8
+    dc.b    $70,$02,$60,$54
 hint_2774:
-; --- unverified ---
-    moveq #2,d0
-    move.w d0,-(sp)
-    move.w -32584(a4),-(sp)
-    jsr sub_2dc6(pc)
+    dc.b    $70,$02,$3f,$00,$3f,$2c,$80,$b8,$4e,$ba,$06,$48
 hint_2780:
-; --- unverified ---
-    jsr sub_2d36(pc)
+    dc.b    $4e,$ba,$05,$b4
 hint_2784:
-; --- unverified ---
-    clr.w (sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1cf,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $42,$57,$3f,$2c,$80,$5e,$30,$3c,$01,$cf,$3f,$00,$4e,$ba,$05,$4a
 hint_2794:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_27c8
+    dc.b    $50,$4f,$70,$01,$60,$2e
 hint_279a:
-; --- unverified ---
-    tst.w -32584(a4)
-    beq.s hint_27b4
+    dc.b    $4a,$6c,$80,$b8,$67,$14
 hint_27a0:
-; --- unverified ---
-    movea.l 7644(a4),a0
-    btst #3,30(a0)
-    bne.s hint_27b0
+    dc.b    $20,$6c,$1d,$dc,$08,$28,$00,$03,$00,$1e,$66,$04
 hint_27ac:
-; --- unverified ---
-    jsr pcref_2d12(pc)
+    dc.b    $4e,$ba,$05,$64
 hint_27b0:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_27c8
+    dc.b    $70,$01,$60,$14
 hint_27b4:
-; --- unverified ---
-    moveq #1,d0
-    move.w d0,-(sp)
-    jsr hunk_6_loc_2d84(pc)
+    dc.b    $70,$01,$3f,$00,$4e,$ba,$05,$ca
 hint_27bc:
-; --- unverified ---
-    pea str_0dc6(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$08,$4e,$ba,$06,$3a
 hint_27c4:
     dc.b    $5c,$4f,$70,$00
 hint_27c8:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_27ca:
-; --- unverified ---
-    tst.w -32584(a4)
-    beq.s hint_27de
+    dc.b    $4a,$6c,$80,$b8,$67,$0e
 hint_27d0:
-; --- unverified ---
-    pea str_0df2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e6,$20,$4e,$ba,$06,$26
 hint_27d8:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    bra.s hint_2854
+    dc.b    $58,$4f,$70,$01,$60,$76
 hint_27de:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,32(a0)
-    bne.s hint_2802
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$66,$18
 hint_27ea:
-; --- unverified ---
-    tst.w -32672(a4)
-    beq.s hint_2802
+    dc.b    $4a,$6c,$80,$60,$67,$12
 hint_27f0:
-; --- unverified ---
-    pea pcref_2d06(pc)
-    pea str_0e0a(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$05,$14,$48,$7a,$e6,$14,$4e,$ba,$05,$de
 hint_27fc:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_2854
+    dc.b    $50,$4f,$70,$01,$60,$52
 hint_2802:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,32(a0)
-    beq.s hint_2838
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$67,$2a
 hint_280e:
-; --- unverified ---
-    tst.w -32672(a4)
-    beq.s hint_2838
+    dc.b    $4a,$6c,$80,$60,$67,$24
 hint_2814:
-; --- unverified ---
-    move.w -32674(a4),-32584(a4)
-    move.l 7636(a4),7644(a4)
-    move.w -32672(a4),-(sp)
-    moveq #26,d0
-    move.w d0,-(sp)
-    move.w #$1e0,d1
-    move.w d1,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $39,$6c,$80,$5e,$80,$b8,$29,$6c,$1d,$d4,$1d,$dc,$3f,$2c,$80,$60
+    dc.b    $70,$1a,$3f,$00,$32,$3c,$01,$e0,$3f,$01,$4e,$ba,$04,$ac
 hint_2832:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.s hint_2854
+    dc.b    $5c,$4f,$70,$01,$60,$1c
 hint_2838:
-; --- unverified ---
-    tst.w -32672(a4)
-    bne.s hint_2854
+    dc.b    $4a,$6c,$80,$60,$66,$16
 hint_283e:
-; --- unverified ---
-    move.w -32674(a4),-(sp)
-    moveq #26,d0
-    move.w d0,-(sp)
-    move.w #$1e0,d1
-    move.w d1,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$2c,$80,$5e,$70,$1a,$3f,$00,$32,$3c,$01,$e0,$3f,$01,$4e,$ba
+    dc.b    $04,$8e
 hint_2850:
     dc.b    $5c,$4f,$70,$01
 hint_2854:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_2856:
-; --- unverified ---
-    tst.w -32584(a4)
-    bne.s hint_28a0
+    dc.b    $4a,$6c,$80,$b8,$66,$44
 hint_285c:
-; --- unverified ---
-    move.l 6484(a4),-(sp)
-    moveq #14,d0
-    move.w d0,-(sp)
-    jsr pcref_2d5a(pc)
+    dc.b    $2f,$2c,$19,$54,$70,$0e,$3f,$00,$4e,$ba,$04,$f4
 hint_2868:
-; --- unverified ---
-    addq.w #6,sp
-    move.w d0,-32584(a4)
-    bne.s hint_2878
+    dc.b    $5c,$4f,$39,$40,$80,$b8,$66,$08
 hint_2870:
-; --- unverified ---
-    jsr pcref_2cfa(pc)
+    dc.b    $4e,$ba,$04,$88
 hint_2874:
-; --- unverified ---
-    moveq #2,d0
-    bra.s hint_28ce
+    dc.b    $70,$02,$60,$56
 hint_2878:
-; --- unverified ---
-    moveq #2,d0
-    move.w d0,-(sp)
-    move.w -32584(a4),-(sp)
-    jsr sub_2dc6(pc)
+    dc.b    $70,$02,$3f,$00,$3f,$2c,$80,$b8,$4e,$ba,$05,$44
 hint_2884:
-; --- unverified ---
-    jsr sub_2d36(pc)
+    dc.b    $4e,$ba,$04,$b0
 hint_2888:
-; --- unverified ---
-    move.w -32672(a4),(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1e0,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3e,$ac,$80,$60,$3f,$2c,$80,$5e,$30,$3c,$01,$e0,$3f,$00,$4e,$ba
+    dc.b    $04,$44
 hint_289a:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_28ce
+    dc.b    $50,$4f,$70,$01,$60,$2e
 hint_28a0:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,32(a0)
-    bne.s hint_28be
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$66,$12
 hint_28ac:
-; --- unverified ---
-    pea pcref_2cb8(pc)
-    pea str_0e1a(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$04,$0a,$48,$7a,$e5,$68,$4e,$ba,$05,$22
 hint_28b8:
-; --- unverified ---
-    addq.w #8,sp
-    moveq #1,d0
-    bra.s hint_28ce
+    dc.b    $50,$4f,$70,$01,$60,$10
 hint_28be:
-; --- unverified ---
-    pea pcref_2d12(pc)
-    pea str_0e3e(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$04,$52,$48,$7a,$e5,$7a,$4e,$ba,$05,$10
 hint_28ca:
     dc.b    $50,$4f,$70,$01
 hint_28ce:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_28d0:
-; --- unverified ---
-    tst.w -32672(a4)
-    bne.s hint_2926
+    dc.b    $4a,$6c,$80,$60,$66,$50
 hint_28d6:
-; --- unverified ---
-    move.l 6484(a4),-(sp)
-    moveq #14,d0
-    move.w d0,-(sp)
-    jsr pcref_2d5a(pc)
+    dc.b    $2f,$2c,$19,$54,$70,$0e,$3f,$00,$4e,$ba,$04,$7a
 hint_28e2:
-; --- unverified ---
-    addq.w #6,sp
-    move.w d0,-32584(a4)
-    bne.s hint_28f2
+    dc.b    $5c,$4f,$39,$40,$80,$b8,$66,$08
 hint_28ea:
-; --- unverified ---
-    jsr pcref_2cfa(pc)
+    dc.b    $4e,$ba,$04,$0e
 hint_28ee:
-; --- unverified ---
-    moveq #2,d0
-    bra.s hint_293c
+    dc.b    $70,$02,$60,$4a
 hint_28f2:
-; --- unverified ---
-    moveq #2,d0
-    move.w d0,-(sp)
-    move.w -32584(a4),-(sp)
-    jsr sub_2dc6(pc)
+    dc.b    $70,$02,$3f,$00,$3f,$2c,$80,$b8,$4e,$ba,$04,$ca
 hint_28fe:
-; --- unverified ---
-    pea str_0e50(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e5,$50,$4e,$ba,$04,$f8
 hint_2906:
-; --- unverified ---
-    pea pcref_2d12(pc)
-    pea -6838(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $48,$7a,$04,$0a,$48,$7a,$e5,$4a,$4e,$ba,$04,$c8
 hint_2912:
     dc.b    $4f,$ef,$00,$10,$30,$2c,$80,$5e,$39,$40,$80,$60,$32,$2c,$80,$b8
     dc.b    $39,$41,$80,$5e
 hint_2926:
-; --- unverified ---
-    move.w -32674(a4),-(sp)
-    move.w -32672(a4),-(sp)
-    move.w #$1de,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $3f,$2c,$80,$5e,$3f,$2c,$80,$60,$30,$3c,$01,$de,$3f,$00,$4e,$ba
+    dc.b    $03,$a6
 hint_2938:
     dc.b    $5c,$4f,$70,$01
 hint_293c:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_293e:
-; --- unverified ---
-    move.l 7636(a4),-(sp)
-    jsr pcref_2cc4(pc)
+    dc.b    $2f,$2c,$1d,$d4,$4e,$ba,$03,$80
 hint_2946:
-; --- unverified ---
-    addq.w #4,sp
-    tst.w d0
-    bne.s hint_2954
+    dc.b    $58,$4f,$4a,$40,$66,$08
 hint_294c:
-; --- unverified ---
-    jsr pcref_2ca0(pc)
+    dc.b    $4e,$ba,$03,$52
 hint_2950:
-; --- unverified ---
-    moveq #2,d0
-    bra.s hint_295a
+    dc.b    $70,$02,$60,$06
 hint_2954:
-; --- unverified ---
-    jsr pcref_2d42(pc)
+    dc.b    $4e,$ba,$03,$ec
 hint_2958:
     dc.b    $70,$01
 hint_295a:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_295c:
-; --- unverified ---
-    tst.w -32672(a4)
-    beq.s hint_2978
+    dc.b    $4a,$6c,$80,$60,$67,$16
 hint_2962:
-; --- unverified ---
-    clr.w -(sp)
-    move.w -32672(a4),-(sp)
-    move.w #$1ef,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $42,$67,$3f,$2c,$80,$60,$30,$3c,$01,$ef,$3f,$00,$4e,$ba,$03,$6c
 hint_2972:
-; --- unverified ---
-    addq.w #6,sp
-    moveq #1,d0
-    bra.s hint_298a
+    dc.b    $5c,$4f,$70,$01,$60,$12
 hint_2978:
-; --- unverified ---
-    clr.w -(sp)
-    move.w -32674(a4),-(sp)
-    move.w #$1ef,d0
-    move.w d0,-(sp)
-    jsr pcref_2cdc(pc)
+    dc.b    $42,$67,$3f,$2c,$80,$5e,$30,$3c,$01,$ef,$3f,$00,$4e,$ba,$03,$56
 hint_2988:
     dc.b    $5c,$4f
 hint_298a:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_298c:
-; --- unverified ---
-    tst.w -32674(a4)
-    beq.s hint_299a
+    dc.b    $4a,$6c,$80,$5e,$67,$08
 hint_2992:
-; --- unverified ---
-    moveq #26,d0
-    cmp.w -32674(a4),d0
-    bne.s hint_29a8
+    dc.b    $70,$1a,$b0,$6c,$80,$5e,$66,$0e
 hint_299a:
-; --- unverified ---
-    moveq #2,d0
-    move.w d0,-(sp)
-    moveq #11,d1
-    move.w d1,-(sp)
-    jsr hunk_6_loc_2d24(pc)
+    dc.b    $70,$02,$3f,$00,$72,$0b,$3f,$01,$4e,$ba,$03,$80
 hint_29a6:
     dc.b    $58,$4f
 hint_29a8:
-; --- unverified ---
-    tst.w -32674(a4)
-    seq d0
-    neg.b d0
-    ext.w d0
-    moveq #11,d1
-    cmp.w d1,d0
-    bne.s hint_29f2
+    dc.b    $4a,$6c,$80,$5e,$57,$c0,$44,$00,$48,$80,$72,$0b,$b0,$41,$66,$3a
 hint_29b8:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    btst #6,32(a0)
-    bne.s hint_29f2
+    dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$66,$2e
 hint_29c4:
-; --- unverified ---
-    tst.w -32674(a4)
-    bne.s hint_29d6
+    dc.b    $4a,$6c,$80,$5e,$66,$0c
 hint_29ca:
-; --- unverified ---
-    pea str_0e5c(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$e4,$90,$4e,$ba,$03,$e4
 hint_29d2:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_29ee
+    dc.b    $58,$4f,$60,$18
 hint_29d6:
-; --- unverified ---
-    pea str_0e66(pc)
-    jsr hunk_6_loc_2db4(pc)
+    dc.b    $48,$7a,$e4,$8e,$4e,$ba,$03,$d8
 hint_29de:
-; --- unverified ---
-    clr.w (sp)
-    jsr hunk_6_loc_2d84(pc)
+    dc.b    $42,$57,$4e,$ba,$03,$a2
 hint_29e4:
-; --- unverified ---
-    pea pcref_0364(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$d9,$7e,$4e,$ba,$04,$12
 hint_29ec:
     dc.b    $50,$4f
 hint_29ee:
-; --- unverified ---
-    moveq #2,d0
-    bra.s hint_2a36
+    dc.b    $70,$02,$60,$44
 hint_29f2:
-; --- unverified ---
-    move.w -32674(a4),d0
-    moveq #11,d1
-    cmp.w d1,d0
-    bne.s hint_2a1c
+    dc.b    $30,$2c,$80,$5e,$72,$0b,$b0,$41,$66,$20
 hint_29fc:
-; --- unverified ---
-    cmp.w d1,d0
-    beq.s hint_2a0e
+    dc.b    $b0,$41,$67,$0e
 hint_2a00:
-; --- unverified ---
-    pea str_0e6c(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e4,$6a,$4e,$ba,$03,$f6
 hint_2a08:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #2,d0
-    bra.s hint_2a36
+    dc.b    $58,$4f,$70,$02,$60,$28
 hint_2a0e:
-; --- unverified ---
-    pea str_0e80(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e4,$70,$4e,$ba,$03,$e8
 hint_2a16:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #2,d0
-    bra.s hint_2a36
+    dc.b    $58,$4f,$70,$02,$60,$1a
 hint_2a1c:
-; --- unverified ---
-    pea str_0e9c(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e4,$7e,$4e,$ba,$03,$da
 hint_2a24:
-; --- unverified ---
-    clr.w (sp)
-    jsr hunk_6_loc_2d84(pc)
+    dc.b    $42,$57,$4e,$ba,$03,$5c
 hint_2a2a:
-; --- unverified ---
-    pea str_0eb8(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e4,$8c,$4e,$ba,$03,$cc
 hint_2a32:
     dc.b    $50,$4f,$70,$02
 hint_2a36:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_2a38:
-; --- unverified ---
-    pea str_0ec4(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e4,$8a,$4e,$ba,$03,$be
 hint_2a40:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    rts
+    dc.b    $58,$4f,$70,$00,$4e,$75
 hint_2a46:
-; --- unverified ---
-    pea str_0ee6(pc)
-    jsr sub_2d2a(pc)
+    dc.b    $48,$7a,$e4,$9e,$4e,$ba,$02,$de
 hint_2a4e:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    rts
+    dc.b    $58,$4f,$70,$00,$4e,$75
 hint_2a54:
-; --- unverified ---
-    pea str_0eee(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e4,$98,$4e,$ba,$03,$a2
 hint_2a5c:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    rts
+    dc.b    $58,$4f,$70,$00,$4e,$75
 hint_2a62:
-; --- unverified ---
-    moveq #1,d0
-    move.w d0,-(sp)
-    jsr pcref_2cd6(pc)
+    dc.b    $70,$01,$3f,$00,$4e,$ba,$02,$6e
 hint_2a6a:
-; --- unverified ---
-    addq.w #2,sp
-    movea.l 7640(a4),a0
-    move.w (a0),d0
-    muls.w #$c,d0
-    movea.l 7648(a4),a0
-    adda.l d0,a0
-    moveq #1,d0
-    move.w 4(a0),d1
-    asl.l d1,d0
-    movea.l 7636(a4),a0
-    move.l 30(a0),d1
-    and.l d0,d1
-    beq.s hint_2a9c
+    dc.b    $54,$4f,$20,$6c,$1d,$d8,$30,$10,$c1,$fc,$00,$0c,$20,$6c,$1d,$e0
+    dc.b    $d1,$c0,$70,$01,$32,$28,$00,$04,$e3,$a0,$20,$6c,$1d,$d4,$22,$28
+    dc.b    $00,$1e,$c2,$80,$67,$0c
 hint_2a90:
-; --- unverified ---
-    pea str_0f10(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e4,$7e,$4e,$ba,$03,$66
 hint_2a98:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_2aa6
+    dc.b    $58,$4f,$60,$0a
 hint_2a9c:
-; --- unverified ---
-    pea str_0f1e(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e4,$80,$4e,$ba,$03,$5a
 hint_2aa4:
     dc.b    $58,$4f
 hint_2aa6:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hint_2aa8:
-; --- unverified ---
-    moveq #1,d0
-    move.w d0,-(sp)
-    jsr pcref_2cd6(pc)
+    dc.b    $70,$01,$3f,$00,$4e,$ba,$02,$28
 hint_2ab0:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    move.w (a0),d0
-    muls.w #$c,d0
-    movea.l 7648(a4),a0
-    adda.l d0,a0
-    moveq #1,d0
-    move.w 4(a0),d1
-    asl.l d1,d0
-    movea.l 7636(a4),a0
-    or.l d0,30(a0)
-    pea str_0f2e(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $20,$6c,$1d,$d8,$30,$10,$c1,$fc,$00,$0c,$20,$6c,$1d,$e0,$d1,$c0
+    dc.b    $70,$01,$32,$28,$00,$04,$e3,$a0,$20,$6c,$1d,$d4,$81,$a8,$00,$1e
+    dc.b    $48,$7a,$e4,$5c,$4e,$ba,$03,$26
 hint_2ad8:
-; --- unverified ---
-    addq.w #6,sp
-    rts
+    dc.b    $5c,$4f,$4e,$75
 hint_2adc:
-; --- unverified ---
-    moveq #1,d0
-    move.w d0,-(sp)
-    jsr pcref_2cd6(pc)
+    dc.b    $70,$01,$3f,$00,$4e,$ba,$01,$f4
 hint_2ae4:
-; --- unverified ---
-    movea.l 7640(a4),a0
-    move.w (a0),d0
-    muls.w #$c,d0
-    movea.l 7648(a4),a0
-    adda.l d0,a0
-    moveq #1,d0
-    move.w 4(a0),d1
-    asl.l d1,d0
-    not.l d0
-    movea.l 7636(a4),a0
-    and.l d0,30(a0)
-    pea str_0f40(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $20,$6c,$1d,$d8,$30,$10,$c1,$fc,$00,$0c,$20,$6c,$1d,$e0,$d1,$c0
+    dc.b    $70,$01,$32,$28,$00,$04,$e3,$a0,$46,$80,$20,$6c,$1d,$d4,$c1,$a8
+    dc.b    $00,$1e,$48,$7a,$e4,$38,$4e,$ba,$02,$f0
 hint_2b0e:
-; --- unverified ---
-    addq.w #6,sp
-    rts
+    dc.b    $5c,$4f,$4e,$75
 hint_2b12:
-; --- unverified ---
-    move.w #$1,7882(a4)
-    move.l 6488(a4),-(sp)
-    move.l 7636(a4),-(sp)
-    jsr loc_2d4e(pc)
+    dc.b    $39,$7c,$00,$01,$1e,$ca,$2f,$2c,$19,$58,$2f,$2c,$1d,$d4,$4e,$ba
+    dc.b    $02,$2c
 hint_2b24:
-; --- unverified ---
-    addq.w #8,sp
-    movea.l 7636(a4),a0
-    btst #5,32(a0)
-    bne.s hint_2b3c
+    dc.b    $50,$4f,$20,$6c,$1d,$d4,$08,$28,$00,$05,$00,$20,$66,$0a
 hint_2b32:
-; --- unverified ---
-    move.w 14(a0),-(sp)
-    jsr pcref_2d18(pc)
+    dc.b    $3f,$28,$00,$0e,$4e,$ba,$01,$e0
 hint_2b3a:
     dc.b    $54,$4f
 hint_2b3c:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    bset #5,32(a0)
-    bclr #2,32(a0)
-    bclr #7,31(a0)
-    btst #0,33(a0)
-    beq.s hint_2bd2
+    dc.b    $20,$6c,$1d,$d4,$08,$e8,$00,$05,$00,$20,$08,$a8,$00,$02,$00,$20
+    dc.b    $08,$a8,$00,$07,$00,$1f,$08,$28,$00,$00,$00,$21,$67,$78
 hint_2b5a:
-; --- unverified ---
-    moveq #1,d0
-    move.w d0,-(sp)
-    movea.l 7636(a4),a0
-    move.w 28(a0),-(sp)
-    jsr pcref_2d3c(pc)
+    dc.b    $70,$01,$3f,$00,$20,$6c,$1d,$d4,$3f,$28,$00,$1c,$4e,$ba,$01,$d4
 hint_2b6a:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    adda.w #$16,a0
-    move.l a0,(sp)
-    clr.w -(sp)
-    movea.l 7636(a4),a1
-    move.w 28(a1),-(sp)
-    jsr pcref_2dd2(pc)
+    dc.b    $20,$6c,$1d,$d4,$d0,$fc,$00,$16,$2e,$88,$42,$67,$22,$6c,$1d,$d4
+    dc.b    $3f,$29,$00,$1c,$4e,$ba,$02,$52
 hint_2b82:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    bne.s hint_2bc8
+    dc.b    "POJ@f@"
 hint_2b88:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    adda.w #$18,a0
-    move.l a0,-(sp)
-    moveq #3,d0
-    move.w d0,-(sp)
-    movea.l 7636(a4),a1
-    move.w 28(a1),-(sp)
-    jsr pcref_2dd2(pc)
+    dc.b    $20,$6c,$1d,$d4,$d0,$fc,$00,$18,$2f,$08,$70,$03,$3f,$00,$22,$6c
+    dc.b    $1d,$d4,$3f,$29,$00,$1c,$4e,$ba,$02,$32
 hint_2ba2:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    bne.s hint_2bc8
+    dc.b    "POJ@f "
 hint_2ba8:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    adda.w #$1a,a0
-    move.l a0,-(sp)
-    moveq #6,d0
-    move.w d0,-(sp)
-    movea.l 7636(a4),a1
-    move.w 28(a1),-(sp)
-    jsr pcref_2dd2(pc)
+    dc.b    $20,$6c,$1d,$d4,$d0,$fc,$00,$1a,$2f,$08,$70,$06,$3f,$00,$22,$6c
+    dc.b    $1d,$d4,$3f,$29,$00,$1c,$4e,$ba,$02,$12
 hint_2bc2:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    beq.s hint_2bd2
+    dc.b    $50,$4f,$4a,$40,$67,$0a
 hint_2bc8:
-; --- unverified ---
-    pea hunk_6_loc_0f54(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e3,$8a,$4e,$ba,$02,$2e
 hint_2bd0:
     dc.b    $58,$4f
 hint_2bd2:
-; --- unverified ---
-    pea str_0f74(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e3,$a0,$4e,$ba,$02,$24
 hint_2bda:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #1,d0
-    rts
+    dc.b    $58,$4f,$70,$01,$4e,$75
 hint_2be0:
-; --- unverified ---
-    link a5,#-4
-    movea.l 7636(a4),a0
-    move.w 4(a0),d0
-    muls.w #$3a,d0
-    movea.l 7632(a4),a0
-    adda.l d0,a0
-    lea 38(a0),a1
-    move.l a1,-(sp)
-    pea pcref_2d06(pc)
-    pea pcref_0f7a(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $4e,$55,$ff,$fc,$20,$6c,$1d,$d4,$30,$28,$00,$04,$c1,$fc,$00,$3a
+    dc.b    $20,$6c,$1d,$d0,$d1,$c0,$43,$e8,$00,$26,$2f,$09,$48,$7a,$01,$08
+    dc.b    $48,$7a,$e3,$78,$4e,$ba,$01,$d2
 hint_2c08:
-; --- unverified ---
-    movea.l 7636(a4),a0
-    move.w 26(a0),(sp)
-    move.w 24(a0),-(sp)
-    move.w 22(a0),-(sp)
-    pea pcref_0f90(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $20,$6c,$1d,$d4,$3e,$a8,$00,$1a,$3f,$28,$00,$18,$3f,$28,$00,$16
+    dc.b    $48,$7a,$e3,$76,$4e,$ba,$01,$ba
 hint_2c20:
-; --- unverified ---
-    pea str_0fb2(pc)
-    jsr loc_2dfc(pc)
+    dc.b    $48,$7a,$e3,$90,$4e,$ba,$01,$d6
 hint_2c28:
-; --- unverified ---
-    pea -2(a5)
-    clr.w -(sp)
-    movea.l 7636(a4),a0
-    move.w 28(a0),-(sp)
-    jsr pcref_2dd2(pc)
+    dc.b    $48,$6d,$ff,$fe,$42,$67,$20,$6c,$1d,$d4,$3f,$28,$00,$1c,$4e,$ba
+    dc.b    $01,$9a
 hint_2c3a:
-; --- unverified ---
-    move.w -2(a5),(sp)
-    pea str_0fbc(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $3e,$ad,$ff,$fe,$48,$7a,$e3,$7c,$4e,$ba,$01,$94
 hint_2c46:
-; --- unverified ---
-    pea -2(a5)
-    moveq #6,d0
-    move.w d0,-(sp)
-    movea.l 7636(a4),a0
-    move.w 28(a0),-(sp)
-    jsr pcref_2dd2(pc)
+    dc.b    $48,$6d,$ff,$fe,$70,$06,$3f,$00,$20,$6c,$1d,$d4,$3f,$28,$00,$1c
+    dc.b    $4e,$ba,$01,$7a
 hint_2c5a:
-; --- unverified ---
-    move.w -2(a5),(sp)
-    jsr pcref_2d1e(pc)
+    dc.b    $3e,$ad,$ff,$fe,$4e,$ba,$00,$be
 hint_2c62:
-; --- unverified ---
-    move.w d0,-2(a5)
-    move.w d0,(sp)
-    pea str_0fc8(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $3b,$40,$ff,$fe,$3e,$80,$48,$7a,$e3,$5e,$4e,$ba,$01,$6a
 hint_2c70:
-; --- unverified ---
-    pea -2(a5)
-    moveq #6,d0
-    move.w d0,-(sp)
-    movea.l 7636(a4),a0
-    move.w 28(a0),-(sp)
-    jsr pcref_2dd2(pc)
+    dc.b    $48,$6d,$ff,$fe,$70,$06,$3f,$00,$20,$6c,$1d,$d4,$3f,$28,$00,$1c
+    dc.b    $4e,$ba,$01,$50
 hint_2c84:
-; --- unverified ---
-    move.w -2(a5),(sp)
-    pea str_0fd2(pc)
-    jsr loc_2dd8(pc)
+    dc.b    $3e,$ad,$ff,$fe,$48,$7a,$e3,$48,$4e,$ba,$01,$4a
 hint_2c90:
-; --- unverified ---
-    unlk a5
-    rts
+    dc.b    $4e,$5d,$4e,$75
 hunk_6_loc_2c94:
     jmp hunk_8_loc_0dee
 pcref_2c9a:
-; --- unverified ---
-    jmp hunk_4_loc_006e
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_006e
 pcref_2ca0:
-; --- unverified ---
-    jmp hunk_8_loc_1a0c
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1a0c
 pcref_2ca6:
-; --- unverified ---
-    jmp hunk_8_loc_11b8
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_11b8
 pcref_2cac:
-; --- unverified ---
-    jmp hunk_8_loc_1148
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1148
 pcref_2cb2:
-; --- unverified ---
-    jmp hunk_8_loc_0f66
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_0f66
 pcref_2cb8:
-; --- unverified ---
-    jmp hunk_4_loc_002c
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_002c
 pcref_2cbe:
-; --- unverified ---
-    jmp hunk_1_loc_179a
+    dc.b    $4e,$f9
+    dc.l    hunk_1_loc_179a
 pcref_2cc4:
-; --- unverified ---
-    jmp hunk_1_loc_18a0
+    dc.b    $4e,$f9
+    dc.l    hunk_1_loc_18a0
 pcref_2cca:
-; --- unverified ---
-    jmp hunk_8_loc_1826
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1826
 hunk_6_loc_2cd0:
     jmp hunk_1_loc_163e
 pcref_2cd6:
-; --- unverified ---
-    jmp hunk_4_loc_012a
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_012a
 pcref_2cdc:
-; --- unverified ---
-    jmp hunk_1_loc_1352
+    dc.b    $4e,$f9
+    dc.l    hunk_1_loc_1352
 pcref_2ce2:
-; --- unverified ---
-    jmp hunk_8_loc_11a4
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_11a4
 pcref_2ce8:
-; --- unverified ---
-    jmp hunk_5_loc_0922
+    dc.b    $4e,$f9
+    dc.l    hunk_5_loc_0922
 pcref_2cee:
-; --- unverified ---
-    jmp hunk_8_loc_084a
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_084a
 pcref_2cf4:
-; --- unverified ---
-    jmp hunk_8_loc_156a
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_156a
 pcref_2cfa:
-; --- unverified ---
-    jmp hunk_8_loc_1a36
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1a36
 sub_2d00:
     jmp hunk_1_loc_1a0a
 pcref_2d06:
     dc.b    $4e,$f9
     dc.l    hunk_4_loc_0036
-sub_2d0c:
+hunk_6_loc_2d0c:
     jmp hunk_3_loc_01b4
 pcref_2d12:
-; --- unverified ---
-    jmp hunk_4_loc_0062
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_0062
 pcref_2d18:
-; --- unverified ---
-    jmp hunk_8_loc_123a
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_123a
 pcref_2d1e:
-; --- unverified ---
-    jmp hunk_11_loc_0886
+    dc.b    $4e,$f9
+    dc.l    hunk_11_loc_0886
 hunk_6_loc_2d24:
     jmp hunk_1_loc_1692
-sub_2d2a:
-; --- unverified ---
-    jmp hunk_8_loc_118c
+pcref_2d2a:
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_118c
 hunk_6_loc_2d30:
     jmp hunk_1_loc_1624
-sub_2d36:
-; --- unverified ---
-    jmp hunk_8_loc_1a42
+pcref_2d36:
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1a42
 pcref_2d3c:
-; --- unverified ---
-    jmp hunk_25_loc_02fa
+    dc.b    $4e,$f9
+    dc.l    hunk_25_loc_02fa
 pcref_2d42:
-; --- unverified ---
-    jmp hunk_8_loc_19f4
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_19f4
 hunk_6_loc_2d48:
     jmp hunk_8_loc_0b30
 loc_2d4e:
     jmp hunk_8_loc_053c
-sub_2d54:
-; --- unverified ---
-    jmp hunk_8_loc_124a
+pcref_2d54:
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_124a
 pcref_2d5a:
-; --- unverified ---
-    jmp hunk_8_loc_076a
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_076a
 pcref_2d60:
-; --- unverified ---
-    jmp hunk_4_loc_0042
+    dc.b    $4e,$f9
+    dc.l    hunk_4_loc_0042
 pcref_2d66:
-; --- unverified ---
-    jmp hunk_8_loc_1614
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1614
 hint_2d6c:
-; --- unverified ---
-    jmp hunk_36_loc_262e
+    dc.b    $4e,$f9
+    dc.l    hunk_36_loc_262e
 loc_2d72:
     jmp hunk_8_loc_0e76
 pcref_2d78:
-; --- unverified ---
-    jmp hunk_8_loc_0eb0
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_0eb0
 pcref_2d7e:
-; --- unverified ---
-    jmp hunk_8_loc_1a1e
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1a1e
 hunk_6_loc_2d84:
     jmp hunk_4_loc_00c6
 pcref_2d8a:
-; --- unverified ---
-    jmp hunk_8_loc_0f0c
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_0f0c
 pcref_2d90:
-; --- unverified ---
-    jmp hunk_8_loc_11e8
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_11e8
 pcref_2d96:
-; --- unverified ---
-    jmp hunk_1_loc_1f6c
+    dc.b    $4e,$f9
+    dc.l    hunk_1_loc_1f6c
 hunk_6_loc_2d9c:
     jmp hunk_8_loc_0722
 pcref_2da2:
@@ -17476,30 +15232,30 @@ loc_2dba:
     jmp hunk_8_loc_0746
 sub_2dc0:
     jmp hunk_3_loc_0d88
-sub_2dc6:
-; --- unverified ---
-    jmp hunk_1_loc_16ee
+pcref_2dc6:
+    dc.b    $4e,$f9
+    dc.l    hunk_1_loc_16ee
 pcref_2dcc:
-; --- unverified ---
-    jmp hunk_8_loc_07d0
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_07d0
 pcref_2dd2:
-; --- unverified ---
-    jmp hunk_25_loc_059a
+    dc.b    $4e,$f9
+    dc.l    hunk_25_loc_059a
 loc_2dd8:
     jmp hunk_4_loc_02e8
 pcref_2dde:
-; --- unverified ---
-    jmp hunk_8_loc_14b6
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_14b6
 loc_2de4:
     jmp hunk_36_loc_1fe6
 pcref_2dea:
-; --- unverified ---
-    jmp hunk_8_loc_1034
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_1034
 loc_2df0:
     jmp hunk_8_loc_0990
 pcref_2df6:
-; --- unverified ---
-    jmp hunk_8_loc_09da
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_09da
 loc_2dfc:
     jmp hunk_4_loc_01d4
     dc.b    $70,$61
@@ -17598,12 +15354,9 @@ hunk_7_loc_00d8:
 hunk_7_hint_00da:
     dc.b    $41,$fa,$00,$5a,$22,$4b
 hunk_7_hint_00e0:
-; --- unverified ---
-    move.b (a0)+,(a1)+
-    bne.s hunk_7_hint_00e0
+    dc.b    $12,$d8,$66,$fc
 hint_00e4:
-; --- unverified ---
-    bra.s hunk_7_loc_00f0
+    dc.b    $60,$0a
 hunk_7_loc_00e6:
     lea pcref_013c(pc),a0
     movea.l a3,a1
@@ -17631,11 +15384,11 @@ hunk_7_str_0136:
     dc.b    "over",0
     dc.b    $00
 pcref_013c:
-    dc.b    "-",$0a,"on second thought...why don't you stick to slide 'n shoots",0
+    dc.b    "-",$0a,"on second thought...why don","'","t you stick to slide ","'","n shoots",0
     dc.b    $00
     dc.b    "dnd.sgn",0
 str_0182:
-    dc.b    "The word ",$22,"%s",$22," isn't needed in this adventure.",0
+    dc.b    "The word ",'"',"%s",'"'," isn","'","t needed in this adventure.",0
 str_01b0:
     dc.b    "Could you run that one by me again?",0
 hunk_7_loc_01d4:
@@ -17665,7 +15418,7 @@ hunk_7_str_0240:
     not.w (sp)
     move.w d0,d0
 str_0244:
-    chk.l -(sp),d4
+    chk.l -(sp),d4 ; 68020+
     blt.s hunk_7_loc_0268
 hunk_7_loc_0248:
     dc.b    $6e,$6f
@@ -17674,7 +15427,7 @@ hunk_7_loc_024a:
     dc.b    "sure who you mean.",0
     dc.b    $00
 str_0260:
-    dc.b    "Now I'm "
+    dc.b    "Now I","'","m "
 hunk_7_loc_0268:
     moveq #101,d1
     bsr.s hunk_7_loc_02d8
@@ -17688,13 +15441,13 @@ hunk_7_loc_0272:
     dc.b    "sed.",0
     dc.b    $00
 str_027a:
-    dc.b    "He's not holding it.",0
+    dc.b    "He","'","s not holding it.",0
     dc.b    $00
 hunk_7_str_0290:
     dc.b    "Les is already holding it.",0
     dc.b    $00
 str_02ac:
-    dc.b    "I don't see t"
+    dc.b    "I don","'","t see t"
 hunk_7_loc_02b9:
     bvc.s hunk_7_loc_031c
 hunk_7_loc_02bb:
@@ -17725,6 +15478,7 @@ hunk_7_loc_02e0:
 hunk_7_loc_02e7:
     movea.l 28530(a5),a0
 loc_02eb:
+    dc.b    "e speci"
 hunk_7_loc_02f2:
     dc.b    $66,$69
 hunk_7_loc_02f4:
@@ -21227,12 +18981,15 @@ hint_00cb:
 str_00cc:
     dc.b    $20,$61,$6e,$64,$20
 hint_00d1:
-; --- unverified ---
-    ori.b #$0,83(a4)
-    bcs.s hunk_8_loc_013e
+    dc.b    $00
+pcref_00d2:
+    dc.b    $2c,$20,$00,$00
+hunk_8_str_00d6:
+    dc.b    $53,$65,$65
 hint_00d9:
-; --- unverified ---
-    blt.s hunk_8_loc_014e
+    dc.b    $6d
+hunk_8_loc_00da:
+    dc.b    $73
 hunk_8_hint_00db:
     dc.b    " like "
     dc.b    $79
@@ -21240,10 +18997,10 @@ hunk_8_loc_00e2:
     dc.b    $6f,$75
 hunk_8_loc_00e4:
     move.l (24940,a2,d6.w*4),29285(a3)
+    dc.b    $61,$64
     dc.b    $79,$20,$77
 hint_00f1:
-; --- unverified ---
-    bvc.s hunk_8_loc_0158
+    dc.b    $68,$65
     dc.b    $72,$65,$20
 hunk_8_loc_00f6:
     dc.b    $79
@@ -21274,6 +19031,7 @@ hunk_8_loc_0127:
 hunk_8_loc_012d:
     ori.b #$73,-(a0)
     movea.l 29472(a1),a0
+    dc.b    $63,$61,$72
 hunk_8_loc_0138:
     moveq #121,d1
     bvs.s hunk_8_loc_01aa
@@ -21369,6 +19127,7 @@ loc_01c7:
     move.l d0,d7
     ori.w #$7279,(a4)
     movea.l (1768843040,a4),a0
+    dc.b    "the fol"
 hunk_8_loc_01dc:
     dc.b    $6c,$6f
     dc.b    $77
@@ -21380,7 +19139,7 @@ hint_01e3:
     dc.b    $20,$25
     dc.b    $73,$00,$00
 str_01e8:
-    dc.b    "I'd much rather %s.",0
+    dc.b    "I","'","d much rather %s.",0
 hunk_8_pcref_01fc:
     dc.b    $0a,"holds = %ld",0
     dc.b    $00
@@ -21412,6 +19171,7 @@ hunk_8_loc_0241:
     dc.b    $79,$20,$25,$73,$20
 hunk_8_loc_0248:
     move.l 0(a2,d2.l),22895(a2)
+    dc.b    $75
 loc_024f:
     move.l 27680(a4),26721(a3)
     moveq #101,d3
@@ -21427,7 +19187,7 @@ hunk_8_loc_0269:
     dc.b    $69,$72
     dc.b    $73,$74,$2e,$00,$00
 str_0272:
-    dc.b    "You'd better stand up fi"
+    dc.b    "You","'","d better stand up fi"
 hunk_8_loc_028a:
     moveq #115,d1
 hunk_8_loc_028c:
@@ -21462,6 +19222,7 @@ hunk_8_loc_02cc:
     dc.b    $79
 loc_02cf:
     move.l d0,d7
+    dc.b    $00,$59,$6f
     dc.b    $75,$20,$63,$61,$6e
 hunk_8_loc_02d9:
     move.l 0(a4,d2.w),109(a3)
@@ -21471,6 +19232,7 @@ hunk_8_loc_02e1:
     dc.b    $65,$20
 hunk_8_loc_02e3:
     ori.w #$616b,(116,a4,d6.w*4)
+    dc.b    $68,$61,$74
 hunk_8_loc_02ee:
     ori.b #$20,d0
     ble.s hunk_8_loc_0362
@@ -21509,8 +19271,10 @@ loc_0331:
     dc.b    "Error in SetSprAttr"
 hunk_8_loc_0344:
     movea.l 26990(a5),a0
+    dc.b    $69
 hunk_8_loc_0349:
     subq.w #7,([25866,a4],4551282)
+    dc.b    $6f,$72,$20,$69,$6e
 hunk_8_loc_0358:
     movea.l (a3),a0
     bcs.s hunk_8_loc_03d0
@@ -21535,8 +19299,10 @@ hunk_8_loc_0374:
 hunk_8_loc_0376:
     moveq #32,d2
     move.l ([544501536,a3],24864),0(a2)
+    dc.b    $55,$68,$6d,$2e
 hunk_8_loc_0388:
     move.l 25189(a6),d7
+    dc.b    $74
 loc_038d:
     moveq #101,d2
     moveq #32,d1
@@ -21550,6 +19316,7 @@ hunk_8_loc_039d:
     dc.b    $6e
 hunk_8_loc_039e:
     dc.b    $76
+    dc.b    $65
 hunk_8_loc_03a0:
     bgt.s hunk_8_loc_0416
 hunk_8_loc_03a2:
@@ -21564,6 +19331,7 @@ loc_03ab:
     dc.b    $61,$6e
 loc_03af:
     move.l 103(a4,d2.w),26998(a3)
+    dc.b    $65
 hunk_8_loc_03b6:
     movea.l 29728(a1),a0
     bvs.s $422
@@ -21572,8 +19340,9 @@ hunk_8_loc_03bc:
     bsr.s hunk_8_loc_0432
 hunk_8_loc_03c4:
     move.l 116(a4,d2.w),24939(a3)
+    dc.b    "e it.",0
 hunk_8_loc_03d0:
-    chk.l -(a0),d4
+    chk.l -(a0),d4 ; 68020+
     dc.b    $64,$6f
 hunk_8_loc_03d4:
     dc.b    $6e,$27
@@ -21619,6 +19388,7 @@ pcref_0414:
     dc.b    $28
 hunk_8_loc_0415:
     moveq #101,d1
+    dc.b    $6d
 hunk_8_loc_0418:
     ble.s hunk_8_loc_0490
 hunk_8_loc_041a:
@@ -21651,8 +19421,7 @@ hunk_8_loc_044a:
 str_044e:
     dc.b    $25,$72,$20,$64,$6f
 hint_0453:
-; --- unverified ---
-    bcs.s hunk_8_loc_04c8
+    dc.b    $65,$73
     dc.b    $6e
 hunk_8_loc_0456:
     move.l 104(a4,d2.w),24950(a3)
@@ -21665,7 +19434,9 @@ hunk_8_loc_0462:
     beq.s hunk_8_loc_04cc
 hunk_8_loc_0464:
     movea.l ([27950,a2],8777),a0
+    dc.b    $27,$6c,$6c,$20,$6a
 loc_0473:
+    dc.b    $75
     dc.b    $73,$74,$20
 hunk_8_loc_0477:
     dc.b    $64,$72
@@ -21679,6 +19450,7 @@ hunk_8_loc_0481:
     movea.l 101(sp,d6.l),a0
     moveq #101,d1
     movea.l a1,a0
+    dc.b    $20
     dc.b    $77,$6f,$6e,$27
 hunk_8_loc_0490:
     moveq #32,d2
@@ -21693,7 +19465,7 @@ str_049e:
     neg.w 28261(sp)
     move.l d0,d7
 str_04a4:
-    chk.l -(a0),d4
+    chk.l -(a0),d4 ; 68020+
     dc.b    $64,$6f
 hunk_8_loc_04a8:
     dc.b    $6e,$27
@@ -21741,7 +19513,7 @@ hunk_8_loc_04e8:
     moveq #115,d1
     moveq #46,d2
     ori.b #$6f,d0
-    dc.b    "u're not hol"
+    dc.b    "u","'","re not hol"
 hint_04fc:
     dc.b    $64,$69
 hunk_8_hint_04fe:
@@ -21750,6 +19522,7 @@ hunk_8_hint_04fe:
 loc_0503:
     move.l d0,d7
     ori.b #$20,-(a5)
+    dc.b    $69,$73
 hunk_8_loc_050b:
     movea.l -(a1),a0
     dc.b    $6c,$72
@@ -21763,6 +19536,7 @@ hunk_8_loc_0513:
 hunk_8_loc_0517:
     ori.w #$6865,(a4)
     moveq #101,d1
+    dc.b    $27
     dc.b    "s no on"
 loc_0525:
     dc.b    $65,$20
@@ -21773,16 +19547,17 @@ hunk_8_loc_0529:
     move.l d0,-(a0)
     ori.b #$61,26980(a0)
     movea.l (9586,a4,d6.l*8),a0
+    dc.b    $29,$0a,$00
 hunk_8_loc_053c:
     link a5,#-20
     movem.l d2/a2-a3,-(sp)
     movea.l 8(a5),a3
+    dc.b    $70
 hunk_8_loc_0549:
     ori.b #$3b,16639(sp)
     dc.b    $f2,$3b,$40,$ff,$f4
 hint_0554:
-; --- unverified ---
-    bsr.w hunk_8_loc_068e
+    dc.b    $61,$00,$01,$38
 hunk_8_loc_0558:
     addq.w #4,sp
     move.w 4(a3),d1
@@ -21792,6 +19567,9 @@ hunk_8_loc_0558:
     move.w d2,14(sp)
     tst.w d1
     beq.w hunk_8_loc_0620
+    dc.b    $30,$2d,$ff,$fa,$c1,$fc,$00,$3a,$20,$6c,$1d,$d0,$d1,$c0
+    dc.b    "$H0*",0
+    dc.b    $06,$66,$08
 hunk_8_loc_058a:
     moveq #1,d1
 hunk_8_loc_058c:
@@ -21799,9 +19577,10 @@ hunk_8_loc_058c:
     bra.s $5a6
 hunk_8_loc_0592:
     cmp.w 16(sp),d0
+    dc.b    $66
 hunk_8_loc_0597:
     moves.b d2,53(a2,d0.l) ; 68010+
-    chk.l d0,d0
+    chk.l d0,d0 ; 68020+
     dc.b    $06,$3b,$7c,$00,$01,$ff,$f4,$3b,$6a,$00,$06,$ff,$fa,$4a
     dc.b    $6d,$ff,$f4,$66,$06,$4a
 loc_05b3:
@@ -22685,6 +20464,7 @@ hunk_8_loc_0db2:
     addq.w #8,sp
 hunk_8_loc_0db4:
     pea -48(a5)
+    dc.b    $4e,$ba,$0d,$32,$58
     dc.b    $4f,$30,$2d,$00,$0c,$72,$01,$b0,$41,$66,$04,$3b,$41,$ff,$f8,$53
     dc.b    $6d,$00,$0c
 hunk_8_loc_0dd0:
@@ -23017,53 +20797,29 @@ hunk_8_loc_10f8:
     unlk a5
     rts
 hint_1100:
-; --- unverified ---
-    pea hunk_8_str_014c(pc)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $48,$7a,$f0,$4a,$4e,$ba,$09,$e6
 hint_1108:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_110c:
-; --- unverified ---
-    pea str_015a(pc)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $48,$7a,$f0,$4c,$4e,$ba,$09,$da
 hint_1114:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_1118:
-; --- unverified ---
-    pea hunk_8_str_0168(pc)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $48,$7a,$f0,$4e,$4e,$ba,$09,$ce
 hint_1120:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hunk_8_hint_1124:
-; --- unverified ---
-    pea str_0176(pc)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $48,$7a,$f0,$50,$4e,$ba,$09,$c2
 hint_112c:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_1130:
-; --- unverified ---
-    pea hunk_8_str_0184(pc)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $48,$7a,$f0,$52,$4e,$ba,$09,$b6
 hunk_8_hint_1138:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hint_113c:
-; --- unverified ---
-    pea str_0192(pc)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $48,$7a,$f0,$54,$4e,$ba,$09,$aa
 hint_1144:
-; --- unverified ---
-    addq.w #4,sp
-    rts
+    dc.b    $58,$4f,$4e,$75
 hunk_8_loc_1148:
     link a5,#0
     pea str_01a0(pc)
@@ -23118,18 +20874,10 @@ hunk_8_loc_11c8:
     unlk a5
     rts
 hint_11cc:
-; --- unverified ---
-    link a5,#0
-    jsr pcref_1a98(pc)
+    dc.b    $4e,$55,$00,$00,$4e,$ba,$08,$c6
 hunk_8_hint_11d4:
-; --- unverified ---
-    ext.l d0
-    divs.w #$64,d0
-    muls.w 8(a5),d0
-    ext.l d0
-    divs.w #$148,d0
-    unlk a5
-    rts
+    dc.b    $48,$c0,$81,$fc,$00,$64,$c1,$ed,$00,$08,$48,$c0,$81,$fc,$01,$48
+    dc.b    $4e,$5d,$4e,$75
 hunk_8_loc_11e8:
     link a5,#0
     clr.w -(sp)
@@ -23380,59 +21128,29 @@ hunk_8_loc_143e:
     unlk a5
     rts
 hunk_8_hint_1446:
-; --- unverified ---
-    movea.l 6484(a4),a0
-    adda.w #$26,a0
-    move.l a0,-(sp)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $20,$6c,$19,$54,$d0,$fc,$00,$26,$2f,$08,$4e,$ba,$06,$9a
 hunk_8_hint_1454:
-; --- unverified ---
-    move.l 6484(a4),(sp)
-    bsr.w hunk_8_loc_068e
+    dc.b    $2e,$ac,$19,$54,$61,$00,$f2,$34
 hunk_8_hint_145c:
-; --- unverified ---
-    addq.w #4,sp
-    movea.l 6488(a4),a0
-    move.w 4(a0),d1
-    cmp.w d1,d0
-    beq.s hint_14b4
+    dc.b    $58,$4f,$20,$6c,$19,$58,$32,$28,$00,$04,$b0,$41,$67,$4a
 hunk_8_hint_146a:
-; --- unverified ---
-    muls.w #$3a,d1
-    movea.l 7632(a4),a0
-    adda.l d1,a0
-    btst #1,30(a0)
-    beq.s hunk_8_hint_1488
+    dc.b    $c3,$fc,$00,$3a,$20,$6c,$1d,$d0,$d1,$c1,$08,$28,$00,$01,$00,$1e
+    dc.b    $67,$0c
 hunk_8_hint_147c:
-; --- unverified ---
-    pea str_02f0(pc)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $48,$7a,$ee,$72,$4e,$ba,$06,$6a
 hint_1484:
-; --- unverified ---
-    addq.w #4,sp
-    bra.s hint_1492
+    dc.b    $58,$4f,$60,$0a
 hunk_8_hint_1488:
-; --- unverified ---
-    pea hunk_8_loc_02fa(pc)
-    jsr hunk_8_loc_1aec(pc)
+    dc.b    $48,$7a,$ee,$70,$4e,$ba,$06,$5e
 hunk_8_hint_1490:
     dc.b    $58,$4f
 hint_1492:
-; --- unverified ---
-    movea.l 6488(a4),a0
-    move.w 4(a0),d0
-    muls.w #$3a,d0
-    movea.l 7632(a4),a0
-    adda.l d0,a0
-    lea 38(a0),a1
-    move.l a1,-(sp)
-    pea str_0304(pc)
-    jsr loc_1ae6(pc)
+    dc.b    $20,$6c,$19,$58,$30,$28,$00,$04,$c1,$fc,$00,$3a,$20,$6c,$1d,$d0
+    dc.b    $d1,$c0,$43,$e8,$00,$26,$2f,$09,$48,$7a,$ee,$58,$4e,$ba,$06,$36
 hint_14b2:
     dc.b    $50,$4f
 hint_14b4:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hunk_8_loc_14b6:
     link a5,#0
     move.l a3,-(sp)
@@ -23569,7 +21287,11 @@ hunk_8_loc_15f0:
     movea.l 6488(a4),a0
     move.w 22(a0),22(a3)
     move.w 24(a0),24(a3)
+    dc.b    $30,$28,$00,$1a
+    dc.b    "T@7@",0
+    dc.b    $1a
 hunk_8_loc_160a:
+    dc.b    $42,$6c,$1a
     dc.b    $fc,$70,$01,$26,$5f,$4e,$75
 hunk_8_loc_1614:
     link a5,#-8
@@ -23941,28 +21663,16 @@ hunk_8_loc_19a2:
     unlk a5
     rts
 hint_19ac:
-; --- unverified ---
-    link a5,#-4
-    move.w -32674(a4),d0
-    move.w d0,0(sp)
-    movea.l 7830(a4),a0
-    tst.w 6(a0)
-    beq.s hint_19ca
+    dc.b    $4e,$55,$ff,$fc,$30,$2c,$80,$5e,$3f,$40,$00,$00,$20,$6c,$1e,$96
+    dc.b    $4a,$68,$00,$06,$67,$08
 hint_19c2:
-; --- unverified ---
-    move.w 6(a0),-32674(a4)
-    bra.s hint_19d0
+    dc.b    $39,$68,$00,$06,$80,$5e,$60,$06
 hint_19ca:
     dc.b    $39,$6d,$00,$08,$80,$5e
 hint_19d0:
-; --- unverified ---
-    jsr pcref_1ace(pc)
+    dc.b    $4e,$ba,$00,$fc
 hint_19d4:
-; --- unverified ---
-    move.w 0(sp),-32674(a4)
-    moveq #1,d0
-    unlk a5
-    rts
+    dc.b    $39,$6f,$00,$00,$80,$5e,$70,$01,$4e,$5d,$4e,$75
 hunk_8_loc_19e0:
     link a5,#0
     move.l 8(a5),-(sp)
@@ -24042,8 +21752,8 @@ pcref_1a8c:
 loc_1a92:
     jmp hunk_3_loc_01b4
 pcref_1a98:
-; --- unverified ---
-    jmp sub_1a24
+    dc.b    $4e,$f9
+    dc.l    sub_1a24
 hunk_8_loc_1a9e:
     jmp hunk_1_loc_1624
 hunk_8_loc_1aa4:
@@ -24062,8 +21772,8 @@ pcref_1ac8:
     dc.b    $4e,$f9
     dc.l    hunk_4_loc_004c
 pcref_1ace:
-; --- unverified ---
-    jmp hunk_6_loc_17b0
+    dc.b    $4e,$f9
+    dc.l    hunk_6_loc_17b0
 hunk_8_loc_1ad4:
     jmp hunk_3_loc_0d88
 hunk_8_loc_1ada:
@@ -24111,6 +21821,7 @@ hunk_9_loc_0032:
     bra.s hunk_9_loc_003e
 hunk_9_loc_0034:
     tst.w -5370(a4)
+    dc.b    $67,$04
 hunk_9_loc_003a:
     bsr.w hunk_9_loc_08de
 hunk_9_loc_003e:
@@ -24137,6 +21848,7 @@ hunk_9_loc_00a4:
     move.w d0,-(sp)
     move.l a3,-(sp)
     pea -5270(a4)
+    dc.b    $4e,$ba,$0d,$66
 hunk_9_loc_00ba:
     lea 12(sp),sp
     movea.l (sp)+,a3
@@ -24180,6 +21892,9 @@ hunk_9_loc_0118:
     addq.w #1,-4698(a4)
     addq.w #1,7488(a4)
     movea.w 7488(a4),a0
+    dc.b    $43,$ec,$eb,$12,$20,$08,$42,$31,$00,$00
+    dc.b    "UOBga",0
+    dc.b    $08,$ce
 hunk_9_loc_0140:
     bsr.w hunk_9_loc_0990
 hunk_9_loc_0144:
@@ -24709,6 +22424,7 @@ hunk_9_loc_060e:
     bra.s hunk_9_loc_0628
 hunk_9_loc_061e:
     lea -5358(a4),a0
+    dc.b    $42,$30,$70,$00,$52,$47
 hunk_9_loc_0628:
     cmp.w 5440(a4),d7
     blt.s hunk_9_loc_061e
@@ -25064,6 +22780,7 @@ hunk_9_loc_0952:
     rts
 hunk_9_loc_095a:
     movem.l d5-d7/a3,-(sp)
+    dc.b    $1e,$2f,$00,$15,$26,$6f,$00,$16,$3c,$2f,$00,$1a,$20,$4b
 hunk_9_loc_096c:
     tst.b (a0)+
     bne.s hunk_9_loc_096c
@@ -25790,8 +23507,7 @@ hint_016a:
 str_016c:
     dc.b    $61,$75
 hunk_10_hint_016e:
-; --- unverified ---
-    beq.s hunk_10_loc_01d8
+    dc.b    $67,$68
     dc.b    $21,$20,$6e
 loc_0173:
     dc.b    $6f,$74
@@ -25815,18 +23531,21 @@ loc_01a1:
     dc.b    $64
 hunk_10_loc_01a4:
     dc.b    $42
+    dc.b    $6c,$1e,$9a,$4e,$75
 hunk_10_loc_01aa:
     jsr hunk_10_loc_16cc(pc)
 hunk_10_loc_01ae:
     move.b d0,-4794(a4)
     pea -5216(a4)
+    dc.b    $48
 loc_01b7:
     bge.s hunk_10_loc_01a4
 hunk_10_loc_01b9:
     sub.w a6,d7
     cmp.b (a4),d5
     addq.w #8,(a0)
-    chk.l (a0),d7
+    chk.l (a0),d7 ; 68020+
+    dc.b    $2c,$ed,$46
 hunk_10_loc_01c4:
     bne.s hunk_10_loc_01cc
 hunk_10_loc_01c6:
@@ -25854,6 +23573,7 @@ hunk_10_loc_01f2:
     jsr hunk_10_loc_165a(pc)
 hunk_10_loc_01f6:
     tst.l -32244(a4)
+    dc.b    $67,$04
 hunk_10_loc_01fc:
     jsr hunk_10_loc_16c6(pc)
 hunk_10_loc_0200:
@@ -25915,17 +23635,9 @@ hunk_10_loc_0266:
     clr.w -4954(a4)
     rts
 hunk_10_hint_0272:
-; --- unverified ---
-    move.l d7,-(sp)
-    move.w 8(sp),d7
-    subq.w #2,sp
-    move.w d7,-(sp)
-    bsr.w hunk_10_loc_0286
+    dc.b    $2f,$07,$3e,$2f,$00,$08,$55,$4f,$3f,$07,$61,$00,$00,$08
 hint_0280:
-; --- unverified ---
-    addq.w #4,sp
-    move.l (sp)+,d7
-    rts
+    dc.b    $58,$4f,$2e,$1f,$4e,$75
 hunk_10_loc_0286:
     link a5,#-4
     movem.l d2/d7/a2-a3,-(sp)
@@ -26049,6 +23761,7 @@ hunk_10_loc_03a4:
     asl.l #2,d0
     lea -4414(a4),a0
     movea.l 0(a0,d0.l),a0
+    dc.b    $2f,$48,$00,$30,$20,$08,$66,$06
 hunk_10_loc_03bc:
     moveq #-1,d0
     bra.w hunk_10_loc_061a
@@ -26070,6 +23783,7 @@ hunk_10_loc_03dc:
     moveq #0,d0
     move.b 212(a3),d0
     movem.w d0,46(sp)
+    dc.b    $67,$06,$4a,$6c,$dd,$8c,$66,$08
 hunk_10_loc_03f0:
     moveq #1,d1
     cmp.b 201(a3),d1
@@ -27819,6 +25533,8 @@ hunk_10_loc_144a:
     movem.l d6-d7,-(sp)
     move.l 12(sp),d7
     move.l 7804(a4),d0
+    dc.b    $22,$2c,$80,$d8,$d0,$81,$2c,$00,$d2,$87,$0c,$81,$00,$00,$56,$40
+    dc.b    $63,$20
 hunk_10_loc_1468:
     move.l d1,-(sp)
     pea pcref_0118(pc)
@@ -27993,6 +25709,8 @@ hunk_10_loc_161e:
     jmp hunk_43_loc_01c4
 hunk_10_loc_1624:
     jmp hunk_12_loc_01ca
+    dc.b    $4e,$f9
+    dc.l    hunk_36_loc_14b0
 hunk_10_loc_1630:
     jmp hunk_13_loc_0000
 hunk_10_loc_1636:
@@ -28212,11 +25930,9 @@ hunk_11_loc_0164:
     unlk a5
     rts
 hunk_11_hint_016e:
-; --- unverified ---
-    move.l a4,-(sp)
-    lea dat_8000,a4
-    movea.l (sp)+,a4
-    rts
+    dc.b    $2f,$0c,$49,$f9
+    dc.l    dat_8000
+    dc.b    $28,$5f,$4e,$75
 hunk_11_loc_017a:
     link a5,#-4
     movem.l d2-d3/a4,-(sp)
@@ -28404,10 +26120,7 @@ hunk_11_loc_033c:
 hunk_11_loc_0344:
     bra.w hunk_11_loc_06ca
 hint_0348:
-; --- unverified ---
-    move.w #$27,-2(a5)
-    move.w #$138,-12(a5)
-    bra.s hunk_11_loc_039c
+    dc.b    $3b,$7c,$00,$27,$ff,$fe,$3b,$7c,$01,$38,$ff,$f4,$60,$46
 hunk_11_loc_0356:
     move.w #$c8,d0
     move.w d0,-(sp)
@@ -28444,113 +26157,51 @@ hunk_11_loc_039c:
 hunk_11_loc_03a4:
     bra.w hunk_11_loc_06ca
 hint_03a8:
-; --- unverified ---
-    moveq #0,d0
-    move.w d0,-12(a5)
-    move.w d0,-2(a5)
-    bra.s hint_03f6
+    dc.b    $70,$00,$3b,$40,$ff,$f4,$3b,$40,$ff,$fe,$60,$42
 hint_03b4:
-; --- unverified ---
-    moveq #5,d0
-    move.w d0,-(sp)
-    move.w #$140,d1
-    move.w d1,-(sp)
-    move.w -12(a5),-(sp)
-    clr.w -(sp)
-    jsr hunk_11_loc_0ac2(pc)
+    dc.b    $70,$05,$3f,$00,$32,$3c,$01,$40,$3f,$01,$3f,$2d,$ff,$f4,$42,$67
+    dc.b    $4e,$ba,$06,$fc
 hint_03c8:
-; --- unverified ---
-    move.w -32534(a4),d0
-    moveq #40,d1
-    move.w d1,(sp)
-    move.w -2(a5),-(sp)
-    move.w d0,18(sp)
-    jsr loc_0ada(pc)
+    dc.b    $30,$2c,$80,$ea,$72,$28,$3e,$81,$3f,$2d,$ff,$fe,$3f,$40,$00,$12
+    dc.b    $4e,$ba,$07,$00
 hint_03dc:
     dc.b    $4f,$ef,$00,$0a
 hint_03e0:
-; --- unverified ---
-    move.w 8(sp),-(sp)
-    bsr.w hunk_11_loc_07d2
+    dc.b    $3f,$2f,$00,$08,$61,$00,$03,$ec
 hint_03e8:
-; --- unverified ---
-    addq.w #2,sp
-    tst.w d0
-    bne.s hint_03e0
+    dc.b    $54,$4f,$4a,$40,$66,$f2
 hint_03ee:
     dc.b    $52,$6d,$ff,$fe,$5a,$6d,$ff,$f4
 hint_03f6:
-; --- unverified ---
-    cmpi.w #$28,-2(a5)
-    blt.s hint_03b4
+    dc.b    $0c,$6d,$00,$28,$ff,$fe,$6d,$b6
 hunk_11_hint_03fe:
-; --- unverified ---
-    bra.w hunk_11_loc_06ca
+    dc.b    $60,$00,$02,$ca
 hint_0402:
-; --- unverified ---
-    move.w #$27,-2(a5)
-    move.w #$c3,-12(a5)
-    bra.s hint_0456
+    dc.b    $3b,$7c,$00,$27,$ff,$fe,$3b,$7c,$00,$c3,$ff,$f4,$60,$46
 hunk_11_hint_0410:
-; --- unverified ---
-    moveq #5,d0
-    move.w d0,-(sp)
-    move.w #$140,d1
-    move.w d1,-(sp)
-    move.w -12(a5),-(sp)
-    clr.w -(sp)
-    jsr hunk_11_loc_0ac2(pc)
+    dc.b    $70,$05,$3f,$00,$32,$3c,$01,$40,$3f,$01,$3f,$2d,$ff,$f4,$42,$67
+    dc.b    $4e,$ba,$06,$a0
 hint_0424:
-; --- unverified ---
-    move.w -32534(a4),d0
-    moveq #39,d1
-    sub.w -2(a5),d1
-    moveq #40,d2
-    move.w d2,(sp)
-    move.w d1,-(sp)
-    move.w d0,18(sp)
-    jsr loc_0ada(pc)
+    dc.b    $30,$2c,$80,$ea,$72,$27,$92,$6d,$ff,$fe,$74,$28,$3e,$82,$3f,$01
+    dc.b    $3f,$40,$00,$12,$4e,$ba,$06,$a0
 hunk_11_hint_043c:
     dc.b    $4f,$ef,$00,$0a
 hunk_11_hint_0440:
-; --- unverified ---
-    move.w 8(sp),-(sp)
-    bsr.w hunk_11_loc_07d2
+    dc.b    $3f,$2f,$00,$08,$61,$00,$03,$8c
 hunk_11_hint_0448:
-; --- unverified ---
-    addq.w #2,sp
-    tst.w d0
-    bne.s hunk_11_hint_0440
+    dc.b    $54,$4f,$4a,$40,$66,$f2
 hint_044e:
     dc.b    $53,$6d,$ff,$fe,$5b,$6d,$ff,$f4
 hint_0456:
-; --- unverified ---
-    move.w -2(a5),d0
-    tst.w d0
-    bpl.s hunk_11_hint_0410
+    dc.b    $30,$2d,$ff,$fe,$4a,$40,$6a,$b2
 hint_045e:
-; --- unverified ---
-    bra.w hunk_11_loc_06ca
+    dc.b    $60,$00,$02,$6a
 hunk_11_hint_0462:
-; --- unverified ---
-    move.w #$98,d0
-    moveq #95,d1
-    moveq #16,d2
-    moveq #10,d3
-    move.w d3,-(sp)
-    move.w d2,-(sp)
-    move.w d1,-(sp)
-    move.w d0,-(sp)
-    move.w d0,-4(a5)
-    move.w d1,-6(a5)
-    move.w d2,-8(a5)
-    move.w d3,-10(a5)
-    jsr hunk_11_loc_0ac2(pc)
+    dc.b    $30,$3c,$00,$98,$72,$5f,$74,$10,$76,$0a,$3f,$03,$3f,$02,$3f,$01
+    dc.b    $3f,$00,$3b,$40,$ff,$fc,$3b,$41,$ff,$fa,$3b,$42,$ff,$f8,$3b,$43
+    dc.b    $ff,$f6,$4e,$ba,$06,$3c
 hint_0488:
-; --- unverified ---
-    addq.w #8,sp
-    clr.w -2(a5)
-    bra.w hunk_11_loc_0540
+    dc.b    $50,$4f,$42,$6d,$ff,$fe,$60,$00,$00,$b0
 hunk_11_loc_0492:
     subq.w #8,-4(a5)
     move.w -6(a5),d0
@@ -28702,66 +26353,34 @@ hunk_11_loc_063a:
     bra.w hunk_11_loc_06ca
     dc.b    $42,$6d,$ff,$fe,$60,$60
 hint_0646:
-; --- unverified ---
-    move.w -2(a5),d0
-    move.w d0,-12(a5)
-    addi.w #$c8,d0
-    move.w d0,8(sp)
-    bra.s hint_0674
+    dc.b    $30,$2d,$ff,$fe,$3b,$40,$ff,$f4,$06,$40,$00,$c8,$3f,$40,$00,$08
+    dc.b    $60,$1c
 hunk_11_hint_0658:
-; --- unverified ---
-    moveq #1,d0
-    move.w d0,-(sp)
-    move.w #$140,d1
-    move.w d1,-(sp)
-    move.w -12(a5),-(sp)
-    clr.w -(sp)
-    jsr hunk_11_loc_0ac2(pc)
+    dc.b    $70,$01,$3f,$00,$32,$3c,$01,$40,$3f,$01,$3f,$2d,$ff,$f4,$42,$67
+    dc.b    $4e,$ba,$04,$58
 hint_066c:
     dc.b    $50,$4f,$70,$14,$d1,$6d,$ff,$f4
 hint_0674:
-; --- unverified ---
-    move.w -12(a5),d0
-    cmp.w 8(sp),d0
-    blt.s hunk_11_hint_0658
+    dc.b    $30,$2d,$ff,$f4,$b0,$6f,$00,$08,$6d,$da
 hint_067e:
-; --- unverified ---
-    move.w -32534(a4),d0
-    moveq #20,d1
-    move.w d1,-(sp)
-    move.w -2(a5),-(sp)
-    move.w d0,12(sp)
-    jsr loc_0ada(pc)
+    dc.b    $30,$2c,$80,$ea,$72,$14,$3f,$01,$3f,$2d,$ff,$fe,$3f,$40,$00,$0c
+    dc.b    $4e,$ba,$04,$4a
 hint_0692:
     dc.b    $58,$4f
 hint_0694:
-; --- unverified ---
-    move.w 8(sp),-(sp)
-    bsr.w hunk_11_loc_07d2
+    dc.b    $3f,$2f,$00,$08,$61,$00,$01,$38
 hint_069c:
-; --- unverified ---
-    addq.w #2,sp
-    tst.w d0
-    bne.s hint_0694
+    dc.b    $54,$4f,$4a,$40,$66,$f2
 hint_06a2:
-; --- unverified ---
-    addq.w #1,-2(a5)
-    cmpi.w #$14,-2(a5)
-    blt.s hint_0646
+    dc.b    $52,$6d,$ff,$fe,$0c,$6d,$00,$14,$ff,$fe,$6d,$98
 hint_06ae:
-; --- unverified ---
-    bra.s hunk_11_loc_06ca
+    dc.b    $60,$1a
 hunk_11_hint_06b0:
-; --- unverified ---
-    jsr pcref_0aa4(pc)
+    dc.b    $4e,$ba,$03,$f2
 hunk_11_hint_06b4:
-; --- unverified ---
-    andi.l #$ffff,d0
-    divu.w #$6,d0
-    swap d0
-    addq.w #1,d0
-    move.w d0,6498(a4)
-    bra.w hunk_11_loc_02c0
+    dc.b    $02,$80,$00,$00,$ff,$ff,$80,$fc,$00,$06
+    dc.b    "H@R@9@"
+    dc.b    $19,$62,$60,$00,$fb,$f8
 hunk_11_loc_06ca:
     move.w #$1,-5396(a4)
     moveq #0,d0
@@ -29171,8 +26790,8 @@ hunk_11_loc_0a98:
 hunk_11_loc_0a9e:
     jmp hunk_36_loc_2616
 pcref_0aa4:
-; --- unverified ---
-    jmp sub_1a24
+    dc.b    $4e,$f9
+    dc.l    sub_1a24
 hunk_11_loc_0aaa:
     jmp hunk_36_loc_0546
 hunk_11_loc_0ab0:
@@ -29650,6 +27269,7 @@ hunk_13_loc_01ea:
     move.w d0,-(sp)
     pea 240(pc)
     move.l -4904(a4),-(sp)
+    dc.b    $61,$00,$05,$ec,$4f,$ef,$00,$0c,$24,$40,$70,$ff,$b0,$8a,$67,$10
 hunk_13_loc_020a:
     lea 4(a2),a0
     move.l a0,-(sp)
@@ -29680,12 +27300,12 @@ hunk_13_loc_024e:
     unlk a5
     rts
 pcref_0256:
-    dc.b    $0a,"couldn't read %s",0
+    dc.b    $0a,"couldn","'","t read %s",0
 pcref_0268:
-    dc.b    $0a,"couldn't read %s 1",0
+    dc.b    $0a,"couldn","'","t read %s 1",0
 pcref_027c:
     dc.b    $0a
-    dc.b    "couldn't alloc sp"
+    dc.b    "couldn","'","t alloc sp"
 hunk_13_loc_028e:
     dc.b    $61,$63
 hunk_13_loc_0290:
@@ -29723,7 +27343,7 @@ str_02c4:
     dc.b    $00
 pcref_02ca:
     dc.b    $0a
-    dc.b    "couldn't find "
+    dc.b    "couldn","'","t find "
 hunk_13_loc_02d9:
     dc.b    $42,$4f
     neg.w (a1)+
@@ -29817,6 +27437,7 @@ hunk_13_loc_03a4:
 hunk_13_loc_03ac:
     ori.b #$37,d0
     ori.b #$55,d0
+    dc.b    $ff,$d4,$48,$e7,$07,$30,$26,$6d,$00,$08,$3e,$2d,$00
 hunk_13_loc_03c1:
     movea.b d1,a0
     ror.l d6,d7
@@ -29840,6 +27461,7 @@ hunk_13_loc_03e0:
 hunk_13_loc_03e8:
     move.l a3,-(sp)
     jsr hunk_13_loc_086e(pc)
+    dc.b    $58,$4f,$2c,$00
 hunk_13_loc_03f2:
     bra.s hunk_13_loc_03f8
     dc.b    $2c,$2c,$1d,$54
@@ -30232,64 +27854,34 @@ hunk_13_loc_0770:
     movea.l (sp)+,a3
     rts
 hint_0774:
-; --- unverified ---
-    movem.l d7/a3,-(sp)
-    movea.l 12(sp),a3
-    move.w 2(a3),d0
-    addq.w #7,d0
-    ext.l d0
-    divs.w #$8,d0
-    muls.w 4(a3),d0
-    asl.w #2,d0
-    move.w d0,10(a3)
-    cmpi.w #$7d00,d0
-    bls.s hint_07a6
+    dc.b    $48,$e7,$01,$10,$26,$6f,$00,$0c,$30,$2b,$00,$02,$5e,$40,$48,$c0
+    dc.b    $81,$fc,$00,$08,$c1,$eb,$00,$04,$e5,$40,$37,$40,$00,$0a,$0c,$40
+    dc.b    $7d,$00,$63,$0e
 hint_0798:
-; --- unverified ---
-    pea hunk_13_pcref_03ae(pc)
-    jsr hunk_13_loc_08aa(pc)
+    dc.b    $48,$7a,$fc,$14,$4e,$ba,$01,$0c
 hint_07a0:
-; --- unverified ---
-    addq.w #4,sp
-    moveq #0,d0
-    bra.s hint_07e2
+    dc.b    $58,$4f,$70,$00,$60,$3c
 hint_07a6:
-; --- unverified ---
-    tst.w 6(a3)
-    beq.s hint_07c8
+    dc.b    $4a,$6b,$00,$06,$67,$1c
 hint_07ac:
-; --- unverified ---
-    moveq #0,d7
-    bra.s hunk_13_hint_07c0
+    dc.b    $7e,$00,$60,$10
 hint_07b0:
-; --- unverified ---
-    move.l 7036(a4),-(sp)
-    move.l 16(a3),-(sp)
-    jsr pcref_088c(pc)
+    dc.b    $2f,$2c,$1b,$7c,$2f,$2b,$00,$10,$4e,$ba,$00,$d2
 hunk_13_hint_07bc:
     dc.b    $50,$4f,$52,$47
 hunk_13_hint_07c0:
-; --- unverified ---
-    cmp.w 4(a3),d7
-    bcs.s hint_07b0
+    dc.b    $be,$6b,$00,$04,$65,$ea
 hunk_13_hint_07c6:
-; --- unverified ---
-    bra.s hint_07de
+    dc.b    $60,$16
 hint_07c8:
-; --- unverified ---
-    subq.w #2,sp
-    move.w 10(a3),-(sp)
-    move.l 7036(a4),-(sp)
-    move.l 16(a3),-(sp)
-    jsr pcref_0892(pc)
+    dc.b    "UO?+",0
+    dc.b    $0a,$2f,$2c,$1b,$7c,$2f,$2b,$00,$10,$4e,$ba,$00,$ba
 hunk_13_hint_07da:
     dc.b    $4f,$ef,$00,$0c
 hint_07de:
     dc.b    $20,$2c,$1b,$7c
 hint_07e2:
-; --- unverified ---
-    movem.l (sp)+,d7/a3
-    rts
+    dc.b    $4c,$df,$08,$80,$4e,$75
 hunk_13_loc_07e8:
     link a5,#-8
     movem.l d6-d7/a2-a3,-(sp)
@@ -30359,11 +27951,11 @@ hunk_13_loc_0880:
 hunk_13_loc_0886:
     jmp sub_1628
 pcref_088c:
-; --- unverified ---
-    jmp hunk_36_loc_1f38
+    dc.b    $4e,$f9
+    dc.l    hunk_36_loc_1f38
 pcref_0892:
-; --- unverified ---
-    jmp sub_1bd8
+    dc.b    $4e,$f9
+    dc.l    sub_1bd8
 hunk_13_loc_0898:
     jmp hunk_36_loc_1cc8
 hunk_13_loc_089e:
@@ -30607,42 +28199,24 @@ hunk_15_loc_00bc:
     unlk a5
     rts
 hint_00c0:
-; --- unverified ---
-    pea -5216(a4)
-    pea -5218(a4)
-    jsr pcref_0104(pc)
+    dc.b    $48,$6c,$eb,$a0,$48,$6c,$eb,$9e,$4e,$ba,$00,$3a
 hunk_15_hint_00cc:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w 6978(a4)
-    beq.s hint_00ea
+    dc.b    $50,$4f,$4a,$6c,$1b,$42,$67,$16
 hint_00d4:
-; --- unverified ---
-    tst.w 7042(a4)
-    bne.s hint_00ea
+    dc.b    $4a,$6c,$1b,$82,$66,$10
 hunk_15_hint_00da:
-; --- unverified ---
-    tst.w -5368(a4)
-    bne.s hint_00ea
+    dc.b    $4a,$6c,$eb,$08,$66,$0a
 hunk_15_hint_00e0:
     dc.b    $70,$00,$39,$40,$1e,$c8,$39,$40,$eb,$94
 hint_00ea:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hunk_15_hint_00ec:
-; --- unverified ---
-    link a5,#0
-    pea -5216(a4)
-    pea -5218(a4)
-    jsr pcref_0104(pc)
+    dc.b    $4e,$55,$00,$00,$48,$6c,$eb,$a0,$48,$6c,$eb,$9e,$4e,$ba,$00,$0a
 hunk_15_hint_00fc:
-; --- unverified ---
-    move.w -5228(a4),d0
-    unlk a5
-    rts
+    dc.b    $30,$2c,$eb,$94,$4e,$5d,$4e,$75
 pcref_0104:
-; --- unverified ---
-    jmp hunk_36_loc_1500
+    dc.b    $4e,$f9
+    dc.l    hunk_36_loc_1500
 hunk_15_loc_010a:
     jmp hunk_16_loc_02f0
 hunk_15_loc_0110:
@@ -31138,32 +28712,12 @@ hunk_16_loc_0510:
     unlk a5
     rts
 hunk_16_hint_051a:
-; --- unverified ---
-    link a5,#0
-    movem.l d2-d3,-(sp)
-    move.w 8(a5),d0
-    moveq #0,d1
-    move.b d0,d1
-    movea.w -4982(a4),a0
-    moveq #0,d0
-    lea -17052(a4),a1
-    move.l a0,d2
-    move.b 0(a1,d2.w),d0
-    move.b -17168(a4),d2
-    ext.w d2
-    move.w d2,-(sp)
-    move.w -4928(a4),-(sp)
-    move.w d0,-(sp)
-    moveq #40,d3
-    move.w d3,-(sp)
-    move.w d1,-(sp)
-    move.w -4926(a4),-(sp)
-    jsr hunk_16_loc_06e8(pc)
+    dc.b    $4e,$55,$00,$00,$48,$e7,$30,$00,$30,$2d,$00,$08,$72,$00,$12,$00
+    dc.b    $30,$6c,$ec,$8a,$70,$00,$43,$ec,$bd,$64,$24,$08,$10,$31,$20,$00
+    dc.b    $14,$2c,$bc,$f0,$48,$82,$3f,$02,$3f,$2c,$ec,$c0,$3f,$00,$76,$28
+    dc.b    $3f,$03,$3f,$01,$3f,$2c,$ec,$c2,$4e,$ba,$01,$94
 hint_0556:
-; --- unverified ---
-    movem.l -8(a5),d2-d3
-    unlk a5
-    rts
+    dc.b    $4c,$ed,$00,$0c,$ff,$f8,$4e,$5d,$4e,$75
 hunk_16_loc_0560:
     link a5,#-12
     movem.l a2-a3,-(sp)
@@ -31236,18 +28790,9 @@ hunk_16_loc_05f4:
     unlk a5
     rts
 hunk_16_hint_05fe:
-; --- unverified ---
-    link a5,#0
-    move.w -4982(a4),d0
-    muls.w #$aa,d0
-    lea -17081(a4),a0
-    adda.l d0,a0
-    adda.w 8(a5),a0
-    moveq #0,d0
-    move.b (a0),d0
-    sub.w d0,-4934(a4)
-    unlk a5
-    rts
+    dc.b    $4e,$55,$00,$00,$30,$2c,$ec,$8a,$c1,$fc,$00,$aa,$41,$ec,$bd,$47
+    dc.b    $d1,$c0,$d0,$ed,$00,$08,$70,$00,$10,$10,$91,$6c,$ec,$ba,$4e,$5d
+    dc.b    $4e,$75
 hunk_16_loc_0620:
     link a5,#-4
     movem.l d2-d3,-(sp)
@@ -31358,6 +28903,7 @@ hunk_17_loc_0062:
 hunk_17_loc_0066:
     addq.w #4,sp
     move.b #$1,-5240(a4)
+    dc.b    $3b,$40,$ff,$d4
 hunk_17_loc_0072:
     moveq #-1,d0
     cmp.w -44(a5),d0
@@ -32465,6 +30011,7 @@ hunk_17_loc_0a6c:
     subq.w #1,d1
     addq.w #3,d5
     ori.b #$69,d0
+    dc.b    $6c
 loc_0a75:
     bcs.w hunk_17_loc_0aca
 loc_0a79:
@@ -32552,6 +30099,7 @@ hunk_17_loc_0b07:
     dc.b    $6e
 hunk_17_loc_0b08:
     dc.b    $64
+    dc.b    $20
     dc.b    "Control",0
 str_0b12:
     dc.b    "Speed C"
@@ -32563,9 +30111,12 @@ hunk_17_loc_0b1b:
 hunk_17_loc_0b1f:
     ori.w #$656c,28672(a0)
     ori.w #$eceb,d1
+    dc.b    $12
 hunk_17_loc_0b2a:
+    dc.b    $43,$fa,$fe,$cc,$10,$18,$b0,$19
 hunk_17_loc_0b32:
     bne.s hunk_17_loc_0b3a
+    dc.b    $4a,$00,$66
     dc.b    $f6,$67,$28
 hunk_17_loc_0b3a:
     lea -5358(a4),a0
@@ -32613,6 +30164,7 @@ hunk_17_loc_0b7c:
     move.b (a0)+,d0
     cmp.b (a1)+,d0
     bne.s $b98
+    dc.b    $4a
 loc_0b8b:
     ori.w #$f666,-(a6)
     btst #0,$03eafc60
@@ -32708,6 +30260,7 @@ hunk_17_loc_0c64:
     bne.s hunk_17_loc_0c72
 hunk_17_loc_0c6c:
     tst.w -5228(a4)
+    dc.b    $67,$ee
 hunk_17_loc_0c72:
     bsr.w hunk_17_loc_1142
 loc_0c76:
@@ -33225,6 +30778,8 @@ hunk_17_loc_10dc:
     move.w 24(a0),d0
     move.w d0,-5384(a4)
     move.w d0,-5390(a4)
+    dc.b    $20,$6c,$19,$58,$30,$28,$00,$1a,$39,$40,$ea,$fa,$39,$40,$ea,$f4
+    dc.b    $39,$7c,$00,$01,$1b,$66,$4e,$75
 hunk_17_loc_111e:
     clr.b -5358(a4)
     bsr.w hunk_17_loc_14ca
@@ -33237,6 +30792,7 @@ hunk_17_loc_112e:
 hunk_17_loc_1132:
     moveq #1,d0
     move.w d0,-5362(a4)
+    dc.b    $42,$6c,$eb,$0a,$39,$40,$ec,$a4,$4e,$75
 hunk_17_loc_1142:
     movem.l d5-d7,-(sp)
     moveq #36,d5
@@ -33524,6 +31080,11 @@ hunk_17_loc_1404:
     jsr hunk_17_loc_2062(pc)
 hunk_17_loc_141e:
     move.w 5436(a4),d0
+    dc.b    $39,$40,$ec,$ba,$39,$40,$ec,$b6,$30,$6c,$ec,$8a,$70,$00,$43,$ec
+    dc.b    $bd,$64,$22,$08,$10,$31,$10,$00,$52,$40,$22,$07,$c3,$c0,$30,$2c
+    dc.b    $15,$3e,$d0,$41,$39,$40,$ec,$bc,$30,$2c,$ec,$a0,$39,$46,$ec,$a0
+    dc.b    $32,$2c,$ed,$a4,$53,$41,$55,$4f,$3e,$81,$34,$3c,$00,$82,$3f,$02
+    dc.b    $3f,$40,$00,$14,$4e,$ba,$0a,$d4
 hunk_17_loc_146a:
     move.w 20(sp),-4960(a4)
     jsr hunk_17_loc_2032(pc)
@@ -33549,6 +31110,8 @@ hunk_17_loc_147e:
     add.w d0,d1
     addq.w #1,d1
     move.w d1,-4932(a4)
+    dc.b    $20,$07,$c1,$fc,$00,$32,$41,$ec,$13,$44,$d1,$c0,$2f,$08,$4e,$ba
+    dc.b    $0b,$8e
 hunk_17_loc_14c4:
     addq.w #4,sp
     move.l (sp)+,d7
@@ -33934,53 +31497,20 @@ hunk_17_loc_18fe:
     unlk a5
     rts
 hint_1908:
-; --- unverified ---
-    link a5,#-4
-    movem.l d4-d7,-(sp)
-    move.w 8(a5),d7
-    move.w 10(a5),d6
-    move.w 12(a5),d5
-    move.w 14(a5),d4
-    move.l d5,d0
-    add.w d7,d0
-    move.w 16(a5),-(sp)
-    move.w d6,-(sp)
-    move.w d0,-(sp)
-    move.w d7,-(sp)
-    move.w d0,24(sp)
-    jsr hunk_17_loc_1f78(pc)
+    dc.b    $4e,$55,$ff,$fc,$48,$e7,$0f,$00,$3e,$2d,$00,$08,$3c,$2d,$00,$0a
+    dc.b    $3a,$2d,$00,$0c,$38,$2d,$00,$0e,$20,$05,$d0,$47,$3f,$2d,$00,$10
+    dc.b    $3f,$06,$3f,$00,$3f,$07,$3f,$40,$00,$18,$4e,$ba,$06,$44
 hint_1936:
-; --- unverified ---
-    move.l d6,d0
-    add.w d4,d0
-    subq.w #2,sp
-    move.w 16(a5),(sp)
-    move.w d0,-(sp)
-    move.w 28(sp),-(sp)
-    move.w d7,-(sp)
-    move.w d0,34(sp)
-    jsr hunk_17_loc_1f78(pc)
+    dc.b    $20,$06,$d0,$44,$55,$4f,$3e,$ad,$00,$10,$3f,$00,$3f,$2f,$00,$1c
+    dc.b    $3f,$07,$3f,$40,$00,$22,$4e,$ba,$06,$2a
 hint_1950:
-; --- unverified ---
-    subq.w #2,sp
-    move.w 16(a5),(sp)
-    move.w d7,-(sp)
-    move.w 38(sp),-(sp)
-    move.w d6,-(sp)
-    jsr loc_1f54(pc)
+    dc.b    $55,$4f,$3e,$ad,$00,$10,$3f,$07,$3f,$2f,$00,$26,$3f,$06,$4e,$ba
+    dc.b    $05,$f4
 hint_1962:
-; --- unverified ---
-    subq.w #2,sp
-    move.w 16(a5),(sp)
-    move.w 42(sp),-(sp)
-    move.w 46(sp),-(sp)
-    move.w d6,-(sp)
-    jsr loc_1f54(pc)
+    dc.b    $55,$4f,$3e,$ad,$00,$10,$3f,$2f,$00,$2a,$3f,$2f,$00,$2e,$3f,$06
+    dc.b    $4e,$ba,$05,$e0
 hint_1976:
-; --- unverified ---
-    movem.l -20(a5),d4-d7
-    unlk a5
-    rts
+    dc.b    $4c,$ed,$00,$f0,$ff,$ec,$4e,$5d,$4e,$75
 hunk_17_loc_1980:
     movem.l d2-d3,-(sp)
     move.w -5218(a4),7402(a4)
@@ -34442,6 +31972,7 @@ hunk_17_loc_1dbe:
     move.w d0,7386(a4)
     move.b #$3,7392(a4)
     lea -32390(a4),a0
+    dc.b    $29,$48,$1c,$e2,$42,$2c,$1c,$e6,$42,$67,$3f,$00,$61,$00,$e2,$20
 hunk_17_loc_1de2:
     addq.w #4,sp
     addq.w #1,d0
@@ -34940,139 +32471,67 @@ hunk_18_loc_01e2:
     unlk a5
     rts
 hint_01ec:
-; --- unverified ---
-    link a5,#-4
-    movem.l a2-a3,-(sp)
-    movea.l 8(a5),a3
-    movea.l 12(a5),a2
-    move.l a2,d0
-    beq.s hint_020c
+    dc.b    $4e,$55,$ff,$fc,$48,$e7,$00,$30,$26,$6d,$00,$08,$24,$6d,$00,$0c
+    dc.b    $20,$0a,$67,$0c
 hint_0200:
-; --- unverified ---
-    move.l a3,d0
-    beq.s hint_020c
+    dc.b    $20,$0b,$67,$08
 hint_0204:
-; --- unverified ---
-    tst.b (a2)
-    beq.s hint_020c
+    dc.b    $4a,$12,$67,$04
 hunk_18_hint_0208:
-; --- unverified ---
-    tst.b (a3)
-    bne.s hint_0212
+    dc.b    $4a,$13,$66,$06
 hint_020c:
-; --- unverified ---
-    moveq #0,d0
-    bra.w hunk_18_hint_02d4
+    dc.b    $70,$00,$60,$00,$00,$c4
 hint_0212:
-; --- unverified ---
-    move.w 16(a5),d0
-    move.b d0,d1
-    ext.w d1
-    move.w d1,-(sp)
-    move.l a3,-(sp)
-    bsr.w hunk_18_loc_00de
+    dc.b    $30,$2d,$00,$10,$12,$00,$48,$81,$3f,$01,$2f,$0b,$61,$00,$fe,$be
 hint_0222:
-; --- unverified ---
-    addq.w #6,sp
-    movea.l d0,a2
-    tst.l d0
-    bne.s hunk_18_hint_0238
+    dc.b    $5c,$4f,$24,$40,$4a,$80,$66,$0e
 hunk_18_hint_022a:
-; --- unverified ---
-    pea -9024(a4)
-    jsr hunk_18_loc_03ba(pc)
+    dc.b    $48,$6c,$dc,$c0,$4e,$ba,$01,$8a
 hunk_18_hint_0232:
-; --- unverified ---
-    moveq #0,d0
-    bra.w hunk_18_hint_02d4
+    dc.b    $70,$00,$60,$00,$00,$9e
 hunk_18_hint_0238:
-; --- unverified ---
-    move.w 16(a5),d0
-    move.b d0,d1
-    ext.w d1
-    move.w d1,-(sp)
-    move.l 12(a5),-(sp)
-    bsr.w hunk_18_loc_00de
+    dc.b    $30,$2d,$00,$10,$12,$00,$48,$81,$3f,$01,$2f,$2d,$00,$0c,$61,$00
+    dc.b    $fe,$96
 hunk_18_hint_024a:
-; --- unverified ---
-    addq.w #6,sp
-    tst.l d0
-    beq.s hint_025c
+    dc.b    $5c,$4f,$4a,$80,$67,$0c
 hunk_18_hint_0250:
-; --- unverified ---
-    pea -9024(a4)
-    jsr hunk_18_loc_03ba(pc)
+    dc.b    $48,$6c,$dc,$c0,$4e,$ba,$01,$64
 hunk_18_hint_0258:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hunk_18_hint_02d4
+    dc.b    $70,$00,$60,$78
 hint_025c:
-; --- unverified ---
-    move.l a3,-(sp)
-    bsr.w hunk_18_loc_0088
+    dc.b    $2f,$0b,$61,$00,$fe,$28
 hunk_18_hint_0262:
-; --- unverified ---
-    addq.w #4,sp
-    move.l d0,d1
-    ext.l d1
-    asl.l #2,d1
-    lea -10304(a4),a0
-    adda.l d1,a0
-    movea.l a0,a3
-    movea.l (a3),a0
-    cmpa.l a2,a0
-    bne.s hint_027e
+    dc.b    $58,$4f,$22,$00,$48,$c1,$e5,$81,$41,$ec,$d7,$c0,$d1,$c1,$26,$48
+    dc.b    $20,$53,$b1,$ca,$66,$06
 hunk_18_hint_0278:
-; --- unverified ---
-    move.l 16(a2),(a3)
-    bra.s hunk_18_hint_02a8
+    dc.b    $26,$aa,$00,$10,$60,$2a
 hint_027e:
-; --- unverified ---
-    movea.l a0,a3
-    bra.s hunk_18_hint_0286
+    dc.b    $26,$48,$60,$04
 hunk_18_hint_0282:
     dc.b    $26,$6b,$00,$10
 hunk_18_hint_0286:
-; --- unverified ---
-    move.l a3,d0
-    beq.s hint_0292
+    dc.b    $20,$0b,$67,$08
 hunk_18_hint_028a:
-; --- unverified ---
-    movea.l 16(a3),a0
-    cmpa.l a2,a0
-    bne.s hunk_18_hint_0282
+    dc.b    $20,$6b,$00,$10,$b1,$ca,$66,$f0
 hint_0292:
-; --- unverified ---
-    move.l a3,d0
-    beq.s hint_029e
+    dc.b    $20,$0b,$67,$08
 hunk_18_hint_0296:
-; --- unverified ---
-    move.l 16(a2),16(a3)
-    bra.s hunk_18_hint_02a8
+    dc.b    $27,$6a,$00,$10,$00,$10,$60,$0a
 hint_029e:
-; --- unverified ---
-    pea hunk_18_pcref_002a(pc)
-    jsr hunk_18_loc_03ba(pc)
+    dc.b    $48,$7a,$fd,$8a,$4e,$ba,$01,$16
 hunk_18_hint_02a6:
     dc.b    $58,$4f
 hunk_18_hint_02a8:
     dc.b    $20,$6d,$00,$0c,$22,$4a
 hint_02ae:
-; --- unverified ---
-    move.b (a0)+,(a1)+
-    bne.s hint_02ae
+    dc.b    $12,$d8,$66,$fc
 hint_02b2:
-; --- unverified ---
-    move.l 12(a5),-(sp)
-    bsr.w hunk_18_loc_0088
+    dc.b    $2f,$2d,$00,$0c,$61,$00,$fd,$d0
 hint_02ba:
     dc.b    $22,$00,$48,$c1,$e5,$81,$41,$ec,$d7,$c0,$25,$70,$18,$00,$00,$10
     dc.b    $41,$ec,$d7,$c0,$21,$8a,$18,$00,$20,$0a
 hunk_18_hint_02d4:
-; --- unverified ---
-    movem.l -12(a5),a2-a3
-    unlk a5
-    rts
+    dc.b    $4c,$ed,$0c,$00,$ff,$f4,$4e,$5d,$4e,$75
 hunk_18_loc_02de:
     link a5,#-8
     movem.l a2-a3,-(sp)
@@ -35158,38 +32617,22 @@ hunk_18_loc_037a:
     unlk a5
     rts
 hint_0382:
-; --- unverified ---
-    movem.l a2-a3,-(sp)
-    lea -10304(a4),a3
-    bra.s hint_03a6
+    dc.b    $48,$e7,$00,$30,$47,$ec,$d7,$c0,$60,$1a
 hint_038c:
-; --- unverified ---
-    movea.l (a3),a2
-    clr.l (a3)
-    bra.s hint_03a0
+    dc.b    $24,$53,$42,$93,$60,$0e
 hint_0392:
-; --- unverified ---
-    movea.l a2,a0
-    movea.l 16(a0),a2
-    move.l a0,-(sp)
-    jsr hunk_18_loc_03c6(pc)
+    dc.b    " J$h",0
+    dc.b    $10,$2f,$08,$4e,$ba,$00,$2a
 hint_039e:
     dc.b    $58,$4f
 hint_03a0:
-; --- unverified ---
-    move.l a2,d0
-    bne.s hint_0392
+    dc.b    $20,$0a,$66,$ee
 hint_03a4:
     dc.b    $58,$8b
 hint_03a6:
-; --- unverified ---
-    lea -9280(a4),a0
-    cmpa.l a0,a3
-    bcs.s hint_038c
+    dc.b    $41,$ec,$db,$c0,$b7,$c8,$65,$de
 hint_03ae:
-; --- unverified ---
-    movem.l (sp)+,a2-a3
-    rts
+    dc.b    $4c,$df,$0c,$00,$4e,$75
 hunk_18_loc_03b4:
     jmp sub_15ec
 hunk_18_loc_03ba:
@@ -35775,55 +33218,30 @@ hunk_20_loc_02de:
     unlk a5
     rts
 hunk_20_hint_02e2:
-; --- unverified ---
-    link a5,#-8
-    movem.l a2-a3,-(sp)
-    movea.l 8(a5),a3
-    bra.s hint_0330
+    dc.b    $4e,$55,$ff,$f8,$48,$e7,$00,$30,$26,$6d,$00,$08,$60,$40
 hunk_20_hint_02f0:
-; --- unverified ---
-    clr.w -6(a5)
-    movea.l a3,a2
-    bra.s hint_031a
+    dc.b    $42,$6d,$ff,$fa,$24,$4b,$60,$22
 hint_02f8:
-; --- unverified ---
-    tst.b 13(a5)
-    beq.s hunk_20_hint_030a
+    dc.b    $4a,$2d,$00,$0d,$67,$0c
 hint_02fe:
-; --- unverified ---
-    movea.l 2(a2),a0
-    move.w (a0),-(sp)
-    jsr hunk_20_loc_0674(pc)
+    dc.b    $20,$6a,$00,$02,$3f,$10,$4e,$ba,$03,$6e
 hunk_20_hint_0308:
     dc.b    $54,$4f
 hunk_20_hint_030a:
-; --- unverified ---
-    move.l 2(a2),-(sp)
-    jsr hunk_20_loc_068c(pc)
+    dc.b    $2f,$2a,$00,$02,$4e,$ba,$03,$7c
 hint_0312:
     dc.b    $58,$4f,$52,$6d,$ff,$fa,$58,$8a
 hint_031a:
-; --- unverified ---
-    move.w -6(a5),d0
-    cmp.w (a3),d0
-    blt.s hint_02f8
+    dc.b    $30,$2d,$ff,$fa,$b0,$53,$6d,$d6
 hint_0322:
-; --- unverified ---
-    movea.l a3,a0
-    movea.l 82(a0),a3
-    move.l a0,-(sp)
-    jsr hunk_20_loc_068c(pc)
+    dc.b    " K&h",0
+    dc.b    $52,$2f,$08,$4e,$ba,$03,$60
 hint_032e:
     dc.b    $58,$4f
 hint_0330:
-; --- unverified ---
-    move.l a3,d0
-    bne.s hunk_20_hint_02f0
+    dc.b    $20,$0b,$66,$bc
 hunk_20_hint_0334:
-; --- unverified ---
-    movem.l (sp)+,a2-a3
-    unlk a5
-    rts
+    dc.b    $4c,$df,$0c,$00,$4e,$5d,$4e,$75
 hunk_20_loc_033c:
     link a5,#-8
     movem.l a2-a3,-(sp)
@@ -35908,50 +33326,28 @@ hunk_20_loc_03e8:
     unlk a5
     rts
 hint_03f2:
-; --- unverified ---
-    movem.l a2-a3,-(sp)
-    movea.l 12(sp),a3
-    move.l a3,d0
-    beq.s hint_0442
+    dc.b    $48,$e7,$00,$30,$26,$6f,$00,$0c,$20,$0b,$67,$44
 hunk_20_hint_03fe:
-; --- unverified ---
-    moveq #6,d0
-    move.w d0,-(sp)
-    move.l (a3),-(sp)
-    jsr hunk_20_loc_0680(pc)
+    dc.b    $70,$06,$3f,$00,$2f,$13,$4e,$ba,$02,$7a
 hint_0408:
-; --- unverified ---
-    move.l a3,(sp)
-    bsr.w hunk_20_loc_0510
+    dc.b    $2e,$8b,$61,$00,$01,$04
 hint_040e:
-; --- unverified ---
-    addq.w #6,sp
-    movea.l 12(a3),a0
-    movea.l 8(a3),a2
-    move.l a0,d0
-    beq.s hint_0422
+    dc.b    "\O k",0
+    dc.b    $0c,$24,$6b,$00,$08,$20,$08,$67,$06
 hunk_20_hint_041c:
-; --- unverified ---
-    move.l a2,8(a0)
-    bra.s hint_042a
+    dc.b    $21,$4a,$00,$08,$60,$08
 hint_0422:
     dc.b    $22,$6c,$1e,$92,$23,$4a,$00,$04
 hint_042a:
-; --- unverified ---
-    tst.l 8(a3)
-    beq.s hint_043a
+    dc.b    $4a,$ab,$00,$08,$67,$0a
 hint_0430:
     dc.b    $20,$6b,$00,$08,$21,$6b,$00,$0c,$00,$0c
 hint_043a:
-; --- unverified ---
-    move.l a3,-(sp)
-    jsr hunk_20_loc_068c(pc)
+    dc.b    $2f,$0b,$4e,$ba,$02,$4e
 hunk_20_hint_0440:
     dc.b    $58,$4f
 hint_0442:
-; --- unverified ---
-    movem.l (sp)+,a2-a3
-    rts
+    dc.b    $4c,$df,$0c,$00,$4e,$75
 hunk_20_loc_0448:
     movem.l a2-a3,-(sp)
     movea.l 12(sp),a3
@@ -36027,31 +33423,17 @@ hunk_20_loc_04e4:
     movem.l (sp)+,a2-a3
     rts
 hint_04ea:
-; --- unverified ---
-    move.l a3,-(sp)
-    movea.l 8(sp),a3
-    move.l a3,d0
-    beq.s hint_050c
+    dc.b    $2f,$0b,$26,$6f,$00,$08,$20,$0b,$67,$18
 hint_04f4:
-; --- unverified ---
-    moveq #6,d0
-    move.w d0,-(sp)
-    move.l (a3),-(sp)
-    jsr hunk_20_loc_0680(pc)
+    dc.b    $70,$06,$3f,$00,$2f,$13,$4e,$ba,$01,$84
 hunk_20_hint_04fe:
-; --- unverified ---
-    move.l a3,(sp)
-    bsr.w hunk_20_loc_0510
+    dc.b    $2e,$8b,$61,$00,$00,$0e
 hint_0504:
-; --- unverified ---
-    move.l a3,(sp)
-    jsr hunk_20_loc_068c(pc)
+    dc.b    $2e,$8b,$4e,$ba,$01,$84
 hunk_20_hint_050a:
     dc.b    $5c,$4f
 hint_050c:
-; --- unverified ---
-    movea.l (sp)+,a3
-    rts
+    dc.b    $26,$5f,$4e,$75
 hunk_20_loc_0510:
     move.l a3,-(sp)
     movea.l 8(sp),a3
@@ -36282,6 +33664,7 @@ loc_0061:
     dc.b    $00
 hunk_21_loc_0064:
     dc.b    $4a,$ac,$1d
+    dc.b    $5c,$67,$0e
     dc.b    $20,$6c,$1d,$5c
 hunk_21_loc_006e:
     move.w 28(a0),-(sp)
@@ -36305,6 +33688,7 @@ hunk_21_loc_0098:
     addq.w #8,sp
     movea.l 7516(a4),a0
     move.w 28(a0),d0
+    dc.b    $20,$6c,$11
 loc_00a5:
     cmpi.b #$0,49(a1,d2.w)
     negx.b d0
@@ -36315,6 +33699,7 @@ hunk_21_loc_00b4:
     dc.b    $48,$c1
 hunk_21_loc_00b6:
     dc.b    $e5
+    dc.b    $81,$41,$ec,$ee,$c2,$d1,$c1,$26,$48,$3b,$40,$ff,$fa,$60,$0c
 hunk_21_loc_00c6:
     movea.l (a3)+,a0
     move.l 4364(a4),8(a0)
@@ -36332,11 +33717,7 @@ hunk_21_loc_00e6:
     unlk a5
     rts
 hint_00ee:
-; --- unverified ---
-    link a5,#0
-    move.l 7516(a4),d0
-    unlk a5
-    rts
+    dc.b    $4e,$55,$00,$00,$20,$2c,$1d,$5c,$4e,$5d,$4e,$75
 hunk_21_loc_00fa:
     link a5,#0
     move.l a2,-(sp)
@@ -36387,6 +33768,7 @@ hunk_21_loc_0176:
     addq.w #2,sp
 hunk_21_loc_0178:
     move.l 8(a5),-(sp)
+    dc.b    $61,$00,$00,$40,$58,$4f,$29,$40,$1d,$5c,$66,$08
 hunk_21_loc_0188:
     clr.b -5398(a4)
     moveq #0,d0
@@ -36398,6 +33780,7 @@ hunk_21_loc_0190:
 hunk_21_loc_019c:
     addq.w #8,sp
     tst.w 7000(a4)
+    dc.b    $67,$06
 hunk_21_loc_01a4:
     move.w 7000(a4),d0
     bra.s hunk_21_loc_01ac
@@ -36555,27 +33938,13 @@ hunk_21_loc_0300:
     unlk a5
     rts
 hunk_21_hint_030a:
-; --- unverified ---
-    link a5,#0
-    move.l a3,-(sp)
-    movea.l 8(a5),a3
-    move.w 12(a5),d0
-    ext.l d0
-    add.l d0,d0
-    lea 7888(a4),a0
-    move.w #$1,0(a0,d0.l)
-    move.l a3,-(sp)
-    bsr.w hunk_21_loc_096c
+    dc.b    $4e,$55,$00,$00,$2f,$0b,$26,$6d,$00,$08,$30,$2d,$00,$0c,$48,$c0
+    dc.b    $d0,$80,$41,$ec,$1e,$d0,$31,$bc,$00,$01,$08,$00,$2f,$0b,$61,$00
+    dc.b    $06,$42
 hint_032c:
-; --- unverified ---
-    addq.w #4,sp
-    movea.l d0,a3
-    move.l a3,d0
-    bne.s hunk_21_hint_0338
+    dc.b    $58,$4f,$26,$40,$20,$0b,$66,$04
 hunk_21_hint_0334:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hunk_21_loc_0388
+    dc.b    $70,$00,$60,$50
 hunk_21_hint_0338:
     dc.b    $30,$2c,$ea,$f0,$90,$6d,$00,$0e,$37,$40,$00,$4a,$e9,$40,$37,$40
     dc.b    $00,$80,$30,$2c,$ea,$f2,$d0,$6d,$00,$10,$37,$40,$00,$50,$e9,$40
@@ -37065,6 +34434,7 @@ hunk_21_loc_07b6:
     move.w d0,-4698(a4)
     move.w d0,7488(a4)
     move.w d1,-5396(a4)
+    dc.b    $4e,$5d,$4e,$75
 hunk_21_loc_07d6:
     link a5,#0
     tst.w 12(a5)
@@ -37295,6 +34665,7 @@ hunk_21_loc_09c6:
     rts
 hunk_21_loc_09c8:
     link a5,#-8
+    dc.b    $48,$e7,$00,$30,$26,$6d,$00,$08,$42,$6d,$ff,$fa,$60,$24
 hunk_21_loc_09da:
     move.b (a2),d0
     ext.w d0
@@ -37414,21 +34785,12 @@ hunk_21_loc_0b2a:
     ext.l d0
     rts
 hint_0b30:
-; --- unverified ---
-    link a5,#-20
-    moveq #10,d0
-    move.w d0,-(sp)
-    pea -17(a5)
-    move.l 8(a5),-(sp)
-    jsr hunk_21_loc_0b62(pc)
+    dc.b    $4e,$55,$ff,$ec,$70,$0a,$3f,$00,$48,$6d,$ff,$ef,$2f,$2d,$00,$08
+    dc.b    $4e,$ba,$00,$20
 hint_0b44:
-; --- unverified ---
-    pea -17(a5)
-    jsr pcref_0bec(pc)
+    dc.b    $48,$6d,$ff,$ef,$4e,$ba,$00,$a2
 hint_0b4c:
-; --- unverified ---
-    unlk a5
-    rts
+    dc.b    $4e,$5d,$4e,$75
 hunk_21_loc_0b50:
     jmp hunk_26_loc_0f0a
 hunk_21_loc_0b56:
@@ -37482,8 +34844,8 @@ hunk_21_loc_0be0:
 hunk_21_loc_0be6:
     jmp hunk_27_loc_008c
 pcref_0bec:
-; --- unverified ---
-    jmp hunk_16_loc_03e6
+    dc.b    $4e,$f9
+    dc.l    hunk_16_loc_03e6
 hunk_21_loc_0bf2:
     jmp hunk_23_loc_025a
 hunk_21_loc_0bf8:
@@ -37539,36 +34901,25 @@ hunk_22_loc_0036:
     clr.w 7878(a4)
     rts
 hunk_22_pcref_003c:
-; --- unverified ---
-    move.l a4,-(sp)
-    lea dat_8000,a4
-    tst.w 7878(a4)
-    beq.s hint_006a
+    dc.b    $2f,$0c,$49,$f9
+    dc.l    dat_8000
+    dc.b    $4a,$6c,$1e,$c6,$67,$20
 hint_004a:
-; --- unverified ---
-    ble.s hint_0066
+    dc.b    $6f,$1a
 hunk_22_hint_004c:
-; --- unverified ---
-    subq.w #1,7878(a4)
-    bne.s hint_006a
+    dc.b    $53,$6c,$1e,$c6,$66,$18
 hunk_22_hint_0052:
-; --- unverified ---
-    tst.l -8882(a4)
-    beq.s hint_0066
+    dc.b    $4a,$ac,$dd,$4e,$67,$0e
 hint_0058:
-; --- unverified ---
-    ble.s hint_005e
+    dc.b    $6f,$04
 hint_005a:
     dc.b    $53,$ac,$dd,$4e
 hint_005e:
     dc.b    $20,$2c,$dd,$4a,$39,$40,$1e,$c6
 hint_0066:
-; --- unverified ---
-    bsr.w hunk_22_loc_006e
+    dc.b    $61,$00,$00,$06
 hint_006a:
-; --- unverified ---
-    movea.l (sp)+,a4
-    rts
+    dc.b    $28,$5f,$4e,$75
 hunk_22_loc_006e:
     bsr.w hunk_22_loc_01f4
 hunk_22_loc_0072:
@@ -38851,16 +36202,19 @@ pcref_0bb0:
     dc.b    $00,$0c
 pcref_0bb2:
     dc.w    hunk_22_loc_0bd2-pcref_0bb2
+jtent_0bb4:
     dc.w    hunk_22_loc_0be4-pcref_0bb2
+jtent_0bb6:
     dc.w    hunk_22_loc_0bf6-pcref_0bb2
 pcref_0bb8:
     dc.w    hunk_22_loc_0c08-pcref_0bb2
+jtent_0bba:
     dc.w    hunk_22_loc_0c1a-pcref_0bb2
+jtent_0bbc:
     dc.w    hunk_22_loc_0c2c-pcref_0bb2
+    dc.b    $30,$2d,$ff,$fa,$b0,$6d,$ff,$f8,$66,$00,$00,$86
 hint_0bca:
-; --- unverified ---
-    move.w #$1,-10(a5)
-    bra.s hunk_22_loc_0c4e
+    dc.b    $3b,$7c,$00,$01,$ff,$f6,$60,$7c
 hunk_22_loc_0bd2: ; jt: pcref_0bb2
     move.w -6(a5),d0
     cmp.w -8(a5),d0
@@ -39136,20 +36490,11 @@ pcref_0e56:
     dc.b    $00,$10,$00,$1a,$00,$24,$00,$32,$3b,$6d,$ff,$f8,$ff,$fa,$60,$36
     dc.b    $30,$2d,$ff,$f8,$d1,$6d,$ff,$fa,$60,$2c
 hint_0e70:
-; --- unverified ---
-    move.w -8(a5),d0
-    sub.w d0,-6(a5)
-    bra.s hunk_22_loc_0e9c
+    dc.b    $30,$2d,$ff,$f8,$91,$6d,$ff,$fa,$60,$22
 hint_0e7a:
-; --- unverified ---
-    move.w -6(a5),d0
-    muls.w -8(a5),d0
-    move.w d0,-6(a5)
-    bra.s hunk_22_loc_0e9c
+    dc.b    $30,$2d,$ff,$fa,$c1,$ed,$ff,$f8,$3b,$40,$ff,$fa,$60,$14
 hint_0e88:
-; --- unverified ---
-    tst.w -8(a5)
-    beq.s hunk_22_loc_0e9c
+    dc.b    $4a,$6d,$ff,$f8,$67,$0e
 hint_0e8e:
     dc.b    $30,$2d,$ff,$fa,$48,$c0,$81,$ed,$ff,$f8,$3b,$40,$ff,$fa
 hunk_22_loc_0e9c:
@@ -39725,38 +37070,21 @@ pcref_1380:
     dc.b    $00,$24,$00,$38,$00,$70,$00,$8a,$00,$ae,$00,$ae,$52,$6b,$00,$1e
     dc.b    $30,$2b,$00,$1e,$b0,$6f,$00,$10,$6d,$00,$00,$94
 hint_139c:
-; --- unverified ---
-    clr.w 30(a3)
-    bra.w hunk_22_loc_142e
+    dc.b    $42,$6b,$00,$1e,$60,$00,$00,$8c
 hint_13a4:
-; --- unverified ---
-    subq.w #1,30(a3)
-    bge.w hunk_22_loc_142e
+    dc.b    $53,$6b,$00,$1e,$6c,$00,$00,$84
 hint_13ac:
-; --- unverified ---
-    move.w 16(sp),d0
-    subq.w #1,d0
-    move.w d0,30(a3)
-    bra.s hunk_22_loc_142e
+    dc.b    $30,$2f,$00,$10
+    dc.b    "S@7@",0
+    dc.b    $1e,$60,$76
 hint_13b8:
-; --- unverified ---
-    tst.w 174(a3)
-    beq.s hunk_22_loc_13de
+    dc.b    $4a,$6b,$00,$ae,$67,$20
 hunk_22_hint_13be:
-; --- unverified ---
-    addq.w #1,30(a3)
-    move.w 16(sp),d0
-    move.w 30(a3),d1
-    cmp.w d0,d1
-    blt.s hunk_22_loc_142e
+    dc.b    $52,$6b,$00,$1e,$30,$2f,$00,$10,$32,$2b,$00,$1e,$b2,$40,$6d,$60
 hint_13ce:
-; --- unverified ---
-    move.l d0,d2
-    subq.w #2,d2
-    move.w d2,30(a3)
-    moveq #0,d0
-    move.w d0,174(a3)
-    bra.s hunk_22_loc_142e
+    dc.b    $24,$00
+    dc.b    "UB7B",0
+    dc.b    $1e,$70,$00,$37,$40,$00,$ae,$60,$50
 hunk_22_loc_13de:
     subq.w #1,30(a3)
     bge.s hunk_22_loc_142e
@@ -39766,30 +37094,17 @@ hunk_22_loc_13e4:
     move.w d0,174(a3)
     bra.s hunk_22_loc_142e
 hunk_22_hint_13f0:
-; --- unverified ---
-    move.w 16(sp),d0
-    subq.w #1,d0
-    moveq #0,d1
-    move.w d1,-(sp)
-    move.w d0,-(sp)
-    move.w d1,-(sp)
-    bsr.w hunk_22_loc_1444
+    dc.b    $30,$2f,$00,$10,$53,$40,$72,$00,$3f,$01,$3f,$00,$3f,$01,$61,$00
+    dc.b    $00,$44
 hunk_22_hint_1402:
-; --- unverified ---
-    addq.w #6,sp
-    move.w d0,30(a3)
-    bra.s hunk_22_loc_142e
+    dc.b    "\O7@",0
+    dc.b    $1e,$60,$24
 hunk_22_hint_140a:
-; --- unverified ---
-    move.w 16(sp),d0
-    subq.w #1,d0
-    move.w 30(a3),d1
-    cmp.w d0,d1
-    bge.s hunk_22_loc_141e
+    dc.b    $30,$2f,$00,$10
+    dc.b    "S@2+",0
+    dc.b    $1e,$b2,$40,$6c,$06
 hint_1418:
-; --- unverified ---
-    addq.w #1,30(a3)
-    bra.s hunk_22_loc_142e
+    dc.b    $52,$6b,$00,$1e,$60,$10
 hunk_22_loc_141e:
     movea.l 164(a3),a0
     move.b #$1,14(a0)
@@ -39867,11 +37182,9 @@ hunk_23_loc_0010:
     move.l d0,7826(a4)
     rts
 hint_0016:
-; --- unverified ---
-    jsr pcref_043a(pc)
+    dc.b    $4e,$ba,$04,$22
 hint_001a:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hunk_23_loc_001c:
     link a5,#0
 hunk_23_loc_0020:
@@ -39916,6 +37229,7 @@ hunk_23_loc_0060:
     moveq #0,d0
     move.b d0,4(a3)
     move.b d0,14(a3)
+    dc.b    $72,$01,$b2,$2b,$00,$05,$66,$06
 hunk_23_loc_0078:
     move.l 10(a3),6(a3)
 hunk_23_loc_007e:
@@ -40307,8 +37621,8 @@ hunk_23_loc_042e:
 hunk_23_loc_0434:
     jmp hunk_12_loc_023a
 pcref_043a:
-; --- unverified ---
-    jmp hunk_22_loc_0020
+    dc.b    $4e,$f9
+    dc.l    hunk_22_loc_0020
 hunk_23_loc_0440:
     jmp hunk_12_loc_0242
 hunk_23_loc_0446:
@@ -40716,47 +38030,22 @@ hunk_24_loc_03ce:
     unlk a5
     rts
 hint_03d8:
-; --- unverified ---
-    movem.l d7/a3,-(sp)
-    move.w 12(sp),d7
-    moveq #7,d0
-    cmp.w d0,d7
-    ble.s hunk_24_hint_03ea
+    dc.b    $48,$e7,$01,$10,$3e,$2f,$00,$0c,$70,$07,$be,$40,$6f,$04
 hunk_24_hint_03e6:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hunk_24_hint_041c
+    dc.b    $70,$00,$60,$32
 hunk_24_hint_03ea:
-; --- unverified ---
-    move.l d7,d0
-    ext.l d0
-    add.l d0,d0
-    lea -8396(a4),a0
-    adda.l d0,a0
-    movea.l a0,a3
-    move.w (a3),d0
-    moveq #-1,d1
-    cmp.w d1,d0
-    bne.s hunk_24_hint_0404
+    dc.b    $20,$07,$48,$c0,$d0,$80,$41,$ec,$df,$34,$d1,$c0,$26,$48,$30,$13
+    dc.b    $72,$ff,$b0,$41,$66,$04
 hunk_24_hint_0400:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hunk_24_hint_041c
+    dc.b    $70,$00,$60,$18
 hunk_24_hint_0404:
-; --- unverified ---
-    lea dat_4012,a0
-    adda.w (a3),a0
-    moveq #127,d0
-    move.w d0,-(sp)
-    clr.w -(sp)
-    move.l a0,-(sp)
-    jsr hunk_24_loc_1930(pc)
+    dc.b    $41,$f9
+    dc.l    dat_4012
+    dc.b    $d0,$d3,$70,$7f,$3f,$00,$42,$67,$2f,$08,$4e,$ba,$15,$1a
 hint_0418:
     dc.b    $50,$4f,$70,$01
 hunk_24_hint_041c:
-; --- unverified ---
-    movem.l (sp)+,d7/a3
-    rts
+    dc.b    $4c,$df,$08,$80,$4e,$75
 hunk_24_loc_0422:
     link a5,#-4
     move.l d7,-(sp)
@@ -43806,74 +41095,29 @@ hunk_25_loc_0514:
     unlk a5
     rts
 hint_051c:
-; --- unverified ---
-    link a5,#-88
-    movem.l d4-d7/a3,-(sp)
-    movea.l 8(a5),a3
-    move.b 13(a5),d7
-    moveq #1,d4
-    move.b d7,d0
-    ext.w d0
-    subq.w #1,d0
-    bne.s hint_0590
+    dc.b    $4e,$55,$ff,$a8,$48,$e7,$0f,$10,$26,$6d,$00,$08,$1e,$2d,$00,$0d
+    dc.b    $78,$01,$10,$07,$48,$80,$53,$40,$66,$5a
 hint_0536:
-; --- unverified ---
-    moveq #0,d5
-    moveq #0,d6
-    bra.s hunk_25_hint_0586
+    dc.b    $7a,$00,$7c,$00,$60,$4a
 hint_053c:
-; --- unverified ---
-    movea.l -32224(a4),a0
-    adda.l d6,a0
-    move.w (a0),d0
-    moveq #0,d1
-    cmp.w d1,d0
-    bls.s hint_0582
+    dc.b    $20,$6c,$82,$20,$d1,$c6,$30,$10,$72,$00,$b0,$41,$63,$38
 hint_054a:
-; --- unverified ---
-    movea.l 7854(a4),a1
-    moveq #0,d1
-    move.w d0,d1
-    adda.l d1,a1
-    move.l a1,7850(a4)
-    pea -88(a5)
-    jsr hunk_25_loc_071a(pc)
+    dc.b    $22,$6c,$1e,$ae,$72,$00,$32,$00,$d3,$c1,$29,$49,$1e,$aa,$48,$6d
+    dc.b    $ff,$a8,$4e,$ba,$01,$bc
 hint_0560:
-; --- unverified ---
-    move.l a3,(sp)
-    pea -88(a5)
-    jsr hunk_25_loc_06d8(pc)
+    dc.b    $2e,$8b,$48,$6d,$ff,$a8,$4e,$ba,$01,$70
 hint_056a:
-; --- unverified ---
-    addq.w #8,sp
-    tst.w d0
-    bne.s hint_0582
+    dc.b    $50,$4f,$4a,$40,$66,$12
 hint_0570:
-; --- unverified ---
-    move.b d7,d0
-    ext.w d0
-    move.w d0,-(sp)
-    move.w d5,-(sp)
-    bsr.w hunk_25_loc_02fa
+    dc.b    $10,$07,$48,$80,$3f,$00,$3f,$05,$61,$00,$fd,$80
 hint_057c:
-; --- unverified ---
-    addq.w #4,sp
-    move.l d0,d4
-    bra.s hint_0590
+    dc.b    $58,$4f,$28,$00,$60,$0e
 hint_0582:
     dc.b    $52,$45,$5c,$86
 hunk_25_hint_0586:
-; --- unverified ---
-    move.w -8166(a4),d0
-    addq.w #1,d0
-    cmp.w d0,d5
-    blt.s hint_053c
+    dc.b    $30,$2c,$e0,$1a,$52,$40,$ba,$40,$6d,$ac
 hint_0590:
-; --- unverified ---
-    move.l d4,d0
-    movem.l (sp)+,d4-d7/a3
-    unlk a5
-    rts
+    dc.b    $20,$04,$4c,$df,$08,$f0,$4e,$5d,$4e,$75
 hunk_25_loc_059a:
     movem.l d6-d7/a2-a3,-(sp)
     move.w 20(sp),d7
@@ -43996,8 +41240,11 @@ pcref_068e:
     dc.b    $00,$08
 pcref_0690:
     dc.w    hunk_25_loc_069e-pcref_0690
+jtent_0692:
     dc.w    hunk_25_loc_06b4-pcref_0690
+jtent_0694:
     dc.w    hunk_25_loc_06be-pcref_0690
+jtent_0696:
     dc.w    hunk_25_loc_06cc-pcref_0690
     dc.b    $37,$45,$00,$b0,$60,$32
 hunk_25_loc_069e: ; jt: pcref_0690
@@ -44274,20 +41521,10 @@ pcref_01fe:
     dc.b    $00,$f2,$00,$ae,$00,$ae,$00,$0a,$00,$0a,$70,$20,$20,$6c,$19,$54
     dc.b    $c0,$a8,$00,$1e,$4a,$40,$67,$54
 hint_0216:
-; --- unverified ---
-    move.w -2(a5),d0
-    moveq #5,d1
-    cmp.w d1,d0
-    bne.s hunk_26_loc_0234
+    dc.b    $30,$2d,$ff,$fe,$72,$05,$b0,$41,$66,$14
 hunk_26_hint_0220:
-; --- unverified ---
-    move.w 44(sp),d1
-    move.w 40(sp),d2
-    move.l d2,d3
-    add.w d1,d3
-    addq.w #2,d3
-    move.w d3,-5392(a4)
-    bra.s hunk_26_loc_0246
+    dc.b    $32,$2f,$00,$2c,$34,$2f,$00,$28,$26,$02,$d6,$41,$54,$43,$39,$43
+    dc.b    $ea,$f0,$60,$12
 hunk_26_loc_0234:
     move.w 42(sp),d1
     move.w 44(sp),d2
@@ -44336,18 +41573,10 @@ hunk_26_loc_029e:
     move.w d0,-5392(a4)
     bra.s hunk_26_loc_0328
 hint_02ac:
-; --- unverified ---
-    moveq #3,d0
-    cmp.w -2(a5),d0
-    bne.s hunk_26_loc_02c6
+    dc.b    $70,$03,$b0,$6d,$ff,$fe,$66,$12
 hint_02b4:
-; --- unverified ---
-    move.w 44(sp),d0
-    move.w 40(sp),d1
-    add.w d0,d1
-    addq.w #2,d1
-    move.w d1,-5392(a4)
-    bra.s hunk_26_loc_02d4
+    dc.b    $30,$2f,$00,$2c,$32,$2f,$00,$28,$d2,$40,$54,$41,$39,$41,$ea,$f0
+    dc.b    $60,$0e
 hunk_26_loc_02c6:
     move.w 44(sp),d0
     add.w 42(sp),d0
@@ -44366,26 +41595,15 @@ hunk_26_loc_02e4:
     move.w d0,-5388(a4)
     bra.s hunk_26_loc_0328
 hunk_26_hint_02f0:
-; --- unverified ---
-    tst.w -2(a5)
-    bne.s hunk_26_hint_0302
+    dc.b    $4a,$6d,$ff,$fe,$66,$0c
 hint_02f6:
-; --- unverified ---
-    moveq #102,d0
-    add.w 34(sp),d0
-    move.w d0,-5388(a4)
-    bra.s hint_030c
+    dc.b    $70,$66,$d0,$6f,$00,$22,$39,$40,$ea,$f4,$60,$0a
 hunk_26_hint_0302:
     dc.b    $70,$62,$d0,$6f,$00,$24,$39,$40,$ea,$f4
 hint_030c:
-; --- unverified ---
-    move.w 28(sp),d0
-    cmp.w 42(sp),d0
-    blt.s hint_031c
+    dc.b    $30,$2f,$00,$1c,$b0,$6f,$00,$2a,$6d,$06
 hint_0316:
-; --- unverified ---
-    cmp.w 40(sp),d0
-    ble.s hunk_26_loc_0328
+    dc.b    $b0,$6f,$00,$28,$6f,$0c
 hint_031c:
     dc.b    $30,$2f,$00,$2c,$d0,$6f,$00,$26,$39,$40,$ea,$f0
 hunk_26_loc_0328:
@@ -44632,56 +41850,25 @@ hunk_26_loc_058c:
     move.w hunk_26_pcref_0596(pc,d0.w),d0
     jmp pcref_0598(pc,d0.w) ; unresolved_indirect_core:pcindex.brief
 hunk_26_pcref_0596:
-; --- unverified ---
-    ori.w #$14,42(a6)
-    ori.l #$580098,(a0)+
-    ori.b #$98,(a4)+
-    ori.l #$460038,d4
-    move.w -8156(a4),-32202(a4)
-    bra.s hunk_26_loc_0630
+    dc.b    $00,$6e
+pcref_0598:
+    dc.b    $00,$14,$00,$2a,$00,$98,$00,$58,$00,$98,$00,$1c,$00,$98,$00,$84
+    dc.b    $00,$46,$00,$38,$39,$6c,$e0,$24,$82,$36,$60,$7c
 hint_05b4:
-; --- unverified ---
-    move.w -8156(a4),d0
-    add.w 8(sp),d0
-    move.w d0,-32202(a4)
-    bra.s hunk_26_loc_0630
+    dc.b    $30,$2c,$e0,$24,$d0,$6f,$00,$08,$39,$40,$82,$36,$60,$6e
 hint_05c2:
-; --- unverified ---
-    move.w -8156(a4),d0
-    add.w 8(sp),d0
-    move.w d0,-32202(a4)
-    bra.s hunk_26_loc_0630
+    dc.b    $30,$2c,$e0,$24,$d0,$6f,$00,$08,$39,$40,$82,$36,$60,$60
 hint_05d0:
-; --- unverified ---
-    move.w -8156(a4),d0
-    add.w 8(sp),d0
-    move.w d0,-32202(a4)
-    bra.s hunk_26_loc_0630
+    dc.b    $30,$2c,$e0,$24,$d0,$6f,$00,$08,$39,$40,$82,$36,$60,$52
 hint_05de:
-; --- unverified ---
-    move.w -8156(a4),d0
-    add.w 8(sp),d0
-    add.w 10(sp),d0
-    move.w d0,-32202(a4)
-    bra.s hunk_26_loc_0630
+    dc.b    $30,$2c,$e0,$24,$d0,$6f,$00,$08,$d0,$6f,$00,$0a,$39,$40,$82,$36
+    dc.b    $60,$40
 hint_05f0:
-; --- unverified ---
-    move.w 8(sp),d0
-    add.w d0,d0
-    move.w -8156(a4),d1
-    add.w d0,d1
-    add.w 10(sp),d1
-    move.w d1,-32202(a4)
-    bra.s hunk_26_loc_0630
+    dc.b    $30,$2f,$00,$08,$d0,$40,$32,$2c,$e0,$24,$d2,$40,$d2,$6f,$00,$0a
+    dc.b    $39,$41,$82,$36,$60,$2a
 hunk_26_hint_0606:
-; --- unverified ---
-    move.w 8(sp),d0
-    add.w d0,d0
-    move.w -8156(a4),d1
-    add.w d0,d1
-    add.w 10(sp),d1
-    move.w d1,-32202(a4)
-    bra.s hunk_26_loc_0630
+    dc.b    $30,$2f,$00,$08,$d0,$40,$32,$2c,$e0,$24,$d2,$40,$d2,$6f,$00,$0a
+    dc.b    $39,$41,$82,$36,$60,$14
     dc.b    $30,$2f,$00,$08,$d0,$40,$32,$2c,$e0,$24,$d2,$40,$d2,$6f,$00,$0a
     dc.b    $39,$41,$82,$36
 hunk_26_loc_0630:
@@ -45285,13 +42472,8 @@ pcref_0bfc:
     dc.b    $00,$14,$01,$4c,$02,$f6,$00,$a0,$01,$2c,$00,$e6,$02,$f6,$02,$8e
     dc.b    $00,$5a,$01,$b8,$39,$7c,$00,$c8,$f8,$40,$4a,$6c,$1b,$3e,$67,$12
 hint_0c1c:
-; --- unverified ---
-    move.w 7864(a4),d0
-    move.w -5388(a4),d1
-    move.l d1,d2
-    add.w d0,d2
-    move.w d2,-5382(a4)
-    bra.s hunk_26_loc_0c3c
+    dc.b    $30,$2c,$1e,$b8,$32,$2c,$ea,$f4,$24,$01,$d4,$40,$39,$42,$ea,$fa
+    dc.b    $60,$0e
 hunk_26_loc_0c2e:
     move.w 7864(a4),d0
     move.w -5388(a4),d1
@@ -45305,18 +42487,10 @@ hunk_26_loc_0c3c:
     move.w d0,7886(a4)
     bra.w hunk_26_loc_0ef2
 hint_0c56:
-; --- unverified ---
-    move.w #$d0,-1984(a4)
-    tst.w 6974(a4)
-    beq.s hunk_26_loc_0c74
+    dc.b    $39,$7c,$00,$d0,$f8,$40,$4a,$6c,$1b,$3e,$67,$12
 hint_0c62:
-; --- unverified ---
-    move.w 7864(a4),d0
-    move.w -5388(a4),d1
-    move.l d1,d2
-    sub.w d0,d2
-    move.w d2,-5382(a4)
-    bra.s hunk_26_loc_0c82
+    dc.b    $30,$2c,$1e,$b8,$32,$2c,$ea,$f4,$24,$01,$94,$40,$39,$42,$ea,$fa
+    dc.b    $60,$0e
 hunk_26_loc_0c74:
     move.w 7864(a4),d0
     move.w -5388(a4),d1
@@ -45330,18 +42504,10 @@ hunk_26_loc_0c82:
     move.w d0,7886(a4)
     bra.w hunk_26_loc_0ef2
 hint_0c9c:
-; --- unverified ---
-    move.w #$cb,-1984(a4)
-    tst.w 6972(a4)
-    beq.s hunk_26_loc_0cba
+    dc.b    $39,$7c,$00,$cb,$f8,$40,$4a,$6c,$1b,$3c,$67,$12
 hint_0ca8:
-; --- unverified ---
-    move.w 7862(a4),d0
-    move.w -5392(a4),d1
-    move.l d1,d2
-    add.w d0,d2
-    move.w d2,-5386(a4)
-    bra.s hunk_26_loc_0cc8
+    dc.b    $30,$2c,$1e,$b6,$32,$2c,$ea,$f0,$24,$01,$d4,$40,$39,$42,$ea,$f6
+    dc.b    $60,$0e
 hunk_26_loc_0cba:
     move.w 7862(a4),d0
     move.w -5392(a4),d1
@@ -45355,178 +42521,81 @@ hunk_26_loc_0cc8:
     move.w d0,7886(a4)
     bra.w hunk_26_loc_0ef2
 hint_0ce2:
-; --- unverified ---
-    move.w #$cd,-1984(a4)
-    tst.w 6972(a4)
-    beq.s hint_0d00
+    dc.b    $39,$7c,$00,$cd,$f8,$40,$4a,$6c,$1b,$3c,$67,$12
 hint_0cee:
-; --- unverified ---
-    move.w 7862(a4),d0
-    move.w -5392(a4),d1
-    move.l d1,d2
-    sub.w d0,d2
-    move.w d2,-5386(a4)
-    bra.s hint_0d0e
+    dc.b    $30,$2c,$1e,$b6,$32,$2c,$ea,$f0,$24,$01,$94,$40,$39,$42,$ea,$f6
+    dc.b    $60,$0e
 hint_0d00:
     dc.b    $30,$2c,$1e,$b6,$32,$2c,$ea,$f0,$d2,$40,$39,$41,$ea,$f6
 hint_0d0e:
-; --- unverified ---
-    move.w -5388(a4),-5382(a4)
-    move.w 7862(a4),7876(a4)
-    moveq #0,d0
-    move.w d0,-5378(a4)
-    move.w d0,7886(a4)
-    bra.w hunk_26_loc_0ef2
+    dc.b    $39,$6c,$ea,$f4,$ea,$fa,$39,$6c,$1e,$b6,$1e,$c4,$70,$00,$39,$40
+    dc.b    $ea,$fe,$39,$40,$1e,$ce,$60,$00,$01,$cc
 hint_0d28:
-; --- unverified ---
-    moveq #0,d0
-    move.w d0,-1984(a4)
-    move.w -5392(a4),-5386(a4)
-    move.w -5388(a4),-5382(a4)
-    move.w #$1,-5378(a4)
-    move.w d0,7886(a4)
-    bra.w hunk_26_loc_0ef2
+    dc.b    $70,$00,$39,$40,$f8,$40,$39,$6c,$ea,$f0,$ea,$f6,$39,$6c,$ea,$f4
+    dc.b    $ea,$fa,$39,$7c,$00,$01,$ea,$fe,$39,$40,$1e,$ce,$60,$00,$01,$ac
 hint_0d48:
-; --- unverified ---
-    move.w #$c9,-1984(a4)
-    tst.w 6972(a4)
-    beq.s hint_0d66
+    dc.b    $39,$7c,$00,$c9,$f8,$40,$4a,$6c,$1b,$3c,$67,$12
 hint_0d54:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w -5392(a4),d1
-    move.l d1,d2
-    sub.w d0,d2
-    move.w d2,-5386(a4)
-    bra.s hint_0d74
+    dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f0,$24,$01,$94,$40,$39,$42,$ea,$f6
+    dc.b    $60,$0e
 hint_0d66:
     dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f0,$d2,$40,$39,$41,$ea,$f6
 hint_0d74:
-; --- unverified ---
-    tst.w 6974(a4)
-    beq.s hint_0d8c
+    dc.b    $4a,$6c,$1b,$3e,$67,$12
 hint_0d7a:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w -5388(a4),d1
-    move.l d1,d2
-    add.w d0,d2
-    move.w d2,-5382(a4)
-    bra.s hint_0d9a
+    dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f4,$24,$01,$d4,$40,$39,$42,$ea,$fa
+    dc.b    $60,$0e
 hint_0d8c:
     dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f4,$92,$40,$39,$41,$ea,$fa
 hint_0d9a:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w d0,7874(a4)
-    move.w d0,7876(a4)
-    moveq #0,d0
-    move.w d0,-5378(a4)
-    move.w d0,7886(a4)
-    bra.w hunk_26_loc_0ef2
+    dc.b    $30,$2c,$1e,$ba,$39,$40,$1e,$c2,$39,$40,$1e,$c4,$70,$00,$39,$40
+    dc.b    $ea,$fe,$39,$40,$1e,$ce,$60,$00,$01,$40
 hint_0db4:
-; --- unverified ---
-    move.w #$d1,-1984(a4)
-    tst.w 6972(a4)
-    beq.s hint_0dd2
+    dc.b    $39,$7c,$00,$d1,$f8,$40,$4a,$6c,$1b,$3c,$67,$12
 hint_0dc0:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w -5392(a4),d1
-    move.l d1,d2
-    sub.w d0,d2
-    move.w d2,-5386(a4)
-    bra.s hint_0de0
+    dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f0,$24,$01,$94,$40,$39,$42,$ea,$f6
+    dc.b    $60,$0e
 hint_0dd2:
     dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f0,$d2,$40,$39,$41,$ea,$f6
 hint_0de0:
-; --- unverified ---
-    tst.w 6974(a4)
-    beq.s hint_0df8
+    dc.b    $4a,$6c,$1b,$3e,$67,$12
 hunk_26_hint_0de6:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w -5388(a4),d1
-    move.l d1,d2
-    sub.w d0,d2
-    move.w d2,-5382(a4)
-    bra.s hint_0e06
+    dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f4,$24,$01,$94,$40,$39,$42,$ea,$fa
+    dc.b    $60,$0e
 hint_0df8:
     dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f4,$d2,$40,$39,$41,$ea,$fa
 hint_0e06:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w d0,7874(a4)
-    move.w d0,7876(a4)
-    moveq #0,d0
-    move.w d0,-5378(a4)
-    move.w d0,7886(a4)
-    bra.w hunk_26_loc_0ef2
+    dc.b    $30,$2c,$1e,$ba,$39,$40,$1e,$c2,$39,$40,$1e,$c4,$70,$00,$39,$40
+    dc.b    $ea,$fe,$39,$40,$1e,$ce,$60,$00,$00,$d4
 hint_0e20:
-; --- unverified ---
-    move.w #$c7,-1984(a4)
-    tst.w 6972(a4)
-    beq.s hint_0e3e
+    dc.b    $39,$7c,$00,$c7,$f8,$40,$4a,$6c,$1b,$3c,$67,$12
 hint_0e2c:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w -5392(a4),d1
-    move.l d1,d2
-    add.w d0,d2
-    move.w d2,-5386(a4)
-    bra.s hint_0e4c
+    dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f0,$24,$01,$d4,$40,$39,$42,$ea,$f6
+    dc.b    $60,$0e
 hint_0e3e:
     dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f0,$92,$40,$39,$41,$ea,$f6
 hint_0e4c:
-; --- unverified ---
-    tst.w 6974(a4)
-    beq.s hint_0e64
+    dc.b    $4a,$6c,$1b,$3e,$67,$12
 hunk_26_hint_0e52:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w -5388(a4),d1
-    move.l d1,d2
-    add.w d0,d2
-    move.w d2,-5382(a4)
-    bra.s hint_0e72
+    dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f4,$24,$01,$d4,$40,$39,$42,$ea,$fa
+    dc.b    $60,$0e
 hint_0e64:
     dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f4,$92,$40,$39,$41,$ea,$fa
 hint_0e72:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w d0,7874(a4)
-    move.w d0,7876(a4)
-    moveq #0,d0
-    move.w d0,-5378(a4)
-    move.w d0,7886(a4)
-    bra.s hunk_26_loc_0ef2
+    dc.b    $30,$2c,$1e,$ba,$39,$40,$1e,$c2,$39,$40,$1e,$c4,$70,$00,$39,$40
+    dc.b    $ea,$fe,$39,$40,$1e,$ce,$60,$68
 hint_0e8a:
-; --- unverified ---
-    move.w #$cf,-1984(a4)
-    tst.w 6972(a4)
-    beq.s hint_0ea8
+    dc.b    $39,$7c,$00,$cf,$f8,$40,$4a,$6c,$1b,$3c,$67,$12
 hint_0e96:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w -5392(a4),d1
-    move.l d1,d2
-    add.w d0,d2
-    move.w d2,-5386(a4)
-    bra.s hint_0eb6
+    dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f0,$24,$01,$d4,$40,$39,$42,$ea,$f6
+    dc.b    $60,$0e
 hint_0ea8:
     dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f0,$92,$40,$39,$41,$ea,$f6
 hint_0eb6:
-; --- unverified ---
-    tst.w 6974(a4)
-    beq.s hint_0ece
+    dc.b    $4a,$6c,$1b,$3e,$67,$12
 hint_0ebc:
-; --- unverified ---
-    move.w 7866(a4),d0
-    move.w -5388(a4),d1
-    move.l d1,d2
-    sub.w d0,d2
-    move.w d2,-5382(a4)
-    bra.s hint_0edc
+    dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f4,$24,$01,$94,$40,$39,$42,$ea,$fa
+    dc.b    $60,$0e
 hint_0ece:
     dc.b    $30,$2c,$1e,$ba,$32,$2c,$ea,$f4,$d2,$40,$39,$41,$ea,$fa
 hint_0edc:
@@ -45979,8 +43048,8 @@ pcref_0512:
     dc.b    $4e,$f9
     dc.l    loc_3186
 pcref_0518:
-; --- unverified ---
-    jmp hunk_32_loc_0d7a
+    dc.b    $4e,$f9
+    dc.l    hunk_32_loc_0d7a
 pcref_051e:
     dc.b    $4e,$f9
     dc.l    hunk_33_loc_0c40
@@ -46070,7 +43139,7 @@ pcref_05c6:
     dc.l    hunk_32_loc_1266
 pcref_05cc:
     dc.b    $4e,$f9
-    dc.l    sub_2728
+    dc.l    loc_2728
 pcref_05d2:
     dc.b    $4e,$f9
     dc.l    hunk_31_loc_1ec0
@@ -46162,20 +43231,20 @@ pcref_0680:
     dc.b    $4e,$f9
     dc.l    hunk_33_loc_0910
 pcref_0686:
-; --- unverified ---
-    jmp loc_0ffa
+    dc.b    $4e,$f9
+    dc.l    loc_0ffa
 pcref_068c:
-; --- unverified ---
-    jmp hunk_30_loc_1854
+    dc.b    $4e,$f9
+    dc.l    hunk_30_loc_1854
 pcref_0692:
     dc.b    $4e,$f9
     dc.l    hunk_30_loc_1b5e
 pcref_0698:
-; --- unverified ---
-    jmp hunk_29_loc_1070
+    dc.b    $4e,$f9
+    dc.l    hunk_29_loc_1070
 pcref_069e:
-; --- unverified ---
-    jmp hunk_31_loc_0d90
+    dc.b    $4e,$f9
+    dc.l    hunk_31_loc_0d90
 pcref_06a4:
     dc.b    $4e,$f9
     dc.l    hunk_30_loc_1d0e
@@ -46316,12 +43385,12 @@ hunk_29_loc_0054:
     unlk a5
     rts
 str_0058:
-    dc.b    "The door's locked from"
+    dc.b    "The door","'","s locked from"
 hunk_29_loc_006e:
     movea.l 101(a4,d6.l),a0
     movea.l 29800(sp),a0
     bcs.s hunk_29_loc_00ea
-    dc.b    " side. (Besides, there's a more interesting way to get to the kitchen.)",0
+    dc.b    " side. (Besides, there","'","s a more interesting way to get to the kitchen.)",0
 str_00c0:
     dc.b    "Fortunately, your body seems to have recov"
 hunk_29_loc_00ea:
@@ -46345,7 +43414,7 @@ str_010a:
     dc.b    "Unfortunat"
 hunk_29_loc_0114:
     bcs.s $182
-    dc.b    "y, the fumes have left your memory a bit hazy. Let's just ho"
+    dc.b    "y, the fumes have left your memory a bit hazy. Let","'","s just ho"
 hunk_29_loc_0152:
     moveq #101,d0
     movea.l 97(a4,d6.l),a0
@@ -46408,6 +43477,7 @@ hunk_29_loc_01cf:
     bgt.s hunk_29_loc_0238
 hunk_29_loc_01d1:
     movea.l ([27756,a3]),a0
+    dc.b    $65
 hunk_29_loc_01d8:
     moveq #46,d1
     ori.b #$6f,d0
@@ -46426,6 +43496,7 @@ loc_01f7:
 loc_01f9:
     movea.l -(a1),a0
     bls.s $260
+    dc.b    $6f
 hunk_29_loc_01fe:
     blt.s $270
 hunk_29_loc_0200:
@@ -46464,6 +43535,7 @@ hunk_29_loc_023a:
     ble.s $25c
 hunk_29_loc_023c:
     bvs.s $2ac
+    dc.b    $74
 hunk_29_loc_023f:
     dc.b    $65,$72
 hunk_29_loc_0241:
@@ -46481,9 +43553,10 @@ loc_0251:
     moveq #32,d2
     moveq #111,d2
     movea.l 101(sp,d6.l),a0
+    dc.b    $72
 hunk_29_loc_025a:
     bcs.s hunk_29_loc_027c
-    dc.b    "you're "
+    dc.b    "you","'","re "
 hunk_29_loc_0263:
     beq.s hunk_29_loc_02d4
 hunk_29_loc_0265:
@@ -46498,7 +43571,7 @@ hunk_29_loc_026d:
     move.l d0,d7
     ori.b #$4b,-(a2)
     move.l -(a0),d7
-    dc.b    "It's ti"
+    dc.b    "It","'","s ti"
 hunk_29_loc_027c:
     dc.b    $6d,$65
 hunk_29_loc_027e:
@@ -46518,11 +43591,11 @@ hunk_29_loc_0296:
     bvs.s hunk_29_loc_0306
     dc.b    $75
 hint_0299:
-; --- unverified ---
-    bcs.w hunk_29_loc_02f2
+    dc.b    $65,$00,$00
+str_029c:
+    dc.b    $57
 hint_029d:
-; --- unverified ---
-    bvc.s hint_0300
+    dc.b    $68,$61
 loc_029f:
     moveq #32,d2
     dc.b    $61,$20
@@ -46531,6 +43604,7 @@ loc_02a7:
     dc.b    $65,$2e
 loc_02a9:
     movea.l (a1)+,a0
+    dc.b    $6f,$75,$20
 hunk_29_loc_02ae:
     dc.b    $6d,$61
 hunk_29_loc_02b0:
@@ -46553,10 +43627,12 @@ hunk_29_loc_02c8:
     dc.b    $73,$68,$2c,$20
 hunk_29_loc_02d4:
     moveq #114,d2
+    dc.b    $61
 hunk_29_loc_02d7:
     dc.b    $6d,$70
 hunk_29_loc_02d9:
     bge.s hunk_29_loc_0340
+    dc.b    $64
 hunk_29_loc_02dc:
     movea.l 100(a5,d6.l),a0
 hunk_29_loc_02e0:
@@ -46687,6 +43763,7 @@ loc_03a1:
     dc.b    $6e,$20
 loc_03a3:
     moveq #114,d0
+    dc.b    "ize, the "
 hunk_29_loc_03ae:
     dc.b    $67,$61
 hunk_29_loc_03b0:
@@ -46713,6 +43790,7 @@ loc_03cd:
     dc.b    $6e
 hunk_29_loc_03ce:
     dc.b    $20
+    dc.b    $6f,$70,$65,$6e,$65
 hunk_29_loc_03d4:
     bcc.s $3f6
 hunk_29_loc_03d6:
@@ -46742,10 +43820,12 @@ str_0402:
     dc.b    $20,$70
 hunk_29_loc_0408:
     ble.s $476
+    dc.b    $65
 hunk_29_loc_040b:
     move.w d0,-(sp)
     ori.w #$7761,107(a1,d2.w)
 hunk_29_loc_0413:
+    dc.b    $69,$74
 hunk_29_loc_0415:
     dc.b    $63,$68
 hunk_29_loc_0417:
@@ -46807,6 +43887,7 @@ hunk_29_loc_047f:
 hunk_29_loc_0481:
     movea.l a1,a0
     move.l (25189,a6,d6.w*4),25966(a3)
+    dc.b    $20
 hunk_29_loc_048c:
     dc.b    $6c,$6f
 hunk_29_loc_048e:
@@ -46819,9 +43900,12 @@ hunk_29_loc_0494:
     dc.b    $66
 loc_0495:
     dc.b    $6f
+    dc.b    $72
 hunk_29_loc_0497:
     move.l -(a2),-(a0)
+    dc.b    $00
 str_049a:
+    dc.b    "Thanks"
 hunk_29_loc_04a0:
     move.l d0,d7
 str_04a2:
@@ -46833,14 +43917,14 @@ hunk_29_loc_04ac:
     dc.b    $6e
 hunk_29_loc_04af:
     dc.b    $6f
+    dc.b    $75
 hunk_29_loc_04b1:
     dc.b    $67,$68
 loc_04b3:
     movea.l -(a6),a0
     dc.b    $75
 hint_04b6:
-; --- unverified ---
-    bgt.s hunk_29_loc_04d8
+    dc.b    $6e,$20
 hint_04b8:
     dc.b    $66,$6f
 hint_04ba:
@@ -46888,12 +43972,14 @@ hunk_29_loc_04fa:
     dc.b    $6f,$75
 hunk_29_loc_04fc:
     movea.l ([2032168309,a6],25448),a0
+    dc.b    $2e
 hunk_29_loc_0507:
     move.l d0,d1
 hunk_29_loc_0509:
     dc.b    $00
 hunk_29_loc_050a:
     dc.b    $4e,$55,$00
+    dc.b    $00,$70,$09,$b0,$6d,$00
 hunk_29_loc_0513:
     bchg #48,-(a6)
     move.w d1,d6
@@ -47483,6 +44569,7 @@ hunk_29_loc_09fe:
 hunk_29_loc_0a0c:
     moveq #1,d0
     move.w d0,-5394(a4)
+    dc.b    $3e,$80,$4e,$ba,$0f,$00
 hunk_29_loc_0a18:
     jsr hunk_29_loc_18d4(pc)
 hunk_29_loc_0a1c:
@@ -48955,52 +46042,27 @@ hunk_29_loc_1708:
     unlk a5
     rts
 hint_170c:
-; --- unverified ---
-    link a5,#0
-    move.w -32732(a4),d0
-    cmpi.w #$1a7,d0
-    bne.s hint_1724
+    dc.b    $4e,$55,$00,$00,$30,$2c,$80,$24,$0c,$40,$01,$a7,$66,$0a
 hint_171a:
-; --- unverified ---
-    move.w -32674(a4),d1
-    cmpi.w #$12c,d1
-    beq.s hint_1732
+    dc.b    $32,$2c,$80,$5e,$0c,$41,$01,$2c,$67,$0e
 hint_1724:
-; --- unverified ---
-    cmpi.w #$1a8,d0
-    bne.s hunk_29_hint_1750
+    dc.b    $0c,$40,$01,$a8,$66,$26
 hunk_29_hint_172a:
-; --- unverified ---
-    cmpi.w #$12c,-32674(a4)
-    bne.s hunk_29_hint_1750
+    dc.b    $0c,$6c,$01,$2c,$80,$5e,$66,$1e
 hint_1732:
-; --- unverified ---
-    move.w 7004(a4),d0
-    moveq #7,d1
-    cmp.w d1,d0
-    beq.s hint_174c
+    dc.b    $30,$2c,$1b,$5c,$72,$07,$b0,$41,$67,$10
 hint_173c:
-; --- unverified ---
-    subq.w #8,d0
-    beq.s hint_174c
+    dc.b    $51,$40,$67,$0c
 hint_1740:
-; --- unverified ---
-    pea str_04e6(pc)
-    jsr hunk_29_loc_191c(pc)
+    dc.b    $48,$7a,$ed,$a4,$4e,$ba,$01,$d6
 hint_1748:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_1752
+    dc.b    $70,$01,$60,$06
 hint_174c:
-; --- unverified ---
-    moveq #0,d0
-    bra.s hint_1752
+    dc.b    $70,$00,$60,$02
 hunk_29_hint_1750:
     dc.b    $70,$00
 hint_1752:
-; --- unverified ---
-    unlk a5
-    rts
+    dc.b    $4e,$5d,$4e,$75
 hunk_29_loc_1756:
     tst.w -8854(a4)
     beq.w hunk_29_loc_181a
@@ -49336,13 +46398,14 @@ hunk_30_loc_0168:
     blt.s hunk_30_loc_0198
 hunk_30_loc_016a:
     move.l 31087(a6),d7
-    dc.b    "u don't seem to be the te"
+    dc.b    "u don","'","t seem to be the te"
 hunk_30_loc_0187:
     dc.b    $63,$68
 hunk_30_loc_0189:
     bgt.s hunk_30_loc_01fa
 loc_018b:
     move.l ([28265,sp]),25888(a6)
+    dc.b    $79,$6f,$75,$20,$63
 hunk_30_loc_0198:
     dc.b    $6c,$61
 hunk_30_loc_019a:
@@ -49499,6 +46562,7 @@ loc_02bd:
     movea.l 28261(sp),a0
     movea.l -(a1),a0
     bgt.s hunk_30_loc_0334
+    dc.b    $74
 hunk_30_loc_02c6:
     dc.b    $68,$65
 hunk_30_loc_02c8:
@@ -49513,6 +46577,7 @@ hunk_30_loc_02d0:
     ble.s hunk_30_loc_02f4
 hunk_30_loc_02d4:
     ori.b #$49,d0
+    dc.b    $20,$63,$61
 loc_02db:
     bgt.s hunk_30_loc_0304
 loc_02dd:
@@ -49542,6 +46607,7 @@ hunk_30_loc_0302:
     movea.l -(a2),a0
 hunk_30_loc_0304:
     bcs.s hunk_30_loc_036c
+    dc.b    $6f
 loc_0307:
     moveq #101,d1
     move.l d0,d7
@@ -49658,7 +46724,7 @@ hunk_30_loc_03c4:
 hunk_30_loc_03c8:
     move.l -(a0),d7
     dc.b    $42,$49
-    chk.l -(a0),d3
+    chk.l -(a0),d3 ; 68020+
     moveq #104,d2
     bvs.s hunk_30_loc_0440
 hunk_30_loc_03d2:
@@ -49701,6 +46767,7 @@ hunk_30_loc_0402:
     dc.b    $64,$69
 hunk_30_loc_0404:
     moveq #105,d2
+    dc.b    $6f
 loc_0407:
     dc.b    $6e,$20
 hunk_30_loc_0409:
@@ -49730,12 +46797,14 @@ hunk_30_loc_0429:
     dc.b    "under "
 hunk_30_loc_0431:
     moveq #104,d2
+    dc.b    $65
 hunk_30_loc_0434:
     movea.l -(a4),a0
     dc.b    $6f,$6f
 hunk_30_loc_0438:
     moveq #46,d1
     ori.b #$54,d0
+    dc.b    $68,$61
 hunk_30_loc_0440:
     dc.b    $6e,$6b
     dc.b    $73,$20,$66,$6f
@@ -49744,6 +46813,7 @@ hunk_30_loc_0446:
     dc.b    $6c
 loc_0449:
     dc.b    $65
+    dc.b    $74
 hunk_30_loc_044b:
     moveq #105,d2
     bgt.s hunk_30_loc_04b6
@@ -49767,12 +46837,14 @@ hunk_30_loc_046d:
     dc.b    $73
 hunk_30_loc_0470:
     ble.s hunk_30_loc_0492
+    dc.b    $66,$6f,$72
 loc_0475:
     blt.s hunk_30_loc_04d8
 hunk_30_loc_0477:
     dc.b    $6c,$2c
 hunk_30_loc_0479:
     movea.l 28526(a0),a0
+    dc.b    $65
     dc.b    $79
 hunk_30_loc_047f:
     move.l -(a0),d7
@@ -49781,6 +46853,7 @@ hunk_30_loc_0489:
     dc.b    $6c
 hunk_30_loc_048a:
     dc.b    $20
+    dc.b    "me Bobb"
 hunk_30_loc_0492:
     bvs.s hunk_30_loc_04c2
 hunk_30_loc_0494:
@@ -49792,7 +46865,7 @@ hunk_30_loc_049a:
     dc.b    $65,$73
 hunk_30_loc_049c:
     move.l -(a0),d6
-    chk.l -(sp),d4
+    chk.l -(sp),d4 ; 68020+
     blt.s hunk_30_loc_04c2
     dc.b    $73,$6f,$6f
 hunk_30_loc_04a5:
@@ -49817,13 +46890,14 @@ hunk_30_loc_04bf:
     dc.b    $65,$6e
 hunk_30_loc_04c1:
     moveq #32,d2
+    dc.b    "someone"
 hunk_30_loc_04ca:
     movea.l 30309(sp),a0
     moveq #32,d1
     moveq #111,d2
     dc.b    " talk "
 hunk_30_loc_04d8:
-    dc.b    "with me.",$22,0
+    dc.b    "with me.",'"',0
 dat_04e2:
     dc.b    $22
 hunk_30_loc_04e3:
@@ -49868,12 +46942,14 @@ hunk_30_loc_0521:
     dc.b    $61
 hunk_30_loc_0522:
     dc.b    $74
+    dc.b    $2e,$20,$42,$65,$73
 hunk_30_loc_0528:
     bvs.s hunk_30_loc_058e
 hunk_30_loc_052a:
     dc.b    $65,$73
 hunk_30_loc_052c:
     move.l 11865(a6),d7
+    dc.b    "ou","'","re kind "
 loc_053b:
     dc.b    $6f,$66
 hunk_30_loc_053d:
@@ -49891,7 +46967,7 @@ hunk_30_loc_0551:
     dc.b    $65,$20
 loc_0553:
     dc.b    $61,$20
-    dc.b    "soda?""
+    dc.b    "soda?",'"'
 hunk_30_loc_055b:
     ori.b #$65,-(a2)
     dc.b    $6c,$6c
@@ -49929,6 +47005,7 @@ hunk_30_loc_059a:
     dc.b    $6e,$73
 hunk_30_loc_05a0:
     movea.l (28005,a4,d6.l*8),a0
+    dc.b    $2e
 hunk_30_loc_05a7:
     movea.l a6,a0
     ble.s hunk_30_loc_0622
@@ -49957,11 +47034,12 @@ hunk_30_loc_05cd:
     bcs.s hunk_30_loc_064c
 hunk_30_loc_05d3:
     move.l -(a0),d7
-    dc.b    "Let's get to kn"
+    dc.b    "Let","'","s get to kn"
 hunk_30_loc_05e4:
     dc.b    $6f,$77
 hunk_30_loc_05e6:
     movea.l -(a5),a0
+    dc.b    $61
 hunk_30_loc_05e9:
     dc.b    $63,$68
 hunk_30_loc_05eb:
@@ -50002,6 +47080,7 @@ hunk_30_loc_0622:
     bcs.s hunk_30_loc_0698
 hunk_30_loc_0624:
     movea.l 26144(sp),a0
+    dc.b    $67,$6c,$61
     dc.b    $73,$73
 hunk_30_loc_062d:
     bcs.s $6a2
@@ -50015,6 +47094,7 @@ hunk_30_loc_0638:
     movea.l 28526(a0),a0
 hunk_30_loc_063c:
     move.l -(a0),d6
+    dc.b    $49,$27,$6d
 hunk_30_loc_0641:
     movea.l -(a1),a0
     dc.b    $6c,$6c
@@ -50036,7 +47116,7 @@ hunk_30_loc_0669:
     bsr.s hunk_30_loc_06e4
 loc_066b:
     move.l 11808(a6),d7
-    chk.l -(sp),d4
+    chk.l -(sp),d4 ; 68020+
     dc.b    $6c,$6c
 hunk_30_loc_0673:
     movea.l -(a2),a0
@@ -50057,12 +47137,14 @@ hunk_30_loc_0687:
     dc.b    $65
 hunk_30_loc_0688:
     dc.b    $20
+    dc.b    $69,$74,$20
 hunk_30_loc_068c:
     dc.b    $65,$61
     dc.b    "sy, Les."
 hunk_30_loc_0696:
     movea.l (a1)+,a0
 hunk_30_loc_0698:
+    dc.b    "ou","'","ve got"
 hunk_30_loc_06a1:
     movea.l (30561,a4,d6.l*8),a0
     moveq #99,d2
@@ -50114,15 +47196,14 @@ hunk_30_loc_06e8:
     dc.b    $79,$2e
 hunk_30_loc_06ec:
     ori.b #$20,d0
+    dc.b    $64,$6f,$6e
 loc_06f3:
     move.l 115(a4,d2.w),25957(a3)
     movea.l -(a1),a0
     bgt.s hunk_30_loc_0776
     dc.b    $20,$73,$6f,$64,$61
 hint_0702:
-; --- unverified ---
-    movea.l 25970(a0),a0
-    bcs.s hunk_30_loc_0736
+    dc.b    " here."
 hunk_30_loc_0708:
     ori.b #$68,d0
     bcs.s hunk_30_loc_0780
@@ -50130,10 +47211,12 @@ hunk_30_loc_070e:
     dc.b    $65
 hunk_30_loc_070f:
     dc.b    $27
+    dc.b    $73,$20,$6f,$6e,$6c
 loc_0715:
     dc.b    $79,$20,$73,$6f
 loc_0719:
     movea.l 30051(a5),a0
+    dc.b    $68
     dc.b    $20,$73,$6f,$64
 hunk_30_loc_0722:
     bsr.s $744
@@ -50159,6 +47242,7 @@ hunk_30_loc_073f:
 hunk_30_loc_0740:
     dc.b    $20
 loc_0741:
+    dc.b    "to be g"
 hunk_30_loc_0748:
     bcs.s hunk_30_loc_07be
 hunk_30_loc_074a:
@@ -50221,10 +47305,13 @@ hunk_30_loc_079e:
     dc.b    $6d,$61
 hunk_30_loc_07a0:
     move.l -(a1),27967(a3)
+    dc.b    $22,$00
 hunk_30_loc_07a6:
+    dc.b    $22,$57,$68
     dc.b    $79
 hunk_30_loc_07aa:
     move.l 11879(a6),d7
+    dc.b    $6f,$20
 hunk_30_loc_07b0:
     moveq #105,d1
     beq.s $81c
@@ -50259,6 +47346,7 @@ loc_07d9:
     dc.b    $6f,$72
 loc_07db:
     moveq #97,d2
+    dc.b    $62
 hunk_30_loc_07de:
     dc.b    $6c,$65
 hunk_30_loc_07e0:
@@ -50298,6 +47386,7 @@ hunk_30_loc_0823:
     dc.b    $65
 hunk_30_loc_082c:
     dc.b    $74
+    dc.b    $20
     dc.b    "you in again.)"
 hunk_30_loc_083c:
     ori.b #$77,d0
@@ -50370,6 +47459,7 @@ hunk_30_loc_08ae:
     dc.b    $79,$6f,$6e,$61
 hunk_30_loc_08b6:
     moveq #97,d1
+    dc.b    $00,$00,$4f
 hunk_30_loc_08bb:
     dc.b    $6f,$70
     dc.b    $73,$00,$00
@@ -50397,7 +47487,8 @@ hunk_30_loc_08e0:
 hunk_30_loc_08e4:
     move.l -(a0),d7
     clr.w 110(a5,d7.w)
-    dc.b    "um?",$22,0
+    dc.b    $62,$61
+    dc.b    "um?",'"',0
     dc.b    $00
 dat_08f2:
     dc.b    $22,$57
@@ -50416,7 +47507,9 @@ hunk_30_loc_0905:
     ble.s hunk_30_loc_097c
 hunk_30_loc_0907:
     move.w -(a2),-(sp)
+    dc.b    $00
 hunk_30_loc_090a:
+    dc.b    $22,$49,$74,$27
     dc.b    "s me, sir"
 hint_0917:
     dc.b    $2e,$2e,$2e,$4c
@@ -50432,7 +47525,7 @@ hunk_30_loc_0921:
     dc.b    $79
 hunk_30_loc_0924:
     move.l -(a0),d7
-    chk.l -(sp),d4
+    chk.l -(sp),d4 ; 68020+
     moveq #101,d3
     movea.l -(a2),a0
     dc.b    $65,$65
@@ -50471,6 +47564,7 @@ hunk_30_loc_0969:
 loc_0971:
     moveq #32,d2
     bgt.s hunk_30_loc_09e4
+    dc.b    $77
 hunk_30_loc_0976:
     move.w -(a2),-(sp)
     ori.b #$49,d0
@@ -50525,7 +47619,9 @@ hunk_30_loc_09d6:
 hunk_30_loc_09da:
     movea.l 28261(sp),a0
     move.l -(a2),d7
+    dc.b    $00,$00
 hunk_30_loc_09e2:
+    dc.b    $22,$47
 hunk_30_loc_09e4:
     dc.b    $65,$65
 hunk_30_loc_09e6:
@@ -50584,6 +47680,7 @@ hunk_30_loc_0a48:
     bge.s hunk_30_loc_0ab6
 hunk_30_loc_0a4a:
     movea.l ([26740,a2],774778414),a0
+    dc.b    $6a
     dc.b    $75,$73,$74,$20
 hunk_30_loc_0a59:
     dc.b    $61,$20
@@ -50610,8 +47707,7 @@ hunk_30_loc_0a7b:
 hint_0a80:
     dc.b    $61,$63
 hint_0a82:
-; --- unverified ---
-    bmi.s hunk_30_loc_0aa4
+    dc.b    $6b,$20
     dc.b    $74,$6f,$20,$77
 hunk_30_loc_0a88:
     ble.s $afc
@@ -50633,7 +47729,7 @@ hunk_30_loc_0aa6:
     dc.b    $6e,$67
 hunk_30_loc_0aa8:
     movea.l $6f752e20,a0
-    chk.l -(sp),d4
+    chk.l -(sp),d4 ; 68020+
     moveq #101,d3
     movea.l -(sp),a0
     ble.s hunk_30_loc_0b2a
@@ -50690,7 +47786,7 @@ hunk_30_loc_0b11:
     dc.b    $73
 hint_0b14:
     dc.b    $20,$69,$66,$20
-    dc.b    "she can type?",$22,0
+    dc.b    "she can type?",'"',0
     dc.b    $00
 str_0b28:
     dc.b    $22,$4e
@@ -50700,6 +47796,7 @@ hunk_30_loc_0b2c:
     dc.b    $6d
 loc_0b2d:
     dc.b    $61
+    dc.b    $6c
 hunk_30_loc_0b2f:
     bge.s hunk_30_loc_0baa
 hunk_30_loc_0b31:
@@ -50741,6 +47838,7 @@ hunk_30_loc_0b64:
     dc.b    "s of this s"
 loc_0b71:
     moveq #97,d2
+    dc.b    $74
 hunk_30_loc_0b74:
     dc.b    $69
 loc_0b75:
@@ -50753,13 +47851,9 @@ hunk_30_loc_0b78:
     dc.b    $68,$65
     dc.b    $79
 hint_0b81:
-; --- unverified ---
-    move.l 11895(a6),d7
-    bvc.s hint_0bf6
+    dc.b    "...who"
 hint_0b87:
-; --- unverified ---
-    move.l 103(a3,d2.w),28526(a3)
-    bgt.s hint_0bf0
+    dc.b    "'","s gonna"
 loc_0b8f:
     movea.l ([16161,sp],8704),a0
     ori.b #$79,-(a2)
@@ -50823,9 +47917,9 @@ hint_0bf3:
     dc.b    $20,$74,$68
 hint_0bf6:
     dc.b    $6f
+    dc.b    $73
 hint_0bf8:
-; --- unverified ---
-    bcs.s str_0c1a
+    dc.b    $65,$20
 hint_0bfa:
     dc.b    $6b,$65
     dc.b    "ys would let"
@@ -50858,7 +47952,8 @@ loc_0c31:
 loc_0c33:
     move.l -(a0),d6
     move.l a5,usp
-    dc.b    "s...",$22,0
+    dc.b    $73
+    dc.b    "s...",'"',0
 str_0c3e:
     dc.b    $57
 hunk_30_loc_0c3f:
@@ -50874,9 +47969,14 @@ hunk_30_loc_0c48:
     move.w -4960(a4),d1
 hunk_30_loc_0c54:
     move.w #$19,-4960(a4)
+    dc.b    $74,$00,$19,$42,$eb,$12,$19
 loc_0c61:
+    dc.b    $42,$ee,$88,$39,$40,$ed
 hunk_30_loc_0c67:
+    dc.b    $a6,$39,$40,$eb
 loc_0c6b:
+    dc.b    $94,$39,$40,$eb,$0a,$74,$20,$3f,$02,$3b,$40,$ff,$fe,$3f,$41,$00
+    dc.b    $06,$4e,$ba,$1f,$c2
 hunk_30_loc_0c80:
     jsr sub_2bec(pc)
 hunk_30_loc_0c84:
@@ -50956,7 +48056,7 @@ hunk_30_loc_0d0a:
     move.w d2,-(sp)
     moveq #64,d3
     move.w d3,-(sp)
-    jsr sub_2c6a(pc)
+    jsr loc_2c6a(pc)
 hunk_30_loc_0d34:
     move.w #$1f,-4928(a4)
     move.w #$10,-4926(a4)
@@ -50977,6 +48077,8 @@ hunk_30_loc_0d56:
     jsr loc_2d00(pc)
 hunk_30_loc_0d6e:
     lea 18(sp),sp
+    dc.b    $39,$7c,$00,$48,$ec,$ba,$39,$7c,$00,$22,$ec,$bc,$4a,$6d,$00,$0c
+    dc.b    $66,$0c
 hunk_30_loc_0d84:
     pea -3012(pc)
 hunk_30_loc_0d88:
@@ -51316,7 +48418,7 @@ hunk_30_loc_10d0:
     bne.w hunk_30_loc_115c
 hunk_30_loc_10d8:
     move.w -32534(a4),-(sp)
-    jsr sub_2bf2(pc)
+    jsr hunk_30_loc_2bf2(pc)
 hunk_30_loc_10e0:
     addq.w #2,sp
     clr.w -6(a5)
@@ -51325,7 +48427,7 @@ hunk_30_loc_10e8:
     lea -14(a5),a3
     bra.s hunk_30_loc_1100
 hunk_30_loc_10ee:
-    jsr sub_2c88(pc)
+    jsr loc_2c88(pc)
 hunk_30_loc_10f2:
     andi.l #$ffff,d0
     divu.w #$c,d0
@@ -51397,7 +48499,7 @@ hunk_30_loc_1184:
     move.w d0,-(sp)
     jsr loc_2d42(pc)
 hunk_30_loc_119a:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_119e:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51429,7 +48531,7 @@ loc_11d0:
 hunk_30_loc_11d4:
     move.w #$2,-5372(a4)
     move.w #$1,6978(a4)
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_11e4:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51439,7 +48541,7 @@ hunk_30_loc_11ea:
     move.w d0,-(sp)
     jsr loc_2d42(pc)
 hunk_30_loc_11f6:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_11fa:
     bsr.w hunk_30_loc_1430
 hunk_30_loc_11fe:
@@ -51458,7 +48560,7 @@ hunk_30_loc_121a:
     moveq #0,d0
     rts
 hunk_30_loc_121e:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 loc_1222:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51468,7 +48570,7 @@ hunk_30_loc_1228:
     move.w d0,-(sp)
     jsr loc_2d42(pc)
 hunk_30_loc_1234:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_1238:
     bsr.w hunk_30_loc_1430
 hunk_30_loc_123c:
@@ -51487,7 +48589,7 @@ hunk_30_loc_1258:
     moveq #0,d0
     rts
 hunk_30_loc_125c:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_1260:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51518,7 +48620,7 @@ hunk_30_loc_1298:
     rts
 hunk_30_loc_129c:
     link a5,#0
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_12a4:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51546,7 +48648,7 @@ hunk_30_loc_12d0:
     unlk a5
     rts
 hunk_30_loc_12d4:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_12d8:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51573,7 +48675,7 @@ hunk_30_loc_130a:
     moveq #0,d0
     rts
 hunk_30_loc_130e:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_1312:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51600,7 +48702,7 @@ hunk_30_loc_1344:
     moveq #0,d0
     rts
 hunk_30_loc_1348:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_134c:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51628,7 +48730,7 @@ hunk_30_loc_137e:
     moveq #0,d0
     rts
 loc_1382:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_1386:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51655,7 +48757,7 @@ hunk_30_loc_13b8:
     moveq #0,d0
     rts
 hunk_30_loc_13bc:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_13c0:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51682,7 +48784,7 @@ hunk_30_loc_13f2:
     moveq #0,d0
     rts
 hunk_30_loc_13f6:
-    jsr sub_2ce8(pc)
+    jsr loc_2ce8(pc)
 hunk_30_loc_13fa:
     clr.w -(sp)
     jsr loc_2d1e(pc)
@@ -51787,6 +48889,7 @@ hunk_30_loc_14c4:
     rts
 hunk_30_loc_14c6:
     tst.b -4794(a4)
+    dc.b    $67,$32
 hunk_30_loc_14cc:
     moveq #0,d0
     move.b -4794(a4),d0
@@ -51857,7 +48960,7 @@ hunk_30_loc_1548:
     move.w d0,6978(a4)
     move.w d0,6976(a4)
     move.w d0,6904(a4)
-    jsr sub_2cc4(pc)
+    jsr loc_2cc4(pc)
 hunk_30_loc_155a:
     addq.w #2,sp
 hunk_30_loc_155c:
@@ -51937,7 +49040,7 @@ hunk_30_loc_15ec:
 hunk_30_loc_15f6:
     moveq #30,d0
     move.w d0,-(sp)
-    jsr sub_2cac(pc)
+    jsr hunk_30_loc_2cac(pc)
 loc_15fe:
     addq.w #2,sp
     tst.w d0
@@ -52006,7 +49109,7 @@ hunk_30_loc_166e:
     moveq #120,d1
     move.w d1,-(sp)
     pea dat_032a(pc)
-    jsr sub_2c52(pc)
+    jsr loc_2c52(pc)
 hunk_30_loc_1680:
     addq.w #8,sp
     tst.w d0
@@ -52017,7 +49120,7 @@ loc_1686:
     moveq #120,d1
     move.w d1,-(sp)
     pea -4960(pc)
-    jsr sub_2c52(pc)
+    jsr loc_2c52(pc)
 hunk_30_loc_1698:
     addq.w #8,sp
     tst.w d0
@@ -52028,7 +49131,7 @@ hunk_30_loc_169e:
     moveq #120,d1
     move.w d1,-(sp)
     pea -4976(pc)
-    jsr sub_2c52(pc)
+    jsr loc_2c52(pc)
 hunk_30_loc_16b0:
     addq.w #8,sp
     tst.w d0
@@ -52163,18 +49266,18 @@ loc_17c8:
     bra.s loc_180a
 hunk_30_loc_17cc:
     pea -23474(a4)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_17d4:
     pea -23435(a4)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_17dc:
     move.w #$4,6990(a4)
     pea -23361(a4)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_17ea:
     move.w #$4,6990(a4)
     pea -23299(a4)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_17f8:
     pea -23283(a4)
     jsr hunk_30_loc_2d48(pc)
@@ -52261,7 +49364,7 @@ hunk_30_loc_1890:
     cmp.w d1,d0
     bne.s hunk_30_loc_189a
 loc_1896:
-    jsr loc_2d0c(pc)
+    jsr hunk_30_loc_2d0c(pc)
 hunk_30_loc_189a:
     move.w 8(a5),d0
     moveq #5,d1
@@ -52329,7 +49432,7 @@ hunk_30_loc_192c:
     move.w #$c8,d0
     move.w d0,(sp)
     move.w -32674(a4),-(sp)
-    jsr sub_2c22(pc)
+    jsr loc_2c22(pc)
 hunk_30_loc_193a:
     moveq #1,d0
     bra.s hunk_30_loc_19b6
@@ -52376,7 +49479,7 @@ hunk_30_loc_1986:
     moveq #90,d1
     move.w d1,-(sp)
     pea hunk_30_loc_039e(pc)
-    jsr sub_2c52(pc)
+    jsr loc_2c52(pc)
 hunk_30_loc_1998:
     addq.w #8,sp
     tst.w d0
@@ -52423,7 +49526,7 @@ loc_19ea:
 hunk_30_loc_19f4:
     moveq #98,d0
     move.w d0,-(sp)
-    jsr sub_2cac(pc)
+    jsr hunk_30_loc_2cac(pc)
 hunk_30_loc_19fc:
     addq.w #2,sp
     tst.w d0
@@ -52526,7 +49629,7 @@ hunk_30_loc_1acc:
     movem.l a2-a3,-(sp)
     moveq #23,d0
     move.w d0,-(sp)
-    jsr sub_2c76(pc)
+    jsr loc_2c76(pc)
 hunk_30_loc_1ad8:
     addq.w #2,sp
     tst.w d0
@@ -52536,7 +49639,7 @@ loc_1ade:
 hunk_30_loc_1ae2:
     moveq #18,d0
     move.w d0,-(sp)
-    jsr sub_2c76(pc)
+    jsr loc_2c76(pc)
 hunk_30_loc_1aea:
     addq.w #2,sp
     tst.w d0
@@ -52553,7 +49656,7 @@ hunk_30_loc_1afe:
     move.w d0,7888(a4)
 hunk_30_loc_1b08:
     pea -5988(pc)
-    jsr sub_2be6(pc)
+    jsr hunk_30_loc_2be6(pc)
 hunk_30_loc_1b10:
     addq.w #4,sp
     movea.l d0,a3
@@ -52622,7 +49725,7 @@ hunk_30_loc_1b98:
 hunk_30_loc_1b9e:
     moveq #70,d0
     move.w d0,-(sp)
-    jsr sub_2cac(pc)
+    jsr hunk_30_loc_2cac(pc)
 hunk_30_loc_1ba6:
     addq.w #2,sp
     tst.w d0
@@ -52760,7 +49863,7 @@ hunk_30_loc_1cae:
     cmp.w 8(a5),d0
     bne.s hunk_30_loc_1cc4
 hunk_30_loc_1cb6:
-    jsr loc_2d0c(pc)
+    jsr hunk_30_loc_2d0c(pc)
 hunk_30_loc_1cba:
     move.b #$1,7520(a4)
     moveq #1,d0
@@ -52818,7 +49921,7 @@ hunk_30_loc_1d26:
     move.w d0,-(sp)
     moveq #110,d1
     move.w d1,-(sp)
-    jsr sub_2c9a(pc)
+    jsr loc_2c9a(pc)
 loc_1d32:
     moveq #0,d0
     move.w d0,-8850(a4)
@@ -52829,7 +49932,7 @@ loc_1d32:
     move.w d0,(sp)
     moveq #110,d1
     move.w d1,-(sp)
-    jsr sub_2c04(pc)
+    jsr loc_2c04(pc)
 loc_1d52:
     addq.w #6,sp
     clr.w 6904(a4)
@@ -52891,7 +49994,7 @@ hunk_30_loc_1dd4:
 hunk_30_loc_1dda:
     moveq #112,d0
     move.w d0,-(sp)
-    jsr sub_2cac(pc)
+    jsr hunk_30_loc_2cac(pc)
 hunk_30_loc_1de2:
     addq.w #2,sp
     tst.w d0
@@ -52991,18 +50094,18 @@ hunk_30_loc_1ea0:
     bne.s hunk_30_loc_1eb2
 loc_1ea6:
     pea -23203(a4)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_1eae:
     addq.w #4,sp
     bra.s hunk_30_loc_1ebc
 hunk_30_loc_1eb2:
     pea -23191(a4)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_1eba:
     addq.w #4,sp
 hunk_30_loc_1ebc:
     pea -23181(a4)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_1ec4:
     moveq #112,d0
     move.w d0,(sp)
@@ -53021,7 +50124,7 @@ hunk_30_loc_1ede:
     move.w d0,-(sp)
     moveq #110,d1
     move.w d1,-(sp)
-    jsr sub_2c9a(pc)
+    jsr loc_2c9a(pc)
 hunk_30_loc_1eea:
     moveq #0,d0
     move.w d0,-8850(a4)
@@ -53032,7 +50135,7 @@ hunk_30_loc_1eea:
     move.w d0,(sp)
     moveq #110,d1
     move.w d1,-(sp)
-    jsr sub_2c04(pc)
+    jsr loc_2c04(pc)
 loc_1f0a:
     moveq #1,d0
     bra.s hunk_30_loc_1f10
@@ -53325,7 +50428,7 @@ hunk_30_loc_219c:
     move.w d0,-(sp)
     moveq #110,d1
     move.w d1,-(sp)
-    jsr sub_2c9a(pc)
+    jsr loc_2c9a(pc)
 loc_21a8:
     clr.w 7910(a4)
     movea.l 6484(a4),a0
@@ -53334,7 +50437,7 @@ loc_21a8:
     move.w d0,(sp)
     moveq #110,d1
     move.w d1,-(sp)
-    jsr sub_2c04(pc)
+    jsr loc_2c04(pc)
 hunk_30_loc_21c2:
     moveq #1,d0
     move.w d0,6540(a4)
@@ -53361,7 +50464,7 @@ loc_21f0:
     bne.s loc_2214
 hunk_30_loc_21f8:
     pea -6678(pc)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_2200:
     move.w #$5,6990(a4)
     pea str_0812(pc)
@@ -53384,7 +50487,7 @@ loc_2228:
 hunk_30_loc_222e:
     moveq #118,d0
     move.w d0,-(sp)
-    jsr sub_2cac(pc)
+    jsr hunk_30_loc_2cac(pc)
 hunk_30_loc_2236:
     addq.w #2,sp
     tst.w d0
@@ -53441,16 +50544,16 @@ hunk_30_loc_22a4:
     bra.w loc_25be
 loc_22aa:
     move.l -23100(a4),-(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_22b2:
     move.w #$8,6990(a4)
     move.l -23096(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_22c0:
     move.w #$a,6990(a4)
     move.w #$1,7958(a4)
     move.l -23092(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_22d4:
     move.w #$f1,d0
     move.w d0,(sp)
@@ -53576,16 +50679,16 @@ hunk_30_loc_23e0:
     move.w d0,-(sp)
     moveq #121,d1
     move.w d1,-(sp)
-    jsr sub_2c04(pc)
+    jsr loc_2c04(pc)
 hunk_30_loc_23ec:
     move.l -23116(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_23f4:
     moveq #126,d0
     move.w d0,(sp)
     moveq #121,d1
     move.w d1,-(sp)
-    jsr sub_2c22(pc)
+    jsr loc_2c22(pc)
 hunk_30_loc_2400:
     moveq #1,d0
     move.w d0,6976(a4)
@@ -53611,23 +50714,23 @@ hunk_30_loc_2430:
 loc_2438:
     move.w #$8,6990(a4)
     move.l -23152(a4),-(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_2446:
     move.w #$a,6990(a4)
     move.l -23148(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_2454:
     move.w #$8,6990(a4)
     move.l -23144(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_2462:
     move.w #$a,6990(a4)
     move.l -23140(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_2470:
     move.w #$8,6990(a4)
     move.l -23136(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_247e:
     move.w #$a,6990(a4)
     move.l -23132(a4),(sp)
@@ -53702,7 +50805,7 @@ hunk_30_loc_2512:
     bra.s hunk_30_loc_2554
 loc_2516:
     move.l -23112(a4),-(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_251e:
     moveq #1,d0
     move.w d0,6976(a4)
@@ -53825,7 +50928,7 @@ hunk_30_loc_262e:
     cmp.w d1,d0
     bne.s hunk_30_loc_2636
 hunk_30_loc_2632:
-    jsr loc_2d0c(pc)
+    jsr hunk_30_loc_2d0c(pc)
 hunk_30_loc_2636:
     moveq #1,d0
     cmp.w 8(a5),d0
@@ -53898,6 +51001,7 @@ hunk_30_loc_26b4:
 loc_26bc:
     move.l d2,-(sp)
     jsr hunk_30_loc_2c0a(pc)
+    dc.b    $0c,$6c,$00,$c3,$ea,$f0,$6e,$58
 hunk_30_loc_26ca:
     cmpi.w #$e8,-5388(a4)
     bge.s loc_2722
@@ -53937,7 +51041,7 @@ loc_2722:
     moveq #0,d0
     move.l (sp)+,d2
     rts
-sub_2728:
+loc_2728:
     link a5,#0
     move.l d2,-(sp)
     moveq #1,d0
@@ -54031,7 +51135,7 @@ loc_27e4:
     cmp.w 8(a5),d0
     bne.s loc_27fe
 loc_27f4:
-    jsr sub_2cc4(pc)
+    jsr loc_2cc4(pc)
 loc_27f8:
     moveq #1,d0
     bra.w loc_2b32
@@ -54042,7 +51146,7 @@ loc_27fe:
 loc_2808:
     moveq #73,d0
     move.w d0,-(sp)
-    jsr sub_2cac(pc)
+    jsr hunk_30_loc_2cac(pc)
 loc_2810:
     addq.w #2,sp
     tst.w d0
@@ -54050,7 +51154,7 @@ loc_2810:
 loc_2816:
     moveq #30,d0
     move.w d0,-(sp)
-    jsr sub_2cac(pc)
+    jsr hunk_30_loc_2cac(pc)
 hunk_30_loc_281e:
     addq.w #2,sp
     tst.w d0
@@ -54155,7 +51259,7 @@ loc_28e6:
     move.w #$96,d1
     move.w d1,-(sp)
     pea -7824(pc)
-    jsr sub_2c52(pc)
+    jsr loc_2c52(pc)
 loc_28fa:
     addq.w #8,sp
     tst.w d0
@@ -54293,7 +51397,7 @@ loc_2a08:
     move.w d0,-(sp)
     moveq #68,d1
     move.w d1,-(sp)
-    jsr sub_2cfa(pc)
+    jsr loc_2cfa(pc)
 hunk_30_loc_2a14:
     addq.w #4,sp
     tst.w d0
@@ -54321,57 +51425,57 @@ loc_2a3e:
 loc_2a44:
     move.w #$8,6990(a4)
     move.l -23076(a4),-(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2a52:
     move.w #$a,6990(a4)
     move.l -23072(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2a60:
     move.w #$8,6990(a4)
     move.l -23068(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2a6e:
     move.w #$a,6990(a4)
     move.l -23064(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2a7c:
     move.w #$8,6990(a4)
     move.l -23060(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2a8a:
     move.w #$a,6990(a4)
     move.l -23056(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2a98:
     move.w #$8,6990(a4)
     move.l -23052(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_2aa6:
     move.w #$a,6990(a4)
     pea hunk_30_loc_0c14(pc)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2ab4:
     move.w #$8,6990(a4)
     move.l -23048(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2ac2:
     move.w #$a,6990(a4)
     clr.w -4982(a4)
     move.l -23044(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2ad4:
     move.w #$1,-4982(a4)
     move.w #$8,6990(a4)
     pea str_0c1a(pc)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_2ae8:
     move.w #$a,6990(a4)
     pea -7880(pc)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 hunk_30_loc_2af6:
     move.w #$a,6990(a4)
     move.l -23040(a4),(sp)
-    jsr sub_2cd6(pc)
+    jsr loc_2cd6(pc)
 loc_2b04:
     moveq #73,d0
     move.w d0,(sp)
@@ -54474,18 +51578,18 @@ loc_2bda:
     dc.b    $00,$00
 sub_2be0:
     jmp hunk_31_loc_2e34
-sub_2be6:
+hunk_30_loc_2be6:
     jmp hunk_21_loc_096c
 sub_2bec:
     jmp hunk_11_loc_0298
-sub_2bf2:
+hunk_30_loc_2bf2:
     jmp sub_1a38
 pcref_2bf8:
     dc.b    $4e,$f9
     dc.l    hunk_4_loc_002c
 sub_2bfe:
     jmp hunk_36_loc_0a6e
-sub_2c04:
+loc_2c04:
     jmp hunk_31_loc_36b2
 hunk_30_loc_2c0a:
     jmp hunk_31_loc_2dee
@@ -54495,7 +51599,7 @@ sub_2c16:
     jmp hunk_31_loc_3658
 loc_2c1c:
     jmp hunk_1_loc_1352
-sub_2c22:
+loc_2c22:
     jmp hunk_31_loc_3728
 loc_2c28:
     jmp hunk_33_loc_1ca4
@@ -54512,7 +51616,7 @@ pcref_2c46:
     dc.l    hunk_4_loc_0036
 sub_2c4c:
     jmp hunk_31_loc_388e
-sub_2c52:
+loc_2c52:
     jmp hunk_31_loc_2d6c
 loc_2c58:
     jmp hunk_31_loc_3958
@@ -54520,29 +51624,29 @@ hunk_30_loc_2c5e:
     jmp hunk_10_loc_14c8
 sub_2c64:
     jmp hunk_10_loc_0c6e
-sub_2c6a:
+loc_2c6a:
     jmp hunk_16_loc_00b4
 sub_2c70:
     jmp hunk_9_loc_0000
-sub_2c76:
+loc_2c76:
     jmp hunk_8_loc_0708
 sub_2c7c:
     jmp hunk_7_loc_032a
 loc_2c82:
     jmp hunk_8_loc_1a52
-sub_2c88:
+loc_2c88:
     jmp sub_1a24
 loc_2c8e:
     jmp hunk_3_loc_0d70
 hunk_30_loc_2c94:
     jmp hunk_21_loc_08f4
-sub_2c9a:
+loc_2c9a:
     jmp hunk_31_loc_36ee
 loc_2ca0:
     jmp hunk_8_loc_053c
 sub_2ca6:
     jmp sub_051a
-sub_2cac:
+hunk_30_loc_2cac:
     jmp hunk_31_loc_0d0a
 loc_2cb2:
     jmp hunk_31_loc_2dc0
@@ -54550,31 +51654,31 @@ hunk_30_loc_2cb8:
     jmp hunk_9_loc_08de
 loc_2cbe:
     jmp hunk_36_loc_262e
-sub_2cc4:
+loc_2cc4:
     jmp hunk_21_loc_09c2
 loc_2cca:
     jmp hunk_31_loc_3774
 hunk_30_loc_2cd0:
     jmp sub_26c0
-sub_2cd6:
+loc_2cd6:
     jmp hunk_31_loc_2da4
 loc_2cdc:
     jmp hunk_6_loc_112a
 sub_2ce2:
     jmp hunk_36_loc_0b32
-sub_2ce8:
+loc_2ce8:
     jmp hunk_31_loc_3154
 sub_2cee:
     jmp hunk_36_loc_0d92
 loc_2cf4:
     jmp hunk_9_loc_083c
-sub_2cfa:
+loc_2cfa:
     jmp hunk_31_loc_3098
 loc_2d00:
     jmp hunk_16_loc_03e6
 loc_2d06:
     jmp hunk_16_loc_006c
-loc_2d0c:
+hunk_30_loc_2d0c:
     jmp hunk_31_loc_3a1e
 loc_2d12:
     jmp hunk_8_loc_0722
@@ -54590,6 +51694,8 @@ hunk_30_loc_2d30:
     jmp hunk_10_loc_01aa
 loc_2d36:
     jmp hunk_4_loc_02e8
+    dc.b    $4e,$f9
+    dc.l    hunk_8_loc_0000
 loc_2d42:
     jmp hunk_36_loc_1fe6
 hunk_30_loc_2d48:
@@ -54660,7 +51766,7 @@ hunk_31_loc_0096:
     movea.l -(sp),a0
     dc.b    $75,$79,$2e,$00
 str_009c:
-    dc.b    ""Gee...I"
+    dc.b    '"',"Gee...I"
 hunk_31_loc_00a4:
     movea.l 105(a4,d6.l),a0
     dc.b    $6e,$6b
@@ -54671,18 +51777,19 @@ hunk_31_loc_00aa:
 hunk_31_loc_00b4:
     movea.l 25888(a5),a0
     bsr.s hunk_31_loc_00da
-    dc.b    "sandwich.",$22,0
+    dc.b    "sandwich.",'"',0
     dc.b    $00
 str_00c6:
-    dc.b    ""On second t"
+    dc.b    '"',"On second t"
 hunk_31_loc_00d2:
     dc.b    $68,$6f
     dc.b    "ught, "
 hunk_31_loc_00da:
-    chk.l -(sp),d4
+    chk.l -(sp),d4 ; 68020+
     blt.s hunk_31_loc_00fe
 hunk_31_loc_00de:
     moveq #101,d1
+    dc.b    $61
 hunk_31_loc_00e1:
     dc.b    $6c,$6c
     dc.b    "y not t"
@@ -54707,7 +51814,7 @@ hunk_31_loc_0104:
     bgt.s hunk_31_loc_0134
 hunk_31_loc_0106:
     ori.b #$6f,d0
-    dc.b    "u don't hav"
+    dc.b    "u don","'","t hav"
 hunk_31_loc_0115:
     dc.b    $65,$20
 hunk_31_loc_0117:
@@ -54721,7 +51828,7 @@ hunk_31_loc_011f:
     blt.s hunk_31_loc_0190
     dc.b    $73,$2e,$00
 str_0124:
-    dc.b    "It's ful"
+    dc.b    "It","'","s ful"
 hunk_31_loc_012c:
     bge.s $15c
 hunk_31_loc_012e:
@@ -54750,6 +51857,7 @@ hunk_31_loc_014f:
     dc.b    "ug glug."
 hunk_31_loc_0159:
     ori.b #$20,29800(a0)
+    dc.b    $69
 hunk_31_loc_0160:
     dc.b    $6e,$6b
 hunk_31_loc_0162:
@@ -54808,6 +51916,7 @@ loc_01cd:
 hunk_31_loc_01cf:
     movea.l $6f757220,a0
 loc_01d5:
+    dc.b    "thermos"
 hunk_31_loc_01dc:
     movea.l -(a6),a0
 hunk_31_loc_01de:
@@ -54871,6 +51980,7 @@ loc_024b:
     dc.b    $6c
 hunk_31_loc_024c:
     dc.b    $2e
+    dc.b    $2e,$2e,$73,$69,$6e
 hunk_31_loc_0252:
     dc.b    $63,$65
 hunk_31_loc_0254:
@@ -54882,6 +51992,7 @@ hunk_31_loc_025a:
     dc.b    $68,$65
 hunk_31_loc_025c:
     moveq #101,d1
+    dc.b    $20
 hunk_31_loc_025f:
     moveq #114,d0
     dc.b    $6f,$62
@@ -54894,6 +52005,7 @@ hunk_31_loc_0267:
     dc.b    $65,$20
 loc_0271:
     bgt.s hunk_31_loc_02d8
+    dc.b    $65
 hunk_31_loc_0274:
     dc.b    $64,$69
 hunk_31_loc_0276:
@@ -54905,10 +52017,14 @@ hunk_31_loc_027c:
     dc.b    $79
 loc_027f:
     movea.l 28526(a4),a0
+    dc.b    $67
 hunk_31_loc_0284:
     bcs.s hunk_31_loc_02f8
+    dc.b    ", I suppose"
 loc_0291:
     movea.l 29735(a1),a0
+    dc.b    "s ok.",0
+    dc.b    $00,$48,$65,$6c,$6d
     dc.b    "ut is "
 hunk_31_loc_02a6:
     moveq #111,d2
@@ -54949,6 +52065,7 @@ loc_02e9:
     dc.b    $6e
 hunk_31_loc_02ea:
     dc.b    $74
+    dc.b    $73
 hunk_31_loc_02ec:
     move.l d0,d7
 hunk_31_str_02ee:
@@ -54962,6 +52079,7 @@ loc_02f7:
     dc.b    $6d
 hunk_31_loc_02f8:
     dc.b    $70
+    dc.b    $20,$63,$68
 hunk_31_loc_02fc:
     dc.b    $6f,$6d
 hunk_31_loc_02fe:
@@ -55004,6 +52122,7 @@ hunk_31_loc_0344:
     bvs.s hunk_31_loc_03ba
 hunk_31_loc_0346:
     move.l d0,d7
+    dc.b    $57
 hunk_31_loc_0349:
     bvc.s hunk_31_loc_03b4
 loc_034b:
@@ -55022,6 +52141,7 @@ loc_035b:
     dc.b    $75
 hunk_31_loc_035e:
     moveq #105,d0
+    dc.b    $65
 hunk_31_loc_0361:
     dc.b    $64,$2c
 loc_0363:
@@ -55036,6 +52156,7 @@ hunk_31_loc_036f:
     movea.l 105(a3,d6.l),a0
 loc_0373:
     moveq #32,d0
+    dc.b    "the ros"
 hunk_31_loc_037c:
     bvs.s hunk_31_loc_03ec
 hunk_31_loc_037e:
@@ -55054,7 +52175,7 @@ hunk_31_loc_039d:
     movea.l ([30510,a6]),a0
     ori.w #$6172,d3
     dc.b    $65,$66
-    dc.b    "ul, it's "
+    dc.b    "ul, it","'","s "
 hunk_31_loc_03b2:
     ble.s $422
 hunk_31_loc_03b4:
@@ -55077,7 +52198,7 @@ hunk_31_loc_03c6:
     dc.b    $77,$68,$69,$6c
 hunk_31_loc_03ca:
     bcs.s hunk_31_loc_03ec
-    dc.b    "she's looking.",0
+    dc.b    "she","'","s looking.",0
     dc.b    $00
 hunk_31_loc_03dc:
     dc.b    $4f,$68,$20,$74,$68
@@ -55113,6 +52234,7 @@ hunk_31_loc_040a:
     dc.b    $63
 hunk_31_loc_040b:
     dc.b    $6b
+    dc.b    $20
 loc_040d:
     bhi.s hunk_31_loc_0474
 hunk_31_loc_040f:
@@ -55139,6 +52261,7 @@ hunk_31_loc_042d:
     dc.b    $6f
 hunk_31_loc_042e:
     dc.b    $6e
+    dc.b    $27
 hunk_31_loc_0430:
     moveq #32,d2
     dc.b    $67,$65
@@ -55229,9 +52352,11 @@ loc_04be:
     moveq #104,d2
 hunk_31_loc_04c2:
     bcs.s hunk_31_loc_04e4
+    dc.b    "job, bo"
     dc.b    $79,$2e,$22,$00
 hunk_31_loc_04cf:
     ori.w #$7665,d5
+    dc.b    $72,$79,$62,$6f
 hunk_31_loc_04d7:
     bcc.s $552
 hunk_31_loc_04d9:
@@ -55277,6 +52402,7 @@ hunk_31_loc_0524:
     dc.b    $6f,$79
 hunk_31_loc_0526:
     move.l 11897(a6),d7
+    dc.b    $27,$61
 hunk_31_loc_052c:
     bge.s hunk_31_loc_059a
 hunk_31_loc_052e:
@@ -55292,6 +52418,7 @@ hunk_31_loc_0538:
     ble.s hunk_31_loc_059e
 hunk_31_loc_053a:
     movea.l 28514(a2),a0
+    dc.b    $2e
 hunk_31_loc_053f:
     move.l d0,d1
     dc.b    $00,$4f,$4b,$2e
@@ -55373,6 +52500,7 @@ hunk_31_loc_05eb:
     dc.b    $6f,$6e
 hunk_31_loc_05f9:
     move.l 104(a4,d2.w),24950(a3)
+    dc.b    "e the scarf.",0
 hunk_31_loc_060c:
     move.l usp,sp
     moveq #32,d2
@@ -55391,7 +52519,7 @@ str_061e:
     dc.b    $68,$61
 hunk_31_loc_0622:
     moveq #39,d2
-    dc.b    "s my prized possession. I'd do anything to"
+    dc.b    "s my prized possession. I","'","d do anything to"
 hunk_31_loc_064e:
     movea.l 25957(a3),a0
     moveq #32,d0
@@ -55403,6 +52531,7 @@ hunk_31_loc_0656:
 hunk_31_loc_065e:
     movea.l ([24942,sp]),a0
     movea.l 29550(a1),a0
+    dc.b    $27
 hunk_31_loc_0669:
     moveq #32,d2
     bge.s hunk_31_loc_06d6
@@ -55432,15 +52561,17 @@ hunk_31_loc_069f:
     dc.b    $69,$6c
     dc.b    $79,$2e,$00
 hunk_31_str_06a4:
-    dc.b    "Now maybe you'll have a chance to put "
+    dc.b    "Now maybe you","'","ll have a chance to put "
 hunk_31_loc_06ca:
     dc.b    "some of"
 hunk_31_loc_06d1:
     movea.l $6f757220,a0
+    dc.b    "own sweat stain"
     dc.b    $73,$20,$6f,$6e
 hunk_31_loc_06ea:
     movea.l 29742(a1),a0
     ori.b #$53,d0
+    dc.b    $6c,$6f,$77
 loc_06f5:
     movea.l -(a4),a0
     ble.s hunk_31_loc_0770
@@ -55463,6 +52594,7 @@ hunk_31_loc_070f:
     beq.s $776
 loc_0711:
     moveq #32,d2
+    dc.b    "to know"
 hunk_31_loc_071a:
     movea.l -(a5),a0
     dc.b    $61,$63
@@ -55509,23 +52641,27 @@ hunk_31_loc_0760:
 loc_0763:
     move.l -(a0),d7
     clr.w 32(a5,d7.w)
-    chk.l -(a0),d4
+    chk.l -(a0),d4 ; 68020+
     beq.s hunk_31_loc_07e2
 hunk_31_loc_076d:
     bcs.s hunk_31_loc_07e2
     dc.b    $73
 hunk_31_loc_0770:
     movea.l 29735(a1),a0
+    dc.b    "s OK.",'"',0
+    dc.b    $00,$59,$6f,$75,$20
 hunk_31_loc_0780:
     dc.b    $63
 hunk_31_loc_0781:
     dc.b    $61
+    dc.b    $6e
 hunk_31_loc_0783:
     move.l 106(a4,d2.w),30067(a3)
 hunk_31_loc_0789:
     moveq #32,d2
     move.l ([25895,a4],543781934),34(a3)
     subq.w #3,-(a5)
+    dc.b    $6c
 hunk_31_loc_079a:
     bge.s hunk_31_loc_07c8
 hunk_31_loc_079c:
@@ -55561,6 +52697,7 @@ loc_07dd:
     dc.b    $77,$69,$6c
 hunk_31_loc_07e2:
     bge.s hunk_31_loc_0804
+    dc.b    $64,$69,$73
 loc_07e7:
     moveq #117,d2
     moveq #98,d1
@@ -55571,17 +52708,16 @@ hunk_31_loc_07f1:
     moveq #39,d2
     dc.b    $73,$20,$62,$61
 hint_07fd:
-; --- unverified ---
-    bls.s hunk_31_loc_086a
+    dc.b    $63,$6b
 loc_07ff:
     move.l -(a0),d7
-    chk.l -(a0),d4
+    chk.l -(a0),d4 ; 68020+
     dc.b    $77
 hunk_31_loc_0804:
     dc.b    $69,$73
 hunk_31_loc_0806:
     bvc.s $828
-    dc.b    "you'd make up your "
+    dc.b    "you","'","d make up your "
 hunk_31_loc_081b:
     blt.s $886
 loc_081d:
@@ -55671,6 +52807,7 @@ loc_08d1:
 hunk_31_loc_08d3:
     movea.l -(a1),a0
     movea.l ([29800,a0],25970),a0
+    dc.b    ", you sn"
 loc_08e5:
     dc.b    $61,$74
 loc_08e7:
@@ -55744,6 +52881,7 @@ hunk_31_loc_095e:
     bcs.s hunk_31_loc_09d4
 hunk_31_loc_0960:
     movea.l 26214(sp),a0
+    dc.b    $20
 hunk_31_loc_0965:
     moveq #104,d2
     dc.b    $65,$20
@@ -55785,6 +52923,7 @@ loc_0999:
     dc.b    $75,$74
 hunk_31_loc_09af:
     bvc.s hunk_31_loc_0a20
+    dc.b    $72
 hunk_31_loc_09b2:
     bvs.s hunk_31_loc_0a2e
 hunk_31_loc_09b4:
@@ -55836,7 +52975,7 @@ loc_0a07:
     bge.s hunk_31_loc_0a72
 loc_0a0d:
     movea.l 25888(a0),a0
-    dc.b    "wasn't lo"
+    dc.b    "wasn","'","t lo"
 hunk_31_loc_0a1a:
     dc.b    $6f,$6b
 hunk_31_loc_0a1c:
@@ -55846,7 +52985,7 @@ hunk_31_loc_0a1e:
 hunk_31_loc_0a20:
     move.l 0(a6),d7
 hunk_31_loc_0a24:
-    chk.l -(a0),d4
+    chk.l -(a0),d4 ; 68020+
     dc.b    $6d,$65
 hunk_31_loc_0a28:
     bsr.s hunk_31_loc_0a98
@@ -55952,7 +53091,7 @@ hunk_31_loc_0ac6:
 hunk_31_loc_0ac8:
     move.l d0,d1
 str_0aca:
-    chk.l -(a0),d4
+    chk.l -(a0),d4 ; 68020+
     dc.b    $63,$61
 hunk_31_loc_0ace:
     dc.b    $6e,$27
@@ -56042,6 +53181,7 @@ loc_0b7f:
     dc.b    $65,$20
 loc_0b83:
     bcc.s hunk_31_loc_0bee
+    dc.b    $73
 hunk_31_loc_0b86:
     bmi.s hunk_31_loc_0ba8
 hunk_31_loc_0b88:
@@ -56056,6 +53196,7 @@ hunk_31_loc_0b8e:
     bcs.s hunk_31_loc_0c08
 hunk_31_loc_0b96:
     movea.l -(a2),a0
+    dc.b    $61
 loc_0b99:
     bls.s hunk_31_loc_0c06
     dc.b    $75
@@ -56066,6 +53207,7 @@ hunk_31_loc_0b9f:
     ble.s hunk_31_loc_0c16
 hunk_31_loc_0ba1:
     moveq #32,d1
+    dc.b    $64,$69,$73
 hunk_31_loc_0ba6:
     bmi.s hunk_31_loc_0bc8
 hunk_31_loc_0ba8:
@@ -56116,8 +53258,7 @@ hunk_31_loc_0c08:
 hint_0c0f:
     dc.b    $65,$20
 hint_0c11:
-; --- unverified ---
-    bls.s hunk_31_loc_0c82
+    dc.b    $63,$6f
 loc_0c13:
     dc.b    $75,$6e,$73
 hunk_31_loc_0c16:
@@ -56142,10 +53283,9 @@ hint_0c2d:
 hunk_31_loc_0c2f:
     dc.b    $73,$6e
 hint_0c31:
-    dc.b    "'t exact"
+    dc.b    "'","t exact"
 hint_0c39:
-; --- unverified ---
-    bge.s $cb4
+    dc.b    $6c,$79
     dc.b    $20,$73,$75,$72
 hunk_31_loc_0c3f:
     dc.b    $65,$20
@@ -56154,6 +53294,7 @@ hunk_31_loc_0c42:
     dc.b    $68,$61
 loc_0c44:
     moveq #32,d2
+    dc.b    "you","'","re "
 loc_0c4d:
     moveq #101,d1
     bne.s hunk_31_loc_0cb6
@@ -56219,7 +53360,7 @@ loc_0cab:
     dc.b    $79
 hint_0cae:
     dc.b    $6f,$75
-    dc.b    "'ve wo"
+    dc.b    "'","ve wo"
 hunk_31_loc_0cb6:
     moveq #107,d1
     bcs.s $d1e
@@ -56227,6 +53368,7 @@ hunk_31_loc_0cba:
     movea.l (26721,a3,d6.l*8),a0
     moveq #100,d1
     movea.l (28786,a4,d6.l*8),a0
+    dc.b    $6f,$6a,$65
 loc_0ccb:
     dc.b    $63,$74
 loc_0ccd:
@@ -56252,6 +53394,7 @@ loc_0ced:
     dc.b    $65,$2e
 loc_0cef:
     ori.w #$6574,d2
+    dc.b    $74
 hunk_31_loc_0cf4:
     bcs.s hunk_31_loc_0d68
 hunk_31_loc_0cf6:
@@ -56314,6 +53457,7 @@ hunk_31_loc_0d68:
     bne.s hunk_31_loc_0d80
 hunk_31_loc_0d6e:
     tst.w -32674(a4)
+    dc.b    $66,$0c
 hunk_31_loc_0d74:
     pea hunk_31_loc_006e(pc)
     jsr loc_3b52(pc)
@@ -56542,7 +53686,7 @@ hunk_31_loc_0f20:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_0f2c:
     moveq #1,d0
     move.w d0,6992(a4)
@@ -56575,7 +53719,7 @@ hunk_31_loc_0f60:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_0f6e:
     moveq #1,d0
     move.w d0,6992(a4)
@@ -56663,7 +53807,7 @@ hunk_31_loc_1012:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1020:
     moveq #1,d0
     bra.w loc_1102
@@ -56676,7 +53820,7 @@ hunk_31_loc_102e:
     move.w d0,-(sp)
     move.w #$1f2,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_103c:
     moveq #1,d0
     bra.w loc_1102
@@ -56693,7 +53837,7 @@ hunk_31_loc_1050:
     move.w d0,-(sp)
     move.w #$1f3,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_105e:
     moveq #1,d0
     bra.w loc_1102
@@ -56827,7 +53971,7 @@ hunk_31_loc_1164:
     move.w d0,-(sp)
     move.w #$1f3,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1172:
     moveq #1,d0
     bra.w hunk_31_loc_131c
@@ -57060,6 +54204,9 @@ hunk_31_loc_134a:
     bra.w hunk_31_loc_1424
 hunk_31_loc_1350:
     move.w #$9e,d0
+    dc.b    $3f,$00,$61,$00,$1b
+    dc.b    "vTOJ@g"
+    dc.b    $06
 hunk_31_loc_1360:
     moveq #2,d0
     bra.w hunk_31_loc_1424
@@ -57087,7 +54234,7 @@ hunk_31_loc_138a:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_139a:
     moveq #1,d0
     move.w d0,6992(a4)
@@ -57128,7 +54275,7 @@ hunk_31_loc_13e4:
     move.w d0,-(sp)
     move.w #$1f2,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_13f4:
     moveq #1,d0
     bra.s hunk_31_loc_1424
@@ -57147,7 +54294,7 @@ hunk_31_loc_140e:
     move.w d0,-(sp)
     move.w #$1f3,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_141e:
     moveq #1,d0
     bra.s hunk_31_loc_1424
@@ -57639,7 +54786,7 @@ hunk_31_loc_1826:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1836:
     moveq #1,d0
     move.w d0,6992(a4)
@@ -57695,7 +54842,7 @@ hunk_31_loc_18a0:
     move.w d0,-(sp)
     move.w #$1f3,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_18b0:
     move.w #$1,7888(a4)
     move.w #$97,d0
@@ -57883,7 +55030,7 @@ hunk_31_loc_1a28:
     move.w d0,-(sp)
     move.w #$1f4,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1a38:
     moveq #1,d0
     move.w d0,6992(a4)
@@ -57912,7 +55059,7 @@ hunk_31_loc_1a6a:
     move.w d0,(sp)
     move.w #$1f2,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1a7a:
     addq.w #6,sp
     bra.s hunk_31_loc_1a8e
@@ -57952,7 +55099,7 @@ hunk_31_loc_1ac8:
     move.w d0,-(sp)
     move.w #$1f3,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1ad8:
     moveq #1,d0
     move.w d0,6562(a4)
@@ -58168,7 +55315,7 @@ hunk_31_loc_1c92:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1ca2:
     addq.w #4,sp
 hunk_31_loc_1ca4:
@@ -58219,7 +55366,7 @@ hunk_31_loc_1d06:
     move.w d0,-(sp)
     move.w #$1f3,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1d16:
     moveq #1,d0
     move.w d0,6992(a4)
@@ -58454,7 +55601,7 @@ hunk_31_loc_1f0c:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_1f1c:
     addq.w #4,sp
     bra.s hunk_31_loc_1f68
@@ -58624,7 +55771,7 @@ hunk_31_loc_2082:
     move.w d0,(sp)
     move.w #$1f3,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_2098:
     moveq #1,d0
     bra.w hunk_31_loc_211c
@@ -58671,7 +55818,7 @@ hunk_31_loc_20f2:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_2102:
     addq.w #6,sp
     move.w #$1,6614(a4)
@@ -58774,7 +55921,7 @@ hunk_31_loc_21c2:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_21d2:
     moveq #1,d0
     move.w d0,6992(a4)
@@ -59642,7 +56789,7 @@ loc_28cc:
     move.w d0,-(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 hunk_31_loc_28dc:
     moveq #1,d0
     bra.w hunk_31_loc_2a22
@@ -59721,7 +56868,7 @@ hunk_31_loc_2982:
     move.w d0,(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 loc_2998:
     moveq #1,d0
     bra.w hunk_31_loc_2a22
@@ -60024,16 +57171,16 @@ loc_2bd6:
     move.w d3,-(sp)
     move.w d0,14(sp)
     bsr.w hunk_31_loc_3684
-loc_2be6:
+hunk_31_loc_2be6:
     addq.w #4,sp
     tst.w d0
     beq.s loc_2bf0
 loc_2bec:
     moveq #1,d0
-    bra.s loc_2bf2
+    bra.s hunk_31_loc_2bf2
 loc_2bf0:
     moveq #0,d0
-loc_2bf2:
+hunk_31_loc_2bf2:
     tst.w 12(sp)
     beq.s loc_2c18
 loc_2bf8:
@@ -60125,7 +57272,7 @@ loc_2ca4:
 loc_2ca8:
     tst.w d0
     beq.s loc_2cb0
-loc_2cac:
+hunk_31_loc_2cac:
     moveq #1,d0
     bra.s loc_2cda
 loc_2cb0:
@@ -60419,43 +57566,25 @@ loc_2f3a:
     unlk a5
     rts
 hint_2f3e:
-; --- unverified ---
-    tst.w 7524(a4)
-    beq.s hint_2f70
+    dc.b    $4a,$6c,$1d,$64,$67,$2c
 hint_2f44:
-; --- unverified ---
-    move.w -32732(a4),d0
-    cmpi.w #$198,d0
-    beq.s hint_2f62
+    dc.b    $30,$2c,$80,$24,$0c,$40,$01,$98,$67,$14
 hint_2f4e:
-; --- unverified ---
-    cmpi.w #$199,d0
-    beq.s hint_2f62
+    dc.b    $0c,$40,$01,$99,$67,$0e
 hint_2f54:
-; --- unverified ---
-    cmpi.w #$1db,d0
-    bne.s hint_2f70
+    dc.b    $0c,$40,$01,$db,$66,$16
 hint_2f5a:
-; --- unverified ---
-    moveq #26,d0
-    cmp.w -32672(a4),d0
-    bne.s hint_2f70
+    dc.b    $70,$1a,$b0,$6c,$80,$60,$66,$0e
 hint_2f62:
-; --- unverified ---
-    tst.b -6756(a4)
-    bne.s hint_2f6c
+    dc.b    $4a,$2c,$e5,$9c,$66,$04
 hint_2f68:
-; --- unverified ---
-    bsr.w loc_3436
+    dc.b    $61,$00,$04,$cc
 hint_2f6c:
-; --- unverified ---
-    moveq #1,d0
-    bra.s hint_2f72
+    dc.b    $70,$01,$60,$02
 hint_2f70:
     dc.b    $70,$00
 hint_2f72:
-; --- unverified ---
-    rts
+    dc.b    $4e,$75
 hunk_31_loc_2f74:
     link a5,#-8
     move.l d2,-(sp)
@@ -61020,7 +58149,7 @@ loc_33c2:
     move.w d0,-(sp)
     move.w #$1f2,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 loc_33d0:
     moveq #1,d0
     bra.s loc_342a
@@ -61053,7 +58182,7 @@ loc_340a:
     move.w d0,(sp)
     move.w #$1f1,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 loc_3418:
     lea -10236(pc),a0
     lea 4882(a4),a1
@@ -61225,7 +58354,7 @@ loc_3574:
     move.w d0,-(sp)
     move.w #$1f3,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 loc_3584:
     moveq #1,d0
     bra.w loc_3650
@@ -61241,7 +58370,7 @@ loc_3598:
     move.w d0,-(sp)
     move.w #$1f2,d1
     move.w d1,-(sp)
-    jsr sub_3ada(pc)
+    jsr loc_3ada(pc)
 loc_35a8:
     moveq #3,d0
     move.w d0,(sp)
@@ -61848,7 +58977,7 @@ loc_3ace:
     jmp hunk_26_loc_04d6
 sub_3ad4:
     jmp hunk_8_loc_0708
-sub_3ada:
+loc_3ada:
     jmp hunk_8_loc_1a52
 loc_3ae0:
     jmp hunk_3_loc_0d70
@@ -61937,14 +59066,14 @@ dat_0064:
     dc.b    "qwa gwagon",0
     dc.b    $00
 hunk_32_str_0070:
-    dc.b    "Fred's real name is Frederick Von Leepov. He speaks no Englaise.",0
+    dc.b    "Fred","'","s real name is Frederick Von Leepov. He speaks no Englaise.",0
     dc.b    $00
 str_00b2:
     dc.b    "Looks rather shallow.",0
 str_00c8:
     dc.b    "(Kinda like the assistant.)",0
 str_00e4:
-    dc.b    $22,"Oy Vey!",$22,0
+    dc.b    '"',"Oy Vey!",'"',0
 str_00ee:
     dc.b    "cape",0
     dc.b    $00
@@ -61954,14 +59083,14 @@ str_00f4:
 hunk_32_str_0136:
     dc.b    "Better let him do it.",0
 hunk_32_str_014c:
-    dc.b    "Can't you see he's pre-occupied?",0
+    dc.b    "Can","'","t you see he","'","s pre-occupied?",0
     dc.b    $00
 str_016e:
-    dc.b    $22,"I don't-a feel so strong today.",$22,0
+    dc.b    '"',"I don","'","t-a feel so strong today.",'"',0
 str_0190:
     dc.b    "rosin",0
 str_0196:
-    dc.b    "He prefers to be called ",$22,"Helmut",$22,".",0
+    dc.b    "He prefers to be called ",'"',"Helmut",'"',".",0
 str_01b8:
     dc.b    "Have you tried the arrow key"
 hunk_32_loc_01d4:
@@ -61971,46 +59100,46 @@ hunk_32_str_01d8:
 str_01f8:
     dc.b    $63,$66,$74,$00
 str_01fc:
-    dc.b    $22,"Yes?",$22,0
+    dc.b    '"',"Yes?",'"',0
     dc.b    $00
 hunk_32_str_0204:
-    dc.b    $22,"Hello, Les...I've been expecting you.",$22,0
+    dc.b    '"',"Hello, Les...I","'","ve been expecting you.",'"',0
 str_022c:
-    dc.b    $22,"What is it that you wish?",$22,0
+    dc.b    '"',"What is it that you wish?",'"',0
 str_0248:
     dc.b    "qwa nzarms",0
     dc.b    $00
 str_0254:
-    dc.b    $22,"You'll be going on a long journey...",$22,0
+    dc.b    '"',"You","'","ll be going on a long journey...",'"',0
     dc.b    $00
 str_027c:
-    dc.b    $22,"I see a search...",$22,0
+    dc.b    '"',"I see a search...",'"',0
 hunk_32_str_0290:
-    dc.b    $22,"I see a King!",$22,0
+    dc.b    '"',"I see a King!",'"',0
 str_02a0:
-    dc.b    $22,"Sorry...wrong King.",$22,0
+    dc.b    '"',"Sorry...wrong King.",'"',0
 hunk_32_str_02b6:
-    dc.b    $22,"I see a violent ending...",$22,0
+    dc.b    '"',"I see a violent ending...",'"',0
 str_02d2:
-    dc.b    $22,"Peace and tranquillity...",$22,0
+    dc.b    '"',"Peace and tranquillity...",'"',0
 hunk_32_str_02ee:
-    dc.b    $22,"But it ain't over till it's over...",$22,0
+    dc.b    '"',"But it ain","'","t over till it","'","s over...",'"',0
 str_0314:
-    dc.b    $22,"The rest is up to you, Les.",$22,0
+    dc.b    '"',"The rest is up to you, Les.",'"',0
 str_0332:
-    dc.b    "Madame stops you, saying: ",$22,"Please be so kind as to not fondle my pet.",$0a,"(Besides, isn't there something else you'd like to fondle instead?)",$22,0
+    dc.b    "Madame stops you, saying: ",'"',"Please be so kind as to not fondle my pet.",$0a,"(Besides, isn","'","t there something else you","'","d like to fondle instead?)",'"',0
     dc.b    $00
 str_03be:
-    dc.b    "It's dead.",0
+    dc.b    "It","'","s dead.",0
     dc.b    $00
 str_03ca:
     dc.b    "(The lizard, I mean.)",0
 dat_03e0:
-    dc.b    "Right idea. But you don't want to get that close. The lion may take more than you want to give him.",0
+    dc.b    "Right idea. But you don","'","t want to get that close. The lion may take more than you want to give him.",0
 dat_0444:
-    dc.b    $22,"Gee...if I eat this, it will just get stuck between my teeth.",$22,0
+    dc.b    '"',"Gee...if I eat this, it will just get stuck between my teeth.",'"',0
 dat_0484:
-    dc.b    $22,"I know...I'll just leave it here for the nice kitty.",$22,0
+    dc.b    '"',"I know...I","'","ll just leave it here for the nice kitty.",'"',0
     dc.b    $00
 dat_04bc:
     dc.b    "(Lucked out again, Les.)",0
@@ -62020,7 +59149,7 @@ str_04d6:
 str_04e2:
     dc.b    "Try dropping the jar.",0
 str_04f8:
-    dc.b    "I don't believe that's what the lion wants.",0
+    dc.b    "I don","'","t believe that","'","s what the lion wants.",0
 str_0524:
     dc.b    "The lion has already bee"
 hunk_32_loc_053c:
@@ -62071,7 +59200,7 @@ loc_05a5:
 hunk_32_loc_05ad:
     dc.b    $75,$20
 hunk_32_loc_05af:
-    dc.b    "won't get hungry for a"
+    dc.b    "won","'","t get hungry for a"
 hunk_32_loc_05c5:
     movea.l ([25719,a3],26979),a0
 hunk_32_loc_05cd:
@@ -62105,7 +59234,7 @@ loc_05f5:
     bhi.s $66e
 hunk_32_loc_05f9:
     moveq #32,d2
-    chk.l -(a0),d4
+    chk.l -(a0),d4 ; 68020+
     dc.b    $44,$4f
     movea.l 24950(a0),a0
     dc.b    $65,$20
@@ -62114,6 +59243,7 @@ hunk_32_loc_0605:
     bvs.s $67c
 hunk_32_loc_0609:
     movea.l ([1954095212,a4],1769239660),a0
+    dc.b    $65,$20
 loc_0617:
     blt.s $688
 hunk_32_loc_0619:
@@ -62150,6 +59280,7 @@ hunk_32_loc_064d:
     movea.l 111(a3,d7.w),a0
     moveq #32,d0
     bvc.s $6be
+    dc.b    $6d
 hunk_32_loc_0656:
     move.l -(a0),-(a0)
     dc.b    "Les is "
@@ -62188,6 +59319,7 @@ hunk_32_loc_0698:
     bcs.s hunk_32_loc_070c
 hunk_32_loc_069a:
     bcs.s hunk_32_loc_0708
+    dc.b    $79
 loc_069d:
     movea.l 28528(a0),a0
 hunk_32_loc_06a1:
@@ -62198,6 +59330,7 @@ hunk_32_loc_06aa:
     bcs.s hunk_32_loc_071a
 hunk_32_loc_06ac:
     move.l 103(a4,d2.w),26998(a3)
+    dc.b    $65,$6e,$20
 hunk_32_loc_06b5:
     moveq #104,d2
     bvs.s hunk_32_loc_072c
@@ -62218,6 +59351,7 @@ hunk_32_loc_06ca:
     bsr.s hunk_32_loc_073e
 hunk_32_loc_06d0:
     movea.l -(a6),a0
+    dc.b    $6c
 hunk_32_loc_06d3:
     bcs.s $748
 loc_06d5:
@@ -62227,6 +59361,7 @@ loc_06d7:
     dc.b    $79,$6f,$75,$2c
 hunk_32_loc_06df:
     movea.l 29728(a1),a0
+    dc.b    $6c,$6f
 hunk_32_loc_06e5:
     ble.s hunk_32_loc_0752
     dc.b    $73
@@ -62241,6 +59376,7 @@ loc_06f7:
     addq.w #2,8308(sp)
 hunk_32_loc_06fb:
     bvc.s $762
+    dc.b    $20
 hunk_32_loc_06fe:
     dc.b    $6c,$69
 hunk_32_loc_0700:
@@ -62248,6 +59384,7 @@ hunk_32_loc_0700:
 hunk_32_loc_0702:
     move.l -(a0),d6
     bvs.s $77a
+    dc.b    $20,$6c
 hunk_32_loc_0708:
     dc.b    $6f,$6f
 hunk_32_loc_070a:
@@ -62344,7 +59481,7 @@ loc_07a9:
     dc.b    $79
 hunk_32_loc_07ac:
     movea.l 111(a3,d6.l),a0
-    dc.b    "uldn't be here"
+    dc.b    "uldn","'","t be here"
 hunk_32_loc_07be:
     dc.b    " witho"
 hunk_32_loc_07c4:
@@ -62396,7 +59533,7 @@ hunk_32_loc_0825:
     moveq #32,d2
     dc.b    "sound of a zipper)",0
 str_0842:
-    dc.b    ""Ah'm a com"
+    dc.b    '"',"Ah","'","m a com"
 loc_084d:
     dc.b    $69,$6e
 hunk_32_loc_084f:
@@ -62411,7 +59548,7 @@ hunk_32_loc_0863:
 hunk_32_loc_0865:
     movea.l ([27497,a0],1848057965),a0
     dc.b    $69,$6e
-    dc.b    "ute.",$22,0
+    dc.b    "ute.",'"',0
     dc.b    $00
 str_0878:
     dc.b    "(Hey, how did he know "
@@ -62438,19 +59575,21 @@ loc_08bf:
     dc.b    $6f
 hunk_32_loc_08c8:
     dc.b    $64
+    dc.b    $79
 hunk_32_loc_08ca:
     movea.l 25970(a0),a0
     bcs.s hunk_32_loc_08f0
 hunk_32_loc_08d0:
     moveq #111,d2
     movea.l -(a1),a0
+    dc.b    $73
 loc_08d5:
     dc.b    $6b,$2e
 loc_08d7:
     ori.b #$6f,-(a2)
     dc.b    $79,$2e,$2e,$2e
 loc_08df:
-    dc.b    "Ah say...boy, y'a"
+    dc.b    "Ah say...boy, y","'","a"
 hunk_32_loc_08f0:
     bge.s hunk_32_loc_095e
 hunk_32_loc_08f2:
@@ -62499,6 +59638,7 @@ loc_0943:
     dc.b    $65
 hunk_32_loc_0948:
     dc.b    $2e
+    dc.b    $2e,$2e,$41,$68,$20
 hunk_32_loc_094e:
     dc.b    $6d,$69
 hunk_32_loc_0950:
@@ -62515,7 +59655,7 @@ hunk_32_loc_0960:
     dc.b    $65,$73
     dc.b    $73,$2e,$22,$00
 str_0966:
-    dc.b    ""Ah ai"
+    dc.b    '"',"Ah ai"
 hunk_32_loc_096c:
     dc.b    $6e,$27
 hunk_32_loc_096e:
@@ -62532,14 +59672,14 @@ hunk_32_loc_097c:
     bcs.s hunk_32_loc_09ee
     dc.b    $79,$2e,$22,$00
 str_0986:
-    dc.b    ""Filthy"
+    dc.b    '"',"Filthy"
 hunk_32_loc_098d:
     movea.l -(a3),a0
     moveq #105,d1
     moveq #116,d2
     dc.b    $65,$72
 hunk_32_loc_0995:
-    dc.b    "s, ain't"
+    dc.b    "s, ain","'","t"
 loc_099d:
     movea.l 101(a4,d6.l),a0
 loc_09a1:
@@ -62559,6 +59699,7 @@ loc_09b9:
     dc.b    $65
 hunk_32_loc_09c2:
     dc.b    $72
+    dc.b    $2e,$20,$43,$61,$69
 hunk_32_loc_09c8:
     dc.b    $6e,$27
 hunk_32_loc_09ca:
@@ -62571,10 +59712,12 @@ hunk_32_loc_09d0:
 hunk_32_loc_09d2:
     moveq #104,d2
     bcs.s $9f6
+    dc.b    "job of cl"
 hunk_32_loc_09df:
     bcs.s $a42
 loc_09e1:
     bgt.s $a4c
+    dc.b    $6e
 hunk_32_loc_09e4:
     move.l -(a0),-(a3)
     moveq #104,d2
@@ -62609,6 +59752,7 @@ hunk_32_loc_0a1e:
     dc.b    $6f
 loc_0a25:
     dc.b    $6d
+    dc.b    $65
 loc_0a27:
     movea.l 25968(a0),a0
     movea.l -(a1),a0
@@ -62658,6 +59802,7 @@ hunk_32_loc_0a7c:
     dc.b    $6e,$65
 hunk_32_loc_0a7e:
     move.l -(a0),d7
+    dc.b    "Are y","'","all pl"
 hunk_32_loc_0a8c:
     bsr.s $afc
 hunk_32_loc_0a8e:
@@ -62698,7 +59843,7 @@ loc_0abf:
     dc.b    $68,$76
 hunk_32_loc_0ac3:
     bvs.s hunk_32_loc_0b2a
-    dc.b    "w goin' on.",$22,0
+    dc.b    "w goin","'"," on.",'"',0
 str_0ad2:
     dc.b    $22
 loc_0ad3:
@@ -62752,10 +59897,12 @@ hunk_32_loc_0b0f:
     dc.b    $00
 hunk_32_loc_0b14:
     dc.b    $4e,$55,$00
+    dc.b    $00,$30,$2d,$00,$08,$72
 hunk_32_loc_0b1d:
     cmpi.l #$41670c72,(1097270898,d0.w*4)
 loc_0b29:
     bclr d4,([20528,a0],15360)
+    dc.b    $97,$3f,$00,$32,$3c,$00,$c0,$3f,$01,$4e,$ba,$17,$16
 hunk_32_loc_0b3e:
     addq.w #4,sp
     tst.w d0
@@ -63026,6 +60173,7 @@ hunk_32_loc_0d7a:
     bne.s hunk_32_loc_0d9e
 hunk_32_loc_0d86:
     move.w #$116,d0
+    dc.b    $3f,$00,$32,$3c,$01,$10,$3f,$01,$4e,$ba,$14,$d6
 hunk_32_loc_0d96:
     moveq #1,d0
     move.w d0,7014(a4)
@@ -63372,6 +60520,10 @@ hunk_32_loc_108c:
     bne.w hunk_32_loc_112a
 hunk_32_loc_1094:
     move.w #$bb,d0
+    dc.b    $3f,$00,$32,$3c,$01,$f1,$3f,$01,$4e,$ba,$11,$f2,$70,$01,$60,$00
+    dc.b    $00,$c8,$30,$3c,$00,$9a,$3f,$00,$32,$3c,$00,$b2,$3f,$01,$4e,$ba
+    dc.b    $11,$9a
+    dc.b    "XOJ@fj"
 hunk_32_loc_10c0:
     move.w #$bb,d0
     move.w d0,-(sp)
@@ -64001,17 +61153,19 @@ pcref_1670:
     dc.b    $00,$0c
 pcref_1672:
     dc.w    hunk_32_loc_1690-pcref_1672
+jtent_1674:
     dc.w    hunk_32_loc_16a2-pcref_1672
+jtent_1676:
     dc.w    hunk_32_loc_16c8-pcref_1672
-hint_1678:
+jtent_1678:
     dc.w    hunk_32_loc_16e8-pcref_1672
+jtent_167a:
     dc.w    hunk_32_loc_16fe-pcref_1672
+jtent_167c:
     dc.w    hunk_32_loc_1718-pcref_1672
+    dc.b    $48,$7a,$eb,$d4,$4e,$ba,$0c,$34
 hint_1686:
-; --- unverified ---
-    addq.w #1,6580(a4)
-    moveq #1,d0
-    bra.w loc_173c
+    dc.b    $52,$6c,$19,$b4,$70,$01,$60,$00,$00,$ae
 hunk_32_loc_1690: ; jt: pcref_1672
     pea str_027c(pc)
     jsr hunk_32_loc_22b8(pc)
@@ -65388,16 +62542,16 @@ hunk_33_loc_004e:
     unlk a5
     rts
 hunk_33_str_0052:
-    dc.b    "It's ringing.",0
+    dc.b    "It","'","s ringing.",0
 hunk_33_str_0060:
     dc.b    "qwa stphon",0
     dc.b    $00
 str_006c:
     dc.b    $78,$64,$72,$00
 hunk_33_str_0070:
-    dc.b    $22,"Sorry, we're all booked up.",$22,0
+    dc.b    '"',"Sorry, we","'","re all booked up.",'"',0
 str_008e:
-    dc.b    $22,"It's not dirty, Les. Remember? Bobbi washed and hung it out to dry.",$22,0
+    dc.b    '"',"It","'","s not dirty, Les. Remember? Bobbi washed and hung it out to dry.",'"',0
 hunk_33_str_00d4:
     dc.b    "Sorry, I have to keep this for my records.",0
     dc.b    $00
@@ -65417,7 +62571,7 @@ str_0134:
     dc.b    "Juanita will do it when she feels like it.",0
     dc.b    $00
 hunk_33_str_0160:
-    dc.b    "There's a sign hanging on the door.",0
+    dc.b    "There","'","s a sign hanging on the door.",0
 hunk_33_str_0184:
     dc.b    "Among the hairballs and soap scum lies a container of dental floss.",0
 str_01c8:
@@ -65440,7 +62594,7 @@ hunk_33_loc_020e:
     moveq #111,d2
     move.l d0,d7
 str_0212:
-    dc.b    "OK...But he'll never be able"
+    dc.b    "OK...But he","'","ll never be able"
 hunk_33_loc_022e:
     movea.l (26469,a4,d6.l*8),a0
     moveq #32,d2
@@ -65477,7 +62631,7 @@ hunk_33_loc_02fc:
     move.l -(a0),d7
     subq.w #2,26223(a6)
     moveq #116,d1
-    dc.b    "unately, not everything you'll need was with you.",0
+    dc.b    "unately, not everything you","'","ll need was with you.",0
 hunk_33_str_0336:
     dc.b    "Not only that, but Helmut burned up during "
 hunk_33_loc_0361:
@@ -65488,9 +62642,9 @@ hunk_33_loc_0361:
     ori.b #$65,-(a2)
     moveq #32,d2
     bge.s hunk_33_loc_03e2
-    dc.b    "st, wimp. You're blocking my sun.",$22,0
+    dc.b    "st, wimp. You","'","re blocking my sun.",'"',0
 str_0396:
-    dc.b    "I don't believe you're that welcome.",0
+    dc.b    "I don","'","t believe you","'","re that welcome.",0
     dc.b    $00
 str_03bc:
     dc.b    "After taking a seat next to this gorge"
@@ -65499,7 +62653,7 @@ hunk_33_loc_03e2:
     dc.b    "s creature, she finally seems ready to acknowledge your existence.",0
     dc.b    $00
 str_0428:
-    dc.b    "It's covered by that thin strip of material.",0
+    dc.b    "It","'","s covered by that thin strip of material.",0
     dc.b    $00
 str_0456:
     dc.b    $53,$68,$65
@@ -65518,7 +62672,7 @@ hunk_33_loc_046b:
 hunk_33_loc_046d:
     move.l d0,d7
     ori.b #$6f,-(a2)
-    dc.b    "u're making me sooo ho"
+    dc.b    "u","'","re making me sooo ho"
 hunk_33_loc_0489:
     moveq #46,d2
     move.l d0,d1
@@ -65541,7 +62695,7 @@ hunk_33_loc_04af:
     ori.b #$69,27493(a0)
     dc.b    $73,$21,$29,$00,$00
 str_04c0:
-    dc.b    ""I just have to d"
+    dc.b    '"',"I just have to d"
 hunk_33_loc_04d1:
     dc.b    $6f,$20
     dc.b    "somethi"
@@ -65565,6 +62719,7 @@ hunk_33_str_04f2:
     dc.b    $48
 loc_04f3:
     dc.b    $65
+    dc.b    $20
     dc.b    "seems to be havin"
 hunk_33_loc_0506:
     beq.s hunk_33_loc_0528
@@ -65622,6 +62777,7 @@ hunk_33_loc_055e:
 hunk_33_loc_0560:
     move.l -(a2),-(a0)
     ori.b #$6f,d0
+    dc.b    $75
 hunk_33_loc_0567:
     move.l (28271,a2,d6.w*4),29728(a3)
     dc.b    $77,$68
@@ -65631,6 +62787,7 @@ hunk_33_loc_0573:
     dc.b    $65
 hunk_33_loc_0574:
     dc.b    $20
+    dc.b    "you nee"
 hunk_33_loc_057c:
     bcc.s hunk_33_loc_059e
 hunk_33_loc_057e:
@@ -65640,6 +62797,7 @@ hunk_33_loc_0582:
     bcs.s hunk_33_loc_05b2
 hunk_33_loc_0584:
     ori.b #$65,d0
+    dc.b    $27
     dc.b    $73,$20
 hunk_33_loc_058b:
     moveq #114,d0
@@ -65766,9 +62924,9 @@ hunk_33_loc_0651:
 hunk_33_loc_0653:
     moveq #108,d0
     bcs.s hunk_33_loc_06b8
-    dc.b    "se.",$22,0
+    dc.b    "se.",'"',0
 str_065c:
-    dc.b    ""i" bef"
+    dc.b    '"',"i",'"'," bef"
 hunk_33_loc_0663:
     dc.b    $6f,$72
 hunk_33_loc_0665:
@@ -65816,6 +62974,7 @@ hunk_33_loc_06a6:
     bne.s hunk_33_loc_06de
 hunk_33_loc_06ae:
     jsr hunk_33_loc_1e0e(pc)
+    dc.b    $30,$3c,$01
     dc.b    $0e,$3f,$00
 hunk_33_loc_06b8:
     move.w #$104,d1
@@ -65836,6 +62995,7 @@ hunk_33_loc_06de:
     move.w 6536(a4),d0
     subq.w #3,d0
     beq.s hunk_33_loc_06ec
+    dc.b    $53,$40,$67
 loc_06e9:
     movea.b -(a0),a6
     dc.b    $36
@@ -65847,6 +63007,7 @@ hunk_33_loc_06ec:
 hunk_33_loc_06f8:
     moveq #1,d0
     move.w d0,7014(a4)
+    dc.b    $42
 hunk_33_loc_06ff:
     bge.s $71a
 hunk_33_loc_0701:
@@ -66611,6 +63772,7 @@ hunk_33_loc_0d7e:
     moveq #26,d1
     move.w d1,-(sp)
     move.w #$1e0,d2
+    dc.b    $3f,$02,$4e,$ba,$10,$44
 hunk_33_loc_0d90:
     moveq #1,d0
     bra.w hunk_33_loc_0ea2
@@ -68509,7 +65671,7 @@ hunk_33_loc_1e86:
     section data,data
 
 hunk_34_dat_0000:
-    dc.b    $22,"While doing my dissertation at Yale, I often used a modified Sicilian defense. I liked to build staggered fortifications around him with pawns. Then I'd get my bishops in a file and sneak my rooks out the back door.",$22,0
+    dc.b    '"',"While doing my dissertation at Yale, I often used a modified Sicilian defense. I liked to build staggered fortifications around him with pawns. Then I","'","d get my bishops in a file and sneak my rooks out the back door.",'"',0
     dc.b    $00,$00
 
 ; Hunk 35: 1044 bytes, 0 entities, 1 blocks
@@ -68907,8 +66069,7 @@ hunk_36_dat_007c:
 pcref_007e:
     dc.b    $0a,$6d,$65,$6d
 hint_0082:
-; --- unverified ---
-    ble.s hint_00f6
+    dc.b    $6f,$72
 hunk_36_dat_0084:
     dc.b    "y fell"
 hunk_36_loc_008a:
@@ -68961,11 +66122,12 @@ hunk_36_loc_00d6:
     dc.b    "residentmasks is "
 hunk_36_loc_00e8:
     move.l 25600(a4),2659(a2)
+    dc.b    $75
 loc_00ef:
+    dc.b    $72,$53,$70,$72,$74
     dc.b    $4d,$73
 hint_00f6:
-; --- unverified ---
-    bmi.s $148
+    dc.b    $6b,$50
 hunk_36_hint_00f8:
     dc.b    "tr is %ld",0
 pcref_0102:
@@ -68982,6 +66144,7 @@ hunk_36_loc_0114:
     dc.b    $64
 hunk_36_loc_0115:
     dc.b    $65
+    dc.b    $6e
 hunk_36_loc_0117:
     moveq #115,d2
     dc.b    $20,$3d,$20,$25,$6c
@@ -69005,6 +66168,7 @@ hunk_36_loc_0136:
     dc.b    $65
 loc_0137:
     dc.b    $61
+    dc.b    $20
     dc.b    $75,$73,$65,$64,$20
 hunk_36_loc_013e:
     move.w -(a0),-(a6)
@@ -69021,12 +66185,12 @@ hunk_36_loc_0156:
     bge.s $1c4
 hunk_36_loc_0158:
     bcs.s $1be
+    dc.b    $20
     dc.b    $41,$6c,$6c
 hunk_36_hint_015e:
     dc.b    $6f,$63
 hunk_36_hint_0160:
-; --- unverified ---
-    bsr.s hunk_36_hint_01d6
+    dc.b    $61,$74
 hunk_36_hint_0162:
     dc.b    $65,$43
 hunk_36_hint_0164:
@@ -69034,11 +66198,9 @@ hunk_36_hint_0164:
 hunk_36_hint_0166:
     dc.b    $70,$21,$00,$00,$0a,$73,$6f,$6d
 hunk_36_hint_016e:
-; --- unverified ---
-    bcs.s hunk_36_loc_01d2
+    dc.b    $65,$62
 hunk_36_hint_0170:
-; --- unverified ---
-    ble.s hunk_36_hint_01d6
+    dc.b    $6f,$64
     dc.b    "y called "
 hunk_36_loc_017b:
     dc.b    $41,$6c,$6c
@@ -69052,6 +66214,7 @@ hunk_36_loc_0184:
     dc.b    $65
 loc_0185:
     dc.b    $6d
+    dc.b    $21
 hunk_36_loc_0187:
     dc.b    $00,$0a,$64,$65
     moveq #32,d1
@@ -69064,8 +66227,9 @@ loc_0199:
 loc_019b:
     dc.b    "wrong viss z"
 hint_01a7:
-; --- unverified ---
-    bvs.s hunk_36_loc_021c
+    dc.b    $69
+hunk_36_loc_01a8:
+    dc.b    $73
     dc.b    "s read"
     dc.b    $0a
     dc.b    " lengt"
@@ -69074,6 +66238,7 @@ hunk_36_loc_01b6:
 hunk_36_loc_01b8:
     move.w -(a0),-(a6)
     move.l 25600(a4),2592(a2)
+    dc.b    $73,$69,$7a
 hunk_36_loc_01c3:
     dc.b    $65,$20
 hunk_36_loc_01c5:
@@ -69084,6 +66249,7 @@ hunk_36_loc_01d1:
     dc.b    $64
 hunk_36_loc_01d2:
     dc.b    $6c
+    dc.b    $65
     dc.b    $20,$3d
 hunk_36_hint_01d6:
     dc.b    $20,$25
@@ -69094,6 +66260,7 @@ hunk_36_loc_01da:
     moveq #114,d1
     movea.l -(a4),a0
     ble.s hunk_36_loc_0252
+    dc.b    $27
 loc_01e5:
     moveq #32,d2
     dc.b    $61,$6c
@@ -69131,6 +66298,7 @@ hunk_36_loc_0212:
 hunk_36_loc_021c:
     adda.l d0,a0
     move.l a0,-7678(a4)
+    dc.b    $2e,$1f,$4e,$75
 hunk_36_loc_0226:
     rts
 hunk_36_loc_0228:
@@ -69138,12 +66306,14 @@ hunk_36_loc_0228:
     movem.l d2/d7/a2-a3/a6,-(sp)
     movea.l 8(a5),a3
     movea.l 12(a5),a2
+    dc.b    $24
 loc_0239:
     cmp.b d0,d6
     movep.l 25638(a7),d0
 hunk_36_loc_023f:
     cmp.b d0,d6
     bclr d0,-(a5)
+    dc.b    $a4
     dc.b    $20,$6d,$00,$10
 hunk_36_loc_0248:
     move.l #dat_008c,(a0)
@@ -69375,48 +66545,21 @@ hunk_36_loc_04e0:
     unlk a5
     rts
 hint_04e6:
-; --- unverified ---
-    movem.l d6-d7,-(sp)
-    moveq #0,d0
-    move.w d0,-(sp)
-    move.w d0,-(sp)
-    pea str_002e(pc)
-    jsr loc_26fc(pc)
+    dc.b    $48,$e7,$03,$00,$70,$00,$3f,$00,$3f,$00,$48,$7a,$fb,$3c,$4e,$ba
+    dc.b    $22,$06
 hint_04f8:
-; --- unverified ---
-    addq.w #8,sp
-    move.l d0,d7
-    ext.l d7
-    moveq #16,d6
-    bra.s hint_051e
+    dc.b    $50,$4f,$2e,$00,$48,$c7,$7c,$10,$60,$1c
 hint_0502:
-; --- unverified ---
-    move.l d7,d0
-    movea.l -7674(a4),a0
-    adda.l d6,a0
-    move.w #$1f40,d1
-    move.w d1,-(sp)
-    move.l 8(a0),-(sp)
-    move.w d0,-(sp)
-    jsr loc_269c(pc)
+    dc.b    $20,$07,$20,$6c,$e2,$06,$d1,$c6,$32,$3c,$1f,$40,$3f,$01,$2f,$28
+    dc.b    $00,$08,$3f,$00,$4e,$ba,$21,$84
 hunk_36_hint_051a:
     dc.b    $50,$4f,$59,$86
 hint_051e:
-; --- unverified ---
-    moveq #-4,d0
-    cmp.l d0,d6
-    bgt.s hint_0502
+    dc.b    $70,$fc,$bc,$80,$6e,$de
 hint_0524:
-; --- unverified ---
-    move.l d7,d0
-    subq.w #2,sp
-    move.w d0,-(sp)
-    jsr hunk_36_loc_2684(pc)
+    dc.b    $20,$07,$55,$4f,$3f,$00,$4e,$ba,$21,$58
 hint_052e:
-; --- unverified ---
-    addq.w #4,sp
-    movem.l (sp)+,d6-d7
-    rts
+    dc.b    $58,$4f,$4c,$df,$00,$c0,$4e,$75
 hunk_36_loc_0536:
     tst.b 9996(a4)
     beq.s hunk_36_loc_0544
@@ -69479,212 +66622,83 @@ hunk_36_loc_05c8:
     movem.l (sp)+,d7/a6
     rts
 hint_05ce:
-; --- unverified ---
-    link a5,#-4
-    movem.l d2-d3/d7/a2-a3,-(sp)
-    movea.l 32(sp),a3
-    moveq #0,d0
-    move.w d0,-(sp)
-    move.w d0,-(sp)
-    pea str_0092(pc)
-    jsr loc_26fc(pc)
+    dc.b    $4e,$55,$ff,$fc,$48,$e7
+    dc.b    "10&o",0
+    dc.b    $20,$70,$00,$3f,$00,$3f,$00,$48,$7a,$fa,$b0,$4e,$ba,$21,$16
 hint_05e8:
-; --- unverified ---
-    addq.w #8,sp
-    move.w d0,20(sp)
-    tst.w d0
-    bpl.s hunk_36_hint_05fe
+    dc.b    "PO?@",0
+    dc.b    $14,$4a,$40,$6a,$0c
 hint_05f2:
-; --- unverified ---
-    subq.w #2,sp
-    moveq #5,d1
-    move.w d1,-(sp)
-    bsr.w hunk_36_loc_084a
+    dc.b    $55,$4f,$72,$05,$3f,$01,$61,$00,$02,$50
 hint_05fc:
     dc.b    $58,$4f
 hunk_36_hint_05fe:
-; --- unverified ---
-    moveq #0,d7
-    bra.s hint_0628
+    dc.b    $7e,$00,$60,$26
 hint_0602:
-; --- unverified ---
-    lea -7630(a4),a2
-    bra.s hint_061c
+    dc.b    $45,$ec,$e2,$32,$60,$14
 hint_0608:
-; --- unverified ---
-    movea.l (a2)+,a0
-    adda.w d7,a0
-    moveq #40,d0
-    move.w d0,-(sp)
-    move.l a0,-(sp)
-    move.w 26(sp),-(sp)
-    bsr.w hunk_36_loc_1b96
+    dc.b    $20,$5a,$d0,$c7,$70,$28,$3f,$00,$2f,$08,$3f,$2f,$00,$1a,$61,$00
+    dc.b    $15,$7e
 hint_061a:
     dc.b    $50,$4f
 hint_061c:
-; --- unverified ---
-    lea -7614(a4),a0
-    cmpa.l a0,a2
-    bcs.s hint_0608
+    dc.b    $41,$ec,$e2,$42,$b5,$c8,$65,$e4
 hint_0624:
     dc.b    $06,$47,$00,$28
 hint_0628:
-; --- unverified ---
-    cmpi.w #$1f40,d7
-    blt.s hint_0602
+    dc.b    $0c,$47,$1f,$40,$6d,$d4
 hint_062e:
-; --- unverified ---
-    subq.w #2,sp
-    move.w 22(sp),-(sp)
-    bsr.w hunk_36_loc_1b2e
+    dc.b    "UO?/",0
+    dc.b    $16,$61,$00,$14,$f8
 hint_0638:
-; --- unverified ---
-    move.w #$3214,d0
-    move.w d0,(sp)
-    moveq #0,d1
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    moveq #-1,d2
-    move.w d2,-(sp)
-    move.w d2,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w #$f01,d3
-    move.w d3,-(sp)
-    move.l -7710(a4),-(sp)
-    move.l -7618(a4),-(sp)
-    move.l -7622(a4),-(sp)
-    move.l -7626(a4),-(sp)
-    jsr hunk_37_loc_00ac
+    dc.b    $30,$3c,$32,$14,$3e,$80,$72,$00,$3f,$01,$3f,$01,$3f,$01,$3f,$01
+    dc.b    $74,$ff,$3f,$02,$3f,$02,$3f,$01,$3f,$01,$3f,$01,$3f,$01,$36,$3c
+    dc.b    $0f,$01,$3f,$03,$2f,$2c,$e1,$e2,$2f,$2c,$e2,$3e,$2f,$2c,$e2,$3a
+    dc.b    $2f,$2c,$e2,$36,$4e,$b9
+    dc.l    hunk_37_loc_00ac
 hint_0672:
-; --- unverified ---
-    move.w #$3214,d0
-    move.w d0,(sp)
-    moveq #0,d1
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    moveq #-1,d2
-    move.w d2,-(sp)
-    move.w d2,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w #$d0c,d3
-    move.w d3,-(sp)
-    movea.l -7710(a4),a0
-    move.l a0,-(sp)
-    clr.l -(sp)
-    move.l -7630(a4),-(sp)
-    move.l a0,-(sp)
-    jsr hunk_37_loc_00ac
+    dc.b    $30,$3c,$32,$14,$3e,$80,$72,$00,$3f,$01,$3f,$01,$3f,$01,$3f,$01
+    dc.b    $74,$ff,$3f,$02,$3f,$02,$3f,$01,$3f,$01,$3f,$01,$3f,$01,$36,$3c
+    dc.b    $0d,$0c,$3f,$03,$20,$6c,$e1,$e2,$2f,$08,$42,$a7,$2f,$2c,$e2,$32
+    dc.b    $2f,$08,$4e,$b9
+    dc.l    hunk_37_loc_00ac
 hint_06aa:
-; --- unverified ---
-    lea 80(sp),sp
-    lea -7630(a4),a2
-    bra.s hunk_36_hint_06f0
+    dc.b    $4f,$ef,$00,$50,$45,$ec,$e2,$32,$60,$3c
 hunk_36_hint_06b4:
-; --- unverified ---
-    move.w #$3214,d0
-    move.w d0,-(sp)
-    moveq #0,d1
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    moveq #-1,d2
-    move.w d2,-(sp)
-    move.w d2,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w d1,-(sp)
-    move.w #$dfc,d3
-    move.w d3,-(sp)
-    movea.l (a2),a0
-    move.l a0,-(sp)
-    clr.l -(sp)
-    move.l a0,-(sp)
-    move.l -7710(a4),-(sp)
-    jsr hunk_37_loc_00ac
+    dc.b    $30,$3c,$32,$14,$3f,$00,$72,$00,$3f,$01,$3f,$01,$3f,$01,$3f,$01
+    dc.b    $74,$ff,$3f,$02,$3f,$02,$3f,$01,$3f,$01,$3f,$01,$3f,$01,$36,$3c
+    dc.b    $0d,$fc,$3f,$03,$20,$52,$2f,$08,$42,$a7,$2f,$08,$2f,$2c,$e1,$e2
+    dc.b    $4e,$b9
+    dc.l    hunk_37_loc_00ac
 hint_06ea:
     dc.b    $4f,$ef,$00,$28,$58,$8a
 hunk_36_hint_06f0:
-; --- unverified ---
-    lea -7614(a4),a0
-    cmpa.l a0,a2
-    bcs.s hunk_36_hint_06b4
+    dc.b    $41,$ec,$e2,$42,$b5,$c8,$65,$bc
 hint_06f8:
-; --- unverified ---
-    moveq #0,d0
-    move.w d0,-(sp)
-    move.w d0,-(sp)
-    move.l a3,-(sp)
-    jsr loc_26fc(pc)
+    dc.b    $70,$00,$3f,$00,$3f,$00,$2f,$0b,$4e,$ba,$1f,$fa
 hint_0704:
-; --- unverified ---
-    addq.w #8,sp
-    move.w d0,20(sp)
-    tst.w d0
-    bpl.s hunk_36_hint_071a
+    dc.b    "PO?@",0
+    dc.b    $14,$4a,$40,$6a,$0c
 hint_070e:
-; --- unverified ---
-    subq.w #2,sp
-    moveq #5,d1
-    move.w d1,-(sp)
-    bsr.w hunk_36_loc_084a
+    dc.b    $55,$4f,$72,$05,$3f,$01,$61,$00,$01,$34
 hint_0718:
     dc.b    $58,$4f
 hunk_36_hint_071a:
-; --- unverified ---
-    moveq #2,d0
-    move.w d0,-(sp)
-    clr.l -(sp)
-    move.w 26(sp),-(sp)
-    bsr.w hunk_36_loc_1cc8
+    dc.b    $70,$02,$3f,$00,$42,$a7,$3f,$2f,$00,$1a,$61,$00,$15,$a2
 hint_0728:
-; --- unverified ---
-    subq.w #2,sp
-    clr.w (sp)
-    clr.l -(sp)
-    move.w 34(sp),-(sp)
-    move.w d0,38(sp)
-    bsr.w hunk_36_loc_1cc8
+    dc.b    $55,$4f,$42,$57,$42,$a7,$3f,$2f,$00,$22,$3f,$40,$00,$26,$61,$00
+    dc.b    $15,$90
 hunk_36_hint_073a:
-; --- unverified ---
-    subq.w #2,sp
-    move.w 40(sp),(sp)
-    movea.l -7678(a4),a0
-    move.l 8(a0),-(sp)
-    move.w 42(sp),-(sp)
-    bsr.w hunk_36_loc_1b96
+    dc.b    $55,$4f,$3e,$af,$00,$28,$20,$6c,$e2,$02,$2f,$28,$00,$08,$3f,$2f
+    dc.b    $00,$2a,$61,$00,$14,$48
 hint_0750:
-; --- unverified ---
-    move.w 44(sp),(sp)
-    bsr.w hunk_36_loc_1b2e
+    dc.b    $3e,$af,$00,$2c,$61,$00,$13,$d8
 hunk_36_hint_0758:
-; --- unverified ---
-    subq.w #2,sp
-    clr.w (sp)
-    move.w #$c8,d0
-    move.w d0,-(sp)
-    moveq #40,d1
-    move.w d1,-(sp)
-    move.l -7710(a4),-(sp)
-    movea.l -7678(a4),a0
-    move.l 8(a0),-(sp)
-    jsr pcref_270e(pc)
+    dc.b    "UOBW0<",0
+    dc.b    $c8,$3f,$00,$72,$28,$3f,$01,$2f,$2c,$e1,$e2,$20,$6c,$e2,$02,$2f
+    dc.b    $28,$00,$08,$4e,$ba,$1f,$9a
 hint_0776:
-; --- unverified ---
-    movem.l -24(a5),d2-d3/d7/a2-a3
-    unlk a5
-    rts
+    dc.b    $4c,$ed,$0c,$8c,$ff,$e8,$4e,$5d,$4e,$75
 hunk_36_loc_0780:
     movem.l d2-d3/a3,-(sp)
     move.w #$3214,d0
@@ -70367,20 +67381,35 @@ pcref_0e2c:
     dc.b    $00,$20
 pcref_0e2e:
     dc.w    hunk_36_loc_0e54-pcref_0e2e
+jtent_0e30:
     dc.w    hunk_36_loc_0e5a-pcref_0e2e
+jtent_0e32:
     dc.w    hunk_36_loc_0e60-pcref_0e2e
+jtent_0e34:
     dc.w    hunk_36_loc_0e66-pcref_0e2e
+jtent_0e36:
     dc.w    hunk_36_loc_0e6c-pcref_0e2e
+jtent_0e38:
     dc.w    hunk_36_loc_0e72-pcref_0e2e
+jtent_0e3a:
     dc.w    hunk_36_loc_0e78-pcref_0e2e
+jtent_0e3c:
     dc.w    hunk_36_loc_0e4e-pcref_0e2e
+jtent_0e3e:
     dc.w    hunk_36_loc_0e54-pcref_0e2e
+jtent_0e40:
     dc.w    hunk_36_loc_0e5a-pcref_0e2e
+jtent_0e42:
     dc.w    hunk_36_loc_0e60-pcref_0e2e
+jtent_0e44:
     dc.w    hunk_36_loc_0e66-pcref_0e2e
+jtent_0e46:
     dc.w    hunk_36_loc_0e6c-pcref_0e2e
+jtent_0e48:
     dc.w    hunk_36_loc_0e72-pcref_0e2e
+jtent_0e4a:
     dc.w    hunk_36_loc_0e78-pcref_0e2e
+jtent_0e4c:
     dc.w    hunk_36_loc_0e4e-pcref_0e2e
 hunk_36_loc_0e4e: ; jt: pcref_0e2e
     move.w #$ffe,d6
@@ -70561,27 +67590,24 @@ pcref_0ff2:
     dc.b    $00,$2e,$00,$34,$00,$3a,$00,$40,$00,$46,$00,$4c,$00,$26,$7c,$00
     dc.b    $3a,$3c,$09,$f0,$60,$38
 hint_1018:
-; --- unverified ---
-    moveq #0,d6
-    move.w #$1f0,d5
-    bra.s hunk_36_loc_1050
+    dc.b    $7c,$00,$3a,$3c,$01,$f0,$60,$30
 hint_1020:
-; --- unverified ---
-    move.w #$fee,d6
-    bra.s hunk_36_loc_1050
+    dc.b    $3c,$3c
+hint_1022:
+    dc.b    $0f,$ee,$60,$2a
+    dc.b    $3c,$3c,$0f,$ea,$60,$24
 hint_102c:
-; --- unverified ---
-    move.w #$faa,d6
-    bra.s hunk_36_loc_1050
+    dc.b    $3c,$3c
+hint_102e:
+    dc.b    $0f,$aa,$60,$1e
+    dc.b    $3c,$3c,$0f,$a8,$60,$18
 hint_1038:
-; --- unverified ---
-    move.w #$f88,d6
-    bra.s hunk_36_loc_1050
+    dc.b    $3c,$3c
+hint_103a:
+    dc.b    $0f,$88,$60,$12
+    dc.b    $3c,$3c,$0f,$80,$60,$0c
 hint_1044:
-; --- unverified ---
-    moveq #0,d6
-    move.w #$ba0,d5
-    bra.s hunk_36_loc_1050
+    dc.b    $7c,$00,$3a,$3c,$0b,$a0,$60,$04
 hint_104c:
     dc.b    $3c,$3c,$0f,$fe
 hunk_36_loc_1050:
@@ -70931,83 +67957,42 @@ hunk_36_loc_13ba:
     unlk a5
     rts
 hint_13c2:
-; --- unverified ---
-    movem.l d7/a3/a6,-(sp)
-    move.l 16(sp),d7
-    clr.l -(sp)
-    pea pcref_014a(pc)
-    bsr.w hunk_36_loc_262e
+    dc.b    $48,$e7,$01,$12,$2e,$2f,$00,$10,$42,$a7,$48,$7a,$ed,$7c,$61,$00
+    dc.b    $12,$5c
 hint_13d4:
-; --- unverified ---
-    addq.w #8,sp
-    move.l d7,d0
-    addq.l #4,d0
-    move.l #$10002,d1
-    movea.l AbsExecBase,a6
-    jsr -198(a6) ; unresolved_indirect_hint:disp
+    dc.b    $50,$4f,$20,$07,$58,$80,$22,$3c,$00,$01,$00,$02,$2c,$78,$00,$04
+    dc.b    $4e,$ae,$ff,$3a
 hint_13e8:
-; --- unverified ---
-    movea.l d0,a3
-    move.l a3,d0
-    beq.s hunk_36_hint_13f0
+    dc.b    $26,$40,$20,$0b,$67,$02
 hint_13ee:
     dc.b    $26,$c7
 hunk_36_hint_13f0:
-; --- unverified ---
-    move.l a3,d0
-    movem.l (sp)+,d7/a3/a6
-    rts
+    dc.b    $20,$0b,$4c,$df,$48,$80,$4e,$75
 hunk_36_hint_13f8:
-; --- unverified ---
-    movem.l d7/a3/a6,-(sp)
-    move.l 16(sp),d7
-    clr.l -(sp)
-    pea -4762(pc)
-    bsr.w hunk_36_loc_262e
+    dc.b    $48,$e7,$01,$12,$2e,$2f,$00,$10,$42,$a7,$48,$7a,$ed,$66,$61,$00
+    dc.b    $12,$26
 hunk_36_hint_140a:
-; --- unverified ---
-    addq.w #8,sp
-    move.l d7,d0
-    addq.l #4,d0
-    moveq #1,d1
-    swap d1
-    movea.l AbsExecBase,a6
-    jsr -198(a6) ; unresolved_indirect_hint:disp
+    dc.b    $50,$4f,$20,$07,$58,$80,$72,$01
+    dc.b    "HA,x",0
+    dc.b    $04,$4e,$ae,$ff,$3a
 hint_141c:
-; --- unverified ---
-    movea.l d0,a3
-    move.l a3,d0
-    beq.s hint_1424
+    dc.b    $26,$40,$20,$0b,$67,$02
 hint_1422:
     dc.b    $26,$c7
 hint_1424:
-; --- unverified ---
-    move.l a3,d0
-    movem.l (sp)+,d7/a3/a6
-    rts
+    dc.b    $20,$0b,$4c,$df,$48,$80,$4e,$75
 hint_142c:
-; --- unverified ---
-    movem.l a3/a6,-(sp)
-    movea.l 12(sp),a3
-    move.l a3,d0
-    beq.s hint_144c
+    dc.b    $48,$e7,$00,$12,$26,$6f,$00,$0c,$20,$0b,$67,$14
 hint_1438:
-; --- unverified ---
-    subq.l #4,a3
-    move.l a3,d0
-    beq.s hint_144c
+    dc.b    $59,$8b,$20,$0b,$67,$0e
 hunk_36_hint_143e:
-; --- unverified ---
-    move.l (a3),d0
-    addq.l #4,d0
-    movea.l a3,a1
-    movea.l AbsExecBase,a6
-    jsr -210(a6) ; unresolved_indirect_hint:disp
+    dc.b    $20,$13,$58,$80
+    dc.b    '"',"K,x",0
+    dc.b    $04,$4e,$ae
+hunk_36_loc_144a:
+    dc.b    $ff,$2e
 hint_144c:
-; --- unverified ---
-    moveq #0,d0
-    movem.l (sp)+,a3/a6
-    rts
+    dc.b    $70,$00,$4c,$df,$48,$00,$4e,$75
 hunk_36_loc_1454:
     link a5,#0
     move.l d2,-(sp)
@@ -71174,16 +68159,19 @@ loc_15b4:
 pcref_15be:
     dc.b    $00,$08
 pcref_15c0:
-    dc.b    $00,$42,$00,$74,$00,$d8,$01,$b4,$20,$06,$12,$00,$48,$81,$30,$2c
-    dc.b    $ec,$ba,$52,$40,$34,$2c,$ec,$bc,$52,$42,$36,$2c,$ec,$8a,$48,$c3
-    dc.b    $e5,$83,$55,$4f,$3f,$02,$3f,$00,$3f,$05,$3f,$01,$3f,$04,$41,$ec
-    dc.b    $bc
+    dc.b    $00,$42
+jtent_15c2:
+    dc.b    $00,$74
+jtent_15c4:
+    dc.b    $00,$d8
+jtent_15c6:
+    dc.b    $01,$b4,$20,$06,$12,$00,$48,$81,$30,$2c,$ec,$ba,$52,$40,$34,$2c
+    dc.b    $ec,$bc,$52,$42,$36,$2c,$ec,$8a,$48,$c3,$e5,$83,$55,$4f,$3f,$02
+    dc.b    $3f,$00,$3f,$05,$3f,$01,$3f,$04,$41,$ec,$bc
     dc.b    "z/08",0
     dc.b    $61,$00,$01,$e4
 hint_15fa:
-; --- unverified ---
-    lea 16(sp),sp
-    bra.w hunk_36_loc_17d4
+    dc.b    $4f,$ef,$00,$10,$60,$00,$01,$d4
 hunk_36_loc_1602: ; jt: pcref_15c0
     move.l d6,d0
     move.b d0,d1
@@ -72034,35 +69022,18 @@ hunk_36_loc_1db6:
     unlk a5
     rts
 hint_1dbe:
-; --- unverified ---
-    movem.l d7/a3,-(sp)
-    move.w 12(sp),d7
-    movea.l 14(sp),a3
-    clr.l -(sp)
-    pea pcref_01dc(pc)
-    bsr.w hunk_36_loc_262e
+    dc.b    $48,$e7,$01,$10,$3e,$2f,$00,$0c,$26,$6f,$00,$0e,$42,$a7,$48,$7a
+    dc.b    $e4,$0e,$61,$00,$08,$5c
 hint_1dd4:
-; --- unverified ---
-    moveq #0,d0
-    move.w d7,d0
-    asl.l #4,d0
-    move.l d0,(sp)
-    bsr.w hunk_36_hint_13f8
+    dc.b    $70,$00,$30,$07,$e9,$80,$2e,$80,$61,$00,$f6,$1a
 hint_1de0:
-; --- unverified ---
-    addq.w #8,sp
-    move.l d0,(a3)
-    bne.s hint_1dea
+    dc.b    $50,$4f,$26,$80,$66,$04
 hint_1de6:
-; --- unverified ---
-    moveq #-1,d0
-    bra.s hint_1dec
+    dc.b    $70,$ff,$60,$02
 hint_1dea:
     dc.b    $70,$00
 hint_1dec:
-; --- unverified ---
-    movem.l (sp)+,d7/a3
-    rts
+    dc.b    $4c,$df,$08,$80,$4e,$75
 hunk_36_loc_1df2:
     link a5,#-100
     movem.l d2-d3/d5-d7/a2-a3,-(sp)
@@ -72800,14 +69771,8 @@ hunk_36_loc_24c4:
     move.l (sp)+,d7
     rts
 hunk_36_hint_24c8:
-; --- unverified ---
-    move.l d7,-(sp)
-    move.w 8(sp),d7
-    lea -17204(a4),a0
-    move.b 0(a0,d7.w),d0
-    ext.w d0
-    move.l (sp)+,d7
-    rts
+    dc.b    $2f,$07,$3e,$2f,$00,$08,$41,$ec,$bc,$cc,$10,$30,$70,$00,$48,$80
+    dc.b    $2e,$1f,$4e,$75
 hunk_36_loc_24dc:
     movem.l d2/d7/a3,-(sp)
     movea.l 16(sp),a3
@@ -72864,6 +69829,8 @@ hunk_36_loc_254e:
     adda.l d6,a0
     movea.l a0,a3
     lea -15844(a4),a0
+    dc.b    $30,$30,$68,$00,$36,$80,$22,$00,$02,$41,$0f,$00,$41,$ec,$bc,$8c
+    dc.b    $d1,$c6,$24,$48,$34,$3c,$0f,$00,$c4,$52,$b2,$42,$64,$0c
 loc_2578:
     addi.w #$100,(a3)
     moveq #1,d0
@@ -73041,8 +70008,8 @@ loc_2702:
 loc_2708:
     jmp sub_0c54
 pcref_270e:
-; --- unverified ---
-    jmp sub_01f8
+    dc.b    $4e,$f9
+    dc.l    sub_01f8
 
 ; Hunk 37: 516 bytes, 0 entities, 7 blocks
 
@@ -73071,9 +70038,7 @@ hunk_37_loc_0090:
     moveq #0,d0
     rts
 pcref_00a8:
-; --- unverified ---
-    moveq #0,d0
-    rts
+    dc.b    $70,$00,$4e,$75
 hunk_37_loc_00ac:
     link a5,#-20
     move.l 8(a5),hunk_38_dat_0000
@@ -73107,41 +70072,27 @@ hunk_37_loc_0154:
     unlk a5
     rts
 hunk_37_hint_0158:
-; --- unverified ---
-    link a5,#0
-    jsr pcref_01ec(pc)
+    dc.b    $4e,$55,$00,$00,$4e,$ba,$00,$8e
 hunk_37_hint_0160:
-; --- unverified ---
-    jsr hunk_37_loc_01f8(pc)
+    dc.b    $4e,$ba,$00,$96
 hunk_37_hint_0164:
-; --- unverified ---
-    move.l 8(a5),_custom+bltapt
-    move.l 12(a5),_custom+bltbpt
-    move.l 16(a5),_custom+bltcpt
-    move.l 20(a5),_custom+bltdpt
-    move.w 24(a5),_custom+bltcon0
-    move.w 26(a5),_custom+bltcon1
-    move.w 28(a5),_custom+bltadat
-    move.w 30(a5),_custom+bltbdat
-    move.w 34(a5),_custom+bltafwm
-    move.w 36(a5),_custom+bltalwm
-    move.w 32(a5),_custom+bltcdat
-    move.w 38(a5),_custom+bltamod
-    move.w 40(a5),_custom+bltbmod
-    move.w 42(a5),_custom+bltcmod
-    move.w 44(a5),_custom+bltdmod
-    move.w 46(a5),_custom+bltsize
-    jsr pcref_01f2(pc)
+    dc.b    $23,$ed,$00,$08,$00,$df,$f0,$50,$23,$ed,$00,$0c,$00,$df,$f0,$4c
+    dc.b    $23,$ed,$00,$10,$00,$df,$f0,$48,$23,$ed,$00,$14,$00,$df,$f0,$54
+    dc.b    $33,$ed,$00,$18,$00,$df,$f0,$40,$33,$ed,$00,$1a,$00,$df,$f0,$42
+    dc.b    $33,$ed,$00,$1c,$00,$df,$f0,$74,$33,$ed,$00,$1e,$00,$df,$f0,$72
+    dc.b    $33,$ed,$00,$22,$00,$df,$f0,$44,$33,$ed,$00,$24,$00,$df,$f0,$46
+    dc.b    $33,$ed,$00,$20,$00,$df,$f0,$70,$33,$ed,$00,$26,$00,$df,$f0,$64
+    dc.b    $33,$ed,$00,$28,$00,$df,$f0,$62,$33,$ed,$00,$2a,$00,$df,$f0,$60
+    dc.b    $33,$ed,$00,$2c,$00,$df,$f0,$66,$33,$ed,$00,$2e,$00,$df,$f0,$58
+    dc.b    $4e,$ba,$00,$0c
 hunk_37_hint_01e8:
-; --- unverified ---
-    unlk a5
-    rts
+    dc.b    $4e,$5d,$4e,$75
 pcref_01ec:
-; --- unverified ---
-    jmp hunk_52_loc_00b8
+    dc.b    $4e,$f9
+    dc.l    hunk_52_loc_00b8
 pcref_01f2:
-; --- unverified ---
-    jmp hunk_52_loc_00c8
+    dc.b    $4e,$f9
+    dc.l    hunk_52_loc_00c8
 hunk_37_loc_01f8:
     jmp hunk_52_loc_0070
 hunk_37_loc_01fe:
@@ -73456,23 +70407,23 @@ hunk_43_dat_000e:
     dc.b    "AudioTimer",0
     dc.b    $00
 pcref_001a:
-    dc.b    "Can't AllocMem"
+    dc.b    "Can","'","t AllocMem"
 dat_0028:
     dc.b    " MsgPort.",$0a,0
     dc.b    $00
 hunk_43_pcref_0034:
-    dc.b    "Can't AllocMem Interrupt.",$0a,0
+    dc.b    "Can","'","t AllocMem Interrupt.",$0a,0
     dc.b    $00
 pcref_0050:
-    dc.b    "Can't create IOReq",$0a,0
+    dc.b    "Can","'","t create IOReq",$0a,0
 hunk_43_opendevice_devname:
     dc.b    "timer.device",0
     dc.b    $00
 hunk_43_pcref_0072:
-    dc.b    "Can't open timer.device",$0a,0
+    dc.b    "Can","'","t open timer.device",$0a,0
     dc.b    $00
 pcref_008c:
-    dc.b    "open_vblank: Can't alloc int structure",$0a,0
+    dc.b    "open_vblank: Can","'","t alloc int structure",$0a,0
 str_00b4:
     dc.b    "VertB-Musi"
 hint_00be:
@@ -73480,113 +70431,59 @@ hint_00be:
 pcref_00c0:
     dc.b    $48,$e7
 hint_00c2:
-; --- unverified ---
-    btst d0,(a2)+
-    lea dat_8000,a4
-    movea.l -16156(a4),a0
-    movea.l AbsExecBase,a6
-    jsr -372(a6) ; unresolved_indirect_hint:disp
+    dc.b    $01,$1a,$49,$f9
+    dc.l    dat_8000
+    dc.b    $20,$6c,$c0,$e4,$2c,$78,$00,$04,$4e,$ae,$fe,$8c
 hint_00d6:
-; --- unverified ---
-    movea.l d0,a3
-    move.l a3,d0
-    beq.w hunk_43_hint_018a
+    dc.b    $26,$40,$20,$0b,$67,$00,$00,$ae
 hint_00de:
-; --- unverified ---
-    tst.w -16150(a4)
-    bne.w hunk_43_hint_018a
+    dc.b    $4a,$6c,$c0,$ea,$66,$00,$00,$a6
 hint_00e6:
-; --- unverified ---
-    move.l a3,-(sp)
-    bsr.w hunk_43_loc_0198
+    dc.b    $2f,$0b,$61,$00,$00,$ae
 hunk_43_hint_00ec:
-; --- unverified ---
-    addq.w #4,sp
-    addq.l #1,8116(a4)
-    addq.w #1,-32534(a4)
-    move.w -32534(a4),d0
-    ext.l d0
-    divs.w #$10,d0
-    swap d0
-    move.w d0,-32534(a4)
-    tst.w -5396(a4)
-    bne.s hunk_43_hint_0112
+    dc.b    $58,$4f,$52,$ac,$1f,$b4,$52,$6c,$80,$ea,$30,$2c,$80,$ea,$48,$c0
+    dc.b    $81,$fc,$00,$10,$48,$40,$39,$40,$80,$ea,$4a,$6c,$ea,$ec,$66,$06
 hint_010c:
-; --- unverified ---
-    tst.b -5240(a4)
-    beq.s hunk_43_hint_0152
+    dc.b    $4a,$2c,$eb,$88,$67,$40
 hunk_43_hint_0112:
     dc.b    $3e,$3c,$00,$cc
 hint_0116:
-; --- unverified ---
-    cmpi.w #$dc,d7
-    bge.s hunk_43_hint_0152
+    dc.b    $0c,$47,$00,$dc,$6c,$36
 hint_011c:
-; --- unverified ---
-    move.l d7,d0
-    ext.l d0
-    add.l d0,d0
-    lea 6504(a4),a0
-    tst.w 0(a0,d0.l)
-    beq.s hunk_43_hint_014e
+    dc.b    $20,$07,$48,$c0,$d0,$80,$41,$ec,$19,$68,$4a,$70,$08,$00,$67,$22
 hunk_43_hint_012c:
-; --- unverified ---
-    lea 6504(a4),a0
-    subq.w #1,0(a0,d0.l)
-    lea 6504(a4),a0
-    tst.w 0(a0,d0.l)
-    bne.s hunk_43_hint_014e
+    dc.b    $41,$ec,$19,$68,$53,$70,$08,$00,$41,$ec,$19,$68,$4a,$70,$08,$00
+    dc.b    $66,$10
 hint_013e:
     dc.b    $20,$07,$48,$c0,$d0,$80,$41,$ec,$19,$88,$31,$bc,$00,$01,$08,$00
 hunk_43_hint_014e:
-; --- unverified ---
-    addq.w #1,d7
-    bra.s hint_0116
+    dc.b    $52,$47,$60,$c4
 hunk_43_hint_0152:
-; --- unverified ---
-    tst.w -5396(a4)
-    beq.s hint_0190
+    dc.b    $4a,$6c,$ea,$ec,$67,$38
 hunk_43_hint_0158:
-; --- unverified ---
-    tst.w -10568(a4)
-    beq.s hunk_43_hint_0168
+    dc.b    $4a,$6c,$d6,$b8,$67,$0a
 hunk_43_hint_015e:
-; --- unverified ---
-    tst.w 7040(a4)
-    beq.s hunk_43_hint_0168
+    dc.b    $4a,$6c,$1b,$80,$67,$04
 hunk_43_hint_0164:
     dc.b    $53,$6c,$1b,$80
 hunk_43_hint_0168:
-; --- unverified ---
-    addq.w #1,7824(a4)
-    tst.w -32200(a4)
-    beq.s hint_0176
+    dc.b    $52,$6c,$1e,$90,$4a,$6c,$82,$38,$67,$04
 hint_0172:
-; --- unverified ---
-    jsr pcref_04dc(pc)
+    dc.b    $4e,$ba,$03,$68
 hint_0176:
     dc.b    $4a,$6c,$bf,$ce
 hint_017a:
-; --- unverified ---
-    beq.s hint_0190
+    dc.b    $67,$14
 hint_017c:
-; --- unverified ---
-    tst.l -4948(a4)
-    beq.s hint_0190
+    dc.b    $4a,$ac,$ec,$ac,$67,$0e
 hint_0182:
-; --- unverified ---
-    movea.l -4948(a4),a0
-    jsr (a0) ; unresolved_indirect_hint:ind
+    dc.b    $20,$6c,$ec,$ac,$4e,$90
 hint_0188:
-; --- unverified ---
-    bra.s hint_0190
+    dc.b    $60,$06
 hunk_43_hint_018a:
     dc.b    $39,$7c,$00,$02,$c0,$ea
 hint_0190:
-; --- unverified ---
-    moveq #0,d0
-    movem.l (sp)+,d7/a3-a4/a6
-    rts
+    dc.b    $70,$00,$4c,$df,$58,$80,$4e,$75
 hunk_43_loc_0198:
     movem.l a3-a4,-(sp)
     lea dat_8000,a4
@@ -73841,71 +70738,44 @@ hunk_43_loc_044e:
     movem.l (sp)+,a4/a6
     rts
 hint_0454:
-; --- unverified ---
-    move.l a4,-(sp)
-    lea dat_8000,a4
-    tst.w -16150(a4)
-    bne.s hint_0476
+    dc.b    $2f,$0c,$49,$f9
+    dc.l    dat_8000
+    dc.b    $4a,$6c,$c0,$ea,$66,$14
 hunk_43_hint_0462:
     dc.b    $39,$7c,$00,$01,$c0,$ea
 hint_0468:
-; --- unverified ---
-    moveq #2,d0
-    cmp.w -16150(a4),d0
-    beq.s hint_0476
+    dc.b    $70,$02,$b0,$6c,$c0,$ea,$67,$06
 hint_0470:
-; --- unverified ---
-    bsr.w hunk_43_loc_01c4
+    dc.b    $61,$00,$fd,$52
 hint_0474:
-; --- unverified ---
-    bra.s hint_0468
+    dc.b    $60,$f2
 hint_0476:
-; --- unverified ---
-    movea.l (sp)+,a4
-    rts
+    dc.b    $28,$5f,$4e,$75
 hint_047a:
-; --- unverified ---
-    move.l a4,-(sp)
-    lea dat_8000,a4
-    clr.w -16150(a4)
-    move.l -16160(a4),-(sp)
-    bsr.w hunk_43_loc_0198
+    dc.b    $2f,$0c,$49,$f9
+    dc.l    dat_8000
+    dc.b    $42,$6c,$c0,$ea,$2f,$2c,$c0,$e0,$61,$00,$fd,$0c
 hint_048e:
-; --- unverified ---
-    addq.w #4,sp
-    movea.l (sp)+,a4
-    rts
+    dc.b    "XO(_Nu"
 hint_0494:
-; --- unverified ---
-    movem.l a4/a6,-(sp)
-    lea dat_8000,a4
-    moveq #5,d0
-    movea.l 8128(a4),a1
-    movea.l AbsExecBase,a6
-    jsr -174(a6) ; unresolved_indirect_hint:disp
+    dc.b    $48,$e7,$00,$0a,$49,$f9
+    dc.l    dat_8000
+    dc.b    $70,$05,$22,$6c,$1f,$c0,$2c,$78,$00,$04,$4e,$ae,$ff,$52
 hint_04ac:
-; --- unverified ---
-    movem.l (sp)+,a4/a6
-    rts
+    dc.b    $4c,$df,$50,$00,$4e,$75
 hint_04b2:
-; --- unverified ---
-    movem.l a4/a6,-(sp)
-    lea dat_8000,a4
-    moveq #5,d0
-    movea.l 8128(a4),a1
-    movea.l AbsExecBase,a6
-    jsr -168(a6) ; unresolved_indirect_hint:disp
+    dc.b    $48,$e7,$00,$0a,$49,$f9
+    dc.l    dat_8000
+    dc.b    $70,$05,$22,$6c,$1f,$c0,$2c,$78,$00,$04,$4e,$ae,$ff,$58
 hint_04ca:
-; --- unverified ---
-    movem.l (sp)+,a4/a6
-    rts
+    dc.b    $4c,$df,$50,$00,$4e,$75
 hunk_43_loc_04d0:
     jmp sub_066c
 hunk_43_loc_04d6:
     jmp sub_2380
 pcref_04dc:
-; --- unverified ---
-    jmp hunk_11_loc_017a
+    dc.b    $4e,$f9
+    dc.l    hunk_11_loc_017a
 hunk_43_loc_04e2:
     jmp sub_2510
 hunk_43_loc_04e8:
@@ -73979,14 +70849,14 @@ hunk_44_str_009a:
     dc.b    "inst.dat",0
     dc.b    $00
 pcref_00a4:
-    dc.b    "Can't open inst.dat!",$0a,0
+    dc.b    "Can","'","t open inst.dat!",$0a,0
 hunk_44_str_00ba:
-    dc.b    "load_percussion can't open ",0
+    dc.b    "load_percussion can","'","t open ",0
 hunk_44_str_00d6:
     dc.b    "BODY",0
     dc.b    $00
 str_00dc:
-    dc.b    "load_percussion can't find BODY in ",0
+    dc.b    "load_percussion can","'","t find BODY in ",0
 hunk_44_str_0100:
     dc.b    "load_percussion: Too many notes!",0
     dc.b    $00
@@ -74001,9 +70871,9 @@ hunk_44_str_0160:
 hunk_44_str_0168:
     dc.b    " index ",0
 str_0170:
-    dc.b    "prep_instrument: can't open sample ",0
+    dc.b    "prep_instrument: can","'","t open sample ",0
 str_0194:
-    dc.b    "prep_instrument: can't find BODY in ",0
+    dc.b    "prep_instrument: can","'","t find BODY in ",0
     dc.b    $00
 pcref_01ba:
     dc.b    "Prepping for song (hash) %lX",$0a,0
@@ -74049,20 +70919,12 @@ hunk_44_loc_0250:
     unlk a5
     rts
 hunk_44_hint_0258:
-; --- unverified ---
-    movem.l d7/a4,-(sp)
-    lea dat_8000,a4
-    move.w 12(sp),d7
-    moveq #1,d0
-    move.w d0,-(sp)
-    pea ($ffff).w
-    move.w d7,-(sp)
-    jsr pcref_0b2e(pc)
+    dc.b    $48,$e7,$01,$08,$49,$f9
+    dc.l    dat_8000
+    dc.b    $3e,$2f,$00,$0c,$70,$01,$3f,$00,$48,$78,$ff,$ff,$3f,$07,$4e,$ba
+    dc.b    $08,$bc
 hunk_44_hint_0274:
-; --- unverified ---
-    addq.w #8,sp
-    movem.l (sp)+,d7/a4
-    rts
+    dc.b    $50,$4f,$4c,$df,$10,$80,$4e,$75
 hunk_44_loc_027c:
     movem.l d4-d7/a3-a4,-(sp)
     lea dat_8000,a4
@@ -74989,27 +71851,17 @@ hunk_44_loc_0abe:
     unlk a5
     rts
 hint_0ac8:
-; --- unverified ---
-    movem.l d7/a4,-(sp)
-    lea dat_8000,a4
-    move.w 12(sp),d7
-    subq.w #2,sp
-    move.w d7,-(sp)
-    jsr pcref_0b34(pc)
+    dc.b    $48,$e7,$01,$08,$49,$f9
+    dc.l    dat_8000
+    dc.b    $3e,$2f,$00,$0c,$55,$4f,$3f,$07,$4e,$ba,$00,$58
 hint_0ade:
     dc.b    $58,$4f
 hint_0ae0:
-; --- unverified ---
-    move.b -15992(a4),d0
-    btst #1,d0
-    beq.s hint_0aec
+    dc.b    $10,$2c,$c1,$88,$08,$00,$00,$01,$67,$02
 hint_0aea:
-; --- unverified ---
-    bra.s hint_0ae0
+    dc.b    $60,$f4
 hint_0aec:
-; --- unverified ---
-    movem.l (sp)+,d7/a4
-    rts
+    dc.b    $4c,$df,$10,$80,$4e,$75
 hunk_44_loc_0af2:
     movem.l d7/a4,-(sp)
     lea dat_8000,a4
@@ -75030,11 +71882,11 @@ hunk_44_loc_0b22:
 hunk_44_loc_0b28:
     jmp sub_055e
 pcref_0b2e:
-; --- unverified ---
-    jmp sub_1c88
+    dc.b    $4e,$f9
+    dc.l    sub_1c88
 pcref_0b34:
-; --- unverified ---
-    jmp sub_051a
+    dc.b    $4e,$f9
+    dc.l    sub_051a
 hunk_44_loc_0b3a:
     jmp hunk_36_loc_262e
 hunk_44_loc_0b40:
@@ -75316,38 +72168,15 @@ hunk_46_loc_0216:
     unlk a5
     rts
 hint_021e:
-; --- unverified ---
-    movem.l d6-d7/a3,-(sp)
-    move.w 16(sp),d7
-    move.w 18(sp),d6
-    movea.l 20(sp),a3
-    move.l d7,d0
-    ext.l d0
-    add.l d0,d0
-    lea -15844(a4),a0
-    move.w d6,0(a0,d0.l)
-    move.l d7,d0
-    addq.w #1,d0
-    subq.w #2,sp
-    move.w d0,-(sp)
-    pea -15844(a4)
-    pea 10010(a4)
-    jsr hunk_46_loc_0276(pc)
+    dc.b    $48,$e7,$03,$10,$3e,$2f,$00,$10,$3c,$2f,$00,$12,$26,$6f,$00,$14
+    dc.b    $20,$07,$48,$c0,$d0,$80,$41,$ec,$c2,$1c,$31,$86,$08,$00,$20,$07
+    dc.b    "R@UO?",0
+    dc.b    $48,$6c,$c2,$1c,$48,$6c,$27,$1a,$4e,$ba,$00,$28
 hunk_46_hint_0250:
-; --- unverified ---
-    lea 44(a3),a0
-    move.l d7,d0
-    addq.w #1,d0
-    subq.w #2,sp
-    move.w d0,(sp)
-    pea -15844(a4)
-    move.l a0,-(sp)
-    jsr hunk_46_loc_0276(pc)
+    dc.b    $41,$eb,$00,$2c,$20,$07,$52,$40,$55,$4f,$3e,$80,$48,$6c,$c2,$1c
+    dc.b    $2f,$08,$4e,$ba,$00,$12
 hunk_46_hint_0266:
-; --- unverified ---
-    lea 22(sp),sp
-    movem.l (sp)+,d6-d7/a3
-    rts
+    dc.b    $4f,$ef,$00,$16,$4c,$df,$08,$c0,$4e,$75
 hunk_46_loc_0270:
     jmp hunk_52_loc_00d8
 hunk_46_loc_0276:
@@ -76019,12 +72848,12 @@ hunk_46_loc_02b8:
     dc.l    hunk_30_loc_02ca
     dc.l    hunk_30_loc_02d0
     dc.l    hunk_30_loc_02d6
-    dc.b    $22,"Welcome back to ",$22,"Harry Ding Live",$22,"...",$22,0
-    dc.b    $22,"With us now is Bobbi from New York. Go ahead caller..you're on the air.",$22,0
-    dc.b    $22,"...Harry...you won't believe who I just saw this morning...",$22,0
-    dc.b    $22,"  THE KING!  ",$22,0
-    dc.b    $22,"There you have it folks...the third sighting this week.",$22,0
-    dc.b    "She's not interested.",0
+    dc.b    '"',"Welcome back to ",'"',"Harry Ding Live",'"',"...",'"',0
+    dc.b    '"',"With us now is Bobbi from New York. Go ahead caller..you","'","re on the air.",'"',0
+    dc.b    '"',"...Harry...you won","'","t believe who I just saw this morning...",'"',0
+    dc.b    '"',"  THE KING!  ",'"',0
+    dc.b    '"',"There you have it folks...the third sighting this week.",'"',0
+    dc.b    "She","'","s not interested.",0
     dc.b    "Knock Knock",0
     dc.b    "Ding Dong",0
     dc.b    "(Faint sound of footsteps.)",0
@@ -76058,23 +72887,23 @@ hunk_46_loc_02b8:
     dc.l    hunk_30_loc_09e2
     dc.l    hunk_30_loc_0a2e
     dc.l    hunk_30_loc_0a46
-    dc.b    $22,"Gee...I'm glad I remembered that I almost forgot to fill my thermos today!",$22,0
-    dc.b    "Why should he go with you? You've never done anything for him.",0
+    dc.b    '"',"Gee...I","'","m glad I remembered that I almost forgot to fill my thermos today!",'"',0
+    dc.b    "Why should he go with you? You","'","ve never done anything for him.",0
     dc.b    "The opening is too small for even your wimpy wrist to fit.",0
     dc.b    "(I think Helmut ate the bread.)",0
-    dc.b    "You'll have to open it for him.",0
-    dc.b    $22,"Hey...now anything is possible!",$22,0
-    dc.b    $22,"Yay!!! Now I've got something to look forward to!",$22,0
-    dc.b    "I think you've made a new friend, Les.",0
-    dc.b    $22,"I wish I had one. Seems like there's nothing in the future but more of the past.",$22,0
-    dc.b    $22,"I've been feeling a little small lately. Seems like there's no future for a guy of my stature. Nothing to look forward to. The same old routine day after day.",$22,0
-    dc.b    "There's nobody here.",0
-    dc.b    $22,"Gee, sir...uh Colonel? I'd really like to see more of your circus.",$22,0
-    dc.b    $22,"Boy...Ah say...boy, Ah sure could use some hep cleanin' up around them thar critters.",$22,0
-    dc.b    $22,"I'd be happy to give it a try.",$22,0
-    dc.b    $22,"OK...y'all do a real good job, and Ah suppose Ah kin git y'all a free ticket.",$22,0
-    dc.b    $22,"Gee, thanks.",$22,0
-    dc.b    $22,"Did I tell you that I studied Biblical Anthropology? Anyway, this scarf is kind of like the Shroud of Turin. Get my drift?",$22,0
+    dc.b    "You","'","ll have to open it for him.",0
+    dc.b    '"',"Hey...now anything is possible!",'"',0
+    dc.b    '"',"Yay!!! Now I","'","ve got something to look forward to!",'"',0
+    dc.b    "I think you","'","ve made a new friend, Les.",0
+    dc.b    '"',"I wish I had one. Seems like there","'","s nothing in the future but more of the past.",'"',0
+    dc.b    '"',"I","'","ve been feeling a little small lately. Seems like there","'","s no future for a guy of my stature. Nothing to look forward to. The same old routine day after day.",'"',0
+    dc.b    "There","'","s nobody here.",0
+    dc.b    '"',"Gee, sir...uh Colonel? I","'","d really like to see more of your circus.",'"',0
+    dc.b    '"',"Boy...Ah say...boy, Ah sure could use some hep cleanin","'"," up around them thar critters.",'"',0
+    dc.b    '"',"I","'","d be happy to give it a try.",'"',0
+    dc.b    '"',"OK...y","'","all do a real good job, and Ah suppose Ah kin git y","'","all a free ticket.",'"',0
+    dc.b    '"',"Gee, thanks.",'"',0
+    dc.b    '"',"Did I tell you that I studied Biblical Anthropology? Anyway, this scarf is kind of like the Shroud of Turin. Get my drift?",'"',0
     dc.b    $00,$01,$90
     dcb.b   8,0
     dc.b    $01,$90
@@ -76930,14 +73759,14 @@ hunk_46_loc_02b8:
     dc.l    dat_0484
     dc.l    dat_04bc
     dcb.b   4,0
-    dc.b    $22,"No articles returned without the receipt.",$22,0
-    dc.b    $22,"Yeah...I think you're kinda cute.",$22,0
-    dc.b    $22,"You're not manly enough for me.",$22,0
-    dc.b    $22,"This one particular suit has been here long before I came.",$22,0
-    dc.b    $22,"Try looking it up.",$22,0
-    dc.b    $22,"She's got more plastic than the interior of a cheap car.",$22,0
-    dc.b    $22,"He's nothing but a sleazy lounge lizard. I think his entertaining days are numbered.",$22,0
-    dc.b    $22,"Sorry. I don't know a thing about WILL's 'Search for THE KING' contest.",$22,0
+    dc.b    '"',"No articles returned without the receipt.",'"',0
+    dc.b    '"',"Yeah...I think you","'","re kinda cute.",'"',0
+    dc.b    '"',"You","'","re not manly enough for me.",'"',0
+    dc.b    '"',"This one particular suit has been here long before I came.",'"',0
+    dc.b    '"',"Try looking it up.",'"',0
+    dc.b    '"',"She","'","s got more plastic than the interior of a cheap car.",'"',0
+    dc.b    '"',"He","'","s nothing but a sleazy lounge lizard. I think his entertaining days are numbered.",'"',0
+    dc.b    '"',"Sorry. I don","'","t know a thing about WILL","'","s ","'","Search for THE KING","'"," contest.",'"',0
     dcb.b   4,0
     dc.l    dat_21e10
     dc.l    dat_222c0
@@ -77030,7 +73859,7 @@ hunk_46_loc_02b8:
     dc.b    "`1234567890-=\",0
     dc.b    "0qwertyuiop[]",0
     dc.b    $cf,$d0,$d1
-    dc.b    "asdfghjkl;'",0
+    dc.b    "asdfghjkl;","'",0
     dc.b    $00,$cb,$35,$cd,$00
     dc.b    "zxcvbnm,./",0
     dc.b    $d3,$c7,$c8,$c9,$20,$08,$09,$0d,$0d,$1b,$d3,$00,$00,$00,$2d,$00
@@ -77040,7 +73869,7 @@ hunk_46_loc_02b8:
     dc.b    "~!@#$%^&*()_+|",0
     dc.b    "0QWERTYUIOP{}",0
     dc.b    $cf,$d0,$d1
-    dc.b    "ASDFGHJKL:",$22,0
+    dc.b    "ASDFGHJKL:",'"',0
     dc.b    $00,$cb,$35,$cd,$00
     dc.b    "ZXCVBNM<>?",0
     dc.b    $04,$c7,$c8,$c9,$20,$08,$00,$0d,$0d,$1b,$04,$00,$00,$00,$2d,$00

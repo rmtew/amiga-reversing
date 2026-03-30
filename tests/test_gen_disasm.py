@@ -548,6 +548,15 @@ def test_data_region_null_terminated_string() -> None:
     assert ",0" in output
 
 
+def test_data_region_null_terminated_string_handles_embedded_quotes() -> None:
+    data = b'Say "it\'s ok"\x00'
+    f = io.StringIO()
+    emit_data_region(f, data, 0, len(data), {}, {}, set())
+    output = f.getvalue()
+
+    assert output == '    dc.b    "Say ",' + "'\"'" + ',"it","\'","s ok",' + "'\"'" + ',0\n'
+
+
 def test_data_region_prefers_obvious_string_over_word_access() -> None:
     data = b"3.18 (2.8.94)\x00"
     f = io.StringIO()
@@ -1376,6 +1385,96 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target() -
     assert ops[0].value == 0x004A
     assert ops[0].text == "pcref_004a(pc)"
     assert ops[1].kind == "register"
+
+
+def test_build_instruction_semantic_operands_renders_devpac_numeric_pc_relative() -> None:
+    inst = Instruction(offset=0x0040, size=4, opcode=0x41FA,
+                       text="lea     8(pc),a0",
+                       raw=struct.pack(">HH", 0x41FA, 0x0008),
+                       kb_mnemonic="lea", operand_size="l",
+                       operand_texts=("8(pc)", "a0"))
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        assembler_profile_name="devpac",
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert ops[0].text == "*+10(pc)"
+
+
+def test_build_instruction_semantic_operands_renders_devpac_zero_pc_index_relative() -> None:
+    inst = Instruction(offset=0x0040, size=4, opcode=0x4efb,
+                       text="jmp     0(pc,d0.w)",
+                       raw=struct.pack(">HH", 0x4EFB, 0x0000),
+                       kb_mnemonic="jmp", operand_size="w",
+                       operand_texts=("0(pc,d0.w)",))
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+        assembler_profile_name="devpac",
+    )
+
+    ops = build_instruction_semantic_operands(inst, session)
+
+    assert ops[0].text == "*+2(pc,d0.w)"
 
 
 def test_build_instruction_semantic_operands_uses_decoded_base_displacement() -> None:

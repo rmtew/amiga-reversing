@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from disasm.analysis_loader import analysis_cache_is_current
+from disasm.assembler_profiles import load_assembler_profile
 from disasm.emitter import emit_session_rows
 from disasm.session import build_disassembly_session
 from disasm.text import render_rows
@@ -49,9 +50,10 @@ def _entities_need_refresh(binary_path: str, entities_path: str) -> bool:
 
 def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                base_addr: int = 0, code_start: int = 0,
+               assembler_profile_name: str = "vasm",
                profile_stages: bool = False,
                stall_timeout: float | None = None) -> None:
-    """Generate vasm-compatible .s file through the canonical row pipeline."""
+    """Generate assembler-profiled .s output through the canonical row pipeline."""
     stage_timer = StageTimer(enabled=profile_stages)
     if stall_timeout:
         faulthandler.dump_traceback_later(stall_timeout, repeat=True)
@@ -75,6 +77,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                 output_path,
                 base_addr=base_addr,
                 code_start=code_start,
+                assembler_profile_name=assembler_profile_name,
                 profile_stages=profile_stages,
             )
 
@@ -85,10 +88,12 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
         print(f"Rendering {output_path}...")
         with stage_timer.measure("render_text"):
             text = render_rows(rows)
+        assembler_profile = load_assembler_profile(assembler_profile_name)
+        newline = "\n" if assembler_profile.render.line_ending == "lf" else "\r\n"
 
         tmp_output = Path(str(output_path) + ".tmp")
         with stage_timer.measure("write_output"):
-            tmp_output.write_text(text)
+            tmp_output.write_text(text, encoding="utf-8", newline=newline)
             tmp_output.replace(output_path)
 
         for line in stage_timer.format_lines():
@@ -101,7 +106,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate vasm-compatible .s file from binary + entities")
+        description="Generate assembler-profiled .s file from binary + entities")
     parser.add_argument("binary", help="Path to Amiga hunk executable")
     parser.add_argument("--entities", "-e",
                         help="Path to entities.jsonl")
@@ -117,6 +122,12 @@ def main() -> None:
                         help="Byte offset where code begins (skips bootstrap)")
     parser.add_argument("--profile-stages", action="store_true",
                         help="Print coarse wall-clock timing for major stages")
+    parser.add_argument(
+        "--assembler-profile",
+        choices=("vasm", "devpac"),
+        default="vasm",
+        help="Assembler render profile to use for emitted source",
+    )
     parser.add_argument("--stall-timeout", type=float,
                         help="Dump Python traceback every N seconds while running")
     args = parser.parse_args()
@@ -130,5 +141,6 @@ def main() -> None:
     gen_disasm(args.binary, entities, output,
                base_addr=args.base_addr,
                code_start=args.code_start,
+               assembler_profile_name=args.assembler_profile,
                profile_stages=args.profile_stages,
                stall_timeout=args.stall_timeout)

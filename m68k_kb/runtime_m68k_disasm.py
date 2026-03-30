@@ -1747,6 +1747,7 @@ OPERATION_CLASSES = {'ABCD': None,
  'cpTRAPcc': None}
 SOURCE_SIGN_EXTEND = ('ADDA', 'CMPA', 'MOVEA', 'SUBA')
 SHIFT_COUNT_MODULI = {'ASL, ASR': 64, 'LSL, LSR': 64, 'ROL, ROR': 64, 'ROXL, ROXR': 64}
+SIZES_68000 = {'BRA': ('b', 'w'), 'BSR': ('b', 'w'), 'Bcc': ('b', 'w'), 'CHK': ('w',), 'LINK': ('w',)}
 PROCESSOR_MINS: dict[str, str] = {'abcd': '68000',
  'add': '68000',
  'adda': '68000',

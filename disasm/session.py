@@ -1131,6 +1131,7 @@ def build_disassembly_session(
     output_path: str | None = None,
     base_addr: int = 0,
     code_start: int = 0,
+    assembler_profile_name: str = "vasm",
     profile_stages: bool = False,
     phase_timer: PhaseTimer | None = None,
 ) -> DisassemblySession:
@@ -1180,6 +1181,7 @@ def build_disassembly_session(
             extra_entry_points=target_seeded_entrypoint_offsets(
                 target_metadata, hunk_index=0
             ),
+            assembler_profile_name=assembler_profile_name,
             profile_stages=profile_stages,
             phase_timer=phase_timer,
         )
@@ -1207,6 +1209,7 @@ def build_disassembly_session(
                     extra_entry_points=tuple(sorted(extra_entry_points)),
                     target_metadata=target_metadata,
                     apply_target_structure=not first_code_hunk_seen,
+                    assembler_profile_name=assembler_profile_name,
                     phase_timer=phase_timer,
                 )
             )
@@ -1219,6 +1222,7 @@ def build_disassembly_session(
                 entities=entities,
                 hunk=hunk,
                 hf_hunks=hf.hunks,
+                assembler_profile_name=assembler_profile_name,
             )
         )
 
@@ -1241,6 +1245,7 @@ def build_disassembly_session(
             None if source.kind != "raw_binary" else source.address_model
         ),
         profile_stages=profile_stages,
+        assembler_profile_name=assembler_profile_name,
     )
 
 
@@ -1258,6 +1263,7 @@ def _build_code_session(
     code_start: int,
     entry_points: tuple[int, ...],
     extra_entry_points: tuple[int, ...],
+    assembler_profile_name: str,
     profile_stages: bool,
     phase_timer: PhaseTimer | None,
 ) -> DisassemblySession:
@@ -1272,6 +1278,7 @@ def _build_code_session(
         extra_entry_points=extra_entry_points,
         target_metadata=target_metadata,
         apply_target_structure=True,
+        assembler_profile_name=assembler_profile_name,
         phase_timer=phase_timer,
     )
     _refresh_session_memory_cells([hunk_session])
@@ -1292,6 +1299,7 @@ def _build_code_session(
             None if source.kind != "raw_binary" else source.address_model
         ),
         profile_stages=profile_stages,
+        assembler_profile_name=assembler_profile_name,
     )
 
 
@@ -1307,6 +1315,7 @@ def _build_hunk_session_data(
     extra_entry_points: tuple[int, ...],
     target_metadata: TargetMetadata | None,
     apply_target_structure: bool,
+    assembler_profile_name: str,
     phase_timer: PhaseTimer | None,
 ) -> HunkDisassemblySession:
     seed_config = build_entry_seed_config(target_metadata)
@@ -1718,6 +1727,7 @@ def _build_hunk_session_data(
             reloc_base_addr=reloc_base_addr,
             string_ranges=metadata.string_ranges,
             unresolved_indirects=unresolved_indirects,
+            assembler_profile_name=assembler_profile_name,
         )
 
 
@@ -1726,6 +1736,7 @@ def _build_noncode_hunk_session(
     entities: list[EntityRecord],
     hunk: Hunk,
     hf_hunks: list[Hunk],
+    assembler_profile_name: str,
 ) -> HunkDisassemblySession:
     hunk_entities = [e for e in entities if e.get("hunk") == hunk.index]
     hunk_entities.sort(key=lambda e: int(e["addr"], 16))
@@ -1798,4 +1809,5 @@ def _build_noncode_hunk_session(
         absolute_labels=metadata.absolute_labels,
         reserved_absolute_addrs=metadata.reserved_absolute_addrs,
         reloc_target_hunks=metadata.reloc_target_hunks,
+        assembler_profile_name=assembler_profile_name,
     )

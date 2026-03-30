@@ -23,6 +23,7 @@ from disasm.analysis_loader import (
     load_hunk_analysis,
 )
 from disasm.api import listing_window_payload, serialize_row, session_metadata
+from disasm.assembler_profiles import load_assembler_profile
 from disasm.binary_source import RawBinarySource
 from disasm.comments import build_instruction_comment_parts, render_comment_parts
 from disasm.emitter import emit_session_rows, render_session_text
@@ -53,6 +54,7 @@ from disasm.target_metadata import (
     ResidentTargetMetadata,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
+    StructuredFieldSpec,
     StructuredRegionSpec,
     TargetMetadata,
     effective_entry_register_seeds,
@@ -120,8 +122,10 @@ class _FakeBlock:
 
 
 def test_os_include_kb_contains_device_include_mappings() -> None:
-    assert _OS_INCLUDE_KB.library_lvo_owners["timer.device"].include_path == "devices/timer.i"
-    assert _OS_INCLUDE_KB.library_lvo_owners["console.device"].include_path == "devices/console.i"
+    assert _OS_INCLUDE_KB.library_lvo_owners["timer.device"].canonical_include_path == "devices/timer.i"
+    assert _OS_INCLUDE_KB.library_lvo_owners["timer.device"].assembler_include_path == "devices/timer_lib.i"
+    assert _OS_INCLUDE_KB.library_lvo_owners["console.device"].canonical_include_path == "devices/console.i"
+    assert _OS_INCLUDE_KB.library_lvo_owners["console.device"].assembler_include_path == "devices/console_lib.i"
 
 
 def test_os_include_kb_loads_from_main_os_reference() -> None:
@@ -2280,6 +2284,19 @@ def test_get_instruction_processor_min_reports_base_68000_instruction() -> None:
     assert get_instruction_processor_min(inst) == "68000"
 
 
+def test_get_instruction_processor_min_respects_68000_size_constraints() -> None:
+    inst = Instruction(
+        offset=0x10,
+        size=2,
+        opcode=0x4380,
+        text="chk.l   d0,d1",
+        raw=b"\x43\x80",
+        kb_mnemonic="chk",
+        operand_size="l",
+    )
+    assert get_instruction_processor_min(inst) == "68020"
+
+
 def test_has_valid_branch_target_rejects_odd_branch_target() -> None:
     inst = Instruction(
         offset=0x40,
@@ -2329,6 +2346,41 @@ def test_is_valid_hint_block_rejects_non_68000_instruction() -> None:
     assert is_valid_hint_block(block) is False
 
 
+def test_is_valid_hint_block_rejects_profile_unsupported_hint_operand_kind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    block = type("Block", (), {
+        "instructions": [
+            Instruction(
+                offset=0x10,
+                size=2,
+                opcode=0x4E75,
+                text="rts",
+                raw=b"\x4E\x75",
+                kb_mnemonic="rts",
+                operand_size="w",
+            )
+        ]
+    })()
+    hunk_session = type("HunkSession", (), {"assembler_profile_name": "devpac"})()
+
+    monkeypatch.setattr(
+        "disasm.hint_validation.instruction_operands_render_completely",
+        lambda *args, **kwargs: True,
+    )
+    monkeypatch.setattr(
+        "disasm.hint_validation.build_instruction_semantic_operands",
+        lambda *args, **kwargs: (
+            SemanticOperand(
+                kind="memory_indirect_indexed",
+                text="([1234,a0],d0.w,8)",
+            ),
+        ),
+    )
+
+    assert is_valid_hint_block(block, hunk_session) is False
+
+
 def test_emit_jump_table_rows_emits_data_entries() -> None:
     rows: list[ListingRow] = []
     labels_seen = []
@@ -2355,6 +2407,94 @@ def test_emit_jump_table_rows_emits_data_entries() -> None:
     assert labels_seen == []
     assert len(rows) == 2
     assert rows[0].text == "    dc.w    loc_0080-*\n"
+
+
+def test_emit_jump_table_rows_anchors_self_relative_data_for_devpac() -> None:
+    rows: list[ListingRow] = []
+    labels_seen: list[int] = []
+
+    def emit_label(addr: int) -> None:
+        labels_seen.append(addr)
+
+    hunk_session = type("HunkSession", (), {
+        "hunk_index": 0,
+        "code": b"",
+        "reloc_map": {},
+        "string_addrs": set(),
+        "reloc_labels": {},
+        "data_access_sizes": {},
+        "typed_data_sizes": {},
+        "typed_data_fields": {},
+        "os_kb": make_empty_os_kb(),
+        "addr_comments": {},
+        "jump_table_regions": {
+            0x20: JumpTableRegion(
+                pattern="word_table",
+                entries=(JumpTableEntryRef(0x20, 0x80), JumpTableEntryRef(0x22, 0x90)),
+                base_label="ignored",
+                table_end=0x24,
+            )
+        },
+        "labels": {
+            0x20: "jtent_0020",
+            0x22: "jtent_0022",
+            0x80: "loc_0080",
+            0x90: "loc_0090",
+        },
+        "entities": [],
+        "blocks": {0x80: object(), 0x90: object()},
+        "hint_blocks": {},
+        "generic_data_label_addrs": set(),
+    })()
+
+    end = emit_jump_table_rows(
+        rows, hunk_session, 0x20, 0x20, set(), emit_label, load_assembler_profile("devpac"))
+
+    assert end == 0x24
+    assert labels_seen == [0x22]
+    assert rows[0].text == "    DC.W    loc_0080-jtent_0020\n"
+
+
+def test_emit_jump_table_rows_uses_bytes_for_unaligned_devpac_word_entry() -> None:
+    rows: list[ListingRow] = []
+
+    def emit_label(_addr: int) -> None:
+        raise AssertionError("Unexpected label emission")
+
+    hunk_session = type("HunkSession", (), {
+        "hunk_index": 0,
+        "code": b"",
+        "reloc_map": {},
+        "string_addrs": set(),
+        "reloc_labels": {},
+        "data_access_sizes": {},
+        "typed_data_sizes": {},
+        "typed_data_fields": {},
+        "os_kb": make_empty_os_kb(),
+        "addr_comments": {},
+        "jump_table_regions": {
+            0x21: JumpTableRegion(
+                pattern="word_table",
+                entries=(JumpTableEntryRef(0x21, 0x80),),
+                base_label="ignored",
+                table_end=0x23,
+            )
+        },
+        "labels": {
+            0x21: "jtent_0021",
+            0x80: "loc_0080",
+        },
+        "entities": [],
+        "blocks": {},
+        "hint_blocks": {},
+        "generic_data_label_addrs": set(),
+    })()
+
+    end = emit_jump_table_rows(
+        rows, hunk_session, 0x21, 0x21, set(), emit_label, load_assembler_profile("devpac"))
+
+    assert end == 0x23
+    assert rows[0].text == "    DC.B    $00,$5f\n"
 
 
 def test_emit_jump_table_rows_emits_inline_dispatch_rows() -> None:
@@ -2576,6 +2716,7 @@ def test_gen_disasm_uses_shared_session_row_pipeline(monkeypatch: MonkeyPatch, t
         session_output_path: str | None,
         base_addr: int = 0,
         code_start: int = 0,
+        assembler_profile_name: str = "vasm",
         profile_stages: bool = False,
     ) -> DisassemblySession:
         calls.append("build_session")
@@ -2584,6 +2725,7 @@ def test_gen_disasm_uses_shared_session_row_pipeline(monkeypatch: MonkeyPatch, t
         assert session_output_path == str(output_path)
         assert base_addr == 0x400
         assert code_start == 2
+        assert assembler_profile_name == "vasm"
         assert profile_stages is True
         return session
 
@@ -2656,9 +2798,11 @@ def test_gen_disasm_refreshes_entities_when_needed(monkeypatch: MonkeyPatch, tmp
         session_output_path: str | None,
         base_addr: int = 0,
         code_start: int = 0,
+        assembler_profile_name: str = "vasm",
         profile_stages: bool = False,
     ) -> DisassemblySession:
         calls.append(("build_session", binary_path, seen_entities_path))
+        assert assembler_profile_name == "vasm"
         return session
 
     def fake_emit_session_rows(seen_session: DisassemblySession) -> list[ListingRow]:
@@ -2686,6 +2830,49 @@ def test_gen_disasm_refreshes_entities_when_needed(monkeypatch: MonkeyPatch, tmp
         ("build_entities", "bin/test", str(entities_path), 0x400, 2),
         ("build_session", "bin/test", str(entities_path)),
     ]
+
+
+def test_gen_disasm_passes_selected_assembler_profile(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    output_path = tmp_path / "out.s"
+    entities_path = tmp_path / "entities.jsonl"
+    session = DisassemblySession(
+        target_name="test",
+        binary_path=Path("bin/test"),
+        entities_path=entities_path,
+        analysis_cache_path=Path("bin/test.analysis"),
+        output_path=output_path,
+        entities=[],
+        hunk_sessions=[],
+        assembler_profile_name="devpac",
+    )
+
+    monkeypatch.setattr(gen_disasm_mod, "_entities_need_refresh", lambda *_args: False)
+    monkeypatch.setattr(gen_disasm_mod, "emit_session_rows", lambda _session: [])
+    monkeypatch.setattr(gen_disasm_mod, "render_rows", lambda _rows: "")
+
+    def fake_build_session(
+        binary_path: str,
+        seen_entities_path: str,
+        session_output_path: str | None,
+        base_addr: int = 0,
+        code_start: int = 0,
+        assembler_profile_name: str = "vasm",
+        profile_stages: bool = False,
+    ) -> DisassemblySession:
+        assert binary_path == "bin/test"
+        assert seen_entities_path == str(entities_path)
+        assert session_output_path == str(output_path)
+        assert assembler_profile_name == "devpac"
+        return session
+
+    monkeypatch.setattr(gen_disasm_mod, "build_disassembly_session", fake_build_session)
+
+    gen_disasm_mod.gen_disasm(
+        "bin/test",
+        str(entities_path),
+        str(output_path),
+        assembler_profile_name="devpac",
+    )
 
 
 def test_emit_session_rows_smoke_for_empty_hunk_session() -> None:
@@ -4829,6 +5016,35 @@ def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes(
     assert equ_defs == {"AbsExecBase": 0x00000004}
 
 
+def test_collect_used_absolute_addrs_accepts_sized_absolute_symbol_operands() -> None:
+    hunk_session = cast(
+        HunkDisassemblySession,
+        SimpleNamespace(absolute_labels={0x00000004: "AbsExecBase"}),
+    )
+    rows = [
+        ListingRow(
+            row_id="row0",
+            kind="instruction",
+            text="    movea.l AbsExecBase.w,a6\n",
+            addr=0x10,
+            operand_parts=(
+                SemanticOperand(kind="absolute_target", text="AbsExecBase.w", segment_addr=0x00000004),
+            ),
+        ),
+        ListingRow(
+            row_id="row1",
+            kind="instruction",
+            text="    movea.l (AbsExecBase).l,a6\n",
+            addr=0x12,
+            operand_parts=(
+                SemanticOperand(kind="absolute_target", text="(AbsExecBase).l", segment_addr=0x00000004),
+            ),
+        ),
+    ]
+
+    assert emitter_mod._collect_used_absolute_addrs(rows, hunk_session) == {0x00000004}
+
+
 def test_emit_hunk_rows_emits_fd_derived_lvo_equates(monkeypatch: MonkeyPatch) -> None:
     hunk_session = HunkDisassemblySession(
         hunk_index=0,
@@ -4869,8 +5085,8 @@ def test_emit_hunk_rows_emits_fd_derived_lvo_equates(monkeypatch: MonkeyPatch) -
             library_lvo_owners={
                 "graphics.library": SimpleNamespace(
                     kind="fd_only",
-                    include_path=None,
-                    comment_include_path="graphics/graphics_lib.i",
+                    canonical_include_path=None,
+                    assembler_include_path="graphics/graphics_lib.i",
                     source_file="FD/GRAPHICS_LIB.FD",
                 )
             }
@@ -4977,6 +5193,224 @@ def test_emit_session_rows_dedupes_preamble_before_first_hunk() -> None:
     first_section = rendered.index("    section code,code\n")
     assert rendered.index('    INCLUDE "exec/exec_lib.i"\n') < first_section
     assert rendered.index("exec_library_base\tEQU\t34\n") < first_section
+
+
+def test_emit_session_rows_uses_selected_assembler_profile() -> None:
+    hunk = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"",
+        code_size=0,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    rendered = emitter_mod.render_session_text(
+        DisassemblySession(
+            target_name="demo",
+            binary_path=Path("demo.bin"),
+            entities_path=Path("entities.jsonl"),
+            analysis_cache_path=Path("analysis"),
+            output_path=None,
+            entities=[],
+            hunk_sessions=[hunk],
+            assembler_profile_name="devpac",
+        )
+    )
+
+    assert rendered.startswith("; Generated disassembly -- GenAm Motorola syntax\n")
+    assert "\n    SECTION code,code\n" in rendered
+
+
+def test_emit_session_rows_emits_orphan_hint_bytes_as_data() -> None:
+    hunk = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"\x11\x22\x33\x44",
+        code_size=4,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs={0, 1, 2, 3},
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    rendered = emitter_mod.render_session_text(
+        DisassemblySession(
+            target_name="demo",
+            binary_path=Path("demo.bin"),
+            entities_path=Path("entities.jsonl"),
+            analysis_cache_path=Path("analysis"),
+            output_path=None,
+            entities=[],
+            hunk_sessions=[hunk],
+        )
+    )
+
+    assert "    dc.b    $11,$22,$33,$44\n" in rendered
+
+
+def test_emit_session_rows_does_not_emit_hint_code_inside_unknown_entity() -> None:
+    hint_inst = Instruction(
+        offset=2,
+        size=2,
+        opcode=0x4E75,
+        text="rts",
+        raw=b"\x4E\x75",
+        kb_mnemonic="RTS",
+        operand_size="w",
+    )
+    hunk = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"\x11\x22\x4E\x75",
+        code_size=4,
+        entities=[{"addr": "0000", "end": "0004", "type": "unknown"}],
+        blocks={},
+        hint_blocks={2: _FakeBlock(start=2, end=4, successors=(), instructions=[hint_inst])},
+        code_addrs=set(),
+        hint_addrs={2, 3},
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    rendered = emitter_mod.render_session_text(
+        DisassemblySession(
+            target_name="demo",
+            binary_path=Path("demo.bin"),
+            entities_path=Path("entities.jsonl"),
+            analysis_cache_path=Path("analysis"),
+            output_path=None,
+            entities=[],
+            hunk_sessions=[hunk],
+        )
+    )
+
+    assert "; --- unverified ---\n" not in rendered
+    assert "    rts\n" not in rendered
+    assert "    dc.b    $11,$22\n" in rendered
+    assert "    dc.b    $4e,$75\n" in rendered
+
+
+def test_emit_session_rows_does_not_emit_hint_code_inside_code_entity() -> None:
+    hint_inst = Instruction(
+        offset=0,
+        size=2,
+        opcode=0x4E75,
+        text="rts",
+        raw=b"\x4E\x75",
+        kb_mnemonic="RTS",
+        operand_size="w",
+    )
+    hunk = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"\x4E\x75",
+        code_size=2,
+        entities=[{"addr": "0000", "end": "0002", "type": "code", "confidence": "hint"}],
+        blocks={},
+        hint_blocks={0: _FakeBlock(start=0, end=2, successors=(), instructions=[hint_inst])},
+        code_addrs=set(),
+        hint_addrs={0, 1},
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0: "hint_0000"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+    rendered = emitter_mod.render_session_text(
+        DisassemblySession(
+            target_name="demo",
+            binary_path=Path("demo.bin"),
+            entities_path=Path("entities.jsonl"),
+            analysis_cache_path=Path("analysis"),
+            output_path=None,
+            entities=[],
+            hunk_sessions=[hunk],
+        )
+    )
+
+    assert "; --- unverified ---\n" not in rendered
+    assert "    rts\n" not in rendered
+    assert "hint_0000:\n" in rendered
+    assert "    dc.b    $4e,$75\n" in rendered
 
 
 def test_serialize_row_preserves_structured_fields() -> None:
@@ -5096,6 +5530,7 @@ def test_build_listing_rows_delegates_to_session_builder(monkeypatch: MonkeyPatc
         output_path: str | None,
         base_addr: int = 0,
         code_start: int = 0,
+        assembler_profile_name: str = "vasm",
         profile_stages: bool = False,
     ) -> DisassemblySession:
         calls.append("build")
@@ -5104,6 +5539,7 @@ def test_build_listing_rows_delegates_to_session_builder(monkeypatch: MonkeyPatc
         assert output_path is None
         assert base_addr == 0x400
         assert code_start == 2
+        assert assembler_profile_name == "vasm"
         return session
 
     def fake_emit(seen_session: DisassemblySession) -> list[ListingRow]:
@@ -5777,4 +6213,60 @@ def test_emit_data_region_renders_ascii_string() -> None:
     )
 
     assert output.getvalue() == '    dc.b    "TEST",0\n'
+
+
+def test_emit_hunk_rows_renders_structured_string_with_embedded_quotes() -> None:
+    data = b'Say "it\'s ok"\x00'
+    hunk = HunkDisassemblySession(
+        hunk_index=0,
+        code=data,
+        code_size=len(data),
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_equs={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        reloc_file_offset=0,
+        reloc_base_addr=0,
+    )
+
+    rows, _compat, _preamble = emitter_mod._emit_hunk_rows(
+        hunk,
+        include_header=False,
+        structured_regions=(
+            StructuredRegionSpec(
+                start=0,
+                end=len(data),
+                subtype="structured_data",
+                fields=(
+                    StructuredFieldSpec(offset=0, label="quoted_string", is_string=True),
+                ),
+            ),
+        ),
+    )
+
+    rendered = "".join(row.text for row in rows)
+    assert 'DC.B    "Say ",' in rendered or 'dc.b    "Say ",' in rendered
+    assert '"it"' in rendered
+    assert '"\'"' in rendered
 

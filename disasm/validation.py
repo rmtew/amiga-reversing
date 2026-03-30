@@ -69,14 +69,20 @@ def has_valid_branch_target(inst: Instruction) -> bool:
         return False
     if target is None:
         return True
+    assert isinstance(target, int)
     return target % int(runtime_m68k_decode.OPWORD_BYTES) == 0
 
 def get_instruction_processor_min(inst: Instruction) -> str:
     """Get minimum processor for a decoded instruction."""
-    pmin = runtime_m68k_analysis.PROCESSOR_MINS.get((inst.kb_mnemonic or "").lower(), "68000")
+    mnemonic_key = (inst.kb_mnemonic or "").lower()
+    canonical = instruction_kb(inst)
+    sizes_68000 = runtime_m68k_analysis.SIZES_68000.get(canonical)
+    operand_size = "b" if inst.operand_size == "s" else inst.operand_size
+    if sizes_68000 is not None and operand_size not in sizes_68000:
+        return "68020"
+    pmin = runtime_m68k_analysis.PROCESSOR_MINS.get(mnemonic_key, "68000")
     if str(pmin) != "68000":
         return str(pmin)
-    canonical = instruction_kb(inst)
     mnemonic = (inst.kb_mnemonic or "").upper()
     for variant_mnemonic in runtime_m68k_analysis.PROCESSOR_020_VARIANTS.get(canonical, ()):
         if variant_mnemonic.upper() == mnemonic:

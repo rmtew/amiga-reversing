@@ -223,7 +223,7 @@ loc_01c6:
 put_disk_object:
     movem.l a0-a1,-(sp)
     move.l a6,-(sp)
-    jsr sub_03fe
+    jsr loc_03fe
 loc_01d8:
     lea 12(sp),sp
     rts
@@ -262,7 +262,7 @@ loc_0212:
 get_disk_object:
     move.l a0,-(sp)
     move.l a6,-(sp)
-    jsr sub_0768
+    jsr loc_0768
 loc_0222:
     addq.l #8,sp
     rts
@@ -295,7 +295,6 @@ bump_revision:
 loc_025a:
     addq.l #8,sp
     rts
-sub_025e:
     dc.b    $00,$00
 hunk_0_loc_0260:
     move.l a6,-(sp)
@@ -728,6 +727,7 @@ hunk_3_loc_006c:
     beq.s loc_0098
 loc_0090:
     movea.l 76(a2),a0
+    dc.b    $21,$4a,$01,$a8
 loc_0098:
     move.l a2,d0
     bra.s hunk_3_loc_009e
@@ -765,7 +765,7 @@ loc_00d8:
     pea -80(a6)
     move.l d2,-(sp)
     move.l d1,-(sp)
-    jsr sub_03fe
+    jsr loc_03fe
 loc_0116:
     lea 12(sp),sp
     movem.l -88(a6),d2/a2
@@ -1054,7 +1054,7 @@ loc_03f2:
     movem.l -300(a6),d2-d5/a2-a5
     unlk a6
     rts
-sub_03fe:
+loc_03fe:
     link a6,#-4
     movem.l d2-d6/a2-a4,-(sp)
     move.l 8(a6),d2
@@ -1421,7 +1421,7 @@ loc_0746:
 loc_0762:
     movem.l (sp)+,d2/a2
     rts
-sub_0768:
+loc_0768:
     movem.l d2-d4/a2,-(sp)
     move.l 20(sp),d2
     move.l 24(sp),d3
@@ -1894,85 +1894,45 @@ hunk_6_loc_0040:
     move.l (sp)+,d2
     rts
 hint_0060:
-; --- unverified ---
-    move.l d2,-(sp)
-    move.l d1,d2
-    move.l d0,d1
-    bsr.s hunk_6_loc_0000
+    dc.b    $2f,$02,$24,$01,$22,$00,$61,$98
 hint_0068:
-; --- unverified ---
-    move.l (sp)+,d2
-    rts
+    dc.b    $24,$1f,$4e,$75
 hint_006c:
-; --- unverified ---
-    move.l d2,-(sp)
-    move.l d1,d2
-    move.l d0,d1
-    bsr.s hunk_6_loc_0000
+    dc.b    $2f,$02,$24,$01,$22,$00,$61,$8c
 hint_0074:
-; --- unverified ---
-    move.l d1,d0
-    move.l (sp)+,d2
-    rts
+    dc.b    $20,$01,$24,$1f,$4e,$75
 hint_007a:
-; --- unverified ---
-    move.l d2,-(sp)
-    move.l d1,d2
-    bge.s hint_0082
+    dc.b    $2f,$02,$24,$01,$6c,$02
 hint_0080:
     dc.b    $44,$82
 hint_0082:
-; --- unverified ---
-    move.l d0,d1
-    moveq #0,d0
-    tst.l d1
-    bge.s hint_008e
+    dc.b    $22,$00,$70,$00,$4a,$81,$6c,$04
 hint_008a:
     dc.b    $44,$81,$46,$80
 hint_008e:
-; --- unverified ---
-    movea.l d0,a0
-    bsr.w hunk_6_loc_0000
+    dc.b    $20,$40,$61,$00,$ff,$6e
 hint_0094:
-; --- unverified ---
-    move.w a0,d2
-    beq.s hint_009a
+    dc.b    $34,$08,$67,$02
 hint_0098:
     dc.b    $44,$80
 hint_009a:
-; --- unverified ---
-    move.l (sp)+,d2
-    rts
+    dc.b    $24,$1f,$4e,$75
 hint_009e:
-; --- unverified ---
-    move.l d2,-(sp)
-    movea.l d0,a0
-    moveq #0,d0
-    move.l d1,d2
-    bge.s hint_00ac
+    dc.b    $2f,$02,$20,$40,$70,$00,$24,$01,$6c,$04
 hint_00a8:
     dc.b    $44,$82,$46,$80
 hint_00ac:
-; --- unverified ---
-    move.l a0,d1
-    bge.s hint_00b4
+    dc.b    $22,$08,$6c,$04
 hint_00b0:
     dc.b    $44,$81,$46,$80
 hint_00b4:
-; --- unverified ---
-    movea.l d0,a0
-    bsr.w hunk_6_loc_0000
+    dc.b    $20,$40,$61,$00,$ff,$48
 hint_00ba:
-; --- unverified ---
-    move.l a0,d2
-    beq.s hint_00c0
+    dc.b    $24,$08,$67,$02
 hint_00be:
     dc.b    $44,$81
 hint_00c0:
-; --- unverified ---
-    move.l d1,d0
-    move.l (sp)+,d2
-    rts
+    dc.b    $20,$01,$24,$1f,$4e,$75
     dc.b    $00,$00
 hunk_6_loc_00c8:
     movem.l a2-a4/a6,-(sp)
@@ -1986,9 +1946,7 @@ loc_00e6:
     movem.l (sp)+,a2-a4/a6
     rts
 pcref_00ec:
-; --- unverified ---
-    move.b d0,(a3)+
-    rts
+    dc.b    $16,$c0,$4e,$75
 
 ; Hunk 7: 20 bytes, 0 entities, 1 blocks
 

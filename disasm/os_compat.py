@@ -10,6 +10,7 @@ from disasm.types import (
     ListingRow,
     StructFieldOperandMetadata,
 )
+from m68k.os_calls import OsKb
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,7 +63,7 @@ def select_struct_field_name(field: object, compatibility_floor: str) -> str:
             f"Missing KB struct field name at compatibility {compatibility_floor} for "
             f"{getattr(field, 'name', '<unknown>')}"
         )
-    return max(candidates, key=lambda item: _version_key(item[0]))[1]
+    return str(max(candidates, key=lambda item: _version_key(item[0]))[1])
 
 
 def collect_used_struct_fields(rows: Sequence[ListingRow]) -> set[tuple[str, str]]:
@@ -127,14 +128,32 @@ def _collect_include_paths(rows: Sequence[ListingRow]) -> tuple[str, ...]:
     return tuple(sorted(includes))
 
 
+def _canonical_include_path(os_kb: OsKb, include_path: str) -> str:
+    normalized = include_path.lower()
+    meta = os_kb.META
+    include_min_versions = meta.include_min_versions
+    if normalized in include_min_versions:
+        return normalized
+    for owner in meta.library_lvo_owners.values():
+        assembler_include_path = owner.assembler_include_path
+        canonical_include_path = owner.canonical_include_path
+        if (
+            isinstance(assembler_include_path, str)
+            and isinstance(canonical_include_path, str)
+            and normalized == assembler_include_path.lower()
+        ):
+            return canonical_include_path.lower()
+    return normalized
+
+
 def _target_library_name(session: DisassemblySession) -> str | None:
     metadata = getattr(session, "target_metadata", None)
     if metadata is None:
         return None
     if metadata.library is not None:
-        return metadata.library.library_name
+        return str(metadata.library.library_name)
     if metadata.resident is not None:
-        return metadata.resident.name
+        return str(metadata.resident.name)
     return None
 
 
@@ -147,7 +166,7 @@ def build_emit_compatibility_report(
 ) -> CompatibilityReport:
     if not session.hunk_sessions:
         raise ValueError("Disassembly session is missing hunk sessions")
-    os_kb = session.hunk_sessions[0].os_kb
+    os_kb: OsKb = session.hunk_sessions[0].os_kb
     supported = tuple(os_kb.META.compatibility_versions)
     if not supported:
         raise ValueError("OS KB is missing compatibility_versions")
@@ -182,7 +201,8 @@ def build_emit_compatibility_report(
 
     include_min_versions: Mapping[str, str] = os_kb.META.include_min_versions
     for include_path in resolved_include_paths:
-        version = include_min_versions.get(include_path.lower())
+        canonical_include_path = _canonical_include_path(os_kb, include_path)
+        version = include_min_versions.get(canonical_include_path)
         if version is None:
             raise ValueError(f"Missing KB include compatibility for {include_path}")
         add_dependency("include", include_path, version)

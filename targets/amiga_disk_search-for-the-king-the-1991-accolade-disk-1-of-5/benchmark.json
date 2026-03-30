@@ -2,34 +2,34 @@
   "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5",
   "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf",
   "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5",
-  "measured_at": "2026-03-30T12:09:08+13:00",
+  "measured_at": "2026-03-30T21:09:18+13:00",
   "status": "ok",
-  "elapsed_seconds": 25.12,
+  "elapsed_seconds": 27.96,
   "analysis_bytes": 13020933,
-  "entities_bytes": 29260,
-  "disasm_bytes": 1735616,
+  "entities_bytes": 26650,
+  "disasm_bytes": 1701923,
   "timing": {
     "entities": {
-      "parse_source_seconds": 0.0281,
+      "parse_source_seconds": 0.0294,
       "analysis": {
-        "init_seconds": 1.4065,
-        "core_seconds": 0.8829,
-        "per_caller_seconds": 2.2751,
+        "init_seconds": 1.5344,
+        "core_seconds": 0.9433,
+        "per_caller_seconds": 2.4601,
         "store_pass_seconds": 0.0,
-        "hint_scan_seconds": 3.4148,
-        "os_call_seconds": 0.4167
+        "hint_scan_seconds": 3.4769,
+        "os_call_seconds": 0.5153
       },
-      "naming_seconds": 0.0062,
-      "write_seconds": 0.0046
+      "naming_seconds": 0.0066,
+      "write_seconds": 0.0044
     },
     "session": {
-      "load_analysis_seconds": 1.3689,
-      "metadata_seconds": 3.1561,
-      "substitutions_seconds": 0.0019,
-      "build_seconds": 0.0014
+      "load_analysis_seconds": 0.7941,
+      "metadata_seconds": 3.4437,
+      "substitutions_seconds": 0.002,
+      "build_seconds": 0.002
     },
-    "emit_seconds": 2.5623,
-    "render_seconds": 0.075
+    "emit_seconds": 4.4439,
+    "render_seconds": 0.0776
   },
   "analysis": null,
   "entities": null,
@@ -52,7 +52,7 @@
       "immediate_constant_count": 8,
       "struct_field_count": 18,
       "app_struct_field_count": 0,
-      "raw_absolute_branch_target_count": 267,
+      "raw_absolute_branch_target_count": 255,
       "raw_absolute_call_target_count": 31,
       "raw_absolute_known_code_branch_target_count": 0,
       "raw_absolute_known_code_call_target_count": 0
@@ -65,9 +65,9 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_raw_bootblock",
       "binary": "targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_raw_bootblock/binary.bin",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_raw_bootblock",
-      "measured_at": "2026-03-30T12:08:43+13:00",
+      "measured_at": "2026-03-30T21:08:51+13:00",
       "status": "ok",
-      "elapsed_seconds": 0.09,
+      "elapsed_seconds": 0.1,
       "analysis_bytes": 6077,
       "entities_bytes": 772,
       "disasm_bytes": 969,
@@ -75,24 +75,24 @@
         "entities": {
           "parse_source_seconds": 0.0001,
           "analysis": {
-            "init_seconds": 0.0011,
-            "core_seconds": 0.0012,
-            "per_caller_seconds": 0.0081,
+            "init_seconds": 0.0012,
+            "core_seconds": 0.0013,
+            "per_caller_seconds": 0.0084,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0632,
-            "os_call_seconds": 0.004
+            "hint_scan_seconds": 0.064,
+            "os_call_seconds": 0.0041
           },
           "naming_seconds": 0.0001,
-          "write_seconds": 0.0004
+          "write_seconds": 0.0005
         },
         "session": {
-          "load_analysis_seconds": 0.0415,
-          "metadata_seconds": 0.0026,
+          "load_analysis_seconds": 0.0418,
+          "metadata_seconds": 0.0025,
           "substitutions_seconds": 0.0,
           "build_seconds": 0.0
         },
-        "emit_seconds": 0.0009,
-        "render_seconds": 0.001
+        "emit_seconds": 0.0018,
+        "render_seconds": 0.0011
       },
       "analysis": {
         "code_bytes": 1012,
@@ -151,34 +151,34 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_c__stack_dcbff2ae",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::c/stack",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_c__stack_dcbff2ae",
-      "measured_at": "2026-03-30T12:08:43+13:00",
+      "measured_at": "2026-03-30T21:08:51+13:00",
       "status": "ok",
-      "elapsed_seconds": 0.15,
+      "elapsed_seconds": 0.16,
       "analysis_bytes": 70165,
-      "entities_bytes": 1144,
-      "disasm_bytes": 7159,
+      "entities_bytes": 1057,
+      "disasm_bytes": 6787,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0049,
+          "parse_source_seconds": 0.0047,
           "analysis": {
-            "init_seconds": 0.0087,
-            "core_seconds": 0.0163,
-            "per_caller_seconds": 0.0144,
+            "init_seconds": 0.0089,
+            "core_seconds": 0.0152,
+            "per_caller_seconds": 0.0152,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0029,
-            "os_call_seconds": 0.0056
+            "hint_scan_seconds": 0.0031,
+            "os_call_seconds": 0.0061
           },
-          "naming_seconds": 0.0001,
+          "naming_seconds": 0.0002,
           "write_seconds": 0.0005
         },
         "session": {
-          "load_analysis_seconds": 0.031,
-          "metadata_seconds": 0.015,
-          "substitutions_seconds": 0.0001,
+          "load_analysis_seconds": 0.0299,
+          "metadata_seconds": 0.0154,
+          "substitutions_seconds": 0.0,
           "build_seconds": 0.0
         },
-        "emit_seconds": 0.0106,
-        "render_seconds": 0.0016
+        "emit_seconds": 0.0109,
+        "render_seconds": 0.0013
       },
       "analysis": {
         "code_bytes": 820,
@@ -201,10 +201,10 @@
       },
       "entities": {
         "entity_count": 4,
-        "code_entity_count": 2,
+        "code_entity_count": 1,
         "data_entity_count": 0,
         "bss_entity_count": 0,
-        "unknown_entity_count": 2,
+        "unknown_entity_count": 3,
         "named_entity_count": 1,
         "documented_entity_count": 0
       },
@@ -232,34 +232,34 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::king",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec",
-      "measured_at": "2026-03-30T12:09:04+13:00",
+      "measured_at": "2026-03-30T21:09:15+13:00",
       "status": "ok",
-      "elapsed_seconds": 21.51,
+      "elapsed_seconds": 24.02,
       "analysis_bytes": 12264583,
-      "entities_bytes": 14430,
-      "disasm_bytes": 1655238,
+      "entities_bytes": 12342,
+      "disasm_bytes": 1623477,
       "timing": {
         "entities": {
           "parse_source_seconds": 0.0078,
           "analysis": {
-            "init_seconds": 1.3201,
-            "core_seconds": 0.7432,
-            "per_caller_seconds": 1.6318,
+            "init_seconds": 1.4313,
+            "core_seconds": 0.7932,
+            "per_caller_seconds": 1.7281,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 3.2833,
-            "os_call_seconds": 0.3224
+            "hint_scan_seconds": 3.3394,
+            "os_call_seconds": 0.4104
           },
-          "naming_seconds": 0.0051,
-          "write_seconds": 0.0013
+          "naming_seconds": 0.0054,
+          "write_seconds": 0.0012
         },
         "session": {
-          "load_analysis_seconds": 1.0942,
-          "metadata_seconds": 2.9544,
-          "substitutions_seconds": 0.0014,
-          "build_seconds": 0.0012
+          "load_analysis_seconds": 0.6573,
+          "metadata_seconds": 3.2202,
+          "substitutions_seconds": 0.0016,
+          "build_seconds": 0.0016
         },
-        "emit_seconds": 2.4463,
-        "render_seconds": 0.0653
+        "emit_seconds": 4.2316,
+        "render_seconds": 0.0665
       },
       "analysis": {
         "code_bytes": 173550,
@@ -282,10 +282,10 @@
       },
       "entities": {
         "entity_count": 65,
-        "code_entity_count": 42,
+        "code_entity_count": 18,
         "data_entity_count": 1,
         "bss_entity_count": 0,
-        "unknown_entity_count": 22,
+        "unknown_entity_count": 46,
         "named_entity_count": 1,
         "documented_entity_count": 0
       },
@@ -304,7 +304,7 @@
           "immediate_constant_count": 8,
           "struct_field_count": 0,
           "app_struct_field_count": 0,
-          "raw_absolute_branch_target_count": 265,
+          "raw_absolute_branch_target_count": 255,
           "raw_absolute_call_target_count": 31,
           "raw_absolute_known_code_branch_target_count": 0,
           "raw_absolute_known_code_call_target_count": 0
@@ -318,34 +318,34 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_l__disk-validator_0c36e39c",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::l/Disk-Validator",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_l__disk-validator_0c36e39c",
-      "measured_at": "2026-03-30T12:09:06+13:00",
+      "measured_at": "2026-03-30T21:09:16+13:00",
       "status": "ok",
-      "elapsed_seconds": 0.25,
+      "elapsed_seconds": 0.26,
       "analysis_bytes": 143144,
-      "entities_bytes": 2984,
-      "disasm_bytes": 15088,
+      "entities_bytes": 2897,
+      "disasm_bytes": 13915,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0049,
+          "parse_source_seconds": 0.0056,
           "analysis": {
-            "init_seconds": 0.0154,
-            "core_seconds": 0.0395,
-            "per_caller_seconds": 0.0239,
+            "init_seconds": 0.0168,
+            "core_seconds": 0.041,
+            "per_caller_seconds": 0.0256,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0074,
-            "os_call_seconds": 0.007
+            "hint_scan_seconds": 0.0082,
+            "os_call_seconds": 0.0081
           },
           "naming_seconds": 0.0002,
-          "write_seconds": 0.0007
+          "write_seconds": 0.0006
         },
         "session": {
-          "load_analysis_seconds": 0.0156,
-          "metadata_seconds": 0.0433,
+          "load_analysis_seconds": 0.0193,
+          "metadata_seconds": 0.0312,
           "substitutions_seconds": 0.0,
           "build_seconds": 0.0
         },
-        "emit_seconds": 0.0212,
-        "render_seconds": 0.0021
+        "emit_seconds": 0.0216,
+        "render_seconds": 0.0028
       },
       "analysis": {
         "code_bytes": 1812,
@@ -368,10 +368,10 @@
       },
       "entities": {
         "entity_count": 4,
-        "code_entity_count": 2,
+        "code_entity_count": 1,
         "data_entity_count": 0,
         "bss_entity_count": 0,
-        "unknown_entity_count": 2,
+        "unknown_entity_count": 3,
         "named_entity_count": 1,
         "documented_entity_count": 0
       },
@@ -385,7 +385,7 @@
           "immediate_constant_count": 0,
           "struct_field_count": 0,
           "app_struct_field_count": 0,
-          "raw_absolute_branch_target_count": 2,
+          "raw_absolute_branch_target_count": 0,
           "raw_absolute_call_target_count": 0,
           "raw_absolute_known_code_branch_target_count": 0,
           "raw_absolute_known_code_call_target_count": 0
@@ -399,34 +399,34 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_libs__icon.library_8bc90c0c",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::libs/icon.library",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_libs__icon.library_8bc90c0c",
-      "measured_at": "2026-03-30T12:09:07+13:00",
+      "measured_at": "2026-03-30T21:09:18+13:00",
       "status": "ok",
-      "elapsed_seconds": 1.07,
+      "elapsed_seconds": 1.16,
       "analysis_bytes": 371387,
-      "entities_bytes": 7308,
-      "disasm_bytes": 40248,
+      "entities_bytes": 6960,
+      "disasm_bytes": 39694,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0055,
+          "parse_source_seconds": 0.0061,
           "analysis": {
-            "init_seconds": 0.0307,
-            "core_seconds": 0.0507,
-            "per_caller_seconds": 0.4413,
+            "init_seconds": 0.0451,
+            "core_seconds": 0.0601,
+            "per_caller_seconds": 0.4792,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0462,
-            "os_call_seconds": 0.0229
+            "hint_scan_seconds": 0.0505,
+            "os_call_seconds": 0.0257
           },
           "naming_seconds": 0.0003,
-          "write_seconds": 0.001
+          "write_seconds": 0.0008
         },
         "session": {
-          "load_analysis_seconds": 0.1137,
-          "metadata_seconds": 0.095,
+          "load_analysis_seconds": 0.0145,
+          "metadata_seconds": 0.1287,
           "substitutions_seconds": 0.0002,
-          "build_seconds": 0.0001
+          "build_seconds": 0.0002
         },
-        "emit_seconds": 0.0613,
-        "render_seconds": 0.0031
+        "emit_seconds": 0.1242,
+        "render_seconds": 0.0038
       },
       "analysis": {
         "code_bytes": 4680,
@@ -449,10 +449,10 @@
       },
       "entities": {
         "entity_count": 56,
-        "code_entity_count": 9,
+        "code_entity_count": 5,
         "data_entity_count": 2,
         "bss_entity_count": 0,
-        "unknown_entity_count": 45,
+        "unknown_entity_count": 49,
         "named_entity_count": 1,
         "documented_entity_count": 0
       },
@@ -489,34 +489,34 @@
       "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_loadwb_f71d84f8",
       "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::loadwb",
       "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_loadwb_f71d84f8",
-      "measured_at": "2026-03-30T12:09:07+13:00",
+      "measured_at": "2026-03-30T21:09:18+13:00",
       "status": "ok",
-      "elapsed_seconds": 0.55,
+      "elapsed_seconds": 0.61,
       "analysis_bytes": 165577,
       "entities_bytes": 2622,
-      "disasm_bytes": 16914,
+      "disasm_bytes": 17081,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0049,
+          "parse_source_seconds": 0.0051,
           "analysis": {
-            "init_seconds": 0.0305,
-            "core_seconds": 0.032,
-            "per_caller_seconds": 0.1556,
+            "init_seconds": 0.0311,
+            "core_seconds": 0.0325,
+            "per_caller_seconds": 0.2036,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0118,
-            "os_call_seconds": 0.0548
+            "hint_scan_seconds": 0.0117,
+            "os_call_seconds": 0.0609
           },
           "naming_seconds": 0.0004,
-          "write_seconds": 0.0007
+          "write_seconds": 0.0008
         },
         "session": {
-          "load_analysis_seconds": 0.0729,
-          "metadata_seconds": 0.0458,
+          "load_analysis_seconds": 0.0313,
+          "metadata_seconds": 0.0457,
           "substitutions_seconds": 0.0002,
-          "build_seconds": 0.0001
+          "build_seconds": 0.0002
         },
-        "emit_seconds": 0.022,
-        "render_seconds": 0.0019
+        "emit_seconds": 0.0538,
+        "render_seconds": 0.0021
       },
       "analysis": {
         "code_bytes": 1880,

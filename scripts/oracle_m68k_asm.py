@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import struct
 import subprocess
 import sys
@@ -889,6 +890,11 @@ class VamosDriver(OracleDriver):
         self.cpu_select = oracle_cfg["options"]["cpu_select"]
         self.no_opt = oracle_cfg["options"]["no_optimization"]
         self.quiet = oracle_cfg["options"]["quiet"]
+        output_file_option = oracle_cfg["options"]["output_file"]
+        assert isinstance(output_file_option, str) and output_file_option, (
+            "DevPac output_file option must be a non-empty string"
+        )
+        self.output_file_option = output_file_option
         self.win_temp = os.environ.get("TEMP", os.environ.get("TMP", ""))
         driver = oracle_cfg["driver"]
         self._batch_size = driver.get("batch_size", 50)
@@ -896,6 +902,13 @@ class VamosDriver(OracleDriver):
         self._sentinel = int(sentinel_str, 16)
         self._sentinel_bytes = struct.pack(">H", self._sentinel)
         self._opts_bak = None
+        include_root = oracle_cfg.get("local_include_root")
+        assert include_root is None or isinstance(include_root, str), (
+            "local_include_root must be a string when present"
+        )
+        self.local_include_root = include_root
+        self._staged_include_dir: str | None = None
+        self._include_arg: str | None = None
 
     def setup(self) -> None:
         # Temporarily rename GenAm.opts to prevent auto-load errors under vamos
@@ -907,6 +920,16 @@ class VamosDriver(OracleDriver):
             if opts.exists():
                 opts.rename(bak)
                 self._opts_bak = bak
+        if self.local_include_root is not None:
+            include_src = (self.proj_root / self.local_include_root).resolve()
+            assert include_src.is_dir(), f"Missing local_include_root: {include_src}"
+            staged_name = f"_oracle_devpac_include_{os.getpid()}"
+            staged_dir = Path(self.win_temp) / staged_name
+            if staged_dir.exists():
+                shutil.rmtree(staged_dir)
+            shutil.copytree(include_src, staged_dir)
+            self._staged_include_dir = str(staged_dir)
+            self._include_arg = f"TMP:{staged_name}/"
 
     def teardown(self) -> None:
         if self._opts_bak and self._opts_bak.exists():
@@ -914,6 +937,10 @@ class VamosDriver(OracleDriver):
                 "auto_config", {}).get("opts_file", "GenAm.opts")
             opts = self.exe_path.parent / opts_name
             self._opts_bak.rename(opts)
+        if self._staged_include_dir is not None:
+            shutil.rmtree(self._staged_include_dir, ignore_errors=True)
+            self._staged_include_dir = None
+            self._include_arg = None
 
     def _write_source(self, path: str, lines: Sequence[str]) -> None:
         with open(path, "wb") as f:
@@ -925,13 +952,26 @@ class VamosDriver(OracleDriver):
     def _run_vamos(self, src_path: str, out_path: str, timeout: int = 15) -> subprocess.CompletedProcess[str]:
         src_name = os.path.basename(src_path)
         out_name = os.path.basename(out_path)
+        if self.output_file_option == "TO <filename>":
+            output_args = ["TO", f"TMP:{out_name}"]
+        elif self.output_file_option == "-O<filename>":
+            output_args = [f"-OTMP:{out_name}"]
+        else:
+            raise ValueError(
+                f"Unsupported DevPac output_file option template: {self.output_file_option}"
+            )
+        cmd = [
+            "vamos",
+            "-V", f"TMP:{self.win_temp}",
+            "--", str(self.exe_path),
+            f"TMP:{src_name}",
+            *output_args,
+            self.quiet,
+        ]
+        if self._include_arg is not None:
+            cmd.extend(["INCDIR", self._include_arg])
         return subprocess.run(
-            ["vamos",
-             "-V", f"TMP:{self.win_temp}",
-             "--", str(self.exe_path),
-             f"TMP:{src_name}",
-             f"-oTMP:{out_name}",
-             self.quiet],
+            cmd,
             capture_output=True, text=True, timeout=timeout)
 
     def assemble_one(self, text: str, pc: int = 0) -> bytes | None:

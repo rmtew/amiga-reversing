@@ -279,8 +279,8 @@ class OsAbsoluteSymbol(TypedDict):
 
 class OsIncludeOwner(TypedDict):
     kind: str
-    include_path: str | None
-    comment_include_path: str | None
+    canonical_include_path: str | None
+    assembler_include_path: str | None
     source_file: str
     available_since: str | None
 
