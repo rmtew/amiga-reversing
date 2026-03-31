@@ -20,6 +20,7 @@ from amiga_disk.models import (
     BitmapInfo,
     BlockUsageInfo,
     BootBlockInfo,
+    BootloaderStage,
     DiskDirectoryEntry,
     DiskFileEntry,
     DiskInfo,
@@ -47,10 +48,12 @@ from disasm.project_ids import (
     disk_entry_local_target_id,
     disk_project_root,
     disk_project_targets_dir,
+    raw_target_id,
 )
 from disasm.target_metadata import (
     BootBlockTargetMetadata,
     EntryRegisterSeedMetadata,
+    ExecutionViewMetadata,
     LibraryTargetMetadata,
     ResidentTargetMetadata,
     TargetMetadata,
@@ -1149,6 +1152,140 @@ def _local_target_name_for_entry(full_path: str) -> str:
     return cast(str, disk_entry_local_target_id(full_path))
 
 
+def _local_target_name_for_bootloader_stage(stage_name: str) -> str:
+    base = SAFE_ID_RE.sub("_", stage_name).strip("._-").lower()
+    if not base:
+        base = "stage"
+    return cast(str, raw_target_id(f"bootloader_{base}"))
+
+
+def _local_target_name_for_bootloader_raw_span(stage_name: str, span_index: int) -> str:
+    base = SAFE_ID_RE.sub("_", stage_name).strip("._-").lower()
+    if not base:
+        base = "stage"
+    return cast(str, raw_target_id(f"bootloader_{base}_raw_span_{span_index}"))
+
+
+def _materialized_bootloader_disk_stage_targets(
+    analysis: AdfAnalysis,
+    disk_bytes: bytes,
+) -> list[tuple[str, bytes, int, int]]:
+    if analysis.bootloader_analysis is None:
+        return []
+    stage_targets: list[tuple[str, bytes, int, int]] = []
+    for stage in analysis.bootloader_analysis.stages:
+        if not stage.materialized:
+            continue
+        if stage.name == "boot":
+            continue
+        disk_read = next(
+            (
+                item
+                for source_stage in analysis.bootloader_analysis.stages
+                for item in source_stage.disk_reads
+                if item.source_kind == "logical_disk_offset"
+                and item.destination_addr == stage.base_addr
+                and item.byte_length >= stage.size
+            ),
+            None,
+        )
+        if disk_read is None:
+            continue
+        start = disk_read.disk_offset
+        end = start + stage.size
+        if start < 0 or end > len(disk_bytes):
+            continue
+        stage_bytes = disk_bytes[start:end]
+        stage_targets.append((stage.name, stage_bytes, stage.base_addr, stage.entry_addr))
+    return stage_targets
+
+
+def _bootloader_stage_target_metadata(
+    kb: DiskKb,
+    stage: BootloaderStage,
+    all_stages: list[BootloaderStage],
+) -> TargetMetadata:
+    entry_register_seeds: tuple[EntryRegisterSeedMetadata, ...] = ()
+    if stage.name == "stage_1":
+        entry_register_seeds = tuple(
+            EntryRegisterSeedMetadata(
+                entry_offset=None,
+                register=seed.register,
+                kind=seed.kind,
+                library_name=seed.library_name,
+                struct_name=seed.struct_name,
+                context_name=seed.context_name,
+                note=seed.note,
+            )
+            for seed in kb.boot_entry.registers
+        )
+    execution_views: tuple[ExecutionViewMetadata, ...] = ()
+    if stage.handoff_target is not None:
+        handoff_stage = next(
+            (
+                candidate
+                for candidate in all_stages
+                if candidate.name != stage.name and candidate.base_addr == stage.handoff_target
+            ),
+            None,
+        )
+        if handoff_stage is not None:
+            handoff_copy = next(
+                (
+                    copy
+                    for copy in stage.memory_copies
+                    if copy.destination_addr == stage.handoff_target
+                    and stage.base_addr <= copy.source_addr < stage.base_addr + stage.size
+                ),
+                None,
+            )
+            if handoff_copy is not None:
+                source_start = handoff_copy.source_addr - stage.base_addr
+                source_end = min(stage.size, source_start + handoff_copy.byte_length)
+                if source_end > source_start:
+                    execution_views = (
+                        ExecutionViewMetadata(
+                            source_start=source_start,
+                            source_end=source_end,
+                            base_addr=stage.handoff_target,
+                            name="bootstrapped_code",
+                            seed_origin="autodoc",
+                            review_status="seeded",
+                            citation=f"bootloader:{stage.name}:handoff",
+                            comment=f"Embedded bootstrapped code executes from ${stage.handoff_target:08X}",
+                        ),
+                    )
+    return TargetMetadata(
+        target_type="bootloader_stage",
+        entry_register_seeds=entry_register_seeds,
+        execution_views=execution_views,
+    )
+
+
+def _unique_bootloader_raw_span_targets(
+    analysis: AdfAnalysis,
+    disk_bytes: bytes,
+) -> list[tuple[str, int, bytes]]:
+    if analysis.bootloader_analysis is None:
+        return []
+    span_targets: list[tuple[str, int, bytes]] = []
+    for stage in analysis.bootloader_analysis.stages:
+        for span_index, region in enumerate(stage.decode_regions):
+            if region.input_required_source_kind != "raw_custom_track_bytes":
+                continue
+            if region.input_required_byte_length is None:
+                continue
+            if len(region.input_source_candidate_spans) != 1:
+                continue
+            span = region.input_source_candidate_spans[0]
+            start = span.start_byte_offset
+            end = start + region.input_required_byte_length
+            if start < 0 or end > len(disk_bytes):
+                continue
+            span_targets.append((stage.name, span_index, disk_bytes[start:end]))
+    return span_targets
+
+
 def _write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -1354,6 +1491,91 @@ def create_disk_project(
         mark_project_updated(bootblock_target_dir)
 
         imported_targets: list[ImportedTarget] = []
+        bootloader_stages = [] if analysis.bootloader_analysis is None else analysis.bootloader_analysis.stages
+        for stage_name, stage_bytes, load_address, entrypoint in _materialized_bootloader_disk_stage_targets(
+            analysis, disk_bytes
+        ):
+            stage = next(item for item in bootloader_stages if item.name == stage_name)
+            local_target_name = _local_target_name_for_bootloader_stage(stage_name)
+            target_name = cast(str, disk_child_project_id(resolved_disk_id, local_target_name))
+            target_dir = disk_children_root / local_target_name
+            if target_dir.exists():
+                raise DiskAnalysisError(f"Target already exists: {target_name}")
+            create_project_at_path(
+                disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                project_root=project_root,
+            )
+            created_target_dirs.append(target_dir)
+            binary_path = target_dir / "binary.bin"
+            _write_bytes(binary_path, stage_bytes)
+            write_source_descriptor(
+                target_dir,
+                {
+                    "kind": "raw_binary",
+                    "path": binary_path.relative_to(project_root).as_posix(),
+                    "address_model": "runtime_absolute",
+                    "load_address": load_address,
+                    "entrypoint": entrypoint,
+                    "code_start_offset": 0,
+                    "parent_disk_id": resolved_disk_id,
+                },
+            )
+            write_target_metadata(
+                target_dir,
+                _bootloader_stage_target_metadata(disk_kb, stage, bootloader_stages),
+            )
+            mark_project_updated(target_dir)
+            imported_targets.append(
+                ImportedTarget(
+                    target_name=target_name,
+                    target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                    entry_path=f"bootloader/{stage_name}",
+                    binary_path=f"{adf_file.as_posix()}::bootloader/{stage_name}",
+                    target_type="bootloader_stage",
+                )
+            )
+        for stage_name, span_index, span_bytes in _unique_bootloader_raw_span_targets(analysis, disk_bytes):
+            local_target_name = _local_target_name_for_bootloader_raw_span(stage_name, span_index)
+            target_name = cast(str, disk_child_project_id(resolved_disk_id, local_target_name))
+            target_dir = disk_children_root / local_target_name
+            if target_dir.exists():
+                raise DiskAnalysisError(f"Target already exists: {target_name}")
+            create_project_at_path(
+                disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                project_root=project_root,
+            )
+            created_target_dirs.append(target_dir)
+            binary_path = target_dir / "binary.bin"
+            _write_bytes(binary_path, span_bytes)
+            write_source_descriptor(
+                target_dir,
+                {
+                    "kind": "raw_binary",
+                    "path": binary_path.relative_to(project_root).as_posix(),
+                    "address_model": "local_offset",
+                    "load_address": 0,
+                    "entrypoint": 0,
+                    "code_start_offset": 0,
+                    "parent_disk_id": resolved_disk_id,
+                },
+            )
+            write_target_metadata(
+                target_dir,
+                TargetMetadata(
+                    target_type="bootloader_raw_span",
+                    entry_register_seeds=(),
+                ),
+            )
+            mark_project_updated(target_dir)
+            imported_targets.append(
+                ImportedTarget(
+                    target_name=target_name,
+                    target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                    entry_path=f"bootloader/{stage_name}/raw_span_{span_index}",
+                    binary_path=f"{adf_file.as_posix()}::bootloader/{stage_name}/raw_span_{span_index}",
+                    target_type="bootloader_raw_span",
+                )
+            )
         if _has_dos_filesystem(analysis):
             _require_complete_dos_analysis(analysis)
             if progress_fn is not None:

@@ -5,7 +5,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 
 from disasm.absolute_resolver import resolve_absolute_labels
 from disasm.analysis_layout import (
@@ -19,7 +19,11 @@ from disasm.analysis_loader import load_hunk_analysis
 from disasm.binary_source import BinarySource, HunkFileBinarySource
 from disasm.data_access import collect_data_access_sizes
 from disasm.decode import DecodedInstructionForEmit
-from disasm.discovery import apply_generic_data_label_promotions
+from disasm.discovery import (
+    apply_generic_data_label_promotions,
+    apply_generic_data_size_promotions,
+    discover_pc_relative_targets,
+)
 from disasm.entities import infer_target_name, load_entities
 from disasm.entry_seeds import (
     apply_entry_seed_config,
@@ -31,6 +35,7 @@ from disasm.metadata import HunkAnalysisLike, build_hunk_metadata
 from disasm.phase_timing import PhaseTimer
 from disasm.substitutions import build_arg_substitutions, build_lvo_substitutions
 from disasm.target_metadata import (
+    ExecutionViewMetadata,
     StructuredRegionSpec,
     TargetMetadata,
     load_required_target_metadata,
@@ -50,6 +55,7 @@ from m68k.analysis import (
     HunkAnalysis,
     RelocatedSegment,
     analyze_hunk,
+    detect_relocated_segments,
     resolve_reloc_target,
 )
 from m68k.hunk_parser import Hunk, HunkType, MemType, parse
@@ -57,8 +63,9 @@ from m68k.indirect_core import IndirectSiteStatus
 from m68k.instruction_decode import decode_inst_operands
 from m68k.instruction_kb import instruction_kb
 from m68k.instruction_primitives import Operand
+from m68k.jump_tables import JumpTableEntry
 from m68k.m68k_disasm import DecodedOperandNode, Instruction, disassemble
-from m68k.m68k_executor import BasicBlock
+from m68k.m68k_executor import BasicBlock, XRef
 from m68k.memory_provenance import MemoryRegionDerivationKind, provenance_named_base
 from m68k.os_calls import (
     LibraryCall,
@@ -89,43 +96,279 @@ __all__ = [
     "build_disassembly_session",
 ]
 
-
-def _prepare_hunk_code(
-    code: bytes,
-    relocated_segments: list[RelocatedSegment],
-) -> tuple[bytes, int, list[RelocatedSegment], int, int]:
-    code_size = len(code)
-    reloc_file_offset = 0
-    reloc_base_addr = 0
-    if relocated_segments:
-        seg = relocated_segments[0]
-        reloc_file_offset = seg.file_offset
-        reloc_base_addr = seg.base_addr
-        payload_size = code_size - reloc_file_offset
-        runtime_size = reloc_base_addr + payload_size
-        runtime_code = bytearray(runtime_size)
-        runtime_code[:reloc_file_offset] = code[:reloc_file_offset]
-        runtime_code[reloc_base_addr:] = code[reloc_file_offset:]
-        code = bytes(runtime_code)
-        code_size = runtime_size
-    return code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr
-
-
-def _prepare_hunk_sizes(
+def _execution_views_for_session(
     *,
-    stored_size: int,
-    alloc_size: int,
-    reloc_file_offset: int,
-    reloc_base_addr: int,
-) -> tuple[int, int]:
-    if reloc_file_offset == 0 and reloc_base_addr == 0:
-        return stored_size, alloc_size
-    runtime_stored_size = max(0, reloc_base_addr + (stored_size - reloc_file_offset))
-    runtime_alloc_size = max(0, reloc_base_addr + (alloc_size - reloc_file_offset))
-    assert runtime_alloc_size >= runtime_stored_size, (
-        f"Runtime alloc size {runtime_alloc_size} < runtime stored size {runtime_stored_size}"
-    )
-    return runtime_stored_size, runtime_alloc_size
+    code: bytes,
+    blocks: Mapping[int, DisasmBlockLike],
+    target_metadata: TargetMetadata | None,
+    relocated_segments: list[RelocatedSegment],
+    physical_stored_size: int,
+) -> tuple[ExecutionViewMetadata, ...]:
+    views: list[ExecutionViewMetadata] = []
+    seen: set[tuple[int, int, int]] = set()
+
+    def add_view(view: ExecutionViewMetadata) -> None:
+        key = (view.source_start, view.source_end, view.base_addr)
+        if key in seen:
+            return
+        seen.add(key)
+        views.append(view)
+
+    for index, seg in enumerate(relocated_segments):
+        if seg.file_offset >= physical_stored_size:
+            continue
+        add_view(
+            ExecutionViewMetadata(
+                source_start=seg.file_offset,
+                source_end=physical_stored_size,
+                base_addr=seg.base_addr,
+                name=f"relocated_code_{index + 1}",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="container:relocated_segment",
+                comment=f"Relocated code executes from ${seg.base_addr:08X}",
+            )
+        )
+    physical_code = code[:physical_stored_size]
+    for index, seg in enumerate(detect_relocated_segments(physical_code)):
+        if seg.file_offset >= physical_stored_size:
+            continue
+        add_view(
+            ExecutionViewMetadata(
+                source_start=seg.file_offset,
+                source_end=physical_stored_size,
+                base_addr=seg.base_addr,
+                name=f"detected_relocated_code_{index + 1}",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="analysis:relocated_segment",
+                comment=f"Relocated code executes from ${seg.base_addr:08X}",
+            )
+        )
+    for index, view in enumerate(
+        _trap_bootstrap_execution_views(
+            code=physical_code,
+            blocks=blocks,
+            physical_stored_size=physical_stored_size,
+        ),
+        start=1,
+    ):
+        add_view(
+            replace(
+                view,
+                name=f"trap_bootstrap_{index}" if not view.name else view.name,
+            )
+        )
+    if target_metadata is None:
+        target_views: tuple[ExecutionViewMetadata, ...] = ()
+    else:
+        target_views = target_metadata.execution_views
+        for view in target_views:
+            add_view(view)
+
+    queue = list(views)
+    while queue:
+        parent = queue.pop(0)
+        if parent.source_end > len(code):
+            continue
+        nested_code = code[parent.source_start:parent.source_end]
+        for segment in detect_relocated_segments(nested_code):
+            nested_view = ExecutionViewMetadata(
+                source_start=parent.source_start + segment.file_offset,
+                source_end=parent.source_end,
+                base_addr=segment.base_addr,
+                name=f"{parent.name}_nested_{len(views) + 1}",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation=f"{parent.citation}:nested",
+                comment=f"Embedded relocated code executes from ${segment.base_addr:08X}",
+            )
+            key = (nested_view.source_start, nested_view.source_end, nested_view.base_addr)
+            if key not in seen:
+                add_view(nested_view)
+                queue.append(nested_view)
+    return tuple(views)
+
+
+def _copy_loop_info(inst: Instruction) -> tuple[int, int, int] | None:
+    mnemonic = instruction_kb(inst)
+    if runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic) != runtime_m68k_analysis.OperationType.MOVE:
+        return None
+    decoded = decode_inst_operands(inst, mnemonic)
+    src = decoded.ea_op
+    dst = decoded.dst_op
+    if src is None or dst is None or src.mode != "postinc" or dst.mode != "postinc":
+        return None
+    if src.reg is None or dst.reg is None or inst.operand_size not in _OPERAND_SIZE_BYTES:
+        return None
+    return src.reg, dst.reg, _OPERAND_SIZE_BYTES[inst.operand_size]
+
+
+def _trap_number(inst: Instruction) -> int | None:
+    if instruction_kb(inst) != "TRAP" or len(inst.raw) < 2:
+        return None
+    return int.from_bytes(inst.raw[:2], "big") & 0xF
+
+
+def _immediate_to_absolute_write(inst: Instruction) -> tuple[int, int] | None:
+    mnemonic = instruction_kb(inst)
+    if mnemonic not in {"MOVE", "MOVEA"}:
+        return None
+    decoded = decode_inst_operands(inst, mnemonic)
+    source = decoded.ea_op
+    dest = decoded.dst_op
+    if source is None or dest is None or source.mode != "imm":
+        return None
+    if dest.mode not in {"absw", "absl"} or source.value is None or dest.value is None:
+        return None
+    return int(source.value), int(dest.value & 0xFFFF if dest.mode == "absw" else dest.value)
+
+
+def _simple_register_value_before(
+    *,
+    blocks: Mapping[int, DisasmBlockLike],
+    before_addr: int,
+    register_kind: str,
+    register_num: int,
+) -> int | None:
+    for block_addr in sorted((addr for addr in blocks if addr < before_addr), reverse=True):
+        block = blocks[block_addr]
+        for inst in reversed(block.instructions):
+            mnemonic = instruction_kb(inst)
+            decoded = decode_inst_operands(inst, mnemonic)
+            if register_kind == "an":
+                opcode = int.from_bytes(inst.raw[:2], "big") if len(inst.raw) >= 2 else 0
+                if mnemonic == "LEA" and ((opcode >> 9) & 0x7) == register_num:
+                    source = decoded.ea_op
+                    if source is not None and source.value is not None:
+                        return int(source.value)
+                dst = decoded.dst_op
+                if mnemonic == "MOVEA" and dst is not None and dst.mode == "an" and dst.reg == register_num:
+                    source = decoded.ea_op
+                    if source is not None and source.mode == "imm" and source.value is not None:
+                        return int(source.value)
+            elif register_kind == "dn":
+                dst = decoded.dst_op
+                if dst is not None and dst.mode in {"dn", "dreg"} and dst.reg == register_num:
+                    source = decoded.ea_op
+                    if source is not None and source.mode == "imm" and source.value is not None:
+                        return int(source.value)
+                if mnemonic == "MOVEQ" and inst.raw:
+                    opcode = int.from_bytes(inst.raw[:2], "big")
+                    if ((opcode >> 9) & 0x7) == register_num:
+                        immediate = opcode & 0xFF
+                        if immediate & 0x80:
+                            immediate -= 0x100
+                        return immediate
+    return None
+
+
+def _trap_bootstrap_execution_views(
+    *,
+    code: bytes,
+    blocks: Mapping[int, DisasmBlockLike],
+    physical_stored_size: int,
+) -> tuple[ExecutionViewMetadata, ...]:
+    views: list[ExecutionViewMetadata] = []
+    for trap_addr in sorted(blocks):
+        block = blocks[trap_addr]
+        vector_target: int | None = None
+        trap_number: int | None = None
+        for inst in block.instructions:
+            maybe_trap = _trap_number(inst)
+            if maybe_trap is not None:
+                trap_number = maybe_trap
+                break
+        if trap_number is None:
+            continue
+        vector_slot = 0x80 + (trap_number * 4)
+        for inst in block.instructions:
+            write = _immediate_to_absolute_write(inst)
+            if write is None:
+                continue
+            immediate, absolute_dest = write
+            if absolute_dest == vector_slot:
+                vector_target = immediate
+        if vector_target is None:
+            continue
+        for copy_addr in sorted(blocks):
+            if copy_addr >= trap_addr:
+                break
+            copy_block = blocks[copy_addr]
+            loop_info = None
+            for inst in copy_block.instructions:
+                loop_info = _copy_loop_info(inst)
+                if loop_info is not None:
+                    break
+            if loop_info is None:
+                continue
+            src_reg, dst_reg, unit_size = loop_info
+            source_start = _simple_register_value_before(
+                blocks=blocks,
+                before_addr=copy_addr,
+                register_kind="an",
+                register_num=src_reg,
+            )
+            dest_start = _simple_register_value_before(
+                blocks=blocks,
+                before_addr=copy_addr,
+                register_kind="an",
+                register_num=dst_reg,
+            )
+            count = _simple_register_value_before(
+                blocks=blocks,
+                before_addr=copy_addr,
+                register_kind="dn",
+                register_num=0,
+            )
+            if (
+                source_start is None
+                or dest_start is None
+                or count is None
+                or dest_start != vector_target
+                or not (0 <= source_start < physical_stored_size)
+            ):
+                continue
+            copy_size = (count + 1) * unit_size
+            source_end = min(physical_stored_size, source_start + copy_size)
+            if source_end <= source_start:
+                continue
+            views.append(
+                ExecutionViewMetadata(
+                    source_start=source_start,
+                    source_end=source_end,
+                    base_addr=vector_target,
+                    name=f"trap_{trap_number}_stub",
+                    seed_origin="autodoc",
+                    review_status="seeded",
+                    citation="analysis:trap_bootstrap",
+                    comment=f"Copied trap {trap_number} stub executes from ${vector_target:08X}",
+                )
+            )
+            break
+    return tuple(views)
+
+
+def _maybe_rebase_substitution_map(
+    substitutions: dict[int, tuple[str, str]],
+    *,
+    instruction_addrs: set[int],
+    base_addr: int,
+    code_size: int,
+) -> dict[int, tuple[str, str]]:
+    if not substitutions or base_addr <= 0:
+        return substitutions
+    if all(addr in instruction_addrs for addr in substitutions):
+        return substitutions
+    rebased: dict[int, tuple[str, str]] = {}
+    for addr, value in substitutions.items():
+        if base_addr <= addr < base_addr + code_size:
+            rebased[_rebase_local_addr(addr, base_addr)] = value
+        else:
+            rebased[addr] = value
+    if all(addr in instruction_addrs for addr in rebased):
+        return rebased
+    return substitutions
 
 
 def _rebase_local_addr(addr: int, base_addr: int) -> int:
@@ -138,6 +381,241 @@ def _maybe_rebase_addr(addr: int, base_addr: int, code_size: int) -> int:
     if base_addr <= addr < base_addr + code_size:
         return _rebase_local_addr(addr, base_addr)
     return addr
+
+
+def _source_addr_for_runtime(
+    addr: int,
+    *,
+    file_offset: int,
+    base_addr: int,
+    physical_size: int,
+) -> int:
+    payload_size = physical_size - file_offset
+    if base_addr <= addr < base_addr + payload_size:
+        return file_offset + (addr - base_addr)
+    return addr
+
+
+def _remap_operand_value_to_source(
+    operand: Operand | None,
+    *,
+    file_offset: int,
+    base_addr: int,
+    physical_size: int,
+) -> Operand | None:
+    if operand is None or operand.value is None:
+        return operand
+    if operand.mode not in ("pcdisp", "pcindex", "absw", "absl"):
+        return operand
+    return replace(
+        operand,
+        value=_source_addr_for_runtime(
+            operand.value,
+            file_offset=file_offset,
+            base_addr=base_addr,
+            physical_size=physical_size,
+        ),
+    )
+
+
+def _remap_decoded_operand_node_to_source(
+    node: DecodedOperandNode,
+    *,
+    file_offset: int,
+    base_addr: int,
+    physical_size: int,
+) -> DecodedOperandNode:
+    target = node.target
+    if target is not None and node.kind in (
+        "branch_target",
+        "pc_relative_target",
+        "pc_relative_indexed",
+        "absolute_target",
+    ):
+        target = _source_addr_for_runtime(
+            target,
+            file_offset=file_offset,
+            base_addr=base_addr,
+            physical_size=physical_size,
+        )
+    value = node.value
+    if value is not None and node.kind in (
+        "branch_target",
+        "pc_relative_target",
+        "pc_relative_indexed",
+        "absolute_target",
+    ):
+        value = _source_addr_for_runtime(
+            value,
+            file_offset=file_offset,
+            base_addr=base_addr,
+            physical_size=physical_size,
+        )
+    return replace(node, target=target, value=value)
+
+
+def _remap_decoded_for_emit_to_source(
+    decoded_for_emit: DecodedInstructionForEmit,
+    *,
+    file_offset: int,
+    base_addr: int,
+    physical_size: int,
+) -> DecodedInstructionForEmit:
+    decoded = decoded_for_emit.decoded
+    return replace(
+        decoded_for_emit,
+        decoded=replace(
+            decoded,
+            ea_op=_remap_operand_value_to_source(
+                decoded.ea_op,
+                file_offset=file_offset,
+                base_addr=base_addr,
+                physical_size=physical_size,
+            ),
+            dst_op=_remap_operand_value_to_source(
+                decoded.dst_op,
+                file_offset=file_offset,
+                base_addr=base_addr,
+                physical_size=physical_size,
+            ),
+        ),
+    )
+
+
+def _decoded_for_emit_from_instruction(instruction: Instruction) -> DecodedInstructionForEmit:
+    if instruction.kb_mnemonic is None:
+        raise ValueError(f"Instruction at ${instruction.offset:06X} is missing kb_mnemonic")
+    if instruction.operand_size is None:
+        raise ValueError(f"Instruction at ${instruction.offset:06X} is missing operand_size")
+    return DecodedInstructionForEmit(
+        mnemonic=instruction_kb(instruction),
+        size=instruction.operand_size,
+        decoded=decode_inst_operands(instruction, instruction_kb(instruction)),
+    )
+
+
+def _remap_analysis_to_source(
+    ha: HunkAnalysis,
+    *,
+    physical_size: int,
+) -> HunkAnalysis:
+    if not ha.relocated_segments:
+        return ha
+    seg = ha.relocated_segments[0]
+    file_offset = seg.file_offset
+    base_addr = seg.base_addr
+
+    def map_addr(addr: int) -> int:
+        return _source_addr_for_runtime(
+            addr,
+            file_offset=file_offset,
+            base_addr=base_addr,
+            physical_size=physical_size,
+        )
+
+    def map_block(block: DisasmBlockLike) -> BasicBlock:
+        return BasicBlock(
+            start=map_addr(block.start),
+            end=map_addr(block.end),
+            instructions=[
+                replace(
+                    instruction,
+                    offset=map_addr(instruction.offset),
+                    decoded_operands=_remap_decoded_for_emit_to_source(
+                        (
+                            instruction.decoded_operands
+                            if instruction.decoded_operands is not None
+                            else _decoded_for_emit_from_instruction(instruction)
+                        ),
+                        file_offset=file_offset,
+                        base_addr=base_addr,
+                        physical_size=physical_size,
+                    ),
+                    operand_nodes=(
+                        None
+                        if instruction.operand_nodes is None
+                        else tuple(
+                            _remap_decoded_operand_node_to_source(
+                                node,
+                                file_offset=file_offset,
+                                base_addr=base_addr,
+                                physical_size=physical_size,
+                            )
+                            for node in instruction.operand_nodes
+                        )
+                    ),
+                )
+                for instruction in block.instructions
+            ],
+            successors=[map_addr(successor) for successor in block.successors],
+            predecessors=[map_addr(predecessor) for predecessor in block.predecessors],
+            xrefs=[
+                XRef(src=map_addr(xref.src), dst=map_addr(xref.dst), type=xref.type, conditional=xref.conditional)
+                for xref in block.xrefs
+            ],
+            is_entry=block.is_entry,
+            is_return=block.is_return,
+        )
+
+    mapped_blocks = {map_addr(start): map_block(block) for start, block in ha.blocks.items()}
+    mapped_hints = {map_addr(start): map_block(block) for start, block in ha.hint_blocks.items()}
+    mapped_jump_tables = [
+        replace(
+            table,
+            addr=map_addr(table.addr),
+            targets=tuple(map_addr(target) for target in table.targets),
+            dispatch_sites=tuple(map_addr(site) for site in table.dispatch_sites),
+            dispatch_block=map_addr(table.dispatch_block),
+            table_end=map_addr(table.table_end),
+            base_addr=None if table.base_addr is None else map_addr(table.base_addr),
+            entries=tuple(
+                JumpTableEntry(offset_addr=map_addr(entry.offset_addr), target=map_addr(entry.target))
+                for entry in table.entries
+            ),
+        )
+        for table in ha.jump_tables
+    ]
+    mapped_lib_calls = [
+        replace(
+            call,
+            addr=map_addr(call.addr),
+            block=map_addr(call.block),
+            owner_sub=(call.owner_sub if call.owner_sub < 0 else map_addr(call.owner_sub)),
+        )
+        for call in ha.lib_calls
+    ]
+    return replace(
+        ha,
+        blocks=mapped_blocks,
+        hint_blocks=mapped_hints,
+        jump_tables=mapped_jump_tables,
+        call_targets={map_addr(addr) for addr in ha.call_targets},
+        branch_targets={map_addr(addr) for addr in ha.branch_targets},
+        lib_calls=mapped_lib_calls,
+        exit_states={map_addr(addr): state for addr, state in ha.exit_states.items()},
+        xrefs=[XRef(src=map_addr(xref.src), dst=map_addr(xref.dst), type=xref.type, conditional=xref.conditional) for xref in ha.xrefs],
+    )
+
+
+def _remap_data_access_sizes_to_source(
+    data_access_sizes: Mapping[int, int],
+    *,
+    file_offset: int,
+    base_addr: int,
+    physical_size: int,
+) -> dict[int, int]:
+    remapped: dict[int, int] = {}
+    for addr, size in data_access_sizes.items():
+        mapped = _source_addr_for_runtime(
+            addr,
+            file_offset=file_offset,
+            base_addr=base_addr,
+            physical_size=physical_size,
+        )
+        current = remapped.get(mapped)
+        if current is None or size > current:
+            remapped[mapped] = size
+    return remapped
 
 
 def _with_refined_named_base_structs(
@@ -367,6 +845,8 @@ def _rebase_jump_table_regions(
     return rebased
 
 
+
+
 def _apply_target_structure_annotations(
     *,
     target_metadata: TargetMetadata | None,
@@ -449,6 +929,88 @@ def _analysis_entry_floor(entry_points: tuple[int, ...]) -> int | None:
     return min(entry_points)
 
 
+def _inferred_execution_view_entrypoints(
+    *,
+    analysis_floor: int,
+    entry_points: tuple[int, ...],
+    extra_entry_points: tuple[int, ...],
+    execution_views: tuple[ExecutionViewMetadata, ...],
+) -> tuple[int, ...]:
+    existing = set(entry_points)
+    existing.update(extra_entry_points)
+    inferred = {
+        view.source_start
+        for view in execution_views
+        if view.source_start >= analysis_floor
+        if view.source_start not in existing
+    }
+    return tuple(sorted(inferred))
+
+
+def _load_or_analyze_hunk_session(
+    *,
+    source: BinarySource,
+    hunk: Hunk,
+    base_addr: int,
+    code_start: int,
+    entry_points: tuple[int, ...],
+    extra_entry_points: tuple[int, ...],
+    seed_config: object,
+    entry_initial_states: object,
+    target_metadata: TargetMetadata | None,
+    phase_timer: PhaseTimer | None,
+) -> tuple[HunkAnalysis, tuple[int, ...]]:
+    def run_analysis(extra_points: tuple[int, ...]) -> HunkAnalysis:
+        if source.kind == "raw_binary":
+            return analyze_hunk(
+                hunk.data,
+                [],
+                hunk.index,
+                base_addr=base_addr,
+                code_start=code_start,
+                entry_points=entry_points,
+                extra_entry_points=extra_points,
+                initial_state=cast(Any, seed_config).initial_state,
+                entry_initial_states=cast(Any, entry_initial_states),
+                phase_timer=phase_timer,
+            )
+        return load_hunk_analysis(
+            analysis_cache_path=source.analysis_cache_path,
+            code=hunk.data,
+            relocs=hunk.relocs,
+            hunk_index=hunk.index,
+            base_addr=base_addr,
+            code_start=code_start,
+            entry_points=entry_points,
+            extra_entry_points=extra_points,
+            seed_key=cast(Any, seed_config).seed_key,
+            initial_state=cast(Any, seed_config).initial_state,
+            entry_initial_states=cast(Any, entry_initial_states),
+        )
+
+    ha = run_analysis(extra_entry_points)
+    execution_views = _execution_views_for_session(
+        code=hunk.data,
+        blocks=ha.blocks,
+        target_metadata=target_metadata,
+        relocated_segments=ha.relocated_segments,
+        physical_stored_size=hunk.stored_size,
+    )
+    analysis_floor = code_start
+    if ha.relocated_segments:
+        analysis_floor = max(analysis_floor, ha.relocated_segments[0].file_offset)
+    inferred_extra = _inferred_execution_view_entrypoints(
+        analysis_floor=analysis_floor,
+        entry_points=entry_points,
+        extra_entry_points=extra_entry_points,
+        execution_views=execution_views,
+    )
+    if not inferred_extra:
+        return ha, extra_entry_points
+    merged_extra = tuple(sorted(set(extra_entry_points).union(inferred_extra)))
+    return run_analysis(merged_extra), merged_extra
+
+
 def _filter_hint_blocks_against_seeded_entities(
     hint_blocks: Mapping[int, DisasmBlockLike],
     target_metadata: TargetMetadata | None,
@@ -514,6 +1076,16 @@ def _apply_seeded_code_annotations(
         note = _seeded_code_note(comment=seeded_label.comment)
         if note is not None:
             addr_comments[seeded_label.addr] = note
+
+
+def _merge_missing_pc_targets(
+    existing: dict[int, str],
+    discovered: dict[int, str],
+) -> dict[int, str]:
+    merged = dict(existing)
+    for addr, label in discovered.items():
+        merged.setdefault(addr, label)
+    return merged
 
 
 def _derived_segment_struct_comments(call_setup_analysis: object) -> dict[int, str]:
@@ -997,6 +1569,18 @@ def _rename_reserved_generated_labels(
             labels[addr] = renamed
 
 
+def _apply_execution_view_source_labels(
+    *,
+    labels: dict[int, str],
+    execution_views: tuple[ExecutionViewMetadata, ...],
+) -> None:
+    for view in execution_views:
+        existing = labels.get(view.source_start)
+        if existing is not None and not existing.startswith(("pcref_", "dat_")):
+            continue
+        labels[view.source_start] = f"loc_{view.source_start:04x}"
+
+
 def _seeded_session_memory_cells(
     hunk_sessions: list[HunkDisassemblySession],
 ) -> dict[int, dict[int, _SessionMemoryCellFact]]:
@@ -1116,6 +1700,16 @@ def _refresh_session_memory_cells(
             blocks=dict(hunk_session.blocks),
             lib_calls=list(hunk_session.lib_calls),
             hunk_entities=hunk_session.entities,
+        )
+        hunk_session.lvo_substitutions = _maybe_rebase_substitution_map(
+            hunk_session.lvo_substitutions,
+            instruction_addrs={
+                inst.offset
+                for block in hunk_session.blocks.values()
+                for inst in block.instructions
+            },
+            base_addr=hunk_session.base_addr,
+            code_size=hunk_session.code_size,
         )
         hunk_session.arg_constants, hunk_session.arg_substitutions = build_arg_substitutions(
             blocks=dict(hunk_session.blocks),
@@ -1322,6 +1916,7 @@ def _build_hunk_session_data(
     entry_initial_states = scoped_entry_initial_states(seed_config, entry_points)
     code = hunk.data
     code_size = len(code)
+    physical_stored_size = hunk.stored_size
     hunk_entities = [e for e in entities if e.get("hunk") == hunk.index]
     hunk_entities.sort(key=lambda e: int(e["addr"], 16))
 
@@ -1330,33 +1925,20 @@ def _build_hunk_session_data(
         if phase_timer is not None
         else nullcontext()
     ):
-        if source.kind == "raw_binary":
-            ha = analyze_hunk(
-                code,
-                [],
-                hunk.index,
-                base_addr=base_addr,
-                code_start=code_start,
-                entry_points=entry_points,
-                extra_entry_points=extra_entry_points,
-                initial_state=seed_config.initial_state,
-                entry_initial_states=entry_initial_states,
-                phase_timer=phase_timer,
-            )
-        else:
-            ha = load_hunk_analysis(
-                analysis_cache_path=source.analysis_cache_path,
-                code=code,
-                relocs=hunk.relocs,
-                hunk_index=hunk.index,
-                base_addr=base_addr,
-                code_start=code_start,
-                entry_points=entry_points,
-                extra_entry_points=extra_entry_points,
-                seed_key=seed_config.seed_key,
-                initial_state=seed_config.initial_state,
-                entry_initial_states=entry_initial_states,
-            )
+        ha, extra_entry_points = _load_or_analyze_hunk_session(
+            source=source,
+            hunk=hunk,
+            base_addr=base_addr,
+            code_start=code_start,
+            entry_points=entry_points,
+            extra_entry_points=extra_entry_points,
+            seed_config=seed_config,
+            entry_initial_states=entry_initial_states,
+            target_metadata=target_metadata,
+            phase_timer=phase_timer,
+        )
+    if source.kind != "raw_binary" and ha.relocated_segments:
+        ha = _remap_analysis_to_source(ha, physical_size=physical_stored_size)
     entry_point = _analysis_entry_floor(entry_points)
     blocks = _filter_pre_entry_blocks(ha.blocks, entry_point)
     hint_blocks: Mapping[int, DisasmBlockLike] = _filter_pre_entry_blocks(
@@ -1382,22 +1964,25 @@ def _build_hunk_session_data(
         for addr, state in ha.exit_states.items()
         if entry_point is None or addr >= entry_point
     }
+    execution_views = _execution_views_for_session(
+        code=code,
+        blocks=blocks,
+        target_metadata=target_metadata,
+        relocated_segments=ha.relocated_segments,
+        physical_stored_size=physical_stored_size,
+    )
     relocated_segments = ha.relocated_segments
-    code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = (
-        _prepare_hunk_code(code, relocated_segments)
-    )
-    stored_size, alloc_size = _prepare_hunk_sizes(
-        stored_size=hunk.stored_size,
-        alloc_size=hunk.alloc_size,
-        reloc_file_offset=reloc_file_offset,
-        reloc_base_addr=reloc_base_addr,
-    )
+    stored_size = hunk.stored_size
+    alloc_size = hunk.alloc_size
     with (
         phase_timer.phase("session.metadata")
         if phase_timer is not None
         else nullcontext()
     ):
-        absolute_resolution = resolve_absolute_labels(platform=platform)
+        absolute_resolution = resolve_absolute_labels(
+            platform=platform,
+            target_metadata=target_metadata,
+        )
         region_map = propagate_typed_memory_regions(
             blocks,
             lib_calls,
@@ -1523,7 +2108,24 @@ def _build_hunk_session_data(
         app_offsets=app_offsets,
         os_kb=os_kb,
     )
+    _apply_execution_view_source_labels(
+        labels=labels,
+        execution_views=execution_views,
+    )
     data_access_sizes = collect_data_access_sizes(blocks, exit_states)
+    if source.kind != "raw_binary" and relocated_segments:
+        seg = relocated_segments[0]
+        data_access_sizes = _remap_data_access_sizes_to_source(
+            data_access_sizes,
+            file_offset=seg.file_offset,
+            base_addr=seg.base_addr,
+            physical_size=physical_stored_size,
+        )
+    apply_generic_data_size_promotions(
+        labels,
+        metadata.generic_data_label_addrs,
+        data_access_sizes,
+    )
     unresolved_indirects = {
         site.addr: site
         for site in ha.indirect_sites
@@ -1566,7 +2168,7 @@ def _build_hunk_session_data(
             for addr, value in call_setup_analysis.arg_annotations.items()
         }
         data_access_sizes = {
-            _rebase_local_addr(addr, base_addr): size
+            _maybe_rebase_addr(addr, base_addr, code_size): size
             for addr, size in data_access_sizes.items()
         }
         unresolved_indirects = {
@@ -1617,6 +2219,25 @@ def _build_hunk_session_data(
                 _rebase_local_addr(start, base_addr): _rebase_local_addr(end, base_addr)
                 for start, end in metadata.string_ranges.items()
             },
+        )
+        merged_pc_targets = _merge_missing_pc_targets(
+            metadata.pc_targets,
+            discover_pc_relative_targets(blocks, code),
+        )
+        merged_string_addrs = set(metadata.string_addrs)
+        merged_string_addrs.update(
+            addr for addr, name in merged_pc_targets.items() if name.startswith("str_")
+        )
+        merged_generic_data_label_addrs = set(metadata.generic_data_label_addrs)
+        merged_generic_data_label_addrs.update(merged_pc_targets)
+        for addr, label in merged_pc_targets.items():
+            labels.setdefault(addr, label)
+        metadata = replace(
+            metadata,
+            pc_targets=merged_pc_targets,
+            string_addrs=merged_string_addrs,
+            generic_data_label_addrs=merged_generic_data_label_addrs,
+            labels=labels,
         )
     else:
         hint_blocks = metadata.hint_blocks
@@ -1717,13 +2338,13 @@ def _build_hunk_session_data(
             data_access_sizes=data_access_sizes,
             typed_data_sizes=typed_data_sizes,
             typed_data_fields=typed_data_fields,
+            generic_data_label_addrs=metadata.generic_data_label_addrs,
             platform=platform,
             os_kb=os_kb,
             base_addr=base_addr,
             code_start=code_start,
             relocated_segments=relocated_segments,
-            reloc_file_offset=reloc_file_offset,
-            reloc_base_addr=reloc_base_addr,
+            execution_views=execution_views,
             arg_constants=arg_constants,
             string_ranges=metadata.string_ranges,
             unresolved_indirects=unresolved_indirects,
@@ -1803,8 +2424,7 @@ def _build_noncode_hunk_session(
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
+        execution_views=(),
         arg_constants=set(),
         absolute_labels=metadata.absolute_labels,
         reserved_absolute_addrs=metadata.reserved_absolute_addrs,

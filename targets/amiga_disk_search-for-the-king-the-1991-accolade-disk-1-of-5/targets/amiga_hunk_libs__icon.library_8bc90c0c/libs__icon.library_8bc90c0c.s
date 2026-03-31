@@ -44,8 +44,9 @@ AbsExecBase	EQU	$4
 
     section code,code
 
-hunk_0_dat_0000:
-    dc.b    $70,$ff,$4e,$75
+word_0000:
+    dc.w    $70ff
+    dc.b    $4e,$75
 resident_matchword:
     dc.w    $4afc
 resident_matchtag:
@@ -185,15 +186,15 @@ loc_0174:
     moveq #0,d0
     bra.s loc_018e
 loc_017c:
-    move.l exec_library_base(a2),exec_library_base_ptr
-    move.l icon_library_base(a2),icon_library_base_ptr
+    move.l exec_library_base(a2),long_0192
+    move.l icon_library_base(a2),long_0196
     move.l a2,d0
 loc_018e:
     movea.l (sp)+,a2
     rts
-exec_library_base_ptr:
+long_0192:
     dc.l    0 ; InferredIconLibraryBase.exec_library_base
-icon_library_base_ptr:
+long_0196:
     dc.l    0 ; InferredIconLibraryBase.icon_library_base
 ; entry registers: A6=icon.library base
 icon_private_1:
@@ -355,7 +356,7 @@ hunk_1_loc_004e:
     movem.l d2/a2,-(sp)
     movea.l 16(sp),a2
     move.l #$10000,-(sp)
-    pea ($0060).w
+    pea $60
     jsr hunk_9_loc_0000
 loc_0066:
     movea.l d0,a0
@@ -430,7 +431,7 @@ hunk_2_loc_0000:
     move.l a2,d1
     beq.s loc_0074
 loc_0016:
-    pea ($0014).w
+    pea $14
     move.l a2,-(sp)
     move.l d3,-(sp)
     move.l d2,-(sp)
@@ -475,7 +476,7 @@ hunk_2_loc_007a:
     movea.l 24(sp),a2
     bra.s loc_00cc
 hunk_2_loc_008c:
-    pea ($0010).w
+    pea $10
     move.l a2,-(sp)
 hunk_2_loc_0092:
     move.l d3,-(sp)
@@ -522,7 +523,7 @@ loc_00dc:
     beq.w hunk_2_loc_019e
 loc_00f4:
     move.l #$10000,-(sp)
-    pea ($0014).w
+    pea $14
     move.l d3,-(sp)
     move.l d2,-(sp)
     jsr hunk_1_loc_0000
@@ -531,7 +532,7 @@ loc_0108:
     lea 16(sp),sp
     beq.w hunk_2_loc_01a4
 loc_0114:
-    pea ($0014).w
+    pea $14
     move.l 40(sp),-(sp)
     move.l d4,-(sp)
     move.l d2,-(sp)
@@ -562,7 +563,7 @@ hunk_2_loc_0154:
 loc_0168:
     move.l d0,d5
     movea.l 36(sp),a2
-    pea ($0002).w
+    pea $2
     move.l d5,-(sp)
     move.l d3,-(sp)
     move.l d2,-(sp)
@@ -596,7 +597,7 @@ hunk_2_loc_01ac:
     bra.w loc_026c
 loc_01c2:
     move.l #$10000,-(sp)
-    pea ($0010).w
+    pea $10
     move.l d3,-(sp)
     move.l d2,-(sp)
     jsr hunk_1_loc_0000
@@ -613,7 +614,7 @@ loc_01e6:
 loc_01ec:
     move.l 40(sp),12(a2)
 loc_01f2:
-    pea ($0010).w
+    pea $10
     move.l 44(sp),-(sp)
     move.l d4,-(sp)
     move.l d2,-(sp)
@@ -630,7 +631,7 @@ loc_020c:
     add.l d5,d5
     add.l d5,d5
     movea.l 40(sp),a2
-    pea ($0002).w
+    pea $2
     move.l d5,-(sp)
     move.l d3,-(sp)
     move.l d2,-(sp)
@@ -784,11 +785,11 @@ hunk_3_loc_0124:
     pea -268(a6)
     jsr hunk_5_loc_002c
 hunk_3_loc_0154:
-    pea hunk_4_dat_0000
+    pea dat_0000
     pea -268(a6)
     jsr hunk_5_loc_0038
 loc_0164:
-    pea ($03ed).w
+    pea $000003ed
     pea -268(a6)
     jsr hunk_8_loc_0000
 loc_0172:
@@ -822,7 +823,7 @@ hunk_3_loc_01ac:
     beq.s loc_01fc
 loc_01b2:
     move.l #$10002,-(sp)
-    pea ($01be).w
+    pea $000001be
     move.l 20(a6),-(sp)
     move.l d2,-(sp)
     jsr hunk_1_loc_0000
@@ -831,7 +832,7 @@ loc_01c8:
     lea 16(sp),sp
     beq.w loc_03ee
 loc_01d2:
-    pea ($0038).w
+    pea $38
     movea.l d4,a5
     pea (a5)
     move.l d5,-(sp)
@@ -1063,14 +1064,14 @@ loc_03fe:
     moveq #0,d4
     movea.l #hunk_1_loc_00bc,a4
     clr.l -(sp)
-    pea ($0104).w
+    pea $00000104
     jsr hunk_9_loc_0000
 loc_0426:
     move.l d0,d5
     addq.l #8,sp
     bne.s loc_043e
 loc_042c:
-    pea ($0067).w
+    pea $67
     move.l d2,-(sp)
     jsr hunk_0_loc_0260
 loc_0438:
@@ -1117,7 +1118,7 @@ loc_049a:
     tst.l 66(a2)
     beq.s loc_04b8
 loc_04a0:
-    pea ($0038).w
+    pea $38
     move.l 66(a2),-(sp)
     move.l d3,-(sp)
     move.l d2,-(sp)
@@ -1289,7 +1290,7 @@ loc_062e:
 loc_0636:
     addq.l #4,sp
 loc_0638:
-    pea ($0104).w
+    pea $00000104
     move.l d5,-(sp)
     jsr hunk_9_loc_0018
 loc_0644:
@@ -1426,7 +1427,7 @@ loc_0768:
     move.l 20(sp),d2
     move.l 24(sp),d3
     move.l #$10000,-(sp)
-    pea ($005e).w
+    pea $5e
     jsr hunk_9_loc_0000
 loc_0784:
     move.l d0,d4
@@ -1448,7 +1449,7 @@ loc_07a6:
     lea 12(sp),sp
     beq.s loc_07e4
 loc_07ae:
-    pea ($005e).w
+    pea $5e
     move.l d4,-(sp)
     move.l a2,-(sp)
     move.l d2,-(sp)
@@ -1476,7 +1477,7 @@ loc_07e0:
 loc_07e2:
     bra.s loc_07f4
 loc_07e4:
-    pea ($005e).w
+    pea $5e
     move.l d4,-(sp)
     jsr hunk_9_loc_0018
 loc_07f0:
@@ -1548,7 +1549,7 @@ loc_0878:
     addq.l #4,sp
     bra.s loc_08ca
 loc_087e:
-    pea ($007c).w
+    pea $7c
     move.l d2,-(sp)
     jsr hunk_5_loc_0010
 loc_088a:
@@ -1604,7 +1605,7 @@ loc_08d6:
     moveq #30,d4
     movea.l a3,a4
     clr.b 30(a2)
-    pea ($0005).w
+    pea $5
     pea dat_000c
     move.l a4,-(sp)
     jsr hunk_5_loc_0048
@@ -1626,7 +1627,7 @@ loc_091e:
     bra.w loc_09b6
 loc_0926:
     addq.l #5,a4
-    pea ($0003).w
+    pea $3
     pea dat_001c
     move.l a4,-(sp)
     jsr hunk_5_loc_0048
@@ -1716,7 +1717,7 @@ loc_09d8:
 
     section data,data
 
-hunk_4_dat_0000:
+dat_0000:
     dc.b    ".info",0
 dat_0006:
     dc.b    ".info",0
@@ -1967,7 +1968,7 @@ hunk_7_loc_0000:
 
 hunk_8_loc_0000:
     movem.l d2/a6,-(sp)
-    movea.l icon_library_base_ptr,a6
+    movea.l long_0196,a6
     movem.l 12(sp),d1-d2
     jsr _LVOiconPrivate1(a6)
 loc_0014:
@@ -1976,7 +1977,7 @@ loc_0014:
     dc.b    $00,$00
 hunk_8_loc_001c:
     move.l a6,-(sp)
-    movea.l icon_library_base_ptr,a6
+    movea.l long_0196,a6
     move.l 8(sp),d1
     jsr _LVOiconPrivate2(a6)
 hunk_8_loc_002c:
@@ -1984,7 +1985,7 @@ hunk_8_loc_002c:
     rts
 hunk_8_loc_0030:
     movem.l d2-d3/a6,-(sp)
-    movea.l icon_library_base_ptr,a6
+    movea.l long_0196,a6
     movem.l 16(sp),d1-d3
     jsr _LVOiconPrivate3(a6)
 hunk_8_loc_0044:
@@ -1993,7 +1994,7 @@ hunk_8_loc_0044:
     dc.b    $00,$00
 hunk_8_loc_004c:
     movem.l d2-d3/a6,-(sp)
-    movea.l icon_library_base_ptr,a6
+    movea.l long_0196,a6
     movem.l 16(sp),d1-d3
     jsr _LVOiconPrivate4(a6)
 hunk_8_loc_0060:
@@ -2007,7 +2008,7 @@ hunk_8_loc_0060:
 
 hunk_9_loc_0000:
     move.l a6,-(sp)
-    movea.l exec_library_base_ptr,a6
+    movea.l long_0192,a6
     movem.l 8(sp),d0-d1
     jsr _LVOAllocMem(a6)
 loc_0012:
@@ -2016,7 +2017,7 @@ loc_0012:
     dc.b    $00,$00
 hunk_9_loc_0018:
     move.l a6,-(sp)
-    movea.l exec_library_base_ptr,a6
+    movea.l long_0192,a6
     movea.l 8(sp),a1
     move.l 12(sp),d0
     jsr _LVOFreeMem(a6)
@@ -2025,7 +2026,7 @@ hunk_9_loc_002c:
     rts
 hunk_9_loc_0030:
     move.l a6,-(sp)
-    movea.l exec_library_base_ptr,a6
+    movea.l long_0192,a6
     movea.l 8(sp),a0
     jsr _LVOFreeEntry(a6)
 hunk_9_loc_0040:
@@ -2033,7 +2034,7 @@ hunk_9_loc_0040:
     rts
 hunk_9_loc_0044:
     move.l a6,-(sp)
-    movea.l exec_library_base_ptr,a6
+    movea.l long_0192,a6
     movem.l 8(sp),a0-a1
     jsr _LVOAddTail(a6)
 hunk_9_loc_0056:
@@ -2042,7 +2043,7 @@ hunk_9_loc_0056:
     dc.b    $00,$00
 hunk_9_loc_005c:
     move.l a6,-(sp)
-    movea.l exec_library_base_ptr,a6
+    movea.l long_0192,a6
     movea.l 8(sp),a0
     jsr _LVORemTail(a6)
 hunk_9_loc_006c:

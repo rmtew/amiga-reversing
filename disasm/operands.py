@@ -197,6 +197,15 @@ def _absolute_label_or_text(segment_addr: int,
                             hunk_session: HunkDisassemblySession,
                             token: str,
                             inst: Instruction) -> str:
+    token_addr: int | None = None
+    raw_token = token.lower()
+    if raw_token.startswith("$"):
+        token_text = raw_token[1:]
+        token_text = token_text.removesuffix(".w").removesuffix(".l")
+        try:
+            token_addr = int(token_text, 16)
+        except ValueError:
+            token_addr = None
     register_def = hardware_register_by_addr(segment_addr)
     if register_def is not None:
         text = render_hardware_absolute(segment_addr)
@@ -209,9 +218,18 @@ def _absolute_label_or_text(segment_addr: int,
     if label is not None and segment_addr in hunk_session.reserved_absolute_addrs:
         assert isinstance(label, str)
         return label
+    for view in hunk_session.execution_views:
+        if view.source_start == segment_addr and token_addr == view.base_addr:
+            return f"${view.base_addr:X}".lower()
+    if any(view.base_addr == segment_addr for view in hunk_session.execution_views):
+        return f"${segment_addr:X}".lower()
     label = hunk_session.labels.get(segment_addr)
     if label is not None:
         assert isinstance(label, str)
+        if label.startswith("dat_"):
+            if any(view.source_start <= segment_addr < view.source_end for view in hunk_session.execution_views):
+                return label
+            return f"${segment_addr:08X}".lower()
         return label
     label = hunk_session.absolute_labels.get(segment_addr)
     if label is not None:
@@ -221,7 +239,7 @@ def _absolute_label_or_text(segment_addr: int,
         raise ValueError(
             f"Missing absolute symbol metadata for {_instruction_ref(inst)} operand {token!r} "
             f"targeting ${segment_addr:08X}")
-    return token.lower()
+    return f"${segment_addr:08X}".lower()
 
 
 def _absolute_text_with_size(
@@ -229,7 +247,25 @@ def _absolute_text_with_size(
     decoded_op: Operand,
     hunk_session: HunkDisassemblySession,
     segment_addr: int,
+    original_text: str,
+    *,
+    preserve_explicit_syntax: bool,
 ) -> str:
+    explicit_absolute_short_syntax = (
+        preserve_explicit_syntax
+        and (original_text.startswith("(") or original_text.lower().endswith((".w", ".l")))
+    )
+    if label.startswith("$"):
+        try:
+            label_addr = int(label[1:], 16)
+        except ValueError:
+            label_addr = None
+        if label_addr is not None and explicit_absolute_short_syntax and decoded_op.mode == "absw":
+            return f"(${label_addr:04X}).w".lower()
+        if label_addr is not None and explicit_absolute_short_syntax and decoded_op.mode == "absl":
+            return f"(${label_addr:08X}).l".lower()
+        if label_addr is not None and label_addr <= 0xFF and not explicit_absolute_short_syntax:
+            return f"${label_addr:X}".lower()
     profile = load_assembler_profile(hunk_session.assembler_profile_name)
     if profile.render.assembler_id != "devpac":
         return label
@@ -1190,7 +1226,14 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             assert segment_addr is not None, (
                 f"Typed absolute target missing value for {_instruction_ref(inst)}")
             label = _absolute_label_or_text(segment_addr, hunk_session, node.text, inst)
-            text = _absolute_text_with_size(label, decoded_operand, hunk_session, segment_addr)
+            text = _absolute_text_with_size(
+                label,
+                decoded_operand,
+                hunk_session,
+                segment_addr,
+                node.text,
+                preserve_explicit_syntax=len(inst.operand_texts or ()) > 1,
+            )
             if flow_type == _FLOW_CALL and operand_index == 0:
                 kind = "call_target"
             elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:
@@ -1536,7 +1579,14 @@ def _build_decoded_semantic_operand(inst: Instruction, token: str, spec: Operand
         if segment_addr is None:
             raise ValueError(f"Decoded absolute operand missing value for {_instruction_ref(inst)}")
         label = _absolute_label_or_text(segment_addr, hunk_session, token, inst)
-        text = _absolute_text_with_size(label, decoded_operand, hunk_session, segment_addr)
+        text = _absolute_text_with_size(
+            label,
+            decoded_operand,
+            hunk_session,
+            segment_addr,
+            token,
+            preserve_explicit_syntax=len(inst.operand_texts or ()) > 1,
+        )
         if flow_type == _FLOW_CALL and operand_index == 0:
             kind = "call_target"
         elif flow_type in (_FLOW_BRANCH, _FLOW_JUMP) and operand_index == 0:

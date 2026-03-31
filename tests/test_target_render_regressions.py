@@ -129,8 +129,6 @@ def _custom_node_hunk_session() -> HunkDisassemblySession:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         region_map={
             0x0000: {"a3": node_region},
             0x0006: {"a3": node_region},
@@ -146,4 +144,5 @@ def test_custom_node_walk_uses_seeded_metadata_struct_fields() -> None:
     assert _render_at(hunk, 0x0000) == ("cmpi.w #$3eb,genam_node_type(a3)", "", ())
     assert _render_at(hunk, 0x0006) == ("move.w genam_node_type(a3),d0", "", ())
     assert _render_at(hunk, 0x000A) == ("btst #1,genam_node_flags(a3)", "", ())
+
 

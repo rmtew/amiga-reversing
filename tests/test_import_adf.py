@@ -26,12 +26,18 @@ from amiga_disk.models import (
     BlockUsageInfo,
     BootBlockInfo,
     BootloaderAnalysis,
+    BootloaderDecodeRegion,
+    BootloaderDerivedRegion,
+    BootloaderDiskRead,
+    BootloaderMemoryCopy,
+    BootloaderStage,
     DiskFileEntry,
     DiskInfo,
     FileContentInfo,
     FilesystemInfo,
     NonDosInfo,
     RawTrackSource,
+    RawTrackSourceSpan,
     RootBlockInfo,
     TrackAnalysis,
     TrackInfo,
@@ -267,6 +273,649 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
     assert manifest.imported_targets[0].target_type == "program"
     target_metadata = json.loads((target_dir / "target_metadata.json").read_text(encoding="utf-8"))
     assert target_metadata["target_type"] == "program"
+
+
+def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_bytes = bytearray(b"\x00" * 0x400)
+    adf_bytes[0x200:0x204] = b"\x4E\x75\x4E\x75"
+    adf_path.write_bytes(bytes(adf_bytes))
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert Path(adf_file) == adf_path
+        assert extract_dir is None
+        assert include_tracks is True
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=len(adf_bytes),
+                variant="demo",
+                total_sectors=2,
+                sectors_per_track=1,
+                is_dos=False,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=0,
+                fs_type="0",
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=0,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=0.0,
+            ),
+            non_dos=NonDosInfo(
+                description="Custom format disk (non-AmigaDOS)",
+                bootcode_present=True,
+            ),
+            bootloader_analysis=BootloaderAnalysis(
+                stages=[
+                    BootloaderStage(
+                        name="boot",
+                        base_addr=0x0C,
+                        entry_addr=0x0C,
+                        size=1012,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x40000,
+                    ),
+                    BootloaderStage(
+                        name="stage_1",
+                        base_addr=0x40000,
+                        entry_addr=0x40000,
+                        size=4,
+                        materialized=True,
+                        reachable_instruction_count=2,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[
+                            BootloaderDiskRead(
+                                instruction_addr=0x2E,
+                                command_name="CMD_READ",
+                                disk_offset=0x200,
+                                byte_length=4,
+                                destination_addr=0x40000,
+                                source_kind="logical_disk_offset",
+                            )
+                        ],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x40000,
+                    ),
+                ],
+                memory_regions=[],
+                transfers=[],
+            ),
+        )
+
+    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    stage_target = next(target for target in manifest.imported_targets if target.target_type == "bootloader_stage")
+    assert stage_target.target_name == "amiga_disk_demo__amiga_raw_bootloader_stage_1"
+    assert stage_target.entry_path == "bootloader/stage_1"
+    assert stage_target.binary_path == f"{adf_path.as_posix()}::bootloader/stage_1"
+    stage_dir = project_root / stage_target.target_path
+    assert (stage_dir / "binary.bin").read_bytes() == b"\x4E\x75\x4E\x75"
+    source = json.loads((stage_dir / "source_binary.json").read_text(encoding="utf-8"))
+    assert source["kind"] == "raw_binary"
+    assert source["address_model"] == "runtime_absolute"
+    assert source["load_address"] == 0x40000
+    assert source["entrypoint"] == 0x40000
+    assert source["code_start_offset"] == 0
+    metadata = json.loads((stage_dir / "target_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["target_type"] == "bootloader_stage"
+    assert metadata["entry_register_seeds"][0]["register"] == "A6"
+    assert metadata["entry_register_seeds"][0]["note"] == "ExecBase"
+    assert metadata["entry_register_seeds"][1]["register"] == "A1"
+
+
+def test_import_adf_does_not_create_raw_target_for_bootloader_copied_stage(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    stage1_bytes = bytes.fromhex("1122334455667788")
+    adf_bytes = bytearray(b"\x00" * 0x400)
+    adf_bytes[0x200:0x200 + len(stage1_bytes)] = stage1_bytes
+    adf_path.write_bytes(bytes(adf_bytes))
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert Path(adf_file) == adf_path
+        assert extract_dir is None
+        assert include_tracks is True
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=len(adf_bytes),
+                variant="demo",
+                total_sectors=2,
+                sectors_per_track=1,
+                is_dos=False,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=0,
+                fs_type="0",
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=0,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=0.0,
+            ),
+            non_dos=NonDosInfo(
+                description="Custom format disk (non-AmigaDOS)",
+                bootcode_present=True,
+            ),
+            bootloader_analysis=BootloaderAnalysis(
+                stages=[
+                    BootloaderStage(
+                        name="boot",
+                        base_addr=0x0C,
+                        entry_addr=0x0C,
+                        size=1012,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x40000,
+                    ),
+                    BootloaderStage(
+                        name="stage_1",
+                        base_addr=0x40000,
+                        entry_addr=0x40000,
+                        size=len(stage1_bytes),
+                        materialized=True,
+                        reachable_instruction_count=2,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[
+                            BootloaderDiskRead(
+                                instruction_addr=0x2E,
+                                command_name="CMD_READ",
+                                disk_offset=0x200,
+                                byte_length=len(stage1_bytes),
+                                destination_addr=0x40000,
+                                source_kind="logical_disk_offset",
+                            )
+                        ],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x6000,
+                    ),
+                    BootloaderStage(
+                        name="stage_2",
+                        base_addr=0x6000,
+                        entry_addr=0x6000,
+                        size=4,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[
+                            BootloaderMemoryCopy(
+                                instruction_addr=0x40010,
+                                source_addr=0x40002,
+                                destination_addr=0x6000,
+                                byte_length=4,
+                            )
+                        ],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x6000,
+                    ),
+                ],
+                memory_regions=[],
+                transfers=[],
+            ),
+        )
+
+    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert all(target.entry_path != "bootloader/stage_2" for target in manifest.imported_targets)
+    assert [target.entry_path for target in manifest.imported_targets if target.target_type == "bootloader_stage"] == [
+        "bootloader/stage_1"
+    ]
+
+
+def test_import_adf_keeps_bootloader_copy_metadata_without_creating_stage_2_target(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    stage1_bytes = bytes.fromhex("1122334455667788")
+    adf_bytes = bytearray(b"\x00" * 0x400)
+    adf_bytes[0x200:0x200 + len(stage1_bytes)] = stage1_bytes
+    adf_path.write_bytes(bytes(adf_bytes))
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert Path(adf_file) == adf_path
+        assert extract_dir is None
+        assert include_tracks is True
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=len(adf_bytes),
+                variant="demo",
+                total_sectors=2,
+                sectors_per_track=1,
+                is_dos=False,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=0,
+                fs_type="0",
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=0,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=0.0,
+            ),
+            non_dos=NonDosInfo(
+                description="Custom format disk (non-AmigaDOS)",
+                bootcode_present=True,
+            ),
+            bootloader_analysis=BootloaderAnalysis(
+                stages=[
+                    BootloaderStage(
+                        name="boot",
+                        base_addr=0x0C,
+                        entry_addr=0x0C,
+                        size=1012,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x40000,
+                    ),
+                    BootloaderStage(
+                        name="stage_1",
+                        base_addr=0x40000,
+                        entry_addr=0x40000,
+                        size=len(stage1_bytes),
+                        materialized=True,
+                        reachable_instruction_count=2,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[
+                            BootloaderDiskRead(
+                                instruction_addr=0x2E,
+                                command_name="CMD_READ",
+                                disk_offset=0x200,
+                                byte_length=len(stage1_bytes),
+                                destination_addr=0x40000,
+                                source_kind="logical_disk_offset",
+                            )
+                        ],
+                        memory_copies=[
+                            BootloaderMemoryCopy(
+                                instruction_addr=0x40010,
+                                source_addr=0x40002,
+                                destination_addr=0x6000,
+                                byte_length=4,
+                            )
+                        ],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x6000,
+                    ),
+                    BootloaderStage(
+                        name="stage_2",
+                        base_addr=0x6000,
+                        entry_addr=0x6000,
+                        size=4,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x6000,
+                    ),
+                ],
+                memory_regions=[],
+                transfers=[],
+            ),
+        )
+
+    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert all(target.entry_path != "bootloader/stage_2" for target in manifest.imported_targets)
+
+    stage1_target = next(target for target in manifest.imported_targets if target.entry_path == "bootloader/stage_1")
+    stage1_dir = project_root / stage1_target.target_path
+    stage1_metadata = json.loads((stage1_dir / "target_metadata.json").read_text(encoding="utf-8"))
+    assert stage1_metadata.get("seeded_code_labels", []) == []
+    assert stage1_metadata.get("seeded_code_entrypoints", []) == []
+    assert stage1_metadata.get("absolute_code_labels", []) == []
+    assert stage1_metadata["execution_views"][0]["name"] == "bootstrapped_code"
+    assert stage1_metadata["execution_views"][0]["source_start"] == 2
+    assert stage1_metadata["execution_views"][0]["base_addr"] == 0x6000
+
+
+def test_import_adf_does_not_create_raw_target_for_bootloader_decoded_stage(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"\x00" * 0x400)
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert Path(adf_file) == adf_path
+        assert extract_dir is None
+        assert include_tracks is True
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=0x400,
+                variant="demo",
+                total_sectors=2,
+                sectors_per_track=1,
+                is_dos=False,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=0,
+                fs_type="0",
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=0,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=0.0,
+            ),
+            non_dos=NonDosInfo(
+                description="Custom format disk (non-AmigaDOS)",
+                bootcode_present=True,
+            ),
+            bootloader_analysis=BootloaderAnalysis(
+                stages=[
+                    BootloaderStage(
+                        name="boot",
+                        base_addr=0x0C,
+                        entry_addr=0x0C,
+                        size=1012,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x6000,
+                    ),
+                    BootloaderStage(
+                        name="stage_1",
+                        base_addr=0x6000,
+                        entry_addr=0x6000,
+                        size=4,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[
+                            BootloaderDerivedRegion(
+                                base_addr=0x6000,
+                                byte_length=4,
+                                concrete_byte_count=4,
+                                complete=True,
+                                data_hex="4e754e75",
+                            )
+                        ],
+                        handoffs=[],
+                        handoff_target=0x6000,
+                    ),
+                ],
+                memory_regions=[],
+                transfers=[],
+            ),
+        )
+
+    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert not any(target.target_type == "bootloader_stage" for target in manifest.imported_targets)
+
+
+def test_import_adf_creates_raw_target_for_unique_bootloader_raw_span(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_bytes = bytearray(b"\x00" * 0x400)
+    adf_bytes[0x120:0x128] = b"\x44\x89\xAA\xBB\xCC\xDD\xEE\xFF"
+    adf_path.write_bytes(bytes(adf_bytes))
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert Path(adf_file) == adf_path
+        assert extract_dir is None
+        assert include_tracks is True
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=len(adf_bytes),
+                variant="demo",
+                total_sectors=2,
+                sectors_per_track=1,
+                is_dos=False,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=0,
+                fs_type="0",
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=0,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=0.0,
+            ),
+            non_dos=NonDosInfo(
+                description="Custom format disk (non-AmigaDOS)",
+                bootcode_present=True,
+            ),
+            bootloader_analysis=BootloaderAnalysis(
+                stages=[
+                    BootloaderStage(
+                        name="boot",
+                        base_addr=0x0C,
+                        entry_addr=0x0C,
+                        size=1012,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x6000,
+                    ),
+                    BootloaderStage(
+                        name="stage_2",
+                        base_addr=0x6000,
+                        entry_addr=0x6000,
+                        size=4,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[
+                            BootloaderDecodeRegion(
+                                instruction_addr=0x6010,
+                                input_buffer_addr=0x2000,
+                                input_consumed_byte_offset=0,
+                                input_consumed_byte_length=4,
+                                checksum_gate_addr=None,
+                                checksum_gate_kind=None,
+                                input_source_kind="custom_track_dma_buffer",
+                                input_required_source_kind="raw_custom_track_bytes",
+                                input_source_candidates=[
+                                    RawTrackSource(track=0, cylinder=0, head=0, byte_offset=0x100, byte_length=0x100)
+                                ],
+                                input_source_candidate_spans=[
+                                    RawTrackSourceSpan(
+                                        start_track=0,
+                                        end_track=0,
+                                        start_byte_offset=0x120,
+                                        byte_length=8,
+                                    )
+                                ],
+                                input_required_byte_length=8,
+                                input_concrete_byte_count=0,
+                                input_complete=False,
+                                input_materializable=False,
+                                input_missing_reason="custom_track_decode_mapping_unresolved",
+                                output_base_addr=0x6000,
+                                output_addr=0x6000,
+                                byte_length=4,
+                                write_loop_addr=0x6010,
+                            )
+                        ],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=0x6000,
+                    ),
+                ],
+                memory_regions=[],
+                transfers=[],
+            ),
+        )
+
+    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    span_target = next(target for target in manifest.imported_targets if target.target_type == "bootloader_raw_span")
+    assert span_target.target_name == "amiga_disk_demo__amiga_raw_bootloader_stage_2_raw_span_0"
+    assert span_target.entry_path == "bootloader/stage_2/raw_span_0"
+    span_dir = project_root / span_target.target_path
+    assert (span_dir / "binary.bin").read_bytes() == b"\x44\x89\xAA\xBB\xCC\xDD\xEE\xFF"
+    source = json.loads((span_dir / "source_binary.json").read_text(encoding="utf-8"))
+    assert source["kind"] == "raw_binary"
+    assert source["address_model"] == "local_offset"
+    assert source["load_address"] == 0
+    assert source["entrypoint"] == 0
+    assert source["code_start_offset"] == 0
+    metadata = json.loads((span_dir / "target_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["target_type"] == "bootloader_raw_span"
+    assert metadata["entry_register_seeds"] == []
 
 
 def test_classify_file_content_classifies_library_targets_from_resident_structure(

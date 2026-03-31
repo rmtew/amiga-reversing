@@ -64,8 +64,6 @@ def _required_constant_includes(constant_names: set[str]) -> set[str]:
             )
         include_paths.add(owner.canonical_include_path)
     return include_paths
-
-
 def _app_slot_equ_value(base_info: AppBaseInfo, offset: int) -> str:
     if base_info.kind.name == "ABSOLUTE":
         addr = (base_info.concrete + offset) & 0xFFFFFFFF
@@ -361,6 +359,26 @@ def _emit_target_structure_rows(session: DisassemblySession) -> list[ListingRow]
     return rows
 
 
+def _emit_execution_view_rows(hunk_session: HunkDisassemblySession) -> list[ListingRow]:
+    if not hunk_session.execution_views:
+        return []
+    rows: list[ListingRow] = [make_row("comment", "; Execution views\n")]
+    for view in hunk_session.execution_views:
+        rows.append(
+            make_row(
+                "comment",
+                (
+                    f";   {view.name}: source 0x{view.source_start:X}..0x{view.source_end:X} "
+                    f"-> runtime 0x{view.base_addr:X}\n"
+                ),
+            )
+        )
+        if view.comment is not None:
+            rows.append(make_row("comment", f";   {view.comment}\n"))
+    rows.append(make_row("blank", "\n"))
+    return rows
+
+
 def _collect_used_absolute_addrs(rows: list[ListingRow],
                                  hunk_session: HunkDisassemblySession) -> set[int]:
     used: set[int] = set()
@@ -486,6 +504,7 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
         opcode_or_directive=assembler_profile.render.directives.section,
     ))
     rows.append(make_row("blank", blank_line_text))
+    rows.extend(_emit_execution_view_rows(hunk_session))
 
     def emit_label(addr: int) -> None:
         lbl = hunk_session.labels[addr]
@@ -793,14 +812,6 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
 
     if hunk_session.hunk_type == int(HunkType.HUNK_BSS):
         emit_bss()
-        emit_passes: list[tuple[int, int]] = []
-    else:
-        emit_passes = [(0, hunk_session.code_size)]
-    if hunk_session.relocated_segments:
-        emit_passes = [
-            (0, hunk_session.reloc_file_offset),
-            (hunk_session.reloc_base_addr, hunk_session.code_size),
-        ]
 
     entity_lookup: dict[int, EntityRecord] = {}
     entity_ranges: list[tuple[int, int, EntityRecord]] = []
@@ -829,13 +840,9 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 return candidate
         return None
 
-    for pass_idx, (pass_start, pass_end) in enumerate(emit_passes):
-        if pass_idx == 1:
-            rows.append(make_row(
-                "org",
-                f"\n    org ${hunk_session.reloc_base_addr:X}\n\n",
-                opcode_or_directive="org",
-            ))
+    if hunk_session.hunk_type != int(HunkType.HUNK_BSS):
+        pass_start = 0
+        pass_end = hunk_session.code_size
         structured_by_start = {
             region.start: region
             for region in structured_regions

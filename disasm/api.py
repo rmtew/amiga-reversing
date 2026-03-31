@@ -75,6 +75,7 @@ class SessionHunkMetadata(TypedDict):
     hint_block_count: int
     jump_table_count: int
     relocated: bool
+    execution_view_count: int
 
 
 class SessionMetadata(TypedDict):
@@ -166,7 +167,8 @@ def session_metadata(session: DisassemblySession) -> SessionMetadata:
                 "core_block_count": len(hunk.blocks),
                 "hint_block_count": len(hunk.hint_blocks),
                 "jump_table_count": len(hunk.jump_table_regions),
-                "relocated": bool(hunk.relocated_segments),
+                "relocated": bool(hunk.execution_views),
+                "execution_view_count": len(hunk.execution_views),
             }
             for hunk in session.hunk_sessions
         ],

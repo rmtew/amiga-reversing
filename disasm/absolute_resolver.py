@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from disasm.target_metadata import TargetMetadata
 from m68k.os_calls import AppBaseKind, PlatformState
 from m68k_kb import runtime_hardware, runtime_os
 
@@ -14,11 +15,24 @@ class AbsoluteResolution:
     reserved_absolute_addrs: set[int]
 
 
-def resolve_absolute_labels(*, platform: PlatformState) -> AbsoluteResolution:
+def resolve_absolute_labels(
+    *,
+    platform: PlatformState,
+    target_metadata: TargetMetadata | None = None,
+) -> AbsoluteResolution:
     absolute_labels = {
         symbol.address: symbol.name
         for symbol in runtime_os.META.absolute_symbols
     }
+    if target_metadata is not None:
+        for label in target_metadata.absolute_code_labels:
+            existing = absolute_labels.get(label.addr)
+            if existing is not None and existing != label.name:
+                raise ValueError(
+                    f"Conflicting absolute label for ${label.addr:08X}: "
+                    f"{existing!r} vs {label.name!r}"
+                )
+            absolute_labels[label.addr] = label.name
     reserved_absolute_addrs = set(absolute_labels)
     for address in runtime_hardware.REGISTER_DEFS:
         reserved_absolute_addrs.add(address)

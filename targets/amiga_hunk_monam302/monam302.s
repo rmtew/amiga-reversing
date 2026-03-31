@@ -69,10 +69,10 @@ memtask:
     bra.w loc_0094
     dc.w    $4d4f ; SetPointer.xOffset
     dc.w    $4e20 ; SetPointer.yOffset
-    dc.l    dat_0024 ; SimpleSprite.ss_posctldata
+    dc.l    byte_0024 ; SimpleSprite.ss_posctldata
     dc.w    $0000 ; SimpleSprite.ss_height
     dc.w    $0054 ; SimpleSprite.ss_x
-dat_0010:
+long_0010:
     dc.w    $0000 ; SimpleSprite.ss_y
     dc.w    $0000 ; SimpleSprite.ss_num
 pcref_0014:
@@ -80,15 +80,15 @@ pcref_0014:
 pcref_0018:
     dc.l    $00000000
     dcb.b   4,0
-dat_0020:
-    dcb.b   4,0
-dat_0024:
+long_0020:
+    dc.l    $00000000
+byte_0024:
     dc.b    $00
 pcref_0025:
     dc.b    $ff,$ff
-dat_0027:
+byte_0027:
     dc.b    $00,$00,$20
-dat_002a:
+byte_002a:
     dc.b    $08
     dcb.b   7,0
 pcref_0032:
@@ -98,7 +98,7 @@ pcref_0072:
     dc.b    "$VER: MonAm 3.02 (31.1.92)",0
     dc.b    $00
 loc_0094:
-    movem.l d0/a0,dat_88ec
+    movem.l d0/a0,long_88ec
     move.l #$e1a,d0 ; AllocMem: byteSize
     move.l #MEMF_PUBLIC|MEMF_CLEAR,d1 ; AllocMem: attributes
     movea.l AbsExecBase,a6
@@ -111,7 +111,7 @@ loc_00b6:
     moveq #103,d0
     rts
 loc_00ba:
-    cmpi.l #$44455620,dat_0010 ; 'DEV '
+    cmpi.l #$44455620,long_0010 ; 'DEV '
     seq 354(a6) ; app+$162
     bne.s loc_00d0
 loc_00ca:
@@ -170,7 +170,7 @@ loc_014e:
     jsr _LVOFindTask(a6) ; app-$126
 loc_015a:
     movea.l (sp)+,a6
-    move.l d0,dat_8956
+    move.l d0,long_8956
     move.l d0,app_addport_port+MP_SIGTASK(a6)
     moveq #-1,d0 ; AllocSignal: signalNum
     move.l a6,-(sp)
@@ -185,7 +185,7 @@ loc_0172:
     jsr _LVOAllocSignal(a6) ; app-$14A
 loc_0184:
     movea.l (sp)+,a6
-    move.b d0,dat_895e
+    move.b d0,byte_895e
     lea app_addport_port(a6),a1 ; AddPort: port
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
@@ -195,16 +195,16 @@ loc_019a:
     movea.l AbsExecBase,a0
     move.w 296(a0),d0
     btst #4,d0
-    sne dat_8906
+    sne word_8906
     andi.b #$3,d0
     beq.s loc_01e8
 loc_01b4:
     lea pcref_159c(pc),a1
-    move.l a1,dat_1536
+    move.l a1,long_1536
     cmp.b #$1,d0
     bne.s loc_01ce
 loc_01c4:
-    move.w #$4e71,dat_15b2
+    move.w #$4e71,word_15b2
     bra.s loc_01e8
 loc_01ce:
     lea supervisor_userfunc(pc),a5 ; Supervisor: userFunc
@@ -235,7 +235,7 @@ loc_0212:
     movea.l app_graphics_base(a6),a0
     movem.w gb_NormalDisplayRows(a0),d0-d1
     move.w #$8000,d2
-    move.b dat_0027(pc),d3
+    move.b byte_0027(pc),d3
     beq.s loc_022c
 loc_0226:
     ori.w #$4,d2
@@ -245,13 +245,13 @@ loc_022c:
     move.w d1,ns_Width(a0)
     move.w d0,ns_Height(a0)
     move.w d2,ns_ViewModes(a0)
-    move.b dat_0027(pc),d0
+    move.b byte_0027(pc),d0
     move.b 327(a6),d1 ; app+$147
     eor.b d1,d0
     moveq #1,d1
     and.l d1,d0
     eor.b d1,d0
-    move.l d0,dat_04ba
+    move.l d0,long_04ba
     move.l a6,-(sp)
     movea.l app_intuition_base(a6),a6
     jsr _LVOOpenScreen(a6) ; app-$C6
@@ -288,8 +288,8 @@ loc_02ac:
     sf 228(a6) ; app+$E4
     sf 326(a6) ; app+$146
     move.l #$ffffffff,318(a6) ; app+$13E
-    clr.l dat_88f6
-    clr.b dat_88f5
+    clr.l long_88f6
+    clr.b byte_88f5
     lea 16(a6),a0 ; app+$10
     moveq #15,d0
 loc_02d8:
@@ -325,12 +325,12 @@ loc_031e:
     beq.s loc_033e
 loc_0328:
     lea str_0336(pc),a3
-    movea.l dat_88f0,a4
+    movea.l long_88f0,a4
     bra.w loc_556a
 str_0336:
     dc.b    "MEMTASK",0
 loc_033e:
-    movem.l dat_88ec,d0/a0
+    movem.l long_88ec,d0/a0
     lea 0(a0,d0.l),a1
 loc_034a:
     cmpi.b #$20,-(a1)
@@ -435,7 +435,7 @@ loc_040e:
 loc_0420:
     movea.l (sp)+,a6
     moveq #0,d0
-    move.b dat_895e,d0 ; FreeSignal: signalNum
+    move.b byte_895e,d0 ; FreeSignal: signalNum
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
     jsr _LVOFreeSignal(a6) ; app-$150
@@ -501,8 +501,8 @@ pcref_0496:
     dc.l    dat_04b6 ; ExtNewScreen.ens_Extension
 dat_04b6:
     dc.b    $80,$00,$00,$2c
-dat_04ba:
-    dc.b    $00,$00,$00,$01
+long_04ba:
+    dc.l    $00000001
     dc.b    $80,$00,$00,$39,$00,$00,$00,$01
     dcb.b   4,0
 openwindow_newwindow:
@@ -834,7 +834,7 @@ hint_0810:
     dc.b    $4e,$75
 hint_0812:
     dc.b    $0a,$2b,$00,$0c,$00,$35,$13,$eb,$00,$35
-    dc.l    dat_002a
+    dc.l    byte_002a
     dc.b    $61,$00,$4e,$74
 hint_0824:
     dc.b    $60,$00,$56,$fc
@@ -1809,7 +1809,7 @@ loc_118e:
     clr.b (a2)+
     dbf d0,loc_118e
 loc_1194:
-    move.b dat_002a,d0
+    move.b byte_002a,d0
     move.l a1,(a0)
     beq.s loc_11d2
 loc_119e:
@@ -1988,7 +1988,7 @@ hint_1358:
     dc.b    $10,$d9,$66,$fc
 hint_135c:
     dc.b    $11,$7c,$00,$20,$ff,$ff,$42,$10,$50,$c4,$50,$c7,$60,$00,$47,$ec
-dat_136c:
+word_136c:
     dc.w    $0000
     dc.b    $00,$00
     dcb.b   64,0
@@ -2002,7 +2002,7 @@ hint_13d0:
     dc.b    $28,$40,$23,$c0
     dc.l    dat_895a
     dc.b    $22,$3c
-    dc.l    dat_1448
+    dc.l    long_1448
     dc.b    $e4,$89,$29,$41,$00,$ac
     dc.b    " zup)h",0
     dc.b    $98,$00,$98,$29,$68,$00,$9c,$00,$9c,$29,$68,$00,$a0,$00,$a0,$43
@@ -2013,32 +2013,33 @@ hint_1416:
     dc.b    $2c,$5f,$13,$c0
     dc.l    dat_88f4
     dc.b    $20,$3a,$74,$d6,$e5,$88,$58,$80,$2f,$40,$00,$3c,$20,$40,$20,$f9
-    dc.l    dat_88fa
+    dc.l    word_88fa
     dc.b    $30,$b9
     dc.l    dat_88fe
     dc.b    $4c,$df,$7f,$ff,$70,$00,$41,$fa,$00,$48,$10,$18,$4e,$75
 hint_1446:
     dc.b    $00
     dc.b    $00
-dat_1448:
+long_1448:
     dc.l    $00000000
     dcb.b   12,0
-dat_1458:
-    dcb.b   44,0
-dat_1484:
-    dcb.b   4,0
+long_1458:
+    dc.l    $00000000
+    dcb.b   40,0
+long_1484:
+    dc.l    $00000000
 pcref_1488:
     dc.b    $00
 pcref_1489:
     dcb.b   63,0
 dat_14c8:
     dc.b    $50,$f9
-    dc.l    dat_88f5
+    dc.l    byte_88f5
 dat_14ce:
     dc.b    $4a,$fc
 dat_14d0:
     dc.b    $23,$c0
-    dc.l    dat_8916
+    dc.l    long_8916
     dc.b    $20,$1f,$b0,$3c,$00,$09,$66,$14
 hint_14de:
     dc.b    $0c,$af
@@ -2060,7 +2061,7 @@ hint_150e:
     dc.b    $70,$1d,$60,$1c
 hint_1512:
     dc.b    $4a,$39
-    dc.l    dat_8906
+    dc.l    word_8906
     dc.b    $67,$04
 hint_151a:
     dc.b    $f3,$7a,$74,$7a
@@ -2070,7 +2071,7 @@ hint_152e:
     dc.b    $23,$c0
     dc.l    dat_8908
     dc.b    $4e,$f9
-dat_1536:
+long_1536:
     dc.l    dat_153a
 dat_153a:
     dc.b    $b0,$bc,$00,$00,$00,$03,$6e,$38
@@ -2096,9 +2097,9 @@ hint_1578:
     dc.b    $50,$8f
 hint_157a:
     dc.b    $33,$d7
-    dc.l    dat_8910
+    dc.l    word_8910
     dc.b    $08,$97,$00,$07,$23,$ef,$00,$02
-    dc.l    dat_890c
+    dc.l    long_890c
     dc.b    $23,$cf
     dc.l    dat_8912
     dc.b    $2f,$7c
@@ -2106,12 +2107,13 @@ hint_157a:
     dc.b    $00,$02,$4e,$73
 pcref_159c:
     dc.b    $33,$df
-    dc.l    dat_8910
+    dc.l    word_8910
     dc.b    $23,$df
-    dc.l    dat_890c
+    dc.l    long_890c
     dc.b    $b0,$bc,$00,$00,$00,$09,$4c,$9f,$00,$01
-dat_15b2:
-    dc.b    $67,$00,$01,$12
+word_15b2:
+    dc.w    $6700
+    dc.b    $01,$12
 hint_15b6:
     dc.b    $02,$40,$f0,$00,$67,$3c
 hint_15bc:
@@ -2134,10 +2136,10 @@ hint_15ec:
     dc.b    $4f,$ef,$00,$18,$60,$06
 hint_15f2:
     dc.b    $23,$df
-    dc.l    dat_890c
+    dc.l    long_890c
 hint_15f8:
     dc.b    $2f,$08,$4a,$39
-    dc.l    dat_8906
+    dc.l    word_8906
     dc.b    $67,$32
 hint_1602:
     dc.b    $41,$fa,$73,$92,$f3,$28,$00,$00,$4a,$28,$00,$00,$67,$24
@@ -2177,7 +2179,7 @@ dat_16cc:
     dc.b    $66,$08
 hint_16e0:
     dc.b    $23,$fa,$72,$7e
-    dc.l    dat_890c
+    dc.l    long_890c
 hint_16e8:
     dc.b    '"',"zrlp",0
     dc.b    $12,$3a,$72,$6e,$03,$c0,$2f,$0e,$2c,$78,$00,$04,$4e,$ae,$fe,$bc
@@ -2207,10 +2209,10 @@ loc_176c:
     movem.l d0-d7/a0-a5,16(a6) ; app+$10
     movem.l pcref_894c(pc),d0-d1
     movem.l d0-d1,72(a6) ; app+$48
-    movea.l dat_890c(pc),a1
+    movea.l long_890c(pc),a1
     move.l a1,app_exec_base_0054(a6)
     move.l dat_8912(pc),80(a6) ; app+$50
-    move.w dat_8910,90(a6) ; app+$5A
+    move.w word_8910,90(a6) ; app+$5A
     move.l dat_8908(pc),d1
     st 308(a6) ; app+$134
     cmp.b #$4,d1
@@ -2223,7 +2225,7 @@ loc_17b2:
     bne.s loc_17c2
 loc_17b8:
     sf 308(a6) ; app+$134
-    clr.b dat_88f5
+    clr.b byte_88f5
 loc_17c2:
     lea pcref_173e(pc),a0
     moveq #0,d0
@@ -2400,14 +2402,14 @@ loc_1936:
     movea.l (sp)+,a3
 loc_193c:
     movem.l 16(a6),d0-d7/a0-a5 ; app+$10
-    movem.l d0-d7/a0-a5,dat_8916
+    movem.l d0-d7/a0-a5,long_8916
     movem.l 72(a6),d0-d1 ; app+$48
-    movem.l d0-d1,dat_894e
-    move.l app_exec_base_0054(a6),dat_890c
-    move.w 90(a6),dat_8910 ; app+$5A
+    movem.l d0-d1,long_894e
+    move.l app_exec_base_0054(a6),long_890c
+    move.w 90(a6),word_8910 ; app+$5A
     moveq #0,d0 ; SetSignal: newSignals
     moveq #0,d1 ; SetSignal: signalMask
-    move.b dat_895e(pc),d2
+    move.b byte_895e(pc),d2
     bset d2,d1
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
@@ -5312,7 +5314,7 @@ loc_413c:
     beq.s loc_415e
 loc_4140:
     moveq #0,d1 ; SetSignal: signalMask
-    move.b dat_895e(pc),d0
+    move.b byte_895e(pc),d0
     bset d0,d1
     moveq #0,d0 ; SetSignal: newSignals
     move.l a6,-(sp)
@@ -5320,7 +5322,7 @@ loc_4140:
     jsr _LVOSetSignal(a6) ; app-$132
 loc_4154:
     movea.l (sp)+,a6
-    move.b dat_895e(pc),d1
+    move.b byte_895e(pc),d1
     btst d1,d0
     bne.s loc_419a
 loc_415e:
@@ -5338,7 +5340,7 @@ loc_416c:
     tst.b d7
     beq.s loc_4186
 loc_4180:
-    move.b dat_895e(pc),d1
+    move.b byte_895e(pc),d1
     bset d1,d0
 loc_4186:
     move.l a6,-(sp)
@@ -5346,7 +5348,7 @@ loc_4186:
     jsr _LVOWait(a6) ; app-$13E
 loc_4190:
     movea.l (sp)+,a6
-    move.b dat_895e(pc),d1
+    move.b byte_895e(pc),d1
     btst d1,d0
     beq.s loc_41a6
 loc_419a:
@@ -5614,10 +5616,10 @@ loc_4466:
 loc_4468:
     bra.w sub_039e
 call_unloadseg:
-    move.l dat_88f6(pc),d1
+    move.l long_88f6(pc),d1
     beq.s loc_4494
 loc_4472:
-    clr.l dat_88f6
+    clr.l long_88f6
     clr.l 170(a6) ; app+$AA
     tst.b 308(a6) ; app+$134
     bne.s loc_4494
@@ -6196,7 +6198,7 @@ hint_4ab6:
     dc.b    $67,$06
 hint_4ab8:
     dc.b    $5a,$f9
-    dc.l    dat_0027
+    dc.l    byte_0027
 hint_4abe:
     dc.b    $41,$fa,$3d,$57,$61,$00,$1f,$a6
 hint_4ac6:
@@ -6319,19 +6321,19 @@ env_devpac_monam_prefs:
     tst.b 354(a6) ; app+$162
     beq.s loc_4c26
 loc_4c14:
-    tst.b dat_0024
+    tst.b byte_0024
     bne.s loc_4c62
 loc_4c1c:
-    move.b 327(a6),dat_0027 ; app+$147
+    move.b 327(a6),byte_0027 ; app+$147
     bra.s loc_4c62
 loc_4c26:
-    move.b 327(a6),dat_0027 ; app+$147
+    move.b 327(a6),byte_0027 ; app+$147
     lea str_4cb3(pc),a5
     bsr.w loc_73e2
 loc_4c36:
     beq.s loc_4c4e
 loc_4c38:
-    movea.l dat_8956,a0
+    movea.l long_8956,a0
     moveq #-1,d0
     move.l d0,184(a0)
     lea str_4ca8(pc),a5
@@ -6339,16 +6341,16 @@ loc_4c38:
 loc_4c4c:
     bne.s loc_4c62
 loc_4c4e:
-    lea dat_0024(pc),a0
+    lea byte_0024(pc),a0
     moveq #84,d4
     bsr.w call_read
 loc_4c58:
     bsr.w call_close
 loc_4c5c:
-    move.b dat_0024(pc),d0
+    move.b byte_0024(pc),d0
     beq.s loc_4ca6
 loc_4c62:
-    movea.l dat_8956,a0
+    movea.l long_8956,a0
     clr.l 184(a0)
     lea pcref_0025(pc),a0
     move.b (a0)+,328(a6) ; app+$148
@@ -6361,10 +6363,10 @@ loc_4c62:
     move.b (a0)+,1414(a6) ; app+$586
     move.b (a0)+,1415(a6) ; app+$587
     move.w (a0)+,240(a6) ; app+$F0
-    tst.b dat_002a
+    tst.b byte_002a
     bne.s loc_4ca6
 loc_4c9e:
-    move.b #$8,dat_002a
+    move.b #$8,byte_002a
 loc_4ca6:
     rts
 str_4ca8:
@@ -7178,14 +7180,14 @@ loc_5562:
     tst.l d0
     beq.w loc_1af8
 loc_556a:
-    move.l d0,dat_88f6
+    move.l d0,long_88f6
     add.l d0,d0
     add.l d0,d0
     addq.l #4,d0
     move.l d0,170(a6) ; app+$AA
     lea dat_136d(pc),a0
     movea.l a3,a1
-    lea dat_136c(pc),a2
+    lea word_136c(pc),a2
     st (a2)
 loc_5586:
     addq.b #1,(a2)
@@ -7229,30 +7231,30 @@ loc_55c6:
     bsr.w too_many_breakpoints
 loc_55e0:
     movea.l 170(a6),a1 ; app+$AA
-    move.w (a1),dat_88fa
+    move.w (a1),word_88fa
     move.w #$4ef9,(a1)+
-    move.l (a1),dat_88fc
+    move.l (a1),long_88fc
     move.l #dat_13b0,(a1)
-    movea.l dat_8956(pc),a0
+    movea.l long_8956(pc),a0
     move.l 172(a0),d0
     add.l d0,d0
     add.l d0,d0
     movea.l d0,a0
     moveq #15,d0
-    lea dat_1448(pc),a1
+    lea long_1448(pc),a1
 loc_560e:
     move.l (a0)+,(a1)+
     dbf d0,loc_560e
 loc_5614:
-    move.l #dat_136c,d1
+    move.l #word_136c,d1
     lsr.l #2,d1
-    move.l d1,dat_1458
-    move.l dat_88f6(pc),dat_1484
+    move.l d1,long_1458
+    move.l long_88f6(pc),long_1484
     move.l a3,d1 ; CreateProc: name
     moveq #0,d2
-    movea.l dat_8956(pc),a0
+    movea.l long_8956(pc),a0
     move.b 9(a0),d2 ; CreateProc: pri
-    move.l dat_88f6(pc),d3 ; CreateProc: seglist
+    move.l long_88f6(pc),d3 ; CreateProc: seglist
     moveq #80,d4
     add.l app_createproc_stacksize(a6),d4 ; CreateProc: stackSize
     move.l a6,-(sp)
@@ -8091,7 +8093,7 @@ loc_5e34:
     move.l a0,62(a3)
     rts
 loc_5e42:
-    move.b dat_002a,53(a3)
+    move.b byte_002a,53(a3)
     lea pcref_682e(pc),a0
     move.l a0,62(a3)
     rts
@@ -8550,7 +8552,7 @@ hint_63b4:
     dc.b    $61,$00,$01,$60
 hint_63b8:
     dc.b    $4a,$39
-    dc.l    dat_8906
+    dc.l    word_8906
     dc.b    $67,$00,$01,$02
 hint_63c2:
     dc.b    $43,$fa,$02,$88,$61,$00,$01,$4e
@@ -10070,7 +10072,7 @@ loc_7324:
     subq.w #1,d0
     bne.s loc_7316
 loc_7330:
-    lea dat_88f6(pc),a0
+    lea long_88f6(pc),a0
 loc_7334:
     subq.w #1,d3
     bmi.s loc_72c2
@@ -10631,7 +10633,7 @@ loc_7788:
     bsr.s call_unloadseg_7740
 loc_778c:
     suba.l a4,a4
-    lea dat_88f6(pc),a5
+    lea long_88f6(pc),a5
     move.l (sp)+,d1 ; Open: name
     move.l #MODE_OLDFILE,d2 ; Open: accessMode
     move.l a6,-(sp)
@@ -11631,7 +11633,7 @@ call_close_7fb8:
     tst.b 354(a6) ; app+$162
     beq.s loc_7fe0
 loc_7fbe:
-    move.l dat_0020,d0
+    move.l long_0020,d0
     beq.w loc_80aa
 loc_7fc8:
     moveq #0,d4
@@ -13331,27 +13333,27 @@ hint_88d5:
     dc.b    " in di"
     dc.b    "sassembly Y/N? ",0
     dc.b    $00
-dat_88ec:
-    dcb.b   4,0
-dat_88f0:
-    dcb.b   4,0
+long_88ec:
+    dc.l    $00000000
+long_88f0:
+    dc.l    $00000000
 dat_88f4:
     dc.b    $00
-dat_88f5:
+byte_88f5:
     dc.b    $00
-dat_88f6:
+long_88f6:
     dc.b    $00,$00
     dc.b    $00,$00
-dat_88fa:
-    dc.b    $00,$00
-dat_88fc:
+word_88fa:
+    dc.w    $0000
+long_88fc:
     dc.b    $00,$00
 dat_88fe:
     dcb.b   7,0
 hint_8905:
     dc.b    $00
-dat_8906:
-    dc.b    $00,$00
+word_8906:
+    dc.w    $0000
 dat_8908:
     dc.b    $00
 hint_8909:
@@ -13359,23 +13361,18 @@ hint_8909:
     dc.b    $00
 hint_890b:
     dc.b    $00
-dat_890c:
-    dcb.b   4,0
-dat_8910:
-    dc.b    $00
-    dc.b    $00
+long_890c:
+    dc.l    $00000000
+word_8910:
+    dc.w    $0000
 dat_8912:
     dc.b    $00
     dc.b    $00
 pcref_8914:
     dc.b    $00
     dc.b    $00
-dat_8916:
-    dc.b    $00
-hint_8917:
-    dc.b    $00
-    dc.b    $00
-    dc.b    $00
+long_8916:
+    dc.l    $00000000
 dat_891a:
     dc.b    $00
     dc.b    $00
@@ -13401,13 +13398,14 @@ hint_8944:
 pcref_894c:
     dc.b    $00
     dc.b    $00
-dat_894e:
-    dcb.b   8,0
-dat_8956:
+long_894e:
+    dc.l    $00000000
     dcb.b   4,0
+long_8956:
+    dc.l    $00000000
 dat_895a:
     dcb.b   4,0
-dat_895e:
+byte_895e:
     dc.b    $00
     dc.b    $00
 dat_8960:

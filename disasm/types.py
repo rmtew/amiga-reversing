@@ -5,7 +5,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NotRequired, Protocol, TypedDict
 
-from disasm.target_metadata import StructuredRegionSpec, TargetMetadata
+from disasm.target_metadata import (
+    ExecutionViewMetadata,
+    StructuredRegionSpec,
+    TargetMetadata,
+)
 from m68k.analysis import RelocatedSegment
 from m68k.indirect_core import IndirectSite
 from m68k.instruction_decode import DecodedBitfield
@@ -257,8 +261,6 @@ class HunkDisassemblySession:
     base_addr: int
     code_start: int
     relocated_segments: list[RelocatedSegment]
-    reloc_file_offset: int
-    reloc_base_addr: int
     hint_blocks: Mapping[int, DisasmBlockLike] = field(default_factory=dict)
     code_addrs: set[int] = field(default_factory=set)
     hint_addrs: set[int] = field(default_factory=set)
@@ -283,6 +285,7 @@ class HunkDisassemblySession:
     addr_comments: dict[int, str] = field(default_factory=dict)
     string_ranges: dict[int, int] = field(default_factory=dict)
     dynamic_structured_regions: tuple[StructuredRegionSpec, ...] = ()
+    execution_views: tuple[ExecutionViewMetadata, ...] = ()
     absolute_labels: dict[int, str] = field(default_factory=dict)
     reserved_absolute_addrs: set[int] = field(default_factory=set)
     reloc_target_hunks: dict[int, int] = field(default_factory=dict)

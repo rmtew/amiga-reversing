@@ -83,8 +83,6 @@ def test_build_instruction_comment_parts_prefers_app_offset_before_ascii() -> No
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     parts = build_instruction_comment_parts(
@@ -122,8 +120,6 @@ def test_build_instruction_comment_parts_uses_instruction_processor_min_not_text
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     parts = build_instruction_comment_parts(
@@ -158,8 +154,6 @@ def test_render_instruction_text_requires_opcode_text() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     from disasm.instruction_rows import render_instruction_text
@@ -189,8 +183,6 @@ def test_build_instruction_comment_parts_uses_decoded_immediate_not_rendered_tex
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     parts = build_instruction_comment_parts(
@@ -219,8 +211,6 @@ def test_build_instruction_comment_parts_appends_unresolved_indirect_marker() ->
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         unresolved_indirects={0x20: IndirectSite(
             addr=0x20,
             mnemonic="JSR",
@@ -267,8 +257,6 @@ def test_build_instruction_comment_parts_suppresses_unresolved_marker_for_refine
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         unresolved_indirects={
             0x20: IndirectSite(
                 addr=0x20,
@@ -535,8 +523,6 @@ def test_emit_jump_table_rows_emits_inline_dispatch_rows() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     end = emit_jump_table_rows(
@@ -572,8 +558,6 @@ def test_emit_jump_table_rows_emits_string_dispatch_rows() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     end = emit_jump_table_rows(
@@ -615,8 +599,6 @@ def test_emit_jump_table_rows_preserves_sparse_word_gaps() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     end = emit_jump_table_rows(
@@ -726,8 +708,6 @@ def test_render_instruction_text_substitutes_field_domain_constant_for_trackdisk
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     text, _comment, _parts = render_instruction_text(inst, hunk_session, set())
@@ -800,8 +780,6 @@ def test_session_metadata_summarizes_hunks() -> None:
                 base_addr=0,
                 code_start=0,
                 relocated_segments=[],
-                reloc_file_offset=0,
-                reloc_base_addr=0,
             )
         ],
     )
@@ -917,3 +895,4 @@ def test_emit_data_region_renders_ascii_string() -> None:
     )
 
     assert output.getvalue() == '    dc.b    "TEST",0\n'
+

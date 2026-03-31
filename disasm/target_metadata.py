@@ -524,6 +524,84 @@ class SeededCodeEntrypointMetadata:
         )
 
 @dataclass(frozen=True, slots=True)
+class AbsoluteCodeLabelMetadata:
+    addr: int
+    seed_origin: str
+    review_status: str
+    citation: str
+    name: str
+    comment: str | None = None
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> AbsoluteCodeLabelMetadata:
+        addr = payload["addr"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        name = payload["name"]
+        comment = payload.get("comment")
+        assert isinstance(addr, int)
+        assert isinstance(seed_origin, str)
+        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
+        assert isinstance(review_status, str)
+        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        assert isinstance(citation, str)
+        assert isinstance(name, str)
+        assert comment is None or isinstance(comment, str)
+        return cls(
+            addr=addr,
+            seed_origin=seed_origin,
+            review_status=review_status,
+            citation=citation,
+            name=name,
+            comment=comment,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionViewMetadata:
+    source_start: int
+    source_end: int
+    base_addr: int
+    name: str
+    seed_origin: str
+    review_status: str
+    citation: str
+    comment: str | None = None
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> ExecutionViewMetadata:
+        source_start = payload["source_start"]
+        source_end = payload["source_end"]
+        base_addr = payload["base_addr"]
+        name = payload["name"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        comment = payload.get("comment")
+        assert isinstance(source_start, int)
+        assert isinstance(source_end, int)
+        assert isinstance(base_addr, int)
+        assert isinstance(name, str)
+        assert isinstance(seed_origin, str)
+        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
+        assert isinstance(review_status, str)
+        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        assert isinstance(citation, str)
+        assert comment is None or isinstance(comment, str)
+        return cls(
+            source_start=source_start,
+            source_end=source_end,
+            base_addr=base_addr,
+            name=name,
+            seed_origin=seed_origin,
+            review_status=review_status,
+            citation=citation,
+            comment=comment,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class SuppressedSeededItemMetadata:
     kind: str
     hunk: int
@@ -552,6 +630,8 @@ class TargetMetadata:
     seeded_entities: tuple[SeededEntityMetadata, ...] = ()
     seeded_code_labels: tuple[SeededCodeLabelMetadata, ...] = ()
     seeded_code_entrypoints: tuple[SeededCodeEntrypointMetadata, ...] = ()
+    absolute_code_labels: tuple[AbsoluteCodeLabelMetadata, ...] = ()
+    execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
 
     @classmethod
@@ -566,6 +646,8 @@ class TargetMetadata:
         seeded_entities = payload.get("seeded_entities", [])
         seeded_code_labels = payload.get("seeded_code_labels", [])
         seeded_code_entrypoints = payload.get("seeded_code_entrypoints", [])
+        absolute_code_labels = payload.get("absolute_code_labels", [])
+        execution_views = payload.get("execution_views", [])
         suppressed_seeded_items = payload.get("suppressed_seeded_items", [])
         assert isinstance(target_type, str)
         seeds = _json_list(entry_register_seeds)
@@ -597,6 +679,14 @@ class TargetMetadata:
             seeded_code_entrypoints=tuple(
                 SeededCodeEntrypointMetadata.from_dict(_json_object(entrypoint_payload))
                 for entrypoint_payload in _json_list(seeded_code_entrypoints)
+            ),
+            absolute_code_labels=tuple(
+                AbsoluteCodeLabelMetadata.from_dict(_json_object(label_payload))
+                for label_payload in _json_list(absolute_code_labels)
+            ),
+            execution_views=tuple(
+                ExecutionViewMetadata.from_dict(_json_object(view_payload))
+                for view_payload in _json_list(execution_views)
             ),
             suppressed_seeded_items=tuple(
                 SuppressedSeededItemMetadata.from_dict(_json_object(item_payload))
@@ -1191,6 +1281,16 @@ def validate_target_seeded_metadata(metadata: TargetMetadata) -> TargetMetadata:
             raise ValueError(
                 f"target_seeded_metadata.json code entrypoint at {entrypoint.addr:#x} is missing source_locator"
             )
+    for label in metadata.absolute_code_labels:
+        if label.addr < 0:
+            raise ValueError(
+                f"target_seeded_metadata.json absolute code label at {label.addr:#x} is invalid"
+            )
+    for view in metadata.execution_views:
+        if view.source_start < 0 or view.source_end <= view.source_start:
+            raise ValueError("target_seeded_metadata.json execution view source range is invalid")
+        if view.base_addr < 0:
+            raise ValueError("target_seeded_metadata.json execution view base_addr is invalid")
     return metadata
 
 
@@ -1371,6 +1471,39 @@ def _merge_seeded_code_entrypoints(
     return tuple(merged[key] for key in sorted(merged))
 
 
+def _merge_absolute_code_labels(
+    manual: tuple[AbsoluteCodeLabelMetadata, ...],
+    seeded: tuple[AbsoluteCodeLabelMetadata, ...],
+) -> tuple[AbsoluteCodeLabelMetadata, ...]:
+    merged: dict[int, AbsoluteCodeLabelMetadata] = {label.addr: label for label in seeded}
+    for label in manual:
+        existing = merged.get(label.addr)
+        if existing is None:
+            merged[label.addr] = label
+            continue
+        merged[label.addr] = AbsoluteCodeLabelMetadata(
+            addr=label.addr,
+            name=label.name,
+            comment=label.comment if label.comment is not None else existing.comment,
+            seed_origin=label.seed_origin,
+            review_status=label.review_status,
+            citation=label.citation,
+        )
+    return tuple(merged[key] for key in sorted(merged))
+
+
+def _merge_execution_views(
+    manual: tuple[ExecutionViewMetadata, ...],
+    seeded: tuple[ExecutionViewMetadata, ...],
+) -> tuple[ExecutionViewMetadata, ...]:
+    merged: dict[tuple[int, int, int], ExecutionViewMetadata] = {
+        (view.source_start, view.source_end, view.base_addr): view for view in seeded
+    }
+    for view in manual:
+        merged[(view.source_start, view.source_end, view.base_addr)] = view
+    return tuple(merged[key] for key in sorted(merged))
+
+
 def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> TargetMetadata:
     if manual.target_type != seeded.target_type:
         raise ValueError("Conflicting target_type between target metadata and seeded target metadata")
@@ -1400,6 +1533,14 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
         seeded_code_entrypoints=_merge_seeded_code_entrypoints(
             manual.seeded_code_entrypoints,
             seeded.seeded_code_entrypoints,
+        ),
+        absolute_code_labels=_merge_absolute_code_labels(
+            manual.absolute_code_labels,
+            seeded.absolute_code_labels,
+        ),
+        execution_views=_merge_execution_views(
+            manual.execution_views,
+            seeded.execution_views,
         ),
         suppressed_seeded_items=manual.suppressed_seeded_items,
     )

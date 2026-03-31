@@ -2,12 +2,15 @@ from __future__ import annotations
 
 """Disassembly metadata and session state tests."""
 
+from m68k.instruction_primitives import Operand
+from m68k.m68k_disasm import DecodedOperandNode
 from tests.disasm_pipeline_support import (
     CallArgumentAnnotation,
     CustomStructFieldMetadata,
     CustomStructMetadata,
     DisasmBlockLike,
     DisassemblySession,
+    ExecutionViewMetadata,
     Hunk,
     HunkDisassemblySession,
     HunkType,
@@ -22,6 +25,7 @@ from tests.disasm_pipeline_support import (
     MemType,
     MonkeyPatch,
     Path,
+    RawBinarySource,
     Reloc,
     RelocatedSegment,
     RelocLike,
@@ -31,8 +35,6 @@ from tests.disasm_pipeline_support import (
     _block,
     _FakeBlock,
     _FakeReloc,
-    _prepare_hunk_code,
-    _prepare_hunk_sizes,
     analysis_cache_root,
     assemble_instruction,
     build_hunk_metadata,
@@ -77,28 +79,139 @@ def test_build_hunk_metadata_masks_hints_inside_typed_string_ranges() -> None:
     assert metadata.string_ranges == {0x20: 0x24}
     assert 0x20 not in metadata.labels
 
-def test_prepare_hunk_code_relocates_payload_segment() -> None:
-    code, code_size, relocated_segments, reloc_file_offset, reloc_base_addr = _prepare_hunk_code(
-        b"\xAA\xBB\x11\x22",
-        [RelocatedSegment(file_offset=2, base_addr=6)],
+def test_load_or_analyze_hunk_session_reruns_with_execution_view_entrypoints(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    binary_path = tmp_path / "demo.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x40000,
+        entrypoint=0x40000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "demo.analysis",
+    )
+    hunk = Hunk(
+        index=0,
+        hunk_type=int(HunkType.HUNK_CODE),
+        mem_type=int(MemType.ANY),
+        alloc_size=0x80,
+        data=b"\x00" * 0x80,
+    )
+    analyze_calls: list[tuple[int, ...]] = []
+
+    def fake_analyze_hunk(
+        code: bytes,
+        relocs: list[RelocLike],
+        hunk_index: int,
+        *,
+        base_addr: int = 0,
+        code_start: int = 0,
+        entry_points: tuple[int, ...] = (),
+        extra_entry_points: tuple[int, ...] = (),
+        initial_state: object = None,
+        entry_initial_states: object = None,
+        phase_timer: object = None,
+    ) -> SimpleNamespace:
+        analyze_calls.append(tuple(extra_entry_points))
+        return SimpleNamespace(
+            blocks={},
+            exit_states={},
+            relocated_segments=[],
+        )
+
+    def fake_execution_views_for_session(**kwargs: object) -> tuple[ExecutionViewMetadata, ...]:
+        return (
+            ExecutionViewMetadata(
+                source_start=0x46,
+                source_end=0x80,
+                base_addr=0x6000,
+                name="bootstrapped_code",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="test",
+            ),
+        )
+
+    monkeypatch.setattr(session_mod, "analyze_hunk", fake_analyze_hunk)
+    monkeypatch.setattr(
+        session_mod,
+        "_execution_views_for_session",
+        fake_execution_views_for_session,
     )
 
-    assert code == b"\xAA\xBB\x00\x00\x00\x00\x11\x22"
-    assert code_size == 8
-    assert relocated_segments == [RelocatedSegment(file_offset=2, base_addr=6)]
-    assert reloc_file_offset == 2
-    assert reloc_base_addr == 6
-
-def test_prepare_hunk_sizes_rebases_relocated_runtime_window() -> None:
-    stored_size, alloc_size = _prepare_hunk_sizes(
-        stored_size=9968,
-        alloc_size=9968,
-        reloc_file_offset=490,
-        reloc_base_addr=0,
+    _ha, merged_extra = session_mod._load_or_analyze_hunk_session(
+        source=source,
+        hunk=hunk,
+        base_addr=0x40000,
+        code_start=0,
+        entry_points=(0,),
+        extra_entry_points=(),
+        seed_config=SimpleNamespace(initial_state=None, seed_key="seed"),
+        entry_initial_states={},
+        target_metadata=None,
+        phase_timer=None,
     )
 
-    assert stored_size == 9478
-    assert alloc_size == 9478
+    assert analyze_calls == [(), (0x46,)]
+    assert merged_extra == (0x46,)
+
+
+def test_remap_operand_value_to_source_maps_absolute_effective_addresses_only() -> None:
+    abs_op = Operand(mode="absl", reg=None, value=0x8C1F)
+    imm_op = Operand(mode="imm", reg=None, value=0x8C1F)
+
+    remapped_abs = session_mod._remap_operand_value_to_source(
+        abs_op,
+        file_offset=0x5C,
+        base_addr=0x400,
+        physical_size=0x59040,
+    )
+    remapped_imm = session_mod._remap_operand_value_to_source(
+        imm_op,
+        file_offset=0x5C,
+        base_addr=0x400,
+        physical_size=0x59040,
+    )
+
+    assert remapped_abs is not None
+    assert remapped_abs.value == 0x887B
+    assert remapped_imm is imm_op
+
+
+def test_remap_decoded_operand_node_to_source_maps_absolute_targets() -> None:
+    abs_node = DecodedOperandNode(
+        kind="absolute_target",
+        text="$00008c1f",
+        target=0x8C1F,
+        value=0x8C1F,
+    )
+    imm_node = DecodedOperandNode(
+        kind="immediate",
+        text="#$8c1f",
+        value=0x8C1F,
+    )
+
+    remapped_abs = session_mod._remap_decoded_operand_node_to_source(
+        abs_node,
+        file_offset=0x5C,
+        base_addr=0x400,
+        physical_size=0x59040,
+    )
+    remapped_imm = session_mod._remap_decoded_operand_node_to_source(
+        imm_node,
+        file_offset=0x5C,
+        base_addr=0x400,
+        physical_size=0x59040,
+    )
+
+    assert remapped_abs.target == 0x887B
+    assert remapped_abs.value == 0x887B
+    assert remapped_imm == imm_node
 
 def test_disassembly_session_uses_binary_analysis_suffix(tmp_path: Path) -> None:
     binary_path = tmp_path / "demo.bin"
@@ -162,8 +275,6 @@ def test_hunk_disassembly_session_preserves_metadata_and_analysis_fields() -> No
         base_addr=0x400,
         code_start=2,
         relocated_segments=[RelocatedSegment(file_offset=0, base_addr=0)],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         string_ranges={},
         dynamic_structured_regions=(),
         absolute_labels={},
@@ -581,8 +692,6 @@ def test_session_cross_hunk_labels_are_synthesized_and_uniquified() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     target = HunkDisassemblySession(
         hunk_index=1,
@@ -598,8 +707,6 @@ def test_session_cross_hunk_labels_are_synthesized_and_uniquified() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     session_mod._ensure_cross_hunk_target_labels([source, target])
@@ -640,8 +747,6 @@ def test_refresh_session_memory_cells_propagates_named_base_across_hunks() -> No
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     source_blocks[0] = replace(cast(_FakeBlock, source_blocks[0]), instructions=[store_inst])
 
@@ -667,8 +772,6 @@ def test_refresh_session_memory_cells_propagates_named_base_across_hunks() -> No
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         lib_calls=(LibraryCall(
             addr=len(load_inst.raw),
             block=0,
@@ -704,8 +807,6 @@ def test_refresh_session_memory_cells_propagates_typed_field_across_hunks() -> N
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     source_blocks: dict[int, DisasmBlockLike] = {0: _block(0, len(store_inst.raw))}
     source = HunkDisassemblySession(
@@ -733,8 +834,6 @@ def test_refresh_session_memory_cells_propagates_typed_field_across_hunks() -> N
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     source_blocks[0] = replace(cast(_FakeBlock, source_blocks[0]), instructions=[store_inst])
 
@@ -785,8 +884,6 @@ def test_refresh_session_memory_cells_normalizes_session_os_kb() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     target = HunkDisassemblySession(
         hunk_index=1,
@@ -800,8 +897,6 @@ def test_refresh_session_memory_cells_normalizes_session_os_kb() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     session_mod._refresh_session_memory_cells([source, target])
@@ -809,6 +904,42 @@ def test_refresh_session_memory_cells_normalizes_session_os_kb() -> None:
     assert source.os_kb is target.os_kb
     assert "InferredIconLibraryBase" in target.os_kb.STRUCTS
     assert target.os_kb.META.named_base_structs["icon.library"] == "InferredIconLibraryBase"
+
+
+def test_refresh_session_memory_cells_rebases_lvo_substitutions_for_absolute_base() -> None:
+    lead_inst = disassemble(assemble_instruction("nop"))[0]
+    call_inst = disassemble(assemble_instruction("jsr -132(a6)"))[0]
+    block_len = len(lead_inst.raw) + len(call_inst.raw)
+    blocks: dict[int, DisasmBlockLike] = {0: _block(0, block_len)}
+    session = HunkDisassemblySession(
+        hunk_index=0,
+        code=lead_inst.raw + call_inst.raw,
+        code_size=block_len,
+        entities=[],
+        blocks=blocks,
+        code_addrs=set(range(block_len)),
+        reloc_target_hunks={},
+        platform=make_platform(),
+        os_kb=runtime_os,
+        base_addr=0x40000,
+        code_start=0,
+        relocated_segments=[],
+        lib_calls=(LibraryCall(
+            addr=0x40002,
+            block=0,
+            library="exec.library",
+            function="Forbid",
+            lvo=-132,
+        ),),
+    )
+    blocks[0] = replace(cast(_FakeBlock, blocks[0]), instructions=[
+        lead_inst,
+        replace(call_inst, offset=len(lead_inst.raw)),
+    ])
+
+    session_mod._refresh_session_memory_cells([session])
+
+    assert session.lvo_substitutions == {2: ("-132(", "_LVOForbid(")}
 
 def test_cross_hunk_control_entrypoints_collects_inbound_jsr_targets() -> None:
     source = Hunk(
@@ -931,10 +1062,9 @@ def test_target_local_struct_equ_rows_emit_custom_field_offsets() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     equs = emitter_mod._target_local_struct_equ_defs(hunk_session)
 
     assert equs == {"exec_library_base": 34}
+

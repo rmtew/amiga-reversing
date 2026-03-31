@@ -23,7 +23,6 @@ def test_resolve_absolute_labels_keeps_hardware_addresses_reserved_and_app_base_
     assert 0x00DFF000 not in resolved.absolute_labels
     assert 0x00BFE001 not in resolved.absolute_labels
 
-
 def test_runtime_hardware_register_defs_classify_custom_and_cia_addresses() -> None:
     assert runtime_hardware.REGISTER_DEFS[0x00DFF09A] == {
         "symbol": "intena",

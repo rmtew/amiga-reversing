@@ -40,8 +40,6 @@ from disasm.metadata import build_hunk_metadata
 from disasm.os_include_kb import load_os_include_kb
 from disasm.session import (
     _apply_seeded_code_annotations,
-    _prepare_hunk_code,
-    _prepare_hunk_sizes,
     _refresh_library_call_signatures,
     build_disassembly_session,
 )
@@ -51,6 +49,7 @@ from disasm.target_metadata import (
     CustomStructFieldMetadata,
     CustomStructMetadata,
     EntryRegisterSeedMetadata,
+    ExecutionViewMetadata,
     LibraryTargetMetadata,
     ResidentTargetMetadata,
     SeededCodeEntrypointMetadata,

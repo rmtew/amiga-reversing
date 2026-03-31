@@ -2,34 +2,34 @@
   "target": "amiga_hunk_bloodwych",
   "binary": "bin/Bloodwych439",
   "command": "uv run scripts/benchmark_target.py amiga_hunk_bloodwych",
-  "measured_at": "2026-03-31T17:59:53+13:00",
+  "measured_at": "2026-04-01T11:24:09+13:00",
   "status": "ok",
-  "elapsed_seconds": 26.32,
+  "elapsed_seconds": 34.95,
   "analysis_bytes": 5228578,
   "entities_bytes": 155040,
-  "disasm_bytes": 1822365,
+  "disasm_bytes": 1828499,
   "timing": {
     "entities": {
-      "parse_source_seconds": 0.0001,
+      "parse_source_seconds": 0.0002,
       "analysis": {
-        "init_seconds": 1.4113,
-        "core_seconds": 4.1612,
-        "per_caller_seconds": 3.5218,
+        "init_seconds": 1.4632,
+        "core_seconds": 4.0838,
+        "per_caller_seconds": 3.4883,
         "store_pass_seconds": 0.0,
-        "hint_scan_seconds": 5.3608,
-        "os_call_seconds": 0.1103
+        "hint_scan_seconds": 5.1448,
+        "os_call_seconds": 0.1074
       },
-      "naming_seconds": 0.0039,
-      "write_seconds": 0.0053
+      "naming_seconds": 0.0036,
+      "write_seconds": 0.005
     },
     "session": {
-      "load_analysis_seconds": 0.1194,
-      "metadata_seconds": 0.6885,
-      "substitutions_seconds": 0.0005,
-      "build_seconds": 0.0001
+      "load_analysis_seconds": 5.3605,
+      "metadata_seconds": 0.5178,
+      "substitutions_seconds": 0.0006,
+      "build_seconds": 0.0002
     },
-    "emit_seconds": 1.73,
-    "render_seconds": 0.0542
+    "emit_seconds": 1.9853,
+    "render_seconds": 0.06
   },
   "analysis": {
     "code_bytes": 364516,
@@ -69,9 +69,9 @@
       "immediate_constant_count": 0,
       "struct_field_count": 0,
       "app_struct_field_count": 0,
-      "raw_absolute_branch_target_count": 0,
+      "raw_absolute_branch_target_count": 1,
       "raw_absolute_call_target_count": 0,
-      "raw_absolute_known_code_branch_target_count": 0,
+      "raw_absolute_known_code_branch_target_count": 1,
       "raw_absolute_known_code_call_target_count": 0
     }
   },

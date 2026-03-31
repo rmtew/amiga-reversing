@@ -39,7 +39,16 @@ def collect_data_access_sizes(
             decoded = decode_inst_operands(inst)
 
             for op in (decoded.ea_op, decoded.dst_op):
-                if op is None or op.reg is None:
+                if op is None:
+                    continue
+                if op.mode in {"absw", "absl"}:
+                    if op.value is None:
+                        continue
+                    addr_val = op.value & 0xFFFFFFFF
+                    if addr_val not in sizes or byte_size > sizes[addr_val]:
+                        sizes[addr_val] = byte_size
+                    continue
+                if op.reg is None:
                     continue
                 if op.mode not in {"ind", "postinc", "disp"}:
                     continue

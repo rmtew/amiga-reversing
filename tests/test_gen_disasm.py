@@ -26,6 +26,7 @@ from disasm.decode import (
 from disasm.discovery import (
     add_hint_labels,
     apply_generic_data_label_promotions,
+    apply_generic_data_size_promotions,
     build_label_map,
     build_reloc_target_hunk_map,
     discover_absolute_targets,
@@ -214,6 +215,18 @@ def test_collect_data_access_uses_decoded_operands_not_text() -> None:
     assert sizes.get(0x0A) == 4
 
 
+def test_collect_absolute_data_access_size() -> None:
+    code = b""
+    code += struct.pack(">HH", 0x4238, 0x0010)  # clr.b $0010
+    code += struct.pack(">H", 0x4E75)           # rts
+
+    result = analyze(code, propagate=True, entry_points=[0], platform=make_platform(scratch_regs=()))
+
+    sizes = collect_data_access_sizes(result["blocks"], result.get("exit_states", {}))
+
+    assert sizes.get(0x10) == 1
+
+
 def test_emit_data_word_format() -> None:
     """Data region with word access emits dc.w instead of dc.b."""
     import io
@@ -373,8 +386,6 @@ def test_emit_hunk_rows_emits_typed_data_comments() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         typed_data_sizes={0x0000: 2, 0x0002: 2, 0x0004: 4, 0x0008: 2, 0x000A: 2, 0x000C: 2},
         addr_comments={
             0x0000: "SetPointer.xOffset",
@@ -414,8 +425,6 @@ def test_emit_hunk_rows_typed_data_overrides_hint_bytes() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         typed_data_sizes={0x0000: 2, 0x0002: 2},
         addr_comments={0x0000: "Foo.left", 0x0002: "Foo.top"},
     )
@@ -440,8 +449,6 @@ def test_render_instruction_text_preserves_exg_registers() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     for asm_text in ("exg d0,d1", "exg a0,a1", "exg d0,a1"):
@@ -878,7 +885,24 @@ def test_apply_generic_data_label_promotions_overrides_only_generic_labels() -> 
     assert labels[0x0050] == "openwindow_newwindow"
     assert labels[0x0060] == "entry_point"
     assert pc_targets[0x004A] == "openscreen_newscreen"
-    assert pc_targets[0x0070] == "str_0070"
+
+
+def test_apply_generic_data_size_promotions_renames_only_generic_data_labels() -> None:
+    labels = {
+        0x0020: "dat_0020",
+        0x0030: "dat_0030",
+        0x0040: "entry_point",
+    }
+
+    apply_generic_data_size_promotions(
+        labels,
+        {0x0020, 0x0030, 0x0040},
+        {0x0020: 1, 0x0030: 2, 0x0040: 4},
+    )
+
+    assert labels[0x0020] == "byte_0020"
+    assert labels[0x0030] == "word_0030"
+    assert labels[0x0040] == "entry_point"
 
 
 def test_filter_internal_absolute_data_targets_keeps_hint_only_addresses() -> None:
@@ -1024,8 +1048,6 @@ def test_render_instruction_text_substitutes_absolute_code_operand() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     text, _comment, _comment_parts = render_instruction_text(inst, session, set())
@@ -1053,8 +1075,6 @@ def test_render_instruction_text_substitutes_pc_relative_operand() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     text, _comment, _comment_parts = render_instruction_text(inst, session, set())
@@ -1079,8 +1099,6 @@ def test_build_instruction_semantic_operands_marks_branch_target() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1108,8 +1126,6 @@ def test_build_instruction_semantic_operands_keeps_numeric_immediate() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1138,8 +1154,6 @@ def test_build_instruction_semantic_operands_uses_decoded_moveq_immediate() -> N
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1169,8 +1183,6 @@ def test_build_instruction_semantic_operands_uses_decoded_absolute_operand() -> 
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1201,8 +1213,6 @@ def test_build_instruction_semantic_operands_uses_decoded_pc_relative_target() -
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1232,8 +1242,6 @@ def test_build_instruction_semantic_operands_renders_devpac_numeric_pc_relative(
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         assembler_profile_name="devpac",
     )
 
@@ -1259,8 +1267,6 @@ def test_build_instruction_semantic_operands_renders_devpac_zero_pc_index_relati
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         assembler_profile_name="devpac",
     )
 
@@ -1299,8 +1305,6 @@ def test_build_instruction_semantic_operands_uses_decoded_base_displacement() ->
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     used_structs: set[str] = set()
 
@@ -1334,8 +1338,6 @@ def test_build_instruction_semantic_operands_uses_decoded_indexed_operand() -> N
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1369,8 +1371,6 @@ def test_build_instruction_semantic_operands_uses_decoded_quick_immediate_shape(
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1402,8 +1402,6 @@ def test_build_instruction_semantic_operands_uses_decoded_dbcc_shape() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1433,8 +1431,6 @@ def test_build_instruction_semantic_operands_uses_immediate_bitop_form() -> None
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1493,8 +1489,6 @@ def test_build_instruction_semantic_operands_supports_register_shift_form() -> N
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1523,8 +1517,6 @@ def test_build_instruction_semantic_operands_supports_immediate_shift_form() -> 
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1549,8 +1541,6 @@ def test_build_instruction_semantic_operands_supports_zero_encoded_shift_count()
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1579,8 +1569,6 @@ def test_build_instruction_semantic_operands_supports_ea_to_dn_form() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1609,8 +1597,6 @@ def test_build_instruction_semantic_operands_supports_bitfield_ea_form() -> None
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1641,8 +1627,6 @@ def test_build_instruction_semantic_operands_supports_bitfield_extract_form() ->
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1672,8 +1656,6 @@ def test_build_instruction_semantic_operands_keeps_decoded_value_for_symbolic_im
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     ops = build_instruction_semantic_operands(inst, session)
@@ -1705,8 +1687,6 @@ def test_build_instruction_semantic_operands_uses_cross_hunk_reloc_label_for_abs
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         reloc_target_hunks={0x0014: 1},
         reloc_labels={0x0014: "dat_0030"},
     )
@@ -1980,8 +1960,6 @@ def test_build_instruction_semantic_operands_rejects_operand_text_count_mismatch
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     with pytest.raises(ValueError, match="Operand text count mismatch") as exc_info:
@@ -2009,8 +1987,6 @@ def test_build_instruction_semantic_operands_rejects_missing_operand_text_slots(
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     with pytest.raises(ValueError, match="missing operand_texts"):
@@ -2033,8 +2009,6 @@ def test_build_instruction_semantic_operands_supports_zero_operand_kb_form() -> 
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     assert build_instruction_semantic_operands(inst, session) == ()
@@ -2057,8 +2031,6 @@ def test_build_instruction_comment_parts_prefers_ascii_when_no_other_comment() -
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     parts = build_instruction_comment_parts(
@@ -2091,8 +2063,6 @@ def test_make_instruction_row_renders_from_semantic_operands_and_comments() -> N
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     row = make_instruction_row(
@@ -2147,8 +2117,6 @@ def test_build_instruction_semantic_operands_substitutes_struct_field() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     used_structs: set[str] = set()
 
@@ -2184,8 +2152,6 @@ def test_render_instruction_text_uses_semantic_branch_substitution() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     text, comment, comment_parts = render_instruction_text(inst, session, set())
@@ -2226,8 +2192,6 @@ def test_render_instruction_text_uses_semantic_struct_substitution() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     used_structs: set[str] = set()
 
@@ -2258,8 +2222,6 @@ def test_render_instruction_text_uses_custom_relative_register_symbol() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         hardware_base_regs={0x0100: {"a0": 0x00DFF000}},
     )
 
@@ -2293,8 +2255,6 @@ def test_build_instruction_semantic_operands_uses_shifted_pointee_struct_substit
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     used_structs: set[str] = set()
 
@@ -2336,8 +2296,6 @@ def test_render_instruction_text_uses_shifted_pointee_struct_substitution() -> N
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     used_structs: set[str] = set()
 
@@ -2375,8 +2333,6 @@ def test_render_instruction_text_uses_app_region_struct_substitution() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         app_struct_regions={
             100: TypedMemoryRegion(
                 struct="IO",
@@ -2432,8 +2388,6 @@ def test_render_instruction_text_uses_inherited_pointee_base_field_substitution(
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     used_structs: set[str] = set()
 
@@ -2474,8 +2428,6 @@ def test_render_instruction_text_uses_concrete_named_base_field_substitution() -
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     used_structs: set[str] = set()
 
@@ -2516,8 +2468,6 @@ def test_render_instruction_text_does_not_field_substitute_dynamic_indexed_base_
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     used_structs: set[str] = set()
 
@@ -2554,8 +2504,6 @@ def test_apply_field_value_domain_substitutions_uses_kb_constant() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     operands = (
@@ -2609,8 +2557,6 @@ def test_apply_field_value_domain_substitutions_rejects_unknown_kb_constant() ->
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     operands = (
@@ -2657,8 +2603,6 @@ def test_apply_field_value_domain_substitutions_uses_kb_constant_for_app_struct_
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         app_struct_regions={
             100: TypedMemoryRegion(
                 struct="IO",
@@ -2714,8 +2658,6 @@ def test_apply_field_value_domain_substitutions_uses_kb_constant_for_indexed_str
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     operands = (
@@ -2764,8 +2706,6 @@ def test_apply_field_value_domain_substitutions_uses_kb_constant_for_dospacket_t
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     operands = (
         SemanticOperand(kind="immediate", text="#$3ec", value=0x3EC),
@@ -2787,5 +2727,6 @@ def test_apply_field_value_domain_substitutions_uses_kb_constant_for_dospacket_t
 
     assert rewritten[0].text == "#ACTION_FINDUPDATE"
     assert rewritten[1] == operands[1]
+
 
 

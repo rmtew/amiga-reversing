@@ -26,8 +26,6 @@ def _coverage_session() -> HunkDisassemblySession:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
 
@@ -67,4 +65,5 @@ def test_kb_generated_cases_build_canonical_semantic_operands() -> None:
                 break
 
     assert not failures, "Canonical operand coverage failures:\n" + "\n".join(failures)
+
 

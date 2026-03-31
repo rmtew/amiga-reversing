@@ -4345,7 +4345,7 @@ hunk_1_loc_00b4:
     subq.b #4,d0
     bne.w hunk_1_loc_0148
 hunk_1_loc_00c0:
-    pea ($0002).w
+    pea $2
     jsr loc_217a(pc)
     dc.b    $58,$4f,$0c,$80,$00,$00,$04,$e8,$64,$24
 hunk_1_loc_00d2:
@@ -4364,7 +4364,7 @@ hunk_1_loc_00ea:
 hunk_1_loc_00f2:
     jsr hunk_1_loc_2024(pc)
 hunk_1_loc_00f6:
-    pea ($0002).w
+    pea $2
     jsr loc_217a(pc)
 hunk_1_loc_00fe:
     addq.w #4,sp
@@ -4395,7 +4395,7 @@ hunk_1_loc_0140:
 hunk_1_loc_0144:
     bra.w hunk_1_loc_01c6
 hunk_1_loc_0148:
-    pea ($0002).w
+    pea $2
     jsr loc_217a(pc)
 hunk_1_loc_0150:
     addq.w #4,sp
@@ -4418,7 +4418,7 @@ hunk_1_loc_0172:
 hunk_1_loc_017a:
     jsr hunk_1_loc_2024(pc)
 hunk_1_loc_017e:
-    pea ($0002).w
+    pea $2
     jsr loc_217a(pc)
 hunk_1_loc_0186:
     addq.w #4,sp
@@ -4708,7 +4708,7 @@ hunk_1_loc_0446:
     bcs.s hunk_1_loc_046c
     dc.b    "suffic"
 hunk_1_loc_0452:
-    dc.b    $69,$65
+    dc.w    $6965
 hunk_1_loc_0454:
     bgt.s hunk_1_loc_04ca
 hunk_1_loc_0456:
@@ -4768,7 +4768,7 @@ hunk_1_loc_04e0:
 loc_04eb:
     dc.b    "ssing the left mouse button.(press right mouse "
 hunk_1_loc_051a:
-    dc.b    $62,$75
+    dc.w    $6275
 hunk_1_loc_051c:
     moveq #116,d2
     ble.s hunk_1_loc_058e
@@ -4816,7 +4816,8 @@ hunk_1_loc_0582:
     move.l -(a0),d7
     movea.l 101(a0,d7.w),a4
 hunk_1_loc_0588:
-    dc.b    "ss mou"
+    dc.w    $7373
+    dc.b    $20,$6d,$6f,$75
 hunk_1_loc_058e:
     dc.b    $73,$65,$20
 hunk_1_loc_0591:
@@ -4874,7 +4875,7 @@ hunk_1_loc_0609:
     ori.b #$53,d0
     dc.b    "EARCH For THE K"
 hunk_1_loc_061c:
-    dc.b    $49,$4e
+    dc.w    $494e
 hunk_1_loc_061e:
     chk.l d0,d3 ; 68020+
 str_0620:
@@ -4935,7 +4936,8 @@ hunk_1_loc_0688:
 hunk_1_loc_068c:
     bsr.s hunk_1_loc_06ae
 hunk_1_loc_068e:
-    dc.b    "sign of too"
+    dc.w    $7369
+    dc.b    "gn of too"
 loc_0699:
     movea.l 30051(a5),a0
     dc.b    $68,$20
@@ -8014,7 +8016,7 @@ dat_000a:
 hunk_3_dat_0014:
     dc.b    "game2.iv"
 hunk_3_loc_001c:
-    dc.b    $79,$00
+    dc.w    $7900
 hunk_3_pcref_001e:
     dc.b    $72,$62,$00,$00
 str_0022:
@@ -8042,7 +8044,7 @@ hunk_3_loc_0064:
     move.l a2,d5
     ori.b #$61,d0
 hunk_3_loc_0070:
-    dc.b    $6d,$65
+    dc.w    $6d65
 hunk_3_loc_0072:
     move.w 26998(a6),-(a1)
     dc.b    $79,$00
@@ -8215,7 +8217,7 @@ hunk_3_loc_01fe:
     bne.s hunk_3_loc_022a
 hunk_3_loc_020a:
     subq.w #2,sp
-    pea ($ffff).w
+    pea $0000ffff
     move.w -10(a5),-(sp)
     pea -476(pc)
     move.l 10792(a4),-(sp)
@@ -8352,7 +8354,7 @@ hunk_3_loc_0306:
 hunk_3_loc_0310:
     move.l a3,-(sp)
     movea.l 8(sp),a3
-    pea ($ffff).w
+    pea $0000ffff
     pea -692(pc)
     move.l a3,-(sp)
     pea hunk_3_loc_004c(pc)
@@ -8815,12 +8817,12 @@ hunk_3_loc_07a8:
     move.l -6760(a4),d0
     beq.w hunk_3_loc_0a76
 hunk_3_loc_07b4:
-    pea ($0001).w
+    pea $1
     clr.l -(sp)
     move.l d0,-(sp)
     jsr hunk_3_loc_0e42(pc)
 hunk_3_loc_07c0:
-    pea ($ffff).w
+    pea $0000ffff
     clr.l -(sp)
     move.l -6760(a4),-(sp)
     jsr hunk_3_loc_0e42(pc)
@@ -9258,7 +9260,7 @@ loc_0c38:
 hunk_3_loc_0c3c:
     moveq #1,d0
 hunk_3_loc_0c3e:
-    pea ($0005).w
+    pea $5
     move.w d0,-88(a5)
     jsr hunk_3_loc_0e0c(pc)
 hunk_3_loc_0c4a:
@@ -9273,7 +9275,7 @@ hunk_3_loc_0c56:
 hunk_3_loc_0c5e:
     jsr hunk_3_loc_0e2a(pc)
 hunk_3_loc_0c62:
-    pea ($0005).w
+    pea $5
     jsr hunk_3_loc_0e0c(pc)
 hunk_3_loc_0c6a:
     addq.w #8,sp
@@ -11323,7 +11325,8 @@ str_014e:
 str_017a:
     dc.b    "NEED MORE? GET LES","'"," CLUE BOOK, CALL HIS HINT LINE, OR CONN"
 hunk_6_loc_01b4:
-    dc.b    "ECT UP TO HIS BULLETIN BOARD."
+    dc.w    $4543
+    dc.b    "T UP TO HIS BULLETIN BOARD."
     dc.b    $0a,$43,$4f
 hunk_6_loc_01d4:
     link a3,#21836
@@ -12764,7 +12767,8 @@ hunk_6_hint_0de6:
 hint_0dea:
     dc.b    $74,$20,$6e,$6f
 hunk_6_loc_0dee:
-    dc.b    $77,$2e,$00,$00
+    dc.w    $772e
+    dc.b    $00,$00
 str_0df2:
     dc.b    $41,$73,$6b,$20
 hunk_6_loc_0df6:
@@ -15476,7 +15480,7 @@ str_0222:
 pcref_0226:
     dc.b    "Pdebug: wd_typ"
 hunk_7_loc_0234:
-    dc.b    $65,$3d
+    dc.w    $653d
 hunk_7_loc_0236:
     move.l 2560(a6),18249(a2)
     move.w d0,d0
@@ -19043,7 +19047,8 @@ hunk_8_str_00be:
 hunk_8_loc_00c4:
     beq.s hunk_8_loc_00e6
 hunk_8_loc_00c6:
-    dc.b    $77,$6f,$72,$6e,$29
+    dc.w    $776f
+    dc.b    $72,$6e,$29
 hint_00cb:
     dc.b    $00
 str_00cc:
@@ -23503,7 +23508,7 @@ str_00ea:
 str_00f2:
     dc.b    "Too ma"
 hunk_10_loc_00f8:
-    dc.b    $6e,$79
+    dc.w    $6e79
 hunk_10_loc_00fa:
     movea.l -(a2),a0
     dc.b    $61,$63
@@ -23530,7 +23535,8 @@ str_0126:
     dc.b    $20,$74,$6f
 loc_0129:
     movea.l -(a6),a0
-    dc.b    $69,$74
+    dc.b    $69
+    dc.b    $74
 hunk_10_loc_012d:
     movea.l -(a1),a0
     dc.b    $6e,$20
@@ -27220,7 +27226,7 @@ hunk_13_loc_00b2:
     pea pcref_027c(pc)
     jsr hunk_13_loc_0880(pc)
 hunk_13_loc_00be:
-    pea ($0072).w
+    pea $72
     pea 470(pc)
     jsr hunk_13_loc_0880(pc)
 hunk_13_loc_00ca:
@@ -27375,7 +27381,7 @@ pcref_027c:
     dc.b    $0a
     dc.b    "couldn","'","t alloc sp"
 hunk_13_loc_028e:
-    dc.b    $61,$63
+    dc.w    $6163
 hunk_13_loc_0290:
     bcs.s hunk_13_loc_02b2
 hunk_13_loc_0292:
@@ -27842,7 +27848,7 @@ hunk_13_loc_06a6:
     move.w d0,(sp)
     jsr hunk_13_loc_08da(pc)
 hunk_13_loc_06b2:
-    pea ($0005).w
+    pea $5
     jsr hunk_13_loc_085c(pc)
 hunk_13_loc_06ba:
     jsr hunk_13_loc_0862(pc)
@@ -44016,7 +44022,7 @@ hunk_29_loc_04c7:
     dc.b    $69,$72
     dc.b    $73,$20,$6d
 hunk_29_loc_04d6:
-    dc.b    $69,$67
+    dc.w    $6967
 hunk_29_loc_04d8:
     bvc.s hunk_29_loc_054e
 hunk_29_loc_04da:
@@ -46335,10 +46341,10 @@ dat_005c:
 dat_0066:
     dc.b    "cucf.p"
 hunk_30_loc_006c:
-    dc.b    $69,$63
+    dc.w    $6963
 hunk_30_loc_006e:
     ori.b #$75,d0
-    dc.b    $63,$67
+    dc.w    $6367
 hunk_30_loc_0074:
     movea.l ([0,a0],1668637544),sp
     movea.l ([0,a0],1668637545),sp
@@ -46349,7 +46355,7 @@ hunk_30_loc_0074:
     movea.l a5,a0
     dc.b    $65,$00
 hunk_30_loc_00b4:
-    dc.b    $44,$6f
+    dc.w    $446f
 hunk_30_loc_00b6:
     dc.b    $6e,$27
 hunk_30_loc_00b8:
@@ -46358,7 +46364,7 @@ hunk_30_loc_00b8:
     movea.l a5,a0
     dc.b    $65,$00
 hunk_30_loc_00c2:
-    dc.b    $4c,$65
+    dc.w    $4c65
     dc.b    $73,$00
 dat_00c6:
     dc.b    "Stella",0
@@ -46486,7 +46492,8 @@ hunk_30_str_01a4:
     move.l -(a0),d0
     movea.l d7,a0
 hunk_30_loc_01aa:
-    dc.b    "EE...WE"
+    dc.w    $4545
+    dc.b    $2e,$2e,$2e,$57,$45
 hunk_30_loc_01b1:
     movea.l d1,a0
     dc.b    "LMOST FORGOT!",0
@@ -46694,8 +46701,9 @@ loc_0323:
     move.l -(a0),d0
     move.l d0,d0
     dc.b    $00
-dat_032a:
-    dc.b    $73,$74,$6c,$77
+word_032a:
+    dc.w    $7374
+    dc.b    $6c,$77
 hunk_30_loc_032e:
     dc.b    $6c,$6b
 hunk_30_loc_0330:
@@ -47000,7 +47008,8 @@ loc_0515:
     dc.b    $65,$2e
 hunk_30_loc_0517:
     movea.l a0,a0
-    dc.b    $61,$76
+    dc.b    $61
+    dc.b    $76
 hunk_30_loc_051b:
     dc.b    $65,$20
 loc_051d:
@@ -47019,7 +47028,8 @@ hunk_30_loc_052c:
     move.l 11865(a6),d7
     dc.b    "ou","'","re kind "
 loc_053b:
-    dc.b    $6f,$66
+    dc.b    $6f
+    dc.b    $66
 hunk_30_loc_053d:
     movea.l -(a3),a0
 hunk_30_loc_053f:
@@ -47548,7 +47558,7 @@ hunk_30_loc_08cf:
     bls.s hunk_30_loc_0950
     dc.b    $73,$65,$20
 hunk_30_loc_08de:
-    dc.b    $6d,$65
+    dc.w    $6d65
 hunk_30_loc_08e0:
     move.l -(a0),d6
     dc.b    $4d,$72
@@ -47561,7 +47571,7 @@ hunk_30_loc_08e4:
 dat_08f2:
     dc.b    $22,$57
 hunk_30_loc_08f4:
-    dc.b    $68,$6f
+    dc.w    $686f
 hunk_30_loc_08f6:
     movea.l 101(a4,d6.l),a0
     movea.l 25964(a0),a0
@@ -47763,7 +47773,8 @@ loc_0a5f:
     bge.w hunk_30_loc_0abc
 hunk_30_loc_0a6b:
     moveq #101,d2
-    dc.b    $6c,$6c
+    dc.b    $6c
+    dc.b    $6c
 loc_0a6f:
     bsr.s hunk_30_loc_0a98
     dc.b    "s busy.",0
@@ -48043,8 +48054,9 @@ loc_0c61:
 hunk_30_loc_0c67:
     dc.b    $a6,$39,$40,$eb
 loc_0c6b:
-    dc.b    $94,$39,$40,$eb,$0a,$74,$20,$3f,$02,$3b,$40,$ff,$fe,$3f,$41,$00
-    dc.b    $06,$4e,$ba,$1f,$c2
+    dc.b    $94,$39,$40
+    dc.w    $eb0a
+    dc.b    $74,$20,$3f,$02,$3b,$40,$ff,$fe,$3f,$41,$00,$06,$4e,$ba,$1f,$c2
 hunk_30_loc_0c80:
     jsr sub_2bec(pc)
 hunk_30_loc_0c84:
@@ -48225,7 +48237,7 @@ hunk_30_loc_0e26:
     muls.w d0,d1
     ext.l d1
     sub.l d1,-7606(a4)
-    pea ($0072).w
+    pea $72
     jsr hunk_30_loc_2c5e(pc)
 hunk_30_loc_0e48:
     lea 38(sp),sp
@@ -48293,7 +48305,7 @@ hunk_30_loc_0eda:
     muls.w d0,d1
     ext.l d1
     sub.l d1,-7606(a4)
-    pea ($0072).w
+    pea $72
     jsr hunk_30_loc_2c5e(pc)
 hunk_30_loc_0efc:
     lea 38(sp),sp
@@ -49176,7 +49188,7 @@ hunk_30_loc_166e:
     move.w d0,-(sp)
     moveq #120,d1
     move.w d1,-(sp)
-    pea dat_032a(pc)
+    pea word_032a(pc)
     jsr loc_2c52(pc)
 hunk_30_loc_1680:
     addq.w #8,sp
@@ -51827,7 +51839,8 @@ hunk_31_loc_007c:
     dc.b    $66,$75
     dc.b    "sing Les"
 hunk_31_loc_0086:
-    dc.b    " with that oth"
+    dc.w    $2077
+    dc.b    "ith that oth"
 hunk_31_loc_0094:
     bcs.s $108
 hunk_31_loc_0096:
@@ -52424,7 +52437,8 @@ hunk_31_loc_04c2:
     dc.b    $79,$2e,$22,$00
 hunk_31_loc_04cf:
     ori.w #$7665,d5
-    dc.b    $72,$79,$62,$6f
+    dc.b    $72,$79,$62
+    dc.b    $6f
 hunk_31_loc_04d7:
     bcc.s $552
 hunk_31_loc_04d9:
@@ -52671,7 +52685,7 @@ hunk_31_loc_071e:
 hunk_31_loc_0720:
     ble.s $796
 hunk_31_loc_0722:
-    dc.b    $68,$65
+    dc.w    $6865
 hunk_31_loc_0724:
     moveq #46,d1
     move.l d0,d1
@@ -52956,7 +52970,8 @@ hunk_31_loc_0965:
 hunk_31_loc_0969:
     dc.b    $61,$6c
 loc_096b:
-    dc.b    $61,$72
+    dc.b    $61
+    dc.b    $72
 loc_096d:
     dc.b    $6d,$2e
 loc_096f:
@@ -59162,7 +59177,8 @@ str_0196:
 str_01b8:
     dc.b    "Have you tried the arrow key"
 hunk_32_loc_01d4:
-    dc.b    $73,$3f,$00,$00
+    dc.w    $733f
+    dc.b    $00,$00
 hunk_32_str_01d8:
     dc.b    "Better get her attention first.",0
 str_01f8:
@@ -59454,7 +59470,7 @@ hunk_32_loc_0702:
     bvs.s $77a
     dc.b    $20,$6c
 hunk_32_loc_0708:
-    dc.b    $6f,$6f
+    dc.w    $6f6f
 hunk_32_loc_070a:
     dc.b    $6b,$73
 hunk_32_loc_070c:
@@ -59725,7 +59741,7 @@ hunk_32_loc_0960:
 str_0966:
     dc.b    '"',"Ah ai"
 hunk_32_loc_096c:
-    dc.b    $6e,$27
+    dc.w    $6e27
 hunk_32_loc_096e:
     moveq #32,d2
     dc.b    $73,$65
@@ -62694,7 +62710,7 @@ loc_02a5:
 str_02ca:
     dc.b    "You seem to have come through that experience fi"
 hunk_33_loc_02fa:
-    dc.b    $6e,$65
+    dc.w    $6e65
 hunk_33_loc_02fc:
     move.l -(a0),d7
     subq.w #2,26223(a6)
@@ -62818,7 +62834,7 @@ hunk_33_loc_052e:
     moveq #97,d2
     dc.b    "ya mean ther"
 hunk_33_loc_053c:
-    dc.b    $65,$27
+    dc.w    $6527
     dc.b    $73,$20,$6e,$6f,$20
 hunk_33_loc_0543:
     bls.s hunk_33_loc_05a6
@@ -66132,19 +66148,20 @@ hunk_36_loc_0054:
 pcref_006c:
     dc.b    $0a
     dc.b    "fast memory %ld"
-hunk_36_dat_007c:
-    dc.b    $00,$00
+word_007c:
+    dc.w    $0000
 pcref_007e:
     dc.b    $0a,$6d,$65,$6d
 hint_0082:
     dc.b    $6f,$72
-hunk_36_dat_0084:
-    dc.b    "y fell"
+long_0084:
+    dc.l    $79206665
+    dc.b    $6c,$6c
 hunk_36_loc_008a:
     movea.l (9580,a4,d6.l*8),a0
-    dc.b    $64,$00
-str_0092:
-    dc.b    $77,$77
+    dc.b    $64
+    dc.w    $0077
+    dc.b    $77
 hunk_36_loc_0094:
     movea.l 0(a5),sp
 pcref_0098:
@@ -66248,7 +66265,7 @@ pcref_014a:
     dc.b    $0a
     dc.b    "somebody "
 hunk_36_loc_0154:
-    dc.b    $63,$61
+    dc.w    $6361
 hunk_36_loc_0156:
     bge.s $1c4
 hunk_36_loc_0158:
@@ -66273,7 +66290,7 @@ hunk_36_hint_0170:
 hunk_36_loc_017b:
     dc.b    $41,$6c,$6c
 hunk_36_loc_017e:
-    dc.b    $6f,$63
+    dc.w    $6f63
 hunk_36_loc_0180:
     bsr.s hunk_36_loc_01f6
 hunk_36_loc_0182:
@@ -68058,7 +68075,7 @@ hunk_36_hint_143e:
     dc.b    '"',"K,x",0
     dc.b    $04,$4e,$ae
 hunk_36_loc_144a:
-    dc.b    $ff,$2e
+    dc.w    $ff2e
 hint_144c:
     dc.b    $70,$00,$4c,$df,$48,$00,$4e,$75
 hunk_36_loc_1454:
@@ -68080,7 +68097,7 @@ hunk_36_loc_1478:
     moveq #0,d0
     rts
 hunk_36_loc_147c:
-    pea ($0091).w
+    pea $91
     jsr hunk_36_loc_267e(pc)
 hunk_36_loc_1484:
     jsr hunk_36_loc_26ae(pc)
@@ -68949,7 +68966,7 @@ hunk_36_loc_1c78:
     subq.w #2,sp
     moveq #1,d0
     move.w d0,(sp)
-    pea ($fe00).w
+    pea $0000fe00
     move.w d7,-(sp)
     jsr hunk_36_loc_26ba(pc)
 hunk_36_loc_1c88:
@@ -68963,7 +68980,7 @@ hunk_36_loc_1c92:
     move.b 0(a1,d0.w),d0
     moveq #1,d1
     move.w d1,-(sp)
-    pea ($0001).w
+    pea $1
     move.w d7,-(sp)
     move.b d0,12(sp)
     jsr hunk_36_loc_26ba(pc)
@@ -69327,7 +69344,7 @@ hunk_36_loc_1fe6:
     bne.s hunk_36_loc_2014
 hunk_36_loc_1ff8:
     movea.l -7666(a4),a0
-    movea.l hunk_45_dat_0084,a1
+    movea.l dat_0084,a1
     moveq #1,d0
     moveq #16,d1
     moveq #0,d2
@@ -69340,7 +69357,7 @@ hunk_36_loc_2014:
     move.l d7,d0
     ext.l d0
     asl.l #2,d0
-    lea hunk_45_dat_007c,a0
+    lea dat_007c,a0
     adda.l d0,a0
     move.l a0,16(sp)
     movea.l -7666(a4),a0
@@ -69999,7 +70016,7 @@ hunk_36_loc_2636:
     move.l a3,-(sp)
     movea.l 8(a5),a3
     move.l a3,d0
-    pea ($03ed).w
+    pea $000003ed
     move.l d0,-(sp)
     jsr loc_2690(pc)
 loc_264c:
@@ -70008,7 +70025,7 @@ loc_264c:
     bne.s hunk_36_loc_2670
 loc_2654:
     move.l a3,d0
-    pea ($03ee).w
+    pea $000003ee
     move.l d0,-(sp)
     jsr loc_2690(pc)
 hunk_36_loc_2660:
@@ -70476,7 +70493,7 @@ hunk_43_dat_000e:
     dc.b    $00
 pcref_001a:
     dc.b    "Can","'","t AllocMem"
-dat_0028:
+word_0028:
     dc.b    " MsgPort.",$0a,0
     dc.b    $00
 hunk_43_pcref_0034:
@@ -70681,7 +70698,7 @@ hunk_43_loc_02b6:
     movea.l AbsExecBase,a6
     jsr _LVOAddPort(a6)
 hunk_43_loc_0304:
-    pea dat_0028
+    pea word_0028
     move.l -16156(a4),-(sp)
     jsr hunk_43_loc_04e2(pc)
 hunk_43_loc_0310:
@@ -71987,10 +72004,10 @@ dat_0038:
     dcb.b   6,0
 hunk_45_dat_0070:
     dcb.b   12,0
-hunk_45_dat_007c:
+dat_007c:
     dc.l    hunk_45_dat_0000
     dc.l    dat_0038
-hunk_45_dat_0084:
+dat_0084:
     dc.l    hunk_45_dat_0070
     dcb.b   4,0
 dat_008c:

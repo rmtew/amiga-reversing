@@ -123,6 +123,26 @@ def apply_generic_data_label_promotions(labels: dict[int, str],
             pc_targets[addr] = promoted
 
 
+def apply_generic_data_size_promotions(
+    labels: dict[int, str],
+    generic_label_addrs: set[int],
+    data_access_sizes: Mapping[int, int],
+) -> None:
+    """Promote generic data labels to neutral size-based names when known."""
+    prefixes = {1: "byte", 2: "word", 4: "long"}
+    for addr in generic_label_addrs:
+        label = labels.get(addr)
+        if label is None or not label.startswith("dat_"):
+            continue
+        size = data_access_sizes.get(addr)
+        if size is None:
+            continue
+        prefix = prefixes.get(size)
+        if prefix is None:
+            continue
+        labels[addr] = f"{prefix}_{addr:04x}"
+
+
 def add_hint_labels(labels: dict[int, str], hint_blocks: dict[int, DisasmBlockLike],
                     code_addrs: set[int]) -> None:
     """Add hint-only labels without overriding core-derived labels."""

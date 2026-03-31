@@ -2,9 +2,9 @@
   "target": "amiga_hunk_genam",
   "binary": "bin/GenAm",
   "command": "uv run scripts/benchmark_target.py amiga_hunk_genam",
-  "measured_at": "2026-03-31T18:01:14+13:00",
+  "measured_at": "2026-04-01T11:25:24+13:00",
   "status": "ok",
-  "elapsed_seconds": 80.12,
+  "elapsed_seconds": 74.75,
   "analysis_bytes": 11630913,
   "entities_bytes": 113446,
   "disasm_bytes": 410596,
@@ -12,24 +12,24 @@
     "entities": {
       "parse_source_seconds": 0.0002,
       "analysis": {
-        "init_seconds": 0.3953,
-        "core_seconds": 8.2215,
-        "per_caller_seconds": 45.2526,
-        "store_pass_seconds": 0.2075,
-        "hint_scan_seconds": 0.8527,
-        "os_call_seconds": 17.5337
+        "init_seconds": 0.3979,
+        "core_seconds": 8.0491,
+        "per_caller_seconds": 40.7949,
+        "store_pass_seconds": 0.2052,
+        "hint_scan_seconds": 0.8254,
+        "os_call_seconds": 15.5681
       },
-      "naming_seconds": 0.0041,
-      "write_seconds": 0.0035
+      "naming_seconds": 0.004,
+      "write_seconds": 0.0036
     },
     "session": {
-      "load_analysis_seconds": 0.1704,
-      "metadata_seconds": 1.0554,
-      "substitutions_seconds": 0.0094,
+      "load_analysis_seconds": 0.9919,
+      "metadata_seconds": 0.9636,
+      "substitutions_seconds": 0.0092,
       "build_seconds": 0.0002
     },
-    "emit_seconds": 0.6734,
-    "render_seconds": 0.0214
+    "emit_seconds": 0.5827,
+    "render_seconds": 0.0199
   },
   "analysis": {
     "code_bytes": 64920,

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 """Disassembly emit and session build tests."""
 
+import struct
+
+from disasm import operands as operands_mod
 from tests.disasm_pipeline_support import (
     BasicBlock,
     BootBlockTargetMetadata,
@@ -9,6 +12,7 @@ from tests.disasm_pipeline_support import (
     CustomStructMetadata,
     DisassemblySession,
     EntryRegisterSeedMetadata,
+    ExecutionViewMetadata,
     Hunk,
     HunkDisassemblySession,
     HunkType,
@@ -22,6 +26,7 @@ from tests.disasm_pipeline_support import (
     MonkeyPatch,
     Path,
     RawBinarySource,
+    RelocatedSegment,
     RelocLike,
     ResidentAutoinitMetadata,
     ResidentTargetMetadata,
@@ -48,6 +53,7 @@ from tests.disasm_pipeline_support import (
     make_empty_os_kb,
     make_platform,
     provenance_named_base,
+    render_instruction_text,
     render_rows,
     render_session_text,
     replace,
@@ -272,8 +278,6 @@ def test_emit_session_rows_smoke_for_empty_hunk_session() -> None:
                 base_addr=0,
                 code_start=0,
                 relocated_segments=[],
-                reloc_file_offset=0,
-                reloc_base_addr=0,
             )
         ],
     )
@@ -282,6 +286,552 @@ def test_emit_session_rows_smoke_for_empty_hunk_session() -> None:
 
     assert rows
     assert rows[0].kind == "comment"
+
+
+def test_emit_session_rows_renders_execution_view_comments() -> None:
+    session = DisassemblySession(
+        target_name="demo",
+        binary_path=Path("bin/demo"),
+        entities_path=Path("targets/demo/entities.jsonl"),
+        analysis_cache_path=Path("bin/demo.analysis"),
+        output_path=None,
+        entities=[],
+        hunk_sessions=[
+            HunkDisassemblySession(
+                hunk_index=0,
+                code=b"\x4E\x75",
+                code_size=2,
+                entities=[],
+                blocks={},
+                hint_blocks={},
+                code_addrs=set(),
+                hint_addrs=set(),
+                reloc_map={},
+                reloc_target_set=set(),
+                pc_targets={},
+                string_addrs=set(),
+                labels={},
+                jump_table_regions={},
+                jump_table_target_sources={},
+                region_map={},
+                lvo_equs={},
+                lvo_substitutions={},
+                arg_substitutions={},
+                app_offsets={},
+                arg_annotations={},
+                data_access_sizes={},
+                platform=make_platform(),
+                os_kb=make_empty_os_kb(),
+                base_addr=0,
+                code_start=0,
+                relocated_segments=[],
+                execution_views=(
+                    ExecutionViewMetadata(
+                        source_start=0x5C,
+                        source_end=0x590B8,
+                        base_addr=0x400,
+                        name="relocated_code_1",
+                        seed_origin="autodoc",
+                        review_status="seeded",
+                        citation="container:relocated_segment",
+                        comment="Relocated code executes from $00000400",
+                    ),
+                ),
+            )
+        ],
+    )
+
+    rendered = render_rows(emit_session_rows(session))
+
+    assert "; Execution views" in rendered
+    assert ";   relocated_code_1: source 0x5C..0x590B8 -> runtime 0x400" in rendered
+    assert ";   Relocated code executes from $00000400" in rendered
+
+
+def test_emit_hunk_rows_keeps_relocated_hunks_source_first() -> None:
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=b"\x11\x22\x00\x00\x00\x00\x33\x44",
+        code_size=8,
+        stored_size=8,
+        alloc_size=8,
+        entities=[],
+        blocks={},
+        hint_blocks={},
+        code_addrs=set(),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={2: "loc_0002"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[RelocatedSegment(file_offset=2, base_addr=6)],
+    )
+
+    rows, _compat_floor, _preamble = emitter_mod._emit_hunk_rows(
+        hunk_session,
+        include_header=False,
+    )
+    rendered = "".join(row.text for row in rows)
+
+    assert "loc_0002:\n" in rendered
+    assert "org $" not in rendered
+    assert rendered.count("dc.b") >= 1
+
+
+def test_absolute_target_outside_execution_context_stays_literal() -> None:
+    inst = disassemble(b"\x4e\xb9\x00\x00\x04\x20", base_offset=0)[0]
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={0: _FakeBlock(0, len(inst.raw), (), [inst])},
+        hint_blocks={},
+        code_addrs=set(range(len(inst.raw))),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x20: "bootstrapped_sub"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        execution_views=(
+            ExecutionViewMetadata(
+                source_start=0x20,
+                source_end=0x60,
+                base_addr=0x420,
+                name="bootstrapped_code",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="test",
+            ),
+        ),
+    )
+
+    text, _comment, _comment_parts = render_instruction_text(inst, hunk_session, set())
+
+    assert text == "jsr $420"
+
+
+def test_execution_view_pc_relative_target_stays_source_relative() -> None:
+    inst = disassemble(bytes.fromhex("41fa0038"), base_offset=0x22)[0]
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={0x22: _FakeBlock(0x22, 0x26, (), [inst])},
+        hint_blocks={},
+        code_addrs=set(range(0x22, 0x26)),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x5C: "pcref_005c"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        execution_views=(
+            ExecutionViewMetadata(
+                source_start=0x5C,
+                source_end=0x100,
+                base_addr=0x400,
+                name="relocated_code_1",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="container:relocated_segment",
+            ),
+        ),
+    )
+
+    text, _comment, _comment_parts = render_instruction_text(inst, hunk_session, set())
+
+    assert "pcref_005c" in text
+
+
+def test_execution_view_absolute_target_uses_available_source_label() -> None:
+    inst = disassemble(bytes.fromhex("41f8005c"), base_offset=0x32)[0]
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={0x32: _FakeBlock(0x32, 0x36, (), [inst])},
+        hint_blocks={},
+        code_addrs=set(range(0x32, 0x36)),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x5C: "pcref_005c"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        execution_views=(
+            ExecutionViewMetadata(
+                source_start=0x32,
+                source_end=0x5C,
+                base_addr=0x90,
+                name="trap_0_stub",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="analysis:trap_bootstrap",
+            ),
+            ExecutionViewMetadata(
+                source_start=0x5C,
+                source_end=0x100,
+                base_addr=0x400,
+                name="relocated_code_1",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="container:relocated_segment",
+            ),
+        ),
+    )
+
+    text, _comment, _comment_parts = render_instruction_text(inst, hunk_session, set())
+
+    assert text == "lea pcref_005c,a0"
+
+
+def test_execution_view_entry_absolute_target_preserves_runtime_base() -> None:
+    inst = disassemble(bytes.fromhex("41f900000400"), base_offset=0x40)[0]
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={0x40: _FakeBlock(0x40, 0x44, (), [inst])},
+        hint_blocks={},
+        code_addrs=set(range(0x40, 0x44)),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x5C: "loc_005c"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        execution_views=(
+            ExecutionViewMetadata(
+                source_start=0x32,
+                source_end=0x5C,
+                base_addr=0x90,
+                name="trap_0_stub",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="analysis:trap_bootstrap",
+            ),
+            ExecutionViewMetadata(
+                source_start=0x5C,
+                source_end=0x100,
+                base_addr=0x400,
+                name="relocated_code_1",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="container:relocated_segment",
+            ),
+        ),
+    )
+
+    text, _comment, _comment_parts = render_instruction_text(inst, hunk_session, set())
+
+    assert text == "lea $400,a0"
+
+
+def test_unlabeled_low_absolute_operands_render_compact() -> None:
+    lea_inst = disassemble(bytes.fromhex("43f900000090"), base_offset=0)[0]
+    move_inst = disassemble(bytes.fromhex("23fc0000009000000080"), base_offset=0)[0]
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=lea_inst.raw + move_inst.raw,
+        code_size=len(lea_inst.raw) + len(move_inst.raw),
+        entities=[],
+        blocks={
+            0: _FakeBlock(0, len(lea_inst.raw), (), [lea_inst]),
+            len(lea_inst.raw): _FakeBlock(
+                len(lea_inst.raw),
+                len(lea_inst.raw) + len(move_inst.raw),
+                (),
+                [move_inst],
+            ),
+        },
+        hint_blocks={},
+        code_addrs=set(range(len(lea_inst.raw) + len(move_inst.raw))),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+    )
+
+    lea_text, _comment, _comment_parts = render_instruction_text(lea_inst, hunk_session, set())
+    move_text, _comment, _comment_parts = render_instruction_text(move_inst, hunk_session, set())
+
+    assert lea_text == "lea $90,a1"
+    assert move_text == "move.l #$90,$80"
+
+
+def test_absolute_label_or_text_uses_remapped_numeric_target_not_stale_token() -> None:
+    inst = disassemble(bytes.fromhex("4238005c"), base_offset=0)[0]
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={0: _FakeBlock(0, len(inst.raw), (), [inst])},
+        hint_blocks={},
+        code_addrs=set(range(len(inst.raw))),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x887B: "dat_887b"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+    )
+
+    text = operands_mod._absolute_label_or_text(0x887B, hunk_session, "$00008c1f", inst)
+
+    assert text == "$0000887b"
+
+
+def test_absolute_label_or_text_uses_generic_source_label_inside_execution_view() -> None:
+    inst = disassemble(bytes.fromhex("4238005c"), base_offset=0)[0]
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={0: _FakeBlock(0, len(inst.raw), (), [inst])},
+        hint_blocks={},
+        code_addrs=set(range(len(inst.raw))),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x887B: "dat_887b"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        execution_views=(
+            ExecutionViewMetadata(
+                source_start=0x5C,
+                source_end=0x9000,
+                base_addr=0x400,
+                name="relocated_code_1",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="test",
+            ),
+        ),
+    )
+
+    text = operands_mod._absolute_label_or_text(0x887B, hunk_session, "$00008c1f", inst)
+
+    assert text == "dat_887b"
+
+
+def test_execution_view_helper_discovers_nested_bootstrap_views() -> None:
+    code = b""
+    code += struct.pack(">HH", 0x41FA, 0x001E)
+    code += struct.pack(">HHH", 0x43F9, 0x0000, 0x0090)
+    code += struct.pack(">H", 0x7013)
+    code += struct.pack(">H", 0x12D8)
+    code += struct.pack(">HH", 0x51C8, 0xFFFC)
+    code += struct.pack(">HH", 0x4DFA, 0x0020)
+    code += struct.pack(">HHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71)
+    code += struct.pack(">H", 0x4E40)
+    code += struct.pack(">HHH", 0x41F9, 0x0000, 0x0400)
+    code += struct.pack(">H", 0x7003)
+    code += struct.pack(">H", 0x10DE)
+    code += struct.pack(">HH", 0x51C8, 0xFFFC)
+    code += struct.pack(">HHH", 0x4EF9, 0x0000, 0x0400)
+    code += struct.pack(">H", 0x702A)
+    code += struct.pack(">H", 0x4E75)
+
+    views = session_mod._execution_views_for_session(
+        code=code,
+        blocks={},
+        target_metadata=TargetMetadata(
+            target_type="raw_binary",
+            entry_register_seeds=(),
+            execution_views=(
+                ExecutionViewMetadata(
+                    source_start=0x20,
+                    source_end=len(code),
+                    base_addr=0x90,
+                    name="bootstrapped_code",
+                    seed_origin="autodoc",
+                    review_status="seeded",
+                    citation="test",
+                ),
+            ),
+        ),
+        relocated_segments=[],
+        physical_stored_size=len(code),
+    )
+
+    assert any(
+        view.source_start == 0x34
+        and view.source_end == len(code)
+        and view.base_addr == 0x400
+        for view in views
+    )
+
+def test_execution_view_helper_discovers_trap_bootstrap_stub() -> None:
+    code = b""
+    code += struct.pack(">HH", 0x41FA, 0x001E)
+    code += struct.pack(">HHH", 0x43F9, 0x0000, 0x0090)
+    code += struct.pack(">H", 0x7003)
+    code += struct.pack(">H", 0x12D8)
+    code += struct.pack(">HH", 0x51C8, 0xFFFC)
+    code += struct.pack(">H", 0x23FC)
+    code += struct.pack(">I", 0x00000090)
+    code += struct.pack(">I", 0x00000080)
+    code += struct.pack(">H", 0x4E40)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)
+    code += struct.pack(">HH", 0x4E71, 0x4E71)
+    code += struct.pack(">H", 0x4E75)
+
+    analysis = session_mod.analyze_hunk(code, [], 0)
+    views = session_mod._execution_views_for_session(
+        code=code,
+        blocks=analysis.blocks,
+        target_metadata=None,
+        relocated_segments=analysis.relocated_segments,
+        physical_stored_size=len(code),
+    )
+
+    assert any(
+        view.source_start == 0x20
+        and view.source_end == 0x24
+        and view.base_addr == 0x90
+        for view in views
+    )
+
+
+def test_execution_view_source_start_gets_code_label() -> None:
+    labels = {0x5C: "pcref_005c"}
+    session_mod._apply_execution_view_source_labels(
+        labels=labels,
+        execution_views=(
+            ExecutionViewMetadata(
+                source_start=0x5C,
+                source_end=0x100,
+                base_addr=0x400,
+                name="relocated_code_1",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="test",
+            ),
+        ),
+    )
+
+    assert labels[0x5C] == "loc_005c"
 
 def test_emit_session_rows_emits_file_header_once_for_multi_hunk_session() -> None:
     def empty_hunk(index: int, size: int) -> HunkDisassemblySession:
@@ -313,8 +863,6 @@ def test_emit_session_rows_emits_file_header_once_for_multi_hunk_session() -> No
             base_addr=0,
             code_start=0,
             relocated_segments=[],
-            reloc_file_offset=0,
-            reloc_base_addr=0,
         )
 
     session = DisassemblySession(
@@ -352,8 +900,6 @@ def test_emit_hunk_rows_uses_real_section_kind_and_bss_space() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     bss_hunk = replace(
         data_hunk,
@@ -401,8 +947,6 @@ def test_emit_hunk_rows_splits_bss_space_at_interior_labels() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     rows, _compat_floor, _preamble = emitter_mod._emit_hunk_rows(
@@ -439,8 +983,6 @@ def test_emit_hunk_rows_emits_databss_tail_for_shortened_data_hunk() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     rows, _floor, _preamble = emitter_mod._emit_hunk_rows(
@@ -473,8 +1015,6 @@ def test_emit_hunk_rows_splits_databss_tail_at_interior_labels() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     rows, _floor, _preamble = emitter_mod._emit_hunk_rows(
@@ -548,8 +1088,6 @@ def test_emit_session_rows_includes_bootblock_structure_section() -> None:
                     base_addr=0,
                     code_start=0x0C,
                 relocated_segments=[],
-                reloc_file_offset=0,
-                reloc_base_addr=0,
             )
         ],
         target_metadata=TargetMetadata(
@@ -826,6 +1364,94 @@ def test_build_disassembly_session_for_runtime_absolute_raw_keeps_absolute_label
     assert ";   execution context: load 0x70000, entry 0x7000C\n" in rendered
     assert "$70022" not in rendered
     assert "$70020" not in rendered
+
+
+def test_build_disassembly_session_for_runtime_absolute_raw_discovers_local_pc_data_labels(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "absolute_pcdata"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(bytes.fromhex("41FA00044E75") + b"\x00\x00\x12\x34")
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(asdict(TargetMetadata(target_type="program", entry_register_seeds=())), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x40000,
+        entrypoint=0x40000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+
+    rendered = render_session_text(build_disassembly_session(source, str(entities_path)))
+
+    assert "lea pcref_0006(pc),a0" in rendered
+
+
+def test_build_disassembly_session_for_runtime_absolute_raw_keeps_external_absolute_data_accesses(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "absolute_extdata"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(bytes.fromhex("423800644E75"))  # clr.b $64 ; rts
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(asdict(TargetMetadata(target_type="program", entry_register_seeds=())), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x40000,
+        entrypoint=0x40000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+
+    rendered = render_session_text(build_disassembly_session(source, str(entities_path)))
+
+    assert "clr.b $64" in rendered
+
+
+def test_build_disassembly_session_preserves_absolute_short_memory_syntax_details(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "absolute_short_mem"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(bytes.fromhex("20B8006421C800644E75"))
+    entities_path = target_dir / "entities.jsonl"
+    entities_path.write_text("", encoding="utf-8")
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(asdict(TargetMetadata(target_type="program", entry_register_seeds=())), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x40000,
+        entrypoint=0x40000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+
+    rendered = render_session_text(build_disassembly_session(source, str(entities_path)))
+
+    assert "move.l ($0064).w,(a0)" in rendered
+    assert "move.l a0,($0064).w" in rendered
 
 def test_build_entry_seed_config_scopes_autoinit_library_a6_by_entrypoint() -> None:
     metadata = TargetMetadata(
@@ -1129,8 +1755,6 @@ def test_emit_session_rows_emits_entry_register_notes_at_entry_labels() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     session = DisassemblySession(
         target_name="icon.library",
@@ -1409,8 +2033,6 @@ def test_emit_session_rows_emits_initstruct_macros() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         typed_data_sizes={},
         typed_data_fields={},
         addr_comments={},
@@ -2075,8 +2697,6 @@ def test_emit_session_rows_emits_fd_only_lvo_equates() -> None:
                 base_addr=0,
                 code_start=0,
                 relocated_segments=[],
-                reloc_file_offset=0,
-                reloc_base_addr=0,
             )
         ],
         target_metadata=None,
@@ -2099,8 +2719,6 @@ def test_absolute_symbol_rows_emit_only_used_external_equ_and_hardware_includes(
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         absolute_labels={
             0x00000004: "AbsExecBase",
         },
@@ -2171,8 +2789,6 @@ def test_emit_hunk_rows_emits_fd_derived_lvo_equates(monkeypatch: MonkeyPatch) -
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     monkeypatch.setattr(
         emitter_mod,
@@ -2238,8 +2854,6 @@ def test_emit_session_rows_dedupes_preamble_before_first_hunk() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
         lvo_equs={"exec.library": {-198: "_LVOAllocMem"}},
         region_map={
             0x100: {
@@ -2285,8 +2899,6 @@ def test_emit_session_rows_uses_selected_assembler_profile() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     rendered = emitter_mod.render_session_text(
         DisassemblySession(
@@ -2317,8 +2929,6 @@ def test_emit_session_rows_emits_orphan_hint_bytes_as_data() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     rendered = emitter_mod.render_session_text(
         DisassemblySession(
@@ -2357,8 +2967,6 @@ def test_emit_session_rows_does_not_emit_hint_code_inside_unknown_entity() -> No
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     rendered = emitter_mod.render_session_text(
         DisassemblySession(
@@ -2401,8 +3009,6 @@ def test_emit_session_rows_does_not_emit_hint_code_inside_code_entity() -> None:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
     rendered = emitter_mod.render_session_text(
         DisassemblySession(
@@ -2479,8 +3085,6 @@ def test_emit_hunk_rows_renders_structured_string_with_embedded_quotes() -> None
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
     rows, _compat, _preamble = emitter_mod._emit_hunk_rows(
@@ -2502,3 +3106,4 @@ def test_emit_hunk_rows_renders_structured_string_with_embedded_quotes() -> None
     assert 'DC.B    "Say ",' in rendered or 'dc.b    "Say ",' in rendered
     assert '"it"' in rendered
     assert '"\'"' in rendered
+

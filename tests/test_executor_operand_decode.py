@@ -98,8 +98,6 @@ def _operand_session() -> HunkDisassemblySession:
         base_addr=0,
         code_start=0,
         relocated_segments=[],
-        reloc_file_offset=0,
-        reloc_base_addr=0,
     )
 
 
@@ -1681,5 +1679,6 @@ def test_instruction_operands_render_completely_rejects_dropped_operand_text(
         ),
     )
     assert not instruction_operands_render_completely(inst, _operand_session())
+
 
 
