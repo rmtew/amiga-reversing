@@ -25,7 +25,7 @@ from m68k.indirect_core import IndirectSite
 from m68k.m68k_asm import assemble_instruction
 from m68k.m68k_disasm import disassemble
 from m68k.m68k_executor import analyze
-from m68k.os_calls import RUNTIME_OS_KB, LibraryCall
+from m68k.os_calls import RUNTIME_OS_KB, AppBaseKind, LibraryCall, get_platform_config
 from m68k_kb import runtime_os
 
 
@@ -131,6 +131,25 @@ def test_analyze_hunk_identifies_os_calls() -> None:
     assert result.os_kb is not None
     assert result.os_kb.STRUCTS
     assert result.os_kb.META.calling_convention.base_reg == "A6"
+
+
+def test_analyze_hunk_discovers_absolute_app_base_on_non_os_base_register(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    code = b""
+    code += struct.pack(">HI", 0x287C, 0x00008000)  # movea.l #$00008000,a4
+    code += struct.pack(">HH", 0x2940, 0xFFFC)      # move.l d0,-4(a4)
+    code += struct.pack(">H", 0x4E75)               # rts
+
+    platform = get_platform_config()
+    monkeypatch.setattr("m68k.analysis.get_platform_config", lambda: platform)
+
+    analyze_hunk(code, relocs=[], hunk_index=0, print_fn=lambda *a: None)
+
+    assert platform.app_base is not None
+    assert platform.app_base.kind == AppBaseKind.ABSOLUTE
+    assert platform.app_base.reg_num == 4
+    assert platform.app_base.concrete == 0x8000
 
 
 def test_analyze_hunk_defers_per_caller_until_cheap_resolution_stabilizes(
@@ -672,6 +691,30 @@ def test_detect_relocated_segments_skips_analysis_without_bootstrap_signature(
         raise AssertionError("plain code should not trigger relocation analysis")
 
     monkeypatch.setattr("m68k.analysis.analyze", _unexpected_analyze)
+
+    assert detect_relocated_segments(code) == []
+
+
+def test_detect_relocated_segments_rejects_jump_to_zero_payload() -> None:
+    """A copy loop that jumps to address 0 is not a relocated runtime payload."""
+    code = b""
+    # $00: lea $1C(pc),a6 -> a6 = $1E
+    code += struct.pack(">HH", 0x4DFA, 0x001C)
+    # $04: lea $0000,a0
+    code += struct.pack(">HH", 0x41F8, 0x0000)
+    # $08: moveq #3,d0
+    code += struct.pack(">H", 0x7003)
+    # $0A: move.b (a6)+,(a0)+
+    code += struct.pack(">H", 0x10DE)
+    # $0C: dbf d0,$0A
+    code += struct.pack(">HH", 0x51C8, 0xFFFC)
+    # $10: jmp $0000
+    code += struct.pack(">HH", 0x4EF8, 0x0000)
+    # padding to $1E
+    code += struct.pack(">HHHH", 0x4E71, 0x4E71, 0x4E71, 0x4E71)
+    # $1E: copied bytes
+    code += struct.pack(">H", 0x702A)
+    code += struct.pack(">H", 0x4E75)
 
     assert detect_relocated_segments(code) == []
 

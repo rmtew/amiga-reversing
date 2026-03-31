@@ -9,7 +9,13 @@ from kb.paths import (
     AMIGA_OS_REFERENCE_INCLUDES_PARSED_JSON,
     AMIGA_OS_REFERENCE_OTHER_PARSED_JSON,
 )
-from kb.schemas import OsReferencePayload
+from kb.schemas import (
+    OsCorrectionsPayload,
+    OsIncludesParsedPayload,
+    OsMergedReferencePayload,
+    OsOtherParsedPayload,
+    OsReferencePayload,
+)
 
 JsonObject = dict[str, object]
 EXTENSION_META_KEYS = frozenset({
@@ -39,18 +45,32 @@ def load_os_reference_payload(path: Path) -> OsReferencePayload:
         return cast(OsReferencePayload, json.load(handle))
 
 
-def load_split_os_reference_payloads() -> tuple[OsReferencePayload, OsReferencePayload, OsReferencePayload]:
+def load_split_os_reference_payloads() -> tuple[OsIncludesParsedPayload, OsOtherParsedPayload, OsCorrectionsPayload]:
     return (
-        load_os_reference_payload(AMIGA_OS_REFERENCE_INCLUDES_PARSED_JSON),
-        load_os_reference_payload(AMIGA_OS_REFERENCE_OTHER_PARSED_JSON),
-        load_os_reference_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON),
+        cast(OsIncludesParsedPayload, load_os_reference_payload(AMIGA_OS_REFERENCE_INCLUDES_PARSED_JSON)),
+        cast(OsOtherParsedPayload, load_os_reference_payload(AMIGA_OS_REFERENCE_OTHER_PARSED_JSON)),
+        cast(OsCorrectionsPayload, load_os_reference_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)),
     )
 
 
-def normalize_os_reference_corrections(corrections: OsReferencePayload) -> OsReferencePayload:
+def _derive_lvo_index(functions: dict[str, JsonObject]) -> dict[str, str]:
+    lvo_index: dict[str, str] = {}
+    for function_name, function in sorted(functions.items()):
+        lvo = function.get("lvo")
+        if lvo is None:
+            continue
+        key = str(cast(int, lvo))
+        existing = lvo_index.get(key)
+        if existing is not None and existing != function_name:
+            raise ValueError(f"Duplicate library LVO {key}: {existing} vs {function_name}")
+        lvo_index[key] = function_name
+    return lvo_index
+
+
+def normalize_os_reference_corrections(corrections: OsCorrectionsPayload) -> OsCorrectionsPayload:
     correction_meta = corrections["_meta"]
     return cast(
-        OsReferencePayload,
+        OsCorrectionsPayload,
         {
             "_meta": {
                 "calling_convention": correction_meta.get("calling_convention"),
@@ -93,24 +113,18 @@ def normalize_os_reference_corrections(corrections: OsReferencePayload) -> OsRef
                     ),
                 ),
             },
-            "libraries": {},
-            "structs": {},
-            "constants": {},
         },
     )
 
 
 def merge_parsed_os_reference_payloads(
     *,
-    includes: OsReferencePayload,
-    other: OsReferencePayload,
-) -> OsReferencePayload:
-    merged = cast(OsReferencePayload, json.loads(json.dumps(includes)))
+    includes: OsIncludesParsedPayload,
+    other: OsOtherParsedPayload,
+) -> OsMergedReferencePayload:
+    merged = cast(OsMergedReferencePayload, json.loads(json.dumps(includes)))
     merged_meta = merged["_meta"]
     other_meta = other["_meta"]
-
-    if other["structs"] or other["constants"]:
-        raise ValueError("Other parsed OS reference payload must not define structs or constants")
 
     for meta_key in (
         "source",
@@ -119,45 +133,39 @@ def merge_parsed_os_reference_payloads(
         "struct_name_map",
         "version_map",
         "version_fields_note",
-        "os_since_default_note",
+        "available_since_default_note",
     ):
         if meta_key in other_meta:
             merged_meta[meta_key] = other_meta[meta_key]
 
-    for library_name, other_library in other["libraries"].items():
-        if library_name not in merged["libraries"]:
+    for library_name, function_overlays in other.get("functions", {}).items():
+        merged_library = merged["libraries"].get(library_name)
+        if merged_library is None:
             raise ValueError(f"Other parsed OS reference payload references missing library {library_name}")
-        merged_library = merged["libraries"][library_name]
-        for key in other_library:
-            if key not in {"functions"}:
-                raise ValueError(
-                    f"Other parsed OS reference payload must not override library-level key "
-                    f"{library_name}.{key}"
-                )
-        for function_name, function_overlay in other_library.get("functions", {}).items():
+        for function_name, function_overlay in function_overlays.items():
             merged_function = merged_library["functions"].get(function_name)
             if merged_function is None:
-                merged_library["functions"][function_name] = function_overlay
+                merged_library["functions"][function_name] = cast(JsonObject, function_overlay)
                 continue
             for field_name, field_value in function_overlay.items():
                 merged_function[field_name] = field_value
+
+    for _library_name, library in merged["libraries"].items():
+        library["lvo_index"] = _derive_lvo_index(cast(dict[str, JsonObject], library["functions"]))
 
     return merged
 
 
 def merge_os_reference_payloads(
     *,
-    includes: OsReferencePayload,
-    other: OsReferencePayload,
-    corrections: OsReferencePayload,
-) -> OsReferencePayload:
+    includes: OsIncludesParsedPayload,
+    other: OsOtherParsedPayload,
+    corrections: OsCorrectionsPayload,
+) -> OsMergedReferencePayload:
     merged = merge_parsed_os_reference_payloads(includes=includes, other=other)
     merged_meta = merged["_meta"]
     parsed_meta = merged["_meta"]
     correction_meta = corrections["_meta"]
-
-    if corrections["libraries"] or corrections["structs"] or corrections["constants"]:
-        raise ValueError("OS reference corrections must not define libraries, structs, or constants")
     unexpected_extension_meta = set(correction_meta) - EXTENSION_META_KEYS
     if unexpected_extension_meta:
         raise ValueError(
@@ -423,6 +431,6 @@ def merge_os_reference_payloads(
                 raise ValueError(
                     f"OS value domain {domain_name} uses unsupported remainder_policy "
                     f"{remainder_policy!r}"
-                )
+            )
 
-    return merged
+    return cast(OsMergedReferencePayload, merged)

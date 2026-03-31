@@ -1,32 +1,36 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: bin\Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::king
-; 745710 bytes, 65 entities, 17220 blocks
-; OS compatibility floor: 1.3
+; 746200 bytes, 93 entities, 17296 blocks
+; OS compatibility floor: 2.0
 
-; OS function argument constants
-MEMF_ANY	EQU	0
-MEMF_CHIP	EQU	2
-MEMF_CLEAR	EQU	65536
-MEMF_FAST	EQU	4
-MEMF_LARGEST	EQU	131072
-MEMF_PUBLIC	EQU	1
+; App memory addresses (base register A4 anchored at $8000)
+app_dos_library_base	EQU	$AA2C
+app_duplock_lock	EQU	$440C
+app_fileinfoblock	EQU	$A924
+app_freemem_memoryblock	EQU	$4424
+app_input_file	EQU	$A764
+app_open_file	EQU	$A75E
+app_output_file	EQU	$A76A
+app_replymsg_message	EQU	$4414
 
 ; Absolute symbols
 AbsExecBase	EQU	$4
 
+    INCLUDE "dos/dos.i"
+    INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
+    INCLUDE "exec/memory.i"
     INCLUDE "hardware/custom.i"
 
-; Hunk 0: 9478 bytes, 7 entities, 899 blocks
+; Hunk 0: 9968 bytes, 35 entities, 975 blocks
 
     section code,code
 
-open_dos:
+dos_dispatch:
     movem.l d1-d6/a0-a6,-(sp)
     movea.l a0,a2
     move.l d0,d2
     lea dat_8000,a4
-hunk_0_loc_000e:
     movea.l AbsExecBase,a6
     lea dat_43d8,a3
     moveq #0,d1
@@ -37,33 +41,32 @@ hunk_0_loc_0022:
 hunk_0_loc_0024:
     dbf d0,hunk_0_loc_0022
 hunk_0_loc_0028:
-    move.l sp,-15336(a4)
-    move.l a6,-15344(a4)
-    clr.l -15340(a4)
-    moveq #0,d0
-    move.l #$3000,d1
-    jsr -306(a6) ; unresolved_indirect_core:disp
+    move.l sp,-15336(a4) ; app-$3BE8
+    move.l a6,-15344(a4) ; app-$3BF0
+    clr.l app_replymsg_message(a4)
+    moveq #0,d0 ; SetSignal: newSignals
+    move.l #SIGBREAKF_CTRL_C|SIGBREAKF_CTRL_D,d1 ; SetSignal: signalMask
+    jsr _LVOSetSignal(a6)
 hunk_0_loc_0040:
-    lea 424(pc),a1
-    moveq #0,d0
-    jsr -552(a6) ; unresolved_indirect_core:disp
+    lea openlibrary_libname(pc),a1 ; OpenLibrary: libName
+    moveq #0,d0 ; OpenLibrary: version
+    jsr _LVOOpenLibrary(a6)
 hunk_0_loc_004a:
-    move.l d0,10796(a4)
-hunk_0_loc_004e:
+    move.l d0,app_dos_library_base(a4)
     bne.s hunk_0_loc_0056
 hunk_0_loc_0050:
     moveq #100,d0
     bra.w hunk_0_loc_0180
 hunk_0_loc_0056:
     movea.l 276(a6),a3
-    move.l 152(a3),-15348(a4)
+    move.l 152(a3),app_duplock_lock(a4)
     tst.l 172(a3)
     beq.w hunk_0_loc_00f8
 hunk_0_loc_0068:
     move.l sp,d0
     sub.l 56(sp),d0
     addi.l #$80,d0
-    move.l d0,-15396(a4)
+    move.l d0,-15396(a4) ; app-$3C24
     movea.l 172(a3),a0
     adda.l a0,a0
     adda.l a0,a0
@@ -73,14 +76,14 @@ hunk_0_loc_0068:
     move.l d2,d0
     moveq #0,d1
     move.b (a1)+,d1
-    move.l a1,-15328(a4)
-    add.l d1,d0
+    move.l a1,-15328(a4) ; app-$3BE0
+    add.l d1,d0 ; AllocMem: byteSize
     addq.l #7,d0
     andi.w #$fffc,d0
-    move.l d0,-15320(a4)
+    move.l d0,-15320(a4) ; app-$3BD8
     movem.l d1/a1,-(sp)
-    move.l #$10001,d1
-    jsr -198(a6) ; unresolved_indirect_core:disp
+    move.l #MEMF_PUBLIC|MEMF_CLEAR,d1 ; AllocMem: attributes
+    jsr _LVOAllocMem(a6)
 hunk_0_loc_00ac:
     movem.l (sp)+,d1/a1
     tst.l d0
@@ -91,7 +94,7 @@ hunk_0_loc_00b4:
     beq.w hunk_0_loc_01da
 hunk_0_loc_00c0:
     movea.l d0,a0
-    move.l d0,-15324(a4)
+    move.l d0,app_freemem_memoryblock(a4)
     move.l d2,d0
     subq.l #1,d0
     add.l d1,d2
@@ -111,28 +114,28 @@ hunk_0_loc_00f0:
     move.l a0,-(sp)
     bra.s hunk_0_loc_0170
 hunk_0_loc_00f8:
-    move.l 58(a3),-15396(a4)
+    move.l 58(a3),-15396(a4) ; app-$3C24
     moveq #127,d0
     addq.l #1,d0
-    add.l d0,-15396(a4)
-    lea 92(a3),a0
-    jsr -384(a6) ; unresolved_indirect_core:disp
+    add.l d0,-15396(a4) ; app-$3C24
+    lea 92(a3),a0 ; WaitPort: port
+    jsr _LVOWaitPort(a6)
 hunk_0_loc_010e:
-    lea 92(a3),a0
-    jsr -372(a6) ; unresolved_indirect_core:disp
+    lea 92(a3),a0 ; GetMsg: port
+    jsr _LVOGetMsg(a6)
 hunk_0_loc_0116:
-    move.l d0,-15340(a4)
+    move.l d0,app_replymsg_message(a4)
     move.l d0,-(sp)
     movea.l d0,a2
     move.l 36(a2),d0
     beq.s hunk_0_loc_013c
 hunk_0_loc_0124:
-    movea.l 10796(a4),a6
+    movea.l app_dos_library_base(a4),a6
     movea.l d0,a0
-    move.l 0(a0),d1
-    jsr -96(a6) ; unresolved_indirect_core:disp
+    move.l 0(a0),d1 ; DupLock: lock
+    jsr _LVODupLock(a6)
 hunk_0_loc_0132:
-    move.l d0,-15348(a4)
+    move.l d0,app_duplock_lock(a4)
     move.l d0,d1
     jsr -126(a6) ; unresolved_indirect_core:disp
 hunk_0_loc_013c:
@@ -140,52 +143,52 @@ hunk_0_loc_013c:
     beq.s hunk_0_loc_015c
 hunk_0_loc_0142:
     move.l #$3ed,d2
-    jsr -30(a6) ; unresolved_indirect_core:disp
+    jsr _LVOSupervisor(a6)
 hunk_0_loc_014c:
-    move.l d0,-15332(a4)
+    move.l d0,-15332(a4) ; app-$3BE4
     beq.s hunk_0_loc_015c
 hunk_0_loc_0152:
     lsl.l #2,d0
     movea.l d0,a0
     move.l 8(a0),164(a3)
 hunk_0_loc_015c:
-    movea.l -15340(a4),a0
+    movea.l app_replymsg_message(a4),a0
     move.l a0,-(sp)
-    pea -15400(a4)
+    pea -15400(a4) ; app-$3C28
     movea.l 36(a0),a0
-    move.l 4(a0),-15328(a4)
+    move.l 4(a0),-15328(a4) ; app-$3BE0
 hunk_0_loc_0170:
-    jsr hunk_0_loc_0c50(pc)
+    jsr sub_0c50(pc)
 hunk_0_loc_0174:
-    jsr hunk_0_loc_10e0(pc)
+    jsr call_findtask(pc)
 hunk_0_loc_0178:
     moveq #0,d0
     bra.s hunk_0_loc_0180
-    dc.b    $02,$00,$ff,$ec
+cleanup_app:
+    move.l 4(sp),d0
 hunk_0_loc_0180:
-    movea.l -15336(a4),sp
+    movea.l -15336(a4),sp ; app-$3BE8
     move.l d0,-(sp)
-    move.l -15356(a4),d0
+    move.l -15356(a4),d0 ; app-$3BFC
     beq.s hunk_0_loc_0190
 hunk_0_loc_018c:
     movea.l d0,a0
     jsr (a0) ; unresolved_indirect_core:ind
 hunk_0_loc_0190:
-    jsr hunk_0_loc_1c04(pc)
+    jsr free_memory(pc)
 hunk_0_loc_0194:
-    jsr hunk_0_loc_0c52(pc)
+    jsr sub_0c52(pc)
 hunk_0_loc_0198:
-    tst.l -15340(a4)
+    tst.l app_replymsg_message(a4)
     beq.s hunk_0_loc_01c8
 hunk_0_loc_019e:
-    movea.l 10796(a4),a6
-hunk_0_loc_01a2:
-    move.l -15332(a4),d1
+    movea.l app_dos_library_base(a4),a6
+    move.l -15332(a4),d1 ; app-$3BE4
     beq.s hunk_0_loc_01ac
 hunk_0_loc_01a8:
     jsr -36(a6) ; unresolved_indirect_core:disp
 hunk_0_loc_01ac:
-    move.l -15348(a4),d1
+    move.l app_duplock_lock(a4),d1
     beq.s hunk_0_loc_01b6
 hunk_0_loc_01b2:
     jsr -90(a6) ; unresolved_indirect_core:disp
@@ -193,304 +196,268 @@ hunk_0_loc_01b6:
     movea.l AbsExecBase,a6
     jsr _LVOForbid(a6)
 hunk_0_loc_01be:
-    movea.l -15340(a4),a1
-    jsr -378(a6) ; unresolved_indirect_core:disp
+    movea.l app_replymsg_message(a4),a1 ; ReplyMsg: message
+    jsr _LVOReplyMsg(a6)
 hunk_0_loc_01c6:
     bra.s hunk_0_loc_01da
 hunk_0_loc_01c8:
-    move.l -15320(a4),d0
+    move.l -15320(a4),d0 ; app-$3BD8
     beq.s hunk_0_loc_01da
 hunk_0_loc_01ce:
-    movea.l -15324(a4),a1 ; FreeMem: memoryBlock
+    movea.l app_freemem_memoryblock(a4),a1 ; FreeMem: memoryBlock
     movea.l AbsExecBase,a6
-hunk_0_loc_01d6:
     jsr _LVOFreeMem(a6)
 hunk_0_loc_01da:
-    movea.l 10796(a4),a1
-hunk_0_loc_01de:
-    jsr -414(a6) ; unresolved_indirect_core:disp
+    movea.l app_dos_library_base(a4),a1 ; CloseLibrary: library
+    jsr _LVOCloseLibrary(a6)
 hunk_0_loc_01e2:
     move.l (sp)+,d0
     movem.l (sp)+,d1-d6/a0-a6
     rts
-
-    org $0
-
-open_dos:
-    movem.l d1-d6/a0-a6,-(sp)
-    movea.l a0,a2
-    move.l d0,d2
-    lea dat_8000,a4
-hunk_0_loc_000e:
-    movea.l AbsExecBase,a6
-    lea dat_43d8,a3
-    moveq #0,d1
-    move.l #$1996,d0
-    bra.s hunk_0_loc_0024
-hunk_0_loc_0022:
-    move.l d1,(a3)+
-hunk_0_loc_0024:
-    dbf d0,hunk_0_loc_0022
-hunk_0_loc_0028:
-    move.l sp,-15336(a4)
-    move.l a6,-15344(a4)
-    clr.l -15340(a4)
-    moveq #0,d0
-    move.l #$3000,d1
-    jsr -306(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_0040:
-    lea 424(pc),a1
-    moveq #0,d0
-    jsr -552(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_004a:
-    move.l d0,10796(a4)
-hunk_0_loc_004e:
-    bne.s hunk_0_loc_0056
-hunk_0_loc_0050:
-    moveq #100,d0
-    bra.w hunk_0_loc_0180
-hunk_0_loc_0056:
-    movea.l 276(a6),a3
-    move.l 152(a3),-15348(a4)
-    tst.l 172(a3)
-    beq.w hunk_0_loc_00f8
-hunk_0_loc_0068:
-    move.l sp,d0
-    sub.l 56(sp),d0
-    addi.l #$80,d0
-    move.l d0,-15396(a4)
-    movea.l 172(a3),a0
-    adda.l a0,a0
-    adda.l a0,a0
-    movea.l 16(a0),a1
-    adda.l a1,a1
-    adda.l a1,a1
-    move.l d2,d0
-    moveq #0,d1
-    move.b (a1)+,d1
-    move.l a1,-15328(a4)
-    add.l d1,d0
-    addq.l #7,d0
-    andi.w #$fffc,d0
-    move.l d0,-15320(a4)
-    movem.l d1/a1,-(sp)
-    move.l #$10001,d1
-    jsr -198(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_00ac:
-    movem.l (sp)+,d1/a1
-    tst.l d0
-    bne.s hunk_0_loc_00c0
-hunk_0_loc_00b4:
-    move.l #$3e8,d0
-    move.l d0,-(sp)
-    beq.w hunk_0_loc_01da
-hunk_0_loc_00c0:
-    movea.l d0,a0
-    move.l d0,-15324(a4)
-    move.l d2,d0
-    subq.l #1,d0
-    add.l d1,d2
-hunk_0_loc_00cc:
-    move.b 0(a2,d0.w),2(a0,d2.w)
-    subq.l #1,d2
-    dbf d0,hunk_0_loc_00cc
-hunk_0_loc_00d8:
-    move.b #$20,2(a0,d2.w)
-    subq.l #1,d2
-    move.b #$22,2(a0,d2.w)
-hunk_0_loc_00e6:
-    move.b 0(a1,d2.w),1(a0,d2.w)
-    dbf d2,hunk_0_loc_00e6
-hunk_0_loc_00f0:
-    move.b #$22,(a0)
-    move.l a0,-(sp)
-    bra.s hunk_0_loc_0170
-hunk_0_loc_00f8:
-    move.l 58(a3),-15396(a4)
-    moveq #127,d0
-    addq.l #1,d0
-    add.l d0,-15396(a4)
-    lea 92(a3),a0
-    jsr -384(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_010e:
-    lea 92(a3),a0
-    jsr -372(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_0116:
-    move.l d0,-15340(a4)
-    move.l d0,-(sp)
-    movea.l d0,a2
-    move.l 36(a2),d0
-    beq.s hunk_0_loc_013c
-hunk_0_loc_0124:
-    movea.l 10796(a4),a6
-    movea.l d0,a0
-    move.l 0(a0),d1
-    jsr -96(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_0132:
-    move.l d0,-15348(a4)
-    move.l d0,d1
-    jsr -126(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_013c:
-    move.l 32(a2),d1
-    beq.s hunk_0_loc_015c
-hunk_0_loc_0142:
-    move.l #$3ed,d2
-    jsr -30(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_014c:
-    move.l d0,-15332(a4)
-    beq.s hunk_0_loc_015c
-hunk_0_loc_0152:
-    lsl.l #2,d0
-    movea.l d0,a0
-    move.l 8(a0),164(a3)
-hunk_0_loc_015c:
-    movea.l -15340(a4),a0
-    move.l a0,-(sp)
-    pea -15400(a4)
-    movea.l 36(a0),a0
-    move.l 4(a0),-15328(a4)
-hunk_0_loc_0170:
-    jsr hunk_0_loc_0c50(pc)
-hunk_0_loc_0174:
-    jsr hunk_0_loc_10e0(pc)
-hunk_0_loc_0178:
-    moveq #0,d0
-    bra.s hunk_0_loc_0180
-    dc.b    $02,$00,$ff,$ec
-hunk_0_loc_0180:
-    movea.l -15336(a4),sp
-    move.l d0,-(sp)
-    move.l -15356(a4),d0
-    beq.s hunk_0_loc_0190
-hunk_0_loc_018c:
-    movea.l d0,a0
-    jsr (a0) ; unresolved_indirect_core:ind
-hunk_0_loc_0190:
-    jsr hunk_0_loc_1c04(pc)
-hunk_0_loc_0194:
-    jsr hunk_0_loc_0c52(pc)
-hunk_0_loc_0198:
-    tst.l -15340(a4)
-    beq.s hunk_0_loc_01c8
-hunk_0_loc_019e:
-    movea.l 10796(a4),a6
-hunk_0_loc_01a2:
-    move.l -15332(a4),d1
-    beq.s hunk_0_loc_01ac
-hunk_0_loc_01a8:
-    jsr -36(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_01ac:
-    move.l -15348(a4),d1
-    beq.s hunk_0_loc_01b6
-hunk_0_loc_01b2:
-    jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_01b6:
-    movea.l AbsExecBase,a6
-    jsr _LVOForbid(a6)
-hunk_0_loc_01be:
-    movea.l -15340(a4),a1
-    jsr -378(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_01c6:
-    bra.s hunk_0_loc_01da
-hunk_0_loc_01c8:
-    move.l -15320(a4),d0
-    beq.s hunk_0_loc_01da
-hunk_0_loc_01ce:
-    movea.l -15324(a4),a1 ; FreeMem: memoryBlock
-    movea.l AbsExecBase,a6
-hunk_0_loc_01d6:
-    jsr _LVOFreeMem(a6)
-hunk_0_loc_01da:
-    movea.l 10796(a4),a1
-hunk_0_loc_01de:
-    jsr -414(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_01e2:
-    move.l (sp)+,d0
-    movem.l (sp)+,d1-d6/a0-a6
+openlibrary_libname:
+    dc.b    "dos.library",0
+    dc.b    $00,$00
+hunk_0_loc_01f8:
+    link a5,#-44
+    movem.l d2-d3/a2-a3,-44(a5)
+    bsr.w hunk_0_loc_035e
+hunk_0_loc_0206:
+    clr.w -12(a5)
+    clr.l -26(a5)
+    move.w 16(a5),-16(a5)
+    movea.l 12(a5),a2
+hunk_0_loc_0218:
+    bsr.w hunk_0_loc_0316
+hunk_0_loc_021c:
+    cmpi.w #$101,d0
+    bne.s hunk_0_loc_0238
+hunk_0_loc_0222:
+    move.l a2,hunk_48_loc_0004
+    move.l a2,d0
+    sub.l 12(a5),d0
+    movem.l -44(a5),d2-d3/a2-a3
+    unlk a5
     rts
-    dc.b    $00,$26
-hunk_0_loc_01ec:
-    lea 7964(a4),a2
+hunk_0_loc_0238:
+    cmpi.w #$100,d0
+    bne.s hunk_0_loc_025e
+hunk_0_loc_023e:
+    bsr.w hunk_0_loc_035e
+hunk_0_loc_0242:
+    bsr.w hunk_0_loc_0316
+hunk_0_loc_0246:
+    move.w d0,-4(a5)
+    move.w d0,-6(a5)
+    move.b d0,-28(a5)
+    move.b d0,-22(a5)
+    move.b d0,(a2)+
+    jmp hunk_0_loc_0218
+hunk_0_loc_025e:
+    move.w d0,-4(a5)
+    move.w d0,-8(a5)
+    movea.l hunk_48_loc_0000,a0
+    adda.w #$fbfa,a0
+    cmp.w -10(a5),d0
+    blt.w hunk_0_loc_028c
+hunk_0_loc_0278:
+    move.w -6(a5),d0
+    move.w d0,-4(a5)
+    clr.w d0
+    move.b -22(a5),d0
+    move.w d0,-(sp)
+    addq.w #1,-12(a5)
+hunk_0_loc_028c:
+    cmpi.w #$ff,-4(a5)
+    ble.w hunk_0_loc_02b8
+hunk_0_loc_0296:
+    clr.l d1
+    move.w -4(a5),d1
+    lsl.l #2,d1
+    clr.w d0
+    move.b 2(a0,d1.l),d0
+    move.w d0,-(sp)
+    addq.w #1,-12(a5)
+    move.w 0(a0,d1.l),d0
+    move.w d0,-4(a5)
+    jmp hunk_0_loc_028c
+hunk_0_loc_02b8:
+    move.w -4(a5),d0
+    move.b d0,-22(a5)
+    move.b d0,-28(a5)
+    move.w d0,-(sp)
+    addq.w #1,-12(a5)
+    move.w -12(a5),d2
+    beq.w hunk_0_loc_02e0
+hunk_0_loc_02d2:
+    subq.w #1,d2
+hunk_0_loc_02d4:
+    move.w (sp)+,d0
+    move.b d0,(a2)+
+    dbf d2,hunk_0_loc_02d4
+hunk_0_loc_02dc:
+    clr.w -12(a5)
+hunk_0_loc_02e0:
+    bsr.w hunk_0_loc_0372
+hunk_0_loc_02e4:
+    move.w -8(a5),d0
+    move.w d0,-6(a5)
+    move.w -20(a5),d0
+    cmp.w -10(a5),d0
+    bgt.w hunk_0_loc_0310
+hunk_0_loc_02f8:
+    cmpi.w #$c,-14(a5)
+    bge.w hunk_0_loc_030e
+hunk_0_loc_0302:
+    addq.w #1,-14(a5)
+    lsl.w -20(a5)
+    bra.w hunk_0_loc_0310
+hunk_0_loc_030e:
+    nop
+hunk_0_loc_0310:
+    jmp hunk_0_loc_0218
+hunk_0_loc_0316:
+    move.l -26(a5),d1
+    clr.l d0
+    move.w -14(a5),d0
+    add.l d0,-26(a5)
+    divu.w #$8,d1
+    clr.l d3
+    move.w d1,d3
+    movea.l 8(a5),a1
+    adda.l d3,a1
+    moveq #16,d0
+    lsr.l d0,d1
+    andi.l #$ffff,d1
+    move.b 2(a1),d0
+    lsl.l #8,d0
+    move.b 1(a1),d0
+    lsl.l #8,d0
+    move.b (a1),d0
+    lsr.l d1,d0
+    moveq #16,d1
+    sub.w -14(a5),d1
+    move.l #$ffff,d2
+    lsr.w d1,d2
+    and.l d2,d0
+    rts
+hunk_0_loc_035e:
+    move.w #$9,-14(a5)
+    move.w #$200,-20(a5)
+    move.w #$102,-10(a5)
+    rts
+hunk_0_loc_0372:
+    clr.l d1
+    move.w -10(a5),d1
+    lsl.l #2,d1
+    move.b -28(a5),2(a0,d1.l)
+    move.w -6(a5),0(a0,d1.l)
+    addq.w #1,-10(a5)
+    rts
+hunk_0_loc_038c:
+    movem.l d0-d6/a2,-(sp)
+    move.b 4(a0),d0
+    move.w 6(a0),d1
+    move.w 8(a0),d2
+    move.w 10(a0),d4
+    move.w 12(a0),d5
+    move.w d2,d6
+    andi.w #$30,d6
+    beq.w hunk_0_loc_03b8
+hunk_0_loc_03ae:
+    andi.w #$ffcf,8(a0)
+    bra.w hunk_0_loc_0450
+hunk_0_loc_03b8:
+    cmpi.b #$1,d0
+    bne.w hunk_0_loc_03fa
+hunk_0_loc_03c0:
+    btst #7,d1
+    bne.w hunk_0_loc_03fa
+hunk_0_loc_03c8:
+    move.b -16424(a4),d3 ; app-$4028
+    ext.w d3
+    cmpi.b #$a,d3
+    beq.w hunk_0_loc_03fa
+hunk_0_loc_03d6:
+    lea 7964(a4),a2 ; app+$1F1C
     adda.w d3,a2
     move.b d1,(a2)
-    lea 7976(a4),a2
-sub_01f8:
+    lea 7976(a4),a2 ; app+$1F28
     lsl.w #1,d3
     adda.w d3,a2
     move.w d2,(a2)
-    addq.b #1,-16424(a4)
+    addq.b #1,-16424(a4) ; app-$4028
     andi.w #$c0,d2
-    bne.w hunk_0_loc_0210
-hunk_0_loc_020a:
+    bne.w hunk_0_loc_03fa
+hunk_0_loc_03f4:
     move.b #$0,4(a0)
-hunk_0_loc_0210:
+hunk_0_loc_03fa:
     cmpi.b #$2,d0
-    bne.w hunk_0_loc_0266
-hunk_0_loc_0218:
-    move.w d4,8000(a4)
-    move.w d5,8002(a4)
+    bne.w hunk_0_loc_0450
+hunk_0_loc_0402:
+    move.w d4,8000(a4) ; app+$1F40
+    move.w d5,8002(a4) ; app+$1F42
     cmpi.b #$69,d1
-    bne.w hunk_0_loc_0232
-hunk_0_loc_0228:
-    move.w #$ffff,7996(a4)
-    bra.w hunk_0_loc_0260
-hunk_0_loc_0232:
+    bne.w hunk_0_loc_041c
+hunk_0_loc_0412:
+    move.w #$ffff,7996(a4) ; app+$1F3C
+    bra.w hunk_0_loc_044a
+hunk_0_loc_041c:
     cmpi.b #$e9,d1
-    bne.w hunk_0_loc_0242
-hunk_0_loc_023a:
-    clr.w 7996(a4)
-    bra.w hunk_0_loc_0260
-hunk_0_loc_0242:
+    bne.w hunk_0_loc_042c
+hunk_0_loc_0424:
+    clr.w 7996(a4) ; app+$1F3C
+    bra.w hunk_0_loc_044a
+hunk_0_loc_042c:
     cmpi.b #$68,d1
-    bne.w hunk_0_loc_0254
-hunk_0_loc_024a:
-    move.w #$ffff,7998(a4)
-    bra.w hunk_0_loc_0260
-hunk_0_loc_0254:
+    bne.w hunk_0_loc_043e
+hunk_0_loc_0434:
+    move.w #$ffff,7998(a4) ; app+$1F3E
+    bra.w hunk_0_loc_044a
+hunk_0_loc_043e:
     cmpi.b #$e8,d1
-    bne.w hunk_0_loc_0266
-hunk_0_loc_025c:
-    clr.w 7998(a4)
-hunk_0_loc_0260:
+    bne.w hunk_0_loc_0450
+hunk_0_loc_0446:
+    clr.w 7998(a4) ; app+$1F3E
+hunk_0_loc_044a:
     move.b #$0,4(a0)
-hunk_0_loc_0266:
+hunk_0_loc_0450:
     movem.l (sp)+,d0-d6/a2
     move.l a0,d0
     rts
-hunk_0_loc_026e:
+hunk_0_loc_0458:
     movem.l d1/a0,-(sp)
     clr.l d0
-    lea -16424(a4),a0
+    lea -16424(a4),a0 ; app-$4028
     move.b (a0),d1
-    beq.w hunk_0_loc_0280
-hunk_0_loc_027e:
+    beq.w hunk_0_loc_046a
+hunk_0_loc_0468:
     moveq #-1,d0
-hunk_0_loc_0280:
+hunk_0_loc_046a:
     movem.l (sp)+,d1/a0
     rts
-hunk_0_loc_0286:
+hunk_0_loc_0470:
     movem.l d1-d3/a0-a1,-(sp)
-    jsr open_dos
-hunk_0_loc_0290:
-    cmpi.b #$0,-16424(a4)
-    bne.w hunk_0_loc_02a4
-hunk_0_loc_029a:
+    jsr hunk_51_loc_0000
+hunk_0_loc_047a:
+    cmpi.b #$0,-16424(a4) ; app-$4028
+    bne.w hunk_0_loc_048e
+hunk_0_loc_0484:
     move.l #$ffffffff,-(sp)
-    bra.w hunk_0_loc_02e0
-hunk_0_loc_02a4:
+    bra.w hunk_0_loc_04ca
+hunk_0_loc_048e:
     clr.l d0
-    lea 7976(a4),a0
+    lea 7976(a4),a0 ; app+$1F28
     or.w (a0),d0
     swap d0
-    lea 7964(a4),a0
+    lea 7964(a4),a0 ; app+$1F1C
     or.b (a0),d0
     move.l d0,-(sp)
-    subq.b #1,-16424(a4)
+    subq.b #1,-16424(a4) ; app-$4028
     clr.w d1
     clr.w d2
-    lea 7964(a4),a0
-    lea 7976(a4),a1
-hunk_0_loc_02c6:
+    lea 7964(a4),a0 ; app+$1F1C
+    lea 7976(a4),a1 ; app+$1F28
+hunk_0_loc_04b0:
     move.b 1(a0,d1.w),d3
     move.b d3,0(a0,d1.w)
     move.w 2(a1,d2.w),d3
@@ -498,223 +465,221 @@ hunk_0_loc_02c6:
     addq.w #1,d1
     addq.w #2,d2
     cmpi.w #$9,d1
-    bne.s hunk_0_loc_02c6
-hunk_0_loc_02e0:
-    jsr $00000010
-hunk_0_loc_02e6:
+    bne.s hunk_0_loc_04b0
+hunk_0_loc_04ca:
+    jsr hunk_51_loc_0010
+hunk_0_loc_04d0:
     move.l (sp)+,d0
     movem.l (sp)+,d1-d3/a0-a1
     rts
-hunk_0_loc_02ee:
-    ori.b #$1,-15992(a4)
+hunk_0_loc_04d8:
+    ori.b #$1,-15992(a4) ; app-$3E78
     rts
-hunk_0_loc_02f6:
-    bsr.w hunk_0_loc_03fa
-hunk_0_loc_02fa:
-    andi.b #$fe,-15992(a4)
+hunk_0_loc_04e0:
+    bsr.w hunk_0_loc_05e4
+hunk_0_loc_04e4:
+    andi.b #$fe,-15992(a4) ; app-$3E78
     rts
-hunk_0_hint_0302:
+hint_04ec:
     dc.b    $4e,$55,$00,$00,$2f,$0e,$70,$00,$20,$6d,$00,$08,$20,$2d,$00,$0c
-    dc.l    hunk_0_loc_0218
-    dc.b    $2c,$4c,$dd,$c0,$1d,$7c,$00,$01,$c2,$10,$72,$02,$92,$00,$10,$01
-    dc.b    $61,$00,$06,$ec
-hint_032a:
+    dc.b    $02,$00,$00,$01,$2c,$4c,$dd,$c0,$1d,$7c,$00,$01,$c2,$10,$72,$02
+    dc.b    $92,$00,$10,$01,$61,$00,$06,$ec
+hint_0514:
     dc.b    ",_N]Nu"
-hunk_0_loc_0330:
+hunk_0_loc_051a:
     link a5,#0
     move.w 8(a5),d0
-    andi.b #$77,-15992(a4)
+    andi.b #$77,-15992(a4) ; app-$3E78
     cmpi.w #$0,d0
-    bne.w hunk_0_loc_034e
-hunk_0_loc_0346:
-    bsr.w hunk_0_loc_03fa
-hunk_0_loc_034a:
-    bra.w hunk_0_loc_0370
-hunk_0_loc_034e:
+    bne.w hunk_0_loc_0538
+hunk_0_loc_0530:
+    bsr.w hunk_0_loc_05e4
+hunk_0_loc_0534:
+    bra.w hunk_0_loc_055a
+hunk_0_loc_0538:
     btst #7,d0
-    beq.w hunk_0_loc_0360
-hunk_0_loc_0356:
-    ori.b #$80,-15992(a4)
-    bra.w hunk_0_loc_0370
-hunk_0_loc_0360:
-    move.b d0,-15999(a4)
-    move.b #$0,-15998(a4)
-    ori.b #$10,-15992(a4)
-hunk_0_loc_0370:
+    beq.w hunk_0_loc_054a
+hunk_0_loc_0540:
+    ori.b #$80,-15992(a4) ; app-$3E78
+    bra.w hunk_0_loc_055a
+hunk_0_loc_054a:
+    move.b d0,-15999(a4) ; app-$3E7F
+    move.b #$0,-15998(a4) ; app-$3E7E
+    ori.b #$10,-15992(a4) ; app-$3E78
+hunk_0_loc_055a:
     unlk a5
     rts
-hunk_0_loc_0374:
+hunk_0_loc_055e:
     link a5,#0
     movem.l d0-d1/a0,-(sp)
-    btst #1,-15992(a4)
-    beq.w hunk_0_loc_038a
-hunk_0_loc_0386:
-    bsr.w hunk_0_loc_03fa
-hunk_0_loc_038a:
+    btst #1,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_0574
+hunk_0_loc_0570:
+    bsr.w hunk_0_loc_05e4
+hunk_0_loc_0574:
     movea.l 8(a5),a0
-    move.l a0,-15996(a4)
-    andi.b #$67,-15992(a4)
-    ori.b #$4,-15992(a4)
+    move.l a0,-15996(a4) ; app-$3E7C
+    andi.b #$67,-15992(a4) ; app-$3E78
+    ori.b #$4,-15992(a4) ; app-$3E78
     move.b 13(a5),d0
-    move.b d0,-15999(a4)
-    beq.w hunk_0_loc_03b0
-hunk_0_loc_03aa:
-    ori.b #$8,-15992(a4)
-hunk_0_loc_03b0:
+    move.b d0,-15999(a4) ; app-$3E7F
+    beq.w hunk_0_loc_059a
+hunk_0_loc_0594:
+    ori.b #$8,-15992(a4) ; app-$3E78
+hunk_0_loc_059a:
     move.b 15(a5),d1
     andi.b #$7f,d1
     subi.b #$7f,d1
-    move.b d1,-16000(a4)
-    move.b #$0,-15998(a4)
-    btst #3,-15992(a4)
-    beq.w hunk_0_loc_03d2
-hunk_0_loc_03d0:
+    move.b d1,-16000(a4) ; app-$3E80
+    move.b #$0,-15998(a4) ; app-$3E7E
+    btst #3,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_05bc
+hunk_0_loc_05ba:
     moveq #0,d0
-hunk_0_loc_03d2:
-    move.b d1,-15990(a4)
-    move.w #$1,-16002(a4)
-    move.b #$0,-15989(a4)
-    btst #0,-15992(a4)
-    beq.w hunk_0_loc_03f2
-hunk_0_loc_03ec:
-    ori.b #$2,-15992(a4)
-hunk_0_loc_03f2:
+hunk_0_loc_05bc:
+    move.b d1,-15990(a4) ; app-$3E76
+    move.w #$1,-16002(a4) ; app-$3E82
+    move.b #$0,-15989(a4) ; app-$3E75
+    btst #0,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_05dc
+hunk_0_loc_05d6:
+    ori.b #$2,-15992(a4) ; app-$3E78
+hunk_0_loc_05dc:
     movem.l (sp)+,d0-d1/a0
     unlk a5
     rts
-hunk_0_loc_03fa:
+hunk_0_loc_05e4:
     movem.l d0-d1,-(sp)
     moveq #7,d0
     moveq #-1,d1
-hunk_0_loc_0402:
+hunk_0_loc_05ec:
     cmpi.b #$1,d0
-    bne.w hunk_0_loc_0414
-hunk_0_loc_040a:
-    cmpi.b #$0,-15856(a4)
-    bne.w hunk_0_loc_042a
-hunk_0_loc_0414:
+    bne.w hunk_0_loc_05fe
+hunk_0_loc_05f4:
+    cmpi.b #$0,-15856(a4) ; app-$3DF0
+    bne.w hunk_0_loc_0614
+hunk_0_loc_05fe:
     cmpi.b #$2,d0
-    bne.w hunk_0_loc_0426
-hunk_0_loc_041c:
-    cmpi.b #$0,-15855(a4)
-    bne.w hunk_0_loc_042a
-hunk_0_loc_0426:
-    bsr.w hunk_0_loc_08cc
-hunk_0_loc_042a:
-    dbf d0,hunk_0_loc_0402
-hunk_0_loc_042e:
-    andi.b #$75,-15992(a4)
-    bsr.w hunk_0_loc_07e0
-hunk_0_loc_0438:
+    bne.w hunk_0_loc_0610
+hunk_0_loc_0606:
+    cmpi.b #$0,-15855(a4) ; app-$3DEF
+    bne.w hunk_0_loc_0614
+hunk_0_loc_0610:
+    bsr.w hunk_0_loc_0ab6
+hunk_0_loc_0614:
+    dbf d0,hunk_0_loc_05ec
+hunk_0_loc_0618:
+    andi.b #$75,-15992(a4) ; app-$3E78
+    bsr.w hunk_0_loc_09ca
+hunk_0_loc_0622:
     movem.l (sp)+,d0-d1
     rts
-hunk_0_loc_043e:
-    btst #0,-15992(a4)
-    beq.w hunk_0_loc_0468
-hunk_0_loc_0448:
-    btst #2,-15992(a4)
-    beq.w hunk_0_loc_0468
-hunk_0_loc_0452:
-    btst #1,-15992(a4)
-sub_0458:
-    bne.w hunk_0_loc_0468
-hunk_0_loc_045c:
-    move.w #$1,-16002(a4)
-    ori.b #$2,-15992(a4)
-hunk_0_loc_0468:
+hunk_0_loc_0628:
+    btst #0,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_0652
+hunk_0_loc_0632:
+    btst #2,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_0652
+hunk_0_loc_063c:
+    btst #1,-15992(a4) ; app-$3E78
+    bne.w hunk_0_loc_0652
+hunk_0_loc_0646:
+    move.w #$1,-16002(a4) ; app-$3E82
+    ori.b #$2,-15992(a4) ; app-$3E78
+hunk_0_loc_0652:
     rts
-hunk_0_loc_046a:
+hunk_0_loc_0654:
     move.l a4,-(sp)
-    lea $00008000,a4
-    bsr.w hunk_0_loc_049e
-hunk_0_loc_0476:
+    lea dat_8000,a4
+    bsr.w hunk_0_loc_0688
+hunk_0_loc_0660:
     movea.l (sp)+,a4
     addi.l #$1,(a1)
     moveq #0,d0
     rts
-hunk_0_loc_0482:
+hunk_0_loc_066c:
     move.l d0,-(sp)
     move.l #$f4240,d0
-hunk_0_loc_048a:
-    move.b 8420(a4),8421(a4)
+hunk_0_loc_0674:
+    move.b 8420(a4),8421(a4) ; app+$20E4
     subq.l #1,d0
     cmpi.l #$0,d0
-    bne.s hunk_0_loc_048a
-hunk_0_loc_049a:
+    bne.s hunk_0_loc_0674
+hunk_0_loc_0684:
     move.l (sp)+,d0
     rts
-hunk_0_loc_049e:
+hunk_0_loc_0688:
     movem.l d0-d7/a0-a6,-(sp)
-    bsr.w hunk_0_loc_0944
-hunk_0_loc_04a6:
+    bsr.w hunk_0_loc_0b2e
+hunk_0_loc_0690:
     moveq #6,d0
-hunk_0_loc_04a8:
+hunk_0_loc_0692:
     movea.l a4,a6
     adda.l d0,a6
     move.b #$0,9550(a6)
-    dbmi d0,hunk_0_loc_04a8
-hunk_0_loc_04b6:
-    btst #1,-15992(a4)
-    beq.w hunk_0_loc_0548
-hunk_0_loc_04c0:
-    btst #0,-15992(a4)
-    beq.w hunk_0_loc_0548
-hunk_0_loc_04ca:
-    btst #4,-15992(a4)
-    bne.w hunk_0_loc_050a
-hunk_0_loc_04d4:
-    btst #3,-15992(a4)
-    beq.w hunk_0_loc_053a
-hunk_0_loc_04de:
-    subq.b #1,-15998(a4)
-    bne.w hunk_0_loc_053a
-hunk_0_loc_04e6:
-    move.b -15999(a4),-15998(a4)
-    move.b -15990(a4),d0
-    cmp.b -16000(a4),d0
-    bge.w hunk_0_loc_0500
-hunk_0_loc_04f8:
-    addq.b #1,-15990(a4)
-    bra.w hunk_0_loc_053a
-hunk_0_loc_0500:
-    andi.b #$f7,-15992(a4)
-    bra.w hunk_0_loc_053a
-hunk_0_loc_050a:
-    subq.b #1,-15998(a4)
-    bne.w hunk_0_loc_053a
-hunk_0_loc_0512:
-    move.b -15999(a4),-15998(a4)
-    move.b -15990(a4),d0
-    cmpi.b #$82,-15990(a4)
-    bgt.w hunk_0_loc_0534
-hunk_0_loc_0526:
-    andi.b #$ef,-15992(a4)
-    bsr.w hunk_0_loc_03fa
-hunk_0_loc_0530:
-    bra.w hunk_0_loc_075e
-hunk_0_loc_0534:
-    subi.b #$1,-15990(a4)
-hunk_0_loc_053a:
-    subi.w #$1,-16002(a4)
-    beq.w hunk_0_loc_054c
-hunk_0_loc_0544:
-    bmi.w hunk_0_loc_054c
-hunk_0_loc_0548:
-    bra.w hunk_0_loc_075e
-hunk_0_loc_054c:
-    movea.l -15996(a4),a0
-hunk_0_loc_0550:
+    dbmi d0,hunk_0_loc_0692
+hunk_0_loc_06a0:
+    btst #1,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_0732
+hunk_0_loc_06aa:
+    btst #0,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_0732
+hunk_0_loc_06b4:
+    btst #4,-15992(a4) ; app-$3E78
+    bne.w hunk_0_loc_06f4
+hunk_0_loc_06be:
+    btst #3,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_0724
+hunk_0_loc_06c8:
+    subq.b #1,-15998(a4) ; app-$3E7E
+    bne.w hunk_0_loc_0724
+hunk_0_loc_06d0:
+    move.b -15999(a4),-15998(a4) ; app-$3E7F
+    move.b -15990(a4),d0 ; app-$3E76
+    cmp.b -16000(a4),d0 ; app-$3E80
+    bge.w hunk_0_loc_06ea
+hunk_0_loc_06e2:
+    addq.b #1,-15990(a4) ; app-$3E76
+    bra.w hunk_0_loc_0724
+hunk_0_loc_06ea:
+    andi.b #$f7,-15992(a4) ; app-$3E78
+    bra.w hunk_0_loc_0724
+hunk_0_loc_06f4:
+    subq.b #1,-15998(a4) ; app-$3E7E
+    bne.w hunk_0_loc_0724
+hunk_0_loc_06fc:
+    move.b -15999(a4),-15998(a4) ; app-$3E7F
+    move.b -15990(a4),d0 ; app-$3E76
+    cmpi.b #$82,-15990(a4) ; app-$3E76
+    bgt.w hunk_0_loc_071e
+hunk_0_loc_0710:
+    andi.b #$ef,-15992(a4) ; app-$3E78
+    bsr.w hunk_0_loc_05e4
+hunk_0_loc_071a:
+    bra.w hunk_0_loc_0948
+hunk_0_loc_071e:
+    subi.b #$1,-15990(a4) ; app-$3E76
+hunk_0_loc_0724:
+    subi.w #$1,-16002(a4) ; app-$3E82
+    beq.w hunk_0_loc_0736
+hunk_0_loc_072e:
+    bmi.w hunk_0_loc_0736
+hunk_0_loc_0732:
+    bra.w hunk_0_loc_0948
+hunk_0_loc_0736:
+    movea.l -15996(a4),a0 ; app-$3E7C
+hunk_0_loc_073a:
     moveq #0,d4
     move.b (a0)+,d4
-    move.b d4,-15997(a4)
+    move.b d4,-15997(a4) ; app-$3E7D
     ori.b #$80,d4
     cmpi.b #$fc,d4
-    bne.w hunk_0_loc_056c
-hunk_0_loc_0564:
-    bsr.w hunk_0_loc_03fa
-hunk_0_loc_0568:
-    bra.w hunk_0_loc_075e
-hunk_0_loc_056c:
+    bne.w hunk_0_loc_0756
+hunk_0_loc_074e:
+    bsr.w hunk_0_loc_05e4
+hunk_0_loc_0752:
+    bra.w hunk_0_loc_0948
+hunk_0_loc_0756:
     moveq #0,d0
     move.l d0,d1
     move.l d0,d2
@@ -725,21 +690,21 @@ hunk_0_loc_056c:
     movea.l a4,a5
     adda.l d0,a5
     cmpi.b #$90,d4
-    bne.w hunk_0_loc_0634
-hunk_0_loc_058a:
+    bne.w hunk_0_loc_081e
+hunk_0_loc_0774:
     move.b (a0)+,d1
     move.b (a0)+,d3
-    bsr.w hunk_0_loc_0764
-hunk_0_loc_0592:
-    bcs.w hunk_0_loc_0630
-hunk_0_loc_0596:
+    bsr.w hunk_0_loc_094e
+hunk_0_loc_077c:
+    bcs.w loc_081a
+hunk_0_loc_0780:
     cmpi.b #$9,d0
-    bne.w hunk_0_loc_05c8
-hunk_0_loc_059e:
+    bne.w hunk_0_loc_07b2
+hunk_0_loc_0788:
     subi.b #$24,d1
     cmpi.b #$1f,d1
-    bhi.w hunk_0_loc_0630
-hunk_0_loc_05aa:
+    bhi.w loc_081a
+hunk_0_loc_0794:
     movea.l a4,a6
     ext.w d1
     ext.l d1
@@ -748,256 +713,256 @@ hunk_0_loc_05aa:
     adda.l d1,a6
     move.w -15920(a6),d1
     cmpi.b #$f,d0
-    bls.w hunk_0_loc_0608
-hunk_0_loc_05c4:
-    bra.w hunk_0_loc_0630
-hunk_0_loc_05c8:
+    bls.w hunk_0_loc_07f2
+hunk_0_loc_07ae:
+    bra.w loc_081a
+hunk_0_loc_07b2:
     btst #0,9550(a5)
-    beq.w hunk_0_loc_05da
-hunk_0_loc_05d2:
+    beq.w hunk_0_loc_07c4
+loc_07bc:
     cmp.b 9502(a5),d1
-    blt.w hunk_0_loc_0630
-hunk_0_loc_05da:
+    blt.w loc_081a
+hunk_0_loc_07c4:
     move.b d1,9502(a5)
     move.b #$1,9550(a5)
     andi.l #$3,d0
     move.b -15987(a5),d4
     sub.b d4,d1
-    bpl.w hunk_0_loc_05fa
-hunk_0_loc_05f4:
+    bpl.w hunk_0_loc_07e4
+hunk_0_loc_07de:
     addi.b #$c,d1
-    bmi.s hunk_0_loc_05f4
-hunk_0_loc_05fa:
+    bmi.s hunk_0_loc_07de
+hunk_0_loc_07e4:
     cmpi.b #$23,d1
-    bls.w hunk_0_loc_0608
-hunk_0_loc_0602:
+    bls.w hunk_0_loc_07f2
+hunk_0_loc_07ec:
     subi.b #$c,d1
-    bra.s hunk_0_loc_05fa
-hunk_0_loc_0608:
+    bra.s hunk_0_loc_07e4
+hunk_0_loc_07f2:
     moveq #0,d5
-    move.b -15990(a4),d5
+    move.b -15990(a4),d5 ; app-$3E76
     ext.w d5
     add.w d5,d3
-    bmi.w hunk_0_loc_0626
-hunk_0_loc_0616:
+    bmi.w hunk_0_loc_0810
+hunk_0_loc_0800:
     cmpi.w #$7f,d3
-    ble.w hunk_0_loc_0628
-hunk_0_loc_061e:
+    ble.w hunk_0_loc_0812
+hunk_0_loc_0808:
     move.w #$7f,d3
-    bra.w hunk_0_loc_0628
-hunk_0_loc_0626:
+    bra.w hunk_0_loc_0812
+hunk_0_loc_0810:
     moveq #0,d3
-hunk_0_loc_0628:
+hunk_0_loc_0812:
     move.l d1,d2
     asr.w #1,d3
-    bsr.w hunk_0_loc_07fa
-hunk_0_loc_0630:
-    bra.w hunk_0_loc_0734
-hunk_0_loc_0634:
+    bsr.w hunk_0_loc_09e4
+loc_081a:
+    bra.w hunk_0_loc_091e
+hunk_0_loc_081e:
     cmpi.b #$80,d4
-    bne.w hunk_0_loc_0688
-hunk_0_loc_063c:
+    bne.w hunk_0_loc_0872
+hunk_0_loc_0826:
     moveq #0,d1
     move.l d1,d3
     move.b (a0)+,d1
-    bsr.w hunk_0_loc_0764
-hunk_0_loc_0646:
-    bcs.w hunk_0_loc_0684
-hunk_0_loc_064a:
+    bsr.w hunk_0_loc_094e
+hunk_0_loc_0830:
+    bcs.w hunk_0_loc_086e
+hunk_0_loc_0834:
     cmpi.b #$9,d0
-    bne.w hunk_0_loc_0672
-hunk_0_loc_0652:
+    bne.w hunk_0_loc_085c
+hunk_0_loc_083c:
     subi.b #$24,d1
     cmpi.b #$1f,d1
-    bhi.w hunk_0_loc_0684
-hunk_0_loc_065e:
+    bhi.w hunk_0_loc_086e
+hunk_0_loc_0848:
     movea.l a4,a6
     adda.l d1,a6
     move.b -15953(a6),d0
     cmpi.b #$f,d0
-    bls.w hunk_0_loc_0680
-hunk_0_loc_066e:
-    bra.w hunk_0_loc_0684
-hunk_0_loc_0672:
+    bls.w hunk_0_loc_086a
+hunk_0_loc_0858:
+    bra.w hunk_0_loc_086e
+hunk_0_loc_085c:
     andi.l #$3,d0
     cmp.b 9502(a5),d1
-    bne.w hunk_0_loc_0684
-hunk_0_loc_0680:
-    bsr.w hunk_0_loc_08cc
-hunk_0_loc_0684:
-    bra.w hunk_0_loc_0734
-hunk_0_loc_0688:
+    bne.w hunk_0_loc_086e
+hunk_0_loc_086a:
+    bsr.w hunk_0_loc_0ab6
+hunk_0_loc_086e:
+    bra.w hunk_0_loc_091e
+hunk_0_loc_0872:
     cmpi.b #$c0,d4
-    bne.w hunk_0_loc_0696
-hunk_0_loc_0690:
+    bne.w hunk_0_loc_0880
+hunk_0_loc_087a:
     move.b (a0)+,d3
-    bra.w hunk_0_loc_0734
-hunk_0_loc_0696:
+    bra.w hunk_0_loc_091e
+hunk_0_loc_0880:
     cmpi.b #$a0,d4
-    bne.w hunk_0_loc_0708
-hunk_0_loc_069e:
+    bne.w hunk_0_loc_08f2
+hunk_0_loc_0888:
     andi.l #$3,d0
     adda.l d0,a5
     adda.l d0,a5
     adda.l d0,a5
-    btst #7,-15992(a4)
-    beq.w hunk_0_loc_06bc
-hunk_0_loc_06b4:
-    bsr.w hunk_0_loc_03fa
-hunk_0_loc_06b8:
-    bra.w hunk_0_loc_075e
-hunk_0_loc_06bc:
+    btst #7,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_08a6
+hunk_0_loc_089e:
+    bsr.w hunk_0_loc_05e4
+hunk_0_loc_08a2:
+    bra.w hunk_0_loc_0948
+hunk_0_loc_08a6:
     move.b (a0)+,d2
-    bne.w hunk_0_loc_06d0
-hunk_0_loc_06c2:
+    bne.w hunk_0_loc_08ba
+hunk_0_loc_08ac:
     move.l a0,8426(a5)
-    move.b -15997(a4),8458(a5)
-    bra.w hunk_0_loc_0704
-hunk_0_loc_06d0:
+    move.b -15997(a4),8458(a5) ; app-$3E7D
+    bra.w hunk_0_loc_08ee
+hunk_0_loc_08ba:
     move.b 8442(a5),d3
-    bne.w hunk_0_loc_06ee
-hunk_0_loc_06d8:
+    bne.w hunk_0_loc_08d8
+hunk_0_loc_08c2:
     movea.l 8426(a5),a1
     cmpa.l #$0,a1
-    beq.w hunk_0_loc_0704
-hunk_0_loc_06e6:
+    beq.w hunk_0_loc_08ee
+hunk_0_loc_08d0:
     move.b d2,8442(a5)
-    bra.w hunk_0_loc_06f6
-hunk_0_loc_06ee:
+    bra.w hunk_0_loc_08e0
+hunk_0_loc_08d8:
     cmpi.b #$1,d3
-    beq.w hunk_0_loc_0700
-hunk_0_loc_06f6:
+    beq.w hunk_0_loc_08ea
+hunk_0_loc_08e0:
     movea.l 8426(a5),a0
-    move.b 8458(a5),-15997(a4)
-hunk_0_loc_0700:
+    move.b 8458(a5),-15997(a4) ; app-$3E7D
+hunk_0_loc_08ea:
     subq.b #1,8442(a5)
-hunk_0_loc_0704:
-    bra.w hunk_0_loc_0734
-hunk_0_loc_0708:
+hunk_0_loc_08ee:
+    bra.w hunk_0_loc_091e
+hunk_0_loc_08f2:
     cmpi.b #$b0,d4
-    bne.w hunk_0_loc_0728
-hunk_0_loc_0710:
-    addi.b #$1,-15989(a4)
-    btst #7,-15992(a4)
-    beq.w hunk_0_loc_0734
-hunk_0_loc_0720:
-    bsr.w hunk_0_loc_03fa
-hunk_0_loc_0724:
-    bra.w hunk_0_loc_075e
-hunk_0_loc_0728:
+    bne.w hunk_0_loc_0912
+hunk_0_loc_08fa:
+    addi.b #$1,-15989(a4) ; app-$3E75
+    btst #7,-15992(a4) ; app-$3E78
+    beq.w hunk_0_loc_091e
+hunk_0_loc_090a:
+    bsr.w hunk_0_loc_05e4
+hunk_0_loc_090e:
+    bra.w hunk_0_loc_0948
+hunk_0_loc_0912:
     cmpi.b #$e0,d4
-    bne.w hunk_0_loc_0734
-hunk_0_loc_0730:
-    bra.w hunk_0_loc_0734
-hunk_0_loc_0734:
-    btst #7,-15997(a4)
-    bne.w hunk_0_loc_0742
-hunk_0_loc_073e:
-    bra.w hunk_0_loc_0550
-hunk_0_loc_0742:
+    bne.w hunk_0_loc_091e
+hunk_0_loc_091a:
+    bra.w hunk_0_loc_091e
+hunk_0_loc_091e:
+    btst #7,-15997(a4) ; app-$3E7D
+    bne.w hunk_0_loc_092c
+hunk_0_loc_0928:
+    bra.w hunk_0_loc_073a
+hunk_0_loc_092c:
     moveq #0,d0
     move.l d0,d1
     move.b (a0)+,d0
-    bpl.w hunk_0_loc_0756
-hunk_0_loc_074c:
+    bpl.w hunk_0_loc_0940
+hunk_0_loc_0936:
     andi.b #$7f,d0
     move.b (a0)+,d1
     lsl.w #7,d1
     or.w d1,d0
-hunk_0_loc_0756:
-    move.w d0,-16002(a4)
-    move.l a0,-15996(a4)
-hunk_0_loc_075e:
+hunk_0_loc_0940:
+    move.w d0,-16002(a4) ; app-$3E82
+    move.l a0,-15996(a4) ; app-$3E7C
+hunk_0_loc_0948:
     movem.l (sp)+,d0-d7/a0-a6
     rts
-hunk_0_loc_0764:
+hunk_0_loc_094e:
     cmpi.b #$3,d0
-    bls.w hunk_0_loc_0774
-hunk_0_loc_076c:
+    bls.w hunk_0_loc_095e
+loc_0956:
     cmpi.b #$9,d0
-    beq.w hunk_0_loc_07a4
-hunk_0_loc_0774:
+    beq.w hunk_0_loc_098e
+hunk_0_loc_095e:
     cmpi.b #$1,d0
-    bne.w hunk_0_loc_078a
-hunk_0_loc_077c:
-    cmpi.b #$0,-15856(a4)
-    beq.w hunk_0_loc_078a
-hunk_0_loc_0786:
-    bra.w hunk_0_loc_079c
-hunk_0_loc_078a:
+    bne.w hunk_0_loc_0974
+hunk_0_loc_0966:
+    cmpi.b #$0,-15856(a4) ; app-$3DF0
+    beq.w hunk_0_loc_0974
+hunk_0_loc_0970:
+    bra.w hunk_0_loc_0986
+hunk_0_loc_0974:
     cmpi.b #$2,d0
-    bne.w hunk_0_loc_07a4
-hunk_0_loc_0792:
-    cmpi.b #$0,-15855(a4)
-    beq.w hunk_0_loc_07a4
-hunk_0_loc_079c:
+    bne.w hunk_0_loc_098e
+hunk_0_loc_097c:
+    cmpi.b #$0,-15855(a4) ; app-$3DEF
+    beq.w hunk_0_loc_098e
+hunk_0_loc_0986:
     ori.b #$1,ccr
-    bra.w hunk_0_loc_07a8
-hunk_0_loc_07a4:
+    bra.w hunk_0_loc_0992
+hunk_0_loc_098e:
     andi.b #$fe,ccr
-hunk_0_loc_07a8:
+hunk_0_loc_0992:
     rts
-hunk_0_loc_07aa:
+hunk_0_loc_0994:
     movem.l d0/a0-a1,-(sp)
     andi.l #$3,d0
-    lea -16082(a4),a0
+    lea -16082(a4),a0 ; app-$3ED2
     adda.l d0,a0
     adda.l d0,a0
     lea _custom+bltddat,a1
     move.w (a0),dmacon(a1)
-    move.l -16144(a4),d0
-hunk_0_loc_07ca:
-    move.b 8420(a4),8421(a4)
+    move.l -16144(a4),d0 ; app-$3F10
+hunk_0_loc_09b4:
+    move.b 8420(a4),8421(a4) ; app+$20E4
     subq.l #1,d0
     cmpi.l #$0,d0
-    bne.s hunk_0_loc_07ca
-hunk_0_loc_07da:
+    bne.s hunk_0_loc_09b4
+hunk_0_loc_09c4:
     movem.l (sp)+,d0/a0-a1
     rts
-hunk_0_loc_07e0:
+hunk_0_loc_09ca:
     movem.l d0,-(sp)
     moveq #0,d0
-    bsr.s hunk_0_loc_07aa
-hunk_0_loc_07e8:
+    bsr.s hunk_0_loc_0994
+hunk_0_loc_09d2:
     moveq #1,d0
-    bsr.s hunk_0_loc_07aa
-hunk_0_loc_07ec:
+    bsr.s hunk_0_loc_0994
+hunk_0_loc_09d6:
     moveq #2,d0
-    bsr.s hunk_0_loc_07aa
-hunk_0_loc_07f0:
+    bsr.s hunk_0_loc_0994
+hunk_0_loc_09da:
     moveq #3,d0
-    bsr.s hunk_0_loc_07aa
-hunk_0_loc_07f4:
+    bsr.s hunk_0_loc_0994
+hunk_0_loc_09de:
     movem.l (sp)+,d0
     rts
-hunk_0_loc_07fa:
+hunk_0_loc_09e4:
     movem.l d0/d2/d4-d5/a0-a2,-(sp)
     andi.l #$f,d0
     andi.l #$3f,d3
     moveq #0,d4
     moveq #0,d5
     cmpi.w #$24,d2
-    bge.w hunk_0_loc_0820
-hunk_0_loc_0816:
-    lea -16074(a4),a2
+    bge.w hunk_0_loc_0a0a
+hunk_0_loc_0a00:
+    lea -16074(a4),a2 ; app-$3ECA
     adda.l d2,a2
     adda.l d2,a2
     move.w (a2),d2
-hunk_0_loc_0820:
+hunk_0_loc_0a0a:
     cmpi.b #$4,d0
-    bge.w hunk_0_loc_086c
-hunk_0_loc_0828:
-    bsr.s hunk_0_loc_07aa
-hunk_0_loc_082a:
-    lea 8422(a4),a2
+    bge.w hunk_0_loc_0a56
+hunk_0_loc_0a12:
+    bsr.s hunk_0_loc_0994
+hunk_0_loc_0a14:
+    lea 8422(a4),a2 ; app+$20E6
     adda.l d0,a2
     move.b #$1,(a2)
     move.l d0,d4
     lsl.l #1,d4
     add.l d0,d4
     lsl.l #2,d4
-    lea $00047ee4,a0
-    lea 8276(a4),a2
+    lea dat_47ee4,a0
+    lea 8276(a4),a2 ; app+$2054
     adda.l d4,a2
     adda.l (a2),a0
     lsr.l #2,d4
@@ -1005,35 +970,35 @@ hunk_0_loc_082a:
     lsl.l #1,d5
     add.l d4,d5
     lsl.l #1,d5
-    lea 8204(a4),a2
+    lea 8204(a4),a2 ; app+$200C
     adda.l d5,a2
     move.w (a2),d4
     lsr.w #1,d4
     move.l d0,d5
     lsl.l #4,d5
     addi.l #$a0,d5
-    bra.w hunk_0_loc_08a2
-hunk_0_loc_086c:
+    bra.w hunk_0_loc_0a8c
+hunk_0_loc_0a56:
     move.l d0,d4
     moveq #3,d0
-    bsr.w hunk_0_loc_07aa
-hunk_0_loc_0874:
-    lea 8422(a4),a2
+    bsr.w hunk_0_loc_0994
+hunk_0_loc_0a5e:
+    lea 8422(a4),a2 ; app+$20E6
     adda.l d0,a2
     move.b #$4,(a2)
     subq.l #4,d4
     move.l d4,d5
     lsl.l #2,d5
-    lea $0005c704,a0
-    lea 8324(a4),a2
+    lea dat_5c704,a0
+    lea 8324(a4),a2 ; app+$2084
     adda.l d5,a2
     adda.l (a2),a0
-    lea 8372(a4),a2
+    lea 8372(a4),a2 ; app+$20B4
     adda.l d5,a2
     move.l (a2),d4
     lsr.l #1,d4
     move.l #$d0,d5
-hunk_0_loc_08a2:
+hunk_0_loc_0a8c:
     lea _custom+bltddat,a1
     move.l a0,bltddat(a1,d5.w)
     move.w d4,vposr(a1,d5.w)
@@ -1041,29 +1006,29 @@ hunk_0_loc_08a2:
     move.w d3,dskdatr(a1,d5.w)
     move.l d0,d5
     lsl.l #1,d5
-    lea -16090(a4),a2
+    lea -16090(a4),a2 ; app-$3EDA
     adda.l d5,a2
     move.w (a2),dmacon(a1)
     movem.l (sp)+,d0/d2/d4-d5/a0-a2
     rts
-hunk_0_loc_08cc:
+hunk_0_loc_0ab6:
     movem.l d4-d5/a0-a2,-(sp)
     moveq #0,d4
     moveq #0,d5
     andi.l #$f,d0
     andi.l #$3,d1
     cmpi.b #$4,d0
-    bge.w hunk_0_loc_093e
-hunk_0_loc_08e8:
-    lea 8422(a4),a2
+    bge.w hunk_0_loc_0b28
+hunk_0_loc_0ad2:
+    lea 8422(a4),a2 ; app+$20E6
     adda.l d0,a2
     move.b #$3,(a2)
     move.l d0,d4
     lsl.l #1,d4
     add.l d0,d4
     lsl.l #2,d4
-    lea $00047ee4,a0
-    lea 8276(a4),a2
+    lea dat_47ee4,a0
+    lea 8276(a4),a2 ; app+$2054
     adda.l d4,a2
     adda.l (a2),a0
     lsr.l #2,d4
@@ -1072,11 +1037,11 @@ hunk_0_loc_08e8:
     add.l d4,d5
     addq.l #2,d5
     lsl.l #1,d5
-    lea 8204(a4),a2
+    lea 8204(a4),a2 ; app+$200C
     adda.l d5,a2
     move.w (a2),d4
     lsr.w #1,d4
-    lea 8132(a4),a2
+    lea 8132(a4),a2 ; app+$1FC4
     adda.l d5,a2
     adda.w (a2),a0
     move.l d0,d5
@@ -1085,10 +1050,10 @@ hunk_0_loc_08e8:
     lea _custom+bltddat,a1
     move.l a0,bltddat(a1,d5.w)
     move.w d4,vposr(a1,d5.w)
-hunk_0_loc_093e:
+hunk_0_loc_0b28:
     movem.l (sp)+,d4-d5/a0-a2
     rts
-hunk_0_loc_0944:
+hunk_0_loc_0b2e:
     movem.l d0-d6/a0-a3/a6,-(sp)
     lea _custom+bltddat,a0
     lea aud0(a0),a1
@@ -1100,41 +1065,41 @@ hunk_0_loc_0944:
     moveq #0,d3
     moveq #0,d4
     moveq #0,d6
-hunk_0_loc_0966:
+hunk_0_loc_0b50:
     move.l d0,d3
     and.l d1,d3
-    beq.w hunk_0_loc_09f8
-hunk_0_loc_096e:
+    beq.w hunk_0_loc_0be2
+hunk_0_loc_0b58:
     move.w d1,intreq(a0)
-    lea 8422(a4),a2
+    lea 8422(a4),a2 ; app+$20E6
     adda.l d2,a2
     move.b (a2),d3
     cmpi.b #$0,d3
-    beq.w hunk_0_loc_09f8
-hunk_0_loc_0982:
+    beq.w hunk_0_loc_0be2
+hunk_0_loc_0b6c:
     cmpi.b #$1,d3
-    beq.w hunk_0_loc_09b0
-hunk_0_loc_098a:
+    beq.w hunk_0_loc_0b9a
+hunk_0_loc_0b74:
     cmpi.b #$2,d3
-    beq.w hunk_0_loc_09f8
-hunk_0_loc_0992:
-    lea 8422(a4),a2
+    beq.w hunk_0_loc_0be2
+hunk_0_loc_0b7c:
+    lea 8422(a4),a2 ; app+$20E6
     adda.l d2,a2
     move.b #$0,(a2)
-    lea $00047ed0,a2
+    lea dat_47ed0,a2
     move.l a2,0(a1)
     move.w #$a,4(a1)
-    bra.w hunk_0_loc_09f8
-hunk_0_loc_09b0:
-    lea 8422(a4),a2
+    bra.w hunk_0_loc_0be2
+hunk_0_loc_0b9a:
+    lea 8422(a4),a2 ; app+$20E6
     adda.l d2,a2
     move.b #$2,(a2)
     move.l d2,d4
     lsl.l #1,d4
     add.l d2,d4
     lsl.w #2,d4
-    lea $00047ee4,a2
-    lea 8276(a4),a3
+    lea dat_47ee4,a2
+    lea 8276(a4),a3 ; app+$2054
     adda.l d4,a3
     adda.l (a3),a2
     moveq #0,d5
@@ -1144,111 +1109,113 @@ hunk_0_loc_09b0:
     add.l d4,d5
     addq.l #1,d5
     lsl.l #1,d5
-    lea 8204(a4),a3
+    lea 8204(a4),a3 ; app+$200C
     adda.l d5,a3
     move.w (a3),d4
     lsr.w #1,d4
-    lea 8132(a4),a6
+    lea 8132(a4),a6 ; app+$1FC4
     adda.l d5,a6
     adda.w (a6),a2
     move.l a2,0(a1)
     move.w d4,4(a1)
-hunk_0_loc_09f8:
+hunk_0_loc_0be2:
     addq.l #1,d2
     cmpi.b #$4,d2
-    beq.w hunk_0_loc_0a0e
-hunk_0_loc_0a02:
+    beq.w hunk_0_loc_0bf8
+hunk_0_loc_0bec:
     lsl.w #1,d1
     adda.l #$10,a1
-    bra.w hunk_0_loc_0966
-hunk_0_loc_0a0e:
+    bra.w hunk_0_loc_0b50
+hunk_0_loc_0bf8:
     movem.l (sp)+,d0-d6/a0-a3/a6
     rts
-hint_0a14:
+hint_0bfe:
     dc.b    $48,$e7,$80,$80,$41,$ec,$c2,$10,$53,$80,$d1,$c0,$10,$bc,$00,$00
-    dc.b    $4c,$df,$01,$01
-    dc.b    $4e,$75
-hunk_0_loc_0a2a:
+    dc.b    $4c,$df,$01,$01,$4e,$75
+hunk_0_loc_0c14:
     movea.l 4(sp),a0
     movea.l 8(sp),a1
     movem.l a2-a3,-(sp)
-    bra.s hunk_0_loc_0a46
-hunk_0_loc_0a38:
+    bra.s loc_0c30
+hunk_0_loc_0c22:
     cmpi.b #$0,(a2)
-    beq.s hunk_0_loc_0a56
-hunk_0_loc_0a3e:
+    beq.s hunk_0_loc_0c40
+hunk_0_loc_0c28:
     addq.l #1,a0
     cmpi.b #$0,(a0)
-    beq.s hunk_0_loc_0a56
-hunk_0_loc_0a46:
+    beq.s hunk_0_loc_0c40
+loc_0c30:
     movea.l a0,a2
     movea.l a1,a3
-hunk_0_loc_0a4a:
+hunk_0_loc_0c34:
     cmpi.b #$0,(a3)
-    beq.s hunk_0_loc_0a5e
-hunk_0_loc_0a50:
+    beq.s hunk_0_loc_0c48
+hunk_0_loc_0c3a:
     cmpm.b (a2)+,(a3)+
-    bne.s hunk_0_loc_0a38
-hunk_0_loc_0a54:
-    bra.s hunk_0_loc_0a4a
-hunk_0_loc_0a56:
+    bne.s hunk_0_loc_0c22
+hunk_0_loc_0c3e:
+    bra.s hunk_0_loc_0c34
+hunk_0_loc_0c40:
     moveq #0,d0
     movem.l (sp)+,a2-a3
     rts
-hunk_0_loc_0a5e:
+hunk_0_loc_0c48:
     move.l a0,d0
     movem.l (sp)+,a2-a3
     rts
-    dc.b    $4e,$75,$4e,$75
-hunk_0_loc_0a6a:
+sub_0c50:
+    rts
+sub_0c52:
+    rts
+sub_0c54:
     movem.l d5-d7/a2-a3,-(sp)
     move.w 24(sp),d7
     movea.l 26(sp),a3
     move.w 30(sp),d6
     subq.w #2,sp
     move.w d7,-(sp)
-    jsr hunk_0_loc_23ba(pc)
-hunk_0_loc_0a82:
+    jsr sub_25a4(pc)
+hunk_0_loc_0c6c:
     addq.w #4,sp
     movea.l d0,a2
     move.l a2,d0
-    bne.s hunk_0_loc_0a8e
-hunk_0_loc_0a8a:
+    bne.s hunk_0_loc_0c78
+hunk_0_loc_0c74:
     moveq #-1,d0
-    bra.s hunk_0_loc_0ac4
-hunk_0_loc_0a8e:
+    bra.s hunk_0_loc_0cae
+hunk_0_loc_0c78:
     btst #3,1(a2)
-    beq.s hunk_0_loc_0aa4
-hunk_0_loc_0a96:
+    beq.s hunk_0_loc_0c8e
+hunk_0_loc_0c80:
     moveq #2,d0
     move.w d0,-(sp)
     clr.l -(sp)
     move.w d7,-(sp)
-    jsr hunk_0_loc_1a9e(pc)
-hunk_0_loc_0aa2:
+    jsr sub_1c88(pc)
+hunk_0_loc_0c8c:
     addq.w #8,sp
-hunk_0_loc_0aa4:
+hunk_0_loc_0c8e:
     subq.w #2,sp
     move.w d6,-(sp)
     move.l a3,-(sp)
     move.l 2(a2),-(sp)
-    jsr hunk_0_loc_1e7e(pc)
-hunk_0_loc_0ab2:
+    jsr call_ioerr(pc)
+hunk_0_loc_0c9c:
     lea 12(sp),sp
     move.l d0,d5
-    tst.w -15376(a4)
-    beq.s hunk_0_loc_0ac2
-hunk_0_loc_0abe:
+    tst.w -15376(a4) ; app-$3C10
+    beq.s hunk_0_loc_0cac
+hunk_0_loc_0ca8:
     moveq #-1,d0
-    bra.s hunk_0_loc_0ac4
-hunk_0_loc_0ac2:
+    bra.s hunk_0_loc_0cae
+hunk_0_loc_0cac:
     move.l d5,d0
-hunk_0_loc_0ac4:
+hunk_0_loc_0cae:
     movem.l (sp)+,d5-d7/a2-a3
     rts
     dcb.b   6,0
     dc.b    $70,$61
-hunk_0_loc_0ad2:
+hunk_0_loc_0cbc:
     link a5,#-48
     movem.l d2/d5-d7/a2-a3,-(sp)
     movea.l 8(a5),a3
@@ -1267,168 +1234,168 @@ hunk_0_loc_0ad2:
     move.w d1,-20(a5)
     move.w d1,-18(a5)
     move.l a0,-44(a5)
-hunk_0_loc_0b14:
+hunk_0_loc_0cfe:
     move.b (a3),d0
-    beq.s hunk_0_loc_0b44
-loc_0b18:
+    beq.s hunk_0_loc_0d2e
+hunk_0_loc_0d02:
     moveq #0,d1
     move.b d0,d1
     subi.w #$20,d1
-    beq.s loc_0b36
-hunk_0_loc_0b22:
+    beq.s hunk_0_loc_0d20
+hunk_0_loc_0d0c:
     subq.w #3,d1
-    beq.s hunk_0_loc_0b3a
-hunk_0_loc_0b26:
+    beq.s hunk_0_loc_0d24
+hunk_0_loc_0d10:
     subq.w #8,d1
-    beq.s hunk_0_loc_0b32
-hunk_0_loc_0b2a:
+    beq.s hunk_0_loc_0d1c
+hunk_0_loc_0d14:
     subq.w #2,d1
-    bne.s hunk_0_loc_0b44
-hunk_0_loc_0b2e:
+    bne.s hunk_0_loc_0d2e
+hunk_0_loc_0d18:
     moveq #1,d7
-    bra.s hunk_0_loc_0b40
-hunk_0_loc_0b32:
+    bra.s hunk_0_loc_0d2a
+hunk_0_loc_0d1c:
     moveq #1,d6
-    bra.s hunk_0_loc_0b40
-loc_0b36:
+    bra.s hunk_0_loc_0d2a
+hunk_0_loc_0d20:
     moveq #1,d5
-    bra.s hunk_0_loc_0b40
-hunk_0_loc_0b3a:
+    bra.s hunk_0_loc_0d2a
+hunk_0_loc_0d24:
     move.b #$1,-4(a5)
-hunk_0_loc_0b40:
+hunk_0_loc_0d2a:
     addq.l #1,a3
-    bra.s hunk_0_loc_0b14
-hunk_0_loc_0b44:
+    bra.s hunk_0_loc_0cfe
+hunk_0_loc_0d2e:
     move.b (a3),d0
     moveq #48,d1
     cmp.b d1,d0
-    bne.s hunk_0_loc_0b52
-hunk_0_loc_0b4c:
+    bne.s hunk_0_loc_0d3c
+hunk_0_loc_0d36:
     addq.l #1,a3
     move.b d1,-5(a5)
-hunk_0_loc_0b52:
+hunk_0_loc_0d3c:
     moveq #42,d0
     cmp.b (a3),d0
-    bne.s hunk_0_loc_0b64
-hunk_0_loc_0b58:
+    bne.s hunk_0_loc_0d4e
+hunk_0_loc_0d42:
     movea.l (a2),a0
     addq.l #2,(a2)
     move.w (a0),-8(a5)
     addq.l #1,a3
-    bra.s hunk_0_loc_0b72
-hunk_0_loc_0b64:
+    bra.s hunk_0_loc_0d5c
+hunk_0_loc_0d4e:
     pea -8(a5)
     move.l a3,-(sp)
-    jsr hunk_0_loc_1656(pc)
-hunk_0_loc_0b6e:
+    jsr hunk_0_loc_1840(pc)
+hunk_0_loc_0d58:
     addq.w #8,sp
     adda.w d0,a3
-hunk_0_loc_0b72:
+hunk_0_loc_0d5c:
     move.b (a3),d0
     moveq #46,d1
     cmp.b d1,d0
-    bne.s hunk_0_loc_0b9c
-hunk_0_loc_0b7a:
+    bne.s hunk_0_loc_0d86
+hunk_0_loc_0d64:
     addq.l #1,a3
     moveq #42,d0
     cmp.b (a3),d0
-    bne.s hunk_0_loc_0b8e
-hunk_0_loc_0b82:
+    bne.s hunk_0_loc_0d78
+hunk_0_loc_0d6c:
     movea.l (a2),a0
     addq.l #2,(a2)
     move.w (a0),-10(a5)
     addq.l #1,a3
-    bra.s hunk_0_loc_0b9c
-hunk_0_loc_0b8e:
+    bra.s hunk_0_loc_0d86
+hunk_0_loc_0d78:
     pea -10(a5)
     move.l a3,-(sp)
-    jsr hunk_0_loc_1656(pc)
-hunk_0_loc_0b98:
+    jsr hunk_0_loc_1840(pc)
+hunk_0_loc_0d82:
     addq.w #8,sp
     adda.w d0,a3
-hunk_0_loc_0b9c:
+hunk_0_loc_0d86:
     move.b (a3),d0
     moveq #108,d1
     cmp.b d1,d0
-    bne.s hunk_0_loc_0bae
-hunk_0_loc_0ba4:
+    bne.s hunk_0_loc_0d98
+hunk_0_loc_0d8e:
     move.b #$1,-11(a5)
     addq.l #1,a3
-    bra.s hunk_0_loc_0bb6
-hunk_0_loc_0bae:
+    bra.s hunk_0_loc_0da0
+hunk_0_loc_0d98:
     moveq #104,d1
     cmp.b d1,d0
-    bne.s hunk_0_loc_0bb6
-hunk_0_loc_0bb4:
+    bne.s hunk_0_loc_0da0
+hunk_0_loc_0d9e:
     addq.l #1,a3
-hunk_0_loc_0bb6:
+hunk_0_loc_0da0:
     move.b (a3)+,d0
     moveq #0,d1
     move.b d0,d1
     move.b d0,-12(a5)
     subi.w #$50,d1
-    beq.w hunk_0_loc_0d3a
-hunk_0_loc_0bc8:
+    beq.w hunk_0_loc_0f24
+hunk_0_loc_0db2:
     subq.w #8,d1
-    beq.w hunk_0_loc_0d4e
-hunk_0_loc_0bce:
+    beq.w hunk_0_loc_0f38
+hunk_0_loc_0db8:
     subi.w #$b,d1
-    beq.w hunk_0_loc_0de4
-hunk_0_loc_0bd6:
+    beq.w hunk_0_loc_0fce
+hunk_0_loc_0dc0:
     subq.w #1,d1
-    beq.s hunk_0_loc_0bfe
-hunk_0_loc_0bda:
+    beq.s hunk_0_loc_0de8
+hunk_0_loc_0dc4:
     subi.w #$b,d1
-    beq.w hunk_0_loc_0cf4
-hunk_0_loc_0be2:
+    beq.w hunk_0_loc_0ede
+hunk_0_loc_0dcc:
     subq.w #1,d1
-    beq.w hunk_0_loc_0d3a
-hunk_0_loc_0be8:
+    beq.w hunk_0_loc_0f24
+hunk_0_loc_0dd2:
     subq.w #3,d1
-    beq.w hunk_0_loc_0dac
-hunk_0_loc_0bee:
+    beq.w hunk_0_loc_0f96
+hunk_0_loc_0dd8:
     subq.w #2,d1
-    beq.w hunk_0_loc_0cd6
-hunk_0_loc_0bf4:
+    beq.w hunk_0_loc_0ec0
+hunk_0_loc_0dde:
     subq.w #3,d1
-    beq.w hunk_0_loc_0d4e
-hunk_0_loc_0bfa:
-    bra.w hunk_0_loc_0dfa
-hunk_0_loc_0bfe:
+    beq.w hunk_0_loc_0f38
+hunk_0_loc_0de4:
+    bra.w hunk_0_loc_0fe4
+hunk_0_loc_0de8:
     tst.b -11(a5)
-    beq.s hunk_0_loc_0c0c
-hunk_0_loc_0c04:
+    beq.s hunk_0_loc_0df6
+hunk_0_loc_0dee:
     movea.l (a2),a0
     addq.l #4,(a2)
     move.l (a0),d0
-    bra.s hunk_0_loc_0c14
-hunk_0_loc_0c0c:
+    bra.s hunk_0_loc_0dfe
+hunk_0_loc_0df6:
     movea.l (a2),a0
     addq.l #2,(a2)
     move.w (a0),d0
     ext.l d0
-hunk_0_loc_0c14:
+hunk_0_loc_0dfe:
     move.l d0,-16(a5)
-    bge.s hunk_0_loc_0c24
-hunk_0_loc_0c1a:
+    bge.s hunk_0_loc_0e0e
+hunk_0_loc_0e04:
     moveq #1,d1
     neg.l -16(a5)
     move.w d1,-18(a5)
-hunk_0_loc_0c24:
+hunk_0_loc_0e0e:
     move.w -18(a5),d0
-    beq.s hunk_0_loc_0c2e
-hunk_0_loc_0c2a:
+    beq.s hunk_0_loc_0e18
+hunk_0_loc_0e14:
     moveq #45,d1
-    bra.s hunk_0_loc_0c38
-hunk_0_loc_0c2e:
+    bra.s hunk_0_loc_0e22
+hunk_0_loc_0e18:
     tst.b d6
-    beq.s hunk_0_loc_0c36
-hunk_0_loc_0c32:
+    beq.s hunk_0_loc_0e20
+hunk_0_loc_0e1c:
     moveq #43,d1
-    bra.s hunk_0_loc_0c38
-hunk_0_loc_0c36:
+    bra.s hunk_0_loc_0e22
+hunk_0_loc_0e20:
     moveq #32,d1
-hunk_0_loc_0c38:
+hunk_0_loc_0e22:
     move.b d1,-40(a5)
     moveq #0,d1
     move.b d6,d1
@@ -1436,31 +1403,31 @@ hunk_0_loc_0c38:
     moveq #0,d1
     move.b d5,d1
     or.w d1,d0
-    beq.s hunk_0_loc_0c52
-hunk_0_loc_0c4a:
+    beq.s hunk_0_loc_0e3c
+hunk_0_loc_0e34:
     addq.l #1,-44(a5)
     addq.w #1,-20(a5)
-hunk_0_loc_0c52:
+hunk_0_loc_0e3c:
     move.l -16(a5),-(sp)
     move.l -44(a5),-(sp)
-    jsr loc_14ea(pc)
-hunk_0_loc_0c5e:
+    jsr hunk_0_loc_16d4(pc)
+hunk_0_loc_0e48:
     addq.w #8,sp
     move.w d0,-46(a5)
-hunk_0_loc_0c64:
+hunk_0_loc_0e4e:
     move.w -10(a5),d0
     tst.w d0
-    bpl.s hunk_0_loc_0c72
-hunk_0_loc_0c6c:
+    bpl.s hunk_0_loc_0e5c
+hunk_0_loc_0e56:
     moveq #1,d1
     move.w d1,-10(a5)
-hunk_0_loc_0c72:
+hunk_0_loc_0e5c:
     move.w -46(a5),d0
     move.w -10(a5),d1
     sub.w d0,d1
     movem.w d1,-48(a5)
-    ble.s hunk_0_loc_0cba
-hunk_0_loc_0c84:
+    ble.s hunk_0_loc_0ea4
+loc_0e6e:
     movea.l -44(a5),a0
     movea.l a0,a1
     adda.w d1,a1
@@ -1468,178 +1435,178 @@ hunk_0_loc_0c84:
     move.w d0,-(sp)
     move.l a1,-(sp)
     move.l a0,-(sp)
-    jsr hunk_0_loc_19ee(pc)
-hunk_0_loc_0c98:
+    jsr hunk_0_loc_1bd8(pc)
+hunk_0_loc_0e82:
     lea 12(sp),sp
     moveq #0,d0
     move.b -5(a5),d0
     move.w -48(a5),d1
     movea.l -44(a5),a0
-    bra.s hunk_0_loc_0cae
-hunk_0_loc_0cac:
+    bra.s hunk_0_loc_0e98
+hunk_0_loc_0e96:
     move.b d0,(a0)+
-hunk_0_loc_0cae:
-    dbf d1,hunk_0_loc_0cac
-hunk_0_loc_0cb2:
+hunk_0_loc_0e98:
+    dbf d1,hunk_0_loc_0e96
+hunk_0_loc_0e9c:
     move.w -10(a5),d0
     move.w d0,-46(a5)
-hunk_0_loc_0cba:
+hunk_0_loc_0ea4:
     add.w d0,-20(a5)
     lea -40(a5),a0
     move.l a0,-44(a5)
     tst.b d7
-    beq.w hunk_0_loc_0e00
-hunk_0_loc_0ccc:
+    beq.w hunk_0_loc_0fea
+hunk_0_loc_0eb6:
     move.b #$20,-5(a5)
-    bra.w hunk_0_loc_0e00
-hunk_0_loc_0cd6:
+    bra.w hunk_0_loc_0fea
+hunk_0_loc_0ec0:
     tst.b -11(a5)
-    beq.s hunk_0_loc_0ce4
-hunk_0_loc_0cdc:
+    beq.s hunk_0_loc_0ece
+hunk_0_loc_0ec6:
     movea.l (a2),a0
     addq.l #4,(a2)
     move.l (a0),d0
-    bra.s hunk_0_loc_0cec
-hunk_0_loc_0ce4:
+    bra.s hunk_0_loc_0ed6
+hunk_0_loc_0ece:
     movea.l (a2),a0
     addq.l #2,(a2)
     moveq #0,d0
     move.w (a0),d0
-hunk_0_loc_0cec:
+hunk_0_loc_0ed6:
     move.l d0,-16(a5)
-    bra.w hunk_0_loc_0c52
-hunk_0_loc_0cf4:
+    bra.w hunk_0_loc_0e3c
+hunk_0_loc_0ede:
     tst.b -11(a5)
-    beq.s hunk_0_loc_0d02
-hunk_0_loc_0cfa:
+    beq.s hunk_0_loc_0eec
+hunk_0_loc_0ee4:
     movea.l (a2),a0
     addq.l #4,(a2)
     move.l (a0),d0
-    bra.s hunk_0_loc_0d0a
-hunk_0_loc_0d02:
+    bra.s hunk_0_loc_0ef4
+hunk_0_loc_0eec:
     movea.l (a2),a0
     addq.l #2,(a2)
     moveq #0,d0
     move.w (a0),d0
-hunk_0_loc_0d0a:
+hunk_0_loc_0ef4:
     move.l d0,-16(a5)
     tst.b -4(a5)
-    beq.s hunk_0_loc_0d26
-hunk_0_loc_0d14:
+    beq.s hunk_0_loc_0f10
+hunk_0_loc_0efe:
     movea.l -44(a5),a0
     move.b #$30,(a0)+
     move.w #$1,-20(a5)
     move.l a0,-44(a5)
-hunk_0_loc_0d26:
+hunk_0_loc_0f10:
     move.l d0,-(sp)
     move.l -44(a5),-(sp)
-    jsr hunk_0_loc_1522(pc)
-hunk_0_loc_0d30:
+    jsr hunk_0_loc_170c(pc)
+hunk_0_loc_0f1a:
     addq.w #8,sp
     move.w d0,-46(a5)
-    bra.w hunk_0_loc_0c64
-hunk_0_loc_0d3a:
+    bra.w hunk_0_loc_0e4e
+hunk_0_loc_0f24:
     move.w -10(a5),d0
     tst.w d0
-    bpl.s hunk_0_loc_0d48
-hunk_0_loc_0d42:
+    bpl.s hunk_0_loc_0f32
+hunk_0_loc_0f2c:
     move.w #$8,-10(a5)
-hunk_0_loc_0d48:
+hunk_0_loc_0f32:
     move.b #$1,-11(a5)
-hunk_0_loc_0d4e:
+hunk_0_loc_0f38:
     tst.b -11(a5)
-    beq.s hunk_0_loc_0d5c
-hunk_0_loc_0d54:
+    beq.s loc_0f46
+loc_0f3e:
     movea.l (a2),a0
     addq.l #4,(a2)
     move.l (a0),d0
-    bra.s hunk_0_loc_0d64
-hunk_0_loc_0d5c:
+    bra.s hunk_0_loc_0f4e
+loc_0f46:
     movea.l (a2),a0
     addq.l #2,(a2)
     moveq #0,d0
     move.w (a0),d0
-hunk_0_loc_0d64:
+hunk_0_loc_0f4e:
     move.l d0,-16(a5)
     tst.b -4(a5)
-    beq.s hunk_0_loc_0d84
-hunk_0_loc_0d6e:
+    beq.s hunk_0_loc_0f6e
+hunk_0_loc_0f58:
     movea.l -44(a5),a0
     move.b #$30,(a0)+
     move.b #$78,(a0)+
     move.w #$2,-20(a5)
     move.l a0,-44(a5)
-hunk_0_loc_0d84:
+hunk_0_loc_0f6e:
     move.l d0,-(sp)
     move.l -44(a5),-(sp)
-    jsr hunk_0_loc_156a(pc)
-hunk_0_loc_0d8e:
+    jsr hunk_0_loc_1754(pc)
+hunk_0_loc_0f78:
     addq.w #8,sp
     move.w d0,-46(a5)
     btst #5,-12(a5)
-    bne.w hunk_0_loc_0c64
-hunk_0_loc_0d9e:
+    bne.w hunk_0_loc_0e4e
+hunk_0_loc_0f88:
     pea -40(a5)
-    jsr hunk_0_loc_11f2(pc)
-hunk_0_loc_0da6:
+    jsr hunk_0_loc_13dc(pc)
+hunk_0_loc_0f90:
     addq.w #4,sp
-    bra.w hunk_0_loc_0c64
-hunk_0_loc_0dac:
+    bra.w hunk_0_loc_0e4e
+hunk_0_loc_0f96:
     movea.l (a2),a0
     addq.l #4,(a2)
     movea.l (a0),a1
     move.l a1,-44(a5)
-    bne.s hunk_0_loc_0dc0
-hunk_0_loc_0db8:
-    lea pcref_0e9a(pc),a0
+    bne.s hunk_0_loc_0faa
+hunk_0_loc_0fa2:
+    lea pcref_1084(pc),a0
     move.l a0,-44(a5)
-hunk_0_loc_0dc0:
+hunk_0_loc_0faa:
     movea.l -44(a5),a0
-hunk_0_loc_0dc4:
+hunk_0_loc_0fae:
     tst.b (a0)+
-    bne.s hunk_0_loc_0dc4
-hunk_0_loc_0dc8:
+    bne.s hunk_0_loc_0fae
+hunk_0_loc_0fb2:
     subq.l #1,a0
     suba.l -44(a5),a0
     move.w a0,-20(a5)
     move.w -10(a5),d0
     tst.w d0
-    bmi.s hunk_0_loc_0e00
-hunk_0_loc_0dda:
+    bmi.s hunk_0_loc_0fea
+hunk_0_loc_0fc4:
     cmpa.w d0,a0
-    ble.s hunk_0_loc_0e00
-hunk_0_loc_0dde:
+    ble.s hunk_0_loc_0fea
+hunk_0_loc_0fc8:
     move.w d0,-20(a5)
-    bra.s hunk_0_loc_0e00
-hunk_0_loc_0de4:
+    bra.s hunk_0_loc_0fea
+hunk_0_loc_0fce:
     move.w #$1,-20(a5)
     movea.l (a2),a0
     addq.l #2,(a2)
     move.w (a0),d0
     move.b d0,-40(a5)
     clr.b -39(a5)
-    bra.s hunk_0_loc_0e00
-hunk_0_loc_0dfa:
+    bra.s hunk_0_loc_0fea
+hunk_0_loc_0fe4:
     moveq #0,d0
-    bra.w hunk_0_loc_0e92
-hunk_0_loc_0e00:
+    bra.w hunk_0_loc_107c
+hunk_0_loc_0fea:
     move.w -20(a5),d0
     move.w -8(a5),d1
     cmp.w d0,d1
-    bge.s hunk_0_loc_0e14
-hunk_0_loc_0e0c:
+    bge.s hunk_0_loc_0ffe
+hunk_0_loc_0ff6:
     moveq #0,d2
     move.w d2,-8(a5)
-    bra.s hunk_0_loc_0e18
-hunk_0_loc_0e14:
+    bra.s hunk_0_loc_1002
+hunk_0_loc_0ffe:
     sub.w d0,-8(a5)
-hunk_0_loc_0e18:
+hunk_0_loc_1002:
     tst.b d7
-    beq.s hunk_0_loc_0e56
-hunk_0_loc_0e1c:
+    beq.s hunk_0_loc_1040
+hunk_0_loc_1006:
     subq.w #1,-20(a5)
-    blt.s hunk_0_loc_0e3c
-hunk_0_loc_0e22:
+    blt.s hunk_0_loc_1026
+hunk_0_loc_100c:
     moveq #0,d0
     movea.l -44(a5),a0
     move.b (a0)+,d0
@@ -1648,39 +1615,39 @@ hunk_0_loc_0e22:
     move.l a0,-44(a5)
     movea.l 16(a5),a0
     jsr (a0) ; unresolved_indirect_core:ind
-hunk_0_loc_0e38:
+hunk_0_loc_1022:
     addq.w #4,sp
-    bra.s hunk_0_loc_0e1c
-hunk_0_loc_0e3c:
+    bra.s hunk_0_loc_1006
+hunk_0_loc_1026:
     subq.w #1,-8(a5)
-    blt.s hunk_0_loc_0e90
-hunk_0_loc_0e42:
+    blt.s hunk_0_loc_107a
+hunk_0_loc_102c:
     moveq #0,d0
     move.b -5(a5),d0
     subq.w #2,sp
     move.w d0,-(sp)
     movea.l 16(a5),a0
     jsr (a0) ; unresolved_indirect_core:ind
-hunk_0_loc_0e52:
+hunk_0_loc_103c:
     addq.w #4,sp
-    bra.s hunk_0_loc_0e3c
-hunk_0_loc_0e56:
+    bra.s hunk_0_loc_1026
+hunk_0_loc_1040:
     subq.w #1,-8(a5)
-    blt.s hunk_0_loc_0e70
-hunk_0_loc_0e5c:
+    blt.s loc_105a
+hunk_0_loc_1046:
     moveq #0,d0
     move.b -5(a5),d0
     subq.w #2,sp
     move.w d0,-(sp)
     movea.l 16(a5),a0
     jsr (a0) ; unresolved_indirect_core:ind
-hunk_0_loc_0e6c:
+hunk_0_loc_1056:
     addq.w #4,sp
-    bra.s hunk_0_loc_0e56
-hunk_0_loc_0e70:
+    bra.s hunk_0_loc_1040
+loc_105a:
     subq.w #1,-20(a5)
-    blt.s hunk_0_loc_0e90
-hunk_0_loc_0e76:
+    blt.s hunk_0_loc_107a
+hunk_0_loc_1060:
     moveq #0,d0
     movea.l -44(a5),a0
     move.b (a0)+,d0
@@ -1689,385 +1656,496 @@ hunk_0_loc_0e76:
     move.l a0,-44(a5)
     movea.l 16(a5),a0
     jsr (a0) ; unresolved_indirect_core:ind
-hunk_0_loc_0e8c:
+hunk_0_loc_1076:
     addq.w #4,sp
-    bra.s hunk_0_loc_0e70
-hunk_0_loc_0e90:
+    bra.s loc_105a
+hunk_0_loc_107a:
     move.l a3,d0
-hunk_0_loc_0e92:
+hunk_0_loc_107c:
     movem.l (sp)+,d2/d5-d7/a2-a3
     unlk a5
     rts
-pcref_0e9a:
+pcref_1084:
     dc.b    $00,$00
-hunk_0_loc_0e9c:
+hunk_0_loc_1086:
     link a5,#-12
     movem.l d7/a2-a3,-(sp)
     movea.l 8(a5),a3
     movea.l 12(a5),a2
     move.l 16(a5),-10(a5)
-hunk_0_loc_0eb2:
+hunk_0_loc_109c:
     move.b (a2)+,d7
     tst.b d7
-    beq.s hunk_0_loc_0eee
-loc_0eb8:
+    beq.s hunk_0_loc_10d8
+hunk_0_loc_10a2:
     moveq #37,d0
     cmp.b d0,d7
-    bne.s loc_0ee0
-hunk_0_loc_0ebe:
+    bne.s hunk_0_loc_10ca
+hunk_0_loc_10a8:
     cmp.b (a2),d0
-    bne.s hunk_0_loc_0ec6
-hunk_0_loc_0ec2:
+    bne.s hunk_0_loc_10b0
+loc_10ac:
     addq.l #1,a2
-    bra.s loc_0ee0
-hunk_0_loc_0ec6:
+    bra.s hunk_0_loc_10ca
+hunk_0_loc_10b0:
     move.l a3,-(sp)
     pea -10(a5)
     move.l a2,-(sp)
-    bsr.w hunk_0_loc_0ad2
-hunk_0_loc_0ed2:
+    bsr.w hunk_0_loc_0cbc
+hunk_0_loc_10bc:
     lea 12(sp),sp
     move.l d0,-6(a5)
-    beq.s loc_0ee0
-hunk_0_loc_0edc:
+    beq.s hunk_0_loc_10ca
+hunk_0_loc_10c6:
     movea.l d0,a2
-    bra.s hunk_0_loc_0eb2
-loc_0ee0:
+    bra.s hunk_0_loc_109c
+hunk_0_loc_10ca:
     moveq #0,d0
     move.b d7,d0
     subq.w #2,sp
     move.w d0,-(sp)
     jsr (a3)
-hunk_0_loc_0eea:
+hunk_0_loc_10d4:
     addq.w #4,sp
-    bra.s hunk_0_loc_0eb2
-hunk_0_loc_0eee:
+    bra.s hunk_0_loc_109c
+hunk_0_loc_10d8:
     movem.l (sp)+,d7/a2-a3
     unlk a5
     rts
-hint_0ef6:
-    dc.b    $4e,$55,$ff,$ec,$48,$e7
-    dc.b    "!2&m",0
-    dc.b    $08
-hint_0f02:
-    dc.b    $0c,$6c,$00,$20,$28,$86,$6c,$00,$00,$d4
-hunk_0_hint_0f0c:
-    dc.b    $10,$13,$72,$20,$b0,$01,$67,$0c
-hint_0f14:
-    dc.b    $72,$09,$b0,$01,$67,$06
-hint_0f1a:
-    dc.b    $72,$0a,$b0,$01,$66,$04
-hint_0f20:
-    dc.b    $52,$8b,$60,$e8
-hint_0f24:
-    dc.b    $10,$13,$67,$00,$00,$b6
-hint_0f2a:
-    dc.b    $32,$2c,$28,$86,$48,$c1,$e5,$81,$52,$6c,$28,$86,$41,$ec,$28,$8c
-    dc.b    $d1,$c1,$24,$48,$72,$22,$b0,$01,$66,$72
-hint_0f44:
-    dc.b    $52,$8b,$20,$4b,$24,$88,$2b,$48,$ff,$ee
-hint_0f4e:
-    dc.b    $10,$13,$72,$22,$b0,$01,$67,$50
-hint_0f56:
-    dc.b    $72,$2a,$b0,$01,$66,$3e
-hint_0f5c:
-    dc.b    $52,$8b,$70,$00,$10,$13,$04,$40,$00,$45,$67,$08
-hint_0f68:
-    dc.b    $04,$40,$00,$09,$67,$10
-hint_0f6e:
-    dc.b    $60,$1c
-hint_0f70:
-    dc.b    $20,$6d,$ff,$ee,$10,$fc,$00,$17,$2b,$48,$ff,$ee,$60,$18
-hint_0f7e:
-    dc.b    $20,$6d,$ff,$ee,$10,$fc,$00,$0a,$2b,$48,$ff,$ee,$60,$0a
-hint_0f8c:
-    dc.b    $20,$6d,$ff,$ee,$10,$d3,$2b,$48,$ff,$ee
-hint_0f96:
-    dc.b    $52,$8b,$60,$b4
-hint_0f9a:
-    dc.b    $20,$6d,$ff,$ee,$10,$db,$2b,$48,$ff,$ee,$60,$a8
-hint_0fa6:
-    dc.b    $52,$8b,$20,$6d,$ff,$ee,$42,$18,$2b,$48,$ff,$ee,$60,$00,$ff,$4e
-hint_0fb6:
-    dc.b    $24,$8b
-hint_0fb8:
-    dc.b    $10,$13,$67,$16
-hint_0fbc:
-    dc.b    $72,$20,$b0,$01,$67,$10
-hint_0fc2:
-    dc.b    $72,$09,$b0,$01,$67,$0a
-hint_0fc8:
-    dc.b    $72,$0a,$b0,$01,$67,$04
-hint_0fce:
-    dc.b    $52,$8b,$60,$e6
-hint_0fd2:
-    dc.b    $4a,$13,$66,$02
-hint_0fd6:
-    dc.b    $60,$06
-hint_0fd8:
-    dc.b    $42,$1b,$60,$00,$ff,$26
-hint_0fde:
-    dc.b    $30,$2c,$28,$86,$66,$06
-hint_0fe4:
-    dc.b    $20,$6c,$c4,$14,$60,$04
-hint_0fea:
-    dc.b    $41,$ec,$28,$8c
-hint_0fee:
-    dc.b    $29,$48,$28,$88,$4a,$40,$66,$00,$00,$80
-hint_0ff8:
-    dc.b    $43,$fa,$01,$3a,$4d,$ec,$28,$4c,$2c,$d9,$2c,$d9,$2c,$d9,$2c,$d9
-    dc.b    $3c,$91,$22,$6c,$c4,$14,$20,$69,$00
-    dc.b    "$UOp(?",0
-    dc.b    $2f,$28,$00,$04,$48,$6c,$28,$4c,$4e,$ba,$02,$f8
-hint_1024:
-    dc.b    $4f,$ef,$00,$0c,$41,$ec,$28,$4c,$22,$08,$24,$3c,$00,$00,$03,$ee
-    dc.b    $2c,$6c,$2a,$2c,$4e,$ae,$ff,$e2
-hint_103c:
-    dc.b    ")@","'","^)@","'","dr"
-    dc.b    $10
-    dc.b    "9A","'","b)@","'","j9A","'","h"
-    dc.b    $e5,$80,$2b,$40,$ff,$f2,$93,$c9,$2c,$78,$00,$04,$4e,$ae,$fe,$da
-hint_1062:
-    dc.b    $20,$6d,$ff,$f2
-    dc.b    '"',"@#h",0
-    dc.b    $08,$00,$a4,$7e,$00,$2b,$40,$ff,$f6,$60,$40
-hint_1076:
-    dc.b    $2c,$6c,$2a,$2c,$4e,$ae,$ff,$ca
-hint_107e:
-    dc.b    ")@","'","^,l*,N"
-    dc.b    $ae,$ff,$c4
-hint_108a:
-    dc.b    $29,$40,$27,$64,$41,$fa,$00,$b6,$22,$08,$24,$3c,$00,$00,$03,$ed
-    dc.b    $4e,$ae,$ff,$e2
-hint_109e:
-    dc.b    $29,$40,$27,$6a,$4a,$80,$66,$0e
-hint_10a6:
-    dc.b    $41,$fa,$00,$a0,$22,$08,$4e,$ae,$ff,$e2
-hint_10b0:
-    dc.b    $29,$40,$27,$6a
-hint_10b4:
-    dc.b    $7e,$10
-hint_10b6:
-    dc.b    $20,$07,$00,$40,$80,$01,$81,$6c,$27,$5c,$20,$07,$00,$40,$80,$02
-    dc.b    $81,$6c,$27,$62,$00,$6c,$80,$03,$27,$68,$4a,$6c,$c2,$c8,$67,$04
-hint_10d6:
-    dc.b    $70,$00,$60,$04
-hint_10da:
-    dc.b    $30,$3c,$80,$00
-hint_10de:
-    dc.b    $2e,$00
-hunk_0_loc_10e0:
-    dc.b    $42,$6c,$c2,$94,$20,$07,$00,$40,$00,$01,$39,$40,$c2,$92,$39,$7c
-    dc.b    $00,$01,$c2,$ac,$20,$07,$00,$40,$00,$02,$39,$40,$c2,$aa,$39,$7c
-    dc.b    $00,$02,$c2,$c4,$20,$07,$00,$40,$00,$80,$39,$40,$c2,$c2,$41,$fa
-    dc.b    $00,$5c,$29,$48,$c4,$08,$55,$4f,$2f,$2c,$28,$88,$3f,$2c,$28,$86
-    dc.b    $4e,$ba,$00,$38
-hunk_0_hint_1124:
-    dc.b    $42,$57,$4e,$ba,$0d,$02
-hint_112a:
-    dc.b    $4c,$ed,$4c,$84,$ff,$d8,$4e,$5d,$4e,$75
-str_1134:
-    dc.b    $63,$6f
-hint_1136:
-    dc.b    $6e,$3a
-hunk_0_hint_1138:
-    dc.b    "10/10/320/80/",0
-pcref_1146:
+call_findtask:
+    link a5,#-20
+    movem.l d2/d7/a2-a3/a6,-(sp)
+    movea.l 8(a5),a3
+hunk_0_loc_10ec:
+    cmpi.w #$20,10374(a4) ; app+$2886
+    bge.w hunk_0_loc_11c8
+hunk_0_loc_10f6:
+    move.b (a3),d0
+    moveq #32,d1
+    cmp.b d1,d0
+    beq.s hunk_0_loc_110a
+hunk_0_loc_10fe:
+    moveq #9,d1
+    cmp.b d1,d0
+    beq.s hunk_0_loc_110a
+hunk_0_loc_1104:
+    moveq #10,d1
+    cmp.b d1,d0
+    bne.s hunk_0_loc_110e
+hunk_0_loc_110a:
+    addq.l #1,a3
+    bra.s hunk_0_loc_10f6
+hunk_0_loc_110e:
+    move.b (a3),d0
+    beq.w hunk_0_loc_11c8
+hunk_0_loc_1114:
+    move.w 10374(a4),d1 ; app+$2886
+    ext.l d1
+    asl.l #2,d1
+    addq.w #1,10374(a4) ; app+$2886
+    lea 10380(a4),a0 ; app+$288C
+    adda.l d1,a0
+    movea.l a0,a2
+    moveq #34,d1
+    cmp.b d1,d0
+    bne.s hunk_0_loc_11a0
+hunk_0_loc_112e:
+    addq.l #1,a3
+    movea.l a3,a0
+    move.l a0,(a2)
+    move.l a0,-18(a5)
+hunk_0_loc_1138:
+    move.b (a3),d0
+    moveq #34,d1
+    cmp.b d1,d0
+    beq.s loc_1190
+hunk_0_loc_1140:
+    moveq #42,d1
+    cmp.b d1,d0
+    bne.s hunk_0_loc_1184
+hunk_0_loc_1146:
+    addq.l #1,a3
+    moveq #0,d0
+    move.b (a3),d0
+    subi.w #$45,d0
+    beq.s hunk_0_loc_115a
+loc_1152:
+    subi.w #$9,d0
+    beq.s hunk_0_loc_1168
+hunk_0_loc_1158:
+    bra.s hunk_0_loc_1176
+hunk_0_loc_115a:
+    movea.l -18(a5),a0
+    move.b #$17,(a0)+
+    move.l a0,-18(a5)
+    bra.s hunk_0_loc_1180
+hunk_0_loc_1168:
+    movea.l -18(a5),a0
+    move.b #$a,(a0)+
+    move.l a0,-18(a5)
+    bra.s hunk_0_loc_1180
+hunk_0_loc_1176:
+    movea.l -18(a5),a0
+    move.b (a3),(a0)+
+    move.l a0,-18(a5)
+hunk_0_loc_1180:
+    addq.l #1,a3
+    bra.s hunk_0_loc_1138
+hunk_0_loc_1184:
+    movea.l -18(a5),a0
+    move.b (a3)+,(a0)+
+    move.l a0,-18(a5)
+    bra.s hunk_0_loc_1138
+loc_1190:
+    addq.l #1,a3
+    movea.l -18(a5),a0
+    clr.b (a0)+
+    move.l a0,-18(a5)
+    bra.w hunk_0_loc_10ec
+hunk_0_loc_11a0:
+    move.l a3,(a2)
+hunk_0_loc_11a2:
+    move.b (a3),d0
+    beq.s hunk_0_loc_11bc
+hunk_0_loc_11a6:
+    moveq #32,d1
+    cmp.b d1,d0
+    beq.s hunk_0_loc_11bc
+hunk_0_loc_11ac:
+    moveq #9,d1
+    cmp.b d1,d0
+    beq.s hunk_0_loc_11bc
+hunk_0_loc_11b2:
+    moveq #10,d1
+    cmp.b d1,d0
+    beq.s hunk_0_loc_11bc
+hunk_0_loc_11b8:
+    addq.l #1,a3
+    bra.s hunk_0_loc_11a2
+hunk_0_loc_11bc:
+    tst.b (a3)
+    bne.s hunk_0_loc_11c2
+hunk_0_loc_11c0:
+    bra.s hunk_0_loc_11c8
+hunk_0_loc_11c2:
+    clr.b (a3)+
+    bra.w hunk_0_loc_10ec
+hunk_0_loc_11c8:
+    move.w 10374(a4),d0 ; app+$2886
+    bne.s hunk_0_loc_11d4
+hunk_0_loc_11ce:
+    movea.l app_replymsg_message(a4),a0
+    bra.s loc_11d8
+hunk_0_loc_11d4:
+    lea 10380(a4),a0 ; app+$288C
+loc_11d8:
+    move.l a0,10376(a4) ; app+$2888
+    tst.w d0
+    bne.w hunk_0_loc_1260
+hunk_0_loc_11e2:
+    lea str_131e(pc),a1
+    lea 10316(a4),a6 ; app+$284C
+    move.l (a1)+,(a6)+
+    move.l (a1)+,(a6)+
+    move.l (a1)+,(a6)+
+    move.l (a1)+,(a6)+
+    move.w (a1),(a6)
+    movea.l app_replymsg_message(a4),a1
+    movea.l 36(a1),a0
+    subq.w #2,sp
+    moveq #40,d0
+    move.w d0,-(sp)
+    move.l 4(a0),-(sp)
+    pea 10316(a4) ; app+$284C
+    jsr sub_1504(pc)
+hunk_0_loc_120e:
+    lea 12(sp),sp
+    lea 10316(a4),a0 ; Open: name
+    move.l a0,d1 ; Open: name
+    move.l #MODE_NEWFILE,d2 ; Open: accessMode
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOOpen(a6)
+hunk_0_loc_1226:
+    move.l d0,app_open_file(a4)
+    move.l d0,app_input_file(a4)
+    moveq #16,d1
+    move.w d1,10082(a4) ; app+$2762
+    move.l d0,app_output_file(a4)
+    move.w d1,10088(a4) ; app+$2768
+    asl.l #2,d0
+    move.l d0,-14(a5)
+    suba.l a1,a1 ; FindTask: name
+    movea.l AbsExecBase,a6
+    jsr _LVOFindTask(a6)
+hunk_0_loc_124c:
+    movea.l -14(a5),a0
+    movea.l d0,a1
+    move.l 8(a0),164(a1)
+    moveq #0,d7
+    move.l d0,-10(a5)
+    bra.s hunk_0_loc_12a0
+hunk_0_loc_1260:
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOInput(a6)
+hunk_0_loc_1268:
+    move.l d0,app_open_file(a4)
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOOutput(a6)
+hunk_0_loc_1274:
+    move.l d0,app_input_file(a4)
+    lea open_name_1330(pc),a0 ; Open: name
+    move.l a0,d1 ; Open: name
+    move.l #MODE_OLDFILE,d2 ; Open: accessMode
+    jsr _LVOOpen(a6)
+hunk_0_loc_1288:
+    move.l d0,app_output_file(a4)
+    tst.l d0
+    bne.s hunk_0_loc_129e
+hunk_0_loc_1290:
+    lea open_name_1332(pc),a0 ; Open: name
+    move.l a0,d1 ; Open: name
+    jsr _LVOOpen(a6)
+hunk_0_loc_129a:
+    move.l d0,app_output_file(a4)
+hunk_0_loc_129e:
+    moveq #16,d7
+hunk_0_loc_12a0:
+    move.l d7,d0
+    ori.w #$8001,d0
+    or.w d0,10076(a4) ; app+$275C
+    move.l d7,d0
+    ori.w #$8002,d0
+    or.w d0,10082(a4) ; app+$2762
+    ori.w #$8003,10088(a4) ; app+$2768
+    tst.w -15672(a4) ; app-$3D38
+    beq.s hunk_0_loc_12c4
+hunk_0_loc_12c0:
+    moveq #0,d0
+    bra.s hunk_0_loc_12c8
+hunk_0_loc_12c4:
+    move.w #$8000,d0
+hunk_0_loc_12c8:
+    move.l d0,d7
+    clr.w -15724(a4) ; app-$3D6C
+    move.l d7,d0
+    ori.w #$1,d0
+    move.w d0,-15726(a4) ; app-$3D6E
+    move.w #$1,-15700(a4) ; app-$3D54
+    move.l d7,d0
+    ori.w #$2,d0
+    move.w d0,-15702(a4) ; app-$3D56
+    move.w #$2,-15676(a4) ; app-$3D3C
+    move.l d7,d0
+    ori.w #$80,d0
+    move.w d0,-15678(a4) ; app-$3D3E
+    lea pcref_1356(pc),a0
+    move.l a0,-15352(a4) ; app-$3BF8
+    subq.w #2,sp
+    move.l 10376(a4),-(sp) ; app+$2888
+    move.w 10374(a4),-(sp) ; app+$2886
+    jsr sub_1344(pc)
+hunk_0_loc_130e:
+    clr.w (sp)
+    jsr sub_2014(pc)
+hunk_0_loc_1314:
+    movem.l -40(a5),d2/d7/a2-a3/a6
+    unlk a5
+    rts
+str_131e:
+    dc.b    "con:10/10/320/80/",0
+open_name_1330:
     dc.b    $2a,$00
-str_1148:
-    dc.b    $4e,$49
-    dc.b    $4c,$3a
-    dcb.b   14,0
-pcref_115a:
+open_name_1332:
+    dc.b    "NIL:",0
+    dcb.b   13,0
+sub_1344:
+    jmp hunk_1_loc_0000
+    dcb.b   12,0
+pcref_1356:
     dc.b    $4e,$f9
-    dcb.b   4,0
-hint_1160:
+    dc.l    hunk_36_loc_1478
     dcb.b   12,0
-pcref_116c:
-    dc.b    $4e,$f9,$00,$00,$14,$78
-hint_1172:
-    dcb.b   12,0
-hunk_0_loc_117e:
+sub_1368:
     movem.l d5-d7,-(sp)
     move.w 16(sp),d7
-    move.w -15772(a4),d6
+    move.w -15772(a4),d6 ; app-$3D9C
     subq.w #1,d6
-hunk_0_loc_118c:
+hunk_0_loc_1376:
     tst.w d6
-    bmi.s hunk_0_loc_11be
-loc_1190:
+    bmi.s hunk_0_loc_13a8
+hunk_0_loc_137a:
     move.l d6,d0
     moveq #6,d1
     muls.w d1,d0
-    lea 10076(a4),a0
+    lea 10076(a4),a0 ; app+$275C
     move.w 0(a0,d0.l),d5
     tst.b d5
-    beq.s hunk_0_loc_11ba
-hunk_0_loc_11a2:
+    beq.s hunk_0_loc_13a4
+hunk_0_loc_138c:
     btst #4,d5
-    bne.s hunk_0_loc_11ba
-hunk_0_loc_11a8:
+    bne.s hunk_0_loc_13a4
+hunk_0_loc_1392:
     move.l d6,d0
     muls.w d1,d0
-    lea 10076(a4),a0
+    lea 10076(a4),a0 ; app+$275C
     move.l 2(a0,d0.l),-(sp)
-    jsr hunk_0_loc_2152(pc)
-hunk_0_loc_11b8:
+    jsr call_close(pc)
+hunk_0_loc_13a2:
     addq.w #4,sp
-hunk_0_loc_11ba:
+hunk_0_loc_13a4:
     subq.w #1,d6
-    bra.s hunk_0_loc_118c
-hunk_0_loc_11be:
+    bra.s hunk_0_loc_1376
+hunk_0_loc_13a8:
     move.l d7,d0
     ext.l d0
     move.l d0,-(sp)
-    jsr loc_-06e(pc)
-hunk_0_loc_11c8:
+    jsr cleanup_app(pc)
+hunk_0_loc_13b2:
     addq.w #4,sp
     movem.l (sp)+,d5-d7
     rts
     dcb.b   8,0
     dc.b    $70,$61
-hunk_0_loc_11da:
+hunk_0_loc_13c4:
     move.w 4(sp),d0
     cmpi.b #$61,d0
-    blt.s hunk_0_loc_11ee
-hunk_0_loc_11e4:
+    blt.s hunk_0_loc_13d8
+hunk_0_loc_13ce:
     cmpi.b #$7a,d0
-    bgt.s hunk_0_loc_11ee
-hunk_0_loc_11ea:
+    bgt.s hunk_0_loc_13d8
+loc_13d4:
     subi.b #$20,d0
-hunk_0_loc_11ee:
+hunk_0_loc_13d8:
     rts
     dc.b    $00,$00
-hunk_0_loc_11f2:
+hunk_0_loc_13dc:
     movem.l a2-a3,-(sp)
     movea.l 12(sp),a3
     movea.l a3,a2
-hunk_0_loc_11fc:
+hunk_0_loc_13e6:
     move.b (a2),d0
-    beq.s hunk_0_loc_1224
-hunk_0_loc_1200:
+    beq.s hunk_0_loc_140e
+hunk_0_loc_13ea:
     moveq #0,d1
     move.b d0,d1
-    lea -15659(a4),a0
+    lea -15659(a4),a0 ; app-$3D2B
     btst #1,0(a0,d1.w)
-    beq.s hunk_0_loc_121a
-hunk_0_loc_1210:
+    beq.s hunk_0_loc_1404
+hunk_0_loc_13fa:
     moveq #0,d1
     move.b d0,d1
     subi.w #$20,d1
-    bra.s hunk_0_loc_121e
-hunk_0_loc_121a:
+    bra.s hunk_0_loc_1408
+hunk_0_loc_1404:
     moveq #0,d1
     move.b d0,d1
-hunk_0_loc_121e:
+hunk_0_loc_1408:
     move.b d1,(a2)
     addq.l #1,a2
-    bra.s hunk_0_loc_11fc
-hunk_0_loc_1224:
+    bra.s hunk_0_loc_13e6
+hunk_0_loc_140e:
     move.l a3,d0
     movem.l (sp)+,a2-a3
     rts
     dcb.b   8,0
     dc.b    $70,$61
-hunk_0_loc_1236:
+hunk_0_loc_1420:
     link a5,#-4
     movem.l d6-d7/a2-a3,-(sp)
     movea.l 28(sp),a3
     movea.l 32(sp),a2
     move.w 36(sp),d7
-hunk_0_loc_124a:
+hunk_0_loc_1434:
     tst.w d7
-    beq.s hunk_0_loc_1286
-hunk_0_loc_124e:
+    beq.s hunk_0_loc_1470
+hunk_0_loc_1438:
     tst.b (a3)
-    beq.s hunk_0_loc_1286
-hunk_0_loc_1252:
+    beq.s hunk_0_loc_1470
+hunk_0_loc_143c:
     tst.b (a2)
-    beq.s hunk_0_loc_1286
-hunk_0_loc_1256:
+    beq.s hunk_0_loc_1470
+hunk_0_loc_1440:
     moveq #0,d0
     move.b (a3)+,d0
     subq.w #2,sp
     move.w d0,-(sp)
-    jsr hunk_0_loc_11da(pc)
-hunk_0_loc_1262:
+    jsr hunk_0_loc_13c4(pc)
+hunk_0_loc_144c:
     moveq #0,d1
     move.b (a2)+,d1
     move.w d1,(sp)
     move.w d0,20(sp)
-    jsr hunk_0_loc_11da(pc)
-hunk_0_loc_1270:
+    jsr hunk_0_loc_13c4(pc)
+hunk_0_loc_145a:
     addq.w #4,sp
     move.w 16(sp),d1
     sub.w d0,d1
     move.l d1,d6
     tst.w d6
-    beq.s loc_1282
-hunk_0_loc_127e:
+    beq.s hunk_0_loc_146c
+hunk_0_loc_1468:
     move.l d6,d0
-    bra.s hunk_0_loc_129c
-loc_1282:
+    bra.s hunk_0_loc_1486
+hunk_0_loc_146c:
     subq.w #1,d7
-    bra.s hunk_0_loc_124a
-hunk_0_loc_1286:
+    bra.s hunk_0_loc_1434
+hunk_0_loc_1470:
     tst.w d7
-    beq.s hunk_0_loc_129a
-hunk_0_loc_128a:
+    beq.s hunk_0_loc_1484
+hunk_0_loc_1474:
     tst.b (a3)
-    beq.s hunk_0_loc_1292
-hunk_0_loc_128e:
+    beq.s hunk_0_loc_147c
+hunk_0_loc_1478:
     moveq #1,d0
-    bra.s hunk_0_loc_129c
-hunk_0_loc_1292:
+    bra.s hunk_0_loc_1486
+hunk_0_loc_147c:
     tst.b (a2)
-    beq.s hunk_0_loc_129a
-hunk_0_loc_1296:
+    beq.s hunk_0_loc_1484
+hunk_0_loc_1480:
     moveq #-1,d0
-    bra.s hunk_0_loc_129c
-hunk_0_loc_129a:
+    bra.s hunk_0_loc_1486
+hunk_0_loc_1484:
     moveq #0,d0
-hunk_0_loc_129c:
+hunk_0_loc_1486:
     movem.l (sp)+,d6-d7/a2-a3
     unlk a5
     rts
     dc.b    $00,$00
-hunk_0_loc_12a6:
+hunk_0_loc_1490:
     movea.l 8(sp),a1
     movea.l 4(sp),a0
     move.w 12(sp),d0
     move.l a0,d1
-    bra.s hunk_0_loc_12ba
-hunk_0_loc_12b6:
+    bra.s loc_14a4
+hunk_0_loc_14a0:
     move.b (a1)+,(a0)+
-    beq.s hunk_0_loc_12c2
-hunk_0_loc_12ba:
-    dbf d0,hunk_0_loc_12b6
-hunk_0_loc_12be:
-    bra.s hunk_0_loc_12c6
-hunk_0_loc_12c0:
+    beq.s hunk_0_loc_14ac
+loc_14a4:
+    dbf d0,hunk_0_loc_14a0
+hunk_0_loc_14a8:
+    bra.s hunk_0_loc_14b0
+hunk_0_loc_14aa:
     clr.b (a0)+
-hunk_0_loc_12c2:
-    dbf d0,hunk_0_loc_12c0
-hunk_0_loc_12c6:
+hunk_0_loc_14ac:
+    dbf d0,hunk_0_loc_14aa
+hunk_0_loc_14b0:
     move.l d1,d0
     rts
-loc_12ca:
+hunk_0_loc_14b4:
     movem.l d6-d7/a2-a3,-(sp)
     movea.l 20(sp),a3
     movea.l 24(sp),a2
     move.w 28(sp),d7
-hunk_0_loc_12da:
+hunk_0_loc_14c4:
     tst.w d7
-    beq.s hunk_0_loc_12fe
-hunk_0_loc_12de:
+    beq.s hunk_0_loc_14e8
+hunk_0_loc_14c8:
     tst.b (a3)
-    beq.s hunk_0_loc_12fe
-hunk_0_loc_12e2:
+    beq.s hunk_0_loc_14e8
+hunk_0_loc_14cc:
     tst.b (a2)
-    beq.s hunk_0_loc_12fe
-hunk_0_loc_12e6:
+    beq.s hunk_0_loc_14e8
+hunk_0_loc_14d0:
     moveq #0,d0
     move.b (a3)+,d0
     moveq #0,d1
@@ -2075,52 +2153,52 @@ hunk_0_loc_12e6:
     sub.w d1,d0
     move.l d0,d6
     tst.w d6
-    beq.s hunk_0_loc_12fa
-hunk_0_loc_12f6:
+    beq.s hunk_0_loc_14e4
+loc_14e0:
     move.l d6,d0
-    bra.s hunk_0_loc_1314
-hunk_0_loc_12fa:
+    bra.s hunk_0_loc_14fe
+hunk_0_loc_14e4:
     subq.w #1,d7
-    bra.s hunk_0_loc_12da
-hunk_0_loc_12fe:
+    bra.s hunk_0_loc_14c4
+hunk_0_loc_14e8:
     tst.w d7
-    beq.s hunk_0_loc_1312
-hunk_0_loc_1302:
+    beq.s hunk_0_loc_14fc
+hunk_0_loc_14ec:
     tst.b (a3)
-    beq.s hunk_0_loc_130a
-hunk_0_loc_1306:
+    beq.s hunk_0_loc_14f4
+hunk_0_loc_14f0:
     moveq #1,d0
-    bra.s hunk_0_loc_1314
-hunk_0_loc_130a:
+    bra.s hunk_0_loc_14fe
+hunk_0_loc_14f4:
     tst.b (a2)
-    beq.s hunk_0_loc_1312
-hunk_0_loc_130e:
+    beq.s hunk_0_loc_14fc
+hunk_0_loc_14f8:
     moveq #-1,d0
-    bra.s hunk_0_loc_1314
-hunk_0_loc_1312:
+    bra.s hunk_0_loc_14fe
+hunk_0_loc_14fc:
     moveq #0,d0
-hunk_0_loc_1314:
+hunk_0_loc_14fe:
     movem.l (sp)+,d6-d7/a2-a3
     rts
-hunk_0_loc_131a:
+sub_1504:
     link a5,#-8
     movem.l d6-d7/a2-a3,-(sp)
     movea.l 8(a5),a3
     movea.l 12(a5),a2
     move.w 16(a5),d7
     movea.l a2,a0
-hunk_0_loc_1330:
+hunk_0_loc_151a:
     tst.b (a0)+
-    bne.s hunk_0_loc_1330
-hunk_0_loc_1334:
+    bne.s hunk_0_loc_151a
+hunk_0_loc_151e:
     subq.l #1,a0
     suba.l a2,a0
     move.l a0,d6
     movea.l a3,a0
-loc_133c:
+hunk_0_loc_1526:
     tst.b (a0)+
-    bne.s loc_133c
-hunk_0_loc_1340:
+    bne.s hunk_0_loc_1526
+hunk_0_loc_152a:
     subq.l #1,a0
     suba.l a3,a0
     move.l a0,d0
@@ -2128,18 +2206,18 @@ hunk_0_loc_1340:
     adda.w d0,a1
     move.l a1,-6(a5)
     cmp.w d7,d6
-    bls.s hunk_0_loc_1354
-hunk_0_loc_1352:
+    bls.s hunk_0_loc_153e
+hunk_0_loc_153c:
     move.l d7,d6
-hunk_0_loc_1354:
+hunk_0_loc_153e:
     move.l d6,d0
     movea.l a2,a0
-    bra.s hunk_0_loc_135c
-hunk_0_loc_135a:
+    bra.s hunk_0_loc_1546
+loc_1544:
     move.b (a0)+,(a1)+
-hunk_0_loc_135c:
-    dbf d0,hunk_0_loc_135a
-hunk_0_loc_1360:
+hunk_0_loc_1546:
+    dbf d0,loc_1544
+hunk_0_loc_154a:
     moveq #0,d0
     move.w d6,d0
     movea.l -6(a5),a0
@@ -2148,55 +2226,55 @@ hunk_0_loc_1360:
     movem.l (sp)+,d6-d7/a2-a3
     unlk a5
     rts
-hunk_0_loc_1376:
+hunk_0_loc_1560:
     movem.l a2-a3,-(sp)
     movea.l 12(sp),a3
     movea.l a3,a2
-loc_1380:
+hunk_0_loc_156a:
     move.b (a2),d0
-    beq.s hunk_0_loc_13a8
-hunk_0_loc_1384:
+    beq.s hunk_0_loc_1592
+hunk_0_loc_156e:
     moveq #0,d1
     move.b d0,d1
-    lea -15659(a4),a0
+    lea -15659(a4),a0 ; app-$3D2B
     btst #0,0(a0,d1.w)
-    beq.s hunk_0_loc_139e
-hunk_0_loc_1394:
+    beq.s hunk_0_loc_1588
+hunk_0_loc_157e:
     moveq #0,d1
     move.b d0,d1
     addi.w #$20,d1
-    bra.s hunk_0_loc_13a2
-hunk_0_loc_139e:
+    bra.s hunk_0_loc_158c
+hunk_0_loc_1588:
     moveq #0,d1
     move.b d0,d1
-hunk_0_loc_13a2:
+hunk_0_loc_158c:
     move.b d1,(a2)
     addq.l #1,a2
-    bra.s loc_1380
-hunk_0_loc_13a8:
+    bra.s hunk_0_loc_156a
+hunk_0_loc_1592:
     move.l a3,d0
     movem.l (sp)+,a2-a3
     rts
     dc.b    $00,$00
-hunk_0_loc_13b2:
+hunk_0_loc_159c:
     movem.l d7/a2-a3,-(sp)
     movea.l 16(sp),a3
     movea.l 20(sp),a2
     movea.l a2,a0
-hunk_0_loc_13c0:
+hunk_0_loc_15aa:
     tst.b (a0)+
-    bne.s hunk_0_loc_13c0
-hunk_0_loc_13c4:
+    bne.s hunk_0_loc_15aa
+hunk_0_loc_15ae:
     subq.l #1,a0
     suba.l a2,a0
     move.l a0,d7
     movea.l a3,a0
     adda.w d7,a0
     movea.l a3,a1
-hunk_0_loc_13d0:
+hunk_0_loc_15ba:
     tst.b (a1)+
-    bne.s hunk_0_loc_13d0
-loc_13d4:
+    bne.s hunk_0_loc_15ba
+hunk_0_loc_15be:
     subq.l #1,a1
     suba.l a3,a1
     move.l a1,d0
@@ -2205,328 +2283,323 @@ loc_13d4:
     move.w d0,-(sp)
     move.l a0,-(sp)
     move.l a3,-(sp)
-    jsr hunk_0_loc_19ee(pc)
-loc_13e8:
+    jsr hunk_0_loc_1bd8(pc)
+hunk_0_loc_15d2:
     lea 12(sp),sp
     move.l d7,d0
     movea.l a2,a0
     movea.l a3,a1
-    bra.s hunk_0_loc_13f6
-hunk_0_loc_13f4:
+    bra.s hunk_0_loc_15e0
+hunk_0_loc_15de:
     move.b (a0)+,(a1)+
-hunk_0_loc_13f6:
-    dbf d0,hunk_0_loc_13f4
-hunk_0_loc_13fa:
+hunk_0_loc_15e0:
+    dbf d0,hunk_0_loc_15de
+hunk_0_loc_15e4:
     movem.l (sp)+,d7/a2-a3
     rts
     dc.b    $00,$00
-loc_1402:
+hunk_0_loc_15ec:
     movea.l 4(sp),a0
     movea.l 8(sp),a1
     moveq #0,d0
     moveq #0,d1
-hunk_0_loc_140e:
+hunk_0_loc_15f8:
     move.b (a0)+,d0
     move.b (a1)+,d1
     cmpi.b #$61,d0
-    blt.s hunk_0_loc_1422
-hunk_0_loc_1418:
+    blt.s hunk_0_loc_160c
+hunk_0_loc_1602:
     cmpi.b #$7a,d0
-    bgt.s hunk_0_loc_1422
-hunk_0_loc_141e:
+    bgt.s hunk_0_loc_160c
+loc_1608:
     subi.b #$20,d0
-hunk_0_loc_1422:
+hunk_0_loc_160c:
     cmpi.b #$61,d1
-    blt.s hunk_0_loc_1432
-hunk_0_loc_1428:
+    blt.s hunk_0_loc_161c
+hunk_0_loc_1612:
     cmpi.b #$7a,d1
-    bgt.s hunk_0_loc_1432
-hunk_0_loc_142e:
+    bgt.s hunk_0_loc_161c
+hunk_0_loc_1618:
     subi.b #$20,d1
-hunk_0_loc_1432:
+hunk_0_loc_161c:
     sub.l d1,d0
-    bne.s hunk_0_loc_143a
-hunk_0_loc_1436:
+    bne.s hunk_0_loc_1624
+hunk_0_loc_1620:
     tst.b d1
-    bne.s hunk_0_loc_140e
-hunk_0_loc_143a:
+    bne.s hunk_0_loc_15f8
+hunk_0_loc_1624:
     rts
     dc.b    $00,$00
-hunk_0_loc_143e:
+hunk_0_loc_1628:
     movea.l 8(sp),a1
     movea.l 4(sp),a0
     move.l a0,d0
-hunk_0_loc_1448:
+hunk_0_loc_1632:
     tst.b (a0)+
-    bne.s hunk_0_loc_1448
-hunk_0_loc_144c:
+    bne.s hunk_0_loc_1632
+hunk_0_loc_1636:
     subq.l #1,a0
-hunk_0_loc_144e:
+hunk_0_loc_1638:
     move.b (a1)+,(a0)+
-    bne.s hunk_0_loc_144e
-hunk_0_loc_1452:
+    bne.s hunk_0_loc_1638
+hunk_0_loc_163c:
     rts
-hunk_0_hint_1454:
+hint_163e:
     dc.b    $00,$00
-hint_1456:
+hint_1640:
     dc.b    $48,$e7
     dc.b    $01,$10,$26,$6f,$00,$0c,$3e,$2f,$00,$10
-hunk_0_hint_1462:
+hint_164c:
     dc.b    $70,$00,$10,$13,$b0,$47,$66,$04
-hunk_0_hint_146a:
+hint_1654:
     dc.b    $20,$0b,$60,$08
-hint_146e:
+hint_1658:
     dc.b    $10,$1b,$4a,$00,$66,$ee
-hint_1474:
+hint_165e:
     dc.b    $70,$00
-hint_1476:
-    dc.b    $4c,$df
-hunk_0_hint_1478:
-    dc.b    $08,$80,$4e,$75
-hunk_0_hint_147c:
+hint_1660:
+    dc.b    $4c,$df,$08,$80,$4e,$75
+hint_1666:
     dc.b    $48,$e7,$01,$10,$26,$6f,$00,$0c,$3e,$2f,$00,$10,$55,$4f,$3f,$07
     dc.b    $2f,$0b,$61,$c6
-hunk_0_hint_1490:
+hint_167a:
     dc.b    $50,$4f,$4c,$df,$08,$80,$4e,$75
-hunk_0_loc_1498:
+hunk_0_loc_1682:
     movem.l d7/a2-a3,-(sp)
     movea.l 16(sp),a3
     move.w 20(sp),d7
     suba.l a2,a2
-hunk_0_loc_14a6:
+hunk_0_loc_1690:
     move.b (a3),d0
-    beq.s hunk_0_loc_14b8
-hunk_0_loc_14aa:
+    beq.s hunk_0_loc_16a2
+hunk_0_loc_1694:
     moveq #0,d1
     move.b d0,d1
     cmp.w d7,d1
-    bne.s hunk_0_loc_14b4
-hunk_0_loc_14b2:
+    bne.s hunk_0_loc_169e
+hunk_0_loc_169c:
     movea.l a3,a2
-hunk_0_loc_14b4:
+hunk_0_loc_169e:
     addq.l #1,a3
-    bra.s hunk_0_loc_14a6
-hunk_0_loc_14b8:
+    bra.s hunk_0_loc_1690
+hunk_0_loc_16a2:
     move.l a2,d0
     movem.l (sp)+,d7/a2-a3
     rts
     dc.b    $00,$00
-hunk_0_loc_14c2:
+hunk_0_loc_16ac:
     move.l a3,-(sp)
     movea.l 8(sp),a3
-hunk_0_loc_14c8:
+hunk_0_loc_16b2:
     moveq #0,d0
     move.b (a3),d0
-    lea -15659(a4),a0
+    lea -15659(a4),a0 ; app-$3D2B
     btst #3,0(a0,d0.w)
-    beq.s hunk_0_loc_14dc
-hunk_0_loc_14d8:
+    beq.s hunk_0_loc_16c6
+hunk_0_loc_16c2:
     addq.l #1,a3
-    bra.s hunk_0_loc_14c8
-hunk_0_loc_14dc:
+    bra.s hunk_0_loc_16b2
+hunk_0_loc_16c6:
     move.l a3,d0
     movea.l (sp)+,a3
     rts
-hint_14e2:
+hint_16cc:
     dc.b    $42,$80,$30,$2f,$00,$08,$60,$04
-loc_14ea:
+hunk_0_loc_16d4:
     move.l 8(sp),d0
-hunk_0_loc_14ee:
+hunk_0_loc_16d8:
     movea.l 4(sp),a0
     link a5,#-12
     movea.l sp,a1
-hunk_0_loc_14f8:
+hunk_0_loc_16e2:
     moveq #10,d1
-    jsr loc_21c8(pc)
-hunk_0_loc_14fe:
+    jsr hunk_0_loc_23b2(pc)
+hunk_0_loc_16e8:
     addi.w #$30,d1
     move.b d1,(a1)+
-sub_1504:
     tst.l d0
-    bne.s hunk_0_loc_14f8
-hunk_0_loc_1508:
+    bne.s hunk_0_loc_16e2
+hunk_0_loc_16f2:
     move.l a1,d0
-hunk_0_loc_150a:
+hunk_0_loc_16f4:
     move.b -(a1),(a0)+
     cmpa.l a1,a7
-    bne.s hunk_0_loc_150a
-hunk_0_loc_1510:
+    bne.s hunk_0_loc_16f4
+hunk_0_loc_16fa:
     clr.b (a0)
     sub.l sp,d0
     unlk a5
     rts
-hint_1518:
+hunk_0_hint_1702:
     dc.b    $00,$00,$42,$80,$30,$2f,$00,$08,$60,$04
-hunk_0_loc_1522:
+hunk_0_loc_170c:
     move.l 8(sp),d0
-hunk_0_loc_1526:
+hunk_0_loc_1710:
     movea.l 4(sp),a0
     link a5,#-12
     movea.l sp,a1
-hunk_0_loc_1530:
+hunk_0_loc_171a:
     move.l d0,d1
     andi.w #$7,d1
     addi.w #$30,d1
     move.b d1,(a1)+
     lsr.l #3,d0
-    bne.s hunk_0_loc_1530
-hunk_0_loc_1540:
+    bne.s hunk_0_loc_171a
+hunk_0_loc_172a:
     move.l a1,d0
-hunk_0_loc_1542:
+hunk_0_loc_172c:
     move.b -(a1),(a0)+
     cmpa.l a1,a7
-    bne.s hunk_0_loc_1542
-hunk_0_loc_1548:
+    bne.s hunk_0_loc_172c
+hunk_0_loc_1732:
     clr.b (a0)
     sub.l sp,d0
     unlk a5
     rts
-hint_1550:
+hint_173a:
     dc.b    $00,$00
-pcref_1552:
+pcref_173c:
     dc.b    "0123456789ab"
-hint_155e:
+hunk_0_hint_1748:
     dc.b    $63,$64
-hint_1560:
+hint_174a:
     dc.b    $65,$66
-hint_1562:
+hunk_0_hint_174c:
     dc.b    $42,$80,$30,$2f,$00,$08,$60,$04
-hunk_0_loc_156a:
+hunk_0_loc_1754:
     move.l 8(sp),d0
-hunk_0_loc_156e:
+hunk_0_loc_1758:
     movea.l 4(sp),a0
     lea 4(sp),a1
-loc_1576:
+loc_1760:
     move.w d0,d1
     andi.w #$f,d1
-    move.b pcref_1552(pc,d1.w),(a1)+
+    move.b pcref_173c(pc,d1.w),(a1)+
     lsr.l #4,d0
-    bne.s loc_1576
-hunk_0_loc_1584:
+    bne.s loc_1760
+hunk_0_loc_176e:
     move.l a1,d0
     move.l sp,d1
     addq.l #4,d1
-hunk_0_loc_158a:
+hunk_0_loc_1774:
     move.b -(a1),(a0)+
     cmp.l a1,d1
-    bne.s hunk_0_loc_158a
-hunk_0_loc_1590:
+    bne.s hunk_0_loc_1774
+hunk_0_loc_177a:
     clr.b (a0)
     sub.l d1,d0
     rts
-hint_1596:
+hint_1780:
     dc.b    $4e,$55,$ff,$f8,$48,$e7,$01,$30,$26,$6d,$00,$08,$24,$6d,$00,$0c
     dc.b    $7e,$00
-hint_15a8:
+hint_1792:
     dc.b    $4a,$13,$67,$28
-hint_15ac:
+hint_1796:
     dc.b    $2b,$4a,$ff,$fc
-hint_15b0:
+hunk_0_hint_179a:
     dc.b    $20,$6d,$ff,$fc,$10,$10,$67,$0a
-hint_15b8:
+hunk_0_hint_17a2:
     dc.b    $b0,$13,$67,$06
-hint_15bc:
+hint_17a6:
     dc.b    $52,$ad,$ff,$fc
-hint_15c0:
+hint_17aa:
     dc.b    $60,$ee
-hint_15c2:
+hunk_0_hint_17ac:
     dc.b    $20,$6d,$ff,$fc,$4a,$10
-hint_15c8:
+hint_17b2:
     dc.b    $66,$04
-hint_15ca:
+hint_17b4:
     dc.b    $20,$07,$60,$08
-hint_15ce:
+hint_17b8:
     dc.b    $52,$47,$52,$8b,$60,$d4
-hint_15d4:
+hint_17be:
     dc.b    $20,$07
-hint_15d6:
+hint_17c0:
     dc.b    $4c,$df,$0c,$80,$4e,$5d,$4e,$75
-hunk_0_loc_15de:
+hunk_0_loc_17c8:
     link a5,#-8
     movem.l d7/a2-a3,-(sp)
     movea.l 8(a5),a3
     movea.l 12(a5),a2
     moveq #0,d7
-hunk_0_loc_15f0:
+hunk_0_loc_17da:
     tst.b (a3)
-    beq.s hunk_0_loc_1614
-hunk_0_loc_15f4:
+    beq.s hunk_0_loc_17fe
+hunk_0_loc_17de:
     move.l a2,-4(a5)
-hunk_0_loc_15f8:
+hunk_0_loc_17e2:
     movea.l -4(a5),a0
     move.b (a0),d0
-    beq.s loc_160e
-hunk_0_loc_1600:
+    beq.s hunk_0_loc_17f8
+hunk_0_loc_17ea:
     cmp.b (a3),d0
-    bne.s loc_1608
-hunk_0_loc_1604:
+    bne.s hunk_0_loc_17f2
+hunk_0_loc_17ee:
     move.l d7,d0
-    bra.s hunk_0_loc_1616
-loc_1608:
+    bra.s hunk_0_loc_1800
+hunk_0_loc_17f2:
     addq.l #1,-4(a5)
-    bra.s hunk_0_loc_15f8
-loc_160e:
+    bra.s hunk_0_loc_17e2
+hunk_0_loc_17f8:
     addq.w #1,d7
     addq.l #1,a3
-    bra.s hunk_0_loc_15f0
-hunk_0_loc_1614:
+    bra.s hunk_0_loc_17da
+hunk_0_loc_17fe:
     move.l d7,d0
-hunk_0_loc_1616:
+hunk_0_loc_1800:
     movem.l (sp)+,d7/a2-a3
     unlk a5
     rts
-hint_161e:
-    dc.b    $48,$e7,$00,$30,$26,$6f,$00,$0c,$24,$6f
-sub_1628:
-    dc.b    $00,$10,$2f,$0a,$2f,$0b,$61,$00,$ff,$66
-hint_1632:
+hint_1808:
+    dc.b    $48,$e7,$00,$30,$26,$6f,$00,$0c,$24,$6f,$00,$10,$2f,$0a,$2f,$0b
+    dc.b    $61,$00,$ff,$66
+hint_181c:
     dc.b    $50,$4f,$4c,$df,$0c,$00,$4e,$75
-loc_163a:
+hunk_0_loc_1824:
     movem.l a2-a3,-(sp)
     movea.l 12(sp),a3
     movea.l 16(sp),a2
     move.l a2,-(sp)
     move.l a3,-(sp)
-    bsr.s hunk_0_loc_15de
-loc_164c:
+    bsr.s hunk_0_loc_17c8
+hunk_0_loc_1836:
     addq.w #8,sp
     movem.l (sp)+,a2-a3
     rts
     dc.b    $00,$00
-hunk_0_loc_1656:
+hunk_0_loc_1840:
     movea.l 4(sp),a0
     movea.l a0,a1
     moveq #0,d1
     moveq #0,d0
     move.l d2,-(sp)
     cmpi.b #$2b,(a0)
-    beq.s hunk_0_loc_166e
-hunk_0_loc_1668:
+    beq.s hunk_0_loc_1858
+hunk_0_loc_1852:
     cmpi.b #$2d,(a0)
-    bne.s loc_1670
-hunk_0_loc_166e:
+    bne.s hunk_0_loc_185a
+hunk_0_loc_1858:
     addq.w #1,a0
-loc_1670:
+hunk_0_loc_185a:
     move.b (a0)+,d0
     subi.b #$30,d0
-    blt.s loc_168a
-hunk_0_loc_1678:
+    blt.s hunk_0_loc_1874
+hunk_0_loc_1862:
     cmpi.b #$9,d0
-    bgt.s loc_168a
-hunk_0_loc_167e:
+    bgt.s hunk_0_loc_1874
+hunk_0_loc_1868:
     move.l d1,d2
     asl.l #2,d1
-sub_1682:
     add.l d2,d1
     add.l d1,d1
     add.l d0,d1
-    bra.s loc_1670
-loc_168a:
+    bra.s hunk_0_loc_185a
+hunk_0_loc_1874:
     cmpi.b #$2d,(a1)
-    bne.s hunk_0_loc_1692
-hunk_0_loc_1690:
+    bne.s hunk_0_loc_187c
+hunk_0_loc_187a:
     neg.l d1
-hunk_0_loc_1692:
+hunk_0_loc_187c:
     move.l (sp)+,d2
     move.l a0,d0
     subq.l #1,d0
@@ -2534,50 +2607,50 @@ hunk_0_loc_1692:
     move.w d1,(a0)
     sub.l a1,d0
     rts
-hunk_0_loc_16a2:
+hunk_0_loc_188c:
     move.l d7,-(sp)
     move.w 8(sp),d7
-    addq.w #1,10512(a4)
+    addq.w #1,10512(a4) ; app+$2910
     move.l d7,d0
-    movea.l 10508(a4),a0
+    movea.l 10508(a4),a0 ; app+$290C
     move.b d0,(a0)+
-    move.l a0,10508(a4)
+    move.l a0,10508(a4) ; app+$290C
     move.l (sp)+,d7
     rts
-loc_16bc:
+hunk_0_loc_18a6:
     link a5,#0
     movem.l a2-a3,-(sp)
     movea.l 8(a5),a3
     movea.l 12(a5),a2
-    clr.w 10512(a4)
-    move.l a3,10508(a4)
+    clr.w 10512(a4) ; app+$2910
+    move.l a3,10508(a4) ; app+$290C
     pea 16(a5)
     move.l a2,-(sp)
-    pea hunk_0_loc_16a2(pc)
-    jsr hunk_0_loc_0e9c(pc)
-hunk_0_loc_16e2:
-    movea.l 10508(a4),a0
+    pea hunk_0_loc_188c(pc)
+    jsr hunk_0_loc_1086(pc)
+hunk_0_loc_18cc:
+    movea.l 10508(a4),a0 ; app+$290C
     clr.b (a0)
-    move.w 10512(a4),d0
+    move.w 10512(a4),d0 ; app+$2910
     movem.l -8(a5),a2-a3
     unlk a5
     rts
-hunk_0_loc_16f6:
+hunk_0_loc_18e0:
     link a5,#-24
     movem.l d7/a2-a3/a6,-(sp)
     move.l 12(a5),d7
     tst.l d7
-    bgt.s hunk_0_loc_170c
-hunk_0_loc_1706:
+    bgt.s loc_18f6
+hunk_0_loc_18f0:
     moveq #-1,d0
-    bra.w hunk_0_loc_17dc
-hunk_0_loc_170c:
+    bra.w hunk_0_loc_19c6
+loc_18f6:
     moveq #8,d0
     cmp.l d0,d7
-    bge.s hunk_0_loc_1714
-hunk_0_loc_1712:
+    bge.s hunk_0_loc_18fe
+hunk_0_loc_18fc:
     move.l d0,d7
-hunk_0_loc_1714:
+hunk_0_loc_18fe:
     move.l d7,d0
     addq.l #3,d0
     move.l d0,d7
@@ -2585,33 +2658,33 @@ hunk_0_loc_1714:
     movea.l 8(a5),a2
     move.l 8(a5),d0
     add.l d7,d0
-    add.l d7,-15752(a4)
-    lea -15756(a4),a0
+    add.l d7,-15752(a4) ; app-$3D88
+    lea -15756(a4),a0 ; app-$3D8C
     movea.l (a0),a3
     move.l d0,-16(a5)
     move.l a0,-12(a5)
-hunk_0_loc_173a:
+hunk_0_loc_1924:
     move.l a3,d0
-    beq.w hunk_0_loc_17ce
-hunk_0_loc_1740:
+    beq.w hunk_0_loc_19b8
+hunk_0_loc_192a:
     movea.l a3,a0
     move.l 4(a3),d0
     adda.l d0,a0
     movem.l a0,-20(a5)
     movea.l -16(a5),a1
     cmpa.l a1,a3
-    bls.s hunk_0_loc_1766
-hunk_0_loc_1756:
+    bls.s hunk_0_loc_1950
+hunk_0_loc_1940:
     move.l a3,(a2)
     move.l d7,4(a2)
     movea.l -12(a5),a6
     move.l a2,(a6)
     moveq #0,d0
-    bra.s hunk_0_loc_17dc
-hunk_0_loc_1766:
+    bra.s hunk_0_loc_19c6
+hunk_0_loc_1950:
     cmpa.l a1,a3
-    bne.s loc_1784
-hunk_0_loc_176a:
+    bne.s hunk_0_loc_196e
+hunk_0_loc_1954:
     movea.l (a3),a6
     move.l a6,(a2)
     move.l 4(a3),d0
@@ -2621,404 +2694,405 @@ hunk_0_loc_176a:
     movea.l -12(a5),a6
     move.l a2,(a6)
     moveq #0,d0
-    bra.s hunk_0_loc_17dc
-loc_1784:
+    bra.s hunk_0_loc_19c6
+hunk_0_loc_196e:
     cmpa.l a0,a2
-    bcc.s hunk_0_loc_1790
-hunk_0_loc_1788:
-    sub.l d7,-15752(a4)
+    bcc.s hunk_0_loc_197a
+hunk_0_loc_1972:
+    sub.l d7,-15752(a4) ; app-$3D88
     moveq #-1,d0
-    bra.s hunk_0_loc_17dc
-hunk_0_loc_1790:
+    bra.s hunk_0_loc_19c6
+hunk_0_loc_197a:
     cmpa.l a0,a2
-    bne.s hunk_0_loc_17be
-hunk_0_loc_1794:
+    bne.s hunk_0_loc_19a8
+hunk_0_loc_197e:
     move.l (a3),d0
-    beq.s hunk_0_loc_17a4
-hunk_0_loc_1798:
+    beq.s hunk_0_loc_198e
+hunk_0_loc_1982:
     cmpa.l d0,a1
-    bls.s hunk_0_loc_17a4
-hunk_0_loc_179c:
-    sub.l d7,-15752(a4)
+    bls.s hunk_0_loc_198e
+hunk_0_loc_1986:
+    sub.l d7,-15752(a4) ; app-$3D88
     moveq #-1,d0
-    bra.s hunk_0_loc_17dc
-hunk_0_loc_17a4:
+    bra.s hunk_0_loc_19c6
+hunk_0_loc_198e:
     add.l d7,4(a3)
     move.l (a3),d0
-    beq.s hunk_0_loc_17ba
-hunk_0_loc_17ac:
+    beq.s hunk_0_loc_19a4
+hunk_0_loc_1996:
     cmpa.l d0,a1
-    bne.s hunk_0_loc_17ba
-hunk_0_loc_17b0:
+    bne.s hunk_0_loc_19a4
+hunk_0_loc_199a:
     move.l 4(a1),d0
     add.l d0,4(a3)
     move.l (a1),(a3)
-hunk_0_loc_17ba:
+hunk_0_loc_19a4:
     moveq #0,d0
-    bra.s hunk_0_loc_17dc
-hunk_0_loc_17be:
+    bra.s hunk_0_loc_19c6
+hunk_0_loc_19a8:
     move.l a3,-12(a5)
     move.l -20(a5),-24(a5)
     movea.l (a3),a3
-    bra.w hunk_0_loc_173a
-hunk_0_loc_17ce:
+    bra.w hunk_0_loc_1924
+hunk_0_loc_19b8:
     movea.l -12(a5),a0
     move.l a2,(a0)
     clr.l (a2)
     move.l d7,4(a2)
     moveq #0,d0
-hunk_0_loc_17dc:
+hunk_0_loc_19c6:
     movem.l (sp)+,d7/a2-a3/a6
     unlk a5
     rts
     dcb.b   8,0
     dc.b    $70,$61
-hunk_0_loc_17ee:
+hunk_0_loc_19d8:
     movem.l d5-d7/a2-a3,-(sp)
     move.w 24(sp),d7
     movea.l 26(sp),a3
     move.w 30(sp),d6
     subq.w #2,sp
     move.w d7,-(sp)
-    jsr hunk_0_loc_23ba(pc)
-hunk_0_loc_1806:
+    jsr sub_25a4(pc)
+hunk_0_loc_19f0:
     addq.w #4,sp
     movea.l d0,a2
     move.l a2,d0
-    bne.s hunk_0_loc_1812
-hunk_0_loc_180e:
+    bne.s hunk_0_loc_19fc
+hunk_0_loc_19f8:
     moveq #-1,d0
-    bra.s hunk_0_loc_1832
-hunk_0_loc_1812:
+    bra.s hunk_0_loc_1a1c
+hunk_0_loc_19fc:
     subq.w #2,sp
     move.w d6,-(sp)
     move.l a3,-(sp)
     move.l 2(a2),-(sp)
-    jsr hunk_0_loc_1f4e(pc)
-hunk_0_loc_1820:
+    jsr hunk_0_loc_2138(pc)
+hunk_0_loc_1a0a:
     lea 12(sp),sp
-sub_1824:
     move.l d0,d5
-    tst.w -15376(a4)
-    beq.s hunk_0_loc_1830
-hunk_0_loc_182c:
+    tst.w -15376(a4) ; app-$3C10
+    beq.s hunk_0_loc_1a1a
+loc_1a16:
     moveq #-1,d0
-    bra.s hunk_0_loc_1832
-hunk_0_loc_1830:
+    bra.s hunk_0_loc_1a1c
+hunk_0_loc_1a1a:
     move.l d5,d0
-hunk_0_loc_1832:
+hunk_0_loc_1a1c:
     movem.l (sp)+,d5-d7/a2-a3
     rts
     dc.b    $00,$00
-hunk_0_loc_183a:
-    move.w -15668(a4),d0
+hunk_0_loc_1a24:
+    move.w -15668(a4),d0 ; app-$3D34
     mulu.w #$e5d,d0
     addq.w #3,d0
     andi.w #$7fff,d0
-    move.w d0,-15668(a4)
+    move.w d0,-15668(a4) ; app-$3D34
     rts
-hunk_0_loc_184e:
+hunk_0_loc_1a38:
     move.l d7,-(sp)
     move.w 8(sp),d7
-    move.w d7,-15668(a4)
+    move.w d7,-15668(a4) ; app-$3D34
     move.l (sp)+,d7
     rts
     dc.b    $00,$00
-hunk_0_loc_185e:
+hunk_0_loc_1a48:
     link a5,#-20
     movem.l d4-d7/a2-a3,-(sp)
     movea.l 8(a5),a3
     move.w 12(a5),d7
     clr.b -1(a5)
-    clr.w -15376(a4)
-    move.w 10792(a4),-8(a5)
+    clr.w -15376(a4) ; app-$3C10
+    move.w 10792(a4),-8(a5) ; app+$2A28
     moveq #3,d5
-hunk_0_loc_187e:
-    cmp.w -15772(a4),d5
-    bge.s hunk_0_loc_1898
-hunk_0_loc_1884:
+hunk_0_loc_1a68:
+    cmp.w -15772(a4),d5 ; app-$3D9C
+    bge.s hunk_0_loc_1a82
+hunk_0_loc_1a6e:
     move.l d5,d0
     muls.w #$6,d0
-    lea 10076(a4),a0
+    lea 10076(a4),a0 ; app+$275C
     tst.w 0(a0,d0.l)
-    beq.s hunk_0_loc_1898
-hunk_0_loc_1894:
+    beq.s hunk_0_loc_1a82
+hunk_0_loc_1a7e:
     addq.w #1,d5
-    bra.s hunk_0_loc_187e
-hunk_0_loc_1898:
-    move.w -15772(a4),d0
+    bra.s hunk_0_loc_1a68
+hunk_0_loc_1a82:
+    move.w -15772(a4),d0 ; app-$3D9C
     cmp.w d5,d0
-    bne.s hunk_0_loc_18ac
-hunk_0_loc_18a0:
-    move.w #$18,10792(a4)
-sub_18a6:
+    bne.s loc_1a96
+hunk_0_loc_1a8a:
+    move.w #$18,10792(a4) ; app+$2A28
     moveq #-1,d0
-    bra.w hunk_0_loc_19d2
-hunk_0_loc_18ac:
+    bra.w hunk_0_loc_1bbc
+loc_1a96:
     move.l d5,d0
     muls.w #$6,d0
-    lea 10076(a4),a0
+    lea 10076(a4),a0 ; app+$275C
     adda.l d0,a0
     movea.l a0,a2
     move.w 14(a5),d0
-    beq.s hunk_0_loc_18c6
-hunk_0_loc_18c0:
+    beq.s hunk_0_loc_1ab0
+hunk_0_loc_1aaa:
     btst #2,d0
-    beq.s hunk_0_loc_18ce
-hunk_0_loc_18c6:
+    beq.s hunk_0_loc_1ab8
+hunk_0_loc_1ab0:
     move.w #$3ec,-10(a5)
-    bra.s hunk_0_loc_18d4
-hunk_0_loc_18ce:
+    bra.s hunk_0_loc_1abe
+hunk_0_loc_1ab8:
     move.w #$3ee,-10(a5)
-hunk_0_loc_18d4:
+hunk_0_loc_1abe:
     move.w #$8000,d0
-    and.w -15748(a4),d0
+    and.w -15748(a4),d0 ; app-$3D84
     eor.w d0,d7
     btst #3,d7
-    beq.s hunk_0_loc_18f0
-hunk_0_loc_18e4:
+    beq.s hunk_0_loc_1ada
+hunk_0_loc_1ace:
     move.l d7,d0
     andi.w #$fffc,d0
     move.l d0,d7
     ori.w #$2,d7
-hunk_0_loc_18f0:
+hunk_0_loc_1ada:
     move.l d7,d0
     andi.w #$3,d0
     tst.w d0
-    beq.s hunk_0_loc_1902
-hunk_0_loc_18fa:
+    beq.s hunk_0_loc_1aec
+hunk_0_loc_1ae4:
     subq.w #1,d0
-    beq.s hunk_0_loc_1902
-hunk_0_loc_18fe:
+    beq.s hunk_0_loc_1aec
+hunk_0_loc_1ae8:
     subq.w #1,d0
-    bne.s hunk_0_loc_1908
-hunk_0_loc_1902:
+    bne.s hunk_0_loc_1af2
+hunk_0_loc_1aec:
     move.l d7,d6
     addq.w #1,d6
-    bra.s loc_1914
-hunk_0_loc_1908:
-    move.w #$16,10792(a4)
+    bra.s hunk_0_loc_1afe
+hunk_0_loc_1af2:
+    move.w #$16,10792(a4) ; app+$2A28
     moveq #-1,d0
-    bra.w hunk_0_loc_19d2
-loc_1914:
+    bra.w hunk_0_loc_1bbc
+hunk_0_loc_1afe:
     move.l d7,d0
     andi.w #$300,d0
-    beq.w hunk_0_loc_19ae
-hunk_0_loc_191e:
+    beq.w hunk_0_loc_1b98
+hunk_0_loc_1b08:
     btst #10,d7
-    beq.s hunk_0_loc_193c
-hunk_0_loc_1924:
+    beq.s hunk_0_loc_1b26
+hunk_0_loc_1b0e:
     move.b #$1,-1(a5)
     subq.w #2,sp
     move.w -10(a5),-(sp)
     move.l a3,-(sp)
-    jsr hunk_0_loc_2086(pc)
-hunk_0_loc_1936:
+    jsr hunk_0_loc_2270(pc)
+hunk_0_loc_1b20:
     addq.w #8,sp
     move.l d0,d4
-    bra.s hunk_0_loc_197e
-hunk_0_loc_193c:
+    bra.s hunk_0_loc_1b68
+hunk_0_loc_1b26:
     btst #9,d7
-    bne.s hunk_0_loc_195c
-hunk_0_loc_1942:
+    bne.s hunk_0_loc_1b46
+hunk_0_loc_1b2c:
     subq.w #2,sp
     move.w #$3ed,d0
     move.w d0,-(sp)
     move.l a3,-(sp)
-    jsr loc_1f9e(pc)
-hunk_0_loc_1950:
+    jsr hunk_0_loc_2188(pc)
+hunk_0_loc_1b3a:
     addq.w #8,sp
     move.l d0,d4
     tst.l d4
-    bpl.s hunk_0_loc_195c
-hunk_0_loc_1958:
+    bpl.s hunk_0_loc_1b46
+hunk_0_loc_1b42:
     bset #9,d7
-hunk_0_loc_195c:
+hunk_0_loc_1b46:
     btst #9,d7
-    beq.s hunk_0_loc_197e
-hunk_0_loc_1962:
+    beq.s hunk_0_loc_1b68
+hunk_0_loc_1b4c:
     move.b #$1,-1(a5)
-    move.w -8(a5),10792(a4)
+    move.w -8(a5),10792(a4) ; app+$2A28
     subq.w #2,sp
     move.w -10(a5),-(sp)
     move.l a3,-(sp)
-    jsr hunk_0_loc_20ea(pc)
-hunk_0_loc_197a:
+    jsr hunk_0_loc_22d4(pc)
+hunk_0_loc_1b64:
     addq.w #8,sp
     move.l d0,d4
-hunk_0_loc_197e:
+hunk_0_loc_1b68:
     tst.b -1(a5)
-    beq.s hunk_0_loc_19c0
-hunk_0_loc_1984:
+    beq.s hunk_0_loc_1baa
+hunk_0_loc_1b6e:
     move.l d7,d0
     andi.w #$f0,d0
     tst.w d0
-    beq.s hunk_0_loc_19c0
-hunk_0_loc_198e:
+    beq.s hunk_0_loc_1baa
+hunk_0_loc_1b78:
     tst.l d4
-    bmi.s hunk_0_loc_19c0
-hunk_0_loc_1992:
+    bmi.s hunk_0_loc_1baa
+hunk_0_loc_1b7c:
     move.l d4,-(sp)
-    jsr hunk_0_loc_2152(pc)
-hunk_0_loc_1998:
+    jsr call_close(pc)
+hunk_0_loc_1b82:
     subq.w #2,sp
     move.w #$3ed,d0
     move.w d0,(sp)
     move.l a3,-(sp)
-    jsr loc_1f9e(pc)
-hunk_0_loc_19a6:
+    jsr hunk_0_loc_2188(pc)
+hunk_0_loc_1b90:
     lea 10(sp),sp
     move.l d0,d4
-    bra.s hunk_0_loc_19c0
-hunk_0_loc_19ae:
+    bra.s hunk_0_loc_1baa
+hunk_0_loc_1b98:
     subq.w #2,sp
     move.w #$3ed,d0
     move.w d0,-(sp)
     move.l a3,-(sp)
-    jsr loc_1f9e(pc)
-hunk_0_loc_19bc:
+    jsr hunk_0_loc_2188(pc)
+hunk_0_loc_1ba6:
     addq.w #8,sp
     move.l d0,d4
-hunk_0_loc_19c0:
-    tst.w -15376(a4)
-    beq.s hunk_0_loc_19ca
-hunk_0_loc_19c6:
+hunk_0_loc_1baa:
+    tst.w -15376(a4) ; app-$3C10
+    beq.s hunk_0_loc_1bb4
+hunk_0_loc_1bb0:
     moveq #-1,d0
-    bra.s hunk_0_loc_19d2
-hunk_0_loc_19ca:
+    bra.s hunk_0_loc_1bbc
+hunk_0_loc_1bb4:
     move.w d6,(a2)
     move.l d4,2(a2)
     move.l d5,d0
-hunk_0_loc_19d2:
+hunk_0_loc_1bbc:
     movem.l (sp)+,d4-d7/a2-a3
     unlk a5
-sub_19d8:
     rts
     dcb.b   18,0
     dc.b    $70,$61
-hunk_0_loc_19ee:
+hunk_0_loc_1bd8:
     movea.l 4(sp),a0
     movea.l 8(sp),a1
     move.w 12(sp),d0
-    ble.s loc_1a16
-hunk_0_loc_19fc:
+    ble.s hunk_0_loc_1c00
+hunk_0_loc_1be6:
     cmpa.l a0,a1
-    bcs.s hunk_0_loc_1a0e
-hunk_0_loc_1a00:
+    bcs.s loc_1bf8
+hunk_0_loc_1bea:
     adda.w d0,a0
     adda.w d0,a1
     subq.w #1,d0
-loc_1a06:
+hunk_0_loc_1bf0:
     move.b -(a0),-(a1)
-    dbf d0,loc_1a06
-hunk_0_loc_1a0c:
+    dbf d0,hunk_0_loc_1bf0
+loc_1bf6:
     rts
-hunk_0_loc_1a0e:
+loc_1bf8:
     subq.w #1,d0
-hunk_0_loc_1a10:
+hunk_0_loc_1bfa:
     move.b (a0)+,(a1)+
-    dbf d0,hunk_0_loc_1a10
-loc_1a16:
+    dbf d0,hunk_0_loc_1bfa
+hunk_0_loc_1c00:
     rts
     dc.b    $00,$00
-hint_1a1a:
-    dc.b    $48,$e7,$00,$32,$26,$6c,$29,$14
-hint_1a22:
-    dc.b    $20,$0b
-sub_1a24:
-    dc.b    $67,$14
-hint_1a26:
-    dc.b    "$S",'"',"K )",0
-    dc.b    $08,$2c,$78,$00,$04,$4e,$ae,$ff,$2e
-hint_1a36:
-    dc.b    $26,$4a
-sub_1a38:
-    dc.b    $60,$e8
-hint_1a3a:
-    dc.b    $91,$c8,$29,$48,$29,$18,$29,$48,$29,$14,$4c,$df,$4c,$00
-sub_1a48:
-    dc.b    $4e,$75
-hunk_0_loc_1a4a:
+free_memory:
+    movem.l a2-a3/a6,-(sp)
+    movea.l 10516(a4),a3 ; app+$2914
+hunk_0_loc_1c0c:
+    move.l a3,d0
+    beq.s hunk_0_loc_1c24
+hunk_0_loc_1c10:
+    movea.l (a3),a2
+    movea.l a3,a1 ; FreeMem: memoryBlock
+    move.l 8(a1),d0 ; FreeMem: byteSize
+    movea.l AbsExecBase,a6
+    jsr _LVOFreeMem(a6)
+hunk_0_loc_1c20:
+    movea.l a2,a3
+    bra.s hunk_0_loc_1c0c
+hunk_0_loc_1c24:
+    suba.l a0,a0
+    move.l a0,10520(a4) ; app+$2918
+    move.l a0,10516(a4) ; app+$2914
+    movem.l (sp)+,a2-a3/a6
+    rts
+hunk_0_loc_1c34:
     movem.l d7/a2-a3,-(sp)
     move.w 16(sp),d7
-    move.l 10528(a4),d0
-    beq.s hunk_0_loc_1a6e
-hunk_0_loc_1a58:
+    move.l 10528(a4),d0 ; app+$2920
+    beq.s hunk_0_loc_1c58
+hunk_0_loc_1c42:
     movea.l d0,a2
     moveq #0,d1
     move.w (a2),d1
     move.l d1,-(sp)
     move.l d0,-(sp)
-    jsr hunk_0_loc_16f6(pc)
-hunk_0_loc_1a66:
+    jsr hunk_0_loc_18e0(pc)
+hunk_0_loc_1c50:
     addq.w #8,sp
     suba.l a0,a0
-    move.l a0,10528(a4)
-hunk_0_loc_1a6e:
+    move.l a0,10528(a4) ; app+$2920
+hunk_0_loc_1c58:
     tst.w d7
-    bne.s hunk_0_loc_1a76
-hunk_0_loc_1a72:
+    bne.s hunk_0_loc_1c60
+hunk_0_loc_1c5c:
     moveq #0,d0
-    bra.s hunk_0_loc_1a98
-hunk_0_loc_1a76:
+    bra.s hunk_0_loc_1c82
+hunk_0_loc_1c60:
     addq.w #2,d7
     moveq #0,d0
     move.w d7,d0
     move.l d0,-(sp)
-    jsr hunk_0_loc_1b8e(pc)
-hunk_0_loc_1a82:
+    jsr hunk_0_loc_1d78(pc)
+hunk_0_loc_1c6c:
     addq.w #4,sp
     movea.l d0,a3
     tst.l d0
-    bne.s hunk_0_loc_1a8e
-hunk_0_loc_1a8a:
+    bne.s hunk_0_loc_1c78
+hunk_0_loc_1c74:
     moveq #0,d0
-    bra.s hunk_0_loc_1a98
-hunk_0_loc_1a8e:
+    bra.s hunk_0_loc_1c82
+hunk_0_loc_1c78:
     movea.l a3,a2
     move.w d7,(a2)
     lea 2(a3),a0
     move.l a0,d0
-hunk_0_loc_1a98:
+hunk_0_loc_1c82:
     movem.l (sp)+,d7/a2-a3
     rts
-hunk_0_loc_1a9e:
+sub_1c88:
     movem.l d4-d7/a3,-(sp)
     move.w 24(sp),d7
     move.l 26(sp),d6
     move.w 30(sp),d5
     subq.w #2,sp
     move.w d7,-(sp)
-    jsr hunk_0_loc_23ba(pc)
-hunk_0_loc_1ab6:
+    jsr sub_25a4(pc)
+hunk_0_loc_1ca0:
     addq.w #4,sp
     movea.l d0,a3
     move.l a3,d0
-    bne.s hunk_0_loc_1ac2
-hunk_0_loc_1abe:
+    bne.s hunk_0_loc_1cac
+hunk_0_loc_1ca8:
     moveq #-1,d0
-    bra.s hunk_0_loc_1ae2
-hunk_0_loc_1ac2:
+    bra.s hunk_0_loc_1ccc
+hunk_0_loc_1cac:
     subq.w #2,sp
     move.w d5,-(sp)
     move.l d6,-(sp)
     move.l 2(a3),-(sp)
-    jsr hunk_0_loc_1ed6(pc)
-hunk_0_loc_1ad0:
+    jsr call_ioerr_20c0(pc)
+hunk_0_loc_1cba:
     lea 12(sp),sp
     move.l d0,d4
-    tst.w -15376(a4)
-    beq.s hunk_0_loc_1ae0
-hunk_0_loc_1adc:
+    tst.w -15376(a4) ; app-$3C10
+    beq.s hunk_0_loc_1cca
+hunk_0_loc_1cc6:
     moveq #-1,d0
-    bra.s hunk_0_loc_1ae2
-hunk_0_loc_1ae0:
+    bra.s hunk_0_loc_1ccc
+hunk_0_loc_1cca:
     move.l d4,d0
-hunk_0_loc_1ae2:
+hunk_0_loc_1ccc:
     movem.l (sp)+,d4-d7/a3
     rts
     dc.b    $00,$00
-hunk_0_loc_1aea:
+hunk_0_loc_1cd4:
     movem.l d7/a2-a3/a6,-(sp)
     move.l 20(sp),d7
     moveq #12,d0
@@ -3027,147 +3101,147 @@ hunk_0_loc_1aea:
     moveq #MEMF_ANY,d1 ; AllocMem: attributes
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6)
-hunk_0_loc_1b02:
+hunk_0_loc_1cec:
     movea.l d0,a3
     move.l a3,d0
-    bne.s hunk_0_loc_1b0c
-hunk_0_loc_1b08:
+    bne.s loc_1cf6
+hunk_0_loc_1cf2:
     moveq #0,d0
-    bra.s loc_1b44
-hunk_0_loc_1b0c:
+    bra.s hunk_0_loc_1d2e
+loc_1cf6:
     move.l d7,8(a3)
-    lea 10516(a4),a2
+    lea 10516(a4),a2 ; app+$2914
     movea.l 4(a2),a0
     move.l a0,4(a3)
     suba.l a0,a0
     move.l a0,(a3)
     tst.l (a2)
-    bne.s hunk_0_loc_1b26
-hunk_0_loc_1b24:
+    bne.s hunk_0_loc_1d10
+hunk_0_loc_1d0e:
     move.l a3,(a2)
-hunk_0_loc_1b26:
+hunk_0_loc_1d10:
     move.l 4(a2),d0
-    beq.s hunk_0_loc_1b30
-hunk_0_loc_1b2c:
+    beq.s hunk_0_loc_1d1a
+hunk_0_loc_1d16:
     movea.l d0,a1
     move.l a3,(a1)
-hunk_0_loc_1b30:
+hunk_0_loc_1d1a:
     move.l a3,4(a2)
-    tst.l -15768(a4)
-    bne.s hunk_0_loc_1b3e
-hunk_0_loc_1b3a:
-    move.l a3,-15768(a4)
-hunk_0_loc_1b3e:
+    tst.l -15768(a4) ; app-$3D98
+    bne.s loc_1d28
+hunk_0_loc_1d24:
+    move.l a3,-15768(a4) ; app-$3D98
+loc_1d28:
     lea 12(a3),a0
     move.l a0,d0
-loc_1b44:
+hunk_0_loc_1d2e:
     movem.l (sp)+,d7/a2-a3/a6
     rts
     dcb.b   12,0
-hunk_0_loc_1b56:
+hunk_0_loc_1d40:
     movem.l d6-d7/a3,-(sp)
     move.w 16(sp),d7
     move.w 18(sp),d6
     subq.w #2,sp
     move.w d7,-(sp)
-    jsr hunk_0_loc_23ba(pc)
-hunk_0_loc_1b6a:
+    jsr sub_25a4(pc)
+hunk_0_loc_1d54:
     addq.w #4,sp
     movea.l d0,a3
     move.l a3,d0
-    beq.s loc_1b84
-hunk_0_loc_1b72:
+    beq.s loc_1d6e
+hunk_0_loc_1d5c:
     tst.w d6
-    beq.s hunk_0_loc_1b7c
-hunk_0_loc_1b76:
+    beq.s hunk_0_loc_1d66
+hunk_0_loc_1d60:
     bset #7,(a3)
-    bra.s hunk_0_loc_1b80
-hunk_0_loc_1b7c:
+    bra.s hunk_0_loc_1d6a
+hunk_0_loc_1d66:
     bclr #7,(a3)
-hunk_0_loc_1b80:
+hunk_0_loc_1d6a:
     moveq #0,d0
-    bra.s hunk_0_loc_1b86
-loc_1b84:
+    bra.s hunk_0_loc_1d70
+loc_1d6e:
     moveq #-1,d0
-hunk_0_loc_1b86:
+hunk_0_loc_1d70:
     movem.l (sp)+,d6-d7/a3
     rts
     dc.b    $00,$00
-hunk_0_loc_1b8e:
+hunk_0_loc_1d78:
     link a5,#-8
     movem.l d6-d7/a2-a3,-(sp)
     move.l 32(sp),d7
     tst.l d7
-    bgt.s loc_1ba4
-hunk_0_loc_1b9e:
+    bgt.s hunk_0_loc_1d8e
+hunk_0_loc_1d88:
     moveq #0,d0
-    bra.w hunk_0_loc_1c5a
-loc_1ba4:
+    bra.w hunk_0_loc_1e44
+hunk_0_loc_1d8e:
     moveq #8,d0
     cmp.l d0,d7
-    bge.s hunk_0_loc_1bac
-hunk_0_loc_1baa:
+    bge.s loc_1d96
+loc_1d94:
     move.l d0,d7
-hunk_0_loc_1bac:
+loc_1d96:
     move.l d7,d0
     addq.l #3,d0
     move.l d0,d7
     andi.w #$fffc,d7
-    lea -15756(a4),a2
+    lea -15756(a4),a2 ; app-$3D8C
     movea.l (a2),a3
-hunk_0_loc_1bbc:
+hunk_0_loc_1da6:
     move.l a3,d0
-    beq.s hunk_0_loc_1c02
-loc_1bc0:
+    beq.s hunk_0_loc_1dec
+hunk_0_loc_1daa:
     move.l 4(a3),d0
     cmp.l d7,d0
-    blt.s hunk_0_loc_1bfc
-hunk_0_loc_1bc8:
+    blt.s hunk_0_loc_1de6
+hunk_0_loc_1db2:
     cmp.l d7,d0
-    bne.s hunk_0_loc_1bda
-hunk_0_loc_1bcc:
+    bne.s hunk_0_loc_1dc4
+hunk_0_loc_1db6:
     movea.l (a3),a0
     move.l a0,(a2)
-    sub.l d7,-15752(a4)
+    sub.l d7,-15752(a4) ; app-$3D88
     move.l a3,d0
-    bra.w hunk_0_loc_1c5a
-hunk_0_loc_1bda:
+    bra.w hunk_0_loc_1e44
+hunk_0_loc_1dc4:
     move.l 4(a3),d0
     sub.l d7,d0
     moveq #8,d1
     cmp.l d1,d0
-    blt.s hunk_0_loc_1bfc
-hunk_0_loc_1be6:
+    blt.s hunk_0_loc_1de6
+loc_1dd0:
     movea.l a3,a0
     adda.l d7,a0
     move.l a0,(a2)
     movea.l a0,a2
     move.l (a3),(a2)
     move.l d0,4(a2)
-    sub.l d7,-15752(a4)
+    sub.l d7,-15752(a4) ; app-$3D88
     move.l a3,d0
-    bra.s hunk_0_loc_1c5a
-hunk_0_loc_1bfc:
+    bra.s hunk_0_loc_1e44
+hunk_0_loc_1de6:
     movea.l a3,a2
     movea.l (a3),a3
-    bra.s hunk_0_loc_1bbc
-hunk_0_loc_1c02:
-    move.w -15664(a4),d0
+    bra.s hunk_0_loc_1da6
+hunk_0_loc_1dec:
+    move.w -15664(a4),d0 ; app-$3D30
     ext.l d0
     move.l d7,d1
     add.l d0,d1
     subq.l #1,d1
-    move.w -15664(a4),d0
+    move.w -15664(a4),d0 ; app-$3D30
     ext.l d0
     move.l d0,20(sp)
     move.l d1,d0
     move.l 20(sp),d1
-    jsr hunk_0_loc_2196(pc)
-hunk_0_loc_1c22:
-    move.w -15664(a4),d1
+    jsr hunk_0_loc_2380(pc)
+loc_1e0c:
+    move.w -15664(a4),d1 ; app-$3D30
     ext.l d1
-    jsr loc_2176(pc)
-hunk_0_loc_1c2c:
+    jsr hunk_0_loc_2360(pc)
+loc_1e16:
     move.l d0,d6
     addq.l #8,d6
     move.l d6,d0
@@ -3175,30 +3249,30 @@ hunk_0_loc_1c2c:
     move.l d0,d6
     andi.w #$fffc,d6
     move.l d6,-(sp)
-    jsr hunk_0_loc_1aea(pc)
-hunk_0_loc_1c40:
+    jsr hunk_0_loc_1cd4(pc)
+hunk_0_loc_1e2a:
     addq.w #4,sp
     movea.l d0,a3
     move.l a3,d0
-    beq.s hunk_0_loc_1c58
-hunk_0_loc_1c48:
+    beq.s hunk_0_loc_1e42
+hunk_0_loc_1e32:
     move.l d6,-(sp)
     move.l a3,-(sp)
-    jsr hunk_0_loc_16f6(pc)
-hunk_0_loc_1c50:
+    jsr hunk_0_loc_18e0(pc)
+hunk_0_loc_1e3a:
     move.l d7,(sp)
-    bsr.w hunk_0_loc_1b8e
-hunk_0_loc_1c56:
-    bra.s hunk_0_loc_1c5a
-hunk_0_loc_1c58:
+    bsr.w hunk_0_loc_1d78
+hunk_0_loc_1e40:
+    bra.s hunk_0_loc_1e44
+hunk_0_loc_1e42:
     moveq #0,d0
-hunk_0_loc_1c5a:
+hunk_0_loc_1e44:
     movem.l -24(a5),d6-d7/a2-a3
     unlk a5
     rts
     dcb.b   8,0
     dc.b    $70,$61
-hunk_0_loc_1c6e:
+hunk_0_loc_1e58:
     link a5,#-256
     movem.l d7/a3,-(sp)
     movea.l 8(a5),a3
@@ -3206,175 +3280,174 @@ hunk_0_loc_1c6e:
     subq.w #2,sp
     pea -256(a5)
     clr.w -(sp)
-    jsr hunk_0_loc_1ce6(pc)
-hunk_0_loc_1c8a:
+    jsr hunk_0_loc_1ed0(pc)
+hunk_0_loc_1e74:
     addq.w #8,sp
     tst.w d0
-    beq.s hunk_0_loc_1c94
-loc_1c90:
+    beq.s hunk_0_loc_1e7e
+hunk_0_loc_1e7a:
     moveq #0,d0
-    bra.s hunk_0_loc_1cde
-hunk_0_loc_1c94:
+    bra.s hunk_0_loc_1ec8
+hunk_0_loc_1e7e:
     lea -256(a5),a0
     movea.l a0,a1
-hunk_0_loc_1c9a:
+hunk_0_loc_1e84:
     tst.b (a1)+
-    bne.s hunk_0_loc_1c9a
-hunk_0_loc_1c9e:
+    bne.s hunk_0_loc_1e84
+hunk_0_loc_1e88:
     subq.l #1,a1
     suba.l a0,a1
     move.l a1,d0
     addq.w #1,d0
     cmp.w d7,d0
-    ble.s hunk_0_loc_1cb4
-hunk_0_loc_1caa:
-    move.w #$16,10792(a4)
+    ble.s hunk_0_loc_1e9e
+hunk_0_loc_1e94:
+    move.w #$16,10792(a4) ; app+$2A28
     moveq #0,d0
-    bra.s hunk_0_loc_1cde
-hunk_0_loc_1cb4:
+    bra.s hunk_0_loc_1ec8
+hunk_0_loc_1e9e:
     move.l a3,d0
-    bne.s hunk_0_loc_1cd2
-hunk_0_loc_1cb8:
+    bne.s hunk_0_loc_1ebc
+hunk_0_loc_1ea2:
     subq.w #2,sp
     move.w d7,-(sp)
-    jsr hunk_0_loc_1a4a(pc)
-loc_1cc0:
+    jsr hunk_0_loc_1c34(pc)
+hunk_0_loc_1eaa:
     addq.w #4,sp
     movea.l d0,a3
     move.l a3,d0
-    bne.s hunk_0_loc_1cd2
-hunk_0_loc_1cc8:
-    move.w #$c,10792(a4)
+    bne.s hunk_0_loc_1ebc
+hunk_0_loc_1eb2:
+    move.w #$c,10792(a4) ; app+$2A28
     moveq #0,d0
-    bra.s hunk_0_loc_1cde
-hunk_0_loc_1cd2:
+    bra.s hunk_0_loc_1ec8
+hunk_0_loc_1ebc:
     lea -256(a5),a0
     movea.l a3,a1
-hunk_0_loc_1cd8:
+hunk_0_loc_1ec2:
     move.b (a0)+,(a1)+
-    bne.s hunk_0_loc_1cd8
-hunk_0_loc_1cdc:
+    bne.s hunk_0_loc_1ec2
+hunk_0_loc_1ec6:
     move.l a3,d0
-hunk_0_loc_1cde:
+hunk_0_loc_1ec8:
     movem.l (sp)+,d7/a3
     unlk a5
     rts
-hunk_0_loc_1ce6:
+hunk_0_loc_1ed0:
     movem.l d2/d4-d7/a3/a6,-(sp)
     move.w 32(sp),d7
     movea.l 34(sp),a3
     tst.w d7
-    beq.s hunk_0_loc_1cfc
-loc_1cf6:
+    beq.s hunk_0_loc_1ee6
+hunk_0_loc_1ee0:
     moveq #-1,d0
-    bra.w hunk_0_loc_1df2
-hunk_0_loc_1cfc:
-    move.l -15348(a4),d6
-    move.l d6,d1
-    lea 10532(a4),a0
-    move.l a0,d2
-    movea.l 10796(a4),a6
-    jsr -102(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1d10:
+    bra.w hunk_0_loc_1fdc
+hunk_0_loc_1ee6:
+    move.l app_duplock_lock(a4),d6 ; Examine: lock
+    move.l d6,d1 ; Examine: lock
+    lea app_fileinfoblock(a4),a0 ; Examine: FileInfoBlock
+    move.l a0,d2 ; Examine: FileInfoBlock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOExamine(a6)
+hunk_0_loc_1efa:
     tst.l d0
-    bne.s hunk_0_loc_1d26
-loc_1d14:
-    move.w #$14,10792(a4)
-    move.w #$c9,-15376(a4)
+    bne.s hunk_0_loc_1f10
+loc_1efe:
+    move.w #$14,10792(a4) ; app+$2A28
+    move.w #$c9,-15376(a4) ; app-$3C10
     moveq #-1,d0
-    bra.w hunk_0_loc_1df2
-hunk_0_loc_1d26:
-    lea 10540(a4),a0
+    bra.w hunk_0_loc_1fdc
+hunk_0_loc_1f10:
+    lea 10540(a4),a0 ; app+$292C
     movea.l a3,a1
-hunk_0_loc_1d2c:
+hunk_0_loc_1f16:
     move.b (a0)+,(a1)+
-    bne.s hunk_0_loc_1d2c
-hunk_0_loc_1d30:
-    move.l d6,d1
-    movea.l 10796(a4),a6
-    jsr -210(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1d3a:
+    bne.s hunk_0_loc_1f16
+hunk_0_loc_1f1a:
+    move.l d6,d1 ; ParentDir: lock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOParentDir(a6)
+hunk_0_loc_1f24:
     move.l d0,d4
     move.l d4,d0
     tst.l d0
-sub_1d40:
-    beq.w hunk_0_loc_1dd4
-loc_1d44:
+    beq.w hunk_0_loc_1fbe
+hunk_0_loc_1f2e:
     tst.l d4
-    beq.s hunk_0_loc_1da6
-loc_1d48:
-    move.l d4,d1
-    lea 10532(a4),a0
-    move.l a0,d2
-    movea.l 10796(a4),a6
-    jsr -102(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1d58:
+    beq.s hunk_0_loc_1f90
+hunk_0_loc_1f32:
+    move.l d4,d1 ; Examine: lock
+    lea app_fileinfoblock(a4),a0 ; Examine: FileInfoBlock
+    move.l a0,d2 ; Examine: FileInfoBlock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOExamine(a6)
+hunk_0_loc_1f42:
     tst.l d0
-    bne.s hunk_0_loc_1d76
-hunk_0_loc_1d5c:
-    move.w #$14,10792(a4)
-    move.w #$c9,-15376(a4)
-    move.l d4,d1
-    movea.l 10796(a4),a6
-    jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1d72:
+    bne.s hunk_0_loc_1f60
+hunk_0_loc_1f46:
+    move.w #$14,10792(a4) ; app+$2A28
+    move.w #$c9,-15376(a4) ; app-$3C10
+    move.l d4,d1 ; UnLock: lock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOUnLock(a6)
+hunk_0_loc_1f5c:
     moveq #-1,d0
-    bra.s hunk_0_loc_1df2
-hunk_0_loc_1d76:
-    pea pcref_1df8(pc)
-    pea 10540(a4)
-    jsr hunk_0_loc_143e(pc)
-hunk_0_loc_1d82:
-    pea 10540(a4)
+    bra.s hunk_0_loc_1fdc
+hunk_0_loc_1f60:
+    pea pcref_1fe2(pc)
+    pea 10540(a4) ; app+$292C
+    jsr hunk_0_loc_1628(pc)
+hunk_0_loc_1f6c:
+    pea 10540(a4) ; app+$292C
     move.l a3,-(sp)
-    jsr hunk_0_loc_13b2(pc)
-hunk_0_loc_1d8c:
+    jsr hunk_0_loc_159c(pc)
+loc_1f76:
     lea 16(sp),sp
-    move.l d4,d6
-    move.l d6,d1
-    movea.l 10796(a4),a6
-    jsr -210(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1d9c:
+    move.l d4,d6 ; ParentDir: lock
+    move.l d6,d1 ; ParentDir: lock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOParentDir(a6)
+hunk_0_loc_1f86:
     move.l d0,d4
     move.l d6,d1
     jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1da4:
-    bra.s loc_1d44
-hunk_0_loc_1da6:
+hunk_0_loc_1f8e:
+    bra.s hunk_0_loc_1f2e
+hunk_0_loc_1f90:
     moveq #0,d5
-hunk_0_loc_1da8:
+hunk_0_loc_1f92:
     move.b 0(a3,d5.w),d0
-    beq.s hunk_0_loc_1dbe
-hunk_0_loc_1dae:
+    beq.s hunk_0_loc_1fa8
+loc_1f98:
     moveq #58,d1
     cmp.b d1,d0
-    beq.s hunk_0_loc_1dbe
-hunk_0_loc_1db4:
+    beq.s hunk_0_loc_1fa8
+loc_1f9e:
     moveq #47,d1
     cmp.b d1,d0
-    beq.s hunk_0_loc_1dbe
-hunk_0_loc_1dba:
+    beq.s hunk_0_loc_1fa8
+hunk_0_loc_1fa4:
     addq.w #1,d5
-    bra.s hunk_0_loc_1da8
-hunk_0_loc_1dbe:
+    bra.s hunk_0_loc_1f92
+hunk_0_loc_1fa8:
     movea.l a3,a0
-hunk_0_loc_1dc0:
+loc_1faa:
     tst.b (a0)+
-    bne.s hunk_0_loc_1dc0
-hunk_0_loc_1dc4:
+    bne.s loc_1faa
+hunk_0_loc_1fae:
     subq.l #1,a0
     suba.l a3,a0
     cmpa.w d5,a0
-    beq.s hunk_0_loc_1df0
-hunk_0_loc_1dcc:
+    beq.s loc_1fda
+loc_1fb6:
     move.b #$3a,0(a3,d5.w)
-    bra.s hunk_0_loc_1df0
-hunk_0_loc_1dd4:
+    bra.s loc_1fda
+hunk_0_loc_1fbe:
     movea.l a3,a0
-hunk_0_loc_1dd6:
+hunk_0_loc_1fc0:
     tst.b (a0)+
-    bne.s hunk_0_loc_1dd6
-hunk_0_loc_1dda:
+    bne.s hunk_0_loc_1fc0
+hunk_0_loc_1fc4:
     subq.l #1,a0
     suba.l a3,a0
     move.l a0,d5
@@ -3383,233 +3456,233 @@ hunk_0_loc_1dda:
     move.l a0,d0
     move.b #$3a,0(a3,d0.w)
     clr.b 0(a3,d5.w)
-hunk_0_loc_1df0:
+loc_1fda:
     moveq #0,d0
-hunk_0_loc_1df2:
+hunk_0_loc_1fdc:
     movem.l (sp)+,d2/d4-d7/a3/a6
     rts
-pcref_1df8:
+pcref_1fe2:
     dc.b    $2f
     dcb.b   7,0
     dc.b    $70,$61
-hunk_0_loc_1e02:
+hunk_0_loc_1fec:
     move.l a3,-(sp)
     movea.l 8(sp),a3
     move.l a3,d0
-    beq.s hunk_0_loc_1e1e
-loc_1e0c:
+    beq.s hunk_0_loc_2008
+hunk_0_loc_1ff6:
     subq.w #2,sp
     clr.w -(sp)
-    jsr hunk_0_loc_1a4a(pc)
-hunk_0_loc_1e14:
+    jsr hunk_0_loc_1c34(pc)
+loc_1ffe:
     addq.w #4,sp
     movea.l a3,a0
     subq.l #2,a0
-    move.l a0,10528(a4)
-hunk_0_loc_1e1e:
+    move.l a0,10528(a4) ; app+$2920
+hunk_0_loc_2008:
     movea.l (sp)+,a3
     rts
     dcb.b   6,0
     dc.b    $70,$61
-hunk_0_loc_1e2a:
+sub_2014:
     movem.l d6-d7/a3,-(sp)
     move.w 16(sp),d7
-    lea -15744(a4),a3
-hunk_0_loc_1e36:
+    lea -15744(a4),a3 ; app-$3D80
+hunk_0_loc_2020:
     move.l a3,d0
-    beq.s hunk_0_loc_1e6c
-hunk_0_loc_1e3a:
+    beq.s hunk_0_loc_2056
+hunk_0_loc_2024:
     btst #2,19(a3)
-    bne.s hunk_0_loc_1e68
-hunk_0_loc_1e42:
+    bne.s hunk_0_loc_2052
+hunk_0_loc_202c:
     btst #1,19(a3)
-    beq.s hunk_0_loc_1e68
-hunk_0_loc_1e4a:
+    beq.s hunk_0_loc_2052
+loc_2034:
     move.l 4(a3),d0
     sub.l 12(a3),d0
     move.l d0,d6
     tst.w d6
-    beq.s hunk_0_loc_1e68
-hunk_0_loc_1e58:
+    beq.s hunk_0_loc_2052
+hunk_0_loc_2042:
     move.w d6,-(sp)
     move.l 12(a3),-(sp)
     move.w 20(a3),-(sp)
-    jsr hunk_0_loc_0a6a(pc)
-loc_1e66:
+    jsr sub_0c54(pc)
+hunk_0_loc_2050:
     addq.w #8,sp
-hunk_0_loc_1e68:
+hunk_0_loc_2052:
     movea.l (a3),a3
-    bra.s hunk_0_loc_1e36
-hunk_0_loc_1e6c:
+    bra.s hunk_0_loc_2020
+hunk_0_loc_2056:
     subq.w #2,sp
     move.w d7,-(sp)
-    jsr hunk_0_loc_117e(pc)
-hunk_0_loc_1e74:
+    jsr sub_1368(pc)
+loc_205e:
     addq.w #4,sp
     movem.l (sp)+,d6-d7/a3
     rts
     dc.b    $00,$00
-hunk_0_loc_1e7e:
+call_ioerr:
     movem.l d2-d3/d5-d7/a3/a6,-(sp)
     move.l 32(sp),d7
     movea.l 36(sp),a3
     move.w 40(sp),d6
-    tst.l -15352(a4)
-    beq.s hunk_0_loc_1e98
-hunk_0_loc_1e94:
-    jsr hunk_0_loc_1ece(pc)
-hunk_0_loc_1e98:
-    clr.w -15376(a4)
+    tst.l -15352(a4) ; app-$3BF8
+    beq.s hunk_0_loc_2082
+hunk_0_loc_207e:
+    jsr init_app(pc)
+hunk_0_loc_2082:
+    clr.w -15376(a4) ; app-$3C10
     moveq #0,d0
-    move.w d6,d0
-    move.l d0,d3
-    move.l d7,d1
-    move.l a3,d2
-    movea.l 10796(a4),a6
-    jsr -48(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1eae:
+    move.w d6,d0 ; Write: length
+    move.l d0,d3 ; Write: length
+    move.l d7,d1 ; Write: file
+    move.l a3,d2 ; Write: buffer
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOWrite(a6)
+hunk_0_loc_2098:
     move.l d0,d5
     moveq #-1,d0
     cmp.l d0,d5
-    bne.s hunk_0_loc_1ec4
-hunk_0_loc_1eb6:
+    bne.s hunk_0_loc_20ae
+loc_20a0:
     jsr -132(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1eba:
-    move.w d0,-15376(a4)
-    move.w #$5,10792(a4)
-hunk_0_loc_1ec4:
+loc_20a4:
+    move.w d0,-15376(a4) ; app-$3C10
+    move.w #$5,10792(a4) ; app+$2A28
+hunk_0_loc_20ae:
     move.l d5,d0
     movem.l (sp)+,d2-d3/d5-d7/a3/a6
     rts
     dc.b    $00,$00
-hunk_0_loc_1ece:
-    jmp open_dos
+init_app:
+    jmp hunk_43_loc_0000
     dc.b    $70,$61
-hunk_0_loc_1ed6:
+call_ioerr_20c0:
     movem.l d2-d7/a6,-(sp)
     move.l 32(sp),d7
     move.l 36(sp),d6
     move.w 40(sp),d5
-    tst.l -15352(a4)
-    beq.s hunk_0_loc_1ef0
-hunk_0_loc_1eec:
-    jsr hunk_0_loc_1ece(pc)
-hunk_0_loc_1ef0:
-    clr.w -15376(a4)
+    tst.l -15352(a4) ; app-$3BF8
+    beq.s hunk_0_loc_20da
+hunk_0_loc_20d6:
+    jsr init_app(pc)
+hunk_0_loc_20da:
+    clr.w -15376(a4) ; app-$3C10
     moveq #0,d0
-    move.w d5,d0
+    move.w d5,d0 ; Seek: mode
     subq.l #1,d0
-    move.l d0,d3
-    move.l d7,d1
-    move.l d6,d2
-    movea.l 10796(a4),a6
-    jsr -66(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1f08:
+    move.l d0,d3 ; Seek: mode
+    move.l d7,d1 ; Seek: file
+    move.l d6,d2 ; Seek: position
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOSeek(a6)
+hunk_0_loc_20f2:
     move.l d0,d4
     moveq #-1,d0
     cmp.l d0,d4
-    bne.s hunk_0_loc_1f1e
-hunk_0_loc_1f10:
+    bne.s hunk_0_loc_2108
+hunk_0_loc_20fa:
     jsr -132(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1f14:
-    move.w d0,-15376(a4)
-    move.w #$16,10792(a4)
-hunk_0_loc_1f1e:
+hunk_0_loc_20fe:
+    move.w d0,-15376(a4) ; app-$3C10
+    move.w #$16,10792(a4) ; app+$2A28
+hunk_0_loc_2108:
     move.l d5,d0
     tst.w d0
-    beq.s hunk_0_loc_1f2e
-hunk_0_loc_1f24:
+    beq.s hunk_0_loc_2118
+hunk_0_loc_210e:
     subq.w #1,d0
-    beq.s hunk_0_loc_1f32
-hunk_0_loc_1f28:
+    beq.s hunk_0_loc_211c
+hunk_0_loc_2112:
     subq.w #1,d0
-    beq.s hunk_0_loc_1f38
-loc_1f2c:
-    bra.s hunk_0_loc_1f46
-hunk_0_loc_1f2e:
+    beq.s hunk_0_loc_2122
+hunk_0_loc_2116:
+    bra.s hunk_0_loc_2130
+hunk_0_loc_2118:
     move.l d6,d0
-    bra.s hunk_0_loc_1f46
-hunk_0_loc_1f32:
+    bra.s hunk_0_loc_2130
+hunk_0_loc_211c:
     move.l d4,d0
     add.l d6,d0
-    bra.s hunk_0_loc_1f46
-hunk_0_loc_1f38:
-    move.l d7,d1
-    moveq #0,d2
-    move.l d2,d3
-    movea.l 10796(a4),a6
-    jsr -66(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1f46:
+    bra.s hunk_0_loc_2130
+hunk_0_loc_2122:
+    move.l d7,d1 ; Seek: file
+    moveq #0,d2 ; Seek: mode
+    move.l d2,d3 ; Seek: mode
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOSeek(a6)
+hunk_0_loc_2130:
     movem.l (sp)+,d2-d7/a6
     rts
     dc.b    $00,$00
-hunk_0_loc_1f4e:
+hunk_0_loc_2138:
     movem.l d2-d3/d5-d7/a3/a6,-(sp)
     move.l 32(sp),d7
     movea.l 36(sp),a3
     move.w 40(sp),d6
-    tst.l -15352(a4)
-    beq.s hunk_0_loc_1f68
-hunk_0_loc_1f64:
-    jsr hunk_0_loc_1ece(pc)
-hunk_0_loc_1f68:
-    clr.w -15376(a4)
+    tst.l -15352(a4) ; app-$3BF8
+    beq.s hunk_0_loc_2152
+hunk_0_loc_214e:
+    jsr init_app(pc)
+hunk_0_loc_2152:
+    clr.w -15376(a4) ; app-$3C10
     moveq #0,d0
-    move.w d6,d0
-    move.l d0,d3
-    move.l d7,d1
-    move.l a3,d2
-    movea.l 10796(a4),a6
-    jsr -42(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1f7e:
+    move.w d6,d0 ; Read: length
+    move.l d0,d3 ; Read: length
+    move.l d7,d1 ; Read: file
+    move.l a3,d2 ; Read: buffer
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVORead(a6)
+hunk_0_loc_2168:
     move.l d0,d5
     moveq #-1,d0
     cmp.l d0,d5
-    bne.s loc_1f94
-hunk_0_loc_1f86:
+    bne.s loc_217e
+hunk_0_loc_2170:
     jsr -132(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1f8a:
-    move.w d0,-15376(a4)
-    move.w #$5,10792(a4)
-loc_1f94:
+hunk_0_loc_2174:
+    move.w d0,-15376(a4) ; app-$3C10
+    move.w #$5,10792(a4) ; app+$2A28
+loc_217e:
     move.l d5,d0
     movem.l (sp)+,d2-d3/d5-d7/a3/a6
     rts
     dc.b    $00,$00
-loc_1f9e:
+hunk_0_loc_2188:
     movem.l d2/d6-d7/a3/a6,-(sp)
     movea.l 24(sp),a3
     move.w 28(sp),d7
-    tst.l -15352(a4)
-    beq.s hunk_0_loc_1fb4
-hunk_0_loc_1fb0:
-    jsr hunk_0_loc_1ece(pc)
-hunk_0_loc_1fb4:
-    clr.w -15376(a4)
+    tst.l -15352(a4) ; app-$3BF8
+    beq.s hunk_0_loc_219e
+hunk_0_loc_219a:
+    jsr init_app(pc)
+hunk_0_loc_219e:
+    clr.w -15376(a4) ; app-$3C10
     move.l d7,d0
-    ext.l d0
-    move.l d0,d2
-    move.l a3,d1
-    movea.l 10796(a4),a6
-    jsr -30(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1fc8:
+    ext.l d0 ; Open: accessMode
+    move.l d0,d2 ; Open: accessMode
+    move.l a3,d1 ; Open: name
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOOpen(a6)
+loc_21b2:
     move.l d0,d6
     tst.l d6
-    bne.s hunk_0_loc_1fe0
-loc_1fce:
+    bne.s hunk_0_loc_21ca
+loc_21b8:
     jsr -132(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_1fd2:
-    move.w d0,-15376(a4)
-    move.w #$2,10792(a4)
+hunk_0_loc_21bc:
+    move.w d0,-15376(a4) ; app-$3C10
+    move.w #$2,10792(a4) ; app+$2A28
     moveq #-1,d0
-    bra.s hunk_0_loc_1fe2
-hunk_0_loc_1fe0:
+    bra.s hunk_0_loc_21cc
+hunk_0_loc_21ca:
     move.l d6,d0
-hunk_0_loc_1fe2:
+hunk_0_loc_21cc:
     movem.l (sp)+,d2/d6-d7/a3/a6
     rts
     dc.b    $00,$00
-hunk_0_loc_1fea:
+hunk_0_loc_21d4:
     movem.l a3/a6,-(sp)
     movea.l 12(sp),a3 ; FreeMem: memoryBlock
     move.b #$ff,8(a3)
@@ -3620,21 +3693,20 @@ hunk_0_loc_1fea:
     moveq #48,d0 ; FreeMem: byteSize
     movea.l AbsExecBase,a6
     jsr _LVOFreeMem(a6)
-hunk_0_loc_200e:
+hunk_0_loc_21f8:
     movem.l (sp)+,a3/a6
     rts
-sub_2014:
     dc.b    $00,$00
-loc_2016:
+hunk_0_loc_2200:
     movem.l a3/a6,-(sp)
     movea.l 12(sp),a3
     tst.l 10(a3)
-    beq.s loc_202e
-hunk_0_loc_2024:
+    beq.s hunk_0_loc_2218
+hunk_0_loc_220e:
     movea.l a3,a1 ; RemPort: port
     movea.l AbsExecBase,a6
     jsr _LVORemPort(a6)
-loc_202e:
+hunk_0_loc_2218:
     move.b #$ff,8(a3)
     moveq #-1,d0
     move.l d0,20(a3)
@@ -3642,14 +3714,14 @@ loc_202e:
     move.b 15(a3),d0 ; FreeSignal: signalNum
     movea.l AbsExecBase,a6
     jsr _LVOFreeSignal(a6)
-hunk_0_loc_2048:
-    movea.l a3,a1
-    moveq #34,d0
-    jsr -210(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_2050:
+hunk_0_loc_2232:
+    movea.l a3,a1 ; FreeMem: memoryBlock
+    moveq #34,d0 ; FreeMem: byteSize
+    jsr _LVOFreeMem(a6)
+hunk_0_loc_223a:
     movem.l (sp)+,a3/a6
     rts
-hunk_0_loc_2056:
+hunk_0_loc_2240:
     movem.l a3/a6,-(sp)
     movea.l 12(sp),a3 ; FreeMem: memoryBlock
     move.b #$ff,8(a3)
@@ -3661,117 +3733,117 @@ hunk_0_loc_2056:
     movea.l a3,a1 ; FreeMem: memoryBlock
     movea.l AbsExecBase,a6
     jsr _LVOFreeMem(a6)
-hunk_0_loc_207e:
+hunk_0_loc_2268:
     movem.l (sp)+,a3/a6
     rts
     dc.b    $00,$00
-hunk_0_loc_2086:
+hunk_0_loc_2270:
     link a5,#-4
     movem.l d2/d7/a3/a6,-(sp)
     movea.l 8(a5),a3
-    tst.l -15352(a4)
-    beq.s hunk_0_loc_209c
-hunk_0_loc_2098:
-    jsr hunk_0_loc_1ece(pc)
-hunk_0_loc_209c:
-    clr.w -15376(a4)
-    move.l a3,d1
-    moveq #-2,d2
-    movea.l 10796(a4),a6
-    jsr -84(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_20ac:
+    tst.l -15352(a4) ; app-$3BF8
+    beq.s hunk_0_loc_2286
+hunk_0_loc_2282:
+    jsr init_app(pc)
+hunk_0_loc_2286:
+    clr.w -15376(a4) ; app-$3C10
+    move.l a3,d1 ; Lock: name
+    moveq #ACCESS_READ,d2 ; Lock: accessMode
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOLock(a6)
+hunk_0_loc_2296:
     move.l d0,d7
     tst.l d7
-    beq.s loc_20bc
-hunk_0_loc_20b2:
+    beq.s hunk_0_loc_22a6
+loc_229c:
     move.l d7,d1
     jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_20b8:
+hunk_0_loc_22a2:
     moveq #-1,d0
-    bra.s hunk_0_loc_20e2
-loc_20bc:
+    bra.s hunk_0_loc_22cc
+hunk_0_loc_22a6:
     move.l a3,d1
     move.l #$3ee,d2
     jsr -30(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_20c8:
+hunk_0_loc_22b2:
     move.l d0,d7
     tst.l d7
-    bne.s loc_20e0
-hunk_0_loc_20ce:
+    bne.s hunk_0_loc_22ca
+hunk_0_loc_22b8:
     jsr -132(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_20d2:
-    move.w d0,-15376(a4)
-    move.w #$2,10792(a4)
+loc_22bc:
+    move.w d0,-15376(a4) ; app-$3C10
+    move.w #$2,10792(a4) ; app+$2A28
     moveq #-1,d0
-    bra.s hunk_0_loc_20e2
-loc_20e0:
+    bra.s hunk_0_loc_22cc
+hunk_0_loc_22ca:
     move.l d7,d0
-hunk_0_loc_20e2:
+hunk_0_loc_22cc:
     movem.l (sp)+,d2/d7/a3/a6
     unlk a5
     rts
-hunk_0_loc_20ea:
+hunk_0_loc_22d4:
     link a5,#-4
     movem.l d2/d7/a3/a6,-(sp)
     movea.l 8(a5),a3
-    tst.l -15352(a4)
-    beq.s hunk_0_loc_2100
-hunk_0_loc_20fc:
-    jsr hunk_0_loc_1ece(pc)
-hunk_0_loc_2100:
-    clr.w -15376(a4)
-    move.l a3,d1
-    moveq #-2,d2
-    movea.l 10796(a4),a6
-    jsr -84(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_2110:
+    tst.l -15352(a4) ; app-$3BF8
+    beq.s hunk_0_loc_22ea
+loc_22e6:
+    jsr init_app(pc)
+hunk_0_loc_22ea:
+    clr.w -15376(a4) ; app-$3C10
+    move.l a3,d1 ; Lock: name
+    moveq #ACCESS_READ,d2 ; Lock: accessMode
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOLock(a6)
+hunk_0_loc_22fa:
     move.l d0,d7
     tst.l d7
-    beq.s hunk_0_loc_2122
-hunk_0_loc_2116:
+    beq.s hunk_0_loc_230c
+hunk_0_loc_2300:
     move.l d7,d1
     jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_211c:
+hunk_0_loc_2306:
     move.l a3,d1
     jsr -72(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_2122:
+hunk_0_loc_230c:
     move.l a3,d1
     move.l #$3ee,d2
     jsr -30(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_212e:
+loc_2318:
     move.l d0,d7
     tst.l d7
-    bne.s loc_2146
-hunk_0_loc_2134:
+    bne.s loc_2330
+hunk_0_loc_231e:
     jsr -132(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_2138:
-    move.w d0,-15376(a4)
-    move.w #$2,10792(a4)
+loc_2322:
+    move.w d0,-15376(a4) ; app-$3C10
+    move.w #$2,10792(a4) ; app+$2A28
     moveq #-1,d0
-    bra.s hunk_0_loc_2148
-loc_2146:
+    bra.s hunk_0_loc_2332
+loc_2330:
     move.l d7,d0
-hunk_0_loc_2148:
+hunk_0_loc_2332:
     movem.l (sp)+,d2/d7/a3/a6
     unlk a5
     rts
     dc.b    $00,$00
-hunk_0_loc_2152:
+call_close:
     movem.l d7/a6,-(sp)
     move.l 12(sp),d7
-    tst.l -15352(a4)
-    beq.s hunk_0_loc_2164
-loc_2160:
-    jsr hunk_0_loc_1ece(pc)
-hunk_0_loc_2164:
-    move.l d7,d1
-    movea.l 10796(a4),a6
-    jsr -36(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_216e:
+    tst.l -15352(a4) ; app-$3BF8
+    beq.s loc_234e
+loc_234a:
+    jsr init_app(pc)
+loc_234e:
+    move.l d7,d1 ; Close: file
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOClose(a6)
+loc_2358:
     moveq #0,d0
     movem.l (sp)+,d7/a6
     rts
-loc_2176:
+hunk_0_loc_2360:
     movem.l d2-d3,-(sp)
     move.l d0,d2
     move.l d1,d3
@@ -3786,50 +3858,49 @@ loc_2176:
     add.l d2,d0
     movem.l (sp)+,d2-d3
     rts
-hunk_0_loc_2196:
+hunk_0_loc_2380:
     tst.l d0
-    bpl.w loc_21b8
-hunk_0_loc_219c:
+    bpl.w loc_23a2
+loc_2386:
     neg.l d0
     tst.l d1
-    bpl.w hunk_0_loc_21ae
-hunk_0_loc_21a4:
+    bpl.w hunk_0_loc_2398
+hunk_0_loc_238e:
     neg.l d1
-    bsr.w loc_21c8
-hunk_0_loc_21aa:
+    bsr.w hunk_0_loc_23b2
+loc_2394:
     neg.l d1
     rts
-hunk_0_loc_21ae:
-    bsr.w loc_21c8
-loc_21b2:
+hunk_0_loc_2398:
+    bsr.w hunk_0_loc_23b2
+loc_239c:
     neg.l d0
     neg.l d1
     rts
-loc_21b8:
+loc_23a2:
     tst.l d1
-    bpl.w loc_21c8
-loc_21be:
+    bpl.w hunk_0_loc_23b2
+hunk_0_loc_23a8:
     neg.l d1
-    bsr.w loc_21c8
-loc_21c4:
+    bsr.w hunk_0_loc_23b2
+loc_23ae:
     neg.l d0
     rts
-loc_21c8:
+hunk_0_loc_23b2:
     move.l d2,-(sp)
     swap d1
     move.w d1,d2
-    bne.w hunk_0_loc_21f2
-hunk_0_loc_21d2:
+    bne.w loc_23dc
+hunk_0_loc_23bc:
     swap d0
-sub_21d4:
     swap d1
     swap d2
     move.w d0,d2
-    beq.w hunk_0_loc_21e2
-hunk_0_loc_21de:
+    beq.w loc_23cc
+hunk_0_loc_23c8:
     divu.w d1,d2
     move.w d2,d0
-hunk_0_loc_21e2:
+loc_23cc:
     swap d0
     move.w d0,d2
     divu.w d1,d2
@@ -3838,34 +3909,33 @@ hunk_0_loc_21e2:
     move.w d2,d1
     move.l (sp)+,d2
     rts
-hunk_0_loc_21f2:
+loc_23dc:
     move.l d3,-(sp)
     moveq #16,d3
     cmpi.w #$80,d1
-    bcc.w loc_2202
-loc_21fe:
+    bcc.w hunk_0_loc_23ec
+loc_23e8:
     rol.l #8,d1
-sub_2200:
     subq.w #8,d3
-loc_2202:
+hunk_0_loc_23ec:
     cmpi.w #$800,d1
-    bcc.w hunk_0_loc_220e
-hunk_0_loc_220a:
+    bcc.w loc_23f8
+hunk_0_loc_23f4:
     rol.l #4,d1
     subq.w #4,d3
-hunk_0_loc_220e:
+loc_23f8:
     cmpi.w #$2000,d1
-    bcc.w hunk_0_loc_221a
-hunk_0_loc_2216:
+    bcc.w loc_2404
+hunk_0_loc_2400:
     rol.l #2,d1
     subq.w #2,d3
-hunk_0_loc_221a:
+loc_2404:
     tst.w d1
-    bmi.w hunk_0_loc_2224
-hunk_0_loc_2220:
+    bmi.w loc_240e
+loc_240a:
     rol.l #1,d1
     subq.w #1,d3
-hunk_0_loc_2224:
+loc_240e:
     move.w d0,d2
     lsr.l d3,d0
     swap d2
@@ -3879,13 +3949,13 @@ hunk_0_loc_2224:
     swap d1
     mulu.w d1,d2
     sub.l d2,d0
-    bcc.w hunk_0_loc_2248
-hunk_0_loc_2242:
+    bcc.w hunk_0_loc_2432
+hunk_0_loc_242c:
     subq.w #1,d3
     add.l d1,d0
-hunk_0_loc_2246:
-    bcc.s hunk_0_loc_2246
-hunk_0_loc_2248:
+hunk_0_loc_2430:
+    bcc.s hunk_0_loc_2430
+hunk_0_loc_2432:
     moveq #0,d1
     move.w d3,d1
     swap d3
@@ -3895,62 +3965,62 @@ hunk_0_loc_2248:
     move.l (sp)+,d3
     move.l (sp)+,d2
     rts
-loc_225a:
+hunk_0_loc_2444:
     movem.l a2-a3/a6,-(sp)
     movea.l 16(sp),a3
     move.l a3,d0
-    bne.s hunk_0_loc_226a
-loc_2266:
+    bne.s hunk_0_loc_2454
+hunk_0_loc_2450:
     moveq #0,d0
-    bra.s hunk_0_loc_2290
-hunk_0_loc_226a:
+    bra.s hunk_0_loc_247a
+hunk_0_loc_2454:
     moveq #48,d0 ; AllocMem: byteSize
     move.l #MEMF_PUBLIC|MEMF_CLEAR,d1 ; AllocMem: attributes
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6)
-hunk_0_loc_227a:
+loc_2464:
     movea.l d0,a2
     move.l a2,d0
-    beq.s hunk_0_loc_228e
-hunk_0_loc_2280:
+    beq.s loc_2478
+hunk_0_loc_246a:
     move.b #$5,8(a2)
     clr.b 9(a2)
     move.l a3,14(a2)
-hunk_0_loc_228e:
+loc_2478:
     move.l a2,d0
-hunk_0_loc_2290:
+hunk_0_loc_247a:
     movem.l (sp)+,a2-a3/a6
     rts
-hunk_0_loc_2296:
+hunk_0_loc_2480:
     movem.l d6-d7/a2-a3/a6,-(sp)
     movea.l 24(sp),a3
     move.l 28(sp),d7
     moveq #-1,d0 ; AllocSignal: signalNum
     movea.l AbsExecBase,a6
     jsr _LVOAllocSignal(a6)
-hunk_0_loc_22ac:
+hunk_0_loc_2496:
     moveq #0,d6
     move.b d0,d6
     moveq #-1,d0
     cmp.l d0,d6
-    bne.s loc_22ba
-loc_22b6:
+    bne.s loc_24a4
+hunk_0_loc_24a0:
     moveq #0,d0
-    bra.s loc_2320
-loc_22ba:
-    moveq #34,d0
-    move.l #$10001,d1
-    jsr -198(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_22c6:
+    bra.s hunk_0_loc_250a
+loc_24a4:
+    moveq #34,d0 ; AllocMem: byteSize
+    move.l #MEMF_PUBLIC|MEMF_CLEAR,d1 ; AllocMem: attributes
+    jsr _LVOAllocMem(a6)
+hunk_0_loc_24b0:
     movea.l d0,a2
     move.l a2,d0
-    bne.s hunk_0_loc_22d4
-hunk_0_loc_22cc:
-    move.l d6,d0
-    jsr -336(a6) ; unresolved_indirect_core:disp
-loc_22d2:
-    bra.s hunk_0_loc_231e
-hunk_0_loc_22d4:
+    bne.s hunk_0_loc_24be
+hunk_0_loc_24b6:
+    move.l d6,d0 ; FreeSignal: signalNum
+    jsr _LVOFreeSignal(a6)
+loc_24bc:
+    bra.s loc_2508
+hunk_0_loc_24be:
     move.l a3,10(a2)
     move.l d7,d0
     move.b d0,9(a2)
@@ -3958,241 +4028,239 @@ hunk_0_loc_22d4:
     clr.b 14(a2)
     move.l d6,d0
     move.b d0,15(a2)
-    suba.l a1,a1
-    jsr -294(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_22f4:
+    suba.l a1,a1 ; FindTask: name
+    jsr _LVOFindTask(a6)
+loc_24de:
     move.l d0,16(a2)
     move.l a3,d0
-    beq.s loc_2304
-loc_22fc:
-    movea.l a2,a1
-    jsr -354(a6) ; unresolved_indirect_core:disp
-loc_2302:
-    bra.s hunk_0_loc_231e
-loc_2304:
+    beq.s hunk_0_loc_24ee
+hunk_0_loc_24e6:
+    movea.l a2,a1 ; AddPort: port
+    jsr _LVOAddPort(a6)
+hunk_0_loc_24ec:
+    bra.s loc_2508
+hunk_0_loc_24ee:
     lea 24(a2),a0
     move.l a0,20(a2)
     lea 20(a2),a0
     move.l a0,28(a2)
     clr.l 24(a2)
     move.b #$2,32(a2)
-hunk_0_loc_231e:
+loc_2508:
     move.l a2,d0
-loc_2320:
+hunk_0_loc_250a:
     movem.l (sp)+,d6-d7/a2-a3/a6
     rts
-loc_2326:
+hunk_0_loc_2510:
     movem.l d7/a2-a3/a6,-(sp)
     movea.l 20(sp),a3
     move.l 24(sp),d7
     move.l a3,d0
-    bne.s loc_233a
-hunk_0_loc_2336:
+    bne.s loc_2524
+hunk_0_loc_2520:
     moveq #0,d0
-    bra.s loc_2366
-loc_233a:
+    bra.s loc_2550
+loc_2524:
     move.l d7,d0 ; AllocMem: byteSize
     move.l #MEMF_PUBLIC|MEMF_CLEAR,d1 ; AllocMem: attributes
     movea.l AbsExecBase,a6
     jsr _LVOAllocMem(a6)
-loc_234a:
+loc_2534:
     movea.l d0,a2
     move.l a2,d0
-    beq.s hunk_0_loc_2364
-loc_2350:
+    beq.s hunk_0_loc_254e
+hunk_0_loc_253a:
     move.b #$5,8(a2)
     clr.b 9(a2)
     move.l a3,14(a2)
     move.l d7,d0
-sub_2360:
     move.w d0,18(a2)
-hunk_0_loc_2364:
+hunk_0_loc_254e:
     move.l a2,d0
-loc_2366:
+loc_2550:
     movem.l (sp)+,d7/a2-a3/a6
     rts
     dc.b    $00,$00
-hunk_0_loc_236e:
+hunk_0_loc_2558:
     movem.l d7/a3,-(sp)
     move.w 12(sp),d7
     subq.w #2,sp
     move.w d7,-(sp)
-    jsr hunk_0_loc_23ba(pc)
-hunk_0_loc_237e:
+    jsr sub_25a4(pc)
+loc_2568:
     addq.w #4,sp
-sub_2380:
     movea.l d0,a3
     move.l a3,d0
-    bne.s loc_238a
-loc_2386:
+    bne.s hunk_0_loc_2574
+loc_2570:
     moveq #-1,d0
-    bra.s hunk_0_loc_23b2
-loc_238a:
+    bra.s loc_259c
+hunk_0_loc_2574:
     btst #4,1(a3)
-    beq.s hunk_0_loc_2398
-loc_2392:
+    beq.s loc_2582
+loc_257c:
     moveq #0,d0
     move.w d0,(a3)
-    bra.s hunk_0_loc_23b2
-hunk_0_loc_2398:
+    bra.s loc_259c
+loc_2582:
     move.l 2(a3),-(sp)
-    jsr hunk_0_loc_2152(pc)
-hunk_0_loc_23a0:
+    jsr call_close(pc)
+hunk_0_loc_258a:
     addq.w #4,sp
     moveq #0,d0
     move.w d0,(a3)
-    tst.w -15376(a4)
-    beq.s hunk_0_loc_23b0
-loc_23ac:
+    tst.w -15376(a4) ; app-$3C10
+    beq.s hunk_0_loc_259a
+hunk_0_loc_2596:
     moveq #-1,d0
-    bra.s hunk_0_loc_23b2
-hunk_0_loc_23b0:
+    bra.s loc_259c
+hunk_0_loc_259a:
     moveq #0,d0
-hunk_0_loc_23b2:
+loc_259c:
     movem.l (sp)+,d7/a3
     rts
     dc.b    $00,$00
-hunk_0_loc_23ba:
+sub_25a4:
     move.l d7,-(sp)
     move.w 8(sp),d7
     moveq #0,d0
-    move.w d0,-15376(a4)
+    move.w d0,-15376(a4) ; app-$3C10
     tst.w d7
-    bmi.s loc_23ee
-hunk_0_loc_23ca:
-    cmp.w -15772(a4),d7
-    bge.s loc_23ee
-hunk_0_loc_23d0:
+    bmi.s hunk_0_loc_25d8
+loc_25b4:
+    cmp.w -15772(a4),d7 ; app-$3D9C
+    bge.s hunk_0_loc_25d8
+loc_25ba:
     move.l d7,d0
     moveq #6,d1
     muls.w d1,d0
-    lea 10076(a4),a0
+    lea 10076(a4),a0 ; app+$275C
     tst.w 0(a0,d0.l)
-    beq.s loc_23ee
-hunk_0_loc_23e0:
+    beq.s hunk_0_loc_25d8
+hunk_0_loc_25ca:
     move.l d7,d0
     muls.w d1,d0
-    lea 10076(a4),a0
+    lea 10076(a4),a0 ; app+$275C
     adda.l d0,a0
     move.l a0,d0
-    bra.s loc_23f6
-loc_23ee:
-    move.w #$9,10792(a4)
+    bra.s hunk_0_loc_25e0
+hunk_0_loc_25d8:
+    move.w #$9,10792(a4) ; app+$2A28
     moveq #0,d0
-loc_23f6:
+hunk_0_loc_25e0:
     move.l (sp)+,d7
     rts
-hunk_0_loc_23fa:
+hunk_0_loc_25e4:
     movem.l d2/d7/a2-a3/a6,-(sp)
-    movea.l 24(sp),a3
-    move.l a3,d1
-    moveq #-2,d2
-    movea.l 10796(a4),a6
-    jsr -84(a6) ; unresolved_indirect_core:disp
-loc_240e:
+    movea.l 24(sp),a3 ; Lock: name
+    move.l a3,d1 ; Lock: name
+    moveq #ACCESS_READ,d2 ; Lock: accessMode
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOLock(a6)
+hunk_0_loc_25f8:
     move.l d0,d7
     tst.l d7
-    bne.s hunk_0_loc_2426
-loc_2414:
-    move.w #$2,10792(a4)
-    move.w #$cc,-15376(a4)
+    bne.s hunk_0_loc_2610
+hunk_0_loc_25fe:
+    move.w #$2,10792(a4) ; app+$2A28
+    move.w #$cc,-15376(a4) ; app-$3C10
     moveq #-1,d0
-    bra.w loc_24ce
-hunk_0_loc_2426:
+    bra.w loc_26b8
+hunk_0_loc_2610:
     subq.w #2,sp
     move.w #$104,d0
     move.w d0,-(sp)
-    jsr hunk_0_loc_1a4a(pc)
-hunk_0_loc_2432:
+    jsr hunk_0_loc_1c34(pc)
+hunk_0_loc_261c:
     addq.w #4,sp
     movea.l d0,a2
     tst.l d0
-    bne.s hunk_0_loc_2454
-loc_243a:
-    move.w #$c,10792(a4)
-    move.w #$67,-15376(a4)
-    move.l d7,d1
-    movea.l 10796(a4),a6
-    jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_2450:
+    bne.s hunk_0_loc_263e
+loc_2624:
+    move.w #$c,10792(a4) ; app+$2A28
+    move.w #$67,-15376(a4) ; app-$3C10
+    move.l d7,d1 ; UnLock: lock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOUnLock(a6)
+loc_263a:
     moveq #-1,d0
-    bra.s loc_24ce
-hunk_0_loc_2454:
-    move.l d7,d1
-    move.l a2,d2
-    movea.l 10796(a4),a6
-    jsr -102(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_2460:
+    bra.s loc_26b8
+hunk_0_loc_263e:
+    move.l d7,d1 ; Examine: lock
+    move.l a2,d2 ; Examine: FileInfoBlock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOExamine(a6)
+hunk_0_loc_264a:
     tst.l d0
-    bne.s loc_2486
-loc_2464:
-    move.w #$2,10792(a4)
+    bne.s hunk_0_loc_2670
+hunk_0_loc_264e:
+    move.w #$2,10792(a4) ; app+$2A28
     move.l d2,-(sp)
-    jsr hunk_0_loc_1e02(pc)
-hunk_0_loc_2470:
+    jsr hunk_0_loc_1fec(pc)
+loc_265a:
     addq.w #4,sp
-    move.w #$cc,-15376(a4)
-    move.l d7,d1
-    movea.l 10796(a4),a6
-    jsr -90(a6) ; unresolved_indirect_core:disp
-loc_2482:
+    move.w #$cc,-15376(a4) ; app-$3C10
+    move.l d7,d1 ; UnLock: lock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOUnLock(a6)
+loc_266c:
     moveq #-1,d0
-    bra.s loc_24ce
-loc_2486:
+    bra.s loc_26b8
+hunk_0_loc_2670:
     move.l 4(a2),d0
     tst.l d0
-    bpl.s hunk_0_loc_24b0
-loc_248e:
-    move.w #$14,10792(a4)
+    bpl.s loc_269a
+hunk_0_loc_2678:
+    move.w #$14,10792(a4) ; app+$2A28
     move.l a2,-(sp)
-    jsr hunk_0_loc_1e02(pc)
-loc_249a:
+    jsr hunk_0_loc_1fec(pc)
+hunk_0_loc_2684:
     addq.w #4,sp
-    move.w #$d4,-15376(a4)
-    move.l d7,d1
-    movea.l 10796(a4),a6
-    jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_24ac:
+    move.w #$d4,-15376(a4) ; app-$3C10
+    move.l d7,d1 ; UnLock: lock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOUnLock(a6)
+hunk_0_loc_2696:
     moveq #-1,d0
-    bra.s loc_24ce
-hunk_0_loc_24b0:
-    move.l d7,-15348(a4)
-    move.l d7,d1
-    movea.l 10796(a4),a6
-    jsr -126(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_24be:
+    bra.s loc_26b8
+loc_269a:
+    move.l d7,app_duplock_lock(a4)
+    move.l d7,d1 ; CurrentDir: lock
+    movea.l app_dos_library_base(a4),a6
+    jsr _LVOCurrentDir(a6)
+hunk_0_loc_26a8:
     move.l d0,d1
     jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_0_loc_24c4:
+hunk_0_loc_26ae:
     move.l a2,-(sp)
-    jsr hunk_0_loc_1e02(pc)
-loc_24ca:
+    jsr hunk_0_loc_1fec(pc)
+hunk_0_loc_26b4:
     addq.w #4,sp
     moveq #0,d0
-loc_24ce:
+loc_26b8:
     movem.l (sp)+,d2/d7/a2-a3/a6
     rts
     dc.b    $00,$00
-hunk_0_loc_24d6:
+hunk_0_loc_26c0:
     link a5,#-4
     move.l a3,-(sp)
     movea.l 8(a5),a3
     move.l a3,d0
-    bne.s hunk_0_loc_24e8
-loc_24e4:
+    bne.s hunk_0_loc_26d2
+loc_26ce:
     moveq #0,d0
-    bra.s loc_24fe
-hunk_0_loc_24e8:
+    bra.s hunk_0_loc_26e8
+hunk_0_loc_26d2:
     move.l a3,-(sp)
-    jsr hunk_0_loc_14c2(pc)
-hunk_0_loc_24ee:
+    jsr hunk_0_loc_16ac(pc)
+hunk_0_loc_26d8:
     movea.l d0,a3
     pea -2(a5)
     move.l a3,-(sp)
-    jsr hunk_0_loc_1656(pc)
-hunk_0_loc_24fa:
+    jsr hunk_0_loc_1840(pc)
+hunk_0_loc_26e4:
     move.w -2(a5),d0
-loc_24fe:
+hunk_0_loc_26e8:
     movea.l -8(a5),a3
     unlk a5
     rts
@@ -4459,7 +4527,7 @@ hunk_1_loc_029c:
     move.b #$1,-16443(a4)
 hunk_1_loc_02a2:
     pea hunk_1_loc_0630(pc)
-    jsr hunk_1_loc_20fc(pc)
+    jsr loc_20fc(pc)
 hunk_1_loc_02aa:
     addq.w #4,sp
     moveq #0,d6
@@ -4505,7 +4573,7 @@ hunk_1_loc_02fe:
 hunk_1_loc_0302:
     jsr loc_2150(pc)
 hunk_1_loc_0306:
-    jsr loc_219e(pc)
+    jsr hunk_1_loc_219e(pc)
 hunk_1_loc_030a:
     clr.b 7626(a4)
     jsr hunk_1_loc_204e(pc)
@@ -4598,7 +4666,7 @@ hunk_1_loc_03e2:
 hunk_1_loc_03e6:
     beq.s hunk_1_loc_0402
 hunk_1_loc_03e8:
-    jsr loc_1fbe(pc)
+    jsr hunk_1_loc_1fbe(pc)
 hunk_1_loc_03ec:
     clr.w 7000(a4)
     subq.w #2,sp
@@ -5223,7 +5291,7 @@ hunk_1_loc_0976:
 hunk_1_loc_0990:
     subq.w #2,sp
     move.w 7668(a4),-(sp)
-    jsr loc_210e(pc)
+    jsr hunk_1_loc_210e(pc)
 hunk_1_loc_099a:
     addq.w #4,sp
     tst.w d0
@@ -5249,7 +5317,7 @@ hunk_1_loc_09c2:
     beq.s hunk_1_loc_09fc
 hunk_1_loc_09c8:
     move.w #$1,-32580(a4)
-    jsr hunk_1_loc_216e(pc)
+    jsr loc_216e(pc)
 hunk_1_loc_09d2:
     moveq #0,d1
     move.w d1,-32580(a4)
@@ -5432,7 +5500,7 @@ hunk_1_loc_0b66:
 hunk_1_loc_0b6e:
     subq.w #2,sp
     move.w -13102(a4),-(sp)
-    jsr loc_2168(pc)
+    jsr hunk_1_loc_2168(pc)
 hunk_1_loc_0b78:
     addq.w #4,sp
     movea.l d0,a0
@@ -5451,7 +5519,7 @@ hunk_1_loc_0b8e:
 hunk_1_loc_0b9e:
     subq.w #2,sp
     move.w -13104(a4),-(sp)
-    jsr loc_2168(pc)
+    jsr hunk_1_loc_2168(pc)
     dc.b    $58,$4f,$20,$40,$08,$28,$00,$00,$00,$1e,$67,$56
 hunk_1_loc_0bb4:
     tst.w -32572(a4)
@@ -6030,7 +6098,7 @@ hunk_1_loc_10a6:
     moveq #10,d0
     move.w d0,-(sp)
     pea -6756(a4)
-    jsr hunk_1_loc_21a4(pc)
+    jsr loc_21a4(pc)
 hunk_1_loc_10b4:
     addq.w #8,sp
     movea.l d0,a3
@@ -6297,7 +6365,7 @@ hunk_1_loc_12fa:
     subq.w #2,sp
     clr.w -(sp)
     jsr 3316(pc)
-hunk_1_loc_1302:
+loc_1302:
     addq.w #4,sp
 hunk_1_loc_1304:
     pea -2660(pc)
@@ -6539,7 +6607,7 @@ hunk_1_loc_1518:
 hunk_1_loc_1524:
     tst.w 6(a3)
     beq.s hunk_1_loc_153a
-loc_152a:
+hunk_1_loc_152a:
     move.w #$1,7620(a4)
     move.w 4(a3),d0
     move.w d0,7622(a4)
@@ -6746,7 +6814,7 @@ hunk_1_loc_1718:
 hunk_1_loc_1726:
     tst.w d6
     bne.s hunk_1_loc_172e
-loc_172a:
+hunk_1_loc_172a:
     moveq #0,d5
     bra.s hunk_1_loc_1792
 hunk_1_loc_172e:
@@ -6829,11 +6897,11 @@ hunk_1_loc_17c4:
     bne.s hunk_1_loc_17d4
 hunk_1_loc_17cc:
     btst #0,30(a3)
-    beq.s loc_17da
+    beq.s hunk_1_loc_17da
 hunk_1_loc_17d4:
     moveq #1,d0
     bra.w hunk_1_loc_189a
-loc_17da:
+hunk_1_loc_17da:
     move.w (a3),d0
     moveq #26,d1
     cmp.w d1,d0
@@ -6949,7 +7017,7 @@ hunk_1_loc_18ae:
     bne.s hunk_1_loc_18c8
 hunk_1_loc_18c4:
     moveq #0,d6
-    bra.s hunk_1_loc_1902
+    bra.s loc_1902
 hunk_1_loc_18c8:
     moveq #2,d0
     move.w d0,-(sp)
@@ -6962,7 +7030,7 @@ hunk_1_loc_18d4:
     bne.s loc_18de
 hunk_1_loc_18da:
     moveq #1,d6
-    bra.s hunk_1_loc_1902
+    bra.s loc_1902
 loc_18de:
     movea.l 7632(a4),a0
     adda.l d7,a0
@@ -6974,14 +7042,14 @@ hunk_1_loc_18ea:
     bne.s hunk_1_loc_18f4
 hunk_1_loc_18f0:
     moveq #0,d6
-    bra.s hunk_1_loc_1902
+    bra.s loc_1902
 hunk_1_loc_18f4:
     movea.l 7632(a4),a0
     adda.l d7,a0
     move.w 4(a0),d5
     tst.w d5
     bne.s hunk_1_loc_18ae
-hunk_1_loc_1902:
+loc_1902:
     move.l d6,d0
     movem.l (sp)+,d5-d7/a3
     rts
@@ -7107,7 +7175,7 @@ hunk_1_loc_19de:
 hunk_1_loc_19f2:
     cmp.w 7610(a4),d7
     blt.s hunk_1_loc_19de
-loc_19f8:
+hunk_1_loc_19f8:
     move.w #$64,6898(a4)
     move.w #$3e8,6878(a4)
     movem.l (sp)+,d7/a3
@@ -7205,7 +7273,7 @@ hunk_1_loc_1ad8:
 hunk_1_loc_1adc:
     pea -4634(pc)
     pea -4648(pc)
-    jsr hunk_1_loc_1fe2(pc)
+    jsr loc_1fe2(pc)
 hunk_1_loc_1ae8:
     addq.w #8,sp
     move.w d0,-15232(a4)
@@ -7290,7 +7358,7 @@ hunk_1_loc_1ba6:
 hunk_1_loc_1baa:
     cmp.l -32244(a4),d6
     beq.s hunk_1_loc_1bbc
-loc_1bb0:
+hunk_1_loc_1bb0:
     subq.w #2,sp
     moveq #1,d0
     move.w d0,-(sp)
@@ -7313,12 +7381,12 @@ hunk_1_loc_1bcc:
 loc_1bdc:
     move.b (a1)+,d0
     cmp.b (a6)+,d0
-    bne.s loc_1c0c
+    bne.s hunk_1_loc_1c0c
 loc_1be2:
     tst.b d0
     bne.s loc_1bdc
 hunk_1_loc_1be6:
-    bne.s loc_1c0c
+    bne.s hunk_1_loc_1c0c
 hunk_1_loc_1be8:
     moveq #1,d0
     move.b d0,6502(a4)
@@ -7330,7 +7398,7 @@ hunk_1_loc_1be8:
     movea.l 7826(a4),a1
     movea.l 8(a1),a0
     move.w d1,40(a0)
-loc_1c0c:
+hunk_1_loc_1c0c:
     move.w 6492(a4),d0
     moveq #-1,d1
     cmp.w d1,d0
@@ -7352,7 +7420,7 @@ hunk_1_loc_1c2e:
     move.w d0,-18(a5)
     move.w d0,-222(a5)
 hunk_1_loc_1c3e:
-    bra.s hunk_1_loc_1cb4
+    bra.s loc_1cb4
 hunk_1_loc_1c40:
     movea.l 7632(a4),a0
     adda.l d6,a0
@@ -7400,7 +7468,7 @@ hunk_1_loc_1cac:
     addq.w #1,-18(a5)
     moveq #58,d0
     add.l d0,d6
-hunk_1_loc_1cb4:
+loc_1cb4:
     move.w -18(a5),d0
     cmp.w 7610(a4),d0
     blt.s hunk_1_loc_1c40
@@ -7593,7 +7661,7 @@ hunk_1_loc_1e7c:
     jsr hunk_1_loc_2048(pc)
 hunk_1_loc_1e84:
     jsr loc_20c6(pc)
-loc_1e88:
+hunk_1_loc_1e88:
     jsr hunk_1_loc_2042(pc)
 hunk_1_loc_1e8c:
     move.w 36(sp),6978(a4)
@@ -7637,7 +7705,7 @@ hunk_1_loc_1ee0:
     move.w 36(a0),d0
     and.w d6,d0
     beq.s hunk_1_loc_1efc
-hunk_1_loc_1eec:
+loc_1eec:
     moveq #0,d0
     move.w d7,d0
     add.l d0,d0
@@ -7714,11 +7782,11 @@ hunk_1_loc_1f7e:
     link a5,#0
     move.w -32732(a4),d0
     cmpi.w #$191,d0
-    beq.s loc_1f92
+    beq.s hunk_1_loc_1f92
 hunk_1_loc_1f8c:
     cmpi.w #$1a1,d0
     bne.s hunk_1_loc_1fa8
-loc_1f92:
+hunk_1_loc_1f92:
     subq.w #2,sp
     moveq #0,d0
     move.w d0,-(sp)
@@ -7726,13 +7794,13 @@ loc_1f92:
     move.w #$191,d1
     move.w d1,-(sp)
     bsr.w hunk_1_loc_1352
-loc_1fa4:
+hunk_1_loc_1fa4:
     moveq #1,d0
     bra.s hunk_1_loc_1fb2
 hunk_1_loc_1fa8:
     pea str_08ec(pc)
     jsr hunk_1_loc_21aa(pc)
-hunk_1_loc_1fb0:
+loc_1fb0:
     moveq #2,d0
 hunk_1_loc_1fb2:
     unlk a5
@@ -7740,7 +7808,7 @@ hunk_1_loc_1fb2:
     dc.b    $00,$00
 hunk_1_loc_1fb8:
     jmp hunk_24_loc_0588
-loc_1fbe:
+hunk_1_loc_1fbe:
     jmp hunk_21_loc_0000
 hunk_1_loc_1fc4:
     jmp hunk_21_loc_0938
@@ -7752,7 +7820,7 @@ hunk_1_loc_1fd6:
     jmp hunk_3_loc_0330
 hunk_1_loc_1fdc:
     jmp hunk_36_loc_1220
-hunk_1_loc_1fe2:
+loc_1fe2:
     jmp hunk_24_loc_00f2
     dc.b    $4e,$f9
     dc.l    hunk_4_loc_002c
@@ -7829,7 +7897,7 @@ hunk_1_loc_20b4:
 hunk_1_loc_20ba:
     jmp hunk_8_loc_053c
 hunk_1_loc_20c0:
-    jmp sub_051a
+    jmp hunk_0_loc_051a
 loc_20c6:
     jmp hunk_22_loc_006e
 hunk_1_loc_20cc:
@@ -7849,13 +7917,13 @@ loc_20f0:
     jmp hunk_21_loc_09c2
 loc_20f6:
     jmp hunk_8_loc_06c2
-hunk_1_loc_20fc:
+loc_20fc:
     jmp hunk_25_loc_0040
 hunk_1_loc_2102:
     jmp hunk_3_loc_0dac
 hunk_1_loc_2108:
-    jmp sub_1628
-loc_210e:
+    jmp hunk_0_loc_1628
+hunk_1_loc_210e:
     jmp hunk_7_loc_0498
 hunk_1_loc_2114:
     jmp hunk_4_loc_00c6
@@ -7885,9 +7953,9 @@ hunk_1_loc_215c:
     jmp hunk_4_loc_0224
 loc_2162:
     jmp hunk_8_loc_0746
-loc_2168:
+hunk_1_loc_2168:
     jmp hunk_3_loc_0d88
-hunk_1_loc_216e:
+loc_216e:
     jmp hunk_7_loc_15f0
 hunk_1_loc_2174:
     jmp hunk_27_loc_0000
@@ -7903,10 +7971,10 @@ hunk_1_loc_2192:
     jmp hunk_36_loc_2406
 hunk_1_loc_2198:
     jmp hunk_36_loc_1fe6
-loc_219e:
+hunk_1_loc_219e:
     jmp hunk_10_loc_1496
-hunk_1_loc_21a4:
-    jmp sub_1682
+loc_21a4:
+    jmp hunk_0_loc_1682
 hunk_1_loc_21aa:
     jmp hunk_4_loc_01d4
 hunk_1_loc_21b0:
@@ -9184,7 +9252,7 @@ hunk_3_loc_0c28:
     sub.l -5278(a4),d1
     cmp.l d1,d0
     bne.s hunk_3_loc_0c3c
-hunk_3_loc_0c38:
+loc_0c38:
     moveq #0,d0
     bra.s hunk_3_loc_0c3e
 hunk_3_loc_0c3c:
@@ -9374,7 +9442,7 @@ hunk_3_loc_0dac:
     move.l (sp)+,d7
     rts
 hunk_3_loc_0dd0:
-    jmp sub_0458
+    jmp hunk_0_loc_0458
 hunk_3_loc_0dd6:
     jmp hunk_21_loc_0000
 hunk_3_loc_0ddc:
@@ -9398,7 +9466,7 @@ hunk_3_loc_0e0c:
 hunk_3_loc_0e12:
     jmp hunk_1_loc_1a0a
 hunk_3_loc_0e18:
-    jmp sub_0470
+    jmp hunk_0_loc_0470
 hunk_3_loc_0e1e:
     jmp hunk_36_loc_0536
 hunk_3_loc_0e24:
@@ -9410,7 +9478,7 @@ hunk_3_loc_0e30:
 hunk_3_loc_0e36:
     jmp hunk_50_loc_001c
 hunk_3_loc_0e3c:
-    jmp sub_25e4
+    jmp hunk_0_loc_25e4
 hunk_3_loc_0e42:
     jmp hunk_50_loc_0068
 hunk_3_loc_0e48:
@@ -9424,7 +9492,7 @@ hunk_3_loc_0e5a:
 hunk_3_loc_0e60:
     jmp hunk_50_loc_004c
 hunk_3_loc_0e66:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 hunk_3_loc_0e6c:
     jmp hunk_36_loc_1cc8
 hunk_3_loc_0e72:
@@ -9446,7 +9514,7 @@ hunk_3_loc_0e9c:
 hunk_3_loc_0ea2:
     jmp hunk_4_loc_01d4
 hunk_3_loc_0ea8:
-    jmp hunk_0_hint_1490
+    jmp hunk_0_loc_1490
     dc.b    $70,$61
 
 ; Hunk 4: 1088 bytes, 0 entities, 130 blocks
@@ -9946,7 +10014,7 @@ pcref_0428:
     dc.b    $4e,$f9
     dc.l    hunk_36_loc_1d62
 hunk_4_loc_042e:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 hunk_4_loc_0434:
     jmp hunk_36_loc_1454
 hunk_4_loc_043a:
@@ -11273,7 +11341,7 @@ str_0256:
     dc.b    "What do you think this is...a text adventure?",0
 dat_0284:
     dc.b    "Restart",0
-hunk_6_dat_028c:
+dat_028c:
     dc.b    "Cancel",0
     dc.b    $00
 str_0294:
@@ -12564,12 +12632,12 @@ hunk_6_loc_0ce0:
     dc.b    $64,$6f
 hunk_6_loc_0ce2:
     beq.s str_0d12
-hunk_6_loc_0ce4:
+loc_0ce4:
     move.l 8704(a6),d7
 str_0ce8:
     movea.l a0,a1
     dc.b    $6d,$6d
-hunk_6_loc_0cec:
+loc_0cec:
     movea.l 28013(a0),a0
     movea.l 28013(a0),a0
     dc.b    $68,$6d
@@ -12604,7 +12672,7 @@ hunk_6_loc_0d1c:
     bcs.s hunk_6_loc_0d8a
 hunk_6_loc_0d1e:
     dc.b    $6c,$73
-loc_0d20:
+hunk_6_loc_0d20:
     ori.b #$72,d0
 hunk_6_loc_0d24:
     movea.l 24939(a5),a0
@@ -12840,7 +12908,7 @@ hunk_6_loc_0f04:
 loc_0f09:
     move.l -(a0),d6
     dc.b    $4c
-hunk_6_hint_0f0c:
+hint_0f0c:
     dc.b    $65,$73
     dc.b    $2e
 loc_0f0f:
@@ -13294,11 +13362,11 @@ hint_1450:
     dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$06,$00,$20,$67,$2e
 hunk_6_hint_145c:
     dc.b    $70,$1a,$b0,$50,$67,$28
-hunk_6_hint_1462:
+hint_1462:
     dc.b    $30,$28,$00,$06,$67,$22
 hint_1468:
     dc.b    $c1,$fc,$00,$3a,$20,$6c,$1d,$d0,$d1,$c0,$2f,$08,$4e,$ba,$18,$78
-hunk_6_hint_1478:
+hint_1478:
     dc.b    $58,$4f,$4a,$40,$67,$0c
 hint_147e:
     dc.b    $20,$6c,$1d,$d4,$3f,$10,$4e,$ba,$19,$64
@@ -13557,7 +13625,7 @@ hunk_6_loc_16f2:
     rts
 hint_16f6:
     dc.b    $20,$6c,$1d,$d4,$08,$28,$00,$07,$00,$20,$66,$08
-hint_1702:
+hunk_6_hint_1702:
     dc.b    $08,$28,$00,$07,$00,$21,$67,$0c
 hint_170a:
     dc.b    $48,$7a,$ed,$d2,$4e,$ba,$16,$ec
@@ -13597,15 +13665,15 @@ hint_178e:
     dc.b    $5c,$4f,$70,$01,$60,$0c
 hint_1794:
     dc.b    $48,$7a,$ed,$c2,$4e,$ba
-hint_179a:
+hunk_6_hint_179a:
     dc.b    $16,$62
 hint_179c:
     dc.b    $58,$4f,$70,$02
 hint_17a0:
     dc.b    $4e,$75
-hint_17a2:
+hunk_6_hint_17a2:
     dc.b    $39,$7c,$00,$01,$80,$32,$61,$00,$00,$06
-hint_17ac:
+hunk_6_hint_17ac:
     dc.b    $70,$01,$4e,$75
 hunk_6_loc_17b0:
     link a5,#-32
@@ -13720,7 +13788,7 @@ hunk_6_loc_18b4:
     movea.l d0,a0
     btst #4,32(a0)
     beq.s hunk_6_loc_1906
-hunk_6_loc_18c0:
+loc_18c0:
     move.w (a3),-(sp)
     jsr sub_2dc0(pc)
 hunk_6_loc_18c6:
@@ -13895,7 +13963,7 @@ hunk_6_loc_1a64:
 hunk_6_loc_1a6a:
     btst #4,33(a3)
     beq.s hunk_6_loc_1a78
-hunk_6_loc_1a72:
+loc_1a72:
     move.w #$1,7916(a4)
 hunk_6_loc_1a78:
     move.w 8(a3),-28(a5)
@@ -16250,11 +16318,11 @@ hunk_7_loc_0916:
 hunk_7_loc_091e:
     addq.w #2,sp
     tst.w d0
-    beq.s loc_0928
+    beq.s hunk_7_loc_0928
 hunk_7_loc_0924:
     moveq #2,d0
     bra.s hunk_7_loc_095c
-loc_0928:
+hunk_7_loc_0928:
     move.w 8(a5),-(sp)
     bsr.w hunk_7_loc_09b8
 hunk_7_loc_0930:
@@ -17860,11 +17928,11 @@ hunk_7_loc_176c:
     bra.s hunk_7_loc_17e2
 hunk_7_loc_1788:
     tst.w 74(a3)
-    bne.s hunk_7_loc_1794
+    bne.s loc_1794
 hunk_7_loc_178e:
     tst.w 72(a3)
     beq.s hunk_7_loc_17dc
-hunk_7_loc_1794:
+loc_1794:
     tst.w -32584(a4)
     beq.s hunk_7_loc_17a8
 hunk_7_loc_179a:
@@ -18249,17 +18317,17 @@ hunk_7_loc_1b1e:
 hunk_7_loc_1b22:
     move.w -32732(a4),d0
     cmpi.w #$1e9,d0
-    beq.s hunk_7_loc_1b3e
+    beq.s loc_1b3e
 hunk_7_loc_1b2c:
     cmpi.w #$1b5,d0
-    beq.s hunk_7_loc_1b3e
+    beq.s loc_1b3e
 loc_1b32:
     cmpi.w #$1c1,d0
-    beq.s hunk_7_loc_1b3e
+    beq.s loc_1b3e
 hunk_7_loc_1b38:
     cmpi.w #$208,d0
     bne.s hunk_7_loc_1b4c
-hunk_7_loc_1b3e:
+loc_1b3e:
     pea -6268(pc)
     jsr hunk_7_loc_211e(pc)
 hunk_7_loc_1b46:
@@ -18362,7 +18430,7 @@ loc_1c28:
     moveq #1,d0
     move.w d0,-(sp)
     bsr.w hunk_7_loc_0498
-loc_1c34:
+hunk_7_loc_1c34:
     addq.w #2,sp
     subq.w #1,d0
     bne.w hunk_7_loc_1d40
@@ -18426,12 +18494,12 @@ hunk_7_loc_1cbe:
     bne.s loc_1d2a
 hunk_7_loc_1cc4:
     tst.w -34(a5)
-    beq.s hunk_7_loc_1cd2
-loc_1cca:
+    beq.s loc_1cd2
+hunk_7_loc_1cca:
     moveq #1,d0
     move.w d0,-32(a5)
     bra.s hunk_7_loc_1cd8
-hunk_7_loc_1cd2:
+loc_1cd2:
     moveq #1,d0
     move.w d0,-34(a5)
 hunk_7_loc_1cd8:
@@ -18497,7 +18565,7 @@ hunk_7_loc_1d5a:
     move.w d0,-66(a5)
     move.w d0,-62(a5)
     bra.s hunk_7_loc_1db4
-hunk_7_loc_1d76:
+loc_1d76:
     move.l d7,d0
     addq.w #1,d0
     move.b 0(a3,d7.w),d1
@@ -18526,18 +18594,18 @@ hunk_7_loc_1db2:
 hunk_7_loc_1db4:
     movea.l 10(a5),a3
     tst.b 0(a3,d7.w)
-    bne.s hunk_7_loc_1d76
+    bne.s loc_1d76
 hunk_7_loc_1dbe:
     moveq #0,d7
     lea -12706(a4),a2
-    bra.s loc_1de6
+    bra.s hunk_7_loc_1de6
 hunk_7_loc_1dc6:
     move.b (a3),d0
     ext.w d0
     lea -15659(a4),a0
     btst #3,0(a0,d0.w)
     beq.s hunk_7_loc_1de4
-hunk_7_loc_1dd6:
+loc_1dd6:
     moveq #4,d0
     cmp.w (a2),d0
     bne.s hunk_7_loc_1de2
@@ -18548,7 +18616,7 @@ hunk_7_loc_1de2:
     addq.l #2,a2
 hunk_7_loc_1de4:
     addq.w #1,d7
-loc_1de6:
+hunk_7_loc_1de6:
     movea.l 14(a5),a0
     adda.w d7,a0
     movea.l a0,a3
@@ -18641,7 +18709,7 @@ hunk_7_loc_1ec2:
     clr.w -8(a5)
     lea -12776(a4),a3
     bra.s loc_1ed8
-hunk_7_loc_1ece:
+loc_1ece:
     tst.w (a3)
     beq.s hunk_7_loc_1ed6
 hunk_7_loc_1ed2:
@@ -18651,7 +18719,7 @@ hunk_7_loc_1ed6:
 loc_1ed8:
     lea -12766(a4),a0
     cmpa.l a0,a3
-    bcs.s hunk_7_loc_1ece
+    bcs.s loc_1ece
 hunk_7_loc_1ee0:
     move.w -13136(a4),-(sp)
     bsr.w hunk_7_loc_08b2
@@ -18671,7 +18739,7 @@ hunk_7_loc_1f08:
     moveq #2,d0
     cmp.w 6(sp),d0
     beq.w hunk_7_loc_2048
-loc_1f16:
+hunk_7_loc_1f16:
     moveq #1,d0
     cmp.w -8(a5),d0
     beq.w hunk_7_loc_2048
@@ -18808,7 +18876,7 @@ loc_2070:
     lea 20(sp),sp
     move.w d0,4(sp)
     subq.w #1,d0
-    bne.s hunk_7_loc_20ce
+    bne.s loc_20ce
 hunk_7_loc_207c:
     tst.w -32574(a4)
     beq.s hunk_7_loc_2090
@@ -18844,7 +18912,7 @@ hunk_7_loc_20c0:
     move.w d0,-32580(a4)
     move.w d0,-32578(a4)
     move.w d0,7668(a4)
-hunk_7_loc_20ce:
+loc_20ce:
     move.w 4(sp),d0
 hunk_7_loc_20d2:
     movea.l -36(a5),a3
@@ -18858,13 +18926,13 @@ hunk_7_loc_20e2:
 loc_20e8:
     jmp sub_1504
 hunk_7_loc_20ee:
-    jmp sub_26c0
+    jmp hunk_0_loc_26c0
 hunk_7_loc_20f4:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 hunk_7_loc_20fa:
-    jmp sub_2360
+    jmp hunk_0_loc_2360
 hunk_7_loc_2100:
-    jmp sub_1824
+    jmp hunk_0_loc_1824
 hunk_7_loc_2106:
     jmp hunk_8_loc_0722
 hunk_7_loc_210c:
@@ -18876,7 +18944,7 @@ hunk_7_loc_2118:
 hunk_7_loc_211e:
     jmp hunk_4_loc_01d4
 hunk_7_loc_2124:
-    jmp hunk_0_hint_1490
+    jmp hunk_0_loc_1490
     dc.b    $70,$61
 
 ; Hunk 8: 6900 bytes, 0 entities, 745 blocks
@@ -20007,7 +20075,7 @@ hunk_8_loc_0972:
     move.w 8(a0),-12(a5)
     tst.w -12(a5)
     bne.w hunk_8_loc_08e6
-loc_0986:
+hunk_8_loc_0986:
     move.l d5,d0
 hunk_8_loc_0988:
     movem.l (sp)+,d5-d7
@@ -20790,7 +20858,7 @@ hunk_8_loc_10ea:
 hunk_8_loc_10ee:
     pea str_0142(pc)
     jsr hunk_8_loc_1aec(pc)
-loc_10f6:
+hunk_8_loc_10f6:
     addq.w #4,sp
 hunk_8_loc_10f8:
     movem.l (sp)+,d7/a3
@@ -20808,13 +20876,13 @@ hint_1118:
     dc.b    $48,$7a,$f0,$4e,$4e,$ba,$09,$ce
 hint_1120:
     dc.b    $58,$4f,$4e,$75
-hunk_8_hint_1124:
+hint_1124:
     dc.b    $48,$7a,$f0,$50,$4e,$ba,$09,$c2
 hint_112c:
     dc.b    $58,$4f,$4e,$75
 hint_1130:
     dc.b    $48,$7a,$f0,$52,$4e,$ba,$09,$b6
-hunk_8_hint_1138:
+hint_1138:
     dc.b    $58,$4f,$4e,$75
 hint_113c:
     dc.b    $48,$7a,$f0,$54,$4e,$ba,$09,$aa
@@ -20881,7 +20949,7 @@ hunk_8_hint_11d4:
 hunk_8_loc_11e8:
     link a5,#0
     clr.w -(sp)
-    jsr loc_1ab0(pc)
+    jsr hunk_8_loc_1ab0(pc)
 hunk_8_loc_11f2:
     move.l d0,-(sp)
     move.l 8(a5),-(sp)
@@ -20973,7 +21041,7 @@ hunk_8_loc_12c8:
 hunk_8_loc_12d0:
     lea 12(sp),sp
     tst.w d0
-    beq.w hunk_8_loc_135a
+    beq.w loc_135a
 hunk_8_loc_12da:
     movea.l 7636(a4),a0
     move.w 4(a0),d0
@@ -20988,7 +21056,7 @@ hunk_8_loc_12f6:
     beq.s hunk_8_loc_131e
 hunk_8_loc_12fe:
     cmpi.w #$199,-32732(a4)
-    beq.s hunk_8_loc_135a
+    beq.s loc_135a
 hunk_8_loc_1306:
     lea 38(a3),a0
     move.l a0,-(sp)
@@ -21018,10 +21086,10 @@ hunk_8_loc_1344:
     pea -54(a5)
     pea -4376(pc)
     jsr loc_1ae6(pc)
-hunk_8_loc_1354:
+loc_1354:
     moveq #0,d0
     bra.w hunk_8_loc_143e
-hunk_8_loc_135a:
+loc_135a:
     move.w 8(sp),d0
     cmp.w 6898(a4),d0
     ble.s hunk_8_loc_1372
@@ -21102,7 +21170,7 @@ hunk_8_loc_140c:
 hunk_8_loc_1410:
     pea -4398(pc)
     jsr hunk_8_loc_1aec(pc)
-hunk_8_loc_1418:
+loc_1418:
     addq.w #4,sp
 hunk_8_loc_141a:
     tst.w -32674(a4)
@@ -21112,13 +21180,13 @@ hunk_8_loc_1420:
     jsr hunk_8_loc_1aec(pc)
 hunk_8_loc_1428:
     addq.w #4,sp
-    bra.s loc_1434
+    bra.s hunk_8_loc_1434
 hunk_8_loc_142c:
     clr.w -(sp)
     jsr loc_1abc(pc)
 hunk_8_loc_1432:
     addq.w #2,sp
-loc_1434:
+hunk_8_loc_1434:
     pea -4854(pc)
     jsr hunk_8_loc_1aec(pc)
 hunk_8_loc_143c:
@@ -21129,20 +21197,20 @@ hunk_8_loc_143e:
     rts
 hunk_8_hint_1446:
     dc.b    $20,$6c,$19,$54,$d0,$fc,$00,$26,$2f,$08,$4e,$ba,$06,$9a
-hunk_8_hint_1454:
+hint_1454:
     dc.b    $2e,$ac,$19,$54,$61,$00,$f2,$34
 hunk_8_hint_145c:
     dc.b    $58,$4f,$20,$6c,$19,$58,$32,$28,$00,$04,$b0,$41,$67,$4a
-hunk_8_hint_146a:
+hint_146a:
     dc.b    $c3,$fc,$00,$3a,$20,$6c,$1d,$d0,$d1,$c1,$08,$28,$00,$01,$00,$1e
     dc.b    $67,$0c
-hunk_8_hint_147c:
+hint_147c:
     dc.b    $48,$7a,$ee,$72,$4e,$ba,$06,$6a
 hint_1484:
     dc.b    $58,$4f,$60,$0a
 hunk_8_hint_1488:
     dc.b    $48,$7a,$ee,$70,$4e,$ba,$06,$5e
-hunk_8_hint_1490:
+hint_1490:
     dc.b    $58,$4f
 hint_1492:
     dc.b    $20,$6c,$19,$58,$30,$28,$00,$04,$c1,$fc,$00,$3a,$20,$6c,$1d,$d0
@@ -21311,7 +21379,7 @@ hunk_8_loc_1634:
     pea hunk_8_str_036e(pc)
     jsr loc_1ae6(pc)
 hunk_8_loc_1644:
-    jsr hunk_8_loc_1ac2(pc)
+    jsr loc_1ac2(pc)
 hunk_8_loc_1648:
     pea -5386(pc)
     jsr hunk_8_loc_1aec(pc)
@@ -21363,7 +21431,7 @@ hunk_8_loc_16a2:
     jsr hunk_8_loc_1ada(pc)
 hunk_8_loc_16ae:
     bsr.w hunk_8_loc_1a42
-loc_16b2:
+hunk_8_loc_16b2:
     addq.w #4,sp
 hunk_8_loc_16b4:
     tst.w -32584(a4)
@@ -21583,7 +21651,7 @@ hunk_8_loc_18b0:
     movea.l 7640(a4),a3
     lea 6(a3),a2
     move.w d0,-14(a5)
-    bra.s loc_18fc
+    bra.s hunk_8_loc_18fc
 hunk_8_loc_18d4:
     tst.w 16(a3)
     beq.s hunk_8_loc_18fa
@@ -21599,7 +21667,7 @@ hunk_8_loc_18da:
     bra.s hunk_8_loc_1900
 hunk_8_loc_18fa:
     addq.l #2,a3
-loc_18fc:
+hunk_8_loc_18fc:
     cmpa.l a2,a3
     bcs.s hunk_8_loc_18d4
 hunk_8_loc_1900:
@@ -21753,20 +21821,20 @@ loc_1a92:
     jmp hunk_3_loc_01b4
 pcref_1a98:
     dc.b    $4e,$f9
-    dc.l    sub_1a24
+    dc.l    hunk_0_loc_1a24
 hunk_8_loc_1a9e:
     jmp hunk_1_loc_1624
 hunk_8_loc_1aa4:
     jmp hunk_25_loc_02fa
 hunk_8_loc_1aaa:
     jmp hunk_36_loc_262e
-loc_1ab0:
+hunk_8_loc_1ab0:
     jmp hunk_3_loc_0dac
 hunk_8_loc_1ab6:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 loc_1abc:
     jmp hunk_4_loc_00c6
-hunk_8_loc_1ac2:
+loc_1ac2:
     jmp hunk_4_loc_009a
 pcref_1ac8:
     dc.b    $4e,$f9
@@ -23319,7 +23387,7 @@ hunk_9_loc_0e12:
 hunk_9_loc_0e18:
     jmp hunk_16_loc_04d4
 hunk_9_loc_0e1e:
-    jmp hunk_0_hint_1490
+    jmp hunk_0_loc_1490
 
 ; Hunk 10: 5904 bytes, 0 entities, 568 blocks
 
@@ -23876,11 +23944,11 @@ hunk_10_loc_0498:
     move.l d5,d2
 hunk_10_loc_049a:
     cmpi.w #$3e8,d2
-    ble.s hunk_10_loc_04a6
+    ble.s loc_04a6
 hunk_10_loc_04a0:
     move.w #$3e8,d3
     bra.s hunk_10_loc_04a8
-hunk_10_loc_04a6:
+loc_04a6:
     move.l d2,d3
 hunk_10_loc_04a8:
     movea.l (a0),a2
@@ -24316,7 +24384,7 @@ loc_08ec:
     move.w d0,42(sp)
     bra.w hunk_10_loc_09f8
 hunk_10_loc_090c:
-    jsr loc_1618(pc)
+    jsr hunk_10_loc_1618(pc)
 hunk_10_loc_0910:
     move.l d0,d1
     ext.l d1
@@ -24753,7 +24821,7 @@ hunk_10_loc_0d26:
     move.l a3,-(sp)
     jsr hunk_10_loc_1684(pc)
 hunk_10_loc_0d40:
-    jsr loc_1618(pc)
+    jsr hunk_10_loc_1618(pc)
 hunk_10_loc_0d44:
     move.w d0,16(sp)
     ext.l d0
@@ -24858,9 +24926,9 @@ hunk_10_loc_0e4a:
     moveq #1,d5
     moveq #19,d0
     lea -10594(a4),a0
-hunk_10_loc_0e52:
+loc_0e52:
     move.b d1,(a0)+
-    dbf d0,hunk_10_loc_0e52
+    dbf d0,loc_0e52
 hunk_10_loc_0e58:
     clr.w -(sp)
     move.w #$9c40,d0
@@ -24885,7 +24953,7 @@ hunk_10_loc_0e86:
     move.l -17110(a4),(sp)
     move.l -4904(a4),-(sp)
     jsr hunk_10_loc_16a2(pc)
-hunk_10_loc_0e92:
+loc_0e92:
     move.w #$7cf,d0
     moveq #0,d1
     lea dat_6720,a0
@@ -25160,7 +25228,7 @@ hunk_10_loc_10ee:
     move.l a0,-(sp)
     move.l 8(a5),-(sp)
     jsr hunk_10_loc_1600(pc)
-loc_10fe:
+hunk_10_loc_10fe:
     addq.w #8,sp
     tst.w d0
     bne.s hunk_10_loc_1110
@@ -25248,11 +25316,11 @@ hunk_10_loc_11a8:
 hunk_10_loc_11ae:
     moveq #11,d0
     cmp.w d0,d3
-    bne.s loc_11bc
+    bne.s hunk_10_loc_11bc
 hunk_10_loc_11b4:
     move.w #$da,-14(a5)
     bra.s hunk_10_loc_11c4
-loc_11bc:
+hunk_10_loc_11bc:
     move.w #$a3,d0
     move.w d0,-14(a5)
 hunk_10_loc_11c4:
@@ -25356,7 +25424,7 @@ hunk_10_loc_127e:
 hunk_10_loc_128a:
     tst.w d0
     bpl.s hunk_10_loc_1294
-hunk_10_loc_128e:
+loc_128e:
     addq.w #1,-10(a5)
     bra.s hunk_10_loc_1276
 hunk_10_loc_1294:
@@ -25696,14 +25764,14 @@ hunk_10_loc_15fa:
     movem.l (sp)+,d7/a3
     rts
 hunk_10_loc_1600:
-    jmp sub_15ec
+    jmp hunk_0_loc_15ec
 loc_1606:
     jmp hunk_23_loc_024c
 hunk_10_loc_160c:
     jmp hunk_36_loc_1500
 hunk_10_loc_1612:
     jmp hunk_36_loc_1d24
-loc_1618:
+hunk_10_loc_1618:
     jmp hunk_11_loc_0a28
 hunk_10_loc_161e:
     jmp hunk_43_loc_01c4
@@ -25726,7 +25794,7 @@ loc_164e:
 hunk_10_loc_1654:
     jmp hunk_24_loc_0212
 hunk_10_loc_165a:
-    jmp sub_04d8
+    jmp hunk_0_loc_04d8
 hunk_10_loc_1660:
     jmp hunk_11_loc_08d8
 hunk_10_loc_1666:
@@ -25734,7 +25802,7 @@ hunk_10_loc_1666:
 hunk_10_loc_166c:
     jmp hunk_36_loc_262e
 hunk_10_loc_1672:
-    jmp sub_04e0
+    jmp hunk_0_loc_04e0
 hunk_10_loc_1678:
     jmp hunk_11_loc_012c
 hunk_10_loc_167e:
@@ -25748,15 +25816,15 @@ hunk_10_loc_1690:
 hunk_10_loc_1696:
     jmp hunk_12_loc_011c
 hunk_10_loc_169c:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 hunk_10_loc_16a2:
     jmp hunk_14_loc_0008
 hunk_10_loc_16a8:
-    jmp sub_2360
+    jmp hunk_0_loc_2360
 hunk_10_loc_16ae:
     jmp hunk_36_loc_0b32
 hunk_10_loc_16b4:
-    jmp sub_1bd8
+    jmp hunk_0_loc_1bd8
 hunk_10_loc_16ba:
     jmp hunk_36_loc_1df2
 hunk_10_loc_16c0:
@@ -25784,7 +25852,7 @@ hunk_10_loc_16fc:
 hunk_10_loc_1702:
     jmp hunk_13_loc_06e2
 hunk_10_loc_1708:
-    jmp sub_01f8
+    jmp hunk_0_loc_01f8
     dc.b    $70,$61
 
 ; Hunk 11: 2792 bytes, 0 entities, 212 blocks
@@ -26791,7 +26859,7 @@ hunk_11_loc_0a9e:
     jmp hunk_36_loc_2616
 pcref_0aa4:
     dc.b    $4e,$f9
-    dc.l    sub_1a24
+    dc.l    hunk_0_loc_1a24
 hunk_11_loc_0aaa:
     jmp hunk_36_loc_0546
 hunk_11_loc_0ab0:
@@ -27943,23 +28011,23 @@ hunk_13_loc_0868:
 hunk_13_loc_086e:
     jmp hunk_7_loc_032a
 hunk_13_loc_0874:
-    jmp sub_25e4
+    jmp hunk_0_loc_25e4
 hunk_13_loc_087a:
     jmp hunk_36_loc_1b2e
 hunk_13_loc_0880:
     jmp hunk_36_loc_262e
 hunk_13_loc_0886:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 pcref_088c:
     dc.b    $4e,$f9
     dc.l    hunk_36_loc_1f38
 pcref_0892:
     dc.b    $4e,$f9
-    dc.l    sub_1bd8
+    dc.l    hunk_0_loc_1bd8
 hunk_13_loc_0898:
     jmp hunk_36_loc_1cc8
 hunk_13_loc_089e:
-    jmp hint_1560
+    jmp hunk_0_loc_1560
 hunk_13_loc_08a4:
     jmp hunk_10_loc_159a
 hunk_13_loc_08aa:
@@ -27973,9 +28041,9 @@ hunk_13_loc_08bc:
 hunk_13_loc_08c2:
     jmp hunk_36_loc_19f0
 hunk_13_loc_08c8:
-    jmp sub_1ed0
+    jmp hunk_0_loc_1ed0
 hunk_13_loc_08ce:
-    jmp sub_01f8
+    jmp hunk_0_loc_01f8
 hunk_13_loc_08d4:
     jmp hunk_36_loc_1258
 hunk_13_loc_08da:
@@ -28118,7 +28186,7 @@ hunk_14_loc_013e:
 hunk_14_loc_0148:
     jmp hunk_13_loc_07e8
 hunk_14_loc_014e:
-    jmp hunk_0_hint_1490
+    jmp hunk_0_loc_1490
 
 ; Hunk 15: 328 bytes, 0 entities, 30 blocks
 
@@ -28899,7 +28967,7 @@ hunk_17_loc_005e:
     subq.w #2,sp
     move.w d6,-(sp)
 hunk_17_loc_0062:
-    jsr loc_2008(pc)
+    jsr hunk_17_loc_2008(pc)
 hunk_17_loc_0066:
     addq.w #4,sp
     move.b #$1,-5240(a4)
@@ -28959,7 +29027,7 @@ hunk_17_loc_00ee:
     tst.w d7
     beq.s hunk_17_loc_00fa
 hunk_17_loc_00f2:
-    jsr loc_1f90(pc)
+    jsr hunk_17_loc_1f90(pc)
 hunk_17_loc_00f6:
     jsr loc_2026(pc)
 hunk_17_loc_00fa:
@@ -29922,7 +29990,7 @@ hunk_17_loc_098e:
     tst.w d7
     beq.s hunk_17_loc_09a2
 hunk_17_loc_099a:
-    jsr loc_1f90(pc)
+    jsr hunk_17_loc_1f90(pc)
 hunk_17_loc_099e:
     jsr loc_2026(pc)
 hunk_17_loc_09a2:
@@ -29979,7 +30047,7 @@ hunk_17_loc_0a0c:
     ble.s $a80
 hunk_17_loc_0a0e:
     dc.b    $65,$00,$73,$61
-loc_0a12:
+hunk_17_loc_0a12:
     moveq #101,d3
     ori.b #$61,d0
     moveq #101,d3
@@ -30469,9 +30537,9 @@ hunk_17_loc_0df2:
     lea 4932(a4),a0
     adda.l d0,a0
     lea -5358(a4),a1
-loc_0e04:
+hunk_17_loc_0e04:
     move.b (a1)+,(a0)+
-    bne.s loc_0e04
+    bne.s hunk_17_loc_0e04
 hunk_17_loc_0e08:
     move.l 6484(a4),(sp)
     jsr hunk_17_loc_2038(pc)
@@ -30517,7 +30585,7 @@ hunk_17_loc_0e62:
     bra.w hunk_17_loc_0c26
 hunk_17_loc_0e68:
     move.w #$19,-4960(a4)
-    jsr loc_1f90(pc)
+    jsr hunk_17_loc_1f90(pc)
 hunk_17_loc_0e72:
     jsr loc_2026(pc)
 hunk_17_loc_0e76:
@@ -30552,7 +30620,7 @@ hunk_17_loc_0eaa:
     bne.s hunk_17_loc_0eda
 hunk_17_loc_0eca:
     jsr loc_1f96(pc)
-loc_0ece:
+hunk_17_loc_0ece:
     pea 7736(a4)
     jsr hunk_17_loc_1fc0(pc)
 hunk_17_loc_0ed6:
@@ -30765,7 +30833,7 @@ hunk_17_loc_10cc:
     jsr hunk_17_loc_2038(pc)
 hunk_17_loc_10d4:
     move.w 5432(a4),(sp)
-    jsr hunk_17_loc_2086(pc)
+    jsr loc_2086(pc)
 hunk_17_loc_10dc:
     addq.w #4,sp
     movea.l 6484(a4),a0
@@ -31088,7 +31156,7 @@ hunk_17_loc_141e:
 hunk_17_loc_146a:
     move.w 20(sp),-4960(a4)
     jsr hunk_17_loc_2032(pc)
-loc_1474:
+hunk_17_loc_1474:
     movem.l -16(a5),d2/d6-d7
     unlk a5
     rts
@@ -31516,7 +31584,7 @@ hunk_17_loc_1980:
     move.w -5218(a4),7402(a4)
     move.w -5216(a4),7404(a4)
     tst.b -5374(a4)
-    beq.s hunk_17_loc_19c0
+    beq.s loc_19c0
 hunk_17_loc_1996:
     moveq #16,d0
     move.w d0,-(sp)
@@ -31534,7 +31602,7 @@ hunk_17_loc_19a8:
     jsr hunk_17_loc_201a(pc)
 hunk_17_loc_19bc:
     lea 16(sp),sp
-hunk_17_loc_19c0:
+loc_19c0:
     move.w 7016(a4),d0
     cmpi.w #$140,d0
     bge.s hunk_17_loc_19ee
@@ -31566,7 +31634,7 @@ hunk_17_loc_1a04:
     moveq #0,d6
     tst.b 7392(a4)
     bne.s loc_1a14
-hunk_17_loc_1a10:
+loc_1a10:
     moveq #0,d0
     bra.s hunk_17_loc_1a82
 loc_1a14:
@@ -31640,7 +31708,7 @@ hunk_17_loc_1a98:
     move.w -4934(a4),-4938(a4)
     move.w d0,8(sp)
     jsr loc_208c(pc)
-loc_1ab8:
+hunk_17_loc_1ab8:
     moveq #0,d7
     lea 4932(a4),a3
     bra.s hunk_17_loc_1aca
@@ -31687,7 +31755,7 @@ hunk_17_loc_1b02:
 hunk_17_loc_1b0a:
     moveq #0,d7
     bra.s hunk_17_loc_1b2e
-loc_1b0e:
+hunk_17_loc_1b0e:
     move.w 5432(a4),d0
     cmp.w d7,d0
     bne.s hunk_17_loc_1b22
@@ -31709,7 +31777,7 @@ hunk_17_loc_1b2c:
 hunk_17_loc_1b2e:
     moveq #10,d0
     cmp.w d0,d7
-    blt.s loc_1b0e
+    blt.s hunk_17_loc_1b0e
 hunk_17_loc_1b34:
     move.w -4704(a4),d0
     addq.w #2,d0
@@ -31726,16 +31794,16 @@ hunk_17_loc_1b34:
     adda.l d0,a0
 hunk_17_loc_1b64:
     lea -5358(a4),a1
-loc_1b68:
+hunk_17_loc_1b68:
     move.b (a0)+,(a1)+
-    bne.s loc_1b68
+    bne.s hunk_17_loc_1b68
 hunk_17_loc_1b6c:
     lea -5358(a4),a0
     movea.l a0,a1
 hunk_17_loc_1b72:
     tst.b (a1)+
     bne.s hunk_17_loc_1b72
-hunk_17_loc_1b76:
+loc_1b76:
     subq.l #1,a1
     suba.l a0,a1
     move.w a1,-4698(a4)
@@ -31879,7 +31947,7 @@ hunk_17_loc_1cd6:
 hunk_17_loc_1cde:
     cmpi.w #$5,d0
     bge.w hunk_17_loc_1f2a
-hunk_17_loc_1ce6:
+loc_1ce6:
     add.w d0,d0
     move.w pcref_1cf0(pc,d0.w),d0
     jmp pcref_1cf2(pc,d0.w) ; unresolved_indirect_core:pcindex.brief
@@ -32069,7 +32137,7 @@ loc_1ea8:
     beq.s hunk_17_loc_1ee2
 loc_1eac:
     subq.w #1,d0
-    beq.s loc_1ec8
+    beq.s hunk_17_loc_1ec8
 loc_1eb0:
     bra.s hunk_17_loc_1f0c
 hunk_17_loc_1eb2:
@@ -32081,7 +32149,7 @@ hunk_17_loc_1eb2:
 hunk_17_loc_1ec2:
     clr.w -32306(a4)
     bra.s hunk_17_loc_1f0c
-loc_1ec8:
+hunk_17_loc_1ec8:
     addq.w #1,-32306(a4)
     move.b #$2,7399(a4)
     cmpi.w #$f,-32306(a4)
@@ -32091,7 +32159,7 @@ hunk_17_loc_1eda:
     bra.s hunk_17_loc_1f0c
 hunk_17_loc_1ee2:
     clr.b 7399(a4)
-    jsr loc_1f90(pc)
+    jsr hunk_17_loc_1f90(pc)
 hunk_17_loc_1eea:
     jsr loc_2026(pc)
 hunk_17_loc_1eee:
@@ -32151,7 +32219,7 @@ hunk_17_loc_1f84:
     jmp hunk_11_loc_085c
 hunk_17_loc_1f8a:
     jmp hunk_16_loc_069e
-loc_1f90:
+hunk_17_loc_1f90:
     jmp hunk_36_loc_14b0
 loc_1f96:
     jmp hunk_36_loc_0536
@@ -32168,13 +32236,13 @@ hunk_17_loc_1fb4:
 hunk_17_loc_1fba:
     jmp hunk_12_loc_0224
 hunk_17_loc_1fc0:
-    jmp sub_25e4
+    jmp hunk_0_loc_25e4
 loc_1fc6:
     jmp hunk_3_loc_0d70
 hunk_17_loc_1fcc:
     jmp hunk_1_loc_1624
 hunk_17_loc_1fd2:
-    jmp sub_051a
+    jmp hunk_0_loc_051a
 hunk_17_loc_1fd8:
     jmp hunk_9_loc_0d1c
 hunk_17_loc_1fde:
@@ -32191,12 +32259,12 @@ loc_1ffc:
     jmp hunk_3_loc_0a80
 hunk_17_loc_2002:
     jmp hunk_11_loc_012c
-loc_2008:
+hunk_17_loc_2008:
     jmp hunk_11_loc_01fa
 hunk_17_loc_200e:
     jmp hunk_21_loc_09c8
 hunk_17_loc_2014:
-    jmp sub_1420
+    jmp hunk_0_loc_1420
 hunk_17_loc_201a:
     jmp hunk_36_loc_1104
 hunk_17_loc_2020:
@@ -32228,12 +32296,12 @@ hunk_17_loc_2068:
 loc_206e:
     jmp hunk_9_loc_086e
 loc_2074:
-    jmp sub_1ed0
+    jmp hunk_0_loc_1ed0
 loc_207a:
     jmp hunk_9_loc_0318
 hunk_17_loc_2080:
     jmp hunk_10_loc_01aa
-hunk_17_loc_2086:
+loc_2086:
     jmp hunk_3_loc_0734
 loc_208c:
     jmp hunk_3_loc_0c84
@@ -32634,7 +32702,7 @@ hint_03a6:
 hint_03ae:
     dc.b    $4c,$df,$0c,$00,$4e,$75
 hunk_18_loc_03b4:
-    jmp sub_15ec
+    jmp hunk_0_loc_15ec
 hunk_18_loc_03ba:
     jmp hunk_21_loc_094c
 hunk_18_loc_03c0:
@@ -33904,7 +33972,7 @@ hunk_21_loc_02ae:
     move.w 26(a2),d0
     ext.l d0
     move.l d0,-(sp)
-    jsr hunk_21_loc_0bfe(pc)
+    jsr loc_0bfe(pc)
 hunk_21_loc_02ba:
     addq.w #4,sp
     move.l d0,20(a2)
@@ -34106,7 +34174,7 @@ hunk_21_loc_04d6:
 hunk_21_loc_04dc:
     bra.s hunk_21_loc_04e6
 hunk_21_loc_04de:
-    jsr hunk_21_loc_0ba4(pc)
+    jsr loc_0ba4(pc)
 hunk_21_loc_04e2:
     subq.w #1,-2(a5)
 hunk_21_loc_04e6:
@@ -34587,7 +34655,7 @@ hunk_21_loc_0934:
 hunk_21_loc_0938:
     jsr hunk_21_loc_0c1c(pc)
 hunk_21_loc_093c:
-    pea hunk_21_loc_0ba4(pc)
+    pea loc_0ba4(pc)
     moveq #1,d0
     move.w d0,-(sp)
     jsr hunk_21_loc_0bf8(pc)
@@ -34734,7 +34802,7 @@ hunk_21_loc_0aa6:
     pea hunk_21_str_0048(pc)
     pea 4596(a4)
     jsr hunk_21_loc_0bd4(pc)
-hunk_21_loc_0ab2:
+loc_0ab2:
     move.l 7812(a4),d0
     sub.l 7808(a4),d0
     asr.l #1,d0
@@ -34819,7 +34887,7 @@ hunk_21_loc_0b98:
     jmp hunk_9_loc_0000
 hunk_21_loc_0b9e:
     jmp hunk_3_loc_0d70
-hunk_21_loc_0ba4:
+loc_0ba4:
     jmp hunk_26_loc_0380
 hunk_21_loc_0baa:
     jmp hunk_36_loc_239e
@@ -34836,7 +34904,7 @@ hunk_21_loc_0bc8:
 hunk_21_loc_0bce:
     jmp hunk_26_loc_0000
 hunk_21_loc_0bd4:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 hunk_21_loc_0bda:
     jmp hunk_19_loc_0000
 hunk_21_loc_0be0:
@@ -34850,7 +34918,7 @@ hunk_21_loc_0bf2:
     jmp hunk_23_loc_025a
 hunk_21_loc_0bf8:
     jmp hunk_11_loc_0260
-hunk_21_loc_0bfe:
+loc_0bfe:
     jmp hunk_10_loc_14d6
 hunk_21_loc_0c04:
     jmp hunk_17_loc_0000
@@ -34880,7 +34948,7 @@ hunk_22_loc_0000:
     move.w #$1fff,d0
     move.w d0,-(sp)
     pea hunk_22_pcref_003c(pc)
-    jsr loc_14a0(pc)
+    jsr hunk_22_loc_14a0(pc)
 hunk_22_loc_001c:
     addq.w #6,sp
     rts
@@ -36729,7 +36797,7 @@ hunk_22_loc_10a8:
     move.w -6(a5),d3
     tst.w d3
     bmi.s hunk_22_loc_10d0
-loc_10b0:
+hunk_22_loc_10b0:
     cmp.w -32270(a4),d3
     bgt.s hunk_22_loc_10d0
 hunk_22_loc_10b6:
@@ -36970,7 +37038,7 @@ hunk_22_loc_1298:
 hunk_22_loc_129a:
     cmp.w d7,d3
     blt.s hunk_22_loc_12b0
-loc_129e:
+hunk_22_loc_129e:
     moveq #1,d0
     move.w d0,-8888(a4)
     move.w d1,92(a3)
@@ -37152,19 +37220,19 @@ hunk_22_loc_148e:
     unlk a5
     rts
 hunk_22_loc_1494:
-    jmp sub_2380
+    jmp hunk_0_loc_2380
 hunk_22_loc_149a:
     jmp hunk_36_loc_148c
-loc_14a0:
+hunk_22_loc_14a0:
     jmp hunk_11_loc_027a
 hunk_22_loc_14a6:
-    jmp sub_1a24
+    jmp hunk_0_loc_1a24
 hunk_22_loc_14ac:
     jmp hunk_25_loc_0452
 hunk_22_loc_14b2:
     jmp hunk_18_loc_00de
 hunk_22_loc_14b8:
-    jmp sub_2360
+    jmp hunk_0_loc_2360
     dc.b    $70,$61
 
 ; Hunk 23: 1112 bytes, 0 entities, 127 blocks
@@ -37856,7 +37924,7 @@ hunk_24_loc_01f6:
 hunk_24_loc_01f8:
     move.l 4(a3),-(sp)
     move.w 30(sp),-(sp)
-    jsr loc_192a(pc)
+    jsr hunk_24_loc_192a(pc)
 hunk_24_loc_0204:
     move.w 32(sp),d0
 hunk_24_loc_0208:
@@ -38966,11 +39034,11 @@ loc_0c1e:
 hunk_24_loc_0c22:
     movea.l 22(sp),a0
     move.l a3,24(a0)
-    bra.s loc_0c34
+    bra.s hunk_24_loc_0c34
 hunk_24_loc_0c2c:
     move.l a2,36(a3)
     move.l a3,40(a2)
-loc_0c34:
+hunk_24_loc_0c34:
     movea.l a3,a2
     lea 4(a2),a0
     move.b d6,d0
@@ -39442,11 +39510,11 @@ hunk_24_loc_1020:
 hunk_24_loc_1038:
     lea 12(sp),sp
     tst.w d0
-    beq.s loc_1046
+    beq.s hunk_24_loc_1046
 hunk_24_loc_1040:
     moveq #1,d0
     bra.w hunk_24_loc_10e4
-loc_1046:
+hunk_24_loc_1046:
     movea.l 7850(a4),a0
     move.b (a0)+,d0
     move.l a0,7850(a4)
@@ -39567,7 +39635,7 @@ hunk_24_loc_114e:
     movea.l 7826(a4),a0
     movea.l 4(a0),a2
     bra.s hunk_24_loc_115c
-loc_1158:
+hunk_24_loc_1158:
     movea.l 8(a2),a2
 hunk_24_loc_115c:
     tst.l 8(a2)
@@ -39575,7 +39643,7 @@ hunk_24_loc_115c:
 hunk_24_loc_1162:
     move.w 184(a2),d0
     cmp.w 184(a3),d0
-    ble.s loc_1158
+    ble.s hunk_24_loc_1158
 hunk_24_loc_116c:
     move.w 184(a2),d0
     cmp.w 184(a3),d0
@@ -39692,7 +39760,7 @@ hunk_24_loc_1266:
     move.b -86(a5),d0
     tst.b d0
     beq.s hunk_24_loc_129a
-hunk_24_loc_1270:
+loc_1270:
     lea -86(a5),a0
     movea.l a0,a1
 hunk_24_loc_1276:
@@ -40242,11 +40310,11 @@ hunk_24_loc_1720:
 hunk_24_loc_1726:
     moveq #9,d0
     cmp.b d0,d7
-    bne.s loc_1732
+    bne.s hunk_24_loc_1732
 hunk_24_loc_172c:
     lea 176(a3),a2
     bra.s hunk_24_loc_1780
-loc_1732:
+hunk_24_loc_1732:
     pea hunk_24_loc_00de(pc)
     jsr hunk_24_loc_18fa(pc)
 hunk_24_loc_173a:
@@ -40465,7 +40533,7 @@ hunk_24_loc_18f4:
 hunk_24_loc_18fa:
     jmp hunk_21_loc_094c
 hunk_24_loc_1900:
-    jmp sub_051a
+    jmp hunk_0_loc_051a
 hunk_24_loc_1906:
     jmp hunk_10_loc_085c
 hunk_24_loc_190c:
@@ -40475,10 +40543,10 @@ hunk_24_loc_1912:
 hunk_24_loc_1918:
     jmp hunk_36_loc_1b2e
 hunk_24_loc_191e:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 hunk_24_loc_1924:
     jmp hunk_19_loc_0000
-loc_192a:
+hunk_24_loc_192a:
     jmp hunk_36_loc_1cc8
 hunk_24_loc_1930:
     jmp hunk_44_loc_0a10
@@ -40499,7 +40567,7 @@ hunk_24_loc_195a:
 hunk_24_loc_1960:
     jmp hunk_36_loc_19f0
 hunk_24_loc_1966:
-    jmp sub_01f8
+    jmp hunk_0_loc_01f8
 hunk_24_loc_196c:
     jmp hunk_18_loc_00de
 hunk_24_loc_1972:
@@ -41137,7 +41205,7 @@ hunk_25_loc_05b2:
     bne.s hunk_25_loc_05ca
 hunk_25_loc_05c6:
     moveq #1,d0
-    bra.s hunk_25_loc_0616
+    bra.s loc_0616
 hunk_25_loc_05ca:
     tst.w d6
     bmi.s hunk_25_loc_05e2
@@ -41151,7 +41219,7 @@ hunk_25_loc_05d4:
     add.l d0,d0
     move.w 74(a2,d0.l),(a3)
     moveq #0,d0
-    bra.s hunk_25_loc_0616
+    bra.s loc_0616
 hunk_25_loc_05e2:
     move.l d6,d0
     subi.w #$9,d0
@@ -41183,7 +41251,7 @@ hunk_25_loc_0610:
     move.w 30(a2),(a3)
 hunk_25_loc_0614:
     moveq #0,d0
-hunk_25_loc_0616:
+loc_0616:
     movem.l (sp)+,d6-d7/a2-a3
     rts
 hunk_25_loc_061c:
@@ -41279,7 +41347,7 @@ hunk_25_loc_06d2:
     movem.l (sp)+,d2/d5-d7/a3
     rts
 hunk_25_loc_06d8:
-    jmp sub_15ec
+    jmp hunk_0_loc_15ec
 hunk_25_loc_06de:
     jmp hunk_24_loc_00f2
 hunk_25_loc_06e4:
@@ -41297,7 +41365,7 @@ hunk_25_loc_0702:
 hunk_25_loc_0708:
     jmp hunk_23_loc_00a4
 hunk_25_loc_070e:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 hunk_25_loc_0714:
     jmp hunk_24_loc_1406
 hunk_25_loc_071a:
@@ -43058,7 +43126,7 @@ pcref_0524:
     dc.l    loc_0878
 pcref_052a:
     dc.b    $4e,$f9
-    dc.l    loc_19b8
+    dc.l    hunk_31_loc_19b8
 pcref_0530:
     dc.b    $4e,$f9
     dc.l    loc_27e4
@@ -43211,13 +43279,13 @@ pcref_0656:
     dc.l    hunk_29_loc_12c0
 pcref_065c:
     dc.b    $4e,$f9
-    dc.l    loc_1f1a
+    dc.l    hunk_30_loc_1f1a
 pcref_0662:
     dc.b    $4e,$f9
     dc.l    loc_31b8
 pcref_0668:
     dc.b    $4e,$f9
-    dc.l    loc_253a
+    dc.l    hunk_31_loc_253a
 pcref_066e:
     dc.b    $4e,$f9
     dc.l    hunk_32_loc_1374
@@ -43292,7 +43360,7 @@ pcref_06f8:
     dc.l    hunk_31_loc_1bfc
 pcref_06fe:
     dc.b    $4e,$f9
-    dc.l    loc_261c
+    dc.l    hunk_30_loc_261c
 pcref_0704:
     dc.b    $4e,$f9
     dc.l    hunk_32_loc_0000
@@ -43351,7 +43419,7 @@ hunk_29_loc_000e:
     cmp.w d1,d0
     bne.s hunk_29_loc_0018
 hunk_29_loc_0014:
-    bsr.w loc_0e0e
+    bsr.w hunk_29_loc_0e0e
 hunk_29_loc_0018:
     moveq #1,d0
     cmp.w 8(a5),d0
@@ -43999,7 +44067,7 @@ hunk_29_loc_0526:
     jsr hunk_29_loc_1916(pc)
 hunk_29_loc_053c:
     clr.w 6978(a4)
-    bsr.w loc_0e0e
+    bsr.w hunk_29_loc_0e0e
 hunk_29_loc_0544:
     moveq #0,d0
     move.w d0,-8872(a4)
@@ -44158,7 +44226,7 @@ hunk_29_loc_0694:
     cmp.w d1,d0
     bne.s hunk_29_loc_069e
 hunk_29_loc_069a:
-    bsr.w loc_0e0e
+    bsr.w hunk_29_loc_0e0e
 hunk_29_loc_069e:
     moveq #5,d0
     cmp.w 8(a5),d0
@@ -44336,7 +44404,7 @@ hunk_29_loc_0824:
 hunk_29_loc_082a:
     tst.w -8872(a4)
     bne.s hunk_29_loc_084c
-loc_0830:
+hunk_29_loc_0830:
     move.w #$d0,6994(a4)
     moveq #1,d0
     move.w d0,-(sp)
@@ -45000,7 +45068,7 @@ hunk_29_loc_0e08:
 loc_0e0a:
     unlk a5
     rts
-loc_0e0e:
+hunk_29_loc_0e0e:
     moveq #23,d0
     move.w d0,-(sp)
     move.w #$e6,d1
@@ -45107,7 +45175,7 @@ hunk_29_loc_0ede:
     move.w d0,6976(a4)
 hunk_29_loc_0ee8:
     clr.w 6904(a4)
-    bsr.w loc_0e0e
+    bsr.w hunk_29_loc_0e0e
 hunk_29_loc_0ef0:
     move.w #$d0,6994(a4)
     moveq #1,d0
@@ -45193,7 +45261,7 @@ hunk_29_loc_0fa0:
 loc_0fa6:
     pea str_03ea(pc)
     jsr hunk_29_loc_191c(pc)
-loc_0fae:
+hunk_29_loc_0fae:
     moveq #1,d0
     bra.s hunk_29_loc_0ff6
 hunk_29_loc_0fb2:
@@ -45244,7 +45312,7 @@ hunk_29_loc_1008:
     cmp.w d1,d0
     bne.s hunk_29_loc_1012
 hunk_29_loc_100e:
-    bsr.w loc_0e0e
+    bsr.w hunk_29_loc_0e0e
 hunk_29_loc_1012:
     moveq #7,d0
     cmp.w 8(a5),d0
@@ -45303,7 +45371,7 @@ hunk_29_loc_1080:
     cmp.w d1,d0
     bne.s hunk_29_loc_108a
 hunk_29_loc_1086:
-    bsr.w loc_0e0e
+    bsr.w hunk_29_loc_0e0e
 hunk_29_loc_108a:
     move.w 8(a5),d0
     moveq #5,d1
@@ -45369,7 +45437,7 @@ hunk_29_loc_1110:
     bra.w hunk_29_loc_12b8
 hunk_29_loc_1116:
     cmpi.w #$1fa,-32732(a4)
-    bne.s loc_1138
+    bne.s hunk_29_loc_1138
 hunk_29_loc_111e:
     move.w #$122,d0
     move.w d0,-(sp)
@@ -45382,7 +45450,7 @@ hunk_29_loc_112e:
     jsr hunk_29_loc_18f8(pc)
 hunk_29_loc_1136:
     addq.w #4,sp
-loc_1138:
+hunk_29_loc_1138:
     move.w #$122,d0
     move.w d0,-(sp)
     jsr hunk_29_loc_190a(pc)
@@ -45500,12 +45568,12 @@ hunk_29_loc_123c:
     beq.s hunk_29_loc_1264
 loc_1246:
     cmpi.w #$1d6,d0
-    bne.s hunk_29_loc_1256
+    bne.s loc_1256
 hunk_29_loc_124c:
     move.w -32674(a4),d1
     cmpi.w #$125,d1
     beq.s hunk_29_loc_1264
-hunk_29_loc_1256:
+loc_1256:
     cmpi.w #$1d8,d0
     bne.s hunk_29_loc_12a0
 hunk_29_loc_125c:
@@ -45592,7 +45660,7 @@ hunk_29_loc_1300:
     move.b d0,-17116(a4)
     move.b d0,-17115(a4)
     move.b d0,-23862(a4)
-    bsr.w loc_0e0e
+    bsr.w hunk_29_loc_0e0e
 hunk_29_loc_1312:
     moveq #64,d0
     cmp.w 6996(a4),d0
@@ -46018,10 +46086,10 @@ hunk_29_loc_16d8:
     beq.s hunk_29_loc_16f0
 hunk_29_loc_16e2:
     cmpi.w #$1a8,d0
-    bne.s hunk_29_loc_1706
+    bne.s loc_1706
 hunk_29_loc_16e8:
     cmpi.w #$12b,-32674(a4)
-    bne.s hunk_29_loc_1706
+    bne.s loc_1706
 hunk_29_loc_16f0:
     moveq #9,d0
     move.w d0,-(sp)
@@ -46036,7 +46104,7 @@ hunk_29_loc_16fe:
 hunk_29_loc_1702:
     moveq #0,d0
     bra.s hunk_29_loc_1708
-hunk_29_loc_1706:
+loc_1706:
     moveq #0,d0
 hunk_29_loc_1708:
     unlk a5
@@ -46055,9 +46123,9 @@ hint_173c:
     dc.b    $51,$40,$67,$0c
 hint_1740:
     dc.b    $48,$7a,$ed,$a4,$4e,$ba,$01,$d6
-hint_1748:
+hunk_29_hint_1748:
     dc.b    $70,$01,$60,$06
-hint_174c:
+hunk_29_hint_174c:
     dc.b    $70,$00,$60,$02
 hunk_29_hint_1750:
     dc.b    $70,$00
@@ -46167,7 +46235,7 @@ hunk_29_loc_1886:
 hunk_29_loc_188c:
     jmp hunk_8_loc_053c
 hunk_29_loc_1892:
-    jmp sub_051a
+    jmp hunk_0_loc_051a
 hunk_29_loc_1898:
     jmp hunk_22_loc_006e
 hunk_29_loc_189e:
@@ -48532,7 +48600,7 @@ hunk_30_loc_11d4:
     move.w #$2,-5372(a4)
     move.w #$1,6978(a4)
     jsr loc_2ce8(pc)
-hunk_30_loc_11e4:
+loc_11e4:
     clr.w -(sp)
     jsr loc_2d1e(pc)
 hunk_30_loc_11ea:
@@ -48583,7 +48651,7 @@ hunk_30_loc_1242:
 hunk_30_loc_124c:
     tst.w -8836(a4)
     beq.s hunk_30_loc_1258
-hunk_30_loc_1252:
+loc_1252:
     move.w #$4,-4800(a4)
 hunk_30_loc_1258:
     moveq #0,d0
@@ -48772,7 +48840,7 @@ hunk_30_loc_13d6:
     addq.w #4,sp
     tst.w d0
     beq.s hunk_30_loc_13e6
-loc_13dc:
+hunk_30_loc_13dc:
     move.w #$7,-4800(a4)
     clr.b -4794(a4)
 hunk_30_loc_13e6:
@@ -48904,11 +48972,11 @@ hunk_30_loc_14de:
     moveq #61,d1
     cmp.b d1,d0
     beq.s hunk_30_loc_14fe
-loc_14e8:
+hunk_30_loc_14e8:
     moveq #43,d1
     cmp.b d1,d0
     beq.s hunk_30_loc_14fe
-hunk_30_loc_14ee:
+loc_14ee:
     moveq #45,d1
     cmp.b d1,d0
     beq.s hunk_30_loc_14fe
@@ -49261,7 +49329,7 @@ hunk_30_loc_17ba:
 hunk_30_loc_17c0:
     pea -5248(pc)
     jsr hunk_30_loc_2d48(pc)
-loc_17c8:
+hunk_30_loc_17c8:
     addq.w #4,sp
     bra.s loc_180a
 hunk_30_loc_17cc:
@@ -49374,7 +49442,7 @@ hunk_30_loc_18a4:
     moveq #19,d1
     cmp.w 6996(a4),d1
     bne.s hunk_30_loc_18c2
-hunk_30_loc_18ac:
+loc_18ac:
     moveq #1,d1
     move.w d1,6998(a4)
     clr.w -1984(a4)
@@ -49396,7 +49464,7 @@ hunk_30_loc_18dc:
     moveq #8,d0
     move.w d0,-(sp)
     jsr hunk_30_loc_2d24(pc)
-hunk_30_loc_18e4:
+loc_18e4:
     addq.w #2,sp
     tst.w d0
     beq.s hunk_30_loc_18f0
@@ -49668,7 +49736,7 @@ hunk_30_loc_1b18:
 loc_1b1c:
     cmpi.w #$f4,-5388(a4)
     ble.s hunk_30_loc_1b38
-hunk_30_loc_1b24:
+loc_1b24:
     move.w -5392(a4),d0
     addq.w #2,d0
     move.l d0,d1
@@ -49698,7 +49766,7 @@ hunk_30_loc_1b5e:
     moveq #12,d1
     cmp.w d1,d0
     beq.s hunk_30_loc_1b7a
-loc_1b6e:
+hunk_30_loc_1b6e:
     moveq #5,d1
     cmp.w d1,d0
     beq.s hunk_30_loc_1b7a
@@ -49742,7 +49810,7 @@ hunk_30_loc_1bba:
     bne.s hunk_30_loc_1bf0
 loc_1bc2:
     tst.w 6526(a4)
-    bne.s hunk_30_loc_1bda
+    bne.s loc_1bda
 hunk_30_loc_1bc8:
     moveq #77,d0
     move.w d0,-(sp)
@@ -49752,7 +49820,7 @@ hunk_30_loc_1bc8:
 hunk_30_loc_1bd6:
     addq.w #4,sp
     bra.s hunk_30_loc_1bea
-hunk_30_loc_1bda:
+loc_1bda:
     moveq #77,d0
     move.w d0,-(sp)
     move.w #$1f2,d1
@@ -49803,7 +49871,7 @@ hunk_30_loc_1c3a:
     move.w #$1f4,d1
     move.w d1,-(sp)
     jsr loc_2c82(pc)
-hunk_30_loc_1c48:
+loc_1c48:
     moveq #1,d0
     bra.s hunk_30_loc_1cc6
 hunk_30_loc_1c4c:
@@ -49838,7 +49906,7 @@ hunk_30_loc_1c80:
 hunk_30_loc_1c82:
     pea -6358(pc)
     jsr hunk_30_loc_2d48(pc)
-hunk_30_loc_1c8a:
+loc_1c8a:
     addq.w #4,sp
     bra.s hunk_30_loc_1c9e
 hunk_30_loc_1c8e:
@@ -49876,11 +49944,11 @@ hunk_30_loc_1cc6:
     rts
 hunk_30_loc_1cce:
     tst.w -8872(a4)
-    beq.s hunk_30_loc_1cdc
+    beq.s loc_1cdc
 hunk_30_loc_1cd4:
     move.w #$1,6976(a4)
     bra.s hunk_30_loc_1ce0
-hunk_30_loc_1cdc:
+loc_1cdc:
     clr.w 6976(a4)
 hunk_30_loc_1ce0:
     cmpi.w #$df,-5388(a4)
@@ -49971,7 +50039,7 @@ hunk_30_loc_1da4:
     beq.s loc_1db0
 hunk_30_loc_1daa:
     cmpi.w #$1e7,d0
-    bne.s hunk_30_loc_1dda
+    bne.s loc_1dda
 loc_1db0:
     tst.w 6622(a4)
     beq.s hunk_30_loc_1dc4
@@ -49988,10 +50056,10 @@ hunk_30_loc_1dc4:
     move.w #$1cf,d1
     move.w d1,-(sp)
     jsr loc_2c1c(pc)
-hunk_30_loc_1dd4:
+loc_1dd4:
     moveq #1,d0
     bra.w hunk_30_loc_1f10
-hunk_30_loc_1dda:
+loc_1dda:
     moveq #112,d0
     move.w d0,-(sp)
     jsr hunk_30_loc_2cac(pc)
@@ -50145,13 +50213,13 @@ hunk_30_loc_1f10:
     movem.l -8(a5),d2-d3
     unlk a5
     rts
-loc_1f1a:
+hunk_30_loc_1f1a:
     link a5,#0
     move.w 8(a5),d0
     moveq #12,d1
     cmp.w d1,d0
     beq.s hunk_30_loc_1f34
-hunk_30_loc_1f28:
+loc_1f28:
     moveq #5,d1
     cmp.w d1,d0
     beq.s hunk_30_loc_1f34
@@ -50278,16 +50346,16 @@ hunk_30_loc_2030:
     bne.s hunk_30_loc_208e
 hunk_30_loc_2038:
     tst.w 6982(a4)
-    beq.s loc_2052
+    beq.s hunk_30_loc_2052
 hunk_30_loc_203e:
     tst.w 7888(a4)
-    bne.s loc_2052
+    bne.s hunk_30_loc_2052
 hunk_30_loc_2044:
     move.w d0,7888(a4)
     moveq #0,d0
     move.w d0,6978(a4)
     move.w d0,6982(a4)
-loc_2052:
+hunk_30_loc_2052:
     tst.w -8868(a4)
     beq.w hunk_30_loc_20ea
 hunk_30_loc_205a:
@@ -50376,7 +50444,7 @@ hunk_30_loc_2124:
     move.w d0,-5394(a4)
     move.w d0,-(sp)
     jsr loc_2d42(pc)
-hunk_30_loc_2134:
+loc_2134:
     addq.w #2,sp
 hunk_30_loc_2136:
     tst.w 6534(a4)
@@ -50414,16 +50482,16 @@ hunk_30_loc_2180:
     move.w 8(a5),d0
     moveq #12,d1
     cmp.w d1,d0
-    beq.s hunk_30_loc_219c
+    beq.s loc_219c
 loc_2190:
     moveq #5,d1
     cmp.w d1,d0
-    beq.s hunk_30_loc_219c
+    beq.s loc_219c
 hunk_30_loc_2196:
     moveq #9,d1
     cmp.w d1,d0
-    bne.s loc_21cc
-hunk_30_loc_219c:
+    bne.s hunk_30_loc_21cc
+loc_219c:
     moveq #17,d0
     move.w d0,-(sp)
     moveq #110,d1
@@ -50442,7 +50510,7 @@ hunk_30_loc_21c2:
     moveq #1,d0
     move.w d0,6540(a4)
     bra.w loc_25be
-loc_21cc:
+hunk_30_loc_21cc:
     moveq #1,d0
     cmp.w 8(a5),d0
     bne.w hunk_30_loc_2592
@@ -50491,11 +50559,11 @@ hunk_30_loc_222e:
 hunk_30_loc_2236:
     addq.w #2,sp
     tst.w d0
-    beq.s hunk_30_loc_2242
+    beq.s loc_2242
 hunk_30_loc_223c:
     moveq #2,d0
     bra.w loc_25be
-hunk_30_loc_2242:
+loc_2242:
     move.w -32732(a4),d0
     cmpi.w #$1be,d0
     bne.s loc_2256
@@ -50521,7 +50589,7 @@ hunk_30_loc_2276:
     move.l d0,-(sp)
     move.l 10(sp),-(sp)
     jsr loc_2d12(pc)
-hunk_30_loc_2280:
+loc_2280:
     lea 10(sp),sp
     tst.w d0
     beq.s hunk_30_loc_2296
@@ -50588,7 +50656,7 @@ hunk_30_loc_2324:
     move.w #$1f1,d1
     move.w d1,-(sp)
     jsr loc_2c82(pc)
-loc_2332:
+hunk_30_loc_2332:
     moveq #1,d0
     bra.w loc_25be
 hunk_30_loc_2338:
@@ -50625,15 +50693,15 @@ loc_236c:
 loc_2378:
     addq.w #4,sp
     tst.w d0
-    beq.s loc_23bc
-hunk_30_loc_237e:
+    beq.s hunk_30_loc_23bc
+loc_237e:
     move.w -32732(a4),d0
     cmpi.w #$198,d0
-    beq.s loc_238e
+    beq.s hunk_30_loc_238e
 hunk_30_loc_2388:
     cmpi.w #$199,d0
     bne.s hunk_30_loc_2398
-loc_238e:
+hunk_30_loc_238e:
     move.l -23124(a4),-(sp)
     jsr hunk_30_loc_2d48(pc)
 hunk_30_loc_2396:
@@ -50641,26 +50709,26 @@ hunk_30_loc_2396:
 hunk_30_loc_2398:
     cmpi.w #$1db,-32732(a4)
     bne.s hunk_30_loc_23b2
-hunk_30_loc_23a0:
+loc_23a0:
     moveq #26,d0
     cmp.w -32672(a4),d0
     bne.s hunk_30_loc_23b2
-loc_23a8:
+hunk_30_loc_23a8:
     move.l -23120(a4),-(sp)
     jsr hunk_30_loc_2d48(pc)
-hunk_30_loc_23b0:
+loc_23b0:
     addq.w #4,sp
 hunk_30_loc_23b2:
     moveq #1,d0
     move.w d0,6992(a4)
     bra.w loc_25be
-loc_23bc:
+hunk_30_loc_23bc:
     moveq #124,d0
     move.w d0,-(sp)
     moveq #26,d1
     move.w d1,-(sp)
     jsr sub_2c10(pc)
-loc_23c8:
+hunk_30_loc_23c8:
     addq.w #4,sp
     tst.w d0
     beq.s loc_241e
@@ -50674,7 +50742,7 @@ hunk_30_loc_23da:
     addq.w #4,sp
     tst.w d0
     bne.s loc_241e
-hunk_30_loc_23e0:
+loc_23e0:
     moveq #10,d0
     move.w d0,-(sp)
     moveq #121,d1
@@ -50727,7 +50795,7 @@ hunk_30_loc_2462:
     move.w #$a,6990(a4)
     move.l -23140(a4),(sp)
     jsr loc_2cd6(pc)
-hunk_30_loc_2470:
+loc_2470:
     move.w #$8,6990(a4)
     move.l -23136(a4),(sp)
     jsr loc_2cd6(pc)
@@ -50749,13 +50817,13 @@ loc_249c:
     beq.s loc_24c8
 loc_24a6:
     cmpi.w #$1cc,d0
-    bne.s loc_24b6
+    bne.s hunk_30_loc_24b6
 hunk_30_loc_24ac:
     move.w -32674(a4),d1
     moveq #121,d2
     cmp.w d2,d1
     beq.s loc_24c8
-loc_24b6:
+hunk_30_loc_24b6:
     cmpi.w #$1cd,d0
     bne.w hunk_30_loc_2558
 hunk_30_loc_24be:
@@ -50771,17 +50839,17 @@ loc_24c8:
 loc_24d4:
     addq.w #4,sp
     tst.w d0
-    bne.s loc_24e6
+    bne.s hunk_30_loc_24e6
 loc_24da:
     move.l -23108(a4),-(sp)
     jsr hunk_30_loc_2d48(pc)
 hunk_30_loc_24e2:
     addq.w #4,sp
     bra.s hunk_30_loc_2554
-loc_24e6:
+hunk_30_loc_24e6:
     tst.w 6530(a4)
     beq.s loc_24f8
-loc_24ec:
+hunk_30_loc_24ec:
     move.l -23104(a4),-(sp)
     jsr hunk_30_loc_2d48(pc)
 loc_24f4:
@@ -50797,7 +50865,7 @@ loc_2504:
     addq.w #4,sp
     tst.w d0
     bne.s loc_2516
-loc_250a:
+hunk_30_loc_250a:
     pea -7354(pc)
     jsr hunk_30_loc_2d48(pc)
 hunk_30_loc_2512:
@@ -50889,7 +50957,7 @@ loc_25c6:
     move.w #$1f1,d1
     move.w d1,-(sp)
     jsr 1894(pc)
-loc_25d8:
+hunk_30_loc_25d8:
     movea.l d0,a0
     lea 7124(a4),a1
 hunk_30_loc_25de:
@@ -50915,7 +50983,7 @@ hunk_30_loc_2600:
     move.l a0,7394(a4)
     clr.b 7398(a4)
     rts
-loc_261c:
+hunk_30_loc_261c:
     link a5,#0
     move.l d2,-(sp)
     move.w 8(a5),d0
@@ -50933,14 +51001,14 @@ hunk_30_loc_2636:
     moveq #1,d0
     cmp.w 8(a5),d0
     bne.s hunk_30_loc_26b2
-loc_263e:
+hunk_30_loc_263e:
     cmpi.w #$1a7,-32732(a4)
     bne.s loc_2664
 hunk_30_loc_2646:
     moveq #59,d0
     cmp.w -32674(a4),d0
     bne.s loc_2664
-loc_264e:
+hunk_30_loc_264e:
     moveq #7,d0
     move.w d0,-(sp)
     jsr hunk_30_loc_2d24(pc)
@@ -51583,7 +51651,7 @@ hunk_30_loc_2be6:
 sub_2bec:
     jmp hunk_11_loc_0298
 hunk_30_loc_2bf2:
-    jmp sub_1a38
+    jmp hunk_0_loc_1a38
 pcref_2bf8:
     dc.b    $4e,$f9
     dc.l    hunk_4_loc_002c
@@ -51635,7 +51703,7 @@ sub_2c7c:
 loc_2c82:
     jmp hunk_8_loc_1a52
 loc_2c88:
-    jmp sub_1a24
+    jmp hunk_0_loc_1a24
 loc_2c8e:
     jmp hunk_3_loc_0d70
 hunk_30_loc_2c94:
@@ -51645,7 +51713,7 @@ loc_2c9a:
 loc_2ca0:
     jmp hunk_8_loc_053c
 sub_2ca6:
-    jmp sub_051a
+    jmp hunk_0_loc_051a
 hunk_30_loc_2cac:
     jmp hunk_31_loc_0d0a
 loc_2cb2:
@@ -51659,7 +51727,7 @@ loc_2cc4:
 loc_2cca:
     jmp hunk_31_loc_3774
 hunk_30_loc_2cd0:
-    jmp sub_26c0
+    jmp hunk_0_loc_26c0
 loc_2cd6:
     jmp hunk_31_loc_2da4
 loc_2cdc:
@@ -54207,7 +54275,7 @@ hunk_31_loc_1350:
     dc.b    $3f,$00,$61,$00,$1b
     dc.b    "vTOJ@g"
     dc.b    $06
-hunk_31_loc_1360:
+loc_1360:
     moveq #2,d0
     bra.w hunk_31_loc_1424
 hunk_31_loc_1366:
@@ -54313,7 +54381,7 @@ hunk_31_loc_1432:
     move.w #$99,d0
     move.w d0,-(sp)
     bsr.w hunk_31_loc_0d0a
-loc_1440:
+hunk_31_loc_1440:
     addq.w #2,sp
     tst.w d0
     beq.s hunk_31_loc_144c
@@ -54389,7 +54457,7 @@ hunk_31_loc_14ce:
 hunk_31_loc_14de:
     addq.w #4,sp
     tst.w d0
-    beq.s hunk_31_loc_150a
+    beq.s loc_150a
 hunk_31_loc_14e4:
     moveq #7,d0
     move.w d0,-(sp)
@@ -54408,7 +54476,7 @@ hunk_31_loc_1500:
     moveq #1,d0
     move.w d0,6992(a4)
     bra.w loc_177e
-hunk_31_loc_150a:
+loc_150a:
     jsr loc_3aec(pc)
 hunk_31_loc_150e:
     tst.w d0
@@ -54469,7 +54537,7 @@ hunk_31_loc_1582:
     addq.w #4,sp
     tst.w d0
     bne.s hunk_31_loc_159c
-loc_1588:
+hunk_31_loc_1588:
     moveq #13,d0
     move.w d0,-(sp)
     move.w #$99,d1
@@ -54944,7 +55012,7 @@ hunk_31_loc_197c:
     moveq #11,d0
     move.w d0,-(sp)
     bsr.w hunk_31_loc_392a
-hunk_31_loc_1984:
+loc_1984:
     pea -5602(pc)
     move.w #$ba,d0
     move.w d0,-(sp)
@@ -54972,7 +55040,7 @@ hunk_31_loc_19b2:
 hunk_31_loc_19b4:
     unlk a5
     rts
-loc_19b8:
+hunk_31_loc_19b8:
     link a5,#0
     move.w #$b2,d0
     move.w d0,-(sp)
@@ -55176,7 +55244,7 @@ hunk_31_loc_1b72:
 hunk_31_loc_1b7a:
     cmpi.w #$a9,-32674(a4)
     bne.s hunk_31_loc_1b9c
-loc_1b82:
+hunk_31_loc_1b82:
     pea hunk_31_loc_03dc(pc)
     jsr loc_3b52(pc)
 hunk_31_loc_1b8a:
@@ -55245,14 +55313,14 @@ hunk_31_loc_1bfc:
 hunk_31_loc_1c08:
     cmpi.w #$8d,-32674(a4)
     bne.s loc_1c26
-loc_1c10:
+hunk_31_loc_1c10:
     moveq #26,d0
     cmp.w -32672(a4),d0
     beq.s loc_1c26
 hunk_31_loc_1c18:
     pea -6086(pc)
     jsr loc_3b52(pc)
-loc_1c20:
+hunk_31_loc_1c20:
     moveq #1,d0
     bra.w hunk_31_loc_1daa
 loc_1c26:
@@ -55325,14 +55393,14 @@ hunk_31_loc_1ca4:
 hunk_31_loc_1cae:
     cmpi.w #$1db,-32732(a4)
     bne.w hunk_31_loc_1da8
-hunk_31_loc_1cb8:
+loc_1cb8:
     cmpi.w #$8d,-32674(a4)
     bne.w hunk_31_loc_1da8
 hunk_31_loc_1cc2:
     moveq #26,d0
     cmp.w -32672(a4),d0
     bne.w hunk_31_loc_1da8
-loc_1ccc:
+hunk_31_loc_1ccc:
     moveq #27,d0
     move.w d0,-(sp)
     jsr sub_3ad4(pc)
@@ -55395,7 +55463,7 @@ hunk_31_loc_1d4a:
     move.w #$4,6990(a4)
     pea -22314(a4)
     bsr.w hunk_31_loc_2da4
-hunk_31_loc_1d58:
+loc_1d58:
     move.w #$5,6990(a4)
     pea -22226(a4)
     bsr.w hunk_31_loc_2da4
@@ -55408,7 +55476,7 @@ loc_1d74:
     move.w #$1,7958(a4)
     pea -22113(a4)
     bsr.w hunk_31_loc_2da4
-loc_1d88:
+hunk_31_loc_1d88:
     moveq #15,d0
     move.w d0,(sp)
     bsr.w hunk_31_loc_392a
@@ -55476,18 +55544,18 @@ hunk_31_loc_1e10:
     bsr.w loc_3a46
 hunk_31_loc_1e14:
     tst.w d0
-    beq.s hunk_31_loc_1e1e
+    beq.s loc_1e1e
 hunk_31_loc_1e18:
     moveq #1,d0
     bra.w hunk_31_loc_1ebc
-hunk_31_loc_1e1e:
+loc_1e1e:
     moveq #27,d0
     move.w d0,-(sp)
     jsr sub_3ad4(pc)
 hunk_31_loc_1e26:
     addq.w #2,sp
     tst.w d0
-    beq.s hunk_31_loc_1e98
+    beq.s loc_1e98
 hunk_31_loc_1e2c:
     moveq #13,d0
     move.w d0,-(sp)
@@ -55497,7 +55565,7 @@ hunk_31_loc_1e2c:
 hunk_31_loc_1e3a:
     addq.w #4,sp
     tst.w d0
-    bne.s hunk_31_loc_1e98
+    bne.s loc_1e98
 hunk_31_loc_1e40:
     tst.w 7888(a4)
     bne.s hunk_31_loc_1e56
@@ -55537,7 +55605,7 @@ hunk_31_loc_1e8a:
 hunk_31_loc_1e94:
     moveq #1,d0
     bra.s hunk_31_loc_1ebc
-hunk_31_loc_1e98:
+loc_1e98:
     jsr loc_3aec(pc)
 hunk_31_loc_1e9c:
     tst.w d0
@@ -55848,7 +55916,7 @@ hunk_31_loc_2132:
     beq.s hunk_31_loc_213e
 hunk_31_loc_2138:
     moveq #1,d0
-    bra.w hunk_31_loc_221a
+    bra.w loc_221a
 hunk_31_loc_213e:
     move.w #$f0,d0
     move.w d0,-(sp)
@@ -55859,7 +55927,7 @@ hunk_31_loc_2148:
     beq.s hunk_31_loc_2154
 hunk_31_loc_214e:
     moveq #1,d0
-    bra.w hunk_31_loc_221a
+    bra.w loc_221a
 hunk_31_loc_2154:
     move.w #$f0,d0
     move.w d0,-(sp)
@@ -55868,9 +55936,9 @@ loc_215e:
     addq.w #2,sp
     tst.w d0
     beq.s loc_216a
-hunk_31_loc_2164:
+loc_2164:
     moveq #2,d0
-    bra.w hunk_31_loc_221a
+    bra.w loc_221a
 loc_216a:
     move.w #$f0,d0
     move.w d0,-(sp)
@@ -55878,7 +55946,7 @@ loc_216a:
 hunk_31_loc_2174:
     addq.w #2,sp
     tst.w d0
-    beq.w loc_2218
+    beq.w hunk_31_loc_2218
 hunk_31_loc_217c:
     bsr.w loc_3a46
 hunk_31_loc_2180:
@@ -55886,7 +55954,7 @@ hunk_31_loc_2180:
     beq.s loc_218a
 loc_2184:
     moveq #1,d0
-    bra.w hunk_31_loc_221a
+    bra.w loc_221a
 loc_218a:
     moveq #49,d0
     move.w d0,-(sp)
@@ -55913,7 +55981,7 @@ hunk_31_loc_21b6:
     addq.w #4,sp
     tst.w d0
     bne.s hunk_31_loc_21c2
-loc_21bc:
+hunk_31_loc_21bc:
     tst.w 7892(a4)
     bne.s loc_21da
 hunk_31_loc_21c2:
@@ -55922,16 +55990,16 @@ hunk_31_loc_21c2:
     move.w #$1f1,d1
     move.w d1,-(sp)
     jsr loc_3ada(pc)
-hunk_31_loc_21d2:
+loc_21d2:
     moveq #1,d0
     move.w d0,6992(a4)
-    bra.s hunk_31_loc_221a
+    bra.s loc_221a
 loc_21da:
     jsr loc_3aec(pc)
-hunk_31_loc_21de:
+loc_21de:
     tst.w d0
     beq.s loc_2210
-hunk_31_loc_21e2:
+loc_21e2:
     moveq #20,d0
     move.w d0,-(sp)
     bsr.w hunk_31_loc_392a
@@ -55953,14 +56021,14 @@ loc_2206:
     move.w d0,7890(a4)
 loc_220c:
     moveq #1,d0
-    bra.s hunk_31_loc_221a
+    bra.s loc_221a
 loc_2210:
     moveq #1,d0
     move.w d0,6992(a4)
-    bra.s hunk_31_loc_221a
-loc_2218:
+    bra.s loc_221a
+hunk_31_loc_2218:
     moveq #0,d0
-hunk_31_loc_221a:
+loc_221a:
     unlk a5
     rts
 loc_221e:
@@ -55972,12 +56040,12 @@ loc_222c:
     addq.w #2,sp
     tst.w d0
     beq.s hunk_31_loc_2282
-loc_2232:
+hunk_31_loc_2232:
     bsr.w loc_3a46
 hunk_31_loc_2236:
     tst.w d0
     beq.s loc_223e
-loc_223a:
+hunk_31_loc_223a:
     moveq #1,d0
     bra.s loc_2284
 loc_223e:
@@ -56000,7 +56068,7 @@ loc_2260:
     jsr loc_3aec(pc)
 hunk_31_loc_2264:
     tst.w d0
-    beq.s hunk_31_loc_227a
+    beq.s loc_227a
 hunk_31_loc_2268:
     pea -8554(pc)
     move.w #$c2,d0
@@ -56009,7 +56077,7 @@ hunk_31_loc_2268:
 hunk_31_loc_2276:
     moveq #1,d0
     bra.s loc_2284
-hunk_31_loc_227a:
+loc_227a:
     moveq #1,d0
     move.w d0,6992(a4)
     bra.s loc_2284
@@ -56050,7 +56118,7 @@ hunk_31_loc_22c0:
     addq.w #2,sp
     tst.w d0
     beq.s hunk_31_loc_22cc
-hunk_31_loc_22c6:
+loc_22c6:
     moveq #2,d0
     bra.w loc_2530
 hunk_31_loc_22cc:
@@ -56120,13 +56188,13 @@ loc_234c:
 hunk_31_loc_2354:
     addq.w #2,sp
     tst.w d0
-    beq.w hunk_31_loc_2460
+    beq.w loc_2460
 loc_235c:
     bsr.w loc_3a46
 hunk_31_loc_2360:
     tst.w d0
     beq.s loc_236a
-hunk_31_loc_2364:
+loc_2364:
     moveq #1,d0
     bra.w loc_2530
 loc_236a:
@@ -56168,7 +56236,7 @@ loc_23aa:
     moveq #120,d2
     move.w d2,-(sp)
     bsr.w hunk_31_loc_2cde
-hunk_31_loc_23ba:
+loc_23ba:
     addq.w #6,sp
     tst.w d0
     beq.s hunk_31_loc_23c6
@@ -56219,7 +56287,7 @@ hunk_31_loc_241c:
     bra.w loc_2530
 loc_2422:
     jsr loc_3aec(pc)
-hunk_31_loc_2426:
+loc_2426:
     tst.w d0
     beq.s loc_2456
 loc_242a:
@@ -56248,11 +56316,11 @@ loc_2456:
     moveq #1,d0
     move.w d0,6992(a4)
     bra.w loc_2530
-hunk_31_loc_2460:
+loc_2460:
     move.w -32732(a4),d0
     cmpi.w #$1e7,d0
     bne.s loc_2474
-loc_246a:
+hunk_31_loc_246a:
     move.w -32674(a4),d1
     moveq #120,d2
     cmp.w d2,d1
@@ -56260,7 +56328,7 @@ loc_246a:
 loc_2474:
     cmpi.w #$1df,d0
     bne.s loc_2484
-loc_247a:
+hunk_31_loc_247a:
     move.w -32674(a4),d1
     moveq #120,d2
     cmp.w d2,d1
@@ -56304,7 +56372,7 @@ loc_24d0:
     addq.w #4,sp
     tst.w d0
     beq.s hunk_31_loc_24ee
-hunk_31_loc_24d6:
+loc_24d6:
     moveq #126,d0
     move.w d0,-(sp)
     moveq #121,d1
@@ -56316,14 +56384,14 @@ hunk_31_loc_24e2:
     beq.s hunk_31_loc_24ee
 hunk_31_loc_24e8:
     tst.w 7890(a4)
-    bne.s hunk_31_loc_24fa
+    bne.s loc_24fa
 hunk_31_loc_24ee:
     pea -7680(pc)
     jsr loc_3b52(pc)
 loc_24f6:
     moveq #1,d0
     bra.s loc_2530
-hunk_31_loc_24fa:
+loc_24fa:
     pea str_0728(pc)
     jsr loc_3b52(pc)
 loc_2502:
@@ -56338,7 +56406,7 @@ loc_2514:
     move.w d1,(sp)
     move.l d0,16(sp)
     jsr loc_3b28(pc)
-loc_2520:
+hunk_31_loc_2520:
     move.l d0,(sp)
     move.l 16(sp),-(sp)
     jsr loc_3ae6(pc)
@@ -56351,7 +56419,7 @@ loc_2530:
     movem.l -16(a5),d2-d4
     unlk a5
     rts
-loc_253a:
+hunk_31_loc_253a:
     link a5,#0
     move.w #$e6,d0
     move.w d0,-(sp)
@@ -56378,7 +56446,7 @@ loc_256a:
     move.w #$e6,d0
     move.w d0,-(sp)
     bsr.w loc_2ece
-loc_2574:
+hunk_31_loc_2574:
     addq.w #2,sp
     tst.w d0
     beq.s hunk_31_loc_2580
@@ -56389,13 +56457,13 @@ hunk_31_loc_2580:
     move.w #$e6,d0
     move.w d0,-(sp)
     bsr.w hunk_31_loc_2f74
-loc_258a:
+hunk_31_loc_258a:
     addq.w #2,sp
     tst.w d0
-    beq.w loc_2610
+    beq.w hunk_31_loc_2610
 hunk_31_loc_2592:
     bsr.w loc_3a46
-loc_2596:
+hunk_31_loc_2596:
     tst.w d0
     beq.s loc_259e
 hunk_31_loc_259a:
@@ -56422,7 +56490,7 @@ hunk_31_loc_25bc:
 loc_25c2:
     pea -7752(pc)
     jsr loc_3b52(pc)
-loc_25ca:
+hunk_31_loc_25ca:
     moveq #1,d0
     move.w d0,6992(a4)
     bra.s loc_2612
@@ -56444,11 +56512,11 @@ hunk_31_loc_25f0:
     moveq #48,d0
     move.w d0,(sp)
     jsr sub_3ad4(pc)
-loc_25f8:
+hunk_31_loc_25f8:
     addq.w #8,sp
     tst.w d0
     beq.s loc_2604
-loc_25fe:
+hunk_31_loc_25fe:
     moveq #0,d0
     move.w d0,7888(a4)
 loc_2604:
@@ -56458,7 +56526,7 @@ loc_2608:
     moveq #1,d0
     move.w d0,6992(a4)
     bra.s loc_2612
-loc_2610:
+hunk_31_loc_2610:
     moveq #0,d0
 loc_2612:
     unlk a5
@@ -56489,7 +56557,7 @@ loc_2642:
 hunk_31_loc_2646:
     tst.w d0
     beq.s loc_2650
-loc_264a:
+hunk_31_loc_264a:
     moveq #1,d0
     bra.w loc_27b0
 loc_2650:
@@ -56558,11 +56626,11 @@ hunk_31_loc_26ca:
 loc_26dc:
     addq.w #6,sp
     tst.w d0
-    beq.s loc_26e8
+    beq.s hunk_31_loc_26e8
 loc_26e2:
     moveq #1,d0
     bra.w loc_27b0
-loc_26e8:
+hunk_31_loc_26e8:
     move.w #$1,6908(a4)
     move.w #$f3,d0
     move.w d0,-(sp)
@@ -58996,7 +59064,7 @@ loc_3b04:
 loc_3b0a:
     jmp hunk_3_loc_0dac
 loc_3b10:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 loc_3b16:
     jmp hunk_10_loc_01a0
 loc_3b1c:
@@ -60319,7 +60387,7 @@ hunk_32_loc_0ec4:
     moveq #12,d0
     cmp.w 8(a5),d0
     bne.s hunk_32_loc_0ef6
-hunk_32_loc_0ed2:
+loc_0ed2:
     move.w #$9a,d0
     move.w d0,-(sp)
     move.w #$b2,d1
@@ -60705,10 +60773,10 @@ hunk_32_loc_1254:
     jsr hunk_32_loc_2312(pc)
 hunk_32_loc_125c:
     moveq #1,d0
-    bra.s hunk_32_loc_1262
+    bra.s loc_1262
 hunk_32_loc_1260:
     moveq #0,d0
-hunk_32_loc_1262:
+loc_1262:
     unlk a5
     rts
 hunk_32_loc_1266:
@@ -60735,7 +60803,7 @@ hunk_32_loc_1290:
     move.w d0,-(sp)
     move.w #$aa,d1
     move.w d1,-(sp)
-    jsr hunk_32_loc_226a(pc)
+    jsr loc_226a(pc)
 hunk_32_loc_12a0:
     move.w #$d0,6994(a4)
     moveq #1,d0
@@ -60830,13 +60898,13 @@ hunk_32_loc_1374:
 hunk_32_loc_1384:
     moveq #9,d1
     cmp.w d1,d0
-    bne.s hunk_32_loc_1394
+    bne.s loc_1394
 hunk_32_loc_138a:
     jsr hunk_32_loc_22d6(pc)
 hunk_32_loc_138e:
     moveq #1,d0
     bra.w loc_173c
-hunk_32_loc_1394:
+loc_1394:
     moveq #6,d0
     cmp.w 8(a5),d0
     bne.s hunk_32_loc_13bc
@@ -60847,7 +60915,7 @@ hunk_32_loc_13a0:
     move.w d0,-(sp)
     move.w #$aa,d1
     move.w d1,-(sp)
-    jsr hunk_32_loc_226a(pc)
+    jsr loc_226a(pc)
 hunk_32_loc_13b0:
     move.w #$d0,6994(a4)
     moveq #1,d0
@@ -60859,7 +60927,7 @@ hunk_32_loc_13bc:
 hunk_32_loc_13c6:
     move.w #$b2,d0
     move.w d0,-(sp)
-    jsr loc_22ca(pc)
+    jsr hunk_32_loc_22ca(pc)
 hunk_32_loc_13d0:
     addq.w #2,sp
     tst.w d0
@@ -60952,7 +61020,7 @@ hunk_32_loc_148e:
     move.w d0,-(sp)
     moveq #110,d1
     move.w d1,-(sp)
-    jsr hunk_32_loc_2246(pc)
+    jsr loc_2246(pc)
 hunk_32_loc_149a:
     moveq #8,d0
     move.w d0,(sp)
@@ -60975,7 +61043,7 @@ hunk_32_loc_14b8:
 hunk_32_loc_14c2:
     moveq #31,d0
     move.w d0,-(sp)
-    jsr hunk_32_loc_228e(pc)
+    jsr loc_228e(pc)
 hunk_32_loc_14ca:
     addq.w #2,sp
     tst.w d0
@@ -61025,7 +61093,7 @@ hunk_32_loc_1530:
 hunk_32_loc_1538:
     subq.w #1,d0
     beq.s hunk_32_loc_1556
-loc_153c:
+hunk_32_loc_153c:
     bra.s hunk_32_loc_156e
 hunk_32_loc_153e:
     moveq #1,d0
@@ -61062,21 +61130,21 @@ hunk_32_loc_158c:
 hunk_32_loc_1592:
     move.w -32674(a4),d1
     cmpi.w #$98,d1
-    beq.s loc_15ba
+    beq.s hunk_32_loc_15ba
 hunk_32_loc_159c:
     cmpi.w #$1b9,d0
     bne.s hunk_32_loc_15ac
 hunk_32_loc_15a2:
     move.w -32674(a4),d1
     cmpi.w #$98,d1
-    beq.s loc_15ba
+    beq.s hunk_32_loc_15ba
 hunk_32_loc_15ac:
     cmpi.w #$1c7,d0
     bne.s loc_15e2
 hunk_32_loc_15b2:
     cmpi.w #$b8,-32674(a4)
     bne.s loc_15e2
-loc_15ba:
+hunk_32_loc_15ba:
     move.w #$98,d0
     move.w d0,-(sp)
     move.w #$1f2,d1
@@ -61109,7 +61177,7 @@ hunk_32_loc_15fc:
 hunk_32_loc_1602:
     move.w #$c5,d0
     move.w d0,-(sp)
-    jsr loc_2270(pc)
+    jsr hunk_32_loc_2270(pc)
 hunk_32_loc_160c:
     addq.w #2,sp
     tst.w d0
@@ -61257,11 +61325,11 @@ hunk_32_loc_1764:
 hunk_32_loc_176c:
     moveq #33,d0
     move.w d0,-(sp)
-    jsr hunk_32_loc_228e(pc)
+    jsr loc_228e(pc)
 hunk_32_loc_1774:
     addq.w #2,sp
     tst.w d0
-    beq.s hunk_32_loc_179c
+    beq.s loc_179c
 hunk_32_loc_177a:
     tst.w 6570(a4)
     bne.s hunk_32_loc_17a8
@@ -61276,7 +61344,7 @@ hunk_32_loc_1790:
     move.w d0,7890(a4)
     move.w d0,6570(a4)
     bra.s hunk_32_loc_17d4
-hunk_32_loc_179c:
+loc_179c:
     pea str_0332(pc)
     jsr hunk_32_loc_2312(pc)
 hunk_32_loc_17a4:
@@ -61309,15 +61377,15 @@ hunk_32_loc_17d8:
     move.w 8(a5),d0
     moveq #12,d1
     cmp.w d1,d0
-    beq.s loc_17f2
+    beq.s hunk_32_loc_17f2
 hunk_32_loc_17e8:
     moveq #9,d1
     cmp.w d1,d0
-    beq.s loc_17f2
+    beq.s hunk_32_loc_17f2
 hunk_32_loc_17ee:
     subq.w #5,d0
     bne.s hunk_32_loc_181c
-loc_17f2:
+hunk_32_loc_17f2:
     tst.w 6584(a4)
     bne.s hunk_32_loc_17fe
 hunk_32_loc_17f8:
@@ -61353,7 +61421,7 @@ hunk_32_loc_182e:
     bne.w hunk_32_loc_1994
 hunk_32_loc_1838:
     move.w 6584(a4),-(sp)
-    jsr loc_2270(pc)
+    jsr hunk_32_loc_2270(pc)
 hunk_32_loc_1840:
     addq.w #2,sp
     tst.w d0
@@ -61463,7 +61531,7 @@ hunk_32_loc_1930:
 hunk_32_loc_1938:
     move.l -17718(a4),(sp)
     jsr loc_22d0(pc)
-loc_1940:
+hunk_32_loc_1940:
     move.w #$5,6990(a4)
     pea str_0596(pc)
     jsr hunk_32_loc_2312(pc)
@@ -61639,7 +61707,7 @@ hunk_32_loc_1ae8:
     beq.s hunk_32_loc_1afc
 hunk_32_loc_1aee:
     jsr hunk_32_loc_22e2(pc)
-loc_1af2:
+hunk_32_loc_1af2:
     moveq #1,d0
     move.w d0,-(sp)
     jsr hunk_32_loc_2288(pc)
@@ -61785,7 +61853,7 @@ hunk_32_loc_1c70:
     moveq #1,d0
     bra.w hunk_32_loc_1ec6
 hunk_32_loc_1c76:
-    jsr loc_22a6(pc)
+    jsr hunk_32_loc_22a6(pc)
 hunk_32_loc_1c7a:
     tst.w d0
     beq.s hunk_32_loc_1c84
@@ -61796,17 +61864,17 @@ hunk_32_loc_1c80:
 hunk_32_loc_1c84:
     move.w -32732(a4),d0
     cmpi.w #$197,d0
-    beq.s hunk_32_loc_1c9a
+    beq.s loc_1c9a
 hunk_32_loc_1c8e:
     cmpi.w #$1a3,d0
-    beq.s hunk_32_loc_1c9a
-hunk_32_loc_1c94:
+    beq.s loc_1c9a
+loc_1c94:
     cmpi.w #$1e2,d0
     bne.s loc_1cb0
-hunk_32_loc_1c9a:
+loc_1c9a:
     tst.b -6756(a4)
     bne.s hunk_32_loc_1caa
-loc_1ca0:
+hunk_32_loc_1ca0:
     pea str_0718(pc)
 hunk_32_loc_1ca4:
     jsr hunk_32_loc_2312(pc)
@@ -61857,14 +61925,14 @@ hunk_32_loc_1d02:
 hunk_32_loc_1d0e:
     moveq #7,d0
     cmp.w 7004(a4),d0
-    bne.w loc_1ea2
+    bne.w hunk_32_loc_1ea2
 hunk_32_loc_1d18:
     move.w -5392(a4),-7824(a4)
     move.w -5388(a4),-7822(a4)
     clr.w -6(a5)
     lea -17776(a4),a3
     bra.w hunk_32_loc_1e8c
-hunk_32_loc_1d30:
+loc_1d30:
     move.w (a3),d0
     move.w 4(a3),d1
     move.w 2(a3),d2
@@ -61884,11 +61952,11 @@ hunk_32_loc_1d5a:
 hunk_32_loc_1d64:
     cmp.w d3,d4
     bge.w loc_1e82
-loc_1d6a:
+hunk_32_loc_1d6a:
     moveq #4,d2
     cmp.w -6(a5),d2
     beq.s hunk_32_loc_1d90
-hunk_32_loc_1d72:
+loc_1d72:
     move.w #$8e,d2
     move.w d2,-(sp)
     jsr hunk_32_loc_2276(pc)
@@ -61896,7 +61964,7 @@ hunk_32_loc_1d7c:
     addq.w #2,sp
     tst.w d0
     bne.s hunk_32_loc_1d90
-hunk_32_loc_1d82:
+loc_1d82:
     pea -5602(pc)
     jsr hunk_32_loc_2312(pc)
 hunk_32_loc_1d8a:
@@ -61998,14 +62066,14 @@ loc_1e82:
     addq.l #8,a3
 hunk_32_loc_1e8c:
     cmpi.w #$4,-6(a5)
-    blt.w hunk_32_loc_1d30
+    blt.w loc_1d30
 hunk_32_loc_1e96:
     pea str_07d6(pc)
     jsr hunk_32_loc_2312(pc)
 hunk_32_loc_1e9e:
     moveq #1,d0
     bra.s hunk_32_loc_1ec6
-loc_1ea2:
+hunk_32_loc_1ea2:
     pea str_07d6(pc)
     jsr hunk_32_loc_2312(pc)
 hunk_32_loc_1eaa:
@@ -62015,7 +62083,7 @@ hunk_32_loc_1eae:
     moveq #6,d0
     cmp.w 8(a5),d0
     bne.s hunk_32_loc_1ec4
-hunk_32_loc_1eb6:
+loc_1eb6:
     jsr hunk_32_loc_22e2(pc)
 hunk_32_loc_1eba:
     move.b #$1,7520(a4)
@@ -62032,24 +62100,24 @@ hunk_32_loc_1ed0:
     move.w 8(a5),d0
     moveq #12,d1
     cmp.w d1,d0
-    beq.s hunk_32_loc_1ef0
+    beq.s loc_1ef0
 hunk_32_loc_1ede:
     moveq #6,d1
     cmp.w d1,d0
-    beq.s hunk_32_loc_1ef0
+    beq.s loc_1ef0
 loc_1ee4:
     moveq #5,d1
     cmp.w d1,d0
-    beq.s hunk_32_loc_1ef0
+    beq.s loc_1ef0
 hunk_32_loc_1eea:
     moveq #9,d1
     cmp.w d1,d0
-    bne.s loc_1efa
-hunk_32_loc_1ef0:
+    bne.s hunk_32_loc_1efa
+loc_1ef0:
     clr.w 7888(a4)
     moveq #1,d0
     bra.w hunk_32_loc_1fbc
-loc_1efa:
+hunk_32_loc_1efa:
     moveq #1,d0
     cmp.w 8(a5),d0
     bne.w hunk_32_loc_1fba
@@ -62070,7 +62138,7 @@ hunk_32_loc_1f20:
 hunk_32_loc_1f2a:
     moveq #7,d0
     move.w d0,-(sp)
-    jsr hunk_32_loc_22f4(pc)
+    jsr loc_22f4(pc)
 hunk_32_loc_1f32:
     addq.w #2,sp
     tst.w d0
@@ -62097,7 +62165,7 @@ hunk_32_loc_1f5a:
 loc_1f5e:
     tst.w 7888(a4)
     beq.s hunk_32_loc_1f70
-hunk_32_loc_1f64:
+loc_1f64:
     pea str_0810(pc)
     jsr hunk_32_loc_2312(pc)
 hunk_32_loc_1f6c:
@@ -62226,7 +62294,7 @@ hunk_32_loc_2080:
     beq.s hunk_32_loc_20ac
 hunk_32_loc_2084:
     subq.w #6,d0
-    beq.s loc_20d6
+    beq.s hunk_32_loc_20d6
 loc_2088:
     subi.w #$24,d0
     beq.s hunk_32_loc_20e2
@@ -62262,7 +62330,7 @@ hunk_32_loc_20c8:
 loc_20d0:
     moveq #1,d0
     bra.w hunk_32_loc_2154
-loc_20d6:
+hunk_32_loc_20d6:
     pea -5742(pc)
     jsr hunk_32_loc_22b8(pc)
 hunk_32_loc_20de:
@@ -62333,11 +62401,11 @@ loc_2158:
 loc_2166:
     moveq #9,d1
     cmp.w d1,d0
-    bne.s loc_2170
+    bne.s hunk_32_loc_2170
 hunk_32_loc_216c:
     moveq #1,d0
     bra.s loc_21ac
-loc_2170:
+hunk_32_loc_2170:
     moveq #1,d0
     cmp.w 8(a5),d0
     bne.s hunk_32_loc_21aa
@@ -62347,14 +62415,14 @@ loc_2178:
 hunk_32_loc_2180:
     cmpi.w #$8d,-32674(a4)
     bne.s hunk_32_loc_21aa
-loc_2188:
+hunk_32_loc_2188:
     clr.w -(sp)
     move.w #$90,d0
     move.w d0,-(sp)
     move.w #$197,d1
     move.w d1,-(sp)
     jsr hunk_32_loc_2264(pc)
-loc_219a:
+hunk_32_loc_219a:
     clr.w (sp)
     move.w #$8d,d0
     move.w d0,-(sp)
@@ -62376,7 +62444,7 @@ hunk_32_loc_21b0:
     moveq #1,d1
     cmp.w d1,d0
     ble.s loc_21f6
-loc_21ca:
+hunk_32_loc_21ca:
     move.w 12(a5),d1
     sub.w 10(a5),d1
     ext.l d1
@@ -62402,16 +62470,16 @@ loc_21f6:
     move.w 8(a5),d0
     sub.w 10(a5),d0
     move.w d0,4(sp)
-    bra.s hunk_32_loc_2216
-hunk_32_loc_220a:
+    bra.s loc_2216
+loc_220a:
     addq.w #1,-6(a5)
     move.w -2(a5),d0
     add.w d0,-4(a5)
-hunk_32_loc_2216:
+loc_2216:
     move.w 4(sp),d0
     cmp.w -4(a5),d0
-    bgt.s hunk_32_loc_220a
-hunk_32_loc_2220:
+    bgt.s loc_220a
+loc_2220:
     move.w 14(a5),d0
     move.w 16(a5),d1
     sub.w d0,d1
@@ -62427,7 +62495,7 @@ loc_2238:
     dc.b    $00,$00
 hunk_32_loc_2240:
     jmp hunk_21_loc_096c
-hunk_32_loc_2246:
+loc_2246:
     jmp hunk_31_loc_36b2
 hunk_32_loc_224c:
     jmp hunk_31_loc_2dee
@@ -62439,9 +62507,9 @@ hunk_32_loc_225e:
     jmp hunk_31_loc_3658
 hunk_32_loc_2264:
     jmp hunk_1_loc_1352
-hunk_32_loc_226a:
+loc_226a:
     jmp hunk_33_loc_1ca4
-loc_2270:
+hunk_32_loc_2270:
     jmp hunk_31_loc_2f74
 hunk_32_loc_2276:
     jmp hunk_31_loc_38a4
@@ -62451,7 +62519,7 @@ hunk_32_loc_2282:
     jmp hunk_31_loc_388e
 hunk_32_loc_2288:
     jmp hunk_31_loc_3958
-hunk_32_loc_228e:
+loc_228e:
     jmp hunk_8_loc_0708
 loc_2294:
     jmp hunk_8_loc_1a52
@@ -62459,7 +62527,7 @@ loc_229a:
     jmp hunk_31_loc_36ee
 loc_22a0:
     jmp hunk_31_loc_3176
-loc_22a6:
+hunk_32_loc_22a6:
     jmp hunk_31_loc_3a64
 hunk_32_loc_22ac:
     jmp hunk_8_loc_053c
@@ -62471,7 +62539,7 @@ loc_22be:
     jmp hunk_31_loc_374e
 loc_22c4:
     jmp hunk_21_loc_09c2
-loc_22ca:
+hunk_32_loc_22ca:
     jmp hunk_31_loc_3774
 loc_22d0:
     jmp hunk_31_loc_2da4
@@ -62485,7 +62553,7 @@ loc_22e8:
     jmp hunk_33_loc_1c80
 loc_22ee:
     jmp hunk_31_loc_3684
-hunk_32_loc_22f4:
+loc_22f4:
     jmp hunk_31_loc_30ca
 hunk_32_loc_22fa:
     jmp hunk_31_loc_392a
@@ -63330,7 +63398,7 @@ hunk_33_loc_09ba:
 hunk_33_loc_09c2:
     move.w #$99,d0
     move.w d0,-(sp)
-    jsr loc_1e7a(pc)
+    jsr hunk_33_loc_1e7a(pc)
 hunk_33_loc_09cc:
     move.l d0,-(sp)
     jsr hunk_33_loc_1e6e(pc)
@@ -63585,11 +63653,11 @@ hunk_33_loc_0be0:
 hunk_33_loc_0bea:
     addq.w #2,sp
     tst.w d0
-    beq.s hunk_33_loc_0bf4
+    beq.s loc_0bf4
 hunk_33_loc_0bf0:
     moveq #2,d0
     bra.s hunk_33_loc_0c3c
-hunk_33_loc_0bf4:
+loc_0bf4:
     cmpi.w #$1db,-32732(a4)
     bne.s hunk_33_loc_0c10
 hunk_33_loc_0bfc:
@@ -63631,7 +63699,7 @@ hunk_33_loc_0c40:
     moveq #5,d1
     cmp.w d1,d0
     beq.s hunk_33_loc_0c56
-hunk_33_loc_0c50:
+loc_0c50:
     moveq #9,d1
     cmp.w d1,d0
     bne.s hunk_33_loc_0c6a
@@ -63728,7 +63796,7 @@ hunk_33_loc_0d12:
 hunk_33_loc_0d28:
     move.w #$e6,d0
     move.w d0,(sp)
-    jsr loc_1e7a(pc)
+    jsr hunk_33_loc_1e7a(pc)
 hunk_33_loc_0d32:
     move.l 6484(a4),(sp)
     move.l d0,-(sp)
@@ -64203,7 +64271,7 @@ hunk_33_loc_1122:
     bra.w hunk_33_loc_131e
 hunk_33_loc_1128:
     cmpi.w #$1b6,-32732(a4)
-    bne.s loc_1146
+    bne.s hunk_33_loc_1146
 hunk_33_loc_1130:
     move.w #$104,d0
     move.w d0,-(sp)
@@ -64213,7 +64281,7 @@ hunk_33_loc_1130:
 hunk_33_loc_1140:
     moveq #1,d0
     bra.w hunk_33_loc_131e
-loc_1146:
+hunk_33_loc_1146:
     cmpi.w #$1a1,-32732(a4)
     bne.s hunk_33_loc_117a
 hunk_33_loc_114e:
@@ -64337,7 +64405,7 @@ hunk_33_loc_1264:
     move.w #$1f1,d1
     move.w d1,-(sp)
     jsr hunk_33_loc_1dcc(pc)
-loc_1274:
+hunk_33_loc_1274:
     move.w #$5,6990(a4)
     move.w #$104,d0
     move.w d0,(sp)
@@ -64369,7 +64437,7 @@ hunk_33_loc_12c0:
     addq.w #4,sp
     tst.w d0
     beq.s hunk_33_loc_12d2
-hunk_33_loc_12c6:
+loc_12c6:
     pea hunk_33_str_0184(pc)
     jsr hunk_33_loc_1e86(pc)
 hunk_33_loc_12ce:
@@ -64399,7 +64467,7 @@ hunk_33_loc_12f8:
     move.w d0,6904(a4)
     moveq #26,d0
     move.w d0,-(sp)
-    jsr loc_1e7a(pc)
+    jsr hunk_33_loc_1e7a(pc)
 hunk_33_loc_130a:
     move.l 6484(a4),-(sp)
     move.l d0,-(sp)
@@ -64423,7 +64491,7 @@ hunk_33_loc_1322:
 hunk_33_loc_1336:
     move.w #$c2,d0
     move.w d0,-(sp)
-    jsr loc_1e7a(pc)
+    jsr hunk_33_loc_1e7a(pc)
 hunk_33_loc_1340:
     move.l 6488(a4),-(sp)
     move.l d0,-(sp)
@@ -64502,7 +64570,7 @@ hunk_33_loc_13de:
 hunk_33_loc_13e6:
     move.w #$99,d0
     move.w d0,-(sp)
-    jsr loc_1e7a(pc)
+    jsr hunk_33_loc_1e7a(pc)
 hunk_33_loc_13f0:
     move.l 6488(a4),-(sp)
     move.l d0,-(sp)
@@ -64607,7 +64675,7 @@ hunk_33_loc_14de:
 hunk_33_loc_14ec:
     move.b (a0)+,(a1)+
     bne.s hunk_33_loc_14ec
-loc_14f0:
+hunk_33_loc_14f0:
     moveq #1,d0
     bra.s hunk_33_loc_1566
 hunk_33_loc_14f4:
@@ -64625,7 +64693,7 @@ hunk_33_loc_1508:
     bra.s hunk_33_loc_1566
 hunk_33_loc_150c:
     pea str_0278(pc)
-    jsr hunk_33_loc_1e4a(pc)
+    jsr loc_1e4a(pc)
 hunk_33_loc_1514:
     move.w #$5,6990(a4)
     pea hunk_33_str_0290(pc)
@@ -64645,7 +64713,7 @@ hunk_33_loc_1536:
     move.w #$c2,d1
     move.w d1,-(sp)
     jsr hunk_33_loc_1dc0(pc)
-loc_1546:
+hunk_33_loc_1546:
     addq.w #4,sp
     tst.w d0
     beq.s hunk_33_loc_1560
@@ -65144,11 +65212,11 @@ hunk_33_loc_196e:
 hunk_33_loc_1976:
     addq.w #2,sp
     tst.w d0
-    beq.s loc_1982
+    beq.s hunk_33_loc_1982
 hunk_33_loc_197c:
     moveq #1,d0
     bra.w hunk_33_loc_1b30
-loc_1982:
+hunk_33_loc_1982:
     move.w #$1,6978(a4)
     move.w #$ef,d0
     move.w d0,-(sp)
@@ -65161,7 +65229,7 @@ hunk_33_loc_1996:
     move.w #$f0,d1
     move.w d1,-(sp)
     jsr hunk_33_loc_1db4(pc)
-loc_19a4:
+hunk_33_loc_19a4:
     moveq #23,d0
     move.w d0,(sp)
     move.w #$f0,d1
@@ -65187,7 +65255,7 @@ hunk_33_loc_19c6:
     adda.l d1,a0
     move.w d0,(sp)
     move.w 28(a0),-(sp)
-    jsr hunk_33_loc_1e02(pc)
+    jsr loc_1e02(pc)
 hunk_33_loc_19f0:
     move.w #$f1,d0
     move.w d0,(sp)
@@ -65199,7 +65267,7 @@ hunk_33_loc_1a00:
     moveq #5,d0
     move.w d0,(sp)
     jsr loc_1e3e(pc)
-hunk_33_loc_1a0e:
+loc_1a0e:
     lea 16(sp),sp
     move.w d0,-32288(a4)
     addq.w #1,d0
@@ -65236,7 +65304,7 @@ hunk_33_loc_1a52:
 hunk_33_loc_1a54:
     subq.w #1,d0
     beq.s hunk_33_loc_1a7a
-hunk_33_loc_1a58:
+loc_1a58:
     bra.s hunk_33_loc_1a94
 hunk_33_loc_1a5a:
     move.w #$3,6990(a4)
@@ -65318,7 +65386,7 @@ hunk_33_loc_1b14:
     clr.w 6978(a4)
     moveq #26,d0
     move.w d0,-(sp)
-    jsr loc_1e7a(pc)
+    jsr hunk_33_loc_1e7a(pc)
 hunk_33_loc_1b20:
     move.l 6484(a4),-(sp)
     move.l d0,-(sp)
@@ -65512,7 +65580,7 @@ hunk_33_loc_1cf2:
     beq.s hunk_33_loc_1d0e
 hunk_33_loc_1cf8:
     pea hunk_33_str_04f2(pc)
-    jsr hunk_33_loc_1e4a(pc)
+    jsr loc_1e4a(pc)
 hunk_33_loc_1d00:
     pea hunk_33_loc_052a(pc)
     jsr hunk_33_loc_1e86(pc)
@@ -65533,7 +65601,7 @@ hunk_33_loc_1d26:
     addq.w #2,sp
     tst.w d0
     bne.s hunk_33_loc_1d38
-hunk_33_loc_1d2c:
+loc_1d2c:
     pea -6090(pc)
     jsr hunk_33_loc_1e86(pc)
 hunk_33_loc_1d34:
@@ -65552,7 +65620,7 @@ hunk_33_loc_1d4a:
     move.w #$1,6508(a4)
     move.w #$d5,d0
     move.w d0,-(sp)
-    jsr loc_1e7a(pc)
+    jsr hunk_33_loc_1e7a(pc)
 hunk_33_loc_1d5a:
     moveq #46,d1
     move.w d1,-(sp)
@@ -65564,8 +65632,8 @@ hunk_33_loc_1d66:
     jsr hunk_33_loc_1e1a(pc)
 hunk_33_loc_1d70:
     pea str_05ae(pc)
-    jsr hunk_33_loc_1e4a(pc)
-loc_1d78:
+    jsr loc_1e4a(pc)
+hunk_33_loc_1d78:
     move.w #$4,6990(a4)
     pea -5974(pc)
     jsr hunk_33_loc_1e86(pc)
@@ -65581,7 +65649,7 @@ hunk_33_loc_1d90:
     link a5,#0
     pea str_065c(pc)
     jsr hunk_33_loc_1e86(pc)
-hunk_33_loc_1d9c:
+loc_1d9c:
     moveq #1,d0
     unlk a5
     rts
@@ -65619,7 +65687,7 @@ loc_1df6:
     jmp hunk_8_loc_0708
 hunk_33_loc_1dfc:
     jmp hunk_8_loc_1a52
-hunk_33_loc_1e02:
+loc_1e02:
     jmp hunk_25_loc_02fa
 hunk_33_loc_1e08:
     jmp hunk_31_loc_36ee
@@ -65643,7 +65711,7 @@ loc_1e3e:
     jmp hunk_11_loc_01fa
 hunk_33_loc_1e44:
     jmp hunk_3_loc_0dac
-hunk_33_loc_1e4a:
+loc_1e4a:
     jmp hunk_31_loc_2da4
 loc_1e50:
     jmp hunk_31_loc_3908
@@ -65659,7 +65727,7 @@ hunk_33_loc_1e6e:
     jmp hunk_8_loc_0746
 hunk_33_loc_1e74:
     jmp hunk_30_loc_0000
-loc_1e7a:
+hunk_33_loc_1e7a:
     jmp hunk_3_loc_0d88
 hunk_33_loc_1e80:
     jmp hunk_36_loc_1fe6
@@ -66586,8 +66654,8 @@ hunk_36_loc_056e:
     bne.s hunk_36_loc_05ae
 hunk_36_loc_0578:
     move.l d7,-17172(a4)
-    moveq #2,d1
-    jsr -216(a6) ; unresolved_indirect_core:disp
+    moveq #MEMF_CHIP,d1 ; AvailMem: attributes
+    jsr _LVOAvailMem(a6)
 hunk_36_loc_0582:
     move.l d0,-(sp)
     pea hunk_36_pcref_0038(pc)
@@ -66845,7 +66913,7 @@ hunk_36_loc_08e2:
 hunk_36_loc_08ee:
     subq.w #2,sp
     move.w d7,-(sp)
-    jsr loc_26e4(pc)
+    jsr hunk_36_loc_26e4(pc)
 hunk_36_loc_08f6:
     addq.w #4,sp
     movem.l (sp)+,d2-d3/d7/a6
@@ -67860,11 +67928,11 @@ hunk_36_loc_1280:
     add.w d0,d1
     move.w d1,-8(a5)
     tst.w d1
-    bpl.s hunk_36_loc_12e2
+    bpl.s loc_12e2
 loc_12dc:
     moveq #0,d1
     move.w d1,-8(a5)
-hunk_36_loc_12e2:
+loc_12e2:
     sub.w d0,d3
     move.w 20(a5),d0
     move.l d0,d1
@@ -68770,7 +68838,7 @@ hunk_36_loc_1b88:
     lea -17154(a4),a0
     cmpa.l a0,a3
     bcs.s loc_1b70
-loc_1b90:
+hunk_36_loc_1b90:
     moveq #0,d0
     movea.l (sp)+,a3
     rts
@@ -68802,7 +68870,7 @@ hunk_36_loc_1bc6:
     move.w d5,d1
     adda.l d1,a3
     cmp.w d0,d5
-    beq.s loc_1c00
+    beq.s hunk_36_loc_1c00
 hunk_36_loc_1bd2:
     moveq #0,d0
     move.w d6,d0
@@ -68823,7 +68891,7 @@ loc_1bee:
     bsr.w hunk_36_loc_262e
 hunk_36_loc_1bfc:
     lea 16(sp),sp
-loc_1c00:
+hunk_36_loc_1c00:
     sub.w d5,d4
 hunk_36_loc_1c02:
     tst.w d4
@@ -68937,14 +69005,14 @@ hunk_36_loc_1cfc:
     move.l a0,d0
     move.l d0,d6
     subq.w #1,d6
-    bra.s loc_1d1a
+    bra.s hunk_36_loc_1d1a
 hunk_36_loc_1d08:
     move.b 0(a3,d6.w),d0
     move.b 0(a3,d7.w),0(a3,d6.w)
     move.b d0,0(a3,d7.w)
     addq.w #1,d7
     subq.w #1,d6
-loc_1d1a:
+hunk_36_loc_1d1a:
     cmp.w d6,d7
     blt.s hunk_36_loc_1d08
 hunk_36_loc_1d1e:
@@ -68958,7 +69026,7 @@ hunk_36_loc_1d24:
     movea.l a3,a2
     tst.w d6
     beq.s hunk_36_loc_1d5c
-hunk_36_loc_1d3a:
+loc_1d3a:
     move.l d7,d0
     ext.l d0
     divs.w d6,d0
@@ -68971,7 +69039,7 @@ hunk_36_loc_1d40:
     divs.w d6,d0
     move.l d0,d7
     tst.w d7
-    bne.s hunk_36_loc_1d3a
+    bne.s loc_1d3a
 hunk_36_loc_1d54:
     clr.b (a3)
     move.l a2,-(sp)
@@ -69090,10 +69158,10 @@ hunk_36_loc_1e7c:
 hunk_36_loc_1e80:
     move.l a2,8(a5)
     tst.w 28(sp)
-    beq.w hunk_36_loc_1f1e
+    beq.w loc_1f1e
 hunk_36_loc_1e8c:
     clr.b -97(a5)
-    bra.w hunk_36_loc_1f14
+    bra.w loc_1f14
 hunk_36_loc_1e94:
     clr.w -8(a5)
     clr.b -98(a5)
@@ -69152,10 +69220,10 @@ loc_1f02:
 hunk_36_loc_1f0c:
     addq.b #1,-97(a5)
     movea.l 8(a5),a2
-hunk_36_loc_1f14:
+loc_1f14:
     cmpi.b #$14,-97(a5)
     bcs.w hunk_36_loc_1e94
-hunk_36_loc_1f1e:
+loc_1f1e:
     addq.w #1,-6(a5)
 loc_1f22:
     cmpi.w #$c8,-6(a5)
@@ -69360,7 +69428,7 @@ hunk_36_loc_20da:
     move.w d0,-12(a5)
     move.w d1,28(sp)
     bra.s loc_2142
-loc_20fe:
+hunk_36_loc_20fe:
     clr.w -10(a5)
     moveq #0,d4
     bra.s hunk_36_loc_2136
@@ -69376,13 +69444,13 @@ hunk_36_loc_2106:
     asl.w d2,d1
     move.w 14(a5),d3
     and.w d1,d3
-    beq.s hunk_36_loc_212e
+    beq.s loc_212e
 loc_2128:
     move.b #$ff,(a3)
-    bra.s loc_2130
-hunk_36_loc_212e:
+    bra.s hunk_36_loc_2130
+loc_212e:
     clr.b (a3)
-loc_2130:
+hunk_36_loc_2130:
     addq.w #1,-10(a5)
     addq.l #4,d4
 hunk_36_loc_2136:
@@ -69393,7 +69461,7 @@ hunk_36_loc_213e:
 loc_2142:
     move.w -12(a5),d0
     cmp.w 28(sp),d0
-    blt.s loc_20fe
+    blt.s hunk_36_loc_20fe
 hunk_36_loc_214c:
     move.l d6,d0
     ext.l d0
@@ -69435,7 +69503,7 @@ hunk_36_loc_21a0:
 hunk_36_loc_21a6:
     cmpi.w #$5,-10(a5)
     blt.s hunk_36_loc_216c
-hunk_36_loc_21ae:
+loc_21ae:
     movem.l (sp)+,d2-d7/a3
     unlk a5
     rts
@@ -69461,7 +69529,7 @@ hunk_36_loc_21b6:
     move.w d1,-12(a5)
     move.b d2,28(sp)
     bra.s loc_2244
-hunk_36_loc_21f2:
+loc_21f2:
     clr.w -10(a5)
     moveq #0,d4
     bra.s loc_2234
@@ -69499,8 +69567,8 @@ hunk_36_loc_223c:
     add.w d0,-12(a5)
 loc_2244:
     cmp.w d6,d7
-    ble.s hunk_36_loc_21f2
-hunk_36_loc_2248:
+    ble.s loc_21f2
+loc_2248:
     movem.l (sp)+,d2-d7/a3
     unlk a5
     rts
@@ -69525,19 +69593,19 @@ hunk_36_loc_227c:
     move.l d5,d0
     tst.w d0
     bpl.s hunk_36_loc_2288
-loc_2286:
+hunk_36_loc_2286:
     addq.w #1,d0
 hunk_36_loc_2288:
     asr.w #1,d0
     move.w d0,24(sp)
-    bra.s loc_22a2
+    bra.s hunk_36_loc_22a2
 hunk_36_loc_2290:
     move.l #$80000000,d0
     move.w -6(a5),d1
     lsr.l d1,d0
     or.l d0,d4
     addq.w #1,-6(a5)
-loc_22a2:
+hunk_36_loc_22a2:
     move.w -6(a5),d0
     cmp.w 24(sp),d0
     blt.s hunk_36_loc_2290
@@ -69610,14 +69678,14 @@ hunk_36_loc_231e:
 loc_232e:
     move.l d1,d3
     neg.w d3
-    bra.s hunk_36_loc_2336
+    bra.s loc_2336
 loc_2334:
     move.l d1,d3
-hunk_36_loc_2336:
+loc_2336:
     move.w d3,-4974(a4)
     move.w -4970(a4),d0
     cmp.w d0,d3
-    blt.s hunk_36_loc_236e
+    blt.s loc_236e
 loc_2342:
     move.l d3,d1
     asr.w #1,d1
@@ -69633,7 +69701,7 @@ hunk_36_loc_2360:
     sub.w d1,-4962(a4)
     add.w d2,-5190(a4)
     bra.s hunk_36_loc_2398
-hunk_36_loc_236e:
+loc_236e:
     move.l d0,d1
     asr.w #1,d1
     move.w d1,-4964(a4)
@@ -69667,12 +69735,12 @@ hunk_36_loc_23b2:
 hunk_36_loc_23c6:
     move.b (a0)+,(a1)+
     bne.s hunk_36_loc_23c6
-hunk_36_loc_23ca:
+loc_23ca:
     lea -6877(a4),a0
     movea.l a0,a1
-hunk_36_loc_23d0:
+loc_23d0:
     tst.b (a1)+
-    bne.s hunk_36_loc_23d0
+    bne.s loc_23d0
 loc_23d4:
     subq.l #1,a1
     suba.l a0,a1
@@ -69688,8 +69756,8 @@ loc_23d4:
     moveq #50,d1
     movea.l -7802(a4),a6
     jsr -90(a6) ; unresolved_indirect_core:disp
-hunk_36_loc_23fa:
-    jsr loc_2696(pc)
+loc_23fa:
+    jsr hunk_36_loc_2696(pc)
 loc_23fe:
     addq.w #8,sp
     movem.l (sp)+,a2-a3/a6
@@ -69823,7 +69891,7 @@ loc_2544:
     clr.b -7808(a4)
 hunk_36_loc_2548:
     moveq #0,d6
-    bra.w loc_25e0
+    bra.w hunk_36_loc_25e0
 hunk_36_loc_254e:
     lea -76(a5),a0
     adda.l d6,a0
@@ -69884,7 +69952,7 @@ hunk_36_loc_25d6:
     move.b #$1,-7808(a4)
 hunk_36_loc_25de:
     addq.l #2,d6
-loc_25e0:
+hunk_36_loc_25e0:
     moveq #64,d0
     cmp.l d0,d6
     blt.w hunk_36_loc_254e
@@ -69937,7 +70005,7 @@ hunk_36_loc_2636:
 loc_264c:
     addq.w #8,sp
     move.l d0,-6760(a4)
-    bne.s loc_2670
+    bne.s hunk_36_loc_2670
 loc_2654:
     move.l a3,d0
     pea ($03ee).w
@@ -69946,13 +70014,13 @@ loc_2654:
 hunk_36_loc_2660:
     addq.w #8,sp
     move.l d0,-6760(a4)
-    bne.s loc_2670
+    bne.s hunk_36_loc_2670
 loc_2668:
     move.l a3,-(sp)
     jsr loc_26cc(pc)
 hunk_36_loc_266e:
     addq.w #4,sp
-loc_2670:
+hunk_36_loc_2670:
     movea.l (sp)+,a3
     unlk a5
     rts
@@ -69962,17 +70030,17 @@ hunk_36_loc_2678:
 hunk_36_loc_267e:
     jmp hunk_43_loc_024c
 hunk_36_loc_2684:
-    jmp sub_2558
+    jmp hunk_0_loc_2558
 loc_268a:
     jmp hunk_43_loc_042c
 loc_2690:
     jmp hunk_50_loc_0000
-loc_2696:
+hunk_36_loc_2696:
     jmp hunk_12_loc_0248
 loc_269c:
-    jmp sub_19d8
+    jmp hunk_0_loc_19d8
 hunk_36_loc_26a2:
-    jmp sub_0470
+    jmp hunk_0_loc_0470
 hunk_36_loc_26a8:
     jmp hunk_42_loc_0000
 hunk_36_loc_26ae:
@@ -69993,23 +70061,23 @@ hunk_36_loc_26d8:
     jmp hunk_43_loc_01d0
 hunk_36_loc_26de:
     jmp hunk_46_loc_017e
-loc_26e4:
+hunk_36_loc_26e4:
     jmp sub_2014
 loc_26ea:
-    jmp sub_1d40
+    jmp hunk_0_loc_1d40
 loc_26f0:
     jmp hunk_46_loc_0154
 loc_26f6:
     jmp hunk_21_loc_095c
 loc_26fc:
-    jmp sub_1a48
+    jmp hunk_0_loc_1a48
 loc_2702:
     jmp hunk_46_loc_00e8
 loc_2708:
     jmp sub_0c54
 pcref_270e:
     dc.b    $4e,$f9
-    dc.l    sub_01f8
+    dc.l    hunk_0_loc_01f8
 
 ; Hunk 37: 516 bytes, 0 entities, 7 blocks
 
@@ -70249,9 +70317,9 @@ hunk_41_loc_006a:
     movea.l 8008(a4),a0
     move.w #$9,28(a0)
     lea 8012(a4),a0
-    movea.l 8008(a4),a1
+    movea.l 8008(a4),a1 ; DoIO: iORequest
     move.l a0,40(a1)
-    jsr -456(a6) ; unresolved_indirect_core:disp
+    jsr _LVODoIO(a6)
 hunk_41_loc_0084:
     movem.l (sp)+,a4/a6
     rts
@@ -70266,8 +70334,8 @@ hunk_41_loc_008a:
     movea.l AbsExecBase,a6
     jsr _LVODoIO(a6)
 hunk_41_loc_00b2:
-    movea.l 8008(a4),a1
-    jsr -450(a6) ; unresolved_indirect_core:disp
+    movea.l 8008(a4),a1 ; CloseDevice: ioRequest
+    jsr _LVOCloseDevice(a6)
 hunk_41_loc_00ba:
     move.l 8008(a4),-(sp)
     jsr hunk_41_loc_00e6(pc)
@@ -70280,15 +70348,15 @@ hunk_41_loc_00ca:
     rts
     dc.b    $00,$00
 hunk_41_loc_00d4:
-    jmp sub_2444
+    jmp hunk_0_loc_2444
 hunk_41_loc_00da:
-    jmp sub_2480
+    jmp hunk_0_loc_2480
 hunk_41_loc_00e0:
-    jmp sub_2200
+    jmp hunk_0_loc_2200
 hunk_41_loc_00e6:
-    jmp sub_21d4
+    jmp hunk_0_loc_21d4
 hunk_41_loc_00ec:
-    jmp sub_038c
+    jmp hunk_0_loc_038c
     dc.b    $70,$61
 
 ; Hunk 42: 184 bytes, 0 entities, 27 blocks
@@ -70312,7 +70380,7 @@ hunk_42_loc_0024:
     moveq #0,d0
     move.w d7,d0
     moveq #0,d1
-    lea -16420(a4),a0
+    lea -16420(a4),a0 ; app-$4024
     move.b 0(a0,d0.l),d1
     subi.w #$64,d1
     beq.s hunk_42_loc_0066
@@ -70372,20 +70440,20 @@ hunk_42_loc_007c:
 hunk_42_loc_0084:
     moveq #0,d0
     move.w d7,d0
-    lea -16292(a4),a0
+    lea -16292(a4),a0 ; app-$3FA4
     move.b 0(a0,d0.l),d0
     bra.s hunk_42_loc_00b2
 hunk_42_loc_0092:
     moveq #0,d0
     move.w d7,d0
-    lea -16420(a4),a0
+    lea -16420(a4),a0 ; app-$4024
     move.b 0(a0,d0.l),d5
     btst #2,d6
     beq.s hunk_42_loc_00b0
 hunk_42_loc_00a4:
     moveq #0,d0
     move.w d7,d0
-    lea -16292(a4),a0
+    lea -16292(a4),a0 ; app-$3FA4
     move.b 0(a0,d0.l),d5
 hunk_42_loc_00b0:
     move.l d5,d0
@@ -70541,9 +70609,9 @@ hunk_43_loc_021c:
     movea.l AbsExecBase,a6
     jsr _LVORemPort(a6)
 hunk_43_loc_0228:
-    movea.l -16156(a4),a1
-    moveq #40,d0
-    jsr -210(a6) ; unresolved_indirect_core:disp
+    movea.l -16156(a4),a1 ; FreeMem: memoryBlock
+    moveq #40,d0 ; FreeMem: byteSize
+    jsr _LVOFreeMem(a6)
 hunk_43_loc_0232:
     tst.l -16164(a4)
     beq.s hunk_43_loc_0246
@@ -70731,9 +70799,9 @@ hunk_43_loc_042c:
     movea.l AbsExecBase,a6
     jsr _LVORemIntServer(a6)
 hunk_43_loc_0444:
-    movea.l 8128(a4),a1
-    moveq #22,d0
-    jsr -210(a6) ; unresolved_indirect_core:disp
+    movea.l 8128(a4),a1 ; FreeMem: memoryBlock
+    moveq #22,d0 ; FreeMem: byteSize
+    jsr _LVOFreeMem(a6)
 hunk_43_loc_044e:
     movem.l (sp)+,a4/a6
     rts
@@ -70770,18 +70838,18 @@ hint_04b2:
 hint_04ca:
     dc.b    $4c,$df,$50,$00,$4e,$75
 hunk_43_loc_04d0:
-    jmp sub_066c
+    jmp hunk_0_loc_066c
 hunk_43_loc_04d6:
-    jmp sub_2380
+    jmp hunk_0_loc_2380
 pcref_04dc:
     dc.b    $4e,$f9
     dc.l    hunk_11_loc_017a
 hunk_43_loc_04e2:
-    jmp sub_2510
+    jmp hunk_0_loc_2510
 hunk_43_loc_04e8:
     jmp hunk_36_loc_262e
 hunk_43_loc_04ee:
-    jmp sub_2240
+    jmp hunk_0_loc_2240
 hunk_43_loc_04f4:
     jmp hunk_21_loc_095c
 pcref_04fa:
@@ -70790,7 +70858,7 @@ pcref_04fa:
 hunk_43_loc_0500:
     jmp hunk_49_loc_0000
 hunk_43_loc_0506:
-    jmp sub_2360
+    jmp hunk_0_loc_2360
 
 ; Hunk 44: 2912 bytes, 0 entities, 239 blocks
 
@@ -71872,33 +71940,33 @@ hunk_44_loc_0af2:
     movem.l (sp)+,d7/a4
     rts
 hunk_44_loc_0b10:
-    jmp sub_2558
+    jmp hunk_0_loc_2558
 hunk_44_loc_0b16:
     jmp hunk_36_loc_0a6e
 hunk_44_loc_0b1c:
     jmp hunk_36_loc_1d24
 hunk_44_loc_0b22:
-    jmp sub_19d8
+    jmp hunk_0_loc_19d8
 hunk_44_loc_0b28:
-    jmp sub_055e
+    jmp hunk_0_loc_055e
 pcref_0b2e:
     dc.b    $4e,$f9
     dc.l    sub_1c88
 pcref_0b34:
     dc.b    $4e,$f9
-    dc.l    sub_051a
+    dc.l    hunk_0_loc_051a
 hunk_44_loc_0b3a:
     jmp hunk_36_loc_262e
 hunk_44_loc_0b40:
-    jmp sub_26c0
+    jmp hunk_0_loc_26c0
 hunk_44_loc_0b46:
-    jmp sub_1628
+    jmp hunk_0_loc_1628
 hunk_44_loc_0b4c:
-    jmp sub_18a6
+    jmp hunk_0_loc_18a6
 hunk_44_loc_0b52:
     jmp hunk_21_loc_095c
 hunk_44_loc_0b58:
-    jmp sub_1a48
+    jmp hunk_0_loc_1a48
     dc.b    $70,$61
 
 ; Hunk 45: 419588 bytes, 0 entities, 0 blocks
@@ -71989,15 +72057,15 @@ hunk_46_loc_0044:
     jsr hunk_46_loc_028e(pc)
 hunk_46_loc_004c:
     movea.l -4(a5),a0
-    move.w 120(a0),d0
+    move.w 120(a0),d0 ; app+$78
     move.w d0,10064(a4)
-    move.w 122(a0),d1
+    move.w 122(a0),d1 ; app+$7A
 hunk_46_loc_005c:
     move.w d1,10062(a4)
-    move.b 118(a0),d2
+    move.b 118(a0),d2 ; app+$76
     ext.w d2
     add.w d2,10064(a4)
-    move.b 119(a0),d0
+    move.b 119(a0),d0 ; app+$77
     ext.w d0
     add.w d0,10062(a4)
     move.l a3,10002(a4)
@@ -72225,9 +72293,9 @@ hunk_46_loc_02b8:
     dc.l    dat_0056
     dc.l    hunk_6_dat_004e
     dc.l    dat_0284
-    dc.l    hunk_6_dat_028c
+    dc.l    dat_028c
     dc.l    hunk_6_loc_030c
-    dc.l    hunk_6_dat_028c
+    dc.l    dat_028c
     dc.l    hunk_6_loc_03ce
     dc.b    $00,$12
     dcb.b   8,0
@@ -72963,7 +73031,7 @@ hunk_46_loc_02b8:
     dc.b    $00,$00,$01,$9e,$00,$01
     dcb.b   6,0
     dc.b    $01,$9e
-    dc.l    hint_17a2
+    dc.l    hunk_6_hint_17a2
     dc.b    $00,$00,$01,$9f
     dcb.b   8,0
     dc.b    $01,$9f
@@ -73493,7 +73561,7 @@ hunk_46_loc_02b8:
     dc.b    $00,$00,$01,$f4
     dcb.b   8,0
     dc.b    $01,$f4
-    dc.l    hunk_8_hint_1124
+    dc.l    hint_1124
     dc.b    $00,$00,$01,$f5
     dcb.b   8,0
     dc.b    $01,$f5

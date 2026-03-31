@@ -17,12 +17,12 @@ class OsIncludeOwner:
     canonical_include_path: str | None
     assembler_include_path: str | None
     source_file: str
-    available_since: str | None
 
 
 @dataclass(frozen=True, slots=True)
 class OsIncludeKb:
     library_lvo_owners: dict[str, OsIncludeOwner]
+    constant_owners: dict[str, OsIncludeOwner]
 
 
 def load_os_include_kb(project_root: Path = PROJECT_ROOT) -> OsIncludeKb:
@@ -33,20 +33,34 @@ def load_os_include_kb(project_root: Path = PROJECT_ROOT) -> OsIncludeKb:
         includes=includes,
         other=other,
         corrections=corrections,
-    )["_meta"]["library_lvo_owners"]
+    )
     library_lvo_owners: dict[str, OsIncludeOwner] = {}
-    for library_name, owner_value in owners_payload.items():
-        owner_payload = owner_value
+    for library_name, library in owners_payload["libraries"].items():
+        owner_payload = library["owner"]
         kind = owner_payload["kind"]
         canonical_include_path = owner_payload["canonical_include_path"]
         assembler_include_path = owner_payload.get("assembler_include_path")
         source_file = owner_payload["source_file"]
-        available_since = owner_payload["available_since"]
         library_lvo_owners[library_name] = OsIncludeOwner(
             kind=kind,
             canonical_include_path=canonical_include_path,
             assembler_include_path=assembler_include_path,
             source_file=source_file,
-            available_since=available_since,
         )
-    return OsIncludeKb(library_lvo_owners=library_lvo_owners)
+    constant_owners: dict[str, OsIncludeOwner] = {}
+    for constant_name, constant in owners_payload["constants"].items():
+        owner_payload = constant["owner"]
+        kind = owner_payload["kind"]
+        canonical_include_path = owner_payload["canonical_include_path"]
+        assembler_include_path = owner_payload.get("assembler_include_path")
+        source_file = owner_payload["source_file"]
+        constant_owners[constant_name] = OsIncludeOwner(
+            kind=kind,
+            canonical_include_path=canonical_include_path,
+            assembler_include_path=assembler_include_path,
+            source_file=source_file,
+        )
+    return OsIncludeKb(
+        library_lvo_owners=library_lvo_owners,
+        constant_owners=constant_owners,
+    )

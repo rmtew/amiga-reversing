@@ -599,7 +599,7 @@ def parse_fd_file(path: str) -> JsonDict:
                 if block_fd_version:
                     entry["fd_version"] = block_fd_version
                 if block_os_since:
-                    entry["os_since"] = block_os_since
+                    entry["available_since"] = block_os_since
                 functions[name] = entry
                 bias += LVO_SLOT_SIZE
 
@@ -1088,17 +1088,25 @@ def _map_clib_args_to_inputs(
 
 def reconcile_clib_callback_types(output: JsonDict, include_h_dir: str) -> int:
     clib = parse_clib_prototypes(include_h_dir)
-    library_names = set(output["libraries"])
+    sparse_functions = cast(dict[str, dict[str, JsonDict]], output.get("functions", {}))
+    libraries = cast(dict[str, JsonDict], output.get("libraries", {}))
+    library_names = set(libraries)
+    if sparse_functions:
+        library_names.update(sparse_functions)
     updates = 0
     for stem, functions in clib.items():
         lib_name = _resolve_clib_library_name(stem, library_names)
         if lib_name is None:
             continue
-        library = output["libraries"][lib_name]
         for func_name, args in functions.items():
-            if func_name not in library["functions"]:
+            if lib_name in libraries:
+                library = libraries[lib_name]
+                function_entry = cast(JsonDict | None, library["functions"].get(func_name))
+            else:
+                function_entry = sparse_functions.get(lib_name, {}).get(func_name)
+            if function_entry is None:
                 continue
-            inputs = library["functions"][func_name].get("inputs", [])
+            inputs = function_entry.get("inputs", [])
             if not inputs or not args:
                 continue
             mapped_args = _map_clib_args_to_inputs(inputs, args)
@@ -1845,11 +1853,17 @@ def evaluate_all_constants(raw_constants: dict[str, object]) -> dict[str, JsonDi
     return result
 
 
+def _canonical_include_relpath_from_source(include_dir: str, source_path: str) -> str:
+    relpath = os.path.relpath(source_path, include_dir)
+    return relpath.replace(os.sep, "/").lower()
+
+
 def collect_raw_constants_from_include_dir(
     include_dir: str,
     type_sizes: dict[str, int],
-) -> tuple[dict[str, object], list[str]]:
+) -> tuple[dict[str, object], dict[str, str], list[str]]:
     raw_constants: dict[str, object] = {}
+    constant_source_files: dict[str, str] = {}
     parsed_include_paths: list[str] = []
     include_subdirs = sorted([
         d for d in os.listdir(include_dir)
@@ -1883,12 +1897,16 @@ def collect_raw_constants_from_include_dir(
 
                         cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s*[;*].*)?$', line)
                         if cm:
-                            raw_constants[cm.group(1)] = cm.group(2).strip()
+                            name = cm.group(1)
+                            raw_constants[name] = cm.group(2).strip()
+                            constant_source_files[name] = fpath
                             continue
 
                         cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s*[;*].*)?$', line)
                         if cm and not cm.group(1).endswith("_I") and cm.group(1) not in ("SOFFSET", "EOFFSET"):
-                            raw_constants[cm.group(1)] = cm.group(2).strip()
+                            name = cm.group(1)
+                            raw_constants[name] = cm.group(2).strip()
+                            constant_source_files[name] = fpath
                             continue
 
                         bm = re.match(r'\s+BITDEF\s+(\w+),(\w+),(\d+)', line)
@@ -1896,8 +1914,12 @@ def collect_raw_constants_from_include_dir(
                             prefix = bm.group(1)
                             name = bm.group(2)
                             bitnum = bm.group(3)
-                            raw_constants[f"{prefix}B_{name}"] = bitnum
-                            raw_constants[f"{prefix}F_{name}"] = f"(1<<{bitnum})"
+                            bit_name = f"{prefix}B_{name}"
+                            flag_name = f"{prefix}F_{name}"
+                            raw_constants[bit_name] = bitnum
+                            raw_constants[flag_name] = f"(1<<{bitnum})"
+                            constant_source_files[bit_name] = fpath
+                            constant_source_files[flag_name] = fpath
                             continue
 
                         dm = re.match(r'\s+DEVINIT(?:\s+(\S+))?\s*$', line)
@@ -1910,7 +1932,9 @@ def collect_raw_constants_from_include_dir(
                         if dm:
                             if cmd_count is None:
                                 continue
-                            raw_constants[dm.group(1)] = str(cmd_count)
+                            name = dm.group(1)
+                            raw_constants[name] = str(cmd_count)
+                            constant_source_files[name] = fpath
                             cmd_count += 1
                             continue
 
@@ -1929,7 +1953,9 @@ def collect_raw_constants_from_include_dir(
 
                         em = re.match(r'\s+EITEM\s+(\w+)', line)
                         if em:
-                            raw_constants[em.group(1)] = str(eoffset)
+                            name = em.group(1)
+                            raw_constants[name] = str(eoffset)
+                            constant_source_files[name] = fpath
                             eoffset += 1
                             continue
 
@@ -1938,6 +1964,7 @@ def collect_raw_constants_from_include_dir(
                             struct_name = sm.group(1)
                             init_str = sm.group(2)
                             raw_constants[struct_name] = "0"
+                            constant_source_files[struct_name] = fpath
                             try:
                                 soffset = int(init_str)
                             except ValueError:
@@ -1954,13 +1981,17 @@ def collect_raw_constants_from_include_dir(
                         if in_struct and soffset is not None and sim_type_re:
                             tm = sim_type_re.match(line)
                             if tm:
-                                raw_constants[tm.group(2)] = str(soffset)
+                                name = tm.group(2)
+                                raw_constants[name] = str(soffset)
+                                constant_source_files[name] = fpath
                                 soffset += type_sizes[tm.group(1)]
                                 continue
 
                             ssm = re.match(r'\s+STRUCT\s+(\w+),(\w+)', line)
                             if ssm:
-                                raw_constants[ssm.group(1)] = str(soffset)
+                                name = ssm.group(1)
+                                raw_constants[name] = str(soffset)
+                                constant_source_files[name] = fpath
                                 size_str = ssm.group(2)
                                 try:
                                     soffset += int(size_str)
@@ -1976,7 +2007,9 @@ def collect_raw_constants_from_include_dir(
 
                             lm = re.match(r'\s+LABEL\s+(\w+)', line)
                             if lm:
-                                raw_constants[lm.group(1)] = str(soffset)
+                                name = lm.group(1)
+                                raw_constants[name] = str(soffset)
+                                constant_source_files[name] = fpath
                                 continue
 
                             if re.match(r'\s+ALIGNWORD\b', line):
@@ -1987,7 +2020,7 @@ def collect_raw_constants_from_include_dir(
                                 soffset = (soffset + 3) & ~3
                                 continue
 
-    return raw_constants, parsed_include_paths
+    return raw_constants, constant_source_files, parsed_include_paths
 
 
 def _field_key(struct_name: str, field_name: str) -> str:
@@ -2397,6 +2430,27 @@ def build_os_include_kb(
     }
 
 
+def build_os_constant_include_kb(
+    include_dir: str,
+    evaluated_constants: dict[str, JsonDict],
+    constant_source_files: dict[str, str],
+    compatibility_kb: JsonDict,
+) -> dict[str, JsonDict]:
+    constant_owners: dict[str, JsonDict] = {}
+    for constant_name, _entry in sorted(evaluated_constants.items()):
+        source_file = constant_source_files.get(constant_name)
+        if source_file is None:
+            raise ValueError(f"Missing include source file for constant ownership: {constant_name}")
+        canonical_include_path = _canonical_include_relpath_from_source(include_dir, source_file)
+        constant_owners[constant_name] = {
+            "kind": "native_include",
+            "canonical_include_path": canonical_include_path,
+            "assembler_include_path": canonical_include_path,
+            "source_file": source_file.replace(os.sep, "/"),
+        }
+    return constant_owners
+
+
 # =============================================================================
 # Autodoc -> library matching
 # =============================================================================
@@ -2789,7 +2843,7 @@ def build_os_compatibility_kb(
     for version, root in ndk_roots.items():
         version_include_dir = resolve_include_i_dir(root)
         version_type_sizes = scan_type_macros(version_include_dir)
-        version_raw_constants, _ = collect_raw_constants_from_include_dir(
+        version_raw_constants, _, _ = collect_raw_constants_from_include_dir(
             version_include_dir,
             version_type_sizes,
         )
@@ -2844,10 +2898,6 @@ def build_os_compatibility_kb(
             first_version = min(names_by_version, key=_compatibility_version_key)
             field_min_versions[(struct_name, field_name)] = first_version
             field_names_by_version[(struct_name, field_name)] = names_by_version
-
-    for owner in cast(dict[str, JsonDict], include_kb["library_lvo_owners"]).values():
-        canonical_include_path = owner["canonical_include_path"]
-        owner["available_since"] = None if canonical_include_path is None else include_min_versions[_normalize_include_relpath(cast(str, canonical_include_path))]
 
     for struct_name, struct_def in structs.items():
         struct_def["available_since"] = struct_min_versions[struct_name]
@@ -2942,7 +2992,7 @@ def main() -> None:
     # This also simulates STRUCTURE macros to extract field-name constants
     # (e.g. LN_SUCC EQU 0, LN_SIZE EQU 14) which are generated at assembly
     # time by the macros in TYPES.I.
-    raw_constants, parsed_include_paths = collect_raw_constants_from_include_dir(
+    raw_constants, constant_source_files, parsed_include_paths = collect_raw_constants_from_include_dir(
         include_dir,
         type_sizes,
     )
@@ -2953,7 +3003,6 @@ def main() -> None:
     evaluated_constants = evaluate_all_constants(raw_constants)
     resolved_count = sum(1 for v in evaluated_constants.values() if v["value"] is not None)
     print(f"  Constants resolved: {resolved_count}/{len(evaluated_constants)}")
-
     # Build a lookup for struct offset resolution (constant name -> int value)
     const_lookup = {}
     for name, entry in evaluated_constants.items():
@@ -3022,6 +3071,14 @@ def main() -> None:
         f"  {len(compatibility_kb['compatibility_versions'])} NDK versions, "
         f"{len(compatibility_kb['include_min_versions'])} include availability entries"
     )
+    print("Building constant include ownership KB...")
+    constant_owners = build_os_constant_include_kb(
+        include_dir,
+        evaluated_constants,
+        constant_source_files,
+        compatibility_kb,
+    )
+    print(f"  {len(constant_owners)} constant include ownership entries")
     named_base_structs = derive_named_base_structs(
         fd_data,
         raw_structs,
@@ -3094,6 +3151,9 @@ def main() -> None:
 
     includes_output = {
         "_meta": {
+            "source": "NDK include files",
+            "ndk_path": ndk_root,
+            "include_dir": include_dir,
             "type_sizes": dict(sorted(type_sizes.items())),
             "lvo_slot_size": LVO_SLOT_SIZE,
               "compatibility_versions": compatibility_kb["compatibility_versions"],
@@ -3109,11 +3169,15 @@ def main() -> None:
             "api_input_semantic_assertions": [],
             "struct_field_value_bindings": [],
             "typed_data_stream_formats": raw_typed_data_stream_formats,
-            "library_lvo_owners": include_kb["library_lvo_owners"],
+            "parsed_include_paths": sorted({
+                _canonical_include_relpath_from_source(include_dir, path)
+                for path in parsed_include_paths
+            }),
         },
         "libraries": {},
         "structs": {},
         "constants": {},
+        "functions": {},
     }
     other_output = {
         "_meta": {
@@ -3121,28 +3185,23 @@ def main() -> None:
             "ndk_path": ndk_root,
             "version_map": VERSION_MAP,
             "version_fields_note": (
-                "Function version data is split: os_since is first known OS release, "
+                "Function version data is split: available_since is first known OS release, "
                 "while fd_version is the interface/library version marker from FD comments. "
                 "They must not be conflated."
             ),
-            "os_since_default_note": (
-                "Functions without OS release markers default to os_since='1.0' as a lower bound. "
+            "available_since_default_note": (
+                "Functions without OS release markers default to available_since='1.0' as a lower bound. "
                 "NDK 1.3 FD files lack reliable pre-1.3 OS granularity."
             ),
         },
-        "libraries": {},
-        "structs": {},
-        "constants": {},
+        "functions": {},
     }
 
     # --- Build libraries ---
     for lib_name, fd_info in sorted(fd_data.items()):
         includes_lib_entry = {
             "base": fd_info["base"],
-            "functions": {},
-            "lvo_index": {},
-        }
-        other_lib_entry: JsonDict = {
+            "owner": include_kb["library_lvo_owners"][lib_name],
             "functions": {},
         }
 
@@ -3264,18 +3323,17 @@ def main() -> None:
                         other_entry["returns_memory"]["size_reg"] = \
                             size_inputs[0]["regs"][0]
 
-            os_since = compatibility_kb["_function_min_versions"].get(f"{lib_name}/{func_name}")
-            explicit_fd_os_since = fd_func.get("os_since")
-            if explicit_fd_os_since:
-                os_since = explicit_fd_os_since
+            available_since = compatibility_kb["_function_min_versions"].get(f"{lib_name}/{func_name}")
+            explicit_fd_available_since = fd_func.get("available_since")
+            if explicit_fd_available_since:
+                available_since = explicit_fd_available_since
             if oc_lib and func_name in oc_lib["functions"]:
-                os_since = oc_lib["functions"][func_name]
+                available_since = oc_lib["functions"][func_name]
 
-            if os_since:
-                other_entry["os_since"] = os_since
+            if available_since:
+                other_entry["available_since"] = available_since
             else:
-                other_entry["os_since"] = "1.0"
-            includes_entry["available_since"] = cast(str, other_entry["os_since"])
+                other_entry["available_since"] = "1.0"
             if fd_func.get("fd_version"):
                 includes_entry["fd_version"] = fd_func["fd_version"]
 
@@ -3285,22 +3343,20 @@ def main() -> None:
 
             includes_lib_entry["functions"][func_name] = includes_entry
             if other_entry:
-                other_lib_entry["functions"][func_name] = other_entry
-            includes_lib_entry["lvo_index"][str(fd_func["lvo"])] = func_name
+                cast(dict[str, dict[str, JsonDict]], other_output["functions"]).setdefault(lib_name, {})[func_name] = other_entry
 
         includes_output["libraries"][lib_name] = includes_lib_entry
-        other_output["libraries"][lib_name] = other_lib_entry
 
     # Add functions from OS_CHANGES that are in libraries we have but not in our FD
     if os_version_map:
         for oc_lib_name, oc_lib_info in os_version_map["libraries"].items():
-            if oc_lib_name in other_output["libraries"]:
-                lib = other_output["libraries"][oc_lib_name]
+            if oc_lib_name in includes_output["libraries"]:
+                include_funcs = cast(dict[str, JsonDict], includes_output["libraries"][oc_lib_name]["functions"])
                 for func_name, ver in oc_lib_info["functions"].items():
-                    if func_name not in lib["functions"]:
-                        lib["functions"][func_name] = {
+                    if func_name not in include_funcs:
+                        cast(dict[str, dict[str, JsonDict]], other_output["functions"]).setdefault(oc_lib_name, {})[func_name] = {
                             "lvo": None,
-                            "os_since": ver,
+                            "available_since": ver,
                         }
 
     # --- Build structs ---
@@ -3312,6 +3368,7 @@ def main() -> None:
             "raw": entry["raw"],
             "value": entry["value"],
             "available_since": compatibility_kb["_constant_min_versions"].get(name, "1.0"),
+            "owner": constant_owners[name],
         }
         for name, entry in evaluated_constants.items()
     }
@@ -3420,8 +3477,8 @@ def main() -> None:
         # When a function input/output type is "struct Foo *", add
         # "i_struct": "BAR" if Foo -> BAR is in the mapping.
         enriched = 0
-        for lib in other_output["libraries"].values():
-            for func in lib["functions"].values():
+        for library_functions in cast(dict[str, dict[str, JsonDict]], other_output["functions"]).values():
+            for func in library_functions.values():
                 for inp in func.get("inputs", []):
                     i_ref = _resolve_struct_ref(
                         inp.get("type", ""), c_to_i_map, i_names)
@@ -3450,13 +3507,16 @@ def main() -> None:
     # 7. Summary
     # ========================================================================
     merged_libraries = json.loads(json.dumps(includes_output["libraries"]))
-    for lib_name, other_library in other_output["libraries"].items():
-        merged_library = merged_libraries[lib_name]
-        for func_name, function_overlay in other_library["functions"].items():
-            if func_name not in merged_library["functions"]:
-                merged_library["functions"][func_name] = function_overlay
+    for lib_name, function_overlays in cast(dict[str, dict[str, JsonDict]], other_output["functions"]).items():
+        merged_library = cast(JsonDict | None, merged_libraries.get(lib_name))
+        if merged_library is None:
+            continue
+        merged_functions = cast(dict[str, JsonDict], merged_library["functions"])
+        for func_name, function_overlay in function_overlays.items():
+            if func_name not in merged_functions:
+                merged_functions[func_name] = function_overlay
                 continue
-            merged_library["functions"][func_name].update(function_overlay)
+            merged_functions[func_name].update(function_overlay)
 
     total_funcs = sum(len(v["functions"]) for v in merged_libraries.values())
     documented = sum(

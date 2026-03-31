@@ -2,34 +2,34 @@
   "target": "amiga_hunk_monam302",
   "binary": "bin/MonAm302",
   "command": "uv run scripts/benchmark_target.py amiga_hunk_monam302",
-  "measured_at": "2026-03-30T21:11:17+13:00",
+  "measured_at": "2026-03-31T18:01:45+13:00",
   "status": "ok",
-  "elapsed_seconds": 11.99,
+  "elapsed_seconds": 30.74,
   "analysis_bytes": 5424219,
   "entities_bytes": 96837,
-  "disasm_bytes": 297690,
+  "disasm_bytes": 297540,
   "timing": {
     "entities": {
       "parse_source_seconds": 0.0002,
       "analysis": {
-        "init_seconds": 0.2872,
-        "core_seconds": 1.773,
-        "per_caller_seconds": 2.3266,
-        "store_pass_seconds": 0.0289,
-        "hint_scan_seconds": 0.5335,
-        "os_call_seconds": 0.0544
+        "init_seconds": 0.3017,
+        "core_seconds": 1.8508,
+        "per_caller_seconds": 13.2777,
+        "store_pass_seconds": 0.0276,
+        "hint_scan_seconds": 0.5252,
+        "os_call_seconds": 7.8436
       },
-      "naming_seconds": 0.0022,
-      "write_seconds": 0.0031
+      "naming_seconds": 0.0023,
+      "write_seconds": 0.0032
     },
     "session": {
-      "load_analysis_seconds": 0.1142,
-      "metadata_seconds": 1.4735,
-      "substitutions_seconds": 0.0225,
-      "build_seconds": 0.0003
+      "load_analysis_seconds": 0.1186,
+      "metadata_seconds": 1.4931,
+      "substitutions_seconds": 0.0251,
+      "build_seconds": 0.0001
     },
-    "emit_seconds": 0.3988,
-    "render_seconds": 0.016
+    "emit_seconds": 0.4031,
+    "render_seconds": 0.0157
   },
   "analysis": {
     "code_bytes": 35548,

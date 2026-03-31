@@ -252,24 +252,6 @@ class HunkDisassemblySession:
     code_size: int
     entities: list[EntityRecord]
     blocks: Mapping[int, DisasmBlockLike]
-    hint_blocks: Mapping[int, DisasmBlockLike]
-    code_addrs: set[int]
-    hint_addrs: set[int]
-    reloc_map: dict[int, int]
-    reloc_target_set: set[int]
-    pc_targets: dict[int, str]
-    string_addrs: set[int]
-    labels: dict[int, str]
-    jump_table_regions: dict[int, JumpTableRegion]
-    jump_table_target_sources: dict[int, tuple[str, ...]]
-    region_map: InstructionRegionMap
-    lvo_equs: dict[str, dict[int, str]]
-    lvo_substitutions: dict[int, tuple[str, str]]
-    arg_equs: dict[str, int]
-    arg_substitutions: dict[int, tuple[str, str]]
-    app_offsets: dict[int, str]
-    arg_annotations: dict[int, CallArgumentAnnotation]
-    data_access_sizes: dict[int, int]
     platform: PlatformState
     os_kb: OsKb
     base_addr: int
@@ -277,6 +259,25 @@ class HunkDisassemblySession:
     relocated_segments: list[RelocatedSegment]
     reloc_file_offset: int
     reloc_base_addr: int
+    hint_blocks: Mapping[int, DisasmBlockLike] = field(default_factory=dict)
+    code_addrs: set[int] = field(default_factory=set)
+    hint_addrs: set[int] = field(default_factory=set)
+    reloc_map: dict[int, int] = field(default_factory=dict)
+    reloc_target_set: set[int] = field(default_factory=set)
+    pc_targets: dict[int, str] = field(default_factory=dict)
+    string_addrs: set[int] = field(default_factory=set)
+    labels: dict[int, str] = field(default_factory=dict)
+    jump_table_regions: dict[int, JumpTableRegion] = field(default_factory=dict)
+    jump_table_target_sources: dict[int, tuple[str, ...]] = field(default_factory=dict)
+    region_map: InstructionRegionMap = field(default_factory=dict)
+    lvo_equs: dict[str, dict[int, str]] = field(default_factory=dict)
+    lvo_substitutions: dict[int, tuple[str, str]] = field(default_factory=dict)
+    arg_substitutions: dict[int, tuple[str, str]] = field(default_factory=dict)
+    app_offsets: dict[int, str] = field(default_factory=dict)
+    arg_annotations: dict[int, CallArgumentAnnotation] = field(default_factory=dict)
+    data_access_sizes: dict[int, int] = field(default_factory=dict)
+    arg_constants: set[str] = field(default_factory=set)
+    generic_data_label_addrs: set[int] = field(default_factory=set)
     typed_data_sizes: dict[int, int] = field(default_factory=dict)
     typed_data_fields: dict[int, TypedDataFieldInfo] = field(default_factory=dict)
     addr_comments: dict[int, str] = field(default_factory=dict)

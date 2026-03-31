@@ -2,85 +2,89 @@
   "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec",
   "binary": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf::king",
   "command": "uv run scripts/benchmark_target.py amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec",
-  "measured_at": "2026-03-30T21:09:15+13:00",
+  "measured_at": "2026-03-31T17:59:23+13:00",
   "status": "ok",
-  "elapsed_seconds": 24.02,
-  "analysis_bytes": 12264583,
-  "entities_bytes": 12342,
-  "disasm_bytes": 1623477,
+  "elapsed_seconds": 28.64,
+  "analysis_bytes": 12371566,
+  "entities_bytes": 21950,
+  "disasm_bytes": 1628133,
   "timing": {
     "entities": {
-      "parse_source_seconds": 0.0078,
+      "parse_source_seconds": 0.0099,
       "analysis": {
-        "init_seconds": 1.4313,
-        "core_seconds": 0.7932,
-        "per_caller_seconds": 1.7281,
+        "init_seconds": 1.4841,
+        "core_seconds": 0.8375,
+        "per_caller_seconds": 2.4327,
         "store_pass_seconds": 0.0,
-        "hint_scan_seconds": 3.3394,
-        "os_call_seconds": 0.4104
+        "hint_scan_seconds": 3.7516,
+        "os_call_seconds": 0.7509
       },
-      "naming_seconds": 0.0054,
-      "write_seconds": 0.0012
+      "naming_seconds": 0.0067,
+      "write_seconds": 0.0011
     },
     "session": {
-      "load_analysis_seconds": 0.6573,
-      "metadata_seconds": 3.2202,
-      "substitutions_seconds": 0.0016,
+      "load_analysis_seconds": 0.6733,
+      "metadata_seconds": 3.7064,
+      "substitutions_seconds": 0.0092,
       "build_seconds": 0.0016
     },
-    "emit_seconds": 4.2316,
-    "render_seconds": 0.0665
+    "emit_seconds": 3.6618,
+    "render_seconds": 0.0669
   },
   "analysis": {
-    "code_bytes": 173550,
-    "core_block_count": 5022,
-    "core_instruction_count": 12764,
-    "core_covered_bytes": 39420,
-    "core_coverage_ratio": 0.2271,
-    "hint_block_count": 14870,
-    "hint_instruction_count": 42162,
-    "hint_covered_bytes": 128380,
-    "hint_coverage_ratio": 0.7397,
-    "xref_count": 7197,
+    "code_bytes": 174040,
+    "core_block_count": 5160,
+    "core_instruction_count": 13231,
+    "core_covered_bytes": 40780,
+    "core_coverage_ratio": 0.2343,
+    "hint_block_count": 14749,
+    "hint_instruction_count": 41765,
+    "hint_covered_bytes": 127292,
+    "hint_coverage_ratio": 0.7314,
+    "xref_count": 7446,
     "jump_table_count": 2,
     "indirect_site_count": 165,
-    "call_target_count": 455,
-    "branch_target_count": 1918,
-    "library_call_count": 19,
-    "resolved_library_call_count": 10,
-    "library_count": 1
+    "call_target_count": 471,
+    "branch_target_count": 1988,
+    "library_call_count": 32,
+    "resolved_library_call_count": 26,
+    "library_count": 2
   },
   "entities": {
-    "entity_count": 65,
-    "code_entity_count": 18,
+    "entity_count": 93,
+    "code_entity_count": 34,
     "data_entity_count": 1,
     "bss_entity_count": 0,
-    "unknown_entity_count": 46,
-    "named_entity_count": 1,
+    "unknown_entity_count": 58,
+    "named_entity_count": 8,
     "documented_entity_count": 0
   },
   "disasm": {
     "lvo": {
-      "included_count": 20,
+      "included_count": 43,
       "inserted_count": 0,
       "by_library": {
+        "dos.library": {
+          "included": 13,
+          "inserted": 0
+        },
         "exec.library": {
-          "included": 20,
+          "included": 30,
           "inserted": 0
         }
       }
     },
     "symbols": {
-      "immediate_constant_count": 8,
+      "immediate_constant_count": 17,
       "struct_field_count": 0,
       "app_struct_field_count": 0,
       "raw_absolute_branch_target_count": 255,
-      "raw_absolute_call_target_count": 31,
+      "raw_absolute_call_target_count": 30,
       "raw_absolute_known_code_branch_target_count": 0,
       "raw_absolute_known_code_call_target_count": 0
     }
   },
-  "compatibility_floor": "1.3",
+  "compatibility_floor": "2.0",
   "error": null,
   "targets": null
 }

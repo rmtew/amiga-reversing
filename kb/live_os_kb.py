@@ -96,6 +96,7 @@ def _constant(payload: OsConstant) -> runtime_os.OsConstant:
         raw=payload["raw"],
         value=payload["value"],
         available_since=payload.get("available_since", "1.0"),
+        owner=runtime_os.OsIncludeOwner(**payload["owner"]),
     )
 
 
@@ -160,7 +161,7 @@ def _function(payload: OsFunction) -> runtime_os.OsFunction:
             else None
         ),
         no_return=payload.get("no_return", False),
-        os_since=payload.get("os_since"),
+        available_since=payload.get("available_since"),
         fd_version=payload.get("fd_version"),
         private=payload.get("private", False),
     )
@@ -168,8 +169,20 @@ def _function(payload: OsFunction) -> runtime_os.OsFunction:
 
 def _library(payload: OsLibrary) -> runtime_os.OsLibrary:
     functions = payload["functions"]
+    lvo_index = dict(payload.get("lvo_index", {}))
+    if not lvo_index:
+        for func_name, func in functions.items():
+            lvo = func.get("lvo")
+            if lvo is None:
+                continue
+            key = str(lvo)
+            existing = lvo_index.get(key)
+            if existing is not None and existing != func_name:
+                raise ValueError(f"Duplicate library LVO {key}: {existing} vs {func_name}")
+            lvo_index[key] = func_name
     return runtime_os.OsLibrary(
-        lvo_index=dict(payload["lvo_index"]),
+        owner=runtime_os.OsIncludeOwner(**payload["owner"]),
+        lvo_index=lvo_index,
         functions={name: _function(func) for name, func in functions.items()},
     )
 
@@ -218,7 +231,6 @@ def build_runtime_os_kb_from_payload(payload: OsReferencePayload) -> object:
                 dict[str, OsTypedDataStreamFormat],
                 dict(meta.get("typed_data_stream_formats", {})),
             ),
-            library_lvo_owners=dict(meta["library_lvo_owners"]),
         ),
         VALUE_DOMAINS={
             name: _value_domain(name, domain)

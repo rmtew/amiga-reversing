@@ -282,7 +282,6 @@ class OsIncludeOwner(TypedDict):
     canonical_include_path: str | None
     assembler_include_path: str | None
     source_file: str
-    available_since: str | None
 
 
 class OsValueDomain(TypedDict, total=False):
@@ -383,6 +382,9 @@ class OsResidentEntryRegisterSeed(TypedDict, total=False):
 
 
 class OsMeta(TypedDict):
+    source: str
+    ndk_path: str
+    include_dir: str
     calling_convention: OsCallingConvention
     exec_base_addr: OsExecBaseAddress
     absolute_symbols: list[OsAbsoluteSymbol]
@@ -401,7 +403,7 @@ class OsMeta(TypedDict):
     api_input_semantic_assertions: list[OsApiInputSemanticAssertion]
     struct_field_value_bindings: list[OsStructFieldValueBinding]
     typed_data_stream_formats: dict[str, OsTypedDataStreamFormat]
-    library_lvo_owners: dict[str, OsIncludeOwner]
+    parsed_include_paths: list[str]
 
 
 class OsStructField(TypedDict, total=False):
@@ -431,6 +433,7 @@ class OsConstant(TypedDict):
     raw: str
     value: int | None
     available_since: str
+    owner: OsIncludeOwner
 
 
 class OsInput(TypedDict, total=False):
@@ -466,22 +469,63 @@ class OsFunction(TypedDict, total=False):
     output: OsOutput
     no_return: bool
     inputs: list[OsInput]
-    os_since: str
+    available_since: str
     fd_version: str
     private: bool
 
 
 class OsLibrary(TypedDict):
     base: str
+    owner: OsIncludeOwner
     functions: dict[str, OsFunction]
-    lvo_index: dict[str, str]
+    lvo_index: NotRequired[dict[str, str]]
 
 
-class OsReferencePayload(TypedDict):
+class OsCorrectionsMeta(TypedDict, total=False):
+    calling_convention: OsCallingConvention
+    exec_base_addr: OsExecBaseAddress
+    absolute_symbols: list[OsAbsoluteSymbol]
+    value_domains: dict[str, OsValueDomain]
+    api_input_value_bindings: list[OsApiInputValueBinding]
+    api_input_type_overrides: list[OsApiInputTypeOverride]
+    api_input_semantic_assertions: list[OsApiInputSemanticAssertion]
+    struct_field_value_bindings: list[OsStructFieldValueBinding]
+
+
+class OsOtherParsedMeta(TypedDict, total=False):
+    source: str
+    ndk_path: str
+    version_map: dict[str, str]
+    version_fields_note: str
+    available_since_default_note: str
+    struct_name_map: dict[str, str]
+
+
+class OsIncludesParsedPayload(TypedDict):
     _meta: OsMeta
     constants: dict[str, OsConstant]
     libraries: dict[str, OsLibrary]
     structs: dict[str, OsStructDef]
+
+
+class OsOtherParsedPayload(TypedDict):
+    _meta: OsOtherParsedMeta
+    functions: dict[str, dict[str, OsFunction]]
+
+
+class OsCorrectionsPayload(TypedDict):
+    _meta: OsCorrectionsMeta
+
+
+class OsMergedReferencePayload(TypedDict):
+    _meta: OsMeta
+    constants: dict[str, OsConstant]
+    libraries: dict[str, OsLibrary]
+    structs: dict[str, OsStructDef]
+
+
+class OsReferencePayload(OsMergedReferencePayload):
+    pass
 
 
 class HunkRelocationSemantic(TypedDict):

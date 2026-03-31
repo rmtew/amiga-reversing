@@ -8,6 +8,19 @@ from disasm.os_value_domains import resolve_value_domain_expression
 from m68k_kb import runtime_os
 
 
+def _test_constant(raw: str, value: int | None) -> runtime_os.OsConstant:
+    return runtime_os.OsConstant(
+        raw=raw,
+        value=value,
+        owner=runtime_os.OsIncludeOwner(
+            kind="native_include",
+            canonical_include_path="test/test.i",
+            assembler_include_path="test/test.i",
+            source_file="test/test.i",
+        ),
+    )
+
+
 def test_resolve_value_domain_expression_matches_enum_exactly() -> None:
     os_kb = SimpleNamespace(
         VALUE_DOMAINS={
@@ -21,9 +34,9 @@ def test_resolve_value_domain_expression_matches_enum_exactly() -> None:
             ),
         },
         CONSTANTS={
-            "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
-            "OFFSET_CURRENT": runtime_os.OsConstant(raw="0", value=0),
-            "OFFSET_END": runtime_os.OsConstant(raw="1", value=1),
+            "OFFSET_BEGINNING": _test_constant(raw="-1", value=-1),
+            "OFFSET_CURRENT": _test_constant(raw="0", value=0),
+            "OFFSET_END": _test_constant(raw="1", value=1),
         },
     )
 
@@ -47,9 +60,9 @@ def test_resolve_value_domain_expression_composes_flags() -> None:
             ),
         },
         CONSTANTS={
-            "MEMF_PUBLIC": runtime_os.OsConstant(raw="(1<<0)", value=0x1),
-            "MEMF_CHIP": runtime_os.OsConstant(raw="(1<<1)", value=0x2),
-            "MEMF_FAST": runtime_os.OsConstant(raw="(1<<2)", value=0x4),
+            "MEMF_PUBLIC": _test_constant(raw="(1<<0)", value=0x1),
+            "MEMF_CHIP": _test_constant(raw="(1<<1)", value=0x2),
+            "MEMF_FAST": _test_constant(raw="(1<<2)", value=0x4),
         },
     )
 
@@ -73,7 +86,7 @@ def test_resolve_value_domain_expression_rejects_unmatched_flag_bits() -> None:
             ),
         },
         CONSTANTS={
-            "SIGBREAKF_CTRL_C": runtime_os.OsConstant(raw="(1<<12)", value=0x1000),
+            "SIGBREAKF_CTRL_C": _test_constant(raw="(1<<12)", value=0x1000),
         },
     )
 
@@ -94,7 +107,7 @@ def test_resolve_value_domain_expression_treats_zero_flags_as_empty_set() -> Non
             ),
         },
         CONSTANTS={
-            "SIGBREAKF_CTRL_C": runtime_os.OsConstant(raw="(1<<12)", value=0x1000),
+            "SIGBREAKF_CTRL_C": _test_constant(raw="(1<<12)", value=0x1000),
         },
     )
 
@@ -114,8 +127,8 @@ def test_resolve_value_domain_expression_uses_zero_name_when_declared() -> None:
             ),
         },
         CONSTANTS={
-            "SIGBREAKF_CTRL_C": runtime_os.OsConstant(raw="(1<<12)", value=0x1000),
-            "ZERO_SIGNAL_MASK": runtime_os.OsConstant(raw="0", value=0),
+            "SIGBREAKF_CTRL_C": _test_constant(raw="(1<<12)", value=0x1000),
+            "ZERO_SIGNAL_MASK": _test_constant(raw="0", value=0),
         },
     )
 
@@ -139,8 +152,8 @@ def test_resolve_value_domain_expression_can_prefer_canonical_exact_alias() -> N
             ),
         },
         CONSTANTS={
-            "OFFSET_BEGINNING": runtime_os.OsConstant(raw="-1", value=-1),
-            "OFFSET_ALIAS": runtime_os.OsConstant(raw="-1", value=-1),
+            "OFFSET_BEGINNING": _test_constant(raw="-1", value=-1),
+            "OFFSET_ALIAS": _test_constant(raw="-1", value=-1),
         },
     )
 
@@ -164,7 +177,7 @@ def test_resolve_value_domain_expression_can_append_raw_remainder() -> None:
             ),
         },
         CONSTANTS={
-            "SIGBREAKF_CTRL_C": runtime_os.OsConstant(raw="(1<<12)", value=0x1000),
+            "SIGBREAKF_CTRL_C": _test_constant(raw="(1<<12)", value=0x1000),
         },
     )
 

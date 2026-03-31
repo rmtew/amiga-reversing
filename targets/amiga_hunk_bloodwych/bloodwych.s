@@ -1,7 +1,10 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: bin\Bloodwych439
-; 365540 bytes, 1004 entities, 3023 blocks
+; 365540 bytes, 1006 entities, 3030 blocks
 ; OS compatibility floor: 1.3
+
+; Absolute symbols
+app_base_00000098	EQU	$98
 
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
@@ -3474,22 +3477,22 @@ loc_278c:
     move.w d6,d0
     asl.w #4,d0
     lea 0(a4,d0.w),a3
-    move.b 11(a3),d0
+    move.b 11(a3),d0 ; app+$B
     bmi.s loc_27a0
 loc_279a:
     cmpi.b #$64,d0
     bne.s loc_27c6
 loc_27a0:
     moveq #0,d0
-    move.b 4(a3),d0
+    move.b 4(a3),d0 ; app+$4
     bsr.w sub_84da
 loc_27aa:
     moveq #0,d7
-    move.b 0(a3),d7
+    move.b 0(a3),d7 ; app+$0
     bmi.s loc_27c6
 loc_27b2:
     swap d7
-    move.b 1(a3),d7
+    move.b 1(a3),d7 ; app+$1
     bsr.w sub_849c
 loc_27bc:
     move.w d0,d4
@@ -3625,11 +3628,11 @@ loc_28cc:
 loc_28d0:
     lea 0(a2,d3.w),a3
     lea 0(a2,d0.w),a2
-    move.b 0(a2),0(a3)
-    move.b 1(a2),1(a3)
-    move.b 4(a2),4(a3)
-    move.b 2(a2),2(a3)
-    move.b 13(a2),13(a3)
+    move.b 0(a2),0(a3) ; app+$0
+    move.b 1(a2),1(a3) ; app+$1
+    move.b 4(a2),4(a3) ; app+$4
+    move.b 2(a2),2(a3) ; app+$2
+    move.b 13(a2),13(a3) ; app+$D
     move.b #$ff,13(a2)
     move.b #$ff,0(a2)
     bra.s loc_28b8
@@ -4097,10 +4100,10 @@ hint_2d9a:
     dc.b    $60,$00,$54,$aa
 hint_2d9e:
     dc.b    $4d,$f9,$00,$00,$31,$00,$60,$8e
-hint_2da6:
-    dc.b    $72,$19
-hint_2da8:
-    dc.b    $60,$00,$07,$66
+loc_2da6:
+    moveq #25,d1
+loc_2da8:
+    bra.w loc_3510
 hint_2dac:
     dc.b    "r",$09,"J,",0
     dc.b    $07,$6b,$f4
@@ -4273,22 +4276,23 @@ hint_3040:
     dc.b    $42,$2c,$00,$08,$4d,$f9,$00,$00,$31,$b4,$19,$7c,$00,$19,$00,$01
     dc.b    $60,$00,$fc,$e2
 hint_3054:
-    dc.b    $0c,$2c,$00,$0f
-hint_3058:
-    dc.b    $00,$06
-    dc.b    $65,$38
+    dc.b    $0c,$2c,$00,$0f,$00,$06,$65,$38
 hint_305c:
     dc.b    $90,$02,$e2,$08,$d0,$02,$08,$c0,$00,$07,$60,$00,$01,$da
 hint_306a:
     dc.b    $42,$2c,$00,$08
 hint_306e:
     dc.b    $19,$7c,$00,$07,$00,$01,$4d,$f9,$00,$00,$31,$2b,$60,$00,$fc,$b8
-hint_307e:
-    dc.b    $72,$16,$0c,$2c,$00,$0a,$00,$06,$64,$00,$fd,$20
-hint_308a:
-    dc.b    $0c,$2c,$00,$05,$00,$06,$64,$00,$fd,$14
-hint_3094:
-    dc.b    $72,$17,$60,$00,$fd,$10
+loc_307e:
+    moveq #22,d1
+    cmpi.b #$a,6(a4)
+    bcc.w loc_2da8
+loc_308a:
+    cmpi.b #$5,6(a4)
+    bcc.w loc_2da6
+loc_3094:
+    moveq #23,d1
+    bra.w loc_2da8
 hint_309a:
     dc.b    $72,$17,$0c,$2c,$00,$05,$00,$06,$64,$00,$fd,$04
 hint_30a6:
@@ -4525,30 +4529,29 @@ hint_34e4:
 hint_34ea:
     dc.b    $0c,$6d,$00,$06,$00,$44,$65,$0c
 hint_34f2:
-    dc.b    $0c,$2c
-hint_34f4:
-    dc.b    $00,$06,$00,$01
-    dc.b    $65,$14
+    dc.b    $0c,$2c,$00,$06,$00,$01,$65,$14
 hint_34fa:
     dc.b    $61,$00,$fe,$1e
 hint_34fe:
     dc.b    $19,$7c,$00,$14,$00,$04,$19,$6c,$00,$01,$00,$00,$53,$2c,$00,$07
 hint_350e:
     dc.b    $4e,$75
-hint_3510:
-    dc.b    $19,$41,$00,$01,$d2,$41,$41,$f9
-hint_3518:
-    dc.b    $00,$00,$35,$5c
-    dc.b    $d0,$fb,$10,$08,$61,$00,$20,$8a
-hint_3524:
-    dc.b    $4e,$d0
+loc_3510:
+    move.b d1,1(a4)
+    add.w d1,d1
+    lea dat_355c,a0
+    adda.w pcref_3526(pc,d1.w),a0
+    bsr.w sub_55ac
+loc_3524:
+    jmp (a0) ; unresolved_indirect_core:ind
 pcref_3526:
     dc.b    $00,$00,$00,$0e,$00,$16,$00,$1e,$00,$2a,$00,$32,$00,$3a,$00,$a8
     dc.b    $00,$e2,$00,$ee,$01,$94,$01,$a0,$01,$c2,$01,$e8,$02,$16,$02,$22
     dc.b    $02,$2e,$02,$3a,$02,$d0,$03,$48,$03,$5a
 hint_3550:
-    dc.b    $03,$18,$03,$bc,$03,$c8,$04,$b2,$04,$f6,$00,$0c,$4d,$f9,$00,$00
-    dc.b    $3e,$83,$4e,$f9,$00,$00,$d0,$3a
+    dc.b    $03,$18,$03,$bc,$03,$c8,$04,$b2,$04,$f6,$00,$0c
+dat_355c:
+    dc.b    $4d,$f9,$00,$00,$3e,$83,$4e,$f9,$00,$00,$d0,$3a
 hint_3568:
     dc.b    $4e,$75
     dc.b    $54,$6d,$00,$44,$60,$00,$fd,$c8,$56,$6d,$00,$44,$60,$00,$fd,$c0
@@ -5354,7 +5357,7 @@ sub_45de:
     movea.l dat_8d36,a0
     adda.w 10(a5),a0
     adda.w #$1ec,a0
-    move.l a0,-8(a3)
+    move.l a0,-8(a3) ; app-$8
     lea dat_44ed0,a1
     moveq #8,d4
     moveq #5,d5
@@ -9620,7 +9623,7 @@ sub_7e4a:
     move.l #$24,-(sp)
     moveq #0,d3
 loc_7e62:
-    lea dat_0098,a3
+    lea app_base_00000098,a3
     bra.w loc_ce28
 sub_7e6a:
     btst d7,62(a5)
@@ -9634,7 +9637,7 @@ loc_7e70:
 loc_7e80:
     rts
 loc_7e82:
-    move.b d0,-23(a3)
+    move.b d0,-23(a3) ; app-$17
     move.w d7,d0
     add.w d7,d7
     add.w d0,d7
@@ -9744,11 +9747,11 @@ loc_7fb0:
     move.w (sp)+,d7
 sub_7fb2:
     link a3,#-32
-    move.b #$ff,-25(a3)
-    clr.b -21(a3)
+    move.b #$ff,-25(a3) ; app-$19
+    clr.b -21(a3) ; app-$15
     movea.l dat_8d36,a0
     adda.w 10(a5),a0
-    move.l a0,-8(a3)
+    move.l a0,-8(a3) ; app-$8
     bsr.w sub_7e6a
 loc_7fd2:
     unlk a3
@@ -10919,12 +10922,12 @@ loc_8fd6:
     link a3,#-32
     moveq #0,d0
     move.b 22(a4),d0
-    move.w d0,-4(a3)
+    move.w d0,-4(a3) ; app-$4
     move.b 23(a4),d0
-    move.w d0,-2(a3)
+    move.w d0,-2(a3) ; app-$2
     move.b 24(a4),d0
     andi.w #$3,d0
-    move.w d0,-10(a3)
+    move.w d0,-10(a3) ; app-$A
     bsr.s sub_9000
 loc_8ffa:
     move.b 26(a4),d0
@@ -10963,19 +10966,19 @@ loc_9038:
     rts
 loc_9042:
     link a3,#-32
-    move.l 28(a5),-4(a3)
-    move.w 32(a5),-10(a3)
+    move.l 28(a5),-4(a3) ; app-$4
+    move.w 32(a5),-10(a3) ; app-$A
     bsr.w sub_665c
 loc_9056:
     bsr.s sub_9000
 loc_9058:
     move.w 88(a5),d0
 loc_905c:
-    move.w d0,-30(a3)
-    move.b d1,-31(a3)
+    move.w d0,-30(a3) ; app-$1E
+    move.b d1,-31(a3) ; app-$1F
     bsr.w sub_84da
 loc_9068:
-    move.l -4(a3),d7
+    move.l -4(a3),d7 ; app-$4
     bsr.w sub_849c
 loc_9070:
     btst #5,1(a6,d0.w)
@@ -11012,15 +11015,15 @@ loc_90d4:
     movea.l dat_8d36,a0
     adda.w #$1ec,a0
     adda.w 10(a5),a0
-    move.l a0,-8(a3)
-    move.w -4(a3),d0
-    add.w -2(a3),d0
-    add.w -10(a3),d0
+    move.l a0,-8(a3) ; app-$8
+    move.w -4(a3),d0 ; app-$4
+    add.w -2(a3),d0 ; app-$2
+    add.w -10(a3),d0 ; app-$A
     andi.w #$1,d0
-    move.w d0,-12(a3)
+    move.w d0,-12(a3) ; app-$C
     bsr.w sub_b7f4
 loc_90fe:
-    move.w -10(a3),d0
+    move.w -10(a3),d0 ; app-$A
     move.w d0,d1
     ror.b #3,d0
     add.w d1,d1
@@ -11029,11 +11032,11 @@ loc_90fe:
     add.w d1,d0
     lea dat_b8ae,a0
     adda.w d0,a0
-    move.l a0,-16(a3)
+    move.l a0,-16(a3) ; app-$10
     move.l dat_ee70,d1
     move.w d1,d2
     swap d1
-    move.l -4(a3),d3
+    move.l -4(a3),d3 ; app-$4
     movea.l dat_ee78,a6
     moveq #0,d6
 loc_9130:
@@ -11072,7 +11075,7 @@ loc_9168:
 loc_9174:
     bne.s loc_91c0
 loc_9176:
-    tst.b -31(a3)
+    tst.b -31(a3) ; app-$1F
     beq.s loc_91c0
 loc_917c:
     bra.s loc_91bc
@@ -11080,7 +11083,7 @@ loc_917e:
     cmpi.b #$2,d0
     bne.s loc_91bc
 loc_9184:
-    move.w -10(a3),d7
+    move.w -10(a3),d7 ; app-$A
     cmpi.w #$12,d6
     beq.s loc_9194
 loc_918e:
@@ -11095,7 +11098,7 @@ loc_919c:
     cmpi.w #$e,d6
     bcc.s loc_91c0
 loc_91a2:
-    move.w -10(a3),d7
+    move.w -10(a3),d7 ; app-$A
     addq.w #1,d7
     cmpi.w #$7,d6
     bcs.s loc_91b0
@@ -11158,15 +11161,15 @@ loc_921a:
     unlk a3
     rts
 sub_921e:
-    move.b d6,-22(a3)
-    movea.l -16(a3),a0
+    move.b d6,-22(a3) ; app-$16
+    movea.l -16(a3),a0 ; app-$10
     add.w d6,d6
     adda.w d6,a0
     moveq #1,d1
-    move.l -4(a3),d5
+    move.l -4(a3),d5 ; app-$4
     swap d5
     add.b (a0)+,d5
-    move.b d5,-25(a3)
+    move.b d5,-25(a3) ; app-$19
     cmp.w dat_ee70,d5
     beq.s loc_926c
 loc_9240:
@@ -11179,7 +11182,7 @@ loc_9246:
 loc_9248:
     swap d5
     add.b (a0),d5
-    move.b d5,-26(a3)
+    move.b d5,-26(a3) ; app-$1A
     cmp.w dat_ee72,d5
     beq.s loc_926c
 loc_9258:
@@ -11196,8 +11199,8 @@ loc_9266:
     exg d5,d7
     move.w 0(a6,d0.w),d1
 loc_926c:
-    clr.b -19(a3)
-    move.w d1,-18(a3)
+    clr.b -19(a3) ; app-$13
+    move.w d1,-18(a3) ; app-$12
     btst #6,d1
     beq.s sub_9286
 loc_927a:
@@ -11228,14 +11231,14 @@ loc_92a6:
 loc_92b8:
     lsr.b #2,d1
     addi.w #$80,d1
-    move.b d1,-23(a3)
+    move.b d1,-23(a3) ; app-$17
     moveq #4,d1
-    cmpi.b #$12,-22(a3)
+    cmpi.b #$12,-22(a3) ; app-$16
     bne.w loc_a6ec
 loc_92ce:
-    subq.b #1,-22(a3)
-    move.l -4(a3),d7
-    move.w -10(a3),d0
+    subq.b #1,-22(a3) ; app-$16
+    move.l -4(a3),d7 ; app-$4
+    move.w -10(a3),d0 ; app-$A
     bsr.w sub_8486
 loc_92de:
     tst.b 1(a6,d0.w)
@@ -11297,7 +11300,7 @@ sub_9378:
     andi.w #$7,d1
     bne.s loc_9388
 loc_937e:
-    tst.b -17(a3)
+    tst.b -17(a3) ; app-$11
     bmi.w sub_99f0
 loc_9386:
     rts
@@ -11321,12 +11324,12 @@ loc_93aa:
     cmpi.b #$4,d1
     beq.w loc_9496
 loc_93b2:
-    move.b d1,-19(a3)
+    move.b d1,-19(a3) ; app-$13
     addq.w #2,a6
     moveq #1,d5
     bra.s loc_93c2
 loc_93bc:
-    move.b #$ff,-19(a3)
+    move.b #$ff,-19(a3) ; app-$13
 loc_93c2:
     moveq #0,d6
     move.b (a6)+,d6
@@ -11335,11 +11338,11 @@ loc_93c8:
     btst d6,d7
     beq.s loc_943a
 loc_93cc:
-    clr.b -20(a3)
-    clr.b -21(a3)
+    clr.b -20(a3) ; app-$14
+    clr.b -21(a3) ; app-$15
     bsr.w sub_95d4
 loc_93d8:
-    tst.b -19(a3)
+    tst.b -19(a3) ; app-$13
     bmi.s loc_93e4
 loc_93de:
     beq.s loc_9440
@@ -11352,15 +11355,15 @@ loc_93ea:
     tst.w d5
     beq.s loc_93f8
 loc_93ee:
-    cmpi.b #$e,-22(a3)
+    cmpi.b #$e,-22(a3) ; app-$16
     bcc.s loc_9412
 loc_93f6:
     bra.s loc_9400
 loc_93f8:
-    cmpi.b #$e,-22(a3)
+    cmpi.b #$e,-22(a3) ; app-$16
     bcs.s loc_9412
 loc_9400:
-    tst.b -17(a3)
+    tst.b -17(a3) ; app-$11
     bpl.s loc_9412
 loc_9406:
     movem.l d1/d5-d7/a6,-(sp)
@@ -11369,7 +11372,7 @@ loc_940e:
     movem.l (sp)+,d1/d5-d7/a6
 loc_9412:
     add.w d1,d1
-    move.b -18(a3),d0
+    move.b -18(a3),d0 ; app-$12
     lsr.w d1,d0
     andi.w #$3,d0
     beq.s loc_943a
@@ -11377,9 +11380,9 @@ loc_9420:
     subq.w #1,d0
     beq.s loc_942e
 loc_9424:
-    move.b d0,-20(a3)
+    move.b d0,-20(a3) ; app-$14
     subq.w #1,d0
-    move.b d0,-21(a3)
+    move.b d0,-21(a3) ; app-$15
 loc_942e:
     movem.l d5/a6,-(sp)
     bsr.w sub_b3d8
@@ -11390,7 +11393,7 @@ loc_943a:
 loc_943e:
     rts
 loc_9440:
-    move.b -17(a3),d0
+    move.b -17(a3),d0 ; app-$11
     bpl.s loc_9474
 loc_9446:
     lsr.b #4,d0
@@ -11398,20 +11401,20 @@ loc_9446:
     cmp.b d0,d1
     bne.s loc_9474
 loc_9450:
-    move.b -18(a3),d0
-    move.b #$ff,-21(a3)
+    move.b -18(a3),d0 ; app-$12
+    move.b #$ff,-21(a3) ; app-$15
     andi.w #$3,d0
     beq.s loc_9474
 loc_9460:
-    subq.b #1,-21(a3)
+    subq.b #1,-21(a3) ; app-$15
     subq.w #1,d0
     beq.s loc_9474
 loc_9468:
-    subq.b #1,-21(a3)
+    subq.b #1,-21(a3) ; app-$15
     subq.w #1,d0
     beq.s loc_9474
 loc_9470:
-    subq.b #1,-21(a3)
+    subq.b #1,-21(a3) ; app-$15
 loc_9474:
     movem.l d5/a6,-(sp)
     bsr.w sub_b074
@@ -11429,7 +11432,7 @@ loc_9490:
     move.w d1,d6
     bra.w loc_b2de
 loc_9496:
-    move.b -18(a3),d1
+    move.b -18(a3),d1 ; app-$12
     andi.w #$3,d1
     beq.s loc_94b2
 loc_94a0:
@@ -11439,7 +11442,7 @@ loc_94a6:
     cmpi.b #$3,d1
     beq.s loc_94b4
 loc_94ac:
-    tst.b -31(a3)
+    tst.b -31(a3) ; app-$1F
     beq.s loc_94b4
 loc_94b2:
     rts
@@ -11452,7 +11455,7 @@ loc_94bc:
 loc_94c0:
     andi.w #$4,d0
     move.l pcref_94d4(pc,d0.w),dat_b4c0
-    move.b #$2,-18(a3)
+    move.b #$2,-18(a3) ; app-$12
     bra.s loc_94e6
 pcref_94d4:
     dc.b    $09,$0c,$0b,$0d,$09,$0a,$0b,$0d
@@ -11470,7 +11473,7 @@ loc_94f4:
     btst d1,d7
     beq.s loc_9568
 loc_94f8:
-    move.b -18(a3),d1
+    move.b -18(a3),d1 ; app-$12
     move.w d0,d6
     btst #2,d1
     beq.s loc_9522
@@ -11504,7 +11507,7 @@ loc_9556:
 loc_955e:
     bsr.s sub_95b4
 loc_9560:
-    tst.b -17(a3)
+    tst.b -17(a3) ; app-$11
     bmi.w sub_99f0
 loc_9568:
     rts
@@ -11516,7 +11519,7 @@ loc_9570:
     btst d1,d7
     beq.s loc_959e
 loc_9574:
-    cmpi.b #$1,-18(a3)
+    cmpi.b #$1,-18(a3) ; app-$12
     beq.s loc_95a0
 loc_957c:
     lea dat_18b2c,a0
@@ -11550,7 +11553,7 @@ hint_95c8:
     dc.b    $81,$82,$83,$84,$85,$86,$07,$08,$09,$0a,$0b,$0c
 sub_95d4:
     move.w d5,d1
-    cmpi.b #$7,-22(a3)
+    cmpi.b #$7,-22(a3) ; app-$16
     bcc.s loc_95ea
 loc_95de:
     btst #0,d1
@@ -11559,7 +11562,7 @@ loc_95e4:
     eori.w #$1,d1
     bra.s loc_9600
 loc_95ea:
-    cmpi.b #$e,-22(a3)
+    cmpi.b #$e,-22(a3) ; app-$16
     bcs.s loc_95fc
 loc_95f2:
     btst #1,d1
@@ -11569,11 +11572,11 @@ loc_95f8:
 loc_95fc:
     eori.w #$3,d1
 loc_9600:
-    add.w -10(a3),d1
+    add.w -10(a3),d1 ; app-$A
     andi.w #$3,d1
     rts
 sub_960a:
-    tst.b -31(a3)
+    tst.b -31(a3) ; app-$1F
     bne.s loc_961a
 loc_9610:
     btst #3,1(a6,d0.w)
@@ -11592,7 +11595,7 @@ loc_962a:
     lsr.w #4,d1
     andi.w #$3,d1
     eori.w #$2,d1
-    cmp.w -10(a3),d1
+    cmp.w -10(a3),d1 ; app-$A
     bne.s loc_9680
 loc_963a:
     addq.w #4,sp
@@ -11645,13 +11648,13 @@ pcref_96b1:
 pcref_96b6:
     dc.b    $1d,$10,$00,$00,$12,$0a,$0e,$08
 sub_96be:
-    move.w -10(a3),d0
+    move.w -10(a3),d0 ; app-$A
     add.w d0,d0
     add.w d0,d0
     add.w d6,d0
     move.b pcref_9682(pc,d0.w),d6
     moveq #0,d1
-    move.b -22(a3),d1
+    move.b -22(a3),d1 ; app-$16
     move.b pcref_9696(pc,d1.w),d0
     bmi.s loc_9680
 loc_96d8:
@@ -11667,7 +11670,7 @@ loc_96e2:
     add.w 8(a5),d5
     lea dat_97bc,a0
     move.b 0(a0,d1.w),d4
-    move.w -18(a3),d3
+    move.w -18(a3),d3 ; app-$12
     andi.w #$7,d3
     subq.w #1,d3
     bne.s loc_9722
@@ -11678,7 +11681,7 @@ loc_9708:
     add.w d6,d3
     sub.b pcref_96b6(pc,d3.w),d5
     lea dat_9808,a0
-    move.b -22(a3),d3
+    move.b -22(a3),d3 ; app-$16
     move.b 0(a0,d3.w),d4
 loc_9722:
     cmpi.b #$80,d4
@@ -11832,7 +11835,7 @@ sub_995e:
     move.w #$4b,dat_ad64
     moveq #0,d0
     moveq #0,d4
-    move.b -22(a3),d0
+    move.b -22(a3),d0 ; app-$16
     move.b pcref_993b(pc,d0.w),d1
     bmi.s loc_99c6
 loc_9976:
@@ -11849,14 +11852,14 @@ loc_9976:
 loc_9994:
     move.b pcref_994e(pc,d2.w),d1
     move.b pcref_9956(pc,d1.w),d5
-    move.w -18(a3),d0
+    move.w -18(a3),d0 ; app-$12
     andi.w #$7,d0
     cmpi.w #$4,d0
     bne.s loc_99c6
 loc_99aa:
     move.b pcref_99cc(pc,d2.w),d0
     move.b str_99d4(pc,d2.w),d2
-    btst #0,-18(a3)
+    btst #0,-18(a3) ; app-$12
     bne.s loc_99be
 loc_99ba:
     neg.b d0
@@ -11877,7 +11880,7 @@ sub_99dc:
     moveq #0,d0
     moveq #0,d1
     lea dat_b9de,a0
-    move.b -22(a3),d0
+    move.b -22(a3),d0 ; app-$16
     move.b 0(a0,d0.w),d1
 loc_99ee:
     rts
@@ -11890,10 +11893,10 @@ loc_99f4:
     beq.s loc_99ee
 loc_99f8:
     moveq #0,d2
-    move.b -25(a3),d2
+    move.b -25(a3),d2 ; app-$19
     swap d2
-    move.b -26(a3),d2
-    move.w -30(a3),d1
+    move.b -26(a3),d2 ; app-$1A
+    move.w -30(a3),d1 ; app-$1E
     bsr.w sub_98a8
 loc_9a0c:
     bcc.s loc_99ee
@@ -11904,7 +11907,7 @@ loc_9a14:
     cmpi.w #$10,d0
     bcc.s loc_9a2a
 loc_9a1a:
-    move.b d0,-23(a3)
+    move.b d0,-23(a3) ; app-$17
     move.b 27(a1),d0
     move.b 24(a1),d1
     bra.w loc_9ab2
@@ -11922,7 +11925,7 @@ loc_9a32:
 loc_9a46:
     move.w d1,d3
     addq.w #2,d3
-    add.w -10(a3),d3
+    add.w -10(a3),d3 ; app-$A
     sub.w d2,d3
     andi.w #$3,d3
     moveq #0,d0
@@ -11948,8 +11951,8 @@ loc_9a80:
 loc_9a82:
     move.b 2(a1),d1
 sub_9a86:
-    move.b 11(a1),-23(a3)
-    cmpi.b #$1a,-23(a3)
+    move.b 11(a1),-23(a3) ; app-$17
+    cmpi.b #$1a,-23(a3) ; app-$17
     bne.s loc_9aa8
 loc_9a94:
     move.w d1,d3
@@ -11958,39 +11961,39 @@ loc_9a9a:
     move.w d3,d1
     andi.w #$1,d0
     addi.w #$1a,d0
-    move.b d0,-23(a3)
+    move.b d0,-23(a3) ; app-$17
 loc_9aa8:
     move.b 5(a1),d0
-    move.b 6(a1),-24(a3)
+    move.b 6(a1),-24(a3) ; app-$18
 loc_9ab2:
     bsr.w sub_9bc0
 loc_9ab6:
     move.b d1,d2
     andi.b #$3,d2
-    move.b d2,-27(a3)
+    move.b d2,-27(a3) ; app-$1B
     lsr.b #4,d1
     subq.w #2,d1
-    sub.w -10(a3),d1
+    sub.w -10(a3),d1 ; app-$A
     andi.w #$3,d1
-    cmpi.b #$15,-23(a3)
+    cmpi.b #$15,-23(a3) ; app-$17
     beq.s loc_9af4
 loc_9ad4:
-    cmpi.b #$16,-23(a3)
+    cmpi.b #$16,-23(a3) ; app-$17
     beq.s loc_9af4
 loc_9adc:
-    cmpi.b #$40,-23(a3)
+    cmpi.b #$40,-23(a3) ; app-$17
     beq.s loc_9af4
 loc_9ae4:
-    cmpi.b #$67,-23(a3)
+    cmpi.b #$67,-23(a3) ; app-$17
     bcc.s loc_9af4
 loc_9aec:
-    tst.b -23(a3)
+    tst.b -23(a3) ; app-$17
     bpl.w loc_a6ec
 loc_9af4:
     moveq #4,d1
     bra.w loc_a6ec
 loc_9afa:
-    move.b 33(a1),-27(a3)
+    move.b 33(a1),-27(a3) ; app-$1B
     move.l a5,-(sp)
     movea.l a1,a5
     moveq #3,d1
@@ -12000,7 +12003,7 @@ loc_9b0a:
     tst.w d3
     bmi.s loc_9b1a
 loc_9b10:
-    move.b -31(a3),d2
+    move.b -31(a3),d2 ; app-$1F
     cmp.b d2,d3
     bcs.s loc_9b1a
 loc_9b18:
@@ -12025,7 +12028,7 @@ loc_9b36:
 loc_9b38:
     moveq #2,d0
     sub.w 32(a1),d0
-    add.w -10(a3),d0
+    add.w -10(a3),d0 ; app-$A
     add.w d1,d0
     andi.w #$3,d0
     move.b 38(a1,d0.w),d0
@@ -12040,7 +12043,7 @@ loc_9b58:
 loc_9b5c:
     rts
 sub_9b5e:
-    move.b d0,-23(a3)
+    move.b d0,-23(a3) ; app-$17
     bsr.w sub_6660
 loc_9b66:
     move.b 27(a4),d0
@@ -12056,9 +12059,9 @@ dat_9b70:
     dcb.b   4,0
     dc.b    $09,$0c,$0b,$0d,$05,$06,$06,$0d,$07,$08,$06,$0d
 sub_9bc0:
-    clr.b -21(a3)
+    clr.b -21(a3) ; app-$15
     andi.w #$1f,d0
-    move.b pcref_9bd0(pc,d0.w),-21(a3)
+    move.b pcref_9bd0(pc,d0.w),-21(a3) ; app-$15
     rts
 pcref_9bd0:
     dc.b    $00,$00,$03,$02,$02,$03,$01,$01,$01,$03,$03,$03,$00,$02,$00,$01
@@ -12136,7 +12139,7 @@ loc_9cd2:
     bsr.s sub_9ca2
 loc_9ce6:
     lea dat_9e5c,a6
-    tst.b -24(a3)
+    tst.b -24(a3) ; app-$18
     bmi.s loc_9cfe
 loc_9cf2:
     lea dat_9db8,a0
@@ -12183,7 +12186,7 @@ loc_9d5c:
     not.w d6
 loc_9d5e:
     andi.w #$7f,d3
-    btst d2,-21(a3)
+    btst d2,-21(a3) ; app-$15
     beq.s loc_9d6a
 loc_9d68:
     moveq #2,d3
@@ -12249,7 +12252,7 @@ dat_9e60:
     dc.b    $00,$07,$08,$0d
 sub_9e94:
     moveq #0,d2
-    move.b -24(a3),d2
+    move.b -24(a3),d2 ; app-$18
     sub.b d3,d2
     bcc.s loc_9ea0
 loc_9e9e:
@@ -12467,7 +12470,7 @@ loc_a1c2:
     add.b pcref_a1b8(pc,d1.w),d5
     move.w d1,d2
     add.w d2,d2
-    btst #1,-21(a3)
+    btst #1,-21(a3) ; app-$15
     beq.s loc_a1dc
 loc_a1da:
     addq.w #1,d2
@@ -12551,7 +12554,7 @@ loc_a29a:
     moveq #0,d7
     move.b pcref_a26a(pc,d1.w),d7
     sub.b d7,d5
-    move.b -21(a3),d2
+    move.b -21(a3),d2 ; app-$15
     not.b d2
     andi.w #$1,d2
     sub.b d2,d5
@@ -12785,19 +12788,19 @@ loc_a6f0:
 loc_a6f4:
     rts
 loc_a6f6:
-    move.b -23(a3),d0
+    move.b -23(a3),d0 ; app-$17
     bmi.w loc_9bf0
 loc_a6fe:
-    move.w -10(a3),d0
+    move.w -10(a3),d0 ; app-$A
     btst #0,d0
     bne.s loc_a70a
 loc_a708:
     addq.w #2,d0
 loc_a70a:
-    add.b -27(a3),d0
+    add.b -27(a3),d0 ; app-$1B
     andi.w #$3,d0
     moveq #0,d2
-    move.b -23(a3),d2
+    move.b -23(a3),d2 ; app-$17
     subi.b #$64,d2
     bcs.s loc_a744
 loc_a71e:
@@ -12810,14 +12813,14 @@ loc_a72a:
     lea dat_a73a,a1
     add.w d2,d2
     adda.w 0(a1,d2.w),a1
-    jmp (a1) ; unresolved_indirect_core:ind
+    jmp (a1)
 dat_a73a:
     dc.b    $fd,$d0,$f7,$c0,$fc,$12,$fb,$f6,$fe,$02
 loc_a744:
     moveq #0,d2
-    move.b -23(a3),d2
+    move.b -23(a3),d2 ; app-$17
     lea dat_a91a,a0
-    move.b 0(a0,d2.w),-24(a3)
+    move.b 0(a0,d2.w),-24(a3) ; app-$18
     move.w d1,d2
     asl.w #2,d2
     add.w d0,d2
@@ -12826,7 +12829,7 @@ loc_a744:
     asl.w #2,d2
     add.w d3,d2
     moveq #0,d6
-    move.b -23(a3),d3
+    move.b -23(a3),d3 ; app-$17
     cmpi.b #$10,d3
     bcc.w loc_a7f2
 loc_a772:
@@ -12866,7 +12869,7 @@ loc_a804:
     add.b d6,d3
     add.b d6,d3
 loc_a808:
-    move.b d6,-28(a3)
+    move.b d6,-28(a3) ; app-$1C
     lea dat_a88e,a0
     andi.w #$f,d3
     mulu.w #$a,d3
@@ -12890,7 +12893,7 @@ loc_a846:
     cmpi.w #$5,d1
     beq.w loc_ac9c
 loc_a84e:
-    tst.b -25(a3)
+    tst.b -25(a3) ; app-$19
     bmi.s loc_a876
 loc_a854:
     cmpi.w #$3,d1
@@ -12988,7 +12991,7 @@ loc_a9ca:
 loc_a9d0:
     move.w d0,d1
     subq.w #3,d1
-    btst d1,-21(a3)
+    btst d1,-21(a3) ; app-$15
     beq.s loc_a9dc
 loc_a9da:
     moveq #2,d2
@@ -13006,7 +13009,7 @@ loc_a9dc:
     cmpi.w #$2,d0
     bne.s loc_aa14
 loc_aa00:
-    move.b -24(a3),d0
+    move.b -24(a3),d0 ; app-$18
     mulu.w #$378,d0
     lea $ffffc190,a1
     add.w d0,d1
@@ -13039,7 +13042,7 @@ loc_aa48:
 loc_aa4e:
     move.w 4(sp),d1
     subq.w #3,d1
-    btst d1,-21(a3)
+    btst d1,-21(a3) ; app-$15
     beq.s loc_aa90
 loc_aa5a:
     move.w 8(sp),d1
@@ -13065,7 +13068,7 @@ loc_aa90:
     moveq #4,d0
 loc_aa92:
     moveq #0,d1
-    move.b -28(a3),d1
+    move.b -28(a3),d1 ; app-$1C
     beq.w loc_aad8
 loc_aa9c:
     subq.b #1,d1
@@ -13101,10 +13104,10 @@ loc_aad8:
     addq.w #4,d0
 loc_aadc:
     moveq #0,d1
-    move.b -23(a3),d1
+    move.b -23(a3),d1 ; app-$17
     asl.w #2,d1
     moveq #0,d2
-    move.b -23(a3),d2
+    move.b -23(a3),d2 ; app-$17
     add.w d2,d1
     asl.w #2,d1
     add.w d1,d0
@@ -13122,7 +13125,7 @@ dat_aafc:
 sub_ab44:
     lea dat_b4c0,a6
     move.l 0(a0,d1.w),(a6)
-    move.b -28(a3),d1
+    move.b -28(a3),d1 ; app-$1C
     rol.b #2,d1
     andi.w #$3,d1
     beq.s loc_ab7c
@@ -13143,7 +13146,7 @@ loc_ab78:
     dbf d2,loc_ab60
 loc_ab7c:
     lea dat_ac12,a0
-    move.b -24(a3),d1
+    move.b -24(a3),d1 ; app-$18
     asl.w #2,d1
     adda.w d1,a0
     moveq #3,d2
@@ -13233,7 +13236,7 @@ loc_ace4:
     mulu.w d0,d2
     adda.w d2,a1
     moveq #0,d1
-    move.b -28(a3),d1
+    move.b -28(a3),d1 ; app-$1C
     beq.s loc_ad0e
 loc_acf2:
     andi.w #$3,d1
@@ -13248,10 +13251,10 @@ loc_ad08:
 loc_ad0c:
     bra.s loc_ad26
 loc_ad0e:
-    move.b -23(a3),d1
+    move.b -23(a3),d1 ; app-$17
     asl.w #2,d1
     moveq #0,d0
-    move.b -23(a3),d0
+    move.b -23(a3),d0 ; app-$17
     add.w d0,d1
     asl.w #2,d1
     lea dat_351d8,a6
@@ -13274,7 +13277,7 @@ loc_ad42:
     swap d7
     move.b d4,d7
     ext.w d7
-    movea.l -8(a3),a0
+    movea.l -8(a3),a0 ; app-$8
     mulu.w #$28,d5
     andi.w #$fff0,d7
     asr.w #3,d7
@@ -13623,7 +13626,7 @@ dat_b064:
     dcb.b   4,0
     dc.b    $ff,$ff,$ff,$ff,$ff,$ff
 sub_b074:
-    tst.w -12(a3)
+    tst.w -12(a3) ; app-$C
     bne.w loc_b2a4
 loc_b07c:
     move.w d6,d0
@@ -13635,27 +13638,27 @@ loc_b082:
 loc_b08a:
     movea.l (sp)+,a3
 loc_b08c:
-    tst.b -21(a3)
+    tst.b -21(a3) ; app-$15
     beq.s loc_b062
 loc_b092:
-    addq.b #1,-21(a3)
+    addq.b #1,-21(a3) ; app-$15
     beq.w loc_b1e0
 loc_b09a:
-    addq.b #1,-21(a3)
+    addq.b #1,-21(a3) ; app-$15
     beq.w loc_b13c
 loc_b0a2:
-    addq.b #1,-21(a3)
+    addq.b #1,-21(a3) ; app-$15
     beq.s loc_b0ee
 loc_b0a8:
     lea dat_b224,a0
     lea dat_be36,a2
     lea dat_287a0,a1
     lea dat_b204,a6
-    move.b -18(a3),d1
+    move.b -18(a3),d1 ; app-$12
     lsr.w #3,d1
     bsr.w sub_b1d4
 loc_b0ca:
-    btst #2,-18(a3)
+    btst #2,-18(a3) ; app-$12
     beq.s loc_b0d4
 loc_b0d2:
     clr.b d0
@@ -13671,13 +13674,13 @@ loc_b0ee:
     lea dat_bea6,a2
     lea dat_284e8,a1
     moveq #0,d0
-    move.b -18(a3),d1
+    move.b -18(a3),d1 ; app-$12
     andi.w #$f8,d1
     beq.s loc_b122
 loc_b10c:
     bsr.w sub_b1c6
 loc_b110:
-    btst #2,-18(a3)
+    btst #2,-18(a3) ; app-$12
     beq.s loc_b122
 loc_b118:
     andi.w #$ff,d0
@@ -13696,7 +13699,7 @@ loc_b13c:
     lea dat_bd56,a2
     lea dat_25cd8,a1
     lea dat_b264,a6
-    move.b -18(a3),d1
+    move.b -18(a3),d1 ; app-$12
     lsr.b #2,d1
     beq.s loc_b16c
 loc_b15e:
@@ -13716,7 +13719,7 @@ loc_b16e:
 loc_b180:
     clr.w dat_b4be
     move.w (sp)+,d6
-    move.b -18(a3),d1
+    move.b -18(a3),d1 ; app-$12
     lsr.b #2,d1
     beq.s loc_b19a
 loc_b190:
@@ -13726,9 +13729,9 @@ loc_b196:
     subq.b #1,d1
     bra.s loc_b1a4
 loc_b19a:
-    move.b -25(a3),d1
+    move.b -25(a3),d1 ; app-$19
     add.w d1,d1
-    sub.b -26(a3),d1
+    sub.b -26(a3),d1 ; app-$1A
 loc_b1a4:
     andi.w #$3,d1
     mulu.w #$610,d1
@@ -13742,18 +13745,18 @@ loc_b1c4:
 sub_b1c6:
     lea dat_b244,a6
 sub_b1cc:
-    move.b -25(a3),d1
-    add.b -26(a3),d1
+    move.b -25(a3),d1 ; app-$19
+    add.b -26(a3),d1 ; app-$1A
 sub_b1d4:
     andi.w #$7,d1
     asl.w #2,d1
     move.l 0(a6,d1.w),d0
     rts
 loc_b1e0:
-    tst.b -31(a3)
+    tst.b -31(a3) ; app-$1F
     bne.s loc_b1ee
 loc_b1e6:
-    btst #3,-17(a3)
+    btst #3,-17(a3) ; app-$11
     bne.s loc_b1c4
 loc_b1ee:
     lea dat_18b90,a0
@@ -13792,13 +13795,13 @@ pcref_b2ba:
 pcref_b2d6:
     dc.b    $01,$09,$04,$06,$0d,$0c,$07,$0e
 loc_b2de:
-    cmpi.b #$1,-19(a3)
+    cmpi.b #$1,-19(a3) ; app-$13
     beq.w loc_b384
 loc_b2e8:
     move.w #$ffff,dat_b4be
     move.l #$4000c,dat_b4c0
     moveq #0,d0
-    move.b -18(a3),d0
+    move.b -18(a3),d0 ; app-$12
     btst #3,d0
     bne.s loc_b312
 loc_b306:
@@ -13809,16 +13812,16 @@ loc_b312:
     lea dat_18c14,a0
     lea dat_bc4e,a2
     lea dat_2d660,a1
-    btst #0,-18(a3)
+    btst #0,-18(a3) ; app-$12
     beq.s loc_b340
 loc_b32c:
     lea dat_2f1c8,a1
-    btst #1,-18(a3)
+    btst #1,-18(a3) ; app-$12
     beq.s loc_b340
 loc_b33a:
     lea dat_30650,a1
 loc_b340:
-    move.b -22(a3),d6
+    move.b -22(a3),d6 ; app-$16
     cmpi.b #$e,d6
     bcc.s loc_b350
 loc_b34a:
@@ -13831,10 +13834,10 @@ loc_b350:
     cmpi.w #$b,d0
     bne.s loc_b370
 loc_b35a:
-    move.w -10(a3),d1
+    move.w -10(a3),d1 ; app-$A
     asl.w #2,d1
-    eor.b d1,-18(a3)
-    btst #2,-18(a3)
+    eor.b d1,-18(a3) ; app-$12
+    btst #2,-18(a3) ; app-$12
     beq.s loc_b370
 loc_b36c:
     addq.w #1,d6
@@ -13843,7 +13846,7 @@ loc_b370:
     bsr.w sub_b458
 loc_b374:
     clr.w dat_b4be
-    tst.b -17(a3)
+    tst.b -17(a3) ; app-$11
     bmi.w sub_99f0
 loc_b382:
     rts
@@ -13851,19 +13854,19 @@ loc_b384:
     lea dat_2ab38,a1
     lea dat_18bd0,a0
     lea dat_bb1e,a2
-    btst #0,-18(a3)
+    btst #0,-18(a3) ; app-$12
     beq.s loc_b3b0
 loc_b39e:
     lea dat_2c9e0,a1
     lea dat_18bf2,a0
     lea dat_bb92,a2
 loc_b3b0:
-    cmpi.b #$e,-22(a3)
+    cmpi.b #$e,-22(a3) ; app-$16
     bcs.s loc_b3cc
 loc_b3b8:
     beq.s loc_b3ce
 loc_b3ba:
-    move.b -22(a3),d6
+    move.b -22(a3),d6 ; app-$16
     move.w d6,d0
     addi.w #$a,d6
     subq.w #2,d0
@@ -13873,7 +13876,7 @@ loc_b3ca:
 loc_b3cc:
     bsr.s sub_b410
 loc_b3ce:
-    tst.b -17(a3)
+    tst.b -17(a3) ; app-$11
     bmi.w sub_99f0
 loc_b3d6:
     rts
@@ -13881,13 +13884,13 @@ sub_b3d8:
     lea dat_1f980,a1
     lea dat_18b70,a0
     lea dat_baae,a2
-    tst.b -20(a3)
+    tst.b -20(a3) ; app-$14
     beq.s loc_b40e
 loc_b3f0:
     adda.w #$2498,a1
     bsr.s sub_b410
 loc_b3f6:
-    tst.b -21(a3)
+    tst.b -21(a3) ; app-$15
     beq.s loc_b42c
 loc_b3fc:
     lea dat_18b50,a0
@@ -13955,7 +13958,7 @@ sub_b486:
     swap d1
     lsr.w #2,d1
     add.w d1,d0
-    movea.l -8(a3),a0
+    movea.l -8(a3),a0 ; app-$8
     adda.w d0,a0
     moveq #0,d5
     move.b (a2)+,d5
@@ -14321,8 +14324,8 @@ loc_b7f2:
     rts
 sub_b7f4:
     lea dat_32120,a1
-    movea.l -8(a3),a0
-    tst.w -12(a3)
+    movea.l -8(a3),a0 ; app-$8
+    tst.w -12(a3) ; app-$C
     beq.s loc_b864
 loc_b804:
     moveq #22,d0

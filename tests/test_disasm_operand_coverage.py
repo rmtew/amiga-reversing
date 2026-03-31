@@ -21,24 +21,6 @@ def _coverage_session() -> HunkDisassemblySession:
         code_size=0,
         entities=[],
         blocks={},
-        hint_blocks={},
-        code_addrs=set(),
-        hint_addrs=set(),
-        reloc_map={},
-        reloc_target_set=set(),
-        pc_targets={},
-        string_addrs=set(),
-        labels={},
-        jump_table_regions={},
-        jump_table_target_sources={},
-        region_map={},
-        lvo_equs={},
-        lvo_substitutions={},
-        arg_equs={},
-        arg_substitutions={},
-        app_offsets={},
-        arg_annotations={},
-        data_access_sizes={},
         platform=make_platform(),
         os_kb=make_empty_os_kb(),
         base_addr=0,
@@ -85,3 +67,4 @@ def test_kb_generated_cases_build_canonical_semantic_operands() -> None:
                 break
 
     assert not failures, "Canonical operand coverage failures:\n" + "\n".join(failures)
+

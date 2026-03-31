@@ -134,7 +134,8 @@ def _canonical_include_path(os_kb: OsKb, include_path: str) -> str:
     include_min_versions = meta.include_min_versions
     if normalized in include_min_versions:
         return normalized
-    for owner in meta.library_lvo_owners.values():
+    for library in os_kb.LIBRARIES.values():
+        owner = library.owner
         assembler_include_path = owner.assembler_include_path
         canonical_include_path = owner.canonical_include_path
         if (
@@ -234,12 +235,12 @@ def build_emit_compatibility_report(
                 raise ValueError(
                     f"Missing KB function for compatibility inference: {call.library}/{call.function}"
                 )
-            if function.os_since is None:
+            if function.available_since is None:
                 continue
             add_dependency(
                 "library_call",
                 f"{call.library}/{call.function}",
-                normalize_compatibility_version(function.os_since, supported),
+                normalize_compatibility_version(function.available_since, supported),
                 (_usage_label(hunk_session.hunk_index, call.addr),),
             )
 

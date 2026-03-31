@@ -421,6 +421,7 @@ class HunkRuntimePayload(TypedDict):
 
 
 class OsRuntimeLibrary(TypedDict):
+    owner: OsIncludeOwner
     lvo_index: dict[str, str]
     functions: dict[str, OsFunction]
 
@@ -439,7 +440,6 @@ class OsRuntimeMeta(TypedDict):
     resident_entry_register_seeds: dict[str, dict[str, list[OsResidentEntryRegisterSeed]]]
     named_base_structs: dict[str, str]
     typed_data_stream_formats: dict[str, object]
-    library_lvo_owners: dict[str, OsIncludeOwner]
 
 
 class OsRuntimePayload(TypedDict):
@@ -1650,7 +1650,8 @@ def _render_os_struct(struct_def: OsStructDef) -> str:
 def _render_os_constant(constant: OsConstant) -> str:
     return (
         f"OsConstant(raw={constant['raw']!r}, value={constant['value']!r}, "
-        f"available_since={constant['available_since']!r})"
+        f"available_since={constant['available_since']!r}, "
+        f"owner={_render_os_include_owner(constant['owner'])})"
     )
 
 
@@ -1697,8 +1698,7 @@ def _render_os_include_owner(owner: OsIncludeOwner) -> str:
         f"kind={owner['kind']!r}, "
         f"canonical_include_path={owner.get('canonical_include_path')!r}, "
         f"assembler_include_path={owner.get('assembler_include_path')!r}, "
-        f"source_file={owner['source_file']!r}, "
-        f"available_since={owner.get('available_since')!r}"
+        f"source_file={owner['source_file']!r}"
         ")"
     )
 
@@ -1726,7 +1726,7 @@ def _render_os_function(func: OsFunction) -> str:
             if "returns_memory" in func else "returns_memory=None"
         ),
         f"no_return={func.get('no_return', False)!r}",
-        f"os_since={func.get('os_since')!r}",
+        f"available_since={func.get('available_since')!r}",
         f"fd_version={func.get('fd_version')!r}",
         f"private={func.get('private', False)!r}",
     ]
@@ -1789,7 +1789,6 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    resident_entry_register_seeds: dict[str, dict[str, tuple[dict[str, object], ...]]] = field(default_factory=dict)",
         "    named_base_structs: dict[str, str] = field(default_factory=dict)",
         "    typed_data_stream_formats: dict[str, object] = field(default_factory=dict)",
-        "    library_lvo_owners: dict[str, OsIncludeOwner] = field(default_factory=dict)",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsIncludeOwner:",
@@ -1797,7 +1796,6 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    canonical_include_path: str | None",
         "    assembler_include_path: str | None",
         "    source_file: str",
-        "    available_since: str | None = None",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsStructField:",
@@ -1827,6 +1825,7 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "class OsConstant:",
         "    raw: str",
         "    value: int | None",
+        "    owner: OsIncludeOwner",
         "    available_since: str = '1.0'",
         "",
         "@dataclass(frozen=True, slots=True)",
@@ -1872,14 +1871,15 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         "    returns_base: OsReturnsBase | None = None",
         "    returns_memory: OsReturnsMemory | None = None",
         "    no_return: bool = False",
-        "    os_since: str | None = None",
+        "    available_since: str | None = None",
         "    fd_version: str | None = None",
         "    private: bool = False",
         "",
         "@dataclass(frozen=True, slots=True)",
         "class OsLibrary:",
-        "    lvo_index: dict[str, str]",
-        "    functions: dict[str, OsFunction]",
+        "    owner: OsIncludeOwner",
+        "    lvo_index: dict[str, str] = field(default_factory=dict)",
+        "    functions: dict[str, OsFunction] = field(default_factory=dict)",
         "",
         "META: OsMeta = OsMeta(",
         f"    calling_convention=CallingConvention(scratch_regs={tuple(meta['calling_convention']['scratch_regs'])!r}, preserved_regs={tuple(meta['calling_convention']['preserved_regs'])!r}, base_reg={meta['calling_convention']['base_reg']!r}, return_reg={meta['calling_convention']['return_reg']!r}, note={meta['calling_convention']['note']!r}, seed_origin={meta['calling_convention']['seed_origin']!r}, review_status={meta['calling_convention']['review_status']!r}, citation={meta['calling_convention']['citation']!r}),",
@@ -1902,14 +1902,6 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
         f"    resident_entry_register_seeds={_render_py({target_type: {role: tuple(specs) for role, specs in sorted(role_map.items())} for target_type, role_map in sorted(meta['resident_entry_register_seeds'].items())})} ,",
         f"    named_base_structs={_render_py(dict(sorted(meta['named_base_structs'].items())))} ,",
         f"    typed_data_stream_formats={_render_py(dict(sorted(meta.get('typed_data_stream_formats', {}).items())))} ,",
-        (
-            "    library_lvo_owners={"
-            + ", ".join(
-                f"{name!r}: {_render_os_include_owner(owner)}"
-                for name, owner in sorted(meta["library_lvo_owners"].items())
-            )
-            + "} ,"
-        ),
         ")",
         "",
         "VALUE_DOMAINS: dict[str, OsValueDomain] = {",
@@ -1941,6 +1933,7 @@ def _write_os_runtime_python(path: Path, payload: OsRuntimePayload, *, header: s
     ])
     for name, library in sorted(libraries.items()):
         lines.append(f"    {name!r}: OsLibrary(")
+        lines.append(f"        owner={_render_os_include_owner(library['owner'])},")
         lines.append(f"        lvo_index={_render_py(library['lvo_index'])},")
         lines.append("        functions={")
         for func_name, func in sorted(library["functions"].items()):
@@ -2650,6 +2643,7 @@ def _build_os_runtime() -> OsRuntimePayload:
     libraries: dict[str, OsRuntimeLibrary] = {}
     for library_name, library_data in sorted(canonical["libraries"].items()):
         funcs: dict[str, OsFunction] = {}
+        lvo_index: dict[str, str] = {}
         for func_name, func_data in sorted(library_data["functions"].items()):
             compact: OsFunction = {"lvo": func_data["lvo"]}
             for key in (
@@ -2658,15 +2652,23 @@ def _build_os_runtime() -> OsRuntimePayload:
                 "output",
                 "no_return",
                 "inputs",
-                "os_since",
+                "available_since",
                 "fd_version",
                 "private",
             ):
                 if key in func_data:
                     compact[key] = func_data[key]
             funcs[func_name] = compact
+            lvo = func_data.get("lvo")
+            if lvo is not None:
+                key = str(lvo)
+                existing = lvo_index.get(key)
+                if existing is not None and existing != func_name:
+                    raise ValueError(f"Duplicate library LVO {library_name}:{key}: {existing} vs {func_name}")
+                lvo_index[key] = func_name
         libraries[library_name] = {
-            "lvo_index": library_data["lvo_index"],
+            "owner": library_data["owner"],
+            "lvo_index": lvo_index,
             "functions": funcs,
         }
     api_input_value_domains: dict[str, dict[str, dict[str, str]]] = {}
@@ -2699,7 +2701,6 @@ def _build_os_runtime() -> OsRuntimePayload:
                 dict[str, object],
                 canonical["_meta"].get("typed_data_stream_formats", {}),
             ),
-            "library_lvo_owners": canonical["_meta"]["library_lvo_owners"],
         },
         "VALUE_DOMAINS": {
             name: {

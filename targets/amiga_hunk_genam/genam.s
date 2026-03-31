@@ -3,16 +3,6 @@
 ; 64920 bytes, 489 entities, 2840 blocks
 ; OS compatibility floor: 2.0
 
-; OS function argument constants
-ACCESS_READ	EQU	-2
-MEMF_LARGEST	EQU	131072
-MEMF_PUBLIC	EQU	1
-MODE_NEWFILE	EQU	1006
-MODE_OLDFILE	EQU	1005
-OFFSET_BEGINNING	EQU	-1
-OFFSET_CURRENT	EQU	0
-SIGBREAKF_CTRL_C	EQU	4096
-
 ; App memory offsets (base register A6)
 app_current_node	EQU	426
 app_dos_base	EQU	3286
@@ -37,10 +27,12 @@ AbsExecBase	EQU	$4
 
     INCLUDE "devices/timer.i"
     INCLUDE "devices/timer_lib.i"
+    INCLUDE "dos/dos.i"
     INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/io.i"
     INCLUDE "exec/libraries.i"
+    INCLUDE "exec/memory.i"
 
     SECTION code,code
 

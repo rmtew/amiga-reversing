@@ -195,14 +195,21 @@ def test_includes_parsed_os_kb_inlines_constant_availability() -> None:
     assert "constant_min_versions" not in includes["_meta"]
     constant = includes["constants"]["A2024FIFTEENHERTZ_KEY"]
     assert constant["available_since"] == "2.0"
+    func = includes["libraries"]["amigaguide.library"]["functions"]["AddAmigaGuideHostA"]
+    assert "available_since" not in func
+
+
+def test_other_parsed_os_kb_owns_function_availability() -> None:
+    other = load_canonical_os_kb_other_parsed()
+
+    func = other["functions"]["amigaguide.library"]["AddAmigaGuideHostA"]
+    assert func["available_since"] == "3.1"
 
 
 def test_os_reference_corrections_only_carry_correction_data() -> None:
     corrections = normalize_os_reference_corrections(load_canonical_os_kb_corrections())
 
-    assert corrections["libraries"] == {}
-    assert corrections["structs"] == {}
-    assert corrections["constants"] == {}
+    assert set(corrections) == {"_meta"}
     assert corrections["_meta"]["api_input_value_bindings"]
     assert set(corrections["_meta"]) == {
         "calling_convention",
@@ -1336,7 +1343,7 @@ def test_parse_fd_file_recognizes_release_marker_for_private_blocks(tmp_path: Pa
 
     func = parsed["functions"]["amigaguidePrivate1"]
     assert func["fd_version"] == "40"
-    assert func["os_since"] == "3.1"
+    assert func["available_since"] == "3.1"
 
 
 def test_runtime_hunk_and_naming_match_canonical_payloads() -> None:

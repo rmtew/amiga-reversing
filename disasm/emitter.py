@@ -52,6 +52,20 @@ from m68k_kb import runtime_hardware, runtime_os
 _OS_INCLUDE_KB = load_os_include_kb()
 
 
+def _required_constant_includes(constant_names: set[str]) -> set[str]:
+    include_paths: set[str] = set()
+    for constant_name in sorted(constant_names):
+        owner = _OS_INCLUDE_KB.constant_owners.get(constant_name)
+        if owner is None:
+            raise ValueError(f"Missing KB include owner for constant: {constant_name}")
+        if owner.kind != "native_include" or owner.canonical_include_path is None:
+            raise ValueError(
+                f"Constant {constant_name} is missing a native include owner: {owner}"
+            )
+        include_paths.add(owner.canonical_include_path)
+    return include_paths
+
+
 def _app_slot_equ_value(base_info: AppBaseInfo, offset: int) -> str:
     if base_info.kind.name == "ABSOLUTE":
         addr = (base_info.concrete + offset) & 0xFFFFFFFF
@@ -179,7 +193,6 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
     ))
     compatibility_floors: list[str] = []
     fd_only_lvo_equs: dict[str, dict[int, str]] = {}
-    arg_equs: dict[str, str] = {}
     app_offset_equs: dict[str, str] = {}
     target_local_struct_equs: dict[str, int] = {}
     absolute_symbol_equs: dict[str, int] = {}
@@ -203,7 +216,6 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
         for lib_name, by_lvo in hunk_preamble["fd_only_lvo_equs"].items():
             existing = fd_only_lvo_equs.setdefault(lib_name, {})
             existing.update(by_lvo)
-        arg_equs.update(hunk_preamble["arg_equs"])
         app_offset_equs.update(hunk_preamble["app_offset_equs"])
         target_local_struct_equs.update(hunk_preamble["target_local_struct_equs"])
         absolute_symbol_equs.update(hunk_preamble["absolute_symbol_equs"])
@@ -227,15 +239,6 @@ def emit_session_rows(session: DisassemblySession) -> list[ListingRow]:
                     opcode_or_directive=assembler_profile.render.directives.equ,
                 ))
             rows.append(make_row("blank", blank_line_text))
-    if arg_equs:
-        rows.append(make_row("comment", "; OS function argument constants\n"))
-        for name in sorted(arg_equs):
-            rows.append(make_row(
-                "directive",
-                f"{name}\t{assembler_profile.render.directives.equ}\t{arg_equs[name]}\n",
-                opcode_or_directive=assembler_profile.render.directives.equ,
-            ))
-        rows.append(make_row("blank", blank_line_text))
     if app_offset_equs:
         base_info = session.hunk_sessions[0].platform.app_base
         assert base_info is not None, "app_offsets present but platform.app_base is missing"
@@ -957,9 +960,11 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
                 include_paths.add(owner.assembler_include_path)
             continue
         assert owner.kind == "fd_only", f"Unknown OS include owner kind for {lib_name}: {owner.kind}"
+    include_paths.update(_required_constant_includes(hunk_session.arg_constants))
     includes = set(include_paths)
     compatibility_includes = set(hardware_includes)
     includes.update(hardware_includes)
+    compatibility_includes.update(_required_constant_includes(hunk_session.arg_constants))
     for lib_name in sorted(hunk_session.lvo_equs):
         owner = _OS_INCLUDE_KB.library_lvo_owners[lib_name]
         if owner.kind == "native_include":
@@ -1001,7 +1006,6 @@ def _emit_hunk_rows(hunk_session: HunkDisassemblySession,
             for lib_name in sorted(hunk_session.lvo_equs)
             if _OS_INCLUDE_KB.library_lvo_owners[lib_name].kind == "fd_only"
         },
-        "arg_equs": dict(hunk_session.arg_equs),
         "app_offset_equs": app_offset_equs,
         "target_local_struct_equs": _target_local_struct_equ_defs(hunk_session),
         "absolute_symbol_equs": absolute_symbol_equs,

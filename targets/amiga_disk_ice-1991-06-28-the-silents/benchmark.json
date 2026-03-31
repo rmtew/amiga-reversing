@@ -2,7 +2,7 @@
   "target": "amiga_disk_ice-1991-06-28-the-silents",
   "binary": "bin/Ice (1991-06-28)(The Silents).adf",
   "command": "uv run scripts/benchmark_target.py amiga_disk_ice-1991-06-28-the-silents",
-  "measured_at": "2026-03-30T21:08:50+13:00",
+  "measured_at": "2026-03-31T17:58:54+13:00",
   "status": "ok",
   "elapsed_seconds": 0.11,
   "analysis_bytes": 5234,
@@ -10,21 +10,21 @@
   "disasm_bytes": 971,
   "timing": {
     "entities": {
-      "parse_source_seconds": 0.0002,
+      "parse_source_seconds": 0.0001,
       "analysis": {
         "init_seconds": 0.0012,
-        "core_seconds": 0.0008,
-        "per_caller_seconds": 0.0088,
+        "core_seconds": 0.0014,
+        "per_caller_seconds": 0.0102,
         "store_pass_seconds": 0.0,
-        "hint_scan_seconds": 0.0582,
-        "os_call_seconds": 0.0038
+        "hint_scan_seconds": 0.0655,
+        "os_call_seconds": 0.0045
       },
       "naming_seconds": 0.0001,
-      "write_seconds": 0.0006
+      "write_seconds": 0.0007
     },
     "session": {
-      "load_analysis_seconds": 0.0388,
-      "metadata_seconds": 0.0027,
+      "load_analysis_seconds": 0.0477,
+      "metadata_seconds": 0.0028,
       "substitutions_seconds": 0.0,
       "build_seconds": 0.0
     },
@@ -61,7 +61,7 @@
       "target": "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootblock",
       "binary": "targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootblock/binary.bin",
       "command": "uv run scripts/benchmark_target.py amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootblock",
-      "measured_at": "2026-03-30T21:08:50+13:00",
+      "measured_at": "2026-03-31T17:58:54+13:00",
       "status": "ok",
       "elapsed_seconds": 0.1,
       "analysis_bytes": 5234,
@@ -69,21 +69,21 @@
       "disasm_bytes": 971,
       "timing": {
         "entities": {
-          "parse_source_seconds": 0.0002,
+          "parse_source_seconds": 0.0001,
           "analysis": {
             "init_seconds": 0.0012,
-            "core_seconds": 0.0008,
-            "per_caller_seconds": 0.0088,
+            "core_seconds": 0.0014,
+            "per_caller_seconds": 0.0102,
             "store_pass_seconds": 0.0,
-            "hint_scan_seconds": 0.0582,
-            "os_call_seconds": 0.0038
+            "hint_scan_seconds": 0.0655,
+            "os_call_seconds": 0.0045
           },
           "naming_seconds": 0.0001,
-          "write_seconds": 0.0006
+          "write_seconds": 0.0007
         },
         "session": {
-          "load_analysis_seconds": 0.0388,
-          "metadata_seconds": 0.0027,
+          "load_analysis_seconds": 0.0477,
+          "metadata_seconds": 0.0028,
           "substitutions_seconds": 0.0,
           "build_seconds": 0.0
         },

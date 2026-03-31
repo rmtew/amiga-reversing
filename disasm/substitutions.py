@@ -114,8 +114,8 @@ def build_lvo_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
 
 
 def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_calls: list[LibraryCall], hunk_entities: list[EntityRecord],
-                            os_kb: OsKb) -> tuple[dict[str, int], dict[int, tuple[str, str]]]:
-    arg_equs: dict[str, int] = {}
+                            os_kb: OsKb) -> tuple[set[str], dict[int, tuple[str, str]]]:
+    arg_constants: set[str] = set()
     arg_substitutions: dict[int, tuple[str, str]] = {}
     sorted_code_ents = _sorted_code_entities(hunk_entities)
     input_value_domains = os_kb.API_INPUT_VALUE_DOMAINS
@@ -209,12 +209,8 @@ def build_arg_substitutions(*, blocks: Mapping[int, _InstructionBlock], lib_call
                             f"(domain: {input_domain_name})"
                         )
                     for const_name in resolved.names:
-                        const_value = os_kb.CONSTANTS[const_name].value
-                        assert const_value is not None, (
-                            f"Value-domain constant unexpectedly non-concrete: {const_name}"
-                        )
-                        arg_equs[const_name] = const_value
+                        arg_constants.add(const_name)
                     imm_token = _immediate_operand_token(prev)
                     arg_substitutions[prev.offset] = (imm_token, f"#{resolved.text}")
                     break
-    return arg_equs, arg_substitutions
+    return arg_constants, arg_substitutions

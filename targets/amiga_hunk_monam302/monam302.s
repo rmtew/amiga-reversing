@@ -21,16 +21,6 @@ _LVOGetPrefs	EQU	-132
 _LVOCloseWindow	EQU	-72
 _LVOCloseScreen	EQU	-66
 
-; OS function argument constants
-MEMF_ANY	EQU	0
-MEMF_CLEAR	EQU	65536
-MEMF_PUBLIC	EQU	1
-MODE_NEWFILE	EQU	1006
-MODE_OLDFILE	EQU	1005
-OFFSET_BEGINNING	EQU	-1
-OFFSET_CURRENT	EQU	0
-OFFSET_END	EQU	1
-
 ; App memory offsets (base register A6)
 app_addport_port	EQU	274
 app_allocmem_memoryblock	EQU	1416
@@ -60,9 +50,11 @@ app_write_file	EQU	400
 AbsExecBase	EQU	$4
 
     INCLUDE "devices/console.i"
+    INCLUDE "dos/dos.i"
     INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/io.i"
+    INCLUDE "exec/memory.i"
     INCLUDE "exec/ports.i"
     INCLUDE "graphics/gfxbase.i"
     INCLUDE "intuition/intuition.i"

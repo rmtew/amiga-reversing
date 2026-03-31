@@ -1726,6 +1726,88 @@ def test_identify_library_calls_resolves_direct_wrapper_call_per_caller() -> Non
     assert call.lvo == -552
 
 
+def test_identify_library_calls_recognizes_absolute_long_execbase_load() -> None:
+    code = b""
+    code += struct.pack(">HI", 0x2C79, 0x00000004)  # $00 movea.l ($00000004).l,a6
+    code += struct.pack(">HH", 0x4EAE, 0xFDD8)     # $06 jsr -552(a6)
+    code += struct.pack(">H", 0x4E75)              # $0A rts
+
+    platform = make_platform()
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    assert len(calls) == 1
+    call = calls[0]
+    assert call.addr == 0x06
+    assert call.library == "exec.library"
+    assert call.function == "OpenLibrary"
+    assert call.lvo == -552
+
+
+def test_identify_library_calls_carries_execbase_across_block_boundary() -> None:
+    code = b""
+    code += struct.pack(">HH", 0x2C78, 0x0004)     # $00 movea.l ($0004).w,a6
+    code += struct.pack(">H", 0x6002)              # $04 bra.s $08
+    code += struct.pack(">H", 0x4E71)              # $06 nop
+    code += struct.pack(">HH", 0x4EAE, 0xFDD8)     # $08 jsr -552(a6)
+    code += struct.pack(">H", 0x4E75)              # $0C rts
+
+    platform = make_platform()
+    result = analyze(code, propagate=True, entry_points=[0], platform=platform)
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    assert len(calls) == 1
+    call = calls[0]
+    assert call.addr == 0x08
+    assert call.library == "exec.library"
+    assert call.function == "OpenLibrary"
+    assert call.lvo == -552
+
+
+def test_identify_library_calls_prefers_known_block_library_over_wrapper_deferral() -> None:
+    code = b""
+    code += struct.pack(">HH", 0x2C78, 0x0004)     # $00 movea.l ($0004).w,a6
+    code += struct.pack(">H", 0x4E71)              # $04 nop
+    code += struct.pack(">H", 0x4E71)              # $06 nop
+    code += struct.pack(">HH", 0x4EAE, 0xFDD8)     # $08 jsr -552(a6)
+    code += struct.pack(">H", 0x4E75)              # $0C rts
+    code += struct.pack(">HH", 0x4EBA, 0xFFF0)     # $0E jsr $00
+    code += struct.pack(">H", 0x4E75)              # $12 rts
+
+    platform = make_platform()
+    result = analyze(code, propagate=True, entry_points=[0, 0x0E], platform=platform)
+
+    calls = identify_library_calls(
+        result["blocks"],
+        code,
+        runtime_os,
+        result["exit_states"],
+        result["call_targets"],
+        platform,
+    )
+
+    call = next(call for call in calls if call.addr == 0x08)
+    assert call.library == "exec.library"
+    assert call.function == "OpenLibrary"
+    assert call.dispatch is None
+
+
 def test_identify_library_calls_uses_entry_initial_states() -> None:
     code = b""
     code += b"\x4e\x71" * 0x44

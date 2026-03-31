@@ -124,28 +124,6 @@ def _custom_node_hunk_session() -> HunkDisassemblySession:
         code_size=0,
         entities=[],
         blocks=blocks,
-        hint_blocks={},
-        code_addrs=set(),
-        hint_addrs=set(),
-        reloc_map={},
-        reloc_target_set=set(),
-        pc_targets={},
-        string_addrs=set(),
-        labels={},
-        jump_table_regions={},
-        jump_table_target_sources={},
-        region_map={
-            0x0000: {"a3": node_region},
-            0x0006: {"a3": node_region},
-            0x000A: {"a3": node_region},
-        },
-        lvo_equs={},
-        lvo_substitutions={},
-        arg_equs={},
-        arg_substitutions={},
-        app_offsets={422: "app_current_node"},
-        arg_annotations={},
-        data_access_sizes={},
         platform=make_platform(app_base=(6, 0)),
         os_kb=cast(OsKb, os_kb),
         base_addr=0,
@@ -153,6 +131,12 @@ def _custom_node_hunk_session() -> HunkDisassemblySession:
         relocated_segments=[],
         reloc_file_offset=0,
         reloc_base_addr=0,
+        region_map={
+            0x0000: {"a3": node_region},
+            0x0006: {"a3": node_region},
+            0x000A: {"a3": node_region},
+        },
+        app_offsets={422: "app_current_node"},
     )
 
 
@@ -162,3 +146,4 @@ def test_custom_node_walk_uses_seeded_metadata_struct_fields() -> None:
     assert _render_at(hunk, 0x0000) == ("cmpi.w #$3eb,genam_node_type(a3)", "", ())
     assert _render_at(hunk, 0x0006) == ("move.w genam_node_type(a3),d0", "", ())
     assert _render_at(hunk, 0x000A) == ("btst #1,genam_node_flags(a3)", "", ())
+

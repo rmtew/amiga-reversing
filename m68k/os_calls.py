@@ -379,6 +379,12 @@ def _sanitize_app_name(name: str) -> str:
     return re.sub(r'[^a-z0-9]+', '_', name.lower())
 
 
+def _xref_type_equals(xref_type: object, expected: str) -> bool:
+    if xref_type == expected:
+        return True
+    return getattr(xref_type, "value", None) == expected
+
+
 def _named_base_inferred_struct_name(named_base: str) -> str:
     stem = "".join(part.capitalize() for part in _sanitize_app_name(named_base).split("_") if part)
     return f"Inferred{stem}Base"
@@ -1138,7 +1144,7 @@ class LibraryCall:
     output: OsOutput | None = None
     no_return: bool = False
     dispatch: int | None = None
-    os_since: str | None = None
+    available_since: str | None = None
     fd_version: str | None = None
 
 
@@ -2573,6 +2579,13 @@ def build_app_slot_symbols(blocks: dict[int, BasicBlock],
                 grouped_candidates.setdefault(sym, []).append(naming.offset)
         for offset, naming in naming_by_offset.items():
             raw_app_offsets[offset] = _choose_app_slot_symbol(naming, grouped_candidates)
+        app_struct_regions = build_app_struct_regions(
+            blocks, lib_calls, os_kb, platform, target_metadata
+        )
+        for offset, region in app_struct_regions.items():
+            if offset in raw_app_offsets:
+                continue
+            raw_app_offsets[offset] = f"app_{_sanitize_app_name(region.struct)}"
     if target_metadata is not None:
         for slot in target_metadata.app_slot_regions:
             if slot.symbol is None:
@@ -3152,7 +3165,7 @@ def refine_library_calls(blocks: dict[int, BasicBlock],
             output=resolved_call.output,
             no_return=resolved_call.no_return,
             dispatch=call.dispatch,
-            os_since=resolved_call.os_since,
+            available_since=resolved_call.available_since,
             fd_version=resolved_call.fd_version,
         ))
     return refined
@@ -3334,7 +3347,7 @@ class ResolvedLibraryCall:
     inputs: tuple[OsInput, ...]
     output: OsOutput | None
     no_return: bool
-    os_since: str | None
+    available_since: str | None
     fd_version: str | None
 
 
@@ -3367,7 +3380,7 @@ def _build_lvo_lookup(os_kb: OsKb) -> LvoLookup:
                 inputs=func.inputs,
                 output=func.output,
                 no_return=func.no_return,
-                os_since=func.os_since,
+            available_since=func.available_since,
                 fd_version=func.fd_version,
             )
             by_lib_lvo[lib_name, lvo] = call
@@ -3392,7 +3405,7 @@ def _resolve_lvo(lvo: int, library: str, lvo_lookup: LvoLookup) -> LibraryCall:
             inputs=match.inputs,
             output=match.output,
             no_return=match.no_return,
-            os_since=match.os_since,
+            available_since=match.available_since,
             fd_version=match.fd_version,
         )
     raise KeyError(f"Missing KB LVO mapping for {library}:{lvo}")
@@ -3458,6 +3471,7 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
     app_base = base_info.concrete if base_info else None
 
     absw_enc: list[int | None] = runtime_m68k_decode.EA_MODE_ENCODING["absw"]
+    absl_enc: list[int | None] = runtime_m68k_decode.EA_MODE_ENCODING["absl"]
     disp_enc: list[int | None] = runtime_m68k_decode.EA_MODE_ENCODING["disp"]
     index_enc: list[int | None] = runtime_m68k_decode.EA_MODE_ENCODING["index"]
     addr_mask = runtime_m68k_analysis.ADDR_MASK
@@ -3487,7 +3501,7 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
     caller_map: dict[int, list[tuple[int, int]]] = {}
     for addr, blk in blocks.items():
         for x in blk.xrefs:
-            if x.type == "call" and x.dst in call_targets:
+            if _xref_type_equals(x.type, "call") and x.dst in call_targets:
                 caller_map.setdefault(x.dst, []).append((addr, x.src))
 
     results = []
@@ -3594,19 +3608,20 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
         candidates = get_traces_by_offset().get(inst_offset)
         if not candidates:
             return None
-        libs = {
-            lib_name
+        candidate_libs = [
+            _library_base_from_tag(candidate.pre_cpu.a[base_reg_num].tag)
             for candidate in candidates
-            for lib_name in [_library_base_from_tag(candidate.pre_cpu.a[base_reg_num].tag)]
-            if lib_name is not None
-        }
-        if len(libs) > 1:
+        ]
+        known_libs = {lib_name for lib_name in candidate_libs if lib_name is not None}
+        if len(known_libs) > 1:
             raise ValueError(
-                f"Conflicting caller A6 library ownership at 0x{inst_offset:X}: {sorted(libs)}"
+                f"Conflicting caller A6 library ownership at 0x{inst_offset:X}: {sorted(known_libs)}"
             )
-        if not libs:
+        if not known_libs:
             return None
-        return next(iter(libs))
+        if any(lib_name is None for lib_name in candidate_libs):
+            return None
+        return next(iter(known_libs))
 
     def entry_seed_library(block_addr: int) -> str | None:
         if entry_initial_states is not None:
@@ -3616,6 +3631,86 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
         if initial_state is not None and block_addr == base_addr:
             return _library_base_from_tag(initial_state.a[base_reg_num].tag)
         return None
+
+    def _transfer_block_library(block_addr: int, incoming_lib: str | None) -> str | None:
+        block = blocks.get(block_addr)
+        if block is None:
+            return incoming_lib
+        carried_lib = incoming_lib
+        has_local_state = block_addr in exit_states or block.is_entry
+        for inst in block.instructions:
+            ikb = instruction_kb(inst)
+            if (
+                runtime_m68k_analysis.OPERATION_TYPES.get(ikb)
+                != runtime_m68k_analysis.OperationType.MOVE
+                or ikb not in runtime_m68k_analysis.SOURCE_SIGN_EXTEND
+                or len(inst.raw) < runtime_m68k_decode.OPWORD_BYTES + 2
+            ):
+                continue
+            opcode = struct.unpack_from(">H", inst.raw, 0)[0]
+            src_mode = xf(opcode, movea_mode_f)
+            src_reg = xf(opcode, movea_reg_f)
+            dst_reg = xf(opcode, movea_dst_spec)
+            if dst_reg != base_reg_num:
+                continue
+            carried_lib = None
+            if (src_mode == absw_enc[0] and src_reg == absw_enc[1]):
+                addr_val = struct.unpack_from(
+                    ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES
+                )[0]
+                addr_val &= addr_mask
+                if addr_val == exec_base_addr:
+                    carried_lib = exec_lib_name
+            elif (src_mode == absl_enc[0] and src_reg == absl_enc[1]):
+                addr_val = struct.unpack_from(
+                    ">I", inst.raw, runtime_m68k_decode.OPWORD_BYTES
+                )[0]
+                addr_val &= addr_mask
+                if addr_val == exec_base_addr:
+                    carried_lib = exec_lib_name
+            elif src_mode == disp_enc[0] and block_addr in exit_states and app_base is not None:
+                disp_val = struct.unpack_from(
+                    ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES
+                )[0]
+                _, blk_mem = exit_states[block_addr]
+                mem_addr = (app_base + disp_val) & addr_mask
+                tag_val = blk_mem.read(mem_addr, "l")
+                carried_lib = _library_base_from_tag(tag_val.tag)
+            elif not has_local_state:
+                traced = select_trace(inst.offset)
+                if traced is not None:
+                    carried_lib = _library_base_from_tag(
+                        traced.post_cpu.a[base_reg_num].tag
+                    )
+        return carried_lib
+
+    block_entry_library: dict[int, str | None] = {}
+    block_exit_library: dict[int, str | None] = {}
+    changed = True
+    while changed:
+        changed = False
+        for block_addr in sorted(blocks):
+            seed_lib = entry_seed_library(block_addr)
+            pred_libs = {
+                block_exit_library[pred_addr]
+                for pred_addr in blocks[block_addr].predecessors
+                if pred_addr in block_exit_library
+                and block_exit_library[pred_addr] is not None
+            }
+            incoming_lib: str | None
+            if seed_lib is not None:
+                incoming_lib = seed_lib
+            elif len(pred_libs) == 1:
+                incoming_lib = next(iter(pred_libs))
+            else:
+                incoming_lib = None
+            outgoing_lib = _transfer_block_library(block_addr, incoming_lib)
+            if block_entry_library.get(block_addr) != incoming_lib:
+                block_entry_library[block_addr] = incoming_lib
+                changed = True
+            if block_exit_library.get(block_addr) != outgoing_lib:
+                block_exit_library[block_addr] = outgoing_lib
+                changed = True
     # Deferred: indexed EA calls needing per-caller resolution.
     # List of (block_addr, inst_offset, library, index_reg_mode,
     #          index_reg_num, base_displacement)
@@ -3630,7 +3725,8 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
         if block_owner_sub is None:
             block_owner_sub = block_addr
 
-        carried_a6_lib: str | None = entry_seed_library(block_addr)
+        entry_a6_lib: str | None = block_entry_library.get(block_addr)
+        carried_a6_lib: str | None = entry_a6_lib
         base_reg_locally_modified = False
 
         for inst in block.instructions:
@@ -3678,6 +3774,13 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                         addr_val &= addr_mask
                         if addr_val == exec_base_addr:
                             carried_a6_lib = exec_lib_name
+                    elif (src_mode == absl_enc[0]
+                            and src_reg == absl_enc[1]):
+                        addr_val = struct.unpack_from(
+                            ">I", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
+                        addr_val &= addr_mask
+                        if addr_val == exec_base_addr:
+                            carried_a6_lib = exec_lib_name
                     elif (src_mode == disp_enc[0]
                             and block_addr in exit_states
                             and app_base is not None):
@@ -3700,14 +3803,15 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
             opcode = struct.unpack_from(">H", inst.raw, 0)[0]
             ea_mode = xf(opcode, jsr_mode_f)
             ea_reg = xf(opcode, jsr_reg_f)
-            if not has_local_state:
+            if not has_local_state or a6_lib is None:
                 traced = get_selected_trace()
-                if traced is None:
+                if traced is not None:
+                    traced_a6_lib = _library_base_from_tag(
+                        traced.pre_cpu.a[base_reg_num].tag)
+                    if traced_a6_lib is not None:
+                        a6_lib = traced_a6_lib
+                elif not has_local_state:
                     continue
-                traced_a6_lib = _library_base_from_tag(
-                    traced.pre_cpu.a[base_reg_num].tag)
-                if traced_a6_lib is not None:
-                    a6_lib = traced_a6_lib
 
             # Pattern 1: JSR d(A6) - displacement EA, LVO is disp
             if ea_mode == disp_enc[0] and ea_reg == base_reg_num:
@@ -3715,10 +3819,18 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                     ">h", inst.raw, runtime_m68k_decode.OPWORD_BYTES)[0]
                 sub_entry = _find_sub_entry(block_addr, blocks, call_targets)
                 callers = () if sub_entry is None else caller_map.get(sub_entry, ())
-                if callers and not base_reg_locally_modified:
+                if base_reg_locally_modified:
+                    direct_lib = carried_a6_lib
+                else:
+                    direct_lib = entry_a6_lib
+                    if direct_lib is None:
+                        direct_lib = a6_lib
+                if direct_lib is None and callers:
+                    direct_lib = uniform_pre_library(inst.offset)
+                if block_addr in call_targets and callers and not base_reg_locally_modified:
                     deferred_direct.append((block_addr, inst.offset, disp))
-                elif a6_lib:
-                    resolved = _resolve_lvo(disp, a6_lib, lvo_lookup)
+                elif direct_lib:
+                    resolved = _resolve_lvo(disp, direct_lib, lvo_lookup)
                     results.append(LibraryCall(
                         addr=inst.offset,
                         block=block_addr,
@@ -3730,9 +3842,11 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                         output=resolved.output,
                         no_return=resolved.no_return,
                         dispatch=resolved.dispatch,
-                        os_since=resolved.os_since,
+            available_since=resolved.available_since,
                         fd_version=resolved.fd_version,
                     ))
+                elif callers and not base_reg_locally_modified:
+                    deferred_direct.append((block_addr, inst.offset, disp))
                 else:
                     results.append(LibraryCall(
                         addr=inst.offset,
@@ -3779,7 +3893,7 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                             output=resolved.output,
                             no_return=resolved.no_return,
                             dispatch=resolved.dispatch,
-                            os_since=resolved.os_since,
+            available_since=resolved.available_since,
                             fd_version=resolved.fd_version,
                         ))
                     else:
@@ -3802,7 +3916,7 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                             output=resolved.output,
                             no_return=resolved.no_return,
                             dispatch=resolved.dispatch,
-                            os_since=resolved.os_since,
+            available_since=resolved.available_since,
                             fd_version=resolved.fd_version,
                         ))
                     continue
@@ -3847,7 +3961,7 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                 output=resolved.output,
                 no_return=resolved.no_return,
                 dispatch=inst_addr,
-                os_since=resolved.os_since,
+            available_since=resolved.available_since,
                 fd_version=resolved.fd_version,
             ))
             resolved_any = True
@@ -3903,7 +4017,7 @@ def identify_library_calls(blocks: Mapping[int, BasicBlock],
                 output=resolved.output,
                 no_return=resolved.no_return,
                 dispatch=inst_addr,
-                os_since=resolved.os_since,
+            available_since=resolved.available_since,
                 fd_version=resolved.fd_version,
             ))
 

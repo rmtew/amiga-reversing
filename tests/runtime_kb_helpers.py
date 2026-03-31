@@ -17,6 +17,9 @@ from kb.schemas import (
     HunkFormatPayload,
     M68kInstructionsPayload,
     NamingRulesPayload,
+    OsCorrectionsPayload,
+    OsIncludesParsedPayload,
+    OsOtherParsedPayload,
     OsReferencePayload,
 )
 
@@ -54,18 +57,18 @@ def load_canonical_os_kb() -> OsReferencePayload:
 
 
 @lru_cache(maxsize=1)
-def load_canonical_os_kb_includes_parsed() -> OsReferencePayload:
-    return cast(OsReferencePayload, _load_json("amiga_ndk_includes_parsed.json"))
+def load_canonical_os_kb_includes_parsed() -> OsIncludesParsedPayload:
+    return cast(OsIncludesParsedPayload, _load_json("amiga_ndk_includes_parsed.json"))
 
 
 @lru_cache(maxsize=1)
-def load_canonical_os_kb_other_parsed() -> OsReferencePayload:
-    return cast(OsReferencePayload, _load_json("amiga_ndk_other_parsed.json"))
+def load_canonical_os_kb_other_parsed() -> OsOtherParsedPayload:
+    return cast(OsOtherParsedPayload, _load_json("amiga_ndk_other_parsed.json"))
 
 
 @lru_cache(maxsize=1)
-def load_canonical_os_kb_corrections() -> OsReferencePayload:
-    return cast(OsReferencePayload, _load_json("amiga_ndk_corrections.json"))
+def load_canonical_os_kb_corrections() -> OsCorrectionsPayload:
+    return cast(OsCorrectionsPayload, _load_json("amiga_ndk_corrections.json"))
 
 
 @lru_cache(maxsize=1)

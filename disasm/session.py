@@ -554,7 +554,7 @@ def _refresh_library_call_signatures(
                 inputs=function.inputs,
                 output=function.output,
                 no_return=function.no_return,
-                os_since=function.os_since,
+                available_since=function.available_since,
                 fd_version=function.fd_version,
             )
         )
@@ -1117,7 +1117,7 @@ def _refresh_session_memory_cells(
             lib_calls=list(hunk_session.lib_calls),
             hunk_entities=hunk_session.entities,
         )
-        hunk_session.arg_equs, hunk_session.arg_substitutions = build_arg_substitutions(
+        hunk_session.arg_constants, hunk_session.arg_substitutions = build_arg_substitutions(
             blocks=dict(hunk_session.blocks),
             lib_calls=list(hunk_session.lib_calls),
             hunk_entities=hunk_session.entities,
@@ -1491,7 +1491,7 @@ def _build_hunk_session_data(
             lib_calls=lib_calls,
             hunk_entities=hunk_entities,
         )
-        arg_equs, arg_substitutions = build_arg_substitutions(
+        arg_constants, arg_substitutions = build_arg_substitutions(
             blocks=blocks,
             lib_calls=lib_calls,
             hunk_entities=hunk_entities,
@@ -1711,7 +1711,6 @@ def _build_hunk_session_data(
             hardware_base_regs=hardware_base_regs,
             lvo_equs=lvo_equs,
             lvo_substitutions=lvo_substitutions,
-            arg_equs=arg_equs,
             arg_substitutions=arg_substitutions,
             app_offsets=app_offsets,
             arg_annotations=arg_annotations,
@@ -1725,6 +1724,7 @@ def _build_hunk_session_data(
             relocated_segments=relocated_segments,
             reloc_file_offset=reloc_file_offset,
             reloc_base_addr=reloc_base_addr,
+            arg_constants=arg_constants,
             string_ranges=metadata.string_ranges,
             unresolved_indirects=unresolved_indirects,
             assembler_profile_name=assembler_profile_name,
@@ -1794,7 +1794,6 @@ def _build_noncode_hunk_session(
         region_map={},
         lvo_equs={},
         lvo_substitutions={},
-        arg_equs={},
         arg_substitutions={},
         app_offsets={},
         arg_annotations={},
@@ -1806,6 +1805,7 @@ def _build_noncode_hunk_session(
         relocated_segments=[],
         reloc_file_offset=0,
         reloc_base_addr=0,
+        arg_constants=set(),
         absolute_labels=metadata.absolute_labels,
         reserved_absolute_addrs=metadata.reserved_absolute_addrs,
         reloc_target_hunks=metadata.reloc_target_hunks,

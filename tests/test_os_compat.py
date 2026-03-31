@@ -33,7 +33,7 @@ def test_build_emit_compatibility_report_lists_exact_dependencies() -> None:
         LIBRARIES={
             "icon.library": SimpleNamespace(
                 functions={
-                    "GetDiskObjectNew": SimpleNamespace(os_since="2.0"),
+                    "GetDiskObjectNew": SimpleNamespace(available_since="2.0"),
                 },
             ),
         },
@@ -107,7 +107,7 @@ def test_build_emit_compatibility_report_excludes_target_local_structs_and_self_
         },
         LIBRARIES={
             "icon.library": SimpleNamespace(
-                functions={"iconPrivate1": SimpleNamespace(os_since="2.0")},
+                functions={"iconPrivate1": SimpleNamespace(available_since="2.0")},
             ),
         },
     )

@@ -19,8 +19,15 @@ from kb.ndk_parser import (
     scan_fd_function_names,
     scan_type_macros,
 )
-from kb.os_reference import load_os_reference_payload
+from kb.os_reference import (
+    load_os_reference_payload,
+    merge_os_reference_payloads,
+)
 from kb.paths import AMIGA_OS_REFERENCE_CORRECTIONS_JSON
+from tests.runtime_kb_helpers import (
+    load_canonical_os_kb_includes_parsed,
+    load_canonical_os_kb_other_parsed,
+)
 
 
 def test_parse_clib_prototypes_preserves_function_pointer_args(
@@ -899,6 +906,43 @@ def test_build_os_include_kb_records_native_include_ownership(tmp_path: Path) ->
     assert owner["assembler_include_path"] == "exec/exec_lib.i"
 
 
+def test_includes_parsed_does_not_persist_lvo_index() -> None:
+    payload = load_canonical_os_kb_includes_parsed()
+
+    assert all("lvo_index" not in library for library in payload["libraries"].values())
+    assert "_meta" in payload
+    assert "library_lvo_owners" not in payload["_meta"]
+    assert "constant_owners" not in payload["_meta"]
+
+
+def test_other_parsed_is_sparse_function_overlay() -> None:
+    payload = load_canonical_os_kb_other_parsed()
+
+    assert set(payload) == {"_meta", "functions"}
+    assert payload["functions"]
+    sample_library = next(iter(sorted(payload["functions"])))
+    assert sample_library.endswith(".library")
+    assert payload["functions"][sample_library]
+
+
+def test_merged_os_payload_derives_lvo_index_from_functions() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+    other = load_canonical_os_kb_other_parsed()
+    corrections = load_os_reference_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
+
+    merged = merge_os_reference_payloads(
+        includes=includes,
+        other=other,
+        corrections=corrections,
+    )
+
+    exec_library = merged["libraries"]["exec.library"]
+    assert exec_library["lvo_index"]["-552"] == "OpenLibrary"
+    assert exec_library["functions"]["OpenLibrary"]["lvo"] == -552
+    assert exec_library["owner"]["canonical_include_path"] == "exec/exec_lib.i"
+    assert merged["constants"]["MEMF_ANY"]["owner"]["canonical_include_path"] == "exec/memory.i"
+
+
 def test_build_os_include_kb_records_fd_only_ownership_when_native_missing(tmp_path: Path) -> None:
     include_dir = tmp_path / "INCLUDE_I"
     fd_dir = tmp_path / "FD"
@@ -1087,7 +1131,6 @@ def test_build_os_compatibility_kb_records_earliest_include_and_struct_versions(
     function_min_versions = cast(dict[str, str], payload["_function_min_versions"])
     include_min_versions = cast(dict[str, str], payload["include_min_versions"])
     constant_min_versions = cast(dict[str, str], payload["_constant_min_versions"])
-    owner = include_kb["library_lvo_owners"]["exec.library"]
     rt_struct = structs["RT"]
     rt_fields = cast(list[dict[str, object]], rt_struct["fields"])
 
@@ -1098,7 +1141,6 @@ def test_build_os_compatibility_kb_records_earliest_include_and_struct_versions(
     assert include_min_versions["exec/libraries.i"] == "1.3"
     assert constant_min_versions["LIB_VERSION"] == "1.3"
     assert constant_min_versions["RT_NEWFIELD"] == "3.1"
-    assert owner["available_since"] == "1.3"
     assert rt_struct["available_since"] == "1.3"
     assert rt_fields[0]["available_since"] == "1.3"
     assert "names_by_version" not in rt_fields[0]
@@ -1173,7 +1215,7 @@ def test_collect_raw_constants_from_include_dir_records_generated_constants(tmp_
         encoding="ascii",
     )
 
-    raw_constants, parsed_include_paths = collect_raw_constants_from_include_dir(
+    raw_constants, _constant_source_files, parsed_include_paths = collect_raw_constants_from_include_dir(
         str(tmp_path / "INCLUDE_I"),
         scan_type_macros(str(tmp_path / "INCLUDE_I")),
     )

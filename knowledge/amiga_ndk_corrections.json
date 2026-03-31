@@ -308,8 +308,5 @@
         "remainder_policy": "error"
       }
     }
-  },
-  "constants": {},
-  "libraries": {},
-  "structs": {}
+  }
 }

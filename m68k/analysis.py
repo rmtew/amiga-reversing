@@ -528,6 +528,8 @@ def _find_copy_segment(
     Looks for postincrement move patterns where the destination register's
     initial value equals jmp_target. Returns a segment dict or None.
     """
+    if jmp_target == 0:
+        return None
     for addr in sorted(blocks):
         blk = blocks[addr]
         for inst in blk.instructions:
@@ -576,84 +578,101 @@ def _find_copy_segment(
     return None
 
 
-def _has_app_base_memory_uses(blocks: dict[int, BasicBlock], base_reg_num: int) -> bool:
+def _count_app_base_memory_uses(blocks: dict[int, BasicBlock], base_reg_num: int) -> int:
+    count = 0
     for block in blocks.values():
         for inst in block.instructions:
+            flow_type, _conditional = instruction_flow(inst)
+            if flow_type in (_FLOW_CALL, _FLOW_JUMP):
+                continue
             decoded = decode_inst_operands(inst, instruction_kb(inst))
             for op in (decoded.ea_op, decoded.dst_op):
                 if op is None:
                     continue
                 if op.mode == "disp" and op.reg == base_reg_num:
-                    return True
+                    count += 1
                 if (
                     op.mode == "index"
                     and op.reg == base_reg_num
                     and not op.base_suppressed
                 ):
-                    return True
-    return False
+                    count += 1
+    return count
+
+
+def _has_app_base_memory_uses(blocks: dict[int, BasicBlock], base_reg_num: int) -> bool:
+    return _count_app_base_memory_uses(blocks, base_reg_num) > 0
 
 
 def _discover_absolute_app_base(
     init_blocks: dict[int, BasicBlock],
     init_exit_states: dict[int, ExitState],
-    base_reg_num: int,
     relocated_segments: list[RelocatedSegment],
     code_size: int,
-) -> int | None:
-    if not _has_app_base_memory_uses(init_blocks, base_reg_num):
-        return None
-    candidates: set[int] = set()
-    for block in init_blocks.values():
-        for inst in block.instructions:
-            mnemonic = instruction_kb(inst)
-            decoded = decode_inst_operands(inst, mnemonic)
-            dst = decode_inst_destination(inst, mnemonic)
-            if dst != ("an", base_reg_num):
-                continue
-            if mnemonic == "LEA" and decoded.ea_op is not None:
-                if decoded.ea_op.mode == "absw":
-                    if decoded.ea_op.value is None:
-                        assert decoded.ea_op.value is not None, (
-                            "LEA abs.w operand missing value"
-                        )
-                    candidates.add(decoded.ea_op.value & 0xFFFF)
-                elif decoded.ea_op.mode == "absl":
-                    if decoded.ea_op.value is None:
-                        assert decoded.ea_op.value is not None, (
-                            "LEA abs.l operand missing value"
-                        )
-                    candidates.add(decoded.ea_op.value)
-                continue
-            if (
-                mnemonic == "MOVEA"
-                and decoded.ea_op is not None
-                and decoded.ea_op.mode == "imm"
-            ):
-                if decoded.ea_op.value is None:
-                    assert decoded.ea_op.value is not None, (
-                        "MOVEA immediate operand missing value"
-                    )
-                candidates.add(decoded.ea_op.value & 0xFFFFFFFF)
-    if not candidates:
-        return None
+) -> tuple[int, int] | None:
     relocated_runtime_ranges = [
         (segment.base_addr, code_size) for segment in relocated_segments
     ]
-    concrete_hits: dict[int, int] = {}
-    for cpu, _mem in init_exit_states.values():
-        val = cpu.a[base_reg_num]
-        if not val.is_known:
+    best: tuple[int, int, int, int] | None = None
+    for base_reg_num in range(8):
+        use_count = _count_app_base_memory_uses(init_blocks, base_reg_num)
+        if use_count <= 0:
             continue
-        concrete = val.concrete & 0xFFFFFFFF
-        if concrete not in candidates:
+        candidates: set[int] = set()
+        for block in init_blocks.values():
+            for inst in block.instructions:
+                mnemonic = instruction_kb(inst)
+                decoded = decode_inst_operands(inst, mnemonic)
+                dst = decode_inst_destination(inst, mnemonic)
+                if dst != ("an", base_reg_num):
+                    continue
+                if mnemonic == "LEA" and decoded.ea_op is not None:
+                    if decoded.ea_op.mode == "absw":
+                        if decoded.ea_op.value is None:
+                            assert decoded.ea_op.value is not None, (
+                                "LEA abs.w operand missing value"
+                            )
+                        candidates.add(decoded.ea_op.value & 0xFFFF)
+                    elif decoded.ea_op.mode == "absl":
+                        if decoded.ea_op.value is None:
+                            assert decoded.ea_op.value is not None, (
+                                "LEA abs.l operand missing value"
+                            )
+                        candidates.add(decoded.ea_op.value)
+                    continue
+                if (
+                    mnemonic == "MOVEA"
+                    and decoded.ea_op is not None
+                    and decoded.ea_op.mode == "imm"
+                ):
+                    if decoded.ea_op.value is None:
+                        assert decoded.ea_op.value is not None, (
+                            "MOVEA immediate operand missing value"
+                        )
+                    candidates.add(decoded.ea_op.value & 0xFFFFFFFF)
+        if not candidates:
             continue
-        if any(start <= concrete < end for start, end in relocated_runtime_ranges):
+        concrete_hits: dict[int, int] = {}
+        for cpu, _mem in init_exit_states.values():
+            val = cpu.a[base_reg_num]
+            if not val.is_known:
+                continue
+            concrete = val.concrete & 0xFFFFFFFF
+            if concrete not in candidates:
+                continue
+            if any(start <= concrete < end for start, end in relocated_runtime_ranges):
+                continue
+            concrete_hits[concrete] = concrete_hits.get(concrete, 0) + 1
+        if not concrete_hits:
             continue
-        concrete_hits[concrete] = concrete_hits.get(concrete, 0) + 1
-    if not concrete_hits:
+        concrete = max(sorted(concrete_hits), key=lambda addr: concrete_hits[addr])
+        candidate = (concrete_hits[concrete], use_count, -base_reg_num, concrete)
+        if best is None or candidate > best:
+            best = candidate
+    if best is None:
         return None
-    return max(sorted(concrete_hits), key=lambda concrete: concrete_hits[concrete])
+    _hits, _uses, neg_reg_num, concrete = best
+    return -neg_reg_num, concrete
 
 
 # -- Pipeline -------------------------------------------------------------
@@ -796,21 +815,21 @@ def analyze_hunk(
             _, init_mem = init_result["exit_states"][best_addr]
             platform.initial_mem = init_mem
     else:
-        absolute_base = _discover_absolute_app_base(
+        absolute_app_base = _discover_absolute_app_base(
             init_result["blocks"],
             init_result.get("exit_states", {}),
-            base_reg_num,
             relocated_segments,
             len(code),
         )
-        if absolute_base is not None:
+        if absolute_app_base is not None:
+            absolute_reg_num, absolute_base = absolute_app_base
             print_fn(
-                f"  Base register A{base_reg_num} "
+                f"  Base register A{absolute_reg_num} "
                 f"= ${absolute_base:08X} (absolute app anchor from init)"
             )
             platform.app_base = AppBaseInfo(
                 kind=AppBaseKind.ABSOLUTE,
-                reg_num=base_reg_num,
+                reg_num=absolute_reg_num,
                 concrete=absolute_base,
             )
 
