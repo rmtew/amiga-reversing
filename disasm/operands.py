@@ -46,6 +46,7 @@ from m68k.m68k_disasm import (
     Instruction,
 )
 from m68k.os_structs import resolve_struct_field
+from m68k.vector_tables import immediate_vector_table_store
 from m68k_kb import runtime_m68k_analysis, runtime_m68k_decode, runtime_m68k_disasm
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
@@ -190,6 +191,47 @@ def _reloc_label(inst: Instruction,
         if local is not None:
             assert isinstance(local, str)
             return local
+    return None
+
+
+def _execution_view_source_addr(
+    hunk_session: HunkDisassemblySession,
+    runtime_addr: int,
+) -> int | None:
+    for view in hunk_session.execution_views:
+        span = int(view.source_end - view.source_start)
+        if span <= 0:
+            continue
+        if view.base_addr <= runtime_addr < (view.base_addr + span):
+            return int(view.source_start + (runtime_addr - view.base_addr))
+    return None
+
+
+def _immediate_vector_handler_symbol(
+    inst: Instruction,
+    hunk_session: HunkDisassemblySession,
+    value: int,
+) -> tuple[str, int] | None:
+    vector_store = immediate_vector_table_store(inst)
+    if vector_store is None:
+        return None
+    target, _vector_slot = vector_store
+    if target != value:
+        return None
+    mapped_source = _execution_view_source_addr(hunk_session, target)
+    if mapped_source is not None:
+        label = hunk_session.labels.get(mapped_source)
+        if label is not None:
+            assert isinstance(label, str)
+            return label, mapped_source
+    label = hunk_session.labels.get(target)
+    if label is not None:
+        assert isinstance(label, str)
+        return label, target
+    abs_label = hunk_session.absolute_labels.get(target)
+    if abs_label is not None:
+        assert isinstance(abs_label, str)
+        return abs_label, target
     return None
 
 
@@ -1010,8 +1052,15 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
             raise ValueError(
                 f"Typed immediate mismatch for {_instruction_ref(inst)}: "
                 f"decoded {value}, node {node.value}")
-        target = _reloc_target(inst, hunk_session, value)
-        label = labels.get(target) if target is not None else None
+        target: int | None
+        label: str | None
+        vector_symbol = _immediate_vector_handler_symbol(inst, hunk_session, value)
+        if vector_symbol is not None:
+            label, target = vector_symbol
+        else:
+            target = _reloc_target(inst, hunk_session, value)
+            raw_label = labels.get(target) if target is not None else None
+            label = raw_label if isinstance(raw_label, str) else None
         text = f"#{label}" if label is not None else node.text
         text = _apply_instruction_text_substitutions(
             text, inst.offset, hunk_session, include_arg_subs)
@@ -1128,18 +1177,28 @@ def _simple_semantic_from_node(inst: Instruction, node: DecodedOperandNode, spec
                 raise ValueError(
                     f"Typed immediate mismatch for {_instruction_ref(inst)}: "
                     f"decoded {operand_value}, node {node.value}")
-            target = _reloc_target(
-                inst, hunk_session, operand_value) if operand_value is not None else None
-            label = (
-                _reloc_label(inst, hunk_session, operand_value)
-                if target is not None and operand_value is not None
+            vector_symbol = (
+                _immediate_vector_handler_symbol(inst, hunk_session, operand_value)
+                if operand_value is not None
                 else None
             )
-            if label is not None:
+            immediate_target: int | None
+            immediate_label: str | None
+            if vector_symbol is not None:
+                immediate_label, immediate_target = vector_symbol
+            else:
+                immediate_target = _reloc_target(
+                    inst, hunk_session, operand_value) if operand_value is not None else None
+                immediate_label = (
+                    _reloc_label(inst, hunk_session, operand_value)
+                    if immediate_target is not None and operand_value is not None
+                    else None
+                )
+            if immediate_label is not None:
                 kind = "immediate_symbol"
-                segment_addr = target
-                semantic_metadata = SymbolOperandMetadata(symbol=label)
-                text = f"#{label}"
+                segment_addr = immediate_target
+                semantic_metadata = SymbolOperandMetadata(symbol=immediate_label)
+                text = f"#{immediate_label}"
         elif op_mode == "ind" and node.kind == "indirect":
             base_register = _address_base_name(_require_operand_reg(decoded_operand, inst))
             assert isinstance(node.metadata, DecodedBaseRegisterNodeMetadata), (

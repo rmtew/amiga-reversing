@@ -29,6 +29,7 @@ class BitDef:
     bit: int
     name: str
     description: str
+    level: int | None = None
 
 
 @dataclass
@@ -62,11 +63,12 @@ def _append_current_bit(
     current_bit: int | None,
     current_name: str | None,
     current_desc_lines: list[str],
+    current_level: int | None = None,
 ) -> None:
     if current_bit is None:
         return
     desc = " ".join(current_desc_lines).strip()
-    all_bits.append(BitDef(bit=current_bit, name=current_name or "", description=desc))
+    all_bits.append(BitDef(bit=current_bit, name=current_name or "", description=desc, level=current_level))
 
 
 def strip_html(text: str) -> str:
@@ -200,6 +202,7 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
     all_bits = []
     lines = text.split('\n')
     i = 0
+    has_level_column = False
 
     while i < len(lines):
         stripped = lines[i].strip()
@@ -240,6 +243,7 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
 
         # === Detect vertical BIT# header ===
         if re.match(r'(?:BIT#?|Bit)\s', stripped, re.IGNORECASE) or re.match(r'BIT#\s*$', stripped):
+            has_level_column = "LEVEL" in stripped.upper()
             # Skip header and separator
             i += 1
             while i < len(lines) and re.match(r'\s*[-\s]+$', lines[i].strip()) and '---' in lines[i]:
@@ -249,6 +253,7 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
             current_bit = None
             current_name = None
             current_desc_lines: list[str] = []
+            current_level: int | None = None
             # Track indentation of the first bit line to detect continuations
             bit_indent = None
 
@@ -265,8 +270,9 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                 rm = re.match(r'^(\s+)(\d{1,2})-(\d{1,2})\s+(\S+)\s*(.*)', line)
 
                 if rm:
-                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines, current_level)
                     current_bit = None
+                    current_level = None
                     indent = len(rm.group(1))
                     if bit_indent is None:
                         bit_indent = indent
@@ -285,8 +291,9 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                     continue
 
                 if bare_bm and not bm:
-                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines, current_level)
                     current_bit = None
+                    current_level = None
                     indent = len(bare_bm.group(1))
                     if bit_indent is None:
                         bit_indent = indent
@@ -296,21 +303,32 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                     i += 1
                     continue
 
+                level_bm = re.match(r'^(\s+)(\d{1,2})\s+(\S+)\s+(\d)\s+(.*)', line) if has_level_column else None
+                if level_bm:
+                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines, current_level)
+                    current_bit = None
+                    indent = len(level_bm.group(1))
+                    if bit_indent is None:
+                        bit_indent = indent
+                    current_bit = int(level_bm.group(2))
+                    current_name = level_bm.group(3)
+                    current_level = int(level_bm.group(4))
+                    current_desc_lines = [level_bm.group(5).strip()] if level_bm.group(5).strip() else []
+                    blank_count = 0
+                    i += 1
+                    continue
+
                 if bm:
-                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                    _append_current_bit(all_bits, current_bit, current_name, current_desc_lines, current_level)
                     current_bit = None
                     indent = len(bm.group(1))
                     if bit_indent is None:
                         bit_indent = indent
                     current_bit = int(bm.group(2))
                     current_name = bm.group(3)
+                    current_level = None
                     rest = bm.group(4).strip()
-                    # Skip interrupt level number if present
-                    level_m = re.match(r'^(\d)\s+(.*)', rest)
-                    if level_m:
-                        current_desc_lines = [level_m.group(2)] if level_m.group(2) else []
-                    else:
-                        current_desc_lines = [rest] if rest else []
+                    current_desc_lines = [rest] if rest else []
                     blank_count = 0
                     i += 1
                     continue
@@ -319,7 +337,7 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                 if not stripped:
                     blank_count += 1
                     if blank_count >= 2:
-                        _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                        _append_current_bit(all_bits, current_bit, current_name, current_desc_lines, current_level)
                         current_bit = None
                         break
                     i += 1
@@ -335,11 +353,11 @@ def _parse_bit_table_from_text(text: str) -> list[BitDef]:
                         continue
 
                 # Something else — end of bit table
-                _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+                _append_current_bit(all_bits, current_bit, current_name, current_desc_lines, current_level)
                 current_bit = None
                 break
 
-            _append_current_bit(all_bits, current_bit, current_name, current_desc_lines)
+            _append_current_bit(all_bits, current_bit, current_name, current_desc_lines, current_level)
             continue
 
         # === Detect standalone bit entries without BIT# header ===
@@ -587,6 +605,142 @@ def parse_cia_registers(guide_dir: str) -> list[Register]:
     return cia_regs
 
 
+def build_interrupt_sources(registers: list[Register]) -> list[JsonDict]:
+    reg_by_name = {reg.name: reg for reg in registers}
+    source_reg = reg_by_name.get("INTENA") or reg_by_name.get("INTENAR")
+    if source_reg is None:
+        return []
+
+    paula_source_details: dict[str, JsonDict] = {
+        "TBE": {
+            "category": "serial",
+            "producer": "paula_uart",
+            "related_registers": ["SERDAT", "SERDATR"],
+        },
+        "RBF": {
+            "category": "serial",
+            "producer": "paula_uart",
+            "related_registers": ["SERDATR"],
+        },
+        "DSKBLK": {
+            "category": "disk",
+            "producer": "paula_disk",
+            "related_registers": ["DSKLEN"],
+        },
+        "DSKSYN": {
+            "category": "disk",
+            "producer": "paula_disk",
+            "related_registers": ["DSKSYNC"],
+        },
+        "AUD0": {
+            "category": "audio",
+            "producer": "paula_audio",
+            "channel": 0,
+            "related_registers": ["AUD0LC", "AUD0LEN", "AUD0PER", "AUD0VOL", "AUD0DAT"],
+        },
+        "AUD1": {
+            "category": "audio",
+            "producer": "paula_audio",
+            "channel": 1,
+            "related_registers": ["AUD1LC", "AUD1LEN", "AUD1PER", "AUD1VOL", "AUD1DAT"],
+        },
+        "AUD2": {
+            "category": "audio",
+            "producer": "paula_audio",
+            "channel": 2,
+            "related_registers": ["AUD2LC", "AUD2LEN", "AUD2PER", "AUD2VOL", "AUD2DAT"],
+        },
+        "AUD3": {
+            "category": "audio",
+            "producer": "paula_audio",
+            "channel": 3,
+            "related_registers": ["AUD3LC", "AUD3LEN", "AUD3PER", "AUD3VOL", "AUD3DAT"],
+        },
+        "BLIT": {
+            "category": "blitter",
+            "producer": "agnus_blitter",
+            "related_registers": ["BLTSIZE", "BLTSIZV", "BLTSIZH"],
+        },
+        "VERTB": {
+            "category": "video",
+            "producer": "beam_counter",
+            "related_registers": ["VPOSR", "VHPOSR", "DIWSTRT", "DIWSTOP"],
+        },
+        "COPER": {
+            "category": "copper",
+            "producer": "copper",
+            "related_registers": ["COP1LC", "COP2LC", "COPJMP1", "COPJMP2"],
+        },
+        "SOFT": {
+            "category": "software",
+            "producer": "cpu_software",
+            "related_registers": ["INTREQ"],
+        },
+        "PORTS": {
+            "category": "external_io",
+            "producer": "peripherals",
+            "related_registers": ["CIAA_ICR"],
+        },
+        "EXTER": {
+            "category": "external_io",
+            "producer": "peripherals",
+            "related_registers": ["CIAB_ICR"],
+        },
+    }
+
+    sources: list[JsonDict] = []
+    for bit in sorted(source_reg.bits, key=lambda entry: entry.bit):
+        if bit.level is None:
+            continue
+        vector_number = 24 + bit.level
+        source_entry: JsonDict = {
+            "name": bit.name,
+            "bit": bit.bit,
+            "level": bit.level,
+            "vector_number": vector_number,
+            "vector_address": f"0x{vector_number * 4:02X}",
+            "enable_registers": ["INTENA", "INTENAR"],
+            "request_registers": ["INTREQ", "INTREQR"],
+            "description": bit.description,
+            "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+        }
+        detail = paula_source_details.get(bit.name)
+        if detail is not None:
+            source_entry.update(detail)
+        sources.append(source_entry)
+    return sources
+
+
+def build_interrupt_routes(registers: list[Register]) -> list[JsonDict]:
+    source_lookup = {entry["name"]: entry for entry in build_interrupt_sources(registers)}
+    reg_by_name = {reg.name: reg for reg in registers}
+    route_specs = (
+        ("CIAA_ICR", "PORTS", "Amiga Hardware Reference Manual Appendix F note: CIAA can generate INT2."),
+        ("CIAB_ICR", "EXTER", "Amiga Hardware Reference Manual Appendix F note: CIAB can generate INT6."),
+    )
+    routes: list[JsonDict] = []
+    for register_name, parent_interrupt, citation in route_specs:
+        register = reg_by_name.get(register_name)
+        interrupt_source = source_lookup.get(parent_interrupt)
+        if register is None or interrupt_source is None:
+            continue
+        for bit in sorted(register.bits, key=lambda entry: entry.bit):
+            if bit.bit not in (0, 1, 2, 3, 4):
+                continue
+            routes.append({
+                "source_register": register_name,
+                "source_bit": bit.bit,
+                "source_name": bit.name,
+                "parent_interrupt": parent_interrupt,
+                "level": interrupt_source["level"],
+                "vector_number": interrupt_source["vector_number"],
+                "vector_address": interrupt_source["vector_address"],
+                "description": bit.description,
+                "source": citation,
+            })
+    return routes
+
+
 def output_summary(registers: list[Register], chapters: list[Chapter]) -> None:
     """Print summary to stdout."""
     print("\nAmiga Hardware Reference Manual")
@@ -624,6 +778,8 @@ def output_json(registers: list[Register], chapters: list[Chapter], outfile: str
         "source": "Amiga Hardware Reference Manual",
         "base_address": "0xDFF000",
         "registers": [],
+        "interrupt_sources": build_interrupt_sources(registers),
+        "interrupt_routes": build_interrupt_routes(registers),
         "chapters": [],
     }
 
@@ -649,7 +805,10 @@ def output_json(registers: list[Register], chapters: list[Chapter], outfile: str
         if reg.copper_danger:
             rd["copper_danger"] = True
         if reg.bits:
-            rd["bits"] = [asdict(b) for b in reg.bits]
+            rd["bits"] = [
+                {key: value for key, value in asdict(b).items() if value is not None}
+                for b in reg.bits
+            ]
         data["registers"].append(rd)
 
     for ch in chapters:
@@ -716,11 +875,20 @@ def output_markdown(registers: list[Register], chapters: list[Chapter], outfile:
             lines.append(f"- **Flags**: {', '.join(flags)}")
 
         if reg.bits:
+            has_levels = any(b.level is not None for b in reg.bits)
             lines.append("")
-            lines.append("| Bit | Name | Description |")
-            lines.append("|-----|------|-------------|")
+            if has_levels:
+                lines.append("| Bit | Name | Level | Description |")
+                lines.append("|-----|------|-------|-------------|")
+            else:
+                lines.append("| Bit | Name | Description |")
+                lines.append("|-----|------|-------------|")
             for b in sorted(reg.bits, key=lambda b: -b.bit):
-                lines.append(f"| {b.bit:2d} | {b.name} | {b.description} |")
+                if has_levels:
+                    level = "" if b.level is None else str(b.level)
+                    lines.append(f"| {b.bit:2d} | {b.name} | {level} | {b.description} |")
+                else:
+                    lines.append(f"| {b.bit:2d} | {b.name} | {b.description} |")
 
         lines.append("")
         lines.append("---")

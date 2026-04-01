@@ -127,6 +127,356 @@ CC_TEST_DEFINITIONS = {
 }
 
 
+def _exception_vectors() -> list[JsonDict]:
+    """Parser-authored exception/autovector metadata from M68K PRM Section 6.
+
+    Primary source:
+    - p628: exception processing introduction
+    - p629: vector assignment table
+    - pp630-639: stack frame details by exception family
+
+    The vector table is modeled here as parser-authored metadata because the
+    PDF table layout is not yet parsed structurally. Downstream users consume
+    this exactly like parsed KB data.
+    """
+    citation = "M68K PRM Rev 1, pp628-639 exception processing / vector assignment"
+
+    def entry(vector: int, name: str, kind: str) -> JsonDict:
+        return {
+            "vector": vector,
+            "address": vector * 4,
+            "name": name,
+            "kind": kind,
+            "review_status": "seeded",
+            "seed_origin": "primary_doc",
+            "citation": citation,
+        }
+
+    return [
+        entry(0, "Initial SSP", "reset"),
+        entry(1, "Initial PC", "reset"),
+        entry(2, "Bus Error", "exception"),
+        entry(3, "Address Error", "exception"),
+        entry(4, "Illegal Instruction", "exception"),
+        entry(5, "Division by Zero", "exception"),
+        entry(6, "CHK Instruction", "exception"),
+        entry(7, "TRAPV Instruction", "exception"),
+        entry(8, "Privilege Violation", "exception"),
+        entry(9, "Trace", "exception"),
+        entry(10, "Line 1010 Emulator", "exception"),
+        entry(11, "Line 1111 Emulator", "exception"),
+        entry(24, "Spurious Interrupt", "interrupt"),
+        entry(25, "Level 1 Interrupt Autovector", "interrupt"),
+        entry(26, "Level 2 Interrupt Autovector", "interrupt"),
+        entry(27, "Level 3 Interrupt Autovector", "interrupt"),
+        entry(28, "Level 4 Interrupt Autovector", "interrupt"),
+        entry(29, "Level 5 Interrupt Autovector", "interrupt"),
+        entry(30, "Level 6 Interrupt Autovector", "interrupt"),
+        entry(31, "Level 7 Interrupt Autovector", "interrupt"),
+        entry(32, "TRAP #0 Instruction Vector", "trap"),
+        entry(33, "TRAP #1 Instruction Vector", "trap"),
+        entry(34, "TRAP #2 Instruction Vector", "trap"),
+        entry(35, "TRAP #3 Instruction Vector", "trap"),
+        entry(36, "TRAP #4 Instruction Vector", "trap"),
+        entry(37, "TRAP #5 Instruction Vector", "trap"),
+        entry(38, "TRAP #6 Instruction Vector", "trap"),
+        entry(39, "TRAP #7 Instruction Vector", "trap"),
+        entry(40, "TRAP #8 Instruction Vector", "trap"),
+        entry(41, "TRAP #9 Instruction Vector", "trap"),
+        entry(42, "TRAP #10 Instruction Vector", "trap"),
+        entry(43, "TRAP #11 Instruction Vector", "trap"),
+        entry(44, "TRAP #12 Instruction Vector", "trap"),
+        entry(45, "TRAP #13 Instruction Vector", "trap"),
+        entry(46, "TRAP #14 Instruction Vector", "trap"),
+        entry(47, "TRAP #15 Instruction Vector", "trap"),
+    ]
+
+
+def _exception_stack_frames() -> list[JsonDict]:
+    """Parser-authored exception stack-frame format metadata from PRM Appendix B."""
+    citation = "M68K PRM Rev 1, pp630-636 Figures B-1 through B-15"
+
+    def field(offset: int, name: str, size_words: int = 1) -> JsonDict:
+        return {
+            "offset": offset,
+            "name": name,
+            "size_words": size_words,
+        }
+
+    def entry(
+        frame_id: str,
+        format_code: str | None,
+        name: str,
+        processors: list[str],
+        kind: str,
+        fields: list[JsonDict],
+    ) -> JsonDict:
+        return {
+            "frame_id": frame_id,
+            "format_code": format_code,
+            "name": name,
+            "processors": processors,
+            "kind": kind,
+            "fields": fields,
+            "review_status": "seeded",
+            "seed_origin": "primary_doc",
+            "citation": citation,
+        }
+
+    return [
+        entry(
+            "mc68000_group_1_2",
+            None,
+            "Group 1 and 2 Exception Stack Frame",
+            ["68000"],
+            "exception_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "program_counter_high"),
+                field(0x04, "program_counter_low"),
+            ],
+        ),
+        entry(
+            "mc68000_bus_address_error",
+            None,
+            "Bus or Address Error Exception Stack Frame",
+            ["68000"],
+            "exception_frame",
+            [
+                field(0x00, "special_status_word"),
+                field(0x02, "access_address_high"),
+                field(0x04, "access_address_low"),
+                field(0x06, "instruction_register"),
+                field(0x08, "status_register"),
+                field(0x0A, "program_counter_high"),
+                field(0x0C, "program_counter_low"),
+            ],
+        ),
+        entry(
+            "format_0",
+            "$0",
+            "Four-Word Stack Frame",
+            ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "program_counter", 2),
+                field(0x06, "format_and_vector_offset"),
+            ],
+        ),
+        entry(
+            "format_1",
+            "$1",
+            "Throwaway Four-Word Stack Frame",
+            ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "program_counter", 2),
+                field(0x06, "format_and_vector_offset"),
+            ],
+        ),
+        entry(
+            "format_2",
+            "$2",
+            "Six-Word Stack Frame",
+            ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "program_counter", 2),
+                field(0x06, "format_and_vector_offset"),
+                field(0x08, "address", 2),
+            ],
+        ),
+        entry(
+            "format_3",
+            "$3",
+            "Floating-Point Post-Instruction Stack Frame",
+            ["68040"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "program_counter", 2),
+                field(0x06, "format_and_vector_offset"),
+                field(0x08, "effective_address", 2),
+            ],
+        ),
+        entry(
+            "format_4",
+            "$4",
+            "Floating-Point Unimplemented Stack Frame",
+            ["68EC040", "68LC040"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "program_counter", 2),
+                field(0x06, "format_and_vector_offset"),
+                field(0x08, "effective_address", 2),
+                field(0x0C, "pc_of_faulted_instruction", 2),
+            ],
+        ),
+        entry(
+            "format_7",
+            "$7",
+            "Access Error Stack Frame",
+            ["68040"],
+            "format_frame",
+            [
+                field(0x00, "special_status_word"),
+                field(0x02, "wb3_status"),
+                field(0x04, "format_and_vector_offset"),
+                field(0x06, "effective_address", 2),
+                field(0x0A, "wb2_status"),
+                field(0x0C, "wb3_address", 2),
+                field(0x10, "wb3_data", 2),
+                field(0x14, "fault_address", 2),
+                field(0x18, "wb1_status"),
+                field(0x1A, "wb2_address", 2),
+                field(0x1E, "wb2_data", 2),
+                field(0x22, "wb1_address", 2),
+                field(0x26, "wb1_data_or_push_data_0", 2),
+                field(0x2A, "push_data_1", 2),
+                field(0x2E, "push_data_2", 2),
+                field(0x32, "push_data_3", 2),
+                field(0x36, "program_counter", 2),
+                field(0x3A, "status_register"),
+            ],
+        ),
+        entry(
+            "format_8",
+            "$8",
+            "Bus and Address Error Stack Frame",
+            ["68010"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "format_and_vector_offset"),
+                field(0x06, "fault_address", 2),
+                field(0x0A, "special_status_word"),
+                field(0x0C, "instruction_output_buffer"),
+                field(0x0E, "data_input_buffer"),
+                field(0x10, "data_output_buffer"),
+                field(0x12, "internal_information", 16),
+                field(0x32, "program_counter", 2),
+            ],
+        ),
+        entry(
+            "format_9",
+            "$9",
+            "Bus and Coprocessor Mid-Instruction Stack Frame",
+            ["68020", "68030"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "format_and_vector_offset"),
+                field(0x08, "internal_registers", 4),
+                field(0x10, "instruction_address", 2),
+                field(0x14, "program_counter", 2),
+            ],
+        ),
+        entry(
+            "format_a",
+            "$A",
+            "Short Bus Cycle Stack Frame",
+            ["68020", "68030"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "format_and_vector_offset"),
+                field(0x08, "internal_register"),
+                field(0x0A, "special_status_register"),
+                field(0x0C, "instruction_pipe_stage_c"),
+                field(0x0E, "instruction_pipe_stage_b"),
+                field(0x10, "data_cycle_fault_address", 2),
+                field(0x14, "data_output_buffer", 2),
+                field(0x18, "program_counter", 2),
+            ],
+        ),
+        entry(
+            "format_b",
+            "$B",
+            "Long Bus Cycle Stack Frame",
+            ["68020", "68030"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "format_and_vector_offset"),
+                field(0x08, "internal_register"),
+                field(0x0A, "special_status_register"),
+                field(0x0C, "instruction_pipe_stage_c"),
+                field(0x0E, "instruction_pipe_stage_b"),
+                field(0x10, "data_cycle_fault_address", 2),
+                field(0x14, "data_output_buffer", 2),
+                field(0x18, "stage_b_address", 2),
+                field(0x1C, "data_input_buffer", 2),
+                field(0x20, "internal_registers", 18),
+                field(0x44, "internal_information", 3),
+                field(0x4A, "program_counter", 2),
+            ],
+        ),
+        entry(
+            "format_c",
+            "$C",
+            "CPU32 Bus Error Stack Frame",
+            ["CPU32"],
+            "format_frame",
+            [
+                field(0x00, "status_register"),
+                field(0x02, "format_and_vector_offset"),
+                field(0x08, "faulted_address_high"),
+                field(0x0A, "faulted_address_low"),
+                field(0x0C, "data_buffer_high"),
+                field(0x0E, "data_buffer_low"),
+                field(0x10, "internal_transfer_count_register"),
+                field(0x12, "special_status_word"),
+                field(0x14, "return_program_counter_high"),
+                field(0x16, "return_program_counter_low"),
+                field(0x18, "current_instruction_program_counter_high"),
+                field(0x1A, "current_instruction_program_counter_low"),
+            ],
+        ),
+    ]
+
+
+def _exception_frame_rules() -> list[JsonDict]:
+    citation = "M68K PRM Rev 1 Appendix B exception vectors/stack frames; parser-authored mapping"
+
+    def rule(
+        vector_start: int,
+        vector_end: int,
+        processors: list[str],
+        frame_ids: list[str],
+        selection: str,
+    ) -> JsonDict:
+        return {
+            "vector_start": vector_start,
+            "vector_end": vector_end,
+            "processors": processors,
+            "frame_ids": frame_ids,
+            "selection": selection,
+            "review_status": "seeded",
+            "seed_origin": "primary_doc",
+            "citation": citation,
+        }
+
+    return [
+        rule(2, 3, ["68000"], ["mc68000_bus_address_error"], "always"),
+        rule(24, 47, ["68000"], ["mc68000_group_1_2"], "always"),
+        rule(4, 11, ["68000"], ["mc68000_group_1_2"], "always"),
+        rule(15, 15, ["68000"], ["mc68000_group_1_2"], "always"),
+        rule(24, 47, ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
+        rule(4, 11, ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
+        rule(15, 15, ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
+        rule(2, 3, ["68010"], ["format_8"], "always"),
+        rule(2, 2, ["68020", "68030"], ["format_a", "format_b"], "depends_on_bus_cycle_length"),
+        rule(13, 13, ["68020", "68030"], ["format_9"], "always"),
+        rule(2, 2, ["68040"], ["format_7"], "always"),
+        rule(55, 55, ["68EC040", "68LC040"], ["format_4"], "always"),
+        rule(2, 3, ["CPU32"], ["format_c"], "always"),
+    ]
+
+
 def extract_ea_extension_formats(doc: Any) -> tuple[list[JsonDict], list[JsonDict]]:
     """Extract Brief and Full Extension Word field layouts from PDF page 43.
 
@@ -319,6 +669,9 @@ def _as_kb_payload(kb_data: list[JsonDict], pmmu_cc: list[str],
         "default_operand_size_source": "M68K PRM: word is the default operand size when no suffix is specified",
         "register_aliases": register_aliases,
         "register_aliases_source": "M68K PRM p.2-2: SP is an alternate name for A7",
+        "exception_frame_rules": _exception_frame_rules(),
+        "exception_stack_frames": _exception_stack_frames(),
+        "exception_vectors": _exception_vectors(),
         "ea_full_ext_bd_size": ea_full_ext_bd_size,
         "ea_full_ext_bd_size_source": "M68K PRM: Full Extension Word BD SIZE field",
         # Track C parser-assertion: Condition code test definitions from PDF

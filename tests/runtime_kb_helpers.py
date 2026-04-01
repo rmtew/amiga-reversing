@@ -13,6 +13,7 @@ from kb.os_reference import (
     merge_os_reference_payloads,
 )
 from kb.schemas import (
+    HardwareReferencePayload,
     HardwareSymbolsPayload,
     HunkFormatPayload,
     M68kInstructionsPayload,
@@ -84,6 +85,11 @@ def load_canonical_naming_rules() -> NamingRulesPayload:
 @lru_cache(maxsize=1)
 def load_canonical_hardware_symbols() -> HardwareSymbolsPayload:
     return cast(HardwareSymbolsPayload, _load_json("amiga_hw_symbols.json"))
+
+
+@lru_cache(maxsize=1)
+def load_canonical_hardware_reference() -> HardwareReferencePayload:
+    return cast(HardwareReferencePayload, _load_json("amiga_hw_registers.json"))
 
 
 def _load_runtime_module(module_name: str) -> ModuleType:
@@ -262,6 +268,6 @@ def load_naming_runtime_kb() -> ModuleType:
 @lru_cache(maxsize=1)
 def load_hardware_runtime_kb() -> ModuleType:
     module = _load_runtime_module("runtime_hardware")
-    for name in ("META", "REGISTER_DEFS"):
+    for name in ("META", "REGISTER_DEFS", "INTERRUPT_SOURCES", "INTERRUPT_ROUTES"):
         _require_attr(module, name)
     return module

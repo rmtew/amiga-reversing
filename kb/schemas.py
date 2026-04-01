@@ -220,6 +220,45 @@ class M68kCcTestDefinition(TypedDict):
     test: str
 
 
+class M68kExceptionVector(TypedDict):
+    vector: int
+    address: int
+    name: str
+    kind: str
+    review_status: str
+    seed_origin: str
+    citation: str
+
+
+class M68kExceptionStackFrame(TypedDict):
+    frame_id: str
+    format_code: str | None
+    name: str
+    processors: list[str]
+    kind: str
+    fields: list[M68kExceptionStackFrameField]
+    review_status: str
+    seed_origin: str
+    citation: str
+
+
+class M68kExceptionStackFrameField(TypedDict):
+    offset: int
+    name: str
+    size_words: int
+
+
+class M68kExceptionFrameRule(TypedDict):
+    vector_start: int
+    vector_end: int
+    processors: list[str]
+    frame_ids: list[str]
+    selection: str
+    review_status: str
+    seed_origin: str
+    citation: str
+
+
 class M68kMeta(TypedDict):
     asm_syntax_index: dict[str, str]
     cc_aliases: dict[str, str]
@@ -234,6 +273,9 @@ class M68kMeta(TypedDict):
     ea_full_ext_word: list[M68kField]
     ea_mode_encoding: dict[str, list[int]]
     ea_mode_sizes: dict[str, list[str]]
+    exception_frame_rules: list[M68kExceptionFrameRule]
+    exception_stack_frames: list[M68kExceptionStackFrame]
+    exception_vectors: list[M68kExceptionVector]
     immediate_routing: dict[str, str]
     movem_reg_masks: dict[str, dict[str, int]]
     nop_opword: int
@@ -561,6 +603,66 @@ class HardwareRegister(TypedDict):
 class HardwareSymbolsPayload(TypedDict):
     _meta: dict[str, object]
     registers: list[HardwareRegister]
+
+
+class HardwareRegisterBit(TypedDict, total=False):
+    bit: int
+    name: str
+    description: str
+    level: int
+
+
+class HardwareReferenceRegister(TypedDict, total=False):
+    name: str
+    address: str
+    address_68k: str
+    access: str
+    chip: str
+    function: str
+    ecs: bool
+    dma_only: bool
+    dma_usually: bool
+    pointer_pair: bool
+    copper_protected: bool
+    copper_danger: bool
+    bits: list[HardwareRegisterBit]
+
+
+class HardwareInterruptSource(TypedDict):
+    name: str
+    bit: int
+    level: int
+    vector_number: int
+    vector_address: str
+    enable_registers: list[str]
+    request_registers: list[str]
+    description: str
+    source: str
+    category: str
+    producer: str
+    channel: int
+    related_registers: list[str]
+
+
+class HardwareInterruptRoute(TypedDict):
+    source_register: str
+    source_bit: int
+    source_name: str
+    parent_interrupt: str
+    level: int
+    vector_number: int
+    vector_address: str
+    description: str
+    source: str
+
+
+class HardwareReferencePayload(TypedDict):
+    source: str
+    base_address: str
+    registers: list[HardwareReferenceRegister]
+    interrupt_sources: list[HardwareInterruptSource]
+    interrupt_routes: list[HardwareInterruptRoute]
+    chapters: list[dict[str, str]]
 
 
 class NamingPattern(TypedDict):

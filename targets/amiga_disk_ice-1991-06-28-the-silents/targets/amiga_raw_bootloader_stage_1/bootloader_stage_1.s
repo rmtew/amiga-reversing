@@ -1,6 +1,6 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: targets\amiga_disk_ice-1991-06-28-the-silents\targets\amiga_raw_bootloader_stage_1\binary.bin
-; 21504 bytes, 2 entities, 111 blocks
+; 21504 bytes, 2 entities, 141 blocks
 ; OS compatibility floor: 1.3
 
 ; Target-local struct fields
@@ -62,11 +62,11 @@ loc_40068:
 loc_40074:
     lea pcref_04fe(pc),a0
     move.l ($0064).w,(a0)
-    lea pcref_04de(pc),a0
+    lea loc_404de(pc),a0
     move.l a0,($0064).w
     lea pcref_04d4(pc),a0
     move.l ($006c).w,(a0)
-    lea pcref_04aa(pc),a0
+    lea loc_404aa(pc),a0
     move.l a0,($006c).w
     lea pcref_0742(pc),a0
     move.l a0,128(a5) ; app+$80
@@ -341,33 +341,143 @@ loc_403a8:
     move.w #$1,0(a6)
     move.w #$5,4(a6)
     rts
-    dc.b    $4a,$6e,$00,$04,$67,$08,$53,$6e,$00,$04,$60,$00,$01,$00,$3d,$7c
-    dc.b    $00,$05,$00,$04,$45,$fa,$03,$d4,$26,$7a,$02,$f2,$7c,$00,$72,$1e
-    dc.b    $30,$1b,$3a,$12,$36,$05,$38,$00,$02,$44,$00,$0f,$02,$45,$00,$0f
-    dc.b    $ba,$44,$67,$04,$52,$43,$53,$46,$3a,$12,$38,$00,$02,$44,$00,$f0
-    dc.b    $02,$45,$00,$f0,$ba,$44,$67,$06,$06,$43,$00,$10,$53,$46,$3a,$12
-    dc.b    $38,$00,$02,$44,$0f,$00,$02,$45,$0f,$00,$ba,$44,$67,$06,$06,$43
-    dc.b    $01,$00,$53,$46,$34,$83,$58,$8a,$51,$c9,$ff,$b6,$4a,$46,$67,$04
-    dc.b    $60,$00,$00,$9a,$42,$6e,$00,$00,$60,$00,$00,$92,$4a,$6e,$00,$04
-    dc.b    $67,$08,$53,$6e,$00,$04,$60,$00,$00,$84,$3d,$7c,$00,$05,$00,$04
-    dc.b    $7c,$00,$45,$fa,$03,$56,$70,$00,$72,$1e,$3a,$12,$36,$05,$38,$00
-    dc.b    $02,$44,$00,$0f,$02,$45,$00,$0f,$ba,$44,$67,$04,$53,$43,$53,$46
-    dc.b    $3a,$12,$38,$00,$02,$44,$00,$f0,$02,$45,$00,$f0,$ba,$44,$67,$06
-    dc.b    $04,$43,$00,$10,$53,$46,$3a,$12,$38,$00,$02,$44,$0f,$00,$02,$45
-    dc.b    $0f,$00,$ba,$44,$67,$06,$04,$43,$01,$00,$53,$46,$34,$83,$58,$8a
-    dc.b    $51,$c9,$ff,$b8,$4a,$46,$67,$04,$60,$00,$00,$22,$42,$6e,$00,$02
-    dc.b    $60,$00,$00,$1a
-pcref_04aa:
-    dc.b    $48,$e7,$ff,$fe,$4d,$fa,$00,$28,$4a,$6e,$00,$02,$66,$00,$ff,$7a
-    dc.b    $4a,$6e,$00,$00,$66,$00,$fe,$f6,$4b,$f9,$00,$df,$f0,$00,$3b,$7c
-    dc.b    $00,$10,$00,$9c,$4c,$df,$7f,$ff,$4e,$73
+loc_403b6:
+    tst.w 4(a6)
+    beq.s loc_403c4
+loc_403bc:
+    subq.w #1,4(a6)
+    bra.w loc_404c2
+loc_403c4:
+    move.w #$5,4(a6)
+    lea pcref_07a0(pc),a2
+    movea.l pcref_06c2(pc),a3
+    moveq #0,d6
+    moveq #30,d1
+loc_403d6:
+    move.w (a3)+,d0
+    move.w (a2),d5
+    move.w d5,d3
+    move.w d0,d4
+    andi.w #$f,d4
+    andi.w #$f,d5
+    cmp.w d4,d5
+    beq.s loc_403ee
+loc_403ea:
+    addq.w #1,d3
+    subq.w #1,d6
+loc_403ee:
+    move.w (a2),d5
+    move.w d0,d4
+    andi.w #$f0,d4
+    andi.w #$f0,d5
+    cmp.w d4,d5
+    beq.s loc_40404
+loc_403fe:
+    addi.w #$10,d3
+    subq.w #1,d6
+loc_40404:
+    move.w (a2),d5
+    move.w d0,d4
+    andi.w #$f00,d4
+    andi.w #$f00,d5
+    cmp.w d4,d5
+    beq.s loc_4041a
+loc_40414:
+    addi.w #$100,d3
+    subq.w #1,d6
+loc_4041a:
+    move.w d3,(a2)
+    addq.l #4,a2
+    dbf d1,loc_403d6
+loc_40422:
+    tst.w d6
+    beq.s loc_4042a
+loc_40426:
+    bra.w loc_404c2
+loc_4042a:
+    clr.w 0(a6)
+    bra.w loc_404c2
+loc_40432:
+    tst.w 4(a6)
+    beq.s loc_40440
+loc_40438:
+    subq.w #1,4(a6)
+    bra.w loc_404c2
+loc_40440:
+    move.w #$5,4(a6)
+    moveq #0,d6
+    lea pcref_07a0(pc),a2
+    moveq #0,d0
+    moveq #30,d1
+loc_40450:
+    move.w (a2),d5
+    move.w d5,d3
+    move.w d0,d4
+    andi.w #$f,d4
+    andi.w #$f,d5
+    cmp.w d4,d5
+    beq.s loc_40466
+loc_40462:
+    subq.w #1,d3
+    subq.w #1,d6
+loc_40466:
+    move.w (a2),d5
+    move.w d0,d4
+    andi.w #$f0,d4
+    andi.w #$f0,d5
+    cmp.w d4,d5
+    beq.s loc_4047c
+loc_40476:
+    subi.w #$10,d3
+    subq.w #1,d6
+loc_4047c:
+    move.w (a2),d5
+    move.w d0,d4
+    andi.w #$f00,d4
+    andi.w #$f00,d5
+    cmp.w d4,d5
+    beq.s loc_40492
+loc_4048c:
+    subi.w #$100,d3
+    subq.w #1,d6
+loc_40492:
+    move.w d3,(a2)
+    addq.l #4,a2
+    dbf d1,loc_40450
+loc_4049a:
+    tst.w d6
+    beq.s loc_404a2
+loc_4049e:
+    bra.w loc_404c2
+loc_404a2:
+    clr.w 2(a6)
+    bra.w loc_404c2
+loc_404aa:
+    movem.l d0-d7/a0-a6,-(sp)
+    lea pcref_04d8(pc),a6
+    tst.w 2(a6)
+    bne.w loc_40432
+loc_404ba:
+    tst.w 0(a6)
+    bne.w loc_403b6
+loc_404c2:
+    lea _custom+bltddat,a5
+    move.w #$10,intreq(a5)
+    movem.l (sp)+,d0-d7/a0-a6
+    rte
 pcref_04d4:
     dcb.b   4,0
 pcref_04d8:
     dc.w    $0000,$0000,$0000
-pcref_04de:
-    dc.b    $2f,$0d,$4b,$f9,$00,$df,$f0,$00,$3b,$7c,$40,$00,$00,$24,$3b,$7c
-    dc.b    $00,$02,$00,$9c,$4b,$fa,$00,$0e,$3a,$bc,$00,$01,$2a,$5f,$4e,$73
+loc_404de:
+    move.l a5,-(sp)
+    lea _custom+bltddat,a5
+    move.w #$4000,dsklen(a5)
+    move.w #$2,intreq(a5)
+    lea pcref_0502(pc),a5
+    move.w #$1,(a5)
+    movea.l (sp)+,a5
+    rte
 pcref_04fe:
     dcb.b   4,0
 pcref_0502:
@@ -556,15 +666,17 @@ pcref_075a:
     dc.b    $00,$e8,$00,$00,$00,$ea,$00,$00,$00,$ec,$00,$00,$00,$ee,$00,$00
     dc.b    $00,$f0,$00,$00,$00,$f2,$00,$00,$ec,$01,$ff,$fe,$01,$00,$02,$00
     dc.b    $01,$08,$00,$70,$01,$0a,$00,$70,$01,$02,$00,$00,$01,$04,$00,$00
-    dc.b    $01,$80,$00,$00,$01,$82,$00,$00,$01,$84,$00,$00,$01,$86,$00,$00
-    dc.b    $01,$88,$00,$00,$01,$8a,$00,$00,$01,$8c,$00,$00,$01,$8e,$00,$00
-    dc.b    $01,$90,$00,$00,$01,$92,$00,$00,$01,$94,$00,$00,$01,$96,$00,$00
-    dc.b    $01,$98,$00,$00,$01,$9a,$00,$00,$01,$9c,$00,$00,$01,$9e,$00,$00
-    dc.b    $01,$a0,$00,$00,$01,$a2,$00,$00,$01,$a4,$00,$00,$01,$a6,$00,$00
-    dc.b    $01,$a8,$00,$00,$01,$aa,$00,$00,$01,$ac,$00,$00,$01,$ae,$00,$00
-    dc.b    $01,$b0,$00,$00,$01,$b2,$00,$00,$01,$b4,$00,$00,$01,$b6,$00,$00
-    dc.b    $01,$b8,$00,$00,$01,$ba,$00,$00,$01,$bc,$00,$00,$01,$be,$00,$00
-    dc.b    $00,$9c,$80,$10,$ff,$ff,$ff,$fe
+    dc.b    $01,$80,$00,$00,$01,$82
+pcref_07a0:
+    dc.b    $00,$00,$01,$84,$00,$00,$01,$86,$00,$00,$01,$88,$00,$00,$01,$8a
+    dc.b    $00,$00,$01,$8c,$00,$00,$01,$8e,$00,$00,$01,$90,$00,$00,$01,$92
+    dc.b    $00,$00,$01,$94,$00,$00,$01,$96,$00,$00,$01,$98,$00,$00,$01,$9a
+    dc.b    $00,$00,$01,$9c,$00,$00,$01,$9e,$00,$00,$01,$a0,$00,$00,$01,$a2
+    dc.b    $00,$00,$01,$a4,$00,$00,$01,$a6,$00,$00,$01,$a8,$00,$00,$01,$aa
+    dc.b    $00,$00,$01,$ac,$00,$00,$01,$ae,$00,$00,$01,$b0,$00,$00,$01,$b2
+    dc.b    $00,$00,$01,$b4,$00,$00,$01,$b6,$00,$00,$01,$b8,$00,$00,$01,$ba
+    dc.b    $00,$00,$01,$bc,$00,$00,$01,$be,$00,$00,$00,$9c,$80,$10,$ff,$ff
+    dc.b    $ff,$fe
 pcref_0822:
     dc.b    $00,$00,$23,$60,$00,$00,$4c,$90,$00,$e5,$38,$73,$f0,$03,$06,$81
     dc.b    $5b,$03,$80,$98,$68,$16,$70,$1c,$05,$86,$7e,$03,$80,$98,$78,$18

@@ -33,6 +33,10 @@ targets/*/*
 !targets/*/benchmark.json
 !targets/*/binary_path.txt
 !targets/*/source_disk.json
+!targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootblock/bootblock.s
+!targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootblock/benchmark.json
+!targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootloader_stage_1/bootloader_stage_1.s
+!targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootloader_stage_1/benchmark.json
 !targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/
 targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/*
 !targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_libs__icon.library_8bc90c0c/

@@ -2,34 +2,34 @@
   "target": "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootloader_stage_1",
   "binary": "targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootloader_stage_1/binary.bin",
   "command": "uv run scripts/benchmark_target.py amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootloader_stage_1",
-  "measured_at": "2026-04-01T11:22:59+13:00",
+  "measured_at": "2026-04-01T16:40:11+13:00",
   "status": "ok",
-  "elapsed_seconds": 7.08,
+  "elapsed_seconds": 6.19,
   "analysis_bytes": 30092,
   "entities_bytes": 489,
-  "disasm_bytes": 94659,
+  "disasm_bytes": 95550,
   "timing": {
     "entities": {
-      "parse_source_seconds": 0.0005,
+      "parse_source_seconds": 0.0002,
       "analysis": {
-        "init_seconds": 0.002,
-        "core_seconds": 0.0307,
-        "per_caller_seconds": 0.0665,
+        "init_seconds": 0.0028,
+        "core_seconds": 0.1144,
+        "per_caller_seconds": 0.1073,
         "store_pass_seconds": 0.0,
-        "hint_scan_seconds": 6.6533,
-        "os_call_seconds": 0.0111
+        "hint_scan_seconds": 5.3518,
+        "os_call_seconds": 0.019
       },
-      "naming_seconds": 0.0,
+      "naming_seconds": 0.0001,
       "write_seconds": 0.0006
     },
     "session": {
-      "load_analysis_seconds": 4.9503,
-      "metadata_seconds": 0.1011,
-      "substitutions_seconds": 0.0001,
-      "build_seconds": 0.0
+      "load_analysis_seconds": 4.2859,
+      "metadata_seconds": 0.205,
+      "substitutions_seconds": 0.0002,
+      "build_seconds": 0.0001
     },
-    "emit_seconds": 0.0795,
-    "render_seconds": 0.0044
+    "emit_seconds": 0.1512,
+    "render_seconds": 0.0053
   },
   "analysis": {
     "code_bytes": 21504,

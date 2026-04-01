@@ -421,21 +421,21 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 | Bit | Name | Description |
 |-----|------|-------------|
 | 15 | not | used |
-| 14 | Sprite | (or 5) to sprite 6 (or 7) |
-| 13 | Sprite | (or 3) to sprite 6 (or 7) |
-| 12 | Sprite | (or 3) to sprite 4 (or 5) |
-| 11 | Sprite | (or 1) to sprite 6 (or 7) |
-| 10 | Sprite | (or 1) to sprite 4 (or 5) |
-|  9 | Sprite | (or 1) to sprite 2 (or 3) |
-|  8 | Playfield | to sprite 6 (or 7) |
-|  7 | Playfield | to sprite 4 (or 5) |
-|  6 | Playfield | to sprite 2 (or 3) |
-|  5 | Playfield | to sprite 0 (or 1) |
-|  4 | Playfield | to sprite 6 (or 7) |
-|  3 | Playfield | to sprite 4 (or 5) |
-|  2 | Playfield | to sprite 2 (or 3) |
-|  1 | Playfield | to sprite 0 (or 1) |
-|  0 | Playfield | to playfield 2 |
+| 14 | Sprite | 4 (or 5) to sprite 6 (or 7) |
+| 13 | Sprite | 2 (or 3) to sprite 6 (or 7) |
+| 12 | Sprite | 2 (or 3) to sprite 4 (or 5) |
+| 11 | Sprite | 0 (or 1) to sprite 6 (or 7) |
+| 10 | Sprite | 0 (or 1) to sprite 4 (or 5) |
+|  9 | Sprite | 0 (or 1) to sprite 2 (or 3) |
+|  8 | Playfield | 2 to sprite 6 (or 7) |
+|  7 | Playfield | 2 to sprite 4 (or 5) |
+|  6 | Playfield | 2 to sprite 2 (or 3) |
+|  5 | Playfield | 2 to sprite 0 (or 1) |
+|  4 | Playfield | 1 to sprite 6 (or 7) |
+|  3 | Playfield | 1 to sprite 4 (or 5) |
+|  2 | Playfield | 1 to sprite 2 (or 3) |
+|  1 | Playfield | 1 to sprite 0 (or 1) |
+|  0 | Playfield | 1 to playfield 2 |
 
 ---
 
@@ -626,24 +626,24 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 - **Chip**: P
 - **Flags**: Not writable by Copper
 
-| Bit | Name | Description |
-|-----|------|-------------|
-| 15 | SET/CLR | Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged. |
-| 14 | INTEN | Master interrupt (enable only, no request) |
-| 13 | EXTER | External interrupt |
-| 12 | DSKSYN | Disk sync register ( DSKSYNC ) matches disk data |
-| 11 | RBF | Serial port receive buffer full |
-| 10 | AUD3 | Audio channel 3 block finished |
-|  9 | AUD2 | Audio channel 2 block finished |
-|  8 | AUD1 | Audio channel 1 block finished |
-|  7 | AUD0 | Audio channel 0 block finished |
-|  6 | BLIT | Blitter finished |
-|  5 | VERTB | Start of vertical blank |
-|  4 | COPER | Copper |
-|  3 | PORTS | I/O ports and timers |
-|  2 | SOFT | Reserved for software-initiated interrupt |
-|  1 | DSKBLK | Disk block finished |
-|  0 | TBE | Serial port transmit buffer empty |
+| Bit | Name | Level | Description |
+|-----|------|-------|-------------|
+| 15 | SET/CLR |  | Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged. |
+| 14 | INTEN |  | Master interrupt (enable only, no request) |
+| 13 | EXTER | 6 | External interrupt |
+| 12 | DSKSYN | 5 | Disk sync register ( DSKSYNC ) matches disk data |
+| 11 | RBF | 5 | Serial port receive buffer full |
+| 10 | AUD3 | 4 | Audio channel 3 block finished |
+|  9 | AUD2 | 4 | Audio channel 2 block finished |
+|  8 | AUD1 | 4 | Audio channel 1 block finished |
+|  7 | AUD0 | 4 | Audio channel 0 block finished |
+|  6 | BLIT | 3 | Blitter finished |
+|  5 | VERTB | 3 | Start of vertical blank |
+|  4 | COPER | 3 | Copper |
+|  3 | PORTS | 2 | I/O ports and timers |
+|  2 | SOFT | 1 | Reserved for software-initiated interrupt |
+|  1 | DSKBLK | 1 | Disk block finished |
+|  0 | TBE | 1 | Serial port transmit buffer empty |
 
 ---
 
@@ -655,24 +655,24 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 - **Chip**: P
 - **Flags**: Not writable by Copper
 
-| Bit | Name | Description |
-|-----|------|-------------|
-| 15 | SET/CLR | Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged. |
-| 14 | INTEN | Master interrupt (enable only, no request) |
-| 13 | EXTER | External interrupt |
-| 12 | DSKSYN | Disk sync register ( DSKSYNC ) matches disk data |
-| 11 | RBF | Serial port receive buffer full |
-| 10 | AUD3 | Audio channel 3 block finished |
-|  9 | AUD2 | Audio channel 2 block finished |
-|  8 | AUD1 | Audio channel 1 block finished |
-|  7 | AUD0 | Audio channel 0 block finished |
-|  6 | BLIT | Blitter finished |
-|  5 | VERTB | Start of vertical blank |
-|  4 | COPER | Copper |
-|  3 | PORTS | I/O ports and timers |
-|  2 | SOFT | Reserved for software-initiated interrupt |
-|  1 | DSKBLK | Disk block finished |
-|  0 | TBE | Serial port transmit buffer empty |
+| Bit | Name | Level | Description |
+|-----|------|-------|-------------|
+| 15 | SET/CLR |  | Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged. |
+| 14 | INTEN |  | Master interrupt (enable only, no request) |
+| 13 | EXTER | 6 | External interrupt |
+| 12 | DSKSYN | 5 | Disk sync register ( DSKSYNC ) matches disk data |
+| 11 | RBF | 5 | Serial port receive buffer full |
+| 10 | AUD3 | 4 | Audio channel 3 block finished |
+|  9 | AUD2 | 4 | Audio channel 2 block finished |
+|  8 | AUD1 | 4 | Audio channel 1 block finished |
+|  7 | AUD0 | 4 | Audio channel 0 block finished |
+|  6 | BLIT | 3 | Blitter finished |
+|  5 | VERTB | 3 | Start of vertical blank |
+|  4 | COPER | 3 | Copper |
+|  3 | PORTS | 2 | I/O ports and timers |
+|  2 | SOFT | 1 | Reserved for software-initiated interrupt |
+|  1 | DSKBLK | 1 | Disk block finished |
+|  0 | TBE | 1 | Serial port transmit buffer empty |
 
 ---
 
@@ -1582,24 +1582,24 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 - **Access**: W
 - **Chip**: P
 
-| Bit | Name | Description |
-|-----|------|-------------|
-| 15 | SET/CLR | Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged. |
-| 14 | INTEN | Master interrupt (enable only, no request) |
-| 13 | EXTER | External interrupt |
-| 12 | DSKSYN | Disk sync register ( DSKSYNC ) matches disk data |
-| 11 | RBF | Serial port receive buffer full |
-| 10 | AUD3 | Audio channel 3 block finished |
-|  9 | AUD2 | Audio channel 2 block finished |
-|  8 | AUD1 | Audio channel 1 block finished |
-|  7 | AUD0 | Audio channel 0 block finished |
-|  6 | BLIT | Blitter finished |
-|  5 | VERTB | Start of vertical blank |
-|  4 | COPER | Copper |
-|  3 | PORTS | I/O ports and timers |
-|  2 | SOFT | Reserved for software-initiated interrupt |
-|  1 | DSKBLK | Disk block finished |
-|  0 | TBE | Serial port transmit buffer empty |
+| Bit | Name | Level | Description |
+|-----|------|-------|-------------|
+| 15 | SET/CLR |  | Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged. |
+| 14 | INTEN |  | Master interrupt (enable only, no request) |
+| 13 | EXTER | 6 | External interrupt |
+| 12 | DSKSYN | 5 | Disk sync register ( DSKSYNC ) matches disk data |
+| 11 | RBF | 5 | Serial port receive buffer full |
+| 10 | AUD3 | 4 | Audio channel 3 block finished |
+|  9 | AUD2 | 4 | Audio channel 2 block finished |
+|  8 | AUD1 | 4 | Audio channel 1 block finished |
+|  7 | AUD0 | 4 | Audio channel 0 block finished |
+|  6 | BLIT | 3 | Blitter finished |
+|  5 | VERTB | 3 | Start of vertical blank |
+|  4 | COPER | 3 | Copper |
+|  3 | PORTS | 2 | I/O ports and timers |
+|  2 | SOFT | 1 | Reserved for software-initiated interrupt |
+|  1 | DSKBLK | 1 | Disk block finished |
+|  0 | TBE | 1 | Serial port transmit buffer empty |
 
 ---
 
@@ -1610,24 +1610,24 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 - **Access**: W
 - **Chip**: P
 
-| Bit | Name | Description |
-|-----|------|-------------|
-| 15 | SET/CLR | Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged. |
-| 14 | INTEN | Master interrupt (enable only, no request) |
-| 13 | EXTER | External interrupt |
-| 12 | DSKSYN | Disk sync register ( DSKSYNC ) matches disk data |
-| 11 | RBF | Serial port receive buffer full |
-| 10 | AUD3 | Audio channel 3 block finished |
-|  9 | AUD2 | Audio channel 2 block finished |
-|  8 | AUD1 | Audio channel 1 block finished |
-|  7 | AUD0 | Audio channel 0 block finished |
-|  6 | BLIT | Blitter finished |
-|  5 | VERTB | Start of vertical blank |
-|  4 | COPER | Copper |
-|  3 | PORTS | I/O ports and timers |
-|  2 | SOFT | Reserved for software-initiated interrupt |
-|  1 | DSKBLK | Disk block finished |
-|  0 | TBE | Serial port transmit buffer empty |
+| Bit | Name | Level | Description |
+|-----|------|-------|-------------|
+| 15 | SET/CLR |  | Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged. |
+| 14 | INTEN |  | Master interrupt (enable only, no request) |
+| 13 | EXTER | 6 | External interrupt |
+| 12 | DSKSYN | 5 | Disk sync register ( DSKSYNC ) matches disk data |
+| 11 | RBF | 5 | Serial port receive buffer full |
+| 10 | AUD3 | 4 | Audio channel 3 block finished |
+|  9 | AUD2 | 4 | Audio channel 2 block finished |
+|  8 | AUD1 | 4 | Audio channel 1 block finished |
+|  7 | AUD0 | 4 | Audio channel 0 block finished |
+|  6 | BLIT | 3 | Blitter finished |
+|  5 | VERTB | 3 | Start of vertical blank |
+|  4 | COPER | 3 | Copper |
+|  3 | PORTS | 2 | I/O ports and timers |
+|  2 | SOFT | 1 | Reserved for software-initiated interrupt |
+|  1 | DSKBLK | 1 | Disk block finished |
+|  0 | TBE | 1 | Serial port transmit buffer empty |
 
 ---
 
@@ -4245,13 +4245,13 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 | Bit | Name | Description |
 |-----|------|-------------|
 |  7 | UNUSED |  |
-|  6 | SPMODE | = Serial port=output (CNT is the source of the shift clock) |
-|  5 | INMODE | = Timer A counts positive CNT transitions, |
-|  4 | LOAD | = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.) |
-|  3 | RUNMODE | = one-shot mode, 0 = continuous mode. |
-|  2 | OUTMODE | = toggle, 0 = pulse. |
-|  1 | PBON | = Timer A output on PB6, 0 = PB6 is normal operation. |
-|  0 | START | = start Timer A, 0 = stop Timer A. This bit is automatically reset (= 0) when underflow occurs during one-shot mode. |
+|  6 | SPMODE | 1 = Serial port=output (CNT is the source of the shift clock) |
+|  5 | INMODE | 1 = Timer A counts positive CNT transitions, |
+|  4 | LOAD | 1 = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.) |
+|  3 | RUNMODE | 1 = one-shot mode, 0 = continuous mode. |
+|  2 | OUTMODE | 1 = toggle, 0 = pulse. |
+|  1 | PBON | 1 = Timer A output on PB6, 0 = PB6 is normal operation. |
+|  0 | START | 1 = start Timer A, 0 = stop Timer A. This bit is automatically reset (= 0) when underflow occurs during one-shot mode. |
 |  0 | = | Timer A counts 02 pulses. |
 |  0 | = | Serial port=input  (external shift clock is required) |
 
@@ -4266,11 +4266,11 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 
 | Bit | Name | Description |
 |-----|------|-------------|
-|  4 | LOAD | = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.) |
-|  3 | RUNMODE | = one-shot mode, 0 = continuous mode. |
-|  2 | OUTMODE | = toggle, 0 = pulse. |
-|  1 | PBON | = Timer B output on PB7, 0 = PB7 is normal operation. |
-|  0 | START | = start Timer B, 0 = stop Timer B. This bit is automatically reset (= 0) when underflow occurs during one-shot mode. |
+|  4 | LOAD | 1 = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.) |
+|  3 | RUNMODE | 1 = one-shot mode, 0 = continuous mode. |
+|  2 | OUTMODE | 1 = toggle, 0 = pulse. |
+|  1 | PBON | 1 = Timer B output on PB7, 0 = PB7 is normal operation. |
+|  0 | START | 1 = start Timer B, 0 = stop Timer B. This bit is automatically reset (= 0) when underflow occurs during one-shot mode. |
 
 ---
 
@@ -4432,13 +4432,13 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 | Bit | Name | Description |
 |-----|------|-------------|
 |  7 | UNUSED |  |
-|  6 | SPMODE | = Serial port=output (CNT is the source of the shift clock) |
-|  5 | INMODE | = Timer A counts positive CNT transitions, |
-|  4 | LOAD | = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.) |
-|  3 | RUNMODE | = one-shot mode, 0 = continuous mode. |
-|  2 | OUTMODE | = toggle, 0 = pulse. |
-|  1 | PBON | = Timer A output on PB6, 0 = PB6 is normal operation. |
-|  0 | START | = start Timer A, 0 = stop Timer A. This bit is automatically reset (= 0) when underflow occurs during one-shot mode. |
+|  6 | SPMODE | 1 = Serial port=output (CNT is the source of the shift clock) |
+|  5 | INMODE | 1 = Timer A counts positive CNT transitions, |
+|  4 | LOAD | 1 = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.) |
+|  3 | RUNMODE | 1 = one-shot mode, 0 = continuous mode. |
+|  2 | OUTMODE | 1 = toggle, 0 = pulse. |
+|  1 | PBON | 1 = Timer A output on PB6, 0 = PB6 is normal operation. |
+|  0 | START | 1 = start Timer A, 0 = stop Timer A. This bit is automatically reset (= 0) when underflow occurs during one-shot mode. |
 |  0 | = | Timer A counts 02 pulses. |
 |  0 | = | Serial port=input  (external shift clock is required) |
 
@@ -4453,11 +4453,11 @@ Base address: `$DFF000` — add register offset to get 68000 address.
 
 | Bit | Name | Description |
 |-----|------|-------------|
-|  4 | LOAD | = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.) |
-|  3 | RUNMODE | = one-shot mode, 0 = continuous mode. |
-|  2 | OUTMODE | = toggle, 0 = pulse. |
-|  1 | PBON | = Timer B output on PB7, 0 = PB7 is normal operation. |
-|  0 | START | = start Timer B, 0 = stop Timer B. This bit is automatically reset (= 0) when underflow occurs during one-shot mode. |
+|  4 | LOAD | 1 = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.) |
+|  3 | RUNMODE | 1 = one-shot mode, 0 = continuous mode. |
+|  2 | OUTMODE | 1 = toggle, 0 = pulse. |
+|  1 | PBON | 1 = Timer B output on PB7, 0 = PB7 is normal operation. |
+|  0 | START | 1 = start Timer B, 0 = stop Timer B. This bit is automatically reset (= 0) when underflow occurs during one-shot mode. |
 
 ---
 

@@ -59,6 +59,10 @@ from .os_calls import (
     RUNTIME_OS_KB as _OS_CALLS_RUNTIME_OS_KB,
 )
 from .subroutine_scan import scan_and_score
+from .vector_tables import (
+    collect_installed_vector_targets,
+    collect_postincrement_vector_fill_targets,
+)
 
 if TYPE_CHECKING:
     from .m68k_disasm import Instruction
@@ -897,6 +901,22 @@ def analyze_hunk(
         for r in last_backward_resolutions:
             if r.target not in core_entries:
                 core_entries.add(r.target)
+                added += 1
+        for target in collect_installed_vector_targets(
+            result.get("exit_states", {}),
+            code_start=base_addr,
+            code_end=base_addr + code_size,
+        ):
+            if target not in core_entries:
+                core_entries.add(target)
+                added += 1
+        for target in collect_postincrement_vector_fill_targets(
+            result["blocks"],
+            code_start=base_addr,
+            code_end=base_addr + code_size,
+        ):
+            if target not in core_entries:
+                core_entries.add(target)
                 added += 1
         return added
 

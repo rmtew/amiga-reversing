@@ -1,6 +1,6 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: bin\Bloodwych439
-; 364608 bytes, 1006 entities, 3030 blocks
+; 364608 bytes, 1021 entities, 3172 blocks
 ; OS compatibility floor: 1.3
 
 ; Absolute symbols
@@ -17,7 +17,7 @@ app_base_00000098	EQU	$98
 ;   trap_0_stub: source 0x32..0x5B -> runtime 0x90
 ;   Copied trap 0 stub executes from $00000090
 
-entry_point:
+entry_point: ; jt: pcref_5548
     move.w #$7fff,_custom+intena
     move.w #$7fff,_custom+intreq
     lea loc_0032(pc),a0
@@ -28,7 +28,7 @@ loc_001c:
     dbf d0,loc_001c
 loc_0022:
     lea loc_005c(pc),a6
-    move.l #$90,$80
+    move.l #loc_0032,$80
     trap #0
 loc_0032:
     move.l #$5909c,d0
@@ -121,9 +121,9 @@ loc_0194:
     move.l d0,(a0)+
     dbf d1,loc_0194
 loc_019a:
-    move.l #$8c20,($006c).w
-    move.l #$5ce,($0068).w
-    move.l #$88a4,($0070).w
+    move.l #loc_887c,($006c).w
+    move.l #loc_022a,($0068).w
+    move.l #loc_8500,($0070).w
     move.w #$7fff,_custom+intena
     move.b _ciaa+ciacra,d0
     move.b #$21,_ciaa+ciacra
@@ -138,44 +138,62 @@ loc_019a:
     rts
 word_0206:
     dc.w    $0404
-hint_0208:
     dc.b    $04,$03,$04,$02,$01,$00
 word_020e:
     dc.w    $0000
     dc.b    $8e,$84,$00,$00,$8f,$14,$00,$00,$8e,$cc,$00,$00,$8f,$5c,$00,$00
-    dc.b    $8e,$c8
-    dc.b    $00
-    dc.b    $00
+    dc.b    $8e,$c8,$00,$00
+byte_0224:
     dc.b    $00
 byte_0225:
     dcb.b   5,0
-    dc.b    $48,$e7,$c0,$80,$41,$f9,$00,$bf,$e0,$01,$10,$28,$0c,$00,$e2,$18
-    dc.b    $46,$00,$11,$c0,$05,$c9,$00,$28,$00,$40,$0e,$00,$42,$28,$0c,$00
-    dc.b    $12,$28,$01,$00,$61,$28
-hint_0250:
-    dc.b    $70,$2d
-hint_0252:
-    dc.b    $51,$c8,$ff,$fe
-hint_0256:
-    dc.b    $41,$f9,$00,$bf,$e0,$01,$10,$28,$0d,$00,$02,$28,$00,$bf,$0e,$00
-    dc.b    $11,$c0,$05,$c8,$4c,$df,$01,$03,$33,$fc,$00,$08,$00,$df,$f0,$9c
-    dc.b    $4e,$73
-hint_0278:
-    dc.b    $41,$f9,$00,$00,$06,$4a,$72,$0b
-hint_0280:
-    dc.b    $b0,$18,$67,$06
-hint_0284:
-    dc.b    $51,$c9,$ff,$fa
-hint_0288:
-    dc.b    $4e,$75
-hint_028a:
-    dc.b    $41,$f9,$00,$00,$ee,$7c,$5d,$41,$64,$08
-hint_0294:
-    dc.b    $5c,$41,$41,$f9,$00,$00,$ee,$de
-hint_029c:
-    dc.b    $06,$41,$00,$0a,$11,$41,$00,$56,$4e,$75
-hint_02a6:
-    dc.b    $5f,$46,$4e,$4f
+loc_022a:
+    movem.l d0-d1/a0,-(sp)
+    lea _ciaa+ciapra,a0
+    move.b ciasdr(a0),d0
+    ror.b #1,d0
+    not.b d0
+    move.b d0,byte_0225
+    ori.b #$40,ciacra(a0)
+    clr.b ciasdr(a0)
+    move.b ciaprb(a0),d1
+    bsr.s loc_0278
+loc_0250:
+    moveq #45,d0
+loc_0252:
+    dbf d0,loc_0252
+loc_0256:
+    lea _ciaa+ciapra,a0
+    move.b ciaicr(a0),d0
+    andi.b #$bf,ciacra(a0)
+    move.b d0,byte_0224
+    movem.l (sp)+,d0-d1/a0
+    move.w #$8,_custom+intreq
+    rte
+loc_0278:
+    lea word_02a6,a0
+    moveq #11,d1
+loc_0280:
+    cmp.b (a0)+,d0
+    beq.s loc_028a
+loc_0284:
+    dbf d1,loc_0280
+loc_0288:
+    rts
+loc_028a:
+    lea word_ead8,a0
+    subq.w #6,d1
+    bcc.s loc_029c
+loc_0294:
+    addq.w #6,d1
+    lea word_eb3a,a0
+loc_029c:
+    addi.w #$a,d1
+    move.b d1,86(a0)
+    rts
+word_02a6:
+    dc.w    $5f46
+    dc.b    $4e,$4f
     dc.b    $4d,$4c,$12,$10,$22,$20,$21,$11
 word_02b2:
     dc.w    $0000
@@ -426,6 +444,7 @@ loc_05fe:
     move.b #$ff,29(a4)
     move.w d6,d0
     eori.b #$f,d0
+sub_061c:
     bsr.w loc_482a
 loc_0620:
     move.b 10(a4),9(a4)
@@ -6999,7 +7018,6 @@ loc_5408:
     bne.s loc_53ee
 loc_5410:
     pea word_7e82
-loc_5416:
     move.w 12(a5),d0
     bmi.s loc_53ee
 loc_541c:
@@ -7031,36 +7049,50 @@ loc_54d8:
     lea word_54c0,a6
     move.w #$ffff,12(a5)
     bra.w loc_4a10
-hint_54ea:
-    dc.b    $61,$ec
-hint_54ec:
-    dc.b    $60,$00,$ff,$28
-hint_54f0:
-    dc.b    $61,$00,$2b,$e8
-hint_54f4:
-    dc.b    $be,$79,$00,$00,$ee,$72,$64,$4a
-hint_54fc:
-    dc.b    $48,$47,$be,$79
+    dc.b    $61,$ec,$60,$00,$ff,$28,$61,$00,$2b,$e8,$be,$79,$00,$00,$ee,$72
+    dc.b    $64,$4a,$48,$47,$be,$79
 sub_5500:
-    dc.b    $00,$00,$ee,$70,$64,$40
-hint_5506:
-    dc.b    "HG46",0
-    dc.b    $00,$36,$02,$02,$42,$00,$07,$53,$42,$66,$00,$0c,$16
-hint_5518:
-    dc.b    $4a,$03,$6a,$2a
-hint_551c:
-    dc.b    $16,$36,$00,$01,$e8,$4b,$02,$43,$00,$03,$0a,$43,$00,$02,$b6,$6d
-    dc.b    $00,$20,$66,$16
-hint_5530:
-    dc.b    $16,$36,$00,$00,$02,$43,$00,$03,$d6,$43,$41,$f9,$00,$00,$58,$f4
-    dc.b    $d0,$fb,$30,$06,$4e,$d0
+    dc.b    $00,$00,$ee
+    dc.b    "pd@HG46"
+loc_550a:
+    ori.b #$2,d0
+    andi.w #$7,d2
+    subq.w #1,d2
+    bne.w loc_612c
+loc_5518:
+    tst.b d3
+    bpl.s sub_5546
+loc_551c:
+    move.b 1(a6,d0.w),d3
+    lsr.w #4,d3
+    andi.w #$3,d3
+    eori.w #$2,d3
+    cmp.w 32(a5),d3
+    bne.s sub_5546
+loc_5530:
+    move.b 0(a6,d0.w),d3
+    andi.w #$3,d3
+    add.w d3,d3
+    lea word_5550,a0
+    adda.w pcref_5548(pc,d3.w),a0
+    jmp (a0)
 sub_5546:
-    dc.b    $4e,$75
+    rts
 pcref_5548:
-    dc.b    $00,$00,$00,$18,$02,$36,$00,$64,$32,$2d,$00,$04,$92,$6d
+    dc.b    $00,$00
+jtent_554a:
+    dc.b    $00,$18
+jtent_554c:
+    dc.b    $02,$36,$00,$64
+word_5550:
+    dc.w    $322d
+    dc.b    $00,$04,$92,$6d
 sub_5556:
-    dc.b    $00,$08,$7c,$02,$0c,$41,$00,$33,$65,$00,$04,$4a,$7c,$03,$60,$00
-    dc.b    $04,$44,$72,$00,$12,$36,$00,$00
+    dc.b    $00,$08,$7c,$02,$0c,$41,$00,$33,$65,$00,$04,$4a
+hint_5562:
+    dc.b    $7c,$03,$60,$00,$04,$44
+hint_5568:
+    dc.b    $72,$00,$12,$36,$00,$00
 hint_556e:
     dc.b    $e4,$09,$5b,$01,$64,$02
 hint_5574:
@@ -8065,79 +8097,96 @@ hint_6124:
     dc.b    $61,$00,$e9,$c4
 hint_6128:
     dc.b    $60,$00,$1d,$00
-hint_612c:
-    dc.b    $76,$02,$34,$2d,$00,$20,$d4
-    dc.b    "BRBa",0
-    dc.b    $1f,$bc
-hint_613a:
-    dc.b    $12,$36,$00,$01,$02,$41,$00,$07,$0c,$01,$00,$02,$66,$06
-hint_6148:
-    dc.b    $05,$36,$00,$00,$66,$60
-hint_614e:
-    dc.b    $61,$00,$1f,$8e
-hint_6152:
-    dc.b    $be,$79,$00,$00,$ee,$72,$64,$52
-hint_615a:
-    dc.b    $48,$47
-hint_615c:
-    dc.b    $be,$79,$00,$00,$ee,$70,$64,$48
-hint_6164:
-    dc.b    $0a,$42,$00,$04,$12,$36,$00,$01,$02,$41,$00,$07
-hint_6170:
-    dc.b    $0c,$01,$00,$02,$67,$30
-hint_6176:
-    dc.b    $0c,$01
-sub_6178:
-    dc.b    $00,$05,$66,$30
-hint_617c:
-    dc.b    $4a,$36,$00,$01,$6b,$2a
-hint_6182:
-    dc.b    $08,$36,$00,$03,$00,$00,$66,$66
-hint_618a:
-    dc.b    $74,$01,$16,$36,$00,$00,$e8,$0b,$67,$44
-hint_6194:
-    dc.b    $06,$43,$00,$4f,$b6,$6d,$00,$2e,$66,$52
-hint_619e:
-    dc.b    $02,$36,$00,$0f,$00,$00,$60,$08
-hint_61a6:
-    dc.b    $05,$36,$00,$00,$66,$02
-hint_61ac:
-    dc.b    $4e,$75
-hint_61ae:
-    dc.b    $b6,$6d,$00,$2e,$66,$24
-hint_61b4:
-    dc.b    $53,$6d
-sub_61b6:
-    dc.b    $00,$2c,$66,$04
-hint_61ba:
-    dc.b    $42,$6d,$00,$2e
-hint_61be:
-    dc.b    $08,$76,$00,$04,$00,$01,$0c,$6d
-hint_61c6:
-    dc.b    $00,$03,$00,$14
-    dc.b    $66,$0c
-hint_61cc:
-    dc.b    $48,$e7,$a0,$02
+loc_612c:
+    moveq #2,d3
+    move.w 32(a5),d2
+    add.w d2,d2
+    addq.w #1,d2
+    bsr.w loc_80f4
+loc_613a:
+    move.b 1(a6,d0.w),d1
+    andi.w #$7,d1
+    cmpi.b #$2,d1
+    bne.s loc_614e
+loc_6148:
+    btst d2,0(a6,d0.w)
+    bne.s loc_61ae
+loc_614e:
+    bsr.w loc_80de
+loc_6152:
+    cmp.w word_eace,d7
+    bcc.s loc_61ac
+loc_615a:
+    swap d7
+    cmp.w long_eacc,d7
+    bcc.s loc_61ac
+loc_6164:
+    eori.w #$4,d2
+    move.b 1(a6,d0.w),d1
+    andi.w #$7,d1
+    cmpi.b #$2,d1
+    beq.s loc_61a6
+loc_6176:
+    cmpi.b #$5,d1
+    bne.s loc_61ac
+loc_617c:
+    tst.b 1(a6,d0.w)
+    bmi.s loc_61ac
+loc_6182:
+    btst #3,0(a6,d0.w)
+    bne.s loc_61f0
+loc_618a:
+    moveq #1,d2
+    move.b 0(a6,d0.w),d3
+    lsr.b #4,d3
+    beq.s loc_61d8
+loc_6194:
+    addi.w #$4f,d3
+    cmp.w 46(a5),d3
+    bne.s loc_61f0
+loc_619e:
+    andi.b #$f,0(a6,d0.w)
+    bra.s loc_61ae
+loc_61a6:
+    btst d2,0(a6,d0.w)
+    bne.s loc_61ae
+loc_61ac:
+    rts
+loc_61ae:
+    cmp.w 46(a5),d3
+    bne.s loc_61d8
+loc_61b4:
+    subq.w #1,44(a5)
+    bne.s loc_61be
+loc_61ba:
+    clr.w 46(a5)
+loc_61be:
+    bchg #4,1(a6,d0.w)
+    cmpi.w #$3,20(a5)
+    bne.s loc_61d8
+loc_61cc:
+    movem.l d0/d2/a6,-(sp)
 sub_61d0:
-    dc.b    $61,$00
-hint_61d2:
-    dc.b    $06,$cc
-hint_61d4:
-    dc.b    $4c,$df,$40,$05
-hint_61d8:
-    dc.b    $53,$42
+    bsr.w loc_689e
+loc_61d4:
+    movem.l (sp)+,d0/d2/a6
+loc_61d8:
+    subq.w #1,d2
 sub_61da:
-    dc.b    $08,$36,$00,$04,$00,$01,$66,$0e
-hint_61e2:
-    dc.b    $05,$76,$00,$00,$70,$01,$61,$00,$23,$30
-hint_61ec:
-    dc.b    $60,$00,$6a,$04
-hint_61f0:
-    dc.b    $4d,$f9,$00,$00,$65,$9e
-hint_61f6:
-    dc.b    $60,$00,$6a,$ec
-hint_61fa:
-    dc.b    "THE DO"
+    btst #4,1(a6,d0.w)
+    bne.s loc_61f0
+loc_61e2:
+    bchg d2,0(a6,d0.w)
+    moveq #1,d0
+    bsr.w loc_851a
+loc_61ec:
+    bra.w loc_cbf2
+loc_61f0:
+    lea word_61fa,a6
+    bra.w loc_cce4
+word_61fa:
+    dc.w    $5448
+    dc.b    $45,$20,$44,$4f
     dc.b    "OR IS LOCKED"
     dc.b    $ff,$00,$e4
     dc.b    "H]@Jm",0
@@ -8864,10 +8913,11 @@ hint_6c02:
     dc.b    "pV49",0
     dc.b    $00,$ee,$2e,$ef,$42
 sub_6c34:
-    dc.b    $d2,$c2,$74,$00,$14,$31,$10,$00,$0c,$02,$00,$08,$67,$0c,$0c,$02
-    dc.b    $00,$0a,$67,$06,$0c,$02,$00,$2a,$66,$06,$31,$fc,$00,$05,$6f,$a8
-    dc.b    $41,$f9,$00,$00,$70,$16,$d0,$fb,$20,$18,$48,$e7,$81,$02,$4e,$90
-    dc.b    $30,$38,$6f,$a8,$6b,$04,$61,$00,$18,$ae,$4c,$df,$40,$81
+    dc.b    $d2,$c2,$74,$00,$14,$31,$10,$00,$0c,$02,$00,$08,$67,$0c
+sub_6c42:
+    dc.b    $0c,$02,$00,$0a,$67,$06,$0c,$02,$00,$2a,$66,$06,$31,$fc,$00,$05
+    dc.b    $6f,$a8,$41,$f9,$00,$00,$70,$16,$d0,$fb,$20,$18,$48,$e7,$81,$02
+    dc.b    $4e,$90,$30,$38,$6f,$a8,$6b,$04,$61,$00,$18,$ae,$4c,$df,$40,$81
 loc_6c72:
     rts
 hint_6c74:
@@ -10641,8 +10691,12 @@ loc_84fa:
 sub_84fc:
     rts
 byte_84fe:
-    dc.b    $00,$00,$33,$fc,$00,$01,$00,$df,$f0,$96,$33,$fc,$00,$80,$00,$df
-    dc.b    $f0,$9a,$33,$fc,$00,$80,$00,$df,$f0,$9c,$4e,$73
+    dc.b    $00,$00
+loc_8500:
+    move.w #$1,_custom+dmacon
+    move.w #$80,_custom+intena
+    move.w #$80,_custom+intreq
+    rte
 loc_851a:
     move.w d1,-(sp)
     move.w #$1,_custom+dmacon
@@ -10677,260 +10731,383 @@ pcref_8594:
     dc.b    $00,$00
 pcref_8596:
     dc.b    $00,$28,$00,$00,$00,$9b,$00,$84,$00,$5d,$06,$46,$00,$28,$1e,$ce
-    dc.b    $00,$49,$36,$84,$00,$49,$00,$00
-hint_85ae:
-    dc.b    $30,$39,$00,$df,$f0,$0a,$32,$39,$00,$00,$89,$50,$33,$c0,$00,$00
-    dc.b    $89,$50,$61,$00,$00,$a4
-hint_85c4:
-    dc.b    $e0,$58,$e0,$59,$61,$00,$00,$9c
-hint_85cc:
-    dc.b    $4b,$f9,$00,$00,$ee,$7c,$32,$2d,$00,$04,$74,$00,$14,$00,$48,$82
-    dc.b    $d2,$42,$6a,$02
-hint_85e0:
-    dc.b    $72,$00
-hint_85e2:
-    dc.b    $b2,$2d
-hint_85e4:
-    dc.b    $00,$3b
-    dc.b    $64,$04
-hint_85e8:
-    dc.b    $12,$2d,$00,$3b
-hint_85ec:
-    dc.b    $b2,$2d,$00,$3a,$65,$04
-hint_85f2:
-    dc.b    $12,$2d,$00,$3a
-hint_85f6:
-    dc.b    $3b,$41,$00,$04,$e0,$48,$48,$80,$32,$2d
-hint_8600:
-    dc.b    $00,$02
-    dc.b    $d2,$40,$6a,$04
-hint_8606:
-    dc.b    $06,$41,$01,$40
-hint_860a:
-    dc.b    $0c,$41,$01,$40,$65,$04
-hint_8610:
-    dc.b    $04,$41,$01,$40
-hint_8614:
-    dc.b    $3b,$41
-hint_8616:
-    dc.b    $00,$02
-    dc.b    $22,$2d,$00,$02,$41,$f9,$00,$00,$8e,$84,$61,$00,$00,$88
-hint_8626:
-    dc.b    $41,$f9,$00,$00,$8f,$14
-hint_862c:
-    dc.b    $22,$3c,$ff,$81,$ff,$c9,$61,$00,$00,$78
-hint_8636:
-    dc.b    $12,$39,$00,$bf,$e0,$01,$46,$01,$02,$41,$00,$40,$e3,$19,$41,$f9
-    dc.b    $00,$00,$8a,$fc,$4a,$01,$6a,$04
-hint_864e:
-    dc.b    $4a,$10,$6b,$12
-hint_8652:
-    dc.b    $10,$81,$4a,$01,$6a,$0c
-hint_8658:
-    dc.b    $4a,$2d,$00,$01,$6b,$06
-hint_865e:
-    dc.b    $08,$ed,$00,$07,$00,$01
-hint_8664:
-    dc.b    $4e,$75
-hint_8666:
-    dc.b    $90,$01,$64,$06
-hint_866a:
-    dc.b    $4a,$00,$6b,$08
-hint_866e:
-    dc.b    $60,$04
-hint_8670:
-    dc.b    $4a,$00,$6a,$02
-hint_8674:
-    dc.b    $44,$00
-hint_8676:
-    dc.b    $4e,$75
-hint_8678:
-    dc.b    $4a,$79,$00,$00,$ee,$30,$66,$00,$ff,$2e
-hint_8682:
-    dc.b    $61,$00,$00,$d6
-hint_8686:
-    dc.b    $30,$10,$4b,$f9,$00,$00,$ee,$de,$61,$00,$00,$64
-hint_8692:
-    dc.b    $41,$f9,$00,$00,$8f,$14,$61,$12
-hint_869a:
-    dc.b    $e0,$48,$4b,$f9,$00,$00,$ee,$7c,$61,$00,$00,$50
-hint_86a6:
-    dc.b    $41,$f9,$00,$00,$8e,$84
-hint_86ac:
-    dc.b    $06,$41,$00,$37,$10,$81,$11,$41,$00,$48,$34,$01,$06,$41,$00,$10
-    dc.b    $11,$41,$00,$02
+    dc.b    $00,$49,$36,$84,$00,$49
+word_85ac:
+    dc.w    $0000
+loc_85ae:
+    move.w _custom+joy0dat,d0
+    move.w word_85ac,d1
+    move.w d0,word_85ac
+    bsr.w loc_8666
+loc_85c4:
+    ror.w #8,d0
+    ror.w #8,d1
+    bsr.w loc_8666
+loc_85cc:
+    lea word_ead8,a5
+    move.w 4(a5),d1
+    moveq #0,d2
+    move.b d0,d2
+    ext.w d2
+    add.w d2,d1
+    bpl.s loc_85e2
+loc_85e0:
+    moveq #0,d1
+loc_85e2:
+    cmp.b 59(a5),d1
+    bcc.s loc_85ec
+loc_85e8:
+    move.b 59(a5),d1
+loc_85ec:
+    cmp.b 58(a5),d1
+    bcs.s loc_85f6
+loc_85f2:
+    move.b 58(a5),d1
+loc_85f6:
+    move.w d1,4(a5)
+    lsr.w #8,d0
+    ext.w d0
+    move.w 2(a5),d1
+    add.w d0,d1
+    bpl.s loc_860a
+loc_8606:
+    addi.w #$140,d1
+loc_860a:
+    cmpi.w #$140,d1
+    bcs.s loc_8614
+loc_8610:
+    subi.w #$140,d1
+loc_8614:
+    move.w d1,2(a5)
+    move.l 2(a5),d1
+    lea word_8ae0,a0
+    bsr.w loc_86ac
+loc_8626:
+    lea word_8b70,a0
+    move.l #$ff81ffc9,d1
+    bsr.w loc_86ac
+loc_8636:
+    move.b _ciaa+ciapra,d1
+    not.b d1
+    andi.w #$40,d1
+    rol.b #1,d1
+    lea word_8758,a0
+    tst.b d1
+    bpl.s loc_8652
+loc_864e:
+    tst.b (a0)
+    bmi.s loc_8664
+loc_8652:
+    move.b d1,(a0)
+    tst.b d1
+    bpl.s loc_8664
+loc_8658:
+    tst.b 1(a5)
+    bmi.s loc_8664
+loc_865e:
+    bset #7,1(a5)
+loc_8664:
+    rts
+loc_8666:
+    sub.b d1,d0
+    bcc.s loc_8670
+loc_866a:
+    tst.b d0
+    bmi.s loc_8676
+loc_866e:
+    bra.s loc_8674
+loc_8670:
+    tst.b d0
+    bpl.s loc_8676
+loc_8674:
+    neg.b d0
+loc_8676:
+    rts
+loc_8678:
+    tst.w word_ea8c
+    bne.w loc_85ae
+loc_8682:
+    bsr.w loc_875a
+loc_8686:
+    move.w (a0),d0
+    lea word_eb3a,a5
+    bsr.w loc_86f4
+loc_8692:
+    lea word_8b70,a0
+    bsr.s loc_86ac
+loc_869a:
+    lsr.w #8,d0
+    lea word_ead8,a5
+    bsr.w loc_86f4
+loc_86a6:
+    lea word_8ae0,a0
+loc_86ac:
+    addi.w #$37,d1
+    move.b d1,(a0)
+    move.b d1,72(a0)
+    move.w d1,d2
+    addi.w #$10,d1
+    move.b d1,2(a0)
 sub_86c0:
-    dc.b    $11,$41,$00,$4a,$ee,$59,$ec,$5a,$02,$42,$00,$04,$02,$41,$00,$02
-    dc.b    $84,$01
+    move.b d1,74(a0)
+    ror.w #7,d1
+    ror.w #6,d2
+    andi.w #$4,d2
+    andi.w #$2,d1
+    or.b d1,d2
 sub_86d2:
-    dc.b    $48,$41,$06,$41,$00,$80,$e2,$59,$11,$41,$00,$01,$11,$41,$00,$49
-    dc.b    $e3,$59,$02,$41,$00,$01,$82,$02,$11,$41,$00,$03,$11,$41,$00,$4b
-    dc.b    $4e,$75
-hint_86f4:
-    dc.b    $22,$2d,$00,$02,$e2,$08,$64,$0a
-hint_86fc:
-    dc.b    $55,$41,$b2,$2d,$00,$3b
+    swap d1
+    addi.w #$80,d1
+    ror.w #1,d1
+    move.b d1,1(a0)
+    move.b d1,73(a0)
+    rol.w #1,d1
+    andi.w #$1,d1
+    or.b d2,d1
+    move.b d1,3(a0)
+    move.b d1,75(a0)
+    rts
+loc_86f4:
+    move.l 2(a5),d1
+    lsr.b #1,d0
+    bcc.s loc_8706
+loc_86fc:
+    subq.w #2,d1
+    cmp.b 59(a5),d1
 sub_8702:
-    dc.b    $64,$02
-hint_8704:
-    dc.b    $54,$41
-hint_8706:
-    dc.b    $e2,$08,$64,$0a
-hint_870a:
-    dc.b    $54,$41,$b2,$2d,$00,$3a,$65,$02
-hint_8712:
-    dc.b    $55,$41
-hint_8714:
-    dc.b    $48,$41,$e2,$08,$64,$08
-hint_871a:
-    dc.b    $55,$41,$64,$04
-hint_871e:
-    dc.b    $06,$41,$01,$40
-hint_8722:
-    dc.b    $e2,$08,$64,$02
-hint_8726:
-    dc.b    $54,$41
-hint_8728:
-    dc.b    $0c,$41,$01,$40,$65,$04
-hint_872e:
-    dc.b    $04,$41,$01,$40
-hint_8732:
-    dc.b    "HA+A",0
-    dc.b    $02,$4e,$75
-hint_873a:
-    dc.b    $32,$00,$e2,$58,$b1,$41,$74,$00,$e2,$48,$d5,$02,$d0,$00,$d5,$02
-    dc.b    $e2,$49,$d5,$02,$d2,$01,$d5,$02,$30,$02,$4e,$75
-hint_8756:
-    dcb.b   4,0
-hint_875a:
-    dc.b    $30,$39,$00,$df,$f0,$0a
+    bcc.s loc_8706
+loc_8704:
+    addq.w #2,d1
+loc_8706:
+    lsr.b #1,d0
+    bcc.s loc_8714
+loc_870a:
+    addq.w #2,d1
+    cmp.b 58(a5),d1
+    bcs.s loc_8714
+loc_8712:
+    subq.w #2,d1
+loc_8714:
+    swap d1
+    lsr.b #1,d0
+    bcc.s loc_8722
+loc_871a:
+    subq.w #2,d1
+    bcc.s loc_8722
+loc_871e:
+    addi.w #$140,d1
+loc_8722:
+    lsr.b #1,d0
+    bcc.s loc_8728
+loc_8726:
+    addq.w #2,d1
+loc_8728:
+    cmpi.w #$140,d1
+    bcs.s loc_8732
+loc_872e:
+    subi.w #$140,d1
+loc_8732:
+    swap d1
+    move.l d1,2(a5)
+    rts
+loc_873a:
+    move.w d0,d1
+    ror.w #1,d0
+    eor.w d0,d1
+    moveq #0,d2
+    lsr.w #1,d0
+    addx.b d2,d2
+    add.b d0,d0
+    addx.b d2,d2
+    lsr.w #1,d1
+    addx.b d2,d2
+    add.b d1,d1
+    addx.b d2,d2
+    move.w d2,d0
+    rts
+word_8756:
+    dc.w    $0000
+word_8758:
+    dc.w    $0000
+loc_875a:
+    move.w _custom+joy0dat,d0
 sub_8760:
-    dc.b    $61,$d8
-hint_8762:
-    dc.b    $12,$39,$00,$bf,$e0,$01,$46,$01,$02,$41,$00,$40,$e3,$19,$80,$01
-    dc.b    "H@09",0
-    dc.b    $df,$f0,$0c,$61,$be
-hint_877c:
-    dc.b    $12,$39,$00,$bf,$e0,$01,$46,$01,$02,$01,$00,$80,$80,$01,$41,$f9
-    dc.b    $00,$00,$8a,$fa,$4b,$f9,$00,$00,$ee,$de,$72,$01
-hint_8798:
-    dc.b    $4a,$30,$10,$02,$6a,$0a
-hint_879e:
-    dc.b    $11,$80,$10,$02,$02,$00,$00,$7f
+    bsr.s loc_873a
+loc_8762:
+    move.b _ciaa+ciapra,d1
+    not.b d1
+    andi.w #$40,d1
+    rol.b #1,d1
+    or.b d1,d0
+    swap d0
+    move.w _custom+joy1dat,d0
+    bsr.s loc_873a
+loc_877c:
+    move.b _ciaa+ciapra,d1
+    not.b d1
+    andi.b #$80,d1
+    or.b d1,d0
+    lea word_8756,a0
+    lea word_eb3a,a5
+    moveq #1,d1
+loc_8798:
+    tst.b 2(a0,d1.w)
+    bpl.s loc_87a8
+loc_879e:
+    move.b d0,2(a0,d1.w)
+    andi.b #$7f,d0
 sub_87a6:
-    dc.b    $60,$04
-hint_87a8:
-    dc.b    $11,$80,$10,$02
-hint_87ac:
-    dc.b    $11,$80,$10,$00,$4a,$00,$6a,$0c
-hint_87b4:
-    dc.b    $4a,$2d,$00,$01,$6b,$06
-hint_87ba:
-    dc.b    $08,$ed,$00,$07,$00,$01
-hint_87c0:
-    dc.b    $4b,$f9,$00,$00,$ee,$7c,$48,$40,$51,$c9,$ff,$ce
-hint_87cc:
-    dc.b    $4e,$75
-hint_87ce:
-    dc.b    $4a,$79,$00,$00,$8c,$1c,$66,$6e
-hint_87d6:
-    dc.b    $4a,$2d,$00,$52,$6b,$60
-hint_87dc:
-    dc.b    $70,$00,$10,$2d,$00,$4b,$66,$12
-hint_87e4:
-    dc.b    $10,$2d,$00,$52,$02,$40,$00,$3f,$67,$4e
-hint_87ee:
-    dc.b    $3b,$7c,$90,$ff,$00,$4a,$60,$46
-hint_87f6:
-    dc.b    $4a,$2d
-hint_87f8:
-    dc.b    $00,$4a
-    dc.b    $66,$3c
-hint_87fc:
-    dc.b    $4a,$00,$6a,$08
-hint_8800:
-    dc.b    $0c,$40,$00,$f9,$67,$36
-hint_8806:
-    dc.b    $44,$00
-hint_8808:
-    dc.b    $53,$2d,$00,$4b,$1b,$7c,$00,$02,$00,$4a,$08,$15
-hint_8814:
-    dc.b    $00,$00
-    dc.b    $67,$04
-hint_8818:
-    dc.b    $06,$40,$00,$0c
-hint_881c:
-    dc.b    $08,$2d,$00,$06,$00,$52,$67,$02
-hint_8824:
-    dc.b    $5c,$40
-hint_8826:
-    dc.b    $d0,$40,$30,$3b,$00,$1a,$33,$c0,$00,$df,$f1,$9e,$3b,$40,$00,$4c
-    dc.b    $4e,$75
-hint_8838:
-    dc.b    $53,$2d,$00,$4a
-hint_883c:
-    dc.b    $33,$ed,$00,$4c,$00,$df,$f1,$9e
-pcref_8844:
-    dc.b    $4e,$75
-hint_8846:
-    dc.b    $00,$c0,$00,$80,$00,$60,$00,$40,$00,$20
+    bra.s loc_87ac
+loc_87a8:
+    move.b d0,2(a0,d1.w)
+loc_87ac:
+    move.b d0,0(a0,d1.w)
+    tst.b d0
+    bpl.s loc_87c0
+loc_87b4:
+    tst.b 1(a5)
+    bmi.s loc_87c0
+loc_87ba:
+    bset #7,1(a5)
+loc_87c0:
+    lea word_ead8,a5
+    swap d0
+    dbf d1,loc_8798
+loc_87cc:
+    rts
+loc_87ce:
+    tst.w sub_8878
+    bne.s loc_8844
+loc_87d6:
+    tst.b 82(a5)
+    bmi.s loc_883c
+loc_87dc:
+    moveq #0,d0
+    move.b 75(a5),d0
+    bne.s loc_87f6
+loc_87e4:
+    move.b 82(a5),d0
+    andi.w #$3f,d0
+    beq.s loc_883c
+loc_87ee:
+    move.w #$90ff,74(a5)
+    bra.s loc_883c
+loc_87f6:
+    tst.b 74(a5)
+    bne.s loc_8838
+loc_87fc:
+    tst.b d0
+    bpl.s loc_8808
+loc_8800:
+    cmpi.w #$f9,d0
+    beq.s loc_883c
+loc_8806:
+    neg.b d0
+loc_8808:
+    subq.b #1,75(a5)
+    move.b #$2,74(a5)
+    btst #0,(a5)
+    beq.s loc_881c
+loc_8818:
+    addi.w #$c,d0
+loc_881c:
+    btst #6,82(a5)
+    beq.s loc_8826
+loc_8824:
+    addq.w #6,d0
+loc_8826:
+    add.w d0,d0
+    move.w loc_8844(pc,d0.w),d0
+    move.w d0,$00dff19e
+    move.w d0,76(a5)
+    rts
+loc_8838:
+    subq.b #1,74(a5)
+loc_883c:
+    move.w 76(a5),$00dff19e
+loc_8844:
+    rts
+    dc.b    $00,$c0
+hint_8848:
+    dc.b    $00,$80,$00,$60,$00,$40,$00,$20
 sub_8850:
-    dc.b    $00,$00,$0c,$00,$08,$00,$06,$00,$04,$00,$02,$00
-hint_885c:
-    dc.b    $00,$00,$0e,$80,$0a,$60,$06,$40,$04,$20,$02,$00,$00,$00
+    dc.b    $00,$00,$0c,$00,$08,$00,$06,$00,$04,$00,$02,$00,$00,$00,$0e,$80
+    dc.b    $0a,$60,$06,$40,$04,$20,$02,$00,$00,$00
 sub_886a:
     dc.b    $0c,$00,$08,$00,$06,$00,$04,$00,$02
-    dcb.b   5,0
+    dc.b    $00
+    dc.b    $00
+    dc.b    $00
+word_8876:
+    dc.w    $0000
 sub_8878:
-    dc.b    $00,$00
+    dc.w    $0000
 word_887a:
     dc.b    $00
 byte_887b:
-    dc.b    $ff,$3f,$00,$30,$39,$00,$df,$f0,$1e,$02,$40,$00,$20,$67,$12
-hint_888a:
-    dc.b    $30,$1f,$33,$fc
-sub_888e:
-    dc.b    $00,$20,$00,$df,$f0,$9c
-hint_8894:
-    dc.b    $42,$79,$00,$00,$8c,$1a,$4e,$73
-hint_889c:
-    dc.b    $30,$1f
-hint_889e:
-    dc.b    $0a,$79,$00,$01,$00,$00,$8c,$1a,$67,$16
-hint_88a8:
-    dc.b    $48,$e7,$80,$04,$4b,$f9,$00,$00,$ee,$de,$61,$00,$ff,$1a
-hint_88b6:
-    dc.b    $4c,$df,$20,$01,$60,$00,$00,$60
+    dc.b    $ff
+loc_887c:
+    move.w d0,-(sp)
+    move.w _custom+intreqr,d0
+    andi.w #$20,d0
+    beq.s loc_889c
+loc_888a:
+    move.w (sp)+,d0
+    move.w #$20,_custom+intreq
+    clr.w word_8876
+    rte
+loc_889c:
+    move.w (sp)+,d0
+    eori.w #$1,word_8876
+    beq.s sub_88be
+loc_88a8:
+    movem.l d0/a5,-(sp)
+    lea word_eb3a,a5
+    bsr.w loc_87ce
+loc_88b6:
+    movem.l (sp)+,d0/a5
+    bra.w loc_891c
 sub_88be:
-    dc.b    $48,$e7,$ff,$fe,$53,$79,$00,$00,$ee,$9e,$64,$06
-hint_88ca:
-    dc.b    $42,$79,$00,$00,$ee,$9e
-hint_88d0:
-    dc.b    $53,$79,$00,$00,$ef,$00,$64,$06
-hint_88d8:
-    dc.b    $42,$79,$00,$00,$ef,$00
-hint_88de:
-    dc.b    $41,$f9,$00,$00,$ee,$36,$70,$02
-hint_88e6:
-    dc.b    $53,$58,$64,$04
-hint_88ea:
-    dc.b    $42,$68,$ff,$fe
-hint_88ee:
-    dc.b    $51,$c8,$ff,$f6
-hint_88f2:
-    dc.b    $4b,$f9,$00,$00,$ee,$7c,$61,$00,$fe,$d4
-hint_88fc:
-    dc.b    $4a,$39,$00,$00,$8c,$1f,$67,$14
-hint_8904:
-    dc.b    $61,$00,$fd,$72
-hint_8908:
-    dc.b    $4a,$39,$00,$00,$8c,$1e,$67,$08
-hint_8910:
-    dc.b    $42,$39,$00,$00,$8c,$1e,$61,$0e
-hint_8918:
-    dc.b    $4c,$df,$7f,$ff
-hint_891c:
-    dc.b    $33,$fc,$00,$10,$00,$df,$f0,$9c,$4e,$73
+    movem.l d0-d7/a0-a6,-(sp)
+    subq.w #1,word_eafa
+    bcc.s loc_88d0
+loc_88ca:
+    clr.w word_eafa
+loc_88d0:
+    subq.w #1,word_eb5c
+    bcc.s loc_88de
+loc_88d8:
+    clr.w word_eb5c
+loc_88de:
+    lea long_ea92,a0
+    moveq #2,d0
+loc_88e6:
+    subq.w #1,(a0)+
+    bcc.s loc_88ee
+loc_88ea:
+    clr.w -2(a0)
+loc_88ee:
+    dbf d0,loc_88e6
+loc_88f2:
+    lea word_ead8,a5
+    bsr.w loc_87ce
+loc_88fc:
+    tst.b byte_887b
+    beq.s loc_8918
+loc_8904:
+    bsr.w loc_8678
+loc_8908:
+    tst.b word_887a
+    beq.s loc_8918
+loc_8910:
+    clr.b word_887a
+    bsr.s loc_8926
+loc_8918:
+    movem.l (sp)+,d0-d7/a0-a6
+loc_891c:
+    move.w #$10,_custom+intreq
+loc_8924:
+    rte
 loc_8926:
     cmpi.l #$60000,long_8992
     bne.s loc_8948
@@ -10940,6 +11117,7 @@ loc_8932:
     bra.s loc_895c
 loc_8948:
     move.l #$60000,long_8992
+sub_8952:
     move.l #$67d00,long_8996
 loc_895c:
     lea word_8a6c,a0
@@ -11006,10 +11184,10 @@ loc_89fa:
     rts
 loc_89fc:
     movea.l long_8996,a0
-    bra.s loc_8a0a
+    bra.s sub_8a0a
 loc_8a04:
     movea.l long_8992,a0
-loc_8a0a:
+sub_8a0a:
     move.w #$1f3f,d0
 loc_8a0e:
     clr.l (a0)+
@@ -11029,7 +11207,9 @@ word_8a2c:
     dc.w    $0000
     dc.b    $04,$44,$06,$66,$08,$88,$0a,$aa,$02,$92,$01,$c1,$00,$0e,$04,$8e
     dc.b    $08,$21,$0b,$31,$0e,$96,$0d,$00,$0f,$d0,$0e,$ee,$0c,$08
-    dcb.b   10,0
+    dcb.b   4,0
+sub_8a50:
+    dcb.b   6,0
     dc.b    $02,$2e,$04,$8e,$0e,$ee,$00,$00,$0e,$00,$0e,$83,$0e,$ee
     dcb.b   8,0
 word_8a6c:
@@ -11041,8 +11221,9 @@ hint_8a7a:
 word_8a8c:
     dc.w    $0120
 hint_8a8e:
-    dc.b    $00,$00,$01,$22,$00,$00,$01,$24,$00,$00,$01,$26,$00,$00,$01,$28
-    dc.b    $00,$00,$01,$2a,$00,$00
+    dc.b    $00,$00,$01,$22,$00,$00,$01,$24,$00,$00
+sub_8a98:
+    dc.b    $01,$26,$00,$00,$01,$28,$00,$00,$01,$2a,$00,$00
 hint_8aa4:
     dc.b    $01,$2c,$00,$00,$01,$2e,$00,$00,$01,$30,$00,$00,$01,$32,$00,$00
     dc.b    $01,$34,$00,$00,$01,$36,$00,$00
@@ -11050,12 +11231,16 @@ hint_8abc:
     dc.b    $01,$38,$00,$00,$01,$3a,$00,$00,$01,$3c,$00,$00,$01,$3e,$00,$00
     dc.b    $98,$01
     dc.b    $ff,$00,$00,$9c,$80,$10,$ff,$01,$ff,$00,$00,$9c,$80,$10,$ff,$ff
+sub_8ade:
     dc.b    $ff,$fe
-    dcb.b   4,0
-    dc.b    $c0,$00,$00,$00,$a0,$00,$00,$00,$90,$00,$00,$00,$88,$00,$00,$00
-    dc.b    $84,$00,$00,$00,$82,$00,$00,$00,$81,$00,$00,$00,$80,$80,$00,$00
-    dc.b    $80,$40,$00,$00,$83,$80,$00,$00,$92,$00,$00,$00,$a9,$00,$00,$00
-    dc.b    $49,$00,$00,$00,$04,$80,$00,$00,$04,$80,$00,$00,$03
+word_8ae0:
+    dc.w    $0000
+    dc.b    $00,$00,$c0,$00,$00,$00,$a0,$00,$00,$00,$90,$00,$00,$00,$88,$00
+    dc.b    $00,$00,$84,$00,$00,$00,$82,$00,$00,$00,$81,$00
+sub_8afe:
+    dc.b    $00,$00,$80,$80,$00,$00,$80,$40,$00,$00,$83,$80,$00,$00,$92,$00
+    dc.b    $00,$00,$a9,$00,$00,$00,$49,$00,$00,$00,$04,$80,$00,$00,$04,$80
+    dc.b    $00,$00,$03
     dcb.b   15,0
     dc.b    $40,$00,$00,$00,$60,$00,$00,$00,$50,$00,$20,$00,$48,$00,$30,$00
     dc.b    $54,$00,$38,$00
@@ -11063,11 +11248,14 @@ hint_8b44:
     dc.b    $5a,$00,$3c,$00,$5d,$00,$3e,$00,$50,$80,$3f,$00,$40,$00,$3c,$00
     dc.b    $44,$00,$2c,$00,$40,$00,$06,$00,$02,$00,$06,$00,$01,$00,$02,$00
     dc.b    $03
-    dcb.b   15,0
-    dc.b    $c0,$00,$00,$00,$a0,$00,$00,$00,$90,$00,$00,$00,$88,$00,$00,$00
-    dc.b    $84,$00,$00,$00,$82,$00,$00,$00,$81,$00,$00,$00,$80,$80,$00,$00
-    dc.b    $80,$40,$00,$00,$83,$80,$00,$00,$92,$00,$00,$00,$a9,$00,$00,$00
-    dc.b    $49,$00,$00,$00,$04,$80,$00,$00,$04,$80,$00,$00,$03
+    dcb.b   11,0
+word_8b70:
+    dc.w    $0000
+sub_8b72:
+    dc.b    $00,$00,$c0,$00,$00,$00,$a0,$00,$00,$00,$90,$00,$00,$00,$88,$00
+    dc.b    $00,$00,$84,$00,$00,$00,$82,$00,$00,$00,$81,$00,$00,$00,$80,$80
+    dc.b    $00,$00,$80,$40,$00,$00,$83,$80,$00,$00,$92,$00,$00,$00,$a9,$00
+    dc.b    $00,$00,$49,$00,$00,$00,$04,$80,$00,$00,$04,$80,$00,$00,$03
     dcb.b   15,0
     dc.b    $40,$00,$00,$00,$60,$00,$00,$00,$50,$00,$20,$00,$48,$00
     dc.b    $30,$00,$54,$00,$38,$00,$5a,$00,$3c,$00,$5d,$00,$3e,$00,$50,$80
@@ -16222,8 +16410,9 @@ sub_ccd8:
     dc.b    $00,$02,$00,$40,$61,$0e
 hint_ccde:
     dc.b    $4c,$df,$30,$00,$4e,$75
-hint_cce4:
-    dc.b    $14,$3c,$00,$81,$60,$02
+loc_cce4:
+    move.b #$81,d2
+    bra.s loc_ccec
 loc_ccea:
     moveq #0,d2
 loc_ccec:
@@ -16299,7 +16488,7 @@ loc_cd88:
     beq.s loc_cd84
 sub_cd8c:
     lea loc_08ac,a0
-    bra.w loc_8a0a
+    bra.w sub_8a0a
 loc_cd94:
     movem.l a4-a6,-(sp)
     bra.w loc_ce58
@@ -17763,7 +17952,10 @@ word_eae2:
 long_eaf0:
     dc.l    $ffffffff
     dc.l    $00000000
-    dcb.b   6,0
+    dc.b    $00,$00
+word_eafa:
+    dc.w    $0000
+    dc.b    $00,$00
 long_eafe:
     dc.l    $ffffffff
     dcb.b   6,0
@@ -17803,7 +17995,10 @@ word_eb4e:
 long_eb52:
     dc.l    $ffffffff
     dc.l    $00000000
-    dcb.b   6,0
+    dc.b    $00,$00
+word_eb5c:
+    dc.w    $0000
+    dc.b    $00,$00
 long_eb60:
     dc.l    $ffffffff
     dcb.b   6,0

@@ -82,6 +82,12 @@ from m68k.os_calls import (
     refine_library_calls,
 )
 from m68k.os_structs import resolve_struct_field
+from m68k.vector_tables import (
+    copy_loop_info,
+    immediate_absolute_store,
+    simple_register_value_before,
+    trap_number,
+)
 from m68k_kb import runtime_hunk, runtime_m68k_analysis, runtime_os
 
 _FLOW_BRANCH = runtime_m68k_analysis.FlowType.BRANCH
@@ -190,79 +196,6 @@ def _execution_views_for_session(
     return tuple(views)
 
 
-def _copy_loop_info(inst: Instruction) -> tuple[int, int, int] | None:
-    mnemonic = instruction_kb(inst)
-    if runtime_m68k_analysis.OPERATION_TYPES.get(mnemonic) != runtime_m68k_analysis.OperationType.MOVE:
-        return None
-    decoded = decode_inst_operands(inst, mnemonic)
-    src = decoded.ea_op
-    dst = decoded.dst_op
-    if src is None or dst is None or src.mode != "postinc" or dst.mode != "postinc":
-        return None
-    if src.reg is None or dst.reg is None or inst.operand_size not in _OPERAND_SIZE_BYTES:
-        return None
-    return src.reg, dst.reg, _OPERAND_SIZE_BYTES[inst.operand_size]
-
-
-def _trap_number(inst: Instruction) -> int | None:
-    if instruction_kb(inst) != "TRAP" or len(inst.raw) < 2:
-        return None
-    return int.from_bytes(inst.raw[:2], "big") & 0xF
-
-
-def _immediate_to_absolute_write(inst: Instruction) -> tuple[int, int] | None:
-    mnemonic = instruction_kb(inst)
-    if mnemonic not in {"MOVE", "MOVEA"}:
-        return None
-    decoded = decode_inst_operands(inst, mnemonic)
-    source = decoded.ea_op
-    dest = decoded.dst_op
-    if source is None or dest is None or source.mode != "imm":
-        return None
-    if dest.mode not in {"absw", "absl"} or source.value is None or dest.value is None:
-        return None
-    return int(source.value), int(dest.value & 0xFFFF if dest.mode == "absw" else dest.value)
-
-
-def _simple_register_value_before(
-    *,
-    blocks: Mapping[int, DisasmBlockLike],
-    before_addr: int,
-    register_kind: str,
-    register_num: int,
-) -> int | None:
-    for block_addr in sorted((addr for addr in blocks if addr < before_addr), reverse=True):
-        block = blocks[block_addr]
-        for inst in reversed(block.instructions):
-            mnemonic = instruction_kb(inst)
-            decoded = decode_inst_operands(inst, mnemonic)
-            if register_kind == "an":
-                opcode = int.from_bytes(inst.raw[:2], "big") if len(inst.raw) >= 2 else 0
-                if mnemonic == "LEA" and ((opcode >> 9) & 0x7) == register_num:
-                    source = decoded.ea_op
-                    if source is not None and source.value is not None:
-                        return int(source.value)
-                dst = decoded.dst_op
-                if mnemonic == "MOVEA" and dst is not None and dst.mode == "an" and dst.reg == register_num:
-                    source = decoded.ea_op
-                    if source is not None and source.mode == "imm" and source.value is not None:
-                        return int(source.value)
-            elif register_kind == "dn":
-                dst = decoded.dst_op
-                if dst is not None and dst.mode in {"dn", "dreg"} and dst.reg == register_num:
-                    source = decoded.ea_op
-                    if source is not None and source.mode == "imm" and source.value is not None:
-                        return int(source.value)
-                if mnemonic == "MOVEQ" and inst.raw:
-                    opcode = int.from_bytes(inst.raw[:2], "big")
-                    if ((opcode >> 9) & 0x7) == register_num:
-                        immediate = opcode & 0xFF
-                        if immediate & 0x80:
-                            immediate -= 0x100
-                        return immediate
-    return None
-
-
 def _trap_bootstrap_execution_views(
     *,
     code: bytes,
@@ -273,17 +206,17 @@ def _trap_bootstrap_execution_views(
     for trap_addr in sorted(blocks):
         block = blocks[trap_addr]
         vector_target: int | None = None
-        trap_number: int | None = None
+        trap_num: int | None = None
         for inst in block.instructions:
-            maybe_trap = _trap_number(inst)
+            maybe_trap = trap_number(inst)
             if maybe_trap is not None:
-                trap_number = maybe_trap
+                trap_num = maybe_trap
                 break
-        if trap_number is None:
+        if trap_num is None:
             continue
-        vector_slot = 0x80 + (trap_number * 4)
+        vector_slot = 0x80 + (trap_num * 4)
         for inst in block.instructions:
-            write = _immediate_to_absolute_write(inst)
+            write = immediate_absolute_store(inst)
             if write is None:
                 continue
             immediate, absolute_dest = write
@@ -297,25 +230,25 @@ def _trap_bootstrap_execution_views(
             copy_block = blocks[copy_addr]
             loop_info = None
             for inst in copy_block.instructions:
-                loop_info = _copy_loop_info(inst)
+                loop_info = copy_loop_info(inst)
                 if loop_info is not None:
                     break
             if loop_info is None:
                 continue
             src_reg, dst_reg, unit_size = loop_info
-            source_start = _simple_register_value_before(
+            source_start = simple_register_value_before(
                 blocks=blocks,
                 before_addr=copy_addr,
                 register_kind="an",
                 register_num=src_reg,
             )
-            dest_start = _simple_register_value_before(
+            dest_start = simple_register_value_before(
                 blocks=blocks,
                 before_addr=copy_addr,
                 register_kind="an",
                 register_num=dst_reg,
             )
-            count = _simple_register_value_before(
+            count = simple_register_value_before(
                 blocks=blocks,
                 before_addr=copy_addr,
                 register_kind="dn",
@@ -338,11 +271,11 @@ def _trap_bootstrap_execution_views(
                     source_start=source_start,
                     source_end=source_end,
                     base_addr=vector_target,
-                    name=f"trap_{trap_number}_stub",
+                    name=f"trap_{trap_num}_stub",
                     seed_origin="autodoc",
                     review_status="seeded",
                     citation="analysis:trap_bootstrap",
-                    comment=f"Copied trap {trap_number} stub executes from ${vector_target:08X}",
+                    comment=f"Copied trap {trap_num} stub executes from ${vector_target:08X}",
                 )
             )
             break

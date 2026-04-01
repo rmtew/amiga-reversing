@@ -174,7 +174,11 @@ def _resolve_operand(
         if addr.is_symbolic:
             return mem.read(addr.sym_add(operand.value), size)
         return None
-    if operand.mode in ("absw", "absl", "pcdisp"):
+    if operand.mode in ("absw", "absl"):
+        assert operand.value is not None
+        abs_addr = operand.value & 0xFFFF if operand.mode == "absw" else operand.value
+        return mem.read(abs_addr, size)
+    if operand.mode == "pcdisp":
         return None  # can't resolve without memory map
     if operand.mode == "index":
         if operand.full_extension:
@@ -261,6 +265,10 @@ def _write_operand(
                 value, size)
         elif addr.is_symbolic:
             mem.write(addr.sym_add(operand.value), value, size)
+    elif operand.mode in ("absw", "absl"):
+        assert operand.value is not None
+        abs_addr = operand.value & 0xFFFF if operand.mode == "absw" else operand.value
+        mem.write(abs_addr, value, size)
     elif operand.mode in ("index", "pcindex") and operand.full_extension:
         ea = _resolve_full_extension_ea(operand, cpu, mem)
         if ea is not None:
@@ -1660,9 +1668,12 @@ def _apply_assign(
 
     # ExecBase load: MOVEA.L ($N).W,An -- source is absw
     # matching platform exec_base_addr.
-    if (src_val is None and platform and src_op
-            and src_op.mode == "absw"
-            and src_op.value == platform.exec_base_addr):
+    if (
+        platform
+        and src_op
+        and src_op.mode == "absw"
+        and src_op.value == platform.exec_base_addr
+    ):
         src_val = _unknown(tag=platform.exec_base_tag)
 
     # Write to destination.

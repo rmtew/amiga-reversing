@@ -168,3 +168,27 @@ class HardwareRegisterDef(TypedDict):
     include: str | None
     base_symbol: str | None
     offset: int
+
+
+class HardwareInterruptSourceDef(TypedDict, total=False):
+    bit: int
+    level: int
+    vector_number: int
+    vector_address: int
+    enable_registers: tuple[str, ...]
+    request_registers: tuple[str, ...]
+    description: str
+    category: str
+    producer: str
+    channel: int
+    related_registers: tuple[str, ...]
+
+
+class HardwareInterruptRouteDef(TypedDict):
+    source_register: str
+    source_bit: int
+    parent_interrupt: str
+    level: int
+    vector_number: int
+    vector_address: int
+    description: str

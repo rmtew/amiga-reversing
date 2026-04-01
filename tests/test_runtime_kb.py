@@ -23,6 +23,7 @@ from m68k.os_structs import resolve_struct_field
 from scripts.oracle_m68k_asm import ORACLE_MAP, PROJ_ROOT, VamosDriver
 from tests.runtime_kb_helpers import (
     RUNTIME_PY,
+    load_canonical_hardware_reference,
     load_canonical_hardware_symbols,
     load_canonical_hunk_kb,
     load_canonical_m68k_kb,
@@ -298,6 +299,7 @@ def test_os_reference_merge_rejects_missing_flag_remainder_policy() -> None:
 
 def test_runtime_hardware_matches_canonical_hardware_symbols() -> None:
     canonical = load_canonical_hardware_symbols()
+    hardware_reference = load_canonical_hardware_reference()
     runtime = load_hardware_runtime_kb()
 
     assert canonical["_meta"] == runtime.META
@@ -313,6 +315,93 @@ def test_runtime_hardware_matches_canonical_hardware_symbols() -> None:
         for entry in canonical["registers"]
     }
     assert expected == runtime.REGISTER_DEFS
+    expected_interrupts = {
+        entry["name"]: {
+            "bit": entry["bit"],
+            "level": entry["level"],
+            "vector_number": entry["vector_number"],
+            "vector_address": int(entry["vector_address"], 16),
+            "enable_registers": tuple(entry["enable_registers"]),
+            "request_registers": tuple(entry["request_registers"]),
+            "description": entry["description"],
+            **({"category": entry["category"]} if "category" in entry else {}),
+            **({"producer": entry["producer"]} if "producer" in entry else {}),
+            **({"channel": entry["channel"]} if "channel" in entry else {}),
+            **({"related_registers": tuple(entry["related_registers"])} if "related_registers" in entry else {}),
+        }
+        for entry in hardware_reference["interrupt_sources"]
+    }
+    assert expected_interrupts == runtime.INTERRUPT_SOURCES
+    expected_routes = {
+        (entry["source_register"], entry["source_bit"]): {
+            "source_register": entry["source_register"],
+            "source_bit": entry["source_bit"],
+            "parent_interrupt": entry["parent_interrupt"],
+            "level": entry["level"],
+            "vector_number": entry["vector_number"],
+            "vector_address": int(entry["vector_address"], 16),
+            "description": entry["description"],
+        }
+        for entry in hardware_reference["interrupt_routes"]
+    }
+    assert expected_routes == runtime.INTERRUPT_ROUTES
+
+
+def test_canonical_hardware_reference_interrupt_sources_include_levels_and_vectors() -> None:
+    hardware_reference = load_canonical_hardware_reference()
+    by_name = {entry["name"]: entry for entry in hardware_reference["interrupt_sources"]}
+
+    assert by_name["EXTER"]["level"] == 6
+    assert by_name["EXTER"]["vector_number"] == 30
+    assert by_name["EXTER"]["vector_address"] == "0x78"
+    assert by_name["PORTS"]["level"] == 2
+    assert by_name["PORTS"]["vector_number"] == 26
+    assert by_name["PORTS"]["vector_address"] == "0x68"
+    assert by_name["TBE"]["level"] == 1
+    assert by_name["TBE"]["vector_number"] == 25
+    assert by_name["TBE"]["vector_address"] == "0x64"
+    assert by_name["DSKSYN"]["category"] == "disk"
+    assert by_name["DSKSYN"]["producer"] == "paula_disk"
+    assert by_name["DSKSYN"]["related_registers"] == ["DSKSYNC"]
+    assert by_name["RBF"]["category"] == "serial"
+    assert by_name["RBF"]["producer"] == "paula_uart"
+    assert by_name["RBF"]["related_registers"] == ["SERDATR"]
+    assert by_name["AUD0"]["category"] == "audio"
+    assert by_name["AUD0"]["producer"] == "paula_audio"
+    assert by_name["AUD0"]["channel"] == 0
+    assert by_name["AUD0"]["related_registers"] == ["AUD0LC", "AUD0LEN", "AUD0PER", "AUD0VOL", "AUD0DAT"]
+    assert by_name["BLIT"]["category"] == "blitter"
+    assert by_name["BLIT"]["producer"] == "agnus_blitter"
+    assert by_name["BLIT"]["related_registers"] == ["BLTSIZE", "BLTSIZV", "BLTSIZH"]
+    assert by_name["VERTB"]["category"] == "video"
+    assert by_name["VERTB"]["producer"] == "beam_counter"
+    assert by_name["COPER"]["category"] == "copper"
+    assert by_name["COPER"]["producer"] == "copper"
+    assert by_name["SOFT"]["category"] == "software"
+    assert by_name["SOFT"]["producer"] == "cpu_software"
+    assert by_name["PORTS"]["category"] == "external_io"
+    assert by_name["PORTS"]["producer"] == "peripherals"
+    assert by_name["PORTS"]["related_registers"] == ["CIAA_ICR"]
+    assert by_name["EXTER"]["category"] == "external_io"
+    assert by_name["EXTER"]["producer"] == "peripherals"
+    assert by_name["EXTER"]["related_registers"] == ["CIAB_ICR"]
+
+
+def test_canonical_hardware_reference_interrupt_routes_bridge_cia_to_parent_interrupts() -> None:
+    hardware_reference = load_canonical_hardware_reference()
+    by_key = {
+        (entry["source_register"], entry["source_bit"]): entry
+        for entry in hardware_reference["interrupt_routes"]
+    }
+
+    assert by_key[("CIAA_ICR", 0)]["parent_interrupt"] == "PORTS"
+    assert by_key[("CIAA_ICR", 0)]["level"] == 2
+    assert by_key[("CIAA_ICR", 0)]["vector_number"] == 26
+    assert by_key[("CIAA_ICR", 0)]["vector_address"] == "0x68"
+    assert by_key[("CIAB_ICR", 0)]["parent_interrupt"] == "EXTER"
+    assert by_key[("CIAB_ICR", 0)]["level"] == 6
+    assert by_key[("CIAB_ICR", 0)]["vector_number"] == 30
+    assert by_key[("CIAB_ICR", 0)]["vector_address"] == "0x78"
 
 
 def test_runtime_size_encodings_match_canonical_structured_size_encoding() -> None:
@@ -647,6 +736,93 @@ def test_runtime_projection_keeps_only_minimal_constraint_fields() -> None:
         (),
     )
     assert payload.EA_MODE_TABLES["RTS"] == ((), (), ())
+
+
+def test_m68k_exception_vectors_include_autovectors_and_traps() -> None:
+    canonical = load_canonical_m68k_kb()
+    vectors = {entry["vector"]: entry for entry in canonical["_meta"]["exception_vectors"]}
+
+    assert vectors[25]["address"] == 0x64
+    assert vectors[25]["name"] == "Level 1 Interrupt Autovector"
+    assert vectors[27]["address"] == 0x6C
+    assert vectors[27]["name"] == "Level 3 Interrupt Autovector"
+    assert vectors[32]["address"] == 0x80
+    assert vectors[47]["address"] == 0xBC
+    assert vectors[25]["seed_origin"] == "primary_doc"
+    assert vectors[25]["review_status"] == "seeded"
+
+
+def test_m68k_exception_stack_frames_include_format_families() -> None:
+    canonical = load_canonical_m68k_kb()
+    frames = canonical["_meta"]["exception_stack_frames"]
+    by_format = {entry["format_code"]: entry for entry in frames if entry["format_code"] is not None}
+
+    assert by_format["$0"]["name"] == "Four-Word Stack Frame"
+    assert by_format["$2"]["name"] == "Six-Word Stack Frame"
+    assert by_format["$7"]["name"] == "Access Error Stack Frame"
+    assert by_format["$8"]["processors"] == ["68010"]
+    assert by_format["$9"]["processors"] == ["68020", "68030"]
+    assert by_format["$C"]["processors"] == ["CPU32"]
+    assert by_format["$0"]["fields"] == [
+        {"offset": 0x00, "name": "status_register", "size_words": 1},
+        {"offset": 0x02, "name": "program_counter", "size_words": 2},
+        {"offset": 0x06, "name": "format_and_vector_offset", "size_words": 1},
+    ]
+    assert by_format["$7"]["fields"][0] == {
+        "offset": 0x00,
+        "name": "special_status_word",
+        "size_words": 1,
+    }
+    assert by_format["$7"]["fields"][-1] == {
+        "offset": 0x3A,
+        "name": "status_register",
+        "size_words": 1,
+    }
+    assert by_format["$8"]["fields"][3]["name"] == "special_status_word"
+    assert by_format["$9"]["fields"][2] == {
+        "offset": 0x08,
+        "name": "internal_registers",
+        "size_words": 4,
+    }
+    assert by_format["$C"]["fields"][-1]["name"] == "current_instruction_program_counter_low"
+    assert all(entry["seed_origin"] == "primary_doc" for entry in frames)
+    assert all(entry["review_status"] == "seeded" for entry in frames)
+
+
+def test_m68k_exception_frame_rules_bridge_vectors_to_frames() -> None:
+    canonical = load_canonical_m68k_kb()
+    rules = canonical["_meta"]["exception_frame_rules"]
+
+    assert {
+        "vector_start": 24,
+        "vector_end": 47,
+        "processors": ["68000"],
+        "frame_ids": ["mc68000_group_1_2"],
+        "selection": "always",
+        "review_status": "seeded",
+        "seed_origin": "primary_doc",
+        "citation": "M68K PRM Rev 1 Appendix B exception vectors/stack frames; parser-authored mapping",
+    } in rules
+    assert {
+        "vector_start": 24,
+        "vector_end": 47,
+        "processors": ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"],
+        "frame_ids": ["format_0"],
+        "selection": "always",
+        "review_status": "seeded",
+        "seed_origin": "primary_doc",
+        "citation": "M68K PRM Rev 1 Appendix B exception vectors/stack frames; parser-authored mapping",
+    } in rules
+    assert {
+        "vector_start": 2,
+        "vector_end": 2,
+        "processors": ["68020", "68030"],
+        "frame_ids": ["format_a", "format_b"],
+        "selection": "depends_on_bus_cycle_length",
+        "review_status": "seeded",
+        "seed_origin": "primary_doc",
+        "citation": "M68K PRM Rev 1 Appendix B exception vectors/stack frames; parser-authored mapping",
+    } in rules
 
 
 def test_canonical_m68k_runtime_fields_are_structured() -> None:

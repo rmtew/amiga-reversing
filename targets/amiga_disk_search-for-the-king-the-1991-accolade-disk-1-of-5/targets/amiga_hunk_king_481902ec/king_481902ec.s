@@ -4272,7 +4272,7 @@ hunk_0_loc_26e8:
 hunk_1_loc_0000:
     movem.l d2-d3/d6-d7,-(sp)
     move.b #$7a,7532(a4)
-    move.l #hunk_40_dat_0000,hunk_40_dat_0000
+    move.l #hunk_1_loc_0000,hunk_40_dat_0000
     pea 7808(a4)
     pea 7804(a4)
     pea 6480(a4)

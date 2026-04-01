@@ -1,6 +1,6 @@
 ; Generated disassembly -- vasm Motorola syntax
 ; Source: bin\MonAm302
-; 35616 bytes, 346 entities, 1492 blocks
+; 35616 bytes, 346 entities, 1491 blocks
 ; OS compatibility floor: 2.0
 
 ; LVO offsets: graphics.library (FD-derived)
@@ -24,6 +24,7 @@ _LVOCloseScreen	EQU	-66
 ; App memory offsets (base register A6)
 app_addport_port	EQU	274
 app_allocmem_memoryblock	EQU	1416
+app_allocsignal_signalnum	EQU	289
 app_closescreen_screen	EQU	206
 app_closewindow_window	EQU	1460
 app_console_device_iorequest	EQU	2072
@@ -35,7 +36,6 @@ app_exec_base_005C	EQU	92
 app_exec_base_00BA	EQU	186
 app_findtask_task	EQU	290
 app_freemem_memoryblock	EQU	310
-app_freesignal_signalnum	EQU	289
 app_graphics_base	EQU	198
 app_intuition_base	EQU	190
 app_polydraw_polytable	EQU	2164
@@ -61,7 +61,7 @@ AbsExecBase	EQU	$4
     INCLUDE "intuition/intuitionbase.i"
     INCLUDE "intuition/screens.i"
 
-; Hunk 0: 35548 bytes, 345 entities, 1492 blocks
+; Hunk 0: 35548 bytes, 345 entities, 1491 blocks
 
     section code,code
 
@@ -412,39 +412,35 @@ loc_03e8:
     movea.l (sp)+,a6
 loc_03ea:
     move.b 309(a6),d0 ; app+$135
-    beq.s loc_0400
-loc_03f0:
-    lea supervisor_userfunc(pc),a5 ; Supervisor: userFunc
-    move.l a6,-(sp)
-    movea.l AbsExecBase,a6
-    jsr _LVOSupervisor(a6) ; app-$1E
-loc_03fe:
-    movea.l (sp)+,a6
+    dc.b    $67,$10,$4b
+    dc.b    $fa,$15,$ca,$2f,$0e,$2c,$78,$00,$04,$4e,$ae,$ff,$e2
+hint_03fe:
+    dc.b    $2c,$5f
 loc_0400:
-    lea app_addport_port(a6),a1 ; RemPort: port
+    lea app_addport_port(a6),a1
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
-    jsr _LVORemPort(a6) ; app-$168
+    jsr -360(a6) ; app-$168; unresolved_indirect_core:disp
 loc_040e:
     movea.l (sp)+,a6
     moveq #0,d0
-    move.b app_addport_port+MP_SIGBIT(a6),d0 ; FreeSignal: signalNum
+    move.b app_addport_port+MP_SIGBIT(a6),d0
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
-    jsr _LVOFreeSignal(a6) ; app-$150
+    jsr -336(a6) ; app-$150; unresolved_indirect_core:disp
 loc_0420:
     movea.l (sp)+,a6
     moveq #0,d0
-    move.b byte_895e,d0 ; FreeSignal: signalNum
+    move.b byte_895e,d0
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
-    jsr _LVOFreeSignal(a6) ; app-$150
+    jsr -336(a6) ; app-$150; unresolved_indirect_core:disp
 loc_0434:
     movea.l (sp)+,a6
-    lea app_console_device_iorequest(a6),a1 ; CloseDevice: ioRequest
+    lea app_console_device_iorequest(a6),a1
     move.l a6,-(sp)
     movea.l AbsExecBase,a6
-    jsr _LVOCloseDevice(a6) ; app-$1C2
+    jsr -450(a6) ; app-$1C2; unresolved_indirect_core:disp
 loc_0444:
     movea.l (sp)+,a6
 loc_0446:

@@ -390,6 +390,54 @@ def test_analyze_hunk_promotes_code_pointer_args_into_core_entries(
     assert 0x0A in ha.blocks
 
 
+def test_analyze_hunk_promotes_immediate_vector_handler_targets_into_core_entries() -> None:
+    code = b""
+    pc = 0x400
+    for text in (
+            "move.l #$420,($0068).w",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+    code += b"\x4e\x71" * ((0x420 - 0x400 - len(code)) // 2)
+    for text in (
+            "moveq #1,d0",
+            "rte"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    result = analyze_hunk(code, relocs=[], hunk_index=0, base_addr=0x400, print_fn=lambda *_: None)
+
+    assert 0x420 in result.blocks
+
+
+def test_analyze_hunk_promotes_postincrement_vector_fill_targets_into_core_entries() -> None:
+    code = b""
+    pc = 0x400
+    for text in (
+            "move.l #$420,d0",
+            "lea ($0060).w,a0",
+            "moveq #1,d1",
+            "move.l d0,(a0)+",
+            "dbf d1,$40c",
+            "rts"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+    code += b"\x4e\x71" * ((0x420 - 0x400 - len(code)) // 2)
+    for text in (
+            "moveq #1,d0",
+            "rte"):
+        raw = assemble_instruction(text, pc=pc)
+        code += raw
+        pc += len(raw)
+
+    result = analyze_hunk(code, relocs=[], hunk_index=0, base_addr=0x400, print_fn=lambda *_: None)
+
+    assert 0x420 in result.blocks
+
+
 def test_parse_full_extension_raises_decode_error_for_reserved_shape() -> None:
     with pytest.raises(DecodeError, match="Reserved full extension BD SIZE value"):
         parse_full_extension(

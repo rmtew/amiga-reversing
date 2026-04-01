@@ -274,7 +274,7 @@ def test_emit_session_rows_smoke_for_empty_hunk_session() -> None:
                 arg_annotations={},
                 data_access_sizes={},
                 platform=make_platform(),
-        os_kb=make_empty_os_kb(),
+                os_kb=make_empty_os_kb(),
                 base_addr=0,
                 code_start=0,
                 relocated_segments=[],
@@ -648,6 +648,54 @@ def test_unlabeled_low_absolute_operands_render_compact() -> None:
 
     assert lea_text == "lea $90,a1"
     assert move_text == "move.l #$90,$80"
+
+
+def test_immediate_vector_handler_store_uses_execution_view_source_label() -> None:
+    inst = disassemble(bytes.fromhex("23fc0000040000000068"), base_offset=0x19A)[0]
+    hunk_session = HunkDisassemblySession(
+        hunk_index=0,
+        code=inst.raw,
+        code_size=len(inst.raw),
+        entities=[],
+        blocks={0x19A: _FakeBlock(0x19A, 0x19A + len(inst.raw), (), [inst])},
+        hint_blocks={},
+        code_addrs=set(range(0x19A, 0x19A + len(inst.raw))),
+        hint_addrs=set(),
+        reloc_map={},
+        reloc_target_set=set(),
+        pc_targets={},
+        string_addrs=set(),
+        labels={0x5C: "loc_005c"},
+        jump_table_regions={},
+        jump_table_target_sources={},
+        region_map={},
+        lvo_equs={},
+        lvo_substitutions={},
+        arg_substitutions={},
+        app_offsets={},
+        arg_annotations={},
+        data_access_sizes={},
+        platform=make_platform(),
+        os_kb=make_empty_os_kb(),
+        base_addr=0,
+        code_start=0,
+        relocated_segments=[],
+        execution_views=(
+            ExecutionViewMetadata(
+                source_start=0x5C,
+                source_end=0x100,
+                base_addr=0x400,
+                name="relocated_code_1",
+                seed_origin="autodoc",
+                review_status="seeded",
+                citation="container:relocated_segment",
+            ),
+        ),
+    )
+
+    text, _comment, _comment_parts = render_instruction_text(inst, hunk_session, set())
+
+    assert text == "move.l #loc_005c,$68"
 
 
 def test_absolute_label_or_text_uses_remapped_numeric_target_not_stale_token() -> None:

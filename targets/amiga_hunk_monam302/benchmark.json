@@ -2,52 +2,52 @@
   "target": "amiga_hunk_monam302",
   "binary": "bin/MonAm302",
   "command": "uv run scripts/benchmark_target.py amiga_hunk_monam302",
-  "measured_at": "2026-04-01T11:25:58+13:00",
+  "measured_at": "2026-04-01T16:44:50+13:00",
   "status": "ok",
-  "elapsed_seconds": 33.85,
-  "analysis_bytes": 5424219,
-  "entities_bytes": 96837,
-  "disasm_bytes": 297647,
+  "elapsed_seconds": 53.16,
+  "analysis_bytes": 5536785,
+  "entities_bytes": 96059,
+  "disasm_bytes": 297558,
   "timing": {
     "entities": {
-      "parse_source_seconds": 0.0002,
+      "parse_source_seconds": 0.0003,
       "analysis": {
-        "init_seconds": 0.2748,
-        "core_seconds": 1.8483,
-        "per_caller_seconds": 16.1023,
-        "store_pass_seconds": 0.029,
-        "hint_scan_seconds": 0.5151,
-        "os_call_seconds": 7.5364
+        "init_seconds": 0.4827,
+        "core_seconds": 3.212,
+        "per_caller_seconds": 22.967,
+        "store_pass_seconds": 0.048,
+        "hint_scan_seconds": 0.8051,
+        "os_call_seconds": 13.5779
       },
-      "naming_seconds": 0.0026,
-      "write_seconds": 0.003
+      "naming_seconds": 0.0031,
+      "write_seconds": 0.0044
     },
     "session": {
-      "load_analysis_seconds": 0.3995,
-      "metadata_seconds": 1.4706,
-      "substitutions_seconds": 0.029,
+      "load_analysis_seconds": 0.6841,
+      "metadata_seconds": 2.2055,
+      "substitutions_seconds": 0.0335,
       "build_seconds": 0.0001
     },
-    "emit_seconds": 0.386,
-    "render_seconds": 0.0154
+    "emit_seconds": 0.6066,
+    "render_seconds": 0.0243
   },
   "analysis": {
     "code_bytes": 35548,
-    "core_block_count": 1492,
-    "core_instruction_count": 3995,
-    "core_covered_bytes": 12072,
-    "core_coverage_ratio": 0.3396,
-    "hint_block_count": 3527,
-    "hint_instruction_count": 7690,
-    "hint_covered_bytes": 23266,
-    "hint_coverage_ratio": 0.6545,
-    "xref_count": 2190,
+    "core_block_count": 1491,
+    "core_instruction_count": 3990,
+    "core_covered_bytes": 12058,
+    "core_coverage_ratio": 0.3392,
+    "hint_block_count": 3528,
+    "hint_instruction_count": 7691,
+    "hint_covered_bytes": 23268,
+    "hint_coverage_ratio": 0.6546,
+    "xref_count": 2186,
     "jump_table_count": 2,
-    "indirect_site_count": 144,
+    "indirect_site_count": 143,
     "call_target_count": 134,
-    "branch_target_count": 489,
-    "library_call_count": 106,
-    "resolved_library_call_count": 106,
+    "branch_target_count": 488,
+    "library_call_count": 101,
+    "resolved_library_call_count": 101,
     "library_count": 5
   },
   "entities": {
@@ -61,7 +61,7 @@
   },
   "disasm": {
     "lvo": {
-      "included_count": 31,
+      "included_count": 28,
       "inserted_count": 14,
       "by_library": {
         "console.device": {
@@ -73,7 +73,7 @@
           "inserted": 0
         },
         "exec.library": {
-          "included": 21,
+          "included": 18,
           "inserted": 0
         },
         "graphics.library": {

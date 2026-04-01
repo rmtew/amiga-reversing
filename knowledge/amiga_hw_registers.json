@@ -435,77 +435,77 @@
         {
           "bit": 14,
           "name": "Sprite",
-          "description": "(or 5) to sprite 6 (or 7)"
+          "description": "4 (or 5) to sprite 6 (or 7)"
         },
         {
           "bit": 13,
           "name": "Sprite",
-          "description": "(or 3) to sprite 6 (or 7)"
+          "description": "2 (or 3) to sprite 6 (or 7)"
         },
         {
           "bit": 12,
           "name": "Sprite",
-          "description": "(or 3) to sprite 4 (or 5)"
+          "description": "2 (or 3) to sprite 4 (or 5)"
         },
         {
           "bit": 11,
           "name": "Sprite",
-          "description": "(or 1) to sprite 6 (or 7)"
+          "description": "0 (or 1) to sprite 6 (or 7)"
         },
         {
           "bit": 10,
           "name": "Sprite",
-          "description": "(or 1) to sprite 4 (or 5)"
+          "description": "0 (or 1) to sprite 4 (or 5)"
         },
         {
           "bit": 9,
           "name": "Sprite",
-          "description": "(or 1) to sprite 2 (or 3)"
+          "description": "0 (or 1) to sprite 2 (or 3)"
         },
         {
           "bit": 8,
           "name": "Playfield",
-          "description": "to sprite 6 (or 7)"
+          "description": "2 to sprite 6 (or 7)"
         },
         {
           "bit": 7,
           "name": "Playfield",
-          "description": "to sprite 4 (or 5)"
+          "description": "2 to sprite 4 (or 5)"
         },
         {
           "bit": 6,
           "name": "Playfield",
-          "description": "to sprite 2 (or 3)"
+          "description": "2 to sprite 2 (or 3)"
         },
         {
           "bit": 5,
           "name": "Playfield",
-          "description": "to sprite 0 (or 1)"
+          "description": "2 to sprite 0 (or 1)"
         },
         {
           "bit": 4,
           "name": "Playfield",
-          "description": "to sprite 6 (or 7)"
+          "description": "1 to sprite 6 (or 7)"
         },
         {
           "bit": 3,
           "name": "Playfield",
-          "description": "to sprite 4 (or 5)"
+          "description": "1 to sprite 4 (or 5)"
         },
         {
           "bit": 2,
           "name": "Playfield",
-          "description": "to sprite 2 (or 3)"
+          "description": "1 to sprite 2 (or 3)"
         },
         {
           "bit": 1,
           "name": "Playfield",
-          "description": "to sprite 0 (or 1)"
+          "description": "1 to sprite 0 (or 1)"
         },
         {
           "bit": 0,
           "name": "Playfield",
-          "description": "to playfield 2"
+          "description": "1 to playfield 2"
         }
       ]
     },
@@ -1094,72 +1094,86 @@
         {
           "bit": 13,
           "name": "EXTER",
-          "description": "External interrupt"
+          "description": "External interrupt",
+          "level": 6
         },
         {
           "bit": 12,
           "name": "DSKSYN",
-          "description": "Disk sync register ( DSKSYNC ) matches disk data"
+          "description": "Disk sync register ( DSKSYNC ) matches disk data",
+          "level": 5
         },
         {
           "bit": 11,
           "name": "RBF",
-          "description": "Serial port receive buffer full"
+          "description": "Serial port receive buffer full",
+          "level": 5
         },
         {
           "bit": 10,
           "name": "AUD3",
-          "description": "Audio channel 3 block finished"
+          "description": "Audio channel 3 block finished",
+          "level": 4
         },
         {
           "bit": 9,
           "name": "AUD2",
-          "description": "Audio channel 2 block finished"
+          "description": "Audio channel 2 block finished",
+          "level": 4
         },
         {
           "bit": 8,
           "name": "AUD1",
-          "description": "Audio channel 1 block finished"
+          "description": "Audio channel 1 block finished",
+          "level": 4
         },
         {
           "bit": 7,
           "name": "AUD0",
-          "description": "Audio channel 0 block finished"
+          "description": "Audio channel 0 block finished",
+          "level": 4
         },
         {
           "bit": 6,
           "name": "BLIT",
-          "description": "Blitter finished"
+          "description": "Blitter finished",
+          "level": 3
         },
         {
           "bit": 5,
           "name": "VERTB",
-          "description": "Start of vertical blank"
+          "description": "Start of vertical blank",
+          "level": 3
         },
         {
           "bit": 4,
           "name": "COPER",
-          "description": "Copper"
+          "description": "Copper",
+          "level": 3
         },
         {
           "bit": 3,
           "name": "PORTS",
-          "description": "I/O ports and timers"
+          "description": "I/O ports and timers",
+          "level": 2
         },
         {
           "bit": 2,
           "name": "SOFT",
-          "description": "Reserved for software-initiated interrupt"
+          "description": "Reserved for software-initiated interrupt",
+          "level": 1
         },
         {
           "bit": 1,
           "name": "DSKBLK",
-          "description": "Disk block finished"
+          "description": "Disk block finished",
+          "level": 1
         },
         {
           "bit": 0,
           "name": "TBE",
-          "description": "Serial port transmit buffer empty"
+          "description": "Serial port transmit buffer empty",
+          "level": 1
         }
       ]
     },
@@ -1185,72 +1199,86 @@
         {
           "bit": 13,
           "name": "EXTER",
-          "description": "External interrupt"
+          "description": "External interrupt",
+          "level": 6
         },
         {
           "bit": 12,
           "name": "DSKSYN",
-          "description": "Disk sync register ( DSKSYNC ) matches disk data"
+          "description": "Disk sync register ( DSKSYNC ) matches disk data",
+          "level": 5
         },
         {
           "bit": 11,
           "name": "RBF",
-          "description": "Serial port receive buffer full"
+          "description": "Serial port receive buffer full",
+          "level": 5
         },
         {
           "bit": 10,
           "name": "AUD3",
-          "description": "Audio channel 3 block finished"
+          "description": "Audio channel 3 block finished",
+          "level": 4
         },
         {
           "bit": 9,
           "name": "AUD2",
-          "description": "Audio channel 2 block finished"
+          "description": "Audio channel 2 block finished",
+          "level": 4
         },
         {
           "bit": 8,
           "name": "AUD1",
-          "description": "Audio channel 1 block finished"
+          "description": "Audio channel 1 block finished",
+          "level": 4
         },
         {
           "bit": 7,
           "name": "AUD0",
-          "description": "Audio channel 0 block finished"
+          "description": "Audio channel 0 block finished",
+          "level": 4
         },
         {
           "bit": 6,
           "name": "BLIT",
-          "description": "Blitter finished"
+          "description": "Blitter finished",
+          "level": 3
         },
         {
           "bit": 5,
           "name": "VERTB",
-          "description": "Start of vertical blank"
+          "description": "Start of vertical blank",
+          "level": 3
         },
         {
           "bit": 4,
           "name": "COPER",
-          "description": "Copper"
+          "description": "Copper",
+          "level": 3
         },
         {
           "bit": 3,
           "name": "PORTS",
-          "description": "I/O ports and timers"
+          "description": "I/O ports and timers",
+          "level": 2
         },
         {
           "bit": 2,
           "name": "SOFT",
-          "description": "Reserved for software-initiated interrupt"
+          "description": "Reserved for software-initiated interrupt",
+          "level": 1
         },
         {
           "bit": 1,
           "name": "DSKBLK",
-          "description": "Disk block finished"
+          "description": "Disk block finished",
+          "level": 1
         },
         {
           "bit": 0,
           "name": "TBE",
-          "description": "Serial port transmit buffer empty"
+          "description": "Serial port transmit buffer empty",
+          "level": 1
         }
       ]
     },
@@ -3262,72 +3290,86 @@
         {
           "bit": 13,
           "name": "EXTER",
-          "description": "External interrupt"
+          "description": "External interrupt",
+          "level": 6
         },
         {
           "bit": 12,
           "name": "DSKSYN",
-          "description": "Disk sync register ( DSKSYNC ) matches disk data"
+          "description": "Disk sync register ( DSKSYNC ) matches disk data",
+          "level": 5
         },
         {
           "bit": 11,
           "name": "RBF",
-          "description": "Serial port receive buffer full"
+          "description": "Serial port receive buffer full",
+          "level": 5
         },
         {
           "bit": 10,
           "name": "AUD3",
-          "description": "Audio channel 3 block finished"
+          "description": "Audio channel 3 block finished",
+          "level": 4
         },
         {
           "bit": 9,
           "name": "AUD2",
-          "description": "Audio channel 2 block finished"
+          "description": "Audio channel 2 block finished",
+          "level": 4
         },
         {
           "bit": 8,
           "name": "AUD1",
-          "description": "Audio channel 1 block finished"
+          "description": "Audio channel 1 block finished",
+          "level": 4
         },
         {
           "bit": 7,
           "name": "AUD0",
-          "description": "Audio channel 0 block finished"
+          "description": "Audio channel 0 block finished",
+          "level": 4
         },
         {
           "bit": 6,
           "name": "BLIT",
-          "description": "Blitter finished"
+          "description": "Blitter finished",
+          "level": 3
         },
         {
           "bit": 5,
           "name": "VERTB",
-          "description": "Start of vertical blank"
+          "description": "Start of vertical blank",
+          "level": 3
         },
         {
           "bit": 4,
           "name": "COPER",
-          "description": "Copper"
+          "description": "Copper",
+          "level": 3
         },
         {
           "bit": 3,
           "name": "PORTS",
-          "description": "I/O ports and timers"
+          "description": "I/O ports and timers",
+          "level": 2
         },
         {
           "bit": 2,
           "name": "SOFT",
-          "description": "Reserved for software-initiated interrupt"
+          "description": "Reserved for software-initiated interrupt",
+          "level": 1
         },
         {
           "bit": 1,
           "name": "DSKBLK",
-          "description": "Disk block finished"
+          "description": "Disk block finished",
+          "level": 1
         },
         {
           "bit": 0,
           "name": "TBE",
-          "description": "Serial port transmit buffer empty"
+          "description": "Serial port transmit buffer empty",
+          "level": 1
         }
       ]
     },
@@ -3352,72 +3394,86 @@
         {
           "bit": 13,
           "name": "EXTER",
-          "description": "External interrupt"
+          "description": "External interrupt",
+          "level": 6
         },
         {
           "bit": 12,
           "name": "DSKSYN",
-          "description": "Disk sync register ( DSKSYNC ) matches disk data"
+          "description": "Disk sync register ( DSKSYNC ) matches disk data",
+          "level": 5
         },
         {
           "bit": 11,
           "name": "RBF",
-          "description": "Serial port receive buffer full"
+          "description": "Serial port receive buffer full",
+          "level": 5
         },
         {
           "bit": 10,
           "name": "AUD3",
-          "description": "Audio channel 3 block finished"
+          "description": "Audio channel 3 block finished",
+          "level": 4
         },
         {
           "bit": 9,
           "name": "AUD2",
-          "description": "Audio channel 2 block finished"
+          "description": "Audio channel 2 block finished",
+          "level": 4
         },
         {
           "bit": 8,
           "name": "AUD1",
-          "description": "Audio channel 1 block finished"
+          "description": "Audio channel 1 block finished",
+          "level": 4
         },
         {
           "bit": 7,
           "name": "AUD0",
-          "description": "Audio channel 0 block finished"
+          "description": "Audio channel 0 block finished",
+          "level": 4
         },
         {
           "bit": 6,
           "name": "BLIT",
-          "description": "Blitter finished"
+          "description": "Blitter finished",
+          "level": 3
         },
         {
           "bit": 5,
           "name": "VERTB",
-          "description": "Start of vertical blank"
+          "description": "Start of vertical blank",
+          "level": 3
         },
         {
           "bit": 4,
           "name": "COPER",
-          "description": "Copper"
+          "description": "Copper",
+          "level": 3
         },
         {
           "bit": 3,
           "name": "PORTS",
-          "description": "I/O ports and timers"
+          "description": "I/O ports and timers",
+          "level": 2
         },
         {
           "bit": 2,
           "name": "SOFT",
-          "description": "Reserved for software-initiated interrupt"
+          "description": "Reserved for software-initiated interrupt",
+          "level": 1
         },
         {
           "bit": 1,
           "name": "DSKBLK",
-          "description": "Disk block finished"
+          "description": "Disk block finished",
+          "level": 1
         },
         {
           "bit": 0,
           "name": "TBE",
-          "description": "Serial port transmit buffer empty"
+          "description": "Serial port transmit buffer empty",
+          "level": 1
         }
       ]
     },
@@ -9536,32 +9592,32 @@
         {
           "bit": 0,
           "name": "START",
-          "description": "= start Timer A, 0 = stop Timer A. This bit is automatically reset (= 0) when underflow occurs during one-shot mode."
+          "description": "1 = start Timer A, 0 = stop Timer A. This bit is automatically reset (= 0) when underflow occurs during one-shot mode."
         },
         {
           "bit": 1,
           "name": "PBON",
-          "description": "= Timer A output on PB6, 0 = PB6 is normal operation."
+          "description": "1 = Timer A output on PB6, 0 = PB6 is normal operation."
         },
         {
           "bit": 2,
           "name": "OUTMODE",
-          "description": "= toggle, 0 = pulse."
+          "description": "1 = toggle, 0 = pulse."
         },
         {
           "bit": 3,
           "name": "RUNMODE",
-          "description": "= one-shot mode, 0 = continuous mode."
+          "description": "1 = one-shot mode, 0 = continuous mode."
         },
         {
           "bit": 4,
           "name": "LOAD",
-          "description": "= force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.)"
+          "description": "1 = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.)"
         },
         {
           "bit": 5,
           "name": "INMODE",
-          "description": "= Timer A counts positive CNT transitions,"
+          "description": "1 = Timer A counts positive CNT transitions,"
         },
         {
           "bit": 0,
@@ -9571,7 +9627,7 @@
         {
           "bit": 6,
           "name": "SPMODE",
-          "description": "= Serial port=output (CNT is the source of the shift clock)"
+          "description": "1 = Serial port=output (CNT is the source of the shift clock)"
         },
         {
           "bit": 0,
@@ -9596,27 +9652,27 @@
         {
           "bit": 0,
           "name": "START",
-          "description": "= start Timer B, 0 = stop Timer B. This bit is automatically reset (= 0) when underflow occurs during one-shot mode."
+          "description": "1 = start Timer B, 0 = stop Timer B. This bit is automatically reset (= 0) when underflow occurs during one-shot mode."
         },
         {
           "bit": 1,
           "name": "PBON",
-          "description": "= Timer B output on PB7, 0 = PB7 is normal operation."
+          "description": "1 = Timer B output on PB7, 0 = PB7 is normal operation."
         },
         {
           "bit": 2,
           "name": "OUTMODE",
-          "description": "= toggle, 0 = pulse."
+          "description": "1 = toggle, 0 = pulse."
         },
         {
           "bit": 3,
           "name": "RUNMODE",
-          "description": "= one-shot mode, 0 = continuous mode."
+          "description": "1 = one-shot mode, 0 = continuous mode."
         },
         {
           "bit": 4,
           "name": "LOAD",
-          "description": "= force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.)"
+          "description": "1 = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.)"
         }
       ]
     },
@@ -9851,32 +9907,32 @@
         {
           "bit": 0,
           "name": "START",
-          "description": "= start Timer A, 0 = stop Timer A. This bit is automatically reset (= 0) when underflow occurs during one-shot mode."
+          "description": "1 = start Timer A, 0 = stop Timer A. This bit is automatically reset (= 0) when underflow occurs during one-shot mode."
         },
         {
           "bit": 1,
           "name": "PBON",
-          "description": "= Timer A output on PB6, 0 = PB6 is normal operation."
+          "description": "1 = Timer A output on PB6, 0 = PB6 is normal operation."
         },
         {
           "bit": 2,
           "name": "OUTMODE",
-          "description": "= toggle, 0 = pulse."
+          "description": "1 = toggle, 0 = pulse."
         },
         {
           "bit": 3,
           "name": "RUNMODE",
-          "description": "= one-shot mode, 0 = continuous mode."
+          "description": "1 = one-shot mode, 0 = continuous mode."
         },
         {
           "bit": 4,
           "name": "LOAD",
-          "description": "= force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.)"
+          "description": "1 = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.)"
         },
         {
           "bit": 5,
           "name": "INMODE",
-          "description": "= Timer A counts positive CNT transitions,"
+          "description": "1 = Timer A counts positive CNT transitions,"
         },
         {
           "bit": 0,
@@ -9886,7 +9942,7 @@
         {
           "bit": 6,
           "name": "SPMODE",
-          "description": "= Serial port=output (CNT is the source of the shift clock)"
+          "description": "1 = Serial port=output (CNT is the source of the shift clock)"
         },
         {
           "bit": 0,
@@ -9911,29 +9967,480 @@
         {
           "bit": 0,
           "name": "START",
-          "description": "= start Timer B, 0 = stop Timer B. This bit is automatically reset (= 0) when underflow occurs during one-shot mode."
+          "description": "1 = start Timer B, 0 = stop Timer B. This bit is automatically reset (= 0) when underflow occurs during one-shot mode."
         },
         {
           "bit": 1,
           "name": "PBON",
-          "description": "= Timer B output on PB7, 0 = PB7 is normal operation."
+          "description": "1 = Timer B output on PB7, 0 = PB7 is normal operation."
         },
         {
           "bit": 2,
           "name": "OUTMODE",
-          "description": "= toggle, 0 = pulse."
+          "description": "1 = toggle, 0 = pulse."
         },
         {
           "bit": 3,
           "name": "RUNMODE",
-          "description": "= one-shot mode, 0 = continuous mode."
+          "description": "1 = one-shot mode, 0 = continuous mode."
         },
         {
           "bit": 4,
           "name": "LOAD",
-          "description": "= force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.)"
+          "description": "1 = force load (this is a strobe input, there is no data storage;  bit 4 will always read back a zero and writing a 0 has no effect.)"
         }
       ]
+    }
+  ],
+  "interrupt_sources": [
+    {
+      "name": "TBE",
+      "bit": 0,
+      "level": 1,
+      "vector_number": 25,
+      "vector_address": "0x64",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Serial port transmit buffer empty",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "serial",
+      "producer": "paula_uart",
+      "related_registers": [
+        "SERDAT",
+        "SERDATR"
+      ]
+    },
+    {
+      "name": "DSKBLK",
+      "bit": 1,
+      "level": 1,
+      "vector_number": 25,
+      "vector_address": "0x64",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Disk block finished",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "disk",
+      "producer": "paula_disk",
+      "related_registers": [
+        "DSKLEN"
+      ]
+    },
+    {
+      "name": "SOFT",
+      "bit": 2,
+      "level": 1,
+      "vector_number": 25,
+      "vector_address": "0x64",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Reserved for software-initiated interrupt",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "software",
+      "producer": "cpu_software",
+      "related_registers": [
+        "INTREQ"
+      ]
+    },
+    {
+      "name": "PORTS",
+      "bit": 3,
+      "level": 2,
+      "vector_number": 26,
+      "vector_address": "0x68",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "I/O ports and timers",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "external_io",
+      "producer": "peripherals",
+      "related_registers": [
+        "CIAA_ICR"
+      ]
+    },
+    {
+      "name": "COPER",
+      "bit": 4,
+      "level": 3,
+      "vector_number": 27,
+      "vector_address": "0x6C",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Copper",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "copper",
+      "producer": "copper",
+      "related_registers": [
+        "COP1LC",
+        "COP2LC",
+        "COPJMP1",
+        "COPJMP2"
+      ]
+    },
+    {
+      "name": "VERTB",
+      "bit": 5,
+      "level": 3,
+      "vector_number": 27,
+      "vector_address": "0x6C",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Start of vertical blank",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "video",
+      "producer": "beam_counter",
+      "related_registers": [
+        "VPOSR",
+        "VHPOSR",
+        "DIWSTRT",
+        "DIWSTOP"
+      ]
+    },
+    {
+      "name": "BLIT",
+      "bit": 6,
+      "level": 3,
+      "vector_number": 27,
+      "vector_address": "0x6C",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Blitter finished",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "blitter",
+      "producer": "agnus_blitter",
+      "related_registers": [
+        "BLTSIZE",
+        "BLTSIZV",
+        "BLTSIZH"
+      ]
+    },
+    {
+      "name": "AUD0",
+      "bit": 7,
+      "level": 4,
+      "vector_number": 28,
+      "vector_address": "0x70",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Audio channel 0 block finished",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "audio",
+      "producer": "paula_audio",
+      "channel": 0,
+      "related_registers": [
+        "AUD0LC",
+        "AUD0LEN",
+        "AUD0PER",
+        "AUD0VOL",
+        "AUD0DAT"
+      ]
+    },
+    {
+      "name": "AUD1",
+      "bit": 8,
+      "level": 4,
+      "vector_number": 28,
+      "vector_address": "0x70",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Audio channel 1 block finished",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "audio",
+      "producer": "paula_audio",
+      "channel": 1,
+      "related_registers": [
+        "AUD1LC",
+        "AUD1LEN",
+        "AUD1PER",
+        "AUD1VOL",
+        "AUD1DAT"
+      ]
+    },
+    {
+      "name": "AUD2",
+      "bit": 9,
+      "level": 4,
+      "vector_number": 28,
+      "vector_address": "0x70",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Audio channel 2 block finished",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "audio",
+      "producer": "paula_audio",
+      "channel": 2,
+      "related_registers": [
+        "AUD2LC",
+        "AUD2LEN",
+        "AUD2PER",
+        "AUD2VOL",
+        "AUD2DAT"
+      ]
+    },
+    {
+      "name": "AUD3",
+      "bit": 10,
+      "level": 4,
+      "vector_number": 28,
+      "vector_address": "0x70",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Audio channel 3 block finished",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "audio",
+      "producer": "paula_audio",
+      "channel": 3,
+      "related_registers": [
+        "AUD3LC",
+        "AUD3LEN",
+        "AUD3PER",
+        "AUD3VOL",
+        "AUD3DAT"
+      ]
+    },
+    {
+      "name": "RBF",
+      "bit": 11,
+      "level": 5,
+      "vector_number": 29,
+      "vector_address": "0x74",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Serial port receive buffer full",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "serial",
+      "producer": "paula_uart",
+      "related_registers": [
+        "SERDATR"
+      ]
+    },
+    {
+      "name": "DSKSYN",
+      "bit": 12,
+      "level": 5,
+      "vector_number": 29,
+      "vector_address": "0x74",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "Disk sync register ( DSKSYNC ) matches disk data",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "disk",
+      "producer": "paula_disk",
+      "related_registers": [
+        "DSKSYNC"
+      ]
+    },
+    {
+      "name": "EXTER",
+      "bit": 13,
+      "level": 6,
+      "vector_number": 30,
+      "vector_address": "0x78",
+      "enable_registers": [
+        "INTENA",
+        "INTENAR"
+      ],
+      "request_registers": [
+        "INTREQ",
+        "INTREQR"
+      ],
+      "description": "External interrupt",
+      "source": "Amiga Hardware Reference Manual INTENA/INTREQ level column",
+      "category": "external_io",
+      "producer": "peripherals",
+      "related_registers": [
+        "CIAB_ICR"
+      ]
+    }
+  ],
+  "interrupt_routes": [
+    {
+      "source_register": "CIAA_ICR",
+      "source_bit": 0,
+      "source_name": "TA",
+      "parent_interrupt": "PORTS",
+      "level": 2,
+      "vector_number": 26,
+      "vector_address": "0x68",
+      "description": "Timer A underflow interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAA can generate INT2."
+    },
+    {
+      "source_register": "CIAA_ICR",
+      "source_bit": 1,
+      "source_name": "TB",
+      "parent_interrupt": "PORTS",
+      "level": 2,
+      "vector_number": 26,
+      "vector_address": "0x68",
+      "description": "Timer B underflow interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAA can generate INT2."
+    },
+    {
+      "source_register": "CIAA_ICR",
+      "source_bit": 2,
+      "source_name": "ALRM",
+      "parent_interrupt": "PORTS",
+      "level": 2,
+      "vector_number": 26,
+      "vector_address": "0x68",
+      "description": "TOD alarm interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAA can generate INT2."
+    },
+    {
+      "source_register": "CIAA_ICR",
+      "source_bit": 3,
+      "source_name": "SP",
+      "parent_interrupt": "PORTS",
+      "level": 2,
+      "vector_number": 26,
+      "vector_address": "0x68",
+      "description": "Serial port interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAA can generate INT2."
+    },
+    {
+      "source_register": "CIAA_ICR",
+      "source_bit": 4,
+      "source_name": "FLG",
+      "parent_interrupt": "PORTS",
+      "level": 2,
+      "vector_number": 26,
+      "vector_address": "0x68",
+      "description": "FLAG pin interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAA can generate INT2."
+    },
+    {
+      "source_register": "CIAB_ICR",
+      "source_bit": 0,
+      "source_name": "TA",
+      "parent_interrupt": "EXTER",
+      "level": 6,
+      "vector_number": 30,
+      "vector_address": "0x78",
+      "description": "Timer A underflow interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAB can generate INT6."
+    },
+    {
+      "source_register": "CIAB_ICR",
+      "source_bit": 1,
+      "source_name": "TB",
+      "parent_interrupt": "EXTER",
+      "level": 6,
+      "vector_number": 30,
+      "vector_address": "0x78",
+      "description": "Timer B underflow interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAB can generate INT6."
+    },
+    {
+      "source_register": "CIAB_ICR",
+      "source_bit": 2,
+      "source_name": "ALRM",
+      "parent_interrupt": "EXTER",
+      "level": 6,
+      "vector_number": 30,
+      "vector_address": "0x78",
+      "description": "TOD alarm interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAB can generate INT6."
+    },
+    {
+      "source_register": "CIAB_ICR",
+      "source_bit": 3,
+      "source_name": "SP",
+      "parent_interrupt": "EXTER",
+      "level": 6,
+      "vector_number": 30,
+      "vector_address": "0x78",
+      "description": "Serial port interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAB can generate INT6."
+    },
+    {
+      "source_register": "CIAB_ICR",
+      "source_bit": 4,
+      "source_name": "FLG",
+      "parent_interrupt": "EXTER",
+      "level": 6,
+      "vector_number": 30,
+      "vector_address": "0x78",
+      "description": "FLAG pin interrupt",
+      "source": "Amiga Hardware Reference Manual Appendix F note: CIAB can generate INT6."
     }
   ],
   "chapters": [

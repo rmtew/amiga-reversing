@@ -15,11 +15,15 @@ from kb.os_reference import (
     merge_os_reference_payloads,
 )
 from kb.schemas import (
+    HardwareReferencePayload,
     HardwareSymbolsPayload,
     HunkFormatPayload,
     M68kCcParameterized,
     M68kCcTestDefinition,
     M68kConditionFamilyEntry,
+    M68kExceptionFrameRule,
+    M68kExceptionStackFrame,
+    M68kExceptionVector,
     M68kField,
     M68kInstruction,
     M68kInstructionsPayload,
@@ -57,6 +61,8 @@ from m68k_kb.runtime_types import (
     ExtTypeCategoryDef,
     FieldMap,
     FieldSpec,
+    HardwareInterruptRouteDef,
+    HardwareInterruptSourceDef,
     HunkContentFormatDef,
     HunkMeta,
     HunkTypeDef,
@@ -104,6 +110,9 @@ class RuntimeM68kMeta(TypedDict):
     ea_full_ext_word: list[M68kField]
     ea_mode_encoding: dict[str, list[int]]
     ea_mode_sizes: dict[str, list[str]]
+    exception_frame_rules: list[M68kExceptionFrameRule]
+    exception_stack_frames: list[M68kExceptionStackFrame]
+    exception_vectors: list[M68kExceptionVector]
     immediate_routing: dict[str, str]
     movem_reg_masks: dict[str, dict[str, int]]
     opword_bytes: int
@@ -463,6 +472,8 @@ class HardwareRuntimeRegisterDef(TypedDict):
 
 class HardwareRuntimePayload(TypedDict):
     META: dict[str, object]
+    INTERRUPT_ROUTES: dict[tuple[str, int], HardwareInterruptRouteDef]
+    INTERRUPT_SOURCES: dict[str, HardwareInterruptSourceDef]
     REGISTER_DEFS: dict[int, HardwareRuntimeRegisterDef]
 
 
@@ -493,6 +504,10 @@ def _load_hunk_format_payload() -> HunkFormatPayload:
 
 def _load_hardware_symbols_payload() -> HardwareSymbolsPayload:
     return cast(HardwareSymbolsPayload, _load_json("amiga_hw_symbols.json"))
+
+
+def _load_hardware_reference_payload() -> HardwareReferencePayload:
+    return cast(HardwareReferencePayload, _load_json("amiga_hw_registers.json"))
 
 
 def _load_naming_rules_payload() -> NamingRulesPayload:
@@ -544,9 +559,16 @@ def _render_opmode_tables_by_value(table: dict[str, dict[int, OpmodeEntry]]) -> 
 
 def _write_runtime_constants_python(path: Path, payload: Mapping[str, object], *, header: str) -> None:
     lines = ['"""' + header + '"""', "", "from __future__ import annotations", ""]
+    hardware_type_imports: list[str] = []
     if "REGISTER_DEFS" in payload:
+        hardware_type_imports.append("HardwareRegisterDef")
+    if "INTERRUPT_ROUTES" in payload:
+        hardware_type_imports.append("HardwareInterruptRouteDef")
+    if "INTERRUPT_SOURCES" in payload:
+        hardware_type_imports.append("HardwareInterruptSourceDef")
+    if hardware_type_imports:
         lines.extend([
-            "from .runtime_types import HardwareRegisterDef",
+            f"from .runtime_types import {', '.join(hardware_type_imports)}",
             "",
         ])
     runtime_type_imports: list[str] = []
@@ -724,6 +746,10 @@ def _write_runtime_constants_python(path: Path, payload: Mapping[str, object], *
     for name, value in payload.items():
         if name == "REGISTER_DEFS":
             lines.append(f"{name}: dict[int, HardwareRegisterDef] = {_render_py(value)}")
+        elif name == "INTERRUPT_ROUTES":
+            lines.append(f"{name}: dict[tuple[str, int], HardwareInterruptRouteDef] = {_render_py(value)}")
+        elif name == "INTERRUPT_SOURCES":
+            lines.append(f"{name}: dict[str, HardwareInterruptSourceDef] = {_render_py(value)}")
         elif name == "OPMODE_TABLES_BY_VALUE":
             lines.append(
                 f"{name}: dict[str, dict[int, OpmodeEntry]] = "
@@ -3080,6 +3106,7 @@ def _build_naming_runtime() -> NamingRuntimePayload:
 
 def _build_hardware_runtime() -> HardwareRuntimePayload:
     canonical = _load_hardware_symbols_payload()
+    hardware_reference = _load_hardware_reference_payload()
     registers: dict[int, HardwareRuntimeRegisterDef] = {}
     for entry in canonical["registers"]:
         cpu_address = int(entry["cpu_address"], 16)
@@ -3100,9 +3127,42 @@ def _build_hardware_runtime() -> HardwareRuntimePayload:
             "base_symbol": entry["base_symbol"],
             "offset": int(entry["offset"], 16),
         }
+    interrupt_sources: dict[str, HardwareInterruptSourceDef] = {}
+    for interrupt_entry in hardware_reference.get("interrupt_sources", []):
+        runtime_entry: HardwareInterruptSourceDef = {
+            "bit": interrupt_entry["bit"],
+            "level": interrupt_entry["level"],
+            "vector_number": interrupt_entry["vector_number"],
+            "vector_address": int(interrupt_entry["vector_address"], 16),
+            "enable_registers": tuple(interrupt_entry["enable_registers"]),
+            "request_registers": tuple(interrupt_entry["request_registers"]),
+            "description": interrupt_entry["description"],
+        }
+        if "category" in interrupt_entry:
+            runtime_entry["category"] = interrupt_entry["category"]
+        if "producer" in interrupt_entry:
+            runtime_entry["producer"] = interrupt_entry["producer"]
+        if "channel" in interrupt_entry:
+            runtime_entry["channel"] = interrupt_entry["channel"]
+        if "related_registers" in interrupt_entry:
+            runtime_entry["related_registers"] = tuple(interrupt_entry["related_registers"])
+        interrupt_sources[interrupt_entry["name"]] = runtime_entry
+    interrupt_routes: dict[tuple[str, int], HardwareInterruptRouteDef] = {}
+    for route_entry in hardware_reference.get("interrupt_routes", []):
+        interrupt_routes[(route_entry["source_register"], route_entry["source_bit"])] = {
+            "source_register": route_entry["source_register"],
+            "source_bit": route_entry["source_bit"],
+            "parent_interrupt": route_entry["parent_interrupt"],
+            "level": route_entry["level"],
+            "vector_number": route_entry["vector_number"],
+            "vector_address": int(route_entry["vector_address"], 16),
+            "description": route_entry["description"],
+        }
     return {
         "META": canonical["_meta"],
+        "INTERRUPT_ROUTES": interrupt_routes,
         "REGISTER_DEFS": registers,
+        "INTERRUPT_SOURCES": interrupt_sources,
     }
 
 
