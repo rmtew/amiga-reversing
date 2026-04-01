@@ -1,0 +1,323 @@
+from __future__ import annotations
+
+import argparse
+import ctypes
+import gzip
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+import zipfile
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_INPUT = ROOT / "corpus" / "platform_disk_manifest.jsonl"
+DEFAULT_OUTPUT = ROOT / "corpus" / "platform_file_manifest.jsonl"
+FILE_DLL = ROOT / "src" / "build" / "platform_file_lib.dll"
+AMIGA_HUNK_RUNTIME_JSON = ROOT / "src" / "generated" / "amiga_hunk_file_runtime.json"
+
+
+def _ensure_tools_built() -> None:
+    result = subprocess.run(
+        ["cmd", "/c", "src\\build.bat"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stdout + result.stderr)
+
+
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _read_manifest(path: Path) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            entries.append(json.loads(line))
+    return entries
+
+
+def _load_amiga_hunk_top_level_magics() -> set[int]:
+    payload = json.loads(AMIGA_HUNK_RUNTIME_JSON.read_text(encoding="utf-8"))
+    return {int(value) for value in payload.get("container_magic_wire_ids", [])}
+
+
+AMIGA_HUNK_TOP_LEVEL_MAGICS = _load_amiga_hunk_top_level_magics()
+
+
+def _decode_member(container_path: Path, member_name: str) -> bytes:
+    with zipfile.ZipFile(container_path) as archive:
+        raw = archive.read(member_name)
+    if member_name.lower().endswith(".adz"):
+        return gzip.decompress(raw)
+    return raw
+
+
+def _load_disk_image_bytes(origin: dict[str, Any]) -> bytes:
+    source_relpath = origin["source_relpath"]
+    path = ROOT / source_relpath
+    container_relpath = origin.get("container_relpath")
+    member_name = origin.get("member_name")
+    if container_relpath and member_name:
+        return _decode_member(ROOT / container_relpath, member_name)
+    return path.read_bytes()
+
+
+def _reconstruct_file_bytes(platform: str, file_entry: dict[str, Any], image_bytes: bytes) -> bytes:
+    parts = []
+    if platform == "atari-st-disk":
+        file_size = int(file_entry["file_size"])
+    else:
+        file_size = int(file_entry["byte_size"])
+    if file_size < 0:
+        raise RuntimeError("Negative file size in disk manifest")
+    if file_size == 0:
+        return b""
+    if not file_entry.get("extents"):
+        raise RuntimeError("Missing file extents for non-empty in-image file")
+    for extent in file_entry.get("extents", []):
+        image_offset = int(extent["image_offset"])
+        byte_size = int(extent["byte_size"])
+        if image_offset < 0 or byte_size < 0 or image_offset + byte_size > len(image_bytes):
+            raise RuntimeError("In-image file extent lies outside disk image")
+        parts.append(image_bytes[image_offset : image_offset + byte_size])
+    data = b"".join(parts)
+    if len(data) < file_size:
+        raise RuntimeError("In-image file extents do not cover declared file size")
+    return data[:file_size]
+
+
+def _is_probable_amiga_hunk(file_bytes: bytes) -> bool:
+    if len(file_bytes) < 4:
+        return False
+    magic = int.from_bytes(file_bytes[:4], "big")
+    return magic in AMIGA_HUNK_TOP_LEVEL_MAGICS
+
+
+def _is_probable_amiga_iff(file_bytes: bytes) -> bool:
+    return len(file_bytes) >= 12 and file_bytes[:4] == b"FORM"
+
+
+def _is_probable_amiga_text(file_bytes: bytes) -> bool:
+    allowed = 0
+    if not file_bytes or len(file_bytes) < 8 or b"\x00" in file_bytes:
+        return False
+    for value in file_bytes:
+        if value in (9, 10, 13) or 32 <= value <= 126:
+            allowed += 1
+    return (allowed / len(file_bytes)) >= 0.95
+
+
+def _inspect_amiga_iff(file_bytes: bytes) -> dict[str, Any]:
+    return {
+        "platform": "amiga-iff",
+        "file_kind": "iff",
+        "declared_size": int.from_bytes(file_bytes[4:8], "big"),
+        "form_type": file_bytes[8:12].decode("latin-1", errors="replace"),
+    }
+
+
+def _inspect_amiga_text(file_bytes: bytes) -> dict[str, Any]:
+    return {
+        "platform": "amiga-text",
+        "file_kind": "text",
+        "line_count": file_bytes.count(b"\n") + 1,
+        "preview": file_bytes[:80].decode("latin-1", errors="replace"),
+    }
+
+
+def _inspect_file(platform_name: str, suffix: str, file_bytes: bytes) -> dict[str, Any]:
+    del suffix
+    library = _platform_file_library()
+    json_ptr = ctypes.c_void_p()
+    error_buf = ctypes.create_string_buffer(512)
+    data_array = (ctypes.c_ubyte * len(file_bytes)).from_buffer_copy(file_bytes if file_bytes else b"\0")
+    result = library.platform_file_inspect_buffer_json(
+        platform_name.encode("utf-8"),
+        data_array,
+        len(file_bytes),
+        ctypes.byref(json_ptr),
+        error_buf,
+        len(error_buf),
+    )
+    if result != 0:
+        raise RuntimeError(error_buf.value.decode("utf-8"))
+    try:
+        payload = json.loads(ctypes.string_at(json_ptr).decode("utf-8"))
+        assert isinstance(payload, dict)
+        return payload
+    finally:
+        library.platform_file_free_text(json_ptr)
+
+
+@lru_cache(maxsize=1)
+def _platform_file_library() -> Any:
+    fd, copied_path = tempfile.mkstemp(prefix="platform_file_lib_", suffix=".dll")
+    os.close(fd)
+    shutil.copy2(FILE_DLL, copied_path)
+    library = ctypes.CDLL(copied_path)
+    library.platform_file_inspect_buffer_json.argtypes = [
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_ubyte),
+        ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.c_char_p,
+        ctypes.c_size_t,
+    ]
+    library.platform_file_inspect_buffer_json.restype = ctypes.c_int
+    library.platform_file_free_text.argtypes = [ctypes.c_void_p]
+    library.platform_file_free_text.restype = None
+    return library
+
+
+def _candidate_entries(disk_entry: dict[str, Any]) -> list[dict[str, Any]]:
+    inspect = disk_entry["expect"].get("inspect") or {}
+    entries = inspect.get("entries", [])
+    candidates: list[dict[str, Any]] = []
+    if disk_entry["platform"] == "atari-st-disk":
+        for entry in entries:
+            if entry.get("kind") == 1 and entry.get("is_executable_candidate") == 1 and entry.get("file_size", 0) > 0:
+                candidates.append({"backend": "atari-st", "suffix": ".prg", "entry": entry})
+    elif disk_entry["platform"] == "amiga-disk":
+        for entry in entries:
+            if entry.get("kind") == 1 and entry.get("byte_size", 0) > 0:
+                candidates.append({"entry": entry})
+    return candidates
+
+
+def _error_manifest_entry(
+    disk_entry: dict[str, Any],
+    backend_name: str,
+    file_entry: dict[str, Any],
+    file_bytes: bytes,
+    error: str,
+) -> dict[str, Any]:
+    return {
+        "id": f"{backend_name}/{_sha256(file_bytes)[:12]}",
+        "platform": backend_name,
+        "sha256": _sha256(file_bytes),
+        "size": len(file_bytes),
+        "disk_sha256": disk_entry["sha256"],
+        "origin": {
+            "display_name": disk_entry["origin"]["display_name"],
+            "source_relpath": disk_entry["origin"]["source_relpath"],
+            "container_relpath": disk_entry["origin"]["container_relpath"],
+            "member_name": disk_entry["origin"]["member_name"],
+            "in_image_path": file_entry["path"],
+        },
+        "file_ref": {
+            "disk_platform": disk_entry["platform"],
+            "disk_id": disk_entry["id"],
+            "extents": file_entry.get("extents", []),
+        },
+        "expect": {
+            "summary_version": 1,
+            "status": "error",
+            "error": error,
+        },
+    }
+
+
+def _manifest_entry(
+    disk_entry: dict[str, Any],
+    backend_name: str,
+    file_entry: dict[str, Any],
+    file_bytes: bytes,
+    inspect: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "id": f"{backend_name}/{_sha256(file_bytes)[:12]}",
+        "platform": backend_name,
+        "sha256": _sha256(file_bytes),
+        "size": len(file_bytes),
+        "disk_sha256": disk_entry["sha256"],
+        "origin": {
+            "display_name": disk_entry["origin"]["display_name"],
+            "source_relpath": disk_entry["origin"]["source_relpath"],
+            "container_relpath": disk_entry["origin"]["container_relpath"],
+            "member_name": disk_entry["origin"]["member_name"],
+            "in_image_path": file_entry["path"],
+        },
+        "file_ref": {
+            "disk_platform": disk_entry["platform"],
+            "disk_id": disk_entry["id"],
+            "extents": file_entry.get("extents", []),
+        },
+        "expect": {
+            "summary_version": 1,
+            "status": "ok",
+            "inspect": inspect,
+        },
+    }
+
+
+def build_manifest(disk_manifest_path: Path) -> list[dict[str, Any]]:
+    manifest: list[dict[str, Any]] = []
+    for disk_entry in _read_manifest(disk_manifest_path):
+        if disk_entry.get("expect", {}).get("status") != "ok":
+            continue
+        image_bytes = _load_disk_image_bytes(disk_entry["origin"])
+        for candidate in _candidate_entries(disk_entry):
+            backend_name = candidate.get("backend")
+            suffix = candidate.get("suffix", ".bin")
+            file_entry = candidate["entry"]
+            file_bytes = b""
+            try:
+                file_bytes = _reconstruct_file_bytes(disk_entry["platform"], file_entry, image_bytes)
+            except RuntimeError as exc:
+                manifest.append(_error_manifest_entry(disk_entry, backend_name or "amiga-unknown", file_entry, b"", str(exc)))
+                continue
+            if disk_entry["platform"] == "amiga-disk":
+                if _is_probable_amiga_hunk(file_bytes):
+                    backend_name = "amiga-hunk"
+                    try:
+                        inspect = _inspect_file(backend_name, suffix, file_bytes)
+                    except RuntimeError as exc:
+                        manifest.append(_error_manifest_entry(disk_entry, backend_name, file_entry, file_bytes, str(exc)))
+                        continue
+                elif _is_probable_amiga_iff(file_bytes):
+                    backend_name = "amiga-iff"
+                    inspect = _inspect_amiga_iff(file_bytes)
+                elif _is_probable_amiga_text(file_bytes):
+                    backend_name = "amiga-text"
+                    inspect = _inspect_amiga_text(file_bytes)
+                else:
+                    continue
+            else:
+                try:
+                    inspect = _inspect_file(backend_name, suffix, file_bytes)
+                except RuntimeError as exc:
+                    manifest.append(_error_manifest_entry(disk_entry, backend_name, file_entry, file_bytes, str(exc)))
+                    continue
+            manifest.append(_manifest_entry(disk_entry, backend_name, file_entry, file_bytes, inspect))
+    return manifest
+
+
+def write_manifest(path: Path, entries: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(entry, sort_keys=True) + "\n" for entry in entries), encoding="utf-8")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Build in-situ platform file corpus manifest from disk-image manifest extents.")
+    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    args = parser.parse_args()
+    _ensure_tools_built()
+    entries = build_manifest(args.input)
+    write_manifest(args.output, entries)
+    print(f"Wrote {args.output}")
+    print(f"Entries: {len(entries)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

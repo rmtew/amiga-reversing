@@ -1,0 +1,198 @@
+{
+  "_meta": {
+    "name": "amiga_disk_file",
+    "description": "Normalized Amiga ADF disk image and AmigaDOS block filesystem metadata for helper/runtime generation.",
+    "endianness": "big",
+    "sources": [
+      {
+        "type": "repo_reference",
+        "ref": "amiga_disk/kb.py",
+        "note": "Initial normalized facts migrated from the existing Python Amiga disk knowledge path."
+      }
+    ]
+  },
+  "primitives": {
+    "u8": {
+      "kind": "integer",
+      "bytes": 1,
+      "signed": false,
+      "endianness": "big"
+    },
+    "u16": {
+      "kind": "integer",
+      "bytes": 2,
+      "signed": false,
+      "endianness": "big"
+    },
+    "u32": {
+      "kind": "integer",
+      "bytes": 4,
+      "signed": false,
+      "endianness": "big"
+    },
+    "raw_bytes_by_length": {
+      "kind": "byte_blob",
+      "length_type": "external"
+    }
+  },
+  "enums": {
+    "record_tag": {
+      "BOOT_BLOCK": 1,
+      "ROOT_BLOCK": 2,
+      "FILE_HEADER_BLOCK": 3,
+      "DATA_BLOCK": 4,
+      "DIR_BLOCK": 5
+    },
+    "dos_flags": {
+      "OFS": 0,
+      "FFS": 1,
+      "INTL": 2,
+      "DIRCACHE": 4
+    },
+    "block_type": {
+      "T_HEADER": 2,
+      "T_DATA": 8,
+      "T_LIST": 16,
+      "ST_ROOT": 1,
+      "ST_USERDIR": 2,
+      "ST_FILE": -3
+    }
+  },
+  "bitfields": {
+    "dos_flags_word": {
+      "fields": {
+        "ffs": { "bit": 0 },
+        "intl": { "bit": 1 },
+        "dircache": { "bit": 2 }
+      }
+    }
+  },
+  "record_types": {
+    "BOOT_BLOCK": {
+      "id_name": "BOOT_BLOCK",
+      "role": "container_header",
+      "fields": [
+        { "name": "magic", "type": "byte_blob", "length_expr": "3" },
+        { "name": "flags", "primitive": "u8" },
+        { "name": "checksum", "primitive": "u32" },
+        { "name": "root_block", "primitive": "u32" }
+      ]
+    },
+    "ROOT_BLOCK": {
+      "id_name": "ROOT_BLOCK",
+      "role": "container_aux",
+      "fields": [
+        { "name": "type", "primitive": "u32" },
+        { "name": "header_key", "primitive": "u32" },
+        { "name": "high_seq", "primitive": "u32" },
+        { "name": "hash_table_size", "primitive": "u32" },
+        { "name": "first_data", "primitive": "u32" },
+        { "name": "checksum", "primitive": "u32" }
+      ]
+    },
+    "FILE_HEADER_BLOCK": {
+      "id_name": "FILE_HEADER_BLOCK",
+      "role": "container_aux",
+      "fields": [
+        { "name": "type", "primitive": "u32" },
+        { "name": "header_key", "primitive": "u32" },
+        { "name": "high_seq", "primitive": "u32" },
+        { "name": "first_data", "primitive": "u32" },
+        { "name": "checksum", "primitive": "u32" },
+        { "name": "byte_size", "primitive": "u32" }
+      ]
+    },
+    "DATA_BLOCK": {
+      "id_name": "DATA_BLOCK",
+      "role": "container_aux",
+      "fields": [
+        { "name": "type", "primitive": "u32" },
+        { "name": "header_key", "primitive": "u32" },
+        { "name": "seq_num", "primitive": "u32" },
+        { "name": "data_size", "primitive": "u32" },
+        { "name": "next_data", "primitive": "u32" }
+      ]
+    },
+    "DIR_BLOCK": {
+      "id_name": "DIR_BLOCK",
+      "role": "container_aux",
+      "fields": [
+        { "name": "type", "primitive": "u32" },
+        { "name": "header_key", "primitive": "u32" },
+        { "name": "high_seq", "primitive": "u32" },
+        { "name": "first_data", "primitive": "u32" },
+        { "name": "checksum", "primitive": "u32" }
+      ]
+    }
+  },
+  "groups": {
+    "filesystem_blocks": {
+      "sequence": [
+        "ROOT_BLOCK",
+        "FILE_HEADER_BLOCK",
+        "DATA_BLOCK",
+        "DIR_BLOCK"
+      ]
+    }
+  },
+  "containers": {
+    "adf_disk_image": {
+      "magic_record": "BOOT_BLOCK",
+      "top_level_sequence": [
+        "BOOT_BLOCK",
+        "filesystem_blocks"
+      ]
+    }
+  },
+  "interpretation_rules": [],
+  "relocation_kinds": {},
+  "debug_kinds": {},
+  "constraints": {
+    "raw_container_extensions": [
+      ".adf"
+    ],
+    "bytes_per_sector": 512,
+    "boot_block_sectors": 2,
+    "root_hash_table_offset": 24,
+    "root_hash_table_entries": 72,
+    "root_hash_table_size_offset": 12,
+    "root_checksum_offset": 20,
+    "root_name_len_offset": 432,
+    "root_name_max_length": 30,
+    "root_sec_type_offset": 508,
+    "file_header_high_seq_offset": 8,
+    "file_header_first_data_offset": 16,
+    "file_header_checksum_offset": 20,
+    "file_header_data_blocks_offset": 24,
+    "file_header_data_block_count": 72,
+    "file_header_byte_size_offset": 324,
+    "file_header_name_len_offset": 432,
+    "file_header_name_max_length": 30,
+    "file_header_hash_chain_offset": 496,
+    "file_header_parent_offset": 500,
+    "file_header_extension_offset": 504,
+    "file_header_sec_type_offset": 508,
+    "file_extension_type": 16,
+    "file_extension_data_blocks_offset": 24,
+    "file_extension_data_block_count": 72,
+    "file_extension_parent_offset": 500,
+    "file_extension_offset": 504,
+    "ofs_data_size_offset": 12,
+    "ofs_next_data_offset": 16,
+    "ofs_data_offset": 24,
+    "ofs_max_data_bytes": 488,
+    "sec_type_root": 1,
+    "sec_type_userdir": 2,
+    "sec_type_file": 4294967293,
+    "standard_adf_sizes": [
+      901120,
+      1802240
+    ]
+  },
+  "notes": [
+    {
+      "topic": "scope",
+      "text": "This file models ADF container and AmigaDOS block-level facts for generation. It does not yet capture non-DOS/custom track formats or higher-level bootloader semantics."
+    }
+  ]
+}

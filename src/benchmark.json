@@ -1,0 +1,61 @@
+{
+  "benchmark_version": 1,
+  "build": {
+    "ok": true,
+    "returncode": 0,
+    "seconds": 5.468
+  },
+  "corpus": {
+    "by_cpu": {
+      "68000": {
+        "cases": 5414,
+        "mnemonics": 118
+      },
+      "68010": {
+        "cases": 5839,
+        "mnemonics": 121
+      },
+      "68020": {
+        "cases": 10136,
+        "mnemonics": 159
+      },
+      "68030": {
+        "cases": 10742,
+        "mnemonics": 158
+      },
+      "68040": {
+        "cases": 10181,
+        "mnemonics": 169
+      },
+      "68060": {
+        "cases": 8534,
+        "mnemonics": 122
+      }
+    },
+    "total_cpu_qualified_cases": 50846,
+    "unique_case_ids": 10933
+  },
+  "integration": {
+    "errors": 0,
+    "expected_failures": 0,
+    "failures": 0,
+    "ok": true,
+    "seconds": 5.239,
+    "skipped": 0,
+    "tests_run": 10,
+    "unexpected_successes": 0
+  },
+  "status": "ok",
+  "timestamp": "2026-04-06T13:32:52+1200",
+  "total_seconds": 24.012,
+  "unit": {
+    "errors": 0,
+    "expected_failures": 0,
+    "failures": 0,
+    "ok": true,
+    "seconds": 13.305,
+    "skipped": 4,
+    "tests_run": 117,
+    "unexpected_successes": 0
+  }
+}

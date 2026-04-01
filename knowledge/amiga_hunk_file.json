@@ -1,0 +1,814 @@
+{
+  "_meta": {
+    "name": "amiga_hunk_file",
+    "description": "Normalized Amiga hunk file format metadata for helper/runtime generation.",
+    "endianness": "big",
+    "longword_bytes": 4,
+    "sources": [
+      {
+        "ref": "knowledge/amiga_hunk_format.json",
+        "type": "repo_reference",
+        "note": "Source facts migrated and normalized from the earlier ad hoc Amiga hunk KB."
+      },
+      {
+        "file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_H/DOS/DOSHUNKS.H",
+        "type": "official",
+        "provides": [
+          "type_ids",
+          "ext_subtypes",
+          "memory_flag_bits"
+        ]
+      },
+      {
+        "file": "NDK_3.1/EXAMPLES1/PCMCIA/AMIGAXIP/LOADSEG.ASM",
+        "type": "official",
+        "provides": [
+          "load_file_record_order",
+          "record_payload_shapes",
+          "v37_reloc_compatibility"
+        ]
+      },
+      {
+        "file": "ROM Kernel Reference Manual: DOS, chapter 11.7",
+        "type": "official",
+        "provides": [
+          "HUNK_LIB",
+          "HUNK_INDEX"
+        ]
+      }
+    ]
+  },
+  "primitives": {
+    "u32": {
+      "kind": "integer",
+      "bytes": 4,
+      "signed": false,
+      "endianness": "big"
+    },
+    "u16": {
+      "kind": "integer",
+      "bytes": 2,
+      "signed": false,
+      "endianness": "big"
+    },
+    "i32": {
+      "kind": "integer",
+      "bytes": 4,
+      "signed": true,
+      "endianness": "big"
+    },
+    "i16": {
+      "kind": "integer",
+      "bytes": 2,
+      "signed": true,
+      "endianness": "big"
+    },
+    "i8": {
+      "kind": "integer",
+      "bytes": 1,
+      "signed": true,
+      "endianness": "big"
+    },
+    "bstr_longs_u32": {
+      "kind": "counted_string",
+      "count_type": "u32",
+      "count_unit_bytes": 4,
+      "encoding": "latin-1",
+      "padding": "nul"
+    },
+    "u32_array_by_count": {
+      "kind": "counted_array",
+      "count_type": "external",
+      "element_type": "u32"
+    },
+    "u16_array_by_count": {
+      "kind": "counted_array",
+      "count_type": "external",
+      "element_type": "u16"
+    },
+    "raw_bytes_by_length": {
+      "kind": "byte_blob",
+      "length_type": "external"
+    }
+  },
+  "enums": {
+    "hunk_type": {
+      "HUNK_UNIT": 999,
+      "HUNK_NAME": 1000,
+      "HUNK_CODE": 1001,
+      "HUNK_DATA": 1002,
+      "HUNK_BSS": 1003,
+      "HUNK_RELOC32": 1004,
+      "HUNK_RELOC16": 1005,
+      "HUNK_RELOC8": 1006,
+      "HUNK_EXT": 1007,
+      "HUNK_SYMBOL": 1008,
+      "HUNK_DEBUG": 1009,
+      "HUNK_END": 1010,
+      "HUNK_HEADER": 1011,
+      "HUNK_OVERLAY": 1013,
+      "HUNK_BREAK": 1014,
+      "HUNK_DREL32": 1015,
+      "HUNK_DREL16": 1016,
+      "HUNK_DREL8": 1017,
+      "HUNK_LIB": 1018,
+      "HUNK_INDEX": 1019,
+      "HUNK_RELOC32SHORT": 1020,
+      "HUNK_RELRELOC32": 1021,
+      "HUNK_ABSRELOC16": 1022
+    },
+    "ext_type": {
+      "EXT_SYMB": 0,
+      "EXT_DEF": 1,
+      "EXT_ABS": 2,
+      "EXT_RES": 3,
+      "EXT_REF32": 129,
+      "EXT_COMMON": 130,
+      "EXT_REF16": 131,
+      "EXT_REF8": 132,
+      "EXT_DEXT32": 133,
+      "EXT_DEXT16": 134,
+      "EXT_DEXT8": 135,
+      "EXT_RELREF32": 136,
+      "EXT_RELCOMMON": 137,
+      "EXT_ABSREF16": 138,
+      "EXT_ABSREF8": 139
+    },
+    "mem_type_code": {
+      "ANY": 0,
+      "CHIP": 1,
+      "FAST": 2,
+      "EXTENDED": 3
+    }
+  },
+  "bitfields": {
+    "hunk_type_word": {
+      "base_enum": "hunk_type",
+      "value_mask": 536870911,
+      "fields": {
+        "hunk_id": {
+          "bits": [
+            0,
+            28
+          ]
+        },
+        "advisory": {
+          "bit": 29
+        },
+        "chip": {
+          "bit": 30
+        },
+        "fast": {
+          "bit": 31
+        }
+      }
+    },
+    "size_longs_word": {
+      "value_mask": 1073741823,
+      "fields": {
+        "size_longs": {
+          "bits": [
+            0,
+            29
+          ]
+        },
+        "chip": {
+          "bit": 30
+        },
+        "fast": {
+          "bit": 31
+        }
+      }
+    },
+    "ext_type_and_name_len": {
+      "fields": {
+        "ext_type": {
+          "bits": [
+            24,
+            31
+          ]
+        },
+        "name_longs": {
+          "bits": [
+            0,
+            23
+          ]
+        }
+      }
+    },
+    "index_mem_type_and_hunk_type": {
+      "fields": {
+        "mem_type": {
+          "bits": [
+            14,
+            15
+          ]
+        },
+        "hunk_type": {
+          "bits": [
+            0,
+            13
+          ]
+        }
+      }
+    },
+    "index_definition_type_byte": {
+      "fields": {
+        "marker_must_be_zero": {
+          "bit": 7
+        },
+        "abs_sign_flag": {
+          "bit": 6
+        },
+        "definition_type": {
+          "bits": [
+            0,
+            5
+          ]
+        }
+      }
+    }
+  },
+  "record_types": {
+    "HUNK_HEADER": {
+      "id_name": "HUNK_HEADER",
+      "role": "container_header",
+      "fields": [
+        {
+          "name": "resident_lib_names",
+          "type": "terminated_sequence",
+          "entry_type": "bstr_longs_u32",
+          "terminator": {
+            "primitive": "u32",
+            "value": 0
+          }
+        },
+        {
+          "name": "table_size",
+          "primitive": "u32"
+        },
+        {
+          "name": "first_hunk",
+          "primitive": "u32"
+        },
+        {
+          "name": "last_hunk",
+          "primitive": "u32"
+        },
+        {
+          "name": "hunk_size_words",
+          "type": "repeated_struct",
+          "element_fields": [
+            {
+              "name": "size_word",
+              "primitive": "u32"
+            },
+            {
+              "name": "mem_attrs",
+              "primitive": "u32",
+              "present_if": "size_word >> 30 == 3"
+            }
+          ],
+          "count_expr": "last_hunk - first_hunk + 1"
+        }
+      ]
+    },
+    "HUNK_UNIT": {
+      "id_name": "HUNK_UNIT",
+      "role": "unit_start",
+      "fields": [
+        {
+          "name": "unit_name",
+          "primitive": "bstr_longs_u32"
+        }
+      ]
+    },
+    "HUNK_NAME": {
+      "id_name": "HUNK_NAME",
+      "role": "section_name",
+      "fields": [
+        {
+          "name": "name",
+          "primitive": "bstr_longs_u32"
+        }
+      ]
+    },
+    "HUNK_CODE": {
+      "id_name": "HUNK_CODE",
+      "role": "section_start",
+      "section_kind": "code",
+      "fields": [
+        {
+          "name": "mem_attrs",
+          "primitive": "u32",
+          "present_if": "hunk_type_word.chip == 1 and hunk_type_word.fast == 1"
+        },
+        {
+          "name": "size_word",
+          "primitive": "u32"
+        },
+        {
+          "name": "data",
+          "type": "byte_blob",
+          "length_expr": "size_longs_word.size_longs * 4"
+        }
+      ]
+    },
+    "HUNK_DATA": {
+      "id_name": "HUNK_DATA",
+      "role": "section_start",
+      "section_kind": "data",
+      "fields": [
+        {
+          "name": "mem_attrs",
+          "primitive": "u32",
+          "present_if": "hunk_type_word.chip == 1 and hunk_type_word.fast == 1"
+        },
+        {
+          "name": "size_word",
+          "primitive": "u32"
+        },
+        {
+          "name": "data",
+          "type": "byte_blob",
+          "length_expr": "size_longs_word.size_longs * 4"
+        }
+      ]
+    },
+    "HUNK_BSS": {
+      "id_name": "HUNK_BSS",
+      "role": "section_start",
+      "section_kind": "bss",
+      "fields": [
+        {
+          "name": "mem_attrs",
+          "primitive": "u32",
+          "present_if": "hunk_type_word.chip == 1 and hunk_type_word.fast == 1"
+        },
+        {
+          "name": "size_word",
+          "primitive": "u32"
+        }
+      ]
+    },
+    "HUNK_RELOC32": {
+      "id_name": "HUNK_RELOC32",
+      "role": "section_aux",
+      "encoding": "terminated_sequence",
+      "entry_fields": [
+        {
+          "name": "count",
+          "primitive": "u32"
+        },
+        {
+          "name": "target_hunk",
+          "primitive": "u32",
+          "present_if": "count != 0"
+        },
+        {
+          "name": "offsets",
+          "primitive": "u32_array_by_count",
+          "count_from": "count",
+          "present_if": "count != 0"
+        }
+      ],
+      "terminator": {
+        "field": "count",
+        "value": 0
+      }
+    },
+    "HUNK_RELOC16": {
+      "id_name": "HUNK_RELOC16",
+      "role": "section_aux",
+      "same_encoding_as": "HUNK_RELOC32"
+    },
+    "HUNK_RELOC8": {
+      "id_name": "HUNK_RELOC8",
+      "role": "section_aux",
+      "same_encoding_as": "HUNK_RELOC32"
+    },
+    "HUNK_DREL32": {
+      "id_name": "HUNK_DREL32",
+      "role": "section_aux",
+      "same_encoding_as": "HUNK_RELOC32"
+    },
+    "HUNK_DREL16": {
+      "id_name": "HUNK_DREL16",
+      "role": "section_aux",
+      "same_encoding_as": "HUNK_RELOC32"
+    },
+    "HUNK_DREL8": {
+      "id_name": "HUNK_DREL8",
+      "role": "section_aux",
+      "same_encoding_as": "HUNK_RELOC32"
+    },
+    "HUNK_RELRELOC32": {
+      "id_name": "HUNK_RELRELOC32",
+      "role": "section_aux",
+      "same_encoding_as": "HUNK_RELOC32"
+    },
+    "HUNK_ABSRELOC16": {
+      "id_name": "HUNK_ABSRELOC16",
+      "role": "section_aux",
+      "same_encoding_as": "HUNK_RELOC32"
+    },
+    "HUNK_RELOC32SHORT": {
+      "id_name": "HUNK_RELOC32SHORT",
+      "role": "section_aux",
+      "encoding": "terminated_sequence",
+      "entry_fields": [
+        {
+          "name": "count",
+          "primitive": "u16"
+        },
+        {
+          "name": "target_hunk",
+          "primitive": "u16",
+          "present_if": "count != 0"
+        },
+        {
+          "name": "offsets",
+          "primitive": "u16_array_by_count",
+          "count_from": "count",
+          "present_if": "count != 0"
+        }
+      ],
+      "terminator": {
+        "field": "count",
+        "value": 0
+      },
+      "post_terminator_alignment": 4
+    },
+    "HUNK_EXT": {
+      "id_name": "HUNK_EXT",
+      "role": "section_aux",
+      "encoding": "terminated_sequence",
+      "entry_fields": [
+        {
+          "name": "type_and_name_len",
+          "primitive": "u32"
+        },
+        {
+          "name": "name",
+          "type": "byte_blob",
+          "length_expr": "ext_type_and_name_len.name_longs * 4",
+          "present_if": "type_and_name_len != 0"
+        }
+      ],
+      "terminator": {
+        "field": "type_and_name_len",
+        "value": 0
+      },
+      "variant_payloads": {
+        "definition": [
+          {
+            "name": "value",
+            "primitive": "u32"
+          }
+        ],
+        "reference": [
+          {
+            "name": "ref_count",
+            "primitive": "u32"
+          },
+          {
+            "name": "offsets",
+            "primitive": "u32_array_by_count",
+            "count_from": "ref_count"
+          }
+        ],
+        "common_reference": [
+          {
+            "name": "common_size",
+            "primitive": "u32"
+          },
+          {
+            "name": "ref_count",
+            "primitive": "u32"
+          },
+          {
+            "name": "offsets",
+            "primitive": "u32_array_by_count",
+            "count_from": "ref_count"
+          }
+        ]
+      },
+      "variant_selector": {
+        "from_field": "type_and_name_len",
+        "via_bitfield": "ext_type_and_name_len",
+        "field": "ext_type",
+        "variants": {
+          "EXT_SYMB": "definition",
+          "EXT_DEF": "definition",
+          "EXT_ABS": "definition",
+          "EXT_RES": "definition",
+          "EXT_REF32": "reference",
+          "EXT_REF16": "reference",
+          "EXT_REF8": "reference",
+          "EXT_DEXT32": "reference",
+          "EXT_DEXT16": "reference",
+          "EXT_DEXT8": "reference",
+          "EXT_RELREF32": "reference",
+          "EXT_ABSREF16": "reference",
+          "EXT_ABSREF8": "reference",
+          "EXT_COMMON": "common_reference",
+          "EXT_RELCOMMON": "common_reference"
+        }
+      }
+    },
+    "HUNK_SYMBOL": {
+      "id_name": "HUNK_SYMBOL",
+      "role": "section_aux",
+      "encoding": "terminated_sequence",
+      "entry_fields": [
+        {
+          "name": "name",
+          "primitive": "bstr_longs_u32"
+        },
+        {
+          "name": "value",
+          "primitive": "u32"
+        }
+      ],
+      "terminator": {
+        "primitive": "u32",
+        "value": 0
+      }
+    },
+    "HUNK_DEBUG": {
+      "id_name": "HUNK_DEBUG",
+      "role": "section_aux",
+      "fields": [
+        {
+          "name": "size_longs",
+          "primitive": "u32"
+        },
+        {
+          "name": "data",
+          "type": "byte_blob",
+          "length_expr": "size_longs * 4"
+        }
+      ]
+    },
+    "HUNK_END": {
+      "id_name": "HUNK_END",
+      "role": "section_terminator",
+      "fields": []
+    },
+    "HUNK_BREAK": {
+      "id_name": "HUNK_BREAK",
+      "role": "section_terminator",
+      "fields": []
+    },
+    "HUNK_LIB": {
+      "id_name": "HUNK_LIB",
+      "role": "container_header",
+      "fields": [
+        {
+          "name": "length_longs",
+          "primitive": "u32"
+        },
+        {
+          "name": "payload",
+          "type": "byte_blob",
+          "length_expr": "length_longs * 4"
+        }
+      ]
+    },
+    "HUNK_INDEX": {
+      "id_name": "HUNK_INDEX",
+      "role": "container_aux",
+      "fields": [
+        {
+          "name": "length_longs",
+          "primitive": "u32"
+        },
+        {
+          "name": "payload",
+          "type": "byte_blob",
+          "length_expr": "length_longs * 4"
+        }
+      ]
+    }
+  },
+  "groups": {
+    "section_block": {
+      "section_start_types": [
+        "HUNK_CODE",
+        "HUNK_DATA",
+        "HUNK_BSS"
+      ],
+      "aux_types": [
+        "HUNK_RELOC32",
+        "HUNK_RELOC16",
+        "HUNK_RELOC8",
+        "HUNK_DREL32",
+        "HUNK_DREL16",
+        "HUNK_DREL8",
+        "HUNK_RELOC32SHORT",
+        "HUNK_RELRELOC32",
+        "HUNK_ABSRELOC16",
+        "HUNK_EXT",
+        "HUNK_SYMBOL",
+        "HUNK_DEBUG"
+      ],
+      "terminator_types": [
+        "HUNK_END",
+        "HUNK_BREAK"
+      ]
+    },
+    "object_unit": {
+      "prefix_types": [
+        "HUNK_UNIT"
+      ],
+      "interstitial_types": [
+        "HUNK_NAME"
+      ],
+      "contains": "section_block"
+    },
+    "library_pair": {
+      "sequence": [
+        "HUNK_LIB",
+        "HUNK_INDEX"
+      ]
+    }
+  },
+  "containers": {
+    "executable": {
+      "magic_type": "HUNK_HEADER",
+      "top_level_sequence": [
+        "HUNK_HEADER",
+        "section_block"
+      ]
+    },
+    "object": {
+      "magic_type": "HUNK_UNIT",
+      "top_level_sequence": [
+        "object_unit"
+      ]
+    },
+    "library": {
+      "magic_type": "HUNK_LIB",
+      "top_level_sequence": [
+        "library_pair"
+      ]
+    }
+  },
+  "interpretation_rules": [
+    {
+      "when": {
+        "container": "executable",
+        "record_type": "HUNK_DREL32"
+      },
+      "interpret_as": "HUNK_RELOC32SHORT",
+      "reason": "V37 LoadSeg compatibility encoding for short absolute relocations"
+    },
+    {
+      "when": {
+        "container": "object",
+        "record_type": "HUNK_DREL32"
+      },
+      "interpret_as": "HUNK_DREL32",
+      "reason": "Object files retain DREL32 data-relative relocation semantics"
+    }
+  ],
+  "relocation_kinds": {
+    "HUNK_RELOC32": {
+      "width_bytes": 4,
+      "mode": "absolute"
+    },
+    "HUNK_RELOC32SHORT": {
+      "width_bytes": 4,
+      "mode": "absolute"
+    },
+    "HUNK_RELOC16": {
+      "width_bytes": 2,
+      "mode": "pc_relative"
+    },
+    "HUNK_RELOC8": {
+      "width_bytes": 1,
+      "mode": "pc_relative"
+    },
+    "HUNK_DREL32": {
+      "width_bytes": 4,
+      "mode": "data_relative"
+    },
+    "HUNK_DREL16": {
+      "width_bytes": 2,
+      "mode": "data_relative"
+    },
+    "HUNK_DREL8": {
+      "width_bytes": 1,
+      "mode": "data_relative"
+    },
+    "HUNK_RELRELOC32": {
+      "width_bytes": 4,
+      "mode": "pc_relative"
+    },
+    "HUNK_ABSRELOC16": {
+      "width_bytes": 2,
+      "mode": "absolute"
+    }
+  },
+  "ext_reference_kinds": {
+    "EXT_REF32": {
+      "width_bytes": 4,
+      "mode": "absolute"
+    },
+    "EXT_ABSREF16": {
+      "width_bytes": 2,
+      "mode": "absolute"
+    },
+    "EXT_ABSREF8": {
+      "width_bytes": 1,
+      "mode": "absolute"
+    },
+    "EXT_REF16": {
+      "width_bytes": 2,
+      "mode": "pc_relative"
+    },
+    "EXT_REF8": {
+      "width_bytes": 1,
+      "mode": "pc_relative"
+    },
+    "EXT_RELREF32": {
+      "width_bytes": 4,
+      "mode": "pc_relative"
+    },
+    "EXT_DEXT32": {
+      "width_bytes": 4,
+      "mode": "data_relative"
+    },
+    "EXT_DEXT16": {
+      "width_bytes": 2,
+      "mode": "data_relative"
+    },
+    "EXT_DEXT8": {
+      "width_bytes": 1,
+      "mode": "data_relative"
+    }
+  },
+  "debug_kinds": {
+    "LINE": {
+      "magic_u32": 1279872581,
+      "fields": [
+        {
+          "name": "base_offset",
+          "primitive": "u32"
+        },
+        {
+          "name": "magic",
+          "primitive": "u32"
+        },
+        {
+          "name": "filename",
+          "primitive": "bstr_longs_u32"
+        },
+        {
+          "name": "entries",
+          "type": "repeated_struct",
+          "element_fields": [
+            {
+              "name": "line",
+              "primitive": "u32"
+            },
+            {
+              "name": "offset",
+              "primitive": "u32"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "constraints": {
+    "load_file_valid_record_types": [
+      "HUNK_NAME",
+      "HUNK_CODE",
+      "HUNK_DATA",
+      "HUNK_BSS",
+      "HUNK_RELOC32",
+      "HUNK_RELOC16",
+      "HUNK_RELOC8",
+      "HUNK_EXT",
+      "HUNK_SYMBOL",
+      "HUNK_DEBUG",
+      "HUNK_DREL32",
+      "HUNK_END",
+      "HUNK_HEADER",
+      "HUNK_OVERLAY",
+      "HUNK_BREAK"
+    ],
+    "library_payload_forbids": [
+      "HUNK_UNIT",
+      "HUNK_NAME"
+    ],
+    "index_string_table_must_be_even_bytes": true
+  },
+  "notes": [
+    {
+      "topic": "scope",
+      "text": "This file is format metadata only. It is intended for generated constants, helper tables, and validators, not for declaring implementation support policy."
+    }
+  ]
+}

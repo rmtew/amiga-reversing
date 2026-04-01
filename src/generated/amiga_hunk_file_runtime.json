@@ -1,0 +1,46 @@
+{
+  "container_magic_wire_ids": [
+    999,
+    1011,
+    1018
+  ],
+  "meta": {
+    "description": "Normalized Amiga hunk file format metadata for helper/runtime generation.",
+    "endianness": "big",
+    "longword_bytes": 4,
+    "name": "amiga_hunk_file",
+    "sources": [
+      {
+        "note": "Source facts migrated and normalized from the earlier ad hoc Amiga hunk KB.",
+        "ref": "knowledge/amiga_hunk_format.json",
+        "type": "repo_reference"
+      },
+      {
+        "file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_H/DOS/DOSHUNKS.H",
+        "provides": [
+          "type_ids",
+          "ext_subtypes",
+          "memory_flag_bits"
+        ],
+        "type": "official"
+      },
+      {
+        "file": "NDK_3.1/EXAMPLES1/PCMCIA/AMIGAXIP/LOADSEG.ASM",
+        "provides": [
+          "load_file_record_order",
+          "record_payload_shapes",
+          "v37_reloc_compatibility"
+        ],
+        "type": "official"
+      },
+      {
+        "file": "ROM Kernel Reference Manual: DOS, chapter 11.7",
+        "provides": [
+          "HUNK_LIB",
+          "HUNK_INDEX"
+        ],
+        "type": "official"
+      }
+    ]
+  }
+}

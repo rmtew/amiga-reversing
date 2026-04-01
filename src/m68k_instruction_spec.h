@@ -1,0 +1,32 @@
+#ifndef M68K_INSTRUCTION_SPEC_H
+#define M68K_INSTRUCTION_SPEC_H
+
+#include "m68k_assembler.h"
+#include "m68k_ir.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
+#define M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES 16
+#define M68K_INSTRUCTION_SPEC_MAX_OPERANDS 4
+#define M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME 64
+
+typedef struct {
+  char mnemonic[32];
+  char size_suffix;
+  uint8_t target_cpu;
+  uint16_t form_index;
+  size_t operand_count;
+  uint16_t patch_values[M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES];
+  size_t patch_value_count;
+  M68kAsmOperandValue operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS];
+  char operand_label_names[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
+} InstructionSpec;
+
+size_t m68k_instruction_spec_assemble_bytes(const InstructionSpec *instruction, unsigned char *out_bytes, size_t max_bytes);
+int m68k_instruction_spec_uses_movem_predecrement_mask(const InstructionSpec *instruction);
+uint16_t m68k_reverse_reglist_mask(uint16_t mask);
+void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR *out_instruction);
+void m68k_instruction_ir_to_spec(const M68kInstructionIR *instruction, InstructionSpec *out_spec);
+
+#endif

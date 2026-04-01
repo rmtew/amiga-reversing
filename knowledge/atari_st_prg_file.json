@@ -1,0 +1,275 @@
+{
+  "_meta": {
+    "name": "atari_st_prg_file",
+    "description": "Normalized Atari ST PRG executable file format metadata for helper/runtime generation.",
+    "endianness": "big",
+    "sources": [
+      {
+        "type": "repo_local_document",
+        "path": "resources/platform_atari_st/GEMDOS.TXT",
+        "section": "~/text/gemdos/prg",
+        "date": "1986-04-04",
+        "note": "Primary repo-local reference for PRG executable file layout, relocation stream semantics, and symbol table structure."
+      },
+      {
+        "type": "repo_local_document",
+        "path": "resources/platform_atari_st/GEM_0042.pdf",
+        "note": "Supplementary repo-local GEMDOS reference retained alongside GEMDOS.TXT."
+      },
+      {
+        "type": "repo_local_source",
+        "path": "resources/clone_atari_st/emutos/bdos/pghdr.h",
+        "note": "EmuTOS program header definition for the classic GEMDOS PRG load format."
+      },
+      {
+        "type": "repo_local_source",
+        "path": "resources/clone_atari_st/emutos/bdos/kpgmld.c",
+        "note": "EmuTOS program loader implementation and relocation handling for classic PRG files."
+      },
+      {
+        "type": "repo_local_source",
+        "path": "resources/clone_atari_st/hatari/src/gemdos.c",
+        "note": "Hatari GEMDOS Pexec handling reads a 28-byte PRG header, matching EmuTOS and corpus files."
+      },
+      {
+        "type": "repo_local_source",
+        "path": "resources/clone_atari_st/hatari/src/debug/symbols-common.c",
+        "note": "Hatari symbol loader parses the same base PRG header fields and symbol metadata."
+      }
+    ]
+  },
+  "primitives": {
+    "u32": {
+      "kind": "integer",
+      "bytes": 4,
+      "signed": false,
+      "endianness": "big"
+    },
+    "u16": {
+      "kind": "integer",
+      "bytes": 2,
+      "signed": false,
+      "endianness": "big"
+    },
+    "raw_bytes_by_length": {
+      "kind": "byte_blob",
+      "length_type": "external"
+    }
+  },
+  "enums": {
+    "magic": {
+      "PRG": 24602
+    },
+    "section_kind": {
+      "TEXT": 1,
+      "DATA": 2,
+      "BSS": 3
+    }
+  },
+  "bitfields": {},
+  "record_types": {
+    "PRG_HEADER": {
+      "role": "container_header",
+      "source": {
+        "path": "resources/clone_atari_st/emutos/bdos/pghdr.h",
+        "topic": "PGMHDR01"
+      },
+      "fields": [
+        {
+          "name": "magic",
+          "primitive": "u16",
+          "expected_enum": {
+            "enum": "magic",
+            "name": "PRG"
+          },
+          "source": {
+            "path": "resources/clone_atari_st/emutos/bdos/kpgmld.c",
+            "topic": "kpgmhdrld magic check"
+          }
+        },
+        {
+          "name": "text_size",
+          "primitive": "u32",
+          "source": {
+            "path": "resources/clone_atari_st/emutos/bdos/pghdr.h",
+            "topic": "h01_tlen"
+          }
+        },
+        {
+          "name": "data_size",
+          "primitive": "u32",
+          "source": {
+            "path": "resources/clone_atari_st/emutos/bdos/pghdr.h",
+            "topic": "h01_dlen"
+          }
+        },
+        {
+          "name": "bss_size",
+          "primitive": "u32",
+          "source": {
+            "path": "resources/clone_atari_st/emutos/bdos/pghdr.h",
+            "topic": "h01_blen"
+          }
+        },
+        {
+          "name": "symbol_table_size",
+          "primitive": "u32",
+          "source": {
+            "path": "resources/clone_atari_st/emutos/bdos/pghdr.h",
+            "topic": "h01_slen"
+          }
+        },
+        {
+          "name": "symbol_table_type",
+          "primitive": "u32",
+          "source": {
+            "path": "resources/clone_atari_st/hatari/src/debug/symbols-common.c",
+            "topic": "tabletype"
+          }
+        },
+        {
+          "name": "program_flags",
+          "primitive": "u32",
+          "source": {
+            "path": "resources/clone_atari_st/hatari/src/debug/symbols-common.c",
+            "topic": "prgflags"
+          }
+        },
+        {
+          "name": "relocation_flag",
+          "primitive": "u16",
+          "source": {
+            "path": "resources/clone_atari_st/hatari/src/debug/symbols-common.c",
+            "topic": "relocflag"
+          }
+        }
+      ]
+    },
+    "TEXT": {
+      "role": "section_payload",
+      "section_kind": "code",
+      "fields": [
+        {
+          "name": "data",
+          "type": "byte_blob",
+          "length_expr": "header.text_size"
+        }
+      ]
+    },
+    "DATA": {
+      "role": "section_payload",
+      "section_kind": "data",
+      "fields": [
+        {
+          "name": "data",
+          "type": "byte_blob",
+          "length_expr": "header.data_size"
+        }
+      ]
+    },
+    "SYMBOL_TABLE": {
+      "role": "container_aux",
+      "source": {
+        "path": "resources/platform_atari_st/GEMDOS.TXT",
+        "section": "~/text/gemdos/prg",
+        "topic": "Symbol Table Entry"
+      },
+      "fields": [
+        {
+          "name": "data",
+          "type": "byte_blob",
+          "length_expr": "header.symbol_table_size"
+        }
+      ]
+    },
+    "RELOCATION_STREAM": {
+      "role": "container_aux",
+      "encoding": "atari_st_prg_relocation_stream",
+      "source": {
+        "path": "resources/clone_atari_st/emutos/bdos/kpgmld.c",
+        "topic": "pgmld01 / pgfix01"
+      },
+      "fields": [
+        {
+          "name": "initial_offset",
+          "primitive": "u32",
+          "source": {
+            "path": "resources/clone_atari_st/emutos/bdos/kpgmld.c",
+            "topic": "relst / first fixup longword"
+          }
+        },
+        {
+          "name": "delta_stream",
+          "type": "byte_stream_until_eof",
+          "source": {
+            "path": "resources/clone_atari_st/emutos/bdos/kpgmld.c",
+            "topic": "pgfix01 relocation delta stream"
+          }
+        }
+      ]
+    }
+  },
+  "groups": {
+    "loaded_image": {
+      "sequence": [
+        "TEXT",
+        "DATA"
+      ]
+    }
+  },
+  "containers": {
+    "prg_executable": {
+      "magic_record": "PRG_HEADER",
+      "top_level_sequence": [
+        "PRG_HEADER",
+        "TEXT",
+        "DATA",
+        {
+          "type": "SYMBOL_TABLE",
+          "optional": true
+        },
+        {
+          "type": "RELOCATION_STREAM",
+          "optional": true
+        }
+      ]
+    }
+  },
+  "interpretation_rules": [
+    {
+      "when": {
+        "record_type": "RELOCATION_STREAM"
+      },
+      "relocation_target_space": "TEXT+DATA image",
+      "reason": "Relocations apply over the loaded image excluding BSS"
+    }
+  ],
+  "relocation_kinds": {
+    "PRG_RELOC_32": {
+      "record_type": "RELOCATION_STREAM",
+      "width_bytes": 4,
+      "mode": "load_base_relative",
+      "source": {
+        "path": "resources/clone_atari_st/emutos/bdos/kpgmld.c",
+        "topic": "first fixup and pgfix01 add text base to longword"
+      }
+    }
+  },
+  "debug_kinds": {},
+  "constraints": {
+    "bss_is_not_stored_in_file": true,
+    "text_and_data_are_stored_contiguously": true,
+    "relocations_apply_within_loaded_text_plus_data_image": true,
+    "relocation_flag_is_informational_for_classic_prg": true,
+    "relocation_stream_may_terminate_at_eof_without_zero_byte": true,
+    "zero_only_trailing_padding_after_empty_relocation_stream_is_allowed": true,
+    "symbol_table_is_optional_for_parsing": true,
+    "relocation_stream_is_optional_for_parsing": true
+  },
+  "notes": [
+    {
+      "topic": "scope",
+      "text": "This file is normalized format metadata for generator/runtime helpers. It intentionally does not describe implementation support levels."
+    }
+  ]
+}

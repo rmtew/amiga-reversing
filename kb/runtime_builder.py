@@ -483,7 +483,27 @@ def _load_json(name: str) -> JsonObject:
 
 
 def _load_m68k_instructions_payload() -> M68kInstructionsPayload:
-    return cast(M68kInstructionsPayload, _load_json("m68k_instructions.json"))
+    payload = cast(M68kInstructionsPayload, _load_json("m68k_instructions.json"))
+    meta = payload["_meta"]
+    encoding_templates = meta.get("encoding_templates", {})
+    field_binding_templates = meta.get("field_binding_templates", {})
+    form_templates = meta.get("form_templates", {})
+    for inst in payload["instructions"]:
+        if "encodings" not in inst and "encoding_template" in inst:
+            inst["encodings"] = cast(list[object], encoding_templates[inst["encoding_template"]])
+        if "field_bindings" not in inst and "field_binding_template" in inst:
+            inst["field_bindings"] = cast(
+                list[object],
+                field_binding_templates[inst["field_binding_template"]],
+            )
+        if "forms" not in inst and "form_template" in inst:
+            syntaxes = cast(list[str], inst.get("form_syntaxes", []))
+            template_forms = cast(list[dict[str, object]], form_templates[inst["form_template"]])
+            inst["forms"] = [
+                {**form_body, "syntax": syntax}
+                for syntax, form_body in zip(syntaxes, template_forms, strict=True)
+            ]
+    return payload
 
 
 def _load_os_reference_payload() -> OsReferencePayload:

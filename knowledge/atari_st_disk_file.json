@@ -1,0 +1,185 @@
+{
+  "_meta": {
+    "name": "atari_st_disk_file",
+    "description": "Normalized Atari ST raw disk image and GEMDOS FAT12 filesystem metadata for helper/runtime generation.",
+    "endianness": "little",
+    "sources": [
+      {
+        "type": "repo_local_document",
+        "path": "resources/platform_atari_st/GEMDOS.TXT",
+        "section": "~/text/gemdos/diskstruct",
+        "date": "1986-04-04",
+        "note": "Primary repo-local reference for GEMDOS BPB, directory entries, and FAT12 cluster semantics."
+      },
+      {
+        "type": "repo_local_document",
+        "path": "resources/platform_atari_st/GEM_0042.pdf",
+        "note": "Supplementary repo-local GEMDOS reference retained alongside GEMDOS.TXT."
+      }
+    ]
+  },
+  "primitives": {
+    "u8": {
+      "kind": "integer",
+      "bytes": 1,
+      "signed": false,
+      "endianness": "little"
+    },
+    "u16": {
+      "kind": "integer",
+      "bytes": 2,
+      "signed": false,
+      "endianness": "little"
+    },
+    "u32": {
+      "kind": "integer",
+      "bytes": 4,
+      "signed": false,
+      "endianness": "little"
+    },
+    "raw_bytes_by_length": {
+      "kind": "byte_blob",
+      "length_type": "external"
+    }
+  },
+  "enums": {
+    "record_tag": {
+      "BOOT_SECTOR": 1,
+      "FAT": 2,
+      "ROOT_DIRECTORY": 3,
+      "DATA_REGION": 4,
+      "DIRECTORY_ENTRY": 5
+    },
+    "dir_attr": {
+      "READ_ONLY": 1,
+      "HIDDEN": 2,
+      "SYSTEM": 4,
+      "VOLUME_LABEL": 8,
+      "DIRECTORY": 16,
+      "ARCHIVE": 32
+    },
+    "fat_type": {
+      "FAT12": 12
+    }
+  },
+  "bitfields": {
+    "dir_attr_word": {
+      "fields": {
+        "read_only": { "bit": 0 },
+        "hidden": { "bit": 1 },
+        "system": { "bit": 2 },
+        "volume_label": { "bit": 3 },
+        "directory": { "bit": 4 },
+        "archive": { "bit": 5 }
+      }
+    }
+  },
+  "record_types": {
+    "BOOT_SECTOR": {
+      "id_name": "BOOT_SECTOR",
+      "role": "container_header",
+      "source": {
+        "path": "resources/platform_atari_st/GEMDOS.TXT",
+        "section": "~/text/gemdos/diskstruct",
+        "topic": "BIOS Parameter Block (BPB)"
+      },
+      "fields": [
+        { "name": "jump", "type": "byte_blob", "length_expr": "3" },
+        { "name": "oem", "type": "byte_blob", "length_expr": "8" },
+        { "name": "bytes_per_sector", "primitive": "u16", "source": { "path": "resources/platform_atari_st/GEMDOS.TXT", "section": "~/text/gemdos/diskstruct", "topic": "RECSIZ indicates the number of bytes per physical sector" } },
+        { "name": "sectors_per_cluster", "primitive": "u8", "source": { "path": "resources/platform_atari_st/GEMDOS.TXT", "section": "~/text/gemdos/diskstruct", "topic": "CLSIZ indicates the number of sectors in a cluster" } },
+        { "name": "reserved_sector_count", "primitive": "u16" },
+        { "name": "fat_count", "primitive": "u8" },
+        { "name": "root_entry_count", "primitive": "u16", "source": { "path": "resources/platform_atari_st/GEMDOS.TXT", "section": "~/text/gemdos/diskstruct", "topic": "RDLEN is the size of the root directory" } },
+        { "name": "total_sectors", "primitive": "u16" },
+        { "name": "media_descriptor", "primitive": "u8" },
+        { "name": "sectors_per_fat", "primitive": "u16", "source": { "path": "resources/platform_atari_st/GEMDOS.TXT", "section": "~/text/gemdos/diskstruct", "topic": "FSIZ is the size of each FAT in sectors" } },
+        { "name": "sectors_per_track", "primitive": "u16" },
+        { "name": "side_count", "primitive": "u16" },
+        { "name": "hidden_sector_count", "primitive": "u16" }
+      ]
+    },
+    "FAT": {
+      "id_name": "FAT",
+      "role": "container_aux",
+      "fields": [
+        { "name": "entries", "type": "fat12_entries" }
+      ]
+    },
+    "ROOT_DIRECTORY": {
+      "id_name": "ROOT_DIRECTORY",
+      "role": "container_aux",
+      "fields": [
+        { "name": "entries", "type": "directory_entry_array" }
+      ]
+    },
+    "DATA_REGION": {
+      "id_name": "DATA_REGION",
+      "role": "container_aux",
+      "fields": [
+        { "name": "clusters", "type": "cluster_array" }
+      ]
+    },
+    "DIRECTORY_ENTRY": {
+      "id_name": "DIRECTORY_ENTRY",
+      "role": "container_aux",
+      "source": {
+        "path": "resources/platform_atari_st/GEMDOS.TXT",
+        "section": "~/text/gemdos/diskstruct",
+        "topic": "Directory Entry"
+      },
+      "fields": [
+        { "name": "name_raw", "type": "byte_blob", "length_expr": "8" },
+        { "name": "ext_raw", "type": "byte_blob", "length_expr": "3" },
+        { "name": "attributes", "primitive": "u8" },
+        { "name": "reserved", "type": "byte_blob", "length_expr": "10" },
+        { "name": "time_word", "primitive": "u16" },
+        { "name": "date_word", "primitive": "u16" },
+        { "name": "first_cluster", "primitive": "u16", "source": { "path": "resources/platform_atari_st/GEMDOS.TXT", "section": "~/text/gemdos/diskstruct", "topic": "WORD starting cluster#" } },
+        { "name": "file_size", "primitive": "u32", "source": { "path": "resources/platform_atari_st/GEMDOS.TXT", "section": "~/text/gemdos/diskstruct", "topic": "LONG file length" } }
+      ]
+    }
+  },
+  "groups": {
+    "filesystem_regions": {
+      "sequence": [
+        "FAT",
+        "ROOT_DIRECTORY",
+        "DATA_REGION"
+      ]
+    }
+  },
+  "containers": {
+    "st_disk_image": {
+      "magic_record": "BOOT_SECTOR",
+      "top_level_sequence": [
+        "BOOT_SECTOR",
+        "filesystem_regions"
+      ]
+    }
+  },
+  "interpretation_rules": [],
+  "relocation_kinds": {},
+  "debug_kinds": {},
+  "constraints": {
+    "raw_container_extensions": [
+      ".st"
+    ],
+    "supported_fat_types": [
+      "FAT12"
+    ],
+    "root_directory_entry_bytes": 32,
+    "cluster_number_starts_at": 2,
+    "volume_label_entries_live_in_root_directory": true
+  },
+  "notes": [
+    {
+      "topic": "scope",
+      "text": "This file models raw .st sector images and GEMDOS-style FAT12 structures, not PRG payload semantics."
+    },
+    {
+      "topic": "fat12",
+      "text": "Current implementation scope is FAT12 as documented in GEMDOS.TXT; the BPB note about 16-bit FAT entries is retained as a future extension point."
+    }
+  ]
+}

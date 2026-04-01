@@ -1355,15 +1355,15 @@ def test_semantic_operands_build_pbcc_target_form() -> None:
     assert ops[0].segment_addr == 4
 
 
-def test_semantic_operands_build_ptrapcc_immediate_form() -> None:
+def test_semantic_operands_build_pscc_pc_relative_form() -> None:
     inst = disassemble(bytes.fromhex("f07a000000014e71"), max_cpu="68040")[0]
     inst.operand_texts = ("junk0",)
 
     ops = build_instruction_semantic_operands(inst, _operand_session())
 
-    assert [op.kind for op in ops] == ["immediate"]
-    assert [op.text for op in ops] == ["#1"]
-    assert ops[0].value == 1
+    assert [op.kind for op in ops] == ["pc_relative_target"]
+    assert [op.text for op in ops] == ["1(pc)"]
+    assert ops[0].segment_addr == 3
 
 
 def test_semantic_operands_build_link_register_and_immediate_form() -> None:

@@ -23,33 +23,44 @@ _UNSUPPORTED_FORM_REASONS: dict[CanonicalForm, str] = {
     ("BFSET", ("bf_ea",)): "bitfield syntax is not assembled yet",
     ("BFTST", ("bf_ea",)): "bitfield syntax is not assembled yet",
     ("CAS CAS2", ("dn", "dn", "ea")): "CAS/CAS2 special operand forms are not assembled yet",
-    ("CAS CAS2", ("dn_pair", "dn_pair", "unknown")): "CAS/CAS2 special operand forms are not assembled yet",
+    ("CAS CAS2", ("dn_pair", "dn_pair", "rn_pair")): "CAS/CAS2 special operand forms are not assembled yet",
+    ("CINV", ("cache_sel",)): "cache-control special operand forms are not assembled yet",
+    ("CINV", ("cache_sel", "ind")): "cache-control special operand forms are not assembled yet",
     ("CHK2", ("ea", "rn")): "CHK2/CMP2 special forms are not assembled yet",
     ("CMP2", ("ea", "rn")): "CHK2/CMP2 special forms are not assembled yet",
+    ("CPUSH", ("cache_sel",)): "cache-control special operand forms are not assembled yet",
+    ("CPUSH", ("cache_sel", "ind")): "cache-control special operand forms are not assembled yet",
     ("FRESTORE", ("ea",)): "FPU save/restore forms are not assembled yet",
     ("FSAVE", ("ea",)): "FPU save/restore forms are not assembled yet",
+    ("MOVE16", ("absl", "ind")): "MOVE16 forms are not assembled yet",
+    ("MOVE16", ("absl", "postinc")): "MOVE16 forms are not assembled yet",
+    ("MOVE16", ("ind", "absl")): "MOVE16 forms are not assembled yet",
+    ("MOVE16", ("postinc", "absl")): "MOVE16 forms are not assembled yet",
     ("MOVE16", ("postinc", "postinc")): "MOVE16 forms are not assembled yet",
-    ("MOVE16", ("unknown", "unknown")): "MOVE16 forms are not assembled yet",
     ("MOVEC", ("ctrl_reg", "rn")): "MOVEC control-register syntax is not assembled yet",
     ("MOVEC", ("rn", "ctrl_reg")): "MOVEC control-register syntax is not assembled yet",
     ("MOVES", ("rn", "ea")): "MOVES forms are not assembled yet",
     ("MOVES", ("ea", "rn")): "MOVES forms are not assembled yet",
-    ("MULS", ("ea", "dn_pair")): "long multiply register-pair syntax is not assembled yet",
-    ("MULU", ("ea", "dn_pair")): "long multiply register-pair syntax is not assembled yet",
-    ("PFLUSH", ("unknown", "unknown")): "PMMU special operand forms are not assembled yet",
-    ("PFLUSH", ("unknown", "unknown", "ea")): "PMMU special operand forms are not assembled yet",
+    ("PFLUSH", ()): "PMMU special operand forms are not assembled yet",
+    ("PFLUSH", ("ctrl_reg", "imm")): "PMMU special operand forms are not assembled yet",
+    ("PFLUSH", ("ctrl_reg", "imm", "ea")): "PMMU special operand forms are not assembled yet",
+    ("PFLUSH", ("ind",)): "PMMU special operand forms are not assembled yet",
     ("PFLUSH PFLUSHA", ()): "PMMU special operand forms are not assembled yet",
-    ("PFLUSH PFLUSHA", ("unknown", "unknown")): "PMMU special operand forms are not assembled yet",
-    ("PFLUSH PFLUSHA", ("unknown", "unknown", "ea")): "PMMU special operand forms are not assembled yet",
+    ("PFLUSH PFLUSHA", ("ctrl_reg", "imm")): "PMMU special operand forms are not assembled yet",
+    ("PFLUSH PFLUSHA", ("ctrl_reg", "imm", "ea")): "PMMU special operand forms are not assembled yet",
     ("PFLUSHR", ("ea",)): "PMMU special operand forms are not assembled yet",
-    ("PMOVE", ("unknown", "ea")): "PMMU special operand forms are not assembled yet",
-    ("PMOVE", ("ea", "unknown")): "PMMU special operand forms are not assembled yet",
+    ("PLOAD", ("ctrl_reg", "ea")): "PMMU special operand forms are not assembled yet",
+    ("PMOVE", ("ctrl_reg", "ea")): "PMMU special operand forms are not assembled yet",
+    ("PMOVE", ("ea", "ctrl_reg")): "PMMU special operand forms are not assembled yet",
     ("PRESTORE", ("ea",)): "PMMU special operand forms are not assembled yet",
     ("PSAVE", ("ea",)): "PMMU special operand forms are not assembled yet",
     ("PScc", ("ea",)): "PMMU special operand forms are not assembled yet",
     ("PTRAPcc", ()): "PMMU special operand forms are not assembled yet",
     ("PTRAPcc", ("imm",)): "PMMU special operand forms are not assembled yet",
-    ("PVALID", ("unknown", "ea")): "PMMU special operand forms are not assembled yet",
+    ("PTEST", ("ctrl_reg", "ea", "imm")): "PMMU special operand forms are not assembled yet",
+    ("PTEST", ("ctrl_reg", "ea", "imm", "an")): "PMMU special operand forms are not assembled yet",
+    ("PTEST", ("ind",)): "PMMU special operand forms are not assembled yet",
+    ("PVALID", ("ctrl_reg", "ea")): "PMMU special operand forms are not assembled yet",
     ("PVALID", ("an", "ea")): "PMMU special operand forms are not assembled yet",
     ("RTD", ("imm",)): "RTD immediate extension encoding is not assembled yet",
     ("STOP", ("imm",)): "STOP immediate extension encoding is not assembled yet",
@@ -57,6 +68,7 @@ _UNSUPPORTED_FORM_REASONS: dict[CanonicalForm, str] = {
     ("TRAPcc", ("imm",)): "TRAPcc condition-code forms are not assembled yet",
     ("PBcc", ("label",)): "PMMU branch family is not assembled yet",
     ("PDBcc", ("dn", "label")): "PMMU branch family is not assembled yet",
+    ("UNPK", ("predec", "predec", "imm")): "UNPK predecrement form is not assembled yet",
     ("cpBcc", ("label",)): "coprocessor branch family is not assembled yet",
     ("cpDBcc", ("dn", "label")): "coprocessor branch family is not assembled yet",
     ("cpGEN", ("unknown",)): "generic coprocessor forms are not assembled yet",
@@ -65,8 +77,6 @@ _UNSUPPORTED_FORM_REASONS: dict[CanonicalForm, str] = {
     ("cpScc", ("ea",)): "coprocessor condition-code forms are not assembled yet",
     ("cpTRAPcc", ()): "coprocessor TRAPcc forms are not assembled yet",
     ("cpTRAPcc", ("imm",)): "coprocessor TRAPcc forms are not assembled yet",
-    ("DIVS, DIVSL", ("ea", "dn_pair")): "long divide register-pair syntax is not assembled yet",
-    ("DIVU, DIVUL", ("ea", "dn_pair")): "long divide register-pair syntax is not assembled yet",
 }
 
 _SYNTAX_OVERRIDES: dict[CanonicalForm, tuple[str, ...]] = {
@@ -174,6 +184,8 @@ def _operand_candidates(kb_mnemonic: str, form_types: tuple[str, ...], operand_i
         return ("(a0)+",)
     if operand_type == "predec":
         return ("-(a0)",)
+    if operand_type == "ind":
+        return ("(a0)",)
     if operand_type == "reglist":
         return ("d0-d1",)
     if operand_type == "rn":
@@ -188,8 +200,14 @@ def _operand_candidates(kb_mnemonic: str, form_types: tuple[str, ...], operand_i
         return ("sfc",)
     if operand_type == "dn_pair":
         return ("d0:d1",)
+    if operand_type == "rn_pair":
+        return ("d0:d1", "a0:a1")
+    if operand_type == "cache_sel":
+        return ("nc", "dc", "bc", "ic")
     if operand_type == "bf_ea":
         return ("d0{0:8}", "(a0){0:8}")
+    if operand_type == "absl":
+        return ("$12345678.l",)
     if operand_type == "unknown":
         return ("unknown",)
     raise AssertionError(f"Unhandled operand type {operand_type!r}")

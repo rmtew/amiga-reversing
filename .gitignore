@@ -17,6 +17,8 @@ ext/vasm.tar.gz
 *.pyc
 __pycache__/
 *.prof
+src/tests/generated
+src/build
 
 # External resources (copyrighted / user-supplied, see RESOURCES.md)
 bin/*

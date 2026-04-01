@@ -37,7 +37,7 @@ def _seed_absolute_labels(session: HunkDisassemblySession, inst: Instruction) ->
 
 
 def test_kb_find_resolves_bare_mnemonic_via_asm_syntax_index() -> None:
-    assert find_kb_entry("PFLUSHA") == "PFLUSH PFLUSHA"
+    assert find_kb_entry("PFLUSHA") == "PFLUSH"
 
 
 def test_kb_generated_cases_build_canonical_semantic_operands() -> None:

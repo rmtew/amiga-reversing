@@ -26,6 +26,14 @@ class M68kEncoding(TypedDict):
     fields: list[M68kField]
 
 
+class M68kFieldBinding(TypedDict):
+    form_index: int
+    field: str
+    occurrence: int
+    operand_index: int
+    value_source: str
+
+
 class M68kOperandSpec(TypedDict):
     type: str
     raw: NotRequired[str]
@@ -181,9 +189,14 @@ class M68kPcEffects(TypedDict):
 class M68kInstruction(TypedDict, total=False):
     mnemonic: str
     encodings: list[M68kEncoding]
+    encoding_template: str
+    field_bindings: list[M68kFieldBinding]
+    field_binding_template: str
     constraints: M68kConstraints
     field_descriptions: dict[str, str]
     forms: list[M68kForm]
+    form_template: str
+    form_syntaxes: list[str]
     sizes: list[str]
     operation_type: str | None
     operation_class: str | None
@@ -213,6 +226,21 @@ class M68kConditionFamilyEntry(TypedDict):
     codes: list[str]
     match_numeric_suffix: bool
     exclude_from_family: list[str]
+
+
+class M68kEaTextForm(TypedDict, total=False):
+    name: str
+    syntax_family: str
+    mode_name: str
+    base_token: str
+    uses_base_register: bool
+    prefix_token: str
+    suffix_token: str
+    register_prefix: str
+    size_suffix: str
+    allow_label: bool
+    value_kind: str
+    index_required: bool
 
 
 class M68kCcTestDefinition(TypedDict):
@@ -273,6 +301,10 @@ class M68kMeta(TypedDict):
     ea_full_ext_word: list[M68kField]
     ea_mode_encoding: dict[str, list[int]]
     ea_mode_sizes: dict[str, list[str]]
+    encoding_templates: dict[str, list[M68kEncoding]]
+    field_binding_templates: dict[str, list[M68kFieldBinding]]
+    form_templates: dict[str, list[M68kForm]]
+    ea_text_forms: list[M68kEaTextForm]
     exception_frame_rules: list[M68kExceptionFrameRule]
     exception_stack_frames: list[M68kExceptionStackFrame]
     exception_vectors: list[M68kExceptionVector]

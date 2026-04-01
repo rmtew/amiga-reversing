@@ -1,0 +1,15 @@
+{
+  "container_magic_wire_ids": [],
+  "meta": {
+    "description": "Normalized Amiga ADF disk image and AmigaDOS block filesystem metadata for helper/runtime generation.",
+    "endianness": "big",
+    "name": "amiga_disk_file",
+    "sources": [
+      {
+        "note": "Initial normalized facts migrated from the existing Python Amiga disk knowledge path.",
+        "ref": "amiga_disk/kb.py",
+        "type": "repo_reference"
+      }
+    ]
+  }
+}

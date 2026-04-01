@@ -21,6 +21,7 @@ import json
 import re
 import sys
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from re import Match
@@ -477,6 +478,30 @@ def _exception_frame_rules() -> list[JsonDict]:
     ]
 
 
+def _ea_text_forms() -> list[JsonDict]:
+    """Parser-authored operand text forms for Motorola syntax.
+
+    The PDF defines the EA mode names and example syntaxes across Section 2
+    (pp29-38), but not as one parseable normalized grammar table. This emits
+    the canonical text-form families the assembler frontend should recognize,
+    while keeping the actual mode/reg mapping tied back to KB mode names.
+    """
+    return [
+        {"name": "dn", "syntax_family": "reg_direct", "mode_name": "dn", "register_prefix": "d", "value_kind": "none", "cpu_min": "68000"},
+        {"name": "an", "syntax_family": "reg_direct", "mode_name": "an", "register_prefix": "a", "value_kind": "none", "cpu_min": "68000"},
+        {"name": "imm", "syntax_family": "immediate", "mode_name": "imm", "prefix_token": "#", "value_kind": "numeric", "cpu_min": "68000"},
+        {"name": "ind", "syntax_family": "an_indirect", "mode_name": "ind", "base_token": "a", "uses_base_register": True, "prefix_token": "(", "suffix_token": ")", "value_kind": "none", "cpu_min": "68000"},
+        {"name": "postinc", "syntax_family": "an_postinc", "mode_name": "postinc", "base_token": "a", "uses_base_register": True, "prefix_token": "(", "suffix_token": ")+", "value_kind": "none", "cpu_min": "68000"},
+        {"name": "predec", "syntax_family": "an_predec", "mode_name": "predec", "base_token": "a", "uses_base_register": True, "prefix_token": "-(", "suffix_token": ")", "value_kind": "none", "cpu_min": "68000"},
+        {"name": "disp", "syntax_family": "an_disp", "mode_name": "disp", "base_token": "a", "uses_base_register": True, "prefix_token": "", "suffix_token": ")", "value_kind": "numeric", "cpu_min": "68000"},
+        {"name": "index", "syntax_family": "an_index", "mode_name": "index", "base_token": "a", "uses_base_register": True, "prefix_token": "", "suffix_token": ")", "value_kind": "numeric", "index_required": True, "cpu_min": "68000"},
+        {"name": "pcdisp", "syntax_family": "pc_disp", "mode_name": "pcdisp", "base_token": "pc", "uses_base_register": False, "prefix_token": "", "suffix_token": ")", "allow_label": True, "value_kind": "numeric_or_label", "cpu_min": "68000"},
+        {"name": "pcindex", "syntax_family": "pc_index", "mode_name": "pcindex", "base_token": "pc", "uses_base_register": False, "prefix_token": "", "suffix_token": ")", "allow_label": True, "value_kind": "numeric_or_label", "index_required": True, "cpu_min": "68000"},
+        {"name": "absw", "syntax_family": "absolute", "mode_name": "absw", "size_suffix": "w", "value_kind": "numeric", "cpu_min": "68000"},
+        {"name": "absl", "syntax_family": "absolute", "mode_name": "absl", "size_suffix": "l", "value_kind": "numeric", "cpu_min": "68000"},
+    ]
+
+
 def extract_ea_extension_formats(doc: Any) -> tuple[list[JsonDict], list[JsonDict]]:
     """Extract Brief and Full Extension Word field layouts from PDF page 43.
 
@@ -487,7 +512,7 @@ def extract_ea_extension_formats(doc: Any) -> tuple[list[JsonDict], list[JsonDic
 
     Returns (brief_fields, full_fields) where each is a list of
     [{name, bit_hi, bit_lo}, ...] including fixed bits (0/1) so
-    downstream can derive the brief/full discriminator from the gap.
+    downstream can derive the brief/full discriminator directly.
     """
     page = doc[42]  # page 43 (0-indexed)
     spans = extract_page_spans(page)
@@ -508,12 +533,7 @@ def extract_ea_extension_formats(doc: Any) -> tuple[list[JsonDict], list[JsonDic
     brief_all = _extract_fields(encs[1])
     full_all = _extract_fields(encs[2])
 
-    # Return only variable fields (not fixed 0/1 bits) for downstream use,
-    # but the fixed bits are still present in the KB for discriminator derivation
-    brief_var = [f for f in brief_all if f["name"] not in ("0", "1")]
-    full_var = [f for f in full_all if f["name"] not in ("0", "1")]
-
-    return brief_var, full_var
+    return brief_all, full_all
 
 
 def extract_movem_regmask_tables(doc: Any) -> dict[str, list[str]]:
@@ -597,6 +617,89 @@ def _as_kb_payload(kb_data: list[JsonDict], pmmu_cc: list[str],
                    cc_aliases: dict[str, str] | None = None,
                    immediate_routing: dict[str, str] | None = None,
                    condition_families: list[JsonDict] | None = None) -> JsonDict:
+    encoding_templates: dict[str, list[JsonDict]] = {}
+    field_binding_templates: dict[str, list[JsonDict]] = {}
+    form_templates: dict[str, list[JsonDict]] = {}
+    instructions_out: list[JsonDict] = []
+
+    encoding_counts: dict[str, int] = {}
+    binding_counts: dict[str, int] = {}
+    form_counts: dict[str, int] = {}
+    for inst in kb_data:
+        encodings = inst.get("encodings")
+        if isinstance(encodings, list) and encodings:
+            key = json.dumps(encodings, sort_keys=True, ensure_ascii=True)
+            encoding_counts[key] = encoding_counts.get(key, 0) + 1
+        bindings = inst.get("field_bindings")
+        if not isinstance(bindings, list) or not bindings:
+            pass
+        else:
+            key = json.dumps(bindings, sort_keys=True, ensure_ascii=True)
+            binding_counts[key] = binding_counts.get(key, 0) + 1
+        forms = inst.get("forms")
+        if isinstance(forms, list) and forms:
+            normalized_forms = []
+            for form in forms:
+                normalized_form = cast(JsonDict, json.loads(json.dumps(form, ensure_ascii=False)))
+                normalized_form.pop("syntax", None)
+                normalized_forms.append(normalized_form)
+            key = json.dumps(normalized_forms, sort_keys=True, ensure_ascii=True)
+            form_counts[key] = form_counts.get(key, 0) + 1
+
+    encoding_template_ids: dict[str, str] = {}
+    template_ids: dict[str, str] = {}
+    form_template_ids: dict[str, str] = {}
+    for key, count in sorted(encoding_counts.items()):
+        if count < 2:
+            continue
+        template_id = f"enc_{len(encoding_template_ids):03d}"
+        encoding_template_ids[key] = template_id
+        encoding_templates[template_id] = cast(list[JsonDict], json.loads(key))
+    for key, count in sorted(binding_counts.items()):
+        if count < 2:
+            continue
+        template_id = f"fb_{len(template_ids):03d}"
+        template_ids[key] = template_id
+        field_binding_templates[template_id] = cast(list[JsonDict], json.loads(key))
+    for key, count in sorted(form_counts.items()):
+        if count < 2:
+            continue
+        template_id = f"form_{len(form_template_ids):03d}"
+        form_template_ids[key] = template_id
+        form_templates[template_id] = cast(list[JsonDict], json.loads(key))
+
+    for inst in kb_data:
+        inst_out = cast(JsonDict, json.loads(json.dumps(inst, ensure_ascii=False)))
+        encodings = inst_out.get("encodings")
+        if isinstance(encodings, list) and encodings:
+            key = json.dumps(encodings, sort_keys=True, ensure_ascii=True)
+            template_id = encoding_template_ids.get(key)
+            if template_id is not None:
+                inst_out.pop("encodings", None)
+                inst_out["encoding_template"] = template_id
+        bindings = inst_out.get("field_bindings")
+        if isinstance(bindings, list) and bindings:
+            key = json.dumps(bindings, sort_keys=True, ensure_ascii=True)
+            template_id = template_ids.get(key)
+            if template_id is not None:
+                inst_out.pop("field_bindings", None)
+                inst_out["field_binding_template"] = template_id
+        forms = inst_out.get("forms")
+        if isinstance(forms, list) and forms:
+            normalized_forms = []
+            form_syntaxes: list[str] = []
+            for form in forms:
+                normalized_form = cast(JsonDict, json.loads(json.dumps(form, ensure_ascii=False)))
+                form_syntaxes.append(str(normalized_form.pop("syntax", "")))
+                normalized_forms.append(normalized_form)
+            key = json.dumps(normalized_forms, sort_keys=True, ensure_ascii=True)
+            template_id = form_template_ids.get(key)
+            if template_id is not None:
+                inst_out.pop("forms", None)
+                inst_out["form_template"] = template_id
+                inst_out["form_syntaxes"] = form_syntaxes
+        instructions_out.append(inst_out)
+
     # Track B parser-assertion: CCR bit positions within SR from PDF p21,
     # Figure 1-8 "Status Register". The figure shows a 16-bit SR diagram with
     # bit numbers 15..0 and labels: bit 0=C (Carry), 1=V (Overflow), 2=Z (Zero),
@@ -663,6 +766,9 @@ def _as_kb_payload(kb_data: list[JsonDict], pmmu_cc: list[str],
         "opword_bytes": opword_bytes,
         "ea_mode_encoding": ea_mode_encoding,
         "ea_mode_sizes": ea_mode_sizes,
+        "ea_text_forms": _ea_text_forms(),
+        "ea_full_extension_cpu_min": "68020",
+        "ea_full_extension_cpu_min_source": "M68K PRM p.2-16 through p.2-18: full extension word memory indirect forms are 68020 and higher only",
         "size_suffixes": size_suffixes,
         "size_suffixes_source": "M68K PRM: .b/.w/.l operand sizes, .s short branch displacement",
         "default_operand_size": default_operand_size,
@@ -674,6 +780,9 @@ def _as_kb_payload(kb_data: list[JsonDict], pmmu_cc: list[str],
         "exception_vectors": _exception_vectors(),
         "ea_full_ext_bd_size": ea_full_ext_bd_size,
         "ea_full_ext_bd_size_source": "M68K PRM: Full Extension Word BD SIZE field",
+        "encoding_templates": encoding_templates,
+        "field_binding_templates": field_binding_templates,
+        "form_templates": form_templates,
         # Track C parser-assertion: Condition code test definitions from PDF
         # pp 90-91, Table 3-19 "Conditional Tests". The table maps each condition
         # mnemonic (T, F, HI, LS, CC, CS, NE, EQ, VC, VS, PL, MI, GE, LT, GT, LE)
@@ -701,7 +810,7 @@ def _as_kb_payload(kb_data: list[JsonDict], pmmu_cc: list[str],
         meta["condition_families"] = condition_families
     return {
         "_meta": meta,
-        "instructions": kb_data,
+        "instructions": instructions_out,
     }
 
 
@@ -1849,6 +1958,1265 @@ def apply_ea_direction_split(kb_data: list[JsonDict]) -> None:
         print(f"  EA direction splits: {count} instructions")
 
 
+def apply_parser_asserted_ea_mode_fixes(kb_data: list[JsonDict]) -> None:
+    """Apply narrow parser-authored EA legality corrections.
+
+    Track B parser-assertion: CMPI destination EA modes exclude PC-relative
+    addressing. The CMPI page text says the immediate value is compared against
+    the destination operand and the destination is not changed, but the page's
+    EA table layout is close enough to adjacent compare forms that our generic
+    table merger currently leaks `pcdisp`/`pcindex` into `dst`. The PRM CMPI
+    addressing-mode table on p183 matches the standard immediate-data operation
+    destination set and excludes PC-relative modes. We assert that correction
+    here so downstream tools and oracle corpora stay spec-aligned.
+
+    Track B parser-assertion: SUBQ address-register direct is legal on 68000.
+    PRM p4-173 states "Only word and long operations can be used with address
+    registers", which constrains size but does not make An a 68020-only EA.
+    Our generic EA-table merge currently leaks `an` into `ea_modes_020.dst`
+    for SUBQ, which incorrectly removes valid 68000 forms like `SUBQ.W #1,A0`
+    from downstream legality and corpus generation. We assert removal of that
+    spurious 020-only tag here; the existing `an_sizes` constraint remains the
+    correct legality source for byte exclusion.
+    """
+    for inst in kb_data:
+        mnemonic = str(inst.get("mnemonic"))
+        if mnemonic == "CMPI":
+            ea_modes = inst.get("ea_modes")
+            if not isinstance(ea_modes, dict):
+                continue
+            dst_modes = ea_modes.get("dst")
+            if not isinstance(dst_modes, list):
+                continue
+            ea_modes["dst"] = [mode for mode in dst_modes if mode not in ("pcdisp", "pcindex")]
+            continue
+        if mnemonic != "SUBQ":
+            continue
+        ea_modes_020 = inst.get("ea_modes_020")
+        if not isinstance(ea_modes_020, dict):
+            continue
+        dst_modes_020 = ea_modes_020.get("dst")
+        if not isinstance(dst_modes_020, list):
+            continue
+        filtered = [mode for mode in dst_modes_020 if mode != "an"]
+        if filtered:
+            ea_modes_020["dst"] = filtered
+        else:
+            del ea_modes_020["dst"]
+            if not ea_modes_020:
+                del inst["ea_modes_020"]
+
+
+PARSER_ASSERTED_SYNTAX_FIXES: dict[str, dict[str, object]] = {
+    "EXT, EXTB": {
+        "syntax": ["EXT.W Dn", "EXT.L Dn", "EXTB.L Dn"],
+        "forms": [
+            {"syntax": "EXT.W Dn", "operands": [{"type": "dn"}]},
+            {"syntax": "EXT.L Dn", "operands": [{"type": "dn"}]},
+            {"syntax": "EXTB.L Dn", "operands": [{"type": "dn"}], "processor_020": True},
+        ],
+    },
+    "ABCD": {
+        "syntax": ["ABCD Dy,Dx", "ABCD -(Ay),-(Ax)"],
+        "forms": [
+            {"syntax": "ABCD Dy,Dx", "operands": [{"type": "dn"}, {"type": "dn"}]},
+            {"syntax": "ABCD -(Ay),-(Ax)", "operands": [{"type": "predec"}, {"type": "predec"}]},
+        ],
+    },
+    "SBCD": {
+        "syntax": ["SBCD Dx,Dy", "SBCD -(Ax),-(Ay)"],
+        "forms": [
+            {"syntax": "SBCD Dx,Dy", "operands": [{"type": "dn"}, {"type": "dn"}]},
+            {"syntax": "SBCD -(Ax),-(Ay)", "operands": [{"type": "predec"}, {"type": "predec"}]},
+        ],
+    },
+    "ADDX": {
+        "syntax": ["ADDX Dy,Dx", "ADDX -(Ay),-(Ax)"],
+        "forms": [
+            {"syntax": "ADDX Dy,Dx", "operands": [{"type": "dn"}, {"type": "dn"}]},
+            {"syntax": "ADDX -(Ay),-(Ax)", "operands": [{"type": "predec"}, {"type": "predec"}]},
+        ],
+    },
+    "SUBX": {
+        "syntax": ["SUBX Dx,Dy", "SUBX -(Ax),-(Ay)"],
+        "forms": [
+            {"syntax": "SUBX Dx,Dy", "operands": [{"type": "dn"}, {"type": "dn"}]},
+            {"syntax": "SUBX -(Ax),-(Ay)", "operands": [{"type": "predec"}, {"type": "predec"}]},
+        ],
+    },
+    "PACK": {
+        "syntax": ["PACK -(Ax),-(Ay),# <adjustment>", "PACK Dx,Dy,# <adjustment>"],
+        "forms": [
+            {"syntax": "PACK -(Ax),-(Ay),# <adjustment>", "operands": [{"type": "predec"}, {"type": "predec"}, {"type": "imm"}]},
+            {"syntax": "PACK Dx,Dy,# <adjustment>", "operands": [{"type": "dn"}, {"type": "dn"}, {"type": "imm"}]},
+        ],
+    },
+    "UNPK": {
+        "syntax": ["UNPK -(Ax),-(Ay),# <adjustment>", "UNPK Dx,Dy,# <adjustment>"],
+        "forms": [
+            {"syntax": "UNPK -(Ax),-(Ay),# <adjustment>", "operands": [{"type": "predec"}, {"type": "predec"}, {"type": "imm"}]},
+            {"syntax": "UNPK Dx,Dy,# <adjustment>", "operands": [{"type": "dn"}, {"type": "dn"}, {"type": "imm"}]},
+        ],
+    },
+    "CHK2": {"syntax": ["CHK2 <ea>,Rn"], "forms": [{"syntax": "CHK2 <ea>,Rn", "operands": [{"type": "ea"}, {"type": "rn"}]}]},
+    "CMP2": {"syntax": ["CMP2 <ea>,Rn"], "forms": [{"syntax": "CMP2 <ea>,Rn", "operands": [{"type": "ea"}, {"type": "rn"}]}]},
+    "CINV": {
+        "syntax": ["CINVL <caches>,(An)", "CINVP <caches>,(An)", "CINVA <caches>"],
+        "forms": [
+            {"syntax": "CINVL <caches>,(An)", "operands": [{"type": "cache_sel"}, {"type": "ind"}]},
+            {"syntax": "CINVP <caches>,(An)", "operands": [{"type": "cache_sel"}, {"type": "ind"}]},
+            {"syntax": "CINVA <caches>", "operands": [{"type": "cache_sel"}]},
+        ],
+    },
+    "CPUSH": {
+        "syntax": ["CPUSHL <caches>,(An)", "CPUSHP <caches>,(An)", "CPUSHA <caches>"],
+        "forms": [
+            {"syntax": "CPUSHL <caches>,(An)", "operands": [{"type": "cache_sel"}, {"type": "ind"}]},
+            {"syntax": "CPUSHP <caches>,(An)", "operands": [{"type": "cache_sel"}, {"type": "ind"}]},
+            {"syntax": "CPUSHA <caches>", "operands": [{"type": "cache_sel"}]},
+        ],
+    },
+    "FSAVE": {
+        "syntax": ["FSAVE <ea>"],
+        "forms": [{"syntax": "FSAVE <ea>", "operands": [{"type": "ea"}]}],
+    },
+    "FRESTORE": {
+        "syntax": ["FRESTORE <ea>"],
+        "forms": [{"syntax": "FRESTORE <ea>", "operands": [{"type": "ea"}]}],
+    },
+    "PFLUSH": {
+        "syntax": [
+            "PFLUSHA",
+            "PFLUSH FC,# <mask>",
+            "PFLUSH FC,# <mask>,<ea>",
+            "PFLUSHA",
+            "PFLUSH (An)",
+            "PFLUSHA",
+            "PFLUSH (An)",
+        ],
+        "forms": [
+            {
+                "syntax": "PFLUSHA",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [],
+            },
+            {
+                "syntax": "PFLUSH FC,# <mask>",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "imm"}],
+            },
+            {
+                "syntax": "PFLUSH FC,# <mask>,<ea>",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "imm"}, {"type": "ea"}],
+            },
+            {
+                "syntax": "PFLUSHA",
+                "encoding_group_index": 1,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [],
+            },
+            {
+                "syntax": "PFLUSH (An)",
+                "encoding_group_index": 1,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [{"type": "ind"}],
+            },
+            {
+                "syntax": "PFLUSHA",
+                "encoding_group_index": 2,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [],
+            },
+            {
+                "syntax": "PFLUSH (An)",
+                "encoding_group_index": 2,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [{"type": "ind"}],
+            },
+        ],
+    },
+    "PFLUSH PFLUSHA": {
+        "syntax": ["PFLUSHA", "PFLUSH FC,# <mask>", "PFLUSH FC,# <mask>,<ea>"],
+        "forms": [
+            {"syntax": "PFLUSHA", "processor_set": ["68020", "68030"], "operands": []},
+            {
+                "syntax": "PFLUSH FC,# <mask>",
+                "processor_set": ["68020", "68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "imm"}],
+            },
+            {
+                "syntax": "PFLUSH FC,# <mask>,<ea>",
+                "processor_set": ["68020", "68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "imm"}, {"type": "ea"}],
+            },
+        ],
+    },
+    "PBcc": {
+        "syntax": ["PBcc.W <label>", "PBcc.L <label>"],
+        "forms": [
+            {"syntax": "PBcc.W <label>", "operands": [{"type": "label"}]},
+            {"syntax": "PBcc.L <label>", "operands": [{"type": "label"}]},
+        ],
+    },
+    "PDBcc": {
+        "syntax": ["PDBcc Dn,<label>"],
+        "forms": [{"syntax": "PDBcc Dn,<label>", "operands": [{"type": "dn"}, {"type": "label"}]}],
+    },
+    "PScc": {
+        "syntax": ["PScc <ea>"],
+        "forms": [{"syntax": "PScc <ea>", "operands": [{"type": "ea"}]}],
+    },
+    "PTRAPcc": {
+        "syntax": ["PTRAPcc", "PTRAPcc.W # <data>", "PTRAPcc.L # <data>"],
+        "forms": [
+            {"syntax": "PTRAPcc", "operands": []},
+            {"syntax": "PTRAPcc.W # <data>", "operands": [{"type": "imm"}]},
+            {"syntax": "PTRAPcc.L # <data>", "operands": [{"type": "imm"}]},
+        ],
+    },
+    "PVALID": {
+        "syntax": ["PVALID VAL,<ea>", "PVALID An,<ea>"],
+        "forms": [
+            {
+                "syntax": "PVALID VAL,<ea>",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "control_registers": ["val"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}],
+            },
+            {
+                "syntax": "PVALID An,<ea>",
+                "encoding_group_index": 1,
+                "encoding_group_span": 2,
+                "operands": [{"type": "an"}, {"type": "ea"}],
+            },
+        ],
+    },
+    "cpBcc": {
+        "syntax": ["cpBcc <label>"],
+        "forms": [{"syntax": "cpBcc <label>", "operands": [{"type": "label"}]}],
+    },
+    "cpDBcc": {
+        "syntax": ["cpDBcc Dn,<label>"],
+        "forms": [{"syntax": "cpDBcc Dn,<label>", "operands": [{"type": "dn"}, {"type": "label"}]}],
+    },
+    "cpGEN": {
+        "syntax": ["cpGEN < parameters as defined by coprocessor >"],
+        "forms": [
+            {
+                "syntax": "cpGEN < parameters as defined by coprocessor >",
+                "operands": [{"type": "unknown", "raw": "< parameters as defined by coprocessor >"}],
+            }
+        ],
+    },
+    "cpRESTORE": {
+        "syntax": ["cpRESTORE <ea>"],
+        "forms": [{"syntax": "cpRESTORE <ea>", "operands": [{"type": "ea"}]}],
+    },
+    "cpSAVE": {
+        "syntax": ["cpSAVE <ea>"],
+        "forms": [{"syntax": "cpSAVE <ea>", "operands": [{"type": "ea"}]}],
+    },
+    "cpScc": {
+        "syntax": ["cpScc <ea>"],
+        "forms": [{"syntax": "cpScc <ea>", "operands": [{"type": "ea"}]}],
+    },
+    "cpTRAPcc": {
+        "syntax": ["cpTRAPcc", "cpTRAPcc.W # <data>", "cpTRAPcc.L # <data>"],
+        "forms": [
+            {"syntax": "cpTRAPcc", "operands": []},
+            {"syntax": "cpTRAPcc.W # <data>", "operands": [{"type": "imm"}]},
+            {"syntax": "cpTRAPcc.L # <data>", "operands": [{"type": "imm"}]},
+        ],
+    },
+    "PLOAD": {
+        "syntax": ["PLOADR FC,<ea>", "PLOADW FC,<ea>"],
+        "forms": [
+            {"syntax": "PLOADR FC,<ea>", "operands": [{"type": "ctrl_reg"}, {"type": "ea"}]},
+            {"syntax": "PLOADW FC,<ea>", "operands": [{"type": "ctrl_reg"}, {"type": "ea"}]},
+        ],
+    },
+    "PMOVE": {
+        "syntax": [
+            "PMOVE <ctrl_reg>,<ea>",
+            "PMOVE <ea>,<ctrl_reg>",
+            "PMOVE <ctrl_reg>,<ea>",
+            "PMOVE <ea>,<ctrl_reg>",
+            "PMOVE <ctrl_reg>,<ea>",
+            "PMOVE <ea>,<ctrl_reg>",
+        ],
+        "forms": [
+            {
+                "syntax": "PMOVE <ctrl_reg>,<ea>",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "control_registers": ["tc", "srp", "crp"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}],
+            },
+            {
+                "syntax": "PMOVE <ea>,<ctrl_reg>",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "control_registers": ["tc", "srp", "crp"],
+                "operands": [{"type": "ea"}, {"type": "ctrl_reg"}],
+            },
+            {
+                "syntax": "PMOVE <ctrl_reg>,<ea>",
+                "encoding_group_index": 1,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "control_registers": ["psr"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}],
+            },
+            {
+                "syntax": "PMOVE <ea>,<ctrl_reg>",
+                "encoding_group_index": 1,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "control_registers": ["psr"],
+                "operands": [{"type": "ea"}, {"type": "ctrl_reg"}],
+            },
+            {
+                "syntax": "PMOVE <ctrl_reg>,<ea>",
+                "encoding_group_index": 2,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "control_registers": ["tt0", "tt1"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}],
+            },
+            {
+                "syntax": "PMOVE <ea>,<ctrl_reg>",
+                "encoding_group_index": 2,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "control_registers": ["tt0", "tt1"],
+                "operands": [{"type": "ea"}, {"type": "ctrl_reg"}],
+            },
+        ],
+    },
+    "PTEST": {
+        "syntax": [
+            "PTESTR FC,<ea>,# <level>",
+            "PTESTW FC,<ea>,# <level>",
+            "PTESTR FC,<ea>,# <level>,An",
+            "PTESTW FC,<ea>,# <level>,An",
+            "PTESTR <ea>",
+            "PTESTW <ea>",
+        ],
+        "forms": [
+            {
+                "syntax": "PTESTR FC,<ea>,# <level>",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
+            },
+            {
+                "syntax": "PTESTW FC,<ea>,# <level>",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
+            },
+            {
+                "syntax": "PTESTR FC,<ea>,# <level>,An",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
+            },
+            {
+                "syntax": "PTESTW FC,<ea>,# <level>,An",
+                "encoding_group_index": 0,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
+            },
+            {
+                "syntax": "PTESTR FC,<ea>,# <level>",
+                "encoding_group_index": 1,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
+            },
+            {
+                "syntax": "PTESTW FC,<ea>,# <level>",
+                "encoding_group_index": 1,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
+            },
+            {
+                "syntax": "PTESTR (An)",
+                "encoding_group_index": 2,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [{"type": "ind"}],
+            },
+            {
+                "syntax": "PTESTW (An)",
+                "encoding_group_index": 3,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [{"type": "ind"}],
+            },
+            {
+                "syntax": "PTESTR FC,<ea>,# <level>,An",
+                "encoding_group_index": 4,
+                "encoding_group_span": 2,
+                "processor_set": ["68020", "68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
+            },
+            {
+                "syntax": "PTESTW FC,<ea>,# <level>,An",
+                "encoding_group_index": 4,
+                "encoding_group_span": 2,
+                "processor_set": ["68020", "68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
+            },
+        ],
+    },
+    "CAS CAS2": {
+        "syntax": ["CAS Dc,Du,<ea>", "CAS2 Dc1:Dc2,Du1:Du2,(Rn1):(Rn2)"],
+        "forms": [
+            {"syntax": "CAS Dc,Du,<ea>", "encoding_group_index": 0, "encoding_group_span": 2, "operands": [{"type": "dn"}, {"type": "dn"}, {"type": "ea"}]},
+            {"syntax": "CAS2 Dc1:Dc2,Du1:Du2,(Rn1):(Rn2)", "encoding_group_index": 1, "encoding_group_span": 3, "operands": [{"type": "dn_pair"}, {"type": "dn_pair"}, {"type": "rn_pair"}]},
+        ],
+    },
+    "MOVE16": {
+        "syntax": [
+            "MOVE16 (Ax)+,(Ay)+",
+            "MOVE16 (xxx).L,(An)",
+            "MOVE16 (xxx).L,(An)+",
+            "MOVE16 (An),(xxx).L",
+            "MOVE16 (An)+,(xxx).L",
+        ],
+        "forms": [
+            {"syntax": "MOVE16 (Ax)+,(Ay)+", "encoding_group_index": 0, "encoding_group_span": 2, "operands": [{"type": "postinc"}, {"type": "postinc"}]},
+            {"syntax": "MOVE16 (xxx).L,(An)", "encoding_group_index": 1, "encoding_group_span": 3, "operands": [{"type": "absl"}, {"type": "ind"}]},
+            {"syntax": "MOVE16 (xxx).L,(An)+", "encoding_group_index": 1, "encoding_group_span": 3, "operands": [{"type": "absl"}, {"type": "postinc"}]},
+            {"syntax": "MOVE16 (An),(xxx).L", "encoding_group_index": 1, "encoding_group_span": 3, "operands": [{"type": "ind"}, {"type": "absl"}]},
+            {"syntax": "MOVE16 (An)+,(xxx).L", "encoding_group_index": 1, "encoding_group_span": 3, "operands": [{"type": "postinc"}, {"type": "absl"}]},
+        ],
+    },
+    "ASL, ASR": {
+        "syntax": ["ASd Dx,Dy", "ASd # <data>,Dy", "ASd <ea>"],
+        "forms": [
+            {"syntax": "ASd Dx,Dy", "operands": [{"type": "dn"}, {"type": "dn"}], "encoding_group_index": 0},
+            {"syntax": "ASd # <data>,Dy", "operands": [{"type": "imm"}, {"type": "dn"}], "encoding_group_index": 0},
+            {"syntax": "ASd <ea>", "operands": [{"type": "ea"}], "encoding_group_index": 1},
+        ],
+    },
+    "LSL, LSR": {
+        "syntax": ["LSd Dx,Dy", "LSd # <data>,Dy", "LSd <ea>"],
+        "forms": [
+            {"syntax": "LSd Dx,Dy", "operands": [{"type": "dn"}, {"type": "dn"}], "encoding_group_index": 0},
+            {"syntax": "LSd # <data>,Dy", "operands": [{"type": "imm"}, {"type": "dn"}], "encoding_group_index": 0},
+            {"syntax": "LSd <ea>", "operands": [{"type": "ea"}], "encoding_group_index": 1},
+        ],
+    },
+    "ROL, ROR": {
+        "syntax": ["ROd Dx,Dy", "ROd # <data>,Dy", "ROd <ea>"],
+        "forms": [
+            {"syntax": "ROd Dx,Dy", "operands": [{"type": "dn"}, {"type": "dn"}], "encoding_group_index": 0},
+            {"syntax": "ROd # <data>,Dy", "operands": [{"type": "imm"}, {"type": "dn"}], "encoding_group_index": 0},
+            {"syntax": "ROd <ea>", "operands": [{"type": "ea"}], "encoding_group_index": 1},
+        ],
+    },
+    "ROXL, ROXR": {
+        "syntax": ["ROXd Dx,Dy", "ROXd # <data>,Dy", "ROXd <ea>"],
+        "forms": [
+            {"syntax": "ROXd Dx,Dy", "operands": [{"type": "dn"}, {"type": "dn"}], "encoding_group_index": 0},
+            {"syntax": "ROXd # <data>,Dy", "operands": [{"type": "imm"}, {"type": "dn"}], "encoding_group_index": 0},
+            {"syntax": "ROXd <ea>", "operands": [{"type": "ea"}], "encoding_group_index": 1},
+        ],
+    },
+    "MULS": {
+        "syntax": ["MULS.W <ea>,Dn"],
+        "forms": [{
+            "syntax": "MULS.W <ea>,Dn",
+            "operands": [{"type": "ea"}, {"type": "dn"}],
+            "encoding_group_index": 0,
+            "data_sizes": {"type": "multiply", "src_bits": 16, "dst_bits": 16, "result_bits": 32},
+        }],
+    },
+    "MULU": {
+        "syntax": ["MULU.W <ea>,Dn"],
+        "forms": [{
+            "syntax": "MULU.W <ea>,Dn",
+            "operands": [{"type": "ea"}, {"type": "dn"}],
+            "encoding_group_index": 0,
+            "data_sizes": {"type": "multiply", "src_bits": 16, "dst_bits": 16, "result_bits": 32},
+        }],
+    },
+    "DIVS, DIVSL": {
+        "syntax": ["DIVS.W <ea>,Dn"],
+        "forms": [{
+            "syntax": "DIVS.W <ea>,Dn",
+            "operands": [{"type": "ea"}, {"type": "dn"}],
+            "encoding_group_index": 0,
+            "data_sizes": {"type": "divide", "dividend_bits": 32, "divisor_bits": 16, "quotient_bits": 16},
+        }],
+        "variants": [{"mnemonic": "DIVS", "processor_020": False}, {"mnemonic": "DIVSL", "processor_020": True}],
+    },
+    "DIVU, DIVUL": {
+        "syntax": ["DIVU.W <ea>,Dn"],
+        "forms": [{
+            "syntax": "DIVU.W <ea>,Dn",
+            "operands": [{"type": "ea"}, {"type": "dn"}],
+            "encoding_group_index": 0,
+            "data_sizes": {"type": "divide", "dividend_bits": 32, "divisor_bits": 16, "quotient_bits": 16},
+        }],
+        "variants": [{"mnemonic": "DIVU", "processor_020": False}, {"mnemonic": "DIVUL", "processor_020": True}],
+    },
+}
+
+PARSER_ASSERTED_FIELD_VALUE_FIXES: dict[str, list[JsonDict]] = {
+    "EXT, EXTB": [{"field": "OPMODE", "form_field_value": {0: 2, 1: 3, 2: 7}}],
+    "ABCD": [{"field": "R/M", "form_field_value": {0: 0, 1: 1}}],
+    "SBCD": [{"field": "R/M", "form_field_value": {0: 0, 1: 1}}],
+    "ADDX": [{"field": "R/M", "form_field_value": {0: 0, 1: 1}}],
+    "SUBX": [{"field": "R/M", "form_field_value": {0: 0, 1: 1}}],
+    "PACK": [{"field": "R/M", "form_field_value": {0: 0, 1: 1}}],
+    "UNPK": [{"field": "R/M", "form_field_value": {0: 0, 1: 1}}],
+    "MOVES": [{"field": "dr", "form_field_value": {0: 1, 1: 0}}],
+    "MOVE16": [{"field": "OPMODE", "form_field_value": {1: 3, 2: 1, 3: 2, 4: 0}}],
+    "TRAPcc": [{"field": "OPMODE", "form_field_value": {0: 4, 1: 2, 2: 3}}],
+    "CINV": [
+        {"field": "SCOPE", "form_field_value": {0: 1, 1: 2, 2: 3}},
+        {"field": "REGISTER", "form_field_value": {2: 0}},
+    ],
+    "CPUSH": [
+        {"field": "SCOPE", "form_field_value": {0: 1, 1: 2, 2: 3}},
+        {"field": "REGISTER", "form_field_value": {2: 0}},
+    ],
+    "PFLUSH PFLUSHA": [
+        {"field": "MODE", "form_field_value": {0: 1, 1: 4, 2: 7}},
+        {"field": "REGISTER", "form_field_value": {0: 0}},
+    ],
+    "PFLUSH": [
+        {"field": "MODE", "occurrence": 0, "form_field_value": {0: 0, 1: 0}},
+        {"field": "REGISTER", "occurrence": 0, "form_field_value": {0: 0, 1: 0, 3: 0, 5: 0}},
+        {"field": "MODE", "occurrence": 1, "form_field_value": {0: 1, 1: 4, 2: 6}},
+        {"field": "OPMODE", "occurrence": 0, "form_field_value": {3: 3, 4: 1, 5: 3, 6: 1}},
+    ],
+    "PLOAD": [{"field": "R/ W", "form_field_value": {0: 1, 1: 0}}],
+    "PMOVE": [{"field": "R/ W", "form_field_value": {0: 1, 1: 0, 2: 1, 3: 0, 4: 1, 5: 0}}],
+    "FSAVE": [{"field": "ID", "form_field_value": {0: 1}}],
+    "FRESTORE": [{"field": "ID", "form_field_value": {0: 1}}],
+    "cpTRAPcc": [{"field": "OPMODE", "form_field_value": {0: 4, 1: 2, 2: 3}}],
+    "PBcc": [{"field": "SIZE", "form_field_value": {0: 0, 1: 1}}],
+    "PTRAPcc": [{"field": "OPMODE", "form_field_value": {0: 4, 1: 2, 2: 3}}],
+    "PTEST": [
+        {"field": "R/ W", "form_field_value": {0: 1, 1: 0, 2: 1, 3: 0, 4: 1, 5: 0, 6: 1, 7: 0, 8: 1, 9: 0}},
+        {"field": "A", "form_field_value": {0: 0, 1: 0, 2: 1, 3: 1}},
+    ],
+    "ASL, ASR": [{"field": "i/r", "form_field_value": {0: 1, 1: 0}}],
+    "LSL, LSR": [{"field": "i/r", "form_field_value": {0: 1, 1: 0}}],
+    "ROL, ROR": [{"field": "i/r", "form_field_value": {0: 1, 1: 0}}],
+    "ROXL, ROXR": [{"field": "i/r", "form_field_value": {0: 1, 1: 0}}],
+}
+
+PARSER_ASSERTED_ENCODING_FIXES: dict[str, list[JsonDict]] = {
+    "cpBcc": [
+        {
+            "fields": [
+                {"name": "1", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "1", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "1", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "1", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "ID", "bit_hi": 11, "bit_lo": 9, "width": 3},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "1", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "SIZE", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "COPROCESSOR CONDITION", "bit_hi": 5, "bit_lo": 0, "width": 6},
+            ]
+        }
+    ],
+    "cpDBcc": [
+        {
+            "fields": [
+                {"name": "1", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "1", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "1", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "1", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "ID", "bit_hi": 11, "bit_lo": 9, "width": 3},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "1", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "0", "bit_hi": 5, "bit_lo": 5, "width": 1},
+                {"name": "0", "bit_hi": 4, "bit_lo": 4, "width": 1},
+                {"name": "1", "bit_hi": 3, "bit_lo": 3, "width": 1},
+                {"name": "REGISTER", "bit_hi": 2, "bit_lo": 0, "width": 3},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "0", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "0", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "0", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "0", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "0", "bit_hi": 11, "bit_lo": 11, "width": 1},
+                {"name": "0", "bit_hi": 10, "bit_lo": 10, "width": 1},
+                {"name": "0", "bit_hi": 9, "bit_lo": 9, "width": 1},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "0", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "COPROCESSOR CONDITION", "bit_hi": 5, "bit_lo": 0, "width": 6},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "16-BIT DISPLACEMENT", "bit_hi": 15, "bit_lo": 0, "width": 16}
+            ]
+        },
+    ],
+    "cpTRAPcc": [
+        {
+            "fields": [
+                {"name": "1", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "1", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "1", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "1", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "ID", "bit_hi": 11, "bit_lo": 9, "width": 3},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "1", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "1", "bit_hi": 5, "bit_lo": 5, "width": 1},
+                {"name": "1", "bit_hi": 4, "bit_lo": 4, "width": 1},
+                {"name": "1", "bit_hi": 3, "bit_lo": 3, "width": 1},
+                {"name": "OPMODE", "bit_hi": 2, "bit_lo": 0, "width": 3},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "0", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "0", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "0", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "0", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "0", "bit_hi": 11, "bit_lo": 11, "width": 1},
+                {"name": "0", "bit_hi": 10, "bit_lo": 10, "width": 1},
+                {"name": "0", "bit_hi": 9, "bit_lo": 9, "width": 1},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "0", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "COPROCESSOR CONDITION", "bit_hi": 5, "bit_lo": 0, "width": 6},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "OPTIONAL WORD", "bit_hi": 15, "bit_lo": 0, "width": 16}
+            ]
+        },
+    ],
+    "PTRAPcc": [
+        {
+            "fields": [
+                {"name": "0", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "0", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "0", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "0", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "0", "bit_hi": 11, "bit_lo": 11, "width": 1},
+                {"name": "0", "bit_hi": 10, "bit_lo": 10, "width": 1},
+                {"name": "0", "bit_hi": 9, "bit_lo": 9, "width": 1},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "1", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "1", "bit_hi": 5, "bit_lo": 5, "width": 1},
+                {"name": "1", "bit_hi": 4, "bit_lo": 4, "width": 1},
+                {"name": "1", "bit_hi": 3, "bit_lo": 3, "width": 1},
+                {"name": "OPMODE", "bit_hi": 2, "bit_lo": 0, "width": 3},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "0", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "0", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "0", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "0", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "0", "bit_hi": 11, "bit_lo": 11, "width": 1},
+                {"name": "0", "bit_hi": 10, "bit_lo": 10, "width": 1},
+                {"name": "0", "bit_hi": 9, "bit_lo": 9, "width": 1},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "0", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "MC68851 CONDITION", "bit_hi": 5, "bit_lo": 0, "width": 6},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "OPTIONAL WORD", "bit_hi": 15, "bit_lo": 0, "width": 16}
+            ]
+        },
+    ],
+    "PVALID": [
+        {
+            "fields": [
+                {"name": "1", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "1", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "1", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "1", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "0", "bit_hi": 11, "bit_lo": 11, "width": 1},
+                {"name": "0", "bit_hi": 10, "bit_lo": 10, "width": 1},
+                {"name": "0", "bit_hi": 9, "bit_lo": 9, "width": 1},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "0", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "MODE", "bit_hi": 5, "bit_lo": 3, "width": 3},
+                {"name": "REGISTER", "bit_hi": 2, "bit_lo": 0, "width": 3},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "0", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "0", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "1", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "0", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "1", "bit_hi": 11, "bit_lo": 11, "width": 1},
+                {"name": "0", "bit_hi": 10, "bit_lo": 10, "width": 1},
+                {"name": "0", "bit_hi": 9, "bit_lo": 9, "width": 1},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "0", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "0", "bit_hi": 5, "bit_lo": 5, "width": 1},
+                {"name": "0", "bit_hi": 4, "bit_lo": 4, "width": 1},
+                {"name": "0", "bit_hi": 3, "bit_lo": 3, "width": 1},
+                {"name": "0", "bit_hi": 2, "bit_lo": 2, "width": 1},
+                {"name": "0", "bit_hi": 1, "bit_lo": 1, "width": 1},
+                {"name": "0", "bit_hi": 0, "bit_lo": 0, "width": 1},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "1", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "1", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "1", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "1", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "0", "bit_hi": 11, "bit_lo": 11, "width": 1},
+                {"name": "0", "bit_hi": 10, "bit_lo": 10, "width": 1},
+                {"name": "0", "bit_hi": 9, "bit_lo": 9, "width": 1},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "0", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "MODE", "bit_hi": 5, "bit_lo": 3, "width": 3},
+                {"name": "REGISTER", "bit_hi": 2, "bit_lo": 0, "width": 3},
+            ]
+        },
+        {
+            "fields": [
+                {"name": "0", "bit_hi": 15, "bit_lo": 15, "width": 1},
+                {"name": "0", "bit_hi": 14, "bit_lo": 14, "width": 1},
+                {"name": "1", "bit_hi": 13, "bit_lo": 13, "width": 1},
+                {"name": "0", "bit_hi": 12, "bit_lo": 12, "width": 1},
+                {"name": "1", "bit_hi": 11, "bit_lo": 11, "width": 1},
+                {"name": "1", "bit_hi": 10, "bit_lo": 10, "width": 1},
+                {"name": "0", "bit_hi": 9, "bit_lo": 9, "width": 1},
+                {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1},
+                {"name": "0", "bit_hi": 7, "bit_lo": 7, "width": 1},
+                {"name": "0", "bit_hi": 6, "bit_lo": 6, "width": 1},
+                {"name": "0", "bit_hi": 5, "bit_lo": 5, "width": 1},
+                {"name": "0", "bit_hi": 4, "bit_lo": 4, "width": 1},
+                {"name": "0", "bit_hi": 3, "bit_lo": 3, "width": 1},
+                {"name": "REGISTER", "bit_hi": 2, "bit_lo": 0, "width": 3},
+            ]
+        },
+    ],
+}
+
+PARSER_ASSERTED_RM_FAMILY_BINDINGS: list[JsonDict] = [
+    {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+    {"form_index": 0, "field": "REGISTER", "occurrence": 1, "operand_index": 0, "value_source": "reg"},
+    {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+    {"form_index": 1, "field": "REGISTER", "occurrence": 1, "operand_index": 0, "value_source": "reg"},
+    {"form_index": 0, "field": "DATA", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+    {"form_index": 1, "field": "DATA", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+]
+
+PARSER_ASSERTED_SHIFT_FAMILY_BINDINGS: list[JsonDict] = [
+    {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+    {"form_index": 0, "field": "REGISTER", "occurrence": 1, "operand_index": 1, "value_source": "reg"},
+    {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+    {"form_index": 1, "field": "REGISTER", "occurrence": 1, "operand_index": 1, "value_source": "reg"},
+    {"form_index": 2, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+    {"form_index": 2, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+]
+
+PARSER_ASSERTED_FIELD_BINDING_FIXES: dict[str, list[JsonDict]] = {
+    "DBcc": [
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 0, "field": "16-BIT DISPLACEMENT", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+    ],
+    "cpBcc": [],
+    "cpDBcc": [
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 0, "field": "16-BIT DISPLACEMENT", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+    ],
+    "PBcc": [],
+    "PDBcc": [
+        {"form_index": 0, "field": "COUNT REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 0, "field": "16-BIT DISPLACEMENT", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+    ],
+    "ABCD": PARSER_ASSERTED_RM_FAMILY_BINDINGS,
+    "SBCD": PARSER_ASSERTED_RM_FAMILY_BINDINGS,
+    "ADDX": PARSER_ASSERTED_RM_FAMILY_BINDINGS,
+    "SUBX": PARSER_ASSERTED_RM_FAMILY_BINDINGS,
+    "PACK": PARSER_ASSERTED_RM_FAMILY_BINDINGS,
+    "UNPK": PARSER_ASSERTED_RM_FAMILY_BINDINGS,
+    "CMPM": [
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 1, "operand_index": 0, "value_source": "reg"},
+    ],
+    "MOVES": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 0, "field": "A/D", "occurrence": 0, "operand_index": 0, "value_source": "reg_kind"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 1, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 1, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+        {"form_index": 1, "field": "A/D", "occurrence": 0, "operand_index": 1, "value_source": "reg_kind"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 1, "operand_index": 1, "value_source": "reg"},
+    ],
+    "CALLM": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 0, "field": "ARGUMENT COUNT", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+    ],
+    "MOVEC": [
+        {"form_index": 0, "field": "CONTROL REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 0, "field": "A/D", "occurrence": 0, "operand_index": 1, "value_source": "reg_kind"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+        {"form_index": 1, "field": "A/D", "occurrence": 0, "operand_index": 0, "value_source": "reg_kind"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 1, "field": "CONTROL REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+    ],
+    "MOVE16": [
+        {"form_index": 0, "field": "REGISTER Ax", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 0, "field": "REGISTER Ay", "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+        {"form_index": 1, "field": "REGISTER Ay", "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+        {"form_index": 1, "field": "HIGH-ORDER ADDRESS", "occurrence": 0, "operand_index": 0, "value_source": "value_hi16"},
+        {"form_index": 1, "field": "LOW-ORDER ADDRESS", "occurrence": 0, "operand_index": 0, "value_source": "value_lo16"},
+        {"form_index": 2, "field": "REGISTER Ay", "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+        {"form_index": 2, "field": "HIGH-ORDER ADDRESS", "occurrence": 0, "operand_index": 0, "value_source": "value_hi16"},
+        {"form_index": 2, "field": "LOW-ORDER ADDRESS", "occurrence": 0, "operand_index": 0, "value_source": "value_lo16"},
+        {"form_index": 3, "field": "REGISTER Ay", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 3, "field": "HIGH-ORDER ADDRESS", "occurrence": 0, "operand_index": 1, "value_source": "value_hi16"},
+        {"form_index": 3, "field": "LOW-ORDER ADDRESS", "occurrence": 0, "operand_index": 1, "value_source": "value_lo16"},
+        {"form_index": 4, "field": "REGISTER Ay", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 4, "field": "HIGH-ORDER ADDRESS", "occurrence": 0, "operand_index": 1, "value_source": "value_hi16"},
+        {"form_index": 4, "field": "LOW-ORDER ADDRESS", "occurrence": 0, "operand_index": 1, "value_source": "value_lo16"},
+    ],
+    "PFLUSH PFLUSHA": [
+        {"form_index": 1, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 1, "field": "MASK", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+        {"form_index": 2, "field": "MODE", "occurrence": 0, "operand_index": 2, "value_source": "ea_mode"},
+        {"form_index": 2, "field": "REGISTER", "occurrence": 0, "operand_index": 2, "value_source": "ea_reg"},
+        {"form_index": 2, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 2, "field": "MASK", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+    ],
+    "cpScc": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+    ],
+    "cpTRAPcc": [
+        {"form_index": 1, "field": "DATA", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 2, "field": "DATA", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+    ],
+    "PScc": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+    ],
+    "PTRAPcc": [
+        {"form_index": 1, "field": "DATA", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 2, "field": "DATA", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+    ],
+    "PVALID": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 1, "operand_index": 0, "value_source": "value"},
+        {"form_index": 1, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 1, "operand_index": 0, "value_source": "reg"},
+    ],
+    "PLOAD": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 0, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 1, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 1, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+    ],
+    "PMOVE": [
+        {"form_index": 0, "field": "P-REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 1, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+        {"form_index": 1, "field": "P-REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+        {"form_index": 2, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 2, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 3, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+        {"form_index": 3, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+        {"form_index": 4, "field": "P-REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 4, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 4, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 5, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+        {"form_index": 5, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+        {"form_index": 5, "field": "P-REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+    ],
+    "PTEST": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 0, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 0, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+        {"form_index": 1, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 1, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 1, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+        {"form_index": 2, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 2, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 2, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 2, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+        {"form_index": 2, "field": "REGISTER", "occurrence": 1, "operand_index": 3, "value_source": "reg"},
+        {"form_index": 3, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 3, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 3, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 3, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+        {"form_index": 3, "field": "REGISTER", "occurrence": 1, "operand_index": 3, "value_source": "reg"},
+        {"form_index": 4, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 4, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 4, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 5, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 5, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 5, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 6, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 7, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 8, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 8, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 8, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 8, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+        {"form_index": 8, "field": "A-REGISTER", "occurrence": 0, "operand_index": 3, "value_source": "reg"},
+        {"form_index": 9, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+        {"form_index": 9, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 9, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 9, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+        {"form_index": 9, "field": "A-REGISTER", "occurrence": 0, "operand_index": 3, "value_source": "reg"},
+    ],
+    "CAS CAS2": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 2, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 2, "value_source": "ea_reg"},
+        {"form_index": 0, "field": "Dc", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+        {"form_index": 0, "field": "Du", "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+        {"form_index": 1, "field": "Dc1", "occurrence": 0, "operand_index": 0, "value_source": "reg_first"},
+        {"form_index": 1, "field": "Dc2", "occurrence": 0, "operand_index": 0, "value_source": "reg_second"},
+        {"form_index": 1, "field": "Du1", "occurrence": 0, "operand_index": 1, "value_source": "reg_first"},
+        {"form_index": 1, "field": "Du2", "occurrence": 0, "operand_index": 1, "value_source": "reg_second"},
+        {"form_index": 1, "field": "D/A1", "occurrence": 0, "operand_index": 2, "value_source": "reg_kind_first"},
+        {"form_index": 1, "field": "Rn1", "occurrence": 0, "operand_index": 2, "value_source": "reg_first"},
+        {"form_index": 1, "field": "D/A2", "occurrence": 0, "operand_index": 2, "value_source": "reg_kind_second"},
+        {"form_index": 1, "field": "Rn2", "occurrence": 0, "operand_index": 2, "value_source": "reg_second"},
+    ],
+    "RTD": [
+        {"form_index": 0, "field": "16-BIT DISPLACEMENT", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+    ],
+    "CHK2": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+        {"form_index": 0, "field": "D/A", "occurrence": 0, "operand_index": 1, "value_source": "reg_kind"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 1, "operand_index": 1, "value_source": "reg"},
+    ],
+    "CMP2": [
+        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+        {"form_index": 0, "field": "D/A", "occurrence": 0, "operand_index": 1, "value_source": "reg_kind"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 1, "operand_index": 1, "value_source": "reg"},
+    ],
+    "CINV": [
+        {"form_index": 0, "field": "CACHE", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 1, "field": "CACHE", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 2, "field": "CACHE", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+    ],
+    "CPUSH": [
+        {"form_index": 0, "field": "CACHE", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 1, "field": "CACHE", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        {"form_index": 2, "field": "CACHE", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+    ],
+    "ASL, ASR": PARSER_ASSERTED_SHIFT_FAMILY_BINDINGS,
+    "LSL, LSR": PARSER_ASSERTED_SHIFT_FAMILY_BINDINGS,
+    "ROL, ROR": PARSER_ASSERTED_SHIFT_FAMILY_BINDINGS,
+    "ROXL, ROXR": PARSER_ASSERTED_SHIFT_FAMILY_BINDINGS,
+}
+
+def apply_parser_asserted_syntax_fixes(kb_data: list[JsonDict]) -> None:
+    """Apply narrow parser-authored syntax corrections.
+
+    Track B parser-assertion: EXT/EXTB syntax on PRM p210 is being extracted with
+    descriptive prose fused into the operand token (for example
+    ``EXT.W Dnextend byte to word``). The page's real syntax lines are the
+    standard Motorola assembler forms:
+      EXT.W Dn
+      EXT.L Dn
+      EXTB.L Dn   (68020+ only)
+    The PDF text extraction loses the line/column boundary between the operand
+    and the following explanation, so this cannot be recovered by the generic
+    syntax parser alone. We assert the exact syntax forms here from the PRM page
+    so downstream tools consume clean assembler syntax from the KB.
+
+    Track B parser-assertion: ABCD/SBCD/ADDX/SUBX/PACK/UNPK/CHK2/CMP2 on PRM pp106/274/117/287/260/299/175/186 use the printed
+    predecrement notation ``–(Ay), –(Ax)`` / ``–(Ax), –(Ay)`` with an en dash
+    that the PDF extractor preserves inconsistently, and the current generic
+    syntax parser fails to turn those lines into structured forms. The real
+    Motorola assembler syntax is:
+      ABCD Dy,Dx
+      ABCD -(Ay),-(Ax)
+      SBCD Dx,Dy
+      SBCD -(Ax),-(Ay)
+      ADDX Dy,Dx
+      ADDX -(Ay),-(Ax)
+      SUBX Dx,Dy
+      SUBX -(Ax),-(Ay)
+      PACK -(Ax),-(Ay),# <adjustment>
+      PACK Dx,Dy,# <adjustment>
+      UNPK -(Ax),-(Ay),# <adjustment>
+      UNPK Dx,Dy,# <adjustment>
+      CHK2 <ea>,Rn
+      CMP2 <ea>,Rn
+    We assert those exact forms here from the instruction pages so downstream
+    tools consume clean source/destination forms from the KB.
+
+    Track B parser-assertion: CAS/CAS2 on PRM pp168-170 are combined on one
+    page, and the extracted syntax retains spacing noise plus a dangling `*`
+    bullet. We assert clean assembler-facing forms here and preserve their
+    encoding-group mapping:
+      CAS Dc,Du,<ea>
+      CAS2 Dc1:Dc2,Du1:Du2,(Rn1):(Rn2)
+
+    Track B parser-assertion: cpGEN on PRM p190 is explicitly a generic
+    coprocessor escape with "parameters as defined by coprocessor". The page
+    defines the opword shape but not a Motorola-level operand structure for the
+    trailing coprocessor-specific parameter block. We assert that syntax stays
+    opaque here so downstream tools do not invent structure the PDF does not.
+
+    Track B parser-assertion: PVALID on PRM pp534-536 is printed with two
+    explicit forms, `PVALID VAL,<ea>` and `PVALID An,<ea>`, but the extraction
+    still carries spacing noise around the operands. We assert the clean
+    assembler-facing forms here while preserving the PDF's distinction between
+    the fixed `VAL` source and the address-register source. The fixed `VAL`
+    source is modeled as a constrained control-register operand so downstream
+    generators can keep it on the same structured path as other register-like
+    PMMU operands.
+    """
+    for inst in kb_data:
+        if str(inst.get("mnemonic")) == "PMOVE":
+            pages = inst.get("pages")
+            if isinstance(pages, list):
+                kept_pages = [int(page) for page in pages if int(page) <= 504]
+                if kept_pages:
+                    inst["pages"] = kept_pages
+                    inst["page"] = kept_pages[0]
+            encodings = inst.get("encodings")
+            if isinstance(encodings, list) and len(encodings) > 6:
+                inst["encodings"] = encodings[:6]
+        fix = PARSER_ASSERTED_SYNTAX_FIXES.get(str(inst.get("mnemonic")))
+        if fix is None:
+            continue
+        inst["syntax"] = deepcopy(cast(list[str], fix["syntax"]))
+        inst["forms"] = deepcopy(cast(list[JsonDict], fix["forms"]))
+
+
+def apply_parser_asserted_field_value_fixes(kb_data: list[JsonDict]) -> None:
+    """Apply narrow parser-authored per-form field values.
+
+    Track B parser-assertion: EXT/EXTB on PRM p210 uses the OPMODE field to
+    distinguish the three syntax forms:
+      EXT.W Dn  -> OPMODE=010
+      EXT.L Dn  -> OPMODE=011
+      EXTB.L Dn -> OPMODE=111
+    The generic opmode-table extractor records these rows, but downstream code
+    also needs the form-specific constant field values in machine-readable form.
+    We assert them here from the PDF table so generated tools can consume them
+    without mnemonic-specific hardcoding.
+
+    Track B parser-assertion: ABCD/SBCD/ADDX/SUBX/PACK/UNPK on PRM pp106/274/117/287/260/299 use the single-bit
+    ``R/M`` field to distinguish register-direct and address-predecrement
+    source/destination forms:
+      0 -> Dn,Dn form
+      1 -> -(An),-(An) form
+    The PDF syntax makes this distinction obvious, but the current generic
+    extraction does not derive per-form constant field values for ``R/M``.
+    We assert those exact per-form constants here from the encoding diagram.
+
+    Track B parser-assertion: MOVES on PRM p478 uses the extension-word ``dr``
+    bit to distinguish the two syntax forms:
+      MOVES Rn,<ea>  -> dr=1
+      MOVES <ea>,Rn  -> dr=0
+    The PDF extension-word diagram makes this explicit, but the current generic
+    extraction does not derive per-form constant field values for that bit.
+
+    Track B parser-assertion: TRAPcc on PRM p293 uses OPMODE to distinguish
+    the three syntax forms:
+      TRAPcc           -> OPMODE=100
+      TRAPcc.W #<data> -> OPMODE=010
+      TRAPcc.L #<data> -> OPMODE=011
+    The opmode table on the page gives these rows directly, but downstream code
+    needs the per-form constant field values in machine-readable form.
+
+    Track B parser-assertion: FRESTORE on PRM p467 and FSAVE on PRM p470 show
+    the coprocessor instruction format with explicit `ID` bits:
+      FRESTORE -> `COPROCESSOR ID 1 0 1 EFFECTIVE ADDRESS`
+      FSAVE    -> `COPROCESSOR ID 1 0 0 EFFECTIVE ADDRESS`
+    The extracted templates preserve `ID` as a variable field, but for the
+    documented MC68040 forms that field is fixed to `001`. We assert that
+    constant per form here so generated tools emit the PDF encoding rather than
+    relying on downstream oracle-only correction.
+
+    Track B parser-assertion: PBcc on PRM p482 and PTRAPcc on PRM p532 retain
+    fused size/opmode syntax in the raw extraction. The pages document explicit
+    per-form selectors:
+      PBcc.W / PBcc.L
+      PTRAPcc / PTRAPcc.W / PTRAPcc.L
+    We assert those selector values here so the KB exposes the real PMMU forms
+    directly instead of one merged textual placeholder.
+    """
+    for inst in kb_data:
+        fix = PARSER_ASSERTED_FIELD_VALUE_FIXES.get(str(inst.get("mnemonic")))
+        if fix is not None:
+            inst["field_form_values"] = deepcopy(fix)
+
+
+def apply_parser_asserted_encoding_fixes(kb_data: list[JsonDict]) -> None:
+    """Apply narrow parser-authored encoding corrections.
+
+    Track B parser-assertion: cpBcc and cpDBcc on PRM pp188-189 have concrete
+    first-word layouts in the PDF that the current generic coprocessor extractor
+    still collapses into the shared opaque `ID`/condition template. We assert
+    the documented word structure here so downstream tools see the real opcode
+    fields instead of misleading generic placeholders:
+      cpBcc  -> first word carries ID, size, and coprocessor condition
+      cpDBcc -> first word carries ID and data register, followed by a
+                condition word and a 16-bit displacement word
+    The unsized cpBcc syntax still does not identify which displacement width is
+    chosen, so we intentionally do not bind its label operand to a specific
+    displacement field until that distinction is modeled honestly upstream.
+
+    Track B parser-assertion: cpTRAPcc on PRM p193 uses the same three-form
+    opmode split as TRAPcc, but the current syntax extraction collapses it to a
+    single immediate form and the generic coprocessor extractor again leaves the
+    opcode in the opaque `ID`/condition template. The page's instruction-format
+    diagram explicitly shows a first word with `ID` and `OPMODE`, followed by a
+    condition word; the opmode field selects the no-operand, word-immediate, and
+    long-immediate forms:
+      cpTRAPcc           -> OPMODE=100
+      cpTRAPcc.W #<data> -> OPMODE=010
+      cpTRAPcc.L #<data> -> OPMODE=011
+    We assert that structure here so the KB represents the documented family
+    instead of an accidental partial parse.
+
+    Track B parser-assertion: PTRAPcc on PRM p532 is the PMMU analogue of
+    cpTRAPcc. The current extraction preserves the first PMMU word and condition
+    word but drops the optional immediate payload word needed by the .W and .L
+    forms. We assert that third word here so downstream tools see the complete
+    documented encoding family.
+    """
+    for inst in kb_data:
+        fix = PARSER_ASSERTED_ENCODING_FIXES.get(str(inst.get("mnemonic")))
+        if fix is not None:
+            inst["encodings"] = deepcopy(fix)
+
+
+def apply_parser_asserted_field_binding_fixes(kb_data: list[JsonDict]) -> None:
+    """Apply narrow parser-authored field-binding corrections.
+
+    Track B parser-assertion: DBcc uses a second instruction word containing a
+    full 16-bit displacement on PRM p189. The current generic binding extractor
+    incorrectly leaves the label operand bound to an inexistent
+    ``8-BIT DISPLACEMENT`` field on the first word. The actual encoding is:
+      first word: condition + data register
+      second word: 16-BIT DISPLACEMENT
+    We correct the binding so downstream generators attach the label operand to
+    the true extension-word field instead of patching DBcc specially.
+
+    Track B parser-assertion: PDBcc on PRM p484 is the PMMU analogue of DBcc.
+    The generic extractor still misses the operand mapping onto `COUNT
+    REGISTER` and the true 16-bit displacement extension. PTRAPcc on PRM p532
+    likewise needs explicit immediate-data bindings for its .W and .L forms once
+    the syntax is split. We assert those PMMU bindings here so the KB stays
+    structurally faithful upstream.
+
+    Track B parser-assertion: PVALID on PRM pp534-536 has two forms. Both bind
+    the destination effective address through MODE/REGISTER, but only the second
+    form binds the main-processor address-register source in the final word's
+    REGISTER field, while the first form binds the fixed `VAL` source in the
+    same field with value 000. The current extractor only binds the
+    effective-address operand. We add the missing source bindings here so the
+    two PDF forms are represented faithfully.
+
+    Track B parser-assertion: ABCD/SBCD/ADDX/SUBX/CMPM/PACK/UNPK/CHK2/CMP2 on PRM pp106/274/117/287/185/260/299/175/186 encode the destination
+    register in bits 11-9 and the source register in bits 2-0 for both the
+    data-register and predecrement forms. The field names differ slightly
+    between the two pages (`REGISTER Rx/Ry` vs `REGISTER Dx/Ax` and
+    `REGISTER Dy/Ay`; `CMPM` uses `REGISTER Ax` / `REGISTER Ay` for the paired
+    postincrement form; `PACK`/`UNPK` use the same `Dx/Ax` and `Dy/Ay` naming
+    across their register and predecrement forms), so we assert the operand-to-field bindings explicitly
+    from the encoding diagram to preserve the generic downstream register path.
+
+    Track B parser-assertion: MOVES on PRM p478 uses:
+    first word: effective-address MODE/REGISTER for the <ea> operand
+    second word: A/D + REGISTER for the Rn operand, plus constant dr bit
+    The current generic extractor does not bind these fields onto the two
+    source/destination syntax forms, so we assert the operand mappings here
+    from the two-word encoding diagram.
+
+    Track B parser-assertion: CALLM on PRM p168 uses:
+      first word: effective-address MODE/REGISTER for the module descriptor
+      second word: ARGUMENT COUNT for the immediate byte count
+    The generic extractor preserves the two-word encoding but does not bind the
+    extension-word argument-count field onto the ``#<data>`` operand, so we
+    assert that mapping here from the instruction diagram.
+
+    Track B parser-assertion: CAS on PRM p168 uses:
+      first word: effective-address MODE/REGISTER for the destination <ea>
+      second word: Du and Dc register fields for the two data-register operands
+    The generic extractor preserves the two-word encoding but does not bind the
+    extension-word compare/update register fields, so we assert them here.
+
+    Track B parser-assertion: RTD on PRM p490 uses a second-word
+    ``16-BIT DISPLACEMENT`` extension for its single immediate operand. The
+    generic binding extractor currently leaves that extension field unbound, so
+    we assert the immediate-to-extension mapping directly from the diagram.
+
+    Track B parser-assertion: CHK2/CMP2 on PRM pp175/186 use:
+      first word: effective-address MODE/REGISTER for the <ea> operand
+      second word: D/A + REGISTER for the Rn operand
+    The second-word bit 11 is already constant in the encoding diagrams
+    (1 for CHK2, 0 for CMP2); we only need to bind the variable fields onto
+    the <ea>,Rn syntax form.
+    """
+    for inst in kb_data:
+        fix = PARSER_ASSERTED_FIELD_BINDING_FIXES.get(str(inst.get("mnemonic")))
+        if fix is not None:
+            if fix:
+                inst["field_bindings"] = deepcopy(fix)
+            else:
+                inst.pop("field_bindings", None)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Phase 3: Syntax pattern parsing
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1873,6 +3241,8 @@ def _parse_operand(token: str) -> JsonDict:
         return {"type": "ea"}
     if t in ("<label>",):
         return {"type": "label"}
+    if t.lower().replace(" ", "") == "<caches>":
+        return {"type": "cache_sel"}
     if re.match(r"^#\s*<?\s*(data|vector|displacement)\s*>?$", t):
         return {"type": "imm"}
     if t.startswith("#"):
@@ -1906,6 +3276,12 @@ def _parse_operand(token: str) -> JsonDict:
 
     # Control register operand (MOVEC Rc)
     if re.match(r"^[Rr]c$", t):
+        return {"type": "ctrl_reg"}
+
+    # PMOVE-style MMU register operand
+    if re.match(r"^[Mm][Rr][Nn]\d*$", t):
+        return {"type": "ctrl_reg"}
+    if re.match(r"^<\s*PMMU\s+Register\s*>$", t, re.IGNORECASE):
         return {"type": "ctrl_reg"}
 
     # Generic register Rn (MOVEC Rn, MOVES Rn, RTM Rn, CMP2/CHK2 Rn)
@@ -2118,6 +3494,166 @@ def apply_syntax_forms(kb_data: list[JsonDict]) -> None:
     with_forms = sum(1 for i in kb_data if i["forms"])
     total_forms = sum(len(cast(list[JsonDict], i["forms"])) for i in kb_data)
     print(f"  Syntax forms: {with_forms}/{len(kb_data)} instructions, {total_forms} total forms")
+
+
+def _infer_operand_roles(inst: JsonDict, operands: list[JsonDict]) -> list[str | None]:
+    roles: list[str | None] = [cast(str | None, operand.get("role")) for operand in operands]
+    ea_indexes = [index for index, operand in enumerate(operands) if str(operand.get("type")) == "ea"]
+    if any(role is not None for role in roles):
+        return roles
+    ea_modes = cast(JsonDict, inst.get("ea_modes", {}))
+    if len(ea_indexes) == 1:
+        if "src" in ea_modes:
+            roles[ea_indexes[0]] = "src"
+        elif "dst" in ea_modes:
+            roles[ea_indexes[0]] = "dst"
+        elif "ea" in ea_modes:
+            roles[ea_indexes[0]] = "ea"
+    elif len(ea_indexes) == 2 and "src" in ea_modes and "dst" in ea_modes:
+        roles[ea_indexes[0]] = "src"
+        roles[ea_indexes[1]] = "dst"
+    return roles
+
+
+def _apply_field_bindings(kb_data: list[JsonDict]) -> int:
+    """Bind repeated encoding fields to operand/value sources.
+
+    Some encodings, notably MOVE, repeat generic field names like MODE/REGISTER
+    for multiple operands. The PDF field descriptions distinguish "Source
+    Effective Address" vs "Destination Effective Address", but the extracted bit
+    tables do not retain that association. This pass reconstructs operand-field
+    bindings from the parsed syntax, EA direction tables, and field-description
+    labels so downstream generators do not guess from mnemonic-specific rules.
+    """
+    count = 0
+    for inst in kb_data:
+        forms = cast(list[JsonDict], inst.get("forms", []))
+        encodings = cast(list[JsonDict], inst.get("encodings", []))
+        if not forms or not encodings:
+            continue
+        fields = cast(list[JsonDict], encodings[0].get("fields", []))
+        field_descriptions = {str(k): str(v) for k, v in cast(dict[str, str], inst.get("field_descriptions", {})).items()}
+        occurrences: dict[str, int] = {}
+        register_groups: list[list[tuple[str, int]]] = []
+        ea_groups: list[list[tuple[str, int]]] = []
+        field_index = 0
+        while field_index < len(fields):
+            field_name = str(fields[field_index]["name"])
+            occurrence = occurrences.get(field_name, 0)
+            occurrences[field_name] = occurrence + 1
+            if field_name not in {"MODE", "REGISTER"}:
+                field_index += 1
+                continue
+            group = [(field_name, occurrence)]
+            if field_index + 1 < len(fields):
+                next_name = str(fields[field_index + 1]["name"])
+                if {field_name, next_name} == {"MODE", "REGISTER"}:
+                    next_occurrence = occurrences.get(next_name, 0)
+                    occurrences[next_name] = next_occurrence + 1
+                    group.append((next_name, next_occurrence))
+                    field_index += 2
+                else:
+                    field_index += 1
+            else:
+                field_index += 1
+            if len(group) == 2 and {name for name, _occ in group} == {"MODE", "REGISTER"}:
+                ea_groups.append(group)
+            else:
+                register_groups.append(group)
+
+        bindings: list[JsonDict] = []
+        has_opmode = any(str(field["name"]) == "OPMODE" for field in fields)
+        opmode_table = cast(list[JsonDict], cast(JsonDict, inst.get("constraints", {})).get("opmode_table", []))
+        for form_index, form in enumerate(forms):
+            operands = cast(list[JsonDict], form.get("operands", []))
+            operand_roles = _infer_operand_roles(inst, operands)
+            imm_indexes = [index for index, operand in enumerate(operands) if str(operand.get("type")) == "imm"]
+            label_indexes = [index for index, operand in enumerate(operands) if str(operand.get("type")) == "label"]
+
+            for occurrence, operand_index in enumerate(imm_indexes):
+                bindings.append(
+                    {
+                        "form_index": form_index,
+                        "field": "DATA",
+                        "occurrence": occurrence,
+                        "operand_index": operand_index,
+                        "value_source": "value",
+                    }
+                )
+            for occurrence, operand_index in enumerate(label_indexes):
+                bindings.append(
+                    {
+                        "form_index": form_index,
+                        "field": "8-BIT DISPLACEMENT",
+                        "occurrence": occurrence,
+                        "operand_index": operand_index,
+                        "value_source": "value",
+                    }
+                )
+
+            ea_operand_indexes = [index for index, operand in enumerate(operands) if str(operand.get("type")) == "ea"]
+            ea_binding_order = ea_operand_indexes
+            if len(ea_groups) == 2 and len(ea_operand_indexes) == 2:
+                roles_to_index = {operand_roles[index]: index for index in ea_operand_indexes}
+                if "Destination Effective Address" in field_descriptions and "Source Effective Address" in field_descriptions:
+                    ea_binding_order = [
+                        roles_to_index.get("dst", ea_operand_indexes[1]),
+                        roles_to_index.get("src", ea_operand_indexes[0]),
+                    ]
+            for group, operand_index in zip(ea_groups, ea_binding_order, strict=False):
+                for field_name, occurrence in group:
+                    bindings.append(
+                        {
+                            "form_index": form_index,
+                            "field": field_name,
+                            "occurrence": occurrence,
+                            "operand_index": operand_index,
+                            "value_source": "ea_mode" if field_name == "MODE" else "ea_reg",
+                        }
+                    )
+
+            register_operand_indexes = [
+                index for index, operand in enumerate(operands)
+                if str(operand.get("type")) in {"an", "dn", "rn"}
+            ]
+            for group, operand_index in zip(register_groups, register_operand_indexes, strict=False):
+                for field_name, occurrence in group:
+                    if field_name != "REGISTER":
+                        continue
+                    bindings.append(
+                        {
+                            "form_index": form_index,
+                            "field": field_name,
+                            "occurrence": occurrence,
+                            "operand_index": operand_index,
+                            "value_source": "reg",
+                        }
+                    )
+
+            if has_opmode and opmode_table:
+                operand_types = tuple(str(operand.get("type")) for operand in operands)
+                if operand_types == ("ea", "dn"):
+                    ea_is_source = True
+                elif operand_types == ("dn", "ea"):
+                    ea_is_source = False
+                else:
+                    ea_is_source = None
+                if ea_is_source is not None and any(entry.get("ea_is_source") == ea_is_source for entry in opmode_table):
+                    bindings.append(
+                        {
+                            "form_index": form_index,
+                            "field": "OPMODE",
+                            "occurrence": 0,
+                            "operand_index": -1,
+                            "value_source": "opmode",
+                        }
+                    )
+
+        if bindings:
+            bindings.sort(key=lambda entry: (int(entry["form_index"]), str(entry["field"]), int(entry["occurrence"])))
+            inst["field_bindings"] = bindings
+            count += 1
+    return count
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2551,12 +4087,18 @@ def _derive_processor_min(processors: str) -> str:
     _COPROCESSOR_IMPLIES = "68020"
     min_idx = len(order)
     has_cpu32 = False
+    deferred_variant_indices: list[int] = []
 
-    for proc_token in re.findall(r"MC?68\w+|CPU32", processors):
+    for proc_token in re.findall(r"M(?:C)?68\w+|CPU32", processors):
         if proc_token == "CPU32":
             has_cpu32 = True
             continue
-        token = proc_token.removeprefix("MC")  # "MC68020" -> "68020"
+        token = proc_token
+        if token.startswith("MC"):
+            token = token[2:]
+        elif token.startswith("M"):
+            token = token[1:]
+        is_family_variant = bool(re.match(r"68(?:EC|LC)\d+$", token))
         # Strip EC/LC variants: "68EC030" -> "68030", "68LC040" -> "68040"
         core = re.sub(r"^68[A-Z]{1,2}(\d)", r"68\1", token)
 
@@ -2569,14 +4111,56 @@ def _derive_processor_min(processors: str) -> str:
             # Try prefix match (68008 -> 68000)
             idx = next((order.index(o) for o in order if core.startswith(o[:4])), len(order))
 
-        if idx < min_idx:
+        if is_family_variant:
+            deferred_variant_indices.append(idx)
+        elif idx < min_idx:
             min_idx = idx
+
+    if min_idx == len(order) and deferred_variant_indices:
+        min_idx = min(deferred_variant_indices)
 
     if min_idx < len(order):
         return order[min_idx]
     if has_cpu32:
         return "cpu32"
     return "68000"
+
+
+def _derive_processor_set(processors: str) -> list[str]:
+    """Derive exact supported base CPUs from the processors field."""
+    order = cast(list[str], CPU_HIERARCHY["order"])
+    if not processors or "M68000 Family" in processors:
+        return list(order)
+
+    explicit: set[str] = set()
+    has_cpu32 = False
+    has_coprocessor_only = False
+
+    for proc_token in re.findall(r"M(?:C)?68\w+|CPU32", processors):
+        if proc_token == "CPU32":
+            has_cpu32 = True
+            continue
+        token = proc_token
+        if token.startswith("MC"):
+            token = token[2:]
+        elif token.startswith("M"):
+            token = token[1:]
+        core = re.sub(r"^68[A-Z]{1,2}(\d)", r"68\1", token)
+        if core in ("68881", "68882", "68851"):
+            has_coprocessor_only = True
+            continue
+        if core in order:
+            explicit.add(core)
+            continue
+        matched = next((cpu for cpu in order if core.startswith(cpu[:4])), None)
+        if matched is not None:
+            explicit.add(matched)
+
+    if explicit:
+        return [cpu for cpu in order if cpu in explicit]
+    if has_cpu32 or has_coprocessor_only:
+        return [cpu for cpu in order if order.index(cpu) >= order.index("68020")]
+    return list(order)
 
 
 def _extract_opmode_table(doc: Any, inst: JsonDict) -> list[JsonDict] | None:
@@ -2832,15 +4416,16 @@ def _extract_control_registers(doc: Any, inst: JsonDict) -> list[JsonDict] | Non
                 return t
         return ""
 
-    def _cpu_from_header(text: str) -> str | None:
-        """Derive processor_min from a CPU section header like 'MC68020/MC68030/MC68040'."""
+    def _cpu_set_from_header(text: str) -> list[str] | None:
+        """Derive exact supported CPUs from a CPU section header."""
         cpus = re.findall(r"MC?68(\d{3})", text)
         if cpus:
-            # Minimum CPU in the header
-            min_cpu = min(int(c) for c in cpus)
-            return f"68{min_cpu:03d}"
+            explicit = {f"68{int(cpu):03d}" for cpu in cpus}
+            order = cast(list[str], CPU_HIERARCHY["order"])
+            return [cpu for cpu in order if cpu in explicit]
         if "CPU32" in text:
-            return "cpu32"
+            order = cast(list[str], CPU_HIERARCHY["order"])
+            return [cpu for cpu in order if order.index(cpu) >= order.index("68020")]
         return None
 
     regs: list[JsonDict] = []
@@ -2851,16 +4436,18 @@ def _extract_control_registers(doc: Any, inst: JsonDict) -> list[JsonDict] | Non
         rows = spans_to_rows(spans)
         sorted_ys = sorted(rows.keys())
 
-        current_cpu = _derive_processor_min(str(inst.get("processors", "")))
+        current_cpu_set = _derive_processor_set(str(inst.get("processors", "")))
+        current_cpu = current_cpu_set[0]
         for idx, y_key in enumerate(sorted_ys):
             row_items = rows[y_key]
             row_text = " ".join(t for _, _, t, _, _ in row_items)
 
             # Check for CPU section header (e.g. "MC68020/MC68030/MC68040")
             if "MC68" in row_text or "CPU32" in row_text:
-                cpu = _cpu_from_header(row_text)
-                if cpu and not _is_hex3(row_text.split()[0] if row_text.split() else ""):
-                    current_cpu = cpu
+                cpu_set = _cpu_set_from_header(row_text)
+                if cpu_set and not _is_hex3(row_text.split()[0] if row_text.split() else ""):
+                    current_cpu_set = cpu_set
+                    current_cpu = current_cpu_set[0]
                     continue
 
             hex_entries = [
@@ -2894,9 +4481,113 @@ def _extract_control_registers(doc: Any, inst: JsonDict) -> list[JsonDict] | Non
                         "name": desc_text.split("(")[0].strip(),
                         "abbrev": abbrev,
                         "processor_min": current_cpu,
+                        "processor_set": current_cpu_set,
                     })
 
     return regs if regs else None
+
+
+def _extract_pmove_control_registers(doc: Any, inst: JsonDict) -> list[JsonDict] | None:
+    """Extract 68030 PMOVE register names and encoded values from the PDF.
+
+    PMOVE on PRM pp.6-48 through 6-52 is split across several sub-pages:
+    - p.6-49 lists the P-REGISTER values for TC/SRP/CRP.
+    - p.6-49 also gives the dedicated MMU status register format.
+    - p.6-50 lists the P-REGISTER values for TT0/TT1.
+    We parse those page texts directly so the KB carries the PMOVE register set
+    from the manual instead of keeping MRn as an opaque placeholder.
+
+    The 68030 manual page names the dedicated status-register form "MMU Status
+    Register" but later PMOVE pages use the PMMU abbreviation "PSR". We expose
+    the 68030 spelling as `psr` so downstream tools can share one control-
+    register namespace with the existing assembler/disassembler oracle cases.
+    """
+    raw_pages = inst.get("pages", [inst.get("page", 0)])
+    pages = [int(pg) for pg in raw_pages] if isinstance(raw_pages, list) else []
+    if not pages:
+        return None
+
+    page_texts: dict[int, str] = {}
+    for pg in pages:
+        page_texts[pg] = doc[pg - 1].get_text("text")
+
+    regs: list[JsonDict] = []
+    seen: set[str] = set()
+
+    def add_reg(abbrev: str, value: int, processor_set: list[str]) -> None:
+        if abbrev in seen:
+            return
+        seen.add(abbrev)
+        regs.append({
+            "hex": f"{value:03X}",
+            "name": abbrev.upper(),
+            "abbrev": abbrev,
+            "processor_min": processor_set[0],
+            "processor_set": processor_set,
+        })
+
+    text_503 = page_texts.get(503, "")
+    if "Translation Control Register" in text_503:
+        mappings = {
+            "tc": r"000—Translation Control Register",
+            "srp": r"010—Supervisor Root Pointer",
+            "crp": r"011—CPU Root Pointer",
+        }
+        values = {"tc": 0x000, "srp": 0x002, "crp": 0x003}
+        for abbrev, pattern in mappings.items():
+            if re.search(pattern, text_503):
+                add_reg(abbrev, values[abbrev], ["68030"])
+        if "MMU Status Register" in text_503:
+            # Parser-asserted alias from PMOVE PRM pp.6-49 and 6-56:
+            # p.6-49 defines the dedicated 68030 "MMU Status Register" PMOVE
+            # form, while p.6-56 names the same PMMU status register as PSR.
+            # The manual does not restate the abbreviation on the 68030 page,
+            # but both pages describe the same register/function. Downstream
+            # tools need one stable operand spelling, so expose it as `psr`.
+            add_reg("psr", 0x018, ["68030"])
+
+    text_504 = page_texts.get(504, "")
+    if "Transparent Translation Register 0" in text_504:
+        mappings = {
+            "tt0": r"010—Transparent Translation Register 0",
+            "tt1": r"011—Transparent Translation Register 1",
+        }
+        values = {"tt0": 0x002, "tt1": 0x003}
+        for abbrev, pattern in mappings.items():
+            if re.search(pattern, text_504):
+                add_reg(abbrev, values[abbrev], ["68030"])
+
+    return regs if regs else None
+
+
+def _extract_pvalid_control_registers(doc: Any, inst: JsonDict) -> list[JsonDict] | None:
+    """Extract the fixed VAL PMMU register operand from the PVALID pages.
+
+    PRM pp.6-80 through 6-82 print two explicit PVALID formats:
+    - `PVALID VAL,<ea>`
+    - `PVALID An,<ea>`
+    The VAL form is a fixed PMMU valid-access-level register selector, not a
+    generic unknown token. The PDF does not provide a separate register table,
+    but the instruction-format text explicitly names the operand and the
+    encoding shows the trailing register field fixed to 000 for that form.
+    Expose it as a structured control register so the KB and generators can
+    carry the form honestly.
+    """
+    raw_pages = inst.get("pages", [inst.get("page", 0)])
+    pages = [int(pg) for pg in raw_pages] if isinstance(raw_pages, list) else []
+    if not pages:
+        return None
+    for pg in pages:
+        page_text = doc[pg - 1].get_text("text")
+        if "PVALID VAL,<ea>" in page_text or "VAL Contains Access Level to Test Against" in page_text:
+            return [{
+                "hex": "000",
+                "name": "Valid Access Level Register",
+                "abbrev": "val",
+                "processor_min": "68020",
+                "processor_set": ["68020", "68030", "68040", "68060"],
+            }]
+    return None
 
 
 def _derive_cc_exclusions(kb_data: list[JsonDict]) -> None:
@@ -2990,6 +4681,7 @@ def apply_constraints(kb_data: list[JsonDict], doc: Any = None) -> None:
     """Phase 4: Extract constraints from instruction data."""
     for inst in kb_data:
         inst["processor_min"] = _derive_processor_min(str(inst.get("processors", "")))
+        inst["processor_set"] = _derive_processor_set(str(inst.get("processors", "")))
         inst["sizes"] = _parse_sizes(str(inst.get("attributes", "")))
         syntax = cast(list[str], inst.get("syntax", []))
         inst["uses_label"] = any("<label>" in s.lower() or "< label >" in s.lower()
@@ -3056,13 +4748,18 @@ def apply_constraints(kb_data: list[JsonDict], doc: Any = None) -> None:
             if opm:
                 constraints["opmode_table"] = opm
 
-        # Extract control register table for MOVEC-like instructions
+        # Extract control register table for MOVEC/PMOVE-like instructions
         forms = cast(list[JsonDict], inst.get("forms", []))
         if doc and any(f.get("operands") and
                        any(op.get("type") == "ctrl_reg"
                            for op in cast(list[JsonDict], f["operands"]))
                        for f in forms):
-            ctrl_regs = _extract_control_registers(doc, inst)
+            if str(inst.get("mnemonic")) == "PMOVE":
+                ctrl_regs = _extract_pmove_control_registers(doc, inst)
+            elif str(inst.get("mnemonic")) == "PVALID":
+                ctrl_regs = _extract_pvalid_control_registers(doc, inst)
+            else:
+                ctrl_regs = _extract_control_registers(doc, inst)
             if ctrl_regs:
                 constraints["control_registers"] = ctrl_regs
 
@@ -3927,7 +5624,7 @@ def _extract_compare_swap_effects(inst: Any) -> None:
                 "success_writes": [["destination", "update"]],
                 "failure_writes": [["compare", "destination"]],
             })
-        elif operand_types == ("dn_pair", "dn_pair", "unknown"):
+        elif operand_types == ("dn_pair", "dn_pair", "rn_pair"):
             assert has_double_desc, "CAS2 description missing dual-operand compare-swap semantics"
             effects.append({
                 "operand_types": list(operand_types),
@@ -4336,7 +6033,9 @@ def _create_combined_variants(inst: Any) -> Any:
         existing_map = {v["mnemonic"]: v for v in existing}
         for v in variants:
             if v["mnemonic"] in existing_map:
-                existing_map[v["mnemonic"]]["processor_020"] = v["processor_020"]
+                existing_map[v["mnemonic"]]["processor_020"] = bool(
+                    existing_map[v["mnemonic"]].get("processor_020") or v["processor_020"]
+                )
             else:
                 existing.append(v)
     else:
@@ -5277,6 +6976,9 @@ def main() -> None:
     # Phase 3: Parse syntax patterns
     print("Phase 3: Parsing syntax patterns...")
     apply_syntax_forms(kb_data)
+    apply_parser_asserted_syntax_fixes(kb_data)
+    apply_parser_asserted_encoding_fixes(kb_data)
+    apply_parser_asserted_field_value_fixes(kb_data)
 
     # Phase 4: Derive constraints
     print("Phase 4: Deriving constraints...")
@@ -5284,6 +6986,7 @@ def main() -> None:
 
     # Phase 4b: Split EA modes by direction (needs constraints from Phase 4)
     apply_ea_direction_split(kb_data)
+    apply_parser_asserted_ea_mode_fixes(kb_data)
     # Clean up stashed raw EA tables
     for inst in kb_data:
         inst.pop("_ea_tables_by_page", None)
@@ -5353,6 +7056,15 @@ def main() -> None:
     dir_count = _apply_direction_field_values(kb_data)
     print(f"  Instructions with direction field values: {dir_count}")
 
+    # Phase 14b: Bind repeated encoding fields to operand/value sources.
+    # MOVE-style encodings repeat generic MODE/REGISTER field names. Emit
+    # operand bindings here so downstream generators use parser-produced KB
+    # structure rather than inferring from mnemonic-specific rules.
+    print("Phase 14b: Extracting field bindings...")
+    binding_count = _apply_field_bindings(kb_data)
+    apply_parser_asserted_field_binding_fixes(kb_data)
+    print(f"  Instructions with field bindings: {binding_count}")
+
     # Phase 15: Extract displacement encoding from description text
     # PDF descriptions for Bcc/BRA/BSR explicitly state the reserved values
     # in the 8-bit displacement field that signal word/long extension.
@@ -5389,6 +7101,117 @@ def main() -> None:
                     f["bit_hi"] = 2
                     f["width"] = f["bit_hi"] - f["bit_lo"] + 1
             break
+
+    # Track B parser-assertion: BTST/BCHG/BCLR/BSET immediate forms use a full
+    # 16-bit extension word for the bit number on PRM pp131/134/160/165. The
+    # extracted extension encoding currently keeps only the variable low bits
+    # (`BIT NUMBER` width 8 or 9), dropping the fixed zero upper bits because
+    # the centered extension-word label is parsed without the surrounding word
+    # frame. Downstream generators need this modeled as a normal full extension
+    # word so the existing two-word encoding path can consume it generically.
+    for inst in kb_data:
+        if inst["mnemonic"] not in {"BTST", "BCHG", "BCLR", "BSET"}:
+            continue
+        encodings = cast(list[JsonDict], inst.get("encodings", []))
+        if len(encodings) < 3:
+            continue
+        ext_fields = cast(list[JsonDict], encodings[2].get("fields", []))
+        if sum(int(field.get("width", 0)) for field in ext_fields) != 16:
+            continue
+        variable_fields = [field for field in ext_fields if field.get("name") not in {"0", "1"}]
+        if len(variable_fields) != 1 or variable_fields[0].get("name") != "BIT NUMBER":
+            continue
+        if inst["mnemonic"] == "BSET":
+            # Track B parser-assertion: PRM p160 shows the immediate BSET bit
+            # number in the low byte of the extension word, same structure as
+            # BTST/BCHG/BCLR. The extracted table currently stretches BIT NUMBER
+            # across bits 8:0, which incorrectly implies a 9-bit immediate.
+            # Normalize it to an 8-bit field and restore the fixed zero in bit 8
+            # so downstream range extraction and encoders stay spec-driven.
+            variable_fields[0]["bit_hi"] = 7
+            variable_fields[0]["bit_lo"] = 0
+            variable_fields[0]["width"] = 8
+            if not any(field.get("name") == "0" and int(field.get("bit_hi", -1)) == 8 and int(field.get("bit_lo", -1)) == 8 for field in ext_fields):
+                ext_fields.insert(7, {"name": "0", "bit_hi": 8, "bit_lo": 8, "width": 1})
+        constraints = cast(JsonDict, inst.setdefault("constraints", {}))
+        constraints["immediate_range"] = {
+            "min": 0,
+            "max": (1 << int(variable_fields[0]["width"])) - 1,
+            "field": "BIT NUMBER",
+            "bits": int(variable_fields[0]["width"]),
+        }
+        # Track B parser-assertion: the same PRM pages show the immediate form's
+        # opword uses fixed bits 11:9 = 100, so the only remaining REGISTER field
+        # in the opword is the destination EA register. The shared extracted
+        # fb_011 template still binds form 1 REGISTER occurrence 1 to <ea>, but
+        # after the fixed 100 bits there is only occurrence 0 left in encoding[1].
+        # We assert explicit per-form bindings here so downstream generators see
+        # the actual encoded field order from the PDF opword rather than carrying
+        # a mnemonic-specific workaround.
+        inst["field_bindings"] = [
+            {"field": "MODE", "form_index": 0, "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+            {"field": "REGISTER", "form_index": 0, "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+            {"field": "REGISTER", "form_index": 0, "occurrence": 1, "operand_index": 1, "value_source": "ea_reg"},
+            {"field": "DATA", "form_index": 1, "occurrence": 0, "operand_index": 0, "value_source": "value"},
+            {"field": "MODE", "form_index": 1, "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+            {"field": "REGISTER", "form_index": 1, "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+        ]
+        inst.pop("field_binding_template", None)
+        # Track B parser-assertion: PRM BTST syntax/description allows a data
+        # register or memory destination, not an immediate destination. The
+        # extracted BTST EA table currently leaks `imm` into dst modes while the
+        # same pages also state the destination is tested as register/memory.
+        # Remove only the invalid immediate destination upstream so downstream
+        # corpus generation and legality checks stay KB-driven.
+        if inst["mnemonic"] == "BTST":
+            ea_modes = cast(JsonDict, inst.get("ea_modes", {}))
+            dst_modes = cast(list[str], ea_modes.get("dst", []))
+            ea_modes["dst"] = [mode for mode in dst_modes if mode != "imm"]
+        ea_modes_020 = cast(JsonDict, inst.get("ea_modes_020", {}))
+        dst_modes_020 = cast(list[str], ea_modes_020.get("dst", []))
+        if "dn" in dst_modes_020:
+            ea_modes_020["dst"] = [mode for mode in dst_modes_020 if mode != "dn"]
+
+    # Track B parser-assertion: MOVEP's opword uses separate DATA REGISTER and
+    # ADDRESS REGISTER fields plus a 16-bit displacement extension word on PRM
+    # p235. The extracted forms already capture the two syntaxes, but the field
+    # bindings are not recoverable from the prose alone. Assert the bindings from
+    # the encoding diagram so downstream generators can consume MOVEP on the same
+    # generic reg/value patch path used elsewhere.
+    for inst in kb_data:
+        if inst["mnemonic"] != "MOVEP":
+            continue
+        inst["field_bindings"] = [
+            {"field": "DATA REGISTER", "form_index": 0, "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+            {"field": "ADDRESS REGISTER", "form_index": 0, "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+            {"field": "16-BIT DISPLACEMENT", "form_index": 0, "occurrence": 0, "operand_index": 1, "value_source": "value"},
+            {"field": "DATA REGISTER", "form_index": 1, "occurrence": 0, "operand_index": 1, "value_source": "reg"},
+            {"field": "ADDRESS REGISTER", "form_index": 1, "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+            {"field": "16-BIT DISPLACEMENT", "form_index": 1, "occurrence": 0, "operand_index": 0, "value_source": "value"},
+        ]
+        inst.pop("field_binding_template", None)
+
+    # Track B parser-assertion: MOVEM on PRM p232 always includes a 16-bit
+    # register-list mask extension word immediately after the opword. The
+    # extracted encoding currently misses that second word even though the field
+    # description table contains "Register List Mask". Add the missing extension
+    # encoding upstream so downstream tools keep using the generic bound-extension
+    # path, and assert explicit bindings for the reglist operand.
+    for inst in kb_data:
+        if inst["mnemonic"] != "MOVEM":
+            continue
+        encodings = cast(list[JsonDict], inst.get("encodings", []))
+        if len(encodings) == 1:
+            encodings.append({"fields": [{"name": "REGISTER LIST MASK", "bit_hi": 15, "bit_lo": 0, "width": 16}]})
+        inst["field_bindings"] = [
+            {"field": "MODE", "form_index": 0, "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+            {"field": "REGISTER", "form_index": 0, "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+            {"field": "REGISTER LIST MASK", "form_index": 0, "occurrence": 0, "operand_index": 0, "value_source": "value"},
+            {"field": "MODE", "form_index": 1, "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
+            {"field": "REGISTER", "form_index": 1, "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
+            {"field": "REGISTER LIST MASK", "form_index": 1, "occurrence": 0, "operand_index": 1, "value_source": "value"},
+        ]
+        inst.pop("field_binding_template", None)
 
     # Track B parser-assertion: MC68851 PFLUSH/PFLUSHA extension word fields.
     # The PDF multi-word table for PFLUSH PFLUSHA is one of the known PMMU

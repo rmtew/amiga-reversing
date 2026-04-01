@@ -505,7 +505,7 @@ def test_runtime_special_case_tables_match_canonical_data() -> None:
         ("ASL", payload.ShiftDirection.LEFT, payload.ShiftFill.ZERO, True),
         ("ASR", payload.ShiftDirection.RIGHT, payload.ShiftFill.SIGN, True),
     )
-    assert payload.PROCESSOR_020_VARIANTS["DIVS, DIVSL"] == frozenset({"DIVSL"})
+    assert payload.PROCESSOR_020_VARIANTS["EXT, EXTB"] == frozenset({"EXTB"})
     assert payload.IMPLICIT_OPERANDS["CLR"] == 0
     assert payload.BIT_MODULI["BTST"] == (32, 8)
     assert payload.ROTATE_EXTRA_BITS["ROXL, ROXR"] == 1
@@ -627,7 +627,7 @@ def test_runtime_asm_module_exposes_direct_asm_constants() -> None:
         2,
         4,
     )
-    assert payload.SPECIAL_OPERAND_TYPES == ("ccr", "sr", "usp")
+    assert payload.SPECIAL_OPERAND_TYPES == ("cache_sel", "ccr", "rn_pair", "sr", "usp")
     assert payload.RAW_FIELDS[0]["RTS"] == ()
     assert payload.FORM_OPERAND_TYPES["RTS"] == ((),)
 
@@ -653,8 +653,8 @@ def test_runtime_analysis_module_exposes_direct_analysis_constants() -> None:
     assert payload.ADDR_SIZE == "l"
     assert payload.ADDR_MASK == 0xFFFFFFFF
     assert tuple(canonical["_meta"]["ccr_bit_positions"]) == payload.CCR_FLAG_NAMES
-    assert payload.LOOKUP_UPPER["PFLUSHA"] == "PFLUSH PFLUSHA"
-    assert payload.LOOKUP_CANONICAL["PFLUSHA"] == "PFLUSH PFLUSHA"
+    assert payload.LOOKUP_UPPER["PFLUSHA"] == "PFLUSH"
+    assert payload.LOOKUP_CANONICAL["PFLUSHA"] == "PFLUSH"
     assert payload.LOOKUP_CANONICAL["PBBS"] == "PBcc"
     assert payload.LOOKUP_NUMERIC_CC_PREFIXES["PB"] == "PBcc"
     assert payload.LOOKUP_CC_FAMILIES["pb"][0] == "PBcc"
@@ -928,7 +928,7 @@ def test_runtime_builder_emits_compare_swap_effects() -> None:
             (("compare", "destination"),),
         ),
         (
-            ("dn_pair", "dn_pair", "unknown"),
+            ("dn_pair", "dn_pair", "rn_pair"),
             (("destination1", "compare1"), ("destination2", "compare2")),
             (("destination1", "update1"), ("destination2", "update2")),
             (("compare1", "destination1"), ("compare2", "destination2")),

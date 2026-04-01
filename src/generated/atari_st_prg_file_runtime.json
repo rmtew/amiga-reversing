@@ -1,0 +1,42 @@
+{
+  "container_magic_wire_ids": [],
+  "meta": {
+    "description": "Normalized Atari ST PRG executable file format metadata for helper/runtime generation.",
+    "endianness": "big",
+    "name": "atari_st_prg_file",
+    "sources": [
+      {
+        "date": "1986-04-04",
+        "note": "Primary repo-local reference for PRG executable file layout, relocation stream semantics, and symbol table structure.",
+        "path": "resources/platform_atari_st/GEMDOS.TXT",
+        "section": "~/text/gemdos/prg",
+        "type": "repo_local_document"
+      },
+      {
+        "note": "Supplementary repo-local GEMDOS reference retained alongside GEMDOS.TXT.",
+        "path": "resources/platform_atari_st/GEM_0042.pdf",
+        "type": "repo_local_document"
+      },
+      {
+        "note": "EmuTOS program header definition for the classic GEMDOS PRG load format.",
+        "path": "resources/clone_atari_st/emutos/bdos/pghdr.h",
+        "type": "repo_local_source"
+      },
+      {
+        "note": "EmuTOS program loader implementation and relocation handling for classic PRG files.",
+        "path": "resources/clone_atari_st/emutos/bdos/kpgmld.c",
+        "type": "repo_local_source"
+      },
+      {
+        "note": "Hatari GEMDOS Pexec handling reads a 28-byte PRG header, matching EmuTOS and corpus files.",
+        "path": "resources/clone_atari_st/hatari/src/gemdos.c",
+        "type": "repo_local_source"
+      },
+      {
+        "note": "Hatari symbol loader parses the same base PRG header fields and symbol metadata.",
+        "path": "resources/clone_atari_st/hatari/src/debug/symbols-common.c",
+        "type": "repo_local_source"
+      }
+    ]
+  }
+}

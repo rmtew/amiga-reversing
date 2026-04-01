@@ -1,0 +1,22 @@
+{
+  "container_magic_wire_ids": [],
+  "meta": {
+    "description": "Normalized Atari ST raw disk image and GEMDOS FAT12 filesystem metadata for helper/runtime generation.",
+    "endianness": "little",
+    "name": "atari_st_disk_file",
+    "sources": [
+      {
+        "date": "1986-04-04",
+        "note": "Primary repo-local reference for GEMDOS BPB, directory entries, and FAT12 cluster semantics.",
+        "path": "resources/platform_atari_st/GEMDOS.TXT",
+        "section": "~/text/gemdos/diskstruct",
+        "type": "repo_local_document"
+      },
+      {
+        "note": "Supplementary repo-local GEMDOS reference retained alongside GEMDOS.TXT.",
+        "path": "resources/platform_atari_st/GEM_0042.pdf",
+        "type": "repo_local_document"
+      }
+    ]
+  }
+}
