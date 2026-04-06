@@ -3,7 +3,7 @@
   "build": {
     "ok": true,
     "returncode": 0,
-    "seconds": 5.468
+    "seconds": 3.282
   },
   "corpus": {
     "by_cpu": {
@@ -40,22 +40,22 @@
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 5.239,
+    "seconds": 4.739,
     "skipped": 0,
     "tests_run": 10,
     "unexpected_successes": 0
   },
   "status": "ok",
-  "timestamp": "2026-04-06T13:32:52+1200",
-  "total_seconds": 24.012,
+  "timestamp": "2026-04-06T17:46:18+1200",
+  "total_seconds": 19.1,
   "unit": {
     "errors": 0,
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 13.305,
+    "seconds": 11.079,
     "skipped": 4,
-    "tests_run": 117,
+    "tests_run": 122,
     "unexpected_successes": 0
   }
 }

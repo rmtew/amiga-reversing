@@ -101,6 +101,17 @@ def _file_library():
         ctypes.c_size_t,
     ]
     library.platform_file_to_ir_with_policy.restype = ctypes.c_int
+    library.platform_file_to_ir_buffer_with_policy.argtypes = [
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_uint8),
+        ctypes.c_size_t,
+        ctypes.POINTER(M68kRenderPolicy),
+        ctypes.POINTER(M68kAnalysisPolicy),
+        ctypes.POINTER(M68kSourceFileIR),
+        ctypes.c_char_p,
+        ctypes.c_size_t,
+    ]
+    library.platform_file_to_ir_buffer_with_policy.restype = ctypes.c_int
     library.platform_file_render_ir_with_policy.argtypes = [
         ctypes.POINTER(M68kSourceFileIR),
         ctypes.POINTER(M68kRenderPolicy),
@@ -118,6 +129,16 @@ def _file_library():
         ctypes.c_size_t,
     ]
     library.platform_file_analyze_path_json.restype = ctypes.c_int
+    library.platform_file_analyze_buffer_json.argtypes = [
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_uint8),
+        ctypes.c_size_t,
+        ctypes.POINTER(M68kAnalysisPolicy),
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.c_char_p,
+        ctypes.c_size_t,
+    ]
+    library.platform_file_analyze_buffer_json.restype = ctypes.c_int
     library.platform_file_source_ir_free.argtypes = [ctypes.POINTER(M68kSourceFileIR)]
     library.platform_file_source_ir_free.restype = None
     library.platform_file_free_text.argtypes = [ctypes.c_void_p]
@@ -274,22 +295,22 @@ class IrPolicyDllTests(unittest.TestCase):
         library = _file_library()
         error_buf = ctypes.create_string_buffer(256)
         json_ptr = ctypes.c_void_p()
-        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
-            path = Path(tmp) / "sample.exe"
-            path.write_bytes(make_synthetic_hunkexe())
-            result = library.platform_file_analyze_path_json(
-                b"amiga-hunk",
-                str(path).encode("utf-8"),
-                ctypes.byref(_analysis_policy()),
-                ctypes.byref(json_ptr),
-                error_buf,
-                len(error_buf),
-            )
-            self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
-            try:
-                analysis = json.loads(ctypes.cast(json_ptr, ctypes.c_char_p).value.decode("utf-8"))
-            finally:
-                library.platform_file_free_text(json_ptr)
+        sample = make_synthetic_hunkexe()
+        sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
+        result = library.platform_file_analyze_buffer_json(
+            b"amiga-hunk",
+            sample_buf,
+            len(sample),
+            ctypes.byref(_analysis_policy()),
+            ctypes.byref(json_ptr),
+            error_buf,
+            len(error_buf),
+        )
+        self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+        try:
+            analysis = json.loads(ctypes.cast(json_ptr, ctypes.c_char_p).value.decode("utf-8"))
+        finally:
+            library.platform_file_free_text(json_ptr)
         self.assertEqual(analysis["section_count"], 2)
         code_section = analysis["sections"][0]
         data_section = analysis["sections"][1]
@@ -305,22 +326,22 @@ class IrPolicyDllTests(unittest.TestCase):
         library = _file_library()
         error_buf = ctypes.create_string_buffer(256)
         json_ptr = ctypes.c_void_p()
-        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
-            path = Path(tmp) / "trap.exe"
-            path.write_bytes(make_synthetic_hunkexe(code_data=b"\x4E\x4F\x4E\x75"))
-            result = library.platform_file_analyze_path_json(
-                b"amiga-hunk",
-                str(path).encode("utf-8"),
-                ctypes.byref(_analysis_policy()),
-                ctypes.byref(json_ptr),
-                error_buf,
-                len(error_buf),
-            )
-            self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
-            try:
-                analysis = json.loads(ctypes.cast(json_ptr, ctypes.c_char_p).value.decode("utf-8"))
-            finally:
-                library.platform_file_free_text(json_ptr)
+        sample = make_synthetic_hunkexe(code_data=b"\x4E\x4F\x4E\x75")
+        sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
+        result = library.platform_file_analyze_buffer_json(
+            b"amiga-hunk",
+            sample_buf,
+            len(sample),
+            ctypes.byref(_analysis_policy()),
+            ctypes.byref(json_ptr),
+            error_buf,
+            len(error_buf),
+        )
+        self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+        try:
+            analysis = json.loads(ctypes.cast(json_ptr, ctypes.c_char_p).value.decode("utf-8"))
+        finally:
+            library.platform_file_free_text(json_ptr)
         code_section = analysis["sections"][0]
         self.assertEqual(code_section["block_count"], 1)
         self.assertEqual(code_section["blocks"][0]["start_offset"], 0)
@@ -334,70 +355,71 @@ class IrPolicyDllTests(unittest.TestCase):
         error_buf = ctypes.create_string_buffer(256)
         source_file = M68kSourceFileIR()
         rendered_ptr = ctypes.c_void_p()
-        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
-            path = Path(tmp) / "sample.exe"
-            path.write_bytes(make_synthetic_hunkexe())
-            default_policy = _default_policy()
-            result = library.platform_file_to_ir_with_policy(
-                b"amiga-hunk",
-                str(path).encode("utf-8"),
+        sample = make_synthetic_hunkexe()
+        sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
+        default_policy = _default_policy()
+        result = library.platform_file_to_ir_buffer_with_policy(
+            b"amiga-hunk",
+            sample_buf,
+            len(sample),
+            ctypes.byref(default_policy),
+            ctypes.byref(_analysis_policy()),
+            ctypes.byref(source_file),
+            error_buf,
+            len(error_buf),
+        )
+        self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+        try:
+            result = library.platform_file_render_ir_with_policy(
+                ctypes.byref(source_file),
                 ctypes.byref(default_policy),
-                ctypes.byref(_analysis_policy()),
-                ctypes.byref(source_file),
+                ctypes.byref(rendered_ptr),
                 error_buf,
                 len(error_buf),
             )
             self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
             try:
-                result = library.platform_file_render_ir_with_policy(
-                    ctypes.byref(source_file),
-                    ctypes.byref(default_policy),
-                    ctypes.byref(rendered_ptr),
-                    error_buf,
-                    len(error_buf),
-                )
-                self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
-                try:
-                    default_text = ctypes.cast(rendered_ptr, ctypes.c_char_p).value.decode("utf-8")
-                finally:
-                    library.platform_file_free_text(rendered_ptr)
-                    rendered_ptr = ctypes.c_void_p()
+                default_text = ctypes.cast(rendered_ptr, ctypes.c_char_p).value.decode("utf-8")
             finally:
-                library.platform_file_source_ir_free(ctypes.byref(source_file))
+                library.platform_file_free_text(rendered_ptr)
+                rendered_ptr = ctypes.c_void_p()
+        finally:
+            library.platform_file_source_ir_free(ctypes.byref(source_file))
 
-            self.assertIn("loc_0000:", default_text)
+        self.assertIn("loc_0000:", default_text)
 
-            fallback_policy = _default_policy()
-            fallback_policy.presentation.prefer_generated_names = 0
-            source_file = M68kSourceFileIR()
-            result = library.platform_file_to_ir_with_policy(
-                b"amiga-hunk",
-                str(path).encode("utf-8"),
+        fallback_policy = _default_policy()
+        fallback_policy.presentation.prefer_generated_names = 0
+        source_file = M68kSourceFileIR()
+        result = library.platform_file_to_ir_buffer_with_policy(
+            b"amiga-hunk",
+            sample_buf,
+            len(sample),
+            ctypes.byref(fallback_policy),
+            ctypes.byref(_analysis_policy()),
+            ctypes.byref(source_file),
+            error_buf,
+            len(error_buf),
+        )
+        self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+        try:
+            result = library.platform_file_render_ir_with_policy(
+                ctypes.byref(source_file),
                 ctypes.byref(fallback_policy),
-                ctypes.byref(_analysis_policy()),
-                ctypes.byref(source_file),
+                ctypes.byref(rendered_ptr),
                 error_buf,
                 len(error_buf),
             )
             self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
             try:
-                result = library.platform_file_render_ir_with_policy(
-                    ctypes.byref(source_file),
-                    ctypes.byref(fallback_policy),
-                    ctypes.byref(rendered_ptr),
-                    error_buf,
-                    len(error_buf),
-                )
-                self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
-                try:
-                    fallback_text = ctypes.cast(rendered_ptr, ctypes.c_char_p).value.decode("utf-8")
-                finally:
-                    library.platform_file_free_text(rendered_ptr)
+                fallback_text = ctypes.cast(rendered_ptr, ctypes.c_char_p).value.decode("utf-8")
             finally:
-                library.platform_file_source_ir_free(ctypes.byref(source_file))
+                library.platform_file_free_text(rendered_ptr)
+        finally:
+            library.platform_file_source_ir_free(ctypes.byref(source_file))
 
-            self.assertIn("L_0000:", fallback_text)
-            self.assertNotIn("loc_0000:", fallback_text)
+        self.assertIn("L_0000:", fallback_text)
+        self.assertNotIn("loc_0000:", fallback_text)
 
     def test_assembler_source_ir_render_preserves_source_names_when_generated_names_disabled(self) -> None:
         library = _asm_library()

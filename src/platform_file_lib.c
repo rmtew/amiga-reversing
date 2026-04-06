@@ -130,6 +130,142 @@ static int json_builder_append_hex_bytes(JsonBuilder *builder,
   return 0;
 }
 
+static const M68kRenderPolicy *resolve_render_policy(const M68kRenderPolicy *policy,
+    M68kRenderPolicy *default_policy) {
+  if (policy != NULL) return policy;
+  m68k_render_policy_init_for_syntax(default_policy, M68K_IR_SYNTAX_CANONICAL);
+  return default_policy;
+}
+
+static const M68kAnalysisPolicy *resolve_analysis_policy(const M68kAnalysisPolicy *policy,
+    M68kAnalysisPolicy *default_policy) {
+  if (policy != NULL) return policy;
+  m68k_analysis_policy_init_default(default_policy);
+  return default_policy;
+}
+
+static int load_object_from_path(const M68kBackend *backend, const char *path, M68kObject *object, char *error_buf,
+    size_t error_buf_size) {
+  char error[256];
+  if (object == NULL || path == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "bad arguments");
+    return -1;
+  }
+  if (backend == NULL || backend->read_file == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
+    return -1;
+  }
+  m68k_object_init(object);
+  if (backend->read_file(path, object, error, sizeof(error)) != 0) {
+    m68k_platform_set_error(error_buf, error_buf_size, error);
+    m68k_object_free(object);
+    return -1;
+  }
+  return 0;
+}
+
+static int load_object_from_buffer(const M68kBackend *backend, const unsigned char *data, size_t size,
+    M68kObject *object, char *error_buf, size_t error_buf_size) {
+  char error[256];
+  if (object == NULL || data == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "bad arguments");
+    return -1;
+  }
+  if (backend == NULL || backend->read_buffer == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
+    return -1;
+  }
+  m68k_object_init(object);
+  if (backend->read_buffer(data, size, object, error, sizeof(error)) != 0) {
+    m68k_platform_set_error(error_buf, error_buf_size, error);
+    m68k_object_free(object);
+    return -1;
+  }
+  return 0;
+}
+
+static int read_file_to_buffer(const char *path, unsigned char **out_data, size_t *out_size, char *error_buf,
+    size_t error_buf_size) {
+  FILE *input = NULL;
+  int64_t file_size_value;
+  size_t file_size;
+  unsigned char *buffer = NULL;
+  if (path == NULL || out_data == NULL || out_size == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "bad arguments");
+    return -1;
+  }
+  input = fopen(path, "rb");
+  if (input == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "failed opening roundtrip output");
+    return -1;
+  }
+  if (fseek(input, 0, SEEK_END) != 0) {
+    fclose(input);
+    m68k_platform_set_error(error_buf, error_buf_size, "failed sizing roundtrip output");
+    return -1;
+  }
+  file_size_value = (int64_t)ftell(input);
+  if (file_size_value < 0) {
+    fclose(input);
+    m68k_platform_set_error(error_buf, error_buf_size, "failed sizing roundtrip output");
+    return -1;
+  }
+  if (fseek(input, 0, SEEK_SET) != 0) {
+    fclose(input);
+    m68k_platform_set_error(error_buf, error_buf_size, "failed seeking roundtrip output");
+    return -1;
+  }
+  file_size = (size_t)file_size_value;
+  buffer = (unsigned char *)malloc(file_size != 0U ? file_size : 1U);
+  if (buffer == NULL) {
+    fclose(input);
+    m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
+    return -1;
+  }
+  if (file_size != 0U && fread(buffer, 1, file_size, input) != file_size) {
+    fclose(input);
+    free(buffer);
+    m68k_platform_set_error(error_buf, error_buf_size, "failed reading roundtrip output");
+    return -1;
+  }
+  fclose(input);
+  *out_data = buffer;
+  *out_size = file_size;
+  return 0;
+}
+
+static int write_object_to_temp_file(const M68kBackend *backend, const M68kObject *object, char *temp_path,
+    size_t temp_path_size, char *error_buf, size_t error_buf_size) {
+  char error[256];
+  if (backend == NULL || backend->write_file == NULL || object == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
+    return -1;
+  }
+  if (make_temp_output_path(temp_path, temp_path_size) != 0) {
+    m68k_platform_set_error(error_buf, error_buf_size, "failed creating temp path");
+    return -1;
+  }
+  if (backend->write_file(temp_path, object, error, sizeof(error)) != 0) {
+    m68k_platform_set_error(error_buf, error_buf_size, error);
+    remove(temp_path);
+    return -1;
+  }
+  return 0;
+}
+
+static int recompute_section_findings(const M68kSection *section, const M68kSectionAnalysisIR *section_analysis,
+    const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *out_findings);
+static int rebuild_cpu_violations(const M68kSection *section, M68kSectionAnalysisIR *section_analysis,
+    const M68kAnalysisPolicy *analysis_policy);
+static int rebuild_decode_fail_violations(const M68kSection *section, M68kSectionAnalysisIR *section_analysis,
+    const M68kAnalysisPolicy *analysis_policy);
+static int build_section_analysis(const M68kObject *object, size_t section_index, const M68kSection *section,
+    const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings, M68kSectionAnalysisIR *out_analysis,
+    char *out_error, size_t out_error_size);
+static int build_section_ir(const M68kObject *object, const M68kSection *section, M68kSectionAnalysisIR *section_analysis,
+    const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings, const M68kRenderPolicy *policy,
+    M68kSectionIR *out_section_ir, char *out_error, size_t out_error_size);
+
 static int inspect_object_json(const M68kBackend *backend, const M68kObject *object, char **out_json) {
   JsonBuilder builder = {0};
   size_t i;
@@ -202,21 +338,17 @@ fail:
 
 int platform_file_inspect_path_json(const char *backend_name, const char *path, char **out_json, char *error_buf,
     size_t error_buf_size) {
-  char error[256];
   M68kObject object;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  if (backend == NULL || backend->read_file == NULL) {
-    m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
+  if (out_json == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "null output");
     return -1;
   }
-  m68k_object_init(&object);
-  if (backend->read_file(path, &object, error, sizeof(error)) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, error);
-    m68k_object_free(&object);
+  if (load_object_from_path(backend, path, &object, error_buf, error_buf_size) != 0)
     return -1;
-  }
   if (inspect_object_json(backend, &object, out_json) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, "failed building inspect json");
+    if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
+      m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
     m68k_object_free(&object);
     return -1;
   }
@@ -226,21 +358,17 @@ int platform_file_inspect_path_json(const char *backend_name, const char *path, 
 
 int platform_file_inspect_buffer_json(const char *backend_name, const unsigned char *data, size_t size,
     char **out_json, char *error_buf, size_t error_buf_size) {
-  char error[256];
   M68kObject object;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  if (backend == NULL || backend->read_buffer == NULL) {
-    m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
+  if (out_json == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "null output");
     return -1;
   }
-  m68k_object_init(&object);
-  if (backend->read_buffer(data, size, &object, error, sizeof(error)) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, error);
-    m68k_object_free(&object);
+  if (load_object_from_buffer(backend, data, size, &object, error_buf, error_buf_size) != 0)
     return -1;
-  }
   if (inspect_object_json(backend, &object, out_json) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, "failed building inspect json");
+    if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
+      m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
     m68k_object_free(&object);
     return -1;
   }
@@ -250,74 +378,105 @@ int platform_file_inspect_buffer_json(const char *backend_name, const unsigned c
 
 int platform_file_roundtrip_buffer(const char *backend_name, const unsigned char *data, size_t size,
     unsigned char **out_data, size_t *out_size, char *error_buf, size_t error_buf_size) {
-  char error[256];
   char temp_path[512];
-  FILE *output = NULL;
-  int64_t output_size_value;
-  size_t output_size;
-  unsigned char *buffer = NULL;
   M68kObject object;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
   if (backend == NULL || backend->read_buffer == NULL || backend->write_file == NULL) {
     m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
     return -1;
   }
-  if (make_temp_output_path(temp_path, sizeof(temp_path)) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, "failed creating temp path");
+  if (load_object_from_buffer(backend, data, size, &object, error_buf, error_buf_size) != 0)
     return -1;
-  }
-  m68k_object_init(&object);
-  if (backend->read_buffer(data, size, &object, error, sizeof(error)) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, error);
+  if (write_object_to_temp_file(backend, &object, temp_path, sizeof(temp_path), error_buf, error_buf_size) != 0) {
     m68k_object_free(&object);
-    remove(temp_path);
-    return -1;
-  }
-  if (backend->write_file(temp_path, &object, error, sizeof(error)) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, error);
-    m68k_object_free(&object);
-    remove(temp_path);
     return -1;
   }
   m68k_object_free(&object);
-  output = fopen(temp_path, "rb");
-  if (output == NULL) {
-    m68k_platform_set_error(error_buf, error_buf_size, "failed opening roundtrip output");
+  if (read_file_to_buffer(temp_path, out_data, out_size, error_buf, error_buf_size) != 0) {
     remove(temp_path);
     return -1;
   }
-  if (fseek(output, 0, SEEK_END) != 0) {
-    fclose(output);
-    remove(temp_path);
-    m68k_platform_set_error(error_buf, error_buf_size, "failed sizing roundtrip output");
-    return -1;
-  }
-  output_size_value = (int64_t)ftell(output);
-  if (output_size_value < 0 || fseek(output, 0, SEEK_SET) != 0) {
-    fclose(output);
-    remove(temp_path);
-    m68k_platform_set_error(error_buf, error_buf_size, "failed sizing roundtrip output");
-    return -1;
-  }
-  output_size = (size_t)output_size_value;
-  buffer = (unsigned char *)malloc(output_size != 0U ? output_size : 1U);
-  if (buffer == NULL) {
-    fclose(output);
-    remove(temp_path);
-    m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
-    return -1;
-  }
-  if (output_size != 0U && fread(buffer, 1, output_size, output) != output_size) {
-    fclose(output);
-    free(buffer);
-    remove(temp_path);
-    m68k_platform_set_error(error_buf, error_buf_size, "failed reading roundtrip output");
-    return -1;
-  }
-  fclose(output);
   remove(temp_path);
-  *out_data = buffer;
-  *out_size = output_size;
+  return 0;
+}
+
+static int populate_source_ir_from_object(const M68kBackend *backend, const M68kObject *object,
+    const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, M68kSourceFileIR *out_source_file,
+    char *error_buf, size_t error_buf_size) {
+  M68kAnalysisFindings findings;
+  size_t section_index;
+  m68k_analysis_findings_init(&findings);
+  m68k_ir_source_file_init(out_source_file);
+  out_source_file->file_kind = object->platform_file_kind;
+  if (strcmp(backend->name, "atari-st") == 0) {
+    uint32_t program_flags = 0;
+    if (m68k_atari_st_get_program_flags(object, &program_flags) == 0) {
+      out_source_file->has_atari_st_program_flags = 1U;
+      out_source_file->atari_st_program_flags = program_flags;
+    }
+  }
+  for (section_index = 0; section_index < object->section_count; ++section_index) {
+    M68kSectionIR section_ir;
+    M68kSectionAnalysisIR section_analysis;
+    int append_result;
+    m68k_ir_section_analysis_init(&section_analysis);
+    if (build_section_analysis(object, section_index, &object->sections[section_index], analysis_policy,
+          &findings, &section_analysis, error_buf, error_buf_size) != 0 ||
+        build_section_ir(object, &object->sections[section_index], &section_analysis, analysis_policy, &findings,
+          policy, &section_ir, error_buf, error_buf_size) != 0) {
+      if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
+        m68k_platform_set_error(error_buf, error_buf_size, "failed building source ir");
+      m68k_ir_section_analysis_free(&section_analysis);
+      m68k_ir_source_file_free(out_source_file);
+      return -1;
+    }
+    append_result = m68k_ir_source_file_append_section(out_source_file, &section_ir);
+    m68k_ir_section_free(&section_ir);
+    if (append_result != 0) {
+      m68k_platform_set_error(error_buf, error_buf_size, "failed building source ir");
+      m68k_ir_section_analysis_free(&section_analysis);
+      m68k_ir_source_file_free(out_source_file);
+      return -1;
+    }
+    m68k_ir_section_analysis_free(&section_analysis);
+  }
+  if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
+  return 0;
+}
+
+static int populate_source_analysis_from_object(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
+    M68kSourceAnalysisIR *out_source_analysis, char *error_buf, size_t error_buf_size) {
+  size_t section_index;
+  m68k_ir_source_analysis_init(out_source_analysis);
+  out_source_analysis->policy = *analysis_policy;
+  out_source_analysis->file_kind = object->platform_file_kind;
+  m68k_analysis_findings_init(&out_source_analysis->findings);
+  for (section_index = 0; section_index < object->section_count; ++section_index) {
+    M68kSectionAnalysisIR section_analysis;
+    M68kAnalysisFindings scratch_findings;
+    M68kAnalysisFindings section_findings;
+    m68k_ir_section_analysis_init(&section_analysis);
+    m68k_analysis_findings_init(&scratch_findings);
+    m68k_analysis_findings_init(&section_findings);
+    if (build_section_analysis(object, section_index, &object->sections[section_index], analysis_policy,
+          &scratch_findings, &section_analysis, error_buf, error_buf_size) != 0 ||
+        rebuild_cpu_violations(&object->sections[section_index], &section_analysis, analysis_policy) != 0 ||
+        rebuild_decode_fail_violations(&object->sections[section_index], &section_analysis, analysis_policy) != 0 ||
+        recompute_section_findings(&object->sections[section_index], &section_analysis, analysis_policy,
+          &section_findings) != 0 ||
+        m68k_ir_source_analysis_append_section(out_source_analysis, &section_analysis) != 0) {
+      if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
+        m68k_platform_set_error(error_buf, error_buf_size, "failed building cfg analysis");
+      m68k_ir_section_analysis_free(&section_analysis);
+      m68k_ir_source_analysis_free(out_source_analysis);
+      return -1;
+    }
+    if (section_findings.required_cpu > out_source_analysis->findings.required_cpu)
+      out_source_analysis->findings.required_cpu = section_findings.required_cpu;
+    out_source_analysis->findings.cpu_violation_count += section_findings.cpu_violation_count;
+    m68k_ir_section_analysis_free(&section_analysis);
+  }
+  if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
   return 0;
 }
 
@@ -1561,45 +1720,33 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
   GeneratedLabelKind *label_kinds = NULL;
   uint8_t *generated_label_flags = NULL;
   size_t offset = 0;
+  int result = -1;
   (void)findings; (void)out_error; (void)out_error_size;
   m68k_ir_section_init(out_section_ir);
   out_section_ir->name = _strdup( (section->name != NULL && section->name[0] != '\0') ? section->name : "section");
-  if (out_section_ir->name == NULL) return -1;
+  if (out_section_ir->name == NULL) goto cleanup;
   out_section_ir->kind = section->kind;
   out_section_ir->size = section->size;
-  if (section->kind == M68K_SECTION_BSS) return 0;
+  if (section->kind == M68K_SECTION_BSS) {
+    result = 0;
+    goto cleanup;
+  }
   if (section->data_size != 0U) {
     label_kinds = (GeneratedLabelKind *)calloc(section->data_size, sizeof(*label_kinds));
     generated_label_flags = (uint8_t *)calloc(section->data_size, 1U);
-    if (label_kinds == NULL || generated_label_flags == NULL) {
-      free(label_kinds);
-      free(generated_label_flags);
-      return -1;
-    }
+    if (label_kinds == NULL || generated_label_flags == NULL) goto cleanup;
     if (build_generated_label_kinds(section, analysis_policy, findings, section_analysis, label_kinds,
-        generated_label_flags) != 0) {
-      free(label_kinds);
-      free(generated_label_flags);
-      return -1;
-    }
+        generated_label_flags) != 0) goto cleanup;
     mark_data_fixup_labels(object, section_analysis, label_kinds, generated_label_flags);
     if (scan_interior_pc_relative_refs(section, analysis_policy, findings, section_analysis, label_kinds,
-          generated_label_flags) != 0) {
-      free(label_kinds);
-      free(generated_label_flags);
-      return -1;
-    }
+          generated_label_flags) != 0) goto cleanup;
   }
   while (offset < section->data_size) {
     M68kInstructionIR instruction;
     char error[128];
     if (section_has_any_label(section_analysis, generated_label_flags, section->data_size, (uint32_t)offset) &&
         append_label_statement(out_section_ir, (uint32_t)offset, label_kinds, section->data_size, section_analysis,
-          policy != NULL ? &policy->presentation : NULL) != 0) {
-      free(label_kinds);
-      free(generated_label_flags);
-      return -1;
-    }
+          policy != NULL ? &policy->presentation : NULL) != 0) goto cleanup;
     if (section->kind == M68K_SECTION_CODE && offset < section_analysis->certain_code_size &&
         section_analysis->certain_code_start != NULL && section_analysis->certain_code_start[offset] != 0U) {
       int decode_result = 0;
@@ -1615,11 +1762,8 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
         collect_section_violation_comments(section_analysis, (uint32_t)offset, violation, sizeof(violation));
         if (format_cpu_violation_comment(cpu_violation, sizeof(cpu_violation), &instruction, analysis_policy))
           append_statement_violation_comment(violation, sizeof(violation), cpu_violation);
-        if (append_instruction_statement( out_section_ir, (uint32_t)offset, &instruction, violation[0] != '\0' ? violation : NULL) != 0) {
-          free(label_kinds);
-          free(generated_label_flags);
-          return -1;
-        }
+        if (append_instruction_statement( out_section_ir, (uint32_t)offset, &instruction,
+              violation[0] != '\0' ? violation : NULL) != 0) goto cleanup;
         offset += instruction.byte_count;
       } else {
         size_t chunk = compute_data_span_chunk(section_analysis, generated_label_flags, section->data_size, offset,
@@ -1627,11 +1771,7 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
         if (append_shaped_data_span( object, section_analysis->section_index, section_analysis, label_kinds,
             out_section_ir, (uint32_t)offset, section->data + offset, chunk,
             policy != NULL ? &policy->presentation : NULL,
-            "decode failed in reachable code; region emitted as data") != 0) {
-          free(label_kinds);
-          free(generated_label_flags);
-          return -1;
-        }
+            "decode failed in reachable code; region emitted as data") != 0) goto cleanup;
         offset += chunk;
       }
     } else {
@@ -1639,175 +1779,115 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
         section->data_size);
       if (append_shaped_data_span( object, section_analysis->section_index, section_analysis, label_kinds,
           out_section_ir, (uint32_t)offset, section->data + offset, chunk,
-          policy != NULL ? &policy->presentation : NULL, NULL) != 0) {
-        free(label_kinds);
-        free(generated_label_flags);
-        return -1;
-      }
+          policy != NULL ? &policy->presentation : NULL, NULL) != 0) goto cleanup;
       offset += chunk;
     }
   }
+  result = 0;
+
+cleanup:
   free(label_kinds);
   free(generated_label_flags);
-  return 0;
+  return result;
 }
 
 int platform_file_to_ir_with_policy(const char *backend_name, const char *path, const M68kRenderPolicy *policy,
     const M68kAnalysisPolicy *analysis_policy, M68kSourceFileIR *out_source_file, char *error_buf,
     size_t error_buf_size) {
-  char error[256];
   M68kObject object;
-  M68kSectionIR section_ir;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  size_t section_index;
   M68kRenderPolicy default_policy;
   M68kAnalysisPolicy default_analysis_policy;
-  M68kAnalysisFindings findings;
-  const M68kRenderPolicy *active_policy = policy;
-  const M68kAnalysisPolicy *active_analysis_policy = analysis_policy;
-  if (backend == NULL || backend->read_file == NULL || out_source_file == NULL) {
-    m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
+  const M68kRenderPolicy *active_policy = resolve_render_policy(policy, &default_policy);
+  const M68kAnalysisPolicy *active_analysis_policy = resolve_analysis_policy(analysis_policy, &default_analysis_policy);
+  int result;
+  if (out_source_file == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "null output");
     return -1;
   }
-  if (active_policy == NULL) {
-    m68k_render_policy_init_for_syntax(&default_policy, M68K_IR_SYNTAX_CANONICAL);
-    active_policy = &default_policy;
-  }
-  if (active_analysis_policy == NULL) {
-    m68k_analysis_policy_init_default(&default_analysis_policy);
-    active_analysis_policy = &default_analysis_policy;
-  }
-  m68k_analysis_findings_init(&findings);
-  m68k_ir_source_file_init(out_source_file);
-  m68k_object_init(&object);
-  if (backend->read_file(path, &object, error, sizeof(error)) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, error);
-    m68k_object_free(&object);
+  if (load_object_from_path(backend, path, &object, error_buf, error_buf_size) != 0)
     return -1;
-  }
-  out_source_file->file_kind = object.platform_file_kind;
-  if (strcmp(backend->name, "atari-st") == 0) {
-    uint32_t program_flags = 0;
-    if (m68k_atari_st_read_program_flags(path, &program_flags) == 0) {
-      out_source_file->has_atari_st_program_flags = 1U;
-      out_source_file->atari_st_program_flags = program_flags;
-    }
-  }
-  for (section_index = 0; section_index < object.section_count; ++section_index) {
-    M68kSectionAnalysisIR section_analysis;
-    int append_result;
-    m68k_ir_section_analysis_init(&section_analysis);
-    if (build_section_analysis(&object, section_index, &object.sections[section_index], active_analysis_policy,
-        &findings, &section_analysis, error_buf, error_buf_size) != 0 ||
-        build_section_ir(&object, &object.sections[section_index], &section_analysis, active_analysis_policy, &findings,
-          active_policy, &section_ir, error_buf, error_buf_size) != 0) {
-      if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
-        m68k_platform_set_error(error_buf, error_buf_size, "failed building source ir");
-      m68k_ir_section_analysis_free(&section_analysis);
-      m68k_object_free(&object);
-      m68k_ir_source_file_free(out_source_file);
-      return -1;
-    }
-    append_result = m68k_ir_source_file_append_section(out_source_file, &section_ir);
-    m68k_ir_section_free(&section_ir);
-    if (append_result != 0) {
-      m68k_platform_set_error(error_buf, error_buf_size, "failed building source ir");
-      m68k_ir_section_analysis_free(&section_analysis);
-      m68k_object_free(&object);
-      m68k_ir_source_file_free(out_source_file);
-      return -1;
-    }
-    m68k_ir_section_analysis_free(&section_analysis);
-  }
+  result = populate_source_ir_from_object(backend, &object, active_policy, active_analysis_policy,
+    out_source_file, error_buf, error_buf_size);
   m68k_object_free(&object);
-  if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
-  return 0;
+  return result;
+}
+
+int platform_file_to_ir_buffer_with_policy(const char *backend_name, const unsigned char *data, size_t size,
+    const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, M68kSourceFileIR *out_source_file,
+    char *error_buf, size_t error_buf_size) {
+  M68kObject object;
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  M68kRenderPolicy default_policy;
+  M68kAnalysisPolicy default_analysis_policy;
+  const M68kRenderPolicy *active_policy = resolve_render_policy(policy, &default_policy);
+  const M68kAnalysisPolicy *active_analysis_policy = resolve_analysis_policy(analysis_policy, &default_analysis_policy);
+  int result;
+  if (out_source_file == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "null output");
+    return -1;
+  }
+  if (load_object_from_buffer(backend, data, size, &object, error_buf, error_buf_size) != 0)
+    return -1;
+  result = populate_source_ir_from_object(backend, &object, active_policy, active_analysis_policy,
+    out_source_file, error_buf, error_buf_size);
+  m68k_object_free(&object);
+  return result;
 }
 
 int platform_file_analyze_path(const char *backend_name, const char *path, const M68kAnalysisPolicy *analysis_policy,
     M68kSourceAnalysisIR *out_source_analysis, char *error_buf, size_t error_buf_size) {
-  char error[256];
   M68kObject object;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  size_t section_index;
   M68kAnalysisPolicy default_analysis_policy;
-  const M68kAnalysisPolicy *active_analysis_policy = analysis_policy;
-  if (backend == NULL || backend->read_file == NULL || out_source_analysis == NULL) {
-    m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
-    return -1;
-  }
-  m68k_ir_source_analysis_init(out_source_analysis);
-  if (active_analysis_policy == NULL) {
-    m68k_analysis_policy_init_default(&default_analysis_policy);
-    active_analysis_policy = &default_analysis_policy;
-  }
-  out_source_analysis->policy = *active_analysis_policy;
-  m68k_object_init(&object);
-  if (backend->read_file(path, &object, error, sizeof(error)) != 0) {
-    m68k_platform_set_error(error_buf, error_buf_size, error);
-    m68k_object_free(&object);
-    return -1;
-  }
-  out_source_analysis->file_kind = object.platform_file_kind;
-  m68k_analysis_findings_init(&out_source_analysis->findings);
-  for (section_index = 0; section_index < object.section_count; ++section_index) {
-    M68kSectionAnalysisIR section_analysis;
-    M68kAnalysisFindings scratch_findings;
-    M68kAnalysisFindings section_findings;
-    m68k_ir_section_analysis_init(&section_analysis);
-    m68k_analysis_findings_init(&scratch_findings);
-    m68k_analysis_findings_init(&section_findings);
-    if (build_section_analysis( &object, section_index, &object.sections[section_index], active_analysis_policy,
-        &scratch_findings, &section_analysis, error_buf, error_buf_size) != 0 ||
-        rebuild_cpu_violations(&object.sections[section_index], &section_analysis, active_analysis_policy) != 0 ||
-        rebuild_decode_fail_violations(&object.sections[section_index], &section_analysis,
-          active_analysis_policy) != 0 ||
-        recompute_section_findings(&object.sections[section_index], &section_analysis, active_analysis_policy,
-          &section_findings) != 0 ||
-        m68k_ir_source_analysis_append_section(out_source_analysis, &section_analysis) != 0) {
-      if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
-        m68k_platform_set_error(error_buf, error_buf_size, "failed building cfg analysis");
-      m68k_ir_section_analysis_free(&section_analysis);
-      m68k_ir_source_analysis_free(out_source_analysis);
-      m68k_object_free(&object);
-      return -1;
-    }
-    if (section_findings.required_cpu > out_source_analysis->findings.required_cpu) {
-      out_source_analysis->findings.required_cpu = section_findings.required_cpu;
-    }
-    out_source_analysis->findings.cpu_violation_count += section_findings.cpu_violation_count;
-    m68k_ir_section_analysis_free(&section_analysis);
-  }
-  m68k_object_free(&object);
-  if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
-  return 0;
-}
-
-int platform_file_analyze_path_json(const char *backend_name, const char *path,
-    const M68kAnalysisPolicy *analysis_policy, char **out_json, char *error_buf, size_t error_buf_size) {
-  M68kSourceAnalysisIR source_analysis;
-  JsonBuilder builder = {0};
-  size_t section_index;
+  const M68kAnalysisPolicy *active_analysis_policy = resolve_analysis_policy(analysis_policy, &default_analysis_policy);
   int result;
-  if (out_json == NULL) {
+  if (out_source_analysis == NULL) {
     m68k_platform_set_error(error_buf, error_buf_size, "null output");
     return -1;
   }
-  *out_json = NULL;
-  m68k_ir_source_analysis_init(&source_analysis);
-  result = platform_file_analyze_path(backend_name, path, analysis_policy, &source_analysis, error_buf, error_buf_size);
-  if (result != 0)
-    return result;
+  if (load_object_from_path(backend, path, &object, error_buf, error_buf_size) != 0)
+    return -1;
+  result = populate_source_analysis_from_object(&object, active_analysis_policy, out_source_analysis,
+    error_buf, error_buf_size);
+  m68k_object_free(&object);
+  return result;
+}
+
+int platform_file_analyze_buffer(const char *backend_name, const unsigned char *data, size_t size,
+    const M68kAnalysisPolicy *analysis_policy, M68kSourceAnalysisIR *out_source_analysis, char *error_buf,
+    size_t error_buf_size) {
+  M68kObject object;
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  M68kAnalysisPolicy default_analysis_policy;
+  const M68kAnalysisPolicy *active_analysis_policy = resolve_analysis_policy(analysis_policy, &default_analysis_policy);
+  int result;
+  if (out_source_analysis == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "null output");
+    return -1;
+  }
+  if (load_object_from_buffer(backend, data, size, &object, error_buf, error_buf_size) != 0)
+    return -1;
+  result = populate_source_analysis_from_object(&object, active_analysis_policy, out_source_analysis,
+    error_buf, error_buf_size);
+  m68k_object_free(&object);
+  return result;
+}
+
+static int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, char *error_buf,
+    size_t error_buf_size) {
+  JsonBuilder builder = {0};
+  size_t section_index;
   if (json_builder_appendf( &builder,
       "{\"file_kind\":%u,\"analysis_policy\":{\"max_cpu\":%u},\"findings\":{\"required_cpu\":%u,"
       "\"cpu_violation_count\":%u},\"section_count\":%u,\"sections\":[",
-      (unsigned)source_analysis.file_kind, (unsigned)source_analysis.policy.max_cpu,
-      (unsigned)source_analysis.findings.required_cpu, (unsigned)source_analysis.findings.cpu_violation_count,
-      (unsigned)source_analysis.section_count) != 0) {
+      (unsigned)source_analysis->file_kind, (unsigned)source_analysis->policy.max_cpu,
+      (unsigned)source_analysis->findings.required_cpu, (unsigned)source_analysis->findings.cpu_violation_count,
+      (unsigned)source_analysis->section_count) != 0) {
     goto oom;
   }
-  for (section_index = 0; section_index < source_analysis.section_count; ++section_index) {
-    const M68kSectionAnalysisIR *section = &source_analysis.sections[section_index];
+  for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t block_index;
     size_t edge_index;
     size_t violation_index;
@@ -1864,16 +1944,51 @@ int platform_file_analyze_path_json(const char *backend_name, const char *path,
   }
   if (json_builder_append(&builder, "]}") != 0)
     goto oom;
-  m68k_ir_source_analysis_free(&source_analysis);
   if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
   *out_json = builder.data;
   return 0;
 
 oom:
   json_builder_free(&builder);
-  m68k_ir_source_analysis_free(&source_analysis);
   m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
   return -1;
+}
+
+int platform_file_analyze_path_json(const char *backend_name, const char *path,
+    const M68kAnalysisPolicy *analysis_policy, char **out_json, char *error_buf, size_t error_buf_size) {
+  M68kSourceAnalysisIR source_analysis;
+  int result;
+  if (out_json == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "null output");
+    return -1;
+  }
+  *out_json = NULL;
+  m68k_ir_source_analysis_init(&source_analysis);
+  result = platform_file_analyze_path(backend_name, path, analysis_policy, &source_analysis, error_buf, error_buf_size);
+  if (result != 0)
+    return result;
+  result = source_analysis_to_json(&source_analysis, out_json, error_buf, error_buf_size);
+  m68k_ir_source_analysis_free(&source_analysis);
+  return result;
+}
+
+int platform_file_analyze_buffer_json(const char *backend_name, const unsigned char *data, size_t size,
+    const M68kAnalysisPolicy *analysis_policy, char **out_json, char *error_buf, size_t error_buf_size) {
+  M68kSourceAnalysisIR source_analysis;
+  int result;
+  if (out_json == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "null output");
+    return -1;
+  }
+  *out_json = NULL;
+  m68k_ir_source_analysis_init(&source_analysis);
+  result = platform_file_analyze_buffer(backend_name, data, size, analysis_policy, &source_analysis,
+    error_buf, error_buf_size);
+  if (result != 0)
+    return result;
+  result = source_analysis_to_json(&source_analysis, out_json, error_buf, error_buf_size);
+  m68k_ir_source_analysis_free(&source_analysis);
+  return result;
 }
 
 int platform_file_render_ir_with_policy(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,

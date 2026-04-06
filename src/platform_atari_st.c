@@ -475,6 +475,14 @@ int m68k_atari_st_read_program_flags(const char *path, uint32_t *out_program_fla
     return 0;
 }
 
+int m68k_atari_st_get_program_flags(const M68kObject *object, uint32_t *out_program_flags) {
+    const AtariStPrgPlatformData *platform_data;
+    if (object == NULL || out_program_flags == NULL || object->platform_data == NULL) return -1;
+    platform_data = (const AtariStPrgPlatformData *)object->platform_data;
+    *out_program_flags = platform_data->program_flags;
+    return 0;
+}
+
 static int atari_st_write_file(const char *path, const M68kObject *object, char *error_buf, size_t error_buf_size) {
     const AtariStPrgPlatformData *platform_data = (const AtariStPrgPlatformData *)object->platform_data;
     const M68kSection *text_section;
