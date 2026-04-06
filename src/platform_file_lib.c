@@ -468,8 +468,7 @@ static int instruction_stops_fallthrough(const M68kInstructionIR *instruction) {
   if (instruction_is_unconditional_transfer(instruction)) return 1;
   return mnemonic_equals(instruction, "rts") || mnemonic_equals(instruction, "rte") ||
     mnemonic_equals(instruction, "rtr") || mnemonic_equals(instruction, "rtd") ||
-    mnemonic_equals(instruction, "stop") || mnemonic_equals(instruction, "illegal") ||
-    mnemonic_starts_with(instruction, "trap");
+    mnemonic_equals(instruction, "stop") || mnemonic_equals(instruction, "illegal");
 }
 
 static int is_conditional_transfer(const M68kInstructionIR *instruction) {

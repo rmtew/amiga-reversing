@@ -301,6 +301,34 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(code_section["edges"][0]["kind"], 5)
         self.assertEqual(data_section["block_count"], 0)
 
+    def test_platform_file_analysis_keeps_fallthrough_after_trap(self) -> None:
+        library = _file_library()
+        error_buf = ctypes.create_string_buffer(256)
+        json_ptr = ctypes.c_void_p()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "trap.exe"
+            path.write_bytes(make_synthetic_hunkexe(code_data=b"\x4E\x4F\x4E\x75"))
+            result = library.platform_file_analyze_path_json(
+                b"amiga-hunk",
+                str(path).encode("utf-8"),
+                ctypes.byref(_analysis_policy()),
+                ctypes.byref(json_ptr),
+                error_buf,
+                len(error_buf),
+            )
+            self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+            try:
+                analysis = json.loads(ctypes.cast(json_ptr, ctypes.c_char_p).value.decode("utf-8"))
+            finally:
+                library.platform_file_free_text(json_ptr)
+        code_section = analysis["sections"][0]
+        self.assertEqual(code_section["block_count"], 1)
+        self.assertEqual(code_section["blocks"][0]["start_offset"], 0)
+        self.assertEqual(code_section["blocks"][0]["end_offset"], 4)
+        self.assertEqual(code_section["edge_count"], 1)
+        self.assertEqual(code_section["edges"][0]["source_offset"], 2)
+        self.assertEqual(code_section["edges"][0]["kind"], 5)
+
     def test_platform_file_ir_render_respects_generated_name_policy(self) -> None:
         library = _file_library()
         error_buf = ctypes.create_string_buffer(256)
