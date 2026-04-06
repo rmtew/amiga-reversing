@@ -5,6 +5,7 @@
 #include "m68k_source_constant_expr.h"
 #include "m68k_source_text_util.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -58,13 +59,56 @@ static void mark_ir_symbol_ref_kind(M68kOperandIR *operand) {
   }
 }
 
+static int parse_symbol_plus_addend(const M68kSymbolicParseContext *context, const char *text,
+    char *out_symbolic_name, size_t out_symbolic_name_size, int32_t *out_addend) {
+  const char *cursor = text;
+  const char *sign_pos = NULL;
+  char symbol[M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
+  int32_t value = 0;
+  if (context == NULL || text == NULL || out_symbolic_name == NULL || out_addend == NULL)
+    return 0;
+  if (*cursor == '\0')
+    return 0;
+  while (*cursor != '\0') {
+    if ((*cursor == '+' || *cursor == '-') && cursor != text) {
+      sign_pos = cursor;
+      break;
+    }
+    ++cursor;
+  }
+  if (sign_pos == NULL) {
+    if (context->is_symbol_name == NULL || !context->is_symbol_name(text, context->user_data))
+      return 0;
+    if (is_register_like_symbol(text, context->target_cpu))
+      return 0;
+    snprintf(out_symbolic_name, out_symbolic_name_size, "%s", text);
+    *out_addend = 0;
+    return 1;
+  }
+  if ((size_t)(sign_pos - text) >= sizeof(symbol))
+    return 0;
+  snprintf(symbol, sizeof(symbol), "%.*s", (int)(sign_pos - text), text);
+  if (context->is_symbol_name == NULL || !context->is_symbol_name(symbol, context->user_data))
+    return 0;
+  if (is_register_like_symbol(symbol, context->target_cpu))
+    return 0;
+  if (*(sign_pos + 1) == '\0')
+    return 0;
+  value = (int32_t)strtol(sign_pos + 1, NULL, 0);
+  if (*sign_pos == '-')
+    value = -value;
+  snprintf(out_symbolic_name, out_symbolic_name_size, "%s", symbol);
+  *out_addend = (int32_t)value;
+  return 1;
+}
+
 static int rewrite_pc_relative_symbol_operand( const M68kSymbolicParseContext *context, const char *operand, char *out_rewritten,
-    size_t out_rewritten_size, char *out_symbolic_name, size_t out_symbolic_name_size) {
+    size_t out_rewritten_size, char *out_symbolic_name, size_t out_symbolic_name_size, int32_t *out_addend) {
   const char *paren = NULL;
   size_t prefix_len;
   char prefix[M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
   if (context == NULL || operand == NULL || out_rewritten == NULL ||
-      out_symbolic_name == NULL)
+      out_symbolic_name == NULL || out_addend == NULL)
     return 0;
   paren = strchr(operand, '(');
   if (paren == NULL || paren == operand)
@@ -75,16 +119,9 @@ static int rewrite_pc_relative_symbol_operand( const M68kSymbolicParseContext *c
   if (prefix_len == 0U || prefix_len >= sizeof(prefix))
     return 0;
   snprintf(prefix, sizeof(prefix), "%.*s", (int)prefix_len, operand);
-  if (context->is_symbol_name == NULL ||
-      !context->is_symbol_name(prefix, context->user_data))
-    return 0;
-  if (is_register_like_symbol(prefix, context->target_cpu))
-    return 0;
-  if (context->lookup_symbol != NULL &&
-      context->lookup_symbol(prefix, NULL, 1, context->user_data))
+  if (!parse_symbol_plus_addend(context, prefix, out_symbolic_name, out_symbolic_name_size, out_addend))
     return 0;
   snprintf(out_rewritten, out_rewritten_size, "$0%s", paren);
-  snprintf(out_symbolic_name, out_symbolic_name_size, "%s", prefix);
   return 1;
 }
 
@@ -186,6 +223,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
   char rewritten_operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][64];
   char symbolic_names[M68K_INSTRUCTION_SPEC_MAX_OPERANDS]
                      [M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
+  int32_t symbolic_addends[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {0, 0, 0, 0};
   size_t operand_count = 0;
   size_t operand_index;
   char *dot = NULL;
@@ -220,6 +258,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
   for (operand_index = 0; operand_index < operand_count; ++operand_index) {
     const char *operand = operands[operand_index];
     symbolic_names[operand_index][0] = '\0';
+    symbolic_addends[operand_index] = 0;
     if (operand[0] == '#') {
       uint32_t immediate_value = 0;
       if (m68k_source_parse_constant_expression(operand + 1, lookup_constant_symbol_for_expression,
@@ -256,7 +295,8 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
                                                   rewritten_operands[operand_index],
                                                   sizeof(rewritten_operands[operand_index]),
                                                   symbolic_names[operand_index],
-                                                  sizeof(symbolic_names[operand_index]))) {
+                                                  sizeof(symbolic_names[operand_index]),
+                                                  &symbolic_addends[operand_index])) {
     } else if (rewrite_base_relative_symbol_operand(context, operand,
                                                     rewritten_operands[operand_index],
                                                     sizeof(rewritten_operands[operand_index]),
@@ -291,6 +331,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
     snprintf(out_instruction->operand_label_names[operand_index],
              sizeof(out_instruction->operand_label_names[operand_index]), "%s",
              symbolic_names[operand_index]);
+    out_instruction->operand_label_addends[operand_index] = symbolic_addends[operand_index];
   }
   return 1;
 }
@@ -313,6 +354,7 @@ int m68k_parse_instruction_with_symbol_fallback_ir( const M68kSymbolicParseConte
       continue;
     out_instruction->operands[operand_index].symbol_ref.has_name = 1;
     out_instruction->operands[operand_index].symbol_ref.name_is_generated = 0U;
+    out_instruction->operands[operand_index].symbol_ref.addend = parsed.operand_label_addends[operand_index];
     snprintf(out_instruction->operands[operand_index].symbol_ref.name,
              sizeof(out_instruction->operands[operand_index].symbol_ref.name),
              "%s", parsed.operand_label_names[operand_index]);

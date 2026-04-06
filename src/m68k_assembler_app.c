@@ -9,6 +9,8 @@
 #include "m68k_source_ir_render.h"
 #include "m68k_source_model.h"
 #include "m68k_source_pipeline.h"
+#include "platform_atari_st.h"
+#include "platform_common.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,6 +84,11 @@ static int assemble_platform_source_to_object(const char *input_path, const char
     m68k_source_model_free(&source);
     return 0;
   }
+  if (source.has_atari_st_program_flags && m68k_atari_st_set_program_flags(out_object, source.atari_st_program_flags) != 0) {
+    m68k_source_model_free(&source);
+    m68k_platform_set_error(out_error, out_error_size, "failed setting Atari ST program flags");
+    return 0;
+  }
   m68k_source_model_free(&source);
   if (out_error != NULL && out_error_size != 0U) out_error[0] = '\0';
   return 1;
@@ -92,10 +99,6 @@ int m68k_assemble_platform_file_to_output(const char *backend_name, const char *
   const M68kBackend *backend = NULL;
   M68kObject object;
   char error[256];
-  if (_stricmp(backend_name, "amiga-hunk") != 0) {
-    fprintf(stderr, "unsupported backend: %s\n", backend_name);
-    return 2;
-  }
   backend = m68k_backend_by_name(backend_name);
   if (backend == NULL || backend->write_file == NULL) {
     fprintf(stderr, "backend unavailable: %s\n", backend_name);

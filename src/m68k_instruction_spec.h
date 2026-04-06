@@ -21,6 +21,7 @@ typedef struct {
   size_t patch_value_count;
   M68kAsmOperandValue operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS];
   char operand_label_names[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
+  int32_t operand_label_addends[M68K_INSTRUCTION_SPEC_MAX_OPERANDS];
 } InstructionSpec;
 
 size_t m68k_instruction_spec_assemble_bytes(const InstructionSpec *instruction, unsigned char *out_bytes, size_t max_bytes);

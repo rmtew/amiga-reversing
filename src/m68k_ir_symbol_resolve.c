@@ -45,6 +45,7 @@ int m68k_ir_apply_symbol_refs(const M68kIrResolveContext *context, M68kInstructi
       }
       symbol_value = 0;
     }
+    symbol_value = (uint32_t)((int32_t)symbol_value + instruction->operands[operand_index].symbol_ref.addend);
     if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7 &&
         (operand->ea_reg == 2 || operand->ea_reg == 3)) {
       operand->value = (uint32_t)(symbol_value - (instruction_offset +

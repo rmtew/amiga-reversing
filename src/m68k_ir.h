@@ -123,6 +123,8 @@ typedef struct M68kSectionIR {
 
 typedef struct M68kSourceFileIR {
   M68kPlatformFileKind file_kind;
+  uint8_t has_atari_st_program_flags;
+  uint32_t atari_st_program_flags;
   M68kSectionIR *sections;
   size_t section_count;
   size_t section_capacity;
@@ -160,7 +162,8 @@ typedef struct M68kCfgEdgeIR {
 
 typedef enum M68kViolationKind {
   M68K_VIOLATION_CPU_POLICY = 1,
-  M68K_VIOLATION_DECODE_FAILED_REACHABLE = 2
+  M68K_VIOLATION_DECODE_FAILED_REACHABLE = 2,
+  M68K_VIOLATION_INVALID_INTERIOR_REFERENCE = 3
 } M68kViolationKind;
 
 typedef struct M68kViolationIR {

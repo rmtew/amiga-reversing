@@ -290,7 +290,7 @@ static int decode_extensions(const M68kAsmFormDef *form, const uint8_t *data, si
         if ((operand->ea_mode == 5U) || (operand->ea_mode == 7U && operand->ea_reg == 0U) ||
           (operand->ea_mode == 7U && operand->ea_reg == 2U)) {
           if (offset + 2U > size) return -1;
-          operand->value = (uint32_t)read_u16be(data + offset);
+          operand->value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
           offset += 2U;
         }
         break;
@@ -500,7 +500,9 @@ static int decode_operands(const M68kAsmFormDef *form, const uint16_t *field_val
           if (operand->kind == M68K_ASM_OPERAND_LABEL && patch->field_kind == M68K_ASM_FIELD_DISPLACEMENT_8) {
             if ((uint8_t)value != form->branch_word_signal &&
               (uint8_t)value != form->branch_long_signal) operand->value = m68k_sign_extend32((uint32_t)(value & 0xFFU), 8U);
-          } else if (operand->kind == M68K_ASM_OPERAND_LABEL && patch->field_kind == M68K_ASM_FIELD_DISPLACEMENT_16) {
+          } else if (patch->field_kind == M68K_ASM_FIELD_DISPLACEMENT_8) {
+            operand->value = m68k_sign_extend32((uint32_t)(value & 0xFFU), 8U);
+          } else if (patch->field_kind == M68K_ASM_FIELD_DISPLACEMENT_16) {
             operand->value = m68k_sign_extend32((uint32_t)value, 16U);
           } else if (operand->kind == M68K_ASM_OPERAND_IMM && width == 3U &&
             g_m68k_disasm_inline_zero_means_eight[form - g_m68k_disasm_forms] != 0U && value == 0U) {

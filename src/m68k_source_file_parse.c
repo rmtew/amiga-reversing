@@ -290,6 +290,24 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path,
       stmt->section_index = current_section_index;
       break;
     }
+    if (_stricmp(token0, "COMMENT") == 0) {
+      const char *head_prefix = "HEAD=";
+      size_t head_prefix_len = strlen(head_prefix);
+      char *head_text = m68k_trim_in_place(rest);
+      uint32_t value = 0;
+      if (_strnicmp(head_text, head_prefix, head_prefix_len) == 0) {
+        head_text = m68k_trim_in_place(head_text + head_prefix_len);
+        if (!parse_constant_expression_value(source, head_text, &value)) {
+          fclose(input);
+          m68k_platform_set_errorf(out_error, out_error_size, "bad COMMENT HEAD directive at line %u",
+                   (unsigned)line_number);
+          return 0;
+        }
+        source->has_atari_st_program_flags = 1;
+        source->atari_st_program_flags = value;
+        continue;
+      }
+    }
     if (current_section_index == (size_t)-1) {
       fclose(input);
       m68k_platform_set_error(out_error, out_error_size, "source statement before section");

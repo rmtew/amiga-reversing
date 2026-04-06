@@ -298,23 +298,31 @@ static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_us
 
 static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t *inout_used,
     const M68kOperandIR *operand) {
+  char name_with_addend[96];
+  const char *name = NULL;
   if (operand == NULL || !operand->symbol_ref.has_name) return -1;
+  name = operand->symbol_ref.name;
+  if (operand->symbol_ref.addend != 0) {
+    snprintf(name_with_addend, sizeof(name_with_addend), "%s%+d", operand->symbol_ref.name,
+      (int)operand->symbol_ref.addend);
+    name = name_with_addend;
+  }
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 4)
-    return append_format(out_text, out_text_size, inout_used, "#%s", operand->symbol_ref.name);
+    return append_format(out_text, out_text_size, inout_used, "#%s", name);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 0)
-    return append_format(out_text, out_text_size, inout_used, "%s.w", operand->symbol_ref.name);
+    return append_format(out_text, out_text_size, inout_used, "%s.w", name);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 1)
-    return append_format(out_text, out_text_size, inout_used, "%s.l", operand->symbol_ref.name);
+    return append_format(out_text, out_text_size, inout_used, "%s.l", name);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2)
-    return append_format(out_text, out_text_size, inout_used, "%s(pc)", operand->symbol_ref.name);
+    return append_format(out_text, out_text_size, inout_used, "%s(pc)", name);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 3) {
-    if (append_format(out_text, out_text_size, inout_used, "%s(pc,", operand->symbol_ref.name) != 0)
+    if (append_format(out_text, out_text_size, inout_used, "%s(pc,", name) != 0)
       return -1;
     if (append_index_register_text(out_text, out_text_size, inout_used, &operand->value) != 0)
       return -1;
     return append_text(out_text, out_text_size, inout_used, ")");
   }
-  return append_text(out_text, out_text_size, inout_used, operand->symbol_ref.name);
+  return append_text(out_text, out_text_size, inout_used, name);
 }
 
 static int operand_has_renderable_symbol_name(const M68kOperandIR *operand, const M68kRenderPolicy *policy) {

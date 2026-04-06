@@ -4,6 +4,7 @@
 #include "m68k_ir_codec.h"
 #include "m68k_object.h"
 #include "m68k_source_ir_render.h"
+#include "platform_atari_st.h"
 #include "platform_common.h"
 
 #include <stdarg.h>
@@ -824,14 +825,6 @@ static int build_generated_label_kinds(const M68kSection *section, const M68kAna
           operand->kind != M68K_ASM_OPERAND_POSTINC && operand->kind != M68K_ASM_OPERAND_ABSL &&
           operand->kind != M68K_ASM_OPERAND_BF_EA)
         continue;
-      if (operand->value.ea_mode == 7U && (operand->value.ea_reg == 2U || operand->value.ea_reg == 3U)) {
-        uint32_t target = (uint32_t)((int32_t)offset + (int32_t)instruction.byte_count + (int32_t)operand->value.value);
-        if (target >= section->data_size)
-          continue;
-        update_generated_label_kind(label_kinds, section->data_size, target, GENERATED_LABEL_DAT);
-        if (label_flags != NULL) label_flags[target] = 1U;
-        continue;
-      }
       if (operand->value.ea_mode == 7U && operand->value.ea_reg == 1U) {
         uint32_t target = operand->value.value;
         GeneratedLabelKind kind = GENERATED_LABEL_DAT;
@@ -841,6 +834,54 @@ static int build_generated_label_kinds(const M68kSection *section, const M68kAna
         update_generated_label_kind(label_kinds, section->data_size, target, kind);
         if (label_flags != NULL) label_flags[target] = 1U;
       }
+    }
+  }
+  return 0;
+}
+
+static uint32_t find_enclosing_code_start(const M68kSectionAnalysisIR *section_analysis, uint32_t offset);
+
+static int scan_interior_pc_relative_refs(const M68kSection *section, const M68kAnalysisPolicy *analysis_policy,
+    M68kAnalysisFindings *findings, M68kSectionAnalysisIR *section_analysis, GeneratedLabelKind *label_kinds,
+    uint8_t *label_flags) {
+  size_t offset;
+  if (section == NULL || section_analysis == NULL || label_kinds == NULL || label_flags == NULL ||
+      section_analysis->certain_code_start == NULL)
+    return 0;
+  for (offset = 0; offset < section->data_size; ++offset) {
+    M68kInstructionIR instruction;
+    char error[128];
+    size_t operand_index;
+    if (section_analysis->certain_code_start[offset] == 0U) continue;
+    if (decode_instruction_with_policy(section->data + offset, section->data_size - offset, (uint32_t)offset,
+          analysis_policy, findings, &instruction, error, sizeof(error)) <= 0)
+      continue;
+    for (operand_index = 0; operand_index < instruction.operand_count; ++operand_index) {
+      const M68kOperandIR *operand = &instruction.operands[operand_index];
+      uint32_t target;
+      uint32_t base;
+      char message[128];
+      if (!(operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_IND ||
+            operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_ABSL ||
+            operand->kind == M68K_ASM_OPERAND_BF_EA))
+        continue;
+      if (!(operand->value.ea_mode == 7U && (operand->value.ea_reg == 2U || operand->value.ea_reg == 3U)))
+        continue;
+      target = (uint32_t)((int32_t)offset + (int32_t)instruction.byte_count + (int32_t)operand->value.value);
+      base = find_enclosing_code_start(section_analysis, target);
+      if (base == UINT32_MAX || base == target) continue;
+      label_flags[base] = 1U;
+      snprintf(message, sizeof(message), "invalid overlap: pc-relative reference targets +%u into instruction at $%04X",
+        (unsigned)(target - base), (unsigned)base);
+      if (m68k_ir_section_analysis_add_violation(section_analysis, (uint32_t)offset,
+            M68K_VIOLATION_INVALID_INTERIOR_REFERENCE, message) != 0)
+        return -1;
+      snprintf(message, sizeof(message),
+        "invalid overlap: instruction bytes at +%u are referenced by reachable pc-relative operand",
+        (unsigned)(target - base));
+      if (m68k_ir_section_analysis_add_violation(section_analysis, base, M68K_VIOLATION_INVALID_INTERIOR_REFERENCE,
+            message) != 0)
+        return -1;
     }
   }
   return 0;
@@ -1160,6 +1201,45 @@ static int section_has_any_label(const M68kSectionAnalysisIR *section_analysis, 
   return generated_label_flags != NULL && offset < generated_label_count && generated_label_flags[offset] != 0U;
 }
 
+static uint32_t find_enclosing_code_start(const M68kSectionAnalysisIR *section_analysis, uint32_t offset) {
+  uint32_t cursor;
+  if (section_analysis == NULL || section_analysis->certain_code_start == NULL || section_analysis->certain_code_byte == NULL ||
+      offset >= section_analysis->certain_code_size || section_analysis->certain_code_byte[offset] == 0U)
+    return UINT32_MAX;
+  cursor = offset;
+  while (cursor > 0U && section_analysis->certain_code_start[cursor] == 0U &&
+      section_analysis->certain_code_byte[cursor - 1U] != 0U)
+    --cursor;
+  return section_analysis->certain_code_start[cursor] != 0U ? cursor : UINT32_MAX;
+}
+
+static int append_statement_violation_comment(char *buf, size_t buf_size, const char *message) {
+  size_t used;
+  if (buf == NULL || buf_size == 0U || message == NULL || message[0] == '\0') return 0;
+  used = strlen(buf);
+  if (used != 0U) {
+    if (used + 3U >= buf_size) return 0;
+    snprintf(buf + used, buf_size - used, " | ");
+    used = strlen(buf);
+  }
+  if (used + strlen(message) + 1U > buf_size) return 0;
+  snprintf(buf + used, buf_size - used, "%s", message);
+  return 1;
+}
+
+static void collect_section_violation_comments(const M68kSectionAnalysisIR *section_analysis, uint32_t offset, char *buf,
+    size_t buf_size) {
+  size_t index;
+  if (buf == NULL || buf_size == 0U) return;
+  buf[0] = '\0';
+  if (section_analysis == NULL) return;
+  for (index = 0; index < section_analysis->violation_count; ++index) {
+    const M68kViolationIR *violation = &section_analysis->violations[index];
+    if (violation->offset != offset || violation->message == NULL || violation->message[0] == '\0') continue;
+    append_statement_violation_comment(buf, buf_size, violation->message);
+  }
+}
+
 static GeneratedLabelKind effective_label_kind(uint32_t offset, GeneratedLabelKind kind,
     const M68kSectionAnalysisIR *section_analysis) {
   if (section_analysis != NULL && section_analysis->certain_code_start != NULL &&
@@ -1420,12 +1500,13 @@ static void set_generated_label_name(M68kSymbolRefIR *symbol_ref, uint32_t targe
   if (symbol_ref == NULL) return;
   symbol_ref->has_name = 1;
   symbol_ref->name_is_generated = 1U;
+  symbol_ref->addend = 0;
   set_generated_name(symbol_ref->name, sizeof(symbol_ref->name), target, kind, presentation);
 }
 
 static void annotate_instruction_labels(M68kInstructionIR *instruction, uint32_t offset,
-    const M68kSectionAnalysisIR *section_analysis, const uint8_t *generated_label_flags, size_t generated_label_count,
-    const GeneratedLabelKind *label_kinds, size_t label_kind_count, const M68kPresentationPolicy *presentation) {
+    M68kSectionAnalysisIR *section_analysis, uint8_t *generated_label_flags, size_t generated_label_count,
+    GeneratedLabelKind *label_kinds, size_t label_kind_count, const M68kPresentationPolicy *presentation) {
   size_t operand_index;
   uint32_t pc_base;
   uint32_t label_base;
@@ -1449,11 +1530,13 @@ static void annotate_instruction_labels(M68kInstructionIR *instruction, uint32_t
         operand->kind == M68K_ASM_OPERAND_BF_EA) {
       if (operand->value.ea_mode == 7 && (operand->value.ea_reg == 2 || operand->value.ea_reg == 3)) {
         uint32_t target = (uint32_t)((int32_t)pc_base + (int32_t)operand->value.value);
-        if (section_has_any_label(section_analysis, generated_label_flags, generated_label_count, target)) {
-          GeneratedLabelKind kind = (label_kinds != NULL && target < label_kind_count) ? label_kinds[target]
-            : GENERATED_LABEL_LOC;
-          set_generated_label_name(&operand->symbol_ref, target, effective_label_kind(target, kind, section_analysis),
+        uint32_t base = find_enclosing_code_start(section_analysis, target);
+        if (base != UINT32_MAX && base != target) {
+          GeneratedLabelKind kind = GENERATED_LABEL_LOC;
+          if (label_kinds != NULL && base < label_kind_count) kind = label_kinds[base];
+          set_generated_label_name(&operand->symbol_ref, base, effective_label_kind(base, kind, section_analysis),
             presentation);
+          operand->symbol_ref.addend = (int32_t)(target - base);
         }
       } else if (operand->value.ea_mode == 7 && (operand->value.ea_reg == 1 || (operand->value.ea_reg == 4 &&
           mnemonic_equals(instruction, "movea") && operand_index == 0U))) {
@@ -1473,7 +1556,7 @@ static void annotate_instruction_labels(M68kInstructionIR *instruction, uint32_t
 }
 
 static int build_section_ir(const M68kObject *object, const M68kSection *section,
-    const M68kSectionAnalysisIR *section_analysis,
+    M68kSectionAnalysisIR *section_analysis,
     const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings, const M68kRenderPolicy *policy,
     M68kSectionIR *out_section_ir, char *out_error, size_t out_error_size) {
   GeneratedLabelKind *label_kinds = NULL;
@@ -1501,6 +1584,12 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
       return -1;
     }
     mark_data_fixup_labels(object, section_analysis, label_kinds, generated_label_flags);
+    if (scan_interior_pc_relative_refs(section, analysis_policy, findings, section_analysis, label_kinds,
+          generated_label_flags) != 0) {
+      free(label_kinds);
+      free(generated_label_flags);
+      return -1;
+    }
   }
   while (offset < section->data_size) {
     M68kInstructionIR instruction;
@@ -1516,13 +1605,17 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
         section_analysis->certain_code_start != NULL && section_analysis->certain_code_start[offset] != 0U) {
       int decode_result = 0;
       char violation[128];
+      char cpu_violation[128];
       violation[0] = '\0';
+      cpu_violation[0] = '\0';
       decode_result = decode_instruction_with_policy( section->data + offset, section->data_size - offset,
           (uint32_t)offset, analysis_policy, NULL, &instruction, error, sizeof(error));
       if (decode_result > 0 && instruction.byte_count != 0U) {
-        format_cpu_violation_comment(violation, sizeof(violation), &instruction, analysis_policy);
         annotate_instruction_labels( &instruction, (uint32_t)offset, section_analysis, generated_label_flags,
           section->data_size, label_kinds, section->data_size, policy != NULL ? &policy->presentation : NULL);
+        collect_section_violation_comments(section_analysis, (uint32_t)offset, violation, sizeof(violation));
+        if (format_cpu_violation_comment(cpu_violation, sizeof(cpu_violation), &instruction, analysis_policy))
+          append_statement_violation_comment(violation, sizeof(violation), cpu_violation);
         if (append_instruction_statement( out_section_ir, (uint32_t)offset, &instruction, violation[0] != '\0' ? violation : NULL) != 0) {
           free(label_kinds);
           free(generated_label_flags);
@@ -1594,6 +1687,13 @@ int platform_file_to_ir_with_policy(const char *backend_name, const char *path, 
     return -1;
   }
   out_source_file->file_kind = object.platform_file_kind;
+  if (strcmp(backend->name, "atari-st") == 0) {
+    uint32_t program_flags = 0;
+    if (m68k_atari_st_read_program_flags(path, &program_flags) == 0) {
+      out_source_file->has_atari_st_program_flags = 1U;
+      out_source_file->atari_st_program_flags = program_flags;
+    }
+  }
   for (section_index = 0; section_index < object.section_count; ++section_index) {
     M68kSectionAnalysisIR section_analysis;
     int append_result;

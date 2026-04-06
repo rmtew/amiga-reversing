@@ -73,6 +73,8 @@ typedef struct AsmSourceFile {
     char include_dir[512];
     uint8_t target_cpu;
     int enable_vasm_compat_rewrites;
+    int has_atari_st_program_flags;
+    uint32_t atari_st_program_flags;
 } AsmSourceFile;
 
 int m68k_source_model_find_symbol_index(const AsmSourceFile *source, const char *name, size_t *out_index);

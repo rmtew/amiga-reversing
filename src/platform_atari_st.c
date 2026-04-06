@@ -1,4 +1,5 @@
 #include "m68k_backend.h"
+#include "platform_atari_st.h"
 #include "platform_binary_io.h"
 #include "platform_common.h"
 #include "generated/atari_st_prg_file_runtime.h"
@@ -74,6 +75,8 @@ static int add_named_section(M68kObject *object, const char *name, AtariStPrgFil
 static int add_reloc_fixup(M68kObject *object, uint32_t image_offset, uint32_t text_size, uint32_t data_size,
     const AtariStPrgFileRelocationKind *reloc_kind, size_t text_index, size_t data_index) {
     M68kFixup fixup;
+    uint32_t target_image_offset = 0;
+    const M68kSection *target_section = NULL;
     memset(&fixup, 0, sizeof(fixup));
     if (image_offset >= text_size + data_size) return -1;
     if (image_offset < text_size) {
@@ -97,6 +100,24 @@ static int add_reloc_fixup(M68kObject *object, uint32_t image_offset, uint32_t t
         break;
     default:
         return -1;
+    }
+    if (fixup.width == M68K_FIXUP_WIDTH_32) {
+        if (fixup.section_index == text_index) target_section = &object->sections[text_index];
+        else target_section = &object->sections[data_index];
+        if (fixup.offset + 4U > target_section->data_size) return -1;
+        target_image_offset = ((uint32_t)target_section->data[fixup.offset] << 24)
+            | ((uint32_t)target_section->data[fixup.offset + 1U] << 16)
+            | ((uint32_t)target_section->data[fixup.offset + 2U] << 8)
+            | (uint32_t)target_section->data[fixup.offset + 3U];
+        if (target_image_offset < text_size) {
+            fixup.has_target_section = 1;
+            fixup.target_section_index = text_index;
+            fixup.addend = (int32_t)target_image_offset;
+        } else if (target_image_offset < text_size + data_size) {
+            fixup.has_target_section = 1;
+            fixup.target_section_index = data_index;
+            fixup.addend = (int32_t)(target_image_offset - text_size);
+        }
     }
     return m68k_object_add_fixup(object, &fixup, NULL);
 }
@@ -147,6 +168,18 @@ static void free_platform_data(void *payload) {
     if (platform_data == NULL) return;
     free(platform_data->symbol_table_data);
     free(platform_data);
+}
+
+static AtariStPrgPlatformData *ensure_platform_data(M68kObject *object) {
+    AtariStPrgPlatformData *platform_data;
+    if (object == NULL) return NULL;
+    platform_data = (AtariStPrgPlatformData *)object->platform_data;
+    if (platform_data != NULL) return platform_data;
+    platform_data = (AtariStPrgPlatformData *)calloc(1U, sizeof(*platform_data));
+    if (platform_data == NULL) return NULL;
+    object->platform_data = platform_data;
+    object->platform_data_free = free_platform_data;
+    return platform_data;
 }
 
 static const M68kSection *find_first_section(const M68kObject *object, M68kSectionKind kind, size_t *out_index) {
@@ -416,6 +449,30 @@ static int atari_st_read_file(const char *path, M68kObject *out_object, char *er
     result = atari_st_read_buffer(buffer, file_size, out_object, error_buf, error_buf_size);
     free(buffer);
     return result;
+}
+
+int m68k_atari_st_set_program_flags(M68kObject *object, uint32_t program_flags) {
+    AtariStPrgPlatformData *platform_data = ensure_platform_data(object);
+    if (platform_data == NULL) return -1;
+    platform_data->program_flags = program_flags;
+    return 0;
+}
+
+int m68k_atari_st_read_program_flags(const char *path, uint32_t *out_program_flags) {
+    FILE *fp;
+    uint8_t header[28];
+    if (path == NULL || out_program_flags == NULL) return -1;
+    fp = fopen(path, "rb");
+    if (fp == NULL) return -1;
+    if (fread(header, 1, sizeof(header), fp) != sizeof(header)) {
+        fclose(fp);
+        return -1;
+    }
+    fclose(fp);
+    if ((((uint16_t)header[0] << 8) | (uint16_t)header[1]) != ATARI_ST_PRG_FILE_MAGIC_PRG) return -1;
+    *out_program_flags = ((uint32_t)header[22] << 24) | ((uint32_t)header[23] << 16)
+        | ((uint32_t)header[24] << 8) | (uint32_t)header[25];
+    return 0;
 }
 
 static int atari_st_write_file(const char *path, const M68kObject *object, char *error_buf, size_t error_buf_size) {

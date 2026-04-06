@@ -65,6 +65,7 @@ void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR 
     if (spec->operand_label_names[operand_index][0] != '\0') {
       operand->symbol_ref.has_name = 1;
       operand->symbol_ref.name_is_generated = 0U;
+      operand->symbol_ref.addend = spec->operand_label_addends[operand_index];
       snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s",
         spec->operand_label_names[operand_index]);
       if (operand->kind == M68K_ASM_OPERAND_LABEL) {
@@ -93,6 +94,7 @@ void m68k_instruction_ir_to_spec(const M68kInstructionIR *instruction, Instructi
     if (instruction->operands[operand_index].symbol_ref.has_name) {
       snprintf(out_spec->operand_label_names[operand_index], sizeof(out_spec->operand_label_names[operand_index]), "%s",
         instruction->operands[operand_index].symbol_ref.name);
+      out_spec->operand_label_addends[operand_index] = instruction->operands[operand_index].symbol_ref.addend;
     }
   }
 }

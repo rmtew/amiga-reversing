@@ -50,6 +50,8 @@ class M68kAnalysisPolicy(ctypes.Structure):
 class M68kSourceFileIR(ctypes.Structure):
     _fields_ = [
         ("file_kind", ctypes.c_int),
+        ("has_atari_st_program_flags", ctypes.c_uint8),
+        ("atari_st_program_flags", ctypes.c_uint32),
         ("sections", ctypes.c_void_p),
         ("section_count", ctypes.c_size_t),
         ("section_capacity", ctypes.c_size_t),
@@ -176,6 +178,97 @@ class IrPolicyDllTests(unittest.TestCase):
         )
         self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
         self.assertEqual(text_buf.value.decode("utf-8"), "movem.l d1-d2/a0-a2,-(a7)")
+
+    def test_source_ir_render_preserves_mid_instruction_pc_relative_overlap_as_label_plus_offset(self) -> None:
+        library = _asm_library()
+        error_buf = ctypes.create_string_buffer(256)
+        rendered_ptr = ctypes.c_void_p()
+        source_file = M68kSourceFileIR()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.s"
+            path.write_text(
+                "SECTION code,code\n"
+                "start:\n"
+                "    pea.l code+2(pc)\n"
+                "code:\n"
+                "    lea.l $0010(a1),a0\n"
+                "    rts\n",
+                encoding="utf-8",
+            )
+            policy = _default_policy()
+            result = library.m68k_source_ir_parse_file(
+                str(path).encode("utf-8"),
+                str(AMIGA_INCLUDE_DIR).encode("utf-8"),
+                0,
+                0,
+                ctypes.byref(source_file),
+                error_buf,
+                len(error_buf),
+            )
+            self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+            try:
+                result = library.m68k_source_ir_render_with_policy(
+                    ctypes.byref(source_file),
+                    ctypes.byref(policy),
+                    ctypes.byref(rendered_ptr),
+                    error_buf,
+                    len(error_buf),
+                )
+                self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+                try:
+                    text = ctypes.cast(rendered_ptr, ctypes.c_char_p).value.decode("utf-8")
+                finally:
+                    library.m68k_free_text(rendered_ptr)
+            finally:
+                library.m68k_source_ir_free(ctypes.byref(source_file))
+
+        self.assertIn("pea code+2(pc)", text)
+        self.assertIn("code:", text)
+
+    def test_source_ir_render_emits_comment_head_metadata(self) -> None:
+        library = _asm_library()
+        error_buf = ctypes.create_string_buffer(256)
+        rendered_ptr = ctypes.c_void_p()
+        source_file = M68kSourceFileIR()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.s"
+            path.write_text(
+                "COMMENT HEAD=$7\n"
+                "SECTION code,code\n"
+                "start:\n"
+                "    rts\n",
+                encoding="utf-8",
+            )
+            policy = _default_policy()
+            result = library.m68k_source_ir_parse_file(
+                str(path).encode("utf-8"),
+                str(AMIGA_INCLUDE_DIR).encode("utf-8"),
+                0,
+                0,
+                ctypes.byref(source_file),
+                error_buf,
+                len(error_buf),
+            )
+            self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+            self.assertEqual(source_file.has_atari_st_program_flags, 1)
+            self.assertEqual(source_file.atari_st_program_flags, 7)
+            try:
+                result = library.m68k_source_ir_render_with_policy(
+                    ctypes.byref(source_file),
+                    ctypes.byref(policy),
+                    ctypes.byref(rendered_ptr),
+                    error_buf,
+                    len(error_buf),
+                )
+                self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+                try:
+                    text = ctypes.cast(rendered_ptr, ctypes.c_char_p).value.decode("utf-8")
+                finally:
+                    library.m68k_free_text(rendered_ptr)
+            finally:
+                library.m68k_source_ir_free(ctypes.byref(source_file))
+
+        self.assertIn("COMMENT HEAD=$7", text)
 
     def test_platform_file_analysis_reports_cfg_for_certain_code(self) -> None:
         library = _file_library()

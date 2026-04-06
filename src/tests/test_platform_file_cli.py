@@ -146,6 +146,45 @@ class PlatformFileCliTests(unittest.TestCase):
             self.assertEqual(genam.returncode, 0, genam.stderr)
             self.assertIn("bra.s", genam.stdout)
 
+    def test_disassemble_file_emits_overlap_violation_comments(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "overlap.prg"
+            path.write_bytes(make_synthetic_atari_prg(b"\x48\x7A\x00\x02\x41\xE9\x00\x10\x4E\x75", b"", 0))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("pea.l loc_0004+2(pc)", result.stdout)
+            self.assertIn(
+                " ; VIOLATION: invalid overlap: pc-relative reference targets +2 into instruction at $0004",
+                result.stdout,
+            )
+            self.assertIn(
+                "lea.l $0010(a1),a0 ; VIOLATION: invalid overlap: instruction bytes at +2 are referenced by reachable pc-relative operand",
+                result.stdout,
+            )
+
+    def test_disassemble_file_emits_atari_comment_head_metadata(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.prg"
+            path.write_bytes(make_synthetic_atari_prg(b"\x4E\x75", b"", 0, program_flags=7))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("COMMENT HEAD=$7", result.stdout)
+            self.assertNotIn("PRGFLAGS", result.stdout)
+
     def test_render_source_file_preserves_source_names_when_generated_names_are_disabled(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
             path = Path(tmp) / "sample.s"

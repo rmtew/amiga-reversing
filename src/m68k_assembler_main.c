@@ -164,14 +164,14 @@ int main(int argc, char **argv) {
   fprintf(stderr, "   or: %s assemble-line --cpu <68000|68010|68020|68030|68040|68060> \"<asm>\"\n", argv[0]);
   fprintf(stderr, "   or: %s assemble-file <input.s> <out.bin>\n", argv[0]);
   fprintf(stderr, "   or: %s assemble-file --cpu <68000|68010|68020|68030|68040|68060> <input.s> <out.bin>\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-platform-file --backend amiga-hunk --include-dir <dir> <input.s> <out>\n",
+  fprintf(stderr, "   or: %s assemble-platform-file --backend <amiga-hunk|atari-st> --include-dir <dir> <input.s> <out>\n",
     argv[0]);
-  fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060> --backend amiga-hunk "
+  fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060> --backend <amiga-hunk|atari-st> "
     "--include-dir <dir> <input.s> <out>\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-platform-file --syntax-compat vasm --backend amiga-hunk --include-dir <dir> "
+  fprintf(stderr, "   or: %s assemble-platform-file --syntax-compat vasm --backend <amiga-hunk|atari-st> --include-dir <dir> "
     "<input.s> <out>\n", argv[0]);
   fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060> --syntax-compat vasm "
-    "--backend amiga-hunk --include-dir <dir> <input.s> <out>\n", argv[0]);
+    "--backend <amiga-hunk|atari-st> --include-dir <dir> <input.s> <out>\n", argv[0]);
   fprintf(stderr, "   or: %s render-source-file --include-dir <dir> <input.s>\n", argv[0]);
   fprintf(stderr, "   or: %s render-source-file [--cpu <68000|68010|68020|68030|68040|68060>] [--syntax "
     "canonical|genam|vasm]\n", argv[0]);

@@ -357,10 +357,6 @@ int m68k_source_file_emit_object(const AsmSourceFile *source,
   }
   for (index = 0; index < out_object->section_count; ++index) {
     M68kSection *section = &out_object->sections[index];
-    while ((section_buffers[index].size & 3U) != 0U) {
-      if (!byte_buffer_append_zero(&section_buffers[index], 1U))
-        return 0;
-    }
     free(section->data);
     section->data = section_buffers[index].data;
     section->data_size = (uint32_t)section_buffers[index].size;
@@ -457,6 +453,9 @@ int m68k_source_file_build_ir(const AsmSourceFile *source,
   }
   m68k_ir_source_file_init(out_source_file);
   out_source_file->file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  out_source_file->has_atari_st_program_flags =
+      (uint8_t)(source->has_atari_st_program_flags != 0);
+  out_source_file->atari_st_program_flags = source->atari_st_program_flags;
   for (stmt_index = 0; stmt_index < source->statement_count; ++stmt_index) {
     const AsmSourceStmt *stmt = &source->statements[stmt_index];
     if (stmt->section_index != (size_t)-1 &&

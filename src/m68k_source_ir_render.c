@@ -128,6 +128,10 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file,
     m68k_render_policy_init_default(&default_policy);
     active_policy = &default_policy;
   }
+  if (source_file->has_atari_st_program_flags != 0U &&
+      json_builder_appendf(&builder, "    COMMENT HEAD=$%x\n",
+                           (unsigned)source_file->atari_st_program_flags) != 0)
+    goto oom;
   for (section_index = 0; section_index < source_file->section_count;
        ++section_index) {
     const M68kSectionIR *section = &source_file->sections[section_index];
