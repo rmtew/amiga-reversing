@@ -1,9 +1,9 @@
 {
-  "benchmark_version": 1,
+  "benchmark_version": 2,
   "build": {
     "ok": true,
     "returncode": 0,
-    "seconds": 3.282
+    "seconds": 3.837
   },
   "corpus": {
     "by_cpu": {
@@ -32,30 +32,245 @@
         "mnemonics": 122
       }
     },
+    "seconds": 3.341,
     "total_cpu_qualified_cases": 50846,
     "unique_case_ids": 10933
+  },
+  "explicit": {
+    "errors": 0,
+    "expected_failures": 0,
+    "failures": 0,
+    "ok": true,
+    "seconds": 4.392,
+    "skipped": 0,
+    "tests_run": 58,
+    "timings": {
+      "runs": [
+        {
+          "name": "src.tests.test_c_style",
+          "ok": true,
+          "seconds": 0.472,
+          "tests_run": 19
+        },
+        {
+          "name": "src.tests.test_c99_assembler_codegen",
+          "ok": true,
+          "seconds": 0.29,
+          "tests_run": 13
+        },
+        {
+          "name": "src.tests.test_generate_c99_assembler_subset",
+          "ok": true,
+          "seconds": 0.407,
+          "tests_run": 3
+        },
+        {
+          "name": "src.tests.test_generate_c99_disassembler_subset",
+          "ok": true,
+          "seconds": 2.084,
+          "tests_run": 4
+        },
+        {
+          "name": "src.tests.test_generate_c99_simulator_subset",
+          "ok": true,
+          "seconds": 0.449,
+          "tests_run": 9
+        },
+        {
+          "name": "src.tests.test_platform_format_codegen",
+          "ok": true,
+          "seconds": 0.466,
+          "tests_run": 6
+        },
+        {
+          "name": "src.tests.test_static_m68k_runtime",
+          "ok": true,
+          "seconds": 0.224,
+          "tests_run": 4
+        }
+      ]
+    },
+    "unexpected_successes": 0
   },
   "integration": {
     "errors": 0,
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 4.739,
-    "skipped": 0,
-    "tests_run": 10,
+    "seconds": 16.059,
+    "skipped": 1,
+    "tests_run": 108,
+    "timings": {
+      "runs": [
+        {
+          "name": "src.tests_integration.test_c99_assembler_corpus_integration",
+          "ok": true,
+          "seconds": 1.067,
+          "tests_run": 9
+        },
+        {
+          "name": "src.tests_integration.test_c99_disassembler_corpus_integration",
+          "ok": true,
+          "seconds": 2.643,
+          "tests_run": 8
+        },
+        {
+          "name": "src.tests_integration.test_ir_policy_dll_integration",
+          "ok": true,
+          "seconds": 0.423,
+          "tests_run": 7
+        },
+        {
+          "name": "src.tests_integration.test_m68k_simulator_analysis_integration",
+          "ok": true,
+          "seconds": 0.808,
+          "tests_run": 27
+        },
+        {
+          "name": "src.tests_integration.test_m68k_simulator_oracle_integration",
+          "ok": true,
+          "seconds": 1.574,
+          "tests_run": 7
+        },
+        {
+          "name": "src.tests_integration.test_platform_backends_integration",
+          "ok": true,
+          "seconds": 4.742,
+          "tests_run": 4
+        },
+        {
+          "name": "src.tests_integration.test_platform_backends_integration_wrapper",
+          "ok": true,
+          "seconds": 1.917,
+          "tests_run": 13
+        },
+        {
+          "name": "src.tests_integration.test_platform_disk_cli_integration",
+          "ok": true,
+          "seconds": 0.294,
+          "tests_run": 4
+        },
+        {
+          "name": "src.tests_integration.test_platform_file_cli_integration",
+          "ok": true,
+          "seconds": 0.971,
+          "tests_run": 17
+        },
+        {
+          "name": "src.tests_integration.test_platform_file_manifest_integration",
+          "ok": true,
+          "seconds": 0.389,
+          "tests_run": 6
+        },
+        {
+          "name": "src.tests_integration.test_platform_manifest_integration",
+          "ok": true,
+          "seconds": 0.629,
+          "tests_run": 3
+        },
+        {
+          "name": "src.tests_integration.test_vasm_mmu_oracle_integration",
+          "ok": true,
+          "seconds": 0.602,
+          "tests_run": 3
+        }
+      ]
+    },
     "unexpected_successes": 0
   },
   "status": "ok",
-  "timestamp": "2026-04-06T17:46:18+1200",
-  "total_seconds": 19.1,
+  "timestamp": "2026-04-09T10:31:10+1200",
+  "total_seconds": 36.056,
   "unit": {
     "errors": 0,
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 11.079,
-    "skipped": 4,
-    "tests_run": 122,
+    "seconds": 8.427,
+    "skipped": 0,
+    "tests_run": 78,
+    "timings": {
+      "runs": [
+        {
+          "name": "native_c",
+          "ok": true,
+          "seconds": 1.171,
+          "tests_run": 0
+        },
+        {
+          "name": "src.tests.test_c99_assembler_codegen",
+          "ok": true,
+          "seconds": 0.353,
+          "tests_run": 12
+        },
+        {
+          "name": "src.tests.test_c99_assembler_corpus",
+          "ok": true,
+          "seconds": 1.348,
+          "tests_run": 2
+        },
+        {
+          "name": "src.tests.test_c99_disassembler_corpus",
+          "ok": true,
+          "seconds": 0.335,
+          "tests_run": 3
+        },
+        {
+          "name": "src.tests.test_c_style",
+          "ok": true,
+          "seconds": 0.237,
+          "tests_run": 18
+        },
+        {
+          "name": "src.tests.test_generate_c99_assembler_subset",
+          "ok": true,
+          "seconds": 0.451,
+          "tests_run": 2
+        },
+        {
+          "name": "src.tests.test_generate_c99_disassembler_subset",
+          "ok": true,
+          "seconds": 2.384,
+          "tests_run": 3
+        },
+        {
+          "name": "src.tests.test_generate_c99_simulator_subset",
+          "ok": true,
+          "seconds": 0.348,
+          "tests_run": 8
+        },
+        {
+          "name": "src.tests.test_m68k_simulator_abstract",
+          "ok": true,
+          "seconds": 0.484,
+          "tests_run": 10
+        },
+        {
+          "name": "src.tests.test_m68k_simulator_oracle",
+          "ok": true,
+          "seconds": 0.552,
+          "tests_run": 4
+        },
+        {
+          "name": "src.tests.test_platform_amiga_disk",
+          "ok": true,
+          "seconds": 0.283,
+          "tests_run": 10
+        },
+        {
+          "name": "src.tests.test_platform_atari_st_disk",
+          "ok": true,
+          "seconds": 0.248,
+          "tests_run": 4
+        },
+        {
+          "name": "src.tests.test_platform_disk_lib",
+          "ok": true,
+          "seconds": 0.233,
+          "tests_run": 2
+        }
+      ]
+    },
     "unexpected_successes": 0
   }
 }

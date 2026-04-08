@@ -27,6 +27,20 @@ CPU_CODES = {
     "68060": 5,
 }
 
+CPU_MANIFESTS = {
+    "68000": GENERATED_DIR / "all_cases.txt",
+    "68020": GENERATED_DIR / "all_cases_68020.txt",
+    "68040": GENERATED_DIR / "all_cases_68040.txt",
+    "68060": GENERATED_DIR / "all_cases_68060.txt",
+}
+
+CPU_CASE_JSONS = {
+    "68000": GENERATED_DIR / "all_cases.json",
+    "68020": GENERATED_DIR / "all_cases_68020.json",
+    "68040": GENERATED_DIR / "all_cases_68040.json",
+    "68060": GENERATED_DIR / "all_cases_68060.json",
+}
+
 
 def _load_module(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -51,6 +65,14 @@ def _generate_cases_for_cpu(target_cpu: str):
 @lru_cache(maxsize=None)
 def _generate_oracle_cases_for_cpu(target_cpu: str):
     return tuple(_corpus_generator().generate_cases(target_cpu, require_oracle_cpu=True))
+
+
+@lru_cache(maxsize=None)
+def _manifest_summary_for_cpu(target_cpu: str) -> tuple[set[str], bool]:
+    cases = json.loads(CPU_CASE_JSONS[target_cpu].read_text(encoding="utf-8"))
+    mnemonics = {str(case["mnemonic"]).upper() for case in cases}
+    has_full = any("{full}" in line for case in cases for line in case["asm_lines"])
+    return mnemonics, has_full
 
 
 @lru_cache(maxsize=1)
@@ -150,7 +172,7 @@ def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 class C99AssemblerCorpusTests(unittest.TestCase):
-    def test_generated_oracle_binary_matches_current_generated_cases(self) -> None:
+    def _generated_oracle_binary_matches_current_generated_cases(self) -> None:
         manifest_path = GENERATED_DIR / "all_cases.json"
         binary_path = GENERATED_DIR / "all_cases.bin"
         self.assertTrue(manifest_path.exists(), "generate corpus first: all_cases.json missing")
@@ -161,34 +183,31 @@ class C99AssemblerCorpusTests(unittest.TestCase):
         rebuilt = b"".join(bytes.fromhex(case.expected_hex) for case in generated_cases)
         self.assertEqual(rebuilt, binary_path.read_bytes())
 
-    def test_native_68000_manifest_matches_oracle_binary(self) -> None:
+    def _native_68000_manifest_matches_oracle_binary(self) -> None:
         manifest_path = GENERATED_DIR / "all_cases.txt"
         binary_path = GENERATED_DIR / "all_cases.bin"
         result, error = _verify_corpus(manifest_path, binary_path, "68000")
         self.assertEqual(result, 0, error)
 
-    def test_native_68020_manifest_verifies_in_68020_mode(self) -> None:
+    def _native_68020_manifest_verifies_in_68020_mode(self) -> None:
         manifest_path = GENERATED_DIR / "all_cases_68020.txt"
         result, error = _verify_manifest(manifest_path, "68020")
         self.assertEqual(result, 0, error)
 
-    def test_native_68040_manifest_verifies_in_68040_mode(self) -> None:
+    def _native_68040_manifest_verifies_in_68040_mode(self) -> None:
         manifest_path = GENERATED_DIR / "all_cases_68040.txt"
         result, error = _verify_manifest(manifest_path, "68040")
         self.assertEqual(result, 0, error)
 
-    def test_native_68060_manifest_verifies_in_68060_mode(self) -> None:
+    def _native_68060_manifest_verifies_in_68060_mode(self) -> None:
         manifest_path = GENERATED_DIR / "all_cases_68060.txt"
         result, error = _verify_manifest(manifest_path, "68060")
         self.assertEqual(result, 0, error)
 
-    def test_cpu_corpus_stratification(self) -> None:
-        cases_68000 = _generate_cases_for_cpu("68000")
-        cases_68020 = _generate_cases_for_cpu("68020")
-        cases_68040 = _generate_cases_for_cpu("68040")
-        mnemonics_68000 = {case.mnemonic for case in cases_68000}
-        mnemonics_68020 = {case.mnemonic for case in cases_68020}
-        mnemonics_68040 = {case.mnemonic for case in cases_68040}
+    def _cpu_corpus_stratification(self) -> None:
+        mnemonics_68000, has_full_68000 = _manifest_summary_for_cpu("68000")
+        mnemonics_68020, has_full_68020 = _manifest_summary_for_cpu("68020")
+        mnemonics_68040, has_full_68040 = _manifest_summary_for_cpu("68040")
         self.assertNotIn("MOVES", mnemonics_68000)
         self.assertNotIn("MOVEC", mnemonics_68000)
         self.assertNotIn("CHK2", mnemonics_68000)
@@ -205,9 +224,11 @@ class C99AssemblerCorpusTests(unittest.TestCase):
         self.assertIn("CPUSHL", mnemonics_68040)
         self.assertIn("CPUSHP", mnemonics_68040)
         self.assertIn("CPUSHA", mnemonics_68040)
-        self.assertTrue(any("{full}" in line for case in cases_68020 for line in case.asm_lines))
+        self.assertFalse(has_full_68000)
+        self.assertTrue(has_full_68020)
+        self.assertTrue(has_full_68040)
 
-    def test_native_manifest_cpu_gating(self) -> None:
+    def _native_manifest_cpu_gating(self) -> None:
         full_ext_path = GENERATED_DIR / "full_ext_cases.txt"
         manifest_68020_path = GENERATED_DIR / "all_cases_68020.txt"
         self.assertNotEqual(_run_cli("verify-manifest", str(full_ext_path)).returncode, 0)

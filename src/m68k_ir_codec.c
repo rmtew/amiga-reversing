@@ -2,6 +2,7 @@
 
 #include "m68k_disassembler.h"
 #include "m68k_instruction_spec.h"
+#include "m68k_parse_util.h"
 #include "platform_common.h"
 
 #include <stdarg.h>
@@ -182,10 +183,12 @@ static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_us
   case 4:
     return append_format(out_text, out_text_size, inout_used, "-(a%u)", (unsigned)operand->ea_reg);
   case 5:
+    disp = (int32_t)m68k_sign_extend32(operand->value, 16U);
     if (append_signed_hex_width(out_text, out_text_size, inout_used, disp, 4U) != 0)
       return -1;
     return append_format(out_text, out_text_size, inout_used, "(a%u)", (unsigned)operand->ea_reg);
   case 6:
+    disp = (int32_t)m68k_sign_extend32(operand->value, 8U);
     if (operand->full_ext_base_suppress != 0U || operand->full_ext_index_suppress != 0U ||
         operand->full_ext_base_disp_size != 0U || operand->full_ext_outer_disp_size != 0U ||
         operand->full_ext_iis != 0U) {
@@ -204,20 +207,32 @@ static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_us
           append_text(out_text, out_text_size, inout_used, ",is") != 0)
         return -1;
       if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
-          append_format(out_text, out_text_size, inout_used, ",bdw=$%04x",
-            (unsigned)(operand->full_ext_base_disp_value & 0xFFFFU)) != 0)
+          append_text(out_text, out_text_size, inout_used, ",bdw=") != 0)
+        return -1;
+      if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
+          append_signed_hex_width(out_text, out_text_size, inout_used,
+            (int32_t)m68k_sign_extend32(operand->full_ext_base_disp_value, 16U), 4U) != 0)
         return -1;
       if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
-          append_format(out_text, out_text_size, inout_used, ",bdl=$%08x",
-            (unsigned)operand->full_ext_base_disp_value) != 0)
+          append_text(out_text, out_text_size, inout_used, ",bdl=") != 0)
+        return -1;
+      if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
+          append_signed_hex_width(out_text, out_text_size, inout_used,
+            (int32_t)operand->full_ext_base_disp_value, 8U) != 0)
         return -1;
       if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
-          append_format(out_text, out_text_size, inout_used, ",odw=$%04x",
-            (unsigned)(operand->full_ext_outer_disp_value & 0xFFFFU)) != 0)
+          append_text(out_text, out_text_size, inout_used, ",odw=") != 0)
+        return -1;
+      if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
+          append_signed_hex_width(out_text, out_text_size, inout_used,
+            (int32_t)m68k_sign_extend32(operand->full_ext_outer_disp_value, 16U), 4U) != 0)
         return -1;
       if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
-          append_format(out_text, out_text_size, inout_used, ",odl=$%08x",
-            (unsigned)operand->full_ext_outer_disp_value) != 0)
+          append_text(out_text, out_text_size, inout_used, ",odl=") != 0)
+        return -1;
+      if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
+          append_signed_hex_width(out_text, out_text_size, inout_used,
+            (int32_t)operand->full_ext_outer_disp_value, 8U) != 0)
         return -1;
       if (operand->full_ext_iis != 0U &&
           append_format(out_text, out_text_size, inout_used, ",iis=%u",
@@ -259,20 +274,32 @@ static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_us
         if (operand->full_ext_index_suppress != 0U && append_text(out_text, out_text_size, inout_used, ",is") != 0)
           return -1;
         if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
-            append_format(out_text, out_text_size, inout_used, ",bdw=$%04x",
-              (unsigned)(operand->full_ext_base_disp_value & 0xFFFFU)) != 0)
+            append_text(out_text, out_text_size, inout_used, ",bdw=") != 0)
+          return -1;
+        if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
+            append_signed_hex_width(out_text, out_text_size, inout_used,
+              (int32_t)m68k_sign_extend32(operand->full_ext_base_disp_value, 16U), 4U) != 0)
           return -1;
         if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
-            append_format(out_text, out_text_size, inout_used, ",bdl=$%08x",
-              (unsigned)operand->full_ext_base_disp_value) != 0)
+            append_text(out_text, out_text_size, inout_used, ",bdl=") != 0)
+          return -1;
+        if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
+            append_signed_hex_width(out_text, out_text_size, inout_used,
+              (int32_t)operand->full_ext_base_disp_value, 8U) != 0)
           return -1;
         if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
-            append_format(out_text, out_text_size, inout_used, ",odw=$%04x",
-              (unsigned)(operand->full_ext_outer_disp_value & 0xFFFFU)) != 0)
+            append_text(out_text, out_text_size, inout_used, ",odw=") != 0)
+          return -1;
+        if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
+            append_signed_hex_width(out_text, out_text_size, inout_used,
+              (int32_t)m68k_sign_extend32(operand->full_ext_outer_disp_value, 16U), 4U) != 0)
           return -1;
         if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
-            append_format(out_text, out_text_size, inout_used, ",odl=$%08x",
-              (unsigned)operand->full_ext_outer_disp_value) != 0)
+            append_text(out_text, out_text_size, inout_used, ",odl=") != 0)
+          return -1;
+        if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
+            append_signed_hex_width(out_text, out_text_size, inout_used,
+              (int32_t)operand->full_ext_outer_disp_value, 8U) != 0)
           return -1;
         if (operand->full_ext_iis != 0U &&
             append_format(out_text, out_text_size, inout_used, ",iis=%u", (unsigned)operand->full_ext_iis) != 0)

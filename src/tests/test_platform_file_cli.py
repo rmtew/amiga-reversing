@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ from src.tests._build_helpers import require_built_tools
 from src.tests._platform_backend_test_utils import FIXTURE_DIR
 from src.tests._platform_backend_test_utils import make_synthetic_atari_prg
 from src.tests._platform_backend_test_utils import make_synthetic_hunkexe
+from src.tests._real_fixture_helpers import disassemble_real_file
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILD_DIR = ROOT / "src" / "build"
@@ -168,6 +170,51 @@ class PlatformFileCliTests(unittest.TestCase):
                 "lea.l $0010(a1),a0 ; VIOLATION: invalid overlap: instruction bytes at +2 are referenced by reachable pc-relative operand",
                 result.stdout,
             )
+
+    def test_disassemble_file_keeps_pc_index_pea_render_explicit(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "pcindex.prg"
+            path.write_bytes(make_synthetic_atari_prg(bytes.fromhex("487b00024e75"), b"", 0))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("pea.l $2(pc,d0.w)", result.stdout)
+            self.assertNotIn("loc_0000+2(pc,d0.w)", result.stdout)
+
+    def test_disassemble_file_renders_negative_indexed_displacement_signed(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "negindex.prg"
+            code = self._assemble_line_hex("68000", "move.w -8(a1,d1.w),d1") + self._assemble_line_hex("68000", "rts")
+            path.write_bytes(make_synthetic_atari_prg(code, b"", 0))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("move.w -$8(a1,d1.w),d1", result.stdout)
+            self.assertNotIn("move.w $F8(a1,d1.w),d1", result.stdout)
+
+    def test_disassemble_genam_resolves_real_jump_table_dispatch_site(self) -> None:
+        path = ROOT / "bin" / "GenAm"
+        text = disassemble_real_file("amiga-hunk", str(path))
+        self.assertIn("dat_0E9C:", text)
+        self.assertIn("dat_0EA4:", text)
+        self.assertIn("lea.l dat_0EA4(pc),a1", text)
+        self.assertIn("move.w -$8(a1,d1.w),d1", text)
+        self.assertIn("jsr $0(a1,d1.w)", text)
+        self.assertNotIn("jsr $0(a1,d1.w) ; CANDIDATE: indirect_call index unresolved", text)
+        self.assertIn("DC.W    loc_10DC-dat_0E9C", text)
+        self.assertIn("DC.W    loc_10FA-dat_0E9C", text)
 
     def test_disassemble_file_emits_atari_comment_head_metadata(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -362,3 +409,9 @@ class PlatformFileCliTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def load_tests(loader, tests, pattern):
+    if os.environ.get("AMIGA_INCLUDE_HEAVY_UNIT_TESTS") == "1":
+        return tests
+    return unittest.TestSuite()

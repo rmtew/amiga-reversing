@@ -3,12 +3,11 @@ from __future__ import annotations
 import ctypes
 import gzip
 import json
-import shutil
 import struct
 import subprocess
-import tempfile
 import textwrap
 import zipfile
+from functools import lru_cache
 from pathlib import Path
 
 from src.tests._build_helpers import require_built_tools
@@ -19,6 +18,9 @@ BUILD_DIR = SRC_DIR / "build"
 FIXTURE_DIR = ROOT / "tests" / "fixtures" / "hunk"
 FILE_MANIFEST = ROOT / "corpus" / "platform_file_manifest.jsonl"
 FILE_DLL = BUILD_DIR / "platform_file_lib.dll"
+HARNESS_EXE = BUILD_DIR / "platform_backend_harness.exe"
+HARNESS_SOURCE = BUILD_DIR / "platform_backend_harness.c"
+HARNESS_COMPILE = BUILD_DIR / "platform_backend_harness_compile.bat"
 
 
 def u32(value: int) -> bytes:
@@ -223,16 +225,21 @@ def make_synthetic_atari_prg(
     return bytes(payload)
 
 
+@lru_cache(maxsize=1)
 def load_file_manifest() -> list[dict[str, object]]:
     return [json.loads(line) for line in FILE_MANIFEST.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def read_corpus_disk_bytes(entry: dict[str, object]) -> bytes:
-    origin = entry["origin"]
-    if origin["container_relpath"] is None:
-        return (ROOT / origin["source_relpath"]).read_bytes()
-    container_path = ROOT / origin["container_relpath"]
-    member_name = origin["member_name"]
+@lru_cache(maxsize=None)
+def _read_corpus_disk_bytes_cached(
+    source_relpath: str,
+    container_relpath: str | None,
+    member_name: str | None,
+) -> bytes:
+    if container_relpath is None:
+        return (ROOT / source_relpath).read_bytes()
+    container_path = ROOT / container_relpath
+    assert member_name is not None
     with zipfile.ZipFile(container_path) as archive:
         data = archive.read(member_name)
     if member_name.lower().endswith(".adz"):
@@ -240,7 +247,18 @@ def read_corpus_disk_bytes(entry: dict[str, object]) -> bytes:
     return data
 
 
-def reconstruct_corpus_file_bytes(entry: dict[str, object]) -> bytes:
+def read_corpus_disk_bytes(entry: dict[str, object]) -> bytes:
+    origin = entry["origin"]
+    return _read_corpus_disk_bytes_cached(
+        str(origin["source_relpath"]),
+        origin["container_relpath"],
+        origin["member_name"],
+    )
+
+
+@lru_cache(maxsize=None)
+def _reconstruct_corpus_file_bytes_cached(entry_json: str) -> bytes:
+    entry = json.loads(entry_json)
     image_bytes = read_corpus_disk_bytes(entry)
     extents = entry["file_ref"]["extents"]
     payload = bytearray()
@@ -251,7 +269,12 @@ def reconstruct_corpus_file_bytes(entry: dict[str, object]) -> bytes:
     return bytes(payload[: entry["size"]])
 
 
-def find_corpus_file_entry(display_name: str, in_image_path: str) -> dict[str, object]:
+def reconstruct_corpus_file_bytes(entry: dict[str, object]) -> bytes:
+    return _reconstruct_corpus_file_bytes_cached(json.dumps(entry, sort_keys=True))
+
+
+@lru_cache(maxsize=None)
+def _find_corpus_file_entry_cached(display_name: str, in_image_path: str) -> dict[str, object]:
     for entry in load_file_manifest():
         origin = entry["origin"]
         if (
@@ -264,6 +287,11 @@ def find_corpus_file_entry(display_name: str, in_image_path: str) -> dict[str, o
     raise AssertionError(f"Missing amiga-hunk corpus entry: {display_name} :: {in_image_path}")
 
 
+def find_corpus_file_entry(display_name: str, in_image_path: str) -> dict[str, object]:
+    return _find_corpus_file_entry_cached(display_name, in_image_path)
+
+
+@lru_cache(maxsize=1)
 def all_amiga_hunk_corpus_entries() -> list[dict[str, object]]:
     return [
         entry
@@ -272,6 +300,7 @@ def all_amiga_hunk_corpus_entries() -> list[dict[str, object]]:
     ]
 
 
+@lru_cache(maxsize=1)
 def all_atari_st_corpus_entries() -> list[dict[str, object]]:
     return [
         entry
@@ -308,83 +337,11 @@ class PlatformBackendTestCaseMixin:
         cls.library.platform_file_free_text.restype = None
         cls.library.platform_file_free_buffer.argtypes = [ctypes.c_void_p]
         cls.library.platform_file_free_buffer.restype = None
-        cls.workdir = Path(tempfile.mkdtemp(prefix="platform_backend_", dir=BUILD_DIR))
-        harness_path = cls.workdir / "platform_backend_harness.c"
-        harness_path.write_text(
-            textwrap.dedent(
-                """
-                #include <stdio.h>
-                #include <stdlib.h>
-                #include <string.h>
-                #include "m68k_backend.h"
-                #include "m68k_object.h"
-
-                static int command_atari_duplicate_sections(void) {
-                    char error[256];
-                    M68kObject object;
-                    M68kSection section;
-                    m68k_object_init(&object);
-                    object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
-                    memset(&section, 0, sizeof(section));
-                    section.name = "TEXT0";
-                    section.kind = M68K_SECTION_CODE;
-                    section.size = 4;
-                    section.data = (uint8_t *)"\\x4e\\x75\\x00\\x00";
-                    section.data_size = 4;
-                    if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
-                    section.name = "TEXT1";
-                    if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
-                    section.name = "DATA";
-                    section.kind = M68K_SECTION_DATA;
-                    section.data = (uint8_t *)"\\x00\\x00\\x00\\x00";
-                    if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
-                    if (M68K_BACKEND_ATARI_ST.write_file("NUL", &object, error, sizeof(error)) == 0) {
-                        fprintf(stderr, "unexpected success\\n");
-                        m68k_object_free(&object);
-                        return 1;
-                    }
-                    puts(error);
-                    m68k_object_free(&object);
-                    return 0;
-                }
-
-                int main(int argc, char **argv) {
-                    if (argc >= 2 && strcmp(argv[1], "atari-duplicate-sections") == 0) {
-                        return command_atari_duplicate_sections();
-                    }
-                    fprintf(stderr, "usage: %s atari-duplicate-sections\\n", argv[0]);
-                    return 2;
-                }
-                """
-            ),
-            encoding="utf-8",
-        )
-        exe_path = cls.workdir / "platform_backend_harness.exe"
-        compile_script = cls.workdir / "compile_harness.bat"
-        compile_script.write_text(
-            "@echo off\n"
-            'call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat" >nul || exit /b %errorlevel%\n'
-            "cl /nologo /W4 /WX /std:c11 /D_CRT_SECURE_NO_WARNINGS "
-            f'/I "{SRC_DIR}" "{harness_path}" "{SRC_DIR / "m68k_object.c"}" '
-            f'"{SRC_DIR / "platform_amiga_hunk.c"}" "{SRC_DIR / "platform_atari_st.c"}" '
-            f'"{SRC_DIR / "platform_common.c"}" "{SRC_DIR / "platform_binary_io.c"}" '
-            f'"{SRC_DIR / "generated" / "amiga_hunk_file_runtime.c"}" "{SRC_DIR / "generated" / "atari_st_prg_file_runtime.c"}" '
-            f'/link /OUT:"{exe_path}" || exit /b %errorlevel%\n',
-            encoding="utf-8",
-        )
-        compile_result = subprocess.run(
-            ["cmd", "/c", str(compile_script)],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        assert compile_result.returncode == 0, compile_result.stdout + compile_result.stderr
-        cls.harness = exe_path
+        cls.harness = _ensure_platform_backend_harness()
 
     @classmethod
     def tearDownClass(cls) -> None:
-        shutil.rmtree(cls.workdir)
+        pass
 
     def run_harness(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
@@ -432,3 +389,96 @@ class PlatformBackendTestCaseMixin:
             return ctypes.string_at(out_ptr, out_size.value)
         finally:
             self.library.platform_file_free_buffer(out_ptr)
+
+
+def _platform_backend_harness_source_text() -> str:
+    return textwrap.dedent(
+        """
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <string.h>
+        #include "m68k_backend.h"
+        #include "m68k_object.h"
+
+        static int command_atari_duplicate_sections(void) {
+            char error[256];
+            M68kObject object;
+            M68kSection section;
+            m68k_object_init(&object);
+            object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+            memset(&section, 0, sizeof(section));
+            section.name = "TEXT0";
+            section.kind = M68K_SECTION_CODE;
+            section.size = 4;
+            section.data = (uint8_t *)"\\x4e\\x75\\x00\\x00";
+            section.data_size = 4;
+            if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
+            section.name = "TEXT1";
+            if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
+            section.name = "DATA";
+            section.kind = M68K_SECTION_DATA;
+            section.data = (uint8_t *)"\\x00\\x00\\x00\\x00";
+            if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
+            if (M68K_BACKEND_ATARI_ST.write_file("NUL", &object, error, sizeof(error)) == 0) {
+                fprintf(stderr, "unexpected success\\n");
+                m68k_object_free(&object);
+                return 1;
+            }
+            puts(error);
+            m68k_object_free(&object);
+            return 0;
+        }
+
+        int main(int argc, char **argv) {
+            if (argc >= 2 && strcmp(argv[1], "atari-duplicate-sections") == 0) {
+                return command_atari_duplicate_sections();
+            }
+            fprintf(stderr, "usage: %s atari-duplicate-sections\\n", argv[0]);
+            return 2;
+        }
+        """
+    )
+
+
+@lru_cache(maxsize=1)
+def _ensure_platform_backend_harness() -> Path:
+    source_text = _platform_backend_harness_source_text()
+    if not HARNESS_SOURCE.exists() or HARNESS_SOURCE.read_text(encoding="utf-8") != source_text:
+        HARNESS_SOURCE.write_text(source_text, encoding="utf-8")
+    compile_script = (
+        "@echo off\n"
+        'call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat" >nul || exit /b %errorlevel%\n'
+        "cl /nologo /W4 /WX /std:c11 /D_CRT_SECURE_NO_WARNINGS "
+        f'/I "{SRC_DIR}" "{HARNESS_SOURCE}" "{SRC_DIR / "m68k_object.c"}" '
+        f'"{SRC_DIR / "platform_amiga_hunk.c"}" "{SRC_DIR / "platform_atari_st.c"}" '
+        f'"{SRC_DIR / "platform_common.c"}" "{SRC_DIR / "platform_binary_io.c"}" '
+        f'"{SRC_DIR / "generated" / "amiga_hunk_file_runtime.c"}" "{SRC_DIR / "generated" / "atari_st_prg_file_runtime.c"}" '
+        f'/link /OUT:"{HARNESS_EXE}" || exit /b %errorlevel%\n'
+    )
+    if not HARNESS_COMPILE.exists() or HARNESS_COMPILE.read_text(encoding="utf-8") != compile_script:
+        HARNESS_COMPILE.write_text(compile_script, encoding="utf-8")
+    if HARNESS_EXE.exists():
+        newest_input = max(
+            path.stat().st_mtime
+            for path in (
+                HARNESS_SOURCE,
+                SRC_DIR / "m68k_object.c",
+                SRC_DIR / "platform_amiga_hunk.c",
+                SRC_DIR / "platform_atari_st.c",
+                SRC_DIR / "platform_common.c",
+                SRC_DIR / "platform_binary_io.c",
+                SRC_DIR / "generated" / "amiga_hunk_file_runtime.c",
+                SRC_DIR / "generated" / "atari_st_prg_file_runtime.c",
+            )
+        )
+        if HARNESS_EXE.stat().st_mtime >= newest_input:
+            return HARNESS_EXE
+    compile_result = subprocess.run(
+        ["cmd", "/c", str(HARNESS_COMPILE)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert compile_result.returncode == 0, compile_result.stdout + compile_result.stderr
+    return HARNESS_EXE

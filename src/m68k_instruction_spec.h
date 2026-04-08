@@ -29,5 +29,12 @@ int m68k_instruction_spec_uses_movem_predecrement_mask(const InstructionSpec *in
 uint16_t m68k_reverse_reglist_mask(uint16_t mask);
 void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR *out_instruction);
 void m68k_instruction_ir_to_spec(const M68kInstructionIR *instruction, InstructionSpec *out_spec);
+int m68k_instruction_operand_supports_decoded_ea_target(const M68kOperandIR *operand);
+uint8_t m68k_instruction_operand_decoded_ea_shape(const M68kOperandIR *operand);
+uint8_t m68k_instruction_decoded_ea_target_kind(const M68kOperandIR *operand, uint8_t ea_shape,
+    int include_pc_index);
+int m68k_instruction_decoded_ea_target(const M68kOperandIR *operand, uint8_t ea_shape, uint32_t pc_base,
+    uint32_t section_size, int include_pc_index, uint32_t *out_target);
+int m68k_instruction_operand_direct_register(const M68kOperandIR *operand, uint8_t *is_address, uint8_t *reg);
 
 #endif

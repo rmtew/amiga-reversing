@@ -33,6 +33,22 @@ static int init_ea_operand_from_form(M68kAsmOperandValue *out_operand,
   return 1;
 }
 
+static int parse_signed_hex_option(const char *text, const char *prefix,
+                                   uint32_t *out_value) {
+  size_t prefix_len = strlen(prefix);
+  uint32_t magnitude = 0;
+  if (strncmp(text, prefix, prefix_len) != 0)
+    return 0;
+  text += prefix_len;
+  if (text[0] == '-') {
+    if (!m68k_parse_number_u32(text + 1, &magnitude))
+      return 0;
+    *out_value = (uint32_t)(0u - magnitude);
+    return 1;
+  }
+  return m68k_parse_number_u32(text, out_value);
+}
+
 static void parse_ea_options(char *option_text,
                              M68kAsmOperandValue *out_operand,
                              int *out_use_full) {
@@ -57,19 +73,19 @@ static void parse_ea_options(char *option_text,
     } else if (strcmp(trimmed, "is") == 0) {
       *out_use_full = 1;
       out_operand->full_ext_index_suppress = 1;
-    } else if (sscanf(trimmed, "bdw=$%x", &option_value) == 1) {
+    } else if (parse_signed_hex_option(trimmed, "bdw=", &option_value)) {
       *out_use_full = 1;
       out_operand->full_ext_base_disp_size = M68K_ASM_FULL_EXT_BD_WORD;
       out_operand->full_ext_base_disp_value = option_value;
-    } else if (sscanf(trimmed, "bdl=$%x", &option_value) == 1) {
+    } else if (parse_signed_hex_option(trimmed, "bdl=", &option_value)) {
       *out_use_full = 1;
       out_operand->full_ext_base_disp_size = M68K_ASM_FULL_EXT_BD_LONG;
       out_operand->full_ext_base_disp_value = option_value;
-    } else if (sscanf(trimmed, "odw=$%x", &option_value) == 1) {
+    } else if (parse_signed_hex_option(trimmed, "odw=", &option_value)) {
       *out_use_full = 1;
       out_operand->full_ext_outer_disp_size = M68K_ASM_FULL_EXT_BD_WORD;
       out_operand->full_ext_outer_disp_value = option_value;
-    } else if (sscanf(trimmed, "odl=$%x", &option_value) == 1) {
+    } else if (parse_signed_hex_option(trimmed, "odl=", &option_value)) {
       *out_use_full = 1;
       out_operand->full_ext_outer_disp_size = M68K_ASM_FULL_EXT_BD_LONG;
       out_operand->full_ext_outer_disp_value = option_value;

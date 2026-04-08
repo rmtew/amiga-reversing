@@ -193,6 +193,7 @@ class RuntimeM68kTables(TypedDict):
 
 class RuntimeInstruction(TypedDict):
     mnemonic: str
+    execution: dict[str, object] | None
 
 
 class RuntimeM68kPayload(TypedDict):
@@ -2100,6 +2101,7 @@ def _runtime_branch_displacement(inst: M68kInstruction,
 def _project_instruction_runtime(inst: M68kInstruction) -> RuntimeInstruction:
     return {
         "mnemonic": inst["mnemonic"],
+        "execution": cast(dict[str, object] | None, inst.get("execution")),
     }
 
 

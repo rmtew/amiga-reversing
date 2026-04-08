@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ctypes
 import json
+import os
 import tempfile
 import unittest
 from functools import lru_cache
@@ -463,3 +464,9 @@ class IrPolicyDllTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def load_tests(loader, tests, pattern):
+    if os.environ.get("AMIGA_INCLUDE_HEAVY_UNIT_TESTS") == "1":
+        return tests
+    return unittest.TestSuite()

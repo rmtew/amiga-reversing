@@ -5,6 +5,7 @@ if errorlevel 1 exit /b %errorlevel%
 
 set OUTDIR=src\build
 set EXE=%OUTDIR%\m68k_assembler_app.exe
+set C_TEST_EXE=%OUTDIR%\m68k_c_unit_tests.exe
 set ASM_DLL=%OUTDIR%\m68k_assembler_lib.dll
 set DISASM_DLL=%OUTDIR%\m68k_disassembler_lib.dll
 set DISK_EXE=%OUTDIR%\platform_disk_cli.exe
@@ -31,11 +32,17 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_simple_source.c ^
     src\m68k_disassembler.c ^
     src\m68k_disassembler_lib.c ^
+    src\m68k_simulator.c ^
     src\m68k_ir.c ^
     src\m68k_ir_codec.c ^
     src\m68k_ir_parse.c ^
     src\m68k_ir_symbol_resolve.c ^
     src\m68k_parse_util.c ^
+    src\m68k_c_unit_test.c ^
+    src\test_m68k_parse_util.c ^
+    src\test_m68k_instruction_spec.c ^
+    src\test_m68k_ir.c ^
+    src\test_m68k_c_main.c ^
     src\m68k_source_ir_render.c ^
     src\m68k_source_model.c ^
     src\m68k_source_pipeline.c ^
@@ -104,12 +111,29 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\platform_common.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
+
+link %LDFLAGS% /OUT:%C_TEST_EXE% ^
+    %OUTDIR%\test_m68k_c_main.obj ^
+    %OUTDIR%\test_m68k_parse_util.obj ^
+    %OUTDIR%\test_m68k_instruction_spec.obj ^
+    %OUTDIR%\test_m68k_ir.obj ^
+    %OUTDIR%\m68k_c_unit_test.obj ^
+    %OUTDIR%\m68k_asm_tables.obj ^
+    %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_instruction_spec.obj ^
+    %OUTDIR%\m68k_plain_parse.obj ^
+    %OUTDIR%\m68k_ir.obj ^
+    %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_source_text_util.obj ^
+    %OUTDIR%\m68k_object.obj ^
+    %OUTDIR%\platform_common.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68k_source_ir_render_with_policy /EXPORT:m68k_source_ir_free /EXPORT:m68k_free_text ^
     %OUTDIR%\m68k_asm_tables.obj ^
@@ -144,6 +168,7 @@ link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68
     %OUTDIR%\platform_common.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
@@ -156,6 +181,7 @@ link %LDFLAGS% /DLL /OUT:%DISASM_DLL% ^
     %OUTDIR%\m68k_assembler.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
+    %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
@@ -217,6 +243,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
+    %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
     %OUTDIR%\m68k_object.obj ^
@@ -258,6 +285,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% /EXPORT:platform_file_analyze_path_json ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
+    %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
     %OUTDIR%\m68k_object.obj ^

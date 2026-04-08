@@ -466,9 +466,18 @@ def _exception_frame_rules() -> list[JsonDict]:
         rule(24, 47, ["68000"], ["mc68000_group_1_2"], "always"),
         rule(4, 11, ["68000"], ["mc68000_group_1_2"], "always"),
         rule(15, 15, ["68000"], ["mc68000_group_1_2"], "always"),
-        rule(24, 47, ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
-        rule(4, 11, ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
+        rule(24, 47, ["68010"], ["format_0"], "always"),
+        rule(4, 11, ["68010"], ["format_0"], "always"),
         rule(15, 15, ["68010", "68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
+        # Track A parser-assertion: on 68020+ the CHK/TRAPV exception vectors use
+        # the six-word format 2 frame, while the other vector-4..11 traps keep
+        # format 0. This split is evident from PRM Appendix B frame examples but is
+        # not emitted as a machine-readable table in the PDF, so we seed the vector
+        # subsets explicitly for downstream generators.
+        rule(6, 7, ["68020", "68030", "68040", "68EC040", "68LC040"], ["format_2"], "always"),
+        rule(4, 5, ["68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
+        rule(8, 11, ["68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
+        rule(24, 47, ["68020", "68030", "68040", "68EC040", "68LC040", "CPU32"], ["format_0"], "always"),
         rule(2, 3, ["68010"], ["format_8"], "always"),
         rule(2, 2, ["68020", "68030"], ["format_a", "format_b"], "depends_on_bus_cycle_length"),
         rule(13, 13, ["68020", "68030"], ["format_9"], "always"),
@@ -6170,6 +6179,2303 @@ def _specialize_shift_carry_rules(inst: Any) -> None:
             spec["msb_change_semantics"] = "check_msb_stability"
 
 
+def _execution_cc_formula(inst: JsonDict) -> str | None:
+    mnemonic = str(inst.get("mnemonic", ""))
+    op_type = str(inst.get("operation_type", ""))
+    flow_type = str(cast(JsonDict, cast(JsonDict, inst.get("pc_effects", {})).get("flow", {})).get("type", "sequential"))
+    if flow_type in ("jump", "call", "return", "trap") or mnemonic in (
+        "LEA", "MOVEA", "MOVEC", "MOVEM", "MOVEP", "MOVES",
+        "MOVE from CCR", "MOVE from SR", "MOVE USP",
+        "EXG", "Scc", "DBcc", "PEA", "LINK", "UNLK"
+    ):
+        return None
+    if mnemonic == "MOVE to CCR":
+        return "write_ccr"
+    if mnemonic == "MOVE to SR":
+        return "write_sr"
+    if mnemonic == "CLR":
+        return "clear_flags"
+    if op_type == "bit_test":
+        return "bit_test_flags"
+    if op_type == "test":
+        return "test_flags"
+    if op_type == "shift":
+        return "shift_flags"
+    if op_type == "rotate":
+        return "rotate_flags"
+    if op_type == "rotate_extend":
+        return "rotate_extend_flags"
+    if op_type == "bitfield":
+        return "bitfield_flags"
+    if op_type == "bounds_check":
+        return "bounds_check_flags"
+    if op_type == "compare_swap":
+        return "sub_flags"
+    if op_type in ("add_decimal",):
+        return "add_decimal_flags"
+    if op_type in ("sub_decimal",):
+        return "sub_decimal_flags"
+    if op_type == "multiply":
+        return "multiply_flags"
+    if op_type == "divide":
+        return "divide_flags"
+    if mnemonic in ("MOVE", "MOVEQ") or op_type == "move":
+        return "move_flags"
+    if op_type in ("add", "addx"):
+        return "add_flags"
+    if op_type in ("sub", "subx", "negx", "compare"):
+        return "sub_flags"
+    return None
+
+
+def _execution_result_formula(inst: JsonDict) -> str | None:
+    mnemonic = str(inst.get("mnemonic", ""))
+    op_type = str(inst.get("operation_type", ""))
+    if mnemonic == "LEA":
+        return "ea_address"
+    if mnemonic in ("PEA", "LINK", "UNLK"):
+        return None
+    if mnemonic in ("MOVEM", "MOVEP"):
+        return None
+    if mnemonic in ("MOVEC", "MOVES", "MOVE from CCR", "MOVE to CCR", "MOVE from SR", "MOVE to SR", "MOVE USP"):
+        return "move_source"
+    if mnemonic in ("ANDI to CCR", "ANDI to SR"):
+        return "bitwise_and"
+    if mnemonic in ("EORI to CCR", "EORI to SR"):
+        return "bitwise_xor"
+    if mnemonic in ("ORI to CCR", "ORI to SR"):
+        return "bitwise_or"
+    if op_type == "and":
+        return "bitwise_and"
+    if op_type == "or":
+        return "bitwise_or"
+    if op_type == "xor":
+        return "bitwise_xor"
+    if mnemonic == "TAS":
+        return "test_and_set"
+    if mnemonic == "BFEXTS":
+        return "bitfield_extract_signed"
+    if mnemonic == "BFEXTU":
+        return "bitfield_extract_unsigned"
+    if mnemonic == "BFFFO":
+        return "bitfield_find_first_one"
+    if mnemonic == "BFINS":
+        return "bitfield_insert"
+    if mnemonic == "BFCHG":
+        return "bitfield_change"
+    if mnemonic == "BFCLR":
+        return "bitfield_clear"
+    if mnemonic == "BFSET":
+        return "bitfield_set"
+    if mnemonic == "BFTST":
+        return "bitfield_test"
+    if op_type == "bit_test":
+        compute = cast(JsonDict, inst.get("compute_formula", {}))
+        return str(compute.get("op", "bit_test")) if isinstance(compute, dict) else "bit_test"
+    if mnemonic == "CLR":
+        return "zero"
+    if op_type == "bounds_check":
+        return "bounds_check"
+    if op_type == "compare_swap":
+        return "sub"
+    if op_type == "test":
+        return "test"
+    if op_type in ("shift", "rotate", "rotate_extend"):
+        compute = cast(JsonDict, inst.get("compute_formula", {}))
+        return str(compute.get("op", op_type)) if isinstance(compute, dict) else op_type
+    if mnemonic in ("MOVE", "MOVEA", "MOVEQ") or op_type == "move":
+        return "move_source"
+    if op_type == "multiply":
+        return "multiply"
+    if op_type == "divide":
+        return "divide"
+    if op_type in ("add", "addx", "add_decimal"):
+        return "add"
+    if op_type in ("sub", "subx", "negx", "sub_decimal", "compare"):
+        return "sub"
+    return None
+
+
+def _execution_semantic_op(inst: JsonDict) -> str | None:
+    mnemonic = str(inst.get("mnemonic", ""))
+    op_type = str(inst.get("operation_type", ""))
+    if mnemonic == "NOP":
+        return "nop"
+    if mnemonic == "RESET":
+        return "reset"
+    if mnemonic == "RTM":
+        return "rtm"
+    if mnemonic == "ILLEGAL":
+        return "illegal"
+    if mnemonic == "BKPT":
+        return "bkpt"
+    if mnemonic == "STOP":
+        return "stop"
+    if mnemonic == "TRAPV":
+        return "trapv"
+    if mnemonic == "PACK":
+        return "pack"
+    if mnemonic == "UNPK":
+        return "unpack"
+    if mnemonic == "TRAP":
+        return "trap"
+    if mnemonic == "CINV":
+        return "cache_invalidate"
+    if mnemonic == "CPUSH":
+        return "cache_push"
+    if mnemonic in ("PFLUSH", "PFLUSH PFLUSHA"):
+        return "pflush"
+    if mnemonic == "PFLUSHR":
+        return "pflushr"
+    if mnemonic == "PLOAD":
+        return "pload"
+    if mnemonic == "FSAVE":
+        return "fsave"
+    if mnemonic == "FRESTORE":
+        return "frestore"
+    if mnemonic == "PSAVE":
+        return "psave"
+    if mnemonic == "PRESTORE":
+        return "prestore"
+    if mnemonic == "PMOVE":
+        return "pmove"
+    if mnemonic == "PTEST":
+        return "ptest"
+    if op_type == "shift":
+        return "shift"
+    if op_type == "rotate":
+        return "rotate"
+    if op_type == "rotate_extend":
+        return "rotate_extend"
+    if op_type == "compare_swap":
+        return "compare_swap"
+    if mnemonic == "CALLM":
+        return "call_module"
+    if mnemonic == "LEA":
+        return "compute_ea"
+    if mnemonic == "MOVEM":
+        return "move_multiple"
+    if mnemonic == "MOVEP":
+        return "move_peripheral"
+    if mnemonic == "PEA":
+        return "push_ea"
+    if mnemonic == "LINK":
+        return "link"
+    if mnemonic == "UNLK":
+        return "unlk"
+    if mnemonic == "DBcc":
+        return "dbcc"
+    if mnemonic == "CLR":
+        return "write_constant"
+    if mnemonic == "EXG":
+        return "exchange"
+    if mnemonic == "MOVEA":
+        return "move_address"
+    if mnemonic in ("MOVEC", "MOVES", "MOVE from CCR", "MOVE to CCR", "MOVE from SR", "MOVE to SR", "MOVE USP"):
+        return "move_value"
+    if mnemonic in ("ANDI to CCR", "ANDI to SR"):
+        return "logic_and"
+    if mnemonic in ("EORI to CCR", "EORI to SR"):
+        return "logic_xor"
+    if mnemonic in ("ORI to CCR", "ORI to SR"):
+        return "logic_or"
+    if op_type == "neg":
+        return "negate"
+    if op_type == "not":
+        return "bitwise_not"
+    if mnemonic == "SWAP":
+        return "swap_words"
+    if op_type == "sign_extend":
+        return "sign_extend"
+    if op_type == "and":
+        return "logic_and"
+    if op_type == "or":
+        return "logic_or"
+    if op_type == "xor":
+        return "logic_xor"
+    if mnemonic in ("MOVE", "MOVEQ") or op_type == "move":
+        return "move_value"
+    if mnemonic == "Scc":
+        return "set_condition"
+    if mnemonic == "TAS":
+        return "test_and_set"
+    if mnemonic == "BFCHG":
+        return "bitfield_change"
+    if mnemonic == "BFCLR":
+        return "bitfield_clear"
+    if mnemonic == "BFEXTS":
+        return "bitfield_extract_signed"
+    if mnemonic == "BFEXTU":
+        return "bitfield_extract_unsigned"
+    if mnemonic == "BFFFO":
+        return "bitfield_find_first_one"
+    if mnemonic == "BFINS":
+        return "bitfield_insert"
+    if mnemonic == "BFSET":
+        return "bitfield_set"
+    if mnemonic == "BFTST":
+        return "bitfield_test"
+    if op_type == "bit_test":
+        compute = cast(JsonDict, inst.get("compute_formula", {}))
+        op_name = str(compute.get("op", "")) if isinstance(compute, dict) else ""
+        if op_name == "bit_set":
+            return "bit_set"
+        if op_name == "bit_clear":
+            return "bit_clear"
+        if op_name == "bit_change":
+            return "bit_change"
+        return "bit_test"
+    if op_type == "compare":
+        return "compare"
+    if op_type == "test":
+        return "test"
+    if op_type == "bounds_check":
+        return "bounds_check"
+    if op_type == "multiply":
+        return "multiply"
+    if op_type == "divide":
+        return "divide"
+    if op_type == "add":
+        return "add"
+    if op_type == "sub":
+        return "sub"
+    if op_type in ("addx", "add_decimal", "subx", "sub_decimal", "negx"):
+        return op_type
+    return None
+
+
+def _exception_vector_by_name(name: str) -> int | None:
+    for entry in _exception_vectors():
+        if str(entry.get("name", "")) == name:
+            return int(entry["vector"])
+    return None
+
+
+def _execution_exception(inst: JsonDict) -> JsonDict | None:
+    mnemonic = str(inst.get("mnemonic", ""))
+    op_type = str(inst.get("operation_type", ""))
+    bounds = cast(JsonDict, inst.get("bounds_check", {}))
+    if mnemonic == "BKPT":
+        return {
+            "trigger": "always",
+            "vector_source": "fixed",
+            "vector": _exception_vector_by_name("Illegal Instruction"),
+            "pc_source": "current",
+            "address_source": "none",
+            "stacked_sr_source": "current",
+        }
+    if mnemonic == "TRAP":
+        return {
+            "trigger": "always",
+            "vector_source": "trap_immediate",
+            "pc_source": "next",
+            "address_source": "none",
+            "stacked_sr_source": "current",
+        }
+    if mnemonic == "ILLEGAL":
+        return {
+            "trigger": "always",
+            "vector_source": "fixed",
+            "vector": _exception_vector_by_name("Illegal Instruction"),
+            "pc_source": "current",
+            "address_source": "none",
+            "stacked_sr_source": "current",
+        }
+    if mnemonic == "TRAPV":
+        return {
+            "trigger": "if_overflow",
+            "vector_source": "fixed",
+            "vector": _exception_vector_by_name("TRAPV Instruction"),
+            "pc_source": "next",
+            "address_source": "current_pc",
+            "stacked_sr_source": "current",
+        }
+    if mnemonic == "STOP":
+        return {
+            "trigger": "if_user_mode",
+            "vector_source": "fixed",
+            "vector": _exception_vector_by_name("Privilege Violation"),
+            "pc_source": "current",
+            "address_source": "none",
+            "stacked_sr_source": "current",
+        }
+    if mnemonic == "RTE":
+        return {
+            "trigger": "if_user_mode",
+            "vector_source": "fixed",
+            "vector": _exception_vector_by_name("Privilege Violation"),
+            "pc_source": "current",
+            "address_source": "none",
+            "stacked_sr_source": "current",
+        }
+    if op_type == "bounds_check" and bool(bounds.get("trap_on_out_of_bounds")):
+        return {
+            "trigger": "if_bounds_fail",
+            "vector_source": "fixed",
+            "vector": _exception_vector_by_name("CHK Instruction"),
+            "pc_source": "next",
+            "address_source": "current_pc",
+            "stacked_sr_source": "updated_flags" if mnemonic == "CHK2" else "current",
+        }
+    return None
+
+
+def _execution_result_kind(inst: JsonDict) -> str:
+    mnemonic = str(inst.get("mnemonic", ""))
+    op_type = str(inst.get("operation_type", ""))
+    if mnemonic in ("LEA", "MOVEA"):
+        return "address"
+    if mnemonic in ("PEA", "LINK", "UNLK"):
+        return "none"
+    if mnemonic in ("MOVEM", "MOVEP"):
+        return "none"
+    if mnemonic in ("MOVEC", "MOVES", "MOVE from CCR", "MOVE to CCR", "MOVE from SR", "MOVE to SR", "MOVE USP",
+                    "ANDI to CCR", "ANDI to SR", "EORI to CCR", "EORI to SR", "ORI to CCR", "ORI to SR"):
+        return "scalar"
+    if mnemonic == "TAS":
+        return "scalar"
+    if mnemonic in ("BFEXTS", "BFEXTU", "BFFFO"):
+        return "scalar"
+    if op_type == "bitfield":
+        return "none"
+    if op_type == "bounds_check":
+        return "none"
+    if op_type == "compare_swap":
+        return "scalar"
+    if mnemonic == "CLR" or op_type in (
+        "move", "add", "addx", "add_decimal", "sub", "subx", "sub_decimal", "negx",
+        "and", "or", "xor", "shift", "rotate", "rotate_extend", "multiply", "divide"
+    ):
+        return "scalar"
+    return "none"
+
+
+def _execution_operation_class(inst: JsonDict) -> str | None:
+    mnemonic = str(inst.get("mnemonic", ""))
+    if mnemonic == "LEA":
+        return "load_effective_address"
+    op_class = inst.get("operation_class")
+    return str(op_class) if isinstance(op_class, str) and op_class else None
+
+
+def _execution_target_kind(inst: JsonDict) -> str:
+    flow = cast(JsonDict, inst.get("pc_effects", {})).get("flow", {})
+    flow_type = str(cast(JsonDict, flow).get("type", "sequential")) if isinstance(flow, dict) else "sequential"
+    forms = cast(list[JsonDict], inst.get("forms", []))
+    operands = cast(list[JsonDict], forms[0].get("operands", [])) if forms else []
+    last_operand_type = str(operands[-1].get("type", "")) if operands else ""
+    if flow_type in ("jump", "call") and last_operand_type != "label":
+        return "ea_address"
+    if flow_type in ("branch", "call"):
+        return "branch_disp"
+    return "none"
+
+
+def _execution_has_fallthrough(inst: JsonDict) -> bool:
+    flow = cast(JsonDict, inst.get("pc_effects", {})).get("flow", {})
+    flow_type = str(cast(JsonDict, flow).get("type", "sequential")) if isinstance(flow, dict) else "sequential"
+    return flow_type not in ("jump", "return", "trap")
+
+
+def _execution_return(inst: JsonDict) -> JsonDict | None:
+    mnemonic = str(inst.get("mnemonic", ""))
+    if mnemonic == "RTS":
+        return {"restore": "pc_only", "stack_adjust_operand_index": None}
+    if mnemonic == "RTD":
+        return {"restore": "pc_only", "stack_adjust_operand_index": 0}
+    if mnemonic == "RTR":
+        return {"restore": "ccr_then_pc", "stack_adjust_operand_index": None}
+    if mnemonic == "RTE":
+        return {"restore": "exception_frame", "stack_adjust_operand_index": None}
+    return None
+
+
+def _operand_width_for_instruction(inst: JsonDict) -> int | None:
+    sizes = cast(list[str], inst.get("sizes", []))
+    if sizes == ["b"]:
+        return 1
+    if sizes == ["w"]:
+        return 2
+    if sizes == ["l"]:
+        return 4
+    if str(inst.get("mnemonic", "")) == "STOP":
+        return 2
+    if str(inst.get("mnemonic", "")) == "BKPT":
+        return 2
+    return None
+
+
+def _execution_operand_width_source(inst: JsonDict, operand_index: int, operand_type: str) -> str | None:
+    del operand_index
+    del operand_type
+    mnemonic = str(inst.get("mnemonic", ""))
+    op_type = str(inst.get("operation_type", ""))
+    if op_type in ("neg", "not"):
+        return "instruction_size"
+    if mnemonic == "MOVE":
+        return "instruction_size"
+    if mnemonic in ("MOVEA", "MOVE16", "MOVEP", "MOVES", "MOVEM"):
+        return "instruction_size"
+    if mnemonic == "RTM":
+        return "full_register"
+    if op_type in ("shift", "rotate", "rotate_extend"):
+        return "instruction_size"
+    if op_type in ("add", "addx", "sub", "subx", "negx", "compare", "test", "bounds_check"):
+        return "instruction_size"
+    if op_type in ("multiply", "divide"):
+        return "instruction_size"
+    if op_type in ("bit_test",):
+        return "instruction_size"
+    if mnemonic in ("AND", "ANDI", "EOR", "EORI", "OR", "ORI", "CLR"):
+        return "instruction_size"
+    if mnemonic in ("BSET", "BCLR", "BCHG", "BTST"):
+        return "instruction_size"
+    if mnemonic in ("ABCD", "SBCD", "NBCD"):
+        return "instruction_size"
+    if mnemonic == "SWAP":
+        return "full_register"
+    return None
+
+
+def _operand_access_kind(operand_type: str, usage: str) -> str:
+    if operand_type == "imm":
+        return "immediate"
+    if operand_type == "label":
+        return "branch_target"
+    if operand_type == "reglist":
+        return "register_list_write" if usage == "write" else "register_list_read"
+    if operand_type in ("ccr", "ctrl_reg", "sr", "usp"):
+        return "register_write" if usage == "write" else "register_read"
+    if usage == "read_modify_write":
+        return "register_write" if operand_type in ("dn", "an", "rn") else "memory_write"
+    if usage == "write":
+        return "register_write" if operand_type in ("dn", "an", "rn") else "memory_write"
+    if usage == "address":
+        return "compute_address"
+    if operand_type in ("dn", "an", "rn"):
+        return "register_read"
+    return "memory_read"
+
+
+def _form_adjusted_access_kind(form_operand_type: str, access_kind: str) -> str:
+    if form_operand_type == "imm":
+        return "immediate"
+    if form_operand_type in ("dn", "an") and access_kind == "memory_write":
+        return "register_write"
+    if form_operand_type in ("dn", "an") and access_kind == "memory_read":
+        return "register_read"
+    return access_kind
+
+
+def _expected_operand_kind(form_operand_type: str) -> str:
+    kind_map = {
+        "dn": "dn",
+        "an": "an",
+        "rn": "rn",
+        "ea": "ea",
+        "ind": "ind",
+        "postinc": "postinc",
+        "predec": "predec",
+        "disp": "disp",
+        "index": "index",
+        "absw": "absw",
+        "absl": "absl",
+        "pcdisp": "pcdisp",
+        "pcindex": "pcindex",
+        "imm": "imm",
+        "label": "label",
+        "ccr": "ccr",
+        "ctrl_reg": "ctrl_reg",
+        "sr": "sr",
+        "usp": "usp",
+        "reglist": "reglist",
+    }
+    return kind_map.get(form_operand_type, "any")
+
+
+def _ea_address_shape_for_operand_type(form_operand_type: str) -> str | None:
+    shape_map = {
+        "ind": "indirect",
+        "postinc": "postincrement",
+        "predec": "predecrement",
+        "disp": "displacement",
+        "index": "index",
+        "absw": "absolute_word",
+        "absl": "absolute_long",
+        "pcdisp": "pc_displacement",
+        "pcindex": "pc_index",
+    }
+    return shape_map.get(form_operand_type)
+
+
+def _ea_address_formula_for_operand_type(form_operand_type: str) -> str | None:
+    formula_map = {
+        "ind": "an",
+        "postinc": "an",
+        "predec": "an",
+        "disp": "an_plus_disp",
+        "index": "an_plus_disp_plus_index",
+        "absw": "absolute_literal",
+        "absl": "absolute_literal",
+        "pcdisp": "pc_plus_disp",
+        "pcindex": "pc_plus_disp_plus_index",
+    }
+    return formula_map.get(form_operand_type)
+
+
+def _ea_register_update_for_operand_type(form_operand_type: str) -> str | None:
+    if form_operand_type == "postinc":
+        return "postincrement"
+    if form_operand_type == "predec":
+        return "predecrement"
+    return "none"
+
+
+def _ea_index_extension_format_for_operand_type(form_operand_type: str) -> str | None:
+    if form_operand_type in ("index", "pcindex"):
+        return "brief"
+    return "none"
+
+
+def _ea_index_register_class_for_operand_type(form_operand_type: str) -> str | None:
+    if form_operand_type in ("index", "pcindex"):
+        return "data_or_address"
+    return "none"
+
+
+def _ea_index_value_width_source_for_operand_type(form_operand_type: str) -> str | None:
+    if form_operand_type in ("index", "pcindex"):
+        return "extension_word"
+    return "none"
+
+
+def _ea_index_scale_source_for_operand_type(form_operand_type: str) -> str | None:
+    if form_operand_type in ("index", "pcindex"):
+        return "extension_word"
+    return "none"
+
+
+def _ea_index_sign_source_for_operand_type(form_operand_type: str) -> str | None:
+    if form_operand_type in ("index", "pcindex"):
+        return "extension_word"
+    return "none"
+
+
+def _ea_displacement_source_for_operand_type(form_operand_type: str) -> str | None:
+    if form_operand_type in ("disp", "index", "pcdisp", "pcindex"):
+        return "operand_value"
+    return "none"
+
+
+def _ea_base_kind_for_operand_type(form_operand_type: str) -> str | None:
+    if form_operand_type in ("ind", "postinc", "predec", "disp", "index"):
+        return "an"
+    if form_operand_type in ("pcdisp", "pcindex"):
+        return "pc"
+    if form_operand_type in ("absw", "absl"):
+        return "absolute"
+    return None
+
+
+def _ea_uses_displacement_for_operand_type(form_operand_type: str) -> bool:
+    return form_operand_type in ("disp", "index", "pcdisp", "pcindex")
+
+
+def _ea_uses_index_for_operand_type(form_operand_type: str) -> bool:
+    return form_operand_type in ("index", "pcindex")
+
+
+def _ea_pc_base_bias_bytes_for_operand_type(form_operand_type: str) -> int:
+    if form_operand_type in ("pcdisp", "pcindex"):
+        return 2
+    return 0
+
+
+def _ea_address_literal_width_bytes_for_operand_type(form_operand_type: str) -> int:
+    if form_operand_type == "absw":
+        return 2
+    if form_operand_type == "absl":
+        return 4
+    return 0
+
+
+def _build_form_access_overrides(inst: JsonDict, execution_operands: list[JsonDict]) -> JsonDict:
+    forms = cast(list[JsonDict], inst.get("forms", []))
+    overrides: JsonDict = {}
+    for form_index, form in enumerate(forms):
+        form_operands = cast(list[JsonDict], form.get("operands", []))
+        if len(form_operands) != len(execution_operands):
+            continue
+        overridden_operands: list[JsonDict] = []
+        changed = False
+        for base_operand, form_operand in zip(execution_operands, form_operands):
+            overridden = dict(base_operand)
+            access = dict(cast(JsonDict, base_operand.get("access", {})))
+            form_operand_type = str(form_operand.get("type", "unknown"))
+            adjusted_access_kind = _form_adjusted_access_kind(form_operand_type, str(access.get("kind", "")))
+            expected_kind = _expected_operand_kind(form_operand_type)
+            ea_address_formula = _ea_address_formula_for_operand_type(form_operand_type)
+            ea_register_update = _ea_register_update_for_operand_type(form_operand_type)
+            ea_index_extension_format = _ea_index_extension_format_for_operand_type(form_operand_type)
+            ea_index_register_class = _ea_index_register_class_for_operand_type(form_operand_type)
+            ea_index_value_width_source = _ea_index_value_width_source_for_operand_type(form_operand_type)
+            ea_index_scale_source = _ea_index_scale_source_for_operand_type(form_operand_type)
+            ea_index_sign_source = _ea_index_sign_source_for_operand_type(form_operand_type)
+            ea_displacement_source = _ea_displacement_source_for_operand_type(form_operand_type)
+            ea_address_shape = _ea_address_shape_for_operand_type(form_operand_type)
+            ea_base_kind = _ea_base_kind_for_operand_type(form_operand_type)
+            ea_uses_displacement = _ea_uses_displacement_for_operand_type(form_operand_type)
+            ea_uses_index = _ea_uses_index_for_operand_type(form_operand_type)
+            ea_pc_base_bias_bytes = _ea_pc_base_bias_bytes_for_operand_type(form_operand_type)
+            ea_address_literal_width_bytes = _ea_address_literal_width_bytes_for_operand_type(form_operand_type)
+            if form_operand_type == "ea":
+                ea_address_formula = base_operand.get("ea_address_formula")
+                ea_register_update = base_operand.get("ea_register_update")
+                ea_index_extension_format = base_operand.get("ea_index_extension_format")
+                ea_index_register_class = base_operand.get("ea_index_register_class")
+                ea_index_value_width_source = base_operand.get("ea_index_value_width_source")
+                ea_index_scale_source = base_operand.get("ea_index_scale_source")
+                ea_index_sign_source = base_operand.get("ea_index_sign_source")
+                ea_displacement_source = base_operand.get("ea_displacement_source")
+                ea_address_shape = base_operand.get("ea_address_shape")
+                ea_base_kind = base_operand.get("ea_base_kind")
+                ea_uses_displacement = bool(base_operand.get("ea_uses_displacement", False))
+                ea_uses_index = bool(base_operand.get("ea_uses_index", False))
+                ea_pc_base_bias_bytes = int(base_operand.get("ea_pc_base_bias_bytes", 0))
+                ea_address_literal_width_bytes = int(base_operand.get("ea_address_literal_width_bytes", 0))
+            if adjusted_access_kind != str(access.get("kind", "")):
+                access["kind"] = adjusted_access_kind
+                overridden["access"] = access
+                changed = True
+            if expected_kind != str(base_operand.get("expected_kind", "any")):
+                overridden["expected_kind"] = expected_kind
+                changed = True
+            if ea_address_formula != base_operand.get("ea_address_formula"):
+                overridden["ea_address_formula"] = ea_address_formula
+                changed = True
+            if ea_register_update != base_operand.get("ea_register_update"):
+                overridden["ea_register_update"] = ea_register_update
+                changed = True
+            if ea_index_extension_format != base_operand.get("ea_index_extension_format"):
+                overridden["ea_index_extension_format"] = ea_index_extension_format
+                changed = True
+            if ea_index_register_class != base_operand.get("ea_index_register_class"):
+                overridden["ea_index_register_class"] = ea_index_register_class
+                changed = True
+            if ea_index_value_width_source != base_operand.get("ea_index_value_width_source"):
+                overridden["ea_index_value_width_source"] = ea_index_value_width_source
+                changed = True
+            if ea_index_scale_source != base_operand.get("ea_index_scale_source"):
+                overridden["ea_index_scale_source"] = ea_index_scale_source
+                changed = True
+            if ea_index_sign_source != base_operand.get("ea_index_sign_source"):
+                overridden["ea_index_sign_source"] = ea_index_sign_source
+                changed = True
+            if ea_displacement_source != base_operand.get("ea_displacement_source"):
+                overridden["ea_displacement_source"] = ea_displacement_source
+                changed = True
+            if ea_address_shape != base_operand.get("ea_address_shape"):
+                overridden["ea_address_shape"] = ea_address_shape
+                changed = True
+            if ea_base_kind != base_operand.get("ea_base_kind"):
+                overridden["ea_base_kind"] = ea_base_kind
+                changed = True
+            if ea_uses_displacement != bool(base_operand.get("ea_uses_displacement", False)):
+                overridden["ea_uses_displacement"] = ea_uses_displacement
+                changed = True
+            if ea_uses_index != bool(base_operand.get("ea_uses_index", False)):
+                overridden["ea_uses_index"] = ea_uses_index
+                changed = True
+            if ea_pc_base_bias_bytes != int(base_operand.get("ea_pc_base_bias_bytes", 0)):
+                overridden["ea_pc_base_bias_bytes"] = ea_pc_base_bias_bytes
+                changed = True
+            if ea_address_literal_width_bytes != int(base_operand.get("ea_address_literal_width_bytes", 0)):
+                overridden["ea_address_literal_width_bytes"] = ea_address_literal_width_bytes
+                changed = True
+            overridden_operands.append(overridden)
+        if changed:
+            overrides[str(form_index)] = {"operands": overridden_operands}
+    return overrides
+
+
+def _merge_execution_form_overrides(execution: JsonDict, form_index: str, override: JsonDict) -> None:
+    form_overrides = execution.get("form_overrides")
+    base_operands = execution.get("operands")
+    if not isinstance(form_overrides, dict):
+        form_overrides = {}
+        execution["form_overrides"] = form_overrides
+    existing = form_overrides.get(form_index)
+    if not isinstance(existing, dict):
+        merged = dict(override)
+        override_operands = override.get("operands")
+        if isinstance(base_operands, list) and isinstance(override_operands, list):
+            merged_operands: list[JsonDict] = []
+            for operand_index, override_operand in enumerate(override_operands):
+                base_operand = base_operands[operand_index] if operand_index < len(base_operands) else {}
+                if isinstance(base_operand, dict) and isinstance(override_operand, dict):
+                    combined_operand = dict(base_operand)
+                    for key, value in override_operand.items():
+                        if key == "access" and isinstance(value, dict) and isinstance(base_operand.get("access"), dict):
+                            combined_access = dict(cast(JsonDict, base_operand.get("access", {})))
+                            combined_access.update(cast(JsonDict, value))
+                            combined_operand["access"] = combined_access
+                        else:
+                            combined_operand[key] = value
+                    merged_operands.append(combined_operand)
+                elif isinstance(override_operand, dict):
+                    merged_operands.append(dict(override_operand))
+            merged["operands"] = merged_operands
+        form_overrides[form_index] = merged
+        return
+    merged = dict(existing)
+    for key, value in override.items():
+        if key == "operands" and isinstance(value, list):
+            existing_operands = existing.get("operands")
+            source_operands = existing_operands if isinstance(existing_operands, list) else base_operands
+            if isinstance(source_operands, list):
+                merged_operands: list[JsonDict] = []
+                for operand_index, override_operand in enumerate(value):
+                    source_operand = source_operands[operand_index] if operand_index < len(source_operands) else {}
+                    if isinstance(source_operand, dict) and isinstance(override_operand, dict):
+                        combined_operand = dict(source_operand)
+                        for operand_key, operand_value in override_operand.items():
+                            if operand_key == "access" and isinstance(operand_value, dict) and isinstance(source_operand.get("access"), dict):
+                                combined_access = dict(cast(JsonDict, source_operand.get("access", {})))
+                                combined_access.update(cast(JsonDict, operand_value))
+                                combined_operand["access"] = combined_access
+                            else:
+                                combined_operand[operand_key] = operand_value
+                        merged_operands.append(combined_operand)
+                    elif isinstance(override_operand, dict):
+                        merged_operands.append(dict(override_operand))
+                merged[key] = merged_operands
+            else:
+                merged[key] = value
+        else:
+            merged[key] = value
+    form_overrides[form_index] = merged
+
+
+def _execution_operand_usage(inst: JsonDict, operand_index: int, operand_type: str) -> str:
+    mnemonic = str(inst.get("mnemonic", ""))
+    op_type = str(inst.get("operation_type", ""))
+    flow_kind = _execution_target_kind(inst)
+    op_count = len(_execution_operand_types(inst))
+    if flow_kind != "none" and operand_index == op_count - 1:
+        return "address" if flow_kind == "ea_address" else "target"
+    if mnemonic == "LEA" and operand_index == 0:
+        return "address"
+    if mnemonic == "PEA" and operand_index == 0:
+        return "address"
+    if mnemonic in ("LINK", "UNLK"):
+        return "value"
+    if mnemonic == "MOVEM":
+        return "value" if operand_type == "reglist" else ("write" if operand_index == 1 else "value")
+    if mnemonic == "TAS":
+        return "read_modify_write"
+    if op_type == "bitfield":
+        if mnemonic in ("BFCHG", "BFCLR", "BFSET") and operand_index == 0:
+            return "read_modify_write"
+        if mnemonic == "BFINS":
+            return "value" if operand_index == 0 else "read_modify_write"
+        if mnemonic in ("BFEXTS", "BFEXTU", "BFFFO"):
+            return "value" if operand_index == 0 else "write"
+        return "value"
+    if op_type in ("neg", "negx", "not", "sign_extend", "swap"):
+        return "read_modify_write"
+    if mnemonic == "NBCD":
+        return "read_modify_write"
+    if op_type == "bit_test":
+        if operand_index == 0:
+            return "value"
+        compute = cast(JsonDict, inst.get("compute_formula", {}))
+        op_name = str(compute.get("op", "")) if isinstance(compute, dict) else ""
+        return "value" if op_name == "bit_test" else "read_modify_write"
+    if op_type in ("compare", "test", "bounds_check", "multiply", "divide"):
+        return "value"
+    if mnemonic in ("CLR", "Scc"):
+        return "write"
+    if operand_index == op_count - 1 and op_count > 1:
+        return "write"
+    if operand_type == "an" and mnemonic == "MOVEA" and operand_index == 1:
+        return "write"
+    return "value"
+
+
+def _execution_operand_role(inst: JsonDict, operand_index: int, operand_count: int, usage: str) -> str:
+    mnemonic = str(inst.get("mnemonic", ""))
+    if _execution_target_kind(inst) != "none" and operand_index == operand_count - 1:
+        return "target"
+    if mnemonic in ("PEA", "LINK", "UNLK"):
+        return "source"
+    if usage == "write":
+        return "dest"
+    if operand_count == 2 and operand_index == 0:
+        return "source"
+    if operand_count == 2 and operand_index == 1:
+        return "dest"
+    return "source"
+
+
+def _execution_operand_types(inst: JsonDict) -> list[str]:
+    forms = cast(list[JsonDict], inst.get("forms", []))
+    if forms:
+        operands = cast(list[JsonDict], forms[0].get("operands", []))
+        return [str(operand.get("type", "unknown")) for operand in operands]
+    mnemonic = str(inst.get("mnemonic", ""))
+    if mnemonic in {"BTST", "BSET", "BCLR", "BCHG"}:
+        return ["dn", "ea"]
+    if mnemonic in {"Bcc", "BRA", "BSR"}:
+        return ["label"]
+    if mnemonic == "DBcc":
+        return ["dn", "label"]
+    if mnemonic == "Scc":
+        return ["ea"]
+    if mnemonic == "TRAPcc":
+        return []
+    if mnemonic in {"ABCD", "SBCD", "ADDX", "SUBX"}:
+        return ["dn", "dn"]
+    if mnemonic in {"NEGX", "NBCD"}:
+        return ["ea"]
+    if mnemonic in {"BFCHG", "BFCLR", "BFSET", "BFTST"}:
+        return ["ea"]
+    if mnemonic in {"BFEXTS", "BFEXTU", "BFFFO"}:
+        return ["ea", "dn"]
+    if mnemonic == "BFINS":
+        return ["dn", "ea"]
+    if mnemonic in {"CINV", "CPUSH"}:
+        return ["ctrl_reg", "ind"]
+    if mnemonic == "PFLUSHR":
+        return ["ea"]
+    if mnemonic in {"FSAVE", "FRESTORE", "PSAVE", "PRESTORE"}:
+        return ["ea"]
+    if mnemonic == "CALLM":
+        return ["imm", "ea"]
+    if mnemonic == "TRAP":
+        return ["imm"]
+    if mnemonic == "CHK":
+        return ["ea", "dn"]
+    if mnemonic in {"CHK2", "CMP2"}:
+        return ["ea", "rn"]
+    if mnemonic in {"MULS", "MULU", "DIVS, DIVSL", "DIVU, DIVUL"}:
+        return ["ea", "dn"]
+    if mnemonic in {"BKPT", "STOP"}:
+        return ["imm"]
+    return []
+
+
+def _build_execution_metadata(inst: JsonDict) -> JsonDict | None:
+    mnemonic = str(inst.get("mnemonic", ""))
+    operand_types = _execution_operand_types(inst)
+    flow = cast(JsonDict, cast(JsonDict, inst.get("pc_effects", {})).get("flow", {}))
+    flow_type = str(flow.get("type", "sequential"))
+    if flow_type == "trap" and mnemonic not in {"ILLEGAL", "BKPT", "STOP", "TRAP", "TRAPV", "TRAPcc"}:
+        return None
+    if not operand_types and flow_type != "return" and mnemonic not in {"RTS", "NOP", "RESET", "ILLEGAL", "TRAPV", "TRAPcc", "PFLUSH", "PFLUSH PFLUSHA"}:
+        return None
+    semantic_op = _execution_semantic_op(inst)
+    target_kind = _execution_target_kind(inst)
+    if semantic_op is None and target_kind == "none" and flow_type == "sequential":
+        return None
+    width = _operand_width_for_instruction(inst)
+    execution_operands: list[JsonDict] = []
+    for operand_index, operand_type in enumerate(operand_types):
+        usage = _execution_operand_usage(inst, operand_index, operand_type)
+        access_kind = _operand_access_kind(operand_type, usage)
+        width_source = _execution_operand_width_source(inst, operand_index, operand_type)
+        result_kind = "control_target" if access_kind == "branch_target" else (
+            "address" if usage == "address" or (usage == "write" and mnemonic in ("LEA", "MOVEA")) or mnemonic == "MOVEA" else "scalar"
+        )
+        ea_address_formula = _ea_address_formula_for_operand_type(operand_type)
+        if ea_address_formula is None and usage == "address" and operand_type == "ea":
+            ea_address_formula = "decoded_ea"
+        execution_operands.append({
+            "index": operand_index,
+            "role": _execution_operand_role(inst, operand_index, len(operand_types), usage),
+            "usage": usage,
+            "expected_kind": _expected_operand_kind(operand_type),
+            "ea_address_formula": ea_address_formula,
+            "ea_register_update": _ea_register_update_for_operand_type(operand_type),
+            "ea_index_extension_format": _ea_index_extension_format_for_operand_type(operand_type),
+            "ea_index_register_class": _ea_index_register_class_for_operand_type(operand_type),
+            "ea_index_value_width_source": _ea_index_value_width_source_for_operand_type(operand_type),
+            "ea_index_scale_source": _ea_index_scale_source_for_operand_type(operand_type),
+            "ea_index_sign_source": _ea_index_sign_source_for_operand_type(operand_type),
+            "ea_displacement_source": _ea_displacement_source_for_operand_type(operand_type),
+            "ea_address_shape": _ea_address_shape_for_operand_type(operand_type),
+            "ea_base_kind": _ea_base_kind_for_operand_type(operand_type),
+            "ea_uses_displacement": _ea_uses_displacement_for_operand_type(operand_type),
+            "ea_uses_index": _ea_uses_index_for_operand_type(operand_type),
+            "ea_pc_base_bias_bytes": _ea_pc_base_bias_bytes_for_operand_type(operand_type),
+            "ea_address_literal_width_bytes": _ea_address_literal_width_bytes_for_operand_type(operand_type),
+            "access": {
+                "kind": access_kind,
+                "width": None if width_source is not None else width,
+                "width_source": width_source,
+                "result_kind": result_kind,
+            },
+        })
+    ccr_formula = _execution_cc_formula(inst)
+    execution: JsonDict = {
+        "semantic_op": semantic_op,
+        "operation_class": _execution_operation_class(inst),
+        "flow": {
+            "kind": flow_type,
+            "conditional": bool(flow.get("conditional", False)),
+            "has_fallthrough": _execution_has_fallthrough(inst),
+            "target_kind": target_kind,
+        },
+        "result": {
+            "kind": _execution_result_kind(inst),
+            "formula": _execution_result_formula(inst),
+        },
+        "ccr": {
+            "writes": ccr_formula is not None,
+            "formula": ccr_formula,
+        },
+        "stack": {
+            "effect_id": mnemonic if inst.get("sp_effects") else None,
+            "effects": inst.get("sp_effects", []),
+        },
+        "implicit_reads": [],
+        "implicit_writes": [],
+        "operands": execution_operands,
+    }
+    exception = _execution_exception(inst)
+    if exception is not None:
+        execution["exception"] = exception
+    return_effect = _execution_return(inst)
+    if return_effect is not None:
+        execution["return"] = return_effect
+    form_access_overrides = _build_form_access_overrides(inst, execution_operands)
+    if form_access_overrides:
+        execution["form_overrides"] = form_access_overrides
+    if mnemonic in ("MOVE from CCR", "MOVE from SR", "MOVE USP"):
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ccr" if mnemonic == "MOVE from CCR" else ("sr" if mnemonic == "MOVE from SR" else "usp"),
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_read",
+                    "width": width,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "ea" if mnemonic != "MOVE USP" else "an",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "memory_write" if mnemonic != "MOVE USP" else "register_write",
+                    "width": width,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+    if mnemonic in ("PACK", "UNPK"):
+        execution["ccr"] = {
+            "writes": False,
+            "formula": None,
+        }
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "predec",
+                "ea_address_formula": "an",
+                "ea_register_update": "predecrement",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": "predecrement",
+                "ea_base_kind": "an",
+                "ea_uses_displacement": False,
+                "ea_uses_index": False,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                    "kind": "memory_read",
+                    "width": 2 if mnemonic == "PACK" else 1,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "predec",
+                "ea_address_formula": "an",
+                "ea_register_update": "predecrement",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": "predecrement",
+                "ea_base_kind": "an",
+                "ea_uses_displacement": False,
+                "ea_uses_index": False,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                    "kind": "memory_write",
+                    "width": 1 if mnemonic == "PACK" else 2,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 2,
+                "role": "aux",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "immediate",
+                    "width": 2,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "dn",
+                    "ea_address_formula": None,
+                    "ea_register_update": "none",
+                    "ea_index_extension_format": "none",
+                    "ea_index_register_class": "none",
+                    "ea_index_value_width_source": "none",
+                    "ea_index_scale_source": "none",
+                    "ea_index_sign_source": "none",
+                    "ea_displacement_source": "none",
+                    "ea_address_shape": None,
+                    "ea_base_kind": None,
+                    "ea_uses_displacement": False,
+                    "ea_uses_index": False,
+                    "ea_pc_base_bias_bytes": 0,
+                    "ea_address_literal_width_bytes": 0,
+                    "access": {
+                        "kind": "register_read",
+                        "width": 2 if mnemonic == "PACK" else 1,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "dest",
+                    "usage": "write",
+                    "expected_kind": "dn",
+                    "ea_address_formula": None,
+                    "ea_register_update": "none",
+                    "ea_index_extension_format": "none",
+                    "ea_index_register_class": "none",
+                    "ea_index_value_width_source": "none",
+                    "ea_index_scale_source": "none",
+                    "ea_index_sign_source": "none",
+                    "ea_displacement_source": "none",
+                    "ea_address_shape": None,
+                    "ea_base_kind": None,
+                    "ea_uses_displacement": False,
+                    "ea_uses_index": False,
+                    "ea_pc_base_bias_bytes": 0,
+                    "ea_address_literal_width_bytes": 0,
+                    "access": {
+                        "kind": "register_write",
+                        "width": 1 if mnemonic == "PACK" else 2,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 2,
+                    "role": "aux",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_formula": None,
+                    "ea_register_update": "none",
+                    "ea_index_extension_format": "none",
+                    "ea_index_register_class": "none",
+                    "ea_index_value_width_source": "none",
+                    "ea_index_scale_source": "none",
+                    "ea_index_sign_source": "none",
+                    "ea_displacement_source": "none",
+                    "ea_address_shape": None,
+                    "ea_base_kind": None,
+                    "ea_uses_displacement": False,
+                    "ea_uses_index": False,
+                    "ea_pc_base_bias_bytes": 0,
+                    "ea_address_literal_width_bytes": 0,
+                    "access": {
+                        "kind": "immediate",
+                        "width": 2,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic in ("MOVE to CCR", "MOVE to SR"):
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ea",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_read",
+                    "width": width,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "ccr" if mnemonic == "MOVE to CCR" else "sr",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_write",
+                    "width": width,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+    if mnemonic in ("ANDI to CCR", "ANDI to SR", "EORI to CCR", "EORI to SR", "ORI to CCR", "ORI to SR"):
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "immediate",
+                    "width": width,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "ccr" if "CCR" in mnemonic else "sr",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_write",
+                    "width": width,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+    if mnemonic == "MOVEM":
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "access": {
+                    "kind": "register_list_read",
+                    "width": width,
+                    "width_source": "instruction_size",
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "dest",
+                "usage": "write",
+                "access": {
+                    "kind": "memory_write",
+                    "width": width,
+                    "width_source": "instruction_size",
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+        execution["multi_transfer"] = {
+            "reglist_operand_index": 0,
+            "address_operand_index": 1,
+            "direction": "register_to_memory",
+            "address_update": "predecrement_if_predec",
+            "reg_iteration": "ascending_mask_bits",
+            "source_snapshot": "before_write",
+        }
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "access": {
+                        "kind": "memory_read",
+                        "width": width,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "dest",
+                    "usage": "write",
+                    "access": {
+                        "kind": "register_list_write",
+                        "width": width,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+            "multi_transfer": {
+                "reglist_operand_index": 1,
+                "address_operand_index": 0,
+                "direction": "memory_to_register",
+                "address_update": "postincrement_if_postinc",
+                "reg_iteration": "ascending_mask_bits",
+                "source_snapshot": "none",
+            },
+        })
+    if mnemonic == "MOVEP":
+        transfer_layout = cast(JsonDict, inst.get("transfer_layout", {}))
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "access": {
+                    "kind": "register_read",
+                    "width": width,
+                    "width_source": "instruction_size",
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "memory_write",
+                    "width": width,
+                    "width_source": "instruction_size",
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+        execution["striped_transfer"] = {
+            "reg_operand_index": 0,
+            "address_operand_index": 1,
+            "direction": "register_to_memory",
+            "stride": int(transfer_layout.get("stride", 2)),
+            "byte_order": str(transfer_layout.get("byte_order", "big_endian")),
+        }
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "access": {
+                        "kind": "memory_read",
+                        "width": width,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "dest",
+                    "usage": "write",
+                    "access": {
+                        "kind": "register_write",
+                        "width": width,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+            "striped_transfer": {
+                "reg_operand_index": 1,
+                "address_operand_index": 0,
+                "direction": "memory_to_register",
+                "stride": int(transfer_layout.get("stride", 2)),
+                "byte_order": str(transfer_layout.get("byte_order", "big_endian")),
+            },
+        })
+    if mnemonic == "MOVES":
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "access": {
+                        "kind": "memory_read",
+                        "width": width,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "dest",
+                    "usage": "write",
+                    "access": {
+                        "kind": "register_write",
+                        "width": width,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic == "MOVEC":
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "access": {
+                        "kind": "register_read",
+                        "width": width,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "dest",
+                    "usage": "write",
+                    "access": {
+                        "kind": "register_write",
+                        "width": width,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic == "TRAPcc":
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_formula": None,
+                    "ea_register_update": "none",
+                    "ea_index_extension_format": "none",
+                    "ea_index_register_class": "none",
+                    "ea_index_value_width_source": "none",
+                    "ea_index_scale_source": "none",
+                    "ea_index_sign_source": "none",
+                    "ea_displacement_source": "none",
+                    "ea_address_shape": None,
+                    "ea_base_kind": None,
+                    "ea_uses_displacement": False,
+                    "ea_uses_index": False,
+                    "ea_pc_base_bias_bytes": 0,
+                    "ea_address_literal_width_bytes": 0,
+                    "access": {
+                        "kind": "immediate",
+                        "width": 2,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "2", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_formula": None,
+                    "ea_register_update": "none",
+                    "ea_index_extension_format": "none",
+                    "ea_index_register_class": "none",
+                    "ea_index_value_width_source": "none",
+                    "ea_index_scale_source": "none",
+                    "ea_index_sign_source": "none",
+                    "ea_displacement_source": "none",
+                    "ea_address_shape": None,
+                    "ea_base_kind": None,
+                    "ea_uses_displacement": False,
+                    "ea_uses_index": False,
+                    "ea_pc_base_bias_bytes": 0,
+                    "ea_address_literal_width_bytes": 0,
+                    "access": {
+                        "kind": "immediate",
+                        "width": 4,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic == "CAS CAS2":
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_read",
+                    "width": None,
+                    "width_source": "instruction_size",
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_read",
+                    "width": None,
+                    "width_source": "instruction_size",
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 2,
+                "role": "dest",
+                "usage": "read_modify_write",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "memory_write",
+                    "width": None,
+                    "width_source": "instruction_size",
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "any",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "any",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 2,
+                    "role": "dest",
+                    "usage": "read_modify_write",
+                    "expected_kind": "rn",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_write",
+                        "width": None,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic == "CALLM":
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "immediate",
+                    "width": 1,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "target",
+                "usage": "address",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "compute_address",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "address",
+                },
+            },
+        ]
+        execution["flow"]["kind"] = "call"
+        execution["flow"]["has_fallthrough"] = False
+        execution["flow"]["target_kind"] = "ea_address"
+    if mnemonic in ("CINV", "CPUSH"):
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ctrl_reg",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_read",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ind",
+                "access": {
+                    "kind": "compute_address",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "address",
+                },
+            },
+        ]
+        _merge_execution_form_overrides(execution, "2", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "ctrl_reg",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic in ("PFLUSH", "PFLUSH PFLUSHA"):
+        execution["operands"] = []
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "ctrl_reg",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "immediate",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "2", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "ctrl_reg",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "immediate",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 2,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ea",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "4", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ind",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "6", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ind",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+            ],
+        })
+    if mnemonic == "PFLUSHR":
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "compute_address",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "address",
+                },
+            },
+        ]
+    if mnemonic in ("FSAVE", "PSAVE"):
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "memory_write",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+    if mnemonic in ("FRESTORE", "PRESTORE"):
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "memory_read",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+    if mnemonic == "PLOAD":
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ctrl_reg",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_read",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "compute_address",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "address",
+                },
+            },
+        ]
+    if mnemonic == "PMOVE":
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ctrl_reg",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_read",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "memory_write",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+    if mnemonic == "PTEST":
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ctrl_reg",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "register_read",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+            {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "access": {
+                    "kind": "compute_address",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "address",
+                },
+            },
+            {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_shape": None,
+                "access": {
+                    "kind": "immediate",
+                    "width": None,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+        _merge_execution_form_overrides(execution, "2", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "ctrl_reg",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ea",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+                {
+                    "index": 2,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "immediate",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 3,
+                    "role": "dest",
+                    "usage": "write",
+                    "expected_kind": "an",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_write",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "3", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "ctrl_reg",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ea",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+                {
+                    "index": 2,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "immediate",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 3,
+                    "role": "dest",
+                    "usage": "write",
+                    "expected_kind": "an",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_write",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "6", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ind",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "7", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ind",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "8", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "ctrl_reg",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ea",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+                {
+                    "index": 2,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "immediate",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 3,
+                    "role": "dest",
+                    "usage": "write",
+                    "expected_kind": "an",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_write",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "9", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "ctrl_reg",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_read",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "source",
+                    "usage": "address",
+                    "expected_kind": "ea",
+                    "access": {
+                        "kind": "compute_address",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "address",
+                    },
+                },
+                {
+                    "index": 2,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "imm",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "immediate",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 3,
+                    "role": "dest",
+                    "usage": "write",
+                    "expected_kind": "an",
+                    "ea_address_shape": None,
+                    "access": {
+                        "kind": "register_write",
+                        "width": None,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic in ("ABCD", "SBCD", "ADDX", "SUBX"):
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "value",
+                    "expected_kind": "predec",
+                    "ea_address_formula": "an",
+                    "ea_register_update": "predecrement",
+                    "ea_index_extension_format": "none",
+                    "ea_index_register_class": "none",
+                    "ea_index_value_width_source": "none",
+                    "ea_index_scale_source": "none",
+                    "ea_index_sign_source": "none",
+                    "ea_displacement_source": "none",
+                    "ea_address_shape": "predecrement",
+                    "ea_base_kind": "an",
+                    "ea_uses_displacement": False,
+                    "ea_uses_index": False,
+                    "ea_pc_base_bias_bytes": 0,
+                    "ea_address_literal_width_bytes": 0,
+                    "access": {
+                        "kind": "memory_read",
+                        "width": None,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+                {
+                    "index": 1,
+                    "role": "dest",
+                    "usage": "write",
+                    "expected_kind": "predec",
+                    "ea_address_formula": "an",
+                    "ea_register_update": "predecrement",
+                    "ea_index_extension_format": "none",
+                    "ea_index_register_class": "none",
+                    "ea_index_value_width_source": "none",
+                    "ea_index_scale_source": "none",
+                    "ea_index_sign_source": "none",
+                    "ea_displacement_source": "none",
+                    "ea_address_shape": "predecrement",
+                    "ea_base_kind": "an",
+                    "ea_uses_displacement": False,
+                    "ea_uses_index": False,
+                    "ea_pc_base_bias_bytes": 0,
+                    "ea_address_literal_width_bytes": 0,
+                    "access": {
+                        "kind": "memory_write",
+                        "width": None,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic in ("NEGX", "NBCD"):
+        _merge_execution_form_overrides(execution, "1", {
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "dest",
+                    "usage": "read_modify_write",
+                    "expected_kind": "dn",
+                    "ea_address_formula": None,
+                    "ea_register_update": "none",
+                    "ea_index_extension_format": "none",
+                    "ea_index_register_class": "none",
+                    "ea_index_value_width_source": "none",
+                    "ea_index_scale_source": "none",
+                    "ea_index_sign_source": "none",
+                    "ea_displacement_source": "none",
+                    "ea_address_shape": None,
+                    "ea_base_kind": None,
+                    "ea_uses_displacement": False,
+                    "ea_uses_index": False,
+                    "ea_pc_base_bias_bytes": 0,
+                    "ea_address_literal_width_bytes": 0,
+                    "access": {
+                        "kind": "register_write",
+                        "width": None,
+                        "width_source": "instruction_size",
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    if mnemonic == "EXT, EXTB":
+        execution["operands"] = [
+            {
+                "index": 0,
+                "role": "source",
+                "usage": "read_modify_write",
+                "expected_kind": "dn",
+                "access": {
+                    "kind": "register_write",
+                    "width": 2,
+                    "width_source": None,
+                    "result_kind": "scalar",
+                },
+            },
+        ]
+        execution["unary"] = {
+            "sign_extend_source_bits": 8,
+        }
+        _merge_execution_form_overrides(execution, "0", {
+            "unary": {
+                "sign_extend_source_bits": 8,
+            },
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "read_modify_write",
+                    "access": {
+                        "kind": "register_write",
+                        "width": 2,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "1", {
+            "unary": {
+                "sign_extend_source_bits": 16,
+            },
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "read_modify_write",
+                    "access": {
+                        "kind": "register_write",
+                        "width": 4,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+        _merge_execution_form_overrides(execution, "2", {
+            "unary": {
+                "sign_extend_source_bits": 8,
+            },
+            "operands": [
+                {
+                    "index": 0,
+                    "role": "source",
+                    "usage": "read_modify_write",
+                    "access": {
+                        "kind": "register_write",
+                        "width": 4,
+                        "width_source": None,
+                        "result_kind": "scalar",
+                    },
+                },
+            ],
+        })
+    return execution
+
+
+def apply_execution_metadata(kb_data: list[JsonDict]) -> int:
+    """Phase 11b: derive normalized execution metadata from PDF-backed fields."""
+    count = 0
+    for inst in kb_data:
+        execution = _build_execution_metadata(inst)
+        if execution is None:
+            continue
+        inst["execution"] = execution
+        count += 1
+    return count
+
+
 def _extract_overflow_undefined_flags(inst: Any) -> Any:
     """Extract which CC flags are undefined on overflow from PDF CC text.
 
@@ -7031,6 +9337,11 @@ def main() -> None:
     print("Phase 11: Classifying operation types...")
     op_classified, nop_opword = apply_operation_types(kb_data)
     print(f"  Classified: {op_classified}/{len(kb_data)} instructions")
+
+    # Phase 11b: derive normalized execution metadata for downstream generators.
+    print("Phase 11b: Deriving execution metadata...")
+    execution_count = apply_execution_metadata(kb_data)
+    print(f"  Instructions with execution metadata: {execution_count}")
 
     # Phase 12: Build assembly syntax index for multi-word mnemonic resolution
     # When the PDF defines an instruction with a multi-word KB mnemonic

@@ -244,7 +244,7 @@ static int decode_index_extension(const uint8_t *data, size_t size, M68kAsmOpera
   operand->index_reg = (uint8_t)((ext >> M68K_ASM_BRIEF_EXT_REGISTER_BIT_LO) & 0x7U);
   operand->index_long = (uint8_t)((ext >> M68K_ASM_BRIEF_EXT_WL_BIT_LO) & 0x1U);
   operand->scale = (uint8_t)((ext >> M68K_ASM_BRIEF_EXT_SCALE_BIT_LO) & 0x3U);
-  operand->value = (uint32_t)(ext & 0xFFU);
+  operand->value = m68k_sign_extend32((uint32_t)(ext & 0xFFU), 8U);
   if (allow_full_extension && ((ext >> M68K_ASM_FULL_EXT_FORMAT_BIT_LO) & 0x1U) != 0U) {
     size_t remaining;
     operand->value = 0U;
@@ -254,7 +254,7 @@ static int decode_index_extension(const uint8_t *data, size_t size, M68kAsmOpera
     operand->full_ext_iis = (uint8_t)((ext >> M68K_ASM_FULL_EXT_IIS_BIT_LO) & 0x7U);
     if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_WORD) {
       if (offset + 2U > size) return -1;
-      operand->full_ext_base_disp_value = (uint32_t)read_u16be(data + offset);
+      operand->full_ext_base_disp_value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
       offset += 2U;
     } else if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_LONG) {
       if (offset + 4U > size) return -1;
@@ -264,7 +264,7 @@ static int decode_index_extension(const uint8_t *data, size_t size, M68kAsmOpera
     remaining = size - offset;
     if (remaining == 2U) {
       operand->full_ext_outer_disp_size = M68K_ASM_FULL_EXT_BD_WORD;
-      operand->full_ext_outer_disp_value = (uint32_t)read_u16be(data + offset);
+      operand->full_ext_outer_disp_value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
       offset += 2U;
     } else if (remaining == 4U) {
       operand->full_ext_outer_disp_size = M68K_ASM_FULL_EXT_BD_LONG;
@@ -633,8 +633,21 @@ static int format_bitfield_value(int is_register, int is_width, uint8_t value, c
     snprintf(out, out_size, "%u", display_value) >= 0 ? 0 : -1;
 }
 
+static int format_signed_hex_value(int32_t value, unsigned width, char *out, size_t out_size) {
+  if (value < 0) {
+    uint32_t magnitude = 0U - (uint32_t)value;
+    return width != 0U
+      ? snprintf(out, out_size, "-$%0*x", (int)width, (unsigned)magnitude) >= 0 ? 0 : -1
+      : snprintf(out, out_size, "-$%x", (unsigned)magnitude) >= 0 ? 0 : -1;
+  }
+  return width != 0U
+    ? snprintf(out, out_size, "$%0*x", (int)width, (unsigned)value) >= 0 ? 0 : -1
+    : snprintf(out, out_size, "$%x", (unsigned)value) >= 0 ? 0 : -1;
+}
+
 static int format_ea(const M68kAsmOperandValue *operand, char *out, size_t out_size) {
   char index_text[32];
+  char disp_text[24];
   char extra[64];
   if (operand == NULL || out == NULL || out_size == 0U) return -1;
   switch (operand->ea_mode) {
@@ -649,7 +662,8 @@ static int format_ea(const M68kAsmOperandValue *operand, char *out, size_t out_s
     case 4:
       return snprintf(out, out_size, "-(a%u)", operand->ea_reg) >= 0 ? 0 : -1;
     case 5:
-      return snprintf(out, out_size, "$%04x(a%u)", (unsigned)(operand->value & 0xFFFFU), operand->ea_reg) >= 0 ? 0 : -1;
+      if (format_signed_hex_value((int32_t)m68k_sign_extend32(operand->value, 16U), 4U, disp_text, sizeof(disp_text)) != 0) return -1;
+      return snprintf(out, out_size, "%s(a%u)", disp_text, operand->ea_reg) >= 0 ? 0 : -1;
     case 6:
       if (format_index_register(operand, index_text, sizeof(index_text)) != 0) return -1;
       extra[0] = '\0';
@@ -658,22 +672,33 @@ static int format_ea(const M68kAsmOperandValue *operand, char *out, size_t out_s
         if (m68k_appendf(extra, sizeof(extra), "{full") != 0) return -1;
         if (operand->full_ext_base_suppress != 0U && m68k_appendf(extra, sizeof(extra), ",bs") != 0) return -1;
         if (operand->full_ext_index_suppress != 0U && m68k_appendf(extra, sizeof(extra), ",is") != 0) return -1;
-        if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
-          m68k_appendf(extra, sizeof(extra), ",bdw=$%04x",
-          (unsigned)(operand->full_ext_base_disp_value & 0xFFFFU)) != 0) return -1;
-        if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
-          m68k_appendf(extra, sizeof(extra), ",bdl=$%08x", (unsigned)operand->full_ext_base_disp_value) != 0) return -1;
-        if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_WORD &&
-          m68k_appendf(extra, sizeof(extra), ",odw=$%04x",
-          (unsigned)(operand->full_ext_outer_disp_value & 0xFFFFU)) != 0) return -1;
-        if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_LONG &&
-          m68k_appendf(extra, sizeof(extra), ",odl=$%08x", (unsigned)operand->full_ext_outer_disp_value) != 0) return -1;
+        if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_WORD) {
+          if (format_signed_hex_value((int32_t)m68k_sign_extend32(operand->full_ext_base_disp_value, 16U), 4U,
+              disp_text, sizeof(disp_text)) != 0) return -1;
+          if (m68k_appendf(extra, sizeof(extra), ",bdw=%s", disp_text) != 0) return -1;
+        }
+        if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_LONG) {
+          if (format_signed_hex_value((int32_t)operand->full_ext_base_disp_value, 8U, disp_text, sizeof(disp_text)) != 0)
+            return -1;
+          if (m68k_appendf(extra, sizeof(extra), ",bdl=%s", disp_text) != 0) return -1;
+        }
+        if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_WORD) {
+          if (format_signed_hex_value((int32_t)m68k_sign_extend32(operand->full_ext_outer_disp_value, 16U), 4U,
+              disp_text, sizeof(disp_text)) != 0) return -1;
+          if (m68k_appendf(extra, sizeof(extra), ",odw=%s", disp_text) != 0) return -1;
+        }
+        if (operand->full_ext_outer_disp_size == M68K_ASM_FULL_EXT_BD_LONG) {
+          if (format_signed_hex_value((int32_t)operand->full_ext_outer_disp_value, 8U, disp_text, sizeof(disp_text)) != 0)
+            return -1;
+          if (m68k_appendf(extra, sizeof(extra), ",odl=%s", disp_text) != 0) return -1;
+        }
         if (operand->full_ext_iis != 0U && m68k_appendf(extra, sizeof(extra), ",iis=%u", operand->full_ext_iis) != 0) return -1;
         if (m68k_appendf(extra, sizeof(extra), "}") != 0) return -1;
         return snprintf(out, out_size, "$%x(a%u,%s)%s", 0u,
           operand->ea_reg, index_text, extra) >= 0 ? 0 : -1;
       }
-      return snprintf(out, out_size, "$%x(a%u,%s)", (unsigned)(operand->value & 0xFFU), operand->ea_reg, index_text) >= 0 ? 0 : -1;
+      if (format_signed_hex_value((int32_t)m68k_sign_extend32(operand->value, 8U), 0U, disp_text, sizeof(disp_text)) != 0) return -1;
+      return snprintf(out, out_size, "%s(a%u,%s)", disp_text, operand->ea_reg, index_text) >= 0 ? 0 : -1;
     case 7:
       switch (operand->ea_reg) {
         case 0:

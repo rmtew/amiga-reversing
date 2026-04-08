@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -64,3 +65,9 @@ class PlatformDiskCliTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def load_tests(loader, tests, pattern):
+    if os.environ.get("AMIGA_INCLUDE_HEAVY_UNIT_TESTS") == "1":
+        return tests
+    return unittest.TestSuite()

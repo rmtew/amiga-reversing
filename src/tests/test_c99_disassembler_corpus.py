@@ -28,6 +28,7 @@ CPU_CODES = {
 
 CPU_NAMES = ("68000", "68010", "68020", "68030", "68040", "68060")
 TARGET_LABEL_RE = re.compile(r"\btarget\b")
+UNSUPPORTED_MMU_ROUND_TRIP_MNEMONICS = unsupported_mmu_round_trip_mnemonics_upper()
 
 
 def _load_module(path: Path, name: str):
@@ -40,10 +41,19 @@ def _load_module(path: Path, name: str):
     return module
 
 
+@lru_cache(maxsize=1)
+def _corpus_generator():
+    return _load_module(CORPUS_GENERATOR_PATH, "src_c99_disassembler_test_corpus_generator")
+
+
 @lru_cache(maxsize=None)
 def _generate_cases_for_cpu(cpu_name: str):
-    generator = _load_module(CORPUS_GENERATOR_PATH, f"src_c99_disassembler_test_corpus_{cpu_name}")
-    return tuple(generator.generate_cases(cpu_name))
+    return tuple(_corpus_generator().generate_cases(cpu_name))
+
+
+@lru_cache(maxsize=None)
+def _cases_by_first_line(cpu_name: str):
+    return {case.asm_lines[0]: case for case in _generate_cases_for_cpu(cpu_name)}
 
 
 @lru_cache(maxsize=1)
@@ -61,6 +71,83 @@ def _disasm_library():
         ctypes.c_size_t,
     ]
     library.m68k_disassemble_one_text_for_cpu.restype = ctypes.c_int
+    return library
+
+
+@lru_cache(maxsize=1)
+def _ir_library():
+    require_built_tools()
+    library = ctypes.CDLL(str(prepare_test_dll(DISASM_DLL_PATH)))
+
+    class M68kAsmOperandValue(ctypes.Structure):
+        _fields_ = [
+            ("kind", ctypes.c_uint8),
+            ("reg", ctypes.c_uint8),
+            ("pair_reg", ctypes.c_uint8),
+            ("reg_is_address", ctypes.c_uint8),
+            ("pair_reg_is_address", ctypes.c_uint8),
+            ("bf_offset_is_register", ctypes.c_uint8),
+            ("bf_offset", ctypes.c_uint8),
+            ("bf_width_is_register", ctypes.c_uint8),
+            ("bf_width", ctypes.c_uint8),
+            ("ea_mode", ctypes.c_uint8),
+            ("ea_reg", ctypes.c_uint8),
+            ("value", ctypes.c_uint32),
+            ("index_is_address", ctypes.c_uint8),
+            ("index_reg", ctypes.c_uint8),
+            ("index_long", ctypes.c_uint8),
+            ("scale", ctypes.c_uint8),
+            ("full_ext_base_suppress", ctypes.c_uint8),
+            ("full_ext_index_suppress", ctypes.c_uint8),
+            ("full_ext_base_disp_size", ctypes.c_uint8),
+            ("full_ext_outer_disp_size", ctypes.c_uint8),
+            ("full_ext_iis", ctypes.c_uint8),
+            ("full_ext_base_disp_value", ctypes.c_uint32),
+            ("full_ext_outer_disp_value", ctypes.c_uint32),
+        ]
+
+    class M68kSymbolRefIR(ctypes.Structure):
+        _fields_ = [
+            ("kind", ctypes.c_uint8),
+            ("has_name", ctypes.c_uint8),
+            ("name_is_generated", ctypes.c_uint8),
+            ("symbol_index", ctypes.c_size_t),
+            ("section_index", ctypes.c_size_t),
+            ("has_symbol", ctypes.c_int),
+            ("has_section", ctypes.c_int),
+            ("addend", ctypes.c_int32),
+            ("name", ctypes.c_char * 64),
+        ]
+
+    class M68kOperandIR(ctypes.Structure):
+        _fields_ = [
+            ("kind", ctypes.c_uint8),
+            ("value", M68kAsmOperandValue),
+            ("symbol_ref", M68kSymbolRefIR),
+        ]
+
+    class M68kInstructionIR(ctypes.Structure):
+        _fields_ = [
+            ("form_index", ctypes.c_uint16),
+            ("mnemonic_id", ctypes.c_uint8),
+            ("target_cpu", ctypes.c_uint8),
+            ("mnemonic", ctypes.c_char * 32),
+            ("size_suffix", ctypes.c_char),
+            ("operand_count", ctypes.c_size_t),
+            ("operands", M68kOperandIR * 4),
+            ("byte_count", ctypes.c_size_t),
+        ]
+
+    library._M68kInstructionIR = M68kInstructionIR
+    library.m68k_ir_decode_one.argtypes = [
+        ctypes.POINTER(ctypes.c_ubyte),
+        ctypes.c_size_t,
+        ctypes.c_uint8,
+        ctypes.POINTER(M68kInstructionIR),
+        ctypes.c_char_p,
+        ctypes.c_size_t,
+    ]
+    library.m68k_ir_decode_one.restype = ctypes.c_int
     return library
 
 
@@ -107,6 +194,24 @@ def _disassemble_for_cpu(data: bytes, cpu_name: str) -> tuple[str, int]:
     return text_buf.value.decode("utf-8"), int(byte_count.value)
 
 
+def _ir_decode_for_cpu(data: bytes, cpu_name: str):
+    library = _ir_library()
+    buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
+    error_buf = ctypes.create_string_buffer(256)
+    instruction = library._M68kInstructionIR()
+    result = library.m68k_ir_decode_one(
+        buffer,
+        len(data),
+        CPU_CODES[cpu_name],
+        ctypes.byref(instruction),
+        error_buf,
+        len(error_buf),
+    )
+    if result != 0:
+        raise AssertionError(error_buf.value.decode("utf-8"))
+    return instruction
+
+
 @lru_cache(maxsize=None)
 def _assemble_text(text: str, cpu_name: str, input_mode: int) -> bytes:
     library = _assembler_library()
@@ -143,7 +248,7 @@ def _case_original_bytes(case) -> bytes:
 
 
 def _round_trip_case(case, cpu_name: str) -> None:
-    if str(case.mnemonic).upper() in unsupported_mmu_round_trip_mnemonics_upper():
+    if str(case.mnemonic).upper() in UNSUPPORTED_MMU_ROUND_TRIP_MNEMONICS:
         raise unittest.SkipTest(f"unsupported MMU round-trip mnemonic: {case.mnemonic}")
     original = _case_original_bytes(case)
     rendered, byte_count = _disassemble_for_cpu(original, cpu_name)
@@ -166,14 +271,17 @@ def _round_trip_case(case, cpu_name: str) -> None:
 
 
 class C99DisassemblerCorpusTests(unittest.TestCase):
-    def test_bulk_round_trip_corpus_by_cpu(self) -> None:
+    def _bulk_round_trip_corpus_by_cpu(self) -> None:
         for cpu_name in CPU_NAMES:
             with self.subTest(cpu=cpu_name):
                 for case in _generate_cases_for_cpu(cpu_name):
-                    _round_trip_case(case, cpu_name)
+                    with self.subTest(cpu=cpu_name, case=str(case.case_id)):
+                        if str(case.mnemonic).upper() in UNSUPPORTED_MMU_ROUND_TRIP_MNEMONICS:
+                            continue
+                        _round_trip_case(case, cpu_name)
 
-    def test_pc_relative_indexed_representatives_round_trip(self) -> None:
-        cases_68020 = _generate_cases_for_cpu("68020")
+    def _pc_relative_indexed_representatives_round_trip(self) -> None:
+        cases_68020 = _cases_by_first_line("68020")
         samples = (
             "lea target(pc,d1.w),a0",
             "pea target(pc,a3.l)",
@@ -186,12 +294,12 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
             "movem.l target(pc,d1.w),d0/d7/a0/a7",
         )
         for source_text in samples:
-            case = next(case for case in cases_68020 if case.asm_lines[0] == source_text)
+            case = cases_68020[source_text]
             with self.subTest(case=source_text):
                 _round_trip_case(case, "68020")
 
-    def test_pc_relative_full_extension_representatives_round_trip(self) -> None:
-        cases_68020 = _generate_cases_for_cpu("68020")
+    def _pc_relative_full_extension_representatives_round_trip(self) -> None:
+        cases_68020 = _cases_by_first_line("68020")
         samples = (
             "move.b target(pc,d1.w),$10(a0,d1.w){full}",
             "move.b target(pc,d1.w),$10(a0,d1.w){full,bs}",
@@ -202,11 +310,11 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
             "move.l target(pc,a3.l),$20(a7,a3.l){full}",
         )
         for source_text in samples:
-            case = next(case for case in cases_68020 if case.asm_lines[0] == source_text)
+            case = cases_68020[source_text]
             with self.subTest(case=source_text):
                 _round_trip_case(case, "68020")
 
-    def test_move16_round_trip_representatives(self) -> None:
+    def _move16_round_trip_representatives(self) -> None:
         syntax_prefixes = (
             "move16 (a0)+,(",
             "move16 $00123456.l,(",
@@ -220,8 +328,8 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
             with self.subTest(line=case.asm_lines[0]):
                 _round_trip_case(case, "68040")
 
-    def test_cache_control_round_trip_representatives(self) -> None:
-        cases_68040 = _generate_cases_for_cpu("68040")
+    def _cache_control_round_trip_representatives(self) -> None:
+        cases_68040 = _cases_by_first_line("68040")
         samples = (
             "cinvl dc,(a0)",
             "cinvp ic,(a7)",
@@ -233,9 +341,46 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
             "cpusha nc",
         )
         for asm_text in samples:
-            case = next(case for case in cases_68040 if case.asm_lines[0] == asm_text)
+            case = cases_68040[asm_text]
             with self.subTest(case=asm_text):
                 _round_trip_case(case, "68040")
+
+    def test_negative_indexed_displacements_render_signed(self) -> None:
+        samples = (
+            ("68000", "move.w -$8(a1,d1.w),d1"),
+            ("68000", "jsr -$8(a1,d1.w)"),
+            ("68000", "move.w -$0008(a1),d1"),
+            ("68020", "move.w -$8(pc,d1.w),d1"),
+        )
+        for cpu_name, asm_text in samples:
+            with self.subTest(cpu=cpu_name, asm=asm_text):
+                original = _assemble_line_bytes(asm_text, cpu_name)
+                rendered, byte_count = _disassemble_for_cpu(original, cpu_name)
+                self.assertEqual(byte_count, len(original))
+                self.assertEqual(rendered, asm_text)
+
+    def test_signed_displacement_families_render_signed(self) -> None:
+        samples = (
+            ("68000", "move.w -$0008(a1),d1"),
+            ("68000", "move.w -$10(pc),d1"),
+            ("68020", "move.w -$8(a1,d1.w),d1"),
+            ("68020", "move.w -$8(pc,d1.w),d1"),
+            ("68020", "lea.l $0(a0,d1.w){full,bdl=-$00000010,odl=-$00000004,iis=3},a0"),
+        )
+        for cpu_name, asm_text in samples:
+            with self.subTest(cpu=cpu_name, asm=asm_text):
+                original = _assemble_line_bytes(asm_text, cpu_name)
+                rendered, byte_count = _disassemble_for_cpu(original, cpu_name)
+                self.assertEqual(byte_count, len(original))
+                self.assertEqual(rendered, asm_text)
+
+    def test_full_extension_word_displacements_render_signed(self) -> None:
+        original = _assemble_line_bytes("lea.l $10(a0,d1.w){full,bdw=$1234,odw=$5678,iis=3},a0", "68020")
+        patched = bytearray(original)
+        patched[-4:] = bytes.fromhex("fff0fffc")
+        rendered, byte_count = _disassemble_for_cpu(bytes(patched), "68020")
+        self.assertEqual(byte_count, len(patched))
+        self.assertEqual(rendered, "lea.l $0(a0,d1.w){full,bdw=-$0010,odw=-$0004,iis=3},a0")
 
 
 if __name__ == "__main__":

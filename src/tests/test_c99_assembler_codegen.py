@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import unittest
 from functools import lru_cache
@@ -769,3 +770,21 @@ class C99AssemblerCodegenTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def load_tests(loader, tests, pattern):
+    if os.environ.get("AMIGA_INCLUDE_EXPLICIT_TESTS") == "1":
+        return tests
+    suite = unittest.TestSuite()
+
+    def append_filtered(test):
+        if isinstance(test, unittest.TestSuite):
+          for item in test:
+            append_filtered(item)
+          return
+        if getattr(test, "_testMethodName", "") == "test_generated_files_match_checked_in_src":
+          return
+        suite.addTest(test)
+
+    append_filtered(tests)
+    return suite

@@ -4,24 +4,18 @@
 #include "platform_common.h"
 
 #include <stdio.h>
+#include <string.h>
 
-static int append_rendered_string_bytes(JsonBuilder *builder,
-                                        const uint8_t *data, size_t size) {
+static int append_rendered_string_bytes(JsonBuilder *builder, const uint8_t *data, size_t size) {
   size_t index;
-  if (json_builder_append(builder, "\"") != 0)
-    return -1;
+  if (json_builder_append(builder, "\"") != 0) return -1;
   for (index = 0; index < size; ++index) {
     unsigned char ch = data[index];
     if (ch == '"' || ch == '\\') {
-      if (json_builder_appendf(builder, "\\%c", ch) != 0)
-        return -1;
+      if (json_builder_appendf(builder, "\\%c", ch) != 0) return -1;
     } else if (ch >= 32U && ch <= 126U) {
-      if (json_builder_appendf(builder, "%c", ch) != 0)
-        return -1;
-    } else {
-      if (json_builder_appendf(builder, "\\x%02x", (unsigned)ch) != 0)
-        return -1;
-    }
+      if (json_builder_appendf(builder, "%c", ch) != 0) return -1;
+    } else if (json_builder_appendf(builder, "\\x%02x", (unsigned)ch) != 0) return -1;
   }
   return json_builder_append(builder, "\"");
 }
@@ -30,27 +24,18 @@ static int data_string_is_plain_renderable(const uint8_t *data, size_t size) {
   size_t index;
   for (index = 0; index < size; ++index) {
     unsigned char ch = data[index];
-    if (ch == '"' || ch == '\\')
-      return 0;
+    if (ch == '"' || ch == '\\') return 0;
   }
   return 1;
 }
 
-static int append_rendered_data_stmt(JsonBuilder *builder,
-                                     const M68kDataItemIR *data,
-                                     const M68kRenderPolicy *policy) {
+static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR *data, const M68kRenderPolicy *policy) {
   size_t index;
-  const char *directive = (data->kind == M68K_DATA_ITEM_WORDS)   ? "DC.W"
-                          : (data->kind == M68K_DATA_ITEM_LONGS) ? "DC.L"
-                                                                 : "DC.B";
-  size_t step = (data->kind == M68K_DATA_ITEM_WORDS)   ? 2U
-                : (data->kind == M68K_DATA_ITEM_LONGS) ? 4U
-                                                       : 1U;
-  size_t items_per_line = (data->kind == M68K_DATA_ITEM_LONGS) ? 8U
-                          : (data->kind == M68K_DATA_ITEM_WORDS) ? 12U
-                                                                 : 16U;
-  if (data->kind == M68K_DATA_ITEM_STRING &&
-      (policy == NULL || policy->presentation.prefer_strings != 0U) &&
+  const char *directive = (data->kind == M68K_DATA_ITEM_WORDS) ? "DC.W" : (data->kind == M68K_DATA_ITEM_LONGS) ? "DC.L"
+    : "DC.B";
+  size_t step = (data->kind == M68K_DATA_ITEM_WORDS)   ? 2U : (data->kind == M68K_DATA_ITEM_LONGS) ? 4U : 1U;
+  size_t items_per_line = (data->kind == M68K_DATA_ITEM_LONGS) ? 8U : (data->kind == M68K_DATA_ITEM_WORDS) ? 12U : 16U;
+  if (data->kind == M68K_DATA_ITEM_STRING && (policy == NULL || policy->presentation.prefer_strings != 0U) &&
       data_string_is_plain_renderable(data->data, data->size)) {
     size_t string_size = data->size;
     int has_trailing_nul = 0;
@@ -63,59 +48,46 @@ static int append_rendered_data_stmt(JsonBuilder *builder,
     if (has_trailing_nul && json_builder_append(builder, ",0") != 0) return -1;
     return json_builder_append(builder, "\n");
   }
-  if (data->expr_text != NULL && data->expr_text[0] != '\0') {
+  if (data->expr_text != NULL && data->expr_text[0] != '\0')
     return json_builder_appendf(builder, "    %-7s %s\n", directive, data->expr_text);
-  }
   if (data->kind == M68K_DATA_ITEM_STRING) {
     directive = "DC.B";
     step = 1U;
   }
-  if (data->kind == M68K_DATA_ITEM_LONGS && policy != NULL &&
-      policy->presentation.prefer_long_data == 0U) {
+  if (data->kind == M68K_DATA_ITEM_LONGS && policy != NULL && policy->presentation.prefer_long_data == 0U) {
     directive = "DC.B";
     step = 1U;
     items_per_line = 16U;
   }
   for (index = 0; index < data->size; index += step) {
     if ((index / step) % items_per_line == 0U) {
-      if (index != 0U && json_builder_append(builder, "\n") != 0)
-        return -1;
-      if (json_builder_appendf(builder, "    %-7s ", directive) != 0)
-        return -1;
+      if (index != 0U && json_builder_append(builder, "\n") != 0) return -1;
+      if (json_builder_appendf(builder, "    %-7s ", directive) != 0) return -1;
     } else if (json_builder_append(builder, ",") != 0) {
       return -1;
     }
     if (step == 1U) {
-      if (json_builder_appendf(builder, "$%02x", (unsigned)data->data[index]) !=
-          0)
-        return -1;
+      if (json_builder_appendf(builder, "$%02x", (unsigned)data->data[index]) != 0) return -1;
     } else if (step == 2U) {
-      uint16_t value = (uint16_t)(((uint16_t)data->data[index] << 8) |
-                                  data->data[index + 1U]);
-      if (json_builder_appendf(builder, "$%04x", (unsigned)value) != 0)
-        return -1;
+      uint16_t value = (uint16_t)(((uint16_t)data->data[index] << 8) | data->data[index + 1U]);
+      if (json_builder_appendf(builder, "$%04x", (unsigned)value) != 0) return -1;
     } else {
-      uint32_t value = ((uint32_t)data->data[index] << 24) |
-                       ((uint32_t)data->data[index + 1U] << 16) |
-                       ((uint32_t)data->data[index + 2U] << 8) |
-                       (uint32_t)data->data[index + 3U];
-      if (json_builder_appendf(builder, "$%08x", (unsigned)value) != 0)
-        return -1;
+      uint32_t value = ((uint32_t)data->data[index] << 24) | ((uint32_t)data->data[index + 1U] << 16) |
+                       ((uint32_t)data->data[index + 2U] << 8) | (uint32_t)data->data[index + 3U];
+      if (json_builder_appendf(builder, "$%08x", (unsigned)value) != 0) return -1;
     }
   }
   return json_builder_append(builder, "\n");
 }
 
 static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR *stmt) {
-  if (stmt == NULL || stmt->comment == NULL || stmt->comment[0] == '\0')
-    return json_builder_append(builder, "\n");
+  if (stmt == NULL || stmt->comment == NULL || stmt->comment[0] == '\0') return json_builder_append(builder, "\n");
+  if (strstr(stmt->comment, "CANDIDATE:") != NULL) return json_builder_appendf(builder, " ; %s\n", stmt->comment);
   return json_builder_appendf(builder, " ; VIOLATION: %s\n", stmt->comment);
 }
 
-int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file,
-                                           const M68kRenderPolicy *policy,
-                                           char **out_text, char *out_error,
-                                           size_t out_error_size) {
+int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
+    char **out_text, char *out_error, size_t out_error_size) {
   JsonBuilder builder = {0};
   size_t section_index;
   M68kRenderPolicy default_policy;
@@ -129,54 +101,36 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file,
     active_policy = &default_policy;
   }
   if (source_file->has_atari_st_program_flags != 0U &&
-      json_builder_appendf(&builder, "    COMMENT HEAD=$%x\n",
-                           (unsigned)source_file->atari_st_program_flags) != 0)
+      json_builder_appendf(&builder, "    COMMENT HEAD=$%x\n", (unsigned)source_file->atari_st_program_flags) != 0)
     goto oom;
-  for (section_index = 0; section_index < source_file->section_count;
-       ++section_index) {
+  for (section_index = 0; section_index < source_file->section_count; ++section_index) {
     const M68kSectionIR *section = &source_file->sections[section_index];
     size_t stmt_index;
-    const char *section_name =
-        (section->name != NULL && section->name[0] != '\0') ? section->name
-                                                            : "section";
+    const char *section_name = (section->name != NULL && section->name[0] != '\0') ? section->name : "section";
     const char *section_kind = (section->kind == M68K_SECTION_CODE)   ? "code"
-                               : (section->kind == M68K_SECTION_DATA) ? "data"
-                                                                      : "bss";
-    if (json_builder_appendf(&builder, "    SECTION %s,%s\n", section_name,
-                             section_kind) != 0)
-      goto oom;
+      : (section->kind == M68K_SECTION_DATA) ? "data" : "bss";
+    if (json_builder_appendf(&builder, "    SECTION %s,%s\n", section_name, section_kind) != 0) goto oom;
     for (stmt_index = 0; stmt_index < section->statement_count; ++stmt_index) {
       const M68kStatementIR *stmt = &section->statements[stmt_index];
       if (stmt->kind == M68K_STATEMENT_LABEL) {
-        if (json_builder_appendf(&builder, "%s:\n",
-                                 stmt->label_name != NULL ? stmt->label_name
-                                                          : "label") != 0)
+        if (json_builder_appendf(&builder, "%s:\n", stmt->label_name != NULL ? stmt->label_name : "label") != 0)
           goto oom;
       } else if (stmt->kind == M68K_STATEMENT_ALIGN) {
-        if (json_builder_append(&builder, "    EVEN\n") != 0)
-          goto oom;
+        if (json_builder_append(&builder, "    EVEN\n") != 0) goto oom;
       } else if (stmt->kind == M68K_STATEMENT_INSTRUCTION) {
         char text[256];
-        if (m68k_ir_render_one_with_policy(&stmt->u.instruction, active_policy,
-                                           text, sizeof(text), out_error,
-                                           out_error_size) != 0) {
+        if (m68k_ir_render_one_with_policy(&stmt->u.instruction, active_policy, text, sizeof(text), out_error,
+            out_error_size) != 0) {
           json_builder_free(&builder);
           return -1;
         }
-        if (json_builder_appendf(&builder, "    %s", text) != 0)
-          goto oom;
-        if (append_statement_comment(&builder, stmt) != 0)
-          goto oom;
+        if (json_builder_appendf(&builder, "    %s", text) != 0) goto oom;
+        if (append_statement_comment(&builder, stmt) != 0) goto oom;
       } else if (stmt->kind == M68K_STATEMENT_DATA) {
-        if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy) !=
-            0)
-          goto oom;
+        if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy) != 0) goto oom;
         if (stmt->comment != NULL && stmt->comment[0] != '\0') {
-          if (builder.size != 0U && builder.data[builder.size - 1U] == '\n') {
-            builder.data[--builder.size] = '\0';
-          }
-          if (append_statement_comment(&builder, stmt) != 0)
-            goto oom;
+          if (builder.size != 0U && builder.data[builder.size - 1U] == '\n') builder.data[--builder.size] = '\0';
+          if (append_statement_comment(&builder, stmt) != 0) goto oom;
         }
       }
     }

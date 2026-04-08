@@ -1,4 +1,5 @@
 #include "m68k_instruction_spec.h"
+#include "m68k_simulator.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -34,6 +35,78 @@ uint16_t m68k_reverse_reglist_mask(uint16_t mask) {
     reversed |= (uint16_t)(1U << (15U - bit));
   }
   return reversed;
+}
+
+int m68k_instruction_operand_supports_decoded_ea_target(const M68kOperandIR *operand) {
+  if (operand == NULL) return 0;
+  return operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_IND ||
+    operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_ABSL ||
+    operand->kind == M68K_ASM_OPERAND_BF_EA;
+}
+
+uint8_t m68k_instruction_operand_decoded_ea_shape(const M68kOperandIR *operand) {
+  if (!m68k_instruction_operand_supports_decoded_ea_target(operand)) return M68K_SIM_EA_SHAPE_NONE;
+  if (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) {
+    if (operand->value.ea_mode == 7U && operand->value.ea_reg == 0U) return M68K_SIM_EA_SHAPE_ABSOLUTE_WORD;
+    if (operand->value.ea_mode == 7U && operand->value.ea_reg == 1U) return M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
+    if (operand->value.ea_mode == 7U && operand->value.ea_reg == 2U) return M68K_SIM_EA_SHAPE_PC_DISPLACEMENT;
+    if (operand->value.ea_mode == 7U && operand->value.ea_reg == 3U) return M68K_SIM_EA_SHAPE_PC_INDEX;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_ABSL) return M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
+  if (operand->kind == M68K_ASM_OPERAND_IND) return M68K_SIM_EA_SHAPE_INDIRECT;
+  if (operand->kind == M68K_ASM_OPERAND_POSTINC) return M68K_SIM_EA_SHAPE_POSTINCREMENT;
+  return M68K_SIM_EA_SHAPE_NONE;
+}
+
+uint8_t m68k_instruction_decoded_ea_target_kind(const M68kOperandIR *operand, uint8_t ea_shape,
+    int include_pc_index) {
+  if (!m68k_instruction_operand_supports_decoded_ea_target(operand)) return 0U;
+  if (ea_shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD || ea_shape == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG) return 1U;
+  if (ea_shape == M68K_SIM_EA_SHAPE_PC_DISPLACEMENT ||
+      (include_pc_index && ea_shape == M68K_SIM_EA_SHAPE_PC_INDEX)) {
+    return 2U;
+  }
+  return 0U;
+}
+
+int m68k_instruction_decoded_ea_target(const M68kOperandIR *operand, uint8_t ea_shape, uint32_t pc_base,
+    uint32_t section_size, int include_pc_index, uint32_t *out_target) {
+  if (operand == NULL || out_target == NULL || !m68k_instruction_operand_supports_decoded_ea_target(operand))
+    return 0;
+  if (m68k_instruction_decoded_ea_target_kind(operand, ea_shape, include_pc_index) == 1U) {
+    *out_target = operand->value.value;
+    return *out_target < section_size;
+  }
+  if (m68k_instruction_decoded_ea_target_kind(operand, ea_shape, include_pc_index) == 2U) {
+    *out_target = (uint32_t)((int32_t)pc_base + (int32_t)operand->value.value);
+    return *out_target < section_size;
+  }
+  return 0;
+}
+
+int m68k_instruction_operand_direct_register(const M68kOperandIR *operand, uint8_t *is_address, uint8_t *reg) {
+  if (operand == NULL || is_address == NULL || reg == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_DN) {
+    *is_address = 0U;
+    *reg = operand->value.reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_AN) {
+    *is_address = 1U;
+    *reg = operand->value.reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_RN) {
+    *is_address = operand->value.reg_is_address;
+    *reg = operand->value.reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode <= 1U) {
+    *is_address = operand->value.ea_mode == 1U;
+    *reg = operand->value.ea_reg;
+    return 1;
+  }
+  return 0;
 }
 
 void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR *out_instruction) {

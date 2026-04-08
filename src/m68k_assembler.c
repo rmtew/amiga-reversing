@@ -235,6 +235,8 @@ static int m68k_asm_operand_matches_kind(const M68kAsmOperandValue *operand, uin
       return operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 2;
     case M68K_ASM_OPERAND_POSTINC:
       return operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 3;
+    case M68K_ASM_OPERAND_PREDEC:
+      return operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 4;
     case M68K_ASM_OPERAND_ABSL:
       return operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7 && operand->ea_reg == 1;
     case M68K_ASM_OPERAND_BF_EA:

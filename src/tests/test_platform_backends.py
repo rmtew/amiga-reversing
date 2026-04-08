@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 from pathlib import Path
 
@@ -173,3 +174,9 @@ class PlatformBackendTests(PlatformBackendTestCaseMixin, unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def load_tests(loader, tests, pattern):
+    if os.environ.get("AMIGA_INCLUDE_HEAVY_UNIT_TESTS") == "1":
+        return tests
+    return unittest.TestSuite()

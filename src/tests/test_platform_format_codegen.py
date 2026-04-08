@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -160,3 +161,25 @@ class PlatformFormatCodegenTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def load_tests(loader, tests, pattern):
+    if os.environ.get("AMIGA_INCLUDE_EXPLICIT_TESTS") == "1":
+        return tests
+    suite = unittest.TestSuite()
+    skipped = {
+        "test_generated_outputs_match_checked_in_files",
+        "test_generated_runtime_sources_pass_style_checker",
+    }
+
+    def append_filtered(test):
+        if isinstance(test, unittest.TestSuite):
+          for item in test:
+            append_filtered(item)
+          return
+        if getattr(test, "_testMethodName", "") in skipped:
+          return
+        suite.addTest(test)
+
+    append_filtered(tests)
+    return suite
