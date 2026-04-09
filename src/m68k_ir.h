@@ -163,7 +163,8 @@ typedef struct M68kCfgEdgeIR {
 typedef enum M68kViolationKind {
   M68K_VIOLATION_CPU_POLICY = 1,
   M68K_VIOLATION_DECODE_FAILED_REACHABLE = 2,
-  M68K_VIOLATION_INVALID_INTERIOR_REFERENCE = 3
+  M68K_VIOLATION_INVALID_INTERIOR_REFERENCE = 3,
+  M68K_VIOLATION_UNRESOLVED_INDIRECT = 4
 } M68kViolationKind;
 
 typedef struct M68kViolationIR {
@@ -180,6 +181,13 @@ typedef struct M68kSectionAnalysisIR {
   uint8_t *certain_code_start;
   uint8_t *certain_code_byte;
   size_t certain_code_size;
+  uint8_t *generated_label_kinds;
+  uint8_t *generated_label_flags;
+  size_t generated_label_size;
+  char **word_exprs;
+  size_t word_expr_count;
+  char **long_exprs;
+  size_t long_expr_count;
   uint32_t *label_offsets;
   size_t label_count;
   size_t label_capacity;
@@ -223,6 +231,10 @@ void m68k_ir_section_analysis_init(M68kSectionAnalysisIR *section_analysis);
 void m68k_ir_section_analysis_free(M68kSectionAnalysisIR *section_analysis);
 int m68k_ir_section_analysis_set_code_map(M68kSectionAnalysisIR *section_analysis, const uint8_t *code_start,
   const uint8_t *code_byte, size_t size);
+int m68k_ir_section_analysis_set_generated_labels(M68kSectionAnalysisIR *section_analysis, const uint8_t *label_kinds,
+  const uint8_t *label_flags, size_t size);
+int m68k_ir_section_analysis_set_word_exprs(M68kSectionAnalysisIR *section_analysis, char *const *word_exprs, size_t count);
+int m68k_ir_section_analysis_set_long_exprs(M68kSectionAnalysisIR *section_analysis, char *const *long_exprs, size_t count);
 int m68k_ir_section_analysis_add_label(M68kSectionAnalysisIR *section_analysis, uint32_t offset);
 int m68k_ir_section_analysis_append_block(M68kSectionAnalysisIR *section_analysis, const M68kCfgBlockIR *block);
 int m68k_ir_section_analysis_append_edge(M68kSectionAnalysisIR *section_analysis, const M68kCfgEdgeIR *edge);
