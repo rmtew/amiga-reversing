@@ -500,6 +500,7 @@ typedef enum GeneratedLabelKind {
 
 static GeneratedLabelKind effective_label_kind(uint32_t offset, GeneratedLabelKind kind,
     const M68kSectionAnalysisIR *section_analysis);
+static int section_analysis_has_block_start(const M68kSectionAnalysisIR *section_analysis, uint32_t offset);
 
 static void analysis_remove_label_range(M68kSectionAnalysisIR *section_analysis, uint32_t start_offset,
     uint32_t end_offset) {
@@ -650,6 +651,7 @@ static int instruction_render_operand_target(const M68kInstructionIR *instructio
     uint8_t operand_index, uint32_t offset, uint32_t section_size, uint32_t *out_target) {
   const M68kOperandIR *operand;
   uint8_t formula;
+  uint8_t pc_bias;
   if (instruction == NULL || metadata == NULL || out_target == NULL || operand_index >= instruction->operand_count) return 0;
   operand = &instruction->operands[operand_index];
   formula = metadata->operand_ea_address_formulas[operand_index];
@@ -657,15 +659,21 @@ static int instruction_render_operand_target(const M68kInstructionIR *instructio
       metadata->operand_ea_displacement_sources[operand_index] == M68K_SIM_EA_DISP_OPERAND_VALUE &&
       metadata->operand_ea_uses_displacement[operand_index] &&
       !metadata->operand_ea_uses_index[operand_index]) {
-    *out_target = (uint32_t)((int32_t)(offset + (uint32_t)instruction->byte_count) + (int32_t)operand->value.value);
+    pc_bias = metadata->operand_ea_pc_base_bias_bytes[operand_index] != 0U
+      ? metadata->operand_ea_pc_base_bias_bytes[operand_index]
+      : 2U;
+    *out_target = (uint32_t)((int32_t)offset + (int32_t)pc_bias + (int32_t)operand->value.value);
     return *out_target < section_size;
   }
   if (formula == M68K_SIM_EA_FORMULA_DECODED_EA &&
       metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
       metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_ADDRESS) {
+    pc_bias = metadata->operand_ea_pc_base_bias_bytes[operand_index] != 0U
+      ? metadata->operand_ea_pc_base_bias_bytes[operand_index]
+      : 2U;
     return m68k_instruction_decoded_ea_target(operand,
       instruction_effective_ea_shape(metadata, instruction, operand_index),
-      offset + (uint32_t)instruction->byte_count, section_size, 1, out_target);
+      offset + (uint32_t)pc_bias, section_size, 1, out_target);
   }
   if (instruction_metadata_operand_target(instruction, metadata, operand_index, offset, section_size, out_target)) return 1;
   return 0;
@@ -1053,7 +1061,7 @@ static int build_generated_label_kinds(const M68kSection *section, const M68kAna
     const M68kSimFormMetadata *metadata;
     char error[128];
     size_t operand_index;
-    if (section_analysis->certain_code_start[offset] == 0U) continue;
+    if (!section_analysis_has_block_start(section_analysis, (uint32_t)offset)) continue;
     int decode_result = decode_instruction_with_policy( section->data + offset, section->data_size - offset,
         (uint32_t)offset, analysis_policy, findings, &instruction, error, sizeof(error));
     if (decode_result < 0) return -1;
@@ -1081,6 +1089,11 @@ static int build_generated_label_kinds(const M68kSection *section, const M68kAna
           if (label_flags != NULL) label_flags[base] = 1U;
           continue;
         }
+        if (base == target) {
+          update_generated_label_kind(label_kinds, section->data_size, target, GENERATED_LABEL_LOC);
+          if (label_flags != NULL) label_flags[target] = 1U;
+          continue;
+        }
       } else if (!instruction_metadata_operand_target(&instruction, metadata, (uint8_t)operand_index, (uint32_t)offset,
             section->data_size, &target)) {
         continue;
@@ -1096,6 +1109,7 @@ static int build_generated_label_kinds(const M68kSection *section, const M68kAna
 }
 
 static uint32_t find_enclosing_code_start(const M68kSectionAnalysisIR *section_analysis, uint32_t offset);
+static int section_analysis_has_block_start(const M68kSectionAnalysisIR *section_analysis, uint32_t offset);
 static int append_statement_violation_comment(char *buf, size_t buf_size, const char *message);
 
 static int scan_interior_pc_relative_refs(const M68kSection *section, const M68kAnalysisPolicy *analysis_policy,
@@ -1110,7 +1124,7 @@ static int scan_interior_pc_relative_refs(const M68kSection *section, const M68k
     const M68kSimFormMetadata *metadata;
     char error[128];
     size_t operand_index;
-    if (section_analysis->certain_code_start[offset] == 0U) continue;
+    if (!section_analysis_has_block_start(section_analysis, (uint32_t)offset)) continue;
     if (decode_instruction_with_policy(section->data + offset, section->data_size - offset, (uint32_t)offset,
           analysis_policy, findings, &instruction, error, sizeof(error)) <= 0)
       continue;
@@ -1351,6 +1365,11 @@ static int offset_decodes_as_instruction(const M68kSection *section, uint32_t ta
   return decode_result > 0 && instruction.byte_count != 0U && target + instruction.byte_count <= section->data_size;
 }
 
+static int analysis_has_code_start_at(const M68kSectionAnalysisIR *section_analysis, uint32_t target_offset) {
+  return section_analysis != NULL && section_analysis->certain_code_start != NULL &&
+    target_offset < section_analysis->section_size && section_analysis->certain_code_start[target_offset] != 0U;
+}
+
 static int recover_brief_word_offset_dispatch_targets(const M68kSection *section, const SectionDiscoveryMap *discovery,
     const M68kInstructionIR *instruction, const M68kInstructionIR *prev_instruction,
     const M68kInstructionIR *prev_prev_instruction, const M68kSimCpuState *state,
@@ -1446,6 +1465,22 @@ static int build_relative_word_expr(char *out_expr, size_t out_expr_size, uint32
   return 0;
 }
 
+static int build_literal_word_expr(char *out_expr, size_t out_expr_size, uint16_t value) {
+  if (out_expr == NULL || out_expr_size == 0U) return -1;
+  snprintf(out_expr, out_expr_size, "$%04X", (unsigned)value);
+  return 0;
+}
+
+static int parse_relative_word_expr_targets(const char *expr, uint32_t *out_target, uint32_t *out_base) {
+  unsigned target = 0U;
+  unsigned base = 0U;
+  if (expr == NULL || out_target == NULL || out_base == NULL) return 0;
+  if (sscanf(expr, "%*[^_]_%x-%*[^_]_%x", &target, &base) != 2) return 0;
+  *out_target = (uint32_t)target;
+  *out_base = (uint32_t)base;
+  return 1;
+}
+
 static int build_word_offset_dispatch_exprs(const M68kSection *section, const M68kSectionAnalysisIR *section_analysis,
     const M68kAnalysisPolicy *analysis_policy, GeneratedLabelKind *label_kinds, size_t label_kind_count,
     uint8_t *generated_label_flags, const M68kPresentationPolicy *presentation, char **out_word_exprs) {
@@ -1476,6 +1511,7 @@ static int build_word_offset_dispatch_exprs(const M68kSection *section, const M6
         int32_t target_disp;
         int32_t table_offset;
         uint32_t base_target, table_base, cursor, max_scan;
+        uint32_t emit_scan_limit = 0U;
         int found = 0;
         int invalid_run = 0;
         if (metadata != NULL && metadata->target_operand_index < instruction.operand_count) {
@@ -1492,24 +1528,35 @@ static int build_word_offset_dispatch_exprs(const M68kSection *section, const M6
               add_signed_offset_local(base_target, table_offset, (uint32_t)section->data_size, &table_base)) {
             max_scan = section->data_size - table_base;
             if (max_scan > 512U) max_scan = 512U;
-            for (cursor = 0U; cursor + 2U <= max_scan; cursor += 2U) {
+            emit_scan_limit = max_scan;
+            for (cursor = 0U; cursor + 2U <= emit_scan_limit; cursor += 2U) {
               uint32_t target;
               int16_t entry_offset = (int16_t)read_be_u16_local(section->data + table_base + cursor);
-              char expr[80];
               target = (uint32_t)((int32_t)base_target + (int32_t)entry_offset);
-              if (target >= section_analysis->section_size || section_analysis->certain_code_start[target] == 0U) {
+              if (!analysis_has_code_start_at(section_analysis, target)) {
                 if (found != 0 && ++invalid_run >= 4) break;
                 continue;
               }
-              if (build_relative_word_expr(expr, sizeof(expr), table_base, target, label_kinds, label_kind_count,
-                    section_analysis, generated_label_flags, presentation) != 0) {
-                return -1;
-              }
-              free(out_word_exprs[table_base + cursor]);
-              out_word_exprs[table_base + cursor] = _strdup(expr);
-              if (out_word_exprs[table_base + cursor] == NULL) return -1;
               found = 1;
               invalid_run = 0;
+            }
+            if (found != 0) {
+              if (cursor < emit_scan_limit) emit_scan_limit = cursor;
+              for (cursor = 0U; cursor < emit_scan_limit; cursor += 2U) {
+                char expr[80];
+                uint32_t target;
+                int16_t entry_offset = (int16_t)read_be_u16_local(section->data + table_base + cursor);
+                target = (uint32_t)((int32_t)base_target + (int32_t)entry_offset);
+                if (!analysis_has_code_start_at(section_analysis, target))
+                  continue;
+                if (build_relative_word_expr(expr, sizeof(expr), base_target, target, label_kinds,
+                      label_kind_count, section_analysis, generated_label_flags, presentation) != 0) {
+                  return -1;
+                }
+                free(out_word_exprs[table_base + cursor]);
+                out_word_exprs[table_base + cursor] = _strdup(expr);
+                if (out_word_exprs[table_base + cursor] == NULL) return -1;
+              }
             }
           }
         }
@@ -1909,6 +1956,26 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
       }
     }
   }
+  {
+    size_t write_index = 0U;
+    for (block_index = 0; block_index < out_analysis->block_count; ++block_index) {
+      M68kCfgBlockIR *block = &out_analysis->blocks[block_index];
+      size_t read_start = block->edge_start;
+      size_t read_end = block->edge_start + block->edge_count;
+      size_t kept = 0U;
+      block->edge_start = write_index;
+      while (read_start < read_end) {
+        M68kCfgEdgeIR edge = out_analysis->edges[read_start++];
+        if (edge.target_offset != UINT32_MAX && edge.target_block_index == SIZE_MAX) {
+          continue;
+        }
+        out_analysis->edges[write_index++] = edge;
+        ++kept;
+      }
+      block->edge_count = kept;
+    }
+    out_analysis->edge_count = write_index;
+  }
   if (object->platform_file_kind == M68K_PLATFORM_FILE_EXECUTABLE) {
     if (prune_disconnected_blocks(out_analysis, &discovery) != 0)
       goto fail;
@@ -1953,7 +2020,7 @@ static int analysis_has_label(const M68kSectionAnalysisIR *section_analysis, uin
 
 static int section_has_any_label(const M68kSectionAnalysisIR *section_analysis, const uint8_t *generated_label_flags,
     size_t generated_label_count, uint32_t offset) {
-  if (analysis_has_label(section_analysis, offset)) return 1;
+  if (offset == 0U && section_analysis_has_block_start(section_analysis, offset)) return 1;
   return generated_label_flags != NULL && offset < generated_label_count && generated_label_flags[offset] != 0U;
 }
 
@@ -1998,12 +2065,20 @@ static void collect_section_violation_comments(const M68kSectionAnalysisIR *sect
 
 static GeneratedLabelKind effective_label_kind(uint32_t offset, GeneratedLabelKind kind,
     const M68kSectionAnalysisIR *section_analysis) {
-  if (section_analysis != NULL && section_analysis->certain_code_start != NULL &&
-      offset < section_analysis->certain_code_size && section_analysis->certain_code_start[offset] != 0U &&
-      kind != GENERATED_LABEL_SUB) {
+  if (kind == GENERATED_LABEL_DAT) return kind;
+  if (section_analysis_has_block_start(section_analysis, offset) && kind != GENERATED_LABEL_SUB) {
     return GENERATED_LABEL_LOC;
   }
   return kind;
+}
+
+static int section_analysis_has_block_start(const M68kSectionAnalysisIR *section_analysis, uint32_t offset) {
+  size_t block_index;
+  if (section_analysis == NULL) return 0;
+  for (block_index = 0; block_index < section_analysis->block_count; ++block_index) {
+    if (section_analysis->blocks[block_index].start_offset == offset) return 1;
+  }
+  return 0;
 }
 
 static uint32_t find_enclosing_any_label(const M68kSectionAnalysisIR *section_analysis,
@@ -2205,6 +2280,17 @@ static void mark_data_fixup_labels(const M68kObject *object, const M68kSectionAn
   }
 }
 
+static int word_expr_present_in_range(const char *const *word_exprs, size_t section_size, uint32_t start, size_t span) {
+  size_t index;
+  if (word_exprs == NULL) return 0;
+  for (index = 0; index < span; ++index) {
+    uint32_t offset = start + (uint32_t)index;
+    if (offset >= section_size) break;
+    if (word_exprs[offset] != NULL) return 1;
+  }
+  return 0;
+}
+
 static int append_shaped_data_span(const M68kObject *object, size_t section_index,
     const M68kSectionAnalysisIR *section_analysis, const GeneratedLabelKind *label_kinds, M68kSectionIR *section_ir,
     uint32_t offset, const uint8_t *data, size_t size, const char *const *word_exprs,
@@ -2240,6 +2326,7 @@ static int append_shaped_data_span(const M68kObject *object, size_t section_inde
       continue;
     }
     if (fixup != NULL && fixup->target_section_index == section_index && (size - cursor) >= 4U && section != NULL &&
+        !word_expr_present_in_range(word_exprs, section_analysis->section_size, offset + (uint32_t)cursor, 4U) &&
         fixup->offset + 4U <= section->data_size) {
       char expr_name[32];
       GeneratedLabelKind kind = GENERATED_LABEL_DAT;
@@ -2270,9 +2357,12 @@ no_fixup_expr:
     }
     if (prefer_long_data && (((offset + (uint32_t)cursor) & 3U) == 0U) &&
         (size - cursor) >= 4U && chunk_has_non_printable(data + cursor, 4U) &&
+        !word_expr_present_in_range(word_exprs, section_analysis->section_size, offset + (uint32_t)cursor, 4U) &&
         (!has_next_fixup || next_fixup_offset >= offset + (uint32_t)cursor + 4U)) {
       size_t long_count = 4U;
       while (cursor + long_count + 4U <= size && (((offset + (uint32_t)cursor + (uint32_t)long_count) & 3U) == 0U) &&
+          !word_expr_present_in_range(word_exprs, section_analysis->section_size,
+            offset + (uint32_t)cursor + (uint32_t)long_count, 4U) &&
           (!has_next_fixup || next_fixup_offset >= offset + (uint32_t)cursor + (uint32_t)long_count + 4U) &&
           find_section_fixup_at_offset(object, section_index, offset + (uint32_t)cursor + (uint32_t)long_count,
             M68K_FIXUP_WIDTH_32) == NULL &&
@@ -2399,6 +2489,9 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
   size_t offset = 0;
   size_t word_expr_index;
   int result = -1;
+  M68kInstructionIR prev_instruction = {0};
+  uint8_t have_prev_instruction = 0U;
+  uint8_t prev_rendered_as_code = 0U;
   (void)findings; (void)out_error; (void)out_error_size;
   m68k_ir_section_init(out_section_ir);
   out_section_ir->name = _strdup( (section->name != NULL && section->name[0] != '\0') ? section->name : "section");
@@ -2431,7 +2524,9 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
         append_label_statement(out_section_ir, (uint32_t)offset, label_kinds, section->data_size, section_analysis,
           policy != NULL ? &policy->presentation : NULL) != 0) goto cleanup;
     if (section->kind == M68K_SECTION_CODE && offset < section_analysis->certain_code_size &&
-        section_analysis->certain_code_start != NULL && section_analysis->certain_code_start[offset] != 0U) {
+        ((section_analysis->certain_code_start != NULL && section_analysis->certain_code_start[offset] != 0U) ||
+         (prev_rendered_as_code != 0U && have_prev_instruction != 0U &&
+          !instruction_stops_fallthrough(&prev_instruction)))) {
       int decode_result = 0;
       char violation[128];
       char cpu_violation[128];
@@ -2449,6 +2544,9 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
           append_statement_violation_comment(violation, sizeof(violation), cpu_violation);
         if (append_instruction_statement( out_section_ir, (uint32_t)offset, &instruction,
               violation[0] != '\0' ? violation : NULL) != 0) goto cleanup;
+        prev_instruction = instruction;
+        have_prev_instruction = 1U;
+        prev_rendered_as_code = 1U;
         offset += instruction.byte_count;
       } else {
         size_t chunk = compute_data_span_chunk(section_analysis, generated_label_flags, section->data_size, offset,
@@ -2457,6 +2555,7 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
             out_section_ir, (uint32_t)offset, section->data + offset, chunk, (const char *const *)word_exprs,
             policy != NULL ? &policy->presentation : NULL,
             "decode failed in reachable code; region emitted as data") != 0) goto cleanup;
+        prev_rendered_as_code = 0U;
         offset += chunk;
       }
     } else {
@@ -2465,6 +2564,7 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
       if (append_shaped_data_span( object, section_analysis->section_index, section_analysis, label_kinds,
           out_section_ir, (uint32_t)offset, section->data + offset, chunk, (const char *const *)word_exprs,
           policy != NULL ? &policy->presentation : NULL, NULL) != 0) goto cleanup;
+      prev_rendered_as_code = 0U;
       offset += chunk;
     }
   }

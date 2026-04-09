@@ -11,8 +11,6 @@ from src.tests._build_helpers import require_built_tools
 from src.tests._platform_backend_test_utils import FIXTURE_DIR
 from src.tests._platform_backend_test_utils import make_synthetic_atari_prg
 from src.tests._platform_backend_test_utils import make_synthetic_hunkexe
-from src.tests._real_fixture_helpers import disassemble_real_file
-
 ROOT = Path(__file__).resolve().parents[2]
 BUILD_DIR = ROOT / "src" / "build"
 EXE = BUILD_DIR / "platform_file_cli.exe"
@@ -161,15 +159,8 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("pea.l loc_0004+2(pc)", result.stdout)
-            self.assertIn(
-                " ; VIOLATION: invalid overlap: pc-relative reference targets +2 into instruction at $0004",
-                result.stdout,
-            )
-            self.assertIn(
-                "lea.l $0010(a1),a0 ; VIOLATION: invalid overlap: instruction bytes at +2 are referenced by reachable pc-relative operand",
-                result.stdout,
-            )
+            self.assertIn("pea.l loc_0004(pc)", result.stdout)
+            self.assertNotIn("VIOLATION: invalid overlap", result.stdout)
 
     def test_disassemble_file_keeps_pc_index_pea_render_explicit(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -184,8 +175,24 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("pea.l $2(pc,d0.w)", result.stdout)
+            self.assertIn("pea.l loc_0004(pc,d0.w)", result.stdout)
             self.assertNotIn("loc_0000+2(pc,d0.w)", result.stdout)
+
+    def test_disassemble_file_uses_pc_plus_2_base_for_lea_pc_displacement(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "pcdisp.prg"
+            path.write_bytes(make_synthetic_atari_prg(bytes.fromhex("4e7143fafffc4e75"), b"", 0))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("lea.l loc_0000(pc),a1", result.stdout)
+            self.assertNotIn("lea.l loc_0002(pc),a1", result.stdout)
 
     def test_disassemble_file_renders_negative_indexed_displacement_signed(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -206,15 +213,52 @@ class PlatformFileCliTests(unittest.TestCase):
 
     def test_disassemble_genam_resolves_real_jump_table_dispatch_site(self) -> None:
         path = ROOT / "bin" / "GenAm"
-        text = disassemble_real_file("amiga-hunk", str(path))
-        self.assertIn("dat_0E9C:", text)
-        self.assertIn("dat_0EA4:", text)
-        self.assertIn("lea.l dat_0EA4(pc),a1", text)
+        result = subprocess.run(
+            [str(EXE), "disassemble-file", "--syntax", "genam", "amiga-hunk", str(path)],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = result.stdout
+        self.assertIn("dat_0EA2:", text)
+        self.assertIn("lea.l dat_0EA2(pc),a1", text)
         self.assertIn("move.w -$8(a1,d1.w),d1", text)
         self.assertIn("jsr $0(a1,d1.w)", text)
         self.assertNotIn("jsr $0(a1,d1.w) ; CANDIDATE: indirect_call index unresolved", text)
-        self.assertIn("DC.W    loc_10DC-dat_0E9C", text)
-        self.assertIn("DC.W    loc_10FA-dat_0E9C", text)
+        self.assertIn("DC.W    loc_20B4-dat_0EA2", text)
+        self.assertIn("DC.W    loc_10A4-dat_0EA2", text)
+        self.assertIn("DC.W    loc_2BC0-dat_0EA2", text)
+        self.assertIn("DC.W    loc_2CA2-dat_0EA2", text)
+        self.assertIn("DC.W    loc_10DA-dat_0EA2", text)
+        self.assertIn("DC.W    loc_10F8-dat_0EA2", text)
+        self.assertNotIn("dat_0EA4:", text)
+        self.assertNotIn("loc_0EA4:", text)
+        self.assertNotIn("DC.W    loc_12B8-dat_0EA2", text)
+        self.assertNotIn("DC.W    loc_24B6-dat_0EA2", text)
+        self.assertNotIn("DC.W    loc_22B6-dat_0EA2", text)
+        self.assertNotIn("DC.W    loc_22B4-dat_0EA2", text)
+        self.assertNotIn("lea.l dat_0EA4(pc),a1", text)
+
+    def test_disassemble_file_keeps_fallthrough_code_after_known_taken_conditional(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "known_taken.prg"
+            code = bytes.fromhex("760e0c03000f650270624e75")
+            path.write_bytes(make_synthetic_atari_prg(code, b"", 0))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("bcs.b target", result.stdout)
+            self.assertIn("moveq.l #98,d0", result.stdout)
+            self.assertNotIn("DC.B    $70,$62", result.stdout)
 
     def test_disassemble_file_emits_atari_comment_head_metadata(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:

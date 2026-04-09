@@ -186,6 +186,7 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
         }
         self.assertGreaterEqual(len(call_targets), 16)
         self.assertTrue({4176, 4344, 4372, 4474, 5322}.issubset(call_targets))
+        self.assertFalse({4792, 8884, 8886, 9398}.intersection(call_targets))
 
     def test_analysis_tracks_pointer_copy_before_indirect_jump(self) -> None:
         code = (

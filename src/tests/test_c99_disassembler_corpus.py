@@ -363,6 +363,7 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
         samples = (
             ("68000", "move.w -$0008(a1),d1"),
             ("68000", "move.w -$10(pc),d1"),
+            ("68000", "lea.l -$192(pc),a1"),
             ("68020", "move.w -$8(a1,d1.w),d1"),
             ("68020", "move.w -$8(pc,d1.w),d1"),
             ("68020", "lea.l $0(a0,d1.w){full,bdl=-$00000010,odl=-$00000004,iis=3},a0"),
