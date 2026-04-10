@@ -82,8 +82,21 @@ static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR 
 
 static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR *stmt) {
   if (stmt == NULL || stmt->comment == NULL || stmt->comment[0] == '\0') return json_builder_append(builder, "\n");
-  if (strstr(stmt->comment, "CANDIDATE:") != NULL) return json_builder_appendf(builder, " ; %s\n", stmt->comment);
+  if (strstr(stmt->comment, "CANDIDATE:") != NULL || strncmp(stmt->comment, "NOTE:", 5) == 0)
+    return json_builder_appendf(builder, " ; %s\n", stmt->comment);
   return json_builder_appendf(builder, " ; VIOLATION: %s\n", stmt->comment);
+}
+
+static int section_has_label_name(const M68kSectionIR *section, const char *name) {
+  size_t stmt_index;
+  if (section == NULL || name == NULL || name[0] == '\0') return 0;
+  if (name[0] == '*') return 1;
+  for (stmt_index = 0; stmt_index < section->statement_count; ++stmt_index) {
+    const M68kStatementIR *stmt = &section->statements[stmt_index];
+    if (stmt->kind != M68K_STATEMENT_LABEL || stmt->label_name == NULL) continue;
+    if (strcmp(stmt->label_name, name) == 0) return 1;
+  }
+  return 0;
 }
 
 int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
@@ -119,8 +132,15 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
       } else if (stmt->kind == M68K_STATEMENT_ALIGN) {
         if (json_builder_append(&builder, "    EVEN\n") != 0) goto oom;
       } else if (stmt->kind == M68K_STATEMENT_INSTRUCTION) {
+        M68kInstructionIR rendered_instruction = stmt->u.instruction;
         char text[256];
-        if (m68k_ir_render_one_with_policy(&stmt->u.instruction, active_policy, text, sizeof(text), out_error,
+        size_t operand_index;
+        for (operand_index = 0; operand_index < rendered_instruction.operand_count; ++operand_index) {
+          M68kOperandIR *operand = &rendered_instruction.operands[operand_index];
+          if (operand->symbol_ref.has_name == 0U) continue;
+          if (!section_has_label_name(section, operand->symbol_ref.name)) operand->symbol_ref.has_name = 0U;
+        }
+        if (m68k_ir_render_one_at_with_policy(&rendered_instruction, stmt->offset, active_policy, text, sizeof(text), out_error,
             out_error_size) != 0) {
           json_builder_destroy(&builder);
           return -1;

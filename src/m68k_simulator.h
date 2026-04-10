@@ -430,6 +430,8 @@ typedef struct M68kSimCpuState {
   M68kSimValue c[M68K_SIM_CONTROL_REGISTER_LIMIT];
   uint32_t pc;
   uint16_t sr;
+  uint8_t sr_known;
+  uint8_t reserved0;
 } M68kSimCpuState;
 
 typedef struct M68kSimAccess {

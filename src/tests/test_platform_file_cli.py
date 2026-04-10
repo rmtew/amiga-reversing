@@ -38,6 +38,42 @@ class PlatformFileCliTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             return json.loads(result.stdout)
 
+    def _inspect_file_path(self, platform_name: str, path: Path) -> dict[str, object]:
+        result = subprocess.run(
+            [str(EXE), "inspect-file", platform_name, str(path)],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _normalized_file_summary(self, summary: dict[str, object]) -> dict[str, object]:
+        return {
+            "platform": summary["platform"],
+            "file_kind": summary["file_kind"],
+            "section_count": summary["section_count"],
+            "fixup_count": summary["fixup_count"],
+            "sections": [
+                {
+                    "name": section["name"],
+                    "kind": section["kind"],
+                    "mem_type": section["mem_type"],
+                    "mem_attrs": section["mem_attrs"],
+                    "alloc_size": section["alloc_size"],
+                    "stored_size": section["stored_size"],
+                    "size": section["size"],
+                    "data_size": section["data_size"],
+                    "data_hex": section["data_hex"],
+                    "fixup_count": section["fixup_count"],
+                    "debug_size": section["debug_size"],
+                }
+                for section in summary["sections"]
+            ],
+        }
+
     def test_inspect_file_atari_prg(self) -> None:
         actual = self._run_cli("atari-st", ".prg", make_synthetic_atari_prg(b"\x4E\x75", b"\x12\x34", 6))
         self.assertEqual(actual["platform"], "atari-st")
@@ -178,6 +214,22 @@ class PlatformFileCliTests(unittest.TestCase):
             self.assertIn("pea.l loc_0004(pc,d0.w)", result.stdout)
             self.assertNotIn("loc_0000+2(pc,d0.w)", result.stdout)
 
+    def test_disassemble_file_uses_current_relative_pc_index_base_for_interior_target(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "pcindex_jump.prg"
+            path.write_bytes(make_synthetic_atari_prg(bytes.fromhex("4efb00004e75"), b"", 0))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("jmp *+2(pc,d0.w)", result.stdout)
+            self.assertNotIn("loc_0000+2(pc,d0.w)", result.stdout)
+
     def test_disassemble_file_uses_pc_plus_2_base_for_lea_pc_displacement(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
             path = Path(tmp) / "pcdisp.prg"
@@ -211,6 +263,48 @@ class PlatformFileCliTests(unittest.TestCase):
             self.assertIn("move.w -$8(a1,d1.w),d1", result.stdout)
             self.assertNotIn("move.w $F8(a1,d1.w),d1", result.stdout)
 
+    def test_disassemble_file_recovers_pc_index_inline_dispatch_entries(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "pcindex_dispatch.prg"
+            code = (
+                self._assemble_line_hex("68000", "jmp 0(pc,d0.w)")
+                + bytes.fromhex("60000006600000044e754e75")
+            )
+            path.write_bytes(make_synthetic_atari_prg(code, b"", 0))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("loc_0004:", result.stdout)
+            self.assertIn("loc_0008:", result.stdout)
+            self.assertIn("bra.w loc_000C", result.stdout)
+            self.assertIn("bra.w loc_000E", result.stdout)
+            self.assertNotIn("ori.b #0,d0", result.stdout)
+
+    def test_disassemble_file_preserves_noncanonical_byte_immediate_words(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "byteimm.prg"
+            path.write_bytes(make_synthetic_atari_prg(bytes.fromhex("00244e754e75"), b"", 0))
+            result = subprocess.run(
+                [str(EXE), "disassemble-file", "atari-st", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(
+                "DC.W    $0024,$4e75 ; NOTE: preserved exact bytes for non-canonical byte-immediate encoding: ori.b #117,-(a4)",
+                result.stdout,
+            )
+            self.assertNotIn("\n    ori.b #117,-(a4)\n", result.stdout)
+
     def test_disassemble_genam_resolves_real_jump_table_dispatch_site(self) -> None:
         path = ROOT / "bin" / "GenAm"
         result = subprocess.run(
@@ -234,6 +328,18 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn("DC.W    loc_2CA2-dat_0EA2", text)
         self.assertIn("DC.W    loc_10DA-dat_0EA2", text)
         self.assertIn("DC.W    loc_10F8-dat_0EA2", text)
+        self.assertIn("movea.l #dat_A664,a0", text)
+        self.assertIn("movea.l #dat_B21E,a0", text)
+        self.assertIn("movea.l #dat_CD3C,a1", text)
+        self.assertIn("movea.l #dat_BA08,a2", text)
+        self.assertIn("movea.l #dat_E070,a0", text)
+        self.assertIn("movea.l #dat_A764,a1", text)
+        self.assertNotIn("movea.l #$A664,a0", text)
+        self.assertNotIn("movea.l #$B21E,a0", text)
+        self.assertNotIn("movea.l #$CD3C,a1", text)
+        self.assertNotIn("movea.l #$BA08,a2", text)
+        self.assertNotIn("movea.l #$E070,a0", text)
+        self.assertNotIn("movea.l #$A764,a1", text)
         self.assertNotIn("dat_0EA4:", text)
         self.assertNotIn("loc_0EA4:", text)
         self.assertNotIn("DC.W    loc_12B8-dat_0EA2", text)
@@ -241,6 +347,63 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertNotIn("DC.W    loc_22B6-dat_0EA2", text)
         self.assertNotIn("DC.W    loc_22B4-dat_0EA2", text)
         self.assertNotIn("lea.l dat_0EA4(pc),a1", text)
+        self.assertIn("jmp *+2(pc,d0.w) ; VIOLATION: invalid overlap: pc-relative reference targets +2 into instruction at $13C4", text)
+        self.assertNotIn("jmp loc_13C4+2(pc,d0.w)", text)
+
+    def test_disassemble_genam_resolves_entry_relative_jump_table_dispatch_site(self) -> None:
+        path = ROOT / "bin" / "GenAm"
+        result = subprocess.run(
+            [str(EXE), "disassemble-file", "--syntax", "genam", "amiga-hunk", str(path)],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = result.stdout
+        dispatch_idx = text.find("loc_3BBE:")
+        self.assertNotEqual(dispatch_idx, -1)
+        dispatch_window = text[dispatch_idx:text.find("dat_3C12:", dispatch_idx)]
+        self.assertIn("lea.l dat_3C12(pc,d1.w),a2", text)
+        self.assertIn("adda.w (a2),a2", text)
+        self.assertIn("jmp (a2)", dispatch_window)
+        self.assertNotIn("jmp (a2) ; CANDIDATE: indirect_jump index unresolved", dispatch_window)
+        self.assertIn("dat_3C12:", text)
+        self.assertIn("DC.W    loc_3D00-*", text)
+        self.assertIn("DC.W    loc_3C86-*", text)
+        self.assertIn("DC.W    loc_3C5C-*", text)
+        self.assertIn("DC.W    loc_3E98-*", text)
+
+    def test_disassemble_genam_roundtrips_via_vasm_with_matching_section_bytes_and_fixups(self) -> None:
+        path = ROOT / "bin" / "GenAm"
+        vasm = ROOT / "ext" / "vasm" / "vasmm68k_mot.exe"
+        self.assertTrue(vasm.exists(), vasm)
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            source_path = Path(tmp) / "GenAm.roundtrip.s"
+            rebuilt_path = Path(tmp) / "GenAm.roundtrip.exe"
+            disassemble = subprocess.run(
+                [str(EXE), "disassemble-file", "--syntax", "genam", "amiga-hunk", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(disassemble.returncode, 0, disassemble.stderr)
+            source_path.write_text(disassemble.stdout, encoding="utf-8")
+            assemble = subprocess.run(
+                [str(vasm), "-m68000", "-Fhunkexe", "-no-opt", "-quiet", "-o", str(rebuilt_path), str(source_path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            original = self._normalized_file_summary(self._inspect_file_path("amiga-hunk", path))
+            rebuilt = self._normalized_file_summary(self._inspect_file_path("amiga-hunk", rebuilt_path))
+            self.assertEqual(rebuilt, original)
 
     def test_disassemble_file_keeps_fallthrough_code_after_known_taken_conditional(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:

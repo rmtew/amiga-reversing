@@ -188,6 +188,15 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
         self.assertTrue({4176, 4344, 4372, 4474, 5322}.issubset(call_targets))
         self.assertFalse({4792, 8884, 8886, 9398}.intersection(call_targets))
 
+    def test_analysis_resolves_real_genam_entry_relative_word_dispatch_jump(self) -> None:
+        analysis = self._analyze_file(ROOT / "bin" / "GenAm")
+        code_section = analysis["sections"][0]
+        jump_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 0x3BC8]
+        jump_targets = {edge["target_offset"] for edge in jump_edges if edge["kind"] == 4}
+        self.assertGreaterEqual(len(jump_targets), 20)
+        self.assertTrue({0x3D00, 0x3C86, 0x3C5C, 0x3C68, 0x3E98}.issubset(jump_targets))
+        self.assertFalse(any(edge["kind"] == 5 for edge in jump_edges))
+
     def test_analysis_tracks_pointer_copy_before_indirect_jump(self) -> None:
         code = (
             _assemble_line_hex("68000", "lea $0008(pc),a0")
@@ -384,6 +393,42 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
         fallthrough_edges = [edge for edge in code_section["edges"] if edge["kind"] == 1]
         self.assertEqual(len(branch_edges), 1)
         self.assertEqual(len(fallthrough_edges), 0)
+
+    def test_analysis_does_not_prune_branch_after_unknown_register_join(self) -> None:
+        code = (
+            _assemble_line_hex("68000", "beq 6")
+            + _assemble_line_hex("68000", "moveq #0,d0")
+            + _assemble_line_hex("68000", "bra 2")
+            + _assemble_line_hex("68000", "tst.b d0")
+            + _assemble_line_hex("68000", "beq 2")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "rts")
+        )
+        payload = _make_single_code_hunkexe(code, [])
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        join_branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 12 and edge["kind"] == 2]
+        join_fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 12 and edge["kind"] == 1]
+        self.assertGreaterEqual(len(join_branch_edges), 1)
+        self.assertGreaterEqual(len(join_fallthrough_edges), 1)
+
+    def test_analysis_does_not_prune_branch_after_unknown_sr_join(self) -> None:
+        code = (
+            _assemble_line_hex("68000", "beq 8")
+            + _assemble_line_hex("68000", "moveq #0,d0")
+            + _assemble_line_hex("68000", "cmp.b #0,d0")
+            + _assemble_line_hex("68000", "bra 2")
+            + _assemble_line_hex("68000", "beq 2")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "rts")
+        )
+        payload = _make_single_code_hunkexe(code, [])
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        join_branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 14 and edge["kind"] == 2]
+        join_fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 14 and edge["kind"] == 1]
+        self.assertGreaterEqual(len(join_branch_edges), 1)
+        self.assertGreaterEqual(len(join_fallthrough_edges), 1)
 
     def test_analysis_uses_shift_flags_to_prune_conditional_branch(self) -> None:
         code = (

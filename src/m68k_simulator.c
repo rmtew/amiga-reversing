@@ -88,6 +88,7 @@ void m68k_sim_cpu_state_init_unknown(M68kSimCpuState *state) {
   for (index = 0; index < M68K_SIM_CONTROL_REGISTER_LIMIT; ++index) {
     state->c[index] = g_m68k_sim_unknown_value;
   }
+  state->sr_known = 0U;
 }
 
 void m68k_sim_memory_state_init(M68kSimMemoryState *state) {
@@ -263,11 +264,28 @@ static void sim_append_value_targets(M68kSimTargetSet *dst, const M68kSimValue *
   }
 }
 
+static uint8_t sim_result_provenance(uint8_t lhs, uint8_t rhs, uint8_t fallback) {
+  if (lhs == M68K_SIM_PROV_TABLE_SCAN || rhs == M68K_SIM_PROV_TABLE_SCAN) return M68K_SIM_PROV_TABLE_SCAN;
+  if (lhs == M68K_SIM_PROV_MEMORY_LOAD || rhs == M68K_SIM_PROV_MEMORY_LOAD) return M68K_SIM_PROV_MEMORY_LOAD;
+  if (lhs == M68K_SIM_PROV_PC_REL || rhs == M68K_SIM_PROV_PC_REL) return M68K_SIM_PROV_PC_REL;
+  if (lhs == M68K_SIM_PROV_ADDRESS_ARITH || rhs == M68K_SIM_PROV_ADDRESS_ARITH) return M68K_SIM_PROV_ADDRESS_ARITH;
+  if (lhs == M68K_SIM_PROV_REGISTER_COPY || rhs == M68K_SIM_PROV_REGISTER_COPY) return M68K_SIM_PROV_REGISTER_COPY;
+  if (lhs == M68K_SIM_PROV_IMMEDIATE && rhs == M68K_SIM_PROV_IMMEDIATE) return M68K_SIM_PROV_IMMEDIATE;
+  return fallback;
+}
+
+static int sim_value_is_path_stable_for_flags(const M68kSimValue *value) {
+  if (value == NULL || value->kind != M68K_SIM_VALUE_CONSTANT) return 0;
+  return value->provenance != M68K_SIM_PROV_MEMORY_LOAD &&
+    value->provenance != M68K_SIM_PROV_TABLE_SCAN &&
+    value->provenance != M68K_SIM_PROV_PC_REL;
+}
+
 static M68kSimValue sim_value_join(const M68kSimValue *lhs, const M68kSimValue *rhs) {
   if (lhs == NULL) return rhs != NULL ? *rhs : g_m68k_sim_unknown_value;
   if (rhs == NULL) return *lhs;
-  if (lhs->kind == M68K_SIM_VALUE_UNKNOWN) return *rhs;
-  if (rhs->kind == M68K_SIM_VALUE_UNKNOWN) return *lhs;
+  if (lhs->kind == M68K_SIM_VALUE_UNKNOWN || rhs->kind == M68K_SIM_VALUE_UNKNOWN)
+    return g_m68k_sim_unknown_value;
   if (sim_value_equal(lhs, rhs)) return *lhs;
   if (lhs->kind == M68K_SIM_VALUE_TABLE_REGION && rhs->kind == M68K_SIM_VALUE_TABLE_REGION &&
       lhs->section_index == rhs->section_index) {
@@ -320,6 +338,13 @@ int m68k_sim_cpu_state_join(M68kSimCpuState *dst, const M68kSimCpuState *src) {
     M68kSimValue joined = sim_value_join(&dst->c[index], &src->c[index]);
     if (!sim_value_equal(&joined, &dst->c[index])) {
       dst->c[index] = joined;
+      changed = 1;
+    }
+  }
+  if (dst->sr_known == 0U || src->sr_known == 0U || dst->sr != src->sr) {
+    if (dst->sr_known != 0U || dst->sr != 0U) {
+      dst->sr = 0U;
+      dst->sr_known = 0U;
       changed = 1;
     }
   }
@@ -568,13 +593,15 @@ static int sim_register_value(const M68kSimCpuState *state, uint8_t is_address, 
 
 static int sim_apply_logic(uint8_t op, const M68kSimValue *lhs, const M68kSimValue *rhs, M68kSimValue *out_value) {
   uint32_t value;
+  uint8_t provenance;
   if (lhs == NULL || rhs == NULL || out_value == NULL) return 0;
   if (lhs->kind != M68K_SIM_VALUE_CONSTANT || rhs->kind != M68K_SIM_VALUE_CONSTANT) return 0;
   if (op == M68K_SIM_OP_LOGIC_AND) value = lhs->value & rhs->value;
   else if (op == M68K_SIM_OP_LOGIC_OR) value = lhs->value | rhs->value;
   else if (op == M68K_SIM_OP_LOGIC_XOR) value = lhs->value ^ rhs->value;
   else return 0;
-  *out_value = sim_value_constant(value, M68K_SIM_PROV_REGISTER_COPY);
+  provenance = sim_result_provenance(lhs->provenance, rhs->provenance, M68K_SIM_PROV_REGISTER_COPY);
+  *out_value = sim_value_constant(value, provenance);
   return 1;
 }
 
@@ -640,7 +667,8 @@ static int sim_apply_unary(uint8_t op, const M68kInstructionIR *instruction, con
   } else {
     return 0;
   }
-  *out_value = sim_value_constant(value, M68K_SIM_PROV_REGISTER_COPY);
+  *out_value = sim_value_constant(value, input->provenance != M68K_SIM_PROV_NONE ? input->provenance
+    : M68K_SIM_PROV_REGISTER_COPY);
   return 1;
 }
 
@@ -666,8 +694,11 @@ static int sim_apply_shift_rotate(uint8_t op, const M68kInstructionIR *instructi
   uint32_t extend = (sr & 0x0010U) != 0U ? 1U : 0U;
   uint32_t initial_extend = extend;
   uint16_t next_sr;
+  uint8_t provenance;
   if (instruction == NULL || metadata == NULL || input == NULL || out_value == NULL) return 0;
   if (input->kind != M68K_SIM_VALUE_CONSTANT) return 0;
+  provenance = sim_result_provenance(input->provenance, count_value != NULL ? count_value->provenance : M68K_SIM_PROV_NONE,
+    input->provenance != M68K_SIM_PROV_NONE ? input->provenance : M68K_SIM_PROV_REGISTER_COPY);
   count = sim_shift_count(metadata, count_value);
   width = sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index);
   width_bits = width == 0U ? 32U : (uint32_t)width * 8U;
@@ -675,7 +706,7 @@ static int sim_apply_shift_rotate(uint8_t op, const M68kInstructionIR *instructi
   value = input->value & mask;
   sign_bit = width_bits == 0U ? 0U : (1U << (width_bits - 1U));
   if (count == 0U) {
-    *out_value = sim_value_constant(value, M68K_SIM_PROV_REGISTER_COPY);
+    *out_value = sim_value_constant(value, provenance);
     if (out_sr != NULL) *out_sr = sr;
     return 1;
   }
@@ -700,7 +731,7 @@ static int sim_apply_shift_rotate(uint8_t op, const M68kInstructionIR *instructi
     if (rotate_width == 0U) return 0;
     count = (uint8_t)(count % rotate_width);
     if (count == 0U) {
-      *out_value = sim_value_constant(value, M68K_SIM_PROV_REGISTER_COPY);
+      *out_value = sim_value_constant(value, provenance);
       if (out_sr != NULL) *out_sr = sr;
       return 1;
     }
@@ -749,7 +780,7 @@ static int sim_apply_shift_rotate(uint8_t op, const M68kInstructionIR *instructi
   } else if (initial_extend != 0U) {
     next_sr |= 0x0010U;
   }
-  *out_value = sim_value_constant(result & mask, M68K_SIM_PROV_REGISTER_COPY);
+  *out_value = sim_value_constant(result & mask, provenance);
   if (out_sr != NULL) *out_sr = next_sr;
   return 1;
 }
@@ -794,10 +825,18 @@ static int sim_special_register_value(const M68kSimCpuState *state, const M68kOp
   uint8_t ctrl_reg;
   if (state == NULL || operand == NULL || out_value == NULL) return 0;
   if (operand->kind == M68K_ASM_OPERAND_CCR) {
+    if (state->sr_known == 0U) {
+      *out_value = g_m68k_sim_unknown_value;
+      return 1;
+    }
     *out_value = sim_value_constant((uint32_t)(state->sr & 0x00FFU), M68K_SIM_PROV_REGISTER_COPY);
     return 1;
   }
   if (operand->kind == M68K_ASM_OPERAND_SR) {
+    if (state->sr_known == 0U) {
+      *out_value = g_m68k_sim_unknown_value;
+      return 1;
+    }
     *out_value = sim_value_constant(state->sr, M68K_SIM_PROV_REGISTER_COPY);
     return 1;
   }
@@ -820,12 +859,20 @@ static int sim_write_special_register(M68kSimCpuState *state, const M68kOperandI
   if (operand->kind == M68K_ASM_OPERAND_CCR) {
     if (value->kind == M68K_SIM_VALUE_CONSTANT) {
       state->sr = (uint16_t)((state->sr & 0xFF00U) | (value->value & 0x00FFU));
+      state->sr_known = 1U;
+    } else {
+      state->sr = 0U;
+      state->sr_known = 0U;
     }
     return 1;
   }
   if (operand->kind == M68K_ASM_OPERAND_SR) {
     if (value->kind == M68K_SIM_VALUE_CONSTANT) {
       state->sr = (uint16_t)(value->value & 0xFFFFU);
+      state->sr_known = 1U;
+    } else {
+      state->sr = 0U;
+      state->sr_known = 0U;
     }
     return 1;
   }
@@ -1315,6 +1362,7 @@ static int sim_eval_operand_by_metadata(const M68kObject *object, size_t section
 
 static int sim_apply_add_sub(uint8_t is_sub, const M68kSimValue *lhs, const M68kSimValue *rhs,
     M68kSimValue *out_value) {
+  uint8_t provenance;
   if (lhs == NULL || rhs == NULL || out_value == NULL) return 0;
   if (lhs->kind == M68K_SIM_VALUE_SECTION_PTR && rhs->kind == M68K_SIM_VALUE_CONSTANT) {
     *out_value = sim_value_section_ptr(lhs->section_index,
@@ -1324,8 +1372,8 @@ static int sim_apply_add_sub(uint8_t is_sub, const M68kSimValue *lhs, const M68k
     return 1;
   }
   if (lhs->kind == M68K_SIM_VALUE_CONSTANT && rhs->kind == M68K_SIM_VALUE_CONSTANT) {
-    *out_value = sim_value_constant(is_sub ? lhs->value - rhs->value : lhs->value + rhs->value,
-      M68K_SIM_PROV_ADDRESS_ARITH);
+    provenance = sim_result_provenance(lhs->provenance, rhs->provenance, M68K_SIM_PROV_ADDRESS_ARITH);
+    *out_value = sim_value_constant(is_sub ? lhs->value - rhs->value : lhs->value + rhs->value, provenance);
     return 1;
   }
   return 0;
@@ -1515,6 +1563,7 @@ static int sim_apply_abstract_nz_flags(uint16_t sr, uint32_t value, uint8_t widt
 static void sim_mark_condition_codes_defined(M68kSimStepResult *result) {
   if (result == NULL) return;
   result->defines_condition_codes = 1;
+  result->next_state.sr_known = 1U;
 }
 
 static void sim_sync_extend_with_carry(uint16_t *sr) {
@@ -2866,7 +2915,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
         metadata->dest_operand_index,
         &instruction->operands[metadata->dest_operand_index], state, memory_state, out_result, &dst) &&
       sim_apply_logic(metadata->operation_type, &dst, &src, &value)) {
-    if (value.kind == M68K_SIM_VALUE_CONSTANT) {
+    if (sim_value_is_path_stable_for_flags(&value)) {
       sim_apply_abstract_nz_flags(state->sr, value.value,
         sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index), &out_result->next_state.sr);
       sim_mark_condition_codes_defined(out_result);
@@ -2880,7 +2929,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
         metadata->dest_operand_index,
         &instruction->operands[metadata->dest_operand_index], state, memory_state, out_result, &dst) &&
       sim_apply_unary(metadata->operation_type, instruction, metadata, &dst, &value)) {
-    if (value.kind == M68K_SIM_VALUE_CONSTANT) {
+    if (sim_value_is_path_stable_for_flags(&value)) {
       uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index);
       if (metadata->operation_type == M68K_SIM_OP_NEGATE && dst.kind == M68K_SIM_VALUE_CONSTANT) {
         sim_apply_abstract_compare_test_flags(state->sr, dst.value, 0U, width, 1U, &out_result->next_state.sr);
@@ -2906,7 +2955,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
       sim_apply_shift_rotate(metadata->operation_type, instruction, metadata, &dst,
         metadata->shift_count_source == M68K_SIM_SHIFT_COUNT_OPERAND ? &src : NULL,
         state->sr, &value, &out_result->next_state.sr)) {
-    sim_mark_condition_codes_defined(out_result);
+    if (sim_value_is_path_stable_for_flags(&value)) sim_mark_condition_codes_defined(out_result);
     sim_write_operand_by_metadata(section, instruction, offset, section_index, out_result, metadata,
       metadata->dest_operand_index, &instruction->operands[metadata->dest_operand_index], &out_result->next_state, &value);
   } else if ((metadata->operation_type == M68K_SIM_OP_COMPARE || metadata->operation_type == M68K_SIM_OP_TEST) &&
@@ -2923,11 +2972,12 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
       }
       if (src.kind == M68K_SIM_VALUE_CONSTANT) {
         uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->source_operand_index);
-        if (metadata->operation_type == M68K_SIM_OP_COMPARE && dst.kind == M68K_SIM_VALUE_CONSTANT) {
+        if (metadata->operation_type == M68K_SIM_OP_COMPARE && dst.kind == M68K_SIM_VALUE_CONSTANT &&
+            sim_value_is_path_stable_for_flags(&src) && sim_value_is_path_stable_for_flags(&dst)) {
           sim_apply_abstract_compare_test_flags(state->sr, src.value, dst.value, width, 1U,
             &out_result->next_state.sr);
           sim_mark_condition_codes_defined(out_result);
-        } else if (metadata->operation_type == M68K_SIM_OP_TEST) {
+        } else if (metadata->operation_type == M68K_SIM_OP_TEST && sim_value_is_path_stable_for_flags(&src)) {
           sim_apply_abstract_compare_test_flags(state->sr, src.value, 0U, width, 0U,
             &out_result->next_state.sr);
           sim_mark_condition_codes_defined(out_result);
@@ -3611,7 +3661,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
     const M68kOperandIR *target_operand = &instruction->operands[metadata->target_operand_index];
     int target_taken = 1;
     if (metadata->flow_conditional && metadata->operation_type != M68K_SIM_OP_DBCC) {
-      target_taken = sim_condition_true(metadata->condition_code, state->sr);
+      target_taken = state->sr_known != 0U && sim_condition_true(metadata->condition_code, state->sr);
     }
     if (target_taken && sim_compute_ea_address(section, instruction, offset, target_operand,
           metadata->operand_ea_address_formulas[metadata->target_operand_index],
@@ -3640,9 +3690,10 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
     }
   }
   if (metadata->operation_type == M68K_SIM_OP_TRAPV) {
-    out_result->stops_fallthrough = (state->sr & 0x0002U) != 0U;
+    out_result->stops_fallthrough = state->sr_known != 0U && (state->sr & 0x0002U) != 0U;
   } else if (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional &&
-      metadata->operation_type != M68K_SIM_OP_DBCC && sim_condition_true(metadata->condition_code, state->sr)) {
+      metadata->operation_type != M68K_SIM_OP_DBCC && state->sr_known != 0U &&
+      sim_condition_true(metadata->condition_code, state->sr)) {
     out_result->stops_fallthrough = 1;
   } else if (!out_result->stops_fallthrough) {
     out_result->stops_fallthrough = metadata->flow_kind == M68K_SIM_FLOW_JUMP ||

@@ -52,6 +52,12 @@ static int append_text(char *out_text, size_t out_text_size, size_t *inout_used,
   return append_format(out_text, out_text_size, inout_used, "%s", text);
 }
 
+static int append_current_relative_expr(char *out_text, size_t out_text_size, size_t *inout_used, int32_t delta) {
+  if (delta == 0) return append_text(out_text, out_text_size, inout_used, "*");
+  if (delta > 0) return append_format(out_text, out_text_size, inout_used, "*+%d", (int)delta);
+  return append_format(out_text, out_text_size, inout_used, "*%d", (int)delta);
+}
+
 static int append_signed_hex(char *out_text, size_t out_text_size, size_t *inout_used, int32_t value) {
   if (value < 0)
     return append_format(out_text, out_text_size, inout_used, "-$%X", (unsigned)(0u - (uint32_t)value));
@@ -65,7 +71,10 @@ static int append_signed_hex_width(char *out_text, size_t out_text_size, size_t 
   return append_format(out_text, out_text_size, inout_used, "$%0*X", (int)width, (unsigned)value);
 }
 
-static int append_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value) {
+static int append_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
+    char size_suffix) {
+  if (size_suffix == 'b') value &= 0xFFU;
+  else if (size_suffix == 'w') value &= 0xFFFFU;
   return append_format(out_text, out_text_size, inout_used, "#%u", (unsigned)value);
 }
 
@@ -169,7 +178,7 @@ static int instruction_uses_movem_predecrement_mask(const M68kInstructionIR *ins
 }
 
 static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_used,
-    const M68kAsmOperandValue *operand) {
+    const M68kAsmOperandValue *operand, char size_suffix) {
   int32_t disp = (int32_t)operand->value;
   switch (operand->ea_mode) {
   case 0:
@@ -314,6 +323,10 @@ static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_us
         return -1;
       return append_text(out_text, out_text_size, inout_used, ")");
     case 4:
+      if (size_suffix == 'b')
+        return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)(operand->value & 0xFFU));
+      if (size_suffix == 'w')
+        return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)(operand->value & 0xFFFFU));
       return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)operand->value);
     default:
       return -1;
@@ -411,6 +424,21 @@ static char instruction_render_size_suffix(const M68kInstructionIR *instruction,
   }
   (void)form;
   return '\0';
+}
+
+static char instruction_operand_size_suffix(const M68kInstructionIR *instruction, const M68kAsmFormDef *form) {
+  M68kAsmOperandValue operands[4];
+  size_t operand_index;
+  char size_suffix;
+  if (instruction == NULL) return '\0';
+  if (form != NULL) {
+    for (operand_index = 0; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+      operands[operand_index] = instruction->operands[operand_index].value;
+    }
+    size_suffix = m68k_asm_choose_size_suffix(form, operands, instruction->operand_count, instruction->size_suffix);
+    if (size_suffix != '\0') return size_suffix;
+  }
+  return instruction_render_size_suffix(instruction, form);
 }
 
 static int instruction_should_render_size_suffix(const M68kInstructionIR *instruction, const M68kAsmFormDef *form) {
@@ -533,12 +561,14 @@ int m68k_ir_encode_one(const M68kInstructionIR *instruction, uint8_t *out_bytes,
   return 0;
 }
 
-int m68k_ir_render_one_with_policy(const M68kInstructionIR *instruction, const M68kRenderPolicy *policy, char *out_text,
-    size_t out_text_size, char *out_error, size_t out_error_size) {
+static int render_one_with_policy_internal(const M68kInstructionIR *instruction, uint32_t offset,
+    int render_unresolved_current_relative, const M68kRenderPolicy *policy, char *out_text, size_t out_text_size,
+    char *out_error, size_t out_error_size) {
   uint8_t syntax_mode;
   size_t used = 0;
   size_t operand_index;
   const M68kAsmFormDef *form = instruction_form(instruction);
+  char operand_size_suffix;
   syntax_mode = (policy != NULL) ? policy->syntax.syntax_mode : M68K_IR_SYNTAX_CANONICAL;
   (void)syntax_mode;
   if (instruction == NULL || out_text == NULL || out_text_size == 0U) {
@@ -557,6 +587,8 @@ int m68k_ir_render_one_with_policy(const M68kInstructionIR *instruction, const M
     if (append_format(out_text, out_text_size, &used, ".%c", rendered_size) != 0)
       goto overflow;
   }
+  operand_size_suffix = instruction_operand_size_suffix(instruction, form);
+  if (operand_size_suffix == '\0') operand_size_suffix = instruction->size_suffix;
   if (instruction->operand_count != 0U &&
       append_text(out_text, out_text_size, &used, " ") != 0)
     goto overflow;
@@ -591,21 +623,27 @@ int m68k_ir_render_one_with_policy(const M68kInstructionIR *instruction, const M
         goto overflow;
       break;
     case M68K_ASM_OPERAND_IMM:
-      if (append_immediate_text(out_text, out_text_size, &used, operand->value.value) != 0)
+      if (append_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix) != 0)
         goto overflow;
       break;
     case M68K_ASM_OPERAND_LABEL:
       if (operand_has_renderable_symbol_name(operand, policy)) {
         if (append_text(out_text, out_text_size, &used, operand->symbol_ref.name) != 0)
           goto overflow;
-      } else if (append_text(out_text, out_text_size, &used, "target") != 0)
-        goto overflow;
+      } else if (!render_unresolved_current_relative) {
+        if (append_text(out_text, out_text_size, &used, "target") != 0)
+          goto overflow;
+      } else {
+        uint32_t target = offset + 2U + (uint32_t)((int32_t)operand->value.value);
+        if (append_current_relative_expr(out_text, out_text_size, &used, (int32_t)(target - offset)) != 0)
+          goto overflow;
+      }
       break;
     case M68K_ASM_OPERAND_EA:
     case M68K_ASM_OPERAND_BF_EA:
       if ((operand_has_renderable_symbol_name(operand, policy) == 0 ||
           append_symbolic_ea_text(out_text, out_text_size, &used, operand) != 0) &&
-          append_ea_text(out_text, out_text_size, &used, &operand->value) != 0)
+          append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix) != 0)
         goto overflow;
       if (operand->kind == M68K_ASM_OPERAND_BF_EA) {
         if (append_text(out_text, out_text_size, &used, "{") != 0)
@@ -680,6 +718,18 @@ int m68k_ir_render_one_with_policy(const M68kInstructionIR *instruction, const M
 overflow:
   m68k_platform_set_error(out_error, out_error_size, "render overflow");
   return -1;
+}
+
+int m68k_ir_render_one_at_with_policy(const M68kInstructionIR *instruction, uint32_t offset,
+    const M68kRenderPolicy *policy, char *out_text, size_t out_text_size, char *out_error, size_t out_error_size) {
+  return render_one_with_policy_internal(instruction, offset, 1, policy, out_text, out_text_size, out_error,
+    out_error_size);
+}
+
+int m68k_ir_render_one_with_policy(const M68kInstructionIR *instruction, const M68kRenderPolicy *policy, char *out_text,
+    size_t out_text_size, char *out_error, size_t out_error_size) {
+  return render_one_with_policy_internal(instruction, 0U, 0, policy, out_text, out_text_size, out_error,
+    out_error_size);
 }
 
 

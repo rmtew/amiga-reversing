@@ -645,7 +645,7 @@ static int format_signed_hex_value(int32_t value, unsigned width, char *out, siz
     : snprintf(out, out_size, "$%x", (unsigned)value) >= 0 ? 0 : -1;
 }
 
-static int format_ea(const M68kAsmOperandValue *operand, char *out, size_t out_size) {
+static int format_ea(const M68kAsmOperandValue *operand, char size_suffix, char *out, size_t out_size) {
   char index_text[32];
   char disp_text[24];
   char extra[64];
@@ -711,6 +711,10 @@ static int format_ea(const M68kAsmOperandValue *operand, char *out, size_t out_s
           if (format_index_register(operand, index_text, sizeof(index_text)) != 0) return -1;
           return snprintf(out, out_size, "target(pc,%s)", index_text) >= 0 ? 0 : -1;
         case 4:
+          if (size_suffix == 'b')
+            return snprintf(out, out_size, "#%u", (unsigned)(operand->value & 0xFFU)) >= 0 ? 0 : -1;
+          if (size_suffix == 'w')
+            return snprintf(out, out_size, "#%u", (unsigned)(operand->value & 0xFFFFU)) >= 0 ? 0 : -1;
           return snprintf(out, out_size, "#%u", (unsigned)operand->value) >= 0 ? 0 : -1;
         default:
           return -1;
@@ -720,12 +724,12 @@ static int format_ea(const M68kAsmOperandValue *operand, char *out, size_t out_s
   }
 }
 
-static int format_bf_ea(const M68kAsmOperandValue *operand, char *out, size_t out_size) {
+static int format_bf_ea(const M68kAsmOperandValue *operand, char size_suffix, char *out, size_t out_size) {
   char ea_text[128];
   char offset_text[16];
   char width_text[16];
   if (operand == NULL || out == NULL || out_size == 0U) return -1;
-  if (format_ea(operand, ea_text, sizeof(ea_text)) != 0) return -1;
+  if (format_ea(operand, size_suffix, ea_text, sizeof(ea_text)) != 0) return -1;
   if (format_bitfield_value(operand->bf_offset_is_register != 0U,
     0, operand->bf_offset, offset_text, sizeof(offset_text)) != 0) return -1;
   if (format_bitfield_value(operand->bf_width_is_register != 0U,
@@ -755,9 +759,9 @@ static int format_operand(const M68kAsmFormDef *form, const M68kAsmOperandValue 
     case M68K_ASM_OPERAND_IND:
     case M68K_ASM_OPERAND_ABSL:
     case M68K_ASM_OPERAND_EA:
-      return format_ea(operand, out, out_size);
+      return format_ea(operand, size_suffix, out, out_size);
     case M68K_ASM_OPERAND_BF_EA:
-      return format_bf_ea(operand, out, out_size);
+      return format_bf_ea(operand, size_suffix, out, out_size);
     case M68K_ASM_OPERAND_IMM:
       return format_immediate(form, operand, size_suffix, out, out_size);
     case M68K_ASM_OPERAND_LABEL:
