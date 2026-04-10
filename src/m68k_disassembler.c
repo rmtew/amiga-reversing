@@ -2,6 +2,7 @@
 #include "m68k_disassembler.h"
 #include "m68k_asm_tables.h"
 #include "m68k_parse_util.h"
+#include "platform_common.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -12,14 +13,6 @@ typedef struct {
 } M68kDisasmBucket;
 
 #include "m68k_disassembler_tables.inc"
-
-static uint16_t read_u16be(const uint8_t *data) {
-  return (uint16_t)(((uint16_t)data[0] << 8) | (uint16_t)data[1]);
-}
-
-static uint32_t read_u32be(const uint8_t *data) {
-  return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
-}
 
 static uint16_t extract_bits16(uint16_t value, uint8_t bit_hi, uint8_t bit_lo) {
   uint16_t width = (uint16_t)(bit_hi - bit_lo + 1U);
@@ -117,11 +110,11 @@ static int m68k_disasm_match_form(const M68kAsmFormDef *form, const uint8_t *dat
   size_t word_index;
   uint16_t opword;
   if (form == NULL || data == NULL || size < 2U) return 0;
-  opword = read_u16be(data);
+  opword = m68k_read_u16be(data);
   if ((opword & form->opword_mask) != form->opword_base) return 0;
   if (size < 2U + ((size_t)form->bound_word_count * 2U)) return 0;
   for (word_index = 0; word_index < form->bound_word_count; ++word_index) {
-    uint16_t bound_word = read_u16be(data + 2U + (word_index * 2U));
+    uint16_t bound_word = m68k_read_u16be(data + 2U + (word_index * 2U));
     if ((bound_word & form->bound_word_masks[word_index]) != form->bound_word_bases[word_index]) return 0;
   }
   return 1;
@@ -159,9 +152,9 @@ static int extract_patch_values(const M68kAsmFormDef *form, const uint8_t *data,
     const M68kAsmFieldPatch *patch = &g_m68k_disasm_patches[form->patch_start + patch_index];
     uint16_t word;
     if (patch->word_index == 0U) {
-      word = read_u16be(data);
+      word = m68k_read_u16be(data);
     } else if ((size_t)patch->word_index <= form->bound_word_count) {
-      word = read_u16be(data + ((size_t)patch->word_index * 2U));
+      word = m68k_read_u16be(data + ((size_t)patch->word_index * 2U));
     } else {
       return -1;
     }
@@ -238,7 +231,7 @@ static int decode_index_extension(const uint8_t *data, size_t size, M68kAsmOpera
   if (data == NULL || operand == NULL || io_offset == NULL) return -1;
   offset = *io_offset;
   if (offset + 2U > size) return -1;
-  ext = read_u16be(data + offset);
+  ext = m68k_read_u16be(data + offset);
   offset += 2U;
   operand->index_is_address = (uint8_t)((ext >> M68K_ASM_BRIEF_EXT_DA_BIT_LO) & 0x1U);
   operand->index_reg = (uint8_t)((ext >> M68K_ASM_BRIEF_EXT_REGISTER_BIT_LO) & 0x7U);
@@ -254,21 +247,21 @@ static int decode_index_extension(const uint8_t *data, size_t size, M68kAsmOpera
     operand->full_ext_iis = (uint8_t)((ext >> M68K_ASM_FULL_EXT_IIS_BIT_LO) & 0x7U);
     if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_WORD) {
       if (offset + 2U > size) return -1;
-      operand->full_ext_base_disp_value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
+      operand->full_ext_base_disp_value = m68k_sign_extend32((uint32_t)m68k_read_u16be(data + offset), 16U);
       offset += 2U;
     } else if (operand->full_ext_base_disp_size == M68K_ASM_FULL_EXT_BD_LONG) {
       if (offset + 4U > size) return -1;
-      operand->full_ext_base_disp_value = read_u32be(data + offset);
+      operand->full_ext_base_disp_value = m68k_read_u32be(data + offset);
       offset += 4U;
     }
     remaining = size - offset;
     if (remaining == 2U) {
       operand->full_ext_outer_disp_size = M68K_ASM_FULL_EXT_BD_WORD;
-      operand->full_ext_outer_disp_value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
+      operand->full_ext_outer_disp_value = m68k_sign_extend32((uint32_t)m68k_read_u16be(data + offset), 16U);
       offset += 2U;
     } else if (remaining == 4U) {
       operand->full_ext_outer_disp_size = M68K_ASM_FULL_EXT_BD_LONG;
-      operand->full_ext_outer_disp_value = read_u32be(data + offset);
+      operand->full_ext_outer_disp_value = m68k_read_u32be(data + offset);
       offset += 4U;
     }
   }
@@ -290,14 +283,14 @@ static int decode_extensions(const M68kAsmFormDef *form, const uint8_t *data, si
         if ((operand->ea_mode == 5U) || (operand->ea_mode == 7U && operand->ea_reg == 0U) ||
           (operand->ea_mode == 7U && operand->ea_reg == 2U)) {
           if (offset + 2U > size) return -1;
-          operand->value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
+          operand->value = m68k_sign_extend32((uint32_t)m68k_read_u16be(data + offset), 16U);
           offset += 2U;
         }
         break;
       case M68K_ASM_EXTENSION_EA_LONG_ADDRESS:
         if (operand->ea_mode == 7U && operand->ea_reg == 1U) {
           if (offset + 4U > size) return -1;
-          operand->value = read_u32be(data + offset);
+          operand->value = m68k_read_u32be(data + offset);
           offset += 4U;
         }
         break;
@@ -307,10 +300,10 @@ static int decode_extensions(const M68kAsmFormDef *form, const uint8_t *data, si
           if (offset + 2U > size) return -1;
           if (size_suffix == 'l') {
             if (offset + 4U > size) return -1;
-            operand->value = read_u32be(data + offset);
+            operand->value = m68k_read_u32be(data + offset);
             offset += 4U;
           } else {
-            operand->value = (uint32_t)read_u16be(data + offset);
+            operand->value = (uint32_t)m68k_read_u16be(data + offset);
             offset += 2U;
           }
         }
@@ -327,21 +320,21 @@ static int decode_extensions(const M68kAsmFormDef *form, const uint8_t *data, si
         if ((uint8_t)operand->value == form->branch_word_signal) {
           if (form->branch_word_bytes == 2U) {
             if (offset + 2U > size) return -1;
-            operand->value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
+            operand->value = m68k_sign_extend32((uint32_t)m68k_read_u16be(data + offset), 16U);
             offset += 2U;
           } else if (form->branch_word_bytes == 4U) {
             if (offset + 4U > size) return -1;
-            operand->value = read_u32be(data + offset);
+            operand->value = m68k_read_u32be(data + offset);
             offset += 4U;
           }
         } else if ((uint8_t)operand->value == form->branch_long_signal) {
           if (form->branch_long_bytes == 2U) {
             if (offset + 2U > size) return -1;
-            operand->value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
+            operand->value = m68k_sign_extend32((uint32_t)m68k_read_u16be(data + offset), 16U);
             offset += 2U;
           } else if (form->branch_long_bytes == 4U) {
             if (offset + 4U > size) return -1;
-            operand->value = read_u32be(data + offset);
+            operand->value = m68k_read_u32be(data + offset);
             offset += 4U;
           }
         }
@@ -349,17 +342,17 @@ static int decode_extensions(const M68kAsmFormDef *form, const uint8_t *data, si
       case M68K_ASM_EXTENSION_LABEL_DISP16_ALWAYS:
         if (form->branch_word_bytes == 2U) {
           if (offset + 2U > size) return -1;
-          operand->value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
+          operand->value = m68k_sign_extend32((uint32_t)m68k_read_u16be(data + offset), 16U);
           offset += 2U;
         } else if (form->branch_word_bytes == 4U) {
           if (offset + 4U > size) return -1;
-          operand->value = read_u32be(data + offset);
+          operand->value = m68k_read_u32be(data + offset);
           offset += 4U;
         }
         break;
       case M68K_ASM_EXTENSION_DISP16_ALWAYS:
         if (offset + 2U > size) return -1;
-        operand->value = m68k_sign_extend32((uint32_t)read_u16be(data + offset), 16U);
+        operand->value = m68k_sign_extend32((uint32_t)m68k_read_u16be(data + offset), 16U);
         offset += 2U;
         break;
       default:
@@ -518,7 +511,7 @@ static int decode_operands(const M68kAsmFormDef *form, const uint16_t *field_val
   }
   if (decode_extensions(form, data, size, operands, size_suffix, out_byte_count) != 0) return -1;
   if (strcmp(form->mnemonic, "movem") == 0 && form->operand_count >= 2U &&
-    operands[0].kind == M68K_ASM_OPERAND_REGLIST && ((read_u16be(data) >> 3U) & 0x7U) == 4U) {
+    operands[0].kind == M68K_ASM_OPERAND_REGLIST && ((m68k_read_u16be(data) >> 3U) & 0x7U) == 4U) {
     uint16_t mask = (uint16_t)operands[0].value;
     uint16_t reversed = 0U;
     unsigned bit;
@@ -816,7 +809,7 @@ static int m68k_disassemble_one_impl(const uint8_t *data, size_t size, uint8_t t
   size_t candidate_index;
   if (data == NULL || size == 0U) return set_result(out, 0, 0U, NULL, "empty input", NULL, 0U, NULL, '\0', target_cpu);
   if (size < 2U) return set_result(out, 0, 0U, NULL, "empty input", NULL, 0U, NULL, '\0', target_cpu);
-  bucket_index = (uint16_t)(read_u16be(data) >> 4);
+  bucket_index = (uint16_t)(m68k_read_u16be(data) >> 4);
   for (candidate_index = 0; candidate_index < g_m68k_disasm_buckets[bucket_index].count; ++candidate_index) {
     uint16_t form_index = g_m68k_disasm_bucket_candidates[g_m68k_disasm_buckets[bucket_index].start + candidate_index];
     const M68kAsmFormDef *form = &g_m68k_disasm_forms[form_index];

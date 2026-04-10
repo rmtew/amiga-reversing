@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -227,7 +228,10 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("jmp *+2(pc,d0.w)", result.stdout)
+            self.assertIn("jmp dat_0004-2(pc,d0.w)", result.stdout)
+            self.assertIn("invalid overlap: pc-relative reference targets +2 into instruction at $0000", result.stdout)
+            self.assertIn("dat_0004:", result.stdout)
+            self.assertNotIn("jmp *+2(pc,d0.w)", result.stdout)
             self.assertNotIn("loc_0000+2(pc,d0.w)", result.stdout)
 
     def test_disassemble_file_uses_pc_plus_2_base_for_lea_pc_displacement(self) -> None:
@@ -322,24 +326,41 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn("move.w -$8(a1,d1.w),d1", text)
         self.assertIn("jsr $0(a1,d1.w)", text)
         self.assertNotIn("jsr $0(a1,d1.w) ; CANDIDATE: indirect_call index unresolved", text)
-        self.assertIn("DC.W    loc_20B4-dat_0EA2", text)
+        self.assertIn("DC.W    sub_20B4-dat_0EA2", text)
         self.assertIn("DC.W    loc_10A4-dat_0EA2", text)
-        self.assertIn("DC.W    loc_2BC0-dat_0EA2", text)
-        self.assertIn("DC.W    loc_2CA2-dat_0EA2", text)
-        self.assertIn("DC.W    loc_10DA-dat_0EA2", text)
-        self.assertIn("DC.W    loc_10F8-dat_0EA2", text)
+        self.assertIn("DC.W    sub_2BC0-dat_0EA2", text)
+        self.assertIn("DC.W    sub_10DA-dat_0EA2", text)
+        self.assertIn("DC.W    sub_1120-dat_0EA2", text)
         self.assertIn("movea.l #dat_A664,a0", text)
         self.assertIn("movea.l #dat_B21E,a0", text)
         self.assertIn("movea.l #dat_CD3C,a1", text)
         self.assertIn("movea.l #dat_BA08,a2", text)
         self.assertIn("movea.l #dat_E070,a0", text)
         self.assertIn("movea.l #dat_A764,a1", text)
+        self.assertIn("move.w dat_439E(pc,d1.w),d0", text)
+        self.assertIn("move.l dat_50BA(pc,d0.w),d2", text)
+        self.assertIn("move.b dat_5782-1(pc,d2.w),d0", text)
+        self.assertIn("and.l dat_7888(pc),d0", text)
+        self.assertIn("cmp.l dat_7888(pc),d0", text)
+        self.assertIn("move.b dat_87FC(pc,d0.w),d0", text)
+        self.assertIn("move.b dat_8EC8(pc,d1.w),d1", text)
+        self.assertIn("move.b dat_FB06(pc,d1.w),(a4)+", text)
         self.assertNotIn("movea.l #$A664,a0", text)
         self.assertNotIn("movea.l #$B21E,a0", text)
         self.assertNotIn("movea.l #$CD3C,a1", text)
         self.assertNotIn("movea.l #$BA08,a2", text)
         self.assertNotIn("movea.l #$E070,a0", text)
         self.assertNotIn("movea.l #$A764,a1", text)
+        self.assertNotIn("move.b $42(pc,d1.w),d7", text)
+        self.assertNotIn("move.w $18(pc,d1.w),d0", text)
+        self.assertNotIn("move.l $20(pc,d0.w),d2", text)
+        self.assertNotIn("move.l $16(pc,d0.w),d0", text)
+        self.assertNotIn("move.b *+25(pc,d2.w),d0", text)
+        self.assertNotIn("and.l -$8(pc),d0", text)
+        self.assertNotIn("cmp.l -$E(pc),d0", text)
+        self.assertNotIn("move.b -$1C(pc,d0.w),d0", text)
+        self.assertNotIn("move.b $4(pc,d1.w),d1", text)
+        self.assertNotIn("move.b $18(pc,d1.w),(a4)+", text)
         self.assertNotIn("dat_0EA4:", text)
         self.assertNotIn("loc_0EA4:", text)
         self.assertNotIn("DC.W    loc_12B8-dat_0EA2", text)
@@ -347,8 +368,17 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertNotIn("DC.W    loc_22B6-dat_0EA2", text)
         self.assertNotIn("DC.W    loc_22B4-dat_0EA2", text)
         self.assertNotIn("lea.l dat_0EA4(pc),a1", text)
-        self.assertIn("jmp *+2(pc,d0.w) ; VIOLATION: invalid overlap: pc-relative reference targets +2 into instruction at $13C4", text)
+        self.assertIn("jmp loc_13C8-2(pc,d0.w)", text)
+        self.assertNotIn("jmp *+2(pc,d0.w)", text)
         self.assertNotIn("jmp loc_13C4+2(pc,d0.w)", text)
+        table_idx = text.find("dat_439E:")
+        self.assertNotEqual(table_idx, -1)
+        table_window = text[table_idx:text.find("loc_43D2:", table_idx)]
+        self.assertIn("DC.W    $0000", table_window)
+        self.assertNotIn("DC.B    $00,$00", table_window)
+        self.assertNotIn("DC.L    $00000000", table_window)
+        self.assertNotIn("loc_3F3D:", text)
+        self.assertNotIn("loc_3F43:", text)
 
     def test_disassemble_genam_resolves_entry_relative_jump_table_dispatch_site(self) -> None:
         path = ROOT / "bin" / "GenAm"
@@ -374,6 +404,22 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn("DC.W    loc_3C86-*", text)
         self.assertIn("DC.W    loc_3C5C-*", text)
         self.assertIn("DC.W    loc_3E98-*", text)
+
+    def test_disassemble_genam_flags_current_relative_branches_as_violations(self) -> None:
+        path = ROOT / "bin" / "GenAm"
+        result = subprocess.run(
+            [str(EXE), "disassemble-file", "--syntax", "genam", "amiga-hunk", str(path)],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        branch_relative = re.compile(r"^\s*b[a-z]+\.[bwlsg]?\s+\*[+-]?\d*")
+        bare = [line for line in result.stdout.splitlines()
+                if branch_relative.search(line) and "VIOLATION:" not in line]
+        self.assertEqual([], bare)
 
     def test_disassemble_genam_roundtrips_via_vasm_with_matching_section_bytes_and_fixups(self) -> None:
         path = ROOT / "bin" / "GenAm"

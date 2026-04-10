@@ -436,9 +436,8 @@ int m68k_atari_st_read_program_flags(const char *path, uint32_t *out_program_fla
         return -1;
     }
     fclose(fp);
-    if ((((uint16_t)header[0] << 8) | (uint16_t)header[1]) != ATARI_ST_PRG_FILE_MAGIC_PRG) return -1;
-    *out_program_flags = ((uint32_t)header[22] << 24) | ((uint32_t)header[23] << 16)
-        | ((uint32_t)header[24] << 8) | (uint32_t)header[25];
+    if (m68k_read_u16be(header) != ATARI_ST_PRG_FILE_MAGIC_PRG) return -1;
+    *out_program_flags = m68k_read_u32be(header + 22U);
     return 0;
 }
 

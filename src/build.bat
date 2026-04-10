@@ -64,6 +64,9 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\platform_disk_lib.c ^
     src\platform_file_cli.c ^
     src\platform_file_lib.c ^
+    src\platform_file_core.c ^
+    src\platform_file_json.c ^
+    src\platform_file_conversion.c ^
     src\json_builder.c ^
     src\m68k_object.c ^
     src\platform_amiga_hunk.c ^
@@ -219,6 +222,9 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
 link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\platform_file_cli.obj ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\platform_file_core.obj ^
+    %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^
     %OUTDIR%\m68k_assembler_api.obj ^
@@ -262,6 +268,9 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
 
 link %LDFLAGS% /DLL /OUT:%FILE_DLL% /EXPORT:platform_file_analyze_path_json ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\platform_file_core.obj ^
+    %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^
     %OUTDIR%\m68k_assembler_api.obj ^

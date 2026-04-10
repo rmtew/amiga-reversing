@@ -4,6 +4,8 @@ import json
 import os
 import unittest
 import ctypes
+import subprocess
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 
@@ -15,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[2]
 BUILD_DIR = ROOT / "src" / "build"
 ASM_DLL = BUILD_DIR / "m68k_assembler_lib.dll"
 FILE_DLL = BUILD_DIR / "platform_file_lib.dll"
+ASM_EXE = BUILD_DIR / "m68k_assembler_app.exe"
+AMIGA_INCLUDE_DIR = ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"
 
 
 def u32(value: int) -> bytes:
@@ -86,6 +90,35 @@ def _assemble_line_hex(cpu: str, text: str) -> bytes:
     if result != 0:
         raise AssertionError(error_buf.value.decode("utf-8"))
     return bytes(out_buf[:byte_count.value])
+
+
+def _assemble_platform_hunk_source(source: str, cpu: str = "68000") -> bytes:
+    with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+        source_path = Path(tmp) / "sample.s"
+        out_path = Path(tmp) / "sample.exe"
+        source_path.write_text(source, encoding="ascii")
+        result = subprocess.run(
+            [
+                str(ASM_EXE),
+                "assemble-platform-file",
+                "--cpu",
+                cpu,
+                "--backend",
+                "amiga-hunk",
+                "--include-dir",
+                str(AMIGA_INCLUDE_DIR),
+                str(source_path),
+                str(out_path),
+            ],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise AssertionError(result.stderr)
+        return out_path.read_bytes()
 
 
 def _make_single_code_hunkexe(code_data: bytes, reloc_offsets: list[int]) -> bytes:
@@ -176,6 +209,86 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
         call_targets = {edge["target_offset"] for edge in code_section["edges"] if edge["kind"] == 3}
         self.assertIn(26, call_targets)
 
+    def test_analysis_discovers_pc_relative_word_dispatch_targets(self) -> None:
+        payload = _assemble_platform_hunk_source(
+            "\n".join(
+                [
+                    "SECTION code,code",
+                    "start:",
+                    "    ext.w d1",
+                    "    add.w d1,d1",
+                    "    move.w table(pc,d1.w),d0",
+                    "    beq.s fail",
+                    "    move.b (a4)+,d1",
+                    "    jsr table(pc,d0.w)",
+                    "    nop",
+                    "table:",
+                    "    DC.W target0-table",
+                    "    DC.W target1-table",
+                    "    DC.W 0",
+                    "    DC.W target2-table",
+                    "target0:",
+                    "    rts",
+                    "target1:",
+                    "    rts",
+                    "target2:",
+                    "    rts",
+                    "fail:",
+                    "    rts",
+                    "    DC.W 0",
+                    "",
+                ]
+            )
+        )
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        call_targets = {
+            edge["target_offset"]
+            for edge in code_section["edges"]
+            if edge["source_offset"] == 12 and edge["kind"] == 3
+        }
+        self.assertEqual(call_targets, {24, 26, 28})
+        unresolved = [
+            violation
+            for violation in code_section["violations"]
+            if violation["kind"] == 4 and violation["offset"] == 12
+        ]
+        self.assertEqual([], unresolved)
+
+    def test_analysis_discovers_entry_relative_word_dispatch_targets(self) -> None:
+        payload = _assemble_platform_hunk_source(
+            "\n".join(
+                [
+                    "SECTION code,code",
+                    "start:",
+                    "    add.b d1,d1",
+                    "    ext.w d1",
+                    "    lea table(pc,d1.w),a2",
+                    "    adda.w (a2),a2",
+                    "    jmp (a2)",
+                    "table:",
+                    "    DC.W target0-table",
+                    "    DC.W target1-table",
+                    "target0:",
+                    "    rts",
+                    "target1:",
+                    "    rts",
+                    "    DC.L 0",
+                    "",
+                ]
+            )
+        )
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        jump_targets = {edge["target_offset"] for edge in code_section["edges"] if edge["kind"] == 4}
+        self.assertEqual(jump_targets, {16, 20})
+        unresolved = [
+            violation
+            for violation in code_section["violations"]
+            if violation["kind"] == 3 and violation["offset"] == 10
+        ]
+        self.assertEqual([], unresolved)
+
     def test_analysis_resolves_real_genam_word_offset_dispatch_call(self) -> None:
         analysis = self._analyze_file(ROOT / "bin" / "GenAm")
         code_section = analysis["sections"][0]
@@ -196,6 +309,17 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
         self.assertGreaterEqual(len(jump_targets), 20)
         self.assertTrue({0x3D00, 0x3C86, 0x3C5C, 0x3C68, 0x3E98}.issubset(jump_targets))
         self.assertFalse(any(edge["kind"] == 5 for edge in jump_edges))
+
+    def test_analysis_resolves_real_genam_pc_relative_word_dispatch_call(self) -> None:
+        analysis = self._analyze_file(ROOT / "bin" / "GenAm")
+        code_section = analysis["sections"][0]
+        call_targets = {
+            edge["target_offset"]
+            for edge in code_section["edges"]
+            if edge["source_offset"] == 0x438C and edge["kind"] == 3
+        }
+        self.assertTrue({0x43D8, 0x43EC, 0x4438, 0x4448, 0x445E}.issubset(call_targets))
+        self.assertNotIn(0x43D4, call_targets)
 
     def test_analysis_tracks_pointer_copy_before_indirect_jump(self) -> None:
         code = (
@@ -330,7 +454,7 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
     def test_analysis_uses_cmp2_flags_to_prune_conditional_branch(self) -> None:
         code = (
             _assemble_line_hex("68020", "moveq #9,d0")
-            + _assemble_line_hex("68020", "lea $000c(pc),a0")
+            + _assemble_line_hex("68020", "lea $000e(pc),a0")
             + _assemble_line_hex("68020", "cmp2.w (a0),d0")
             + _assemble_line_hex("68020", "bcs 2")
             + _assemble_line_hex("68020", "rts")
@@ -414,21 +538,193 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
 
     def test_analysis_does_not_prune_branch_after_unknown_sr_join(self) -> None:
         code = (
-            _assemble_line_hex("68000", "beq 8")
+            _assemble_line_hex("68000", "beq 10")
             + _assemble_line_hex("68000", "moveq #0,d0")
-            + _assemble_line_hex("68000", "cmp.b #0,d0")
+            + _assemble_line_hex("68000", "tst.b d0")
             + _assemble_line_hex("68000", "bra 2")
-            + _assemble_line_hex("68000", "beq 2")
+            + _assemble_line_hex("68000", "beq 4")
             + _assemble_line_hex("68000", "rts")
             + _assemble_line_hex("68000", "rts")
         )
         payload = _make_single_code_hunkexe(code, [])
         analysis = self._analyze_bytes(payload)
         code_section = analysis["sections"][0]
-        join_branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 14 and edge["kind"] == 2]
-        join_fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 14 and edge["kind"] == 1]
+        join_branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 12 and edge["kind"] == 2]
+        join_fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 12 and edge["kind"] == 1]
         self.assertGreaterEqual(len(join_branch_edges), 1)
         self.assertGreaterEqual(len(join_fallthrough_edges), 1)
+
+    def test_analysis_does_not_prune_branch_after_call(self) -> None:
+        code = (
+            _assemble_line_hex("68000", "moveq #0,d0")
+            + _assemble_line_hex("68000", "tst.l d0")
+            + _assemble_line_hex("68000", "bsr.w 8")
+            + _assemble_line_hex("68000", "beq 2")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "rts")
+        )
+        payload = _make_single_code_hunkexe(code, [])
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 8 and edge["kind"] == 2]
+        fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 8 and edge["kind"] == 1]
+        self.assertGreaterEqual(len(branch_edges), 1)
+        self.assertGreaterEqual(len(fallthrough_edges), 1)
+
+    def test_analysis_uses_local_call_summary_for_post_call_branch(self) -> None:
+        code = (
+            _assemble_line_hex("68000", "bsr.w 10")
+            + _assemble_line_hex("68000", "tst.l d0")
+            + _assemble_line_hex("68000", "bne 2")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "moveq #1,d0")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "rts")
+        )
+        payload = _make_single_code_hunkexe(code, [])
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 6 and edge["kind"] == 2]
+        fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 6 and edge["kind"] == 1]
+        self.assertEqual(len(branch_edges), 1)
+        self.assertEqual(len(fallthrough_edges), 0)
+
+    def test_analysis_handles_recursive_local_call_summary_graph_without_violations(self) -> None:
+        payload = _assemble_platform_hunk_source(
+            "\n".join(
+                [
+                    "SECTION code,code",
+                    "start:",
+                    "    moveq #3,d1",
+                    "    bsr.w func_a",
+                    "    tst.l d0",
+                    "    bne.b taken",
+                    "    rts",
+                    "taken:",
+                    "    rts",
+                    "func_a:",
+                    "    subq.l #1,d1",
+                    "    beq.b a_base",
+                    "    bsr.w func_b",
+                    "    rts",
+                    "a_base:",
+                    "    moveq #1,d0",
+                    "    rts",
+                    "func_b:",
+                    "    subq.l #1,d1",
+                    "    beq.b b_base",
+                    "    bsr.w func_a",
+                    "    rts",
+                    "b_base:",
+                    "    moveq #1,d0",
+                    "    rts",
+                    "    DC.W 0",
+                    "",
+                ]
+            )
+        )
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        call_edges = [edge for edge in code_section["edges"] if edge["kind"] == 3]
+        self.assertEqual({(2, 14), (18, 28), (32, 14)}, {(edge["source_offset"], edge["target_offset"]) for edge in call_edges})
+        self.assertEqual([], code_section["violations"])
+
+    def test_analysis_uses_recursive_local_call_summary_for_post_call_branch(self) -> None:
+        payload = _assemble_platform_hunk_source(
+            "\n".join(
+                [
+                    "SECTION code,code",
+                    "start:",
+                    "    moveq #3,d1",
+                    "    bsr.w func_a",
+                    "    tst.l d0",
+                    "    bne.b taken",
+                    "    rts",
+                    "taken:",
+                    "    rts",
+                    "func_a:",
+                    "    subq.l #1,d1",
+                    "    beq.b a_base",
+                    "    bsr.w func_b",
+                    "    moveq #1,d0",
+                    "    rts",
+                    "a_base:",
+                    "    moveq #1,d0",
+                    "    rts",
+                    "func_b:",
+                    "    subq.l #1,d1",
+                    "    beq.b b_base",
+                    "    bsr.w func_a",
+                    "    moveq #1,d0",
+                    "    rts",
+                    "b_base:",
+                    "    moveq #1,d0",
+                    "    rts",
+                    "    DC.W 0",
+                    "",
+                ]
+            )
+        )
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 8 and edge["kind"] == 2]
+        fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 8 and edge["kind"] == 1]
+        self.assertEqual(len(branch_edges), 1)
+        self.assertEqual(len(fallthrough_edges), 0)
+
+    def test_analysis_invalidates_stale_flags_after_unknown_compare(self) -> None:
+        code = (
+            _assemble_line_hex("68000", "moveq #1,d0")
+            + _assemble_line_hex("68000", "tst.l d0")
+            + _assemble_line_hex("68000", "move.b (a0),d1")
+            + _assemble_line_hex("68000", "cmp.b #9,d1")
+            + _assemble_line_hex("68000", "beq 4")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "rts")
+        )
+        payload = _make_single_code_hunkexe(code, [])
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 10 and edge["kind"] == 2]
+        fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 10 and edge["kind"] == 1]
+        self.assertGreaterEqual(len(branch_edges), 1)
+        self.assertGreaterEqual(len(fallthrough_edges), 1)
+
+    def test_analysis_invalidates_stale_flags_after_unknown_memory_test(self) -> None:
+        code = (
+            _assemble_line_hex("68000", "moveq #0,d0")
+            + _assemble_line_hex("68000", "tst.l d0")
+            + _assemble_line_hex("68000", "tst.b (a0)")
+            + _assemble_line_hex("68000", "beq 4")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "rts")
+        )
+        payload = _make_single_code_hunkexe(code, [])
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 6 and edge["kind"] == 2]
+        fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 6 and edge["kind"] == 1]
+        self.assertGreaterEqual(len(branch_edges), 1)
+        self.assertGreaterEqual(len(fallthrough_edges), 1)
+
+    def test_analysis_invalidates_stale_flags_after_unknown_subtract(self) -> None:
+        code = (
+            _assemble_line_hex("68000", "moveq #0,d0")
+            + _assemble_line_hex("68000", "tst.l d0")
+            + _assemble_line_hex("68000", "move.b (a0),d1")
+            + _assemble_line_hex("68000", "subi.b #48,d1")
+            + _assemble_line_hex("68000", "bcs 4")
+            + _assemble_line_hex("68000", "rts")
+            + _assemble_line_hex("68000", "rts")
+        )
+        payload = _make_single_code_hunkexe(code, [])
+        analysis = self._analyze_bytes(payload)
+        code_section = analysis["sections"][0]
+        branch_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 10 and edge["kind"] == 2]
+        fallthrough_edges = [edge for edge in code_section["edges"] if edge["source_offset"] == 10 and edge["kind"] == 1]
+        self.assertGreaterEqual(len(branch_edges), 1)
+        self.assertGreaterEqual(len(fallthrough_edges), 1)
 
     def test_analysis_uses_shift_flags_to_prune_conditional_branch(self) -> None:
         code = (
@@ -611,7 +907,7 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
         code = (
             _assemble_line_hex("68020", "moveq #0,d0")
             + _assemble_line_hex("68020", "moveq #1,d1")
-            + _assemble_line_hex("68020", "lea $000c(pc),a0")
+            + _assemble_line_hex("68020", "lea $000e(pc),a0")
             + _assemble_line_hex("68020", "cas.w d0,d1,(a0)")
             + _assemble_line_hex("68020", "beq 2")
             + _assemble_line_hex("68020", "rts")

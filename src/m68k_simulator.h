@@ -480,8 +480,10 @@ void m68k_sim_target_set_init(M68kSimTargetSet *set);
 int m68k_sim_target_set_add(M68kSimTargetSet *set, uint32_t target);
 void m68k_sim_value_init_unknown(M68kSimValue *value);
 void m68k_sim_cpu_state_init_unknown(M68kSimCpuState *state);
+int m68k_sim_cpu_state_equal(const M68kSimCpuState *lhs, const M68kSimCpuState *rhs);
 int m68k_sim_cpu_state_join(M68kSimCpuState *dst, const M68kSimCpuState *src);
 void m68k_sim_memory_state_init(M68kSimMemoryState *state);
+int m68k_sim_memory_state_equal(const M68kSimMemoryState *lhs, const M68kSimMemoryState *rhs);
 int m68k_sim_memory_state_join(M68kSimMemoryState *dst, const M68kSimMemoryState *src);
 int m68k_sim_memory_state_seed_same_section_fixups(const M68kObject *object, size_t section_index,
   const M68kSection *section, M68kSimMemoryState *state);
