@@ -1,6 +1,8 @@
 #ifndef PLATFORM_BINARY_IO_H
 #define PLATFORM_BINARY_IO_H
 
+#include "util_arena.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -10,12 +12,15 @@ typedef struct M68kBinaryReader {
     size_t pos;
 } M68kBinaryReader;
 
+typedef struct M68kBinaryWriterState M68kBinaryWriterState;
+
 typedef struct M68kBinaryWriter {
-    unsigned char *data;
     size_t size;
-    size_t capacity;
+    Arena *arena;
+    M68kBinaryWriterState *state;
 } M68kBinaryWriter;
 
+int m68k_writer_create(M68kBinaryWriter *writer);
 int m68k_reader_read_u8(M68kBinaryReader *reader, unsigned char *out_value);
 int m68k_reader_read_u16be(M68kBinaryReader *reader, uint16_t *out_value);
 int m68k_reader_read_u32be(M68kBinaryReader *reader, uint32_t *out_value);
@@ -31,5 +36,7 @@ int m68k_writer_u16be(M68kBinaryWriter *writer, uint16_t value);
 int m68k_writer_u32be(M68kBinaryWriter *writer, uint32_t value);
 int m68k_writer_bytes(M68kBinaryWriter *writer, const unsigned char *data,
                       size_t size);
+unsigned char *m68k_writer_build(const M68kBinaryWriter *writer);
+void m68k_writer_destroy(M68kBinaryWriter *writer);
 
 #endif

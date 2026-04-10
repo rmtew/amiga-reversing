@@ -2,6 +2,8 @@
 #ifndef M68K_OBJECT_H
 #define M68K_OBJECT_H
 
+#include "util_arena.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -81,12 +83,17 @@ typedef struct M68kObject {
   size_t fixup_count;
   size_t fixup_capacity;
   void *platform_data;
-  void (*platform_data_free)(void *);
+  Arena *arena;
 } M68kObject;
 
-void m68k_object_init(M68kObject *object);
-void m68k_object_free(M68kObject *object);
+int m68k_object_create(M68kObject *object);
+void m68k_object_destroy(M68kObject *object);
+void *m68k_object_alloc(M68kObject *object, size_t size);
+void *m68k_object_memdup(M68kObject *object, const void *data, size_t size);
 int m68k_object_add_section(M68kObject *object, const M68kSection *section, size_t *out_index);
+/* Arena-backed setters never reclaim replaced storage until m68k_object_destroy(). */
+int m68k_object_set_section_data(M68kObject *object, size_t section_index, const uint8_t *data, uint32_t data_size);
+int m68k_object_set_section_debug_data(M68kObject *object, size_t section_index, const uint8_t *data, uint32_t debug_size);
 int m68k_object_add_symbol(M68kObject *object, const M68kSymbol *symbol, size_t *out_index);
 int m68k_object_add_fixup(M68kObject *object, const M68kFixup *fixup, size_t *out_index);
 

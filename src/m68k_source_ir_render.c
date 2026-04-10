@@ -46,10 +46,10 @@ static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR 
     }
     if (append_rendered_string_bytes(builder, data->data, string_size) != 0) return -1;
     if (has_trailing_nul && json_builder_append(builder, ",0") != 0) return -1;
-    return json_builder_append(builder, "\n");
+    return 0;
   }
   if (data->expr_text != NULL && data->expr_text[0] != '\0')
-    return json_builder_appendf(builder, "    %-7s %s\n", directive, data->expr_text);
+    return json_builder_appendf(builder, "    %-7s %s", directive, data->expr_text);
   if (data->kind == M68K_DATA_ITEM_STRING) {
     directive = "DC.B";
     step = 1U;
@@ -77,7 +77,7 @@ static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR 
       if (json_builder_appendf(builder, "$%08x", (unsigned)value) != 0) return -1;
     }
   }
-  return json_builder_append(builder, "\n");
+  return 0;
 }
 
 static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR *stmt) {
@@ -100,6 +100,7 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
     m68k_render_policy_init_default(&default_policy);
     active_policy = &default_policy;
   }
+  if (json_builder_create(&builder) != 0) goto oom;
   if (source_file->has_atari_st_program_flags != 0U &&
       json_builder_appendf(&builder, "    COMMENT HEAD=$%x\n", (unsigned)source_file->atari_st_program_flags) != 0)
     goto oom;
@@ -121,26 +122,25 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
         char text[256];
         if (m68k_ir_render_one_with_policy(&stmt->u.instruction, active_policy, text, sizeof(text), out_error,
             out_error_size) != 0) {
-          json_builder_free(&builder);
+          json_builder_destroy(&builder);
           return -1;
         }
         if (json_builder_appendf(&builder, "    %s", text) != 0) goto oom;
         if (append_statement_comment(&builder, stmt) != 0) goto oom;
       } else if (stmt->kind == M68K_STATEMENT_DATA) {
         if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy) != 0) goto oom;
-        if (stmt->comment != NULL && stmt->comment[0] != '\0') {
-          if (builder.size != 0U && builder.data[builder.size - 1U] == '\n') builder.data[--builder.size] = '\0';
-          if (append_statement_comment(&builder, stmt) != 0) goto oom;
-        }
+        if (append_statement_comment(&builder, stmt) != 0) goto oom;
       }
     }
   }
-  *out_text = builder.data;
+  *out_text = json_builder_build(&builder);
+  if (*out_text == NULL) goto oom;
+  json_builder_destroy(&builder);
   m68k_platform_set_error(out_error, out_error_size, "");
   return 0;
 
 oom:
-  json_builder_free(&builder);
+  json_builder_destroy(&builder);
   m68k_platform_set_error(out_error, out_error_size, "out of memory");
   return -1;
 }

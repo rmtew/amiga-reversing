@@ -6,6 +6,45 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define AMIGA_DISK_ANALYSIS_ARENA_SIZE 16384U
+
+static int analysis_join_path(AmigaDiskAnalysis *analysis, const char *base, const char *name, char **out_path) {
+    size_t base_len;
+    size_t name_len;
+    size_t total;
+    char *path;
+    Arena *arena = analysis != NULL ? analysis->arena : NULL;
+    if (arena == NULL || base == NULL || name == NULL || out_path == NULL) return -1;
+    base_len = strlen(base);
+    name_len = strlen(name);
+    total = base_len + name_len + (base_len != 0U ? 2U : 1U);
+    path = (char *)arena_alloc(arena, total);
+    if (path == NULL) return -1;
+    if (base_len != 0U) {
+        memcpy(path, base, base_len);
+        path[base_len] = '/';
+        memcpy(path + base_len + 1U, name, name_len + 1U);
+    } else {
+        memcpy(path, name, name_len + 1U);
+    }
+    *out_path = path;
+    return 0;
+}
+
+static void *analysis_grow_array(AmigaDiskAnalysis *analysis, void *items, size_t count, size_t *capacity,
+    size_t item_size) {
+    size_t next_capacity;
+    void *grown;
+    Arena *arena = analysis != NULL ? analysis->arena : NULL;
+    if (arena == NULL) return NULL;
+    if (count < *capacity) return items;
+    next_capacity = (*capacity == 0U) ? 4U : (*capacity * 2U);
+    grown = arena_realloc_copy(arena, items, count * item_size, next_capacity * item_size);
+    if (grown == NULL) return NULL;
+    *capacity = next_capacity;
+    return grown;
+}
+
 typedef struct DiskContext {
     const unsigned char *data;
     size_t size;
@@ -74,8 +113,10 @@ static int read_bcpl_name(const unsigned char *block, size_t len_offset, size_t 
     return 0;
 }
 
-static int append_extent(AmigaDiskEntry *entry, uint32_t block_index, uint32_t image_offset, uint32_t byte_size) {
-    AmigaDiskExtent *grown = (AmigaDiskExtent *)realloc(entry->extents, (entry->extent_count + 1U) * sizeof(*entry->extents));
+static int append_extent(AmigaDiskAnalysis *analysis, AmigaDiskEntry *entry, uint32_t block_index, uint32_t image_offset,
+    uint32_t byte_size) {
+    AmigaDiskExtent *grown = (AmigaDiskExtent *)analysis_grow_array(analysis, entry->extents, entry->extent_count,
+        &entry->extent_capacity, sizeof(*entry->extents));
     if (grown == NULL) return -1;
     entry->extents = grown;
     entry->extents[entry->extent_count].block_index = block_index;
@@ -107,7 +148,7 @@ static int append_file_pointer_block_extents(const DiskContext *ctx, const unsig
         uint32_t extent_size;
         if (block_offset(ctx, block_index, &offset) != 0) return -1;
         extent_size = (*remaining > byte_size) ? byte_size : *remaining;
-        if (append_extent(entry, block_index, (uint32_t)offset, extent_size) != 0) return -1;
+        if (append_extent((AmigaDiskAnalysis *)entry->owner, entry, block_index, (uint32_t)offset, extent_size) != 0) return -1;
         if (*remaining > extent_size) *remaining -= extent_size;
         else {
             *remaining = 0U;
@@ -160,7 +201,7 @@ static int append_ofs_extents_from_pointer_block(const DiskContext *ctx, const u
         data_block = ctx->data + block_base;
         data_size = read_u32be(data_block, AMIGA_DISK_FILE_CONSTRAINTS_OFS_DATA_SIZE_OFFSET);
         if (data_size > AMIGA_DISK_FILE_CONSTRAINTS_OFS_MAX_DATA_BYTES) return -1;
-        if (append_extent(entry, block_index,
+        if (append_extent((AmigaDiskAnalysis *)entry->owner, entry, block_index,
                 (uint32_t)(block_base + AMIGA_DISK_FILE_CONSTRAINTS_OFS_DATA_OFFSET),
                 (*remaining > data_size) ? data_size : *remaining) != 0) {
             return -1;
@@ -205,7 +246,7 @@ static int append_ofs_extents_from_linked_chain(const DiskContext *ctx, uint32_t
         data_size = read_u32be(block, AMIGA_DISK_FILE_CONSTRAINTS_OFS_DATA_SIZE_OFFSET);
         next_data = read_u32be(block, AMIGA_DISK_FILE_CONSTRAINTS_OFS_NEXT_DATA_OFFSET);
         if (data_size > AMIGA_DISK_FILE_CONSTRAINTS_OFS_MAX_DATA_BYTES) return -1;
-        if (append_extent(entry, data_block,
+        if (append_extent((AmigaDiskAnalysis *)entry->owner, entry, data_block,
                 (uint32_t)(block_base + AMIGA_DISK_FILE_CONSTRAINTS_OFS_DATA_OFFSET),
                 (*remaining > data_size) ? data_size : *remaining) != 0) {
             return -1;
@@ -223,7 +264,8 @@ static int append_ofs_extents_from_linked_chain(const DiskContext *ctx, uint32_t
 }
 
 static int add_entry(AmigaDiskAnalysis *analysis, const AmigaDiskEntry *entry) {
-    AmigaDiskEntry *grown = (AmigaDiskEntry *)realloc(analysis->entries, (analysis->entry_count + 1U) * sizeof(*analysis->entries));
+    AmigaDiskEntry *grown = (AmigaDiskEntry *)analysis_grow_array(analysis, analysis->entries, analysis->entry_count,
+        &analysis->entry_capacity, sizeof(*analysis->entries));
     if (grown == NULL) return -1;
     analysis->entries = grown;
     analysis->entries[analysis->entry_count] = *entry;
@@ -293,12 +335,13 @@ static int parse_directory_block(const DiskContext *ctx, AmigaDiskAnalysis *anal
                 m68k_platform_set_error(error_buf, error_buf_size, "Invalid AmigaDOS entry name");
                 return -1;
             }
-            if (m68k_platform_join_path(base_path, name, &path) != 0) {
+            if (analysis_join_path(analysis, base_path, name, &path) != 0) {
                 m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
                 return -1;
             }
             memset(&entry, 0, sizeof(entry));
             entry.path = path;
+            entry.owner = analysis;
             entry.header_block = entry_block_index;
             if (sec_type == AMIGA_DISK_FILE_CONSTRAINTS_SEC_TYPE_USERDIR) {
                 entry.kind = AMIGA_DISK_ENTRY_DIRECTORY;
@@ -306,12 +349,11 @@ static int parse_directory_block(const DiskContext *ctx, AmigaDiskAnalysis *anal
                 entry.kind = AMIGA_DISK_ENTRY_FILE;
                 entry.byte_size = read_u32be(entry_block, AMIGA_DISK_FILE_CONSTRAINTS_FILE_HEADER_BYTE_SIZE_OFFSET);
                 if (build_file_extents(ctx, entry_block, entry.byte_size, &entry) != 0) {
-                    free(entry.extents);
                     entry.extents = NULL;
                     entry.extent_count = 0U;
+                    entry.extent_capacity = 0U;
                 }
             } else {
-                free(entry.path);
                 entry_block_index = next_chain;
                 steps += 1U;
                 if (steps > ctx->total_blocks) {
@@ -321,8 +363,6 @@ static int parse_directory_block(const DiskContext *ctx, AmigaDiskAnalysis *anal
                 continue;
             }
             if (add_entry(analysis, &entry) != 0) {
-                free(entry.path);
-                free(entry.extents);
                 m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
                 return -1;
             }
@@ -341,19 +381,16 @@ static int parse_directory_block(const DiskContext *ctx, AmigaDiskAnalysis *anal
     return 0;
 }
 
-void amiga_disk_analysis_init(AmigaDiskAnalysis *analysis) {
-    if (analysis == NULL) return;
+int amiga_disk_analysis_create(AmigaDiskAnalysis *analysis) {
+    if (analysis == NULL) return -1;
     memset(analysis, 0, sizeof(*analysis));
+    analysis->arena = arena_create(AMIGA_DISK_ANALYSIS_ARENA_SIZE);
+    return analysis->arena != NULL ? 0 : -1;
 }
 
-void amiga_disk_analysis_free(AmigaDiskAnalysis *analysis) {
-    size_t i;
+void amiga_disk_analysis_destroy(AmigaDiskAnalysis *analysis) {
     if (analysis == NULL) return;
-    for (i = 0; i < analysis->entry_count; ++i) {
-        free(analysis->entries[i].path);
-        free(analysis->entries[i].extents);
-    }
-    free(analysis->entries);
+    arena_destroy(analysis->arena);
     memset(analysis, 0, sizeof(*analysis));
 }
 
@@ -369,7 +406,10 @@ int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskA
         m68k_platform_set_error(error_buf, error_buf_size, "Missing Amiga disk analysis output");
         return -1;
     }
-    amiga_disk_analysis_init(out_analysis);
+    if (amiga_disk_analysis_create(out_analysis) != 0) {
+        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        return -1;
+    }
     memset(&ctx, 0, sizeof(ctx));
 
     if (data == NULL && size != 0U) {
@@ -434,16 +474,16 @@ int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskA
     memset(&volume_entry, 0, sizeof(volume_entry));
     volume_entry.kind = AMIGA_DISK_ENTRY_VOLUME;
     volume_entry.header_block = ctx.root_block;
-    volume_entry.path = m68k_platform_dup_string(volume_name);
+    volume_entry.owner = out_analysis;
+    volume_entry.path = arena_strdup(out_analysis->arena, volume_name);
     if (volume_entry.path == NULL || add_entry(out_analysis, &volume_entry) != 0) {
-        free(volume_entry.path);
-        amiga_disk_analysis_free(out_analysis);
+        amiga_disk_analysis_destroy(out_analysis);
         m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
         return -1;
     }
 
     if (parse_directory_block(&ctx, out_analysis, ctx.root_block, "", error_buf, error_buf_size) != 0) {
-        amiga_disk_analysis_free(out_analysis);
+        amiga_disk_analysis_destroy(out_analysis);
         return -1;
     }
     return 0;

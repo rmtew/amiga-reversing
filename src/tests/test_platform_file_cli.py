@@ -256,7 +256,8 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("bcs.b target", result.stdout)
+            self.assertIn("bcs.b loc_000A", result.stdout)
+            self.assertIn("loc_000A:", result.stdout)
             self.assertIn("moveq.l #98,d0", result.stdout)
             self.assertNotIn("DC.B    $70,$62", result.stdout)
 

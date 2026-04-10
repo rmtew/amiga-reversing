@@ -44,7 +44,7 @@ M68K_ASM_EXPORT int m68k_source_ir_render_with_policy( const M68kSourceFileIR *s
 }
 
 M68K_ASM_EXPORT void m68k_source_ir_free(M68kSourceFileIR *source_file) {
-  m68k_ir_source_file_free(source_file);
+  m68k_ir_source_file_destroy(source_file);
 }
 
 M68K_ASM_EXPORT void m68k_free_text(char *text) { free(text); }

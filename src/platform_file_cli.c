@@ -36,7 +36,6 @@ static int disassemble_file_to_stdout_with_policy( const char *platform_name, co
   char *text = NULL;
   char error[256];
   int result;
-  m68k_ir_source_file_init(&source_file);
   result = platform_file_to_ir_with_policy(platform_name, path, policy, analysis_policy, &source_file, error,
     sizeof(error));
   if (result != 0) {
@@ -44,7 +43,7 @@ static int disassemble_file_to_stdout_with_policy( const char *platform_name, co
     return 1;
   }
   result = platform_file_render_ir_with_policy(&source_file, policy, &text, error, sizeof(error));
-  m68k_ir_source_file_free(&source_file);
+  m68k_ir_source_file_destroy(&source_file);
   if (result != 0) {
     fprintf(stderr, "%s\n", error);
     return 1;

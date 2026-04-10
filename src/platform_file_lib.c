@@ -9,6 +9,7 @@
 #include "m68k_source_ir_render.h"
 #include "platform_atari_st.h"
 #include "platform_common.h"
+#include "util_arena.h"
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -17,6 +18,7 @@
 #include <string.h>
 
 static uint32_t read_be_u32_local(const uint8_t *data);
+static void *scratch_calloc(Arena *scratch_arena, size_t count, size_t size);
 
 static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
@@ -40,6 +42,11 @@ static const char *cpu_name(uint8_t cpu) {
   case M68K_ASM_CPU_68060: return "68060";
   default: return "unknown";
   }
+}
+
+static void *scratch_calloc(Arena *scratch_arena, size_t count, size_t size) {
+  if (scratch_arena == NULL) return NULL;
+  return arena_calloc(scratch_arena, count, size);
 }
 
 static uint8_t effective_analysis_max_cpu(const M68kAnalysisPolicy *policy) {
@@ -124,13 +131,10 @@ static int json_builder_append_hex_bytes(JsonBuilder *builder,
                                          size_t size) {
   static const char hex[] = "0123456789abcdef";
   size_t i;
-  if (json_builder_reserve(builder, size * 2U) != 0)
-    return -1;
   for (i = 0; i < size; ++i) {
-    builder->data[builder->size++] = hex[data[i] >> 4];
-    builder->data[builder->size++] = hex[data[i] & 0x0F];
+    if (json_builder_append_char(builder, hex[data[i] >> 4]) != 0) return -1;
+    if (json_builder_append_char(builder, hex[data[i] & 0x0F]) != 0) return -1;
   }
-  builder->data[builder->size] = '\0';
   return 0;
 }
 
@@ -159,10 +163,13 @@ static int load_object_from_path(const M68kBackend *backend, const char *path, M
     m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
     return -1;
   }
-  m68k_object_init(object);
+  if (m68k_object_create(object) != 0) {
+    m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
+    return -1;
+  }
   if (backend->read_file(path, object, error, sizeof(error)) != 0) {
     m68k_platform_set_error(error_buf, error_buf_size, error);
-    m68k_object_free(object);
+    m68k_object_destroy(object);
     return -1;
   }
   return 0;
@@ -179,10 +186,13 @@ static int load_object_from_buffer(const M68kBackend *backend, const unsigned ch
     m68k_platform_set_error(error_buf, error_buf_size, "unknown platform file backend");
     return -1;
   }
-  m68k_object_init(object);
+  if (m68k_object_create(object) != 0) {
+    m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
+    return -1;
+  }
   if (backend->read_buffer(data, size, object, error, sizeof(error)) != 0) {
     m68k_platform_set_error(error_buf, error_buf_size, error);
-    m68k_object_free(object);
+    m68k_object_destroy(object);
     return -1;
   }
   return 0;
@@ -264,6 +274,7 @@ static int rebuild_cpu_violations(const M68kSection *section, M68kSectionAnalysi
 static int rebuild_decode_fail_violations(const M68kSection *section, M68kSectionAnalysisIR *section_analysis,
     const M68kAnalysisPolicy *analysis_policy);
 static int build_section_analysis(const M68kObject *object, size_t section_index, const M68kSection *section,
+    Arena *scratch_arena,
     const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings, M68kSectionAnalysisIR *out_analysis,
     char *out_error, size_t out_error_size);
 static int build_section_ir(const M68kObject *object, const M68kSection *section, M68kSectionAnalysisIR *section_analysis,
@@ -273,6 +284,8 @@ static int inspect_object_json(const M68kBackend *backend, const M68kObject *obj
   JsonBuilder builder = {0};
   size_t i;
   size_t local_count = 0, global_count = 0, external_count = 0;
+  if (json_builder_create(&builder) != 0)
+    goto fail;
 
   for (i = 0; i < object->symbol_count; ++i) {
     if (object->symbols[i].binding == M68K_SYMBOL_LOCAL) ++local_count;
@@ -331,11 +344,13 @@ static int inspect_object_json(const M68kBackend *backend, const M68kObject *obj
   }
   if (json_builder_append(&builder, "]}") != 0)
     goto fail;
-  *out_json = builder.data;
+  *out_json = json_builder_build(&builder);
+  if (*out_json == NULL) goto fail;
+  json_builder_destroy(&builder);
   return 0;
 
 fail:
-  json_builder_free(&builder);
+  json_builder_destroy(&builder);
   return -1;
 }
 
@@ -352,10 +367,10 @@ int platform_file_inspect_path_json(const char *backend_name, const char *path, 
   if (inspect_object_json(backend, &object, out_json) != 0) {
     if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
       m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
-    m68k_object_free(&object);
+    m68k_object_destroy(&object);
     return -1;
   }
-  m68k_object_free(&object);
+  m68k_object_destroy(&object);
   return 0;
 }
 
@@ -372,10 +387,10 @@ int platform_file_inspect_buffer_json(const char *backend_name, const unsigned c
   if (inspect_object_json(backend, &object, out_json) != 0) {
     if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
       m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
-    m68k_object_free(&object);
+    m68k_object_destroy(&object);
     return -1;
   }
-  m68k_object_free(&object);
+  m68k_object_destroy(&object);
   return 0;
 }
 
@@ -391,10 +406,10 @@ int platform_file_roundtrip_buffer(const char *backend_name, const unsigned char
   if (load_object_from_buffer(backend, data, size, &object, error_buf, error_buf_size) != 0)
     return -1;
   if (write_object_to_temp_file(backend, &object, temp_path, sizeof(temp_path), error_buf, error_buf_size) != 0) {
-    m68k_object_free(&object);
+    m68k_object_destroy(&object);
     return -1;
   }
-  m68k_object_free(&object);
+  m68k_object_destroy(&object);
   if (read_file_to_buffer(temp_path, out_data, out_size, error_buf, error_buf_size) != 0) {
     remove(temp_path);
     return -1;
@@ -407,9 +422,14 @@ static int populate_source_ir_from_object(const M68kBackend *backend, const M68k
     const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, M68kSourceFileIR *out_source_file,
     char *error_buf, size_t error_buf_size) {
   M68kAnalysisFindings findings;
+  Arena *scratch_arena;
+  ArenaMark scratch_mark;
   size_t section_index;
   m68k_analysis_findings_init(&findings);
-  m68k_ir_source_file_init(out_source_file);
+  if (m68k_ir_source_file_create(out_source_file) != 0) {
+    m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
+    return -1;
+  }
   out_source_file->file_kind = object->platform_file_kind;
   if (strcmp(backend->name, "atari-st") == 0) {
     uint32_t program_flags = 0;
@@ -418,50 +438,72 @@ static int populate_source_ir_from_object(const M68kBackend *backend, const M68k
       out_source_file->atari_st_program_flags = program_flags;
     }
   }
+  scratch_arena = arena_create(65536U);
+  if (scratch_arena == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "failed creating source scratch arena");
+    m68k_ir_source_file_destroy(out_source_file);
+    return -1;
+  }
+  scratch_mark = arena_mark(scratch_arena);
   for (section_index = 0; section_index < object->section_count; ++section_index) {
     M68kSectionIR section_ir;
     M68kSectionAnalysisIR section_analysis;
     int append_result;
-    m68k_ir_section_analysis_init(&section_analysis);
-    if (build_section_analysis(object, section_index, &object->sections[section_index], analysis_policy,
+    arena_rewind(scratch_arena, scratch_mark);
+    if (build_section_analysis(object, section_index, &object->sections[section_index], scratch_arena, analysis_policy,
           &findings, &section_analysis, error_buf, error_buf_size) != 0 ||
         build_section_ir(object, &object->sections[section_index], &section_analysis, analysis_policy, &findings,
           policy, &section_ir, error_buf, error_buf_size) != 0) {
       if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
         m68k_platform_set_error(error_buf, error_buf_size, "failed building source ir");
-      m68k_ir_section_analysis_free(&section_analysis);
-      m68k_ir_source_file_free(out_source_file);
+      m68k_ir_section_analysis_destroy(&section_analysis);
+      m68k_ir_source_file_destroy(out_source_file);
+      arena_destroy(scratch_arena);
       return -1;
     }
     append_result = m68k_ir_source_file_append_section(out_source_file, &section_ir);
-    m68k_ir_section_free(&section_ir);
+    m68k_ir_section_destroy(&section_ir);
     if (append_result != 0) {
       m68k_platform_set_error(error_buf, error_buf_size, "failed building source ir");
-      m68k_ir_section_analysis_free(&section_analysis);
-      m68k_ir_source_file_free(out_source_file);
+      m68k_ir_section_analysis_destroy(&section_analysis);
+      m68k_ir_source_file_destroy(out_source_file);
+      arena_destroy(scratch_arena);
       return -1;
     }
-    m68k_ir_section_analysis_free(&section_analysis);
+    m68k_ir_section_analysis_destroy(&section_analysis);
   }
+  arena_destroy(scratch_arena);
   if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
   return 0;
 }
 
 static int populate_source_analysis_from_object(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
     M68kSourceAnalysisIR *out_source_analysis, char *error_buf, size_t error_buf_size) {
+  Arena *scratch_arena;
+  ArenaMark scratch_mark;
   size_t section_index;
-  m68k_ir_source_analysis_init(out_source_analysis);
+  if (m68k_ir_source_analysis_create(out_source_analysis) != 0) {
+    m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
+    return -1;
+  }
   out_source_analysis->policy = *analysis_policy;
   out_source_analysis->file_kind = object->platform_file_kind;
   m68k_analysis_findings_init(&out_source_analysis->findings);
+  scratch_arena = arena_create(65536U);
+  if (scratch_arena == NULL) {
+    m68k_platform_set_error(error_buf, error_buf_size, "failed creating analysis scratch arena");
+    m68k_ir_source_analysis_destroy(out_source_analysis);
+    return -1;
+  }
+  scratch_mark = arena_mark(scratch_arena);
   for (section_index = 0; section_index < object->section_count; ++section_index) {
     M68kSectionAnalysisIR section_analysis;
     M68kAnalysisFindings scratch_findings;
     M68kAnalysisFindings section_findings;
-    m68k_ir_section_analysis_init(&section_analysis);
     m68k_analysis_findings_init(&scratch_findings);
     m68k_analysis_findings_init(&section_findings);
-    if (build_section_analysis(object, section_index, &object->sections[section_index], analysis_policy,
+    arena_rewind(scratch_arena, scratch_mark);
+    if (build_section_analysis(object, section_index, &object->sections[section_index], scratch_arena, analysis_policy,
           &scratch_findings, &section_analysis, error_buf, error_buf_size) != 0 ||
         rebuild_cpu_violations(&object->sections[section_index], &section_analysis, analysis_policy) != 0 ||
         rebuild_decode_fail_violations(&object->sections[section_index], &section_analysis, analysis_policy) != 0 ||
@@ -470,15 +512,17 @@ static int populate_source_analysis_from_object(const M68kObject *object, const 
         m68k_ir_source_analysis_append_section(out_source_analysis, &section_analysis) != 0) {
       if (error_buf != NULL && error_buf_size != 0U && error_buf[0] == '\0')
         m68k_platform_set_error(error_buf, error_buf_size, "failed building cfg analysis");
-      m68k_ir_section_analysis_free(&section_analysis);
-      m68k_ir_source_analysis_free(out_source_analysis);
+      m68k_ir_section_analysis_destroy(&section_analysis);
+      m68k_ir_source_analysis_destroy(out_source_analysis);
+      arena_destroy(scratch_arena);
       return -1;
     }
     if (section_findings.required_cpu > out_source_analysis->findings.required_cpu)
       out_source_analysis->findings.required_cpu = section_findings.required_cpu;
     out_source_analysis->findings.cpu_violation_count += section_findings.cpu_violation_count;
-    m68k_ir_section_analysis_free(&section_analysis);
+    m68k_ir_section_analysis_destroy(&section_analysis);
   }
+  arena_destroy(scratch_arena);
   if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
   return 0;
 }
@@ -491,12 +535,6 @@ typedef struct SectionDiscoveryMap {
   uint8_t *is_code_byte;
   size_t size;
 } SectionDiscoveryMap;
-
-typedef enum GeneratedLabelKind {
-  GENERATED_LABEL_LOC = 0,
-  GENERATED_LABEL_SUB = 1,
-  GENERATED_LABEL_DAT = 2
-} GeneratedLabelKind;
 
 static int section_analysis_has_block_start(const M68kSectionAnalysisIR *section_analysis, uint32_t offset);
 
@@ -513,10 +551,9 @@ static void analysis_remove_label_range(M68kSectionAnalysisIR *section_analysis,
   section_analysis->label_count = write_index;
 }
 
-static void discovery_map_free(SectionDiscoveryMap *map) {
+static void discovery_map_cleanup(SectionDiscoveryMap *map, Arena *scratch_arena) {
   if (map == NULL) return;
-  free(map->is_code_start);
-  free(map->is_code_byte);
+  (void)scratch_arena;
   memset(map, 0, sizeof(*map));
 }
 
@@ -804,7 +841,8 @@ static int enrich_analysis_labels(const M68kSection *section, const M68kAnalysis
   return 0;
 }
 
-static int prune_disconnected_blocks(M68kSectionAnalysisIR *section_analysis, SectionDiscoveryMap *discovery) {
+static int prune_disconnected_blocks(M68kSectionAnalysisIR *section_analysis, SectionDiscoveryMap *discovery,
+    Arena *scratch_arena) {
   uint8_t *reachable_blocks = NULL;
   size_t *reachable_queue = NULL;
   M68kCfgBlockIR *new_blocks = NULL;
@@ -815,11 +853,11 @@ static int prune_disconnected_blocks(M68kSectionAnalysisIR *section_analysis, Se
   size_t new_edge_count = 0U;
   size_t new_violation_count = 0U;
   size_t block_index;
-  if (section_analysis == NULL || discovery == NULL) return -1;
+  if (section_analysis == NULL || discovery == NULL || scratch_arena == NULL) return -1;
   if (section_analysis->block_count == 0U) return 0;
-  reachable_blocks = (uint8_t *)calloc(section_analysis->block_count, 1U);
-  reachable_queue = (size_t *)malloc(section_analysis->block_count * sizeof(*reachable_queue));
-  block_remap = (size_t *)malloc(section_analysis->block_count * sizeof(*block_remap));
+  reachable_blocks = (uint8_t *)arena_calloc(scratch_arena, section_analysis->block_count, 1U);
+  reachable_queue = (size_t *)arena_alloc(scratch_arena, section_analysis->block_count * sizeof(*reachable_queue));
+  block_remap = (size_t *)arena_alloc(scratch_arena, section_analysis->block_count * sizeof(*block_remap));
   if (reachable_blocks == NULL || reachable_queue == NULL || block_remap == NULL)
     goto fail;
   for (block_index = 0; block_index < section_analysis->block_count; ++block_index)
@@ -852,10 +890,11 @@ static int prune_disconnected_blocks(M68kSectionAnalysisIR *section_analysis, Se
     }
     block_remap[block_index] = new_block_count++;
   }
-  new_blocks = (M68kCfgBlockIR *)calloc( new_block_count != 0U ? new_block_count : 1U, sizeof(*new_blocks));
-  new_edges = (M68kCfgEdgeIR *)calloc( section_analysis->edge_count != 0U ? section_analysis->edge_count : 1U,
-    sizeof(*new_edges));
-  new_violations = (M68kViolationIR *)calloc(section_analysis->violation_count != 0U
+  new_blocks = (M68kCfgBlockIR *)arena_calloc(section_analysis->arena, new_block_count != 0U ? new_block_count : 1U,
+    sizeof(*new_blocks));
+  new_edges = (M68kCfgEdgeIR *)arena_calloc(section_analysis->arena,
+    section_analysis->edge_count != 0U ? section_analysis->edge_count : 1U, sizeof(*new_edges));
+  new_violations = (M68kViolationIR *)arena_calloc(section_analysis->arena, section_analysis->violation_count != 0U
     ? section_analysis->violation_count : 1U, sizeof(*new_violations));
   if (new_blocks == NULL || new_edges == NULL || new_violations == NULL)
     goto fail;
@@ -894,11 +933,7 @@ static int prune_disconnected_blocks(M68kSectionAnalysisIR *section_analysis, Se
       }
     }
     if (keep) new_violations[new_violation_count++] = violation;
-    else free(violation.message);
   }
-  free(section_analysis->blocks);
-  free(section_analysis->edges);
-  free(section_analysis->violations);
   section_analysis->blocks = new_blocks;
   section_analysis->block_count = new_block_count;
   section_analysis->block_capacity = new_block_count;
@@ -908,18 +943,9 @@ static int prune_disconnected_blocks(M68kSectionAnalysisIR *section_analysis, Se
   section_analysis->violations = new_violations;
   section_analysis->violation_count = new_violation_count;
   section_analysis->violation_capacity = new_violation_count;
-  free(reachable_blocks);
-  free(reachable_queue);
-  free(block_remap);
   return 0;
 
 fail:
-  free(reachable_blocks);
-  free(reachable_queue);
-  free(block_remap);
-  free(new_blocks);
-  free(new_edges);
-  free(new_violations);
   return -1;
 }
 
@@ -985,10 +1011,7 @@ static void remove_section_violations_by_kind(M68kSectionAnalysisIR *section_ana
   if (section_analysis == NULL) return;
   for (read_index = 0; read_index < section_analysis->violation_count; ++read_index) {
     M68kViolationIR violation = section_analysis->violations[read_index];
-    if (violation.kind == kind) {
-      free(violation.message);
-      continue;
-    }
+    if (violation.kind == kind) continue;
     section_analysis->violations[write_index++] = violation;
   }
   section_analysis->violation_count = write_index;
@@ -1104,7 +1127,7 @@ static int build_generated_label_kinds(const M68kSection *section, const M68kAna
     const M68kSimFormMetadata *metadata;
     char error[128];
     size_t operand_index;
-    if (!section_analysis_has_block_start(section_analysis, (uint32_t)offset)) continue;
+    if (section_analysis->certain_code_start[offset] == 0U) continue;
     int decode_result = decode_instruction_with_policy( section->data + offset, section->data_size - offset,
         (uint32_t)offset, analysis_policy, findings, &instruction, error, sizeof(error));
     if (decode_result < 0) return -1;
@@ -1168,7 +1191,8 @@ static int append_statement_violation_comment(char *buf, size_t buf_size, const 
 static void mark_data_fixup_labels(const M68kObject *object, const M68kSectionAnalysisIR *section_analysis,
     GeneratedLabelKind *label_kinds, uint8_t *generated_label_flags);
 static int build_self_section_long_exprs(const M68kObject *object, const M68kSectionAnalysisIR *section_analysis,
-    GeneratedLabelKind *label_kinds, size_t label_kind_count, uint8_t *generated_label_flags, char **out_long_exprs);
+    GeneratedLabelKind *label_kinds, size_t label_kind_count, uint8_t *generated_label_flags, Arena *scratch_arena,
+    char **out_long_exprs);
 
 static int scan_interior_pc_relative_refs(const M68kSection *section, const M68kAnalysisPolicy *analysis_policy,
     M68kAnalysisFindings *findings, M68kSectionAnalysisIR *section_analysis, GeneratedLabelKind *label_kinds,
@@ -1182,7 +1206,7 @@ static int scan_interior_pc_relative_refs(const M68kSection *section, const M68k
     const M68kSimFormMetadata *metadata;
     char error[128];
     size_t operand_index;
-    if (!section_analysis_has_block_start(section_analysis, (uint32_t)offset)) continue;
+    if (section_analysis->certain_code_start[offset] == 0U) continue;
     if (decode_instruction_with_policy(section->data + offset, section->data_size - offset, (uint32_t)offset,
           analysis_policy, findings, &instruction, error, sizeof(error)) <= 0)
       continue;
@@ -1216,18 +1240,24 @@ static int scan_interior_pc_relative_refs(const M68kSection *section, const M68k
   return 0;
 }
 
-static int queue_push(uint32_t **queue, size_t *queue_count, size_t *queue_capacity, uint32_t value) {
+static int queue_push(uint32_t **queue, size_t *queue_count, size_t *queue_capacity, Arena *scratch_arena,
+    uint32_t value) {
+  if (scratch_arena == NULL) return -1;
   if (*queue_count == *queue_capacity) {
-    uint32_t *grown = (uint32_t *)realloc(*queue, *queue_capacity * 2U * sizeof(**queue));
+    size_t grown_capacity = *queue_capacity * 2U;
+    uint32_t *grown = NULL;
+    grown = (uint32_t *)arena_alloc(scratch_arena, grown_capacity * sizeof(**queue));
+    if (grown != NULL && *queue != NULL)
+      memcpy(grown, *queue, *queue_count * sizeof(**queue));
     if (grown == NULL) return -1;
     *queue = grown;
-    *queue_capacity *= 2U;
+    *queue_capacity = grown_capacity;
   }
   (*queue)[(*queue_count)++] = value;
   return 0;
 }
 
-static int queue_target_with_state(uint32_t **queue, size_t *queue_count, size_t *queue_capacity,
+static int queue_target_with_state(uint32_t **queue, size_t *queue_count, size_t *queue_capacity, Arena *scratch_arena,
     M68kSimCpuState *entry_states, uint8_t *entry_state_valid, uint32_t target, const M68kSimCpuState *state) {
   int changed = 0;
   if (entry_states == NULL || entry_state_valid == NULL || state == NULL) return -1;
@@ -1238,11 +1268,11 @@ static int queue_target_with_state(uint32_t **queue, size_t *queue_count, size_t
   } else {
     changed = m68k_sim_cpu_state_join(&entry_states[target], state);
   }
-  if (changed) return queue_push(queue, queue_count, queue_capacity, target);
+  if (changed) return queue_push(queue, queue_count, queue_capacity, scratch_arena, target);
   return 0;
 }
 
-static int queue_target_with_sim_state(uint32_t **queue, size_t *queue_count, size_t *queue_capacity,
+static int queue_target_with_sim_state(uint32_t **queue, size_t *queue_count, size_t *queue_capacity, Arena *scratch_arena,
     M68kSimCpuState *entry_states, M68kSimMemoryState *entry_memory_states, uint8_t *entry_state_valid,
     uint32_t target, const M68kSimCpuState *state, const M68kSimMemoryState *memory_state) {
   int changed = 0;
@@ -1257,7 +1287,7 @@ static int queue_target_with_sim_state(uint32_t **queue, size_t *queue_count, si
     changed |= m68k_sim_cpu_state_join(&entry_states[target], state);
     changed |= m68k_sim_memory_state_join(&entry_memory_states[target], memory_state);
   }
-  if (changed) return queue_push(queue, queue_count, queue_capacity, target);
+  if (changed) return queue_push(queue, queue_count, queue_capacity, scratch_arena, target);
   return 0;
 }
 
@@ -1550,9 +1580,11 @@ static int parse_absolute_long_expr_target(const char *expr, uint32_t *out_targe
 
 static int build_word_offset_dispatch_exprs(const M68kSection *section, const M68kSectionAnalysisIR *section_analysis,
     const M68kAnalysisPolicy *analysis_policy, GeneratedLabelKind *label_kinds, size_t label_kind_count,
-    uint8_t *generated_label_flags, const M68kPresentationPolicy *presentation, char **out_word_exprs) {
+    uint8_t *generated_label_flags, const M68kPresentationPolicy *presentation, Arena *scratch_arena,
+    char **out_word_exprs) {
   size_t block_index;
   if (section == NULL || section_analysis == NULL || analysis_policy == NULL || generated_label_flags == NULL ||
+      scratch_arena == NULL ||
       out_word_exprs == NULL) {
     return 0;
   }
@@ -1620,8 +1652,7 @@ static int build_word_offset_dispatch_exprs(const M68kSection *section, const M6
                       label_kind_count, section_analysis, generated_label_flags, presentation) != 0) {
                   return -1;
                 }
-                free(out_word_exprs[table_base + cursor]);
-                out_word_exprs[table_base + cursor] = _strdup(expr);
+                out_word_exprs[table_base + cursor] = arena_strdup(scratch_arena, expr);
                 if (out_word_exprs[table_base + cursor] == NULL) return -1;
               }
             }
@@ -1644,15 +1675,14 @@ static int build_word_offset_dispatch_exprs(const M68kSection *section, const M6
 }
 
 static int build_section_analysis(const M68kObject *object, size_t section_index, const M68kSection *section,
-    const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings, M68kSectionAnalysisIR *out_analysis,
+    Arena *scratch_arena, const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings, M68kSectionAnalysisIR *out_analysis,
     char *out_error, size_t out_error_size) {
+  ArenaMark prune_mark;
   SectionDiscoveryMap discovery = {0};
   GeneratedLabelKind *generated_label_kinds = NULL;
   uint8_t *generated_label_flags = NULL;
   char **word_exprs = NULL;
   char **long_exprs = NULL;
-  size_t word_expr_index = 0U;
-  size_t long_expr_index = 0U;
   uint32_t *queue = NULL;
   M68kSimCpuState *entry_states = NULL;
   M68kSimMemoryState *entry_memory_states = NULL;
@@ -1663,31 +1693,36 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
   size_t queue_count = 0, queue_capacity = 0, fixup_index, pop_index = 0;
   uint8_t *block_starts = NULL;
   size_t scan_offset, block_index;
-  if (out_analysis == NULL) return -1;
-  m68k_ir_section_analysis_init(out_analysis);
+  if (scratch_arena == NULL || out_analysis == NULL) return -1;
+  if (m68k_ir_section_analysis_create(out_analysis) != 0) return -1;
   out_analysis->section_index = section_index;
   out_analysis->section_kind = section->kind;
   out_analysis->section_size = section->size;
-  out_analysis->section_name = _strdup( (section->name != NULL && section->name[0] != '\0') ? section->name : "section");
-  if (out_analysis->section_name == NULL) return -1;
+  if (m68k_ir_section_analysis_set_name(out_analysis,
+        (section->name != NULL && section->name[0] != '\0') ? section->name : "section") != 0) return -1;
   if (section->kind != M68K_SECTION_CODE || section->data_size == 0U) {
     out_analysis->certain_code_size = section->data_size;
     return 0;
   }
 
-  discovery.is_code_start = (uint8_t *)calloc(section->data_size != 0U ? section->data_size : 1U, 1U);
-  discovery.is_code_byte = (uint8_t *)calloc(section->data_size != 0U ? section->data_size : 1U, 1U);
-  entry_states = (M68kSimCpuState *)calloc(section->data_size != 0U ? section->data_size : 1U, sizeof(*entry_states));
-  entry_memory_states = (M68kSimMemoryState *)calloc(section->data_size != 0U ? section->data_size : 1U,
-    sizeof(*entry_memory_states));
-  entry_state_valid = (uint8_t *)calloc(section->data_size != 0U ? section->data_size : 1U, 1U);
-  sim_targets = (M68kSimTargetSet *)calloc(section->data_size != 0U ? section->data_size : 1U, sizeof(*sim_targets));
-  sim_stops = (uint8_t *)calloc(section->data_size != 0U ? section->data_size : 1U, 1U);
-  sim_condition_resolved = (uint8_t *)calloc(section->data_size != 0U ? section->data_size : 1U, 1U);
+  discovery.is_code_start = (uint8_t *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U,
+    1U);
+  discovery.is_code_byte = (uint8_t *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U,
+    1U);
+  entry_states = (M68kSimCpuState *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U,
+    sizeof(*entry_states));
+  entry_memory_states = (M68kSimMemoryState *)scratch_calloc(scratch_arena,
+    section->data_size != 0U ? section->data_size : 1U, sizeof(*entry_memory_states));
+  entry_state_valid = (uint8_t *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U, 1U);
+  sim_targets = (M68kSimTargetSet *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U,
+    sizeof(*sim_targets));
+  sim_stops = (uint8_t *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U, 1U);
+  sim_condition_resolved = (uint8_t *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U,
+    1U);
   if (discovery.is_code_start == NULL || discovery.is_code_byte == NULL || entry_states == NULL ||
       entry_memory_states == NULL || entry_state_valid == NULL || sim_targets == NULL || sim_stops == NULL ||
       sim_condition_resolved == NULL) {
-    discovery_map_free(&discovery);
+    discovery_map_cleanup(&discovery, scratch_arena);
     goto fail;
   }
 
@@ -1695,7 +1730,7 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
   if (m68k_ir_section_analysis_add_label(out_analysis, 0U) != 0) goto fail;
 
   queue_capacity = 32U;
-  queue = (uint32_t *)malloc(queue_capacity * sizeof(*queue));
+  queue = (uint32_t *)scratch_calloc(scratch_arena, queue_capacity, sizeof(*queue));
   if (queue == NULL) goto fail;
 
   m68k_sim_cpu_state_init_unknown(&entry_states[0]);
@@ -1720,8 +1755,8 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
         M68kSimMemoryState unknown_memory_state;
         m68k_sim_cpu_state_init_unknown(&unknown_state);
         m68k_sim_memory_state_seed_same_section_fixups(object, section_index, section, &unknown_memory_state);
-        if (queue_target_with_sim_state(&queue, &queue_count, &queue_capacity, entry_states, entry_memory_states,
-            entry_state_valid, target, &unknown_state, &unknown_memory_state) != 0)
+        if (queue_target_with_sim_state(&queue, &queue_count, &queue_capacity, scratch_arena, entry_states,
+            entry_memory_states, entry_state_valid, target, &unknown_state, &unknown_memory_state) != 0)
           goto fail;
       }
     }
@@ -1793,7 +1828,7 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
         sim_stops[work_offset] = 1U;
 
       if (has_explicit_target && !(sim_condition_resolved[work_offset] != 0U &&
-        sim_result.control_targets.count == 0U && sim_result.stops_fallthrough == 0) && 
+        sim_result.control_targets.count == 0U && sim_result.stops_fallthrough == 0) &&
         m68k_sim_target_set_add(&sim_result.control_targets, target) == 0) goto fail;
 
       if (!has_explicit_target && sim_result.control_targets.count == 0U &&
@@ -1814,8 +1849,9 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
           if (m68k_ir_section_analysis_add_label(out_analysis, sim_target) != 0) goto fail;
           next_memory_state = current_memory_state;
           apply_sim_memory_writes(&next_memory_state, &sim_result);
-          if (queue_target_with_sim_state(&queue, &queue_count, &queue_capacity, entry_states, entry_memory_states,
-                entry_state_valid, sim_target, &sim_result.next_state, &next_memory_state) != 0) goto fail;
+          if (queue_target_with_sim_state(&queue, &queue_count, &queue_capacity, scratch_arena, entry_states,
+                entry_memory_states, entry_state_valid, sim_target, &sim_result.next_state, &next_memory_state) != 0)
+            goto fail;
         }
       }
 
@@ -1863,7 +1899,7 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
     goto fail;
   if (m68k_ir_section_analysis_set_code_map( out_analysis, discovery.is_code_start, discovery.is_code_byte, discovery.size) != 0)
     goto fail;
-  block_starts = (uint8_t *)calloc(section->data_size, 1U);
+  block_starts = (uint8_t *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U, 1U);
   if (block_starts == NULL)
     goto fail;
   block_starts[0] = 1U;
@@ -2042,9 +2078,7 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
       block->edge_start = write_index;
       while (read_start < read_end) {
         M68kCfgEdgeIR edge = out_analysis->edges[read_start++];
-        if (edge.target_offset != UINT32_MAX && edge.target_block_index == SIZE_MAX) {
-          continue;
-        }
+        if (edge.target_offset != UINT32_MAX && edge.target_block_index == SIZE_MAX) continue;
         out_analysis->edges[write_index++] = edge;
         ++kept;
       }
@@ -2053,21 +2087,24 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
     out_analysis->edge_count = write_index;
   }
   if (object->platform_file_kind == M68K_PLATFORM_FILE_EXECUTABLE) {
-    if (prune_disconnected_blocks(out_analysis, &discovery) != 0)
+    prune_mark = arena_mark(scratch_arena);
+    if (prune_disconnected_blocks(out_analysis, &discovery, scratch_arena) != 0)
       goto fail;
     if (m68k_ir_section_analysis_set_code_map( out_analysis, discovery.is_code_start, discovery.is_code_byte, discovery.size) != 0)
       goto fail;
     if (rebuild_code_map_from_blocks(section, out_analysis, analysis_policy) !=
         0)
       goto fail;
+    arena_rewind(scratch_arena, prune_mark);
   }
   if (rebuild_unresolved_indirect_violations(section, out_analysis, analysis_policy) != 0)
     goto fail;
   if (section->data_size != 0U) {
-    generated_label_kinds = (GeneratedLabelKind *)calloc(section->data_size, sizeof(*generated_label_kinds));
-    generated_label_flags = (uint8_t *)calloc(section->data_size, 1U);
-    word_exprs = (char **)calloc(section->data_size, sizeof(*word_exprs));
-    long_exprs = (char **)calloc(section->data_size, sizeof(*long_exprs));
+    generated_label_kinds = (GeneratedLabelKind *)scratch_calloc(scratch_arena,
+      section->data_size != 0U ? section->data_size : 1U, sizeof(*generated_label_kinds));
+    generated_label_flags = (uint8_t *)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U, 1U);
+    word_exprs = (char **)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U, sizeof(*word_exprs));
+    long_exprs = (char **)scratch_calloc(scratch_arena, section->data_size != 0U ? section->data_size : 1U, sizeof(*long_exprs));
     if (generated_label_kinds == NULL || generated_label_flags == NULL || word_exprs == NULL || long_exprs == NULL)
       goto fail;
     if (build_generated_label_kinds(section, analysis_policy, findings, out_analysis, generated_label_kinds,
@@ -2078,66 +2115,26 @@ static int build_section_analysis(const M68kObject *object, size_t section_index
           generated_label_flags) != 0)
       goto fail;
     finalize_generated_label_kinds(out_analysis, generated_label_kinds, section->data_size);
-    if (m68k_ir_section_analysis_set_generated_labels(out_analysis, (const uint8_t *)generated_label_kinds,
+    if (m68k_ir_section_analysis_set_generated_labels(out_analysis, generated_label_kinds,
           generated_label_flags, section->data_size) != 0)
       goto fail;
     if (build_word_offset_dispatch_exprs(section, out_analysis, analysis_policy, generated_label_kinds,
-          section->data_size, generated_label_flags, NULL, word_exprs) != 0)
+          section->data_size, generated_label_flags, NULL, scratch_arena, word_exprs) != 0)
       goto fail;
     if (m68k_ir_section_analysis_set_word_exprs(out_analysis, word_exprs, section->data_size) != 0)
       goto fail;
     if (build_self_section_long_exprs(object, out_analysis, generated_label_kinds, section->data_size,
-          generated_label_flags, long_exprs) != 0)
+          generated_label_flags, scratch_arena, long_exprs) != 0)
       goto fail;
     if (m68k_ir_section_analysis_set_long_exprs(out_analysis, long_exprs, section->data_size) != 0)
       goto fail;
   }
-  free(block_starts);
-  free(generated_label_kinds);
-  free(generated_label_flags);
-  if (word_exprs != NULL) {
-    for (word_expr_index = 0; word_expr_index < section->data_size; ++word_expr_index)
-      free(word_exprs[word_expr_index]);
-  }
-  free(word_exprs);
-  if (long_exprs != NULL) {
-    for (long_expr_index = 0; long_expr_index < section->data_size; ++long_expr_index)
-      free(long_exprs[long_expr_index]);
-  }
-  free(long_exprs);
-  free(queue);
-  free(entry_states);
-  free(entry_memory_states);
-  free(entry_state_valid);
-  free(sim_targets);
-  free(sim_stops);
-  free(sim_condition_resolved);
-  discovery_map_free(&discovery);
+  discovery_map_cleanup(&discovery, scratch_arena);
   return 0;
 
 fail:
-  free(block_starts);
-  free(generated_label_kinds);
-  free(generated_label_flags);
-  if (word_exprs != NULL) {
-    for (word_expr_index = 0; word_expr_index < section->data_size; ++word_expr_index)
-      free(word_exprs[word_expr_index]);
-  }
-  free(word_exprs);
-  if (long_exprs != NULL) {
-    for (long_expr_index = 0; long_expr_index < section->data_size; ++long_expr_index)
-      free(long_exprs[long_expr_index]);
-  }
-  free(long_exprs);
-  free(queue);
-  free(entry_states);
-  free(entry_memory_states);
-  free(entry_state_valid);
-  free(sim_targets);
-  free(sim_stops);
-  free(sim_condition_resolved);
-  discovery_map_free(&discovery);
-  m68k_ir_section_analysis_free(out_analysis);
+  discovery_map_cleanup(&discovery, scratch_arena);
+      m68k_ir_section_analysis_destroy(out_analysis);
   return -1;
 }
 
@@ -2151,7 +2148,7 @@ static int analysis_has_label(const M68kSectionAnalysisIR *section_analysis, uin
 
 static int section_has_any_label(const M68kSectionAnalysisIR *section_analysis, const uint8_t *generated_label_flags,
     size_t generated_label_count, uint32_t offset) {
-  if (offset == 0U && section_analysis_has_block_start(section_analysis, offset)) return 1;
+  if (section_analysis_has_block_start(section_analysis, offset)) return 1;
   return generated_label_flags != NULL && offset < generated_label_count && generated_label_flags[offset] != 0U;
 }
 
@@ -2373,9 +2370,11 @@ static void mark_data_fixup_labels(const M68kObject *object, const M68kSectionAn
 }
 
 static int build_self_section_long_exprs(const M68kObject *object, const M68kSectionAnalysisIR *section_analysis,
-    GeneratedLabelKind *label_kinds, size_t label_kind_count, uint8_t *generated_label_flags, char **out_long_exprs) {
+    GeneratedLabelKind *label_kinds, size_t label_kind_count, uint8_t *generated_label_flags, Arena *scratch_arena,
+    char **out_long_exprs) {
   size_t fixup_index;
-  if (object == NULL || section_analysis == NULL || generated_label_flags == NULL || out_long_exprs == NULL) return 0;
+  if (object == NULL || section_analysis == NULL || generated_label_flags == NULL || scratch_arena == NULL ||
+      out_long_exprs == NULL) return 0;
   for (fixup_index = 0; fixup_index < object->fixup_count; ++fixup_index) {
     const M68kFixup *fixup = &object->fixups[fixup_index];
     const M68kSection *section;
@@ -2390,8 +2389,7 @@ static int build_self_section_long_exprs(const M68kObject *object, const M68kSec
     target = read_be_u32_local(section->data + fixup->offset);
     if (target >= section_analysis->section_size) continue;
     if (build_absolute_long_expr(expr, sizeof(expr), target) != 0) return -1;
-    free(out_long_exprs[fixup->offset]);
-    out_long_exprs[fixup->offset] = _strdup(expr);
+    out_long_exprs[fixup->offset] = arena_strdup(scratch_arena, expr);
     if (out_long_exprs[fixup->offset] == NULL) return -1;
     if (label_kinds != NULL) update_generated_label_kind(label_kinds, label_kind_count, target, GENERATED_LABEL_DAT);
     generated_label_flags[target] = 1U;
@@ -2611,8 +2609,9 @@ static void annotate_instruction_labels(M68kInstructionIR *instruction, uint32_t
           }
         }
       } else if (instruction_render_operand_target(instruction, metadata, (uint8_t)operand_index, (uint32_t)offset,
-            (uint32_t)generated_label_count, &target) &&
-          section_has_any_label(section_analysis, generated_label_flags, generated_label_count, target)) {
+            (uint32_t)generated_label_count, &target)) {
+        if (!section_has_any_label(section_analysis, generated_label_flags, generated_label_count, target))
+          continue;
         GeneratedLabelKind kind = GENERATED_LABEL_DAT;
         if (instruction_is_call_transfer(instruction) || instruction_is_unconditional_transfer(instruction))
           kind = GENERATED_LABEL_SUB;
@@ -2636,9 +2635,9 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
   uint8_t have_prev_instruction = 0U;
   uint8_t prev_rendered_as_code = 0U;
   (void)findings; (void)out_error; (void)out_error_size;
-  m68k_ir_section_init(out_section_ir);
-  out_section_ir->name = _strdup( (section->name != NULL && section->name[0] != '\0') ? section->name : "section");
-  if (out_section_ir->name == NULL) goto cleanup;
+  if (m68k_ir_section_create(out_section_ir) != 0) goto cleanup;
+  if (m68k_ir_section_set_name(out_section_ir,
+        (section->name != NULL && section->name[0] != '\0') ? section->name : "section") != 0) goto cleanup;
   out_section_ir->kind = section->kind;
   out_section_ir->size = section->size;
   if (section->kind == M68K_SECTION_BSS) {
@@ -2646,7 +2645,7 @@ static int build_section_ir(const M68kObject *object, const M68kSection *section
     goto cleanup;
   }
   if (section_analysis->generated_label_size == section->data_size) {
-    label_kinds = (GeneratedLabelKind *)section_analysis->generated_label_kinds;
+    label_kinds = section_analysis->generated_label_kinds;
     generated_label_flags = section_analysis->generated_label_flags;
   }
   while (offset < section->data_size) {
@@ -2724,7 +2723,7 @@ int platform_file_to_ir_with_policy(const char *backend_name, const char *path, 
     return -1;
   result = populate_source_ir_from_object(backend, &object, active_policy, active_analysis_policy,
     out_source_file, error_buf, error_buf_size);
-  m68k_object_free(&object);
+  m68k_object_destroy(&object);
   return result;
 }
 
@@ -2746,7 +2745,7 @@ int platform_file_to_ir_buffer_with_policy(const char *backend_name, const unsig
     return -1;
   result = populate_source_ir_from_object(backend, &object, active_policy, active_analysis_policy,
     out_source_file, error_buf, error_buf_size);
-  m68k_object_free(&object);
+  m68k_object_destroy(&object);
   return result;
 }
 
@@ -2765,7 +2764,7 @@ int platform_file_analyze_path(const char *backend_name, const char *path, const
     return -1;
   result = populate_source_analysis_from_object(&object, active_analysis_policy, out_source_analysis,
     error_buf, error_buf_size);
-  m68k_object_free(&object);
+  m68k_object_destroy(&object);
   return result;
 }
 
@@ -2785,7 +2784,7 @@ int platform_file_analyze_buffer(const char *backend_name, const unsigned char *
     return -1;
   result = populate_source_analysis_from_object(&object, active_analysis_policy, out_source_analysis,
     error_buf, error_buf_size);
-  m68k_object_free(&object);
+  m68k_object_destroy(&object);
   return result;
 }
 
@@ -2793,6 +2792,8 @@ static int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, 
     size_t error_buf_size) {
   JsonBuilder builder = {0};
   size_t section_index;
+  if (json_builder_create(&builder) != 0)
+    goto oom;
   if (json_builder_appendf( &builder,
       "{\"file_kind\":%u,\"analysis_policy\":{\"max_cpu\":%u},\"findings\":{\"required_cpu\":%u,"
       "\"cpu_violation_count\":%u},\"section_count\":%u,\"sections\":[",
@@ -2860,11 +2861,13 @@ static int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, 
   if (json_builder_append(&builder, "]}") != 0)
     goto oom;
   if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
-  *out_json = builder.data;
+  *out_json = json_builder_build(&builder);
+  if (*out_json == NULL) goto oom;
+  json_builder_destroy(&builder);
   return 0;
 
 oom:
-  json_builder_free(&builder);
+  json_builder_destroy(&builder);
   m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
   return -1;
 }
@@ -2878,12 +2881,11 @@ int platform_file_analyze_path_json(const char *backend_name, const char *path,
     return -1;
   }
   *out_json = NULL;
-  m68k_ir_source_analysis_init(&source_analysis);
   result = platform_file_analyze_path(backend_name, path, analysis_policy, &source_analysis, error_buf, error_buf_size);
   if (result != 0)
     return result;
   result = source_analysis_to_json(&source_analysis, out_json, error_buf, error_buf_size);
-  m68k_ir_source_analysis_free(&source_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   return result;
 }
 
@@ -2896,13 +2898,12 @@ int platform_file_analyze_buffer_json(const char *backend_name, const unsigned c
     return -1;
   }
   *out_json = NULL;
-  m68k_ir_source_analysis_init(&source_analysis);
   result = platform_file_analyze_buffer(backend_name, data, size, analysis_policy, &source_analysis,
     error_buf, error_buf_size);
   if (result != 0)
     return result;
   result = source_analysis_to_json(&source_analysis, out_json, error_buf, error_buf_size);
-  m68k_ir_source_analysis_free(&source_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   return result;
 }
 
@@ -2912,9 +2913,9 @@ int platform_file_render_ir_with_policy(const M68kSourceFileIR *source_file, con
 }
 
 void platform_file_source_ir_free(M68kSourceFileIR *source_file) {
-  m68k_ir_source_file_free(source_file);
+  m68k_ir_source_file_destroy(source_file);
 }
 
 void platform_file_source_analysis_free(M68kSourceAnalysisIR *source_analysis) {
-  m68k_ir_source_analysis_free(source_analysis);
+  m68k_ir_source_analysis_destroy(source_analysis);
 }

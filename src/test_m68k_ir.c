@@ -1,5 +1,6 @@
 #include "m68k_c_unit_test.h"
 #include "m68k_ir.h"
+#include "util_arena.h"
 
 #include <string.h>
 
@@ -56,7 +57,7 @@ static int test_section_append_statement_copies_data(void) {
   M68kStatementIR statement;
   uint8_t bytes[2] = {0x12u, 0x34u};
 
-  m68k_ir_section_init(&section);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
   m68k_ir_statement_init(&statement);
   statement.kind = M68K_STATEMENT_DATA;
   statement.label_name = "lbl";
@@ -78,18 +79,149 @@ static int test_section_append_statement_copies_data(void) {
   M68K_C_ASSERT_U32(0x12u, section.statements[0].u.data.data[0]);
   M68K_C_ASSERT_U32(0x34u, section.statements[0].u.data.data[1]);
 
-  m68k_ir_section_free(&section);
+  m68k_ir_section_destroy(&section);
   return 0;
 }
 
 static int test_section_analysis_label_dedupes(void) {
   M68kSectionAnalysisIR analysis;
-  m68k_ir_section_analysis_init(&analysis);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&analysis));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_add_label(&analysis, 0x20u));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_add_label(&analysis, 0x20u));
   M68K_C_ASSERT_INT(1, (int)analysis.label_count);
   M68K_C_ASSERT_U32(0x20u, analysis.label_offsets[0]);
-  m68k_ir_section_analysis_free(&analysis);
+  m68k_ir_section_analysis_destroy(&analysis);
+  return 0;
+}
+
+static int test_section_many_interleaved_labels_and_data(void) {
+  M68kSectionIR section;
+  size_t index;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
+
+  for (index = 0; index < 70000; ++index) {
+    M68kStatementIR label_stmt;
+    M68kStatementIR data_stmt;
+    char label_name[32];
+    uint8_t byte = (uint8_t)(index & 0xFFu);
+
+    m68k_ir_statement_init(&label_stmt);
+    label_stmt.kind = M68K_STATEMENT_LABEL;
+    snprintf(label_name, sizeof(label_name), "dat_%04X", (unsigned)index);
+    label_stmt.label_name = label_name;
+    M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &label_stmt));
+
+    m68k_ir_statement_init(&data_stmt);
+    data_stmt.kind = M68K_STATEMENT_DATA;
+    data_stmt.u.data.kind = M68K_DATA_ITEM_BYTES;
+    data_stmt.u.data.data = &byte;
+    data_stmt.u.data.size = 1U;
+    M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &data_stmt));
+  }
+
+  M68K_C_ASSERT_INT(140000, (int)section.statement_count);
+  m68k_ir_section_destroy(&section);
+  return 0;
+}
+
+static int test_section_many_interleaved_labels_and_expr_data(void) {
+  M68kSectionIR section;
+  size_t index;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
+
+  for (index = 0; index < 70000; ++index) {
+    M68kStatementIR label_stmt;
+    M68kStatementIR data_stmt;
+    char label_name[32];
+    uint8_t word_bytes[2];
+    char expr[48];
+
+    m68k_ir_statement_init(&label_stmt);
+    label_stmt.kind = M68K_STATEMENT_LABEL;
+    snprintf(label_name, sizeof(label_name), "dat_%04X", (unsigned)index);
+    label_stmt.label_name = label_name;
+    M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &label_stmt));
+
+    word_bytes[0] = (uint8_t)((index >> 8) & 0xFFu);
+    word_bytes[1] = (uint8_t)(index & 0xFFu);
+    snprintf(expr, sizeof(expr), "loc_%04X-dat_%04X", (unsigned)(index + 2U), (unsigned)index);
+
+    m68k_ir_statement_init(&data_stmt);
+    data_stmt.kind = M68K_STATEMENT_DATA;
+    data_stmt.u.data.kind = M68K_DATA_ITEM_WORDS;
+    data_stmt.u.data.data = word_bytes;
+    data_stmt.u.data.size = 2U;
+    data_stmt.u.data.expr_text = expr;
+    M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &data_stmt));
+  }
+
+  M68K_C_ASSERT_INT(140000, (int)section.statement_count);
+  m68k_ir_section_destroy(&section);
+  return 0;
+}
+
+static int test_arena_mark_rewind_reuses_same_block_range(void) {
+  Arena *arena = arena_create(64U);
+  char *first;
+  ArenaMark mark;
+  char *second;
+  char *third;
+  M68K_C_ASSERT(arena != NULL);
+  first = (char *)arena_alloc(arena, 16U);
+  M68K_C_ASSERT(first != NULL);
+  mark = arena_mark(arena);
+  second = (char *)arena_alloc(arena, 24U);
+  M68K_C_ASSERT(second != NULL);
+  memset(second, 0x11, 24U);
+  arena_rewind(arena, mark);
+#if defined(_DEBUG)
+  {
+    size_t index;
+    for (index = 0; index < 24U; ++index) M68K_C_ASSERT_U32(0xDDu, (unsigned char)second[index]);
+  }
+#endif
+  third = (char *)arena_alloc(arena, 24U);
+  M68K_C_ASSERT(third != NULL);
+  M68K_C_ASSERT(second == third);
+  arena_destroy(arena);
+  return 0;
+}
+
+static int test_arena_rewind_discards_later_blocks(void) {
+  Arena *arena = arena_create(64U);
+  char *first;
+  ArenaMark mark;
+  char *large;
+  char *again;
+  M68K_C_ASSERT(arena != NULL);
+  first = (char *)arena_alloc(arena, 32U);
+  M68K_C_ASSERT(first != NULL);
+  mark = arena_mark(arena);
+  large = (char *)arena_alloc(arena, 5000U);
+  M68K_C_ASSERT(large != NULL);
+  arena_rewind(arena, mark);
+  again = (char *)arena_alloc(arena, 32U);
+  M68K_C_ASSERT(again != NULL);
+  M68K_C_ASSERT(again == first + 32);
+  arena_destroy(arena);
+  return 0;
+}
+
+static int test_arena_reset_poisons_head_block_range(void) {
+  Arena *arena = arena_create(64U);
+  char *data;
+  size_t index;
+  M68K_C_ASSERT(arena != NULL);
+  data = (char *)arena_alloc(arena, 32U);
+  M68K_C_ASSERT(data != NULL);
+  memset(data, 0x22, 32U);
+  arena_reset(arena);
+#if defined(_DEBUG)
+  for (index = 0; index < 32U; ++index) M68K_C_ASSERT_U32(0xDDu, (unsigned char)data[index]);
+#else
+  (void)index;
+#endif
+  arena_destroy(arena);
   return 0;
 }
 
@@ -100,6 +232,11 @@ int m68k_c_ir_tests(void) {
     {"analysis_defaults_and_inits", test_analysis_defaults_and_inits},
     {"section_append_statement_copies_data", test_section_append_statement_copies_data},
     {"section_analysis_label_dedupes", test_section_analysis_label_dedupes},
+    {"section_many_interleaved_labels_and_data", test_section_many_interleaved_labels_and_data},
+    {"section_many_interleaved_labels_and_expr_data", test_section_many_interleaved_labels_and_expr_data},
+    {"arena_mark_rewind_reuses_same_block_range", test_arena_mark_rewind_reuses_same_block_range},
+    {"arena_rewind_discards_later_blocks", test_arena_rewind_discards_later_blocks},
+    {"arena_reset_poisons_head_block_range", test_arena_reset_poisons_head_block_range},
   };
   return m68k_c_test_run_suite("m68k_ir", cases, sizeof(cases) / sizeof(cases[0]));
 }

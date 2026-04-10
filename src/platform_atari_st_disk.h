@@ -1,8 +1,12 @@
 #ifndef PLATFORM_ATARI_ST_DISK_H
 #define PLATFORM_ATARI_ST_DISK_H
 
+#include "util_arena.h"
+
 #include <stddef.h>
 #include <stdint.h>
+
+typedef struct AtariStDiskAnalysis AtariStDiskAnalysis;
 
 typedef enum AtariStDiskEntryKind {
     ATARI_ST_DISK_ENTRY_FILE = 1,
@@ -18,6 +22,7 @@ typedef struct AtariStDiskExtent {
 
 typedef struct AtariStDiskEntry {
     char *path;
+    AtariStDiskAnalysis *owner;
     AtariStDiskEntryKind kind;
     uint32_t file_size;
     uint16_t first_cluster;
@@ -25,9 +30,10 @@ typedef struct AtariStDiskEntry {
     uint8_t is_executable_candidate;
     AtariStDiskExtent *extents;
     size_t extent_count;
+    size_t extent_capacity;
 } AtariStDiskEntry;
 
-typedef struct AtariStDiskAnalysis {
+struct AtariStDiskAnalysis {
     uint32_t image_size;
     uint16_t bytes_per_sector;
     uint8_t sectors_per_cluster;
@@ -40,10 +46,12 @@ typedef struct AtariStDiskAnalysis {
     uint16_t side_count;
     AtariStDiskEntry *entries;
     size_t entry_count;
-} AtariStDiskAnalysis;
+    size_t entry_capacity;
+    Arena *arena;
+};
 
-void atari_st_disk_analysis_init(AtariStDiskAnalysis *analysis);
-void atari_st_disk_analysis_free(AtariStDiskAnalysis *analysis);
+int atari_st_disk_analysis_create(AtariStDiskAnalysis *analysis);
+void atari_st_disk_analysis_destroy(AtariStDiskAnalysis *analysis);
 int atari_st_disk_analyze_image(const char *path, AtariStDiskAnalysis *out_analysis, char *error_buf,
     size_t error_buf_size);
 int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariStDiskAnalysis *out_analysis,

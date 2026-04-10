@@ -101,6 +101,7 @@ def _run_build() -> dict[str, object]:
 
 def _parse_unittest_output(output: str, ok: bool) -> dict[str, object]:
     ran_match = re.search(r"Ran (\d+) tests? in ([0-9.]+)s", output)
+    no_tests_ran = re.search(r"^NO TESTS RAN$", output, re.MULTILINE) is not None
     status_match = re.search(r"^(OK|FAILED)(?: \(([^)]*)\))?$", output, re.MULTILINE)
     tests_run = int(ran_match.group(1)) if ran_match else 0
     skipped = 0
@@ -133,6 +134,7 @@ def _parse_unittest_output(output: str, ok: bool) -> dict[str, object]:
         "skipped": skipped,
         "expected_failures": expected_failures,
         "unexpected_successes": unexpected_successes,
+        "no_tests_ran": no_tests_ran,
     }
 
 
@@ -156,6 +158,7 @@ def _run_native_c_unit() -> dict[str, object]:
         "skipped": 0,
         "expected_failures": 0,
         "unexpected_successes": 0,
+        "no_tests_ran": False,
         "output": result.stdout + result.stderr,
     }
 
@@ -186,6 +189,7 @@ def _run_unittest_module(module_name: str, extra_env: dict[str, str] | None = No
         "skipped": parsed["skipped"],
         "expected_failures": parsed["expected_failures"],
         "unexpected_successes": parsed["unexpected_successes"],
+        "no_tests_ran": parsed["no_tests_ran"],
         "output": combined_output,
     }
 
@@ -207,6 +211,7 @@ def _summarize_stage_runs(runs: list[dict[str, object]]) -> dict[str, object]:
                     "seconds": float(run["seconds"]),
                     "ok": bool(run["ok"]),
                     "tests_run": int(run["tests_run"]),
+                    "no_tests_ran": bool(run.get("no_tests_ran", False)),
                 }
                 for run in runs
             ]
@@ -215,12 +220,48 @@ def _summarize_stage_runs(runs: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
+def _module_short_name(name: str) -> str:
+    if name == "native_c":
+        return name
+    return name.rsplit(".", 1)[-1]
+
+
+def _print_stage_summary(stage_name: str, stage: dict[str, object]) -> None:
+    status = "OK" if stage["ok"] else "FAILED"
+    sys.stdout.write(
+        f"{stage_name}: {status}  tests={int(stage['tests_run'])}  seconds={float(stage['seconds']):.3f}\n"
+    )
+    for run in stage["timings"]["runs"]:
+        run_status = "ok" if run["ok"] else "failed"
+        if run.get("no_tests_ran", False):
+            sys.stdout.write(
+                f"  {_module_short_name(str(run['name']))}: filtered  seconds={float(run['seconds']):.3f}\n"
+            )
+        else:
+            sys.stdout.write(
+                f"  {_module_short_name(str(run['name']))}: {run_status}  tests={int(run['tests_run'])}  seconds={float(run['seconds']):.3f}\n"
+            )
+
+
+def _print_failed_stage_details(stage_name: str, stage: dict[str, object]) -> None:
+    for run in stage["timings"]["runs"]:
+        if run["ok"]:
+            continue
+        sys.stdout.write(f"\n[{stage_name} failure] {run['name']}\n")
+        for full_run in stage.get("_runs", []):
+            if full_run["name"] == run["name"]:
+                sys.stdout.write(str(full_run["output"]))
+                break
+
+
 def _run_unit_stage() -> dict[str, object]:
     runs = [_run_native_c_unit()]
     if runs[0]["ok"]:
         for module in _parse_variable_modules(TEST_BAT, "UNIT_MODULES"):
             runs.append(_run_unittest_module(module))
-    return _summarize_stage_runs(runs)
+    summary = _summarize_stage_runs(runs)
+    summary["_runs"] = runs
+    return summary
 
 
 def _run_module_stage(
@@ -234,7 +275,9 @@ def _run_module_stage(
         else _parse_direct_unittest_modules(batch_path)
     )
     runs = [_run_unittest_module(module, extra_env) for module in modules]
-    return _summarize_stage_runs(runs)
+    summary = _summarize_stage_runs(runs)
+    summary["_runs"] = runs
+    return summary
 
 
 def _collect_corpus_stats() -> dict[str, object]:
@@ -287,7 +330,11 @@ def main() -> int:
 
     unit = _run_unit_stage()
     if unit["ok"]:
-        integration = _run_module_stage(TEST_INTEGRATION_BAT, "INTEGRATION_MODULES")
+        integration = _run_module_stage(
+            TEST_INTEGRATION_BAT,
+            "INTEGRATION_MODULES",
+            {"AMIGA_INCLUDE_HEAVY_UNIT_TESTS": "1"},
+        )
     else:
         integration = {
             "seconds": 0.0,
@@ -300,6 +347,7 @@ def main() -> int:
             "unexpected_successes": 0,
             "timings": {"runs": []},
             "output": "skipped because unit suite failed\n",
+            "_runs": [],
         }
     if unit["ok"] and integration["ok"]:
         explicit = _run_module_stage(TEST_EXPLICIT_BAT, None, {"AMIGA_INCLUDE_EXPLICIT_TESTS": "1"})
@@ -315,6 +363,7 @@ def main() -> int:
             "unexpected_successes": 0,
             "timings": {"runs": []},
             "output": "skipped because earlier suite failed\n",
+            "_runs": [],
         }
 
     benchmark["unit"] = {key: value for key, value in unit.items() if key != "output"}
@@ -333,9 +382,21 @@ def main() -> int:
 
     sys.stdout.write(build["stdout"])
     sys.stderr.write(build["stderr"])
-    sys.stdout.write(unit["output"])
-    sys.stdout.write(integration["output"])
-    sys.stdout.write(explicit["output"])
+    _print_stage_summary("unit", unit)
+    if unit["ok"]:
+        _print_stage_summary("integration", integration)
+    else:
+        sys.stdout.write("integration: skipped because unit failed\n")
+    if unit["ok"] and integration["ok"]:
+        _print_stage_summary("explicit", explicit)
+    else:
+        sys.stdout.write("explicit: skipped because earlier suite failed\n")
+    if not unit["ok"]:
+        _print_failed_stage_details("unit", unit)
+    if not integration["ok"] and unit["ok"]:
+        _print_failed_stage_details("integration", integration)
+    if not explicit["ok"] and unit["ok"] and integration["ok"]:
+        _print_failed_stage_details("explicit", explicit)
     return 0 if unit["ok"] and integration["ok"] and explicit["ok"] else 1
 
 

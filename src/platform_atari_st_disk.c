@@ -7,6 +7,45 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ATARI_ST_DISK_ANALYSIS_ARENA_SIZE 16384U
+
+static int analysis_join_path(AtariStDiskAnalysis *analysis, const char *base, const char *name, char **out_path) {
+    size_t base_len;
+    size_t name_len;
+    size_t total;
+    char *path;
+    Arena *arena = analysis != NULL ? analysis->arena : NULL;
+    if (arena == NULL || base == NULL || name == NULL || out_path == NULL) return -1;
+    base_len = strlen(base);
+    name_len = strlen(name);
+    total = base_len + name_len + (base_len != 0U ? 2U : 1U);
+    path = (char *)arena_alloc(arena, total);
+    if (path == NULL) return -1;
+    if (base_len != 0U) {
+        memcpy(path, base, base_len);
+        path[base_len] = '/';
+        memcpy(path + base_len + 1U, name, name_len + 1U);
+    } else {
+        memcpy(path, name, name_len + 1U);
+    }
+    *out_path = path;
+    return 0;
+}
+
+static void *analysis_grow_array(AtariStDiskAnalysis *analysis, void *items, size_t count, size_t *capacity,
+    size_t item_size) {
+    size_t next_capacity;
+    void *grown;
+    Arena *arena = analysis != NULL ? analysis->arena : NULL;
+    if (arena == NULL) return NULL;
+    if (count < *capacity) return items;
+    next_capacity = (*capacity == 0U) ? 4U : (*capacity * 2U);
+    grown = arena_realloc_copy(arena, items, count * item_size, next_capacity * item_size);
+    if (grown == NULL) return NULL;
+    *capacity = next_capacity;
+    return grown;
+}
+
 typedef struct DiskContext {
     const unsigned char *data;
     size_t size;
@@ -58,7 +97,8 @@ static int is_executable_candidate_name(const char *name) {
 }
 
 static int append_extent(AtariStDiskEntry *entry, uint32_t image_offset, uint32_t byte_size, uint16_t cluster_index) {
-AtariStDiskExtent *grown = (AtariStDiskExtent *)realloc( entry->extents, (entry->extent_count + 1U) * sizeof(*entry->extents));
+AtariStDiskExtent *grown = (AtariStDiskExtent *)analysis_grow_array(entry->owner, entry->extents,
+    entry->extent_count, &entry->extent_capacity, sizeof(*entry->extents));
     if (grown == NULL) return -1;
     entry->extents = grown;
     entry->extents[entry->extent_count].image_offset = image_offset;
@@ -69,7 +109,8 @@ AtariStDiskExtent *grown = (AtariStDiskExtent *)realloc( entry->extents, (entry-
 }
 
 static int add_entry(AtariStDiskAnalysis *analysis, const AtariStDiskEntry *entry) {
-AtariStDiskEntry *grown = (AtariStDiskEntry *)realloc( analysis->entries, (analysis->entry_count + 1U) * sizeof(*analysis->entries));
+AtariStDiskEntry *grown = (AtariStDiskEntry *)analysis_grow_array(analysis, analysis->entries, analysis->entry_count,
+    &analysis->entry_capacity, sizeof(*analysis->entries));
     if (grown == NULL) return -1;
     analysis->entries = grown;
     analysis->entries[analysis->entry_count] = *entry;
@@ -203,12 +244,13 @@ static int parse_directory_entries(const DiskContext *ctx, AtariStDiskAnalysis *
         if ((attributes & 0x0FU) == 0x0FU) continue;
         if (format_entry_name(entry_data, name, sizeof(name)) != 0) continue;
         if ((attributes & ATARI_ST_DISK_FILE_DIR_ATTR_DIRECTORY) != 0U && (!strcmp(name, ".") || !strcmp(name, ".."))) continue;
-        if (m68k_platform_join_path(base_path, name, &path) != 0) {
+        if (analysis_join_path(analysis, base_path, name, &path) != 0) {
             m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
             return -1;
         }
         memset(&entry, 0, sizeof(entry));
         entry.path = path;
+        entry.owner = analysis;
         entry.attributes = attributes;
 entry.first_cluster = read_u16le( entry_data, ATARI_ST_DISK_FILE_DIRECTORY_ENTRY_FIELD_FIRST_CLUSTER_OFFSET);
         entry.file_size = read_u32le(entry_data, ATARI_ST_DISK_FILE_DIRECTORY_ENTRY_FIELD_FILE_SIZE_OFFSET);
@@ -224,15 +266,11 @@ entry.first_cluster = read_u16le( entry_data, ATARI_ST_DISK_FILE_DIRECTORY_ENTRY
             && entry.first_cluster >= 2U) {
             int walk_full_chain = (entry.kind == ATARI_ST_DISK_ENTRY_DIRECTORY);
             if (build_cluster_extents(ctx, entry.first_cluster, entry.file_size, walk_full_chain, &entry) != 0) {
-                free(entry.path);
-                free(entry.extents);
                 m68k_platform_set_error(error_buf, error_buf_size, "Invalid FAT12 cluster chain");
                 return -1;
             }
         }
         if (add_entry(analysis, &entry) != 0) {
-            free(entry.path);
-            free(entry.extents);
             m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
             return -1;
         }
@@ -253,19 +291,16 @@ entry.first_cluster = read_u16le( entry_data, ATARI_ST_DISK_FILE_DIRECTORY_ENTRY
     return 0;
 }
 
-void atari_st_disk_analysis_init(AtariStDiskAnalysis *analysis) {
-    if (analysis == NULL) return;
+int atari_st_disk_analysis_create(AtariStDiskAnalysis *analysis) {
+    if (analysis == NULL) return -1;
     memset(analysis, 0, sizeof(*analysis));
+    analysis->arena = arena_create(ATARI_ST_DISK_ANALYSIS_ARENA_SIZE);
+    return analysis->arena != NULL ? 0 : -1;
 }
 
-void atari_st_disk_analysis_free(AtariStDiskAnalysis *analysis) {
-    size_t i;
+void atari_st_disk_analysis_destroy(AtariStDiskAnalysis *analysis) {
     if (analysis == NULL) return;
-    for (i = 0; i < analysis->entry_count; ++i) {
-        free(analysis->entries[i].path);
-        free(analysis->entries[i].extents);
-    }
-    free(analysis->entries);
+    arena_destroy(analysis->arena);
     memset(analysis, 0, sizeof(*analysis));
 }
 
@@ -279,7 +314,10 @@ int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariSt
         m68k_platform_set_error(error_buf, error_buf_size, "Missing Atari ST disk analysis output");
         return -1;
     }
-    atari_st_disk_analysis_init(out_analysis);
+    if (atari_st_disk_analysis_create(out_analysis) != 0) {
+        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        return -1;
+    }
     memset(&ctx, 0, sizeof(ctx));
 
     if (data == NULL && size != 0U) {
@@ -348,7 +386,7 @@ int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariSt
 
     if (parse_directory_entries(&ctx, out_analysis, data + ctx.root_dir_offset, ctx.root_dir_size_bytes,
             "", error_buf, error_buf_size) != 0) {
-        atari_st_disk_analysis_free(out_analysis);
+        atari_st_disk_analysis_destroy(out_analysis);
         return -1;
     }
     return 0;

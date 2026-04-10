@@ -5,49 +5,127 @@
 #include <stdlib.h>
 #include <string.h>
 
-int json_builder_reserve(JsonBuilder *builder, size_t extra) {
-    size_t needed = builder->size + extra + 1U;
-    size_t next_capacity;
-    char *grown;
-    if (needed <= builder->capacity) return 0;
-    next_capacity = (builder->capacity == 0U) ? 256U : builder->capacity * 2U;
-    while (next_capacity < needed) next_capacity *= 2U;
-    grown = (char *)realloc(builder->data, next_capacity);
-    if (grown == NULL) return -1;
-    builder->data = grown;
-    builder->capacity = next_capacity;
+#define JSON_BUILDER_CHUNK_SIZE 1024U
+#define JSON_BUILDER_FORMAT_STACK_SIZE 256U
+
+typedef struct JsonBuilderChunk {
+    char *data;
+    size_t used;
+    size_t capacity;
+    struct JsonBuilderChunk *next;
+} JsonBuilderChunk;
+
+struct JsonBuilderState {
+    JsonBuilderChunk *head;
+    JsonBuilderChunk *tail;
+};
+
+int json_builder_create(JsonBuilder *builder) {
+    if (builder == NULL) return -1;
+    memset(builder, 0, sizeof(*builder));
+    builder->arena = arena_create(JSON_BUILDER_CHUNK_SIZE);
+    if (builder->arena == NULL) return -1;
+    builder->state = (JsonBuilderState *)arena_calloc(builder->arena, 1U, sizeof(*builder->state));
+    if (builder->state == NULL) {
+        arena_destroy(builder->arena);
+        memset(builder, 0, sizeof(*builder));
+        return -1;
+    }
+    return 0;
+}
+
+static JsonBuilderChunk *append_chunk(JsonBuilder *builder, size_t minimum_capacity) {
+    JsonBuilderChunk *chunk;
+    size_t capacity = JSON_BUILDER_CHUNK_SIZE;
+    Arena *arena;
+    if (builder == NULL || builder->arena == NULL || builder->state == NULL) return NULL;
+    arena = builder->arena;
+    if (capacity < minimum_capacity) capacity = minimum_capacity;
+    chunk = (JsonBuilderChunk *)arena_alloc(arena, sizeof(*chunk));
+    if (chunk == NULL) return NULL;
+    chunk->data = (char *)arena_alloc(arena, capacity);
+    if (chunk->data == NULL) return NULL;
+    chunk->used = 0U;
+    chunk->capacity = capacity;
+    chunk->next = NULL;
+    if (builder->state->tail != NULL) builder->state->tail->next = chunk;
+    else builder->state->head = chunk;
+    builder->state->tail = chunk;
+    return chunk;
+}
+
+static int append_bytes(JsonBuilder *builder, const char *data, size_t length) {
+    JsonBuilderChunk *chunk;
+    size_t remaining = length;
+    const char *cursor = data;
+    if (builder == NULL || builder->state == NULL) return -1;
+    if (length == 0U) return 0;
+    chunk = builder->state->tail;
+    while (remaining != 0U) {
+        size_t available;
+        size_t to_copy;
+        if (chunk == NULL || chunk->used == chunk->capacity) {
+            chunk = append_chunk(builder, remaining);
+            if (chunk == NULL) return -1;
+        }
+        available = chunk->capacity - chunk->used;
+        to_copy = (remaining < available) ? remaining : available;
+        memcpy(chunk->data + chunk->used, cursor, to_copy);
+        chunk->used += to_copy;
+        builder->size += to_copy;
+        cursor += to_copy;
+        remaining -= to_copy;
+    }
+    return 0;
+}
+
+static int json_builder_appendfv(JsonBuilder *builder, const char *fmt, va_list args) {
+    char stack_buffer[JSON_BUILDER_FORMAT_STACK_SIZE];
+    char *heap_buffer = NULL;
+    char *buffer = stack_buffer;
+    va_list copy;
+    int written;
+    size_t length;
+    va_copy(copy, args);
+    written = vsnprintf(stack_buffer, sizeof(stack_buffer), fmt, copy);
+    va_end(copy);
+    if (written < 0) return -1;
+    length = (size_t)written;
+    if (length >= sizeof(stack_buffer)) {
+        heap_buffer = (char *)malloc(length + 1U);
+        if (heap_buffer == NULL) return -1;
+        va_copy(copy, args);
+        written = vsnprintf(heap_buffer, length + 1U, fmt, copy);
+        va_end(copy);
+        if (written < 0) {
+            free(heap_buffer);
+            return -1;
+        }
+        buffer = heap_buffer;
+    }
+    if (append_bytes(builder, buffer, length) != 0) {
+        free(heap_buffer);
+        return -1;
+    }
+    free(heap_buffer);
     return 0;
 }
 
 int json_builder_append(JsonBuilder *builder, const char *text) {
-    size_t length = strlen(text);
-    if (json_builder_reserve(builder, length) != 0) return -1;
-    memcpy(builder->data + builder->size, text, length);
-    builder->size += length;
-    builder->data[builder->size] = '\0';
-    return 0;
+    return append_bytes(builder, text, strlen(text));
+}
+
+int json_builder_append_char(JsonBuilder *builder, char ch) {
+    return append_bytes(builder, &ch, 1U);
 }
 
 int json_builder_appendf(JsonBuilder *builder, const char *fmt, ...) {
     va_list args;
-    va_list copy;
-    int written;
+    int result;
     va_start(args, fmt);
-    va_copy(copy, args);
-    written = vsnprintf(NULL, 0, fmt, copy);
-    va_end(copy);
-    if (written < 0) {
-        va_end(args);
-        return -1;
-    }
-    if (json_builder_reserve(builder, (size_t)written) != 0) {
-        va_end(args);
-        return -1;
-    }
-    vsnprintf(builder->data + builder->size, builder->capacity - builder->size, fmt, args);
-    builder->size += (size_t)written;
+    result = json_builder_appendfv(builder, fmt, args);
     va_end(args);
-    return 0;
+    return result;
 }
 
 int json_builder_append_json_string(JsonBuilder *builder, const char *text) {
@@ -59,19 +137,34 @@ int json_builder_append_json_string(JsonBuilder *builder, const char *text) {
         } else if (*p < 0x20U) {
             if (json_builder_appendf(builder, "\\u%04X", *p) != 0) return -1;
         } else {
-            if (json_builder_reserve(builder, 1U) != 0) return -1;
-            builder->data[builder->size] = (char)*p;
-            builder->size += 1U;
-            builder->data[builder->size] = '\0';
+            if (json_builder_append_char(builder, (char)*p) != 0) return -1;
         }
         ++p;
     }
     return json_builder_append(builder, "\"");
 }
 
-void json_builder_free(JsonBuilder *builder) {
-    free(builder->data);
-    builder->data = NULL;
+char *json_builder_build(JsonBuilder *builder) {
+    JsonBuilderChunk *chunk;
+    char *data;
+    size_t offset = 0U;
+    if (builder == NULL) return NULL;
+    data = (char *)malloc(builder->size + 1U);
+    if (data == NULL) return NULL;
+    for (chunk = builder->state != NULL ? builder->state->head : NULL; chunk != NULL; chunk = chunk->next) {
+        if (chunk->used != 0U) {
+            memcpy(data + offset, chunk->data, chunk->used);
+            offset += chunk->used;
+        }
+    }
+    data[offset] = '\0';
+    return data;
+}
+
+void json_builder_destroy(JsonBuilder *builder) {
+    if (builder == NULL) return;
+    arena_destroy(builder->arena);
     builder->size = 0U;
-    builder->capacity = 0U;
+    builder->arena = NULL;
+    builder->state = NULL;
 }

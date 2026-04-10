@@ -111,10 +111,10 @@ int m68k_assemble_platform_file_to_output(const char *backend_name, const char *
   }
   if (backend->write_file(output_path, &object, error, sizeof(error)) != 0) {
     fprintf(stderr, "%s\n", error);
-    m68k_object_free(&object);
+    m68k_object_destroy(&object);
     return 1;
   }
-  m68k_object_free(&object);
+  m68k_object_destroy(&object);
   return 0;
 }
 
@@ -124,7 +124,6 @@ int m68k_render_source_file_to_stdout(const char *input_path, const char *includ
   char *text = NULL;
   char error[256];
   int result;
-  m68k_ir_source_file_init(&source_file);
   result = m68k_source_ir_parse_file(input_path, include_dir, target_cpu, enable_vasm_compat_rewrites,
     &source_file, error, sizeof(error));
   if (result != 0) {
@@ -133,11 +132,11 @@ int m68k_render_source_file_to_stdout(const char *input_path, const char *includ
   }
   if (source_file.section_count == 0U) {
     fprintf(stderr, "empty source ir\n");
-    m68k_ir_source_file_free(&source_file);
+    m68k_ir_source_file_destroy(&source_file);
     return 1;
   }
   result = m68k_source_ir_render_with_policy(&source_file, policy, &text, error, sizeof(error));
-  m68k_ir_source_file_free(&source_file);
+  m68k_ir_source_file_destroy(&source_file);
   if (result != 0) {
     fprintf(stderr, "%s\n", error);
     return 1;

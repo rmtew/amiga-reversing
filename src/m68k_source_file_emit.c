@@ -1,5 +1,6 @@
 #include "m68k_source_file_emit.h"
 #include "m68k_ir_codec.h"
+#include "platform_binary_io.h"
 #include "platform_common.h"
 
 #include <stdio.h>
@@ -8,62 +9,6 @@
 
 #define M68K_SOURCE_FILE_EMIT_MAX_FIXUP_OPERANDS 4
 #define M68K_SOURCE_FILE_EMIT_MAX_CASE_BYTES 64
-
-typedef struct ByteBuffer {
-  uint8_t *data;
-  size_t size;
-  size_t capacity;
-} ByteBuffer;
-
-static int byte_buffer_reserve(ByteBuffer *buffer, size_t extra) {
-  size_t next_capacity;
-  uint8_t *grown;
-  if (buffer->size + extra <= buffer->capacity)
-    return 1;
-  next_capacity = (buffer->capacity == 0U) ? 16U : buffer->capacity;
-  while (next_capacity < buffer->size + extra)
-    next_capacity *= 2U;
-  grown = (uint8_t *)realloc(buffer->data, next_capacity);
-  if (grown == NULL)
-    return 0;
-  buffer->data = grown;
-  buffer->capacity = next_capacity;
-  return 1;
-}
-
-static int byte_buffer_append(ByteBuffer *buffer, const uint8_t *data,
-                              size_t size) {
-  if (!byte_buffer_reserve(buffer, size))
-    return 0;
-  if (size != 0U)
-    memcpy(buffer->data + buffer->size, data, size);
-  buffer->size += size;
-  return 1;
-}
-
-static int byte_buffer_append_zero(ByteBuffer *buffer, size_t count) {
-  if (!byte_buffer_reserve(buffer, count))
-    return 0;
-  memset(buffer->data + buffer->size, 0, count);
-  buffer->size += count;
-  return 1;
-}
-
-static int write_u16_be(ByteBuffer *buffer, uint16_t value) {
-  uint8_t bytes[2];
-  bytes[0] = (uint8_t)(value >> 8);
-  bytes[1] = (uint8_t)value;
-  return byte_buffer_append(buffer, bytes, sizeof(bytes));
-}
-
-static int write_u32_be(ByteBuffer *buffer, uint32_t value) {
-  uint8_t bytes[4];
-  bytes[0] = (uint8_t)(value >> 24);
-  bytes[1] = (uint8_t)(value >> 16);
-  bytes[2] = (uint8_t)(value >> 8);
-  bytes[3] = (uint8_t)value;
-  return byte_buffer_append(buffer, bytes, sizeof(bytes));
-}
 
 static size_t data_statement_size(const AsmSourceDataStmt *data_stmt) {
   size_t total = 0;
@@ -199,7 +144,7 @@ int m68k_source_file_layout(AsmSourceFile *source,
 static int emit_data_statement(const AsmSourceFile *source,
                                const AsmSourceStmt *stmt,
                                M68kSourceExprLookupFn expr_lookup_symbol,
-                               void *expr_lookup_user_data, ByteBuffer *buffer,
+                               void *expr_lookup_user_data, M68kBinaryWriter *writer,
                                M68kObject *object, char *out_error,
                                size_t out_error_size) {
   size_t item_index;
@@ -212,7 +157,7 @@ static int emit_data_statement(const AsmSourceFile *source,
                   "string data only supported for DC.B");
         return 0;
       }
-      if (!byte_buffer_append(buffer, item->bytes, item->byte_count))
+      if (m68k_writer_bytes(writer, item->bytes, item->byte_count) != 0)
         return 0;
       continue;
     } else {
@@ -230,19 +175,19 @@ static int emit_data_statement(const AsmSourceFile *source,
       }
       if (stmt->u.data.width_bytes == 1U) {
         uint8_t byte_value = (uint8_t)value;
-        if (!byte_buffer_append(buffer, &byte_value, 1U))
+        if (m68k_writer_u8(writer, byte_value) != 0)
           return 0;
       } else if (stmt->u.data.width_bytes == 2U) {
-        if (!write_u16_be(buffer, (uint16_t)value))
+        if (m68k_writer_u16be(writer, (uint16_t)value) != 0)
           return 0;
       } else {
-        if (!write_u32_be(buffer, value))
+        if (m68k_writer_u32be(writer, value) != 0)
           return 0;
       }
       if (is_reloc) {
         memset(&fixup, 0, sizeof(fixup));
         fixup.section_index = stmt->section_index;
-        fixup.offset = (uint32_t)(buffer->size - stmt->u.data.width_bytes);
+        fixup.offset = (uint32_t)(writer->size - stmt->u.data.width_bytes);
         fixup.kind = M68K_FIXUP_ABS;
         fixup.width = (stmt->u.data.width_bytes == 4U)   ? M68K_FIXUP_WIDTH_32
                       : (stmt->u.data.width_bytes == 2U) ? M68K_FIXUP_WIDTH_16
@@ -260,7 +205,7 @@ static int emit_data_statement(const AsmSourceFile *source,
 static int emit_instruction_statement(const AsmSourceFile *source,
                                       const M68kSourceFileEmitContext *context,
                                       const AsmSourceStmt *stmt,
-                                      ByteBuffer *buffer, M68kObject *object,
+                                      M68kBinaryWriter *writer, M68kObject *object,
                                       char *out_error, size_t out_error_size) {
   const M68kAsmFormDef *form = NULL;
   M68kInstructionIR resolved_ir;
@@ -280,7 +225,7 @@ static int emit_instruction_statement(const AsmSourceFile *source,
     resolved_ir.size_suffix = stmt->u.instruction.requested_size_suffix;
   if (m68k_ir_encode_one(&resolved_ir, bytes, sizeof(bytes), &byte_count,
                          out_error, out_error_size) != 0 ||
-      !byte_buffer_append(buffer, bytes, byte_count)) {
+      m68k_writer_bytes(writer, bytes, byte_count) != 0) {
     return 0;
   }
   for (fixup_index = 0; fixup_index < fixup_count; ++fixup_index) {
@@ -318,11 +263,20 @@ int m68k_source_file_emit_object(const AsmSourceFile *source,
                                  const M68kSourceFileEmitContext *context,
                                  M68kObject *out_object, char *out_error,
                                  size_t out_error_size) {
-  ByteBuffer section_buffers[16];
+  M68kBinaryWriter section_writers[16];
   size_t index;
-  memset(section_buffers, 0, sizeof(section_buffers));
-  m68k_object_init(out_object);
+  memset(section_writers, 0, sizeof(section_writers));
+  if (m68k_object_create(out_object) != 0) {
+    m68k_platform_set_error(out_error, out_error_size, "out of memory");
+    return 0;
+  }
   out_object->platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  for (index = 0; index < source->section_count; ++index) {
+    if (m68k_writer_create(&section_writers[index]) != 0) {
+      m68k_platform_set_error(out_error, out_error_size, "out of memory");
+      goto fail;
+    }
+  }
   for (index = 0; index < source->section_count; ++index) {
     M68kSection section;
     memset(&section, 0, sizeof(section));
@@ -339,32 +293,46 @@ int m68k_source_file_emit_object(const AsmSourceFile *source,
         stmt->kind == ASM_SOURCE_STMT_LABEL)
       continue;
     if (stmt->kind == ASM_SOURCE_STMT_EVEN) {
-      if ((section_buffers[stmt->section_index].size & 1U) != 0U &&
-          !byte_buffer_append_zero(&section_buffers[stmt->section_index], 1U))
+      if ((section_writers[stmt->section_index].size & 1U) != 0U &&
+          m68k_writer_u8(&section_writers[stmt->section_index], 0U) != 0)
         return 0;
     } else if (stmt->kind == ASM_SOURCE_STMT_DATA) {
       if (!emit_data_statement(source, stmt, context->expr_lookup_symbol,
                                (void *)source,
-                               &section_buffers[stmt->section_index],
+                               &section_writers[stmt->section_index],
                                out_object, out_error, out_error_size))
-        return 0;
+        goto fail;
     } else if (stmt->kind == ASM_SOURCE_STMT_INSTRUCTION) {
       if (!emit_instruction_statement(source, context, stmt,
-                                      &section_buffers[stmt->section_index], out_object,
+                                      &section_writers[stmt->section_index], out_object,
                                       out_error, out_error_size))
-        return 0;
+        goto fail;
     }
   }
   for (index = 0; index < out_object->section_count; ++index) {
     M68kSection *section = &out_object->sections[index];
-    free(section->data);
-    section->data = section_buffers[index].data;
-    section->data_size = (uint32_t)section_buffers[index].size;
-    section->size = (uint32_t)section_buffers[index].size;
-    section_buffers[index].data = NULL;
+    uint8_t *data = (uint8_t *)m68k_writer_build(&section_writers[index]);
+    if (section_writers[index].size != 0U && data == NULL) {
+      m68k_platform_set_error(out_error, out_error_size, "out of memory");
+      goto fail;
+    }
+    if (m68k_object_set_section_data(out_object, index, data, (uint32_t)section_writers[index].size) != 0) {
+      free(data);
+      m68k_platform_set_error(out_error, out_error_size, "out of memory");
+      goto fail;
+    }
+    section->size = (uint32_t)section_writers[index].size;
+    free(data);
+    m68k_writer_destroy(&section_writers[index]);
   }
   m68k_platform_set_error(out_error, out_error_size, "");
   return 1;
+
+fail:
+  for (index = 0; index < source->section_count; ++index)
+    m68k_writer_destroy(&section_writers[index]);
+  m68k_object_destroy(out_object);
+  return 0;
 }
 
 static int append_instruction_ir_statement_direct(M68kSectionIR *section,
@@ -384,9 +352,11 @@ static int append_data_ir_statement(const AsmSourceFile *source,
                                     void *expr_lookup_user_data,
                                     M68kSectionIR *section) {
   M68kStatementIR statement;
-  ByteBuffer buffer = {0};
+  M68kBinaryWriter writer;
   size_t item_index;
   (void)source;
+  if (m68k_writer_create(&writer) != 0)
+    return 0;
   m68k_ir_statement_init(&statement);
   statement.kind = M68K_STATEMENT_DATA;
   statement.offset = stmt->offset;
@@ -397,8 +367,8 @@ static int append_data_ir_statement(const AsmSourceFile *source,
   for (item_index = 0; item_index < stmt->u.data.item_count; ++item_index) {
     const AsmDataItem *item = &stmt->u.data.items[item_index];
     if (item->kind == ASM_DATA_ITEM_STRING) {
-      if (!byte_buffer_append(&buffer, item->bytes, item->byte_count))
-        return 0;
+      if (m68k_writer_bytes(&writer, item->bytes, item->byte_count) != 0)
+        goto fail;
     } else {
       M68kSourceLinearExpr expr;
       uint32_t value = 0;
@@ -408,34 +378,35 @@ static int append_data_ir_statement(const AsmSourceFile *source,
                                                expr_lookup_user_data, &expr) ||
           !m68k_source_evaluate_linear_expression(&expr, &value, &is_reloc,
                                                   &target_section)) {
-        free(buffer.data);
-        return 0;
+        goto fail;
       }
       if (stmt->u.data.width_bytes == 1U) {
         uint8_t byte_value = (uint8_t)value;
-        if (!byte_buffer_append(&buffer, &byte_value, 1U)) {
-          free(buffer.data);
-          return 0;
-        }
+        if (m68k_writer_u8(&writer, byte_value) != 0)
+          goto fail;
       } else if (stmt->u.data.width_bytes == 2U) {
-        if (!write_u16_be(&buffer, (uint16_t)value)) {
-          free(buffer.data);
-          return 0;
-        }
-      } else if (!write_u32_be(&buffer, value)) {
-        free(buffer.data);
-        return 0;
+        if (m68k_writer_u16be(&writer, (uint16_t)value) != 0)
+          goto fail;
+      } else if (m68k_writer_u32be(&writer, value) != 0) {
+        goto fail;
       }
     }
   }
-  statement.u.data.data = buffer.data;
-  statement.u.data.size = buffer.size;
+  statement.u.data.data = (uint8_t *)m68k_writer_build(&writer);
+  statement.u.data.size = writer.size;
+  if (statement.u.data.size != 0U && statement.u.data.data == NULL)
+    goto fail;
   if (m68k_ir_section_append_statement(section, &statement) != 0) {
-    free(buffer.data);
-    return 0;
+    goto fail;
   }
-  free(buffer.data);
+  free(statement.u.data.data);
+  m68k_writer_destroy(&writer);
   return 1;
+
+fail:
+  free(statement.u.data.data);
+  m68k_writer_destroy(&writer);
+  return 0;
 }
 
 int m68k_source_file_build_ir(const AsmSourceFile *source,
@@ -443,7 +414,6 @@ int m68k_source_file_build_ir(const AsmSourceFile *source,
                               void *expr_lookup_user_data,
                               M68kSourceFileIR *out_source_file,
                               char *out_error, size_t out_error_size) {
-  M68kSectionIR *sections = NULL;
   size_t section_index;
   size_t stmt_index;
   size_t required_section_count = 0U;
@@ -451,7 +421,10 @@ int m68k_source_file_build_ir(const AsmSourceFile *source,
     m68k_platform_set_error(out_error, out_error_size, "bad source ir arguments");
     return 0;
   }
-  m68k_ir_source_file_init(out_source_file);
+  if (m68k_ir_source_file_create(out_source_file) != 0) {
+    m68k_platform_set_error(out_error, out_error_size, "out of memory");
+    return 0;
+  }
   out_source_file->file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
   out_source_file->has_atari_st_program_flags =
       (uint8_t)(source->has_atari_st_program_flags != 0);
@@ -467,108 +440,83 @@ int m68k_source_file_build_ir(const AsmSourceFile *source,
               "source ir section map is inconsistent");
     return 0;
   }
-  sections = (M68kSectionIR *)calloc( source->section_count != 0U ? source->section_count : 1U, sizeof(*sections));
-  if (sections == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "out of memory");
-    return 0;
-  }
   for (section_index = 0; section_index < source->section_count;
        ++section_index) {
-    m68k_ir_section_init(&sections[section_index]);
-    sections[section_index].name =
-        _strdup(source->sections[section_index].name != NULL
-                    ? source->sections[section_index].name
-                    : "section");
-    if (sections[section_index].name == NULL) {
+    M68kSectionIR section;
+    if (m68k_ir_section_create(&section) != 0) {
+      m68k_platform_set_error(out_error, out_error_size, "out of memory");
+      goto fail;
+    }
+    if (m68k_ir_section_set_name(&section,
+            source->sections[section_index].name != NULL
+                ? source->sections[section_index].name
+                : "section") != 0) {
       m68k_platform_set_error(out_error, out_error_size,
                 "failed duplicating source ir section name");
+      m68k_ir_section_destroy(&section);
       goto fail;
     }
-    sections[section_index].kind = source->sections[section_index].kind;
-  }
-  for (stmt_index = 0; stmt_index < source->statement_count; ++stmt_index) {
-    const AsmSourceStmt *stmt = &source->statements[stmt_index];
-    M68kStatementIR statement;
-    if (stmt->kind == ASM_SOURCE_STMT_END ||
-        stmt->kind == ASM_SOURCE_STMT_SECTION)
-      continue;
-    if (stmt->kind == ASM_SOURCE_STMT_LABEL) {
-      if (stmt->section_index == (size_t)-1)
+    section.kind = source->sections[section_index].kind;
+    for (stmt_index = 0; stmt_index < source->statement_count; ++stmt_index) {
+      const AsmSourceStmt *stmt = &source->statements[stmt_index];
+      M68kStatementIR statement;
+      if (stmt->section_index != section_index)
         continue;
-      m68k_ir_statement_init(&statement);
-      statement.kind = M68K_STATEMENT_LABEL;
-      statement.offset = stmt->offset;
-      statement.label_name = (char *)stmt->u.label.name;
-      statement.label_is_generated = 0U;
-      if (m68k_ir_section_append_statement(&sections[stmt->section_index],
-                                           &statement) != 0) {
-        m68k_platform_set_error(out_error, out_error_size,
-                  "failed appending source ir label");
-        goto fail;
-      }
-    } else if (stmt->kind == ASM_SOURCE_STMT_EVEN) {
-      if (stmt->section_index >= source->section_count) {
-        m68k_platform_set_error(out_error, out_error_size,
-                  "source ir align section index is out of range");
-        goto fail;
-      }
-      m68k_ir_statement_init(&statement);
-      statement.kind = M68K_STATEMENT_ALIGN;
-      statement.offset = stmt->offset;
-      statement.u.alignment = 2U;
-      if (m68k_ir_section_append_statement(&sections[stmt->section_index],
-                                           &statement) != 0) {
-        m68k_platform_set_error(out_error, out_error_size,
-                  "failed appending source ir alignment");
-        goto fail;
-      }
-    } else if (stmt->kind == ASM_SOURCE_STMT_INSTRUCTION) {
-      if (stmt->section_index >= source->section_count) {
-        m68k_platform_set_error(out_error, out_error_size,
-                  "source ir instruction section index is out of range");
-        goto fail;
-      }
-      if (!append_instruction_ir_statement_direct( &sections[stmt->section_index], stmt->offset, &stmt->u.instruction.parsed_ir)) {
-        m68k_platform_set_error(out_error, out_error_size,
-                  "failed appending source ir instruction");
-        goto fail;
-      }
-    } else if (stmt->kind == ASM_SOURCE_STMT_DATA) {
-      if (stmt->section_index >= source->section_count) {
-        m68k_platform_set_error(out_error, out_error_size,
-                  "source ir data section index is out of range");
-        goto fail;
-      }
-      if (!append_data_ir_statement(source, stmt, expr_lookup_symbol,
-                                    expr_lookup_user_data,
-                                    &sections[stmt->section_index])) {
-        m68k_platform_set_error(out_error, out_error_size, "failed appending source ir data");
-        goto fail;
+      if (stmt->kind == ASM_SOURCE_STMT_END ||
+          stmt->kind == ASM_SOURCE_STMT_SECTION)
+        continue;
+      if (stmt->kind == ASM_SOURCE_STMT_LABEL) {
+        m68k_ir_statement_init(&statement);
+        statement.kind = M68K_STATEMENT_LABEL;
+        statement.offset = stmt->offset;
+        statement.label_name = (char *)stmt->u.label.name;
+        statement.label_is_generated = 0U;
+        if (m68k_ir_section_append_statement(&section, &statement) != 0) {
+          m68k_platform_set_error(out_error, out_error_size,
+                    "failed appending source ir label");
+          m68k_ir_section_destroy(&section);
+          goto fail;
+        }
+      } else if (stmt->kind == ASM_SOURCE_STMT_EVEN) {
+        m68k_ir_statement_init(&statement);
+        statement.kind = M68K_STATEMENT_ALIGN;
+        statement.offset = stmt->offset;
+        statement.u.alignment = 2U;
+        if (m68k_ir_section_append_statement(&section, &statement) != 0) {
+          m68k_platform_set_error(out_error, out_error_size,
+                    "failed appending source ir alignment");
+          m68k_ir_section_destroy(&section);
+          goto fail;
+        }
+      } else if (stmt->kind == ASM_SOURCE_STMT_INSTRUCTION) {
+        if (!append_instruction_ir_statement_direct(&section, stmt->offset, &stmt->u.instruction.parsed_ir)) {
+          m68k_platform_set_error(out_error, out_error_size,
+                    "failed appending source ir instruction");
+          m68k_ir_section_destroy(&section);
+          goto fail;
+        }
+      } else if (stmt->kind == ASM_SOURCE_STMT_DATA) {
+        if (!append_data_ir_statement(source, stmt, expr_lookup_symbol,
+                                      expr_lookup_user_data, &section)) {
+          m68k_platform_set_error(out_error, out_error_size, "failed appending source ir data");
+          m68k_ir_section_destroy(&section);
+          goto fail;
+        }
       }
     }
-  }
-  for (section_index = 0; section_index < source->section_count;
-       ++section_index) {
-    if (m68k_ir_source_file_append_section(out_source_file,
-                                           &sections[section_index]) != 0) {
+    if (m68k_ir_source_file_append_section(out_source_file, &section) != 0) {
       m68k_platform_set_error(out_error, out_error_size,
                 "failed appending source ir section");
+      m68k_ir_section_destroy(&section);
       goto fail;
     }
-    m68k_ir_section_free(&sections[section_index]);
+    m68k_ir_section_destroy(&section);
   }
-  free(sections);
   m68k_platform_set_error(out_error, out_error_size, "");
   return 1;
 
 fail:
-  for (section_index = 0;
-       sections != NULL && section_index < source->section_count;
-       ++section_index) {
-    m68k_ir_section_free(&sections[section_index]);
-  }
-  free(sections);
-  m68k_ir_source_file_free(out_source_file);
+  m68k_ir_source_file_destroy(out_source_file);
   if (out_error == NULL || out_error[0] == '\0')
     m68k_platform_set_error(out_error, out_error_size, "failed building source ir");
   return 0;

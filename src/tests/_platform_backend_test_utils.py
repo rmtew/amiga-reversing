@@ -449,7 +449,7 @@ def _ensure_platform_backend_harness() -> Path:
         "@echo off\n"
         'call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat" >nul || exit /b %errorlevel%\n'
         "cl /nologo /W4 /WX /std:c11 /D_CRT_SECURE_NO_WARNINGS "
-        f'/I "{SRC_DIR}" "{HARNESS_SOURCE}" "{SRC_DIR / "m68k_object.c"}" '
+        f'/I "{SRC_DIR}" "{HARNESS_SOURCE}" "{SRC_DIR / "m68k_object.c"}" "{SRC_DIR / "util_arena.c"}" '
         f'"{SRC_DIR / "platform_amiga_hunk.c"}" "{SRC_DIR / "platform_atari_st.c"}" '
         f'"{SRC_DIR / "platform_common.c"}" "{SRC_DIR / "platform_binary_io.c"}" '
         f'"{SRC_DIR / "generated" / "amiga_hunk_file_runtime.c"}" "{SRC_DIR / "generated" / "atari_st_prg_file_runtime.c"}" '
@@ -463,6 +463,7 @@ def _ensure_platform_backend_harness() -> Path:
             for path in (
                 HARNESS_SOURCE,
                 SRC_DIR / "m68k_object.c",
+                SRC_DIR / "util_arena.c",
                 SRC_DIR / "platform_amiga_hunk.c",
                 SRC_DIR / "platform_atari_st.c",
                 SRC_DIR / "platform_common.c",

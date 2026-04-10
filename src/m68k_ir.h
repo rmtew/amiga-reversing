@@ -3,6 +3,7 @@
 
 #include "m68k_asm_tables.h"
 #include "m68k_object.h"
+#include "util_arena.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -119,6 +120,8 @@ typedef struct M68kSectionIR {
   M68kStatementIR *statements;
   size_t statement_count;
   size_t statement_capacity;
+  Arena *arena;
+  uint8_t owns_arena;
 } M68kSectionIR;
 
 typedef struct M68kSourceFileIR {
@@ -128,6 +131,7 @@ typedef struct M68kSourceFileIR {
   M68kSectionIR *sections;
   size_t section_count;
   size_t section_capacity;
+  Arena *arena;
 } M68kSourceFileIR;
 
 typedef enum M68kCodeCertainty {
@@ -167,6 +171,12 @@ typedef enum M68kViolationKind {
   M68K_VIOLATION_UNRESOLVED_INDIRECT = 4
 } M68kViolationKind;
 
+typedef enum GeneratedLabelKind {
+  GENERATED_LABEL_LOC = 0,
+  GENERATED_LABEL_SUB = 1,
+  GENERATED_LABEL_DAT = 2
+} GeneratedLabelKind;
+
 typedef struct M68kViolationIR {
   uint32_t offset;
   uint8_t kind;
@@ -181,7 +191,7 @@ typedef struct M68kSectionAnalysisIR {
   uint8_t *certain_code_start;
   uint8_t *certain_code_byte;
   size_t certain_code_size;
-  uint8_t *generated_label_kinds;
+  GeneratedLabelKind *generated_label_kinds;
   uint8_t *generated_label_flags;
   size_t generated_label_size;
   char **word_exprs;
@@ -200,6 +210,8 @@ typedef struct M68kSectionAnalysisIR {
   M68kViolationIR *violations;
   size_t violation_count;
   size_t violation_capacity;
+  Arena *arena;
+  uint8_t owns_arena;
 } M68kSectionAnalysisIR;
 
 typedef struct M68kSourceAnalysisIR {
@@ -209,6 +221,7 @@ typedef struct M68kSourceAnalysisIR {
   M68kSectionAnalysisIR *sections;
   size_t section_count;
   size_t section_capacity;
+  Arena *arena;
 } M68kSourceAnalysisIR;
 
 void m68k_ir_symbol_ref_init(M68kSymbolRefIR *symbol_ref);
@@ -221,17 +234,21 @@ void m68k_ir_instruction_init(M68kInstructionIR *instruction);
 void m68k_ir_data_item_init(M68kDataItemIR *item);
 void m68k_ir_statement_init(M68kStatementIR *statement);
 void m68k_ir_statement_free(M68kStatementIR *statement);
-void m68k_ir_section_init(M68kSectionIR *section);
-void m68k_ir_section_free(M68kSectionIR *section);
+int m68k_ir_section_create(M68kSectionIR *section);
+/* Arena-backed setters never reclaim replaced storage until m68k_ir_section_destroy(). */
+int m68k_ir_section_set_name(M68kSectionIR *section, const char *name);
+void m68k_ir_section_destroy(M68kSectionIR *section);
 int m68k_ir_section_append_statement(M68kSectionIR *section, const M68kStatementIR *statement);
-void m68k_ir_source_file_init(M68kSourceFileIR *source_file);
-void m68k_ir_source_file_free(M68kSourceFileIR *source_file);
+int m68k_ir_source_file_create(M68kSourceFileIR *source_file);
+void m68k_ir_source_file_destroy(M68kSourceFileIR *source_file);
 int m68k_ir_source_file_append_section(M68kSourceFileIR *source_file, const M68kSectionIR *section);
-void m68k_ir_section_analysis_init(M68kSectionAnalysisIR *section_analysis);
-void m68k_ir_section_analysis_free(M68kSectionAnalysisIR *section_analysis);
+int m68k_ir_section_analysis_create(M68kSectionAnalysisIR *section_analysis);
+/* Arena-backed setters never reclaim replaced storage until m68k_ir_section_analysis_destroy(). */
+int m68k_ir_section_analysis_set_name(M68kSectionAnalysisIR *section_analysis, const char *name);
+void m68k_ir_section_analysis_destroy(M68kSectionAnalysisIR *section_analysis);
 int m68k_ir_section_analysis_set_code_map(M68kSectionAnalysisIR *section_analysis, const uint8_t *code_start,
   const uint8_t *code_byte, size_t size);
-int m68k_ir_section_analysis_set_generated_labels(M68kSectionAnalysisIR *section_analysis, const uint8_t *label_kinds,
+int m68k_ir_section_analysis_set_generated_labels(M68kSectionAnalysisIR *section_analysis, const GeneratedLabelKind *label_kinds,
   const uint8_t *label_flags, size_t size);
 int m68k_ir_section_analysis_set_word_exprs(M68kSectionAnalysisIR *section_analysis, char *const *word_exprs, size_t count);
 int m68k_ir_section_analysis_set_long_exprs(M68kSectionAnalysisIR *section_analysis, char *const *long_exprs, size_t count);
@@ -239,8 +256,8 @@ int m68k_ir_section_analysis_add_label(M68kSectionAnalysisIR *section_analysis, 
 int m68k_ir_section_analysis_append_block(M68kSectionAnalysisIR *section_analysis, const M68kCfgBlockIR *block);
 int m68k_ir_section_analysis_append_edge(M68kSectionAnalysisIR *section_analysis, const M68kCfgEdgeIR *edge);
 int m68k_ir_section_analysis_add_violation(M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind, const char *message);
-void m68k_ir_source_analysis_init(M68kSourceAnalysisIR *source_analysis);
-void m68k_ir_source_analysis_free(M68kSourceAnalysisIR *source_analysis);
+int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);
+void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis);
 
 #endif

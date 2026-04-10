@@ -85,29 +85,19 @@ static int writer_bstr(Writer *writer, const char *text) {
     size_t length = strlen(text);
     uint32_t longs = (uint32_t)((length + 3U) / 4U);
     size_t padded = (size_t)longs * 4U;
+    static const unsigned char zeros[4] = {0U, 0U, 0U, 0U};
     if (m68k_writer_u32be(writer, longs) != 0) return -1;
-    if (m68k_writer_reserve(writer, padded) != 0) return -1;
-    if (length != 0U) {
-        memcpy(writer->data + writer->size, text, length);
-    }
-    if (padded > length) {
-        memset(writer->data + writer->size + length, 0, padded - length);
-    }
-    writer->size += padded;
+    if (length != 0U && m68k_writer_bytes(writer, (const unsigned char *)text, length) != 0) return -1;
+    if (padded > length && m68k_writer_bytes(writer, zeros, padded - length) != 0) return -1;
     return 0;
 }
 
 static int writer_padded_name(Writer *writer, const char *text) {
     size_t length = strlen(text);
     size_t padded = ((length + 3U) / 4U) * 4U;
-    if (m68k_writer_reserve(writer, padded) != 0) return -1;
-    if (length != 0U) {
-        memcpy(writer->data + writer->size, text, length);
-    }
-    if (padded > length) {
-        memset(writer->data + writer->size + length, 0, padded - length);
-    }
-    writer->size += padded;
+    static const unsigned char zeros[4] = {0U, 0U, 0U, 0U};
+    if (length != 0U && m68k_writer_bytes(writer, (const unsigned char *)text, length) != 0) return -1;
+    if (padded > length && m68k_writer_bytes(writer, zeros, padded - length) != 0) return -1;
     return 0;
 }
 
@@ -246,23 +236,13 @@ static int amiga_hunk_read_buffer(const unsigned char *data, size_t size, M68kOb
 static int amiga_hunk_read_file(const char *path, M68kObject *out_object, char *error_buf, size_t error_buf_size);
 static int amiga_hunk_write_file(const char *path, const M68kObject *object, char *error_buf, size_t error_buf_size);
 
-static void free_amiga_hunk_platform_data(void *data) {
-    AmigaHunkPlatformData *platform_data = (AmigaHunkPlatformData *)data;
-    if (platform_data == NULL) return;
-    free(platform_data->unit_name);
-    free(platform_data->header_size_words);
-    free(platform_data->header_mem_attrs);
-    free(platform_data->section_empty_reloc_masks);
-    free(platform_data);
-}
-
 static int ensure_amiga_hunk_platform_data(M68kObject *object, AmigaHunkPlatformData **out_data) {
     AmigaHunkPlatformData *platform_data = (AmigaHunkPlatformData *)object->platform_data;
     if (platform_data == NULL) {
-        platform_data = (AmigaHunkPlatformData *)calloc(1, sizeof(*platform_data));
+        platform_data = (AmigaHunkPlatformData *)m68k_object_alloc(object, sizeof(*platform_data));
         if (platform_data == NULL) return -1;
+        memset(platform_data, 0, sizeof(*platform_data));
         object->platform_data = platform_data;
-        object->platform_data_free = free_amiga_hunk_platform_data;
     }
     *out_data = platform_data;
     return 0;
@@ -399,8 +379,6 @@ static int parse_debug_block(Reader *reader, M68kObject *object, size_t section_
         return -1;
     }
     object->sections[section_index].debug_size = longs * 4U;
-    free(object->sections[section_index].debug_data);
-    object->sections[section_index].debug_data = NULL;
     if (object->sections[section_index].debug_size != 0U) {
         debug_data = (uint8_t *)malloc(object->sections[section_index].debug_size);
         if (debug_data == NULL) {
@@ -413,7 +391,12 @@ static int parse_debug_block(Reader *reader, M68kObject *object, size_t section_
         m68k_platform_set_error(error_buf, error_buf_size, "Unexpected EOF in HUNK_DEBUG payload");
         return -1;
     }
-    object->sections[section_index].debug_data = debug_data;
+    if (m68k_object_set_section_debug_data(object, section_index, debug_data, object->sections[section_index].debug_size) != 0) {
+        free(debug_data);
+        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory storing HUNK_DEBUG payload");
+        return -1;
+    }
+    free(debug_data);
     return 0;
 }
 
@@ -718,12 +701,13 @@ static int parse_hunk_executable(Reader *reader, M68kObject *object, char *error
         m68k_platform_set_error(error_buf, error_buf_size, "Out of memory allocating hunk table");
         goto fail;
     }
-    free(platform_data->section_empty_reloc_masks);
-    platform_data->section_empty_reloc_masks = (uint32_t *)calloc(count, sizeof(*platform_data->section_empty_reloc_masks));
+    platform_data->section_empty_reloc_masks = (uint32_t *)m68k_object_alloc(object,
+        count * sizeof(*platform_data->section_empty_reloc_masks));
     if (platform_data->section_empty_reloc_masks == NULL) {
         m68k_platform_set_error(error_buf, error_buf_size, "Out of memory allocating hunk metadata");
         goto fail;
     }
+    memset(platform_data->section_empty_reloc_masks, 0, count * sizeof(*platform_data->section_empty_reloc_masks));
     for (i = 0; i < count; ++i) {
         if (m68k_reader_read_u32be(reader, &value) != 0) {
             m68k_platform_set_error(error_buf, error_buf_size, "Unexpected EOF in hunk size table");
@@ -747,15 +731,15 @@ static int parse_hunk_executable(Reader *reader, M68kObject *object, char *error
             goto fail;
         }
     }
-    free(platform_data->header_size_words);
-    free(platform_data->header_mem_attrs);
     platform_data->header_count = count;
     platform_data->header_first_hunk = first_hunk;
     platform_data->header_last_hunk = last_hunk;
-    platform_data->header_size_words = header_size_words;
-    platform_data->header_mem_attrs = mem_attrs;
-    header_size_words = NULL;
-    mem_attrs = NULL;
+    platform_data->header_size_words = (uint32_t *)m68k_object_memdup(object, header_size_words, count * sizeof(*header_size_words));
+    platform_data->header_mem_attrs = (uint32_t *)m68k_object_memdup(object, mem_attrs, count * sizeof(*mem_attrs));
+    if (platform_data->header_size_words == NULL || platform_data->header_mem_attrs == NULL) {
+        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory storing hunk metadata");
+        goto fail;
+    }
     free(alloc_sizes);
     free(mem_attrs);
     free(header_size_words);
@@ -1150,8 +1134,8 @@ static int validate_writable_object(const M68kObject *object, char *error_buf, s
 static int amiga_hunk_write_file(const char *path, const M68kObject *object, char *error_buf, size_t error_buf_size) {
     Writer writer;
     FILE *fp = NULL;
+    unsigned char *writer_data = NULL;
     size_t i;
-    memset(&writer, 0, sizeof(writer));
 
     if (object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE
         && object->platform_file_kind != M68K_PLATFORM_FILE_OBJECT) {
@@ -1159,6 +1143,10 @@ static int amiga_hunk_write_file(const char *path, const M68kObject *object, cha
         return -1;
     }
     if (validate_writable_object(object, error_buf, error_buf_size) != 0) return -1;
+    if (m68k_writer_create(&writer) != 0) {
+        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory writing Amiga hunk file");
+        return -1;
+    }
 
     if (object->platform_file_kind == M68K_PLATFORM_FILE_EXECUTABLE) {
         const AmigaHunkPlatformData *platform_data = (const AmigaHunkPlatformData *)object->platform_data;
@@ -1222,22 +1210,31 @@ static int amiga_hunk_write_file(const char *path, const M68kObject *object, cha
 
     fp = fopen(path, "wb");
     if (fp == NULL) {
-        free(writer.data);
+        m68k_writer_destroy(&writer);
         m68k_platform_set_error(error_buf, error_buf_size, "Failed opening output file");
         return -1;
     }
-    if (writer.size != 0U && fwrite(writer.data, 1, writer.size, fp) != writer.size) {
+    writer_data = m68k_writer_build(&writer);
+    if (writer.size != 0U && writer_data == NULL) {
         fclose(fp);
-        free(writer.data);
+        m68k_writer_destroy(&writer);
+        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory writing Amiga hunk file");
+        return -1;
+    }
+    if (writer.size != 0U && fwrite(writer_data, 1, writer.size, fp) != writer.size) {
+        fclose(fp);
+        free(writer_data);
+        m68k_writer_destroy(&writer);
         m68k_platform_set_error(error_buf, error_buf_size, "Failed writing output file");
         return -1;
     }
     fclose(fp);
-    free(writer.data);
+    free(writer_data);
+        m68k_writer_destroy(&writer);
     return 0;
 
 oom:
-    free(writer.data);
+    m68k_writer_destroy(&writer);
     m68k_platform_set_error(error_buf, error_buf_size, "Out of memory writing Amiga hunk file");
     return -1;
 }

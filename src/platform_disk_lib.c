@@ -11,6 +11,7 @@
 static int inspect_amiga_disk_json(const AmigaDiskAnalysis *analysis, char **out_json) {
     JsonBuilder builder = {0};
     size_t i;
+    if (json_builder_create(&builder) != 0) goto fail;
     if (json_builder_append(&builder, "{\"platform\":\"amiga-disk\",\"format_kind\":") != 0) goto fail;
     if (json_builder_append_json_string(&builder, amiga_disk_format_kind_name(analysis->format_kind)) != 0) goto fail;
     if (json_builder_appendf(&builder, ",\"root_block\":%u,\"is_dos\":%u,\"dos_flags\":%u,\"entry_count\":%zu,\"entries\":[",
@@ -38,17 +39,20 @@ static int inspect_amiga_disk_json(const AmigaDiskAnalysis *analysis, char **out
         if (json_builder_append(&builder, "]}") != 0) goto fail;
     }
     if (json_builder_append(&builder, "]}") != 0) goto fail;
-    *out_json = builder.data;
+    *out_json = json_builder_build(&builder);
+    if (*out_json == NULL) goto fail;
+    json_builder_destroy(&builder);
     return 0;
 
 fail:
-    json_builder_free(&builder);
+    json_builder_destroy(&builder);
     return -1;
 }
 
 static int inspect_atari_st_disk_json(const AtariStDiskAnalysis *analysis, char **out_json) {
     JsonBuilder builder = {0};
     size_t i;
+    if (json_builder_create(&builder) != 0) goto fail;
     if (json_builder_append(&builder,
             "{\"platform\":\"atari-st-disk\",\"bytes_per_sector\":") != 0) {
         goto fail;
@@ -81,11 +85,13 @@ static int inspect_atari_st_disk_json(const AtariStDiskAnalysis *analysis, char 
         if (json_builder_append(&builder, "]}") != 0) goto fail;
     }
     if (json_builder_append(&builder, "]}") != 0) goto fail;
-    *out_json = builder.data;
+    *out_json = json_builder_build(&builder);
+    if (*out_json == NULL) goto fail;
+    json_builder_destroy(&builder);
     return 0;
 
 fail:
-    json_builder_free(&builder);
+    json_builder_destroy(&builder);
     return -1;
 }
 
@@ -93,19 +99,18 @@ static int amiga_disk_inspect(const char *path, const unsigned char *data, size_
     char **out_json, char *error_buf, size_t error_buf_size) {
     AmigaDiskAnalysis analysis;
     char error[256];
-    amiga_disk_analysis_init(&analysis);
     if ((path != NULL ? amiga_disk_analyze_image(path, &analysis, error, sizeof(error))
                       : amiga_disk_analyze_buffer(data, size, &analysis, error, sizeof(error))) != 0) {
         m68k_platform_set_error(error_buf, error_buf_size, error);
-        amiga_disk_analysis_free(&analysis);
+        amiga_disk_analysis_destroy(&analysis);
         return -1;
     }
     if (inspect_amiga_disk_json(&analysis, out_json) != 0) {
         m68k_platform_set_error(error_buf, error_buf_size, "failed building inspect json");
-        amiga_disk_analysis_free(&analysis);
+        amiga_disk_analysis_destroy(&analysis);
         return -1;
     }
-    amiga_disk_analysis_free(&analysis);
+    amiga_disk_analysis_destroy(&analysis);
     return 0;
 }
 
@@ -113,19 +118,18 @@ static int atari_st_disk_inspect(const char *path, const unsigned char *data, si
     char **out_json, char *error_buf, size_t error_buf_size) {
     AtariStDiskAnalysis analysis;
     char error[256];
-    atari_st_disk_analysis_init(&analysis);
     if ((path != NULL ? atari_st_disk_analyze_image(path, &analysis, error, sizeof(error))
                       : atari_st_disk_analyze_buffer(data, size, &analysis, error, sizeof(error))) != 0) {
         m68k_platform_set_error(error_buf, error_buf_size, error);
-        atari_st_disk_analysis_free(&analysis);
+        atari_st_disk_analysis_destroy(&analysis);
         return -1;
     }
     if (inspect_atari_st_disk_json(&analysis, out_json) != 0) {
         m68k_platform_set_error(error_buf, error_buf_size, "failed building inspect json");
-        atari_st_disk_analysis_free(&analysis);
+        atari_st_disk_analysis_destroy(&analysis);
         return -1;
     }
-    atari_st_disk_analysis_free(&analysis);
+    atari_st_disk_analysis_destroy(&analysis);
     return 0;
 }
 
