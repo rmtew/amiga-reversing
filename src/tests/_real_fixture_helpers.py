@@ -5,6 +5,8 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 
+from src.tests._build_helpers import prepare_test_exe
+
 ROOT = Path(__file__).resolve().parents[2]
 BUILD_DIR = ROOT / "src" / "build"
 FILE_EXE = BUILD_DIR / "platform_file_cli.exe"
@@ -13,7 +15,7 @@ FILE_EXE = BUILD_DIR / "platform_file_cli.exe"
 @lru_cache(maxsize=None)
 def analyze_real_file(platform_name: str, path: str) -> dict[str, object]:
     result = subprocess.run(
-        [str(FILE_EXE), "analyze-file", platform_name, path],
+        [str(prepare_test_exe(FILE_EXE)), "analyze-file", platform_name, path],
         cwd=ROOT,
         stdin=subprocess.DEVNULL,
         capture_output=True,
@@ -28,7 +30,7 @@ def analyze_real_file(platform_name: str, path: str) -> dict[str, object]:
 @lru_cache(maxsize=None)
 def disassemble_real_file(platform_name: str, path: str) -> str:
     result = subprocess.run(
-        [str(FILE_EXE), "disassemble-file", platform_name, path],
+        [str(prepare_test_exe(FILE_EXE)), "disassemble-file", platform_name, path],
         cwd=ROOT,
         stdin=subprocess.DEVNULL,
         capture_output=True,

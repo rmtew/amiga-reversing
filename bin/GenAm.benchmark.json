@@ -1,0 +1,67 @@
+{
+  "analysis": {
+    "block_count": 3176,
+    "certain_code_bytes": 22612,
+    "certain_code_ratio": 0.348306,
+    "cpu_violation_count": 0,
+    "edge_count": 5251,
+    "generated_label_count": 1394,
+    "label_count": 2027,
+    "recovered_inline_dispatch_count": 1,
+    "recovered_platform_base_slot_count": 2,
+    "recovered_platform_call_count": 41,
+    "recovered_string_dispatch_count": 2,
+    "recovered_word_dispatch_count": 3,
+    "required_cpu": 0,
+    "violation_count": 7
+  },
+  "benchmark_version": 1,
+  "file": {
+    "bss_section_bytes": 0,
+    "code_section_bytes": 64920,
+    "data_section_bytes": 0,
+    "file_kind": "executable",
+    "section_bytes": 64920,
+    "section_count": 1
+  },
+  "path": "bin/GenAm",
+  "platform": "amiga-hunk",
+  "render": {
+    "align_statement_count": 0,
+    "data_bytes": 41682,
+    "data_statement_count": 908,
+    "generated_label_statement_count": 3318,
+    "instruction_byte_ratio": 0.357948,
+    "instruction_bytes": 23238,
+    "instruction_statement_count": 7695,
+    "label_statement_count": 3318,
+    "statement_count": 11921,
+    "symbol_ref_abs_count": 0,
+    "symbol_ref_count": 2592,
+    "symbol_ref_pc_relative_count": 0,
+    "symbol_ref_section_relative_count": 0,
+    "text_bytes": 307140,
+    "vasm_normalized_count": 0
+  },
+  "sections": [
+    {
+      "block_count": 3176,
+      "certain_code_bytes": 22612,
+      "edge_count": 5251,
+      "emitted_data_count": 908,
+      "emitted_instruction_count": 7695,
+      "emitted_label_count": 3318,
+      "kind": "code",
+      "label_count": 2027,
+      "name": "section",
+      "size": 64920,
+      "violation_count": 7
+    }
+  ],
+  "timing": {
+    "analysis_seconds": 6.525,
+    "ir_build_with_analysis_seconds": 11.02,
+    "render_seconds": 0.074,
+    "total_seconds": 17.619
+  }
+}

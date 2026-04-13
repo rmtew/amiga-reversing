@@ -72,7 +72,9 @@ static int append_signed_hex_width(char *out_text, size_t out_text_size, size_t 
 }
 
 static int append_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
-    char size_suffix) {
+    char size_suffix, uint8_t has_exact_render_value, uint32_t exact_render_value) {
+  if (has_exact_render_value != 0U)
+    return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)exact_render_value);
   if (size_suffix == 'b') value &= 0xFFU;
   else if (size_suffix == 'w') value &= 0xFFFFU;
   return append_format(out_text, out_text_size, inout_used, "#%u", (unsigned)value);
@@ -347,12 +349,18 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
       (int)operand->symbol_ref.addend);
     name = name_with_addend;
   }
+  if (operand->kind == M68K_ASM_OPERAND_IMM)
+    return append_format(out_text, out_text_size, inout_used, "#%s", name);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 4)
     return append_format(out_text, out_text_size, inout_used, "#%s", name);
-  if (operand->value.ea_mode == 7 && operand->value.ea_reg == 0)
+  if (operand->value.ea_mode == 7 && operand->value.ea_reg == 0) {
+    if (operand->symbol_ref.name_is_generated != 0U || operand->symbol_ref.has_section != 0) return -1;
     return append_format(out_text, out_text_size, inout_used, "%s.w", name);
+  }
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 1)
     return append_format(out_text, out_text_size, inout_used, "%s.l", name);
+  if (operand->value.ea_mode == 5)
+    return append_format(out_text, out_text_size, inout_used, "%s(a%u)", name, (unsigned)operand->value.ea_reg);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2)
     return append_format(out_text, out_text_size, inout_used, "%s(pc)", name);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 3) {
@@ -623,7 +631,15 @@ static int render_one_with_policy_internal(const M68kInstructionIR *instruction,
         goto overflow;
       break;
     case M68K_ASM_OPERAND_IMM:
-      if (append_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix) != 0)
+      if (operand_has_renderable_symbol_name(operand, policy)) {
+        if (append_symbolic_ea_text(out_text, out_text_size, &used, operand) != 0)
+          goto overflow;
+      } else if (instruction != NULL && _stricmp(instruction->mnemonic, "moveq") == 0) {
+        if (append_format(out_text, out_text_size, &used, "#%d",
+              (int32_t)m68k_sign_extend32(operand->value.value, 8U)) != 0)
+          goto overflow;
+      } else if (append_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix,
+            operand->has_exact_render_value, operand->exact_render_value) != 0)
         goto overflow;
       break;
     case M68K_ASM_OPERAND_LABEL:

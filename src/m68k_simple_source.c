@@ -82,22 +82,6 @@ static int estimate_instruction_size(const InstructionSpec *instruction, size_t 
     *out_size = m68k_instruction_spec_assemble_bytes(instruction, bytes, MAX_CASE_BYTES);
     return 1;
 }
-
-static size_t pc_relative_ea_base_offset(const M68kAsmFormDef *form,
-    const InstructionSpec *instruction, size_t operand_index) {
-    size_t base_offset = 2U;
-    size_t index;
-    if (form != NULL) {
-        base_offset += (size_t)form->bound_word_count * 2U;
-    }
-    if (instruction == NULL) return base_offset;
-    for (index = 0; index <= operand_index && index < instruction->operand_count; ++index) {
-        base_offset += m68k_asm_operand_extension_word_count(form, &instruction->operands[index],
-            instruction->size_suffix) * 2U;
-    }
-    return base_offset;
-}
-
 static int resolve_instruction_labels(InstructionSpec *instruction, size_t instruction_offset,
     const LabelDef *labels, size_t label_count) {
     size_t operand_index;
@@ -114,7 +98,8 @@ static int resolve_instruction_labels(InstructionSpec *instruction, size_t instr
         if (operand->kind == M68K_ASM_OPERAND_EA &&
             ((operand->ea_mode == 7 && operand->ea_reg == 2) || (operand->ea_mode == 7 && operand->ea_reg == 3))) {
             operand->value = (uint32_t)(target_offset - (instruction_offset +
-                pc_relative_ea_base_offset(form, instruction, operand_index)));
+                m68k_asm_operand_relative_base_offset(form, instruction->operands,
+                    instruction->operand_count, instruction->size_suffix, operand_index, 0)));
         } else {
             operand->value = (uint32_t)(target_offset - (instruction_offset + 2U));
         }

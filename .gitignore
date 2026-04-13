@@ -23,6 +23,8 @@ src/build
 # External resources (copyrighted / user-supplied, see RESOURCES.md)
 bin/*
 !bin/.gitkeep
+!bin/*.s
+!bin/*benchmark.json
 resources/*
 !resources/.gitkeep
 

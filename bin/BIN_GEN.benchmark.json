@@ -1,0 +1,80 @@
+{
+  "analysis": {
+    "block_count": 2634,
+    "certain_code_bytes": 19722,
+    "certain_code_ratio": 0.284302,
+    "cpu_violation_count": 0,
+    "edge_count": 4317,
+    "generated_label_count": 1223,
+    "label_count": 1721,
+    "recovered_inline_dispatch_count": 1,
+    "recovered_platform_base_slot_count": 0,
+    "recovered_platform_call_count": 31,
+    "recovered_string_dispatch_count": 2,
+    "recovered_word_dispatch_count": 3,
+    "required_cpu": 0,
+    "violation_count": 12
+  },
+  "benchmark_version": 1,
+  "file": {
+    "bss_section_bytes": 0,
+    "code_section_bytes": 69370,
+    "data_section_bytes": 0,
+    "file_kind": "executable",
+    "section_bytes": 69370,
+    "section_count": 2
+  },
+  "path": "bin/BIN_GEN.TTP",
+  "platform": "atari-st",
+  "render": {
+    "align_statement_count": 0,
+    "data_bytes": 49124,
+    "data_statement_count": 1115,
+    "generated_label_statement_count": 2793,
+    "instruction_byte_ratio": 0.291855,
+    "instruction_bytes": 20246,
+    "instruction_statement_count": 6635,
+    "label_statement_count": 2793,
+    "statement_count": 10543,
+    "symbol_ref_abs_count": 0,
+    "symbol_ref_count": 2141,
+    "symbol_ref_pc_relative_count": 0,
+    "symbol_ref_section_relative_count": 0,
+    "text_bytes": 305692,
+    "vasm_normalized_count": 0
+  },
+  "sections": [
+    {
+      "block_count": 2634,
+      "certain_code_bytes": 19722,
+      "edge_count": 4317,
+      "emitted_data_count": 1115,
+      "emitted_instruction_count": 6635,
+      "emitted_label_count": 2793,
+      "kind": "code",
+      "label_count": 1721,
+      "name": "TEXT",
+      "size": 69370,
+      "violation_count": 12
+    },
+    {
+      "block_count": 0,
+      "certain_code_bytes": 0,
+      "edge_count": 0,
+      "emitted_data_count": 0,
+      "emitted_instruction_count": 0,
+      "emitted_label_count": 0,
+      "kind": "data",
+      "label_count": 0,
+      "name": "DATA",
+      "size": 0,
+      "violation_count": 0
+    }
+  ],
+  "timing": {
+    "analysis_seconds": 5.834,
+    "ir_build_with_analysis_seconds": 9.173,
+    "render_seconds": 0.048,
+    "total_seconds": 15.056
+  }
+}

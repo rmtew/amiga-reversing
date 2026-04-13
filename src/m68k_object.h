@@ -13,6 +13,12 @@ typedef enum M68kPlatformFileKind {
   M68K_PLATFORM_FILE_OBJECT = 2
 } M68kPlatformFileKind;
 
+typedef enum M68kPlatformBackendKind {
+  M68K_PLATFORM_BACKEND_UNKNOWN = 0,
+  M68K_PLATFORM_BACKEND_AMIGA_HUNK = 1,
+  M68K_PLATFORM_BACKEND_ATARI_ST = 2
+} M68kPlatformBackendKind;
+
 typedef enum M68kSectionKind {
   M68K_SECTION_CODE = 1,
   M68K_SECTION_DATA = 2,
@@ -72,6 +78,7 @@ typedef struct M68kFixup {
 } M68kFixup;
 
 typedef struct M68kObject {
+  M68kPlatformBackendKind platform_backend_kind;
   M68kPlatformFileKind platform_file_kind;
   M68kSection *sections;
   size_t section_count;

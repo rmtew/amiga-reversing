@@ -128,6 +128,9 @@ void m68k_normalize_pc_current_expr_in_place(char *text) {
         src = cursor;
         continue;
       }
+      (void)has_digits;
+      (void)sign;
+      (void)value;
     }
     buffer[dst++] = text[src++];
   }

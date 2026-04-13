@@ -39,6 +39,9 @@ static int test_normalize_pc_current_expr(void) {
   strcpy(text, "*-6(pc)");
   m68k_normalize_pc_current_expr_in_place(text);
   M68K_C_ASSERT_STR("-8(pc)", text);
+  strcpy(text, "*-6");
+  m68k_normalize_pc_current_expr_in_place(text);
+  M68K_C_ASSERT_STR("*-6", text);
   return 0;
 }
 

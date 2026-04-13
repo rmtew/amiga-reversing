@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BUILD_DIR = ROOT / "src" / "build"
 TEST_DLL_DIR = BUILD_DIR / "test_dll" / str(os.getpid())
+TEST_EXE_DIR = BUILD_DIR / "test_exe" / str(os.getpid())
 REQUIRED_OUTPUTS = (
     BUILD_DIR / "m68k_assembler_app.exe",
     BUILD_DIR / "m68k_assembler_lib.dll",
@@ -36,4 +37,17 @@ def prepare_test_dll(source_path: Path) -> Path:
     shutil.copy2(source_path, copied_path)
     if not copied_path.exists():
         raise AssertionError(f"Failed to copy DLL: {copied_path}")
+    return copied_path
+
+
+@lru_cache(maxsize=None)
+def prepare_test_exe(source_path: Path) -> Path:
+    require_built_tools()
+    if not source_path.exists():
+        raise AssertionError(f"Missing EXE source: {source_path}")
+    TEST_EXE_DIR.mkdir(parents=True, exist_ok=True)
+    copied_path = TEST_EXE_DIR / source_path.name
+    shutil.copy2(source_path, copied_path)
+    if not copied_path.exists():
+        raise AssertionError(f"Failed to copy EXE: {copied_path}")
     return copied_path

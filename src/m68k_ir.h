@@ -64,7 +64,9 @@ typedef struct M68kSymbolRefIR {
 
 typedef struct M68kOperandIR {
   uint8_t kind;
+  uint8_t has_exact_render_value;
   M68kAsmOperandValue value;
+  uint32_t exact_render_value;
   M68kSymbolRefIR symbol_ref;
 } M68kOperandIR;
 
@@ -183,6 +185,67 @@ typedef struct M68kViolationIR {
   char *message;
 } M68kViolationIR;
 
+typedef struct M68kRecoveredWordDispatchIR {
+  uint8_t pattern;
+  uint8_t relative_to_slot;
+  uint8_t preserve_zero_slots;
+  uint32_t table_base;
+  uint32_t base_target;
+  uint32_t scanned_bytes;
+  size_t slot_count;
+  int16_t *entry_words;
+  uint32_t *targets;
+  uint8_t *target_valid;
+} M68kRecoveredWordDispatchIR;
+
+typedef struct M68kRecoveredInlineDispatchIR {
+  uint32_t table_base;
+  uint32_t scanned_bytes;
+  size_t entry_count;
+  uint32_t *entry_offsets;
+  uint32_t *targets;
+} M68kRecoveredInlineDispatchIR;
+
+typedef struct M68kRecoveredStringDispatchIR {
+  uint32_t table_base;
+  uint32_t table_end;
+  uint32_t dispatch_site;
+  uint32_t decoder_entry;
+  size_t entry_count;
+  uint32_t *entry_offsets;
+  uint32_t *offset_offsets;
+  uint32_t *targets;
+} M68kRecoveredStringDispatchIR;
+
+typedef struct M68kRecoveredPlatformBaseSlotIR {
+  int16_t displacement;
+  char *base_name;
+} M68kRecoveredPlatformBaseSlotIR;
+
+typedef enum M68kPlatformCallNoteKind {
+  M68K_PLATFORM_CALL_NOTE_NONE = 0,
+  M68K_PLATFORM_CALL_NOTE_INDEXED_VECTOR = 1,
+  M68K_PLATFORM_CALL_NOTE_CALLBACK_FIELD = 2,
+  M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL = 3,
+  M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL = 4,
+  M68K_PLATFORM_CALL_NOTE_STACK_CLEANUP = 5
+} M68kPlatformCallNoteKind;
+
+typedef struct M68kRecoveredPlatformCallIR {
+  uint32_t offset;
+  uint8_t kind;
+  uint8_t note_kind;
+  uint8_t note_reg;
+  uint8_t note_stack_cleanup_known;
+  uint8_t note_return_kind;
+  int16_t note_disp;
+  int16_t note_field_disp;
+  uint16_t note_stack_cleanup_bytes;
+  char *symbol_name;
+  char *note_base_name;
+  char *note_symbol_name;
+} M68kRecoveredPlatformCallIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -210,6 +273,21 @@ typedef struct M68kSectionAnalysisIR {
   M68kViolationIR *violations;
   size_t violation_count;
   size_t violation_capacity;
+  M68kRecoveredWordDispatchIR *recovered_word_dispatches;
+  size_t recovered_word_dispatch_count;
+  size_t recovered_word_dispatch_capacity;
+  M68kRecoveredInlineDispatchIR *recovered_inline_dispatches;
+  size_t recovered_inline_dispatch_count;
+  size_t recovered_inline_dispatch_capacity;
+  M68kRecoveredStringDispatchIR *recovered_string_dispatches;
+  size_t recovered_string_dispatch_count;
+  size_t recovered_string_dispatch_capacity;
+  M68kRecoveredPlatformBaseSlotIR *recovered_platform_base_slots;
+  size_t recovered_platform_base_slot_count;
+  size_t recovered_platform_base_slot_capacity;
+  M68kRecoveredPlatformCallIR *recovered_platform_calls;
+  size_t recovered_platform_call_count;
+  size_t recovered_platform_call_capacity;
   Arena *arena;
   uint8_t owns_arena;
 } M68kSectionAnalysisIR;
@@ -256,6 +334,18 @@ int m68k_ir_section_analysis_add_label(M68kSectionAnalysisIR *section_analysis, 
 int m68k_ir_section_analysis_append_block(M68kSectionAnalysisIR *section_analysis, const M68kCfgBlockIR *block);
 int m68k_ir_section_analysis_append_edge(M68kSectionAnalysisIR *section_analysis, const M68kCfgEdgeIR *edge);
 int m68k_ir_section_analysis_add_violation(M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind, const char *message);
+int m68k_ir_section_analysis_append_recovered_word_dispatch(M68kSectionAnalysisIR *section_analysis,
+  const M68kRecoveredWordDispatchIR *dispatch);
+int m68k_ir_section_analysis_append_recovered_inline_dispatch(M68kSectionAnalysisIR *section_analysis,
+    const M68kRecoveredInlineDispatchIR *dispatch);
+int m68k_ir_section_analysis_append_recovered_string_dispatch(M68kSectionAnalysisIR *section_analysis,
+    const M68kRecoveredStringDispatchIR *dispatch);
+int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
+    int16_t displacement, const char *base_name);
+int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint8_t kind, const char *symbol_name, uint8_t note_kind, const char *note_base_name,
+    const char *note_symbol_name, uint8_t note_reg, int16_t note_disp, int16_t note_field_disp,
+    uint8_t note_stack_cleanup_known, uint16_t note_stack_cleanup_bytes, uint8_t note_return_kind);
 int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);
 void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis);

@@ -94,6 +94,53 @@ static int test_section_analysis_label_dedupes(void) {
   return 0;
 }
 
+static int test_source_analysis_append_section_copies_recovered_dispatches(void) {
+  M68kSectionAnalysisIR section;
+  M68kSourceAnalysisIR source;
+  M68kRecoveredWordDispatchIR word_dispatch;
+  M68kRecoveredInlineDispatchIR inline_dispatch;
+  int16_t word_entries[2] = {0x0010, 0x0000};
+  uint32_t word_targets[2] = {0x120u, 0x000u};
+  uint8_t word_valid[2] = {1u, 0u};
+  uint32_t inline_entries[2] = {0x200u, 0x202u};
+  uint32_t inline_targets[2] = {0x300u, 0x320u};
+
+  memset(&word_dispatch, 0, sizeof(word_dispatch));
+  memset(&inline_dispatch, 0, sizeof(inline_dispatch));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source));
+
+  word_dispatch.pattern = 1u;
+  word_dispatch.table_base = 0x100u;
+  word_dispatch.base_target = 0x110u;
+  word_dispatch.scanned_bytes = 4u;
+  word_dispatch.slot_count = 2u;
+  word_dispatch.entry_words = word_entries;
+  word_dispatch.targets = word_targets;
+  word_dispatch.target_valid = word_valid;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_word_dispatch(&section, &word_dispatch));
+
+  inline_dispatch.table_base = 0x200u;
+  inline_dispatch.scanned_bytes = 4u;
+  inline_dispatch.entry_count = 2u;
+  inline_dispatch.entry_offsets = inline_entries;
+  inline_dispatch.targets = inline_targets;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_inline_dispatch(&section, &inline_dispatch));
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source, &section));
+  M68K_C_ASSERT_INT(1, (int)source.section_count);
+  M68K_C_ASSERT_INT(1, (int)source.sections[0].recovered_word_dispatch_count);
+  M68K_C_ASSERT_INT(1, (int)source.sections[0].recovered_inline_dispatch_count);
+  M68K_C_ASSERT(source.sections[0].recovered_word_dispatches[0].entry_words != word_entries);
+  M68K_C_ASSERT(source.sections[0].recovered_inline_dispatches[0].entry_offsets != inline_entries);
+  M68K_C_ASSERT_U32(0x120u, source.sections[0].recovered_word_dispatches[0].targets[0]);
+  M68K_C_ASSERT_U32(0x320u, source.sections[0].recovered_inline_dispatches[0].targets[1]);
+
+  m68k_ir_source_analysis_destroy(&source);
+  m68k_ir_section_analysis_destroy(&section);
+  return 0;
+}
+
 static int test_section_many_interleaved_labels_and_data(void) {
   M68kSectionIR section;
   size_t index;
@@ -232,6 +279,8 @@ int m68k_c_ir_tests(void) {
     {"analysis_defaults_and_inits", test_analysis_defaults_and_inits},
     {"section_append_statement_copies_data", test_section_append_statement_copies_data},
     {"section_analysis_label_dedupes", test_section_analysis_label_dedupes},
+    {"source_analysis_append_section_copies_recovered_dispatches",
+      test_source_analysis_append_section_copies_recovered_dispatches},
     {"section_many_interleaved_labels_and_data", test_section_many_interleaved_labels_and_data},
     {"section_many_interleaved_labels_and_expr_data", test_section_many_interleaved_labels_and_expr_data},
     {"arena_mark_rewind_reuses_same_block_range", test_arena_mark_rewind_reuses_same_block_range},

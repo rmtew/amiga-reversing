@@ -818,6 +818,7 @@ static int amiga_hunk_read_buffer(const unsigned char *data, size_t size, M68kOb
     Reader reader;
     uint32_t magic = 0;
 
+    if (out_object != NULL) out_object->platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
     reader.data = data;
     reader.size = size;
     reader.pos = 0U;

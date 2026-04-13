@@ -62,12 +62,15 @@ int m68k_assemble_file_to_binary(const char *input_path, const char *output_path
 }
 
 static int assemble_platform_source_to_object(const char *input_path, const char *include_dir, uint8_t target_cpu,
-    int enable_vasm_compat_rewrites, M68kObject *out_object, char *out_error, size_t out_error_size) {
+    int enable_vasm_compat_rewrites, M68kPlatformBackendKind platform_backend_kind,
+    M68kObject *out_object, char *out_error, size_t out_error_size) {
   AsmSourceFile source;
   size_t index;
   memset(&source, 0, sizeof(source));
   snprintf(source.include_dir, sizeof(source.include_dir), "%s", include_dir);
   source.target_cpu = target_cpu;
+  source.platform_backend_kind = platform_backend_kind;
+  source.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
   source.enable_vasm_compat_rewrites = enable_vasm_compat_rewrites;
   if (!m68k_source_pipeline_parse_and_layout(&source, input_path, out_error, out_error_size)) {
     m68k_source_model_free(&source);
@@ -98,14 +101,19 @@ int m68k_assemble_platform_file_to_output(const char *backend_name, const char *
     const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites) {
   const M68kBackend *backend = NULL;
   M68kObject object;
+  M68kPlatformBackendKind platform_backend_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
   char error[256];
   backend = m68k_backend_by_name(backend_name);
   if (backend == NULL || backend->write_file == NULL) {
     fprintf(stderr, "backend unavailable: %s\n", backend_name);
     return 2;
   }
+  if (strcmp(backend_name, M68K_BACKEND_AMIGA_HUNK.name) == 0)
+    platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  else if (strcmp(backend_name, M68K_BACKEND_ATARI_ST.name) == 0)
+    platform_backend_kind = M68K_PLATFORM_BACKEND_ATARI_ST;
   if (!assemble_platform_source_to_object(input_path, include_dir, target_cpu,
-      enable_vasm_compat_rewrites, &object, error, sizeof(error))) {
+      enable_vasm_compat_rewrites, platform_backend_kind, &object, error, sizeof(error))) {
     fprintf(stderr, "%s\n", error);
     return 1;
   }

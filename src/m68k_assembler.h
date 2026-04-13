@@ -7,5 +7,7 @@
 const char *m68k_asm_resolve_register_alias(const char *name);
 size_t m68k_asm_operand_extension_word_count(const M68kAsmFormDef *form, const M68kAsmOperandValue *operand,
   char size_suffix);
+size_t m68k_asm_operand_relative_base_offset(const M68kAsmFormDef *form, const M68kAsmOperandValue *operands,
+  size_t operand_count, char size_suffix, size_t operand_index, int include_current_operand);
 
 #endif

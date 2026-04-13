@@ -1,5 +1,12 @@
 @echo off
 setlocal
+if /I "%~1"=="--lock-held" goto :shift_to_main
+if not defined AMIGA_BUILD_LOCK_HELD goto :lock_wrap
+:main
+goto :main_start
+:shift_to_main
+shift
+:main_start
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" >nul
 if errorlevel 1 exit /b %errorlevel%
 
@@ -65,6 +72,9 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\platform_file_cli.c ^
     src\platform_file_lib.c ^
     src\platform_file_core.c ^
+    src\platform_file_amiga.c ^
+    src\platform_file_atari_st.c ^
+    src\platform_file_platform.c ^
     src\platform_file_json.c ^
     src\platform_file_conversion.c ^
     src\json_builder.c ^
@@ -73,6 +83,8 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\platform_amiga_disk.c ^
     src\platform_atari_st.c ^
     src\platform_atari_st_disk.c ^
+    src\generated\amiga_os_runtime.c ^
+    src\generated\atari_st_os_runtime.c ^
     src\generated\amiga_hunk_file_runtime.c ^
     src\generated\amiga_disk_file_runtime.c ^
     src\generated\atari_st_prg_file_runtime.c ^
@@ -121,6 +133,8 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
+    %OUTDIR%\amiga_os_runtime.obj ^
+    %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
@@ -180,6 +194,8 @@ link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
+    %OUTDIR%\amiga_os_runtime.obj ^
+    %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
@@ -223,6 +239,9 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\platform_file_cli.obj ^
     %OUTDIR%\platform_file_lib.obj ^
     %OUTDIR%\platform_file_core.obj ^
+    %OUTDIR%\platform_file_amiga.obj ^
+    %OUTDIR%\platform_file_atari_st.obj ^
+    %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
     %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\json_builder.obj ^
@@ -263,12 +282,17 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
+    %OUTDIR%\amiga_os_runtime.obj ^
+    %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /DLL /OUT:%FILE_DLL% /EXPORT:platform_file_analyze_path_json ^
     %OUTDIR%\platform_file_lib.obj ^
     %OUTDIR%\platform_file_core.obj ^
+    %OUTDIR%\platform_file_amiga.obj ^
+    %OUTDIR%\platform_file_atari_st.obj ^
+    %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
     %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\json_builder.obj ^
@@ -309,6 +333,8 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% /EXPORT:platform_file_analyze_path_json ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
+    %OUTDIR%\amiga_os_runtime.obj ^
+    %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
@@ -358,3 +384,11 @@ if "%CMD%"=="disassemble-file" (
 
 echo unknown command: %CMD% 1>&2
 exit /b 2
+
+:lock_wrap
+set "PYTHON_EXE=%~dp0..\.venv\Scripts\python.exe"
+if not exist "%PYTHON_EXE%" set "PYTHON_EXE=python"
+set "AMIGA_BUILD_LOCK_SCRIPT=%~f0"
+set "AMIGA_BUILD_LOCK_ARGS=%*"
+"%PYTHON_EXE%" "%~dp0scripts\with_build_lock.py" --batch-env
+exit /b %errorlevel%

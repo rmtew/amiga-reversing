@@ -14,6 +14,8 @@ from src.tests._platform_backend_test_utils import make_synthetic_hunk_object_wi
 from src.tests._platform_backend_test_utils import make_synthetic_hunk_object_with_extra_relocs
 from src.tests._platform_backend_test_utils import make_synthetic_hunkexe
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 def _fixture_summary(path: Path) -> dict[str, object]:
     hf = parse_file(path)
@@ -59,6 +61,10 @@ def _summary_core(summary: dict[str, object]) -> dict[str, object]:
 
 
 class PlatformBackendTests(PlatformBackendTestCaseMixin, unittest.TestCase):
+    def test_amiga_hunk_backend_roundtrips_real_genam_exactly(self) -> None:
+        path = ROOT / "bin" / "GenAm"
+        self.assertEqual(self.roundtrip_buffer("amiga-hunk", path.read_bytes()), path.read_bytes())
+
     def test_amiga_hunk_backend_roundtrips_synthetic_hunkexe(self) -> None:
         sample = make_synthetic_hunkexe()
         self.assertEqual(self.roundtrip_buffer("amiga-hunk", sample), sample)
@@ -165,6 +171,10 @@ class PlatformBackendTests(PlatformBackendTestCaseMixin, unittest.TestCase):
             relocation_flag=0x1234,
         )
         self.assertEqual(self.roundtrip_buffer("atari-st", sample), sample)
+
+    def test_atari_st_backend_roundtrips_real_bin_gen_exactly(self) -> None:
+        path = ROOT / "bin" / "BIN_GEN.TTP"
+        self.assertEqual(self.roundtrip_buffer("atari-st", path.read_bytes()), path.read_bytes())
 
     def test_atari_st_backend_rejects_multiple_text_sections(self) -> None:
         result = self.run_harness("atari-duplicate-sections")

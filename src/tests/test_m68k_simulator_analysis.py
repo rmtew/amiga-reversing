@@ -10,6 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from src.tests._build_helpers import prepare_test_dll
+from src.tests._build_helpers import prepare_test_exe
 from src.tests._build_helpers import require_built_tools
 from src.tests._real_fixture_helpers import analyze_real_file
 
@@ -99,7 +100,7 @@ def _assemble_platform_hunk_source(source: str, cpu: str = "68000") -> bytes:
         source_path.write_text(source, encoding="ascii")
         result = subprocess.run(
             [
-                str(ASM_EXE),
+                str(prepare_test_exe(ASM_EXE)),
                 "assemble-platform-file",
                 "--cpu",
                 cpu,
@@ -247,7 +248,7 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
             for edge in code_section["edges"]
             if edge["source_offset"] == 12 and edge["kind"] == 3
         }
-        self.assertEqual(call_targets, {24, 26, 28})
+        self.assertEqual(call_targets, {26, 28, 30})
         unresolved = [
             violation
             for violation in code_section["violations"]

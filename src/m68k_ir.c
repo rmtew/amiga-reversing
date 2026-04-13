@@ -399,6 +399,210 @@ int m68k_ir_section_analysis_add_violation(M68kSectionAnalysisIR *section_analys
   return 0;
 }
 
+int m68k_ir_section_analysis_append_recovered_word_dispatch(M68kSectionAnalysisIR *section_analysis,
+    const M68kRecoveredWordDispatchIR *dispatch) {
+  M68kRecoveredWordDispatchIR copy;
+  size_t slot_bytes;
+  size_t index;
+  if (section_analysis == NULL || dispatch == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_word_dispatch_count; ++index) {
+    const M68kRecoveredWordDispatchIR *existing = &section_analysis->recovered_word_dispatches[index];
+    if (existing->pattern == dispatch->pattern &&
+        existing->table_base == dispatch->table_base &&
+        existing->base_target == dispatch->base_target &&
+        existing->scanned_bytes == dispatch->scanned_bytes &&
+        existing->slot_count == dispatch->slot_count)
+      return 0;
+  }
+  section_analysis->recovered_word_dispatches = (M68kRecoveredWordDispatchIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->recovered_word_dispatches, section_analysis->recovered_word_dispatch_count,
+    &section_analysis->recovered_word_dispatch_capacity, 8U, sizeof(*section_analysis->recovered_word_dispatches));
+  if (section_analysis->recovered_word_dispatches == NULL) return -1;
+  memset(&copy, 0, sizeof(copy));
+  copy.pattern = dispatch->pattern;
+  copy.relative_to_slot = dispatch->relative_to_slot;
+  copy.preserve_zero_slots = dispatch->preserve_zero_slots;
+  copy.table_base = dispatch->table_base;
+  copy.base_target = dispatch->base_target;
+  copy.scanned_bytes = dispatch->scanned_bytes;
+  copy.slot_count = dispatch->slot_count;
+  if (dispatch->slot_count != 0U) {
+    slot_bytes = dispatch->slot_count * sizeof(*dispatch->entry_words);
+    copy.entry_words = (int16_t *)arena_memdup(section_analysis->arena, dispatch->entry_words, slot_bytes);
+    copy.targets = (uint32_t *)arena_memdup(section_analysis->arena, dispatch->targets,
+      dispatch->slot_count * sizeof(*dispatch->targets));
+    copy.target_valid = (uint8_t *)arena_memdup(section_analysis->arena, dispatch->target_valid, dispatch->slot_count);
+    if (copy.entry_words == NULL || copy.targets == NULL || copy.target_valid == NULL) return -1;
+  }
+  section_analysis->recovered_word_dispatches[section_analysis->recovered_word_dispatch_count++] = copy;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_recovered_inline_dispatch(M68kSectionAnalysisIR *section_analysis,
+    const M68kRecoveredInlineDispatchIR *dispatch) {
+  M68kRecoveredInlineDispatchIR copy;
+  size_t index;
+  if (section_analysis == NULL || dispatch == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_inline_dispatch_count; ++index) {
+    const M68kRecoveredInlineDispatchIR *existing = &section_analysis->recovered_inline_dispatches[index];
+    if (existing->table_base == dispatch->table_base &&
+        existing->scanned_bytes == dispatch->scanned_bytes &&
+        existing->entry_count == dispatch->entry_count)
+      return 0;
+  }
+  section_analysis->recovered_inline_dispatches = (M68kRecoveredInlineDispatchIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->recovered_inline_dispatches, section_analysis->recovered_inline_dispatch_count,
+    &section_analysis->recovered_inline_dispatch_capacity, 8U, sizeof(*section_analysis->recovered_inline_dispatches));
+  if (section_analysis->recovered_inline_dispatches == NULL) return -1;
+  memset(&copy, 0, sizeof(copy));
+  copy.table_base = dispatch->table_base;
+  copy.scanned_bytes = dispatch->scanned_bytes;
+  copy.entry_count = dispatch->entry_count;
+  if (dispatch->entry_count != 0U) {
+    copy.entry_offsets = (uint32_t *)arena_memdup(section_analysis->arena, dispatch->entry_offsets,
+      dispatch->entry_count * sizeof(*dispatch->entry_offsets));
+    copy.targets = (uint32_t *)arena_memdup(section_analysis->arena, dispatch->targets,
+      dispatch->entry_count * sizeof(*dispatch->targets));
+    if (copy.entry_offsets == NULL || copy.targets == NULL) return -1;
+  }
+  section_analysis->recovered_inline_dispatches[section_analysis->recovered_inline_dispatch_count++] = copy;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_recovered_string_dispatch(M68kSectionAnalysisIR *section_analysis,
+    const M68kRecoveredStringDispatchIR *dispatch) {
+  M68kRecoveredStringDispatchIR copy;
+  size_t index;
+  if (section_analysis == NULL || dispatch == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_string_dispatch_count; ++index) {
+    const M68kRecoveredStringDispatchIR *existing = &section_analysis->recovered_string_dispatches[index];
+    if (existing->table_base == dispatch->table_base &&
+        existing->dispatch_site == dispatch->dispatch_site &&
+        existing->decoder_entry == dispatch->decoder_entry &&
+        existing->entry_count == dispatch->entry_count) {
+      return 0;
+    }
+  }
+  section_analysis->recovered_string_dispatches = (M68kRecoveredStringDispatchIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->recovered_string_dispatches, section_analysis->recovered_string_dispatch_count,
+    &section_analysis->recovered_string_dispatch_capacity, 4U, sizeof(*section_analysis->recovered_string_dispatches));
+  if (section_analysis->recovered_string_dispatches == NULL) return -1;
+  memset(&copy, 0, sizeof(copy));
+  copy.table_base = dispatch->table_base;
+  copy.table_end = dispatch->table_end;
+  copy.dispatch_site = dispatch->dispatch_site;
+  copy.decoder_entry = dispatch->decoder_entry;
+  copy.entry_count = dispatch->entry_count;
+  if (dispatch->entry_count != 0U) {
+    copy.entry_offsets = (uint32_t *)arena_memdup(section_analysis->arena, dispatch->entry_offsets,
+      dispatch->entry_count * sizeof(*dispatch->entry_offsets));
+    copy.offset_offsets = (uint32_t *)arena_memdup(section_analysis->arena, dispatch->offset_offsets,
+      dispatch->entry_count * sizeof(*dispatch->offset_offsets));
+    copy.targets = (uint32_t *)arena_memdup(section_analysis->arena, dispatch->targets,
+      dispatch->entry_count * sizeof(*dispatch->targets));
+    if (copy.entry_offsets == NULL || copy.offset_offsets == NULL || copy.targets == NULL) return -1;
+  }
+  section_analysis->recovered_string_dispatches[section_analysis->recovered_string_dispatch_count++] = copy;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
+    int16_t displacement, const char *base_name) {
+  size_t index;
+  char *copy_name;
+  if (section_analysis == NULL || base_name == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_platform_base_slot_count; ++index) {
+    M68kRecoveredPlatformBaseSlotIR *existing = &section_analysis->recovered_platform_base_slots[index];
+    if (existing->displacement == displacement) {
+      if (strcmp(existing->base_name, base_name) == 0) return 0;
+      return -1;
+    }
+  }
+  section_analysis->recovered_platform_base_slots = (M68kRecoveredPlatformBaseSlotIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->recovered_platform_base_slots,
+    section_analysis->recovered_platform_base_slot_count, &section_analysis->recovered_platform_base_slot_capacity,
+    8U, sizeof(*section_analysis->recovered_platform_base_slots));
+  if (section_analysis->recovered_platform_base_slots == NULL) return -1;
+  copy_name = arena_strdup(section_analysis->arena, base_name);
+  if (copy_name == NULL) return -1;
+  section_analysis->recovered_platform_base_slots[section_analysis->recovered_platform_base_slot_count].displacement =
+    displacement;
+  section_analysis->recovered_platform_base_slots[section_analysis->recovered_platform_base_slot_count].base_name =
+    copy_name;
+  section_analysis->recovered_platform_base_slot_count += 1U;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint8_t kind, const char *symbol_name, uint8_t note_kind, const char *note_base_name,
+    const char *note_symbol_name, uint8_t note_reg, int16_t note_disp, int16_t note_field_disp,
+    uint8_t note_stack_cleanup_known, uint16_t note_stack_cleanup_bytes, uint8_t note_return_kind) {
+  size_t index;
+  char *copy_name;
+  char *copy_base_name;
+  char *copy_note_symbol_name;
+  if (section_analysis == NULL) return -1;
+  if (symbol_name == NULL && note_kind == M68K_PLATFORM_CALL_NOTE_NONE) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_platform_call_count; ++index) {
+    M68kRecoveredPlatformCallIR *existing = &section_analysis->recovered_platform_calls[index];
+    if (existing->offset == offset && existing->kind == kind) {
+      if (((existing->symbol_name == NULL && symbol_name == NULL) ||
+              (existing->symbol_name != NULL && symbol_name != NULL &&
+               strcmp(existing->symbol_name, symbol_name) == 0)) &&
+            existing->note_kind == note_kind &&
+            existing->note_reg == note_reg &&
+            existing->note_stack_cleanup_known == note_stack_cleanup_known &&
+            existing->note_return_kind == note_return_kind &&
+            existing->note_disp == note_disp &&
+            existing->note_field_disp == note_field_disp &&
+            existing->note_stack_cleanup_bytes == note_stack_cleanup_bytes &&
+            ((existing->note_base_name == NULL && note_base_name == NULL) ||
+                (existing->note_base_name != NULL && note_base_name != NULL &&
+                 strcmp(existing->note_base_name, note_base_name) == 0)) &&
+          ((existing->note_symbol_name == NULL && note_symbol_name == NULL) ||
+              (existing->note_symbol_name != NULL && note_symbol_name != NULL &&
+               strcmp(existing->note_symbol_name, note_symbol_name) == 0))) return 0;
+      return -1;
+    }
+  }
+  section_analysis->recovered_platform_calls = (M68kRecoveredPlatformCallIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->recovered_platform_calls,
+    section_analysis->recovered_platform_call_count, &section_analysis->recovered_platform_call_capacity,
+    8U, sizeof(*section_analysis->recovered_platform_calls));
+  if (section_analysis->recovered_platform_calls == NULL) return -1;
+  copy_name = symbol_name != NULL ? arena_strdup(section_analysis->arena, symbol_name) : NULL;
+  if (symbol_name != NULL && copy_name == NULL) return -1;
+  copy_base_name = note_base_name != NULL ? arena_strdup(section_analysis->arena, note_base_name) : NULL;
+  if (note_base_name != NULL && copy_base_name == NULL) return -1;
+  copy_note_symbol_name = note_symbol_name != NULL ? arena_strdup(section_analysis->arena, note_symbol_name) : NULL;
+  if (note_symbol_name != NULL && copy_note_symbol_name == NULL) return -1;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].offset = offset;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].kind = kind;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_kind = note_kind;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_reg = note_reg;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_stack_cleanup_known =
+      note_stack_cleanup_known;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_return_kind =
+      note_return_kind;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_disp = note_disp;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_field_disp =
+      note_field_disp;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_stack_cleanup_bytes =
+      note_stack_cleanup_bytes;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].symbol_name = copy_name;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_base_name =
+    copy_base_name;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].note_symbol_name =
+    copy_note_symbol_name;
+  section_analysis->recovered_platform_call_count += 1U;
+  return 0;
+}
+
 void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   if (source_analysis == NULL)
@@ -448,6 +652,44 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
           section_analysis->long_expr_count) != 0) {
     m68k_ir_section_analysis_destroy(&copy);
     return -1;
+  }
+  for (index = 0; index < section_analysis->recovered_word_dispatch_count; ++index) {
+    if (m68k_ir_section_analysis_append_recovered_word_dispatch(&copy,
+          &section_analysis->recovered_word_dispatches[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->recovered_inline_dispatch_count; ++index) {
+    if (m68k_ir_section_analysis_append_recovered_inline_dispatch(&copy,
+          &section_analysis->recovered_inline_dispatches[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->recovered_string_dispatch_count; ++index) {
+    if (m68k_ir_section_analysis_append_recovered_string_dispatch(&copy,
+          &section_analysis->recovered_string_dispatches[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->recovered_platform_base_slot_count; ++index) {
+    const M68kRecoveredPlatformBaseSlotIR *slot = &section_analysis->recovered_platform_base_slots[index];
+    if (m68k_ir_section_analysis_append_recovered_platform_base_slot(&copy, slot->displacement, slot->base_name) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->recovered_platform_call_count; ++index) {
+    const M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[index];
+      if (m68k_ir_section_analysis_append_recovered_platform_call(&copy,
+          call->offset, call->kind, call->symbol_name, call->note_kind, call->note_base_name,
+          call->note_symbol_name, call->note_reg, call->note_disp, call->note_field_disp,
+          call->note_stack_cleanup_known, call->note_stack_cleanup_bytes, call->note_return_kind) != 0) {
+          m68k_ir_section_analysis_destroy(&copy);
+          return -1;
+        }
   }
   for (index = 0; index < section_analysis->label_count; ++index) {
     if (m68k_ir_section_analysis_add_label( &copy, section_analysis->label_offsets[index]) != 0) {

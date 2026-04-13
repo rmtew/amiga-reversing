@@ -347,6 +347,21 @@ size_t m68k_asm_operand_extension_word_count(const M68kAsmFormDef *form, const M
   return 0;
 }
 
+size_t m68k_asm_operand_relative_base_offset(const M68kAsmFormDef *form, const M68kAsmOperandValue *operands,
+    size_t operand_count, char size_suffix, size_t operand_index, int include_current_operand) {
+  size_t base_offset = 2U;
+  size_t index;
+  if (form != NULL) base_offset += (size_t)form->bound_word_count * 2U;
+  if (operands == NULL) return base_offset;
+  for (index = 0; index < operand_index && index < operand_count; ++index) {
+    base_offset += m68k_asm_operand_extension_word_count(form, &operands[index], size_suffix) * 2U;
+  }
+  if (include_current_operand && operand_index < operand_count) {
+    base_offset += m68k_asm_operand_extension_word_count(form, &operands[operand_index], size_suffix) * 2U;
+  }
+  return base_offset;
+}
+
 int m68k_asm_encode_opword(const M68kAsmFormDef *form, const uint16_t *field_values, size_t field_value_count,
     uint16_t *out_opword) {
   size_t patch_index;

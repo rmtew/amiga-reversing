@@ -1,6 +1,9 @@
 #include "m68k_source_ir_render.h"
+#include "generated/amiga_os_runtime.h"
+#include "generated/atari_st_os_runtime.h"
 #include "json_builder.h"
 #include "m68k_ir_codec.h"
+#include "m68k_parse_util.h"
 #include "platform_common.h"
 
 #include <stdio.h>
@@ -82,7 +85,8 @@ static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR 
 
 static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR *stmt) {
   if (stmt == NULL || stmt->comment == NULL || stmt->comment[0] == '\0') return json_builder_append(builder, "\n");
-  if (strstr(stmt->comment, "CANDIDATE:") != NULL || strncmp(stmt->comment, "NOTE:", 5) == 0)
+  if (strstr(stmt->comment, "CANDIDATE:") != NULL || strncmp(stmt->comment, "NOTE:", 5) == 0 ||
+      strncmp(stmt->comment, "KNOWN:", 6) == 0)
     return json_builder_appendf(builder, " ; %s\n", stmt->comment);
   return json_builder_appendf(builder, " ; VIOLATION: %s\n", stmt->comment);
 }
@@ -96,6 +100,72 @@ static int section_has_label_name(const M68kSectionIR *section, const char *name
     if (stmt->kind != M68K_STATEMENT_LABEL || stmt->label_name == NULL) continue;
     if (strcmp(stmt->label_name, name) == 0) return 1;
   }
+  return 0;
+}
+
+typedef struct RenderEquate {
+  char name[64];
+  int32_t value;
+} RenderEquate;
+
+static int32_t render_equate_value(const M68kStatementIR *stmt, const M68kOperandIR *operand) {
+  const AmigaOsLibraryVectorInfo *amiga_vector;
+  const AtariStOsCallInfo *atari_call;
+  if (operand != NULL && operand->symbol_ref.has_name != 0U && operand->symbol_ref.name_is_generated == 0U) {
+    atari_call = atari_st_os_find_call_by_symbol_name(operand->symbol_ref.name);
+    if (atari_call != NULL) return atari_call->opcode;
+    amiga_vector = amiga_os_find_library_vector_by_symbol_name(operand->symbol_ref.name);
+    if (amiga_vector != NULL) return amiga_vector->lvo;
+  }
+  if (stmt != NULL && operand != NULL && operand->kind == M68K_ASM_OPERAND_IMM &&
+      _stricmp(stmt->u.instruction.mnemonic, "moveq") == 0) {
+    return (int32_t)m68k_sign_extend32(operand->value.value, 8U);
+  }
+  return (int16_t)(operand != NULL ? (operand->value.value & 0xFFFFU) : 0U);
+}
+
+static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *source_file) {
+  RenderEquate equates[128];
+  size_t equate_count = 0U;
+  size_t section_index;
+  for (section_index = 0; section_index < source_file->section_count; ++section_index) {
+    const M68kSectionIR *section = &source_file->sections[section_index];
+    size_t stmt_index;
+    for (stmt_index = 0; stmt_index < section->statement_count; ++stmt_index) {
+      const M68kStatementIR *stmt = &section->statements[stmt_index];
+      size_t operand_index;
+        if (stmt->kind != M68K_STATEMENT_INSTRUCTION) continue;
+          for (operand_index = 0; operand_index < stmt->u.instruction.operand_count; ++operand_index) {
+            const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
+            size_t equate_index;
+            if (operand->symbol_ref.has_name == 0U || operand->symbol_ref.name_is_generated != 0U) continue;
+            if (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) {
+              if (operand->value.ea_mode != 5U &&
+                  !(operand->value.ea_mode == 7U && operand->value.ea_reg == 4U)) {
+                continue;
+              }
+            } else if (operand->kind != M68K_ASM_OPERAND_IMM) {
+              continue;
+            }
+        for (equate_index = 0; equate_index < equate_count; ++equate_index) {
+          if (strcmp(equates[equate_index].name, operand->symbol_ref.name) == 0) {
+            equates[equate_index].value = render_equate_value(stmt, operand);
+            break;
+          }
+        }
+        if (equate_index < equate_count) continue;
+        if (equate_count >= sizeof(equates) / sizeof(equates[0])) return -1;
+        snprintf(equates[equate_count].name, sizeof(equates[equate_count].name), "%s", operand->symbol_ref.name);
+        equates[equate_count].value = render_equate_value(stmt, operand);
+        ++equate_count;
+      }
+    }
+  }
+  for (section_index = 0; section_index < equate_count; ++section_index) {
+    if (json_builder_appendf(builder, "%s EQU %d\n", equates[section_index].name, (int)equates[section_index].value) != 0)
+      return -1;
+  }
+  if (equate_count != 0U && json_builder_append(builder, "\n") != 0) return -1;
   return 0;
 }
 
@@ -114,6 +184,7 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
     active_policy = &default_policy;
   }
   if (json_builder_create(&builder) != 0) goto oom;
+  if (append_needed_equates(&builder, source_file) != 0) goto oom;
   if (source_file->has_atari_st_program_flags != 0U &&
       json_builder_appendf(&builder, "    COMMENT HEAD=$%x\n", (unsigned)source_file->atari_st_program_flags) != 0)
     goto oom;
@@ -138,7 +209,10 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
         for (operand_index = 0; operand_index < rendered_instruction.operand_count; ++operand_index) {
           M68kOperandIR *operand = &rendered_instruction.operands[operand_index];
           if (operand->symbol_ref.has_name == 0U) continue;
-          if (!section_has_label_name(section, operand->symbol_ref.name)) operand->symbol_ref.has_name = 0U;
+          if (operand->symbol_ref.name_is_generated != 0U &&
+              !section_has_label_name(section, operand->symbol_ref.name)) {
+            operand->symbol_ref.has_name = 0U;
+          }
         }
         if (m68k_ir_render_one_at_with_policy(&rendered_instruction, stmt->offset, active_policy, text, sizeof(text), out_error,
             out_error_size) != 0) {

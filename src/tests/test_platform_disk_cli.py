@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.tests._build_helpers import prepare_test_exe
 from src.tests._build_helpers import require_built_tools
 from src.tests.test_platform_amiga_disk import _make_ffs_adf, _make_non_dos_adf, _make_non_dos_bootable_adf
 from src.tests.test_platform_atari_st_disk import _make_synthetic_st_disk_with_subdir
@@ -20,13 +21,14 @@ class PlatformDiskCliTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         require_built_tools()
+        cls.disk_exe = prepare_test_exe(EXE)
 
     def _run_cli(self, platform_name: str, filename: str, image: bytes) -> dict[str, object]:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
             path = Path(tmp) / filename
             path.write_bytes(image)
             result = subprocess.run(
-                [str(EXE), "inspect-disk", platform_name, str(path)],
+                [str(self.disk_exe), "inspect-disk", platform_name, str(path)],
                 cwd=ROOT,
                 capture_output=True,
                 text=True,

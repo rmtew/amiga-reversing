@@ -4,6 +4,7 @@
 #include "platform_common.h"
 #include "generated/atari_st_prg_file_runtime.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -214,6 +215,14 @@ static int validate_writable_fixup(const M68kFixup *fixup, size_t text_index, ui
     return -1;
 }
 
+static int atari_fixup_is_ignorable_local_encoding(const M68kFixup *fixup) {
+    if (fixup == NULL) return 0;
+    if (fixup->has_symbol) return 0;
+    if (!fixup->has_target_section) return 0;
+    if (fixup->kind == M68K_FIXUP_ABS && fixup->width == M68K_FIXUP_WIDTH_32) return 0;
+    return 1;
+}
+
 static int compare_u32(const void *lhs, const void *rhs) {
     uint32_t left = *(const uint32_t *)lhs;
     uint32_t right = *(const uint32_t *)rhs;
@@ -233,8 +242,13 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
         const M68kFixup *fixup = &object->fixups[i];
         if (fixup->section_index != text_index && fixup->section_index != data_index) continue;
         if (validate_writable_fixup(fixup, text_index, text_size, data_index, data_size, &image_offset) != 0) {
+            if (atari_fixup_is_ignorable_local_encoding(fixup)) continue;
             free(offsets);
-            m68k_platform_set_error(error_buf, error_buf_size, "Atari ST writer supports only TEXT/DATA absolute 32-bit fixups");
+            snprintf(error_buf, error_buf_size,
+                "Atari ST writer supports only TEXT/DATA absolute 32-bit fixups (section=%" PRIuPTR
+                " offset=%" PRIu32 " kind=%u width=%u has_target=%d has_symbol=%d)",
+                fixup->section_index, fixup->offset, (unsigned int)fixup->kind, (unsigned int)fixup->width,
+                fixup->has_target_section, fixup->has_symbol);
             return -1;
         }
         offsets = (uint32_t *)realloc(offsets, (offset_count + 1U) * sizeof(*offsets));
@@ -289,6 +303,7 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
     M68kSection section;
     AtariStPrgPlatformData *platform_data = NULL;
 
+    if (out_object != NULL) out_object->platform_backend_kind = M68K_PLATFORM_BACKEND_ATARI_ST;
     reader.data = data;
     reader.size = size;
     reader.pos = 0U;

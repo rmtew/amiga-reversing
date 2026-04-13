@@ -1,7 +1,14 @@
 @echo off
 setlocal
-set PYTHON_EXE=%~dp0..\.venv\Scripts\python.exe
-if not exist "%PYTHON_EXE%" set PYTHON_EXE=python
+:main_start
+set "SCRIPT_DIR=%~dp0"
+if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+pushd "%SCRIPT_DIR%\.." >nul
+set "ROOT_DIR=%CD%"
+popd >nul
+set "PYTHON_EXE=%ROOT_DIR%\.venv\Scripts\python.exe"
+set "C_TEST_EXE=%ROOT_DIR%\src\build\m68k_c_unit_tests.exe"
+if not exist "%PYTHON_EXE%" set "PYTHON_EXE=python"
 set UNIT_MODULES=^
  src.tests.test_c99_assembler_codegen ^
  src.tests.test_c99_assembler_corpus ^
@@ -15,10 +22,10 @@ set UNIT_MODULES=^
  src.tests.test_platform_atari_st_disk ^
  src.tests.test_platform_disk_lib
 if /I not "%~1"=="--no-build" (
-    call "%~dp0build.bat"
+    call "%SCRIPT_DIR%build.bat"
     if errorlevel 1 exit /b %errorlevel%
 )
-"%~dp0build\m68k_c_unit_tests.exe"
+"%C_TEST_EXE%"
 if errorlevel 1 exit /b %errorlevel%
 "%PYTHON_EXE%" -m unittest %UNIT_MODULES%
 exit /b %errorlevel%

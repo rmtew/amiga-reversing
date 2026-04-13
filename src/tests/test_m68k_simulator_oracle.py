@@ -11,6 +11,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from src.tests._build_helpers import prepare_test_dll
+from src.tests._build_helpers import prepare_test_exe
 from src.tests._build_helpers import require_built_tools
 
 import machine68k
@@ -104,7 +105,7 @@ def _disasm_library():
 
 def _assemble_line_hex(cpu: str, text: str) -> bytes:
     result = subprocess.run(
-        [str(ASM_EXE), "assemble-line", "--cpu", cpu, text],
+        [str(prepare_test_exe(ASM_EXE)), "assemble-line", "--cpu", cpu, text],
         cwd=ROOT,
         stdin=subprocess.DEVNULL,
         capture_output=True,

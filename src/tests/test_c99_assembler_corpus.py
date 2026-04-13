@@ -9,6 +9,7 @@ import unittest
 from functools import lru_cache
 from pathlib import Path
 
+from src.tests._build_helpers import prepare_test_exe
 from src.tests._build_helpers import require_built_tools
 from src.tests._build_helpers import prepare_test_dll
 
@@ -119,7 +120,7 @@ def _assembler_library():
 def _cli_path() -> Path:
     require_built_tools()
     assert CLI_EXE.exists()
-    return CLI_EXE
+    return prepare_test_exe(CLI_EXE)
 
 
 def _verify_manifest(manifest_path: Path, cpu_name: str) -> tuple[int, str]:
