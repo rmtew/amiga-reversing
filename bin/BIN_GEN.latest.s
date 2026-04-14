@@ -1,20 +1,5 @@
-GEMDOS_Cconout EQU 2
-GEMDOS_Fwrite EQU 64
-GEMDOS_Fclose EQU 62
-GEMDOS_Mshrink EQU 74
-GEMDOS_Pterm EQU 76
-GEMDOS_Super EQU 32
-GEMDOS_Cconws EQU 9
-GEMDOS_Cconrs EQU 10
-GEMDOS_Fcreate EQU 60
-XBIOS_Supexec EQU 38
-GEMDOS_Crawcin EQU 7
-XBIOS_Keytbl EQU 16
-GEMDOS_Tgetdate EQU 42
-GEMDOS_Tgettime EQU 44
-GEMDOS_Malloc EQU 72
-GEMDOS_Fseek EQU 66
-GEMDOS_Fread EQU 63
+    INCLUDE "GEMDOS.I"
+    INCLUDE "XBIOS.I"
 
     COMMENT HEAD=$7
     SECTION TEXT,code
@@ -9608,8 +9593,8 @@ loc_B87A:
     jmp (a0) ; CANDIDATE: indirect_jump index unresolved
 loc_B884:
     move.w d1,-(a7)
-    move.w #GEMDOS_Cconout,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Cconout
+    move.w #c_conout,-(a7)
+    trap #1
     addq.l #4,a7
     rts
 sub_B890:
@@ -9617,8 +9602,8 @@ sub_B890:
     move.l a0,-(a7)
     move.l d1,-(a7)
     move.w d3,-(a7)
-    move.w #GEMDOS_Fwrite,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fwrite
+    move.w #f_write,-(a7)
+    trap #1
     lea.l $000C(a7),a7
     move.l (a7)+,d1
     cmp.l d0,d1
@@ -9631,8 +9616,8 @@ loc_B8AC:
     bcc.s loc_B8BC
 loc_B8B2:
     move.w d3,-(a7)
-    move.w #GEMDOS_Fclose,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fclose
+    move.w #f_close,-(a7)
+    trap #1
     addq.l #4,a7
 loc_B8BC:
     rts
@@ -9658,8 +9643,8 @@ loc_B8D4:
     move.l d0,-(a7)
     move.l a5,-(a7)
     clr.w -(a7)
-    move.w #GEMDOS_Mshrink,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Mshrink
+    move.w #m_shrink,-(a7)
+    trap #1
     lea.l $000C(a7),a7
     tst.l d0
     bne.s loc_B918
@@ -9670,16 +9655,16 @@ loc_B90A:
     jmp (a3) ; CANDIDATE: indirect_jump index unresolved
 loc_B918:
     move.w #$FFD9,-(a7)
-    move.w #GEMDOS_Pterm,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Pterm
+    move.w #p_term,-(a7)
+    trap #1
     pea.l $0000.w
-    move.w #GEMDOS_Super,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Super
+    move.w #super,-(a7)
+    trap #1
     addq.l #6,a7
     movea.l $05A0.w,a4
     move.l d0,-(a7)
-    move.w #GEMDOS_Super,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Super
+    move.w #super,-(a7)
+    trap #1
     addq.l #6,a7
     move.l a4,d0
     beq.s loc_B952
@@ -9781,19 +9766,19 @@ loc_BA1C:
 loc_BA20:
     st.b $4EF1(a6)
     pea.l dat_BCDD(pc)
-    move.w #GEMDOS_Cconws,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Cconws
+    move.w #c_conws,-(a7)
+    trap #1
     addq.l #6,a7
     movea.l a5,a0
     lea.l $0081(a0),a0
     move.b #$4C,-(a0)
     move.l a0,-(a7)
-    move.w #GEMDOS_Cconrs,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Cconrs
+    move.w #c_conrs,-(a7)
+    trap #1
     addq.l #6,a7
     pea.l dat_BCF0(pc)
-    move.w #GEMDOS_Cconws,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Cconws
+    move.w #c_conws,-(a7)
+    trap #1
     addq.l #6,a7
     movea.l a5,a0
     lea.l $0081(a0),a0
@@ -9996,8 +9981,8 @@ dat_BBDA:
 loc_BBE4:
     clr.w -(a7)
     move.l a0,-(a7)
-    move.w #GEMDOS_Fcreate,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fcreate
+    move.w #f_create,-(a7)
+    trap #1
     addq.l #8,a7
     tst.l d0
     bmi.w loc_BBFC
@@ -10080,9 +10065,9 @@ loc_BCA0:
     bra.w loc_8F12
 sub_BCA4:
     pea.l dat_BCB2(pc)
-    move.w #XBIOS_Supexec,-(a7)
-    trap #14 ; KNOWN: direct OS call XBIOS_Supexec pop 6 return d0.l
-    addq.l #6,a7 ; KNOWN: stack cleanup for XBIOS_Supexec pop 6
+    move.w #supexec,-(a7)
+    trap #14
+    addq.l #6,a7 ; KNOWN: stack cleanup for supexec pop 6
     rts
 dat_BCB2:
     DC.B    $20,$38,$04,$ba,$4e,$75
@@ -10106,8 +10091,8 @@ sub_BD0A:
     beq.s loc_BD3C
 loc_BD10:
     pea.l dat_BCF3(pc)
-    move.w #GEMDOS_Cconws,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Cconws
+    move.w #c_conws,-(a7)
+    trap #1
     addq.l #6,a7
 loc_BD1C:
     move.l #$600FF,-(a7)
@@ -10116,8 +10101,8 @@ loc_BD1C:
     tst.w d0
     bne.s loc_BD1C
 loc_BD2A:
-    move.w #GEMDOS_Crawcin,(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Crawcin pop 2 return d0.l
+    move.w #c_rawcin,(a7)
+    trap #1
     cmp.b #$D,d0
     beq.s loc_BD3C
 loc_BD36:
@@ -10127,24 +10112,24 @@ loc_BD3C:
     move.b $026C(a6),d0
     ext.w d0
     move.w d0,-(a7)
-    move.w #GEMDOS_Pterm,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Pterm
+    move.w #p_term,-(a7)
+    trap #1
 loc_BD4A:
     moveq.l #-1,d0
     move.l d0,-(a7)
     move.l d0,-(a7)
     move.l d0,-(a7)
-    move.w #XBIOS_Keytbl,-(a7)
-    trap #14 ; KNOWN: direct OS call XBIOS_Keytbl pop 14 return d0.l
-    lea.l $000E(a7),a7 ; KNOWN: stack cleanup for XBIOS_Keytbl pop 14
+    move.w #keytbl,-(a7)
+    trap #14
+    lea.l $000E(a7),a7 ; KNOWN: stack cleanup for keytbl pop 14
     movea.l d0,a0
     movea.l $0004(a0),a0
     cmpi.b #35,$0004(a0)
     seq.b d0
     ext.w d0
     move.w d0,-(a7)
-    move.w #GEMDOS_Tgetdate,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Tgetdate
+    move.w #t_getdate,-(a7)
+    trap #1
     addq.l #2,a7
     move.w d0,d1
     andi.w #31,d1
@@ -10171,8 +10156,8 @@ loc_BD94:
 loc_BDA6:
     move.b #$20,(a3)+
     move.b #$20,(a3)+
-    move.w #GEMDOS_Tgettime,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Tgettime
+    move.w #t_gettime,-(a7)
+    trap #1
     addq.l #2,a7
     move.w d0,d1
     rol.w #5,d1
@@ -10217,8 +10202,8 @@ loc_BE0E:
 loc_BE16:
     move.l d1,-(a7)
     move.l #$FFFFFFFF,-(a7)
-    move.w #GEMDOS_Malloc,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Malloc
+    move.w #m_alloc,-(a7)
+    trap #1
     addq.w #6,a7
     move.l (a7),d1
     cmp.l d1,d0
@@ -10226,8 +10211,8 @@ loc_BE16:
 loc_BE2C:
     move.l d0,$4FB0(a6)
     move.l d0,-(a7)
-    move.w #GEMDOS_Malloc,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Malloc
+    move.w #m_alloc,-(a7)
+    trap #1
     addq.w #6,a7
     move.l (a7)+,d1
     movea.l d0,a0
@@ -10379,15 +10364,15 @@ loc_BF40:
     move.w #$2,-(a7)
     move.w d4,-(a7)
     clr.l -(a7)
-    move.w #GEMDOS_Fseek,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fseek
+    move.w #f_seek,-(a7)
+    trap #1
     lea.l $000A(a7),a7
     move.l d0,-(a7)
     clr.w -(a7)
     move.w d4,-(a7)
     clr.l -(a7)
-    move.w #GEMDOS_Fseek,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fseek
+    move.w #f_seek,-(a7)
+    trap #1
     lea.l $000A(a7),a7
     move.l (a7)+,d1
 loc_BF66:
@@ -10412,8 +10397,8 @@ sub_BF84:
     move.l a0,-(a7)
     move.l d1,-(a7)
     move.w d2,-(a7)
-    move.w #GEMDOS_Fread,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fread
+    move.w #f_read,-(a7)
+    trap #1
     lea.l $000C(a7),a7
     move.l d0,d1
     moveq.l #0,d0
@@ -10434,15 +10419,15 @@ sub_BFB2:
     move.l a0,-(a7)
     move.l d1,-(a7)
     move.w d3,-(a7)
-    move.w #GEMDOS_Fread,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fread
+    move.w #f_read,-(a7)
+    trap #1
     lea.l $000C(a7),a7
     rts
 sub_BFC4:
     clr.w -(a7)
     move.l a0,-(a7)
-    move.w #GEMDOS_Fcreate,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fcreate
+    move.w #f_create,-(a7)
+    trap #1
     addq.l #8,a7
     tst.l d0
     bmi.s loc_BFD8
@@ -10460,8 +10445,8 @@ loc_BFDE:
     move.l a0,-(a7)
     move.l d1,-(a7)
     move.w d2,-(a7)
-    move.w #GEMDOS_Fwrite,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fwrite
+    move.w #f_write,-(a7)
+    trap #1
     lea.l $000C(a7),a7
     movem.l (a7)+,d1-d2
     cmp.l d0,d1
@@ -10472,8 +10457,8 @@ sub_BFFE:
     move.w $01B6(a6),-(a7)
     move.l d2,-(a7)
 loc_C006:
-    move.w #GEMDOS_Fseek,-(a7)
-    trap #1 ; KNOWN: direct OS call GEMDOS_Fseek
+    move.w #f_seek,-(a7)
+    trap #1
     lea.l $000A(a7),a7
     rts
 sub_C012:

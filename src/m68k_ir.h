@@ -50,16 +50,27 @@ typedef enum M68kIrSymbolRefKind {
   M68K_IR_SYMBOL_REF_SECTION_REL = 3
 } M68kIrSymbolRefKind;
 
+typedef enum M68kIrSymbolProvenance {
+  M68K_IR_SYMBOL_PROVENANCE_NONE = 0,
+  M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA = 1,
+  M68K_IR_SYMBOL_PROVENANCE_PLATFORM_ATARI_ST = 2
+} M68kIrSymbolProvenance;
+
 typedef struct M68kSymbolRefIR {
   uint8_t kind;
   uint8_t has_name;
   uint8_t name_is_generated;
+  uint8_t has_symbolic_addend;
+  uint8_t name_provenance;
+  uint8_t symbolic_addend_provenance;
   size_t symbol_index;
   size_t section_index;
   int has_symbol;
   int has_section;
   int32_t addend;
+  int32_t symbolic_addend_value;
   char name[64];
+  char symbolic_addend_name[64];
 } M68kSymbolRefIR;
 
 typedef struct M68kOperandIR {
@@ -128,6 +139,7 @@ typedef struct M68kSectionIR {
 
 typedef struct M68kSourceFileIR {
   M68kPlatformFileKind file_kind;
+  uint8_t platform_backend_kind;
   uint8_t has_atari_st_program_flags;
   uint32_t atari_st_program_flags;
   M68kSectionIR *sections;
@@ -222,6 +234,57 @@ typedef struct M68kRecoveredPlatformBaseSlotIR {
   char *base_name;
 } M68kRecoveredPlatformBaseSlotIR;
 
+typedef enum M68kPlatformEffectKind {
+  M68K_PLATFORM_EFFECT_NONE = 0,
+  M68K_PLATFORM_EFFECT_SET_BASE_REG = 1,
+  M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT = 2,
+  M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG = 3,
+  M68K_PLATFORM_EFFECT_SET_TYPED_REG = 4,
+  M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT = 5
+} M68kPlatformEffectKind;
+
+typedef struct M68kPlatformNamedBaseEffectPayloadIR {
+  char *base_name;
+} M68kPlatformNamedBaseEffectPayloadIR;
+
+typedef struct M68kPlatformTypedEffectPayloadIR {
+  char *type_name;
+} M68kPlatformTypedEffectPayloadIR;
+
+typedef struct M68kPlatformCodePtrEffectPayloadIR {
+  char *field_symbol_name;
+  char *owner_type_name;
+} M68kPlatformCodePtrEffectPayloadIR;
+
+typedef struct M68kRecoveredPlatformEffectIR {
+  uint32_t offset;
+  uint8_t kind;
+  uint8_t reg_kind;
+  uint8_t reg_index;
+  int16_t displacement;
+  int16_t field_disp;
+  union {
+    M68kPlatformNamedBaseEffectPayloadIR named_base;
+    M68kPlatformTypedEffectPayloadIR typed;
+    M68kPlatformCodePtrEffectPayloadIR code_ptr;
+  } payload;
+} M68kRecoveredPlatformEffectIR;
+
+typedef struct M68kRecoveredLocalCallSummaryIR {
+  uint32_t target_offset;
+  uint8_t effect_kind;
+  uint8_t reg_kind;
+  uint8_t reg_index;
+  uint8_t success_reg_kind;
+  uint8_t success_reg_index;
+  uint8_t success_value_known;
+  int32_t success_reg_value;
+  union {
+    M68kPlatformNamedBaseEffectPayloadIR named_base;
+    M68kPlatformTypedEffectPayloadIR typed;
+  } payload;
+} M68kRecoveredLocalCallSummaryIR;
+
 typedef enum M68kPlatformCallNoteKind {
   M68K_PLATFORM_CALL_NOTE_NONE = 0,
   M68K_PLATFORM_CALL_NOTE_INDEXED_VECTOR = 1,
@@ -242,6 +305,7 @@ typedef struct M68kRecoveredPlatformCallIR {
   int16_t note_field_disp;
   uint16_t note_stack_cleanup_bytes;
   char *symbol_name;
+  /* Generic note context: library base, owner type, or similar note subject. */
   char *note_base_name;
   char *note_symbol_name;
 } M68kRecoveredPlatformCallIR;
@@ -285,6 +349,12 @@ typedef struct M68kSectionAnalysisIR {
   M68kRecoveredPlatformBaseSlotIR *recovered_platform_base_slots;
   size_t recovered_platform_base_slot_count;
   size_t recovered_platform_base_slot_capacity;
+  M68kRecoveredPlatformEffectIR *recovered_platform_effects;
+  size_t recovered_platform_effect_count;
+  size_t recovered_platform_effect_capacity;
+  M68kRecoveredLocalCallSummaryIR *recovered_local_call_summaries;
+  size_t recovered_local_call_summary_count;
+  size_t recovered_local_call_summary_capacity;
   M68kRecoveredPlatformCallIR *recovered_platform_calls;
   size_t recovered_platform_call_count;
   size_t recovered_platform_call_capacity;
@@ -342,6 +412,13 @@ int m68k_ir_section_analysis_append_recovered_string_dispatch(M68kSectionAnalysi
     const M68kRecoveredStringDispatchIR *dispatch);
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     int16_t displacement, const char *base_name);
+int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint8_t kind, uint8_t reg_kind, uint8_t reg_index, int16_t displacement, int16_t field_disp,
+    const char *base_name, const char *symbol_name, const char *type_name);
+int m68k_ir_section_analysis_append_recovered_local_call_summary(M68kSectionAnalysisIR *section_analysis,
+    uint32_t target_offset, uint8_t effect_kind, uint8_t reg_kind, uint8_t reg_index,
+    uint8_t success_reg_kind, uint8_t success_reg_index, uint8_t success_value_known, int32_t success_reg_value,
+    const char *base_name, const char *type_name);
 int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, uint8_t kind, const char *symbol_name, uint8_t note_kind, const char *note_base_name,
     const char *note_symbol_name, uint8_t note_reg, int16_t note_disp, int16_t note_field_disp,

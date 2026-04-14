@@ -51,11 +51,13 @@ class M68kAnalysisPolicy(ctypes.Structure):
 class M68kSourceFileIR(ctypes.Structure):
     _fields_ = [
         ("file_kind", ctypes.c_int),
+        ("platform_backend_kind", ctypes.c_uint8),
         ("has_atari_st_program_flags", ctypes.c_uint8),
         ("atari_st_program_flags", ctypes.c_uint32),
         ("sections", ctypes.c_void_p),
         ("section_count", ctypes.c_size_t),
         ("section_capacity", ctypes.c_size_t),
+        ("arena", ctypes.c_void_p),
     ]
 
 

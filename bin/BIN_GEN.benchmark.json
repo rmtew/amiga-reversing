@@ -10,6 +10,7 @@
     "recovered_inline_dispatch_count": 1,
     "recovered_platform_base_slot_count": 0,
     "recovered_platform_call_count": 31,
+    "recovered_platform_effect_count": 0,
     "recovered_string_dispatch_count": 2,
     "recovered_word_dispatch_count": 3,
     "required_cpu": 0,
@@ -40,7 +41,7 @@
     "symbol_ref_count": 2141,
     "symbol_ref_pc_relative_count": 0,
     "symbol_ref_section_relative_count": 0,
-    "text_bytes": 305692,
+    "text_bytes": 304124,
     "vasm_normalized_count": 0
   },
   "sections": [
@@ -72,9 +73,9 @@
     }
   ],
   "timing": {
-    "analysis_seconds": 5.834,
-    "ir_build_with_analysis_seconds": 9.173,
-    "render_seconds": 0.048,
-    "total_seconds": 15.056
+    "analysis_seconds": 4.523,
+    "ir_build_with_analysis_seconds": 5.672,
+    "render_seconds": 0.049,
+    "total_seconds": 10.244
   }
 }

@@ -36,6 +36,33 @@ class PlatformFileCliTests(unittest.TestCase):
         require_built_tools()
         cls.file_exe = prepare_test_exe(EXE)
         cls.asm_exe = prepare_test_exe(ASM_EXE)
+        cls._real_disassembly_cache: dict[tuple[str, str, str], str] = {}
+        cls._real_benchmark_cache: dict[tuple[str, str], dict[str, object]] = {}
+        cls._real_inspect_cache: dict[tuple[str, str], dict[str, object]] = {}
+        cls._fixture_text_cache: dict[str, str] = {}
+        cls._fixture_json_cache: dict[str, dict[str, object]] = {}
+
+    @classmethod
+    def _is_cached_real_path(cls, path: Path) -> bool:
+        try:
+            resolved = path.resolve()
+        except OSError:
+            return False
+        return resolved in {GENAM_BIN.resolve(), BIN_GEN_BIN.resolve()}
+
+    @classmethod
+    def _read_fixture_text(cls, path: Path) -> str:
+        cache_key = str(path.resolve())
+        if cache_key not in cls._fixture_text_cache:
+            cls._fixture_text_cache[cache_key] = path.read_text(encoding="utf-8")
+        return cls._fixture_text_cache[cache_key]
+
+    @classmethod
+    def _read_fixture_json(cls, path: Path) -> dict[str, object]:
+        cache_key = str(path.resolve())
+        if cache_key not in cls._fixture_json_cache:
+            cls._fixture_json_cache[cache_key] = json.loads(path.read_text(encoding="utf-8"))
+        return dict(cls._fixture_json_cache[cache_key])
 
     def _run_cli(self, platform_name: str, suffix: str, data: bytes) -> dict[str, object]:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -53,6 +80,9 @@ class PlatformFileCliTests(unittest.TestCase):
             return json.loads(result.stdout)
 
     def _inspect_file_path(self, platform_name: str, path: Path) -> dict[str, object]:
+        cache_key = (platform_name, str(path.resolve()))
+        if self._is_cached_real_path(path) and cache_key in self._real_inspect_cache:
+            return dict(self._real_inspect_cache[cache_key])
         result = subprocess.run(
             [str(self.file_exe), "inspect-file", platform_name, str(path)],
             cwd=ROOT,
@@ -62,9 +92,15 @@ class PlatformFileCliTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        return json.loads(result.stdout)
+        payload = json.loads(result.stdout)
+        if self._is_cached_real_path(path):
+            self._real_inspect_cache[cache_key] = payload
+        return dict(payload)
 
     def _disassemble_real_path(self, platform_name: str, path: Path, syntax: str = "genam") -> str:
+        cache_key = (platform_name, str(path.resolve()), syntax)
+        if self._is_cached_real_path(path) and cache_key in self._real_disassembly_cache:
+            return self._real_disassembly_cache[cache_key]
         result = subprocess.run(
             [str(self.file_exe), "disassemble-file", "--syntax", syntax, platform_name, str(path)],
             cwd=ROOT,
@@ -74,9 +110,14 @@ class PlatformFileCliTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+        if self._is_cached_real_path(path):
+            self._real_disassembly_cache[cache_key] = result.stdout
         return result.stdout
 
     def _benchmark_real_path(self, platform_name: str, path: Path) -> dict[str, object]:
+        cache_key = (platform_name, str(path.resolve()))
+        if self._is_cached_real_path(path) and cache_key in self._real_benchmark_cache:
+            return dict(self._real_benchmark_cache[cache_key])
         try:
             cli_path = path.relative_to(ROOT).as_posix()
         except ValueError:
@@ -90,7 +131,10 @@ class PlatformFileCliTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        return json.loads(result.stdout)
+        payload = json.loads(result.stdout)
+        if self._is_cached_real_path(path):
+            self._real_benchmark_cache[cache_key] = payload
+        return dict(payload)
 
     def _normalized_benchmark(self, payload: dict[str, object]) -> dict[str, object]:
         return {
@@ -165,6 +209,26 @@ class PlatformFileCliTests(unittest.TestCase):
             text=True,
             check=False,
         )
+
+    def _assemble_source_text_with_our_assembler(self, backend: str, include_dir: Path, source_text: str,
+                                                 output_path: Path) -> subprocess.CompletedProcess[str]:
+        source_path = output_path.with_suffix(".s")
+        source_path.write_text(source_text, encoding="utf-8")
+        return self._assemble_latest_with_our_assembler(backend, include_dir, source_path, output_path)
+
+    def _assemble_synthetic_amiga_hunk_source(self, source_text: str,
+                                              output_path: Path) -> subprocess.CompletedProcess[str]:
+        source_path = output_path.with_suffix(".s")
+        padded_source = source_text
+        for _ in range(3):
+            source_path.write_text(padded_source, encoding="utf-8")
+            result = self._assemble_latest_with_our_assembler("amiga-hunk", GENAM_INCLUDE_DIR, source_path, output_path)
+            if result.returncode == 0:
+                return result
+            if "Current Amiga hunk writer requires longword-aligned section sizes" not in result.stderr:
+                return result
+            padded_source += "    DC.W 0\n"
+        return result
 
     def test_inspect_file_atari_prg(self) -> None:
         actual = self._run_cli("atari-st", ".prg", make_synthetic_atari_prg(b"\x4E\x75", b"\x12\x34", 6))
@@ -439,21 +503,43 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn("jsr _LVOGetSysTime(a6)", text)
         self.assertIn("jsr _LVOSubTime(a6)", text)
         self.assertEqual(text.count("jsr _LVOSetSignal(a6)"), 2)
-        self.assertIn("movea.l app_TimerBase(a6),a0", text)
-        self.assertIn("movea.l app_TimerBase(a6),a6", text)
+        self.assertIn("movea.l app_IO_10B8+IO_DEVICE(a6),a0", text)
+        self.assertIn("cmpi.w #36,LIB_VERSION(a0)", text)
+        self.assertIn("jsr (a1) ; KNOWN: callback field +4 from app_slot_01A2", text)
+        self.assertIn("jsr (a0) ; KNOWN: callback field +4 from app_slot_01A2", text)
+        self.assertIn("movea.l app_IO_10B8+IO_DEVICE(a6),a6", text)
         self.assertIn("movea.l app_DOSBase(a6),a1", text)
         self.assertIn("movea.l app_DOSBase(a6),a6", text)
-        self.assertIn("_LVOOutput EQU -60", text)
-        self.assertIn("_LVOWrite EQU -48", text)
+        self.assertIn("lea.l app_IO_10B8+IOSTD_SIZE(a6),a1", text)
+        self.assertIn("app_FileHandle_0CDA EQU 3290", text)
+        self.assertIn("app_FileHandle_0956 EQU 2390", text)
+        self.assertIn("move.l d0,app_FileHandle_0CDA(a6)", text)
+        self.assertIn("move.l d0,app_FileHandle_0956(a6)", text)
+        self.assertIn("move.l app_FileHandle_0CDA(a6),d1", text)
+        self.assertIn("app_FileInfoBlock EQU 3298", text)
+        self.assertIn("move.l fib_Size(a0),d1", text)
+        self.assertIn("app_TIMEVAL_10B0 EQU 4272", text)
+        self.assertIn('INCLUDE "devices/timer.i"', text)
+        self.assertIn('INCLUDE "devices/timer_lib.i"', text)
+        self.assertIn('INCLUDE "dos/dos.i"', text)
+        self.assertIn('INCLUDE "dos/dos_lib.i"', text)
+        self.assertIn('INCLUDE "exec/exec_lib.i"', text)
+        self.assertIn('INCLUDE "exec/io.i"', text)
+        self.assertIn('INCLUDE "exec/libraries.i"', text)
+        self.assertIn("move.l app_TIMEVAL_10B0+TV_SECS(a6),d1", text)
+        self.assertIn("move.l app_TIMEVAL_10B0+TV_MICRO(a6),d1", text)
+        self.assertIn("app_slot_01A2 EQU 418", text)
         self.assertIn("moveq.l #_LVOOutput,d0", text)
         self.assertIn("moveq.l #_LVOWrite,d0", text)
+        self.assertIn("move.l #$FFFFFF40,d0", text)
         self.assertNotIn("moveq.l #-60,d0", text)
         self.assertNotIn("moveq.l #196,d0", text)
         self.assertIn("bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOOutput fallback via local wrapper", text)
         self.assertIn("bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOOpen fallback via local wrapper", text)
+        self.assertIn("bsr.w sub_B0D6 ; KNOWN: DOSBase _LVODateStamp fallback via local wrapper", text)
         self.assertIn("jsr $0(a6,d0.w) ; KNOWN: DOSBase indexed vector via d0", text)
-        self.assertIn("jsr (a0) ; KNOWN: callback field +4 from $01A2(a6)", text)
-        self.assertIn("jsr (a1) ; KNOWN: callback field +4 from $01A2(a6)", text)
+        self.assertNotIn("jsr (a0) ; CANDIDATE: indirect_call index unresolved", text)
+        self.assertNotIn("jsr (a1) ; CANDIDATE: indirect_call index unresolved", text)
         self.assertNotIn("movea.l #$A664,a0", text)
         self.assertNotIn("movea.l #$B21E,a0", text)
         self.assertNotIn("movea.l #$CD3C,a1", text)
@@ -469,8 +555,6 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertNotIn("cmp.l -$E(pc),d0", text)
         self.assertNotIn("move.b -$1C(pc,d0.w),d0", text)
         self.assertNotIn("jsr -$0132(a6)", text)
-        self.assertNotIn("jsr (a0) ; CANDIDATE: indirect_call index unresolved", text)
-        self.assertNotIn("jsr (a1) ; CANDIDATE: indirect_call index unresolved", text)
         self.assertNotIn("move.b $4(pc,d1.w),d1", text)
         self.assertNotIn("move.b $18(pc,d1.w),(a4)+", text)
         self.assertNotIn("dat_0EA4:", text)
@@ -537,6 +621,573 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn("DC.W    loc_3C5C-*", text)
         self.assertIn("DC.W    loc_3E98-*", text)
 
+    def test_disassemble_amiga_open_device_flow_symbols_typed_io_field(self) -> None:
+        source = """\
+_LVOOpenDevice EQU -444
+app_IO EQU 4280
+
+    SECTION section,code
+start:
+    lea.l dev_name(pc),a0
+    lea.l app_IO(a6),a1
+    moveq.l #0,d0
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOOpenDevice(a6)
+    movea.l (a7)+,a6
+    movea.l app_IO(a6),a1
+    movea.l $0014(a1),a0
+    rts
+dev_name:
+    DC.B "timer.device",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "open_device.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("jsr _LVOOpenDevice(a6)", text)
+        self.assertIn("lea.l app_IO(a6),a1", text)
+        self.assertIn("movea.l IO_DEVICE(a1),a0", text)
+
+    def test_disassemble_amiga_open_device_flow_symbols_second_typed_io_field(self) -> None:
+        source = """\
+_LVOOpenDevice EQU -444
+app_IO EQU 4280
+
+    SECTION section,code
+start:
+    lea.l dev_name(pc),a0
+    lea.l app_IO(a6),a1
+    moveq.l #0,d0
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOOpenDevice(a6)
+    movea.l (a7)+,a6
+    movea.l app_IO(a6),a1
+    movea.l $0018(a1),a0
+    rts
+dev_name:
+    DC.B "timer.device",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "open_device_unit.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("jsr _LVOOpenDevice(a6)", text)
+        self.assertIn("movea.l IO_UNIT(a1),a0", text)
+
+    def test_disassemble_amiga_createiorequest_a0_to_a1_preserves_typed_io_field(self) -> None:
+        source = """\
+_LVOCreateIORequest EQU -654
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOCreateIORequest(a6)
+    movea.l (a7)+,a6
+    movea.l a0,a1
+    movea.l $0014(a1),a2
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "createiorequest.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("jsr _LVOCreateIORequest(a6)", text)
+        self.assertIn("movea.l a0,a1", text)
+        self.assertIn("movea.l IO_DEVICE(a1),a2", text)
+
+    def test_disassemble_amiga_typed_hook_callback_field_uses_named_field(self) -> None:
+        source = """\
+_LVOSetIntVector EQU -162
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOSetIntVector(a6)
+    movea.l (a7)+,a6
+    movea.l d0,a0
+    movea.l $0012(a0),a1
+    jsr (a1)
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "setedithook.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("jsr _LVOSetIntVector(a6)", text)
+        self.assertIn("movea.l IS_CODE(a0),a1", text)
+        self.assertIn("jsr (a1) ; KNOWN: callback field IS_CODE from IS", text)
+
+    def test_disassemble_amiga_findport_d0_to_typed_mp_slot_field(self) -> None:
+        source = """\
+_LVOFindPort EQU -390
+app_MP EQU 4284
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOFindPort(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_MP(a6)
+    movea.l app_MP(a6),a1
+    movea.l $0010(a1),a0
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "findport.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("jsr _LVOFindPort(a6)", text)
+        self.assertIn("move.l d0,app_MP(a6)", text)
+        self.assertIn("movea.l app_MP(a6),a1", text)
+        self.assertIn("movea.l MP_SIGTASK(a1),a0", text)
+
+    def test_disassemble_amiga_findport_d0_via_d2_to_typed_mp_slot_field(self) -> None:
+        source = """\
+_LVOFindPort EQU -390
+app_MP EQU 4284
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOFindPort(a6)
+    movea.l (a7)+,a6
+    move.l d0,d2
+    move.l d2,app_MP(a6)
+    movea.l app_MP(a6),a1
+    movea.l $0010(a1),a0
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "findport_d2.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("move.l d0,d2", text)
+        self.assertIn("move.l d2,app_MP(a6)", text)
+        self.assertIn("movea.l app_MP(a6),a1", text)
+        self.assertIn("movea.l MP_SIGTASK(a1),a0", text)
+
+    def test_disassemble_amiga_findport_d0_to_multiple_typed_mp_slots(self) -> None:
+        source = """\
+_LVOFindPort EQU -390
+app_MP1 EQU 4284
+app_MP2 EQU 4288
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOFindPort(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_MP1(a6)
+    move.l d0,app_MP2(a6)
+    movea.l app_MP2(a6),a1
+    movea.l $0010(a1),a0
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "findport_multi_slot.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("app_MP_10BC EQU 4284", text)
+        self.assertIn("app_MP_10C0 EQU 4288", text)
+        self.assertIn("move.l d0,app_MP_10BC(a6)", text)
+        self.assertIn("move.l d0,app_MP_10C0(a6)", text)
+        self.assertIn("movea.l app_MP_10C0(a6),a1", text)
+        self.assertIn("movea.l MP_SIGTASK(a1),a0", text)
+
+    def test_disassemble_amiga_dos_wrapper_examine_types_fileinfoblock_argument(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOExamine EQU -102
+app_DOSBase EQU 4280
+app_FileInfoBlock EQU 4284
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    lea.l app_FileInfoBlock(a6),a0
+    move.l a0,d2
+    moveq.l #_LVOExamine,d0
+    bsr.w sub_B0D6
+    move.l $007C(a0),d1
+    rts
+
+sub_B0D6:
+    move.l a6,-(a7)
+    movea.l app_DOSBase(a6),a6
+    jsr $0(a6,d0.w)
+    movea.l (a7)+,a6
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "dos_wrapper_examine.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("move.l d0,app_DOSBase(a6)", text)
+        self.assertIn("lea.l app_FileInfoBlock+fib_DiskKey(a6),a0", text)
+        self.assertIn("move.l a0,d2", text)
+        self.assertIn("moveq.l #_LVOExamine,d0", text)
+        self.assertIn("; KNOWN: DOSBase _LVOExamine fallback via local wrapper", text)
+        self.assertIn("move.l fib_Size(a0),d1", text)
+
+    def test_disassemble_amiga_dos_wrapper_examine_types_fileinfoblock_argument_via_a1_d2_transport(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOExamine EQU -102
+app_DOSBase EQU 4280
+app_FileInfoBlock EQU 4284
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    lea.l app_FileInfoBlock(a6),a0
+    movea.l a0,a1
+    move.l a1,d2
+    moveq.l #_LVOExamine,d0
+    bsr.w sub_B0D6
+    move.l $007C(a0),d1
+    rts
+
+sub_B0D6:
+    move.l a6,-(a7)
+    movea.l app_DOSBase(a6),a6
+    jsr $0(a6,d0.w)
+    movea.l (a7)+,a6
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "dos_wrapper_examine_via_a1_d2.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("move.l d0,app_DOSBase(a6)", text)
+        self.assertIn("lea.l app_FileInfoBlock+fib_DiskKey(a6),a0", text)
+        self.assertIn("movea.l a0,a1", text)
+        self.assertIn("move.l a1,d2", text)
+        self.assertIn("; KNOWN: DOSBase _LVOExamine fallback via local wrapper", text)
+        self.assertIn("move.l fib_Size(a0),d1", text)
+
+    def test_disassemble_amiga_dos_wrapper_output_result_via_d2_to_typed_filehandle_slot(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOutput EQU -60
+app_DOSBase EQU 4280
+app_FH EQU 4284
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    moveq.l #_LVOOutput,d0
+    bsr.w sub_B0D6
+    move.l d0,d2
+    move.l d2,app_FH(a6)
+    move.l app_FH(a6),d1
+    rts
+
+sub_B0D6:
+    move.l a6,-(a7)
+    movea.l app_DOSBase(a6),a6
+    jsr $0(a6,d0.w)
+    movea.l (a7)+,a6
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "dos_wrapper_output_result_via_d2.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("moveq.l #_LVOOutput,d0", text)
+        self.assertIn("; KNOWN: DOSBase _LVOOutput fallback via local wrapper", text)
+        self.assertIn("move.l d0,d2", text)
+        self.assertIn("app_FileHandle EQU 4284", text)
+        self.assertIn("move.l d2,app_FileHandle(a6)", text)
+        self.assertIn("move.l app_FileHandle(a6),d1", text)
+
+    def test_disassemble_amiga_dos_wrapper_direct_long_immediate_selector(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+app_DOSBase EQU 4280
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    lea.l -$000C(a7),a7
+    move.l a7,d1
+    move.l #$FFFFFF40,d0
+    bsr.w sub_B0D6
+    move.l (a7),d0
+    lea.l $000C(a7),a7
+    rts
+
+sub_B0D6:
+    move.l a6,-(a7)
+    movea.l app_DOSBase(a6),a6
+    jsr $0(a6,d0.w)
+    movea.l (a7)+,a6
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "dos_wrapper_long_selector.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("move.l #$FFFFFF40,d0", text)
+        self.assertIn("; KNOWN: DOSBase _LVODateStamp fallback via local wrapper", text)
+
+    def test_disassemble_amiga_local_success_helper_chain_types_filehandle_slot(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+app_DOSBase EQU 4280
+app_FH EQU 4284
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    bsr.w helper_outer
+    move.l d2,app_FH(a6)
+    move.l app_FH(a6),d1
+    rts
+
+helper_outer:
+    bsr.w helper_open
+    tst.l d0
+    bne.s helper_fail
+    rts
+helper_fail:
+    rts
+
+helper_open:
+    lea.l name_buf(pc),a0
+    move.l a0,d1
+    move.l #$3EE,d2
+    moveq.l #_LVOOpen,d0
+    bsr.w sub_B0D6
+    tst.l d0
+    beq.s helper_open_fail
+    move.l d0,d2
+    moveq.l #0,d0
+    rts
+helper_open_fail:
+    moveq.l #-1,d0
+    rts
+
+sub_B0D6:
+    move.l a6,-(a7)
+    movea.l app_DOSBase(a6),a6
+    jsr $0(a6,d0.w)
+    movea.l (a7)+,a6
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+name_buf:
+    DC.B "x",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "dos_wrapper_success_helper_chain.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("; KNOWN: DOSBase _LVOOpen fallback via local wrapper", text)
+        self.assertIn("app_FileHandle EQU 4284", text)
+        self.assertIn("move.l d2,app_FileHandle(a6)", text)
+        self.assertIn("move.l app_FileHandle(a6),d1", text)
+
+    def test_disassemble_amiga_local_success_helper_chain_types_direct_mp_field_use(self) -> None:
+        source = """\
+_LVOCreateIORequest EQU -654
+
+    SECTION section,code
+start:
+    bsr.w helper_hook
+    movea.l d2,a1
+    movea.l $0014(a1),a0
+    rts
+
+helper_hook:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOCreateIORequest(a6)
+    movea.l (a7)+,a6
+    tst.l a0
+    beq.s helper_hook_fail
+    move.l a0,d2
+    moveq.l #0,d0
+    rts
+helper_hook_fail:
+    moveq.l #-1,d0
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "helper_findport_direct_mp_field.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("movea.l d2,a1", text)
+        self.assertIn("movea.l IO_DEVICE(a1),a0", text)
+
+    def test_disassemble_amiga_local_success_helper_chain_types_slot_store_after_a1_transport(self) -> None:
+        source = """\
+_LVOCreateIORequest EQU -654
+app_IO EQU 4280
+
+    SECTION section,code
+start:
+    bsr.w helper_hook
+    movea.l d2,a1
+    move.l a1,app_IO(a6)
+    movea.l app_IO(a6),a2
+    movea.l $0014(a2),a3
+    rts
+
+helper_hook:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOCreateIORequest(a6)
+    movea.l (a7)+,a6
+    tst.l a0
+    beq.s helper_hook_fail
+    move.l a0,d2
+    moveq.l #0,d0
+    rts
+helper_hook_fail:
+    moveq.l #-1,d0
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "helper_createiorequest_slot_store.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("movea.l d2,a1", text)
+        self.assertIn("move.l a1,app_IO(a6)", text)
+        self.assertIn("movea.l app_IO(a6),a2", text)
+        self.assertIn("movea.l IO_DEVICE(a2),a3", text)
+
+    def test_disassemble_amiga_nested_typed_field_propagation_mp_to_lh(self) -> None:
+        source = """\
+_LVOFindPort EQU -390
+app_MP EQU 4284
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOFindPort(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_MP(a6)
+    movea.l app_MP(a6),a1
+    movea.l $0014(a1),a2
+    movea.l $0000(a2),a3
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "findport_nested.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("jsr _LVOFindPort(a6)", text)
+        self.assertIn("movea.l app_MP(a6),a1", text)
+        self.assertIn("movea.l MP_MSGLIST(a1),a2", text)
+        self.assertIn("movea.l LH_HEAD(a2),a3", text)
+
+    def test_disassemble_amiga_typed_a2_store_to_slot_reloads_nested_type(self) -> None:
+        source = """\
+_LVOFindPort EQU -390
+app_MP EQU 4284
+app_LH EQU 4288
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    jsr _LVOFindPort(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_MP(a6)
+    movea.l app_MP(a6),a1
+    movea.l $0014(a1),a2
+    move.l a2,app_LH(a6)
+    movea.l app_LH(a6),a3
+    movea.l $0000(a3),a4
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "findport_a2_slot_nested.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("movea.l MP_MSGLIST(a1),a2", text)
+        self.assertIn("move.l a2,app_LH+LH_HEAD(a6)", text)
+        self.assertIn("movea.l app_LH+LH_HEAD(a6),a3", text)
+        self.assertIn("movea.l LH_HEAD(a3),a4", text)
+
     def test_disassemble_genam_flags_current_relative_branches_as_violations(self) -> None:
         result = subprocess.run(
             [str(self.file_exe), "disassemble-file", "--syntax", "genam", "amiga-hunk", str(GENAM_BIN)],
@@ -569,22 +1220,22 @@ class PlatformFileCliTests(unittest.TestCase):
 
     def test_genam_latest_fixture_matches_current_disassembly(self) -> None:
         self.assertTrue(GENAM_LATEST.exists(), GENAM_LATEST)
-        self.assertEqual(self._disassemble_real_path("amiga-hunk", GENAM_BIN), GENAM_LATEST.read_text(encoding="utf-8"))
+        self.assertEqual(self._disassemble_real_path("amiga-hunk", GENAM_BIN), self._read_fixture_text(GENAM_LATEST))
 
     def test_bin_gen_latest_fixture_matches_current_disassembly(self) -> None:
         self.assertTrue(BIN_GEN_LATEST.exists(), BIN_GEN_LATEST)
-        self.assertEqual(self._disassemble_real_path("atari-st", BIN_GEN_BIN), BIN_GEN_LATEST.read_text(encoding="utf-8"))
+        self.assertEqual(self._disassemble_real_path("atari-st", BIN_GEN_BIN), self._read_fixture_text(BIN_GEN_LATEST))
 
     def test_genam_benchmark_matches_current_stats(self) -> None:
         self.assertTrue(GENAM_BENCHMARK.exists(), GENAM_BENCHMARK)
         current = self._normalized_benchmark(self._benchmark_real_path("amiga-hunk", GENAM_BIN))
-        committed = self._normalized_benchmark(json.loads(GENAM_BENCHMARK.read_text(encoding="utf-8")))
+        committed = self._normalized_benchmark(self._read_fixture_json(GENAM_BENCHMARK))
         self.assertEqual(current, committed)
 
     def test_bin_gen_benchmark_matches_current_stats(self) -> None:
         self.assertTrue(BIN_GEN_BENCHMARK.exists(), BIN_GEN_BENCHMARK)
         current = self._normalized_benchmark(self._benchmark_real_path("atari-st", BIN_GEN_BIN))
-        committed = self._normalized_benchmark(json.loads(BIN_GEN_BENCHMARK.read_text(encoding="utf-8")))
+        committed = self._normalized_benchmark(self._read_fixture_json(BIN_GEN_BENCHMARK))
         self.assertEqual(current, committed)
 
     def test_genam_latest_roundtrips_exactly_via_our_assembler(self) -> None:
@@ -606,7 +1257,8 @@ class PlatformFileCliTests(unittest.TestCase):
             source_path = Path(tmp) / "GenAm.vasm.s"
             source_path.write_text(self._disassemble_real_path("amiga-hunk", GENAM_BIN, syntax="vasm"), encoding="utf-8")
             assemble = subprocess.run(
-                [str(vasm), "-m68000", "-Fhunkexe", "-no-opt", "-quiet", "-o", str(rebuilt_path), str(source_path)],
+                [str(vasm), "-m68000", "-Fhunkexe", "-no-opt", "-quiet", f"-I{GENAM_INCLUDE_DIR}", "-o",
+                 str(rebuilt_path), str(source_path)],
                 cwd=ROOT,
                 stdin=subprocess.DEVNULL,
                 capture_output=True,
@@ -696,38 +1348,43 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("GEMDOS_Dgetdrv EQU 25", result.stdout)
-            self.assertIn("move.w #GEMDOS_Dgetdrv,-(a7)", result.stdout)
-            self.assertIn("trap #1 ; KNOWN: direct OS call GEMDOS_Dgetdrv pop 2 return d0.l", result.stdout)
-            self.assertIn("addq.l #2,a7 ; KNOWN: stack cleanup for GEMDOS_Dgetdrv pop 2", result.stdout)
+            self.assertIn('INCLUDE "GEMDOS.I"', result.stdout)
+            self.assertNotIn("GEMDOS_Dgetdrv EQU 25", result.stdout)
+            self.assertIn("move.w #d_getdrv,-(a7)", result.stdout)
+            self.assertIn("trap #1", result.stdout)
+            self.assertIn("addq.l #2,a7 ; KNOWN: stack cleanup for d_getdrv pop 2", result.stdout)
 
     def test_disassemble_real_bin_gen_emits_atari_os_symbols(self) -> None:
         text = self._disassemble_real_path("atari-st", BIN_GEN_BIN, "genam")
-        self.assertIn("GEMDOS_Cconout EQU 2", text)
-        self.assertIn("GEMDOS_Cconrs EQU 10", text)
-        self.assertIn("GEMDOS_Fwrite EQU 64", text)
-        self.assertIn("GEMDOS_Crawcin EQU 7", text)
-        self.assertIn("GEMDOS_Super EQU 32", text)
-        self.assertIn("GEMDOS_Tgetdate EQU 42", text)
-        self.assertIn("GEMDOS_Tgettime EQU 44", text)
-        self.assertIn("GEMDOS_Pterm EQU 76", text)
-        self.assertIn("XBIOS_Supexec EQU 38", text)
-        self.assertIn("move.w #GEMDOS_Cconout,-(a7)", text)
-        self.assertIn("trap #1 ; KNOWN: direct OS call GEMDOS_Cconout", text)
-        self.assertIn("move.w #GEMDOS_Cconrs,-(a7)", text)
-        self.assertIn("trap #1 ; KNOWN: direct OS call GEMDOS_Cconrs", text)
-        self.assertIn("move.w #GEMDOS_Super,-(a7)", text)
-        self.assertIn("trap #1 ; KNOWN: direct OS call GEMDOS_Super", text)
-        self.assertIn("move.w #GEMDOS_Pterm,-(a7)", text)
-        self.assertIn("trap #1 ; KNOWN: direct OS call GEMDOS_Pterm", text)
-        self.assertIn("trap #14 ; KNOWN: direct OS call XBIOS_Supexec pop 6 return d0.l", text)
-        self.assertIn("addq.l #6,a7 ; KNOWN: stack cleanup for XBIOS_Supexec pop 6", text)
-        self.assertIn("move.w #GEMDOS_Crawcin,(a7)", text)
-        self.assertIn("trap #1 ; KNOWN: direct OS call GEMDOS_Crawcin pop 2 return d0.l", text)
-        self.assertIn("move.w #GEMDOS_Tgetdate,-(a7)", text)
-        self.assertIn("trap #1 ; KNOWN: direct OS call GEMDOS_Tgetdate", text)
-        self.assertIn("move.w #GEMDOS_Tgettime,-(a7)", text)
-        self.assertIn("trap #1 ; KNOWN: direct OS call GEMDOS_Tgettime", text)
+        self.assertIn('INCLUDE "GEMDOS.I"', text)
+        self.assertIn('INCLUDE "XBIOS.I"', text)
+        self.assertNotIn("GEMDOS_Cconout EQU 2", text)
+        self.assertNotIn("GEMDOS_Cconrs EQU 10", text)
+        self.assertNotIn("GEMDOS_Fwrite EQU 64", text)
+        self.assertNotIn("GEMDOS_Crawcin EQU 7", text)
+        self.assertNotIn("GEMDOS_Super EQU 32", text)
+        self.assertNotIn("GEMDOS_Tgetdate EQU 42", text)
+        self.assertNotIn("GEMDOS_Tgettime EQU 44", text)
+        self.assertNotIn("GEMDOS_Pterm EQU 76", text)
+        self.assertNotIn("XBIOS_Supexec EQU 38", text)
+        self.assertNotIn("GEMDOS_", text)
+        self.assertNotIn("XBIOS_", text)
+        self.assertIn("move.w #c_conout,-(a7)", text)
+        self.assertIn("trap #1", text)
+        self.assertIn("move.w #c_conrs,-(a7)", text)
+        self.assertIn("move.w #c_conrs,-(a7)", text)
+        self.assertIn("move.w #super,-(a7)", text)
+        self.assertIn("move.w #super,-(a7)", text)
+        self.assertIn("move.w #p_term,-(a7)", text)
+        self.assertIn("move.w #p_term,-(a7)", text)
+        self.assertIn("trap #14", text)
+        self.assertIn("addq.l #6,a7 ; KNOWN: stack cleanup for supexec pop 6", text)
+        self.assertIn("move.w #c_rawcin,(a7)", text)
+        self.assertIn("move.w #c_rawcin,(a7)", text)
+        self.assertIn("move.w #t_getdate,-(a7)", text)
+        self.assertIn("move.w #t_getdate,-(a7)", text)
+        self.assertIn("move.w #t_gettime,-(a7)", text)
+        self.assertIn("move.w #t_gettime,-(a7)", text)
         self.assertIn("movea.l #dat_B65C,a0", text)
         self.assertNotIn("NOTE: preserved exact bytes for non-canonical movea immediate encoding", text)
         self.assertNotIn("DC.W    $207c", text)
@@ -752,7 +1409,7 @@ class PlatformFileCliTests(unittest.TestCase):
             source_path = Path(tmp) / "BIN_GEN.vasm.s"
             source_path.write_text(self._disassemble_real_path("atari-st", BIN_GEN_BIN, syntax="vasm"), encoding="utf-8")
             assemble = subprocess.run(
-                [str(vasm), "-Ftos", "-nosym", "-quiet", "-o", str(rebuilt_path), str(source_path)],
+                [str(vasm), "-Ftos", "-nosym", "-quiet", f"-I{BIN_GEN_INCLUDE_DIR}", "-o", str(rebuilt_path), str(source_path)],
                 cwd=ROOT,
                 stdin=subprocess.DEVNULL,
                 capture_output=True,

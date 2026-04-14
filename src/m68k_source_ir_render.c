@@ -108,6 +108,151 @@ typedef struct RenderEquate {
   int32_t value;
 } RenderEquate;
 
+typedef struct RenderInclude {
+  char path[128];
+} RenderInclude;
+
+typedef int (*RenderSymbolVisitor)(const char *name, uint8_t provenance, void *context);
+
+static const char *lookup_symbol_include_path(const M68kSourceFileIR *source_file, const char *name, uint8_t provenance) {
+  if (name == NULL || name[0] == '\0') return NULL;
+  switch (provenance) {
+  case M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA:
+    return amiga_os_find_symbol_include(name);
+  case M68K_IR_SYMBOL_PROVENANCE_PLATFORM_ATARI_ST:
+    return atari_st_os_find_symbol_include(name);
+  case M68K_IR_SYMBOL_PROVENANCE_NONE:
+    if (source_file == NULL) return NULL;
+    if (source_file->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK)
+      return amiga_os_find_symbol_include(name);
+    if (source_file->platform_backend_kind == M68K_PLATFORM_BACKEND_ATARI_ST)
+      return atari_st_os_find_symbol_include(name);
+    return NULL;
+  default:
+    return NULL;
+  }
+}
+
+static int lookup_symbol_equate_value(const char *name, int32_t *out_value) {
+  const AmigaOsLibraryVectorInfo *amiga_vector;
+  const AtariStOsCallInfo *atari_call;
+  const AmigaOsStructFieldInfo *amiga_field;
+  if (name == NULL || name[0] == '\0' || out_value == NULL) return 0;
+  atari_call = atari_st_os_find_call_by_symbol_name(name);
+  if (atari_call != NULL) {
+    *out_value = atari_call->opcode;
+    return 1;
+  }
+  amiga_vector = amiga_os_find_library_vector_by_symbol_name(name);
+  if (amiga_vector != NULL) {
+    *out_value = amiga_vector->lvo;
+    return 1;
+  }
+  amiga_field = amiga_os_find_struct_field_by_symbol_name(name);
+  if (amiga_field != NULL) {
+    *out_value = amiga_field->offset;
+    return 1;
+  }
+  return 0;
+}
+
+static int visit_operand_symbol_refs(const M68kOperandIR *operand, RenderSymbolVisitor visitor, void *context) {
+  if (operand == NULL || visitor == NULL) return 0;
+  if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name_is_generated == 0U &&
+      visitor(operand->symbol_ref.name, operand->symbol_ref.name_provenance, context) != 0)
+    return -1;
+  if (operand->symbol_ref.has_symbolic_addend != 0U && operand->symbol_ref.symbolic_addend_name[0] != '\0' &&
+      visitor(operand->symbol_ref.symbolic_addend_name, operand->symbol_ref.symbolic_addend_provenance, context) != 0)
+    return -1;
+  return 0;
+}
+
+static int visit_expr_text_symbols(const char *expr_text, RenderSymbolVisitor visitor, void *context) {
+  const char *cursor = expr_text;
+  if (expr_text == NULL || visitor == NULL) return 0;
+  while (*cursor != '\0') {
+    const char *start;
+    char symbol_name[64];
+    size_t length = 0U;
+    if (!((*cursor >= 'A' && *cursor <= 'Z') || (*cursor >= 'a' && *cursor <= 'z') || *cursor == '_')) {
+      ++cursor;
+      continue;
+    }
+    start = cursor;
+    while ((*cursor >= 'A' && *cursor <= 'Z') || (*cursor >= 'a' && *cursor <= 'z') ||
+           (*cursor >= '0' && *cursor <= '9') || *cursor == '_') {
+      if (length + 1U < sizeof(symbol_name)) symbol_name[length++] = *cursor;
+      ++cursor;
+    }
+    if (length == 0U) continue;
+    symbol_name[length] = '\0';
+    if (start != expr_text) {
+      char previous = start[-1];
+      if ((previous >= 'A' && previous <= 'Z') || (previous >= 'a' && previous <= 'z') ||
+          (previous >= '0' && previous <= '9') || previous == '_')
+        continue;
+    }
+    if (visitor(symbol_name, M68K_IR_SYMBOL_PROVENANCE_NONE, context) != 0) return -1;
+  }
+  return 0;
+}
+
+static int append_or_update_render_include(RenderInclude *includes, size_t *inout_include_count,
+    size_t include_capacity, const char *path) {
+  size_t include_index;
+  if (includes == NULL || inout_include_count == NULL || path == NULL || path[0] == '\0') return -1;
+  for (include_index = 0; include_index < *inout_include_count; ++include_index) {
+    if (strcmp(includes[include_index].path, path) == 0) return 0;
+  }
+  if (*inout_include_count >= include_capacity) return -1;
+  snprintf(includes[*inout_include_count].path, sizeof(includes[*inout_include_count].path), "%s", path);
+  ++(*inout_include_count);
+  return 0;
+}
+
+typedef struct RenderIncludeCollectorContext {
+  RenderInclude *includes;
+  size_t *include_count;
+  size_t include_capacity;
+  const M68kSourceFileIR *source_file;
+} RenderIncludeCollectorContext;
+
+static int collect_needed_include_symbol(const char *name, uint8_t provenance, void *opaque) {
+  RenderIncludeCollectorContext *context = (RenderIncludeCollectorContext *)opaque;
+  const char *include_path;
+  include_path = lookup_symbol_include_path(context->source_file, name, provenance);
+  if (include_path == NULL) return 0;
+  return append_or_update_render_include(context->includes, context->include_count, context->include_capacity, include_path);
+}
+
+static int collect_needed_includes(RenderInclude *includes, size_t *out_include_count, size_t include_capacity,
+    const M68kSourceFileIR *source_file) {
+  size_t section_index;
+  RenderIncludeCollectorContext context;
+  *out_include_count = 0U;
+  context.includes = includes;
+  context.include_count = out_include_count;
+  context.include_capacity = include_capacity;
+  context.source_file = source_file;
+  for (section_index = 0; section_index < source_file->section_count; ++section_index) {
+    const M68kSectionIR *section = &source_file->sections[section_index];
+    size_t stmt_index;
+    for (stmt_index = 0; stmt_index < section->statement_count; ++stmt_index) {
+      const M68kStatementIR *stmt = &section->statements[stmt_index];
+      size_t operand_index;
+      if (stmt->kind == M68K_STATEMENT_INSTRUCTION) {
+        for (operand_index = 0; operand_index < stmt->u.instruction.operand_count; ++operand_index) {
+          if (visit_operand_symbol_refs(&stmt->u.instruction.operands[operand_index], collect_needed_include_symbol, &context) != 0)
+            return -1;
+        }
+      } else if (stmt->kind == M68K_STATEMENT_DATA) {
+        if (visit_expr_text_symbols(stmt->u.data.expr_text, collect_needed_include_symbol, &context) != 0) return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int32_t render_equate_value(const M68kStatementIR *stmt, const M68kOperandIR *operand) {
   const AmigaOsLibraryVectorInfo *amiga_vector;
   const AtariStOsCallInfo *atari_call;
@@ -124,20 +269,61 @@ static int32_t render_equate_value(const M68kStatementIR *stmt, const M68kOperan
   return (int16_t)(operand != NULL ? (operand->value.value & 0xFFFFU) : 0U);
 }
 
+static int append_or_update_render_equate(RenderEquate *equates, size_t *inout_equate_count,
+    size_t equate_capacity, const char *name, int32_t value) {
+  size_t equate_index;
+  if (equates == NULL || inout_equate_count == NULL || name == NULL || name[0] == '\0') return -1;
+  for (equate_index = 0; equate_index < *inout_equate_count; ++equate_index) {
+    if (strcmp(equates[equate_index].name, name) == 0) {
+      equates[equate_index].value = value;
+      return 0;
+    }
+  }
+  if (*inout_equate_count >= equate_capacity) return -1;
+  snprintf(equates[*inout_equate_count].name, sizeof(equates[*inout_equate_count].name), "%s", name);
+  equates[*inout_equate_count].value = value;
+  ++(*inout_equate_count);
+  return 0;
+}
+
+typedef struct RenderEquateCollectorContext {
+  RenderEquate *equates;
+  size_t *equate_count;
+  size_t equate_capacity;
+  const M68kSourceFileIR *source_file;
+} RenderEquateCollectorContext;
+
+static int collect_data_expr_equate_symbol(const char *name, uint8_t provenance, void *opaque) {
+  RenderEquateCollectorContext *context = (RenderEquateCollectorContext *)opaque;
+  int32_t value;
+  if (lookup_symbol_include_path(context->source_file, name, provenance) != NULL) return 0;
+  if (!lookup_symbol_equate_value(name, &value)) return 0;
+  return append_or_update_render_equate(context->equates, context->equate_count, context->equate_capacity, name, value);
+}
+
 static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *source_file) {
   RenderEquate equates[128];
   size_t equate_count = 0U;
   size_t section_index;
+  RenderEquateCollectorContext context;
+  context.equates = equates;
+  context.equate_count = &equate_count;
+  context.equate_capacity = sizeof(equates) / sizeof(equates[0]);
+  context.source_file = source_file;
   for (section_index = 0; section_index < source_file->section_count; ++section_index) {
     const M68kSectionIR *section = &source_file->sections[section_index];
     size_t stmt_index;
     for (stmt_index = 0; stmt_index < section->statement_count; ++stmt_index) {
       const M68kStatementIR *stmt = &section->statements[stmt_index];
       size_t operand_index;
+        if (stmt->kind == M68K_STATEMENT_DATA) {
+          if (visit_expr_text_symbols(stmt->u.data.expr_text, collect_data_expr_equate_symbol, &context) != 0) return -1;
+          continue;
+        }
         if (stmt->kind != M68K_STATEMENT_INSTRUCTION) continue;
           for (operand_index = 0; operand_index < stmt->u.instruction.operand_count; ++operand_index) {
             const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
-            size_t equate_index;
+            int32_t total_value;
             if (operand->symbol_ref.has_name == 0U || operand->symbol_ref.name_is_generated != 0U) continue;
             if (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) {
               if (operand->value.ea_mode != 5U &&
@@ -147,17 +333,32 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
             } else if (operand->kind != M68K_ASM_OPERAND_IMM) {
               continue;
             }
-        for (equate_index = 0; equate_index < equate_count; ++equate_index) {
-          if (strcmp(equates[equate_index].name, operand->symbol_ref.name) == 0) {
-            equates[equate_index].value = render_equate_value(stmt, operand);
-            break;
-          }
-        }
-        if (equate_index < equate_count) continue;
-        if (equate_count >= sizeof(equates) / sizeof(equates[0])) return -1;
-        snprintf(equates[equate_count].name, sizeof(equates[equate_count].name), "%s", operand->symbol_ref.name);
-        equates[equate_count].value = render_equate_value(stmt, operand);
-        ++equate_count;
+            total_value = render_equate_value(stmt, operand);
+            if (operand->symbol_ref.has_symbolic_addend != 0U &&
+                operand->symbol_ref.symbolic_addend_name[0] != '\0') {
+              if (lookup_symbol_include_path(source_file, operand->symbol_ref.name,
+                    operand->symbol_ref.name_provenance) == NULL) {
+                if (append_or_update_render_equate(equates, &equate_count, sizeof(equates) / sizeof(equates[0]),
+                      operand->symbol_ref.name, total_value - operand->symbol_ref.symbolic_addend_value) != 0) {
+                  return -1;
+                }
+              }
+              if (lookup_symbol_include_path(source_file, operand->symbol_ref.symbolic_addend_name,
+                    operand->symbol_ref.symbolic_addend_provenance) == NULL) {
+                if (append_or_update_render_equate(equates, &equate_count, sizeof(equates) / sizeof(equates[0]),
+                      operand->symbol_ref.symbolic_addend_name, operand->symbol_ref.symbolic_addend_value) != 0) {
+                  return -1;
+                }
+              }
+              continue;
+            }
+            if (lookup_symbol_include_path(source_file, operand->symbol_ref.name,
+                  operand->symbol_ref.name_provenance) == NULL) {
+              if (append_or_update_render_equate(equates, &equate_count, sizeof(equates) / sizeof(equates[0]),
+                    operand->symbol_ref.name, total_value) != 0) {
+                return -1;
+              }
+            }
       }
     }
   }
@@ -172,6 +373,8 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
 int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
     char **out_text, char *out_error, size_t out_error_size) {
   JsonBuilder builder = {0};
+  RenderInclude includes[32];
+  size_t include_count = 0U;
   size_t section_index;
   M68kRenderPolicy default_policy;
   const M68kRenderPolicy *active_policy = policy;
@@ -184,6 +387,11 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
     active_policy = &default_policy;
   }
   if (json_builder_create(&builder) != 0) goto oom;
+  if (collect_needed_includes(includes, &include_count, sizeof(includes) / sizeof(includes[0]), source_file) != 0) goto oom;
+  for (section_index = 0; section_index < include_count; ++section_index) {
+    if (json_builder_appendf(&builder, "    INCLUDE \"%s\"\n", includes[section_index].path) != 0) goto oom;
+  }
+  if (include_count != 0U && json_builder_append(&builder, "\n") != 0) goto oom;
   if (append_needed_equates(&builder, source_file) != 0) goto oom;
   if (source_file->has_atari_st_program_flags != 0U &&
       json_builder_appendf(&builder, "    COMMENT HEAD=$%x\n", (unsigned)source_file->atari_st_program_flags) != 0)

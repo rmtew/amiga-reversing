@@ -134,13 +134,35 @@ typedef struct BenchmarkStats {
   uint32_t section_bytes, code_section_bytes, data_section_bytes, bss_section_bytes;
   uint32_t certain_code_bytes, label_count, generated_label_count, block_count, edge_count;
   uint32_t violation_count, recovered_word_dispatch_count, recovered_inline_dispatch_count;
-  uint32_t recovered_string_dispatch_count, recovered_platform_base_slot_count;
+  uint32_t recovered_string_dispatch_count, recovered_platform_base_slot_count, recovered_platform_effect_count;
   uint32_t recovered_platform_call_count, statement_count, label_statement_count;
   uint32_t generated_label_statement_count, instruction_statement_count, data_statement_count;
   uint32_t align_statement_count, instruction_bytes, data_bytes, symbol_ref_count;
   uint32_t symbol_ref_abs_count, symbol_ref_pc_relative_count, symbol_ref_section_relative_count;
   uint32_t vasm_normalized_count;
 } BenchmarkStats;
+
+static uint32_t count_unique_platform_base_slot_effects(const M68kSectionAnalysisIR *section_analysis) {
+  uint32_t total = 0;
+  size_t index;
+  if (section_analysis == NULL) return 0;
+  for (index = 0; index < section_analysis->recovered_platform_effect_count; ++index) {
+    const M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index];
+    size_t prev_index;
+    int seen = 0;
+    if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT) continue;
+    for (prev_index = 0; prev_index < index; ++prev_index) {
+      const M68kRecoveredPlatformEffectIR *prev = &section_analysis->recovered_platform_effects[prev_index];
+      if (prev->kind != M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT) continue;
+      if (prev->displacement == effect->displacement) {
+        seen = 1;
+        break;
+      }
+    }
+    if (!seen) ++total;
+  }
+  return total;
+}
 
 static void collect_benchmark_stats(const M68kSourceAnalysisIR *source_analysis, const M68kSourceFileIR *source_file,
     const char *text, BenchmarkStats *stats) {
@@ -157,7 +179,8 @@ static void collect_benchmark_stats(const M68kSourceAnalysisIR *source_analysis,
     stats->recovered_word_dispatch_count += (uint32_t)section_analysis->recovered_word_dispatch_count;
     stats->recovered_inline_dispatch_count += (uint32_t)section_analysis->recovered_inline_dispatch_count;
     stats->recovered_string_dispatch_count += (uint32_t)section_analysis->recovered_string_dispatch_count;
-    stats->recovered_platform_base_slot_count += (uint32_t)section_analysis->recovered_platform_base_slot_count;
+    stats->recovered_platform_base_slot_count += count_unique_platform_base_slot_effects(section_analysis);
+    stats->recovered_platform_effect_count += (uint32_t)section_analysis->recovered_platform_effect_count;
     stats->recovered_platform_call_count += (uint32_t)section_analysis->recovered_platform_call_count;
     stats->generated_label_count += count_set_bytes(section_analysis->generated_label_flags, section_analysis->generated_label_size);
     switch (section_analysis->section_kind) {
@@ -267,6 +290,7 @@ static void print_benchmark_json(const char *platform_name, const char *path, co
   printf("    \"recovered_inline_dispatch_count\": %" PRIu32 ",\n", stats->recovered_inline_dispatch_count);
   printf("    \"recovered_string_dispatch_count\": %" PRIu32 ",\n", stats->recovered_string_dispatch_count);
   printf("    \"recovered_platform_base_slot_count\": %" PRIu32 ",\n", stats->recovered_platform_base_slot_count);
+  printf("    \"recovered_platform_effect_count\": %" PRIu32 ",\n", stats->recovered_platform_effect_count);
   printf("    \"recovered_platform_call_count\": %" PRIu32 "\n", stats->recovered_platform_call_count);
   printf("  },\n");
   printf("  \"render\": {\n");

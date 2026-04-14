@@ -255,6 +255,24 @@ static int process_include_line(const M68kSourceIncludeContext *context,
                                 M68kSourceIncludeState *state, char *line,
                                 char *out_error, size_t out_error_size);
 
+static void trim_trailing_line_continuation_in_place(char *line) {
+  size_t length;
+  if (line == NULL) return;
+  length = strlen(line);
+  while (length > 0U && isspace((unsigned char)line[length - 1U])) {
+    line[length - 1U] = '\0';
+    --length;
+  }
+  if (length > 0U && line[length - 1U] == '\\') {
+    line[length - 1U] = '\0';
+    --length;
+    while (length > 0U && isspace((unsigned char)line[length - 1U])) {
+      line[length - 1U] = '\0';
+      --length;
+    }
+  }
+}
+
 int m68k_source_include_process_file(const M68kSourceIncludeContext *context,
                                      M68kSourceIncludeState *state,
                                      const char *path, char *out_error,
@@ -283,6 +301,7 @@ static int process_include_line(const M68kSourceIncludeContext *context,
   char *token0 = NULL;
   char *token1 = NULL;
   m68k_strip_comment_in_place(line);
+  trim_trailing_line_continuation_in_place(line);
   rest = m68k_trim_in_place(line);
   if (*rest == '\0' || *rest == '*')
     return 1;

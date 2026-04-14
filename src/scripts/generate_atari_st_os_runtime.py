@@ -9,6 +9,8 @@ EMUTOS_DOC = ROOT / "resources" / "clone_atari_st" / "emutos" / "doc"
 OUTPUT_DIR = ROOT / "src" / "generated"
 HEADER_PATH = OUTPUT_DIR / "atari_st_os_runtime.h"
 SOURCE_PATH = OUTPUT_DIR / "atari_st_os_runtime.c"
+ATARI_ST_INCLUDE_DIR = ROOT / "ext" / "atarist_includes" / "devpac_3_10" / "include"
+ATARI_ST_INCLUDE_SOURCE_DIR = ATARI_ST_INCLUDE_DIR
 
 SOURCES = [
     (
@@ -42,6 +44,39 @@ STATUS_GEMDOS_ROW = re.compile(r"^\s*[TtX>]\s+0x([0-9A-Fa-f]+)\s+([A-Za-z_][A-Za
 
 def c_string(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def family_include_path(family_name: str) -> str:
+    if family_name == "GEMDOS":
+        return "GEMDOS.I"
+    if family_name == "BIOS":
+        return "BIOS.I"
+    if family_name == "XBIOS":
+        return "XBIOS.I"
+    raise ValueError(f"unsupported Atari ST include family: {family_name}")
+
+
+def original_include_filename(family_name: str) -> str:
+    if family_name == "GEMDOS":
+        return "GEMDOS.I"
+    if family_name == "BIOS":
+        return "BIOS.I"
+    if family_name == "XBIOS":
+        return "XBIOS.I"
+    raise ValueError(f"unsupported Atari ST original include family: {family_name}")
+
+
+def parse_original_include_entries(family_name: str) -> list[tuple[str, int]]:
+    pattern = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s+equ\s+(\$[0-9A-Fa-f]+|0x[0-9A-Fa-f]+|\d+)\s*$", re.IGNORECASE)
+    entries: list[tuple[str, int]] = []
+    path = ATARI_ST_INCLUDE_SOURCE_DIR / original_include_filename(family_name)
+    for raw_line in path.read_text(encoding="latin-1").splitlines():
+        match = pattern.match(raw_line)
+        if not match:
+            continue
+        opcode = int(match.group(2).replace("$", "0x"), 0)
+        entries.append((match.group(1), opcode))
+    return entries
 
 
 def split_csv(text: str | None) -> list[str]:
@@ -169,6 +204,7 @@ def write_header(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
         "  const char *function_name;",
         "  const char *symbol_name;",
         "  const char *source_header;",
+        "  const char *include_path;",
         "  uint8_t stack_cleanup_known;",
         "  uint16_t stack_cleanup_bytes;",
         "  uint8_t arg_count;",
@@ -179,6 +215,7 @@ def write_header(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
         "",
         "const AtariStOsCallInfo *atari_st_os_find_call(uint8_t trap_vector, uint16_t opcode);",
         "const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_name(const char *symbol_name);",
+        "const char *atari_st_os_find_symbol_include(const char *symbol_name);",
         "",
         "#endif",
         "",
@@ -187,6 +224,11 @@ def write_header(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
 
 
 def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]]) -> None:
+    original_symbol_maps = {
+        "GEMDOS": dict((opcode, symbol_name) for symbol_name, opcode in parse_original_include_entries("GEMDOS")),
+        "BIOS": dict((opcode, symbol_name) for symbol_name, opcode in parse_original_include_entries("BIOS")),
+        "XBIOS": dict((opcode, symbol_name) for symbol_name, opcode in parse_original_include_entries("XBIOS")),
+    }
     lines = [
         "/* Generated Atari ST OS runtime metadata from EmuTOS headers. Do not edit directly. */",
         '#include "generated/atari_st_os_runtime.h"',
@@ -196,9 +238,11 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
         "static const AtariStOsCallInfo g_atari_st_os_calls[] = {",
     ]
     for family_name, trap_vector, opcode, function_name, source_header, return_kind, cleanup_known, cleanup_bytes, arg_count in rows:
-        symbol_name = f"{family_name}_{function_name}"
+        original_symbol = original_symbol_maps.get(family_name, {}).get(opcode)
+        symbol_name = original_symbol if original_symbol is not None else f"{family_name}_{function_name}"
+        include_path = family_include_path(family_name) if original_symbol is not None else None
         lines.append(
-            '  { "%s", %du, %du, "%s", "%s", "%s", %du, %du, %du, %s },'
+            '  { "%s", %du, %du, "%s", "%s", "%s", %s, %du, %du, %du, %s },'
             % (
                 c_string(family_name),
                 trap_vector,
@@ -206,6 +250,7 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
                 c_string(function_name),
                 c_string(symbol_name),
                 c_string(source_header),
+                "NULL" if include_path is None else f'"{c_string(include_path)}"',
                 cleanup_known,
                 cleanup_bytes,
                 arg_count,
@@ -242,6 +287,11 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
             "    if (strcmp(symbol_name, entry->symbol_name) == 0) return entry;",
             "  }",
             "  return NULL;",
+            "}",
+            "",
+            "const char *atari_st_os_find_symbol_include(const char *symbol_name) {",
+            "  const AtariStOsCallInfo *entry = atari_st_os_find_call_by_symbol_name(symbol_name);",
+            "  return (entry != NULL && entry->include_path != NULL && entry->include_path[0] != '\\0') ? entry->include_path : NULL;",
             "}",
             "",
         ]

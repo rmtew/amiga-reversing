@@ -360,9 +360,21 @@ int platform_atari_st_annotate_instruction_symbol_refs(const SectionAnalysisCont
   }
   instruction->operands[0].symbol_ref.has_name = 1U;
   instruction->operands[0].symbol_ref.name_is_generated = 0U;
+  instruction->operands[0].symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_ATARI_ST;
   instruction->operands[0].symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
   instruction->operands[0].symbol_ref.addend = 0;
   snprintf(instruction->operands[0].symbol_ref.name, sizeof(instruction->operands[0].symbol_ref.name), "%s",
-      recovered->note_symbol_name);
+    recovered->note_symbol_name);
   return 1;
+}
+
+int platform_atari_st_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement, int treat_as_value,
+    M68kSymbolRefIR *out_symbol_ref) {
+  (void)ctx;
+  (void)section_analysis;
+  (void)displacement;
+  (void)treat_as_value;
+  if (out_symbol_ref != NULL) m68k_ir_symbol_ref_init(out_symbol_ref);
+  return 0;
 }

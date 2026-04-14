@@ -49,6 +49,7 @@ typedef struct PlatformResolvedIndirectInfo {
   int16_t note_field_disp;
   uint16_t note_stack_cleanup_bytes;
   char symbol_name[64];
+  /* Generic note context: library base, owner type, or similar note subject. */
   char note_base_name[64];
   char note_symbol_name[64];
 } PlatformResolvedIndirectInfo;
@@ -88,6 +89,9 @@ int platform_resolve_additional_indirect_note(const SectionAnalysisContext *ctx,
     PlatformResolvedIndirectInfo *out_info);
 int platform_annotate_instruction_symbol_refs(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, M68kInstructionIR *instruction);
+int platform_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement, int treat_as_value,
+    M68kSymbolRefIR *out_symbol_ref);
 uint8_t section_analysis_context_backend_kind(const SectionAnalysisContext *ctx);
 const M68kObject *section_analysis_context_object(const SectionAnalysisContext *ctx);
 const M68kSection *section_analysis_context_section(const SectionAnalysisContext *ctx);
@@ -98,6 +102,8 @@ const M68kRecoveredPlatformCallIR *find_recovered_platform_call(const M68kSectio
     uint32_t offset, uint8_t kind);
 const M68kRecoveredPlatformCallIR *find_any_recovered_platform_call(const M68kSectionAnalysisIR *section_analysis,
     uint32_t offset);
+const M68kRecoveredPlatformEffectIR *find_recovered_platform_effect(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint8_t kind);
 void load_recovered_platform_call_info(const M68kRecoveredPlatformCallIR *recovered,
     PlatformResolvedIndirectInfo *out_info);
 void platform_resolved_indirect_info_init(PlatformResolvedIndirectInfo *info);
@@ -118,6 +124,7 @@ int operand_is_data_reg_direct(const M68kOperandIR *operand, uint8_t reg);
 int instruction_mnemonic_is(const M68kInstructionIR *instruction, const char *base_mnemonic);
 int operand_is_indirect_an(const M68kOperandIR *operand, uint8_t *out_reg);
 int operand_is_indirect_disp_an(const M68kOperandIR *operand, uint8_t *out_reg, int16_t *out_disp);
+int operand_is_indirect_or_disp_an(const M68kOperandIR *operand, uint8_t *out_reg, int16_t *out_disp);
 int operand_is_brief_indexed_an(const M68kOperandIR *operand, uint8_t *out_base_reg,
     uint8_t *out_index_is_address, uint8_t *out_index_reg, int32_t *out_disp);
 int instruction_is_address_move(const M68kInstructionIR *instruction, uint8_t *out_dest_reg,
@@ -158,12 +165,21 @@ int platform_amiga_resolve_additional_indirect_note(const SectionAnalysisContext
     PlatformResolvedIndirectInfo *out_info);
 int platform_amiga_annotate_instruction_symbol_refs(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, M68kInstructionIR *instruction);
+int platform_amiga_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement, int treat_as_value,
+    M68kSymbolRefIR *out_symbol_ref);
 const char *read_amiga_library_seed_name(const M68kSection *section, uint32_t target);
 void set_amiga_base_slot_tag(AmigaBaseSlotTag *slots, size_t slot_count, int16_t displacement, const char *base_name);
 const char *lookup_amiga_base_slot_tag(const AmigaBaseSlotTag *slots, size_t slot_count, int16_t displacement);
 const char *lookup_recovered_platform_base_slot(const M68kSectionAnalysisIR *section_analysis, int16_t displacement);
 const char *resolve_amiga_app_slot_base_name(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, int16_t displacement);
+int resolve_amiga_app_slot_symbol_name(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement, char *buf, size_t buf_size);
+int resolve_amiga_app_slot_symbol_ref(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement, M68kSymbolRefIR *out_symbol_ref);
+int resolve_amiga_app_slot_value_symbol_ref(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement, M68kSymbolRefIR *out_symbol_ref);
 int platform_atari_st_resolve_indirect_control(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
     PlatformResolvedIndirectInfo *out_info);
@@ -174,5 +190,8 @@ int platform_atari_st_resolve_additional_indirect_note(const SectionAnalysisCont
     PlatformResolvedIndirectInfo *out_info);
 int platform_atari_st_annotate_instruction_symbol_refs(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, M68kInstructionIR *instruction);
+int platform_atari_st_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement, int treat_as_value,
+    M68kSymbolRefIR *out_symbol_ref);
 
 #endif

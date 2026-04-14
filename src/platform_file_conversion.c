@@ -14,6 +14,8 @@ int populate_source_ir_from_object(const M68kBackend *backend, const M68kObject 
     return -1;
   }
   out_source_file->file_kind = object->platform_file_kind;
+  if (strcmp(backend->name, "amiga-hunk") == 0) out_source_file->platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  else if (strcmp(backend->name, "atari-st") == 0) out_source_file->platform_backend_kind = M68K_PLATFORM_BACKEND_ATARI_ST;
   if (strcmp(backend->name, "atari-st") == 0) {
     uint32_t program_flags = 0;
     if (m68k_atari_st_get_program_flags(object, &program_flags) == 0) {

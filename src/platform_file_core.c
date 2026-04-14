@@ -57,6 +57,8 @@ const M68kRecoveredPlatformCallIR *find_recovered_platform_call(const M68kSectio
     uint32_t offset, uint8_t kind);
 const M68kRecoveredPlatformCallIR *find_any_recovered_platform_call(const M68kSectionAnalysisIR *section_analysis,
     uint32_t offset);
+const M68kRecoveredPlatformEffectIR *find_recovered_platform_effect(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint8_t kind);
 void load_recovered_platform_call_info(const M68kRecoveredPlatformCallIR *recovered,
     PlatformResolvedIndirectInfo *out_info);
 void platform_resolved_indirect_info_init(PlatformResolvedIndirectInfo *info);
@@ -729,26 +731,36 @@ int instruction_mnemonic_is(const M68kInstructionIR *instruction, const char *ba
 
 int instruction_is_address_move(const M68kInstructionIR *instruction, uint8_t *out_dest_reg,
     const M68kOperandIR **out_source) {
+  uint8_t dest_reg;
   if (out_dest_reg != NULL) *out_dest_reg = 0U;
   if (out_source != NULL) *out_source = NULL;
   if (instruction == NULL || instruction->operand_count != 2U) return 0;
   if (!instruction_mnemonic_is(instruction, "movea") && !instruction_mnemonic_is(instruction, "move")) return 0;
-  if (instruction->operands[1].kind != M68K_ASM_OPERAND_AN) return 0;
-  if (out_dest_reg != NULL) *out_dest_reg = instruction->operands[1].value.reg;
-  if (out_source != NULL) *out_source = &instruction->operands[0];
-  return 1;
+  for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
+    if (operand_is_address_reg_direct(&instruction->operands[1], dest_reg)) {
+      if (out_dest_reg != NULL) *out_dest_reg = dest_reg;
+      if (out_source != NULL) *out_source = &instruction->operands[0];
+      return 1;
+    }
+  }
+  return 0;
 }
 
 int instruction_is_data_move(const M68kInstructionIR *instruction, uint8_t *out_dest_reg,
     const M68kOperandIR **out_source) {
+  uint8_t dest_reg;
   if (out_dest_reg != NULL) *out_dest_reg = 0U;
   if (out_source != NULL) *out_source = NULL;
   if (instruction == NULL || instruction->operand_count != 2U) return 0;
   if (!instruction_mnemonic_is(instruction, "move")) return 0;
-  if (instruction->operands[1].kind != M68K_ASM_OPERAND_DN) return 0;
-  if (out_dest_reg != NULL) *out_dest_reg = instruction->operands[1].value.reg;
-  if (out_source != NULL) *out_source = &instruction->operands[0];
-  return 1;
+  for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
+    if (operand_is_data_reg_direct(&instruction->operands[1], dest_reg)) {
+      if (out_dest_reg != NULL) *out_dest_reg = dest_reg;
+      if (out_source != NULL) *out_source = &instruction->operands[0];
+      return 1;
+    }
+  }
+  return 0;
 }
 
 int instruction_is_register_to_app_slot_store(const M68kInstructionIR *instruction, uint8_t *out_source_kind,
@@ -862,6 +874,17 @@ const M68kRecoveredPlatformCallIR *find_any_recovered_platform_call(const M68kSe
   return NULL;
 }
 
+const M68kRecoveredPlatformEffectIR *find_recovered_platform_effect(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint8_t kind) {
+  size_t index;
+  if (section_analysis == NULL) return NULL;
+  for (index = 0; index < section_analysis->recovered_platform_effect_count; ++index) {
+    const M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index];
+    if (effect->offset == offset && effect->kind == kind) return effect;
+  }
+  return NULL;
+}
+
 static int format_platform_resolved_indirect_note(const PlatformResolvedIndirectInfo *info, char *buf, size_t buf_size) {
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
@@ -872,7 +895,21 @@ static int format_platform_resolved_indirect_note(const PlatformResolvedIndirect
     snprintf(buf, buf_size, "KNOWN: %s indexed vector via d%u", info->note_base_name, (unsigned)info->note_reg);
     return 1;
   case M68K_PLATFORM_CALL_NOTE_CALLBACK_FIELD:
-    if (info->note_disp == INT16_MIN || info->note_field_disp == INT16_MIN) return 0;
+    if (info->note_field_disp == INT16_MIN) return 0;
+    if (info->note_symbol_name[0] != '\0' && info->note_base_name[0] != '\0') {
+      snprintf(buf, buf_size, "KNOWN: callback field %s from %s", info->note_symbol_name, info->note_base_name);
+      return 1;
+    }
+    if (info->note_symbol_name[0] != '\0' && info->note_disp != INT16_MIN) {
+      snprintf(buf, buf_size, "KNOWN: callback field %s from $%04X(a6)", info->note_symbol_name,
+        (unsigned)(uint16_t)info->note_disp);
+      return 1;
+    }
+    if (info->note_base_name[0] != '\0') {
+      snprintf(buf, buf_size, "KNOWN: callback field %+d from %s", (int)info->note_field_disp, info->note_base_name);
+      return 1;
+    }
+    if (info->note_disp == INT16_MIN) return 0;
     snprintf(buf, buf_size, "KNOWN: callback field %+d from $%04X(a6)", (int)info->note_field_disp,
       (unsigned)(uint16_t)info->note_disp);
     return 1;
@@ -954,10 +991,10 @@ uint32_t resolve_analysis_trace_start(const SectionAnalysisContext *ctx,
         }
       }
     }
-    return start;
+    if (start < offset) return start;
   }
   start = find_enclosing_code_start(section_analysis, offset);
-  if (start != UINT32_MAX && start <= offset) return start;
+  if (start != UINT32_MAX && start < offset) return start;
   candidate_start = offset;
   while (candidate_start-- > ((offset > 32U) ? (offset - 32U) : 0U)) {
     uint32_t cursor = candidate_start;
@@ -2398,6 +2435,15 @@ int operand_is_indirect_disp_an(const M68kOperandIR *operand, uint8_t *out_reg, 
   return 1;
 }
 
+int operand_is_indirect_or_disp_an(const M68kOperandIR *operand, uint8_t *out_reg, int16_t *out_disp) {
+  if (operand == NULL || out_reg == NULL || out_disp == NULL) return 0;
+  if (operand_is_indirect_an(operand, out_reg)) {
+    *out_disp = 0;
+    return 1;
+  }
+  return operand_is_indirect_disp_an(operand, out_reg, out_disp);
+}
+
 static int instruction_is_add_word_self(const M68kInstructionIR *instruction, uint8_t reg) {
   uint8_t src_is_address, dst_is_address, src_reg, dst_reg;
   if (instruction == NULL || _stricmp(instruction->mnemonic, "add") != 0 || instruction->size_suffix != 'w' ||
@@ -2654,16 +2700,27 @@ static void annotate_platform_symbol_refs(const SectionAnalysisContext *ctx, con
   if (instruction == NULL) return;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     int16_t displacement;
-    const char *base_name;
     operand = &instruction->operands[operand_index];
     if (!operand_is_app_base_disp_ea(operand, 6U, &displacement)) continue;
-    base_name = resolve_amiga_app_slot_base_name(ctx, section_analysis, displacement);
-    if (base_name == NULL || base_name[0] == '\0') continue;
-    operand->symbol_ref.has_name = 1U;
+    {
+      uint8_t dest_reg;
+      const M68kOperandIR *source = NULL;
+      int treat_as_value = 1;
+      if (operand_index == 0U && instruction_mnemonic_is(instruction, "lea")) {
+        treat_as_value = 0;
+      } else if (operand_index == 0U && instruction_mnemonic_is(instruction, "pea")) {
+        treat_as_value = 0;
+      } else if (instruction_is_address_move(instruction, &dest_reg, &source) && source == operand) {
+        treat_as_value = 0;
+      }
+      if (!platform_resolve_app_base_slot_symbol_ref(ctx, section_analysis, displacement, treat_as_value,
+            &operand->symbol_ref)) {
+        continue;
+      }
+    }
     operand->symbol_ref.name_is_generated = 0U;
     operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
     operand->symbol_ref.addend = 0;
-    snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "app_%s", base_name);
   }
   platform_annotate_instruction_symbol_refs(ctx, section_analysis, offset, instruction);
   if (platform_resolve_indirect_control(ctx, section_analysis, offset, instruction, &info) ==
@@ -2675,6 +2732,12 @@ static void annotate_platform_symbol_refs(const SectionAnalysisContext *ctx, con
   operand = &instruction->operands[(size_t)(target_operand - instruction->operands)];
   operand->symbol_ref.has_name = 1U;
   operand->symbol_ref.name_is_generated = 0U;
+  if (ctx != NULL && section_analysis_context_object(ctx) != NULL) {
+    if (section_analysis_context_object(ctx)->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK)
+      operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
+    else if (section_analysis_context_object(ctx)->platform_backend_kind == M68K_PLATFORM_BACKEND_ATARI_ST)
+      operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_ATARI_ST;
+  }
   operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
   operand->symbol_ref.addend = 0;
   snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", info.symbol_name);
@@ -5369,7 +5432,7 @@ int build_section_ir(const M68kObject *object, const M68kSection *section,
             append_statement_comment(violation, sizeof(violation), note);
           }
         }
-        {
+        if (find_any_recovered_platform_call(section_analysis, (uint32_t)offset) == NULL) {
           PlatformResolvedIndirectInfo platform_info;
           char note[160];
           platform_resolved_indirect_info_init(&platform_info);

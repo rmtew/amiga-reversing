@@ -344,7 +344,12 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
   const char *name = NULL;
   if (operand == NULL || !operand->symbol_ref.has_name) return -1;
   name = operand->symbol_ref.name;
-  if (operand->symbol_ref.addend != 0) {
+  if (operand->symbol_ref.has_symbolic_addend != 0U &&
+      operand->symbol_ref.symbolic_addend_name[0] != '\0') {
+    snprintf(name_with_addend, sizeof(name_with_addend), "%s%c%s", operand->symbol_ref.name,
+      operand->symbol_ref.symbolic_addend_value < 0 ? '-' : '+', operand->symbol_ref.symbolic_addend_name);
+    name = name_with_addend;
+  } else if (operand->symbol_ref.addend != 0) {
     snprintf(name_with_addend, sizeof(name_with_addend), "%s%+d", operand->symbol_ref.name,
       (int)operand->symbol_ref.addend);
     name = name_with_addend;

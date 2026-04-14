@@ -50,3 +50,19 @@ int platform_annotate_instruction_symbol_refs(const SectionAnalysisContext *ctx,
     return 0;
   }
 }
+
+int platform_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement, int treat_as_value,
+    M68kSymbolRefIR *out_symbol_ref) {
+  switch (section_analysis_context_backend_kind(ctx)) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return platform_amiga_resolve_app_base_slot_symbol_ref(ctx, section_analysis, displacement, treat_as_value,
+      out_symbol_ref);
+  case M68K_PLATFORM_BACKEND_ATARI_ST:
+    return platform_atari_st_resolve_app_base_slot_symbol_ref(ctx, section_analysis, displacement, treat_as_value,
+      out_symbol_ref);
+  default:
+    if (out_symbol_ref != NULL) m68k_ir_symbol_ref_init(out_symbol_ref);
+    return 0;
+  }
+}

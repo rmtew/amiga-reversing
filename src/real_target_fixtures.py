@@ -19,7 +19,7 @@ REAL_TARGET_FIXTURES = (
         "binary": ROOT / "bin" / "BIN_GEN.TTP",
         "source": ROOT / "bin" / "BIN_GEN.latest.s",
         "benchmark": ROOT / "bin" / "BIN_GEN.benchmark.json",
-        "include_dir": ROOT,
+        "include_dir": ROOT / "ext" / "atarist_includes" / "devpac_3_10" / "include",
     },
 )
 

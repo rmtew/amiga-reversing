@@ -25,6 +25,7 @@ typedef struct AtariStOsCallInfo {
   const char *function_name;
   const char *symbol_name;
   const char *source_header;
+  const char *include_path;
   uint8_t stack_cleanup_known;
   uint16_t stack_cleanup_bytes;
   uint8_t arg_count;
@@ -35,5 +36,6 @@ typedef struct AtariStOsCallInfo {
 
 const AtariStOsCallInfo *atari_st_os_find_call(uint8_t trap_vector, uint16_t opcode);
 const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_name(const char *symbol_name);
+const char *atari_st_os_find_symbol_include(const char *symbol_name);
 
 #endif
